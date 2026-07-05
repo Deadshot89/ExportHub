@@ -15182,13 +15182,13 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
 </body></html>
 
 
-<script id="rc177-teamdata-sync">
+<script id="rc179-teamlive-api-sync">
 (function(){
   'use strict';
-  const RC177_BUILD = 'RC177 Teamdaten Starter';
+  const RC177_BUILD = 'RC179 TeamLive API Verbindung';
   const API = '/api/exporthub/state';
-  const META_KEY = 'exporthub_rc177_cloud_meta';
-  const CLIENT_KEY = 'exporthub_rc177_client_id';
+  const META_KEY = 'exporthub_rc179_cloud_meta';
+  const CLIENT_KEY = 'exporthub_rc179_client_id';
   const POLL_MS = 20000;
   let cloudPaused = false;
   let pushTimer = null;
@@ -15213,10 +15213,10 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
         const prefix = kind==='ok' ? 'Teamdaten: ' : kind==='warn' ? 'Teamdaten Hinweis: ' : 'Teamdaten: ';
         si.textContent = prefix + text;
       }
-      let b = document.getElementById('rc177TeamSyncBadge');
+      let b = document.getElementById('rc179TeamSyncBadge');
       if(!b){
         b = document.createElement('div');
-        b.id = 'rc177TeamSyncBadge';
+        b.id = 'rc179TeamSyncBadge';
         b.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:99999;border-radius:999px;padding:8px 12px;font:700 12px Segoe UI,Arial;background:#eff6ff;color:#08245d;border:1px solid #bfdbfe;box-shadow:0 6px 18px rgba(15,23,42,.12);display:none';
         document.body.appendChild(b);
       }
@@ -15252,7 +15252,7 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
       setSyncInfo('aus Cloud geladen', 'ok');
       return true;
     }catch(e){
-      console.warn('RC177 Cloud apply failed', e);
+      console.warn('RC179 Cloud apply failed', e);
       setSyncInfo('Laden fehlgeschlagen', 'warn');
       return false;
     }finally{
@@ -15272,7 +15272,7 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
     }catch(e){
       if(e.status===401 || e.status===403) setSyncInfo('Microsoft-Anmeldung für Teamdaten nötig', 'warn');
       else setSyncInfo('Cloud nicht erreichbar', 'warn');
-      console.warn('RC177 Cloud pull failed', e);
+      console.warn('RC179 Cloud pull failed', e);
     }
   }
   async function pushCloud(){
@@ -15298,7 +15298,7 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
     }catch(e){
       if(e.status===401 || e.status===403) setSyncInfo('Teamdaten nicht gespeichert: Microsoft-Anmeldung nötig', 'warn');
       else setSyncInfo('Teamdaten nicht gespeichert', 'warn');
-      console.warn('RC177 Cloud push failed', e);
+      console.warn('RC179 Cloud push failed', e);
     }
   }
   function schedulePush(delay){
@@ -15334,9 +15334,9 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
     }
   }catch(_){ }
 
-  window.rc177CloudPull = () => pullCloud(true);
-  window.rc177CloudPush = () => pushCloud();
-  window.rc177CloudStatus = () => readMeta();
+  window.rc179CloudPull = () => pullCloud(true);
+  window.rc179CloudPush = () => pushCloud();
+  window.rc179CloudStatus = () => readMeta();
 
   document.addEventListener('DOMContentLoaded', function(){
     setTimeout(()=>pullCloud(true), 1200);

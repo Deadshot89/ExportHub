@@ -1,6 +1,45 @@
 {
   "routes": [
     {
+      "route": "/",
+      "rewrite": "/start.html",
+      "allowedRoles": ["anonymous"]
+    },
+    {
+      "route": "/start.html",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
+      "route": "/index.html",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
+      "route": "/logged-out.html",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
+      "route": "/robots.txt",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
+      "route": "/login",
+      "redirect": "/.auth/login/aad?post_login_redirect_uri=/index.html",
+      "statusCode": 302
+    },
+    {
+      "route": "/logout",
+      "redirect": "/logged-out.html",
+      "statusCode": 302
+    },
+    {
+      "route": "/.auth/login/github",
+      "statusCode": 404
+    },
+    {
+      "route": "/.auth/login/twitter",
+      "statusCode": 404
+    },
+    {
       "route": "/api/exporthub/health",
       "allowedRoles": ["anonymous", "authenticated"]
     },
@@ -13,16 +52,8 @@
       "allowedRoles": ["authenticated"]
     },
     {
-      "route": "/start.html",
-      "allowedRoles": ["anonymous", "authenticated"]
-    },
-    {
-      "route": "/logged-out.html",
-      "allowedRoles": ["anonymous", "authenticated"]
-    },
-    {
-      "route": "/robots.txt",
-      "allowedRoles": ["anonymous", "authenticated"]
+      "route": "/api/*",
+      "allowedRoles": ["authenticated"]
     },
     {
       "route": "/*",
@@ -30,7 +61,38 @@
     }
   ],
   "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/api/*", "/.auth/*", "/robots.txt"]
+    "rewrite": "/start.html",
+    "exclude": [
+      "/.auth/*",
+      "/api/*",
+      "/index.html",
+      "/start.html",
+      "/logged-out.html",
+      "/robots.txt",
+      "/*.{css,scss,js,png,jpg,gif,ico,svg,json,txt,pdf,docx,xlsx}"
+    ]
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/start.html",
+      "statusCode": 200
+    }
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0"
+  },
+  "mimeTypes": {
+    ".json": "application/json",
+    ".html": "text/html; charset=utf-8",
+    ".txt": "text/plain; charset=utf-8"
+  },
+  "platform": {
+    "apiRuntime": "node:20"
   }
 }
