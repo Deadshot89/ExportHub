@@ -1,14 +1,8 @@
 {
   "name": "exporthub-api",
   "version": "1.0.0",
-  "description": "ExportHUB Azure Static Web Apps API",
-  "main": "src/functions/exporthubState.js",
-  "scripts": {
-    "start": "func start"
-  },
+  "description": "ExportHUB API",
   "dependencies": {
-    "@azure/functions": "^4.6.0",
     "@azure/storage-blob": "^12.26.0"
-  },
-  "devDependencies": {}
+  }
 }
