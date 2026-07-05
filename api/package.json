@@ -1,4 +1,14 @@
-node_modules
-.env
-local.settings.json
-.vscode
+{
+  "name": "exporthub-api",
+  "version": "1.0.0",
+  "description": "ExportHUB Azure Static Web Apps API",
+  "main": "src/functions/exporthubState.js",
+  "scripts": {
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.6.0",
+    "@azure/storage-blob": "^12.26.0"
+  },
+  "devDependencies": {}
+}
