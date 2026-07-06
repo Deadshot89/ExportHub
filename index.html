@@ -25694,6 +25694,282 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC225 END: Ladeliste Unterschrift/Paletten unten erzwingen -->
+
+<!-- PRIVATE RC226 START: Colli-Felder aus State sichtbar wiederherstellen -->
+<style>
+.rc226-colli-guard{
+  border:1px solid #86efac;
+  background:#f0fdf4;
+  color:#166534;
+  border-radius:10px;
+  padding:7px 9px;
+  margin:8px 0;
+  font-size:12px;
+  font-weight:950;
+}
+</style>
+
+<script>
+/* PRIVATE RC226: sichtbare leere Colli-Felder aus vorhandenem State/Draft zurueckfuellen */
+(function(){
+  if(window.__EXPORTHUB_RC226_COLLI_VISIBLE_RESTORE__)return;
+  window.__EXPORTHUB_RC226_COLLI_VISIBLE_RESTORE__=true;
+
+  var applying226=false;
+  var timer226=null;
+
+  function clone226(v){
+    try{return JSON.parse(JSON.stringify(v))}catch(err){return v}
+  }
+
+  function n226(v){
+    if(v===null || v===undefined)return '';
+    var s=String(v).trim();
+    if(s==='')return '';
+    var x=Number(s.replace(',','.'));
+    return isFinite(x)?x:s;
+  }
+
+  function blank226(){
+    return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''};
+  }
+
+  function has226(r){
+    return !!(r && ['type','count','ldm','weight','l','w','h'].some(function(k){
+      var v=r[k];
+      return v!=='' && v!==null && v!==undefined;
+    }));
+  }
+
+  function completeScore226(r){
+    if(!r)return 0;
+    return ['type','count','ldm','weight','l','w','h'].reduce(function(a,k){
+      var v=r[k];
+      return a + ((v!=='' && v!==null && v!==undefined)?1:0);
+    },0);
+  }
+
+  function pack226(name){
+    try{
+      return (SEED.colliTypes||[]).find(function(p){return String(p.name||'')===String(name||'')}) || null;
+    }catch(err){return null}
+  }
+
+  function applyPack226(row,force){
+    row=Object.assign(blank226(),row||{});
+    var p=pack226(row.type);
+    if(p){
+      if(force || row.ldm==='' || row.ldm==null)row.ldm=p.ldm!=null?p.ldm:'';
+      if(force || row.l==='' || row.l==null)row.l=p.l!=null?p.l:'';
+      if(force || row.w==='' || row.w==null)row.w=p.w!=null?p.w:'';
+      if(force || row.h==='' || row.h==null)row.h=p.h!=null?p.h:'';
+    }
+    return row;
+  }
+
+  function normalize226(rows,keepBlank){
+    rows=(Array.isArray(rows)?rows:[]).map(function(r){
+      return applyPack226({
+        type:r&&r.type!=null?String(r.type):'',
+        count:r&&r.count!=null?r.count:'',
+        ldm:r&&r.ldm!=null?r.ldm:'',
+        weight:r&&r.weight!=null?r.weight:'',
+        l:r&&r.l!=null?r.l:'',
+        w:r&&r.w!=null?r.w:'',
+        h:r&&r.h!=null?r.h:''
+      },false);
+    });
+    return keepBlank?rows:rows.filter(has226);
+  }
+
+  function draft226(){
+    var rows=[];
+    try{rows=(state&&state.shipment&&state.shipment.rows)||[]}catch(err){rows=[]}
+    rows=normalize226(rows,false);
+    if(!rows.length){try{rows=normalize226(state.rc224ColliRows||state.rc221LastColliRows||state.rc210ColliRows||state.rc209LastColliRows||[],false)}catch(err){}}
+    if(!rows.length){
+      ['exporthub_rc224_colli_last','exporthub_rc221_colli_rows_last','exporthub_rc209_colli_rows_last','exporthub_rc210_colli_rows'].some(function(k){
+        try{rows=normalize226(JSON.parse(localStorage.getItem(k)||'[]'),false)}catch(err){rows=[]}
+        return rows.length>0;
+      });
+    }
+    return rows;
+  }
+
+  function readVisible226(keepBlank){
+    var box=document.getElementById('rowsBox');
+    if(!box)return [];
+    var cards=Array.from(box.children).filter(function(card){
+      return card && card.querySelector && card.querySelector('select,input');
+    });
+    if(!cards.length && box.querySelector('select,input'))cards=[box];
+    return normalize226(cards.map(function(card){
+      var select=card.querySelector('select');
+      var inputs=Array.from(card.querySelectorAll('input')).filter(function(el){
+        return !/^(hidden|file|checkbox|radio)$/i.test(el.type||'');
+      });
+      return applyPack226({
+        type:select?String(select.value||''):'',
+        count:n226(inputs[0]&&inputs[0].value),
+        ldm:n226(inputs[1]&&inputs[1].value),
+        weight:n226(inputs[2]&&inputs[2].value),
+        l:n226(inputs[3]&&inputs[3].value),
+        w:n226(inputs[4]&&inputs[4].value),
+        h:n226(inputs[5]&&inputs[5].value)
+      },false);
+    }),!!keepBlank);
+  }
+
+  function bestRows226(){
+    var visible=readVisible226(true);
+    var stateRows=draft226();
+    var out=[];
+    var max=Math.max(visible.length,stateRows.length,1);
+    for(var i=0;i<max;i++){
+      var v=visible[i]||blank226();
+      var s=stateRows[i]||blank226();
+      var row=completeScore226(s)>completeScore226(v)?Object.assign({},v,s):Object.assign({},s,v);
+      row=applyPack226(row,false);
+      out.push(row);
+    }
+    out=normalize226(out,true);
+    if(!normalize226(out,false).length && stateRows.length)out=normalize226(stateRows,true);
+    return out;
+  }
+
+  function persist226(rows){
+    rows=normalize226(rows,true);
+    if(typeof state!=='undefined' && state){
+      state.shipment=state.shipment||{};
+      state.shipment.rows=rows.length?rows:[blank226()];
+      try{state.rc226ColliRows=clone226(normalize226(rows,false));state.rc226SavedAt=new Date().toISOString()}catch(err){}
+    }
+    var nonEmpty=normalize226(rows,false);
+    if(nonEmpty.length){
+      try{localStorage.setItem('exporthub_rc226_colli_rows_last',JSON.stringify(nonEmpty))}catch(err){}
+      try{localStorage.setItem('exporthub_rc224_colli_last',JSON.stringify(nonEmpty))}catch(err){}
+    }
+    return rows;
+  }
+
+  function fill226(rows){
+    var box=document.getElementById('rowsBox');
+    if(!box)return;
+    rows=normalize226(rows,false);
+    if(!rows.length)return;
+    applying226=true;
+    try{
+      var cards=Array.from(box.children).filter(function(card){
+        return card && card.querySelector && card.querySelector('select,input');
+      });
+      if(!cards.length && box.querySelector('select,input'))cards=[box];
+      rows.forEach(function(r,i){
+        var card=cards[i];
+        if(!card)return;
+        var select=card.querySelector('select');
+        if(select && document.activeElement!==select && r.type!=null)select.value=String(r.type||'');
+        var inputs=Array.from(card.querySelectorAll('input')).filter(function(el){
+          return !/^(hidden|file|checkbox|radio)$/i.test(el.type||'');
+        });
+        var order=['count','ldm','weight','l','w','h'];
+        order.forEach(function(k,idx){
+          var el=inputs[idx];
+          if(!el || document.activeElement===el)return;
+          var v=r[k];
+          el.value=v===null||v===undefined?'':String(v);
+        });
+      });
+      if(!document.getElementById('rc226ColliGuard')){
+        var msg=document.createElement('div');
+        msg.id='rc226ColliGuard';
+        msg.className='rc226-colli-guard';
+        msg.textContent='RC226 aktiv: sichtbare Colli-Felder werden aus dem gespeicherten Stand zurueckgefuellt.';
+        box.parentNode.insertBefore(msg,box);
+      }
+    }finally{
+      applying226=false;
+    }
+  }
+
+  function repair226(reason){
+    if(applying226)return;
+    var rows=bestRows226();
+    rows=persist226(rows);
+    fill226(rows);
+    return rows;
+  }
+
+  window.rc226RepairColliFields=function(){
+    return repair226('manual');
+  };
+
+  window.updateRow=function(i,k,v){
+    var rows=bestRows226();
+    while(rows.length<=i)rows.push(blank226());
+    rows[i]=Object.assign(blank226(),rows[i]||{});
+    rows[i][k]=k==='type'?String(v||''):n226(v);
+    rows[i]=applyPack226(rows[i],k==='type');
+    persist226(rows);
+    fill226(rows);
+    try{if(typeof save==='function')save()}catch(err){}
+  };
+  try{updateRow=window.updateRow}catch(err){}
+
+  function schedule226(){
+    clearTimeout(timer226);
+    timer226=setTimeout(function(){repair226('scheduled')},30);
+    setTimeout(function(){repair226('late')},250);
+  }
+
+  ['render','shipment','addShipmentRow','saveShipment','showCurrentCmr','addDeliveryNoteFiles','setShipmentPickupDate','setShipmentRef','selectShipmentCustomer','applyCustomerSearch','ensureShipmentReference'].forEach(function(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base==='function' && !base.__rc226Wrapped){
+        var wrapped=function(){
+          if(document.getElementById('rowsBox'))repair226('before-'+name);
+          var r=base.apply(this,arguments);
+          schedule226();
+          return r;
+        };
+        wrapped.__rc226Wrapped=true;
+        window[name]=wrapped;
+        try{eval(name+'=window[name]')}catch(err){}
+      }
+    }catch(err){}
+  });
+
+  ['input','change','blur','keyup','focusout'].forEach(function(type){
+    document.addEventListener(type,function(ev){
+      var box=document.getElementById('rowsBox');
+      if(box && ev.target && box.contains(ev.target)){
+        repair226(type);
+      }
+    },true);
+  });
+
+  document.addEventListener('pointerdown',function(ev){
+    var box=document.getElementById('rowsBox');
+    var el=ev.target&&ev.target.closest&&ev.target.closest('button,label,input,select');
+    if(!el)return;
+    var txt=String(el.textContent||el.value||'').toLowerCase();
+    var oc=String(el.getAttribute&&el.getAttribute('onclick')||'').toLowerCase();
+    if((box&&box.contains(el)) || txt.indexOf('+ zeile')>=0 || txt.indexOf('adresse')>=0 || txt.indexOf('speichern')>=0 || txt.indexOf('ladeliste')>=0 || el.type==='file' || oc.indexOf('render')>=0){
+      repair226('pointerdown');
+    }
+  },true);
+
+  setInterval(function(){
+    if(document.getElementById('rowsBox'))repair226('interval');
+  },700);
+
+  setTimeout(function(){repair226('init')},100);
+  setTimeout(function(){repair226('init-late')},600);
+})();
+</script>
+<!-- PRIVATE RC226 END: Colli-Felder aus State sichtbar wiederherstellen -->
+
+
+
   
 </body></html>
 
