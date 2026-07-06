@@ -17544,6 +17544,459 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   setTimeout(attachButtonDom192,220);
 })();
 </script>
+<style>
+/* PRIVATE RC193: Benutzer anlegen + Rechte vergeben final */
+.rc193-rights-layout{
+  display:grid;
+  grid-template-columns:330px minmax(0,1fr);
+  gap:14px;
+  align-items:start;
+}
+.rc193-user-list{
+  display:grid;
+  gap:8px;
+  max-height:520px;
+  overflow:auto;
+}
+.rc193-user-button{
+  border:1px solid var(--line);
+  background:white;
+  border-radius:14px;
+  padding:11px;
+  text-align:left;
+  font-weight:850;
+  cursor:pointer;
+}
+.rc193-user-button.active{
+  border-color:#2563eb;
+  background:#eff6ff;
+}
+.rc193-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:10px 0;
+}
+.rc193-table th,
+.rc193-table td{
+  vertical-align:middle;
+}
+.rc193-table input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  accent-color:#2563eb;
+}
+.rc193-note{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:14px;
+  padding:11px 12px;
+  font-weight:850;
+  margin:10px 0;
+}
+@media(max-width:1100px){
+  .rc193-rights-layout{grid-template-columns:1fr}
+}
+</style>
+
+<script>
+/* PRIVATE RC193: robuste Benutzerverwaltung nach RC93/RC192 */
+(function(){
+  function e193(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n193(v){
+    return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function modules193(){
+    try{return Array.isArray(RIGHTS_MODULES)?RIGHTS_MODULES:[]}catch(err){return []}
+  }
+
+  function userKey193(){
+    try{return USER_KEY}catch(err){return 'exporthub_private_rc113_safe_users'}
+  }
+
+  function isAdmin193(u){
+    return !!(u && ((Array.isArray(u.permissions)&&u.permissions.includes('*')) || n193(u.user)==='tobias' || n193(u.name)==='tobias' || n193(u.role).includes('admin')));
+  }
+
+  function blankRights193(){
+    var out={};
+    modules193().forEach(function(m){
+      var id=m[0];
+      var base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+
+  function fullRights193(){
+    var out={};
+    modules193().forEach(function(m){
+      out[m[0]]={visible:true,read:true,edit:true};
+    });
+    return out;
+  }
+
+  function readRights193(){
+    var out={};
+    modules193().forEach(function(m){
+      var id=m[0];
+      out[id]={visible:true,read:true,edit:false};
+    });
+    return out;
+  }
+
+  function presetRights193(preset){
+    var r=blankRights193();
+    function give(ids,edit){
+      ids.forEach(function(id){
+        if(r[id])r[id]={visible:true,read:true,edit:!!edit};
+      });
+    }
+    var all=modules193().map(function(m){return m[0]});
+    if(preset==='read')return readRights193();
+    if(preset==='edit')return fullRights193();
+    if(preset==='sales'){
+      give(['start','dashboard','shipmentoverview','customerfolder','customers','archive'],false);
+    }else if(preset==='sevastian'){
+      give(['start','dashboard','tasks','shipment','shipmentoverview','cmr','customers','customerfolder','customs','sop','archive'],true);
+    }else if(preset==='export'){
+      give(['start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);
+    }else if(preset==='azubi'){
+      give(['start','dashboard','tasks','sop','academy','quiz','customers','customerfolder'],true);
+    }else if(preset==='none'){
+      // nur Start/Dashboard
+    }else{
+      give(all,false);
+    }
+    return r;
+  }
+
+  function normalizeOne193(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.mustChange=!!u.mustChange;
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+
+    if(isAdmin193(u)){
+      u.permissions=['*'];
+      u.rights=fullRights193();
+      u.mustChange=false;
+      return u;
+    }
+
+    var base=blankRights193();
+    modules193().forEach(function(m){
+      var id=m[0];
+      var existing=u.rights[id]||{};
+      base[id]={
+        visible:existing.visible===true || id==='start' || id==='dashboard',
+        read:existing.read===true || id==='start' || id==='dashboard',
+        edit:existing.edit===true
+      };
+      if(!base[id].visible){base[id].read=false;base[id].edit=false;}
+      if(!base[id].read){base[id].edit=false;}
+    });
+    u.rights=base;
+    return u;
+  }
+
+  function syncUsers193(){
+    users=Array.isArray(users)?users:[];
+    var map={};
+    users.forEach(function(u){
+      if(!u||!String(u.user||'').trim())return;
+      var normalized=normalizeOne193(u);
+      map[normalized.user.toLowerCase()]=normalized;
+    });
+    users=Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return map[k]});
+
+    try{
+      state.users=JSON.parse(JSON.stringify(users));
+    }catch(err){}
+    try{
+      localStorage.setItem(userKey193(),JSON.stringify(users));
+    }catch(err){}
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    if(currentUser){
+      var fresh=users.find(function(u){return String(u.user).toLowerCase()===String(currentUser.user).toLowerCase()});
+      if(fresh)currentUser=fresh;
+    }
+    return users;
+  }
+
+  function selectedUser193(){
+    syncUsers193();
+    var selected=(state&&state.rc193RightsUser)||'';
+    var u=users.find(function(x){return x.user===selected});
+    if(!u){
+      u=users.find(function(x){return !isAdmin193(x)}) || users[0] || null;
+      if(state&&u)state.rc193RightsUser=u.user;
+    }
+    return u;
+  }
+
+  function canManage193(){
+    return isAdmin193(currentUser);
+  }
+
+  window.rc193SelectUser=function(login){
+    if(state)state.rc193RightsUser=login || '';
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc193CreateUser=function(){
+    if(!canManage193())return alert('Nur Tobias/Admin kann Benutzer anlegen.');
+    syncUsers193();
+    var login=(document.getElementById('rc193NewLogin')&&document.getElementById('rc193NewLogin').value||'').trim();
+    var name=(document.getElementById('rc193NewName')&&document.getElementById('rc193NewName').value||login).trim();
+    var role=(document.getElementById('rc193NewRole')&&document.getElementById('rc193NewRole').value||'Benutzer').trim();
+    var password=(document.getElementById('rc193NewPassword')&&document.getElementById('rc193NewPassword').value||'Essentra').trim();
+    var preset=(document.getElementById('rc193NewPreset')&&document.getElementById('rc193NewPreset').value||'none');
+
+    if(!login)return alert('Bitte Login eintragen.');
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login))return alert('Login bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.');
+    if(users.some(function(u){return String(u.user).toLowerCase()===login.toLowerCase()}))return alert('Dieser Benutzer existiert bereits.');
+
+    var u={
+      user:login,
+      name:name||login,
+      password:password||'Essentra',
+      role:role||'Benutzer',
+      permissions:[],
+      mustChange:true,
+      rights:presetRights193(preset)
+    };
+    users.push(u);
+    if(state)state.rc193RightsUser=login;
+    syncUsers193();
+    try{if(typeof audit==='function')audit('Benutzer angelegt',(name||login)+' · '+role)}catch(err){}
+    alert('Benutzer wurde angelegt: '+(name||login));
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc193SetRight=function(login,module,type,checked){
+    if(!canManage193())return alert('Nur Tobias/Admin kann Rechte ändern.');
+    syncUsers193();
+    var u=users.find(function(x){return x.user===login});
+    if(!u)return;
+    if(isAdmin193(u))return alert('Admin-Benutzer haben immer Vollzugriff.');
+    u.rights=u.rights||blankRights193();
+    u.rights[module]=u.rights[module]||{visible:false,read:false,edit:false};
+    u.rights[module][type]=!!checked;
+    if(type==='visible'&&!checked){u.rights[module].read=false;u.rights[module].edit=false;}
+    if(type==='read'&&checked)u.rights[module].visible=true;
+    if(type==='read'&&!checked)u.rights[module].edit=false;
+    if(type==='edit'&&checked){u.rights[module].visible=true;u.rights[module].read=true;}
+    ['visible','read','edit'].forEach(function(k){
+      var el=document.getElementById('rc193_'+module+'_'+k);
+      if(el)el.checked=!!u.rights[module][k];
+    });
+  };
+
+  window.rc193ApplyPreset=function(preset){
+    if(!canManage193())return alert('Nur Tobias/Admin kann Rechte ändern.');
+    var u=selectedUser193();
+    if(!u)return;
+    if(isAdmin193(u))return alert('Admin-Benutzer haben immer Vollzugriff.');
+    u.rights=presetRights193(preset);
+    syncUsers193();
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc193SaveSelectedUser=function(){
+    if(!canManage193())return alert('Nur Tobias/Admin kann Benutzer speichern.');
+    syncUsers193();
+    var u=selectedUser193();
+    if(!u)return alert('Bitte Benutzer auswählen.');
+    var name=(document.getElementById('rc193EditName')&&document.getElementById('rc193EditName').value||u.name||u.user).trim();
+    var role=(document.getElementById('rc193EditRole')&&document.getElementById('rc193EditRole').value||u.role||'Benutzer').trim();
+    var pass=(document.getElementById('rc193EditPassword')&&document.getElementById('rc193EditPassword').value||'').trim();
+    var mustChange=!!(document.getElementById('rc193MustChange')&&document.getElementById('rc193MustChange').checked);
+    if(!isAdmin193(u)){
+      u.name=name||u.user;
+      u.role=role||'Benutzer';
+      u.mustChange=mustChange;
+      if(pass){
+        if(pass.length<4)return alert('Passwort muss mindestens 4 Zeichen haben.');
+        u.password=pass;
+        u.mustChange=true;
+      }
+    }
+    syncUsers193();
+    try{if(typeof audit==='function')audit('Benutzer/Rechte gespeichert',u.name||u.user)}catch(err){}
+    alert('Benutzer und Rechte wurden gespeichert: '+(u.name||u.user));
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc193ToggleAll=function(type,checked){
+    if(!canManage193())return alert('Nur Tobias/Admin kann Rechte ändern.');
+    var u=selectedUser193();
+    if(!u)return;
+    if(isAdmin193(u))return alert('Admin-Benutzer haben immer Vollzugriff.');
+    modules193().forEach(function(m){
+      var id=m[0];
+      u.rights[id]=u.rights[id]||{visible:false,read:false,edit:false};
+      if(type==='visible'){
+        u.rights[id].visible=!!checked;
+        if(!checked){u.rights[id].read=false;u.rights[id].edit=false;}
+      }
+      if(type==='read'){
+        u.rights[id].read=!!checked;
+        if(checked)u.rights[id].visible=true;
+        else u.rights[id].edit=false;
+      }
+      if(type==='edit'){
+        u.rights[id].edit=!!checked;
+        if(checked){u.rights[id].visible=true;u.rights[id].read=true;}
+      }
+    });
+    ['start','dashboard'].forEach(function(id){
+      if(u.rights[id]){u.rights[id].visible=true;u.rights[id].read=true;}
+    });
+    syncUsers193();
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  function userButton193(u,selected){
+    var visible=modules193().filter(function(m){return u.rights&&u.rights[m[0]]&&u.rights[m[0]].visible}).length;
+    var edit=modules193().filter(function(m){return u.rights&&u.rights[m[0]]&&u.rights[m[0]].edit}).length;
+    return '<button class="rc193-user-button '+(selected?'active':'')+'" onclick="rc193SelectUser(&quot;'+e193(u.user)+'&quot;)">'+
+      '<b>'+e193(u.name||u.user)+'</b><br>'+
+      '<span class="small">'+e193(u.user)+' · '+e193(u.role||'Benutzer')+'</span><br>'+
+      (isAdmin193(u)?'<span class="pill green">Admin Vollzugriff</span>':'<span class="pill blue">'+visible+' sichtbar</span> <span class="pill gray">'+edit+' bearbeitbar</span>')+
+    '</button>';
+  }
+
+  function rightsEditor193(u,manage){
+    if(!u)return '<div class="badbox">Kein Benutzer vorhanden.</div>';
+    var lock=!manage || isAdmin193(u);
+    return '<div class="card">'+
+      '<h3>Benutzer bearbeiten</h3>'+
+      (isAdmin193(u)?'<div class="okbox"><b>Admin:</b> Dieser Benutzer hat automatisch Vollzugriff.</div>':'')+
+      '<div class="grid2">'+
+        '<label class="field">Login<input value="'+e193(u.user)+'" readonly></label>'+
+        '<label class="field">Name<input id="rc193EditName" value="'+e193(u.name||u.user)+'" '+(lock?'disabled':'')+'></label>'+
+        '<label class="field">Rolle<input id="rc193EditRole" value="'+e193(u.role||'Benutzer')+'" '+(lock?'disabled':'')+'></label>'+
+        '<label class="field">Neues Passwort optional<input id="rc193EditPassword" type="text" placeholder="leer lassen = unverändert" '+(lock?'disabled':'')+'></label>'+
+      '</div>'+
+      '<label class="checkrow"><input id="rc193MustChange" type="checkbox" '+(u.mustChange?'checked':'')+' '+(lock?'disabled':'')+'> <span>Passwortwechsel beim nächsten Login erzwingen</span></label>'+
+      '<div class="rc193-actions">'+
+        '<button class="ghost" onclick="rc193ApplyPreset(&quot;none&quot;)" '+(lock?'disabled':'')+'>Keine Rechte</button>'+
+        '<button class="ghost" onclick="rc193ApplyPreset(&quot;read&quot;)" '+(lock?'disabled':'')+'>Alles lesen</button>'+
+        '<button class="ghost" onclick="rc193ApplyPreset(&quot;edit&quot;)" '+(lock?'disabled':'')+'>Alles bearbeiten</button>'+
+        '<button class="ghost" onclick="rc193ApplyPreset(&quot;sales&quot;)" '+(lock?'disabled':'')+'>Sales</button>'+
+        '<button class="ghost" onclick="rc193ApplyPreset(&quot;sevastian&quot;)" '+(lock?'disabled':'')+'>Sevastian</button>'+
+        '<button class="ghost" onclick="rc193ApplyPreset(&quot;export&quot;)" '+(lock?'disabled':'')+'>Export Voll</button>'+
+        '<button class="ghost" onclick="rc193ApplyPreset(&quot;azubi&quot;)" '+(lock?'disabled':'')+'>Azubi</button>'+
+      '</div>'+
+      '<div class="rc193-actions">'+
+        '<button class="soft" onclick="rc193ToggleAll(&quot;visible&quot;,true)" '+(lock?'disabled':'')+'>Alle sichtbar</button>'+
+        '<button class="soft" onclick="rc193ToggleAll(&quot;read&quot;,true)" '+(lock?'disabled':'')+'>Alle lesen</button>'+
+        '<button class="soft" onclick="rc193ToggleAll(&quot;edit&quot;,true)" '+(lock?'disabled':'')+'>Alle bearbeiten</button>'+
+        '<button class="soft" onclick="rc193ToggleAll(&quot;edit&quot;,false)" '+(lock?'disabled':'')+'>Bearbeiten entfernen</button>'+
+      '</div>'+
+      '<table class="table rc193-table"><tr><th>Funktion</th><th>Sichtbar</th><th>Lesen</th><th>Bearbeiten</th></tr>'+
+      modules193().map(function(m){
+        var id=m[0], ico=m[1], label=m[2];
+        var r=(u.rights&&u.rights[id])||{visible:false,read:false,edit:false};
+        var baseLock=lock || id==='start' || id==='dashboard';
+        return '<tr>'+
+          '<td><b>'+e193(ico+' '+label)+'</b><br><span class="small">'+e193(id)+'</span></td>'+
+          '<td><input id="rc193_'+e193(id)+'_visible" type="checkbox" '+(r.visible?'checked':'')+' '+(baseLock?'disabled':'')+' onchange="rc193SetRight(&quot;'+e193(u.user)+'&quot;,&quot;'+e193(id)+'&quot;,&quot;visible&quot;,this.checked)"></td>'+
+          '<td><input id="rc193_'+e193(id)+'_read" type="checkbox" '+(r.read?'checked':'')+' '+(baseLock?'disabled':'')+' onchange="rc193SetRight(&quot;'+e193(u.user)+'&quot;,&quot;'+e193(id)+'&quot;,&quot;read&quot;,this.checked)"></td>'+
+          '<td><input id="rc193_'+e193(id)+'_edit" type="checkbox" '+(r.edit?'checked':'')+' '+(lock?'disabled':'')+' onchange="rc193SetRight(&quot;'+e193(u.user)+'&quot;,&quot;'+e193(id)+'&quot;,&quot;edit&quot;,this.checked)"></td>'+
+        '</tr>';
+      }).join('')+
+      '</table>'+
+      '<div class="rc193-actions">'+
+        '<button class="btn" onclick="rc193SaveSelectedUser()" '+(lock?'disabled':'')+'>Benutzer & Rechte speichern</button>'+
+        '<span class="small">Speichert in Benutzerliste, Browser-Speicher und Team-State.</span>'+
+      '</div>'+
+    '</div>';
+  }
+
+  rights=function(){
+    syncUsers193();
+    var manage=canManage193();
+    var selected=selectedUser193();
+    return head('🔐 Benutzer & Rechte','Benutzer anlegen, Person auswählen und Rechte dauerhaft speichern.')+
+      (!manage?'<div class="rights-readonly-banner">Nur Tobias/Admin kann Benutzer anlegen oder Rechte ändern.</div>':'')+
+      '<div class="rc193-note">RC193: Neuer stabiler Benutzer- und Rechteblock. Neue Benutzer erhalten ein Startpasswort und können danach direkt mit Rechtevorlagen freigegeben werden.</div>'+
+      '<div class="rc193-rights-layout">'+
+        '<div class="card">'+
+          '<h3>Benutzer</h3>'+
+          '<div class="rc193-user-list">'+users.map(function(u){return userButton193(u,selected&&u.user===selected.user)}).join('')+'</div>'+
+          '<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">'+
+          '<h3>Neuen Benutzer anlegen</h3>'+
+          '<label class="field">Login<input id="rc193NewLogin" placeholder="z. B. Sales2" '+(manage?'':'disabled')+'></label>'+
+          '<label class="field">Name<input id="rc193NewName" placeholder="Anzeigename" '+(manage?'':'disabled')+'></label>'+
+          '<label class="field">Rolle<input id="rc193NewRole" value="Benutzer" '+(manage?'':'disabled')+'></label>'+
+          '<label class="field">Startpasswort<input id="rc193NewPassword" type="text" value="Essentra" '+(manage?'':'disabled')+'></label>'+
+          '<label class="field">Rechtevorlage<select id="rc193NewPreset" '+(manage?'':'disabled')+'>'+
+            '<option value="none">Keine Rechte</option>'+
+            '<option value="read">Alles lesen</option>'+
+            '<option value="edit">Alles bearbeiten</option>'+
+            '<option value="sales">Sales</option>'+
+            '<option value="sevastian">Sevastian</option>'+
+            '<option value="export">Export Voll</option>'+
+            '<option value="azubi">Azubi</option>'+
+          '</select></label>'+
+          '<button class="btn" onclick="rc193CreateUser()" '+(manage?'':'disabled')+'>Benutzer anlegen</button>'+
+        '</div>'+
+        rightsEditor193(selected,manage)+
+      '</div>';
+  };
+
+  canManageRights=function(){return canManage193()};
+  canView=function(id){
+    if(!currentUser)return false;
+    if(isAdmin193(currentUser))return true;
+    if(id==='start'||id==='dashboard')return true;
+    var r=(currentUser.rights&&currentUser.rights[id])||{visible:false,read:false,edit:false};
+    return !!r.visible;
+  };
+  canRead=function(id){
+    if(!currentUser)return false;
+    if(isAdmin193(currentUser))return true;
+    if(id==='start'||id==='dashboard')return true;
+    var r=(currentUser.rights&&currentUser.rights[id])||{visible:false,read:false,edit:false};
+    return !!(r.read||r.edit);
+  };
+  canWrite=function(id){
+    if(!currentUser)return false;
+    if(isAdmin193(currentUser))return true;
+    var r=(currentUser.rights&&currentUser.rights[id||state.view])||{visible:false,read:false,edit:false};
+    return !!r.edit;
+  };
+  canEdit=function(id){return canWrite(id||state.view)};
+  requireEdit=function(id){
+    if(canWrite(id||state.view))return true;
+    alert('Keine Bearbeitungsrechte für diesen Bereich.');
+    return false;
+  };
+
+  try{syncUsers193()}catch(err){console.warn('RC193 Benutzer/Rechte Init fehlgeschlagen',err)}
+})();
+</script>
 
 </body></html>
 
