@@ -24565,6 +24565,151 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC221 END: Colli Renderverlust Finalschutz -->
+
+<!-- PRIVATE RC222 START: Aufgaben ohne Dokumente/UPS -->
+<script>
+/* PRIVATE RC222: Dokumente- und UPS-Eintraege sind keine Aufgaben und werden ausgeblendet/entfernt */
+(function(){
+  if(window.__EXPORTHUB_RC222_NO_DOCS_UPS_TASKS__)return;
+  window.__EXPORTHUB_RC222_NO_DOCS_UPS_TASKS__=true;
+
+  function n222(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function isBlockedTask222(t){
+    if(!t || typeof t!=='object')return false;
+    var title=n222(t.title);
+    var area=n222(t.area);
+    var originalArea=n222(t.originalArea);
+    var source=n222(t.sourceTaskId || t.originalId || t.id);
+
+    if(area==='ups' || originalArea==='ups')return true;
+    if(title.indexOf('ups')>=0 || source.indexOf('ups')>=0)return true;
+
+    if(area==='dokumente' || area==='dokument' || originalArea==='dokumente' || originalArea==='dokument')return true;
+    if(title==='dokumente' || title==='dokument' || title.indexOf(' dokumente')>=0 || title.indexOf('dokumente ')>=0)return true;
+    if(source.indexOf('dokument')>=0)return true;
+
+    return false;
+  }
+
+  function sanitizeTasks222(reason){
+    try{
+      if(typeof state==='undefined' || !state)return 0;
+      state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+      var before=state.tasks.length;
+      state.tasks=state.tasks.filter(function(t){return !isBlockedTask222(t)});
+      var removed=before-state.tasks.length;
+      if(removed>0){
+        state.rc222RemovedTasks=(state.rc222RemovedTasks||0)+removed;
+        state.rc222LastCleanup={
+          reason:reason||'cleanup',
+          removed:removed,
+          at:new Date().toISOString()
+        };
+        try{if(typeof audit==='function')audit('Aufgaben bereinigt','Dokumente/UPS entfernt: '+removed)}catch(err){}
+        try{if(typeof save==='function')save()}catch(err){}
+      }
+      return removed;
+    }catch(err){return 0}
+  }
+
+  function sanitizeSeed222(){
+    try{
+      if(typeof SEED!=='undefined' && SEED && Array.isArray(SEED.tasks)){
+        SEED.tasks=SEED.tasks.filter(function(t){return !isBlockedTask222(t)});
+      }
+    }catch(err){}
+  }
+
+  sanitizeSeed222();
+  sanitizeTasks222('init');
+
+  try{
+    if(typeof tasks==='function' && !tasks.__rc222Wrapped){
+      var baseTasks222=tasks;
+      window.tasks=function(){
+        sanitizeSeed222();
+        sanitizeTasks222('before-tasks-render');
+        var html=baseTasks222.apply(this,arguments);
+        return String(html).replace(/<article[\s\S]*?(?:UPS|Dokumente|Dokument)[\s\S]*?<\/article>/gi,function(block){
+          return /task-card|class="task|class='task/i.test(block)?'':block;
+        });
+      };
+      window.tasks.__rc222Wrapped=true;
+      try{tasks=window.tasks}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof repairTasks187==='function' && !repairTasks187.__rc222Wrapped){
+      var baseRepair222=repairTasks187;
+      window.repairTasks187=function(){
+        var r=baseRepair222.apply(this,arguments);
+        sanitizeTasks222('after-repairTasks187');
+        return r;
+      };
+      window.repairTasks187.__rc222Wrapped=true;
+      try{repairTasks187=window.repairTasks187}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof ensureRc49StandardTasks==='function' && !ensureRc49StandardTasks.__rc222Wrapped){
+      var baseEnsure222=ensureRc49StandardTasks;
+      window.ensureRc49StandardTasks=function(obj){
+        var r=baseEnsure222.apply(this,arguments);
+        try{
+          if(r && Array.isArray(r.tasks)){
+            r.tasks=r.tasks.filter(function(t){return !isBlockedTask222(t)});
+          }
+        }catch(err){}
+        return r;
+      };
+      window.ensureRc49StandardTasks.__rc222Wrapped=true;
+      try{ensureRc49StandardTasks=window.ensureRc49StandardTasks}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof save==='function' && !save.__rc222Wrapped){
+      var baseSave222=save;
+      window.save=function(){
+        if(typeof state!=='undefined' && state && Array.isArray(state.tasks)){
+          state.tasks=state.tasks.filter(function(t){return !isBlockedTask222(t)});
+        }
+        return baseSave222.apply(this,arguments);
+      };
+      window.save.__rc222Wrapped=true;
+      try{save=window.save}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof render==='function' && !render.__rc222Wrapped){
+      var baseRender222=render;
+      window.render=function(){
+        sanitizeTasks222('before-render');
+        return baseRender222.apply(this,arguments);
+      };
+      window.render.__rc222Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  setInterval(function(){
+    if(typeof state!=='undefined' && state && state.view==='tasks'){
+      sanitizeTasks222('interval-tasks');
+    }
+  },3000);
+})();
+</script>
+<!-- PRIVATE RC222 END: Aufgaben ohne Dokumente/UPS -->
+
   
 </body></html>
 
