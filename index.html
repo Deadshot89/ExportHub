@@ -23011,7 +23011,111 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC214 END -->
+<!-- PRIVATE RC215 START: Ladeliste Europaletten doppelte Felder entfernen und tauschen -->
+<script>
+/* PRIVATE RC215: nur ein Palettenpaar, unten getauscht: Ausgang links, Eingang rechts */
+(function(){
+  if(window.__EXPORTHUB_RC215_PALLET_DEDUP_SWAP__)return;
+  window.__EXPORTHUB_RC215_PALLET_DEDUP_SWAP__=true;
 
+  function activeShipment215(){
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(err){}
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(err){}
+    try{return state.activeShipmentId&&state.shipments?state.shipments.find(function(s){return s.id===state.activeShipmentId})||state.shipment:state.shipment}catch(err){}
+    return null;
+  }
+
+  function euroOut215(s){
+    var rows=(s&&Array.isArray(s.rows)?s.rows:[]);
+    return rows.reduce(function(sum,r){
+      var type=String((r&&r.type)||'').toLowerCase();
+      var count=Number((r&&r.count)||0)||0;
+      if(/euro/.test(type) && /palette|pallet/.test(type))return sum+count;
+      return sum;
+    },0);
+  }
+
+  function field215(label,value,hint){
+    return '<div class="load-write-field rc215-pallet-field">'+
+      '<span class="doc-label">'+label+'</span>'+
+      (value?'<div class="rc198-pallet-value">'+value+'</div>':'<div class="load-write-line"></div>')+
+      '<div class="load-write-hint">'+hint+'</div>'+
+    '</div>';
+  }
+
+  function isPalletField215(el){
+    if(!el)return false;
+    if(el.classList && (el.classList.contains('rc198-pallet-field') || el.classList.contains('rc212-pallet-field') || el.classList.contains('rc215-pallet-field')))return true;
+    var txt=String(el.textContent||'').toLowerCase();
+    return txt.indexOf('europaletten eingang')>=0 || txt.indexOf('europaletten ausgang')>=0;
+  }
+
+  function apply215(){
+    try{
+      var load=document.getElementById('loadListDoc');
+      if(!load)return;
+      var fields=load.querySelector('.load-write-fields');
+      if(!fields)return;
+
+      Array.from(fields.children).forEach(function(el){
+        if(isPalletField215(el))el.remove();
+      });
+
+      var outgoing=euroOut215(activeShipment215());
+      var outText=outgoing>0?String(outgoing):'';
+
+      fields.insertAdjacentHTML('beforeend',
+        field215('Europaletten Ausgang',outText,'Versendete Euro-Paletten')+
+        field215('Europaletten Eingang','','Rueckgabe / Eingang')
+      );
+    }catch(err){}
+  }
+
+  window.rc215ApplyPalletDedupSwap=apply215;
+
+  function wrap215(name){
+    var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+    if(typeof base!=='function')return;
+    window[name]=function(){
+      var result=base.apply(this,arguments);
+      setTimeout(apply215,80);
+      setTimeout(apply215,220);
+      return result;
+    };
+    try{eval(name+'=window[name]')}catch(err){}
+  }
+
+  wrap215('showCurrentCmr');
+  wrap215('showSavedCmr');
+
+  var basePdf215=window.rc211DownloadWebsiteLoadlistPdf || window.rc55DownloadLoadlistPdf || null;
+  if(typeof basePdf215==='function'){
+    window.rc211DownloadWebsiteLoadlistPdf=async function(){
+      apply215();
+      return basePdf215.apply(this,arguments);
+    };
+    window.rc55DownloadLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    window.rc181DownloadLoadlistWebsiteLayoutPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    try{rc211DownloadWebsiteLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc55DownloadLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc181DownloadLoadlistWebsiteLayoutPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+  }
+
+  var baseRender215=typeof render==='function'?render:null;
+  if(baseRender215){
+    window.render=function(){
+      var result=baseRender215.apply(this,arguments);
+      setTimeout(apply215,120);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  setTimeout(apply215,120);
+  setTimeout(apply215,500);
+})();
+</script>
+<!-- PRIVATE RC215 END -->
   
 </body></html>
 
