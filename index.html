@@ -19918,7 +19918,334 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC200 END -->
+<!-- PRIVATE RC201 START: Benutzer anlegen + Teamdaten Speicherfix -->
+<style>
+/* PRIVATE RC201: sichtbarer Benutzer-Speicherstatus */
+.rc201-user-status{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:14px;
+  padding:10px 12px;
+  margin:10px 0;
+  font-weight:900;
+}
+.rc201-user-status.ok{
+  border-color:#86efac;
+  background:#f0fdf4;
+  color:#166534;
+}
+.rc201-user-status.warn{
+  border-color:#fed7aa;
+  background:#fff7ed;
+  color:#9a3412;
+}
+.rc201-user-status.bad{
+  border-color:#fecaca;
+  background:#fee2e2;
+  color:#991b1b;
+}
+</style>
 
+<script>
+/* PRIVATE RC201: Benutzeranlage unabhaengig von Teamdaten-Meldung speichern */
+(function(){
+  if(window.__EXPORTHUB_RC201_USER_TEAMDATA_FIX__)return;
+  window.__EXPORTHUB_RC201_USER_TEAMDATA_FIX__=true;
+
+  function e201(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n201(v){
+    return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function userKey201(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+
+  function modules201(){
+    try{if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],
+      ['dashboard','Dashboard','Dashboard'],
+      ['tasks','Aufgaben','Aufgaben'],
+      ['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],
+      ['cmr','CMR','CMR/Ladeliste'],
+      ['customers','Kunden','Kunden'],
+      ['customerfolder','Kundenordner','Kundenordner'],
+      ['pallet','Paletten','Palettenkonto'],
+      ['teamfile','Team','Teamdatei']
+    ];
+  }
+
+  function isAdmin201(u){
+    return !!(u && (
+      (Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0) ||
+      n201(u.user)==='tobias' ||
+      n201(u.name)==='tobias' ||
+      n201(u.role).indexOf('admin')>=0 ||
+      n201(u.role).indexOf('vollzugriff')>=0
+    ));
+  }
+
+  function blankRights201(){
+    var out={};
+    modules201().forEach(function(m){
+      var id=m[0];
+      var base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+
+  function fullRights201(){
+    var out={};
+    modules201().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+
+  function readRights201(){
+    var out={};
+    modules201().forEach(function(m){out[m[0]]={visible:true,read:true,edit:false}});
+    return out;
+  }
+
+  function preset201(name){
+    var r=blankRights201();
+    function give(ids,edit){
+      ids.forEach(function(id){
+        if(r[id])r[id]={visible:true,read:true,edit:!!edit};
+      });
+    }
+    if(name==='read')return readRights201();
+    if(name==='edit')return fullRights201();
+    if(name==='sales')give(['start','dashboard','shipmentoverview','customerfolder','customers','archive'],false);
+    else if(name==='sevastian')give(['start','dashboard','tasks','shipment','shipmentoverview','cmr','customers','customerfolder','customs','sop','archive'],true);
+    else if(name==='export')give(['start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);
+    else if(name==='azubi')give(['start','dashboard','tasks','sop','academy','quiz','customers','customerfolder'],true);
+    return r;
+  }
+
+  function normalizeUser201(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.mustChange=!!u.mustChange;
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+    if(isAdmin201(u)){
+      u.permissions=['*'];
+      u.rights=fullRights201();
+      u.mustChange=false;
+      return u;
+    }
+    var base=blankRights201();
+    modules201().forEach(function(m){
+      var id=m[0];
+      var old=u.rights[id]||{};
+      base[id]={
+        visible:old.visible===true || id==='start' || id==='dashboard',
+        read:old.read===true || id==='start' || id==='dashboard',
+        edit:old.edit===true
+      };
+      if(!base[id].visible){base[id].read=false;base[id].edit=false}
+      if(!base[id].read)base[id].edit=false;
+    });
+    u.rights=base;
+    return u;
+  }
+
+  function collectUsers201(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    ['exporthub_private_rc196_users',userKey201(),'exporthub_users'].forEach(function(key){
+      try{
+        var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+        if(Array.isArray(parsed))all=all.concat(parsed);
+      }catch(err){}
+    });
+    var map={};
+    all.forEach(function(u){
+      var x=normalizeUser201(u);
+      if(x.user)map[x.user.toLowerCase()]=Object.assign(map[x.user.toLowerCase()]||{},x);
+    });
+    var list=Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return normalizeUser201(map[k])});
+    return list;
+  }
+
+  function setStatus201(text,type){
+    try{
+      var root=document.getElementById('content')||document.body;
+      if(!root)return;
+      var box=document.getElementById('rc201UserStatus');
+      if(!box){
+        box=document.createElement('div');
+        box.id='rc201UserStatus';
+        root.prepend(box);
+      }
+      box.className='rc201-user-status '+(type||'');
+      box.textContent=text;
+    }catch(err){}
+  }
+
+  function persistUsers201(reason){
+    var list=collectUsers201();
+    try{users=list}catch(err){}
+    try{state.users=JSON.parse(JSON.stringify(list))}catch(err){}
+    try{
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [userKey201(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      try{localStorage.setItem(key,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(currentUser){
+        var fresh=list.find(function(u){return String(u.user).toLowerCase()===String(currentUser.user).toLowerCase()});
+        if(fresh)currentUser=fresh;
+      }
+    }catch(err){}
+    pushTeamState201(reason||'Benutzer gespeichert');
+    return list;
+  }
+
+  function pushTeamState201(reason){
+    try{
+      if(!window.fetch || !state)return;
+      var payload={
+        user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+        users:collectUsers201(),
+        state:Object.assign({},state,{users:collectUsers201()})
+      };
+      fetch('/api/exporthub/state',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      }).then(function(res){
+        if(res && res.ok){
+          setStatus201(reason+' - lokal und Teamdaten gespeichert.','ok');
+        }else{
+          setStatus201(reason+' - lokal gespeichert. Teamdaten konnten gerade nicht bestaetigt werden.','warn');
+        }
+      }).catch(function(){
+        setStatus201(reason+' - lokal gespeichert. Teamdaten-Sync folgt beim naechsten Speichern.','warn');
+      });
+    }catch(err){}
+  }
+
+  function field201(id){
+    var el=document.getElementById(id);
+    return el?String(el.value||'').trim():'';
+  }
+
+  function createUser201(){
+    if(!currentUser)return alert('Bitte zuerst einloggen.');
+    persistUsers201('Benutzerliste vorbereitet');
+    var login=field201('rc196NewLogin') || field201('rc193NewLogin') || field201('newUserLogin') || field201('userLogin');
+    var name=field201('rc196NewName') || field201('rc193NewName') || field201('newUserName') || login;
+    var role=field201('rc196NewRole') || field201('rc193NewRole') || 'Benutzer';
+    var password=field201('rc196NewPassword') || field201('rc193NewPassword') || 'Essentra';
+    var preset=field201('rc196NewPreset') || field201('rc193NewPreset') || 'none';
+    if(!login)return alert('Bitte Login eintragen.');
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login))return alert('Login bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.');
+    var list=collectUsers201();
+    if(list.some(function(u){return String(u.user).toLowerCase()===login.toLowerCase()})){
+      return alert('Dieser Benutzer existiert bereits.');
+    }
+    list.push(normalizeUser201({
+      user:login,
+      name:name||login,
+      password:password||'Essentra',
+      role:role||'Benutzer',
+      permissions:[],
+      mustChange:true,
+      rights:preset201(preset)
+    }));
+    try{users=list}catch(err){}
+    try{state.users=JSON.parse(JSON.stringify(list));state.rc196User=login}catch(err){}
+    persistUsers201('Benutzer angelegt: '+(name||login));
+    try{if(typeof audit==='function')audit('Benutzer angelegt',(name||login)+' - RC201')}catch(err){}
+    alert('Benutzer wurde angelegt: '+(name||login));
+    try{if(typeof render==='function')render()}catch(err){}
+  }
+
+  function saveSelectedUser201(){
+    persistUsers201('Benutzer/Rechte gespeichert');
+    try{
+      if(typeof rc196SaveUser==='function' && rc196SaveUser!==saveSelectedUser201){
+        var base=rc196SaveUser;
+        rc196SaveUser=function(){};
+        try{base()}finally{rc196SaveUser=saveSelectedUser201}
+      }
+    }catch(err){}
+    persistUsers201('Benutzer/Rechte gespeichert');
+    setStatus201('Benutzer/Rechte wurden gespeichert.','ok');
+  }
+
+  window.rc201CreateUser=createUser201;
+  window.rc196CreateUser=createUser201;
+  window.rc193CreateUser=createUser201;
+
+  var baseRc196Save201=window.rc196SaveUser;
+  window.rc196SaveUser=function(){
+    if(typeof baseRc196Save201==='function' && baseRc196Save201!==window.rc196SaveUser){
+      try{baseRc196Save201.apply(this,arguments)}catch(err){console.warn('RC201 alter SaveUser Fehler',err)}
+    }
+    persistUsers201('Benutzer/Rechte gespeichert');
+    setStatus201('Benutzer/Rechte wurden gespeichert.','ok');
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+  window.rc193SaveSelectedUser=window.rc196SaveUser;
+
+  var baseRights201=typeof rights==='function'?rights:null;
+  if(baseRights201){
+    window.rights=function(){
+      persistUsers201('Benutzerliste geladen');
+      var html=String(baseRights201.apply(this,arguments));
+      html=html.replace(/onclick="rc196CreateUser\(\)"/g,'onclick="rc201CreateUser()"');
+      html=html.replace(/onclick="rc193CreateUser\(\)"/g,'onclick="rc201CreateUser()"');
+      if(!html.includes('rc201UserStatus')){
+        html=html.replace('<div class="rc196-layout">','<div id="rc201UserStatus" class="rc201-user-status ok">Benutzerliste bereit. Neue Benutzer werden lokal und in Teamdaten gespeichert.</div><div class="rc196-layout">');
+      }
+      return html;
+    };
+    try{rights=window.rights}catch(err){}
+  }
+
+  document.addEventListener('click',function(ev){
+    var btn=ev.target&&ev.target.closest&&ev.target.closest('button');
+    if(!btn)return;
+    var text=(btn.textContent||'').replace(/\s+/g,' ').trim();
+    var onclick=String(btn.getAttribute('onclick')||'');
+    if(text==='Benutzer anlegen' || onclick.indexOf('rc196CreateUser')>=0 || onclick.indexOf('rc193CreateUser')>=0){
+      ev.preventDefault();
+      ev.stopPropagation();
+      createUser201();
+      return false;
+    }
+  },true);
+
+  try{persistUsers201('Benutzerliste geladen')}catch(err){console.warn('RC201 Benutzer Init fehlgeschlagen',err)}
+})();
+</script>
+<!-- PRIVATE RC201 END -->
 </body></html>
 
 
