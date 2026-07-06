@@ -18337,6 +18337,525 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   }
 })();
 </script>
+<!-- PRIVATE RC197 START: Adresse bestaetigen direkt unter Empfaengeradresse -->
+<style>
+.rc197-address-confirm{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:auto!important;
+  max-width:240px!important;
+  min-height:0!important;
+  padding:6px 10px!important;
+  margin:6px 0 10px!important;
+  border-radius:8px!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  line-height:1.15!important;
+}
+.rc197-address-confirm input{
+  width:16px!important;
+  min-width:16px!important;
+  height:16px!important;
+  margin:0!important;
+}
+.rc197-address-confirm div,
+.rc197-address-confirm span{
+  margin:0!important;
+  font-size:12px!important;
+  line-height:1.15!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC197: Adress-Bestaetigung direkt unter die Empfaengeradresse setzen */
+(function(){
+  function rc197Text(el){
+    return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+
+  function rc197CustomerCard(root){
+    var heads=Array.from(root.querySelectorAll('.card h3'));
+    var head=heads.find(function(h){
+      return /^Kunde\s*&\s*Grunddaten$/i.test(rc197Text(h));
+    });
+    return head?head.closest('.card'):null;
+  }
+
+  function rc197AddressBox(card){
+    if(!card)return null;
+    return Array.from(card.querySelectorAll('.okbox,.badbox')).find(function(box){
+      return /Empf(a|ä)ngeradresse/i.test(rc197Text(box));
+    })||null;
+  }
+
+  function rc197AddressConfirm(root){
+    return Array.from(root.querySelectorAll('label.checkrow,.checkrow')).find(function(row){
+      var text=rc197Text(row);
+      return /Adresse\s+gepr/i.test(text) ||
+        /Adresse\s+best/i.test(text) ||
+        /addressConfirmed/i.test(row.innerHTML||'');
+    })||null;
+  }
+
+  function rc197RenameRow(row){
+    if(!row)return;
+    var label=Array.from(row.children).find(function(child){
+      return child.tagName!=='INPUT';
+    });
+    if(label){
+      label.textContent='Adresse bestätigen';
+    }else{
+      Array.from(row.childNodes).forEach(function(node){
+        if(node.nodeType===3 && node.textContent.trim()){
+          node.textContent=' Adresse bestätigen';
+        }
+      });
+    }
+    row.setAttribute('title','Adresse bestaetigen');
+  }
+
+  function rc197MoveAddressConfirm(){
+    try{
+      if(typeof state==='undefined' || state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      var card=rc197CustomerCard(root);
+      var address=rc197AddressBox(card);
+      var row=rc197AddressConfirm(root);
+      if(!card || !address || !row)return;
+
+      row.classList.add('rc194-address-confirm','rc197-address-confirm');
+      rc197RenameRow(row);
+
+      if(row.previousElementSibling!==address){
+        address.insertAdjacentElement('afterend',row);
+      }
+    }catch(err){}
+  }
+
+  var oldRender=window.render;
+  if(typeof oldRender==='function' && !oldRender.__rc197AddressConfirm){
+    window.render=function(){
+      var result=oldRender.apply(this,arguments);
+      setTimeout(rc197MoveAddressConfirm,0);
+      return result;
+    };
+    window.render.__rc197AddressConfirm=true;
+  }
+
+  document.addEventListener('change',function(){
+    setTimeout(rc197MoveAddressConfirm,0);
+  },true);
+  document.addEventListener('click',function(){
+    setTimeout(rc197MoveAddressConfirm,0);
+  },true);
+  setTimeout(rc197MoveAddressConfirm,0);
+})();
+</script>
+<!-- PRIVATE RC197 END -->
+<style>
+/* PRIVATE RC196: Benutzer anlegen + Rechte ohne alte Admin-Sperre */
+.rc196-layout{
+  display:grid;
+  grid-template-columns:330px minmax(0,1fr);
+  gap:14px;
+  align-items:start;
+}
+.rc196-list{
+  display:grid;
+  gap:8px;
+  max-height:540px;
+  overflow:auto;
+}
+.rc196-user{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:14px;
+  padding:11px;
+  text-align:left;
+  font-weight:850;
+  cursor:pointer;
+}
+.rc196-user.active{
+  border-color:#2563eb;
+  background:#eff6ff;
+}
+.rc196-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:10px 0;
+}
+.rc196-table th,
+.rc196-table td{
+  vertical-align:middle;
+}
+.rc196-table input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  accent-color:#2563eb;
+}
+.rc196-note{
+  border:1px solid #fed7aa;
+  background:#fff7ed;
+  color:#9a3412;
+  border-radius:14px;
+  padding:11px 12px;
+  font-weight:850;
+  margin:10px 0;
+}
+@media(max-width:1100px){
+  .rc196-layout{grid-template-columns:1fr}
+}
+</style>
+
+<script>
+/* PRIVATE RC196: Benutzer/Rechte Notfallfix - entkoppelt von RC93/RC193 Admin-Erkennung */
+(function(){
+  function e196(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n196(v){
+    return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function modules196(){
+    try{return Array.isArray(RIGHTS_MODULES)?RIGHTS_MODULES:[]}catch(err){return []}
+  }
+
+  function key196(){
+    try{return USER_KEY}catch(err){return 'exporthub_private_rc113_safe_users'}
+  }
+
+  function admin196(u){
+    return !!(u && ((Array.isArray(u.permissions)&&u.permissions.includes('*')) || n196(u.user)==='tobias' || n196(u.name)==='tobias' || n196(u.role).includes('admin') || n196(u.role).includes('vollzugriff')));
+  }
+
+  function blankRights196(){
+    var out={};
+    modules196().forEach(function(m){
+      var id=m[0];
+      var base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+
+  function fullRights196(){
+    var out={};
+    modules196().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+
+  function readRights196(){
+    var out={};
+    modules196().forEach(function(m){out[m[0]]={visible:true,read:true,edit:false}});
+    return out;
+  }
+
+  function preset196(name){
+    var r=blankRights196();
+    function give(ids,edit){
+      ids.forEach(function(id){
+        if(r[id])r[id]={visible:true,read:true,edit:!!edit};
+      });
+    }
+    if(name==='read')return readRights196();
+    if(name==='edit')return fullRights196();
+    if(name==='sales'){
+      give(['start','dashboard','shipmentoverview','customerfolder','customers','archive'],false);
+    }else if(name==='sevastian'){
+      give(['start','dashboard','tasks','shipment','shipmentoverview','cmr','customers','customerfolder','customs','sop','archive'],true);
+    }else if(name==='export'){
+      give(['start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);
+    }else if(name==='azubi'){
+      give(['start','dashboard','tasks','sop','academy','quiz','customers','customerfolder'],true);
+    }
+    return r;
+  }
+
+  function normalize196(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.mustChange=!!u.mustChange;
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+    if(admin196(u)){
+      u.permissions=['*'];
+      u.rights=fullRights196();
+      u.mustChange=false;
+      return u;
+    }
+    var base=blankRights196();
+    modules196().forEach(function(m){
+      var id=m[0];
+      var existing=u.rights[id]||{};
+      base[id]={
+        visible:existing.visible===true || id==='start' || id==='dashboard',
+        read:existing.read===true || id==='start' || id==='dashboard',
+        edit:existing.edit===true
+      };
+      if(!base[id].visible){base[id].read=false;base[id].edit=false;}
+      if(!base[id].read)base[id].edit=false;
+    });
+    u.rights=base;
+    return u;
+  }
+
+  function saveAll196(){
+    users=Array.isArray(users)?users:[];
+    var map={};
+    users.forEach(function(u){
+      if(!u||!String(u.user||'').trim())return;
+      var x=normalize196(u);
+      map[x.user.toLowerCase()]=x;
+    });
+    users=Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return map[k]});
+    try{state.users=JSON.parse(JSON.stringify(users))}catch(err){}
+    try{localStorage.setItem(key196(),JSON.stringify(users))}catch(err){}
+    try{localStorage.setItem('exporthub_private_rc196_users',JSON.stringify(users))}catch(err){}
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    if(currentUser){
+      var fresh=users.find(function(u){return String(u.user).toLowerCase()===String(currentUser.user).toLowerCase()});
+      if(fresh)currentUser=fresh;
+    }
+    return users;
+  }
+
+  function allow196(){
+    return !!currentUser;
+  }
+
+  function selected196(){
+    saveAll196();
+    var key=(state&&state.rc196User)||'';
+    var u=users.find(function(x){return x.user===key});
+    if(!u){
+      u=users.find(function(x){return !admin196(x)}) || users[0] || null;
+      if(state&&u)state.rc196User=u.user;
+    }
+    return u;
+  }
+
+  window.rc196SelectUser=function(login){
+    if(state)state.rc196User=login||'';
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc196CreateUser=function(){
+    if(!allow196())return alert('Bitte zuerst einloggen.');
+    saveAll196();
+    var login=(document.getElementById('rc196NewLogin')&&document.getElementById('rc196NewLogin').value||'').trim();
+    var name=(document.getElementById('rc196NewName')&&document.getElementById('rc196NewName').value||login).trim();
+    var role=(document.getElementById('rc196NewRole')&&document.getElementById('rc196NewRole').value||'Benutzer').trim();
+    var password=(document.getElementById('rc196NewPassword')&&document.getElementById('rc196NewPassword').value||'Essentra').trim();
+    var p=(document.getElementById('rc196NewPreset')&&document.getElementById('rc196NewPreset').value||'none');
+    if(!login)return alert('Bitte Login eintragen.');
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login))return alert('Login bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.');
+    if(users.some(function(u){return String(u.user).toLowerCase()===login.toLowerCase()}))return alert('Dieser Benutzer existiert bereits.');
+    users.push({
+      user:login,
+      name:name||login,
+      password:password||'Essentra',
+      role:role||'Benutzer',
+      permissions:[],
+      mustChange:true,
+      rights:preset196(p)
+    });
+    if(state)state.rc196User=login;
+    saveAll196();
+    try{if(typeof audit==='function')audit('Benutzer angelegt',(name||login)+' · RC196')}catch(err){}
+    alert('Benutzer wurde angelegt: '+(name||login));
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc196SetRight=function(login,module,type,checked){
+    if(!allow196())return alert('Bitte zuerst einloggen.');
+    saveAll196();
+    var u=users.find(function(x){return x.user===login});
+    if(!u || admin196(u))return;
+    u.rights=u.rights||blankRights196();
+    u.rights[module]=u.rights[module]||{visible:false,read:false,edit:false};
+    u.rights[module][type]=!!checked;
+    if(type==='visible'&&!checked){u.rights[module].read=false;u.rights[module].edit=false;}
+    if(type==='read'&&checked)u.rights[module].visible=true;
+    if(type==='read'&&!checked)u.rights[module].edit=false;
+    if(type==='edit'&&checked){u.rights[module].visible=true;u.rights[module].read=true;}
+    ['visible','read','edit'].forEach(function(k){
+      var el=document.getElementById('rc196_'+module+'_'+k);
+      if(el)el.checked=!!u.rights[module][k];
+    });
+  };
+
+  window.rc196ApplyPreset=function(p){
+    if(!allow196())return alert('Bitte zuerst einloggen.');
+    var u=selected196();
+    if(!u || admin196(u))return alert('Admin/Vollzugriff hat immer alle Rechte.');
+    u.rights=preset196(p);
+    saveAll196();
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc196SaveUser=function(){
+    if(!allow196())return alert('Bitte zuerst einloggen.');
+    saveAll196();
+    var u=selected196();
+    if(!u)return alert('Bitte Benutzer auswaehlen.');
+    if(!admin196(u)){
+      var name=(document.getElementById('rc196EditName')&&document.getElementById('rc196EditName').value||u.name||u.user).trim();
+      var role=(document.getElementById('rc196EditRole')&&document.getElementById('rc196EditRole').value||u.role||'Benutzer').trim();
+      var pass=(document.getElementById('rc196EditPassword')&&document.getElementById('rc196EditPassword').value||'').trim();
+      var must=!!(document.getElementById('rc196MustChange')&&document.getElementById('rc196MustChange').checked);
+      u.name=name||u.user;
+      u.role=role||'Benutzer';
+      u.mustChange=must;
+      if(pass){
+        if(pass.length<4)return alert('Passwort muss mindestens 4 Zeichen haben.');
+        u.password=pass;
+        u.mustChange=true;
+      }
+    }
+    saveAll196();
+    try{if(typeof audit==='function')audit('Benutzer/Rechte gespeichert',(u.name||u.user)+' · RC196')}catch(err){}
+    alert('Benutzer und Rechte wurden gespeichert: '+(u.name||u.user));
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  window.rc196ToggleAll=function(type,checked){
+    var u=selected196();
+    if(!u || admin196(u))return alert('Admin/Vollzugriff hat immer alle Rechte.');
+    modules196().forEach(function(m){
+      var id=m[0];
+      u.rights[id]=u.rights[id]||{visible:false,read:false,edit:false};
+      if(type==='visible'){
+        u.rights[id].visible=!!checked;
+        if(!checked){u.rights[id].read=false;u.rights[id].edit=false;}
+      }
+      if(type==='read'){
+        u.rights[id].read=!!checked;
+        if(checked)u.rights[id].visible=true;
+        else u.rights[id].edit=false;
+      }
+      if(type==='edit'){
+        u.rights[id].edit=!!checked;
+        if(checked){u.rights[id].visible=true;u.rights[id].read=true;}
+      }
+    });
+    ['start','dashboard'].forEach(function(id){
+      if(u.rights[id]){u.rights[id].visible=true;u.rights[id].read=true;}
+    });
+    saveAll196();
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  function options196(){
+    return '<option value="none">Keine Rechte</option>'+
+      '<option value="read">Alles lesen</option>'+
+      '<option value="edit">Alles bearbeiten</option>'+
+      '<option value="sales">Sales</option>'+
+      '<option value="sevastian">Sevastian</option>'+
+      '<option value="export">Export Voll</option>'+
+      '<option value="azubi">Azubi</option>';
+  }
+
+  function userButton196(u,active){
+    var v=modules196().filter(function(m){return u.rights&&u.rights[m[0]]&&u.rights[m[0]].visible}).length;
+    var ed=modules196().filter(function(m){return u.rights&&u.rights[m[0]]&&u.rights[m[0]].edit}).length;
+    return '<button class="rc196-user '+(active?'active':'')+'" onclick="rc196SelectUser(&quot;'+e196(u.user)+'&quot;)">'+
+      '<b>'+e196(u.name||u.user)+'</b><br>'+
+      '<span class="small">'+e196(u.user)+' · '+e196(u.role||'Benutzer')+'</span><br>'+
+      (admin196(u)?'<span class="pill green">Vollzugriff</span>':'<span class="pill blue">'+v+' sichtbar</span> <span class="pill gray">'+ed+' bearbeitbar</span>')+
+    '</button>';
+  }
+
+  function editor196(u){
+    if(!u)return '<div class="badbox">Kein Benutzer vorhanden.</div>';
+    var lock=admin196(u);
+    return '<div class="card">'+
+      '<h3>Benutzer bearbeiten / Rechte vergeben</h3>'+
+      (lock?'<div class="okbox"><b>Vollzugriff:</b> Dieser Benutzer hat automatisch alle Rechte.</div>':'')+
+      '<div class="grid2">'+
+        '<label class="field">Login<input value="'+e196(u.user)+'" readonly></label>'+
+        '<label class="field">Name<input id="rc196EditName" value="'+e196(u.name||u.user)+'" '+(lock?'disabled':'')+'></label>'+
+        '<label class="field">Rolle<input id="rc196EditRole" value="'+e196(u.role||'Benutzer')+'" '+(lock?'disabled':'')+'></label>'+
+        '<label class="field">Neues Passwort optional<input id="rc196EditPassword" type="text" placeholder="leer lassen = unveraendert" '+(lock?'disabled':'')+'></label>'+
+      '</div>'+
+      '<label class="checkrow"><input id="rc196MustChange" type="checkbox" '+(u.mustChange?'checked':'')+' '+(lock?'disabled':'')+'> <span>Passwortwechsel beim naechsten Login erzwingen</span></label>'+
+      '<div class="rc196-actions">'+
+        '<button class="ghost" onclick="rc196ApplyPreset(&quot;none&quot;)" '+(lock?'disabled':'')+'>Keine Rechte</button>'+
+        '<button class="ghost" onclick="rc196ApplyPreset(&quot;read&quot;)" '+(lock?'disabled':'')+'>Alles lesen</button>'+
+        '<button class="ghost" onclick="rc196ApplyPreset(&quot;edit&quot;)" '+(lock?'disabled':'')+'>Alles bearbeiten</button>'+
+        '<button class="ghost" onclick="rc196ApplyPreset(&quot;sales&quot;)" '+(lock?'disabled':'')+'>Sales</button>'+
+        '<button class="ghost" onclick="rc196ApplyPreset(&quot;sevastian&quot;)" '+(lock?'disabled':'')+'>Sevastian</button>'+
+        '<button class="ghost" onclick="rc196ApplyPreset(&quot;export&quot;)" '+(lock?'disabled':'')+'>Export Voll</button>'+
+        '<button class="ghost" onclick="rc196ApplyPreset(&quot;azubi&quot;)" '+(lock?'disabled':'')+'>Azubi</button>'+
+      '</div>'+
+      '<div class="rc196-actions">'+
+        '<button class="soft" onclick="rc196ToggleAll(&quot;visible&quot;,true)" '+(lock?'disabled':'')+'>Alle sichtbar</button>'+
+        '<button class="soft" onclick="rc196ToggleAll(&quot;read&quot;,true)" '+(lock?'disabled':'')+'>Alle lesen</button>'+
+        '<button class="soft" onclick="rc196ToggleAll(&quot;edit&quot;,true)" '+(lock?'disabled':'')+'>Alle bearbeiten</button>'+
+        '<button class="soft" onclick="rc196ToggleAll(&quot;edit&quot;,false)" '+(lock?'disabled':'')+'>Bearbeiten entfernen</button>'+
+      '</div>'+
+      '<table class="table rc196-table"><tr><th>Funktion</th><th>Sichtbar</th><th>Lesen</th><th>Bearbeiten</th></tr>'+
+      modules196().map(function(m){
+        var id=m[0], ico=m[1], label=m[2];
+        var r=(u.rights&&u.rights[id])||{visible:false,read:false,edit:false};
+        var baseLock=lock||id==='start'||id==='dashboard';
+        return '<tr>'+
+          '<td><b>'+e196(ico+' '+label)+'</b><br><span class="small">'+e196(id)+'</span></td>'+
+          '<td><input id="rc196_'+e196(id)+'_visible" type="checkbox" '+(r.visible?'checked':'')+' '+(baseLock?'disabled':'')+' onchange="rc196SetRight(&quot;'+e196(u.user)+'&quot;,&quot;'+e196(id)+'&quot;,&quot;visible&quot;,this.checked)"></td>'+
+          '<td><input id="rc196_'+e196(id)+'_read" type="checkbox" '+(r.read?'checked':'')+' '+(baseLock?'disabled':'')+' onchange="rc196SetRight(&quot;'+e196(u.user)+'&quot;,&quot;'+e196(id)+'&quot;,&quot;read&quot;,this.checked)"></td>'+
+          '<td><input id="rc196_'+e196(id)+'_edit" type="checkbox" '+(r.edit?'checked':'')+' '+(lock?'disabled':'')+' onchange="rc196SetRight(&quot;'+e196(u.user)+'&quot;,&quot;'+e196(id)+'&quot;,&quot;edit&quot;,this.checked)"></td>'+
+        '</tr>';
+      }).join('')+
+      '</table>'+
+      '<div class="rc196-actions"><button class="btn" onclick="rc196SaveUser()">Benutzer & Rechte speichern</button><span class="small">RC196 speichert direkt in Benutzerliste und Browser-Speicher.</span></div>'+
+    '</div>';
+  }
+
+  rights=function(){
+    saveAll196();
+    var selected=selected196();
+    return head('🔐 Benutzer & Rechte','Benutzer anlegen, vorhandene Benutzer auswaehlen und Rechte speichern.')+
+      '<div class="rc196-note"><b>RC196 Notfallfix:</b> Benutzer anlegen ist nicht mehr von der alten Admin-Erkennung abhaengig. Wenn du eingeloggt bist und diesen Bereich oeffnen kannst, kannst du hier Benutzer und Rechte speichern.</div>'+
+      '<div class="rc196-layout">'+
+        '<div class="card">'+
+          '<h3>Benutzer</h3>'+
+          '<div class="rc196-list">'+users.map(function(u){return userButton196(u,selected&&u.user===selected.user)}).join('')+'</div>'+
+          '<hr style="border:0;border-top:1px solid var(--line);margin:16px 0">'+
+          '<h3>Neuen Benutzer anlegen</h3>'+
+          '<label class="field">Login<input id="rc196NewLogin" placeholder="z. B. Sales2"></label>'+
+          '<label class="field">Name<input id="rc196NewName" placeholder="Anzeigename"></label>'+
+          '<label class="field">Rolle<input id="rc196NewRole" value="Benutzer"></label>'+
+          '<label class="field">Startpasswort<input id="rc196NewPassword" type="text" value="Essentra"></label>'+
+          '<label class="field">Rechtevorlage<select id="rc196NewPreset">'+options196()+'</select></label>'+
+          '<button class="btn" onclick="rc196CreateUser()">Benutzer anlegen</button>'+
+        '</div>'+
+        editor196(selected)+
+      '</div>';
+  };
+
+  canManageRights=function(){return !!currentUser};
+  window.rc193CreateUser=window.rc196CreateUser;
+  window.rc193SaveSelectedUser=window.rc196SaveUser;
+
+  try{saveAll196()}catch(err){console.warn('RC196 Benutzerfix Init fehlgeschlagen',err)}
+})();
+</script>
 
 </body></html>
 
