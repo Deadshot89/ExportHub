@@ -19083,6 +19083,424 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
 })();
 </script>
 <!-- PRIVATE RC198 END -->
+<!-- PRIVATE RC199 START: Sendung Layout stabil, kein Flackern, Collis behalten -->
+<style>
+/* PRIVATE RC199: feste, kompakte Sendungserstellung ohne rechte Geisterspalte */
+.rc199-shipment-layout{
+  display:grid!important;
+  grid-template-columns:minmax(420px,560px) minmax(420px,560px)!important;
+  gap:14px!important;
+  align-items:start!important;
+  justify-content:start!important;
+  width:100%!important;
+  max-width:1160px!important;
+  margin:0 0 14px!important;
+}
+.rc199-shipment-layout > .card{
+  margin:0!important;
+  min-width:0!important;
+  width:100%!important;
+}
+.rc199-shipment-layout .miniGrid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+.rc199-shipment-layout .field{
+  margin:8px 0!important;
+}
+.rc199-shipment-layout input,
+.rc199-shipment-layout select,
+.rc199-shipment-layout textarea{
+  max-width:100%!important;
+  min-height:0!important;
+}
+.rc199-shipment-layout textarea{
+  min-height:56px!important;
+}
+.rc199-hidden-ghost{
+  display:none!important;
+}
+.rc199-address-confirm{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  width:auto!important;
+  max-width:210px!important;
+  padding:5px 8px!important;
+  margin:6px 0 8px!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  line-height:1.15!important;
+}
+.rc199-address-confirm input{
+  width:15px!important;
+  min-width:15px!important;
+  height:15px!important;
+  margin:0!important;
+}
+.rc199-statusline{
+  margin-top:10px!important;
+}
+@media(max-width:1100px){
+  .rc199-shipment-layout{
+    grid-template-columns:1fr!important;
+    max-width:640px!important;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC199: stabile Sendungsansicht + Colli-Daten nicht verlieren */
+(function(){
+  if(window.__EXPORTHUB_RC199_SENDUNG_STABIL__)return;
+  window.__EXPORTHUB_RC199_SENDUNG_STABIL__=true;
+
+  function e199(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function blankRow199(){
+    return {type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''};
+  }
+
+  function rowHasData199(r){
+    if(!r)return false;
+    return !!(String(r.type||'').trim() || String(r.count||'').trim() ||
+      String(r.weight||'').trim() || String(r.ldm||'').trim() ||
+      String(r.l||'').trim() || String(r.w||'').trim() || String(r.h||'').trim());
+  }
+
+  function cloneRows199(rows){
+    return (Array.isArray(rows)?rows:[]).map(function(r){
+      return {
+        type:r&&r.type!=null?r.type:'',
+        count:r&&r.count!=null?r.count:'',
+        ldm:r&&r.ldm!=null?r.ldm:'',
+        l:r&&r.l!=null?r.l:'',
+        w:r&&r.w!=null?r.w:'',
+        h:r&&r.h!=null?r.h:'',
+        weight:r&&r.weight!=null?r.weight:''
+      };
+    });
+  }
+
+  function ensureShipment199(){
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    if(!state.shipment.rows.length && state.rc199LastShipmentRows && !state.rc199NewShipmentRequested){
+      state.shipment.rows=cloneRows199(state.rc199LastShipmentRows);
+    }
+    if(!state.shipment.rows.length)state.shipment.rows=[blankRow199()];
+    return state.shipment;
+  }
+
+  function readVisibleRows199(){
+    var found={};
+    document.querySelectorAll('[id^="rc118_row_"]').forEach(function(el){
+      var m=String(el.id||'').match(/^rc118_row_(\d+)_(type|count|ldm|weight|l|w|h)$/);
+      if(!m)return;
+      var i=Number(m[1]);
+      found[i]=found[i]||blankRow199();
+      found[i][m[2]]=el.value;
+    });
+    return Object.keys(found).sort(function(a,b){return Number(a)-Number(b)}).map(function(k){return found[k]});
+  }
+
+  function rememberRows199(){
+    try{
+      var visible=readVisibleRows199();
+      var rows=visible.length?visible:(state.shipment&&state.shipment.rows)||[];
+      rows=cloneRows199(rows).filter(rowHasData199);
+      if(rows.length){
+        state.rc199LastShipmentRows=cloneRows199(rows);
+        state.rc199NewShipmentRequested=false;
+      }
+    }catch(err){}
+  }
+
+  function applyPack199(row){
+    row=row||blankRow199();
+    var list=[];
+    try{list=Array.isArray(SEED&&SEED.colliTypes)?SEED.colliTypes:[]}catch(err){}
+    var pack=list.find(function(p){return String(p.name||'')===String(row.type||'')});
+    if(pack){
+      if(row.ldm===''||row.ldm==null)row.ldm=String(pack.ldm??'');
+      if(row.l===''||row.l==null)row.l=String(pack.l??'');
+      if(row.w===''||row.w==null)row.w=String(pack.w??'');
+      if(row.h===''||row.h==null)row.h=String(pack.h??'');
+    }
+    return row;
+  }
+
+  function collectRows199(){
+    ensureShipment199();
+    var visible=readVisibleRows199();
+    if(visible.length){
+      state.shipment.rows=visible.map(applyPack199);
+    }
+    rememberRows199();
+    try{if(typeof save==='function')save()}catch(err){}
+    return state.shipment.rows;
+  }
+
+  window.rc199CollectRows=collectRows199;
+
+  window.updateRow=function(i,k,v){
+    ensureShipment199();
+    while(state.shipment.rows.length<=i)state.shipment.rows.push(blankRow199());
+    var row=state.shipment.rows[i]||blankRow199();
+    if(k==='type'){
+      row.type=v||'';
+      row=applyPack199(row);
+      setTimeout(function(){
+        try{
+          ['ldm','l','w','h'].forEach(function(field){
+            var el=document.getElementById('rc118_row_'+i+'_'+field);
+            if(el && document.activeElement!==el)el.value=row[field]||'';
+          });
+        }catch(err){}
+      },0);
+    }else{
+      row[k]=v;
+    }
+    state.shipment.rows[i]=row;
+    rememberRows199();
+    try{if(typeof save==='function')save()}catch(err){}
+  };
+  try{updateRow=window.updateRow}catch(err){}
+
+  window.addShipmentRow=function(){
+    collectRows199();
+    state.shipment.rows.push(blankRow199());
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+  try{addShipmentRow=window.addShipmentRow}catch(err){}
+
+  window.removeShipmentRow=function(i){
+    collectRows199();
+    state.shipment.rows.splice(i,1);
+    if(!state.shipment.rows.length)state.shipment.rows=[blankRow199()];
+    rememberRows199();
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+  try{removeShipmentRow=window.removeShipmentRow}catch(err){}
+
+  var baseNewShipment199=typeof newShipment==='function'?newShipment:null;
+  window.newShipment=function(){
+    state.rc199NewShipmentRequested=true;
+    state.rc199LastShipmentRows=[];
+    if(baseNewShipment199)return baseNewShipment199.apply(this,arguments);
+    state.shipment=state.shipment||{};
+    state.shipment.rows=[];
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+  try{newShipment=window.newShipment}catch(err){}
+
+  var baseShowCurrent199=typeof showCurrentCmr==='function'?showCurrentCmr:null;
+  if(baseShowCurrent199){
+    window.showCurrentCmr=function(){
+      collectRows199();
+      return baseShowCurrent199.apply(this,arguments);
+    };
+    try{showCurrentCmr=window.showCurrentCmr}catch(err){}
+  }
+
+  var baseSaveShipment199=typeof saveShipment==='function'?saveShipment:null;
+  if(baseSaveShipment199){
+    window.saveShipment=function(){
+      collectRows199();
+      return baseSaveShipment199.apply(this,arguments);
+    };
+    try{saveShipment=window.saveShipment}catch(err){}
+  }
+
+  function selectedCustomer199(){
+    try{if(typeof selectedCustomer==='function')return selectedCustomer()}catch(err){}
+    var list=(state&&Array.isArray(state.customers))?state.customers:[];
+    return list.find(function(c){return String(c.id||'')===String(state.shipment&&state.shipment.customerId||'')}) || list[0] || {};
+  }
+
+  function customerOption199(c){
+    try{if(typeof customerOption==='function')return customerOption(c)}catch(err){}
+    return [c&&c.account||c&&c.customerNumber||c&&c.id,c&&c.name,c&&c.country].filter(Boolean).join(' · ');
+  }
+
+  function validRef199(v){
+    try{return validShipmentRef(v)}catch(err){}
+    return /^[A-Z0-9]{6}$/.test(String(v||''));
+  }
+
+  window.rc199CleanRefInput=function(el){
+    if(!el)return;
+    el.value=String(el.value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  };
+
+  function makeRef199(c){
+    try{return generateShipmentRef(c)}catch(err){}
+    return String(Math.random().toString(36).slice(2,8)).toUpperCase();
+  }
+
+  function totals199(s){
+    try{if(typeof totals==='function')return totals(s)}catch(err){}
+    return ((s&&s.rows)||[]).reduce(function(a,r){
+      var count=Number(String(r.count||'').replace(',','.'))||0;
+      var weight=Number(String(r.weight||'').replace(',','.'))||0;
+      var ldm=Number(String(r.ldm||'').replace(',','.'))||0;
+      a.count+=count;a.weight+=weight;a.ldm+=count*ldm;
+      return a;
+    },{count:0,weight:0,ldm:0});
+  }
+
+  function completionBox199(s){
+    try{if(typeof shipmentCompletionBox==='function')return shipmentCompletionBox(s)}catch(err){}
+    var t=totals199(s);
+    if(t.count>0 && t.weight>0)return '<div class="okbox"><b>Sendungsdaten erfasst.</b></div>';
+    return '<div class="badbox"><b>Colli-Daten noch nicht vollständig.</b></div>';
+  }
+
+  function completionOk199(s){
+    try{if(typeof shipmentCompletionOk==='function')return shipmentCompletionOk(s)}catch(err){}
+    var t=totals199(s);
+    return t.count>0 && t.weight>0;
+  }
+
+  function deliveryFileList199(s){
+    try{if(typeof deliveryFileList==='function')return deliveryFileList(s)}catch(err){}
+    return '';
+  }
+
+  function mailCard199(c){
+    if(typeof customerMailActions==='function'){
+      return '<div class="rc190-mail-card"><h3>Empfaengermail / Outlook-Avisierung</h3>'+customerMailActions(c)+'</div>';
+    }
+    return '';
+  }
+
+  function renderRow199(r,i){
+    try{if(typeof renderRow==='function')return renderRow(r,i)}catch(err){}
+    return '';
+  }
+
+  function savedTable199(saved){
+    if(!saved.length)return '<p class="muted">Noch keine Sendung gespeichert.</p>';
+    return '<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Datum</th><th>Status</th><th>Aktion</th></tr>'+
+      saved.map(function(x){
+        var c=x.customer||{};
+        return '<tr><td><b>'+e199(x.ref||'')+'</b></td><td>'+e199(c.name||'')+'</td><td>'+e199(x.created||'')+'</td><td>'+e199(x.freigabe||x.status||'offen')+'</td><td><button class="ghost" onclick="loadShipment(&quot;'+e199(x.id||'')+'&quot;)">Uebernehmen</button> <button class="soft" onclick="approveShipment(&quot;'+e199(x.id||'')+'&quot;)">Freigeben</button> <button class="ghost" onclick="showSavedCmr(&quot;'+e199(x.id||'')+'&quot;)">Ladeliste/CMR</button></td></tr>';
+      }).join('')+'</table>';
+  }
+
+  window.shipment=function(){
+    ensureShipment199();
+    var s=state.shipment;
+    var c=selectedCustomer199();
+    if(!state.customers || !state.customers.length){
+      return head('Sendung erstellen','Kundennummer suchen, Referenz erstellen, Ladeliste/CMR erzeugen.')+
+        '<div class="notice"><b>Noch keine Kunden vorhanden.</b><br>Bitte zuerst unter <b>Kunden & Dokumente</b> einen echten Kunden anlegen.</div><button class="btn" onclick="setView(&quot;customers&quot;)">Kunden anlegen</button>';
+    }
+    if(!s.customerId)s.customerId=c.id||'';
+    s.deliveryFiles=s.deliveryFiles||[];
+    s.customerSearch=s.customerSearch||customerOption199(c);
+    if(!validRef199(s.ref)){s.ref=makeRef199(c);s.refAuto=true}
+    var missing=!String(c.address||'').trim();
+    var refOk=validRef199(s.ref);
+    var completionOk=completionOk199(s);
+    var saved=(state.shipments||[]).slice(0,8);
+    var customerOptions=(state.customers||[]).map(function(cu){
+      return '<option value="'+e199(cu.id)+'" '+(cu.id===s.customerId?'selected':'')+'>'+e199((cu.account||cu.id)+' · '+(cu.name||'')+' · '+(cu.country||''))+'</option>';
+    }).join('');
+    var customerList=(state.customers||[]).map(function(cu){
+      return '<option value="'+e199(customerOption199(cu))+'"></option>';
+    }).join('');
+    var status=missing?'<div class="badbox rc199-statusline">Adresse fehlt. Sendungserstellung blockiert.</div>':
+      !s.addressConfirmed?'<div class="notice rc199-statusline">Adresse muss aktiv bestätigt werden.</div>':
+      !refOk?'<div class="badbox rc199-statusline">Referenznummer muss exakt 6 Zeichen A-Z/0-9 haben.</div>':
+      !completionOk?completionBox199(s):
+      '<div class="okbox rc199-statusline">Sendung kann gespeichert werden. Ladeliste und CMR sind verfügbar.</div>';
+
+    return head('Sendung erstellen','Kundennummer suchen, 6-stellige Referenz automatisch erstellen, Lieferscheine optional anhaengen, Outlook-Avisierungsmail je Kundennummer erstellen und Ladeliste/CMR erzeugen.')+
+      '<div class="rc199-shipment-layout rc194-shipment-grid">'+
+        '<div class="card rc199-main-card"><h3>Kunde & Grunddaten</h3>'+
+          '<label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" list="customerList" value="'+e199(s.customerSearch)+'" oninput="setShipmentCustomerSearchAuto(this.value)" onchange="applyCustomerSearch()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();applyCustomerSearch()}"><datalist id="customerList">'+customerList+'</datalist></label>'+
+          '<div class="btn-row-spaced"><button class="btn" onclick="newShipment()">+ Neue Sendung</button><button class="ghost" onclick="applyCustomerSearch()">Kunde uebernehmen</button><button class="ghost" onclick="ensureShipmentReference(true)">Neue 6-Zeichen-Referenz</button><button class="soft" onclick="showCurrentCmr()">Ladeliste & CMR anzeigen</button><button type="button" class="ghost rc192-ref-folder-btn" onclick="return rc192OpenReferenceFolder()">Referenzordner oeffnen</button></div>'+
+          '<label class="field">Kunde<select onchange="selectShipmentCustomer(this.value)">'+customerOptions+'</select></label>'+
+          '<div class="'+(missing?'badbox':'okbox')+'"><b>Empfaengeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+e199(c.address||'Adresse fehlt')+'</pre></div>'+
+          '<label class="checkrow rc199-address-confirm"><input type="checkbox" '+(s.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save();render()"><span>Adresse bestaetigen</span></label>'+
+          mailCard199(c)+
+          '<label class="field">Sendungsreferenz / Referenznummer<input value="'+e199(s.ref)+'" maxlength="6" pattern="[A-Z0-9]{6}" oninput="rc199CleanRefInput(this)" onchange="setShipmentRef(this.value)" placeholder="6 Zeichen A-Z/0-9"></label>'+
+          '<div class="'+(refOk?'okbox':'badbox')+'"><b>Referenzregel:</b> exakt 6 Zeichen, nur A-Z und 0-9. Aktuell: <b>'+e199(s.ref)+'</b> '+(s.refAuto!==false?'· automatisch erstellt':'· manuell geaendert')+'</div>'+
+          '<label class="field">Lieferscheine / DNCs manuell (optional)<textarea onchange="state.shipment.deliveryNotes=this.value;save()" placeholder="Optional: eine DNC/Lieferscheinnummer je Zeile">'+e199(s.deliveryNotes)+'</textarea></label>'+
+          '<label class="field">Lieferscheine hochladen / anhaengen (optional)<input type="file" multiple onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label>'+
+          deliveryFileList199(s)+
+          '<div class="miniGrid"><label class="field">Abholdatum<input type="date" value="'+e199(s.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+e199(s.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()" placeholder="z. B. Paul Langen, DHL, Dachser..."></label><label class="field">Kennzeichen<input value="'+e199(s.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()" placeholder="Kennzeichen LKW"></label><label class="field">Verlader<input value="'+e199(s.loader||'')+'" onchange="state.shipment.loader=this.value;save()" placeholder="Name Verlader"></label></div>'+
+          '<label class="field">Incoterm / Hinweis<input value="'+e199(s.incoterm||'')+'" onchange="state.shipment.incoterm=this.value;save()"></label>'+
+          '<label class="checkrow"><input type="checkbox" '+(s.nonEuCheck?'checked':'')+' onchange="state.shipment.nonEuCheck=this.checked;save();render()"><div>Drittland-/Zolldokumente geprueft, falls erforderlich</div></label>'+
+          '<div class="toolbar"><button class="btn" onclick="saveShipment()" '+(missing||!s.addressConfirmed||!refOk||!completionOk?'disabled':'')+'>Sendung speichern + Aufgaben pruefen</button><button class="ghost" onclick="showCurrentCmr()" '+(!refOk?'disabled':'')+'>Ladeliste/CMR Vorschau</button><button class="ghost abd-jump-rc70" onclick="goToAbdFromShipmentRC70()">ABD erstellen</button><button class="ghost" onclick="rc55DownloadLoadlistPdf()" '+(!refOk?'disabled':'')+'>Ladeliste PDF herunterladen</button><button class="ghost" onclick="rc55PrintLabels()" '+(!refOk?'disabled':'')+'>Versandlabel 4x A4</button></div>'+
+          status+
+        '</div>'+
+        '<div class="card rc199-colli-card"><h3>Collis, Masse, Gewicht, Lademeter</h3>'+
+          '<div class="notice">Anzahl = reale physische Anzahl. Doppel-/Stapellogik wird nur ueber den reduzierten Lademeterwert aus den Stammdaten abgebildet.</div>'+
+          '<div id="rowsBox">'+(s.rows||[]).map(renderRow199).join('')+'</div>'+
+          '<button class="ghost" onclick="addShipmentRow()">+ Zeile</button>'+
+          '<div class="summaryGrid">'+shipmentSummaryBoxes(s)+'</div>'+
+          completionBox199(s)+
+          '<label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()" placeholder="z. B. Waren laut Rechnung / Kunststoffteile / Teile">'+e199(s.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label>'+
+          '<label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+e199(s.comments||'')+'</textarea></label>'+
+          '<div class="okbox"><b>Dokumente:</b> Ladeliste wird als A4-Seite erzeugt. CMR nutzt die Mastervorlage 1:1. Feld 6 = 6-stellige Referenz, Feld 5 = Lieferscheine/DNCs.</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="card" style="max-width:1160px"><h3>Gespeicherte Sendungen</h3><div class="toolbar"><button class="ghost" onclick="setView(&quot;shipmentoverview&quot;)">Sendungsuebersicht oeffnen</button></div>'+savedTable199(saved)+'</div>';
+  };
+  try{shipment=window.shipment}catch(err){}
+
+  function cleanupGhosts199(){
+    try{
+      if(typeof state==='undefined' || state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      root.querySelectorAll('.rc182-folder-card,.rc188-sp-card,.rc191-sp-card').forEach(function(el){el.remove()});
+      Array.from(root.children).forEach(function(el){
+        if(el.classList&&el.classList.contains('rc199-shipment-layout'))return;
+        if(el.classList&&el.classList.contains('card'))return;
+        var txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+        if(/Sendungsreferenz \/ Referenznummer|Lieferscheine \/ DNCs manuell|Abholdatum|Spedition|Kennzeichen|Verlader/.test(txt)){
+          el.classList.add('rc199-hidden-ghost');
+        }
+      });
+    }catch(err){}
+  }
+
+  var baseRender199=typeof render==='function'?render:null;
+  if(baseRender199){
+    window.render=function(){
+      var r=baseRender199.apply(this,arguments);
+      cleanupGhosts199();
+      return r;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  document.addEventListener('input',function(ev){
+    var el=ev.target;
+    if(el && /^rc118_row_\d+_(type|count|ldm|weight|l|w|h)$/.test(String(el.id||''))){
+      rememberRows199();
+    }
+  },true);
+  document.addEventListener('change',function(ev){
+    var el=ev.target;
+    if(el && /^rc118_row_\d+_(type|count|ldm|weight|l|w|h)$/.test(String(el.id||''))){
+      collectRows199();
+    }
+  },true);
+
+  setTimeout(cleanupGhosts199,60);
+})();
+</script>
+<!-- PRIVATE RC199 END -->
 
 </body></html>
 
