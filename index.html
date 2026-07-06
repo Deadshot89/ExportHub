@@ -25094,6 +25094,414 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC223 END: Aufgaben reparieren + Ladeliste unten + Kunden loeschen -->
+
+  <!-- PRIVATE RC224 START: Colli LocalStorage Reload Fix -->
+<style>
+.rc224-colli-guard{
+  border:1px solid #93c5fd;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:10px;
+  padding:7px 9px;
+  margin:8px 0;
+  font-size:12px;
+  font-weight:950;
+}
+</style>
+
+<script>
+/* PRIVATE RC224: Colli-Werte sofort lokal sichern und vor jedem Neuaufbau wiederherstellen */
+(function(){
+  if(window.__EXPORTHUB_RC224_COLLI_RELOAD_FIX__)return;
+  window.__EXPORTHUB_RC224_COLLI_RELOAD_FIX__=true;
+
+  var applying224=false;
+  var fillTimer224=null;
+
+  function clone224(v){
+    try{return JSON.parse(JSON.stringify(v))}catch(err){return v}
+  }
+
+  function num224(v){
+    if(v===null || v===undefined)return '';
+    var s=String(v).trim();
+    if(s==='')return '';
+    var n=Number(s.replace(',','.'));
+    return isFinite(n)?n:s;
+  }
+
+  function blank224(){
+    return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''};
+  }
+
+  function has224(r){
+    return !!(r && ['type','count','ldm','weight','l','w','h'].some(function(k){
+      var v=r[k];
+      return v!=='' && v!==null && v!==undefined;
+    }));
+  }
+
+  function pack224(name){
+    try{
+      return (SEED.colliTypes||[]).find(function(p){return String(p.name||'')===String(name||'')}) || null;
+    }catch(err){return null}
+  }
+
+  function applyPack224(row,force){
+    row=Object.assign(blank224(),row||{});
+    var p=pack224(row.type);
+    if(p){
+      if(force || row.ldm==='' || row.ldm==null)row.ldm=p.ldm!=null?p.ldm:'';
+      if(force || row.l==='' || row.l==null)row.l=p.l!=null?p.l:'';
+      if(force || row.w==='' || row.w==null)row.w=p.w!=null?p.w:'';
+      if(force || row.h==='' || row.h==null)row.h=p.h!=null?p.h:'';
+    }
+    return row;
+  }
+
+  function normalize224(rows,keepBlank){
+    rows=(Array.isArray(rows)?rows:[]).map(function(r){
+      return applyPack224({
+        type:r&&r.type!=null?String(r.type):'',
+        count:r&&r.count!=null?r.count:'',
+        ldm:r&&r.ldm!=null?r.ldm:'',
+        weight:r&&r.weight!=null?r.weight:'',
+        l:r&&r.l!=null?r.l:'',
+        w:r&&r.w!=null?r.w:'',
+        h:r&&r.h!=null?r.h:''
+      },false);
+    });
+    return keepBlank?rows:rows.filter(has224);
+  }
+
+  function currentKey224(){
+    try{
+      var s=(state&&state.shipment)||{};
+      var id=String(s.id||s.ref||s.customerId||'current');
+      return id.replace(/[^A-Za-z0-9_-]+/g,'_')||'current';
+    }catch(err){return 'current'}
+  }
+
+  function keys224(){
+    var k=currentKey224();
+    return [
+      'exporthub_rc224_colli_'+k,
+      'exporthub_rc224_colli_last'
+    ];
+  }
+
+  function saveDraft224(rows){
+    rows=normalize224(rows,false);
+    if(!rows.length)return rows;
+    try{state.rc224ColliRows=clone224(rows);state.rc224ColliKey=currentKey224();state.rc224ColliSavedAt=new Date().toISOString()}catch(err){}
+    keys224().forEach(function(k){
+      try{localStorage.setItem(k,JSON.stringify(rows))}catch(err){}
+    });
+    return rows;
+  }
+
+  function loadDraft224(){
+    var rows=[];
+    keys224().some(function(k){
+      try{rows=JSON.parse(localStorage.getItem(k)||'[]')}catch(err){rows=[]}
+      return normalize224(rows,false).length>0;
+    });
+    if(!normalize224(rows,false).length){
+      try{rows=state.rc224ColliRows||[]}catch(err){rows=[]}
+    }
+    if(!normalize224(rows,false).length){
+      try{rows=state.rc221LastColliRows||state.rc210ColliRows||state.rc209LastColliRows||[]}catch(err){rows=[]}
+    }
+    return normalize224(rows,false);
+  }
+
+  function rowMatch224(id){
+    return String(id||'').match(/^rc(?:96|98|118|199|221|224)_row_(\d+)_(type|count|ldm|weight|l|w|h)$/);
+  }
+
+  function readById224(){
+    var found={};
+    document.querySelectorAll('[id*="_row_"]').forEach(function(el){
+      var m=rowMatch224(el.id);
+      if(!m)return;
+      var i=Number(m[1]);
+      var k=m[2];
+      found[i]=found[i]||blank224();
+      found[i][k]=k==='type'?String(el.value||''):num224(el.value);
+    });
+    return Object.keys(found).sort(function(a,b){return Number(a)-Number(b)}).map(function(i){
+      return applyPack224(found[i],false);
+    });
+  }
+
+  function readByBox224(){
+    var box=document.getElementById('rowsBox');
+    if(!box)return [];
+    var cards=Array.from(box.children).filter(function(card){
+      return card && card.querySelector && card.querySelector('select,input');
+    });
+    if(!cards.length && box.querySelector('select,input'))cards=[box];
+    return cards.map(function(card){
+      var select=card.querySelector('select');
+      var inputs=Array.from(card.querySelectorAll('input')).filter(function(el){
+        return !/^(hidden|file|checkbox|radio)$/i.test(el.type||'');
+      });
+      return applyPack224({
+        type:select?String(select.value||''):'',
+        count:num224(inputs[0]&&inputs[0].value),
+        ldm:num224(inputs[1]&&inputs[1].value),
+        weight:num224(inputs[2]&&inputs[2].value),
+        l:num224(inputs[3]&&inputs[3].value),
+        w:num224(inputs[4]&&inputs[4].value),
+        h:num224(inputs[5]&&inputs[5].value)
+      },false);
+    });
+  }
+
+  function readVisible224(keepBlank){
+    var rows=readById224();
+    if(!normalize224(rows,false).length)rows=readByBox224();
+    return normalize224(rows,!!keepBlank);
+  }
+
+  function restoreState224(force){
+    if(typeof state==='undefined' || !state)return [];
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    var current=normalize224(state.shipment.rows,false);
+    var draft=loadDraft224();
+    if(force || (!current.length && draft.length)){
+      state.shipment.rows=normalize224(draft,true);
+      return state.shipment.rows;
+    }
+    if(current.length){
+      saveDraft224(current);
+      return state.shipment.rows;
+    }
+    return state.shipment.rows;
+  }
+
+  function collect224(reason){
+    if(applying224)return (state&&state.shipment&&state.shipment.rows)||[];
+    var visible=readVisible224(true);
+    var nonEmpty=normalize224(visible,false);
+    if(nonEmpty.length){
+      state.shipment=state.shipment||{};
+      state.shipment.rows=normalize224(visible,true);
+      saveDraft224(state.shipment.rows);
+      return state.shipment.rows;
+    }
+    return restoreState224(false);
+  }
+
+  function findField224(i,k){
+    var ids=[
+      'rc118_row_'+i+'_'+k,
+      'rc96_row_'+i+'_'+k,
+      'rc98_row_'+i+'_'+k,
+      'rc199_row_'+i+'_'+k,
+      'rc221_row_'+i+'_'+k,
+      'rc224_row_'+i+'_'+k
+    ];
+    for(var x=0;x<ids.length;x++){
+      var el=document.getElementById(ids[x]);
+      if(el)return el;
+    }
+    return null;
+  }
+
+  function fill224(rows){
+    rows=normalize224(rows,false);
+    if(!rows.length)return;
+    clearTimeout(fillTimer224);
+    fillTimer224=setTimeout(function(){
+      applying224=true;
+      try{
+        rows.forEach(function(r,i){
+          ['type','count','ldm','weight','l','w','h'].forEach(function(k){
+            var el=findField224(i,k);
+            if(!el || document.activeElement===el)return;
+            el.value=r[k]==null?'':String(r[k]);
+          });
+        });
+        var box=document.getElementById('rowsBox');
+        if(box && !document.getElementById('rc224ColliGuard')){
+          var msg=document.createElement('div');
+          msg.id='rc224ColliGuard';
+          msg.className='rc224-colli-guard';
+          msg.textContent='RC224 aktiv: Colli-Werte werden sofort lokal gesichert und nach Aktualisierung wiederhergestellt.';
+          box.parentNode.insertBefore(msg,box);
+        }
+      }catch(err){}finally{
+        applying224=false;
+      }
+    },0);
+  }
+
+  window.rc224CollectColliRows=function(){
+    var rows=collect224('manual');
+    fill224(rows);
+    return rows;
+  };
+
+  window.updateRow=function(i,k,v){
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    while(state.shipment.rows.length<=i)state.shipment.rows.push(blank224());
+    var row=Object.assign(blank224(),state.shipment.rows[i]||{});
+    row[k]=k==='type'?String(v||''):num224(v);
+    row=applyPack224(row,k==='type');
+    state.shipment.rows[i]=row;
+    saveDraft224(state.shipment.rows);
+    try{if(typeof save==='function')save()}catch(err){}
+    fill224(state.shipment.rows);
+  };
+  try{updateRow=window.updateRow}catch(err){}
+
+  window.addShipmentRow=function(){
+    var rows=normalize224(collect224('before-add-row'),true);
+    if(!rows.length)rows=loadDraft224();
+    rows=normalize224(rows,true);
+    rows.push(blank224());
+    state.shipment.rows=rows;
+    saveDraft224(rows);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    fill224(rows);
+  };
+  try{addShipmentRow=window.addShipmentRow}catch(err){}
+
+  function wrap224(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base!=='function' || base.__rc224Wrapped)return;
+      var wrapped=function(){
+        var rows=collect224('before-'+name);
+        if(!normalize224(rows,false).length)restoreState224(false);
+        var result=base.apply(this,arguments);
+        setTimeout(function(){
+          restoreState224(false);
+          fill224((state.shipment&&state.shipment.rows)||loadDraft224());
+        },40);
+        return result;
+      };
+      wrapped.__rc224Wrapped=true;
+      window[name]=wrapped;
+      try{eval(name+'=window[name]')}catch(err){}
+    }catch(err){}
+  }
+
+  [
+    'saveShipment',
+    'showCurrentCmr',
+    'showSavedCmr',
+    'addDeliveryNoteFiles',
+    'setShipmentPickupDate',
+    'setShipmentRef',
+    'selectShipmentCustomer',
+    'applyCustomerSearch',
+    'ensureShipmentReference',
+    'rc55DownloadLoadlistPdf',
+    'rc218DownloadLoadlistPdf',
+    'rc55PrintLabels'
+  ].forEach(wrap224);
+
+  try{
+    if(typeof shipment==='function' && !shipment.__rc224Wrapped){
+      var baseShipment224=shipment;
+      window.shipment=function(){
+        restoreState224(false);
+        var html=baseShipment224.apply(this,arguments);
+        setTimeout(function(){fill224((state.shipment&&state.shipment.rows)||loadDraft224())},0);
+        return html;
+      };
+      window.shipment.__rc224Wrapped=true;
+      try{shipment=window.shipment}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof save==='function' && !save.__rc224Wrapped){
+      var baseSave224=save;
+      window.save=function(){
+        if(typeof state!=='undefined' && state && state.shipment){
+          var current=normalize224(state.shipment.rows||[],false);
+          if(!current.length){
+            var draft=loadDraft224();
+            if(draft.length)state.shipment.rows=normalize224(draft,true);
+          }else{
+            saveDraft224(state.shipment.rows);
+          }
+        }
+        return baseSave224.apply(this,arguments);
+      };
+      window.save.__rc224Wrapped=true;
+      try{save=window.save}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof render==='function' && !render.__rc224Wrapped){
+      var baseRender224=render;
+      window.render=function(){
+        var hadRowsBox=!!document.getElementById('rowsBox');
+        if(hadRowsBox)collect224('before-render');
+        restoreState224(false);
+        var result=baseRender224.apply(this,arguments);
+        if(typeof state!=='undefined' && state && state.view==='shipment'){
+          setTimeout(function(){
+            restoreState224(false);
+            fill224((state.shipment&&state.shipment.rows)||loadDraft224());
+          },0);
+        }
+        return result;
+      };
+      window.render.__rc224Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  ['input','change','blur','keyup','focusout'].forEach(function(type){
+    document.addEventListener(type,function(ev){
+      var el=ev.target;
+      if(!el)return;
+      var box=document.getElementById('rowsBox');
+      if(rowMatch224(el.id) || (box&&box.contains(el))){
+        collect224(type);
+      }
+    },true);
+  });
+
+  document.addEventListener('pointerdown',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('button,label,input,select');
+    if(!el)return;
+    var box=document.getElementById('rowsBox');
+    var txt=String(el.textContent||el.value||'').toLowerCase();
+    var oc=String(el.getAttribute&&el.getAttribute('onclick')||'').toLowerCase();
+    if((box&&box.contains(el)) || txt.indexOf('+ zeile')>=0 || txt.indexOf('adresse')>=0 || txt.indexOf('sendung speichern')>=0 || txt.indexOf('ladeliste')>=0 || el.type==='file' || oc.indexOf('render')>=0 || oc.indexOf('addshipmentrow')>=0 || oc.indexOf('saveshipment')>=0){
+      collect224('pointerdown');
+    }
+  },true);
+
+  window.addEventListener('beforeunload',function(){
+    try{collect224('beforeunload')}catch(err){}
+  });
+
+  setInterval(function(){
+    if(document.getElementById('rowsBox')){
+      var rows=readVisible224(true);
+      if(normalize224(rows,false).length)saveDraft224(rows);
+    }
+  },700);
+
+  setTimeout(function(){
+    restoreState224(false);
+    fill224((state&&state.shipment&&state.shipment.rows)||loadDraft224());
+  },150);
+})();
+</script>
+<!-- PRIVATE RC224 END: Colli LocalStorage Reload Fix -->
+
   
 </body></html>
 
