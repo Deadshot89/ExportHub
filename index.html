@@ -18856,6 +18856,233 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   try{saveAll196()}catch(err){console.warn('RC196 Benutzerfix Init fehlgeschlagen',err)}
 })();
 </script>
+<!-- PRIVATE RC198 START: Sendung kompakt + Europaletten auf Ladeliste -->
+<style>
+/* PRIVATE RC198: rechte Sendungsfelder nicht mehr als riesige Leerspalte */
+.rc194-shipment-grid{
+  grid-template-columns:minmax(420px,540px) minmax(420px,540px)!important;
+  justify-content:start!important;
+  align-items:start!important;
+  max-width:1120px!important;
+  width:100%!important;
+}
+.rc194-shipment-grid > *{
+  min-width:0!important;
+}
+.rc194-shipment-grid > :not(.card){
+  max-width:540px!important;
+}
+.rc194-shipment-grid .field input,
+.rc194-shipment-grid .field select,
+.rc194-shipment-grid .field textarea{
+  max-width:100%!important;
+}
+.rc198-orphan-field-fixed{
+  width:100%!important;
+  max-width:100%!important;
+}
+.rc198-pallet-field .rc198-pallet-value{
+  min-height:34px;
+  border-bottom:2px solid #0f172a;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-start;
+  padding:0 0 5px;
+  font-size:22px;
+  font-weight:950;
+  color:#0f172a;
+}
+.rc198-pallet-field .load-write-line{
+  margin-top:10px;
+}
+@media(max-width:1100px){
+  .rc194-shipment-grid{
+    grid-template-columns:1fr!important;
+    max-width:640px!important;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC198: Layout der Sendung und Palettenfelder auf der Ladeliste */
+(function(){
+  if(window.__EXPORTHUB_RC198_LAYOUT_PALETTEN__)return;
+  window.__EXPORTHUB_RC198_LAYOUT_PALETTEN__=true;
+
+  function rc198Text(el){
+    return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+
+  function rc198Card(root,pattern){
+    var heads=Array.from(root.querySelectorAll('.card h3'));
+    var head=heads.find(function(h){return pattern.test(rc198Text(h))});
+    return head?head.closest('.card'):null;
+  }
+
+  function rc198IsShipmentField(el){
+    var text=rc198Text(el);
+    return /Sendungsreferenz|Referenzregel|Lieferscheine|DNC|Abholdatum|Spedition|Kennzeichen|Verlader|Incoterm|Drittland|Zolldokumente|Sendung speichern|Ladeliste\/CMR|Versandlabel/i.test(text);
+  }
+
+  function rc198MoveOrphanShipmentFields(){
+    try{
+      if(typeof state==='undefined' || state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      var customer=rc198Card(root,/^Kunde\s*&\s*Grunddaten$/i);
+      var collis=rc198Card(root,/^Collis,\s*(Maße|Masse),\s*Gewicht,\s*Lademeter$/i);
+      if(!customer || !collis)return;
+
+      var grid=root.querySelector('.rc194-shipment-grid');
+      if(grid){
+        Array.from(grid.children).forEach(function(child){
+          if(child===customer || child===collis)return;
+          if(child.closest('.card') && child.classList.contains('card'))return;
+          if(rc198IsShipmentField(child)){
+            child.classList.add('rc198-orphan-field-fixed');
+            customer.appendChild(child);
+          }else if(!rc198Text(child) && !child.querySelector('input,select,textarea,button')){
+            child.remove();
+          }
+        });
+      }
+
+      Array.from(root.children).forEach(function(child){
+        if(child===grid || child===customer || child===collis)return;
+        if(child.closest && child.closest('.card'))return;
+        if(rc198IsShipmentField(child)){
+          child.classList.add('rc198-orphan-field-fixed');
+          customer.appendChild(child);
+        }
+      });
+
+      if(grid && customer.parentElement!==grid)grid.insertBefore(customer,grid.firstChild);
+      if(grid && collis.parentElement!==grid)grid.appendChild(collis);
+    }catch(err){}
+  }
+
+  function rc198EuroPalletOut(s){
+    try{
+      if(typeof euroPalletCount==='function')return Number(euroPalletCount(s))||0;
+    }catch(err){}
+    return ((s&&s.rows)||[]).reduce(function(sum,row){
+      var type=String((row&&row.type)||'').toLowerCase();
+      return sum+(/euro\s*pal|eur\s*pal|europalette/.test(type)?(Number(row.count)||0):0);
+    },0);
+  }
+
+  function rc198ActiveShipment(){
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(err){}
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(err){}
+    try{return state&&state.shipment}catch(err){}
+    return null;
+  }
+
+  function rc198PalletHtml(outgoing){
+    var out=outgoing>0?String(outgoing):'';
+    return ''+
+      '<div class="load-write-field rc198-pallet-field"><span class="doc-label">Europaletten Eingang</span><div class="load-write-line"></div><div class="load-write-hint">Rueckgabe / Eingang</div></div>'+
+      '<div class="load-write-field rc198-pallet-field"><span class="doc-label">Europaletten Ausgang</span><div class="rc198-pallet-value">'+out+'</div><div class="load-write-hint">Automatisch aus Euro-Paletten der Sendung</div></div>';
+  }
+
+  function rc198ApplyLoadlistPalletFields(load){
+    try{
+      load=load||document.getElementById('loadListDoc');
+      if(!load)return;
+      var fields=load.querySelector('.load-write-fields');
+      if(!fields)return;
+      var s=rc198ActiveShipment();
+      var outgoing=rc198EuroPalletOut(s);
+      var old=fields.querySelectorAll('.rc198-pallet-field');
+      Array.from(old).forEach(function(el){el.remove()});
+      fields.insertAdjacentHTML('beforeend',rc198PalletHtml(outgoing));
+    }catch(err){}
+  }
+
+  function rc198Refresh(){
+    rc198MoveOrphanShipmentFields();
+    rc198ApplyLoadlistPalletFields();
+  }
+
+  function rc198WaitThenRefresh(){
+    setTimeout(rc198Refresh,60);
+    setTimeout(rc198Refresh,180);
+  }
+
+  var oldRender198=window.render;
+  if(typeof oldRender198==='function' && !oldRender198.__rc198LayoutPallets){
+    window.render=function(){
+      var result=oldRender198.apply(this,arguments);
+      rc198WaitThenRefresh();
+      return result;
+    };
+    window.render.__rc198LayoutPallets=true;
+    try{render=window.render}catch(err){}
+  }
+
+  var oldShowCurrent198=window.showCurrentCmr||((typeof showCurrentCmr==='function')?showCurrentCmr:null);
+  if(typeof oldShowCurrent198==='function' && !oldShowCurrent198.__rc198LayoutPallets){
+    window.showCurrentCmr=function(){
+      var result=oldShowCurrent198.apply(this,arguments);
+      rc198WaitThenRefresh();
+      return result;
+    };
+    window.showCurrentCmr.__rc198LayoutPallets=true;
+    try{showCurrentCmr=window.showCurrentCmr}catch(err){}
+  }
+
+  var oldShowSaved198=window.showSavedCmr||((typeof showSavedCmr==='function')?showSavedCmr:null);
+  if(typeof oldShowSaved198==='function' && !oldShowSaved198.__rc198LayoutPallets){
+    window.showSavedCmr=function(){
+      var result=oldShowSaved198.apply(this,arguments);
+      rc198WaitThenRefresh();
+      return result;
+    };
+    window.showSavedCmr.__rc198LayoutPallets=true;
+    try{showSavedCmr=window.showSavedCmr}catch(err){}
+  }
+
+  var oldWebsitePdf198=window.rc181DownloadLoadlistWebsiteLayoutPdf||window.rc55DownloadLoadlistPdf||null;
+  if(typeof oldWebsitePdf198==='function' && !oldWebsitePdf198.__rc198LayoutPallets){
+    window.rc181DownloadLoadlistWebsiteLayoutPdf=async function(){
+      if(!document.getElementById('loadListDoc') && typeof showCurrentCmr==='function'){
+        showCurrentCmr();
+        await new Promise(function(resolve){setTimeout(resolve,180)});
+      }
+      rc198ApplyLoadlistPalletFields();
+      return oldWebsitePdf198.apply(this,arguments);
+    };
+    window.rc181DownloadLoadlistWebsiteLayoutPdf.__rc198LayoutPallets=true;
+    window.rc55DownloadLoadlistPdf=window.rc181DownloadLoadlistWebsiteLayoutPdf;
+    try{rc181DownloadLoadlistWebsiteLayoutPdf=window.rc181DownloadLoadlistWebsiteLayoutPdf}catch(err){}
+    try{rc55DownloadLoadlistPdf=window.rc181DownloadLoadlistWebsiteLayoutPdf}catch(err){}
+  }
+
+  var oldLines198=window.rc55LoadlistPdfLines||((typeof rc55LoadlistPdfLines==='function')?rc55LoadlistPdfLines:null);
+  if(typeof oldLines198==='function' && !oldLines198.__rc198LayoutPallets){
+    window.rc55LoadlistPdfLines=function(s){
+      var lines=oldLines198.apply(this,arguments)||[];
+      var out=rc198EuroPalletOut(s);
+      var insert=[
+        null,
+        {text:'Europaletten',bold:true},
+        'Europaletten Eingang: __________________________',
+        'Europaletten Ausgang: '+(out>0?out:'__________')
+      ];
+      var idx=lines.findIndex(function(x){return typeof x==='string' && /Unterschrift Fahrer/i.test(x)});
+      if(idx>=0)lines.splice.apply(lines,[idx,0].concat(insert));
+      else lines=lines.concat(insert);
+      return lines;
+    };
+    window.rc55LoadlistPdfLines.__rc198LayoutPallets=true;
+    try{rc55LoadlistPdfLines=window.rc55LoadlistPdfLines}catch(err){}
+  }
+
+  document.addEventListener('change',rc198WaitThenRefresh,true);
+  document.addEventListener('click',rc198WaitThenRefresh,true);
+  setTimeout(rc198Refresh,200);
+})();
+</script>
+<!-- PRIVATE RC198 END -->
 
 </body></html>
 
