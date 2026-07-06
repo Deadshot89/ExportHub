@@ -16567,6 +16567,584 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   ensureSharePoint188();
 })();
 </script>
+<style>
+/* PRIVATE RC190: Sendung Collis + Mailformat/An/CC final */
+.rc190-mail-card{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  border-radius:16px;
+  padding:12px;
+  margin:10px 0;
+}
+.rc190-mail-card h3{
+  margin:0 0 8px;
+  color:#08245d;
+}
+.rc190-mail-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:8px 0;
+}
+.rc190-mail-actions button{
+  border:1px solid #bfdbfe;
+  background:white;
+  color:#08245d;
+  border-radius:12px;
+  padding:9px 11px;
+  font-weight:900;
+  cursor:pointer;
+}
+.rc190-mail-actions .btn{
+  background:#2563eb;
+  border-color:#2563eb;
+  color:white;
+}
+.rc190-mail-meta{
+  font-size:12px;
+  color:#334155;
+  line-height:1.45;
+}
+.rc190-mail-warning{
+  border:1px solid #fed7aa;
+  background:#fff7ed;
+  color:#9a3412;
+  border-radius:12px;
+  padding:9px 10px;
+  font-weight:850;
+}
+</style>
+
+<script>
+/* PRIVATE RC190: RC189 Colli-Fix plus saubere Outlook-Mail mit echten An/CC-Feldern */
+(function(){
+  function e190(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n190(v){
+    return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function emailItems190(value){
+    var raw=String(value||'')
+      .replace(/mailto:/gi,' ')
+      .replace(/[<>()[\]{}]/g,' ')
+      .replace(/\s+at\s+/gi,'@')
+      .replace(/\s+dot\s+/gi,'.')
+      .replace(/[,;\n\r\t]+/g,' ');
+    var found=[];
+    raw.replace(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/gi,function(m){
+      found.push(m.trim().replace(/[.,;:]+$/,''));
+      return m;
+    });
+    var seen={};
+    return found.filter(function(x){
+      var k=x.toLowerCase();
+      if(seen[k])return false;
+      seen[k]=true;
+      return true;
+    });
+  }
+
+  function displayMail190(value){
+    return emailItems190(value).join('; ');
+  }
+
+  function pathMail190(value){
+    /* Outlook Desktop akzeptiert Semikolon als Empfaenger-Trenner am stabilsten. */
+    return emailItems190(value).join(';');
+  }
+
+  function queryMail190(value){
+    /* Adressen einzeln codieren, Semikolon bleibt als Outlook-Trenner erhalten. */
+    return emailItems190(value).map(function(mail){return encodeURIComponent(mail)}).join(';');
+  }
+
+  function ensureShipment190(){
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    if(!state.shipment.rows.length)state.shipment.rows=[blankRow190()];
+    return state.shipment;
+  }
+
+  function blankRow190(){
+    return {type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''};
+  }
+
+  function pack190(name){
+    var list=[];
+    try{list=Array.isArray(SEED&&SEED.colliTypes)?SEED.colliTypes:[]}catch(err){}
+    return list.find(function(p){return n190(p.name)===n190(name)})||null;
+  }
+
+  function cleanNum190(value){
+    if(value===null||value===undefined)return '';
+    var s=String(value).trim().replace(',','.');
+    if(s===''||s==='0'||s==='0.0'||s==='0.00')return '';
+    return s;
+  }
+
+  function applyPackDefaults190(row){
+    row=row||blankRow190();
+    var p=pack190(row.type);
+    if(p){
+      if(row.ldm===''||row.ldm===null||row.ldm===undefined)row.ldm=String(p.ldm??'');
+      if(row.l===''||row.l===null||row.l===undefined)row.l=String(p.l??'');
+      if(row.w===''||row.w===null||row.w===undefined)row.w=String(p.w??'');
+      if(row.h===''||row.h===null||row.h===undefined)row.h=String(p.h??'');
+    }
+    return row;
+  }
+
+  function byId190(i,k){
+    var el=document.getElementById('rc118_row_'+i+'_'+k);
+    return el?el.value:null;
+  }
+
+  function readRc118Rows190(){
+    var indexes={};
+    document.querySelectorAll('[id^="rc118_row_"]').forEach(function(el){
+      var m=String(el.id||'').match(/^rc118_row_(\d+)_(type|count|ldm|weight|l|w|h)$/);
+      if(m)indexes[Number(m[1])]=true;
+    });
+    return Object.keys(indexes).map(function(key){
+      var i=Number(key);
+      return applyPackDefaults190({
+        type:byId190(i,'type')||'',
+        count:cleanNum190(byId190(i,'count')),
+        ldm:cleanNum190(byId190(i,'ldm')),
+        weight:cleanNum190(byId190(i,'weight')),
+        l:cleanNum190(byId190(i,'l')),
+        w:cleanNum190(byId190(i,'w')),
+        h:cleanNum190(byId190(i,'h'))
+      });
+    });
+  }
+
+  function readRowsBox190(){
+    var box=document.getElementById('rowsBox');
+    if(!box)return [];
+    var cards=Array.from(box.querySelectorAll('.item.card,.item,.card')).filter(function(card){
+      return card.querySelector('select,input');
+    });
+    if(!cards.length&&box.querySelector('select,input'))cards=[box];
+    return cards.map(function(card){
+      var select=card.querySelector('select');
+      var inputs=Array.from(card.querySelectorAll('input'));
+      return applyPackDefaults190({
+        type:select?select.value:'',
+        count:cleanNum190(inputs[0]&&inputs[0].value),
+        ldm:cleanNum190(inputs[1]&&inputs[1].value),
+        weight:cleanNum190(inputs[2]&&inputs[2].value),
+        l:cleanNum190(inputs[3]&&inputs[3].value),
+        w:cleanNum190(inputs[4]&&inputs[4].value),
+        h:cleanNum190(inputs[5]&&inputs[5].value)
+      });
+    });
+  }
+
+  function collectRows190(fillDom){
+    ensureShipment190();
+    var rows=readRc118Rows190();
+    if(!rows.length)rows=readRowsBox190();
+    if(rows.length)state.shipment.rows=rows.map(applyPackDefaults190);
+    if(!state.shipment.rows.length)state.shipment.rows=[blankRow190()];
+    if(fillDom){
+      setTimeout(function(){
+        try{
+          state.shipment.rows.forEach(function(r,i){
+            ['type','count','ldm','weight','l','w','h'].forEach(function(k){
+              var el=document.getElementById('rc118_row_'+i+'_'+k);
+              if(el&&document.activeElement!==el)el.value=(r&&r[k])||'';
+            });
+          });
+        }catch(err){}
+      },0);
+    }
+    try{if(typeof save==='function')save()}catch(err){}
+    return state.shipment.rows;
+  }
+
+  window.rc190CollectShipmentRows=collectRows190;
+  window.rc189CollectShipmentRows=collectRows190;
+  window.collectRows118=collectRows190;
+  window.syncRowsFromDom96=collectRows190;
+  window.rc115SyncShipmentRowsFromDom=collectRows190;
+  window.rc116SyncVisibleRows=collectRows190;
+
+  window.updateRow=function(i,k,v){
+    ensureShipment190();
+    while(state.shipment.rows.length<=i)state.shipment.rows.push(blankRow190());
+    var row=state.shipment.rows[i]||blankRow190();
+    if(k==='type'){
+      row.type=v||'';
+      row=applyPackDefaults190(row);
+    }else{
+      row[k]=cleanNum190(v);
+    }
+    state.shipment.rows[i]=row;
+    try{if(typeof save==='function')save()}catch(err){}
+  };
+  updateRow=window.updateRow;
+
+  window.addShipmentRow=function(){
+    ensureShipment190();
+    collectRows190(true);
+    state.shipment.rows.push(blankRow190());
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+  addShipmentRow=window.addShipmentRow;
+
+  window.removeShipmentRow=function(i){
+    ensureShipment190();
+    collectRows190(true);
+    state.shipment.rows.splice(i,1);
+    if(!state.shipment.rows.length)state.shipment.rows=[blankRow190()];
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+  removeShipmentRow=window.removeShipmentRow;
+
+  function customer190(id){
+    var customers=(state&&Array.isArray(state.customers))?state.customers:[];
+    var s=(state&&state.shipment)||{};
+    return customers.find(function(c){return String(c.id||'')===String(id||'')}) ||
+      customers.find(function(c){return String(c.id||'')===String(s.customerId||'')}) ||
+      customers.find(function(c){return String(c.id||'')===String(state.selectedCustomerId||'')}) ||
+      null;
+  }
+
+  function customerTo190(c){
+    return displayMail190([
+      c&&c.carrierMail,
+      c&&c.speditionMail,
+      c&&c.anmeldungMail,
+      c&&c.forwarderMail,
+      c&&c.carrierEmail,
+      c&&c.mailRecipients,
+      c&&c.mailAddress,
+      c&&c.mail,
+      c&&c.email
+    ].filter(Boolean).join(' '));
+  }
+
+  function customerCc190(c){
+    return displayMail190([
+      c&&c.mailCc,
+      c&&c.cc,
+      c&&c.defaultCc,
+      c&&c.copyMail,
+      c&&c.salesMail,
+      c&&c.salesEmail,
+      c&&c.salesPersonMail,
+      c&&c.salesPersonEmail
+    ].filter(Boolean).join(' '));
+  }
+
+  window.customerCarrierMailAddress=function(c){return customerTo190(c)};
+  window.customerMailAddress=function(c){return customerTo190(c)};
+  window.customerMailCcAddress=function(c){return customerCc190(c)};
+  window.normalizeEmailList=function(v){return displayMail190(v)};
+  window.rc61NormalizeEmailList=function(v){return displayMail190(v)};
+  window.rc61MailtoList=function(v){return pathMail190(v)};
+  window.rc66EmailItems=function(v){return emailItems190(v)};
+  window.rc64EmailItems=function(v){return emailItems190(v)};
+  window.rc61EmailItems=function(v){return emailItems190(v)};
+
+  function totals190(rows){
+    rows=Array.isArray(rows)?rows:(state&&state.shipment&&state.shipment.rows)||[];
+    var out={count:0,weight:0,ldm:0};
+    rows.forEach(function(r){
+      var count=Number(String(r.count||'').replace(',','.'))||0;
+      var weight=Number(String(r.weight||'').replace(',','.'))||0;
+      var ldm=Number(String(r.ldm||'').replace(',','.'))||0;
+      out.count+=count;
+      out.weight+=weight;
+      out.ldm+=count*ldm;
+    });
+    return out;
+  }
+
+  function fmt190(value,decimals){
+    var n=Number(value||0);
+    if(!isFinite(n))n=0;
+    return n.toFixed(decimals).replace('.',',');
+  }
+
+  function rowLine190(r,i){
+    var count=String(r.count||'').trim()||'0';
+    var dims=[r.l,r.w,r.h].filter(Boolean).join(' x ');
+    var lines=[
+      (i+1)+'. Colli',
+      '   Anzahl: '+count,
+      '   Packstueck: '+(r.type||'offen')
+    ];
+    if(r.weight)lines.push('   Gewicht: '+fmt190(Number(String(r.weight).replace(',','.')),1)+' kg');
+    if(r.ldm)lines.push('   LDM je Colli: '+fmt190(Number(String(r.ldm).replace(',','.')),2));
+    if(dims)lines.push('   Masse: '+dims+' cm');
+    return lines.join('\r\n');
+  }
+
+  function shipmentInfoMail190(c,s){
+    s=s||state.shipment||{};
+    var rows=Array.isArray(s.rows)?s.rows:[];
+    var total=totals190(rows);
+    var docs=String(s.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean);
+    var lines=[
+      'SENDUNGSINFORMATIONEN',
+      '',
+      'Referenz: '+(s.ref||'offen'),
+      'Kunde: '+((c&&c.name)||'offen'),
+      'Kundennummer: '+((c&&(c.account||c.customerNumber))||'offen'),
+      '',
+      'Empfaengeradresse:',
+      (c&&c.address)||'offen',
+      '',
+      'Collis:'
+    ];
+    if(rows.length)rows.forEach(function(r,i){lines.push(rowLine190(r,i))});
+    else lines.push('- offen');
+    lines.push('');
+    lines.push('Gesamt Collis: '+fmt190(total.count,0));
+    lines.push('Gesamtgewicht: '+fmt190(total.weight,1)+' kg');
+    lines.push('Gesamt LDM: '+fmt190(total.ldm,2));
+    lines.push('Abholdatum: '+(s.pickupDate||s.plannedPickupDate||'offen'));
+    lines.push('Spedition: '+(s.carrier||(c&&c.carrier)||'offen'));
+    lines.push('Incoterm / Hinweis: '+(s.incoterm||'offen'));
+    lines.push('Lieferscheine / DNCs: '+(docs.length?docs.join(', '):'offen'));
+    lines.push('');
+    lines.push('Die Ladeliste fuege ich als PDF bei.');
+    return lines.join('\r\n');
+  }
+
+  function mailBody190(c,s){
+    var intro='Guten Tag,\r\n\r\nbitte melden Sie die folgende Sendung an.\r\n';
+    var own=String((c&&(c.mailText||c.mailBody))||'').trim();
+    if(own&&own.length<600&&!/\bAn\s*:|\bCC\s*:|@/.test(own)){
+      intro=own.replace(/\r?\n/g,'\r\n')+'\r\n';
+    }
+    return [intro,shipmentInfoMail190(c,s),'\r\nVielen Dank\r\n\r\nMit freundlichen Gruessen\r\nTobias Limberg'].join('\r\n');
+  }
+
+  function mailSubject190(c,s){
+    s=s||state.shipment||{};
+    return 'Sendungsanmeldung '+(s.ref||'')+' / '+((c&&c.name)||'Kunde');
+  }
+
+  function buildMailUrl190(id){
+    collectRows190(true);
+    var c=customer190(id);
+    if(!c){alert('Bitte zuerst einen Kunden auswaehlen.');return ''}
+    var to=customerTo190(c);
+    var cc=customerCc190(c);
+    if(!emailItems190(to).length){
+      alert('Fuer diesen Kunden ist keine gueltige Speditions-/Anmelde-Mailadresse mit @ hinterlegt. Bitte im Kundenordner speichern.');
+      return '';
+    }
+    var s=state.shipment||{};
+    s.rows=state.shipment.rows||[];
+    var params=['subject='+encodeURIComponent(mailSubject190(c,s))];
+    if(emailItems190(cc).length)params.push('cc='+queryMail190(cc));
+    params.push('body='+encodeURIComponent(mailBody190(c,s)));
+    try{if(typeof audit==='function')audit('Outlook-Mail vorbereitet',((c.account||c.customerNumber||'')+' · '+mailSubject190(c,s)))}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    return 'mailto:'+pathMail190(to)+'?'+params.join('&');
+  }
+
+  window.rc190BuildShipmentMailUrl=buildMailUrl190;
+  window.mailtoUrlForShipmentCustomer=function(id){return buildMailUrl190(id)};
+
+  window.prepareShipmentMailLink=function(el,id){
+    var url=buildMailUrl190(id);
+    if(!url)return false;
+    if(el){
+      el.href=url;
+      el.target='_top';
+      el.rel='noopener';
+    }
+    setTimeout(function(){try{window.location.href=url}catch(err){}},20);
+    return false;
+  };
+
+  window.rc190OpenShipmentMail=function(id,ev){
+    if(ev){ev.preventDefault();ev.stopPropagation();}
+    var url=buildMailUrl190(id);
+    if(!url)return false;
+    try{
+      var a=document.createElement('a');
+      a.href=url;
+      a.target='_top';
+      a.rel='noopener';
+      a.style.display='none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){try{a.remove()}catch(err){}},500);
+    }catch(err){
+      try{window.location.href=url}catch(err2){}
+    }
+    return false;
+  };
+
+  window.rc189OpenMail=window.rc190OpenShipmentMail;
+  window.rc185OpenShipmentMail=window.rc190OpenShipmentMail;
+
+  window.copyShipmentMail=function(id){
+    collectRows190(true);
+    var c=customer190(id);
+    if(!c){alert('Bitte zuerst einen Kunden auswaehlen.');return}
+    var text=mailBody190(c,state.shipment||{});
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){alert('Mailtext wurde kopiert. Empfaenger bitte ueber Mail erstellen oeffnen, nicht in den Text kopieren.')}).catch(function(){prompt('Mailtext kopieren:',text)});
+    }else{
+      prompt('Mailtext kopieren:',text);
+    }
+  };
+
+  window.customerMailActions=function(c){
+    if(!c)return '';
+    var id=e190(c.id||'');
+    var to=customerTo190(c);
+    var cc=customerCc190(c);
+    if(!emailItems190(to).length){
+      return '<div class="rc190-mail-warning">Keine gueltige Speditions-/Anmelde-Mailadresse mit @ hinterlegt.</div>';
+    }
+    return '<div class="rc190-mail-actions">'+
+      '<button type="button" class="btn" onclick="return rc190OpenShipmentMail(&quot;'+id+'&quot;,event)">Mail erstellen</button>'+
+      '<button type="button" onclick="copyShipmentMail(&quot;'+id+'&quot;)">Nur Mailtext kopieren</button>'+
+      '</div><div class="rc190-mail-meta"><b>An:</b> '+e190(to)+'<br><b>CC:</b> '+e190(cc||'offen')+'<br><b>Format:</b> klare Outlook-Zeilen ohne Tabs</div>';
+  };
+
+  function mailCard190(){
+    var c=customer190();
+    if(!c){
+      return '<div class="rc190-mail-card"><h3>Empfaengermail / Outlook-Avisierung</h3><div class="rc190-mail-warning">Bitte zuerst eine Kundennummer / einen Kunden auswaehlen.</div></div>';
+    }
+    return '<div class="rc190-mail-card"><h3>Empfaengermail / Outlook-Avisierung</h3>'+customerMailActions(c)+'</div>';
+  }
+
+  function ensureMailDom190(){
+    try{
+      if(!state||state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      if(!root)return;
+      root.querySelectorAll('.rc184-shipment-mail-card,.rc185-mail-card,.rc189-mail-card').forEach(function(el){el.remove()});
+      if(root.querySelector('.rc190-mail-card'))return;
+      var wrap=document.createElement('div');
+      wrap.innerHTML=mailCard190();
+      var target=Array.from(root.querySelectorAll('.card h3')).find(function(h){
+        return /Collis|Gespeicherte Sendungen/.test(h.textContent||'');
+      });
+      if(target&&target.closest('.card'))target.closest('.card').before(wrap.firstElementChild);
+      else root.insertAdjacentHTML('beforeend',mailCard190());
+    }catch(err){}
+  }
+
+  if(typeof shipment==='function'){
+    var baseShipment190=shipment;
+    shipment=function(){
+      collectRows190(false);
+      var html=String(baseShipment190.apply(this,arguments));
+      html=html.replace(/<div class="rc18[459][^"]*mail[\s\S]*?<\/div><\/div>/g,'');
+      if(!html.includes('rc190-mail-card')){
+        if(html.includes('<div class="card"><h3>Collis, Maße, Gewicht, Lademeter</h3>')){
+          html=html.replace('<div class="card"><h3>Collis, Maße, Gewicht, Lademeter</h3>',mailCard190()+'<div class="card"><h3>Collis, Maße, Gewicht, Lademeter</h3>');
+        }else{
+          html+=mailCard190();
+        }
+      }
+      setTimeout(ensureMailDom190,80);
+      return html;
+    };
+  }
+
+  if(typeof saveShipment==='function'){
+    var baseSaveShipment190=saveShipment;
+    window.saveShipment=function(){
+      collectRows190(true);
+      return baseSaveShipment190.apply(this,arguments);
+    };
+    saveShipment=window.saveShipment;
+  }
+
+  if(typeof showCurrentCmr==='function'){
+    var baseShowCurrentCmr190=showCurrentCmr;
+    window.showCurrentCmr=function(){
+      collectRows190(true);
+      return baseShowCurrentCmr190.apply(this,arguments);
+    };
+    showCurrentCmr=window.showCurrentCmr;
+  }
+
+  if(typeof rc55DownloadLoadlistPdf==='function'){
+    var basePdf190=rc55DownloadLoadlistPdf;
+    window.rc55DownloadLoadlistPdf=function(){
+      collectRows190(true);
+      return basePdf190.apply(this,arguments);
+    };
+    rc55DownloadLoadlistPdf=window.rc55DownloadLoadlistPdf;
+  }
+
+  if(typeof saveCustomerFolderMail==='function'){
+    var baseSaveFolderMail190=saveCustomerFolderMail;
+    window.saveCustomerFolderMail=function(id){
+      var c=customer190(id);
+      var mailEl=document.getElementById('customerFolderMail')||document.getElementById('customerFolderCarrierMail')||document.getElementById('customerFolderMailTo');
+      var ccEl=document.getElementById('customerFolderCc')||document.getElementById('customerFolderMailCc');
+      if(c&&mailEl){
+        var to=displayMail190(mailEl.value);
+        mailEl.value=to;
+        c.carrierMail=to;c.speditionMail=to;c.anmeldungMail=to;c.mailRecipients=to;c.mail=to;c.email=to;
+      }
+      if(c&&ccEl){
+        var cc=displayMail190(ccEl.value);
+        ccEl.value=cc;
+        c.mailCc=cc;c.cc=cc;c.copyMail=cc;
+      }
+      var r=baseSaveFolderMail190.apply(this,arguments);
+      try{if(typeof save==='function')save()}catch(err){}
+      return r;
+    };
+    saveCustomerFolderMail=window.saveCustomerFolderMail;
+  }
+
+  if(typeof render==='function'){
+    var baseRender190=render;
+    render=function(){
+      var r=baseRender190.apply(this,arguments);
+      setTimeout(function(){
+        try{collectRows190(false);ensureMailDom190()}catch(err){}
+      },100);
+      return r;
+    };
+  }
+
+  document.addEventListener('input',function(ev){
+    var el=ev.target;
+    if(el&&/^rc118_row_\d+_(type|count|ldm|weight|l|w|h)$/.test(String(el.id||''))){
+      setTimeout(function(){collectRows190(false)},0);
+    }
+  },true);
+
+  document.addEventListener('change',function(ev){
+    var el=ev.target;
+    if(!el)return;
+    var rowsBox=document.getElementById('rowsBox');
+    if(/^rc118_row_\d+_(type|count|ldm|weight|l|w|h)$/.test(String(el.id||'')) || (rowsBox&&rowsBox.contains(el))){
+      setTimeout(function(){collectRows190(true)},0);
+    }
+  },true);
+
+  setTimeout(function(){
+    try{collectRows190(false);ensureMailDom190()}catch(err){}
+  },150);
+})();
+</script>
 
 </body></html>
 
