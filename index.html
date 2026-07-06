@@ -20246,6 +20246,601 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC201 END -->
+
+  <!-- PRIVATE RC203 START: Colli persistence + search focus + overview pickup filters -->
+<style>
+/* RC203: compacte Sendungsuebersicht und weniger blockierende rechte Flaeche */
+.rc203-filterbar{
+  display:grid;
+  grid-template-columns:minmax(260px,1.5fr) minmax(140px,.55fr) minmax(140px,.55fr) auto auto;
+  gap:8px;
+  align-items:center;
+  margin:10px 0 14px;
+}
+.rc203-filterbar input,
+.rc203-filterbar select{
+  min-height:38px;
+}
+.rc203-check{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--line,#d8e2ee);
+  background:#fff;
+  border-radius:10px;
+  padding:8px 10px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.rc203-check input{
+  width:auto!important;
+  margin:0!important;
+}
+.rc203-date-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  min-width:250px;
+}
+.rc203-date-grid label{
+  display:grid;
+  gap:3px;
+  margin:0!important;
+  font-size:11px;
+  color:#334155;
+  font-weight:950;
+}
+.rc203-date-grid input{
+  min-width:118px;
+  padding:7px 8px;
+  border-radius:9px;
+}
+.rc203-actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.rc203-delete{
+  background:#fee2e2!important;
+  color:#991b1b!important;
+  border:0!important;
+}
+.rc199-shipment-layout.rc194-shipment-grid{
+  grid-template-columns:minmax(480px,1fr) minmax(480px,1fr)!important;
+  align-items:start!important;
+}
+.rc199-main-card,
+.rc199-colli-card{
+  min-width:0!important;
+}
+.rc199-colli-card{
+  align-self:start!important;
+}
+.rc199-colli-card .field textarea{
+  min-height:72px!important;
+}
+@media(max-width:1100px){
+  .rc203-filterbar,
+  .rc199-shipment-layout.rc194-shipment-grid{
+    grid-template-columns:1fr!important;
+  }
+  .rc203-date-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+/* RC203: sichert Colli-Werte vor jedem Render/Speichern und verhindert Fokusverlust bei Suche */
+(function(){
+  if(window.__EXPORTHUB_RC203_COLLI_SEARCH_OVERVIEW__)return;
+  window.__EXPORTHUB_RC203_COLLI_SEARCH_OVERVIEW__=true;
+
+  var renderTimer203=null;
+  var lastFocus203=null;
+
+  function e203(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n203(v){
+    try{if(typeof norm==='function')return norm(v)}catch(err){}
+    return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function iso203(v){
+    if(!v)return '';
+    var s=String(v).slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:'';
+  }
+
+  function num203(v){
+    if(v==='' || v==null)return 0;
+    var n=Number(String(v).replace(',','.'));
+    return isFinite(n)?n:0;
+  }
+
+  function blankRow203(){
+    return {type:'Euro Palette',count:0,ldm:0.4,weight:0,l:120,w:80,h:0};
+  }
+
+  function cloneRow203(r){
+    var x=Object.assign(blankRow203(),r||{});
+    x.count=num203(x.count);
+    x.ldm=num203(x.ldm);
+    x.weight=num203(x.weight);
+    x.l=num203(x.l);
+    x.w=num203(x.w);
+    x.h=num203(x.h);
+    return x;
+  }
+
+  function hasData203(r){
+    if(!r)return false;
+    return !!String(r.type||'').trim() || num203(r.count)>0 || num203(r.weight)>0 || num203(r.ldm)>0 || num203(r.l)>0 || num203(r.w)>0 || num203(r.h)>0;
+  }
+
+  function applyPack203(r){
+    r=cloneRow203(r);
+    var pack=null;
+    try{pack=(SEED.colliTypes||[]).find(function(t){return t.name===r.type})}catch(err){}
+    if(pack){
+      if(!r.ldm && pack.ldm!=null)r.ldm=num203(pack.ldm);
+      if(!r.l && pack.l!=null)r.l=num203(pack.l);
+      if(!r.w && pack.w!=null)r.w=num203(pack.w);
+      if(!r.h && pack.h!=null)r.h=num203(pack.h);
+    }
+    return r;
+  }
+
+  function captureFocus203(){
+    var el=document.activeElement;
+    if(!el || !el.id)return null;
+    var tag=String(el.tagName||'').toLowerCase();
+    if(!/^(input|textarea|select|button)$/.test(tag))return null;
+    var info={id:el.id,start:null,end:null};
+    try{
+      if(typeof el.selectionStart==='number'){
+        info.start=el.selectionStart;
+        info.end=el.selectionEnd;
+      }
+    }catch(err){}
+    return info;
+  }
+
+  function restoreFocus203(info){
+    info=info||lastFocus203;
+    if(!info || !info.id)return;
+    setTimeout(function(){
+      var el=document.getElementById(info.id);
+      if(!el)return;
+      try{el.focus({preventScroll:true})}catch(err){try{el.focus()}catch(e){}}
+      try{
+        if(info.start!=null && typeof el.setSelectionRange==='function'){
+          el.setSelectionRange(info.start,info.end==null?info.start:info.end);
+        }
+      }catch(err){}
+    },0);
+  }
+
+  function readVisibleRows203(){
+    var rows=[];
+    var found=false;
+    var nodes=document.querySelectorAll('[id^="rc118_row_"]');
+    nodes.forEach(function(el){
+      var m=String(el.id||'').match(/^rc118_row_(\d+)_(type|count|ldm|weight|l|w|h)$/);
+      if(!m)return;
+      found=true;
+      var i=Number(m[1]);
+      var k=m[2];
+      rows[i]=rows[i]||{};
+      rows[i][k]=(k==='type')?el.value:num203(el.value);
+    });
+    if(!found)return null;
+    return rows.map(function(r){return applyPack203(r)}).filter(hasData203);
+  }
+
+  function localRows203(rows){
+    try{
+      if(rows) localStorage.setItem('exporthub_rc203_last_rows',JSON.stringify(rows));
+      else{
+        var raw=localStorage.getItem('exporthub_rc203_last_rows');
+        return raw?JSON.parse(raw):null;
+      }
+    }catch(err){}
+    return null;
+  }
+
+  function backupRows203(rows){
+    rows=(rows||[]).map(cloneRow203).filter(hasData203);
+    if(!rows.length)return;
+    state.rc203LastRows=rows;
+    localRows203(rows);
+  }
+
+  function restoreRows203(){
+    var rows=(state.rc203LastRows&&state.rc203LastRows.length?state.rc203LastRows:localRows203())||[];
+    rows=rows.map(cloneRow203).filter(hasData203);
+    if(rows.length){
+      state.shipment=state.shipment||{};
+      state.shipment.rows=rows;
+      return true;
+    }
+    return false;
+  }
+
+  function persistRows203(reason){
+    if(typeof state==='undefined')return;
+    state.shipment=state.shipment||{};
+    var visible=readVisibleRows203();
+    if(visible && visible.length){
+      state.shipment.rows=visible.map(cloneRow203);
+      backupRows203(state.shipment.rows);
+      return;
+    }
+    if((!state.shipment.rows || !state.shipment.rows.length) && !state.rc203FreshShipment){
+      restoreRows203();
+    }
+  }
+
+  function scheduleRender203(focusId){
+    if(focusId){
+      var el=document.getElementById(focusId);
+      lastFocus203=el?captureFocus203():{id:focusId};
+    }else{
+      lastFocus203=captureFocus203();
+    }
+    if(renderTimer203)clearTimeout(renderTimer203);
+    renderTimer203=setTimeout(function(){
+      renderTimer203=null;
+      persistRows203('scheduled-render');
+      try{render()}catch(err){}
+      restoreFocus203(lastFocus203);
+    },180);
+  }
+
+  window.rc203PersistShipmentRows=persistRows203;
+
+  var baseRender203=typeof render==='function'?render:null;
+  if(baseRender203){
+    window.render=function(){
+      var f=captureFocus203();
+      persistRows203('render-before');
+      var result=baseRender203.apply(this,arguments);
+      restoreFocus203(f);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  window.updateRow=function(i,k,v){
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    while(state.shipment.rows.length<=i)state.shipment.rows.push(blankRow203());
+    var r=cloneRow203(state.shipment.rows[i]);
+    if(k==='type'){
+      r.type=v;
+      r=applyPack203(r);
+    }else{
+      r[k]=['count','ldm','weight','l','w','h'].indexOf(k)>=0?num203(v):v;
+    }
+    state.shipment.rows[i]=r;
+    backupRows203(state.shipment.rows);
+    try{save()}catch(err){}
+  };
+  try{updateRow=window.updateRow}catch(err){}
+
+  var baseAddShipmentRow203=typeof addShipmentRow==='function'?addShipmentRow:null;
+  window.addShipmentRow=function(){
+    persistRows203('add-row');
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    state.shipment.rows.push(blankRow203());
+    backupRows203(state.shipment.rows);
+    try{save()}catch(err){}
+    try{render()}catch(err){}
+  };
+  try{addShipmentRow=window.addShipmentRow}catch(err){}
+
+  var baseRemoveShipmentRow203=typeof removeShipmentRow==='function'?removeShipmentRow:null;
+  window.removeShipmentRow=function(i){
+    persistRows203('remove-row');
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    state.shipment.rows.splice(i,1);
+    if(!state.shipment.rows.length)state.shipment.rows.push(blankRow203());
+    backupRows203(state.shipment.rows);
+    try{save()}catch(err){}
+    try{render()}catch(err){}
+  };
+  try{removeShipmentRow=window.removeShipmentRow}catch(err){}
+
+  var baseNewShipment203=typeof newShipment==='function'?newShipment:null;
+  if(baseNewShipment203){
+    window.newShipment=function(){
+      state.rc203FreshShipment=true;
+      state.rc203LastRows=[];
+      try{localStorage.removeItem('exporthub_rc203_last_rows')}catch(err){}
+      var r=baseNewShipment203.apply(this,arguments);
+      setTimeout(function(){state.rc203FreshShipment=false;try{save()}catch(err){}},0);
+      return r;
+    };
+    try{newShipment=window.newShipment}catch(err){}
+  }
+
+  function wrapRowsBefore203(name){
+    var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+    if(typeof base!=='function')return;
+    window[name]=function(){
+      persistRows203(name);
+      return base.apply(this,arguments);
+    };
+    try{eval(name+'=window[name]')}catch(err){}
+  }
+  ['saveShipment','showCurrentCmr','showSavedCmr','rc55DownloadLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc55PrintLabels'].forEach(wrapRowsBefore203);
+
+  document.addEventListener('input',function(ev){
+    var el=ev.target;
+    if(el && /^rc118_row_\d+_(type|count|ldm|weight|l|w|h)$/.test(String(el.id||''))){
+      persistRows203('row-input');
+    }
+  },true);
+  document.addEventListener('change',function(ev){
+    var el=ev.target;
+    if(!el)return;
+    if(/^rc118_row_\d+_(type|count|ldm|weight|l|w|h)$/.test(String(el.id||''))){
+      persistRows203('row-change');
+    }else if(state && state.view==='shipment'){
+      persistRows203('shipment-field-change');
+    }
+  },true);
+
+  window.setTaskSearchAuto=function(v){
+    state.taskSearch=v;
+    try{save()}catch(err){}
+    scheduleRender203('taskSearchInput');
+  };
+  try{setTaskSearchAuto=window.setTaskSearchAuto}catch(err){}
+
+  window.setShipmentOverviewSearchAuto=function(v){
+    state.shipmentOverviewSearch=v;
+    try{save()}catch(err){}
+    scheduleRender203('shipmentOverviewSearchInput');
+  };
+  try{setShipmentOverviewSearchAuto=window.setShipmentOverviewSearchAuto}catch(err){}
+
+  window.setSopSearchAuto=function(v){
+    state.sopSearch=v;
+    try{save()}catch(err){}
+    scheduleRender203('sopSearchInput');
+  };
+  try{setSopSearchAuto=window.setSopSearchAuto}catch(err){}
+
+  window.setShipmentCustomerSearchAuto=function(v){
+    persistRows203('customer-search');
+    state.shipment=state.shipment||{};
+    state.shipment.customerSearch=v;
+    try{
+      var c=typeof findCustomerBySearch==='function'?findCustomerBySearch(v):null;
+      if(c && String(v||'').trim().length>=2){
+        state.shipment.customerId=c.id;
+        if(typeof validShipmentRef==='function' && !validShipmentRef(state.shipment.ref)){
+          state.shipment.ref=generateShipmentRef(c);
+          state.shipment.refAuto=true;
+        }
+      }
+    }catch(err){}
+    try{save()}catch(err){}
+    scheduleRender203('shipmentCustomerSearch');
+  };
+  try{setShipmentCustomerSearchAuto=window.setShipmentCustomerSearchAuto}catch(err){}
+
+  function planned203(s){return iso203(s&&s.plannedPickupDate) || iso203(s&&s.pickupDate) || ''}
+  function actual203(s){return iso203(s&&s.actualPickupDate) || iso203(s&&s.pickedUpAtDate) || ''}
+  function ref203(s){
+    try{return cleanShipmentRef(s&&s.ref)||''}catch(err){}
+    return String((s&&s.ref)||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  }
+  function statusShip203(s){
+    var raw=n203([(s&&s.status),(s&&s.freigabe),(s&&s.pickupStatus),(s&&s.completedAt?'erledigt':'')].join(' '));
+    if(raw.indexOf('erled')>=0)return 'Erledigt';
+    if(raw.indexOf('ueber')>=0 || raw.indexOf('uber')>=0)return 'Ueberfaellig';
+    return 'Offen';
+  }
+  function statusAbd203(r){
+    var raw=n203([(r&&r.status),(r&&r.done?'erledigt':''),(r&&r.completedAt?'erledigt':'')].join(' '));
+    if(raw.indexOf('erled')>=0)return 'Erledigt';
+    return (r&&r.status)||'Offen';
+  }
+  function isDoneShip203(s){return statusShip203(s)==='Erledigt'}
+  function isDoneAbd203(r){return statusAbd203(r)==='Erledigt'}
+  function pill203(t){
+    var x=n203(t);
+    var cls=x.indexOf('erled')>=0?'green':(x.indexOf('ueber')>=0||x.indexOf('uber')>=0?'red':'orange');
+    return '<span class="pill '+cls+'">'+e203(t||'Offen')+'</span>';
+  }
+  function docs203(s){
+    var notes=String((s&&s.deliveryNotes)||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean);
+    var files=((s&&s.deliveryFiles)||[]).map(function(f){return f.name||f.filename||''}).filter(Boolean);
+    return notes.concat(files.filter(function(x){return notes.indexOf(x)<0}));
+  }
+  function abdCustomer203(r){
+    var c=(r&&r.customer)||{};
+    var rf=ref203(r);
+    var s=(state.shipments||[]).find(function(x){return ref203(x)===rf})||{};
+    var sc=s.customer||{};
+    return {name:c.name||r.customerName||sc.name||'',account:c.account||c.customerNumber||r.customerNumber||sc.account||sc.customerNumber||''};
+  }
+  function blobShip203(s){
+    var c=(s&&s.customer)||{};
+    return n203([s&&s.ref,s&&s.created,planned203(s),actual203(s),statusShip203(s),c.name,c.account,c.customerNumber,c.country,docs203(s).join(' '),s&&s.comments,s&&s.carrier].join(' '));
+  }
+  function blobAbd203(r){
+    var c=abdCustomer203(r);
+    return n203([r&&r.ref,r&&r.created,r&&r.createdIso,statusAbd203(r),c.name,c.account,r&&r.note,r&&r.manualText].join(' '));
+  }
+  function hideDone203(){
+    if(state.rc203HideDone===undefined){
+      state.rc203HideDone=state.rc202HideDone!==undefined?!!state.rc202HideDone:true;
+    }
+    return !!state.rc203HideDone;
+  }
+  function overviewType203(){
+    state.rc203OverviewType=state.rc203OverviewType || state.rc202OverviewType || state.rc200OverviewType || 'all';
+    return state.rc203OverviewType;
+  }
+  function overviewStatus203(){
+    state.shipmentOverviewStatus=state.shipmentOverviewStatus || 'Alle';
+    return state.shipmentOverviewStatus;
+  }
+
+  window.updateSavedShipmentPlannedPickupDate=function(id,value){
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return;
+    var v=iso203(value);
+    s.plannedPickupDate=v;
+    s.pickupDate=v;
+    s.pickupDateConfirmed=!!v;
+    try{if(typeof updateShipmentCreatedTaskDate==='function')updateShipmentCreatedTaskDate(s,s.customer||{})}catch(err){}
+    try{save()}catch(err){}
+    scheduleRender203('shipmentOverviewSearchInput');
+  };
+  try{updateSavedShipmentPlannedPickupDate=window.updateSavedShipmentPlannedPickupDate}catch(err){}
+
+  window.updateSavedShipmentActualPickupDate=function(id,value){
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return;
+    var v=iso203(value);
+    s.actualPickupDate=v;
+    s.pickedUp=!!v;
+    s.pickupStatus=v?'abgeholt':'offen';
+    try{if(typeof updateShipmentCreatedTaskDate==='function')updateShipmentCreatedTaskDate(s,s.customer||{})}catch(err){}
+    try{save()}catch(err){}
+    scheduleRender203('shipmentOverviewSearchInput');
+  };
+  try{updateSavedShipmentActualPickupDate=window.updateSavedShipmentActualPickupDate}catch(err){}
+
+  window.updateSavedShipmentPickupDate=function(id,value){
+    return window.updateSavedShipmentPlannedPickupDate(id,value);
+  };
+  try{updateSavedShipmentPickupDate=window.updateSavedShipmentPickupDate}catch(err){}
+
+  window.rc203SetOverviewType=function(value){
+    state.rc203OverviewType=value||'all';
+    state.rc202OverviewType=state.rc203OverviewType;
+    state.rc200OverviewType=state.rc203OverviewType;
+    try{save()}catch(err){}
+    render();
+  };
+  window.rc203SetOverviewStatus=function(value){
+    state.shipmentOverviewStatus=value||'Alle';
+    try{save()}catch(err){}
+    render();
+  };
+  window.rc203SetHideDone=function(checked){
+    state.rc203HideDone=!!checked;
+    state.rc202HideDone=!!checked;
+    state.rc200HideDone=!!checked;
+    try{save()}catch(err){}
+    render();
+  };
+  window.rc203ClearOverviewFilter=function(){
+    state.shipmentOverviewSearch='';
+    state.shipmentOverviewStatus='Alle';
+    state.rc203OverviewType='all';
+    state.rc202OverviewType='all';
+    state.rc200OverviewType='all';
+    state.rc203HideDone=true;
+    state.rc202HideDone=true;
+    state.rc200HideDone=true;
+    try{save()}catch(err){}
+    render();
+  };
+
+  window.rc203DeleteShipment=function(id){
+    if(!confirm('Sendung wirklich loeschen?'))return;
+    state.shipments=(state.shipments||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    try{save()}catch(err){}
+    render();
+  };
+  window.rc203DeleteAbd=function(id){
+    if(!confirm('ABD Anfrage wirklich loeschen?'))return;
+    state.abdRequests=(state.abdRequests||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    try{save()}catch(err){}
+    render();
+  };
+
+  window.shipmentoverview=function(){
+    var q=n203(state.shipmentOverviewSearch||'');
+    var st=overviewStatus203();
+    var typ=overviewType203();
+    var ships=(state.shipments||[]).slice();
+    var abds=(state.abdRequests||[]).slice();
+    if(q){
+      ships=ships.filter(function(s){return blobShip203(s).indexOf(q)>=0});
+      abds=abds.filter(function(r){return blobAbd203(r).indexOf(q)>=0});
+    }
+    if(hideDone203()){
+      ships=ships.filter(function(s){return !isDoneShip203(s)});
+      abds=abds.filter(function(r){return !isDoneAbd203(r)});
+    }
+    if(st && st!=='Alle'){
+      ships=ships.filter(function(s){return n203(statusShip203(s))===n203(st)});
+      abds=abds.filter(function(r){return n203(statusAbd203(r)).indexOf(n203(st))>=0});
+    }
+    ships.sort(function(a,b){return String(b.created||'').localeCompare(String(a.created||''))});
+    abds.sort(function(a,b){return String(b.createdIso||b.created||'').localeCompare(String(a.createdIso||a.created||''))});
+
+    var filter='<div class="rc203-filterbar">'+
+      '<input id="shipmentOverviewSearchInput" placeholder="DNC, Referenznummer, Kunde, Kundennummer oder POD suchen" value="'+e203(state.shipmentOverviewSearch||'')+'" oninput="setShipmentOverviewSearchAuto(this.value)">'+
+      '<select onchange="rc203SetOverviewType(this.value)"><option value="all" '+(typ==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(typ==='shipments'?'selected':'')+'>Sendungen</option><option value="abd" '+(typ==='abd'?'selected':'')+'>ABD</option></select>'+
+      '<select onchange="rc203SetOverviewStatus(this.value)"><option '+(st==='Alle'?'selected':'')+'>Alle</option><option value="Offen" '+(st==='Offen'?'selected':'')+'>Offen</option><option value="Ueberfaellig" '+(st==='Ueberfaellig'?'selected':'')+'>Ueberfaellig</option><option value="Erledigt" '+(st==='Erledigt'?'selected':'')+'>Erledigt</option></select>'+
+      '<label class="rc203-check"><input type="checkbox" '+(hideDone203()?'checked':'')+' onchange="rc203SetHideDone(this.checked)"> Erledigte ausblenden</label>'+
+      '<button class="ghost" onclick="rc203ClearOverviewFilter()">Filter loeschen</button>'+
+    '</div>';
+
+    var out=head('Sendungsuebersicht','Sendungen und ABD Anfragen filtern, Abholdaten pflegen und erledigte Eintraege ausblenden.')+filter+
+      '<div class="toolbar"><button class="soft" onclick="setView(&quot;shipment&quot;)">+ Sendung erstellen</button><button class="ghost" onclick="setView(&quot;abd&quot;)">+ ABD Anfrage</button></div>';
+
+    if(typ==='all' || typ==='shipments'){
+      out+='<div class="card"><h3>Sendungen</h3>';
+      if(!ships.length)out+='<p class="muted">Keine Sendungen fuer diesen Filter.</p>';
+      else out+='<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Abholdaten</th><th>DNC / Dokumente</th><th>Status</th><th>Aktion</th></tr>'+
+        ships.map(function(s){
+          var c=s.customer||{};
+          var doc=docs203(s);
+          return '<tr><td><b>'+e203(s.ref||'')+'</b><br><span class="small">'+e203(s.created||'')+'</span></td>'+
+            '<td>'+e203([c.account||c.customerNumber,c.name,c.country].filter(Boolean).join(' · '))+'</td>'+
+            '<td><div class="rc203-date-grid"><label>Geplant<input type="date" value="'+e203(planned203(s))+'" onchange="updateSavedShipmentPlannedPickupDate(&quot;'+e203(s.id||'')+'&quot;,this.value)"></label><label>Tatsaechlich<input type="date" value="'+e203(actual203(s))+'" onchange="updateSavedShipmentActualPickupDate(&quot;'+e203(s.id||'')+'&quot;,this.value)"></label></div></td>'+
+            '<td>'+(doc.length?doc.map(function(x){return '<span class="pill gray">'+e203(x)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</td>'+
+            '<td>'+pill203(statusShip203(s))+'</td>'+
+            '<td><div class="rc203-actions"><button class="ghost" onclick="loadShipment(&quot;'+e203(s.id||'')+'&quot;)">Oeffnen</button><button class="ghost" onclick="showSavedCmr(&quot;'+e203(s.id||'')+'&quot;)">Ladeliste/CMR</button><button class="rc203-delete" onclick="rc203DeleteShipment(&quot;'+e203(s.id||'')+'&quot;)">Loeschen</button></div></td></tr>';
+        }).join('')+'</table>';
+      out+='</div>';
+    }
+
+    if(typ==='all' || typ==='abd'){
+      out+='<div class="card"><h3>ABD Anfragen</h3>';
+      if(!abds.length)out+='<p class="muted">Keine ABD Anfragen fuer diesen Filter.</p>';
+      else out+='<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>Datum</th><th>Aktion</th></tr>'+
+        abds.map(function(r){
+          var c=abdCustomer203(r);
+          return '<tr><td><b>'+e203(r.ref||'')+'</b></td><td>'+e203([c.account,c.name].filter(Boolean).join(' · '))+'</td><td>'+pill203(statusAbd203(r))+'</td><td>'+e203(r.created||r.createdIso||'')+'</td><td><div class="rc203-actions"><button class="ghost" onclick="setView(&quot;abd&quot;)">ABD oeffnen</button><button class="rc203-delete" onclick="rc203DeleteAbd(&quot;'+e203(r.id||'')+'&quot;)">Loeschen</button></div></td></tr>';
+        }).join('')+'</table>';
+      out+='</div>';
+    }
+    return out;
+  };
+  try{shipmentoverview=window.shipmentoverview}catch(err){}
+
+  setTimeout(function(){persistRows203('init')},80);
+})();
+</script>
+<!-- PRIVATE RC203 END -->
+  
 </body></html>
 
 
