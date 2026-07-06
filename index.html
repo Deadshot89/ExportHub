@@ -16085,6 +16085,318 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   };
 })();
 </script>
+<script>
+/* PRIVATE RC187: Aufgaben-Regeln/Tage/Sevastian/Bossard/O Hare/ABD/Dokumente reparieren */
+(function(){
+  function n187(v){
+    return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function uid187(prefix){
+    try{if(typeof uid==='function')return uid(prefix||'T')}catch(err){}
+    return (prefix||'T')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  }
+
+  function clone187(x){
+    try{return JSON.parse(JSON.stringify(x||{}))}catch(err){return {...(x||{})}}
+  }
+
+  function title187(t){
+    return String((t&&t.title)||'').trim();
+  }
+
+  function owner187(v){
+    var n=n187(v);
+    if(['sevastian','sebastian','sevastion','sevastain'].includes(n))return 'Sevastian';
+    if(['tobias','tobi','toby'].includes(n))return 'Tobias';
+    if(n==='alle')return 'Alle';
+    return String(v||'').trim()||'Alle';
+  }
+
+  function hasText187(t,words){
+    var hay=n187([t&&t.title,t&&t.area,t&&t.owner,t&&t.linkedCustomer,t&&t.linkedAccount,t&&t.note].filter(Boolean).join(' '));
+    return words.some(function(w){return hay.includes(n187(w))});
+  }
+
+  function isManual187(t){
+    return !!(t&&(t.rc88Manual||t.manual||t.createdAt||t.userCreated));
+  }
+
+  function isDynamic187(t){
+    return !!(t&&(isManual187(t)||t.linkedShipmentId||t.linkedShipmentRef||t.linkedAbdId||t.linkedAbdRef||t.dueDate||t.rc182Key||t.area==='Abholtag'||t.area==='Vertretung'));
+  }
+
+  function isDokumenteTask187(t){
+    var title=n187(t&&t.title);
+    var area=n187(t&&t.area);
+    if(area==='dokumente'||area==='dokument')return true;
+    if(title==='dokumente'||title==='dokument')return true;
+    if(/^dokumente? /.test(title))return true;
+    if(title.includes('dokumente pruefen')||title.includes('dokumente benennen')||title.includes('dokumente hochladen'))return true;
+    return false;
+  }
+
+  function isAbdTask187(t){
+    var title=n187(t&&t.title);
+    var area=n187(t&&t.area);
+    return area==='abd anfrage' || area==='abd' || title.includes('abd info') || title.includes('abd anfrage') || title.includes('abd erstellen');
+  }
+
+  function refFromTask187(t){
+    var direct=String((t&&t.linkedAbdRef)||(t&&t.linkedShipmentRef)||'').trim();
+    if(direct)return direct.toUpperCase();
+    var text=String([t&&t.title,t&&t.note].filter(Boolean).join(' ')).toUpperCase();
+    var m=text.match(/\b[A-Z0-9]{6}\b/);
+    return m?m[0]:'';
+  }
+
+  function isRealAbdTask187(t){
+    if(!isAbdTask187(t))return false;
+    var reqs=(state&&Array.isArray(state.abdRequests))?state.abdRequests:[];
+    if(!reqs.length)return false;
+    var id=String((t&&t.linkedAbdId)||'').trim();
+    if(id&&reqs.some(function(r){return String(r.id||'')===id}))return true;
+    var ref=refFromTask187(t);
+    if(ref&&reqs.some(function(r){return String(r.ref||'').toUpperCase()===ref}))return true;
+    var cust=n187((t&&t.linkedCustomer)||'');
+    if(cust&&ref&&reqs.some(function(r){
+      return String(r.ref||'').toUpperCase()===ref && n187((r.customer&&r.customer.name)||'')===cust;
+    }))return true;
+    return false;
+  }
+
+  function shouldRemove187(t){
+    if(!t)return true;
+    if(isDokumenteTask187(t))return true;
+    if(isAbdTask187(t)&&!isRealAbdTask187(t))return true;
+    return false;
+  }
+
+  function seedTasks187(){
+    try{return Array.isArray(SEED&&SEED.tasks)?SEED.tasks:[]}catch(err){return []}
+  }
+
+  function seedKey187(t){
+    return [
+      n187(t&&t.title),
+      n187(t&&t.linkedCustomer),
+      n187(t&&t.linkedAccount),
+      n187(t&&t.area)
+    ].join('|');
+  }
+
+  function looseKey187(t){
+    return [
+      n187(t&&t.title),
+      n187(t&&t.linkedCustomer),
+      n187(t&&t.linkedAccount)
+    ].join('|');
+  }
+
+  function applySeedDays187(tasks){
+    var seeds=seedTasks187();
+    var byFull={};
+    var byLoose={};
+    seeds.forEach(function(s){
+      byFull[seedKey187(s)]=s;
+      var lk=looseKey187(s);
+      if(!byLoose[lk])byLoose[lk]=[];
+      byLoose[lk].push(s);
+    });
+    tasks.forEach(function(t){
+      if(isDynamic187(t))return;
+      var seed=byFull[seedKey187(t)]||null;
+      if(!seed){
+        var matches=byLoose[looseKey187(t)]||[];
+        if(matches.length===1)seed=matches[0];
+      }
+      if(!seed)return;
+      t.day=seed.day||t.day;
+      t.time=seed.time||t.time||'';
+      t.area=seed.area||t.area;
+      t.owner=owner187(seed.owner||t.owner);
+      if(seed.priority)t.priority=seed.priority;
+      if(seed.linkedCustomer&&!t.linkedCustomer)t.linkedCustomer=seed.linkedCustomer;
+      if(seed.linkedAccount&&!t.linkedAccount)t.linkedAccount=seed.linkedAccount;
+      t.rc187SeedRestored=true;
+    });
+  }
+
+  function isSevastianSeed187(t){
+    return owner187(t&&t.owner)==='Sevastian' ||
+      n187(t&&t.area).includes('drittland') ||
+      n187(t&&t.area).includes('nicht eu') ||
+      n187(t&&t.note).includes('sevastian');
+  }
+
+  function addMissingSevastianSeeds187(tasks){
+    var seeds=seedTasks187().filter(isSevastianSeed187);
+    seeds.forEach(function(seed){
+      var exists=tasks.some(function(t){
+        return n187(t.title)===n187(seed.title) &&
+          n187(t.day)===n187(seed.day) &&
+          (n187(t.linkedCustomer||'')===n187(seed.linkedCustomer||'') || !seed.linkedCustomer);
+      });
+      if(exists)return;
+      var copy=clone187(seed);
+      copy.id=uid187('T');
+      copy.owner='Sevastian';
+      copy.status=copy.status||'offen';
+      copy.priority=copy.priority||'medium';
+      copy.rc187RestoredSevastian=true;
+      copy.rc88NoMerge=true;
+      tasks.push(copy);
+    });
+  }
+
+  function applyOwnerRules187(t){
+    if(!t)return;
+    t.owner=owner187(t.owner);
+    var text=n187([t.title,t.linkedCustomer,t.note,t.area].filter(Boolean).join(' '));
+    if(text.includes('bossard')||text.includes('o hare')||text.includes('ohare')){
+      t.owner='Tobias';
+      if(text.includes('bossard'))t.linkedCustomer=t.linkedCustomer||'Bossard';
+      if(text.includes('o hare')||text.includes('ohare'))t.linkedCustomer=t.linkedCustomer||'O Hare';
+    }
+    if(t.owner==='Sevastian'){
+      t.rc88NoMerge=true;
+      t.rc187SevastianPreserved=true;
+    }
+  }
+
+  function normalizeArea187(t){
+    if(!t)return;
+    var area=n187(t.area);
+    if(area==='eu')t.area='Anmeldung';
+    if(area==='sendung erstellt')t.area='Abholtag';
+    if(area==='abd')t.area='ABD Anfrage';
+  }
+
+  function validDay187(day){
+    var d=n187(day);
+    return ['montag','dienstag','mittwoch','donnerstag','freitag','samstag','sonntag','ohne tag','alle tage'].includes(d);
+  }
+
+  function repairInvalidDays187(t){
+    if(!t)return;
+    if(validDay187(t.day))return;
+    if(t.dueDate){
+      try{
+        var date=new Date(t.dueDate+'T12:00:00');
+        var names=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+        t.day=names[date.getDay()]||'Ohne Tag';
+        return;
+      }catch(err){}
+    }
+    t.day='Ohne Tag';
+  }
+
+  function dedupe187(tasks){
+    var out=[];
+    var seen={};
+    tasks.forEach(function(t){
+      var key=[
+        n187(t.title),
+        n187(t.day),
+        n187(t.area),
+        n187(t.owner),
+        n187(t.linkedCustomer),
+        n187(t.linkedAccount),
+        n187(t.linkedAbdRef||t.linkedShipmentRef||'')
+      ].join('|');
+      if(t.owner==='Sevastian'||t.rc88NoMerge){
+        out.push(t);
+        return;
+      }
+      if(seen[key]){
+        var old=seen[key];
+        if(old.status==='erledigt'&&t.status!=='erledigt'){
+          var idx=out.indexOf(old);
+          if(idx>=0)out[idx]=t;
+          seen[key]=t;
+        }
+        return;
+      }
+      seen[key]=t;
+      out.push(t);
+    });
+    return out;
+  }
+
+  function repairTasks187(){
+    if(!state)return;
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    var before=state.tasks.length;
+    var tasks=state.tasks.filter(function(t){return !shouldRemove187(t)});
+    applySeedDays187(tasks);
+    addMissingSevastianSeeds187(tasks);
+    tasks.forEach(function(t){
+      normalizeArea187(t);
+      applyOwnerRules187(t);
+      repairInvalidDays187(t);
+      if(!t.id)t.id=uid187('T');
+      if(!t.status)t.status='offen';
+      if(!t.priority)t.priority='medium';
+    });
+    state.tasks=dedupe187(tasks);
+    state.rc187TaskRepair={
+      repairedAt:new Date().toISOString(),
+      before:before,
+      after:state.tasks.length,
+      removed:before-state.tasks.length
+    };
+    try{if(typeof save==='function')save()}catch(err){}
+  }
+
+  window.rc187RepairTasks=repairTasks187;
+  window.showSevastianTasksRC187=function(){
+    repairTasks187();
+    state.taskFilter='Sevastian';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+  window.showTobiasTasksRC187=function(){
+    repairTasks187();
+    state.taskFilter='Tobias';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  };
+
+  if(typeof tasks==='function'){
+    var baseTasks187=tasks;
+    tasks=function(){
+      repairTasks187();
+      var html=String(baseTasks187.apply(this,arguments));
+      html=html.replace(/<button[^>]*onclick="showSevastianTasksRC8[68]\(\)"[^>]*>[^<]*Sevastian[^<]*<\/button>/g,'');
+      if(!html.includes('showSevastianTasksRC187')){
+        html=html.replace(
+          '<button class="ghost" onclick="showAllTasks()">Alle anzeigen</button>',
+          '<button class="ghost" onclick="showAllTasks()">Alle anzeigen</button><button class="ghost" onclick="showTobiasTasksRC187()">Tobias</button><button class="ghost" onclick="showSevastianTasksRC187()">Sevastian</button>'
+        );
+      }
+      return html;
+    };
+  }
+
+  if(typeof render==='function'){
+    var baseRender187=render;
+    render=function(){
+      if(state&&state.view==='tasks')repairTasks187();
+      return baseRender187.apply(this,arguments);
+    };
+  }
+
+  try{
+    repairTasks187();
+  }catch(err){
+    console.warn('RC187 Aufgaben-Regeln konnten nicht repariert werden',err);
+  }
+})();
+</script>
 
 </body></html>
 
