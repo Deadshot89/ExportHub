@@ -23116,6 +23116,528 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC215 END -->
+
+<!-- PRIVATE RC218 START: Ladeliste Download/Farben/Paletten final -->
+<style>
+/* RC218: Farben fuer Ladeliste/PDF erzwingen */
+#loadListDoc,
+#loadListDoc *,
+.loadlist-pro,
+.loadlist-pro *{
+  print-color-adjust:exact!important;
+  -webkit-print-color-adjust:exact!important;
+}
+.loadlist-pro .a4top{
+  background:#eaf5ff!important;
+  border-color:#93c5fd!important;
+}
+.loadlist-pro .doc-box,
+.loadlist-pro .load-write-field{
+  background:#ffffff!important;
+}
+.loadlist-pro .doc-box.blue,
+.loadlist-pro .load-refbox{
+  background:#e0f2fe!important;
+}
+.loadlist-pro .load-table th{
+  background:#dbeafe!important;
+  color:#0f172a!important;
+}
+.loadlist-pro .load-table tr:nth-child(even) td{
+  background:#f8fbff!important;
+}
+.loadlist-pro .rc218-pallet-field{
+  background:#fff7ed!important;
+  border-color:#fed7aa!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC218: PDF wird heruntergeladen, keine Druckfunktion; Palettenfelder nur einmal */
+(function(){
+  if(window.__EXPORTHUB_RC218_LOADLIST_FINAL__)return;
+  window.__EXPORTHUB_RC218_LOADLIST_FINAL__=true;
+
+  var rc218PdfRunning=false;
+
+  function cleanRef218(v){
+    var raw=String(v||'Sendung').trim()||'Sendung';
+    return raw.replace(/[^A-Za-z0-9_-]/g,'')||'Sendung';
+  }
+
+  function escPdf218(v){
+    return String(v==null?'':v)
+      .replace(/[ä]/g,'ae').replace(/[ö]/g,'oe').replace(/[ü]/g,'ue')
+      .replace(/[Ä]/g,'Ae').replace(/[Ö]/g,'Oe').replace(/[Ü]/g,'Ue')
+      .replace(/[ß]/g,'ss').replace(/[€]/g,'EUR')
+      .replace(/[\\()]/g,'\\$&').replace(/\r/g,' ').replace(/\n/g,' ');
+  }
+
+  function activeShipment218(){
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(err){}
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(err){}
+    try{
+      if(state.activeShipmentId && Array.isArray(state.shipments)){
+        return state.shipments.find(function(s){return s.id===state.activeShipmentId}) || state.shipment;
+      }
+      return state.shipment;
+    }catch(err){}
+    return null;
+  }
+
+  function selectedCustomer218(s){
+    if(s && s.customer)return s.customer;
+    try{if(typeof selectedCustomer==='function')return selectedCustomer()}catch(err){}
+    return {};
+  }
+
+  function syncRows218(){
+    try{if(typeof rc210SyncColliRows==='function')rc210SyncColliRows()}catch(err){}
+    try{if(typeof rc209CollectColliRows==='function')rc209CollectColliRows('rc218-pdf')}catch(err){}
+    try{if(typeof collectRows118==='function')collectRows118(true)}catch(err){}
+    try{if(typeof syncRowsFromDom96==='function')syncRowsFromDom96()}catch(err){}
+  }
+
+  function rows218(s){
+    return ((s&&Array.isArray(s.rows))?s.rows:[]).filter(function(r){
+      return r && (r.type || Number(r.count)>0 || Number(r.weight)>0 || Number(r.ldm)>0);
+    });
+  }
+
+  function totals218(s){
+    return rows218(s).reduce(function(a,r){
+      var count=Number(r.count)||0;
+      var weight=Number(r.weight)||0;
+      var ldm=Number(r.ldm)||0;
+      a.count+=count;
+      a.weight+=weight;
+      a.ldm+=count*ldm;
+      return a;
+    },{count:0,weight:0,ldm:0});
+  }
+
+  function euroOut218(s){
+    return rows218(s).reduce(function(sum,r){
+      var type=String((r&&r.type)||'').toLowerCase();
+      var count=Number((r&&r.count)||0)||0;
+      if(/euro/.test(type) && /palette|pallet/.test(type))return sum+count;
+      return sum;
+    },0);
+  }
+
+  function field218(label,value,hint){
+    return '<div class="load-write-field rc218-pallet-field">'+
+      '<span class="doc-label">'+label+'</span>'+
+      (value?'<div class="rc198-pallet-value">'+value+'</div>':'<div class="load-write-line"></div>')+
+      '<div class="load-write-hint">'+hint+'</div>'+
+    '</div>';
+  }
+
+  function isPalletNode218(el){
+    if(!el || el.nodeType!==1)return false;
+    var txt=String(el.textContent||'').toLowerCase();
+    return txt.indexOf('europaletten eingang')>=0 ||
+      txt.indexOf('europaletten ausgang')>=0 ||
+      (el.classList && (
+        el.classList.contains('rc198-pallet-field') ||
+        el.classList.contains('rc212-pallet-field') ||
+        el.classList.contains('rc215-pallet-field') ||
+        el.classList.contains('rc217-pallet-field') ||
+        el.classList.contains('rc218-pallet-field')
+      ));
+  }
+
+  function removePalletFields218(load){
+    if(!load)return;
+    Array.from(load.querySelectorAll('.rc198-pallet-field,.rc212-pallet-field,.rc215-pallet-field,.rc217-pallet-field,.rc218-pallet-field')).forEach(function(el){
+      el.remove();
+    });
+    Array.from(load.querySelectorAll('.load-write-field,.doc-box')).forEach(function(el){
+      if(isPalletNode218(el))el.remove();
+    });
+  }
+
+  function applyPallets218(root){
+    try{
+      root=root||document;
+      var load=root.querySelector ? (root.querySelector('#loadListDoc') || root.querySelector('.loadlist-pro')) : document.getElementById('loadListDoc');
+      if(!load)return;
+      var fields=load.querySelector('.load-write-fields');
+      if(!fields)return;
+      removePalletFields218(load);
+      var outgoing=euroOut218(activeShipment218());
+      fields.insertAdjacentHTML('beforeend',
+        field218('Europaletten Ausgang',outgoing>0?String(outgoing):'','Versendete Euro-Paletten')+
+        field218('Europaletten Eingang','','Rueckgabe / Eingang')
+      );
+    }catch(err){}
+  }
+
+  function fixLoadlist218(load){
+    if(!load)return;
+    load.classList.add('loadlist-pro');
+    var firstLabel=load.querySelector('.load-write-fields .load-write-field:first-child .doc-label');
+    if(firstLabel)firstLabel.textContent='Unterschrift Fahrer';
+    var firstHint=load.querySelector('.load-write-fields .load-write-field:first-child .load-write-hint');
+    if(firstHint)firstHint.textContent='Fahrer unterschreibt bei Abholung';
+    applyPallets218(document);
+  }
+
+  async function ensureLoadlist218(){
+    syncRows218();
+    var load=document.getElementById('loadListDoc');
+    if(!load){
+      try{if(typeof showCurrentCmr==='function')showCurrentCmr()}catch(err){}
+      await new Promise(function(resolve){setTimeout(resolve,180)});
+      load=document.getElementById('loadListDoc');
+    }
+    if(!load){
+      alert('Bitte zuerst Ladeliste & CMR anzeigen.');
+      return null;
+    }
+    fixLoadlist218(load);
+    return load;
+  }
+
+  function blobToDataUrl218(blob){
+    return new Promise(function(resolve,reject){
+      var r=new FileReader();
+      r.onload=function(){resolve(r.result)};
+      r.onerror=reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function inlineImages218(clone){
+    var imgs=Array.from(clone.querySelectorAll('img'));
+    for(var i=0;i<imgs.length;i++){
+      var img=imgs[i];
+      var src=img.getAttribute('src')||'';
+      if(!src || src.indexOf('data:')===0)continue;
+      try{
+        var res=await fetch(src,{mode:'cors'});
+        if(!res.ok)throw new Error('image fetch failed');
+        img.setAttribute('src',await blobToDataUrl218(await res.blob()));
+      }catch(err){
+        var repl=document.createElement('div');
+        repl.textContent='ESSENTRA';
+        repl.setAttribute('style','font-weight:900;font-size:24px;color:#0f172a;letter-spacing:.06em;display:flex;align-items:center;min-height:32px;');
+        img.replaceWith(repl);
+      }
+    }
+  }
+
+  function inlineStyles218(source,target){
+    if(!source || !target)return;
+    var computed=getComputedStyle(source);
+    var style='';
+    for(var i=0;i<computed.length;i++){
+      var prop=computed[i];
+      var val=computed.getPropertyValue(prop);
+      if(val)style+=prop+':'+val+';';
+    }
+    style+='print-color-adjust:exact;-webkit-print-color-adjust:exact;';
+    target.setAttribute('style',style);
+    var src=Array.from(source.children||[]);
+    var dst=Array.from(target.children||[]);
+    for(var j=0;j<src.length;j++)inlineStyles218(src[j],dst[j]);
+  }
+
+  function svgToCanvas218(svgText,w,h){
+    return new Promise(function(resolve,reject){
+      var url=URL.createObjectURL(new Blob([svgText],{type:'image/svg+xml;charset=utf-8'}));
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        canvas.width=w;
+        canvas.height=h;
+        var ctx=canvas.getContext('2d');
+        ctx.fillStyle='#fff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      };
+      img.onerror=function(err){
+        URL.revokeObjectURL(url);
+        reject(err);
+      };
+      img.src=url;
+    });
+  }
+
+  function bytes218(str){
+    var arr=new Uint8Array(str.length);
+    for(var i=0;i<str.length;i++)arr[i]=str.charCodeAt(i)&255;
+    return arr;
+  }
+
+  function downloadBytes218(filename,bytes){
+    var blob=new Blob([bytes],{type:'application/pdf'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1200);
+  }
+
+  function downloadJpegPdf218(filename,jpegDataUrl){
+    var imgBin=atob(String(jpegDataUrl).split(',')[1]||'');
+    var objects=[];
+    var offsets=[0];
+    function add(obj){objects.push(obj);return objects.length}
+    var image=add('<< /Type /XObject /Subtype /Image /Width 1588 /Height 2246 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+imgBin.length+' >>\nstream\n'+imgBin+'\nendstream');
+    var contentStream='q\n595 0 0 842 0 0 cm\n/Im0 Do\nQ';
+    var content=add('<< /Length '+contentStream.length+' >>\nstream\n'+contentStream+'\nendstream');
+    var page=add('<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 '+image+' 0 R >> >> /Contents '+content+' 0 R >>');
+    var pages=add('<< /Type /Pages /Kids ['+page+' 0 R] /Count 1 >>');
+    var catalog=add('<< /Type /Catalog /Pages '+pages+' 0 R >>');
+    var pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+    for(var i=0;i<objects.length;i++){
+      offsets.push(pdf.length);
+      pdf+=(i+1)+' 0 obj\n'+objects[i]+'\nendobj\n';
+    }
+    var xref=pdf.length;
+    pdf+='xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
+    for(var j=1;j<offsets.length;j++)pdf+=String(offsets[j]).padStart(10,'0')+' 00000 n \n';
+    pdf+='trailer\n<< /Size '+(objects.length+1)+' /Root '+catalog+' 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+    downloadBytes218(filename,bytes218(pdf));
+  }
+
+  function text218(cmds,x,y,size,text,bold,color){
+    cmds.push((color||'0 0 0')+' rg BT /'+(bold?'F2':'F1')+' '+size+' Tf '+x+' '+y+' Td ('+escPdf218(text)+') Tj ET');
+  }
+  function rect218(cmds,x,y,w,h,stroke,fill){
+    if(fill)cmds.push(fill+' rg '+x+' '+y+' '+w+' '+h+' re f');
+    if(stroke)cmds.push(stroke+' RG '+x+' '+y+' '+w+' '+h+' re S');
+  }
+  function line218(cmds,x1,y1,x2,y2,color){
+    cmds.push((color||'0 0 0')+' RG '+x1+' '+y1+' m '+x2+' '+y2+' l S');
+  }
+  function fmt218(v,d){
+    return (Number(v)||0).toFixed(d==null?2:d).replace('.',',');
+  }
+  function splitLines218(v,max){
+    return String(v||'').replace(/\r/g,'').split('\n').map(function(x){return x.trim()}).filter(Boolean).slice(0,max||8);
+  }
+
+  function vectorPdf218(s){
+    s=s||activeShipment218()||{};
+    var c=selectedCustomer218(s);
+    var rows=rows218(s);
+    var t=totals218(s);
+    var W=595,H=842;
+    var cmds=[];
+    var addr=splitLines218((c&&c.address)||'Adresse fehlt',7);
+    var docs=String(s.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).slice(0,8);
+
+    rect218(cmds,0,822,W,20,null,'0.86 0.94 1');
+    text218(cmds,38,792,22,'LADELISTE',true,'0.03 0.36 0.53');
+    rect218(cmds,424,772,130,24,'0.49 0.83 0.95','0.88 0.97 1');
+    text218(cmds,435,780,15,cleanRef218(s.ref),true);
+    rect218(cmds,36,664,240,96,'0.75 0.86 0.98','0.96 0.99 1');
+    rect218(cmds,306,664,247,96,'0.75 0.86 0.98','1 1 1');
+    text218(cmds,48,738,10,'Absender',true,'0.03 0.36 0.53');
+    ['Essentra Components Ltd','Montel-Allee 3','41334 Nettetal','Deutschland'].forEach(function(v,i){text218(cmds,48,722-i*13,9,v)});
+    text218(cmds,318,738,10,'Empfaenger',true,'0.03 0.36 0.53');
+    (addr.length?addr:['Adresse fehlt']).forEach(function(v,i){text218(cmds,318,722-i*13,9,v)});
+
+    rect218(cmds,36,610,517,38,'0.75 0.86 0.98','0.98 0.99 1');
+    text218(cmds,48,633,9,'Kunde:',true); text218(cmds,93,633,9,c.name||'');
+    text218(cmds,315,633,9,'Kundennr.:',true); text218(cmds,382,633,9,c.account||c.customerNumber||'');
+    text218(cmds,48,617,9,'Abholdatum:',true); text218(cmds,128,617,9,s.pickupDate||s.plannedPickupDate||'');
+    text218(cmds,315,617,9,'Spedition:',true); text218(cmds,382,617,9,s.carrier||c.carrier||c.speditionName||'');
+
+    var y=582;
+    rect218(cmds,36,y,517,24,'0.75 0.86 0.98','0.86 0.94 1');
+    text218(cmds,44,y+8,8,'Anz.',true); text218(cmds,82,y+8,8,'Verpackung',true); text218(cmds,242,y+8,8,'Masse cm',true); text218(cmds,342,y+8,8,'Gewicht kg',true); text218(cmds,442,y+8,8,'LDM',true);
+    y-=24;
+    rows.slice(0,10).forEach(function(r,idx){
+      rect218(cmds,36,y,517,24,'0.88 0.92 0.96',idx%2?'0.98 0.99 1':'1 1 1');
+      text218(cmds,44,y+8,8,r.count||'');
+      text218(cmds,82,y+8,8,r.type||'');
+      text218(cmds,242,y+8,8,[r.l,r.w,r.h].filter(function(v){return v!==''&&v!=null}).join(' x '));
+      text218(cmds,342,y+8,8,fmt218(r.weight,1));
+      text218(cmds,442,y+8,8,fmt218((Number(r.count)||0)*(Number(r.ldm)||0),2));
+      y-=24;
+    });
+    if(!rows.length){rect218(cmds,36,y,517,24,'0.88 0.92 0.96','1 1 1');text218(cmds,44,y+8,8,'Keine Colli-Zeilen erfasst');y-=24;}
+    rect218(cmds,36,y,517,25,'0.75 0.86 0.98','0.94 0.99 0.96');
+    text218(cmds,44,y+9,9,'Summe',true); text218(cmds,112,y+9,9,String(t.count),true); text218(cmds,342,y+9,9,fmt218(t.weight,1)+' kg',true); text218(cmds,442,y+9,9,fmt218(t.ldm,2),true);
+
+    text218(cmds,42,y-28,10,'Lieferscheine / DNCs',true,'0.03 0.36 0.53');
+    (docs.length?docs:['Keine Lieferscheine/DNCs hinterlegt.']).forEach(function(d,i){text218(cmds,42,y-43-i*12,8,d)});
+
+    rect218(cmds,36,108,240,72,'0.75 0.86 0.98','1 1 1');
+    rect218(cmds,306,108,247,72,'0.75 0.86 0.98','1 1 1');
+    text218(cmds,48,161,9,'Unterschrift Fahrer',true); line218(cmds,54,130,258,130); text218(cmds,48,117,8,'Fahrer unterschreibt bei Abholung');
+    text218(cmds,318,161,9,'Datum / Uhrzeit',true); line218(cmds,324,130,532,130);
+
+    rect218(cmds,36,28,240,62,'0.75 0.86 0.98','1 0.97 0.92');
+    rect218(cmds,306,28,247,62,'0.75 0.86 0.98','1 0.97 0.92');
+    text218(cmds,48,75,9,'Europaletten Ausgang',true); text218(cmds,54,51,14,euroOut218(s)>0?String(euroOut218(s)):'',true); line218(cmds,54,43,258,43); text218(cmds,48,34,8,'Versendete Euro-Paletten');
+    text218(cmds,318,75,9,'Europaletten Eingang',true); line218(cmds,324,43,532,43); text218(cmds,318,34,8,'Rueckgabe / Eingang');
+
+    var stream=cmds.join('\n');
+    var objs=[],offsets=[0];
+    function add(o){objs.push(o);return objs.length}
+    var content=add('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
+    var page=add('<< /Type /Page /Parent 3 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents '+content+' 0 R >>');
+    var pages=add('<< /Type /Pages /Kids ['+page+' 0 R] /Count 1 >>');
+    var font1=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    var font2=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    var catalog=add('<< /Type /Catalog /Pages '+pages+' 0 R >>');
+    var pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+    objs.forEach(function(o,i){offsets.push(pdf.length);pdf+=(i+1)+' 0 obj\n'+o+'\nendobj\n'});
+    var xref=pdf.length;
+    pdf+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';
+    for(var i=1;i<offsets.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+    pdf+='trailer\n<< /Size '+(objs.length+1)+' /Root '+catalog+' 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+    return bytes218(pdf);
+  }
+
+  async function websitePdf218(load){
+    var wrapper=document.createElement('div');
+    wrapper.style.position='fixed';
+    wrapper.style.left='-10000px';
+    wrapper.style.top='0';
+    wrapper.style.width='210mm';
+    wrapper.style.background='#fff';
+    wrapper.style.zIndex='-1';
+    var clone=load.cloneNode(true);
+    clone.id='loadListDoc_RC218_PDF_CLONE';
+    clone.classList.add('loadlist-pro');
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+    applyPallets218(wrapper);
+    await inlineImages218(clone);
+    inlineStyles218(load,clone);
+    applyPallets218(wrapper);
+    clone.style.display='block';
+    clone.style.margin='0';
+    clone.style.width='210mm';
+    clone.style.minHeight='297mm';
+    clone.style.height='297mm';
+    clone.style.background='#ffffff';
+    clone.style.boxShadow='none';
+    clone.style.borderRadius='0';
+    clone.style.overflow='hidden';
+    var html=new XMLSerializer().serializeToString(clone);
+    var w=1588,h=2246;
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 794 1123"><foreignObject x="0" y="0" width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml" style="width:794px;height:1123px;background:#fff;overflow:hidden;">'+html+'</div></foreignObject></svg>';
+    var canvas=await svgToCanvas218(svg,w,h);
+    var jpeg=canvas.toDataURL('image/jpeg',0.96);
+    wrapper.remove();
+    downloadJpegPdf218('Ladeliste_'+cleanRef218((activeShipment218()||{}).ref)+'.pdf',jpeg);
+  }
+
+  window.rc218DownloadLoadlistPdf=async function(){
+    if(rc218PdfRunning)return;
+    rc218PdfRunning=true;
+    syncRows218();
+    var oldPrint=window.print;
+    window.print=function(){};
+    try{
+      var load=await ensureLoadlist218();
+      if(!load)return;
+      try{
+        await websitePdf218(load);
+      }catch(err){
+        console.warn('RC218 Website-PDF fehlgeschlagen, Vektor-PDF wird geladen',err);
+        var s=activeShipment218();
+        downloadBytes218('Ladeliste_'+cleanRef218(s&&s.ref)+'.pdf',vectorPdf218(s));
+      }
+    }finally{
+      window.print=oldPrint;
+      rc218PdfRunning=false;
+    }
+  };
+
+  function assign218(){
+    window.rc55DownloadLoadlistPdf=window.rc218DownloadLoadlistPdf;
+    window.rc181DownloadLoadlistWebsiteLayoutPdf=window.rc218DownloadLoadlistPdf;
+    window.rc211DownloadWebsiteLoadlistPdf=window.rc218DownloadLoadlistPdf;
+    window.rc216DownloadLoadlistPdf=window.rc218DownloadLoadlistPdf;
+    window.rc217DownloadLoadlistPdf=window.rc218DownloadLoadlistPdf;
+    window.rc55PdfLoadlist=window.rc218DownloadLoadlistPdf;
+    window.rc53PdfLoadlist=window.rc218DownloadLoadlistPdf;
+    window.rc90PrintLoadlistAsPdf=window.rc218DownloadLoadlistPdf;
+    window.rc91DownloadOriginalLoadlistPdf=window.rc218DownloadLoadlistPdf;
+    try{rc55DownloadLoadlistPdf=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc181DownloadLoadlistWebsiteLayoutPdf=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc211DownloadWebsiteLoadlistPdf=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc216DownloadLoadlistPdf=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc217DownloadLoadlistPdf=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc55PdfLoadlist=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc53PdfLoadlist=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc90PrintLoadlistAsPdf=window.rc218DownloadLoadlistPdf}catch(err){}
+    try{rc91DownloadOriginalLoadlistPdf=window.rc218DownloadLoadlistPdf}catch(err){}
+  }
+
+  function fixButtons218(){
+    Array.from(document.querySelectorAll('button,a')).forEach(function(el){
+      var text=(el.textContent||'').replace(/\s+/g,' ').trim();
+      var oc=String(el.getAttribute('onclick')||'');
+      if(/Ladeliste PDF|PDF herunterladen/i.test(text) || /rc55DownloadLoadlistPdf|rc211DownloadWebsiteLoadlistPdf|rc216DownloadLoadlistPdf|rc217DownloadLoadlistPdf|rc181DownloadLoadlistWebsiteLayoutPdf/i.test(oc)){
+        el.setAttribute('onclick','rc218DownloadLoadlistPdf();return false;');
+        if(/Ladeliste/i.test(text))el.textContent='Ladeliste PDF herunterladen';
+      }
+    });
+  }
+
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');
+    if(!el)return;
+    var text=(el.textContent||'').replace(/\s+/g,' ').trim();
+    var oc=String(el.getAttribute('onclick')||'');
+    if(/Ladeliste PDF|PDF herunterladen/i.test(text) || /rc55DownloadLoadlistPdf|rc211DownloadWebsiteLoadlistPdf|rc216DownloadLoadlistPdf|rc217DownloadLoadlistPdf|rc181DownloadLoadlistWebsiteLayoutPdf/i.test(oc)){
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      window.rc218DownloadLoadlistPdf();
+      return false;
+    }
+  },true);
+
+  function wrap218(name){
+    var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+    if(typeof base!=='function')return;
+    window[name]=function(){
+      var result=base.apply(this,arguments);
+      setTimeout(function(){applyPallets218(document);assign218();fixButtons218()},100);
+      setTimeout(function(){applyPallets218(document)},350);
+      return result;
+    };
+    try{eval(name+'=window[name]')}catch(err){}
+  }
+  wrap218('showCurrentCmr');
+  wrap218('showSavedCmr');
+
+  var baseRender218=typeof render==='function'?render:null;
+  if(baseRender218){
+    window.render=function(){
+      var result=baseRender218.apply(this,arguments);
+      setTimeout(function(){applyPallets218(document);assign218();fixButtons218()},0);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  var realPrint218=window.print;
+  window.print=function(){
+    if(rc218PdfRunning)return;
+    return realPrint218.apply(window,arguments);
+  };
+
+  assign218();
+  setTimeout(function(){applyPallets218(document);assign218();fixButtons218()},100);
+  setTimeout(function(){applyPallets218(document);assign218();fixButtons218()},700);
+})();
+</script>
+<!-- PRIVATE RC218 END -->
+
+
+  
   
 </body></html>
 
