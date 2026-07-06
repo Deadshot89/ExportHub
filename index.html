@@ -22706,7 +22706,312 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC212 END -->
 
-  
+  <!-- PRIVATE RC214 START: Sendungsuebersicht Fokus + POD/ABD Layout + helle Ladeliste -->
+<style>
+/* RC214: gezielte Sendungsuebersicht-Formatierung */
+.rc214-overview-table{
+  table-layout:fixed!important;
+  width:100%!important;
+}
+.rc214-overview-table th,
+.rc214-overview-table td{
+  vertical-align:top!important;
+  overflow-wrap:anywhere!important;
+}
+.rc214-overview-table th:nth-child(1){width:105px!important}
+.rc214-overview-table th:nth-child(2){width:190px!important}
+.rc214-overview-table th:nth-child(3){width:210px!important}
+.rc214-overview-table th:nth-child(4){width:150px!important}
+.rc214-overview-table th:nth-child(5){width:210px!important}
+.rc214-overview-table th:nth-child(6){width:92px!important}
+.rc214-overview-table th:nth-child(7){width:128px!important}
+
+.rc214-overview-table td.rc214-customer-cell{
+  background:#eff6ff!important;
+  border-left:4px solid #93c5fd!important;
+  color:#0f172a!important;
+  font-weight:900!important;
+}
+.rc214-overview-table tr.rc214-focus-row td{
+  background:#fff7ed!important;
+  box-shadow:inset 0 0 0 2px #fdba74!important;
+}
+.rc214-overview-table tr:hover td{
+  background:#f8fafc!important;
+}
+.rc214-overview-table tr:hover td.rc214-customer-cell{
+  background:#dbeafe!important;
+}
+.rc214-focusline{
+  position:sticky;
+  top:0;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:34px;
+  margin:8px 0 10px;
+  padding:7px 10px;
+  border:1px solid #bfdbfe;
+  border-left:5px solid #2563eb;
+  border-radius:10px;
+  background:#eff6ff;
+  color:#08245d;
+  font-size:12px;
+  font-weight:950;
+}
+.rc214-focusline span{
+  color:#334155;
+  font-weight:850;
+}
+
+.rc214-doc-cell{
+  min-width:0!important;
+  white-space:normal!important;
+}
+.rc214-doc-box{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:5px!important;
+  min-width:0!important;
+}
+.rc214-doc-title{
+  display:block!important;
+  width:max-content!important;
+  max-width:100%!important;
+  margin:3px 0 1px!important;
+  padding:3px 7px!important;
+  border-radius:999px!important;
+  background:#e0f2fe!important;
+  color:#075985!important;
+  font-size:10px!important;
+  font-weight:1000!important;
+  line-height:1.1!important;
+  letter-spacing:.04em!important;
+}
+.rc210-doc-list{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:2px 0 6px!important;
+}
+.rc210-doc-item{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  display:block!important;
+  padding:5px 6px!important;
+  font-size:10.5px!important;
+  line-height:1.25!important;
+  background:#ffffff!important;
+  border-color:#c7d2fe!important;
+}
+.rc210-doc-item a,
+.rc210-doc-item .ghost{
+  display:inline-flex!important;
+  width:auto!important;
+  margin-top:3px!important;
+  font-size:10px!important;
+  min-height:24px!important;
+  padding:3px 6px!important;
+}
+.rc210-upload-actions{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:4px!important;
+  margin-top:5px!important;
+}
+.rc210-upload-actions label,
+.rc210-upload-actions button{
+  justify-content:center!important;
+  text-align:center!important;
+  font-size:10.5px!important;
+  min-height:26px!important;
+  padding:4px 6px!important;
+  border-radius:7px!important;
+  white-space:normal!important;
+}
+.rc203-actions{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:4px!important;
+}
+.rc203-actions button,
+.rc203-actions .ghost,
+.rc203-actions .rc203-delete{
+  width:100%!important;
+  min-height:25px!important;
+  padding:4px 6px!important;
+  font-size:10.5px!important;
+  border-radius:7px!important;
+}
+
+/* RC214: dezente helle Farben fuer die Website-Ladeliste und damit auch RC211-PDF */
+#loadListDoc.loadlist-pro,
+.loadlist-pro{
+  background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)!important;
+}
+.loadlist-pro .a4top{
+  background:#eff6ff!important;
+  border:1px solid #bfdbfe!important;
+}
+.loadlist-pro .doc-title{
+  color:#075985!important;
+}
+.loadlist-pro .doc-box{
+  background:#ffffff!important;
+  border-color:#bfdbfe!important;
+}
+.loadlist-pro .doc-box.blue,
+.loadlist-pro .load-refbox{
+  background:#e0f2fe!important;
+  border-color:#7dd3fc!important;
+}
+.loadlist-pro .load-table th{
+  background:#dbeafe!important;
+  color:#0f172a!important;
+  border-color:#bfdbfe!important;
+}
+.loadlist-pro .load-table tr:nth-child(even) td{
+  background:#f8fafc!important;
+}
+.loadlist-pro .load-write-field{
+  background:#f0fdf4!important;
+  border-color:#bbf7d0!important;
+}
+.loadlist-pro .rc198-pallet-field,
+.loadlist-pro .rc212-pallet-field{
+  background:#fff7ed!important;
+  border-color:#fed7aa!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC214: Tabellenklassen, Fokuszeile und POD/ABD-Texte sauber setzen */
+(function(){
+  if(window.__EXPORTHUB_RC214_OVERVIEW_FOCUS_COLORS__)return;
+  window.__EXPORTHUB_RC214_OVERVIEW_FOCUS_COLORS__=true;
+
+  function clean214(v){
+    return String(v||'').replace(/\s+/g,' ').trim();
+  }
+
+  function ensureFocusline214(){
+    var content=document.getElementById('content')||document.body;
+    if(!content)return null;
+    var line=document.getElementById('rc214OverviewFocusline');
+    if(!line){
+      line=document.createElement('div');
+      line.id='rc214OverviewFocusline';
+      line.className='rc214-focusline';
+      line.innerHTML='Fokus: <span>Noch keine Zeile ausgewaehlt</span>';
+      var filter=document.querySelector('.rc203-filterbar');
+      if(filter && filter.parentNode)filter.insertAdjacentElement('afterend',line);
+      else content.prepend(line);
+    }
+    return line;
+  }
+
+  function rowText214(row){
+    var ref=clean214((row.cells[0]&&row.cells[0].textContent)||'');
+    var customer=clean214((row.cells[1]&&row.cells[1].textContent)||'');
+    var status=clean214((row.cells[5]&&row.cells[5].textContent)||'');
+    return [ref,customer,status].filter(Boolean).join(' | ');
+  }
+
+  function fixDocCell214(td){
+    if(!td)return;
+    td.classList.add('rc214-doc-cell');
+    var html=td.innerHTML;
+    html=html.replace(/<b>\s*POD\s*<\/b>/gi,'<span class="rc214-doc-title">POD</span>');
+    html=html.replace(/<b>\s*ABD\s*<\/b>/gi,'<span class="rc214-doc-title">ABD</span>');
+    html=html.replace(/class="rc213-doc-heading"/g,'class="rc214-doc-title"');
+    td.innerHTML=html;
+    if(!td.querySelector('.rc214-doc-box')){
+      var wrap=document.createElement('div');
+      wrap.className='rc214-doc-box';
+      while(td.firstChild)wrap.appendChild(td.firstChild);
+      td.appendChild(wrap);
+    }
+  }
+
+  function fixOverview214(){
+    try{
+      if(typeof state!=='undefined' && state.view!=='shipmentoverview')return;
+      var line=ensureFocusline214();
+      var tables=Array.from(document.querySelectorAll('.card table.table'));
+      tables.forEach(function(table){
+        var head=clean214((table.querySelector('tr')||{}).textContent||'');
+        if(!/Referenz/.test(head) || !/Aktion/.test(head))return;
+        table.classList.add('rc214-overview-table');
+        Array.from(table.rows).forEach(function(row,index){
+          if(index===0)return;
+          if(row.cells[1])row.cells[1].classList.add('rc214-customer-cell');
+          if(row.cells[4])fixDocCell214(row.cells[4]);
+          row.tabIndex=0;
+          row.addEventListener('click',function(){
+            Array.from(table.querySelectorAll('tr.rc214-focus-row')).forEach(function(r){r.classList.remove('rc214-focus-row')});
+            row.classList.add('rc214-focus-row');
+            if(line)line.innerHTML='Fokus: <span>'+rowText214(row)+'</span>';
+          });
+          row.addEventListener('focus',function(){
+            Array.from(table.querySelectorAll('tr.rc214-focus-row')).forEach(function(r){r.classList.remove('rc214-focus-row')});
+            row.classList.add('rc214-focus-row');
+            if(line)line.innerHTML='Fokus: <span>'+rowText214(row)+'</span>';
+          });
+        });
+      });
+      document.querySelectorAll('.rc203-actions button').forEach(function(btn){
+        var text=clean214(btn.textContent);
+        if(text==='Ladeliste/CMR' || text==='Liste/CMR')btn.textContent='Liste';
+        if(text==='Oeffnen')btn.textContent='Oeffnen';
+        if(text==='Loeschen')btn.textContent='X';
+      });
+    }catch(err){}
+  }
+
+  function fixLoadlist214(){
+    try{
+      var load=document.getElementById('loadListDoc');
+      if(load)load.classList.add('loadlist-pro');
+    }catch(err){}
+  }
+
+  var baseRender214=typeof render==='function'?render:null;
+  if(baseRender214){
+    window.render=function(){
+      var result=baseRender214.apply(this,arguments);
+      setTimeout(function(){fixOverview214();fixLoadlist214()},0);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  var baseShowCurrent214=typeof showCurrentCmr==='function'?showCurrentCmr:null;
+  if(baseShowCurrent214){
+    window.showCurrentCmr=function(){
+      var result=baseShowCurrent214.apply(this,arguments);
+      setTimeout(fixLoadlist214,80);
+      return result;
+    };
+    try{showCurrentCmr=window.showCurrentCmr}catch(err){}
+  }
+
+  var baseShowSaved214=typeof showSavedCmr==='function'?showSavedCmr:null;
+  if(baseShowSaved214){
+    window.showSavedCmr=function(){
+      var result=baseShowSaved214.apply(this,arguments);
+      setTimeout(fixLoadlist214,80);
+      return result;
+    };
+    try{showSavedCmr=window.showSavedCmr}catch(err){}
+  }
+
+  setTimeout(function(){fixOverview214();fixLoadlist214()},120);
+})();
+</script>
+<!-- PRIVATE RC214 END -->
+
   
 </body></html>
 
