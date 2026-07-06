@@ -17997,6 +17997,346 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   try{syncUsers193()}catch(err){console.warn('RC193 Benutzer/Rechte Init fehlgeschlagen',err)}
 })();
 </script>
+<style>
+/* PRIVATE RC194: Kunde/Grunddaten + Collis wieder nebeneinander */
+.rc194-shipment-grid{
+  display:grid!important;
+  grid-template-columns:minmax(360px,.95fr) minmax(430px,1.05fr)!important;
+  gap:14px!important;
+  align-items:start!important;
+  width:100%!important;
+  margin:0 0 14px!important;
+}
+.rc194-shipment-grid > .card{
+  margin:0!important;
+  min-width:0!important;
+}
+.rc194-shipment-grid .rc190-mail-card,
+.rc194-shipment-grid .rc189-mail-card,
+.rc194-shipment-grid .rc185-mail-card{
+  margin:10px 0 0!important;
+  padding:10px!important;
+  border-radius:14px!important;
+}
+.rc194-address-confirm{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:auto!important;
+  max-width:360px!important;
+  min-height:0!important;
+  padding:8px 10px!important;
+  margin:8px 0 10px!important;
+  line-height:1.2!important;
+}
+.rc194-address-confirm input{
+  width:auto!important;
+  min-width:18px!important;
+  margin:0!important;
+}
+.rc194-address-confirm div,
+.rc194-address-confirm span{
+  margin:0!important;
+}
+@media(max-width:1100px){
+  .rc194-shipment-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC194: Sendung erstellen Layout stabilisieren */
+(function(){
+  function text194(el){
+    return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+
+  function cardByHeading194(root,pattern){
+    var heads=Array.from(root.querySelectorAll('.card h3'));
+    var h=heads.find(function(x){return pattern.test(text194(x))});
+    return h?h.closest('.card'):null;
+  }
+
+  function moveStandaloneMailIntoCustomer194(root,customerCard){
+    if(!customerCard)return;
+    var mailCards=Array.from(root.querySelectorAll('.rc190-mail-card,.rc189-mail-card,.rc185-mail-card,.rc184-shipment-mail-card'));
+    mailCards.forEach(function(card){
+      if(customerCard.contains(card))return;
+      var oldInside=customerCard.querySelector('.rc190-mail-card,.rc189-mail-card,.rc185-mail-card,.rc184-shipment-mail-card');
+      if(oldInside&&oldInside!==card){
+        card.remove();
+        return;
+      }
+      customerCard.appendChild(card);
+    });
+  }
+
+  function compactAddressConfirm194(root){
+    Array.from(root.querySelectorAll('label.checkrow,.checkrow')).forEach(function(row){
+      if(/Adresse\s+gepr/i.test(text194(row)) || /addressConfirmed/i.test(row.innerHTML||'')){
+        row.classList.add('rc194-address-confirm');
+      }
+    });
+  }
+
+  function unwrapEmptyGrid194(grid){
+    if(!grid || !grid.classList || !grid.classList.contains('grid2'))return;
+    var meaningful=Array.from(grid.children).filter(function(el){
+      return text194(el) || el.querySelector('input,button,select,textarea,.card');
+    });
+    if(meaningful.length)return;
+    grid.remove();
+  }
+
+  function stabilizeShipmentLayout194(){
+    try{
+      if(!state || state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      if(!root)return;
+
+      var customerCard=cardByHeading194(root,/^Kunde\s*&\s*Grunddaten$/i);
+      var collisCard=cardByHeading194(root,/^Collis,\s*(Maße|Masse),\s*Gewicht,\s*Lademeter$/i);
+      if(!customerCard || !collisCard)return;
+
+      moveStandaloneMailIntoCustomer194(root,customerCard);
+      compactAddressConfirm194(root);
+
+      var oldCustomerParent=customerCard.parentElement;
+      var oldCollisParent=collisCard.parentElement;
+      var grid=root.querySelector('.rc194-shipment-grid');
+      if(!grid){
+        grid=document.createElement('div');
+        grid.className='rc194-shipment-grid';
+        customerCard.before(grid);
+      }
+
+      if(customerCard.parentElement!==grid)grid.appendChild(customerCard);
+      if(collisCard.parentElement!==grid)grid.appendChild(collisCard);
+
+      unwrapEmptyGrid194(oldCustomerParent);
+      unwrapEmptyGrid194(oldCollisParent);
+    }catch(err){}
+  }
+
+  if(typeof shipment==='function'){
+    var baseShipment194=shipment;
+    shipment=function(){
+      var html=String(baseShipment194.apply(this,arguments));
+      setTimeout(stabilizeShipmentLayout194,80);
+      setTimeout(stabilizeShipmentLayout194,220);
+      return html;
+    };
+  }
+
+  if(typeof render==='function'){
+    var baseRender194=render;
+    render=function(){
+      var r=baseRender194.apply(this,arguments);
+      setTimeout(stabilizeShipmentLayout194,100);
+      setTimeout(stabilizeShipmentLayout194,260);
+      return r;
+    };
+  }
+
+  document.addEventListener('change',function(){
+    setTimeout(stabilizeShipmentLayout194,80);
+  },true);
+  document.addEventListener('click',function(){
+    setTimeout(stabilizeShipmentLayout194,80);
+  },true);
+
+  setTimeout(stabilizeShipmentLayout194,200);
+})();
+</script>
+<style>
+/* PRIVATE RC195: Aufgaben direkt bearbeiten */
+.rc195-task-edit-btn{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:12px;
+  padding:7px 9px;
+  font-size:12px;
+  font-weight:950;
+  cursor:pointer;
+}
+.rc195-task-edit-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:10px;
+}
+.rc195-task-editor{
+  border:1px solid #bfdbfe;
+  background:#f8fbff;
+  border-radius:14px;
+  padding:10px;
+  margin-top:10px;
+  cursor:default;
+}
+.rc195-task-editor-grid{
+  display:grid;
+  grid-template-columns:minmax(160px,1.4fr) minmax(120px,.8fr) minmax(110px,.6fr);
+  gap:8px;
+}
+.rc195-task-editor .field{
+  margin:0;
+  font-size:12px;
+}
+.rc195-task-editor input,
+.rc195-task-editor select{
+  padding:8px 9px;
+  border-radius:10px;
+  font-size:13px;
+}
+.rc195-task-editor-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:9px;
+}
+@media(max-width:800px){
+  .rc195-task-editor-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC195: Aufgabenname, Tag und Uhrzeit bearbeiten */
+(function(){
+  function e195(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function task195(id){
+    return (state.tasks||[]).find(function(t){return String(t.id||'')===String(id)});
+  }
+
+  function dayOptions195(current){
+    var days=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Heute','Alle Tage'];
+    if(current && !days.includes(current) && current!=='Rückstand')days.unshift(current);
+    return days.map(function(d){
+      return '<option value="'+e195(d)+'" '+(String(current||'')===d?'selected':'')+'>'+e195(d)+'</option>';
+    }).join('');
+  }
+
+  window.rc195OpenTaskEditor=function(id,ev){
+    if(ev){ev.preventDefault();ev.stopPropagation();}
+    state.rc195EditTaskId=id;
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    return false;
+  };
+
+  window.rc195CancelTaskEditor=function(ev){
+    if(ev){ev.preventDefault();ev.stopPropagation();}
+    state.rc195EditTaskId='';
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    return false;
+  };
+
+  window.rc195SaveTaskEdit=function(id,ev){
+    if(ev){ev.preventDefault();ev.stopPropagation();}
+    if(typeof requireEdit==='function' && !requireEdit('tasks'))return false;
+    var t=task195(id);
+    if(!t)return alert('Aufgabe nicht gefunden.');
+
+    var titleEl=document.getElementById('rc195_title_'+id);
+    var dayEl=document.getElementById('rc195_day_'+id);
+    var timeEl=document.getElementById('rc195_time_'+id);
+
+    var title=titleEl?String(titleEl.value||'').trim():'';
+    var day=dayEl?String(dayEl.value||'').trim():'';
+    var time=timeEl?String(timeEl.value||'').trim():'';
+
+    if(!title)return alert('Bitte einen Aufgabennamen eintragen.');
+    if(day==='Alle Tage')day='Heute';
+
+    var old=[t.title,t.day,t.time].join(' · ');
+    t.title=title;
+    t.day=day||'Heute';
+    t.time=time;
+    t.manual=true;
+    t.rc195Edited=true;
+    t.editedAt=new Date().toISOString();
+    t.editedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+
+    if(t.isBacklog || t.backlog || t.day==='Rückstand' || t.area==='Rückstand'){
+      delete t.isBacklog;
+      delete t.backlog;
+      delete t.backlogKey;
+      t.area=t.originalArea&&t.originalArea!=='Rückstand'?t.originalArea:(t.area==='Rückstand'?'Aufgabe':t.area);
+      t.originalDay=t.originalDay||'Rückstand';
+    }
+
+    state.rc195EditTaskId='';
+    if(state.taskDay && state.taskDay!=='Alle Tage' && state.taskDay!==t.day){
+      state.taskDay=t.day;
+    }
+    try{if(typeof audit==='function')audit('Aufgabe bearbeitet',old+' -> '+[t.title,t.day,t.time||'ohne Uhrzeit'].join(' · '))}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    return false;
+  };
+
+  function editor195(t){
+    var id=e195(t.id);
+    var day=t.day==='Rückstand'?(t.originalDay||'Heute'):(t.day||'Heute');
+    return '<div class="rc195-task-editor" onclick="event.stopPropagation()">'+
+      '<div class="rc195-task-editor-grid">'+
+        '<label class="field">Aufgabenname<input id="rc195_title_'+id+'" value="'+e195(t.title||'')+'"></label>'+
+        '<label class="field">Tag<select id="rc195_day_'+id+'">'+dayOptions195(day)+'</select></label>'+
+        '<label class="field">Uhrzeit<input id="rc195_time_'+id+'" type="time" value="'+e195(t.time||'')+'"></label>'+
+      '</div>'+
+      '<div class="rc195-task-editor-actions">'+
+        '<button class="btn" onclick="return rc195SaveTaskEdit(&quot;'+id+'&quot;,event)">Speichern</button>'+
+        '<button class="ghost" onclick="return rc195CancelTaskEditor(event)">Abbrechen</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function button195(t){
+    return '<div class="rc195-task-edit-row" onclick="event.stopPropagation()">'+
+      '<button class="rc195-task-edit-btn" onclick="return rc195OpenTaskEditor(&quot;'+e195(t.id)+'&quot;,event)">Bearbeiten</button>'+
+    '</div>';
+  }
+
+  function inject195(html,t){
+    var editor=String(state.rc195EditTaskId||'')===String(t.id)?editor195(t):button195(t);
+    if(html.includes('rc195-task-editor') || html.includes('rc195-task-edit-btn'))return html;
+    if(html.includes('<div class="task-clickhint">')){
+      return html.replace('<div class="task-clickhint">',editor+'<div class="task-clickhint">');
+    }
+    return html.replace(/<\/article>\s*$/i,editor+'</article>');
+  }
+
+  if(typeof renderTask==='function'){
+    var baseRenderTask195=renderTask;
+    renderTask=function(t){
+      var html=String(baseRenderTask195.apply(this,arguments));
+      try{return inject195(html,t)}catch(err){return html}
+    };
+  }
+
+  if(typeof tasks==='function'){
+    var baseTasks195=tasks;
+    tasks=function(){
+      var html=String(baseTasks195.apply(this,arguments));
+      if(!html.includes('rc195-task-help')){
+        html=html.replace('<div class="toolbar">','<div class="rc195-task-help notice"><b>Aufgaben bearbeiten:</b> In jeder Aufgabe gibt es jetzt <b>Bearbeiten</b> fuer Aufgabenname, Tag und Uhrzeit.</div><div class="toolbar">');
+      }
+      return html;
+    };
+  }
+})();
+</script>
 
 </body></html>
 
