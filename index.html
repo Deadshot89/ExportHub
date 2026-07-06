@@ -24165,7 +24165,406 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC220 END: Ladeliste Paletten endgueltig deduplizieren + Aufgabenfilter bereinigen -->
 
+<!-- PRIVATE RC221 START: Colli Renderverlust Finalschutz -->
+<style>
+.rc221-colli-save-indicator{
+  border:1px solid #86efac;
+  background:#f0fdf4;
+  color:#166534;
+  border-radius:10px;
+  padding:7px 9px;
+  margin:8px 0;
+  font-size:12px;
+  font-weight:900;
+}
+</style>
 
+<script>
+/* PRIVATE RC221: Colli-Werte vor jedem Render/Upload/Checkbox/Button hart aus dem DOM sichern */
+(function(){
+  if(window.__EXPORTHUB_RC221_COLLI_RENDER_GUARD__)return;
+  window.__EXPORTHUB_RC221_COLLI_RENDER_GUARD__=true;
+
+  var lastRows221=[];
+  var applying221=false;
+  var fillTimer221=null;
+
+  function clone221(v){
+    try{return JSON.parse(JSON.stringify(v))}catch(err){return v}
+  }
+
+  function cleanNum221(v){
+    if(v===null || v===undefined)return '';
+    var s=String(v).trim();
+    if(s==='')return '';
+    var n=Number(s.replace(',','.'));
+    return isFinite(n)?n:s;
+  }
+
+  function blankRow221(){
+    return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''};
+  }
+
+  function hasData221(r){
+    return !!(r && ['type','count','ldm','weight','l','w','h'].some(function(k){
+      var v=r[k];
+      return v!=='' && v!==null && v!==undefined;
+    }));
+  }
+
+  function pack221(name){
+    try{
+      return (SEED.colliTypes||[]).find(function(p){
+        return String(p.name||'')===String(name||'');
+      }) || null;
+    }catch(err){return null}
+  }
+
+  function applyPack221(row,force){
+    row=Object.assign(blankRow221(),row||{});
+    var p=pack221(row.type);
+    if(p){
+      if(force || row.ldm==='' || row.ldm===null || row.ldm===undefined)row.ldm=p.ldm!=null?p.ldm:'';
+      if(force || row.l==='' || row.l===null || row.l===undefined)row.l=p.l!=null?p.l:'';
+      if(force || row.w==='' || row.w===null || row.w===undefined)row.w=p.w!=null?p.w:'';
+      if(force || row.h==='' || row.h===null || row.h===undefined)row.h=p.h!=null?p.h:'';
+    }
+    return row;
+  }
+
+  function normalizeRows221(rows,keepBlank){
+    rows=(Array.isArray(rows)?rows:[]).map(function(r){
+      return applyPack221({
+        type:r&&r.type!=null?String(r.type):'',
+        count:r&&r.count!=null?r.count:'',
+        ldm:r&&r.ldm!=null?r.ldm:'',
+        weight:r&&r.weight!=null?r.weight:'',
+        l:r&&r.l!=null?r.l:'',
+        w:r&&r.w!=null?r.w:'',
+        h:r&&r.h!=null?r.h:''
+      },false);
+    });
+    return keepBlank?rows:rows.filter(hasData221);
+  }
+
+  function rowKey221(){
+    try{
+      var s=state&&state.shipment||{};
+      return String(s.id||s.ref||'current').replace(/[^A-Za-z0-9_-]+/g,'_')||'current';
+    }catch(err){return 'current'}
+  }
+
+  function persistBackup221(rows){
+    rows=normalizeRows221(rows,false);
+    if(!rows.length)return rows;
+    lastRows221=clone221(rows);
+    try{state.rc221LastColliRows=clone221(rows)}catch(err){}
+    try{state.rc221LastColliKey=rowKey221()}catch(err){}
+    try{localStorage.setItem('exporthub_rc221_colli_rows_'+rowKey221(),JSON.stringify(rows))}catch(err){}
+    try{localStorage.setItem('exporthub_rc221_colli_rows_last',JSON.stringify(rows))}catch(err){}
+    return rows;
+  }
+
+  function loadBackup221(){
+    var rows=[];
+    try{rows=JSON.parse(localStorage.getItem('exporthub_rc221_colli_rows_'+rowKey221())||'[]')}catch(err){rows=[]}
+    if(!rows.length){try{rows=JSON.parse(localStorage.getItem('exporthub_rc221_colli_rows_last')||'[]')}catch(err){rows=[]}}
+    if(!rows.length){try{rows=state.rc221LastColliRows||[]}catch(err){rows=[]}}
+    if(!rows.length)rows=lastRows221;
+    return normalizeRows221(rows,false);
+  }
+
+  function rowIndexFromId221(id){
+    var m=String(id||'').match(/^rc(?:96|98|118|199|221)_row_(\d+)_(type|count|ldm|weight|l|w|h)$/);
+    return m?{i:Number(m[1]),k:m[2]}:null;
+  }
+
+  function readByIds221(){
+    var found={};
+    document.querySelectorAll('[id*="_row_"]').forEach(function(el){
+      var m=rowIndexFromId221(el.id);
+      if(!m)return;
+      found[m.i]=found[m.i]||blankRow221();
+      found[m.i][m.k]=m.k==='type'?String(el.value||''):cleanNum221(el.value);
+    });
+    return Object.keys(found).sort(function(a,b){return Number(a)-Number(b)}).map(function(i){
+      return applyPack221(found[i],false);
+    });
+  }
+
+  function readByRowsBox221(){
+    var box=document.getElementById('rowsBox');
+    if(!box)return [];
+    var cards=Array.from(box.children).filter(function(card){
+      return card && card.querySelector && card.querySelector('select,input');
+    });
+    if(!cards.length && box.querySelector('select,input'))cards=[box];
+    return cards.map(function(card){
+      var select=card.querySelector('select');
+      var inputs=Array.from(card.querySelectorAll('input')).filter(function(x){
+        return x.type!=='hidden' && x.type!=='file' && x.type!=='checkbox' && x.type!=='radio';
+      });
+      return applyPack221({
+        type:select?String(select.value||''):'',
+        count:cleanNum221(inputs[0]&&inputs[0].value),
+        ldm:cleanNum221(inputs[1]&&inputs[1].value),
+        weight:cleanNum221(inputs[2]&&inputs[2].value),
+        l:cleanNum221(inputs[3]&&inputs[3].value),
+        w:cleanNum221(inputs[4]&&inputs[4].value),
+        h:cleanNum221(inputs[5]&&inputs[5].value)
+      },false);
+    });
+  }
+
+  function readVisibleRows221(keepBlank){
+    var rows=readByIds221();
+    if(!rows.length)rows=readByRowsBox221();
+    return normalizeRows221(rows,!!keepBlank);
+  }
+
+  function setStateRows221(rows,keepBlank){
+    if(typeof state==='undefined')return [];
+    state.shipment=state.shipment||{};
+    rows=normalizeRows221(rows,!!keepBlank);
+    if(!rows.length)rows=loadBackup221();
+    if(!rows.length)rows=[blankRow221()];
+    state.shipment.rows=normalizeRows221(rows,true);
+    persistBackup221(state.shipment.rows);
+    return state.shipment.rows;
+  }
+
+  function collect221(reason,keepBlank){
+    if(applying221)return (state&&state.shipment&&state.shipment.rows)||[];
+    var visible=readVisibleRows221(!!keepBlank);
+    var rows=visible.length?visible:normalizeRows221((state&&state.shipment&&state.shipment.rows)||[],!!keepBlank);
+    rows=setStateRows221(rows,!!keepBlank);
+    try{
+      if(typeof save==='function' && reason!=='before-save-wrapper')save();
+    }catch(err){}
+    return rows;
+  }
+
+  function idFor221(i,k){
+    return [
+      'rc118_row_'+i+'_'+k,
+      'rc96_row_'+i+'_'+k,
+      'rc98_row_'+i+'_'+k,
+      'rc199_row_'+i+'_'+k,
+      'rc221_row_'+i+'_'+k
+    ];
+  }
+
+  function fillDom221(rows){
+    rows=normalizeRows221(rows,false);
+    if(!rows.length)return;
+    clearTimeout(fillTimer221);
+    fillTimer221=setTimeout(function(){
+      applying221=true;
+      try{
+        rows.forEach(function(r,i){
+          ['type','count','ldm','weight','l','w','h'].forEach(function(k){
+            var el=null;
+            idFor221(i,k).some(function(id){
+              el=document.getElementById(id);
+              return !!el;
+            });
+            if(!el || document.activeElement===el)return;
+            el.value=r[k]==null?'':String(r[k]);
+          });
+        });
+        var box=document.getElementById('rowsBox');
+        if(box && !document.getElementById('rc221ColliSaveIndicator')){
+          var info=document.createElement('div');
+          info.id='rc221ColliSaveIndicator';
+          info.className='rc221-colli-save-indicator';
+          info.textContent='Colli-Schutz aktiv: Eingaben bleiben bei Aktualisieren, Upload, Adresse bestaetigen und + Zeile erhalten.';
+          box.parentNode.insertBefore(info,box);
+        }
+      }catch(err){}finally{
+        applying221=false;
+      }
+    },0);
+  }
+
+  window.rc221CollectColliRows=function(reason,keepBlank){
+    var rows=collect221(reason||'manual',keepBlank!==false);
+    fillDom221(rows);
+    return rows;
+  };
+
+  window.updateRow=function(i,k,v){
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    while(state.shipment.rows.length<=i)state.shipment.rows.push(blankRow221());
+    var row=Object.assign(blankRow221(),state.shipment.rows[i]||{});
+    row[k]=k==='type'?String(v||''):cleanNum221(v);
+    row=applyPack221(row,k==='type');
+    state.shipment.rows[i]=row;
+    persistBackup221(state.shipment.rows);
+    fillDom221(state.shipment.rows);
+    try{if(typeof save==='function')save()}catch(err){}
+  };
+  try{updateRow=window.updateRow}catch(err){}
+
+  window.addShipmentRow=function(){
+    var rows=collect221('before-add-row',true);
+    rows=normalizeRows221(rows,true);
+    rows.push(blankRow221());
+    state.shipment.rows=rows;
+    persistBackup221(rows);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    fillDom221(rows);
+  };
+  try{addShipmentRow=window.addShipmentRow}catch(err){}
+
+  window.removeShipmentRow=function(i){
+    var rows=collect221('before-remove-row',true);
+    rows.splice(i,1);
+    if(!rows.length)rows=[blankRow221()];
+    state.shipment.rows=rows;
+    persistBackup221(rows);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    fillDom221(rows);
+  };
+  try{removeShipmentRow=window.removeShipmentRow}catch(err){}
+
+  function wrap221(name,keepBlank){
+    var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+    if(typeof base!=='function' || base.__rc221Wrapped)return;
+    var wrapped=function(){
+      var rows=collect221('before-'+name,keepBlank!==false);
+      var result=base.apply(this,arguments);
+      try{
+        if(name==='saveShipment'){
+          var ref=String((state.shipment&&state.shipment.ref)||'').toUpperCase();
+          var saved=(state.shipments||[]).find(function(s){return String(s.ref||'').toUpperCase()===ref}) || (state.shipments||[])[0];
+          if(saved && rows && rows.length){
+            saved.rows=normalizeRows221(rows,false);
+            saved.colliRows=normalizeRows221(rows,false);
+          }
+        }
+      }catch(err){}
+      setTimeout(function(){fillDom221((state.shipment&&state.shipment.rows)||rows)},40);
+      return result;
+    };
+    wrapped.__rc221Wrapped=true;
+    window[name]=wrapped;
+    try{eval(name+'=window[name]')}catch(err){}
+  }
+
+  [
+    'saveShipment',
+    'showCurrentCmr',
+    'showSavedCmr',
+    'addDeliveryNoteFiles',
+    'setShipmentPickupDate',
+    'setShipmentRef',
+    'selectShipmentCustomer',
+    'applyCustomerSearch',
+    'ensureShipmentReference',
+    'rc55DownloadLoadlistPdf',
+    'rc218DownloadLoadlistPdf',
+    'rc55PrintLabels'
+  ].forEach(function(name){wrap221(name,true)});
+
+  try{
+    if(typeof shipmentCompletionMissing==='function' && !shipmentCompletionMissing.__rc221Wrapped){
+      var baseMissing221=shipmentCompletionMissing;
+      window.shipmentCompletionMissing=function(s){
+        collect221('before-completion-check',true);
+        return baseMissing221.call(this,s||state.shipment);
+      };
+      window.shipmentCompletionMissing.__rc221Wrapped=true;
+      try{shipmentCompletionMissing=window.shipmentCompletionMissing}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof save==='function' && !save.__rc221Wrapped){
+      var baseSave221=save;
+      window.save=function(){
+        if(typeof state!=='undefined' && state.view==='shipment' && document.getElementById('rowsBox')){
+          var visible=readVisibleRows221(true);
+          if(visible.length)setStateRows221(visible,true);
+        }
+        return baseSave221.apply(this,arguments);
+      };
+      window.save.__rc221Wrapped=true;
+      try{save=window.save}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof render==='function' && !render.__rc221Wrapped){
+      var baseRender221=render;
+      window.render=function(){
+        var rows=null;
+        if(typeof state!=='undefined' && state.view==='shipment' && document.getElementById('rowsBox')){
+          rows=collect221('before-render',true);
+        }
+        var result=baseRender221.apply(this,arguments);
+        if(typeof state!=='undefined' && state.view==='shipment'){
+          rows=normalizeRows221((state.shipment&&state.shipment.rows)||rows||loadBackup221(),true);
+          if((!rows || !normalizeRows221(rows,false).length)){
+            rows=loadBackup221();
+            if(rows.length)state.shipment.rows=normalizeRows221(rows,true);
+          }
+          fillDom221(rows);
+        }
+        return result;
+      };
+      window.render.__rc221Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  ['input','change','blur','keyup','focusout'].forEach(function(type){
+    document.addEventListener(type,function(ev){
+      var el=ev.target;
+      if(!el)return;
+      var box=document.getElementById('rowsBox');
+      if((box && box.contains(el)) || rowIndexFromId221(el.id)){
+        collect221(type,true);
+      }
+    },true);
+  });
+
+  document.addEventListener('pointerdown',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('button,label,input,select');
+    if(!el)return;
+    var txt=(el.textContent||el.value||'').toLowerCase();
+    var oc=String(el.getAttribute&&el.getAttribute('onclick')||'').toLowerCase();
+    var isFile=el.tagName==='INPUT' && el.type==='file';
+    if(isFile || txt.indexOf('+ zeile')>=0 || txt.indexOf('adresse')>=0 || txt.indexOf('sendung speichern')>=0 || txt.indexOf('ladeliste')>=0 || oc.indexOf('render')>=0 || oc.indexOf('addshipmentrow')>=0 || oc.indexOf('saveshipment')>=0){
+      collect221('pointerdown',true);
+    }
+  },true);
+
+  document.addEventListener('click',function(ev){
+    var el=ev.target;
+    if(el && el.matches && (el.matches('input[type="checkbox"]') || el.matches('input[type="file"]'))){
+      collect221('before-checkbox-file-click',true);
+    }
+  },true);
+
+  setInterval(function(){
+    if(typeof state!=='undefined' && state.view==='shipment' && document.getElementById('rowsBox')){
+      var rows=readVisibleRows221(true);
+      if(normalizeRows221(rows,false).length)persistBackup221(rows);
+    }
+  },1000);
+
+  setTimeout(function(){
+    var rows=normalizeRows221((state&&state.shipment&&state.shipment.rows)||[],true);
+    if(!normalizeRows221(rows,false).length)rows=loadBackup221();
+    if(rows.length)setStateRows221(rows,true);
+    fillDom221(rows);
+  },150);
+})();
+</script>
+<!-- PRIVATE RC221 END: Colli Renderverlust Finalschutz -->
   
 </body></html>
 
