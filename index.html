@@ -19501,6 +19501,423 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
 })();
 </script>
 <!-- PRIVATE RC199 END -->
+<!-- PRIVATE RC200 START: Sendungsuebersicht Filter + Loeschen + Referenzordner Button unten -->
+<style>
+/* PRIVATE RC200: Sendungsuebersicht steuerbar und Buttons bereinigt */
+.rc200-filterbar{
+  display:grid;
+  grid-template-columns:minmax(240px,1.5fr) minmax(150px,.7fr) minmax(150px,.7fr) auto auto;
+  gap:10px;
+  align-items:center;
+  margin:12px 0 16px;
+}
+.rc200-filterbar input,
+.rc200-filterbar select{
+  min-height:40px;
+}
+.rc200-check{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--line,#d8e2ee);
+  background:#fff;
+  border-radius:14px;
+  padding:10px 12px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.rc200-check input{
+  width:auto!important;
+  margin:0!important;
+}
+.rc200-section{
+  margin-top:14px;
+}
+.rc200-section h3{
+  margin-bottom:10px;
+}
+.rc200-actions{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.rc200-delete{
+  background:#fee2e2!important;
+  color:#991b1b!important;
+  border:0!important;
+}
+.rc200-bottom-ref{
+  display:flex;
+  justify-content:flex-start;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line,#d8e2ee);
+}
+.rc199-main-card .rc192-ref-folder-btn,
+.btn-row-spaced .rc192-ref-folder-btn{
+  display:none!important;
+}
+.rc182-folder-card button,
+.rc188-sp-card button,
+.rc191-sp-card button{
+  display:none!important;
+}
+button[onclick*="CopyReferenceFolderName"],
+button[onclick*="CopyReferenceFolderLink"],
+button[onclick*="CopyShipmentFolder"],
+button[onclick*="CopyReference"],
+button[onclick*="Link kopieren"],
+button[onclick*="Ordnername"]{
+  display:none!important;
+}
+@media(max-width:1000px){
+  .rc200-filterbar{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC200: Filter, Loeschen und Button-Position */
+(function(){
+  if(window.__EXPORTHUB_RC200_OVERVIEW_DELETE_BUTTONFIX__)return;
+  window.__EXPORTHUB_RC200_OVERVIEW_DELETE_BUTTONFIX__=true;
+
+  function e200(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n200(v){
+    try{if(typeof norm==='function')return norm(v)}catch(err){}
+    return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function statusShipment200(s){
+    try{if(typeof shipmentEffectiveStatus==='function')return shipmentEffectiveStatus(s)}catch(err){}
+    var raw=String((s&&s.status)||(s&&s.freigabe)||'offen').toLowerCase();
+    if(raw.indexOf('erled')>=0)return 'erledigt';
+    return 'offen';
+  }
+
+  function statusPill200(text){
+    var n=n200(text);
+    var cls=n.indexOf('erled')>=0?'green':(n.indexOf('uberfall')>=0||n.indexOf('ueberfall')>=0?'red':'orange');
+    return '<span class="pill '+cls+'">'+e200(text||'offen')+'</span>';
+  }
+
+  function cleanRef200(v){
+    try{if(typeof cleanShipmentRef==='function')return cleanShipmentRef(v)}catch(err){}
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12);
+  }
+
+  function shipmentDocs200(s){
+    try{if(typeof shipmentDocs==='function')return shipmentDocs(s)}catch(err){}
+    var notes=String((s&&s.deliveryNotes)||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean);
+    var files=((s&&s.deliveryFiles)||[]).map(function(f){return f.name||''}).filter(Boolean);
+    return notes.concat(files.filter(function(x){return notes.indexOf(x)<0}));
+  }
+
+  function podList200(s){
+    try{if(typeof podListHtml==='function')return podListHtml(s)}catch(err){}
+    var files=(s&&s.podFiles)||[];
+    if(!files.length)return '<span class="muted">kein POD</span>';
+    return files.map(function(f){return '<span class="pill gray">'+e200(f.name||'POD')+'</span>'}).join(' ');
+  }
+
+  function abdStatus200(r){
+    if(!r)return 'offen';
+    if(r.done || r.status==='erledigt' || r.completedAt)return 'erledigt';
+    if(r.uploadedAt || r.abdUploadedAt || r.fileName || r.status==='info hochgeladen')return 'Dokument vorhanden';
+    return r.status||'offen';
+  }
+
+  function abdCustomer200(r){
+    var c=(r&&r.customer)||{};
+    var ref=cleanRef200(r&&r.ref);
+    var s=(state.shipments||[]).find(function(x){return cleanRef200(x.ref)===ref})||{};
+    var sc=s.customer||{};
+    return {
+      name:c.name||r.customerName||sc.name||'',
+      account:c.account||c.customerNumber||r.customerNumber||sc.account||sc.customerNumber||''
+    };
+  }
+
+  function blobShipment200(s){
+    var c=(s&&s.customer)||{};
+    return n200([
+      s&&s.ref,s&&s.created,s&&s.pickupDate,s&&s.status,s&&s.freigabe,
+      c.name,c.account,c.customerNumber,c.country,
+      shipmentDocs200(s).join(' '),s&&s.comments,s&&s.carrier
+    ].join(' '));
+  }
+
+  function blobAbd200(r){
+    var c=abdCustomer200(r);
+    return n200([r&&r.ref,r&&r.created,r&&r.createdIso,abdStatus200(r),c.name,c.account,r&&r.note,r&&r.manualText].join(' '));
+  }
+
+  function currentType200(){
+    state.rc200OverviewType=state.rc200OverviewType||'all';
+    return state.rc200OverviewType;
+  }
+
+  function currentStatus200(){
+    state.shipmentOverviewStatus=state.shipmentOverviewStatus||'Alle';
+    return state.shipmentOverviewStatus;
+  }
+
+  function hideDone200(){
+    if(state.rc200HideDone===undefined)state.rc200HideDone=true;
+    return !!state.rc200HideDone;
+  }
+
+  function query200(){
+    return n200(state.shipmentOverviewSearch||'');
+  }
+
+  function filterShipments200(){
+    var q=query200();
+    var st=currentStatus200();
+    var list=(state.shipments||[]).slice();
+    if(q)list=list.filter(function(s){return blobShipment200(s).indexOf(q)>=0});
+    if(hideDone200())list=list.filter(function(s){return statusShipment200(s)!=='erledigt'});
+    if(st && st!=='Alle')list=list.filter(function(s){return statusShipment200(s)===String(st).toLowerCase()});
+    return list.sort(function(a,b){return String(b.created||'').localeCompare(String(a.created||''))});
+  }
+
+  function filterAbd200(){
+    var q=query200();
+    var st=currentStatus200();
+    var list=(state.abdRequests||[]).slice();
+    if(q)list=list.filter(function(r){return blobAbd200(r).indexOf(q)>=0});
+    if(hideDone200())list=list.filter(function(r){return abdStatus200(r)!=='erledigt'});
+    if(st && st!=='Alle'){
+      list=list.filter(function(r){
+        var s=n200(abdStatus200(r));
+        var target=n200(st);
+        if(target==='offen')return s==='offen';
+        if(target==='erledigt')return s.indexOf('erled')>=0;
+        return s.indexOf(target)>=0;
+      });
+    }
+    return list.sort(function(a,b){return String(b.createdIso||b.created||'').localeCompare(String(a.createdIso||a.created||''))});
+  }
+
+  window.rc200SetOverviewType=function(value){
+    state.rc200OverviewType=value||'all';
+    try{save()}catch(err){}
+    render();
+  };
+
+  window.rc200SetOverviewStatus=function(value){
+    state.shipmentOverviewStatus=value||'Alle';
+    try{save()}catch(err){}
+    render();
+  };
+
+  window.rc200SetHideDone=function(checked){
+    state.rc200HideDone=!!checked;
+    try{save()}catch(err){}
+    render();
+  };
+
+  window.rc200ClearOverviewFilter=function(){
+    state.shipmentOverviewSearch='';
+    state.shipmentOverviewStatus='Alle';
+    state.rc200OverviewType='all';
+    state.rc200HideDone=true;
+    try{save()}catch(err){}
+    render();
+  };
+
+  window.rc200DeleteShipment=function(id){
+    if(typeof requireEdit==='function' && !requireEdit('shipmentoverview'))return;
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return alert('Sendung nicht gefunden.');
+    var ref=s.ref||id;
+    if(!confirm('Sendung '+ref+' wirklich loeschen?'))return;
+    state.shipments=(state.shipments||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    if(state.activeShipmentId===id)state.activeShipmentId='current';
+    try{if(typeof audit==='function')audit('Sendung geloescht',ref)}catch(err){}
+    try{save()}catch(err){}
+    render();
+  };
+
+  window.rc200DeleteAbdRequest=function(id){
+    if(typeof requireEdit==='function' && !requireEdit('shipmentoverview'))return;
+    var r=(state.abdRequests||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!r)return alert('ABD Anfrage nicht gefunden.');
+    var ref=r.ref||id;
+    if(!confirm('ABD Anfrage '+ref+' wirklich loeschen?'))return;
+    state.abdRequests=(state.abdRequests||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    var clean=cleanRef200(ref);
+    state.tasks=(state.tasks||[]).filter(function(t){
+      var text=String([t.linkedAbdRef,t.linkedShipmentRef,t.title,t.note,t.area].join(' ')).toUpperCase();
+      return !(clean && text.indexOf(clean)>=0 && n200([t.area,t.title,t.note].join(' ')).indexOf('abd')>=0);
+    });
+    try{if(typeof audit==='function')audit('ABD Anfrage geloescht',ref)}catch(err){}
+    try{save()}catch(err){}
+    render();
+  };
+
+  function filterbar200(){
+    var type=currentType200();
+    var status=currentStatus200();
+    return '<div class="rc200-filterbar">'+
+      '<input placeholder="Referenz, Kunde, DNC, POD oder ABD suchen" value="'+e200(state.shipmentOverviewSearch||'')+'" id="shipmentOverviewSearchInput" oninput="setShipmentOverviewSearchAuto(this.value)">'+
+      '<select onchange="rc200SetOverviewType(this.value)">'+
+        '<option value="all" '+(type==='all'?'selected':'')+'>Alles anzeigen</option>'+
+        '<option value="shipments" '+(type==='shipments'?'selected':'')+'>Nur Sendungen</option>'+
+        '<option value="abd" '+(type==='abd'?'selected':'')+'>Nur ABD</option>'+
+      '</select>'+
+      '<select onchange="rc200SetOverviewStatus(this.value)">'+
+        '<option value="Alle" '+(status==='Alle'?'selected':'')+'>Alle Status</option>'+
+        '<option value="Offen" '+(status==='Offen'?'selected':'')+'>Offen</option>'+
+        '<option value="Überfällig" '+(status==='Überfällig'?'selected':'')+'>Ueberfaellig</option>'+
+        '<option value="Erledigt" '+(status==='Erledigt'?'selected':'')+'>Erledigt</option>'+
+      '</select>'+
+      '<label class="rc200-check"><input type="checkbox" '+(hideDone200()?'checked':'')+' onchange="rc200SetHideDone(this.checked)"> Erledigte ausblenden</label>'+
+      '<button class="ghost" onclick="rc200ClearOverviewFilter()">Filter loeschen</button>'+
+    '</div>';
+  }
+
+  function shipmentsTable200(list){
+    if(!list.length)return '<div class="notice">Keine Sendung im aktuellen Filter gefunden.</div>';
+    return '<div class="card rc200-section"><h3>Sendungen</h3><table class="table shipment-overview-table">'+
+      '<tr><th>Status</th><th>Referenz</th><th>Kunde</th><th>Datum</th><th>DNC / Lieferscheine</th><th>POD</th><th>Aktion</th></tr>'+
+      list.map(function(s){
+        var c=s.customer||{};
+        var docs=shipmentDocs200(s);
+        return '<tr>'+
+          '<td>'+statusPill200(statusShipment200(s))+'</td>'+
+          '<td><b>'+e200(s.ref||'')+'</b><br><span class="small">'+e200(s.created||'')+'</span></td>'+
+          '<td>'+e200(c.account||c.customerNumber||'')+'<br><b>'+e200(c.name||'')+'</b><br><span class="small">'+e200(c.country||'')+'</span></td>'+
+          '<td><input type="date" value="'+e200(s.pickupDate||'')+'" onchange="updateSavedShipmentPickupDate(&quot;'+e200(s.id||'')+'&quot;,this.value)" style="min-width:135px"></td>'+
+          '<td>'+(docs.length?docs.map(function(d){return '<span class="pill yellow">'+e200(d)+'</span>'}).join(' '):'<span class="muted">keine DNC hinterlegt</span>')+'</td>'+
+          '<td>'+podList200(s)+'<label class="soft" style="display:inline-flex;cursor:pointer;margin-top:6px">POD hochladen<input type="file" multiple class="hidden" accept=".pdf,.jpg,.jpeg,.png,.msg,.eml,image/*,application/pdf" onchange="addPodFiles(&quot;'+e200(s.id||'')+'&quot;,this.files);this.value=&quot;&quot;"></label></td>'+
+          '<td><div class="rc200-actions">'+
+            '<button class="ghost" onclick="loadShipment(&quot;'+e200(s.id||'')+'&quot;)">Uebernehmen</button>'+
+            '<button class="ghost" onclick="showSavedCmr(&quot;'+e200(s.id||'')+'&quot;)">Ladeliste/CMR</button>'+
+            '<button class="soft" onclick="markShipmentDone(&quot;'+e200(s.id||'')+'&quot;)">Erledigt</button>'+
+            '<button class="ghost" onclick="reopenShipment(&quot;'+e200(s.id||'')+'&quot;)">Offen</button>'+
+            '<button class="danger rc200-delete" onclick="rc200DeleteShipment(&quot;'+e200(s.id||'')+'&quot;)">Loeschen</button>'+
+          '</div></td>'+
+        '</tr>';
+      }).join('')+
+      '</table></div>';
+  }
+
+  function abdTable200(list){
+    if(!list.length)return '<div class="notice">Keine ABD Anfrage im aktuellen Filter gefunden.</div>';
+    return '<div class="card rc200-section"><h3>ABD-Anfragen</h3><table class="table">'+
+      '<tr><th>Status</th><th>Referenz</th><th>Kunde</th><th>Erfasst</th><th>Aufgabe</th><th>Aktion</th></tr>'+
+      list.map(function(r){
+        var c=abdCustomer200(r);
+        var ref=cleanRef200(r.ref);
+        return '<tr>'+
+          '<td>'+statusPill200(abdStatus200(r))+'</td>'+
+          '<td><b>'+e200(ref)+'</b></td>'+
+          '<td>'+e200(c.name)+'<br><span class="small">'+e200(c.account)+'</span></td>'+
+          '<td>'+e200(r.created||r.createdIso||'')+'</td>'+
+          '<td>'+e200(r.dueDate||'')+'</td>'+
+          '<td><div class="rc200-actions">'+
+            '<a class="ghost" href="mailto:" onclick="return prepareAbdMailLink(this,&quot;'+e200(r.id||'')+'&quot;)">Outlook-Mail</a>'+
+            '<button class="soft" onclick="markAbdUploaded(&quot;'+e200(r.id||'')+'&quot;)">Hochgeladen</button>'+
+            '<button class="ghost" onclick="rc99MarkAbdDone(&quot;'+e200(r.id||'')+'&quot;)">Erledigt</button>'+
+            '<button class="danger rc200-delete" onclick="rc200DeleteAbdRequest(&quot;'+e200(r.id||'')+'&quot;)">Loeschen</button>'+
+          '</div></td>'+
+        '</tr>';
+      }).join('')+
+      '</table></div>';
+  }
+
+  window.shipmentoverview=function(){
+    state.rc200OverviewType=state.rc200OverviewType||'all';
+    if(state.rc200HideDone===undefined)state.rc200HideDone=true;
+    var allShip=(state.shipments||[]);
+    var allAbd=(state.abdRequests||[]);
+    var open=allShip.filter(function(s){return statusShipment200(s)==='offen'}).length;
+    var done=allShip.filter(function(s){return statusShipment200(s)==='erledigt'}).length;
+    var abdOpen=allAbd.filter(function(r){return abdStatus200(r)!=='erledigt'}).length;
+    var html=head('Sendungsuebersicht','Filtere nach Sendungen oder ABD-Anfragen. Erledigte Eintraege kannst du ausblenden.')+
+      '<div class="metrics">'+
+        '<article class="metric kpi-blue"><span>Sendungen gesamt</span><strong>'+allShip.length+'</strong></article>'+
+        '<article class="metric kpi-orange"><span>Sendungen offen</span><strong>'+open+'</strong></article>'+
+        '<article class="metric kpi-green"><span>Sendungen erledigt</span><strong>'+done+'</strong></article>'+
+        '<article class="metric kpi-red"><span>ABD offen</span><strong>'+abdOpen+'</strong></article>'+
+      '</div>'+
+      filterbar200()+
+      '<div class="toolbar"><button class="soft" onclick="setView(&quot;shipment&quot;)">+ Sendung erstellen</button></div>';
+
+    var type=currentType200();
+    if(type==='all' || type==='shipments')html+=shipmentsTable200(filterShipments200());
+    if(type==='all' || type==='abd')html+=abdTable200(filterAbd200());
+    return html;
+  };
+  try{shipmentoverview=window.shipmentoverview}catch(err){}
+
+  function moveReferenceButtonToCollis200(){
+    try{
+      if(typeof state==='undefined' || state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      if(!root)return;
+      root.querySelectorAll('.rc182-folder-card,.rc188-sp-card,.rc191-sp-card').forEach(function(el){el.remove()});
+      root.querySelectorAll('button').forEach(function(btn){
+        var t=(btn.textContent||'').replace(/\s+/g,' ').trim();
+        var oc=String(btn.getAttribute('onclick')||'');
+        if(/Ordnername kopieren|Link kopieren/i.test(t) || /CopyReferenceFolderName|CopyReferenceFolderLink|CopyShipmentFolder/i.test(oc)){
+          btn.remove();
+        }
+      });
+      var main=root.querySelector('.rc199-main-card');
+      if(main){
+        main.querySelectorAll('.rc192-ref-folder-btn').forEach(function(btn){btn.remove()});
+      }
+      var collis=root.querySelector('.rc199-colli-card') || Array.from(root.querySelectorAll('.card')).find(function(card){
+        return /Collis,\s*(Masse|Maße),\s*Gewicht,\s*Lademeter/i.test(card.textContent||'');
+      });
+      if(!collis)return;
+      var old=collis.querySelector('.rc200-bottom-ref');
+      if(old)old.remove();
+      var wrap=document.createElement('div');
+      wrap.className='rc200-bottom-ref';
+      wrap.innerHTML='<button type="button" class="ghost rc192-ref-folder-btn" onclick="return rc192OpenReferenceFolder()">Referenzordner oeffnen</button>';
+      collis.appendChild(wrap);
+    }catch(err){}
+  }
+
+  var baseRender200=typeof render==='function'?render:null;
+  if(baseRender200){
+    window.render=function(){
+      var r=baseRender200.apply(this,arguments);
+      setTimeout(moveReferenceButtonToCollis200,40);
+      return r;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  var baseShipment200=typeof shipment==='function'?shipment:null;
+  if(baseShipment200){
+    window.shipment=function(){
+      var html=String(baseShipment200.apply(this,arguments));
+      html=html
+        .replace(/<button[^>]*CopyReferenceFolderName[\s\S]*?<\/button>/gi,'')
+        .replace(/<button[^>]*CopyReferenceFolderLink[\s\S]*?<\/button>/gi,'')
+        .replace(/<button[^>]*CopyShipmentFolder[\s\S]*?<\/button>/gi,'')
+        .replace(/<button[^>]*class="[^"]*rc192-ref-folder-btn[^"]*"[\s\S]*?<\/button>/gi,'');
+      setTimeout(moveReferenceButtonToCollis200,60);
+      return html;
+    };
+    try{shipment=window.shipment}catch(err){}
+  }
+
+  setTimeout(moveReferenceButtonToCollis200,100);
+})();
+</script>
+<!-- PRIVATE RC200 END -->
 
 </body></html>
 
