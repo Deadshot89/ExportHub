@@ -24710,6 +24710,390 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC222 END: Aufgaben ohne Dokumente/UPS -->
 
+  <!-- PRIVATE RC223 START: Aufgaben reparieren + Ladeliste unten + Kunden loeschen -->
+<style>
+.rc223-customer-delete{
+  border:0;
+  background:#fee2e2;
+  color:#991b1b;
+  border-radius:10px;
+  padding:7px 9px;
+  font-weight:950;
+  cursor:pointer;
+}
+.rc223-load-bottom{
+  margin-top:16px!important;
+}
+.rc223-load-bottom .load-write-field{
+  min-height:82px!important;
+}
+.rc223-pallet-value{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:42px!important;
+  padding:4px 10px!important;
+  margin:6px 0!important;
+  border-radius:9px!important;
+  background:#dbeafe!important;
+  color:#08245d!important;
+  font-size:22px!important;
+  font-weight:1000!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC223: RC222 HTML-Eingriff neutralisieren, Aufgabenfunktionen wiederherstellen */
+(function(){
+  if(window.__EXPORTHUB_RC223_REPAIR__)return;
+  window.__EXPORTHUB_RC223_REPAIR__=true;
+
+  function e223(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n223(v){
+    try{if(typeof norm==='function')return norm(v)}catch(err){}
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function blockedTask223(t){
+    if(!t)return false;
+    var title=n223(t.title);
+    var area=n223(t.area);
+    var originalArea=n223(t.originalArea);
+    var source=n223(t.sourceTaskId||t.originalId||t.id);
+    if(area==='ups' || originalArea==='ups' || title.indexOf('ups')>=0 || source.indexOf('ups')>=0)return true;
+    if(area==='dokumente' || area==='dokument' || originalArea==='dokumente' || originalArea==='dokument')return true;
+    if(title==='dokumente' || title==='dokument' || title.indexOf(' dokumente')>=0 || title.indexOf('dokumente ')>=0 || source.indexOf('dokument')>=0)return true;
+    return false;
+  }
+
+  function cleanTasks223(){
+    try{
+      state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+      var before=state.tasks.length;
+      state.tasks=state.tasks.filter(function(t){return !blockedTask223(t)});
+      return before-state.tasks.length;
+    }catch(err){return 0}
+  }
+
+  function save223(){
+    try{if(typeof save==='function')save()}catch(err){}
+  }
+
+  function render223(){
+    try{if(typeof render==='function')render()}catch(err){}
+  }
+
+  window.setTaskSearchAuto=function(v){
+    try{state.taskSearch=v;save223();render223();setTimeout(function(){var el=document.getElementById('taskSearchInput');if(el){el.focus();var n=String(el.value||'').length;try{el.setSelectionRange(n,n)}catch(err){}}},0)}catch(err){}
+  };
+  try{setTaskSearchAuto=window.setTaskSearchAuto}catch(err){}
+
+  window.showAllTasks=function(){
+    state.taskFilter='Alle Aufgaben anzeigen';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    save223();
+    render223();
+  };
+  try{showAllTasks=window.showAllTasks}catch(err){}
+
+  window.showTobiasTasksRC187=function(){
+    state.taskFilter='Tobias';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    save223();
+    render223();
+  };
+  try{showTobiasTasksRC187=window.showTobiasTasksRC187}catch(err){}
+
+  window.showSevastianTasksRC187=function(){
+    state.taskFilter='Sevastian';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    save223();
+    render223();
+  };
+  try{showSevastianTasksRC187=window.showSevastianTasksRC187}catch(err){}
+
+  window.setTaskDay=function(day){
+    state.taskDay=day;
+    save223();
+    render223();
+  };
+  try{setTaskDay=window.setTaskDay}catch(err){}
+
+  window.addManualTask=function(){
+    try{if(typeof requireEdit==='function' && !requireEdit('tasks'))return}catch(err){}
+    var title=prompt('Name der Aufgabe');
+    if(!title)return;
+    var day=prompt('Wochentag', (typeof germanWeekday==='function'?germanWeekday():'Montag')) || (typeof germanWeekday==='function'?germanWeekday():'Montag');
+    var time=prompt('Uhrzeit optional','') || '';
+    var owner=prompt('Zuständig', (currentUser&&(currentUser.name||currentUser.user))||'Tobias') || ((currentUser&&(currentUser.name||currentUser.user))||'Tobias');
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    state.tasks.unshift({
+      id:(typeof uid==='function'?uid('T'):'T-'+Date.now()),
+      day:day,
+      time:time,
+      title:title,
+      owner:owner,
+      area:'Manuell',
+      status:'offen',
+      priority:'medium',
+      note:'Manuell erstellt',
+      manualTime:!!time
+    });
+    try{if(typeof audit==='function')audit('Manuelle Aufgabe erstellt',title)}catch(err){}
+    save223();
+    render223();
+  };
+  try{addManualTask=window.addManualTask}catch(err){}
+
+  function effectiveOwner223(t){
+    try{if(typeof effectiveOwner==='function')return effectiveOwner(t)}catch(err){}
+    return t.owner||'Tobias';
+  }
+
+  function taskSort223(a,b){
+    try{if(typeof taskSortRC67==='function')return taskSortRC67(a,b)}catch(err){}
+    var days=['Rückstand','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Ohne Tag'];
+    return days.indexOf(a.day)-days.indexOf(b.day) || String(a.time||'99').localeCompare(String(b.time||'99')) || String(a.title||'').localeCompare(String(b.title||''));
+  }
+
+  function isBacklog223(t){
+    try{return typeof isTaskBacklog==='function'?isTaskBacklog(t):false}catch(err){return false}
+  }
+
+  function isOverdue223(t){
+    try{return typeof isTaskOverdue==='function'?isTaskOverdue(t):false}catch(err){return false}
+  }
+
+  function dayName223(){
+    try{return typeof germanWeekday==='function'?germanWeekday():'Montag'}catch(err){return 'Montag'}
+  }
+
+  function renderTaskList223(list,selectedDay){
+    try{if(typeof renderTaskGroupsRC67==='function')return renderTaskGroupsRC67(list,selectedDay)}catch(err){}
+    return '<div class="task-grid">'+list.map(function(t){
+      try{if(typeof renderTask==='function')return renderTask(t)}catch(err){}
+      return '<article class="task-card"><h3>'+e223(t.title||'Aufgabe')+'</h3><div>'+e223(t.day||'')+' · '+e223(t.area||'')+'</div></article>';
+    }).join('')+'</div>';
+  }
+
+  window.tasks=function(){
+    cleanTasks223();
+    var today=dayName223();
+    var allTasks=(state.tasks||[]).filter(function(t){return !blockedTask223(t)});
+    var owners=['Alle Aufgaben anzeigen'];
+    try{owners=owners.concat((typeof userNames==='function'?userNames():[]))}catch(err){}
+    owners=owners.concat(['Tobias','Sevastian','Alle']).filter(function(v,i,a){return v && a.indexOf(v)===i});
+    var days=['Alle Tage','Heute','Überfällig','Rückstand','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Ohne Tag'];
+    var base=allTasks.map(function(t){
+      var x=Object.assign({},t);
+      x.eowner=effectiveOwner223(t);
+      return x;
+    });
+    var selectedDay=state.taskDay||'Alle Tage';
+    var list=base.slice();
+    if(state.taskFilter && state.taskFilter!=='Alle Aufgaben anzeigen'){
+      list=list.filter(function(t){return t.owner===state.taskFilter || t.eowner===state.taskFilter || t.owner==='Alle'});
+    }
+    if(selectedDay && selectedDay!=='Alle Tage'){
+      var d=selectedDay==='Heute'?today:selectedDay;
+      if(d==='Überfällig')list=list.filter(isOverdue223);
+      else if(d==='Rückstand')list=list.filter(isBacklog223);
+      else if(d==='Ohne Tag')list=list.filter(function(t){return ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Rückstand'].indexOf(t.day||'')<0});
+      else list=list.filter(function(t){return (t.day||'')===d && !isBacklog223(t)});
+    }
+    var search=String(state.taskSearch||'').trim();
+    if(search){
+      var ns=n223(search);
+      list=list.filter(function(t){
+        return n223([t.title,t.owner,t.eowner,t.area,t.note,t.day,t.linkedCustomer,t.linkedAccount].join(' ')).indexOf(ns)>=0;
+      });
+    }
+    list=list.sort(taskSort223);
+    var openCount=list.filter(function(t){return t.status!=='erledigt'}).length;
+    function countDay(d){
+      if(d==='Alle Tage')return base.length;
+      if(d==='Heute')return base.filter(function(t){return t.day===today && !isBacklog223(t)}).length;
+      if(d==='Überfällig')return base.filter(isOverdue223).length;
+      if(d==='Rückstand')return base.filter(isBacklog223).length;
+      if(d==='Ohne Tag')return base.filter(function(t){return ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Rückstand'].indexOf(t.day||'')<0}).length;
+      return base.filter(function(t){return t.day===d}).length;
+    }
+    return (typeof head==='function'?head('Aufgaben','Aufgaben filtern, suchen und manuell ergänzen. Dokumente- und UPS-Einträge werden nicht als Aufgaben angezeigt.'):'<h2>Aufgaben</h2>')+
+      '<div class="metrics"><article class="metric"><span>Aufgaben gesamt</span><strong>'+base.length+'</strong></article><article class="metric"><span>Aktuell angezeigt</span><strong>'+list.length+'</strong></article><article class="metric"><span>Offen im Filter</span><strong>'+openCount+'</strong></article><article class="metric kpi-red"><span>Rückstand</span><strong>'+base.filter(isBacklog223).filter(function(t){return t.status!=='erledigt'}).length+'</strong></article></div>'+
+      '<div class="toolbar"><input placeholder="Aufgabenliste durchsuchen, z. B. Kunde anmelden" value="'+e223(state.taskSearch||'')+'" id="taskSearchInput" oninput="setTaskSearchAuto(this.value)">'+
+      '<select onchange="state.taskFilter=this.value;save();render()">'+owners.map(function(o){return '<option '+(state.taskFilter===o?'selected':'')+'>'+e223(o)+'</option>'}).join('')+'</select>'+
+      '<button class="ghost" onclick="showAllTasks()">Alle anzeigen</button><button class="ghost" onclick="showTobiasTasksRC187()">Tobias</button><button class="ghost" onclick="showSevastianTasksRC187()">Sevastian</button><button class="soft" onclick="addManualTask()">+ Manuelle Aufgabe</button><button class="ghost" onclick="if(typeof repairStandardTasks===&quot;function&quot;)repairStandardTasks();else render()">Aufgaben reparieren</button></div>'+
+      '<div class="task-day-tabs">'+days.map(function(d){var label=d==='Heute'?'Heute ('+today+')':d;return '<button class="'+(selectedDay===d?'active':'')+'" onclick="setTaskDay(&quot;'+e223(d)+'&quot;)">'+e223(label)+' · '+countDay(d)+'</button>'}).join('')+'</div>'+
+      (list.length?renderTaskList223(list,selectedDay):'<div class="badbox">Keine Aufgaben im aktuellen Filter. Wähle einen anderen Tag oder „Alle anzeigen“.</div>');
+  };
+  try{tasks=window.tasks}catch(err){}
+
+  function euroOut223(){
+    try{
+      var s=(typeof activeCmrShipment==='function'?activeCmrShipment():state.shipment)||{};
+      return ((s.rows||[]).reduce(function(sum,r){
+        var type=n223(r&&r.type);
+        var count=Number(r&&r.count)||0;
+        return (type.indexOf('euro')>=0 && type.indexOf('pal')>=0)?sum+count:sum;
+      },0));
+    }catch(err){return 0}
+  }
+
+  function loadField223(label,value,hint,cls){
+    return '<div class="load-write-field '+(cls||'')+'"><span class="doc-label">'+label+'</span>'+
+      (value?'<div class="rc223-pallet-value">'+value+'</div>':'<div class="load-write-line"></div>')+
+      '<div class="load-write-hint">'+hint+'</div></div>';
+  }
+
+  function restoreLoadlistBottom223(){
+    try{
+      var load=document.getElementById('loadListDoc') || document.querySelector('.loadlist-pro');
+      if(!load)return;
+      Array.from(load.querySelectorAll('.rc223-load-bottom')).forEach(function(x){x.remove()});
+      var oldFields=Array.from(load.querySelectorAll('.load-write-field,.doc-box')).filter(function(el){
+        var txt=n223(el.textContent||'');
+        return txt.indexOf('unterschrift fahrer')>=0 || txt.indexOf('datum uhrzeit')>=0 || txt.indexOf('kennzeichen')>=0 || txt.indexOf('verlader')>=0 || txt.indexOf('europaletten')>=0;
+      });
+      oldFields.forEach(function(el){el.remove()});
+      var bottom=document.createElement('div');
+      bottom.className='load-write-fields rc223-load-bottom';
+      bottom.innerHTML=
+        loadField223('Unterschrift Fahrer','','Fahrer unterschreibt bei Abholung')+
+        loadField223('Datum / Uhrzeit','','')+
+        loadField223('Kennzeichen','','LKW / Trailer')+
+        loadField223('Verlader','','Name / Kuerzel')+
+        loadField223('Europaletten Eingang','','Rueckgabe / Eingang','rc223-pal-in')+
+        loadField223('Europaletten Ausgang',euroOut223()>0?String(euroOut223()):'','Versendete Euro-Paletten','rc223-pal-out');
+      load.appendChild(bottom);
+    }catch(err){}
+  }
+
+  ['showCurrentCmr','showSavedCmr','rc218DownloadLoadlistPdf','rc55DownloadLoadlistPdf'].forEach(function(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base==='function' && !base.__rc223Wrapped){
+        var wrapped=function(){
+          var r=base.apply(this,arguments);
+          setTimeout(restoreLoadlistBottom223,80);
+          setTimeout(restoreLoadlistBottom223,300);
+          return r;
+        };
+        wrapped.__rc223Wrapped=true;
+        window[name]=wrapped;
+        try{eval(name+'=window[name]')}catch(err){}
+      }
+    }catch(err){}
+  });
+
+  window.rc223DeleteCustomer=function(id){
+    try{if(typeof requireEdit==='function' && !requireEdit('customers'))return}catch(err){}
+    var c=(state.customers||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!c)return alert('Kunde nicht gefunden.');
+    var used=(state.shipments||[]).some(function(s){
+      var sc=s.customer||{};
+      return String(s.customerId||'')===String(id) || String(sc.id||'')===String(id) || String(sc.account||'')===String(c.account||c.customerNumber||'');
+    });
+    var msg='Kunde wirklich löschen?\n\n'+[(c.account||c.customerNumber||''),c.name||'',c.country||''].filter(Boolean).join(' · ');
+    if(used)msg+='\n\nHinweis: Es gibt gespeicherte Sendungen zu diesem Kunden. Die alten Sendungen bleiben erhalten, nur der Kundenstamm-Eintrag wird gelöscht.';
+    if(!confirm(msg))return;
+    state.customers=(state.customers||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    if(state.selectedCustomerId===id)state.selectedCustomerId='';
+    if(state.customerFolderId===id)state.customerFolderId='';
+    if(state.customerFolderOpenId===id)state.customerFolderOpenId='';
+    if(state.shipment && state.shipment.customerId===id){
+      state.shipment.customerId='';
+      state.shipment.customerSearch='';
+    }
+    try{if(typeof audit==='function')audit('Kunde gelöscht',[(c.account||c.customerNumber||''),c.name||''].filter(Boolean).join(' · '))}catch(err){}
+    save223();
+    render223();
+  };
+
+  function addCustomerDeleteButtons223(){
+    try{
+      if(!state || state.view!=='customers')return;
+      var root=document.getElementById('content')||document.body;
+      var rows=Array.from(root.querySelectorAll('table tr')).slice(1);
+      rows.forEach(function(tr){
+        if(tr.querySelector('.rc223-customer-delete'))return;
+        var text=tr.textContent||'';
+        var c=(state.customers||[]).find(function(x){
+          var acc=String(x.account||x.customerNumber||'');
+          return acc && text.indexOf(acc)>=0;
+        }) || (state.customers||[]).find(function(x){
+          return x.name && text.indexOf(x.name)>=0;
+        });
+        if(!c)return;
+        var td=document.createElement('td');
+        td.innerHTML='<button class="rc223-customer-delete" onclick="rc223DeleteCustomer(&quot;'+e223(c.id)+'&quot;)">Löschen</button>';
+        tr.appendChild(td);
+      });
+      Array.from(root.querySelectorAll('table tr:first-child')).forEach(function(tr){
+        if(tr.querySelector('.rc223-delete-head'))return;
+        var th=document.createElement('th');
+        th.className='rc223-delete-head';
+        th.textContent='Löschen';
+        tr.appendChild(th);
+      });
+    }catch(err){}
+  }
+
+  try{
+    if(typeof customers==='function' && !customers.__rc223Wrapped){
+      var baseCustomers223=customers;
+      window.customers=function(){
+        var html=baseCustomers223.apply(this,arguments);
+        setTimeout(addCustomerDeleteButtons223,0);
+        return html;
+      };
+      window.customers.__rc223Wrapped=true;
+      try{customers=window.customers}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    if(typeof render==='function' && !render.__rc223Wrapped){
+      var baseRender223=render;
+      window.render=function(){
+        var r=baseRender223.apply(this,arguments);
+        setTimeout(function(){
+          addCustomerDeleteButtons223();
+          restoreLoadlistBottom223();
+        },0);
+        return r;
+      };
+      window.render.__rc223Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    var mo=new MutationObserver(function(){
+      setTimeout(function(){
+        addCustomerDeleteButtons223();
+        restoreLoadlistBottom223();
+      },80);
+    });
+    mo.observe(document.body,{childList:true,subtree:true});
+  }catch(err){}
+
+  cleanTasks223();
+  setTimeout(function(){addCustomerDeleteButtons223();restoreLoadlistBottom223()},200);
+})();
+</script>
+<!-- PRIVATE RC223 END: Aufgaben reparieren + Ladeliste unten + Kunden loeschen -->
   
 </body></html>
 
