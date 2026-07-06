@@ -23636,7 +23636,349 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC218 END -->
 
+<!-- PRIVATE RC219 START: Teamdaten Notfallschutz + Azure Save Guard -->
+<style>
+.rc219-guard-box{
+  border:2px solid #f59e0b;
+  background:#fff7ed;
+  color:#7c2d12;
+  border-radius:14px;
+  padding:12px;
+  margin:10px 0 14px;
+  font-weight:850;
+}
+.rc219-guard-box.ok{
+  border-color:#86efac;
+  background:#f0fdf4;
+  color:#166534;
+}
+.rc219-guard-box.bad{
+  border-color:#fecaca;
+  background:#fee2e2;
+  color:#991b1b;
+}
+.rc219-guard-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.rc219-guard-actions button{
+  min-height:34px;
+  border-radius:10px;
+  padding:7px 11px;
+}
+</style>
 
+<script>
+/* PRIVATE RC219: verhindert leere Teamdaten-Ueberschreibungen und erstellt Notfall-Backups */
+(function(){
+  if(window.__EXPORTHUB_RC219_TEAMDATA_GUARD__)return;
+  window.__EXPORTHUB_RC219_TEAMDATA_GUARD__=true;
+
+  var API='/api/exporthub/state';
+  var nativeFetch=window.fetch?window.fetch.bind(window):null;
+  var postTimer=null;
+  var lastPostedHash='';
+  var lastStatus='';
+
+  function clone219(v){
+    try{return JSON.parse(JSON.stringify(v))}catch(err){return v}
+  }
+
+  function now219(){
+    try{return new Date().toLocaleString('de-DE')}catch(err){return new Date().toISOString()}
+  }
+
+  function count219(arr){
+    return Array.isArray(arr)?arr.length:0;
+  }
+
+  function keyOf219(item,keys){
+    if(!item||typeof item!=='object')return '';
+    for(var i=0;i<keys.length;i++){
+      var v=item[keys[i]];
+      if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim().toLowerCase();
+    }
+    return '';
+  }
+
+  function mergeArr219(localArr,serverArr,keys){
+    var out=[];
+    var seen={};
+    function add(x){
+      if(!x||typeof x!=='object')return;
+      var k=keyOf219(x,keys)||('idx-'+out.length+'-'+Math.random());
+      if(seen[k]!==undefined){
+        out[seen[k]]=Object.assign({},out[seen[k]],clone219(x));
+      }else{
+        seen[k]=out.length;
+        out.push(clone219(x));
+      }
+    }
+    (Array.isArray(serverArr)?serverArr:[]).forEach(add);
+    (Array.isArray(localArr)?localArr:[]).forEach(add);
+    return out;
+  }
+
+  function snapshotLocal219(reason){
+    try{
+      if(typeof state==='undefined'||!state)return;
+      var snap={
+        type:'ExportHUB_RC219_EMERGENCY_LOCAL_SNAPSHOT',
+        reason:reason||'auto',
+        createdAt:new Date().toISOString(),
+        createdAtText:now219(),
+        user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+        counts:{
+          shipments:count219(state.shipments),
+          customers:count219(state.customers),
+          tasks:count219(state.tasks),
+          abdRequests:count219(state.abdRequests)
+        },
+        state:clone219(state),
+        users:clone219(typeof users!=='undefined'?users:state.users||[])
+      };
+      localStorage.setItem('exporthub_rc219_last_emergency_snapshot',JSON.stringify(snap));
+      localStorage.setItem('exporthub_rc219_snapshot_'+Date.now(),JSON.stringify(snap));
+      return snap;
+    }catch(err){return null}
+  }
+
+  function downloadText219(filename,text){
+    var blob=new Blob([text],{type:'application/json;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove()},1200);
+  }
+
+  window.rc219EmergencyBackup=function(){
+    var snap=snapshotLocal219('manual-download');
+    if(!snap){
+      alert('Notfall-Backup konnte nicht erstellt werden.');
+      return;
+    }
+    var who=(snap.user||'Benutzer').replace(/[^A-Za-z0-9_-]+/g,'_');
+    var stamp=new Date().toISOString().replace(/[:.]/g,'-');
+    downloadText219('ExportHUB_RC219_Notfallbackup_'+who+'_'+stamp+'.json',JSON.stringify(snap,null,2));
+  };
+
+  function statusBox219(text,type){
+    lastStatus=text||lastStatus;
+    try{
+      var root=document.getElementById('content')||document.body;
+      if(!root)return;
+      var box=document.getElementById('rc219GuardStatus');
+      if(!box){
+        box=document.createElement('div');
+        box.id='rc219GuardStatus';
+        root.prepend(box);
+      }
+      box.className='rc219-guard-box '+(type||'');
+      box.innerHTML=
+        '<b>RC219 Teamdaten-Schutz:</b> '+String(text||'aktiv').replace(/[&<>"']/g,function(c){
+          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        })+
+        '<div class="rc219-guard-actions"><button class="ghost" onclick="rc219EmergencyBackup()">Notfall-Backup herunterladen</button><button class="ghost" onclick="rc219ForcePushTeamState()">Lokalen Stand nach Azure sichern</button></div>';
+    }catch(err){}
+  }
+
+  async function readServer219(){
+    if(!nativeFetch)return null;
+    try{
+      var res=await nativeFetch(API,{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
+      if(!res||!res.ok)return null;
+      var data=await res.json();
+      if(data&&data.state)return data.state;
+      return data||null;
+    }catch(err){return null}
+  }
+
+  function protectState219(outgoing,server){
+    outgoing=outgoing&&typeof outgoing==='object'?outgoing:{};
+    server=server&&typeof server==='object'?server:null;
+    var changed=[];
+    if(server){
+      if(count219(server.shipments)>0 && count219(outgoing.shipments)===0){
+        outgoing.shipments=clone219(server.shipments);
+        changed.push('Sendungen aus Azure erhalten');
+      }else if(count219(server.shipments)>0 && count219(outgoing.shipments)>0){
+        outgoing.shipments=mergeArr219(outgoing.shipments,server.shipments,['id','ref']);
+      }
+      if(count219(server.customers)>0 && count219(outgoing.customers)===0){
+        outgoing.customers=clone219(server.customers);
+        changed.push('Kunden aus Azure erhalten');
+      }else if(count219(server.customers)>0 && count219(outgoing.customers)>0){
+        outgoing.customers=mergeArr219(outgoing.customers,server.customers,['id','account','customerNumber','name']);
+      }
+      if(count219(server.abdRequests)>0 && count219(outgoing.abdRequests)===0){
+        outgoing.abdRequests=clone219(server.abdRequests);
+        changed.push('ABD-Anfragen aus Azure erhalten');
+      }else if(count219(server.abdRequests)>0 && count219(outgoing.abdRequests)>0){
+        outgoing.abdRequests=mergeArr219(outgoing.abdRequests,server.abdRequests,['id','ref']);
+      }
+      if(count219(server.palletAccount)>0 && count219(outgoing.palletAccount)===0){
+        outgoing.palletAccount=clone219(server.palletAccount);
+      }
+      if(count219(server.tasks)>0 && count219(outgoing.tasks)===0){
+        outgoing.tasks=clone219(server.tasks);
+        changed.push('Aufgaben aus Azure erhalten');
+      }
+      if(count219(outgoing.users)===0 && count219(server.users)>0){
+        outgoing.users=clone219(server.users);
+      }
+    }
+    outgoing.rc219TeamGuard={
+      active:true,
+      checkedAt:new Date().toISOString(),
+      note:changed.join(', ')||'OK'
+    };
+    return outgoing;
+  }
+
+  async function buildPayload219(reason){
+    if(typeof state==='undefined'||!state)return null;
+    snapshotLocal219(reason||'before-team-post');
+    var server=await readServer219();
+    var safeState=protectState219(clone219(state),server);
+    var list=[];
+    try{if(Array.isArray(users))list=clone219(users)}catch(err){}
+    if(!list.length&&Array.isArray(safeState.users))list=clone219(safeState.users);
+    safeState.users=list.length?list:safeState.users||[];
+    return {
+      user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+      users:safeState.users,
+      state:safeState
+    };
+  }
+
+  async function postTeam219(reason,force){
+    if(!nativeFetch||typeof state==='undefined'||!state)return;
+    var payload=await buildPayload219(reason||'auto-save');
+    if(!payload)return;
+    var hash='';
+    try{
+      hash=JSON.stringify({
+        s:payload.state.shipments||[],
+        c:payload.state.customers||[],
+        a:payload.state.abdRequests||[],
+        p:payload.state.palletAccount||[],
+        u:payload.users||[],
+        r:payload.state.rc209LastColliRef||''
+      });
+    }catch(err){}
+    if(!force&&hash&&hash===lastPostedHash)return;
+    lastPostedHash=hash;
+    try{
+      var res=await nativeFetch(API,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      if(res&&res.ok){
+        statusBox219('lokaler Stand wurde nach Azure gesichert. Sendungen: '+count219(payload.state.shipments)+', Kunden: '+count219(payload.state.customers)+'.','ok');
+      }else{
+        statusBox219('Azure-Speicherung nicht bestaetigt. Lokales Notfall-Backup wurde erstellt.','bad');
+      }
+    }catch(err){
+      statusBox219('Azure gerade nicht erreichbar. Lokales Notfall-Backup wurde erstellt.','bad');
+    }
+  }
+
+  function queuePost219(reason){
+    snapshotLocal219(reason||'local-save');
+    clearTimeout(postTimer);
+    postTimer=setTimeout(function(){postTeam219(reason||'auto-save',false)},1600);
+  }
+
+  window.rc219ForcePushTeamState=function(){
+    postTeam219('manual-force-push',true);
+  };
+
+  if(nativeFetch){
+    window.fetch=function(input,init){
+      try{
+        var url=typeof input==='string'?input:(input&&input.url)||'';
+        var method=(init&&init.method)||((input&&input.method)||'GET');
+        if(/\/api\/exporthub\/state(?:$|\?)/.test(url) && String(method).toUpperCase()==='POST' && init&&init.body){
+          var parsed=null;
+          try{parsed=JSON.parse(init.body)}catch(err){}
+          if(parsed&&parsed.state){
+            return buildPayload219('intercept-post').then(function(safePayload){
+              var next=Object.assign({},init,{body:JSON.stringify(safePayload||parsed)});
+              return nativeFetch(input,next);
+            });
+          }
+        }
+      }catch(err){}
+      return nativeFetch(input,init);
+    };
+  }
+
+  try{
+    if(typeof save==='function'&&!save.__rc219Wrapped){
+      var baseSave219=save;
+      save=function(){
+        var r=baseSave219.apply(this,arguments);
+        queuePost219('save');
+        return r;
+      };
+      save.__rc219Wrapped=true;
+    }
+  }catch(err){}
+
+  try{
+    if(typeof saveShipment==='function'&&!saveShipment.__rc219Wrapped){
+      var baseSaveShipment219=saveShipment;
+      saveShipment=function(){
+        snapshotLocal219('before-saveShipment');
+        var r=baseSaveShipment219.apply(this,arguments);
+        queuePost219('saveShipment');
+        return r;
+      };
+      saveShipment.__rc219Wrapped=true;
+    }
+  }catch(err){}
+
+  try{
+    if(typeof exportBackup==='function'&&!exportBackup.__rc219Wrapped){
+      var baseExportBackup219=exportBackup;
+      exportBackup=function(){
+        snapshotLocal219('before-normal-backup');
+        return baseExportBackup219.apply(this,arguments);
+      };
+      exportBackup.__rc219Wrapped=true;
+    }
+  }catch(err){}
+
+  try{
+    if(typeof dashboard==='function'&&!dashboard.__rc219Wrapped){
+      var baseDashboard219=dashboard;
+      dashboard=function(){
+        var html=baseDashboard219.apply(this,arguments);
+        var box='<div class="rc219-guard-box ok"><b>Teamdaten-Schutz aktiv.</b><br>Speichern erstellt lokale Notfall-Snapshots und sichert den Stand nach Azure. Leere Listen duerfen vorhandene Azure-Daten nicht ueberschreiben.<div class="rc219-guard-actions"><button class="ghost" onclick="rc219EmergencyBackup()">Notfall-Backup herunterladen</button><button class="ghost" onclick="rc219ForcePushTeamState()">Lokalen Stand nach Azure sichern</button></div></div>';
+        if(String(html).indexOf('Teamdaten-Schutz aktiv')<0){
+          html=String(html).replace('<section>','<section>'+box);
+        }
+        return html;
+      };
+      dashboard.__rc219Wrapped=true;
+    }
+  }catch(err){}
+
+  setTimeout(function(){
+    snapshotLocal219('init');
+    statusBox219('aktiv. Aktuell lokal: Sendungen '+count219((typeof state!=='undefined'&&state.shipments)||[])+' / Kunden '+count219((typeof state!=='undefined'&&state.customers)||[])+'.','ok');
+    queuePost219('init');
+  },1200);
+})();
+</script>
+<!-- PRIVATE RC219 END: Teamdaten Notfallschutz + Azure Save Guard -->
   
   
 </body></html>
