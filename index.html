@@ -22600,6 +22600,114 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC211 END -->
+
+<!-- PRIVATE RC212 START: Ladeliste Europaletten Eingang/Ausgang korrigieren -->
+<script>
+/* PRIVATE RC212: versendete Europaletten stehen auf der Ladeliste bei Ausgang */
+(function(){
+  if(window.__EXPORTHUB_RC212_PALLET_IN_OUT_FIX__)return;
+  window.__EXPORTHUB_RC212_PALLET_IN_OUT_FIX__=true;
+
+  function activeShipment212(){
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(err){}
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(err){}
+    try{return state.activeShipmentId&&state.shipments?state.shipments.find(function(s){return s.id===state.activeShipmentId})||state.shipment:state.shipment}catch(err){}
+    return null;
+  }
+
+  function euroOut212(s){
+    var rows=(s&&Array.isArray(s.rows)?s.rows:[]);
+    return rows.reduce(function(sum,r){
+      var type=String((r&&r.type)||'').toLowerCase();
+      var count=Number((r&&r.count)||0)||0;
+      if(/euro/.test(type) && /palette|pallet/.test(type))return sum+count;
+      return sum;
+    },0);
+  }
+
+  function field212(label,value,hint){
+    return '<div class="load-write-field rc212-pallet-field">'+
+      '<span class="doc-label">'+label+'</span>'+
+      (value?'<div class="rc198-pallet-value">'+value+'</div>':'<div class="load-write-line"></div>')+
+      '<div class="load-write-hint">'+hint+'</div>'+
+    '</div>';
+  }
+
+  function apply212(){
+    try{
+      var load=document.getElementById('loadListDoc');
+      if(!load)return;
+      var fields=load.querySelector('.load-write-fields');
+      if(!fields)return;
+
+      Array.from(fields.querySelectorAll('.rc198-pallet-field,.rc212-pallet-field')).forEach(function(el){
+        el.remove();
+      });
+
+      var outgoing=euroOut212(activeShipment212());
+      var outgoingText=outgoing>0?String(outgoing):'';
+
+      fields.insertAdjacentHTML('beforeend',
+        field212('Europaletten Eingang','','Rueckgabe / Eingang')+
+        field212('Europaletten Ausgang',outgoingText,'Versendete Euro-Paletten')
+      );
+    }catch(err){}
+  }
+
+  window.rc212ApplyPalletInOutFix=apply212;
+
+  var baseShowCurrent212=typeof showCurrentCmr==='function'?showCurrentCmr:null;
+  if(baseShowCurrent212){
+    window.showCurrentCmr=function(){
+      var result=baseShowCurrent212.apply(this,arguments);
+      setTimeout(apply212,80);
+      setTimeout(apply212,220);
+      return result;
+    };
+    try{showCurrentCmr=window.showCurrentCmr}catch(err){}
+  }
+
+  var baseShowSaved212=typeof showSavedCmr==='function'?showSavedCmr:null;
+  if(baseShowSaved212){
+    window.showSavedCmr=function(){
+      var result=baseShowSaved212.apply(this,arguments);
+      setTimeout(apply212,80);
+      setTimeout(apply212,220);
+      return result;
+    };
+    try{showSavedCmr=window.showSavedCmr}catch(err){}
+  }
+
+  var basePdf212=window.rc211DownloadWebsiteLoadlistPdf || window.rc55DownloadLoadlistPdf || null;
+  if(typeof basePdf212==='function'){
+    window.rc211DownloadWebsiteLoadlistPdf=async function(){
+      apply212();
+      return basePdf212.apply(this,arguments);
+    };
+    window.rc55DownloadLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    window.rc181DownloadLoadlistWebsiteLayoutPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    try{rc211DownloadWebsiteLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc55DownloadLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc181DownloadLoadlistWebsiteLayoutPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+  }
+
+  var baseRender212=typeof render==='function'?render:null;
+  if(baseRender212){
+    window.render=function(){
+      var result=baseRender212.apply(this,arguments);
+      setTimeout(apply212,80);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  setTimeout(apply212,120);
+})();
+</script>
+<!-- PRIVATE RC212 END -->
+
+  
+  
 </body></html>
 
 
