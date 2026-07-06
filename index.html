@@ -20840,6 +20840,229 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC203 END -->
+
+<!-- PRIVATE RC205 START: Sevastian Benutzer + Speichern Button in Colli-Bereich -->
+<style>
+.rc205-save-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:12px 0 14px;
+  padding:10px;
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  border-radius:12px;
+}
+.rc205-save-row .btn{
+  min-width:250px;
+}
+.rc205-user-status{
+  border:1px solid #86efac;
+  background:#f0fdf4;
+  color:#166534;
+  border-radius:12px;
+  padding:9px 11px;
+  margin:8px 0;
+  font-weight:900;
+}
+</style>
+
+<script>
+/* PRIVATE RC205: Sevastian anlegen/korrigieren und Speichern-Button unter Collis verschieben */
+(function(){
+  if(window.__EXPORTHUB_RC205_SEVASTIAN_BUTTON_COLLI__)return;
+  window.__EXPORTHUB_RC205_SEVASTIAN_BUTTON_COLLI__=true;
+
+  function n205(v){
+    return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function userKey205(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+
+  function modules205(){
+    try{
+      if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES.map(function(m){return m[0]});
+    }catch(err){}
+    return [
+      'start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr',
+      'pallet','customers','customerfolder','calculator','customs','sop',
+      'academy','quiz','teamfile','archive','rights'
+    ];
+  }
+
+  function dashboardOnly205(){
+    var out={};
+    modules205().forEach(function(id){
+      var on=id==='dashboard';
+      out[id]={visible:on,read:on,edit:false};
+    });
+    return out;
+  }
+
+  function normalizeUser205(u){
+    u=Object.assign({},u||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.mustChange=!!u.mustChange;
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+    return u;
+  }
+
+  function readUsers205(key){
+    try{
+      var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(parsed)?parsed:[];
+    }catch(err){return []}
+  }
+
+  function collectUsers205(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    [userKey205(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      all=all.concat(readUsers205(key));
+    });
+    var map={};
+    all.forEach(function(u){
+      var x=normalizeUser205(u);
+      if(x.user)map[n205(x.user)]=Object.assign(map[n205(x.user)]||{},x);
+    });
+    return Object.keys(map).map(function(k){return normalizeUser205(map[k])});
+  }
+
+  function saveUsers205(list){
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [userKey205(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      try{localStorage.setItem(key,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+  }
+
+  function pushTeam205(list){
+    try{
+      if(!window.fetch || !state)return;
+      fetch('/api/exporthub/state',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+          users:list,
+          state:Object.assign({},state,{users:list})
+        })
+      }).catch(function(){});
+    }catch(err){}
+  }
+
+  function ensureSevastian205(){
+    if(typeof state==='undefined')return;
+    var list=collectUsers205();
+    var existing=list.find(function(u){return n205(u.user)==='sevastian' || n205(u.name)==='sevastian'});
+    var fixed={
+      user:'Sevastian',
+      login:'Sevastian',
+      name:'Sevastian',
+      role:'Export',
+      password:'Essentra',
+      permissions:[],
+      mustChange:false,
+      rights:dashboardOnly205()
+    };
+    if(existing){
+      Object.assign(existing,fixed);
+    }else{
+      list.push(fixed);
+    }
+    list=list.filter(function(u,i,arr){
+      return arr.findIndex(function(x){return n205(x.user)===n205(u.user)})===i;
+    }).sort(function(a,b){
+      if(n205(a.user)==='tobias')return -1;
+      if(n205(b.user)==='tobias')return 1;
+      return String(a.user||'').localeCompare(String(b.user||''));
+    });
+    saveUsers205(list);
+    pushTeam205(list);
+    try{if(typeof audit==='function')audit('Benutzer angelegt/korrigiert','Sevastian - Nur Dashboard')}catch(err){}
+  }
+
+  function findColliCard205(){
+    var card=document.querySelector('.rc199-colli-card');
+    if(card)return card;
+    var cards=Array.from(document.querySelectorAll('.card'));
+    return cards.find(function(c){
+      return /Collis,\s*Masse,\s*Gewicht,\s*Lademeter|Collis,\s*Maße,\s*Gewicht,\s*Lademeter/i.test(c.textContent||'');
+    }) || null;
+  }
+
+  function findSaveButton205(){
+    return Array.from(document.querySelectorAll('button')).find(function(btn){
+      var txt=(btn.textContent||'').replace(/\s+/g,' ').trim();
+      return txt.indexOf('Sendung speichern')>=0 && txt.indexOf('Aufgaben')>=0;
+    }) || null;
+  }
+
+  function moveSaveButton205(){
+    try{
+      if(typeof state!=='undefined' && state.view!=='shipment')return;
+      var card=findColliCard205();
+      var btn=findSaveButton205();
+      if(!card || !btn)return;
+      var holder=document.getElementById('rc205ShipmentSaveHolder');
+      if(!holder){
+        holder=document.createElement('div');
+        holder.id='rc205ShipmentSaveHolder';
+        holder.className='rc205-save-row';
+      }
+      if(btn.parentNode!==holder)holder.appendChild(btn);
+      var summary=card.querySelector('.summaryGrid');
+      var completion=summary && summary.nextElementSibling && /(okbox|badbox|notice)/.test(summary.nextElementSibling.className||'') ? summary.nextElementSibling : null;
+      if(completion && completion.parentNode===card){
+        completion.insertAdjacentElement('afterend',holder);
+      }else if(summary && summary.parentNode===card){
+        summary.insertAdjacentElement('afterend',holder);
+      }else{
+        var goods=Array.from(card.querySelectorAll('.field')).find(function(x){return /Warenbeschreibung/i.test(x.textContent||'')});
+        if(goods)card.insertBefore(holder,goods);
+        else card.appendChild(holder);
+      }
+    }catch(err){}
+  }
+
+  var baseRender205=typeof render==='function'?render:null;
+  if(baseRender205){
+    window.render=function(){
+      var result=baseRender205.apply(this,arguments);
+      setTimeout(moveSaveButton205,0);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  document.addEventListener('click',function(){
+    setTimeout(moveSaveButton205,0);
+  },true);
+
+  setTimeout(function(){
+    ensureSevastian205();
+    moveSaveButton205();
+  },500);
+})();
+</script>
+<!-- PRIVATE RC205 END -->
   
 </body></html>
 
