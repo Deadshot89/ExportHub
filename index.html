@@ -15833,6 +15833,258 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   setTimeout(ensureMailDom185,120);
 })();
 </script>
+<script>
+/* PRIVATE RC186: {ABDInfo} wird wieder durch erfasste ABD-Daten ersetzt */
+(function(){
+  var GPZ_MAIL_RC186='mail@gp-zollabfertigung.de';
+
+  function e186(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function cleanRef186(v){
+    try{if(typeof cleanShipmentRef==='function')return cleanShipmentRef(v)}catch(err){}
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  }
+
+  function norm186(v){
+    return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function emailItems186(value){
+    var raw=String(value||'').replace(/mailto:/gi,' ').replace(/[<>()[\]{}]/g,' ').replace(/[,;\n\r\t]+/g,' ');
+    var found=[];
+    raw.replace(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/gi,function(m){
+      found.push(m.trim().replace(/[.,;:]+$/,''));
+      return m;
+    });
+    var seen={};
+    return found.filter(function(x){
+      var k=x.toLowerCase();
+      if(seen[k])return false;
+      seen[k]=true;
+      return true;
+    });
+  }
+
+  function mailtoList186(value){
+    return emailItems186(value).map(encodeURIComponent).join(';');
+  }
+
+  function safeNumber186(v,decimals){
+    var n=Number(String(v==null?'':v).replace(',','.'));
+    if(!isFinite(n))n=0;
+    return n.toFixed(decimals);
+  }
+
+  function total186(r){
+    try{if(typeof totals==='function')return totals(r||{})}catch(err){}
+    var rows=Array.isArray(r&&r.rows)?r.rows:[];
+    var count=0,weight=0,ldm=0;
+    rows.forEach(function(row){
+      var c=Number(row.count||0)||0;
+      count+=c;
+      weight+=Number(row.weight||0)||0;
+      ldm+=c*(Number(row.ldm||0)||0);
+    });
+    return {count:count,weight:weight,ldm:ldm};
+  }
+
+  function requestLooksLikeAbd186(obj){
+    return !!(obj&&typeof obj==='object'&&(obj.ref||obj.customer||obj.customerId||obj.manualColliCount!==undefined||obj.manualTotalWeight!==undefined||obj.recipientAddress||obj.manualText||obj.goodsDescription));
+  }
+
+  function customerForRequest186(r,fallback){
+    var customers=(state&&Array.isArray(state.customers))?state.customers:[];
+    var c=null;
+    if(r&&r.customerId)c=customers.find(function(x){return String(x.id||'')===String(r.customerId)})||null;
+    if(!c&&r&&r.customer){
+      var rc=r.customer;
+      c=customers.find(function(x){
+        return (rc.id&&x.id===rc.id) ||
+          (rc.account&&String(x.account||x.customerNumber||'')===String(rc.account)) ||
+          (rc.customerNumber&&String(x.account||x.customerNumber||'')===String(rc.customerNumber)) ||
+          (rc.name&&norm186(x.name||x.customerName||'')===norm186(rc.name));
+      }) || rc;
+    }
+    if(!c&&fallback&&fallback.name)c=fallback;
+    try{if(!c&&typeof selectedAbdCustomer==='function')c=selectedAbdCustomer()}catch(err){}
+    try{if(!c&&typeof selectedCustomer==='function')c=selectedCustomer()}catch(err){}
+    return c||{};
+  }
+
+  function docs186(r){
+    var out=[];
+    String((r&&r.deliveryNotes)||'').split(/\n|,|;/).forEach(function(x){
+      x=String(x||'').trim();
+      if(x)out.push(x);
+    });
+    (Array.isArray(r&&r.deliveryFiles)?r.deliveryFiles:[]).forEach(function(f){
+      var name=(f&&f.name)||(f&&f.filename)||'';
+      if(name)out.push(name);
+    });
+    return out;
+  }
+
+  function typeSummary186(r){
+    if(r&&r.manualColliType)return r.manualColliType;
+    try{if(typeof colliTypeSummary==='function')return colliTypeSummary(r||{})}catch(err){}
+    var rows=Array.isArray(r&&r.rows)?r.rows:[];
+    var types=rows.map(function(x){return x&&x.type}).filter(Boolean);
+    return types.length?types.join(', '):'Colli';
+  }
+
+  function abdInfoText186(r,lang){
+    r=r||{};
+    var c=customerForRequest186(r,{});
+    var t=total186(r);
+    var count=(r.manualColliCount!==undefined&&r.manualColliCount!=='')?r.manualColliCount:t.count;
+    var weight=(r.manualTotalWeight!==undefined&&r.manualTotalWeight!=='')?r.manualTotalWeight:t.weight;
+    var ldm=(r.manualLdm!==undefined&&r.manualLdm!=='')?r.manualLdm:t.ldm;
+    var address=r.recipientAddress || (c&&c.address) || '';
+    var docs=docs186(r);
+    var ref=cleanRef186(r.ref)||'[Referenznummer]';
+    if(String(lang||'de').toLowerCase()==='en'){
+      return [
+        'ABD / EXPORT DOCUMENT REQUEST',
+        '',
+        'Reference: '+ref,
+        'Customer: '+((c&&c.name)||''),
+        'Customer number: '+((c&&(c.account||c.customerNumber))||''),
+        '',
+        'Consignee address:',
+        address||'open',
+        '',
+        'Documents / DNCs: '+(docs.length?docs.join(', '):'open'),
+        'Number of collis: '+(count||0),
+        'Type of collis: '+(typeSummary186(r)||'open'),
+        'Total weight: '+safeNumber186(weight,1)+' kg',
+        'LDM: '+safeNumber186(ldm,2),
+        'Pickup date: '+(r.pickupDate||'open'),
+        'Carrier: '+(r.carrier||'open'),
+        'Goods description: '+(r.goodsDescription||'open'),
+        'Remarks: '+(r.comments||'')
+      ].join('\n');
+    }
+    return [
+      'ABD / AUSFUHRDOKUMENT-ANFRAGE',
+      '',
+      'Referenznummer: '+ref,
+      'Kunde: '+((c&&c.name)||''),
+      'Kundennummer: '+((c&&(c.account||c.customerNumber))||''),
+      '',
+      'Empfaengeradresse:',
+      address||'offen',
+      '',
+      'Dokumente / DNCs: '+(docs.length?docs.join(', '):'offen'),
+      'Anzahl der Collis: '+(count||0),
+      'Art der Collis: '+(typeSummary186(r)||'offen'),
+      'Gesamtgewicht: '+safeNumber186(weight,1)+' kg',
+      'LDM: '+safeNumber186(ldm,2),
+      'Abholdatum: '+(r.pickupDate||'offen'),
+      'Spedition: '+(r.carrier||'offen'),
+      'Warenbeschreibung: '+(r.goodsDescription||'offen'),
+      'Bemerkung: '+(r.comments||'')
+    ].join('\n');
+  }
+
+  function defaultTemplate186(lang){
+    if(String(lang||'de').toLowerCase()==='en'){
+      return 'Hello,\n\nplease find below the ABD request information.\n\n{ABDInfo}\n\nKind regards';
+    }
+    return 'Guten Tag,\n\nkönnen Sie mir bitte die erforderlichen Dokumente für diese Sendung erstellen.\n\n{ABDInfo}\n\nVielen Dank\n\nMit freundlichen Grüßen\nTobias Limberg';
+  }
+
+  function resolveArgs186(a,b){
+    if(b===undefined&&requestLooksLikeAbd186(a)){
+      return {r:a,c:customerForRequest186(a,{})};
+    }
+    return {c:a||{},r:b||{}};
+  }
+
+  window.abdInfoText=function(r,lang){
+    return abdInfoText186(r,lang);
+  };
+
+  window.abdMailSubject=function(a,b){
+    var args=resolveArgs186(a,b);
+    var c=customerForRequest186(args.r,args.c);
+    return 'ABD Anfrage / '+(cleanRef186(args.r&&args.r.ref)||'[Referenznummer]')+' / '+((c&&c.name)||'Kunde');
+  };
+
+  window.abdMailBody=function(a,b){
+    var args=resolveArgs186(a,b);
+    var r=args.r||{};
+    var c=customerForRequest186(r,args.c);
+    var lang='de';
+    try{if(typeof customerMailLang==='function')lang=customerMailLang(c)||'de'}catch(err){}
+    var info=abdInfoText186(r,lang);
+    var template=String((r&&r.manualText)||'').trim() ||
+      String((c&&(c.abdText||c.abdMailText))||'').trim() ||
+      defaultTemplate186(lang);
+    template=template.replace(/Hier würden die Daten stehen die ich auf der Website reinschreibe/gi,'{ABDInfo}');
+    var out=template
+      .replace(/\{\s*ABDInfo\s*\}/gi,info)
+      .replace(/\{\s*Referenznummer\s*\}/gi,cleanRef186(r&&r.ref)||'')
+      .replace(/\{\s*Kundenname\s*\}/gi,(c&&c.name)||'')
+      .replace(/\{\s*Kundennummer\s*\}/gi,(c&&(c.account||c.customerNumber))||'');
+    if(/\{\s*ABDInfo\s*\}/i.test(out))out=out.replace(/\{\s*ABDInfo\s*\}/gi,info);
+    if(out.indexOf(info)<0)out=[out.trim(),info].filter(Boolean).join('\n\n');
+    return out;
+  };
+
+  window.mailtoUrlForAbdRequest=function(id){
+    var r=(state&&Array.isArray(state.abdRequests)?state.abdRequests:[]).find(function(x){return String(x.id||'')===String(id)})||null;
+    if(!r){alert('ABD Anfrage nicht gefunden. Bitte die ABD Anfrage zuerst speichern.');return ''}
+    var c=customerForRequest186(r,{});
+    var to=GPZ_MAIL_RC186;
+    try{
+      if(typeof customerAbdMailAddress==='function')to=customerAbdMailAddress(c)||to;
+    }catch(err){}
+    var cc=String((state&&state.abdGpzCc)||'').trim();
+    try{
+      if(!cc&&typeof customerAbdCcAddress==='function')cc=customerAbdCcAddress(c)||'';
+    }catch(err){}
+    var params=['subject='+encodeURIComponent(window.abdMailSubject(c,r))];
+    if(emailItems186(cc).length)params.push('cc='+mailtoList186(cc));
+    params.push('body='+encodeURIComponent(window.abdMailBody(c,r)));
+    try{
+      if(typeof audit==='function')audit('ABD Info hochgeladen/vorbereitet',window.abdMailSubject(c,r));
+      if(typeof save==='function')save();
+    }catch(err){}
+    return 'mailto:'+mailtoList186(to)+'?'+params.join('&');
+  };
+
+  window.prepareAbdMailLink=function(el,id){
+    var url=window.mailtoUrlForAbdRequest(id);
+    if(!url)return false;
+    if(el){
+      el.href=url;
+      el.target='_top';
+      el.rel='noopener';
+    }
+    return true;
+  };
+
+  window.copyAbdInfo=function(id){
+    var r=(state&&Array.isArray(state.abdRequests)?state.abdRequests:[]).find(function(x){return String(x.id||'')===String(id)})||null;
+    if(!r){alert('ABD Anfrage nicht gefunden.');return}
+    var c=customerForRequest186(r,{});
+    var to=GPZ_MAIL_RC186;
+    try{if(typeof customerAbdMailAddress==='function')to=customerAbdMailAddress(c)||to}catch(err){}
+    var cc=String((state&&state.abdGpzCc)||'').trim();
+    var text='An: '+to+(cc?'\nCC: '+cc:'')+'\nBetreff: '+window.abdMailSubject(c,r)+'\n\n'+window.abdMailBody(c,r);
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){alert('ABD Maildaten wurden kopiert.')}).catch(function(){prompt('ABD Maildaten kopieren:',text)});
+    }else{
+      prompt('ABD Maildaten kopieren:',text);
+    }
+  };
+})();
+</script>
 
 </body></html>
 
