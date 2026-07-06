@@ -15178,6 +15178,241 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   if(oldRender&&!oldRender.__rc176){window.render=function(){init();const r=oldRender.apply(this,arguments);setTimeout(init,0);return r};window.render.__rc176=true;try{render=window.render}catch(e){}}
 })();
 </script>
+<script>
+/* PRIVATE RC183: Aufgaben zeigen volle Kundennamen und öffnen nur interne Kundenordner */
+(function(){
+  if(window.__EXPORTHUB_RC183_TASK_CUSTOMER_FOLDER__)return;
+  window.__EXPORTHUB_RC183_TASK_CUSTOMER_FOLDER__=true;
+
+  function e183(v){
+    try{return esc(v)}
+    catch(e){return String(v??'').replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+  }
+
+  function n183(v){
+    return String(v||'')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'')
+      .replace(/&/g,' und ')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function customerLabel183(c){
+    if(!c)return '';
+    return String(c.name||c.customerName||c.account||c.customerNumber||'').trim();
+  }
+
+  function customerHay183(c){
+    return n183([
+      c&&c.id,
+      c&&c.name,
+      c&&c.customerName,
+      c&&c.account,
+      c&&c.customerNumber,
+      c&&c.shortName,
+      c&&c.country,
+      c&&c.iso,
+      c&&c.address
+    ].filter(Boolean).join(' '));
+  }
+
+  function findCustomerByAccount183(value){
+    const raw=String(value||'').trim();
+    if(!raw)return null;
+    const needle=n183(raw);
+    return (state.customers||[]).find(function(c){
+      return n183(c.account||c.customerNumber||'')===needle || String(c.id||'')===raw;
+    })||null;
+  }
+
+  function findCustomerByName183(value){
+    const raw=String(value||'').trim();
+    if(!raw)return null;
+    const needle=n183(raw);
+    const customers=state.customers||[];
+    let c=customers.find(function(x){return n183(x.name||x.customerName||'')===needle});
+    if(c)return c;
+    c=customers.find(function(x){return customerHay183(x)===needle});
+    if(c)return c;
+    const candidates=customers.filter(function(x){
+      const hay=customerHay183(x);
+      return needle.length>=3 && (hay.includes(needle) || needle.includes(n183(x.name||'')));
+    });
+    return candidates.length===1?candidates[0]:null;
+  }
+
+  function shipmentCustomer183(t){
+    const shipments=state.shipments||[];
+    const sid=String(t&&t.linkedShipmentId||'').trim();
+    const sref=n183(t&&t.linkedShipmentRef);
+    let s=null;
+    if(sid)s=shipments.find(function(x){return String(x.id||'')===sid})||null;
+    if(!s&&sref)s=shipments.find(function(x){return n183(x.ref||'')===sref})||null;
+    if(!s)return null;
+    const sc=s.customer||{};
+    return findCustomerByAccount183(sc.id)||findCustomerByAccount183(sc.account||sc.customerNumber)||findCustomerByName183(sc.name)||sc;
+  }
+
+  function findCustomerForTask183(t){
+    if(!t)return null;
+    let c=null;
+    c=findCustomerByAccount183(t.customerId||t.linkedCustomerId||t.customerFolderId);
+    if(c)return c;
+    c=findCustomerByAccount183(t.linkedAccount||t.customerAccount||t.account||t.customerNumber);
+    if(c)return c;
+    c=shipmentCustomer183(t);
+    if(c)return c;
+    c=findCustomerByName183(t.linkedCustomer||t.customerName);
+    if(c)return c;
+
+    const taskText=n183([t.title,t.note,t.area].filter(Boolean).join(' '));
+    const titleCandidates=(state.customers||[]).filter(function(x){
+      const acc=n183(x.account||x.customerNumber||'');
+      const name=n183(x.name||x.customerName||'');
+      const short=n183(x.shortName||'');
+      return (acc.length>=3&&taskText.includes(acc)) ||
+        (short.length>=3&&taskText.includes(short)) ||
+        (name.length>=3&&taskText.includes(name));
+    });
+    if(titleCandidates.length===1)return titleCandidates[0];
+
+    const text=String([t.title,t.note].filter(Boolean).join(' '));
+    const refs=(state.shipments||[]).filter(function(s){
+      const ref=String(s.ref||'').trim();
+      return ref && text.toUpperCase().includes(ref.toUpperCase());
+    });
+    if(refs.length===1){
+      const sc=refs[0].customer||{};
+      c=findCustomerByAccount183(sc.id)||findCustomerByAccount183(sc.account||sc.customerNumber)||findCustomerByName183(sc.name)||sc;
+      if(c)return c;
+    }
+    return null;
+  }
+
+  function fullTitle183(t,displayTitle,c){
+    let title=String(displayTitle||t&&t.title||'Aufgabe').trim();
+    if(!c)return title;
+    const full=customerLabel183(c);
+    const linked=String(t.linkedCustomer||t.customerName||'').trim();
+    if(linked&&full&&n183(linked)!==n183(full)){
+      const reg=new RegExp('\\b'+linked.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i');
+      title=title.replace(reg,full);
+    }
+    return title;
+  }
+
+  function customerPill183(t,displayTitle){
+    const c=findCustomerForTask183(t);
+    if(!c)return '';
+    const name=customerLabel183(c);
+    if(!name)return '';
+    if(t.linkedCustomer!==name){
+      t.linkedCustomer=name;
+      if(c.account||c.customerNumber)t.linkedAccount=c.account||c.customerNumber;
+      t.linkedCustomerId=c.id||t.linkedCustomerId||'';
+    }
+    const sameAsTitle=n183(name)===n183(displayTitle);
+    const account=[c.account||c.customerNumber||'',name].filter(Boolean).join(' · ');
+    return '<span class="pill yellow rc183-customer-pill" title="'+e183(account)+'">Kunde: '+e183(name)+'</span>'
+      +'<button class="ghost rc183-customer-folder-btn" onclick="rc183OpenCustomerFolderFromTask(&quot;'+e183(t.id)+'&quot;,event)">Kundenordner öffnen</button>'
+      +(sameAsTitle?'':'');
+  }
+
+  function openCustomerFolder183(c){
+    if(!c||!c.id){
+      alert('Zu dieser Aufgabe wurde kein eindeutiger Kunde im Kundenstamm gefunden.');
+      return;
+    }
+    state.customerFolderOpenId=c.id;
+    state.customerFolderId=c.id;
+    state.selectedCustomerId=c.id;
+    state.lastCustomerId=c.id;
+    try{localStorage.setItem('exporthub_private_last_customer_id',c.id)}catch(e){}
+    try{if(typeof save==='function')save()}catch(e){}
+    try{if(typeof setView==='function')setView('customerfolder');else{state.view='customerfolder';render()}}catch(e){state.view='customerfolder';try{render()}catch(x){}}
+  }
+
+  window.rc183OpenCustomerFolderFromTask=function(id,ev){
+    if(ev){ev.preventDefault();ev.stopPropagation();}
+    const t=(state.tasks||[]).find(function(x){return String(x.id||'')===String(id)});
+    const c=findCustomerForTask183(t);
+    openCustomerFolder183(c);
+    return false;
+  };
+
+  function repairTaskCustomers183(){
+    let changed=false;
+    (state.tasks||[]).forEach(function(t){
+      const c=findCustomerForTask183(t);
+      if(!c)return;
+      const name=customerLabel183(c);
+      if(name&&t.linkedCustomer!==name){t.linkedCustomer=name;changed=true;}
+      const acc=c.account||c.customerNumber||'';
+      if(acc&&t.linkedAccount!==acc){t.linkedAccount=acc;changed=true;}
+      if(c.id&&t.linkedCustomerId!==c.id){t.linkedCustomerId=c.id;changed=true;}
+    });
+    if(changed){try{save()}catch(e){}}
+  }
+
+  const baseRenderTask183=typeof renderTask==='function'?renderTask:null;
+  renderTask=function(t){
+    const c=findCustomerForTask183(t);
+    const rawTitle=typeof rc75CleanTaskDisplayTitle==='function'?rc75CleanTaskDisplayTitle(t):String((t&&t.title)||'Aufgabe');
+    const displayTitle=fullTitle183(t,rawTitle,c);
+    const done=t.status==='erledigt';
+    const backlog=typeof isTaskBacklog==='function'?isTaskBacklog(t):false;
+    const pr=t.priority==='high'?'red':t.priority==='low'?'green':'orange';
+    const prioClass=t.priority==='high'?'rc89-prio-high':t.priority==='low'?'rc89-prio-low':'rc89-prio-medium';
+    const prioText=typeof prioText89==='function'?prioText89(t.priority):(t.priority==='high'?'Hoch':t.priority==='low'?'Niedrig':'Normal');
+    const timePill=typeof taskTimePill==='function'?taskTimePill(t):'';
+    const dayLabel=backlog?'Rückstand':(t.day||'Ohne Tag');
+    const customerPill=customerPill183(t,displayTitle);
+    const originalTitle=String(t.title||'').trim()!==displayTitle?'<span class="rc75-original-title">Original: '+e183(t.title)+'</span>':'';
+    const backlogLine=backlog?'<p class="task-backlog-note">Offen aus Vorwoche · ursprünglicher Tag: '+e183(t.originalDay||'unbekannt')+(t.originalWeekKey?' · '+e183(t.originalWeekKey):'')+'</p>':'';
+    const originalPill=backlog?'<span class="pill red">Vorwoche offen</span>'+(t.originalDay?'<span class="pill gray">'+e183(t.originalDay)+'</span>':''):'';
+
+    if(done){
+      return '<article class="task-card done rc75-task-done-compact '+prioClass+' '+(backlog?'backlog':'')+' '+e183(t.priority||'medium')+'" onclick="toggleTaskCard(event,&quot;'+e183(t.id)+'&quot;)" title="Erledigte Aufgabe erneut öffnen">'
+        +'<h3>'+e183(displayTitle)+'</h3>'
+        +(customerPill?'<div class="rc183-task-customer-row" onclick="event.stopPropagation()">'+customerPill+'</div>':'')
+        +'<span class="rc75-done-mark">erledigt</span>'
+        +'</article>';
+    }
+
+    return '<article class="task-card rc75-task-open '+prioClass+' '+(backlog?'backlog':'')+' '+e183(t.priority||'medium')+'" onclick="toggleTaskCard(event,&quot;'+e183(t.id)+'&quot;)" title="Anklicken zum Erledigen">'
+      +'<div class="task-card-top"><span class="pill '+pr+'">'+e183(prioText)+'</span><span class="task-status open">Offen</span></div>'
+      +'<h3>'+e183(displayTitle)+'</h3>'
+      +'<div><span class="pill blue">'+e183(dayLabel)+'</span><span class="pill gray">'+e183(t.area||'Aufgabe')+'</span>'+timePill+originalPill+'</div>'
+      +(customerPill?'<div class="rc183-task-customer-row" onclick="event.stopPropagation()">'+customerPill+'</div>':'')
+      +backlogLine
+      +originalTitle
+      +'<div class="rc89-task-priority-row" onclick="event.stopPropagation()">'
+      +'<span class="rc89-prio-label">Priorität dauerhaft ändern:</span>'
+      +'<select onchange="rc89ChangeTaskPriority(&quot;'+e183(t.id)+'&quot;,this.value)">'
+      +'<option value="high" '+(t.priority==='high'?'selected':'')+'>Hoch</option>'
+      +'<option value="medium" '+((!t.priority||t.priority==='medium')?'selected':'')+'>Normal</option>'
+      +'<option value="low" '+(t.priority==='low'?'selected':'')+'>Niedrig</option>'
+      +'</select>'
+      +'</div>'
+      +'<div class="task-clickhint">klicken = erledigt</div>'
+      +'</article>';
+  };
+
+  const baseTasks183=typeof tasks==='function'?tasks:null;
+  if(baseTasks183){
+    tasks=function(){
+      repairTaskCustomers183();
+      return baseTasks183.apply(this,arguments);
+    };
+  }else if(baseRenderTask183){
+    repairTaskCustomers183();
+  }
+
+  repairTaskCustomers183();
+})();
+</script>
 
 </body></html>
 
