@@ -22286,6 +22286,320 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC210 END -->
+
+  <!-- PRIVATE RC211 START: Nur Website-Ladeliste als PDF -->
+<style>
+.rc211-pdf-note{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:12px;
+  padding:9px 11px;
+  margin:8px 0;
+  font-weight:900;
+}
+</style>
+
+<script>
+/* PRIVATE RC211: alle Ladeliste-PDF-Funktionen nutzen nur das sichtbare Website-Layout */
+(function(){
+  if(window.__EXPORTHUB_RC211_WEBSITE_LOADLIST_ONLY__)return;
+  window.__EXPORTHUB_RC211_WEBSITE_LOADLIST_ONLY__=true;
+
+  function cleanRef211(v){
+    var raw=String(v||'Sendung').trim()||'Sendung';
+    return raw.replace(/[^A-Za-z0-9_-]/g,'')||'Sendung';
+  }
+
+  function activeShipment211(){
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(err){}
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(err){}
+    try{
+      if(state.activeShipmentId && Array.isArray(state.shipments)){
+        return state.shipments.find(function(s){return s.id===state.activeShipmentId}) || state.shipment;
+      }
+      return state.shipment;
+    }catch(err){}
+    return null;
+  }
+
+  function filename211(){
+    var s=activeShipment211();
+    return 'Ladeliste_'+cleanRef211(s&&s.ref)+'.pdf';
+  }
+
+  function syncRows211(){
+    try{if(typeof rc210SyncColliRows==='function')rc210SyncColliRows()}catch(err){}
+    try{if(typeof rc209CollectColliRows==='function')rc209CollectColliRows('rc211-pdf')}catch(err){}
+    try{if(typeof rc203PersistShipmentRows==='function')rc203PersistShipmentRows('rc211-pdf')}catch(err){}
+    try{if(typeof collectRows118==='function')collectRows118(true)}catch(err){}
+    try{if(window.collectRows118)window.collectRows118(true)}catch(err){}
+    try{if(typeof syncRowsFromDom96==='function')syncRowsFromDom96()}catch(err){}
+    try{if(typeof rc115SyncShipmentRowsFromDom==='function')rc115SyncShipmentRowsFromDom(true)}catch(err){}
+  }
+
+  function applyPallets211(){
+    try{if(typeof rc198ApplyLoadlistPalletFields==='function')rc198ApplyLoadlistPalletFields()}catch(err){}
+    try{if(window.rc198ApplyLoadlistPalletFields)window.rc198ApplyLoadlistPalletFields()}catch(err){}
+  }
+
+  function fixLoadlist211(load){
+    if(!load)return;
+    load.classList.add('loadlist-pro');
+    var firstLabel=load.querySelector('.load-write-fields .load-write-field:first-child .doc-label');
+    if(firstLabel)firstLabel.textContent='Unterschrift Fahrer';
+    var firstHint=load.querySelector('.load-write-fields .load-write-field:first-child .load-write-hint');
+    if(firstHint)firstHint.textContent='Fahrer unterschreibt bei Abholung';
+    applyPallets211();
+  }
+
+  async function ensureLoadlist211(){
+    syncRows211();
+    var load=document.getElementById('loadListDoc');
+    if(!load){
+      try{if(typeof showCurrentCmr==='function')showCurrentCmr()}catch(err){}
+      await new Promise(function(resolve){setTimeout(resolve,160)});
+      load=document.getElementById('loadListDoc');
+    }
+    if(!load){
+      alert('Bitte zuerst Ladeliste & CMR anzeigen.');
+      return null;
+    }
+    fixLoadlist211(load);
+    return load;
+  }
+
+  function inlineStyles211(source,target){
+    if(!source || !target)return;
+    var computed=getComputedStyle(source);
+    var style='';
+    for(var i=0;i<computed.length;i++){
+      var prop=computed[i];
+      var val=computed.getPropertyValue(prop);
+      if(val)style+=prop+':'+val+';';
+    }
+    target.setAttribute('style',style);
+    var src=Array.from(source.children||[]);
+    var dst=Array.from(target.children||[]);
+    for(var j=0;j<src.length;j++)inlineStyles211(src[j],dst[j]);
+  }
+
+  function blobToDataUrl211(blob){
+    return new Promise(function(resolve,reject){
+      var r=new FileReader();
+      r.onload=function(){resolve(r.result)};
+      r.onerror=reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function inlineImages211(clone){
+    var imgs=Array.from(clone.querySelectorAll('img'));
+    for(var i=0;i<imgs.length;i++){
+      var img=imgs[i];
+      var src=img.getAttribute('src')||'';
+      if(!src || src.indexOf('data:')===0)continue;
+      try{
+        var res=await fetch(src,{mode:'cors'});
+        if(!res.ok)throw new Error('Bild konnte nicht geladen werden');
+        var blob=await res.blob();
+        img.setAttribute('src',await blobToDataUrl211(blob));
+      }catch(err){
+        var repl=document.createElement('div');
+        repl.textContent='ESSENTRA';
+        repl.setAttribute('style','font-weight:900;font-size:24px;color:#0f172a;letter-spacing:.06em;display:flex;align-items:center;min-height:32px;');
+        img.replaceWith(repl);
+      }
+    }
+  }
+
+  function svgToCanvas211(svgText,w,h){
+    return new Promise(function(resolve,reject){
+      var url=URL.createObjectURL(new Blob([svgText],{type:'image/svg+xml;charset=utf-8'}));
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        canvas.width=w;
+        canvas.height=h;
+        var ctx=canvas.getContext('2d');
+        ctx.fillStyle='#fff';
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      };
+      img.onerror=function(err){
+        URL.revokeObjectURL(url);
+        reject(err);
+      };
+      img.src=url;
+    });
+  }
+
+  function bytes211(str){
+    var arr=new Uint8Array(str.length);
+    for(var i=0;i<str.length;i++)arr[i]=str.charCodeAt(i)&255;
+    return arr;
+  }
+
+  function downloadJpegPdf211(filename,jpegDataUrl){
+    var imgBin=atob(String(jpegDataUrl).split(',')[1]||'');
+    var objects=[];
+    var offsets=[0];
+    function add(obj){objects.push(obj);return objects.length}
+    var image=add('<< /Type /XObject /Subtype /Image /Width 1588 /Height 2246 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+imgBin.length+' >>\nstream\n'+imgBin+'\nendstream');
+    var contentStream='q\n595 0 0 842 0 0 cm\n/Im0 Do\nQ';
+    var content=add('<< /Length '+contentStream.length+' >>\nstream\n'+contentStream+'\nendstream');
+    var page=add('<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 '+image+' 0 R >> >> /Contents '+content+' 0 R >>');
+    var pages=add('<< /Type /Pages /Kids ['+page+' 0 R] /Count 1 >>');
+    var catalog=add('<< /Type /Catalog /Pages '+pages+' 0 R >>');
+    var pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+    for(var i=0;i<objects.length;i++){
+      offsets.push(pdf.length);
+      pdf+=(i+1)+' 0 obj\n'+objects[i]+'\nendobj\n';
+    }
+    var xref=pdf.length;
+    pdf+='xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
+    for(var j=1;j<offsets.length;j++)pdf+=String(offsets[j]).padStart(10,'0')+' 00000 n \n';
+    pdf+='trailer\n<< /Size '+(objects.length+1)+' /Root '+catalog+' 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+    var blob=new Blob([bytes211(pdf)],{type:'application/pdf'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1200);
+  }
+
+  function printFallback211(load){
+    fixLoadlist211(load);
+    document.body.classList.add('print-loadlist-only');
+    window.print();
+    setTimeout(function(){document.body.classList.remove('print-loadlist-only')},900);
+  }
+
+  window.rc211DownloadWebsiteLoadlistPdf=async function(){
+    var load=await ensureLoadlist211();
+    if(!load)return;
+    try{
+      var wrapper=document.createElement('div');
+      wrapper.style.position='fixed';
+      wrapper.style.left='-10000px';
+      wrapper.style.top='0';
+      wrapper.style.width='210mm';
+      wrapper.style.background='#fff';
+      wrapper.style.zIndex='-1';
+
+      var clone=load.cloneNode(true);
+      clone.id='loadListDoc_RC211_PDF_CLONE';
+      clone.classList.add('loadlist-pro');
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      await inlineImages211(clone);
+      inlineStyles211(load,clone);
+      clone.style.display='block';
+      clone.style.margin='0';
+      clone.style.width='210mm';
+      clone.style.minHeight='297mm';
+      clone.style.height='297mm';
+      clone.style.background='#ffffff';
+      clone.style.boxShadow='none';
+      clone.style.borderRadius='0';
+      clone.style.overflow='hidden';
+
+      var html=new XMLSerializer().serializeToString(clone);
+      var w=1588;
+      var h=2246;
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 794 1123"><foreignObject x="0" y="0" width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml" style="width:794px;height:1123px;background:#fff;overflow:hidden;">'+html+'</div></foreignObject></svg>';
+      var canvas=await svgToCanvas211(svg,w,h);
+      var jpeg=canvas.toDataURL('image/jpeg',0.96);
+      wrapper.remove();
+      downloadJpegPdf211(filename211(),jpeg);
+    }catch(err){
+      console.error('RC211 Website-Ladeliste PDF Fallback',err);
+      printFallback211(load);
+    }
+  };
+
+  function assign211(){
+    window.rc181DownloadLoadlistWebsiteLayoutPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    window.rc55DownloadLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    window.rc55PdfLoadlist=window.rc211DownloadWebsiteLoadlistPdf;
+    window.rc53PdfLoadlist=window.rc211DownloadWebsiteLoadlistPdf;
+    window.rc90PrintLoadlistAsPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    window.rc91DownloadOriginalLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf;
+    try{rc181DownloadLoadlistWebsiteLayoutPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc55DownloadLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc55PdfLoadlist=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc53PdfLoadlist=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc90PrintLoadlistAsPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+    try{rc91DownloadOriginalLoadlistPdf=window.rc211DownloadWebsiteLoadlistPdf}catch(err){}
+  }
+
+  function fixButtons211(){
+    try{
+      Array.from(document.querySelectorAll('button,a')).forEach(function(el){
+        var text=(el.textContent||'').replace(/\s+/g,' ').trim();
+        var oc=String(el.getAttribute('onclick')||'');
+        if(/Ladeliste PDF|PDF herunterladen/i.test(text) || /rc55DownloadLoadlistPdf|rc53PdfLoadlist|rc90PrintLoadlistAsPdf|rc91DownloadOriginalLoadlistPdf/i.test(oc)){
+          el.setAttribute('onclick','rc211DownloadWebsiteLoadlistPdf();return false;');
+          if(/Ladeliste/i.test(text))el.textContent='Ladeliste PDF herunterladen';
+        }
+      });
+    }catch(err){}
+  }
+
+  assign211();
+
+  var baseRender211=typeof render==='function'?render:null;
+  if(baseRender211){
+    window.render=function(){
+      var result=baseRender211.apply(this,arguments);
+      assign211();
+      setTimeout(fixButtons211,0);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  var baseShowCurrent211=typeof showCurrentCmr==='function'?showCurrentCmr:null;
+  if(baseShowCurrent211){
+    window.showCurrentCmr=function(){
+      syncRows211();
+      var result=baseShowCurrent211.apply(this,arguments);
+      setTimeout(function(){
+        fixLoadlist211(document.getElementById('loadListDoc'));
+        assign211();
+        fixButtons211();
+      },80);
+      return result;
+    };
+    try{showCurrentCmr=window.showCurrentCmr}catch(err){}
+  }
+
+  var baseShowSaved211=typeof showSavedCmr==='function'?showSavedCmr:null;
+  if(baseShowSaved211){
+    window.showSavedCmr=function(){
+      var result=baseShowSaved211.apply(this,arguments);
+      setTimeout(function(){
+        fixLoadlist211(document.getElementById('loadListDoc'));
+        assign211();
+        fixButtons211();
+      },80);
+      return result;
+    };
+    try{showSavedCmr=window.showSavedCmr}catch(err){}
+  }
+
+  setTimeout(function(){
+    assign211();
+    fixButtons211();
+    fixLoadlist211(document.getElementById('loadListDoc'));
+  },120);
+})();
+</script>
+<!-- PRIVATE RC211 END -->
 </body></html>
 
 
