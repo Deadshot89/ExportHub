@@ -23980,6 +23980,192 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC219 END: Teamdaten Notfallschutz + Azure Save Guard -->
   
+  <!-- PRIVATE RC220 START: Ladeliste Paletten endgueltig deduplizieren + Aufgabenfilter bereinigen -->
+<style>
+/* RC220: nur die finalen Palettenfelder sichtbar, Ausgangswert deutlich lesbar */
+#loadListDoc .rc220-pallet-field{
+  background:#fff7ed!important;
+  border:2px solid #fdba74!important;
+  border-radius:14px!important;
+}
+#loadListDoc .rc220-pallet-field .doc-label{
+  color:#08245d!important;
+  font-weight:1000!important;
+  letter-spacing:.03em!important;
+}
+#loadListDoc .rc220-pallet-value{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:42px!important;
+  min-height:28px!important;
+  margin:8px 0 5px!important;
+  padding:4px 10px!important;
+  border-radius:9px!important;
+  background:#dbeafe!important;
+  color:#08245d!important;
+  font-size:22px!important;
+  line-height:1!important;
+  font-weight:1000!important;
+  border:1px solid #93c5fd!important;
+}
+#loadListDoc .rc220-pallet-field .load-write-hint{
+  color:#334155!important;
+  font-weight:900!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC220: entfernt alle alten Paletten-Duplikate nach jedem Render */
+(function(){
+  if(window.__EXPORTHUB_RC220_PALLET_TASK_DEDUPE__)return;
+  window.__EXPORTHUB_RC220_PALLET_TASK_DEDUPE__=true;
+
+  var applying=false;
+  var timer=null;
+
+  function norm220(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/\s+/g,' ').trim();
+  }
+
+  function euroOut220(){
+    var s=null;
+    try{if(typeof rc55ActiveShipment==='function')s=rc55ActiveShipment()}catch(err){}
+    try{if(!s && typeof activeCmrShipment==='function')s=activeCmrShipment()}catch(err){}
+    try{if(!s)s=state&&state.shipment}catch(err){}
+    var rows=(s&&Array.isArray(s.rows))?s.rows:[];
+    return rows.reduce(function(sum,r){
+      var type=norm220(r&&r.type);
+      var count=Number((r&&r.count)||0)||0;
+      if(type.indexOf('euro')>=0 && (type.indexOf('pal')>=0 || type.indexOf('palette')>=0 || type.indexOf('pallet')>=0)){
+        return sum+count;
+      }
+      return sum;
+    },0);
+  }
+
+  function isPalletField220(el){
+    if(!el || el.nodeType!==1)return false;
+    if(el.classList && (
+      el.classList.contains('rc198-pallet-field') ||
+      el.classList.contains('rc212-pallet-field') ||
+      el.classList.contains('rc215-pallet-field') ||
+      el.classList.contains('rc217-pallet-field') ||
+      el.classList.contains('rc218-pallet-field') ||
+      el.classList.contains('rc220-pallet-field')
+    ))return true;
+    var txt=norm220(el.textContent||'');
+    return txt.indexOf('europaletten eingang')>=0 || txt.indexOf('europaletten ausgang')>=0;
+  }
+
+  function field220(label,value,hint,kind){
+    return '<div class="load-write-field rc220-pallet-field rc220-pallet-'+kind+'">'+
+      '<span class="doc-label">'+label+'</span>'+
+      (value?'<div class="rc220-pallet-value">'+value+'</div>':'<div class="load-write-line"></div>')+
+      '<div class="load-write-hint">'+hint+'</div>'+
+    '</div>';
+  }
+
+  function applyLoadlist220(){
+    if(applying)return;
+    applying=true;
+    try{
+      var load=document.getElementById('loadListDoc') || document.querySelector('.loadlist-pro');
+      if(!load)return;
+      var fields=load.querySelector('.load-write-fields');
+      if(!fields)return;
+
+      Array.from(load.querySelectorAll('.load-write-field,.doc-box,div')).forEach(function(el){
+        if(isPalletField220(el))el.remove();
+      });
+
+      var out=euroOut220();
+      fields.insertAdjacentHTML('beforeend',
+        field220('Europaletten Eingang','','Rueckgabe / Eingang','in')+
+        field220('Europaletten Ausgang',out>0?String(out):'','Versendete Euro-Paletten','out')
+      );
+    }catch(err){
+      console.warn('RC220 Ladeliste Palettenfix fehlgeschlagen',err);
+    }finally{
+      applying=false;
+    }
+  }
+
+  function cleanupTaskButtons220(){
+    try{
+      Array.from(document.querySelectorAll('.toolbar')).forEach(function(toolbar){
+        var seen={};
+        Array.from(toolbar.querySelectorAll('button')).forEach(function(btn){
+          var text=(btn.textContent||'').replace(/\s+/g,' ').trim();
+          var key=norm220(text);
+          if(key==='tobias' || key==='sevastian' || key==='alle anzeigen'){
+            if(seen[key]){
+              btn.remove();
+            }else{
+              seen[key]=true;
+            }
+          }
+        });
+      });
+    }catch(err){}
+  }
+
+  function apply220(){
+    applyLoadlist220();
+    cleanupTaskButtons220();
+  }
+
+  function schedule220(){
+    clearTimeout(timer);
+    timer=setTimeout(apply220,60);
+  }
+
+  ['showCurrentCmr','showSavedCmr','rc218DownloadLoadlistPdf','rc217DownloadLoadlistPdf','rc216DownloadLoadlistPdf','rc211DownloadWebsiteLoadlistPdf'].forEach(function(name){
+    try{
+      var fn=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof fn==='function' && !fn.__rc220Wrapped){
+        var wrapped=function(){
+          var r=fn.apply(this,arguments);
+          setTimeout(apply220,80);
+          setTimeout(apply220,300);
+          return r;
+        };
+        wrapped.__rc220Wrapped=true;
+        window[name]=wrapped;
+        try{eval(name+'=window[name]')}catch(err){}
+      }
+    }catch(err){}
+  });
+
+  try{
+    if(typeof render==='function' && !render.__rc220Wrapped){
+      var baseRender220=render;
+      window.render=function(){
+        var r=baseRender220.apply(this,arguments);
+        setTimeout(apply220,0);
+        setTimeout(apply220,180);
+        return r;
+      };
+      window.render.__rc220Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    var mo=new MutationObserver(function(){schedule220()});
+    mo.observe(document.body,{childList:true,subtree:true});
+  }catch(err){}
+
+  setInterval(apply220,1200);
+  setTimeout(apply220,100);
+  setTimeout(apply220,600);
+})();
+</script>
+<!-- PRIVATE RC220 END: Ladeliste Paletten endgueltig deduplizieren + Aufgabenfilter bereinigen -->
+
+
   
 </body></html>
 
