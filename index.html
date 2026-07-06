@@ -25502,6 +25502,198 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC224 END: Colli LocalStorage Reload Fix -->
 
+  <!-- PRIVATE RC225 START: Ladeliste Unterschrift/Paletten unten erzwingen -->
+<style>
+#loadListDoc{
+  position:relative!important;
+  padding-bottom:190px!important;
+}
+#loadListDoc .rc225-load-bottom{
+  position:absolute!important;
+  left:14mm!important;
+  right:14mm!important;
+  bottom:14mm!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:10px 12px!important;
+  margin:0!important;
+  z-index:20!important;
+}
+#loadListDoc .rc225-load-bottom .load-write-field{
+  min-height:74px!important;
+  border:2px solid #93c5fd!important;
+  border-radius:14px!important;
+  background:#ffffff!important;
+  padding:10px 12px!important;
+  box-shadow:none!important;
+  print-color-adjust:exact!important;
+  -webkit-print-color-adjust:exact!important;
+}
+#loadListDoc .rc225-load-bottom .doc-label{
+  display:block!important;
+  color:#08245d!important;
+  font-weight:1000!important;
+  letter-spacing:.03em!important;
+  text-transform:uppercase!important;
+  margin-bottom:8px!important;
+}
+#loadListDoc .rc225-load-bottom .load-write-line{
+  border-bottom:2px solid #111827!important;
+  height:24px!important;
+  margin-top:6px!important;
+}
+#loadListDoc .rc225-load-bottom .load-write-hint{
+  color:#475569!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  margin-top:4px!important;
+}
+#loadListDoc .rc225-pallet-value{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:42px!important;
+  min-height:28px!important;
+  margin:2px 0 2px!important;
+  padding:4px 10px!important;
+  border-radius:8px!important;
+  background:#dbeafe!important;
+  border:1px solid #60a5fa!important;
+  color:#08245d!important;
+  font-size:22px!important;
+  line-height:1!important;
+  font-weight:1000!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC225: unteren Ladelistenblock immer sichtbar wiederherstellen */
+(function(){
+  if(window.__EXPORTHUB_RC225_LOADLIST_BOTTOM__)return;
+  window.__EXPORTHUB_RC225_LOADLIST_BOTTOM__=true;
+
+  var busy225=false;
+
+  function n225(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function activeShipment225(){
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(err){}
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(err){}
+    try{return state.shipment||{}}catch(err){}
+    return {};
+  }
+
+  function euroOut225(){
+    var s=activeShipment225()||{};
+    return ((s.rows||[]).reduce(function(sum,r){
+      var type=n225(r&&r.type);
+      var count=Number(r&&r.count)||0;
+      return (type.indexOf('euro')>=0 && type.indexOf('pal')>=0)?sum+count:sum;
+    },0));
+  }
+
+  function field225(label,value,hint){
+    return '<div class="load-write-field">'+
+      '<span class="doc-label">'+label+'</span>'+
+      (value?'<div class="rc225-pallet-value">'+value+'</div>':'<div class="load-write-line"></div>')+
+      '<div class="load-write-hint">'+hint+'</div>'+
+    '</div>';
+  }
+
+  function removeOldWriteBlocks225(load){
+    Array.from(load.querySelectorAll('.rc225-load-bottom')).forEach(function(el){el.remove()});
+    Array.from(load.querySelectorAll('.load-write-fields')).forEach(function(el){
+      var txt=n225(el.textContent||'');
+      if(txt.indexOf('unterschrift fahrer')>=0 || txt.indexOf('kennzeichen')>=0 || txt.indexOf('verlader')>=0 || txt.indexOf('europaletten')>=0){
+        el.remove();
+      }
+    });
+    Array.from(load.querySelectorAll('.load-write-field,.doc-box')).forEach(function(el){
+      var txt=n225(el.textContent||'');
+      if(txt.indexOf('europaletten eingang')>=0 || txt.indexOf('europaletten ausgang')>=0){
+        el.remove();
+      }
+    });
+  }
+
+  function apply225(){
+    if(busy225)return;
+    busy225=true;
+    try{
+      var load=document.getElementById('loadListDoc') || document.querySelector('.loadlist-pro');
+      if(!load)return;
+      removeOldWriteBlocks225(load);
+      load.style.position='relative';
+      var out=euroOut225();
+      var block=document.createElement('div');
+      block.className='load-write-fields rc225-load-bottom';
+      block.innerHTML=
+        field225('Unterschrift Fahrer','','Fahrer unterschreibt bei Abholung')+
+        field225('Datum / Uhrzeit','','Datum / Uhrzeit')+
+        field225('Kennzeichen','','LKW / Trailer')+
+        field225('Verlader','','Name / Kuerzel')+
+        field225('Europaletten Eingang','','Rueckgabe / Eingang')+
+        field225('Europaletten Ausgang',out>0?String(out):'','Versendete Euro-Paletten');
+      load.appendChild(block);
+    }catch(err){
+      console.warn('RC225 Ladelistenblock konnte nicht gesetzt werden',err);
+    }finally{
+      busy225=false;
+    }
+  }
+
+  function schedule225(){
+    setTimeout(apply225,40);
+    setTimeout(apply225,220);
+    setTimeout(apply225,700);
+  }
+
+  ['showCurrentCmr','showSavedCmr','rc55DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc224CollectColliRows'].forEach(function(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base==='function' && !base.__rc225Wrapped){
+        var wrapped=function(){
+          var r=base.apply(this,arguments);
+          schedule225();
+          return r;
+        };
+        wrapped.__rc225Wrapped=true;
+        window[name]=wrapped;
+        try{eval(name+'=window[name]')}catch(err){}
+      }
+    }catch(err){}
+  });
+
+  try{
+    if(typeof render==='function' && !render.__rc225Wrapped){
+      var baseRender225=render;
+      window.render=function(){
+        var r=baseRender225.apply(this,arguments);
+        schedule225();
+        return r;
+      };
+      window.render.__rc225Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    var mo=new MutationObserver(function(){schedule225()});
+    mo.observe(document.body,{childList:true,subtree:true});
+  }catch(err){}
+
+  setInterval(function(){
+    if(document.getElementById('loadListDoc'))apply225();
+  },1200);
+  schedule225();
+})();
+</script>
+<!-- PRIVATE RC225 END: Ladeliste Unterschrift/Paletten unten erzwingen -->
   
 </body></html>
 
