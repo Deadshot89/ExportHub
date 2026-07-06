@@ -21063,6 +21063,201 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC205 END -->
+
+<!-- PRIVATE RC206 START: Sevastian in Benutzerliste sichtbar machen -->
+<style>
+.rc206-user-status{
+  border:1px solid #86efac;
+  background:#f0fdf4;
+  color:#166534;
+  border-radius:12px;
+  padding:9px 11px;
+  margin:8px 0 12px;
+  font-weight:900;
+}
+</style>
+
+<script>
+/* PRIVATE RC206: Sevastian vor Benutzerverwaltung-Render sicher in allen User-Speichern setzen */
+(function(){
+  if(window.__EXPORTHUB_RC206_SEVASTIAN_VISIBLE__)return;
+  window.__EXPORTHUB_RC206_SEVASTIAN_VISIBLE__=true;
+
+  function n206(v){
+    return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function e206(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function userKey206(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+
+  function modules206(){
+    try{
+      if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES.map(function(m){return m[0]});
+    }catch(err){}
+    return [
+      'start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr',
+      'pallet','customers','customerfolder','calculator','customs','sop',
+      'academy','quiz','teamfile','archive','rights'
+    ];
+  }
+
+  function dashboardOnly206(){
+    var out={};
+    modules206().forEach(function(id){
+      var on=id==='start' || id==='dashboard';
+      out[id]={visible:on,read:on,edit:false};
+    });
+    return out;
+  }
+
+  function sevastian206(){
+    return {
+      user:'Sevastian',
+      login:'Sevastian',
+      name:'Sevastian',
+      role:'Export',
+      password:'Essentra',
+      permissions:[],
+      mustChange:false,
+      rights:dashboardOnly206()
+    };
+  }
+
+  function normalize206(u){
+    u=Object.assign({},u||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.mustChange=!!u.mustChange;
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+    return u;
+  }
+
+  function readKey206(key){
+    try{
+      var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(parsed)?parsed:[];
+    }catch(err){return []}
+  }
+
+  function collect206(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    [userKey206(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      all=all.concat(readKey206(key));
+    });
+    var map={};
+    all.forEach(function(u){
+      var x=normalize206(u);
+      if(x.user)map[n206(x.user)]=Object.assign(map[n206(x.user)]||{},x);
+    });
+    map.sevastian=sevastian206();
+    return Object.keys(map).map(function(k){return normalize206(map[k])}).sort(function(a,b){
+      if(n206(a.user)==='tobias')return -1;
+      if(n206(b.user)==='tobias')return 1;
+      return String(a.user||'').localeCompare(String(b.user||''));
+    });
+  }
+
+  function save206(list){
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [userKey206(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      try{localStorage.setItem(key,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+  }
+
+  function pushTeam206(list){
+    try{
+      if(!window.fetch || !state)return;
+      fetch('/api/exporthub/state',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+          users:list,
+          state:Object.assign({},state,{users:list})
+        })
+      }).catch(function(){});
+    }catch(err){}
+  }
+
+  function ensure206(syncTeam){
+    var list=collect206();
+    save206(list);
+    if(syncTeam)pushTeam206(list);
+    return list;
+  }
+
+  function injectStatus206(html){
+    if(String(html).indexOf('rc206-user-status')>=0)return html;
+    var box='<div class="rc206-user-status">RC206: Sevastian ist in der Benutzerliste hinterlegt. Login: Sevastian / Passwort: Essentra / Rechte: Nur Dashboard.</div>';
+    return String(html).replace(/(<div class="rc196-layout">|<div class="rc193-rights-layout">)/,box+'$1');
+  }
+
+  function injectVisibleButton206(){
+    try{
+      if(typeof state!=='undefined' && state.view!=='rights')return;
+      var list=document.querySelector('.rc196-list,.rc193-user-list');
+      if(!list)return;
+      if(/Sevastian/i.test(list.textContent||''))return;
+      var btn=document.createElement('button');
+      btn.type='button';
+      btn.innerHTML='<b>Sevastian</b><br><span class="small">Sevastian · Export</span><br><span class="pill blue">sichtbar 2</span> <span class="pill orange">bearbeiten 0</span>';
+      btn.onclick=function(){
+        if(typeof rc196SelectUser==='function')rc196SelectUser('Sevastian');
+        else if(typeof rc193SelectUser==='function')rc193SelectUser('Sevastian');
+      };
+      list.appendChild(btn);
+    }catch(err){}
+  }
+
+  var baseRights206=typeof rights==='function'?rights:null;
+  if(baseRights206){
+    window.rights=function(){
+      ensure206(true);
+      var html=baseRights206.apply(this,arguments);
+      return injectStatus206(html);
+    };
+    try{rights=window.rights}catch(err){}
+  }
+
+  var baseRender206=typeof render==='function'?render:null;
+  if(baseRender206){
+    window.render=function(){
+      if(typeof state!=='undefined' && state.view==='rights')ensure206(false);
+      var out=baseRender206.apply(this,arguments);
+      setTimeout(injectVisibleButton206,0);
+      return out;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  setTimeout(function(){ensure206(true);injectVisibleButton206()},100);
+  setTimeout(function(){ensure206(true);injectVisibleButton206()},900);
+})();
+</script>
+<!-- PRIVATE RC206 END -->
   
 </body></html>
 
