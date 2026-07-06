@@ -17348,6 +17348,202 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   setTimeout(tidySharePointDom191,180);
 })();
 </script>
+<style>
+/* PRIVATE RC192: Referenzordner-Button neben Ladeliste/CMR, keine eigene SharePoint-Karte */
+.rc182-folder-card,
+.rc188-sp-card,
+.rc191-sp-card{
+  display:none!important;
+}
+.rc192-ref-folder-btn{
+  margin-left:8px;
+  border:1px solid #bfdbfe;
+  background:#fff;
+  color:#08245d;
+  border-radius:14px;
+  padding:10px 14px;
+  font-weight:950;
+  cursor:pointer;
+  min-height:40px;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  vertical-align:middle;
+}
+.rc192-ref-folder-btn:hover{
+  transform:translateY(-1px);
+  border-color:#2563eb;
+  box-shadow:0 8px 18px rgba(37,99,235,.12);
+}
+</style>
+
+<script>
+/* PRIVATE RC192: SharePoint-Referenzordner direkt neben "Ladeliste & CMR anzeigen" */
+(function(){
+  var RC192_SENDUNGEN_BASE='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen?csf=1&web=1&e=O6gxB7';
+
+  function e192(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function ref192(value){
+    return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12);
+  }
+
+  function currentRef192(){
+    try{
+      if(state&&state.shipment&&state.shipment.ref)return ref192(state.shipment.ref);
+      if(state&&state.activeShipmentId&&Array.isArray(state.shipments)){
+        var s=state.shipments.find(function(x){return String(x.id||'')===String(state.activeShipmentId)});
+        if(s&&s.ref)return ref192(s.ref);
+      }
+    }catch(err){}
+    return '';
+  }
+
+  function referenceFolderUrl192(reference){
+    var ref=ref192(reference||currentRef192());
+    if(!ref)return RC192_SENDUNGEN_BASE;
+    var qIndex=RC192_SENDUNGEN_BASE.indexOf('?');
+    var path=qIndex>=0?RC192_SENDUNGEN_BASE.slice(0,qIndex):RC192_SENDUNGEN_BASE;
+    var query=qIndex>=0?RC192_SENDUNGEN_BASE.slice(qIndex):'?csf=1&web=1';
+    return path.replace(/\/+$/,'')+'/'+encodeURIComponent(ref)+query;
+  }
+
+  function ensureSharePoint192(){
+    try{
+      state.settings=state.settings||{};
+      state.settings.shipmentSharePointFolder=RC192_SENDUNGEN_BASE;
+      state.settings.shipmentSharePointBaseFolder=RC192_SENDUNGEN_BASE;
+      if(typeof save==='function')save();
+    }catch(err){}
+  }
+
+  window.rc192ReferenceFolderUrl=referenceFolderUrl192;
+  window.rc191ReferenceFolderUrl=referenceFolderUrl192;
+  window.rc188ReferenceFolderUrl=referenceFolderUrl192;
+
+  window.rc192OpenReferenceFolder=function(reference){
+    ensureSharePoint192();
+    var ref=ref192(reference||currentRef192());
+    if(!ref){
+      alert('Keine Referenznummer vorhanden. Bitte erst eine Sendung mit Referenz erstellen.');
+      return false;
+    }
+    window.open(referenceFolderUrl192(ref),'_blank','noopener,noreferrer');
+    return false;
+  };
+  window.rc191OpenReferenceFolder=window.rc192OpenReferenceFolder;
+  window.rc188OpenReferenceFolder=window.rc192OpenReferenceFolder;
+
+  window.rc191SharePointSendungenCard=function(){return ''};
+  window.rc188SharePointSendungenCard=function(){return ''};
+
+  function buttonHtml192(){
+    return '<button type="button" class="ghost rc192-ref-folder-btn" onclick="return rc192OpenReferenceFolder()">Referenzordner öffnen</button>';
+  }
+
+  function stripSharePointCards192(html){
+    return String(html||'')
+      .replace(/<div class="card rc182-folder-card">[\s\S]*?<\/div><\/div>/g,'')
+      .replace(/<div class="rc188-sp-card">[\s\S]*?<\/div><\/div>/g,'')
+      .replace(/<div class="rc191-sp-card[^"]*">[\s\S]*?<\/div>\s*<\/div>/g,'')
+      .replace(/<div class="rc191-sp-card[^"]*">[\s\S]*?<\/div>/g,'');
+  }
+
+  function injectButtonHtml192(html){
+    html=stripSharePointCards192(html);
+    if(html.includes('rc192-ref-folder-btn'))return html;
+
+    var patterns=[
+      /(<button\b[^>]*onclick="[^"]*showCurrentCmr\(\)[^"]*"[^>]*>\s*Ladeliste\s*&(?:amp;)?\s*CMR anzeigen\s*<\/button>)/i,
+      /(<button\b[^>]*>\s*Ladeliste\s*&(?:amp;)?\s*CMR anzeigen\s*<\/button>)/i,
+      /(<a\b[^>]*>\s*Ladeliste\s*&(?:amp;)?\s*CMR anzeigen\s*<\/a>)/i
+    ];
+
+    for(var i=0;i<patterns.length;i++){
+      if(patterns[i].test(html)){
+        return html.replace(patterns[i],function(match){return match+' '+buttonHtml192()});
+      }
+    }
+
+    return html;
+  }
+
+  function removeSharePointCardsDom192(root){
+    try{
+      root.querySelectorAll('.rc182-folder-card,.rc188-sp-card,.rc191-sp-card').forEach(function(el){el.remove()});
+    }catch(err){}
+  }
+
+  function findLoadlistButton192(root){
+    var items=Array.from(root.querySelectorAll('button,a'));
+    return items.find(function(el){
+      return /Ladeliste\s*&\s*CMR anzeigen/i.test((el.textContent||'').replace(/\s+/g,' ').trim());
+    })||null;
+  }
+
+  function attachButtonDom192(){
+    try{
+      if(!state||state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      if(!root)return;
+      removeSharePointCardsDom192(root);
+
+      var oldButtons=Array.from(root.querySelectorAll('.rc192-ref-folder-btn'));
+      oldButtons.slice(1).forEach(function(el){el.remove()});
+
+      var loadBtn=findLoadlistButton192(root);
+      if(!loadBtn)return;
+
+      var btn=root.querySelector('.rc192-ref-folder-btn');
+      if(!btn){
+        btn=document.createElement('button');
+        btn.type='button';
+        btn.className='ghost rc192-ref-folder-btn';
+        btn.textContent='Referenzordner öffnen';
+        btn.onclick=function(){return window.rc192OpenReferenceFolder()};
+      }
+
+      if(btn.previousElementSibling!==loadBtn){
+        loadBtn.insertAdjacentElement('afterend',btn);
+      }
+    }catch(err){}
+  }
+
+  if(typeof shipment==='function'){
+    var baseShipment192=shipment;
+    shipment=function(){
+      ensureSharePoint192();
+      var html=String(baseShipment192.apply(this,arguments));
+      setTimeout(attachButtonDom192,120);
+      setTimeout(attachButtonDom192,260);
+      return injectButtonHtml192(html);
+    };
+  }
+
+  if(typeof render==='function'){
+    var baseRender192=render;
+    render=function(){
+      var r=baseRender192.apply(this,arguments);
+      setTimeout(attachButtonDom192,160);
+      setTimeout(attachButtonDom192,320);
+      return r;
+    };
+  }
+
+  document.addEventListener('click',function(){
+    setTimeout(attachButtonDom192,80);
+  },true);
+
+  ensureSharePoint192();
+  setTimeout(attachButtonDom192,220);
+})();
+</script>
 
 </body></html>
 
