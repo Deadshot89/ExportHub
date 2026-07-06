@@ -21258,6 +21258,276 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC206 END -->
+
+<!-- PRIVATE RC208 START: Rechte schneller + nur eine Benutzerauswahl -->
+<style>
+.rc196-list,
+.rc193-user-list{
+  display:none!important;
+}
+.rc208-user-select-card{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:14px;
+  padding:12px;
+  margin:10px 0 14px;
+}
+.rc208-user-select-card .field{
+  margin:6px 0 10px!important;
+}
+.rc208-fast-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+.rc208-fast-actions button{
+  min-height:36px;
+  border-radius:10px;
+  padding:8px 11px;
+}
+.rc208-help{
+  display:grid;
+  gap:5px;
+  border:1px solid #fed7aa;
+  background:#fff7ed;
+  color:#7c2d12;
+  border-radius:12px;
+  padding:10px;
+  margin-top:10px;
+  font-size:12px;
+  font-weight:850;
+}
+</style>
+
+<script>
+/* PRIVATE RC208: eine Benutzerauswahl + Schnellrechte */
+(function(){
+  if(window.__EXPORTHUB_RC208_ONE_USER_SELECT_FAST_RIGHTS__)return;
+  window.__EXPORTHUB_RC208_ONE_USER_SELECT_FAST_RIGHTS__=true;
+
+  function n208(v){
+    return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function e208(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function userKey208(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+
+  function modules208(){
+    try{
+      if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES.map(function(m){return m[0]});
+    }catch(err){}
+    return [
+      'start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr',
+      'pallet','customers','customerfolder','calculator','customs','sop',
+      'academy','quiz','teamfile','archive','rights'
+    ];
+  }
+
+  function blankRights208(){
+    var out={};
+    modules208().forEach(function(id){out[id]={visible:false,read:false,edit:false}});
+    return out;
+  }
+
+  function allow208(rights,ids,edit){
+    ids.forEach(function(id){
+      if(!rights[id])rights[id]={visible:false,read:false,edit:false};
+      rights[id]={visible:true,read:true,edit:!!edit};
+    });
+  }
+
+  function preset208(name){
+    var r=blankRights208();
+    allow208(r,['start','dashboard'],false);
+    if(name==='dashboard')return r;
+    if(name==='shipment'){
+      allow208(r,['shipment','shipmentoverview','cmr'],true);
+      allow208(r,['customers','customerfolder','tasks','sop'],false);
+      return r;
+    }
+    if(name==='customers'){
+      allow208(r,['customers','customerfolder'],true);
+      allow208(r,['shipmentoverview','sop'],false);
+      return r;
+    }
+    if(name==='export'){
+      allow208(r,['tasks','shipment','shipmentoverview','cmr','customers','customerfolder','customs','sop','pallet'],true);
+      allow208(r,['calculator','academy','quiz','archive'],false);
+      return r;
+    }
+    if(name==='readall'){
+      modules208().forEach(function(id){r[id]={visible:true,read:true,edit:false}});
+      return r;
+    }
+    return r;
+  }
+
+  function readKey208(key){
+    try{
+      var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(parsed)?parsed:[];
+    }catch(err){return []}
+  }
+
+  function normalizeUser208(u){
+    u=Object.assign({},u||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.mustChange=!!u.mustChange;
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+    return u;
+  }
+
+  function collectUsers208(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    [userKey208(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      all=all.concat(readKey208(key));
+    });
+    var map={};
+    all.forEach(function(u){
+      var x=normalizeUser208(u);
+      if(x.user)map[n208(x.user)]=Object.assign(map[n208(x.user)]||{},x);
+    });
+    return Object.keys(map).map(function(k){return normalizeUser208(map[k])}).sort(function(a,b){
+      if(n208(a.user)==='tobias')return -1;
+      if(n208(b.user)==='tobias')return 1;
+      return String(a.user||'').localeCompare(String(b.user||''));
+    });
+  }
+
+  function selectedLogin208(){
+    try{return state.rc196User || state.rc193RightsUser || state.rc93RightsUser || state.rightsUser || ''}catch(err){return ''}
+  }
+
+  function setSelected208(login){
+    try{
+      state.rc196User=login;
+      state.rc193RightsUser=login;
+      state.rc93RightsUser=login;
+      state.rightsUser=login;
+    }catch(err){}
+    try{if(typeof rc196SelectUser==='function')rc196SelectUser(login)}catch(err){}
+    try{if(typeof rc193SelectUser==='function')rc193SelectUser(login)}catch(err){}
+    try{save()}catch(err){}
+    try{render()}catch(err){}
+  }
+
+  function saveUsers208(list){
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [userKey208(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      try{localStorage.setItem(key,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+  }
+
+  function pushTeam208(list){
+    try{
+      if(!window.fetch || !state)return;
+      fetch('/api/exporthub/state',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+          users:list,
+          state:Object.assign({},state,{users:list})
+        })
+      }).catch(function(){});
+    }catch(err){}
+  }
+
+  window.rc208SelectUser=function(login){
+    setSelected208(login);
+  };
+
+  window.rc208ApplyPreset=function(name){
+    var login=selectedLogin208();
+    var list=collectUsers208();
+    var u=list.find(function(x){return n208(x.user)===n208(login)});
+    if(!u){
+      alert('Bitte zuerst einen Benutzer auswaehlen.');
+      return;
+    }
+    if(n208(u.user)==='tobias' || n208(u.role).indexOf('admin')>=0){
+      alert('Tobias/Admin bleibt Vollzugriff.');
+      return;
+    }
+    u.rights=preset208(name);
+    if(name==='export')u.role='Export';
+    saveUsers208(list);
+    pushTeam208(list);
+    try{if(typeof audit==='function')audit('Rechte Schnellvorlage gesetzt',(u.name||u.user)+' - '+name)}catch(err){}
+    alert('Rechte gespeichert fuer '+(u.name||u.user)+'.');
+    try{render()}catch(err){}
+  };
+
+  function selectorPanel208(){
+    var list=collectUsers208();
+    var selected=selectedLogin208() || (list[0]&&list[0].user) || '';
+    if(selected)try{state.rc196User=selected}catch(err){}
+    var opts=list.map(function(u){
+      return '<option value="'+e208(u.user)+'" '+(n208(u.user)===n208(selected)?'selected':'')+'>'+e208((u.name||u.user)+' / '+u.user+' / '+(u.role||'Benutzer'))+'</option>';
+    }).join('');
+    return '<div class="rc208-user-select-card">'+
+      '<h3>Benutzer auswählen und Rechte schnell setzen</h3>'+
+      '<label class="field">Benutzer<select id="rc208UserSelect" onchange="rc208SelectUser(this.value)">'+opts+'</select></label>'+
+      '<div class="rc208-fast-actions">'+
+        '<button class="ghost" onclick="rc208ApplyPreset(&quot;dashboard&quot;)">Nur Dashboard</button>'+
+        '<button class="ghost" onclick="rc208ApplyPreset(&quot;shipment&quot;)">Sendungen bearbeiten</button>'+
+        '<button class="ghost" onclick="rc208ApplyPreset(&quot;customers&quot;)">Kunden bearbeiten</button>'+
+        '<button class="soft" onclick="rc208ApplyPreset(&quot;export&quot;)">Export Standard</button>'+
+        '<button class="ghost" onclick="rc208ApplyPreset(&quot;readall&quot;)">Alles lesen</button>'+
+      '</div>'+
+      '<div class="rc208-help">'+
+        '<div><b>Sichtbar:</b> Der Bereich wird im Menue angezeigt.</div>'+
+        '<div><b>Lesen:</b> Der Benutzer darf den Bereich oeffnen und Daten ansehen.</div>'+
+        '<div><b>Bearbeiten:</b> Der Benutzer darf Daten anlegen, aendern, speichern, loeschen oder abschliessen.</div>'+
+        '<div><b>Wichtig:</b> Fuer Sendung anlegen braucht man <u>Sendung bearbeiten</u>. Fuer Kunde anlegen braucht man <u>Kunden bearbeiten</u>.</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function inject208(html){
+    html=String(html);
+    html=html.replace(/<div class="rc207-fast-rights">[\s\S]*?<\/div>\s*<\/div>/,'');
+    if(html.indexOf('rc208-user-select-card')>=0)return html;
+    return html.replace(/(<div class="rc196-note">[\s\S]*?<\/div>|<div class="rc193-note">[\s\S]*?<\/div>|<div class="rights-readonly-banner">[\s\S]*?<\/div>)?(\s*<div class="rc196-layout">|\s*<div class="rc193-rights-layout">)/,
+      function(match,note,layout){return (note||'')+selectorPanel208()+layout});
+  }
+
+  var baseRights208=typeof rights==='function'?rights:null;
+  if(baseRights208){
+    window.rights=function(){
+      return inject208(baseRights208.apply(this,arguments));
+    };
+    try{rights=window.rights}catch(err){}
+  }
+})();
+</script>
+<!-- PRIVATE RC208 END -->
   
 </body></html>
 
