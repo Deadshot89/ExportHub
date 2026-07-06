@@ -21528,6 +21528,287 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC208 END -->
+
+  <!-- PRIVATE RC209 START: Colli Zeile 1 Hartfix -->
+<script>
+/* PRIVATE RC209: Colli-Zeilen bleiben bei +Zeile, Speichern, Ladeliste und CMR erhalten */
+(function(){
+  if(window.__EXPORTHUB_RC209_COLLI_ROW1_HARDFIX__)return;
+  window.__EXPORTHUB_RC209_COLLI_ROW1_HARDFIX__=true;
+
+  var lastRows209=[];
+  var lastRef209='';
+
+  function ref209(){
+    try{
+      var r=(state&&state.shipment&&state.shipment.ref)||'current';
+      return String(r||'current').toUpperCase().replace(/[^A-Z0-9_-]/g,'')||'current';
+    }catch(err){return 'current'}
+  }
+
+  function key209(ref){
+    return 'exporthub_rc209_colli_rows_'+(ref||ref209());
+  }
+
+  function numOrText209(v){
+    if(v===null || v===undefined)return '';
+    var s=String(v).trim();
+    if(s==='')return '';
+    var n=Number(s.replace(',','.'));
+    return isFinite(n)?n:s;
+  }
+
+  function rowBlank209(){
+    return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''};
+  }
+
+  function hasValue209(r){
+    if(!r)return false;
+    return ['type','count','ldm','weight','l','w','h'].some(function(k){
+      var v=r[k];
+      return v!=='' && v!==null && v!==undefined;
+    });
+  }
+
+  function pack209(name){
+    try{
+      return (SEED.colliTypes||[]).find(function(p){return String(p.name||'')===String(name||'')}) || null;
+    }catch(err){return null}
+  }
+
+  function applyPack209(row){
+    row=Object.assign(rowBlank209(),row||{});
+    var p=pack209(row.type);
+    if(p){
+      if(row.ldm==='' || row.ldm===null || row.ldm===undefined)row.ldm=p.ldm!=null?p.ldm:'';
+      if(row.l==='' || row.l===null || row.l===undefined)row.l=p.l!=null?p.l:'';
+      if(row.w==='' || row.w===null || row.w===undefined)row.w=p.w!=null?p.w:'';
+      if(row.h==='' || row.h===null || row.h===undefined)row.h=p.h!=null?p.h:'';
+    }
+    return row;
+  }
+
+  function cloneRows209(rows){
+    return (Array.isArray(rows)?rows:[]).map(function(r){
+      return applyPack209({
+        type:r&&r.type!=null?String(r.type):'',
+        count:r&&r.count!=null?r.count:'',
+        ldm:r&&r.ldm!=null?r.ldm:'',
+        weight:r&&r.weight!=null?r.weight:'',
+        l:r&&r.l!=null?r.l:'',
+        w:r&&r.w!=null?r.w:'',
+        h:r&&r.h!=null?r.h:''
+      });
+    }).filter(hasValue209);
+  }
+
+  function readByIds209(){
+    var found={};
+    document.querySelectorAll('[id^="rc118_row_"]').forEach(function(el){
+      var m=String(el.id||'').match(/^rc118_row_(\d+)_(type|count|ldm|weight|l|w|h)$/);
+      if(!m)return;
+      var i=Number(m[1]);
+      var k=m[2];
+      found[i]=found[i]||rowBlank209();
+      found[i][k]=k==='type'?String(el.value||''):numOrText209(el.value);
+    });
+    return Object.keys(found).sort(function(a,b){return Number(a)-Number(b)}).map(function(i){
+      return applyPack209(found[i]);
+    }).filter(hasValue209);
+  }
+
+  function readByRowsBox209(){
+    var box=document.getElementById('rowsBox');
+    if(!box)return [];
+    var cards=Array.from(box.querySelectorAll('.rc118-row,.item.card,.item')).filter(function(card){
+      return card.querySelector('select,input');
+    });
+    if(!cards.length && box.querySelector('select,input'))cards=[box];
+    return cards.map(function(card){
+      var select=card.querySelector('select');
+      var inputs=Array.from(card.querySelectorAll('input'));
+      return applyPack209({
+        type:select?String(select.value||''):'',
+        count:numOrText209(inputs[0]&&inputs[0].value),
+        ldm:numOrText209(inputs[1]&&inputs[1].value),
+        weight:numOrText209(inputs[2]&&inputs[2].value),
+        l:numOrText209(inputs[3]&&inputs[3].value),
+        w:numOrText209(inputs[4]&&inputs[4].value),
+        h:numOrText209(inputs[5]&&inputs[5].value)
+      });
+    }).filter(hasValue209);
+  }
+
+  function readDomRows209(){
+    var rows=readByIds209();
+    if(!rows.length)rows=readByRowsBox209();
+    return cloneRows209(rows);
+  }
+
+  function saveBackup209(rows,ref){
+    rows=cloneRows209(rows);
+    if(!rows.length)return rows;
+    lastRows209=rows;
+    lastRef209=ref||ref209();
+    try{localStorage.setItem(key209(lastRef209),JSON.stringify(rows))}catch(err){}
+    try{localStorage.setItem('exporthub_rc209_colli_rows_last',JSON.stringify(rows))}catch(err){}
+    try{
+      state.rc209LastColliRows=JSON.parse(JSON.stringify(rows));
+      state.rc209LastColliRef=lastRef209;
+    }catch(err){}
+    return rows;
+  }
+
+  function loadBackup209(ref){
+    var rows=[];
+    try{
+      rows=JSON.parse(localStorage.getItem(key209(ref||ref209()))||'[]');
+    }catch(err){rows=[]}
+    if(!rows.length){
+      try{rows=JSON.parse(localStorage.getItem('exporthub_rc209_colli_rows_last')||'[]')}catch(err){rows=[]}
+    }
+    if(!rows.length){
+      try{rows=state.rc209LastColliRows||[]}catch(err){rows=[]}
+    }
+    return cloneRows209(rows);
+  }
+
+  function writeStateRows209(reason){
+    if(typeof state==='undefined')return [];
+    state.shipment=state.shipment||{};
+    var currentRef=ref209();
+    var rows=readDomRows209();
+    if(!rows.length)rows=cloneRows209(state.shipment.rows||[]);
+    if(!rows.length)rows=loadBackup209(currentRef);
+    if(rows.length){
+      state.shipment.rows=cloneRows209(rows);
+      saveBackup209(rows,currentRef);
+    }
+    return rows;
+  }
+
+  function fillDomRows209(rows){
+    rows=cloneRows209(rows);
+    if(!rows.length)return;
+    setTimeout(function(){
+      rows.forEach(function(r,i){
+        ['type','count','ldm','weight','l','w','h'].forEach(function(k){
+          var el=document.getElementById('rc118_row_'+i+'_'+k);
+          if(!el || document.activeElement===el)return;
+          var v=r[k];
+          el.value=v==null?'':String(v);
+        });
+      });
+    },0);
+  }
+
+  window.rc209CollectColliRows=function(reason){
+    var rows=writeStateRows209(reason||'manual');
+    fillDomRows209(rows);
+    try{if(typeof save==='function')save()}catch(err){}
+    return rows;
+  };
+
+  window.updateRow=function(i,k,v){
+    state.shipment=state.shipment||{};
+    state.shipment.rows=Array.isArray(state.shipment.rows)?state.shipment.rows:[];
+    while(state.shipment.rows.length<=i)state.shipment.rows.push(rowBlank209());
+    var row=Object.assign(rowBlank209(),state.shipment.rows[i]||{});
+    row[k]=k==='type'?String(v||''):numOrText209(v);
+    if(k==='type')row=applyPack209(row);
+    state.shipment.rows[i]=row;
+    saveBackup209(state.shipment.rows,ref209());
+    fillDomRows209(state.shipment.rows);
+    try{if(typeof save==='function')save()}catch(err){}
+  };
+  try{updateRow=window.updateRow}catch(err){}
+
+  var baseAddRow209=typeof addShipmentRow==='function'?addShipmentRow:null;
+  window.addShipmentRow=function(){
+    var rows=writeStateRows209('before-add-row');
+    state.shipment=state.shipment||{};
+    state.shipment.rows=cloneRows209(rows);
+    state.shipment.rows.push(rowBlank209());
+    saveBackup209(state.shipment.rows,ref209());
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    fillDomRows209(state.shipment.rows);
+  };
+  try{addShipmentRow=window.addShipmentRow}catch(err){}
+
+  var baseRemoveRow209=typeof removeShipmentRow==='function'?removeShipmentRow:null;
+  window.removeShipmentRow=function(i){
+    var rows=writeStateRows209('before-remove-row');
+    rows.splice(i,1);
+    if(!rows.length)rows=[rowBlank209()];
+    state.shipment.rows=rows;
+    saveBackup209(rows,ref209());
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    fillDomRows209(rows);
+  };
+  try{removeShipmentRow=window.removeShipmentRow}catch(err){}
+
+  function wrapBefore209(name){
+    var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+    if(typeof base!=='function')return;
+    window[name]=function(){
+      var beforeRef=ref209();
+      var rows=writeStateRows209('before-'+name);
+      var result=base.apply(this,arguments);
+      try{
+        var saved=(state.shipments||[]).find(function(s){
+          return String(s.ref||'').toUpperCase()===beforeRef;
+        }) || ((state.shipments||[])[0]);
+        if(saved && rows.length && (!saved.rows || !cloneRows209(saved.rows).length)){
+          saved.rows=cloneRows209(rows);
+          if(!saved.colliRows)saved.colliRows=cloneRows209(rows);
+          if(typeof save==='function')save();
+        }
+      }catch(err){}
+      return result;
+    };
+    try{eval(name+'=window[name]')}catch(err){}
+  }
+
+  ['saveShipment','showCurrentCmr','showSavedCmr','rc55DownloadLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc55PrintLabels'].forEach(wrapBefore209);
+
+  var baseRender209=typeof render==='function'?render:null;
+  if(baseRender209){
+    window.render=function(){
+      if(typeof state!=='undefined' && state.view==='shipment')writeStateRows209('before-render');
+      var result=baseRender209.apply(this,arguments);
+      if(typeof state!=='undefined' && state.view==='shipment')fillDomRows209((state.shipment&&state.shipment.rows)||lastRows209);
+      return result;
+    };
+    try{render=window.render}catch(err){}
+  }
+
+  ['input','change','blur'].forEach(function(type){
+    document.addEventListener(type,function(ev){
+      var el=ev.target;
+      if(!el)return;
+      var rowsBox=document.getElementById('rowsBox');
+      if(/^rc118_row_\d+_(type|count|ldm|weight|l|w|h)$/.test(String(el.id||'')) || (rowsBox&&rowsBox.contains(el))){
+        writeStateRows209(type);
+      }
+    },true);
+  });
+
+  document.addEventListener('pointerdown',function(ev){
+    var btn=ev.target&&ev.target.closest&&ev.target.closest('button');
+    if(!btn)return;
+    var txt=(btn.textContent||'').toLowerCase();
+    var oc=String(btn.getAttribute('onclick')||'').toLowerCase();
+    if(txt.indexOf('+ zeile')>=0 || txt.indexOf('sendung speichern')>=0 || txt.indexOf('ladeliste')>=0 || oc.indexOf('saveshipment')>=0 || oc.indexOf('addshipmentrow')>=0){
+      writeStateRows209('pointerdown-button');
+    }
+  },true);
+
+  setTimeout(function(){writeStateRows209('init')},150);
+})();
+</script>
+<!-- PRIVATE RC209 END -->
   
 </body></html>
 
