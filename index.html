@@ -17145,6 +17145,209 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   },150);
 })();
 </script>
+<style>
+/* PRIVATE RC191: Sendung erstellen Layout + SharePoint Referenzordner kompakt */
+.rc191-sp-card{
+  grid-column:1 / -1;
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  border-radius:14px;
+  padding:12px;
+  margin:10px 0;
+  box-shadow:none;
+}
+.rc191-sp-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.rc191-sp-card h3{
+  margin:0;
+  color:#08245d;
+  font-size:17px;
+}
+.rc191-sp-meta{
+  margin-top:6px;
+  color:#334155;
+  font-size:12px;
+  font-weight:850;
+}
+.rc191-sp-card .btn{
+  border:0;
+  background:linear-gradient(135deg,#2563eb,#05b8ff);
+  color:white;
+  border-radius:12px;
+  padding:9px 12px;
+  text-decoration:none;
+  font-weight:950;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  min-height:38px;
+}
+.rc191-sp-card.rc191-no-ref .btn{
+  opacity:.55;
+  pointer-events:none;
+}
+</style>
+
+<script>
+/* PRIVATE RC191: SharePoint-Karte nicht mehr als linke Grid-Spalte, nur Referenzordner oeffnen */
+(function(){
+  var RC191_SENDUNGEN_BASE='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen?csf=1&web=1&e=O6gxB7';
+
+  function e191(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function ref191(value){
+    return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12);
+  }
+
+  function currentRef191(){
+    try{
+      if(state&&state.shipment&&state.shipment.ref)return ref191(state.shipment.ref);
+      if(state&&state.activeShipmentId&&Array.isArray(state.shipments)){
+        var s=state.shipments.find(function(x){return String(x.id||'')===String(state.activeShipmentId)});
+        if(s&&s.ref)return ref191(s.ref);
+      }
+    }catch(err){}
+    return '';
+  }
+
+  function referenceFolderUrl191(reference){
+    var ref=ref191(reference||currentRef191());
+    if(!ref)return RC191_SENDUNGEN_BASE;
+    var qIndex=RC191_SENDUNGEN_BASE.indexOf('?');
+    var path=qIndex>=0?RC191_SENDUNGEN_BASE.slice(0,qIndex):RC191_SENDUNGEN_BASE;
+    var query=qIndex>=0?RC191_SENDUNGEN_BASE.slice(qIndex):'?csf=1&web=1';
+    return path.replace(/\/+$/,'')+'/'+encodeURIComponent(ref)+query;
+  }
+
+  function ensureSharePoint191(){
+    try{
+      state.settings=state.settings||{};
+      state.settings.shipmentSharePointFolder=RC191_SENDUNGEN_BASE;
+      state.settings.shipmentSharePointBaseFolder=RC191_SENDUNGEN_BASE;
+      if(typeof save==='function')save();
+    }catch(err){}
+  }
+
+  window.rc191ReferenceFolderUrl=referenceFolderUrl191;
+  window.rc188ReferenceFolderUrl=referenceFolderUrl191;
+
+  window.rc191OpenReferenceFolder=function(reference){
+    ensureSharePoint191();
+    var ref=ref191(reference||currentRef191());
+    if(!ref){
+      alert('Keine Referenznummer vorhanden. Bitte erst eine Sendung mit Referenz erstellen.');
+      return false;
+    }
+    window.open(referenceFolderUrl191(ref),'_blank','noopener,noreferrer');
+    return false;
+  };
+  window.rc188OpenReferenceFolder=window.rc191OpenReferenceFolder;
+
+  function sharePointCard191(reference){
+    var ref=ref191(reference||currentRef191());
+    var cls='rc191-sp-card'+(ref?'':' rc191-no-ref');
+    var href=ref?referenceFolderUrl191(ref):'#';
+    return '<div class="'+cls+'">'+
+      '<div class="rc191-sp-head">'+
+        '<h3>Sendungsordner SharePoint</h3>'+
+        '<a class="btn" href="'+e191(href)+'" target="_blank" rel="noopener noreferrer" onclick="return rc191OpenReferenceFolder(&quot;'+e191(ref)+'&quot;)">Referenzordner öffnen</a>'+
+      '</div>'+
+      '<div class="rc191-sp-meta">Referenzordner: '+e191(ref||'noch keine Referenz')+'</div>'+
+    '</div>';
+  }
+
+  window.rc191SharePointSendungenCard=sharePointCard191;
+  window.rc188SharePointSendungenCard=sharePointCard191;
+
+  function stripOldSharePoint191(html){
+    return String(html||'')
+      .replace(/<div class="card rc182-folder-card">[\s\S]*?<\/div><\/div>/g,'')
+      .replace(/<div class="rc188-sp-card">[\s\S]*?<\/div><\/div>/g,'')
+      .replace(/<div class="rc191-sp-card[^"]*">[\s\S]*?<\/div>\s*<\/div>/g,'');
+  }
+
+  function insertSharePoint191(html){
+    html=stripOldSharePoint191(html);
+    var card=sharePointCard191();
+    var markers=[
+      '<div class="rc190-mail-card">',
+      '<div class="rc189-mail-card">',
+      '<div class="card"><h3>Collis, Maße, Gewicht, Lademeter</h3>',
+      '<div class="card"><h3>Collis, Maße, Gewicht, Lademeter'
+    ];
+    for(var i=0;i<markers.length;i++){
+      if(html.includes(markers[i])){
+        return html.replace(markers[i],card+markers[i]);
+      }
+    }
+    return html+card;
+  }
+
+  function tidySharePointDom191(){
+    try{
+      if(!state||state.view!=='shipment')return;
+      var root=document.getElementById('content')||document.body;
+      if(!root)return;
+
+      root.querySelectorAll('.rc182-folder-card,.rc188-sp-card').forEach(function(el){el.remove()});
+
+      var cards=Array.from(root.querySelectorAll('.rc191-sp-card'));
+      cards.slice(1).forEach(function(el){el.remove()});
+
+      var card=root.querySelector('.rc191-sp-card');
+      if(!card){
+        var wrap=document.createElement('div');
+        wrap.innerHTML=sharePointCard191();
+        card=wrap.firstElementChild;
+      }
+
+      var target=Array.from(root.querySelectorAll('.rc190-mail-card,.rc189-mail-card,.card')).find(function(el){
+        var txt=el.textContent||'';
+        return /Empfaengermail|Empfängermail|Collis|Maße|Masse|Gewicht|Lademeter/.test(txt);
+      });
+      if(target&&card.parentNode!==root){
+        target.before(card);
+      }else if(target&&card.nextElementSibling!==target){
+        target.before(card);
+      }else if(!card.parentNode){
+        root.insertAdjacentElement('beforeend',card);
+      }
+    }catch(err){}
+  }
+
+  if(typeof shipment==='function'){
+    var baseShipment191=shipment;
+    shipment=function(){
+      ensureSharePoint191();
+      var html=String(baseShipment191.apply(this,arguments));
+      setTimeout(tidySharePointDom191,90);
+      return insertSharePoint191(html);
+    };
+  }
+
+  if(typeof render==='function'){
+    var baseRender191=render;
+    render=function(){
+      var r=baseRender191.apply(this,arguments);
+      setTimeout(tidySharePointDom191,140);
+      return r;
+    };
+  }
+
+  ensureSharePoint191();
+  setTimeout(tidySharePointDom191,180);
+})();
+</script>
 
 </body></html>
 
