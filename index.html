@@ -32889,7 +32889,261 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC247 END: Sendungsuebersicht Final ABD/POD/Abgeholt -->
 
-  
+  <!-- PRIVATE RC248 START: ABD/POD Downloadlink + POD-Erkennung -->
+<script>
+/* PRIVATE RC248: SharePoint-Dateinamen stabil als Download verlinken, POD ueber [Untitled]/scan erkennen */
+(function(){
+  if(window.__EXPORTHUB_RC248_ABD_POD_DOWNLOAD_RECOGNITION__)return;
+  window.__EXPORTHUB_RC248_ABD_POD_DOWNLOAD_RECOGNITION__=true;
+
+  var SITE248='https://essentra-my.sharepoint.com';
+  var SERVER_FOLDER248='/personal/tobiaslimberg_essentra_com/Documents/003 Export/ExportHub/Sendungen';
+
+  function n248(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function ref248(v){
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24);
+  }
+
+  function fileName248(d){
+    return String((d&&(d.name||d.fileName||d.filename||d.title))||'').trim();
+  }
+
+  function fileUrl248(d){
+    return String((d&&(d.dataUrl||d.url||d.webUrl||d.link||d.sharepointUrl||d.downloadUrl||d.href))||'').trim();
+  }
+
+  function classify248(d){
+    var text=n248(fileName248(d)+' '+fileUrl248(d)+' '+String(d&&d.relativePath||''));
+    if(text.indexOf('abd')>=0)return 'abd';
+    if(text.indexOf('pod')>=0 || text.indexOf('scan')>=0 || text.indexOf('untitled')>=0)return 'pod';
+    return '';
+  }
+
+  function downloadUrl248(reference,name){
+    var r=ref248(reference);
+    name=String(name||'').trim();
+    if(!r || !name)return '';
+    var serverRelative=SERVER_FOLDER248.replace(/\/+$/,'')+'/'+r+'/'+name;
+    return SITE248+'/_layouts/15/download.aspx?SourceUrl='+encodeURIComponent(serverRelative);
+  }
+
+  function viewUrl248(reference,name){
+    var r=ref248(reference);
+    name=String(name||'').trim();
+    if(!r || !name)return '';
+    var path=SERVER_FOLDER248.replace(/^\/personal\//,'/personal/').replace(/ /g,'%20');
+    return SITE248+'/:b:/r'+path+'/'+encodeURIComponent(r)+'/'+encodeURIComponent(name)+'?csf=1&web=1';
+  }
+
+  function extractNames248(text){
+    var out=[], seen={};
+    text=String(text||'');
+    var re=/((?:\[[^\]]+\]|[A-Za-z0-9ÄÖÜäöüß_\-. ]){1,160}\.(?:pdf|jpg|jpeg|png|msg|eml|xlsx?|docx?))/gi;
+    var m;
+    while((m=re.exec(text))){
+      var name=String(m[1]||'').trim().replace(/^[\s:,"']+/,'').replace(/[\s,"']+$/,'');
+      if(!name)continue;
+      var key=n248(name);
+      if(seen[key])continue;
+      if(key.indexOf('abd')<0 && key.indexOf('pod')<0 && key.indexOf('scan')<0 && key.indexOf('untitled')<0)continue;
+      seen[key]=true;
+      out.push({name:name,fileName:name,source:'RC248 Dateiname'});
+    }
+    return out;
+  }
+
+  function pushArr248(out,arr,source){
+    if(!Array.isArray(arr))return;
+    arr.forEach(function(d){
+      if(typeof d==='string')out.push({name:d,fileName:d,source:source});
+      else if(d&&typeof d==='object')out.push(Object.assign({source:source},d));
+    });
+  }
+
+  function docs248(obj){
+    var out=[];
+    if(!obj)return out;
+    ['rc247Docs','rc230Docs','rc228Docs'].forEach(function(k){
+      var box=obj[k];
+      if(box&&typeof box==='object'&&!Array.isArray(box)){
+        if(box.abd)out.push(Object.assign({source:k},box.abd));
+        if(box.pod)out.push(Object.assign({source:k},box.pod));
+      }
+    });
+    ['abdFiles','podFiles','deliveryFiles','files','documents','docs','attachments','sharepointFiles','referenceFolderFiles','uploadedFiles','dncFiles'].forEach(function(k){
+      pushArr248(out,obj[k],k);
+    });
+    ['deliveryNotes','note','manualText','abdDocument','podDocument','documentText','fileNames','dncText'].forEach(function(k){
+      out=out.concat(extractNames248(obj[k]));
+    });
+    try{out=out.concat(extractNames248(JSON.stringify(obj)))}catch(err){}
+    var seen={};
+    return out.filter(function(d){
+      var name=fileName248(d), url=fileUrl248(d);
+      if(!name && !url)return false;
+      var key=n248(name+' '+url);
+      if(seen[key])return false;
+      seen[key]=true;
+      return true;
+    });
+  }
+
+  function bestDoc248(target,kind,fallback){
+    var all=docs248(target);
+    if(fallback)all=all.concat(docs248(fallback));
+    var exact=all.filter(function(d){return classify248(d)===kind});
+    if(!exact.length)return null;
+    exact.sort(function(a,b){
+      var au=fileUrl248(a)?1:0;
+      var bu=fileUrl248(b)?1:0;
+      return bu-au;
+    });
+    return exact[0]||null;
+  }
+
+  function findShipment248(reference){
+    var r=ref248(reference);
+    try{
+      return (state.shipments||[]).find(function(s){return ref248(s&&s.ref)===r})||null;
+    }catch(err){}
+    return null;
+  }
+
+  function normalizeDoc248(target,kind,fallback){
+    if(!target)return false;
+    var doc=bestDoc248(target,kind,fallback);
+    if(!doc)return false;
+    var reference=target.ref || (fallback&&fallback.ref) || '';
+    var name=fileName248(doc) || (kind==='abd'?'ABD.pdf':'POD.pdf');
+    var originalUrl=fileUrl248(doc);
+    var url=originalUrl || downloadUrl248(reference,name);
+    if(!url)return false;
+    var item=Object.assign({},doc,{
+      name:name,
+      fileName:name,
+      url:url,
+      downloadUrl:originalUrl || downloadUrl248(reference,name),
+      webUrl:originalUrl || viewUrl248(reference,name),
+      href:url,
+      rc248Linked:true,
+      source:doc.source||'RC248'
+    });
+    target.rc247Docs=target.rc247Docs||{};
+    target.rc230Docs=target.rc230Docs||{};
+    target.rc228Docs=target.rc228Docs||{};
+    target.rc247Docs[kind]=item;
+    target.rc230Docs[kind]=item;
+    target.rc228Docs[kind]=item;
+    if(kind==='abd'){
+      target.abdFiles=Array.isArray(target.abdFiles)?target.abdFiles:[];
+      target.abdFiles=target.abdFiles.filter(function(x){return classify248(x)!=='abd'});
+      target.abdFiles.unshift(item);
+      target.abdStatus='Dokument vorhanden';
+    }else{
+      target.podFiles=Array.isArray(target.podFiles)?target.podFiles:[];
+      target.podFiles=target.podFiles.filter(function(x){return classify248(x)!=='pod'});
+      target.podFiles.unshift(item);
+      target.podStatus='hochgeladen';
+    }
+    return true;
+  }
+
+  function save248(){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch && typeof state!=='undefined'){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:state.users||[],
+            state:state
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+  }
+
+  function migrate248(){
+    var changed=false;
+    try{
+      (state.shipments||[]).forEach(function(s){
+        changed=normalizeDoc248(s,'abd')||changed;
+        changed=normalizeDoc248(s,'pod')||changed;
+      });
+      (state.abdRequests||[]).forEach(function(r){
+        var ship=findShipment248(r&&r.ref);
+        changed=normalizeDoc248(r,'abd',ship)||changed;
+      });
+    }catch(err){}
+    if(changed)save248();
+    return changed;
+  }
+
+  function fixDownloadButtons248(root){
+    root=root||document;
+    try{
+      Array.from(root.querySelectorAll('.rc247-doc-card.linked,.rc230-doc-card,.rc228-doc-card')).forEach(function(card){
+        var text=n248(card.textContent);
+        if(text.indexOf('pod')>=0 && (text.indexOf('scan')>=0 || text.indexOf('untitled')>=0 || text.indexOf('pdf')>=0)){
+          card.classList.add('linked');
+        }
+        Array.from(card.querySelectorAll('a[href],button[onclick]')).forEach(function(el){
+          if(n248(el.textContent).indexOf('pdf')>=0 && el.tagName==='A'){
+            el.setAttribute('download','');
+            el.setAttribute('target','_blank');
+            el.setAttribute('rel','noopener');
+          }
+        });
+      });
+    }catch(err){}
+  }
+
+  var baseOverview248=window.shipmentoverview || (typeof shipmentoverview==='function'?shipmentoverview:null);
+  if(typeof baseOverview248==='function' && !baseOverview248.__rc248Wrapped){
+    var wrappedOverview248=function(){
+      migrate248();
+      var html=baseOverview248.apply(this,arguments);
+      setTimeout(function(){fixDownloadButtons248(document)},80);
+      setTimeout(function(){fixDownloadButtons248(document)},350);
+      return html;
+    };
+    wrappedOverview248.__rc248Wrapped=true;
+    window.shipmentoverview=wrappedOverview248;
+    try{shipmentoverview=wrappedOverview248}catch(err){}
+  }
+
+  var baseRender248=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender248==='function' && !baseRender248.__rc248Wrapped){
+    var wrappedRender248=function(){
+      migrate248();
+      var result=baseRender248.apply(this,arguments);
+      setTimeout(function(){fixDownloadButtons248(document)},120);
+      setTimeout(function(){fixDownloadButtons248(document)},500);
+      return result;
+    };
+    wrappedRender248.__rc248Wrapped=true;
+    window.render=wrappedRender248;
+    try{render=wrappedRender248}catch(err){}
+  }
+
+  window.rc248FixAbdPodLinks=function(){
+    migrate248();
+    try{render()}catch(err){}
+    return false;
+  };
+
+  setTimeout(migrate248,250);
+})();
+</script>
+<!-- PRIVATE RC248 END: ABD/POD Downloadlink + POD-Erkennung -->
   
 </body></html>
 
