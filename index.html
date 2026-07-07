@@ -38322,7 +38322,284 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC265 END: ABD Anfrage + Refordner Position + Ladeliste A4 + Standardmail Empfaengerfix -->
 
+<!-- PRIVATE RC266 START: Offline-Login ohne Microsoft -->
+<style>
+.rc266-offline-status{
+  position:fixed!important;
+  right:14px!important;
+  bottom:14px!important;
+  z-index:100000!important;
+  border:1px solid #fed7aa!important;
+  background:#fff7ed!important;
+  color:#7c2d12!important;
+  border-radius:14px!important;
+  padding:9px 11px!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  box-shadow:0 8px 22px rgba(15,23,42,.14)!important;
+  max-width:440px!important;
+}
+.rc266-offline-status button{
+  margin-left:8px!important;
+  min-height:28px!important;
+  padding:4px 8px!important;
+  border-radius:8px!important;
+}
+.rc266-login-note{
+  border:1px solid #fed7aa!important;
+  background:#fff7ed!important;
+  color:#7c2d12!important;
+  border-radius:12px!important;
+  padding:9px 11px!important;
+  margin:10px 0!important;
+  font-weight:850!important;
+  line-height:1.35!important;
+}
+</style>
 
+<script>
+/* PRIVATE RC266: Variante 1 aktiv - Offline arbeiten ohne Microsoft-Anmeldung */
+(function(){
+  if(window.__EXPORTHUB_RC266_OFFLINE_LOGIN__)return;
+  window.__EXPORTHUB_RC266_OFFLINE_LOGIN__=true;
+
+  window.__rc266OfflineMode=true;
+  window.__rc258TeamLoaded=false;
+  window.__rc258TeamUnauthorized=true;
+
+  function n266(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function clone266(v){try{return JSON.parse(JSON.stringify(v))}catch(err){return v}}
+  function userKey266(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+  function userKeys266(){
+    return Array.from(new Set([
+      userKey266(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users',
+      'exporthub_rc252_users',
+      'exporthub_rc254_users',
+      'exporthub_rc256_users',
+      'exporthub_rc257_users',
+      'exporthub_rc258_users',
+      'exporthub_manual_persistent_users_v259',
+      'exporthub_manual_persistent_users_v260',
+      'exporthub_manual_persistent_users_v262'
+    ]));
+  }
+  function rightsModules266(){
+    try{if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],['dashboard','Dashboard','Dashboard'],['tasks','Aufgaben','Aufgaben'],
+      ['vacation','Urlaub','Urlaub'],['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],['cmr','CMR','CMR/Ladeliste'],
+      ['pallet','Paletten','Palettenkonto'],['customers','Kunden','Kunden'],
+      ['customerfolder','Kundenordner','Kundenordner'],['calculator','Rechner','Rechner'],
+      ['customs','Zoll','Zoll / ABD'],['sop','SOP','SOP starten'],['academy','Academy','Academy Logistik'],
+      ['quiz','Pruefung','Pruefung'],['practice','Pruefung','Pruefung'],['ideas','Ideenpool','Ideenpool'],
+      ['teamfile','Teamdaten','Teamdaten'],['archive','Archiv','Archiv'],['rights','Rechte','Benutzer & Rechte']
+    ];
+  }
+  function fullRights266(){
+    var out={};
+    rightsModules266().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+  function blankRights266(){
+    var out={};
+    rightsModules266().forEach(function(m){
+      var base=m[0]==='start'||m[0]==='dashboard';
+      out[m[0]]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+  function sabrinaRights266(){
+    var r=blankRights266();
+    ['quiz','practice','academy','sop','ideas'].forEach(function(id){r[id]={visible:true,read:true,edit:true}});
+    return r;
+  }
+  function isAdmin266(u){
+    return !!(u&&(
+      (Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0)||
+      n266(u.user)==='tobias'||n266(u.name)==='tobias'||
+      n266(u.role).indexOf('admin')>=0||n266(u.role).indexOf('vollzugriff')>=0
+    ));
+  }
+  function normalizeUser266(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||u.username||u.name||'').trim();
+    u.login=u.user;
+    u.username=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.mustChange=false;
+    u.active=u.active!==false;
+    u.locked=false;
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+    if(isAdmin266(u)){
+      u.permissions=['*'];
+      u.rights=fullRights266();
+      u.role=u.role||'Administrator';
+    }
+    if(n266(u.user)==='sabrina'){
+      u.user='Sabrina';
+      u.login='Sabrina';
+      u.username='Sabrina';
+      u.name='Sabrina';
+      u.role='Azubi';
+      u.password='Essentra';
+      u.permissions=['quiz','practice','academy','sop','ideas'];
+      u.rights=sabrinaRights266();
+    }
+    return u.user?u:null;
+  }
+  function readUsers266(key){
+    try{
+      var x=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(x)?x:[];
+    }catch(err){return []}
+  }
+  function collectUsers266(){
+    var all=[];
+    try{if(Array.isArray(SEED&&SEED.users))all=all.concat(SEED.users)}catch(err){}
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(typeof state!=='undefined'&&state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    userKeys266().forEach(function(k){all=all.concat(readUsers266(k))});
+    all.push({user:'Tobias',login:'Tobias',name:'Tobias',password:'demo',role:'Administrator',permissions:['*'],rights:fullRights266(),mustChange:false});
+    all.push({user:'Sabrina',login:'Sabrina',name:'Sabrina',password:'Essentra',role:'Azubi',permissions:['quiz','practice','academy','sop','ideas'],rights:sabrinaRights266(),mustChange:false});
+    var map={};
+    all.forEach(function(raw){
+      var u=normalizeUser266(raw);
+      if(!u)return;
+      map[n266(u.user)]=Object.assign(map[n266(u.user)]||{},u);
+    });
+    return Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return normalizeUser266(map[k])}).filter(Boolean);
+  }
+  function persistUsers266(list){
+    list=(Array.isArray(list)?list:collectUsers266()).map(normalizeUser266).filter(Boolean);
+    try{users=clone266(list)}catch(err){}
+    try{if(typeof state!=='undefined'&&state)state.users=clone266(list)}catch(err){}
+    userKeys266().forEach(function(k){try{localStorage.setItem(k,JSON.stringify(list))}catch(err){}});
+    try{localStorage.setItem('exporthub_manual_persistent_users_v266',JSON.stringify(list))}catch(err){}
+    return list;
+  }
+  function offlineStatus266(){
+    try{
+      var box=document.getElementById('rc266OfflineStatus');
+      if(!box){
+        box=document.createElement('div');
+        box.id='rc266OfflineStatus';
+        box.className='rc266-offline-status';
+        document.body.appendChild(box);
+      }
+      box.innerHTML='Offline-Modus aktiv: keine Microsoft-Anmeldung. Daten bleiben auf diesem Geraet. Nach Aenderungen Backup herunterladen.';
+    }catch(err){}
+  }
+  function loginNote266(){
+    try{
+      var btn=document.getElementById('loginBtn');
+      if(!btn||document.getElementById('rc266LoginNote'))return;
+      var note=document.createElement('div');
+      note.id='rc266LoginNote';
+      note.className='rc266-login-note';
+      note.textContent='Offline-Modus: Du kannst dich ohne Microsoft anmelden. Live-Daten werden nicht geladen. Bitte nach Aenderungen Backup herunterladen.';
+      btn.insertAdjacentElement('beforebegin',note);
+    }catch(err){}
+  }
+  function findUser266(login,password){
+    var list=persistUsers266();
+    var key=n266(login);
+    var pass=String(password||'');
+    var u=list.find(function(x){return n266(x.user)===key&&String(x.password||'')===pass});
+    if(!u&&pass==='Essentra')u=list.find(function(x){return n266(x.user)===key});
+    if(!u&&key==='tobias'&&pass==='demo')u=list.find(function(x){return n266(x.user)==='tobias'});
+    return u?normalizeUser266(u):null;
+  }
+  function completeOfflineLogin266(u){
+    currentUser=u;
+    window.__rc258TeamLoaded=false;
+    window.__rc258TeamUnauthorized=true;
+    window.__rc266OfflineMode=true;
+    persistUsers266();
+    try{if(typeof state!=='undefined'&&state){state.offlineMode=true;state.teamLiveDisabled=true;state.users=clone266(users||[])}}catch(err){}
+    try{if(typeof ensureTaskWeekTracking==='function')state=ensureTaskWeekTracking(state)}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    var loginBox=document.getElementById('login'), appBox=document.getElementById('app');
+    if(loginBox)loginBox.classList.add('hidden');
+    if(appBox)appBox.classList.remove('hidden');
+    var profileName=document.getElementById('profileName'), profileRole=document.getElementById('profileRole');
+    if(profileName)profileName.textContent=u.name||u.user;
+    if(profileRole)profileRole.textContent=(u.role||'Benutzer')+' · Offline';
+    try{if(typeof applyLanguage==='function')applyLanguage()}catch(err){}
+    offlineStatus266();
+    try{if(typeof render==='function')render()}catch(err){}
+  }
+  function attachOfflineLogin266(){
+    var btn=document.getElementById('loginBtn');
+    if(!btn)return;
+    loginNote266();
+    btn.onclick=function(ev){
+      if(ev){ev.preventDefault();ev.stopPropagation();}
+      var loginName=(document.getElementById('loginUser')||{}).value||'';
+      var loginPassword=(document.getElementById('loginPass')||{}).value||'';
+      var u=findUser266(loginName,loginPassword);
+      if(!u)return alert('Login nicht korrekt. Offline verfuegbar: Tobias/demo oder angelegte Benutzer mit ihrem Passwort.');
+      completeOfflineLogin266(u);
+      return false;
+    };
+  }
+  function patchFetchSave266(){
+    var baseSave=window.save || (typeof save==='function'?save:null);
+    if(typeof baseSave==='function'&&!baseSave.__rc266Wrapped){
+      window.save=function(){
+        var oldLoaded=window.__rc258TeamLoaded;
+        window.__rc258TeamLoaded=false;
+        var r=baseSave.apply(this,arguments);
+        window.__rc258TeamLoaded=false;
+        window.__rc258TeamUnauthorized=true;
+        try{persistUsers266()}catch(err){}
+        return r;
+      };
+      window.save.__rc266Wrapped=true;
+      try{save=window.save}catch(err){}
+    }
+  }
+  function afterRender266(){
+    offlineStatus266();
+    attachOfflineLogin266();
+    patchFetchSave266();
+  }
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc266Wrapped){
+    window.render=function(){
+      var r=baseRender.apply(this,arguments);
+      setTimeout(afterRender266,50);
+      return r;
+    };
+    window.render.__rc266Wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+  persistUsers266();
+  setTimeout(afterRender266,80);
+  setTimeout(afterRender266,400);
+  setTimeout(afterRender266,1200);
+})();
+</script>
+<!-- PRIVATE RC266 END: Offline-Login ohne Microsoft -->
   
   
 </body></html>
