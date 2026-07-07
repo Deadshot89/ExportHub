@@ -37418,7 +37418,389 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC263 END: Alte Mail-senden-Funktion entfernen -->
 
+<!-- PRIVATE RC264 START: Academy + Pruefung Schwierigkeit und 15-Fragen Tests -->
+<style>
+.rc264-panel{
+  border:1px solid #bfdbfe!important;
+  background:#f8fbff!important;
+  border-radius:16px!important;
+  padding:14px!important;
+  margin:12px 0!important;
+}
+.rc264-toolbar{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  margin:10px 0 14px!important;
+}
+.rc264-toolbar button,
+.rc264-toolbar select{
+  min-height:38px!important;
+}
+.rc264-test-grid{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(80px,1fr))!important;
+  gap:8px!important;
+  margin:10px 0!important;
+}
+.rc264-test-grid button{
+  min-height:36px!important;
+  padding:7px 8px!important;
+  border-radius:10px!important;
+}
+.rc264-question-card{
+  border:2px solid #2563eb!important;
+  background:#fff!important;
+  border-radius:18px!important;
+  padding:18px!important;
+  box-shadow:0 10px 24px rgba(15,23,42,.08)!important;
+}
+.rc264-question-card h2{
+  margin:8px 0 12px!important;
+}
+.rc264-chip{
+  display:inline-flex!important;
+  border-radius:999px!important;
+  padding:4px 8px!important;
+  margin:2px!important;
+  font-size:12px!important;
+  font-weight:950!important;
+  background:#dbeafe!important;
+  color:#1e3a8a!important;
+}
+.rc264-option{
+  display:block!important;
+  width:100%!important;
+  text-align:left!important;
+  border:1px solid #dbeafe!important;
+  background:#fff!important;
+  border-radius:12px!important;
+  padding:11px!important;
+  margin:8px 0!important;
+  font-weight:850!important;
+}
+.rc264-option.correct{background:#dcfce7!important;border-color:#86efac!important}
+.rc264-option.wrong{background:#fee2e2!important;border-color:#fecaca!important}
+@media(max-width:900px){
+  .rc264-test-grid{grid-template-columns:repeat(2,minmax(100px,1fr))!important}
+}
+</style>
 
+<script>
+/* PRIVATE RC264: Schwierigkeit fuer Academy/Pruefung, Quick-Test 15 Fragen, 20 Tests je 15 Fragen */
+(function(){
+  if(window.__EXPORTHUB_RC264_ACADEMY_QUIZ_DIFFICULTY__)return;
+  window.__EXPORTHUB_RC264_ACADEMY_QUIZ_DIFFICULTY__=true;
+
+  var oldAcademy264=window.academy || (typeof academy==='function'?academy:null);
+  var oldQuiz264=window.quiz || (typeof quiz==='function'?quiz:null);
+
+  function s264(){try{return typeof state!=='undefined'&&state?state:null}catch(err){return null}}
+  function e264(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});
+  }
+  function n264(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function head264(title,sub){
+    try{if(typeof head==='function')return head(title,sub)}catch(err){}
+    return '<div class="page-head"><div><h2>'+e264(title)+'</h2><p>'+e264(sub||'')+'</p></div></div>';
+  }
+  function seedRand264(seed){
+    var x=Math.sin(seed)*10000;
+    return x-Math.floor(x);
+  }
+  function shuffle264(arr,seed){
+    arr=arr.slice();
+    for(var i=arr.length-1;i>0;i--){
+      var j=Math.floor(seedRand264(seed+i*17)*(i+1));
+      var t=arr[i];arr[i]=arr[j];arr[j]=t;
+    }
+    return arr;
+  }
+  function qid264(q,i){
+    return 'q'+i+'_'+n264((q.q||'').slice(0,80)).replace(/\s+/g,'_');
+  }
+  function difficulty264(q,i){
+    var txt=n264([q.level,q.area,q.q,q.why].join(' '));
+    if(/basis|grund|einfach|start|definition/.test(txt))return 'leicht';
+    if(/zoll|atlas|mrn|eori|praeferenz|praferenz|dual|ausfuhr|drittland|notfall|kritisch|hs code|warennummer/.test(txt))return 'schwer';
+    if(/praxis|prozess|sop|portal|anmeldung|cmr|ladeliste|palette|transport/.test(txt))return 'mittel';
+    return ['leicht','mittel','schwer'][i%3];
+  }
+  function normQuestion264(raw,i,source,area){
+    if(!raw||!raw.q||!Array.isArray(raw.a)||raw.a.length<2)return null;
+    return {
+      id:qid264(raw,i),
+      q:String(raw.q),
+      a:raw.a.map(function(x){return String(x)}),
+      correct:Number(raw.correct||0),
+      why:String(raw.why||''),
+      area:String(raw.area||area||source||'Logistik'),
+      level:String(raw.level||'Praxis'),
+      source:String(source||'ExportHUB'),
+      difficulty:difficulty264(raw,i)
+    };
+  }
+  function pool264(){
+    var out=[], idx=0;
+    try{
+      (SEED.quiz||[]).forEach(function(q){var x=normQuestion264(q,idx++,'Pruefung',q.area);if(x)out.push(x)});
+    }catch(err){}
+    try{
+      (SEED.exerciseAreas||[]).forEach(function(area){
+        (area.exercises||[]).forEach(function(q){
+          var x=normQuestion264(q,idx++,'Academy',area.title||area.id);
+          if(x)out.push(x);
+        });
+      });
+    }catch(err){}
+    try{
+      if(Array.isArray(window.ZOLL_TESTS)){
+        window.ZOLL_TESTS.forEach(function(q){var x=normQuestion264(q,idx++,'Zollwissen',q.area);if(x)out.push(x)});
+      }
+    }catch(err){}
+    var seen={};
+    out=out.filter(function(q){
+      var k=n264(q.q);
+      if(!k||seen[k])return false;
+      seen[k]=true;
+      return true;
+    });
+    return out;
+  }
+  function filteredPool264(diff){
+    var all=pool264();
+    if(diff&&diff!=='alle'){
+      var f=all.filter(function(q){return q.difficulty===diff});
+      if(f.length>=15)return f;
+    }
+    return all;
+  }
+  function selectTestQuestions264(testNo,diff){
+    var seed=(testNo==='quick'?1001:2600+Number(testNo||1));
+    var src=shuffle264(filteredPool264(diff),seed);
+    var groups={};
+    src.forEach(function(q){
+      var a=q.area||'Logistik';
+      groups[a]=groups[a]||[];
+      groups[a].push(q);
+    });
+    var areas=shuffle264(Object.keys(groups),seed+77);
+    var out=[], guard=0;
+    while(out.length<15&&guard<500){
+      guard++;
+      areas.forEach(function(area){
+        if(out.length>=15)return;
+        var q=(groups[area]||[]).shift();
+        if(q&&!out.some(function(x){return x.id===q.id}))out.push(q);
+      });
+      if(!areas.some(function(area){return (groups[area]||[]).length}))break;
+    }
+    src.forEach(function(q){if(out.length<15&&!out.some(function(x){return x.id===q.id}))out.push(q)});
+    return out.slice(0,15);
+  }
+  function currentDiff264(){
+    var st=s264();
+    st.rc264Difficulty=st.rc264Difficulty||'alle';
+    return st.rc264Difficulty;
+  }
+  function currentTest264(){
+    var st=s264();
+    st.rc264TestNo=st.rc264TestNo||'quick';
+    return st.rc264TestNo;
+  }
+  function testKey264(){
+    return String(currentTest264())+'_'+currentDiff264();
+  }
+  function answers264(){
+    var st=s264();
+    st.rc264QuizAnswers=st.rc264QuizAnswers||{};
+    st.rc264QuizAnswers[testKey264()]=st.rc264QuizAnswers[testKey264()]||{};
+    return st.rc264QuizAnswers[testKey264()];
+  }
+  function saveRender264(){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+  }
+  function archiveIfDone264(questions,ans){
+    var st=s264();
+    if(!st||!questions.length)return;
+    var answered=questions.filter(function(q){return ans[q.id]!==undefined}).length;
+    if(answered<questions.length)return;
+    st.rc264QuizArchive=Array.isArray(st.rc264QuizArchive)?st.rc264QuizArchive:[];
+    var key=testKey264();
+    if(st.rc264QuizArchive.some(function(x){return x.key===key}))return;
+    var correct=questions.filter(function(q){return Number(ans[q.id])===Number(q.correct)}).length;
+    st.rc264QuizArchive.unshift({
+      key:key,
+      testNo:currentTest264(),
+      difficulty:currentDiff264(),
+      date:new Date().toISOString(),
+      user:(typeof currentUser!=='undefined'&&currentUser&&(currentUser.name||currentUser.user))||'Benutzer',
+      total:questions.length,
+      correct:correct,
+      percent:Math.round(correct/questions.length*100)
+    });
+  }
+  function difficultySelectHtml264(){
+    var d=currentDiff264();
+    return '<label class="field" style="min-width:220px;margin:0">Schwierigkeit'+
+      '<select onchange="rc264SetDifficulty(this.value)">'+
+      '<option value="alle" '+(d==='alle'?'selected':'')+'>Alle</option>'+
+      '<option value="leicht" '+(d==='leicht'?'selected':'')+'>Leicht</option>'+
+      '<option value="mittel" '+(d==='mittel'?'selected':'')+'>Mittel</option>'+
+      '<option value="schwer" '+(d==='schwer'?'selected':'')+'>Schwer</option>'+
+      '</select></label>';
+  }
+  function testsHtml264(){
+    var t=String(currentTest264());
+    var buttons=['<button class="'+(t==='quick'?'btn':'ghost')+'" onclick="rc264SelectTest(&quot;quick&quot;)">Quick-Test 15</button>'];
+    for(var i=1;i<=20;i++){
+      buttons.push('<button class="'+(t===String(i)?'btn':'ghost')+'" onclick="rc264SelectTest(&quot;'+i+'&quot;)">Test '+i+'</button>');
+    }
+    return '<div class="rc264-test-grid">'+buttons.join('')+'</div>';
+  }
+  function quizCard264(mode){
+    var st=s264();
+    st.rc264Step=Number(st.rc264Step||0);
+    var questions=selectTestQuestions264(currentTest264(),currentDiff264());
+    if(!questions.length)return '<div class="notice">Keine Fragen gefunden.</div>';
+    var i=Math.max(0,Math.min(st.rc264Step,questions.length-1));
+    st.rc264Step=i;
+    var q=questions[i], ans=answers264(), chosen=ans[q.id];
+    var answered=questions.filter(function(x){return ans[x.id]!==undefined}).length;
+    var correct=questions.filter(function(x){return Number(ans[x.id])===Number(x.correct)}).length;
+    var pct=Math.round(answered/questions.length*100);
+    archiveIfDone264(questions,ans);
+    return '<div class="metrics">'+
+      '<article class="metric"><span>Frage</span><strong>'+(i+1)+'/'+questions.length+'</strong></article>'+
+      '<article class="metric"><span>Beantwortet</span><strong>'+answered+'</strong></article>'+
+      '<article class="metric"><span>Richtig</span><strong>'+correct+'</strong></article>'+
+      '<article class="metric"><span>Status</span><strong>'+(answered===questions.length?(correct>=12?'Bestanden':'Ueben'):'laeuft')+'</strong></article>'+
+      '</div>'+
+      '<div class="progressbar"><span style="width:'+pct+'%"></span></div>'+
+      '<div class="rc264-question-card">'+
+      '<span class="rc264-chip">'+e264(q.area)+'</span><span class="rc264-chip">'+e264(q.difficulty)+'</span><span class="rc264-chip">'+e264(q.source)+'</span>'+
+      '<h2>'+(i+1)+'. '+e264(q.q)+'</h2>'+
+      q.a.map(function(a,idx){
+        var cls=chosen===idx?(idx===q.correct?' correct':' wrong'):'';
+        return '<button class="rc264-option'+cls+'" onclick="rc264Answer(&quot;'+e264(q.id)+'&quot;,'+idx+')">'+e264(a)+'</button>';
+      }).join('')+
+      (chosen!==undefined?'<div class="'+(Number(chosen)===Number(q.correct)?'okbox':'badbox')+'"><b>'+(Number(chosen)===Number(q.correct)?'Richtig':'Falsch')+'</b><br>'+e264(q.why||'')+'</div>':'<div class="notice">Antwort auswaehlen. Danach erscheint die Erklaerung.</div>')+
+      '<div class="quiz-nav">'+
+      '<button class="ghost" onclick="rc264Step(-1)" '+(i<=0?'disabled':'')+'>Zurueck</button>'+
+      '<button class="btn" onclick="rc264Step(1)" '+(chosen===undefined||i>=questions.length-1?'disabled':'')+'>Weiter</button>'+
+      '<button class="soft" onclick="rc264ResetCurrent()">Test zuruecksetzen</button>'+
+      '</div></div>'+
+      (answered===questions.length?'<div class="okbox"><b>Auswertung:</b> '+correct+' von '+questions.length+' richtig ('+Math.round(correct/questions.length*100)+'%). Ergebnis wurde archiviert.</div>':'');
+  }
+  function archiveHtml264(){
+    var st=s264();
+    var list=Array.isArray(st.rc264QuizArchive)?st.rc264QuizArchive.slice(0,10):[];
+    if(!list.length)return '<div class="notice">Noch keine abgeschlossenen RC264-Tests archiviert.</div>';
+    return '<table class="table"><tr><th>Datum</th><th>Test</th><th>Schwierigkeit</th><th>Richtig</th><th>%</th><th>Benutzer</th></tr>'+
+      list.map(function(x){
+        return '<tr><td>'+e264(String(x.date||'').slice(0,16).replace('T',' '))+'</td><td>'+e264(x.testNo)+'</td><td>'+e264(x.difficulty)+'</td><td>'+e264(x.correct)+'/'+e264(x.total)+'</td><td>'+e264(x.percent)+'%</td><td>'+e264(x.user)+'</td></tr>';
+      }).join('')+'</table>';
+  }
+
+  window.rc264SetDifficulty=function(v){
+    var st=s264();if(!st)return false;
+    st.rc264Difficulty=v||'alle';
+    st.rc264Step=0;
+    saveRender264();
+    return false;
+  };
+  window.rc264SelectTest=function(v){
+    var st=s264();if(!st)return false;
+    st.rc264TestNo=v||'quick';
+    st.rc264Step=0;
+    saveRender264();
+    return false;
+  };
+  window.rc264Answer=function(id,idx){
+    answers264()[id]=idx;
+    try{if(typeof audit==='function')audit('RC264 Test beantwortet',id)}catch(err){}
+    saveRender264();
+    return false;
+  };
+  window.rc264Step=function(delta){
+    var st=s264();if(!st)return false;
+    var questions=selectTestQuestions264(currentTest264(),currentDiff264());
+    st.rc264Step=Math.max(0,Math.min(questions.length-1,Number(st.rc264Step||0)+Number(delta||0)));
+    saveRender264();
+    return false;
+  };
+  window.rc264ResetCurrent=function(){
+    var st=s264();if(!st)return false;
+    st.rc264QuizAnswers=st.rc264QuizAnswers||{};
+    st.rc264QuizAnswers[testKey264()]={};
+    st.rc264Step=0;
+    st.rc264QuizArchive=(st.rc264QuizArchive||[]).filter(function(x){return x.key!==testKey264()});
+    saveRender264();
+    return false;
+  };
+  window.rc264SetAcademyMode=function(v){
+    var st=s264();if(!st)return false;
+    st.rc264AcademyMode=v||'lernen';
+    st.rc264Step=0;
+    saveRender264();
+    return false;
+  };
+
+  window.quiz=function(){
+    var st=s264();if(!st)return oldQuiz264?oldQuiz264():'';
+    st.rc264AcademyMode=st.rc264AcademyMode||'pruefung';
+    return head264('Pruefung','Quick-Test oder Test 1 bis 20. Jeder Test enthaelt genau 15 gemischte Fragen aus den Bereichen.')+
+      '<div class="rc264-panel">'+
+      '<div class="rc264-toolbar">'+difficultySelectHtml264()+
+      '<button class="ghost" onclick="setView(&quot;academy&quot;)">Zur Academy</button>'+
+      '</div>'+
+      testsHtml264()+
+      quizCard264('quiz')+
+      '<h3>Pruefungsarchiv</h3>'+archiveHtml264()+
+      '</div>';
+  };
+  try{quiz=window.quiz}catch(err){}
+
+  window.academy=function(){
+    var st=s264();if(!st)return oldAcademy264?oldAcademy264():'';
+    st.rc264AcademyMode=st.rc264AcademyMode||'lernen';
+    var mode=st.rc264AcademyMode;
+    var modules=(typeof SEED!=='undefined'&&(SEED.academyModules||SEED.academy))||[];
+    var learnHtml='';
+    try{learnHtml=typeof academyLessonsRC54==='function'?academyLessonsRC54(modules):(oldAcademy264?oldAcademy264():'')}catch(err){learnHtml=oldAcademy264?oldAcademy264():''}
+    return head264('Academy Logistik','Lernen und Ueben mit Schwierigkeitsauswahl. Quick-Test und Pruefung laufen mit 15 Fragen.')+
+      '<div class="rc264-panel">'+
+      '<div class="rc264-toolbar">'+
+      '<button class="'+(mode==='lernen'?'btn':'ghost')+'" onclick="rc264SetAcademyMode(&quot;lernen&quot;)">Lernmodule</button>'+
+      '<button class="'+(mode==='uebung'?'btn':'ghost')+'" onclick="rc264SetAcademyMode(&quot;uebung&quot;)">Ueben 15 Fragen</button>'+
+      '<button class="ghost" onclick="setView(&quot;quiz&quot;)">Zur Pruefung</button>'+
+      difficultySelectHtml264()+
+      '</div>'+
+      (mode==='uebung'?testsHtml264()+quizCard264('academy'):learnHtml)+
+      '</div>';
+  };
+  try{academy=window.academy}catch(err){}
+
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc264Wrapped){
+    window.render=function(){
+      var r=baseRender.apply(this,arguments);
+      return r;
+    };
+    window.render.__rc264Wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+})();
+</script>
+<!-- PRIVATE RC264 END: Academy + Pruefung Schwierigkeit und 15-Fragen Tests -->
 
   
 </body></html>
