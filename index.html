@@ -25968,7 +25968,311 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC226 END: Colli-Felder aus State sichtbar wiederherstellen -->
 
+<!-- PRIVATE RC227 START: Debugmeldungen entfernen + Ladeliste Palettenblock stabilisieren -->
+<style>
+/* RC227: technische Colli-Hinweise nicht mehr sichtbar anzeigen */
+#rc221ColliSaveIndicator,
+#rc224ColliGuard,
+#rc226ColliGuard,
+.rc221-colli-save-indicator,
+.rc224-colli-guard,
+.rc226-colli-guard{
+  display:none!important;
+}
 
+/* RC227: alte normale Ladelisten-Schreibfelder aus RC198-RC225 ausblenden */
+#loadListDoc > .load-write-fields,
+.loadlist-pro > .load-write-fields,
+#loadListDoc .rc198-pallet-field,
+#loadListDoc .rc212-pallet-field,
+#loadListDoc .rc215-pallet-field,
+#loadListDoc .rc217-pallet-field,
+#loadListDoc .rc218-pallet-field,
+#loadListDoc .rc220-pallet-field,
+#loadListDoc .rc223-load-bottom,
+#loadListDoc .rc225-load-bottom,
+.loadlist-pro .rc198-pallet-field,
+.loadlist-pro .rc212-pallet-field,
+.loadlist-pro .rc215-pallet-field,
+.loadlist-pro .rc217-pallet-field,
+.loadlist-pro .rc218-pallet-field,
+.loadlist-pro .rc220-pallet-field,
+.loadlist-pro .rc223-load-bottom,
+.loadlist-pro .rc225-load-bottom{
+  display:none!important;
+  visibility:hidden!important;
+}
+
+#loadListDoc,
+.loadlist-pro{
+  position:relative!important;
+  padding-bottom:198px!important;
+}
+
+#rc227LoadlistBottom{
+  position:absolute!important;
+  left:14mm!important;
+  right:14mm!important;
+  bottom:12mm!important;
+  z-index:999!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:10px 12px!important;
+  margin:0!important;
+  pointer-events:none!important;
+  color:#08245d!important;
+  print-color-adjust:exact!important;
+  -webkit-print-color-adjust:exact!important;
+}
+
+#rc227LoadlistBottom .rc227-field{
+  min-height:72px!important;
+  border:2px solid #93c5fd!important;
+  border-radius:14px!important;
+  background:#f8fbff!important;
+  padding:10px 12px!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  print-color-adjust:exact!important;
+  -webkit-print-color-adjust:exact!important;
+}
+
+#rc227LoadlistBottom .rc227-field::before{
+  content:attr(data-label);
+  display:block!important;
+  color:#08245d!important;
+  font-size:13px!important;
+  line-height:1.15!important;
+  font-weight:1000!important;
+  letter-spacing:.03em!important;
+  text-transform:uppercase!important;
+  margin:0 0 7px!important;
+}
+
+#rc227LoadlistBottom .rc227-line{
+  display:block!important;
+  height:24px!important;
+  margin:2px 0 3px!important;
+  border-bottom:2px solid #111827!important;
+}
+
+#rc227LoadlistBottom .rc227-hint::before{
+  content:attr(data-hint);
+}
+
+#rc227LoadlistBottom .rc227-hint{
+  display:block!important;
+  color:#475569!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  font-weight:900!important;
+  min-height:13px!important;
+}
+
+#rc227LoadlistBottom .rc227-value{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:48px!important;
+  min-height:30px!important;
+  margin:0 0 4px!important;
+  padding:5px 12px!important;
+  border-radius:9px!important;
+  background:#dbeafe!important;
+  border:1px solid #60a5fa!important;
+  color:#061d4f!important;
+  font-size:24px!important;
+  line-height:1!important;
+  font-weight:1000!important;
+  print-color-adjust:exact!important;
+  -webkit-print-color-adjust:exact!important;
+}
+
+#rc227LoadlistBottom .rc227-pal-in{
+  background:#f0fdf4!important;
+  border-color:#86efac!important;
+}
+
+#rc227LoadlistBottom .rc227-pal-out{
+  background:#fff7ed!important;
+  border-color:#fdba74!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC227: alter Paletten-Flicker/Doppelung wird ueber einen textarmen Finalblock umgangen */
+(function(){
+  if(window.__EXPORTHUB_RC227_LOADLIST_CLEAN_FINAL__)return;
+  window.__EXPORTHUB_RC227_LOADLIST_CLEAN_FINAL__=true;
+
+  var busy227=false;
+  var timer227=null;
+
+  function norm227(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+
+  function activeShipment227(){
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(err){}
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(err){}
+    try{return state&&state.shipment?state.shipment:{}}catch(err){}
+    return {};
+  }
+
+  function euroOut227(){
+    var s=activeShipment227()||{};
+    var rows=Array.isArray(s.rows)?s.rows:[];
+    return rows.reduce(function(sum,row){
+      var type=norm227(row&&row.type);
+      var count=Number(row&&row.count)||0;
+      if(type.indexOf('euro')>=0 && (type.indexOf('pal')>=0 || type.indexOf('palette')>=0 || type.indexOf('pallet')>=0)){
+        return sum+count;
+      }
+      return sum;
+    },0);
+  }
+
+  function removeDebugMessages227(){
+    var selectors=[
+      '#rc221ColliSaveIndicator',
+      '#rc224ColliGuard',
+      '#rc226ColliGuard',
+      '.rc221-colli-save-indicator',
+      '.rc224-colli-guard',
+      '.rc226-colli-guard'
+    ].join(',');
+    Array.from(document.querySelectorAll(selectors)).forEach(function(el){
+      try{el.remove()}catch(err){el.style.display='none'}
+    });
+
+    Array.from(document.querySelectorAll('div')).forEach(function(el){
+      var txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+      if(
+        txt.indexOf('Colli-Schutz aktiv: Eingaben bleiben')===0 ||
+        txt.indexOf('RC224 aktiv: Colli-Werte werden sofort lokal gesichert')===0 ||
+        txt.indexOf('RC226 aktiv: sichtbare Colli-Felder')===0
+      ){
+        try{el.remove()}catch(err){el.style.display='none'}
+      }
+    });
+  }
+
+  function hideOldLoadBlocks227(load){
+    Array.from(load.querySelectorAll('.load-write-fields,.rc198-pallet-field,.rc212-pallet-field,.rc215-pallet-field,.rc217-pallet-field,.rc218-pallet-field,.rc220-pallet-field,.rc223-load-bottom,.rc225-load-bottom')).forEach(function(el){
+      if(el.id==='rc227LoadlistBottom')return;
+      el.style.display='none';
+      el.style.visibility='hidden';
+      el.setAttribute('aria-hidden','true');
+    });
+  }
+
+  function field227(cls,label,value,hint){
+    var box=document.createElement('div');
+    box.className='rc227-field '+cls;
+    box.setAttribute('data-label',label);
+
+    if(value){
+      var val=document.createElement('span');
+      val.className='rc227-value';
+      val.textContent=String(value);
+      box.appendChild(val);
+    }else{
+      var line=document.createElement('span');
+      line.className='rc227-line';
+      box.appendChild(line);
+    }
+
+    var small=document.createElement('span');
+    small.className='rc227-hint';
+    small.setAttribute('data-hint',hint);
+    box.appendChild(small);
+    return box;
+  }
+
+  function applyLoadlist227(){
+    if(busy227)return;
+    busy227=true;
+    try{
+      removeDebugMessages227();
+      var load=document.getElementById('loadListDoc') || document.querySelector('.loadlist-pro');
+      if(!load)return;
+
+      hideOldLoadBlocks227(load);
+      load.style.position='relative';
+      load.style.paddingBottom='198px';
+
+      Array.from(load.querySelectorAll('#rc227LoadlistBottom')).slice(1).forEach(function(el){el.remove()});
+      var block=load.querySelector('#rc227LoadlistBottom');
+      if(!block){
+        block=document.createElement('div');
+        block.id='rc227LoadlistBottom';
+        load.appendChild(block);
+      }
+
+      block.textContent='';
+      block.appendChild(field227('rc227-sign','Unterschrift Fahrer','','Fahrer unterschreibt bei Abholung'));
+      block.appendChild(field227('rc227-date','Datum / Uhrzeit','','Datum / Uhrzeit'));
+      block.appendChild(field227('rc227-truck','Kennzeichen','','LKW / Trailer'));
+      block.appendChild(field227('rc227-loader','Verlader','','Name / Kuerzel'));
+      block.appendChild(field227('rc227-pal-in','Europaletten Eingang','','Rueckgabe / Eingang'));
+      block.appendChild(field227('rc227-pal-out','Europaletten Ausgang',euroOut227()>0?String(euroOut227()):'','Versendete Euro-Paletten'));
+    }catch(err){
+      console.warn('RC227 Ladelisten-Finalblock konnte nicht gesetzt werden',err);
+    }finally{
+      busy227=false;
+    }
+  }
+
+  function schedule227(){
+    clearTimeout(timer227);
+    timer227=setTimeout(applyLoadlist227,40);
+    setTimeout(applyLoadlist227,180);
+    setTimeout(applyLoadlist227,650);
+  }
+
+  ['showCurrentCmr','showSavedCmr','rc55DownloadLoadlistPdf','rc211DownloadWebsiteLoadlistPdf','rc216DownloadLoadlistPdf','rc217DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc224CollectColliRows','rc226RepairColliFields'].forEach(function(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base==='function' && !base.__rc227Wrapped){
+        var wrapped=function(){
+          var result=base.apply(this,arguments);
+          schedule227();
+          return result;
+        };
+        wrapped.__rc227Wrapped=true;
+        window[name]=wrapped;
+        try{eval(name+'=window[name]')}catch(err){}
+      }
+    }catch(err){}
+  });
+
+  try{
+    if(typeof render==='function' && !render.__rc227Wrapped){
+      var baseRender227=render;
+      window.render=function(){
+        var result=baseRender227.apply(this,arguments);
+        schedule227();
+        return result;
+      };
+      window.render.__rc227Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  try{
+    var observer227=new MutationObserver(function(){schedule227()});
+    observer227.observe(document.body,{childList:true,subtree:true});
+  }catch(err){}
+
+  setInterval(applyLoadlist227,900);
+  setTimeout(applyLoadlist227,80);
+  setTimeout(applyLoadlist227,500);
+})();
+</script>
+<!-- PRIVATE RC227 END: Debugmeldungen entfernen + Ladeliste Palettenblock stabilisieren -->
 
   
 </body></html>
