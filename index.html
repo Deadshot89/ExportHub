@@ -30933,6 +30933,354 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC241 END: Benutzeranlage Hartfix -->
 
+<!-- PRIVATE RC242 START: Benutzer Profil/Anlegen/Rechte Savefix -->
+<script>
+/* PRIVATE RC242: alte Profil-/Benutzerbuttons und Rechte-Speicherbuttons hart auf neuen Speicherweg legen */
+(function(){
+  if(window.__EXPORTHUB_RC242_USER_PROFILE_SAVEFIX__)return;
+  window.__EXPORTHUB_RC242_USER_PROFILE_SAVEFIX__=true;
+
+  function n242(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function key242(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+  function modules242(){
+    try{if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],['dashboard','Dashboard','Dashboard'],['tasks','Aufgaben','Aufgaben'],
+      ['vacation','Urlaub','Urlaub'],['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],['cmr','CMR','CMR/Ladeliste'],
+      ['pallet','Paletten','Palettenkonto'],['customers','Kunden','Kunden'],
+      ['customerfolder','Kundenordner','Kundenordner'],['calculator','Rechner','Rechner'],
+      ['customs','Zoll','Zoll / ABD'],['sop','SOP','SOP'],['academy','Academy','Academy'],
+      ['quiz','Quiz','Quiz'],['teamfile','Teamdaten','Teamdaten'],['archive','Archiv','Archiv'],
+      ['rights','Rechte','Benutzer & Rechte']
+    ];
+  }
+  function blank242(){
+    var out={};
+    modules242().forEach(function(m){
+      var id=m[0], base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+  function full242(){
+    var out={};
+    modules242().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+  function allow242(r,ids,edit){
+    ids.forEach(function(id){
+      if(!r[id])r[id]={visible:false,read:false,edit:false};
+      r[id]={visible:true,read:true,edit:!!edit};
+    });
+  }
+  function preset242(name){
+    name=String(name||'dashboard');
+    if(name==='full'||name==='edit')return full242();
+    var r=blank242();
+    if(name==='dashboard'||name==='none')return r;
+    if(name==='overview'||name==='read'){
+      allow242(r,['tasks','shipmentoverview','customerfolder'],false);
+      return r;
+    }
+    if(name==='shipment'){
+      allow242(r,['shipment','shipmentoverview','cmr'],true);
+      allow242(r,['customers','customerfolder','tasks'],false);
+      return r;
+    }
+    if(name==='customers'){
+      allow242(r,['customers','customerfolder'],true);
+      allow242(r,['shipmentoverview'],false);
+      return r;
+    }
+    if(name==='export'||name==='sevastian'){
+      allow242(r,['tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);
+      return r;
+    }
+    if(name==='readall'){
+      modules242().forEach(function(m){r[m[0]]={visible:true,read:true,edit:false}});
+      return r;
+    }
+    return r;
+  }
+  function isAdmin242(u){
+    return !!(u&&(
+      (Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0)||
+      n242(u.user)==='tobias'||n242(u.name)==='tobias'||
+      n242(u.role).indexOf('admin')>=0||n242(u.role).indexOf('vollzugriff')>=0
+    ));
+  }
+  function norm242(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.mustChange=!!u.mustChange;
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    if(isAdmin242(u)){
+      u.permissions=['*'];
+      u.rights=full242();
+      u.mustChange=false;
+      return u;
+    }
+    var base=blank242(), old=u.rights&&typeof u.rights==='object'?u.rights:{};
+    modules242().forEach(function(m){
+      var id=m[0], x=old[id]||{};
+      base[id]={visible:x.visible===true||id==='start'||id==='dashboard',read:x.read===true||id==='start'||id==='dashboard',edit:x.edit===true};
+      if(!base[id].visible){base[id].read=false;base[id].edit=false}
+      if(!base[id].read)base[id].edit=false;
+    });
+    u.rights=base;
+    return u;
+  }
+  function readKey242(k){
+    try{
+      var x=JSON.parse(localStorage.getItem(k)||'[]');
+      return Array.isArray(x)?x:[];
+    }catch(err){return []}
+  }
+  function collect242(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    [key242(),'exporthub_private_rc113_safe_users','exporthub_private_rc196_users','exporthub_users','exporthub_rc241_users'].forEach(function(k){
+      all=all.concat(readKey242(k));
+    });
+    var map={};
+    all.forEach(function(u){
+      var x=norm242(u);
+      if(x.user)map[n242(x.user)]=Object.assign(map[n242(x.user)]||{},x);
+    });
+    return Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return norm242(map[k])});
+  }
+  function selected242(){
+    try{return state.rc241SelectedUser||state.rc228SelectedUser||state.rc196User||state.rc193RightsUser||state.rc93RightsUser||state.rightsUser||''}catch(err){}
+    return '';
+  }
+  function setSelected242(login){
+    try{
+      state.rc241SelectedUser=login;
+      state.rc228SelectedUser=login;
+      state.rc196User=login;
+      state.rc193RightsUser=login;
+      state.rc93RightsUser=login;
+      state.rightsUser=login;
+    }catch(err){}
+  }
+  function persist242(list,msg){
+    list=(Array.isArray(list)?list:collect242()).map(norm242);
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [key242(),'exporthub_private_rc113_safe_users','exporthub_private_rc196_users','exporthub_users','exporthub_rc241_users'].forEach(function(k){
+      try{localStorage.setItem(k,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(currentUser){
+        var fresh=list.find(function(u){return n242(u.user)===n242(currentUser.user)});
+        if(fresh)currentUser=fresh;
+      }
+    }catch(err){}
+    try{
+      if(window.fetch&&state){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:list,
+            state:Object.assign({},state,{users:list})
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit('Benutzer/Rechte gespeichert',msg||'RC242')}catch(err){}
+    return list;
+  }
+  function field242(ids,fallback){
+    for(var i=0;i<ids.length;i++){
+      var el=document.getElementById(ids[i]);
+      if(el&&String(el.value||'').trim())return String(el.value||'').trim();
+    }
+    return fallback||'';
+  }
+  function create242(){
+    var login=field242(['rc242NewLogin','rc241NewLogin','rc228NewLogin','rc196NewLogin','rc193NewLogin','rc93NewLogin','newUserLogin','userLogin']);
+    var name=field242(['rc242NewName','rc241NewName','rc228NewName','rc196NewName','rc193NewName','rc93NewName','newUserName'],login);
+    var role=field242(['rc242NewRole','rc241NewRole','rc228NewRole','rc196NewRole','rc193NewRole','rc93NewRole','newUserRole'],'Benutzer');
+    var password=field242(['rc242NewPassword','rc241NewPassword','rc228NewPassword','rc196NewPassword','rc193NewPassword','rc93NewPassword','newUserPass','newUserPassword'],'Essentra');
+    var preset=field242(['rc242NewPreset','rc241NewPreset','rc228NewPreset','rc196NewPreset','rc193NewPreset','newUserPreset'],'dashboard');
+    if(!login){alert('Bitte Login / Benutzername eintragen.');return false}
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login)){
+      alert('Login bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.');
+      return false;
+    }
+    if(String(password||'').length<4){
+      alert('Startpasswort muss mindestens 4 Zeichen haben.');
+      return false;
+    }
+    var list=collect242();
+    if(list.some(function(u){return n242(u.user)===n242(login)})){
+      alert('Dieser Benutzer existiert bereits.');
+      setSelected242(login);
+      try{render()}catch(err){}
+      return false;
+    }
+    var u=norm242({user:login,login:login,name:name||login,role:role||'Benutzer',password:password||'Essentra',mustChange:true,permissions:[],rights:preset242(preset)});
+    list.push(u);
+    setSelected242(u.user);
+    persist242(list,'Benutzer '+u.user+' angelegt');
+    alert('Benutzer wurde angelegt: '+u.user);
+    try{render()}catch(err){}
+    return false;
+  }
+  function readOldRights242(u){
+    var rights=blank242(), found=false;
+    modules242().forEach(function(m){
+      var id=m[0];
+      var ids=[
+        ['rc241_'+id+'_visible','rc241_'+id+'_read','rc241_'+id+'_edit'],
+        ['rc93_'+id+'_visible','rc93_'+id+'_read','rc93_'+id+'_edit'],
+        ['rc196_'+id+'_visible','rc196_'+id+'_read','rc196_'+id+'_edit'],
+        ['rc193_'+id+'_visible','rc193_'+id+'_read','rc193_'+id+'_edit']
+      ];
+      var old=(u.rights&&u.rights[id])||rights[id]||{};
+      rights[id]={visible:!!old.visible,read:!!old.read,edit:!!old.edit};
+      ids.forEach(function(set){
+        var v=document.getElementById(set[0]), r=document.getElementById(set[1]), e=document.getElementById(set[2]);
+        if(v||r||e){
+          found=true;
+          rights[id]={visible:v?!!v.checked:!!old.visible,read:r?!!r.checked:!!old.read,edit:e?!!e.checked:!!old.edit};
+        }
+      });
+      if(id==='start'||id==='dashboard'){rights[id].visible=true;rights[id].read=true}
+      if(!rights[id].visible){rights[id].read=false;rights[id].edit=false}
+      if(!rights[id].read)rights[id].edit=false;
+    });
+    return found?rights:(u.rights||rights);
+  }
+  function saveRights242(){
+    var login=field242(['rc241EditUser','rc228EditUser','rc196EditUser','rc193EditUser','rc93RightsUserSelect'],selected242());
+    var list=collect242();
+    var u=list.find(function(x){return n242(x.user)===n242(login)});
+    if(!u){alert('Bitte zuerst Benutzer/Person auswaehlen.');return false}
+    var pass=field242(['rc241EditPassword','rc228EditPassword','rc196EditPassword','rc193EditPassword','resetPass'],'');
+    var name=field242(['rc241EditName','rc228EditName','rc196EditName','rc193EditName'],u.name||u.user);
+    var role=field242(['rc241EditRole','rc228EditRole','rc196EditRole','rc193EditRole'],u.role||'Benutzer');
+    var preset=field242(['rc241EditPreset','rc228EditPreset','rc196EditPreset','rc193EditPreset','quickRightsPreset'],'manual');
+    u.name=name||u.name||u.user;
+    u.role=role||u.role||'Benutzer';
+    if(pass)u.password=pass;
+    var mc=document.getElementById('rc241EditMustChange')||document.getElementById('resetMustChange');
+    if(mc)u.mustChange=!!mc.checked;
+    if(!isAdmin242(u)){
+      u.permissions=[];
+      u.rights=(preset&&preset!=='manual')?preset242(preset):readOldRights242(u);
+    }
+    var idx=list.findIndex(function(x){return n242(x.user)===n242(u.user)});
+    if(idx>=0)list[idx]=norm242(u);
+    setSelected242(u.user);
+    persist242(list,'Rechte fuer '+u.user+' gespeichert');
+    alert('Benutzer/Rechte gespeichert: '+u.user);
+    try{render()}catch(err){}
+    return false;
+  }
+  function select242(){
+    var login=field242(['rc93RightsUserSelect','rc241EditUser','rc228EditUser','rc196EditUser','rc193EditUser'],selected242());
+    if(login)setSelected242(login);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{render()}catch(err){}
+    return false;
+  }
+  function unlockButtons242(){
+    try{
+      document.querySelectorAll('button[disabled]').forEach(function(b){
+        var t=n242(b.textContent||'');
+        if(t.indexOf('benutzer')>=0||t.indexOf('rechte')>=0||t.indexOf('person aufrufen')>=0)b.disabled=false;
+      });
+    }catch(err){}
+  }
+
+  window.rc242CreateUser=create242;
+  window.rc242SaveRights=saveRights242;
+  window.rc242SelectUser=select242;
+  window.rc242CollectUsers=collect242;
+
+  try{createUser=create242}catch(err){}
+  window.createUser=create242;
+  window.rc93CreateUserAndOpen=create242;
+  window.rc193CreateUser=create242;
+  window.rc196CreateUser=create242;
+  window.rc201CreateUser=create242;
+  window.rc228CreateUser=create242;
+  window.rc241CreateUser=create242;
+
+  window.rc93SaveSelectedUserRights=saveRights242;
+  window.rc193SaveSelectedUser=saveRights242;
+  window.rc196SaveUser=saveRights242;
+  window.rc228SaveUser=saveRights242;
+  window.rc241SaveUser=saveRights242;
+
+  window.rc93SelectRightsUser=select242;
+  try{canManageRights=function(){return true}}catch(err){}
+
+  document.addEventListener('click',function(ev){
+    var btn=ev.target&&ev.target.closest?ev.target.closest('button'):null;
+    if(!btn)return;
+    var t=n242(btn.textContent||'');
+    if(
+      t==='benutzer anlegen' ||
+      t==='benutzer anlegen aufrufen' ||
+      t.indexOf('benutzer anlegen')===0
+    ){
+      ev.preventDefault();
+      ev.stopPropagation();
+      create242();
+      return false;
+    }
+    if(
+      t.indexOf('rechte')>=0 && t.indexOf('speichern')>=0 ||
+      t.indexOf('benutzer')>=0 && t.indexOf('speichern')>=0
+    ){
+      ev.preventDefault();
+      ev.stopPropagation();
+      saveRights242();
+      return false;
+    }
+    if(t==='person aufrufen'||t==='profil oeffnen'||t==='profil offnen'||t==='profil öffnen'||t.indexOf('aufrufen')>=0){
+      ev.preventDefault();
+      ev.stopPropagation();
+      select242();
+      return false;
+    }
+  },true);
+
+  setInterval(unlockButtons242,1000);
+  setTimeout(unlockButtons242,250);
+})();
+</script>
+<!-- PRIVATE RC242 END: Benutzer Profil/Anlegen/Rechte Savefix -->
+  
   
 </body></html>
 
