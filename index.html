@@ -19860,14 +19860,11 @@ button[onclick*="Ordnername"]{
         return /Collis,\s*(Masse|Maße),\s*Gewicht,\s*Lademeter/i.test(card.textContent||'');
       });
       if(!collis)return;
-      var old=collis.querySelector('.rc200-bottom-ref');
-      if(old)old.remove();
-      var wrap=document.createElement('div');
-      wrap.className='rc200-bottom-ref';
-      wrap.innerHTML='<button type="button" class="ghost rc192-ref-folder-btn" onclick="return rc192OpenReferenceFolder()">Referenzordner oeffnen</button>';
-      collis.appendChild(wrap);
-    }catch(err){}
-  }
+	      var old=collis.querySelector('.rc200-bottom-ref');
+	      if(old)old.remove();
+	      return;
+	    }catch(err){}
+	  }
 
   var baseRender200=typeof render==='function'?render:null;
   if(baseRender200){
@@ -38728,11 +38725,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
       if(anchor)anchor.insertAdjacentElement('afterend',bar);
       else card.appendChild(bar);
     }
-	    bar.innerHTML=
-	      '<button type="button" class="btn" onclick="return rc268SaveShipment()">Sendung speichern + Aufgaben pruefen</button>'+
-	      '<button type="button" class="ghost" onclick="return rc268ShowCmr()">Ladeliste/CMR Vorschau</button>'+
-	      '<span class="rc268-colli-note">Aktionen fuer diese Sendung</span>';
-	  }
+		    bar.innerHTML=
+		      '<button type="button" class="btn" onclick="return rc268SaveShipment()">Sendung speichern + Aufgaben pruefen</button>'+
+		      '<button type="button" class="ghost" onclick="return rc268ShowCmr()">Ladeliste/CMR Vorschau</button>';
+		  }
   window.rc268SaveShipment=function(){
     try{if(typeof saveShipment==='function'){saveShipment();return false}}catch(err){}
     alert('Speicherfunktion nicht gefunden.');
@@ -38809,44 +38805,62 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
  
  
   
-<style id="rc274-6-final-css">
-  #rc261MailPanel.rc274-after-colli{
-    grid-column:1 / -1!important;
-    margin:12px 0 0!important;
-  }
-  .rc274-abd-link-note{
-    display:block!important;
-    margin-top:6px!important;
+<style id="rc274-7-final-css">
+	  #rc261MailPanel.rc274-after-colli{
+	    grid-column:1 / -1!important;
+	    margin:12px 0!important;
+	  }
+	  .rc268-colli-note,
+	  .rc200-bottom-ref{
+	    display:none!important;
+	  }
+	  .rc274-abd-link-note{
+	    display:block!important;
+	    margin-top:6px!important;
     color:#1e3a8a!important;
     font-size:12px!important;
     font-weight:900!important;
   }
 </style>
 <script>
-/* PRIVATE RC274.6: Sendungserstellung finalisieren */
-(function(){
-  if(window.__EXPORTHUB_RC274_6_SENDUNG_FINAL__)return;
-  window.__EXPORTHUB_RC274_6_SENDUNG_FINAL__=true;
+	/* PRIVATE RC274.7: Sendungserstellung finalisieren */
+	(function(){
+	  if(window.__EXPORTHUB_RC274_7_SENDUNG_FINAL__)return;
+	  window.__EXPORTHUB_RC274_7_SENDUNG_FINAL__=true;
 
   function st(){try{return typeof state!=='undefined'&&state?state:null}catch(err){return null}}
   function view(){var s=st();return String((s&&s.view)||'')}
   function txt(el){return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim()}
   function ref(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
   function esc274(v){try{if(typeof esc==='function')return esc(v)}catch(err){}return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
-  function colliCard(){
-    return Array.from(document.querySelectorAll('.card,section,article,div')).find(function(el){
-      var h=el.querySelector&&el.querySelector('h3,h2,h4');
-      return h&&/^Collis,\s*(Masse|Maße),\s*Gewicht,\s*Lademeter$/i.test(txt(h));
-    })||null;
-  }
-  function moveStandardmail(){
-    if(view()!=='shipment')return;
-    var panel=document.getElementById('rc261MailPanel');
-    var card=colliCard();
-    if(!panel||!card)return;
-    panel.classList.add('rc274-after-colli');
-    if(card.nextElementSibling!==panel)card.insertAdjacentElement('afterend',panel);
-  }
+	  function colliCard(){
+	    return Array.from(document.querySelectorAll('.card,section,article,div')).find(function(el){
+	      var h=el.querySelector&&el.querySelector('h3,h2,h4');
+	      return h&&/^Collis,\s*(Masse|Maße),\s*Gewicht,\s*Lademeter$/i.test(txt(h));
+	    })||null;
+	  }
+	  function abdPanel(){
+	    return document.getElementById('rc265AbdPanel') ||
+	      document.querySelector('.rc265-abd-request-panel,.rc260-abd-panel');
+	  }
+	  function moveStandardmail(){
+	    if(view()!=='shipment')return;
+	    var panel=document.getElementById('rc261MailPanel');
+	    var card=colliCard();
+	    if(!panel||!card)return;
+	    panel.classList.add('rc274-after-colli');
+	    var actions=document.getElementById('rc268ColliActions');
+	    var summary=card.querySelector('.summaryGrid') || card.querySelector('#rowsBox') || card.querySelector('button');
+	    var abd=abdPanel();
+	    if(actions&&actions.parentElement===card){
+	      if(actions.nextElementSibling!==panel)actions.insertAdjacentElement('afterend',panel);
+	    }else if(summary&&summary.parentElement===card){
+	      if(summary.nextElementSibling!==panel)summary.insertAdjacentElement('afterend',panel);
+	    }else if(card.nextElementSibling!==panel){
+	      card.insertAdjacentElement('afterend',panel);
+	    }
+	    if(abd&&panel.nextElementSibling!==abd)panel.insertAdjacentElement('afterend',abd);
+	  }
   function abdByRef(r){
     var s=st();
     r=ref(r);
@@ -38862,7 +38876,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     }
     return s.shipment||null;
   }
-  function linkAbdToShipment(sh){
+	  function linkAbdToShipment(sh){
     var s=st();
     if(!s||!sh)return;
     var r=ref(sh.linkedAbdRef||sh.ref);
@@ -38876,9 +38890,19 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     abd.linkedShipmentId=sh.id||abd.linkedShipmentId||'';
     abd.linkedShipmentRef=sh.ref||abd.linkedShipmentRef||r;
     if(!abd.status || /^offen$/i.test(String(abd.status)))abd.status='Sendung erstellt';
-    abd.shipmentCreatedAt=abd.shipmentCreatedAt||new Date().toISOString();
-  }
-  function addAbdLinkNote(){
+	    abd.shipmentCreatedAt=abd.shipmentCreatedAt||new Date().toISOString();
+	  }
+	  function removeAbdCreateTaskForLinkedShipment(sh){
+	    var s=st();
+	    if(!s||!sh||!sh.linkedAbdRef||!Array.isArray(s.tasks))return;
+	    var r=ref(sh.ref);
+	    s.tasks=s.tasks.filter(function(t){
+	      var title=String(t&&t.title||'');
+	      if(!/^ABD erstellen\s*:/i.test(title))return true;
+	      return ref(title)!==r;
+	    });
+	  }
+	  function addAbdLinkNote(){
     if(view()!=='shipment')return;
     var sh=currentShipment();
     var r=ref(sh&&(sh.linkedAbdRef||sh.ref));
@@ -38892,7 +38916,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     moveStandardmail();
     addAbdLinkNote();
   }
-  if(typeof window.rc274CreateShipmentFromAbd==='function'&&!window.rc274CreateShipmentFromAbd.__rc274_6_wrapped){
+	  if(typeof window.rc274CreateShipmentFromAbd==='function'&&!window.rc274CreateShipmentFromAbd.__rc274_7_wrapped){
     var baseCreate=window.rc274CreateShipmentFromAbd;
     window.rc274CreateShipmentFromAbd=function(id){
       var result=baseCreate.apply(this,arguments);
@@ -38905,9 +38929,9 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
       setTimeout(afterRender,260);
       return result;
     };
-    window.rc274CreateShipmentFromAbd.__rc274_6_wrapped=true;
-  }
-  if(typeof saveShipment==='function'&&!saveShipment.__rc274_6_wrapped){
+	    window.rc274CreateShipmentFromAbd.__rc274_7_wrapped=true;
+	  }
+	  if(typeof saveShipment==='function'&&!saveShipment.__rc274_7_wrapped){
     var baseSaveShipment=saveShipment;
     window.saveShipment=function(){
       var before=Object.assign({},(st()&&st().shipment)||{});
@@ -38919,27 +38943,28 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
           saved=s.shipments.find(function(x){return String(x.id||'')===String(s.activeShipmentId)}) ||
             s.shipments.find(function(x){return ref(x&&x.ref)===ref(before.linkedAbdRef||before.ref)});
         }
-        if(saved){
-          if(before.linkedAbdId)saved.linkedAbdId=before.linkedAbdId;
-          if(before.linkedAbdRef)saved.linkedAbdRef=before.linkedAbdRef;
-          linkAbdToShipment(saved);
-          if(typeof save==='function')save();
-        }
+	        if(saved){
+	          if(before.linkedAbdId)saved.linkedAbdId=before.linkedAbdId;
+	          if(before.linkedAbdRef)saved.linkedAbdRef=before.linkedAbdRef;
+	          linkAbdToShipment(saved);
+	          removeAbdCreateTaskForLinkedShipment(saved);
+	          if(typeof save==='function')save();
+	        }
       }catch(err){}
       return result;
     };
-    window.saveShipment.__rc274_6_wrapped=true;
-    try{saveShipment=window.saveShipment}catch(err){}
-  }
-  var baseRender=window.render || (typeof render==='function'?render:null);
-  if(typeof baseRender==='function'&&!baseRender.__rc274_6_wrapped){
+	    window.saveShipment.__rc274_7_wrapped=true;
+	    try{saveShipment=window.saveShipment}catch(err){}
+	  }
+	  var baseRender=window.render || (typeof render==='function'?render:null);
+	  if(typeof baseRender==='function'&&!baseRender.__rc274_7_wrapped){
     window.render=function(){
       var result=baseRender.apply(this,arguments);
       setTimeout(afterRender,80);
       setTimeout(afterRender,260);
       return result;
     };
-    window.render.__rc274_6_wrapped=true;
+	    window.render.__rc274_7_wrapped=true;
     try{render=window.render}catch(err){}
   }
   setTimeout(afterRender,160);
