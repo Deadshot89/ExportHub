@@ -28943,7 +28943,219 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC232 END: SharePoint Referenzordner + Dateiimport aus synchronisiertem Ordner -->
   
+<!-- PRIVATE RC234 START: Neue Sendung leert Collis wirklich + Ladelisten-Alert fix -->
+<script>
+/* PRIVATE RC234: Colli-Backups bei + Neue Sendung gezielt leeren und aktuelle Draft-Sendung fuer Ladeliste akzeptieren */
+(function(){
+  if(window.__EXPORTHUB_RC234_NEW_SHIPMENT_COLLI_CLEAR__)return;
+  window.__EXPORTHUB_RC234_NEW_SHIPMENT_COLLI_CLEAR__=true;
 
+  var freshUntil234=0;
+  var lastAlert234=0;
+
+  function blank234(){
+    return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''};
+  }
+
+  function clone234(v){
+    try{return JSON.parse(JSON.stringify(v))}catch(err){return v}
+  }
+
+  function isFresh234(){
+    return Date.now()<freshUntil234 || !!(state&&state.rc234FreshShipment);
+  }
+
+  function clearLocalColli234(){
+    try{
+      var remove=[];
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(/^exporthub_rc(199|203|209|210|221|224|226|231|234).*colli/i.test(k||''))remove.push(k);
+        if(/^exporthub_rc(199|203|209|210|221|224|226|231|234).*rows/i.test(k||''))remove.push(k);
+      }
+      remove.forEach(function(k){try{localStorage.removeItem(k)}catch(err){}});
+      [
+        'exporthub_rc203_last_rows',
+        'exporthub_rc209_colli_rows_last',
+        'exporthub_rc210_colli_rows',
+        'exporthub_rc221_colli_rows_last',
+        'exporthub_rc224_colli_last',
+        'exporthub_rc226_colli_rows_last',
+        'exporthub_rc231_colli_last'
+      ].forEach(function(k){try{localStorage.removeItem(k)}catch(err){}});
+    }catch(err){}
+  }
+
+  function clearStateColli234(){
+    if(typeof state==='undefined' || !state)return;
+    state.rc199LastShipmentRows=[];
+    state.rc203LastRows=[];
+    state.rc209LastColliRows=[];
+    state.rc210ColliRows=[];
+    state.rc221LastColliRows=[];
+    state.rc224ColliRows=[];
+    state.rc226ColliRows=[];
+    state.rc231ColliRows=[];
+    state.rc234FreshShipment=true;
+    if(state.shipment){
+      state.shipment.rows=[blank234()];
+    }
+  }
+
+  function clearDomColli234(){
+    try{
+      var box=document.getElementById('rowsBox');
+      if(!box)return;
+      Array.from(box.querySelectorAll('select,input')).forEach(function(el){
+        if(/^(hidden|file|checkbox|radio)$/i.test(el.type||''))return;
+        el.value='';
+      });
+    }catch(err){}
+  }
+
+  function beginFresh234(){
+    freshUntil234=Date.now()+2600;
+    clearLocalColli234();
+    clearStateColli234();
+    clearDomColli234();
+  }
+
+  function finishFresh234(){
+    clearLocalColli234();
+    clearStateColli234();
+    clearDomColli234();
+    try{if(typeof save==='function')save()}catch(err){}
+    setTimeout(function(){
+      try{state.rc234FreshShipment=false}catch(err){}
+    },1800);
+  }
+
+  function installCollectorGuard234(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base!=='function' || base.__rc234Wrapped)return;
+      var wrapped=function(){
+        if(isFresh234()){
+          clearLocalColli234();
+          if(state&&state.shipment)state.shipment.rows=[blank234()];
+          clearDomColli234();
+          return clone234((state&&state.shipment&&state.shipment.rows)||[blank234()]);
+        }
+        return base.apply(this,arguments);
+      };
+      wrapped.__rc234Wrapped=true;
+      window[name]=wrapped;
+      try{eval(name+'=window[name]')}catch(err){}
+    }catch(err){}
+  }
+
+  ['rc221CollectColliRows','rc224CollectColliRows','rc226RepairColliFields','rc231CollectColliRows'].forEach(installCollectorGuard234);
+
+  var baseNewShipment234=window.newShipment || (typeof newShipment==='function'?newShipment:null);
+  window.newShipment=function(){
+    beginFresh234();
+    var result;
+    try{
+      if(typeof baseNewShipment234==='function')result=baseNewShipment234.apply(this,arguments);
+      else{
+        state.shipment=state.shipment||{};
+        state.shipment.rows=[blank234()];
+        state.activeShipmentId='current';
+      }
+    }finally{
+      finishFresh234();
+      try{if(typeof render==='function')render()}catch(err){}
+      setTimeout(finishFresh234,80);
+      setTimeout(finishFresh234,350);
+    }
+    return result;
+  };
+  try{newShipment=window.newShipment}catch(err){}
+
+  document.addEventListener('click',function(ev){
+    var btn=ev.target&&ev.target.closest&&ev.target.closest('button');
+    if(!btn)return;
+    var txt=String(btn.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    var oc=String(btn.getAttribute('onclick')||'').toLowerCase();
+    if(txt==='+ neue sendung' || oc.indexOf('newshipment')>=0){
+      beginFresh234();
+    }
+  },true);
+
+  function customerForShipment234(s){
+    if(!s)return null;
+    if(s.customer&&s.customer.name)return s.customer;
+    var id=s.customerId || s.selectedCustomerId || (state&&state.selectedCustomerId);
+    try{
+      var c=(state.customers||[]).find(function(x){
+        return String(x.id||'')===String(id||'') ||
+          String(x.account||x.customerNumber||'')===String(s.customerNumber||s.account||'');
+      });
+      if(c)return c;
+    }catch(err){}
+    return null;
+  }
+
+  function hasUsableShipment234(s){
+    if(!s)return false;
+    var c=customerForShipment234(s);
+    return !!(c || s.customer) && !!(s.ref || s.customerId || s.customerNumber || s.account);
+  }
+
+  function quietAlert234(){
+    var now=Date.now();
+    if(now-lastAlert234<2500)return;
+    lastAlert234=now;
+    alert('Bitte zuerst eine Sendung erstellen oder eine gespeicherte Sendung auswaehlen.');
+  }
+
+  window.rc55ActiveShipment=function(){
+    var s=null;
+    try{s=typeof activeShipment==='function'?activeShipment():null}catch(err){}
+    if(!hasUsableShipment234(s)){
+      try{
+        var id=state&&state.activeShipmentId;
+        if(id && id!=='current'){
+          s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+        }
+      }catch(err){}
+    }
+    if(!hasUsableShipment234(s)){
+      try{
+        if(state&&state.shipment&&hasUsableShipment234(state.shipment))s=state.shipment;
+      }catch(err){}
+    }
+    if(s){
+      var c=customerForShipment234(s);
+      if(c && !s.customer)s.customer=clone234(c);
+      return s;
+    }
+    quietAlert234();
+    return null;
+  };
+  try{rc55ActiveShipment=window.rc55ActiveShipment}catch(err){}
+
+  var baseRender234=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender234==='function' && !baseRender234.__rc234Wrapped){
+    var wrappedRender234=function(){
+      if(isFresh234()){
+        clearLocalColli234();
+        if(state&&state.shipment)state.shipment.rows=[blank234()];
+      }
+      var out=baseRender234.apply(this,arguments);
+      if(isFresh234()){
+        setTimeout(clearDomColli234,0);
+        setTimeout(clearDomColli234,120);
+      }
+      return out;
+    };
+    wrappedRender234.__rc234Wrapped=true;
+    window.render=wrappedRender234;
+    try{render=wrappedRender234}catch(err){}
+  }
+})();
+</script>
+<!-- PRIVATE RC234 END: Neue Sendung leert Collis wirklich + Ladelisten-Alert fix -->
 
   
 </body></html>
