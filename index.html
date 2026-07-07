@@ -37313,6 +37313,113 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC262 END: Benutzer Sabrina Azubi Rechte -->
+
+<!-- PRIVATE RC263 START: Alte Mail-senden-Funktion entfernen -->
+<style>
+.rc263-old-mail-hidden{
+  display:none!important;
+}
+.rc263-mail-replaced-note{
+  display:inline-block!important;
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  color:#1e3a8a!important;
+  border-radius:999px!important;
+  padding:5px 8px!important;
+  font-size:12px!important;
+  font-weight:900!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC263: alte Mail senden / Mail erstellen Funktion entfernen; RC261 Standardmail bleibt */
+(function(){
+  if(window.__EXPORTHUB_RC263_REMOVE_OLD_MAIL__)return;
+  window.__EXPORTHUB_RC263_REMOVE_OLD_MAIL__=true;
+
+  function isRc261(el){
+    try{return !!(el&&el.closest&&el.closest('#rc261MailPanel'))}catch(err){return false}
+  }
+  function text263(el){
+    return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+  function hideOldMailControls263(){
+    try{
+      Array.from(document.querySelectorAll('button,a,label')).forEach(function(el){
+        if(isRc261(el))return;
+        var txt=text263(el);
+        if(/^(Mail senden|Mail erstellen|Nur Mailtext kopieren)$/i.test(txt) ||
+           /Outlook.*Mail/i.test(txt) ||
+           /Avisierungsmail.*erstellen/i.test(txt)){
+          el.classList.add('rc263-old-mail-hidden');
+          try{el.onclick=function(ev){if(ev)ev.preventDefault();return false}}catch(err){}
+        }
+      });
+
+      Array.from(document.querySelectorAll('.infobox,.notice,.okbox')).forEach(function(box){
+        if(isRc261(box))return;
+        var txt=text263(box);
+        if(/Empfaengermail|Empfängermail|Outlook-Avisierung|Avisierungsmail/i.test(txt)){
+          var hasOnlyOldMail=/Mail senden|Mail erstellen|Nur Mailtext kopieren|Outlook/i.test(txt);
+          if(hasOnlyOldMail){
+            box.querySelectorAll('button,a,label').forEach(function(el){
+              if(!isRc261(el))el.classList.add('rc263-old-mail-hidden');
+            });
+          }
+        }
+      });
+    }catch(err){}
+  }
+
+  function replacementMailActions263(){
+    return '<span class="rc263-mail-replaced-note">Mail bitte ueber Standardmail RC261 erstellen</span>';
+  }
+
+  try{
+    window.customerMailActions=replacementMailActions263;
+    customerMailActions=window.customerMailActions;
+  }catch(err){}
+
+  [
+    'openCustomerMail',
+    'createCustomerMail',
+    'sendCustomerMail',
+    'openShipmentMail',
+    'createShipmentMail',
+    'sendShipmentMail',
+    'copyCustomerMailText',
+    'copyShipmentMailText'
+  ].forEach(function(fn){
+    try{
+      if(typeof window[fn]==='function'){
+        window[fn]=function(){
+          alert('Die alte Mailfunktion wurde entfernt. Bitte die Standardmail-Funktion im Kundenordner verwenden.');
+          return false;
+        };
+      }
+    }catch(err){}
+  });
+
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc263Wrapped){
+    window.render=function(){
+      var result=baseRender.apply(this,arguments);
+      setTimeout(hideOldMailControls263,50);
+      setTimeout(hideOldMailControls263,250);
+      return result;
+    };
+    window.render.__rc263Wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+
+  setTimeout(hideOldMailControls263,120);
+  setTimeout(hideOldMailControls263,900);
+})();
+</script>
+<!-- PRIVATE RC263 END: Alte Mail-senden-Funktion entfernen -->
+
+
+
   
 </body></html>
 
