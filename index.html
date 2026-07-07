@@ -28557,7 +28557,392 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC231 END: Colli + Zeile wieder stabil hinzufuegen -->
 
+<!-- PRIVATE RC232 START: SharePoint Referenzordner + Dateiimport aus synchronisiertem Ordner -->
+<style>
+.rc232-folder-actions{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  margin:8px 0!important;
+}
+.rc232-folder-actions button,
+.rc232-folder-actions label{
+  font-size:12px!important;
+  min-height:30px!important;
+  padding:6px 9px!important;
+  border-radius:9px!important;
+}
+.rc232-folder-note{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:10px;
+  padding:7px 9px;
+  margin:7px 0;
+  font-size:12px;
+  font-weight:850;
+}
+.rc232-hidden-folder-input{
+  display:none!important;
+}
+</style>
 
+<script>
+/* PRIVATE RC232: SharePoint kann ohne Graph nicht automatisch gelesen werden; Ordnerauswahl importiert passende Referenzdateien */
+(function(){
+  if(window.__EXPORTHUB_RC232_SHAREPOINT_FOLDER_IMPORT__)return;
+  window.__EXPORTHUB_RC232_SHAREPOINT_FOLDER_IMPORT__=true;
+
+  var BASE232='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+  var PUBLIC_BASE232='https://essentra-my.sharepoint.com/:f:/p/tobiaslimberg/IgBoRYeaVVjiRILHF8tBcwOFAaqs1Rxus1XTeta7W5NXopc?e=XY2aFL';
+
+  function e232(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n232(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function uid232(prefix){
+    try{if(typeof uid==='function')return uid(prefix||'DOC')}catch(err){}
+    return String(prefix||'DOC')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  }
+
+  function ref232(v){
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,20);
+  }
+
+  function currentShipment232(){
+    try{
+      if(state&&state.shipment)return state.shipment;
+    }catch(err){}
+    return {};
+  }
+
+  function currentRef232(){
+    try{
+      if(state&&state.shipment&&state.shipment.ref)return ref232(state.shipment.ref);
+      if(state&&state.activeShipmentId&&Array.isArray(state.shipments)){
+        var s=state.shipments.find(function(x){return String(x.id||'')===String(state.activeShipmentId)});
+        if(s&&s.ref)return ref232(s.ref);
+      }
+    }catch(err){}
+    return '';
+  }
+
+  function refFolderUrl232(reference){
+    var ref=ref232(reference||currentRef232());
+    if(!ref)return PUBLIC_BASE232;
+    return BASE232.replace(/\/+$/,'')+'/'+encodeURIComponent(ref)+'?csf=1&web=1';
+  }
+
+  function save232(reason){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch && typeof state!=='undefined'){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:state.users||[],
+            state:state
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+  }
+
+  function ensureSettings232(){
+    try{
+      state.settings=state.settings||{};
+      state.settings.shipmentSharePointFolder=PUBLIC_BASE232;
+      state.settings.shipmentSharePointBaseFolder=PUBLIC_BASE232;
+      state.rc232SharePointBaseFolder=PUBLIC_BASE232;
+    }catch(err){}
+  }
+
+  window.rc232ReferenceFolderUrl=refFolderUrl232;
+  window.rc192ReferenceFolderUrl=refFolderUrl232;
+  window.rc191ReferenceFolderUrl=refFolderUrl232;
+  window.rc188ReferenceFolderUrl=refFolderUrl232;
+
+  window.rc232OpenReferenceFolder=function(reference){
+    ensureSettings232();
+    var ref=ref232(reference||currentRef232());
+    if(!ref){
+      alert('Keine Referenznummer vorhanden. Bitte erst eine Referenznummer erstellen.');
+      return false;
+    }
+    window.open(refFolderUrl232(ref),'_blank','noopener,noreferrer');
+    return false;
+  };
+  window.rc192OpenReferenceFolder=window.rc232OpenReferenceFolder;
+  window.rc191OpenReferenceFolder=window.rc232OpenReferenceFolder;
+  window.rc188OpenReferenceFolder=window.rc232OpenReferenceFolder;
+
+  function filePath232(file){
+    return String(file.webkitRelativePath||file.relativePath||file.name||'');
+  }
+
+  function fileMatchesRef232(file,reference){
+    var ref=ref232(reference);
+    if(!ref)return false;
+    var path=n232(filePath232(file));
+    var r=n232(ref);
+    var parts=path.split(' ').filter(Boolean);
+    return parts.indexOf(r)>=0 || path.indexOf(r)>=0;
+  }
+
+  function classify232(file){
+    var name=n232(file&&file.name);
+    if(name.indexOf('abd')>=0)return 'abd';
+    if(name.indexOf('scan')>=0 || name.indexOf('untitled')>=0 || name.indexOf('pod')>=0)return 'pod';
+    return 'delivery';
+  }
+
+  function readDataUrl232(file){
+    return new Promise(function(resolve){
+      if(!file || file.size>8*1024*1024){
+        resolve('');
+        return;
+      }
+      var reader=new FileReader();
+      reader.onload=function(){resolve(String(reader.result||''))};
+      reader.onerror=function(){resolve('')};
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function fileItem232(file,kind){
+    var dataUrl=(kind==='abd'||kind==='pod')?await readDataUrl232(file):'';
+    return {
+      id:uid232(kind==='abd'?'ABD':(kind==='pod'?'POD':'DN')),
+      name:file.name,
+      size:file.size,
+      type:file.type||'Datei',
+      lastModified:file.lastModified||Date.now(),
+      relativePath:filePath232(file),
+      dataUrl:dataUrl,
+      uploadedAt:new Date().toISOString(),
+      uploadedBy:(currentUser&&(currentUser.name||currentUser.user))||'Benutzer',
+      source:'RC232 Referenzordner Import'
+    };
+  }
+
+  function sameFile232(a,b){
+    return String(a&&a.name)===String(b&&b.name) && Number(a&&a.size||0)===Number(b&&b.size||0);
+  }
+
+  function addUnique232(arr,item){
+    arr=Array.isArray(arr)?arr:[];
+    if(!arr.some(function(x){return sameFile232(x,item)}))arr.push(item);
+    return arr;
+  }
+
+  function applyItemToShipment232(s,item,kind){
+    if(!s)return;
+    s.deliveryFiles=addUnique232(s.deliveryFiles,item);
+    if(kind==='abd'){
+      s.abdFiles=Array.isArray(s.abdFiles)?s.abdFiles:[];
+      s.abdFiles=s.abdFiles.filter(function(x){return n232(x&&x.name).indexOf('abd')<0});
+      s.abdFiles.unshift(item);
+      s.abdStatus='Dokument vorhanden';
+      s.abdUploadedAt=new Date().toISOString();
+      s.rc230Docs=s.rc230Docs||{};
+      s.rc230Docs.abd=item;
+    }else if(kind==='pod'){
+      s.podFiles=Array.isArray(s.podFiles)?s.podFiles:[];
+      s.podFiles=s.podFiles.filter(function(x){
+        var txt=n232(x&&x.name);
+        return txt.indexOf('pod')<0 && txt.indexOf('scan')<0 && txt.indexOf('untitled')<0;
+      });
+      s.podFiles.unshift(item);
+      s.podStatus='hochgeladen';
+      s.podUploadedAt=new Date().toISOString();
+      s.rc230Docs=s.rc230Docs||{};
+      s.rc230Docs.pod=item;
+    }
+  }
+
+  function appendNotes232(s,items){
+    var names=items.map(function(x){return x.name}).filter(Boolean);
+    if(!names.length)return;
+    var old=String(s.deliveryNotes||'').split(/\n/).map(function(x){return x.trim()}).filter(Boolean);
+    names.forEach(function(name){if(old.indexOf(name)<0)old.push(name)});
+    s.deliveryNotes=old.join('\n');
+  }
+
+  async function importFolderFiles232(files){
+    var ref=currentRef232();
+    if(!ref){
+      alert('Keine Referenznummer vorhanden. Bitte erst eine Referenznummer erstellen.');
+      return;
+    }
+    var all=Array.from(files||[]);
+    if(!all.length)return;
+    var matched=all.filter(function(file){return fileMatchesRef232(file,ref)});
+    if(!matched.length){
+      alert('In der Ordnerauswahl wurde kein Ordner oder Dateipfad mit der Referenz '+ref+' gefunden. Bitte den Ordner Sendungen oder direkt den Referenzordner '+ref+' auswählen.');
+      return;
+    }
+
+    var active=currentShipment232();
+    active.ref=active.ref||ref;
+    active.deliveryFiles=Array.isArray(active.deliveryFiles)?active.deliveryFiles:[];
+
+    var imported=[];
+    for(var i=0;i<matched.length;i++){
+      var file=matched[i];
+      var kind=classify232(file);
+      var item=await fileItem232(file,kind);
+      applyItemToShipment232(active,item,kind);
+      imported.push(item);
+    }
+    appendNotes232(active,imported);
+
+    try{
+      if(state&&Array.isArray(state.shipments)){
+        state.shipments.forEach(function(saved){
+          if(ref232(saved.ref)===ref){
+            saved.deliveryFiles=Array.isArray(saved.deliveryFiles)?saved.deliveryFiles:[];
+            imported.forEach(function(item){
+              applyItemToShipment232(saved,item,classify232(item));
+            });
+            appendNotes232(saved,imported);
+          }
+        });
+      }
+    }catch(err){}
+
+    try{if(typeof audit==='function')audit('Referenzordner importiert',ref+' - '+imported.length+' Datei(en)')}catch(err){}
+    save232('Referenzordner Dateien importiert');
+    alert(imported.length+' Datei(en) aus Referenzordner '+ref+' übernommen.');
+    try{render()}catch(err){}
+  }
+
+  window.rc232ImportReferenceFolder=function(input){
+    var files=input&&input.files;
+    importFolderFiles232(files);
+  };
+
+  function openFolderPicker232(){
+    var input=document.getElementById('rc232ReferenceFolderInput');
+    if(!input){
+      input=document.createElement('input');
+      input.id='rc232ReferenceFolderInput';
+      input.className='rc232-hidden-folder-input';
+      input.type='file';
+      input.multiple=true;
+      input.setAttribute('webkitdirectory','');
+      input.setAttribute('directory','');
+      input.onchange=function(){
+        window.rc232ImportReferenceFolder(input);
+        input.value='';
+      };
+      document.body.appendChild(input);
+    }
+    input.click();
+  }
+  window.rc232OpenFolderPicker=openFolderPicker232;
+
+  function actionHtml232(){
+    var ref=currentRef232();
+    return '<div class="rc232-folder-note">Automatisch aus SharePoint direkt lesen geht ohne Microsoft-Graph/API nicht. Bitte den lokal synchronisierten Sendungen-Ordner oder direkt den Referenzordner auswählen; ExportHUB übernimmt dann automatisch die Dateien aus '+e232(ref||'der Referenz')+'.</div>'+
+      '<div class="rc232-folder-actions">'+
+        '<button type="button" class="ghost" onclick="return rc232OpenReferenceFolder()">Referenzordner öffnen</button>'+
+        '<button type="button" class="soft" onclick="rc232OpenFolderPicker()">Passenden Ordner hochladen</button>'+
+      '</div>';
+  }
+
+  function patchFolderCard232(root){
+    try{
+      root=root||document;
+      if(!state || state.view!=='shipment')return;
+      var cards=Array.from(root.querySelectorAll('.card,.rc182-folder-card,.rc188-sp-card,.rc191-sp-card,section,div')).filter(function(el){
+        var txt=(el.textContent||'').replace(/\s+/g,' ');
+        return /Sendungsordner|SharePoint-Basislink|OneDrive|Lieferscheine/i.test(txt) && /Ordner|Basislink|hochladen/i.test(txt);
+      });
+      var card=cards.find(function(el){
+        var h=el.querySelector&&el.querySelector('h3,h2');
+        return h && /Sendungsordner|Lieferscheine/i.test(h.textContent||'');
+      }) || cards[0];
+      if(card){
+        if(!card.querySelector('.rc232-folder-actions')){
+          card.querySelectorAll('button,a,label').forEach(function(el){
+            var txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+            var oc=String(el.getAttribute&&el.getAttribute('onclick')||'');
+            if(/Ordner öffnen|Link kopieren|Ordnername kopieren|Passenden Ordner hochladen|Dateien hochladen/i.test(txt) || /rc18|rc19|folder|sharepoint/i.test(oc)){
+              el.remove();
+            }
+          });
+          card.insertAdjacentHTML('beforeend',actionHtml232());
+        }
+      }else{
+        var loadBtn=Array.from(root.querySelectorAll('button,a')).find(function(el){
+          return /Ladeliste\s*&\s*CMR anzeigen/i.test(el.textContent||'');
+        });
+        if(loadBtn && !root.querySelector('.rc232-folder-actions')){
+          loadBtn.insertAdjacentHTML('afterend',actionHtml232());
+        }
+      }
+    }catch(err){}
+  }
+
+  function wrapShipment232(){
+    try{
+      if(typeof shipment==='function' && !shipment.__rc232Wrapped){
+        var baseShipment232=shipment;
+        window.shipment=function(){
+          ensureSettings232();
+          var html=String(baseShipment232.apply(this,arguments));
+          setTimeout(function(){patchFolderCard232(document)},80);
+          setTimeout(function(){patchFolderCard232(document)},240);
+          return html;
+        };
+        window.shipment.__rc232Wrapped=true;
+        try{shipment=window.shipment}catch(err){}
+      }
+    }catch(err){}
+
+    try{
+      if(typeof render==='function' && !render.__rc232Wrapped){
+        var baseRender232=render;
+        window.render=function(){
+          var result=baseRender232.apply(this,arguments);
+          setTimeout(function(){patchFolderCard232(document)},100);
+          setTimeout(function(){patchFolderCard232(document)},280);
+          return result;
+        };
+        window.render.__rc232Wrapped=true;
+        try{render=window.render}catch(err){}
+      }
+    }catch(err){}
+  }
+
+  function patchOldFunctions232(){
+    window.rc188OpenSendungenBase=function(){return window.rc232OpenReferenceFolder()};
+    window.rc182OpenShipmentFolder=function(){return window.rc232OpenReferenceFolder()};
+    window.rc188CopyReferenceFolderLink=function(){window.rc232OpenReferenceFolder();return false};
+    window.rc188CopyReferenceFolderName=function(){window.rc232OpenReferenceFolder();return false};
+  }
+
+  ensureSettings232();
+  patchOldFunctions232();
+  wrapShipment232();
+  setTimeout(function(){patchFolderCard232(document)},250);
+})();
+</script>
+<!-- PRIVATE RC232 END: SharePoint Referenzordner + Dateiimport aus synchronisiertem Ordner -->
+  
 
 
   
