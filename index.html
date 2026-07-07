@@ -32243,6 +32243,653 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC246 END: Sendung Buttons + Referenzordner bei Lieferscheinen -->
+
+<!-- PRIVATE RC247 START: Sendungsuebersicht Final ABD/POD/Abgeholt -->
+<style>
+.rc247-filterbar{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  margin:0 0 12px!important;
+}
+.rc247-filterbar input{
+  min-width:280px!important;
+  flex:1!important;
+}
+.rc247-table{
+  width:100%!important;
+  border-collapse:separate!important;
+  border-spacing:0 7px!important;
+  table-layout:auto!important;
+}
+.rc247-table th{
+  text-align:left!important;
+  color:#64748b!important;
+  font-size:12px!important;
+  text-transform:uppercase!important;
+  padding:7px!important;
+}
+.rc247-table td{
+  vertical-align:top!important;
+  background:#fff!important;
+  border-top:1px solid #dbeafe!important;
+  border-bottom:1px solid #dbeafe!important;
+  padding:8px!important;
+}
+.rc247-table td:first-child{
+  border-left:1px solid #dbeafe!important;
+  border-radius:12px 0 0 12px!important;
+}
+.rc247-table td:last-child{
+  border-right:1px solid #dbeafe!important;
+  border-radius:0 12px 12px 0!important;
+}
+.rc247-customer{
+  background:#e0f2fe!important;
+}
+.rc247-customer-number{
+  color:#08245d!important;
+  font-size:16px!important;
+  font-weight:1000!important;
+  line-height:1.1!important;
+}
+.rc247-customer-name{
+  color:#08245d!important;
+  font-size:14px!important;
+  font-weight:950!important;
+  line-height:1.25!important;
+  margin-top:4px!important;
+  overflow-wrap:anywhere!important;
+}
+.rc247-date-stack{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:8px!important;
+  min-width:130px!important;
+  max-width:165px!important;
+}
+.rc247-date-stack label{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:4px!important;
+  margin:0!important;
+  color:#334155!important;
+  font-size:12px!important;
+  font-weight:950!important;
+}
+.rc247-date-stack input[type="date"]{
+  width:100%!important;
+  min-width:0!important;
+  padding:7px 8px!important;
+  border-radius:9px!important;
+}
+.rc247-docs{
+  display:grid!important;
+  gap:7px!important;
+  min-width:250px!important;
+}
+.rc247-doc-card{
+  border:1px solid #e2e8f0!important;
+  background:#f8fafc!important;
+  border-radius:10px!important;
+  padding:8px!important;
+}
+.rc247-doc-card.linked{
+  border:2px solid #22c55e!important;
+  background:#dcfce7!important;
+}
+.rc247-doc-top{
+  display:flex!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  align-items:center!important;
+}
+.rc247-doc-title{
+  font-size:15px!important;
+  font-weight:1000!important;
+  color:#08245d!important;
+  text-decoration:none!important;
+}
+.rc247-doc-name{
+  font-size:12px!important;
+  color:#334155!important;
+  font-weight:850!important;
+  margin:4px 0 7px!important;
+  overflow-wrap:anywhere!important;
+}
+.rc247-doc-actions,
+.rc247-actions{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:5px!important;
+  align-content:start!important;
+}
+.rc247-doc-actions a,
+.rc247-doc-actions button,
+.rc247-doc-actions label,
+.rc247-actions button{
+  min-height:27px!important;
+  padding:5px 7px!important;
+  border-radius:8px!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+  white-space:nowrap!important;
+}
+.rc247-file-input{
+  display:none!important;
+}
+.rc247-picked-btn{
+  border:1px solid #86efac!important;
+  background:#dcfce7!important;
+  color:#166534!important;
+  font-weight:950!important;
+}
+.rc247-delete{
+  border:0!important;
+  background:#fee2e2!important;
+  color:#991b1b!important;
+}
+@media(max-width:1100px){
+  .rc247-table{display:block!important;overflow-x:auto!important}
+}
+</style>
+
+<script>
+/* PRIVATE RC247: Sendungsuebersicht neu ausgeben, damit ABD/POD/Datum/Abgeholt stabil sind */
+(function(){
+  if(window.__EXPORTHUB_RC247_OVERVIEW_FINAL__)return;
+  window.__EXPORTHUB_RC247_OVERVIEW_FINAL__=true;
+
+  var FILE_BASE_247='https://essentra-my.sharepoint.com/:b:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+  var FOLDER_BASE_247='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+
+  function e247(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n247(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function ref247(v){
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24);
+  }
+
+  function iso247(v){
+    var s=String(v||'').slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:'';
+  }
+
+  function uid247(prefix){
+    try{if(typeof uid==='function')return uid(prefix||'DOC')}catch(err){}
+    return String(prefix||'DOC')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  }
+
+  function today247(){
+    return new Date().toISOString().slice(0,10);
+  }
+
+  function save247(reason){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch && typeof state!=='undefined'){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:state.users||[],
+            state:state
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit(reason||'Sendungsuebersicht gespeichert','RC247')}catch(err){}
+  }
+
+  function folderUrl247(ref){
+    var r=ref247(ref);
+    if(!r)return FOLDER_BASE_247;
+    return FOLDER_BASE_247.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'?csf=1&web=1';
+  }
+
+  function fileUrl247(ref,fileName){
+    var r=ref247(ref);
+    var name=String(fileName||'').trim();
+    if(!r || !name)return '';
+    return FILE_BASE_247.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'/'+encodeURIComponent(name)+'?csf=1&web=1';
+  }
+
+  function docName247(d){
+    return String((d&&(d.name||d.fileName||d.filename||d.title))||'').trim();
+  }
+
+  function docUrl247(d){
+    return String((d&&(d.dataUrl||d.url||d.webUrl||d.link||d.sharepointUrl||d.downloadUrl||d.href))||'').trim();
+  }
+
+  function classify247(d){
+    var text=n247(docName247(d)+' '+docUrl247(d)+' '+String(d&&d.relativePath||''));
+    if(text.indexOf('abd')>=0)return 'abd';
+    if(text.indexOf('pod')>=0 || text.indexOf('scan')>=0 || text.indexOf('untitled')>=0)return 'pod';
+    return '';
+  }
+
+  function addTextDocs247(out,text,source){
+    String(text||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(name){
+      if(/\.(pdf|jpg|jpeg|png|msg|eml|xlsx?|docx?)$/i.test(name) || /abd|pod|scan|untitled/i.test(name)){
+        out.push({name:name,fileName:name,source:source||'Text'});
+      }
+    });
+  }
+
+  function allDocs247(s){
+    var out=[];
+    ['rc230Docs','rc228Docs','rc247Docs'].forEach(function(key){
+      var box=s&&s[key];
+      if(box&&typeof box==='object'&&!Array.isArray(box)){
+        if(box.abd)out.push(Object.assign({source:key},box.abd));
+        if(box.pod)out.push(Object.assign({source:key},box.pod));
+      }
+    });
+    ['abdFiles','podFiles','deliveryFiles','files','documents','docs'].forEach(function(key){
+      var arr=s&&Array.isArray(s[key])?s[key]:[];
+      arr.forEach(function(d){out.push(Object.assign({source:key},d||{}))});
+    });
+    addTextDocs247(out,s&&s.deliveryNotes,'deliveryNotes');
+    addTextDocs247(out,s&&s.note,'note');
+    addTextDocs247(out,s&&s.manualText,'manualText');
+    addTextDocs247(out,s&&s.abdDocument,'abdDocument');
+    addTextDocs247(out,s&&s.podDocument,'podDocument');
+    return out;
+  }
+
+  function findShipmentByRef247(reference){
+    var r=ref247(reference);
+    try{
+      return (state.shipments||[]).find(function(s){return ref247(s&&s.ref)===r})||null;
+    }catch(err){}
+    return null;
+  }
+
+  function findDoc247(target,kind,fallbackTarget){
+    var candidates=allDocs247(target);
+    if(fallbackTarget)candidates=candidates.concat(allDocs247(fallbackTarget));
+    var found=null;
+    candidates.some(function(d){
+      if(classify247(d)===kind){
+        found=d;
+        return true;
+      }
+      return false;
+    });
+    if(!found)return null;
+    var ref=(target&&target.ref)||(fallbackTarget&&fallbackTarget.ref)||'';
+    var name=docName247(found) || (kind==='abd'?'ABD.pdf':'POD.pdf');
+    var url=docUrl247(found) || fileUrl247(ref,name);
+    if(!url)return null;
+    return Object.assign({},found,{
+      name:name,
+      fileName:name,
+      url:url,
+      webUrl:url,
+      rc247Linked:true
+    });
+  }
+
+  function ensureDocInState247(target,kind,fallbackTarget){
+    if(!target)return false;
+    var doc=findDoc247(target,kind,fallbackTarget);
+    if(!doc)return false;
+    target.rc230Docs=target.rc230Docs||{};
+    target.rc228Docs=target.rc228Docs||{};
+    target.rc247Docs=target.rc247Docs||{};
+    target.rc230Docs[kind]=doc;
+    target.rc228Docs[kind]=doc;
+    target.rc247Docs[kind]=doc;
+    if(kind==='abd'){
+      target.abdFiles=Array.isArray(target.abdFiles)?target.abdFiles:[];
+      target.abdFiles=target.abdFiles.filter(function(x){return classify247(x)!=='abd'});
+      target.abdFiles.unshift(doc);
+      target.abdStatus='Dokument vorhanden';
+    }else{
+      target.podFiles=Array.isArray(target.podFiles)?target.podFiles:[];
+      target.podFiles=target.podFiles.filter(function(x){return classify247(x)!=='pod'});
+      target.podFiles.unshift(doc);
+      target.podStatus='hochgeladen';
+    }
+    return true;
+  }
+
+  function migrateDocs247(){
+    var changed=false;
+    try{
+      (state.shipments||[]).forEach(function(s){
+        changed=ensureDocInState247(s,'abd')||changed;
+        changed=ensureDocInState247(s,'pod')||changed;
+      });
+      (state.abdRequests||[]).forEach(function(r){
+        var ship=findShipmentByRef247(r&&r.ref);
+        changed=ensureDocInState247(r,'abd',ship)||changed;
+      });
+    }catch(err){}
+    if(changed)save247('ABD/POD Dokumente verknuepft');
+  }
+
+  function readFile247(file){
+    return new Promise(function(resolve){
+      if(!file){resolve('');return}
+      var reader=new FileReader();
+      reader.onload=function(){resolve(String(reader.result||''))};
+      reader.onerror=function(){resolve('')};
+      reader.readAsDataURL(file);
+    });
+  }
+
+  window.rc247UploadDoc=async function(id,kind,source,input){
+    var file=input&&input.files&&input.files[0];
+    if(!file)return false;
+    var list=source==='abdRequest'?(state.abdRequests||[]):(state.shipments||[]);
+    var target=list.find(function(x){return String(x.id||'')===String(id)});
+    if(!target){alert('Eintrag nicht gefunden.');return false}
+    var dataUrl=await readFile247(file);
+    var item={
+      id:uid247(kind.toUpperCase()),
+      name:file.name,
+      fileName:file.name,
+      size:file.size,
+      type:file.type||'Datei',
+      dataUrl:dataUrl,
+      uploadedAt:new Date().toISOString(),
+      uploadedBy:(currentUser&&(currentUser.name||currentUser.user))||'Benutzer',
+      source:'RC247 Upload'
+    };
+    target.deliveryFiles=Array.isArray(target.deliveryFiles)?target.deliveryFiles:[];
+    target.deliveryFiles.push(item);
+    if(kind==='abd'){
+      target.abdFiles=Array.isArray(target.abdFiles)?target.abdFiles:[];
+      target.abdFiles.unshift(item);
+    }else{
+      target.podFiles=Array.isArray(target.podFiles)?target.podFiles:[];
+      target.podFiles.unshift(item);
+    }
+    target.rc230Docs=target.rc230Docs||{};
+    target.rc228Docs=target.rc228Docs||{};
+    target.rc247Docs=target.rc247Docs||{};
+    target.rc230Docs[kind]=item;
+    target.rc228Docs[kind]=item;
+    target.rc247Docs[kind]=item;
+    if(kind==='abd')target.abdStatus='Dokument vorhanden';
+    if(kind==='pod')target.podStatus='hochgeladen';
+    save247((kind==='abd'?'ABD':'POD')+' hochgeladen');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  function planned247(s){
+    return iso247(s&&s.plannedPickupDate)||iso247(s&&s.pickupDate)||'';
+  }
+
+  function actual247(s){
+    return iso247(s&&s.actualPickupDate)||iso247(s&&s.pickedUpAtDate)||'';
+  }
+
+  function statusShip247(s){
+    var raw=n247([(s&&s.status),(s&&s.freigabe),(s&&s.pickupStatus),(s&&s.completedAt?'erledigt':''),(s&&s.done?'erledigt':''),(actual247(s)?'erledigt':'')].join(' '));
+    if(raw.indexOf('erled')>=0 || raw.indexOf('abgeholt')>=0)return 'Erledigt';
+    if(raw.indexOf('uber')>=0 || raw.indexOf('ueber')>=0)return 'Ueberfaellig';
+    return 'Offen';
+  }
+
+  function statusAbd247(r){
+    var ship=findShipmentByRef247(r&&r.ref);
+    var raw=n247([(r&&r.status),(r&&r.done?'erledigt':''),(r&&r.completedAt?'erledigt':''),findDoc247(r,'abd',ship)?'dokument vorhanden':''].join(' '));
+    if(raw.indexOf('erled')>=0)return 'Erledigt';
+    if(raw.indexOf('dokument')>=0)return 'Dokument vorhanden';
+    return 'Offen';
+  }
+
+  function pill247(text){
+    var x=n247(text);
+    var cls=x.indexOf('erled')>=0?'green':(x.indexOf('dokument')>=0?'blue':(x.indexOf('uber')>=0||x.indexOf('ueber')>=0?'red':'orange'));
+    return '<span class="pill '+cls+'">'+e247(text||'Offen')+'</span>';
+  }
+
+  function customerParts247(s){
+    var c=(s&&s.customer)||{};
+    var num=c.account||c.customerNumber||s.customerNumber||s.account||'';
+    var name=[c.name||s.customerName||'',c.country||s.country||''].filter(Boolean).join(' - ');
+    return {num:num,name:name};
+  }
+
+  function abdCustomer247(r){
+    var ship=findShipmentByRef247(r&&r.ref)||{};
+    var c=(r&&r.customer)||{};
+    var sc=ship.customer||{};
+    var num=c.account||c.customerNumber||r.customerNumber||sc.account||sc.customerNumber||'';
+    var name=c.name||r.customerName||sc.name||'';
+    return {num:num,name:name};
+  }
+
+  function docs247(s){
+    var out=[];
+    String((s&&s.deliveryNotes)||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)});
+    (Array.isArray(s&&s.deliveryFiles)?s.deliveryFiles:[]).forEach(function(f){
+      var name=docName247(f);
+      if(name && out.indexOf(name)<0)out.push(name);
+    });
+    return out;
+  }
+
+  function docCard247(target,kind,source,fallbackTarget){
+    var label=kind==='abd'?'ABD':'POD';
+    var doc=findDoc247(target,kind,fallbackTarget);
+    var linked=!!(doc&&doc.url);
+    return '<div class="rc247-doc-card '+(linked?'linked':'')+'">'+
+      '<div class="rc247-doc-top">'+
+        (linked?'<a class="rc247-doc-title" href="'+e247(doc.url)+'" target="_blank" rel="noopener">'+label+'</a>':'<span class="rc247-doc-title">'+label+'</span>')+
+        '<span class="pill '+(linked?'green':'gray')+'">'+(linked?'verlinkt':'fehlt')+'</span>'+
+      '</div>'+
+      '<div class="rc247-doc-name">'+e247(linked?(doc.name||label+'.pdf'):('kein '+label+' verlinkt'))+'</div>'+
+      '<div class="rc247-doc-actions">'+
+        (linked?'<a class="soft" href="'+e247(doc.url)+'" target="_blank" rel="noopener" download="'+e247(doc.name||label+'.pdf')+'">PDF oeffnen/downloaden</a>':'')+
+        '<label class="ghost">Datei hochladen/ersetzen<input class="rc247-file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" onchange="rc247UploadDoc(&quot;'+e247(target.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;,this);this.value=&quot;&quot;"></label>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function docCell247(s){
+    return '<div class="rc247-docs">'+docCard247(s,'abd','shipment')+docCard247(s,'pod','shipment')+'</div>';
+  }
+
+  window.rc247SetOverviewSearch=function(value){
+    state.shipmentOverviewSearch=String(value||'');
+    clearTimeout(window.__rc247SearchTimer);
+    window.__rc247SearchTimer=setTimeout(function(){
+      save247('Filter gespeichert');
+      try{render()}catch(err){}
+    },180);
+  };
+
+  window.rc247SetPlanned=function(id,value){
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return false;
+    var v=iso247(value);
+    s.plannedPickupDate=v;
+    s.pickupDate=v;
+    s.pickupDateConfirmed=!!v;
+    try{if(typeof createOrUpdateShipmentCreatedTask==='function')createOrUpdateShipmentCreatedTask(s,s.customer||{})}catch(err){}
+    save247('Geplantes Abholdatum gespeichert');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc247SetActual=function(id,value){
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return false;
+    var v=iso247(value);
+    s.actualPickupDate=v;
+    s.pickedUpAtDate=v;
+    s.pickedUp=!!v;
+    s.pickupStatus=v?'abgeholt':'offen';
+    if(v){
+      s.status='erledigt';
+      s.freigabe='erledigt';
+      s.completedAt=s.completedAt||new Date().toISOString();
+      s.done=true;
+    }else{
+      s.completedAt='';
+      s.done=false;
+      s.status='offen';
+      s.freigabe='offen';
+    }
+    try{if(typeof createOrUpdateShipmentCreatedTask==='function')createOrUpdateShipmentCreatedTask(s,s.customer||{})}catch(err){}
+    save247('Tatsaechliches Abholdatum gespeichert');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc247MarkPicked=function(id){
+    return window.rc247SetActual(id,today247());
+  };
+
+  window.rc247OpenRefFolder=function(ref){
+    var url=folderUrl247(ref);
+    window.open(url,'_blank','noopener,noreferrer');
+    return false;
+  };
+
+  window.rc247DeleteShipment=function(id){
+    if(!confirm('Sendung wirklich loeschen?'))return false;
+    try{
+      if(typeof rc203DeleteShipment==='function')return rc203DeleteShipment(id);
+    }catch(err){}
+    state.shipments=(state.shipments||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    save247('Sendung geloescht');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc247DeleteAbd=function(id){
+    if(!confirm('ABD Anfrage wirklich loeschen?'))return false;
+    try{
+      if(typeof rc203DeleteAbd==='function')return rc203DeleteAbd(id);
+    }catch(err){}
+    state.abdRequests=(state.abdRequests||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    save247('ABD Anfrage geloescht');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  function matches247(text,query){
+    return !query || n247(text).indexOf(query)>=0;
+  }
+
+  function shipmentoverview247(){
+    migrateDocs247();
+    state.rc247OverviewType=state.rc247OverviewType||state.rc203OverviewType||state.rc202OverviewType||state.rc200OverviewType||'all';
+    if(state.rc247HideDone===undefined)state.rc247HideDone=state.rc203HideDone!==undefined?!!state.rc203HideDone:true;
+    var query=n247(state.shipmentOverviewSearch||'');
+    var typ=state.rc247OverviewType||'all';
+    var st=state.shipmentOverviewStatus||'Alle';
+    var hideDone=!!state.rc247HideDone;
+    var ships=(state.shipments||[]).slice();
+    var abds=(state.abdRequests||[]).slice();
+
+    ships=ships.filter(function(s){
+      var c=customerParts247(s);
+      return matches247([s.ref,s.created,c.num,c.name,docs247(s).join(' '),allDocs247(s).map(docName247).join(' '),statusShip247(s)].join(' '),query);
+    });
+    abds=abds.filter(function(r){
+      var c=abdCustomer247(r);
+      var ship=findShipmentByRef247(r&&r.ref);
+      return matches247([r.ref,r.created,r.createdIso,c.num,c.name,r.note,r.manualText,allDocs247(r).concat(allDocs247(ship||{})).map(docName247).join(' '),statusAbd247(r)].join(' '),query);
+    });
+    if(hideDone){
+      ships=ships.filter(function(s){return statusShip247(s)!=='Erledigt'});
+      abds=abds.filter(function(r){return statusAbd247(r)!=='Erledigt'});
+    }
+    if(st && st!=='Alle'){
+      ships=ships.filter(function(s){return n247(statusShip247(s)).indexOf(n247(st))>=0});
+      abds=abds.filter(function(r){return n247(statusAbd247(r)).indexOf(n247(st))>=0});
+    }
+    ships.sort(function(a,b){return String(b.created||'').localeCompare(String(a.created||''))});
+    abds.sort(function(a,b){return String(b.createdIso||b.created||'').localeCompare(String(a.createdIso||a.created||''))});
+
+    var html=(typeof head==='function'?head('Sendungsuebersicht','Sendungen und ABD Anfragen filtern, Abholdatum pflegen, ABD/POD verlinken und Sendungen abschliessen.'):'<h2>Sendungsuebersicht</h2>')+
+      '<div class="rc247-filterbar">'+
+        '<input id="shipmentOverviewSearchInput" placeholder="Referenz, Kunde, DNC, POD oder ABD suchen" value="'+e247(state.shipmentOverviewSearch||'')+'" oninput="rc247SetOverviewSearch(this.value)">'+
+        '<select onchange="state.rc247OverviewType=this.value;state.rc203OverviewType=this.value;save247&&save247();render()"><option value="all" '+(typ==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(typ==='shipments'?'selected':'')+'>Nur Sendungen</option><option value="abd" '+(typ==='abd'?'selected':'')+'>Nur ABD</option></select>'+
+        '<select onchange="state.shipmentOverviewStatus=this.value;save247&&save247();render()"><option value="Alle" '+(st==='Alle'?'selected':'')+'>Alle Status</option><option value="Offen" '+(st==='Offen'?'selected':'')+'>Offen</option><option value="Ueberfaellig" '+(st==='Ueberfaellig'?'selected':'')+'>Ueberfaellig</option><option value="Erledigt" '+(st==='Erledigt'?'selected':'')+'>Erledigt</option><option value="Dokument vorhanden" '+(st==='Dokument vorhanden'?'selected':'')+'>Dokument vorhanden</option></select>'+
+        '<label class="rc203-check"><input type="checkbox" '+(hideDone?'checked':'')+' onchange="state.rc247HideDone=this.checked;state.rc203HideDone=this.checked;save247&&save247();render()"> Erledigte ausblenden</label>'+
+        '<button class="ghost" onclick="state.shipmentOverviewSearch=&quot;&quot;;state.shipmentOverviewStatus=&quot;Alle&quot;;state.rc247OverviewType=&quot;all&quot;;state.rc247HideDone=true;save247&&save247();render()">Filter loeschen</button>'+
+      '</div>';
+
+    if(typ==='all'||typ==='shipments'){
+      html+='<div class="card"><h3>Sendungen</h3>';
+      if(!ships.length)html+='<p class="muted">Keine Sendungen fuer diesen Filter.</p>';
+      else html+='<table class="rc247-table"><tr><th>Referenz</th><th>Kunde</th><th>Abholdatum</th><th>DNC / Lieferscheine</th><th>POD / ABD</th><th>Status</th><th>Aktion</th></tr>'+
+        ships.map(function(s){
+          var c=customerParts247(s);
+          var dncs=docs247(s);
+          return '<tr>'+
+            '<td><b>'+e247(s.ref||'')+'</b><br><span class="small">'+e247(s.created||'')+'</span></td>'+
+            '<td class="rc247-customer"><div class="rc247-customer-number">'+e247(c.num||'')+'</div><div class="rc247-customer-name">'+e247(c.name||'')+'</div></td>'+
+            '<td><div class="rc247-date-stack"><label>Geplant<input type="date" value="'+e247(planned247(s))+'" onchange="rc247SetPlanned(&quot;'+e247(s.id||'')+'&quot;,this.value)"></label><label>Tatsaechlich<input type="date" value="'+e247(actual247(s))+'" onchange="rc247SetActual(&quot;'+e247(s.id||'')+'&quot;,this.value)"></label></div></td>'+
+            '<td>'+(dncs.length?dncs.map(function(x){return '<span class="pill gray">'+e247(x)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</td>'+
+            '<td>'+docCell247(s)+'</td>'+
+            '<td>'+pill247(statusShip247(s))+'</td>'+
+            '<td><div class="rc247-actions">'+
+              '<button class="ghost" onclick="showSavedCmr(&quot;'+e247(s.id||'')+'&quot;)">Ladeliste/CMR</button>'+
+              '<button class="rc247-picked-btn" onclick="return rc247MarkPicked(&quot;'+e247(s.id||'')+'&quot;)">Sendung abgeholt</button>'+
+              '<button class="ghost" onclick="return rc247OpenRefFolder(&quot;'+e247(s.ref||'')+'&quot;)">Ref.-Ordner</button>'+
+              '<button class="rc247-delete" onclick="return rc247DeleteShipment(&quot;'+e247(s.id||'')+'&quot;)">Loeschen</button>'+
+            '</div></td>'+
+          '</tr>';
+        }).join('')+'</table>';
+      html+='</div>';
+    }
+
+    if(typ==='all'||typ==='abd'){
+      html+='<div class="card"><h3>ABD Anfragen</h3>';
+      if(!abds.length)html+='<p class="muted">Keine ABD Anfragen fuer diesen Filter.</p>';
+      else html+='<table class="rc247-table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>ABD Dokument</th><th>Datum</th><th>Aktion</th></tr>'+
+        abds.map(function(r){
+          var c=abdCustomer247(r);
+          var ship=findShipmentByRef247(r&&r.ref);
+          return '<tr>'+
+            '<td><b>'+e247(r.ref||'')+'</b></td>'+
+            '<td class="rc247-customer"><div class="rc247-customer-number">'+e247(c.num||'')+'</div><div class="rc247-customer-name">'+e247(c.name||'')+'</div></td>'+
+            '<td>'+pill247(statusAbd247(r))+'</td>'+
+            '<td><div class="rc247-docs">'+docCard247(r,'abd','abdRequest',ship)+'</div></td>'+
+            '<td>'+e247(r.created||r.createdIso||'')+'</td>'+
+            '<td><div class="rc247-actions">'+
+              '<button class="ghost" onclick="return rc247OpenRefFolder(&quot;'+e247(r.ref||'')+'&quot;)">Ref.-Ordner</button>'+
+              '<button class="rc247-delete" onclick="return rc247DeleteAbd(&quot;'+e247(r.id||'')+'&quot;)">Loeschen</button>'+
+            '</div></td>'+
+          '</tr>';
+        }).join('')+'</table>';
+      html+='</div>';
+    }
+    return html;
+  }
+
+  window.save247=save247;
+  window.shipmentoverview=shipmentoverview247;
+  try{shipmentoverview=window.shipmentoverview}catch(err){}
+  setTimeout(migrateDocs247,300);
+})();
+</script>
+<!-- PRIVATE RC247 END: Sendungsuebersicht Final ABD/POD/Abgeholt -->
+
+  
   
 </body></html>
 
