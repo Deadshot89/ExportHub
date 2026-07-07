@@ -29706,6 +29706,340 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC238 END: Teamdaten-/Microsoft-Warnung aus Ladeliste und CMR entfernen -->
+
+<!-- PRIVATE RC239 START: Sendungsuebersicht ABD/POD PDF-Link + Format + Buttoncleanup -->
+<style>
+.rc230-overview-table{
+  table-layout:fixed!important;
+  width:100%!important;
+  border-collapse:separate!important;
+  border-spacing:0 6px!important;
+}
+.rc230-overview-table th,
+.rc230-overview-table td{
+  vertical-align:top!important;
+  padding:7px!important;
+}
+.rc230-overview-table th:nth-child(4),
+.rc230-overview-table td:nth-child(4){
+  width:190px!important;
+}
+.rc230-overview-table th:nth-child(5),
+.rc230-overview-table td:nth-child(5){
+  width:300px!important;
+}
+.rc230-overview-table th:nth-child(7),
+.rc230-overview-table td:nth-child(7){
+  width:115px!important;
+}
+.rc230-docs{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:7px!important;
+}
+.rc230-doc-card{
+  min-width:0!important;
+  padding:8px!important;
+  border-radius:10px!important;
+  overflow:hidden!important;
+}
+.rc230-doc-card.rc230-present{
+  border-color:#22c55e!important;
+  background:#ecfdf5!important;
+}
+.rc230-doc-card.rc239-text-only{
+  border-color:#f59e0b!important;
+  background:#fff7ed!important;
+}
+.rc230-doc-top{
+  display:flex!important;
+  justify-content:space-between!important;
+  gap:6px!important;
+  align-items:center!important;
+}
+.rc230-doc-label{
+  font-size:15px!important;
+  font-weight:950!important;
+  color:#08245d!important;
+}
+.rc230-doc-name{
+  max-width:100%!important;
+  margin:5px 0!important;
+  font-size:12px!important;
+  line-height:1.25!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+.rc230-doc-actions{
+  display:flex!important;
+  gap:6px!important;
+  flex-wrap:wrap!important;
+}
+.rc230-doc-actions button,
+.rc230-doc-actions label,
+.rc230-overview-actions button{
+  min-height:27px!important;
+  padding:5px 7px!important;
+  font-size:11px!important;
+  border-radius:8px!important;
+  line-height:1.15!important;
+}
+.rc230-overview-actions{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:5px!important;
+}
+.rc239-hide{
+  display:none!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC239: ABD/POD Dateinamen aus Referenzordner als PDF-Link nutzbar machen und Ordner/Oeffnen Buttons entfernen */
+(function(){
+  if(window.__EXPORTHUB_RC239_OVERVIEW_PDF_FORMAT_BUTTONFIX__)return;
+  window.__EXPORTHUB_RC239_OVERVIEW_PDF_FORMAT_BUTTONFIX__=true;
+
+  var SHAREPOINT_FILE_BASE_239='https://essentra-my.sharepoint.com/:b:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+
+  function n239(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function ref239(v){
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,20);
+  }
+
+  function name239(d){
+    return String((d&&(d.name||d.fileName||d.filename||d.title))||'').trim();
+  }
+
+  function url239(d){
+    return String((d&&(d.dataUrl||d.url||d.link||d.webUrl||d.sharepointUrl||d.downloadUrl||d.href))||'').trim();
+  }
+
+  function kind239(d){
+    var x=n239(name239(d)+' '+url239(d));
+    if(x.indexOf('abd')>=0)return 'abd';
+    if(x.indexOf('pod')>=0 || x.indexOf('scan')>=0 || x.indexOf('untitled')>=0)return 'pod';
+    return '';
+  }
+
+  function fileUrl239(reference,fileName){
+    var r=ref239(reference);
+    var name=String(fileName||'').trim();
+    if(!r || !name)return '';
+    return SHAREPOINT_FILE_BASE_239.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'/'+encodeURIComponent(name)+'?csf=1&web=1';
+  }
+
+  function docs239(s){
+    var out=[];
+    ['rc230Docs','abdFiles','podFiles','deliveryFiles','files','documents','docs'].forEach(function(key){
+      var v=s&&s[key];
+      if(!v)return;
+      if(key==='rc230Docs' && typeof v==='object' && !Array.isArray(v)){
+        if(v.abd)out.push(v.abd);
+        if(v.pod)out.push(v.pod);
+        return;
+      }
+      if(Array.isArray(v))v.forEach(function(d){out.push(d)});
+    });
+    return out;
+  }
+
+  function bestDoc239(s,kind){
+    var all=docs239(s);
+    var exact=all.filter(function(d){return kind239(d)===kind});
+    if(!exact.length)return null;
+    exact.sort(function(a,b){
+      var au=url239(a)?1:0;
+      var bu=url239(b)?1:0;
+      return bu-au;
+    });
+    return exact[0]||null;
+  }
+
+  function applyDoc239(s,kind){
+    if(!s)return false;
+    var d=bestDoc239(s,kind);
+    if(!d)return false;
+    var name=name239(d) || (kind==='abd'?'ABD.pdf':'POD.pdf');
+    var link=url239(d) || fileUrl239(s.ref,name);
+    if(!link)return false;
+    var item=Object.assign({},d,{
+      name:name,
+      url:link,
+      webUrl:link,
+      source:(url239(d)?(d.source||'RC239 Datei'):'RC239 SharePoint PDF Link'),
+      rc239Linked:true
+    });
+    s.rc230Docs=s.rc230Docs||{};
+    s.rc230Docs[kind]=item;
+    if(kind==='abd'){
+      s.abdFiles=Array.isArray(s.abdFiles)?s.abdFiles:[];
+      if(!s.abdFiles.some(function(x){return name239(x)===name}))s.abdFiles.unshift(item);
+      s.abdStatus='Dokument vorhanden';
+    }else{
+      s.podFiles=Array.isArray(s.podFiles)?s.podFiles:[];
+      if(!s.podFiles.some(function(x){return name239(x)===name}))s.podFiles.unshift(item);
+      s.podStatus='hochgeladen';
+    }
+    return true;
+  }
+
+  function migrateDocs239(){
+    try{
+      if(!state)return;
+      var changed=false;
+      (state.shipments||[]).forEach(function(s){
+        changed=applyDoc239(s,'abd')||changed;
+        changed=applyDoc239(s,'pod')||changed;
+      });
+      (state.abdRequests||[]).forEach(function(r){
+        changed=applyDoc239(r,'abd')||changed;
+      });
+      if(changed){
+        try{if(typeof save==='function')save()}catch(err){}
+        try{
+          if(window.fetch){
+            fetch('/api/exporthub/state',{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({
+                user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+                users:state.users||[],
+                state:state
+              })
+            }).catch(function(){});
+          }
+        }catch(err){}
+      }
+    }catch(err){}
+  }
+
+  function download239(url,name){
+    if(!url){
+      alert('Keine PDF-Datei gespeichert. Bitte ueber \"Datei hochladen/ersetzen\" die echte PDF-Datei auswaehlen.');
+      return false;
+    }
+    var a=document.createElement('a');
+    a.href=/^data:/i.test(url)?url:(url+(url.indexOf('?')>=0?'&':'?')+'download=1');
+    a.target='_blank';
+    a.rel='noopener';
+    a.download=String(name||'Dokument.pdf');
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){try{a.remove()}catch(err){}},300);
+    return false;
+  }
+  window.rc239DownloadPdf=download239;
+  window.rc230DownloadDoc=download239;
+
+  function buttonText239(el){
+    return n239(el&&el.textContent).replace(/\bue\b/g,'u');
+  }
+
+  function isRemoveButton239(el){
+    var t=buttonText239(el);
+    var oc=n239(el&&el.getAttribute&&el.getAttribute('onclick'));
+    if(t==='offnen' || t==='oeffnen')return true;
+    if(t==='abd offnen' || t==='abd oeffnen')return true;
+    if(t==='referenzordner' || t==='referenzordner offnen' || t==='referenzordner oeffnen')return true;
+    if(t==='ordner offnen' || t==='ordner oeffnen' || t==='basisordner offnen' || t==='basisordner oeffnen')return true;
+    if(oc.indexOf('rc230openurl')>=0 && (oc.indexOf('sendungen')>=0 || oc.indexOf('referenz')>=0))return true;
+    return false;
+  }
+
+  function cleanupButtons239(root){
+    root=root||document;
+    Array.from(root.querySelectorAll('button,a')).forEach(function(el){
+      if(isRemoveButton239(el)){
+        el.classList.add('rc239-hide');
+        el.remove();
+      }
+    });
+  }
+
+  function fixCards239(root){
+    root=root||document;
+    Array.from(root.querySelectorAll('.rc230-doc-card')).forEach(function(card){
+      cleanupButtons239(card);
+      var text=n239(card.textContent);
+      var pill=card.querySelector('.pill');
+      if(text.indexOf('im ordner erkannt')>=0){
+        card.classList.remove('rc230-present');
+        card.classList.add('rc239-text-only');
+        if(pill){
+          pill.className='pill orange';
+          pill.textContent='PDF-Link pruefen';
+        }
+      }
+      Array.from(card.querySelectorAll('button')).forEach(function(btn){
+        var t=buttonText239(btn);
+        if(t.indexOf('pdf runterladen')>=0){
+          btn.classList.remove('soft');
+          btn.classList.add('btn');
+          btn.textContent='PDF öffnen/downloaden';
+        }
+      });
+    });
+  }
+
+  function cleanupOverview239(){
+    try{
+      if(!state || state.view!=='shipmentoverview')return;
+      migrateDocs239();
+      cleanupButtons239(document);
+      fixCards239(document);
+      if(typeof rc238CleanTeamdataWarnings==='function')rc238CleanTeamdataWarnings(document);
+    }catch(err){}
+  }
+  window.rc239CleanupOverview=cleanupOverview239;
+
+  var baseRender239=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender239==='function' && !baseRender239.__rc239Wrapped){
+    var wrappedRender239=function(){
+      var result=baseRender239.apply(this,arguments);
+      setTimeout(cleanupOverview239,0);
+      setTimeout(cleanupOverview239,120);
+      setTimeout(cleanupOverview239,420);
+      return result;
+    };
+    wrappedRender239.__rc239Wrapped=true;
+    window.render=wrappedRender239;
+    try{render=wrappedRender239}catch(err){}
+  }
+
+  var baseOverview239=window.shipmentoverview || (typeof shipmentoverview==='function'?shipmentoverview:null);
+  if(typeof baseOverview239==='function' && !baseOverview239.__rc239Wrapped){
+    var wrappedOverview239=function(){
+      migrateDocs239();
+      var html=String(baseOverview239.apply(this,arguments)||'');
+      html=html
+        .replace(/<button[^>]*>\s*(?:Oeffnen|Öffnen|Referenzordner|Referenzordner\s+oeffnen|Referenzordner\s+öffnen|Ordner\s+öffnen|Ordner\s+oeffnen|Basisordner\s+oeffnen|Basisordner\s+öffnen)\s*<\/button>/gi,'')
+        .replace(/Referenzordner\s+oeffnen/gi,'')
+        .replace(/im Ordner erkannt/gi,'PDF-Link pruefen');
+      setTimeout(cleanupOverview239,0);
+      setTimeout(cleanupOverview239,180);
+      return html;
+    };
+    wrappedOverview239.__rc239Wrapped=true;
+    window.shipmentoverview=wrappedOverview239;
+    try{shipmentoverview=wrappedOverview239}catch(err){}
+  }
+
+  document.addEventListener('click',function(){
+    setTimeout(cleanupOverview239,80);
+  },true);
+
+  setTimeout(cleanupOverview239,250);
+  setInterval(cleanupOverview239,1200);
+})();
+</script>
+<!-- PRIVATE RC239 END: Sendungsuebersicht ABD/POD PDF-Link + Format + Buttoncleanup -->
   
 </body></html>
 
