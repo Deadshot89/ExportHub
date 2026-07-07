@@ -35547,8 +35547,6 @@ body .rc232-folder-actions{
 	      goodsDescription:r.goodsDescription||'Waren laut ABD Anfrage',
 	      comments:r.comments||r.comment||'Aus ABD Anfrage erstellt',
 	      addressConfirmed:!!(c.address||r.recipientAddress||r.address),
-	      linkedAbdId:r.id||'',
-	      linkedAbdRef:r.ref||'',
 	      rows:[{
 	        type:r.manualColliType||row.type||'Collis',
 	        count:count,
@@ -36893,16 +36891,21 @@ body .rc232-folder-actions{
   window.rc261SetMailLang=function(value){setSetting261('lang',value);return false};
   window.rc261SetMailRecipient=function(value){setSetting261('recipient',value);return false};
 
-  function shipmentBlock261(c,sh,lang){
-    c=c||{};
-    sh=sh||{};
-    var t=totals261(sh);
-    var docs=[];
-    String(sh.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){docs.push(x)});
-    (Array.isArray(sh.deliveryFiles)?sh.deliveryFiles:[]).forEach(function(f){var name=String((f&&(f.name||f.fileName||f.filename))||'').trim();if(name)docs.push(name)});
-    var rows=(Array.isArray(sh.rows)?sh.rows:[]).map(function(r){
-      return [r.count||'',r.type||'',r.l&&r.w&&r.h?(r.l+'x'+r.w+'x'+r.h+' cm'):''].filter(Boolean).join(' ');
-    }).filter(Boolean).join('\n');
+	  function shipmentBlock261(c,sh,lang){
+	    c=c||{};
+	    sh=sh||{};
+	    var t=totals261(sh);
+	    var docs=[];
+	    String(sh.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){docs.push(x)});
+	    (Array.isArray(sh.deliveryFiles)?sh.deliveryFiles:[]).forEach(function(f){var name=String((f&&(f.name||f.fileName||f.filename))||'').trim();if(name)docs.push(name)});
+	    function typeName(type){
+	      var raw=String(type||'').trim();
+	      if(lang==='en' && raw==='Gestapelte Euro Palette')return 'Stacked Euro pallet';
+	      return raw;
+	    }
+	    var rows=(Array.isArray(sh.rows)?sh.rows:[]).map(function(r){
+	      return [r.count||'',typeName(r.type),r.l&&r.w&&r.h?(r.l+'x'+r.w+'x'+r.h+' cm'):''].filter(Boolean).join(' ');
+	    }).filter(Boolean).join('\n');
     var de=[
       'Sendungsdaten:',
       'Referenznummer: '+(ref261(sh.ref)||'offen'),
@@ -38892,8 +38895,8 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 	  .rc200-bottom-ref{
 	    display:none!important;
 	  }
-		  .rc274-abd-link-note{
-		    display:block!important;
+	  .rc274-abd-link-note{
+	    display:none!important;
 		    margin-top:6px!important;
 	    color:#1e3a8a!important;
 	    font-size:12px!important;
@@ -39084,15 +39087,21 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 	    return document.getElementById('rc265AbdPanel') ||
 	      document.querySelector('.rc265-abd-request-panel,.rc260-abd-panel');
 	  }
+	  function goodsDescriptionField(){
+	    if(view()!=='shipment')return null;
+	    return Array.from(document.querySelectorAll('label.field,label,.field')).find(function(el){
+	      return /Warenbeschreibung\s*fuer\s*CMR\s*Feld\s*9|Warenbeschreibung\s*für\s*CMR\s*Feld\s*9/i.test(txt(el));
+	    })||null;
+	  }
 		  function moveStandardmail(){
 		    if(view()!=='shipment')return;
 		    var panel=document.getElementById('rc261MailPanel');
-		    var card=colliCard();
-		    if(!panel||!card)return;
+		    var goods=goodsDescriptionField();
+		    if(!panel||!goods)return;
 		    panel.classList.add('rc274-after-colli');
 		    var abd=abdPanel();
-		    if(card.nextElementSibling!==panel){
-		      card.insertAdjacentElement('afterend',panel);
+		    if(goods.nextElementSibling!==panel){
+		      goods.insertAdjacentElement('afterend',panel);
 		    }
 		    if(abd&&panel.nextElementSibling!==abd)panel.insertAdjacentElement('afterend',abd);
 		  }
@@ -39138,15 +39147,8 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 	    });
 	  }
 	  function addAbdLinkNote(){
-    if(view()!=='shipment')return;
-    var sh=currentShipment();
-    var r=ref(sh&&(sh.linkedAbdRef||sh.ref));
-    var abd=abdByRef(r);
-    if(!abd)return;
-    var field=Array.from(document.querySelectorAll('label.field,label,.field')).find(function(el){return /Sendungsreferenz|Referenznummer/i.test(txt(el))});
-    if(!field||field.querySelector('.rc274-abd-link-note'))return;
-    field.insertAdjacentHTML('beforeend','<span class="rc274-abd-link-note">Mit ABD Anfrage '+esc274(abd.ref||r)+' verknuepft.</span>');
-  }
+    return;
+	  }
 	  function afterRender(){
 	    renamePickupLabels();
 	    ensureReferenceFolderButtons();
@@ -39158,39 +39160,18 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     var baseCreate=window.rc274CreateShipmentFromAbd;
     window.rc274CreateShipmentFromAbd=function(id){
       var result=baseCreate.apply(this,arguments);
-      try{
-        var sh=currentShipment();
-        linkAbdToShipment(sh);
-        if(typeof save==='function')save();
-      }catch(err){}
-      setTimeout(afterRender,80);
-      setTimeout(afterRender,260);
+	      setTimeout(afterRender,80);
+	      setTimeout(afterRender,260);
       return result;
     };
 	    window.rc274CreateShipmentFromAbd.__rc274_7_wrapped=true;
 	  }
 	  if(typeof saveShipment==='function'&&!saveShipment.__rc274_7_wrapped){
-    var baseSaveShipment=saveShipment;
-    window.saveShipment=function(){
-      var before=Object.assign({},(st()&&st().shipment)||{});
-      var result=baseSaveShipment.apply(this,arguments);
-      try{
-        var s=st();
-        var saved=null;
-        if(s&&Array.isArray(s.shipments)){
-          saved=s.shipments.find(function(x){return String(x.id||'')===String(s.activeShipmentId)}) ||
-            s.shipments.find(function(x){return ref(x&&x.ref)===ref(before.linkedAbdRef||before.ref)});
-        }
-	        if(saved){
-	          if(before.linkedAbdId)saved.linkedAbdId=before.linkedAbdId;
-	          if(before.linkedAbdRef)saved.linkedAbdRef=before.linkedAbdRef;
-	          linkAbdToShipment(saved);
-	          removeAbdCreateTaskForLinkedShipment(saved);
-	          if(typeof save==='function')save();
-	        }
-      }catch(err){}
-      return result;
-    };
+	    var baseSaveShipment=saveShipment;
+	    window.saveShipment=function(){
+	      var result=baseSaveShipment.apply(this,arguments);
+		      return result;
+	    };
 	    window.saveShipment.__rc274_7_wrapped=true;
 	    try{saveShipment=window.saveShipment}catch(err){}
 	  }
