@@ -38600,6 +38600,210 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC266 END: Offline-Login ohne Microsoft -->
+
+<!-- PRIVATE RC268 START: ABD nur Sendung erstellen + Buttonlayout -->
+<style>
+.rc268-hidden{
+  display:none!important;
+}
+.rc268-colli-actions{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  margin:12px 0!important;
+  padding:10px!important;
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  border-radius:12px!important;
+}
+.rc268-colli-actions button{
+  min-height:38px!important;
+}
+.rc268-colli-note{
+  font-size:12px!important;
+  font-weight:850!important;
+  color:#1e3a8a!important;
+}
+body[data-rc268-view="shipmentoverview"] button[onclick*="setView('abd')"],
+body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
+  display:none!important;
+}
+.rc260-abd-panel{
+  display:none!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC268: ABD Anfrage nur in Sendung erstellen; Aktionen unter Collis */
+(function(){
+  if(window.__EXPORTHUB_RC268_ABD_BUTTON_LAYOUT__)return;
+  window.__EXPORTHUB_RC268_ABD_BUTTON_LAYOUT__=true;
+
+  function st268(){try{return typeof state!=='undefined'&&state?state:null}catch(err){return null}}
+  function n268(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function e268(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});
+  }
+  function currentView268(){
+    var s=st268();
+    return String((s&&s.view)||'');
+  }
+  function text268(el){
+    return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim();
+  }
+  function closestCard268(el){
+    try{return el&&el.closest&&el.closest('.card,section,article,div')}catch(err){return null}
+  }
+  function isInColliActions268(el){
+    try{return !!(el&&el.closest&&el.closest('#rc268ColliActions'))}catch(err){return false}
+  }
+  function isInAbdPanel268(el){
+    try{return !!(el&&el.closest&&el.closest('#rc265AbdPanel,.rc265-abd-request-panel'))}catch(err){return false}
+  }
+  function findColliCard268(){
+    var heads=Array.from(document.querySelectorAll('h2,h3,h4'));
+    var h=heads.find(function(x){return /Collis,\s*Ma|Collis,\s*Masse|Collis,\s*Maße/i.test(x.textContent||'')});
+    if(h){
+      var card=h.closest('.card,section,article,div');
+      if(card)return card;
+    }
+    return null;
+  }
+  function findGoodsLabel268(){
+    var labels=Array.from(document.querySelectorAll('label.field,label,.field'));
+    return labels.find(function(el){
+      return /Warenbeschreibung\s*fuer\s*CMR\s*Feld\s*9|Warenbeschreibung\s*für\s*CMR\s*Feld\s*9/i.test(el.textContent||'');
+    })||null;
+  }
+  function removeOverviewAbdCreate268(){
+    if(currentView268()!=='shipmentoverview')return;
+    Array.from(document.querySelectorAll('button,a')).forEach(function(el){
+      var txt=text268(el);
+      var onclick=String(el.getAttribute&&el.getAttribute('onclick')||'');
+      if(/^\+?\s*ABD Anfrage$/i.test(txt) || /setView\(['"]abd['"]\)/i.test(onclick)){
+        el.classList.add('rc268-hidden');
+      }
+    });
+  }
+  function hideDuplicateShipmentButtons268(){
+    if(currentView268()!=='shipment')return;
+    Array.from(document.querySelectorAll('button,a')).forEach(function(el){
+      if(isInColliActions268(el) || isInAbdPanel268(el))return;
+      var txt=text268(el);
+      if(/Ladeliste\s*\/?\s*CMR\s*Vorschau/i.test(txt) ||
+         /^ABD erstellen$/i.test(txt) ||
+         /^ABD Anfrage$/i.test(txt) ||
+         /^ABD Anfrage an GPZ$/i.test(txt)){
+        el.classList.add('rc268-hidden');
+      }
+      if(/Sendung speichern.*Aufgaben/i.test(txt)){
+        var card=closestCard268(el);
+        var cardText=n268(card&&card.textContent);
+        if(cardText.indexOf('collis')<0){
+          el.classList.add('rc268-hidden');
+        }
+      }
+    });
+  }
+  function ensureColliActions268(){
+    if(currentView268()!=='shipment')return;
+    var card=findColliCard268();
+    if(!card)return;
+    var bar=document.getElementById('rc268ColliActions');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='rc268ColliActions';
+      bar.className='rc268-colli-actions';
+      var anchor=card.querySelector('.summaryGrid') || Array.from(card.querySelectorAll('.okbox,.badbox,.notice')).pop() || card.querySelector('button');
+      if(anchor)anchor.insertAdjacentElement('afterend',bar);
+      else card.appendChild(bar);
+    }
+    bar.innerHTML=
+      '<button type="button" class="btn" onclick="return rc268SaveShipment()">Sendung speichern + Aufgaben pruefen</button>'+
+      '<button type="button" class="ghost" onclick="return rc268ShowCmr()">Ladeliste/CMR Vorschau</button>'+
+      '<button type="button" class="ghost" onclick="return rc268OpenAbd()">ABD erstellen</button>'+
+      '<span class="rc268-colli-note">Aktionen fuer diese Sendung</span>';
+  }
+  window.rc268SaveShipment=function(){
+    try{if(typeof saveShipment==='function'){saveShipment();return false}}catch(err){}
+    alert('Speicherfunktion nicht gefunden.');
+    return false;
+  };
+  window.rc268ShowCmr=function(){
+    try{if(typeof showCurrentCmr==='function'){showCurrentCmr();return false}}catch(err){}
+    try{if(typeof setView==='function'){setView('cmr');return false}}catch(err){}
+    return false;
+  };
+  window.rc268OpenAbd=function(){
+    try{
+      if(typeof rc265OpenAbdPanel==='function'){
+        rc265OpenAbdPanel();
+        setTimeout(moveAbdPanel268,80);
+        return false;
+      }
+    }catch(err){}
+    try{
+      if(typeof goToAbdFromShipmentRC70==='function'){
+        goToAbdFromShipmentRC70();
+        return false;
+      }
+    }catch(err){}
+    alert('ABD Anfrage ist nicht geladen. Bitte RC265 vor RC268 einfuegen.');
+    return false;
+  };
+  function moveAbdPanel268(){
+    if(currentView268()!=='shipment')return;
+    var panel=document.getElementById('rc265AbdPanel') || document.querySelector('.rc265-abd-request-panel');
+    var goods=findGoodsLabel268();
+    if(panel&&goods&&panel.previousElementSibling!==goods){
+      goods.insertAdjacentElement('afterend',panel);
+    }
+    if(panel){
+      panel.querySelectorAll('h3').forEach(function(h){
+        if(/ABD Anfrage/i.test(h.textContent||''))h.textContent='ABD Anfrage an GPZ';
+      });
+    }
+  }
+  function removeOldAbdPanels268(){
+    if(currentView268()!=='shipment')return;
+    Array.from(document.querySelectorAll('#rc260AbdPanel,.rc260-abd-panel')).forEach(function(el){
+      el.classList.add('rc268-hidden');
+    });
+  }
+  function afterRender268(){
+    try{document.body.setAttribute('data-rc268-view',currentView268())}catch(err){}
+    removeOverviewAbdCreate268();
+    if(currentView268()==='shipment'){
+      ensureColliActions268();
+      hideDuplicateShipmentButtons268();
+      moveAbdPanel268();
+      removeOldAbdPanels268();
+    }
+  }
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc268Wrapped){
+    window.render=function(){
+      var r=baseRender.apply(this,arguments);
+      setTimeout(afterRender268,60);
+      setTimeout(afterRender268,260);
+      return r;
+    };
+    window.render.__rc268Wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+  setTimeout(afterRender268,120);
+  setTimeout(afterRender268,700);
+  setTimeout(afterRender268,1600);
+})();
+</script>
+<!-- PRIVATE RC268 END: ABD nur Sendung erstellen + Buttonlayout -->
   
   
 </body></html>
