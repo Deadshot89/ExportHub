@@ -6362,7 +6362,7 @@ try{rc50RepairUsers();}catch(e){}
       </div>
       <div class="notice">Lieferscheine und Rechnung werden nicht in ExportHUB erfasst. Du fügst sie später selbst zur Mail hinzu.</div>
       <div class="abd-actions"><button class="btn" onclick="saveAbdRequestFromCurrent()">ABD Anfrage speichern</button><button class="ghost" onclick="resetAbdDraft()">ABD Formular leeren / neue Referenz</button><button class="soft" onclick="setView('tasks')">ABD Aufgaben öffnen</button></div>
-      <div class="abd-list">${reqs.length?reqs.map(r=>`<div class="abd-item"><b>${esc(r.ref||'')}</b> · ${esc((r.customer&&r.customer.name)||'')} · ${esc(r.created||'')} · <span class="pill ${r.status==='info hochgeladen'?'green':'orange'}">${esc(r.status||'offen')}</span><br><span class="small">${esc(r.manualColliCount!==undefined?r.manualColliCount:totals(r).count)} Collis · ${Number(r.manualTotalWeight!==undefined?r.manualTotalWeight:totals(r).weight).toFixed(1)} kg</span><div class="toolbar"><a class="btn" href="mailto:" onclick="return prepareAbdMailLink(this,'${esc(r.id)}')">ABD Info hochladen</a><button class="ghost" onclick="copyAbdInfo('${esc(r.id)}')">ABD Info kopieren</button><button class="soft" onclick="markAbdUploaded('${esc(r.id)}')">Als hochgeladen markieren</button></div></div>`).join(''):'<div class="notice">Noch keine ABD Anfrage gespeichert.</div>'}</div>
+	      <div class="abd-list">${reqs.length?reqs.map(r=>`<div class="abd-item"><b>${esc(r.ref||'')}</b> · ${esc((r.customer&&r.customer.name)||'')} · ${esc(r.created||'')} · <span class="pill ${r.status==='info hochgeladen'?'green':'orange'}">${esc(r.status||'offen')}</span><br><span class="small">${esc(r.manualColliCount!==undefined?r.manualColliCount:totals(r).count)} Collis · ${Number(r.manualTotalWeight!==undefined?r.manualTotalWeight:totals(r).weight).toFixed(1)} kg</span><div class="toolbar"><button class="btn" onclick="return rc274CreateShipmentFromAbd('${esc(r.id||r.ref||'')}')">Sendung erstellen</button><a class="btn" href="mailto:" onclick="return prepareAbdMailLink(this,'${esc(r.id)}')">ABD Info hochladen</a><button class="ghost" onclick="copyAbdInfo('${esc(r.id)}')">ABD Info kopieren</button><button class="soft" onclick="markAbdUploaded('${esc(r.id)}')">Als hochgeladen markieren</button></div></div>`).join(''):'<div class="notice">Noch keine ABD Anfrage gespeichert.</div>'}</div>
     </div>`;
   };
   try{if(window.SEED){SEED.build='PRIVATE-RC118-SAFE';SEED.title='ExportHUB Private RC121 Login Speicher Fix';SEED.decisions=Array.isArray(SEED.decisions)?['PRIVATE RC35: ABD Anfrage vereinfacht. Kunde wird per Kundennummer/Kundenname gesucht; benötigt werden nur Kunde, Anzahl der Collis und Gesamtgewicht. Lieferscheine und Rechnung werden manuell zur Mail hinzugefügt. ABD-Mailziel ist GPZ; GPZ-Daten werden nachgetragen.',...SEED.decisions]:SEED.decisions;}save();}catch(e){}
@@ -17443,9 +17443,9 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
   window.rc191SharePointSendungenCard=function(){return ''};
   window.rc188SharePointSendungenCard=function(){return ''};
 
-  function buttonHtml192(){
-    return '<button type="button" class="ghost rc192-ref-folder-btn" onclick="return rc192OpenReferenceFolder()">Referenzordner öffnen</button>';
-  }
+	  function buttonHtml192(){
+	    return '';
+	  }
 
   function stripSharePointCards192(html){
     return String(html||'')
@@ -17455,24 +17455,9 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
       .replace(/<div class="rc191-sp-card[^"]*">[\s\S]*?<\/div>/g,'');
   }
 
-  function injectButtonHtml192(html){
-    html=stripSharePointCards192(html);
-    if(html.includes('rc192-ref-folder-btn'))return html;
-
-    var patterns=[
-      /(<button\b[^>]*onclick="[^"]*showCurrentCmr\(\)[^"]*"[^>]*>\s*Ladeliste\s*&(?:amp;)?\s*CMR anzeigen\s*<\/button>)/i,
-      /(<button\b[^>]*>\s*Ladeliste\s*&(?:amp;)?\s*CMR anzeigen\s*<\/button>)/i,
-      /(<a\b[^>]*>\s*Ladeliste\s*&(?:amp;)?\s*CMR anzeigen\s*<\/a>)/i
-    ];
-
-    for(var i=0;i<patterns.length;i++){
-      if(patterns[i].test(html)){
-        return html.replace(patterns[i],function(match){return match+' '+buttonHtml192()});
-      }
-    }
-
-    return html;
-  }
+	  function injectButtonHtml192(html){
+	    return stripSharePointCards192(html).replace(/<button[^>]*class="[^"]*rc192-ref-folder-btn[^"]*"[\s\S]*?<\/button>/gi,'');
+	  }
 
   function removeSharePointCardsDom192(root){
     try{
@@ -17487,33 +17472,15 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
     })||null;
   }
 
-  function attachButtonDom192(){
-    try{
-      if(!state||state.view!=='shipment')return;
-      var root=document.getElementById('content')||document.body;
-      if(!root)return;
-      removeSharePointCardsDom192(root);
-
-      var oldButtons=Array.from(root.querySelectorAll('.rc192-ref-folder-btn'));
-      oldButtons.slice(1).forEach(function(el){el.remove()});
-
-      var loadBtn=findLoadlistButton192(root);
-      if(!loadBtn)return;
-
-      var btn=root.querySelector('.rc192-ref-folder-btn');
-      if(!btn){
-        btn=document.createElement('button');
-        btn.type='button';
-        btn.className='ghost rc192-ref-folder-btn';
-        btn.textContent='Referenzordner öffnen';
-        btn.onclick=function(){return window.rc192OpenReferenceFolder()};
-      }
-
-      if(btn.previousElementSibling!==loadBtn){
-        loadBtn.insertAdjacentElement('afterend',btn);
-      }
-    }catch(err){}
-  }
+	  function attachButtonDom192(){
+	    try{
+	      if(!state||state.view!=='shipment')return;
+	      var root=document.getElementById('content')||document.body;
+	      if(!root)return;
+	      removeSharePointCardsDom192(root);
+	      Array.from(root.querySelectorAll('.rc192-ref-folder-btn')).forEach(function(el){el.remove()});
+	    }catch(err){}
+	  }
 
   if(typeof shipment==='function'){
     var baseShipment192=shipment;
@@ -31887,6 +31854,7 @@ body .rc232-folder-actions{
 	#rc258RefUploadBar,
 	#rc260RefFolderBar,
 	#rc265RefBox,
+	.rc192-ref-folder-btn,
 	.rc237-colli-actions{
 	  display:none!important;
 	}
@@ -35542,9 +35510,67 @@ body .rc232-folder-actions{
     if(v){s.status='erledigt';s.freigabe='erledigt';s.completedAt=s.completedAt||new Date().toISOString();s.done=true}else{s.completedAt='';s.done=false;s.status='offen';s.freigabe='offen'}
     saveState256('Tatsaechliches Abholdatum gespeichert');try{render()}catch(err){};return false;
   };
-  window.rc256MarkPicked=function(id){return window.rc256SetActual(id,today256())};
-  window.rc256OpenRefFolder=function(ref){window.open(folderUrl256(ref),'_blank','noopener,noreferrer');return false};
-  function shipmentoverview256(){
+	  window.rc256MarkPicked=function(id){return window.rc256SetActual(id,today256())};
+	  window.rc256OpenRefFolder=function(ref){window.open(folderUrl256(ref),'_blank','noopener,noreferrer');return false};
+	  function ref274(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+	  function num274(v){var n=Number(String(v==null?'':v).replace(',','.'));return isFinite(n)?n:0}
+	  function customerForAbd274(r){
+	    var list=Array.isArray(state&&state.customers)?state.customers:[];
+	    var rc=(r&&r.customer)||{};
+	    var id=String((r&&r.customerId)||rc.id||'');
+	    var acc=String((r&&r.account)||(r&&r.customerNumber)||rc.account||rc.customerNumber||'');
+	    var name=String((r&&r.customerName)||rc.name||'');
+	    return list.find(function(c){return id&&String(c.id||'')===id}) ||
+	      list.find(function(c){return acc&&String(c.account||c.customerNumber||'')===acc}) ||
+	      list.find(function(c){return name&&String(c.name||'').toLowerCase()===name.toLowerCase()}) ||
+	      (rc&&rc.id?rc:null);
+	  }
+	  window.rc274CreateShipmentFromAbd=function(id){
+	    var r=(state.abdRequests||[]).find(function(x){return String(x.id||'')===String(id)||ref274(x&&x.ref)===ref274(id)});
+	    if(!r){alert('ABD Anfrage nicht gefunden.');return false}
+	    var c=customerForAbd274(r);
+	    if(!c||!c.id){alert('Zur ABD Anfrage wurde kein Kunde im Kundenstamm gefunden. Bitte Kunde zuerst anlegen oder Kundennummer pruefen.');return false}
+	    var count=num274(r.manualColliCount!==undefined?r.manualColliCount:(r.colli||r.collis));
+	    var weight=num274(r.manualTotalWeight!==undefined?r.manualTotalWeight:(r.weight||r.totalWeight));
+	    var totalLdm=num274(r.manualLdm!==undefined?r.manualLdm:(r.ldm||r.totalLdm));
+	    var row=(Array.isArray(r.rows)&&r.rows[0])?Object.assign({},r.rows[0]):{};
+	    if(!count)count=num274(row.count)||1;
+	    if(!weight)weight=num274(row.weight);
+	    var rowLdm=totalLdm&&count?totalLdm/count:num274(row.ldm);
+	    state.shipment=Object.assign(emptyShipment(c.id),{
+	      id:uid('S'),
+	      ref:ref274(r.ref)||generateShipmentRef(c),
+	      refAuto:false,
+	      customerId:c.id,
+	      customerSearch:customerOption(c),
+	      deliveryNotes:r.deliveryNotes||'',
+	      deliveryFiles:Array.isArray(r.deliveryFiles)?r.deliveryFiles.map(function(f){return Object.assign({},f)}):[],
+	      pickupDate:r.pickupDate||todayISO(),
+	      carrier:r.carrier||c.carrier||'',
+	      goodsDescription:r.goodsDescription||'Waren laut ABD Anfrage',
+	      comments:r.comments||r.comment||'Aus ABD Anfrage erstellt',
+	      addressConfirmed:!!(c.address||r.recipientAddress||r.address),
+	      linkedAbdId:r.id||'',
+	      linkedAbdRef:r.ref||'',
+	      rows:[{
+	        type:r.manualColliType||row.type||'Collis',
+	        count:count,
+	        ldm:rowLdm,
+	        l:row.l||'',
+	        w:row.w||'',
+	        h:row.h||'',
+	        weight:weight
+	      }]
+	    });
+	    state.selectedCustomerId=c.id;
+	    state.activeShipmentId='current';
+	    state.view='shipment';
+	    try{if(typeof audit==='function')audit('Sendung aus ABD Anfrage erstellt',state.shipment.ref+' · '+(c.name||''))}catch(err){}
+	    try{if(typeof save==='function')save()}catch(err){}
+	    try{if(typeof render==='function')render()}catch(err){}
+	    return false;
+	  };
+	  function shipmentoverview256(){
     migrateDocs256();
     state.rc256OverviewType=state.rc256OverviewType||state.rc254OverviewType||state.rc247OverviewType||'all';
     if(state.rc256HideDone===undefined)state.rc256HideDone=state.rc254HideDone!==undefined?!!state.rc254HideDone:true;
@@ -35586,7 +35612,7 @@ body .rc232-folder-actions{
         '<td><div class="rc256-docs">'+docCard256(r,'abd','abdRequest')+'</div></td>'+
         '<td><div class="rc256-docs">'+docCard256(r,'pod','abdRequest')+'</div></td>'+
         '<td>'+e256(r.created||r.createdIso||'')+'</td>'+
-        '<td><div class="rc256-actions"><button class="ghost" onclick="return rc256OpenRefFolder(&quot;'+e256(r.ref||'')+'&quot;)">Ref.-Ordner</button></div></td></tr>';
+	        '<td><div class="rc256-actions"><button class="btn" onclick="return rc274CreateShipmentFromAbd(&quot;'+e256(r.id||r.ref||'')+'&quot;)">Sendung erstellen</button><button class="ghost" onclick="return rc256OpenRefFolder(&quot;'+e256(r.ref||'')+'&quot;)">Ref.-Ordner</button></div></td></tr>';
       }).join('')+'</table>';
       html+='</div>';
     }
@@ -38702,12 +38728,11 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
       if(anchor)anchor.insertAdjacentElement('afterend',bar);
       else card.appendChild(bar);
     }
-    bar.innerHTML=
-      '<button type="button" class="btn" onclick="return rc268SaveShipment()">Sendung speichern + Aufgaben pruefen</button>'+
-      '<button type="button" class="ghost" onclick="return rc268ShowCmr()">Ladeliste/CMR Vorschau</button>'+
-      '<button type="button" class="ghost" onclick="return rc268OpenAbd()">ABD erstellen</button>'+
-      '<span class="rc268-colli-note">Aktionen fuer diese Sendung</span>';
-  }
+	    bar.innerHTML=
+	      '<button type="button" class="btn" onclick="return rc268SaveShipment()">Sendung speichern + Aufgaben pruefen</button>'+
+	      '<button type="button" class="ghost" onclick="return rc268ShowCmr()">Ladeliste/CMR Vorschau</button>'+
+	      '<span class="rc268-colli-note">Aktionen fuer diese Sendung</span>';
+	  }
   window.rc268SaveShipment=function(){
     try{if(typeof saveShipment==='function'){saveShipment();return false}}catch(err){}
     alert('Speicherfunktion nicht gefunden.');
