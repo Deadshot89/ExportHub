@@ -28260,6 +28260,306 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC230 END: POD/ABD Datei statt Link + Referenzordner fix + RC219 Meldung ausblenden -->
+
+
+  <!-- PRIVATE RC231 START: Colli + Zeile wieder stabil hinzufuegen -->
+<script>
+/* PRIVATE RC231: + Zeile darf vorhandene Colli-Daten nicht verlieren und muss eine leere Zeile sichtbar anhaengen */
+(function(){
+  if(window.__EXPORTHUB_RC231_COLLI_ADD_ROW_FINAL__)return;
+  window.__EXPORTHUB_RC231_COLLI_ADD_ROW_FINAL__=true;
+
+  var applying231=false;
+
+  function clone231(v){
+    try{return JSON.parse(JSON.stringify(v))}catch(err){return v}
+  }
+
+  function num231(v){
+    if(v===null || v===undefined)return '';
+    var s=String(v).trim();
+    if(s==='')return '';
+    var n=Number(s.replace(',','.'));
+    return isFinite(n)?n:s;
+  }
+
+  function blank231(){
+    return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''};
+  }
+
+  function has231(r){
+    return !!(r && ['type','count','ldm','weight','l','w','h'].some(function(k){
+      var v=r[k];
+      return v!=='' && v!==null && v!==undefined;
+    }));
+  }
+
+  function pack231(name){
+    try{
+      return (SEED.colliTypes||[]).find(function(p){return String(p.name||'')===String(name||'')}) || null;
+    }catch(err){return null}
+  }
+
+  function applyPack231(row,force){
+    row=Object.assign(blank231(),row||{});
+    var p=pack231(row.type);
+    if(p){
+      if(force || row.ldm==='' || row.ldm==null)row.ldm=p.ldm!=null?p.ldm:'';
+      if(force || row.l==='' || row.l==null)row.l=p.l!=null?p.l:'';
+      if(force || row.w==='' || row.w==null)row.w=p.w!=null?p.w:'';
+      if(force || row.h==='' || row.h==null)row.h=p.h!=null?p.h:'';
+    }
+    return row;
+  }
+
+  function normalize231(rows,keepBlank){
+    rows=(Array.isArray(rows)?rows:[]).map(function(r){
+      return applyPack231({
+        type:r&&r.type!=null?String(r.type):'',
+        count:r&&r.count!=null?r.count:'',
+        ldm:r&&r.ldm!=null?r.ldm:'',
+        weight:r&&r.weight!=null?r.weight:'',
+        l:r&&r.l!=null?r.l:'',
+        w:r&&r.w!=null?r.w:'',
+        h:r&&r.h!=null?r.h:''
+      },false);
+    });
+    return keepBlank?rows:rows.filter(has231);
+  }
+
+  function currentKey231(){
+    try{
+      var s=(state&&state.shipment)||{};
+      return String(s.id||s.ref||s.customerId||'current').replace(/[^A-Za-z0-9_-]+/g,'_')||'current';
+    }catch(err){return 'current'}
+  }
+
+  function store231(rows){
+    rows=normalize231(rows,true);
+    if(typeof state!=='undefined' && state){
+      state.shipment=state.shipment||{};
+      state.shipment.rows=rows.length?clone231(rows):[blank231()];
+      state.rc231ColliRows=clone231(state.shipment.rows);
+      state.rc231ColliKey=currentKey231();
+      state.rc231SavedAt=new Date().toISOString();
+      try{state.rc226ColliRows=clone231(normalize231(rows,false))}catch(err){}
+      try{state.rc224ColliRows=clone231(normalize231(rows,false))}catch(err){}
+      try{state.rc221LastColliRows=clone231(normalize231(rows,false))}catch(err){}
+    }
+    try{localStorage.setItem('exporthub_rc231_colli_'+currentKey231(),JSON.stringify(rows))}catch(err){}
+    try{localStorage.setItem('exporthub_rc231_colli_last',JSON.stringify(rows))}catch(err){}
+    var nonEmpty=normalize231(rows,false);
+    if(nonEmpty.length){
+      try{localStorage.setItem('exporthub_rc226_colli_rows_last',JSON.stringify(nonEmpty))}catch(err){}
+      try{localStorage.setItem('exporthub_rc224_colli_last',JSON.stringify(nonEmpty))}catch(err){}
+      try{localStorage.setItem('exporthub_rc221_colli_rows_last',JSON.stringify(nonEmpty))}catch(err){}
+    }
+    return rows;
+  }
+
+  function load231(){
+    var rows=[];
+    ['exporthub_rc231_colli_'+currentKey231(),'exporthub_rc231_colli_last'].some(function(k){
+      try{rows=JSON.parse(localStorage.getItem(k)||'[]')}catch(err){rows=[]}
+      return normalize231(rows,true).length>0;
+    });
+    if(!normalize231(rows,true).length){
+      try{rows=state.rc231ColliRows||[]}catch(err){rows=[]}
+    }
+    if(!normalize231(rows,true).length){
+      try{rows=(state.shipment&&state.shipment.rows)||[]}catch(err){rows=[]}
+    }
+    return normalize231(rows,true);
+  }
+
+  function readCard231(card){
+    var select=card.querySelector('select');
+    var inputs=Array.from(card.querySelectorAll('input')).filter(function(el){
+      return !/^(hidden|file|checkbox|radio)$/i.test(el.type||'');
+    });
+    return applyPack231({
+      type:select?String(select.value||''):'',
+      count:num231(inputs[0]&&inputs[0].value),
+      ldm:num231(inputs[1]&&inputs[1].value),
+      weight:num231(inputs[2]&&inputs[2].value),
+      l:num231(inputs[3]&&inputs[3].value),
+      w:num231(inputs[4]&&inputs[4].value),
+      h:num231(inputs[5]&&inputs[5].value)
+    },false);
+  }
+
+  function readVisible231(){
+    var box=document.getElementById('rowsBox');
+    if(!box)return normalize231((state&&state.shipment&&state.shipment.rows)||load231(),true);
+    var cards=Array.from(box.children).filter(function(card){
+      return card && card.querySelector && card.querySelector('select,input');
+    });
+    if(!cards.length && box.querySelector('select,input'))cards=[box];
+    return normalize231(cards.map(readCard231),true);
+  }
+
+  function renderRowHtml231(row,index){
+    row=row||blank231();
+    try{
+      if(typeof renderRow==='function')return String(renderRow(row,index)||'');
+    }catch(err){}
+    var types=[''];
+    try{types=types.concat((SEED.colliTypes||[]).map(function(p){return p.name}))}catch(err){}
+    var esc=function(v){return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})};
+    return '<div class="item card rc118-row" style="box-shadow:none;margin-bottom:10px" data-rc118-row="'+index+'">'+
+      '<div class="miniGrid">'+
+        '<label class="field">Verpackung<select id="rc118_row_'+index+'_type" onchange="updateRow('+index+',&quot;type&quot;,this.value)">'+types.map(function(name){return '<option value="'+esc(name)+'" '+(String(row.type||'')===String(name)?'selected':'')+'>'+esc(name||'Verpackung waehlen')+'</option>'}).join('')+'</select></label>'+
+        '<label class="field">Anzahl<input id="rc118_row_'+index+'_count" type="number" min="0" step="1" value="'+esc(row.count)+'" placeholder="Anzahl" oninput="updateRow('+index+',&quot;count&quot;,this.value)"></label>'+
+        '<label class="field">LDM je Colli<input id="rc118_row_'+index+'_ldm" type="number" step="0.0001" value="'+esc(row.ldm)+'" placeholder="automatisch" oninput="updateRow('+index+',&quot;ldm&quot;,this.value)"></label>'+
+        '<label class="field">Gewicht gesamt kg<input id="rc118_row_'+index+'_weight" type="number" step="0.1" value="'+esc(row.weight)+'" placeholder="kg" oninput="updateRow('+index+',&quot;weight&quot;,this.value)"></label>'+
+        '<label class="field">Laenge cm<input id="rc118_row_'+index+'_l" type="number" step="1" value="'+esc(row.l)+'" placeholder="automatisch" oninput="updateRow('+index+',&quot;l&quot;,this.value)"></label>'+
+        '<label class="field">Breite cm<input id="rc118_row_'+index+'_w" type="number" step="1" value="'+esc(row.w)+'" placeholder="automatisch" oninput="updateRow('+index+',&quot;w&quot;,this.value)"></label>'+
+        '<label class="field">Hoehe cm<input id="rc118_row_'+index+'_h" type="number" step="1" value="'+esc(row.h)+'" placeholder="automatisch" oninput="updateRow('+index+',&quot;h&quot;,this.value)"></label>'+
+        '<div class="field"><span>Zeile</span><button class="danger" onclick="removeShipmentRow('+index+')">Entfernen</button></div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function ensureDomRows231(rows){
+    rows=normalize231(rows,true);
+    var box=document.getElementById('rowsBox');
+    if(!box)return;
+    var cards=Array.from(box.children).filter(function(card){
+      return card && card.querySelector && card.querySelector('select,input');
+    });
+    while(cards.length<rows.length){
+      var wrap=document.createElement('div');
+      wrap.innerHTML=renderRowHtml231(rows[cards.length]||blank231(),cards.length);
+      var node=wrap.firstElementChild;
+      if(!node)break;
+      box.appendChild(node);
+      cards.push(node);
+    }
+    rows.forEach(function(r,i){
+      ['type','count','ldm','weight','l','w','h'].forEach(function(k){
+        var el=document.getElementById('rc118_row_'+i+'_'+k);
+        if(!el || document.activeElement===el)return;
+        var v=r[k];
+        el.value=v===null||v===undefined?'':String(v);
+      });
+    });
+  }
+
+  window.rc231CollectColliRows=function(){
+    var rows=readVisible231();
+    if(!normalize231(rows,false).length){
+      rows=load231();
+    }
+    if(!rows.length)rows=[blank231()];
+    store231(rows);
+    ensureDomRows231(rows);
+    return rows;
+  };
+
+  window.updateRow=function(i,k,v){
+    var rows=readVisible231();
+    if(!rows.length)rows=load231();
+    while(rows.length<=i)rows.push(blank231());
+    rows[i]=Object.assign(blank231(),rows[i]||{});
+    rows[i][k]=k==='type'?String(v||''):num231(v);
+    rows[i]=applyPack231(rows[i],k==='type');
+    store231(rows);
+    ensureDomRows231(rows);
+    try{if(typeof save==='function')save()}catch(err){}
+  };
+  try{updateRow=window.updateRow}catch(err){}
+
+  window.addShipmentRow=function(){
+    if(applying231)return false;
+    applying231=true;
+    try{
+      var rows=readVisible231();
+      if(!rows.length)rows=load231();
+      if(!rows.length)rows=[blank231()];
+      rows=normalize231(rows,true);
+      rows.push(blank231());
+      store231(rows);
+      ensureDomRows231(rows);
+      try{if(typeof save==='function')save()}catch(err){}
+      setTimeout(function(){ensureDomRows231(store231(rows));},40);
+      setTimeout(function(){ensureDomRows231(store231(rows));},220);
+    }finally{
+      applying231=false;
+    }
+    return false;
+  };
+  try{addShipmentRow=window.addShipmentRow}catch(err){}
+
+  window.removeShipmentRow=function(i){
+    var rows=readVisible231();
+    if(!rows.length)rows=load231();
+    rows=normalize231(rows,true);
+    rows.splice(Number(i)||0,1);
+    if(!rows.length)rows=[blank231()];
+    store231(rows);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    setTimeout(function(){ensureDomRows231(rows)},80);
+    return false;
+  };
+  try{removeShipmentRow=window.removeShipmentRow}catch(err){}
+
+  document.addEventListener('click',function(ev){
+    var btn=ev.target&&ev.target.closest&&ev.target.closest('button');
+    if(!btn)return;
+    var txt=String(btn.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+    var oc=String(btn.getAttribute('onclick')||'').toLowerCase();
+    if(txt==='+ zeile' || oc.indexOf('addshipmentrow')>=0){
+      ev.preventDefault();
+      ev.stopPropagation();
+      window.addShipmentRow();
+      return false;
+    }
+  },true);
+
+  try{
+    if(typeof render==='function' && !render.__rc231Wrapped){
+      var baseRender231=render;
+      window.render=function(){
+        var wanted=null;
+        if(document.getElementById('rowsBox'))wanted=window.rc231CollectColliRows();
+        var result=baseRender231.apply(this,arguments);
+        if(wanted){
+          setTimeout(function(){ensureDomRows231(wanted)},0);
+          setTimeout(function(){ensureDomRows231(wanted)},180);
+        }
+        return result;
+      };
+      window.render.__rc231Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  ['saveShipment','showCurrentCmr','rc55DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc224CollectColliRows','rc226RepairColliFields'].forEach(function(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base==='function' && !base.__rc231Wrapped){
+        var wrapped=function(){
+          window.rc231CollectColliRows();
+          var result=base.apply(this,arguments);
+          setTimeout(function(){ensureDomRows231(load231())},120);
+          return result;
+        };
+        wrapped.__rc231Wrapped=true;
+        window[name]=wrapped;
+        try{eval(name+'=window[name]')}catch(err){}
+      }
+    }catch(err){}
+  });
+
+  setTimeout(function(){if(document.getElementById('rowsBox'))ensureDomRows231(load231())},300);
+})();
+</script>
+<!-- PRIVATE RC231 END: Colli + Zeile wieder stabil hinzufuegen -->
+
+
+
+
   
 </body></html>
 
