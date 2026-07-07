@@ -31850,6 +31850,399 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC244 END: Benutzer Formular-Lesefix -->
+
+<!-- PRIVATE RC246 START: Sendung Buttons + Referenzordner bei Lieferscheinen -->
+<style>
+/* PRIVATE RC246: Referenzordner direkt bei Lieferscheinen, nicht mehr als eigener Block */
+.rc246-ref-doc-box{
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  color:#08245d!important;
+  border-radius:12px!important;
+  padding:10px!important;
+  margin:8px 0 12px!important;
+}
+.rc246-ref-doc-title{
+  font-weight:1000!important;
+  margin-bottom:6px!important;
+}
+.rc246-ref-doc-actions{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+}
+.rc246-ref-doc-actions button{
+  min-height:32px!important;
+  padding:6px 10px!important;
+  border-radius:9px!important;
+  font-size:12px!important;
+}
+.rc246-ref-doc-meta{
+  font-size:12px!important;
+  color:#475569!important;
+  font-weight:850!important;
+  margin-top:6px!important;
+}
+.rc246-hidden-folder-input{
+  display:none!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC246: doppelten Speicherbutton entfernen + Referenzordner stabil bei Lieferscheine */
+(function(){
+  if(window.__EXPORTHUB_RC246_SHIPMENT_REF_FOLDER_DOCS__)return;
+  window.__EXPORTHUB_RC246_SHIPMENT_REF_FOLDER_DOCS__=true;
+
+  var BASE246='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+
+  function n246(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function e246(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function uid246(prefix){
+    try{if(typeof uid==='function')return uid(prefix||'DOC')}catch(err){}
+    return String(prefix||'DOC')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  }
+
+  function ref246(v){
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24);
+  }
+
+  function activeShipment246(){
+    try{
+      state.shipment=state.shipment||{};
+      return state.shipment;
+    }catch(err){}
+    return {};
+  }
+
+  function currentRef246(){
+    try{
+      var s=activeShipment246();
+      if(s.ref)return ref246(s.ref);
+      if(state.activeShipmentId&&Array.isArray(state.shipments)){
+        var saved=state.shipments.find(function(x){return String(x.id||'')===String(state.activeShipmentId)});
+        if(saved&&saved.ref)return ref246(saved.ref);
+      }
+    }catch(err){}
+    return '';
+  }
+
+  function refFolderUrl246(reference){
+    var r=ref246(reference||currentRef246());
+    if(!r)return BASE246;
+    return BASE246.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'?csf=1&web=1';
+  }
+
+  window.rc246OpenReferenceFolder=function(){
+    var r=currentRef246();
+    if(!r){
+      alert('Keine Referenznummer vorhanden. Bitte zuerst eine Referenznummer erstellen.');
+      return false;
+    }
+    window.open(refFolderUrl246(r),'_blank','noopener,noreferrer');
+    return false;
+  };
+
+  function save246(reason){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch && typeof state!=='undefined'){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:state.users||[],
+            state:state
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit(reason||'Referenzordner-Dateien uebernommen',currentRef246())}catch(err){}
+  }
+
+  function filePath246(file){
+    return String(file.webkitRelativePath||file.relativePath||file.name||'');
+  }
+
+  function fileMatchesRef246(file,reference){
+    var r=n246(ref246(reference));
+    if(!r)return false;
+    var path=n246(filePath246(file));
+    return path.indexOf(r)>=0;
+  }
+
+  function classify246(file){
+    var txt=n246((file&&file.name)||'');
+    if(txt.indexOf('abd')>=0)return 'abd';
+    if(txt.indexOf('scan')>=0 || txt.indexOf('untitled')>=0 || txt.indexOf('pod')>=0)return 'pod';
+    return 'delivery';
+  }
+
+  function readDataUrl246(file){
+    return new Promise(function(resolve){
+      if(!file || file.size>10*1024*1024){
+        resolve('');
+        return;
+      }
+      var reader=new FileReader();
+      reader.onload=function(){resolve(String(reader.result||''))};
+      reader.onerror=function(){resolve('')};
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function fileItem246(file,kind){
+    var dataUrl=(kind==='abd'||kind==='pod'||/pdf|image/i.test(file.type||''))?await readDataUrl246(file):'';
+    return {
+      id:uid246(kind==='abd'?'ABD':(kind==='pod'?'POD':'DN')),
+      name:file.name,
+      fileName:file.name,
+      size:file.size,
+      type:file.type||'Datei',
+      lastModified:file.lastModified||Date.now(),
+      relativePath:filePath246(file),
+      dataUrl:dataUrl,
+      uploadedAt:new Date().toISOString(),
+      uploadedBy:(currentUser&&(currentUser.name||currentUser.user))||'Benutzer',
+      source:'RC246 Referenzordner'
+    };
+  }
+
+  function sameFile246(a,b){
+    return String(a&&a.name)===String(b&&b.name) && Number(a&&a.size||0)===Number(b&&b.size||0);
+  }
+
+  function addUnique246(arr,item){
+    arr=Array.isArray(arr)?arr:[];
+    if(!arr.some(function(x){return sameFile246(x,item)}))arr.push(item);
+    return arr;
+  }
+
+  function applyItem246(s,item,kind){
+    if(!s)return;
+    s.deliveryFiles=addUnique246(s.deliveryFiles,item);
+    if(kind==='abd'){
+      s.abdFiles=Array.isArray(s.abdFiles)?s.abdFiles:[];
+      s.abdFiles=s.abdFiles.filter(function(x){return n246(x&&x.name).indexOf('abd')<0});
+      s.abdFiles.unshift(item);
+      s.abdStatus='Dokument vorhanden';
+      s.rc230Docs=s.rc230Docs||{};
+      s.rc228Docs=s.rc228Docs||{};
+      s.rc230Docs.abd=item;
+      s.rc228Docs.abd=item;
+    }else if(kind==='pod'){
+      s.podFiles=Array.isArray(s.podFiles)?s.podFiles:[];
+      s.podFiles=s.podFiles.filter(function(x){
+        var t=n246(x&&x.name);
+        return t.indexOf('pod')<0 && t.indexOf('scan')<0 && t.indexOf('untitled')<0;
+      });
+      s.podFiles.unshift(item);
+      s.podStatus='hochgeladen';
+      s.rc230Docs=s.rc230Docs||{};
+      s.rc228Docs=s.rc228Docs||{};
+      s.rc230Docs.pod=item;
+      s.rc228Docs.pod=item;
+    }
+  }
+
+  function appendNotes246(s,items){
+    var names=items.map(function(x){return x.name}).filter(Boolean);
+    if(!names.length)return;
+    var old=String(s.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean);
+    names.forEach(function(name){if(old.indexOf(name)<0)old.push(name)});
+    s.deliveryNotes=old.join('\n');
+  }
+
+  async function importReferenceFiles246(files){
+    var ref=currentRef246();
+    if(!ref){
+      alert('Keine Referenznummer vorhanden. Bitte zuerst eine Referenznummer erstellen.');
+      return;
+    }
+    var all=Array.from(files||[]);
+    if(!all.length)return;
+    var matched=all.filter(function(file){return fileMatchesRef246(file,ref)});
+    if(!matched.length && all.every(function(file){return !file.webkitRelativePath})){
+      matched=all;
+    }
+    if(!matched.length){
+      alert('Keine Datei im ausgewaehlten Ordner passt zur Referenz '+ref+'. Bitte den Sendungen-Ordner oder direkt den Referenzordner auswaehlen.');
+      return;
+    }
+    var active=activeShipment246();
+    active.ref=active.ref||ref;
+    var imported=[];
+    for(var i=0;i<matched.length;i++){
+      var file=matched[i];
+      var kind=classify246(file);
+      var item=await fileItem246(file,kind);
+      applyItem246(active,item,kind);
+      imported.push(item);
+    }
+    appendNotes246(active,imported);
+    try{
+      if(Array.isArray(state.shipments)){
+        state.shipments.forEach(function(saved){
+          if(ref246(saved.ref)===ref){
+            imported.forEach(function(item){applyItem246(saved,item,classify246(item))});
+            appendNotes246(saved,imported);
+          }
+        });
+      }
+    }catch(err){}
+    save246('Referenzordner-Dateien uebernommen');
+    alert(imported.length+' Datei(en) aus Referenzordner '+ref+' uebernommen.');
+    try{render()}catch(err){}
+  }
+
+  window.rc246OpenReferenceFolderPicker=function(){
+    var input=document.getElementById('rc246ReferenceFolderInput');
+    if(!input){
+      input=document.createElement('input');
+      input.id='rc246ReferenceFolderInput';
+      input.className='rc246-hidden-folder-input';
+      input.type='file';
+      input.multiple=true;
+      input.setAttribute('webkitdirectory','');
+      input.setAttribute('directory','');
+      input.onchange=function(){
+        importReferenceFiles246(input.files);
+        input.value='';
+      };
+      document.body.appendChild(input);
+    }
+    input.click();
+    return false;
+  };
+
+  function boxHtml246(){
+    var ref=currentRef246();
+    return '<div class="rc246-ref-doc-box">'+
+      '<div class="rc246-ref-doc-title">Referenzordner '+e246(ref||'noch keine Referenz')+'</div>'+
+      '<div class="rc246-ref-doc-actions">'+
+        '<button type="button" class="ghost" onclick="return rc246OpenReferenceFolder()">Ref.-Ordner oeffnen</button>'+
+        '<button type="button" class="soft" onclick="return rc246OpenReferenceFolderPicker()">Dateien aus Ref.-Ordner uebernehmen</button>'+
+      '</div>'+
+      '<div class="rc246-ref-doc-meta">Lieferscheine koennen oben direkt hochgeladen werden. Alternativ den synchronisierten Sendungen-Ordner oder den Referenzordner auswaehlen.</div>'+
+    '</div>';
+  }
+
+  function removeDuplicateSaveButtons246(root){
+    root=root||document;
+    if(!state || state.view!=='shipment')return;
+    var buttons=Array.from(root.querySelectorAll('button')).filter(function(btn){
+      return n246(btn.textContent).indexOf('sendung speichern aufgaben pruefen')>=0;
+    });
+    if(buttons.length<=1)return;
+    var keep=buttons.find(function(btn){return btn.closest('.rc237-colli-actions')}) || buttons[buttons.length-1];
+    buttons.forEach(function(btn){
+      if(btn!==keep)btn.remove();
+    });
+  }
+
+  function removeFloatingRefButtons246(root){
+    root=root||document;
+    if(!state || state.view!=='shipment')return;
+    Array.from(root.querySelectorAll('.rc192-ref-folder-btn')).forEach(function(btn){
+      if(!btn.closest('.rc246-ref-doc-box'))btn.remove();
+    });
+    Array.from(root.querySelectorAll('button,a')).forEach(function(el){
+      var txt=n246(el.textContent);
+      var oc=n246(el.getAttribute&&el.getAttribute('onclick'));
+      if(el.closest('.rc246-ref-doc-box'))return;
+      if(txt==='referenzordner offnen' || txt==='referenzordner oeffnen' || oc.indexOf('rc192openreferencefolder')>=0 || oc.indexOf('rc191openreferencefolder')>=0){
+        el.remove();
+      }
+    });
+  }
+
+  function findDeliveryUploadAnchor246(root){
+    var labels=Array.from(root.querySelectorAll('label,.field,div,section')).filter(function(el){
+      var txt=n246(el.textContent);
+      return txt.indexOf('lieferscheine')>=0 && (txt.indexOf('hochladen')>=0 || txt.indexOf('anhaengen')>=0 || txt.indexOf('anhangen')>=0);
+    });
+    return labels.find(function(el){return el.querySelector&&el.querySelector('input[type="file"]')}) || labels[0] || null;
+  }
+
+  function insertRefBox246(root){
+    root=root||document;
+    if(!state || state.view!=='shipment')return;
+    var existing=root.querySelector('.rc246-ref-doc-box');
+    var anchor=findDeliveryUploadAnchor246(root);
+    if(!anchor)return;
+    if(existing){
+      var title=existing.querySelector('.rc246-ref-doc-title');
+      if(title)title.textContent='Referenzordner '+(currentRef246()||'noch keine Referenz');
+      if(existing.previousElementSibling!==anchor && existing.parentNode){
+        anchor.insertAdjacentElement('afterend',existing);
+      }
+      return;
+    }
+    anchor.insertAdjacentHTML('afterend',boxHtml246());
+  }
+
+  function patchShipment246(){
+    try{
+      if(!state || state.view!=='shipment')return;
+      removeDuplicateSaveButtons246(document);
+      removeFloatingRefButtons246(document);
+      insertRefBox246(document);
+    }catch(err){}
+  }
+
+  var baseRender246=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender246==='function' && !baseRender246.__rc246Wrapped){
+    var wrappedRender246=function(){
+      var result=baseRender246.apply(this,arguments);
+      setTimeout(patchShipment246,0);
+      setTimeout(patchShipment246,220);
+      setTimeout(patchShipment246,700);
+      setTimeout(patchShipment246,1400);
+      return result;
+    };
+    wrappedRender246.__rc246Wrapped=true;
+    window.render=wrappedRender246;
+    try{render=wrappedRender246}catch(err){}
+  }
+
+  var baseShipment246=window.shipment || (typeof shipment==='function'?shipment:null);
+  if(typeof baseShipment246==='function' && !baseShipment246.__rc246Wrapped){
+    var wrappedShipment246=function(){
+      var html=String(baseShipment246.apply(this,arguments)||'');
+      setTimeout(patchShipment246,0);
+      setTimeout(patchShipment246,250);
+      setTimeout(patchShipment246,750);
+      return html;
+    };
+    wrappedShipment246.__rc246Wrapped=true;
+    window.shipment=wrappedShipment246;
+    try{shipment=wrappedShipment246}catch(err){}
+  }
+
+  document.addEventListener('click',function(){
+    setTimeout(patchShipment246,120);
+    setTimeout(patchShipment246,520);
+  },true);
+
+  setTimeout(patchShipment246,250);
+  setInterval(patchShipment246,1300);
+})();
+</script>
+<!-- PRIVATE RC246 END: Sendung Buttons + Referenzordner bei Lieferscheinen -->
   
 </body></html>
 
