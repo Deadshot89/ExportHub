@@ -33144,6 +33144,558 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC248 END: ABD/POD Downloadlink + POD-Erkennung -->
+
+<!-- PRIVATE RC249 START: Rechte + Vorlagen Speicherfix -->
+<style>
+.rc249-grid{
+  display:grid;
+  grid-template-columns:minmax(260px,.75fr) minmax(520px,1.25fr);
+  gap:14px;
+  align-items:start;
+}
+.rc249-card{
+  border:1px solid #bfdbfe;
+  background:#f8fbff;
+  border-radius:12px;
+  padding:12px;
+}
+.rc249-status{
+  border:1px solid #86efac;
+  background:#f0fdf4;
+  color:#166534;
+  border-radius:12px;
+  padding:9px 11px;
+  margin:0 0 12px;
+  font-weight:950;
+}
+.rc249-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:10px 0;
+}
+.rc249-actions button{
+  min-height:34px;
+  padding:7px 10px;
+  border-radius:10px;
+}
+.rc249-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border:1px solid #dbeafe;
+  border-radius:12px;
+  background:#fff;
+  margin-top:10px;
+}
+.rc249-table th,
+.rc249-table td{
+  padding:7px 9px;
+  border-bottom:1px solid #e5eefc;
+  font-size:12px;
+}
+.rc249-table th{
+  background:#dbeafe;
+  color:#08245d;
+  font-weight:1000;
+  text-align:left;
+}
+.rc249-table td:nth-child(n+2),
+.rc249-table th:nth-child(n+2){
+  text-align:center;
+  width:92px;
+}
+.rc249-table tr:last-child td{border-bottom:0}
+.rc249-help{
+  border:1px solid #fed7aa;
+  background:#fff7ed;
+  color:#7c2d12;
+  border-radius:12px;
+  padding:9px 11px;
+  margin-top:10px;
+  font-size:12px;
+  font-weight:850;
+}
+@media(max-width:980px){
+  .rc249-grid{grid-template-columns:1fr}
+}
+</style>
+
+<script>
+/* PRIVATE RC249: Rechtevorlagen und manuelle Rechte sicher speichern */
+(function(){
+  if(window.__EXPORTHUB_RC249_RIGHTS_TEMPLATE_SAVEFIX__)return;
+  window.__EXPORTHUB_RC249_RIGHTS_TEMPLATE_SAVEFIX__=true;
+
+  function e249(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n249(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function userKey249(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+
+  function modules249(){
+    try{if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],
+      ['dashboard','Dashboard','Dashboard'],
+      ['tasks','Aufgaben','Aufgaben'],
+      ['vacation','Urlaub','Urlaub'],
+      ['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],
+      ['cmr','CMR','CMR/Ladeliste'],
+      ['pallet','Paletten','Palettenkonto'],
+      ['customers','Kunden','Kunden'],
+      ['customerfolder','Kundenordner','Kundenordner'],
+      ['calculator','Rechner','Rechner'],
+      ['customs','Zoll','Zoll / ABD'],
+      ['sop','SOP','SOP'],
+      ['academy','Academy','Academy'],
+      ['quiz','Quiz','Quiz'],
+      ['teamfile','Teamdaten','Teamdaten'],
+      ['archive','Archiv','Archiv'],
+      ['rights','Rechte','Benutzer & Rechte']
+    ];
+  }
+
+  function label249(m){
+    return String(m[2]||m[1]||m[0]||'');
+  }
+
+  function blank249(){
+    var out={};
+    modules249().forEach(function(m){
+      var id=m[0];
+      var base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+
+  function full249(){
+    var out={};
+    modules249().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+
+  function allow249(rights,ids,edit){
+    ids.forEach(function(id){
+      if(!rights[id])rights[id]={visible:false,read:false,edit:false};
+      rights[id]={visible:true,read:true,edit:!!edit};
+    });
+  }
+
+  function template249(name){
+    name=String(name||'dashboard');
+    if(name==='full')return full249();
+    var r=blank249();
+    if(name==='dashboard')return r;
+    if(name==='overview'){
+      allow249(r,['tasks','shipmentoverview','customerfolder'],false);
+      return r;
+    }
+    if(name==='shipment'){
+      allow249(r,['shipment','shipmentoverview','cmr'],true);
+      allow249(r,['customers','customerfolder','tasks'],false);
+      return r;
+    }
+    if(name==='customers'){
+      allow249(r,['customers','customerfolder'],true);
+      allow249(r,['shipmentoverview'],false);
+      return r;
+    }
+    if(name==='export'){
+      allow249(r,['tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);
+      return r;
+    }
+    if(name==='readall'){
+      modules249().forEach(function(m){r[m[0]]={visible:true,read:true,edit:false}});
+      return r;
+    }
+    return r;
+  }
+
+  function isAdmin249(u){
+    return !!(u && (
+      (Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0) ||
+      n249(u.user)==='tobias' ||
+      n249(u.name)==='tobias' ||
+      n249(u.role).indexOf('admin')>=0 ||
+      n249(u.role).indexOf('vollzugriff')>=0
+    ));
+  }
+
+  function normalize249(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.mustChange=!!u.mustChange;
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    if(isAdmin249(u)){
+      u.permissions=['*'];
+      u.rights=full249();
+      u.mustChange=false;
+      return u;
+    }
+    var base=blank249();
+    var old=u.rights&&typeof u.rights==='object'?u.rights:{};
+    modules249().forEach(function(m){
+      var id=m[0], x=old[id]||{};
+      base[id]={
+        visible:x.visible===true || id==='start' || id==='dashboard',
+        read:x.read===true || id==='start' || id==='dashboard',
+        edit:x.edit===true
+      };
+      if(!base[id].visible){base[id].read=false;base[id].edit=false}
+      if(!base[id].read)base[id].edit=false;
+    });
+    u.rights=base;
+    return u;
+  }
+
+  function readKey249(key){
+    try{
+      var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(parsed)?parsed:[];
+    }catch(err){return []}
+  }
+
+  function collect249(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    [
+      userKey249(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users'
+    ].forEach(function(key){all=all.concat(readKey249(key))});
+    var map={};
+    all.forEach(function(u){
+      var x=normalize249(u);
+      if(!x.user)return;
+      map[n249(x.user)]=Object.assign(map[n249(x.user)]||{},x);
+    });
+    return Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return normalize249(map[k])});
+  }
+
+  function selected249(){
+    try{return state.rc249SelectedUser||state.rc241SelectedUser||state.rc228SelectedUser||state.rc196User||state.rc93RightsUser||state.rightsUser||''}catch(err){}
+    return '';
+  }
+
+  function setSelected249(login){
+    try{
+      state.rc249SelectedUser=login;
+      state.rc241SelectedUser=login;
+      state.rc228SelectedUser=login;
+      state.rc196User=login;
+      state.rc193RightsUser=login;
+      state.rc93RightsUser=login;
+      state.rightsUser=login;
+    }catch(err){}
+  }
+
+  function status249(text,type){
+    try{
+      var box=document.getElementById('rc249Status');
+      if(box){
+        box.className='rc249-status '+(type||'');
+        box.textContent=text;
+      }
+    }catch(err){}
+  }
+
+  function persist249(list,reason){
+    list=(Array.isArray(list)?list:collect249()).map(normalize249);
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [
+      userKey249(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users'
+    ].forEach(function(key){
+      try{localStorage.setItem(key,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(currentUser){
+        var fresh=list.find(function(u){return n249(u.user)===n249(currentUser.user)});
+        if(fresh)currentUser=fresh;
+      }
+    }catch(err){}
+    try{
+      if(window.fetch&&state){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:list,
+            state:Object.assign({},state,{users:list})
+          })
+        }).then(function(res){
+          status249((reason||'Rechte gespeichert')+(res&&res.ok?' - Teamdaten gespeichert.':' - lokal gespeichert, Teamdaten nicht bestaetigt.'),res&&res.ok?'':'warn');
+        }).catch(function(){
+          status249((reason||'Rechte gespeichert')+' - lokal gespeichert, Teamdaten-Sync folgt.','warn');
+        });
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit('Rechte gespeichert',reason||'RC249')}catch(err){}
+    return list;
+  }
+
+  function userByLogin249(list,login){
+    return list.find(function(u){return n249(u.user)===n249(login)});
+  }
+
+  function readRightsUi249(u){
+    var rights=blank249();
+    modules249().forEach(function(m){
+      var id=m[0];
+      var v=document.getElementById('rc249_'+id+'_visible');
+      var r=document.getElementById('rc249_'+id+'_read');
+      var ed=document.getElementById('rc249_'+id+'_edit');
+      var old=(u.rights&&u.rights[id])||rights[id]||{};
+      rights[id]={
+        visible:v?!!v.checked:!!old.visible,
+        read:r?!!r.checked:!!old.read,
+        edit:ed?!!ed.checked:!!old.edit
+      };
+      if(id==='start'||id==='dashboard'){rights[id].visible=true;rights[id].read=true}
+      if(!rights[id].visible){rights[id].read=false;rights[id].edit=false}
+      if(!rights[id].read)rights[id].edit=false;
+    });
+    return rights;
+  }
+
+  window.rc249SelectUser=function(login){
+    setSelected249(login);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc249ApplyTemplate=function(name){
+    var list=collect249();
+    var login=selected249() || (document.getElementById('rc249UserSelect')||{}).value || '';
+    var u=userByLogin249(list,login);
+    if(!u){alert('Bitte zuerst einen Benutzer auswaehlen.');return false}
+    if(isAdmin249(u)){alert('Tobias/Admin bleibt Vollzugriff.');return false}
+    u.rights=template249(name);
+    u.permissions=[];
+    if(name==='export')u.role='Export';
+    if(name==='full'){u.permissions=['*'];u.rights=full249();u.role='Vollzugriff'}
+    var idx=list.findIndex(function(x){return n249(x.user)===n249(u.user)});
+    if(idx>=0)list[idx]=normalize249(u);
+    setSelected249(u.user);
+    persist249(list,'Vorlage '+name+' fuer '+u.user+' gespeichert');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc249SaveRights=function(){
+    var list=collect249();
+    var login=(document.getElementById('rc249UserSelect')||{}).value || selected249();
+    var u=userByLogin249(list,login);
+    if(!u){alert('Bitte zuerst einen Benutzer auswaehlen.');return false}
+    var name=document.getElementById('rc249Name');
+    var role=document.getElementById('rc249Role');
+    var pass=document.getElementById('rc249Pass');
+    var must=document.getElementById('rc249MustChange');
+    var tmpl=document.getElementById('rc249Template');
+    if(name)u.name=String(name.value||u.name||u.user).trim();
+    if(role)u.role=String(role.value||u.role||'Benutzer').trim();
+    if(pass&&String(pass.value||'').trim())u.password=String(pass.value||'').trim();
+    if(must)u.mustChange=!!must.checked;
+    if(!isAdmin249(u)){
+      u.permissions=[];
+      if(tmpl&&tmpl.value&&tmpl.value!=='manual'){
+        u.rights=template249(tmpl.value);
+        if(tmpl.value==='export')u.role='Export';
+        if(tmpl.value==='full'){u.permissions=['*'];u.rights=full249();u.role='Vollzugriff'}
+      }else{
+        u.rights=readRightsUi249(u);
+      }
+    }
+    var idx=list.findIndex(function(x){return n249(x.user)===n249(u.user)});
+    if(idx>=0)list[idx]=normalize249(u);
+    setSelected249(u.user);
+    persist249(list,'Rechte fuer '+u.user+' gespeichert');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  function rightOf249(u,id){
+    if(!u)return {visible:false,read:false,edit:false};
+    if(isAdmin249(u))return {visible:true,read:true,edit:true};
+    u=normalize249(u);
+    return (u.rights&&u.rights[id])||{visible:false,read:false,edit:false};
+  }
+
+  window.canView=function(id){
+    try{
+      if(!currentUser)return false;
+      if(id==='start'||id==='dashboard')return true;
+      return !!rightOf249(currentUser,id).visible;
+    }catch(err){return !!currentUser}
+  };
+  window.canRead=function(id){
+    try{
+      if(!currentUser)return false;
+      if(id==='start'||id==='dashboard')return true;
+      var r=rightOf249(currentUser,id);
+      return !!(r.read||r.edit);
+    }catch(err){return !!currentUser}
+  };
+  window.canWrite=function(id){
+    try{
+      if(!currentUser)return false;
+      return !!rightOf249(currentUser,id||state.view).edit;
+    }catch(err){return !!currentUser}
+  };
+  window.canEdit=window.canWrite;
+  window.canManageRights=function(){
+    try{return !!rightOf249(currentUser,'rights').edit || isAdmin249(currentUser)}catch(err){return false}
+  };
+  try{canView=window.canView;canRead=window.canRead;canWrite=window.canWrite;canEdit=window.canEdit;canManageRights=window.canManageRights}catch(err){}
+
+  function rightsRows249(u){
+    if(!u)return '';
+    var r=u.rights||{};
+    var locked=isAdmin249(u);
+    return modules249().map(function(m){
+      var id=m[0], x=r[id]||{};
+      var baseLock=locked||id==='start'||id==='dashboard';
+      return '<tr>'+
+        '<td><b>'+e249(label249(m))+'</b><br><span class="small">'+e249(id)+'</span></td>'+
+        '<td><input id="rc249_'+e249(id)+'_visible" type="checkbox" '+(x.visible?'checked':'')+' '+(baseLock?'disabled':'')+'></td>'+
+        '<td><input id="rc249_'+e249(id)+'_read" type="checkbox" '+(x.read?'checked':'')+' '+(baseLock?'disabled':'')+'></td>'+
+        '<td><input id="rc249_'+e249(id)+'_edit" type="checkbox" '+(x.edit?'checked':'')+' '+(locked?'disabled':'')+'></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  function rightsHtml249(){
+    var list=collect249();
+    var selected=selected249() || (list[0]&&list[0].user) || '';
+    if(selected)setSelected249(selected);
+    var u=userByLogin249(list,selected) || list[0] || null;
+    var opts=list.map(function(x){
+      return '<option value="'+e249(x.user)+'" '+(u&&n249(x.user)===n249(u.user)?'selected':'')+'>'+e249((x.name||x.user)+' / '+x.user+' / '+(x.role||'Benutzer'))+'</option>';
+    }).join('');
+    var form=u?'<div class="rc249-card">'+
+      '<h3>Benutzer bearbeiten</h3>'+
+      '<label class="field">Benutzer<select id="rc249UserSelect" onchange="rc249SelectUser(this.value)">'+opts+'</select></label>'+
+      '<div class="grid2">'+
+        '<label class="field">Name<input id="rc249Name" value="'+e249(u.name||'')+'"></label>'+
+        '<label class="field">Rolle<input id="rc249Role" value="'+e249(u.role||'')+'"></label>'+
+        '<label class="field">Neues Passwort<input id="rc249Pass" type="password" placeholder="leer lassen = bleibt"></label>'+
+        '<label class="field">Rechtevorlage<select id="rc249Template">'+
+          '<option value="manual">Manuell / Tabelle speichern</option>'+
+          '<option value="dashboard">Nur Dashboard</option>'+
+          '<option value="shipment">Sendungen bearbeiten</option>'+
+          '<option value="customers">Kunden bearbeiten</option>'+
+          '<option value="overview">Uebersicht lesen</option>'+
+          '<option value="export">Export Standard</option>'+
+          '<option value="readall">Alles lesen</option>'+
+          '<option value="full">Vollzugriff</option>'+
+        '</select></label>'+
+      '</div>'+
+      '<label class="field"><span><input id="rc249MustChange" type="checkbox" '+(u.mustChange?'checked':'')+'> Passwortwechsel beim naechsten Login erzwingen</span></label>'+
+      '<div class="rc249-actions">'+
+        '<button type="button" class="btn" onclick="return rc249SaveRights()">Benutzer & Rechte speichern</button>'+
+        '<button type="button" class="ghost" onclick="return rc249ApplyTemplate(&quot;dashboard&quot;)">Nur Dashboard</button>'+
+        '<button type="button" class="ghost" onclick="return rc249ApplyTemplate(&quot;shipment&quot;)">Sendungen bearbeiten</button>'+
+        '<button type="button" class="ghost" onclick="return rc249ApplyTemplate(&quot;customers&quot;)">Kunden bearbeiten</button>'+
+        '<button type="button" class="soft" onclick="return rc249ApplyTemplate(&quot;export&quot;)">Export Standard</button>'+
+        '<button type="button" class="ghost" onclick="return rc249ApplyTemplate(&quot;readall&quot;)">Alles lesen</button>'+
+      '</div>'+
+      '<table class="rc249-table"><thead><tr><th>Bereich</th><th>Sichtbar</th><th>Lesen</th><th>Bearbeiten</th></tr></thead><tbody>'+rightsRows249(u)+'</tbody></table>'+
+    '</div>':'<div class="rc249-card">Kein Benutzer vorhanden.</div>';
+    var listHtml='<div class="rc249-card"><h3>Benutzerliste</h3>'+list.map(function(x){
+      return '<button type="button" class="ghost" style="width:100%;margin:0 0 6px;text-align:left" onclick="return rc249SelectUser(&quot;'+e249(x.user)+'&quot;)"><b>'+e249(x.name||x.user)+'</b><br><span class="small">'+e249(x.user+' / '+(x.role||'Benutzer'))+'</span></button>';
+    }).join('')+'<div class="rc249-help"><b>Bearbeiten</b> wird fuer Sendung anlegen, Kunden anlegen, Speichern, Loeschen und Abschliessen benoetigt.</div></div>';
+    return '<div class="card">'+
+      '<h2>Benutzer & Rechte</h2>'+
+      '<div id="rc249Status" class="rc249-status">RC249 aktiv: Rechte und Vorlagen werden direkt gespeichert.</div>'+
+      '<div class="rc249-grid">'+listHtml+form+'</div>'+
+    '</div>';
+  }
+
+  window.rights=rightsHtml249;
+  try{rights=window.rights}catch(err){}
+
+  window.rc241SaveUser=window.rc249SaveRights;
+  window.rc242SaveRights=window.rc249SaveRights;
+  window.rc228SaveUser=window.rc249SaveRights;
+  window.rc196SaveUser=window.rc249SaveRights;
+  window.rc193SaveSelectedUser=window.rc249SaveRights;
+  window.rc208ApplyPreset=window.rc249ApplyTemplate;
+  window.rc241ApplyPreset=window.rc249ApplyTemplate;
+
+  document.addEventListener('click',function(ev){
+    var btn=ev.target&&ev.target.closest?ev.target.closest('button'):null;
+    if(!btn)return;
+    var t=n249(btn.textContent||'');
+    if(t.indexOf('rechte')>=0 && t.indexOf('speichern')>=0){
+      ev.preventDefault();
+      ev.stopPropagation();
+      if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();
+      window.rc249SaveRights();
+      return false;
+    }
+    var map={
+      'nur dashboard':'dashboard',
+      'sendungen bearbeiten':'shipment',
+      'kunden bearbeiten':'customers',
+      'export standard':'export',
+      'alles lesen':'readall'
+    };
+    if(map[t]){
+      ev.preventDefault();
+      ev.stopPropagation();
+      if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();
+      window.rc249ApplyTemplate(map[t]);
+      return false;
+    }
+  },true);
+
+  setTimeout(function(){
+    try{persist249(collect249(),'Benutzer/Rechte vorbereitet')}catch(err){}
+  },400);
+})();
+</script>
+<!-- PRIVATE RC249 END: Rechte + Vorlagen Speicherfix -->
   
 </body></html>
 
