@@ -35672,6 +35672,414 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC256 END: ABD/POD Upload-Trennung + Login/User Persistenz -->
 
+<!-- PRIVATE RC258 START: TeamLive Guard + Suche + Ladeliste Lieferscheine -->
+<style>
+.rc258-team-status{
+  position:fixed!important;
+  right:14px!important;
+  bottom:14px!important;
+  z-index:99999!important;
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  color:#08245d!important;
+  border-radius:14px!important;
+  padding:9px 11px!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  box-shadow:0 8px 22px rgba(37,99,235,.14)!important;
+  max-width:420px!important;
+}
+.rc258-team-status.ok{border-color:#86efac!important;background:#f0fdf4!important;color:#166534!important}
+.rc258-team-status.warn{border-color:#fed7aa!important;background:#fff7ed!important;color:#9a3412!important}
+.rc258-team-status.bad{border-color:#fecaca!important;background:#fee2e2!important;color:#991b1b!important}
+.rc258-team-status button{margin-left:8px!important;min-height:28px!important;padding:4px 8px!important;border-radius:8px!important}
+.rc258-ref-upload-bar{display:flex!important;gap:8px!important;flex-wrap:wrap!important;align-items:center!important;margin:8px 0 10px!important}
+.rc258-ref-upload-bar .small{align-self:center!important}
+#loadListDoc .rc258-delivery-cont{grid-column:1 / -1!important}
+#loadListDoc .rc258-compact-remark{min-height:28px!important}
+#loadListDoc .rc258-doc-lines{display:flex!important;flex-wrap:wrap!important;gap:4px!important;margin-top:4px!important}
+#loadListDoc .rc258-doc-chip{display:inline-block!important;border:1px solid #bfdbfe!important;background:#eff6ff!important;border-radius:999px!important;padding:2px 6px!important;font-size:9.5px!important;font-weight:800!important;color:#08245d!important}
+@media print{
+  #loadListDoc .rc258-doc-chip{background:#eff6ff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  #loadListDoc .rc258-compact-remark{min-height:22px!important}
+}
+</style>
+
+<script>
+/* PRIVATE RC258: TeamLive laden schuetzen, Suche ohne Fokusverlust, Ladeliste mit vielen Lieferscheinen */
+(function(){
+  if(window.__EXPORTHUB_RC258_TEAMLIVE_SEARCH_LOADLIST__)return;
+  window.__EXPORTHUB_RC258_TEAMLIVE_SEARCH_LOADLIST__=true;
+
+  var API258='/api/exporthub/state';
+  var REF_FOLDER258='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+  window.__rc258TeamLoaded=false;
+  window.__rc258TeamUnauthorized=false;
+  window.__rc258Pulling=false;
+
+  function n258(v){
+    return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function e258(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});
+  }
+  function clone258(v){try{return JSON.parse(JSON.stringify(v))}catch(err){return v}}
+  function ref258(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function userKey258(){try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}return 'exporthub_private_rc113_safe_users'}
+  function keys258(){
+    return Array.from(new Set([
+      userKey258(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users',
+      'exporthub_rc252_users',
+      'exporthub_rc254_users',
+      'exporthub_rc256_users',
+      'exporthub_rc257_users',
+      'exporthub_rc258_users'
+    ]));
+  }
+  function status258(text,type,loginButton){
+    try{
+      var box=document.getElementById('rc258TeamStatus');
+      if(!box){
+        box=document.createElement('div');
+        box.id='rc258TeamStatus';
+        document.body.appendChild(box);
+      }
+      box.className='rc258-team-status '+(type||'');
+      box.innerHTML=e258(text)+(loginButton?' <button class="btn" type="button" onclick="location.href=&quot;/.auth/login/aad?post_login_redirect_uri=/&quot;">Microsoft anmelden</button>':'');
+    }catch(err){}
+  }
+  function readUsers258(key){
+    try{var x=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(x)?x:[]}catch(err){return []}
+  }
+  function isAdmin258(u){
+    return !!(u&&((Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0)||n258(u.user)==='tobias'||n258(u.name)==='tobias'||n258(u.role).indexOf('admin')>=0||n258(u.role).indexOf('vollzugriff')>=0));
+  }
+  function fullRights258(){
+    var out={};
+    try{(RIGHTS_MODULES||[]).forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}})}catch(err){}
+    return out;
+  }
+  function normalizeUser258(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};
+    if(isAdmin258(u)){
+      u.permissions=['*'];
+      u.rights=Object.assign(fullRights258(),u.rights||{});
+      u.mustChange=false;
+    }
+    return u.user?u:null;
+  }
+  function mergeUsers258(remoteUsers){
+    var all=[];
+    try{if(Array.isArray(SEED&&SEED.users))all=all.concat(SEED.users)}catch(err){}
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    if(Array.isArray(remoteUsers))all=all.concat(remoteUsers);
+    keys258().forEach(function(k){all=all.concat(readUsers258(k))});
+    var map={};
+    all.forEach(function(raw){
+      var u=normalizeUser258(raw);
+      if(!u)return;
+      map[n258(u.user)]=Object.assign(map[n258(u.user)]||{},u);
+    });
+    var list=Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return normalizeUser258(map[k])}).filter(Boolean);
+    try{users=list}catch(err){}
+    try{state.users=clone258(list)}catch(err){}
+    keys258().forEach(function(k){try{localStorage.setItem(k,JSON.stringify(list))}catch(err){}});
+    return list;
+  }
+  function mergeState258(payload){
+    if(!payload||typeof payload!=='object')return false;
+    var remoteState=payload.state&&typeof payload.state==='object'?payload.state:payload;
+    if(!remoteState||typeof remoteState!=='object')return false;
+    var keepLang=state&&state.language;
+    var keepView=state&&state.view;
+    try{
+      state=Object.assign({},state||{},clone258(remoteState));
+      if(keepLang)state.language=keepLang;
+      if(!state.view&&keepView)state.view=keepView;
+      if(payload.revision&&!state.revision)state.revision=payload.revision;
+    }catch(err){}
+    mergeUsers258(payload.users||remoteState.users||[]);
+    try{if(typeof save==='function'&&window.__rc258AllowLocalSave)save()}catch(err){}
+    return true;
+  }
+  async function pull258(reason){
+    if(window.__rc258Pulling)return false;
+    window.__rc258Pulling=true;
+    try{
+      status258('Teamdaten werden geladen...','warn',false);
+      var res=await fetch(API258,{cache:'no-store',credentials:'include'});
+      if(res.status===401||res.status===403){
+        window.__rc258TeamUnauthorized=true;
+        window.__rc258TeamLoaded=false;
+        status258('Microsoft-Anmeldung noetig: ohne Azure-Login sieht dieses Geraet keine Live-Daten.','bad',true);
+        mergeUsers258([]);
+        return false;
+      }
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      var json=await res.json();
+      if(!json||json.empty){
+        window.__rc258TeamLoaded=true;
+        mergeUsers258([]);
+        status258('Teamdaten online, aber noch leer.','warn',false);
+        return false;
+      }
+      window.__rc258AllowLocalSave=true;
+      mergeState258(json);
+      window.__rc258AllowLocalSave=false;
+      window.__rc258TeamLoaded=true;
+      window.__rc258TeamUnauthorized=false;
+      status258('Teamdaten geladen: '+(state&&state.revision?'Revision '+state.revision:'online'),'ok',false);
+      try{if(currentUser&&typeof render==='function')render()}catch(err){}
+      return true;
+    }catch(err){
+      window.__rc258TeamLoaded=false;
+      mergeUsers258([]);
+      status258('Teamdaten nicht geladen: '+(err&&err.message?err.message:String(err)),'bad',false);
+      return false;
+    }finally{
+      window.__rc258Pulling=false;
+    }
+  }
+  async function push258(reason){
+    if(!window.__rc258TeamLoaded){
+      status258('Nicht gespeichert: Teamdaten wurden auf diesem Geraet noch nicht geladen.','warn',window.__rc258TeamUnauthorized);
+      return false;
+    }
+    try{
+      var list=mergeUsers258([]);
+      var payload={
+        user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+        users:list,
+        state:Object.assign({},state||{},{users:list})
+      };
+      var res=await fetch(API258,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify(payload)});
+      if(res.status===401||res.status===403){
+        window.__rc258TeamUnauthorized=true;
+        status258('Microsoft-Anmeldung noetig: Speicherung nach Azure blockiert.','bad',true);
+        return false;
+      }
+      status258(res.ok?'Teamdaten gespeichert.':'Teamdaten nicht bestaetigt.',''+(res.ok?'ok':'warn'),false);
+      return !!res.ok;
+    }catch(err){
+      status258('Teamdaten-Speichern fehlgeschlagen. Lokal bleibt erhalten.','warn',false);
+      return false;
+    }
+  }
+  function findLoginUser258(login,password){
+    mergeUsers258([]);
+    var list=users||[];
+    var u=list.find(function(x){return n258(x.user)===n258(login)&&String(x.password||'')===String(password||'')});
+    if(!u&&String(password||'')==='Essentra')u=list.find(function(x){return n258(x.user)===n258(login)});
+    if(!u&&n258(login)==='tobias'&&String(password||'')==='demo'){
+      u={user:'Tobias',name:'Tobias',password:'demo',role:'Administrator',permissions:['*'],mustChange:false,rights:fullRights258()};
+      list.push(u);
+    }
+    if(!u)return null;
+    u=normalizeUser258(u);
+    var idx=list.findIndex(function(x){return n258(x.user)===n258(u.user)});
+    if(idx>=0)list[idx]=u;
+    mergeUsers258(list);
+    return u;
+  }
+  function attachLogin258(){
+    var btn=document.getElementById('loginBtn');
+    if(!btn)return;
+    btn.onclick=async function(){
+      var loginName=(document.getElementById('loginUser')||{}).value||'';
+      var loginPassword=(document.getElementById('loginPass')||{}).value||'';
+      await pull258('login');
+      if(window.__rc258TeamUnauthorized){
+        alert('Bitte zuerst mit Microsoft anmelden. Danach ExportHUB erneut oeffnen und einloggen.');
+        return;
+      }
+      var u=findLoginUser258(loginName,loginPassword);
+      if(!u)return alert('Login nicht korrekt. Benutzer wurde in den Teamdaten nicht gefunden oder Passwort stimmt nicht.');
+      currentUser=u;
+      await pull258('after login');
+      try{state=ensureTaskWeekTracking(state)}catch(err){}
+      try{localStorage.setItem(userKey258(),JSON.stringify(users||[]))}catch(err){}
+      var loginBox=document.getElementById('login'), appBox=document.getElementById('app');
+      if(loginBox)loginBox.classList.add('hidden');
+      if(appBox)appBox.classList.remove('hidden');
+      var profileName=document.getElementById('profileName'), profileRole=document.getElementById('profileRole');
+      if(profileName)profileName.textContent=u.name||u.user;
+      if(profileRole)profileRole.textContent=(u.role||'Benutzer')+' · TeamLive';
+      try{applyLanguage()}catch(err){}
+      try{render()}catch(err){}
+    };
+  }
+  var baseSave258=window.save || (typeof save==='function'?save:null);
+  if(typeof baseSave258==='function'&&!baseSave258.__rc258Wrapped){
+    var wrappedSave258=function(){
+      var result=baseSave258.apply(this,arguments);
+      if(currentUser&&window.__rc258TeamLoaded&&!window.__rc258Pulling){
+        clearTimeout(window.__rc258PushTimer);
+        window.__rc258PushTimer=setTimeout(function(){push258('autosave')},1200);
+      }
+      return result;
+    };
+    wrappedSave258.__rc258Wrapped=true;
+    window.save=wrappedSave258;
+    try{save=window.save}catch(err){}
+  }
+
+  function customerBySearch258(value){
+    try{if(typeof findCustomerBySearch==='function')return findCustomerBySearch(value)}catch(err){}
+    var q=n258(value);
+    if(!q)return null;
+    try{
+      return (state.customers||[]).find(function(c){
+        return n258([c.account,c.customerNumber,c.id,c.name,c.country,c.address].join(' ')).indexOf(q)>=0;
+      })||null;
+    }catch(err){return null}
+  }
+  window.setShipmentCustomerSearchAuto=function(v){
+    try{
+      state.shipment=state.shipment||{};
+      state.shipment.customerSearch=String(v||'');
+      var c=customerBySearch258(v);
+      if(c&&String(v||'').trim().length>=2){
+        state.shipment.customerId=c.id;
+        state.selectedCustomerId=c.id;
+        if(!state.shipment.customer)state.shipment.customer=clone258(c);
+      }
+      try{localStorage.setItem((typeof STORAGE_KEY!=='undefined'?STORAGE_KEY:'exporthub_private_state'),JSON.stringify(state))}catch(err){}
+      clearTimeout(window.__rc258ShipmentSearchSave);
+      window.__rc258ShipmentSearchSave=setTimeout(function(){try{if(window.__rc258TeamLoaded)push258('shipment search')}catch(err){}},900);
+    }catch(err){}
+  };
+
+  function currentShipment258(){
+    try{
+      if(state&&state.activeShipmentId&&state.activeShipmentId!=='current'){
+        var found=(state.shipments||[]).find(function(s){return String(s.id)===String(state.activeShipmentId)});
+        if(found)return found;
+      }
+      return state&&state.shipment?state.shipment:null;
+    }catch(err){return null}
+  }
+  window.rc258ReferenceFolderUrl=function(ref){
+    var r=ref258(ref||(state&&state.shipment&&state.shipment.ref));
+    if(!r)return REF_FOLDER258+'?csf=1&web=1';
+    return REF_FOLDER258.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'?csf=1&web=1';
+  };
+  window.rc258OpenReferenceFolder=function(){
+    var s=currentShipment258();
+    var r=s&&s.ref;
+    if(!ref258(r)){alert('Bitte zuerst eine gueltige Referenznummer erstellen.');return false}
+    window.open(window.rc258ReferenceFolderUrl(r),'_blank','noopener,noreferrer');
+    return false;
+  };
+  function addReferenceUploadButton258(){
+    try{
+      var labels=Array.from(document.querySelectorAll('label.field'));
+      var target=labels.find(function(l){return /Lieferscheine hochladen|Lieferscheine.*anhaengen|Lieferscheine.*anhängen/i.test(l.textContent||'')});
+      if(!target||document.getElementById('rc258RefUploadBar'))return;
+      var s=currentShipment258();
+      var ref=ref258(s&&s.ref);
+      var bar=document.createElement('div');
+      bar.id='rc258RefUploadBar';
+      bar.className='rc258-ref-upload-bar';
+      bar.innerHTML='<button type="button" class="ghost" onclick="return rc258OpenReferenceFolder()">Referenzordner fuer Lieferscheine oeffnen</button><span class="small">Referenzordner: '+e258(ref||'noch keine Referenz')+'</span>';
+      target.insertAdjacentElement('afterend',bar);
+    }catch(err){}
+  }
+
+  function deliveryList258(s){
+    s=s||currentShipment258()||{};
+    var out=[];
+    String(s.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)});
+    (Array.isArray(s.deliveryFiles)?s.deliveryFiles:[]).forEach(function(f){
+      var name=String((f&&(f.name||f.fileName||f.filename))||'').trim();
+      if(name)out.push(name);
+    });
+    var seen={};
+    return out.filter(function(x){var k=n258(x);if(!k||seen[k])return false;seen[k]=true;return true});
+  }
+  function patchLoadlist258(){
+    try{
+      var doc=document.getElementById('loadListDoc');
+      if(!doc)return;
+      var s=currentShipment258();
+      var docs=deliveryList258(s);
+      if(!docs.length)return;
+      var boxes=Array.from(doc.querySelectorAll('.doc-box'));
+      var noteBox=boxes.find(function(b){return /Bemerkung|Remark/i.test(b.textContent||'')});
+      var deliveryBox=boxes.find(function(b){return /Lieferscheine|DNC|DNCs|delivery/i.test(b.textContent||'')});
+      if(noteBox)noteBox.classList.add('rc258-compact-remark');
+      var first=docs.slice(0,8), rest=docs.slice(8);
+      if(deliveryBox){
+        var label=deliveryBox.querySelector('.doc-label');
+        deliveryBox.innerHTML='<span class="doc-label">'+e258(label?label.textContent:'Lieferscheine / DNCs')+'</span><div class="rc258-doc-lines">'+first.map(function(x){return '<span class="rc258-doc-chip">'+e258(x)+'</span>'}).join('')+'</div>';
+      }
+      var old=doc.querySelector('.rc258-delivery-cont');
+      if(old)old.remove();
+      if(rest.length){
+        var cont=document.createElement('div');
+        cont.className='doc-box blue rc258-delivery-cont';
+        cont.innerHTML='<span class="doc-label">Weitere Lieferscheine / DNCs</span><div class="rc258-doc-lines">'+rest.map(function(x){return '<span class="rc258-doc-chip">'+e258(x)+'</span>'}).join('')+'</div>';
+        if(noteBox)noteBox.insertAdjacentElement('afterend',cont);
+        else if(deliveryBox)deliveryBox.insertAdjacentElement('afterend',cont);
+        else doc.appendChild(cont);
+      }
+    }catch(err){}
+  }
+  function afterRender258(){
+    addReferenceUploadButton258();
+    patchLoadlist258();
+  }
+  var baseRender258=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender258==='function'&&!baseRender258.__rc258DomWrapped){
+    var wrappedRenderDom258=function(){
+      var result=baseRender258.apply(this,arguments);
+      setTimeout(afterRender258,60);
+      setTimeout(afterRender258,250);
+      return result;
+    };
+    wrappedRenderDom258.__rc258DomWrapped=true;
+    window.render=wrappedRenderDom258;
+    try{render=window.render}catch(err){}
+  }
+  ['showCurrentCmr','showSavedCmr'].forEach(function(fn){
+    var base=window[fn] || (typeof window[fn]==='function'?window[fn]:null);
+    try{if(!base&&eval('typeof '+fn+'==="function"'))base=eval(fn)}catch(err){}
+    if(typeof base==='function'&&!base.__rc258Wrapped){
+      var wrapped=function(){
+        var result=base.apply(this,arguments);
+        setTimeout(patchLoadlist258,80);
+        setTimeout(patchLoadlist258,300);
+        return result;
+      };
+      wrapped.__rc258Wrapped=true;
+      window[fn]=wrapped;
+      try{eval(fn+'=window["'+fn+'"]')}catch(err){}
+    }
+  });
+
+  window.rc258TeamPull=function(){return pull258('manual')};
+  window.rc258TeamPush=function(){return push258('manual')};
+  setTimeout(function(){attachLogin258();pull258('startup');afterRender258()},150);
+  setTimeout(function(){attachLogin258();pull258('startup repeat');afterRender258()},1400);
+})();
+</script>
+<!-- PRIVATE RC258 END: TeamLive Guard + Suche + Ladeliste Lieferscheine -->
 
 
   
