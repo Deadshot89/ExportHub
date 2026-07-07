@@ -34625,6 +34625,543 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC252 END: Pruefungsarchiv + Rechte/Vorlagen Hartfix -->
+
+<!-- PRIVATE RC254 START: POD/ABD Linkfix + Benutzer Updatefix -->
+<style>
+.rc254-filterbar{display:flex!important;gap:8px!important;flex-wrap:wrap!important;align-items:center!important;margin:0 0 12px!important}
+.rc254-filterbar input{min-width:280px!important;flex:1!important}
+.rc254-table{width:100%!important;border-collapse:separate!important;border-spacing:0 7px!important;table-layout:auto!important}
+.rc254-table th{text-align:left!important;color:#64748b!important;font-size:12px!important;text-transform:uppercase!important;padding:7px!important}
+.rc254-table td{vertical-align:top!important;background:#fff!important;border-top:1px solid #dbeafe!important;border-bottom:1px solid #dbeafe!important;padding:8px!important}
+.rc254-table td:first-child{border-left:1px solid #dbeafe!important;border-radius:12px 0 0 12px!important}
+.rc254-table td:last-child{border-right:1px solid #dbeafe!important;border-radius:0 12px 12px 0!important}
+.rc254-customer{background:#e0f2fe!important}
+.rc254-customer-number{color:#08245d!important;font-size:16px!important;font-weight:1000!important;line-height:1.1!important}
+.rc254-customer-name{color:#08245d!important;font-size:14px!important;font-weight:950!important;line-height:1.25!important;margin-top:4px!important;overflow-wrap:anywhere!important}
+.rc254-date-stack{display:flex!important;flex-direction:column!important;gap:8px!important;min-width:130px!important;max-width:165px!important}
+.rc254-date-stack label{display:flex!important;flex-direction:column!important;gap:4px!important;margin:0!important;color:#334155!important;font-size:12px!important;font-weight:950!important}
+.rc254-date-stack input[type="date"]{width:100%!important;min-width:0!important;padding:7px 8px!important;border-radius:9px!important}
+.rc254-docs{display:grid!important;gap:7px!important;min-width:250px!important}
+.rc254-doc-card{border:1px solid #e2e8f0!important;background:#f8fafc!important;border-radius:10px!important;padding:8px!important}
+.rc254-doc-card.linked{border:2px solid #22c55e!important;background:#dcfce7!important}
+.rc254-doc-top{display:flex!important;justify-content:space-between!important;gap:8px!important;align-items:center!important}
+.rc254-doc-title{font-size:15px!important;font-weight:1000!important;color:#08245d!important;text-decoration:none!important}
+.rc254-doc-name{font-size:12px!important;color:#334155!important;font-weight:850!important;margin:4px 0 7px!important;overflow-wrap:anywhere!important}
+.rc254-doc-actions,.rc254-actions{display:grid!important;grid-template-columns:1fr!important;gap:5px!important;align-content:start!important}
+.rc254-doc-actions a,.rc254-doc-actions button,.rc254-doc-actions label,.rc254-actions button{min-height:27px!important;padding:5px 7px!important;border-radius:8px!important;font-size:11px!important;line-height:1.15!important;white-space:nowrap!important}
+.rc254-file-input{display:none!important}
+.rc254-picked-btn{border:1px solid #86efac!important;background:#dcfce7!important;color:#166534!important;font-weight:950!important}
+.rc254-delete{border:0!important;background:#fee2e2!important;color:#991b1b!important}
+.rc254-rights-layout{display:grid;grid-template-columns:minmax(300px,.8fr) minmax(560px,1.2fr);gap:14px;align-items:start}
+.rc254-user-list{display:grid;gap:8px;max-height:620px;overflow:auto}
+.rc254-user-list button{width:100%;text-align:left}
+.rc254-user-list button.active{border-color:#2563eb;background:#eff6ff}
+.rc254-rights-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.rc254-rights-table input{width:18px;height:18px}
+.rc254-savebar{position:sticky;bottom:8px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;box-shadow:0 8px 22px rgba(37,99,235,.12);margin-top:12px}
+.rc254-status{border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:14px;padding:10px;font-weight:900;margin:10px 0}
+.rc254-status.ok{border-color:#86efac;background:#f0fdf4;color:#166534}
+.rc254-status.warn{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
+@media(max-width:1100px){.rc254-table{display:block!important;overflow-x:auto!important}.rc254-rights-layout{grid-template-columns:1fr}}
+</style>
+
+<script>
+/* PRIVATE RC254: POD/ABD-Link und Benutzer/Rechte dauerhaft reparieren */
+(function(){
+  if(window.__EXPORTHUB_RC254_POD_ABD_USERS__)return;
+  window.__EXPORTHUB_RC254_POD_ABD_USERS__=true;
+
+  var SITE254='https://essentra-my.sharepoint.com';
+  var WEB_BASE254='https://essentra-my.sharepoint.com/:b:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+  var FOLDER_BASE254='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+  var SERVER_FOLDER254='/personal/tobiaslimberg_essentra_com/Documents/003 Export/ExportHub/Sendungen';
+
+  function e254(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});
+  }
+  function n254(v){
+    return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function ref254(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function iso254(v){var s=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
+  function today254(){return new Date().toISOString().slice(0,10)}
+  function docName254(d){return String((d&&(d.name||d.fileName||d.filename||d.title))||'').trim()}
+  function rawUrl254(d){return String((d&&(d.dataUrl||d.webUrl||d.url||d.link||d.sharepointUrl||d.downloadUrl||d.href))||'').trim()}
+  function isGeneratedDownload254(url){return /\/_layouts\/15\/download\.aspx/i.test(String(url||''))}
+  function folderUrl254(ref){var r=ref254(ref);return FOLDER_BASE254.replace(/\/+$/,'')+(r?'/'+encodeURIComponent(r):'')+'?csf=1&web=1'}
+  function webUrl254(ref,fileName){
+    var r=ref254(ref), name=String(fileName||'').trim();
+    if(!r||!name)return '';
+    return WEB_BASE254.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'/'+encodeURIComponent(name)+'?csf=1&web=1';
+  }
+  function downloadUrl254(ref,fileName){
+    var r=ref254(ref), name=String(fileName||'').trim();
+    if(!r||!name)return '';
+    var serverRelative=SERVER_FOLDER254.replace(/\/+$/,'')+'/'+r+'/'+name;
+    return SITE254+'/_layouts/15/download.aspx?SourceUrl='+encodeURIComponent(serverRelative);
+  }
+  function classifyDoc254(d){
+    var text=n254(docName254(d)+' '+rawUrl254(d)+' '+String(d&&d.relativePath||'')+' '+String(d&&d.source||''));
+    if(text.indexOf('abd')>=0)return 'abd';
+    if(text.indexOf('pod')>=0||text.indexOf('scan')>=0||text.indexOf('untitled')>=0)return 'pod';
+    return '';
+  }
+  function extractNames254(text,source){
+    var out=[], seen={};
+    text=String(text||'');
+    var re=/((?:\[[^\]]+\]|[A-Za-z0-9ÄÖÜäöüß_\-. ]){0,180}(?:abd|pod|scan|untitled)(?:[A-Za-z0-9ÄÖÜäöüß_\-. \[\]]){0,180}\.(?:pdf|jpg|jpeg|png|msg|eml|xlsx?|docx?))/gi;
+    var m;
+    while((m=re.exec(text))){
+      var name=String(m[1]||'').trim().replace(/^[\s:,"']+/,'').replace(/[\s,"']+$/,'');
+      var key=n254(name);
+      if(name&&!seen[key]){seen[key]=true;out.push({name:name,fileName:name,source:source||'Textscan'})}
+    }
+    return out;
+  }
+  function pushDoc254(out,d,source){
+    if(d==null)return;
+    if(typeof d==='string'){out.push({name:d,fileName:d,source:source||'Text'});return}
+    if(typeof d==='object')out.push(Object.assign({source:source||'Objekt'},d));
+  }
+  function walkDocs254(value,out,seen,path){
+    out=out||[];seen=seen||[];path=path||'';
+    if(value==null)return out;
+    if(typeof value==='string'){
+      extractNames254(value,path).forEach(function(x){out.push(x)});
+      if(/^data:/i.test(value))out.push({name:path||'Dokument.pdf',dataUrl:value,source:'DataUrl '+path});
+      return out;
+    }
+    if(typeof value!=='object')return out;
+    if(seen.indexOf(value)>=0)return out;
+    seen.push(value);
+    if(docName254(value)||rawUrl254(value))pushDoc254(out,value,path||'Objekt');
+    if(Array.isArray(value)){
+      value.forEach(function(x,i){walkDocs254(x,out,seen,path+'['+i+']')});
+    }else{
+      Object.keys(value).forEach(function(k){
+        if(k==='users'||k==='customers'||k==='tasks'||k==='audit')return;
+        walkDocs254(value[k],out,seen,k);
+      });
+    }
+    return out;
+  }
+  function docs254(obj){
+    var out=[];
+    if(!obj)return out;
+    ['rc254Docs','rc253Docs','rc247Docs','rc230Docs','rc228Docs'].forEach(function(k){
+      var box=obj[k];
+      if(box&&typeof box==='object'&&!Array.isArray(box)){
+        if(box.abd)pushDoc254(out,box.abd,k+'.abd');
+        if(box.pod)pushDoc254(out,box.pod,k+'.pod');
+      }
+    });
+    ['abdFiles','podFiles','deliveryFiles','files','documents','docs','attachments','sharepointFiles','referenceFolderFiles','uploadedFiles','dncFiles'].forEach(function(k){
+      var arr=Array.isArray(obj[k])?obj[k]:[];
+      arr.forEach(function(x){pushDoc254(out,x,k)});
+    });
+    ['deliveryNotes','note','manualText','abdDocument','podDocument','documentText','fileNames','dncText','sharepointText','referenceFolderText'].forEach(function(k){
+      extractNames254(obj[k],k).forEach(function(x){out.push(x)});
+    });
+    walkDocs254(obj,out,[]);
+    var seen={};
+    return out.filter(function(d){
+      var name=docName254(d), url=rawUrl254(d);
+      if(!name&&!url)return false;
+      var key=n254(name+' '+url);
+      if(seen[key])return false;
+      seen[key]=true;
+      return true;
+    });
+  }
+  function shipmentByRef254(reference){
+    var r=ref254(reference);
+    try{return (state.shipments||[]).find(function(s){return ref254(s&&s.ref)===r})||null}catch(err){}
+    return null;
+  }
+  function relatedObjects254(target){
+    var r=ref254(target&&target.ref), list=[];
+    try{(state.shipments||[]).forEach(function(s){if(ref254(s&&s.ref)===r)list.push(s)})}catch(err){}
+    try{(state.abdRequests||[]).forEach(function(a){if(a!==target&&ref254(a&&a.ref)===r)list.push(a)})}catch(err){}
+    return list;
+  }
+  function scoreDoc254(d,kind){
+    var name=docName254(d), url=rawUrl254(d), text=n254(name+' '+url+' '+String(d&&d.source||''));
+    var score=0;
+    if(classifyDoc254(d)===kind)score+=50;
+    if(url&&!isGeneratedDownload254(url))score+=40;
+    if(/^data:/i.test(url))score+=50;
+    if(/\.(pdf)$/i.test(name))score+=15;
+    if(/\.(jpg|jpeg|png)$/i.test(name))score+=10;
+    if(kind==='pod'&&(text.indexOf('scan')>=0||text.indexOf('untitled')>=0||text.indexOf('pod')>=0))score+=25;
+    if(kind==='abd'&&text.indexOf('abd')>=0)score+=25;
+    if(isGeneratedDownload254(url))score-=25;
+    return score;
+  }
+  function bestDoc254(target,kind,forceRelated){
+    var all=[];
+    if(!forceRelated)all=all.concat(docs254(target));
+    relatedObjects254(target).forEach(function(o){all=all.concat(docs254(o))});
+    all=all.filter(function(d){return classifyDoc254(d)===kind});
+    if(!all.length)return null;
+    all.sort(function(a,b){return scoreDoc254(b,kind)-scoreDoc254(a,kind)});
+    return all[0]||null;
+  }
+  function makeDoc254(target,kind,forceRelated){
+    if(!target)return null;
+    var doc=bestDoc254(target,kind,forceRelated);
+    if(!doc)return null;
+    var ship=shipmentByRef254(target.ref)||target;
+    var reference=(ship&&ship.ref)||target.ref||'';
+    var name=docName254(doc)||(kind==='abd'?'ABD.pdf':'POD.pdf');
+    var raw=rawUrl254(doc);
+    var url=raw;
+    if(!url&&name)url=webUrl254(reference,name);
+    if(isGeneratedDownload254(url))url=webUrl254(reference,name);
+    return Object.assign({},doc,{
+      name:name,
+      fileName:name,
+      url:url,
+      webUrl:url,
+      href:url,
+      downloadUrl:(raw&&!isGeneratedDownload254(raw))?raw:downloadUrl254(reference,name),
+      rc254Linked:!!url,
+      rc254Detected:true,
+      source:doc.source||'RC254'
+    });
+  }
+  function ensureDoc254(target,kind,forceRelated){
+    var doc=makeDoc254(target,kind,forceRelated);
+    if(!doc)return false;
+    target.rc254Docs=target.rc254Docs||{};
+    target.rc253Docs=target.rc253Docs||{};
+    target.rc247Docs=target.rc247Docs||{};
+    target.rc230Docs=target.rc230Docs||{};
+    target.rc228Docs=target.rc228Docs||{};
+    target.rc254Docs[kind]=doc;
+    target.rc253Docs[kind]=doc;
+    target.rc247Docs[kind]=doc;
+    target.rc230Docs[kind]=doc;
+    target.rc228Docs[kind]=doc;
+    if(kind==='abd'){
+      target.abdFiles=Array.isArray(target.abdFiles)?target.abdFiles:[];
+      target.abdFiles=target.abdFiles.filter(function(x){return classifyDoc254(x)!=='abd'});
+      target.abdFiles.unshift(doc);
+      target.abdStatus='Dokument vorhanden';
+    }else{
+      target.podFiles=Array.isArray(target.podFiles)?target.podFiles:[];
+      target.podFiles=target.podFiles.filter(function(x){return classifyDoc254(x)!=='pod'});
+      target.podFiles.unshift(doc);
+      target.podStatus='POD vorhanden';
+    }
+    return true;
+  }
+  function saveState254(reason){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch&&state){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',users:state.users||[],state:state})
+        }).catch(function(){});
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit(reason||'RC254 gespeichert','RC254')}catch(err){}
+  }
+  function migrateDocs254(){
+    var changed=false;
+    try{
+      (state.shipments||[]).forEach(function(s){
+        changed=ensureDoc254(s,'abd',false)||changed;
+        changed=ensureDoc254(s,'pod',false)||changed;
+      });
+      (state.abdRequests||[]).forEach(function(r){
+        changed=ensureDoc254(r,'abd',true)||changed;
+        changed=ensureDoc254(r,'pod',true)||changed;
+      });
+    }catch(err){}
+    if(changed)saveState254('ABD/POD Links repariert');
+    return changed;
+  }
+  window.rc254OpenDoc=function(ref,kind,source,id){
+    var list=source==='abdRequest'?(state.abdRequests||[]):(state.shipments||[]);
+    var target=list.find(function(x){return String(x.id||'')===String(id)})||shipmentByRef254(ref);
+    var doc=makeDoc254(target,kind,source==='abdRequest');
+    if(!doc||!doc.url){alert((kind==='pod'?'POD':'ABD')+' nicht verlinkt. Dateiname/Link ist im gespeicherten Stand nicht vorhanden.');return false}
+    window.open(doc.url,'_blank','noopener,noreferrer');
+    return false;
+  };
+  function docCard254(target,kind,source){
+    var label=kind==='abd'?'ABD':'POD';
+    var doc=makeDoc254(target,kind,source==='abdRequest');
+    var linked=!!(doc&&doc.url);
+    var id=String(target&&target.id||''), reference=String(target&&target.ref||'');
+    return '<div class="rc254-doc-card '+(linked?'linked':'')+'">'+
+      '<div class="rc254-doc-top">'+
+        (linked?'<a class="rc254-doc-title" href="'+e254(doc.url)+'" target="_blank" rel="noopener">'+label+'</a>':'<span class="rc254-doc-title">'+label+'</span>')+
+        '<span class="pill '+(linked?'green':'gray')+'">'+(linked?'Datei verlinkt':'fehlt')+'</span>'+
+      '</div>'+
+      '<div class="rc254-doc-name">'+e254(linked?(doc.name||label+'.pdf'):('kein '+label+' erkannt'))+'</div>'+
+      '<div class="rc254-doc-actions">'+
+        (linked?'<button class="soft" onclick="return rc254OpenDoc(&quot;'+e254(reference)+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;,&quot;'+e254(id)+'&quot;)">PDF oeffnen/downloaden</button>':'')+
+        '<label class="ghost">Datei hochladen/ersetzen<input class="rc254-file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/*" onchange="rc247UploadDoc&&rc247UploadDoc(&quot;'+e254(id)+'&quot;,&quot;'+kind+'&quot;,&quot;'+(source==='abdRequest'?'abdRequest':'shipment')+'&quot;,this);this.value=&quot;&quot;"></label>'+
+      '</div>'+
+    '</div>';
+  }
+  function planned254(s){return iso254(s&&s.plannedPickupDate)||iso254(s&&s.pickupDate)||''}
+  function actual254(s){return iso254(s&&s.actualPickupDate)||iso254(s&&s.pickedUpAtDate)||''}
+  function statusShip254(s){
+    var raw=n254([(s&&s.status),(s&&s.freigabe),(s&&s.pickupStatus),(s&&s.completedAt?'erledigt':''),(s&&s.done?'erledigt':''),(actual254(s)?'erledigt':'')].join(' '));
+    if(raw.indexOf('erled')>=0||raw.indexOf('abgeholt')>=0)return 'Erledigt';
+    if(raw.indexOf('uber')>=0||raw.indexOf('ueber')>=0)return 'Ueberfaellig';
+    return 'Offen';
+  }
+  function statusAbd254(r){
+    var raw=n254([(r&&r.status),(r&&r.done?'erledigt':''),(r&&r.completedAt?'erledigt':''),makeDoc254(r,'abd',true)?'dokument vorhanden':''].join(' '));
+    if(raw.indexOf('erled')>=0)return 'Erledigt';
+    if(raw.indexOf('dokument')>=0)return 'Dokument vorhanden';
+    return 'Offen';
+  }
+  function pill254(text){
+    var x=n254(text), cls=x.indexOf('erled')>=0?'green':(x.indexOf('dokument')>=0?'blue':(x.indexOf('uber')>=0||x.indexOf('ueber')>=0?'red':'orange'));
+    return '<span class="pill '+cls+'">'+e254(text||'Offen')+'</span>';
+  }
+  function customerParts254(s){
+    var c=(s&&s.customer)||{};
+    var num=c.account||c.customerNumber||s.customerNumber||s.account||'';
+    var name=[c.name||s.customerName||'',c.country||s.country||''].filter(Boolean).join(' - ');
+    return {num:num,name:name};
+  }
+  function abdCustomer254(r){
+    var ship=shipmentByRef254(r&&r.ref)||{}, c=(r&&r.customer)||{}, sc=ship.customer||{};
+    var num=c.account||c.customerNumber||r.customerNumber||sc.account||sc.customerNumber||'';
+    var name=c.name||r.customerName||sc.name||'';
+    return {num:num,name:name};
+  }
+  function deliveryNames254(s){
+    var out=[];
+    String((s&&s.deliveryNotes)||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)});
+    (Array.isArray(s&&s.deliveryFiles)?s.deliveryFiles:[]).forEach(function(f){var name=docName254(f);if(name&&out.indexOf(name)<0)out.push(name)});
+    return out;
+  }
+  function matches254(text,query){return !query||n254(text).indexOf(query)>=0}
+  window.rc254SetOverviewSearch=function(value){
+    state.shipmentOverviewSearch=String(value||'');
+    clearTimeout(window.__rc254SearchTimer);
+    window.__rc254SearchTimer=setTimeout(function(){saveState254('Filter gespeichert');try{render()}catch(err){}},180);
+  };
+  window.rc254SetPlanned=function(id,value){
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return false;
+    var v=iso254(value);s.plannedPickupDate=v;s.pickupDate=v;s.pickupDateConfirmed=!!v;
+    try{if(typeof createOrUpdateShipmentCreatedTask==='function')createOrUpdateShipmentCreatedTask(s,s.customer||{})}catch(err){}
+    saveState254('Geplantes Abholdatum gespeichert');try{render()}catch(err){};return false;
+  };
+  window.rc254SetActual=function(id,value){
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return false;
+    var v=iso254(value);s.actualPickupDate=v;s.pickedUpAtDate=v;s.pickedUp=!!v;s.pickupStatus=v?'abgeholt':'offen';
+    if(v){s.status='erledigt';s.freigabe='erledigt';s.completedAt=s.completedAt||new Date().toISOString();s.done=true}else{s.completedAt='';s.done=false;s.status='offen';s.freigabe='offen'}
+    saveState254('Tatsaechliches Abholdatum gespeichert');try{render()}catch(err){};return false;
+  };
+  window.rc254MarkPicked=function(id){return window.rc254SetActual(id,today254())};
+  window.rc254OpenRefFolder=function(ref){window.open(folderUrl254(ref),'_blank','noopener,noreferrer');return false};
+  window.rc254DeleteShipment=function(id){
+    if(!confirm('Sendung wirklich loeschen?'))return false;
+    state.shipments=(state.shipments||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    saveState254('Sendung geloescht');try{render()}catch(err){};return false;
+  };
+  window.rc254DeleteAbd=function(id){
+    if(!confirm('ABD Anfrage wirklich loeschen?'))return false;
+    state.abdRequests=(state.abdRequests||[]).filter(function(x){return String(x.id||'')!==String(id)});
+    saveState254('ABD Anfrage geloescht');try{render()}catch(err){};return false;
+  };
+  function shipmentoverview254(){
+    migrateDocs254();
+    state.rc254OverviewType=state.rc254OverviewType||state.rc247OverviewType||state.rc203OverviewType||'all';
+    if(state.rc254HideDone===undefined)state.rc254HideDone=state.rc247HideDone!==undefined?!!state.rc247HideDone:true;
+    var query=n254(state.shipmentOverviewSearch||''), typ=state.rc254OverviewType||'all', st=state.shipmentOverviewStatus||'Alle', hideDone=!!state.rc254HideDone;
+    var ships=(state.shipments||[]).slice(), abds=(state.abdRequests||[]).slice();
+    ships=ships.filter(function(s){var c=customerParts254(s);return matches254([s.ref,s.created,c.num,c.name,deliveryNames254(s).join(' '),docs254(s).map(docName254).join(' '),statusShip254(s)].join(' '),query)});
+    abds=abds.filter(function(r){var c=abdCustomer254(r), ship=shipmentByRef254(r&&r.ref);return matches254([r.ref,r.created,r.createdIso,c.num,c.name,r.note,r.manualText,docs254(r).concat(docs254(ship||{})).map(docName254).join(' '),statusAbd254(r)].join(' '),query)});
+    if(hideDone){ships=ships.filter(function(s){return statusShip254(s)!=='Erledigt'});abds=abds.filter(function(r){return statusAbd254(r)!=='Erledigt'})}
+    if(st&&st!=='Alle'){ships=ships.filter(function(s){return n254(statusShip254(s)).indexOf(n254(st))>=0});abds=abds.filter(function(r){return n254(statusAbd254(r)).indexOf(n254(st))>=0})}
+    ships.sort(function(a,b){return String(b.created||'').localeCompare(String(a.created||''))});
+    abds.sort(function(a,b){return String(b.createdIso||b.created||'').localeCompare(String(a.createdIso||a.created||''))});
+    var html=(typeof head==='function'?head('Sendungsuebersicht','Sendungen und ABD Anfragen filtern, POD/ABD verlinken und Abholdatum pflegen.'):'<h2>Sendungsuebersicht</h2>')+
+      '<div class="rc254-filterbar">'+
+      '<input id="shipmentOverviewSearchInput" placeholder="Referenz, Kunde, DNC, POD oder ABD suchen" value="'+e254(state.shipmentOverviewSearch||'')+'" oninput="rc254SetOverviewSearch(this.value)">'+
+      '<select onchange="state.rc254OverviewType=this.value;state.rc247OverviewType=this.value;saveState254&&saveState254();render()"><option value="all" '+(typ==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(typ==='shipments'?'selected':'')+'>Nur Sendungen</option><option value="abd" '+(typ==='abd'?'selected':'')+'>Nur ABD</option></select>'+
+      '<select onchange="state.shipmentOverviewStatus=this.value;saveState254&&saveState254();render()"><option value="Alle" '+(st==='Alle'?'selected':'')+'>Alle Status</option><option value="Offen" '+(st==='Offen'?'selected':'')+'>Offen</option><option value="Ueberfaellig" '+(st==='Ueberfaellig'?'selected':'')+'>Ueberfaellig</option><option value="Erledigt" '+(st==='Erledigt'?'selected':'')+'>Erledigt</option><option value="Dokument vorhanden" '+(st==='Dokument vorhanden'?'selected':'')+'>Dokument vorhanden</option></select>'+
+      '<label><input type="checkbox" '+(hideDone?'checked':'')+' onchange="state.rc254HideDone=this.checked;state.rc247HideDone=this.checked;saveState254&&saveState254();render()"> Erledigte ausblenden</label>'+
+      '<button class="ghost" onclick="state.shipmentOverviewSearch=&quot;&quot;;state.shipmentOverviewStatus=&quot;Alle&quot;;state.rc254OverviewType=&quot;all&quot;;state.rc254HideDone=true;saveState254&&saveState254();render()">Filter loeschen</button></div>';
+    if(typ==='all'||typ==='shipments'){
+      html+='<div class="card"><h3>Sendungen</h3>';
+      if(!ships.length)html+='<p class="muted">Keine Sendungen fuer diesen Filter.</p>';
+      else html+='<table class="rc254-table"><tr><th>Referenz</th><th>Kunde</th><th>Abholdatum</th><th>DNC / Lieferscheine</th><th>POD / ABD</th><th>Status</th><th>Aktion</th></tr>'+
+      ships.map(function(s){
+        var c=customerParts254(s), dncs=deliveryNames254(s);
+        return '<tr><td><b>'+e254(s.ref||'')+'</b><br><span class="small">'+e254(s.created||'')+'</span></td>'+
+        '<td class="rc254-customer"><div class="rc254-customer-number">'+e254(c.num||'')+'</div><div class="rc254-customer-name">'+e254(c.name||'')+'</div></td>'+
+        '<td><div class="rc254-date-stack"><label>Geplant<input type="date" value="'+e254(planned254(s))+'" onchange="rc254SetPlanned(&quot;'+e254(s.id||'')+'&quot;,this.value)"></label><label>Tatsaechlich<input type="date" value="'+e254(actual254(s))+'" onchange="rc254SetActual(&quot;'+e254(s.id||'')+'&quot;,this.value)"></label></div></td>'+
+        '<td>'+(dncs.length?dncs.map(function(x){return '<span class="pill gray">'+e254(x)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</td>'+
+        '<td><div class="rc254-docs">'+docCard254(s,'abd','shipment')+docCard254(s,'pod','shipment')+'</div></td>'+
+        '<td>'+pill254(statusShip254(s))+'</td>'+
+        '<td><div class="rc254-actions"><button class="ghost" onclick="showSavedCmr(&quot;'+e254(s.id||'')+'&quot;)">Ladeliste/CMR</button><button class="rc254-picked-btn" onclick="return rc254MarkPicked(&quot;'+e254(s.id||'')+'&quot;)">Sendung abgeholt</button><button class="ghost" onclick="return rc254OpenRefFolder(&quot;'+e254(s.ref||'')+'&quot;)">Ref.-Ordner</button><button class="rc254-delete" onclick="return rc254DeleteShipment(&quot;'+e254(s.id||'')+'&quot;)">Loeschen</button></div></td></tr>';
+      }).join('')+'</table>';
+      html+='</div>';
+    }
+    if(typ==='all'||typ==='abd'){
+      html+='<div class="card"><h3>ABD Anfragen</h3>';
+      if(!abds.length)html+='<p class="muted">Keine ABD Anfragen fuer diesen Filter.</p>';
+      else html+='<table class="rc254-table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>ABD Dokument</th><th>POD</th><th>Datum</th><th>Aktion</th></tr>'+
+      abds.map(function(r){
+        var c=abdCustomer254(r);
+        return '<tr><td><b>'+e254(r.ref||'')+'</b></td>'+
+        '<td class="rc254-customer"><div class="rc254-customer-number">'+e254(c.num||'')+'</div><div class="rc254-customer-name">'+e254(c.name||'')+'</div></td>'+
+        '<td>'+pill254(statusAbd254(r))+'</td>'+
+        '<td><div class="rc254-docs">'+docCard254(r,'abd','abdRequest')+'</div></td>'+
+        '<td><div class="rc254-docs">'+docCard254(r,'pod','abdRequest')+'</div></td>'+
+        '<td>'+e254(r.created||r.createdIso||'')+'</td>'+
+        '<td><div class="rc254-actions"><button class="ghost" onclick="return rc254OpenRefFolder(&quot;'+e254(r.ref||'')+'&quot;)">Ref.-Ordner</button><button class="rc254-delete" onclick="return rc254DeleteAbd(&quot;'+e254(r.id||'')+'&quot;)">Loeschen</button></div></td></tr>';
+      }).join('')+'</table>';
+      html+='</div>';
+    }
+    return html;
+  }
+
+  function userKey254(){try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}return 'exporthub_private_rc113_safe_users'}
+  function userKeys254(){return Array.from(new Set([userKey254(),'exporthub_private_rc113_safe_users','exporthub_private_rc196_users','exporthub_users','exporthub_rc241_users','exporthub_rc252_users','exporthub_rc254_users']))}
+  function modules254(){try{if(Array.isArray(RIGHTS_MODULES)&&RIGHTS_MODULES.length)return RIGHTS_MODULES}catch(err){}return [['start','Start','Start'],['dashboard','Dashboard','Dashboard'],['tasks','Aufgaben','Aufgaben'],['shipment','Sendung','Sendung erstellen'],['shipmentoverview','Sendungen','Sendungsuebersicht'],['cmr','CMR','Ladeliste & CMR'],['customers','Kunden','Kunden'],['customerfolder','Kundenordner','Kundenordner'],['customs','Zoll','Zollwissen'],['academy','Academy','Academy'],['quiz','Pruefung','Pruefung'],['rights','Rechte','Benutzer & Rechte']]}
+  function blankRights254(){var out={};modules254().forEach(function(m){var id=m[0], base=id==='start'||id==='dashboard';out[id]={visible:base,read:base,edit:false}});return out}
+  function fullRights254(){var out={};modules254().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});return out}
+  function giveRight254(r,ids,edit){ids.forEach(function(id){if(!r[id])r[id]={visible:false,read:false,edit:false};r[id]={visible:true,read:true,edit:!!edit}})}
+  function templateRights254(name){
+    name=String(name||'dashboard');
+    if(name==='full')return fullRights254();
+    var r=blankRights254();
+    if(name==='dashboard')return r;
+    if(name==='readall'){modules254().forEach(function(m){r[m[0]]={visible:true,read:true,edit:false}});return r}
+    if(name==='shipment'){giveRight254(r,['tasks','shipment','shipmentoverview','cmr','customers','customerfolder','customs','archive'],true);return r}
+    if(name==='customers'){giveRight254(r,['customers','customerfolder'],true);giveRight254(r,['shipmentoverview'],false);return r}
+    if(name==='academy'){giveRight254(r,['tasks','sop','academy','quiz','customers','customerfolder'],true);return r}
+    if(name==='export'){giveRight254(r,['tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);return r}
+    return r;
+  }
+  function isAdminUser254(u){return !!(u&&((Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0)||n254(u.user)==='tobias'||n254(u.name)==='tobias'||n254(u.role).indexOf('admin')>=0||n254(u.role).indexOf('vollzugriff')>=0))}
+  function normalizeUser254(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();u.login=u.user;u.name=String(u.name||u.user||'').trim();u.role=String(u.role||'Benutzer').trim();u.password=String(u.password||'Essentra');u.mustChange=!!u.mustChange;u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    if(isAdminUser254(u)){u.permissions=['*'];u.rights=fullRights254();u.mustChange=false;return u}
+    var base=blankRights254(), old=u.rights&&typeof u.rights==='object'?u.rights:{};
+    modules254().forEach(function(m){var id=m[0], x=old[id]||{};base[id]={visible:x.visible===true||id==='start'||id==='dashboard',read:x.read===true||id==='start'||id==='dashboard',edit:x.edit===true};if(!base[id].visible){base[id].read=false;base[id].edit=false}if(!base[id].read)base[id].edit=false});
+    u.rights=base;return u;
+  }
+  function readUsersKey254(k){try{var x=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(x)?x:[]}catch(err){return []}}
+  function collectUsers254(){
+    var all=[];
+    try{if(Array.isArray(SEED&&SEED.users))all=all.concat(SEED.users)}catch(err){}
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    userKeys254().forEach(function(k){all=all.concat(readUsersKey254(k))});
+    var map={};
+    all.forEach(function(raw){var u=normalizeUser254(raw);if(!u.user)return;var key=n254(u.user);map[key]=Object.assign(map[key]||{},u)});
+    return Object.keys(map).sort(function(a,b){if(a==='tobias')return -1;if(b==='tobias')return 1;return a.localeCompare(b)}).map(function(k){return normalizeUser254(map[k])});
+  }
+  function selectedUser254(){
+    try{
+      var s=state.rc254SelectedUser||state.rc252SelectedUser||state.rc249SelectedUser||state.rc93RightsUser||state.rightsUser||'';
+      var list=collectUsers254();
+      if(!s||isAdminUser254(list.find(function(u){return n254(u.user)===n254(s)}))){
+        var first=list.find(function(u){return !isAdminUser254(u)});
+        if(first)s=first.user;
+      }
+      return s;
+    }catch(err){return ''}
+  }
+  function setSelectedUser254(login){try{state.rc254SelectedUser=login;state.rc252SelectedUser=login;state.rc249SelectedUser=login;state.rc93RightsUser=login;state.rightsUser=login}catch(err){}}
+  function userByLogin254(list,login){var n=n254(login);return list.find(function(u){return n254(u.user)===n})}
+  function status254(text,type){try{var box=document.getElementById('rc254Status');if(box){box.className='rc254-status '+(type||'');box.textContent=text}}catch(err){}}
+  function persistUsers254(list,reason){
+    list=(Array.isArray(list)?list:collectUsers254()).map(normalizeUser254);
+    try{users=list}catch(err){}
+    try{state.users=JSON.parse(JSON.stringify(list));state.userRevision=Number(state.userRevision||0)+1;state.userSavedAt=new Date().toISOString();state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB'}catch(err){}
+    userKeys254().forEach(function(k){try{localStorage.setItem(k,JSON.stringify(list))}catch(err){}});
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(currentUser){var fresh=userByLogin254(list,currentUser.user);if(fresh)currentUser=fresh}}catch(err){}
+    try{
+      if(window.fetch&&state){
+        fetch('/api/exporthub/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',users:list,state:Object.assign({},state,{users:list})})})
+        .then(function(res){status254((reason||'Benutzer/Rechte gespeichert')+(res&&res.ok?' - Teamdaten gespeichert.':' - lokal gespeichert, Teamdaten nicht bestaetigt.'),res&&res.ok?'ok':'warn')})
+        .catch(function(){status254((reason||'Benutzer/Rechte gespeichert')+' - lokal gespeichert, Teamdaten-Sync folgt.','warn')});
+      }
+    }catch(err){}
+    return list;
+  }
+  function rightOfUser254(u,id){if(!u)return {visible:false,read:false,edit:false};if(isAdminUser254(u))return {visible:true,read:true,edit:true};u=normalizeUser254(u);return (u.rights&&u.rights[id])||{visible:false,read:false,edit:false}}
+  window.canView=function(id){try{if(!currentUser)return false;if(id==='start'||id==='dashboard')return true;return !!rightOfUser254(currentUser,id).visible}catch(err){return !!currentUser}};
+  window.canRead=function(id){try{if(!currentUser)return false;if(id==='start'||id==='dashboard')return true;var r=rightOfUser254(currentUser,id);return !!(r.read||r.edit)}catch(err){return !!currentUser}};
+  window.canWrite=function(id){try{if(!currentUser)return false;return !!rightOfUser254(currentUser,id||state.view).edit}catch(err){return !!currentUser}};
+  window.canEdit=window.canWrite;
+  window.canManageRights=function(){try{return isAdminUser254(currentUser)||!!rightOfUser254(currentUser,'rights').edit}catch(err){return false}};
+  try{canView=window.canView;canRead=window.canRead;canWrite=window.canWrite;canEdit=window.canEdit;canManageRights=window.canManageRights}catch(err){}
+  window.rc254SelectUser=function(login){setSelectedUser254(login);try{if(typeof save==='function')save()}catch(err){}try{render()}catch(err){}return false};
+  window.rc254CreateUser=function(){
+    var login=String((document.getElementById('rc254NewLogin')||{}).value||'').trim(), name=String((document.getElementById('rc254NewName')||{}).value||login).trim(), role=String((document.getElementById('rc254NewRole')||{}).value||'Benutzer').trim(), pass=String((document.getElementById('rc254NewPassword')||{}).value||'Essentra').trim(), tmpl=String((document.getElementById('rc254NewTemplate')||{}).value||'dashboard');
+    if(!login){alert('Bitte Login / Benutzername eintragen.');return false}
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login)){alert('Benutzername bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich anlegen.');return false}
+    var list=collectUsers254();if(userByLogin254(list,login)){alert('Dieser Benutzer existiert bereits.');return false}
+    var u={user:login,login:login,name:name||login,role:role||'Benutzer',password:pass||'Essentra',mustChange:false,permissions:[],rights:templateRights254(tmpl)};
+    if(tmpl==='full'){u.permissions=['*'];u.role='Vollzugriff';u.rights=fullRights254()} if(tmpl==='export'&&role==='Benutzer')u.role='Export';
+    list.push(u);setSelectedUser254(login);persistUsers254(list,'Benutzer '+login+' angelegt');try{render()}catch(err){}return false;
+  };
+  function readRightsUi254(u){
+    var rights=blankRights254();
+    modules254().forEach(function(m){var id=m[0], old=(u.rights&&u.rights[id])||rights[id]||{}, v=document.getElementById('rc254_'+id+'_visible'), r=document.getElementById('rc254_'+id+'_read'), ed=document.getElementById('rc254_'+id+'_edit');rights[id]={visible:v?!!v.checked:!!old.visible,read:r?!!r.checked:!!old.read,edit:ed?!!ed.checked:!!old.edit};if(id==='start'||id==='dashboard'){rights[id].visible=true;rights[id].read=true}if(!rights[id].visible){rights[id].read=false;rights[id].edit=false}if(!rights[id].read)rights[id].edit=false});
+    return rights;
+  }
+  window.rc254ApplyTemplate=function(name,login){
+    var list=collectUsers254(), target=login||(document.getElementById('rc254UserSelect')||{}).value||selectedUser254(), u=userByLogin254(list,target);
+    if(!u){alert('Bitte zuerst den Benutzer in der Liste auswaehlen.');return false}
+    if(isAdminUser254(u)){alert('Tobias/Admin hat automatisch Vollzugriff. Bitte links den normalen Benutzer auswaehlen.');return false}
+    u.permissions=[];u.rights=templateRights254(name);if(name==='full'){u.permissions=['*'];u.role='Vollzugriff';u.rights=fullRights254()}if(name==='export')u.role='Export';
+    var idx=list.findIndex(function(x){return n254(x.user)===n254(u.user)});if(idx>=0)list[idx]=normalizeUser254(u);
+    setSelectedUser254(u.user);persistUsers254(list,'Vorlage '+name+' fuer '+u.user+' gespeichert');try{render()}catch(err){}return false;
+  };
+  window.rc254SaveRights=function(){
+    var list=collectUsers254(), login=(document.getElementById('rc254UserSelect')||{}).value||selectedUser254(), u=userByLogin254(list,login);
+    if(!u){alert('Bitte zuerst Benutzer auswaehlen.');return false}
+    var name=document.getElementById('rc254Name'), role=document.getElementById('rc254Role'), pass=document.getElementById('rc254Password'), must=document.getElementById('rc254MustChange');
+    if(name)u.name=String(name.value||u.name||u.user).trim();if(role)u.role=String(role.value||u.role||'Benutzer').trim();if(pass&&String(pass.value||'').trim())u.password=String(pass.value||'').trim();if(must)u.mustChange=!!must.checked;
+    if(!isAdminUser254(u)){u.permissions=[];u.rights=readRightsUi254(u)}
+    var idx=list.findIndex(function(x){return n254(x.user)===n254(u.user)});if(idx>=0)list[idx]=normalizeUser254(u);
+    setSelectedUser254(u.user);persistUsers254(list,'Rechte fuer '+u.user+' gespeichert');try{render()}catch(err){}return false;
+  };
+  window.rc254ToggleAll=function(type,checked){
+    modules254().forEach(function(m){var id=m[0], el=document.getElementById('rc254_'+id+'_'+type);if(el&&!el.disabled)el.checked=!!checked;if((type==='edit'||type==='read')&&checked){var v=document.getElementById('rc254_'+id+'_visible');if(v&&!v.disabled)v.checked=true}if(type==='edit'&&checked){var r=document.getElementById('rc254_'+id+'_read');if(r&&!r.disabled)r.checked=true}});
+    return false;
+  };
+  function rightsRows254(u){
+    return modules254().map(function(m){var id=m[0], r=rightOfUser254(u,id), lock=isAdminUser254(u)||id==='start'||id==='dashboard';return '<tr><td><b>'+e254(m[2]||m[1]||m[0])+'</b><br><span class="small">'+e254(id)+'</span></td><td><input id="rc254_'+e254(id)+'_visible" type="checkbox" '+(r.visible?'checked':'')+' '+(lock?'disabled':'')+'></td><td><input id="rc254_'+e254(id)+'_read" type="checkbox" '+(r.read?'checked':'')+' '+(lock?'disabled':'')+'></td><td><input id="rc254_'+e254(id)+'_edit" type="checkbox" '+(r.edit?'checked':'')+' '+(isAdminUser254(u)?'disabled':'')+'></td></tr>'}).join('');
+  }
+  function rightsHtml254(){
+    var list=collectUsers254(), selected=selectedUser254()||(list[0]&&list[0].user)||'';if(selected)setSelectedUser254(selected);
+    var u=userByLogin254(list,selected)||list.find(function(x){return !isAdminUser254(x)})||list[0]||null;
+    var opts=list.map(function(x){return '<option value="'+e254(x.user)+'" '+(u&&n254(x.user)===n254(u.user)?'selected':'')+'>'+e254((x.name||x.user)+' / '+x.user+' / '+(x.role||'Benutzer'))+'</option>'}).join('');
+    var listHtml=list.map(function(x){var active=u&&n254(x.user)===n254(u.user), visible=modules254().filter(function(m){return rightOfUser254(x,m[0]).visible}).length, edit=modules254().filter(function(m){return rightOfUser254(x,m[0]).edit}).length;return '<button type="button" class="ghost '+(active?'active':'')+'" onclick="return rc254SelectUser(&quot;'+e254(x.user)+'&quot;)"><b>'+e254(x.name||x.user)+'</b><br><span class="small">'+e254(x.user+' / '+(x.role||'Benutzer'))+'</span><br><span class="pill blue">'+e254(visible)+' sichtbar</span> <span class="pill gray">'+e254(edit)+' bearbeiten</span></button>'}).join('');
+    var form=u?'<div class="card"><h3>Benutzer bearbeiten</h3><label class="field">Benutzer<select id="rc254UserSelect" onchange="rc254SelectUser(this.value)">'+opts+'</select></label><div class="grid2"><label class="field">Name<input id="rc254Name" value="'+e254(u.name||'')+'"></label><label class="field">Rolle<input id="rc254Role" value="'+e254(u.role||'')+'"></label><label class="field">Neues Passwort<input id="rc254Password" type="text" placeholder="leer lassen = bleibt"></label><label class="field">Passwortwechsel<span><input id="rc254MustChange" type="checkbox" '+(u.mustChange?'checked':'')+'> beim naechsten Login</span></label></div><div class="rc254-rights-actions"><button type="button" class="ghost" onclick="return rc254ApplyTemplate(&quot;dashboard&quot;)">Nur Dashboard</button><button type="button" class="ghost" onclick="return rc254ApplyTemplate(&quot;shipment&quot;)">Sendungen bearbeiten</button><button type="button" class="ghost" onclick="return rc254ApplyTemplate(&quot;customers&quot;)">Kunden bearbeiten</button><button type="button" class="soft" onclick="return rc254ApplyTemplate(&quot;export&quot;)">Export Standard</button><button type="button" class="ghost" onclick="return rc254ApplyTemplate(&quot;readall&quot;)">Alles lesen</button><button type="button" class="ghost" onclick="return rc254ApplyTemplate(&quot;academy&quot;)">Academy/Pruefung</button></div><div class="rc254-rights-actions"><button type="button" class="soft" onclick="return rc254ToggleAll(&quot;visible&quot;,true)">Alle sichtbar</button><button type="button" class="soft" onclick="return rc254ToggleAll(&quot;read&quot;,true)">Alle lesen</button><button type="button" class="soft" onclick="return rc254ToggleAll(&quot;edit&quot;,true)">Alle bearbeiten</button><button type="button" class="soft" onclick="return rc254ToggleAll(&quot;edit&quot;,false)">Bearbeiten entfernen</button></div><table class="table rc254-rights-table"><thead><tr><th>Bereich</th><th>Sichtbar</th><th>Lesen</th><th>Bearbeiten</th></tr></thead><tbody>'+rightsRows254(u)+'</tbody></table><div class="rc254-savebar"><button class="btn" onclick="return rc254SaveRights()">Benutzer & Rechte speichern</button><span class="small">Vorlagen gelten fuer den oben ausgewaehlten Benutzer, nicht fuer Tobias/Admin.</span></div></div>':'<div class="badbox">Kein Benutzer vorhanden.</div>';
+    return (typeof head==='function'?head('Benutzer & Rechte','Benutzer bleiben nach Updates erhalten. Rechte und Vorlagen werden in Teamdaten gespeichert.'):'<h2>Benutzer & Rechte</h2>')+'<div id="rc254Status" class="rc254-status">RC254 aktiv: Benutzer werden aus allen Speichern zusammengefuehrt und wieder in Teamdaten geschrieben.</div><div class="rc254-rights-layout"><div class="card"><h3>Benutzer</h3><div class="rc254-user-list">'+listHtml+'</div><hr style="border:0;border-top:1px solid var(--line,#dbe7f3);margin:16px 0"><h3>Neuen Benutzer anlegen</h3><label class="field">Login / Benutzername<input id="rc254NewLogin" placeholder="z. B. Sevastian"></label><label class="field">Name<input id="rc254NewName" placeholder="Anzeigename"></label><label class="field">Rolle<input id="rc254NewRole" value="Benutzer"></label><label class="field">Startpasswort<input id="rc254NewPassword" type="text" value="Essentra"></label><label class="field">Rechtevorlage<select id="rc254NewTemplate"><option value="dashboard">Nur Dashboard</option><option value="export">Export Standard</option><option value="shipment">Sendungen bearbeiten</option><option value="readall">Alles lesen</option><option value="academy">Academy/Pruefung</option></select></label><button class="btn" onclick="return rc254CreateUser()">Benutzer anlegen & Profil oeffnen</button></div>'+form+'</div>';
+  }
+  window.saveState254=saveState254;
+  window.shipmentoverview=shipmentoverview254;try{shipmentoverview=window.shipmentoverview}catch(err){}
+  window.rights=rightsHtml254;try{rights=window.rights}catch(err){}
+  window.rc93CreateUserAndOpen=window.rc254CreateUser;window.rc93SaveSelectedUserRights=window.rc254SaveRights;window.rc93ApplyPreset=window.rc254ApplyTemplate;window.rc249SaveRights=window.rc254SaveRights;window.rc249ApplyTemplate=window.rc254ApplyTemplate;window.rc252SaveRights=window.rc254SaveRights;window.rc252ApplyTemplate=window.rc254ApplyTemplate;window.rc196CreateUser=window.rc254CreateUser;window.rc196SaveUser=window.rc254SaveRights;
+  setTimeout(function(){try{persistUsers254(collectUsers254(),'Benutzer/Rechte nach Update wiederhergestellt')}catch(err){}try{migrateDocs254()}catch(err){}},250);
+})();
+</script>
+<!-- PRIVATE RC254 END: POD/ABD Linkfix + Benutzer Updatefix -->
   
 </body></html>
 
