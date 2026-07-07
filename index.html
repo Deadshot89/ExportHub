@@ -27023,6 +27023,770 @@ button[onclick*="Ordnername"]{
 })();
 </script>
 <!-- PRIVATE RC228 END: Benutzeranlage reparieren + POD/ABD SharePoint-Linkverwaltung -->
+
+<!-- PRIVATE RC229 START: Aufgaben Tage/Ueberfaellig final reparieren -->
+<style>
+.rc229-task-filterbar{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:0 0 12px;
+}
+.rc229-task-filterbar input{
+  min-width:300px;
+  flex:1;
+}
+.rc229-day-tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:10px 0 14px;
+}
+.rc229-day-tabs button{
+  border:1px solid #bfdbfe;
+  background:#fff;
+  color:#08245d;
+  border-radius:999px;
+  padding:9px 12px;
+  font-weight:950;
+  cursor:pointer;
+}
+.rc229-day-tabs button.active{
+  background:#2563eb;
+  color:#fff;
+  border-color:#2563eb;
+}
+.rc229-day-tabs button.overdue{
+  border-color:#fecaca;
+  background:#fff7ed;
+  color:#991b1b;
+}
+.rc229-day-tabs button.overdue.active{
+  background:#dc2626;
+  color:#fff;
+  border-color:#dc2626;
+}
+.rc229-task-block{
+  margin:18px 0 26px;
+  border:1px solid #dbeafe;
+  background:#f8fbff;
+  border-radius:18px;
+  padding:14px;
+}
+.rc229-task-block.overdue{
+  border-color:#fecaca;
+  background:#fff7ed;
+}
+.rc229-task-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  border-bottom:2px solid #bfdbfe;
+  padding-bottom:10px;
+  margin-bottom:12px;
+}
+.rc229-task-title h2{
+  margin:0;
+  color:#08245d;
+}
+.rc229-area-block{
+  margin:12px 0;
+}
+.rc229-area-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin:0 0 8px;
+}
+.rc229-area-title h3{
+  margin:0;
+  color:#334155;
+  font-size:14px;
+}
+.rc229-task-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:10px;
+}
+.rc229-task-card{
+  border:1px solid #dbeafe;
+  border-left:7px solid #f59e0b;
+  background:#fff;
+  border-radius:16px;
+  padding:12px;
+  box-shadow:0 8px 18px rgba(15,23,42,.08);
+}
+.rc229-task-card.high{border-left-color:#dc2626}
+.rc229-task-card.low{border-left-color:#16a34a}
+.rc229-task-card.overdue{background:#fff7ed;border-color:#fed7aa}
+.rc229-task-card.done{opacity:.55;background:#f8fafc}
+.rc229-task-card h3{
+  margin:8px 0;
+  font-size:16px;
+  line-height:1.25;
+  color:#0f172a;
+}
+.rc229-card-top,
+.rc229-card-actions{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+}
+.rc229-card-actions{
+  justify-content:flex-start;
+  margin-top:10px;
+}
+.rc229-card-actions button{
+  font-size:12px!important;
+  min-height:28px!important;
+  padding:6px 9px!important;
+  border-radius:9px!important;
+}
+.rc229-edit-box{
+  border:1px solid #bfdbfe;
+  background:#f8fbff;
+  border-radius:12px;
+  padding:9px;
+  margin-top:10px;
+}
+.rc229-edit-grid{
+  display:grid;
+  grid-template-columns:minmax(160px,1.4fr) minmax(110px,.7fr) minmax(100px,.5fr) minmax(120px,.7fr);
+  gap:8px;
+}
+.rc229-edit-grid .field{
+  margin:0;
+}
+.rc229-edit-grid input,
+.rc229-edit-grid select{
+  padding:7px 8px;
+  border-radius:9px;
+  font-size:13px;
+}
+@media(max-width:900px){
+  .rc229-edit-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC229: Aufgaben sauber nach offenen Tagen und Ueberfaelligkeit berechnen */
+(function(){
+  if(window.__EXPORTHUB_RC229_TASK_DAYS_FINAL__)return;
+  window.__EXPORTHUB_RC229_TASK_DAYS_FINAL__=true;
+
+  var DAYS229=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag'];
+  var ALL_DAYS229=['Alle Tage','Heute','Überfällig','Rückstand','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Ohne Tag'];
+  var searchTimer229=null;
+
+  function e229(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n229(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function uid229(prefix){
+    try{if(typeof uid==='function')return uid(prefix||'T')}catch(err){}
+    return String(prefix||'T')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  }
+
+  function todayIso229(){
+    try{if(typeof todayISO==='function')return todayISO()}catch(err){}
+    return new Date().toISOString().slice(0,10);
+  }
+
+  function germanWeekday229(d){
+    try{if(!d && typeof germanWeekday==='function')return germanWeekday()}catch(err){}
+    var date=d||new Date();
+    return ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][date.getDay()];
+  }
+
+  function weekdayFromIso229(iso){
+    if(!iso)return '';
+    try{return germanWeekday229(new Date(String(iso).slice(0,10)+'T12:00:00'))}catch(err){return ''}
+  }
+
+  function dayIndex229(day){
+    var d=n229(day);
+    if(d==='montag')return 1;
+    if(d==='dienstag')return 2;
+    if(d==='mittwoch')return 3;
+    if(d==='donnerstag')return 4;
+    if(d==='freitag')return 5;
+    if(d==='samstag')return 6;
+    if(d==='sonntag')return 7;
+    return 99;
+  }
+
+  function done229(t){
+    return !!(t && (t.status==='erledigt' || t.done===true || t.completedAt || t.doneAt));
+  }
+
+  function backlog229(t){
+    try{if(typeof isTaskBacklog==='function')return isTaskBacklog(t)}catch(err){}
+    return !!(t&&(t.isBacklog||t.backlog||t.day==='Rückstand'||t.area==='Rückstand'));
+  }
+
+  function taskText229(t){
+    return n229([
+      t&&t.title,
+      t&&t.area,
+      t&&t.originalArea,
+      t&&t.owner,
+      t&&t.linkedCustomer,
+      t&&t.linkedAccount,
+      t&&t.note,
+      t&&t.sourceTaskId,
+      t&&t.originalId,
+      t&&t.id
+    ].join(' '));
+  }
+
+  function isBlockedTask229(t){
+    if(!t || typeof t!=='object')return true;
+    var text=taskText229(t);
+    var area=n229(t.area);
+    var originalArea=n229(t.originalArea);
+    var title=n229(t.title);
+
+    if(area==='kunden' || originalArea==='kunden' || area==='kunde' || originalArea==='kunde')return true;
+    if(title==='kunden' || title==='kunde' || title.indexOf('kunden ')===0 || title.indexOf('kunde ')===0)return true;
+
+    if(area==='ups' || originalArea==='ups' || text.indexOf(' ups ')>=0 || text.indexOf('ups')===0)return true;
+
+    if(area==='dokumente' || area==='dokument' || originalArea==='dokumente' || originalArea==='dokument')return true;
+    if(title==='dokumente' || title==='dokument' || title.indexOf('dokumente ')===0 || title.indexOf('dokument ')===0)return true;
+    if(text.indexOf('dokumente pruefen')>=0 || text.indexOf('dokumente hochladen')>=0 || text.indexOf('lieferscheine dnc')>=0)return true;
+
+    if(text.indexOf('o hare')>=0 || text.indexOf('ohare')>=0)return true;
+
+    return false;
+  }
+
+  function sanitizeSeed229(){
+    try{
+      if(typeof SEED!=='undefined' && SEED && Array.isArray(SEED.tasks)){
+        SEED.tasks=SEED.tasks.filter(function(t){return !isBlockedTask229(t)});
+      }
+    }catch(err){}
+    try{
+      if(typeof RC49_STANDARD_TASKS!=='undefined' && Array.isArray(RC49_STANDARD_TASKS)){
+        RC49_STANDARD_TASKS=RC49_STANDARD_TASKS.filter(function(t){return !isBlockedTask229(t)});
+      }
+    }catch(err){}
+  }
+
+  function taskDueIso229(t){
+    var raw=(t&&(
+      t.dueDate ||
+      t.pickupDate ||
+      t.plannedPickupDate ||
+      t.date ||
+      t.targetDate
+    ))||'';
+    raw=String(raw||'').slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(raw)?raw:'';
+  }
+
+  function logicalDay229(t){
+    if(backlog229(t))return 'Rückstand';
+    var due=taskDueIso229(t);
+    if(due)return weekdayFromIso229(due)||'Ohne Tag';
+    var d=String((t&&t.day)||'').trim();
+    if(DAYS229.indexOf(d)>=0)return d;
+    if(n229(d)==='heute')return germanWeekday229();
+    return 'Ohne Tag';
+  }
+
+  function isOverdue229(t){
+    if(!t || done229(t))return false;
+    if(backlog229(t))return true;
+    var due=taskDueIso229(t);
+    if(due)return due<todayIso229();
+    var today=dayIndex229(germanWeekday229());
+    var day=dayIndex229(logicalDay229(t));
+    return day<today && day>=1 && day<=5 && today>=1 && today<=5;
+  }
+
+  function effectiveOwner229(t){
+    try{if(typeof effectiveOwner==='function')return effectiveOwner(t)}catch(err){}
+    return (t&&t.owner)||'Alle';
+  }
+
+  function normalizeTask229(t){
+    t=t||{};
+    if(!t.id)t.id=uid229('T');
+    if(!t.status)t.status='offen';
+    if(!t.priority)t.priority='medium';
+    t.owner=String(t.owner||'Alle').trim()||'Alle';
+    t.area=String(t.area||'Aufgabe').trim()||'Aufgabe';
+    t.day=logicalDay229(t);
+    if(t.day==='Rückstand')t.area=t.area||'Rückstand';
+    return t;
+  }
+
+  function sanitizeTasks229(reason){
+    if(typeof state==='undefined' || !state)return [];
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    var before=state.tasks.length;
+    state.tasks=state.tasks.filter(function(t){return !isBlockedTask229(t)}).map(normalizeTask229);
+    state.tasks=dedupe229(state.tasks);
+    var removed=before-state.tasks.length;
+    if(removed>0){
+      state.rc229TaskCleanup={removed:removed,reason:reason||'cleanup',at:new Date().toISOString()};
+    }
+    return state.tasks;
+  }
+
+  function key229(t){
+    return [
+      n229(t.title),
+      n229(t.owner),
+      n229(t.area),
+      n229(logicalDay229(t)),
+      n229(t.time),
+      n229(t.linkedCustomer),
+      n229(t.linkedAccount),
+      n229(t.linkedShipmentRef||t.linkedAbdRef||'')
+    ].join('|');
+  }
+
+  function dedupe229(tasks){
+    var out=[];
+    var seen={};
+    tasks.forEach(function(t){
+      var key=key229(t);
+      if(!key.replace(/\|/g,''))return;
+      if(seen[key]){
+        var old=seen[key];
+        if(done229(old) && !done229(t)){
+          var idx=out.indexOf(old);
+          if(idx>=0)out[idx]=t;
+          seen[key]=t;
+        }
+        return;
+      }
+      seen[key]=t;
+      out.push(t);
+    });
+    return out;
+  }
+
+  function saveAll229(reason){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch && typeof state!=='undefined'){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:(typeof collectUsers228==='function'?collectUsers228():(state.users||[])),
+            state:state
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+  }
+
+  window.saveAll229=saveAll229;
+
+  function owners229(tasks){
+    var map={'Alle Aufgaben anzeigen':true};
+    try{if(typeof userNames==='function')userNames().forEach(function(x){if(x)map[x]=true})}catch(err){}
+    tasks.forEach(function(t){
+      if(t.owner)map[t.owner]=true;
+      var eo=effectiveOwner229(t);
+      if(eo)map[eo]=true;
+    });
+    map.Alle=true;
+    return Object.keys(map).filter(Boolean);
+  }
+
+  function filterTasks229(openOnly){
+    var base=sanitizeTasks229('render').map(function(t){
+      var copy=Object.assign({},t);
+      copy.eowner=effectiveOwner229(t);
+      copy._day=logicalDay229(t);
+      copy._overdue=isOverdue229(t);
+      return copy;
+    });
+    if(openOnly!==false)base=base.filter(function(t){return !done229(t)});
+    var filter=state.taskFilter||'Alle Aufgaben anzeigen';
+    if(filter && filter!=='Alle Aufgaben anzeigen'){
+      base=base.filter(function(t){return t.owner===filter || t.eowner===filter || t.owner==='Alle'});
+    }
+    var search=n229(state.taskSearch||'');
+    if(search){
+      base=base.filter(function(t){
+        return n229([t.title,t.owner,t.eowner,t.area,t.note,t.day,t._day,t.linkedCustomer,t.linkedAccount,t.linkedShipmentRef,t.linkedAbdRef].join(' ')).indexOf(search)>=0;
+      });
+    }
+    return base;
+  }
+
+  function selectedDay229(){
+    var d=state.taskDay||'Alle Tage';
+    if(ALL_DAYS229.indexOf(d)<0)d='Alle Tage';
+    return d;
+  }
+
+  function dayMatches229(t,selected){
+    var today=germanWeekday229();
+    if(selected==='Alle Tage')return true;
+    if(selected==='Heute')return t._day===today && !backlog229(t);
+    if(selected==='Überfällig')return t._overdue;
+    if(selected==='Rückstand')return backlog229(t);
+    if(selected==='Ohne Tag')return t._day==='Ohne Tag';
+    return t._day===selected && !backlog229(t);
+  }
+
+  function counts229(base){
+    var today=germanWeekday229();
+    var c={};
+    ALL_DAYS229.forEach(function(d){c[d]=0});
+    c['Alle Tage']=base.length;
+    c['Heute']=base.filter(function(t){return t._day===today && !backlog229(t)}).length;
+    c['Überfällig']=base.filter(function(t){return t._overdue}).length;
+    c['Rückstand']=base.filter(function(t){return backlog229(t)}).length;
+    DAYS229.forEach(function(d){
+      c[d]=base.filter(function(t){return t._day===d && !backlog229(t)}).length;
+    });
+    c['Ohne Tag']=base.filter(function(t){return t._day==='Ohne Tag'}).length;
+    return c;
+  }
+
+  function taskSort229(a,b){
+    return (a._overdue===b._overdue?0:(a._overdue?-1:1)) ||
+      dayIndex229(a._day)-dayIndex229(b._day) ||
+      areaOrder229(a.area)-areaOrder229(b.area) ||
+      String(a.time||'99:99').localeCompare(String(b.time||'99:99')) ||
+      String(a.title||'').localeCompare(String(b.title||''));
+  }
+
+  function areaOrder229(area){
+    var a=n229(area);
+    var order=['picken','abd','drittland','anmeldung','sendung','abholtag','cmr','ladeliste','zoll','manuell','vertretung','sonstiges','aufgabe'];
+    for(var i=0;i<order.length;i++)if(a.indexOf(order[i])>=0)return i;
+    return 80;
+  }
+
+  function areaLabel229(area){
+    var a=String(area||'Aufgabe').trim();
+    if(n229(a)==='sendung erstellt')return 'Abholtag';
+    if(n229(a)==='eu')return 'Anmeldung';
+    return a||'Aufgabe';
+  }
+
+  function cleanTitle229(t){
+    try{if(typeof rc75CleanTaskDisplayTitle==='function')return rc75CleanTaskDisplayTitle(t)}catch(err){}
+    var title=String((t&&t.title)||'Aufgabe').trim();
+    title=title.replace(/\s{2,}/g,' ');
+    return title||'Aufgabe';
+  }
+
+  function pill229(text,cls){
+    return '<span class="pill '+(cls||'gray')+'">'+e229(text)+'</span>';
+  }
+
+  function renderEdit229(t){
+    var id=e229(t.id);
+    if(String(state.rc229EditTaskId||'')!==String(t.id))return '';
+    var day=t._day||logicalDay229(t);
+    var days=DAYS229.concat(['Ohne Tag']);
+    return '<div class="rc229-edit-box" onclick="event.stopPropagation()">'+
+      '<div class="rc229-edit-grid">'+
+        '<label class="field">Aufgabenname<input id="rc229_title_'+id+'" value="'+e229(t.title||'')+'"></label>'+
+        '<label class="field">Tag<select id="rc229_day_'+id+'">'+days.map(function(d){return '<option value="'+e229(d)+'" '+(day===d?'selected':'')+'>'+e229(d)+'</option>'}).join('')+'</select></label>'+
+        '<label class="field">Uhrzeit<input id="rc229_time_'+id+'" type="time" value="'+e229(t.time||'')+'"></label>'+
+        '<label class="field">Zustaendig<input id="rc229_owner_'+id+'" value="'+e229(t.owner||'')+'"></label>'+
+        '<label class="field">Bereich<input id="rc229_area_'+id+'" value="'+e229(areaLabel229(t.area))+'"></label>'+
+      '</div>'+
+      '<div class="rc229-card-actions"><button class="btn" onclick="return rc229SaveTaskEdit(&quot;'+id+'&quot;,event)">Speichern</button><button class="ghost" onclick="return rc229CancelTaskEdit(event)">Abbrechen</button></div>'+
+    '</div>';
+  }
+
+  function renderTask229(t){
+    var overdue=t._overdue||isOverdue229(t);
+    var done=done229(t);
+    var pr=t.priority==='high'?'red':(t.priority==='low'?'green':'orange');
+    var prCls=t.priority==='high'?'high':(t.priority==='low'?'low':'medium');
+    var day=overdue?'Überfällig':(t._day||logicalDay229(t));
+    var time=String(t.time||'').trim();
+    var customer=String(t.linkedCustomer||'').trim();
+    return '<article class="rc229-task-card '+prCls+' '+(overdue?'overdue':'')+' '+(done?'done':'')+'">'+
+      '<div class="rc229-card-top">'+pill229(t.priority==='high'?'Hoch':(t.priority==='low'?'Niedrig':'Normal'),pr)+' '+(overdue?pill229('Überfällig','red'):pill229(done?'Erledigt':'Offen',done?'green':'orange'))+'</div>'+
+      '<h3>'+e229(cleanTitle229(t))+'</h3>'+
+      '<div>'+pill229(day,overdue?'red':'blue')+pill229(areaLabel229(t.area),'gray')+(time?pill229(time,'blue'):'')+(customer?pill229(customer,'yellow'):'')+'</div>'+
+      (t.note?'<p class="small">'+e229(t.note).slice(0,180)+'</p>':'')+
+      '<div class="rc229-card-actions">'+
+        '<button class="'+(done?'ghost':'btn')+'" onclick="return rc229ToggleTask(&quot;'+e229(t.id)+'&quot;,event)">'+(done?'Wieder oeffnen':'Erledigt')+'</button>'+
+        '<button class="ghost" onclick="return rc229OpenTaskEdit(&quot;'+e229(t.id)+'&quot;,event)">Bearbeiten</button>'+
+      '</div>'+
+      renderEdit229(t)+
+    '</article>';
+  }
+
+  function groupBy229(arr,fn){
+    var map={};
+    arr.forEach(function(x){
+      var k=fn(x);
+      if(!map[k])map[k]=[];
+      map[k].push(x);
+    });
+    return Object.keys(map).map(function(k){return [k,map[k]]});
+  }
+
+  function renderAreas229(arr){
+    return groupBy229(arr,function(t){return areaLabel229(t.area)}).sort(function(a,b){
+      return areaOrder229(a[0])-areaOrder229(b[0]) || a[0].localeCompare(b[0]);
+    }).map(function(pair){
+      var area=pair[0], tasks=pair[1].sort(taskSort229);
+      return '<div class="rc229-area-block"><div class="rc229-area-title"><h3>'+e229(area)+'</h3><div>'+pill229(tasks.length+' offen','orange')+'</div></div><div class="rc229-task-grid">'+tasks.map(renderTask229).join('')+'</div></div>';
+    }).join('');
+  }
+
+  function renderBlocks229(list,selected){
+    if(selected==='Alle Tage'){
+      var blocks=['Überfällig','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Rückstand','Ohne Tag'];
+      return blocks.map(function(d){
+        var arr=list.filter(function(t){return dayMatches229(t,d)});
+        if(!arr.length)return '';
+        return '<section class="rc229-task-block '+(d==='Überfällig'?'overdue':'')+'"><div class="rc229-task-title"><h2>'+e229(d)+'</h2>'+pill229(arr.length+' offen',d==='Überfällig'?'red':'orange')+'</div>'+renderAreas229(arr)+'</section>';
+      }).join('');
+    }
+    return '<section class="rc229-task-block '+(selected==='Überfällig'?'overdue':'')+'"><div class="rc229-task-title"><h2>'+e229(selected==='Heute'?germanWeekday229():selected)+'</h2>'+pill229(list.length+' offen',selected==='Überfällig'?'red':'orange')+'</div>'+renderAreas229(list)+'</section>';
+  }
+
+  window.rc229SetTaskDay=function(day){
+    state.taskDay=day||'Alle Tage';
+    saveAll229('Aufgabentag geaendert');
+    try{render()}catch(err){}
+  };
+
+  window.rc229SetTaskFilter=function(value){
+    state.taskFilter=value||'Alle Aufgaben anzeigen';
+    saveAll229('Aufgabenfilter geaendert');
+    try{render()}catch(err){}
+  };
+
+  window.rc229SetTaskSearch=function(value){
+    state.taskSearch=String(value||'');
+    clearTimeout(searchTimer229);
+    searchTimer229=setTimeout(function(){
+      saveAll229('Aufgabensuche');
+      try{render()}catch(err){}
+      setTimeout(function(){
+        var el=document.getElementById('taskSearchInput');
+        if(el){
+          el.focus();
+          try{var n=el.value.length;el.setSelectionRange(n,n)}catch(err){}
+        }
+      },0);
+    },220);
+  };
+
+  window.rc229OpenTaskEdit=function(id,ev){
+    if(ev){ev.preventDefault();ev.stopPropagation()}
+    state.rc229EditTaskId=id;
+    saveAll229('Aufgabe bearbeiten');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc229CancelTaskEdit=function(ev){
+    if(ev){ev.preventDefault();ev.stopPropagation()}
+    state.rc229EditTaskId='';
+    saveAll229('Aufgabe bearbeiten abgebrochen');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc229SaveTaskEdit=function(id,ev){
+    if(ev){ev.preventDefault();ev.stopPropagation()}
+    if(typeof requireEdit==='function' && !requireEdit('tasks'))return false;
+    var t=(state.tasks||[]).find(function(x){return String(x.id)===String(id)});
+    if(!t)return alert('Aufgabe nicht gefunden.');
+    var title=(document.getElementById('rc229_title_'+id)||{}).value||'';
+    var day=(document.getElementById('rc229_day_'+id)||{}).value||'Ohne Tag';
+    var time=(document.getElementById('rc229_time_'+id)||{}).value||'';
+    var owner=(document.getElementById('rc229_owner_'+id)||{}).value||'Alle';
+    var area=(document.getElementById('rc229_area_'+id)||{}).value||'Aufgabe';
+    title=String(title).trim();
+    if(!title)return alert('Bitte Aufgabennamen eintragen.');
+    t.title=title;
+    t.day=day;
+    delete t.dueDate;
+    t.time=String(time||'').trim();
+    t.owner=String(owner||'Alle').trim()||'Alle';
+    t.area=String(area||'Aufgabe').trim()||'Aufgabe';
+    t.manual=true;
+    t.rc229Edited=true;
+    t.editedAt=new Date().toISOString();
+    t.editedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    state.rc229EditTaskId='';
+    sanitizeTasks229('edit-save');
+    saveAll229('Aufgabe gespeichert');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.rc229ToggleTask=function(id,ev){
+    if(ev){ev.preventDefault();ev.stopPropagation()}
+    if(typeof requireEdit==='function' && !requireEdit('tasks'))return false;
+    var t=(state.tasks||[]).find(function(x){return String(x.id)===String(id)});
+    if(!t)return alert('Aufgabe nicht gefunden.');
+    if(done229(t)){
+      t.status='offen';
+      t.done=false;
+      t.completedAt='';
+      t.doneAt='';
+      t.doneBy='';
+    }else{
+      t.status='erledigt';
+      t.done=true;
+      t.completedAt=new Date().toISOString();
+      t.doneAt=t.completedAt;
+      t.doneBy=(currentUser&&(currentUser.name||currentUser.user))||'Benutzer';
+    }
+    try{if(typeof audit==='function')audit(t.status==='erledigt'?'Aufgabe erledigt':'Aufgabe wieder geoeffnet',t.title||id)}catch(err){}
+    sanitizeTasks229('toggle');
+    saveAll229('Aufgabe Status geaendert');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  window.toggleTask=function(id){
+    return window.rc229ToggleTask(id);
+  };
+  try{toggleTask=window.toggleTask}catch(err){}
+
+  window.rc229AddManualTask=function(){
+    if(typeof requireEdit==='function' && !requireEdit('tasks'))return;
+    var title=prompt('Name der Aufgabe');
+    if(!title)return;
+    var day=prompt('Wochentag',germanWeekday229())||germanWeekday229();
+    if(DAYS229.indexOf(day)<0)day='Ohne Tag';
+    var time=prompt('Uhrzeit optional','')||'';
+    var owner=prompt('Zustaendig',(currentUser&&(currentUser.name||currentUser.user))||'Tobias')||((currentUser&&(currentUser.name||currentUser.user))||'Tobias');
+    state.tasks=Array.isArray(state.tasks)?state.tasks:[];
+    state.tasks.unshift({id:uid229('T'),day:day,time:time,title:String(title).trim(),owner:owner,area:'Manuell',status:'offen',priority:'medium',note:'Manuell erstellt',manual:true,manualTime:!!time});
+    sanitizeTasks229('manual-add');
+    saveAll229('Manuelle Aufgabe erstellt');
+    try{render()}catch(err){}
+  };
+
+  window.addManualTask=window.rc229AddManualTask;
+  try{addManualTask=window.addManualTask}catch(err){}
+
+  window.rc229RepairTasks=function(){
+    sanitizeSeed229();
+    var before=(state.tasks||[]).length;
+    sanitizeTasks229('manual-repair');
+    saveAll229('Aufgaben repariert');
+    alert('Aufgaben repariert. Entfernt: '+Math.max(0,before-(state.tasks||[]).length));
+    try{render()}catch(err){}
+  };
+  window.repairStandardTasks=window.rc229RepairTasks;
+  try{repairStandardTasks=window.repairStandardTasks}catch(err){}
+
+  window.showAllTasks=function(){
+    state.taskFilter='Alle Aufgaben anzeigen';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    saveAll229('Alle Aufgaben anzeigen');
+    try{render()}catch(err){}
+  };
+  try{showAllTasks=window.showAllTasks}catch(err){}
+
+  window.showTobiasTasksRC187=window.showTobiasTasksRC88=function(){
+    state.taskFilter='Tobias';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    saveAll229('Tobias Aufgaben');
+    try{render()}catch(err){}
+  };
+  window.showSevastianTasksRC187=window.showSevastianTasksRC88=window.showSevastianTasksRC86=function(){
+    state.taskFilter='Sevastian';
+    state.taskDay='Alle Tage';
+    state.taskSearch='';
+    saveAll229('Sevastian Aufgaben');
+    try{render()}catch(err){}
+  };
+
+  window.tasks=function(){
+    sanitizeSeed229();
+    var base=filterTasks229(true);
+    var selected=selectedDay229();
+    var shown=base.filter(function(t){return dayMatches229(t,selected)}).sort(taskSort229);
+    var c=counts229(base);
+    var today=germanWeekday229();
+    var ownerList=owners229(sanitizeTasks229('owners'));
+    var showDone=!!state.rc229ShowDone;
+    var doneList=showDone?filterTasks229(false).filter(function(t){return done229(t)}).sort(taskSort229):[];
+    return (typeof head==='function'?head('Aufgaben','Offene Aufgaben nach echten Tagen. Erledigte Aufgaben werden sofort aus Tages- und Ueberfaellig-Zaehlern entfernt.'):'<h2>Aufgaben</h2>')+
+      '<div class="metrics">'+
+        '<article class="metric"><span>Offen gesamt</span><strong>'+base.length+'</strong></article>'+
+        '<article class="metric"><span>Aktuell angezeigt</span><strong>'+shown.length+'</strong></article>'+
+        '<article class="metric kpi-red"><span>Überfällig</span><strong>'+c['Überfällig']+'</strong></article>'+
+        '<article class="metric kpi-blue"><span>Heute offen</span><strong>'+c['Heute']+'</strong><small>'+e229(today)+'</small></article>'+
+      '</div>'+
+      '<div class="rc229-task-filterbar">'+
+        '<input id="taskSearchInput" placeholder="Aufgaben suchen" value="'+e229(state.taskSearch||'')+'" oninput="rc229SetTaskSearch(this.value)">'+
+        '<select onchange="rc229SetTaskFilter(this.value)">'+ownerList.map(function(o){return '<option value="'+e229(o)+'" '+((state.taskFilter||'Alle Aufgaben anzeigen')===o?'selected':'')+'>'+e229(o)+'</option>'}).join('')+'</select>'+
+        '<button class="ghost" onclick="showAllTasks()">Alle anzeigen</button>'+
+        '<button class="ghost" onclick="showTobiasTasksRC187()">Tobias</button>'+
+        '<button class="ghost" onclick="showSevastianTasksRC187()">Sevastian</button>'+
+        '<button class="soft" onclick="rc229AddManualTask()">+ Manuelle Aufgabe</button>'+
+        '<button class="ghost" onclick="rc229RepairTasks()">Aufgaben reparieren</button>'+
+        '<label class="rc203-check"><input type="checkbox" '+(showDone?'checked':'')+' onchange="state.rc229ShowDone=this.checked;saveAll229&&saveAll229();render()"> Erledigte anzeigen</label>'+
+      '</div>'+
+      '<div class="rc229-day-tabs">'+ALL_DAYS229.map(function(d){
+        var label=d==='Heute'?'Heute ('+today+')':d;
+        return '<button class="'+(selected===d?'active ':'')+(d==='Überfällig'?'overdue':'')+'" onclick="rc229SetTaskDay(&quot;'+e229(d)+'&quot;)">'+e229(label)+' · '+(c[d]||0)+'</button>';
+      }).join('')+'</div>'+
+      (shown.length?renderBlocks229(shown,selected):'<div class="badbox">Keine offenen Aufgaben im aktuellen Filter.</div>')+
+      (showDone?'<section class="rc229-task-block"><div class="rc229-task-title"><h2>Erledigt</h2>'+pill229(doneList.length+' erledigt','green')+'</div>'+(doneList.length?'<div class="rc229-task-grid">'+doneList.map(renderTask229).join('')+'</div>':'<p class="muted">Keine erledigten Aufgaben im Filter.</p>')+'</section>':'');
+  };
+  try{tasks=window.tasks}catch(err){}
+
+  try{
+    if(typeof render==='function' && !render.__rc229Wrapped){
+      var baseRender229=render;
+      window.render=function(){
+        if(typeof state!=='undefined' && state && state.view==='tasks'){
+          sanitizeSeed229();
+          sanitizeTasks229('before-render');
+        }
+        return baseRender229.apply(this,arguments);
+      };
+      window.render.__rc229Wrapped=true;
+      try{render=window.render}catch(err){}
+    }
+  }catch(err){}
+
+  sanitizeSeed229();
+  sanitizeTasks229('init');
+  try{saveAll229('Aufgaben initial repariert')}catch(err){}
+})();
+</script>
+<!-- PRIVATE RC229 END: Aufgaben Tage/Ueberfaellig final reparieren -->
+
+
   
 </body></html>
 
