@@ -36081,7 +36081,624 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC258 END: TeamLive Guard + Suche + Ladeliste Lieferscheine -->
 
+<!-- PRIVATE RC260 START: ABD Anfrage + Update-Schutz + Ladeliste A4 + Referenzordner -->
+<style>
+.rc260-ref-folder-bar{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  margin:8px 0 12px!important;
+  padding:10px!important;
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  border-radius:12px!important;
+}
+.rc260-ref-folder-bar .small{
+  font-weight:900!important;
+  color:#1e3a8a!important;
+}
+.rc260-ref-folder-note{
+  flex-basis:100%!important;
+  color:#7c2d12!important;
+  background:#fff7ed!important;
+  border:1px solid #fed7aa!important;
+  border-radius:10px!important;
+  padding:7px 9px!important;
+  font-weight:850!important;
+}
+.rc260-abd-panel{
+  margin:12px 0!important;
+  border:1px solid #bae6fd!important;
+  background:#f0f9ff!important;
+  border-radius:14px!important;
+  padding:12px!important;
+}
+.rc260-abd-panel h3{
+  margin:0 0 8px!important;
+  color:#08245d!important;
+  font-size:18px!important;
+}
+.rc260-abd-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(180px,1fr))!important;
+  gap:8px!important;
+}
+.rc260-abd-grid label{
+  display:grid!important;
+  gap:4px!important;
+  font-weight:900!important;
+  color:#334155!important;
+}
+.rc260-abd-grid input,
+.rc260-abd-grid textarea{
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.rc260-abd-actions{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  margin-top:10px!important;
+}
+.rc260-savebar{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  margin:12px 0!important;
+}
+#loadListDoc .rc260-delivery-cont{
+  grid-column:1 / -1!important;
+}
+#loadListDoc .rc260-delivery-grid{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:3px 7px!important;
+  margin-top:3px!important;
+}
+#loadListDoc .rc260-delivery-item{
+  display:block!important;
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  border-radius:999px!important;
+  padding:1px 5px!important;
+  font-size:8.9px!important;
+  line-height:1.14!important;
+  font-weight:850!important;
+  color:#08245d!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#loadListDoc .rc260-remark-compact{
+  min-height:18px!important;
+  max-height:32px!important;
+  overflow:hidden!important;
+}
+#loadListDoc.rc260-a4-fit{
+  max-height:297mm!important;
+  overflow:hidden!important;
+}
+#loadListDoc.rc260-a4-fit .doc-box{
+  padding:4px 6px!important;
+  min-height:20px!important;
+}
+#loadListDoc.rc260-a4-fit .doc-label{
+  font-size:8px!important;
+  margin-bottom:1px!important;
+}
+#loadListDoc.rc260-a4-fit .load-table th,
+#loadListDoc.rc260-a4-fit .load-table td{
+  padding:2px 4px!important;
+  font-size:8.5px!important;
+  line-height:1.08!important;
+}
+#loadListDoc.rc260-a4-fit .a4top{
+  padding:5px 7px!important;
+  margin-bottom:3px!important;
+}
+#loadListDoc.rc260-a4-fit .doc-grid{
+  gap:4px!important;
+  margin:4px 0!important;
+}
+@media print{
+  #loadListDoc{
+    max-height:297mm!important;
+    overflow:hidden!important;
+    page-break-after:always!important;
+    break-after:page!important;
+  }
+  #loadListDoc .rc260-delivery-item,
+  .rc260-ref-folder-bar,
+  .rc260-abd-panel{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+}
+</style>
 
+<script>
+/* PRIVATE RC260: ABD-Anfrage wiederherstellen, manuelle Daten vor Updates schuetzen, Ladeliste A4 begrenzen */
+(function(){
+  if(window.__EXPORTHUB_RC260_ABD_UPDATE_LOADLIST_REF__)return;
+  window.__EXPORTHUB_RC260_ABD_UPDATE_LOADLIST_REF__=true;
+
+  var SAFE_STATE='exporthub_manual_persistent_state_v260';
+  var SAFE_USERS='exporthub_manual_persistent_users_v260';
+  var REF_BASE='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+
+  function appState(){try{return typeof state!=='undefined'&&state?state:null}catch(err){return null}}
+  function appUsers(){try{return typeof users!=='undefined'&&Array.isArray(users)?users:[]}catch(err){return []}}
+  function setUsers260(v){try{users=v}catch(err){} try{if(appState())state.users=clone260(v)}catch(err){}}
+  function e260(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});
+  }
+  function n260(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function clone260(v){try{return JSON.parse(JSON.stringify(v))}catch(err){return v}}
+  function ref260(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function read260(k,f){try{var raw=localStorage.getItem(k);return raw?JSON.parse(raw):f}catch(err){return f}}
+  function write260(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(err){}}
+  function id260(item,keys){
+    keys=keys||['id','ref','user','login','account','customerNumber','name','title'];
+    for(var i=0;i<keys.length;i++){
+      var k=keys[i];
+      if(item&&item[k]!=null&&String(item[k]).trim())return n260(item[k]);
+    }
+    return '';
+  }
+  function mergeArr260(a,b,keys){
+    a=Array.isArray(a)?a:[];
+    b=Array.isArray(b)?b:[];
+    var map={};
+    a.concat(b).forEach(function(item,idx){
+      if(!item||typeof item!=='object')return;
+      var id=id260(item,keys)||('__idx_'+idx+'_'+n260(JSON.stringify(item).slice(0,80)));
+      map[id]=Object.assign({},map[id]||{},item);
+    });
+    return Object.keys(map).map(function(k){return map[k]});
+  }
+  function mergeObj260(a,b){
+    return Object.assign({},b||{},a||{});
+  }
+  function mergeState260(source){
+    var s=appState();
+    if(!s||!source||typeof source!=='object')return false;
+    s.customers=mergeArr260(s.customers,source.customers,['id','account','customerNumber','name']);
+    s.shipments=mergeArr260(s.shipments,source.shipments,['id','ref']);
+    s.abdRequests=mergeArr260(s.abdRequests,source.abdRequests,['id','ref']);
+    s.tasks=mergeArr260(s.tasks,source.tasks,['id','linkedAbdRef','linkedShipmentRef','title']);
+    s.users=mergeArr260(s.users,source.users,['user','login','name']);
+    s.vacations=mergeArr260(s.vacations,source.vacations,['id','person','start','end']);
+    s.palletAccount=mergeArr260(s.palletAccount,source.palletAccount,['id','ref','shipmentRef']);
+    s.archive=mergeArr260(s.archive,source.archive,['id','ref']);
+    s.ideas=mergeArr260(s.ideas,source.ideas,['id','title']);
+    s.customerNotes=mergeObj260(s.customerNotes,source.customerNotes);
+    s.permissions=mergeObj260(s.permissions,source.permissions);
+    s.roleTemplates=mergeObj260(s.roleTemplates,source.roleTemplates);
+    return true;
+  }
+  function scanStates260(){
+    var out=[];
+    try{
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(!k||!/exporthub/i.test(k)||!/(state|backup|team|persistent)/i.test(k))continue;
+        var v=read260(k,null);
+        if(!v||typeof v!=='object')continue;
+        var s=v.state&&typeof v.state==='object'?v.state:v;
+        if(s&&(Array.isArray(s.customers)||Array.isArray(s.shipments)||Array.isArray(s.abdRequests)||Array.isArray(s.tasks)||Array.isArray(s.users)))out.push(s);
+      }
+    }catch(err){}
+    return out;
+  }
+  function scanUsers260(){
+    var all=[];
+    try{
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(!k||!/exporthub/i.test(k)||!/user/i.test(k))continue;
+        var v=read260(k,null);
+        if(Array.isArray(v))all=all.concat(v);
+        else if(v&&Array.isArray(v.users))all=all.concat(v.users);
+      }
+    }catch(err){}
+    try{all=all.concat(appUsers())}catch(err){}
+    try{var s=appState();if(s&&Array.isArray(s.users))all=all.concat(s.users)}catch(err){}
+    return mergeArr260([],all,['user','login','name']);
+  }
+  function snapshot260(reason){
+    var s=appState();
+    if(!s)return;
+    var box={savedAt:new Date().toISOString(),reason:reason||'snapshot',state:clone260(s),users:clone260(scanUsers260())};
+    write260(SAFE_STATE,box);
+    write260(SAFE_USERS,box.users||[]);
+  }
+  function restore260(){
+    var changed=false;
+    var safe=read260(SAFE_STATE,null);
+    if(safe&&safe.state)changed=mergeState260(safe.state)||changed;
+    scanStates260().forEach(function(s){changed=mergeState260(s)||changed});
+    var mergedUsers=scanUsers260();
+    if(mergedUsers.length)setUsers260(mergedUsers);
+    snapshot260('restore');
+    return changed;
+  }
+
+  var baseSave=window.save || (typeof save==='function'?save:null);
+  if(typeof baseSave==='function'&&!baseSave.__rc260Wrapped){
+    window.save=function(){
+      var r=baseSave.apply(this,arguments);
+      snapshot260('save');
+      return r;
+    };
+    window.save.__rc260Wrapped=true;
+    try{save=window.save}catch(err){}
+  }
+  var baseSaveUsers=window.saveUsers || (typeof saveUsers==='function'?saveUsers:null);
+  if(typeof baseSaveUsers==='function'&&!baseSaveUsers.__rc260Wrapped){
+    window.saveUsers=function(){
+      var r=baseSaveUsers.apply(this,arguments);
+      setUsers260(scanUsers260());
+      snapshot260('saveUsers');
+      return r;
+    };
+    window.saveUsers.__rc260Wrapped=true;
+    try{saveUsers=window.saveUsers}catch(err){}
+  }
+
+  function protectImport260(){
+    try{
+      var input=document.getElementById('importFile')||document.querySelector('input[type="file"][accept*="json"]');
+      if(!input||input.__rc260ImportProtected)return;
+      input.__rc260ImportProtected=true;
+      input.addEventListener('change',function(ev){
+        var file=ev.target&&ev.target.files&&ev.target.files[0];
+        if(!file)return;
+        ev.stopImmediatePropagation();
+        snapshot260('before-import');
+        var reader=new FileReader();
+        reader.onload=function(){
+          try{
+            var backup=JSON.parse(String(reader.result||'{}'));
+            var incoming=backup.state&&typeof backup.state==='object'?backup.state:backup;
+            mergeState260(incoming);
+            if(Array.isArray(backup.users))setUsers260(mergeArr260(appUsers(),backup.users,['user','login','name']));
+            if(Array.isArray(incoming.users))setUsers260(mergeArr260(appUsers(),incoming.users,['user','login','name']));
+            snapshot260('after-import-merge');
+            try{if(typeof save==='function')save()}catch(err){}
+            try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+            try{if(typeof render==='function')render()}catch(err){}
+            alert('Import zusammengefuehrt. Vorhandene Kunden, Sendungen und Benutzer wurden nicht geloescht.');
+          }catch(err){
+            alert('Import konnte nicht gelesen werden: '+(err&&err.message?err.message:err));
+          }
+        };
+        reader.readAsText(file);
+      },true);
+    }catch(err){}
+  }
+
+  function currentShipment260(){
+    var s=appState();
+    if(!s)return null;
+    try{
+      if(s.activeShipmentId&&s.activeShipmentId!=='current'){
+        var found=(s.shipments||[]).find(function(x){return String(x.id)===String(s.activeShipmentId)});
+        if(found)return found;
+      }
+    }catch(err){}
+    return s.shipment||null;
+  }
+  function refUrl260(reference){
+    var r=ref260(reference);
+    return REF_BASE.replace(/\/+$/,'')+(r?'/'+encodeURIComponent(r):'')+'?csf=1&web=1';
+  }
+  window.rc260OpenReferenceFolder=function(){
+    var r=ref260(currentShipment260()&&currentShipment260().ref);
+    if(!r){alert('Bitte zuerst eine Referenznummer erstellen.');return false}
+    window.open(refUrl260(r),'_blank','noopener,noreferrer');
+    return false;
+  };
+  window.rc260OpenBaseFolder=function(){
+    window.open(REF_BASE+'?csf=1&web=1','_blank','noopener,noreferrer');
+    return false;
+  };
+  window.rc260CopyReferenceName=function(){
+    var r=ref260(currentShipment260()&&currentShipment260().ref);
+    if(!r){alert('Keine Referenznummer vorhanden.');return false}
+    try{navigator.clipboard.writeText(r).then(function(){alert('Ordnername kopiert: '+r)},function(){prompt('Ordnername kopieren:',r)})}catch(err){prompt('Ordnername kopieren:',r)}
+    return false;
+  };
+  function addRefFolderUi260(){
+    try{
+      var s=currentShipment260();
+      var r=ref260(s&&s.ref);
+      var labels=Array.from(document.querySelectorAll('label.field, label, .field'));
+      var target=labels.find(function(el){return /Lieferscheine|DNC|Dateien hochladen|hochladen/i.test(el.textContent||'')});
+      if(!target||document.getElementById('rc260RefFolderBar'))return;
+      var bar=document.createElement('div');
+      bar.id='rc260RefFolderBar';
+      bar.className='rc260-ref-folder-bar';
+      bar.innerHTML=
+        '<button type="button" class="ghost" onclick="return rc260OpenReferenceFolder()">Referenzordner oeffnen</button>'+
+        '<button type="button" class="ghost" onclick="return rc260OpenBaseFolder()">Basisordner oeffnen</button>'+
+        '<button type="button" class="ghost" onclick="return rc260CopyReferenceName()">Ordnername kopieren</button>'+
+        '<span class="small">Referenzordner: '+e260(r||'noch keine Referenz')+'</span>'+
+        '<div class="rc260-ref-folder-note">Wenn SharePoint den Referenzordner nicht findet: Basisordner oeffnen, Ordner exakt mit dieser Referenznummer anlegen, Dateien dort ablegen.</div>';
+      target.insertAdjacentElement('afterend',bar);
+    }catch(err){}
+  }
+
+  function selectedCustomer260(){
+    var s=appState(), sh=currentShipment260()||{};
+    try{if(typeof selectedCustomer==='function')return selectedCustomer()||null}catch(err){}
+    try{
+      var cid=sh.customerId||sh.customer||sh.account;
+      return (s.customers||[]).find(function(c){return String(c.id||c.account||c.customerNumber||'')===String(cid||'')})||null;
+    }catch(err){}
+    return null;
+  }
+  function shipmentTotals260(sh){
+    sh=sh||currentShipment260()||{};
+    try{if(typeof totals==='function')return totals(sh)}catch(err){}
+    var rows=Array.isArray(sh.rows)?sh.rows:[];
+    return rows.reduce(function(a,r){
+      var count=Number(r.count||r.qty||r.amount||0)||0;
+      var weight=Number(r.weight||r.weightKg||0)||0;
+      var ldm=Number(r.ldm||r.loadingMeter||0)||0;
+      a.colli+=count;
+      a.weight+=weight;
+      a.ldm+=ldm*count;
+      return a;
+    },{colli:0,weight:0,ldm:0});
+  }
+  function ensureAbdDraft260(){
+    var s=appState();
+    if(!s)return null;
+    var sh=currentShipment260()||{};
+    var c=selectedCustomer260()||{};
+    var t=shipmentTotals260(sh);
+    s.abdDraft=Object.assign({},s.abdDraft||{},{
+      ref:sh.ref||s.nextRef||'',
+      customerId:c.id||sh.customerId||'',
+      customerName:c.name||sh.customerName||sh.customer||'',
+      account:c.account||c.customerNumber||sh.account||'',
+      country:c.country||sh.country||'',
+      colli:t.colli||sh.colli||'',
+      weight:t.weight||sh.weight||'',
+      ldm:t.ldm||sh.ldm||'',
+      deliveryNotes:sh.deliveryNotes||s.abdDraft&&s.abdDraft.deliveryNotes||'',
+      comment:sh.remark||sh.comment||s.abdDraft&&s.abdDraft.comment||''
+    });
+    return s.abdDraft;
+  }
+  window.rc260OpenAbdRequest=function(){
+    var s=appState();
+    if(!s)return false;
+    s.view='shipment';
+    s.shipment=s.shipment||{};
+    s.shipment.abdMode=true;
+    ensureAbdDraft260();
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    setTimeout(function(){
+      var el=document.getElementById('rc260AbdPanel');
+      if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+    },120);
+    return false;
+  };
+  window.goToAbdFromShipmentRC70=window.rc260OpenAbdRequest;
+  window.rc260AbdField=function(key,value){
+    var s=appState();
+    if(!s)return;
+    s.abdDraft=s.abdDraft||{};
+    s.abdDraft[key]=value;
+    snapshot260('abd-field');
+  };
+  window.rc260SaveAbdRequest=function(){
+    var s=appState();
+    if(!s)return false;
+    var d=ensureAbdDraft260()||{};
+    var reference=ref260(d.ref);
+    if(!reference){alert('Bitte zuerst eine Referenznummer erstellen.');return false}
+    s.abdRequests=Array.isArray(s.abdRequests)?s.abdRequests:[];
+    var existing=s.abdRequests.find(function(a){return ref260(a&&a.ref)===reference});
+    var item=Object.assign(existing||{},d,{
+      id:(existing&&existing.id)||('abd_'+reference),
+      ref:reference,
+      type:'ABD Anfrage',
+      status:(existing&&existing.status)||'offen',
+      createdAt:(existing&&existing.createdAt)||new Date().toISOString(),
+      updatedAt:new Date().toISOString()
+    });
+    if(!existing)s.abdRequests.push(item);
+    s.tasks=Array.isArray(s.tasks)?s.tasks:[];
+    var taskId='abd_info_'+reference;
+    if(!s.tasks.some(function(t){return String(t.id)===taskId})){
+      s.tasks.push({
+        id:taskId,
+        title:'ABD Info hochladen: '+reference,
+        owner:'Sevastian',
+        assignedTo:'Sevastian',
+        area:'ABD Anfrage',
+        linkedAbdRef:reference,
+        due:new Date().toISOString().slice(0,10),
+        done:false
+      });
+    }
+    snapshot260('abd-save');
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    alert('ABD Anfrage gespeichert: '+reference);
+    return false;
+  };
+  function addAbdUi260(){
+    try{
+      var h=(document.querySelector('h1,h2')||{}).textContent||'';
+      var isShipment=/Sendung erstellen/i.test(document.body.textContent||'')||/Sendung erstellen/i.test(h);
+      if(!isShipment)return;
+      var btnText=Array.from(document.querySelectorAll('button')).some(function(b){return /ABD Anfrage|ABD erstellen/i.test(b.textContent||'')});
+      var saveBtn=Array.from(document.querySelectorAll('button')).find(function(b){return /Sendung speichern/i.test(b.textContent||'')});
+      if(saveBtn&&!btnText){
+        var b=document.createElement('button');
+        b.type='button';
+        b.className='ghost';
+        b.textContent='ABD Anfrage';
+        b.onclick=window.rc260OpenAbdRequest;
+        saveBtn.insertAdjacentElement('afterend',b);
+      }
+      if(document.getElementById('rc260AbdPanel'))return;
+      var d=ensureAbdDraft260()||{};
+      var panel=document.createElement('section');
+      panel.id='rc260AbdPanel';
+      panel.className='rc260-abd-panel';
+      panel.innerHTML=
+        '<h3>ABD Anfrage</h3>'+
+        '<div class="rc260-abd-grid">'+
+        '<label>Referenznummer<input value="'+e260(d.ref||'')+'" oninput="rc260AbdField(\'ref\',this.value)"></label>'+
+        '<label>Kunde<input value="'+e260(d.customerName||'')+'" oninput="rc260AbdField(\'customerName\',this.value)"></label>'+
+        '<label>Kundennummer<input value="'+e260(d.account||'')+'" oninput="rc260AbdField(\'account\',this.value)"></label>'+
+        '<label>Land<input value="'+e260(d.country||'')+'" oninput="rc260AbdField(\'country\',this.value)"></label>'+
+        '<label>Collis<input value="'+e260(d.colli||'')+'" oninput="rc260AbdField(\'colli\',this.value)"></label>'+
+        '<label>Gewicht kg<input value="'+e260(d.weight||'')+'" oninput="rc260AbdField(\'weight\',this.value)"></label>'+
+        '<label style="grid-column:1/-1">Lieferscheine / DNCs<textarea rows="2" oninput="rc260AbdField(\'deliveryNotes\',this.value)">'+e260(d.deliveryNotes||'')+'</textarea></label>'+
+        '<label style="grid-column:1/-1">Bemerkung<textarea rows="2" oninput="rc260AbdField(\'comment\',this.value)">'+e260(d.comment||'')+'</textarea></label>'+
+        '</div>'+
+        '<div class="rc260-abd-actions">'+
+        '<button type="button" class="primary" onclick="return rc260SaveAbdRequest()">ABD Anfrage speichern</button>'+
+        '<button type="button" class="ghost" onclick="return rc260OpenReferenceFolder()">Referenzordner oeffnen</button>'+
+        '</div>';
+      var anchor=saveBtn&&saveBtn.parentElement?saveBtn.parentElement:null;
+      if(anchor)anchor.insertAdjacentElement('afterend',panel);
+      else document.querySelector('main,.main,.content,body').appendChild(panel);
+    }catch(err){}
+  }
+
+  function shortName260(name){
+    name=String(name||'').trim();
+    if(name.length<=53)return name;
+    var ext='';
+    var m=name.match(/(\.[A-Za-z0-9]{2,6})$/);
+    if(m){ext=m[1];name=name.slice(0,-ext.length)}
+    var max=53-ext.length;
+    if(max<16)max=53;
+    return name.slice(0,max-1)+'-'+ext;
+  }
+  function deliveryNames260(sh){
+    sh=sh||currentShipment260()||{};
+    var out=[];
+    String(sh.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)});
+    (Array.isArray(sh.deliveryFiles)?sh.deliveryFiles:[]).forEach(function(f){
+      var name=String((f&&(f.name||f.fileName||f.filename))||'').trim();
+      if(name)out.push(name);
+    });
+    var seen={};
+    return out.filter(function(x){var k=n260(x);if(!k||seen[k])return false;seen[k]=true;return true});
+  }
+  function fitA4Loadlist260(doc){
+    try{
+      doc=doc||document.getElementById('loadListDoc');
+      if(!doc)return;
+      doc.classList.add('rc260-a4-fit');
+      doc.style.transform='';
+      doc.style.transformOrigin='';
+      doc.style.marginBottom='';
+      var maxPx=1122;
+      var h=doc.scrollHeight||doc.offsetHeight||0;
+      if(h>maxPx){
+        var scale=Math.max(0.72,Math.min(1,maxPx/h));
+        doc.style.transform='scale('+scale.toFixed(3)+')';
+        doc.style.transformOrigin='top center';
+        doc.style.marginBottom='-'+Math.round(h*(1-scale))+'px';
+      }
+    }catch(err){}
+  }
+  function patchLoadlist260(){
+    try{
+      var doc=document.getElementById('loadListDoc');
+      if(!doc)return;
+      var names=deliveryNames260(currentShipment260());
+      Array.from(doc.querySelectorAll('.rc259-delivery-grid,.rc260-delivery-grid')).forEach(function(el){
+        if(el&&el.parentElement)el.parentElement.classList.add('rc260-delivery-cont');
+      });
+      if(names.length){
+        var html='<span class="doc-label">Lieferscheine / DNCs</span><div class="rc260-delivery-grid">'+
+          names.map(function(x){return '<span class="rc260-delivery-item" title="'+e260(x)+'">'+e260(shortName260(x))+'</span>'}).join('')+
+          '</div>';
+        var boxes=Array.from(doc.querySelectorAll('.doc-box'));
+        var deliveryBox=boxes.find(function(b){return /Lieferscheine|DNC|DNCs|delivery/i.test(b.textContent||'')});
+        var remarkBox=boxes.find(function(b){return /Bemerkung|Remark/i.test(b.textContent||'')});
+        if(remarkBox)remarkBox.classList.add('rc260-remark-compact');
+        if(deliveryBox){
+          deliveryBox.classList.add('rc260-delivery-cont');
+          deliveryBox.innerHTML=html;
+        }else{
+          var extra=document.createElement('div');
+          extra.className='doc-box blue rc260-delivery-cont';
+          extra.innerHTML=html;
+          if(remarkBox)remarkBox.insertAdjacentElement('afterend',extra);
+          else doc.appendChild(extra);
+        }
+      }
+      fitA4Loadlist260(doc);
+    }catch(err){}
+  }
+  function afterRender260(){
+    restore260();
+    protectImport260();
+    addRefFolderUi260();
+    addAbdUi260();
+    patchLoadlist260();
+  }
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc260Wrapped){
+    window.render=function(){
+      var r=baseRender.apply(this,arguments);
+      setTimeout(afterRender260,50);
+      setTimeout(afterRender260,260);
+      return r;
+    };
+    window.render.__rc260Wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+  ['showCurrentCmr','showSavedCmr','downloadLoadListPdf','downloadCurrentLoadListPdf'].forEach(function(fn){
+    var base=window[fn]||null;
+    try{if(!base&&eval('typeof '+fn+'==="function"'))base=eval(fn)}catch(err){}
+    if(typeof base==='function'&&!base.__rc260Wrapped){
+      var wrapped=function(){
+        patchLoadlist260();
+        var r=base.apply(this,arguments);
+        setTimeout(patchLoadlist260,80);
+        setTimeout(patchLoadlist260,280);
+        return r;
+      };
+      wrapped.__rc260Wrapped=true;
+      window[fn]=wrapped;
+      try{eval(fn+'=window["'+fn+'"]')}catch(err){}
+    }
+  });
+  window.rc260RestoreManualData=function(){
+    restore260();
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    alert('Manuelle Daten wurden wiederhergestellt und neu gesichert.');
+    return false;
+  };
+
+  setTimeout(afterRender260,120);
+  setTimeout(afterRender260,900);
+  setTimeout(afterRender260,2200);
+})();
+</script>
+<!-- PRIVATE RC260 END: ABD Anfrage + Update-Schutz + Ladeliste A4 + Referenzordner -->
   
 </body></html>
 
