@@ -19374,6 +19374,19 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
     return '';
   }
 
+  function referenceFolderBox274(s){
+    s=s||{};
+    var ref=String(s.ref||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24);
+    return '<div class="rc274-ref-doc-box">'+
+      '<div class="rc274-ref-doc-title">Referenzordner '+e199(ref||'noch keine Referenz')+'</div>'+
+      '<div class="rc274-ref-doc-actions">'+
+        '<button type="button" class="ghost" onclick="return rc246OpenReferenceFolder()">Ref.-Ordner oeffnen</button>'+
+        '<button type="button" class="soft" onclick="return rc246OpenReferenceFolderPicker()">Dateien aus Ref.-Ordner uebernehmen</button>'+
+      '</div>'+
+      '<div class="rc274-ref-doc-meta">Diese Buttons gehoeren zu Lieferscheine hochladen / anhaengen.</div>'+
+    '</div>';
+  }
+
   function mailCard199(c){
     if(typeof customerMailActions==='function'){
       return '<div class="rc190-mail-card"><h3>Empfaengermail / Outlook-Avisierung</h3>'+customerMailActions(c)+'</div>';
@@ -19436,11 +19449,11 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
           '<div class="'+(refOk?'okbox':'badbox')+'"><b>Referenzregel:</b> exakt 6 Zeichen, nur A-Z und 0-9. Aktuell: <b>'+e199(s.ref)+'</b> '+(s.refAuto!==false?'· automatisch erstellt':'· manuell geaendert')+'</div>'+
           '<label class="field">Lieferscheine / DNCs manuell (optional)<textarea onchange="state.shipment.deliveryNotes=this.value;save()" placeholder="Optional: eine DNC/Lieferscheinnummer je Zeile">'+e199(s.deliveryNotes)+'</textarea></label>'+
           '<label class="field">Lieferscheine hochladen / anhaengen (optional)<input type="file" multiple onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label>'+
+          referenceFolderBox274(s)+
           deliveryFileList199(s)+
           '<div class="miniGrid"><label class="field">Abholdatum<input type="date" value="'+e199(s.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+e199(s.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()" placeholder="z. B. Paul Langen, DHL, Dachser..."></label><label class="field">Kennzeichen<input value="'+e199(s.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()" placeholder="Kennzeichen LKW"></label><label class="field">Verlader<input value="'+e199(s.loader||'')+'" onchange="state.shipment.loader=this.value;save()" placeholder="Name Verlader"></label></div>'+
           '<label class="field">Incoterm / Hinweis<input value="'+e199(s.incoterm||'')+'" onchange="state.shipment.incoterm=this.value;save()"></label>'+
           '<label class="checkrow"><input type="checkbox" '+(s.nonEuCheck?'checked':'')+' onchange="state.shipment.nonEuCheck=this.checked;save();render()"><div>Drittland-/Zolldokumente geprueft, falls erforderlich</div></label>'+
-          '<div class="toolbar"><button class="btn" onclick="saveShipment()" '+(missing||!s.addressConfirmed||!refOk||!completionOk?'disabled':'')+'>Sendung speichern + Aufgaben pruefen</button><button class="ghost" onclick="showCurrentCmr()" '+(!refOk?'disabled':'')+'>Ladeliste/CMR Vorschau</button><button class="ghost abd-jump-rc70" onclick="goToAbdFromShipmentRC70()">ABD erstellen</button><button class="ghost" onclick="rc55DownloadLoadlistPdf()" '+(!refOk?'disabled':'')+'>Ladeliste PDF herunterladen</button><button class="ghost" onclick="rc55PrintLabels()" '+(!refOk?'disabled':'')+'>Versandlabel 4x A4</button></div>'+
           status+
         '</div>'+
         '<div class="card rc199-colli-card"><h3>Collis, Masse, Gewicht, Lademeter</h3>'+
@@ -29498,26 +29511,9 @@ body .rc232-folder-actions{
   }
   window.rc237OpenMail=openMail237;
 
-  function insertColliActions237(root){
-    try{
-      root=root||document;
-      if(!state || state.view!=='shipment')return;
-      if(root.querySelector('.rc237-colli-actions'))return;
-      var h=Array.from(root.querySelectorAll('h2,h3,h4')).find(function(x){
-        return /Collis,\s*(Maße|Masse),\s*Gewicht,\s*Lademeter/i.test(x.textContent||'');
-      });
-      if(!h)return;
-      var card=h.closest&&h.closest('.card,section,article,div');
-      if(!card)return;
-      var anchor=card.querySelector('.summaryGrid') || card.querySelector('#rowsBox') || h;
-      var html='<div class="rc237-colli-actions">'+
-        '<button type="button" class="btn" onclick="saveShipment()">Sendung speichern + Aufgaben pruefen</button>'+
-        '<button type="button" class="btn" onclick="return rc237OpenMail(event)">Mail senden</button>'+
-        '<button type="button" class="ghost" onclick="showCurrentCmr()">CMR/Ladeliste Vorschau</button>'+
-      '</div>';
-      anchor.insertAdjacentHTML(anchor.classList&&anchor.classList.contains('summaryGrid')?'afterend':'beforebegin',html);
-    }catch(err){}
-  }
+	  function insertColliActions237(root){
+	    return;
+	  }
 
   function patchDom237(){
     removeSharePointBlock237(document);
@@ -31854,9 +31850,9 @@ body .rc232-folder-actions{
 <!-- PRIVATE RC246 START: Sendung Buttons + Referenzordner bei Lieferscheinen -->
 <style>
 /* PRIVATE RC246: Referenzordner direkt bei Lieferscheinen, nicht mehr als eigener Block */
-.rc246-ref-doc-box{
-  border:1px solid #bfdbfe!important;
-  background:#eff6ff!important;
+	.rc246-ref-doc-box{
+	  border:1px solid #bfdbfe!important;
+	  background:#eff6ff!important;
   color:#08245d!important;
   border-radius:12px!important;
   padding:10px!important;
@@ -31884,10 +31880,47 @@ body .rc232-folder-actions{
   font-weight:850!important;
   margin-top:6px!important;
 }
-.rc246-hidden-folder-input{
-  display:none!important;
-}
-</style>
+	.rc246-hidden-folder-input{
+	  display:none!important;
+	}
+	.rc246-ref-doc-box,
+	#rc258RefUploadBar,
+	#rc260RefFolderBar,
+	#rc265RefBox,
+	.rc237-colli-actions{
+	  display:none!important;
+	}
+	.rc274-ref-doc-box{
+	  border:1px solid #bfdbfe!important;
+	  background:#eff6ff!important;
+	  color:#08245d!important;
+	  border-radius:12px!important;
+	  padding:10px!important;
+	  margin:8px 0 12px!important;
+	}
+	.rc274-ref-doc-title{
+	  font-weight:1000!important;
+	  margin-bottom:6px!important;
+	}
+	.rc274-ref-doc-actions{
+	  display:flex!important;
+	  gap:8px!important;
+	  flex-wrap:wrap!important;
+	  align-items:center!important;
+	}
+	.rc274-ref-doc-actions button{
+	  min-height:32px!important;
+	  padding:6px 10px!important;
+	  border-radius:9px!important;
+	  font-size:12px!important;
+	}
+	.rc274-ref-doc-meta{
+	  font-size:12px!important;
+	  color:#475569!important;
+	  font-weight:850!important;
+	  margin-top:6px!important;
+	}
+	</style>
 
 <script>
 /* PRIVATE RC246: doppelten Speicherbutton entfernen + Referenzordner stabil bei Lieferscheine */
@@ -32178,22 +32211,9 @@ body .rc232-folder-actions{
     return labels.find(function(el){return el.querySelector&&el.querySelector('input[type="file"]')}) || labels[0] || null;
   }
 
-  function insertRefBox246(root){
-    root=root||document;
-    if(!state || state.view!=='shipment')return;
-    var existing=root.querySelector('.rc246-ref-doc-box');
-    var anchor=findDeliveryUploadAnchor246(root);
-    if(!anchor)return;
-    if(existing){
-      var title=existing.querySelector('.rc246-ref-doc-title');
-      if(title)title.textContent='Referenzordner '+(currentRef246()||'noch keine Referenz');
-      if(existing.previousElementSibling!==anchor && existing.parentNode){
-        anchor.insertAdjacentElement('afterend',existing);
-      }
-      return;
-    }
-    anchor.insertAdjacentHTML('afterend',boxHtml246());
-  }
+	  function insertRefBox246(root){
+	    return;
+	  }
 
   function patchShipment246(){
     try{
@@ -35987,20 +36007,9 @@ body .rc232-folder-actions{
     window.open(window.rc258ReferenceFolderUrl(r),'_blank','noopener,noreferrer');
     return false;
   };
-  function addReferenceUploadButton258(){
-    try{
-      var labels=Array.from(document.querySelectorAll('label.field'));
-      var target=labels.find(function(l){return /Lieferscheine hochladen|Lieferscheine.*anhaengen|Lieferscheine.*anhängen/i.test(l.textContent||'')});
-      if(!target||document.getElementById('rc258RefUploadBar'))return;
-      var s=currentShipment258();
-      var ref=ref258(s&&s.ref);
-      var bar=document.createElement('div');
-      bar.id='rc258RefUploadBar';
-      bar.className='rc258-ref-upload-bar';
-      bar.innerHTML='<button type="button" class="ghost" onclick="return rc258OpenReferenceFolder()">Referenzordner fuer Lieferscheine oeffnen</button><span class="small">Referenzordner: '+e258(ref||'noch keine Referenz')+'</span>';
-      target.insertAdjacentElement('afterend',bar);
-    }catch(err){}
-  }
+	  function addReferenceUploadButton258(){
+	    return;
+	  }
 
   function deliveryList258(s){
     s=s||currentShipment258()||{};
@@ -36416,25 +36425,9 @@ body .rc232-folder-actions{
     try{navigator.clipboard.writeText(r).then(function(){alert('Ordnername kopiert: '+r)},function(){prompt('Ordnername kopieren:',r)})}catch(err){prompt('Ordnername kopieren:',r)}
     return false;
   };
-  function addRefFolderUi260(){
-    try{
-      var s=currentShipment260();
-      var r=ref260(s&&s.ref);
-      var labels=Array.from(document.querySelectorAll('label.field, label, .field'));
-      var target=labels.find(function(el){return /Lieferscheine|DNC|Dateien hochladen|hochladen/i.test(el.textContent||'')});
-      if(!target||document.getElementById('rc260RefFolderBar'))return;
-      var bar=document.createElement('div');
-      bar.id='rc260RefFolderBar';
-      bar.className='rc260-ref-folder-bar';
-      bar.innerHTML=
-        '<button type="button" class="ghost" onclick="return rc260OpenReferenceFolder()">Referenzordner oeffnen</button>'+
-        '<button type="button" class="ghost" onclick="return rc260OpenBaseFolder()">Basisordner oeffnen</button>'+
-        '<button type="button" class="ghost" onclick="return rc260CopyReferenceName()">Ordnername kopieren</button>'+
-        '<span class="small">Referenzordner: '+e260(r||'noch keine Referenz')+'</span>'+
-        '<div class="rc260-ref-folder-note">Wenn SharePoint den Referenzordner nicht findet: Basisordner oeffnen, Ordner exakt mit dieser Referenznummer anlegen, Dateien dort ablegen.</div>';
-      target.insertAdjacentElement('afterend',bar);
-    }catch(err){}
-  }
+	  function addRefFolderUi260(){
+	    return;
+	  }
 
   function selectedCustomer260(){
     var s=appState(), sh=currentShipment260()||{};
