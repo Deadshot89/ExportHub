@@ -1,27 +1,27 @@
 "use strict";
-/* RC274.1: Referenzordner nur im Lieferschein-Uploadbereich */
+/* RC274.2: Referenzordner nur direkt beim Lieferschein-Upload anzeigen */
 (function () {
-  if (window.__EXPORTHUB_RC274_1__) return;
-  window.__EXPORTHUB_RC274_1__ = true;
+  if (window.__EXPORTHUB_RC274_2__) return;
+  window.__EXPORTHUB_RC274_2__ = true;
 
-  function stateSafe() {
-    try { return typeof state !== "undefined" && state ? state : null; } catch (e) { return null; }
+  function s() {
+    try { return typeof state !== "undefined" ? state : null; } catch (e) { return null; }
   }
 
-  function inShipment() {
-    var s = stateSafe();
-    return String((s && s.view) || "") === "shipment";
+  function isShipment() {
+    var st = s();
+    return String((st && st.view) || "") === "shipment";
   }
 
   function text(el) {
     return String((el && el.textContent) || "").replace(/\s+/g, " ").trim();
   }
 
-  function css() {
-    if (document.getElementById("rc274-1-style")) return;
-    var s = document.createElement("style");
-    s.id = "rc274-1-style";
-    s.textContent = `
+  function style() {
+    if (document.getElementById("rc274-2-style")) return;
+    var el = document.createElement("style");
+    el.id = "rc274-2-style";
+    el.textContent = `
       #rc274RefFolderBox{
         margin:8px 0 10px!important;
         padding:10px!important;
@@ -45,31 +45,27 @@
         cursor:pointer!important;
         margin-right:8px!important;
       }
-      #rc270RefBox,#rc271RefBox,#rc272RefBox{display:none!important;}
+      #rc270RefBox,
+      #rc271RefBox,
+      #rc272RefBox,
+      .rc246-ref-doc-box,
+      #rc258RefUploadBar,
+      #rc259RefFolderBar,
+      #rc260RefFolderBar,
+      #rc265RefBox{
+        display:none!important;
+      }
     `;
-    document.head.appendChild(s);
-  }
-
-  function uploadArea() {
-    var all = Array.from(document.querySelectorAll("label,.field,div,section,article"));
-    var hit = all.find(function (el) {
-      return /Lieferscheine\s+hochladen\s*\/\s*(anhaengen|anhängen)/i.test(text(el));
-    });
-    if (hit) return hit.closest("label,.field,section,article,div") || hit;
-
-    var input = Array.from(document.querySelectorAll('input[type="file"]')).find(function (el) {
-      return /Lieferscheine|DNC/i.test(text(el.closest("div,section,article") || document.body));
-    });
-    return input ? (input.closest("label,.field,section,article,div") || input.parentElement) : null;
+    document.head.appendChild(el);
   }
 
   function currentRef() {
-    var s = stateSafe();
-    var sh = s && (s.shipment || s.currentShipment || null);
+    var st = s();
+    var sh = st && (st.shipment || st.currentShipment || null);
 
-    if (s && s.activeShipmentId && Array.isArray(s.shipments)) {
-      var found = s.shipments.find(function (x) {
-        return String(x.id) === String(s.activeShipmentId);
+    if (st && st.activeShipmentId && Array.isArray(st.shipments)) {
+      var found = st.shipments.find(function (x) {
+        return String(x.id) === String(st.activeShipmentId);
       });
       if (found) sh = found;
     }
@@ -78,6 +74,39 @@
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
       .slice(0, 24);
+  }
+
+  function findUploadBlock() {
+    var fileInputs = Array.from(document.querySelectorAll('input[type="file"]'));
+
+    var input = fileInputs.find(function (el) {
+      var area = el.closest("label,.field,div,section,article") || el.parentElement;
+      var nearby = text(area) + " " + text(area && area.parentElement);
+      return /Lieferscheine|DNC/i.test(nearby);
+    });
+
+    if (!input && fileInputs.length) input = fileInputs[0];
+    if (!input) return null;
+
+    return input.closest("label,.field,div,section,article") || input.parentElement;
+  }
+
+  function hideOldRefBlocks() {
+    Array.from(document.querySelectorAll("#rc270RefBox,#rc271RefBox,#rc272RefBox,.rc246-ref-doc-box,#rc258RefUploadBar,#rc259RefFolderBar,#rc260RefFolderBar,#rc265RefBox"))
+      .forEach(function (el) {
+        el.style.display = "none";
+      });
+
+    Array.from(document.querySelectorAll("div,section,article")).forEach(function (el) {
+      if (el.id === "rc274RefFolderBox") return;
+      var t = text(el);
+      if (/^Referenzordner\s*(Ref\.-Ordner öffnen|Dateien aus Ref\.-Ordner)/i.test(t)) {
+        el.style.display = "none";
+      }
+      if (/Referenzordner\s+[A-Z0-9]{4,}/i.test(t) && /Ref\.-Ordner/i.test(t)) {
+        el.style.display = "none";
+      }
+    });
   }
 
   window.rc274OpenReferenceFolder = function () {
@@ -108,23 +137,17 @@
     return false;
   };
 
-  function hideOld() {
-    Array.from(document.querySelectorAll("#rc270RefBox,#rc271RefBox,#rc272RefBox")).forEach(function (el) {
-      el.style.display = "none";
-    });
-  }
-
   function run() {
-    css();
-    hideOld();
+    style();
+    hideOldRefBlocks();
 
-    if (!inShipment()) {
+    if (!isShipment()) {
       var old = document.getElementById("rc274RefFolderBox");
       if (old) old.remove();
       return;
     }
 
-    var target = uploadArea();
+    var target = findUploadBlock();
     if (!target) return;
 
     var box = document.getElementById("rc274RefFolderBox");
@@ -142,17 +165,17 @@
     }
   }
 
-  setInterval(run, 800);
+  setInterval(run, 700);
 
   var oldRender = window.render || null;
-  if (typeof oldRender === "function" && !oldRender.__rc274_1_wrapped) {
+  if (typeof oldRender === "function" && !oldRender.__rc274_2_wrapped) {
     window.render = function () {
       var result = oldRender.apply(this, arguments);
       setTimeout(run, 100);
       setTimeout(run, 400);
       return result;
     };
-    window.render.__rc274_1_wrapped = true;
+    window.render.__rc274_2_wrapped = true;
     try { render = window.render; } catch (e) {}
   }
 
