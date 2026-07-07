@@ -26274,6 +26274,755 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC227 END: Debugmeldungen entfernen + Ladeliste Palettenblock stabilisieren -->
 
+  <!-- PRIVATE RC228 START: Benutzeranlage reparieren + POD/ABD SharePoint-Linkverwaltung -->
+<style>
+.rc228-user-grid{
+  display:grid;
+  grid-template-columns:minmax(260px,.8fr) minmax(420px,1.2fr);
+  gap:14px;
+  align-items:start;
+}
+.rc228-panel{
+  border:1px solid #dbeafe;
+  background:#f8fbff;
+  border-radius:14px;
+  padding:12px;
+}
+.rc228-user-list{
+  display:grid;
+  gap:7px;
+  max-height:520px;
+  overflow:auto;
+}
+.rc228-user-button{
+  width:100%;
+  text-align:left;
+  border:1px solid #dbeafe;
+  background:#fff;
+  color:#08245d;
+  border-radius:10px;
+  padding:9px 10px;
+  font-weight:950;
+  cursor:pointer;
+}
+.rc228-user-button.active{
+  border-color:#60a5fa;
+  background:#dbeafe;
+}
+.rc228-form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.rc228-form-grid .field,
+.rc228-full{
+  grid-column:1/-1;
+}
+.rc228-status{
+  border:1px solid #86efac;
+  background:#f0fdf4;
+  color:#166534;
+  border-radius:12px;
+  padding:9px 11px;
+  margin:0 0 10px;
+  font-weight:950;
+}
+.rc228-status.warn{
+  border-color:#fed7aa;
+  background:#fff7ed;
+  color:#9a3412;
+}
+.rc228-docs{
+  display:grid;
+  gap:7px;
+  min-width:210px;
+}
+.rc228-doc-card{
+  border:1px solid #e2e8f0;
+  background:#f8fafc;
+  border-radius:10px;
+  padding:7px;
+}
+.rc228-doc-card.rc228-linked{
+  border:2px solid #22c55e;
+  background:#dcfce7;
+}
+.rc228-doc-top{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+}
+.rc228-doc-label{
+  color:#08245d;
+  font-weight:1000;
+  text-decoration:none;
+}
+.rc228-doc-label:hover{
+  text-decoration:underline;
+}
+.rc228-doc-name{
+  color:#334155;
+  font-size:11px;
+  font-weight:850;
+  margin-top:2px;
+  overflow-wrap:anywhere;
+}
+.rc228-doc-actions{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:6px;
+}
+.rc228-doc-actions button,
+.rc228-doc-actions a,
+.rc228-overview-actions button{
+  font-size:11px!important;
+  min-height:26px!important;
+  padding:5px 7px!important;
+  border-radius:8px!important;
+  line-height:1.1!important;
+}
+.rc228-overview-table td,
+.rc228-overview-table th{
+  vertical-align:top;
+  overflow-wrap:anywhere;
+}
+.rc228-overview-actions{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+}
+.rc228-filterbar{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:0 0 12px;
+}
+.rc228-filterbar input{
+  min-width:280px;
+  flex:1;
+}
+@media(max-width:980px){
+  .rc228-user-grid,
+  .rc228-form-grid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC228: Benutzer koennen wieder angelegt/geaendert werden, POD/ABD Links werden steuerbar */
+(function(){
+  if(window.__EXPORTHUB_RC228_USERS_DOC_LINKS__)return;
+  window.__EXPORTHUB_RC228_USERS_DOC_LINKS__=true;
+
+  var DEFAULT_BASE_228='https://essentra-my.sharepoint.com/:f:/p/tobiaslimberg/IgBoRYeaVVjiRILHF8tBcwOFAaqs1Rxus1XTeta7W5NXopc?e=XY2aFL';
+
+  function e228(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n228(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function uid228(prefix){
+    try{if(typeof uid==='function')return uid(prefix)}catch(err){}
+    return String(prefix||'ID')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  }
+
+  function userKey228(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+
+  function modules228(){
+    try{if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],
+      ['dashboard','Dashboard','Dashboard'],
+      ['tasks','Aufgaben','Aufgaben'],
+      ['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],
+      ['cmr','CMR','CMR/Ladeliste'],
+      ['customers','Kunden','Kunden'],
+      ['customerfolder','Kundenordner','Kundenordner'],
+      ['pallet','Paletten','Palettenkonto'],
+      ['customs','Zoll','Zoll / ABD'],
+      ['teamfile','Team','Teamdaten']
+    ];
+  }
+
+  function blankRights228(){
+    var out={};
+    modules228().forEach(function(m){
+      var id=m[0];
+      var base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+
+  function fullRights228(){
+    var out={};
+    modules228().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+
+  function preset228(name){
+    var r=blankRights228();
+    function give(ids,edit){
+      ids.forEach(function(id){
+        if(r[id])r[id]={visible:true,read:true,edit:!!edit};
+      });
+    }
+    name=String(name||'dashboard');
+    if(name==='full')return fullRights228();
+    if(name==='dashboard')return r;
+    if(name==='export')give(['tasks','shipment','shipmentoverview','cmr','customers','customerfolder','pallet','customs'],true);
+    if(name==='overview')give(['tasks','shipmentoverview','customerfolder'],false);
+    if(name==='shipment')give(['shipment','shipmentoverview','cmr','customers','customerfolder'],true);
+    return r;
+  }
+
+  function isAdmin228(u){
+    return !!(u && (
+      (Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0) ||
+      n228(u.user)==='tobias' ||
+      n228(u.name)==='tobias' ||
+      n228(u.role).indexOf('admin')>=0 ||
+      n228(u.role).indexOf('vollzugriff')>=0
+    ));
+  }
+
+  function normalizeUser228(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.mustChange=!!u.mustChange;
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    if(isAdmin228(u)){
+      u.permissions=['*'];
+      u.rights=fullRights228();
+      u.mustChange=false;
+      return u;
+    }
+    var base=blankRights228();
+    var old=u.rights&&typeof u.rights==='object'?u.rights:{};
+    modules228().forEach(function(m){
+      var id=m[0];
+      var x=old[id]||{};
+      base[id]={
+        visible:x.visible===true || id==='start' || id==='dashboard',
+        read:x.read===true || id==='start' || id==='dashboard',
+        edit:x.edit===true
+      };
+      if(!base[id].visible){base[id].read=false;base[id].edit=false}
+      if(!base[id].read)base[id].edit=false;
+    });
+    u.rights=base;
+    return u;
+  }
+
+  function collectUsers228(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    ['exporthub_private_rc196_users','exporthub_users',userKey228()].forEach(function(key){
+      try{
+        var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+        if(Array.isArray(parsed))all=all.concat(parsed);
+      }catch(err){}
+    });
+    var map={};
+    all.forEach(function(u){
+      var x=normalizeUser228(u);
+      if(x.user)map[x.user.toLowerCase()]=Object.assign(map[x.user.toLowerCase()]||{},x);
+    });
+    return Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return normalizeUser228(map[k])});
+  }
+
+  function setStatus228(text,type){
+    var box=document.getElementById('rc228UserStatus');
+    if(box){
+      box.className='rc228-status '+(type||'');
+      box.textContent=text;
+    }
+  }
+
+  function persistUsers228(reason){
+    var list=collectUsers228();
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [userKey228(),'exporthub_private_rc196_users','exporthub_users'].forEach(function(key){
+      try{localStorage.setItem(key,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch && typeof state!=='undefined'){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:list,
+            state:Object.assign({},state,{users:list})
+          })
+        }).then(function(res){
+          setStatus228(reason+(res&&res.ok?' - Teamdaten gespeichert.':' - lokal gespeichert, Teamdaten bitte spaeter pruefen.'),res&&res.ok?'':'warn');
+        }).catch(function(){
+          setStatus228(reason+' - lokal gespeichert, Teamdaten-Sync folgt beim naechsten Speichern.','warn');
+        });
+      }
+    }catch(err){}
+    return list;
+  }
+
+  function selectedUser228(){
+    var list=collectUsers228();
+    var key=String((state&&state.rc228SelectedUser)||'').toLowerCase();
+    return list.find(function(u){return String(u.user).toLowerCase()===key}) || list[0] || null;
+  }
+
+  function createUser228(){
+    var login=String((document.getElementById('rc228NewLogin')||{}).value||'').trim();
+    var name=String((document.getElementById('rc228NewName')||{}).value||login).trim();
+    var role=String((document.getElementById('rc228NewRole')||{}).value||'Export').trim();
+    var password=String((document.getElementById('rc228NewPassword')||{}).value||'Essentra').trim();
+    var preset=String((document.getElementById('rc228NewPreset')||{}).value||'dashboard');
+    if(!login)return alert('Bitte Login / Benutzername eintragen.');
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login))return alert('Login bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.');
+    var list=collectUsers228();
+    if(list.some(function(u){return String(u.user).toLowerCase()===login.toLowerCase()}))return alert('Dieser Benutzer existiert bereits.');
+    list.push(normalizeUser228({
+      user:login,
+      name:name||login,
+      role:role||'Export',
+      password:password||'Essentra',
+      mustChange:false,
+      permissions:[],
+      rights:preset228(preset)
+    }));
+    try{users=list;state.users=JSON.parse(JSON.stringify(list));state.rc228SelectedUser=login;state.rc196User=login}catch(err){}
+    persistUsers228('Benutzer angelegt: '+(name||login));
+    alert('Benutzer wurde angelegt: '+(name||login));
+    try{render()}catch(err){}
+  }
+
+  function saveUser228(){
+    var old=selectedUser228();
+    if(!old)return alert('Bitte Benutzer auswaehlen.');
+    if(isAdmin228(old))return alert('Tobias/Vollzugriff wird nicht eingeschraenkt.');
+    var login=old.user;
+    var list=collectUsers228();
+    var u=list.find(function(x){return String(x.user).toLowerCase()===String(login).toLowerCase()});
+    if(!u)return alert('Benutzer nicht gefunden.');
+    u.name=String((document.getElementById('rc228EditName')||{}).value||u.name||u.user).trim();
+    u.role=String((document.getElementById('rc228EditRole')||{}).value||u.role||'Benutzer').trim();
+    var pass=String((document.getElementById('rc228EditPassword')||{}).value||'').trim();
+    if(pass){
+      if(pass.length<4)return alert('Passwort muss mindestens 4 Zeichen haben.');
+      u.password=pass;
+    }
+    u.mustChange=!!((document.getElementById('rc228MustChange')||{}).checked);
+    var preset=String((document.getElementById('rc228Preset')||{}).value||'manual');
+    if(preset!=='manual')u.rights=preset228(preset);
+    modules228().forEach(function(m){
+      var id=m[0];
+      var vis=document.getElementById('rc228_'+id+'_visible');
+      var read=document.getElementById('rc228_'+id+'_read');
+      var edit=document.getElementById('rc228_'+id+'_edit');
+      if(vis&&read&&edit){
+        u.rights[id]={visible:!!vis.checked,read:!!read.checked,edit:!!edit.checked};
+        if(!u.rights[id].visible){u.rights[id].read=false;u.rights[id].edit=false}
+        if(!u.rights[id].read)u.rights[id].edit=false;
+      }
+    });
+    try{users=list;state.users=JSON.parse(JSON.stringify(list));state.rc228SelectedUser=u.user}catch(err){}
+    persistUsers228('Benutzer/Rechte gespeichert: '+(u.name||u.user));
+    alert('Benutzer/Rechte gespeichert: '+(u.name||u.user));
+    try{render()}catch(err){}
+  }
+
+  function userRows228(u){
+    if(!u)return '';
+    if(isAdmin228(u))return '<div class="okbox rc228-full">Vollzugriff: dieser Benutzer hat automatisch alle Rechte.</div>';
+    return '<div class="rc228-full"><table class="table"><tr><th>Bereich</th><th>Sichtbar</th><th>Lesen</th><th>Bearbeiten</th></tr>'+
+      modules228().map(function(m){
+        var id=m[0], label=m[2]||m[1]||id, r=(u.rights&&u.rights[id])||{};
+        return '<tr><td><b>'+e228(label)+'</b></td>'+
+          '<td><input id="rc228_'+e228(id)+'_visible" type="checkbox" '+(r.visible?'checked':'')+'></td>'+
+          '<td><input id="rc228_'+e228(id)+'_read" type="checkbox" '+(r.read?'checked':'')+'></td>'+
+          '<td><input id="rc228_'+e228(id)+'_edit" type="checkbox" '+(r.edit?'checked':'')+'></td></tr>';
+      }).join('')+'</table></div>';
+  }
+
+  function rightsHtml228(){
+    var list=collectUsers228();
+    if(state && !state.rc228SelectedUser && list[0])state.rc228SelectedUser=list[0].user;
+    var selected=selectedUser228();
+    return (typeof head==='function'?head('Benutzer & Rechte','Benutzer anlegen, Passwort aendern und Rechtevorlage schnell speichern.'):'<h2>Benutzer & Rechte</h2>')+
+      '<div id="rc228UserStatus" class="rc228-status">RC228 aktiv: Benutzer werden lokal und in Teamdaten gespeichert.</div>'+
+      '<div class="rc228-user-grid">'+
+        '<div class="rc228-panel"><h3>Benutzerliste</h3><div class="rc228-user-list">'+
+          list.map(function(u){
+            var active=selected&&String(selected.user).toLowerCase()===String(u.user).toLowerCase();
+            return '<button class="rc228-user-button '+(active?'active':'')+'" onclick="state.rc228SelectedUser=&quot;'+e228(u.user)+'&quot;;state.rc196User=&quot;'+e228(u.user)+'&quot;;save();render()">'+e228(u.name||u.user)+'<br><span class="small">'+e228(u.user)+' · '+e228(u.role||'Benutzer')+'</span></button>';
+          }).join('')+
+        '</div></div>'+
+        '<div class="rc228-panel"><h3>Neuen Benutzer anlegen</h3>'+
+          '<div class="rc228-form-grid">'+
+            '<label class="field">Login / Benutzername<input id="rc228NewLogin" placeholder="z. B. Sevastian"></label>'+
+            '<label class="field">Name<input id="rc228NewName" placeholder="Name"></label>'+
+            '<label class="field">Rolle<input id="rc228NewRole" value="Export"></label>'+
+            '<label class="field">Passwort<input id="rc228NewPassword" type="text" value="Essentra"></label>'+
+            '<label class="field">Rechtevorlage<select id="rc228NewPreset"><option value="dashboard">Nur Dashboard</option><option value="overview">Dashboard + Aufgaben/Uebersicht lesen</option><option value="shipment">Sendung erstellen</option><option value="export">Export bearbeiten</option><option value="full">Vollzugriff</option></select></label>'+
+            '<div class="rc228-full"><button class="btn" onclick="rc228CreateUser()">Benutzer anlegen</button></div>'+
+          '</div>'+
+          '<hr><h3>Ausgewaehlten Benutzer bearbeiten</h3>'+
+          (selected?'<div class="rc228-form-grid">'+
+            '<label class="field">Login<input value="'+e228(selected.user)+'" disabled></label>'+
+            '<label class="field">Name<input id="rc228EditName" value="'+e228(selected.name||selected.user)+'"></label>'+
+            '<label class="field">Rolle<input id="rc228EditRole" value="'+e228(selected.role||'Benutzer')+'"></label>'+
+            '<label class="field">Neues Passwort<input id="rc228EditPassword" type="text" placeholder="leer lassen = unveraendert"></label>'+
+            '<label class="field">Rechtevorlage<select id="rc228Preset"><option value="manual">Manuell / unveraendert</option><option value="dashboard">Nur Dashboard</option><option value="overview">Dashboard + Aufgaben/Uebersicht lesen</option><option value="shipment">Sendung erstellen</option><option value="export">Export bearbeiten</option><option value="full">Vollzugriff</option></select></label>'+
+            '<label class="field"><span>Passwortwechsel</span><label class="checkrow"><input id="rc228MustChange" type="checkbox" '+(selected.mustChange?'checked':'')+'> beim naechsten Login erzwingen</label></label>'+
+            userRows228(selected)+
+            '<div class="rc228-full"><button class="btn" onclick="rc228SaveUser()">Benutzer & Rechte speichern</button></div>'+
+          '</div>':'<p class="muted">Kein Benutzer vorhanden.</p>')+
+        '</div>'+
+      '</div>';
+  }
+
+  window.rc228CreateUser=createUser228;
+  window.rc228SaveUser=saveUser228;
+  window.rc201CreateUser=createUser228;
+  window.rc196CreateUser=createUser228;
+  window.rc193CreateUser=createUser228;
+  window.rc196SaveUser=saveUser228;
+  window.rc193SaveSelectedUser=saveUser228;
+  window.rights=rightsHtml228;
+  try{rights=window.rights}catch(err){}
+
+  function iso228(v){
+    if(!v)return '';
+    var s=String(v).slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:'';
+  }
+
+  function cleanRef228(v){
+    try{if(typeof cleanShipmentRef==='function')return cleanShipmentRef(v)}catch(err){}
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  }
+
+  function saveState228(reason){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch && typeof state!=='undefined'){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:collectUsers228(),
+            state:Object.assign({},state,{users:collectUsers228()})
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+  }
+
+  window.saveState228=saveState228;
+
+  function allDocs228(s){
+    var out=[];
+    ['abdFiles','podFiles','deliveryFiles','files','documents','docs'].forEach(function(k){
+      var arr=s&&Array.isArray(s[k])?s[k]:[];
+      arr.forEach(function(d){out.push(Object.assign({source:k},d||{}))});
+    });
+    return out;
+  }
+
+  function docUrl228(d){
+    if(!d)return '';
+    return String(d.url||d.link||d.webUrl||d.sharepointUrl||d.downloadUrl||d.href||d.dataUrl||'');
+  }
+
+  function docName228(d,fallback){
+    return String((d&&(d.name||d.fileName||d.filename||d.title))||fallback||'Dokument');
+  }
+
+  function manualDoc228(s,kind){
+    var box=s.rc228Docs&&s.rc228Docs[kind];
+    if(box&&box.url)return {name:box.name||kind.toUpperCase()+'.pdf',url:box.url,manual:true};
+    var url=s['rc228'+kind.toUpperCase()+'Link']||s[kind+'Link']||'';
+    if(url)return {name:s['rc228'+kind.toUpperCase()+'Name']||kind.toUpperCase()+'.pdf',url:url,manual:true};
+    return null;
+  }
+
+  function findDoc228(s,kind){
+    var manual=manualDoc228(s,kind);
+    if(manual)return manual;
+    var docs=allDocs228(s);
+    var found=null;
+    docs.some(function(d){
+      var name=docName228(d,'');
+      var txt=n228(name+' '+docUrl228(d));
+      if(kind==='abd'){
+        if(txt.indexOf('abd')>=0){
+          found=d;
+          return true;
+        }
+      }else{
+        if(txt.indexOf('scan')>=0 || txt.indexOf('untitled')>=0 || txt.indexOf('pod')>=0){
+          found=d;
+          return true;
+        }
+      }
+      return false;
+    });
+    if(found)return {name:docName228(found,kind.toUpperCase()+'.pdf'),url:docUrl228(found),file:found};
+    return null;
+  }
+
+  function downloadUrl228(url){
+    if(!url)return '';
+    if(/^data:/i.test(url))return url;
+    if(url.indexOf('download=')>=0)return url;
+    return url+(url.indexOf('?')>=0?'&':'?')+'download=1';
+  }
+
+  function folderUrl228(s){
+    return String((s&&(s.sharepointFolderUrl||s.folderUrl||s.spFolderUrl||s.referenceFolderUrl||s.rc228FolderUrl))||'') || DEFAULT_BASE_228;
+  }
+
+  window.rc228OpenUrl=function(url){
+    if(!url)return alert('Kein Link hinterlegt.');
+    window.open(url,'_blank','noopener');
+  };
+
+  window.rc228DownloadDoc=function(url,name){
+    if(!url)return alert('Kein PDF-Link hinterlegt.');
+    var a=document.createElement('a');
+    a.href=downloadUrl228(url);
+    a.target='_blank';
+    a.rel='noopener';
+    a.download=String(name||'Dokument.pdf');
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){try{a.remove()}catch(err){}},200);
+  };
+
+  window.rc228SetDocLink=function(id,kind,source){
+    var list=source==='abdRequest'?(state.abdRequests||[]):(state.shipments||[]);
+    var s=list.find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return alert('Eintrag nicht gefunden.');
+    var current=findDoc228(s,kind)||{};
+    var label=kind==='abd'?'ABD':'POD';
+    var url=prompt(label+' Link einfuegen oder korrigieren:',current.url||'');
+    if(url===null)return;
+    url=String(url||'').trim();
+    s.rc228Docs=s.rc228Docs||{};
+    if(!url){
+      delete s.rc228Docs[kind];
+      delete s['rc228'+kind.toUpperCase()+'Link'];
+      saveState228(label+' Link entfernt');
+      try{render()}catch(err){}
+      return;
+    }
+    var name=prompt(label+' Anzeigename:',current.name||label+'.pdf');
+    s.rc228Docs[kind]={url:url,name:String(name||label+'.pdf').trim(),updatedAt:new Date().toISOString(),updatedBy:(currentUser&&(currentUser.name||currentUser.user))||'Benutzer'};
+    if(kind==='abd'){
+      s.abdStatus='Dokument vorhanden';
+      if(!Array.isArray(s.abdFiles))s.abdFiles=[];
+    }else{
+      s.podStatus='hochgeladen';
+      if(!Array.isArray(s.podFiles))s.podFiles=[];
+    }
+    saveState228(label+' Link gespeichert');
+    try{render()}catch(err){}
+  };
+
+  window.rc228SetFolderLink=function(id){
+    var s=(state.shipments||[]).find(function(x){return String(x.id||'')===String(id)});
+    if(!s)return alert('Sendung nicht gefunden.');
+    var url=prompt('SharePoint-Referenzordner fuer '+(s.ref||'')+' einfuegen:',folderUrl228(s));
+    if(url===null)return;
+    s.rc228FolderUrl=String(url||'').trim();
+    saveState228('Referenzordner gespeichert');
+    try{render()}catch(err){}
+  };
+
+  function docCard228(s,kind,source){
+    var label=kind==='abd'?'ABD':'POD';
+    var doc=findDoc228(s,kind);
+    var linked=!!(doc&&doc.url);
+    var shownName=doc&&doc.name?doc.name:(kind==='abd'?'kein ABD verlinkt':'kein POD verlinkt');
+    return '<div class="rc228-doc-card '+(linked?'rc228-linked':'')+'">'+
+      '<div class="rc228-doc-top">'+
+        (linked?'<a class="rc228-doc-label" href="'+e228(doc.url)+'" target="_blank" rel="noopener">'+label+'</a>':'<span class="rc228-doc-label">'+label+'</span>')+
+        '<span class="pill '+(linked?'green':'gray')+'">'+(linked?'verlinkt':'fehlt')+'</span>'+
+      '</div>'+
+      '<div class="rc228-doc-name">'+e228(shownName)+'</div>'+
+      '<div class="rc228-doc-actions">'+
+        (linked?'<button class="ghost" onclick="rc228OpenUrl(&quot;'+e228(doc.url)+'&quot;)">Oeffnen</button><button class="soft" onclick="rc228DownloadDoc(&quot;'+e228(doc.url)+'&quot;,&quot;'+e228(doc.name||label+'.pdf')+'&quot;)">PDF runterladen</button>':'')+
+        '<button class="ghost" onclick="rc228SetDocLink(&quot;'+e228(s.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;)">Link aendern</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function docCell228(s,source){
+    return '<div class="rc228-docs">'+
+      docCard228(s,'abd',source)+
+      docCard228(s,'pod',source)+
+    '</div>';
+  }
+
+  function docsText228(s){
+    return allDocs228(s).map(function(d){return docName228(d,'')+' '+docUrl228(d)}).join(' ');
+  }
+
+  function docs228(s){
+    var notes=String((s&&s.deliveryNotes)||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean);
+    var files=((s&&s.deliveryFiles)||[]).map(function(f){return f.name||f.filename||''}).filter(Boolean);
+    return notes.concat(files.filter(function(x){return notes.indexOf(x)<0}));
+  }
+
+  function statusShip228(s){
+    var raw=n228([(s&&s.status),(s&&s.freigabe),(s&&s.pickupStatus),(s&&s.completedAt?'erledigt':'')].join(' '));
+    if(raw.indexOf('erled')>=0)return 'Erledigt';
+    if(raw.indexOf('ueber')>=0 || raw.indexOf('uber')>=0)return 'Ueberfaellig';
+    return 'Offen';
+  }
+
+  function statusAbd228(r){
+    var raw=n228([(r&&r.status),(r&&r.done?'erledigt':''),(r&&r.completedAt?'erledigt':''),findDoc228(r,'abd')?'dokument vorhanden':''].join(' '));
+    if(raw.indexOf('erled')>=0)return 'Erledigt';
+    if(raw.indexOf('dokument')>=0 || raw.indexOf('hochgeladen')>=0)return 'Dokument vorhanden';
+    return (r&&r.status)||'Offen';
+  }
+
+  function pill228(t){
+    var x=n228(t);
+    var cls=x.indexOf('erled')>=0?'green':(x.indexOf('dokument')>=0?'blue':(x.indexOf('ueber')>=0||x.indexOf('uber')>=0?'red':'orange'));
+    return '<span class="pill '+cls+'">'+e228(t||'Offen')+'</span>';
+  }
+
+  function planned228(s){return iso228(s&&s.plannedPickupDate)||iso228(s&&s.pickupDate)||''}
+  function actual228(s){return iso228(s&&s.actualPickupDate)||iso228(s&&s.pickedUpAtDate)||''}
+
+  function customer228(s){
+    var c=(s&&s.customer)||{};
+    return [c.account||c.customerNumber,c.name,c.country].filter(Boolean).join(' · ');
+  }
+
+  function abdCustomer228(r){
+    var c=(r&&r.customer)||{};
+    var rf=cleanRef228(r&&r.ref);
+    var s=(state.shipments||[]).find(function(x){return cleanRef228(x.ref)===rf})||{};
+    var sc=s.customer||{};
+    return [c.account||c.customerNumber||r.customerNumber||sc.account||sc.customerNumber,c.name||r.customerName||sc.name].filter(Boolean).join(' · ');
+  }
+
+  window.rc228SetOverviewSearch=function(value){
+    state.shipmentOverviewSearch=String(value||'');
+    clearTimeout(window.__rc228SearchTimer);
+    window.__rc228SearchTimer=setTimeout(function(){
+      try{if(typeof save==='function')save()}catch(err){}
+      try{render()}catch(err){}
+    },180);
+  };
+
+  window.shipmentoverview=function(){
+    state.rc228ShipmentsBaseFolder=state.rc228ShipmentsBaseFolder||DEFAULT_BASE_228;
+    var query=n228(state.shipmentOverviewSearch||'');
+    var typ=state.rc203OverviewType||state.rc202OverviewType||state.rc200OverviewType||'all';
+    var st=state.shipmentOverviewStatus||'Alle';
+    var hideDone=state.rc203HideDone!==undefined?!!state.rc203HideDone:true;
+    var ships=(state.shipments||[]).slice();
+    var abds=(state.abdRequests||[]).slice();
+    if(query){
+      ships=ships.filter(function(s){return n228([s.ref,s.created,customer228(s),docs228(s).join(' '),docsText228(s),statusShip228(s)].join(' ')).indexOf(query)>=0});
+      abds=abds.filter(function(r){return n228([r.ref,r.created,r.createdIso,abdCustomer228(r),r.note,r.manualText,docsText228(r),statusAbd228(r)].join(' ')).indexOf(query)>=0});
+    }
+    if(hideDone){
+      ships=ships.filter(function(s){return statusShip228(s)!=='Erledigt'});
+      abds=abds.filter(function(r){return statusAbd228(r)!=='Erledigt'});
+    }
+    if(st && st!=='Alle'){
+      ships=ships.filter(function(s){return n228(statusShip228(s)).indexOf(n228(st))>=0});
+      abds=abds.filter(function(r){return n228(statusAbd228(r)).indexOf(n228(st))>=0});
+    }
+    ships.sort(function(a,b){return String(b.created||'').localeCompare(String(a.created||''))});
+    abds.sort(function(a,b){return String(b.createdIso||b.created||'').localeCompare(String(a.createdIso||a.created||''))});
+
+    var out=(typeof head==='function'?head('Sendungsuebersicht','Sendungen und ABD Anfragen filtern, Abholdaten pflegen, POD/ABD verlinken.'):'<h2>Sendungsuebersicht</h2>')+
+      '<div class="rc228-filterbar">'+
+        '<input id="shipmentOverviewSearchInput" placeholder="Referenz, Kunde, DNC, POD oder ABD suchen" value="'+e228(state.shipmentOverviewSearch||'')+'" oninput="rc228SetOverviewSearch(this.value)">'+
+        '<select onchange="state.rc203OverviewType=this.value;state.rc202OverviewType=this.value;state.rc200OverviewType=this.value;saveState228&&saveState228();render()"><option value="all" '+(typ==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(typ==='shipments'?'selected':'')+'>Nur Sendungen</option><option value="abd" '+(typ==='abd'?'selected':'')+'>Nur ABD</option></select>'+
+        '<select onchange="state.shipmentOverviewStatus=this.value;save();render()"><option '+(st==='Alle'?'selected':'')+'>Alle</option><option value="Offen" '+(st==='Offen'?'selected':'')+'>Offen</option><option value="Ueberfaellig" '+(st==='Ueberfaellig'?'selected':'')+'>Ueberfaellig</option><option value="Erledigt" '+(st==='Erledigt'?'selected':'')+'>Erledigt</option><option value="Dokument vorhanden" '+(st==='Dokument vorhanden'?'selected':'')+'>Dokument vorhanden</option></select>'+
+        '<label class="rc203-check"><input type="checkbox" '+(hideDone?'checked':'')+' onchange="state.rc203HideDone=this.checked;state.rc202HideDone=this.checked;state.rc200HideDone=this.checked;save();render()"> Erledigte ausblenden</label>'+
+        '<button class="ghost" onclick="state.shipmentOverviewSearch=&quot;&quot;;state.shipmentOverviewStatus=&quot;Alle&quot;;state.rc203OverviewType=&quot;all&quot;;state.rc203HideDone=true;save();render()">Filter loeschen</button>'+
+        '<button class="ghost" onclick="rc228OpenUrl(state.rc228ShipmentsBaseFolder||&quot;'+e228(DEFAULT_BASE_228)+'&quot;)">Basisordner oeffnen</button>'+
+      '</div><div class="toolbar"><button class="soft" onclick="setView(&quot;shipment&quot;)">+ Sendung erstellen</button><button class="ghost" onclick="setView(&quot;abd&quot;)">+ ABD Anfrage</button></div>';
+
+    if(typ==='all' || typ==='shipments'){
+      out+='<div class="card"><h3>Sendungen</h3>';
+      if(!ships.length)out+='<p class="muted">Keine Sendungen fuer diesen Filter.</p>';
+      else out+='<table class="table rc228-overview-table"><tr><th>Referenz</th><th>Kunde</th><th>Abholdaten</th><th>DNC / Lieferscheine</th><th>POD / ABD</th><th>Status</th><th>Aktion</th></tr>'+
+        ships.map(function(s){
+          var dncs=docs228(s);
+          return '<tr><td><b>'+e228(s.ref||'')+'</b><br><span class="small">'+e228(s.created||'')+'</span></td>'+
+            '<td>'+e228(customer228(s))+'</td>'+
+            '<td><div class="rc203-date-grid"><label>Geplant<input type="date" value="'+e228(planned228(s))+'" onchange="updateSavedShipmentPlannedPickupDate(&quot;'+e228(s.id||'')+'&quot;,this.value)"></label><label>Tatsaechlich<input type="date" value="'+e228(actual228(s))+'" onchange="updateSavedShipmentActualPickupDate(&quot;'+e228(s.id||'')+'&quot;,this.value)"></label></div></td>'+
+            '<td>'+(dncs.length?dncs.map(function(x){return '<span class="pill gray">'+e228(x)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</td>'+
+            '<td>'+docCell228(s,'shipment')+'</td>'+
+            '<td>'+pill228(statusShip228(s))+'</td>'+
+            '<td><div class="rc228-overview-actions"><button class="ghost" onclick="loadShipment(&quot;'+e228(s.id||'')+'&quot;)">Oeffnen</button><button class="ghost" onclick="showSavedCmr(&quot;'+e228(s.id||'')+'&quot;)">Ladeliste/CMR</button><button class="ghost" onclick="rc228OpenUrl(&quot;'+e228(folderUrl228(s))+'&quot;)">Ordner</button><button class="ghost" onclick="rc228SetFolderLink(&quot;'+e228(s.id||'')+'&quot;)">Ordnerlink</button><button class="rc203-delete" onclick="rc203DeleteShipment(&quot;'+e228(s.id||'')+'&quot;)">Loeschen</button></div></td></tr>';
+        }).join('')+'</table>';
+      out+='</div>';
+    }
+
+    if(typ==='all' || typ==='abd'){
+      out+='<div class="card"><h3>ABD Anfragen</h3>';
+      if(!abds.length)out+='<p class="muted">Keine ABD Anfragen fuer diesen Filter.</p>';
+      else out+='<table class="table rc228-overview-table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>Dokumente</th><th>Datum</th><th>Aktion</th></tr>'+
+        abds.map(function(r){
+          return '<tr><td><b>'+e228(r.ref||'')+'</b></td><td>'+e228(abdCustomer228(r))+'</td><td>'+pill228(statusAbd228(r))+'</td>'+
+            '<td>'+docCard228(r,'abd','abdRequest')+'</td>'+
+            '<td>'+e228(r.created||r.createdIso||'')+'</td><td><div class="rc228-overview-actions"><button class="ghost" onclick="setView(&quot;abd&quot;)">ABD oeffnen</button><button class="rc203-delete" onclick="rc203DeleteAbd(&quot;'+e228(r.id||'')+'&quot;)">Loeschen</button></div></td></tr>';
+        }).join('')+'</table>';
+      out+='</div>';
+    }
+    return out;
+  };
+  try{shipmentoverview=window.shipmentoverview}catch(err){}
+
+  try{persistUsers228('Benutzerliste bereit')}catch(err){}
+})();
+</script>
+<!-- PRIVATE RC228 END: Benutzeranlage reparieren + POD/ABD SharePoint-Linkverwaltung -->
   
 </body></html>
 
