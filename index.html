@@ -29157,6 +29157,405 @@ button[onclick*="Ordnername"]{
 </script>
 <!-- PRIVATE RC234 END: Neue Sendung leert Collis wirklich + Ladelisten-Alert fix -->
 
+  <!-- PRIVATE RC237 START: SharePoint-Block weg + Nullstellung + Zeilen loeschen + Mail/CMR Buttons unten -->
+<style>
+body .rc232-folder-note,
+body .rc232-folder-actions{
+  display:none!important;
+}
+.rc237-colli-actions{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  margin:14px 0 8px!important;
+  padding-top:10px!important;
+  border-top:1px solid #dbeafe!important;
+}
+.rc237-colli-actions button{
+  min-height:34px!important;
+  padding:7px 11px!important;
+  border-radius:10px!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC237: Finaler Nachpatch fuer Sendung erstellen */
+(function(){
+  if(window.__EXPORTHUB_RC237_SHIPMENT_FINAL__)return;
+  window.__EXPORTHUB_RC237_SHIPMENT_FINAL__=true;
+
+  var guardUntil237=0;
+
+  function n237(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+
+  function esc237(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function clone237(v){
+    try{return JSON.parse(JSON.stringify(v))}catch(err){return v}
+  }
+
+  function blank237(){
+    return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''};
+  }
+
+  function has237(row){
+    return !!(row && ['type','count','ldm','weight','l','w','h'].some(function(k){
+      var v=row[k];
+      return v!=='' && v!==null && v!==undefined;
+    }));
+  }
+
+  function num237(v){
+    if(v===null || v===undefined)return '';
+    var s=String(v).trim();
+    if(!s)return '';
+    var n=Number(s.replace(',','.'));
+    return isFinite(n)?n:s;
+  }
+
+  function customer237(){
+    try{
+      var s=state&&state.shipment?state.shipment:{};
+      if(s.customer&&s.customer.id)return s.customer;
+      var id=s.customerId||state.selectedCustomerId;
+      var c=(state.customers||[]).find(function(x){
+        return String(x.id||'')===String(id||'') ||
+          String(x.account||x.customerNumber||'')===String(s.customerNumber||s.account||'');
+      });
+      return c||null;
+    }catch(err){return null}
+  }
+
+  function colliCacheKeys237(){
+    var current='current';
+    try{
+      var s=(state&&state.shipment)||{};
+      current=String(s.id||s.ref||s.customerId||'current').replace(/[^A-Za-z0-9_-]+/g,'_')||'current';
+    }catch(err){}
+    return [
+      'exporthub_rc203_last_rows',
+      'exporthub_rc209_colli_rows_last',
+      'exporthub_rc210_colli_rows',
+      'exporthub_rc221_colli_rows_'+current,
+      'exporthub_rc221_colli_rows_last',
+      'exporthub_rc224_colli_'+current,
+      'exporthub_rc224_colli_last',
+      'exporthub_rc226_colli_rows_last',
+      'exporthub_rc231_colli_'+current,
+      'exporthub_rc231_colli_last',
+      'exporthub_rc236_colli_'+current,
+      'exporthub_rc237_colli_'+current
+    ];
+  }
+
+  function clearColliCaches237(){
+    try{
+      var remove=[];
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i)||'';
+        if(/^exporthub_rc(199|203|209|210|221|224|226|231|234|236|237).*(colli|rows)/i.test(k))remove.push(k);
+      }
+      remove.concat(colliCacheKeys237()).forEach(function(k){try{localStorage.removeItem(k)}catch(err){}});
+    }catch(err){}
+  }
+
+  function setRows237(rows,storeNonBlank){
+    rows=Array.isArray(rows)?rows:[];
+    if(!rows.length)rows=[blank237()];
+    state.shipment=state.shipment||{};
+    state.shipment.rows=clone237(rows);
+    var nonBlank=rows.filter(has237);
+    state.rc199LastShipmentRows=storeNonBlank?clone237(nonBlank):[];
+    state.rc203LastRows=storeNonBlank?clone237(nonBlank):[];
+    state.rc209LastColliRows=storeNonBlank?clone237(nonBlank):[];
+    state.rc210ColliRows=storeNonBlank?clone237(nonBlank):[];
+    state.rc221LastColliRows=storeNonBlank?clone237(nonBlank):[];
+    state.rc224ColliRows=storeNonBlank?clone237(nonBlank):[];
+    state.rc226ColliRows=storeNonBlank?clone237(nonBlank):[];
+    state.rc231ColliRows=storeNonBlank?clone237(nonBlank):[];
+    clearColliCaches237();
+    if(storeNonBlank && nonBlank.length){
+      colliCacheKeys237().forEach(function(k){try{localStorage.setItem(k,JSON.stringify(nonBlank))}catch(err){}});
+    }
+    return state.shipment.rows;
+  }
+
+  function readRows237(){
+    var box=document.getElementById('rowsBox');
+    if(!box)return clone237((state&&state.shipment&&state.shipment.rows)||[blank237()]);
+    var cards=Array.from(box.children).filter(function(card){
+      return card && card.querySelector && card.querySelector('select,input');
+    });
+    if(!cards.length && box.querySelector('select,input'))cards=[box];
+    var rows=cards.map(function(card){
+      var select=card.querySelector('select');
+      var inputs=Array.from(card.querySelectorAll('input')).filter(function(el){
+        return !/^(hidden|file|checkbox|radio)$/i.test(el.type||'');
+      });
+      return {
+        type:select?String(select.value||''):'',
+        count:num237(inputs[0]&&inputs[0].value),
+        ldm:num237(inputs[1]&&inputs[1].value),
+        weight:num237(inputs[2]&&inputs[2].value),
+        l:num237(inputs[3]&&inputs[3].value),
+        w:num237(inputs[4]&&inputs[4].value),
+        h:num237(inputs[5]&&inputs[5].value)
+      };
+    });
+    return rows.length?rows:clone237((state&&state.shipment&&state.shipment.rows)||[blank237()]);
+  }
+
+  function saveRender237(rows,storeNonBlank){
+    guardUntil237=Date.now()+1800;
+    setRows237(rows,storeNonBlank);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    setTimeout(function(){setRows237(rows,storeNonBlank)},80);
+    setTimeout(function(){setRows237(rows,storeNonBlank)},300);
+  }
+
+  window.removeShipmentRow=function(index){
+    var rows=readRows237();
+    var i=Number(index);
+    if(!isFinite(i)||i<0)i=0;
+    rows.splice(i,1);
+    if(!rows.length)rows=[blank237()];
+    saveRender237(rows,true);
+    return false;
+  };
+  try{removeShipmentRow=window.removeShipmentRow}catch(err){}
+
+  function rowIndex237(btn){
+    var oc=String(btn&&btn.getAttribute&&btn.getAttribute('onclick')||'');
+    var m=oc.match(/removeShipmentRow\((\d+)\)/i);
+    if(m)return Number(m[1]);
+    var box=document.getElementById('rowsBox');
+    if(!box)return 0;
+    var cards=Array.from(box.children).filter(function(card){
+      return card && card.querySelector && card.querySelector('select,input');
+    });
+    for(var i=0;i<cards.length;i++){
+      if(cards[i].contains(btn))return i;
+    }
+    return 0;
+  }
+
+  document.addEventListener('click',function(ev){
+    var btn=ev.target&&ev.target.closest&&ev.target.closest('button');
+    if(!btn)return;
+    var txt=n237(btn.textContent);
+    var oc=n237(btn.getAttribute&&btn.getAttribute('onclick'));
+    if(txt==='entfernen' || oc.indexOf('removeshipmentrow')>=0){
+      ev.preventDefault();
+      ev.stopPropagation();
+      window.removeShipmentRow(rowIndex237(btn));
+      return false;
+    }
+  },true);
+
+  function resetShipment237(){
+    if(typeof state==='undefined'||!state)return;
+    state.shipment=state.shipment||{};
+    var s=state.shipment;
+    s.deliveryNotes='';
+    s.deliveryFiles=[];
+    s.podFiles=[];
+    s.abdFiles=[];
+    s.rc230Docs={};
+    s.pickupDate='';
+    s.plannedPickupDate='';
+    s.actualPickupDate='';
+    s.pickedUpAtDate='';
+    s.carrier='';
+    s.licensePlate='';
+    s.loader='';
+    s.incoterm='';
+    s.goodsDescription='';
+    s.comments='';
+    s.nonEuCheck=false;
+    s.addressConfirmed=false;
+    s.freigabe='offen';
+    s.status='offen';
+    s.abdStatus='';
+    s.podStatus='';
+    s.mailText='';
+    s.mailSubject='';
+    setRows237([blank237()],false);
+  }
+
+  var baseNewShipment237=window.newShipment || (typeof newShipment==='function'?newShipment:null);
+  window.newShipment=function(){
+    guardUntil237=Date.now()+2500;
+    clearColliCaches237();
+    var result;
+    try{
+      if(typeof baseNewShipment237==='function')result=baseNewShipment237.apply(this,arguments);
+    }catch(err){}
+    resetShipment237();
+    try{state.activeShipmentId='current'}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{if(typeof render==='function')render()}catch(err){}
+    setTimeout(resetShipment237,80);
+    setTimeout(resetShipment237,320);
+    return result;
+  };
+  try{newShipment=window.newShipment}catch(err){}
+
+  function guardCollector237(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base!=='function' || base.__rc237Wrapped)return;
+      var wrapped=function(){
+        if(Date.now()<guardUntil237)return clone237((state&&state.shipment&&state.shipment.rows)||[blank237()]);
+        return base.apply(this,arguments);
+      };
+      wrapped.__rc237Wrapped=true;
+      window[name]=wrapped;
+      try{eval(name+'=window[name]')}catch(err){}
+    }catch(err){}
+  }
+  ['rc221CollectColliRows','rc224CollectColliRows','rc226RepairColliFields','rc231CollectColliRows'].forEach(guardCollector237);
+
+  function removeHeadingBlock237(h){
+    if(!h)return;
+    var card=h.closest&&h.closest('.card,.rc182-folder-card,.rc188-sp-card,.rc191-sp-card,section,article');
+    var cardText=n237(card&&card.textContent);
+    if(card && cardText.indexOf('kunde grunddaten')<0 && cardText.indexOf('collis')<0){
+      card.remove();
+      return;
+    }
+    var parent=h.parentNode;
+    if(!parent){h.remove();return;}
+    var nodes=[h];
+    var el=h.nextElementSibling;
+    while(el){
+      var tag=(el.tagName||'').toUpperCase();
+      var txt=n237(el.textContent);
+      if(/^H[1-4]$/.test(tag) && txt.indexOf('sendungsordner')<0)break;
+      if(txt.indexOf('kunde grunddaten')>=0 || txt.indexOf('kundennummer kunde suchen')>=0 || txt.indexOf('collis masse gewicht')>=0)break;
+      var next=el.nextElementSibling;
+      nodes.push(el);
+      el=next;
+    }
+    nodes.forEach(function(x){try{x.remove()}catch(err){}});
+  }
+
+  function removeSharePointBlock237(root){
+    try{
+      root=root||document;
+      if(!state || state.view!=='shipment')return;
+      Array.from(root.querySelectorAll('.rc232-folder-note,.rc232-folder-actions')).forEach(function(el){el.remove()});
+      Array.from(root.querySelectorAll('h1,h2,h3,h4')).forEach(function(h){
+        var txt=n237(h.textContent);
+        if(txt.indexOf('sendungsordner')>=0 && txt.indexOf('lieferscheine')>=0)removeHeadingBlock237(h);
+      });
+      Array.from(root.querySelectorAll('.card,.rc182-folder-card,.rc188-sp-card,.rc191-sp-card,section,article')).forEach(function(el){
+        var txt=n237(el.textContent);
+        var h=n237((el.querySelector&&el.querySelector('h1,h2,h3,h4')||{}).textContent);
+        if((h.indexOf('sendungsordner')>=0 && h.indexOf('lieferscheine')>=0) || txt.indexOf('onedrive-/sharepoint-basislink')>=0 || (txt.indexOf('sharepoint-basislink')>=0 && txt.indexOf('basisordner-link')>=0)){
+          if(txt.indexOf('kunde grunddaten')<0 && txt.indexOf('collis')<0)el.remove();
+        }
+      });
+      Array.from(root.querySelectorAll('button,a,label')).forEach(function(el){
+        var txt=n237(el.textContent);
+        var oc=n237(el.getAttribute&&el.getAttribute('onclick'));
+        if(txt==='referenzordner offnen' || txt==='referenzordner oeffnen' || txt==='passenden ordner hochladen' || oc.indexOf('rc232openfolderpicker')>=0 || oc.indexOf('rc232openreferencefolder')>=0){
+          el.remove();
+        }
+      });
+    }catch(err){}
+  }
+
+  function openMail237(ev){
+    if(ev&&ev.preventDefault)ev.preventDefault();
+    var c=customer237();
+    if(!c){alert('Bitte zuerst einen Kunden auswaehlen.');return false}
+    try{if(typeof rc190OpenShipmentMail==='function')return rc190OpenShipmentMail(c.id,ev)}catch(err){}
+    try{if(typeof rc185OpenShipmentMail==='function')return rc185OpenShipmentMail(c.id,ev)}catch(err){}
+    try{if(typeof rc189OpenMail==='function')return rc189OpenMail(c.id,ev)}catch(err){}
+    try{
+      var a=document.createElement('a');
+      a.href='mailto:';
+      if(typeof prepareShipmentMailLink==='function'){
+        var ok=prepareShipmentMailLink(a,c.id);
+        if(ok!==false && a.href)a.click();
+        return false;
+      }
+    }catch(err){}
+    try{if(typeof copyShipmentMail==='function')copyShipmentMail(c.id)}catch(err){}
+    return false;
+  }
+  window.rc237OpenMail=openMail237;
+
+  function insertColliActions237(root){
+    try{
+      root=root||document;
+      if(!state || state.view!=='shipment')return;
+      if(root.querySelector('.rc237-colli-actions'))return;
+      var h=Array.from(root.querySelectorAll('h2,h3,h4')).find(function(x){
+        return /Collis,\s*(Maße|Masse),\s*Gewicht,\s*Lademeter/i.test(x.textContent||'');
+      });
+      if(!h)return;
+      var card=h.closest&&h.closest('.card,section,article,div');
+      if(!card)return;
+      var anchor=card.querySelector('.summaryGrid') || card.querySelector('#rowsBox') || h;
+      var html='<div class="rc237-colli-actions">'+
+        '<button type="button" class="btn" onclick="saveShipment()">Sendung speichern + Aufgaben pruefen</button>'+
+        '<button type="button" class="btn" onclick="return rc237OpenMail(event)">Mail senden</button>'+
+        '<button type="button" class="ghost" onclick="showCurrentCmr()">CMR/Ladeliste Vorschau</button>'+
+      '</div>';
+      anchor.insertAdjacentHTML(anchor.classList&&anchor.classList.contains('summaryGrid')?'afterend':'beforebegin',html);
+    }catch(err){}
+  }
+
+  function patchDom237(){
+    removeSharePointBlock237(document);
+    insertColliActions237(document);
+  }
+
+  var baseRender237=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender237==='function' && !baseRender237.__rc237Wrapped){
+    var wrappedRender237=function(){
+      var result=baseRender237.apply(this,arguments);
+      setTimeout(patchDom237,0);
+      setTimeout(patchDom237,180);
+      setTimeout(patchDom237,520);
+      return result;
+    };
+    wrappedRender237.__rc237Wrapped=true;
+    window.render=wrappedRender237;
+    try{render=wrappedRender237}catch(err){}
+  }
+
+  var baseShipment237=window.shipment || (typeof shipment==='function'?shipment:null);
+  if(typeof baseShipment237==='function' && !baseShipment237.__rc237Wrapped){
+    var wrappedShipment237=function(){
+      var html=String(baseShipment237.apply(this,arguments)||'');
+      setTimeout(patchDom237,0);
+      setTimeout(patchDom237,200);
+      return html;
+    };
+    wrappedShipment237.__rc237Wrapped=true;
+    window.shipment=wrappedShipment237;
+    try{shipment=wrappedShipment237}catch(err){}
+  }
+
+  setTimeout(patchDom237,250);
+  setInterval(patchDom237,1200);
+})();
+</script>
+<!-- PRIVATE RC237 END: SharePoint-Block weg + Nullstellung + Zeilen loeschen + Mail/CMR Buttons unten -->
   
 </body></html>
 
