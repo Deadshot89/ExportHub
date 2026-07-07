@@ -36258,7 +36258,8 @@ body .rc232-folder-actions{
 
   var SAFE_STATE='exporthub_manual_persistent_state_v260';
   var SAFE_USERS='exporthub_manual_persistent_users_v260';
-  var REF_BASE='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+	  var REF_BASE='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+	  var GPZ_DEFAULT_MAIL='mail@gp-zollabfertigung.de';
 
   function appState(){try{return typeof state!=='undefined'&&state?state:null}catch(err){return null}}
   function appUsers(){try{return typeof users!=='undefined'&&Array.isArray(users)?users:[]}catch(err){return []}}
@@ -37821,15 +37822,38 @@ body .rc232-folder-actions{
   <!-- PRIVATE RC265 START: ABD Anfrage + Refordner Position + Ladeliste A4 + Standardmail Empfaengerfix -->
 <style>
 .rc265-abd-request-panel{
-  border:1px solid #bae6fd!important;
-  background:#f0f9ff!important;
+  border:1px solid #fdba74!important;
+  background:#fff7ed!important;
   border-radius:14px!important;
-  padding:12px!important;
+  padding:14px!important;
   margin:12px 0!important;
+  box-shadow:0 8px 24px rgba(249,115,22,.10)!important;
 }
 .rc265-abd-request-panel h3{
   margin:0 0 8px!important;
-  color:#08245d!important;
+  color:#9a3412!important;
+}
+.rc265-abd-intro{
+  border:1px solid #fed7aa!important;
+  background:#ffedd5!important;
+  border-radius:12px!important;
+  padding:9px 10px!important;
+  margin:0 0 10px!important;
+  color:#7c2d12!important;
+  font-weight:850!important;
+}
+.rc265-abd-preview{
+  border:1px solid #fed7aa!important;
+  background:#fff!important;
+  border-radius:10px!important;
+  padding:10px!important;
+  white-space:pre-wrap!important;
+  font-family:Segoe UI,Roboto,Arial,sans-serif!important;
+  font-size:12.5px!important;
+  line-height:1.45!important;
+  max-height:220px!important;
+  overflow:auto!important;
+  color:#1f2937!important;
 }
 .rc265-grid{
   display:grid!important;
@@ -37839,7 +37863,7 @@ body .rc232-folder-actions{
 .rc265-grid label{
   display:grid!important;
   gap:4px!important;
-  color:#334155!important;
+  color:#7c2d12!important;
   font-weight:900!important;
 }
 .rc265-grid input,
@@ -37958,10 +37982,14 @@ body .rc232-folder-actions{
       .replace(/[^a-z0-9]+/g,' ')
       .trim();
   }
-  function ref265(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
-  function saveRender265(){
-    try{if(typeof save==='function')save()}catch(err){}
-    try{if(typeof render==='function')render()}catch(err){}
+	  function ref265(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+	  function refFolderUrl265(reference){
+	    var r=ref265(reference);
+	    return r?REF_BASE.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'?csf=1&web=1':'';
+	  }
+	  function saveRender265(){
+	    try{if(typeof save==='function')save()}catch(err){}
+	    try{if(typeof render==='function')render()}catch(err){}
   }
   function currentShipment265(){
     var s=st265();
@@ -38007,19 +38035,77 @@ body .rc232-folder-actions{
     return out.filter(function(x){var k=n265(x);if(!k||seen[k])return false;seen[k]=true;return true});
   }
 
-  function gpzMail265(){
-    var s=st265();
-    return String((s&&(s.rc265GpzMail||s.gpzMail))||localStorage.getItem('exporthub_gpz_mail')||'').trim();
-  }
+	  function gpzMail265(){
+	    var s=st265();
+	    var mail=String((s&&(s.rc265GpzMail||s.gpzMail))||localStorage.getItem('exporthub_gpz_mail')||GPZ_DEFAULT_MAIL).trim();
+	    if(s&&!s.rc265GpzMail){s.rc265GpzMail=mail;s.gpzMail=mail}
+	    try{if(!localStorage.getItem('exporthub_gpz_mail'))localStorage.setItem('exporthub_gpz_mail',mail)}catch(err){}
+	    return mail;
+	  }
   window.rc265SetGpzMail=function(v){
     var s=st265();if(s){s.rc265GpzMail=String(v||'').trim();s.gpzMail=s.rc265GpzMail}
     try{localStorage.setItem('exporthub_gpz_mail',String(v||'').trim())}catch(err){}
     try{if(typeof save==='function')save()}catch(err){}
   };
-  function abdDraft265(){
-    var s=st265(), sh=currentShipment265()||{}, c=selectedCustomer265()||{}, t=totals265(sh);
-    if(!s)return {};
-    s.rc265AbdDraft=s.rc265AbdDraft||{};
+	  function defaultAbdMailText265(){
+	    return [
+	      'Hallo GPZ,',
+	      '',
+	      'bitte fuer die folgende Sendung eine ABD-Anfrage bearbeiten:',
+	      '',
+	      'Referenznummer: {Referenznummer}',
+	      'Kunde: {Kundenname}',
+	      'Kundennummer: {Kundennummer}',
+	      'Land: {Land}',
+	      'Empfaengeradresse: {Empfaengeradresse}',
+	      'Geplantes Abholdatum: {Abholdatum}',
+	      'Spedition: {Spedition}',
+	      'Collis: {Collis}',
+	      'Gewicht: {Gewicht} kg',
+	      'Lademeter: {Lademeter}',
+	      'Warenbeschreibung: {Warenbeschreibung}',
+	      '',
+	      'Lieferscheine / DNCs:',
+	      '{Lieferscheine}',
+	      '',
+	      'Referenzordner ABD:',
+	      '{Referenzordner}',
+	      '',
+	      'Bemerkung:',
+	      '{Bemerkung}',
+	      '',
+	      'Vielen Dank.',
+	      '',
+	      'Mit freundlichen Gruessen',
+	      'Tobias Limberg'
+	    ].join('\n');
+	  }
+	  function fillAbdMailTemplate265(template,d){
+	    d=d||{};
+	    var map={
+	      Referenznummer:ref265(d.ref)||'offen',
+	      Kundenname:d.customerName||'offen',
+	      Kundennummer:d.account||'offen',
+	      Land:d.country||'offen',
+	      Empfaengeradresse:String(d.address||'offen').replace(/\n/g,', '),
+	      Abholdatum:d.pickupDate||'offen',
+	      Spedition:d.carrier||'offen',
+	      Collis:d.colli||'0',
+	      Gewicht:d.weight||'0',
+	      Lademeter:d.ldm||'0',
+	      Warenbeschreibung:d.goods||'offen',
+	      Lieferscheine:d.deliveryNotes||'offen',
+	      Referenzordner:refFolderUrl265(d.ref)||'Referenznummer offen',
+	      Bemerkung:d.comment||'-'
+	    };
+	    return String(template||defaultAbdMailText265()).replace(/\{([A-Za-zÄÖÜäöüß]+)\}/g,function(all,key){
+	      return Object.prototype.hasOwnProperty.call(map,key)?map[key]:all;
+	    });
+	  }
+	  function abdDraft265(){
+	    var s=st265(), sh=currentShipment265()||{}, c=selectedCustomer265()||{}, t=totals265(sh);
+	    if(!s)return {};
+	    s.rc265AbdDraft=s.rc265AbdDraft||{};
     return Object.assign({
       ref:ref265(sh.ref)||'',
       customerName:c.name||sh.customerName||'',
@@ -38031,45 +38117,29 @@ body .rc232-folder-actions{
       colli:t.count||'',
       weight:Number(t.weight||0).toFixed(1),
       ldm:Number(t.ldm||0).toFixed(2),
-      deliveryNotes:docs265(sh).join('\n'),
-      goods:sh.goodsDescription||'Waren laut Rechnung/Ladeliste',
-      comment:sh.comments||''
-    },s.rc265AbdDraft);
-  }
-  window.rc265AbdField=function(k,v){
-    var s=st265();if(!s)return;
-    s.rc265AbdDraft=s.rc265AbdDraft||abdDraft265();
-    s.rc265AbdDraft[k]=v;
-    try{if(typeof save==='function')save()}catch(err){}
-  };
-  function abdMailBody265(d){
-    return [
-      'Hallo GPZ,',
-      '',
-      'bitte fuer die folgende Sendung eine ABD-Anfrage bearbeiten:',
-      '',
-      'Referenznummer: '+(d.ref||'offen'),
-      'Kunde: '+(d.customerName||'offen'),
-      'Kundennummer: '+(d.account||'offen'),
-      'Land: '+(d.country||'offen'),
-      'Empfaengeradresse: '+String(d.address||'offen').replace(/\n/g,', '),
-      'Geplantes Abholdatum: '+(d.pickupDate||'offen'),
-      'Spedition: '+(d.carrier||'offen'),
-      'Collis: '+(d.colli||'0'),
-      'Gewicht: '+(d.weight||'0')+' kg',
-      'Lademeter: '+(d.ldm||'0'),
-      'Warenbeschreibung: '+(d.goods||'offen'),
-      '',
-      'Lieferscheine / DNCs:',
-      d.deliveryNotes||'offen',
-      '',
-      d.comment?('Bemerkung:\n'+d.comment+'\n'):'',
-      'Vielen Dank.',
-      '',
-      'Mit freundlichen Gruessen',
-      'Tobias Limberg'
-    ].filter(function(x){return x!=='' || true}).join('\n');
-  }
+	      deliveryNotes:docs265(sh).join('\n'),
+	      goods:sh.goodsDescription||'Waren laut Rechnung/Ladeliste',
+	      comment:sh.comments||'',
+	      mailText:s.rc265AbdStandardText||defaultAbdMailText265()
+	    },s.rc265AbdDraft);
+	  }
+	  window.rc265AbdField=function(k,v){
+	    var s=st265();if(!s)return;
+	    s.rc265AbdDraft=s.rc265AbdDraft||abdDraft265();
+	    s.rc265AbdDraft[k]=v;
+	    if(k==='mailText')s.rc265AbdStandardText=String(v||'');
+	    try{if(typeof save==='function')save()}catch(err){}
+	  };
+	  window.rc265UpdateAbdPreview=function(){
+	    var box=document.getElementById('rc265AbdPreview');
+	    if(!box)return false;
+	    var d=abdDraft265();
+	    box.textContent='An: '+gpzMail265()+'\nBetreff: ABD Anfrage '+(ref265(d.ref)||'[Referenznummer]')+' / '+(d.customerName||'Kunde')+'\n\n'+abdMailBody265(d);
+	    return false;
+	  };
+	  function abdMailBody265(d){
+	    return fillAbdMailTemplate265(d&&d.mailText,d);
+	  }
   function saveAbdRequest265(){
     var s=st265();if(!s)return null;
     var d=abdDraft265();
@@ -38079,11 +38149,12 @@ body .rc232-folder-actions{
     s.abdRequests=Array.isArray(s.abdRequests)?s.abdRequests:[];
     var found=s.abdRequests.find(function(x){return ref265(x&&x.ref)===r});
     var item=Object.assign(found||{},d,{
-      id:(found&&found.id)||('abd_'+r),
-      ref:r,
-      type:'ABD Anfrage',
-      status:(found&&found.status)||'offen',
-      updatedAt:new Date().toISOString(),
+	      id:(found&&found.id)||('abd_'+r),
+	      ref:r,
+	      referenceFolderUrl:refFolderUrl265(r),
+	      type:'ABD Anfrage',
+	      status:(found&&found.status)||'offen',
+	      updatedAt:new Date().toISOString(),
       createdAt:(found&&found.createdAt)||new Date().toISOString()
     });
     if(!found)s.abdRequests.unshift(item);
@@ -38119,33 +38190,38 @@ body .rc232-folder-actions{
     if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
     return false;
   };
-  function abdPanelHtml265(){
-    var d=abdDraft265();
-    return '<section id="rc265AbdPanel" class="rc265-abd-request-panel">'+
-      '<h3>ABD Anfrage an GPZ</h3>'+
-      '<div class="rc265-grid">'+
-      '<label>GPZ Mailadresse<input value="'+e265(gpzMail265())+'" oninput="rc265SetGpzMail(this.value)" placeholder="gpz-mailadresse eintragen"></label>'+
-      '<label>Referenznummer<input value="'+e265(d.ref||'')+'" oninput="rc265AbdField(&quot;ref&quot;,this.value)"></label>'+
-      '<label>Kunde<input value="'+e265(d.customerName||'')+'" oninput="rc265AbdField(&quot;customerName&quot;,this.value)"></label>'+
-      '<label>Kundennummer<input value="'+e265(d.account||'')+'" oninput="rc265AbdField(&quot;account&quot;,this.value)"></label>'+
-      '<label>Land<input value="'+e265(d.country||'')+'" oninput="rc265AbdField(&quot;country&quot;,this.value)"></label>'+
-      '<label>Abholdatum<input type="date" value="'+e265(d.pickupDate||'')+'" oninput="rc265AbdField(&quot;pickupDate&quot;,this.value)"></label>'+
-      '<label>Collis<input value="'+e265(d.colli||'')+'" oninput="rc265AbdField(&quot;colli&quot;,this.value)"></label>'+
-      '<label>Gewicht kg<input value="'+e265(d.weight||'')+'" oninput="rc265AbdField(&quot;weight&quot;,this.value)"></label>'+
-      '<label>Lademeter<input value="'+e265(d.ldm||'')+'" oninput="rc265AbdField(&quot;ldm&quot;,this.value)"></label>'+
-      '<label>Spedition<input value="'+e265(d.carrier||'')+'" oninput="rc265AbdField(&quot;carrier&quot;,this.value)"></label>'+
-      '<label style="grid-column:1/-1">Empfaengeradresse<textarea rows="2" oninput="rc265AbdField(&quot;address&quot;,this.value)">'+e265(d.address||'')+'</textarea></label>'+
-      '<label style="grid-column:1/-1">Lieferscheine / DNCs<textarea rows="3" oninput="rc265AbdField(&quot;deliveryNotes&quot;,this.value)">'+e265(d.deliveryNotes||'')+'</textarea></label>'+
-      '<label style="grid-column:1/-1">Warenbeschreibung<textarea rows="2" oninput="rc265AbdField(&quot;goods&quot;,this.value)">'+e265(d.goods||'')+'</textarea></label>'+
-      '<label style="grid-column:1/-1">Bemerkung<textarea rows="2" oninput="rc265AbdField(&quot;comment&quot;,this.value)">'+e265(d.comment||'')+'</textarea></label>'+
-      '</div>'+
-      '<div class="rc265-actions">'+
-      '<button type="button" class="btn" onclick="return rc265SendAbdToGpz()">ABD Mail an GPZ erstellen</button>'+
-      '<button type="button" class="ghost" onclick="return rc265SaveAbdRequest()">ABD Anfrage speichern</button>'+
-      '<button type="button" class="ghost" onclick="return rc265CopyAbdMail()">Mailtext kopieren</button>'+
-      '</div>'+
-      '</section>';
-  }
+	  function abdPanelHtml265(){
+	    var d=abdDraft265();
+	    var preview='An: '+gpzMail265()+'\nBetreff: ABD Anfrage '+(ref265(d.ref)||'[Referenznummer]')+' / '+(d.customerName||'Kunde')+'\n\n'+abdMailBody265(d);
+	    return '<section id="rc265AbdPanel" class="rc265-abd-request-panel">'+
+	      '<h3>ABD Anfrage an GPZ</h3>'+
+	      '<div class="rc265-abd-intro">Mailziel ist GPZ. Die Daten aus diesem Bereich werden automatisch in den Standardmail-Text eingesetzt. Der Referenzordner wird mit der ABD-Referenz verlinkt.</div>'+
+	      '<div class="rc265-grid">'+
+	      '<label>GPZ Mailadresse<input value="'+e265(gpzMail265())+'" oninput="rc265SetGpzMail(this.value);rc265UpdateAbdPreview()" placeholder="mail@gp-zollabfertigung.de"></label>'+
+	      '<label>Referenznummer<input value="'+e265(d.ref||'')+'" oninput="rc265AbdField(&quot;ref&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Kunde<input value="'+e265(d.customerName||'')+'" oninput="rc265AbdField(&quot;customerName&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Kundennummer<input value="'+e265(d.account||'')+'" oninput="rc265AbdField(&quot;account&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Land<input value="'+e265(d.country||'')+'" oninput="rc265AbdField(&quot;country&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Abholdatum<input type="date" value="'+e265(d.pickupDate||'')+'" oninput="rc265AbdField(&quot;pickupDate&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Collis<input value="'+e265(d.colli||'')+'" oninput="rc265AbdField(&quot;colli&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Gewicht kg<input value="'+e265(d.weight||'')+'" oninput="rc265AbdField(&quot;weight&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Lademeter<input value="'+e265(d.ldm||'')+'" oninput="rc265AbdField(&quot;ldm&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label>Spedition<input value="'+e265(d.carrier||'')+'" oninput="rc265AbdField(&quot;carrier&quot;,this.value);rc265UpdateAbdPreview()"></label>'+
+	      '<label style="grid-column:1/-1">Empfaengeradresse<textarea rows="2" oninput="rc265AbdField(&quot;address&quot;,this.value);rc265UpdateAbdPreview()">'+e265(d.address||'')+'</textarea></label>'+
+	      '<label style="grid-column:1/-1">Lieferscheine / DNCs<textarea rows="3" oninput="rc265AbdField(&quot;deliveryNotes&quot;,this.value);rc265UpdateAbdPreview()">'+e265(d.deliveryNotes||'')+'</textarea></label>'+
+	      '<label style="grid-column:1/-1">Warenbeschreibung<textarea rows="2" oninput="rc265AbdField(&quot;goods&quot;,this.value);rc265UpdateAbdPreview()">'+e265(d.goods||'')+'</textarea></label>'+
+	      '<label style="grid-column:1/-1">Bemerkung<textarea rows="2" oninput="rc265AbdField(&quot;comment&quot;,this.value);rc265UpdateAbdPreview()">'+e265(d.comment||'')+'</textarea></label>'+
+	      '<label style="grid-column:1/-1">Standardmail Text<textarea rows="13" oninput="rc265AbdField(&quot;mailText&quot;,this.value);rc265UpdateAbdPreview()">'+e265(d.mailText||defaultAbdMailText265())+'</textarea></label>'+
+	      '</div>'+
+	      '<pre id="rc265AbdPreview" class="rc265-abd-preview">'+e265(preview)+'</pre>'+
+	      '<div class="rc265-actions">'+
+	      '<button type="button" class="btn" onclick="return rc265SendAbdToGpz()">ABD Mail an GPZ erstellen</button>'+
+	      '<button type="button" class="ghost" onclick="return rc265SaveAbdRequest()">ABD Anfrage speichern</button>'+
+	      '<button type="button" class="ghost" onclick="return rc265CopyAbdMail()">Mailtext kopieren</button>'+
+	      '<button type="button" class="ghost" onclick="return rc265OpenAbdReferenceFolder()">ABD Ref.-Ordner oeffnen</button>'+
+	      '</div>'+
+	      '</section>';
+	  }
   function addAbdPanel265(force){
     var s=st265();
     if(!s||s.view!=='shipment')return;
@@ -38174,14 +38250,21 @@ body .rc232-folder-actions{
     }
   }
 
-  window.rc265OpenReferenceFolder=function(){
-    try{if(typeof rc246OpenReferenceFolder==='function')return rc246OpenReferenceFolder()}catch(err){}
-    try{if(typeof rc260OpenReferenceFolder==='function')return rc260OpenReferenceFolder()}catch(err){}
-    var r=ref265(currentShipment265()&&currentShipment265().ref);
-    if(!r){alert('Bitte zuerst eine Referenznummer erstellen.');return false}
-    window.open(REF_BASE.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'?csf=1&web=1','_blank','noopener,noreferrer');
-    return false;
-  };
+	  window.rc265OpenReferenceFolder=function(){
+	    try{if(typeof rc246OpenReferenceFolder==='function')return rc246OpenReferenceFolder()}catch(err){}
+	    try{if(typeof rc260OpenReferenceFolder==='function')return rc260OpenReferenceFolder()}catch(err){}
+	    var r=ref265(currentShipment265()&&currentShipment265().ref);
+	    if(!r){alert('Bitte zuerst eine Referenznummer erstellen.');return false}
+	    window.open(refFolderUrl265(r),'_blank','noopener,noreferrer');
+	    return false;
+	  };
+	  window.rc265OpenAbdReferenceFolder=function(){
+	    var d=abdDraft265();
+	    var r=ref265(d&&d.ref);
+	    if(!r){alert('Bitte zuerst eine ABD Referenznummer eintragen.');return false}
+	    window.open(refFolderUrl265(r),'_blank','noopener,noreferrer');
+	    return false;
+	  };
   window.rc265ImportReferenceFolder=function(){
     try{if(typeof rc246OpenReferenceFolderPicker==='function')return rc246OpenReferenceFolderPicker()}catch(err){}
     var text=prompt('Dateinamen aus dem Referenzordner einfuegen, eine Datei je Zeile:','');
