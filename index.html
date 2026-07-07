@@ -30313,6 +30313,625 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC240 END: Colli-Zeilen unter Sendung erstellen hart loeschbar machen -->
 
+  <!-- PRIVATE RC241 START: Benutzeranlage Hartfix -->
+<style>
+.rc241-user-grid{
+  display:grid;
+  grid-template-columns:minmax(260px,.75fr) minmax(520px,1.25fr);
+  gap:14px;
+  align-items:start;
+}
+.rc241-panel{
+  border:1px solid #bfdbfe;
+  background:#f8fbff;
+  border-radius:12px;
+  padding:12px;
+}
+.rc241-user-list{
+  display:grid;
+  gap:7px;
+  max-height:520px;
+  overflow:auto;
+}
+.rc241-user-btn{
+  width:100%;
+  text-align:left;
+  border:1px solid #dbeafe;
+  background:#fff;
+  color:#08245d;
+  border-radius:10px;
+  padding:9px 10px;
+  font-weight:950;
+  cursor:pointer;
+}
+.rc241-user-btn.active{
+  border-color:#60a5fa;
+  background:#dbeafe;
+}
+.rc241-form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.rc241-full{grid-column:1/-1}
+.rc241-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.rc241-status{
+  border:1px solid #bfdbfe;
+  background:#eff6ff;
+  color:#08245d;
+  border-radius:12px;
+  padding:9px 11px;
+  margin:0 0 12px;
+  font-weight:950;
+}
+.rc241-status.ok{
+  border-color:#86efac;
+  background:#f0fdf4;
+  color:#166534;
+}
+.rc241-status.warn{
+  border-color:#fed7aa;
+  background:#fff7ed;
+  color:#9a3412;
+}
+.rc241-status.bad{
+  border-color:#fecaca;
+  background:#fee2e2;
+  color:#991b1b;
+}
+.rc241-rights-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border:1px solid #dbeafe;
+  border-radius:12px;
+  background:#fff;
+  margin-top:12px;
+}
+.rc241-rights-table th,
+.rc241-rights-table td{
+  padding:7px 9px;
+  border-bottom:1px solid #e5eefc;
+  font-size:12px;
+  text-align:left;
+}
+.rc241-rights-table th{
+  background:#dbeafe;
+  color:#08245d;
+  font-weight:1000;
+}
+.rc241-rights-table tr:last-child td{border-bottom:0}
+.rc241-rights-table td:nth-child(n+2),
+.rc241-rights-table th:nth-child(n+2){text-align:center;width:96px}
+.rc241-help{
+  border:1px solid #fed7aa;
+  background:#fff7ed;
+  color:#7c2d12;
+  border-radius:12px;
+  padding:9px 11px;
+  margin-top:10px;
+  font-size:12px;
+  font-weight:850;
+}
+@media(max-width:980px){
+  .rc241-user-grid,
+  .rc241-form-grid{grid-template-columns:1fr}
+}
+</style>
+
+<script>
+/* PRIVATE RC241: stabile Benutzeranlage, Rechtevergabe und Teamdaten-Speicherung */
+(function(){
+  if(window.__EXPORTHUB_RC241_USER_CREATE_HARDFIX__)return;
+  window.__EXPORTHUB_RC241_USER_CREATE_HARDFIX__=true;
+
+  function e241(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function n241(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function userKey241(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+
+  function modules241(){
+    try{if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],
+      ['dashboard','Dashboard','Dashboard'],
+      ['tasks','Aufgaben','Aufgaben'],
+      ['vacation','Urlaub','Urlaub'],
+      ['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],
+      ['cmr','CMR','CMR/Ladeliste'],
+      ['pallet','Paletten','Palettenkonto'],
+      ['customers','Kunden','Kunden'],
+      ['customerfolder','Kundenordner','Kundenordner'],
+      ['calculator','Rechner','Rechner'],
+      ['customs','Zoll','Zoll / ABD'],
+      ['sop','SOP','SOP'],
+      ['academy','Academy','Academy'],
+      ['quiz','Quiz','Quiz'],
+      ['teamfile','Teamdaten','Teamdaten'],
+      ['archive','Archiv','Archiv'],
+      ['rights','Rechte','Benutzer & Rechte']
+    ];
+  }
+
+  function label241(m){
+    return String(m[2]||m[1]||m[0]||'');
+  }
+
+  function blankRights241(){
+    var out={};
+    modules241().forEach(function(m){
+      var id=m[0];
+      var base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+
+  function fullRights241(){
+    var out={};
+    modules241().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+
+  function allow241(rights,ids,edit){
+    ids.forEach(function(id){
+      if(!rights[id])rights[id]={visible:false,read:false,edit:false};
+      rights[id]={visible:true,read:true,edit:!!edit};
+    });
+  }
+
+  function preset241(name){
+    name=String(name||'dashboard');
+    if(name==='full')return fullRights241();
+    var r=blankRights241();
+    if(name==='dashboard')return r;
+    if(name==='overview'){
+      allow241(r,['tasks','shipmentoverview','customerfolder'],false);
+      return r;
+    }
+    if(name==='shipment'){
+      allow241(r,['shipment','shipmentoverview','cmr'],true);
+      allow241(r,['customers','customerfolder','tasks'],false);
+      return r;
+    }
+    if(name==='customers'){
+      allow241(r,['customers','customerfolder'],true);
+      allow241(r,['shipmentoverview'],false);
+      return r;
+    }
+    if(name==='export'){
+      allow241(r,['tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);
+      return r;
+    }
+    if(name==='readall'){
+      modules241().forEach(function(m){r[m[0]]={visible:true,read:true,edit:false}});
+      return r;
+    }
+    return r;
+  }
+
+  function isAdmin241(u){
+    return !!(u && (
+      (Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0) ||
+      n241(u.user)==='tobias' ||
+      n241(u.name)==='tobias' ||
+      n241(u.role).indexOf('admin')>=0 ||
+      n241(u.role).indexOf('vollzugriff')>=0
+    ));
+  }
+
+  function normalizeUser241(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    u.mustChange=!!u.mustChange;
+    if(isAdmin241(u)){
+      u.permissions=['*'];
+      u.rights=fullRights241();
+      u.mustChange=false;
+      return u;
+    }
+    var base=blankRights241();
+    var old=u.rights&&typeof u.rights==='object'?u.rights:{};
+    modules241().forEach(function(m){
+      var id=m[0], x=old[id]||{};
+      base[id]={
+        visible:x.visible===true || id==='start' || id==='dashboard',
+        read:x.read===true || id==='start' || id==='dashboard',
+        edit:x.edit===true
+      };
+      if(!base[id].visible){base[id].read=false;base[id].edit=false}
+      if(!base[id].read)base[id].edit=false;
+    });
+    u.rights=base;
+    return u;
+  }
+
+  function readUsersKey241(key){
+    try{
+      var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(parsed)?parsed:[];
+    }catch(err){return []}
+  }
+
+  function collectUsers241(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    [
+      userKey241(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users'
+    ].forEach(function(key){all=all.concat(readUsersKey241(key))});
+    var map={};
+    all.forEach(function(u){
+      var x=normalizeUser241(u);
+      if(!x.user)return;
+      map[n241(x.user)]=Object.assign(map[n241(x.user)]||{},x);
+    });
+    return Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return normalizeUser241(map[k])});
+  }
+
+  function selectedLogin241(){
+    try{return state.rc241SelectedUser||state.rc228SelectedUser||state.rc196User||state.rc193RightsUser||state.rightsUser||''}catch(err){}
+    return '';
+  }
+
+  function setSelected241(login){
+    try{
+      state.rc241SelectedUser=login;
+      state.rc228SelectedUser=login;
+      state.rc196User=login;
+      state.rc193RightsUser=login;
+      state.rc93RightsUser=login;
+      state.rightsUser=login;
+    }catch(err){}
+  }
+
+  function status241(text,type){
+    try{
+      var box=document.getElementById('rc241UserStatus');
+      if(box){
+        box.className='rc241-status '+(type||'');
+        box.textContent=text;
+      }
+    }catch(err){}
+  }
+
+  function persistUsers241(list,reason){
+    list=(Array.isArray(list)?list:collectUsers241()).map(normalizeUser241);
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    [
+      userKey241(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users'
+    ].forEach(function(key){
+      try{localStorage.setItem(key,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(currentUser){
+        var fresh=list.find(function(u){return n241(u.user)===n241(currentUser.user)});
+        if(fresh)currentUser=fresh;
+      }
+    }catch(err){}
+    pushTeam241(list,reason||'Benutzer gespeichert');
+    return list;
+  }
+
+  function pushTeam241(list,reason){
+    try{
+      if(!window.fetch || !state){
+        status241((reason||'Benutzer gespeichert')+' - lokal gespeichert.','warn');
+        return;
+      }
+      fetch('/api/exporthub/state',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+          users:list,
+          state:Object.assign({},state,{users:list})
+        })
+      }).then(function(res){
+        if(res&&res.ok)status241((reason||'Benutzer gespeichert')+' - lokal und in Teamdaten gespeichert.','ok');
+        else status241((reason||'Benutzer gespeichert')+' - lokal gespeichert, Teamdaten nicht bestaetigt.','warn');
+      }).catch(function(){
+        status241((reason||'Benutzer gespeichert')+' - lokal gespeichert, Teamdaten-Sync folgt beim naechsten Speichern.','warn');
+      });
+    }catch(err){
+      status241((reason||'Benutzer gespeichert')+' - lokal gespeichert.','warn');
+    }
+  }
+
+  function field241(ids,fallback){
+    for(var i=0;i<ids.length;i++){
+      var el=document.getElementById(ids[i]);
+      if(el && String(el.value||'').trim())return String(el.value||'').trim();
+    }
+    return fallback||'';
+  }
+
+  function setField241(id,value){
+    var el=document.getElementById(id);
+    if(el)el.value=value||'';
+  }
+
+  function readRightsFromUi241(u){
+    var rights=blankRights241();
+    modules241().forEach(function(m){
+      var id=m[0];
+      var v=document.getElementById('rc241_'+id+'_visible');
+      var r=document.getElementById('rc241_'+id+'_read');
+      var ed=document.getElementById('rc241_'+id+'_edit');
+      rights[id]={
+        visible:v?!!v.checked:!!(u.rights&&u.rights[id]&&u.rights[id].visible),
+        read:r?!!r.checked:!!(u.rights&&u.rights[id]&&u.rights[id].read),
+        edit:ed?!!ed.checked:!!(u.rights&&u.rights[id]&&u.rights[id].edit)
+      };
+      if(!rights[id].visible){rights[id].read=false;rights[id].edit=false}
+      if(!rights[id].read)rights[id].edit=false;
+    });
+    return rights;
+  }
+
+  function createUser241(){
+    var login=field241(['rc241NewLogin','rc228NewLogin','rc196NewLogin','rc193NewLogin','newUserLogin','userLogin']);
+    var name=field241(['rc241NewName','rc228NewName','rc196NewName','rc193NewName','newUserName'],login);
+    var role=field241(['rc241NewRole','rc228NewRole','rc196NewRole','rc193NewRole','newUserRole'],'Benutzer');
+    var password=field241(['rc241NewPassword','rc228NewPassword','rc196NewPassword','rc193NewPassword','newUserPassword'],'Essentra');
+    var preset=field241(['rc241NewPreset','rc228NewPreset','rc196NewPreset','rc193NewPreset'],'dashboard');
+    if(!login){alert('Bitte Login / Benutzername eintragen.');return false}
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login)){
+      alert('Login bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich.');
+      return false;
+    }
+    var list=collectUsers241();
+    if(list.some(function(u){return n241(u.user)===n241(login)})){
+      alert('Dieser Benutzer existiert bereits.');
+      return false;
+    }
+    var u=normalizeUser241({
+      user:login,
+      login:login,
+      name:name||login,
+      role:role||'Benutzer',
+      password:password||'Essentra',
+      mustChange:true,
+      permissions:[],
+      rights:preset241(preset)
+    });
+    list.push(u);
+    setSelected241(u.user);
+    persistUsers241(list,'Benutzer '+u.user+' angelegt');
+    try{if(typeof audit==='function')audit('Benutzer angelegt',(u.name||u.user)+' / '+u.role)}catch(err){}
+    try{render()}catch(err){}
+    setTimeout(function(){
+      setField241('rc241NewLogin','');
+      setField241('rc241NewName','');
+      setField241('rc241NewRole','');
+      setField241('rc241NewPassword','');
+    },0);
+    return false;
+  }
+
+  function saveUser241(){
+    var list=collectUsers241();
+    var selected=field241(['rc241EditUser'],selectedLogin241());
+    var u=list.find(function(x){return n241(x.user)===n241(selected)});
+    if(!u){alert('Bitte zuerst einen Benutzer auswaehlen.');return false}
+    if(!isAdmin241(u)){
+      var preset=field241(['rc241EditPreset'],'manual');
+      if(preset && preset!=='manual')u.rights=preset241(preset);
+      else u.rights=readRightsFromUi241(u);
+      u.permissions=[];
+    }
+    u.name=field241(['rc241EditName','rc228EditName','rc196EditName','rc193EditName'],u.name||u.user);
+    u.role=field241(['rc241EditRole','rc228EditRole','rc196EditRole','rc193EditRole'],u.role||'Benutzer');
+    var pass=field241(['rc241EditPassword','rc228EditPassword','rc196EditPassword','rc193EditPassword'],'');
+    if(pass)u.password=pass;
+    var must=document.getElementById('rc241EditMustChange');
+    if(must)u.mustChange=!!must.checked;
+    var idx=list.findIndex(function(x){return n241(x.user)===n241(u.user)});
+    if(idx>=0)list[idx]=normalizeUser241(u);
+    persistUsers241(list,'Benutzer '+u.user+' gespeichert');
+    try{if(typeof audit==='function')audit('Benutzer gespeichert',(u.name||u.user)+' / '+u.role)}catch(err){}
+    try{render()}catch(err){}
+    return false;
+  }
+
+  function selectUser241(login){
+    setSelected241(login);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{render()}catch(err){}
+    return false;
+  }
+
+  function applyPreset241(name){
+    var list=collectUsers241();
+    var selected=selectedLogin241();
+    var u=list.find(function(x){return n241(x.user)===n241(selected)});
+    if(!u){alert('Bitte zuerst einen Benutzer auswaehlen.');return false}
+    if(isAdmin241(u)){alert('Admin/Tobias bleibt Vollzugriff.');return false}
+    u.rights=preset241(name);
+    if(name==='export')u.role='Export';
+    if(name==='dashboard')u.role=u.role||'Benutzer';
+    persistUsers241(list,'Rechtevorlage gespeichert');
+    try{render()}catch(err){}
+    return false;
+  }
+
+  function rightsRows241(u){
+    if(!u)return '';
+    var r=u.rights||{};
+    return modules241().map(function(m){
+      var id=m[0], x=r[id]||{};
+      var locked=isAdmin241(u)?' disabled':'';
+      return '<tr>'+
+        '<td><b>'+e241(label241(m))+'</b><br><span style="color:#64748b">'+e241(id)+'</span></td>'+
+        '<td><input type="checkbox" id="rc241_'+e241(id)+'_visible" '+(x.visible?'checked':'')+locked+'></td>'+
+        '<td><input type="checkbox" id="rc241_'+e241(id)+'_read" '+(x.read?'checked':'')+locked+'></td>'+
+        '<td><input type="checkbox" id="rc241_'+e241(id)+'_edit" '+(x.edit?'checked':'')+locked+'></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  function rightsHtml241(){
+    var list=collectUsers241();
+    var selected=selectedLogin241() || (list[0]&&list[0].user) || '';
+    if(selected)setSelected241(selected);
+    var u=list.find(function(x){return n241(x.user)===n241(selected)}) || list[0] || null;
+    var listHtml=list.map(function(x){
+      var active=u&&n241(x.user)===n241(u.user);
+      return '<button type="button" class="rc241-user-btn '+(active?'active':'')+'" onclick="rc241SelectUser(&quot;'+e241(x.user)+'&quot;)">'+
+        '<b>'+e241(x.name||x.user)+'</b><br><span>'+e241(x.user)+' / '+e241(x.role||'Benutzer')+'</span>'+
+      '</button>';
+    }).join('');
+    var userOptions=list.map(function(x){
+      return '<option value="'+e241(x.user)+'" '+(u&&n241(x.user)===n241(u.user)?'selected':'')+'>'+e241((x.name||x.user)+' / '+x.user+' / '+(x.role||'Benutzer'))+'</option>';
+    }).join('');
+    var edit = u ? '<div class="rc241-form-grid">'+
+      '<label class="field rc241-full">Benutzer<select id="rc241EditUser" onchange="rc241SelectUser(this.value)">'+userOptions+'</select></label>'+
+      '<label class="field">Name<input id="rc241EditName" value="'+e241(u.name||'')+'"></label>'+
+      '<label class="field">Rolle<input id="rc241EditRole" value="'+e241(u.role||'')+'"></label>'+
+      '<label class="field">Neues Passwort<input id="rc241EditPassword" type="password" placeholder="leer lassen = bleibt"></label>'+
+      '<label class="field">Rechtevorlage<select id="rc241EditPreset">'+
+        '<option value="manual">Manuell / Tabelle unten</option>'+
+        '<option value="dashboard">Nur Dashboard</option>'+
+        '<option value="shipment">Sendungen bearbeiten</option>'+
+        '<option value="customers">Kunden bearbeiten</option>'+
+        '<option value="overview">Uebersicht lesen</option>'+
+        '<option value="export">Export Standard</option>'+
+        '<option value="readall">Alles lesen</option>'+
+        '<option value="full">Vollzugriff</option>'+
+      '</select></label>'+
+      '<label class="field rc241-full"><input id="rc241EditMustChange" type="checkbox" '+(u.mustChange?'checked':'')+'> Passwortwechsel beim naechsten Login erzwingen</label>'+
+      '</div>'+
+      '<div class="rc241-actions">'+
+        '<button type="button" class="primary" onclick="rc241SaveUser()">Benutzer & Rechte speichern</button>'+
+        '<button type="button" class="ghost" onclick="rc241ApplyPreset(&quot;dashboard&quot;)">Nur Dashboard</button>'+
+        '<button type="button" class="ghost" onclick="rc241ApplyPreset(&quot;shipment&quot;)">Sendungen bearbeiten</button>'+
+        '<button type="button" class="ghost" onclick="rc241ApplyPreset(&quot;customers&quot;)">Kunden bearbeiten</button>'+
+        '<button type="button" class="soft" onclick="rc241ApplyPreset(&quot;export&quot;)">Export Standard</button>'+
+      '</div>'+
+      '<table class="rc241-rights-table"><thead><tr><th>Bereich</th><th>Sichtbar</th><th>Lesen</th><th>Bearbeiten</th></tr></thead><tbody>'+rightsRows241(u)+'</tbody></table>' :
+      '<div class="rc241-status warn">Noch kein Benutzer vorhanden.</div>';
+    return '<div class="card">'+
+      '<h2>Benutzer & Rechte</h2>'+
+      '<div id="rc241UserStatus" class="rc241-status">RC241 aktiv: Benutzeranlage speichert lokal und in Teamdaten.</div>'+
+      '<div class="rc241-user-grid">'+
+        '<div class="rc241-panel">'+
+          '<h3>Benutzerliste</h3>'+
+          '<div class="rc241-user-list">'+listHtml+'</div>'+
+          '<div class="rc241-help"><b>Bearbeiten</b> wird fuer Sendung anlegen, Kunde anlegen, Speichern, Loeschen und Abschliessen benoetigt. Nur <b>Lesen</b> zeigt Daten ohne Aenderung.</div>'+
+        '</div>'+
+        '<div class="rc241-panel">'+
+          '<h3>Neuen Benutzer anlegen</h3>'+
+          '<div class="rc241-form-grid">'+
+            '<label class="field">Login / Benutzername<input id="rc241NewLogin" autocomplete="off" placeholder="z. B. Sevastian"></label>'+
+            '<label class="field">Name<input id="rc241NewName" autocomplete="off" placeholder="z. B. Sevastian"></label>'+
+            '<label class="field">Rolle<input id="rc241NewRole" autocomplete="off" placeholder="z. B. Export"></label>'+
+            '<label class="field">Start-Passwort<input id="rc241NewPassword" type="password" autocomplete="new-password" placeholder="z. B. Essentra"></label>'+
+            '<label class="field rc241-full">Rechtevorlage<select id="rc241NewPreset">'+
+              '<option value="dashboard">Nur Dashboard</option>'+
+              '<option value="shipment">Sendungen bearbeiten</option>'+
+              '<option value="customers">Kunden bearbeiten</option>'+
+              '<option value="overview">Uebersicht lesen</option>'+
+              '<option value="export">Export Standard</option>'+
+              '<option value="readall">Alles lesen</option>'+
+              '<option value="full">Vollzugriff</option>'+
+            '</select></label>'+
+          '</div>'+
+          '<div class="rc241-actions"><button type="button" class="primary" onclick="rc241CreateUser()">Benutzer anlegen</button></div>'+
+          '<hr style="border:0;border-top:1px solid #dbeafe;margin:14px 0">'+
+          '<h3>Ausgewaehlten Benutzer bearbeiten</h3>'+
+          edit+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  window.rc241CreateUser=createUser241;
+  window.rc241SaveUser=saveUser241;
+  window.rc241SelectUser=selectUser241;
+  window.rc241ApplyPreset=applyPreset241;
+  window.rc241CollectUsers=collectUsers241;
+
+  window.rc228CreateUser=createUser241;
+  window.rc201CreateUser=createUser241;
+  window.rc196CreateUser=createUser241;
+  window.rc193CreateUser=createUser241;
+  window.rc228SaveUser=saveUser241;
+  window.rc196SaveUser=saveUser241;
+  window.rc193SaveSelectedUser=saveUser241;
+
+  window.rights=rightsHtml241;
+  try{rights=window.rights}catch(err){}
+
+  document.addEventListener('click',function(ev){
+    var btn=ev.target&&ev.target.closest?ev.target.closest('button'):null;
+    if(!btn)return;
+    var txt=n241(btn.textContent||'');
+    if(txt==='benutzer anlegen'){
+      ev.preventDefault();
+      ev.stopPropagation();
+      createUser241();
+    }else if(txt==='benutzer rechte speichern' || txt==='benutzer und rechte speichern'){
+      ev.preventDefault();
+      ev.stopPropagation();
+      saveUser241();
+    }
+  },true);
+
+  setTimeout(function(){
+    try{
+      var list=collectUsers241();
+      persistUsers241(list,'Benutzerliste vorbereitet');
+    }catch(err){}
+  },300);
+})();
+</script>
+<!-- PRIVATE RC241 END: Benutzeranlage Hartfix -->
 
   
 </body></html>
