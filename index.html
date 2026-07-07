@@ -29556,6 +29556,156 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC237 END: SharePoint-Block weg + Nullstellung + Zeilen loeschen + Mail/CMR Buttons unten -->
+
+<!-- PRIVATE RC238 START: Teamdaten-/Microsoft-Warnung aus Ladeliste und CMR entfernen -->
+<style>
+#rc219GuardStatus,
+.rc219-guard-box,
+.rc219-guard-actions,
+.rc238-hide-team-warning{
+  display:none!important;
+}
+@media print{
+  #rc219GuardStatus,
+  .rc219-guard-box,
+  .rc219-guard-actions,
+  .rc238-hide-team-warning{
+    display:none!important;
+  }
+}
+</style>
+
+<script>
+/* PRIVATE RC238: technische Teamdaten-Meldungen duerfen nicht auf Ladeliste/CMR/PDF erscheinen */
+(function(){
+  if(window.__EXPORTHUB_RC238_REMOVE_TEAMDATA_DOC_WARNING__)return;
+  window.__EXPORTHUB_RC238_REMOVE_TEAMDATA_DOC_WARNING__=true;
+
+  function txt238(v){
+    return String(v==null?'':v).replace(/\s+/g,' ').trim();
+  }
+
+  function isTeamWarn238(value){
+    var t=txt238(value).toLowerCase();
+    if(!t)return false;
+    if(t.indexOf('teamdaten')<0 && t.indexOf('rc219')<0)return false;
+    return (
+      t.indexOf('nicht gespeichert')>=0 ||
+      t.indexOf('microsoft')>=0 ||
+      t.indexOf('mircosoft')>=0 ||
+      t.indexOf('anmeldung')>=0 ||
+      t.indexOf('azure-speicherung')>=0 ||
+      t.indexOf('azure speicherung')>=0 ||
+      t.indexOf('notfall-backup')>=0 ||
+      t.indexOf('teamdaten-schutz')>=0
+    );
+  }
+
+  function cleanString238(value){
+    return String(value==null?'':value)
+      .replace(/RC219\s*Teamdaten-Schutz:[^\n<]{0,220}/gi,'')
+      .replace(/Teamdaten[^\n<]{0,180}(nicht gespeichert|Microsoft|Mircosoft|Anmeldung|Azure|Notfall-Backup)[^\n<]{0,180}/gi,'')
+      .replace(/Azure-Speicherung nicht bestaetigt[^\n<]{0,180}/gi,'')
+      .replace(/Azure gerade nicht erreichbar[^\n<]{0,180}/gi,'');
+  }
+
+  function removeElement238(el){
+    if(!el)return;
+    try{
+      var parent=el.closest&&el.closest('#loadListDoc,#cmrDoc,.load-list-doc,.cmr-doc,.print-loadlist,.print-cmr,.card,section,article,div,p,span,small');
+      if(parent && parent!==document.body && isTeamWarn238(parent.textContent) && txt238(parent.textContent).length<360){
+        parent.classList.add('rc238-hide-team-warning');
+        parent.remove();
+        return;
+      }
+      el.remove();
+    }catch(err){}
+  }
+
+  function cleanNode238(root){
+    try{
+      root=root||document;
+      root.querySelectorAll('#rc219GuardStatus,.rc219-guard-box,.rc219-guard-actions').forEach(removeElement238);
+
+      var walker=document.createTreeWalker(root.body||root,NodeFilter.SHOW_TEXT,null);
+      var nodes=[];
+      while(walker.nextNode())nodes.push(walker.currentNode);
+      nodes.forEach(function(node){
+        var old=node.nodeValue||'';
+        if(!isTeamWarn238(old))return;
+        var next=cleanString238(old);
+        if(txt238(next)){
+          node.nodeValue=next;
+        }else{
+          var p=node.parentElement;
+          if(p && txt238(p.textContent).length<360)removeElement238(p);
+          else node.nodeValue='';
+        }
+      });
+
+      root.querySelectorAll('div,p,span,small,footer,section,article').forEach(function(el){
+        if(isTeamWarn238(el.textContent) && txt238(el.textContent).length<360){
+          removeElement238(el);
+        }
+      });
+    }catch(err){}
+  }
+
+  window.rc238CleanTeamdataWarnings=cleanNode238;
+
+  function wrapAfter238(name){
+    try{
+      var base=window[name] || (typeof self!=='undefined'?self[name]:null);
+      if(typeof base!=='function' || base.__rc238Wrapped)return;
+      var wrapped=function(){
+        var result=base.apply(this,arguments);
+        setTimeout(function(){cleanNode238(document)},0);
+        setTimeout(function(){cleanNode238(document)},100);
+        setTimeout(function(){cleanNode238(document)},400);
+        return result;
+      };
+      wrapped.__rc238Wrapped=true;
+      window[name]=wrapped;
+      try{eval(name+'=window[name]')}catch(err){}
+    }catch(err){}
+  }
+
+  [
+    'showCurrentCmr',
+    'showSavedCmr',
+    'rc55DownloadLoadlistPdf',
+    'rc211DownloadWebsiteLoadlistPdf',
+    'rc216DownloadLoadlistPdf',
+    'rc217DownloadLoadlistPdf',
+    'rc218DownloadLoadlistPdf',
+    'rc181DownloadLoadlistWebsiteLayoutPdf',
+    'rc55PrintLabels'
+  ].forEach(wrapAfter238);
+
+  var basePrint238=window.print;
+  if(typeof basePrint238==='function' && !basePrint238.__rc238Wrapped){
+    window.print=function(){
+      cleanNode238(document);
+      return basePrint238.apply(this,arguments);
+    };
+    window.print.__rc238Wrapped=true;
+  }
+
+  window.addEventListener('beforeprint',function(){cleanNode238(document)});
+
+  try{
+    var observer=new MutationObserver(function(){
+      clearTimeout(window.__rc238CleanTimer);
+      window.__rc238CleanTimer=setTimeout(function(){cleanNode238(document)},80);
+    });
+    observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+  }catch(err){}
+
+  setTimeout(function(){cleanNode238(document)},200);
+  setInterval(function(){cleanNode238(document)},1500);
+})();
+</script>
+<!-- PRIVATE RC238 END: Teamdaten-/Microsoft-Warnung aus Ladeliste und CMR entfernen -->
   
 </body></html>
 
