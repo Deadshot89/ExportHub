@@ -36699,6 +36699,417 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC260 END: ABD Anfrage + Update-Schutz + Ladeliste A4 + Referenzordner -->
+
+<!-- PRIVATE RC261 START: Standardmails pro Kunde -->
+<style>
+.rc261-mail-panel{
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  border-radius:14px!important;
+  padding:12px!important;
+  margin:12px 0!important;
+}
+.rc261-mail-panel h3{
+  margin:0 0 8px!important;
+  color:#08245d!important;
+  font-size:18px!important;
+}
+.rc261-mail-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(180px,1fr))!important;
+  gap:8px!important;
+}
+.rc261-mail-grid label{
+  display:grid!important;
+  gap:4px!important;
+  font-weight:900!important;
+  color:#334155!important;
+}
+.rc261-mail-grid select,
+.rc261-mail-grid input,
+.rc261-mail-grid textarea{
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.rc261-mail-actions{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  margin-top:10px!important;
+}
+.rc261-mail-preview{
+  margin-top:10px!important;
+  background:#fff!important;
+  border:1px solid #dbeafe!important;
+  border-radius:10px!important;
+  padding:10px!important;
+  white-space:pre-wrap!important;
+  font-family:Segoe UI,Roboto,Arial,sans-serif!important;
+  font-size:13px!important;
+  line-height:1.45!important;
+  max-height:280px!important;
+  overflow:auto!important;
+}
+.rc261-mail-hint{
+  color:#1e3a8a!important;
+  font-weight:850!important;
+  font-size:12px!important;
+  margin-top:6px!important;
+}
+@media(max-width:900px){
+  .rc261-mail-grid{grid-template-columns:1fr!important}
+}
+</style>
+
+<script>
+/* PRIVATE RC261: Standardmails Kunde/Spedition in Deutsch/Englisch, pro Kunde auswaehlbar */
+(function(){
+  if(window.__EXPORTHUB_RC261_STANDARDMAILS__)return;
+  window.__EXPORTHUB_RC261_STANDARDMAILS__=true;
+
+  function appState(){try{return typeof state!=='undefined'&&state?state:null}catch(err){return null}}
+  function e261(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]});
+  }
+  function n261(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function ref261(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function currentShipment261(){
+    var s=appState();
+    if(!s)return null;
+    try{
+      if(s.activeShipmentId&&s.activeShipmentId!=='current'){
+        var found=(s.shipments||[]).find(function(x){return String(x.id)===String(s.activeShipmentId)});
+        if(found)return found;
+      }
+    }catch(err){}
+    return s.shipment||null;
+  }
+  function selectedCustomer261(){
+    var s=appState(), sh=currentShipment261()||{};
+    try{if(typeof selectedCustomer==='function')return selectedCustomer()||null}catch(err){}
+    try{
+      var id=s.customerFolderOpenId||s.customerFolderId||sh.customerId||s.selectedCustomerId;
+      return (s.customers||[]).find(function(c){return String(c.id)===String(id)})||null;
+    }catch(err){}
+    return null;
+  }
+  function customerById261(id){
+    var s=appState();
+    try{return (s.customers||[]).find(function(c){return String(c.id)===String(id)})||selectedCustomer261()}catch(err){}
+    return selectedCustomer261();
+  }
+  function shipmentsForCustomer261(c){
+    var s=appState();
+    if(!s||!c)return [];
+    var acc=String(c.account||c.customerNumber||'');
+    return (s.shipments||[]).filter(function(sh){
+      var sc=sh.customer||{};
+      return sh.customerId===c.id || sc.id===c.id || String(sc.account||sc.customerNumber||'')===acc || (sc.name&&c.name&&sc.name===c.name);
+    });
+  }
+  function shipmentForCustomer261(c){
+    var sh=currentShipment261();
+    if(sh&&c&&(sh.customerId===c.id || (sh.customer&&sh.customer.id===c.id)))return sh;
+    var list=shipmentsForCustomer261(c);
+    return list[0]||sh||{};
+  }
+  function totals261(sh){
+    try{if(typeof totals==='function')return totals(sh)}catch(err){}
+    return (sh&&Array.isArray(sh.rows)?sh.rows:[]).reduce(function(a,r){
+      var count=Number(r.count||0)||0;
+      var weight=Number(r.weight||0)||0;
+      var ldm=Number(r.ldm||0)||0;
+      a.count+=count;
+      a.weight+=weight;
+      a.ldm+=count*ldm;
+      return a;
+    },{count:0,weight:0,ldm:0});
+  }
+  function cleanMailList261(v){
+    return String(v||'').split(/[,;\n]+/).map(function(x){return x.trim()}).filter(function(x){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x)}).join(';');
+  }
+  function customerMail261(c){
+    return cleanMailList261(c&&(
+      c.customerMail||c.customerEmail||c.contactEmail||c.mailCustomer||c.salesMail||c.salesEmail||c.mailAddress||''
+    ));
+  }
+  function carrierMail261(c){
+    var val='';
+    try{if(typeof customerCarrierMailAddress==='function')val=customerCarrierMailAddress(c)}catch(err){}
+    val=val||String(c&&(c.carrierMail||c.speditionMail||c.anmeldungMail||c.mail||c.mailAddress||''));
+    return cleanMailList261(val);
+  }
+  function ccMail261(c){
+    var val='';
+    try{if(typeof customerMailCcAddress==='function')val=customerMailCcAddress(c)}catch(err){}
+    val=val||String(c&&(c.mailCc||c.cc||c.salesMail||c.salesEmail||''));
+    return cleanMailList261(val);
+  }
+  function settings261(c){
+    c=c||selectedCustomer261()||{};
+    return {
+      lang:(c.standardMailLang||c.rc261StandardMailLang||c.mailLang||'de')==='en'?'en':'de',
+      recipient:(c.standardMailRecipient||c.rc261StandardMailRecipient||'customer')==='carrier'?'carrier':'customer'
+    };
+  }
+  function setSetting261(key,value){
+    var c=selectedCustomer261();
+    if(!c)return;
+    if(key==='lang'){
+      c.standardMailLang=value==='en'?'en':'de';
+      c.rc261StandardMailLang=c.standardMailLang;
+      c.mailLang=c.standardMailLang;
+    }
+    if(key==='recipient'){
+      c.standardMailRecipient=value==='carrier'?'carrier':'customer';
+      c.rc261StandardMailRecipient=c.standardMailRecipient;
+    }
+    try{if(typeof save==='function')save()}catch(err){}
+    updatePreview261();
+  }
+  window.rc261SetMailLang=function(value){setSetting261('lang',value);return false};
+  window.rc261SetMailRecipient=function(value){setSetting261('recipient',value);return false};
+
+  function shipmentBlock261(c,sh,lang){
+    c=c||{};
+    sh=sh||{};
+    var t=totals261(sh);
+    var docs=[];
+    String(sh.deliveryNotes||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){docs.push(x)});
+    (Array.isArray(sh.deliveryFiles)?sh.deliveryFiles:[]).forEach(function(f){var name=String((f&&(f.name||f.fileName||f.filename))||'').trim();if(name)docs.push(name)});
+    var rows=(Array.isArray(sh.rows)?sh.rows:[]).map(function(r){
+      return [r.count||'',r.type||'',r.l&&r.w&&r.h?(r.l+'x'+r.w+'x'+r.h+' cm'):''].filter(Boolean).join(' ');
+    }).filter(Boolean).join('\n');
+    var de=[
+      'Sendungsdaten:',
+      'Referenznummer: '+(ref261(sh.ref)||'offen'),
+      'Kunde: '+(c.name||sh.customerName||'offen'),
+      'Kundennummer: '+(c.account||c.customerNumber||'offen'),
+      'Empfaengeradresse: '+String(c.address||'offen').replace(/\n/g,', '),
+      'Abholdatum geplant: '+(sh.pickupDate||'offen'),
+      'Spedition: '+(sh.carrier||c.carrier||'offen'),
+      'Collis: '+(t.count||0),
+      'Gewicht: '+Number(t.weight||0).toFixed(1)+' kg',
+      'Lademeter: '+Number(t.ldm||0).toFixed(2),
+      'Lieferscheine/DNCs: '+(docs.length?docs.join(', '):'offen'),
+      rows?'Packstuecke:\n'+rows:''
+    ].filter(Boolean).join('\n');
+    var en=[
+      'Shipment details:',
+      'Reference number: '+(ref261(sh.ref)||'open'),
+      'Customer: '+(c.name||sh.customerName||'open'),
+      'Customer number: '+(c.account||c.customerNumber||'open'),
+      'Consignee address: '+String(c.address||'open').replace(/\n/g,', '),
+      'Planned pickup date: '+(sh.pickupDate||'open'),
+      'Carrier: '+(sh.carrier||c.carrier||'open'),
+      'Colli: '+(t.count||0),
+      'Weight: '+Number(t.weight||0).toFixed(1)+' kg',
+      'Loading meters: '+Number(t.ldm||0).toFixed(2),
+      'Delivery notes/DNCs: '+(docs.length?docs.join(', '):'open'),
+      rows?'Packages:\n'+rows:''
+    ].filter(Boolean).join('\n');
+    return lang==='en'?en:de;
+  }
+  function template261(kind,lang,c,sh){
+    var block=shipmentBlock261(c,sh,lang);
+    var reference=ref261(sh&&sh.ref)||'[Referenznummer]';
+    if(kind==='carrier'&&lang==='de'){
+      return [
+        'Sehr geehrte Damen und Herren,',
+        '',
+        'für den unten genannten Vorgang steht die Ware in unserem Versandlager zur Abholung bereit.',
+        '',
+        'Wir bitten Sie höflich darum, die Abholung zeitnah einzuplanen und uns innerhalb der nächsten 24 Stunden den genauen Abholtermin verbindlich zu bestätigen, damit wir die Ladekapazitäten entsprechend einplanen können.',
+        '',
+        block,
+        '',
+        'Bitte stellen Sie sicher, dass der Fahrer bei der Abholung die entsprechende Referenznummer '+reference+' bereithält.',
+        '',
+        'Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung. Vielen Dank für Ihre Unterstützung und die zuverlässige Abwicklung.',
+        '',
+        'Mit freundlichen Grüßen',
+        'Tobias Limberg'
+      ].join('\n');
+    }
+    if(kind==='customer'&&lang==='en'){
+      return [
+        'Dear Sir or Madam,',
+        '',
+        'We are pleased to inform you that your order has been fully prepared for you and is ready for collection.',
+        '',
+        'Please arrange the collection of the goods or coordinate the transport with your logistics partner. To ensure a smooth handover at our shipping warehouse, please provide brief feedback within the next 24 hours, including the planned pickup date and the transport company in charge.',
+        '',
+        block,
+        '',
+        'Should you or your carrier require any further information in advance, please do not hesitate to contact us.',
+        '',
+        'Thank you for the good cooperation. We look forward to your feedback.',
+        '',
+        'Kind regards',
+        'Tobias Limberg'
+      ].join('\n');
+    }
+    if(kind==='carrier'&&lang==='en'){
+      return [
+        'Dear Sir or Madam,',
+        '',
+        'The goods for the shipment below are ready for collection at our shipping warehouse.',
+        '',
+        'We kindly ask you to schedule the pickup promptly and confirm the exact pickup date within the next 24 hours so that we can plan the loading capacity accordingly.',
+        '',
+        block,
+        '',
+        'Please ensure that the driver has the corresponding reference number ('+reference+') available at pickup.',
+        '',
+        'If you have any questions, please do not hesitate to contact us. Thank you for your support and reliable handling.',
+        '',
+        'Kind regards',
+        'Tobias Limberg'
+      ].join('\n');
+    }
+    return [
+      'Sehr geehrte Damen und Herren,',
+      '',
+      'wir freuen uns, Ihnen mitteilen zu können, dass Ihre Bestellung vollständig für Sie bereitgestellt wurde und abholbereit ist.',
+      '',
+      'Bitte veranlassen Sie die Abholung der Ware oder stimmen Sie den Transport mit Ihrem Logistikpartner ab. Um eine reibungslose Übergabe in unserem Versandlager zu gewährleisten, bitten wir Sie um eine kurze Rückmeldung innerhalb der nächsten 24 Stunden mit Angabe des geplanten Abholdatums sowie des ausführenden Transportunternehmens.',
+      '',
+      block,
+      '',
+      'Sollten Sie oder Ihr Transporteur vorab noch Informationen benötigen, stehen wir Ihnen selbstverständlich gerne zur Verfügung.',
+      '',
+      'Wir bedanken uns für die gute Zusammenarbeit und freuen uns auf Ihre Rückmeldung.',
+      '',
+      'Mit freundlichen Grüßen',
+      'Tobias Limberg'
+    ].join('\n');
+  }
+  function subject261(c,sh,set){
+    var ref=ref261(sh&&sh.ref)||'[Referenznummer]';
+    var name=(c&&c.name)||'Kunde';
+    if(set.lang==='en')return (set.recipient==='carrier'?'Pickup confirmation ':'Ready for pickup ')+ref+' / '+name;
+    return (set.recipient==='carrier'?'Abholtermin bestaetigen ':'Ware abholbereit ')+ref+' / '+name;
+  }
+  function mailData261(c){
+    c=c||selectedCustomer261()||{};
+    var set=settings261(c);
+    var sh=shipmentForCustomer261(c);
+    var to=set.recipient==='carrier'?carrierMail261(c):customerMail261(c);
+    if(!to)to=carrierMail261(c)||customerMail261(c);
+    var cc=ccMail261(c);
+    var subject=subject261(c,sh,set);
+    var body=template261(set.recipient,set.lang,c,sh);
+    return {customer:c,shipment:sh,settings:set,to:to,cc:cc,subject:subject,body:body};
+  }
+  function mailto261(data){
+    var url='mailto:'+encodeURIComponent(data.to||'');
+    var qs=[];
+    if(data.cc)qs.push('cc='+encodeURIComponent(data.cc));
+    qs.push('subject='+encodeURIComponent(data.subject||''));
+    qs.push('body='+encodeURIComponent(data.body||''));
+    return url+'?'+qs.join('&');
+  }
+  window.rc261OpenStandardMail=function(customerId){
+    var data=mailData261(customerById261(customerId));
+    if(!data.to){
+      alert('Keine passende Mailadresse hinterlegt. Bitte beim Kunden eine Kunden- oder Speditions-Mailadresse pflegen.');
+      return false;
+    }
+    window.location.href=mailto261(data);
+    return false;
+  };
+  window.rc261CopyStandardMail=function(customerId){
+    var data=mailData261(customerById261(customerId));
+    try{
+      navigator.clipboard.writeText(data.body).then(function(){alert('Standardmail-Text kopiert.')},function(){prompt('Standardmail-Text kopieren:',data.body)});
+    }catch(err){prompt('Standardmail-Text kopieren:',data.body)}
+    return false;
+  };
+  window.rc261SaveStandardMailToCustomer=function(){
+    var c=selectedCustomer261();
+    if(!c)return false;
+    c.standardMailLang=(document.getElementById('rc261MailLang')||{}).value==='en'?'en':'de';
+    c.rc261StandardMailLang=c.standardMailLang;
+    c.standardMailRecipient=(document.getElementById('rc261MailRecipient')||{}).value==='carrier'?'carrier':'customer';
+    c.rc261StandardMailRecipient=c.standardMailRecipient;
+    try{if(typeof save==='function')save()}catch(err){}
+    alert('Standardmail-Auswahl am Kunden gespeichert.');
+    return false;
+  };
+  function updatePreview261(){
+    var box=document.getElementById('rc261MailPreview');
+    if(!box)return;
+    var data=mailData261(selectedCustomer261());
+    box.textContent='Betreff: '+data.subject+'\nAn: '+(data.to||'keine Mailadresse')+'\nCC: '+(data.cc||'-')+'\n\n'+data.body;
+  }
+  function panelHtml261(c){
+    c=c||selectedCustomer261()||{};
+    var set=settings261(c);
+    var data=mailData261(c);
+    var cid=e261(c.id||'');
+    return ''+
+      '<section id="rc261MailPanel" class="rc261-mail-panel">'+
+      '<h3>Standardmail</h3>'+
+      '<div class="rc261-mail-grid">'+
+      '<label>Sprache<select id="rc261MailLang" onchange="rc261SetMailLang(this.value)">'+
+      '<option value="de" '+(set.lang==='de'?'selected':'')+'>Deutsch</option>'+
+      '<option value="en" '+(set.lang==='en'?'selected':'')+'>Englisch</option>'+
+      '</select></label>'+
+      '<label>Empfaenger<select id="rc261MailRecipient" onchange="rc261SetMailRecipient(this.value)">'+
+      '<option value="customer" '+(set.recipient==='customer'?'selected':'')+'>Kunde</option>'+
+      '<option value="carrier" '+(set.recipient==='carrier'?'selected':'')+'>Spedition</option>'+
+      '</select></label>'+
+      '</div>'+
+      '<div class="rc261-mail-actions">'+
+      '<button type="button" class="btn" onclick="return rc261OpenStandardMail(&quot;'+cid+'&quot;)">Standardmail oeffnen</button>'+
+      '<button type="button" class="ghost" onclick="return rc261CopyStandardMail(&quot;'+cid+'&quot;)">Mailtext kopieren</button>'+
+      '<button type="button" class="ghost" onclick="return rc261SaveStandardMailToCustomer()">Auswahl speichern</button>'+
+      '</div>'+
+      '<div class="rc261-mail-hint">Die Sendungsdaten werden automatisch aus der aktuellen oder letzten gespeicherten Sendung dieses Kunden eingesetzt.</div>'+
+      '<pre id="rc261MailPreview" class="rc261-mail-preview">'+e261('Betreff: '+data.subject+'\nAn: '+(data.to||'keine Mailadresse')+'\nCC: '+(data.cc||'-')+'\n\n'+data.body)+'</pre>'+
+      '</section>';
+  }
+  function addPanel261(){
+    try{
+      if(document.getElementById('rc261MailPanel')){updatePreview261();return}
+      var c=selectedCustomer261();
+      if(!c)return;
+      var isCustomerFolder=(appState()&&appState().view==='customerfolder') || /Kundenordner/i.test((document.querySelector('h1,h2')||{}).textContent||'');
+      var isShipment=/Sendung erstellen/i.test((document.querySelector('h1,h2')||{}).textContent||'') || (appState()&&appState().view==='shipment');
+      if(!isCustomerFolder&&!isShipment)return;
+      var target=null;
+      if(isCustomerFolder){
+        target=document.querySelector('.folder-header .infobox')||document.querySelector('.folder-header')||document.querySelector('main,.main,#content');
+      }else{
+        var infos=Array.from(document.querySelectorAll('.infobox,.okbox,.notice'));
+        target=infos.find(function(x){return /Empfaengermail|Empfängermail|Outlook|Avisierung/i.test(x.textContent||'')})||document.querySelector('.card');
+      }
+      if(!target)return;
+      target.insertAdjacentHTML('afterend',panelHtml261(c));
+    }catch(err){}
+  }
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc261Wrapped){
+    window.render=function(){
+      var r=baseRender.apply(this,arguments);
+      setTimeout(addPanel261,60);
+      setTimeout(addPanel261,260);
+      return r;
+    };
+    window.render.__rc261Wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+  setTimeout(addPanel261,120);
+  setTimeout(addPanel261,900);
+})();
+</script>
+<!-- PRIVATE RC261 END: Standardmails pro Kunde -->
   
 </body></html>
 
