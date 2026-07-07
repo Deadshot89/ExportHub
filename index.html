@@ -38905,6 +38905,23 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 	    justify-content:center!important;
 	    visibility:visible!important;
 	    opacity:1!important;
+	    min-height:34px!important;
+	    padding:7px 12px!important;
+	    border-radius:9px!important;
+	    text-decoration:none!important;
+	  }
+	  .rc274-ref-doc-box .rc274-ref-open-link{
+	    display:inline-flex!important;
+	    align-items:center!important;
+	    justify-content:center!important;
+	    min-height:36px!important;
+	    padding:8px 13px!important;
+	    border-radius:10px!important;
+	    background:#2563eb!important;
+	    color:#fff!important;
+	    font-weight:950!important;
+	    text-decoration:none!important;
+	    border:0!important;
 	  }
 	  .rc274-delivery-list{
 	    border:1px solid #bfdbfe!important;
@@ -38944,6 +38961,55 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 	  function txt(el){return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim()}
 	  function ref(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
 	  function esc274(v){try{if(typeof esc==='function')return esc(v)}catch(err){}return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+	  var REF_BASE_274='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+	  function refFolderUrl274(reference){
+	    var r=ref(reference);
+	    return r?REF_BASE_274.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'?csf=1&web=1':'';
+	  }
+	  function currentShipmentRef274(){
+	    var s=st();
+	    var sh=s&&(s.shipment||null);
+	    if(s&&s.activeShipmentId&&s.activeShipmentId!=='current'&&Array.isArray(s.shipments)){
+	      var saved=s.shipments.find(function(x){return String(x.id||'')===String(s.activeShipmentId)});
+	      if(saved)sh=saved;
+	    }
+	    return ref(sh&&sh.ref);
+	  }
+	  window.rc274OpenReferenceFolderDirect=function(){
+	    var r=currentShipmentRef274();
+	    if(!r){alert('Bitte zuerst eine Referenznummer erstellen.');return false}
+	    window.open(refFolderUrl274(r),'_blank','noopener,noreferrer');
+	    return false;
+	  };
+	  function ensureReferenceFolderButtons(){
+	    if(view()!=='shipment')return;
+	    var box=document.querySelector('.rc274-ref-doc-box');
+	    if(!box)return;
+	    var r=currentShipmentRef274();
+	    var actions=box.querySelector('.rc274-ref-doc-actions');
+	    if(!actions){
+	      actions=document.createElement('div');
+	      actions.className='rc274-ref-doc-actions';
+	      var meta=box.querySelector('.rc274-ref-doc-meta');
+	      if(meta)box.insertBefore(actions,meta);
+	      else box.appendChild(actions);
+	    }
+	    var url=refFolderUrl274(r);
+	    actions.innerHTML=
+	      '<a class="rc274-ref-open-link" href="'+esc274(url||'#')+'" target="_blank" rel="noopener noreferrer" onclick="'+(url?'':'return rc274OpenReferenceFolderDirect()')+'">Referenzordner '+esc274(r||'')+' oeffnen / Dateien hochladen</a>'+
+	      '<button type="button" class="ghost rc274-ref-visible-btn" onclick="return rc246OpenReferenceFolderPicker()">Dateien aus Ref.-Ordner uebernehmen</button>';
+	    var title=box.querySelector('.rc274-ref-doc-title');
+	    if(title)title.textContent='Referenzordner '+(r||'noch keine Referenz');
+	  }
+	  function ensureAbdPanelVisible(){
+	    if(view()!=='shipment')return;
+	    if(document.getElementById('rc265AbdPanel')||document.querySelector('.rc265-abd-request-panel'))return;
+	    if(typeof window.rc265OpenAbdPanel!=='function')return;
+	    var x=window.scrollX||0;
+	    var y=window.scrollY||0;
+	    try{window.rc265OpenAbdPanel()}catch(err){}
+	    setTimeout(function(){try{window.scrollTo(x,y)}catch(err){}},80);
+	  }
 	  function currentDeliveryFiles(){
 	    var s=st();
 	    if(!s||!s.shipment)return [];
@@ -39083,6 +39149,8 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   }
 	  function afterRender(){
 	    renamePickupLabels();
+	    ensureReferenceFolderButtons();
+	    ensureAbdPanelVisible();
 	    moveStandardmail();
 	    addAbdLinkNote();
 	  }
