@@ -31281,6 +31281,252 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC242 END: Benutzer Profil/Anlegen/Rechte Savefix -->
   
+<!-- PRIVATE RC243 START: Sendungsuebersicht Layout + Ref-Ordner -->
+<style>
+/* PRIVATE RC243: Sendungsuebersicht kompakter und lesbarer */
+.rc228-overview-table,
+.rc230-overview-table{
+  table-layout:auto!important;
+}
+.rc228-overview-table td,
+.rc230-overview-table td{
+  vertical-align:top!important;
+}
+.rc243-customer-stack{
+  display:grid!important;
+  gap:3px!important;
+  min-width:180px!important;
+}
+.rc243-customer-number{
+  color:#08245d!important;
+  font-size:16px!important;
+  font-weight:1000!important;
+  line-height:1.15!important;
+}
+.rc243-customer-name{
+  color:#08245d!important;
+  font-size:15px!important;
+  font-weight:950!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+.rc243-date-stack,
+.rc203-date-grid{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+  min-width:132px!important;
+  max-width:170px!important;
+}
+.rc243-date-stack label,
+.rc203-date-grid label{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:4px!important;
+  margin:0!important;
+  font-size:12px!important;
+  font-weight:950!important;
+  color:#334155!important;
+}
+.rc243-date-stack input[type="date"],
+.rc203-date-grid input[type="date"]{
+  min-width:0!important;
+  width:100%!important;
+  padding:8px 9px!important;
+  border-radius:10px!important;
+}
+.rc243-action-stack,
+.rc228-overview-actions,
+.rc230-overview-actions{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:5px!important;
+  align-content:start!important;
+}
+.rc243-action-stack button,
+.rc228-overview-actions button,
+.rc230-overview-actions button,
+.rc243-ref-folder-btn{
+  min-height:26px!important;
+  padding:5px 7px!important;
+  border-radius:8px!important;
+  font-size:11px!important;
+  line-height:1.15!important;
+  white-space:nowrap!important;
+}
+.rc243-ref-folder-btn{
+  border:1px solid #bfdbfe!important;
+  background:#eff6ff!important;
+  color:#075985!important;
+  font-weight:950!important;
+}
+</style>
+
+<script>
+/* PRIVATE RC243: Kunde unter Kundennummer, Abholdaten untereinander, Ref.-Ordner wieder in Aktion */
+(function(){
+  if(window.__EXPORTHUB_RC243_OVERVIEW_LAYOUT_REF_FOLDER__)return;
+  window.__EXPORTHUB_RC243_OVERVIEW_LAYOUT_REF_FOLDER__=true;
+
+  var REF_BASE_243='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';
+
+  function n243(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function e243(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+
+  function ref243(v){
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24);
+  }
+
+  function shipments243(){
+    try{return Array.isArray(state.shipments)?state.shipments:[]}catch(err){}
+    return [];
+  }
+
+  function folderUrl243(sOrRef){
+    var s=typeof sOrRef==='object'?sOrRef:null;
+    var r=ref243(s?(s.ref||s.reference||s.referenceNumber):sOrRef);
+    if(s){
+      var direct=String(s.folderUrl||s.referenceFolderUrl||s.sharepointFolderUrl||s.refFolderUrl||'').trim();
+      if(direct)return direct;
+    }
+    if(!r)return REF_BASE_243;
+    return REF_BASE_243.replace(/\/+$/,'')+'/'+encodeURIComponent(r)+'?csf=1&web=1';
+  }
+
+  function findShipment243(row){
+    var text=String(row&&row.textContent||'');
+    var list=shipments243();
+    var exact=list.find(function(s){return s&&s.id&&text.indexOf(String(s.id))>=0});
+    if(exact)return exact;
+    return list.find(function(s){
+      var r=ref243(s&&s.ref);
+      return r && text.toUpperCase().indexOf(r)>=0;
+    }) || null;
+  }
+
+  window.rc243OpenReferenceFolder=function(idOrRef){
+    var list=shipments243();
+    var s=list.find(function(x){
+      return String(x.id||'')===String(idOrRef||'') || ref243(x.ref)===ref243(idOrRef);
+    });
+    var url=folderUrl243(s||idOrRef);
+    if(!url){
+      alert('Kein Referenzordner gefunden.');
+      return false;
+    }
+    window.open(url,'_blank','noopener');
+    return false;
+  };
+
+  function headerIndexes243(table){
+    var out={customer:-1,dates:-1,actions:-1};
+    var ths=Array.from(table.querySelectorAll('tr:first-child th'));
+    ths.forEach(function(th,i){
+      var t=n243(th.textContent);
+      if(t.indexOf('kunde')>=0)out.customer=i;
+      if(t.indexOf('abholdaten')>=0 || t.indexOf('datum')>=0)out.dates=i;
+      if(t.indexOf('aktion')>=0)out.actions=i;
+    });
+    return out;
+  }
+
+  function splitCustomer243(cell){
+    if(!cell || cell.querySelector('.rc243-customer-stack'))return;
+    if(cell.querySelector('button,input,select,textarea'))return;
+    var text=String(cell.textContent||'').replace(/\s+/g,' ').trim();
+    if(!text)return;
+    var m=text.match(/^(\d{6,12})\s*(?:[-–|·])\s*(.+)$/);
+    if(!m)return;
+    cell.innerHTML='<div class="rc243-customer-stack">'+
+      '<div class="rc243-customer-number">'+e243(m[1])+'</div>'+
+      '<div class="rc243-customer-name">'+e243(m[2])+'</div>'+
+    '</div>';
+  }
+
+  function stackDates243(cell){
+    if(!cell)return;
+    if(cell.querySelector('input[type="date"]'))cell.classList.add('rc243-date-stack');
+    Array.from(cell.querySelectorAll('label')).forEach(function(label){
+      if(label.querySelector('input[type="date"]'))label.classList.add('rc243-date-label');
+    });
+  }
+
+  function addRefFolderButton243(row,cell){
+    if(!cell || cell.querySelector('.rc243-ref-folder-btn'))return;
+    var s=findShipment243(row);
+    var ref=ref243(s&&(s.ref||s.reference||s.referenceNumber));
+    if(!ref){
+      var rowText=String(row&&row.textContent||'').toUpperCase();
+      var m=rowText.match(/\b[A-Z0-9]{6}\b/);
+      ref=m?m[0]:'';
+    }
+    if(!ref)return;
+    cell.classList.add('rc243-action-stack');
+    var btn=document.createElement('button');
+    btn.type='button';
+    btn.className='ghost rc243-ref-folder-btn';
+    btn.textContent='Ref.-Ordner';
+    btn.setAttribute('onclick','return rc243OpenReferenceFolder("'+e243((s&&s.id)||ref)+'")');
+    var cmr=Array.from(cell.querySelectorAll('button,a')).find(function(b){
+      return n243(b.textContent).indexOf('ladeliste')>=0 || n243(b.textContent).indexOf('cmr')>=0;
+    });
+    if(cmr && cmr.parentNode===cell)cmr.insertAdjacentElement('afterend',btn);
+    else cell.insertBefore(btn,cell.firstChild);
+  }
+
+  function fixOverview243(){
+    try{
+      if(!state || state.view!=='shipmentoverview')return;
+    }catch(err){return}
+    var tables=Array.from(document.querySelectorAll('.rc228-overview-table,.rc230-overview-table,table.table'));
+    tables.forEach(function(table){
+      var idx=headerIndexes243(table);
+      if(idx.customer<0 && idx.dates<0 && idx.actions<0)return;
+      Array.from(table.querySelectorAll('tr')).slice(1).forEach(function(row){
+        var cells=Array.from(row.children).filter(function(x){return x.tagName==='TD'});
+        if(idx.customer>=0)splitCustomer243(cells[idx.customer]);
+        if(idx.dates>=0)stackDates243(cells[idx.dates]);
+        if(idx.actions>=0)addRefFolderButton243(row,cells[idx.actions]);
+      });
+    });
+  }
+
+  var baseRender243=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender243==='function' && !baseRender243.__rc243Wrapped){
+    var wrappedRender243=function(){
+      var result=baseRender243.apply(this,arguments);
+      setTimeout(fixOverview243,0);
+      setTimeout(fixOverview243,180);
+      setTimeout(fixOverview243,520);
+      setTimeout(fixOverview243,1300);
+      return result;
+    };
+    wrappedRender243.__rc243Wrapped=true;
+    window.render=wrappedRender243;
+    try{render=wrappedRender243}catch(err){}
+  }
+
+  document.addEventListener('click',function(){
+    setTimeout(fixOverview243,120);
+    setTimeout(fixOverview243,520);
+  },true);
+  setTimeout(fixOverview243,250);
+  setInterval(fixOverview243,1500);
+})();
+</script>
+<!-- PRIVATE RC243 END: Sendungsuebersicht Layout + Ref-Ordner -->
+
   
 </body></html>
 
