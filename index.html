@@ -33696,6 +33696,262 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC249 END: Rechte + Vorlagen Speicherfix -->
+
+<!-- PRIVATE RC250 START: ABD Anfrage Link + POD DeepScan -->
+<script>
+/* PRIVATE RC250: ABD-Anfragen nutzen den funktionierenden Sendungs-ABD-Link; POD wird tief gesucht */
+(function(){
+  if(window.__EXPORTHUB_RC250_ABD_REQUEST_POD_DEEPSCAN__)return;
+  window.__EXPORTHUB_RC250_ABD_REQUEST_POD_DEEPSCAN__=true;
+
+  var SITE250='https://essentra-my.sharepoint.com';
+  var SERVER_FOLDER250='/personal/tobiaslimberg_essentra_com/Documents/003 Export/ExportHub/Sendungen';
+
+  function n250(v){
+    return String(v==null?'':v).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+
+  function ref250(v){
+    return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24);
+  }
+
+  function name250(d){
+    return String((d&&(d.name||d.fileName||d.filename||d.title))||'').trim();
+  }
+
+  function url250(d){
+    return String((d&&(d.dataUrl||d.url||d.webUrl||d.link||d.sharepointUrl||d.downloadUrl||d.href))||'').trim();
+  }
+
+  function download250(reference,fileName){
+    var r=ref250(reference);
+    var name=String(fileName||'').trim();
+    if(!r || !name)return '';
+    var serverRelative=SERVER_FOLDER250.replace(/\/+$/,'')+'/'+r+'/'+name;
+    return SITE250+'/_layouts/15/download.aspx?SourceUrl='+encodeURIComponent(serverRelative);
+  }
+
+  function classify250(d){
+    var text=n250(name250(d)+' '+url250(d)+' '+String(d&&d.relativePath||'')+' '+String(d&&d.source||''));
+    if(text.indexOf('abd')>=0)return 'abd';
+    if(text.indexOf('pod')>=0 || text.indexOf('scan')>=0 || text.indexOf('untitled')>=0)return 'pod';
+    return '';
+  }
+
+  function walk250(value,out,seen,path){
+    out=out||[];
+    seen=seen||[];
+    path=path||'';
+    if(value==null)return out;
+    if(typeof value==='string'){
+      var raw=value;
+      var lower=n250(raw);
+      if(lower.indexOf('abd')>=0 || lower.indexOf('scan')>=0 || lower.indexOf('untitled')>=0 || lower.indexOf('pod')>=0){
+        var re=/((?:\[[^\]]+\]|[A-Za-z0-9ÄÖÜäöüß_\-. ]){0,180}?(?:abd|pod|scan|untitled)(?:[A-Za-z0-9ÄÖÜäöüß_\-. \[\]]){0,180}?\.(?:pdf|jpg|jpeg|png|msg|eml))/gi;
+        var m, matched=false;
+        while((m=re.exec(raw))){
+          matched=true;
+          out.push({name:String(m[1]||'').trim(),fileName:String(m[1]||'').trim(),source:'RC250 '+path});
+        }
+        if(!matched && /^data:/i.test(raw)){
+          out.push({name:path||'Dokument.pdf',dataUrl:raw,source:'RC250 DataUrl'});
+        }else if(!matched && /^https?:\/\//i.test(raw)){
+          out.push({name:path||'Dokument.pdf',url:raw,source:'RC250 URL'});
+        }else if(!matched && (lower.indexOf('scan')>=0 || lower.indexOf('untitled')>=0 || lower.indexOf('pod')>=0)){
+          out.push({name:raw.trim(),fileName:raw.trim(),source:'RC250 Text'});
+        }
+      }
+      return out;
+    }
+    if(typeof value!=='object')return out;
+    if(seen.indexOf(value)>=0)return out;
+    seen.push(value);
+    if(name250(value) || url250(value)){
+      out.push(Object.assign({source:'RC250 Objekt '+path},value));
+    }
+    if(Array.isArray(value)){
+      value.forEach(function(x,i){walk250(x,out,seen,path+'['+i+']')});
+    }else{
+      Object.keys(value).forEach(function(k){
+        if(k==='customer'||k==='customers'||k==='users'||k==='tasks')return;
+        walk250(value[k],out,seen,k);
+      });
+    }
+    return out;
+  }
+
+  function allDocs250(obj){
+    var docs=walk250(obj,[],[]);
+    var seen={};
+    return docs.filter(function(d){
+      var nm=name250(d), u=url250(d);
+      if(!nm && !u)return false;
+      var key=n250(nm+' '+u);
+      if(seen[key])return false;
+      seen[key]=true;
+      return true;
+    });
+  }
+
+  function best250(obj,kind){
+    var docs=allDocs250(obj).filter(function(d){return classify250(d)===kind});
+    if(!docs.length)return null;
+    docs.sort(function(a,b){
+      var au=url250(a)?2:(/\.(pdf|jpg|jpeg|png)$/i.test(name250(a))?1:0);
+      var bu=url250(b)?2:(/\.(pdf|jpg|jpeg|png)$/i.test(name250(b))?1:0);
+      return bu-au;
+    });
+    return docs[0]||null;
+  }
+
+  function shipmentByRef250(reference){
+    var r=ref250(reference);
+    try{
+      return (state.shipments||[]).find(function(s){return ref250(s&&s.ref)===r})||null;
+    }catch(err){}
+    return null;
+  }
+
+  function normalizeDoc250(target,kind,source,forceFromSource){
+    if(!target)return false;
+    var doc=forceFromSource && source ? best250(source,kind) : (best250(target,kind)||best250(source,kind));
+    if(!doc)return false;
+    var reference=(target&&target.ref)||(source&&source.ref)||'';
+    var nm=name250(doc) || (kind==='abd'?'ABD.pdf':'POD.pdf');
+    var u=url250(doc);
+    if(!u && /\.(pdf|jpg|jpeg|png|msg|eml)$/i.test(nm)){
+      u=download250(reference,nm);
+    }
+    if(!u && (n250(nm).indexOf('scan')>=0 || n250(nm).indexOf('untitled')>=0 || n250(nm).indexOf('pod')>=0)){
+      /* Kein echter Download ohne Dateiendung/URL. Als Hinweis speichern, aber nicht als Download vortaeuschen. */
+      u='';
+    }
+    var item=Object.assign({},doc,{
+      name:nm,
+      fileName:nm,
+      url:u,
+      webUrl:u,
+      downloadUrl:u,
+      href:u,
+      rc250Linked:!!u,
+      rc250Detected:true,
+      source:doc.source||'RC250'
+    });
+    target.rc247Docs=target.rc247Docs||{};
+    target.rc230Docs=target.rc230Docs||{};
+    target.rc228Docs=target.rc228Docs||{};
+    target.rc247Docs[kind]=item;
+    target.rc230Docs[kind]=item;
+    target.rc228Docs[kind]=item;
+    if(kind==='abd'){
+      target.abdFiles=Array.isArray(target.abdFiles)?target.abdFiles:[];
+      target.abdFiles=target.abdFiles.filter(function(x){return classify250(x)!=='abd'});
+      target.abdFiles.unshift(item);
+      target.abdStatus=u?'Dokument vorhanden':'ABD erkannt - Datei/Link fehlt';
+    }else{
+      target.podFiles=Array.isArray(target.podFiles)?target.podFiles:[];
+      target.podFiles=target.podFiles.filter(function(x){return classify250(x)!=='pod'});
+      target.podFiles.unshift(item);
+      target.podStatus=u?'hochgeladen':'POD erkannt - Datei/Link fehlt';
+    }
+    return true;
+  }
+
+  function save250(){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch&&state){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:state.users||[],
+            state:state
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+  }
+
+  function migrate250(){
+    var changed=false;
+    try{
+      (state.shipments||[]).forEach(function(s){
+        changed=normalizeDoc250(s,'abd',null,false)||changed;
+        changed=normalizeDoc250(s,'pod',null,false)||changed;
+      });
+      (state.abdRequests||[]).forEach(function(r){
+        var ship=shipmentByRef250(r&&r.ref);
+        /* ABD-Anfrage soll den exakt funktionierenden Sendungs-ABD-Link nutzen. */
+        changed=normalizeDoc250(r,'abd',ship,true)||changed;
+      });
+    }catch(err){}
+    if(changed)save250();
+    return changed;
+  }
+
+  function fixVisible250(){
+    try{
+      Array.from(document.querySelectorAll('.rc247-doc-card')).forEach(function(card){
+        var text=n250(card.textContent);
+        if((text.indexOf('pod')>=0 && (text.indexOf('scan')>=0 || text.indexOf('untitled')>=0)) || text.indexOf('verlinkt')>=0){
+          card.classList.add('linked');
+        }
+        Array.from(card.querySelectorAll('a[href]')).forEach(function(a){
+          if(n250(a.textContent).indexOf('pdf')>=0){
+            a.setAttribute('target','_blank');
+            a.setAttribute('rel','noopener');
+            a.setAttribute('download','');
+          }
+        });
+      });
+    }catch(err){}
+  }
+
+  var baseOverview250=window.shipmentoverview || (typeof shipmentoverview==='function'?shipmentoverview:null);
+  if(typeof baseOverview250==='function' && !baseOverview250.__rc250Wrapped){
+    var wrappedOverview250=function(){
+      migrate250();
+      var html=baseOverview250.apply(this,arguments);
+      setTimeout(fixVisible250,80);
+      setTimeout(fixVisible250,350);
+      return html;
+    };
+    wrappedOverview250.__rc250Wrapped=true;
+    window.shipmentoverview=wrappedOverview250;
+    try{shipmentoverview=wrappedOverview250}catch(err){}
+  }
+
+  var baseRender250=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender250==='function' && !baseRender250.__rc250Wrapped){
+    var wrappedRender250=function(){
+      migrate250();
+      var result=baseRender250.apply(this,arguments);
+      setTimeout(fixVisible250,120);
+      setTimeout(fixVisible250,500);
+      return result;
+    };
+    wrappedRender250.__rc250Wrapped=true;
+    window.render=wrappedRender250;
+    try{render=wrappedRender250}catch(err){}
+  }
+
+  window.rc250RepairAbdPod=function(){
+    migrate250();
+    try{render()}catch(err){}
+    return false;
+  };
+
+  setTimeout(migrate250,250);
+})();
+</script>
+<!-- PRIVATE RC250 END: ABD Anfrage Link + POD DeepScan -->
+
+
   
 </body></html>
 
