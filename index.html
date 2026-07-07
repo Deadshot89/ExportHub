@@ -33951,7 +33951,680 @@ body .rc232-folder-actions{
 </script>
 <!-- PRIVATE RC250 END: ABD Anfrage Link + POD DeepScan -->
 
+<!-- PRIVATE RC252 START: Pruefungsarchiv + Rechte/Vorlagen Hartfix -->
+<style>
+.rc252-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}
+.rc252-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+.rc252-box{border:1px solid var(--line,#dbe7f3);border-radius:14px;background:#f8fbff;padding:13px}
+.rc252-box span{display:block;color:#64748b;font-weight:900;font-size:12px}
+.rc252-box strong{display:block;color:#0b3b82;font-size:24px;margin-top:4px}
+.rc252-table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden}
+.rc252-table th,.rc252-table td{border-bottom:1px solid #e2e8f0;padding:10px;text-align:left;vertical-align:top}
+.rc252-table th{background:#dbeafe;color:#08245d;font-size:12px;text-transform:uppercase}
+.rc252-bad td{background:#fff1f2}
+.rc252-warn td{background:#fff7ed}
+.rc252-ok td{background:#f0fdf4}
+.rc252-detail{display:grid;gap:8px}
+.rc252-question{border:1px solid #dbe7f3;border-radius:12px;padding:10px;background:#fff}
+.rc252-question.bad{border-color:#fecaca;background:#fff1f2}
+.rc252-question.ok{border-color:#bbf7d0;background:#f0fdf4}
+.rc252-rights-layout{display:grid;grid-template-columns:minmax(300px,.8fr) minmax(560px,1.2fr);gap:14px;align-items:start}
+.rc252-user-list{display:grid;gap:8px;max-height:620px;overflow:auto}
+.rc252-user-list button{width:100%;text-align:left}
+.rc252-user-list button.active{border-color:#2563eb;background:#eff6ff}
+.rc252-savebar{position:sticky;bottom:8px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;box-shadow:0 8px 22px rgba(37,99,235,.12);margin-top:12px}
+.rc252-rights-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.rc252-rights-table input{width:18px;height:18px}
+.rc252-status{border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:14px;padding:10px;font-weight:900;margin:10px 0}
+.rc252-status.ok{border-color:#86efac;background:#f0fdf4;color:#166534}
+.rc252-status.warn{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
+@media(max-width:1100px){.rc252-rights-layout{grid-template-columns:1fr}}
+</style>
 
+<script>
+/* PRIVATE RC252: Pruefungsarchiv/Auswertung und Rechte/Vorlagen dauerhaft speichern */
+(function(){
+  if(window.__EXPORTHUB_RC252_EXAM_RIGHTS_FIX__)return;
+  window.__EXPORTHUB_RC252_EXAM_RIGHTS_FIX__=true;
+
+  function esc252(v){
+    try{if(typeof esc==='function')return esc(v)}catch(err){}
+    return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
+    });
+  }
+  function norm252(v){
+    return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function userKey252(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+  function storageKeys252(){
+    return Array.from(new Set([
+      userKey252(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users',
+      'exporthub_rc252_users'
+    ]));
+  }
+  function modules252(){
+    try{if(Array.isArray(RIGHTS_MODULES)&&RIGHTS_MODULES.length)return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],
+      ['dashboard','Dashboard','Dashboard'],
+      ['tasks','Aufgaben','Aufgaben'],
+      ['vacation','Urlaub','Urlaub & Vertretung'],
+      ['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],
+      ['cmr','CMR','Ladeliste & CMR'],
+      ['pallet','Paletten','Palettenkonto'],
+      ['customers','Kunden','Kunden & Dokumente'],
+      ['customerfolder','Kundenordner','Kundenordner'],
+      ['calculator','Rechner','UPS Preise'],
+      ['customs','Zoll','Zollwissen'],
+      ['sop','SOP','SOP starten'],
+      ['academy','Academy','Academy Logistik'],
+      ['quiz','Pruefung','Pruefung'],
+      ['ideas','Ideen','Ideenpool'],
+      ['update','Update','Update ExportHUB'],
+      ['rights','Rechte','Benutzer & Rechte'],
+      ['teamfile','Teamdaten','Sammelmodus'],
+      ['archive','Archiv','Archiv']
+    ];
+  }
+  function moduleLabel252(m){return String(m[2]||m[1]||m[0]||'')}
+  function blankRights252(){
+    var out={};
+    modules252().forEach(function(m){
+      var id=m[0], base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+  function fullRights252(){
+    var out={};
+    modules252().forEach(function(m){out[m[0]]={visible:true,read:true,edit:true}});
+    return out;
+  }
+  function give252(rights,ids,edit){
+    ids.forEach(function(id){
+      if(!rights[id])rights[id]={visible:false,read:false,edit:false};
+      rights[id]={visible:true,read:true,edit:!!edit};
+    });
+  }
+  function template252(name){
+    name=String(name||'dashboard');
+    if(name==='full')return fullRights252();
+    var r=blankRights252();
+    if(name==='dashboard')return r;
+    if(name==='readall'){
+      modules252().forEach(function(m){r[m[0]]={visible:true,read:true,edit:false}});
+      return r;
+    }
+    if(name==='shipment'){
+      give252(r,['tasks','shipment','shipmentoverview','cmr','customers','customerfolder','customs','archive'],true);
+      give252(r,['dashboard'],false);
+      return r;
+    }
+    if(name==='overview'){
+      give252(r,['tasks','shipmentoverview','customerfolder','archive'],false);
+      return r;
+    }
+    if(name==='customers'){
+      give252(r,['customers','customerfolder'],true);
+      give252(r,['shipmentoverview'],false);
+      return r;
+    }
+    if(name==='academy'){
+      give252(r,['tasks','sop','academy','quiz','customers','customerfolder'],true);
+      return r;
+    }
+    if(name==='export'){
+      give252(r,['tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','teamfile','archive'],true);
+      return r;
+    }
+    return r;
+  }
+  function isAdmin252(u){
+    return !!(u && (
+      (Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0) ||
+      norm252(u.user)==='tobias' ||
+      norm252(u.name)==='tobias' ||
+      norm252(u.role).indexOf('admin')>=0 ||
+      norm252(u.role).indexOf('vollzugriff')>=0
+    ));
+  }
+  function normalizeUser252(raw){
+    var u=Object.assign({},raw||{});
+    u.user=String(u.user||u.login||'').trim();
+    u.login=u.user;
+    u.name=String(u.name||u.user||'').trim();
+    u.role=String(u.role||'Benutzer').trim();
+    u.password=String(u.password||'Essentra');
+    u.mustChange=!!u.mustChange;
+    u.permissions=Array.isArray(u.permissions)?u.permissions:[];
+    if(isAdmin252(u)){
+      u.permissions=['*'];
+      u.rights=fullRights252();
+      u.mustChange=false;
+      return u;
+    }
+    var base=blankRights252();
+    var old=u.rights&&typeof u.rights==='object'?u.rights:{};
+    modules252().forEach(function(m){
+      var id=m[0], existing=old[id]||{};
+      base[id]={
+        visible:existing.visible===true || id==='start' || id==='dashboard',
+        read:existing.read===true || id==='start' || id==='dashboard',
+        edit:existing.edit===true
+      };
+      if(!base[id].visible){base[id].read=false;base[id].edit=false}
+      if(!base[id].read)base[id].edit=false;
+    });
+    u.rights=base;
+    return u;
+  }
+  function readUsersFromKey252(key){
+    try{
+      var parsed=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(parsed)?parsed:[];
+    }catch(err){return []}
+  }
+  function collectUsers252(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    storageKeys252().forEach(function(k){all=all.concat(readUsersFromKey252(k))});
+    var map={};
+    all.forEach(function(raw){
+      var u=normalizeUser252(raw);
+      if(!u.user)return;
+      var key=norm252(u.user);
+      map[key]=Object.assign(map[key]||{},u);
+    });
+    return Object.keys(map).sort(function(a,b){
+      if(a==='tobias')return -1;
+      if(b==='tobias')return 1;
+      return a.localeCompare(b);
+    }).map(function(k){return normalizeUser252(map[k])});
+  }
+  function selectedUser252(){
+    try{return state.rc252SelectedUser||state.rc249SelectedUser||state.rc93RightsUser||state.rightsUser||''}catch(err){}
+    return '';
+  }
+  function setSelectedUser252(login){
+    try{
+      state.rc252SelectedUser=login;
+      state.rc249SelectedUser=login;
+      state.rc241SelectedUser=login;
+      state.rc228SelectedUser=login;
+      state.rc196User=login;
+      state.rc193RightsUser=login;
+      state.rc93RightsUser=login;
+      state.rightsUser=login;
+    }catch(err){}
+  }
+  function userByLogin252(list,login){
+    var n=norm252(login);
+    return list.find(function(u){return norm252(u.user)===n});
+  }
+  function setStatus252(text,type){
+    try{
+      var box=document.getElementById('rc252Status');
+      if(box){box.className='rc252-status '+(type||'');box.textContent=text}
+    }catch(err){}
+  }
+  function persistUsers252(list,reason){
+    list=(Array.isArray(list)?list:collectUsers252()).map(normalizeUser252);
+    try{users=list}catch(err){}
+    try{
+      state.users=JSON.parse(JSON.stringify(list));
+      state.userRevision=Number(state.userRevision||0)+1;
+      state.userSavedAt=new Date().toISOString();
+      state.userSavedBy=(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB';
+    }catch(err){}
+    storageKeys252().forEach(function(k){
+      try{localStorage.setItem(k,JSON.stringify(list))}catch(err){}
+    });
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(currentUser){
+        var fresh=userByLogin252(list,currentUser.user);
+        if(fresh)currentUser=fresh;
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit('Benutzer/Rechte gespeichert',reason||'RC252')}catch(err){}
+    try{
+      if(window.fetch&&state){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',
+            users:list,
+            state:Object.assign({},state,{users:list})
+          })
+        }).then(function(res){
+          setStatus252((reason||'Gespeichert')+(res&&res.ok?' - Teamdaten gespeichert.':' - lokal gespeichert, Teamdaten nicht bestaetigt.'),res&&res.ok?'ok':'warn');
+        }).catch(function(){
+          setStatus252((reason||'Gespeichert')+' - lokal gespeichert, Teamdaten-Sync folgt.','warn');
+        });
+      }else{
+        setStatus252((reason||'Gespeichert')+' - lokal gespeichert.','ok');
+      }
+    }catch(err){
+      setStatus252((reason||'Gespeichert')+' - lokal gespeichert.','warn');
+    }
+    return list;
+  }
+  function rightOf252(u,id){
+    if(!u)return {visible:false,read:false,edit:false};
+    if(isAdmin252(u))return {visible:true,read:true,edit:true};
+    u=normalizeUser252(u);
+    return (u.rights&&u.rights[id])||{visible:false,read:false,edit:false};
+  }
+  function canManage252(){
+    try{return isAdmin252(currentUser)||!!rightOf252(currentUser,'rights').edit}catch(err){return false}
+  }
+
+  window.canView=function(id){
+    try{
+      if(!currentUser)return false;
+      if(id==='start'||id==='dashboard')return true;
+      return !!rightOf252(currentUser,id).visible;
+    }catch(err){return !!currentUser}
+  };
+  window.canRead=function(id){
+    try{
+      if(!currentUser)return false;
+      if(id==='start'||id==='dashboard')return true;
+      var r=rightOf252(currentUser,id);
+      return !!(r.read||r.edit);
+    }catch(err){return !!currentUser}
+  };
+  window.canWrite=function(id){
+    try{
+      if(!currentUser)return false;
+      return !!rightOf252(currentUser,id||state.view).edit;
+    }catch(err){return !!currentUser}
+  };
+  window.canEdit=window.canWrite;
+  window.canManageRights=canManage252;
+  try{canView=window.canView;canRead=window.canRead;canWrite=window.canWrite;canEdit=window.canEdit;canManageRights=window.canManageRights}catch(err){}
+
+  window.rc252SelectUser=function(login){
+    setSelectedUser252(login);
+    try{if(typeof save==='function')save()}catch(err){}
+    try{render()}catch(err){}
+    return false;
+  };
+  window.rc252CreateUser=function(){
+    var login=String((document.getElementById('rc252NewLogin')||{}).value||'').trim();
+    var name=String((document.getElementById('rc252NewName')||{}).value||login).trim();
+    var role=String((document.getElementById('rc252NewRole')||{}).value||'Benutzer').trim();
+    var pass=String((document.getElementById('rc252NewPassword')||{}).value||'Essentra').trim();
+    var tmpl=String((document.getElementById('rc252NewTemplate')||{}).value||'dashboard');
+    if(!login){alert('Bitte Login / Benutzername eintragen.');return false}
+    if(!/^[A-Za-z0-9._-]{2,40}$/.test(login)){alert('Benutzername bitte nur mit Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich anlegen.');return false}
+    var list=collectUsers252();
+    if(userByLogin252(list,login)){alert('Dieser Benutzer existiert bereits.');return false}
+    var u={user:login,login:login,name:name||login,role:role||'Benutzer',password:pass||'Essentra',mustChange:false,permissions:[],rights:template252(tmpl)};
+    if(tmpl==='full'){u.permissions=['*'];u.role='Vollzugriff';u.rights=fullRights252()}
+    if(tmpl==='export'&&role==='Benutzer')u.role='Export';
+    list.push(u);
+    setSelectedUser252(login);
+    persistUsers252(list,'Benutzer '+login+' angelegt');
+    try{render()}catch(err){}
+    return false;
+  };
+  function readRightsUi252(u){
+    var rights=blankRights252();
+    modules252().forEach(function(m){
+      var id=m[0];
+      var old=(u.rights&&u.rights[id])||rights[id]||{};
+      var v=document.getElementById('rc252_'+id+'_visible');
+      var r=document.getElementById('rc252_'+id+'_read');
+      var e=document.getElementById('rc252_'+id+'_edit');
+      rights[id]={
+        visible:v?!!v.checked:!!old.visible,
+        read:r?!!r.checked:!!old.read,
+        edit:e?!!e.checked:!!old.edit
+      };
+      if(id==='start'||id==='dashboard'){rights[id].visible=true;rights[id].read=true}
+      if(!rights[id].visible){rights[id].read=false;rights[id].edit=false}
+      if(!rights[id].read)rights[id].edit=false;
+    });
+    return rights;
+  }
+  window.rc252ApplyTemplate=function(name){
+    var list=collectUsers252();
+    var login=(document.getElementById('rc252UserSelect')||{}).value||selectedUser252();
+    var u=userByLogin252(list,login);
+    if(!u){alert('Bitte zuerst Benutzer auswaehlen.');return false}
+    if(isAdmin252(u)&&name!=='full'){alert('Tobias/Admin bleibt Vollzugriff.');return false}
+    u.permissions=[];
+    u.rights=template252(name);
+    if(name==='full'){u.permissions=['*'];u.rights=fullRights252();u.role='Vollzugriff'}
+    if(name==='export')u.role='Export';
+    var idx=list.findIndex(function(x){return norm252(x.user)===norm252(u.user)});
+    if(idx>=0)list[idx]=normalizeUser252(u);
+    setSelectedUser252(u.user);
+    persistUsers252(list,'Vorlage fuer '+u.user+' gespeichert');
+    try{render()}catch(err){}
+    return false;
+  };
+  window.rc252ToggleAll=function(type,checked){
+    modules252().forEach(function(m){
+      var id=m[0], el=document.getElementById('rc252_'+id+'_'+type);
+      if(el&&!el.disabled)el.checked=!!checked;
+      if(type==='edit'&&checked){
+        var v=document.getElementById('rc252_'+id+'_visible'), r=document.getElementById('rc252_'+id+'_read');
+        if(v&&!v.disabled)v.checked=true;
+        if(r&&!r.disabled)r.checked=true;
+      }
+      if(type==='read'&&checked){
+        var vv=document.getElementById('rc252_'+id+'_visible');
+        if(vv&&!vv.disabled)vv.checked=true;
+      }
+    });
+    return false;
+  };
+  window.rc252SaveRights=function(){
+    var list=collectUsers252();
+    var login=(document.getElementById('rc252UserSelect')||{}).value||selectedUser252();
+    var u=userByLogin252(list,login);
+    if(!u){alert('Bitte zuerst Benutzer auswaehlen.');return false}
+    var name=document.getElementById('rc252Name');
+    var role=document.getElementById('rc252Role');
+    var pass=document.getElementById('rc252Password');
+    var must=document.getElementById('rc252MustChange');
+    if(name)u.name=String(name.value||u.name||u.user).trim();
+    if(role)u.role=String(role.value||u.role||'Benutzer').trim();
+    if(pass&&String(pass.value||'').trim())u.password=String(pass.value||'').trim();
+    if(must)u.mustChange=!!must.checked;
+    if(!isAdmin252(u)){
+      u.permissions=[];
+      u.rights=readRightsUi252(u);
+    }
+    var idx=list.findIndex(function(x){return norm252(x.user)===norm252(u.user)});
+    if(idx>=0)list[idx]=normalizeUser252(u);
+    setSelectedUser252(u.user);
+    persistUsers252(list,'Rechte fuer '+u.user+' gespeichert');
+    try{render()}catch(err){}
+    return false;
+  };
+
+  function rightsRows252(u){
+    if(!u)return '';
+    var locked=isAdmin252(u);
+    return modules252().map(function(m){
+      var id=m[0], r=rightOf252(u,id), baseLock=locked||id==='start'||id==='dashboard';
+      return '<tr>'+
+        '<td><b>'+esc252(moduleLabel252(m))+'</b><br><span class="small">'+esc252(id)+'</span></td>'+
+        '<td><input id="rc252_'+esc252(id)+'_visible" type="checkbox" '+(r.visible?'checked':'')+' '+(baseLock?'disabled':'')+'></td>'+
+        '<td><input id="rc252_'+esc252(id)+'_read" type="checkbox" '+(r.read?'checked':'')+' '+(baseLock?'disabled':'')+'></td>'+
+        '<td><input id="rc252_'+esc252(id)+'_edit" type="checkbox" '+(r.edit?'checked':'')+' '+(locked?'disabled':'')+'></td>'+
+      '</tr>';
+    }).join('');
+  }
+  function rightsHtml252(){
+    var list=collectUsers252();
+    var selected=selectedUser252()||(list[0]&&list[0].user)||'';
+    if(selected)setSelectedUser252(selected);
+    var u=userByLogin252(list,selected)||list[0]||null;
+    var opts=list.map(function(x){
+      return '<option value="'+esc252(x.user)+'" '+(u&&norm252(x.user)===norm252(u.user)?'selected':'')+'>'+esc252((x.name||x.user)+' / '+x.user+' / '+(x.role||'Benutzer'))+'</option>';
+    }).join('');
+    var listHtml=list.map(function(x){
+      var visible=modules252().filter(function(m){return rightOf252(x,m[0]).visible}).length;
+      var edit=modules252().filter(function(m){return rightOf252(x,m[0]).edit}).length;
+      return '<button type="button" class="ghost '+(u&&norm252(x.user)===norm252(u.user)?'active':'')+'" onclick="return rc252SelectUser(&quot;'+esc252(x.user)+'&quot;)">'+
+        '<b>'+esc252(x.name||x.user)+'</b><br><span class="small">'+esc252(x.user+' / '+(x.role||'Benutzer'))+'</span><br>'+
+        '<span class="pill blue">'+esc252(visible)+' sichtbar</span> <span class="pill gray">'+esc252(edit)+' bearbeiten</span>'+
+      '</button>';
+    }).join('');
+    var form=u?'<div class="card">'+
+      '<h3>Benutzer bearbeiten</h3>'+
+      '<label class="field">Benutzer<select id="rc252UserSelect" onchange="rc252SelectUser(this.value)">'+opts+'</select></label>'+
+      '<div class="grid2">'+
+        '<label class="field">Name<input id="rc252Name" value="'+esc252(u.name||'')+'"></label>'+
+        '<label class="field">Rolle<input id="rc252Role" value="'+esc252(u.role||'')+'"></label>'+
+        '<label class="field">Neues Passwort<input id="rc252Password" type="text" placeholder="leer lassen = bleibt"></label>'+
+        '<label class="field">Passwortwechsel<span><input id="rc252MustChange" type="checkbox" '+(u.mustChange?'checked':'')+'> beim naechsten Login</span></label>'+
+      '</div>'+
+      '<div class="rc252-rights-actions">'+
+        '<button type="button" class="ghost" onclick="return rc252ApplyTemplate(&quot;dashboard&quot;)">Nur Dashboard</button>'+
+        '<button type="button" class="ghost" onclick="return rc252ApplyTemplate(&quot;shipment&quot;)">Sendungen bearbeiten</button>'+
+        '<button type="button" class="ghost" onclick="return rc252ApplyTemplate(&quot;customers&quot;)">Kunden bearbeiten</button>'+
+        '<button type="button" class="soft" onclick="return rc252ApplyTemplate(&quot;export&quot;)">Export Standard</button>'+
+        '<button type="button" class="ghost" onclick="return rc252ApplyTemplate(&quot;readall&quot;)">Alles lesen</button>'+
+        '<button type="button" class="ghost" onclick="return rc252ApplyTemplate(&quot;academy&quot;)">Academy/Pruefung</button>'+
+        '<button type="button" class="danger" onclick="return rc252ApplyTemplate(&quot;full&quot;)">Vollzugriff</button>'+
+      '</div>'+
+      '<div class="rc252-rights-actions">'+
+        '<button type="button" class="soft" onclick="return rc252ToggleAll(&quot;visible&quot;,true)">Alle sichtbar</button>'+
+        '<button type="button" class="soft" onclick="return rc252ToggleAll(&quot;read&quot;,true)">Alle lesen</button>'+
+        '<button type="button" class="soft" onclick="return rc252ToggleAll(&quot;edit&quot;,true)">Alle bearbeiten</button>'+
+        '<button type="button" class="soft" onclick="return rc252ToggleAll(&quot;edit&quot;,false)">Bearbeiten entfernen</button>'+
+      '</div>'+
+      '<table class="table rc252-rights-table"><thead><tr><th>Bereich</th><th>Sichtbar</th><th>Lesen</th><th>Bearbeiten</th></tr></thead><tbody>'+rightsRows252(u)+'</tbody></table>'+
+      '<div class="rc252-savebar"><button class="btn" onclick="return rc252SaveRights()">Benutzer & Rechte speichern</button><span class="small">Bearbeiten wird fuer Sendung/Kunde anlegen, speichern, loeschen und abschliessen benoetigt.</span></div>'+
+    '</div>':'<div class="badbox">Kein Benutzer vorhanden.</div>';
+    return (typeof head==='function'?head('Benutzer & Rechte','Benutzer anlegen, Vorlage setzen und Rechte dauerhaft speichern.'):'<h2>Benutzer & Rechte</h2>')+
+      '<div id="rc252Status" class="rc252-status">RC252 aktiv: Rechte und Vorlagen werden in Benutzerliste, Browser-Speicher und Teamdaten geschrieben.</div>'+
+      '<div class="rc252-rights-layout">'+
+        '<div class="card"><h3>Benutzer</h3><div class="rc252-user-list">'+listHtml+'</div>'+
+          '<hr style="border:0;border-top:1px solid var(--line,#dbe7f3);margin:16px 0">'+
+          '<h3>Neuen Benutzer anlegen</h3>'+
+          '<label class="field">Login / Benutzername<input id="rc252NewLogin" placeholder="z. B. Sevastian"></label>'+
+          '<label class="field">Name<input id="rc252NewName" placeholder="Anzeigename"></label>'+
+          '<label class="field">Rolle<input id="rc252NewRole" value="Benutzer"></label>'+
+          '<label class="field">Startpasswort<input id="rc252NewPassword" type="text" value="Essentra"></label>'+
+          '<label class="field">Rechtevorlage<select id="rc252NewTemplate"><option value="dashboard">Nur Dashboard</option><option value="export">Export Standard</option><option value="shipment">Sendungen bearbeiten</option><option value="readall">Alles lesen</option><option value="academy">Academy/Pruefung</option><option value="full">Vollzugriff</option></select></label>'+
+          '<button class="btn" onclick="return rc252CreateUser()">Benutzer anlegen & Profil oeffnen</button>'+
+        '</div>'+form+
+      '</div>';
+  }
+  window.rights=rightsHtml252;
+  try{rights=window.rights}catch(err){}
+  window.rc93CreateUserAndOpen=window.rc252CreateUser;
+  window.rc93SaveSelectedUserRights=window.rc252SaveRights;
+  window.rc93ApplyPreset=window.rc252ApplyTemplate;
+  window.rc249SaveRights=window.rc252SaveRights;
+  window.rc249ApplyTemplate=window.rc252ApplyTemplate;
+  window.rc196CreateUser=window.rc252CreateUser;
+  window.rc196SaveUser=window.rc252SaveRights;
+
+  function saveQuiz252(reason){
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch&&state){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({user:(currentUser&&(currentUser.name||currentUser.user))||'ExportHUB',users:state.users||[],state:state})
+        }).catch(function(){});
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit(reason||'Pruefung gespeichert','RC252')}catch(err){}
+  }
+  function questions252(){try{return Array.isArray(SEED.quiz)?SEED.quiz:[]}catch(err){} return []}
+  function ensureQuiz252(){
+    state.quizAnswers=state.quizAnswers||{};
+    state.quizArchive=Array.isArray(state.quizArchive)?state.quizArchive:[];
+    state.quizSessionStartedAt=state.quizSessionStartedAt||new Date().toISOString();
+    state.rc252QuizTab=state.rc252QuizTab||state.rc251QuizTab||'pruefung';
+  }
+  function topic252(q){
+    var raw=String((q&&(q.area||q.topic||q.type||q.category||q.level))||'').trim();
+    if(raw)return raw;
+    var t=norm252((q&&q.q)||'');
+    if(/zoll|abd|mrn|atlas|ausfuhr|eur|atr/.test(t))return 'Zoll / ABD';
+    if(/cmr|ladeliste|lieferschein|dnc/.test(t))return 'Dokumente / CMR';
+    if(/palette|ladung|transport|spedition|abholung/.test(t))return 'Transport';
+    if(/sicherheit|unfall|hubwagen|stapler/.test(t))return 'Sicherheit';
+    if(/qualitaet|fehler|sop|prozess/.test(t))return 'Qualitaet / SOP';
+    if(/kunde|mail|anmeldung|kommunikation/.test(t))return 'Kunden / Kommunikation';
+    return 'Allgemein';
+  }
+  function quizUser252(){
+    return {
+      user:(currentUser&&(currentUser.user||currentUser.login))||'unknown',
+      name:(currentUser&&(currentUser.name||currentUser.user))||'Unbekannt'
+    };
+  }
+  function answerRecord252(q,i,chosen){
+    var correct=Number(q&&q.correct), answers=Array.isArray(q&&q.a)?q.a:[];
+    return {
+      index:i,
+      question:String((q&&q.q)||''),
+      topic:topic252(q),
+      chosenIndex:Number(chosen),
+      correctIndex:correct,
+      chosenText:String(answers[Number(chosen)]||''),
+      correctText:String(answers[correct]||''),
+      correct:Number(chosen)===correct,
+      why:String((q&&q.why)||'')
+    };
+  }
+  function currentResult252(){
+    ensureQuiz252();
+    var qs=questions252(), answers=state.quizAnswers||{};
+    var records=qs.map(function(q,i){return answerRecord252(q,i,answers[i])});
+    var answered=records.filter(function(r){return isFinite(r.chosenIndex)}).length;
+    var score=records.filter(function(r){return r.correct}).length;
+    var total=qs.length, percent=total?Math.round(score/total*100):0;
+    return {records:records,answered:answered,score:score,total:total,percent:percent,complete:answered===total&&total>0,passed:total?score>=Math.ceil(total*.75):false};
+  }
+  function archiveCurrent252(force){
+    ensureQuiz252();
+    var result=currentResult252();
+    if(!result.complete&&!force){alert('Pruefung ist noch nicht vollstaendig beantwortet.');return false}
+    var u=quizUser252();
+    var sig=[u.user,result.total,result.records.map(function(r){return isFinite(r.chosenIndex)?r.chosenIndex:'x'}).join('-')].join('|');
+    var found=state.quizArchive.find(function(x){return x.signature===sig});
+    if(found&&!force){state.rc252LastArchiveId=found.id;return found}
+    var weak={};
+    result.records.forEach(function(r){
+      if(!weak[r.topic])weak[r.topic]={topic:r.topic,total:0,wrong:0};
+      weak[r.topic].total++;
+      if(!r.correct)weak[r.topic].wrong++;
+    });
+    var entry={
+      id:'EXAM-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),
+      signature:sig,
+      user:u.user,
+      userName:u.name,
+      startedAt:state.quizSessionStartedAt||new Date().toISOString(),
+      completedAt:new Date().toISOString(),
+      score:result.score,
+      total:result.total,
+      percent:result.percent,
+      passed:result.passed,
+      records:result.records,
+      weakTopics:Object.keys(weak).map(function(k){
+        var x=weak[k];x.wrongRate=x.total?Math.round(x.wrong/x.total*100):0;return x;
+      }).sort(function(a,b){return b.wrongRate-a.wrongRate})
+    };
+    state.quizArchive.unshift(entry);
+    state.rc252LastArchiveId=entry.id;
+    saveQuiz252('Pruefung archiviert');
+    return entry;
+  }
+  function archiveIfComplete252(){if(currentResult252().complete)archiveCurrent252(false)}
+  window.rc252SetQuizTab=function(tab){ensureQuiz252();state.rc252QuizTab=tab;saveQuiz252('Pruefungsansicht');render();return false};
+  window.rc252ArchiveQuiz=function(){var e=archiveCurrent252(false);if(e)alert('Pruefung archiviert: '+e.score+' von '+e.total+' richtig.');try{render()}catch(err){} return false};
+  window.answerQuiz=function(i,idx){ensureQuiz252();state.quizAnswers[i]=idx;if(!state.quizSessionStartedAt)state.quizSessionStartedAt=new Date().toISOString();archiveIfComplete252();saveQuiz252('Pruefungsfrage beantwortet');render()};
+  window.setQuizStep=function(i){ensureQuiz252();var total=questions252().length;state.quizStep=Math.max(0,Math.min(Number(i)||0,total-1));saveQuiz252('Pruefung Schritt');render()};
+  window.nextQuizQuestion=function(){ensureQuiz252();var total=questions252().length;state.quizStep=Math.min(Number(state.quizStep||0)+1,total-1);saveQuiz252('Pruefung weiter');render()};
+  window.resetQuiz=function(){ensureQuiz252();if(currentResult252().complete)archiveCurrent252(false);state.quizAnswers={};state.quizStep=0;state.quizSessionStartedAt=new Date().toISOString();saveQuiz252('Pruefung neu gestartet');render()};
+  function date252(v){var d=new Date(v);return v&&!isNaN(d.getTime())?d.toLocaleString('de-DE'):String(v||'')}
+  function examHtml252(){
+    var qs=questions252();
+    if(!qs.length)return '<div class="badbox">Keine Pruefungsfragen vorhanden.</div>';
+    ensureQuiz252();
+    var i=Math.max(0,Math.min(Number(state.quizStep||0),qs.length-1)), q=qs[i], chosen=state.quizAnswers[i], result=currentResult252();
+    var pct=Math.round((result.answered/qs.length)*100);
+    if(result.complete)archiveIfComplete252();
+    return '<div class="metrics">'+
+      '<article class="metric"><span>Frage</span><strong>'+esc252(i+1)+'/'+esc252(qs.length)+'</strong></article>'+
+      '<article class="metric"><span>Beantwortet</span><strong>'+esc252(result.answered)+'</strong></article>'+
+      '<article class="metric"><span>Richtig</span><strong>'+esc252(result.score)+'</strong></article>'+
+      '<article class="metric"><span>Status</span><strong>'+esc252(result.complete?(result.passed?'Bestanden':'Ueben'):'laeuft')+'</strong></article>'+
+    '</div><div class="progressbar"><span style="width:'+esc252(pct)+'%"></span></div>'+
+    '<div class="quiz-card"><div class="pill blue">'+esc252(topic252(q))+'</div><h2>'+esc252(i+1)+'. '+esc252(q.q)+'</h2>'+
+      (q.a||[]).map(function(a,idx){
+        var cls=chosen===idx?(idx===q.correct?'correct':'wrong'):'';
+        return '<button class="quiz-option '+cls+'" onclick="answerQuiz('+i+','+idx+')">'+esc252(a)+'</button>';
+      }).join('')+
+      (chosen!==undefined?'<div class="'+(Number(chosen)===Number(q.correct)?'okbox':'badbox')+'"><b>'+(Number(chosen)===Number(q.correct)?'Richtig':'Falsch')+'</b><br>'+esc252(q.why||'')+'</div>':'<div class="notice">Waehle eine Antwort aus.</div>')+
+      '<div class="quiz-nav"><button class="ghost" onclick="setQuizStep('+(i-1)+')" '+(i===0?'disabled':'')+'>Zurueck</button><button class="btn" onclick="nextQuizQuestion()" '+(chosen===undefined||i>=qs.length-1?'disabled':'')+'>Weiter</button><button class="soft" onclick="return rc252ArchiveQuiz()" '+(!result.complete?'disabled':'')+'>Pruefung archivieren</button><button class="ghost" onclick="resetQuiz()">Pruefung neu starten</button></div>'+
+    '</div>'+
+    (result.complete?'<div class="'+(result.passed?'okbox':'badbox')+'"><b>Archiviert:</b> '+esc252(result.score)+' von '+esc252(result.total)+' richtig ('+esc252(result.percent)+'%).</div>':'');
+  }
+  function archive252(){ensureQuiz252();return state.quizArchive||[]}
+  function aggregate252(){
+    var rows={};
+    archive252().forEach(function(exam){
+      (exam.records||[]).forEach(function(r){
+        var key=[exam.user||exam.userName,r.topic].join('|');
+        if(!rows[key])rows[key]={user:exam.userName||exam.user||'Unbekannt',topic:r.topic,total:0,wrong:0,questions:{}};
+        rows[key].total++;
+        if(!r.correct){
+          rows[key].wrong++;
+          if(!rows[key].questions[r.question])rows[key].questions[r.question]={question:r.question,wrong:0,correctText:r.correctText,why:r.why};
+          rows[key].questions[r.question].wrong++;
+        }
+      });
+    });
+    return Object.keys(rows).map(function(k){
+      var x=rows[k];
+      x.wrongRate=x.total?Math.round(x.wrong/x.total*100):0;
+      x.level=x.wrongRate>=50?'Schwerpunkt':(x.wrongRate>=25?'Auffaellig':'OK');
+      x.badQuestions=Object.keys(x.questions).map(function(q){return x.questions[q]}).sort(function(a,b){return b.wrong-a.wrong}).slice(0,5);
+      return x;
+    }).sort(function(a,b){return b.wrongRate-a.wrongRate||b.wrong-a.wrong});
+  }
+  function analysisHtml252(){
+    var archive=archive252(), rows=aggregate252(), total=archive.length;
+    var avg=total?Math.round(archive.reduce(function(s,x){return s+Number(x.percent||0)},0)/total):0;
+    var passed=archive.filter(function(x){return x.passed}).length, usersSeen={};
+    archive.forEach(function(x){usersSeen[x.userName||x.user]=true});
+    return '<div class="rc252-grid"><div class="rc252-box"><span>Archivierte Pruefungen</span><strong>'+esc252(total)+'</strong></div><div class="rc252-box"><span>Teilnehmer</span><strong>'+esc252(Object.keys(usersSeen).length)+'</strong></div><div class="rc252-box"><span>Durchschnitt</span><strong>'+esc252(avg)+'%</strong></div><div class="rc252-box"><span>Bestanden</span><strong>'+esc252(passed)+'/'+esc252(total)+'</strong></div></div>'+
+      (!rows.length?'<div class="notice">Noch keine archivierten Pruefungen vorhanden.</div>':'<div class="card"><h3>Schwierigkeiten nach Benutzer und Thema</h3><table class="rc252-table"><tr><th>Benutzer</th><th>Thema</th><th>Fehler</th><th>Fehlerquote</th><th>Bewertung</th><th>Haeufig falsche Fragen</th></tr>'+rows.map(function(r){
+        var cls=r.level==='Schwerpunkt'?'rc252-bad':(r.level==='Auffaellig'?'rc252-warn':'rc252-ok');
+        return '<tr class="'+cls+'"><td><b>'+esc252(r.user)+'</b></td><td>'+esc252(r.topic)+'</td><td>'+esc252(r.wrong)+' / '+esc252(r.total)+'</td><td><b>'+esc252(r.wrongRate)+'%</b></td><td>'+esc252(r.level)+'</td><td>'+(r.badQuestions.length?r.badQuestions.map(function(q){return '<div><b>'+esc252(q.wrong)+'x</b> '+esc252(q.question)+'<br><span class="small">Richtig: '+esc252(q.correctText)+'</span></div>'}).join('<hr style="border:0;border-top:1px solid #e2e8f0">'):'-')+'</td></tr>';
+      }).join('')+'</table></div>');
+  }
+  window.rc252ToggleArchiveDetail=function(id){ensureQuiz252();state.rc252OpenArchiveId=state.rc252OpenArchiveId===id?'':id;saveQuiz252('Archivdetail');render();return false};
+  function archiveHtml252(){
+    var archive=archive252();
+    if(!archive.length)return '<div class="notice">Noch keine Pruefung archiviert.</div>';
+    return '<div class="card"><h3>Pruefungsarchiv</h3><table class="rc252-table"><tr><th>Datum</th><th>Benutzer</th><th>Ergebnis</th><th>Status</th><th>Aktion</th></tr>'+archive.map(function(x){
+      var open=state.rc252OpenArchiveId===x.id;
+      return '<tr><td>'+esc252(date252(x.completedAt))+'</td><td><b>'+esc252(x.userName||x.user)+'</b></td><td>'+esc252(x.score)+' / '+esc252(x.total)+' ('+esc252(x.percent)+'%)</td><td>'+esc252(x.passed?'Bestanden':'Ueben')+'</td><td><button class="ghost" onclick="return rc252ToggleArchiveDetail(&quot;'+esc252(x.id)+'&quot;)">'+(open?'Details ausblenden':'Details')+'</button></td></tr>'+(open?'<tr><td colspan="5"><div class="rc252-detail">'+(x.records||[]).map(function(r){return '<div class="rc252-question '+(r.correct?'ok':'bad')+'"><b>'+esc252(r.index+1)+'. '+esc252(r.topic)+'</b><br>'+esc252(r.question)+'<br><span class="small">Antwort: '+esc252(r.chosenText||'-')+' | Richtig: '+esc252(r.correctText||'-')+'</span><br><span class="small">'+esc252(r.why||'')+'</span></div>'}).join('')+'</div></td></tr>':'');
+    }).join('')+'</table></div>';
+  }
+  function quizHtml252(){
+    ensureQuiz252();
+    var tab=state.rc252QuizTab||'pruefung';
+    return (typeof head==='function'?head('Pruefung','Pruefung durchfuehren, Ergebnisse archivieren und Schwierigkeiten auswerten.'):'<h2>Pruefung</h2>')+
+      '<div class="rc252-tabs"><button class="'+(tab==='pruefung'?'btn':'ghost')+'" onclick="return rc252SetQuizTab(&quot;pruefung&quot;)">Pruefung</button><button class="'+(tab==='auswertung'?'btn':'ghost')+'" onclick="return rc252SetQuizTab(&quot;auswertung&quot;)">Auswertung</button><button class="'+(tab==='archiv'?'btn':'ghost')+'" onclick="return rc252SetQuizTab(&quot;archiv&quot;)">Archiv</button></div>'+
+      (tab==='auswertung'?analysisHtml252():(tab==='archiv'?archiveHtml252():examHtml252()));
+  }
+  window.quiz=quizHtml252;
+  try{quiz=window.quiz}catch(err){}
+
+  setTimeout(function(){
+    try{persistUsers252(collectUsers252(),'Benutzer/Rechte vorbereitet')}catch(err){}
+  },300);
+})();
+</script>
+<!-- PRIVATE RC252 END: Pruefungsarchiv + Rechte/Vorlagen Hartfix -->
   
 </body></html>
 
