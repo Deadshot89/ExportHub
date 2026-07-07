@@ -6759,7 +6759,7 @@ try{rc50RepairUsers();}catch(e){}
       </div>
       <div class="notice">Lieferschein und Rechnung werden nicht in ExportHUB erfasst. Du fügst sie später selbst zur GPZ-Mail hinzu.</div>
       <div class="abd-actions"><button class="btn" onclick="saveAbdRequestFromCurrent()">ABD Anfrage speichern</button><button class="ghost" onclick="resetAbdDraft()">ABD Formular leeren / neue Referenz</button><button class="soft" onclick="setView('tasks')">ABD Aufgaben öffnen</button></div>
-      <div class="abd-list">${reqs.length?reqs.map(r=>`<div class="abd-item"><b>${esc(r.ref||'')}</b> · ${esc((r.customer&&r.customer.name)||'')} · ${esc(r.created||'')} · <span class="pill ${r.status==='info hochgeladen'?'green':'orange'}">${esc(r.status||'offen')}</span><br><span class="small">${esc(r.manualColliCount!==undefined?r.manualColliCount:totals(r).count)} x ${esc(r.manualColliType||'Colli')} · ${Number(r.manualTotalWeight!==undefined?r.manualTotalWeight:totals(r).weight).toFixed(1)} kg</span><div class="toolbar"><a class="btn" href="mailto:" onclick="return prepareAbdMailLink(this,'${esc(r.id)}')">ABD Info hochladen</a><button class="ghost" onclick="copyAbdInfo('${esc(r.id)}')">ABD Info kopieren</button><button class="soft" onclick="markAbdUploaded('${esc(r.id)}')">Als hochgeladen markieren</button></div></div>`).join(''):'<div class="notice">Noch keine ABD Anfrage gespeichert.</div>'}</div>
+	      <div class="abd-list">${reqs.length?reqs.map(r=>`<div class="abd-item"><b>${esc(r.ref||'')}</b> · ${esc((r.customer&&r.customer.name)||'')} · ${esc(r.created||'')} · <span class="pill ${r.status==='info hochgeladen'?'green':'orange'}">${esc(r.status||'offen')}</span><br><span class="small">${esc(r.manualColliCount!==undefined?r.manualColliCount:totals(r).count)} x ${esc(r.manualColliType||'Colli')} · ${Number(r.manualTotalWeight!==undefined?r.manualTotalWeight:totals(r).weight).toFixed(1)} kg</span><div class="toolbar"><button class="btn" onclick="return rc274CreateShipmentFromAbd('${esc(r.id||r.ref||'')}')">Sendung erstellen</button><a class="btn" href="mailto:" onclick="return prepareAbdMailLink(this,'${esc(r.id)}')">ABD Info hochladen</a><button class="ghost" onclick="copyAbdInfo('${esc(r.id)}')">ABD Info kopieren</button><button class="soft" onclick="markAbdUploaded('${esc(r.id)}')">Als hochgeladen markieren</button></div></div>`).join(''):'<div class="notice">Noch keine ABD Anfrage gespeichert.</div>'}</div>
     </div>`;
   };
   try{
@@ -38809,6 +38809,144 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
  
  
   
+<style id="rc274-6-final-css">
+  #rc261MailPanel.rc274-after-colli{
+    grid-column:1 / -1!important;
+    margin:12px 0 0!important;
+  }
+  .rc274-abd-link-note{
+    display:block!important;
+    margin-top:6px!important;
+    color:#1e3a8a!important;
+    font-size:12px!important;
+    font-weight:900!important;
+  }
+</style>
+<script>
+/* PRIVATE RC274.6: Sendungserstellung finalisieren */
+(function(){
+  if(window.__EXPORTHUB_RC274_6_SENDUNG_FINAL__)return;
+  window.__EXPORTHUB_RC274_6_SENDUNG_FINAL__=true;
+
+  function st(){try{return typeof state!=='undefined'&&state?state:null}catch(err){return null}}
+  function view(){var s=st();return String((s&&s.view)||'')}
+  function txt(el){return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim()}
+  function ref(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function esc274(v){try{if(typeof esc==='function')return esc(v)}catch(err){}return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+  function colliCard(){
+    return Array.from(document.querySelectorAll('.card,section,article,div')).find(function(el){
+      var h=el.querySelector&&el.querySelector('h3,h2,h4');
+      return h&&/^Collis,\s*(Masse|Maße),\s*Gewicht,\s*Lademeter$/i.test(txt(h));
+    })||null;
+  }
+  function moveStandardmail(){
+    if(view()!=='shipment')return;
+    var panel=document.getElementById('rc261MailPanel');
+    var card=colliCard();
+    if(!panel||!card)return;
+    panel.classList.add('rc274-after-colli');
+    if(card.nextElementSibling!==panel)card.insertAdjacentElement('afterend',panel);
+  }
+  function abdByRef(r){
+    var s=st();
+    r=ref(r);
+    if(!s||!r)return null;
+    return (s.abdRequests||[]).find(function(a){return ref(a&&a.ref)===r})||null;
+  }
+  function currentShipment(){
+    var s=st();
+    if(!s)return null;
+    if(s.activeShipmentId&&s.activeShipmentId!=='current'&&Array.isArray(s.shipments)){
+      var saved=s.shipments.find(function(x){return String(x.id||'')===String(s.activeShipmentId)});
+      if(saved)return saved;
+    }
+    return s.shipment||null;
+  }
+  function linkAbdToShipment(sh){
+    var s=st();
+    if(!s||!sh)return;
+    var r=ref(sh.linkedAbdRef||sh.ref);
+    var abd=abdByRef(r);
+    if(!abd&&sh.linkedAbdId){
+      abd=(s.abdRequests||[]).find(function(a){return String(a.id||'')===String(sh.linkedAbdId)});
+    }
+    if(!abd)return;
+    sh.linkedAbdId=abd.id||sh.linkedAbdId||'';
+    sh.linkedAbdRef=abd.ref||sh.linkedAbdRef||r;
+    abd.linkedShipmentId=sh.id||abd.linkedShipmentId||'';
+    abd.linkedShipmentRef=sh.ref||abd.linkedShipmentRef||r;
+    if(!abd.status || /^offen$/i.test(String(abd.status)))abd.status='Sendung erstellt';
+    abd.shipmentCreatedAt=abd.shipmentCreatedAt||new Date().toISOString();
+  }
+  function addAbdLinkNote(){
+    if(view()!=='shipment')return;
+    var sh=currentShipment();
+    var r=ref(sh&&(sh.linkedAbdRef||sh.ref));
+    var abd=abdByRef(r);
+    if(!abd)return;
+    var field=Array.from(document.querySelectorAll('label.field,label,.field')).find(function(el){return /Sendungsreferenz|Referenznummer/i.test(txt(el))});
+    if(!field||field.querySelector('.rc274-abd-link-note'))return;
+    field.insertAdjacentHTML('beforeend','<span class="rc274-abd-link-note">Mit ABD Anfrage '+esc274(abd.ref||r)+' verknuepft.</span>');
+  }
+  function afterRender(){
+    moveStandardmail();
+    addAbdLinkNote();
+  }
+  if(typeof window.rc274CreateShipmentFromAbd==='function'&&!window.rc274CreateShipmentFromAbd.__rc274_6_wrapped){
+    var baseCreate=window.rc274CreateShipmentFromAbd;
+    window.rc274CreateShipmentFromAbd=function(id){
+      var result=baseCreate.apply(this,arguments);
+      try{
+        var sh=currentShipment();
+        linkAbdToShipment(sh);
+        if(typeof save==='function')save();
+      }catch(err){}
+      setTimeout(afterRender,80);
+      setTimeout(afterRender,260);
+      return result;
+    };
+    window.rc274CreateShipmentFromAbd.__rc274_6_wrapped=true;
+  }
+  if(typeof saveShipment==='function'&&!saveShipment.__rc274_6_wrapped){
+    var baseSaveShipment=saveShipment;
+    window.saveShipment=function(){
+      var before=Object.assign({},(st()&&st().shipment)||{});
+      var result=baseSaveShipment.apply(this,arguments);
+      try{
+        var s=st();
+        var saved=null;
+        if(s&&Array.isArray(s.shipments)){
+          saved=s.shipments.find(function(x){return String(x.id||'')===String(s.activeShipmentId)}) ||
+            s.shipments.find(function(x){return ref(x&&x.ref)===ref(before.linkedAbdRef||before.ref)});
+        }
+        if(saved){
+          if(before.linkedAbdId)saved.linkedAbdId=before.linkedAbdId;
+          if(before.linkedAbdRef)saved.linkedAbdRef=before.linkedAbdRef;
+          linkAbdToShipment(saved);
+          if(typeof save==='function')save();
+        }
+      }catch(err){}
+      return result;
+    };
+    window.saveShipment.__rc274_6_wrapped=true;
+    try{saveShipment=window.saveShipment}catch(err){}
+  }
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc274_6_wrapped){
+    window.render=function(){
+      var result=baseRender.apply(this,arguments);
+      setTimeout(afterRender,80);
+      setTimeout(afterRender,260);
+      return result;
+    };
+    window.render.__rc274_6_wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+  setTimeout(afterRender,160);
+  setTimeout(afterRender,800);
+})();
+</script>
+
 </body></html>
 
 
