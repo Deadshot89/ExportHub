@@ -37110,6 +37110,209 @@ body .rc232-folder-actions{
 })();
 </script>
 <!-- PRIVATE RC261 END: Standardmails pro Kunde -->
+
+<!-- PRIVATE RC262 START: Benutzer Sabrina Azubi Rechte -->
+<script>
+/* PRIVATE RC262: Sabrina als Azubi mit Bearbeiten-Recht fuer Pruefung, Academy, SOP und Ideenpool */
+(function(){
+  if(window.__EXPORTHUB_RC262_SABRINA_AZUBI__)return;
+  window.__EXPORTHUB_RC262_SABRINA_AZUBI__=true;
+
+  function n262(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function clone262(v){try{return JSON.parse(JSON.stringify(v))}catch(err){return v}}
+  function userKey262(){
+    try{if(typeof USER_KEY!=='undefined')return USER_KEY}catch(err){}
+    return 'exporthub_private_rc113_safe_users';
+  }
+  function userKeys262(){
+    var keys=[
+      userKey262(),
+      'exporthub_private_rc113_safe_users',
+      'exporthub_private_rc196_users',
+      'exporthub_users',
+      'exporthub_rc241_users',
+      'exporthub_manual_persistent_users_v259',
+      'exporthub_manual_persistent_users_v260'
+    ];
+    var seen={};
+    return keys.filter(function(k){if(!k||seen[k])return false;seen[k]=true;return true});
+  }
+  function modules262(){
+    try{if(Array.isArray(RIGHTS_MODULES))return RIGHTS_MODULES}catch(err){}
+    return [
+      ['start','Start','Start'],
+      ['dashboard','Dashboard','Dashboard'],
+      ['tasks','Aufgaben','Aufgaben'],
+      ['vacation','Urlaub','Urlaub'],
+      ['shipment','Sendung','Sendung erstellen'],
+      ['shipmentoverview','Sendungen','Sendungsuebersicht'],
+      ['cmr','CMR','CMR/Ladeliste'],
+      ['pallet','Paletten','Palettenkonto'],
+      ['customers','Kunden','Kunden'],
+      ['customerfolder','Kundenordner','Kundenordner'],
+      ['calculator','Rechner','Rechner'],
+      ['customs','Zoll','Zoll / ABD'],
+      ['sop','SOP','SOP starten'],
+      ['academy','Academy','Academy Logistik'],
+      ['quiz','Pruefung','Pruefung'],
+      ['practice','Pruefung','Pruefung'],
+      ['ideas','Ideenpool','Ideenpool'],
+      ['teamfile','Teamdaten','Teamdaten'],
+      ['archive','Archiv','Archiv'],
+      ['rights','Rechte','Benutzer & Rechte']
+    ];
+  }
+  function blankRights262(){
+    var out={};
+    modules262().forEach(function(m){
+      var id=m[0];
+      var base=id==='start'||id==='dashboard';
+      out[id]={visible:base,read:base,edit:false};
+    });
+    return out;
+  }
+  function allow262(rights,id,edit){
+    if(!rights[id])rights[id]={visible:false,read:false,edit:false};
+    rights[id]={visible:true,read:true,edit:!!edit};
+  }
+  function sabrinaRights262(){
+    var r=blankRights262();
+    ['quiz','academy','sop','ideas','practice'].forEach(function(id){allow262(r,id,true)});
+    return r;
+  }
+  function sabrinaUser262(existing){
+    existing=existing||{};
+    return Object.assign({},existing,{
+      user:'Sabrina',
+      login:'Sabrina',
+      username:'Sabrina',
+      name:'Sabrina',
+      role:'Azubi',
+      password:'Essentra',
+      pin:'',
+      mustChange:false,
+      active:true,
+      locked:false,
+      permissions:['quiz','academy','sop','ideas','practice'],
+      rights:sabrinaRights262(),
+      rightsTemplate:'azubi_pruefung_academy_sop_ideen',
+      preset:'azubi_pruefung_academy_sop_ideen',
+      createdBy:'RC262',
+      updatedBy:'RC262',
+      updatedAt:new Date().toISOString()
+    });
+  }
+  function readUsers262(key){
+    try{
+      var x=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(x)?x:[];
+    }catch(err){return []}
+  }
+  function collectUsers262(){
+    var all=[];
+    try{if(Array.isArray(users))all=all.concat(users)}catch(err){}
+    try{if(state&&Array.isArray(state.users))all=all.concat(state.users)}catch(err){}
+    userKeys262().forEach(function(k){all=all.concat(readUsers262(k))});
+    var map={};
+    all.forEach(function(u){
+      if(!u||typeof u!=='object')return;
+      var name=String(u.user||u.login||u.username||u.name||'').trim();
+      if(!name)return;
+      map[n262(name)]=Object.assign(map[n262(name)]||{},u,{user:name,login:name});
+    });
+    return Object.keys(map).map(function(k){return map[k]});
+  }
+  function persistUsers262(list){
+    list=Array.isArray(list)?list:[];
+    try{users=clone262(list)}catch(err){}
+    try{
+      if(typeof state!=='undefined'&&state){
+        state.users=clone262(list);
+        state.userRevision=Number(state.userRevision||0)+1;
+        state.userSavedAt=new Date().toISOString();
+        state.userSavedBy='RC262';
+      }
+    }catch(err){}
+    userKeys262().forEach(function(k){
+      try{localStorage.setItem(k,JSON.stringify(list))}catch(err){}
+    });
+    try{localStorage.setItem('exporthub_manual_persistent_users_v262',JSON.stringify(list))}catch(err){}
+    try{
+      var safeState=JSON.parse(localStorage.getItem('exporthub_manual_persistent_state_v260')||'{}');
+      if(safeState&&typeof safeState==='object'){
+        safeState.users=clone262(list);
+        if(safeState.state&&typeof safeState.state==='object')safeState.state.users=clone262(list);
+        safeState.savedAt=new Date().toISOString();
+        safeState.reason='RC262 Sabrina Benutzer';
+        localStorage.setItem('exporthub_manual_persistent_state_v260',JSON.stringify(safeState));
+      }
+    }catch(err){}
+    try{if(typeof saveUsers==='function')saveUsers()}catch(err){}
+    try{if(typeof save==='function')save()}catch(err){}
+    try{
+      if(window.fetch&&typeof state!=='undefined'&&state){
+        fetch('/api/exporthub/state',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            user:'RC262',
+            users:list,
+            state:Object.assign({},state,{users:list})
+          })
+        }).catch(function(){});
+      }
+    }catch(err){}
+    try{if(typeof audit==='function')audit('Benutzer Sabrina angelegt','Azubi · Pruefung/Academy/SOP/Ideenpool bearbeiten')}catch(err){}
+  }
+  function ensureSabrina262(showMessage){
+    var list=collectUsers262();
+    var found=false;
+    list=list.map(function(u){
+      var key=n262(u.user||u.login||u.username||u.name);
+      if(key==='sabrina'){
+        found=true;
+        return sabrinaUser262(u);
+      }
+      return u;
+    });
+    if(!found)list.push(sabrinaUser262({}));
+    list.sort(function(a,b){
+      var au=n262(a.user||a.login||a.name), bu=n262(b.user||b.login||b.name);
+      if(au==='tobias')return -1;
+      if(bu==='tobias')return 1;
+      return au.localeCompare(bu);
+    });
+    persistUsers262(list);
+    if(showMessage)alert('Benutzer Sabrina wurde angelegt: Azubi, Passwort Essentra, Bearbeiten-Rechte fuer Pruefung, Academy Logistik, SOP starten und Ideenpool.');
+    return list;
+  }
+  window.rc262CreateSabrinaAzubi=function(){
+    ensureSabrina262(true);
+    try{if(typeof render==='function')render()}catch(err){}
+    return false;
+  };
+
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc262Wrapped){
+    window.render=function(){
+      var r=baseRender.apply(this,arguments);
+      setTimeout(function(){ensureSabrina262(false)},80);
+      return r;
+    };
+    window.render.__rc262Wrapped=true;
+    try{render=window.render}catch(err){}
+  }
+
+  setTimeout(function(){ensureSabrina262(false)},120);
+  setTimeout(function(){ensureSabrina262(false)},1000);
+})();
+</script>
+<!-- PRIVATE RC262 END: Benutzer Sabrina Azubi Rechte -->
   
 </body></html>
 
