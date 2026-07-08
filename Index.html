@@ -19343,13 +19343,10 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
 
   function referenceFolderBox274(s){
     s=s||{};
-    var ref=String(s.ref||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24);
     return '<div class="rc274-ref-doc-box">'+
-      '<div class="rc274-ref-doc-title">Referenzordner '+e199(ref||'noch keine Referenz')+'</div>'+
-		      '<div class="rc274-ref-doc-actions">'+
-		        '<button type="button" class="ghost rc274-ref-visible-btn" onclick="return rc246OpenReferenceFolder()">Referenzordner '+e199(ref||'')+' oeffnen / Dateien hochladen</button>'+
+      '<div class="rc274-ref-doc-actions">'+
+        '<button type="button" class="ghost rc274-ref-import-btn" onclick="return rc246OpenReferenceFolderPicker()">Dateien aus Ref.-Ordner uebernehmen</button>'+
       '</div>'+
-      '<div class="rc274-ref-doc-meta">Diese Buttons gehoeren zu Lieferscheine hochladen / anhaengen.</div>'+
     '</div>';
   }
 
@@ -19402,7 +19399,7 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
       !completionOk?completionBox199(s):
       '<div class="okbox rc199-statusline">Sendung kann gespeichert werden. Ladeliste und CMR sind verfügbar.</div>';
 
-    return head('Sendung erstellen','Kundennummer suchen, 6-stellige Referenz automatisch erstellen, Lieferscheine optional anhaengen, Outlook-Avisierungsmail je Kundennummer erstellen und Ladeliste/CMR erzeugen.')+
+    return head('Sendung erstellen','')+
       '<div class="rc199-shipment-layout rc194-shipment-grid">'+
         '<div class="card rc199-main-card"><h3>Kunde & Grunddaten</h3>'+
           '<label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" list="customerList" value="'+e199(s.customerSearch)+'" oninput="setShipmentCustomerSearchAuto(this.value)" onchange="applyCustomerSearch()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();applyCustomerSearch()}"><datalist id="customerList">'+customerList+'</datalist></label>'+
@@ -19412,7 +19409,7 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
           '<label class="checkrow rc199-address-confirm"><input type="checkbox" '+(s.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save();render()"><span>Adresse bestaetigen</span></label>'+
           mailCard199(c)+
           '<label class="field">Sendungsreferenz / Referenznummer<input value="'+e199(s.ref)+'" maxlength="6" pattern="[A-Z0-9]{6}" oninput="rc199CleanRefInput(this)" onchange="setShipmentRef(this.value)" placeholder="6 Zeichen A-Z/0-9"></label>'+
-          '<div class="'+(refOk?'okbox':'badbox')+'"><b>Referenzregel:</b> exakt 6 Zeichen, nur A-Z und 0-9. Aktuell: <b>'+e199(s.ref)+'</b> '+(s.refAuto!==false?'· automatisch erstellt':'· manuell geaendert')+'</div>'+
+          ''+
           '<label class="field">Lieferscheine / DNCs manuell (optional)<textarea onchange="state.shipment.deliveryNotes=this.value;save()" placeholder="Optional: eine DNC/Lieferscheinnummer je Zeile">'+e199(s.deliveryNotes)+'</textarea></label>'+
           '<label class="field">Lieferscheine hochladen / anhaengen (optional)<input type="file" multiple onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label>'+
           referenceFolderBox274(s)+
@@ -19430,7 +19427,7 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
           completionBox199(s)+
           '<label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()" placeholder="z. B. Waren laut Rechnung / Kunststoffteile / Teile">'+e199(s.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label>'+
           '<label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+e199(s.comments||'')+'</textarea></label>'+
-          '<div class="okbox"><b>Dokumente:</b> Ladeliste wird als A4-Seite erzeugt. CMR nutzt die Mastervorlage 1:1. Feld 6 = 6-stellige Referenz, Feld 5 = Lieferscheine/DNCs.</div>'+
+          ''+
         '</div>'+
       '</div>'+
       '<div class="card" style="max-width:1160px"><h3>Gespeicherte Sendungen</h3><div class="toolbar"><button class="ghost" onclick="setView(&quot;shipmentoverview&quot;)">Sendungsuebersicht oeffnen</button></div>'+savedTable199(saved)+'</div>';
@@ -32127,13 +32124,10 @@ body .rc232-folder-actions{
   };
 
   function boxHtml246(){
-    var ref=currentRef246();
     return '<div class="rc246-ref-doc-box">'+
-	      '<div class="rc246-ref-doc-title">Referenzordner '+e246(ref||'noch keine Referenz')+'</div>'+
-	      '<div class="rc246-ref-doc-actions">'+
-	        '<button type="button" class="ghost" onclick="return rc246OpenReferenceFolder()">Referenzordner '+e246(ref||'')+' oeffnen / Dateien hochladen</button>'+
-	      '</div>'+
-      '<div class="rc246-ref-doc-meta">Lieferscheine koennen oben direkt hochgeladen werden. Alternativ den synchronisierten Sendungen-Ordner oder den Referenzordner auswaehlen.</div>'+
+      '<div class="rc246-ref-doc-actions">'+
+        '<button type="button" class="ghost" onclick="return rc246OpenReferenceFolderPicker()">Dateien aus Ref.-Ordner uebernehmen</button>'+
+      '</div>'+
     '</div>';
   }
 
@@ -39196,6 +39190,116 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 	  document.addEventListener('input',function(){setTimeout(keepStandardmailPosition,0);setTimeout(keepStandardmailPosition,120)},true);
 	  document.addEventListener('change',function(){setTimeout(keepStandardmailPosition,0);setTimeout(keepStandardmailPosition,120)},true);
 	})();
+</script>
+
+
+<style id="rc274-13-cleanup-css">
+  .rc274-ref-doc-title,
+  .rc274-ref-doc-meta,
+  .rc246-ref-doc-title,
+  .rc246-ref-doc-meta,
+  .rc274-ref-open-link,
+  .rc274-ref-visible-btn{
+    display:none!important;
+  }
+  .rc274-ref-doc-box,
+  .rc246-ref-doc-box{
+    border:0!important;
+    background:transparent!important;
+    padding:0!important;
+    margin:8px 0 10px!important;
+    box-shadow:none!important;
+  }
+  .rc274-ref-doc-actions,
+  .rc246-ref-doc-actions{
+    display:flex!important;
+    gap:8px!important;
+    flex-wrap:wrap!important;
+  }
+  .rc274-ref-import-btn,
+  .rc246-ref-doc-actions button{
+    background:#fff!important;
+    color:#334155!important;
+    border:1px solid var(--line,#dbe4ef)!important;
+    border-radius:14px!important;
+    min-height:40px!important;
+    padding:10px 14px!important;
+    font-weight:950!important;
+    box-shadow:none!important;
+  }
+  #rc265AbdPanel.rc274-13-visible,
+  .rc265-abd-request-panel.rc274-13-visible{
+    display:block!important;
+  }
+</style>
+<script id="rc274-13-sendung-feinschliff">
+(function(){
+  if(window.__EXPORTHUB_RC274_13_SENDUNG_FEINSCHLIFF__)return;
+  window.__EXPORTHUB_RC274_13_SENDUNG_FEINSCHLIFF__=true;
+  function st(){try{return typeof state!=='undefined'&&state?state:null}catch(e){return null}}
+  function view(){var s=st();return String((s&&s.view)||'')}
+  function txt(el){return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim()}
+  function isShipment(){return view()==='shipment'}
+  window.rc274RefImportOnly=function(){
+    try{if(typeof rc246OpenReferenceFolderPicker==='function')return rc246OpenReferenceFolderPicker()}catch(e){}
+    try{if(typeof rc232OpenReferenceFolderPicker==='function')return rc232OpenReferenceFolderPicker()}catch(e){}
+    alert('Ordnerauswahl nicht geladen. Bitte Datei direkt ueber den Lieferschein-Upload auswaehlen.');
+    return false;
+  };
+  function cleanupTexts(){
+    if(!isShipment())return;
+    Array.from(document.querySelectorAll('.page-head p')).forEach(function(p){
+      if(/Kundennummer suchen.*Ladeliste\/CMR erzeugen/i.test(txt(p)))p.remove();
+    });
+    Array.from(document.querySelectorAll('.okbox,.badbox,.notice,.infobox,div')).forEach(function(el){
+      if(el.closest && el.closest('#rc265AbdPanel,.rc265-abd-request-panel'))return;
+      var t=txt(el);
+      if(/^Referenzregel:/i.test(t) || /exakt 6 Zeichen, nur A-Z und 0-9/i.test(t))el.remove();
+      else if(/^Dokumente: Ladeliste wird als A4-Seite erzeugt/i.test(t))el.remove();
+      else if(/^Diese Buttons gehoeren zu Lieferscheine hochladen \/ anhaengen\.?$/i.test(t))el.remove();
+      else if(/^Referenzordner\s+[A-Z0-9]{6}\s*$/i.test(t))el.remove();
+    });
+  }
+  function normalizeRefBox(){
+    if(!isShipment())return;
+    Array.from(document.querySelectorAll('.rc274-ref-doc-box,.rc246-ref-doc-box')).forEach(function(box){
+      Array.from(box.querySelectorAll('.rc274-ref-doc-title,.rc246-ref-doc-title,.rc274-ref-doc-meta,.rc246-ref-doc-meta,.rc274-ref-open-link,.rc274-ref-visible-btn')).forEach(function(x){x.remove()});
+      var actions=box.querySelector('.rc274-ref-doc-actions,.rc246-ref-doc-actions');
+      if(!actions){actions=document.createElement('div');actions.className='rc274-ref-doc-actions';box.appendChild(actions)}
+      actions.innerHTML='<button type="button" class="ghost rc274-ref-import-btn" onclick="return rc274RefImportOnly()">Dateien aus Ref.-Ordner uebernehmen</button>';
+    });
+  }
+  function ensureAbdPanel(){
+    if(!isShipment())return;
+    var panel=document.getElementById('rc265AbdPanel') || document.querySelector('.rc265-abd-request-panel');
+    if(!panel && typeof window.rc265OpenAbdPanel==='function'){
+      var x=window.scrollX||0, y=window.scrollY||0;
+      try{window.rc265OpenAbdPanel()}catch(e){}
+      panel=document.getElementById('rc265AbdPanel') || document.querySelector('.rc265-abd-request-panel');
+      setTimeout(function(){try{window.scrollTo(x,y)}catch(e){}},30);
+      setTimeout(function(){try{window.scrollTo(x,y)}catch(e){}},120);
+    }
+    panel=document.getElementById('rc265AbdPanel') || document.querySelector('.rc265-abd-request-panel');
+    if(panel){
+      panel.classList.add('rc274-13-visible');
+      panel.style.display='block';
+      var mail=document.getElementById('rc261MailPanel');
+      if(mail && mail.nextElementSibling!==panel)mail.insertAdjacentElement('afterend',panel);
+    }
+  }
+  function run(){cleanupTexts();normalizeRefBox();ensureAbdPanel()}
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc274_13_wrapped){
+    window.render=function(){
+      var r=baseRender.apply(this,arguments);
+      setTimeout(run,80);setTimeout(run,300);setTimeout(run,700);
+      return r;
+    };
+    window.render.__rc274_13_wrapped=true;
+    try{render=window.render}catch(e){}
+  }
+  setTimeout(run,120);setTimeout(run,800);setInterval(run,1000);
+})();
 </script>
 
 </body></html>
