@@ -40846,4 +40846,137 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </script>
 <!-- PRIVATE RC301 END: Account Anna Azubi -->
 
+
+
+<!-- PRIVATE RC302 START: Login Cursor Stabil -->
+<style id="rc302-login-stabil-css">
+  #login input#loginUser,
+  #login input#loginPass{
+    caret-color:#2563eb!important;
+  }
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC302_LOGIN_STABIL__)return;
+  window.__EXPORTHUB_RC302_LOGIN_STABIL__=true;
+  var IDS={loginUser:true,loginPass:true};
+  var cache={};
+  var activeId='';
+  var typingUntil=0;
+  function now302(){return Date.now?Date.now():(new Date()).getTime();}
+  function by302(id){return document.getElementById(id);}
+  function isLoginInput302(el){return !!(el&&IDS[el.id]);}
+  function loginOpen302(){
+    try{
+      var box=by302('login');
+      var app=by302('app');
+      var logged=!!(typeof currentUser!=='undefined'&&currentUser);
+      return !!(box&&!box.classList.contains('hidden')&&!logged&&( !app || app.classList.contains('hidden') ));
+    }catch(e){return false;}
+  }
+  function remember302(el){
+    if(!isLoginInput302(el))return;
+    var s=null,e=null;
+    try{s=el.selectionStart;e=el.selectionEnd;}catch(_){ }
+    cache[el.id]={value:String(el.value||''),start:s,end:e,time:now302()};
+    activeId=el.id;
+    typingUntil=now302()+2200;
+    window.__rc302LoginTypingUntil=typingUntil;
+  }
+  function restore302(force){
+    try{
+      if(!loginOpen302())return;
+      var id=activeId || (document.activeElement&&IDS[document.activeElement.id]?document.activeElement.id:'loginUser');
+      var el=by302(id);
+      if(!el)return;
+      var c=cache[id];
+      if(c && (force || now302()-c.time<3000)){
+        if(String(el.value||'')!==String(c.value||''))el.value=c.value||'';
+        try{el.focus({preventScroll:true});}catch(_){try{el.focus();}catch(e){}}
+        if(c.start!=null){try{el.setSelectionRange(c.start,c.end==null?c.start:c.end);}catch(_){}}
+      }
+    }catch(_){ }
+  }
+  document.addEventListener('focusin',function(ev){
+    if(isLoginInput302(ev.target)&&loginOpen302())remember302(ev.target);
+  },true);
+  document.addEventListener('keydown',function(ev){
+    if(isLoginInput302(ev.target)&&loginOpen302()){
+      remember302(ev.target);
+      // Enter muss normal weiterlaufen, damit der Login funktioniert.
+    }
+  },true);
+  document.addEventListener('input',function(ev){
+    if(isLoginInput302(ev.target)&&loginOpen302()){
+      remember302(ev.target);
+      // Alte Login-Speicher/Refresh-Listener dürfen während der Eingabe nicht dazwischenfunken.
+      try{ev.stopImmediatePropagation();}catch(_){try{ev.stopPropagation();}catch(e){}}
+      setTimeout(function(){restore302(false);},0);
+    }
+  },true);
+  document.addEventListener('change',function(ev){
+    if(isLoginInput302(ev.target)&&loginOpen302()){
+      remember302(ev.target);
+      try{ev.stopImmediatePropagation();}catch(_){try{ev.stopPropagation();}catch(e){}}
+    }
+  },true);
+  document.addEventListener('selectionchange',function(){
+    var el=document.activeElement;
+    if(isLoginInput302(el)&&loginOpen302())remember302(el);
+  },true);
+  window.addEventListener('pageshow',function(){setTimeout(function(){restore302(true);},0);});
+  try{
+    var baseRender302=window.render || (typeof render==='function'?render:null);
+    if(typeof baseRender302==='function'&&!baseRender302.__rc302LoginStabil){
+      var wrappedRender302=function(){
+        if(loginOpen302() && now302()<typingUntil){
+          setTimeout(function(){restore302(false);},0);
+          return;
+        }
+        return baseRender302.apply(this,arguments);
+      };
+      wrappedRender302.__rc302LoginStabil=true;
+      window.render=wrappedRender302;
+      try{render=wrappedRender302;}catch(_){ }
+    }
+  }catch(_){ }
+  try{
+    var baseApply302=window.applyLanguage || (typeof applyLanguage==='function'?applyLanguage:null);
+    if(typeof baseApply302==='function'&&!baseApply302.__rc302LoginStabil){
+      var wrappedApply302=function(){
+        if(loginOpen302() && now302()<typingUntil){
+          setTimeout(function(){restore302(false);},0);
+          return;
+        }
+        return baseApply302.apply(this,arguments);
+      };
+      wrappedApply302.__rc302LoginStabil=true;
+      window.applyLanguage=wrappedApply302;
+      try{applyLanguage=wrappedApply302;}catch(_){ }
+    }
+  }catch(_){ }
+  try{
+    var observer302=new MutationObserver(function(){
+      if(loginOpen302() && now302()<typingUntil)setTimeout(function(){restore302(false);},0);
+    });
+    var loginBox302=by302('login');
+    if(loginBox302)observer302.observe(loginBox302,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','value']});
+  }catch(_){ }
+  setTimeout(function(){
+    try{
+      ['loginUser','loginPass'].forEach(function(id){
+        var el=by302(id);
+        if(el){
+          el.setAttribute('autocomplete',id==='loginUser'?'username':'current-password');
+          el.setAttribute('autocorrect','off');
+          el.setAttribute('autocapitalize','none');
+          el.setAttribute('spellcheck','false');
+        }
+      });
+    }catch(_){ }
+  },60);
+})();
+</script>
+<!-- PRIVATE RC302 END: Login Cursor Stabil -->
+
 </body></html>
