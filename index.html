@@ -38964,7 +38964,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 
-</body></html>
+
 
 
 <style id="rc287-customer-mail-delete-css">
@@ -39499,3 +39499,122 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC290 END: UPS alle Länder -->
+
+<!-- PRIVATE RC291 START: ABD ein Layout + SharePoint-Ladebereiche entfernen -->
+<style id="rc291-abd-single-css">
+  body[data-rc291-view="shipment"] #rc288AbdPanel,
+  body[data-rc291-view="shipment"] #rc265AbdPanel,
+  body[data-rc291-view="shipment"] .rc265-abd-request-panel,
+  body[data-rc291-view="shipment"] #rc260AbdPanel,
+  body[data-rc291-view="shipment"] .rc260-abd-panel,
+  body[data-rc291-view="shipment"] .abd-panel:not(#rc291AbdPanel){
+    display:none!important;visibility:hidden!important;height:0!important;max-height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;
+  }
+  #rc291AbdPanel{
+    display:block!important;border:2px solid #fed7aa!important;background:#fff7ed!important;border-radius:22px!important;padding:16px!important;margin:16px 0!important;box-shadow:0 10px 26px rgba(249,115,22,.10)!important;clear:both!important;
+  }
+  #rc291AbdPanel h3{color:#9a3412!important;margin:0 0 8px!important}
+  #rc291AbdPanel .rc291-sub{font-size:12px;color:#9a3412;font-weight:850;margin-bottom:10px}
+  #rc291AbdPanel .rc291-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important;margin-top:10px!important}
+  #rc291AbdPanel label{font-weight:900;color:#334155;display:grid;gap:6px}
+  #rc291AbdPanel input,#rc291AbdPanel textarea{border:1px solid var(--line,#dbe4ef);border-radius:14px;padding:10px;background:#fff;font-weight:800;width:100%}
+  #rc291AbdPanel textarea{min-height:78px!important}
+  #rc291AbdPanel .rc291-wide{grid-column:1/-1}
+  #rc291AbdPanel .rc291-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px!important}
+  #rc291AbdPreview{white-space:pre-wrap;background:#fff;border:1px solid #fed7aa;border-radius:14px;padding:11px;margin-top:10px;font-size:12px;line-height:1.45;color:#431407;max-height:280px;overflow:auto}
+  .rc291-sp-hidden{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important}
+  @media(max-width:900px){#rc291AbdPanel .rc291-grid{grid-template-columns:1fr!important}.rc291-wide{grid-column:1!important}}
+</style>
+<script id="rc291-abd-single-script">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC291_ABD_SINGLE__)return;
+  window.__EXPORTHUB_RC291_ABD_SINGLE__=true;
+  var VERSION='RC291 ABD ein Layout';
+  function st(){try{return typeof state!=='undefined'&&state?state:null}catch(e){return null}}
+  function curView(){var s=st();return String((s&&s.view)||'')}
+  function by(id){return document.getElementById(id)}
+  function esc(v){try{if(typeof window.esc==='function')return window.esc(v)}catch(e){} return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function saveQuiet(){try{if(typeof save==='function')save()}catch(e){}}
+  function ref6(v){var x=String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);return x}
+  function randomRef(){var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', out=''; for(var i=0;i<6;i++)out+=chars[Math.floor(Math.random()*chars.length)]; return out;}
+  function shipment(){var s=st(); if(!s)return {}; s.shipment=s.shipment||{}; if(!s.shipment.ref)s.shipment.ref=randomRef(); return s.shipment;}
+  function customers(){var s=st(); return (s&&Array.isArray(s.customers))?s.customers:[]}
+  function selectedCustomer(){var s=st(), sh=shipment(); var id=String(sh.customerId||s.selectedCustomerId||''); var list=customers(); return list.find(function(c){return String(c.id||'')===id}) || list.find(function(c){return String(c.account||c.customerNumber||'')===String(sh.customerSearch||sh.customerAccount||'')}) || null;}
+  function totals(){var sh=shipment(), rows=Array.isArray(sh.rows)?sh.rows:[]; var cnt=0, kg=0, ldm=0; rows.forEach(function(r){var c=Number(r.count||0)||0; cnt+=c; kg+=Number(r.weight||0)||0; ldm+=Number(r.ldm||0)*c||0;}); return {count:cnt,weight:kg,ldm:ldm};}
+  function gpzMail(){var s=st(); var mail=String((s&&(s.rc291GpzMail||s.rc288GpzMail||s.rc265GpzMail||s.gpzMail))||'mail@gp-zollabfertigung.de').trim(); if(s){s.rc291GpzMail=mail;s.rc288GpzMail=mail;s.rc265GpzMail=mail;s.gpzMail=mail;} return mail;}
+  function setGpz(v){var s=st(); if(s){s.rc291GpzMail=String(v||'').trim();s.rc288GpzMail=s.rc291GpzMail;s.rc265GpzMail=s.rc291GpzMail;s.gpzMail=s.rc291GpzMail;} saveQuiet();}
+  function defaultText(){return 'Hallo,\n\nbitte ABD fuer folgende Sendung erstellen.\n\nReferenz: {Referenznummer}\nKunde: {Kundenname}\nKundennummer: {Kundennummer}\nLand: {Land}\nGeplantes Abholdatum: {Abholdatum}\nSpedition: {Spedition}\nCollis: {Collis}\nGewicht: {Gewicht} kg\nLademeter: {Lademeter}\nWarenbeschreibung: {Warenbeschreibung}\nLieferscheine/DNCs: {Lieferscheine}\n\nVielen Dank.';}
+  function draft(){
+    var s=st()||{}, sh=shipment(), c=selectedCustomer()||{}, t=totals();
+    s.rc291AbdDraft=s.rc291AbdDraft||{};
+    var d=s.rc291AbdDraft;
+    function val(k, fallback){return d[k]!=null && d[k]!=='' ? d[k] : fallback}
+    return {
+      ref:ref6(val('ref',sh.ref||randomRef())),
+      customerName:val('customerName',c.name||sh.customerName||''),
+      account:val('account',c.account||c.customerNumber||sh.customerAccount||''),
+      country:val('country',c.country||sh.country||''),
+      pickupDate:val('pickupDate',sh.pickupDate||''),
+      carrier:val('carrier',sh.carrier||''),
+      colli:val('colli',t.count||''),
+      weight:val('weight',t.weight?Number(t.weight).toFixed(1):''),
+      ldm:val('ldm',t.ldm?Number(t.ldm).toFixed(2):''),
+      address:val('address',sh.recipientAddress||sh.address||c.address||''),
+      deliveryNotes:val('deliveryNotes',sh.deliveryNotes||''),
+      goods:val('goods',sh.goodsDescription||'Waren laut Rechnung/Ladeliste'),
+      comment:val('comment',sh.comments||''),
+      mailText:val('mailText',s.rc291AbdStandardText||s.rc288AbdStandardText||defaultText())
+    };
+  }
+  function bodyFrom(d){
+    var body=String(d.mailText||defaultText());
+    var map={
+      '{Referenznummer}':d.ref||'', '{Kundenname}':d.customerName||'', '{Kundennummer}':d.account||'', '{Land}':d.country||'', '{Abholdatum}':d.pickupDate||'', '{Spedition}':d.carrier||'', '{Collis}':d.colli||'', '{Gewicht}':d.weight||'', '{Lademeter}':d.ldm||'', '{Warenbeschreibung}':d.goods||'', '{Lieferscheine}':d.deliveryNotes||'', '{Bemerkung}':d.comment||''
+    };
+    Object.keys(map).forEach(function(k){body=body.split(k).join(map[k])});
+    return body;
+  }
+  function subject(d){return 'ABD Anfrage / '+(d.ref||'Referenz')+' / '+(d.customerName||'Kunde')}
+  window.rc291AbdField=function(k,v){var s=st(); if(!s)return false; s.rc291AbdDraft=s.rc291AbdDraft||{}; if(k==='ref')v=ref6(v); s.rc291AbdDraft[k]=v; if(k==='mailText')s.rc291AbdStandardText=String(v||''); saveQuiet(); updatePreview(); return false;};
+  window.rc291SetGpzMail=function(v){setGpz(v);updatePreview();return false};
+  function updatePreview(){var box=by('rc291AbdPreview'); if(!box)return; var d=draft(); box.textContent='An: '+gpzMail()+'\nBetreff: '+subject(d)+'\n\n'+bodyFrom(d);}
+  window.rc291UpdateAbdPreview=updatePreview;
+  function saveAbd(){var s=st(); if(!s)return null; var d=draft(); if(!d.ref)d.ref=randomRef(); s.abdRequests=Array.isArray(s.abdRequests)?s.abdRequests:[]; var item={id:'ABD-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),ref:d.ref,created:new Date().toLocaleString('de-DE'),status:'offen',customer:{name:d.customerName,account:d.account,customerNumber:d.account,country:d.country},manualColliCount:d.colli,manualTotalWeight:d.weight,manualLdm:d.ldm,carrier:d.carrier,pickupDate:d.pickupDate,recipientAddress:d.address,deliveryNotes:d.deliveryNotes,goodsDescription:d.goods,comments:d.comment,mailTo:gpzMail(),mailSubject:subject(d),mailBody:bodyFrom(d)}; s.abdRequests.unshift(item); saveQuiet(); return item;}
+  window.rc291SaveAbd=function(){var item=saveAbd(); if(item)alert('ABD Anfrage gespeichert: '+item.ref); return false};
+  window.rc291SendAbd=function(){var item=saveAbd(); if(!item)return false; window.location.href='mailto:'+encodeURIComponent(gpzMail())+'?subject='+encodeURIComponent(item.mailSubject)+'&body='+encodeURIComponent(item.mailBody); return false};
+  window.rc291CopyAbd=function(){var d=draft(), body=bodyFrom(d); try{navigator.clipboard.writeText(body).then(function(){alert('ABD Mailtext kopiert.')},function(){prompt('ABD Mailtext kopieren:',body)})}catch(e){prompt('ABD Mailtext kopieren:',body)} return false};
+  function html(){var d=draft(); return '<section id="rc291AbdPanel">'+
+    '<h3>ABD Anfrage an GPZ</h3><div class="rc291-sub">Ein einziges ABD-Layout. Die Mail geht an GPZ; Lieferscheine/Rechnung fuegst du spaeter in Outlook an.</div>'+
+    '<div class="rc291-grid">'+
+    '<label>GPZ Mailadresse<input value="'+esc(gpzMail())+'" oninput="rc291SetGpzMail(this.value)"></label>'+ 
+    '<label>Referenznummer<input maxlength="6" value="'+esc(d.ref||'')+'" oninput="rc291AbdField(\'ref\',this.value.toUpperCase())"></label>'+ 
+    '<label>Kunde<input value="'+esc(d.customerName||'')+'" oninput="rc291AbdField(\'customerName\',this.value)"></label>'+ 
+    '<label>Kundennummer<input value="'+esc(d.account||'')+'" oninput="rc291AbdField(\'account\',this.value)"></label>'+ 
+    '<label>Land<input value="'+esc(d.country||'')+'" oninput="rc291AbdField(\'country\',this.value)"></label>'+ 
+    '<label>Geplantes Abholdatum<input type="date" value="'+esc(d.pickupDate||'')+'" oninput="rc291AbdField(\'pickupDate\',this.value)"></label>'+ 
+    '<label>Collis<input value="'+esc(d.colli||'')+'" oninput="rc291AbdField(\'colli\',this.value)"></label>'+ 
+    '<label>Gewicht kg<input value="'+esc(d.weight||'')+'" oninput="rc291AbdField(\'weight\',this.value)"></label>'+ 
+    '<label>Lademeter<input value="'+esc(d.ldm||'')+'" oninput="rc291AbdField(\'ldm\',this.value)"></label>'+ 
+    '<label>Spedition<input value="'+esc(d.carrier||'')+'" oninput="rc291AbdField(\'carrier\',this.value)"></label>'+ 
+    '<label class="rc291-wide">Empfaengeradresse<textarea oninput="rc291AbdField(\'address\',this.value)">'+esc(d.address||'')+'</textarea></label>'+ 
+    '<label class="rc291-wide">Lieferscheine / DNCs<textarea oninput="rc291AbdField(\'deliveryNotes\',this.value)">'+esc(d.deliveryNotes||'')+'</textarea></label>'+ 
+    '<label class="rc291-wide">Warenbeschreibung<textarea oninput="rc291AbdField(\'goods\',this.value)">'+esc(d.goods||'')+'</textarea></label>'+ 
+    '<label class="rc291-wide">Bemerkung<textarea oninput="rc291AbdField(\'comment\',this.value)">'+esc(d.comment||'')+'</textarea></label>'+ 
+    '<label class="rc291-wide">Standardmail Text<textarea rows="10" oninput="rc291AbdField(\'mailText\',this.value)">'+esc(d.mailText||defaultText())+'</textarea></label>'+ 
+    '</div><pre id="rc291AbdPreview">'+esc('An: '+gpzMail()+'\nBetreff: '+subject(d)+'\n\n'+bodyFrom(d))+'</pre>'+ 
+    '<div class="rc291-actions"><button type="button" class="btn" onclick="return rc291SendAbd()">ABD Mail an GPZ erstellen</button><button type="button" class="ghost" onclick="return rc291SaveAbd()">ABD Anfrage speichern</button><button type="button" class="ghost" onclick="return rc291CopyAbd()">Mailtext kopieren</button></div></section>';}
+  function goodsField(){var labels=Array.from(document.querySelectorAll('label.field,label,.field'));return labels.find(function(el){return /Warenbeschreibung\s*fuer\s*CMR\s*Feld\s*9|Warenbeschreibung\s*für\s*CMR\s*Feld\s*9/i.test(el.textContent||'')})||null;}
+  function removeOldAbd(){if(curView()!=='shipment')return; Array.from(document.querySelectorAll('#rc288AbdPanel,#rc265AbdPanel,.rc265-abd-request-panel,#rc260AbdPanel,.rc260-abd-panel,.abd-panel')).forEach(function(el){if(el.id==='rc291AbdPanel')return; try{el.remove()}catch(e){el.classList.add('rc291-sp-hidden')}});}
+  function cleanupSharePoint(){if(curView()!=='shipment')return; Array.from(document.querySelectorAll('.sharepoint-sync-rc83,.sales-status-empty-rc83,.rc119-folder-warn,.rc119-folder-box,.rc119-folder-panel,.rc232-folder-note,.rc83SharePointPanel,.rc188-sp-card,.rc191-sp-card')).forEach(function(el){try{el.remove()}catch(e){el.classList.add('rc291-sp-hidden')}}); Array.from(document.querySelectorAll('.card,.notice,.infobox,.okbox,.badbox,section,article')).forEach(function(el){if(el.id==='rc291AbdPanel'||(el.closest&&el.closest('#rc291AbdPanel')))return; var t=String(el.textContent||'').replace(/\s+/g,' '); if(/OneDrive-\/SharePoint-Basislink|SharePoint-Basislink|Automatisch aus SharePoint direkt lesen|Sendungsordner\s*&\s*Lieferscheine|SharePoint.*Lieferschein|Lieferschein.*SharePoint/i.test(t)){try{el.remove()}catch(e){el.classList.add('rc291-sp-hidden')}}});}
+  function ensurePanel(){if(curView()!=='shipment')return; removeOldAbd(); var panel=by('rc291AbdPanel'); if(!panel){var mail=by('rc261MailPanel'), goods=goodsField(), content=by('content')||document.body; if(mail)mail.insertAdjacentHTML('afterend',html()); else if(goods)goods.insertAdjacentHTML('afterend',html()); else content.insertAdjacentHTML('beforeend',html()); panel=by('rc291AbdPanel');} var mail=by('rc261MailPanel'), goods=goodsField(); if(panel && mail && mail.nextElementSibling!==panel)mail.insertAdjacentElement('afterend',panel); else if(panel && !mail && goods && goods.nextElementSibling!==panel)goods.insertAdjacentElement('afterend',panel); updatePreview();}
+  function run(){try{document.body.setAttribute('data-rc291-view',curView())}catch(e){} cleanupSharePoint(); ensurePanel();}
+  window.rc288RunShipment=function(){run();return false};
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc291Wrapped){window.render=function(){var r=baseRender.apply(this,arguments); setTimeout(run,60); setTimeout(run,220); setTimeout(run,700); return r}; window.render.__rc291Wrapped=true; try{render=window.render}catch(e){}}
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(run,120);setTimeout(run,800)});
+  setTimeout(run,120); setInterval(function(){if(curView()==='shipment')run()},900);
+})();
+</script>
+<!-- PRIVATE RC291 END: ABD ein Layout + SharePoint-Ladebereiche entfernen -->
+</body></html>
