@@ -2011,6 +2011,11 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 @media(max-width:900px){.rc119-folder-grid{grid-template-columns:1fr}.rc119-folder-actions{display:grid}.rc119-folder-actions>*{width:100%}}
 @media print{.rc119-folder-panel,.rc119-folder-btn,.rc119-folder-actions,.rc119-login-tools{display:none!important}}
 
+
+/* RC289: Offline-Hinweis komplett aus Oberfläche und Druck entfernen */
+#rc266OfflineStatus,#rc266OfflineNote{display:none!important}
+@media print{#rc266OfflineStatus,#rc266OfflineNote{display:none!important}}
+
 </style>
 
 <script>
@@ -38185,7 +38190,7 @@ body .rc232-folder-actions{
         box.className='rc266-offline-status';
         document.body.appendChild(box);
       }
-      box.innerHTML='Offline-Modus aktiv: keine Microsoft-Anmeldung. Daten bleiben auf diesem Geraet. Nach Aenderungen Backup herunterladen.';
+      box.innerHTML=''; box.style.display='none';
     }catch(err){}
   }
   function loginNote266(){
@@ -38195,7 +38200,7 @@ body .rc232-folder-actions{
       var note=document.createElement('div');
       note.id='rc266LoginNote';
       note.className='rc266-login-note';
-      note.textContent='Offline-Modus: Du kannst dich ohne Microsoft anmelden. Live-Daten werden nicht geladen. Bitte nach Aenderungen Backup herunterladen.';
+      note.textContent=''; note.style.display='none';
       btn.insertAdjacentElement('beforebegin',note);
     }catch(err){}
   }
@@ -39414,3 +39419,5 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC288 END: ABD Bereich stabil + SharePoint-Lieferschein weg + UPS Land -->
+
+<!-- PRIVATE RC289 OFFLINE TEXT REMOVED -->
