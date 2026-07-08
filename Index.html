@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<!-- RC281_DIRECT_LOGIN_NO_MS_START -->
 <title>ExportHUB Private RC280 Login Finalfix</title>
 <style>
 :root{--bg:#eef6fb;--surface:#fff;--surface2:#f7fbff;--text:#0f172a;--muted:#64748b;--line:#dbe4ef;--nav1:#051937;--nav2:#0b3b72;--blue:#2563eb;--cyan:#05b8ff;--green:#16a34a;--orange:#f97316;--red:#dc2626;--purple:#7e22ce;--yellow:#facc15;--shadow:0 18px 46px rgba(15,23,42,.10);--radius:22px}
@@ -2401,7 +2402,7 @@ try{rc53PdfLoadlist=rc55DownloadLoadlistPdf;}catch(e){}
 <div id="login" class="login">
   <div class="login-card">
     <div class="logo">EH</div>
-    <h1>ExportHUB</h1><div id="rc280Marker" style="margin:8px 0 12px;font-weight:900;color:#166534;background:#dcfce7;border:1px solid #86efac;border-radius:12px;padding:7px 10px">RC280 Login-Fix aktiv</div>
+    <h1>ExportHUB</h1><div id="rc280Marker" style="margin:8px 0 12px;font-weight:900;color:#166534;background:#dcfce7;border:1px solid #86efac;border-radius:12px;padding:7px 10px">RC281 Direkt-Login aktiv – keine MS-Startseite</div>
     <div class="login-lang">
       <label class="field" id="loginLangLabel">Sprache
         <select id="loginLanguageSelect" autocomplete="off">
@@ -39841,4 +39842,57 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 
+
+<script id="rc281-direct-login-no-ms-start">
+(function(){
+  'use strict';
+  function by(id){return document.getElementById(id)}
+  function hasExportHubLogin(){return !!(by('login')&&by('loginUser')&&by('loginPass')&&by('loginBtn'))}
+  function hasUser(){
+    try{if(typeof currentUser!=='undefined' && currentUser && (currentUser.user||currentUser.name||currentUser.role)){window.currentUser=currentUser;return true;}}catch(e){}
+    try{return !!(window.currentUser&&(window.currentUser.user||window.currentUser.name||window.currentUser.role));}catch(e){return false}
+  }
+  function showDirect(){
+    try{
+      var login=by('login'), app=by('app');
+      if(!login||!app)return;
+      // alte Azure-/MS-Startflächen ausblenden, falls sie im DOM auftauchen
+      Array.from(document.querySelectorAll('section,article,div')).forEach(function(el){
+        if(el===login||el===app||login.contains(el)||app.contains(el))return;
+        var t=(el.textContent||'').trim();
+        if(/Startseite fuer den Azure-Test|Startseite für den Azure-Test|MS Login pruefen|MS Login prüfen|Microsoft Login prüfen|ExportHUB öffnet erst nach bewusstem Klick/i.test(t)){
+          el.style.display='none';
+        }
+      });
+      if(hasUser()){
+        login.classList.add('hidden'); login.style.display='none';
+        app.classList.remove('hidden'); app.style.display='grid';
+      }else{
+        app.classList.add('hidden'); app.style.display='none';
+        login.classList.remove('hidden'); login.style.display='grid'; login.style.visibility='visible'; login.style.opacity='1';
+        var marker=by('rc281Marker');
+        if(!marker){
+          marker=document.createElement('div'); marker.id='rc281Marker';
+          marker.style.cssText='margin:8px 0 12px;font-weight:950;color:#166534;background:#dcfce7;border:1px solid #86efac;border-radius:12px;padding:8px 10px';
+          marker.textContent='RC281 Direkt-Login aktiv – wenn du das siehst, ist die richtige index.html geladen.';
+          var card=document.querySelector('#login .login-card'); var h=card&&card.querySelector('h1'); if(h)h.insertAdjacentElement('afterend',marker);
+        }
+      }
+    }catch(e){}
+  }
+  function disableMsStartButtons(){
+    try{
+      Array.from(document.querySelectorAll('button,a')).forEach(function(b){
+        var t=(b.textContent||'').trim();
+        if(/MS Login pruefen|MS Login prüfen|Microsoft Login prüfen/i.test(t)){b.style.display='none';}
+      });
+    }catch(e){}
+  }
+  function init(){showDirect();disableMsStartButtons()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init); else init();
+  window.addEventListener('pageshow',init);
+  setTimeout(init,50); setTimeout(init,200); setTimeout(init,700); setTimeout(init,1500);
+  var n=0, timer=setInterval(function(){init(); if(++n>20)clearInterval(timer);},500);
+})();
+</script>
 </body></html>
