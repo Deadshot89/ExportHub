@@ -39700,4 +39700,210 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </script>
 <!-- PRIVATE RC292 END: UPS Service + Preise repariert -->
 
+
+<!-- PRIVATE RC293 START: Palettenkonto + Academy Logistik -->
+<style>
+.rc293-academy-hero{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#fff);border-radius:24px;padding:16px;margin:10px 0 14px}
+.rc293-academy-card{border:1px solid #dbeafe;background:#fff;border-radius:18px;padding:14px;margin:10px 0;box-shadow:0 8px 18px rgba(15,23,42,.06)}
+.rc293-academy-card h4{margin:0 0 6px;color:#08245d}
+.rc293-lesson-list{display:grid;gap:8px;margin-top:10px}
+.rc293-lesson-list button{border:1px solid #dbeafe;background:#fff;border-radius:14px;padding:10px;text-align:left;font-weight:850;cursor:pointer}
+.rc293-lesson-list button.active{border-color:#2563eb;background:#eff6ff}
+.rc293-pallet-negative{color:#991b1b;font-weight:1000}.rc293-pallet-positive{color:#166534;font-weight:1000}
+.rc293-statement{min-height:260px!important;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC293_PALLET_ACADEMY__)return;
+  window.__EXPORTHUB_RC293_PALLET_ACADEMY__=true;
+
+  function st(){try{if(typeof state!=='undefined'&&state)return state}catch(e){} return window.state||{}}
+  function by(id){return document.getElementById(id)}
+  function e(v){try{return esc(v)}catch(err){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}}
+  function today(){try{return todayISO()}catch(err){return new Date().toISOString().slice(0,10)}}
+  function id(prefix){try{return uid(prefix)}catch(err){return prefix+'-'+Math.random().toString(36).slice(2,8)+'-'+Date.now().toString(36)}}
+  function saveAndRender(){try{save()}catch(e){} try{render()}catch(e){}}
+  function canEditNow(area){try{return requireEdit(area||'pallet')}catch(e){return true}}
+  function auditNow(a,d){try{audit(a,d)}catch(e){}}
+  function customerKey(c){return String((c&&(c.account||c.customerNumber||c.id||c.name))||'')}
+  function customerById(cid){var s=st(); return (s.customers||[]).find(function(c){return String(c.id)===String(cid)}) || (s.customers||[])[0] || null}
+  function customerOptions(selected){var s=st(); return (s.customers||[]).slice().sort(function(a,b){return String(a.account||a.name||'').localeCompare(String(b.account||b.name||''),'de')}).map(function(c){return '<option value="'+e(c.id)+'" '+(String(c.id)===String(selected)?'selected':'')+'>'+e(c.account||c.customerNumber||'')+' · '+e(c.name||'')+'</option>'}).join('')}
+  function bookingDate(p){return p.entryDate||p.dateIn||p.datumEingang||p.date||''}
+  function bookingsForCustomer(c){var s=st(); if(!c)return []; var idd=String(c.id||''),acc=String(c.account||c.customerNumber||'').toLowerCase(),name=String(c.name||'').toLowerCase(); return (s.palletAccount||[]).filter(function(p){return (idd&&String(p.customerId||'')===idd)||(acc&&String(p.customerAccount||'').toLowerCase()===acc)||(name&&String(p.customerName||'').toLowerCase()===name)})}
+  function totals(list){var input=0,output=0; (list||[]).forEach(function(p){var n=Number(p.count)||0; if(String(p.type||'').toLowerCase()==='eingang')input+=n; else output+=n}); return {input:input,output:output,saldo:input-output,count:(list||[]).length}}
+  function allTotals(){var s=st(); return totals(s.palletAccount||[])}
+  function palletRows293(){var s=st(), map={}; (s.palletAccount||[]).forEach(function(p){var key=(p.customerAccount||'ohne Konto')+'|'+(p.customerName||''); if(!map[key])map[key]={account:p.customerAccount||'',name:p.customerName||'',in:0,out:0,count:0}; var r=map[key]; r.count++; if(String(p.type||'').toLowerCase()==='eingang')r.in+=Number(p.count)||0; else r.out+=Number(p.count)||0}); return Object.keys(map).map(function(k){return map[k]}).sort(function(a,b){return String(a.account||a.name||'').localeCompare(String(b.account||b.name||''),'de')})}
+  function statementText(c,from,to){var list=bookingsForCustomer(c).filter(function(p){var d=bookingDate(p); if(from&&d&&d<from)return false; if(to&&d&&d>to)return false; return true}).sort(function(a,b){return String(bookingDate(a)).localeCompare(String(bookingDate(b)))}); var t=totals(list); var lines=[]; lines.push('Palettenkonto-Auszug'); lines.push('Kunde: '+((c&&c.name)||'')); lines.push('Kundennummer: '+((c&&(c.account||c.customerNumber))||'')); lines.push('Zeitraum: '+(from||'alle')+' bis '+(to||'alle')); lines.push(''); lines.push('Eingang: '+t.input+' Europaletten'); lines.push('Ausgang: '+t.output+' Europaletten'); lines.push('Saldo: '+t.saldo+' Europaletten'); lines.push(''); lines.push('Buchungen:'); if(!list.length)lines.push('- Keine Buchungen im Zeitraum.'); list.forEach(function(p){lines.push('- '+(bookingDate(p)||'')+' | '+(p.type||'')+' | '+(p.count||0)+' EPAL | Ref: '+(p.shipmentRef||'-')+' | '+(p.note||''))}); lines.push(''); lines.push('Bitte den Palettenkonto-Auszug pruefen und Abweichungen zurueckmelden.'); return lines.join('\n')}
+
+  window.addPalletManual=function(){
+    if(!canEditNow('pallet'))return false;
+    var s=st(); if(!s.customers||!s.customers.length){alert('Bitte zuerst einen Kunden anlegen.'); try{setView('customers')}catch(e){} return false}
+    var c=customerById((by('palCust')||{}).value); if(!c)return alert('Kunde nicht gefunden.'),false;
+    var count=Math.max(1,Math.floor(Number((by('palCount')||{}).value)||1));
+    var type=(by('palType')||{}).value||'Eingang';
+    var entryDate=(by('palEntryDate')||{}).value||today();
+    var ref=((by('palRef')||{}).value||'').trim();
+    var note=((by('palNote')||{}).value||'Manuelle Buchung').trim();
+    s.palletAccount=s.palletAccount||[];
+    s.palletAccount.unshift({id:id('PAL'),date:today(),entryDate:entryDate,customerId:c.id,customerAccount:c.account||c.customerNumber||'',customerName:c.name||'',type:type,palletType:'Europalette',count:count,shipmentRef:ref,auto:false,note:note});
+    auditNow('Palettenkonto Buchung',type+' '+count+' Europaletten · '+(c.name||'')); saveAndRender(); return false;
+  };
+  window.rc293ReconcilePallets=function(){
+    if(!canEditNow('pallet'))return false;
+    var c=customerById((by('palReconCust')||{}).value); if(!c)return alert('Kunde nicht gefunden.'),false;
+    var actual=Math.max(0,Math.floor(Number((by('palReconActual')||{}).value)||0));
+    var entryDate=(by('palReconDate')||{}).value||today();
+    var note=((by('palReconNote')||{}).value||'Abgleich').trim();
+    var t=totals(bookingsForCustomer(c)); var diff=actual-t.saldo;
+    c.palletCurrentStand=actual; c.palletLastReconcile=new Date().toLocaleString('de-DE'); c.palletLastReconcileDate=entryDate;
+    var s=st(); s.palletAccount=s.palletAccount||[];
+    if(diff!==0){s.palletAccount.unshift({id:id('PAL'),date:today(),entryDate:entryDate,customerId:c.id,customerAccount:c.account||c.customerNumber||'',customerName:c.name||'',type:diff>0?'Eingang':'Ausgang',palletType:'Europalette',count:Math.abs(diff),shipmentRef:'',auto:false,reconcile:true,note:note+' · Abgleich auf Stand '+actual+' · System vorher '+t.saldo});}
+    auditNow('Palettenkonto Abgleich',(c.name||'')+': Stand '+actual+', Differenz '+diff); saveAndRender(); return false;
+  };
+  window.rc293DeletePallet=function(pid){
+    if(!canEditNow('pallet'))return false;
+    if(!confirm('Diese Palettenbuchung wirklich loeschen?'))return false;
+    var s=st(); s.palletAccount=(s.palletAccount||[]).filter(function(p){return String(p.id)!==String(pid)}); auditNow('Palettenkonto Buchung geloescht',pid); saveAndRender(); return false;
+  };
+  window.rc293BuildPalletStatement=function(){
+    var s=st(); var c=customerById((by('palStatementCust')||{}).value); if(!c)return false;
+    var txt=statementText(c,(by('palStatementFrom')||{}).value||'',(by('palStatementTo')||{}).value||'');
+    s.rc293PalletStatement={customerId:c.id,text:txt,createdAt:new Date().toLocaleString('de-DE')};
+    var ta=by('palStatementText'); if(ta)ta.value=txt;
+    try{save()}catch(e){} return false;
+  };
+  window.rc293CopyPalletStatement=function(){
+    var txt=((by('palStatementText')||{}).value)||((st().rc293PalletStatement||{}).text)||''; if(!txt)return alert('Bitte zuerst Auszug erstellen.'),false;
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){alert('Palettenkonto-Auszug kopiert.')}).catch(function(){alert('Bitte Text markieren und kopieren.')});}
+    else alert('Bitte Text markieren und kopieren.');
+    return false;
+  };
+
+  window.pallet=function pallet(){
+    var s=st(); s.palletAccount=s.palletAccount||[]; var all=allTotals(), rows=palletRows293(); var selected=(s.rc293PalletCustomerId||(s.customers&&s.customers[0]&&s.customers[0].id)||''); var selectedCustomer=customerById(selected); var stTxt=(s.rc293PalletStatement&&s.rc293PalletStatement.text)||'';
+    var headHtml=(typeof head==='function')?head('🧾 Palettenkonto','Europaletten je Kundennummer: Eingang, Ausgang, Abgleich, Datumseingang und Auszug an Kunden.'):'<h2>Palettenkonto</h2>';
+    return headHtml+
+    '<div class="metrics"><article class="metric kpi-green"><span>Eingang</span><strong>'+all.input+'</strong><small>Europaletten</small></article><article class="metric kpi-orange"><span>Ausgang</span><strong>'+all.output+'</strong><small>Europaletten</small></article><article class="metric kpi-blue"><span>Saldo</span><strong class="'+(all.saldo<0?'rc293-pallet-negative':'rc293-pallet-positive')+'">'+all.saldo+'</strong><small>Eingang minus Ausgang</small></article><article class="metric"><span>Buchungen</span><strong>'+s.palletAccount.length+'</strong><small>automatisch + manuell</small></article></div>'+ 
+    '<div class="grid2"><div class="card pallet-card"><h3>Manuelle Buchung</h3>'+ 
+      '<label class="field">Kunde<select id="palCust">'+customerOptions(selected)+'</select></label>'+ 
+      '<label class="field">Datumseingang<input id="palEntryDate" type="date" value="'+e(today())+'"></label>'+ 
+      '<label class="field">Buchungsart<select id="palType"><option>Eingang</option><option>Ausgang</option></select></label>'+ 
+      '<label class="field">Anzahl Europaletten<input id="palCount" type="number" min="1" step="1" value="1"></label>'+ 
+      '<label class="field">Referenz / Sendung optional<input id="palRef" placeholder="z. B. Sendungsreferenz"></label>'+ 
+      '<label class="field">Bemerkung<input id="palNote" placeholder="z. B. Rueckgabe Fahrer / Korrektur"></label>'+ 
+      '<button class="btn" onclick="return addPalletManual()">Buchung speichern</button>'+ 
+    '</div><div class="card"><h3>Abgleich</h3>'+ 
+      '<label class="field">Kunde<select id="palReconCust">'+customerOptions(selected)+'</select></label>'+ 
+      '<label class="field">Datumseingang Abgleich<input id="palReconDate" type="date" value="'+e(today())+'"></label>'+ 
+      '<label class="field">Gezählter aktueller Stand<input id="palReconActual" type="number" min="0" step="1" value="'+e(selectedCustomer?totals(bookingsForCustomer(selectedCustomer)).saldo:0)+'"></label>'+ 
+      '<label class="field">Abgleich-Bemerkung<input id="palReconNote" placeholder="z. B. Monatsabgleich / Fahrerabgleich"></label>'+ 
+      '<button class="btn" onclick="return rc293ReconcilePallets()">Abgleich speichern</button><p class="small">Der Abgleich bucht nur die Differenz, damit der Systemsaldo dem gezaehlten Stand entspricht.</p>'+ 
+    '</div></div>'+ 
+    '<div class="grid2"><div class="card"><h3>Saldo je Kunde</h3>'+(rows.length?'<table class="table"><tr><th>Kundennummer</th><th>Kunde</th><th>Eingang</th><th>Ausgang</th><th>Saldo</th></tr>'+rows.map(function(r){var saldo=r.in-r.out;return '<tr><td><b>'+e(r.account)+'</b></td><td>'+e(r.name)+'</td><td>'+r.in+'</td><td>'+r.out+'</td><td><b class="'+(saldo<0?'rc293-pallet-negative':'rc293-pallet-positive')+'">'+saldo+'</b></td></tr>'}).join('')+'</table>':'<p class="muted">Noch keine Palettenbuchungen.</p>')+'</div>'+ 
+    '<div class="card"><h3>Auszug an Kunden</h3><label class="field">Kunde<select id="palStatementCust">'+customerOptions(selected)+'</select></label><div class="grid2"><label class="field">Von<input id="palStatementFrom" type="date"></label><label class="field">Bis<input id="palStatementTo" type="date"></label></div><div class="toolbar"><button class="btn" onclick="return rc293BuildPalletStatement()">Auszug erstellen</button><button class="ghost" onclick="return rc293CopyPalletStatement()">Auszug kopieren</button></div><textarea id="palStatementText" class="rc293-statement" placeholder="Hier wird der Palettenkonto-Auszug erstellt.">'+e(stTxt)+'</textarea></div></div>'+ 
+    '<div class="card"><h3>Letzte Buchungen</h3>'+(s.palletAccount.length?'<table class="table"><tr><th>Datumseingang</th><th>Buchungsdatum</th><th>Kunde</th><th>Art</th><th>Anzahl</th><th>Referenz</th><th>Hinweis</th><th></th></tr>'+s.palletAccount.slice(0,120).map(function(p){return '<tr><td>'+e(bookingDate(p))+'</td><td>'+e(p.date||'')+'</td><td><b>'+e(p.customerAccount)+'</b><br>'+e(p.customerName)+'</td><td>'+e(p.type)+'</td><td><b>'+e(p.count)+'</b></td><td>'+e(p.shipmentRef||'')+'</td><td>'+e(p.note||'')+'</td><td><button class="danger" onclick="return rc293DeletePallet(\''+e(p.id)+'\')">Loeschen</button></td></tr>'}).join('')+'</table>':'<p class="muted">Noch keine Buchungen vorhanden.</p>')+'</div>';
+  };
+  try{pallet=window.pallet}catch(e){}
+
+  /* Kundenordner-Palettenkonto ebenfalls mit Datumseingang und Auszug */
+  window.rc47CustomerPalletHtml=function(c){
+    var t=totals(bookingsForCustomer(c)); var last=bookingsForCustomer(c).slice(0,30); var txt=statementText(c,'','');
+    return '<div class="folder-section customer-pallet-section"><h3>Palettenkonto</h3><div class="customer-pallet-mini"><div class="summaryBox"><span>Eingang</span><strong>'+t.input+'</strong></div><div class="summaryBox"><span>Ausgang</span><strong>'+t.output+'</strong></div><div class="summaryBox"><span>Saldo</span><strong>'+t.saldo+'</strong></div><div class="summaryBox"><span>Buchungen</span><strong>'+t.count+'</strong></div></div>'+ 
+      '<div class="grid2"><div class="card"><h4>Manuelle Palettenbuchung</h4><label class="field">Datumseingang<input id="rc47PalEntryDate" type="date" value="'+e(today())+'"></label><label class="field">Buchungsart<select id="rc47PalType"><option>Eingang</option><option>Ausgang</option></select></label><label class="field">Anzahl Europaletten<input id="rc47PalCount" type="number" min="1" step="1" value="1"></label><label class="field">Bemerkung<input id="rc47PalNote" placeholder="z. B. Rueckgabe Fahrer / Korrektur"></label><button class="btn" onclick="return rc47AddCustomerPalletBooking(\''+e(c.id)+'\')">Buchung speichern</button></div>'+ 
+      '<div class="card"><h4>Auszug an Kunden</h4><textarea class="rc293-statement">'+e(txt)+'</textarea></div></div>'+ 
+      '<h4>Letzte Palettenbuchungen</h4>'+(last.length?'<table class="table"><tr><th>Datumseingang</th><th>Art</th><th>Anzahl</th><th>Referenz</th><th>Hinweis</th></tr>'+last.map(function(p){return '<tr><td>'+e(bookingDate(p))+'</td><td>'+e(p.type||'')+'</td><td><b>'+e(p.count||'')+'</b></td><td>'+e(p.shipmentRef||'')+'</td><td>'+e(p.note||'')+'</td></tr>'}).join('')+'</table>':'<p class="muted">Noch keine Palettenbuchungen fuer diesen Kunden.</p>')+'</div>';
+  };
+  window.rc47AddCustomerPalletBooking=function(customerId){
+    if(!canEditNow('customerfolder'))return false; var c=customerById(customerId); if(!c)return alert('Kunde nicht gefunden.'),false;
+    var type=(by('rc47PalType')||{}).value||'Eingang'; var count=Math.max(1,Math.floor(Number((by('rc47PalCount')||{}).value)||1)); var note=((by('rc47PalNote')||{}).value||'Manuelle Buchung im Kundenordner').trim(); var entryDate=(by('rc47PalEntryDate')||{}).value||today();
+    var s=st(); s.palletAccount=s.palletAccount||[]; s.palletAccount.unshift({id:id('PAL'),date:today(),entryDate:entryDate,customerId:c.id,customerAccount:c.account||c.customerNumber||'',customerName:c.name||'',type:type,palletType:'Europalette',count:count,shipmentRef:'',auto:false,note:note});
+    auditNow('Palettenkonto im Kundenordner',type+' '+count+' Europaletten · '+(c.name||'')); saveAndRender(); return false;
+  };
+
+  var MODULES=[
+    {title:'1. Wareneingang & Annahme',summary:'Ablauf vom Eintreffen der Ware bis zur Buchung im Lager.',lessons:[
+      {title:'Lieferung annehmen',text:'Pruefe Lieferant, Anlieferpapiere, sichtbare Schaeden, Packstueckanzahl und ob die Ware fuer den Standort bestimmt ist.'},
+      {title:'Mengen und Artikel pruefen',text:'Vergleiche Lieferschein, Bestellung, Artikelnummer, Menge und Verpackungseinheit. Abweichungen sofort dokumentieren.'},
+      {title:'Wareneingang buchen',text:'Erst buchen, wenn die Kontrolle abgeschlossen ist. Falsche Buchungen fuehren zu Bestandsfehlern und Suchaufwand.'}
+    ]},
+    {title:'2. Lagerung & Lagerplaetze',summary:'Ware sicher, auffindbar und nach Lagerlogik einlagern.',lessons:[
+      {title:'Lagerplatzlogik',text:'Artikel muessen zum passenden Lagerbereich, Lagerplatz und zur richtigen Zone. Schnelldreher gehoeren griffbereit.'},
+      {title:'FIFO / FEFO',text:'Bei FIFO wird zuerst die aelteste Ware entnommen. Bei FEFO zaehlt das frueheste Ablaufdatum.'},
+      {title:'Sauberkeit und Ordnung',text:'Ordnung ist kein Nebenthema: Sie verhindert Suchzeiten, Fehlgriffe, Unfallgefahren und Bestandsfehler.'}
+    ]},
+    {title:'3. Kommissionierung',summary:'Auftraege richtig, vollstaendig und effizient zusammenstellen.',lessons:[
+      {title:'Pickauftrag lesen',text:'Pruefe Artikelnummer, Menge, Lagerplatz, Einheit und Kunden-/Auftragsbezug.'},
+      {title:'Fehlmengen erkennen',text:'Wenn Ware nicht vorhanden ist, nicht einfach ersetzen. Fehlmenge melden und Ursache klaeren.'},
+      {title:'Kontrolle vor Abschluss',text:'Vor Abschluss pruefen: richtiger Artikel, richtige Menge, richtiger Auftrag, unbeschaedigte Ware.'}
+    ]},
+    {title:'4. Verpackung & Versandvorbereitung',summary:'Ware transportsicher verpacken und korrekt kennzeichnen.',lessons:[
+      {title:'Verpackung waehlen',text:'Verpackung richtet sich nach Gewicht, Empfindlichkeit, Transportweg und Kundenvorgabe.'},
+      {title:'Label und Dokumente',text:'Label muessen lesbar, korrekt und fest angebracht sein. Falsche Label fuehren zu Fehlleitungen.'},
+      {title:'Gewicht und Colli',text:'Anzahl Collis, Gewicht und Verpackungsart muessen zur Sendung passen und sauber dokumentiert sein.'}
+    ]},
+    {title:'5. Ladungssicherung',summary:'Sicher laden, sichern und Transportschaeden vermeiden.',lessons:[
+      {title:'Grundsatz',text:'Ladung darf nicht rutschen, kippen, rollen oder herunterfallen. Sicherung ist Pflicht.'},
+      {title:'Hilfsmittel',text:'Stretchfolie, Kantenschutz, Gurte, Antirutschmatten und passende Paletten richtig einsetzen.'},
+      {title:'Verantwortung',text:'Wer verladen hilft, muss offensichtliche Risiken melden. Unsichere Ladung nicht einfach abfertigen.'}
+    ]},
+    {title:'6. Arbeitssicherheit',summary:'Unfaelle vermeiden und sicher arbeiten.',lessons:[
+      {title:'Persoenliche Schutzausruestung',text:'Sicherheitsschuhe, Warnweste und weitere PSA nach Bereichsvorgabe tragen.'},
+      {title:'Stapler und Flurfoerderzeuge',text:'Nur mit Berechtigung fahren. Wege freihalten, Lasten niedrig fuehren, Sicht beachten.'},
+      {title:'Gefahren melden',text:'Schaeden, ausgelaufene Stoffe, blockierte Fluchtwege oder unsichere Situationen sofort melden.'}
+    ]},
+    {title:'7. Bestandsfuehrung & Inventur',summary:'Bestaende verstehen, pflegen und Abweichungen klaeren.',lessons:[
+      {title:'Bestand ist Verantwortung',text:'Jede Buchung veraendert den Bestand. Falsche Buchungen treffen Wareneingang, Picken, Versand und Kundenservice.'},
+      {title:'Inventur',text:'Inventur bedeutet zaehlen, pruefen, dokumentieren. Differenzen muessen nachvollziehbar geklaert werden.'},
+      {title:'Ursachenanalyse',text:'Differenzen entstehen oft durch Fehlbuchungen, falsche Lagerplaetze, Verwechslungen oder nicht dokumentierte Bewegungen.'}
+    ]},
+    {title:'8. Kennzahlen im Lager',summary:'Leistung messen, aber richtig interpretieren.',lessons:[
+      {title:'Produktivitaet',text:'Produktivitaet beschreibt Output je Zeit oder Person. Sie darf nicht auf Kosten von Qualitaet und Sicherheit gehen.'},
+      {title:'Qualitaet',text:'Fehlerquote, Nacharbeit und Reklamationen zeigen, ob Prozesse stabil laufen.'},
+      {title:'OTIF',text:'OTIF bedeutet: vollstaendig und puenktlich liefern. Lagerprozesse beeinflussen OTIF direkt.'}
+    ]},
+    {title:'9. Palettenkonto & Mehrweg',summary:'Europaletten richtig erfassen und ausgleichen.',lessons:[
+      {title:'Eingang und Ausgang',text:'Ausgang = Paletten gehen mit Sendung raus. Eingang = Paletten kommen zurueck oder werden gutgeschrieben.'},
+      {title:'Abgleich',text:'Beim Abgleich wird der gezaehlte Stand mit dem Systemstand verglichen und die Differenz dokumentiert.'},
+      {title:'Auszug',text:'Ein Palettenkonto-Auszug hilft dem Kunden, Buchungen und Saldo nachzuvollziehen.'}
+    ]},
+    {title:'10. Pruefungsvorbereitung Fachkraft Lagerlogistik',summary:'Typische IHK-Themen sicher wiederholen.',lessons:[
+      {title:'Prozessdenken',text:'Erklaere immer den gesamten Ablauf: annehmen, pruefen, lagern, kommissionieren, verpacken, versenden, dokumentieren.'},
+      {title:'Rechnen im Lager',text:'Haeufige Themen: Prozent, Dreisatz, Gewicht, Volumen, Lagerkennzahlen, Bestellmengen und Flaechen.'},
+      {title:'Praxisantworten',text:'Gute Pruefungsantworten nennen Handlung, Grund und Risiko bei falschem Vorgehen.'}
+    ]}
+  ];
+  var QUESTIONS=[
+    {q:'Was pruefst du zuerst bei einer Anlieferung?',a:['Lieferant, Papiere, sichtbare Schaeden und Packstueckanzahl','Nur die Farbe der Verpackung','Nur den Fahrername','Gar nichts, erst buchen'],correct:0,why:'Vor der Buchung muss klar sein, ob Lieferung und Ware plausibel sind.'},
+    {q:'Was bedeutet FIFO?',a:['First In First Out','Fast Internal Freight Order','Free Invoice For Order','Final Inbound Freight Output'],correct:0,why:'Die zuerst eingelagerte Ware wird zuerst entnommen.'},
+    {q:'Was ist bei einer Fehlmenge richtig?',a:['Melden, dokumentieren und Ursache klaeren','Einfach anderen Artikel nehmen','Auftrag abschliessen','Menge schaetzen'],correct:0,why:'Fehlmengen muessen nachvollziehbar geklaert werden.'},
+    {q:'Warum sind richtige Lagerplaetze wichtig?',a:['Ware wird schneller gefunden und Bestandsfehler sinken','Nur wegen Ordnung im Regal','Damit Etiketten schoen aussehen','Es ist unwichtig'],correct:0,why:'Lagerplatztreue ist Grundlage fuer sichere Prozesse.'},
+    {q:'Was gehoert zur Ladungssicherung?',a:['Ladung gegen Rutschen, Kippen und Herunterfallen sichern','Nur Palette beschriften','Nur Lieferschein drucken','Fahrer unterschreiben lassen'],correct:0,why:'Ungesicherte Ladung gefaehrdet Menschen und Ware.'},
+    {q:'Wann darfst du einen Stapler fahren?',a:['Nur mit Berechtigung/Unterweisung','Immer wenn es schnell gehen muss','Nur wenn niemand schaut','Nach kurzer Erklaerung durch Kollegen'],correct:0,why:'Flurfoerderzeuge duerfen nur berechtigt genutzt werden.'},
+    {q:'Was zeigt der Saldo im Palettenkonto?',a:['Eingang minus Ausgang','Nur Ausgang','Nur Eingang','Den Warenwert'],correct:0,why:'Der Saldo zeigt die Differenz zwischen erhaltenen und ausgegebenen Paletten.'},
+    {q:'Was ist bei der Kommissionierung besonders wichtig?',a:['Richtiger Artikel, richtige Menge, richtiger Auftrag','Nur schnell sein','Nur leise arbeiten','Nur Kartons bereitstellen'],correct:0,why:'Qualitaet geht vor Geschwindigkeit.'},
+    {q:'Warum muss Gewicht korrekt erfasst werden?',a:['Fracht, Sicherheit und Dokumente haengen davon ab','Nur fuer Statistik','Damit das Feld nicht leer ist','Es ist egal'],correct:0,why:'Falsche Gewichte fuehren zu Kosten- und Sicherheitsproblemen.'},
+    {q:'Was ist eine Inventurdifferenz?',a:['Abweichung zwischen Sollbestand und Istbestand','Ein neuer Lagerplatz','Eine Versandart','Ein Palettentyp'],correct:0,why:'Inventurdifferenzen muessen geklaert und dokumentiert werden.'},
+    {q:'Was bedeutet OTIF?',a:['On Time In Full','Only Transport In Freight','Order Time Internal File','Open Task In Folder'],correct:0,why:'OTIF misst puenktliche und vollstaendige Lieferung.'},
+    {q:'Was ist beim Verpacken empfindlicher Ware wichtig?',a:['Geeignete Verpackung, Polsterung und Kennzeichnung','Nur groesserer Karton','Kein Label','Ware lose auf Palette'],correct:0,why:'Verpackung muss Transportbelastungen standhalten.'},
+    {q:'Was machst du bei sichtbarem Transportschaden im Wareneingang?',a:['Dokumentieren und melden','Ignorieren','Sofort einlagern','Umetikettieren'],correct:0,why:'Schaeden muessen vor weiteren Prozessschritten dokumentiert werden.'},
+    {q:'Warum darf ein Bestand nicht einfach korrigiert werden?',a:['Die Ursache muss nachvollziehbar sein','Weil Korrekturen nie erlaubt sind','Weil es laenger dauert','Weil nur der Fahrer das darf'],correct:0,why:'Bestandskorrekturen brauchen Nachvollziehbarkeit.'},
+    {q:'Was gehoert zu einer guten Pruefungsantwort?',a:['Handlung, Grund und Risiko nennen','Nur ein Wort','Nur Ja oder Nein','Eine Schaetzung'],correct:0,why:'In der Pruefung zaehlt nachvollziehbares Prozesswissen.'}
+  ];
+  function uniqQuestions(qs){var seen={},out=[]; qs.forEach(function(q){var k=String(q.q||'').toLowerCase().replace(/\s+/g,' ').trim(); if(k&&!seen[k]){seen[k]=1; out.push(q)}}); return out}
+  var Q=uniqQuestions(QUESTIONS);
+  window.rc293SetAcademyTab=function(tab){st().rc293AcademyTab=tab; saveAndRender(); return false};
+  window.rc293SetModule=function(i){st().rc293AcademyModule=Number(i)||0; st().rc293AcademyLesson=0; saveAndRender(); return false};
+  window.rc293SetLesson=function(i){st().rc293AcademyLesson=Math.max(0,Number(i)||0); saveAndRender(); return false};
+  window.rc293AnswerQuick=function(i,idx){var s=st(); s.rc293QuickAnswers=s.rc293QuickAnswers||{}; s.rc293QuickAnswers[i]=idx; try{save()}catch(e){} render(); return false};
+  window.rc293NextQuick=function(){var s=st(); s.rc293QuickStep=Math.min(Q.length-1,(Number(s.rc293QuickStep)||0)+1); saveAndRender(); return false};
+  window.rc293PrevQuick=function(){var s=st(); s.rc293QuickStep=Math.max(0,(Number(s.rc293QuickStep)||0)-1); saveAndRender(); return false};
+  window.rc293ResetQuick=function(){var s=st(); s.rc293QuickAnswers={}; s.rc293QuickStep=0; saveAndRender(); return false};
+  function academyLessons(){var s=st(); var mi=Math.max(0,Math.min(MODULES.length-1,Number(s.rc293AcademyModule)||0)); var li=Math.max(0,Math.min(MODULES[mi].lessons.length-1,Number(s.rc293AcademyLesson)||0)); var m=MODULES[mi], l=m.lessons[li]; return '<div class="academy-layout"><div class="card"><h3>Module Fachkraft Lagerlogistik</h3><div class="module-list">'+MODULES.map(function(x,i){return '<button class="'+(i===mi?'active':'')+'" onclick="return rc293SetModule('+i+')"><b>'+e(x.title)+'</b><br><span class="small">'+e(x.summary)+'</span></button>'}).join('')+'</div></div><div class="card"><h2>'+e(m.title)+'</h2><p>'+e(m.summary)+'</p><div class="rc293-lesson-list">'+m.lessons.map(function(x,i){return '<button class="'+(i===li?'active':'')+'" onclick="return rc293SetLesson('+i+')"><b>'+(i+1)+'. '+e(x.title)+'</b></button>'}).join('')+'</div><div class="rc293-academy-card"><h4>'+e(l.title)+'</h4><p>'+e(l.text)+'</p></div><div class="toolbar"><button class="ghost" onclick="return rc293SetLesson('+(li-1)+')" '+(li===0?'disabled':'')+'>Zurueck</button><button class="btn" onclick="return rc293SetLesson('+(li+1)+')" '+(li===m.lessons.length-1?'disabled':'')+'>Weiter</button><button class="soft" onclick="return rc293SetAcademyTab(\'test\')">Zum schnellen Test</button></div></div></div>'}
+  function quickTest(){var s=st(); s.rc293QuickAnswers=s.rc293QuickAnswers||{}; var i=Math.max(0,Math.min(Q.length-1,Number(s.rc293QuickStep)||0)); var q=Q[i]; var chosen=s.rc293QuickAnswers[i]; var answered=Object.keys(s.rc293QuickAnswers).length; var correct=Object.keys(s.rc293QuickAnswers).filter(function(k){return Q[Number(k)]&&Q[Number(k)].correct===s.rc293QuickAnswers[k]}).length; return '<div class="quiz-card"><div class="pill blue">Schneller Test · Frage '+(i+1)+' von '+Q.length+'</div><h2>'+e(q.q)+'</h2>'+q.a.map(function(a,idx){var cls=chosen===idx?(idx===q.correct?'correct':'wrong'):''; return '<button class="quiz-option '+cls+'" onclick="return rc293AnswerQuick('+i+','+idx+')">'+e(a)+'</button>'}).join('')+(chosen!==undefined?'<div class="infobox"><b>Erklaerung:</b> '+e(q.why)+'</div>':'<div class="notice">Antwort waehlen, dann erscheint die Erklaerung.</div>')+'<div class="quiz-nav"><button class="ghost" onclick="return rc293PrevQuick()" '+(i===0?'disabled':'')+'>Zurueck</button><button class="btn" onclick="return rc293NextQuick()" '+(chosen===undefined||i===Q.length-1?'disabled':'')+'>Weiter</button><button class="soft" onclick="return rc293ResetQuick()">Test zuruecksetzen</button></div></div><div class="metrics"><article class="metric"><span>Beantwortet</span><strong>'+answered+'</strong></article><article class="metric"><span>Richtig</span><strong>'+correct+'</strong></article><article class="metric"><span>Fragenpool</span><strong>'+Q.length+'</strong></article><article class="metric"><span>Thema</span><strong>Fachkraft</strong></article></div>'}
+  window.academy=function academy(){var s=st(); var tab=s.rc293AcademyTab||'lernen'; var lessonCount=MODULES.reduce(function(a,m){return a+m.lessons.length},0); var headHtml=(typeof head==='function')?head('🎓 Academy Logistik','Schulung fuer Fachkraft fuer Lagerlogistik: Wareneingang, Lagerung, Kommissionierung, Verpackung, Sicherheit, Palettenkonto und Pruefungsvorbereitung.'):'<h2>Academy Logistik</h2>'; return headHtml+'<div class="rc293-academy-hero"><b>Fokus:</b> Ausbildung Fachkraft fuer Lagerlogistik. Export/Zoll/ATLAS und CMR/Ladeliste sind aus dieser Academy entfernt.</div><div class="toolbar"><button class="'+(tab==='lernen'?'btn':'ghost')+'" onclick="return rc293SetAcademyTab(\'lernen\')">Lernmodule</button><button class="'+(tab==='test'?'btn':'ghost')+'" onclick="return rc293SetAcademyTab(\'test\')">Schneller Test</button><button class="ghost" onclick="setView(\'quiz\')">Pruefung</button></div><div class="metrics"><article class="metric"><span>Module</span><strong>'+MODULES.length+'</strong></article><article class="metric"><span>Lektionen</span><strong>'+lessonCount+'</strong></article><article class="metric"><span>Testfragen</span><strong>'+Q.length+'</strong></article><article class="metric"><span>Schwerpunkt</span><strong>Lager</strong></article></div>'+(tab==='test'?quickTest():academyLessons())};
+  try{academy=window.academy}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC293 END: Palettenkonto + Academy Logistik -->
+
 </body></html>
