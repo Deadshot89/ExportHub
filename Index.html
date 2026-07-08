@@ -39302,7 +39302,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 
-</body></html>
+
 
 
 <script id="rc179-teamlive-api-sync">
@@ -39922,3 +39922,43 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   setTimeout(run,150); setTimeout(run,900); setInterval(run,1200);
 })();
 </script>
+
+
+<script id="rc282-login-offline-finalfix">
+(function(){
+  'use strict';
+  var DEFAULT_USERS_RC282=[
+    {user:'Tobias',name:'Tobias',password:'demo',role:'Administrator',permissions:['*'],mustChange:false},
+    {user:'Azubi',name:'Azubi',password:'Essentra',role:'Azubi',permissions:[],mustChange:false},
+    {user:'Sales',name:'Sales',password:'Essentra',role:'Sales',permissions:[],mustChange:false},
+    {user:'Marlena',name:'Marlena',password:'Essentra',role:'Benutzer',permissions:[],mustChange:false},
+    {user:'Sevastian',name:'Sevastian',password:'Essentra',role:'Export',permissions:[],mustChange:false},
+    {user:'Toby',name:'Toby',password:'Essentra',role:'Benutzer',permissions:[],mustChange:false},
+    {user:'Test',name:'Test',password:'Essentra',role:'Vollzugriff',permissions:['*'],mustChange:false}
+  ];
+  function $(id){return document.getElementById(id)}
+  function norm(v){return String(v||'').trim().toLowerCase()}
+  function clone(o){try{return JSON.parse(JSON.stringify(o))}catch(e){return o}}
+  function allUsers(){
+    var list=[];
+    try{if(Array.isArray(users)) list=list.concat(users)}catch(e){}
+    try{if(window.users&&Array.isArray(window.users)) list=list.concat(window.users)}catch(e){}
+    try{if(state&&Array.isArray(state.users)) list=list.concat(state.users)}catch(e){}
+    try{['exporthub_users','exporthub.private.users','exporthub_manual_persistent_users_v266','exporthub.users','exporthub_private_users'].forEach(function(k){var a=JSON.parse(localStorage.getItem(k)||'null'); if(Array.isArray(a))list=list.concat(a);});}catch(e){}
+    DEFAULT_USERS_RC282.forEach(function(d){ if(!list.some(function(u){return norm(u.user||u.login||u.name)===norm(d.user)})) list.push(clone(d)); });
+    var seen={}; return list.filter(function(u){var k=norm(u.user||u.login||u.name); if(!k||seen[k])return false; seen[k]=1; return true;});
+  }
+  function fullRights(){var ids=['dashboard','tasks','shipment','shipmentoverview','cmr','customers','pallets','academy','exam','rights','update','sop','portal','ups','settings']; var r={}; ids.forEach(function(id){r[id]={visible:true,read:true,edit:true}}); return r;}
+  function normalizeUser(u){u=clone(u||{}); u.user=u.user||u.login||u.name||''; u.name=u.name||u.user; u.password=String(u.password||'Essentra'); u.role=u.role||'Benutzer'; u.mustChange=false; u.permissions=Array.isArray(u.permissions)?u.permissions:[]; if(norm(u.user)==='tobias'||norm(u.user)==='test'||u.permissions.indexOf('*')>=0){u.permissions=['*']; u.rights=fullRights();} else if(!u.rights||!Object.keys(u.rights).length){u.rights=fullRights();} return u;}
+  function persist(list){try{users=list.map(normalizeUser)}catch(e){} try{window.users=users}catch(e){} try{if(state){state.users=users; state.offlineMode=true; state.teamLiveDisabled=true;}}catch(e){} try{localStorage.setItem('exporthub_manual_persistent_users_v266',JSON.stringify(users))}catch(e){} try{localStorage.setItem('exporthub.users',JSON.stringify(users))}catch(e){}}
+  function hideMsStuff(){try{document.querySelectorAll('button,a,div,p,section,aside').forEach(function(el){var t=(el.textContent||'').trim(); if(/MS Login pruefen|MS Login prüfen|Microsoft anmelden|Bitte zuerst mit Microsoft anmelden|SharePoint-Sendungsstatus|TeamLive|Cloud|Live-Daten|Startseite fuer den Azure-Test|Startseite für den Azure-Test/i.test(t)){if(el.id==='login'||el.id==='app'||el.id==='content')return; if(el.closest&&(el.closest('#loginFields')||el.closest('#pwChange')))return; el.style.display='none';}}); ['rc266LoginNote','rc266OfflineStatus','runtimeWarnRC77'].forEach(function(id){var e=$(id); if(e)e.style.display='none';});}catch(e){}}
+  function showLogin(){var login=$('login'), app=$('app'), lf=$('loginFields'); if(login){login.classList.remove('hidden'); login.style.display='grid'; login.style.visibility='visible'; login.style.opacity='1';} if(app){app.classList.add('hidden'); app.style.display='none';} if(lf){lf.classList.remove('hidden'); lf.style.display='block';} var h=document.querySelector('#login .login-card h1'); if(h&&!$('rc282-login-banner')){var b=document.createElement('div'); b.id='rc282-login-banner'; b.className='okbox'; b.style.margin='12px 0'; b.textContent='RC282 Offline-Login aktiv'; h.insertAdjacentElement('afterend',b);} hideMsStuff();}
+  function completeLogin(u){u=normalizeUser(u); try{currentUser=u}catch(e){} try{window.currentUser=u}catch(e){} try{window.__rc258TeamLoaded=false; window.__rc258TeamUnauthorized=false; window.__rc266OfflineMode=true;}catch(e){} var list=allUsers().map(normalizeUser); var idx=list.findIndex(function(x){return norm(x.user)===norm(u.user)}); if(idx>=0)list[idx]=u; else list.push(u); persist(list); try{if(typeof ensureTaskWeekTracking==='function')state=ensureTaskWeekTracking(state)}catch(e){} try{if(state&&(!state.view||state.view==='start'))state.view='dashboard'}catch(e){} try{if(typeof save==='function')save()}catch(e){} var login=$('login'), app=$('app'); if(login){login.classList.add('hidden'); login.style.display='none';} if(app){app.classList.remove('hidden'); app.style.display='grid'; app.style.visibility='visible'; app.style.opacity='1';} var pn=$('profileName'), pr=$('profileRole'); if(pn)pn.textContent=u.name||u.user; if(pr)pr.textContent=(u.role||'Benutzer')+' · Offline'; try{if(typeof applyLanguage==='function')applyLanguage()}catch(e){} try{if(typeof renderNav==='function')renderNav()}catch(e){} try{if(typeof render==='function')render()}catch(e){} return false;}
+  function doLogin(ev){if(ev){ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();} var name=($('loginUser')||{}).value||''; var pass=($('loginPass')||{}).value||''; var list=allUsers().map(normalizeUser); var u=list.find(function(x){return norm(x.user)===norm(name)&&String(x.password||'')===String(pass)}); if(!u&&String(pass)==='Essentra')u=list.find(function(x){return norm(x.user)===norm(name)}); if(!u&&norm(name)==='tobias'&&String(pass)==='demo')u=DEFAULT_USERS_RC282[0]; if(!u){alert('Login nicht korrekt. Offline verfuegbar: Tobias/demo oder angelegte Benutzer mit Passwort.'); return false;} return completeLogin(u);}
+  function attach(){hideMsStuff(); var btn=$('loginBtn'); if(!btn){setTimeout(attach,100); return;} try{var clean=btn.cloneNode(true); btn.parentNode.replaceChild(clean,btn); btn=clean;}catch(e){} btn.textContent='Anmelden'; btn.onclick=doLogin; btn.addEventListener('click',doLogin,true); var u=$('loginUser'), p=$('loginPass'); [u,p].forEach(function(inp){if(inp&&!inp.__rc282Key){inp.__rc282Key=true; inp.addEventListener('keydown',function(ev){if(ev.key==='Enter')doLogin(ev)},true);}}); showLogin();}
+  var oldFetch=window.fetch; if(typeof oldFetch==='function'&&!oldFetch.__rc282Blocked){var nf=function(input,init){var url=String(input&&input.url||input||''); if(/\/api\/exporthub\/state|teamlive|sharepoint/i.test(url)){return Promise.reject(new Error('RC282: TeamLive/SharePoint Sync deaktiviert'));} return oldFetch.apply(this,arguments);}; nf.__rc282Blocked=true; window.fetch=nf;}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach); else attach(); setTimeout(attach,300); setTimeout(attach,1000); setTimeout(attach,2500);
+})();
+</script>
+
+</body></html>
