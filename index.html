@@ -40465,4 +40465,207 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </script>
 <!-- PRIVATE RC298 END: Benutzer & Rechte mit Vorlagen -->
 
+
+
+<!-- PRIVATE RC299 START: Academy Logistik + Pruefung grosse Fragenbank nach Lehrjahren -->
+<style id="rc299-academy-css">
+.rc299-hero{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#fff);border-radius:24px;padding:16px;margin:12px 0;box-shadow:0 10px 24px rgba(15,23,42,.06)}
+.rc299-tabs,.rc299-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.rc299-tabs button{border:1px solid #bfdbfe;background:#fff;color:#08245d;border-radius:999px;padding:9px 13px;font-weight:950;cursor:pointer}.rc299-tabs button.active{background:#2563eb;color:#fff;border-color:#2563eb}.rc299-year{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rc299-year button{border:1px solid #bfdbfe;background:#fff;border-radius:18px;text-align:left;padding:13px;cursor:pointer;font-weight:900;color:#0f172a}.rc299-year button.active{border-color:#2563eb;background:#dbeafe;box-shadow:0 10px 22px rgba(37,99,235,.12)}
+.rc299-layout{display:grid;grid-template-columns:340px 1fr;gap:14px}.rc299-area-list{display:grid;gap:8px;max-height:720px;overflow:auto}.rc299-area-list button{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:16px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.rc299-area-list button.active{border-color:#2563eb;background:#eff6ff}.rc299-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:950;margin:2px}.rc299-badge.orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}.rc299-badge.green{border-color:#bbf7d0;background:#f0fdf4;color:#166534}.rc299-badge.red{border-color:#fecaca;background:#fff1f2;color:#991b1b}.rc299-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#334155}
+.rc299-question{border:2px solid #2563eb;border-radius:24px;background:#fff;padding:20px;box-shadow:0 12px 30px rgba(37,99,235,.10);margin-top:12px}.rc299-question h2{margin:0 0 12px;color:#08245d}.rc299-option{display:block;width:100%;text-align:left;border:1px solid #cbd5e1;background:#fff;border-radius:16px;padding:13px;margin:8px 0;cursor:pointer;font-weight:850}.rc299-option:hover{border-color:#2563eb;background:#eff6ff}.rc299-option.correct{background:#dcfce7;border-color:#86efac;color:#14532d}.rc299-option.wrong{background:#fee2e2;border-color:#fecaca;color:#7f1d1d}.rc299-feedback{border-left:6px solid #2563eb;background:#eff6ff;border-radius:16px;padding:13px;margin:12px 0;line-height:1.55}.rc299-feedback.bad{border-left-color:#dc2626;background:#fff1f2}.rc299-feedback.good{border-left-color:#16a34a;background:#f0fdf4}.rc299-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-top:14px}.rc299-progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin:10px 0}.rc299-progress span{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#05b8ff)}.rc299-select-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.rc299-table{width:100%;border-collapse:collapse}.rc299-table th,.rc299-table td{border-bottom:1px solid var(--line,#dbe4ef);padding:9px;text-align:left;vertical-align:top}.rc299-table th{font-size:12px;text-transform:uppercase;color:#64748b}.rc299-wrong-detail{border:1px solid #fecaca;background:#fff7f7;border-radius:16px;padding:12px;margin:9px 0}.rc299-result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.rc299-result-grid .summaryBox{background:#f8fbff}.rc299-small{font-size:12px;color:#64748b;font-weight:800;line-height:1.4}@media(max-width:1000px){.rc299-layout,.rc299-select-row,.rc299-year,.rc299-result-grid{grid-template-columns:1fr}}
+</style>
+<script id="rc299-academy-pruefung-big-bank">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC299_ACADEMY__)return;
+  window.__EXPORTHUB_RC299_ACADEMY__=true;
+  function S(){try{return typeof state!=='undefined'&&state?state:{}}catch(e){return {}}}
+  function E(v){try{if(typeof esc==='function')return esc(v)}catch(e){} return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function R(){try{if(typeof render==='function')render()}catch(e){}}
+  function H(t,d){try{if(typeof head==='function')return head(t,d)}catch(e){} return '<div class="page-head"><div><h2>'+E(t)+'</h2><p>'+E(d||'')+'</p></div></div>'}
+  function userName(){try{return (currentUser&&(currentUser.name||currentUser.user))||'ExportHUB'}catch(e){return 'ExportHUB'}}
+
+  var AREAS=[
+    {id:'wareneingang',title:'Wareneingang',focus:'Annahme, Sichtpruefung, Mengenpruefung und Belege',object:'Lieferung',doc:'Lieferschein',risk:'falsche Menge oder beschaedigte Ware wird ins Lager uebernommen',kpi:'Fehlerquote Wareneingang',standard:'Menge, Zustand, Artikel und Beleg pruefen'},
+    {id:'lagerung',title:'Lagerung & Lagertechnik',focus:'Lagerplatz, FIFO/FEFO, Lagerbedingungen und Ordnung',object:'Lagerplatz',doc:'Lagerplatzetikett',risk:'Ware wird falsch gelagert oder nicht gefunden',kpi:'Suchzeit und Bestandsgenauigkeit',standard:'eindeutige Plaetze, saubere Buchung und sichere Lagerung'},
+    {id:'kommissionierung',title:'Kommissionierung',focus:'Pickauftrag, Artikel, Menge, Wege und Kontrolle',object:'Pickauftrag',doc:'Kommissionierliste',risk:'falscher Artikel oder falsche Menge geht an den Kunden',kpi:'Pickfehlerquote',standard:'Artikelnummer, Menge, Lagerplatz und Charge kontrollieren'},
+    {id:'verpackung',title:'Verpackung & Versand',focus:'Packmittel, Colli, Gewicht, Label und Versanddaten',object:'Packstueck',doc:'Versandlabel',risk:'Transportschaden, falsche Kosten oder falsche Zustellung',kpi:'Reklamationsquote Versand',standard:'passende Verpackung, korrekte Colli, Gewicht und Adresse'},
+    {id:'ladung',title:'Ladungssicherung & Transport',focus:'Formschluss, Kraftschluss, Schwerpunkt und Verladung',object:'Palette',doc:'Verladecheckliste',risk:'Ladung verrutscht, kippt oder wird beschaedigt',kpi:'Transportschaeden',standard:'Schwerpunkt, Sicherung, Lastverteilung und Fahrzeugzustand pruefen'},
+    {id:'sicherheit',title:'Arbeitssicherheit & Gefahrstoffe',focus:'PSA, Verkehrswege, Gefaehrdungen und Meldepflichten',object:'Arbeitsbereich',doc:'Betriebsanweisung',risk:'Unfall, Verletzung oder Gefahrstofffreisetzung',kpi:'Unfall- und Beinaheunfallquote',standard:'Gefahr erkennen, sichern, melden und Vorgaben einhalten'},
+    {id:'bestand',title:'Bestandsfuehrung & Inventur',focus:'Buchbestand, Istbestand, Differenzen und Korrekturen',object:'Bestand',doc:'Inventurliste',risk:'Systembestand und realer Bestand passen nicht zusammen',kpi:'Bestandsgenauigkeit',standard:'jede Bewegung zeitnah und nachvollziehbar buchen'},
+    {id:'qualitaet',title:'Qualitaet & Reklamation',focus:'Abweichungen, Ursachen, Sperrung und Dokumentation',object:'Abweichung',doc:'Reklamationsprotokoll',risk:'Fehler wird weitergegeben und verursacht Nacharbeit',kpi:'Reklamationsquote',standard:'Fehler stoppen, dokumentieren, Ursache klaeren und Massnahme pruefen'},
+    {id:'flurfoerder',title:'Flurfoerderzeuge & Foerdertechnik',focus:'Stapler, Hubwagen, Tragfaehigkeit und Verkehrsregeln',object:'Flurfoerderzeug',doc:'Stapler-/Geraetecheck',risk:'Kollision, Umkippen oder Lastverlust',kpi:'Sicherheitsmeldungen Flurfoerderzeuge',standard:'Geraet pruefen, Last sichern, Verkehrswege beachten'},
+    {id:'kennzahlen',title:'Kennzahlen, Planung & Prozessverbesserung',focus:'Produktivitaet, Durchlaufzeit, Rueckstand und Ursachenanalyse',object:'Prozess',doc:'Kennzahlenreport',risk:'Probleme werden nicht erkannt oder falsche Massnahmen getroffen',kpi:'Produktivitaet und Durchlaufzeit',standard:'Kennzahl verstehen, Ursache suchen, Massnahme messen'}
+  ];
+  var YEARINFO={
+    1:{title:'1. Lehrjahr – Grundlagen',short:'Grundlagen',pass:60,expect:'Im 1. Lehrjahr muss der Mitarbeiter Grundlagen sicher erkennen: richtige Begriffe, einfache Pruefpunkte, Meldewege und sichere Standardhandlungen.'},
+    2:{title:'2. Lehrjahr – Prozesse',short:'Prozesse',pass:70,expect:'Im 2. Lehrjahr wird Prozessverstaendnis erwartet: Zusammenhaenge, Ursachen, Folgen, Buchungen, Kennzahlen und sichere Ablaeufe.'},
+    3:{title:'3. Lehrjahr – Pruefung / Praxis',short:'Pruefung / Praxis',pass:80,expect:'Im 3. Lehrjahr wird Grundwissen vorausgesetzt. Antworten muessen Handlung, Begruendung, Risiko, Dokumentation und sinnvolle Massnahme enthalten.'}
+  };
+  var ACTIONS=['erste Kontrolle','Abweichungsbearbeitung','Dokumentationspflicht','Sicherheitsbewertung','Qualitaetsentscheidung','Prozessverbesserung'];
+  var SITUATIONS=['Normalfall','Mengenabweichung','beschaedigte Ware','Zeitdruck','fehlende Information'];
+
+  function rng(seed){var x=seed||123456; return function(){x=(x*1664525+1013904223)>>>0; return x/4294967296}}
+  function shuffle(arr,seed){var a=arr.slice(), r=rng(seed); for(var i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t;} return a}
+  function questionId(y,areaId,n){return 'Y'+y+'-'+areaId+'-'+String(n+1).padStart(2,'0')}
+  function levelIntro(y,area){
+    if(y===1)return 'Grundlage im Bereich '+area.title;
+    if(y===2)return 'Prozessfrage im Bereich '+area.title;
+    return 'Pruefungsnahe Praxisfrage im Bereich '+area.title;
+  }
+  function makeOption(text,why,correct){return {text:text,why:why,correct:!!correct}}
+  function mkQuestion(y,area,n){
+    var situ=SITUATIONS[n%SITUATIONS.length], action=ACTIONS[Math.floor(n/5)%ACTIONS.length], variant=Math.floor(n/30), id=questionId(y,area.id,n);
+    var base=YEARINFO[y].expect;
+    var q='', correct='', wrong1='', wrong2='', wrong3='', detail='', rightWhy='', areaTip='';
+    var nr=n%12;
+    if(nr===0){
+      q=levelIntro(y,area)+': Was ist bei '+situ+' die fachlich richtige Vorgehensweise?';
+      correct=area.standard+' und das Ergebnis nachvollziehbar dokumentieren.';
+      wrong1='Den Vorgang ohne Pruefung weiterlaufen lassen, damit keine Zeit verloren geht.';
+      wrong2='Nur muendlich informieren und keine Buchung oder Dokumentation vornehmen.';
+      wrong3='Die Ware oder den Vorgang direkt abschliessen, obwohl die Ursache offen ist.';
+      rightWhy='Richtig ist eine kontrollierte Standardhandlung: '+area.standard+'. Nur so bleiben Bestand, Qualitaet und Sicherheit nachvollziehbar.';
+      detail='Diese Frage prueft, ob der Mitarbeiter aus einer Situation eine sichere Standardhandlung ableitet.';
+    }else if(nr===1){
+      q='Warum ist '+area.doc+' im Bereich '+area.title+' wichtig?';
+      correct='Weil damit Vorgang, Menge, Zustand und Verantwortung nachvollzogen werden koennen.';
+      wrong1='Weil Dokumente nur fuer die Ablage gebraucht werden und keinen Einfluss auf den Prozess haben.';
+      wrong2='Weil damit Pruefungen ersetzt werden und keine Sichtkontrolle mehr notwendig ist.';
+      wrong3='Weil Dokumente nur fuer die Buchhaltung gedacht sind und im Lager keine Rolle spielen.';
+      rightWhy='Dokumente sind Nachweise. Sie sichern Rueckverfolgbarkeit, klaeren Verantwortung und helfen bei Abweichungen.';
+      detail='Diese Frage prueft Dokumentenverstaendnis und Nachvollziehbarkeit.';
+    }else if(nr===2){
+      q='Welche Folge kann entstehen, wenn im Bereich '+area.title+' nicht sauber gearbeitet wird?';
+      correct='Es kann passieren, dass '+area.risk+'.';
+      wrong1='Es entstehen keine Folgen, solange die Ware spaeter irgendwie gefunden wird.';
+      wrong2='Der Fehler verschwindet automatisch, wenn der naechste Arbeitsschritt beginnt.';
+      wrong3='Nur die Optik des Lagers ist betroffen, nicht Qualitaet, Kosten oder Termine.';
+      rightWhy='Der Kernfehler in diesem Bereich ist: '+area.risk+'. Deshalb muss der Prozesspunkt sauber gesichert werden.';
+      detail='Diese Frage prueft Risikobewusstsein.';
+    }else if(nr===3){
+      q='Welche Kennzahl passt am besten zur Bewertung von '+area.title+'?';
+      correct=area.kpi+'.';
+      wrong1='Die private Pausenlaenge einzelner Mitarbeiter.';
+      wrong2='Die Farbe der Verpackung ohne Bezug zum Prozess.';
+      wrong3='Die Anzahl der E-Mails ohne Bezug zu Fehler, Zeit oder Menge.';
+      rightWhy=area.kpi+' zeigt, ob der Prozess stabil laeuft oder ob Ursachen gesucht werden muessen.';
+      detail='Diese Frage prueft, ob Kennzahlen mit Prozessen verknuepft werden koennen.';
+    }else if(nr===4){
+      q='Bei '+area.object+' faellt eine Abweichung auf. Was ist die beste Reaktion?';
+      correct='Vorgang sichern, Abweichung dokumentieren, zustaendige Stelle informieren und Entscheidung abwarten.';
+      wrong1='Abweichung ignorieren, weil eine schnelle Bearbeitung wichtiger als Richtigkeit ist.';
+      wrong2='Eigenmaechtig korrigieren, ohne Ursache und Freigabe zu dokumentieren.';
+      wrong3='Den Vorgang an die naechste Station geben, damit jemand anders das Problem sieht.';
+      rightWhy='Bei Abweichungen zaehlen Sicherung, Dokumentation und klares Eskalieren. So wird verhindert, dass Fehler weitergegeben werden.';
+      detail='Diese Frage prueft Abweichungsmanagement.';
+    }else if(nr===5){
+      q='Was beschreibt eine gute Dokumentation im Bereich '+area.title+'?';
+      correct='Datum, Menge/Zustand, Bezug zum Auftrag oder Artikel, Ursache soweit bekannt und getroffene Massnahme.';
+      wrong1='Nur ein kurzer Hinweis ohne Datum, Auftrag, Menge oder Verantwortlichkeit.';
+      wrong2='Eine spaetere Erinnerung ohne Beleg reicht immer aus.';
+      wrong3='Dokumentation ist nur noetig, wenn ein Kunde bereits reklamiert hat.';
+      rightWhy='Gute Dokumentation muss spaeter erklaeren koennen, was passiert ist, wann es passiert ist und wie reagiert wurde.';
+      detail='Diese Frage prueft Dokumentationsqualitaet.';
+    }else if(nr===6){
+      var total=40+(n%5)*20, fail=(n%4)+1, rate=Math.round(fail/total*1000)/10;
+      q='In '+area.title+' wurden '+total+' Vorgaenge bearbeitet, davon '+fail+' fehlerhaft. Welche Fehlerquote ist richtig?';
+      correct=String(rate).replace('.',',')+' %';
+      wrong1=String(fail*10)+' %'; wrong2=String(total-fail)+' %'; wrong3='0 %, weil Fehler spaeter korrigiert werden koennen';
+      rightWhy='Fehlerquote = fehlerhafte Vorgaenge / Gesamtvorgaenge × 100. Also '+fail+' / '+total+' × 100 = '+String(rate).replace('.',',')+' %.';
+      detail='Diese Frage prueft einfache Kennzahlenrechnung.';
+    }else if(nr===7){
+      q='Welche Aussage passt zu '+action+' im '+(y===3?'3. Lehrjahr':'Ausbildungsverlauf')+'?';
+      correct=(y===1?'Der Mitarbeiter erkennt den Pruefpunkt und meldet Unsicherheiten.':y===2?'Der Mitarbeiter versteht Ursache und Folge im Prozess und kann sauber dokumentieren.':'Der Mitarbeiter bewertet Risiko, waehlt eine begruendete Massnahme und erklaert die Entscheidung pruefungsreif.');
+      wrong1='Es reicht aus, wenn nur nach Gefuehl gearbeitet wird.';
+      wrong2='Dokumentation und Begruendung sind bei Routine nicht notwendig.';
+      wrong3='Bei Fehlern sollte zuerst weitergearbeitet werden, um Rueckstand zu vermeiden.';
+      rightWhy=base;
+      detail='Diese Frage prueft die Erwartung je Lehrjahr.';
+    }else if(nr===8){
+      q='Was ist bei Zeitdruck im Bereich '+area.title+' fachlich richtig?';
+      correct='Sicherheits-, Qualitaets- und Pflichtpruefungen nicht ueberspringen; Prioritaet klaeren und sauber weiterarbeiten.';
+      wrong1='Pruefungen auslassen, weil Geschwindigkeit immer wichtiger ist.';
+      wrong2='Fehler bewusst offen lassen und erst nach Versand klaeren.';
+      wrong3='Dokumente spaeter aus dem Kopf nachtragen, ohne Beleg.';
+      rightWhy='Zeitdruck darf keine Pflichtpruefung ersetzen. Sonst entstehen Reklamationen, Sicherheitsrisiken und nicht nachvollziehbare Buchungen.';
+      detail='Diese Frage prueft Priorisierung.';
+    }else if(nr===9){
+      q='Welche Antwort waere in einer muendlichen/praktischen Pruefung zu '+area.title+' am besten?';
+      correct='Ich beschreibe zuerst die Handlung, dann den Grund, danach das Risiko bei falschem Vorgehen und zum Schluss die Dokumentation.';
+      wrong1='Ich nenne nur ein einzelnes Stichwort ohne Begruendung.';
+      wrong2='Ich sage, dass ich es immer so mache, ohne den Prozess zu erklaeren.';
+      wrong3='Ich weiche auf ein anderes Thema aus, wenn ich unsicher bin.';
+      rightWhy='Eine gute Pruefungsantwort ist strukturiert: Handlung, Begruendung, Risiko, Dokumentation. Das zeigt Verstaendnis statt Auswendiglernen.';
+      detail='Diese Frage prueft Pruefungsreife.';
+    }else if(nr===10){
+      q='Welche Massnahme verbessert '+area.title+' nachhaltig?';
+      correct='Ursache analysieren, klare Standardregel festlegen, Mitarbeiter informieren und Wirkung ueber '+area.kpi+' pruefen.';
+      wrong1='Nur einmal erinnern, ohne Ursache oder Kontrolle.';
+      wrong2='Mehr Tempo verlangen, ohne Fehlerursache zu pruefen.';
+      wrong3='Den Fehler nur dem letzten Mitarbeiter zuordnen und den Prozess nicht betrachten.';
+      rightWhy='Nachhaltige Verbesserung braucht Ursache, Standard, Schulung und Wirksamkeitskontrolle. Nur so sinkt die Fehlerwahrscheinlichkeit dauerhaft.';
+      detail='Diese Frage prueft Prozessverbesserung.';
+    }else{
+      q='Welche Aussage ist fuer '+area.title+' im Lehrjahr '+y+' richtig?';
+      correct=(y===1?'Grundbegriffe, einfache Pruefschritte und Meldewege muessen sicher sitzen.':y===2?'Der Zusammenhang zwischen Buchung, Materialfluss, Qualitaet und Termin muss verstanden werden.':'Es wird erwartet, dass bekannte Grundlagen angewendet, begruendet und in komplexeren Faellen bewertet werden.');
+      wrong1='Das Lehrjahr aendert nur die Bezeichnung, nicht den Anspruch der Fragen.';
+      wrong2='Im dritten Lehrjahr werden nur leichte Grundbegriffe abgefragt.';
+      wrong3='Im ersten Lehrjahr muessen bereits alle Sonderfaelle vollstaendig geloest werden.';
+      rightWhy=YEARINFO[y].expect;
+      detail='Diese Frage prueft die Schwierigkeit nach Lehrjahr.';
+    }
+    areaTip='Merksatz fuer '+area.title+': '+area.standard+'. Risiko bei Fehlern: '+area.risk+'.';
+    if(y===2){q=q.replace('fachlich richtige','prozesssichere'); rightWhy+=' Im 2. Lehrjahr muss auch verstanden werden, wie der Fehler den naechsten Prozessschritt beeinflusst.';}
+    if(y===3){q=q.replace('fachlich richtige','pruefungsreife'); rightWhy+=' Im 3. Lehrjahr wird erwartet, dass die Antwort begruendet und mit Risiko/Dokumentation verbunden wird.';}
+    var opts=[makeOption(correct,rightWhy,true),makeOption(wrong1,'Diese Antwort ist falsch, weil sie Kontrolle, Dokumentation oder Verantwortung auslaesst und dadurch Fehler weitergegeben werden koennen.',false),makeOption(wrong2,'Diese Antwort ist falsch, weil muendliche oder nachtraegliche Klaerung ohne belastbare Grundlage nicht ausreicht.',false),makeOption(wrong3,'Diese Antwort ist falsch, weil sie das eigentliche Risiko im Prozess nicht beseitigt.',false)];
+    var shuffled=shuffle(opts, (y*100000)+(AREAS.findIndex(function(a){return a.id===area.id})*1000)+n+(variant*17));
+    var correctIndex=shuffled.findIndex(function(o){return o.correct});
+    return {id:id,year:y,areaId:area.id,area:area.title,no:n+1,question:q,options:shuffled,correct:correctIndex,right:correct,whyRight:rightWhy,detail:detail,areaTip:areaTip};
+  }
+  var CACHE={};
+  function bank(year){year=Number(year)||1; if(CACHE[year])return CACHE[year]; var out=[]; AREAS.forEach(function(a){for(var i=0;i<60;i++)out.push(mkQuestion(year,a,i));}); CACHE[year]=out; return out;}
+  function areaBank(year,areaId){return bank(year).filter(function(q){return q.areaId===areaId});}
+  function pickBalanced(year,count,seed){var out=[], perArea=Math.floor(count/AREAS.length), extra=count%AREAS.length; AREAS.forEach(function(a,idx){var take=perArea+(idx<extra?1:0); var arr=shuffle(areaBank(year,a.id), seed+idx*101); out=out.concat(arr.slice(0,take));}); return shuffle(out,seed+777).slice(0,count);}
+  function questionsFor(kind){var s=S(), y=Number(s.rc299Year||1); if(kind==='area')return areaBank(y, s.rc299Area||AREAS[0].id); if(kind==='test')return pickBalanced(y,15, 299000+y*1000+Number(s.rc299TestNo||1)); return pickBalanced(y,50, 399000+y*1000+Number(s.rc299ExamNo||1));}
+  function keyFor(kind){var s=S(), y=Number(s.rc299Year||1); if(kind==='area')return 'area-'+y+'-'+(s.rc299Area||AREAS[0].id); if(kind==='test')return 'test-'+y+'-'+(s.rc299TestNo||1); return 'exam-'+y+'-'+(s.rc299ExamNo||1);}
+  function sess(kind){var s=S(); s.rc299Sessions=s.rc299Sessions||{}; var k=keyFor(kind); s.rc299Sessions[k]=s.rc299Sessions[k]||{answers:{},step:0,startedAt:new Date().toISOString()}; return s.rc299Sessions[k];}
+  function currentResult(kind){var qs=questionsFor(kind), se=sess(kind), total=qs.length, answered=0, score=0, wrong=[]; qs.forEach(function(q,i){var a=se.answers&&se.answers[i]; if(a!==undefined){answered++; if(Number(a)===q.correct)score++; else wrong.push({q:q,idx:i,selected:Number(a)});} }); return {total:total,answered:answered,score:score,wrong:wrong,complete:answered===total,pct:total?Math.round(score/total*100):0};}
+  function yearsHtml(){var y=Number(S().rc299Year||1); return '<div class="rc299-year">'+[1,2,3].map(function(n){return '<button class="'+(y===n?'active':'')+'" onclick="return rc299SetYear('+n+')"><b>'+E(YEARINFO[n].title)+'</b><br><span class="rc299-small">'+E(YEARINFO[n].expect)+'</span><br><span class="rc299-badge '+(n===3?'orange':'blue')+'">Bestehen ab '+YEARINFO[n].pass+'%</span></button>';}).join('')+'</div>';}
+  function metricsHtml(){var y=Number(S().rc299Year||1); return '<div class="metrics"><article class="metric"><span>Bereiche je Stufe</span><strong>10</strong></article><article class="metric"><span>Fragen je Bereich</span><strong>60</strong></article><article class="metric"><span>Fragen je Stufe</span><strong>'+bank(y).length+'</strong></article><article class="metric"><span>Pruefungen / Tests</span><strong>6 / 20</strong></article></div>';}
+  function areaList(){var s=S(), y=Number(s.rc299Year||1), sel=s.rc299Area||AREAS[0].id; return '<div class="rc299-area-list">'+AREAS.map(function(a,i){var stats=areaStats(y,a.id); return '<button class="'+(sel===a.id?'active':'')+'" onclick="return rc299SelectArea(\''+E(a.id)+'\')"><b>'+(i+1)+'. '+E(a.title)+'</b><br><span class="rc299-small">'+E(a.focus)+'</span><br><span class="rc299-badge">60 Fragen</span><span class="rc299-badge green">'+stats.done+' beantwortet</span><span class="rc299-badge '+(stats.wrong?'red':'gray')+'">'+stats.wrong+' falsch</span></button>';}).join('')+'</div>';}
+  function areaStats(y,areaId){var k='area-'+y+'-'+areaId, se=(S().rc299Sessions||{})[k]||{answers:{}}; var qs=areaBank(y,areaId), done=0, wrong=0; qs.forEach(function(q,i){var a=se.answers&&se.answers[i]; if(a!==undefined){done++; if(Number(a)!==q.correct)wrong++;}}); return {done:done,wrong:wrong};}
+  function selectorHtml(kind){var s=S(); if(kind==='test'){return '<div class="rc299-select-row"><label class="field">Schneller Test<select onchange="rc299SetTest(this.value)">'+Array.from({length:20},function(_,i){var n=i+1;return '<option value="'+n+'" '+(Number(s.rc299TestNo||1)===n?'selected':'')+'>Test '+n+' von 20 · 15 Fragen</option>';}).join('')+'</select></label><div class="notice">Jeder Test hat 15 Fragen aus allen 10 Bereichen der gewaehlten Stufe.</div><button class="ghost" onclick="return rc299Reset(\'test\')">Test neu starten</button></div>';}
+    if(kind==='exam'){return '<div class="rc299-select-row"><label class="field">Pruefung<select onchange="rc299SetExam(this.value)">'+Array.from({length:6},function(_,i){var n=i+1;return '<option value="'+n+'" '+(Number(s.rc299ExamNo||1)===n?'selected':'')+'>Pruefung '+n+' von 6 · 50 Fragen</option>';}).join('')+'</select></label><div class="notice">Jede Pruefung hat 50 Fragen aus allen 10 Bereichen, passend zum Lehrjahr.</div><button class="ghost" onclick="return rc299Reset(\'exam\')">Pruefung neu starten</button></div>';}
+    return '<div class="notice">Bereichstraining: 60 Fragen im ausgewaehlten Bereich und Lehrjahr.</div>'}
+  function questionCard(kind){var qs=questionsFor(kind), se=sess(kind), res=currentResult(kind); var i=Math.max(0,Math.min(Number(se.step||0),qs.length-1)); se.step=i; var q=qs[i], chosen=se.answers?se.answers[i]:undefined; var pct=Math.round((res.answered/res.total)*100); var label=kind==='exam'?'Pruefung '+(S().rc299ExamNo||1):kind==='test'?'Schneller Test '+(S().rc299TestNo||1):'Bereichstraining';
+    var opts=q.options.map(function(o,idx){var cls=''; if(chosen!==undefined){if(idx===q.correct)cls='correct'; if(idx===Number(chosen)&&idx!==q.correct)cls='wrong';} return '<button class="rc299-option '+cls+'" onclick="return rc299Answer(\''+kind+'\','+i+','+idx+')">'+E(o.text)+'</button>';}).join('');
+    var feedback=''; if(chosen!==undefined){var ok=Number(chosen)===q.correct, opt=q.options[Number(chosen)]||{}; feedback='<div class="rc299-feedback '+(ok?'good':'bad')+'"><b>'+(ok?'Richtig.':'Falsch.')+'</b><br>'+(ok?'Warum richtig: '+E(q.whyRight):'Warum deine Antwort falsch ist: '+E(opt.why||'Diese Antwort loest den Prozess nicht sicher.')+'<br><br><b>Richtig waere:</b> '+E(q.options[q.correct].text)+'<br><b>Warum richtig:</b> '+E(q.whyRight))+'<br><br><b>Detail-Erklaerung:</b> '+E(q.detail)+'<br><b>Praxisbezug:</b> '+E(q.areaTip)+'</div>';}
+    var finish=res.complete?'<button class="btn" onclick="return rc299Archive(\''+kind+'\')">Abschliessen & in Auswertung speichern</button>':'';
+    return selectorHtml(kind)+'<div class="rc299-progress"><span style="width:'+pct+'%"></span></div><div class="rc299-result-grid"><div class="summaryBox"><span>Modus</span><strong>'+E(label)+'</strong></div><div class="summaryBox"><span>Frage</span><strong>'+(i+1)+'/'+res.total+'</strong></div><div class="summaryBox"><span>Richtig</span><strong>'+res.score+'</strong></div><div class="summaryBox"><span>Quote</span><strong>'+res.pct+'%</strong></div></div><div class="rc299-question"><span class="rc299-badge orange">'+E(YEARINFO[Number(S().rc299Year||1)].title)+'</span><span class="rc299-badge">'+E(q.area)+'</span><span class="rc299-badge gray">'+E(q.id)+'</span><h2>'+E(q.question)+'</h2>'+opts+(chosen===undefined?'<div class="notice">Waehle eine Antwort. Danach erscheint eine detaillierte Erklaerung.</div>':feedback)+'<div class="rc299-nav"><button class="ghost" onclick="return rc299Step(\''+kind+'\','+(i-1)+')" '+(i<=0?'disabled':'')+'>Zurueck</button><div>'+finish+'</div><button class="btn" onclick="return rc299Step(\''+kind+'\','+(i+1)+')" '+(i>=qs.length-1?'disabled':'')+'>Weiter</button></div></div>'+wrongReview(kind);
+  }
+  function wrongReview(kind){var res=currentResult(kind); if(!res.complete||!res.wrong.length)return ''; return '<div class="card"><h3>Falsche Antworten mit Erklaerung</h3>'+res.wrong.map(function(w){var q=w.q, opt=q.options[w.selected]||{}; return '<div class="rc299-wrong-detail"><b>'+E(q.area)+' · '+E(q.id)+'</b><br>'+E(q.question)+'<br><br><b>Deine Antwort:</b> '+E(opt.text||'')+'<br><b>Warum falsch:</b> '+E(opt.why||'Die Antwort ist fachlich nicht ausreichend.')+'<br><b>Richtig:</b> '+E(q.options[q.correct].text)+'<br><b>Detail:</b> '+E(q.whyRight)+' '+E(q.areaTip)+'</div>';}).join('')+'</div>';}
+  function archiveList(){var a=S().rc299Archive||[]; if(!a.length)return '<div class="notice">Noch keine Tests oder Pruefungen gespeichert.</div>'; return '<table class="rc299-table"><tr><th>Datum</th><th>Benutzer</th><th>Typ</th><th>Lehrjahr</th><th>Ergebnis</th><th>Schwierigkeiten</th></tr>'+a.slice().reverse().map(function(x){var weak=(x.areas||[]).filter(function(r){return r.wrong>0}).sort(function(a,b){return b.wrong-a.wrong}).slice(0,3).map(function(r){return r.area+': '+r.wrong+' falsch'}).join('<br>')||'Keine'; return '<tr><td>'+E(x.date)+'</td><td>'+E(x.user)+'</td><td>'+E(x.label)+'</td><td>'+E(YEARINFO[x.year].title)+'</td><td><b>'+x.score+'/'+x.total+'</b> · '+x.pct+'% · '+(x.passed?'bestanden':'nicht bestanden')+'</td><td>'+weak+'</td></tr>';}).join('')+'</table>';}
+  function analyticsHtml(){var a=S().rc299Archive||[], rows=[]; var map={}; a.forEach(function(x){(x.details||[]).forEach(function(d){var k=x.user+'|'+x.year+'|'+d.area; map[k]=map[k]||{user:x.user,year:x.year,area:d.area,total:0,wrong:0,questions:{}}; map[k].total++; if(!d.correct){map[k].wrong++; map[k].questions[d.question]=(map[k].questions[d.question]||0)+1;}})}); Object.keys(map).forEach(function(k){rows.push(map[k])}); rows.sort(function(a,b){return (b.wrong/b.total)-(a.wrong/a.total)}); if(!rows.length)return '<div class="notice">Noch keine Auswertung vorhanden. Erst einen Test oder eine Pruefung abschliessen und speichern.</div>'; return '<div class="card"><h3>Schwierigkeiten nach Mitarbeiter, Lehrjahr und Bereich</h3><table class="rc299-table"><tr><th>Mitarbeiter</th><th>Lehrjahr</th><th>Bereich</th><th>Falsch / Gesamt</th><th>Fehlerquote</th><th>Empfehlung</th></tr>'+rows.map(function(r){var rate=Math.round(r.wrong/r.total*100); var status=rate>=40?'Nachschulung notwendig':rate>=20?'gezielt ueben':'stabil'; return '<tr><td>'+E(r.user)+'</td><td>'+E(YEARINFO[r.year].title)+'</td><td>'+E(r.area)+'</td><td>'+r.wrong+' / '+r.total+'</td><td>'+rate+'%</td><td><b>'+status+'</b><br>'+E(recommend(r.area,r.year,rate))+'</td></tr>';}).join('')+'</table></div><div class="card"><h3>Archiv</h3>'+archiveList()+'</div>';}
+  function recommend(area,year,rate){if(rate>=40)return 'Bereich '+area+' erneut im Lernmodul bearbeiten, danach zwei 15-Fragen-Tests im Lehrjahr '+year+' wiederholen. Falsche Antworten muessen mit Handlung, Grund und Risiko erklaert werden.'; if(rate>=20)return 'Gezielt 60 Bereichsfragen zu '+area+' ueben und besonders die Erklaerungen zu falschen Antworten lesen.'; return 'Keine groesseren Schwierigkeiten sichtbar. Wissen regelmaessig mit Schnelltests festigen.';}
+
+  window.rc299SetYear=function(y){var s=S(); s.rc299Year=Number(y)||1; s.rc299Sessions=s.rc299Sessions||{}; saveQ(); R(); return false};
+  window.rc299SetAcademyTab=function(t){S().rc299AcademyTab=t||'bereiche'; saveQ(); R(); return false};
+  window.rc299SetQuizTab=function(t){S().rc299QuizTab=t||'exam'; saveQ(); R(); return false};
+  window.rc299SelectArea=function(id){S().rc299Area=id||AREAS[0].id; saveQ(); R(); return false};
+  window.rc299SetTest=function(n){S().rc299TestNo=Number(n)||1; saveQ(); R(); return false};
+  window.rc299SetExam=function(n){S().rc299ExamNo=Number(n)||1; saveQ(); R(); return false};
+  window.rc299Step=function(kind,i){var se=sess(kind); se.step=Math.max(0,Math.min(Number(i)||0,questionsFor(kind).length-1)); saveQ(); R(); return false};
+  window.rc299Answer=function(kind,i,idx){var se=sess(kind); se.answers=se.answers||{}; se.answers[i]=Number(idx); se.step=Number(i)||0; saveQ(); R(); return false};
+  window.rc299Reset=function(kind){if(!confirm('Diesen Durchlauf wirklich neu starten?'))return false; var s=S(); s.rc299Sessions=s.rc299Sessions||{}; delete s.rc299Sessions[keyFor(kind)]; saveQ(); R(); return false};
+  window.rc299Archive=function(kind){var res=currentResult(kind); if(!res.complete){alert('Bitte zuerst alle Fragen beantworten.'); return false} var s=S(); s.rc299Archive=s.rc299Archive||[]; var y=Number(s.rc299Year||1), label=kind==='exam'?'Pruefung '+(s.rc299ExamNo||1):kind==='test'?'Schneller Test '+(s.rc299TestNo||1):'Bereichstraining '+((AREAS.find(function(a){return a.id===(s.rc299Area||AREAS[0].id)})||{}).title||''); var qs=questionsFor(kind), se=sess(kind); var byArea={}; var details=qs.map(function(q,i){var ok=Number(se.answers[i])===q.correct; byArea[q.area]=byArea[q.area]||{area:q.area,total:0,wrong:0}; byArea[q.area].total++; if(!ok)byArea[q.area].wrong++; return {id:q.id,area:q.area,question:q.question,selected:q.options[Number(se.answers[i])]&&q.options[Number(se.answers[i])].text,correctAnswer:q.options[q.correct].text,correct:ok,explanation:q.whyRight+' '+q.areaTip};}); var entry={id:'RC299-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),date:new Date().toLocaleString('de-DE'),user:userName(),year:y,label:label,score:res.score,total:res.total,pct:res.pct,passed:res.pct>=YEARINFO[y].pass,areas:Object.keys(byArea).map(function(k){return byArea[k]}),details:details}; s.rc299Archive.push(entry); saveQ(); alert('Gespeichert: '+label+' · '+res.score+'/'+res.total+' · '+res.pct+'%'); R(); return false};
+
+  window.academy=function(){var s=S(); s.rc299Year=s.rc299Year||1; s.rc299Area=s.rc299Area||AREAS[0].id; s.rc299AcademyTab=s.rc299AcademyTab||'bereiche'; var tab=s.rc299AcademyTab; return H('🎓 Academy Logistik','Fachkraft fuer Lagerlogistik: 10 Ausbildungsbereiche, je Lehrjahr 60 Fragen pro Bereich, 20 Schnelltests und detaillierte Auswertung.')+'<div class="rc299-hero"><b>RC299:</b> Schwierigkeit wird nach Lehrjahr gesteuert. Im 3. Lehrjahr werden Grundlagen vorausgesetzt und die Fragen sind pruefungs-/praxisnah.</div>'+yearsHtml()+metricsHtml()+'<div class="rc299-tabs"><button class="'+(tab==='bereiche'?'active':'')+'" onclick="return rc299SetAcademyTab(\'bereiche\')">10 Bereiche / 60 Fragen</button><button class="'+(tab==='test'?'active':'')+'" onclick="return rc299SetAcademyTab(\'test\')">Schneller Test 15 Fragen</button><button class="'+(tab==='auswertung'?'active':'')+'" onclick="return rc299SetAcademyTab(\'auswertung\')">Auswertung</button><button onclick="setView(\'quiz\')">Pruefung</button></div>'+(tab==='test'?questionCard('test'):tab==='auswertung'?analyticsHtml():'<div class="rc299-layout"><div class="card"><h3>Ausbildungsbereiche</h3>'+areaList()+'</div><div class="card"><h3>Bereichstraining</h3>'+questionCard('area')+'</div></div>')};
+  window.quiz=function(){var s=S(); s.rc299Year=s.rc299Year||1; s.rc299QuizTab=s.rc299QuizTab||'exam'; var tab=s.rc299QuizTab; return H('Pruefung','Je Lehrjahr 6 Pruefungen mit jeweils 50 Fragen aus allen 10 Bereichen. Falsche Antworten werden detailliert erklaert und in der Auswertung ausgewertet.')+yearsHtml()+metricsHtml()+'<div class="rc299-tabs"><button class="'+(tab==='exam'?'active':'')+'" onclick="return rc299SetQuizTab(\'exam\')">Pruefung 50 Fragen</button><button class="'+(tab==='auswertung'?'active':'')+'" onclick="return rc299SetQuizTab(\'auswertung\')">Auswertung</button><button class="'+(tab==='archiv'?'active':'')+'" onclick="return rc299SetQuizTab(\'archiv\')">Archiv</button><button onclick="setView(\'academy\')">Zur Academy</button></div>'+(tab==='auswertung'?analyticsHtml():tab==='archiv'?'<div class="card"><h3>Pruefungs- und Testarchiv</h3>'+archiveList()+'</div>':questionCard('exam'))};
+  try{academy=window.academy; quiz=window.quiz; practice=window.quiz}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC299 END: Academy Logistik + Pruefung grosse Fragenbank nach Lehrjahren -->
+
 </body></html>
