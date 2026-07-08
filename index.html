@@ -40755,4 +40755,95 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </script>
 <!-- PRIVATE RC300 END: Benutzer & Rechte Vorlagen Hartfix -->
 
+
+<!-- PRIVATE RC301 START: Account Anna Azubi -->
+<script>
+(function(){
+  function low301(v){return String(v||'').trim().toLowerCase();}
+  function clone301(o){try{return JSON.parse(JSON.stringify(o||{}));}catch(_){return {};}}
+  function modIds301(){
+    var ids=['start','dashboard','sop','academy','quiz','ideas','update'];
+    try{
+      if(Array.isArray(RIGHTS_MODULES)){
+        RIGHTS_MODULES.forEach(function(m){
+          var id=Array.isArray(m)?m[0]:(m&&m.id);
+          if(id && (id==='start'||id==='dashboard'||id==='sop'||id==='academy'||id==='quiz'||id==='ideas'||id==='update')){
+            if(ids.indexOf(id)<0) ids.push(id);
+          }
+        });
+      }
+    }catch(_){ }
+    return ids;
+  }
+  function annaRights301(){
+    var rights={};
+    try{
+      if(Array.isArray(RIGHTS_MODULES)){
+        RIGHTS_MODULES.forEach(function(m){
+          var id=Array.isArray(m)?m[0]:(m&&m.id);
+          if(id) rights[id]={visible:false,read:false,edit:false};
+        });
+      }
+    }catch(_){ }
+    ['start','dashboard'].forEach(function(id){rights[id]={visible:true,read:true,edit:false};});
+    ['sop','academy','quiz','ideas','update'].forEach(function(id){rights[id]={visible:true,read:true,edit:true};});
+    return rights;
+  }
+  function ensureAnna301(){
+    try{
+      if(!Array.isArray(window.users)) window.users=[];
+    }catch(_){ window.users=[]; }
+    try{ if(typeof users==='undefined' || !Array.isArray(users)) users=window.users; }catch(_){ }
+    var arr=[];
+    try{ arr=Array.isArray(users)?users:window.users; }catch(_){ arr=window.users; }
+    var idx=arr.findIndex(function(u){return low301(u&&u.user)==='anna';});
+    var anna={
+      user:'Anna',
+      name:'Anna',
+      password:'FLK',
+      role:'Azubi',
+      permissions:[],
+      mustChange:false,
+      rights:annaRights301(),
+      rc301Fixed:true
+    };
+    if(idx>=0){
+      arr[idx].user='Anna';
+      arr[idx].name='Anna';
+      arr[idx].password='FLK';
+      arr[idx].role='Azubi';
+      arr[idx].permissions=[];
+      arr[idx].mustChange=false;
+      arr[idx].rights=annaRights301();
+      arr[idx].rc301Fixed=true;
+    }else{
+      arr.push(anna);
+    }
+    try{ users=arr; window.users=arr; }catch(_){ window.users=arr; }
+    try{ if(typeof normalizeUserRights==='function'){ users=normalizeUserRights(users); window.users=users; } }catch(_){ }
+    // Nach normalizeUserRights die gewünschten Bearbeiten-Rechte erneut setzen, damit kein alter Wrapper sie wieder einschränkt.
+    try{
+      var u=users.find(function(x){return low301(x&&x.user)==='anna';});
+      if(u){ u.permissions=[]; u.rights=annaRights301(); u.name='Anna'; u.role='Azubi'; u.password='FLK'; u.mustChange=false; }
+    }catch(_){ }
+    try{ if(typeof saveUsers==='function') saveUsers(); }catch(_){ }
+    try{ if(typeof USER_KEY!=='undefined') localStorage.setItem(USER_KEY,JSON.stringify(users)); }catch(_){ }
+    try{ localStorage.setItem('exporthub_private_rc300_users',JSON.stringify(users)); }catch(_){ }
+    try{ localStorage.setItem('exporthub_private_rc301_users',JSON.stringify(users)); }catch(_){ }
+  }
+  ensureAnna301();
+  window.rc301EnsureAnna=ensureAnna301;
+  try{
+    var oldRender=window.render || (typeof render==='function'?render:null);
+    if(oldRender && !oldRender.__rc301Anna){
+      var wrapped=function(){ ensureAnna301(); return oldRender.apply(this,arguments); };
+      wrapped.__rc301Anna=true;
+      window.render=wrapped;
+      try{render=wrapped;}catch(_){ }
+    }
+  }catch(_){ }
+})();
+</script>
+<!-- PRIVATE RC301 END: Account Anna Azubi -->
+
 </body></html>
