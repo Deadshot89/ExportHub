@@ -40208,4 +40208,144 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </script>
 <!-- PRIVATE RC296 END: UPS-Rechner zeigt Lieferpreis statt Paketpreis -->
 
+
+
+<!-- PRIVATE RC297 START: Academy + Pruefung nach Lehrjahren -->
+<style>
+.rc297-yearbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}.rc297-yearbar button{border-radius:999px}.rc297-yearbox{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#ffffff);border-radius:20px;padding:14px;margin:10px 0}.rc297-yearbox strong{color:#08245d}.rc297-tag{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:950;margin:2px}.rc297-tag.orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}.rc297-tag.green{border-color:#bbf7d0;background:#f0fdf4;color:#166534}.rc297-module-list{display:grid;gap:8px}.rc297-module-list button{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:15px;padding:10px;text-align:left;font-weight:850;cursor:pointer}.rc297-module-list button.active{border-color:#2563eb;background:#eff6ff}.rc297-lesson{border:1px solid #bfdbfe;background:#f8fbff;border-radius:20px;padding:16px;margin:10px 0;line-height:1.55}.rc297-question-meta{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.rc297-result{font-size:28px;font-weight:1000;color:#08245d}.rc297-exam-table td,.rc297-exam-table th{vertical-align:top}.rc297-explanation{margin-top:10px}.rc297-locked{border-left:5px solid #f97316;background:#fff7ed;border-radius:16px;padding:12px;margin:10px 0;font-weight:800}.rc297-year-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rc297-year-summary .summaryBox{background:#fff;border:1px solid #bfdbfe}.rc297-answer-correct{background:#dcfce7!important;border-color:#86efac!important}.rc297-answer-wrong{background:#fee2e2!important;border-color:#fecaca!important}@media(max-width:900px){.rc297-year-summary{grid-template-columns:1fr}}
+</style>
+<script>
+(function(){
+  'use strict';
+  function S(){try{return (typeof state!=='undefined'&&state)?state:(window.state=window.state||{})}catch(e){return window.state=window.state||{}}}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function saveQuiet(){try{if(typeof save==='function')save()}catch(e){}}
+  function saveRender(){saveQuiet();try{if(typeof render==='function')render()}catch(e){} return false}
+  function H(title,sub){try{if(typeof head==='function')return head(title,sub)}catch(e){}return '<div class="page-head"><div><h2>'+esc(title)+'</h2><p>'+esc(sub||'')+'</p></div></div>'}
+  var YEARS={
+    1:{label:'1. Lehrjahr',short:'Grundlagen',note:'Grundlagen und sichere Arbeitsweise. Fokus: Begriffe, einfache Abläufe, Wareneingang, Lagerung, Kommissionierung, Sicherheit.',pass:60},
+    2:{label:'2. Lehrjahr',short:'Prozesse',note:'Prozesswissen und Rechnen. Fokus: Warenfluss, Bestände, Verpackung, Ladungssicherung, einfache Kennzahlen und Fehleranalyse.',pass:70},
+    3:{label:'3. Lehrjahr',short:'Pruefung / Praxis',note:'Pruefungsnahes Fachwissen. Grundlagen werden vorausgesetzt. Fokus: Fallaufgaben, Entscheidungen, Abweichungen, Kennzahlen, Palettenkonto und begruendete Vorgehensweise.',pass:80}
+  };
+  var MODULES={
+    1:[
+      {title:'Wareneingang Grundlagen',summary:'Pruefen, zaehlen, melden.',lessons:[
+        {title:'Sichtpruefung',text:'Im Wareneingang wird zuerst geprueft, ob Ware, Verpackung und Begleitpapiere sichtbar zusammenpassen. Schaeden oder Abweichungen werden sofort dokumentiert.'},
+        {title:'Mengenpruefung',text:'Die gelieferte Menge wird mit Lieferschein oder Bestellung verglichen. Abweichungen werden nicht still korrigiert, sondern sauber gemeldet.'},
+        {title:'Sperrung bei Fehlern',text:'Beschaedigte oder unklare Ware darf nicht einfach eingelagert werden. Sie wird gekennzeichnet und gesperrt, bis entschieden ist, wie damit umzugehen ist.'}
+      ]},
+      {title:'Lagerung Grundlagen',summary:'Lagerplatz, FIFO, Ordnung.',lessons:[
+        {title:'Lagerplatz',text:'Ein Lagerplatz muss eindeutig sein. Nur so koennen Bestände gefunden, gebucht und kontrolliert werden.'},
+        {title:'FIFO',text:'FIFO bedeutet: First In, First Out. Aeltere Ware wird zuerst entnommen, damit Ueberalterung und falsche Chargen vermieden werden.'},
+        {title:'Ordnung und Sicherheit',text:'Freie Wege, sichere Stapelhoehen und eindeutige Kennzeichnung verhindern Suchzeiten und Unfaelle.'}
+      ]},
+      {title:'Kommissionierung Grundlagen',summary:'Richtig picken und kontrollieren.',lessons:[
+        {title:'Pickliste lesen',text:'Artikelnummer, Menge, Lagerplatz und Auftrag muessen zusammenpassen. Erst danach wird gepickt.'},
+        {title:'Fehler vermeiden',text:'Haeufige Fehler sind falscher Artikel, falsche Menge oder falscher Auftrag. Kontrolle direkt beim Picken spart spaetere Reklamationen.'},
+        {title:'Bestaetigung',text:'Eine Kommissionierung wird erst abgeschlossen, wenn die Ware tatsaechlich entnommen und die Menge korrekt gebucht ist.'}
+      ]}
+    ],
+    2:[
+      {title:'Bestandsfuehrung und Inventur',summary:'Buchbestand, Istbestand, Differenzen.',lessons:[
+        {title:'Buchbestand und Istbestand',text:'Der Buchbestand steht im System. Der Istbestand ist die reale Menge im Lager. Beide muessen regelmaessig verglichen werden.'},
+        {title:'Inventurdifferenz',text:'Eine Differenz wird analysiert: falsche Buchung, falscher Lagerplatz, Bruch, Fehlpick oder Wareneingangsfehler.'},
+        {title:'Korrektur',text:'Bestandskorrekturen muessen nachvollziehbar dokumentiert werden. Ohne Ursache entstehen dieselben Fehler erneut.'}
+      ]},
+      {title:'Verpackung und Versand',summary:'Gewicht, Colli, Schutz, Label.',lessons:[
+        {title:'Verpackungsauswahl',text:'Verpackung muss Ware schuetzen, transportfaehig sein und zum Gewicht passen. Zu wenig Schutz erzeugt Transportschaeden.'},
+        {title:'Versanddaten',text:'Anzahl Colli, Gewicht, Abmessungen und Empfaengerangaben muessen stimmen. Diese Daten beeinflussen Kosten, Laufzeit und Dokumente.'},
+        {title:'Kontrollpunkt',text:'Vor Versand wird geprueft: richtige Ware, richtige Menge, richtige Adresse, richtige Dokumente.'}
+      ]},
+      {title:'Ladungssicherung',summary:'Formschluss, Kraftschluss, Schwerpunkt.',lessons:[
+        {title:'Formschluss',text:'Formschluss bedeutet: Die Ladung liegt so an, dass sie sich nicht frei bewegen kann.'},
+        {title:'Kraftschluss',text:'Kraftschluss entsteht durch Niederzurren. Reibung und Zurrmittel verhindern das Verrutschen.'},
+        {title:'Schwerpunkt',text:'Schwere Ware gehoert nach unten. Ein hoher oder seitlicher Schwerpunkt erhoeht Kippgefahr.'}
+      ]}
+    ],
+    3:[
+      {title:'Pruefungsnahe Fallbearbeitung',summary:'Handlung, Grund, Risiko nennen.',lessons:[
+        {title:'Antwortstruktur',text:'Im 3. Lehrjahr reicht eine kurze Antwort oft nicht. Gute Pruefungsantworten nennen Handlung, Begruendung und Risiko bei falschem Vorgehen.'},
+        {title:'Prioritaeten setzen',text:'Bei Abweichungen gilt: Ware sichern, Prozess stoppen falls notwendig, dokumentieren, Vorgesetzte/Qualitaet informieren, Entscheidung abwarten.'},
+        {title:'Nachvollziehbarkeit',text:'Jede Entscheidung muss spaeter nachvollziehbar sein. Deshalb sind Buchungen, Hinweise und Belege wichtig.'}
+      ]},
+      {title:'Kennzahlen und Prozessverbesserung',summary:'Leistung verstehen und verbessern.',lessons:[
+        {title:'Kennzahlen nutzen',text:'Kennzahlen zeigen, ob Prozesse stabil laufen. Beispiele: Fehlerquote, Durchlaufzeit, Produktivitaet, Rueckstand und Termintreue.'},
+        {title:'Ursachenanalyse',text:'Bei schlechter Leistung wird nicht nur mehr Tempo gefordert. Zuerst wird gesucht: Material fehlt, Wege zu lang, Daten falsch, Prioritaeten unklar?'},
+        {title:'Massnahmen',text:'Gute Massnahmen sind konkret, messbar und pruefbar. Beispiel: feste Kontrollpunkte vor Versand statt allgemeiner Hinweis "besser aufpassen".'}
+      ]},
+      {title:'Palettenkonto und Abgleich',summary:'Salden sicher bewerten.',lessons:[
+        {title:'Bewegungen',text:'Ein Palettenkonto besteht aus Eingang, Ausgang, Korrekturen und Abgleich. Jede Bewegung braucht Datum, Partei, Anzahl und Grund.'},
+        {title:'Saldo bewerten',text:'Ein positiver oder negativer Saldo zeigt, zu wessen Gunsten ein Unterschied besteht. Entscheidend ist die vereinbarte Sichtweise Eingang minus Ausgang.'},
+        {title:'Report',text:'Ein professioneller Report zeigt Zeitraum, alle Bewegungen, Summe Eingang, Summe Ausgang, Saldo und Ergebnis fuer Kunde oder Spedition.'}
+      ]}
+    ]
+  };
+  var QUESTIONS={
+    1:[
+      {area:'Wareneingang',q:'Was wird im Wareneingang zuerst geprueft?',a:['Sichtbarer Zustand, Menge und Begleitpapiere','Nur der Preis','Nur die Farbe der Verpackung','Nur die Versandart'],c:0,why:'Im Wareneingang muessen Ware, Menge und Dokumente zusammenpassen.'},
+      {area:'Wareneingang',q:'Was ist bei beschaedigter Ware richtig?',a:['Dokumentieren und klaeren lassen','Trotzdem einlagern','Etikett entfernen','Menge erhoehen'],c:0,why:'Schaeden muessen nachvollziehbar dokumentiert und geklaert werden.'},
+      {area:'Lagerung',q:'Was bedeutet FIFO?',a:['Aeltere Ware wird zuerst entnommen','Schwere Ware wird zuerst entnommen','Teure Ware wird zuerst entnommen','Neue Ware wird immer zuerst entnommen'],c:0,why:'FIFO = First In, First Out.'},
+      {area:'Lagerung',q:'Warum sind eindeutige Lagerplaetze wichtig?',a:['Damit Ware gefunden und korrekt gebucht wird','Damit der Gang schoener aussieht','Damit weniger Etiketten gebraucht werden','Damit keine Inventur noetig ist'],c:0,why:'Eindeutige Plaetze verhindern Suchzeiten und Bestandsfehler.'},
+      {area:'Kommissionierung',q:'Welche Angabe ist beim Picken besonders wichtig?',a:['Artikelnummer, Menge und Lagerplatz','Nur der Kundenname','Nur die Uhrzeit','Nur der Spediteur'],c:0,why:'Diese Angaben sichern die richtige Entnahme.'},
+      {area:'Kommissionierung',q:'Was ist ein typischer Kommissionierfehler?',a:['Falscher Artikel oder falsche Menge','Zu sauberer Lagerplatz','Zu viele Sicherheitschuhe','Richtig gebuchte Menge'],c:0,why:'Falsch entnommene Artikel/Mengen fuehren zu Reklamationen.'},
+      {area:'Arbeitssicherheit',q:'Was gehoert zur persoenlichen Schutzausruestung im Lager?',a:['Sicherheitsschuhe','Privates Handy','Kopfkissen','Kaffeebecher'],c:0,why:'Sicherheitsschuhe schuetzen vor Quetsch- und Stossverletzungen.'},
+      {area:'Arbeitssicherheit',q:'Was ist bei blockierten Fluchtwegen richtig?',a:['Sofort freiraeumen oder melden','Ignorieren','Nur fotografieren','Mit Ware weiter zustellen'],c:0,why:'Fluchtwege muessen jederzeit frei sein.'},
+      {area:'Verpackung',q:'Warum muss Ware passend verpackt werden?',a:['Zum Schutz waehrend Transport und Lagerung','Damit sie schwerer wird','Damit mehr Papier verbraucht wird','Damit der Lieferschein fehlt'],c:0,why:'Verpackung verhindert Beschaedigung und Verlust.'},
+      {area:'Dokumente',q:'Welche Funktion hat ein Lieferschein?',a:['Er beschreibt gelieferte Ware und Mengen','Er ersetzt immer die Rechnung','Er ist ein Staplerschein','Er ist ein Gefahrgutetikett'],c:0,why:'Der Lieferschein dient zur Waren- und Mengenpruefung.'},
+      {area:'Lagerung',q:'Was ist beim Stapeln wichtig?',a:['Tragfaehigkeit und Stabilitaet beachten','Immer so hoch wie moeglich','Schwere Ware nach oben','Etiketten nach innen'],c:0,why:'Sicheres Stapeln verhindert Kippen und Unfaelle.'},
+      {area:'Qualitaet',q:'Was bedeutet eine Abweichung?',a:['Etwas stimmt nicht mit Vorgabe, Menge, Qualitaet oder Dokument','Alles ist fehlerfrei','Die Ware ist automatisch Ausschuss','Der Auftrag ist erledigt'],c:0,why:'Abweichungen muessen geklaert und dokumentiert werden.'}
+    ],
+    2:[
+      {area:'Bestand',q:'Buchbestand 120 Stueck, Istbestand 115 Stueck. Wie hoch ist die Differenz?',a:['-5 Stueck','+5 Stueck','235 Stueck','0 Stueck'],c:0,why:'Istbestand minus Buchbestand = 115 - 120 = -5.'},
+      {area:'Inventur',q:'Was ist bei einer Inventurdifferenz zuerst sinnvoll?',a:['Ursache pruefen und Differenz dokumentieren','Sofort ohne Grund korrigieren','Ware verstecken','Differenz ignorieren'],c:0,why:'Korrekturen muessen begruendet und nachvollziehbar sein.'},
+      {area:'Verpackung',q:'Eine Sendung hat 4 Pakete je 12 kg. Wie hoch ist das Gesamtgewicht?',a:['48 kg','16 kg','12 kg','4 kg'],c:0,why:'4 × 12 kg = 48 kg.'},
+      {area:'Versand',q:'Warum sind korrekte Maße und Gewichte wichtig?',a:['Sie beeinflussen Kosten, Laufzeit und Transportfaehigkeit','Sie sind nur Dekoration','Sie ersetzen die Adresse','Sie sind nur fuer die Pause wichtig'],c:0,why:'Falsche Daten koennen Kostenfehler und Transportprobleme ausloesen.'},
+      {area:'Ladungssicherung',q:'Was beschreibt Formschluss?',a:['Ladung liegt so an, dass sie sich kaum bewegen kann','Ladung wird nur gewogen','Ladung wird nur beschriftet','Ladung wird ohne Sicherung geladen'],c:0,why:'Formschluss verhindert Bewegung durch anliegende Begrenzung.'},
+      {area:'Ladungssicherung',q:'Warum gehoert schwere Ware nach unten?',a:['Der Schwerpunkt bleibt niedrig und die Ladung stabil','Damit sie schneller gefunden wird','Damit Etiketten verschwinden','Damit die Palette leichter wird'],c:0,why:'Ein niedriger Schwerpunkt reduziert Kippgefahr.'},
+      {area:'Prozess',q:'Ein Auftrag hat falsche Menge gepickt. Was ist richtig?',a:['Fehler stoppen, korrigieren und Ursache klaeren','Trotzdem versenden','Nur Namen aendern','Ware ohne Buchung nehmen'],c:0,why:'Fehler muessen vor Versand korrigiert und die Ursache geklaert werden.'},
+      {area:'Kennzahlen',q:'Was kann eine hohe Fehlerquote anzeigen?',a:['Prozessproblem oder Schulungsbedarf','Immer perfekte Qualitaet','Zu viele richtige Sendungen','Keine Massnahme noetig'],c:0,why:'Kennzahlen helfen, Ursachen und Verbesserungen zu erkennen.'},
+      {area:'Bestand',q:'Was ist ein Mindestbestand?',a:['Bestand, bei dessen Unterschreitung Nachschub noetig wird','Maximales Gewicht einer Palette','Anzahl Mitarbeiter im Lager','Immer null Bestand'],c:0,why:'Mindestbestand sichert Lieferfaehigkeit.'},
+      {area:'Kommissionierung',q:'Was bringt Wegeoptimierung beim Picken?',a:['Weniger Laufzeit und bessere Produktivitaet','Mehr Suchzeit','Mehr Fehler zwingend','Keine Wirkung'],c:0,why:'Kurze, logische Wege verbessern Leistung und Stabilitaet.'},
+      {area:'Qualitaet',q:'Warum ist eine Endkontrolle vor Versand wichtig?',a:['Fehler vor Auslieferung erkennen','Damit Ware spaeter gesucht wird','Damit Dokumente fehlen','Damit der Auftrag langsamer wird'],c:0,why:'Endkontrolle verhindert Reklamationen und Nacharbeit.'},
+      {area:'Paletten',q:'Was gehoert in eine Palettenkonto-Buchung?',a:['Partei, Datum, Anzahl, Bewegungsart und Grund/Referenz','Nur der Vorname','Nur ein Foto','Nur die Uhrzeit'],c:0,why:'Nur vollstaendige Buchungen sind spaeter abgleichbar.'}
+    ],
+    3:[
+      {area:'Fallaufgabe',q:'Bei der Endkontrolle fehlen zwei Packstuecke, die Sendung ist dringend. Was ist die beste Handlung?',a:['Versand stoppen, Differenz klaeren, dokumentieren und Verantwortliche informieren','Trotzdem senden und hoffen','Lieferschein aendern ohne Pruefung','Fehlmenge ignorieren'],c:0,why:'Im 3. Lehrjahr wird erwartet, dass Qualitaet und Dokumentation Vorrang vor blindem Versand haben.'},
+      {area:'Fallaufgabe',q:'Eine Palette ist beschaedigt, Ware scheint aber unversehrt. Was ist pruefungsnah richtig?',a:['Ware sichern, Schaden dokumentieren, Verpackung/Palette bewerten und Freigabe einholen','Ohne Hinweis weiterverladen','Palette umdrehen und versenden','Nur Fahrer informieren'],c:0,why:'Sicherheit, Dokumentation und Freigabe sind entscheidend.'},
+      {area:'Kennzahlen',q:'Die Produktivitaet sinkt, Fehlerquote steigt. Welche Massnahme ist fachlich am sinnvollsten zuerst?',a:['Ursachenanalyse: Daten, Wege, Material, Schulung und Stoerungen pruefen','Mitarbeiter pauschal schneller arbeiten lassen','Kontrollen entfernen','Fehler nicht mehr erfassen'],c:0,why:'Ohne Ursachenanalyse werden Symptome statt Ursachen behandelt.'},
+      {area:'Bestand',q:'Buchbestand 250, Istbestand 238. Es gab zwei ungeklärte Entnahmen. Was ist die beste Antwort?',a:['Differenz feststellen, Bewegungen pruefen, Ursache dokumentieren, Korrektur nach Freigabe','Sofort 12 Stueck ausbuchen ohne Kommentar','Bestand auf 250 setzen','Inventur abbrechen'],c:0,why:'Die Pruefung erwartet nachvollziehbare Korrekturen mit Ursache.'},
+      {area:'Palettenkonto',q:'Kunde: Eingang 80, Ausgang 95. Sicht Eingang minus Ausgang. Wie ist der Saldo zu bewerten?',a:['-15, Differenz zu Gunsten Essentra bzw. Kunde schuldet Paletten','+15, Kunde hat Guthaben','0, ausgeglichen','175 Paletten Guthaben'],c:0,why:'80 - 95 = -15. Es wurden mehr Paletten ausgegeben als eingegangen.'},
+      {area:'Palettenkonto',q:'Warum muss ein Palettenkonto-Report alle Bewegungen im Zeitraum zeigen?',a:['Damit Ergebnis und Saldo nachvollziehbar pruefbar sind','Damit er laenger aussieht','Damit keine Summe noetig ist','Damit Buchungen versteckt werden'],c:0,why:'Transparenz ist wichtig fuer Kunden- und Speditionsabgleich.'},
+      {area:'Ladungssicherung',q:'Eine schwere Palette steht oben auf leichter Ware. Was ist das Hauptproblem?',a:['Hoher Schwerpunkt und Gefahr von Kippen/Beschaedigung','Die Sendung wird automatisch billiger','Die Palette wird kleiner','Es gibt kein Risiko'],c:0,why:'Schwere Ware nach unten ist ein Grundprinzip der Stabilitaet.'},
+      {area:'Prozess',q:'Ein wiederholter Fehler entsteht bei derselben Kundenvorgabe. Was ist die beste nachhaltige Massnahme?',a:['SOP/Arbeitsanweisung anpassen, Team informieren und Kontrollpunkt festlegen','Einmalige Ermahnung ohne Prozessanpassung','Fehler ignorieren','Kundenreferenz loeschen'],c:0,why:'Dauerhafte Fehler brauchen Prozess- und Wissenssicherung.'},
+      {area:'Pruefung',q:'Welche Antwort ist in einer muendlichen/praktischen Pruefung am staerksten?',a:['Ich beschreibe Handlung, Begruendung und Risiko bei falschem Vorgehen','Nur: Das macht man so','Nur: Weiss ich nicht','Nur: Schnell arbeiten'],c:0,why:'Pruefer bewerten Verstehen, nicht nur Stichworte.'},
+      {area:'Versandkosten',q:'Warum reicht im Versandkostenrechner der Paketpreis allein nicht aus?',a:['Entscheidend ist der Lieferpreis fuer die gesamte Sendung','Weil Laufzeit unwichtig ist','Weil Paketanzahl egal ist','Weil Zielland egal ist'],c:0,why:'Die Lieferung kann aus mehreren Paketen bestehen; relevant ist der Gesamtpreis.'},
+      {area:'Abweichung',q:'Ein Kunde meldet falsche Ware. Welche Information ist fuer die Ursachenanalyse am wichtigsten?',a:['Referenz, Auftrag, Artikel, Menge, Pick-/Packdaten und Dokumentation','Nur der Vorname des Kunden','Nur die Farbe der Halle','Nur die Uhrzeit der Pause'],c:0,why:'Ursachenanalyse braucht konkrete Prozess- und Belegdaten.'},
+      {area:'Organisation',q:'Wie priorisierst du bei mehreren Rueckstaenden am sinnvollsten?',a:['Nach Termin, Kundenanforderung, Risiko und verfuegbaren Ressourcen','Zufaellig','Nur nach alphabetischer Reihenfolge','Immer das Leichteste zuerst'],c:0,why:'Priorisierung muss fachlich begruendet sein.'}
+    ]
+  };
+  function year(){var y=Number(S().rc297Year||1); return (y===1||y===2||y===3)?y:1}
+  function setYear(y){var s=S(); y=Number(y)||1; s.rc297Year=(y===1||y===2||y===3)?y:1; s.rc297QuickStep=0; s.rc297ExamStep=0; s.rc297QuickAnswers={}; s.rc297ExamAnswers={}; saveRender(); return false}
+  function pool(){return QUESTIONS[year()].map(function(q,i){var x={}; for(var k in q)x[k]=q[k]; x.id='Y'+year()+'Q'+i; x.year=year(); return x})}
+  function yearsHtml(){var y=year();return '<div class="rc297-yearbar">'+[1,2,3].map(function(n){return '<button class="'+(y===n?'btn':'ghost')+'" onclick="return rc297SetYear('+n+')">'+YEARS[n].label+' · '+YEARS[n].short+'</button>'}).join('')+'</div><div class="rc297-yearbox"><strong>'+YEARS[y].label+' – '+YEARS[y].short+'</strong><br>'+esc(YEARS[y].note)+'<div class="rc297-question-meta"><span class="rc297-tag">Fragenpool: '+pool().length+'</span><span class="rc297-tag orange">Bestehensgrenze: '+YEARS[y].pass+'%</span><span class="rc297-tag green">Ausbildungsstand wird vorausgesetzt</span></div></div>'}
+  function moduleHtml(){var y=year(), s=S(); var mods=MODULES[y]; var mi=Math.max(0,Math.min(mods.length-1,Number(s.rc297Module)||0)); var m=mods[mi]; var li=Math.max(0,Math.min(m.lessons.length-1,Number(s.rc297Lesson)||0)); var l=m.lessons[li]; return '<div class="academy-layout"><div class="card"><h3>Module '+YEARS[y].label+'</h3><div class="rc297-module-list">'+mods.map(function(x,i){return '<button class="'+(i===mi?'active':'')+'" onclick="return rc297SetModule('+i+')"><b>'+esc(x.title)+'</b><br><span class="small">'+esc(x.summary)+'</span></button>'}).join('')+'</div></div><div class="card"><h2>'+esc(m.title)+'</h2><p>'+esc(m.summary)+'</p><div class="rc297-lesson"><span class="rc297-tag">Lektion '+(li+1)+' von '+m.lessons.length+'</span><h3>'+esc(l.title)+'</h3><p>'+esc(l.text)+'</p></div><div class="toolbar"><button class="ghost" onclick="return rc297SetLesson('+(li-1)+')" '+(li===0?'disabled':'')+'>Zurueck</button><button class="btn" onclick="return rc297SetLesson('+(li+1)+')" '+(li===m.lessons.length-1?'disabled':'')+'>Weiter</button><button class="soft" onclick="return rc297SetAcademyTab(\'test\')">Schneller Test</button></div></div></div>'}
+  function questionCard(kind){var s=S(); var qs=pool(); var prefix=kind==='exam'?'Exam':'Quick'; var stepKey='rc297'+prefix+'Step', ansKey='rc297'+prefix+'Answers'; s[ansKey]=s[ansKey]||{}; var i=Math.max(0,Math.min(qs.length-1,Number(s[stepKey])||0)); var q=qs[i]; var chosen=s[ansKey][i]; var answered=Object.keys(s[ansKey]).length; var correct=Object.keys(s[ansKey]).filter(function(k){return qs[Number(k)]&&qs[Number(k)].c===s[ansKey][k]}).length; var percent=answered?Math.round(correct/qs.length*100):0; var complete=answered>=qs.length; return '<div class="quiz-card"><div class="pill blue">'+(kind==='exam'?'Pruefung':'Schneller Test')+' · '+YEARS[year()].label+' · Frage '+(i+1)+' von '+qs.length+'</div><div class="rc297-question-meta"><span class="rc297-tag">'+esc(q.area)+'</span><span class="rc297-tag orange">'+YEARS[year()].short+'</span></div><h2>'+esc(q.q)+'</h2>'+q.a.map(function(a,idx){var cls=chosen===idx?(idx===q.c?'rc297-answer-correct':'rc297-answer-wrong'):''; return '<button class="quiz-option '+cls+'" onclick="return rc297Answer(\''+kind+'\','+i+','+idx+')">'+esc(a)+'</button>'}).join('')+(chosen!==undefined?'<div class="infobox rc297-explanation"><b>Erklaerung:</b> '+esc(q.why)+'</div>':'<div class="notice">Antwort waehlen. Beim '+(kind==='exam'?'Pruefungsmodus':'Schnellen Test')+' kommt die Erklaerung danach.</div>')+'<div class="quiz-nav"><button class="ghost" onclick="return rc297Move(\''+kind+'\',-1)" '+(i===0?'disabled':'')+'>Zurueck</button><button class="btn" onclick="return rc297Move(\''+kind+'\',1)" '+(chosen===undefined||i===qs.length-1?'disabled':'')+'>Weiter</button><button class="soft" onclick="return rc297Reset(\''+kind+'\')">Neu starten</button>'+(kind==='exam'?'<button class="btn" onclick="return rc297ArchiveExam()" '+(!complete?'disabled':'')+'>Pruefung archivieren</button>':'')+'</div></div><div class="metrics"><article class="metric"><span>Lehrjahr</span><strong>'+year()+'.</strong></article><article class="metric"><span>Beantwortet</span><strong>'+answered+'/'+qs.length+'</strong></article><article class="metric"><span>Richtig</span><strong>'+correct+'</strong></article><article class="metric"><span>Ergebnis</span><strong>'+percent+'%</strong></article></div>'+(kind==='exam'?examStatus(correct,qs.length,complete):'')}
+  function examStatus(correct,total,complete){var pct=total?Math.round(correct/total*100):0; var pass=YEARS[year()].pass; if(!complete)return '<div class="rc297-locked">Pruefung ist noch nicht vollstaendig. Bestehensgrenze fuer '+YEARS[year()].label+': '+pass+'%.</div>'; return '<div class="okbox"><span class="rc297-result">'+pct+'%</span><br><b>'+(pct>=pass?'Bestanden':'Noch nicht bestanden')+'</b> · '+correct+' von '+total+' richtig · Niveau '+YEARS[year()].label+'</div>'}
+  function archiveHtml(){var a=S().rc297ExamArchive||[]; if(!a.length)return '<div class="notice">Noch keine RC297-Pruefung archiviert.</div>'; return '<table class="table rc297-exam-table"><tr><th>Datum</th><th>Lehrjahr</th><th>Ergebnis</th><th>Status</th></tr>'+a.slice().reverse().map(function(x){return '<tr><td>'+esc(String(x.date||'').slice(0,16).replace('T',' '))+'</td><td>'+esc(x.yearLabel)+'</td><td><b>'+esc(x.percent)+'%</b><br>'+esc(x.correct)+'/'+esc(x.total)+'</td><td>'+esc(x.passed?'Bestanden':'Nicht bestanden')+'</td></tr>'}).join('')+'</table>'}
+  window.rc297SetYear=setYear;
+  window.rc297SetAcademyTab=function(t){S().rc297AcademyTab=t||'lernen'; saveRender(); return false};
+  window.rc297SetQuizTab=function(t){S().rc297QuizTab=t||'pruefung'; saveRender(); return false};
+  window.rc297SetModule=function(i){var s=S(); s.rc297Module=Number(i)||0; s.rc297Lesson=0; saveRender(); return false};
+  window.rc297SetLesson=function(i){var s=S(); var mods=MODULES[year()]; var mi=Math.max(0,Math.min(mods.length-1,Number(s.rc297Module)||0)); s.rc297Lesson=Math.max(0,Math.min(mods[mi].lessons.length-1,Number(i)||0)); saveRender(); return false};
+  window.rc297Answer=function(kind,i,idx){var s=S(); var key=kind==='exam'?'rc297ExamAnswers':'rc297QuickAnswers'; s[key]=s[key]||{}; s[key][i]=idx; saveQuiet(); try{render()}catch(e){} return false};
+  window.rc297Move=function(kind,delta){var s=S(); var key=kind==='exam'?'rc297ExamStep':'rc297QuickStep'; s[key]=Math.max(0,Math.min(pool().length-1,(Number(s[key])||0)+(Number(delta)||0))); saveRender(); return false};
+  window.rc297Reset=function(kind){var s=S(); if(kind==='exam'){s.rc297ExamAnswers={};s.rc297ExamStep=0}else{s.rc297QuickAnswers={};s.rc297QuickStep=0} saveRender(); return false};
+  window.rc297ArchiveExam=function(){var s=S(), qs=pool(), ans=s.rc297ExamAnswers||{}; var answered=Object.keys(ans).length; if(answered<qs.length){alert('Pruefung ist noch nicht vollstaendig.');return false} var correct=Object.keys(ans).filter(function(k){return qs[Number(k)]&&qs[Number(k)].c===ans[k]}).length; var pct=Math.round(correct/qs.length*100); var entry={date:new Date().toISOString(),year:year(),yearLabel:YEARS[year()].label,correct:correct,total:qs.length,percent:pct,passed:pct>=YEARS[year()].pass}; s.rc297ExamArchive=s.rc297ExamArchive||[]; s.rc297ExamArchive.push(entry); saveQuiet(); alert('Pruefung archiviert: '+pct+'% · '+(entry.passed?'Bestanden':'Nicht bestanden')); try{render()}catch(e){} return false};
+  window.academy=function(){var s=S(); var tab=s.rc297AcademyTab||'lernen'; return H('🎓 Academy Logistik','Fachkraft fuer Lagerlogistik nach Lehrjahren. Die Fragen passen sich jetzt wirklich an das gewaehlte Lehrjahr an.')+yearsHtml()+'<div class="toolbar"><button class="'+(tab==='lernen'?'btn':'ghost')+'" onclick="return rc297SetAcademyTab(\'lernen\')">Lernmodule</button><button class="'+(tab==='test'?'btn':'ghost')+'" onclick="return rc297SetAcademyTab(\'test\')">Schneller Test</button><button class="ghost" onclick="setView(\'quiz\')">Pruefung</button></div>'+(tab==='test'?questionCard('quick'):moduleHtml())};
+  window.quiz=function(){var s=S(); var tab=s.rc297QuizTab||'pruefung'; return H('Pruefung','Pruefung Fachkraft fuer Lagerlogistik. Das gewaehlte Lehrjahr bestimmt die Fragen und die Bestehensgrenze.')+yearsHtml()+'<div class="toolbar"><button class="'+(tab==='pruefung'?'btn':'ghost')+'" onclick="return rc297SetQuizTab(\'pruefung\')">Pruefung</button><button class="'+(tab==='archiv'?'btn':'ghost')+'" onclick="return rc297SetQuizTab(\'archiv\')">Archiv</button><button class="ghost" onclick="setView(\'academy\')">Zur Academy</button></div>'+(tab==='archiv'?'<div class="card"><h3>Pruefungsarchiv nach Lehrjahr</h3>'+archiveHtml()+'</div>':questionCard('exam'))};
+  try{academy=window.academy; quiz=window.quiz}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC297 END: Academy + Pruefung nach Lehrjahren -->
+
 </body></html>
