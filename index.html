@@ -41534,4 +41534,152 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </script>
 <!-- PRIVATE RC307 END: Ref-Ordner Dedupe + Rechtehilfe + Passwortreset -->
 
+
+
+<!-- RC308: Lieferschein Uploadbereich final bereinigen - nur 2 blaue Buttons, kein Status/kein weißer Altbutton -->
+<style id="rc308-upload-clean-css">
+  #rc308ShipmentUploadActions{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:10px!important;
+    align-items:center!important;
+    margin:8px 0 12px!important;
+  }
+  #rc308ShipmentUploadActions input[type="file"]{display:none!important}
+  #rc308ShipmentUploadActions .rc308-blue-btn{
+    border:0!important;
+    background:linear-gradient(135deg,var(--blue,#2563eb),var(--cyan,#05b8ff))!important;
+    color:#fff!important;
+    border-radius:14px!important;
+    padding:10px 14px!important;
+    min-height:40px!important;
+    font-weight:950!important;
+    cursor:pointer!important;
+    box-shadow:0 10px 22px rgba(37,99,235,.23)!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-decoration:none!important;
+    width:auto!important;
+  }
+  #rc308ShipmentUploadActions .rc308-blue-btn:hover{transform:translateY(-1px)!important}
+  .rc308-hidden-upload-legacy{display:none!important}
+  @media(max-width:900px){#rc308ShipmentUploadActions .rc308-blue-btn{width:100%!important}}
+</style>
+<script id="rc308-upload-clean-js">
+(function(){
+  'use strict';
+  function txt(el){try{return (el.innerText||el.textContent||'').replace(/\s+/g,' ').trim()}catch(e){return ''}}
+  function contentRoot(){return document.getElementById('content')||document.querySelector('.main')||document.body}
+  function isShipmentView(){try{return !window.state || !state.view || state.view==='shipment' || location.href.indexOf('shipment')>-1 || /Sendung erstellen|Lieferscheine hochladen/i.test(txt(contentRoot()))}catch(e){return true}}
+  function isDeliveryInput(inp){
+    if(!inp || inp.type!=='file')return false;
+    var oc=String(inp.getAttribute('onchange')||'');
+    var acc=String(inp.getAttribute('accept')||'');
+    var parent=txt(inp.closest('label,.field,div')||inp.parentNode||document.body);
+    return /addDeliveryNoteFiles|rc119AddShipmentFiles/i.test(oc) || (/pdf|msg|eml|xlsx|docx/i.test(acc) && /Lieferschein|anhaengen|anhängen|DNC|Dateien/i.test(parent));
+  }
+  function findDeliveryInput(root){
+    var inputs=Array.from(root.querySelectorAll('input[type="file"]')).filter(isDeliveryInput);
+    var exact=inputs.find(function(i){return /addDeliveryNoteFiles/i.test(String(i.getAttribute('onchange')||''));});
+    return exact||inputs[0]||null;
+  }
+  function createDeliveryInput(){
+    var inp=document.createElement('input');
+    inp.type='file';
+    inp.multiple=true;
+    inp.setAttribute('accept','.pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf');
+    inp.setAttribute('onchange','addDeliveryNoteFiles(this.files);this.value=""');
+    return inp;
+  }
+  function findUploadTitle(root){
+    var all=Array.from(root.querySelectorAll('label,.field,h3,h4,b,strong,div,p,span'));
+    return all.find(function(el){return /Lieferscheine\s+hochladen\s*\/\s*anh[aä]ngen/i.test(txt(el));}) || null;
+  }
+  function removeLegacyUploadBits(root, keepInput){
+    // Eingabe zuerst retten, damit alte Labels entfernt werden können.
+    if(keepInput && keepInput.parentNode){try{keepInput.parentNode.removeChild(keepInput)}catch(e){}}
+    Array.from(root.querySelectorAll('#rc305UploadActions,#rc307UploadActions,#rc308ShipmentUploadActions,.rc305-upload-actions,.rc307-upload-actions,.rc308-upload-actions')).forEach(function(el){try{el.remove()}catch(e){}});
+    Array.from(root.querySelectorAll('button,a,label,span,small,strong,b,div')).forEach(function(el){
+      if(el.closest && el.closest('#rc308ShipmentUploadActions'))return;
+      var t=txt(el);
+      if(!t)return;
+      // Nur echte Uploadbutton-/Statusreste entfernen, nicht Überschriften oder Dateilisten.
+      var isChoose=/^Dateien\s+ausw[aä]hlen$/i.test(t) || /^Dateien\s+auswaehlen$/i.test(t);
+      var isRef=/^Dateien\s+aus\s+Ref\.-Ordner\s+uebernehmen$/i.test(t) || /^Dateien\s+aus\s+Ref\.-Ordner\s+übernehmen$/i.test(t);
+      var isStatus=/^Keine\s+ausgew[aä]hlt$/i.test(t) || /^Keine\s+ausgewaehlt$/i.test(t);
+      if(isChoose || isRef || isStatus){
+        // keine großen Container löschen, nur die sichtbaren Einzelteile
+        try{el.remove()}catch(e){try{el.classList.add('rc308-hidden-upload-legacy')}catch(_){}}
+      }
+    });
+    // Textnodes mit „Keine ausgewählt“ entfernen.
+    try{
+      var walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+      var nodes=[]; while(walker.nextNode()){var n=walker.currentNode;if(/^\s*Keine\s+ausgew[aä]hlt\s*$/i.test(n.nodeValue||'')||/^\s*Keine\s+ausgewaehlt\s*$/i.test(n.nodeValue||''))nodes.push(n)}
+      nodes.forEach(function(n){try{n.parentNode.removeChild(n)}catch(e){}});
+    }catch(e){}
+  }
+  function callRef(){
+    try{
+      if(typeof window.rc246OpenReferenceFolderPicker==='function')return window.rc246OpenReferenceFolderPicker();
+      if(typeof window.rc274RefImportOnly==='function')return window.rc274RefImportOnly();
+      if(typeof window.rc307OpenRefFolderPicker==='function')return window.rc307OpenRefFolderPicker();
+      if(typeof window.rc288OpenRefFolderPicker==='function')return window.rc288OpenRefFolderPicker();
+    }catch(e){console.warn('Ref-Ordner Import Fehler',e)}
+    alert('Ref.-Ordner-Import ist nicht verfügbar. Bitte Dateien über „Dateien auswählen“ hochladen.');
+    return false;
+  }
+  function normalizeUpload(){
+    try{
+      var root=contentRoot(); if(!root || !isShipmentView())return;
+      var input=findDeliveryInput(root) || createDeliveryInput();
+      removeLegacyUploadBits(root,input);
+      input.id='rc308DeliveryFileInput';
+      input.classList.add('rc308-hidden-file');
+      if(!input.getAttribute('onchange'))input.setAttribute('onchange','addDeliveryNoteFiles(this.files);this.value=""');
+      var title=findUploadTitle(root);
+      var after=title ? (title.closest('label.field,.field,label,div')||title) : null;
+      var wrap=document.createElement('div');
+      wrap.id='rc308ShipmentUploadActions';
+      wrap.className='rc308-upload-actions';
+      var choose=document.createElement('label');
+      choose.id='rc308ChooseFilesBtn';
+      choose.className='rc308-blue-btn';
+      choose.appendChild(document.createTextNode('Dateien auswählen'));
+      choose.appendChild(input);
+      var ref=document.createElement('button');
+      ref.type='button';
+      ref.id='rc308RefFolderBtn';
+      ref.className='rc308-blue-btn';
+      ref.textContent='Dateien aus Ref.-Ordner übernehmen';
+      ref.onclick=function(){return callRef()};
+      wrap.appendChild(choose);
+      wrap.appendChild(ref);
+      if(after && after.parentNode){after.parentNode.insertBefore(wrap,after.nextSibling)}
+      else root.insertBefore(wrap,root.firstChild||null);
+      // Sicherheit: gleiche Texte außerhalb des neuen Wrappers noch einmal entfernen.
+      Array.from(root.querySelectorAll('button,a,label,span,small,strong,b')).forEach(function(el){
+        if(el.closest('#rc308ShipmentUploadActions'))return;
+        var t=txt(el);
+        if(/^Dateien\s+ausw[aä]hlen$/i.test(t)||/^Dateien\s+aus\s+Ref\.-Ordner\s+(uebernehmen|übernehmen)$/i.test(t)||/^Keine\s+ausgew[aä]hlt$/i.test(t)||/^Keine\s+ausgewaehlt$/i.test(t)){
+          try{el.remove()}catch(e){el.classList.add('rc308-hidden-upload-legacy')}
+        }
+      });
+    }catch(e){console.warn('RC308 Upload-Cleanup Fehler',e)}
+  }
+  window.rc308NormalizeShipmentUpload=normalizeUpload;
+  function runSoon(){normalizeUpload();setTimeout(normalizeUpload,60);setTimeout(normalizeUpload,250);setTimeout(normalizeUpload,700)}
+  var oldRender=window.render;
+  if(typeof oldRender==='function' && !oldRender.__rc308UploadClean){
+    var wrapped=function(){var r=oldRender.apply(this,arguments);runSoon();return r};
+    wrapped.__rc308UploadClean=true;
+    window.render=wrapped;try{render=wrapped}catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded',runSoon);
+  window.addEventListener('load',runSoon);
+  setTimeout(runSoon,0);setTimeout(runSoon,800);
+})();
+</script>
+
 </body></html>
