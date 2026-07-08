@@ -38962,5 +38962,304 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </body></html>
 
 
+<style id="rc287-customer-mail-delete-css">
+  .rc287-mail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+  .rc287-danger-zone{border:1px solid #fecaca;background:#fff1f2;border-radius:18px;padding:12px;margin-top:12px}
+  .rc287-delete-inline{margin-top:6px}
+  @media(max-width:900px){.rc287-mail-grid{grid-template-columns:1fr}}
+</style>
+<script id="rc287-customer-mail-and-delete">
+(function(){
+  'use strict';
+  var VERSION='RC287 Kunden Mailfelder + Komplettloeschen';
+  function esc287(v){
+    try{ if(typeof esc==='function') return esc(v); }catch(e){}
+    return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]});
+  }
+  function normMail287(v){
+    try{ if(typeof normalizeEmailList==='function') return normalizeEmailList(v); }catch(e){}
+    return String(v||'').split(/[\n;,]+/).map(function(x){return String(x||'').replace(/[<>]/g,'').trim()}).filter(Boolean).join(', ');
+  }
+  function by287(id){return document.getElementById(id)}
+  function customers287(){state.customers=Array.isArray(state.customers)?state.customers:[];return state.customers}
+  function customer287(id){
+    var list=customers287();
+    return list.find(function(c){return String(c.id||'')===String(id)}) || null;
+  }
+  function currentCustomer287(){
+    var id=(state&&state.customerFolderOpenId)||state.customerFolderId||state.selectedCustomerId||(state.shipment&&state.shipment.customerId)||'';
+    return customer287(id) || null;
+  }
+  function custRegMail287(c){
+    return normMail287(c&&(c.customerRegistrationMail||c.customerAnmeldungMail||c.anmeldungCustomerMail||c.anmeldungKundeMail||c.customerAvisMail||''));
+  }
+  function carrierRegMail287(c){
+    return normMail287(c&&(c.carrierRegistrationMail||c.carrierAnmeldungMail||c.speditionRegistrationMail||c.speditionAnmeldungMail||c.carrierMail||c.speditionMail||c.anmeldungMail||c.mailRecipients||c.mailAddress||c.mail||c.email||''));
+  }
+  window.customerCustomerRegistrationMailAddress=function(c){return custRegMail287(c)};
+  window.customerCarrierRegistrationMailAddress=function(c){return carrierRegMail287(c)};
+
+  // Die normale Outlook-Anmeldung bleibt Spedition/Transport, aber ab jetzt aus dem getrennten Speditionsfeld.
+  var baseCarrierAddress287=typeof customerCarrierMailAddress==='function' ? customerCarrierMailAddress : null;
+  window.customerCarrierMailAddress=function(c){
+    return carrierRegMail287(c) || (baseCarrierAddress287 ? baseCarrierAddress287(c) : '');
+  };
+  try{customerCarrierMailAddress=window.customerCarrierMailAddress}catch(e){}
+  window.customerMailAddress=function(c){return window.customerCarrierMailAddress(c)};
+  try{customerMailAddress=window.customerMailAddress}catch(e){}
+
+  function readRegFields287(){
+    return {
+      customer:normMail287((by287('customerFolderCustomerRegistrationMail')||{}).value||''),
+      carrier:normMail287((by287('customerFolderCarrierRegistrationMail')||{}).value||''),
+      newCustomer:normMail287((by287('newCustCustomerRegistrationMail')||{}).value||''),
+      newCarrier:normMail287((by287('newCustCarrierRegistrationMail')||{}).value||'')
+    };
+  }
+  function applyRegFields287(id,data){
+    var c=customer287(id); if(!c||!data)return;
+    var customer=normMail287(data.customer||data.newCustomer||'');
+    var carrier=normMail287(data.carrier||data.newCarrier||'');
+    if(customer){
+      c.customerRegistrationMail=customer;
+      c.customerAnmeldungMail=customer;
+      c.anmeldungCustomerMail=customer;
+      c.anmeldungKundeMail=customer;
+    }else{
+      c.customerRegistrationMail='';
+      c.customerAnmeldungMail='';
+      c.anmeldungCustomerMail='';
+      c.anmeldungKundeMail='';
+    }
+    if(carrier){
+      c.carrierRegistrationMail=carrier;
+      c.carrierAnmeldungMail=carrier;
+      c.speditionRegistrationMail=carrier;
+      c.speditionAnmeldungMail=carrier;
+      c.carrierMail=carrier;
+      c.speditionMail=carrier;
+      c.anmeldungMail=carrier;
+      c.mailRecipients=carrier;
+      c.mailAddress=carrier;
+      c.mail=carrier;
+      c.email=carrier;
+    }else{
+      c.carrierRegistrationMail='';
+      c.carrierAnmeldungMail='';
+      c.speditionRegistrationMail='';
+      c.speditionAnmeldungMail='';
+      c.carrierMail='';
+      c.speditionMail='';
+      c.anmeldungMail='';
+      c.mailRecipients='';
+      c.mailAddress='';
+      c.mail='';
+    }
+  }
+
+  function enhanceCustomerFolderMail287(){
+    try{
+      if(!state || state.view!=='customerfolder')return;
+      var c=currentCustomer287(); if(!c)return;
+      var sections=Array.from(document.querySelectorAll('.folder-section'));
+      var sec=sections.find(function(s){return /2\.\s*Anmeldung\s*\/\s*Maildaten/i.test(s.textContent||'')});
+      if(!sec)return;
+      if(!sec.querySelector('#rc287RegistrationFields')){
+        var info=sec.querySelector('.infobox');
+        var box=document.createElement('div');
+        box.id='rc287RegistrationFields';
+        box.className='rc287-mail-grid';
+        box.innerHTML=
+          '<label class="field">Anmeldung fuer den Kunden<textarea id="customerFolderCustomerRegistrationMail" placeholder="Mailadresse / Anmeldung fuer den Kunden">'+esc287(custRegMail287(c))+'</textarea></label>'+ 
+          '<label class="field">Anmeldung fuer die Spedition<textarea id="customerFolderCarrierRegistrationMail" placeholder="Mailadresse / Anmeldung fuer die Spedition">'+esc287(carrierRegMail287(c))+'</textarea></label>';
+        if(info && info.nextSibling) info.parentNode.insertBefore(box,info.nextSibling); else sec.insertBefore(box,sec.firstChild);
+      }
+      var oldMail=sec.querySelector('#customerFolderMail');
+      if(oldMail){
+        oldMail.value=carrierRegMail287(c);
+        var lab=oldMail.closest ? oldMail.closest('label.field') : null;
+        if(lab){lab.style.display='none'; lab.setAttribute('data-rc287-hidden','true');}
+      }
+      var customerEl=sec.querySelector('#customerFolderCustomerRegistrationMail');
+      var carrierEl=sec.querySelector('#customerFolderCarrierRegistrationMail');
+      if(customerEl && document.activeElement!==customerEl) customerEl.value=custRegMail287(c);
+      if(carrierEl && document.activeElement!==carrierEl) carrierEl.value=carrierRegMail287(c);
+    }catch(err){console.warn(VERSION,err)}
+  }
+
+  function enhanceCustomerAddForm287(){
+    try{
+      if(!state || state.view!=='customers')return;
+      var base=by287('newCustMail'); if(!base)return;
+      if(!by287('rc287NewCustomerRegistrationFields')){
+        var wrap=document.createElement('div');
+        wrap.id='rc287NewCustomerRegistrationFields';
+        wrap.className='rc287-mail-grid';
+        wrap.innerHTML=
+          '<label class="field">Anmeldung fuer den Kunden<textarea id="newCustCustomerRegistrationMail" placeholder="Mailadresse / Anmeldung fuer den Kunden"></textarea></label>'+ 
+          '<label class="field">Anmeldung fuer die Spedition<textarea id="newCustCarrierRegistrationMail" placeholder="Mailadresse / Anmeldung fuer die Spedition"></textarea></label>';
+        var lab=base.closest ? base.closest('label.field') : null;
+        if(lab && lab.parentNode) lab.parentNode.insertBefore(wrap,lab.nextSibling);
+      }
+      var labOld=base.closest ? base.closest('label.field') : null;
+      if(labOld){
+        labOld.querySelector('textarea').placeholder='Wird automatisch aus „Anmeldung fuer die Spedition“ gesetzt';
+        labOld.style.display='none';
+      }
+    }catch(err){console.warn(VERSION,err)}
+  }
+
+  function customerMatch287(c,id,acc,name){
+    if(!c)return false;
+    var cid=String(c.id||''), ca=String(c.account||c.customerNumber||'').trim().toLowerCase(), cn=String(c.name||'').trim().toLowerCase();
+    return (id && cid===String(id)) || (acc && ca===String(acc).trim().toLowerCase()) || (name && cn===String(name).trim().toLowerCase());
+  }
+  function relatedCounts287(c){
+    var id=String(c.id||''), acc=String(c.account||c.customerNumber||''), name=String(c.name||'');
+    var shipments=(state.shipments||[]).filter(function(s){var sc=s.customer||{};return String(s.customerId||'')===id || String(sc.id||'')===id || String(sc.account||sc.customerNumber||'').toLowerCase()===acc.toLowerCase() || String(sc.name||'').toLowerCase()===name.toLowerCase()});
+    var pallets=(state.palletAccount||[]).filter(function(p){return customerMatch287({id:p.customerId,account:p.customerAccount,name:p.customerName},id,acc,name)});
+    var tasks=(state.tasks||[]).filter(function(t){return String(t.linkedCustomer||'').toLowerCase()===name.toLowerCase() || String(t.linkedAccount||'').toLowerCase()===acc.toLowerCase() || String(t.customerId||'')===id});
+    var abd=(state.abdRequests||[]).filter(function(r){var rc=r.customer||{};return String(r.customerId||'')===id || String(rc.id||'')===id || String(rc.account||rc.customerNumber||'').toLowerCase()===acc.toLowerCase() || String(rc.name||'').toLowerCase()===name.toLowerCase()});
+    var notes=(state.customerNotes&&state.customerNotes[id])?state.customerNotes[id].length:0;
+    return {shipments:shipments.length,pallets:pallets.length,tasks:tasks.length,abd:abd.length,notes:notes};
+  }
+  window.rc287DeleteCustomerComplete=function(id){
+    try{if(typeof requireEdit==='function' && !requireEdit('customers'))return}catch(e){}
+    var c=customer287(id); if(!c)return alert('Kunde nicht gefunden.');
+    var acc=String(c.account||c.customerNumber||''), name=String(c.name||''), cid=String(c.id||'');
+    var counts=relatedCounts287(c);
+    var msg='Kunde komplett loeschen?\n\n'+[acc,name,c.country||''].filter(Boolean).join(' · ')+
+      '\n\nEs werden entfernt:'+
+      '\n- Kundenstamm-Eintrag'+
+      '\n- gespeicherte Sendungen: '+counts.shipments+
+      '\n- Palettenkonto-Buchungen: '+counts.pallets+
+      '\n- Aufgaben-Verknuepfungen: '+counts.tasks+
+      '\n- ABD-Anfragen: '+counts.abd+
+      '\n- Kundennotizen: '+counts.notes+
+      '\n\nDiese Aktion kann nicht rueckgaengig gemacht werden.';
+    if(!confirm(msg))return;
+    var typed=prompt('Zur Sicherheit bitte exakt LOESCHEN eingeben:','');
+    if(String(typed||'').trim().toUpperCase()!=='LOESCHEN')return alert('Loeschen abgebrochen.');
+    state.customers=(state.customers||[]).filter(function(x){return String(x.id||'')!==cid});
+    state.shipments=(state.shipments||[]).filter(function(s){var sc=s.customer||{};return !(String(s.customerId||'')===cid || String(sc.id||'')===cid || String(sc.account||sc.customerNumber||'').toLowerCase()===acc.toLowerCase() || String(sc.name||'').toLowerCase()===name.toLowerCase())});
+    state.palletAccount=(state.palletAccount||[]).filter(function(p){return !customerMatch287({id:p.customerId,account:p.customerAccount,name:p.customerName},cid,acc,name)});
+    state.tasks=(state.tasks||[]).filter(function(t){return !(String(t.linkedCustomer||'').toLowerCase()===name.toLowerCase() || String(t.linkedAccount||'').toLowerCase()===acc.toLowerCase() || String(t.customerId||'')===cid)});
+    state.abdRequests=(state.abdRequests||[]).filter(function(r){var rc=r.customer||{};return !(String(r.customerId||'')===cid || String(rc.id||'')===cid || String(rc.account||rc.customerNumber||'').toLowerCase()===acc.toLowerCase() || String(rc.name||'').toLowerCase()===name.toLowerCase())});
+    if(state.customerNotes) delete state.customerNotes[cid];
+    if(state.selectedCustomerId===cid) state.selectedCustomerId='';
+    if(state.customerFolderId===cid) state.customerFolderId='';
+    if(state.customerFolderOpenId===cid) state.customerFolderOpenId='';
+    if(state.shipment && state.shipment.customerId===cid){state.shipment.customerId='';state.shipment.customerSearch='';state.shipment.addressConfirmed=false;}
+    try{if(typeof audit==='function')audit('Kunde komplett geloescht', [acc,name].filter(Boolean).join(' · '))}catch(e){}
+    try{if(typeof save==='function')save()}catch(e){}
+    try{if(typeof render==='function')render()}catch(e){location.reload()}
+  };
+
+  function enhanceCustomerDelete287(){
+    try{
+      if(!state)return;
+      if(state.view==='customerfolder'){
+        var c=currentCustomer287(); if(c){
+          var toolbar=document.querySelector('.customer-folder-open-toolbar-rc85') || document.querySelector('.folder-title .toolbar');
+          if(toolbar && !toolbar.querySelector('.rc287-delete-folder')){
+            var b=document.createElement('button');
+            b.className='danger rc287-delete-folder';
+            b.textContent='Kunde komplett loeschen';
+            b.onclick=function(){rc287DeleteCustomerComplete(c.id)};
+            toolbar.appendChild(b);
+          }
+        }
+      }
+      if(state.view==='customers'){
+        var root=document.getElementById('content')||document.body;
+        Array.from(root.querySelectorAll('button.rc223-customer-delete')).forEach(function(b){
+          var onclick=String(b.getAttribute('onclick')||'');
+          var m=onclick.match(/rc223DeleteCustomer\(&quot;([^&]+)&quot;\)|rc223DeleteCustomer\(['"]([^'"]+)['"]\)/);
+          var id=m&&(m[1]||m[2]);
+          if(id){
+            b.textContent='Komplett loeschen';
+            b.className='danger rc287-customer-delete';
+            b.setAttribute('onclick','rc287DeleteCustomerComplete(&quot;'+esc287(id)+'&quot;)');
+          }
+        });
+      }
+    }catch(err){console.warn(VERSION,err)}
+  }
+
+  function afterRender287(){
+    enhanceCustomerFolderMail287();
+    enhanceCustomerAddForm287();
+    enhanceCustomerDelete287();
+  }
+
+  var baseSaveMail287=typeof saveCustomerFolderMail==='function'?saveCustomerFolderMail:null;
+  if(baseSaveMail287){
+    window.saveCustomerFolderMail=function(id){
+      var data=readRegFields287();
+      var hidden=by287('customerFolderMail'); if(hidden)hidden.value=data.carrier||hidden.value||'';
+      var r=baseSaveMail287.apply(this,arguments);
+      applyRegFields287(id,data);
+      try{if(typeof save==='function')save()}catch(e){}
+      try{if(typeof render==='function')render()}catch(e){}
+      return r;
+    };
+    try{saveCustomerFolderMail=window.saveCustomerFolderMail}catch(e){}
+  }
+  var baseSaveDetails287=typeof saveCustomerFolderDetails==='function'?saveCustomerFolderDetails:null;
+  if(baseSaveDetails287){
+    window.saveCustomerFolderDetails=function(id){
+      var data=readRegFields287();
+      var hidden=by287('customerFolderMail'); if(hidden)hidden.value=data.carrier||hidden.value||'';
+      var r=baseSaveDetails287.apply(this,arguments);
+      applyRegFields287(id,data);
+      try{if(typeof save==='function')save()}catch(e){}
+      try{if(typeof render==='function')render()}catch(e){}
+      return r;
+    };
+    try{saveCustomerFolderDetails=window.saveCustomerFolderDetails}catch(e){}
+  }
+  var baseAddCustomer287=typeof addCustomer==='function'?addCustomer:null;
+  if(baseAddCustomer287){
+    window.addCustomer=function(){
+      var data=readRegFields287();
+      var oldMail=by287('newCustMail');
+      if(oldMail && data.newCarrier) oldMail.value=data.newCarrier;
+      var before=(state.customers||[]).map(function(c){return String(c.id||'')});
+      var r=baseAddCustomer287.apply(this,arguments);
+      var created=customer287(state.selectedCustomerId) || (state.customers||[]).find(function(c){return before.indexOf(String(c.id||''))<0});
+      if(created){
+        applyRegFields287(created.id,{customer:data.newCustomer,carrier:data.newCarrier || data.newCustomer || oldMail&&oldMail.value});
+        try{if(typeof save==='function')save()}catch(e){}
+        try{if(typeof render==='function')render()}catch(e){}
+      }
+      return r;
+    };
+    try{addCustomer=window.addCustomer}catch(e){}
+  }
+
+  var baseRender287=typeof render==='function'?render:null;
+  if(baseRender287 && !baseRender287.__rc287Wrapped){
+    window.render=function(){
+      var r=baseRender287.apply(this,arguments);
+      setTimeout(afterRender287,0);
+      setTimeout(afterRender287,120);
+      return r;
+    };
+    window.render.__rc287Wrapped=true;
+    try{render=window.render}catch(e){}
+  }
+  document.addEventListener('input',function(ev){
+    var id=ev.target&&ev.target.id;
+    if(id==='customerFolderCarrierRegistrationMail'){
+      var old=by287('customerFolderMail'); if(old)old.value=normMail287(ev.target.value);
+    }
+  });
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(afterRender287,150);setTimeout(afterRender287,800)});
+  setTimeout(afterRender287,200);
+})();
+</script>
+
+
+
 
 <!-- RC285: TeamLive/MS-Cloud-Block entfernt -->
