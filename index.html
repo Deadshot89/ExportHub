@@ -39263,3 +39263,154 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 
 
 <!-- RC285: TeamLive/MS-Cloud-Block entfernt -->
+
+<!-- PRIVATE RC288 START: ABD Bereich stabil + SharePoint-Lieferschein weg + UPS Land -->
+<style id="rc288-abd-ups-css">
+  #rc288AbdPanel{
+    display:block!important;
+    border:2px solid #fdba74!important;
+    background:#fff7ed!important;
+    border-radius:22px!important;
+    padding:16px!important;
+    margin:14px 0!important;
+    box-shadow:0 10px 24px rgba(249,115,22,.12)!important;
+    grid-column:1/-1!important;
+  }
+  #rc288AbdPanel h3{color:#9a3412!important;margin-bottom:8px!important}
+  #rc288AbdPanel .rc288-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important;margin-top:10px!important}
+  #rc288AbdPanel .rc288-grid label{font-weight:900;color:#334155;display:grid;gap:6px}
+  #rc288AbdPanel textarea{min-height:78px!important}
+  #rc288AbdPanel .rc288-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px!important}
+  #rc288AbdPreview{white-space:pre-wrap;background:#fff;border:1px solid #fed7aa;border-radius:14px;padding:11px;margin-top:10px;font-size:12px;line-height:1.45;color:#431407;max-height:280px;overflow:auto}
+  .sharepoint-sync-rc83,.sales-status-empty-rc83,.rc119-folder-warn,.rc119-folder-box,.rc119-folder-panel,.rc232-folder-note,.rc266-offline-status,.rc83SharePointPanel{display:none!important}
+  .rc288-ups-result-ok{border-left:5px solid var(--green,#16a34a)!important;background:#f0fdf4!important}
+  @media(max-width:900px){#rc288AbdPanel .rc288-grid{grid-template-columns:1fr!important}}
+</style>
+<script id="rc288-abd-sharepoint-ups">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC288_ABD_UPS__)return;
+  window.__EXPORTHUB_RC288_ABD_UPS__=true;
+
+  function st(){try{return typeof state!=='undefined'&&state?state:null}catch(e){return null}}
+  function curView(){var s=st();return String((s&&s.view)||'')}
+  function by(id){return document.getElementById(id)}
+  function esc288(v){try{if(typeof esc==='function')return esc(v)}catch(e){}return String(v==null?'':v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
+  function ref288(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
+  function uid288(prefix){try{if(typeof uid==='function')return uid(prefix||'ID')}catch(e){}return (prefix||'ID')+'-'+Math.random().toString(36).slice(2,9)+'-'+Date.now().toString(36)}
+  function saveQuiet(){try{if(typeof save==='function')save()}catch(e){}}
+  function currentShipment(){var s=st(); if(!s)return {}; if(s.activeShipmentId&&s.activeShipmentId!=='current'&&Array.isArray(s.shipments)){var f=s.shipments.find(function(x){return String(x.id||'')===String(s.activeShipmentId)}); if(f)return f} return s.shipment||{};}
+  function selectedCust(){try{if(typeof selectedCustomer==='function')return selectedCustomer()||{}}catch(e){} var s=st(), sh=currentShipment(); if(!s)return {}; return (s.customers||[]).find(function(c){return String(c.id||'')===String(sh.customerId||s.selectedCustomerId||'')})||{};}
+  function totals288(sh){try{if(typeof totals==='function')return totals(sh)}catch(e){} var out={count:0,weight:0,ldm:0}; (sh&&Array.isArray(sh.rows)?sh.rows:[]).forEach(function(r){var c=Number(r.count||0)||0;out.count+=c;out.weight+=(Number(r.weight||0)||0);out.ldm+=c*(Number(r.ldm||0)||0)}); return out;}
+  function docs288(sh){var out=[]; String(sh.deliveryNotes||'').split(/[\n,;]+/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)}); (Array.isArray(sh.deliveryFiles)?sh.deliveryFiles:[]).forEach(function(f){var n=String((f&&(f.name||f.fileName||f.filename||f.relativePath))||'').trim(); if(n)out.push(n)}); return out.join('\n');}
+  function gpzMail(){var s=st(); var mail=String((s&&(s.rc265GpzMail||s.gpzMail||s.rc288GpzMail))||localStorage.getItem('exporthub_gpz_mail')||'mail@gp-zollabfertigung.de').trim(); if(s){s.rc288GpzMail=mail;s.rc265GpzMail=mail;s.gpzMail=mail} return mail;}
+  function setGpz(v){var s=st(); if(s){s.rc288GpzMail=String(v||'').trim();s.rc265GpzMail=s.rc288GpzMail;s.gpzMail=s.rc288GpzMail} try{localStorage.setItem('exporthub_gpz_mail',String(v||'').trim())}catch(e){} saveQuiet();}
+  window.rc288SetGpzMail=function(v){setGpz(v);rc288UpdateAbdPreview();return false};
+
+  function defaultAbdText(){return [
+    'Hallo GPZ,','',
+    'bitte fuer die folgende Sendung eine ABD-Anfrage bearbeiten:','',
+    'Referenznummer: {Referenznummer}',
+    'Kunde: {Kundenname}',
+    'Kundennummer: {Kundennummer}',
+    'Land: {Land}',
+    'Empfaengeradresse: {Empfaengeradresse}',
+    'Geplantes Abholdatum: {Abholdatum}',
+    'Spedition: {Spedition}',
+    'Collis: {Collis}',
+    'Gewicht: {Gewicht} kg',
+    'Lademeter: {Lademeter}',
+    'Warenbeschreibung: {Warenbeschreibung}','',
+    'Lieferscheine / DNCs:',
+    '{Lieferscheine}',
+    'Bemerkung:',
+    '{Bemerkung}','','Vielen Dank.','','Mit freundlichen Gruessen','Tobias Limberg'
+  ].join('\n')}
+  function abdDefaults(){var s=st()||{}, sh=currentShipment(), c=selectedCust(), t=totals288(sh); var d=s.rc288AbdDraft||{}; return Object.assign({
+    ref:ref288(sh.ref)||'',
+    customerName:c.name||sh.customerName||'',
+    account:c.account||c.customerNumber||'',
+    country:c.country||sh.country||'',
+    address:c.address||sh.address||'',
+    pickupDate:sh.pickupDate||'',
+    carrier:sh.carrier||c.carrier||'',
+    colli:t.count||'',
+    weight:t.weight?Number(t.weight).toFixed(1):'',
+    ldm:t.ldm?Number(t.ldm).toFixed(2):'',
+    deliveryNotes:docs288(sh),
+    goods:sh.goodsDescription||'Waren laut Rechnung/Ladeliste',
+    comment:sh.comments||'',
+    mailText:s.rc288AbdStandardText||s.rc265AbdStandardText||defaultAbdText()
+  }, d);}
+  function abdBody(d){d=d||abdDefaults(); var map={
+    Referenznummer:ref288(d.ref)||'offen', Kundenname:d.customerName||'offen', Kundennummer:d.account||'offen', Land:d.country||'offen',
+    Empfaengeradresse:String(d.address||'offen').replace(/\n/g,', '), Abholdatum:d.pickupDate||'offen', Spedition:d.carrier||'offen',
+    Collis:d.colli||'0', Gewicht:d.weight||'0', Lademeter:d.ldm||'0', Warenbeschreibung:d.goods||'offen', Lieferscheine:d.deliveryNotes||'offen', Bemerkung:d.comment||'-'
+  }; return String(d.mailText||defaultAbdText()).replace(/\{([^}]+)\}/g,function(all,k){return Object.prototype.hasOwnProperty.call(map,k)?map[k]:all});}
+  function abdSubject(d){d=d||abdDefaults(); return 'ABD Anfrage '+(ref288(d.ref)||'[Referenznummer]')+' / '+(d.customerName||'Kunde')}
+  window.rc288AbdField=function(k,v){var s=st(); if(!s)return false; s.rc288AbdDraft=s.rc288AbdDraft||abdDefaults(); s.rc288AbdDraft[k]=v; if(k==='mailText')s.rc288AbdStandardText=String(v||''); saveQuiet(); rc288UpdateAbdPreview(); return false};
+  window.rc288UpdateAbdPreview=function(){var box=by('rc288AbdPreview'); if(!box)return false; var d=abdDefaults(); box.textContent='An: '+gpzMail()+'\nBetreff: '+abdSubject(d)+'\n\n'+abdBody(d); return false};
+  function saveAbd(){var s=st(); if(!s)return null; var d=abdDefaults(); var r=ref288(d.ref); if(!r){alert('Bitte zuerst eine ABD-Referenznummer eintragen.');return null} d.ref=r; s.abdRequests=Array.isArray(s.abdRequests)?s.abdRequests:[]; var found=s.abdRequests.find(function(x){return ref288(x&&x.ref)===r}); var item=Object.assign(found||{},d,{id:(found&&found.id)||('ABD-'+r),ref:r,type:'ABD Anfrage',status:(found&&found.status)||'offen',updatedAt:new Date().toISOString(),createdAt:(found&&found.createdAt)||new Date().toISOString()}); if(!found)s.abdRequests.unshift(item); saveQuiet(); return item;}
+  window.rc288SaveAbd=function(){var item=saveAbd(); if(item)alert('ABD Anfrage gespeichert: '+item.ref); return false};
+  window.rc288SendAbd=function(){var item=saveAbd(); if(!item)return false; window.location.href='mailto:'+encodeURIComponent(gpzMail())+'?subject='+encodeURIComponent(abdSubject(item))+'&body='+encodeURIComponent(abdBody(item)); return false};
+  window.rc288CopyAbd=function(){var item=saveAbd(); if(!item)return false; var body=abdBody(item); try{navigator.clipboard.writeText(body).then(function(){alert('ABD Mailtext kopiert.')},function(){prompt('ABD Mailtext kopieren:',body)})}catch(e){prompt('ABD Mailtext kopieren:',body)} return false};
+
+  function abdPanelHtml(){var d=abdDefaults(); return '<section id="rc288AbdPanel">'+
+    '<h3>ABD Anfrage an GPZ</h3><div class="small">Unabhaengig von der Sendung. Die erfassten Daten werden in die GPZ-Mail eingesetzt. Kein Referenzordner-Link in der Mail.</div>'+ 
+    '<div class="rc288-grid">'+
+    '<label>GPZ Mailadresse<input value="'+esc288(gpzMail())+'" oninput="rc288SetGpzMail(this.value)"></label>'+ 
+    '<label>Referenznummer<input maxlength="6" value="'+esc288(d.ref||'')+'" oninput="rc288AbdField(\'ref\',this.value.toUpperCase())"></label>'+ 
+    '<label>Kunde<input value="'+esc288(d.customerName||'')+'" oninput="rc288AbdField(\'customerName\',this.value)"></label>'+ 
+    '<label>Kundennummer<input value="'+esc288(d.account||'')+'" oninput="rc288AbdField(\'account\',this.value)"></label>'+ 
+    '<label>Land<input value="'+esc288(d.country||'')+'" oninput="rc288AbdField(\'country\',this.value)"></label>'+ 
+    '<label>Geplantes Abholdatum<input type="date" value="'+esc288(d.pickupDate||'')+'" oninput="rc288AbdField(\'pickupDate\',this.value)"></label>'+ 
+    '<label>Collis<input value="'+esc288(d.colli||'')+'" oninput="rc288AbdField(\'colli\',this.value)"></label>'+ 
+    '<label>Gewicht kg<input value="'+esc288(d.weight||'')+'" oninput="rc288AbdField(\'weight\',this.value)"></label>'+ 
+    '<label>Lademeter<input value="'+esc288(d.ldm||'')+'" oninput="rc288AbdField(\'ldm\',this.value)"></label>'+ 
+    '<label>Spedition<input value="'+esc288(d.carrier||'')+'" oninput="rc288AbdField(\'carrier\',this.value)"></label>'+ 
+    '<label style="grid-column:1/-1">Empfaengeradresse<textarea oninput="rc288AbdField(\'address\',this.value)">'+esc288(d.address||'')+'</textarea></label>'+ 
+    '<label style="grid-column:1/-1">Lieferscheine / DNCs<textarea oninput="rc288AbdField(\'deliveryNotes\',this.value)">'+esc288(d.deliveryNotes||'')+'</textarea></label>'+ 
+    '<label style="grid-column:1/-1">Warenbeschreibung<textarea oninput="rc288AbdField(\'goods\',this.value)">'+esc288(d.goods||'')+'</textarea></label>'+ 
+    '<label style="grid-column:1/-1">Bemerkung<textarea oninput="rc288AbdField(\'comment\',this.value)">'+esc288(d.comment||'')+'</textarea></label>'+ 
+    '<label style="grid-column:1/-1">Standardmail Text<textarea rows="11" oninput="rc288AbdField(\'mailText\',this.value)">'+esc288(d.mailText||defaultAbdText())+'</textarea></label>'+ 
+    '</div><pre id="rc288AbdPreview">'+esc288('An: '+gpzMail()+'\nBetreff: '+abdSubject(d)+'\n\n'+abdBody(d))+'</pre>'+ 
+    '<div class="rc288-actions"><button type="button" class="btn" onclick="return rc288SendAbd()">ABD Mail an GPZ erstellen</button><button type="button" class="ghost" onclick="return rc288SaveAbd()">ABD Anfrage speichern</button><button type="button" class="ghost" onclick="return rc288CopyAbd()">Mailtext kopieren</button></div>'+ 
+    '</section>';}
+
+  function textOf(el){return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim()}
+  function goodsField(){return Array.from(document.querySelectorAll('label,.field')).find(function(el){return /Warenbeschreibung\s*fuer\s*CMR\s*Feld\s*9|Warenbeschreibung\s*für\s*CMR\s*Feld\s*9/i.test(textOf(el))})||null;}
+  function colliCard(){return Array.from(document.querySelectorAll('.card,section,article,div')).find(function(el){var h=el.querySelector&&el.querySelector('h2,h3,h4'); return h&&/^Collis,\s*(Masse|Maße),\s*Gewicht,\s*Lademeter$/i.test(textOf(h));})||null;}
+  function ensureAbdPanel(){if(curView()!=='shipment')return; Array.from(document.querySelectorAll('#rc265AbdPanel,.rc265-abd-request-panel,#rc260AbdPanel,.rc260-abd-panel')).forEach(function(el){el.style.display='none';}); var panel=by('rc288AbdPanel'); if(!panel){var anchor=by('rc261MailPanel')||goodsField()||colliCard()||document.getElementById('content')||document.body; anchor.insertAdjacentHTML(anchor.id==='content'?'beforeend':'afterend', abdPanelHtml()); panel=by('rc288AbdPanel');} var mail=by('rc261MailPanel'), goods=goodsField(); if(mail){ if(mail.nextElementSibling!==panel)mail.insertAdjacentElement('afterend',panel);} else if(goods && goods.nextElementSibling!==panel){ goods.insertAdjacentElement('afterend',panel);} panel.style.display='block'; rc288UpdateAbdPreview();}
+
+  function cleanupSharepointShipment(){if(curView()!=='shipment')return; Array.from(document.querySelectorAll('.sharepoint-sync-rc83,.sales-status-empty-rc83,.rc119-folder-warn,.rc119-folder-box,.rc119-folder-panel,.rc232-folder-note,.rc266-offline-status,.rc83SharePointPanel')).forEach(function(el){el.remove()}); Array.from(document.querySelectorAll('.card,.notice,.infobox,.okbox,.badbox,section,article,div')).forEach(function(el){ if(el.id==='rc288AbdPanel'||(el.closest&&el.closest('#rc288AbdPanel')))return; var t=textOf(el); if(/OneDrive-\/SharePoint-Basislink|SharePoint-Basislink|Automatisch aus SharePoint direkt lesen|Sendungsordner\s*&\s*Lieferscheine|SharePoint.*Lieferschein|Lieferschein.*SharePoint/i.test(t)){ if((el.className&&String(el.className).length)||el.querySelector('h3,h2')) el.remove(); }});}
+  window.rc288RunShipment=function(){cleanupSharepointShipment();ensureAbdPanel();};
+
+  function upsSettings(){var s=st(); if(!s)return {}; s.upsSettings=s.upsSettings||{}; return s.upsSettings;}
+  window.rc288SetUps=function(k,v){var u=upsSettings(); u[k]=v; saveQuiet(); return false};
+  function rateGroups(){var arr=(SEED&&Array.isArray(SEED.upsRates)?SEED.upsRates:[]).map(function(r){return String(r.country||'')}).filter(Boolean); return Array.from(new Set(arr));}
+  function serviceList(){var arr=(SEED&&Array.isArray(SEED.upsRates)?SEED.upsRates:[]).map(function(r){return String(r.service||'UPS Standard')}).filter(Boolean); return Array.from(new Set(arr));}
+  function transit(r){try{if(typeof upsTransitTime==='function')return upsTransitTime(r)}catch(e){} var c=String(r&&r.country||'').toLowerCase(), svc=String(r&&r.service||'').toLowerCase(); if(c==='deutschland')return svc.indexOf('express')>=0?'1 Werktag':'1-2 Werktage'; if(c==='eu')return svc.indexOf('express')>=0?'1-2 Werktage':'2-5 Werktage'; return svc.indexOf('express')>=0?'2-5 Werktage':'3-7 Werktage';}
+  window.calculator=function(){var u=upsSettings(); var groups=rateGroups(); if(!groups.length)groups=['Deutschland','EU','Drittland']; var services=serviceList(); if(!services.length)services=['UPS Standard']; var group=u.countryGroup||'Deutschland'; return head('💶 UPS-/Versandrechner','Kundeneutral mit Start-PLZ, Ziel-PLZ, konkretem Zielland, Service, Gewicht, Paketanzahl und hinterlegter Laufzeit. Ausgabe erfolgt als Preis laut UPS Tool Liste / unsere Preise.')+
+    '<div class="grid2"><div class="card"><h3>Preis berechnen</h3>'+ 
+    '<label class="field">Start-PLZ<input id="upsStart" value="'+esc288(u.start||'41334')+'" oninput="rc288SetUps(\'start\',this.value)"></label>'+ 
+    '<label class="field">Ziel-PLZ<input id="upsDest" value="'+esc288(u.dest||'')+'" oninput="rc288SetUps(\'dest\',this.value)"></label>'+ 
+    '<label class="field">Zielland konkret<input id="upsCountryName" list="rc288UpsCountries" value="'+esc288(u.countryName||'')+'" placeholder="z. B. Deutschland, Frankreich, Schweiz" oninput="rc288SetUps(\'countryName\',this.value)"><datalist id="rc288UpsCountries"><option value="Deutschland"><option value="Niederlande"><option value="Belgien"><option value="Frankreich"><option value="Spanien"><option value="Italien"><option value="Polen"><option value="Schweden"><option value="Schweiz"><option value="Türkei"><option value="USA"><option value="China"></datalist></label>'+ 
+    '<label class="field">Preisgruppe / UPS-Landgruppe<select id="upsCountry" onchange="rc288SetUps(\'countryGroup\',this.value)">'+groups.map(function(g){return '<option '+(g===group?'selected':'')+'>'+esc288(g)+'</option>'}).join('')+'</select></label>'+ 
+    '<label class="field">Service<select id="upsService" onchange="rc288SetUps(\'service\',this.value)"><option value="auto">Automatisch passend auswählen</option>'+services.map(function(x){return '<option value="'+esc288(x)+'" '+(u.service===x?'selected':'')+'>'+esc288(x)+'</option>'}).join('')+'</select></label>'+ 
+    '<label class="field">Gewicht je Paket kg<input id="upsKg" type="number" step="0.1" value="'+esc288(u.kg||'5')+'" oninput="rc288SetUps(\'kg\',this.value)"></label>'+ 
+    '<label class="field">Anzahl Pakete<input id="upsCount" type="number" min="1" step="1" value="'+esc288(u.count||'1')+'" oninput="rc288SetUps(\'count\',this.value)"></label>'+ 
+    '<button class="btn" onclick="return calcUps()">Preis und Laufzeit anzeigen</button><div id="upsResult" class="infobox">Bitte Daten eingeben.</div></div>'+ 
+    '<div class="card"><h3>Hinterlegte Preisstufen</h3><table class="table"><tr><th>Service</th><th>Zone</th><th>Land/Gruppe</th><th>bis kg je Paket</th><th>Preis je Paket</th><th>Laufzeit</th></tr>'+((SEED&&SEED.upsRates)||[]).map(function(r){return '<tr><td>'+esc288(r.service||'UPS Standard')+'</td><td>'+esc288(r.zone||'')+'</td><td>'+esc288(r.country||'')+'</td><td>'+esc288(r.maxKg||'')+'</td><td>'+Number(r.price||0).toFixed(2)+' €</td><td>'+esc288(transit(r))+'</td></tr>'}).join('')+'</table><div class="notice">Das konkrete Zielland wird gespeichert. Die Preisberechnung nutzt die hinterlegte UPS-Landgruppe Deutschland / EU / Drittland bzw. die vorhandenen Preisgruppen.</div></div></div>';};
+  window.calcUps=function(){var u=upsSettings(); var start=(by('upsStart')||{}).value||u.start||'41334'; var dest=(by('upsDest')||{}).value||u.dest||''; var countryName=(by('upsCountryName')||{}).value||u.countryName||''; var group=(by('upsCountry')||{}).value||u.countryGroup||'Deutschland'; var svc=(by('upsService')||{}).value||u.service||'auto'; var kg=Number((by('upsKg')||{}).value||u.kg||0)||0; var count=Math.max(1,Math.floor(Number((by('upsCount')||{}).value||u.count||1)||1)); Object.assign(u,{start:start,dest:dest,countryName:countryName,countryGroup:group,service:svc,kg:String(kg),count:String(count)}); var rates=((SEED&&SEED.upsRates)||[]).filter(function(r){return String(r.country||'')===String(group)}); if(svc&&svc!=='auto')rates=rates.filter(function(r){return String(r.service||'UPS Standard')===String(svc)}); rates=rates.sort(function(a,b){return (Number(a.maxKg)||0)-(Number(b.maxKg)||0)}); var r=rates.find(function(x){return kg<=Number(x.maxKg||0)})||rates[rates.length-1]; var out=by('upsResult'); if(!r){if(out)out.innerHTML='Keine Preisstufe fuer diese Kombination aus Landgruppe, Service und Gewicht hinterlegt.'; saveQuiet(); return false} var total=Number(r.price||0)*count, totalKg=kg*count, serviceText=svc==='auto'?(r.service||'UPS Standard'):svc; if(out){out.className='infobox rc288-ups-result-ok'; out.innerHTML='<b>Preis laut UPS Tool Liste:</b> '+total.toFixed(2)+' € gesamt<br><b>Laufzeit:</b> '+esc288(transit(r))+'<br><span class="small">Service: '+esc288(serviceText)+' · '+count+' Paket(e) × '+Number(r.price||0).toFixed(2)+' € je Paket · Gewicht je Paket '+kg.toFixed(1)+' kg · Gesamtgewicht '+totalKg.toFixed(1)+' kg<br>Start '+esc288(start)+' → Ziel '+esc288(dest)+' · Zielland '+esc288(countryName||group)+' · Preisgruppe '+esc288(group)+' · Preisstufe bis '+esc288(r.maxKg)+' kg je Paket · '+esc288(r.zone||'')+'</span>';} saveQuiet(); return false;};
+  try{calculator=window.calculator; calcUps=window.calcUps}catch(e){}
+
+  var baseRender=window.render || (typeof render==='function'?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc288Wrapped){
+    window.render=function(){var r=baseRender.apply(this,arguments); setTimeout(window.rc288RunShipment,80); setTimeout(window.rc288RunShipment,300); return r};
+    window.render.__rc288Wrapped=true; try{render=window.render}catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(window.rc288RunShipment,200);setTimeout(window.rc288RunShipment,800)});
+  setTimeout(window.rc288RunShipment,200); setInterval(function(){if(curView()==='shipment')window.rc288RunShipment()},1200);
+})();
+</script>
+<!-- PRIVATE RC288 END: ABD Bereich stabil + SharePoint-Lieferschein weg + UPS Land -->
