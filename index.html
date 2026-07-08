@@ -40348,4 +40348,121 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </script>
 <!-- PRIVATE RC297 END: Academy + Pruefung nach Lehrjahren -->
 
+
+
+<!-- PRIVATE RC298 START: Benutzer & Rechte mit Vorlagen -->
+<style>
+.rc298-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.rc298-template-card{border:1px solid #bfdbfe;background:linear-gradient(135deg,#f8fbff,#ffffff);border-radius:20px;padding:14px;box-shadow:0 10px 22px rgba(15,23,42,.06)}
+.rc298-template-list{display:grid;gap:8px;max-height:420px;overflow:auto;padding-right:4px}.rc298-template-row{border:1px solid var(--line);border-radius:16px;background:#fff;padding:11px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.rc298-template-row b{color:#08245d}.rc298-mini{font-size:11px;color:#64748b;font-weight:800;line-height:1.35}.rc298-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc298-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc298-badge.green{border-color:#bbf7d0;background:#dcfce7;color:#166534}.rc298-badge.orange{border-color:#fed7aa;background:#ffedd5;color:#9a3412}.rc298-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#475569}
+@media(max-width:1100px){.rc298-template-grid{grid-template-columns:1fr}}
+</style>
+<script>
+/* RC298: Benutzer & Rechte mit festen und eigenen Vorlagen */
+(function(){
+  function e(v){try{return esc(v)}catch(_){return String(v??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}}
+  function S(){ if(typeof state!=='object' || !state) window.state={}; state.rc298RightTemplates=Array.isArray(state.rc298RightTemplates)?state.rc298RightTemplates:[]; return state; }
+  function modules(){ return (typeof RIGHTS_MODULES!=='undefined' && Array.isArray(RIGHTS_MODULES)) ? RIGHTS_MODULES : []; }
+  function blankRights(){ var rights={}; modules().forEach(function(m){var id=m[0]; var base=(id==='start'||id==='dashboard'); rights[id]={visible:base,read:base,edit:false};}); return rights; }
+  function setMany(rights,ids,edit,readOnly){ (ids||[]).forEach(function(id){ if(!rights[id])return; rights[id]={visible:true,read:true,edit:!!edit}; if(readOnly)rights[id].edit=false; }); }
+  function allIds(){ return modules().map(function(m){return m[0]}); }
+  function cloneRights(r){ var out={}; modules().forEach(function(m){var id=m[0], x=(r&&r[id])||{}; out[id]={visible:!!x.visible,read:!!x.read,edit:!!x.edit}; }); return out; }
+  function counts(rights){ var v=0,r=0,ed=0; modules().forEach(function(m){var x=(rights||{})[m[0]]||{}; if(x.visible)v++; if(x.read)r++; if(x.edit)ed++;}); return {v:v,r:r,e:ed}; }
+  function builtinRights(id){ var rights=blankRights();
+    if(id==='none'){}
+    else if(id==='read'){ setMany(rights,allIds(),false,true); }
+    else if(id==='edit'){ setMany(rights,allIds(),true); }
+    else if(id==='export'){ setMany(rights,['start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','archive'],true); }
+    else if(id==='versand'){ setMany(rights,['start','dashboard','tasks','shipment','shipmentoverview','cmr','customers','customerfolder','calculator','archive'],true); }
+    else if(id==='academy'){ setMany(rights,['start','dashboard','tasks','sop','academy','quiz','customerfolder'],true); setMany(rights,['customers'],false,true); }
+    else if(id==='pruefung'){ setMany(rights,['start','dashboard','academy','quiz'],true); }
+    else if(id==='pallet'){ setMany(rights,['start','dashboard','pallet','customers','customerfolder','archive'],true); }
+    else if(id==='sales'){ setMany(rights,['start','dashboard','shipmentoverview','customerfolder','customers','calculator'],false,true); }
+    else if(id==='lead'){ setMany(rights,['start','dashboard','tasks','vacation','shipment','shipmentoverview','cmr','pallet','customers','customerfolder','calculator','customs','sop','academy','quiz','archive','rights'],true); }
+    ['start','dashboard'].forEach(function(k){ if(rights[k]){rights[k].visible=true;rights[k].read=true;} });
+    return rights;
+  }
+  function builtins(){ return [
+    {id:'none',name:'Nur Dashboard',type:'standard',desc:'Nur Start und Dashboard sichtbar.'},
+    {id:'read',name:'Alles lesen',type:'standard',desc:'Alle Bereiche sichtbar und lesbar, keine Bearbeitung.'},
+    {id:'edit',name:'Alles bearbeiten',type:'standard',desc:'Alle Bereiche sichtbar, lesbar und bearbeitbar.'},
+    {id:'export',name:'Export Voll',type:'standard',desc:'Sendungen, Aufgaben, Kunden, CMR, UPS, Zoll, Palettenkonto.'},
+    {id:'versand',name:'Versand / Sendungen',type:'standard',desc:'Sendung erstellen, Übersicht, Ladeliste/CMR, Kundenordner, UPS.'},
+    {id:'academy',name:'Azubi / Academy',type:'standard',desc:'Academy, Prüfung, SOP und Aufgaben.'},
+    {id:'pruefung',name:'Nur Academy & Prüfung',type:'standard',desc:'Lernen und Prüfung ohne operative Bearbeitung.'},
+    {id:'pallet',name:'Palettenkonto',type:'standard',desc:'Palettenkonto, Kundenordner und Archiv.'},
+    {id:'sales',name:'Sales / Lesen',type:'standard',desc:'Sendungsverfolgung und Kundenordner nur lesend.'},
+    {id:'lead',name:'Teamleitung',type:'standard',desc:'Operative Bereiche plus Rechteverwaltung.'}
+  ]; }
+  function custom(){ return S().rc298RightTemplates; }
+  function allTemplates(){ return builtins().concat(custom().map(function(t){return {id:t.id,name:t.name,type:'eigen',desc:t.desc||'Eigene Vorlage',rights:t.rights,createdAt:t.createdAt,createdBy:t.createdBy};})); }
+  function templateById(id){ return allTemplates().find(function(t){return t.id===id;})||builtins()[0]; }
+  function rightsForTemplate(id){ var t=templateById(id); return t.type==='eigen'?cloneRights(t.rights):builtinRights(t.id); }
+  function selectedLogin(){ return document.getElementById('rc298TemplateUser')?.value || state.rc93RightsUser || (users&&users[0]&&users[0].user) || ''; }
+  function selectedUser(){ var login=selectedLogin(); return (users||[]).find(function(u){return u.user===login}) || null; }
+  function currentDraftRights(u){
+    if(u && window.rc93RightsDrafts && window.rc93RightsDrafts[u.user] && window.rc93RightsDrafts[u.user].rights) return cloneRights(window.rc93RightsDrafts[u.user].rights);
+    var rights={}; modules().forEach(function(m){ var id=m[0], x=(typeof rightOf==='function'?rightOf(u,id):(u&&u.rights&&u.rights[id])||{}); rights[id]={visible:!!x.visible,read:!!x.read,edit:!!x.edit};}); return rights;
+  }
+  window.rc298ApplyTemplate=function(){
+    if(typeof canManageRights==='function' && !canManageRights())return alert('Keine Berechtigung für Rechtevorlagen.');
+    var u=selectedUser(); if(!u)return alert('Bitte Benutzer auswählen.');
+    if(typeof isAdminUser==='function' && isAdminUser(u))return alert('Admin-Benutzer behalten Vollzugriff. Vorlage nicht nötig.');
+    var tid=document.getElementById('rc298TemplateSelect')?.value || 'none';
+    u.rights=rightsForTemplate(tid);
+    try{users=normalizeUserRights(users)}catch(_){ }
+    if(currentUser&&currentUser.user===u.user)currentUser=(users||[]).find(function(x){return x.user===u.user})||u;
+    try{saveUsers()}catch(_){ }
+    try{audit('Rechtevorlage angewendet',(u.name||u.user)+' · '+templateById(tid).name)}catch(_){ }
+    alert('Vorlage angewendet: '+templateById(tid).name+' → '+(u.name||u.user));
+    try{render()}catch(_){ }
+    return false;
+  };
+  window.rc298SaveTemplateFromUser=function(){
+    if(typeof canManageRights==='function' && !canManageRights())return alert('Keine Berechtigung für Rechtevorlagen.');
+    var u=selectedUser(); if(!u)return alert('Bitte Benutzer auswählen.');
+    var name=(document.getElementById('rc298TemplateName')?.value||'').trim();
+    if(!name)return alert('Bitte Vorlagenname eintragen.');
+    var id='TPL-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);
+    var tpl={id:id,name:name,desc:'Gespeichert von '+(u.name||u.user),rights:currentDraftRights(u),createdAt:new Date().toLocaleString('de-DE'),createdBy:(currentUser&& (currentUser.name||currentUser.user))||'ExportHUB'};
+    S().rc298RightTemplates.unshift(tpl);
+    try{save()}catch(_){ }
+    try{audit('Eigene Rechtevorlage gespeichert',name+' aus '+(u.name||u.user))}catch(_){ }
+    alert('Eigene Vorlage gespeichert: '+name);
+    try{render()}catch(_){ }
+    return false;
+  };
+  window.rc298DeleteTemplate=function(id){
+    if(typeof canManageRights==='function' && !canManageRights())return alert('Keine Berechtigung für Rechtevorlagen.');
+    var list=custom(); var t=list.find(function(x){return x.id===id}); if(!t)return false;
+    if(!confirm('Eigene Vorlage "'+t.name+'" wirklich löschen?'))return false;
+    S().rc298RightTemplates=list.filter(function(x){return x.id!==id});
+    try{save()}catch(_){ }
+    try{audit('Eigene Rechtevorlage gelöscht',t.name)}catch(_){ }
+    try{render()}catch(_){ }
+    return false;
+  };
+  window.rc298RenameTemplate=function(id){
+    if(typeof canManageRights==='function' && !canManageRights())return alert('Keine Berechtigung für Rechtevorlagen.');
+    var t=custom().find(function(x){return x.id===id}); if(!t)return false;
+    var n=prompt('Neuer Name der Vorlage',t.name); if(!n)return false;
+    t.name=n.trim()||t.name; try{save()}catch(_){ } try{render()}catch(_){ } return false;
+  };
+  function card(){
+    var manage=typeof canManageRights==='function'?canManageRights():true;
+    var currentSel=state.rc93RightsUser||'';
+    var uopts=(users||[]).map(function(u){return '<option value="'+e(u.user)+'" '+(currentSel===u.user?'selected':'')+'>'+e(u.name||u.user)+' · '+e(u.role||'Benutzer')+'</option>';}).join('');
+    var opts=allTemplates().map(function(t){return '<option value="'+e(t.id)+'">'+(t.type==='eigen'?'★ ':'')+e(t.name)+'</option>';}).join('');
+    var rows=allTemplates().map(function(t){var r=rightsForTemplate(t.id), c=counts(r); return '<div class="rc298-template-row"><div><b>'+(t.type==='eigen'?'★ ':'')+e(t.name)+'</b><br><span class="rc298-mini">'+e(t.desc||'')+'</span><br><span class="rc298-badge">'+c.v+' sichtbar</span><span class="rc298-badge green">'+c.r+' lesen</span><span class="rc298-badge orange">'+c.e+' bearbeiten</span><span class="rc298-badge gray">'+e(t.type)+'</span></div><div class="rc298-actions">'+(t.type==='eigen'?'<button class="ghost" onclick="return rc298RenameTemplate(\''+e(t.id)+'\')" '+(manage?'':'disabled')+'>Umbenennen</button><button class="danger" onclick="return rc298DeleteTemplate(\''+e(t.id)+'\')" '+(manage?'':'disabled')+'>Löschen</button>':'')+'</div></div>';}).join('');
+    return '<div class="card" id="rc298RightsTemplates"><h2>Rechtevorlagen</h2><p class="muted">Feste Vorlagen und eigene Vorlagen speichern/anwenden. Eigene Vorlagen übernehmen die Rechte des ausgewählten Benutzers inklusive sichtbar/lesen/bearbeiten.</p><div class="rc298-template-grid"><div class="rc298-template-card"><h3>Vorlage anwenden</h3><label class="field">Benutzer<select id="rc298TemplateUser">'+uopts+'</select></label><label class="field">Vorlage<select id="rc298TemplateSelect">'+opts+'</select></label><button class="btn" onclick="return rc298ApplyTemplate()" '+(manage?'':'disabled')+'>Vorlage auf Benutzer anwenden</button><p class="small">Tipp: Admin/Tobias bleibt immer Vollzugriff.</p></div><div class="rc298-template-card"><h3>Eigene Vorlage speichern</h3><label class="field">Aus Benutzer übernehmen<select onchange="state.rc93RightsUser=this.value;try{save()}catch(e){}" id="rc298TemplateSource">'+uopts+'</select></label><label class="field">Name der neuen Vorlage<input id="rc298TemplateName" placeholder="z. B. Versand nur lesen / Teamleiter Export"></label><button class="ghost" onclick="return rc298SaveTemplateFromUser()" '+(manage?'':'disabled')+'>Aktuelle Rechte als Vorlage speichern</button><p class="small">Wenn im Rechteeditor noch ungespeicherte Änderungen offen sind, werden diese ebenfalls als Vorlage übernommen.</p></div></div><h3 style="margin-top:18px">Vorlagenübersicht</h3><div class="rc298-template-list">'+rows+'</div></div>';
+  }
+  var baseRights=typeof rights==='function'?rights:null;
+  if(baseRights){
+    rights=function(){ var html=baseRights.apply(this,arguments)||''; return html + card(); };
+    try{window.rights=rights}catch(_){ }
+  }
+})();
+</script>
+<!-- PRIVATE RC298 END: Benutzer & Rechte mit Vorlagen -->
+
 </body></html>
