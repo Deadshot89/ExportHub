@@ -42772,4 +42772,534 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC321 END: Sendung erstellen finaler Schnellrenderer + Savefix -->
+<!-- PRIVATE RC322 START: Ladeliste QR-Abholscan -->
+<style>
+#loadListDoc .rc322-qr-row{display:grid;grid-template-columns:1fr 35mm;gap:7px;margin:7px 0!important;align-items:stretch}
+#loadListDoc .rc322-qr-info{border:1px solid #bfdbfe!important;background:#eff6ff!important;border-radius:14px!important;padding:7px 9px!important;color:#08245d!important;font-size:10px!important;line-height:1.35!important}
+#loadListDoc .rc322-qr-box{border:1px solid #93c5fd!important;background:#fff!important;border-radius:14px!important;padding:6px!important;text-align:center!important;color:#08245d!important;box-shadow:0 4px 12px rgba(15,23,42,.05)}
+#loadListDoc .rc322-qr-box img{width:26mm!important;height:26mm!important;display:block!important;margin:0 auto 2px!important}
+#loadListDoc .rc322-qr-title{font-size:8px!important;font-weight:1000!important;text-transform:uppercase!important}
+#loadListDoc .rc322-qr-ref{font-size:10px!important;font-weight:1000!important;color:#0f172a!important}
+.rc322-pickup-badge{display:block;margin-top:4px;padding:4px 7px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:950;white-space:nowrap}
+.rc322-scan-note{position:fixed;z-index:99999;left:50%;top:18px;transform:translateX(-50%);background:#dcfce7;color:#14532d;border:1px solid #86efac;border-radius:14px;padding:12px 16px;box-shadow:0 12px 30px rgba(15,23,42,.16);font-weight:950}
+@media print{#loadListDoc .rc322-qr-box,#loadListDoc .rc322-qr-info{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-shadow:none!important}.rc322-scan-note{display:none!important}}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC322_PICKUP_QR__)return;
+  window.__EXPORTHUB_RC322_PICKUP_QR__=true;
+
+  function s322(v){return String(v==null?'':v)}
+  function e322(v){return s322(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function ref322(v){return s322(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function st322(){try{return state||null}catch(_){return null}}
+  function ships322(){var s=st322();return s&&Array.isArray(s.shipments)?s.shipments:[]}
+  function active322(){
+    var s=st322();
+    try{if(s&&s.activeShipmentId&&s.activeShipmentId!=='current')return ships322().find(function(x){return String(x.id)===String(s.activeShipmentId)})||s.shipment}catch(_){}
+    return s&&s.shipment?s.shipment:null;
+  }
+  function findByRef322(r){
+    r=ref322(r);
+    var s=st322();
+    if(!s||!r)return null;
+    return ships322().find(function(x){return ref322(x&&x.ref)===r}) || (s.shipment&&ref322(s.shipment.ref)===r?s.shipment:null);
+  }
+  function now322(){
+    var d=new Date(), p=function(n){return String(n).padStart(2,'0')};
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+  }
+  function fmt322(v){
+    var m=s322(v).match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+    return m?m[3]+'.'+m[2]+'.'+m[1]+(m[4]?' '+m[4]+':'+m[5]:''):s322(v);
+  }
+  function baseUrl322(){
+    var base='';
+    try{base=location.origin+location.pathname}catch(_){}
+    if(!base||base==='null')base=s322(location.href).split(/[?#]/)[0];
+    return base;
+  }
+  function pickupUrl322(sh){
+    return baseUrl322()+'?ehcmd=pickup&ref='+encodeURIComponent(ref322(sh&&sh.ref));
+  }
+  function qrUrl322(url){
+    return 'https://quickchart.io/qr?ecLevel=M&margin=1&size=180&text='+encodeURIComponent(url);
+  }
+  function note322(txt){
+    var box=document.createElement('div');
+    box.className='rc322-scan-note';
+    box.textContent=txt;
+    document.body.appendChild(box);
+    setTimeout(function(){try{box.remove()}catch(_){}},4200);
+  }
+  window.rc322MarkShipmentPickedByRef=function(reference,quiet){
+    var sh=findByRef322(reference);
+    if(!sh){if(!quiet)alert('Sendung zur Referenz '+reference+' nicht gefunden.');return false}
+    var stamp=now322(), date=stamp.slice(0,10);
+    sh.actualPickupDate=date;
+    sh.pickedUpAtDate=date;
+    sh.actualPickupDateTime=stamp;
+    sh.pickedUpAt=stamp;
+    sh.pickedUpAtTime=stamp;
+    sh.pickedUp=true;
+    sh.pickupStatus='abgeholt';
+    if(!sh.status||sh.status==='offen')sh.status='abgeholt';
+    try{if(typeof audit==='function')audit('Sendung per QR abgeholt',ref322(sh.ref))}catch(_){}
+    try{if(typeof save==='function')save()}catch(_){}
+    try{if(typeof render==='function')render()}catch(_){}
+    if(!quiet)note322('Sendung '+ref322(sh.ref)+' abgeholt: '+fmt322(stamp));
+    return true;
+  };
+  function addQr322(root){
+    var load=(root&&root.querySelector&&root.querySelector('#loadListDoc'))||document.getElementById('loadListDoc');
+    if(!load||load.querySelector('.rc322-qr-row'))return;
+    var sh=active322(), r=ref322(sh&&sh.ref);
+    if(!r)return;
+    var url=pickupUrl322(sh);
+    var html='<div class="rc322-qr-row">'+
+      '<div class="rc322-qr-info"><b>QR Abholscan</b><br>Scan setzt die Sendung automatisch auf <b>abgeholt</b> und speichert Datum/Uhrzeit in ExportHUB.<br><b>Referenz:</b> '+e322(r)+'</div>'+
+      '<div class="rc322-qr-box"><img crossorigin="anonymous" alt="QR Abholscan '+e322(r)+'" src="'+e322(qrUrl322(url))+'"><div class="rc322-qr-title">Abholung</div><div class="rc322-qr-ref">'+e322(r)+'</div></div>'+
+      '</div>';
+    var grids=load.querySelectorAll('.doc-grid');
+    var anchor=grids&&grids.length?grids[grids.length-1]:load.querySelector('.load-table');
+    if(anchor)anchor.insertAdjacentHTML('afterend',html);
+    else load.insertAdjacentHTML('beforeend',html);
+  }
+  function badges322(){
+    try{
+      if(!st322()||st322().view!=='shipmentoverview')return;
+      ships322().forEach(function(sh){
+        var stamp=sh.actualPickupDateTime||sh.pickedUpAt||sh.pickedUpAtTime;
+        if(!stamp)return;
+        Array.from(document.querySelectorAll('tr')).forEach(function(tr){
+          if((tr.textContent||'').indexOf(sh.ref||'')<0||tr.querySelector('.rc322-pickup-badge'))return;
+          var cell=tr.children&&tr.children[2]?tr.children[2]:null;
+          if(cell)cell.insertAdjacentHTML('beforeend','<span class="rc322-pickup-badge">Abgeholt: '+e322(fmt322(stamp))+'</span>');
+        });
+      });
+    }catch(_){}
+  }
+  function handleScan322(){
+    try{
+      var p=new URLSearchParams(location.search);
+      var cmd=s322(p.get('ehcmd')||p.get('cmd')).toLowerCase();
+      var r=ref322(p.get('ref')||p.get('reference'));
+      if((cmd==='pickup'||cmd==='abgeholt')&&r){
+        setTimeout(function(){
+          if(window.rc322MarkShipmentPickedByRef(r,false)){
+            try{history.replaceState(null,'',location.pathname+location.hash)}catch(_){}
+            setTimeout(function(){try{window.close()}catch(_){}},900);
+          }
+        },450);
+      }
+    }catch(_){}
+  }
+  ['showCurrentCmr','showSavedCmr'].forEach(function(n){
+    var base=window[n]||(typeof self!=='undefined'?self[n]:null);
+    if(typeof base==='function'&&!base.__rc322Wrapped){
+      window[n]=function(){var out=base.apply(this,arguments);setTimeout(function(){addQr322(document)},160);setTimeout(function(){addQr322(document)},520);return out};
+      window[n].__rc322Wrapped=true;
+      try{eval(n+'=window[n]')}catch(_){}
+    }
+  });
+  var oldRender322=window.render||(typeof render==='function'?render:null);
+  if(typeof oldRender322==='function'&&!oldRender322.__rc322Wrapped){
+    window.render=function(){var out=oldRender322.apply(this,arguments);setTimeout(function(){addQr322(document);badges322()},160);setTimeout(badges322,520);return out};
+    window.render.__rc322Wrapped=true;
+    try{render=window.render}catch(_){}
+  }
+  setTimeout(handleScan322,300);
+  setTimeout(function(){addQr322(document);badges322()},900);
+})();
+</script>
+<!-- PRIVATE RC322 END: Ladeliste QR-Abholscan -->
+<!-- PRIVATE RC323 START: QR-Abholscan mit PIN-Freigabe -->
+<style>
+.rc323-pin-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#eff6ff,#ffffff)}
+.rc323-pin-card{width:min(460px,100%);background:#fff;border:1px solid #bfdbfe;border-radius:22px;padding:24px;box-shadow:0 18px 48px rgba(15,23,42,.16);text-align:center}
+.rc323-pin-card h1{margin:0 0 8px;color:#08245d;font-size:28px}
+.rc323-pin-ref{display:inline-block;margin:10px 0 16px;padding:8px 14px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:1000;letter-spacing:.04em}
+.rc323-pin-card input{font-size:24px;text-align:center;letter-spacing:.18em;font-weight:1000;margin:10px 0}
+.rc323-pin-card .btn{width:100%;margin-top:8px}
+.rc323-pin-error{margin-top:10px;color:#991b1b;font-weight:900}
+.rc323-pin-ok{margin-top:10px;color:#166534;font-weight:900}
+#loadListDoc .rc322-qr-info b:first-child:after{content:" mit PIN"}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC323_PICKUP_PIN__)return;
+  window.__EXPORTHUB_RC323_PICKUP_PIN__=true;
+
+  function s323(v){return String(v==null?'':v)}
+  function e323(v){return s323(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function ref323(v){return s323(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function st323(){try{return state||null}catch(_){return null}}
+  function pin323(){
+    var s=st323();
+    var p='';
+    try{p=s&&(s.rc323PickupPin||s.pickupScanPin||s.qrPickupPin)||''}catch(_){}
+    try{p=p||localStorage.getItem('exporthub_pickup_scan_pin')||''}catch(_){}
+    p=s323(p||'2580').replace(/\D/g,'').slice(0,12)||'2580';
+    try{localStorage.setItem('exporthub_pickup_scan_pin',p)}catch(_){}
+    if(s&&!s.rc323PickupPin){s.rc323PickupPin=p;try{if(typeof save==='function')save()}catch(_){}}
+    return p;
+  }
+  window.rc323SetPickupPin=function(value){
+    var p=s323(value).replace(/\D/g,'').slice(0,12);
+    if(p.length<4){alert('PIN muss mindestens 4 Ziffern haben.');return false}
+    var s=st323();if(s){s.rc323PickupPin=p;s.pickupScanPin=p;s.qrPickupPin=p}
+    try{localStorage.setItem('exporthub_pickup_scan_pin',p)}catch(_){}
+    try{if(typeof save==='function')save()}catch(_){}
+    alert('Abholscan-PIN gespeichert.');
+    return false;
+  };
+  function scanParams323(){
+    try{
+      var p=new URLSearchParams(location.search);
+      var cmd=s323(p.get('ehcmd')||p.get('cmd')).toLowerCase();
+      var r=ref323(p.get('ref')||p.get('reference'));
+      return {active:(cmd==='pickup'||cmd==='abgeholt')&&!!r,ref:r};
+    }catch(_){return {active:false,ref:''}}
+  }
+  function cleanUrl323(){
+    try{history.replaceState(null,'',location.pathname+location.hash)}catch(_){}
+  }
+  function showPinPage323(reference){
+    document.body.innerHTML='<main class="rc323-pin-page"><section class="rc323-pin-card">'+
+      '<h1>Abholung bestaetigen</h1>'+
+      '<p class="muted">Bitte PIN eingeben. Danach wird die Sendung in ExportHUB als abgeholt gespeichert.</p>'+
+      '<div class="rc323-pin-ref">'+e323(reference)+'</div>'+
+      '<input id="rc323PinInput" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="12" placeholder="PIN">'+
+      '<button class="btn" id="rc323PinBtn" type="button">Sendung abgeholt</button>'+
+      '<div id="rc323PinMsg"></div>'+
+      '</section></main>';
+    var input=document.getElementById('rc323PinInput'), btn=document.getElementById('rc323PinBtn'), msg=document.getElementById('rc323PinMsg');
+    function submit(){
+      var ok=s323(input.value).replace(/\D/g,'')===pin323();
+      if(!ok){msg.className='rc323-pin-error';msg.textContent='PIN falsch. Bitte erneut versuchen.';input.value='';input.focus();return false}
+      window.__EXPORTHUB_RC323_PIN_OK__=true;
+      if(window.rc322MarkShipmentPickedByRef&&window.rc322MarkShipmentPickedByRef(reference,true)){
+        msg.className='rc323-pin-ok';
+        msg.textContent='Gespeichert: Sendung '+reference+' wurde als abgeholt markiert.';
+        cleanUrl323();
+        setTimeout(function(){try{window.close()}catch(_){}},1400);
+      }else{
+        msg.className='rc323-pin-error';
+        msg.textContent='Referenz nicht gefunden. Bitte ExportHUB auf diesem Geraet mit aktuellen Sendungsdaten oeffnen.';
+      }
+      return false;
+    }
+    btn.onclick=submit;
+    input.onkeydown=function(ev){if(ev.key==='Enter')submit()};
+    setTimeout(function(){input.focus()},80);
+  }
+  function interceptOldAutoScan323(){
+    var p=scanParams323();
+    if(!p.active)return;
+    if(window.rc322MarkShipmentPickedByRef&&!window.rc322MarkShipmentPickedByRef.__rc323PinGuard){
+      var old=window.rc322MarkShipmentPickedByRef;
+      window.rc322MarkShipmentPickedByRef=function(reference,quiet){
+        if(scanParams323().active&&!window.__EXPORTHUB_RC323_PIN_OK__)return false;
+        return old.apply(this,arguments);
+      };
+      window.rc322MarkShipmentPickedByRef.__rc323PinGuard=true;
+    }
+    setTimeout(function(){showPinPage323(p.ref)},120);
+  }
+  function addPinPanel323(){
+    try{
+      if(!st323()||st323().view!=='shipment')return;
+      if(document.getElementById('rc323PickupPinPanel'))return;
+      var card=document.querySelector('.rc199-main-card')||Array.from(document.querySelectorAll('.card')).find(function(x){return /Kunde|Sendung/i.test(x.textContent||'')});
+      if(!card)return;
+      var panel=document.createElement('div');
+      panel.id='rc323PickupPinPanel';
+      panel.className='infobox';
+      panel.innerHTML='<b>QR-Abholscan PIN</b><br><span class="small">Aktuelle PIN schuetzt den QR-Abholbefehl.</span>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><input id="rc323PickupPinField" type="password" inputmode="numeric" maxlength="12" value="'+e323(pin323())+'" style="max-width:180px"><button class="ghost" type="button" onclick="return rc323SetPickupPin((document.getElementById(&quot;rc323PickupPinField&quot;)||{}).value)">PIN speichern</button></div>';
+      card.appendChild(panel);
+    }catch(_){}
+  }
+  var oldRender323=window.render||(typeof render==='function'?render:null);
+  if(typeof oldRender323==='function'&&!oldRender323.__rc323Wrapped){
+    window.render=function(){var out=oldRender323.apply(this,arguments);setTimeout(addPinPanel323,180);return out};
+    window.render.__rc323Wrapped=true;
+    try{render=window.render}catch(_){}
+  }
+  interceptOldAutoScan323();
+  setTimeout(addPinPanel323,900);
+})();
+</script>
+<!-- PRIVATE RC323 END: QR-Abholscan mit PIN-Freigabe -->
+<!-- PRIVATE RC324 START: Sendung erstellen + Sendungsuebersicht final wiederherstellen -->
+<style>
+.rc324-shipment-layout{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:18px;align-items:start}
+.rc324-actions,.rc324-file-actions,.rc324-overview-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.rc324-actions .btn,.rc324-actions .ghost,.rc324-actions .soft,.rc324-file-actions .btn,.rc324-blue{background:#2563eb!important;color:#fff!important;border:1px solid #1d4ed8!important;border-radius:8px!important;font-weight:900!important;padding:10px 14px!important;text-decoration:none!important;cursor:pointer!important}
+.rc324-actions .ghost,.rc324-actions .soft{background:#eff6ff!important;color:#1d4ed8!important}
+.rc324-file-list{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.rc324-row{border:1px solid #dbeafe;border-radius:10px;background:#fff;padding:10px;margin-bottom:10px}
+.rc324-overview-filter{display:grid;grid-template-columns:minmax(220px,1fr) minmax(140px,220px) auto auto auto;gap:10px;align-items:center;margin-bottom:14px}
+.rc324-table{width:100%;border-collapse:separate;border-spacing:0 10px}
+.rc324-table th{text-align:left;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:4px 10px}
+.rc324-table td{background:#fff;border-top:1px solid #dbeafe;border-bottom:1px solid #dbeafe;padding:14px 10px;vertical-align:top}
+.rc324-table td:first-child{border-left:1px solid #dbeafe;border-radius:12px 0 0 12px}
+.rc324-table td:last-child{border-right:1px solid #dbeafe;border-radius:0 12px 12px 0}
+.rc324-customer-focus{background:#eff6ff;border-left:5px solid #2563eb;border-radius:10px;padding:10px 12px;min-width:260px}
+.rc324-customer-number{display:block;font-weight:1000;color:#0f172a;font-size:18px;line-height:1.1}
+.rc324-customer-name{display:block;font-weight:1000;color:#08245d;font-size:18px;line-height:1.25;margin-top:3px}
+.rc324-customer-country{display:block;color:#64748b;font-size:12px;margin-top:4px}
+.rc324-docs{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr);gap:10px}
+.rc324-doc-card{border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;padding:10px;min-width:180px}
+.rc324-doc-card.linked{border-color:#22c55e;background:#dcfce7}
+.rc324-doc-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:1000;color:#08245d}
+.rc324-doc-name{font-size:12px;color:#334155;margin:8px 0;word-break:break-word}
+.rc324-doc-actions{display:flex;gap:6px;flex-wrap:wrap}
+.rc324-doc-actions .ghost,.rc324-doc-actions label{font-size:12px;padding:7px 9px;border-radius:8px}
+.rc324-file-input{display:none}
+@media(max-width:980px){.rc324-shipment-layout,.rc324-docs{grid-template-columns:1fr}.rc324-overview-filter{grid-template-columns:1fr}.rc324-table{font-size:13px}}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC324_FINAL_RESTORE__)return;
+  window.__EXPORTHUB_RC324_FINAL_RESTORE__=true;
+
+  function S(){try{return state||{}}catch(_){return {}}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function N(v){return T(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+  function cleanRef(v){return T(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
+  function validRef(v){return /^[A-Z0-9]{6}$/.test(cleanRef(v))}
+  function now(){try{return new Date().toLocaleString('de-DE')}catch(_){return new Date().toISOString()}}
+  function uid324(prefix){try{if(typeof uid==='function')return uid(prefix||'ID')}catch(_){}return (prefix||'ID')+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
+  function customers(){var s=S();return A(s.customers)}
+  function option(c){return [c&&c.account||c&&c.customerNumber||c&&c.id||'',c&&c.name||'',c&&c.country||c&&c.land||''].filter(Boolean).join(' · ')}
+  function customerById(id){return customers().find(function(c){return T(c.id)===T(id)})||null}
+  function selectedCustomer(){
+    var s=S(), sh=shipment();
+    return customerById(sh.customerId||s.selectedCustomerId)||customers()[0]||{id:'',account:'',customerNumber:'',name:'',country:'',address:''};
+  }
+  function shipment(){
+    var s=S();
+    s.shipment=s.shipment||{};
+    s.shipment.rows=A(s.shipment.rows);
+    if(!s.shipment.rows.length)s.shipment.rows=[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:0}];
+    if(!s.shipment.customerId&&customers()[0])s.shipment.customerId=customers()[0].id;
+    if(!s.shipment.ref||!validRef(s.shipment.ref))s.shipment.ref=makeRef(selectedCustomer());
+    s.shipment.ref=cleanRef(s.shipment.ref);
+    s.shipment.deliveryFiles=A(s.shipment.deliveryFiles);
+    s.shipment.podFiles=A(s.shipment.podFiles);
+    s.shipment.customerSearch=s.shipment.customerSearch||option(selectedCustomer());
+    if(s.shipment.customerProcessConfirmed==null)s.shipment.customerProcessConfirmed=false;
+    return s.shipment;
+  }
+  function makeRef(c){
+    try{if(typeof generateShipmentRef==='function')return cleanRef(generateShipmentRef(c||{}))}catch(_){}
+    var used=A(S().shipments).map(function(x){return cleanRef(x&&x.ref)});
+    for(var i=0;i<200;i++){var r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);if(r.length===6&&used.indexOf(r)<0)return r}
+    return cleanRef('S'+Date.now().toString(36)).slice(0,6).padEnd(6,'0');
+  }
+  function saveSafe(){try{if(typeof save==='function')save()}catch(_){}}
+  function renderSafe(){try{if(typeof render==='function')render()}catch(_){}}
+  function customerMail(c,s){
+    try{if(typeof customerMailActions==='function')return customerMailActions(c)}catch(_){}
+    var to=encodeURIComponent(c&&c.email||'');
+    var sub=encodeURIComponent((s&&s.ref||'Sendung')+' / '+(c&&c.name||'Kunde'));
+    var body=encodeURIComponent('Guten Tag,\n\nbitte die Sendung gemaess Absprache vormerken.\n\nReferenz: '+(s&&s.ref||'')+'\n\nMit freundlichen Gruessen\nTobias Limberg');
+    return '<a class="btn" href="mailto:'+to+'?subject='+sub+'&body='+body+'">Mail an Kunden vorbereiten</a>';
+  }
+  function fileList(s){
+    var files=A(s.deliveryFiles);
+    if(!files.length)return '';
+    return '<div class="rc324-file-list">'+files.map(function(f){return '<span class="pill gray">'+E(f.name||f.fileName||'Datei')+'</span>'}).join('')+'</div>';
+  }
+  function rowFallback(r,i){
+    r=r||{};
+    return '<div class="rc324-row"><div class="miniGrid">'+
+      '<label class="field">Verpackung<input value="'+E(r.type||'')+'" onchange="rc324UpdateRow('+i+',&quot;type&quot;,this.value)"></label>'+
+      '<label class="field">Anzahl<input type="number" min="0" step="1" value="'+E(r.count||'')+'" onchange="rc324UpdateRow('+i+',&quot;count&quot;,this.value)"></label>'+
+      '<label class="field">LDM je Colli<input type="number" step="0.01" value="'+E(r.ldm||'')+'" onchange="rc324UpdateRow('+i+',&quot;ldm&quot;,this.value)"></label>'+
+      '<label class="field">Gewicht gesamt kg<input type="number" step="0.1" value="'+E(r.weight||'')+'" onchange="rc324UpdateRow('+i+',&quot;weight&quot;,this.value)"></label>'+
+      '<label class="field">Laenge cm<input type="number" value="'+E(r.l||'')+'" onchange="rc324UpdateRow('+i+',&quot;l&quot;,this.value)"></label>'+
+      '<label class="field">Breite cm<input type="number" value="'+E(r.w||'')+'" onchange="rc324UpdateRow('+i+',&quot;w&quot;,this.value)"></label>'+
+      '<label class="field">Hoehe cm<input type="number" value="'+E(r.h||'')+'" onchange="rc324UpdateRow('+i+',&quot;h&quot;,this.value)"></label>'+
+      '<div class="field"><span>Zeile</span><button class="danger" onclick="return rc324RemoveRow('+i+')">Entfernen</button></div>'+
+      '</div></div>';
+  }
+  function rowHtml(r,i){try{if(typeof renderRow==='function')return String(renderRow(r,i)||'')}catch(_){}return rowFallback(r,i)}
+  function completion(s){
+    var miss=[];
+    if(!validRef(s.ref))miss.push('Referenznummer');
+    if(!s.addressConfirmed)miss.push('Adresse bestaetigen');
+    if(!s.customerProcessConfirmed)miss.push('Kundeninfos / Prozesshinweise bestaetigen');
+    var rows=A(s.rows).filter(function(r){return Number(r.count||0)>0||Number(r.weight||0)>0||T(r.type).trim()});
+    if(!rows.length)miss.push('mindestens eine Colli-Zeile');
+    if(!rows.some(function(r){return Number(r.count||0)>0}))miss.push('Anzahl Collis');
+    if(!rows.some(function(r){return Number(r.weight||0)>0}))miss.push('Gewicht');
+    return miss.length?'<div class="notice"><b>Noch offen:</b> '+E(miss.join(', '))+'</div>':'<div class="okbox">Sendung kann gespeichert werden. Ladeliste und CMR sind verfuegbar.</div>';
+  }
+  function savedTable(){
+    var list=A(S().shipments).slice(0,10);
+    if(!list.length)return '<p class="muted">Noch keine Sendung gespeichert.</p>';
+    return '<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Datum</th><th>Status</th><th>Aktion</th></tr>'+list.map(function(x){var c=x.customer||{};return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E(c.name||x.customerName||'')+'</td><td>'+E(x.created||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td><button class="ghost" onclick="loadShipment(&quot;'+E(x.id||'')+'&quot;)">Uebernehmen</button> <button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>';
+  }
+
+  window.rc324UpdateRow=function(i,k,v){var s=shipment();s.rows[i]=s.rows[i]||{};s.rows[i][k]=v;saveSafe();return false};
+  window.rc324AddRow=function(){var s=shipment();s.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});saveSafe();renderSafe();return false};
+  window.rc324RemoveRow=function(i){var s=shipment();s.rows.splice(i,1);if(!s.rows.length)s.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});saveSafe();renderSafe();return false};
+  window.rc324SetProcess=function(v){shipment().customerProcessConfirmed=!!v;saveSafe();return false};
+  window.rc324NewShipment=function(){
+    try{if(typeof newShipment==='function'&&newShipment!==window.rc324NewShipment){newShipment();return false}}catch(_){}
+    var c=selectedCustomer();S().shipment={id:uid324('S'),customerId:c.id||'',customerSearch:option(c),ref:makeRef(c),refAuto:true,deliveryNotes:'',deliveryFiles:[],podFiles:[],status:'offen',freigabe:'offen',pickupDate:'',carrier:'',incoterm:'',goodsDescription:'Waren laut Rechnung/Ladeliste',comments:'',licensePlate:'',loader:'',addressConfirmed:false,customerProcessConfirmed:false,rows:[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:0}]};
+    S().activeShipmentId='current';saveSafe();renderSafe();return false;
+  };
+  window.rc324SaveShipment=function(){
+    var s=shipment(), c=selectedCustomer();
+    try{if(typeof collectRows199==='function')collectRows199()}catch(_){}
+    try{if(typeof collectRows190==='function')collectRows190(true)}catch(_){}
+    try{if(typeof collectRows118==='function')collectRows118(true)}catch(_){}
+    s=shipment();
+    s.ref=cleanRef(s.ref);
+    var errors=[];
+    if(!c||!c.id)errors.push('Kunde');
+    if(!validRef(s.ref))errors.push('Referenznummer');
+    if(!s.addressConfirmed)errors.push('Adresse bestaetigen');
+    if(!s.customerProcessConfirmed)errors.push('Kundeninfos / Prozesshinweise bestaetigen');
+    var rows=A(s.rows).filter(function(r){return Number(r.count||0)>0||Number(r.weight||0)>0||T(r.type).trim()});
+    if(!rows.length)errors.push('Collis');
+    if(!rows.some(function(r){return Number(r.count||0)>0}))errors.push('Anzahl Collis');
+    if(!rows.some(function(r){return Number(r.weight||0)>0}))errors.push('Gewicht');
+    if(errors.length){alert('Sendung kann noch nicht gespeichert werden:\n- '+errors.join('\n- '));return false}
+    var duplicate=A(S().shipments).some(function(x){return T(x.id)!==T(s.id)&&cleanRef(x.ref)===s.ref});
+    if(duplicate){alert('Diese Referenznummer ist bereits gespeichert. Bitte eine neue Referenz erzeugen.');return false}
+    var saved=Object.assign({},s,{id:uid324('SHIP'),created:now(),customer:Object.assign({},c),customerId:c.id,rows:rows.map(function(r){return Object.assign({},r)}),deliveryFiles:A(s.deliveryFiles).map(function(f){return Object.assign({},f)}),podFiles:A(s.podFiles).map(function(f){return Object.assign({},f)}),freigabe:'offen',status:'offen',pickupDateConfirmed:!!s.pickupDate});
+    S().shipments=A(S().shipments);
+    S().shipments.unshift(saved);
+    S().activeShipmentId=saved.id;
+    var completed=[];
+    try{var pc=typeof euroPalletCount==='function'?euroPalletCount(saved):0;if(pc>0&&typeof addPalletBookingFromShipment==='function')addPalletBookingFromShipment(saved,c,pc)}catch(_){}
+    try{if(typeof autoCompleteShipmentTasks==='function')completed=autoCompleteShipmentTasks(saved,c)||[]}catch(_){}
+    try{if(typeof createOrUpdateShipmentCreatedTask==='function')createOrUpdateShipmentCreatedTask(saved,c)}catch(_){}
+    try{if(typeof audit==='function')audit('Sendung gespeichert',saved.ref+' · '+(c.name||''))}catch(_){}
+    saveSafe();
+    alert('Sendung gespeichert: '+saved.ref+(completed.length?'\nAufgaben erledigt:\n- '+completed.join('\n- '):''));
+    try{setView('cmr')}catch(_){}
+    return false;
+  };
+
+  window.rc324Shipment=function(){
+    var s=shipment(), c=selectedCustomer(), list=customers();
+    var opts=list.map(function(cu){return '<option value="'+E(cu.id||'')+'" '+(T(cu.id)===T(s.customerId)?'selected':'')+'>'+E(option(cu))+'</option>'}).join('');
+    var dl=list.map(function(cu){return '<option value="'+E(option(cu))+'"></option>'}).join('');
+    var addressMissing=!T(c.address).trim();
+    var h=(typeof head==='function'?head('Sendung erstellen',''):'<h2>Sendung erstellen</h2>');
+    return h+'<div class="rc324-shipment-layout"><div class="card"><h3>Kunde & Grunddaten</h3>'+
+      '<label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" list="customerList" value="'+E(s.customerSearch||option(c))+'" oninput="setShipmentCustomerSearchAuto(this.value)" onchange="applyCustomerSearch()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();applyCustomerSearch()}"><datalist id="customerList">'+dl+'</datalist></label>'+
+      '<div class="btn-row-spaced"><button class="btn" onclick="return rc324NewShipment()">+ Neue Sendung</button><button class="ghost" onclick="applyCustomerSearch();return false">Kunde uebernehmen</button><button class="ghost" onclick="ensureShipmentReference(true);return false">Neue 6-Zeichen-Referenz</button><button class="soft" onclick="showCurrentCmr();return false">Ladeliste & CMR anzeigen</button></div>'+
+      '<label class="field">Kunde<select onchange="selectShipmentCustomer(this.value)">'+opts+'</select></label>'+
+      '<div class="'+(addressMissing?'badbox':'okbox')+'"><b>Empfaengeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+E(c.address||'Adresse fehlt')+'</pre></div>'+
+      '<label class="checkrow"><input type="checkbox" '+(s.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save()"><span>Adresse bestaetigen</span></label>'+
+      '<label class="checkrow"><input type="checkbox" '+(s.customerProcessConfirmed?'checked':'')+' onchange="rc324SetProcess(this.checked)"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe Kundeninfos, SOP-/Prozesshinweise und besondere Versandvorgaben geprueft.</span></span></label>'+
+      '<div class="infobox"><b>Mail an Kunden oder Spedition:</b><br>'+customerMail(c,s)+'<br><span class="small">Der Mailtext enthaelt keine Kunden-/Adress-/DNC-Felder mehr.</span></div>'+
+      '<label class="field">Sendungsreferenz / Referenznummer<input value="'+E(s.ref||'')+'" maxlength="6" pattern="[A-Z0-9]{6}" oninput="this.value=rc324CleanRef(this.value)" onchange="setShipmentRef(this.value)" placeholder="6 Zeichen A-Z/0-9"></label>'+
+      '<label class="field">Lieferscheine / DNCs manuell (optional)<textarea onchange="state.shipment.deliveryNotes=this.value;save()" placeholder="Optional: eine DNC/Lieferscheinnummer je Zeile">'+E(s.deliveryNotes||'')+'</textarea></label>'+
+      '<div class="rc324-file-actions"><label class="btn">Dateien auswaehlen<input type="file" multiple style="display:none" onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label><button type="button" class="btn" onclick="return typeof rc246OpenReferenceFolderPicker===&quot;function&quot;?rc246OpenReferenceFolderPicker():false">Dateien aus Ref.-Ordner uebernehmen</button></div>'+fileList(s)+
+      '<div class="miniGrid"><label class="field">Geplantes Abholdatum<input type="date" value="'+E(s.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+E(s.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()"></label><label class="field">Kennzeichen<input value="'+E(s.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()"></label><label class="field">Verlader<input value="'+E(s.loader||'')+'" onchange="state.shipment.loader=this.value;save()"></label></div>'+
+      '<label class="field">Incoterm / Hinweis<input value="'+E(s.incoterm||'')+'" onchange="state.shipment.incoterm=this.value;save()"></label>'+
+      '<div class="rc324-actions"><button type="button" class="btn" onclick="return rc324SaveShipment()">Sendung speichern + Aufgaben pruefen</button><button type="button" class="ghost" onclick="showCurrentCmr();return false">Ladeliste/CMR Vorschau</button><button type="button" class="ghost" onclick="rc55DownloadLoadlistPdf();return false">Ladeliste PDF herunterladen</button><button type="button" class="ghost" onclick="rc55PrintLabels();return false">Versandlabel 4x A4</button></div>'+completion(s)+
+      '</div><div class="card"><h3>Collis, Masse, Gewicht, Lademeter</h3><div id="rowsBox">'+A(s.rows).map(rowHtml).join('')+'</div><button class="ghost" onclick="return rc324AddRow()">+ Zeile</button><div class="summaryGrid">'+(typeof shipmentSummaryBoxes==='function'?shipmentSummaryBoxes(s):'')+'</div>'+completion(s)+
+      '<label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()">'+E(s.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label><label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+E(s.comments||'')+'</textarea></label></div></div>'+
+      '<div class="card" style="max-width:1160px"><h3>Gespeicherte Sendungen</h3><div class="toolbar"><button class="ghost" onclick="setView(&quot;shipmentoverview&quot;)">Sendungsuebersicht oeffnen</button></div>'+savedTable()+'</div>';
+  };
+  window.rc324CleanRef=cleanRef;
+
+  function baseFolder(ref){try{if(typeof rc313OpenFolder==='function')return ''}catch(_){}return ''}
+  function cust(x){
+    var c=x&&x.customer||{}, byId=customerById(x&&x.customerId);
+    c=c&&c.name?c:(byId||c||{});
+    return {num:c.account||c.customerNumber||x.customerNumber||x.account||'',name:c.name||x.customerName||x.customer||'',country:c.country||c.land||x.country||''};
+  }
+  function docsText(x){
+    var out=[];
+    T(x&&x.deliveryNotes).split(/\n|,|;/).forEach(function(v){v=T(v).trim();if(v)out.push(v)});
+    A(x&&x.deliveryFiles).forEach(function(f){var n=f&& (f.name||f.fileName||f.filename);if(n)out.push(n)});
+    return out;
+  }
+  function allDocCandidates(x,kind){
+    var out=[], keys=['rc313Docs','rc312Docs','rc311Docs','rc256Docs','rc254Docs','rc247Docs','docs'];
+    keys.forEach(function(k){var d=x&&x[k]&&x[k][kind];if(Array.isArray(d))out=out.concat(d);else if(d)out.push(d)});
+    var list=kind==='abd'?A(x&&x.abdFiles):A(x&&x.podFiles);
+    out=out.concat(list.filter(function(d){var n=N((d&&d.docKind)+' '+(d&&d.name)+' '+(d&&d.fileName));return kind==='abd'?n.indexOf('abd')>=0:n.indexOf('pod')>=0||n.indexOf('abliefer')>=0}));
+    return out.filter(Boolean);
+  }
+  function docName(d){return T(d&& (d.name||d.fileName||d.filename||d.title||d.url||d.webUrl||''))}
+  function docUrl(d){return T(d&&(d.webUrl||d.url||d.objectUrl||d.href||d.link||''))}
+  function bestDoc(x,kind){var d=allDocCandidates(x,kind);return d[0]||null}
+  function status(x){var raw=N([x&&x.status,x&&x.freigabe,x&&x.abdStatus,x&&x.done?'erledigt':'',x&&x.completedAt?'erledigt':''].join(' '));return raw.indexOf('erled')>=0?'Erledigt':(raw.indexOf('dokument')>=0?'Dokument vorhanden':'Offen')}
+  function pill(t){var n=N(t), cls=n.indexOf('erled')>=0?'green':(n.indexOf('dokument')>=0?'blue':'orange');return '<span class="pill '+cls+'">'+E(t||'Offen')+'</span>'}
+  function customerCell(c){return '<div class="rc324-customer-focus"><span class="rc324-customer-number">'+E(c.num||'')+'</span><span class="rc324-customer-name">'+E(c.name||'')+'</span>'+(c.country?'<span class="rc324-customer-country">'+E(c.country)+'</span>':'')+'</div>'}
+  function docCard(x,kind,source){
+    var label=kind==='abd'?'ABD':'POD', d=bestDoc(x,kind), linked=!!d, url=docUrl(d), openable=/^(https?:|blob:)/i.test(url);
+    return '<div class="rc324-doc-card '+(linked?'linked':'')+'"><div class="rc324-doc-head"><span>'+label+'</span><span class="pill '+(linked?'green':'gray')+'">'+(linked?(openable?'Direktlink':'Datei verlinkt'):'fehlt')+'</span></div><div class="rc324-doc-name">'+E(linked?(docName(d)||label+'.pdf'):'kein '+label+' erkannt')+'</div><div class="rc324-doc-actions">'+(linked?'<button class="rc324-blue" onclick="return rc313OpenDoc(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;)">'+(openable?'Oeffnen':'Ref.-Ordner oeffnen')+'</button>':'')+'<button class="ghost" onclick="return rc313SetDocLink(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;)">SharePoint-Link</button><label class="ghost">Datei auswaehlen<input class="rc324-file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.msg,.eml,application/pdf,image/*" onchange="rc313UploadDoc(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;,this)"></label><button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button></div></div>';
+  }
+  function match(x,q){return !q||N(x).indexOf(q)>=0}
+  window.rc324OverviewSearch=function(v){S().shipmentOverviewSearch=T(v);clearTimeout(window.__rc324Search);window.__rc324Search=setTimeout(function(){saveSafe();renderSafe()},160)};
+  window.rc324SetDone=function(id,source,done){
+    var list=source==='abdRequest'?A(S().abdRequests):A(S().shipments);
+    var x=list.find(function(v){return T(v&&v.id)===T(id)});
+    if(!x)return false;
+    if(done){x.status='erledigt';x.freigabe='erledigt';x.done=true;x.completedAt=new Date().toISOString();x.completedBy=(currentUser&&(currentUser.name||currentUser.user))||'Benutzer';if(source==='abdRequest')x.abdStatus='erledigt'}
+    else{x.status='offen';x.freigabe='offen';x.done=false;x.completedAt='';x.completedBy='';if(source==='abdRequest')x.abdStatus=bestDoc(x,'abd')?'Dokument vorhanden':'offen'}
+    saveSafe();renderSafe();return false;
+  };
+  window.rc324ShipmentOverview=function(){
+    var q=N(S().shipmentOverviewSearch||''), type=S().rc324OverviewType||S().rc313OverviewType||'all', hide=!!S().rc324HideDone||!!S().rc313HideDone;
+    var ships=A(S().shipments).slice().filter(function(x){var c=cust(x);return match([x.ref,x.created,c.num,c.name,c.country,docsText(x).join(' '),docName(bestDoc(x,'abd')),docName(bestDoc(x,'pod')),status(x)].join(' '),q)});
+    var abds=A(S().abdRequests).slice().filter(function(x){var c=cust(x);return match([x.ref,x.created,x.createdIso,c.num,c.name,x.customerName,docName(bestDoc(x,'abd')),docName(bestDoc(x,'pod')),status(x)].join(' '),q)});
+    if(hide){ships=ships.filter(function(x){return status(x)!=='Erledigt'});abds=abds.filter(function(x){return status(x)!=='Erledigt'})}
+    ships.sort(function(a,b){return T(b.created||'').localeCompare(T(a.created||''))});
+    abds.sort(function(a,b){return T(b.createdIso||b.created||'').localeCompare(T(a.createdIso||a.created||''))});
+    var html=(typeof head==='function'?head('Sendungsuebersicht',''):'<h2>Sendungsuebersicht</h2>')+
+      '<div class="rc324-overview-filter"><input placeholder="Referenz, Kunde, DNC, POD oder ABD suchen" value="'+E(S().shipmentOverviewSearch||'')+'" oninput="rc324OverviewSearch(this.value)"><select onchange="state.rc324OverviewType=this.value;state.rc313OverviewType=this.value;save();render()"><option value="all" '+(type==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(type==='shipments'?'selected':'')+'>Nur Sendungen</option><option value="abd" '+(type==='abd'?'selected':'')+'>Nur ABD</option></select><label class="checkrow"><input type="checkbox" '+(hide?'checked':'')+' onchange="state.rc324HideDone=this.checked;state.rc313HideDone=this.checked;save();render()"> Erledigte ausblenden</label><button class="rc324-blue" onclick="state.shipmentOverviewSearch=&quot;&quot;;state.rc324OverviewType=&quot;all&quot;;save();render()">Filter loeschen</button><button class="ghost" onclick="return rc313OpenFolder(&quot;&quot;)">Basisordner oeffnen</button></div>';
+    if(type==='all'||type==='shipments'){
+      html+='<div class="card"><h3>Sendungen</h3>'+(ships.length?'<table class="rc324-table"><tr><th>Referenz</th><th>Kunde</th><th>Abholung</th><th>DNC / Lieferscheine</th><th>ABD / POD</th><th>Status</th><th>Aktion</th></tr>'+ships.map(function(x){var c=cust(x), d=docsText(x), st=status(x);return '<tr><td><b>'+E(x.ref||'')+'</b><br><span class="small">'+E(x.created||'')+'</span></td><td>'+customerCell(c)+'</td><td><label class="field">Geplant<input type="date" value="'+E(T(x.pickupDate||x.plannedPickupDate).slice(0,10))+'" onchange="this.closest(&quot;tr&quot;);var y=(state.shipments||[]).find(function(v){return String(v.id)===&quot;'+E(x.id||'')+'&quot;});if(y){y.pickupDate=this.value;y.plannedPickupDate=this.value;save();}"></label><label class="field">Tatsaechlich<input type="date" value="'+E(T(x.actualPickupDate||x.pickedUpAtDate).slice(0,10))+'" onchange="var y=(state.shipments||[]).find(function(v){return String(v.id)===&quot;'+E(x.id||'')+'&quot;});if(y){y.actualPickupDate=this.value;y.pickedUpAtDate=this.value;save();}"></label></td><td>'+(d.length?d.map(function(v){return '<span class="pill gray">'+E(v)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</td><td><div class="rc324-docs">'+docCard(x,'abd','shipment')+docCard(x,'pod','shipment')+'</div></td><td>'+pill(st)+'</td><td><div class="rc324-overview-actions"><button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button><button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button>'+(st==='Erledigt'?'<button class="ghost" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;shipment&quot;,false)">Wieder offen</button>':'<button class="rc324-blue" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;shipment&quot;,true)">Erledigt</button>')+'</div></td></tr>'}).join('')+'</table>':'<p class="muted">Keine Sendungen gefunden.</p>')+'</div>';
+    }
+    if(type==='all'||type==='abd'){
+      html+='<div class="card"><h3>ABD Anfragen</h3>'+(abds.length?'<table class="rc324-table"><tr><th>Referenz</th><th>Kunde</th><th>ABD / POD</th><th>Status</th><th>Aktion</th></tr>'+abds.map(function(x){var c=cust(x), st=status(x);return '<tr><td><b>'+E(x.ref||'')+'</b><br><span class="small">'+E(x.created||x.createdIso||'')+'</span></td><td>'+customerCell(c)+'</td><td><div class="rc324-docs">'+docCard(x,'abd','abdRequest')+docCard(x,'pod','abdRequest')+'</div></td><td>'+pill(st)+'</td><td><div class="rc324-overview-actions"><button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button>'+(st==='Erledigt'?'<button class="ghost" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;abdRequest&quot;,false)">Wieder offen</button>':'<button class="rc324-blue" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;abdRequest&quot;,true)">Erledigt</button>')+'</div></td></tr>'}).join('')+'</table>':'<p class="muted">Keine ABD Anfragen gefunden.</p>')+'</div>';
+    }
+    return html;
+  };
+
+  var previousRender=window.render||(typeof render==='function'?render:null);
+  window.shipment=window.rc324Shipment;try{shipment=window.rc324Shipment}catch(_){}
+  window.shipmentoverview=window.rc324ShipmentOverview;try{shipmentoverview=window.rc324ShipmentOverview}catch(_){}
+  window.saveShipment=window.rc324SaveShipment;try{saveShipment=window.rc324SaveShipment}catch(_){}
+  window.rc288RunShipment=function(){return false};try{rc288RunShipment=window.rc288RunShipment}catch(_){}
+  window.rc318NormalizeShipment=function(){return false};
+  window.rc319RestoreShipmentTools=function(){return false};
+  window.render=function(){
+    try{
+      var s=S();
+      if(s&&s.view==='shipment'){
+        if(typeof renderNav==='function')renderNav();
+        var target=(typeof content!=='undefined'&&content)||document.getElementById('content')||document.querySelector('main')||document.body;
+        target.innerHTML=(typeof canRead==='function'&&!canRead('shipment'))?(typeof noAccessView==='function'?noAccessView():'Kein Leserecht'):window.rc324Shipment();
+        try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(_){}
+        return;
+      }
+      if(s&&s.view==='shipmentoverview'){
+        if(typeof renderNav==='function')renderNav();
+        var target2=(typeof content!=='undefined'&&content)||document.getElementById('content')||document.querySelector('main')||document.body;
+        target2.innerHTML=(typeof canRead==='function'&&!canRead('shipmentoverview'))?(typeof noAccessView==='function'?noAccessView():'Kein Leserecht'):window.rc324ShipmentOverview();
+        try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(_){}
+        return;
+      }
+    }catch(err){console.error('RC324 finaler Renderfehler',err)}
+    return previousRender&&previousRender.apply(this,arguments);
+  };
+  try{render=window.render}catch(_){}
+})();
+</script>
+<!-- PRIVATE RC324 END: Sendung erstellen + Sendungsuebersicht final wiederherstellen -->
 </body></html>
