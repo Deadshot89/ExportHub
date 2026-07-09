@@ -51958,4 +51958,232 @@ body[data-current-view="shipment"] .main{
 })();
 </script>
 <!-- PRIVATE RC335 END: Kundensuche ohne Layoutverlust -->
+<!-- PRIVATE RC336 START: Sicherer QR nur auf erster Druck-Ladeliste, nie im PDF -->
+<style>
+#loadListDoc .rc322-qr-row{display:none!important}
+#loadListDoc .rc336-qr-row{display:flex!important;justify-content:flex-end!important;margin:4px 0!important}
+#loadListDoc .rc336-qr-box{border:1px solid #93c5fd!important;background:#fff!important;border-radius:8px!important;padding:3px!important;text-align:center!important;width:22mm!important;min-width:22mm!important}
+#loadListDoc .rc336-qr-box img{width:18mm!important;height:18mm!important;display:block!important;margin:0 auto!important}
+#loadListDoc .rc336-qr-box span{display:block!important;font-size:6px!important;line-height:1.1!important;font-weight:900!important;color:#08245d!important;margin-top:1px!important}
+#loadListDoc.rc336-pdf-mode .rc336-qr-row,
+#loadListDoc_RC320_PDF_CLONE .rc336-qr-row,
+.rc336-no-qr .rc336-qr-row,
+.rc336-no-qr .rc322-qr-row{display:none!important}
+.rc336-cover{
+  width:210mm!important;height:297mm!important;background:#fff!important;color:#0f172a!important;
+  padding:16mm!important;box-sizing:border-box!important;position:relative!important;overflow:hidden!important;
+  font-family:Segoe UI,Roboto,Arial,sans-serif!important;
+}
+.rc336-cover:before{content:"";position:absolute;left:0;right:0;top:0;height:9mm;background:linear-gradient(90deg,#1d4ed8,#0ea5e9)!important}
+.rc336-cover-head{display:flex;justify-content:space-between;gap:12mm;align-items:flex-start;margin-top:5mm}
+.rc336-cover-logo img{max-width:58mm;max-height:20mm;display:block}
+.rc336-cover-title{text-align:right;color:#08245d;font-size:18px;font-weight:1000;text-transform:uppercase;letter-spacing:.06em}
+.rc336-cover-ref-label{margin-top:24mm;color:#64748b;font-size:16px;font-weight:1000;text-transform:uppercase;letter-spacing:.08em;text-align:center}
+.rc336-cover-ref{margin:4mm auto 14mm;text-align:center;font-size:64px;line-height:1;font-weight:1000;color:#08245d;letter-spacing:.06em;border:3px solid #0ea5e9;border-radius:18px;padding:12mm 6mm;background:#eff6ff}
+.rc336-cover-section{border:2px solid #bfdbfe;border-radius:18px;padding:10mm;margin-bottom:8mm;background:#f8fbff}
+.rc336-cover-section b{display:block;color:#64748b;font-size:14px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5mm}
+.rc336-cover-recipient{font-size:25px;line-height:1.25;font-weight:900;white-space:pre-wrap}
+.rc336-cover-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:10mm}
+.rc336-cover-kpi{border:2px solid #dbeafe;border-radius:18px;padding:10mm;text-align:center;background:#fff}
+.rc336-cover-kpi span{display:block;color:#64748b;font-size:15px;font-weight:1000;text-transform:uppercase;letter-spacing:.06em}
+.rc336-cover-kpi strong{display:block;margin-top:5mm;color:#08245d;font-size:52px;line-height:1;font-weight:1000}
+.rc336-cover-foot{position:absolute;left:16mm;right:16mm;bottom:14mm;border-top:2px solid #e2e8f0;padding-top:6mm;display:flex;justify-content:space-between;color:#64748b;font-weight:900;font-size:13px}
+@media print{
+  .rc336-cover{page-break-after:always!important;break-after:page!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .rc336-cover *,.rc336-qr-box,.rc336-qr-box *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC336_SECURE_PRINT_QR__)return;
+  window.__EXPORTHUB_RC336_SECURE_PRINT_QR__=true;
+
+  function S(){try{return state||{}}catch(_){return {}}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function ref(v){return T(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function baseUrl(){var b='';try{b=location.origin+location.pathname}catch(_){} if(!b||b==='null')b=T(location.href).split(/[?#]/)[0]; return b}
+  function activeShipment(){
+    try{if(typeof activeShipment320==='function')return activeShipment320()}catch(_){}
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(_){}
+    try{
+      if(S().activeShipmentId&&S().activeShipmentId!=='current'){
+        var hit=A(S().shipments).find(function(x){return T(x&&x.id)===T(S().activeShipmentId)});
+        if(hit)return hit;
+      }
+    }catch(_){}
+    return S().shipment||{};
+  }
+  function byRef(r){
+    r=ref(r);
+    return A(S().shipments).find(function(x){return ref(x&&x.ref)===r}) || (S().shipment&&ref(S().shipment.ref)===r?S().shipment:null);
+  }
+  function token(){
+    var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', out='', cryptoObj=window.crypto||window.msCrypto;
+    if(cryptoObj&&cryptoObj.getRandomValues){
+      var arr=new Uint32Array(18);cryptoObj.getRandomValues(arr);
+      for(var i=0;i<arr.length;i++)out+=chars[arr[i]%chars.length];
+    }else{for(var j=0;j<18;j++)out+=chars[Math.floor(Math.random()*chars.length)]}
+    return out;
+  }
+  function ensureToken(sh){
+    if(!sh)return '';
+    if(!sh.qrPickupToken)sh.qrPickupToken=token();
+    if(!sh.qrPickupTokenCreatedAt)sh.qrPickupTokenCreatedAt=new Date().toISOString();
+    try{if(typeof save==='function')save()}catch(_){}
+    return sh.qrPickupToken;
+  }
+  function qrUrl(sh){
+    var r=ref(sh&&sh.ref), tok=ensureToken(sh);
+    return baseUrl()+'?ehcmd=pickup&ref='+encodeURIComponent(r)+'&token='+encodeURIComponent(tok);
+  }
+  function qrImg(url){return 'https://quickchart.io/qr?ecLevel=M&margin=1&size=110&text='+encodeURIComponent(url)}
+  function addQr(root){
+    var load=(root&&root.querySelector&&root.querySelector('#loadListDoc'))||document.getElementById('loadListDoc');
+    if(!load)return;
+    Array.prototype.slice.call(load.querySelectorAll('.rc336-qr-row')).forEach(function(x){x.remove()});
+    var sh=activeShipment(), r=ref(sh&&sh.ref);
+    if(!r)return;
+    var html='<div class="rc336-qr-row"><div class="rc336-qr-box"><img crossorigin="anonymous" alt="QR Abholscan" src="'+E(qrImg(qrUrl(sh)))+'"><span>Abholscan</span></div></div>';
+    var table=load.querySelector('.load-table'), grids=load.querySelectorAll('.doc-grid'), anchor=table||(grids&&grids.length?grids[grids.length-1]:null);
+    if(anchor)anchor.insertAdjacentHTML('afterend',html);
+    else load.insertAdjacentHTML('beforeend',html);
+  }
+  function scanParams(){
+    try{
+      var p=new URLSearchParams(location.search);
+      return {cmd:T(p.get('ehcmd')||p.get('cmd')).toLowerCase(),ref:ref(p.get('ref')||p.get('reference')),token:T(p.get('token')||'').trim()};
+    }catch(_){return {cmd:'',ref:'',token:''}}
+  }
+  function tokenOk(sh,tok){
+    if(!sh||!tok)return false;
+    if(sh.qrPickupUsed||sh.qrPickupTokenUsed)return false;
+    return T(sh.qrPickupToken)===T(tok);
+  }
+  function showScanMessage(text,bad){
+    setTimeout(function(){
+      var card=document.querySelector('.rc323-pin-card');
+      if(card){
+        var msg=document.getElementById('rc323PinMsg')||card.appendChild(document.createElement('div'));
+        msg.id='rc323PinMsg';
+        msg.className=bad?'rc323-pin-error':'rc323-pin-ok';
+        msg.textContent=text;
+      }else if(!bad){try{alert(text)}catch(_){}}
+    },180);
+  }
+  function markUsed(sh){
+    var stamp=new Date().toISOString();
+    sh.qrPickupUsed=true;
+    sh.qrPickupTokenUsed=true;
+    sh.qrPickupUsedAt=stamp;
+    sh.qrPickupTokenUsedAt=stamp;
+    sh.qrPickupToken='';
+  }
+  var oldMark=window.rc322MarkShipmentPickedByRef;
+  window.rc322MarkShipmentPickedByRef=function(reference,quiet){
+    var p=scanParams(), sh=byRef(reference||p.ref);
+    if((p.cmd==='pickup'||p.cmd==='abgeholt')){
+      if(!sh){if(!quiet)showScanMessage('Sendung zur Referenz nicht gefunden.',true);return false}
+      if(sh.qrPickupUsed||sh.qrPickupTokenUsed){if(!quiet)showScanMessage('Diese Sendung wurde bereits abgeholt. QR-Code ist gesperrt.',true);return false}
+      if(!tokenOk(sh,p.token)){if(!quiet)showScanMessage('QR-Code ungueltig oder abgelaufen.',true);return false}
+    }
+    var ok=typeof oldMark==='function'?oldMark.apply(this,arguments):false;
+    if(ok&&sh)markUsed(sh);
+    try{if(ok&&typeof save==='function')save()}catch(_){}
+    return ok;
+  };
+  window.rc322MarkShipmentPickedByRef.__rc336Secure=true;
+  try{rc322MarkShipmentPickedByRef=window.rc322MarkShipmentPickedByRef}catch(_){}
+
+  function hideQrForPdf(fn){
+    return async function(){
+      var load=document.getElementById('loadListDoc');
+      if(load)load.classList.add('rc336-pdf-mode');
+      try{return await fn.apply(this,arguments)}
+      finally{setTimeout(function(){if(load)load.classList.remove('rc336-pdf-mode')},1200)}
+    };
+  }
+  ['rc320DownloadLoadlistPdf','rc315DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc55DownloadLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc211DownloadWebsiteLoadlistPdf','downloadLoadListPdf','downloadCurrentLoadListPdf'].forEach(function(n){
+    var fn=window[n];
+    if(typeof fn==='function'&&!fn.__rc336PdfWrapped){
+      window[n]=hideQrForPdf(fn);
+      window[n].__rc336PdfWrapped=true;
+      try{eval(n+'=window[n]')}catch(_){}
+    }
+  });
+
+  function customer(sh){
+    if(sh&&sh.customer&&typeof sh.customer==='object')return sh.customer;
+    try{if(typeof selectedCustomer==='function')return selectedCustomer()||{}}catch(_){}
+    var id=T(sh&& (sh.customerId||sh.customerNumber||sh.account));
+    return A(S().customers).find(function(c){return T(c&&c.id)===id||T(c&&(c.account||c.customerNumber))===id})||{};
+  }
+  function rows(sh){return A(sh&&sh.rows).filter(function(r){return r&&(T(r.type).trim()||Number(r.count)>0||Number(r.weight)>0)})}
+  function totals(sh){return rows(sh).reduce(function(a,r){var c=Number(T(r.count||0).replace(',','.'))||0,w=Number(T(r.weight||0).replace(',','.'))||0;a.count+=c;a.weight+=w;return a},{count:0,weight:0})}
+  function fmtWeight(v){return (Number(v)||0).toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' kg'}
+  function cover(){
+    var sh=activeShipment(), c=customer(sh), t=totals(sh), recipient=[c.name||sh.customerName||'',c.address||sh.recipientAddress||sh.address||''].filter(Boolean).join('\n')||'Empfaenger offen';
+    return '<section class="rc336-cover print-copy">'+
+      '<div class="rc336-cover-head"><div class="rc336-cover-logo"><img crossorigin="anonymous" src="https://upload.wikimedia.org/wikipedia/en/4/42/Essentra_logo.svg" alt="Essentra Logo"></div><div class="rc336-cover-title">Deckblatt Palette</div></div>'+
+      '<div class="rc336-cover-ref-label">Referenz</div><div class="rc336-cover-ref">'+E(ref(sh.ref)||'OFFEN')+'</div>'+
+      '<div class="rc336-cover-section"><b>Empfaenger</b><div class="rc336-cover-recipient">'+E(recipient)+'</div></div>'+
+      '<div class="rc336-cover-kpis"><div class="rc336-cover-kpi"><span>Anzahl Collis</span><strong>'+E(t.count)+'</strong></div><div class="rc336-cover-kpi"><span>Gewicht</span><strong>'+E(fmtWeight(t.weight))+'</strong></div></div>'+
+      '<div class="rc336-cover-foot"><span>Essentra Components Ltd</span><span>'+E(new Date().toLocaleDateString('de-DE'))+'</span></div></section>';
+  }
+  window.buildPrintBundleRC52=function(){
+    var old=document.getElementById('printBundleRC52'); if(old)old.remove();
+    var load=document.getElementById('loadListDoc'), cmr=document.getElementById('cmrDoc');
+    if(!load||!cmr)return;
+    addQr(document);
+    var bundle=document.createElement('div'); bundle.id='printBundleRC52'; bundle.insertAdjacentHTML('beforeend',cover());
+    for(var i=1;i<=2;i++){
+      var l=load.cloneNode(true); l.id='loadListDoc_copy_'+i; l.classList.add('print-copy');
+      if(i===2)l.classList.add('rc336-no-qr');
+      var lm=document.createElement('div'); lm.style.cssText='position:absolute;right:12mm;bottom:8mm;font-size:9px;color:#64748b;font-weight:700'; lm.textContent='Ladeliste '+i+' / 2';
+      l.style.position=l.style.position||'relative'; l.appendChild(lm); bundle.appendChild(l);
+    }
+    for(var j=1;j<=4;j++){
+      var c=cmr.cloneNode(true); c.id='cmrDoc_copy_'+j; c.classList.add('print-copy','rc336-no-qr');
+      var cm=document.createElement('div'); cm.style.cssText='position:absolute;right:8mm;bottom:17mm;font-size:8px;color:#111;font-weight:700'; cm.textContent='CMR '+j+' / 4';
+      c.appendChild(cm); bundle.appendChild(c);
+    }
+    document.body.appendChild(bundle);
+  };
+  try{buildPrintBundleRC52=window.buildPrintBundleRC52}catch(_){}
+
+  var oldPrint=window.printDocsRC52;
+  window.printDocsRC52=function(){
+    window.buildPrintBundleRC52();
+    document.body.classList.add('print-docs-only');
+    var cleanup=function(){document.body.classList.remove('print-docs-only');var b=document.getElementById('printBundleRC52');if(b)b.remove();window.removeEventListener('afterprint',cleanup)};
+    window.addEventListener('afterprint',cleanup);
+    window.print();
+    setTimeout(cleanup,5000);
+    return false;
+  };
+  try{printDocsRC52=window.printDocsRC52}catch(_){}
+
+  function patchDocButtons(){
+    Array.prototype.slice.call(document.querySelectorAll('button')).forEach(function(b){
+      var t=T(b.textContent);
+      if(/Drucken\s*3|3×\s*Ladeliste|3x\s*Ladeliste/i.test(t))b.textContent='Drucken: Deckblatt + 2x Ladeliste + 4x CMR';
+    });
+  }
+  ['showCurrentCmr','showSavedCmr'].forEach(function(n){
+    var base=window[n]||(typeof self!=='undefined'?self[n]:null);
+    if(typeof base==='function'&&!base.__rc336Wrapped){
+      window[n]=function(){var out=base.apply(this,arguments);setTimeout(function(){addQr(document);patchDocButtons()},180);setTimeout(function(){addQr(document);patchDocButtons()},650);return out};
+      window[n].__rc336Wrapped=true; try{eval(n+'=window[n]')}catch(_){}
+    }
+  });
+  var oldRender=window.render;
+  if(typeof oldRender==='function'&&!oldRender.__rc336Wrapped){
+    window.render=function(){var out=oldRender.apply(this,arguments);setTimeout(function(){addQr(document);patchDocButtons()},180);return out};
+    window.render.__rc336Wrapped=true; try{render=window.render}catch(_){}
+  }
+  setTimeout(function(){addQr(document);patchDocButtons()},900);
+})();
+</script>
+<!-- PRIVATE RC336 END: Sicherer QR nur auf erster Druck-Ladeliste, nie im PDF -->
 </body></html>
