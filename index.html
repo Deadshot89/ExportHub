@@ -51090,4 +51090,184 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC329 END: Single Render Lock fuer Sendung und Uebersicht -->
+<!-- PRIVATE RC330 START: Sichtbare Mail- und Kundeninfo-Boxen im Sendungsrenderer -->
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC330_VISIBLE_MAIL_NOTES__)return;
+  window.__EXPORTHUB_RC330_VISIBLE_MAIL_NOTES__=true;
+
+  function S(){try{return state||{}}catch(_){return {}}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function E(v){
+    return T(v).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function N(v){return T(v).toLowerCase().replace(/\s+/g,' ').trim()}
+  function uniq(list){
+    var seen={}, out=[];
+    A(list).forEach(function(v){
+      v=T(v).trim();
+      if(!v)return;
+      var k=N(v);
+      if(seen[k])return;
+      seen[k]=1;
+      out.push(v);
+    });
+    return out;
+  }
+  function customers(){return A(S().customers)}
+  function currentShipment(){S().shipment=S().shipment||{};return S().shipment}
+  function customerLabel(c){return [c&& (c.account||c.customerNumber),c&&c.name].filter(Boolean).join(' - ')}
+  function selectedCustomer330(){
+    var s=S(), sh=currentShipment(), id=T(sh.customerId||s.selectedCustomerId), search=N(sh.customerSearch||sh.customerAccount||'');
+    return customers().find(function(c){return T(c&&c.id)===id}) ||
+      customers().find(function(c){return N(customerLabel(c))===search || N(c&&c.account)===search || N(c&&c.customerNumber)===search}) ||
+      customers()[0] || {};
+  }
+  function noteValue(v,out){
+    if(Array.isArray(v)){v.forEach(function(x){noteValue(x,out)});return}
+    if(v&&typeof v==='object'){
+      out.push([v.title,v.time,v.user,v.text,v.note,v.value,v.body,v.content].filter(Boolean).join(' · ') || JSON.stringify(v));
+      return;
+    }
+    out.push(v);
+  }
+  function customerNotes330(c){
+    var out=[];
+    [
+      c.note,c.notes,c.customerInfo,c.customerInfos,c.customerNote,c.customerNotes,
+      c.processNote,c.processNotes,c.processInfo,c.processInfos,
+      c.prozessHinweis,c.prozessHinweise,c.kundeninfo,c.kundeninfos,
+      c.shippingNote,c.shippingNotes,c.shipmentNote,c.shipmentNotes,
+      c.dispatchNote,c.dispatchNotes,c.portalNote,c.portalNotes,
+      c.sopNote,c.sopNotes,c.specialNote,c.specialNotes,
+      c.instructions,c.instruction,c.remark,c.remarks,c.hint,c.hints,
+      c.customerDocuments,c.requiredDocuments,c.documentNote,
+      c.mailNote,c.mailNotes,c.abdNote,c.abdNotes,
+      c.carrierNote,c.carrierNotes,c.speditionNote,c.speditionNotes,
+      c.carrierContact,c.speditionContact,c.portal,c.portalName
+    ].forEach(function(v){noteValue(v,out)});
+    try{A(S().customerNotes&&c.id?S().customerNotes[c.id]:[]).forEach(function(v){noteValue(v,out)})}catch(_){}
+    return uniq(out);
+  }
+  function emailItems(v){
+    var out=[], seen={};
+    T(v).split(/[;,\n\r ]+/).forEach(function(x){
+      var m=T(x).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+      if(m&&!seen[m[0].toLowerCase()]){seen[m[0].toLowerCase()]=1;out.push(m[0])}
+    });
+    return out;
+  }
+  function mailRaw(c){
+    var v='';
+    try{if(typeof window.customerMailAddress==='function')v=window.customerMailAddress(c)||''}catch(_){}
+    return v || [
+      c.carrierRegistrationMail,c.carrierAnmeldungMail,c.speditionRegistrationMail,c.speditionAnmeldungMail,
+      c.carrierMail,c.speditionMail,c.anmeldungMail,c.mailRecipients,c.mailAddress,
+      c.mail,c.email,c.customerMail,c.customerEmail,c.contactEmail,c.mailToCustomer
+    ].filter(Boolean).join('; ');
+  }
+  function mailSubject(c,sh){
+    return T(sh.ref||'[Referenznummer]')+' / '+T(c.name||'Kunde');
+  }
+  function mailBody(c,sh){
+    var docs=T(sh.deliveryNotes||'').trim();
+    return [
+      'Hallo zusammen,',
+      '',
+      'anbei die Anmeldung zur Sendung '+T(sh.ref||'[Referenznummer]')+'.',
+      'Kunde: '+T(c.name||''),
+      'Kundennummer: '+T(c.account||c.customerNumber||''),
+      docs?'Lieferscheine/DNCs: '+docs:'',
+      '',
+      'Die Ladeliste bitte als PDF in Outlook anhaengen.',
+      '',
+      'Viele Gruesse'
+    ].filter(function(x){return x!==''||true}).join('\n');
+  }
+  window.rc330CopyShipmentMail=function(){
+    var c=selectedCustomer330(), sh=currentShipment(), text=mailBody(c,sh);
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){alert('Mailtext wurde kopiert.')}).catch(function(){prompt('Mailtext kopieren:',text)});
+    }else prompt('Mailtext kopieren:',text);
+    return false;
+  };
+  function mailBox(c,sh){
+    var mails=emailItems(mailRaw(c)), to=mails.map(encodeURIComponent).join(';');
+    var subject=encodeURIComponent(mailSubject(c,sh));
+    var body=encodeURIComponent(mailBody(c,sh));
+    var action=mails.length?'<a class="btn" href="mailto:'+to+'?subject='+subject+'&body='+body+'" target="_top" rel="noopener">Mail erstellen</a>':'<span class="badbox" style="display:block;margin:8px 0">Keine Mailadresse beim Kunden gefunden.</span>';
+    var old='';
+    try{if(typeof window.customerMailActions==='function')old=window.customerMailActions(c)||''}catch(_){}
+    return '<div class="infobox rc327-mail-box rc330-visible-mail-box" style="display:block!important;visibility:visible!important;height:auto!important;max-height:none!important;overflow:visible!important">'+
+      '<h3>Mail Bereich</h3>'+
+      '<b>Mail an Kunden oder Spedition</b><br>'+
+      '<div class="toolbar">'+action+'<button type="button" class="ghost" onclick="return rc330CopyShipmentMail()">Mailtext kopieren</button></div>'+
+      (mails.length?'<div class="small"><b>An:</b> '+E(mails.join('; '))+'</div>':'')+
+      (old?'<div style="margin-top:8px">'+old+'</div>':'')+
+      '<div class="small" style="margin-top:8px">Betreff automatisch: '+E(mailSubject(c,sh))+'. Ladeliste bitte als PDF anhaengen.</div>'+
+      '</div>';
+  }
+  function processBox(c,sh){
+    var notes=customerNotes330(c);
+    return '<div class="infobox rc327-process-box rc330-visible-process-box" style="display:block!important;visibility:visible!important;height:auto!important;max-height:none!important;overflow:visible!important">'+
+      '<h3>Kundeninfos / Prozesshinweise</h3>'+
+      (notes.length?notes.map(function(n){return '<div class="folder-note"><pre style="white-space:pre-wrap;margin:0">'+E(n)+'</pre></div>'}).join(''):'<div class="notice">Keine Kunden-Notes gefunden. Wenn im Kundenordner Text hinterlegt ist, bleibt diese Box trotzdem sichtbar.</div>')+
+      '<label class="checkrow"><input type="checkbox" '+(sh.customerProcessConfirmed?'checked':'')+' onchange="state.shipment.customerProcessConfirmed=this.checked;save()"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe die oben angezeigten Kunden-Notes, SOP-/Portalhinweise, Versandvorgaben und Sonderregeln geprueft.</span></span></label>'+
+      '</div>';
+  }
+  function replaceOrInsert(html){
+    var c=selectedCustomer330(), sh=currentShipment(), p=processBox(c,sh), m=mailBox(c,sh);
+    try{
+      var wrap=document.createElement('div');
+      wrap.innerHTML=html;
+      var oldP=wrap.querySelector('.rc327-process-box');
+      var oldM=wrap.querySelector('.rc327-mail-box');
+      if(oldP)oldP.outerHTML=p;
+      if(oldM)oldM.outerHTML=m;
+      if(!oldP||!oldM){
+        var ref=Array.prototype.slice.call(wrap.querySelectorAll('label.field')).find(function(el){return /Sendungsreferenz|Referenznummer/i.test(el.textContent||'')});
+        var block=document.createElement('div');
+        block.innerHTML=(!oldP?p:'')+(!oldM?m:'');
+        if(ref&&ref.parentNode)ref.parentNode.insertBefore(block,ref);
+        else wrap.insertAdjacentHTML('afterbegin',(!oldP?p:'')+(!oldM?m:''));
+      }
+      return wrap.innerHTML;
+    }catch(_){
+      if(html.indexOf('rc327-process-box')<0)html=p+html;
+      if(html.indexOf('rc327-mail-box')<0)html=m+html;
+      return html;
+    }
+  }
+
+  var baseShipment=window.rc325Shipment||window.shipment;
+  window.rc325Shipment=function(){
+    var html=typeof baseShipment==='function'?baseShipment.apply(this,arguments):'';
+    return replaceOrInsert(html);
+  };
+  window.shipment=window.rc325Shipment;
+  try{shipment=window.rc325Shipment}catch(_){}
+
+  var baseCheck=window.rc329RenderCheck;
+  window.rc330RenderCheck=function(){
+    var root=(typeof content!=='undefined'&&content)||document.getElementById('content')||document.body;
+    var msg=[
+      'RC330 Mail/Notes Check',
+      'Mail Box: '+!!(root&&root.querySelector&&root.querySelector('.rc327-mail-box')),
+      'Notes Box: '+!!(root&&root.querySelector&&root.querySelector('.rc327-process-box')),
+      'Mail Text: '+(root&&root.textContent&&root.textContent.indexOf('Mail Bereich')>=0),
+      'Kundeninfos gelesen: '+(root&&root.textContent&&root.textContent.indexOf('Kundeninfos / Prozesshinweise gelesen')>=0)
+    ].join('\n');
+    console.log(msg);
+    alert(msg);
+    if(typeof baseCheck==='function')try{baseCheck()}catch(_){}
+    return false;
+  };
+
+  try{if(S().view==='shipment'&&typeof render==='function')setTimeout(render,40)}catch(_){}
+})();
+</script>
+<!-- PRIVATE RC330 END: Sichtbare Mail- und Kundeninfo-Boxen im Sendungsrenderer -->
 </body></html>
