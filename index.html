@@ -51616,4 +51616,132 @@ body[data-current-view="shipment"] .main{
 })();
 </script>
 <!-- PRIVATE RC331 END: Mail Ziel/Sprache + stabiles Sendungslayout -->
+<!-- PRIVATE RC332 START: Notfall-Renderer Sendung erstellen stabil -->
+<style>
+.rc332-page{width:100%;max-width:1500px;margin:0 auto}
+.rc332-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(380px,.95fr);gap:18px;align-items:start}
+.rc332-grid>.card{min-width:0;overflow:visible}
+.rc332-mail-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.rc332-choice{border:1px solid #bfdbfe;background:#f8fbff;border-radius:12px;padding:10px}
+.rc332-title{display:block;font-size:12px;color:#334155;font-weight:950;margin-bottom:8px}
+.rc332-seg{display:flex;gap:6px;flex-wrap:wrap}
+.rc332-seg button{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:999px;padding:8px 11px;min-height:36px;font-weight:950;cursor:pointer}
+.rc332-seg button.active{background:#2563eb;border-color:#1d4ed8;color:#fff}
+.rc332-preview{white-space:pre-wrap;background:#fff;border:1px solid #dbeafe;border-radius:12px;padding:10px;margin-top:10px;max-height:170px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.45}
+@media(max-width:1350px){.rc332-page{max-width:980px}.rc332-grid{grid-template-columns:1fr}}
+@media(max-width:820px){.rc332-mail-choice{grid-template-columns:1fr}.rc332-page{max-width:100%}}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC332_SAFE_SHIPMENT__)return;
+  window.__EXPORTHUB_RC332_SAFE_SHIPMENT__=true;
+
+  function S(){try{return state||{}}catch(_){return {}}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function clean(v){return T(v).replace(/\s+/g,' ').trim()}
+  function uid(p){return (p||'ID')+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
+  function saveQuiet(){try{if(typeof save==='function')save()}catch(_){ }}
+  function customers(){return A(S().customers)}
+  function label(c){return [c&& (c.account||c.customerNumber||c.id),c&&c.name,c&& (c.country||c.land)].filter(Boolean).join(' · ')}
+  function refClean(v){return T(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
+  function makeRef(){
+    var r='';
+    for(var i=0;i<80;i++){r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);if(r.length===6)return r}
+    return refClean('S'+Date.now().toString(36)).padEnd(6,'0').slice(0,6);
+  }
+  function shipment(){
+    var s=S(), c=customers()[0]||{};
+    s.shipment=s.shipment||{};
+    var sh=s.shipment;
+    if(!sh.id)sh.id=uid('S');
+    if(!sh.customerId&&c.id)sh.customerId=c.id;
+    if(!/^[A-Z0-9]{6}$/.test(refClean(sh.ref)))sh.ref=makeRef();
+    sh.ref=refClean(sh.ref);
+    sh.rows=A(sh.rows);
+    if(!sh.rows.length)sh.rows=[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}];
+    sh.deliveryFiles=A(sh.deliveryFiles);
+    sh.podFiles=A(sh.podFiles);
+    sh.goodsDescription=sh.goodsDescription||'Waren laut Rechnung/Ladeliste';
+    return sh;
+  }
+  function selectedCustomer(){
+    var s=S(), sh=shipment(), id=T(sh.customerId||s.selectedCustomerId), search=clean(sh.customerSearch||'').toLowerCase();
+    return customers().find(function(c){return T(c&&c.id)===id}) ||
+      customers().find(function(c){return clean(label(c)).toLowerCase()===search || clean(c&&c.account).toLowerCase()===search || clean(c&&c.customerNumber).toLowerCase()===search}) ||
+      customers()[0] || {};
+  }
+  function emails(v){
+    var out=[], seen={};
+    T(v).split(/[;,\n\r ]+/).forEach(function(x){var m=T(x).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i); if(m&&!seen[m[0].toLowerCase()]){seen[m[0].toLowerCase()]=1;out.push(m[0])}});
+    return out;
+  }
+  function join(list){return list.filter(function(v){return clean(v)}).join('; ')}
+  function customerMail(c){return join([c.customerMail,c.customerEmail,c.mailToCustomer,c.mailCustomer,c.empfaengerMail,c.empfaengerEmail,c.recipientMail,c.recipientEmail,c.consigneeMail,c.consigneeEmail,c.contactEmail])}
+  function carrierMail(c){
+    var old='';try{if(typeof window.customerMailAddress==='function')old=window.customerMailAddress(c)||''}catch(_){}
+    return join([c.carrierRegistrationMail,c.carrierAnmeldungMail,c.speditionRegistrationMail,c.speditionAnmeldungMail,c.carrierMail,c.speditionMail,c.anmeldungMail,c.forwarderMail,c.forwarderEmail,c.carrierEmail,c.transportMail,c.transportEmail,c.mailRecipients,c.mailAddress,c.mail,c.email,old]);
+  }
+  function mailTarget(){return shipment().mailTarget==='customer'?'customer':'carrier'}
+  function mailLang(){return shipment().mailLanguage==='en'?'en':'de'}
+  function rows(sh){return A(sh.rows).filter(function(r){return r&&(clean(r.type)||Number(r.count)>0||Number(r.weight)>0||Number(r.ldm)>0)})}
+  function totals(sh){return rows(sh).reduce(function(a,r){var c=Number(String(r.count||0).replace(',','.'))||0,w=Number(String(r.weight||0).replace(',','.'))||0,l=Number(String(r.ldm||0).replace(',','.'))||0;a.count+=c;a.weight+=w;a.ldm+=c*l;return a},{count:0,weight:0,ldm:0})}
+  function fmt(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
+  function rowLines(sh,lang){
+    var list=rows(sh);
+    if(!list.length)return lang==='en'?'- open':'- offen';
+    return list.map(function(r,i){var dims=[r.l,r.w,r.h].filter(function(v){return clean(v)}).join(' x ');
+      if(lang==='en')return [(i+1)+'. Colli','   Quantity: '+(r.count||'0'),'   Packaging: '+(r.type||'open'),r.weight?'   Weight: '+fmt(Number(String(r.weight).replace(',','.')),1)+' kg':'',r.ldm?'   LDM per colli: '+fmt(Number(String(r.ldm).replace(',','.')),2):'',dims?'   Dimensions: '+dims+' cm':''].filter(Boolean).join('\r\n');
+      return [(i+1)+'. Colli','   Anzahl: '+(r.count||'0'),'   Packstueck: '+(r.type||'offen'),r.weight?'   Gewicht: '+fmt(Number(String(r.weight).replace(',','.')),1)+' kg':'',r.ldm?'   LDM je Colli: '+fmt(Number(String(r.ldm).replace(',','.')),2):'',dims?'   Masse: '+dims+' cm':''].filter(Boolean).join('\r\n');
+    }).join('\r\n');
+  }
+  function mailSubject(c,sh,target,lang){return (lang==='en'?(target==='customer'?'Shipment information ':'Shipment registration '):(target==='customer'?'Sendungsinformation ':'Sendungsanmeldung '))+(sh.ref||'')+' / '+(c.name||'Kunde')}
+  function mailBody(c,sh,target,lang){
+    var total=totals(sh), docs=clean(sh.deliveryNotes||''), pickup=clean(sh.pickupDate||''), carrier=clean(sh.carrier||c.carrier||c.spedition||'');
+    if(lang==='en')return ['Hello,','',target==='customer'?'please find below the shipment information.':'please arrange/register the following shipment.','','SHIPMENT INFORMATION','','Reference: '+(sh.ref||'open'),'Customer: '+(c.name||''),'Customer number: '+(c.account||c.customerNumber||''),docs?'Delivery notes/DNCs: '+docs:'','','Collis:',rowLines(sh,'en'),'','Total collis: '+fmt(total.count,0),'Total weight: '+fmt(total.weight,1)+' kg','Total LDM: '+fmt(total.ldm,2),'Pickup date: '+(pickup||'open'),'Carrier: '+(carrier||'open'),'','The loading list will be attached as PDF.','','Best regards','Tobias Limberg'].join('\r\n');
+    return ['Guten Tag,','',target==='customer'?'anbei die Sendungsinformationen.':'bitte melden Sie die folgende Sendung an.','','SENDUNGSINFORMATIONEN','','Referenznummer: '+(sh.ref||'offen'),'Kunde: '+(c.name||''),'Kundennummer: '+(c.account||c.customerNumber||''),docs?'Lieferscheine/DNCs: '+docs:'','','Collis:',rowLines(sh,'de'),'','Gesamt Collis: '+fmt(total.count,0),'Gesamtgewicht: '+fmt(total.weight,1)+' kg','Gesamt LDM: '+fmt(total.ldm,2),'Abholdatum: '+(pickup||'offen'),'Spedition: '+(carrier||'offen'),'','Die Ladeliste fuege ich als PDF bei.','','Vielen Dank','','Mit freundlichen Gruessen','Tobias Limberg'].join('\r\n');
+  }
+  window.rc332SetMailTarget=function(v){shipment().mailTarget=v==='customer'?'customer':'carrier';saveQuiet();return rc332RenderShipment()};
+  window.rc332SetMailLanguage=function(v){shipment().mailLanguage=v==='en'?'en':'de';saveQuiet();return rc332RenderShipment()};
+  window.rc332CopyShipmentMail=function(){var c=selectedCustomer(),sh=shipment(),txt=mailBody(c,sh,mailTarget(),mailLang()); if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){alert('Mailtext wurde kopiert.')}).catch(function(){prompt('Mailtext kopieren:',txt)})}else prompt('Mailtext kopieren:',txt); return false};
+  function mailBox(c,sh){
+    var target=mailTarget(), lang=mailLang(), list=emails(target==='customer'?customerMail(c):carrierMail(c)), sub=mailSubject(c,sh,target,lang), txt=mailBody(c,sh,target,lang);
+    var href=list.length?'mailto:'+list.map(encodeURIComponent).join(';')+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(txt):'';
+    return '<div class="infobox rc327-mail-box rc332-mail-box"><h3>Mail Bereich</h3><b>Mail an Kunden oder Spedition</b><div class="rc332-mail-choice"><div class="rc332-choice"><span class="rc332-title">Empfaenger</span><div class="rc332-seg"><button type="button" class="'+(target==='customer'?'active':'')+'" onclick="return rc332SetMailTarget(&quot;customer&quot;)">Kunde</button><button type="button" class="'+(target==='carrier'?'active':'')+'" onclick="return rc332SetMailTarget(&quot;carrier&quot;)">Spedition</button></div></div><div class="rc332-choice"><span class="rc332-title">Sprache</span><div class="rc332-seg"><button type="button" class="'+(lang==='de'?'active':'')+'" onclick="return rc332SetMailLanguage(&quot;de&quot;)">Deutsch</button><button type="button" class="'+(lang==='en'?'active':'')+'" onclick="return rc332SetMailLanguage(&quot;en&quot;)">Englisch</button></div></div></div><div class="toolbar">'+(list.length?'<a class="btn" href="'+E(href)+'" target="_top" rel="noopener">Mail erstellen</a>':'<span class="badbox" style="display:block;margin:0">Keine Mailadresse fuer '+(target==='customer'?'Kunde':'Spedition')+' gefunden.</span>')+'<button type="button" class="ghost" onclick="return rc332CopyShipmentMail()">Mailtext kopieren</button></div>'+(list.length?'<div class="small"><b>An:</b> '+E(list.join('; '))+'</div>':'<div class="small">Bitte Mailadresse im Kundenordner hinterlegen.</div>')+'<div class="small"><b>Betreff:</b> '+E(sub)+'</div><div class="rc332-preview">'+E(txt)+'</div></div>';
+  }
+  function notes(c){
+    var list=[];[c.note,c.notes,c.customerInfo,c.customerInfos,c.customerNote,c.customerNotes,c.processNote,c.processNotes,c.processInfo,c.processInfos,c.prozessHinweis,c.prozessHinweise,c.kundeninfo,c.kundeninfos,c.shippingNote,c.shippingNotes,c.shipmentNote,c.shipmentNotes,c.dispatchNote,c.dispatchNotes,c.portalNote,c.portalNotes,c.sopNote,c.sopNotes,c.specialNote,c.specialNotes,c.instructions,c.instruction,c.remark,c.remarks,c.hint,c.hints,c.mailNote,c.abdNote,c.carrierNote,c.speditionNote,c.portal,c.portalName].forEach(function(v){if(Array.isArray(v))list=list.concat(v);else if(v&&typeof v==='object')list.push(JSON.stringify(v));else if(clean(v))list.push(v)});
+    try{A(S().customerNotes&&c.id?S().customerNotes[c.id]:[]).forEach(function(v){if(typeof v==='string')list.push(v);else if(v)list.push([v.time,v.user,v.text||v.note||v.value].filter(Boolean).join(' · '))})}catch(_){}
+    var seen={};return list.map(clean).filter(function(v){var k=v.toLowerCase();if(!v||seen[k])return false;seen[k]=1;return true});
+  }
+  function processBox(c,sh){var n=notes(c);return '<div class="infobox rc327-process-box"><h3>Kundeninfos / Prozesshinweise</h3>'+(n.length?n.map(function(x){return '<div class="folder-note"><pre style="white-space:pre-wrap;margin:0">'+E(x)+'</pre></div>'}).join(''):'<div class="notice">Keine Kunden-Notes gefunden.</div>')+'<label class="checkrow"><input type="checkbox" '+(sh.customerProcessConfirmed?'checked':'')+' onchange="state.shipment.customerProcessConfirmed=this.checked;save()"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe die oben angezeigten Kunden-Notes, SOP-/Portalhinweise, Versandvorgaben und Sonderregeln geprueft.</span></span></label></div>'}
+  function rowHtml(r,i){r=r||{};return '<div class="rc325-row"><div class="miniGrid"><label class="field">Verpackung<input value="'+E(r.type||'')+'" onchange="rc325Row('+i+',&quot;type&quot;,this.value)"></label><label class="field">Anzahl<input type="number" min="0" step="1" value="'+E(r.count||'')+'" onchange="rc325Row('+i+',&quot;count&quot;,this.value)"></label><label class="field">LDM je Colli<input type="number" step="0.01" value="'+E(r.ldm||'')+'" onchange="rc325Row('+i+',&quot;ldm&quot;,this.value)"></label><label class="field">Gewicht gesamt kg<input type="number" step="0.1" value="'+E(r.weight||'')+'" onchange="rc325Row('+i+',&quot;weight&quot;,this.value)"></label><label class="field">Laenge cm<input type="number" value="'+E(r.l||'')+'" onchange="rc325Row('+i+',&quot;l&quot;,this.value)"></label><label class="field">Breite cm<input type="number" value="'+E(r.w||'')+'" onchange="rc325Row('+i+',&quot;w&quot;,this.value)"></label><label class="field">Hoehe cm<input type="number" value="'+E(r.h||'')+'" onchange="rc325Row('+i+',&quot;h&quot;,this.value)"></label><div class="field"><span>Zeile</span><button class="danger" onclick="return rc325RemoveRow('+i+')">Entfernen</button></div></div></div>'}
+  function completion(sh){var miss=[];var r=rows(sh);if(!/^[A-Z0-9]{6}$/.test(sh.ref||''))miss.push('Referenznummer');if(!sh.addressConfirmed)miss.push('Adresse bestaetigen');if(!sh.customerProcessConfirmed)miss.push('Kundeninfos / Prozesshinweise bestaetigen');if(!r.length)miss.push('Collis');if(!r.some(function(x){return Number(x.count||0)>0}))miss.push('Anzahl');if(!r.some(function(x){return Number(x.weight||0)>0}))miss.push('Gewicht');return miss.length?'<div class="notice"><b>Noch offen:</b> '+E(miss.join(', '))+'</div>':'<div class="okbox">Sendung kann gespeichert werden.</div>'}
+  function abdBox(c){try{if(c&&c.id){S().abdSelectedCustomerId=c.id;S().abdCustomerSearch=label(c)} if(typeof window.abdRequestPanel==='function')return '<div class="rc327-abd-box"><h3>ABD Bereich</h3>'+window.abdRequestPanel(c)+'</div>'}catch(_){} return '<div class="abd-panel rc327-abd-box"><h3>ABD Bereich</h3><button class="ghost abd-jump-rc70" onclick="return typeof goToAbdFromShipmentRC70===&quot;function&quot;?goToAbdFromShipmentRC70():false">ABD erstellen</button></div>'}
+  function savedSmall(){var list=A(S().shipments).slice(0,8);return list.length?'<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>Aktion</th></tr>'+list.map(function(x){var c=x.customer||{};return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E(c.name||x.customerName||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td><button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>':'<p class="muted">Noch keine Sendung gespeichert.</p>'}
+  window.rc332Shipment=function(){
+    var sh=shipment(), c=selectedCustomer(), opts=customers().map(function(cu){return '<option value="'+E(cu.id||'')+'" '+(T(cu.id)===T(sh.customerId)?'selected':'')+'>'+E(label(cu))+'</option>'}).join(''), dl=customers().map(function(cu){return '<option value="'+E(label(cu))+'"></option>'}).join('');
+    return (typeof head==='function'?head('Sendung erstellen',''):'<h2>Sendung erstellen</h2>')+'<div class="rc332-page"><div class="rc332-grid"><div class="card"><h3>Kunde & Grunddaten</h3><label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" list="customerList" value="'+E(sh.customerSearch||label(c))+'" oninput="setShipmentCustomerSearchAuto(this.value)" onchange="applyCustomerSearch()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();applyCustomerSearch()}"><datalist id="customerList">'+dl+'</datalist></label><div class="rc325-actions"><button class="rc325-blue" onclick="return rc325NewShipment()">+ Neue Sendung</button><button class="rc325-soft" onclick="applyCustomerSearch();return false">Kunde uebernehmen</button><button class="rc325-soft" onclick="ensureShipmentReference(true);return false">Neue Referenz</button></div><label class="field">Kunde<select onchange="selectShipmentCustomer(this.value)">'+opts+'</select></label><div class="'+(clean(c.address)?'okbox':'badbox')+'"><b>Empfaengeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+E(c.address||'Adresse fehlt')+'</pre></div><label class="checkrow"><input type="checkbox" '+(sh.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save()"><span>Adresse bestaetigen</span></label>'+processBox(c,sh)+mailBox(c,sh)+'<label class="field">Sendungsreferenz / Referenznummer<input value="'+E(sh.ref||'')+'" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,&quot;&quot;).slice(0,6)" onchange="setShipmentRef(this.value)"></label><label class="field">Lieferscheine / DNCs manuell<textarea onchange="state.shipment.deliveryNotes=this.value;save()">'+E(sh.deliveryNotes||'')+'</textarea></label><div class="rc325-files"><label class="btn">Dateien auswaehlen<input type="file" multiple style="display:none" onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label><button type="button" class="btn" onclick="return typeof rc246OpenReferenceFolderPicker===&quot;function&quot;?rc246OpenReferenceFolderPicker():false">Dateien aus Ref.-Ordner uebernehmen</button></div><div class="miniGrid"><label class="field">Geplantes Abholdatum<input type="date" value="'+E(sh.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+E(sh.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()"></label><label class="field">Kennzeichen<input value="'+E(sh.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()"></label><label class="field">Verlader<input value="'+E(sh.loader||'')+'" onchange="state.shipment.loader=this.value;save()"></label></div><div class="rc325-actions"><button class="rc325-blue" onclick="return rc325SaveShipment()">Sendung speichern + Aufgaben pruefen</button><button class="rc325-soft" onclick="showCurrentCmr();return false">Ladeliste/CMR Vorschau</button><button class="rc325-soft" onclick="rc55DownloadLoadlistPdf();return false">Ladeliste PDF herunterladen</button><button class="rc325-soft" onclick="rc55PrintLabels();return false">Versandlabel 4x A4</button></div>'+completion(sh)+'</div><div class="card"><h3>Collis, Masse, Gewicht, Lademeter</h3><div id="rowsBox">'+A(sh.rows).map(rowHtml).join('')+'</div><button class="ghost" onclick="return rc325AddRow()">+ Zeile</button><div class="summaryGrid">'+(typeof shipmentSummaryBoxes==='function'?shipmentSummaryBoxes(sh):'')+'</div>'+completion(sh)+'<label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()">'+E(sh.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label><label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+E(sh.comments||'')+'</textarea></label></div></div>'+abdBox(c)+'<div class="card"><h3>Gespeicherte Sendungen</h3><button class="ghost" onclick="setView(&quot;shipmentoverview&quot;)">Sendungsuebersicht oeffnen</button>'+savedSmall()+'</div></div>';
+  };
+  window.rc332RenderShipment=function(){
+    var t=(typeof content!=='undefined'&&content)||document.getElementById('content')||document.querySelector('main')||document.body;
+    try{if(typeof renderNav==='function')renderNav()}catch(_){}
+    try{t.innerHTML=window.rc332Shipment(); if(t.setAttribute)t.setAttribute('data-exporthub-render','RC332-shipment');}catch(err){console.error('RC332 shipment render failed',err); t.innerHTML='<div class="badbox"><b>Sendung erstellen konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>'}
+    return false;
+  };
+  var previousSetView=window.setView;
+  window.setView=function(v){if(v==='shipment'){S().view='shipment';saveQuiet();return window.rc332RenderShipment()} return previousSetView&&previousSetView.apply(this,arguments)};
+  try{setView=window.setView}catch(_){}
+  var previousRender=window.render;
+  window.render=function(){try{if(S().view==='shipment')return window.rc332RenderShipment()}catch(_){} return previousRender&&previousRender.apply(this,arguments)};
+  try{render=window.render}catch(_){}
+  window.shipment=window.rc332Shipment;
+  window.rc325Shipment=window.rc332Shipment;
+  try{shipment=window.rc332Shipment}catch(_){}
+  try{rc325Shipment=window.rc332Shipment}catch(_){}
+  try{if(S().view==='shipment')setTimeout(window.rc332RenderShipment,40)}catch(_){}
+})();
+</script>
+<!-- PRIVATE RC332 END: Notfall-Renderer Sendung erstellen stabil -->
 </body></html>
