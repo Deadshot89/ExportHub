@@ -45801,4 +45801,147 @@ body .rc314-process-warning{
 <!-- PRIVATE RC353 END: QR lokal, Ladeliste PDF, Deckblatt reduziert -->
 
 
+
+
+<!-- PRIVATE RC354 START: SOP Portal-Kacheln + Schritttext stabil -->
+<style id="rc354-sop-stable-css">
+.rc354-sop-layout{display:grid!important;grid-template-columns:1fr!important;gap:18px!important}
+.rc354-sop-list{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important;gap:10px!important;max-height:300px!important;overflow:auto!important;padding-right:4px!important}
+.rc354-sop-list button{min-height:76px!important;text-align:left!important;border-radius:16px!important;padding:12px!important}
+.rc354-open{padding:26px!important;min-height:520px!important}
+.rc354-open-head{display:flex!important;justify-content:space-between!important;gap:12px!important;align-items:flex-start!important;margin-bottom:14px!important}
+.rc354-step-text{border:2px solid #dbeafe!important;background:#f8fbff!important;border-radius:22px!important;padding:22px!important;min-height:240px!important;font-size:18px!important;line-height:1.7!important;white-space:normal!important;color:#0f172a!important}
+.rc354-step-text h2{font-size:28px!important;margin:0 0 12px!important;color:#08245d!important}
+.rc354-step-text p{font-size:18px!important;line-height:1.7!important;margin:0 0 10px!important;color:#0f172a!important}
+.rc354-step-list{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important;gap:8px!important;max-height:260px!important;overflow:auto!important;margin-top:10px!important}
+.rc354-step-list button{min-height:48px!important;text-align:left!important;white-space:normal!important}
+.rc354-portal-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;gap:12px!important}
+.rc354-portal-tile{border:2px solid #bfdbfe!important;background:linear-gradient(180deg,#f8fbff,#eef6ff)!important;border-radius:18px!important;padding:14px!important;min-height:120px!important;display:flex!important;flex-direction:column!important;gap:8px!important;justify-content:space-between!important}
+.rc354-portal-tile h4{margin:0!important;color:#08245d!important;font-size:20px!important;line-height:1.2!important}
+.rc354-portal-tile .small{display:block!important;color:#64748b!important;font-weight:800!important}
+.rc354-portal-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:8px!important}
+.rc354-note{border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;padding:10px 12px;font-weight:850;color:#08245d;margin:10px 0}
+@media(max-width:900px){.rc354-open-head{display:block!important}.rc354-step-text{font-size:16px!important}.rc354-step-text p{font-size:16px!important}.rc354-portal-grid{grid-template-columns:1fr!important}}
+</style>
+<script id="rc354-sop-stable-script">
+(function(){
+  if(window.__EXPORTHUB_RC354_SOP_STABLE__)return;
+  window.__EXPORTHUB_RC354_SOP_STABLE__=true;
+  function S(){try{return (typeof state!=='undefined'&&state)?state:(window.state=window.state||{})}catch(e){return window.state||(window.state={})}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function clean(v){return T(v).replace(/\s+/g,' ').trim()}
+  function low(v){return clean(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')}
+  function E(v){try{if(typeof esc==='function')return esc(v)}catch(e){}return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function headQ(t,p){try{if(typeof head==='function')return head(t,p||'')}catch(e){}return '<div class="page-head"><div><h2>'+E(t)+'</h2><p>'+E(p||'')+'</p></div></div>'}
+  function firstText(v){
+    var s=clean(v); if(!s)return '';
+    return s.length>90?s.slice(0,87)+'...':s;
+  }
+  function stepTextFrom(st){
+    if(typeof st==='string')return st;
+    return T(st&& (st.text||st.description||st.body||st.content||st.details||st.instruction||st.title||''));
+  }
+  function stepTitleFrom(st,i){
+    if(typeof st==='string')return 'Schritt '+(i+1);
+    var t=clean(st&&st.title); if(t)return t;
+    var txt=firstText(stepTextFrom(st));
+    return txt||('Schritt '+(i+1));
+  }
+  function normalizeStep(st,i){
+    return {title:stepTitleFrom(st,i),text:stepTextFrom(st),why:T(st&&st.why||''),warning:T(st&&st.warning||st.warn||''),tip:T(st&&st.tip||'')};
+  }
+  function normalizeSop(s){
+    if(!s)return null;
+    var id=T(s.id||s.sopId||('sop-'+Math.random().toString(36).slice(2)));
+    var rawSteps=A(s.steps||s.items||s.sopSteps);
+    var steps=rawSteps.length?rawSteps.map(normalizeStep):[{title:'SOP öffnen',text:'Diese SOP ist als Portal-/Kundenprozess vorhanden. Details können bei Bedarf ergänzt werden.',why:'',warning:'',tip:''}];
+    var portalUrl=T(s.portalUrl||s.url||s.link||s.href||((A(s.portals)[0]||{}).url)||((A(s.portals)[0]||{}).link)||'');
+    return {id:id,title:T(s.title||s.name||s.customer||s.customerName||'SOP'),type:T(s.type||s.area||'SOP'),portal:T(s.portal||s.portalName||''),portalUrl:portalUrl,customerName:T(s.customerName||s.customer||''),source:T(s.source||''),purpose:T(s.purpose||''),steps:steps,raw:s};
+  }
+  function searchText(s){return low([s&&s.id,s&&s.title,s&&s.type,s&&s.portal,s&&s.customerName,s&&s.source,s&&s.purpose,s&&s.portalUrl].join(' '))}
+  function addToMap(map,s){var n=normalizeSop(s);if(n&&n.id&&!map.has(n.id))map.set(n.id,n)}
+  function defaultPortalSops(){return [
+    {id:'portal-wuerth-industrie-rc354',title:'Würth Industrie Portal',type:'Portal',portal:'Würth Industrie',portalUrl:'https://tmis.wuerth-logistics.com/ls/Login',steps:[{title:'Portal öffnen',text:'Würth Industrie Portal öffnen und Transport-/Logistikprozess nach Kunden-SOP durchführen.'}]},
+    {id:'portal-dhl-mydhl-rc354',title:'DHL Express / MyDHL+',type:'Portal',portal:'DHL Express / MyDHL+',portalUrl:'https://mydhl.express.dhl/de/de/auth/login.html',steps:[{title:'DHL Portal öffnen',text:'DHL Express / MyDHL+ öffnen, Sendungsdaten prüfen und Label/Dokumente nach Prozess erzeugen.'}]},
+    {id:'portal-siemens-ax4-rc354',title:'Siemens Energy / AX4',type:'Portal',portal:'AX4 / ILoP',portalUrl:'https://ax4.com/ax4/?ID=3719631',steps:[{title:'AX4 Portal öffnen',text:'Siemens/AX4 beziehungsweise ILoP Portal öffnen und Transportauftrag anhand der SOP erfassen.'}]},
+    {id:'portal-ups-rc354',title:'UPS / Versandpreistool',type:'Portal',portal:'UPS',steps:[{title:'UPS Prozess öffnen',text:'UPS Preis-/Versandprozess nach ExportHUB-SOP nutzen. Paketanzahl, Gewicht, Zielland und Preis laut UPS Tool Liste prüfen.'}]},
+    {id:'portal-bsh-rc354',title:'BSH Portal',type:'Portal',portal:'BSH',steps:[{title:'BSH SOP öffnen',text:'BSH Prozess öffnen. Je nach Kunde BSH Gruppe oder BSH Türkei verwenden und Portalvorgaben prüfen.'}]},
+    {id:'portal-dachser-rc354',title:'DACHSER / Spedition',type:'Portal',portal:'DACHSER',steps:[{title:'Speditionsprozess öffnen',text:'Speditions-/Stückgutprozess öffnen und Empfänger, Collis, Gewicht, Lademeter, Abholung und Dokumente prüfen.'}]},
+    {id:'portal-aeb-atlas-rc354',title:'AEB / ATLAS',type:'Portal',portal:'AEB / ATLAS',steps:[{title:'Zollprozess öffnen',text:'Bei Drittland ABD/MRN, Export Filing und Ausfuhrnachweis nach Zoll-SOP prüfen.'}]}
+  ]}
+  function allSops(){
+    var map=new Map();
+    try{if(typeof BSH_GRUPPE_SOP_RC72!=='undefined')addToMap(map,BSH_GRUPPE_SOP_RC72)}catch(e){}
+    try{A(typeof UPLOADED_SOPS_RC64!=='undefined'?UPLOADED_SOPS_RC64:[]).forEach(function(s){addToMap(map,s)})}catch(e){}
+    try{A(typeof PORTAL_GUIDES_RC63!=='undefined'?PORTAL_GUIDES_RC63:[]).forEach(function(s){addToMap(map,s)})}catch(e){}
+    try{A((typeof SEED!=='undefined'&&SEED&&SEED.sops)||[]).forEach(function(s){addToMap(map,s)})}catch(e){}
+    try{A(S().customSops).forEach(function(s){addToMap(map,s)})}catch(e){}
+    try{A(S().userSops).forEach(function(s){addToMap(map,s)})}catch(e){}
+    try{A(S().ownSops).forEach(function(s){addToMap(map,s)})}catch(e){}
+    defaultPortalSops().forEach(function(s){addToMap(map,s)});
+    return Array.from(map.values()).sort(function(a,b){return clean(a.title).localeCompare(clean(b.title),'de')});
+  }
+  function findSopByNeed(key, fallbackId){
+    var all=allSops(), k=low(key);
+    if(k==='bsh')return all.find(function(s){return s.id==='sop-bsh-gruppe'||/bsh gruppe/.test(searchText(s))})||all.find(function(s){return /bsh/.test(searchText(s))})||all.find(function(s){return s.id===fallbackId})||all[0];
+    if(k==='wuerth')return all.find(function(s){return /wuerth|wurth|würth/.test(searchText(s))})||all.find(function(s){return s.id===fallbackId})||all[0];
+    if(k==='siemens')return all.find(function(s){return /siemens|ax4|ilop/.test(searchText(s))})||all.find(function(s){return s.id===fallbackId})||all[0];
+    if(k==='dhl')return all.find(function(s){return /dhl|mydhl/.test(searchText(s))})||all.find(function(s){return s.id===fallbackId})||all[0];
+    if(k==='ups')return all.find(function(s){return /\bups\b|versandpreistool/.test(searchText(s))})||all.find(function(s){return s.id===fallbackId})||all[0];
+    if(k==='dachser')return all.find(function(s){return /dachser|spedition/.test(searchText(s))})||all.find(function(s){return s.id===fallbackId})||all[0];
+    if(k==='aeb')return all.find(function(s){return /aeb|atlas|zoll/.test(searchText(s))})||all.find(function(s){return s.id===fallbackId})||all[0];
+    return all.find(function(s){return s.id===fallbackId})||all[0];
+  }
+  function portalTiles(){
+    var defs=[
+      ['Würth Industrie','wuerth','portal-wuerth-industrie-rc354'],['DHL Express / MyDHL+','dhl','portal-dhl-mydhl-rc354'],['Siemens Energy / AX4','siemens','portal-siemens-ax4-rc354'],['UPS','ups','portal-ups-rc354'],['BSH','bsh','portal-bsh-rc354'],['DACHSER / Spedition','dachser','portal-dachser-rc354'],['AEB / ATLAS','aeb','portal-aeb-atlas-rc354']
+    ];
+    return defs.map(function(d){var s=findSopByNeed(d[1],d[2])||{};return {label:d[0],sopId:s.id||d[2],url:s.portalUrl||'',portal:s.portal||d[0]}});
+  }
+  function currentSop(){
+    var all=allSops(), sw=S().sopWizard=S().sopWizard||{};
+    var sop=all.find(function(x){return x.id===sw.id});
+    if(!sop){sop=all[0];sw.id=sop?sop.id:'';sw.step=0;sw.done=sw.done||{}}
+    return sop;
+  }
+  window.rc354SelectSop=function(id){var all=allSops(), s=all.find(function(x){return x.id===id})||all[0];S().sopWizard={id:s?s.id:'',step:0,done:(S().sopWizard&&S().sopWizard.done)||{}};saveQ();try{render()}catch(e){}return false};
+  window.rc354SetSopStep=function(i){var sop=currentSop(), max=Math.max(0,A(sop&&sop.steps).length-1);S().sopWizard=S().sopWizard||{};S().sopWizard.step=Math.max(0,Math.min(max,Number(i)||0));saveQ();try{render()}catch(e){}return false};
+  window.rc354SopStep=function(delta){var sw=S().sopWizard=S().sopWizard||{};return window.rc354SetSopStep((Number(sw.step)||0)+(Number(delta)||0))};
+  window.rc354OpenPortal=function(url){if(!url)return false;try{window.open(url,'_blank','noopener')}catch(e){location.href=url}return false};
+  function stepHtml(step){
+    var txt=T(step&&step.text||'');
+    var parts='<h2>'+E(step&&step.title||'Schritt')+'</h2><p>'+E(txt||'Für diesen Schritt ist noch kein Text hinterlegt. Bitte im SOP-Editor ergänzen.').replace(/\n/g,'<br>')+'</p>';
+    if(step&&step.why)parts+='<div class="notice"><b>Warum:</b> '+E(step.why).replace(/\n/g,'<br>')+'</div>';
+    if(step&&step.warning)parts+='<div class="notice"><b>Achtung:</b> '+E(step.warning).replace(/\n/g,'<br>')+'</div>';
+    if(step&&step.tip)parts+='<div class="notice"><b>Tipp:</b> '+E(step.tip).replace(/\n/g,'<br>')+'</div>';
+    return parts;
+  }
+  function editorHtml(){
+    try{if(typeof rc46RenderSopEditor==='function')return '<div id="rc46SopEditorHolder">'+rc46RenderSopEditor((S().sopWizard||{}).id||'')+'</div>'}catch(e){}
+    return '';
+  }
+  function sopHtml(){
+    var all=allSops(); if(!all.length)return headQ('📋 SOP starten','')+'<div class="card"><h3>Keine SOP vorhanden</h3></div>';
+    var current=currentSop(), steps=A(current.steps), idx=Math.max(0,Math.min(Number((S().sopWizard||{}).step)||0,steps.length-1)), step=steps[idx]||{title:'Keine SOP gewählt',text:'Bitte eine SOP auswählen.'};
+    return headQ('📋 SOP starten','SOP auswählen, Portal öffnen oder Schritt-für-Schritt-Anleitung bearbeiten.')+
+      '<div class="rc354-sop-layout">'+
+      '<div class="card"><h3>Portal-Kacheln</h3><div class="rc354-portal-grid">'+portalTiles().map(function(p){return '<div class="rc354-portal-tile"><div><h4>'+E(p.label)+'</h4><span class="small">'+E(p.portal||'Portal')+'</span></div><div class="rc354-portal-actions">'+(p.url?'<button class="btn" onclick="return rc354OpenPortal(&quot;'+E(p.url)+'&quot;)">Portal öffnen</button>':'')+'<button class="ghost" onclick="return rc354SelectSop(&quot;'+E(p.sopId)+'&quot;)">SOP öffnen</button></div></div>'}).join('')+'</div></div>'+
+      '<div class="card"><h3>SOP auswählen</h3><div class="rc354-sop-list">'+all.map(function(s){return '<button class="'+(current&&current.id===s.id?'btn':'ghost')+'" onclick="return rc354SelectSop(&quot;'+E(s.id)+'&quot;)"><b>'+E(s.title)+'</b><br><span class="small">'+E(s.type||'SOP')+(s.portal?' · '+E(s.portal):'')+'</span></button>'}).join('')+'</div></div>'+
+      '<div class="card rc354-open"><div class="rc354-open-head"><div><h2 style="margin:0">'+E(current.title||'SOP')+'</h2><div class="muted">'+E(current.source||current.portal||'')+'</div></div><span class="pill blue">Schritt '+(idx+1)+' / '+(steps.length||1)+'</span></div><div class="rc354-step-text">'+stepHtml(step)+'</div><div class="toolbar" style="margin-top:14px"><button class="ghost" onclick="return rc354SopStep(-1)" '+(idx<=0?'disabled':'')+'>Zurück</button><button class="btn" onclick="return rc354SopStep(1)" '+(idx>=steps.length-1?'disabled':'')+'>Weiter</button></div><h3>Schritte</h3><div class="rc354-step-list">'+steps.map(function(st,i){return '<button class="'+(i===idx?'btn':'ghost')+'" onclick="return rc354SetSopStep('+i+')">'+(i+1)+'. '+E(st.title||'Schritt')+'</button>'}).join('')+'</div></div>'+editorHtml()+'</div>';
+  }
+  window.allSopsRC354=allSops;
+  window.allSopsRC72=allSops;
+  window.allSopsRC63=allSops;
+  window.sopPortalTilesRC60=portalTiles;
+  window.selectSopWizard=window.rc354SelectSop;
+  window.rc72SetSopStep=window.rc354SetSopStep;
+  window.rc72SopStep=window.rc354SopStep;
+  window.sop=function(){return sopHtml()};
+  try{allSopsRC72=window.allSopsRC72;allSopsRC63=window.allSopsRC63;sopPortalTilesRC60=window.sopPortalTilesRC60;selectSopWizard=window.rc354SelectSop;rc72SetSopStep=window.rc354SetSopStep;rc72SopStep=window.rc354SopStep;sop=window.sop}catch(e){}
+  try{if(S().view==='sop')setTimeout(function(){render()},60)}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC354 END: SOP Portal-Kacheln + Schritttext stabil -->
 </body></html>
