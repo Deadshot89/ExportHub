@@ -43171,7 +43171,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC324 END: POD-Foto direkt nach QR/PIN hochladen -->
-<!-- PRIVATE RC325 START: Sendung erstellen und Uebersicht Endrenderer -->
+<!-- PRIVATE RC326 START: Sendung erstellen und Uebersicht Endrenderer -->
 <style>
 .rc325-page{max-width:1360px;margin:0 auto}
 .rc325-grid{display:grid;grid-template-columns:minmax(340px,1fr) minmax(340px,1fr);gap:18px;align-items:start}
@@ -43200,8 +43200,8 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 </style>
 <script>
 (function(){
-  if(window.__EXPORTHUB_RC325_ENDRENDER__)return;
-  window.__EXPORTHUB_RC325_ENDRENDER__=true;
+  if(window.__EXPORTHUB_RC326_ENDRENDER__)return;
+  window.__EXPORTHUB_RC326_ENDRENDER__=true;
 
   function S(){try{return state||{}}catch(_){return {}}}
   function A(v){return Array.isArray(v)?v:[]}
@@ -43216,7 +43216,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   function customers(){return A(S().customers)}
   function opt(c){return [c&&c.account||c&&c.customerNumber||c&&c.id||'',c&&c.name||'',c&&c.country||c&&c.land||''].filter(Boolean).join(' · ')}
   function byId(id){return customers().find(function(c){return T(c.id)===T(id)})||null}
-  function selectedCustomer(){var sh=shipment();return byId(sh.customerId||S().selectedCustomerId)||customers()[0]||{id:'',name:'',account:'',customerNumber:'',address:''}}
+  function selectedCustomer(){var sh=shipmentData325();return byId(sh.customerId||S().selectedCustomerId)||customers()[0]||{id:'',name:'',account:'',customerNumber:'',address:''}}
   function makeRef(c){
     try{if(typeof generateShipmentRef==='function')return cleanRef(generateShipmentRef(c||{}))}catch(_){}
     var used=A(S().shipments).map(function(x){return cleanRef(x&&x.ref)});
@@ -43226,17 +43226,18 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   function blankShipment(c){
     return {id:uid325('S'),customerId:c&&c.id||'',customerSearch:opt(c),ref:makeRef(c),refAuto:true,deliveryNotes:'',deliveryFiles:[],podFiles:[],status:'offen',freigabe:'offen',pickupDate:'',carrier:'',incoterm:'',goodsDescription:'Waren laut Rechnung/Ladeliste',comments:'',licensePlate:'',loader:'',addressConfirmed:false,customerProcessConfirmed:false,rows:[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}]};
   }
-  function shipment(){
-    var s=S();s.shipment=s.shipment||blankShipment(customers()[0]||{});
-    var sh=s.shipment;
-    if(!sh.customerId&&customers()[0])sh.customerId=customers()[0].id;
-    sh.rows=A(sh.rows);if(!sh.rows.length)sh.rows=[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}];
-    sh.deliveryFiles=A(sh.deliveryFiles);sh.podFiles=A(sh.podFiles);
-    if(!validRef(sh.ref))sh.ref=makeRef(selectedCustomer());
-    sh.ref=cleanRef(sh.ref);
-    sh.customerSearch=sh.customerSearch||opt(selectedCustomer());
-    return sh;
-  }
+	  function shipmentData325(){
+	    var s=S();s.shipment=s.shipment||blankShipment(customers()[0]||{});
+	    var sh=s.shipment;
+	    if(!sh.customerId&&customers()[0])sh.customerId=customers()[0].id;
+	    sh.rows=A(sh.rows);if(!sh.rows.length)sh.rows=[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}];
+	    sh.deliveryFiles=A(sh.deliveryFiles);sh.podFiles=A(sh.podFiles);
+	    var c=byId(sh.customerId||s.selectedCustomerId)||customers()[0]||{};
+	    if(!validRef(sh.ref))sh.ref=makeRef(c);
+	    sh.ref=cleanRef(sh.ref);
+	    sh.customerSearch=sh.customerSearch||opt(c);
+	    return sh;
+	  }
   function mailPanel(c,sh){
     try{if(typeof customerMailActions==='function')return customerMailActions(c)}catch(_){}
     var sub=encodeURIComponent((sh.ref||'Sendung')+' / '+(c.name||'Kunde'));
@@ -43276,15 +43277,15 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     if(!list.length)return '<p class="muted">Noch keine Sendung gespeichert.</p>';
     return '<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>Aktion</th></tr>'+list.map(function(x){var c=x.customer||{};return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E(c.name||x.customerName||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td><button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>';
   }
-  window.rc325Row=function(i,k,v){var sh=shipment();sh.rows[i]=sh.rows[i]||{};sh.rows[i][k]=v;save325();return false};
-  window.rc325AddRow=function(){shipment().rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});save325();render325();return false};
-  window.rc325RemoveRow=function(i){var sh=shipment();sh.rows.splice(i,1);if(!sh.rows.length)sh.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});save325();render325();return false};
+  window.rc325Row=function(i,k,v){var sh=shipmentData325();sh.rows[i]=sh.rows[i]||{};sh.rows[i][k]=v;save325();return false};
+  window.rc325AddRow=function(){shipmentData325().rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});save325();render325();return false};
+  window.rc325RemoveRow=function(i){var sh=shipmentData325();sh.rows.splice(i,1);if(!sh.rows.length)sh.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});save325();render325();return false};
   window.rc325NewShipment=function(){var c=selectedCustomer();S().shipment=blankShipment(c);S().activeShipmentId='current';save325();render325();return false};
   window.rc325SaveShipment=function(){
-    var sh=shipment(), c=selectedCustomer();
+    var sh=shipmentData325(), c=selectedCustomer();
     try{if(typeof collectRows199==='function')collectRows199()}catch(_){}
     try{if(typeof collectRows190==='function')collectRows190(true)}catch(_){}
-    sh=shipment();sh.ref=cleanRef(sh.ref);
+    sh=shipmentData325();sh.ref=cleanRef(sh.ref);
     var rows=A(sh.rows).filter(function(r){return Number(r.count||0)>0||Number(r.weight||0)>0||T(r.type).trim()});
     var miss=[];
     if(!c||!c.id)miss.push('Kunde');
@@ -43306,7 +43307,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     return false;
   };
   window.rc325Shipment=function(){
-    var sh=shipment(), c=selectedCustomer(), list=customers();
+    var sh=shipmentData325(), c=selectedCustomer(), list=customers();
     var opts=list.map(function(cu){return '<option value="'+E(cu.id||'')+'" '+(T(cu.id)===T(sh.customerId)?'selected':'')+'>'+E(opt(cu))+'</option>'}).join('');
     var dl=list.map(function(cu){return '<option value="'+E(opt(cu))+'"></option>'}).join('');
     return (typeof head==='function'?head('Sendung erstellen',''):'<h2>Sendung erstellen</h2>')+
@@ -43382,5 +43383,5 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   try{render=window.render}catch(_){}
 })();
 </script>
-<!-- PRIVATE RC325 END: Sendung erstellen und Uebersicht Endrenderer -->
+<!-- PRIVATE RC326 END: Sendung erstellen und Uebersicht Endrenderer -->
 </body></html>
