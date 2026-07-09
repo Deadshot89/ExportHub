@@ -51959,418 +51959,151 @@ body[data-current-view="shipment"] .main{
 </script>
 <!-- PRIVATE RC335 END: Kundensuche ohne Layoutverlust -->
 
-<!-- PRIVATE RC337 START: Final stabile Sendungserstellung ohne alte Renderpfade -->
+
+<!-- PRIVATE RC340 START: Sendung erstellen Original-Layout stabilisiert -->
 <style>
-.rc337-page{width:100%;max-width:1680px;margin:0 auto;display:grid;gap:16px}
-.rc337-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,.92fr);gap:16px;align-items:start}
-.rc337-layout>.card,.rc337-page>.card{min-width:0;overflow:visible!important}
-.rc337-card-title{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-.rc337-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
-.rc337-search-results{display:grid;gap:6px;margin:8px 0;max-height:210px;overflow:auto}
-.rc337-search-results button{border:1px solid #bfdbfe;background:#fff;border-radius:12px;padding:8px 10px;text-align:left;font-weight:850;cursor:pointer}
-.rc337-search-results button:hover{background:#eff6ff;border-color:#2563eb}
-.rc337-mail-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
-.rc337-choice{border:1px solid #bfdbfe;background:#f8fbff;border-radius:14px;padding:10px}
-.rc337-choice-title{display:block;font-size:12px;color:#334155;font-weight:950;margin-bottom:8px}
-.rc337-seg{display:flex;gap:6px;flex-wrap:wrap}
-.rc337-seg button{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:999px;padding:8px 12px;min-height:36px;font-weight:950;cursor:pointer}
-.rc337-seg button.active{background:#2563eb;border-color:#1d4ed8;color:#fff}
-.rc337-preview{white-space:pre-wrap;background:#fff;border:1px solid #dbeafe;border-radius:12px;padding:10px;margin-top:10px;max-height:180px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.45}
-.rc337-notes-list{display:grid;gap:8px;margin:8px 0}
-.rc337-row{border:1px solid #dbeafe;background:#f8fbff;border-radius:16px;padding:10px;margin:0 0 10px}
-.rc337-row-grid{display:grid;grid-template-columns:1.3fr .7fr .8fr .9fr .75fr .75fr .75fr auto;gap:8px;align-items:end}
-.rc337-row-grid .field{margin:0}
-.rc337-row-grid input,.rc337-row-grid select{min-width:0}
-.rc337-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
-.rc337-summary .summaryBox{min-width:0}
-.rc337-abd-stack{display:block!important;width:100%}
-.rc337-stack{display:grid;gap:12px}
+.rc340-page{width:100%;max-width:1580px;margin:0 auto;display:grid;gap:16px}
+.rc340-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,.9fr);gap:16px;align-items:start}
+.rc340-grid>.card,.rc340-page>.card{min-width:0;overflow:visible!important}
+.rc340-card-title{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.rc340-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.rc340-box{border-radius:16px;padding:13px;margin:10px 0;font-weight:770;line-height:1.5;border-left:5px solid #2563eb;background:#eff6ff;color:#0f172a;display:block!important;visibility:visible!important;height:auto!important;max-height:none!important;overflow:visible!important}
+.rc340-box h3{margin:0 0 8px;color:#08245d}
+.rc340-note-list{display:grid;gap:8px;margin:8px 0}
+.rc340-note{border:1px solid #dbeafe;background:#fff;border-radius:14px;padding:10px;white-space:pre-wrap;font-weight:800}
+.rc340-mail-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.rc340-choice{border:1px solid #bfdbfe;background:#fff;border-radius:14px;padding:10px}
+.rc340-choice-title{display:block;font-size:12px;color:#334155;font-weight:950;margin-bottom:8px}
+.rc340-seg{display:flex;gap:6px;flex-wrap:wrap}
+.rc340-seg button{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:999px;padding:8px 12px;min-height:36px;font-weight:950;cursor:pointer}
+.rc340-seg button.active{background:#2563eb;border-color:#1d4ed8;color:#fff}
+.rc340-preview{white-space:pre-wrap;background:#fff;border:1px solid #dbeafe;border-radius:12px;padding:10px;margin-top:10px;max-height:170px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.45}
+.rc340-row{border:1px solid #dbeafe;background:#f8fbff;border-radius:16px;padding:10px;margin-bottom:10px}
+.rc340-row-grid{display:grid;grid-template-columns:1.25fr .55fr .7fr .85fr .7fr .7fr .7fr auto;gap:8px;align-items:end}
+.rc340-row-grid .field{margin:0}.rc340-row-grid input,.rc340-row-grid select{min-width:0}
+.rc340-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.rc340-abd-box{display:block!important;width:100%;border:2px solid #fde68a;background:#fffbeb;border-radius:22px;padding:16px;margin:16px 0;box-shadow:0 10px 26px rgba(245,158,11,.10)}
+.rc340-abd-box h3{color:#92400e;margin:0 0 8px}
 body[data-exporthub-view="shipment"] .main{overflow-x:hidden!important}
-@media(max-width:1450px){.rc337-layout{grid-template-columns:1fr}.rc337-page{max-width:1180px}.rc337-row-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rc337-summary{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){.rc337-mail-choice,.rc337-summary,.miniGrid{grid-template-columns:1fr!important}.rc337-row-grid{grid-template-columns:1fr}.rc337-page{max-width:100%}}
+body[data-exporthub-view="shipment"] .rc99-clean-ui .rc340-box,
+body.rc99-clean-ui[data-exporthub-view="shipment"] .rc340-box{display:block!important}
+@media(max-width:1450px){.rc340-grid{grid-template-columns:1fr}.rc340-page{max-width:1120px}.rc340-row-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rc340-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.rc340-mail-choice,.rc340-summary,.miniGrid{grid-template-columns:1fr!important}.rc340-row-grid{grid-template-columns:1fr}.rc340-page{max-width:100%}}
+@media print{.rc340-box,.rc340-abd-box{display:none!important}#loadListDoc .rc322-qr-info,.rc322-qr-info{display:none!important}}
 </style>
 <script>
 (function(){
-  if(window.__EXPORTHUB_RC337_FINAL_SHIPMENT__)return;
-  window.__EXPORTHUB_RC337_FINAL_SHIPMENT__=true;
+  if(window.__EXPORTHUB_RC340_ORIGINAL_SHIPMENT_STABLE__)return;
+  window.__EXPORTHUB_RC340_ORIGINAL_SHIPMENT_STABLE__=true;
 
-  var oldSetView337=window.setView;
-  var oldRender337=window.render;
-  var oldShipmentOverview337=window.shipmentoverview;
+  var oldSetView340=window.setView;
+  var oldRender340=window.render;
+  var oldCmr340=window.cmr || (typeof cmr==='function'?cmr:null);
 
   function S(){try{return state||{}}catch(_){return {}}}
   function A(v){return Array.isArray(v)?v:[]}
   function T(v){return String(v==null?'':v)}
   function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function clean(v){return T(v).replace(/\s+/g,' ').trim()}
-  function norm(v){return clean(v).toLowerCase()}
-  function dateNow(){try{return new Date().toLocaleString('de-DE')}catch(_){return T(new Date())}}
-  function today(){try{return new Date().toISOString().slice(0,10)}catch(_){return ''}}
-  function saveQuiet(){
-    try{if(typeof save==='function')save();return}catch(_){}
-    try{localStorage.setItem('exporthub_private_rc82_state',JSON.stringify(S()))}catch(_){}
-  }
+  function norm(v){return clean(v).toLowerCase().normalize?clean(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim():clean(v).toLowerCase()}
+  function saveQuiet(){try{if(typeof save==='function')save();return}catch(_){} try{localStorage.setItem('exporthub_private_rc82_state',JSON.stringify(S()))}catch(_){} }
+  function root(){return document.getElementById('content')||document.querySelector('main')||document.body}
   function uid(p){return (p||'ID')+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)}
+  function today(){try{return new Date().toISOString().slice(0,10)}catch(_){return ''}}
+  function nowDe(){try{return new Date().toLocaleString('de-DE')}catch(_){return T(new Date())}}
   function customers(){return A(S().customers)}
-  function colliTypes(){try{return A((S().colliTypes&&S().colliTypes.length?S().colliTypes:SEED.colliTypes))}catch(_){return A(S().colliTypes)}}
-  function label(c){return [c&&(c.account||c.customerNumber||c.id),c&&c.name,c&&(c.country||c.land)].filter(Boolean).join(' · ')}
+  function colliTypes(){try{return A((S().colliTypes&&S().colliTypes.length?S().colliTypes:SEED.colliTypes))}catch(_){return []}}
+  function cLabel(c){return [c&&(c.account||c.customerNumber||c.id),c&&c.name,c&&(c.country||c.land)].filter(Boolean).join(' · ')}
   function refClean(v){return T(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
-  function makeRef(){for(var i=0;i<80;i++){var r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);if(r.length===6)return r}return ('S'+Date.now().toString(36)).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6).padEnd(6,'0')}
-  function shipData337(){
-    var st=S();st.shipment=st.shipment||{};var sh=st.shipment;
-    if(!sh.id)sh.id=uid('S');
-    if(!sh.ref||!/^[A-Z0-9]{6}$/.test(refClean(sh.ref))){sh.ref=makeRef();sh.refAuto=true}else sh.ref=refClean(sh.ref);
-    sh.deliveryFiles=A(sh.deliveryFiles);sh.podFiles=A(sh.podFiles);sh.rows=A(sh.rows);
-    if(!sh.rows.length)sh.rows=[{type:'Euro Palette',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}];
-    sh.goodsDescription=sh.goodsDescription||'Waren laut Rechnung/Ladeliste';
-    if(!sh.mailTarget)sh.mailTarget='carrier';
-    if(!sh.mailLanguage)sh.mailLanguage='de';
-    st.activeShipmentId='current';
-    return sh;
-  }
-  function customerById(id){id=T(id);return customers().find(function(c){return T(c&&c.id)===id})||null}
-  function selectedCustomer(){
-    var st=S(),sh=shipData337(),q=norm(sh.customerSearch||'');
-    return customerById(sh.customerId||st.selectedCustomerId)||
-      customers().find(function(c){return norm(label(c))===q||norm(c&&c.account)===q||norm(c&&c.customerNumber)===q||norm(c&&c.name)===q})||
-      customers()[0]||{};
-  }
-  function findCustomer(value){
-    var v=norm(value);if(!v)return null;
-    return customers().find(function(c){return norm(label(c))===v})||
-      customers().find(function(c){return norm(c&&c.id)===v||norm(c&&c.account)===v||norm(c&&c.customerNumber)===v})||
-      customers().find(function(c){return norm(c&&c.name).indexOf(v)>=0||norm(label(c)).indexOf(v)>=0})||null;
-  }
-  function customerHits(value){
-    var v=norm(value);if(!v)return customers().slice(0,8);
-    return customers().filter(function(c){return norm(label(c)).indexOf(v)>=0||norm(c&&c.account).indexOf(v)>=0||norm(c&&c.customerNumber).indexOf(v)>=0||norm(c&&c.name).indexOf(v)>=0}).slice(0,8);
-  }
-  function emails(v){var out=[],seen={};T(v).split(/[;,\n\r ]+/).forEach(function(x){var m=T(x).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);if(m&&!seen[m[0].toLowerCase()]){seen[m[0].toLowerCase()]=1;out.push(m[0])}});return out}
+  function validRef(v){return /^[A-Z0-9]{6}$/.test(T(v||''))}
+  function makeRef(){try{if(typeof generateShipmentRef==='function')return generateShipmentRef(selectedCustomer340())}catch(_){} var chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',out='';for(var i=0;i<6;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out}
+  function blankRow(){return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''}}
+  function shipmentData340(){var s=S();s.shipment=s.shipment||{};var sh=s.shipment;if(!sh.id)sh.id=uid('S');sh.rows=A(sh.rows);if(!sh.rows.length)sh.rows=[blankRow()];sh.deliveryFiles=A(sh.deliveryFiles);sh.podFiles=A(sh.podFiles);if(!validRef(refClean(sh.ref))){sh.ref=makeRef();sh.refAuto=true}else sh.ref=refClean(sh.ref);if(!sh.goodsDescription)sh.goodsDescription='Waren laut Rechnung/Ladeliste';if(!sh.mailTarget)sh.mailTarget='carrier';if(!sh.mailLanguage)sh.mailLanguage='de';s.activeShipmentId='current';return sh}
+  function selectedCustomer340(){var s=S(),sh=s.shipment||{},id=T(sh.customerId||s.selectedCustomerId);var q=norm(sh.customerSearch||'');return customers().find(function(c){return T(c&&c.id)===id})||customers().find(function(c){return norm(cLabel(c))===q||norm(c&&c.account)===q||norm(c&&c.customerNumber)===q||norm(c&&c.name)===q})||customers()[0]||{} }
+  function findCustomer340(value){var v=norm(value);if(!v)return null;return customers().find(function(c){return norm(cLabel(c))===v})||customers().find(function(c){return norm(c&&c.id)===v||norm(c&&c.account)===v||norm(c&&c.customerNumber)===v})||customers().find(function(c){return norm(c&&c.name).indexOf(v)>=0||norm(cLabel(c)).indexOf(v)>=0})||null}
+  function copyObj(o){try{return JSON.parse(JSON.stringify(o||{}))}catch(_){return o||{}}}
+  function setCustomer340(c,keepTyped){var sh=shipmentData340();if(!c||!c.id)return false;sh.customerId=c.id;S().selectedCustomerId=c.id;if(!keepTyped)sh.customerSearch=cLabel(c);sh.customer=copyObj(c);if(!sh.carrier&&(c.carrier||c.spedition))sh.carrier=c.carrier||c.spedition;if(!validRef(sh.ref)||sh.refAuto!==false){sh.ref=makeRef();sh.refAuto=true}saveQuiet();return true}
+  function emailList(v){var out=[],seen={};T(v).split(/[;,\n\r ]+/).forEach(function(x){var m=T(x).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);if(m&&!seen[m[0].toLowerCase()]){seen[m[0].toLowerCase()]=1;out.push(m[0])}});return out}
   function joinFields(arr){return arr.filter(function(v){return clean(v)}).join('; ')}
   function customerMail(c){return joinFields([c.customerMail,c.customerEmail,c.mailToCustomer,c.mailCustomer,c.empfaengerMail,c.empfaengerEmail,c.recipientMail,c.recipientEmail,c.consigneeMail,c.consigneeEmail,c.contactEmail,c.emailCustomer])}
-  function carrierMail(c){
-    var old='';try{if(typeof window.customerMailAddress==='function')old=window.customerMailAddress(c)||''}catch(_){}
-    return joinFields([c.carrierRegistrationMail,c.carrierAnmeldungMail,c.speditionRegistrationMail,c.speditionAnmeldungMail,c.carrierMail,c.speditionMail,c.anmeldungMail,c.forwarderMail,c.forwarderEmail,c.carrierEmail,c.transportMail,c.transportEmail,c.mailRecipients,c.mailAddress,c.mail,c.email,old]);
-  }
-  function notesFor(c){
-    var list=[];
-    [c.note,c.notes,c.customerInfo,c.customerInfos,c.customerNote,c.customerNotes,c.processNote,c.processNotes,c.processInfo,c.processInfos,c.prozessHinweis,c.prozessHinweise,c.kundeninfo,c.kundeninfos,c.shippingNote,c.shippingNotes,c.shipmentNote,c.shipmentNotes,c.dispatchNote,c.dispatchNotes,c.portalNote,c.portalNotes,c.sopNote,c.sopNotes,c.specialNote,c.specialNotes,c.instructions,c.instruction,c.remark,c.remarks,c.hint,c.hints,c.mailNote,c.abdNote,c.carrierNote,c.speditionNote,c.portal,c.portalName,c.sop,c.sopText,c.text,c.info].forEach(function(v){
-      if(Array.isArray(v))list=list.concat(v);else if(v&&typeof v==='object')list.push(JSON.stringify(v));else if(clean(v))list.push(v);
-    });
-    try{A(S().customerNotes&&c.id?S().customerNotes[c.id]:[]).forEach(function(v){if(typeof v==='string')list.push(v);else if(v)list.push([v.time,v.user,v.text||v.note||v.value||v.comment].filter(Boolean).join(' · '))})}catch(_){}
-    var seen={};return list.map(clean).filter(function(v){var k=v.toLowerCase();if(!v||seen[k])return false;seen[k]=1;return true});
-  }
+  function carrierMail(c){var old='';try{if(typeof window.customerMailAddress==='function')old=window.customerMailAddress(c)||''}catch(_){} return joinFields([c.carrierRegistrationMail,c.carrierAnmeldungMail,c.speditionRegistrationMail,c.speditionAnmeldungMail,c.carrierMail,c.speditionMail,c.anmeldungMail,c.forwarderMail,c.forwarderEmail,c.carrierEmail,c.transportMail,c.transportEmail,c.mailRecipients,c.mailAddress,c.mail,c.email,old])}
+  function notesFor(c){var out=[];[c.note,c.notes,c.customerInfo,c.customerInfos,c.customerNote,c.customerNotes,c.processNote,c.processNotes,c.processInfo,c.processInfos,c.prozessHinweis,c.prozessHinweise,c.kundeninfo,c.kundeninfos,c.shippingNote,c.shippingNotes,c.shipmentNote,c.shipmentNotes,c.dispatchNote,c.dispatchNotes,c.portalNote,c.portalNotes,c.sopNote,c.sopNotes,c.specialNote,c.specialNotes,c.instructions,c.instruction,c.remark,c.remarks,c.hint,c.hints,c.mailNote,c.mailNotes,c.abdNote,c.abdNotes,c.carrierNote,c.carrierNotes,c.speditionNote,c.speditionNotes,c.portal,c.portalName,c.sop,c.sopText,c.text,c.info].forEach(function(v){if(Array.isArray(v))out=out.concat(v);else if(v&&typeof v==='object')out.push(JSON.stringify(v));else if(clean(v))out.push(v)});try{A(S().customerNotes&&c.id?S().customerNotes[c.id]:[]).forEach(function(v){if(typeof v==='string')out.push(v);else if(v)out.push([v.time,v.user,v.text||v.note||v.value||v.comment].filter(Boolean).join(' · '))})}catch(_){}var seen={};return out.map(clean).filter(function(v){var k=v.toLowerCase();if(!v||seen[k])return false;seen[k]=1;return true})}
   function rowList(sh){return A(sh.rows).filter(function(r){return r&&(clean(r.type)||Number(T(r.count).replace(',','.'))>0||Number(T(r.weight).replace(',','.'))>0||Number(T(r.ldm).replace(',','.'))>0)})}
-  function totals(sh){return rowList(sh).reduce(function(a,r){var c=Number(T(r.count).replace(',','.'))||0,w=Number(T(r.weight).replace(',','.'))||0,l=Number(T(r.ldm).replace(',','.'))||0;a.count+=c;a.weight+=w;a.ldm+=c*l;return a},{count:0,weight:0,ldm:0})}
+  function totals340(sh){return rowList(sh).reduce(function(a,r){var c=Number(T(r.count).replace(',','.'))||0,w=Number(T(r.weight).replace(',','.'))||0,l=Number(T(r.ldm).replace(',','.'))||0;a.count+=c;a.weight+=w;a.ldm+=c*l;return a},{count:0,weight:0,ldm:0})}
   function fmt(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
-  function docsText(sh){return clean(sh.deliveryNotes||'')}
-  function rowsText(sh,lang){
-    var list=rowList(sh);if(!list.length)return lang==='en'?'- open':'- offen';
-    return list.map(function(r,i){var dims=[r.l,r.w,r.h].filter(function(x){return clean(x)}).join(' x ');return lang==='en'?[(i+1)+'. Colli','   Quantity: '+(r.count||'0'),'   Packaging: '+(r.type||'open'),r.weight?'   Weight: '+fmt(Number(T(r.weight).replace(',','.')),1)+' kg':'',r.ldm?'   LDM per colli: '+fmt(Number(T(r.ldm).replace(',','.')),2):'',dims?'   Dimensions: '+dims+' cm':''].filter(Boolean).join('\r\n'):[(i+1)+'. Colli','   Anzahl: '+(r.count||'0'),'   Packstueck: '+(r.type||'offen'),r.weight?'   Gewicht: '+fmt(Number(T(r.weight).replace(',','.')),1)+' kg':'',r.ldm?'   LDM je Colli: '+fmt(Number(T(r.ldm).replace(',','.')),2):'',dims?'   Masse: '+dims+' cm':''].filter(Boolean).join('\r\n')}).join('\r\n');
-  }
+  function packOptions(selected){return '<option value="">Bitte wählen</option>'+colliTypes().map(function(t){var n=T(t.name||'');return '<option value="'+E(n)+'" '+(n===T(selected)?'selected':'')+'>'+E(n)+'</option>'}).join('')}
+  function applyPack(r){var m=colliTypes().find(function(t){return T(t.name)===T(r.type)});if(m){if(m.ldm!==null&&m.ldm!==undefined)r.ldm=m.ldm;if(m.l!==undefined)r.l=m.l;if(m.w!==undefined)r.w=m.w;if(m.h!==undefined)r.h=m.h}}
+  function rowHtml(r,i){return '<div class="rc340-row"><div class="rc340-row-grid">'+
+    '<label class="field">Verpackung<select onchange="return rc340SetRow('+i+',\'type\',this.value,true)">'+packOptions(r.type)+'</select></label>'+
+    '<label class="field">Anzahl<input type="number" min="0" step="1" value="'+E(r.count)+'" oninput="rc340SetRow('+i+',\'count\',this.value,false)"></label>'+
+    '<label class="field">LDM je Colli<input type="number" step="0.01" value="'+E(r.ldm)+'" oninput="rc340SetRow('+i+',\'ldm\',this.value,false)"></label>'+
+    '<label class="field">Gewicht gesamt kg<input type="number" step="0.1" value="'+E(r.weight)+'" oninput="rc340SetRow('+i+',\'weight\',this.value,false)"></label>'+
+    '<label class="field">Länge cm<input type="number" value="'+E(r.l)+'" oninput="rc340SetRow('+i+',\'l\',this.value,false)"></label>'+
+    '<label class="field">Breite cm<input type="number" value="'+E(r.w)+'" oninput="rc340SetRow('+i+',\'w\',this.value,false)"></label>'+
+    '<label class="field">Höhe cm<input type="number" value="'+E(r.h)+'" oninput="rc340SetRow('+i+',\'h\',this.value,false)"></label>'+
+    '<div class="field"><span>Zeile</span><button type="button" class="danger" onclick="return rc340RemoveRow('+i+')">Entfernen</button></div>'+
+    '</div></div>'}
+  function summaryHtml(sh){var t=totals340(sh);return '<div class="summaryBox"><span>Collis</span><strong>'+E(t.count)+'</strong></div><div class="summaryBox"><span>Gewicht</span><strong>'+E(fmt(t.weight,1))+' kg</strong></div><div class="summaryBox"><span>Lademeter</span><strong>'+E(fmt(t.ldm,2))+'</strong></div><div class="summaryBox"><span>Zeilen</span><strong>'+E(rowList(sh).length)+'</strong></div>'}
+  function refreshTotals(){var sh=shipmentData340();var box=document.getElementById('rc340Summary');if(box)box.innerHTML=summaryHtml(sh);return false}
   function mailSubject(c,sh,target,lang){return (lang==='en'?(target==='customer'?'Shipment information ':'Shipment registration '):(target==='customer'?'Sendungsinformation ':'Sendungsanmeldung '))+(sh.ref||'')+' / '+(c.name||'Kunde')}
-  function mailBody(c,sh,target,lang){
-    var t=totals(sh),docs=docsText(sh),carrier=clean(sh.carrier||c.carrier||c.spedition||c.forwarder||''),pickup=clean(sh.pickupDate||'');
-    if(lang==='en')return ['Hello,','',target==='customer'?'please find below the shipment information.':'please arrange/register the following shipment.','','SHIPMENT INFORMATION','','Reference: '+(sh.ref||'open'),'Customer: '+(c.name||''),'Customer number: '+(c.account||c.customerNumber||''),docs?'Delivery notes/DNCs: '+docs:'','','Collis:',rowsText(sh,'en'),'','Total collis: '+fmt(t.count,0),'Total weight: '+fmt(t.weight,1)+' kg','Total LDM: '+fmt(t.ldm,2),'Pickup date: '+(pickup||'open'),'Carrier: '+(carrier||'open'),'','The loading list will be attached as PDF.','','Best regards','Tobias Limberg'].join('\r\n');
-    return ['Guten Tag,','',target==='customer'?'anbei die Sendungsinformationen.':'bitte melden Sie die folgende Sendung an.','','SENDUNGSINFORMATIONEN','','Referenznummer: '+(sh.ref||'offen'),'Kunde: '+(c.name||''),'Kundennummer: '+(c.account||c.customerNumber||''),docs?'Lieferscheine/DNCs: '+docs:'','','Collis:',rowsText(sh,'de'),'','Gesamt Collis: '+fmt(t.count,0),'Gesamtgewicht: '+fmt(t.weight,1)+' kg','Gesamt LDM: '+fmt(t.ldm,2),'Abholdatum: '+(pickup||'offen'),'Spedition: '+(carrier||'offen'),'','Die Ladeliste fuege ich als PDF bei.','','Vielen Dank','','Mit freundlichen Gruessen','Tobias Limberg'].join('\r\n');
-  }
-  function summaryHtml(sh){var t=totals(sh);return '<div class="summaryBox"><span>Collis</span><strong>'+E(fmt(t.count,0))+'</strong></div><div class="summaryBox"><span>Gewicht</span><strong>'+E(fmt(t.weight,1))+' kg</strong></div><div class="summaryBox"><span>Lademeter</span><strong>'+E(fmt(t.ldm,2))+'</strong></div><div class="summaryBox"><span>Zeilen</span><strong>'+E(rowList(sh).length)+'</strong></div>'}
-  function completionHtml(sh){var miss=[];var r=rowList(sh);if(!/^[A-Z0-9]{6}$/.test(sh.ref||''))miss.push('Referenznummer');if(!selectedCustomer().id)miss.push('Kunde');if(!sh.addressConfirmed)miss.push('Adresse bestaetigen');if(!sh.customerProcessConfirmed)miss.push('Kundeninfos lesen');if(!r.length)miss.push('Collis');if(!r.some(function(x){return Number(T(x.count).replace(',','.'))>0}))miss.push('Anzahl');if(!r.some(function(x){return Number(T(x.weight).replace(',','.'))>0}))miss.push('Gewicht');return miss.length?'<div class="notice"><b>Noch offen:</b> '+E(miss.join(', '))+'</div>':'<div class="okbox">Sendung kann gespeichert werden.</div>'}
-  function packageOptions(value){var list=colliTypes(),seen={};var html='<option value="">Bitte waehlen</option>';list.forEach(function(x){var n=clean(x.name);if(!n||seen[n])return;seen[n]=1;html+='<option value="'+E(n)+'" '+(n===value?'selected':'')+'>'+E(n)+'</option>'});if(value&&!seen[value])html+='<option value="'+E(value)+'" selected>'+E(value)+'</option>';return html}
-  function applyPackage(r){var ct=colliTypes().find(function(x){return clean(x.name)===clean(r.type)});if(!ct)return;r.ldm=(ct.ldm!==undefined&&ct.ldm!==null)?ct.ldm:r.ldm;if(ct.l!==undefined)r.l=ct.l;if(ct.w!==undefined)r.w=ct.w;if(ct.h!==undefined)r.h=ct.h}
-  function syncRows(){
-    var sh=shipData337();var box=document.getElementById('rc337Rows');if(!box)return sh.rows;
-    var rows=[];Array.prototype.slice.call(box.querySelectorAll('.rc337-row')).forEach(function(row){var i=Number(row.getAttribute('data-row')||0);var r=sh.rows[i]||{};['type','count','ldm','weight','l','w','h'].forEach(function(k){var el=document.getElementById('rc337-row-'+i+'-'+k);if(el)r[k]=el.value});rows[i]=r});
-    sh.rows=rows.filter(function(x){return x});return sh.rows;
-  }
-  function rowHtml(r,i){r=r||{};return '<div class="rc337-row" data-row="'+i+'"><div class="rc337-row-grid"><label class="field">Verpackung<select id="rc337-row-'+i+'-type" oninput="rc337SetRow('+i+',\'type\',this.value,true)" onchange="rc337SetRow('+i+',\'type\',this.value,true)">'+packageOptions(clean(r.type||''))+'</select></label><label class="field">Anzahl<input id="rc337-row-'+i+'-count" type="number" min="0" step="1" value="'+E(r.count||'')+'" oninput="rc337SetRow('+i+',\'count\',this.value)"></label><label class="field">LDM je Colli<input id="rc337-row-'+i+'-ldm" type="number" step="0.01" value="'+E(r.ldm||'')+'" oninput="rc337SetRow('+i+',\'ldm\',this.value)"></label><label class="field">Gewicht gesamt kg<input id="rc337-row-'+i+'-weight" type="number" step="0.1" value="'+E(r.weight||'')+'" oninput="rc337SetRow('+i+',\'weight\',this.value)"></label><label class="field">Laenge cm<input id="rc337-row-'+i+'-l" type="number" value="'+E(r.l||'')+'" oninput="rc337SetRow('+i+',\'l\',this.value)"></label><label class="field">Breite cm<input id="rc337-row-'+i+'-w" type="number" value="'+E(r.w||'')+'" oninput="rc337SetRow('+i+',\'w\',this.value)"></label><label class="field">Hoehe cm<input id="rc337-row-'+i+'-h" type="number" value="'+E(r.h||'')+'" oninput="rc337SetRow('+i+',\'h\',this.value)"></label><button type="button" class="danger" onclick="return rc337RemoveRow('+i+')">Entfernen</button></div></div>'}
-  function customerResultsHtml(q){var hits=customerHits(q);return hits.length?hits.map(function(c){return '<button type="button" onclick="return rc337PickCustomer(\''+E(c.id||'')+'\')"><b>'+E(c.account||c.customerNumber||c.id||'')+'</b> · '+E(c.name||'')+' · '+E(c.country||c.land||'')+'</button>'}).join(''):'<div class="notice">Kein Kunde gefunden. Bitte Kundennummer oder Namen pruefen.</div>'}
-  function processBox(c,sh){var n=notesFor(c);return '<div class="infobox rc337-process-box rc327-process-box"><h3>Kundeninfos / Prozesshinweise</h3>'+(n.length?'<div class="rc337-notes-list">'+n.map(function(x){return '<div class="folder-note"><pre style="white-space:pre-wrap;margin:0">'+E(x)+'</pre></div>'}).join('')+'</div>':'<div class="notice">Keine Kunden-Notes gefunden.</div>')+'<label class="checkrow"><input type="checkbox" '+(sh.customerProcessConfirmed?'checked':'')+' onchange="state.shipment.customerProcessConfirmed=this.checked;save()"><span><b>Kundeninfos / Prozesshinweise gelesen</b></span></label></div>'}
-  function mailBox(c,sh){var target=sh.mailTarget==='customer'?'customer':'carrier',lang=sh.mailLanguage==='en'?'en':'de',list=emails(target==='customer'?customerMail(c):carrierMail(c)),sub=mailSubject(c,sh,target,lang),txt=mailBody(c,sh,target,lang);var href=list.length?'mailto:'+list.map(encodeURIComponent).join(';')+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(txt):'';return '<div class="infobox rc337-mail-box rc327-mail-box"><h3>Mail Bereich</h3><b>Mail an Kunden oder Spedition</b><div class="rc337-mail-choice"><div class="rc337-choice"><span class="rc337-choice-title">Empfaenger</span><div class="rc337-seg"><button type="button" class="'+(target==='customer'?'active':'')+'" onclick="return rc337SetMailTarget(\'customer\')">Kunde</button><button type="button" class="'+(target==='carrier'?'active':'')+'" onclick="return rc337SetMailTarget(\'carrier\')">Spedition</button></div></div><div class="rc337-choice"><span class="rc337-choice-title">Sprache</span><div class="rc337-seg"><button type="button" class="'+(lang==='de'?'active':'')+'" onclick="return rc337SetMailLanguage(\'de\')">Deutsch</button><button type="button" class="'+(lang==='en'?'active':'')+'" onclick="return rc337SetMailLanguage(\'en\')">Englisch</button></div></div></div><div class="toolbar">'+(list.length?'<a class="btn" href="'+E(href)+'" target="_top" rel="noopener">Mail erstellen</a>':'<span class="badbox" style="display:block;margin:0">Keine Mailadresse fuer '+(target==='customer'?'Kunde':'Spedition')+' gefunden.</span>')+'<button type="button" class="ghost" onclick="return rc337CopyShipmentMail()">Mailtext kopieren</button></div>'+(list.length?'<div class="small"><b>An:</b> '+E(list.join('; '))+'</div>':'<div class="small">Bitte Mailadresse im Kundenordner hinterlegen.</div>')+'<div class="small"><b>Betreff:</b> '+E(sub)+'</div><div class="rc337-preview">'+E(txt)+'</div></div>'}
-  function fileList(sh){var files=A(sh.deliveryFiles);return files.length?'<div class="rc325-files">'+files.map(function(f,i){return '<span class="folder-doc-chip">'+E(f.name||f.fileName||('Datei '+(i+1)))+'</span>'}).join('')+'</div>':''}
-  function abdBox(c){try{if(c&&c.id){S().abdSelectedCustomerId=c.id;S().abdCustomerSearch=label(c)}if(typeof window.abdRequestPanel==='function')return '<div class="rc337-abd-stack rc327-abd-box"><h3>ABD Bereich</h3>'+window.abdRequestPanel(c)+'</div>'}catch(_){}return '<div class="abd-panel rc337-abd-stack rc327-abd-box"><h3>ABD Bereich</h3><button type="button" class="ghost abd-jump-rc70" onclick="return typeof goToAbdFromShipmentRC70===\'function\'?goToAbdFromShipmentRC70():false">ABD erstellen</button></div>'}
-  function savedSmall(){var list=A(S().shipments).slice(0,8);return list.length?'<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>Aktion</th></tr>'+list.map(function(x){var c=x.customer||{};return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E(c.name||x.customerName||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td><button type="button" class="ghost" onclick="return rc337LoadShipment(\''+E(x.id||'')+'\')">Laden</button> <button type="button" class="ghost" onclick="showSavedCmr(\''+E(x.id||'')+'\')">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>':'<p class="muted">Noch keine Sendung gespeichert.</p>'}
-  window.rc337ShipmentHtml=function(){
-    var sh=shipData337(),c=selectedCustomer();if(c&&c.id&&!sh.customerId)sh.customerId=c.id;if(c&&c.id&&!sh.customerSearch)sh.customerSearch=label(c);if(c&&c.id)sh.customer=JSON.parse(JSON.stringify(c));
-    var opts=customers().map(function(cu){return '<option value="'+E(cu.id||'')+'" '+(T(cu.id)===T(sh.customerId)?'selected':'')+'>'+E(label(cu))+'</option>'}).join('');
-    return (typeof head==='function'?head('Sendung erstellen','Kunde suchen, Mail/ABD vorbereiten, Collis erfassen und Ladeliste/CMR erzeugen.'):'<h2>Sendung erstellen</h2>')+
-      '<div class="rc337-page"><div class="rc337-layout"><div class="card"><div class="rc337-card-title"><h3>Kunde & Grunddaten</h3><span class="pill blue">RC337 stabil</span></div><label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" autocomplete="off" value="'+E(sh.customerSearch||label(c))+'" oninput="return rc337CustomerTyping(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rc337ApplyCustomerSearch()}"></label><div id="rc337CustomerResults" class="rc337-search-results">'+customerResultsHtml(sh.customerSearch||'')+'</div><div class="rc337-actions"><button type="button" class="btn" onclick="return rc337NewShipment()">+ Neue Sendung</button><button type="button" class="ghost" onclick="return rc337ApplyCustomerSearch()">Kunde uebernehmen</button><button type="button" class="ghost" onclick="return rc337NewReference()">Neue Referenz</button></div><label class="field">Kunde direkt waehlen<select onchange="return rc337PickCustomer(this.value)"><option value="">Bitte waehlen</option>'+opts+'</select></label><div class="'+(clean(c.address)?'okbox':'badbox')+'"><b>Empfaengeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+E(c.address||'Adresse fehlt')+'</pre></div><label class="checkrow"><input type="checkbox" '+(sh.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save()"><span>Adresse bestaetigen</span></label>'+processBox(c,sh)+mailBox(c,sh)+'<label class="field">Sendungsreferenz / Referenznummer<input value="'+E(sh.ref||'')+'" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\').slice(0,6);state.shipment.ref=this.value;state.shipment.refAuto=false;save()"></label><label class="field">Lieferscheine / DNCs manuell<textarea onchange="state.shipment.deliveryNotes=this.value;save()">'+E(sh.deliveryNotes||'')+'</textarea></label><label class="field">Lieferscheine hochladen / anhaengen<input type="file" multiple onchange="return rc337AddDeliveryFiles(this.files)"></label>'+fileList(sh)+'<div class="miniGrid"><label class="field">Geplantes Abholdatum<input type="date" value="'+E(sh.pickupDate||'')+'" onchange="state.shipment.pickupDate=this.value;save()"></label><label class="field">Tatsaechliches Abholdatum<input type="date" value="'+E(sh.actualPickupDate||'')+'" onchange="state.shipment.actualPickupDate=this.value;save()"></label><label class="field">Spedition<input value="'+E(sh.carrier||c.carrier||c.spedition||'')+'" onchange="state.shipment.carrier=this.value;save()"></label><label class="field">Kennzeichen<input value="'+E(sh.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()"></label><label class="field">Verlader<input value="'+E(sh.loader||'')+'" onchange="state.shipment.loader=this.value;save()"></label><label class="field">Incoterm / Hinweis<input value="'+E(sh.incoterm||'')+'" onchange="state.shipment.incoterm=this.value;save()"></label></div><div class="rc337-actions"><button type="button" class="btn" onclick="return rc337SaveShipment()">Sendung speichern</button><button type="button" class="ghost" onclick="showCurrentCmr();return false">Ladeliste/CMR Vorschau</button><button type="button" class="ghost" onclick="rc55DownloadLoadlistPdf();return false">Ladeliste PDF herunterladen</button><button type="button" class="ghost" onclick="rc55PrintLabels();return false">Versandlabel 4x A4</button></div><div id="rc337CompletionLeft">'+completionHtml(sh)+'</div></div><div class="card"><h3>Collis, Masse, Gewicht, Lademeter</h3><div id="rc337Rows">'+A(sh.rows).map(rowHtml).join('')+'</div><button type="button" class="ghost" onclick="return rc337AddRow()">+ Zeile</button><div id="rc337Summary" class="rc337-summary">'+summaryHtml(sh)+'</div><div id="rc337CompletionRight">'+completionHtml(sh)+'</div><label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()">'+E(sh.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label><label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+E(sh.comments||'')+'</textarea></label></div></div>'+abdBox(c)+'<div class="card"><h3>Gespeicherte Sendungen</h3><button type="button" class="ghost" onclick="return setView(\'shipmentoverview\')">Sendungsuebersicht oeffnen</button>'+savedSmall()+'</div></div>';
-  };
-  window.rc337RenderShipment=function(){
-    var st=S();st.view='shipment';var root=document.getElementById('content')||document.querySelector('main')||document.body;
-    try{document.body.setAttribute('data-exporthub-view','shipment')}catch(_){}
-    try{if(typeof renderNav==='function')renderNav()}catch(_){}
-    try{root.innerHTML=window.rc337ShipmentHtml();if(root.setAttribute)root.setAttribute('data-exporthub-render','RC337-shipment')}catch(err){console.error('RC337 shipment render failed',err);root.innerHTML='<div class="badbox"><b>Sendung erstellen konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>'}
-    return false;
-  };
-  window.rc337CustomerTyping=function(value){var sh=shipData337();sh.customerSearch=value||'';var box=document.getElementById('rc337CustomerResults');if(box)box.innerHTML=customerResultsHtml(value||'');return false};
-  window.rc337ApplyCustomerSearch=function(){var input=document.getElementById('shipmentCustomerSearch'),value=input?input.value:shipData337().customerSearch,c=findCustomer(value);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Name waehlen.');return false}return window.rc337PickCustomer(c.id)};
-  window.rc337PickCustomer=function(id){var c=customerById(id)||findCustomer(id);if(!c){alert('Kunde nicht gefunden.');return false}var sh=shipData337();sh.customerId=c.id||'';sh.customerSearch=label(c);S().selectedCustomerId=sh.customerId;sh.customer=JSON.parse(JSON.stringify(c));if(!sh.carrier&&(c.carrier||c.spedition))sh.carrier=c.carrier||c.spedition;saveQuiet();return window.rc337RenderShipment()};
-  window.rc337NewReference=function(){shipData337().ref=makeRef();shipData337().refAuto=true;saveQuiet();return window.rc337RenderShipment()};
-  window.rc337NewShipment=function(){var old=shipData337(),c=selectedCustomer();S().shipment={id:uid('S'),customerId:c.id||'',customerSearch:label(c),ref:makeRef(),refAuto:true,deliveryNotes:'',deliveryFiles:[],podFiles:[],status:'offen',freigabe:'offen',pickupDate:'',actualPickupDate:'',carrier:c.carrier||c.spedition||'',incoterm:'',goodsDescription:'Waren laut Rechnung/Ladeliste',comments:'',licensePlate:'',loader:'',addressConfirmed:false,customerProcessConfirmed:false,rows:[{type:'Euro Palette',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}],customer:c&&c.id?JSON.parse(JSON.stringify(c)):{},mailTarget:old.mailTarget||'carrier',mailLanguage:old.mailLanguage||'de'};S().activeShipmentId='current';saveQuiet();return window.rc337RenderShipment()};
-  window.rc337SetRow=function(i,k,v,pack){var sh=shipData337();sh.rows=A(sh.rows);sh.rows[i]=sh.rows[i]||{};sh.rows[i][k]=v;if(pack)applyPackage(sh.rows[i]);saveQuiet();if(pack)return window.rc337RenderShipment();window.rc337RefreshTotals();return false};
-  window.rc337RefreshTotals=function(){var sh=shipData337();var s=document.getElementById('rc337Summary');if(s)s.innerHTML=summaryHtml(sh);var l=document.getElementById('rc337CompletionLeft'),r=document.getElementById('rc337CompletionRight'),h=completionHtml(sh);if(l)l.innerHTML=h;if(r)r.innerHTML=h;return false};
-  window.rc337AddRow=function(){var sh=shipData337();syncRows();sh.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});saveQuiet();return window.rc337RenderShipment()};
-  window.rc337RemoveRow=function(i){var sh=shipData337();syncRows();sh.rows.splice(i,1);if(!sh.rows.length)sh.rows=[{type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''}];saveQuiet();return window.rc337RenderShipment()};
-  window.rc337AddDeliveryFiles=function(files){var sh=shipData337();A(Array.prototype.slice.call(files||[])).forEach(function(f){sh.deliveryFiles.push({name:f.name,size:f.size,type:f.type,lastModified:f.lastModified,added:dateNow()})});saveQuiet();return window.rc337RenderShipment()};
-  window.rc337SetMailTarget=function(v){shipData337().mailTarget=v==='customer'?'customer':'carrier';saveQuiet();return window.rc337RenderShipment()};
-  window.rc337SetMailLanguage=function(v){shipData337().mailLanguage=v==='en'?'en':'de';saveQuiet();return window.rc337RenderShipment()};
-  window.rc337CopyShipmentMail=function(){var c=selectedCustomer(),sh=shipData337(),target=sh.mailTarget==='customer'?'customer':'carrier',lang=sh.mailLanguage==='en'?'en':'de',txt=mailBody(c,sh,target,lang);if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){alert('Mailtext wurde kopiert.')}).catch(function(){prompt('Mailtext kopieren:',txt)})}else prompt('Mailtext kopieren:',txt);return false};
-  window.rc337SaveShipment=function(){syncRows();var sh=shipData337(),c=selectedCustomer();if(!c||!c.id){alert('Bitte zuerst einen Kunden waehlen.');return false}var copy=JSON.parse(JSON.stringify(sh));copy.customer=JSON.parse(JSON.stringify(c));copy.customerName=c.name||'';copy.customerAccount=c.account||c.customerNumber||'';copy.created=copy.created||today();copy.updated=dateNow();copy.status=copy.status||'offen';copy.freigabe=copy.freigabe||'offen';S().shipments=A(S().shipments);var idx=S().shipments.findIndex(function(x){return x.id===copy.id});if(idx>=0)S().shipments[idx]=copy;else S().shipments.unshift(copy);S().activeShipmentId='current';saveQuiet();alert('Sendung gespeichert: '+(copy.ref||''));return window.rc337RenderShipment()};
-  window.rc337LoadShipment=function(id){var x=A(S().shipments).find(function(s){return T(s.id)===T(id)});if(!x)return false;S().shipment=JSON.parse(JSON.stringify(x));if(x.customer&&x.customer.id)S().shipment.customerId=x.customer.id;S().activeShipmentId='current';saveQuiet();return window.rc337RenderShipment()};
-  window.rc337OverviewHtml=function(){var list=A(S().shipments),q=norm(S().shipmentOverviewQ||'');if(q)list=list.filter(function(x){return norm([x.ref,x.customerName,x.customerAccount,x.status,x.freigabe,docsText(x)].join(' ')).indexOf(q)>=0});return (typeof head==='function'?head('Sendungsübersicht','Gespeicherte Sendungen, DNC-Suche und Dokumente.'):'<h2>Sendungsübersicht</h2>')+'<div class="rc337-page"><div class="card"><div class="rc337-card-title"><h3>Sendungen</h3><button type="button" class="btn" onclick="return setView(\'shipment\')">+ Sendung erstellen</button></div><label class="field">Suche Referenz / Kunde / DNC<input value="'+E(S().shipmentOverviewQ||'')+'" oninput="state.shipmentOverviewQ=this.value;render()"></label>'+(list.length?'<table class="table shipment-overview-table"><tr><th>Referenz</th><th>Kunde</th><th>Datum</th><th>Status</th><th>DNCs</th><th>Aktion</th></tr>'+list.map(function(x){var c=x.customer||{};return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E(c.name||x.customerName||'')+'<br><span class="small">'+E(c.account||x.customerAccount||'')+'</span></td><td>'+E(x.created||x.pickupDate||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td>'+E(docsText(x)||'')+'</td><td><button type="button" class="ghost" onclick="return rc337LoadShipment(\''+E(x.id||'')+'\')">Bearbeiten</button> <button type="button" class="ghost" onclick="showSavedCmr(\''+E(x.id||'')+'\')">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>':'<p class="muted">Noch keine Sendungen gespeichert.</p>')+'</div></div>'};
-  window.rc337RenderOverview=function(){S().view='shipmentoverview';var root=document.getElementById('content')||document.querySelector('main')||document.body;try{document.body.setAttribute('data-exporthub-view','shipmentoverview')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}root.innerHTML=window.rc337OverviewHtml();if(root.setAttribute)root.setAttribute('data-exporthub-render','RC337-overview');return false};
+  function rowsText(sh,lang){var list=rowList(sh);if(!list.length)return lang==='en'?'open':'offen';return list.map(function(r,i){var dims=[r.l,r.w,r.h].filter(function(x){return clean(x)}).join(' x ');return lang==='en'?[(i+1)+'. Colli','Quantity: '+(r.count||'0'),'Packaging: '+(r.type||'open'),r.weight?'Weight: '+fmt(Number(T(r.weight).replace(',','.')),1)+' kg':'',r.ldm?'LDM per colli: '+fmt(Number(T(r.ldm).replace(',','.')),2):'',dims?'Dimensions: '+dims+' cm':''].filter(Boolean).join('\n'):[(i+1)+'. Colli','Anzahl: '+(r.count||'0'),'Packstück: '+(r.type||'offen'),r.weight?'Gewicht: '+fmt(Number(T(r.weight).replace(',','.')),1)+' kg':'',r.ldm?'LDM je Colli: '+fmt(Number(T(r.ldm).replace(',','.')),2):'',dims?'Maße: '+dims+' cm':''].filter(Boolean).join('\n')}).join('\n')}
+  function mailBody(c,sh,target,lang){var t=totals340(sh),docs=clean(sh.deliveryNotes||'');if(lang==='en')return ['Hello,','',target==='customer'?'Please find the shipment information below.':'Please register / arrange collection for the shipment below.','Reference: '+(sh.ref||''),'Customer: '+(c.name||''),'Customer no.: '+(c.account||c.customerNumber||''),'Consignee address:\n'+(c.address||''),'','Collis:\n'+rowsText(sh,lang),'Total weight: '+fmt(t.weight,1)+' kg','Loading meters: '+fmt(t.ldm,2),docs?'Delivery notes / DNCs: '+docs:'','Pickup date: '+(sh.pickupDate||''),'Carrier: '+(sh.carrier||c.carrier||''),'','The loading list will be attached as PDF.','','Best regards'].filter(function(x){return x!==''||true}).join('\n');return ['Guten Tag,','',target==='customer'?'unten die Sendungsinformationen.':'bitte folgende Sendung anmelden / Abholung vormerken.','Referenz: '+(sh.ref||''),'Kunde: '+(c.name||''),'Kundennummer: '+(c.account||c.customerNumber||''),'Empfängeradresse:\n'+(c.address||''),'','Collis:\n'+rowsText(sh,lang),'Gesamtgewicht: '+fmt(t.weight,1)+' kg','Lademeter: '+fmt(t.ldm,2),docs?'Lieferscheine / DNCs: '+docs:'','Abholdatum: '+(sh.pickupDate||''),'Spedition: '+(sh.carrier||c.carrier||''),'','Die Ladeliste wird als PDF angehängt.','','Viele Grüße'].filter(function(x){return x!==''||true}).join('\n')}
+  function mailBox(c,sh){var target=sh.mailTarget==='customer'?'customer':'carrier',lang=sh.mailLanguage==='en'?'en':'de';var raw=target==='customer'?customerMail(c):carrierMail(c);var mails=emailList(raw);var subj=mailSubject(c,sh,target,lang),body=mailBody(c,sh,target,lang);var href=mails.length?'mailto:'+mails.map(encodeURIComponent).join(';')+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body):'';return '<div class="rc340-box rc327-mail-box"><h3>Mail Bereich</h3><b>Mail an Kunden oder Spedition</b><div class="rc340-mail-choice"><div class="rc340-choice"><span class="rc340-choice-title">Empfänger</span><div class="rc340-seg"><button type="button" class="'+(target==='customer'?'active':'')+'" onclick="return rc340SetMailTarget(\'customer\')">Kunde</button><button type="button" class="'+(target==='carrier'?'active':'')+'" onclick="return rc340SetMailTarget(\'carrier\')">Spedition</button></div></div><div class="rc340-choice"><span class="rc340-choice-title">Sprache</span><div class="rc340-seg"><button type="button" class="'+(lang==='de'?'active':'')+'" onclick="return rc340SetMailLanguage(\'de\')">Deutsch</button><button type="button" class="'+(lang==='en'?'active':'')+'" onclick="return rc340SetMailLanguage(\'en\')">Englisch</button></div></div></div><div class="toolbar">'+(href?'<a class="btn" href="'+E(href)+'" target="_top" rel="noopener">Mail erstellen</a>':'<span class="badbox" style="display:block;margin:0">Keine Mailadresse für '+(target==='customer'?'Kunde':'Spedition')+' gefunden.</span>')+'<button type="button" class="ghost" onclick="return rc340CopyShipmentMail()">Mailtext kopieren</button></div>'+(mails.length?'<div class="small"><b>An:</b> '+E(mails.join('; '))+'</div>':'')+'<div class="small"><b>Betreff:</b> '+E(subj)+'</div><div class="rc340-preview">'+E(body)+'</div></div>'}
+  function processBox(c,sh){var n=notesFor(c);return '<div class="rc340-box rc327-process-box"><h3>Kundeninfos / Prozesshinweise</h3>'+(n.length?'<div class="rc340-note-list">'+n.map(function(x){return '<div class="rc340-note">'+E(x)+'</div>'}).join('')+'</div>':'<div class="rc340-note">Keine Kundeninfos / Prozesshinweise beim Kunden hinterlegt.</div>')+'<label class="checkrow"><input type="checkbox" '+(sh.customerProcessConfirmed?'checked':'')+' onchange="state.shipment.customerProcessConfirmed=this.checked;save()"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe die oben angezeigten Kunden-Notes, SOP-/Portalhinweise, Versandvorgaben und Sonderregeln geprüft.</span></span></label></div>'}
+  function abdBox(c){try{if(c&&c.id){S().abdSelectedCustomerId=c.id;S().abdCustomerSearch=cLabel(c)} if(typeof window.abdRequestPanel==='function')return '<div class="rc340-abd-box rc327-abd-box"><h3>ABD Bereich</h3>'+window.abdRequestPanel(c)+'</div>'; if(typeof abdRequestPanel==='function')return '<div class="rc340-abd-box rc327-abd-box"><h3>ABD Bereich</h3>'+abdRequestPanel(c)+'</div>'}catch(err){console.warn('RC340 ABD Fehler',err)}return '<div class="rc340-abd-box rc327-abd-box"><h3>ABD Bereich</h3><button type="button" class="ghost abd-jump-rc70" onclick="return typeof goToAbdFromShipmentRC70===\'function\'?goToAbdFromShipmentRC70():false">ABD erstellen</button></div>'}
+  function filesHtml(sh){try{if(typeof deliveryFileList==='function')return deliveryFileList(sh)}catch(_){}return ''}
+  function completionHtml(sh){try{if(typeof shipmentCompletionBox==='function')return shipmentCompletionBox(sh)}catch(_){}return ''}
+  function savedSmall(){var list=A(S().shipments).slice(0,8);return list.length?'<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Datum</th><th>Status</th><th>Aktion</th></tr>'+list.map(function(x){return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E((x.customer&&x.customer.name)||x.customerName||'')+'</td><td>'+E(x.created||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td><button type="button" class="ghost" onclick="loadShipment(\''+E(x.id||'')+'\')">Übernehmen</button> <button type="button" class="ghost" onclick="showSavedCmr(\''+E(x.id||'')+'\')">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>':'<p class="muted">Noch keine Sendung gespeichert.</p>'}
 
-  window.setShipmentCustomerSearchAuto=window.rc337CustomerTyping;
-  window.applyCustomerSearch=window.rc337ApplyCustomerSearch;
-  window.selectShipmentCustomer=window.rc337PickCustomer;
-  window.newShipment=window.rc337NewShipment;
-  window.rc325NewShipment=window.rc337NewShipment;
-  window.addShipmentRow=window.rc337AddRow;
-  window.rc325AddRow=window.rc337AddRow;
-  window.saveShipment=window.rc337SaveShipment;
-  window.rc325SaveShipment=window.rc337SaveShipment;
-  window.shipment=window.rc337ShipmentHtml;
-  window.shipmentoverview=window.rc337OverviewHtml;
+  window.rc340ShipmentHtml=function(){
+    if(!customers().length){return (typeof head==='function'?head('🚚 Sendung erstellen','Kundennummer suchen, Sendung erfassen und Ladeliste/CMR erzeugen.'):'<h2>Sendung erstellen</h2>')+'<div class="notice"><b>Noch keine Kunden vorhanden.</b><br>Bitte zuerst im Kundenbereich einen Kunden anlegen.</div><button class="btn" onclick="setView(\'customers\')">Kunden anlegen</button>'}
+    var sh=shipmentData340(), c=selectedCustomer340(); if(c&&c.id&&!sh.customerId)setCustomer340(c,false); sh=shipmentData340(); c=selectedCustomer340(); if(!sh.customerSearch)sh.customerSearch=cLabel(c);
+    var refOk=validRef(sh.ref), missing=!clean(c.address), completion=''; try{completion=completionHtml(sh)}catch(_){}
+    var opts=customers().map(function(cu){return '<option value="'+E(cu.id||'')+'" '+(T(cu.id)===T(sh.customerId)?'selected':'')+'>'+E(cu.account||cu.customerNumber||cu.id)+' · '+E(cu.name||'')+' · '+E(cu.country||cu.land||'')+'</option>'}).join('');
+    return (typeof head==='function'?head('🚚 Sendung erstellen','Kundennummer suchen, 6-stellige Referenz automatisch erstellen, Lieferscheine optional anhängen, Mail erstellen und Ladeliste/CMR erzeugen.'):'<h2>Sendung erstellen</h2>')+
+      '<div class="rc340-page"><div class="rc340-grid"><div class="card"><h3>Kunde & Grunddaten</h3>'+ 
+      '<label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" autocomplete="off" value="'+E(sh.customerSearch||'')+'" oninput="return setShipmentCustomerSearchAuto(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();applyCustomerSearch()}"></label>'+ 
+      '<div class="rc340-actions"><button type="button" class="btn" onclick="return newShipment()">+ Neue Sendung</button><button type="button" class="ghost" onclick="return applyCustomerSearch()">Kunde übernehmen</button><button type="button" class="ghost" onclick="return rc340NewReference()">Neue 6-Zeichen-Referenz</button><button type="button" class="soft" onclick="return showCurrentCmr()">Ladeliste & CMR anzeigen</button></div>'+ 
+      '<label class="field">Kunde<select onchange="return selectShipmentCustomer(this.value)">'+opts+'</select></label>'+ 
+      '<div class="'+(missing?'badbox':'okbox')+'"><b>Empfängeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+E(c.address||'Adresse fehlt')+'</pre></div>'+ 
+      processBox(c,sh)+mailBox(c,sh)+
+      '<label class="checkrow"><input type="checkbox" '+(sh.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save()"><div>Adresse geprüft und bestätigt</div></label>'+ 
+      '<label class="field">Sendungsreferenz / Referenznummer<input value="'+E(sh.ref||'')+'" maxlength="6" pattern="[A-Z0-9]{6}" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\').slice(0,6)" onchange="state.shipment.ref=this.value;state.shipment.refAuto=false;save()" placeholder="6 Zeichen A-Z/0-9"></label>'+ 
+      '<label class="field">Lieferscheine / DNCs manuell<textarea onchange="state.shipment.deliveryNotes=this.value;save()" placeholder="Optional: eine DNC/Lieferscheinnummer je Zeile">'+E(sh.deliveryNotes||'')+'</textarea></label>'+ 
+      '<label class="field">Lieferscheine hochladen / anhängen<input type="file" multiple onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label>'+filesHtml(sh)+
+      '<div class="miniGrid"><label class="field">Geplantes Abholdatum<input type="date" value="'+E(sh.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+E(sh.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()"></label><label class="field">Kennzeichen<input value="'+E(sh.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()"></label><label class="field">Verlader<input value="'+E(sh.loader||'')+'" onchange="state.shipment.loader=this.value;save()"></label></div>'+ 
+      '<label class="field">Incoterm / Hinweis<input value="'+E(sh.incoterm||'')+'" onchange="state.shipment.incoterm=this.value;save()"></label>'+ 
+      '<div class="toolbar"><button type="button" class="btn" onclick="return saveShipment()">Sendung speichern + Aufgaben prüfen</button><button type="button" class="ghost" onclick="return showCurrentCmr()" '+(!refOk?'disabled':'')+'>Ladeliste/CMR Vorschau</button><button type="button" class="ghost" onclick="return rc55DownloadLoadlistPdf()" '+(!refOk?'disabled':'')+'>Ladeliste PDF herunterladen</button><button type="button" class="ghost" onclick="return rc55PrintLabels()" '+(!refOk?'disabled':'')+'>Versandlabel 4× A4</button></div>'+completion+
+      '</div><div class="card"><h3>Collis, Maße, Gewicht, Lademeter</h3><div id="rowsBox"><div id="rc337Rows">'+A(sh.rows).map(rowHtml).join('')+'</div></div><button type="button" class="ghost" onclick="return rc340AddRow()">+ Zeile</button><div id="rc340Summary" class="rc340-summary">'+summaryHtml(sh)+'</div>'+completion+'<label class="field">Warenbeschreibung für CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()">'+E(sh.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label><label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+E(sh.comments||'')+'</textarea></label></div></div>'+abdBox(c)+'<div class="card"><h3>Gespeicherte Sendungen</h3><button type="button" class="ghost" onclick="setView(\'shipmentoverview\')">Sendungsübersicht öffnen</button>'+savedSmall()+'</div></div>';
+  };
 
-  window.setView=function(v){if(v==='shipment')return window.rc337RenderShipment();if(v==='shipmentoverview')return window.rc337RenderOverview();try{document.body.removeAttribute('data-exporthub-view')}catch(_){}return oldSetView337&&oldSetView337.apply(this,arguments)};
-  window.render=function(){var v=S().view;if(v==='shipment')return window.rc337RenderShipment();if(v==='shipmentoverview')return window.rc337RenderOverview();return oldRender337&&oldRender337.apply(this,arguments)};
-  try{setView=window.setView;render=window.render;shipment=window.rc337ShipmentHtml;shipmentoverview=window.rc337OverviewHtml;newShipment=window.rc337NewShipment;saveShipment=window.rc337SaveShipment;applyCustomerSearch=window.rc337ApplyCustomerSearch;selectShipmentCustomer=window.rc337PickCustomer;setShipmentCustomerSearchAuto=window.rc337CustomerTyping}catch(_){}
-  try{if(S().view==='shipment')setTimeout(window.rc337RenderShipment,30);if(S().view==='shipmentoverview')setTimeout(window.rc337RenderOverview,30)}catch(_){}
+  window.rc340RenderShipment=function(){var r=root();S().view='shipment';try{document.body.setAttribute('data-exporthub-view','shipment')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}try{r.innerHTML=window.rc340ShipmentHtml();if(r.setAttribute)r.setAttribute('data-exporthub-render','RC338-shipment')}catch(err){console.error('RC340 shipment render failed',err);r.innerHTML='<div class="badbox"><b>Sendung erstellen konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>'}return false};
+  window.setShipmentCustomerSearchAuto=function(value){var sh=shipmentData340();sh.customerSearch=value||'';saveQuiet();return false};
+  window.applyCustomerSearch=function(){var input=document.getElementById('shipmentCustomerSearch'),value=input?input.value:shipmentData340().customerSearch,c=findCustomer340(value);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Name eingeben.');return false}setCustomer340(c,false);return window.rc340RenderShipment()};
+  window.selectShipmentCustomer=function(id){var c=customers().find(function(x){return T(x.id)===T(id)})||findCustomer340(id);if(!c){alert('Kunde nicht gefunden.');return false}setCustomer340(c,false);return window.rc340RenderShipment()};
+  window.newShipment=function(){var c=selectedCustomer340();S().shipment={id:uid('S'),customerId:c.id||'',customerSearch:cLabel(c),customer:copyObj(c),ref:makeRef(),refAuto:true,deliveryNotes:'',deliveryFiles:[],podFiles:[],status:'offen',freigabe:'offen',pickupDate:'',actualPickupDate:'',carrier:c.carrier||c.spedition||'',incoterm:'',goodsDescription:'Waren laut Rechnung/Ladeliste',comments:'',licensePlate:'',loader:'',addressConfirmed:false,customerProcessConfirmed:false,rows:[blankRow()],mailTarget:(S().shipment&&S().shipment.mailTarget)||'carrier',mailLanguage:(S().shipment&&S().shipment.mailLanguage)||'de'};S().activeShipmentId='current';saveQuiet();return window.rc340RenderShipment()};
+  window.rc340NewReference=function(){var sh=shipmentData340();sh.ref=makeRef();sh.refAuto=true;saveQuiet();return window.rc340RenderShipment()};
+  window.rc340SetRow=function(i,k,v,pack){var sh=shipmentData340();sh.rows=A(sh.rows);sh.rows[i]=sh.rows[i]||blankRow();var r=sh.rows[i];r[k]=v;if(pack)applyPack(r);saveQuiet();if(pack)return window.rc340RenderShipment();refreshTotals();return false};
+  window.rc340AddRow=function(){var sh=shipmentData340();sh.rows.push(blankRow());saveQuiet();return window.rc340RenderShipment()};
+  window.rc340RemoveRow=function(i){var sh=shipmentData340();sh.rows.splice(i,1);if(!sh.rows.length)sh.rows=[blankRow()];saveQuiet();return window.rc340RenderShipment()};
+  window.rc340SetMailTarget=function(v){shipmentData340().mailTarget=v==='customer'?'customer':'carrier';saveQuiet();return window.rc340RenderShipment()};
+  window.rc340SetMailLanguage=function(v){shipmentData340().mailLanguage=v==='en'?'en':'de';saveQuiet();return window.rc340RenderShipment()};
+  window.rc340CopyShipmentMail=function(){var c=selectedCustomer340(),sh=shipmentData340(),txt=mailBody(c,sh,sh.mailTarget==='customer'?'customer':'carrier',sh.mailLanguage==='en'?'en':'de');if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){alert('Mailtext wurde kopiert.')}).catch(function(){prompt('Mailtext kopieren:',txt)})}else prompt('Mailtext kopieren:',txt);return false};
+
+  window.rc325Shipment=window.rc340ShipmentHtml; window.rc337ShipmentHtml=window.rc340ShipmentHtml; window.rc338ShipmentHtml=window.rc340ShipmentHtml; window.rc338RenderShipment=window.rc340RenderShipment; window.rc337RenderShipment=window.rc340RenderShipment;
+  window.rc325NewShipment=window.newShipment; window.rc325AddRow=window.rc340AddRow; window.addShipmentRow=window.rc340AddRow; window.updateRow=window.rc340SetRow; window.removeShipmentRow=window.rc340RemoveRow; window.shipment=window.rc340ShipmentHtml;
+  try{shipment=window.rc340ShipmentHtml;newShipment=window.newShipment;setShipmentCustomerSearchAuto=window.setShipmentCustomerSearchAuto;applyCustomerSearch=window.applyCustomerSearch;selectShipmentCustomer=window.selectShipmentCustomer;addShipmentRow=window.rc340AddRow;updateRow=window.rc340SetRow;removeShipmentRow=window.rc340RemoveRow;rc325Shipment=window.rc340ShipmentHtml}catch(_){}
+
+  function scrubCmrHtml(html){html=T(html);html=html.replace(/<div[^>]*class="[^"]*(rc327-mail-box|rc327-process-box|rc337-mail-box|rc337-process-box|rc338-mail-box|rc338-process-box|rc340-box)[^"]*"[\s\S]*?<\/div>/gi,'');html=html.replace(/QR\s*Abholscan\s*mit\s*Pin/gi,'').replace(/Scan\s+setzt\s+die\s+Sendung\s+automatisch\s+auf\s+abgeholt\s+und\s+speichert\s+Datum\/Uhrzeit\s+in\s+ExportHUB\.?/gi,'').replace(/Referenz:\s*[A-Z0-9]{6}/gi,'');return html}
+  function scrubCmrDom(){try{var r=root();Array.prototype.slice.call(r.querySelectorAll('.rc327-mail-box,.rc327-process-box,.rc337-mail-box,.rc337-process-box,.rc338-mail-box,.rc338-process-box,.rc340-box')).forEach(function(el){if(S().view!=='shipment')el.remove()});Array.prototype.slice.call(r.querySelectorAll('.rc322-qr-info')).forEach(function(el){el.textContent='';el.style.display='none'});Array.prototype.slice.call(r.querySelectorAll('#loadListDoc * , #cmrDoc *')).forEach(function(el){var txt=T(el.textContent).replace(/\s+/g,' ').trim();if(/QR\s*Abholscan|Scan\s+setzt\s+die\s+Sendung|Referenz:\s*[A-Z0-9]{6}/i.test(txt)&&(!el.children||!el.children.length)){el.textContent=''}})}catch(_){}}
+  if(typeof oldCmr340==='function'){window.cmr=function(){var html=oldCmr340.apply(this,arguments);return scrubCmrHtml(html)};try{cmr=window.cmr}catch(_){}}
+
+  window.setView=function(v){if(v==='shipment'){S().view='shipment';saveQuiet();return window.rc340RenderShipment()}return oldSetView340&&oldSetView340.apply(this,arguments)};
+  window.render=function(){if(S().view==='shipment')return window.rc340RenderShipment();var out=oldRender340&&oldRender340.apply(this,arguments);if(S().view==='cmr'){setTimeout(scrubCmrDom,0);setTimeout(scrubCmrDom,160)}return out};
+  try{setView=window.setView;render=window.render}catch(_){}
+  try{if(S().view==='shipment')setTimeout(window.rc340RenderShipment,40)}catch(_){}
 })();
 </script>
-<!-- PRIVATE RC337 END: Final stabile Sendungserstellung ohne alte Renderpfade -->
-
-
-<!-- PRIVATE RC338 START: Sendung final ohne alte Nachrenderer + CMR/QR bereinigt -->
-<style>
-/* RC338: diese Boxen duerfen nicht von RC99/alten Cleanups ausgeblendet werden */
-.rc338-info-box,
-.rc338-mail-box,
-.rc338-process-box{
-  display:block!important;
-  visibility:visible!important;
-  height:auto!important;
-  max-height:none!important;
-  overflow:visible!important;
-  border-left:5px solid var(--blue);
-  background:#eff6ff;
-  border-radius:16px;
-  padding:13px;
-  margin:10px 0;
-  font-weight:770;
-  line-height:1.5;
-}
-.rc99-clean-ui .rc338-info-box,
-.rc99-clean-ui .rc338-mail-box,
-.rc99-clean-ui .rc338-process-box,
-.rc99-clean-ui .rc337-mail-box,
-.rc99-clean-ui .rc337-process-box,
-.rc99-clean-ui .rc327-mail-box,
-.rc99-clean-ui .rc327-process-box,
-.rc99-clean-ui .rc327-abd-box,
-.rc99-clean-ui .rc337-abd-stack{
-  display:block!important;
-  visibility:visible!important;
-  height:auto!important;
-  max-height:none!important;
-  overflow:visible!important;
-}
-/* QR: Textzeilen auf der Ladeliste entfernen, QR selbst bleibt moeglich */
-#loadListDoc .rc322-qr-info,
-#loadListDoc .rc322-qr-title,
-#loadListDoc .rc322-qr-ref,
-#printBundleRC52 .rc322-qr-info,
-#printBundleRC52 .rc322-qr-title,
-#printBundleRC52 .rc322-qr-ref{
-  display:none!important;
-}
-#loadListDoc .rc322-qr-row,
-#printBundleRC52 .rc322-qr-row{
-  grid-template-columns:35mm!important;
-  justify-content:end!important;
-}
-body[data-exporthub-view="cmr"] .rc327-mail-box,
-body[data-exporthub-view="cmr"] .rc327-process-box,
-body[data-exporthub-view="cmr"] .rc334-mail-box,
-body[data-exporthub-view="cmr"] .rc334-process-box,
-body[data-exporthub-view="cmr"] .rc337-mail-box,
-body[data-exporthub-view="cmr"] .rc337-process-box,
-body[data-exporthub-view="cmr"] .rc338-mail-box,
-body[data-exporthub-view="cmr"] .rc338-process-box{
-  display:none!important;
-}
-</style>
-<script>
-(function(){
-  if(window.__EXPORTHUB_RC338_FINAL_FIX__)return;
-  window.__EXPORTHUB_RC338_FINAL_FIX__=true;
-
-  var oldSetView338=window.setView;
-  var oldRender338=window.render;
-  var oldShowCurrent338=window.showCurrentCmr;
-  var oldShowSaved338=window.showSavedCmr;
-  var oldPdf338=window.rc55DownloadLoadlistPdf;
-  var baseHtml337=window.rc337ShipmentHtml;
-  var baseRenderOverview337=window.rc337RenderOverview;
-  var renderLock338=false;
-  var lastHeal338=0;
-
-  function S(){try{return state||{}}catch(_){return {}}}
-  function T(v){return String(v==null?'':v)}
-  function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-  function saveQuiet(){try{if(typeof save==='function')save();return}catch(_){} try{localStorage.setItem('exporthub_private_rc82_state',JSON.stringify(S()))}catch(_){}}
-  function root(){return document.getElementById('content')||document.querySelector('main')||document.body}
-  function isShipmentView(){try{return S().view==='shipment'}catch(_){return false}}
-  function isCmrView(){try{return S().view==='cmr'}catch(_){return false}}
-  function setBodyView(v){try{document.body.setAttribute('data-exporthub-view',v||'')}catch(_){}}
-  function removeMisplacedShipmentPanels(){
-    var r=root(); if(!r||!r.querySelectorAll)return;
-    if(!isShipmentView()){
-      Array.prototype.slice.call(r.querySelectorAll('.rc334-mail-box,.rc334-process-box,.rc337-mail-box,.rc337-process-box,.rc338-mail-box,.rc338-process-box')).forEach(function(el){try{el.remove()}catch(_){}});
-    }
-  }
-  function scrubQrText(){
-    var r=root(); if(!r||!r.querySelectorAll)return;
-    Array.prototype.slice.call(r.querySelectorAll('.rc322-qr-info,.rc322-qr-title,.rc322-qr-ref')).forEach(function(el){try{el.remove()}catch(_){el.textContent=''}});
-    // falls der Text ohne eigene Klasse in irgendeinen Druckblock geraten ist
-    Array.prototype.slice.call(r.querySelectorAll('#loadListDoc * , #printBundleRC52 * , #cmrDoc *')).forEach(function(el){
-      try{
-        var txt=T(el.textContent).replace(/\s+/g,' ').trim();
-        if(/Abholung||Referenz:\s*[A-Z0-9]{6}/i.test(txt)){
-          if(el.children&&el.children.length===0)el.textContent='';
-        }
-      }catch(_){}}
-    );
-  }
-  function scrubCmr(){removeMisplacedShipmentPanels();scrubQrText();}
-
-  // RC334 darf nie mehr Mail/Kundeninfos in CMR/Ladeliste einbauen.
-  window.rc334EnsureMailNotes=function(){return false};
-
-  function patchedShipmentHtml(){
-    var html='';
-    try{html=typeof baseHtml337==='function'?baseHtml337():(typeof window.rc337ShipmentHtml==='function'?window.rc337ShipmentHtml():'')}catch(err){
-      console.error('RC338 base shipment failed',err);
-      html='<div class="badbox"><b>Sendung erstellen konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>';
-    }
-    html=T(html)
-      .replace(/class="infobox rc337-process-box rc327-process-box"/g,'class="rc338-info-box rc338-process-box rc337-process-box rc327-process-box keep-infobox keep-notice"')
-      .replace(/class="infobox rc337-mail-box rc327-mail-box"/g,'class="rc338-info-box rc338-mail-box rc337-mail-box rc327-mail-box keep-infobox keep-notice"')
-      .replace(/<span class="pill blue">RC337 stabil<\/span>/g,'<span class="pill green">RC338 stabil</span>')
-      .replace(/<div class="rc337-abd-stack rc327-abd-box"><h3>ABD Bereich<\/h3>/g,'<div class="rc337-abd-stack rc327-abd-box keep-infobox"><h3>ABD Bereich</h3>')
-      .replace(/<div class="abd-panel rc337-abd-stack rc327-abd-box">/g,'<div class="abd-panel rc337-abd-stack rc327-abd-box keep-infobox">');
-    return html;
-  }
-
-  window.rc338ShipmentHtml=patchedShipmentHtml;
-  window.rc337ShipmentHtml=patchedShipmentHtml;
-
-  window.rc338RenderShipment=function(){
-    if(renderLock338)return false;
-    renderLock338=true;
-    try{
-      var st=S();st.view='shipment';setBodyView('shipment');
-      try{if(typeof renderNav==='function')renderNav()}catch(_){}
-      var r=root();
-      r.innerHTML=patchedShipmentHtml();
-      if(r.setAttribute)r.setAttribute('data-exporthub-render','RC338-shipment');
-    }catch(err){
-      console.error('RC338 shipment render failed',err);
-      try{root().innerHTML='<div class="badbox"><b>Sendung erstellen konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>'}catch(_){}
-    }finally{renderLock338=false;}
-    return false;
-  };
-  window.rc337RenderShipment=window.rc338RenderShipment;
-
-  function renderOverview338(){
-    setBodyView('shipmentoverview');
-    try{return typeof baseRenderOverview337==='function'?baseRenderOverview337():false}catch(err){console.error('RC338 overview failed',err);return false}
-  }
-
-  window.rc338RenderCmr=function(){
-    var st=S();st.view='cmr';setBodyView('cmr');
-    try{if(typeof renderNav==='function')renderNav()}catch(_){}
-    var r=root();
-    try{
-      var html=(typeof window.cmr==='function')?window.cmr():(typeof cmr==='function'?cmr():'<div class="badbox">CMR-Funktion nicht gefunden.</div>');
-      r.innerHTML=html;
-      if(r.setAttribute)r.setAttribute('data-exporthub-render','RC338-cmr');
-      try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(_){}
-      try{if(typeof applyLanguage==='function')applyLanguage()}catch(_){}
-    }catch(err){
-      console.error('RC338 CMR render failed',err);
-      r.innerHTML='<div class="badbox"><b>Ladeliste/CMR konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>';
-    }
-    setTimeout(scrubCmr,0);
-    setTimeout(scrubCmr,80);
-    setTimeout(scrubCmr,300);
-    return false;
-  };
-
-  function syncRowsBeforeDocs(){try{if(typeof window.rc337RefreshTotals==='function')window.rc337RefreshTotals()}catch(_){} try{var inputs=document.querySelectorAll('#rc337Rows input,#rc337Rows select'); if(inputs&&inputs.length&&typeof window.rc337SetRow==='function'){/* Werte werden durch onchange/oninput bereits gespeichert */}}catch(_){}}
-
-  window.showCurrentCmr=function(){
-    syncRowsBeforeDocs();
-    try{if(S().shipment){S().activeShipmentId='current'; if(typeof ensureShipmentReference==='function')ensureShipmentReference(true)}}catch(_){}
-    saveQuiet();
-    return window.rc338RenderCmr();
-  };
-  try{showCurrentCmr=window.showCurrentCmr}catch(_){}
-
-  window.showSavedCmr=function(id){
-    try{S().activeShipmentId=id;saveQuiet()}catch(_){}
-    return window.rc338RenderCmr();
-  };
-  try{showSavedCmr=window.showSavedCmr}catch(_){}
-
-  window.setView=function(v){
-    if(v==='shipment')return window.rc338RenderShipment();
-    if(v==='shipmentoverview')return renderOverview338();
-    if(v==='cmr')return window.rc338RenderCmr();
-    try{setBodyView(v||'')}catch(_){}
-    return oldSetView338&&oldSetView338.apply(this,arguments);
-  };
-  window.render=function(){
-    var v=S().view;
-    if(v==='shipment')return window.rc338RenderShipment();
-    if(v==='shipmentoverview')return renderOverview338();
-    if(v==='cmr')return window.rc338RenderCmr();
-    return oldRender338&&oldRender338.apply(this,arguments);
-  };
-  try{setView=window.setView;render=window.render;shipment=window.rc338ShipmentHtml;shipmentoverview=window.rc337OverviewHtml||window.shipmentoverview}catch(_){}
-
-  if(typeof oldPdf338==='function'){
-    window.rc55DownloadLoadlistPdf=function(){
-      try{syncRowsBeforeDocs(); if(!document.getElementById('loadListDoc'))window.rc338RenderCmr(); scrubCmr()}catch(_){}
-      return oldPdf338.apply(this,arguments);
-    };
-    try{rc55DownloadLoadlistPdf=window.rc55DownloadLoadlistPdf}catch(_){}
-  }
-
-  function healShipmentIfNeeded(){
-    if(!isShipmentView()||renderLock338)return;
-    var now=Date.now(); if(now-lastHeal338<120)return;
-    var r=root(); if(!r||!r.querySelector)return;
-    var ok=r.getAttribute&&r.getAttribute('data-exporthub-render')==='RC338-shipment'&&r.querySelector('#rc337Rows')&&r.querySelector('.rc327-mail-box')&&r.querySelector('.rc327-process-box')&&r.querySelector('.rc327-abd-box');
-    var oldLayout=!!r.querySelector('#rowsBox,.rc321-shipment-layout,#rc261MailPanel,#rc288AbdPanel,#rc291AbdPanel,#rc319ShipmentMailPanel');
-    if(!ok||oldLayout){lastHeal338=now;window.rc338RenderShipment();}
-  }
-
-  try{
-    var obs=new MutationObserver(function(){
-      if(isShipmentView())setTimeout(healShipmentIfNeeded,0);
-      else if(isCmrView())setTimeout(scrubCmr,0);
-      else setTimeout(removeMisplacedShipmentPanels,0);
-    });
-    obs.observe(root(),{childList:true,subtree:true});
-  }catch(_){}
-  setTimeout(healShipmentIfNeeded,50);
-  setTimeout(healShipmentIfNeeded,400);
-  setTimeout(healShipmentIfNeeded,1200);
-  if(isCmrView())setTimeout(scrubCmr,50);
-})();
-</script>
-<!-- PRIVATE RC338 END: Sendung final ohne alte Nachrenderer + CMR/QR bereinigt -->
+<!-- PRIVATE RC340 END: Sendung erstellen Original-Layout stabilisiert -->
 
 </body></html>
