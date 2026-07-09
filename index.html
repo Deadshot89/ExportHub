@@ -44822,4 +44822,82 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 <!-- PRIVATE RC345: Button Mail erstellen in Aktionsleiste ergänzt -->
 <!-- PRIVATE RC344 END: Single Renderer Sendung erstellen + Dokumentensatz stabil -->
 
+<!-- PRIVATE RC346 START: Altes Ladelistenlayout + offizieller CMR-Dokumentensatz -->
+<style id="rc346-doc-css">
+.rc346-doc-page{width:100%;max-width:980px;margin:0 auto}
+.rc346-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.rc346-cover{background:#fff;color:#111;width:210mm;min-height:297mm;margin:20px auto;padding:12mm;border:1px solid #bfdbfe;border-radius:18px;box-shadow:0 14px 36px rgba(15,23,42,.16);font-family:Arial,Helvetica,sans-serif;position:relative;page-break-after:always;break-after:page}
+.rc346-cover h1{font-size:34px;color:#08245d;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.04em}
+.rc346-cover-top{display:flex;justify-content:space-between;gap:12px;border-bottom:5px solid #08245d;padding-bottom:12px;margin-bottom:18px}
+.rc346-cover-brand{font-size:28px;font-weight:1000;color:#08245d}.rc346-cover-brand small{display:block;font-size:12px;color:#475569;margin-top:5px}.rc346-cover-ref{border:2px solid #60a5fa;background:#eff6ff;border-radius:18px;padding:12px 16px;min-width:185px}.rc346-cover-ref span{display:block;font-size:10px;text-transform:uppercase;font-weight:1000;color:#1e3a8a}.rc346-cover-ref strong{font-size:30px;letter-spacing:.08em;color:#0f172a}
+.rc346-cover-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.rc346-cover-box{border:1px solid #93c5fd;border-radius:16px;background:#f8fbff;padding:12px;font-size:13px;line-height:1.42}.rc346-cover-box b{display:block;color:#08245d;text-transform:uppercase;font-size:11px;margin-bottom:5px}
+.rc346-copy-label{position:absolute;right:10mm;bottom:6mm;font-size:10px;color:#64748b;font-weight:900}
+.rc346-load{position:relative;page-break-after:always;break-after:page}
+.rc346-load .a4top{position:relative}.rc346-qr-wrap{width:37mm;height:37mm;margin:8px 0 0 2mm;background:#fff;padding:2mm;border:1px solid #93c5fd;border-radius:10px;display:flex;align-items:center;justify-content:center}.rc346-qr-wrap img{width:100%;height:100%;display:block}.rc346-with-qr .load-write-fields{margin-left:43mm!important;margin-top:-38mm!important}.rc346-no-qr .load-write-fields{margin-top:16px!important}.rc346-load .load-write-fields{grid-template-columns:repeat(2,1fr)!important}.rc346-load-copy{position:absolute;right:8mm;bottom:5mm;color:#64748b;font-size:10px;font-weight:900}
+.rc346-cmr-wrap{position:relative;page-break-after:always;break-after:page}.rc346-cmr-wrap:last-child{page-break-after:auto;break-after:auto}.rc346-cmr-copy{position:absolute;right:8mm;bottom:17mm;font-size:8px;color:#111;font-weight:900;z-index:5}
+@media print{
+  @page{size:A4;margin:0}
+  body.print-rc346-docs{background:#fff!important}
+  body.print-rc346-docs .sidebar,body.print-rc346-docs .topbar,body.print-rc346-docs .no-print,body.print-rc346-docs .rc346-actions{display:none!important}
+  body.print-rc346-docs .app{display:block!important}body.print-rc346-docs .main{padding:0!important}body.print-rc346-docs #content{padding:0!important;margin:0!important}
+  body.print-rc346-docs #content>*:not(#rc346DocumentPage){display:none!important}
+  body.print-rc346-docs .rc346-cover,body.print-rc346-docs .a4doc{width:210mm!important;min-height:297mm!important;height:297mm!important;max-height:297mm!important;margin:0!important;box-shadow:none!important;border-radius:0!important;overflow:hidden!important;page-break-after:always!important;break-after:page!important}
+  body.print-rc346-docs .cmr-official{margin:0!important;box-shadow:none!important;page-break-after:always!important;break-after:page!important}
+  body.print-rc346-docs .rc346-cmr-wrap:last-child .cmr-official{page-break-after:auto!important;break-after:auto!important}
+}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC346_DOCS__)return;
+  window.__EXPORTHUB_RC346_DOCS__=true;
+  function S(){try{return state}catch(_){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function E(v){try{if(typeof esc==='function')return esc(v)}catch(_){}return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function clean(v){return T(v).replace(/\s+/g,' ').trim()}
+  function root(){return document.getElementById('content')||document.querySelector('main')||document.body}
+  function saveQuiet(){try{if(typeof save==='function')save()}catch(_){} }
+  function validRef(v){return /^[A-Z0-9]{6}$/.test(T(v||''))}
+  function makeRef(c){try{if(typeof generateShipmentRef==='function')return generateShipmentRef(c||{})}catch(_){}var chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',out='';for(var i=0;i<6;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out}
+  function parseNum(v){return Number(T(v).replace(',','.'))||0}
+  function fmt(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
+  function dateDe(v){var m=T(v).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'.'+m[2]+'.'+m[1]:T(v||'')}
+  function todayISO346(){try{if(typeof window.todayISO==='function')return window.todayISO()}catch(_){}return new Date().toISOString().slice(0,10)}
+  function customers(){return A(S().customers)}
+  function selectedCustomer(){var s=S(),sh=s.shipment||{};return customers().find(function(c){return T(c.id)===T(sh.customerId)})||customers().find(function(c){return T(c.id)===T(s.selectedCustomerId)})||customers()[0]||{}}
+  function activeShipment(){var s=S();if(s.activeShipmentId&&s.activeShipmentId!=='current'){return A(s.shipments).find(function(x){return T(x.id)===T(s.activeShipmentId)})||s.shipment||{}}return s.shipment||{}}
+  function customerFor(sh){return (sh&&sh.customer)||customers().find(function(c){return T(c.id)===T(sh&&sh.customerId)})||selectedCustomer()||{}}
+  function rowCore(r){return r&&clean(r.type)&&parseNum(r.count)>0&&parseNum(r.weight)>0}
+  function rows(sh){return A(sh&&sh.rows).filter(rowCore)}
+  function totals(sh){return rows(sh).reduce(function(a,r){var c=parseNum(r.count),w=parseNum(r.weight),l=parseNum(r.ldm);a.count+=c;a.weight+=w;a.ldm+=c*l;return a},{count:0,weight:0,ldm:0})}
+  function docsList(sh){var out=[];T(sh&&sh.deliveryNotes).split(/\n|,|;/).forEach(function(x){x=clean(x);if(x)out.push(x)});A(sh&&sh.deliveryFiles).forEach(function(f){var n=clean(f&&f.name);if(n&&out.indexOf(n)<0)out.push(n)});return out}
+  function sender(){try{return SEED.sender||{}}catch(_){return {name:'Essentra Components Ltd',street:'Montel-Allee 3',city:'41334 Nettetal',country:'Deutschland'}}}
+  function qrUrl(sh){var base='';try{if(typeof location!=='undefined')base=location.origin+location.pathname}catch(_){}if(!base||base==='null'){try{base=typeof location!=='undefined'?T(location.href).split(/[?#]/)[0]:''}catch(_){base=''}}var ref=T(sh&&sh.ref).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);var url=(base||'ExportHUB')+'?ehcmd=pickup&ref='+encodeURIComponent(ref);return 'https://quickchart.io/qr?ecLevel=M&margin=1&size=180&text='+encodeURIComponent(url)}
+  function ensureRef(sh,c){if(!validRef(sh.ref)){sh.ref=makeRef(c);sh.refAuto=true;saveQuiet()}return sh.ref}
+  function loadlistOld(sh,c,withQr,label){var sd=sender(),rs=rows(sh),t=totals(sh),docs=docsList(sh),carrier=sh.carrier||c.carrier||c.spedition||'',pickup=sh.pickupDate||todayISO346();return '<section class="a4doc loadlist-pro rc346-load '+(withQr?'rc346-with-qr':'rc346-no-qr')+'" id="'+(withQr?'loadListDoc':'loadListDocNoQr')+'">'+
+    '<div class="a4top"><div class="load-brand"><div><img src="https://upload.wikimedia.org/wikipedia/en/4/42/Essentra_logo.svg" alt="Essentra Logo" class="essentra-logo-original"><div class="doc-title">Ladeliste</div><div class="load-subtitle">Essentra Components Ltd · Montel-Allee 3 · 41334 Nettetal<br>Transportdokument / interne Ladeübersicht</div></div></div><div class="load-refbox"><div class="refcap">Sendungsreferenz</div><div class="refno">'+E(sh.ref||'')+'</div><div class="doc-meta" style="margin-top:4px"><b>Datum:</b> '+E(dateDe(pickup)||pickup)+'<br><b>Status:</b> '+E(sh.freigabe||sh.status||'offen')+'</div></div></div>'+
+    '<div class="load-address-grid"><div class="load-address-box"><span class="doc-label">Absender</span><span class="load-address-name">'+E(sd.name||'Essentra Components Ltd')+'</span><div class="load-address-text">'+E(sd.street||'Montel-Allee 3')+'<br>'+E(sd.city||'41334 Nettetal')+'<br>'+E(sd.country||'Deutschland')+'</div></div><div class="load-address-box"><span class="doc-label">Empfänger / Kunde</span><span class="load-address-name">'+E(c.name||'')+'</span><div class="load-address-text">'+E(c.address||'Adresse fehlt').replace(/\n/g,'<br>')+'</div></div></div>'+
+    '<div class="doc-grid"><div class="doc-box"><span class="doc-label">Transport / Anmeldung</span>Carrier/Portal: '+E(carrier||'offen')+'<br>Land: '+E(c.country||c.land||'')+(c.eu?' (EU)':'')+'</div><div class="doc-box blue"><span class="doc-label">Warenbeschreibung</span>'+E(sh.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</div></div>'+
+    '<table class="load-table"><tr><th>Pos.</th><th>Verpackung</th><th>Anzahl</th><th>Maße L×B×H cm</th><th>Gewicht kg</th><th>LDM je Colli</th><th>LDM gesamt</th></tr>'+(rs.length?rs.map(function(r,i){var cnt=parseNum(r.count),ldm=parseNum(r.ldm);return '<tr><td>'+(i+1)+'</td><td>'+E(r.type||'')+'</td><td>'+E(r.count||'')+'</td><td>'+E([r.l,r.w,r.h].filter(function(v){return clean(v)}).join('×'))+'</td><td>'+E(r.weight||'')+'</td><td>'+E(r.ldm==null?'':r.ldm)+'</td><td>'+E(fmt(cnt*ldm,2))+'</td></tr>'}).join(''):'<tr><td colspan="7">Keine vollständigen Colli-Zeilen erfasst</td></tr>')+'<tr><th colspan="2">Gesamt</th><th>'+E(fmt(t.count,0))+'</th><th></th><th>'+E(fmt(t.weight,1))+'</th><th></th><th>'+E(fmt(t.ldm,2))+'</th></tr></table>'+
+    '<div class="doc-grid"><div class="doc-box"><span class="doc-label">Lieferscheine/DNCs / Delivery Notes/DNCs</span><div class="doc-chipline">'+(docs.length?docs.map(function(d){return '<span>'+E(d)+'</span>'}).join(''):'<span>offen</span>')+'</div></div><div class="doc-box"><span class="doc-label">Bemerkung</span>'+E(sh.comments||sh.incoterm||'')+'</div></div>'+
+    (withQr?'<div class="rc346-qr-wrap"><img alt="QR" src="'+E(qrUrl(sh))+'"></div>':'')+
+    '<div class="load-write-fields"><div class="load-write-field"><span class="doc-label">Unterschrift Fahrer</span><div class="load-write-line"></div><div class="load-write-hint">Fahrer unterschreibt bei Abholung</div></div><div class="load-write-field"><span class="doc-label">Datum / Uhrzeit</span><div class="load-write-line"></div><div class="load-write-hint">Datum / Uhrzeit</div></div><div class="load-write-field"><span class="doc-label">Kennzeichen</span><div class="load-write-line">'+E(sh.licensePlate||'')+'</div><div class="load-write-hint">LKW / Trailer</div></div><div class="load-write-field"><span class="doc-label">Verlader</span><div class="load-write-line">'+E(sh.loader||'')+'</div><div class="load-write-hint">Name / Kürzel</div></div></div><div class="rc346-load-copy">'+E(label)+'</div></section>'}
+  function cover(sh,c){var t=totals(sh),docs=docsList(sh);return '<section class="rc346-cover"><div class="rc346-cover-top"><div class="rc346-cover-brand">ESSENTRA<small>Transportdokumentensatz</small></div><div class="rc346-cover-ref"><span>Sendungsreferenz</span><strong>'+E(sh.ref||'')+'</strong></div></div><h1>Deckblatt</h1><div class="rc346-cover-grid"><div class="rc346-cover-box"><b>Empfänger / Kunde</b>'+E(c.name||'')+'<br>'+E(T(c.address||'').replace(/\n/g,'<br>'))+'</div><div class="rc346-cover-box"><b>Transport</b>Spedition: '+E(sh.carrier||c.carrier||c.spedition||'offen')+'<br>Abholdatum: '+E(dateDe(sh.pickupDate)||'offen')+'<br>Kennzeichen: '+E(sh.licensePlate||'')+'</div><div class="rc346-cover-box"><b>Dokumentensatz</b>1× Deckblatt<br>1× Ladeliste mit QR-Code<br>1× Ladeliste ohne QR-Code<br>4× CMR</div><div class="rc346-cover-box"><b>Summen</b>Collis: '+E(fmt(t.count,0))+'<br>Gewicht: '+E(fmt(t.weight,1))+' kg<br>Lademeter: '+E(fmt(t.ldm,2))+'</div></div><div class="rc346-cover-box"><b>Lieferscheine / DNCs</b>'+(docs.length?E(docs.join(', ')):'offen')+'</div><div class="rc346-copy-label">Deckblatt 1 / 1</div></section>'}
+  function cmrOfficial(sh,c,i){var t=totals(sh),docs=docsList(sh),carrier=sh.carrier||c.carrier||c.spedition||'',pickup=sh.pickupDate||todayISO346(),goods=sh.goodsDescription||'Waren laut Rechnung/Ladeliste',html='';try{if(typeof buildCmrMasterTemplate==='function')html=buildCmrMasterTemplate(sh,c,docs,t,carrier,pickup,goods)}catch(e){html=''}if(!html){html='<section class="cmr-official" id="cmrDoc"><div class="cmr-of-title"><div class="h1">INTERNATIONALER FRACHTBRIEF</div><div class="round">CMR</div></div><div class="cmr-of-box" style="left:13mm;top:20mm;width:90mm;height:30mm"><div class="cmr-of-label"><b>1</b>Absender</div><div class="cmr-of-value">Essentra Components Ltd\nMontel-Allee 3\n41334 Nettetal</div></div><div class="cmr-of-box" style="left:13mm;top:55mm;width:90mm;height:35mm"><div class="cmr-of-label"><b>2</b>Empfänger</div><div class="cmr-of-value">'+E(c.name||'')+'\n'+E(c.address||'')+'</div></div></section>'}html=html.replace('id="cmrDoc"','id="cmrDoc_'+i+'"');return '<div class="rc346-cmr-wrap">'+html+'<div class="rc346-cmr-copy">CMR '+i+' / 4</div></div>'}
+  function docHtml(sh){var c=customerFor(sh);ensureRef(sh,c);return '<div id="rc346DocumentPage" class="rc346-doc-page"><div class="rc346-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zurück zu Sendung erstellen</button><button type="button" class="btn" onclick="return rc346PrintDocuments()">Drucken / Als PDF speichern</button><button type="button" class="ghost" onclick="return copyCmrText()">CMR-Text kopieren</button></div><div id="rc346DocumentBundle">'+cover(sh,c)+loadlistOld(sh,c,true,'Ladeliste 1 / 2 · mit QR-Code')+loadlistOld(sh,c,false,'Ladeliste 2 / 2 · ohne QR-Code')+[1,2,3,4].map(function(i){return cmrOfficial(sh,c,i)}).join('')+'</div></div>'}
+  window.rc346ShowDocuments=function(sh){sh=sh||activeShipment();S().view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}root().innerHTML=docHtml(sh);return false};
+  window.showCurrentCmr=function(){S().activeShipmentId='current';saveQuiet();return window.rc346ShowDocuments(S().shipment||{})};
+  window.showSavedCmr=function(id){S().activeShipmentId=id;saveQuiet();return window.rc346ShowDocuments(activeShipment())};
+  window.rc346PrintDocuments=function(){if(!document.getElementById('rc346DocumentPage'))window.showCurrentCmr();setTimeout(function(){document.body.classList.add('print-rc346-docs');window.print();setTimeout(function(){document.body.classList.remove('print-rc346-docs')},900)},80);return false};
+  window.printDocsRC52=window.rc346PrintDocuments;
+  window.rc344PrintDocuments=window.rc346PrintDocuments;
+  window.rc55DownloadLoadlistPdf=function(){return window.showCurrentCmr()};
+  window.rc53PdfLoadlist=window.rc55DownloadLoadlistPdf;
+  try{showCurrentCmr=window.showCurrentCmr;showSavedCmr=window.showSavedCmr;printDocsRC52=window.printDocsRC52;rc55DownloadLoadlistPdf=window.rc55DownloadLoadlistPdf;rc344PrintDocuments=window.rc346PrintDocuments}catch(_){}
+  var oldSetView=window.setView;window.setView=function(v){if(v==='cmr')return window.showCurrentCmr();return oldSetView&&oldSetView.apply(this,arguments)};try{setView=window.setView}catch(_){}
+  var oldRender=window.render;window.render=function(){var s=S();if(s.view==='cmr')return window.showCurrentCmr();return oldRender&&oldRender.apply(this,arguments)};try{render=window.render}catch(_){}
+})();
+</script>
+<!-- PRIVATE RC346 END: Altes Ladelistenlayout + offizieller CMR-Dokumentensatz -->
+
 </body></html>
