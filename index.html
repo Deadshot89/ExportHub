@@ -38909,7 +38909,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     window.render.__rc274_13_wrapped=true;
     try{render=window.render}catch(e){}
   }
-  setTimeout(run,120);setTimeout(run,800);setInterval(run,1000);
+  setTimeout(run,120);setTimeout(run,800);/* RC321: alter Dauer-Renderer deaktiviert */
 })();
 </script>
 
@@ -42384,4 +42384,392 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC319 END: Sendung Mail + Aktionsbuttons final wiederherstellen -->
+
+<!-- PRIVATE RC320 START: Ladeliste PDF exakt aus Website-Layout -->
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC320_LOADLIST_WEBSITE_PDF__)return;
+  window.__EXPORTHUB_RC320_LOADLIST_WEBSITE_PDF__=true;
+
+  function ref320(v){
+    return String(v||'SENDUNG').trim().replace(/[^A-Za-z0-9_-]/g,'_')||'SENDUNG';
+  }
+  function activeShipment320(){
+    try{if(typeof rc55ActiveShipment==='function')return rc55ActiveShipment()}catch(_){}
+    try{if(typeof activeCmrShipment==='function')return activeCmrShipment()}catch(_){}
+    try{
+      if(state&&state.activeShipmentId&&state.activeShipmentId!=='current'&&Array.isArray(state.shipments)){
+        var hit=state.shipments.find(function(s){return String(s.id)===String(state.activeShipmentId)});
+        if(hit)return hit;
+      }
+      return state&&state.shipment?state.shipment:null;
+    }catch(_){}
+    return null;
+  }
+  function sync320(){
+    ['rc210SyncColliRows','rc209CollectColliRows','rc203PersistShipmentRows','collectRows118','syncRowsFromDom96','rc115SyncShipmentRowsFromDom'].forEach(function(n){
+      try{if(typeof window[n]==='function')window[n]('rc320-pdf',true)}catch(_){}
+    });
+  }
+  function wait320(ms){
+    return new Promise(function(resolve){setTimeout(resolve,ms)});
+  }
+  async function ensureLoadlist320(){
+    sync320();
+    var load=document.getElementById('loadListDoc');
+    if(!load){
+      try{if(typeof showCurrentCmr==='function')showCurrentCmr()}catch(_){}
+      await wait320(220);
+      load=document.getElementById('loadListDoc');
+    }
+    if(!load){
+      alert('Bitte zuerst Ladeliste/CMR Vorschau anzeigen.');
+      return null;
+    }
+    try{load.classList.add('loadlist-pro','rc265-onepage')}catch(_){}
+    try{if(typeof rc198ApplyLoadlistPalletFields==='function')rc198ApplyLoadlistPalletFields()}catch(_){}
+    try{if(typeof rc220ApplyPalletFields==='function')rc220ApplyPalletFields()}catch(_){}
+    try{if(typeof fitLoadlist265==='function')fitLoadlist265()}catch(_){}
+    return load;
+  }
+  function bytes320(str){
+    var arr=new Uint8Array(str.length);
+    for(var i=0;i<str.length;i++)arr[i]=str.charCodeAt(i)&255;
+    return arr;
+  }
+  function download320(name,blob){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1400);
+  }
+  function blobToDataUrl320(blob){
+    return new Promise(function(resolve,reject){
+      var r=new FileReader();
+      r.onload=function(){resolve(r.result)};
+      r.onerror=reject;
+      r.readAsDataURL(blob);
+    });
+  }
+  async function inlineImages320(root){
+    var imgs=Array.from(root.querySelectorAll('img'));
+    for(var i=0;i<imgs.length;i++){
+      var img=imgs[i];
+      var src=img.getAttribute('src')||'';
+      if(!src||src.indexOf('data:')===0)continue;
+      try{
+        var res=await fetch(src,{mode:'cors'});
+        if(!res.ok)throw new Error('image fetch failed');
+        img.setAttribute('src',await blobToDataUrl320(await res.blob()));
+      }catch(_){
+        var repl=document.createElement('div');
+        repl.textContent='ESSENTRA';
+        repl.setAttribute('style','font-weight:950;font-size:27px;color:#263238;letter-spacing:.04em;min-height:36px;display:flex;align-items:center;');
+        img.replaceWith(repl);
+      }
+    }
+  }
+  function inlineStyles320(src,dst){
+    if(!src||!dst)return;
+    var cs=getComputedStyle(src), style='';
+    for(var i=0;i<cs.length;i++){
+      var p=cs[i], v=cs.getPropertyValue(p);
+      if(v)style+=p+':'+v+';';
+    }
+    style+='-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;';
+    dst.setAttribute('style',style);
+    var a=Array.from(src.children||[]), b=Array.from(dst.children||[]);
+    for(var j=0;j<a.length;j++)inlineStyles320(a[j],b[j]);
+  }
+  function svgToCanvas320(svg,w,h){
+    return new Promise(function(resolve,reject){
+      var url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        var ctx=canvas.getContext('2d');
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        URL.revokeObjectURL(url);
+        resolve(canvas);
+      };
+      img.onerror=function(err){URL.revokeObjectURL(url);reject(err)};
+      img.src=url;
+    });
+  }
+  function jpegPdf320(jpeg){
+    var bin=atob(String(jpeg).split(',')[1]||'');
+    var objects=[], offsets=[0];
+    function add(o){objects.push(o);return objects.length}
+    var image=add('<< /Type /XObject /Subtype /Image /Width 1588 /Height 2246 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bin.length+' >>\nstream\n'+bin+'\nendstream');
+    var stream='q\n595 0 0 842 0 0 cm\n/Im0 Do\nQ';
+    var content=add('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
+    var page=add('<< /Type /Page /Parent 4 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 '+image+' 0 R >> >> /Contents '+content+' 0 R >>');
+    var pages=add('<< /Type /Pages /Kids ['+page+' 0 R] /Count 1 >>');
+    var catalog=add('<< /Type /Catalog /Pages '+pages+' 0 R >>');
+    var pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+    for(var i=0;i<objects.length;i++){
+      offsets.push(pdf.length);
+      pdf+=(i+1)+' 0 obj\n'+objects[i]+'\nendobj\n';
+    }
+    var xref=pdf.length;
+    pdf+='xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
+    for(var j=1;j<offsets.length;j++)pdf+=String(offsets[j]).padStart(10,'0')+' 00000 n \n';
+    pdf+='trailer\n<< /Size '+(objects.length+1)+' /Root '+catalog+' 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+    return new Blob([bytes320(pdf)],{type:'application/pdf'});
+  }
+  window.rc320DownloadLoadlistPdf=async function(){
+    var load=await ensureLoadlist320();
+    if(!load)return false;
+    var wrapper=document.createElement('div');
+    wrapper.style.position='fixed';
+    wrapper.style.left='-10000px';
+    wrapper.style.top='0';
+    wrapper.style.width='210mm';
+    wrapper.style.height='297mm';
+    wrapper.style.overflow='hidden';
+    wrapper.style.background='#fff';
+    wrapper.style.zIndex='-1';
+    var clone=load.cloneNode(true);
+    clone.id='loadListDoc_RC320_PDF_CLONE';
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+    try{
+      inlineStyles320(load,clone);
+      await inlineImages320(clone);
+      clone.style.display='block';
+      clone.style.margin='0';
+      clone.style.width='210mm';
+      clone.style.height='297mm';
+      clone.style.maxHeight='297mm';
+      clone.style.overflow='hidden';
+      clone.style.boxShadow='none';
+      clone.style.transform='';
+      clone.style.transformOrigin='';
+      var html=new XMLSerializer().serializeToString(clone);
+      var svg='<svg xmlns="http://www.w3.org/2000/svg" width="1588" height="2246" viewBox="0 0 794 1123"><foreignObject x="0" y="0" width="794" height="1123"><div xmlns="http://www.w3.org/1999/xhtml" style="width:794px;height:1123px;background:#fff;overflow:hidden;">'+html+'</div></foreignObject></svg>';
+      var canvas=await svgToCanvas320(svg,1588,2246);
+      var s=activeShipment320()||{};
+      download320('Ladeliste_'+ref320(s.ref)+'.pdf',jpegPdf320(canvas.toDataURL('image/jpeg',0.97)));
+    }catch(err){
+      console.error('RC320 Ladeliste Weblayout PDF fehlgeschlagen',err);
+      alert('PDF konnte nicht direkt erstellt werden. Bitte die Vorschau offen lassen und erneut versuchen.');
+    }finally{
+      wrapper.remove();
+    }
+    return false;
+  };
+  function assign320(){
+    ['rc315DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc55DownloadLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc211DownloadWebsiteLoadlistPdf','rc216DownloadLoadlistPdf','rc217DownloadLoadlistPdf','downloadLoadListPdf','downloadCurrentLoadListPdf','rc55PdfLoadlist','rc53PdfLoadlist','rc90PrintLoadlistAsPdf','rc91DownloadOriginalLoadlistPdf'].forEach(function(n){
+      window[n]=window.rc320DownloadLoadlistPdf;
+      try{eval(n+'=window.rc320DownloadLoadlistPdf')}catch(_){}
+    });
+  }
+  function patchButtons320(){
+    assign320();
+    Array.from(document.querySelectorAll('button,a')).forEach(function(el){
+      var txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+      var oc=String(el.getAttribute('onclick')||'');
+      if(/Ladeliste PDF|PDF herunterladen/i.test(txt)||/rc55DownloadLoadlistPdf|rc315DownloadLoadlistPdf|rc218DownloadLoadlistPdf|downloadLoadListPdf/i.test(oc)){
+        el.setAttribute('onclick','return rc320DownloadLoadlistPdf();');
+        if(/Ladeliste/i.test(txt))el.textContent='Ladeliste PDF herunterladen';
+      }
+    });
+  }
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');
+    if(!el)return;
+    var txt=(el.textContent||'').replace(/\s+/g,' ').trim();
+    var oc=String(el.getAttribute('onclick')||'');
+    if(/Ladeliste PDF|PDF herunterladen/i.test(txt)||/rc315DownloadLoadlistPdf|rc218DownloadLoadlistPdf|rc55DownloadLoadlistPdf|downloadLoadListPdf/i.test(oc)){
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      window.rc320DownloadLoadlistPdf();
+      return false;
+    }
+  },true);
+  var baseRender320=window.render||(typeof render==='function'?render:null);
+  if(typeof baseRender320==='function'&&!baseRender320.__rc320Wrapped){
+    window.render=function(){
+      var r=baseRender320.apply(this,arguments);
+      setTimeout(patchButtons320,80);
+      setTimeout(patchButtons320,350);
+      return r;
+    };
+    window.render.__rc320Wrapped=true;
+    try{render=window.render}catch(_){}
+  }
+  assign320();
+  setTimeout(patchButtons320,120);
+  setTimeout(patchButtons320,800);
+})();
+</script>
+<!-- PRIVATE RC320 END: Ladeliste PDF exakt aus Website-Layout -->
+<!-- PRIVATE RC321 START: Sendung erstellen finaler Schnellrenderer + Savefix -->
+<style>
+.rc321-shipment-layout{display:grid;grid-template-columns:minmax(360px,1fr) minmax(360px,1fr);gap:14px;align-items:start}
+.rc321-mail-panel,.rc321-actionbar{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#ffffff);border-radius:14px;padding:12px;margin:10px 0}
+.rc321-actionbar,.rc321-mail-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rc321-mail-panel h3{margin:0 0 8px;color:#08245d}
+.rc321-file-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.rc321-file-actions label{display:inline-flex;width:auto}
+@media(max-width:980px){.rc321-shipment-layout{grid-template-columns:1fr}}
+</style>
+<script>
+(function(){
+  function st321(){return state||{}}
+  function esc321(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function customers321(){try{return Array.isArray(state.customers)?state.customers:[]}catch(_){return []}}
+  function sh321(){try{state.shipment=state.shipment||{};return state.shipment}catch(_){return {}}}
+  function customer321(){
+    var s=sh321(), list=customers321(), c=null;
+    if(s.customerId)c=list.find(function(x){return String(x.id)===String(s.customerId)})||null;
+    if(!c&&s.customerNumber)c=list.find(function(x){return String(x.account||x.customerNumber||'')===String(s.customerNumber)})||null;
+    if(!c&&s.customerSearch){
+      var q=String(s.customerSearch).toLowerCase();
+      c=list.find(function(x){return q.indexOf(String(x.account||x.customerNumber||'').toLowerCase())>=0||q.indexOf(String(x.name||'').toLowerCase())>=0})||null;
+    }
+    if(!c&&s.customer&&typeof s.customer==='object')c=s.customer;
+    if(!c&&list.length)c=list[0];
+    if(c&&c.id&&!s.customerId)s.customerId=c.id;
+    return c||{};
+  }
+  function option321(c){try{if(typeof customerOption==='function')return customerOption(c)}catch(_){} return [(c&&c.account)||c&&c.customerNumber,c&&c.name,c&&c.country].filter(Boolean).join(' · ')}
+  function ref321(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
+  function refOk321(v){return /^[A-Z0-9]{6}$/.test(ref321(v))}
+  function ensureRef321(){
+    var s=sh321(), c=customer321();
+    if(!refOk321(s.ref)){
+      try{s.ref=generateShipmentRef(c)}catch(_){s.ref=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8)}
+      s.refAuto=true;
+    }
+  }
+  function rows321(){return (Array.isArray(sh321().rows)?sh321().rows:[])}
+  function collect321(){
+    try{if(typeof collect122==='function')collect122(true)}catch(_){}
+    try{if(typeof collectRows199==='function')collectRows199()}catch(_){}
+    try{if(typeof syncRowsFromDom96==='function')syncRowsFromDom96()}catch(_){}
+    try{if(typeof collectRows190==='function')collectRows190(true)}catch(_){}
+  }
+  function totals321(s){
+    try{if(typeof totals==='function')return totals(s||sh321())}catch(_){}
+    return rows321().reduce(function(a,r){var c=Number(r.count)||0,w=Number(String(r.weight||0).replace(',','.'))||0,l=Number(String(r.ldm||0).replace(',','.'))||0;a.count+=c;a.weight+=w;a.ldm+=c*l;return a},{count:0,weight:0,ldm:0});
+  }
+  function completion321(s){
+    try{if(typeof shipmentCompletionBox==='function')return shipmentCompletionBox(s||sh321())}catch(_){}
+    var t=totals321(s);
+    return t.count&&t.weight?'<div class="okbox"><b>Sendungsdaten vollstaendig.</b></div>':'<div class="badbox"><b>Colli-Daten fehlen.</b></div>';
+  }
+  function missing321(s){
+    try{if(typeof shipmentCompletionMissing==='function')return shipmentCompletionMissing(s||sh321())}catch(_){}
+    var t=totals321(s), out=[];
+    if(!t.count)out.push('Collis / Anzahl');
+    if(!t.weight)out.push('Gewicht');
+    return out;
+  }
+  function rowHtml321(r,i){
+    try{if(typeof renderRow==='function')return renderRow(r,i)}catch(_){}
+    r=r||{};
+    return '<div class="card"><b>Zeile '+(i+1)+'</b><div class="grid3"><label class="field">Verpackung<input value="'+esc321(r.type||'')+'" onchange="state.shipment.rows['+i+'].type=this.value;save()"></label><label class="field">Anzahl<input type="number" value="'+esc321(r.count||'')+'" onchange="state.shipment.rows['+i+'].count=this.value;save()"></label><label class="field">Gewicht kg<input type="number" step="0.1" value="'+esc321(r.weight||'')+'" onchange="state.shipment.rows['+i+'].weight=this.value;save()"></label></div></div>';
+  }
+  function mailPanel321(c,s){
+    var actions='';
+    try{if(typeof customerMailActions==='function')actions=customerMailActions(c)}catch(_){}
+    if(!actions)actions='<button type="button" class="btn" onclick="return prepareShipmentMailLink(this,&quot;'+esc321(c.id||'')+'&quot;)">Mail erstellen</button><button type="button" class="ghost" onclick="copyShipmentMail(&quot;'+esc321(c.id||'')+'&quot;)">Mailtext kopieren</button>';
+    return '<div class="rc321-mail-panel"><h3>Mail an Kunde / Spedition</h3><div class="rc321-mail-actions">'+actions+'</div><span class="small">Mailtext enthaelt keine Kunden-/Adress-/DNC-Felder. Ladeliste bitte als PDF anhaengen.</span><br><span class="small">Betreff: Sendungsanmeldung '+esc321(s.ref||'')+' / '+esc321(c.name||'Kunde')+'</span></div>';
+  }
+  function files321(s){
+    var list='';
+    try{if(typeof deliveryFileList==='function')list=deliveryFileList(s)}catch(_){}
+    return '<label class="field">Lieferscheine / DNCs manuell (optional)<textarea onchange="state.shipment.deliveryNotes=this.value;save()" placeholder="Optional: eine DNC/Lieferscheinnummer je Zeile">'+esc321(s.deliveryNotes||'')+'</textarea></label>'+
+      '<div class="rc321-file-actions"><label class="btn">Dateien auswaehlen<input type="file" multiple style="display:none" onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label><button type="button" class="btn" onclick="return typeof rc246OpenReferenceFolderPicker===&quot;function&quot;?rc246OpenReferenceFolderPicker():false">Dateien aus Ref.-Ordner uebernehmen</button></div>'+list;
+  }
+  function saved321(){
+    var saved=(state.shipments||[]).slice(0,8);
+    if(!saved.length)return '<p class="muted">Noch keine Sendung gespeichert.</p>';
+    return '<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Datum</th><th>Status</th><th>Aktion</th></tr>'+saved.map(function(x){var c=x.customer||{};return '<tr><td><b>'+esc321(x.ref||'')+'</b></td><td>'+esc321(c.name||'')+'</td><td>'+esc321(x.created||'')+'</td><td>'+esc321(x.freigabe||x.status||'offen')+'</td><td><button class="ghost" onclick="loadShipment(&quot;'+esc321(x.id||'')+'&quot;)">Uebernehmen</button> <button class="ghost" onclick="showSavedCmr(&quot;'+esc321(x.id||'')+'&quot;)">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>';
+  }
+  window.rc321SetProcess=function(v){var s=sh321();s.customerProcessConfirmed=!!v;try{save()}catch(_){};return false};
+  window.rc321CleanRef=function(v){return ref321(v)};
+  window.rc321SaveShipment=function(){
+    collect321();
+    var s=sh321(), c=customer321();
+    if(!c||!c.id){alert('Bitte zuerst eine Kundennummer / einen Kunden auswaehlen.');return false}
+    s.customerId=c.id;
+    s.ref=ref321(s.ref);
+    if(!refOk321(s.ref)){alert('Referenznummer ist ungueltig. Bitte 6 Zeichen A-Z/0-9 eintragen oder neue Referenz erzeugen.');return false}
+    if(!s.addressConfirmed){alert('Bitte Empfaengeradresse bestaetigen.');return false}
+    if(!s.customerProcessConfirmed){alert('Bitte Kundeninfos / Prozesshinweise bestaetigen.');return false}
+    var miss=missing321(s);
+    if(miss.length){alert('Sendung kann noch nicht gespeichert werden. Bitte erfassen:\n- '+miss.join('\n- '));return false}
+    var duplicate=(state.shipments||[]).some(function(x){return String(x.ref||'').toUpperCase()===s.ref});
+    if(duplicate){alert('Diese Referenznummer ist bereits gespeichert. Bitte eine neue Referenz erzeugen.');return false}
+    var saved=Object.assign({},s,{id:(typeof uid==='function'?uid('SHIP'):'SHIP'+Date.now()),created:new Date().toLocaleString('de-DE'),customer:Object.assign({},c),freigabe:'offen',status:'offen'});
+    saved.rows=(Array.isArray(s.rows)?s.rows:[]).map(function(r){return Object.assign({},r)});
+    saved.deliveryFiles=(Array.isArray(s.deliveryFiles)?s.deliveryFiles:[]).map(function(f){return Object.assign({},f)});
+    saved.podFiles=(Array.isArray(s.podFiles)?s.podFiles:[]).map(function(f){return Object.assign({},f)});
+    state.shipments=state.shipments||[];
+    state.shipments.unshift(saved);
+    state.activeShipmentId=saved.id;
+    try{var pc=typeof euroPalletCount==='function'?euroPalletCount(saved):0;if(pc>0&&typeof addPalletBookingFromShipment==='function')addPalletBookingFromShipment(saved,c,pc)}catch(_){}
+    var completed=[];
+    try{if(typeof autoCompleteShipmentTasks==='function')completed=autoCompleteShipmentTasks(saved,c)||[]}catch(_){}
+    try{if(typeof createOrUpdateShipmentCreatedTask==='function')createOrUpdateShipmentCreatedTask(saved,c)}catch(_){}
+    try{if(typeof audit==='function')audit('Sendung gespeichert',saved.ref+' · '+(c.name||''))}catch(_){}
+    try{save()}catch(_){}
+    alert('Sendung gespeichert: '+saved.ref+(completed.length?'\nAufgaben erledigt:\n- '+completed.join('\n- '):''));
+    try{setView('cmr')}catch(_){}
+    return false;
+  };
+  window.shipment=function(){
+    var s=sh321(), c=customer321(); ensureRef321(); s.deliveryFiles=s.deliveryFiles||[]; s.rows=s.rows||[];
+    var list=customers321(), opts=list.map(function(cu){return '<option value="'+esc321(cu.id)+'" '+(String(cu.id)===String(s.customerId)?'selected':'')+'>'+esc321((cu.account||cu.customerNumber||cu.id)+' · '+(cu.name||'')+' · '+(cu.country||''))+'</option>'}).join('');
+    var dl=list.map(function(cu){return '<option value="'+esc321(option321(cu))+'"></option>'}).join('');
+    var missingAddress=!String(c.address||'').trim();
+    var status=missingAddress?'<div class="badbox">Adresse fehlt. Sendungserstellung blockiert.</div>':!s.addressConfirmed?'<div class="notice">Adresse muss aktiv bestaetigt werden.</div>':!s.customerProcessConfirmed?'<div class="notice">Kundeninfos / Prozesshinweise muessen bestaetigt werden.</div>':!refOk321(s.ref)?'<div class="badbox">Referenznummer muss exakt 6 Zeichen A-Z/0-9 haben.</div>':completion321(s);
+    return (typeof head==='function'?head('Sendung erstellen',''):'<h2>Sendung erstellen</h2>')+
+      '<div class="rc321-shipment-layout"><div class="card"><h3>Kunde & Grunddaten</h3>'+
+      '<label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" list="customerList" value="'+esc321(s.customerSearch||option321(c))+'" oninput="setShipmentCustomerSearchAuto(this.value)" onchange="applyCustomerSearch()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();applyCustomerSearch()}"><datalist id="customerList">'+dl+'</datalist></label>'+
+      '<div class="btn-row-spaced"><button class="btn" onclick="newShipment()">+ Neue Sendung</button><button class="ghost" onclick="applyCustomerSearch()">Kunde uebernehmen</button><button class="ghost" onclick="ensureShipmentReference(true)">Neue 6-Zeichen-Referenz</button><button class="soft" onclick="showCurrentCmr()">Ladeliste & CMR anzeigen</button></div>'+
+      '<label class="field">Kunde<select onchange="selectShipmentCustomer(this.value)">'+opts+'</select></label>'+
+      '<div class="'+(missingAddress?'badbox':'okbox')+'"><b>Empfaengeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+esc321(c.address||'Adresse fehlt')+'</pre></div>'+
+      '<label class="checkrow"><input type="checkbox" '+(s.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save()"><span>Adresse bestaetigen</span></label>'+
+      '<label class="checkrow"><input type="checkbox" '+(s.customerProcessConfirmed?'checked':'')+' onchange="rc321SetProcess(this.checked)"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe Kundeninfos, SOP-/Prozesshinweise und besondere Versandvorgaben geprueft.</span></span></label>'+
+      mailPanel321(c,s)+
+      '<label class="field">Sendungsreferenz / Referenznummer<input value="'+esc321(s.ref||'')+'" maxlength="6" pattern="[A-Z0-9]{6}" oninput="this.value=rc321CleanRef(this.value)" onchange="setShipmentRef(this.value)" placeholder="6 Zeichen A-Z/0-9"></label>'+
+      files321(s)+
+      '<div class="miniGrid"><label class="field">Geplantes Abholdatum<input type="date" value="'+esc321(s.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+esc321(s.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()" placeholder="z. B. Paul Langen, DHL, Dachser..."></label><label class="field">Kennzeichen<input value="'+esc321(s.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()"></label><label class="field">Verlader<input value="'+esc321(s.loader||'')+'" onchange="state.shipment.loader=this.value;save()"></label></div>'+
+      '<label class="field">Incoterm / Hinweis<input value="'+esc321(s.incoterm||'')+'" onchange="state.shipment.incoterm=this.value;save()"></label>'+
+      '<label class="checkrow"><input type="checkbox" '+(s.nonEuCheck?'checked':'')+' onchange="state.shipment.nonEuCheck=this.checked;save()"><div>Drittland-/Zolldokumente geprueft, falls erforderlich</div></label>'+
+      '<div class="rc321-actionbar"><button type="button" class="btn" onclick="return rc321SaveShipment()">Sendung speichern + Aufgaben pruefen</button><button type="button" class="ghost" onclick="showCurrentCmr();return false">Ladeliste/CMR Vorschau</button><button type="button" class="ghost" onclick="rc55DownloadLoadlistPdf();return false">Ladeliste PDF herunterladen</button><button type="button" class="ghost" onclick="rc55PrintLabels();return false">Versandlabel 4x A4</button></div>'+status+
+      '</div><div class="card"><h3>Collis, Masse, Gewicht, Lademeter</h3><div id="rowsBox">'+s.rows.map(rowHtml321).join('')+'</div><button class="ghost" onclick="addShipmentRow()">+ Zeile</button><div class="summaryGrid">'+(typeof shipmentSummaryBoxes==='function'?shipmentSummaryBoxes(s):'')+'</div>'+completion321(s)+
+      '<label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()">'+esc321(s.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label><label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+esc321(s.comments||'')+'</textarea></label></div></div>'+
+      '<div class="card" style="max-width:1160px"><h3>Gespeicherte Sendungen</h3><div class="toolbar"><button class="ghost" onclick="setView(&quot;shipmentoverview&quot;)">Sendungsuebersicht oeffnen</button></div>'+saved321()+'</div>';
+  };
+  try{shipment=window.shipment}catch(_){}
+  window.saveShipment=window.rc321SaveShipment; try{saveShipment=window.rc321SaveShipment}catch(_){}
+  window.rc288RunShipment=function(){return false}; try{rc288RunShipment=window.rc288RunShipment}catch(_){}
+  window.rc318NormalizeShipment=function(){return false};
+  window.rc319RestoreShipmentTools=function(){return false};
+  var oldRender321=window.render||(typeof render==='function'?render:null);
+  window.render=function(){
+    try{
+      if(state&&state.view==='shipment'){
+        if(typeof renderNav==='function')renderNav();
+        var target=typeof content!=='undefined'?content:document.getElementById('content');
+        target.innerHTML=(typeof canRead==='function'&&!canRead('shipment'))?(typeof noAccessView==='function'?noAccessView():'Kein Leserecht'):window.shipment();
+        try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(_){}
+        try{if(typeof applyLanguage==='function')applyLanguage()}catch(_){}
+        return;
+      }
+    }catch(err){console.error('RC321 Shipment Render Fehler',err)}
+    return oldRender321&&oldRender321.apply(this,arguments);
+  };
+  try{render=window.render}catch(_){}
+})();
+</script>
+<!-- PRIVATE RC321 END: Sendung erstellen finaler Schnellrenderer + Savefix -->
 </body></html>
