@@ -50145,8 +50145,8 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
     if(!r)return;
     var url=pickupUrl322(sh);
     var html='<div class="rc322-qr-row">'+
-      '<div class="rc322-qr-info"><b>QR Abholscan</b><br>Scan setzt die Sendung automatisch auf <b>abgeholt</b> und speichert Datum/Uhrzeit in ExportHUB.<br><b>Referenz:</b> '+e322(r)+'</div>'+
-      '<div class="rc322-qr-box"><img crossorigin="anonymous" alt="QR Abholscan '+e322(r)+'" src="'+e322(qrUrl322(url))+'"><div class="rc322-qr-title">Abholung</div><div class="rc322-qr-ref">'+e322(r)+'</div></div>'+
+      '<div class="rc322-qr-info"></div>'+
+      '<div class="rc322-qr-box"><img crossorigin="anonymous" alt="Abholung '+e322(r)+'" src="'+e322(qrUrl322(url))+'"><div class="rc322-qr-title">Abholung</div><div class="rc322-qr-ref">'+e322(r)+'</div></div>'+
       '</div>';
     var grids=load.querySelectorAll('.doc-grid');
     var anchor=grids&&grids.length?grids[grids.length-1]:load.querySelector('.load-table');
@@ -50201,7 +50201,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC322 END: Ladeliste QR-Abholscan -->
-<!-- PRIVATE RC323 START: QR-Abholscan mit PIN-Freigabe -->
+<!-- PRIVATE RC323 START: QR-Code ohne sichtbaren Infotext -->
 <style>
 .rc323-pin-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(135deg,#eff6ff,#ffffff)}
 .rc323-pin-card{width:min(460px,100%);background:#fff;border:1px solid #bfdbfe;border-radius:22px;padding:24px;box-shadow:0 18px 48px rgba(15,23,42,.16);text-align:center}
@@ -50211,7 +50211,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 .rc323-pin-card .btn{width:100%;margin-top:8px}
 .rc323-pin-error{margin-top:10px;color:#991b1b;font-weight:900}
 .rc323-pin-ok{margin-top:10px;color:#166534;font-weight:900}
-#loadListDoc .rc322-qr-info b:first-child:after{content:" mit PIN"}
+#loadListDoc .rc322-qr-info b:first-child:after{content:""}
 </style>
 <script>
 (function(){
@@ -50318,7 +50318,7 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   setTimeout(addPinPanel323,900);
 })();
 </script>
-<!-- PRIVATE RC323 END: QR-Abholscan mit PIN-Freigabe -->
+<!-- PRIVATE RC323 END: QR-Code ohne sichtbaren Infotext -->
 <!-- PRIVATE RC324 START: POD-Foto direkt nach QR/PIN hochladen -->
 <style>
 .rc324-pod-upload{margin-top:14px;border:1px solid #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px}
@@ -52140,5 +52140,237 @@ body[data-exporthub-view="shipment"] .main{overflow-x:hidden!important}
 })();
 </script>
 <!-- PRIVATE RC337 END: Final stabile Sendungserstellung ohne alte Renderpfade -->
+
+
+<!-- PRIVATE RC338 START: Sendung final ohne alte Nachrenderer + CMR/QR bereinigt -->
+<style>
+/* RC338: diese Boxen duerfen nicht von RC99/alten Cleanups ausgeblendet werden */
+.rc338-info-box,
+.rc338-mail-box,
+.rc338-process-box{
+  display:block!important;
+  visibility:visible!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  border-left:5px solid var(--blue);
+  background:#eff6ff;
+  border-radius:16px;
+  padding:13px;
+  margin:10px 0;
+  font-weight:770;
+  line-height:1.5;
+}
+.rc99-clean-ui .rc338-info-box,
+.rc99-clean-ui .rc338-mail-box,
+.rc99-clean-ui .rc338-process-box,
+.rc99-clean-ui .rc337-mail-box,
+.rc99-clean-ui .rc337-process-box,
+.rc99-clean-ui .rc327-mail-box,
+.rc99-clean-ui .rc327-process-box,
+.rc99-clean-ui .rc327-abd-box,
+.rc99-clean-ui .rc337-abd-stack{
+  display:block!important;
+  visibility:visible!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+/* QR: Textzeilen auf der Ladeliste entfernen, QR selbst bleibt moeglich */
+#loadListDoc .rc322-qr-info,
+#loadListDoc .rc322-qr-title,
+#loadListDoc .rc322-qr-ref,
+#printBundleRC52 .rc322-qr-info,
+#printBundleRC52 .rc322-qr-title,
+#printBundleRC52 .rc322-qr-ref{
+  display:none!important;
+}
+#loadListDoc .rc322-qr-row,
+#printBundleRC52 .rc322-qr-row{
+  grid-template-columns:35mm!important;
+  justify-content:end!important;
+}
+body[data-exporthub-view="cmr"] .rc327-mail-box,
+body[data-exporthub-view="cmr"] .rc327-process-box,
+body[data-exporthub-view="cmr"] .rc334-mail-box,
+body[data-exporthub-view="cmr"] .rc334-process-box,
+body[data-exporthub-view="cmr"] .rc337-mail-box,
+body[data-exporthub-view="cmr"] .rc337-process-box,
+body[data-exporthub-view="cmr"] .rc338-mail-box,
+body[data-exporthub-view="cmr"] .rc338-process-box{
+  display:none!important;
+}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC338_FINAL_FIX__)return;
+  window.__EXPORTHUB_RC338_FINAL_FIX__=true;
+
+  var oldSetView338=window.setView;
+  var oldRender338=window.render;
+  var oldShowCurrent338=window.showCurrentCmr;
+  var oldShowSaved338=window.showSavedCmr;
+  var oldPdf338=window.rc55DownloadLoadlistPdf;
+  var baseHtml337=window.rc337ShipmentHtml;
+  var baseRenderOverview337=window.rc337RenderOverview;
+  var renderLock338=false;
+  var lastHeal338=0;
+
+  function S(){try{return state||{}}catch(_){return {}}}
+  function T(v){return String(v==null?'':v)}
+  function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function saveQuiet(){try{if(typeof save==='function')save();return}catch(_){} try{localStorage.setItem('exporthub_private_rc82_state',JSON.stringify(S()))}catch(_){}}
+  function root(){return document.getElementById('content')||document.querySelector('main')||document.body}
+  function isShipmentView(){try{return S().view==='shipment'}catch(_){return false}}
+  function isCmrView(){try{return S().view==='cmr'}catch(_){return false}}
+  function setBodyView(v){try{document.body.setAttribute('data-exporthub-view',v||'')}catch(_){}}
+  function removeMisplacedShipmentPanels(){
+    var r=root(); if(!r||!r.querySelectorAll)return;
+    if(!isShipmentView()){
+      Array.prototype.slice.call(r.querySelectorAll('.rc334-mail-box,.rc334-process-box,.rc337-mail-box,.rc337-process-box,.rc338-mail-box,.rc338-process-box')).forEach(function(el){try{el.remove()}catch(_){}});
+    }
+  }
+  function scrubQrText(){
+    var r=root(); if(!r||!r.querySelectorAll)return;
+    Array.prototype.slice.call(r.querySelectorAll('.rc322-qr-info,.rc322-qr-title,.rc322-qr-ref')).forEach(function(el){try{el.remove()}catch(_){el.textContent=''}});
+    // falls der Text ohne eigene Klasse in irgendeinen Druckblock geraten ist
+    Array.prototype.slice.call(r.querySelectorAll('#loadListDoc * , #printBundleRC52 * , #cmrDoc *')).forEach(function(el){
+      try{
+        var txt=T(el.textContent).replace(/\s+/g,' ').trim();
+        if(/Abholung||Referenz:\s*[A-Z0-9]{6}/i.test(txt)){
+          if(el.children&&el.children.length===0)el.textContent='';
+        }
+      }catch(_){}}
+    );
+  }
+  function scrubCmr(){removeMisplacedShipmentPanels();scrubQrText();}
+
+  // RC334 darf nie mehr Mail/Kundeninfos in CMR/Ladeliste einbauen.
+  window.rc334EnsureMailNotes=function(){return false};
+
+  function patchedShipmentHtml(){
+    var html='';
+    try{html=typeof baseHtml337==='function'?baseHtml337():(typeof window.rc337ShipmentHtml==='function'?window.rc337ShipmentHtml():'')}catch(err){
+      console.error('RC338 base shipment failed',err);
+      html='<div class="badbox"><b>Sendung erstellen konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>';
+    }
+    html=T(html)
+      .replace(/class="infobox rc337-process-box rc327-process-box"/g,'class="rc338-info-box rc338-process-box rc337-process-box rc327-process-box keep-infobox keep-notice"')
+      .replace(/class="infobox rc337-mail-box rc327-mail-box"/g,'class="rc338-info-box rc338-mail-box rc337-mail-box rc327-mail-box keep-infobox keep-notice"')
+      .replace(/<span class="pill blue">RC337 stabil<\/span>/g,'<span class="pill green">RC338 stabil</span>')
+      .replace(/<div class="rc337-abd-stack rc327-abd-box"><h3>ABD Bereich<\/h3>/g,'<div class="rc337-abd-stack rc327-abd-box keep-infobox"><h3>ABD Bereich</h3>')
+      .replace(/<div class="abd-panel rc337-abd-stack rc327-abd-box">/g,'<div class="abd-panel rc337-abd-stack rc327-abd-box keep-infobox">');
+    return html;
+  }
+
+  window.rc338ShipmentHtml=patchedShipmentHtml;
+  window.rc337ShipmentHtml=patchedShipmentHtml;
+
+  window.rc338RenderShipment=function(){
+    if(renderLock338)return false;
+    renderLock338=true;
+    try{
+      var st=S();st.view='shipment';setBodyView('shipment');
+      try{if(typeof renderNav==='function')renderNav()}catch(_){}
+      var r=root();
+      r.innerHTML=patchedShipmentHtml();
+      if(r.setAttribute)r.setAttribute('data-exporthub-render','RC338-shipment');
+    }catch(err){
+      console.error('RC338 shipment render failed',err);
+      try{root().innerHTML='<div class="badbox"><b>Sendung erstellen konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>'}catch(_){}
+    }finally{renderLock338=false;}
+    return false;
+  };
+  window.rc337RenderShipment=window.rc338RenderShipment;
+
+  function renderOverview338(){
+    setBodyView('shipmentoverview');
+    try{return typeof baseRenderOverview337==='function'?baseRenderOverview337():false}catch(err){console.error('RC338 overview failed',err);return false}
+  }
+
+  window.rc338RenderCmr=function(){
+    var st=S();st.view='cmr';setBodyView('cmr');
+    try{if(typeof renderNav==='function')renderNav()}catch(_){}
+    var r=root();
+    try{
+      var html=(typeof window.cmr==='function')?window.cmr():(typeof cmr==='function'?cmr():'<div class="badbox">CMR-Funktion nicht gefunden.</div>');
+      r.innerHTML=html;
+      if(r.setAttribute)r.setAttribute('data-exporthub-render','RC338-cmr');
+      try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(_){}
+      try{if(typeof applyLanguage==='function')applyLanguage()}catch(_){}
+    }catch(err){
+      console.error('RC338 CMR render failed',err);
+      r.innerHTML='<div class="badbox"><b>Ladeliste/CMR konnte nicht geladen werden.</b><br>'+E(err&&err.message||err)+'</div>';
+    }
+    setTimeout(scrubCmr,0);
+    setTimeout(scrubCmr,80);
+    setTimeout(scrubCmr,300);
+    return false;
+  };
+
+  function syncRowsBeforeDocs(){try{if(typeof window.rc337RefreshTotals==='function')window.rc337RefreshTotals()}catch(_){} try{var inputs=document.querySelectorAll('#rc337Rows input,#rc337Rows select'); if(inputs&&inputs.length&&typeof window.rc337SetRow==='function'){/* Werte werden durch onchange/oninput bereits gespeichert */}}catch(_){}}
+
+  window.showCurrentCmr=function(){
+    syncRowsBeforeDocs();
+    try{if(S().shipment){S().activeShipmentId='current'; if(typeof ensureShipmentReference==='function')ensureShipmentReference(true)}}catch(_){}
+    saveQuiet();
+    return window.rc338RenderCmr();
+  };
+  try{showCurrentCmr=window.showCurrentCmr}catch(_){}
+
+  window.showSavedCmr=function(id){
+    try{S().activeShipmentId=id;saveQuiet()}catch(_){}
+    return window.rc338RenderCmr();
+  };
+  try{showSavedCmr=window.showSavedCmr}catch(_){}
+
+  window.setView=function(v){
+    if(v==='shipment')return window.rc338RenderShipment();
+    if(v==='shipmentoverview')return renderOverview338();
+    if(v==='cmr')return window.rc338RenderCmr();
+    try{setBodyView(v||'')}catch(_){}
+    return oldSetView338&&oldSetView338.apply(this,arguments);
+  };
+  window.render=function(){
+    var v=S().view;
+    if(v==='shipment')return window.rc338RenderShipment();
+    if(v==='shipmentoverview')return renderOverview338();
+    if(v==='cmr')return window.rc338RenderCmr();
+    return oldRender338&&oldRender338.apply(this,arguments);
+  };
+  try{setView=window.setView;render=window.render;shipment=window.rc338ShipmentHtml;shipmentoverview=window.rc337OverviewHtml||window.shipmentoverview}catch(_){}
+
+  if(typeof oldPdf338==='function'){
+    window.rc55DownloadLoadlistPdf=function(){
+      try{syncRowsBeforeDocs(); if(!document.getElementById('loadListDoc'))window.rc338RenderCmr(); scrubCmr()}catch(_){}
+      return oldPdf338.apply(this,arguments);
+    };
+    try{rc55DownloadLoadlistPdf=window.rc55DownloadLoadlistPdf}catch(_){}
+  }
+
+  function healShipmentIfNeeded(){
+    if(!isShipmentView()||renderLock338)return;
+    var now=Date.now(); if(now-lastHeal338<120)return;
+    var r=root(); if(!r||!r.querySelector)return;
+    var ok=r.getAttribute&&r.getAttribute('data-exporthub-render')==='RC338-shipment'&&r.querySelector('#rc337Rows')&&r.querySelector('.rc327-mail-box')&&r.querySelector('.rc327-process-box')&&r.querySelector('.rc327-abd-box');
+    var oldLayout=!!r.querySelector('#rowsBox,.rc321-shipment-layout,#rc261MailPanel,#rc288AbdPanel,#rc291AbdPanel,#rc319ShipmentMailPanel');
+    if(!ok||oldLayout){lastHeal338=now;window.rc338RenderShipment();}
+  }
+
+  try{
+    var obs=new MutationObserver(function(){
+      if(isShipmentView())setTimeout(healShipmentIfNeeded,0);
+      else if(isCmrView())setTimeout(scrubCmr,0);
+      else setTimeout(removeMisplacedShipmentPanels,0);
+    });
+    obs.observe(root(),{childList:true,subtree:true});
+  }catch(_){}
+  setTimeout(healShipmentIfNeeded,50);
+  setTimeout(healShipmentIfNeeded,400);
+  setTimeout(healShipmentIfNeeded,1200);
+  if(isCmrView())setTimeout(scrubCmr,50);
+})();
+</script>
+<!-- PRIVATE RC338 END: Sendung final ohne alte Nachrenderer + CMR/QR bereinigt -->
 
 </body></html>
