@@ -41227,4 +41227,178 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC312 END: ABD und POD gleich als SharePoint-Dokumente -->
+
+<!-- PRIVATE RC313 START: ABD Oeffnen + Erledigt + Fokuszeile -->
+<style id="rc313-overview-polish-css">
+.rc313-filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.rc313-filterbar input{min-width:280px;flex:1}
+.rc313-filterbar .rc313-check{display:inline-flex;gap:8px;align-items:center;font-weight:900;color:#334155}
+.rc313-table{width:100%;border-collapse:separate;border-spacing:0 8px}
+.rc313-table th{text-align:left;color:#64748b;font-size:12px;text-transform:uppercase;padding:8px}
+.rc313-table tr.rc313-row-focus td{background:#f8fbff;border-top:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe}
+.rc313-table tr.rc313-row-focus td:first-child{border-left:4px solid #2563eb;border-radius:14px 0 0 14px}
+.rc313-table tr.rc313-row-focus td:last-child{border-right:1px solid #bfdbfe;border-radius:0 14px 14px 0}
+.rc313-table td{vertical-align:top;padding:10px;background:#fff}
+.rc313-customer{background:linear-gradient(135deg,#dbeafe,#eff6ff)!important;border:1px solid #bfdbfe!important;border-radius:14px!important;box-shadow:inset 4px 0 0 #2563eb;padding:12px!important;min-width:260px}
+.rc313-customer-number{display:block;color:#08245d;font-size:18px;font-weight:1000;line-height:1.1}
+.rc313-customer-name{display:block;color:#08245d;font-size:18px;font-weight:1000;line-height:1.25;margin-top:6px;overflow-wrap:anywhere}
+.rc313-customer-country{display:block;color:#475569;font-size:12px;font-weight:850;margin-top:5px}
+.rc313-docs{display:grid;gap:8px;min-width:280px}
+.rc313-doc-card{border:1px solid #dbeafe;background:#f8fbff;border-radius:12px;padding:9px}
+.rc313-doc-card.linked{border-color:#22c55e;background:#f0fdf4}
+.rc313-doc-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rc313-doc-title{font-weight:1000;color:#08245d}
+.rc313-doc-name{font-size:12px;font-weight:850;color:#334155;margin:5px 0 8px;overflow-wrap:anywhere}
+.rc313-doc-actions,.rc313-actions{display:flex;gap:6px;flex-wrap:wrap}
+.rc313-doc-actions button,.rc313-doc-actions label,.rc313-actions button{font-size:11px!important;min-height:30px!important;padding:6px 8px!important;border-radius:9px!important}
+.rc313-file-input{display:none!important}
+.rc313-blue-btn{border:0!important;background:linear-gradient(135deg,#2563eb,#06b6d4)!important;color:#fff!important;font-weight:950!important;box-shadow:0 8px 18px rgba(37,99,235,.2)!important}
+.rc313-date-stack{display:grid;gap:7px;min-width:145px}
+.rc313-date-stack label{font-size:12px;font-weight:950;color:#334155}
+.rc313-date-stack input{padding:7px 8px;border-radius:9px}
+@media(max-width:1100px){.rc313-table{display:block;overflow-x:auto}.rc313-customer{min-width:220px}}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC313_ABD_OPEN_DONE_FOCUS__)return;
+  window.__EXPORTHUB_RC313_ABD_OPEN_DONE_FOCUS__=true;
+
+  var BASE_FOLDER_313='https://essentra-my.sharepoint.com/:f:/p/tobiaslimberg/IgBoRYeaVVjiRILHF8tBcwOFAQ-VQ86_kdb_qqm-oXq-DWE?e=btaWcU';
+  function e313(v){try{if(typeof esc==='function')return esc(v)}catch(_){}return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+  function n313(v){return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+  function id313(p){try{if(typeof uid==='function')return uid(p||'DOC')}catch(_){}return String(p||'DOC')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)}
+  function ref313(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function now313(){try{return new Date().toLocaleString('de-DE')}catch(_){return String(new Date())}}
+  function base313(){return String((state&&(state.rc313SharePointBaseFolder||state.rc312SharePointBaseFolder||state.rc311SharePointBaseFolder||state.rc228ShipmentsBaseFolder||state.shipmentFolderBaseLink))||BASE_FOLDER_313).trim()||BASE_FOLDER_313}
+  function folder313(reference){var r=ref313(reference);return base313().replace(/[?&]e=[^&]+/,'').replace(/\/+$/,'')+(r?'/'+encodeURIComponent(r):'')+'?csf=1&web=1'}
+  function docName313(d){return String((d&&(d.name||d.fileName||d.filename||d.title||d.originalName))||'').trim()}
+  function docUrl313(d){return String((d&&(d.url||d.webUrl||d.sharepointUrl||d.downloadUrl||d.href||d.dataUrl||d.objectUrl||d.link))||'').trim()}
+  function isOpenable313(url){return /^(https?:|blob:|data:)/i.test(String(url||''))}
+  function classify313(d){
+    var k=n313(d&&d.docKind);
+    if(k.indexOf('abd')>=0)return 'abd';
+    if(k.indexOf('pod')>=0)return 'pod';
+    var t=n313([docName313(d),docUrl313(d),d&&d.relativePath,d&&d.source].join(' '));
+    if(t.indexOf('abd')>=0)return 'abd';
+    if(t.indexOf('pod')>=0||t.indexOf('scan')>=0||t.indexOf('untitled')>=0||t.indexOf('proof')>=0||t.indexOf('abliefer')>=0)return 'pod';
+    return '';
+  }
+  function allDocs313(x){
+    var out=[];
+    ['rc313Docs','rc312Docs','rc311Docs','rc256Docs','rc255Docs','rc254Docs','rc253Docs','rc247Docs','rc230Docs','rc228Docs'].forEach(function(k){
+      var b=x&&x[k];
+      if(b&&typeof b==='object'&&!Array.isArray(b)){if(b.abd)out.push(b.abd);if(b.pod)out.push(b.pod)}
+    });
+    ['abdFiles','podFiles','deliveryFiles','files','documents','docs','attachments','sharepointFiles','referenceFolderFiles'].forEach(function(k){
+      (Array.isArray(x&&x[k])?x[k]:[]).forEach(function(d){out.push(d)});
+    });
+    return out.filter(Boolean);
+  }
+  function bestDoc313(x,kind){
+    var docs=allDocs313(x).filter(function(d){return classify313(d)===kind});
+    if(!docs.length)return null;
+    docs.sort(function(a,b){
+      var au=isOpenable313(docUrl313(a))?50:(docUrl313(a)?10:0);
+      var bu=isOpenable313(docUrl313(b))?50:(docUrl313(b)?10:0);
+      if(/^https?:/i.test(docUrl313(a)))au+=20;
+      if(/^https?:/i.test(docUrl313(b)))bu+=20;
+      return bu-au;
+    });
+    return docs[0];
+  }
+  function list313(source){return source==='abdRequest'?(state.abdRequests||[]):(state.shipments||[])}
+  function target313(id,source){return list313(source).find(function(x){return String(x&&x.id||'')===String(id)})||null}
+  function save313(reason){try{state.rc313SharePointBaseFolder=BASE_FOLDER_313;state.rc312SharePointBaseFolder=BASE_FOLDER_313;state.rc311SharePointBaseFolder=BASE_FOLDER_313;state.rc228ShipmentsBaseFolder=BASE_FOLDER_313;state.shipmentFolderBaseLink=BASE_FOLDER_313}catch(_){}try{if(typeof save==='function')save()}catch(_){}try{if(typeof audit==='function')audit(reason||'Sendungsuebersicht gespeichert','RC313')}catch(_){}}
+  function attach313(x,kind,item,replace){
+    ['rc313Docs','rc312Docs','rc311Docs','rc256Docs','rc254Docs','rc247Docs'].forEach(function(k){x[k]=x[k]||{};x[k][kind]=item});
+    var key=kind==='abd'?'abdFiles':'podFiles';
+    x[key]=Array.isArray(x[key])?x[key]:[];
+    if(replace)x[key]=x[key].filter(function(d){return classify313(d)!==kind});
+    x[key].unshift(item);
+    if(kind==='abd'){x.abdStatus='Dokument vorhanden';if(!x.status||n313(x.status)==='offen')x.status='Dokument vorhanden'}
+    if(kind==='pod')x.podStatus='POD vorhanden';
+  }
+  window.rc313SetDocLink=function(id,kind,source){
+    var x=target313(id,source);if(!x){alert('Eintrag nicht gefunden.');return false}
+    var label=kind==='abd'?'ABD':'POD';
+    var value=prompt(label+' SharePoint-Link oder Dateiname einfügen','');
+    if(!value)return false;
+    value=String(value).trim();
+    var isUrl=/^https?:\/\//i.test(value);
+    var name=isUrl?(value.split('/').pop().split('?')[0]||label+'.pdf'):value;
+    try{name=decodeURIComponent(name)}catch(_){}
+    var item={id:id313(label),name:name,fileName:name,docKind:kind,url:isUrl?value:'',webUrl:isUrl?value:'',referenceFolderUrl:folder313(x.ref),source:'RC313 SharePoint '+label,added:now313(),uploadedAt:new Date().toISOString(),uploadedBy:(currentUser&&(currentUser.name||currentUser.user))||'Benutzer'};
+    attach313(x,kind,item,true);save313(label+' Link gespeichert');try{render()}catch(_){}return false;
+  };
+  window.rc313UploadDoc=function(id,kind,source,input){
+    var x=target313(id,source);if(!x){alert('Eintrag nicht gefunden.');return false}
+    var file=input&&input.files&&input.files[0];if(!file)return false;
+    var url='';try{url=URL.createObjectURL(file)}catch(_){}
+    var item={id:id313(kind==='abd'?'ABD':'POD'),name:file.name,fileName:file.name,docKind:kind,size:file.size,type:file.type||'Datei',url:url,webUrl:url,objectUrl:url,localOnly:true,referenceFolderUrl:folder313(x.ref),source:'RC313 manueller Upload',added:now313(),uploadedAt:new Date().toISOString(),uploadedBy:(currentUser&&(currentUser.name||currentUser.user))||'Benutzer'};
+    attach313(x,kind,item,true);save313((kind==='abd'?'ABD':'POD')+' Datei gespeichert');try{input.value=''}catch(_){}try{render()}catch(_){}return false;
+  };
+  window.rc313OpenDoc=function(id,kind,source){
+    var x=target313(id,source), d=x&&bestDoc313(x,kind), url=d&&docUrl313(d);
+    if(isOpenable313(url)){window.open(url,'_blank','noopener,noreferrer');return false}
+    window.open(folder313(x&&x.ref),'_blank','noopener,noreferrer');
+    return false;
+  };
+  window.rc313OpenFolder=function(reference){window.open(folder313(reference),'_blank','noopener,noreferrer');return false};
+  window.rc313MarkDone=function(id,source){
+    var x=target313(id,source);if(!x){alert('Eintrag nicht gefunden.');return false}
+    var by=(currentUser&&(currentUser.name||currentUser.user))||'Benutzer';
+    x.status='erledigt';x.freigabe='erledigt';x.done=true;x.completedAt=new Date().toISOString();x.completedBy=by;
+    if(source==='abdRequest'){x.abdDone=true;x.abdStatus='erledigt';x.uploadedAt=x.uploadedAt||new Date().toISOString()}
+    save313('Eintrag erledigt: '+(x.ref||''));try{render()}catch(_){}return false;
+  };
+  window.rc313Reopen=function(id,source){
+    var x=target313(id,source);if(!x)return false;
+    x.status='offen';x.freigabe='offen';x.done=false;x.completedAt='';x.completedBy='';
+    if(source==='abdRequest'){x.abdDone=false;x.abdStatus=bestDoc313(x,'abd')?'Dokument vorhanden':'offen'}
+    save313('Eintrag wieder offen: '+(x.ref||''));try{render()}catch(_){}return false;
+  };
+  function status313(x){
+    var raw=n313([x&&x.status,x&&x.freigabe,x&&x.abdStatus,x&&x.done?'erledigt':'',x&&x.completedAt?'erledigt':''].join(' '));
+    return raw.indexOf('erled')>=0?'Erledigt':(raw.indexOf('dokument')>=0?'Dokument vorhanden':'Offen');
+  }
+  function pill313(t){var n=n313(t), cls=n.indexOf('erled')>=0?'green':(n.indexOf('dokument')>=0?'blue':'orange');return '<span class="pill '+cls+'">'+e313(t||'Offen')+'</span>'}
+  function customer313(s){
+    var c=(s&&s.customer)||{};
+    return {num:c.account||c.customerNumber||s.customerNumber||s.account||'',name:c.name||s.customerName||s.customer||'',country:c.country||s.country||''};
+  }
+  function docs313(s){
+    var out=[];String((s&&s.deliveryNotes)||'').split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)});
+    (Array.isArray(s&&s.deliveryFiles)?s.deliveryFiles:[]).forEach(function(f){var n=docName313(f);if(n)out.push(n)});
+    return out;
+  }
+  function docCard313(x,kind,source){
+    var label=kind==='abd'?'ABD':'POD', d=bestDoc313(x,kind), url=d&&docUrl313(d), linked=!!d, openable=isOpenable313(url);
+    return '<div class="rc313-doc-card '+(linked?'linked':'')+'"><div class="rc313-doc-head"><span class="rc313-doc-title">'+label+'</span><span class="pill '+(linked?'green':'gray')+'">'+(linked?(openable?'Direktlink':'im Ref.-Ordner'):'fehlt')+'</span></div><div class="rc313-doc-name">'+e313(linked?(docName313(d)||label+'.pdf'):'kein '+label+' verknüpft')+'</div><div class="rc313-doc-actions">'+(linked?'<button class="rc313-blue-btn" onclick="return rc313OpenDoc(&quot;'+e313(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;)">'+(openable?'Öffnen':'Ref.-Ordner öffnen')+'</button>':'')+'<button class="ghost" onclick="return rc313SetDocLink(&quot;'+e313(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;)">SharePoint-Link</button><label class="ghost">Datei auswählen<input class="rc313-file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.msg,.eml,application/pdf,image/*" onchange="rc313UploadDoc(&quot;'+e313(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;,this)"></label><button class="ghost" onclick="return rc313OpenFolder(&quot;'+e313(x.ref||'')+'&quot;)">Ref.-Ordner</button></div></div>';
+  }
+  function customerCell313(c){
+    return '<td class="rc313-customer"><span class="rc313-customer-number">'+e313(c.num||'')+'</span><span class="rc313-customer-name">'+e313(c.name||'')+'</span>'+(c.country?'<span class="rc313-customer-country">'+e313(c.country)+'</span>':'')+'</td>';
+  }
+  function matches313(x,q){return !q||n313(x).indexOf(q)>=0}
+  window.rc313SetSearch=function(v){state.shipmentOverviewSearch=String(v||'');clearTimeout(window.__rc313Search);window.__rc313Search=setTimeout(function(){save313('Filter gespeichert');try{render()}catch(_){}},160)};
+  window.shipmentoverview=function(){
+    var q=n313(state.shipmentOverviewSearch||''), type=state.rc313OverviewType||state.rc312OverviewType||'all', hide=state.rc313HideDone!==undefined?!!state.rc313HideDone:false;
+    var ships=(state.shipments||[]).slice().filter(function(s){var c=customer313(s);return matches313([s.ref,s.created,c.num,c.name,c.country,docs313(s).join(' '),allDocs313(s).map(docName313).join(' '),status313(s)].join(' '),q)});
+    var abds=(state.abdRequests||[]).slice().filter(function(r){var c=customer313(r);return matches313([r.ref,r.created,r.createdIso,c.num,c.name,r.customerName,allDocs313(r).map(docName313).join(' '),status313(r)].join(' '),q)});
+    if(hide){ships=ships.filter(function(s){return status313(s)!=='Erledigt'});abds=abds.filter(function(r){return status313(r)!=='Erledigt'})}
+    ships.sort(function(a,b){return String(b.created||'').localeCompare(String(a.created||''))});
+    abds.sort(function(a,b){return String(b.createdIso||b.created||'').localeCompare(String(a.createdIso||a.created||''))});
+    var html=(typeof head==='function'?head('Sendungsübersicht','ABD und POD sind externe SharePoint-Dokumente. Direktlink öffnet die Datei, sonst öffnet der Referenzordner.'):'<h2>Sendungsübersicht</h2>')+'<div class="rc313-filterbar"><input placeholder="Referenz, Kunde, DNC, ABD oder POD suchen" value="'+e313(state.shipmentOverviewSearch||'')+'" oninput="rc313SetSearch(this.value)"><select onchange="state.rc313OverviewType=this.value;state.rc312OverviewType=this.value;save313();render()"><option value="all" '+(type==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(type==='shipments'?'selected':'')+'>Nur Sendungen</option><option value="abd" '+(type==='abd'?'selected':'')+'>Nur ABD</option></select><label class="rc313-check"><input type="checkbox" '+(hide?'checked':'')+' onchange="state.rc313HideDone=this.checked;save313();render()"> Erledigte ausblenden</label><button class="rc313-blue-btn" onclick="state.shipmentOverviewSearch=&quot;&quot;;state.rc313OverviewType=&quot;all&quot;;save313();render()">Filter löschen</button><button class="ghost" onclick="return rc313OpenFolder(&quot;&quot;)">Basisordner öffnen</button></div>';
+    if(type==='all'||type==='shipments'){
+      html+='<div class="card"><h3>Sendungen</h3>'+(ships.length?'<table class="rc313-table"><tr><th>Referenz</th><th>Kunde</th><th>Abholung</th><th>DNC / Lieferscheine</th><th>ABD / POD</th><th>Status</th><th>Aktion</th></tr>'+ships.map(function(s){var c=customer313(s), d=docs313(s), st=status313(s);return '<tr class="rc313-row-focus"><td><b>'+e313(s.ref||'')+'</b><br><span class="small">'+e313(s.created||'')+'</span></td>'+customerCell313(c)+'<td><div class="rc313-date-stack"><label>Geplant<input type="date" value="'+e313(String(s.pickupDate||s.plannedPickupDate||'').slice(0,10))+'" onchange="var x=(state.shipments||[]).find(function(v){return String(v.id)===&quot;'+e313(s.id||'')+'&quot;});if(x){x.pickupDate=this.value;x.plannedPickupDate=this.value;save313();}"></label><label>Tatsächlich<input type="date" value="'+e313(String(s.actualPickupDate||s.pickedUpAtDate||'').slice(0,10))+'" onchange="var x=(state.shipments||[]).find(function(v){return String(v.id)===&quot;'+e313(s.id||'')+'&quot;});if(x){x.actualPickupDate=this.value;x.pickedUpAtDate=this.value;save313();}"></label></div></td><td>'+(d.length?d.map(function(x){return '<span class="pill gray">'+e313(x)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</td><td><div class="rc313-docs">'+docCard313(s,'abd','shipment')+docCard313(s,'pod','shipment')+'</div></td><td>'+pill313(st)+'</td><td><div class="rc313-actions"><button class="ghost" onclick="showSavedCmr(&quot;'+e313(s.id||'')+'&quot;)">Ladeliste/CMR</button><button class="ghost" onclick="return rc313OpenFolder(&quot;'+e313(s.ref||'')+'&quot;)">Ref.-Ordner</button>'+(st==='Erledigt'?'<button class="ghost" onclick="return rc313Reopen(&quot;'+e313(s.id||'')+'&quot;,&quot;shipment&quot;)">Wieder offen</button>':'<button class="rc313-blue-btn" onclick="return rc313MarkDone(&quot;'+e313(s.id||'')+'&quot;,&quot;shipment&quot;)">Als erledigt</button>')+'</div></td></tr>'}).join('')+'</table>':'<p class="muted">Keine Sendungen gefunden.</p>')+'</div>';
+    }
+    if(type==='all'||type==='abd'){
+      html+='<div class="card"><h3>ABD Anfragen</h3>'+(abds.length?'<table class="rc313-table"><tr><th>Referenz</th><th>Kunde</th><th>ABD / POD</th><th>Status</th><th>Aktion</th></tr>'+abds.map(function(r){var c=customer313(r);if(!c.name)c.name=r.customerName||'';var st=status313(r);return '<tr class="rc313-row-focus"><td><b>'+e313(r.ref||'')+'</b><br><span class="small">'+e313(r.created||r.createdIso||'')+'</span></td>'+customerCell313(c)+'<td><div class="rc313-docs">'+docCard313(r,'abd','abdRequest')+docCard313(r,'pod','abdRequest')+'</div></td><td>'+pill313(st)+'</td><td><div class="rc313-actions"><button class="ghost" onclick="return rc313OpenFolder(&quot;'+e313(r.ref||'')+'&quot;)">Ref.-Ordner</button>'+(st==='Erledigt'?'<button class="ghost" onclick="return rc313Reopen(&quot;'+e313(r.id||'')+'&quot;,&quot;abdRequest&quot;)">Wieder offen</button>':'<button class="rc313-blue-btn" onclick="return rc313MarkDone(&quot;'+e313(r.id||'')+'&quot;,&quot;abdRequest&quot;)">Als erledigt</button>')+'</div></td></tr>'}).join('')+'</table>':'<p class="muted">Keine ABD Anfragen gefunden.</p>')+'</div>';
+    }
+    return html;
+  };
+  try{shipmentoverview=window.shipmentoverview}catch(_){}
+  try{state.rc313SharePointBaseFolder=BASE_FOLDER_313;state.rc312SharePointBaseFolder=BASE_FOLDER_313;state.rc311SharePointBaseFolder=BASE_FOLDER_313;state.rc228ShipmentsBaseFolder=BASE_FOLDER_313;state.shipmentFolderBaseLink=BASE_FOLDER_313;save313('RC313 aktiv')}catch(_){}
+})();
+</script>
+<!-- PRIVATE RC313 END: ABD Oeffnen + Erledigt + Fokuszeile -->
 </body></html>
