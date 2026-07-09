@@ -41822,4 +41822,339 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC315 END: Ladeliste PDF Kunde + zweisprachige Felder -->
+<!-- PRIVATE RC316 START: Mail wieder nur Deutsch -->
+<script>
+(function(){
+  function s316(v){return String(v==null?'':v)}
+  function clean316(v){return s316(v).replace(/\s+/g,' ').trim()}
+  function esc316(v){try{return typeof esc==='function'?esc(v):s316(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}catch(_){return s316(v)}}
+  function emailItems316(list){
+    var out=[], seen={};
+    s316(list).split(/[;,\n]+/).forEach(function(x){
+      x=x.trim();
+      var m=x.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+      if(m&&!seen[m[0].toLowerCase()]){seen[m[0].toLowerCase()]=1;out.push(m[0])}
+    });
+    return out;
+  }
+  function mailPath316(list){return emailItems316(list).map(encodeURIComponent).join(';')}
+  function mailCc316(list){var x=emailItems316(list);return x.length?'&cc='+x.map(encodeURIComponent).join(';'):''}
+  function rows316(s){return ((s&&Array.isArray(s.rows))?s.rows:[]).filter(function(r){return r&&(r.type||Number(r.count)>0||Number(r.weight)>0||Number(r.ldm)>0)})}
+  function totals316(s){
+    return rows316(s).reduce(function(a,r){
+      var c=Number(r.count)||0,w=Number(String(r.weight||0).replace(',','.'))||0,l=Number(String(r.ldm||0).replace(',','.'))||0;
+      a.count+=c;a.weight+=w;a.ldm+=c*l;return a;
+    },{count:0,weight:0,ldm:0});
+  }
+  function fmt316(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
+  function customer316(id){
+    var customers=[];
+    try{customers=Array.isArray(state.customers)?state.customers:[]}catch(_){}
+    var c=null;
+    if(id)c=customers.find(function(x){return String(x.id)===String(id)})||null;
+    if(!c){
+      try{c=typeof selectedCustomer==='function'?selectedCustomer():null}catch(_){}
+    }
+    if(!c){
+      try{
+        var sh=state.shipment||{};
+        c=customers.find(function(x){return String(x.id)===String(sh.customerId)||String(x.account||x.customerNumber||'')===String(sh.customerNumber||sh.account||'')})||null;
+      }catch(_){}
+    }
+    return c||{};
+  }
+  function customerForShipment316(c,s){
+    c=c||{};
+    s=s||{};
+    var out={};
+    if(s.customer&&typeof s.customer==='object')Object.assign(out,s.customer);
+    Object.assign(out,c);
+    out.name=out.name||s.customerName||s.customer||'';
+    out.account=out.account||out.customerNumber||s.customerNumber||s.account||'';
+    out.address=out.address||s.recipientAddress||s.address||s.consigneeAddress||'';
+    return out;
+  }
+  function docs316(s){
+    var out=[];
+    s316(s&&s.deliveryNotes).split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)});
+    (Array.isArray(s&&s.deliveryFiles)?s.deliveryFiles:[]).forEach(function(f){
+      var n=clean316((f&&f.name)||(f&&f.fileName)||f);
+      if(n)out.push(n);
+    });
+    return out;
+  }
+  function rowLine316(r,i){
+    var dims=[r.l,r.w,r.h].filter(function(v){return v!==''&&v!=null}).join(' x ');
+    var out=[
+      (i+1)+'. Colli',
+      '   Anzahl: '+(r.count||'0'),
+      '   Packstueck: '+(r.type||'offen')
+    ];
+    if(r.weight)out.push('   Gewicht: '+fmt316(Number(String(r.weight).replace(',','.')),1)+' kg');
+    if(r.ldm)out.push('   LDM je Colli: '+fmt316(Number(String(r.ldm).replace(',','.')),2));
+    if(dims)out.push('   Masse: '+dims+' cm');
+    return out.join('\r\n');
+  }
+  function germanShipmentMail316(c,s){
+    s=s||{};
+    c=customerForShipment316(c,s);
+    var rows=rows316(s), total=totals316(s), docs=docs316(s);
+    var lines=[
+      'SENDUNGSINFORMATIONEN',
+      '',
+      'Referenznummer: '+(s.ref||'offen'),
+      'Kunde: '+(c.name||'offen'),
+      'Kundennummer: '+(c.account||c.customerNumber||'offen'),
+      '',
+      'Empfaengeradresse:',
+      c.address||'offen',
+      '',
+      'Collis:'
+    ];
+    if(rows.length)rows.forEach(function(r,i){lines.push(rowLine316(r,i))});
+    else lines.push('- offen');
+    lines.push('');
+    lines.push('Gesamt Collis: '+fmt316(total.count,0));
+    lines.push('Gesamtgewicht: '+fmt316(total.weight,1)+' kg');
+    lines.push('Gesamt LDM: '+fmt316(total.ldm,2));
+    lines.push('Abholdatum: '+(s.pickupDate||s.plannedPickupDate||'offen'));
+    lines.push('Spedition: '+(s.carrier||c.carrier||c.speditionName||'offen'));
+    lines.push('Incoterm / Hinweis: '+(s.incoterm||'offen'));
+    lines.push('Lieferscheine / DNCs: '+(docs.length?docs.join(', '):'offen'));
+    lines.push('');
+    lines.push('Die Ladeliste fuege ich als PDF bei.');
+    return lines.join('\r\n');
+  }
+  function normalizeMail316(text){
+    return s316(text)
+      .replace(/Kunde\s*\/\s*Customer\s*:/gi,'Kunde:')
+      .replace(/Customer\s*:/gi,'Kunde:')
+      .replace(/Kundennummer\s*\/\s*Customer number\s*:/gi,'Kundennummer:')
+      .replace(/Customer number\s*:/gi,'Kundennummer:')
+      .replace(/Empf(?:ae|ä)ngeradresse\s*\/\s*Consignee address\s*:/gi,'Empfaengeradresse:')
+      .replace(/Consignee address\s*:/gi,'Empfaengeradresse:')
+      .replace(/Lieferscheine\/DNCs\s*\/\s*Delivery notes\/DNCs\s*:/gi,'Lieferscheine / DNCs:')
+      .replace(/Delivery notes\/DNCs?\s*:/gi,'Lieferscheine / DNCs:')
+      .replace(/Documents\s*\/\s*DNCs?\s*:/gi,'Dokumente / DNCs:')
+      .replace(/Reference\s*:/gi,'Referenznummer:')
+      .replace(/Carrier\s*:/gi,'Spedition:')
+      .replace(/Pickup date\s*:/gi,'Abholdatum:')
+      .replace(/Total weight\s*:/gi,'Gesamtgewicht:')
+      .replace(/Packaging\s*:/gi,'Verpackung:')
+      .replace(/SHIPMENT DATA/gi,'SENDUNGSDATEN')
+      .replace(/SHIPMENT \/ LOADING LIST INFORMATION/gi,'SENDUNGSINFORMATIONEN');
+  }
+  window.rc316ShipmentMailBody=function(c,s){
+    c=customerForShipment316(c,s);
+    s=s||{};
+    var intro='Guten Tag,\r\n\r\nbitte melden Sie die folgende Sendung an.\r\n';
+    var own=clean316((c&& (c.mailText||c.mailBody))||'');
+    if(own&&own.length<600&&!/\bAn\s*:|\bCC\s*:|@/.test(own))intro=own.replace(/\r?\n/g,'\r\n')+'\r\n';
+    return normalizeMail316([intro,germanShipmentMail316(c,s),'\r\nVielen Dank\r\n\r\nMit freundlichen Gruessen\r\nTobias Limberg'].join('\r\n'));
+  };
+  window.mailBodyForShipment=function(c,s){return window.rc316ShipmentMailBody(c,s)};
+  window.shipmentMailInfoText=function(c,s){return germanShipmentMail316(c,s)};
+  function subject316(c,s){c=customerForShipment316(c,s);return 'Sendungsanmeldung '+((s&&s.ref)||'')+' / '+(c.name||'Kunde')}
+  function shipmentFor316(c){
+    try{if(typeof shipmentForCustomerMail==='function'){var sh=shipmentForCustomerMail(c);if(sh)return sh}}catch(_){}
+    try{return state.shipment||{}}catch(_){return {}}
+  }
+  function to316(c){
+    try{if(typeof customerMailAddress==='function')return customerMailAddress(c)}catch(_){}
+    return c&&(c.carrierMail||c.speditionMail||c.anmeldungMail||c.mailRecipients||c.mailAddress||c.mail||c.email)||'';
+  }
+  function cc316(c){
+    try{if(typeof customerMailCcAddress==='function')return customerMailCcAddress(c)}catch(_){}
+    return c&&(c.mailCc||c.cc||'')||'';
+  }
+  window.mailtoUrlForShipmentCustomer=function(id){
+    try{if(typeof collectRows190==='function')collectRows190(true)}catch(_){}
+    var c=customer316(id), to=to316(c);
+    if(!emailItems316(to).length){alert('Fuer diesen Kunden ist keine gueltige Speditions-/Anmelde-Mailadresse mit @ hinterlegt. Bitte im Kundenordner speichern.');return ''}
+    var sh=shipmentFor316(c);
+    var params=['subject='+encodeURIComponent(subject316(c,sh))];
+    params.push(mailCc316(cc316(c)).replace(/^&/,''));
+    params=params.filter(Boolean);
+    params.push('body='+encodeURIComponent(window.rc316ShipmentMailBody(c,sh)));
+    try{if(typeof audit==='function')audit('Outlook-Mail vorbereitet',((c.account||c.customerNumber||'')+' · '+subject316(c,sh)))}catch(_){}
+    try{if(typeof save==='function')save()}catch(_){}
+    return 'mailto:'+mailPath316(to)+'?'+params.join('&');
+  };
+  window.prepareShipmentMailLink=function(el,id){
+    var url=window.mailtoUrlForShipmentCustomer(id);
+    if(!url)return false;
+    if(el){el.href=url;el.target='_top';el.rel='noopener'}
+    setTimeout(function(){try{window.location.href=url}catch(_){ }},20);
+    return false;
+  };
+  window.copyShipmentMail=function(id){
+    try{if(typeof collectRows190==='function')collectRows190(true)}catch(_){}
+    var c=customer316(id), text=window.rc316ShipmentMailBody(c,shipmentFor316(c));
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){alert('Mailtext wurde kopiert.')}).catch(function(){prompt('Mailtext kopieren:',text)});
+    }else prompt('Mailtext kopieren:',text);
+  };
+  window.customerMailActions=function(c){
+    if(!c)return '';
+    var mail=to316(c);
+    if(!emailItems316(mail).length)return '<span class="small">Keine gueltige Speditions-/Anmelde-Mailadresse hinterlegt</span>';
+    var sh=shipmentFor316(c), hint=sh&&sh.ref?'Sendung: '+esc316(sh.ref):'Mail erst nach gespeicherter Sendung moeglich';
+    return '<a class="btn" href="mailto:" target="_top" rel="noopener" onclick="return prepareShipmentMailLink(this,&quot;'+esc316(c.id||'')+'&quot;)">Mail erstellen</a> <button class="ghost" onclick="copyShipmentMail(&quot;'+esc316(c.id||'')+'&quot;)">Mailtext kopieren</button> <span class="small">An: '+esc316(mail)+' · '+hint+'</span>';
+  };
+})();
+</script>
+<!-- PRIVATE RC316 END: Mail wieder nur Deutsch -->
+<!-- PRIVATE RC317 START: Kunden-/Adress-/DNC-Felder aus Kundenmail entfernen -->
+<script>
+(function(){
+  function s317(v){return String(v==null?'':v)}
+  function clean317(v){return s317(v).replace(/\s+/g,' ').trim()}
+  function esc317(v){try{return typeof esc==='function'?esc(v):s317(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}catch(_){return s317(v)}}
+  function emailItems317(list){
+    var out=[],seen={};
+    s317(list).split(/[;,\n]+/).forEach(function(x){
+      x=x.trim();
+      var m=x.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+      if(m&&!seen[m[0].toLowerCase()]){seen[m[0].toLowerCase()]=1;out.push(m[0])}
+    });
+    return out;
+  }
+  function mailPath317(list){return emailItems317(list).map(encodeURIComponent).join(';')}
+  function ccParam317(list){var x=emailItems317(list);return x.length?'&cc='+x.map(encodeURIComponent).join(';'):''}
+  function rows317(sh){
+    return ((sh&&Array.isArray(sh.rows))?sh.rows:[]).filter(function(r){return r&&(r.type||Number(r.count)>0||Number(r.weight)>0||Number(r.ldm)>0)});
+  }
+  function totals317(sh){
+    return rows317(sh).reduce(function(a,r){
+      var count=Number(r.count)||0;
+      var weight=Number(String(r.weight||0).replace(',','.'))||0;
+      var ldm=Number(String(r.ldm||0).replace(',','.'))||0;
+      a.count+=count;a.weight+=weight;a.ldm+=count*ldm;return a;
+    },{count:0,weight:0,ldm:0});
+  }
+  function fmt317(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
+  function customer317(id){
+    var list=[];
+    try{list=Array.isArray(state.customers)?state.customers:[]}catch(_){}
+    var c=null;
+    if(id)c=list.find(function(x){return String(x.id)===String(id)})||null;
+    if(!c){try{c=typeof selectedCustomer==='function'?selectedCustomer():null}catch(_){}}
+    if(!c){
+      try{
+        var sh=state.shipment||{};
+        c=list.find(function(x){return String(x.id)===String(sh.customerId)||String(x.account||x.customerNumber||'')===String(sh.customerNumber||sh.account||'')})||null;
+      }catch(_){}
+    }
+    return c||{};
+  }
+  function shipment317(c){
+    try{if(typeof collectRows190==='function')collectRows190(true)}catch(_){}
+    try{if(typeof shipmentForCustomerMail==='function'){var s=shipmentForCustomerMail(c);if(s)return s}}catch(_){}
+    try{return state.shipment||{}}catch(_){return {}}
+  }
+  function to317(c){
+    try{if(typeof customerMailAddress==='function')return customerMailAddress(c)}catch(_){}
+    return c&&(c.carrierMail||c.speditionMail||c.anmeldungMail||c.mailRecipients||c.mailAddress||c.mail||c.email)||'';
+  }
+  function cc317(c){
+    try{if(typeof customerMailCcAddress==='function')return customerMailCcAddress(c)}catch(_){}
+    return c&&(c.mailCc||c.cc||'')||'';
+  }
+  function rowLine317(r,i){
+    var dims=[r.l,r.w,r.h].filter(function(v){return v!==''&&v!=null}).join(' x ');
+    var out=[
+      (i+1)+'. Colli',
+      '   Anzahl: '+(r.count||'0'),
+      '   Packstueck: '+(r.type||'offen')
+    ];
+    if(r.weight)out.push('   Gewicht: '+fmt317(Number(String(r.weight).replace(',','.')),1)+' kg');
+    if(r.ldm)out.push('   LDM je Colli: '+fmt317(Number(String(r.ldm).replace(',','.')),2));
+    if(dims)out.push('   Masse: '+dims+' cm');
+    return out.join('\r\n');
+  }
+  function removeCustomerFields317(text){
+    var lines=s317(text).replace(/\r/g,'').split('\n'), out=[];
+    var skipAddress=false;
+    var field=/^\s*(Kunde\s*(\/\s*Customer)?|Customer|Kundennummer\s*(\/\s*Customer number)?|Customer number|Lieferscheine\s*\/?\s*DNCs(\s*\/\s*Delivery notes\/DNCs)?|Delivery notes\/DNCs?|Documents\s*\/\s*DNCs?)\s*:/i;
+    var address=/^\s*(Empf(?:ae|ä)ngeradresse\s*(\/\s*Consignee address)?|Consignee address)\s*:/i;
+    var nextField=/^\s*(Referenznummer|Reference|Collis|Gesamt|Total|LDM|Abholdatum|Pickup date|Spedition|Carrier|Incoterm|Hinweis|Die Ladeliste|The load list)\b/i;
+    lines.forEach(function(line){
+      if(address.test(line)){skipAddress=true;return}
+      if(skipAddress){
+        if(!clean317(line)){skipAddress=false;return}
+        if(!nextField.test(line))return;
+        skipAddress=false;
+      }
+      if(field.test(line))return;
+      out.push(line);
+    });
+    return out.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  }
+  function shipmentInfo317(sh){
+    var rows=rows317(sh), total=totals317(sh), lines=[
+      'SENDUNGSINFORMATIONEN',
+      '',
+      'Referenznummer: '+((sh&&sh.ref)||'offen'),
+      '',
+      'Collis:'
+    ];
+    if(rows.length)rows.forEach(function(r,i){lines.push(rowLine317(r,i))});
+    else lines.push('- offen');
+    lines.push('');
+    lines.push('Gesamt Collis: '+fmt317(total.count,0));
+    lines.push('Gesamtgewicht: '+fmt317(total.weight,1)+' kg');
+    lines.push('Gesamt LDM: '+fmt317(total.ldm,2));
+    lines.push('Abholdatum: '+((sh&& (sh.pickupDate||sh.plannedPickupDate))||'offen'));
+    lines.push('Spedition: '+((sh&&(sh.carrier))||'offen'));
+    if(sh&&sh.incoterm)lines.push('Incoterm / Hinweis: '+sh.incoterm);
+    lines.push('');
+    lines.push('Die Ladeliste fuege ich als PDF bei.');
+    return removeCustomerFields317(lines.join('\r\n'));
+  }
+  window.rc317ShipmentMailBody=function(c,sh){
+    c=c||{};sh=sh||{};
+    var intro='Guten Tag,\r\n\r\nbitte melden Sie die folgende Sendung an.\r\n';
+    var own=clean317(c.mailText||c.mailBody||'');
+    if(own&&own.length<600&&!/\bAn\s*:|\bCC\s*:|@/.test(own))intro=own.replace(/\r?\n/g,'\r\n')+'\r\n';
+    return removeCustomerFields317([intro,shipmentInfo317(sh),'\r\nVielen Dank\r\n\r\nMit freundlichen Gruessen\r\nTobias Limberg'].join('\r\n')).replace(/\n/g,'\r\n');
+  };
+  window.mailBodyForShipment=function(c,sh){return window.rc317ShipmentMailBody(c,sh)};
+  window.shipmentMailInfoText=function(c,sh){return shipmentInfo317(sh)};
+  function subject317(c,sh){
+    return 'Sendungsanmeldung '+((sh&&sh.ref)||'')+' / '+((c&&c.name)||'Kunde');
+  }
+  window.mailtoUrlForShipmentCustomer=function(id){
+    var c=customer317(id), sh=shipment317(c), to=to317(c);
+    if(!emailItems317(to).length){alert('Fuer diesen Kunden ist keine gueltige Speditions-/Anmelde-Mailadresse mit @ hinterlegt. Bitte im Kundenordner speichern.');return ''}
+    var params=['subject='+encodeURIComponent(subject317(c,sh))];
+    var cc=ccParam317(cc317(c));
+    if(cc)params.push(cc.replace(/^&/,''));
+    params.push('body='+encodeURIComponent(window.rc317ShipmentMailBody(c,sh)));
+    try{if(typeof audit==='function')audit('Outlook-Mail vorbereitet',((c.account||c.customerNumber||'')+' · '+subject317(c,sh)))}catch(_){}
+    try{if(typeof save==='function')save()}catch(_){}
+    return 'mailto:'+mailPath317(to)+'?'+params.join('&');
+  };
+  window.prepareShipmentMailLink=function(el,id){
+    var url=window.mailtoUrlForShipmentCustomer(id);
+    if(!url)return false;
+    if(el){el.href=url;el.target='_top';el.rel='noopener'}
+    setTimeout(function(){try{window.location.href=url}catch(_){ }},20);
+    return false;
+  };
+  window.copyShipmentMail=function(id){
+    var c=customer317(id), text=window.rc317ShipmentMailBody(c,shipment317(c));
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){alert('Mailtext wurde kopiert.')}).catch(function(){prompt('Mailtext kopieren:',text)});
+    }else prompt('Mailtext kopieren:',text);
+  };
+  window.customerMailActions=function(c){
+    if(!c)return '';
+    var mail=to317(c);
+    if(!emailItems317(mail).length)return '<span class="small">Keine gueltige Speditions-/Anmelde-Mailadresse hinterlegt</span>';
+    var sh=shipment317(c), hint=sh&&sh.ref?'Sendung: '+esc317(sh.ref):'Mail erst nach gespeicherter Sendung moeglich';
+    return '<a class="btn" href="mailto:" target="_top" rel="noopener" onclick="return prepareShipmentMailLink(this,&quot;'+esc317(c.id||'')+'&quot;)">Mail erstellen</a> <button class="ghost" onclick="copyShipmentMail(&quot;'+esc317(c.id||'')+'&quot;)">Mailtext kopieren</button> <span class="small">An: '+esc317(mail)+' · '+hint+'</span>';
+  };
+})();
+</script>
+<!-- PRIVATE RC317 END: Kunden-/Adress-/DNC-Felder aus Kundenmail entfernen -->
 </body></html>
