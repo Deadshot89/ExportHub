@@ -39411,11 +39411,11 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 
   var baseRender=window.render || (typeof render==='function'?render:null);
   if(typeof baseRender==='function'&&!baseRender.__rc288Wrapped){
-    window.render=function(){var r=baseRender.apply(this,arguments); setTimeout(window.rc288RunShipment,80); setTimeout(window.rc288RunShipment,300); return r};
+    window.render=function(){var r=baseRender.apply(this,arguments); setTimeout(window.rc288RunShipment,120); return r};
     window.render.__rc288Wrapped=true; try{render=window.render}catch(e){}
   }
   document.addEventListener('DOMContentLoaded',function(){setTimeout(window.rc288RunShipment,200);setTimeout(window.rc288RunShipment,800)});
-  setTimeout(window.rc288RunShipment,200); setInterval(function(){if(curView()==='shipment')window.rc288RunShipment()},1200);
+  setTimeout(window.rc288RunShipment,200); /* RC319: alter Dauer-Renderer deaktiviert */
 })();
 </script>
 <!-- PRIVATE RC288 END: ABD Bereich stabil + SharePoint-Lieferschein weg + UPS Land -->
@@ -39611,9 +39611,9 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   function run(){try{document.body.setAttribute('data-rc291-view',curView())}catch(e){} cleanupSharePoint(); ensurePanel();}
   window.rc288RunShipment=function(){run();return false};
   var baseRender=window.render || (typeof render==='function'?render:null);
-  if(typeof baseRender==='function'&&!baseRender.__rc291Wrapped){window.render=function(){var r=baseRender.apply(this,arguments); setTimeout(run,60); setTimeout(run,220); setTimeout(run,700); return r}; window.render.__rc291Wrapped=true; try{render=window.render}catch(e){}}
+  if(typeof baseRender==='function'&&!baseRender.__rc291Wrapped){window.render=function(){var r=baseRender.apply(this,arguments); setTimeout(run,120); return r}; window.render.__rc291Wrapped=true; try{render=window.render}catch(e){}}
   document.addEventListener('DOMContentLoaded',function(){setTimeout(run,120);setTimeout(run,800)});
-  setTimeout(run,120); setInterval(function(){if(curView()==='shipment')run()},900);
+  setTimeout(run,120); /* RC319: alter Dauer-Renderer deaktiviert */
 })();
 </script>
 <!-- PRIVATE RC291 END: ABD ein Layout + SharePoint-Ladebereiche entfernen -->
@@ -42157,4 +42157,231 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC317 END: Kunden-/Adress-/DNC-Felder aus Kundenmail entfernen -->
+<!-- PRIVATE RC318 START: Sendung erstellen Render-Bremse -->
+<script>
+(function(){
+  var oldRun318=typeof window.rc288RunShipment==='function'?window.rc288RunShipment:null;
+  var lastRun318=0;
+  var lastSig318='';
+  function view318(){
+    try{return String((state&&state.view)||'')}catch(_){return ''}
+  }
+  function sig318(){
+    try{
+      var s=(state&&state.shipment)||{};
+      return [view318(),s.ref,s.customerId,s.addressConfirmed,s.customerProcessConfirmed,(s.rows||[]).length,String(s.deliveryNotes||'').length].join('|');
+    }catch(_){return view318()}
+  }
+  function lightFix318(){
+    if(view318()!=='shipment')return false;
+    try{
+      var bodyText=String(document.body&&document.body.textContent||'');
+      document.body.setAttribute('data-rc318-shipment-fast','1');
+      if(typeof patchShipmentConfirm314==='function')patchShipmentConfirm314();
+      if(bodyText.indexOf('Kundeninfos / Prozesshinweise gelesen')<0 && typeof rc314SetCustomerProcessConfirmed==='function'){
+        setTimeout(function(){try{if(typeof patchShipmentConfirm314==='function')patchShipmentConfirm314()}catch(_){}},30);
+      }
+      Array.from(document.querySelectorAll('.sharepoint-sync-rc83,.sales-status-empty-rc83,.rc119-folder-warn,.rc119-folder-box,.rc119-folder-panel,.rc232-folder-note,.rc83SharePointPanel,.rc188-sp-card,.rc191-sp-card,.rc266-offline-status')).forEach(function(el){
+        try{el.remove()}catch(_){}
+      });
+    }catch(_){}
+    return false;
+  }
+  window.rc318NormalizeShipment=function(force){
+    if(view318()!=='shipment')return false;
+    var now=Date.now(), sig=sig318();
+    if(!force && sig===lastSig318 && now-lastRun318<8000){
+      lightFix318();
+      return false;
+    }
+    lastRun318=now;
+    lastSig318=sig;
+    if(oldRun318){
+      try{oldRun318()}catch(err){console.warn('RC318 alter Sendungs-Renderer gestoppt',err)}
+    }
+    lightFix318();
+    return false;
+  };
+  window.rc288RunShipment=function(){
+    return window.rc318NormalizeShipment(false);
+  };
+  try{rc288RunShipment=window.rc288RunShipment}catch(_){}
+  var oldRender318=window.render || (typeof render==='function'?render:null);
+  if(typeof oldRender318==='function' && !oldRender318.__rc318Wrapped){
+    window.render=function(){
+      var r=oldRender318.apply(this,arguments);
+      if(view318()==='shipment'){
+        setTimeout(function(){window.rc318NormalizeShipment(true)},40);
+      }
+      return r;
+    };
+    window.render.__rc318Wrapped=true;
+    try{render=window.render}catch(_){}
+  }
+  ['click','change','input'].forEach(function(type){
+    document.addEventListener(type,function(){
+      if(view318()==='shipment')setTimeout(lightFix318,30);
+    },true);
+  });
+  window.rc318RenderCheck=function(){
+    var txt=[
+      'RC318 Rendercheck Sendung erstellen',
+      'Aktive View: '+view318(),
+      'rc288RunShipment: gedrosselt auf Signaturwechsel oder max. 1x je 8 Sekunden',
+      'Alte RC288/RC291 Intervalle: laufen noch als Timer, fuehren aber nur noch den leichten RC318-Fix aus',
+      'Finale Bestaetigung Kundeninfos/Prozesshinweise: bleibt aktiv',
+      'SharePoint-/alte Lieferschein-Loader: werden im Shipment-View entfernt'
+    ].join('\n');
+    console.log(txt);
+    alert(txt);
+    return false;
+  };
+  setTimeout(function(){window.rc318NormalizeShipment(true)},120);
+})();
+</script>
+<!-- PRIVATE RC318 END: Sendung erstellen Render-Bremse -->
+<!-- PRIVATE RC319 START: Sendung Mail + Aktionsbuttons final wiederherstellen -->
+<style>
+#rc319ShipmentMailPanel,
+#rc319ShipmentActionBar{
+  border:1px solid #bfdbfe!important;
+  background:linear-gradient(135deg,#eff6ff,#ffffff)!important;
+  border-radius:14px!important;
+  padding:12px!important;
+  margin:10px 0!important;
+}
+#rc319ShipmentMailPanel h3{
+  margin:0 0 8px!important;
+  color:#08245d!important;
+}
+#rc319ShipmentMailPanel .rc319-mail-actions,
+#rc319ShipmentActionBar{
+  display:flex!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+}
+#rc319ShipmentActionBar .btn,
+#rc319ShipmentActionBar .ghost,
+#rc319ShipmentActionBar .soft,
+#rc319ShipmentMailPanel .btn,
+#rc319ShipmentMailPanel .ghost{
+  min-height:40px!important;
+}
+#rc319ShipmentMailPanel .rc319-mail-note{
+  display:block;
+  margin-top:8px;
+}
+</style>
+<script>
+(function(){
+  function view319(){try{return String((state&&state.view)||'')}catch(_){return ''}}
+  function e319(v){
+    return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})
+  }
+  function customers319(){try{return Array.isArray(state.customers)?state.customers:[]}catch(_){return []}}
+  function shipment319(){try{return state.shipment||{}}catch(_){return {}}}
+  function customer319(){
+    var s=shipment319(), list=customers319(), c=null;
+    if(s.customerId)c=list.find(function(x){return String(x.id)===String(s.customerId)})||null;
+    if(!c&&s.customerNumber)c=list.find(function(x){return String(x.account||x.customerNumber||'')===String(s.customerNumber)})||null;
+    if(!c){try{c=typeof selectedCustomer==='function'?selectedCustomer():null}catch(_){}}
+    if(!c&&s.customer&&typeof s.customer==='object')c=s.customer;
+    return c||{};
+  }
+  function validRef319(){
+    var ref=String((shipment319().ref)||'').trim().toUpperCase();
+    return /^[A-Z0-9]{6}$/.test(ref);
+  }
+  function hasMail319(c){
+    var mail='';
+    try{if(typeof customerMailAddress==='function')mail=customerMailAddress(c)}catch(_){}
+    mail=mail||(c&&(c.carrierMail||c.speditionMail||c.anmeldungMail||c.mailRecipients||c.mailAddress||c.mail||c.email))||'';
+    return /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(String(mail));
+  }
+  function mailHtml319(c){
+    var id=e319(c&&c.id||'');
+    if(typeof customerMailActions==='function'){
+      try{
+        var html=customerMailActions(c);
+        if(html)return '<div class="rc319-mail-actions">'+html+'</div>';
+      }catch(_){}
+    }
+    return '<div class="rc319-mail-actions"><button type="button" class="btn" onclick="return prepareShipmentMailLink(this,&quot;'+id+'&quot;)">Mail erstellen</button><button type="button" class="ghost" onclick="copyShipmentMail(&quot;'+id+'&quot;)">Mailtext kopieren</button></div>';
+  }
+  function mainCard319(){
+    return document.querySelector('.rc199-main-card') ||
+      Array.from(document.querySelectorAll('.card')).find(function(card){return /Kunde\s*&\s*Grunddaten|Kundennummer\s*\/\s*Kunde suchen/i.test(card.textContent||'')}) ||
+      null;
+  }
+  function insertMail319(card,c){
+    if(!card)return;
+    var panel=document.getElementById('rc319ShipmentMailPanel');
+    if(!panel){
+      panel=document.createElement('div');
+      panel.id='rc319ShipmentMailPanel';
+      var anchor=document.querySelector('.rc314-process-confirm') || document.querySelector('.rc199-address-confirm') || Array.from(card.querySelectorAll('.okbox,.badbox')).find(function(x){return /Empfaengeradresse|Empfängeradresse/i.test(x.textContent||'')});
+      if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(panel,anchor.nextSibling);
+      else card.insertBefore(panel,card.children[3]||null);
+    }
+    var s=shipment319();
+    panel.innerHTML='<h3>Mail an Kunde / Spedition</h3>'+
+      (hasMail319(c)?mailHtml319(c):'<div class="notice">Keine gueltige Mailadresse beim Kunden hinterlegt. Bitte im Kundenordner pflegen.</div>')+
+      '<span class="small rc319-mail-note">Mailtext enthaelt keine Kunden-/Adress-/DNC-Felder. Die Ladeliste wird separat als PDF angehaengt.</span>'+
+      '<span class="small rc319-mail-note">Betreff: Sendungsanmeldung '+e319(s.ref||'')+' / '+e319(c.name||'Kunde')+'</span>';
+  }
+  function insertButtons319(card){
+    if(!card)return;
+    var bar=document.getElementById('rc319ShipmentActionBar');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='rc319ShipmentActionBar';
+      var status=Array.from(card.querySelectorAll('.rc199-statusline,.okbox,.notice,.badbox')).reverse().find(function(x){return /Sendung kann gespeichert|Adresse muss|Referenznummer muss|Colli|Sendungserstellung blockiert/i.test(x.textContent||'')});
+      if(status&&status.parentNode)status.parentNode.insertBefore(bar,status.nextSibling);
+      else card.appendChild(bar);
+    }
+    var refOk=validRef319();
+    bar.innerHTML='<button type="button" class="btn" onclick="saveShipment();return false;">Sendung speichern + Aufgaben pruefen</button>'+
+      '<button type="button" class="ghost" '+(refOk?'':'disabled')+' onclick="showCurrentCmr();return false;">Ladeliste/CMR Vorschau</button>'+
+      '<button type="button" class="ghost" '+(refOk?'':'disabled')+' onclick="rc55DownloadLoadlistPdf();return false;">Ladeliste PDF herunterladen</button>'+
+      '<button type="button" class="ghost" '+(refOk?'':'disabled')+' onclick="rc55PrintLabels();return false;">Versandlabel 4x A4</button>';
+  }
+  function cleanupOld319(){
+    if(view319()!=='shipment')return;
+    Array.from(document.querySelectorAll('.rc190-mail-card,.rc185-mail-card,.rc189-mail-card,.rc184-shipment-mail-card')).forEach(function(el){
+      if(!el.closest('#rc319ShipmentMailPanel')){try{el.remove()}catch(_){}}
+    });
+  }
+  window.rc319RestoreShipmentTools=function(){
+    if(view319()!=='shipment')return false;
+    var card=mainCard319();
+    if(!card)return false;
+    cleanupOld319();
+    insertMail319(card,customer319());
+    insertButtons319(card);
+    return false;
+  };
+  var oldRender319=window.render || (typeof render==='function'?render:null);
+  if(typeof oldRender319==='function' && !oldRender319.__rc319Wrapped){
+    window.render=function(){
+      var r=oldRender319.apply(this,arguments);
+      if(view319()==='shipment'){
+        setTimeout(window.rc319RestoreShipmentTools,80);
+        setTimeout(window.rc319RestoreShipmentTools,320);
+        setTimeout(window.rc319RestoreShipmentTools,900);
+      }
+      return r;
+    };
+    window.render.__rc319Wrapped=true;
+    try{render=window.render}catch(_){}
+  }
+  ['click','change','input'].forEach(function(type){
+    document.addEventListener(type,function(){
+      if(view319()==='shipment')setTimeout(window.rc319RestoreShipmentTools,80);
+    },true);
+  });
+  setTimeout(window.rc319RestoreShipmentTools,180);
+})();
+</script>
+<!-- PRIVATE RC319 END: Sendung Mail + Aktionsbuttons final wiederherstellen -->
 </body></html>
