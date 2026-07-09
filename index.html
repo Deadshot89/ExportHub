@@ -41401,4 +41401,425 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC313 END: ABD Oeffnen + Erledigt + Fokuszeile -->
+<!-- PRIVATE RC314 START: Ladeliste Ref/Empfaenger groesser + Kundeninfos bestaetigen -->
+<style>
+/* RC314: Ladeliste nur leicht staerker lesbar machen */
+#loadListDoc .rc314-load-ref,
+.loadlist-pro .rc314-load-ref{
+  font-size:1.08em!important;
+  font-weight:950!important;
+  color:#0f172a!important;
+}
+#loadListDoc .rc314-load-recipient,
+.loadlist-pro .rc314-load-recipient{
+  font-size:1.06em!important;
+  font-weight:880!important;
+  color:#0f172a!important;
+  line-height:1.35!important;
+}
+#loadListDoc .rc314-load-recipient *,
+.loadlist-pro .rc314-load-recipient *{
+  font-size:inherit!important;
+}
+.rc314-process-confirm{
+  border-color:#93c5fd!important;
+  background:linear-gradient(135deg,#eff6ff,#ffffff)!important;
+}
+.rc314-process-confirm b{
+  color:#08245d;
+}
+.rc314-process-warning{
+  margin-top:6px!important;
+}
+@media print{
+  #loadListDoc .rc314-load-ref,
+  .loadlist-pro .rc314-load-ref{font-size:1.08em!important}
+  #loadListDoc .rc314-load-recipient,
+  .loadlist-pro .rc314-load-recipient{font-size:1.06em!important}
+}
+</style>
+<script>
+(function(){
+  function safeText314(el){return String((el&&el.textContent)||'').replace(/\s+/g,' ').trim()}
+  function hasClass314(el,cls){return el&&el.classList&&el.classList.contains(cls)}
+  function addClass314(el,cls){try{if(el&&el.classList)el.classList.add(cls)}catch(_){}} 
+  function shipment314(){try{return state&&state.shipment?state.shipment:null}catch(_){return null}}
+  function save314(){try{if(typeof save==='function')save()}catch(_){}} 
+  function processOk314(){
+    var s=shipment314();
+    return !!(s&&s.customerProcessConfirmed);
+  }
+  window.rc314SetCustomerProcessConfirmed=function(checked){
+    var s=shipment314();
+    if(s){s.customerProcessConfirmed=!!checked;save314()}
+    patchShipmentConfirm314();
+    return false;
+  };
+  function addressRow314(){
+    var rows=[].slice.call(document.querySelectorAll('.checkrow,label,div'));
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i], txt=safeText314(row), html=String(row.innerHTML||'');
+      if((/Adresse\s+(bestaetigen|bestätigen|geprueft|geprüft)/i.test(txt) || /addressConfirmed/i.test(html)) && !hasClass314(row,'rc314-process-confirm')){
+        return row;
+      }
+    }
+    return null;
+  }
+  function insertConfirm314(){
+    var s=shipment314();
+    if(!s)return;
+    var row=addressRow314();
+    if(!row || !row.parentNode)return;
+    var existing=document.querySelector('.rc314-process-confirm');
+    if(!existing){
+      existing=document.createElement('label');
+      existing.className='checkrow rc314-process-confirm';
+      existing.innerHTML='<input type="checkbox" onchange="rc314SetCustomerProcessConfirmed(this.checked)"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe Kundeninfos, SOP-/Prozesshinweise und besondere Versandvorgaben zur Sendung geprueft.</span></span>';
+      row.parentNode.insertBefore(existing,row.nextSibling);
+    }
+    var input=existing.querySelector('input');
+    if(input)input.checked=!!s.customerProcessConfirmed;
+    var warn=document.querySelector('.rc314-process-warning');
+    if(!s.customerProcessConfirmed){
+      if(!warn){
+        warn=document.createElement('div');
+        warn.className='notice rc314-process-warning';
+        warn.textContent='Bitte Kundeninfos / Prozesshinweise bestaetigen, bevor die Sendung gespeichert wird.';
+        existing.parentNode.insertBefore(warn,existing.nextSibling);
+      }
+    }else if(warn){
+      warn.remove();
+    }
+  }
+  function patchSaveButtons314(){
+    var ok=processOk314();
+    [].slice.call(document.querySelectorAll('button')).forEach(function(btn){
+      var txt=safeText314(btn).toLowerCase();
+      var oc=String(btn.getAttribute('onclick')||'').toLowerCase();
+      if(txt.indexOf('sendung speichern')>=0 || oc.indexOf('saveshipment')>=0){
+        if(!ok){
+          if(!btn.disabled)btn.setAttribute('data-rc314-blocked','1');
+          btn.disabled=true;
+          btn.title='Erst Kundeninfos / Prozesshinweise bestaetigen.';
+        }else if(btn.getAttribute('data-rc314-blocked')==='1'){
+          btn.disabled=false;
+          btn.removeAttribute('data-rc314-blocked');
+          btn.removeAttribute('title');
+        }
+      }
+    });
+  }
+  function patchShipmentConfirm314(){
+    try{
+      if(document.querySelector('.rc199-address-confirm') || safeText314(document.body).indexOf('Adresse bestaetigen')>=0 || safeText314(document.body).indexOf('Adresse bestätigen')>=0){
+        insertConfirm314();
+        patchSaveButtons314();
+      }
+    }catch(_){}
+  }
+  function markLoadlist314(root){
+    root=root||document;
+    var load=(root.querySelector&&root.querySelector('#loadListDoc')) || document.getElementById('loadListDoc') || (root.querySelector&&root.querySelector('.loadlist-pro'));
+    if(!load)return;
+    try{load.classList.add('loadlist-pro')}catch(_){}
+    var all=[].slice.call(load.querySelectorAll('td,th,div,p,span,b,strong,pre'));
+    all.forEach(function(el){
+      var txt=safeText314(el);
+      if(!txt || txt.length>260)return;
+      if(/^(Referenz|Ref\.?|Sendungsreferenz|Referenznummer)\b/i.test(txt) || /\b(Referenznummer|Sendungsreferenz)\b/i.test(txt)){
+        addClass314(el,'rc314-load-ref');
+        if(el.parentElement)addClass314(el.parentElement,'rc314-load-ref');
+      }
+      if(/\b(Empfaenger|Empfänger|Empf\.|Consignee)\b/i.test(txt)){
+        addClass314(el,'rc314-load-recipient');
+        if(el.parentElement)addClass314(el.parentElement,'rc314-load-recipient');
+        if(el.nextElementSibling)addClass314(el.nextElementSibling,'rc314-load-recipient');
+      }
+    });
+    var refBox=load.querySelector('.load-refbox,.refno');
+    if(refBox)addClass314(refBox,'rc314-load-ref');
+    [].slice.call(load.querySelectorAll('.load-address-box,.doc-box')).forEach(function(box){
+      if(/\b(Empfaenger|Empfänger|Consignee)\b/i.test(safeText314(box)))addClass314(box,'rc314-load-recipient');
+    });
+  }
+  function wrap314(name,after){
+    var fn=window[name];
+    if(typeof fn!=='function' || fn.__rc314Wrapped)return;
+    window[name]=function(){
+      var r=fn.apply(this,arguments);
+      setTimeout(after,30);
+      setTimeout(after,220);
+      return r;
+    };
+    window[name].__rc314Wrapped=true;
+    try{eval(name+'=window[name]')}catch(_){}
+  }
+  var baseSave314=typeof saveShipment==='function'?saveShipment:null;
+  if(baseSave314 && !baseSave314.__rc314Guarded){
+    window.saveShipment=function(){
+      if(!processOk314()){
+        alert('Bitte Kundeninfos / Prozesshinweise bestaetigen, bevor die Sendung gespeichert wird.');
+        patchShipmentConfirm314();
+        return false;
+      }
+      return baseSave314.apply(this,arguments);
+    };
+    window.saveShipment.__rc314Guarded=true;
+    try{saveShipment=window.saveShipment}catch(_){}
+  }
+  ['showCurrentCmr','showSavedCmr','rc55DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc211DownloadWebsiteLoadlistPdf','downloadLoadListPdf','downloadCurrentLoadListPdf'].forEach(function(name){
+    wrap314(name,function(){markLoadlist314(document)});
+  });
+  ['render','shipment','newShipment','selectShipmentCustomer','applyCustomerSearch','setView'].forEach(function(name){
+    wrap314(name,function(){patchShipmentConfirm314()});
+  });
+  function shipmentSignature314(){
+    var s=shipment314(), c=null;
+    try{c=(state.customers||[]).find(function(x){return String(x.id)===String(s&&s.customerId)})}catch(_){}
+    return [s&&s.customerId,s&&s.customerSearch,s&&s.customerName,s&&s.recipientAddress,c&&c.address].join('|');
+  }
+  function resetOnShipmentChange314(name){
+    var fn=window[name];
+    if(typeof fn!=='function' || fn.__rc314ResetWrapped)return;
+    window[name]=function(){
+      var before=shipmentSignature314();
+      var r=fn.apply(this,arguments);
+      setTimeout(function(){
+        if(before!==shipmentSignature314()){
+          var s=shipment314();
+          if(s){s.customerProcessConfirmed=false;save314()}
+          patchShipmentConfirm314();
+        }
+      },40);
+      return r;
+    };
+    window[name].__rc314ResetWrapped=true;
+    try{eval(name+'=window[name]')}catch(_){}
+  }
+  ['newShipment','selectShipmentCustomer','applyCustomerSearch'].forEach(resetOnShipmentChange314);
+  document.addEventListener('change',function(){setTimeout(patchShipmentConfirm314,20)},true);
+  document.addEventListener('input',function(){setTimeout(patchShipmentConfirm314,40)},true);
+  setTimeout(function(){patchShipmentConfirm314();markLoadlist314(document)},80);
+})();
+</script>
+<!-- PRIVATE RC314 END: Ladeliste Ref/Empfaenger groesser + Kundeninfos bestaetigen -->
+<!-- PRIVATE RC315 START: Ladeliste PDF Kunde + zweisprachige Felder -->
+<style>
+/* RC315: zweisprachige Pflichtfelder auf der Ladeliste leicht hervorheben */
+#loadListDoc .rc315-bilingual-label,
+.loadlist-pro .rc315-bilingual-label{
+  font-weight:950!important;
+  color:#073763!important;
+}
+#loadListDoc .rc315-customer-value,
+.loadlist-pro .rc315-customer-value{
+  font-weight:900!important;
+  color:#0f172a!important;
+}
+</style>
+<script>
+(function(){
+  var lastShipment315=null;
+  function text315(v){return String(v==null?'':v)}
+  function clean315(v){return text315(v).replace(/\s+/g,' ').trim()}
+  function escPdf315(v){
+    return text315(v).replace(/[ä]/g,'ae').replace(/[ö]/g,'oe').replace(/[ü]/g,'ue')
+      .replace(/[Ä]/g,'Ae').replace(/[Ö]/g,'Oe').replace(/[Ü]/g,'Ue').replace(/[ß]/g,'ss')
+      .replace(/[€]/g,'EUR').replace(/[\\()]/g,'\\$&').replace(/\r/g,' ').replace(/\n/g,' ');
+  }
+  function ref315(s){return clean315((s&&s.ref)||'SENDUNG').replace(/[^A-Z0-9_-]/gi,'_')||'SENDUNG'}
+  function rows315(s){
+    return ((s&&Array.isArray(s.rows))?s.rows:[]).filter(function(r){
+      return r&&(r.type||Number(r.count)>0||Number(r.weight)>0||Number(r.ldm)>0);
+    });
+  }
+  function totals315(s){
+    return rows315(s).reduce(function(a,r){
+      var c=Number(r.count)||0,w=Number(r.weight)||0,l=Number(r.ldm)||0;
+      a.count+=c;a.weight+=w;a.ldm+=c*l;return a;
+    },{count:0,weight:0,ldm:0});
+  }
+  function fmt315(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
+  function activeShipment315(){
+    if(lastShipment315&&lastShipment315.ref)return lastShipment315;
+    try{if(state&&state.shipment&&state.shipment.ref)return state.shipment}catch(_){}
+    try{if(state&&Array.isArray(state.shipments)&&state.shipments.length)return state.shipments[0]}catch(_){}
+    return {};
+  }
+  function selectedCustomer315(s){
+    s=s||activeShipment315();
+    var out={};
+    if(s&&typeof s.customer==='object')Object.assign(out,s.customer);
+    var list=[];
+    try{list=Array.isArray(state.customers)?state.customers:[]}catch(_){}
+    var keys=[s.customerId,s.customerNumber,s.account,out.id,out.account,out.customerNumber,s.customerName,s.customer];
+    for(var i=0;i<list.length;i++){
+      var c=list[i];
+      var hay=[c.id,c.account,c.customerNumber,c.name].map(clean315);
+      if(keys.map(clean315).some(function(k){return k&&hay.indexOf(k)>=0})){
+        Object.assign(out,c);
+        break;
+      }
+    }
+    out.name=out.name||s.customerName||s.customer||'';
+    out.account=out.account||out.customerNumber||s.customerNumber||s.account||'';
+    out.address=out.address||s.recipientAddress||s.address||s.consigneeAddress||'';
+    out.carrier=out.carrier||out.speditionName||s.carrier||'';
+    return out;
+  }
+  function docs315(s){
+    var out=[];
+    text315(s&&s.deliveryNotes).split(/\n|,|;/).map(function(x){return x.trim()}).filter(Boolean).forEach(function(x){out.push(x)});
+    (Array.isArray(s&&s.deliveryFiles)?s.deliveryFiles:[]).forEach(function(f){
+      var n=clean315((f&&f.name)||(f&&f.fileName)||f);
+      if(n)out.push(n);
+    });
+    return out;
+  }
+  function bytes315(str){
+    var arr=new Uint8Array(str.length);
+    for(var i=0;i<str.length;i++)arr[i]=str.charCodeAt(i)&255;
+    return arr;
+  }
+  function download315(name,bytes){
+    var blob=new Blob([bytes],{type:'application/pdf'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1200);
+  }
+  function euroOut315(s){
+    return rows315(s).reduce(function(sum,r){
+      var type=clean315(r&&r.type).toLowerCase();
+      var count=Number((r&&r.count)||0)||0;
+      return /euro/.test(type)&&/palette|pallet/.test(type)?sum+count:sum;
+    },0);
+  }
+  function makePdf315(s){
+    s=s||activeShipment315();
+    var c=selectedCustomer315(s), rows=rows315(s), t=totals315(s), d=docs315(s);
+    var addr=text315(c.address||'Adresse fehlt').replace(/\r/g,'').split('\n').map(function(x){return x.trim()}).filter(Boolean).slice(0,7);
+    var cmds=[], W=595, H=842;
+    function tx(x,y,size,str,bold,color){cmds.push((color||'0 0 0')+' rg BT /'+(bold?'F2':'F1')+' '+size+' Tf '+x+' '+y+' Td ('+escPdf315(str)+') Tj ET')}
+    function rect(x,y,w,h,stroke,fill){if(fill)cmds.push(fill+' rg '+x+' '+y+' '+w+' '+h+' re f'); if(stroke)cmds.push(stroke+' RG '+x+' '+y+' '+w+' '+h+' re S')}
+    function line(x1,y1,x2,y2){cmds.push('0.45 0.55 0.65 RG '+x1+' '+y1+' m '+x2+' '+y2+' l S')}
+    rect(0,822,W,20,null,'0.86 0.94 1');
+    tx(38,792,22,'LADELISTE / LOADING LIST',true,'0.03 0.27 0.52');
+    tx(425,792,8,'Referenz / Reference',true,'0.03 0.27 0.52');
+    rect(424,764,130,24,'0.49 0.83 0.95','0.88 0.97 1');
+    tx(435,772,15,ref315(s),true);
+    rect(36,660,240,92,'0.75 0.86 0.98','0.96 0.99 1');
+    rect(306,660,247,92,'0.75 0.86 0.98','1 1 1');
+    tx(48,732,10,'Absender / Sender',true,'0.03 0.36 0.53');
+    ['Essentra Components Ltd','Montel-Allee 3','41334 Nettetal','Deutschland / Germany'].forEach(function(v,i){tx(48,716-i*13,9,v)});
+    tx(318,732,11,'Empfaengeradresse / Consignee address',true,'0.03 0.36 0.53');
+    (addr.length?addr:['Adresse fehlt / Address missing']).forEach(function(v,i){tx(318,714-i*13,9.6,v,false)});
+    rect(36,602,517,42,'0.75 0.86 0.98','0.98 0.99 1');
+    tx(48,628,9,'Kunde / Customer:',true); tx(150,628,9.8,c.name||'offen / open',true);
+    tx(315,628,9,'Kundennummer / Customer number:',true); tx(488,628,9.2,c.account||c.customerNumber||'offen');
+    tx(48,611,9,'Abholdatum / Pickup date:',true); tx(178,611,9,s.pickupDate||s.plannedPickupDate||'');
+    tx(315,611,9,'Spedition / Carrier:',true); tx(420,611,9,s.carrier||c.carrier||c.speditionName||'');
+    var y=570;
+    rect(36,y,517,24,'0.75 0.86 0.98','0.86 0.94 1');
+    tx(44,y+8,8,'Anz.',true); tx(82,y+8,8,'Verpackung / Package',true); tx(242,y+8,8,'Masse cm / Dimensions',true); tx(342,y+8,8,'Gewicht kg / Weight',true); tx(458,y+8,8,'LDM',true);
+    y-=24;
+    rows.slice(0,10).forEach(function(r,idx){
+      rect(36,y,517,24,'0.88 0.92 0.96',idx%2?'0.98 0.99 1':'1 1 1');
+      tx(44,y+8,8,r.count||''); tx(82,y+8,8,r.type||'');
+      tx(242,y+8,8,[r.l,r.w,r.h].filter(function(v){return v!==''&&v!=null}).join(' x '));
+      tx(342,y+8,8,fmt315(r.weight,1)); tx(458,y+8,8,fmt315((Number(r.count)||0)*(Number(r.ldm)||0),2));
+      y-=24;
+    });
+    if(!rows.length){rect(36,y,517,24,'0.88 0.92 0.96','1 1 1');tx(44,y+8,8,'Keine Colli-Zeilen / No package rows');y-=24;}
+    rect(36,y,517,25,'0.75 0.86 0.98','0.94 0.99 0.96');
+    tx(44,y+9,9,'Summe / Total',true); tx(125,y+9,9,String(t.count),true); tx(342,y+9,9,fmt315(t.weight,1)+' kg',true); tx(458,y+9,9,fmt315(t.ldm,2),true);
+    tx(42,y-28,10,'Lieferscheine/DNCs / Delivery notes/DNCs',true,'0.03 0.36 0.53');
+    (d.length?d:['Keine Lieferscheine/DNCs hinterlegt / No delivery notes stored']).slice(0,8).forEach(function(v,i){tx(42,y-43-i*12,8.2,v)});
+    rect(36,108,240,72,'0.75 0.86 0.98','1 1 1');
+    rect(306,108,247,72,'0.75 0.86 0.98','1 1 1');
+    tx(48,161,9,'Unterschrift Fahrer / Driver signature',true); line(54,130,258,130);
+    tx(318,161,9,'Datum / Uhrzeit / Date / time',true); line(324,130,532,130);
+    rect(36,28,240,62,'0.75 0.86 0.98','1 0.97 0.92');
+    rect(306,28,247,62,'0.75 0.86 0.98','1 0.97 0.92');
+    tx(48,75,9,'Europaletten Ausgang / EPAL out',true); tx(54,51,14,euroOut315(s)>0?String(euroOut315(s)):'',true); line(54,43,258,43);
+    tx(318,75,9,'Europaletten Eingang / EPAL return',true); line(324,43,532,43);
+    var stream=cmds.join('\n'), objs=[], offsets=[0];
+    function add(o){objs.push(o);return objs.length}
+    var content=add('<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
+    var page=add('<< /Type /Page /Parent 3 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents '+content+' 0 R >>');
+    var pages=add('<< /Type /Pages /Kids ['+page+' 0 R] /Count 1 >>');
+    var f1=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+    var f2=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+    var catalog=add('<< /Type /Catalog /Pages '+pages+' 0 R >>');
+    var pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+    objs.forEach(function(o,i){offsets.push(pdf.length);pdf+=(i+1)+' 0 obj\n'+o+'\nendobj\n'});
+    var xref=pdf.length;pdf+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';
+    for(var i=1;i<offsets.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+    pdf+='trailer\n<< /Size '+(objs.length+1)+' /Root '+catalog+' 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+    return bytes315(pdf);
+  }
+  function patchVisible315(){
+    var s=activeShipment315(), c=selectedCustomer315(s);
+    var load=document.getElementById('loadListDoc')||document.querySelector('.loadlist-pro');
+    if(!load)return;
+    load.classList.add('loadlist-pro');
+    var txt=load.innerHTML;
+    txt=txt.replace(/Customer number:/g,'Kundennummer / Customer number:');
+    txt=txt.replace(/Customer:/g,'Kunde / Customer:');
+    txt=txt.replace(/Consignee address:/g,'Empfaengeradresse / Consignee address:');
+    txt=txt.replace(/Delivery notes\/DNCs:/g,'Lieferscheine/DNCs / Delivery notes/DNCs:');
+    txt=txt.replace(/Empfaenger(?!adresse)/g,'Empfaengeradresse / Consignee address');
+    txt=txt.replace(/Kunde:/g,'Kunde / Customer:');
+    txt=txt.replace(/Kundennr\.:|Kundennummer:/g,'Kundennummer / Customer number:');
+    txt=txt.replace(/Lieferscheine \/ DNCs/g,'Lieferscheine/DNCs / Delivery notes/DNCs');
+    load.innerHTML=txt;
+    [].slice.call(load.querySelectorAll('td,div,span,p,b,strong')).forEach(function(el){
+      var t=clean315(el.textContent);
+      if(/Kunde \/ Customer|Kundennummer \/ Customer number|Empfaengeradresse \/ Consignee address|Delivery notes\/DNCs/.test(t))el.classList.add('rc315-bilingual-label');
+      if(c.name&&/^Kunde \/ Customer:\s*$/i.test(t))el.insertAdjacentText('afterend',' '+c.name);
+    });
+    try{if(typeof markLoadlist314==='function')markLoadlist314(document)}catch(_){}
+  }
+  window.rc315DownloadLoadlistPdf=function(){
+    var s=activeShipment315();
+    download315('Ladeliste_'+ref315(s)+'.pdf',makePdf315(s));
+    return false;
+  };
+  function assign315(){
+    ['rc218DownloadLoadlistPdf','rc55DownloadLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc211DownloadWebsiteLoadlistPdf','rc216DownloadLoadlistPdf','rc217DownloadLoadlistPdf','downloadLoadListPdf','downloadCurrentLoadListPdf','rc55PdfLoadlist','rc53PdfLoadlist','rc90PrintLoadlistAsPdf','rc91DownloadOriginalLoadlistPdf'].forEach(function(n){
+      window[n]=window.rc315DownloadLoadlistPdf;
+      try{eval(n+'=window.rc315DownloadLoadlistPdf')}catch(_){}
+    });
+  }
+  function wrap315(name,fn){
+    var base=window[name];
+    if(typeof base!=='function'||base.__rc315Wrapped)return;
+    window[name]=function(){
+      if(name==='showSavedCmr'&&arguments.length){
+        try{lastShipment315=(state.shipments||[]).find(function(s){return String(s.id)===String(arguments[0])})||lastShipment315}catch(_){}
+      }
+      if(name==='showCurrentCmr')lastShipment315=null;
+      var r=base.apply(this,arguments);
+      setTimeout(fn,50);setTimeout(fn,240);
+      return r;
+    };
+    window[name].__rc315Wrapped=true;
+    try{eval(name+'=window[name]')}catch(_){}
+  }
+  assign315();
+  wrap315('showCurrentCmr',patchVisible315);
+  wrap315('showSavedCmr',patchVisible315);
+  wrap315('render',patchVisible315);
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');
+    if(!el)return;
+    var t=clean315(el.textContent), oc=String(el.getAttribute('onclick')||'');
+    if(/Ladeliste PDF|PDF herunterladen/i.test(t)||/rc218DownloadLoadlistPdf|rc55DownloadLoadlistPdf|downloadLoadListPdf/i.test(oc)){
+      ev.preventDefault();ev.stopPropagation();window.rc315DownloadLoadlistPdf();
+    }
+  },true);
+  setTimeout(function(){assign315();patchVisible315()},80);
+})();
+</script>
+<!-- PRIVATE RC315 END: Ladeliste PDF Kunde + zweisprachige Felder -->
 </body></html>
