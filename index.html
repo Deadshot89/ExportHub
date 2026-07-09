@@ -43031,38 +43031,177 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 })();
 </script>
 <!-- PRIVATE RC323 END: QR-Abholscan mit PIN-Freigabe -->
-<!-- PRIVATE RC324 START: Sendung erstellen + Sendungsuebersicht final wiederherstellen -->
+<!-- PRIVATE RC324 START: POD-Foto direkt nach QR/PIN hochladen -->
 <style>
-.rc324-shipment-layout{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:18px;align-items:start}
-.rc324-actions,.rc324-file-actions,.rc324-overview-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.rc324-actions .btn,.rc324-actions .ghost,.rc324-actions .soft,.rc324-file-actions .btn,.rc324-blue{background:#2563eb!important;color:#fff!important;border:1px solid #1d4ed8!important;border-radius:8px!important;font-weight:900!important;padding:10px 14px!important;text-decoration:none!important;cursor:pointer!important}
-.rc324-actions .ghost,.rc324-actions .soft{background:#eff6ff!important;color:#1d4ed8!important}
-.rc324-file-list{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
-.rc324-row{border:1px solid #dbeafe;border-radius:10px;background:#fff;padding:10px;margin-bottom:10px}
-.rc324-overview-filter{display:grid;grid-template-columns:minmax(220px,1fr) minmax(140px,220px) auto auto auto;gap:10px;align-items:center;margin-bottom:14px}
-.rc324-table{width:100%;border-collapse:separate;border-spacing:0 10px}
-.rc324-table th{text-align:left;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:4px 10px}
-.rc324-table td{background:#fff;border-top:1px solid #dbeafe;border-bottom:1px solid #dbeafe;padding:14px 10px;vertical-align:top}
-.rc324-table td:first-child{border-left:1px solid #dbeafe;border-radius:12px 0 0 12px}
-.rc324-table td:last-child{border-right:1px solid #dbeafe;border-radius:0 12px 12px 0}
-.rc324-customer-focus{background:#eff6ff;border-left:5px solid #2563eb;border-radius:10px;padding:10px 12px;min-width:260px}
-.rc324-customer-number{display:block;font-weight:1000;color:#0f172a;font-size:18px;line-height:1.1}
-.rc324-customer-name{display:block;font-weight:1000;color:#08245d;font-size:18px;line-height:1.25;margin-top:3px}
-.rc324-customer-country{display:block;color:#64748b;font-size:12px;margin-top:4px}
-.rc324-docs{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr);gap:10px}
-.rc324-doc-card{border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;padding:10px;min-width:180px}
-.rc324-doc-card.linked{border-color:#22c55e;background:#dcfce7}
-.rc324-doc-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:1000;color:#08245d}
-.rc324-doc-name{font-size:12px;color:#334155;margin:8px 0;word-break:break-word}
-.rc324-doc-actions{display:flex;gap:6px;flex-wrap:wrap}
-.rc324-doc-actions .ghost,.rc324-doc-actions label{font-size:12px;padding:7px 9px;border-radius:8px}
-.rc324-file-input{display:none}
-@media(max-width:980px){.rc324-shipment-layout,.rc324-docs{grid-template-columns:1fr}.rc324-overview-filter{grid-template-columns:1fr}.rc324-table{font-size:13px}}
+.rc324-pod-upload{margin-top:14px;border:1px solid #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px}
+.rc324-pod-upload label{display:block;margin-top:8px}
+.rc324-pod-upload input[type=file]{letter-spacing:0;font-size:14px;text-align:left}
+.rc324-pod-preview{margin-top:10px;max-width:100%;border-radius:12px;border:1px solid #cbd5e1;display:none}
+.rc324-pod-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.rc324-pod-badge{display:block;margin-top:4px;padding:4px 7px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:950;white-space:nowrap}
 </style>
 <script>
 (function(){
-  if(window.__EXPORTHUB_RC324_FINAL_RESTORE__)return;
-  window.__EXPORTHUB_RC324_FINAL_RESTORE__=true;
+  if(window.__EXPORTHUB_RC324_POD_PHOTO_UPLOAD__)return;
+  window.__EXPORTHUB_RC324_POD_PHOTO_UPLOAD__=true;
+
+  function s324(v){return String(v==null?'':v)}
+  function e324(v){return s324(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function ref324(v){return s324(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,24)}
+  function st324(){try{return state||null}catch(_){return null}}
+  function ships324(){var s=st324();return s&&Array.isArray(s.shipments)?s.shipments:[]}
+  function byRef324(reference){
+    var r=ref324(reference), s=st324();
+    if(!s||!r)return null;
+    return ships324().find(function(x){return ref324(x&&x.ref)===r}) || (s.shipment&&ref324(s.shipment.ref)===r?s.shipment:null);
+  }
+  function nowName324(){
+    var d=new Date(), p=function(n){return String(n).padStart(2,'0')};
+    return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes());
+  }
+  function readImage324(file){
+    return new Promise(function(resolve,reject){
+      var reader=new FileReader();
+      reader.onload=function(){
+        var img=new Image();
+        img.onload=function(){resolve(img)};
+        img.onerror=reject;
+        img.src=reader.result;
+      };
+      reader.onerror=reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  async function compressPhoto324(file){
+    var img=await readImage324(file);
+    var max=1600, w=img.naturalWidth||img.width, h=img.naturalHeight||img.height, scale=Math.min(1,max/Math.max(w,h));
+    var canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(w*scale));
+    canvas.height=Math.max(1,Math.round(h*scale));
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    return canvas.toDataURL('image/jpeg',0.76);
+  }
+  window.rc324UploadPodPhoto=function(reference,input){
+    var sh=byRef324(reference), file=input&&input.files&&input.files[0], msg=document.getElementById('rc324PodMsg'), img=document.getElementById('rc324PodPreview');
+    if(!sh){if(msg)msg.textContent='Referenz nicht gefunden.';return false}
+    if(!file)return false;
+    if(!/^image\//i.test(file.type||'')){if(msg)msg.textContent='Bitte ein Foto/Bild auswaehlen.';return false}
+    if(msg)msg.textContent='Foto wird verarbeitet...';
+    compressPhoto324(file).then(function(dataUrl){
+      var r=ref324(reference), stamp=new Date().toISOString();
+      var item={
+        id:'PODPHOTO_'+r+'_'+Date.now(),
+        name:'POD_'+r+'_'+nowName324()+'.jpg',
+        fileName:'POD_'+r+'_'+nowName324()+'.jpg',
+        docKind:'pod',
+        type:'image/jpeg',
+        mimeType:'image/jpeg',
+        url:dataUrl,
+        webUrl:dataUrl,
+        objectUrl:dataUrl,
+        dataUrl:dataUrl,
+        localOnly:true,
+        source:'QR/PIN Foto Upload',
+        added:stamp,
+        uploadedAt:stamp,
+        uploadedBy:'QR Scan'
+      };
+      sh.podFiles=Array.isArray(sh.podFiles)?sh.podFiles:[];
+      sh.podFiles.unshift(item);
+      sh.podStatus='POD vorhanden';
+      sh.podUploadedAt=stamp;
+      sh.podPhotoUploadedAt=stamp;
+      try{if(typeof save==='function')save()}catch(_){}
+      if(img){img.src=dataUrl;img.style.display='block'}
+      if(msg)msg.textContent='POD-Foto gespeichert.';
+      try{if(typeof render==='function')setTimeout(render,500)}catch(_){}
+    }).catch(function(){
+      if(msg)msg.textContent='Foto konnte nicht verarbeitet werden.';
+    });
+    return false;
+  };
+  function podHtml324(reference){
+    return '<div class="rc324-pod-upload">'+
+      '<b>POD Foto hochladen</b><br><span class="muted">Foto vom unterschriebenen Beleg aufnehmen oder aus Galerie waehlen. Es wird automatisch als POD zur Referenz gespeichert.</span>'+
+      '<label><input type="file" accept="image/*" capture="environment" onchange="return rc324UploadPodPhoto(&quot;'+e324(reference)+'&quot;,this)"></label>'+
+      '<img id="rc324PodPreview" class="rc324-pod-preview" alt="POD Vorschau">'+
+      '<div id="rc324PodMsg" class="rc323-pin-ok"></div>'+
+      '<div class="rc324-pod-actions"><button class="ghost" type="button" onclick="try{window.close()}catch(_){};return false;">Fertig</button></div>'+
+      '</div>';
+  }
+  function enhancePinPage324(){
+    var params;
+    try{params=new URLSearchParams(location.search)}catch(_){return}
+    var cmd=s324(params.get('ehcmd')||params.get('cmd')).toLowerCase(), r=ref324(params.get('ref')||params.get('reference'));
+    if(!(cmd==='pickup'||cmd==='abgeholt')||!r)return;
+    var card=document.querySelector('.rc323-pin-card');
+    if(!card||card.querySelector('.rc324-pod-upload'))return;
+    var target=document.getElementById('rc323PinMsg')||card;
+    var obs=new MutationObserver(function(){
+      if(/Gespeichert/i.test(target.textContent||'')&&!card.querySelector('.rc324-pod-upload')){
+        target.insertAdjacentHTML('afterend',podHtml324(r));
+      }
+    });
+    obs.observe(target,{childList:true,characterData:true,subtree:true});
+  }
+  function badges324(){
+    try{
+      if(!st324()||st324().view!=='shipmentoverview')return;
+      ships324().forEach(function(sh){
+        if(!Array.isArray(sh.podFiles)||!sh.podFiles.length)return;
+        Array.from(document.querySelectorAll('tr')).forEach(function(tr){
+          if((tr.textContent||'').indexOf(sh.ref||'')<0||tr.querySelector('.rc324-pod-badge'))return;
+          var cell=tr.children&&tr.children[4]?tr.children[4]:null;
+          if(cell)cell.insertAdjacentHTML('beforeend','<span class="rc324-pod-badge">POD Foto vorhanden</span>');
+        });
+      });
+    }catch(_){}
+  }
+  var oldRender324=window.render||(typeof render==='function'?render:null);
+  if(typeof oldRender324==='function'&&!oldRender324.__rc324Wrapped){
+    window.render=function(){var out=oldRender324.apply(this,arguments);setTimeout(badges324,220);return out};
+    window.render.__rc324Wrapped=true;
+    try{render=window.render}catch(_){}
+  }
+  setTimeout(enhancePinPage324,700);
+  setTimeout(badges324,900);
+})();
+</script>
+<!-- PRIVATE RC324 END: POD-Foto direkt nach QR/PIN hochladen -->
+<!-- PRIVATE RC325 START: Sendung erstellen und Uebersicht Endrenderer -->
+<style>
+.rc325-page{max-width:1360px;margin:0 auto}
+.rc325-grid{display:grid;grid-template-columns:minmax(340px,1fr) minmax(340px,1fr);gap:18px;align-items:start}
+.rc325-actions,.rc325-files,.rc325-doc-actions,.rc325-card-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rc325-blue,.rc325-files .btn{background:#2563eb!important;color:#fff!important;border:1px solid #1d4ed8!important;border-radius:8px!important;font-weight:900!important;padding:9px 13px!important;text-decoration:none!important;cursor:pointer!important}
+.rc325-soft{background:#eff6ff!important;color:#1d4ed8!important;border:1px solid #bfdbfe!important;border-radius:8px!important;font-weight:900!important;padding:9px 13px!important}
+.rc325-file-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.rc325-row{border:1px solid #dbeafe;border-radius:10px;background:#fff;padding:10px;margin-bottom:10px}
+.rc325-overview-filter{display:grid;grid-template-columns:minmax(220px,1fr) 180px auto auto auto;gap:10px;align-items:center;margin-bottom:14px}
+.rc325-list{display:grid;gap:12px}
+.rc325-item{border:1px solid #dbeafe;border-radius:14px;background:#fff;box-shadow:0 6px 18px rgba(15,23,42,.06);padding:14px}
+.rc325-item-main{display:grid;grid-template-columns:120px minmax(260px,1fr) minmax(170px,260px) minmax(160px,220px);gap:14px;align-items:start}
+.rc325-ref{font-size:19px;font-weight:1000;color:#0f172a;letter-spacing:.02em}
+.rc325-customer{background:#eff6ff;border-left:5px solid #2563eb;border-radius:10px;padding:10px 12px}
+.rc325-cnum,.rc325-cname{display:block;font-weight:1000;color:#08245d;font-size:18px;line-height:1.2}
+.rc325-cname{margin-top:4px}
+.rc325-country,.rc325-small{display:block;color:#64748b;font-size:12px;margin-top:4px}
+.rc325-docs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.rc325-doc{border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;padding:10px}
+.rc325-doc.linked{border-color:#22c55e;background:#dcfce7}
+.rc325-doc-head{display:flex;justify-content:space-between;gap:8px;font-weight:1000;color:#08245d}
+.rc325-doc-name{font-size:12px;color:#334155;margin:8px 0;word-break:break-word}
+.rc325-hidden-file{display:none}
+.rc325-section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0 8px}
+@media(max-width:1050px){.rc325-grid,.rc325-item-main,.rc325-docs,.rc325-overview-filter{grid-template-columns:1fr}}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC325_ENDRENDER__)return;
+  window.__EXPORTHUB_RC325_ENDRENDER__=true;
 
   function S(){try{return state||{}}catch(_){return {}}}
   function A(v){return Array.isArray(v)?v:[]}
@@ -43071,235 +43210,177 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   function N(v){return T(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
   function cleanRef(v){return T(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
   function validRef(v){return /^[A-Z0-9]{6}$/.test(cleanRef(v))}
-  function now(){try{return new Date().toLocaleString('de-DE')}catch(_){return new Date().toISOString()}}
-  function uid324(prefix){try{if(typeof uid==='function')return uid(prefix||'ID')}catch(_){}return (prefix||'ID')+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
-  function customers(){var s=S();return A(s.customers)}
-  function option(c){return [c&&c.account||c&&c.customerNumber||c&&c.id||'',c&&c.name||'',c&&c.country||c&&c.land||''].filter(Boolean).join(' · ')}
-  function customerById(id){return customers().find(function(c){return T(c.id)===T(id)})||null}
-  function selectedCustomer(){
-    var s=S(), sh=shipment();
-    return customerById(sh.customerId||s.selectedCustomerId)||customers()[0]||{id:'',account:'',customerNumber:'',name:'',country:'',address:''};
-  }
-  function shipment(){
-    var s=S();
-    s.shipment=s.shipment||{};
-    s.shipment.rows=A(s.shipment.rows);
-    if(!s.shipment.rows.length)s.shipment.rows=[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:0}];
-    if(!s.shipment.customerId&&customers()[0])s.shipment.customerId=customers()[0].id;
-    if(!s.shipment.ref||!validRef(s.shipment.ref))s.shipment.ref=makeRef(selectedCustomer());
-    s.shipment.ref=cleanRef(s.shipment.ref);
-    s.shipment.deliveryFiles=A(s.shipment.deliveryFiles);
-    s.shipment.podFiles=A(s.shipment.podFiles);
-    s.shipment.customerSearch=s.shipment.customerSearch||option(selectedCustomer());
-    if(s.shipment.customerProcessConfirmed==null)s.shipment.customerProcessConfirmed=false;
-    return s.shipment;
-  }
+  function uid325(p){try{if(typeof uid==='function')return uid(p||'ID')}catch(_){}return (p||'ID')+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)}
+  function save325(){try{if(typeof save==='function')save()}catch(_){}}
+  function render325(){try{if(typeof render==='function')render()}catch(_){}}
+  function customers(){return A(S().customers)}
+  function opt(c){return [c&&c.account||c&&c.customerNumber||c&&c.id||'',c&&c.name||'',c&&c.country||c&&c.land||''].filter(Boolean).join(' · ')}
+  function byId(id){return customers().find(function(c){return T(c.id)===T(id)})||null}
+  function selectedCustomer(){var sh=shipment();return byId(sh.customerId||S().selectedCustomerId)||customers()[0]||{id:'',name:'',account:'',customerNumber:'',address:''}}
   function makeRef(c){
     try{if(typeof generateShipmentRef==='function')return cleanRef(generateShipmentRef(c||{}))}catch(_){}
     var used=A(S().shipments).map(function(x){return cleanRef(x&&x.ref)});
-    for(var i=0;i<200;i++){var r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);if(r.length===6&&used.indexOf(r)<0)return r}
-    return cleanRef('S'+Date.now().toString(36)).slice(0,6).padEnd(6,'0');
+    for(var i=0;i<300;i++){var r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);if(r.length===6&&used.indexOf(r)<0)return r}
+    return cleanRef('S'+Date.now().toString(36)).padEnd(6,'0').slice(0,6);
   }
-  function saveSafe(){try{if(typeof save==='function')save()}catch(_){}}
-  function renderSafe(){try{if(typeof render==='function')render()}catch(_){}}
-  function customerMail(c,s){
+  function blankShipment(c){
+    return {id:uid325('S'),customerId:c&&c.id||'',customerSearch:opt(c),ref:makeRef(c),refAuto:true,deliveryNotes:'',deliveryFiles:[],podFiles:[],status:'offen',freigabe:'offen',pickupDate:'',carrier:'',incoterm:'',goodsDescription:'Waren laut Rechnung/Ladeliste',comments:'',licensePlate:'',loader:'',addressConfirmed:false,customerProcessConfirmed:false,rows:[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}]};
+  }
+  function shipment(){
+    var s=S();s.shipment=s.shipment||blankShipment(customers()[0]||{});
+    var sh=s.shipment;
+    if(!sh.customerId&&customers()[0])sh.customerId=customers()[0].id;
+    sh.rows=A(sh.rows);if(!sh.rows.length)sh.rows=[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:''}];
+    sh.deliveryFiles=A(sh.deliveryFiles);sh.podFiles=A(sh.podFiles);
+    if(!validRef(sh.ref))sh.ref=makeRef(selectedCustomer());
+    sh.ref=cleanRef(sh.ref);
+    sh.customerSearch=sh.customerSearch||opt(selectedCustomer());
+    return sh;
+  }
+  function mailPanel(c,sh){
     try{if(typeof customerMailActions==='function')return customerMailActions(c)}catch(_){}
-    var to=encodeURIComponent(c&&c.email||'');
-    var sub=encodeURIComponent((s&&s.ref||'Sendung')+' / '+(c&&c.name||'Kunde'));
-    var body=encodeURIComponent('Guten Tag,\n\nbitte die Sendung gemaess Absprache vormerken.\n\nReferenz: '+(s&&s.ref||'')+'\n\nMit freundlichen Gruessen\nTobias Limberg');
-    return '<a class="btn" href="mailto:'+to+'?subject='+sub+'&body='+body+'">Mail an Kunden vorbereiten</a>';
+    var sub=encodeURIComponent((sh.ref||'Sendung')+' / '+(c.name||'Kunde'));
+    var body=encodeURIComponent('Guten Tag,\n\nbitte die Sendung vormerken.\n\nReferenz: '+(sh.ref||'')+'\n\nMit freundlichen Gruessen\nTobias Limberg');
+    return '<a class="rc325-blue" href="mailto:?subject='+sub+'&body='+body+'">Mail vorbereiten</a>';
   }
-  function fileList(s){
-    var files=A(s.deliveryFiles);
-    if(!files.length)return '';
-    return '<div class="rc324-file-list">'+files.map(function(f){return '<span class="pill gray">'+E(f.name||f.fileName||'Datei')+'</span>'}).join('')+'</div>';
-  }
-  function rowFallback(r,i){
+  function rowHtml(r,i){
+    try{if(typeof renderRow==='function')return String(renderRow(r,i)||'')}catch(_){}
     r=r||{};
-    return '<div class="rc324-row"><div class="miniGrid">'+
-      '<label class="field">Verpackung<input value="'+E(r.type||'')+'" onchange="rc324UpdateRow('+i+',&quot;type&quot;,this.value)"></label>'+
-      '<label class="field">Anzahl<input type="number" min="0" step="1" value="'+E(r.count||'')+'" onchange="rc324UpdateRow('+i+',&quot;count&quot;,this.value)"></label>'+
-      '<label class="field">LDM je Colli<input type="number" step="0.01" value="'+E(r.ldm||'')+'" onchange="rc324UpdateRow('+i+',&quot;ldm&quot;,this.value)"></label>'+
-      '<label class="field">Gewicht gesamt kg<input type="number" step="0.1" value="'+E(r.weight||'')+'" onchange="rc324UpdateRow('+i+',&quot;weight&quot;,this.value)"></label>'+
-      '<label class="field">Laenge cm<input type="number" value="'+E(r.l||'')+'" onchange="rc324UpdateRow('+i+',&quot;l&quot;,this.value)"></label>'+
-      '<label class="field">Breite cm<input type="number" value="'+E(r.w||'')+'" onchange="rc324UpdateRow('+i+',&quot;w&quot;,this.value)"></label>'+
-      '<label class="field">Hoehe cm<input type="number" value="'+E(r.h||'')+'" onchange="rc324UpdateRow('+i+',&quot;h&quot;,this.value)"></label>'+
-      '<div class="field"><span>Zeile</span><button class="danger" onclick="return rc324RemoveRow('+i+')">Entfernen</button></div>'+
+    return '<div class="rc325-row"><div class="miniGrid">'+
+      '<label class="field">Verpackung<input value="'+E(r.type||'')+'" onchange="rc325Row('+i+',&quot;type&quot;,this.value)"></label>'+
+      '<label class="field">Anzahl<input type="number" min="0" step="1" value="'+E(r.count||'')+'" onchange="rc325Row('+i+',&quot;count&quot;,this.value)"></label>'+
+      '<label class="field">LDM je Colli<input type="number" step="0.01" value="'+E(r.ldm||'')+'" onchange="rc325Row('+i+',&quot;ldm&quot;,this.value)"></label>'+
+      '<label class="field">Gewicht gesamt kg<input type="number" step="0.1" value="'+E(r.weight||'')+'" onchange="rc325Row('+i+',&quot;weight&quot;,this.value)"></label>'+
+      '<label class="field">Laenge cm<input type="number" value="'+E(r.l||'')+'" onchange="rc325Row('+i+',&quot;l&quot;,this.value)"></label>'+
+      '<label class="field">Breite cm<input type="number" value="'+E(r.w||'')+'" onchange="rc325Row('+i+',&quot;w&quot;,this.value)"></label>'+
+      '<label class="field">Hoehe cm<input type="number" value="'+E(r.h||'')+'" onchange="rc325Row('+i+',&quot;h&quot;,this.value)"></label>'+
+      '<div class="field"><span>Zeile</span><button class="danger" onclick="return rc325RemoveRow('+i+')">Entfernen</button></div>'+
       '</div></div>';
   }
-  function rowHtml(r,i){try{if(typeof renderRow==='function')return String(renderRow(r,i)||'')}catch(_){}return rowFallback(r,i)}
-  function completion(s){
-    var miss=[];
-    if(!validRef(s.ref))miss.push('Referenznummer');
-    if(!s.addressConfirmed)miss.push('Adresse bestaetigen');
-    if(!s.customerProcessConfirmed)miss.push('Kundeninfos / Prozesshinweise bestaetigen');
-    var rows=A(s.rows).filter(function(r){return Number(r.count||0)>0||Number(r.weight||0)>0||T(r.type).trim()});
-    if(!rows.length)miss.push('mindestens eine Colli-Zeile');
-    if(!rows.some(function(r){return Number(r.count||0)>0}))miss.push('Anzahl Collis');
+  function fileList(sh){
+    var f=A(sh.deliveryFiles);if(!f.length)return '';
+    return '<div class="rc325-file-list">'+f.map(function(x){return '<span class="pill gray">'+E(x.name||x.fileName||'Datei')+'</span>'}).join('')+'</div>';
+  }
+  function completion(sh){
+    var miss=[], rows=A(sh.rows).filter(function(r){return Number(r.count||0)>0||Number(r.weight||0)>0||T(r.type).trim()});
+    if(!validRef(sh.ref))miss.push('Referenznummer');
+    if(!sh.addressConfirmed)miss.push('Adresse bestaetigen');
+    if(!sh.customerProcessConfirmed)miss.push('Kundeninfos / Prozesshinweise bestaetigen');
+    if(!rows.length)miss.push('Collis');
+    if(!rows.some(function(r){return Number(r.count||0)>0}))miss.push('Anzahl');
     if(!rows.some(function(r){return Number(r.weight||0)>0}))miss.push('Gewicht');
-    return miss.length?'<div class="notice"><b>Noch offen:</b> '+E(miss.join(', '))+'</div>':'<div class="okbox">Sendung kann gespeichert werden. Ladeliste und CMR sind verfuegbar.</div>';
+    return miss.length?'<div class="notice"><b>Noch offen:</b> '+E(miss.join(', '))+'</div>':'<div class="okbox">Sendung kann gespeichert werden.</div>';
   }
-  function savedTable(){
-    var list=A(S().shipments).slice(0,10);
+  function savedSmall(){
+    var list=A(S().shipments).slice(0,8);
     if(!list.length)return '<p class="muted">Noch keine Sendung gespeichert.</p>';
-    return '<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Datum</th><th>Status</th><th>Aktion</th></tr>'+list.map(function(x){var c=x.customer||{};return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E(c.name||x.customerName||'')+'</td><td>'+E(x.created||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td><button class="ghost" onclick="loadShipment(&quot;'+E(x.id||'')+'&quot;)">Uebernehmen</button> <button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>';
+    return '<table class="table"><tr><th>Referenz</th><th>Kunde</th><th>Status</th><th>Aktion</th></tr>'+list.map(function(x){var c=x.customer||{};return '<tr><td><b>'+E(x.ref||'')+'</b></td><td>'+E(c.name||x.customerName||'')+'</td><td>'+E(x.freigabe||x.status||'offen')+'</td><td><button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button></td></tr>'}).join('')+'</table>';
   }
-
-  window.rc324UpdateRow=function(i,k,v){var s=shipment();s.rows[i]=s.rows[i]||{};s.rows[i][k]=v;saveSafe();return false};
-  window.rc324AddRow=function(){var s=shipment();s.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});saveSafe();renderSafe();return false};
-  window.rc324RemoveRow=function(i){var s=shipment();s.rows.splice(i,1);if(!s.rows.length)s.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});saveSafe();renderSafe();return false};
-  window.rc324SetProcess=function(v){shipment().customerProcessConfirmed=!!v;saveSafe();return false};
-  window.rc324NewShipment=function(){
-    try{if(typeof newShipment==='function'&&newShipment!==window.rc324NewShipment){newShipment();return false}}catch(_){}
-    var c=selectedCustomer();S().shipment={id:uid324('S'),customerId:c.id||'',customerSearch:option(c),ref:makeRef(c),refAuto:true,deliveryNotes:'',deliveryFiles:[],podFiles:[],status:'offen',freigabe:'offen',pickupDate:'',carrier:'',incoterm:'',goodsDescription:'Waren laut Rechnung/Ladeliste',comments:'',licensePlate:'',loader:'',addressConfirmed:false,customerProcessConfirmed:false,rows:[{type:'EURO Pal',count:1,ldm:0.4,l:120,w:80,h:110,weight:0}]};
-    S().activeShipmentId='current';saveSafe();renderSafe();return false;
-  };
-  window.rc324SaveShipment=function(){
-    var s=shipment(), c=selectedCustomer();
+  window.rc325Row=function(i,k,v){var sh=shipment();sh.rows[i]=sh.rows[i]||{};sh.rows[i][k]=v;save325();return false};
+  window.rc325AddRow=function(){shipment().rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});save325();render325();return false};
+  window.rc325RemoveRow=function(i){var sh=shipment();sh.rows.splice(i,1);if(!sh.rows.length)sh.rows.push({type:'',count:'',ldm:'',l:'',w:'',h:'',weight:''});save325();render325();return false};
+  window.rc325NewShipment=function(){var c=selectedCustomer();S().shipment=blankShipment(c);S().activeShipmentId='current';save325();render325();return false};
+  window.rc325SaveShipment=function(){
+    var sh=shipment(), c=selectedCustomer();
     try{if(typeof collectRows199==='function')collectRows199()}catch(_){}
     try{if(typeof collectRows190==='function')collectRows190(true)}catch(_){}
-    try{if(typeof collectRows118==='function')collectRows118(true)}catch(_){}
-    s=shipment();
-    s.ref=cleanRef(s.ref);
-    var errors=[];
-    if(!c||!c.id)errors.push('Kunde');
-    if(!validRef(s.ref))errors.push('Referenznummer');
-    if(!s.addressConfirmed)errors.push('Adresse bestaetigen');
-    if(!s.customerProcessConfirmed)errors.push('Kundeninfos / Prozesshinweise bestaetigen');
-    var rows=A(s.rows).filter(function(r){return Number(r.count||0)>0||Number(r.weight||0)>0||T(r.type).trim()});
-    if(!rows.length)errors.push('Collis');
-    if(!rows.some(function(r){return Number(r.count||0)>0}))errors.push('Anzahl Collis');
-    if(!rows.some(function(r){return Number(r.weight||0)>0}))errors.push('Gewicht');
-    if(errors.length){alert('Sendung kann noch nicht gespeichert werden:\n- '+errors.join('\n- '));return false}
-    var duplicate=A(S().shipments).some(function(x){return T(x.id)!==T(s.id)&&cleanRef(x.ref)===s.ref});
-    if(duplicate){alert('Diese Referenznummer ist bereits gespeichert. Bitte eine neue Referenz erzeugen.');return false}
-    var saved=Object.assign({},s,{id:uid324('SHIP'),created:now(),customer:Object.assign({},c),customerId:c.id,rows:rows.map(function(r){return Object.assign({},r)}),deliveryFiles:A(s.deliveryFiles).map(function(f){return Object.assign({},f)}),podFiles:A(s.podFiles).map(function(f){return Object.assign({},f)}),freigabe:'offen',status:'offen',pickupDateConfirmed:!!s.pickupDate});
-    S().shipments=A(S().shipments);
-    S().shipments.unshift(saved);
-    S().activeShipmentId=saved.id;
-    var completed=[];
+    sh=shipment();sh.ref=cleanRef(sh.ref);
+    var rows=A(sh.rows).filter(function(r){return Number(r.count||0)>0||Number(r.weight||0)>0||T(r.type).trim()});
+    var miss=[];
+    if(!c||!c.id)miss.push('Kunde');
+    if(!validRef(sh.ref))miss.push('Referenznummer');
+    if(!sh.addressConfirmed)miss.push('Adresse bestaetigen');
+    if(!sh.customerProcessConfirmed)miss.push('Kundeninfos / Prozesshinweise bestaetigen');
+    if(!rows.length)miss.push('Collis');
+    if(!rows.some(function(r){return Number(r.count||0)>0}))miss.push('Anzahl');
+    if(!rows.some(function(r){return Number(r.weight||0)>0}))miss.push('Gewicht');
+    if(miss.length){alert('Sendung kann noch nicht gespeichert werden:\n- '+miss.join('\n- '));return false}
+    if(A(S().shipments).some(function(x){return cleanRef(x&&x.ref)===sh.ref})){alert('Diese Referenznummer ist bereits gespeichert. Bitte neue Referenz erzeugen.');return false}
+    var saved=Object.assign({},sh,{id:uid325('SHIP'),created:new Date().toLocaleString('de-DE'),customer:Object.assign({},c),customerId:c.id,rows:rows.map(function(r){return Object.assign({},r)}),deliveryFiles:A(sh.deliveryFiles).map(function(f){return Object.assign({},f)}),podFiles:A(sh.podFiles).map(function(f){return Object.assign({},f)}),status:'offen',freigabe:'offen',pickupDateConfirmed:!!sh.pickupDate});
+    S().shipments=A(S().shipments);S().shipments.unshift(saved);S().activeShipmentId=saved.id;
     try{var pc=typeof euroPalletCount==='function'?euroPalletCount(saved):0;if(pc>0&&typeof addPalletBookingFromShipment==='function')addPalletBookingFromShipment(saved,c,pc)}catch(_){}
-    try{if(typeof autoCompleteShipmentTasks==='function')completed=autoCompleteShipmentTasks(saved,c)||[]}catch(_){}
+    try{if(typeof autoCompleteShipmentTasks==='function')autoCompleteShipmentTasks(saved,c)}catch(_){}
     try{if(typeof createOrUpdateShipmentCreatedTask==='function')createOrUpdateShipmentCreatedTask(saved,c)}catch(_){}
     try{if(typeof audit==='function')audit('Sendung gespeichert',saved.ref+' · '+(c.name||''))}catch(_){}
-    saveSafe();
-    alert('Sendung gespeichert: '+saved.ref+(completed.length?'\nAufgaben erledigt:\n- '+completed.join('\n- '):''));
-    try{setView('cmr')}catch(_){}
+    save325();alert('Sendung gespeichert: '+saved.ref);try{setView('cmr')}catch(_){}
     return false;
   };
-
-  window.rc324Shipment=function(){
-    var s=shipment(), c=selectedCustomer(), list=customers();
-    var opts=list.map(function(cu){return '<option value="'+E(cu.id||'')+'" '+(T(cu.id)===T(s.customerId)?'selected':'')+'>'+E(option(cu))+'</option>'}).join('');
-    var dl=list.map(function(cu){return '<option value="'+E(option(cu))+'"></option>'}).join('');
-    var addressMissing=!T(c.address).trim();
-    var h=(typeof head==='function'?head('Sendung erstellen',''):'<h2>Sendung erstellen</h2>');
-    return h+'<div class="rc324-shipment-layout"><div class="card"><h3>Kunde & Grunddaten</h3>'+
-      '<label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" list="customerList" value="'+E(s.customerSearch||option(c))+'" oninput="setShipmentCustomerSearchAuto(this.value)" onchange="applyCustomerSearch()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();applyCustomerSearch()}"><datalist id="customerList">'+dl+'</datalist></label>'+
-      '<div class="btn-row-spaced"><button class="btn" onclick="return rc324NewShipment()">+ Neue Sendung</button><button class="ghost" onclick="applyCustomerSearch();return false">Kunde uebernehmen</button><button class="ghost" onclick="ensureShipmentReference(true);return false">Neue 6-Zeichen-Referenz</button><button class="soft" onclick="showCurrentCmr();return false">Ladeliste & CMR anzeigen</button></div>'+
+  window.rc325Shipment=function(){
+    var sh=shipment(), c=selectedCustomer(), list=customers();
+    var opts=list.map(function(cu){return '<option value="'+E(cu.id||'')+'" '+(T(cu.id)===T(sh.customerId)?'selected':'')+'>'+E(opt(cu))+'</option>'}).join('');
+    var dl=list.map(function(cu){return '<option value="'+E(opt(cu))+'"></option>'}).join('');
+    return (typeof head==='function'?head('Sendung erstellen',''):'<h2>Sendung erstellen</h2>')+
+      '<div class="rc325-page"><div class="rc325-grid"><div class="card"><h3>Kunde & Grunddaten</h3>'+
+      '<label class="field">Kundennummer / Kunde suchen<input id="shipmentCustomerSearch" list="customerList" value="'+E(sh.customerSearch||opt(c))+'" oninput="setShipmentCustomerSearchAuto(this.value)" onchange="applyCustomerSearch()" onkeydown="if(event.key===&quot;Enter&quot;){event.preventDefault();applyCustomerSearch()}"><datalist id="customerList">'+dl+'</datalist></label>'+
+      '<div class="rc325-actions"><button class="rc325-blue" onclick="return rc325NewShipment()">+ Neue Sendung</button><button class="rc325-soft" onclick="applyCustomerSearch();return false">Kunde uebernehmen</button><button class="rc325-soft" onclick="ensureShipmentReference(true);return false">Neue Referenz</button></div>'+
       '<label class="field">Kunde<select onchange="selectShipmentCustomer(this.value)">'+opts+'</select></label>'+
-      '<div class="'+(addressMissing?'badbox':'okbox')+'"><b>Empfaengeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+E(c.address||'Adresse fehlt')+'</pre></div>'+
-      '<label class="checkrow"><input type="checkbox" '+(s.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save()"><span>Adresse bestaetigen</span></label>'+
-      '<label class="checkrow"><input type="checkbox" '+(s.customerProcessConfirmed?'checked':'')+' onchange="rc324SetProcess(this.checked)"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe Kundeninfos, SOP-/Prozesshinweise und besondere Versandvorgaben geprueft.</span></span></label>'+
-      '<div class="infobox"><b>Mail an Kunden oder Spedition:</b><br>'+customerMail(c,s)+'<br><span class="small">Der Mailtext enthaelt keine Kunden-/Adress-/DNC-Felder mehr.</span></div>'+
-      '<label class="field">Sendungsreferenz / Referenznummer<input value="'+E(s.ref||'')+'" maxlength="6" pattern="[A-Z0-9]{6}" oninput="this.value=rc324CleanRef(this.value)" onchange="setShipmentRef(this.value)" placeholder="6 Zeichen A-Z/0-9"></label>'+
-      '<label class="field">Lieferscheine / DNCs manuell (optional)<textarea onchange="state.shipment.deliveryNotes=this.value;save()" placeholder="Optional: eine DNC/Lieferscheinnummer je Zeile">'+E(s.deliveryNotes||'')+'</textarea></label>'+
-      '<div class="rc324-file-actions"><label class="btn">Dateien auswaehlen<input type="file" multiple style="display:none" onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label><button type="button" class="btn" onclick="return typeof rc246OpenReferenceFolderPicker===&quot;function&quot;?rc246OpenReferenceFolderPicker():false">Dateien aus Ref.-Ordner uebernehmen</button></div>'+fileList(s)+
-      '<div class="miniGrid"><label class="field">Geplantes Abholdatum<input type="date" value="'+E(s.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+E(s.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()"></label><label class="field">Kennzeichen<input value="'+E(s.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()"></label><label class="field">Verlader<input value="'+E(s.loader||'')+'" onchange="state.shipment.loader=this.value;save()"></label></div>'+
-      '<label class="field">Incoterm / Hinweis<input value="'+E(s.incoterm||'')+'" onchange="state.shipment.incoterm=this.value;save()"></label>'+
-      '<div class="rc324-actions"><button type="button" class="btn" onclick="return rc324SaveShipment()">Sendung speichern + Aufgaben pruefen</button><button type="button" class="ghost" onclick="showCurrentCmr();return false">Ladeliste/CMR Vorschau</button><button type="button" class="ghost" onclick="rc55DownloadLoadlistPdf();return false">Ladeliste PDF herunterladen</button><button type="button" class="ghost" onclick="rc55PrintLabels();return false">Versandlabel 4x A4</button></div>'+completion(s)+
-      '</div><div class="card"><h3>Collis, Masse, Gewicht, Lademeter</h3><div id="rowsBox">'+A(s.rows).map(rowHtml).join('')+'</div><button class="ghost" onclick="return rc324AddRow()">+ Zeile</button><div class="summaryGrid">'+(typeof shipmentSummaryBoxes==='function'?shipmentSummaryBoxes(s):'')+'</div>'+completion(s)+
-      '<label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()">'+E(s.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label><label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+E(s.comments||'')+'</textarea></label></div></div>'+
-      '<div class="card" style="max-width:1160px"><h3>Gespeicherte Sendungen</h3><div class="toolbar"><button class="ghost" onclick="setView(&quot;shipmentoverview&quot;)">Sendungsuebersicht oeffnen</button></div>'+savedTable()+'</div>';
+      '<div class="'+(T(c.address).trim()?'okbox':'badbox')+'"><b>Empfaengeradresse:</b><pre style="white-space:pre-wrap;margin:8px 0 0">'+E(c.address||'Adresse fehlt')+'</pre></div>'+
+      '<label class="checkrow"><input type="checkbox" '+(sh.addressConfirmed?'checked':'')+' onchange="state.shipment.addressConfirmed=this.checked;save()"><span>Adresse bestaetigen</span></label>'+
+      '<label class="checkrow"><input type="checkbox" '+(sh.customerProcessConfirmed?'checked':'')+' onchange="state.shipment.customerProcessConfirmed=this.checked;save()"><span><b>Kundeninfos / Prozesshinweise gelesen</b><br><span class="small">Ich habe Kundeninfos, SOP-/Prozesshinweise und besondere Versandvorgaben geprueft.</span></span></label>'+
+      '<div class="infobox"><b>Mail an Kunden oder Spedition:</b><br>'+mailPanel(c,sh)+'</div>'+
+      '<label class="field">Sendungsreferenz / Referenznummer<input value="'+E(sh.ref||'')+'" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,&quot;&quot;).slice(0,6)" onchange="setShipmentRef(this.value)"></label>'+
+      '<label class="field">Lieferscheine / DNCs manuell<textarea onchange="state.shipment.deliveryNotes=this.value;save()">'+E(sh.deliveryNotes||'')+'</textarea></label>'+
+      '<div class="rc325-files"><label class="btn">Dateien auswaehlen<input type="file" multiple style="display:none" onchange="addDeliveryNoteFiles(this.files)" accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,.msg,.eml,image/*,application/pdf"></label><button type="button" class="btn" onclick="return typeof rc246OpenReferenceFolderPicker===&quot;function&quot;?rc246OpenReferenceFolderPicker():false">Dateien aus Ref.-Ordner uebernehmen</button></div>'+fileList(sh)+
+      '<div class="miniGrid"><label class="field">Geplantes Abholdatum<input type="date" value="'+E(sh.pickupDate||'')+'" onchange="setShipmentPickupDate(this.value)"></label><label class="field">Spedition<input value="'+E(sh.carrier||c.carrier||'')+'" onchange="state.shipment.carrier=this.value;save()"></label><label class="field">Kennzeichen<input value="'+E(sh.licensePlate||'')+'" onchange="state.shipment.licensePlate=this.value;save()"></label><label class="field">Verlader<input value="'+E(sh.loader||'')+'" onchange="state.shipment.loader=this.value;save()"></label></div>'+
+      '<div class="rc325-actions"><button class="rc325-blue" onclick="return rc325SaveShipment()">Sendung speichern + Aufgaben pruefen</button><button class="rc325-soft" onclick="showCurrentCmr();return false">Ladeliste/CMR Vorschau</button><button class="rc325-soft" onclick="rc55DownloadLoadlistPdf();return false">Ladeliste PDF herunterladen</button><button class="rc325-soft" onclick="rc55PrintLabels();return false">Versandlabel 4x A4</button></div>'+completion(sh)+
+      '</div><div class="card"><h3>Collis, Masse, Gewicht, Lademeter</h3><div id="rowsBox">'+A(sh.rows).map(rowHtml).join('')+'</div><button class="ghost" onclick="return rc325AddRow()">+ Zeile</button><div class="summaryGrid">'+(typeof shipmentSummaryBoxes==='function'?shipmentSummaryBoxes(sh):'')+'</div>'+completion(sh)+'<label class="field">Warenbeschreibung fuer CMR Feld 9<textarea onchange="state.shipment.goodsDescription=this.value;save()">'+E(sh.goodsDescription||'Waren laut Rechnung/Ladeliste')+'</textarea></label><label class="field">Bemerkung<textarea onchange="state.shipment.comments=this.value;save()">'+E(sh.comments||'')+'</textarea></label></div></div><div class="card"><h3>Gespeicherte Sendungen</h3><button class="ghost" onclick="setView(&quot;shipmentoverview&quot;)">Sendungsuebersicht oeffnen</button>'+savedSmall()+'</div></div>';
   };
-  window.rc324CleanRef=cleanRef;
 
-  function baseFolder(ref){try{if(typeof rc313OpenFolder==='function')return ''}catch(_){}return ''}
-  function cust(x){
-    var c=x&&x.customer||{}, byId=customerById(x&&x.customerId);
-    c=c&&c.name?c:(byId||c||{});
-    return {num:c.account||c.customerNumber||x.customerNumber||x.account||'',name:c.name||x.customerName||x.customer||'',country:c.country||c.land||x.country||''};
-  }
-  function docsText(x){
-    var out=[];
-    T(x&&x.deliveryNotes).split(/\n|,|;/).forEach(function(v){v=T(v).trim();if(v)out.push(v)});
-    A(x&&x.deliveryFiles).forEach(function(f){var n=f&& (f.name||f.fileName||f.filename);if(n)out.push(n)});
-    return out;
-  }
-  function allDocCandidates(x,kind){
-    var out=[], keys=['rc313Docs','rc312Docs','rc311Docs','rc256Docs','rc254Docs','rc247Docs','docs'];
-    keys.forEach(function(k){var d=x&&x[k]&&x[k][kind];if(Array.isArray(d))out=out.concat(d);else if(d)out.push(d)});
-    var list=kind==='abd'?A(x&&x.abdFiles):A(x&&x.podFiles);
-    out=out.concat(list.filter(function(d){var n=N((d&&d.docKind)+' '+(d&&d.name)+' '+(d&&d.fileName));return kind==='abd'?n.indexOf('abd')>=0:n.indexOf('pod')>=0||n.indexOf('abliefer')>=0}));
-    return out.filter(Boolean);
-  }
-  function docName(d){return T(d&& (d.name||d.fileName||d.filename||d.title||d.url||d.webUrl||''))}
-  function docUrl(d){return T(d&&(d.webUrl||d.url||d.objectUrl||d.href||d.link||''))}
-  function bestDoc(x,kind){var d=allDocCandidates(x,kind);return d[0]||null}
+  function cinfo(x){var c=x&&x.customer||byId(x&&x.customerId)||{};return {num:c.account||c.customerNumber||x.customerNumber||x.account||'',name:c.name||x.customerName||x.customer||'',country:c.country||c.land||x.country||''}}
+  function docsText(x){var out=[];T(x&&x.deliveryNotes).split(/\n|,|;/).forEach(function(v){v=T(v).trim();if(v)out.push(v)});A(x&&x.deliveryFiles).forEach(function(f){var n=f&& (f.name||f.fileName||f.filename);if(n)out.push(n)});return out}
+  function docCandidates(x,kind){var out=[], keys=['rc313Docs','rc312Docs','rc311Docs','rc256Docs','rc254Docs','rc247Docs','docs'];keys.forEach(function(k){var d=x&&x[k]&&x[k][kind];if(Array.isArray(d))out=out.concat(d);else if(d)out.push(d)});out=out.concat(kind==='abd'?A(x&&x.abdFiles):A(x&&x.podFiles));return out.filter(Boolean)}
+  function dname(d){return T(d&& (d.name||d.fileName||d.filename||d.title||d.url||d.webUrl||''))}
+  function durl(d){return T(d&&(d.webUrl||d.url||d.objectUrl||d.href||d.link||''))}
+  function bestDoc(x,kind){var a=docCandidates(x,kind);return a[0]||null}
   function status(x){var raw=N([x&&x.status,x&&x.freigabe,x&&x.abdStatus,x&&x.done?'erledigt':'',x&&x.completedAt?'erledigt':''].join(' '));return raw.indexOf('erled')>=0?'Erledigt':(raw.indexOf('dokument')>=0?'Dokument vorhanden':'Offen')}
   function pill(t){var n=N(t), cls=n.indexOf('erled')>=0?'green':(n.indexOf('dokument')>=0?'blue':'orange');return '<span class="pill '+cls+'">'+E(t||'Offen')+'</span>'}
-  function customerCell(c){return '<div class="rc324-customer-focus"><span class="rc324-customer-number">'+E(c.num||'')+'</span><span class="rc324-customer-name">'+E(c.name||'')+'</span>'+(c.country?'<span class="rc324-customer-country">'+E(c.country)+'</span>':'')+'</div>'}
-  function docCard(x,kind,source){
-    var label=kind==='abd'?'ABD':'POD', d=bestDoc(x,kind), linked=!!d, url=docUrl(d), openable=/^(https?:|blob:)/i.test(url);
-    return '<div class="rc324-doc-card '+(linked?'linked':'')+'"><div class="rc324-doc-head"><span>'+label+'</span><span class="pill '+(linked?'green':'gray')+'">'+(linked?(openable?'Direktlink':'Datei verlinkt'):'fehlt')+'</span></div><div class="rc324-doc-name">'+E(linked?(docName(d)||label+'.pdf'):'kein '+label+' erkannt')+'</div><div class="rc324-doc-actions">'+(linked?'<button class="rc324-blue" onclick="return rc313OpenDoc(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;)">'+(openable?'Oeffnen':'Ref.-Ordner oeffnen')+'</button>':'')+'<button class="ghost" onclick="return rc313SetDocLink(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;)">SharePoint-Link</button><label class="ghost">Datei auswaehlen<input class="rc324-file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.msg,.eml,application/pdf,image/*" onchange="rc313UploadDoc(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+source+'&quot;,this)"></label><button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button></div></div>';
+  function custHtml(c){return '<div class="rc325-customer"><span class="rc325-cnum">'+E(c.num||'')+'</span><span class="rc325-cname">'+E(c.name||'')+'</span>'+(c.country?'<span class="rc325-country">'+E(c.country)+'</span>':'')+'</div>'}
+  function docCard(x,kind,src){
+    var label=kind==='abd'?'ABD':'POD', d=bestDoc(x,kind), linked=!!d, open=/^(https?:|blob:|data:)/i.test(durl(d));
+    return '<div class="rc325-doc '+(linked?'linked':'')+'"><div class="rc325-doc-head"><span>'+label+'</span>'+pill(linked?(open?'Direktlink':'Datei verlinkt'):'fehlt')+'</div><div class="rc325-doc-name">'+E(linked?(dname(d)||label+'.pdf'):'kein '+label+' erkannt')+'</div><div class="rc325-doc-actions">'+(linked?'<button class="rc325-blue" onclick="return rc313OpenDoc(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+src+'&quot;)">Oeffnen</button>':'')+'<button class="ghost" onclick="return rc313SetDocLink(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+src+'&quot;)">SharePoint-Link</button><label class="ghost">Datei<input class="rc325-hidden-file" type="file" accept=".pdf,.jpg,.jpeg,.png,.msg,.eml,application/pdf,image/*" onchange="rc313UploadDoc(&quot;'+E(x.id||'')+'&quot;,&quot;'+kind+'&quot;,&quot;'+src+'&quot;,this)"></label><button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button></div></div>';
   }
-  function match(x,q){return !q||N(x).indexOf(q)>=0}
-  window.rc324OverviewSearch=function(v){S().shipmentOverviewSearch=T(v);clearTimeout(window.__rc324Search);window.__rc324Search=setTimeout(function(){saveSafe();renderSafe()},160)};
-  window.rc324SetDone=function(id,source,done){
-    var list=source==='abdRequest'?A(S().abdRequests):A(S().shipments);
-    var x=list.find(function(v){return T(v&&v.id)===T(id)});
-    if(!x)return false;
-    if(done){x.status='erledigt';x.freigabe='erledigt';x.done=true;x.completedAt=new Date().toISOString();x.completedBy=(currentUser&&(currentUser.name||currentUser.user))||'Benutzer';if(source==='abdRequest')x.abdStatus='erledigt'}
-    else{x.status='offen';x.freigabe='offen';x.done=false;x.completedAt='';x.completedBy='';if(source==='abdRequest')x.abdStatus=bestDoc(x,'abd')?'Dokument vorhanden':'offen'}
-    saveSafe();renderSafe();return false;
-  };
-  window.rc324ShipmentOverview=function(){
-    var q=N(S().shipmentOverviewSearch||''), type=S().rc324OverviewType||S().rc313OverviewType||'all', hide=!!S().rc324HideDone||!!S().rc313HideDone;
-    var ships=A(S().shipments).slice().filter(function(x){var c=cust(x);return match([x.ref,x.created,c.num,c.name,c.country,docsText(x).join(' '),docName(bestDoc(x,'abd')),docName(bestDoc(x,'pod')),status(x)].join(' '),q)});
-    var abds=A(S().abdRequests).slice().filter(function(x){var c=cust(x);return match([x.ref,x.created,x.createdIso,c.num,c.name,x.customerName,docName(bestDoc(x,'abd')),docName(bestDoc(x,'pod')),status(x)].join(' '),q)});
+  function itemCard(x,src){
+    var c=cinfo(x), st=status(x), docs=docsText(x);
+    return '<div class="rc325-item"><div class="rc325-item-main"><div><div class="rc325-ref">'+E(x.ref||'')+'</div><span class="rc325-small">'+E(x.created||x.createdIso||'')+'</span></div>'+custHtml(c)+'<div><b>DNC / Lieferscheine</b><br>'+(docs.length?docs.map(function(v){return '<span class="pill gray">'+E(v)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</div><div><b>Status</b><br>'+pill(st)+'<div class="rc325-card-actions" style="margin-top:8px">'+(src==='shipment'?'<button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button>':'')+'<button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button>'+(st==='Erledigt'?'<button class="ghost" onclick="return rc325Done(&quot;'+E(x.id||'')+'&quot;,&quot;'+src+'&quot;,false)">Wieder offen</button>':'<button class="rc325-blue" onclick="return rc325Done(&quot;'+E(x.id||'')+'&quot;,&quot;'+src+'&quot;,true)">Erledigt</button>')+'</div></div></div><div class="rc325-docs">'+docCard(x,'abd',src)+docCard(x,'pod',src)+'</div></div>';
+  }
+  window.rc325Search=function(v){S().shipmentOverviewSearch=T(v);clearTimeout(window.__rc325Search);window.__rc325Search=setTimeout(function(){save325();render325()},120)};
+  window.rc325Done=function(id,src,done){var list=src==='abdRequest'?A(S().abdRequests):A(S().shipments), x=list.find(function(v){return T(v&&v.id)===T(id)});if(!x)return false;if(done){x.status='erledigt';x.freigabe='erledigt';x.done=true;x.completedAt=new Date().toISOString();x.completedBy=(currentUser&&(currentUser.name||currentUser.user))||'Benutzer';if(src==='abdRequest')x.abdStatus='erledigt'}else{x.status='offen';x.freigabe='offen';x.done=false;x.completedAt='';x.completedBy='';if(src==='abdRequest')x.abdStatus=bestDoc(x,'abd')?'Dokument vorhanden':'offen'}save325();render325();return false};
+  window.rc325Overview=function(){
+    var q=N(S().shipmentOverviewSearch||''), type=S().rc325OverviewType||S().rc313OverviewType||'all', hide=!!S().rc325HideDone||!!S().rc313HideDone;
+    var ships=A(S().shipments).filter(function(x){var c=cinfo(x);return !q||N([x.ref,x.created,c.num,c.name,c.country,docsText(x).join(' '),dname(bestDoc(x,'abd')),dname(bestDoc(x,'pod')),status(x)].join(' ')).indexOf(q)>=0});
+    var abds=A(S().abdRequests).filter(function(x){var c=cinfo(x);return !q||N([x.ref,x.created,x.createdIso,c.num,c.name,x.customerName,dname(bestDoc(x,'abd')),dname(bestDoc(x,'pod')),status(x)].join(' ')).indexOf(q)>=0});
     if(hide){ships=ships.filter(function(x){return status(x)!=='Erledigt'});abds=abds.filter(function(x){return status(x)!=='Erledigt'})}
-    ships.sort(function(a,b){return T(b.created||'').localeCompare(T(a.created||''))});
-    abds.sort(function(a,b){return T(b.createdIso||b.created||'').localeCompare(T(a.createdIso||a.created||''))});
-    var html=(typeof head==='function'?head('Sendungsuebersicht',''):'<h2>Sendungsuebersicht</h2>')+
-      '<div class="rc324-overview-filter"><input placeholder="Referenz, Kunde, DNC, POD oder ABD suchen" value="'+E(S().shipmentOverviewSearch||'')+'" oninput="rc324OverviewSearch(this.value)"><select onchange="state.rc324OverviewType=this.value;state.rc313OverviewType=this.value;save();render()"><option value="all" '+(type==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(type==='shipments'?'selected':'')+'>Nur Sendungen</option><option value="abd" '+(type==='abd'?'selected':'')+'>Nur ABD</option></select><label class="checkrow"><input type="checkbox" '+(hide?'checked':'')+' onchange="state.rc324HideDone=this.checked;state.rc313HideDone=this.checked;save();render()"> Erledigte ausblenden</label><button class="rc324-blue" onclick="state.shipmentOverviewSearch=&quot;&quot;;state.rc324OverviewType=&quot;all&quot;;save();render()">Filter loeschen</button><button class="ghost" onclick="return rc313OpenFolder(&quot;&quot;)">Basisordner oeffnen</button></div>';
-    if(type==='all'||type==='shipments'){
-      html+='<div class="card"><h3>Sendungen</h3>'+(ships.length?'<table class="rc324-table"><tr><th>Referenz</th><th>Kunde</th><th>Abholung</th><th>DNC / Lieferscheine</th><th>ABD / POD</th><th>Status</th><th>Aktion</th></tr>'+ships.map(function(x){var c=cust(x), d=docsText(x), st=status(x);return '<tr><td><b>'+E(x.ref||'')+'</b><br><span class="small">'+E(x.created||'')+'</span></td><td>'+customerCell(c)+'</td><td><label class="field">Geplant<input type="date" value="'+E(T(x.pickupDate||x.plannedPickupDate).slice(0,10))+'" onchange="this.closest(&quot;tr&quot;);var y=(state.shipments||[]).find(function(v){return String(v.id)===&quot;'+E(x.id||'')+'&quot;});if(y){y.pickupDate=this.value;y.plannedPickupDate=this.value;save();}"></label><label class="field">Tatsaechlich<input type="date" value="'+E(T(x.actualPickupDate||x.pickedUpAtDate).slice(0,10))+'" onchange="var y=(state.shipments||[]).find(function(v){return String(v.id)===&quot;'+E(x.id||'')+'&quot;});if(y){y.actualPickupDate=this.value;y.pickedUpAtDate=this.value;save();}"></label></td><td>'+(d.length?d.map(function(v){return '<span class="pill gray">'+E(v)+'</span>'}).join(' '):'<span class="muted">keine DNC</span>')+'</td><td><div class="rc324-docs">'+docCard(x,'abd','shipment')+docCard(x,'pod','shipment')+'</div></td><td>'+pill(st)+'</td><td><div class="rc324-overview-actions"><button class="ghost" onclick="showSavedCmr(&quot;'+E(x.id||'')+'&quot;)">Ladeliste/CMR</button><button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button>'+(st==='Erledigt'?'<button class="ghost" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;shipment&quot;,false)">Wieder offen</button>':'<button class="rc324-blue" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;shipment&quot;,true)">Erledigt</button>')+'</div></td></tr>'}).join('')+'</table>':'<p class="muted">Keine Sendungen gefunden.</p>')+'</div>';
-    }
-    if(type==='all'||type==='abd'){
-      html+='<div class="card"><h3>ABD Anfragen</h3>'+(abds.length?'<table class="rc324-table"><tr><th>Referenz</th><th>Kunde</th><th>ABD / POD</th><th>Status</th><th>Aktion</th></tr>'+abds.map(function(x){var c=cust(x), st=status(x);return '<tr><td><b>'+E(x.ref||'')+'</b><br><span class="small">'+E(x.created||x.createdIso||'')+'</span></td><td>'+customerCell(c)+'</td><td><div class="rc324-docs">'+docCard(x,'abd','abdRequest')+docCard(x,'pod','abdRequest')+'</div></td><td>'+pill(st)+'</td><td><div class="rc324-overview-actions"><button class="ghost" onclick="return rc313OpenFolder(&quot;'+E(x.ref||'')+'&quot;)">Ref.-Ordner</button>'+(st==='Erledigt'?'<button class="ghost" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;abdRequest&quot;,false)">Wieder offen</button>':'<button class="rc324-blue" onclick="return rc324SetDone(&quot;'+E(x.id||'')+'&quot;,&quot;abdRequest&quot;,true)">Erledigt</button>')+'</div></td></tr>'}).join('')+'</table>':'<p class="muted">Keine ABD Anfragen gefunden.</p>')+'</div>';
-    }
-    return html;
+    var html=(typeof head==='function'?head('Sendungsuebersicht',''):'<h2>Sendungsuebersicht</h2>')+'<div class="rc325-page"><div class="rc325-overview-filter"><input placeholder="Referenz, Kunde, DNC, POD oder ABD suchen" value="'+E(S().shipmentOverviewSearch||'')+'" oninput="rc325Search(this.value)"><select onchange="state.rc325OverviewType=this.value;state.rc313OverviewType=this.value;save();render()"><option value="all" '+(type==='all'?'selected':'')+'>Alles</option><option value="shipments" '+(type==='shipments'?'selected':'')+'>Nur Sendungen</option><option value="abd" '+(type==='abd'?'selected':'')+'>Nur ABD</option></select><label class="checkrow"><input type="checkbox" '+(hide?'checked':'')+' onchange="state.rc325HideDone=this.checked;state.rc313HideDone=this.checked;save();render()"> Erledigte ausblenden</label><button class="rc325-blue" onclick="state.shipmentOverviewSearch=&quot;&quot;;state.rc325OverviewType=&quot;all&quot;;save();render()">Filter loeschen</button><button class="ghost" onclick="return rc313OpenFolder(&quot;&quot;)">Basisordner oeffnen</button></div>';
+    if(type==='all'||type==='shipments')html+='<div class="card"><div class="rc325-section-title"><h3>Sendungen</h3><button class="rc325-blue" onclick="setView(&quot;shipment&quot;)">+ Neue Sendung</button></div><div class="rc325-list">'+(ships.length?ships.map(function(x){return itemCard(x,'shipment')}).join(''):'<p class="muted">Keine Sendungen gefunden.</p>')+'</div></div>';
+    if(type==='all'||type==='abd')html+='<div class="card"><div class="rc325-section-title"><h3>ABD Anfragen</h3></div><div class="rc325-list">'+(abds.length?abds.map(function(x){return itemCard(x,'abdRequest')}).join(''):'<p class="muted">Keine ABD Anfragen gefunden.</p>')+'</div></div>';
+    return html+'</div>';
   };
 
-  var previousRender=window.render||(typeof render==='function'?render:null);
-  window.shipment=window.rc324Shipment;try{shipment=window.rc324Shipment}catch(_){}
-  window.shipmentoverview=window.rc324ShipmentOverview;try{shipmentoverview=window.rc324ShipmentOverview}catch(_){}
-  window.saveShipment=window.rc324SaveShipment;try{saveShipment=window.rc324SaveShipment}catch(_){}
+  var oldSetView=window.setView||(typeof setView==='function'?setView:null);
+  window.setView=function(v){if(v==='shipment'||v==='shipmentoverview'){S().view=v;save325();render325();return false}return oldSetView&&oldSetView.apply(this,arguments)};
+  try{setView=window.setView}catch(_){}
+  var oldRender=window.render||(typeof render==='function'?render:null);
+  window.shipment=window.rc325Shipment;try{shipment=window.rc325Shipment}catch(_){}
+  window.shipmentoverview=window.rc325Overview;try{shipmentoverview=window.rc325Overview}catch(_){}
+  window.saveShipment=window.rc325SaveShipment;try{saveShipment=window.rc325SaveShipment}catch(_){}
+  window.newShipment=window.rc325NewShipment;try{newShipment=window.rc325NewShipment}catch(_){}
   window.rc288RunShipment=function(){return false};try{rc288RunShipment=window.rc288RunShipment}catch(_){}
   window.rc318NormalizeShipment=function(){return false};
   window.rc319RestoreShipmentTools=function(){return false};
   window.render=function(){
     try{
-      var s=S();
-      if(s&&s.view==='shipment'){
+      var v=S().view, target=(typeof content!=='undefined'&&content)||document.getElementById('content')||document.querySelector('main')||document.body;
+      if(v==='shipment'||v==='shipmentoverview'){
         if(typeof renderNav==='function')renderNav();
-        var target=(typeof content!=='undefined'&&content)||document.getElementById('content')||document.querySelector('main')||document.body;
-        target.innerHTML=(typeof canRead==='function'&&!canRead('shipment'))?(typeof noAccessView==='function'?noAccessView():'Kein Leserecht'):window.rc324Shipment();
+        target.innerHTML=v==='shipment'?window.rc325Shipment():window.rc325Overview();
         try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(_){}
         return;
       }
-      if(s&&s.view==='shipmentoverview'){
-        if(typeof renderNav==='function')renderNav();
-        var target2=(typeof content!=='undefined'&&content)||document.getElementById('content')||document.querySelector('main')||document.body;
-        target2.innerHTML=(typeof canRead==='function'&&!canRead('shipmentoverview'))?(typeof noAccessView==='function'?noAccessView():'Kein Leserecht'):window.rc324ShipmentOverview();
-        try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(_){}
-        return;
-      }
-    }catch(err){console.error('RC324 finaler Renderfehler',err)}
-    return previousRender&&previousRender.apply(this,arguments);
+    }catch(err){console.error('RC325 Endrenderer Fehler',err)}
+    return oldRender&&oldRender.apply(this,arguments);
   };
   try{render=window.render}catch(_){}
 })();
 </script>
-<!-- PRIVATE RC324 END: Sendung erstellen + Sendungsuebersicht final wiederherstellen -->
+<!-- PRIVATE RC325 END: Sendung erstellen und Uebersicht Endrenderer -->
 </body></html>
