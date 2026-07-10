@@ -45795,6 +45795,49 @@ body .rc314-process-warning{
 
 
 
+
+<!-- PRIVATE RC362 START: Colli + Zeile Doppeltrigger Fix -->
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC362_ADD_ROW_SINGLE__)return;
+  window.__EXPORTHUB_RC362_ADD_ROW_SINGLE__=true;
+  var addBusy=false;
+  var lastAddAt=0;
+  function S(){try{return state}catch(e){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function blank(){return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''}}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function renderShip(){try{if(typeof window.rc344RenderShipment==='function')return window.rc344RenderShipment()}catch(e){} try{if(typeof render==='function')return render()}catch(e){} return false}
+  function ship(){var s=S();s.shipment=s.shipment||{};s.shipment.rows=A(s.shipment.rows);return s.shipment}
+
+  window.rc362AddRow=function(){
+    var now=Date.now();
+    if(addBusy || (now-lastAddAt)<350){return false;}
+    addBusy=true;
+    lastAddAt=now;
+    try{
+      if(typeof window.rc361SyncColliRows==='function')window.rc361SyncColliRows();
+      var sh=ship();
+      sh.rows=A(sh.rows);
+      sh.rows.push(blank());
+      S().activeShipmentId='current';
+      saveQ();
+      return renderShip();
+    }finally{
+      setTimeout(function(){addBusy=false;},350);
+    }
+  };
+
+  window.rc361AddRow=window.rc362AddRow;
+  window.rc358AddShipmentRow=window.rc362AddRow;
+  window.rc344AddRow=window.rc362AddRow;
+  window.addShipmentRow=window.rc362AddRow;
+  window.rc325AddRow=window.rc362AddRow;
+  try{rc361AddRow=window.rc362AddRow;rc358AddShipmentRow=window.rc362AddRow;rc344AddRow=window.rc362AddRow;addShipmentRow=window.rc362AddRow;rc325AddRow=window.rc362AddRow}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC362 END: Colli + Zeile Doppeltrigger Fix -->
+
 </body></html>');w.document.close();return false}
   window.rc353ShowDocuments=function(sh){sh=sh||activeShipment();S().view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}root().innerHTML=fullDocHtml(sh);return false};
   window.showCurrentCmr=function(){S().activeShipmentId='current';saveQuiet();return window.rc353ShowDocuments(S().shipment||{})};
@@ -46020,6 +46063,49 @@ body .rc314-process-warning{
 
 
 
+
+
+<!-- PRIVATE RC362 START: Colli + Zeile Doppeltrigger Fix -->
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC362_ADD_ROW_SINGLE__)return;
+  window.__EXPORTHUB_RC362_ADD_ROW_SINGLE__=true;
+  var addBusy=false;
+  var lastAddAt=0;
+  function S(){try{return state}catch(e){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function blank(){return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''}}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function renderShip(){try{if(typeof window.rc344RenderShipment==='function')return window.rc344RenderShipment()}catch(e){} try{if(typeof render==='function')return render()}catch(e){} return false}
+  function ship(){var s=S();s.shipment=s.shipment||{};s.shipment.rows=A(s.shipment.rows);return s.shipment}
+
+  window.rc362AddRow=function(){
+    var now=Date.now();
+    if(addBusy || (now-lastAddAt)<350){return false;}
+    addBusy=true;
+    lastAddAt=now;
+    try{
+      if(typeof window.rc361SyncColliRows==='function')window.rc361SyncColliRows();
+      var sh=ship();
+      sh.rows=A(sh.rows);
+      sh.rows.push(blank());
+      S().activeShipmentId='current';
+      saveQ();
+      return renderShip();
+    }finally{
+      setTimeout(function(){addBusy=false;},350);
+    }
+  };
+
+  window.rc361AddRow=window.rc362AddRow;
+  window.rc358AddShipmentRow=window.rc362AddRow;
+  window.rc344AddRow=window.rc362AddRow;
+  window.addShipmentRow=window.rc362AddRow;
+  window.rc325AddRow=window.rc362AddRow;
+  try{rc361AddRow=window.rc362AddRow;rc358AddShipmentRow=window.rc362AddRow;rc344AddRow=window.rc362AddRow;addShipmentRow=window.rc362AddRow;rc325AddRow=window.rc362AddRow}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC362 END: Colli + Zeile Doppeltrigger Fix -->
 
 </body></html>');w.document.close();return false}
   window.rc355ShowDocuments=function(sh){sh=sh||docShipment();S().view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}root().innerHTML=fullHtml(sh);return false};
@@ -46544,5 +46630,48 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC361 END: Colli-Zeilen aus sichtbaren Eingaben in Sendung übernehmen -->
+
+
+<!-- PRIVATE RC362 START: Colli + Zeile Doppeltrigger Fix -->
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC362_ADD_ROW_SINGLE__)return;
+  window.__EXPORTHUB_RC362_ADD_ROW_SINGLE__=true;
+  var addBusy=false;
+  var lastAddAt=0;
+  function S(){try{return state}catch(e){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function blank(){return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''}}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function renderShip(){try{if(typeof window.rc344RenderShipment==='function')return window.rc344RenderShipment()}catch(e){} try{if(typeof render==='function')return render()}catch(e){} return false}
+  function ship(){var s=S();s.shipment=s.shipment||{};s.shipment.rows=A(s.shipment.rows);return s.shipment}
+
+  window.rc362AddRow=function(){
+    var now=Date.now();
+    if(addBusy || (now-lastAddAt)<350){return false;}
+    addBusy=true;
+    lastAddAt=now;
+    try{
+      if(typeof window.rc361SyncColliRows==='function')window.rc361SyncColliRows();
+      var sh=ship();
+      sh.rows=A(sh.rows);
+      sh.rows.push(blank());
+      S().activeShipmentId='current';
+      saveQ();
+      return renderShip();
+    }finally{
+      setTimeout(function(){addBusy=false;},350);
+    }
+  };
+
+  window.rc361AddRow=window.rc362AddRow;
+  window.rc358AddShipmentRow=window.rc362AddRow;
+  window.rc344AddRow=window.rc362AddRow;
+  window.addShipmentRow=window.rc362AddRow;
+  window.rc325AddRow=window.rc362AddRow;
+  try{rc361AddRow=window.rc362AddRow;rc358AddShipmentRow=window.rc362AddRow;rc344AddRow=window.rc362AddRow;addShipmentRow=window.rc362AddRow;rc325AddRow=window.rc362AddRow}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC362 END: Colli + Zeile Doppeltrigger Fix -->
 
 </body></html>
