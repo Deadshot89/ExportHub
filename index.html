@@ -44740,8 +44740,9 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
       var r=Object.assign(blankRow(), raw||{});
       if(/^(bitte\s*w(ae|ä)hle(n)?|please\s*select)$/i.test(clean(r.type)))r.type='';
       var hasAny=!!(clean(r.type)||clean(r.count)||clean(r.weight)||clean(r.ldm)||clean(r.l)||clean(r.w)||clean(r.h));
-      if(!hasAny)return;
-      if(!clean(r.type)&&(!clean(r.count)||!clean(r.weight))){return;}
+      if(!hasAny){out.push(r);return;}
+      // Leere neue Zeilen muessen bestehen bleiben. Alte Fremdwerte ohne Verpackung und ohne Anzahl/Gewicht werden entfernt.
+      if(!clean(r.type)&&!clean(r.count)&&!clean(r.weight)&&(clean(r.ldm)||clean(r.l)||clean(r.w)||clean(r.h))){return;}
       out.push(r);
     });
     if(!out.length)out=[blankRow()];
@@ -45131,8 +45132,8 @@ body[data-exporthub-view="cmr"] .rc334-process-anchor{
     A(rows).forEach(function(raw){
       var r=Object.assign(blankRow(),raw||{});
       if(/^(bitte\s*w(ae|ä)hle(n)?|please\s*select)$/i.test(clean(r.type)))r.type='';
-      // Kein Verpackungstyp = alter Fremd-/Cachewert. Genau diese Werte haben im Video immer wieder geladen.
-      if(!clean(r.type))return;
+      // Leere oder bewusst angefangene neue Zeilen behalten. Nur alte Cachewerte ohne Verpackung/Anzahl/Gewicht entfernen.
+      if(!clean(r.type)&&!clean(r.count)&&!clean(r.weight)&&(clean(r.ldm)||clean(r.l)||clean(r.w)||clean(r.h)))return;
       out.push(r);
     });
     return out.length?out:[blankRow()];
@@ -45784,7 +45785,7 @@ body .rc314-process-warning{
   function cmr353(sh,c,i){var t=totals(sh),docs=docsList(sh),carrier=sh.carrier||c.carrier||c.spedition||'',pickup=sh.pickupDate||todayISO(),goods=sh.goodsDescription||'Waren laut Rechnung/Ladeliste',html='';try{if(typeof buildCmrMasterTemplate==='function')html=buildCmrMasterTemplate(sh,c,docs,t,carrier,pickup,goods)}catch(e){html=''}if(!html){html='<section class="cmr-official" id="cmrDoc"><div class="cmr-of-title"><div class="h1">INTERNATIONALER FRACHTBRIEF</div><div class="round">CMR</div></div><div class="cmr-of-box" style="left:13mm;top:20mm;width:90mm;height:30mm"><div class="cmr-of-label"><b>1</b>Absender</div><div class="cmr-of-value">Essentra Components Ltd\nMontel-Allee 3\n41334 Nettetal</div></div><div class="cmr-of-box" style="left:13mm;top:55mm;width:90mm;height:35mm"><div class="cmr-of-label"><b>2</b>Empfänger</div><div class="cmr-of-value">'+E(c.name||'')+'\n'+E(c.address||'')+'</div></div></section>'}html=html.replace('id="cmrDoc"','id="cmrDoc_'+i+'"');return '<div class="rc346-cmr-wrap rc351-cmr-wrap">'+html+'<div class="rc346-cmr-copy">CMR '+i+' / 4</div></div>'}
   function fullDocHtml(sh){sh=sh||{};var c=customerFor(sh);ensureRef(sh);return '<div id="rc353DocumentPage" class="rc353-doc-page"><div class="rc353-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zurück zu Sendung erstellen</button><button type="button" class="btn" onclick="return rc353PrintDocuments()">Drucken / Als PDF speichern</button><button type="button" class="ghost" onclick="return copyCmrText()">CMR-Text kopieren</button></div><div id="rc353DocumentBundle" class="rc353-bundle">'+cover353(sh,c)+loadlist353(sh,c,true,'Ladeliste 1 / 2 - mit QR-Code')+loadlist353(sh,c,false,'Ladeliste 2 / 2 - ohne QR-Code')+[1,2,3,4].map(function(i){return cmr353(sh,c,i)}).join('')+'</div></div>'}
   function loadlistOnlyHtml(sh){sh=sh||{};var c=customerFor(sh);ensureRef(sh);return '<div id="rc353LoadlistOnlyPage" class="rc353-doc-page"><div class="rc353-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zurück zu Sendung erstellen</button><button type="button" class="btn" onclick="return rc353PrintLoadlistOnly()">Drucken / Als PDF speichern</button></div><div id="rc353LoadlistOnlyBundle" class="rc353-bundle">'+loadlist353(sh,c,true,'Ladeliste 1 / 2 - mit QR-Code')+loadlist353(sh,c,false,'Ladeliste 2 / 2 - ohne QR-Code')+'</div></div>'}
-  function printWindow(html,title,bodyClass){var w=null;try{w=window.open('','_blank')}catch(_){}if(!w){root().innerHTML=html;setTimeout(function(){document.body.classList.add(bodyClass);window.print();setTimeout(function(){document.body.classList.remove(bodyClass)},900)},60);return false}var styles=Array.from(document.querySelectorAll('style')).map(function(s){return s.outerHTML}).join('\n');w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title>'+styles+'</head><body class="'+bodyClass+'"><div class="app"><main class="main"><section id="content">'+html+'</section></main></div><script>setTimeout(function(){window.focus();window.print();},250)<\/script></body></html>');w.document.close();return false}
+  function printWindow(html,title,bodyClass){var w=null;try{w=window.open('','_blank')}catch(_){}if(!w){root().innerHTML=html;setTimeout(function(){document.body.classList.add(bodyClass);window.print();setTimeout(function(){document.body.classList.remove(bodyClass)},900)},60);return false}var styles=Array.from(document.querySelectorAll('style')).map(function(s){return s.outerHTML}).join('\\n');w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title>'+styles+'</head><body class="'+bodyClass+'"><div class="app"><main class="main"><section id="content">'+html+'</section></main></div><script>setTimeout(function(){window.focus();window.print();},350)<\/script></body></html>');w.document.close();return false}
   window.rc353ShowDocuments=function(sh){sh=sh||activeShipment();S().view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}root().innerHTML=fullDocHtml(sh);return false};
   window.showCurrentCmr=function(){S().activeShipmentId='current';saveQuiet();return window.rc353ShowDocuments(S().shipment||{})};
   window.showSavedCmr=function(id){S().activeShipmentId=id;saveQuiet();return window.rc353ShowDocuments(activeShipment())};
@@ -46000,7 +46001,7 @@ body .rc314-process-warning{
   function cmr(sh,c,i){var t=totals(sh),docs=docsList(sh),carrier=sh.carrier||c.carrier||c.spedition||'',pickup=sh.pickupDate||todayISO(),goods=sh.goodsDescription||'Waren laut Rechnung/Ladeliste',html='';try{if(typeof buildCmrMasterTemplate==='function')html=buildCmrMasterTemplate(sh,c,docs,t,carrier,pickup,goods)}catch(e){html=''}if(!html){html='<section class="cmr-official" id="cmrDoc"><div class="cmr-of-title"><div class="h1">INTERNATIONALER FRACHTBRIEF</div><div class="round">CMR</div></div><div class="cmr-of-box" style="left:13mm;top:20mm;width:90mm;height:30mm"><div class="cmr-of-label"><b>1</b>Absender</div><div class="cmr-of-value">Essentra Components Ltd\nMontel-Allee 3\n41334 Nettetal</div></div><div class="cmr-of-box" style="left:13mm;top:55mm;width:90mm;height:35mm"><div class="cmr-of-label"><b>2</b>Empfänger</div><div class="cmr-of-value">'+E(c.name||'')+'\n'+E(c.address||'')+'</div></div></section>'}html=html.replace('id="cmrDoc"','id="cmrDoc_'+i+'"');return '<div class="rc346-cmr-wrap rc351-cmr-wrap">'+html+'<div class="rc346-cmr-copy">CMR '+i+' / 4</div></div>'}
   function fullHtml(sh){sh=sh||docShipment();var c=customerFor(sh);ensureRef(sh);return '<div id="rc355DocumentPage" class="rc355-doc-page"><div class="rc355-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zurück zu Sendung erstellen</button><button type="button" class="btn" onclick="return rc355PrintDocuments()">Drucken / Als PDF speichern</button><button type="button" class="ghost" onclick="return copyCmrText()">CMR-Text kopieren</button></div><div id="rc355DocumentBundle" class="rc355-bundle">'+cover(sh,c)+loadlist(sh,c,true,'Ladeliste 1 / 2 - mit QR-Code')+loadlist(sh,c,false,'Ladeliste 2 / 2 - ohne QR-Code')+[1,2,3,4].map(function(i){return cmr(sh,c,i)}).join('')+'</div></div>'}
   function loadOnlyHtml(sh){sh=sh||docShipment();var c=customerFor(sh);ensureRef(sh);return '<div id="rc355LoadlistOnlyPage" class="rc355-doc-page"><div class="rc355-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zurück zu Sendung erstellen</button><button type="button" class="btn" onclick="return rc355PrintLoadlistOnly()">Drucken / Als PDF speichern</button></div><div id="rc355LoadlistOnlyBundle" class="rc355-bundle">'+loadlist(sh,c,true,'Ladeliste 1 / 2 - mit QR-Code')+loadlist(sh,c,false,'Ladeliste 2 / 2 - ohne QR-Code')+'</div></div>'}
-  function printWindow(html,title,bodyClass){var w=null;try{w=window.open('','_blank')}catch(_){}if(!w){root().innerHTML=html;setTimeout(function(){document.body.classList.add(bodyClass);window.print();setTimeout(function(){document.body.classList.remove(bodyClass)},900)},60);return false}var styles=Array.from(document.querySelectorAll('style')).map(function(s){return s.outerHTML}).join('\n');w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title>'+styles+'</head><body class="'+bodyClass+'"><div class="app"><main class="main"><section id="content">'+html+'</section></main></div><script>setTimeout(function(){window.focus();window.print();},350)<\/script></body></html>');w.document.close();return false}
+  function printWindow(html,title,bodyClass){var w=null;try{w=window.open('','_blank')}catch(_){}if(!w){root().innerHTML=html;setTimeout(function(){document.body.classList.add(bodyClass);window.print();setTimeout(function(){document.body.classList.remove(bodyClass)},900)},60);return false}var styles=Array.from(document.querySelectorAll('style')).map(function(s){return s.outerHTML}).join('\\n');w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title>'+styles+'</head><body class="'+bodyClass+'"><div class="app"><main class="main"><section id="content">'+html+'</section></main></div><script>setTimeout(function(){window.focus();window.print();},350)<\/script></body></html>');w.document.close();return false}
   window.rc355ShowDocuments=function(sh){sh=sh||docShipment();S().view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}root().innerHTML=fullHtml(sh);return false};
   window.showCurrentCmr=function(){S().activeShipmentId='current';saveQ();return window.rc355ShowDocuments(S().shipment||{})};
   window.showSavedCmr=function(id){S().activeShipmentId=id;saveQ();return window.rc355ShowDocuments(activeShipment())};
@@ -46261,5 +46262,52 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC357 END: ABD Bereich + Referenz final sauber -->
+
+
+
+
+
+
+
+<!-- PRIVATE RC358 START: Colli + Zeile stabil -->
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC358_ADD_ROW_FIX__)return;
+  window.__EXPORTHUB_RC358_ADD_ROW_FIX__=true;
+  function S(){try{return state}catch(e){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function blank(){return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''}}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function isShip(){try{return (S().view||'')==='shipment' || /Sendung erstellen/i.test((document.getElementById('content')||document.body).textContent||'')}catch(e){return false}}
+  function renderShip(){try{if(typeof window.rc344RenderShipment==='function')return window.rc344RenderShipment()}catch(e){} try{if(typeof render==='function')return render()}catch(e){} return false}
+  window.rc358AddShipmentRow=function(){
+    var s=S();
+    s.shipment=s.shipment||{};
+    var rows=A(s.shipment.rows);
+    rows.push(blank());
+    s.shipment.rows=rows;
+    s.activeShipmentId='current';
+    saveQ();
+    return renderShip();
+  };
+  window.rc344AddRow=window.rc358AddShipmentRow;
+  window.addShipmentRow=window.rc358AddShipmentRow;
+  window.rc325AddRow=window.rc358AddShipmentRow;
+  try{rc344AddRow=window.rc358AddShipmentRow;addShipmentRow=window.rc358AddShipmentRow;rc325AddRow=window.rc358AddShipmentRow}catch(e){}
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest?ev.target.closest('button'):null;
+    if(!el||!isShip())return;
+    if(/^\s*\+\s*Zeile\s*$/i.test(el.textContent||'')){
+      var oc=String(el.getAttribute('onclick')||'');
+      if(/rc344AddRow|addShipmentRow|rc325AddRow/.test(oc)){
+        ev.preventDefault();
+        ev.stopPropagation();
+        window.rc358AddShipmentRow();
+      }
+    }
+  },true);
+})();
+</script>
+<!-- PRIVATE RC358 END: Colli + Zeile stabil -->
 
 </body></html>
