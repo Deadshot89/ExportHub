@@ -46335,4 +46335,131 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC366 END: Login sauber + ABD Einzelrenderer ohne Doppel-Layout -->
+
+<style>
+/* PRIVATE RC367: Kundenordner-Suchleiste immer sichtbar */
+.rc367-customer-search-card{background:#fff;border:1px solid #bfdbfe;border-radius:22px;box-shadow:0 12px 32px rgba(15,23,42,.08);padding:18px;margin:14px 0}
+.rc367-customer-search-card h3{margin:0 0 8px;color:#08245d}
+.rc367-customer-search-row{display:grid;grid-template-columns:minmax(320px,1fr) auto auto;gap:10px;align-items:end}
+.rc367-customer-search-row .field{margin:0}
+.rc367-customer-results{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.rc367-customer-results button{border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:8px 12px;font-weight:900;cursor:pointer}
+.rc367-customer-results button:hover{border-color:#2563eb;background:#dbeafe}
+.rc367-customer-empty{border:1px dashed #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px;margin-top:10px;color:#475569;font-weight:800}
+@media(max-width:900px){.rc367-customer-search-row{grid-template-columns:1fr}.rc367-customer-search-row button{width:100%}}
+</style>
+<script>
+/* PRIVATE RC367 START: Kundenordner Suchleiste Hardfix */
+(function(){
+  'use strict';
+  if(window.__EXPORT_HUB_RC367_CUSTOMER_SEARCH__)return;
+  window.__EXPORT_HUB_RC367_CUSTOMER_SEARCH__=true;
+  function S(){return window.state||state||{};}
+  function A(v){return Array.isArray(v)?v:[];}
+  function T(v){return String(v==null?'':v);}
+  function tr(v){return T(v).trim();}
+  function n(v){return tr(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+  function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function saveQ(){try{if(typeof save==='function')save();else try{localStorage.setItem('exporthub_private_state_v1',JSON.stringify(S()))}catch(_){}}catch(e){}}
+  function renderQ(){try{if(typeof render==='function')render()}catch(e){}}
+  function customers(){return A(S().customers);}
+  function acc(c){return tr(c&&(c.account||c.customerNumber||c.kundennummer||c.customerNo||c.id||''));}
+  function name(c){return tr(c&&(c.name||c.customerName||c.kunde||c.company||''));}
+  function country(c){return tr(c&&(c.country||c.land||''));}
+  function opt(c){return [acc(c),name(c),country(c)].filter(Boolean).join(' · ');}
+  function hay(c){return n([acc(c),name(c),country(c),c&&c.address,c&&c.mail,c&&c.email,c&&c.note].join(' '));}
+  function findCustomer(q){var x=n(q);if(!x)return null;return customers().find(function(c){return n(acc(c))===x||n(name(c))===x||n(opt(c))===x||n(c&&c.id)===x;})||customers().find(function(c){var h=hay(c);return h.indexOf(x)>=0||x.indexOf(n(acc(c)))>=0||x.indexOf(n(name(c)))>=0;})||null;}
+  function matches(q){var x=n(q);var list=customers();if(!x)return list.slice(0,12);return list.filter(function(c){return hay(c).indexOf(x)>=0||n(opt(c)).indexOf(x)>=0;}).slice(0,16);}
+  function lastCustomer(){var id=tr(S().lastCustomerId||S().customerFolderId||'');try{id=id||tr(localStorage.getItem('exporthub_private_last_customer_id')||'')}catch(e){}return customers().find(function(c){return tr(c.id)===id||acc(c)===id})||null;}
+  function remember(c){if(!c)return;var s=S();s.customerFolderOpenId=c.id||acc(c);s.customerFolderId=c.id||acc(c);s.selectedCustomerId=c.id||acc(c);s.lastCustomerId=c.id||acc(c);try{localStorage.setItem('exporthub_private_last_customer_id',s.lastCustomerId)}catch(e){}}
+  function searchHtml(){var list=customers();var last=lastCustomer();var options=list.map(function(c){return '<option value="'+E(opt(c))+'"></option>';}).join('');var starter=matches('').map(function(c){return '<button type="button" onclick="return rc367OpenCustomerId(&quot;'+E(c.id||acc(c))+'&quot;)">'+E(opt(c))+'</button>';}).join('');return '<div class="rc367-customer-search-card" id="rc367CustomerSearchCard"><h3>Kunde suchen</h3><div class="rc367-customer-search-row"><label class="field">Kundennummer oder Kundenname<input id="customerFolderSearchRC367" list="customerFolderListRC367" autocomplete="off" placeholder="z. B. 9000003001 oder Essentra" oninput="rc367UpdateCustomerResults()" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rc367OpenCustomerFromSearch()}"></label><datalist id="customerFolderListRC367">'+options+'</datalist><button type="button" class="btn" onclick="return rc367OpenCustomerFromSearch()">Kundenordner öffnen</button><button type="button" class="ghost" '+(last?'':'disabled')+' onclick="return rc367OpenLastCustomerFolder()">'+(last?'Letzten Kunden öffnen':'Letzten Kunden öffnen')+'</button></div><div id="rc367CustomerResults" class="rc367-customer-results">'+starter+'</div>'+(list.length?'':'<div class="rc367-customer-empty">Keine Kunden im Kundenstamm vorhanden.</div>')+'</div>';}
+  window.rc367UpdateCustomerResults=function(){var el=document.getElementById('customerFolderSearchRC367');var box=document.getElementById('rc367CustomerResults');if(!box)return false;var ms=matches(el&&el.value);box.innerHTML=ms.length?ms.map(function(c){return '<button type="button" onclick="return rc367OpenCustomerId(&quot;'+E(c.id||acc(c))+'&quot;)">'+E(opt(c))+'</button>';}).join(''):'<div class="rc367-customer-empty">Kein Treffer. Kundennummer oder Kundennamen prüfen.</div>';return false;};
+  window.rc367OpenCustomerId=function(id){var c=customers().find(function(x){return tr(x.id)===tr(id)||acc(x)===tr(id);});if(!c){alert('Kunde nicht gefunden.');return false}remember(c);saveQ();renderQ();return false;};
+  window.rc367OpenCustomerFromSearch=function(){var el=document.getElementById('customerFolderSearchRC367')||document.getElementById('customerFolderSearchRC85')||document.getElementById('customerFolderSearchRC82')||document.getElementById('customerFolderSearchRC69')||document.querySelector('#content input[list^="customerFolderList"]');var c=findCustomer(el&&el.value);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname eingeben.');return false}remember(c);saveQ();renderQ();return false;};
+  window.rc367OpenLastCustomerFolder=function(){var c=lastCustomer();if(!c){alert('Es wurde noch kein Kunde geöffnet.');return false}remember(c);saveQ();renderQ();return false;};
+  window.rc367CloseCustomerFolder=function(){var s=S();s.customerFolderOpenId='';s.customerFolderId='';saveQ();renderQ();return false;};
+  var oldSelect=window.selectCustomerFolderFromInput;
+  window.selectCustomerFolderFromInput=function(value){var c=findCustomer(value);if(c){remember(c);saveQ();renderQ();return false}if(typeof oldSelect==='function')return oldSelect.apply(this,arguments);alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname eingeben.');return false};
+  ['rc85OpenCustomerFromSearch','rc82OpenCustomerFromSearch','rc81OpenCustomerFromSearch','rc69OpenCustomerFromSearch'].forEach(function(fn){window[fn]=window.rc367OpenCustomerFromSearch;try{eval(fn+'=window.rc367OpenCustomerFromSearch')}catch(e){}});
+  ['rc85OpenLastCustomerFolder','rc82OpenLastCustomerFolder','rc81OpenLastCustomerFolder','rc69OpenLastCustomerFolder'].forEach(function(fn){window[fn]=window.rc367OpenLastCustomerFolder;try{eval(fn+'=window.rc367OpenLastCustomerFolder')}catch(e){}});
+  ['rc85CloseCustomerFolder','rc82CloseCustomerFolder','rc69CloseCustomerFolder'].forEach(function(fn){window[fn]=window.rc367CloseCustomerFolder;try{eval(fn+'=window.rc367CloseCustomerFolder')}catch(e){}});
+  function neutralHtml(){try{return head('📁 Kundenordner','Kundenordner startet neutral. Kundendaten werden erst nach aktiver Kundenauswahl geladen.')+'<div class="customer-folder-empty-rc367"><h3>Kein Kunde geöffnet</h3><p class="muted">Bitte Kundennummer oder Kundenname eingeben und Kundenordner öffnen.</p>'+searchHtml()+'</div>';}catch(e){return '<div class="customer-folder-empty-rc367"><h3>Kein Kunde geöffnet</h3>'+searchHtml()+'</div>';}}
+  function ensureSearchInHtml(html){html=T(html);if(html.indexOf('customerFolderSearchRC367')>=0||html.indexOf('customerFolderSearchRC85')>=0||html.indexOf('customerFolderSearchRC82')>=0||html.indexOf('customerFolderSearchRC69')>=0)return html;if(html.indexOf('Kein Kunde geöffnet')>=0){return html.replace(/(<\/div>\s*)$/i, searchHtml()+'$1');}return html;}
+  var base=window.customerfolder||((typeof customerfolder==='function')?customerfolder:null);
+  if(typeof base==='function'){
+    var wrapped=function(){var s=S();if(!tr(s.customerFolderOpenId||''))return neutralHtml();var html=base.apply(this,arguments);return ensureSearchInHtml(html);};
+    wrapped.__rc367Wrapped=true;window.customerfolder=wrapped;try{customerfolder=wrapped}catch(e){}
+  }
+  function domEnsure(){try{var s=S();if((s.view||'')!=='customerfolder')return;var content=document.getElementById('content')||document.body;if(!content)return;if(content.textContent.indexOf('Kein Kunde geöffnet')>=0&&!document.getElementById('customerFolderSearchRC367')&&!document.getElementById('customerFolderSearchRC85')&&!document.getElementById('customerFolderSearchRC82')&&!document.getElementById('customerFolderSearchRC69')){content.insertAdjacentHTML('beforeend',searchHtml());}}catch(e){}}
+  var oldRender=window.render;if(typeof oldRender==='function'&&!oldRender.__rc367CustomerSearch){var rr=function(){var out=oldRender.apply(this,arguments);setTimeout(domEnsure,20);return out};rr.__rc367CustomerSearch=true;window.render=rr;try{render=rr}catch(e){}}
+  document.addEventListener('click',function(ev){var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!el)return;var txt=T(el.textContent);if(/Kundenordner öffnen/i.test(txt)&&document.getElementById('customerFolderSearchRC367')){ev.preventDefault();ev.stopPropagation();return window.rc367OpenCustomerFromSearch()}},true);
+  document.addEventListener('keydown',function(ev){var t=ev.target;if(t&&t.id==='customerFolderSearchRC367'&&ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();return window.rc367OpenCustomerFromSearch()}},true);
+  setTimeout(domEnsure,80);setTimeout(domEnsure,400);setTimeout(domEnsure,1200);
+})();
+/* PRIVATE RC367 END: Kundenordner Suchleiste Hardfix */
+</script>
+
+
+<style id="rc368-customer-folder-search-css">
+/* PRIVATE RC368: Kundenordner-Suche direkt im leeren Kundenordner */
+.rc368-customer-search-card{background:#ffffff;border:1px solid #bfdbfe;border-radius:22px;box-shadow:0 14px 34px rgba(15,23,42,.10);padding:18px;margin:16px 0 0;max-width:1120px}
+.rc368-customer-search-card h3{margin:0 0 10px;color:#08245d;font-size:22px}
+.rc368-customer-search-row{display:grid;grid-template-columns:minmax(360px,1fr) auto auto;gap:12px;align-items:end}
+.rc368-customer-search-row label.field{margin:0}
+.rc368-customer-results{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.rc368-customer-results button{border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:8px 12px;font-weight:900;cursor:pointer}
+.rc368-customer-results button:hover{border-color:#2563eb;background:#dbeafe}
+.rc368-customer-empty{border:1px dashed #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px;margin-top:10px;color:#475569;font-weight:800}
+@media(max-width:900px){.rc368-customer-search-row{grid-template-columns:1fr}.rc368-customer-search-row button{width:100%}}
+</style>
+<script>
+/* PRIVATE RC368 START: Kundenordner Suchleiste sichtbar und direkt nutzbar */
+(function(){
+  'use strict';
+  if(window.__EXPORT_HUB_RC368_CUSTOMER_FOLDER_SEARCH__)return;
+  window.__EXPORT_HUB_RC368_CUSTOMER_FOLDER_SEARCH__=true;
+  function S(){try{return window.state||state||{}}catch(e){return {}}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function trim(v){return T(v).trim()}
+  function norm(v){return trim(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+  function esc(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function saveQ(){try{if(typeof save==='function')save();else localStorage.setItem('exporthub_private_state_v1',JSON.stringify(S()))}catch(e){}}
+  function renderQ(){try{if(typeof render==='function')render()}catch(e){}}
+  function customers(){return A(S().customers)}
+  function acc(c){return trim(c&&(c.account||c.customerNumber||c.kundennummer||c.customerNo||c.number||c.id||''))}
+  function cname(c){return trim(c&&(c.name||c.customerName||c.kunde||c.company||''))}
+  function country(c){return trim(c&&(c.country||c.land||c.iso||''))}
+  function label(c){return [acc(c),cname(c),country(c)].filter(Boolean).join(' · ')}
+  function hay(c){return norm([acc(c),cname(c),country(c),c&&c.address,c&&c.mail,c&&c.email,c&&c.carrier,c&&c.speditionName,c&&c.note,c&&c.customerDocuments,c&&c.requiredDocuments].join(' '))}
+  function findCustomer(q){var x=norm(q);if(!x)return null;return customers().find(function(c){return norm(acc(c))===x||norm(cname(c))===x||norm(label(c))===x||norm(c&&c.id)===x})||customers().find(function(c){var h=hay(c),a=norm(acc(c)),nm=norm(cname(c));return h.indexOf(x)>=0||(a&&x.indexOf(a)>=0)||(nm&&x.indexOf(nm)>=0)})||null}
+  function matches(q){var x=norm(q),list=customers();if(!x)return list.slice(0,14);return list.filter(function(c){return hay(c).indexOf(x)>=0||norm(label(c)).indexOf(x)>=0}).slice(0,18)}
+  function lastCustomer(){var id='';try{id=trim(S().lastCustomerId||S().customerFolderId||localStorage.getItem('exporthub_private_last_customer_id')||'')}catch(e){}return customers().find(function(c){return trim(c.id)===id||acc(c)===id})||null}
+  function remember(c){if(!c)return;var s=S(),id=c.id||acc(c);s.customerFolderOpenId=id;s.customerFolderId=id;s.selectedCustomerId=id;s.lastCustomerId=id;s.customerSearch=label(c);try{localStorage.setItem('exporthub_private_last_customer_id',id)}catch(e){}}
+  function resultButtons(q){var ms=matches(q);return ms.length?ms.map(function(c){return '<button type="button" onclick="return rc368OpenCustomerId(&quot;'+esc(c.id||acc(c))+'&quot;)">'+esc(label(c)||cname(c)||acc(c)||'Kunde')+'</button>'}).join(''):'<div class="rc368-customer-empty">Kein Treffer. Bitte Kundennummer oder Kundennamen prüfen.</div>'}
+  function searchHtml(){var list=customers(),last=lastCustomer();var opts=list.map(function(c){return '<option value="'+esc(label(c))+'"></option>'}).join('');return '<div class="rc368-customer-search-card" id="rc368CustomerSearchCard"><h3>Kunde suchen / öffnen</h3><div class="rc368-customer-search-row"><label class="field">Kundennummer oder Kundenname<input id="customerFolderSearchRC368" list="customerFolderListRC368" autocomplete="off" placeholder="z. B. 9000003001 oder Essentra" oninput="return rc368UpdateCustomerResults()" onkeydown="if(event.key===\'Enter\'){event.preventDefault();return rc368OpenCustomerFromSearch()}"></label><datalist id="customerFolderListRC368">'+opts+'</datalist><button type="button" class="btn" onclick="return rc368OpenCustomerFromSearch()">Kundenordner öffnen</button><button type="button" class="ghost" '+(last?'':'disabled')+' onclick="return rc368OpenLastCustomerFolder()">'+(last?'Letzten Kunden öffnen':'Letzten Kunden öffnen')+'</button></div><div id="rc368CustomerResults" class="rc368-customer-results">'+resultButtons('')+'</div>'+(list.length?'':'<div class="rc368-customer-empty">Keine Kunden im Kundenstamm vorhanden.</div>')+'</div>'}
+  function neutralHtml(){var h='';try{h=(typeof head==='function')?head('📁 Kundenordner','Kundenordner startet neutral. Kundendaten werden erst nach aktiver Kundenauswahl geladen.'):''}catch(e){}return h+'<div class="customer-folder-empty-rc368"><h3>Kein Kunde geöffnet</h3><p class="muted">Bitte Kundennummer oder Kundenname eingeben und Kundenordner öffnen.</p>'+searchHtml()+'</div>'}
+  function ensureHtml(html){html=T(html);if(html.indexOf('customerFolderSearchRC368')>=0)return html;if(html.indexOf('Kein Kunde geöffnet')>=0){if(html.indexOf('</p>')>=0)return html.replace(/(<p[^>]*>Bitte Kunde suchen\/öffnen[\s\S]*?<\/p>|<p[^>]*>Bitte Kundennummer[\s\S]*?<\/p>)/i,'$1'+searchHtml());return html.replace(/(<h3>Kein Kunde geöffnet<\/h3>)/i,'$1'+searchHtml())}return html}
+  window.rc368UpdateCustomerResults=function(){var i=document.getElementById('customerFolderSearchRC368');var box=document.getElementById('rc368CustomerResults');if(box)box.innerHTML=resultButtons(i&&i.value);return false}
+  window.rc368OpenCustomerId=function(id){var c=customers().find(function(x){return trim(x.id)===trim(id)||acc(x)===trim(id)});if(!c){alert('Kunde nicht gefunden.');return false}remember(c);saveQ();renderQ();return false}
+  window.rc368OpenCustomerFromSearch=function(){var i=document.getElementById('customerFolderSearchRC368')||document.getElementById('customerFolderSearchRC367')||document.getElementById('customerFolderSearchRC85')||document.getElementById('customerFolderSearchRC82')||document.getElementById('customerFolderSearchRC69');var c=findCustomer(i&&i.value);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname eingeben.');return false}remember(c);saveQ();renderQ();return false}
+  window.rc368OpenLastCustomerFolder=function(){var c=lastCustomer();if(!c){alert('Es wurde noch kein Kunde geöffnet.');return false}remember(c);saveQ();renderQ();return false}
+  window.rc368CloseCustomerFolder=function(){var s=S();s.customerFolderOpenId='';s.customerFolderId='';saveQ();renderQ();return false}
+  window.rc367OpenCustomerFromSearch=window.rc368OpenCustomerFromSearch;window.rc85OpenCustomerFromSearch=window.rc368OpenCustomerFromSearch;window.rc82OpenCustomerFromSearch=window.rc368OpenCustomerFromSearch;window.rc69OpenCustomerFromSearch=window.rc368OpenCustomerFromSearch;
+  window.rc367OpenLastCustomerFolder=window.rc368OpenLastCustomerFolder;window.rc85OpenLastCustomerFolder=window.rc368OpenLastCustomerFolder;window.rc82OpenLastCustomerFolder=window.rc368OpenLastCustomerFolder;window.rc69OpenLastCustomerFolder=window.rc368OpenLastCustomerFolder;
+  window.selectCustomerFolderFromInput=function(v){var c=findCustomer(v);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname eingeben.');return false}remember(c);saveQ();renderQ();return false}
+  function installCustomerfolder(){try{var base=(typeof customerfolder==='function')?customerfolder:null;if(base&&base.__rc368Final)return;var final=function(){var s=S();if(!trim(s.customerFolderOpenId||s.customerFolderId||''))return neutralHtml();var out=base?base.apply(this,arguments):'';return ensureHtml(out)};final.__rc368Final=true;window.customerfolder=final;customerfolder=final}catch(e){}}
+  function domEnsure(){try{var root=document.getElementById('content')||document.body;if(!root)return;var txt=root.textContent||'';if(txt.indexOf('Kundenordner')<0||txt.indexOf('Kein Kunde geöffnet')<0)return;if(document.getElementById('customerFolderSearchRC368'))return;var target=null;var hs=root.querySelectorAll('h3,h2');for(var i=0;i<hs.length;i++){if((hs[i].textContent||'').indexOf('Kein Kunde geöffnet')>=0){target=hs[i].parentElement;break}}if(!target)target=root;target.insertAdjacentHTML('beforeend',searchHtml())}catch(e){}}
+  installCustomerfolder();
+  var oldRender=window.render||((typeof render==='function')?render:null);if(typeof oldRender==='function'&&!oldRender.__rc368Final){var rr=function(){installCustomerfolder();var r=oldRender.apply(this,arguments);setTimeout(domEnsure,0);setTimeout(domEnsure,80);return r};rr.__rc368Final=true;window.render=rr;try{render=rr}catch(e){}}
+  var oldSetView=window.setView||((typeof setView==='function')?setView:null);if(typeof oldSetView==='function'&&!oldSetView.__rc368Final){var sv=function(v){var r=oldSetView.apply(this,arguments);if(v==='customerfolder'){setTimeout(domEnsure,0);setTimeout(domEnsure,120)}return r};sv.__rc368Final=true;window.setView=sv;try{setView=sv}catch(e){}}
+  document.addEventListener('keydown',function(ev){var t=ev.target;if(t&&t.id==='customerFolderSearchRC368'&&ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();return window.rc368OpenCustomerFromSearch()}},true);
+  document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest&&ev.target.closest('button');if(!b)return;if(b.closest('#rc368CustomerSearchCard')&&/Kundenordner öffnen/i.test(b.textContent||'')){ev.preventDefault();ev.stopPropagation();return window.rc368OpenCustomerFromSearch()}},true);
+  try{new MutationObserver(function(){domEnsure()}).observe(document.getElementById('content')||document.body,{childList:true,subtree:true})}catch(e){}
+  setTimeout(domEnsure,80);setTimeout(domEnsure,400);setTimeout(domEnsure,1200);setTimeout(domEnsure,2500);
+})();
+/* PRIVATE RC368 END: Kundenordner Suchleiste sichtbar und direkt nutzbar */
+</script>
+<!-- PRIVATE RC368 END: Kundenordner Suche sichtbar -->
+
 </body></html>
