@@ -46129,4 +46129,137 @@ body .rc314-process-warning{
 </script>
 <!-- PRIVATE RC356 END: finaler ABD-Bereich stabil ohne alte Patch-Overrides -->
 
+
+<!-- PRIVATE RC357 START: ABD Bereich + Referenz final sauber -->
+<style>
+#rc344AbdBox.rc357-abd-final{
+  border:2px solid #facc15!important;
+  background:#fffbeb!important;
+  border-radius:22px!important;
+  padding:18px!important;
+  margin:18px 0!important;
+  box-shadow:none!important;
+}
+#rc344AbdBox.rc357-abd-final h3{margin:0 0 8px!important;color:#92400e!important;font-size:20px!important}
+#rc344AbdBox.rc357-abd-final .rc357-head{font-weight:900;margin:0 0 14px;color:#0f172a}
+.rc357-abd-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.rc357-abd-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+.rc357-abd-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+#rc344AbdBox.rc357-abd-final .field{margin:0!important;font-weight:900!important;color:#334155!important}
+#rc344AbdBox.rc357-abd-final input,
+#rc344AbdBox.rc357-abd-final select,
+#rc344AbdBox.rc357-abd-final textarea{background:#fff!important;border-color:#bfdbfe!important}
+#rc344AbdBox.rc357-abd-final textarea{min-height:135px!important;line-height:1.45!important}
+.rc357-abd-refrow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end}
+.rc357-abd-refrow .field{margin:0!important}
+.rc357-abd-portal{border:1px solid #93c5fd;background:#f8fbff;border-radius:16px;padding:12px;margin:12px 0}
+.rc357-abd-portal h4{margin:0 0 6px!important;color:#08245d!important}.rc357-abd-portal .toolbar{margin:8px 0 0!important}
+@media(max-width:1000px){.rc357-abd-grid4{grid-template-columns:1fr 1fr}.rc357-abd-grid3{grid-template-columns:1fr}.rc357-abd-grid2,.rc357-abd-refrow{grid-template-columns:1fr}}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC357_ABD_REF_FINAL__)return;
+  window.__EXPORTHUB_RC357_ABD_REF_FINAL__=true;
+  function S(){try{return state}catch(_){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function E(v){try{if(typeof esc==='function')return esc(v)}catch(_){}return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function clean(v){return T(v).replace(/\s+/g,' ').trim()}
+  function saveQ(){try{if(typeof save==='function')save()}catch(_){} }
+  function root(){return document.getElementById('content')||document.querySelector('main')||document.body}
+  function isShipment(){var s=S();return s.view==='shipment'||!!document.querySelector('#shipmentCustomerSearch,.rc344-root')}
+  function customers(){return A(S().customers)}
+  function label(c){return [c&&(c.account||c.customerNumber||c.number||c.kdnr),c&&c.name,c&&(c.country||c.land)].filter(function(x){return clean(x)}).join(' · ')}
+  function findC(id){return customers().find(function(c){return T(c.id)===T(id)})||customers().find(function(c){return T(c.account||c.customerNumber)===T(id)})}
+  function sh(){var s=S();s.shipment=s.shipment||{};s.shipment.rows=A(s.shipment.rows);return s.shipment}
+  function selectedCustomer(){var x=sh();return findC(x.customerId)||customers().find(function(c){return T(c.id)===T(S().selectedCustomerId)})||x.customer||customers()[0]||{} }
+  function parse(v){return Number(T(v).replace(',','.'))||0}
+  function fmt(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
+  function rows(){return A(sh().rows).filter(function(r){return r&&(clean(r.type)||parse(r.count)||parse(r.weight)||parse(r.ldm))})}
+  function totals(){return rows().reduce(function(a,r){var n=parse(r.count)||0,w=parse(r.weight)||0,l=parse(r.ldm)||0;a.count+=n;a.weight+=w;a.ldm+=n*l;return a},{count:0,weight:0,ldm:0})}
+  function firstPack(){var r=rows().find(function(x){return clean(x.type)});return r?clean(r.type):clean(sh().abdPacking||'')}
+  function docsText(x){var out=[]; if(clean(x.deliveryNotes))out.push(clean(x.deliveryNotes)); A(x.deliveryNoteFiles).forEach(function(f){out.push(clean(f.name||f.fileName||f))}); return out.filter(Boolean).join(', ')}
+  function refClean(v){return T(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
+  function makeRef(){var chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<6;i++)r+=chars[Math.floor(Math.random()*chars.length)];return r}
+  function ensureRef(){var x=sh();x.ref=refClean(x.ref);if(x.ref.length!==6)x.ref=makeRef();saveQ();syncVisibleRef();return x.ref}
+  function syncVisibleRef(){try{var x=sh();document.querySelectorAll('input').forEach(function(inp){var oc=T(inp.getAttribute('onchange')||'')+T(inp.getAttribute('oninput')||'');if(/setShipmentRef|ensureShipmentReference|shipment.*ref|rc344.*ref|rc325.*ref/i.test(oc)&&inp.id!=='rc357AbdRef')inp.value=x.ref||inp.value})}catch(_){} }
+  function mailList(v){return T(v).split(/[;,\s]+/).map(function(x){return clean(x)}).filter(function(x){return /@/.test(x)}).join('; ')}
+  function mailFrom(c){var x=sh();return mailList(x.abdMail||c.abdMail||c.abdEmail||c.abdRequestMail||c.carrierRegistrationMail||c.carrierAnmeldungMail||c.speditionRegistrationMail||c.speditionAnmeldungMail||c.speditionMail||c.speditionEmail||c.forwarderMail||c.forwarderEmail||c.transportMail||c.transportEmail||c.mailRecipients||c.mailAddress||c.mail||c.email||'')}
+  function portal(c){var text=(T(c.account||c.customerNumber)+' '+T(c.name)).toLowerCase();var url=clean(c.portalUrl||c.portalURL||c.portalLink||c.portalHref||c.carrierPortalUrl||c.speditionPortalUrl||'');var name=clean(c.portalName||c.portalTitle||c.portalLabel||c.portal||c.carrierPortal||c.speditionPortal||'');if(!url&&/w(u|ü)rth/.test(text)){url='https://tmis.wuerth-logistics.com/ls/Login';name='Würth Industrie Portal'}return {url:url,name:name||'Portal'}}
+  function opts(sel){var list=customers();if(!list.length)return '<option value="">Kein Kunde angelegt</option>';return list.map(function(c){return '<option value="'+E(c.id||'')+'" '+(T(c.id)===T(sel)?'selected':'')+'>'+E(label(c)||c.name||'Kunde')+'</option>'}).join('')}
+  function address(c){return clean(c.address||c.empfaengerAdresse||c.recipientAddress||c.consigneeAddress||'')}
+  function bodyText(c,x,t){return clean(x.abdText)||[
+    'Hallo,','',
+    'bitte ABD-/Speditionsanfrage vorbereiten.','',
+    'Kunde: '+(c.name||x.customerName||''),
+    'Empfängeradresse: '+(address(c)||'nicht hinterlegt'),
+    'Referenz: '+(x.ref||''),
+    'Lieferscheine/DNCs: '+(docsText(x)||'offen'),
+    'Abholdatum: '+(x.pickupDate||''),
+    'Spedition: '+(x.carrier||c.carrier||c.spedition||''),
+    'Kennzeichen: '+(x.licensePlate||''),
+    'Verlader: '+(x.loader||''),
+    'Verpackung: '+(clean(x.abdPacking)||firstPack()||''),
+    'Anzahl / Collis: '+(clean(x.abdCount)||fmt(t.count,0)),
+    'Gewicht: '+(clean(x.abdWeight)||fmt(t.weight,1))+' kg',
+    'Lademeter: '+(clean(x.abdLdm)||fmt(t.ldm,2)),
+    '',
+    'Vielen Dank.'
+  ].join('\n')}
+  function readVal(id,fallback){var el=document.getElementById(id);return el?el.value:fallback}
+  function html(){var x=sh();if(!refClean(x.ref))ensureRef();var c=selectedCustomer(),t=totals(),p=portal(c),mail=mailFrom(c),pack=clean(x.abdPacking)||firstPack();var count=clean(x.abdCount); if(!count&&t.count)count=String(Math.round(t.count));var weight=clean(x.abdWeight); if(!weight&&t.weight)weight=String(Math.round(t.weight*10)/10);var ldm=clean(x.abdLdm); if(!ldm&&t.ldm)ldm=String(Math.round(t.ldm*100)/100);
+    return '<section id="rc344AbdBox" class="rc357-abd-final" data-rc357-abd="1">'+
+      '<h3>ABD Bereich</h3><p class="rc357-head">ABD Anfrage vorbereiten. Referenz, Kunde, Collis und Gewicht werden direkt aus der Sendung übernommen und können hier angepasst werden.</p>'+ 
+      '<div class="rc357-abd-grid2">'+
+        '<label class="field">Kunde<select id="rc357AbdCustomer" onchange="return rc357AbdSetCustomer(this.value)">'+opts(x.customerId)+'</select></label>'+
+        '<div class="rc357-abd-refrow"><label class="field">Sendungsreferenz / Referenznummer<input id="rc357AbdRef" value="'+E(x.ref||'')+'" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\').slice(0,6);return rc357AbdInput(\'ref\',this.value)"></label><button type="button" class="ghost" onclick="return rc357AbdNewRef()">Neue Ref</button><button type="button" class="ghost" onclick="return rc357AbdUseShipmentRef()">Ref übernehmen</button></div>'+ 
+      '</div>'+ 
+      '<label class="field">Empfängeradresse<textarea id="rc357AbdAddress" readonly>'+E(address(c)||'Adresse nicht hinterlegt')+'</textarea></label>'+ 
+      '<label class="field">Lieferscheine / DNCs<input id="rc357AbdDocs" value="'+E(docsText(x))+'" placeholder="z. B. 29.06.2026.xlsx" oninput="return rc357AbdInput(\'deliveryNotes\',this.value)"></label>'+ 
+      '<div class="rc357-abd-grid4">'+
+        '<label class="field">Abholdatum<input id="rc357AbdPickup" type="date" value="'+E(x.pickupDate||'')+'" oninput="return rc357AbdInput(\'pickupDate\',this.value)"></label>'+ 
+        '<label class="field">Spedition<input id="rc357AbdCarrier" value="'+E(x.carrier||c.carrier||c.spedition||'')+'" oninput="return rc357AbdInput(\'carrier\',this.value)"></label>'+ 
+        '<label class="field">Kennzeichen<input id="rc357AbdPlate" value="'+E(x.licensePlate||'')+'" oninput="return rc357AbdInput(\'licensePlate\',this.value)"></label>'+ 
+        '<label class="field">Verlader<input id="rc357AbdLoader" value="'+E(x.loader||'')+'" oninput="return rc357AbdInput(\'loader\',this.value)"></label>'+ 
+      '</div>'+ 
+      '<div class="rc357-abd-grid4">'+
+        '<label class="field">Verpackung<input id="rc357AbdPacking" value="'+E(pack)+'" placeholder="z. B. Euro Palette" oninput="return rc357AbdInput(\'abdPacking\',this.value)"></label>'+ 
+        '<label class="field">Anzahl / Collis<input id="rc357AbdCount" type="number" min="0" step="1" value="'+E(count)+'" oninput="return rc357AbdInput(\'abdCount\',this.value)"></label>'+ 
+        '<label class="field">Gewicht kg<input id="rc357AbdWeight" type="number" min="0" step="0.1" value="'+E(weight)+'" oninput="return rc357AbdInput(\'abdWeight\',this.value)"></label>'+ 
+        '<label class="field">Lademeter<input id="rc357AbdLdm" type="number" min="0" step="0.01" value="'+E(ldm)+'" oninput="return rc357AbdInput(\'abdLdm\',this.value)"></label>'+ 
+      '</div>'+ 
+      '<div class="rc357-abd-grid2">'+
+        '<label class="field">ABD-/Speditionsmail<input id="rc357AbdMail" value="'+E(mail)+'" placeholder="keine Mail hinterlegt" oninput="return rc357AbdInput(\'abdMail\',this.value)"></label>'+ 
+        '<label class="field">CC optional<input id="rc357AbdCc" value="'+E(x.abdCc||c.abdCc||c.carrierCc||'')+'" oninput="return rc357AbdInput(\'abdCc\',this.value)"></label>'+ 
+      '</div>'+ 
+      '<label class="field">ABD Mailtext<textarea id="rc357AbdText" oninput="return rc357AbdInput(\'abdText\',this.value)">'+E(bodyText(c,x,t))+'</textarea></label>'+ 
+      '<div class="rc357-abd-portal"><h4>Portal / SOP</h4><div class="small">'+E(p.url?p.name:'kein Portal-Link hinterlegt')+'</div><div class="toolbar">'+(p.url?'<button type="button" class="ghost" onclick="return rc357OpenPortal(\''+E(p.url)+'\')">Portal öffnen</button>':'<button type="button" class="ghost" disabled>Kein Portal hinterlegt</button>')+'<button type="button" class="ghost" onclick="setView(\'sop\');return false">SOP öffnen</button></div></div>'+ 
+      '<div class="toolbar"><button type="button" class="btn" onclick="return rc357AbdOpenMail()">ABD Mail erstellen</button><button type="button" class="ghost" onclick="return rc357AbdSave()">ABD Anfrage speichern</button><button type="button" class="ghost" onclick="return rc357AbdCopy()">ABD Mailtext kopieren</button></div>'+ 
+      '</section>'}
+  var busy=false;
+  window.rc357EnsureAbd=function(force){if(busy||!isShipment())return false;var box=document.getElementById('rc344AbdBox');if(!box){var r=root();if(r)r.insertAdjacentHTML('beforeend',html());return true}if(!force&&box.getAttribute('data-rc357-abd')==='1')return false;if(box.getAttribute('data-rc357-abd')==='1'&&!force)return false;busy=true;try{box.outerHTML=html()}finally{busy=false}return true};
+  window.rc357AbdInput=function(k,v){var x=sh();x[k]=v;if(k==='ref'){x.ref=refClean(v);syncVisibleRef()}saveQ();return false};
+  window.rc357AbdSetCustomer=function(id){var x=sh();x.customerId=id;var c=findC(id)||{};if(c.id){x.customer=c;x.customerSearch=label(c);S().selectedCustomerId=c.id;var m=mailFrom(c);if(m&&!clean(x.abdMail))x.abdMail=m;if(!x.carrier&&(c.carrier||c.spedition))x.carrier=c.carrier||c.spedition}saveQ();setTimeout(function(){window.rc357EnsureAbd(true)},20);return false};
+  window.rc357AbdNewRef=function(){sh().ref=makeRef();saveQ();syncVisibleRef();window.rc357EnsureAbd(true);return false};
+  window.rc357AbdUseShipmentRef=function(){ensureRef();window.rc357EnsureAbd(true);return false};
+  window.rc357OpenPortal=function(url){try{window.open(url,'_blank','noopener')}catch(e){location.href=url}return false};
+  function collect(){var x=sh(),c=selectedCustomer(),t=totals();x.customerId=readVal('rc357AbdCustomer',x.customerId);x.ref=refClean(readVal('rc357AbdRef',x.ref));if(x.ref.length!==6)x.ref=ensureRef();x.deliveryNotes=readVal('rc357AbdDocs',x.deliveryNotes);x.pickupDate=readVal('rc357AbdPickup',x.pickupDate);x.carrier=readVal('rc357AbdCarrier',x.carrier);x.licensePlate=readVal('rc357AbdPlate',x.licensePlate);x.loader=readVal('rc357AbdLoader',x.loader);x.abdPacking=readVal('rc357AbdPacking',x.abdPacking);x.abdCount=readVal('rc357AbdCount',x.abdCount);x.abdWeight=readVal('rc357AbdWeight',x.abdWeight);x.abdLdm=readVal('rc357AbdLdm',x.abdLdm);x.abdMail=readVal('rc357AbdMail',x.abdMail);x.abdCc=readVal('rc357AbdCc',x.abdCc);x.abdText=readVal('rc357AbdText',x.abdText||bodyText(c,x,t));saveQ();syncVisibleRef();return {x:x,c:c,t:t}}
+  window.rc357AbdOpenMail=function(){var d=collect(),to=mailList(d.x.abdMail);if(!to){alert('Keine ABD-/Speditionsmail hinterlegt. Bitte Mailadresse eintragen.');return false}var cc=mailList(d.x.abdCc),sub='ABD Anfrage '+(d.x.ref||'')+' / '+(d.c.name||d.c.customerName||'Kunde');location.href='mailto:'+to.split('; ').map(encodeURIComponent).join(';')+'?subject='+encodeURIComponent(sub)+(cc?'&cc='+cc.split('; ').map(encodeURIComponent).join(';'):'')+'&body='+encodeURIComponent(d.x.abdText||bodyText(d.c,d.x,d.t));return false};
+  window.rc357AbdCopy=function(){var d=collect(),body=d.x.abdText||bodyText(d.c,d.x,d.t);try{navigator.clipboard.writeText(body);alert('ABD Mailtext kopiert.')}catch(e){prompt('ABD Mailtext kopieren:',body)}return false};
+  window.rc357AbdSave=function(){var d=collect(),s=S();s.abdRequests=A(s.abdRequests);var item={id:'ABD-'+(d.x.ref||Date.now()),ref:d.x.ref||'',customerId:d.x.customerId||'',customerName:d.c.name||d.c.customerName||'',account:d.c.account||d.c.customerNumber||'',address:address(d.c),deliveryNotes:d.x.deliveryNotes||'',pickupDate:d.x.pickupDate||'',carrier:d.x.carrier||'',licensePlate:d.x.licensePlate||'',loader:d.x.loader||'',packing:d.x.abdPacking||'',count:d.x.abdCount||fmt(d.t.count,0),weight:d.x.abdWeight||fmt(d.t.weight,1),ldm:d.x.abdLdm||fmt(d.t.ldm,2),mail:d.x.abdMail||'',cc:d.x.abdCc||'',mailBody:d.x.abdText||bodyText(d.c,d.x,d.t),created:new Date().toISOString().slice(0,10),status:'offen'};var i=s.abdRequests.findIndex(function(x){return T(x.ref)===T(item.ref)&&T(item.ref)});if(i>=0)s.abdRequests[i]=Object.assign(s.abdRequests[i],item);else s.abdRequests.unshift(item);saveQ();alert('ABD Anfrage gespeichert.');return false};
+  ['rc344OpenAbdMail','rc348OpenAbdMail','rc349OpenAbdMail','rc350OpenAbdMail','rc352OpenAbdMail','rc355AbdOpenMail','rc356AbdOpenMail'].forEach(function(n){window[n]=window.rc357AbdOpenMail;try{eval(n+'=window.rc357AbdOpenMail')}catch(_){}});
+  ['rc344SaveAbd','rc348SaveAbd','rc349SaveAbd','rc350SaveAbd','rc352SaveAbd','rc355AbdSave','rc356AbdSave'].forEach(function(n){window[n]=window.rc357AbdSave;try{eval(n+'=window.rc357AbdSave')}catch(_){}});
+  ['rc344CopyAbd','rc348CopyAbd','rc349CopyAbd','rc350CopyAbd','rc352CopyAbd','rc355AbdCopy','rc356AbdCopy'].forEach(function(n){window[n]=window.rc357AbdCopy;try{eval(n+'=window.rc357AbdCopy')}catch(_){}});
+  window.rc356EnsureAbd=window.rc357EnsureAbd;try{rc356EnsureAbd=window.rc357EnsureAbd}catch(_){ }
+  var oldSetView=window.setView;window.setView=function(v){var r=oldSetView&&oldSetView.apply(this,arguments);if(v==='shipment'){setTimeout(function(){window.rc357EnsureAbd(true)},30);setTimeout(function(){window.rc357EnsureAbd(false)},180);setTimeout(function(){window.rc357EnsureAbd(false)},600)}return r};try{setView=window.setView}catch(_){ }
+  var oldRender=window.render;window.render=function(){var r=oldRender&&oldRender.apply(this,arguments);if(isShipment()){setTimeout(function(){window.rc357EnsureAbd(true)},30);setTimeout(function(){window.rc357EnsureAbd(false)},180)}return r};try{render=window.render}catch(_){ }
+  function tick(){if(isShipment())window.rc357EnsureAbd(false)}
+  document.addEventListener('click',function(){setTimeout(tick,120);setTimeout(tick,500)},true);
+  document.addEventListener('change',function(){setTimeout(tick,120);setTimeout(tick,500)},true);
+  try{new MutationObserver(function(){if(isShipment())setTimeout(tick,40)}).observe(root(),{childList:true,subtree:true})}catch(_){ }
+  setTimeout(function(){window.rc357EnsureAbd(true)},80);setTimeout(tick,500);setTimeout(tick,1300);
+})();
+</script>
+<!-- PRIVATE RC357 END: ABD Bereich + Referenz final sauber -->
+
 </body></html>
