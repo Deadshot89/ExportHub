@@ -46405,4 +46405,144 @@ body .rc314-process-warning{
 </script>
 <!-- PRIVATE RC369 END: Kundenordner Suche sauber ohne Duplikate -->
 
+
+<!-- PRIVATE RC370 START: Kundenordner Mailbereich CC Daniel -->
+<style>
+.rc370-mail-panel{border:1px solid #bfdbfe;background:linear-gradient(180deg,#f8fbff,#ffffff);border-radius:22px;padding:18px;margin:16px 0 18px;box-shadow:0 10px 26px rgba(15,23,42,.06)}
+.rc370-mail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.rc370-mail-head h3{margin:0;color:#08245d;font-size:22px;letter-spacing:.01em}.rc370-mail-head p{margin:5px 0 0;color:#64748b;font-weight:800}
+.rc370-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:999px;padding:8px 12px;font-weight:950;font-size:13px;white-space:nowrap}
+.rc370-mail-grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:14px}.rc370-mail-box{border:1px solid #dbeafe;border-radius:18px;background:#fff;padding:14px}.rc370-mail-box h4{margin:0 0 10px;color:#0f2a66;font-size:17px}
+.rc370-mail-panel .field{margin:0 0 10px}.rc370-mail-panel input,.rc370-mail-panel textarea,.rc370-mail-panel select{width:100%;box-sizing:border-box;border:1px solid #dbeafe;border-radius:14px;padding:11px 12px;background:#fff;font-weight:800;color:#0f172a}.rc370-mail-panel textarea{min-height:82px;resize:vertical}.rc370-mini-grid{display:grid;grid-template-columns:1fr 150px;gap:10px}.rc370-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.rc370-actions button{min-height:42px}.rc370-note{border:1px dashed #bfdbfe;background:#eff6ff;border-radius:14px;padding:10px 12px;color:#334155;font-weight:800;margin-top:10px}
+.rc370-hide-oldmail{display:none!important}
+@media(max-width:900px){.rc370-mail-grid,.rc370-mini-grid{grid-template-columns:1fr}.rc370-mail-head{display:block}.rc370-badge{margin-top:10px}}
+</style>
+<script>
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC370_CUSTOMER_MAIL__)return;
+  window.__EXPORTHUB_RC370_CUSTOMER_MAIL__=true;
+  var DANIEL='DanielOllmann@essentra.com';
+  function S(){try{return window.state||state||{}}catch(e){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function trim(v){return T(v).trim()}
+  function E(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function emailItems(v){
+    var out=[],seen={};
+    T(v).split(/[;,\n]+/).forEach(function(x){x=trim(x).replace(/[<>]/g,'');if(!x)return;if(x.indexOf('@')<0)return;var k=x.toLowerCase();if(!seen[k]){seen[k]=1;out.push(x)}});
+    return out;
+  }
+  function merge(){return emailItems(Array.from(arguments).filter(Boolean).join(';')).join('; ')}
+  function hasDaniel(v){return emailItems(v).some(function(x){return x.toLowerCase()===DANIEL.toLowerCase()})}
+  function withDaniel(v){return merge(v,DANIEL)}
+  function saveQ(){try{if(typeof save==='function')save();else localStorage.setItem('exporthub_private_state_v1',JSON.stringify(S()))}catch(e){}}
+  function renderQ(){try{if(typeof render==='function')render()}catch(e){}}
+  function customers(){return A(S().customers)}
+  function acc(c){return trim(c&&(c.account||c.customerNumber||''))}
+  function name(c){return trim(c&&(c.name||c.customerName||''))}
+  function cid(c){return trim(c&&(c.id||acc(c)||name(c)))}
+  function currentCustomer(){var s=S(),id=trim(s.customerFolderOpenId||s.customerFolderId||s.selectedCustomerId||'');return customers().find(function(c){return cid(c)===id||acc(c)===id})||null}
+  function oldSalesMail(c){try{if(typeof window.__rc370_oldCustomerSalesMailAddress==='function')return window.__rc370_oldCustomerSalesMailAddress(c)}catch(e){};return trim(c&&(c.salesMail||c.salesEmail||c.salesPersonMail||c.salesPersonEmail||''))}
+  function oldCarrierMail(c){try{if(typeof window.__rc370_oldCustomerCarrierMailAddress==='function')return window.__rc370_oldCustomerCarrierMailAddress(c)}catch(e){};return trim(c&&(c.carrierMail||c.speditionMail||c.anmeldungMail||c.carrierEmail||c.mailRecipients||c.mailAddress||c.mail||c.email||''))}
+  function ensureCustomerCc(c){if(!c)return false;var old=merge(c.mailCc||c.cc||c.mailCopy||'',DANIEL);var changed=false;if((c.mailCc||'')!==old){c.mailCc=old;changed=true}if((c.cc||'')!==old){c.cc=old;changed=true}return changed}
+  function ensureAllCc(){var changed=false;customers().forEach(function(c){if(ensureCustomerCc(c))changed=true});if(changed)saveQ();return changed}
+  ensureAllCc();
+  window.rc370EnsureCustomerCc=ensureAllCc;
+  window.__rc370_oldCustomerMailCcAddress=window.__rc370_oldCustomerMailCcAddress||window.customerMailCcAddress;
+  window.__rc370_oldCustomerCarrierMailAddress=window.__rc370_oldCustomerCarrierMailAddress||window.customerCarrierMailAddress;
+  window.__rc370_oldCustomerSalesMailAddress=window.__rc370_oldCustomerSalesMailAddress||window.customerSalesMailAddress;
+  window.customerMailCcAddress=function(c){return merge(c&&(c.mailCc||c.cc||c.mailCopy||''), oldSalesMail(c), DANIEL)};
+  try{customerMailCcAddress=window.customerMailCcAddress}catch(e){}
+  function lang(v){return String(v||'de').toLowerCase()==='en'?'en':'de'}
+  function defaultSpeditionText(l){return l==='en'?'Hello,\n\nplease register / schedule the following shipment.\n\nReference: {Referenznummer}\nCustomer: {Kundenname}\nCustomer no.: {Kundennummer}\nPickup date: {Abholdatum}\n\nThank you.':'Hallo zusammen,\n\nbitte folgende Sendung anmelden / Abholung einplanen.\n\nReferenz: {Referenznummer}\nKunde: {Kundenname}\nKundennummer: {Kundennummer}\nAbholdatum: {Abholdatum}\n\nVielen Dank.'}
+  function defaultCustomerText(l){return l==='en'?'Hello,\n\nyour shipment has been prepared.\n\nReference: {Referenznummer}\nPickup date: {Abholdatum}\n\nKind regards':'Hallo,\n\ndie Sendung wurde vorbereitet.\n\nReferenz: {Referenznummer}\nAbholdatum: {Abholdatum}\n\nViele Grüße'}
+  function selectedIdFromHtml(html){var m=T(html).match(/saveCustomerFolderDetails\('([^']+)'\)/)||T(html).match(/saveCustomerFolderMail\('([^']+)'\)/);return m?m[1]:''}
+  function customerById(id){return customers().find(function(c){return cid(c)===id||c.id===id||acc(c)===id})||currentCustomer()}
+  function panel(c){
+    if(!c)return '';
+    ensureCustomerCc(c);
+    var spLang=lang(c.speditionMailLang||c.mailLang), cuLang=lang(c.customerMailLang||c.mailLang);
+    var spMail=oldCarrierMail(c), cuMail=merge(c.customerMail||c.customerEmail||c.contactEmail||'');
+    var cc=withDaniel(c.mailCc||c.cc||'');
+    return '<section id="rc370MailPanel" class="rc370-mail-panel">'
+      +'<div class="rc370-mail-head"><div><h3>Mailbereich</h3><p>Maildaten für Spedition und Kunde. Daniel ist bei jedem Kunden fest in CC.</p></div><span class="rc370-badge">CC: '+E(DANIEL)+'</span></div>'
+      +'<div class="rc370-mail-grid">'
+      +'<div class="rc370-mail-box"><h4>Spedition / Anmeldung</h4>'
+      +'<label class="field">Spedition<input id="rc370SpeditionName" value="'+E(c.carrier||c.speditionName||'')+'" placeholder="z. B. DHL, Dachser, Gate41, Würth Portal"></label>'
+      +'<div class="rc370-mini-grid"><label class="field">Mailadresse Spedition / Anmeldung<textarea id="rc370SpeditionMail" placeholder="Eine oder mehrere Mailadressen">'+E(spMail)+'</textarea></label><label class="field">Sprache<select id="rc370SpeditionLang"><option value="de" '+(spLang==='de'?'selected':'')+'>Deutsch</option><option value="en" '+(spLang==='en'?'selected':'')+'>Englisch</option></select></label></div>'
+      +'<label class="field">Mailtext Spedition<textarea id="rc370SpeditionText" placeholder="Text für Anmeldemail an Spedition">'+E(c.speditionMailText||c.mailText||c.mailBody||defaultSpeditionText(spLang))+'</textarea></label>'
+      +'</div>'
+      +'<div class="rc370-mail-box"><h4>Kunde</h4>'
+      +'<label class="field">Kundenname<input id="rc370CustomerName" value="'+E(name(c))+'"></label>'
+      +'<div class="rc370-mini-grid"><label class="field">Mailadresse Kunde<textarea id="rc370CustomerMail" placeholder="Kunden-Mail / Ansprechpartner-Mail">'+E(cuMail)+'</textarea></label><label class="field">Sprache<select id="rc370CustomerLang"><option value="de" '+(cuLang==='de'?'selected':'')+'>Deutsch</option><option value="en" '+(cuLang==='en'?'selected':'')+'>Englisch</option></select></label></div>'
+      +'<label class="field">Mailtext Kunde<textarea id="rc370CustomerText" placeholder="Text für Kundenmail">'+E(c.customerMailText||defaultCustomerText(cuLang))+'</textarea></label>'
+      +'</div>'
+      +'</div>'
+      +'<label class="field" style="margin-top:12px">CC für Mailverfahren<textarea id="rc370MailCc">'+E(cc)+'</textarea></label>'
+      +'<div class="rc370-actions"><button type="button" class="btn" onclick="return rc370SaveCustomerMail(&quot;'+E(cid(c))+'&quot;)">Maildaten speichern</button><button type="button" class="ghost" onclick="return rc370SyncOldMailFields()">Felder übernehmen</button></div>'
+      +'<div class="rc370-note">Für die normale Anmeldemail wird die Spedition/Anmeldung genutzt. Die Kunden-Mail bleibt separat im Kundenordner gespeichert.</div>'
+      +'</section>';
+  }
+  function injectPanel(html){
+    var id=selectedIdFromHtml(html);var c=customerById(id);if(!c)return html;
+    var p=panel(c);if(T(html).indexOf('id="rc370MailPanel"')>=0)return html;
+    if(T(html).indexOf('<div class="folder-header">')>=0)return T(html).replace('<div class="folder-header">',p+'<div class="folder-header">');
+    return T(html)+p;
+  }
+  function hideOldMailDom(){
+    try{
+      var root=document.getElementById('content')||document.body;if(!root||!document.getElementById('rc370MailPanel'))return;
+      ['customerFolderMail','customerFolderSalesMail','customerFolderMailCc','customerFolderMailSubject','customerFolderMailLang','customerFolderShipmentInfoText','customerFolderMailText','customerFolderCarrier','customerFolderCarrierContact'].forEach(function(id){
+        var el=document.getElementById(id);if(!el)return;
+        var box=el.closest('.customer-mail-grid,.customer-mail-lang-row,.grid2,label.field,.toolbar')||el;
+        if(box&&!box.closest('#rc370MailPanel'))box.classList.add('rc370-hide-oldmail');
+      });
+      root.querySelectorAll('.infobox').forEach(function(x){if(/Speditions-\/Anmelde-Mailadresse|Betreff automatisch|Ladeliste PDF/i.test(x.textContent||''))x.classList.add('rc370-hide-oldmail')});
+    }catch(e){}
+  }
+  window.rc370SyncOldMailFields=function(){
+    function val(id){var e=document.getElementById(id);return e?e.value:''}
+    function set(id,v){var e=document.getElementById(id);if(e)e.value=v}
+    set('customerFolderName',val('rc370CustomerName')||val('customerFolderName'));
+    set('customerFolderCarrier',val('rc370SpeditionName'));
+    set('customerFolderMail',val('rc370SpeditionMail'));
+    set('customerFolderCarrierMail',val('rc370SpeditionMail'));
+    set('customerFolderMailCc',withDaniel(val('rc370MailCc')));
+    set('customerFolderMailLang',lang(val('rc370SpeditionLang')));
+    set('customerFolderMailText',val('rc370SpeditionText'));
+    set('customerFolderContactEmail',val('rc370CustomerMail'));
+    return false;
+  };
+  window.rc370SaveCustomerMail=function(id){
+    var c=customerById(id);if(!c){alert('Kunde nicht gefunden.');return false}
+    function val(x){var e=document.getElementById(x);return e?trim(e.value):''}
+    c.name=val('rc370CustomerName')||c.name||'';
+    var sp=val('rc370SpeditionName');c.carrier=sp;c.speditionName=sp;
+    var spMail=merge(val('rc370SpeditionMail'));c.carrierMail=spMail;c.speditionMail=spMail;c.anmeldungMail=spMail;c.mailAddress=spMail;c.mailRecipients=spMail;c.mail=spMail;
+    var cuMail=merge(val('rc370CustomerMail'));c.customerMail=cuMail;c.customerEmail=cuMail;c.contactEmail=cuMail;
+    c.speditionMailLang=lang(val('rc370SpeditionLang'));c.customerMailLang=lang(val('rc370CustomerLang'));c.mailLang=c.speditionMailLang;
+    c.speditionMailText=val('rc370SpeditionText')||defaultSpeditionText(c.speditionMailLang);c.mailText=c.speditionMailText;c.mailBody=c.speditionMailText;
+    c.customerMailText=val('rc370CustomerText')||defaultCustomerText(c.customerMailLang);
+    c.mailCc=withDaniel(val('rc370MailCc'));c.cc=c.mailCc;
+    ensureCustomerCc(c);try{if(typeof audit==='function')audit('Maildaten im Kundenordner gespeichert',(acc(c)||'')+' · '+(name(c)||''))}catch(e){}
+    saveQ();renderQ();return false;
+  };
+  var oldSaveMail=window.saveCustomerFolderMail||((typeof saveCustomerFolderMail==='function')?saveCustomerFolderMail:null);
+  window.saveCustomerFolderMail=function(id){try{window.rc370SyncOldMailFields()}catch(e){};var r=oldSaveMail?oldSaveMail.apply(this,arguments):false;ensureAllCc();return r};try{saveCustomerFolderMail=window.saveCustomerFolderMail}catch(e){}
+  var oldSaveDetails=window.saveCustomerFolderDetails||((typeof saveCustomerFolderDetails==='function')?saveCustomerFolderDetails:null);
+  window.saveCustomerFolderDetails=function(id){try{window.rc370SyncOldMailFields()}catch(e){};var r=oldSaveDetails?oldSaveDetails.apply(this,arguments):false;ensureAllCc();return r};try{saveCustomerFolderDetails=window.saveCustomerFolderDetails}catch(e){}
+  var oldCustomerFolder=window.customerfolder||((typeof customerfolder==='function')?customerfolder:null);
+  if(typeof oldCustomerFolder==='function'&&!oldCustomerFolder.__rc370MailPanel){
+    var cf=function(){ensureAllCc();var out=oldCustomerFolder.apply(this,arguments);return injectPanel(out)};cf.__rc370MailPanel=true;window.customerfolder=cf;try{customerfolder=cf}catch(e){}
+  }
+  function installRender(){var old=window.render||((typeof render==='function')?render:null);if(typeof old==='function'&&!old.__rc370MailPanel){var rr=function(){ensureAllCc();var r=old.apply(this,arguments);setTimeout(hideOldMailDom,0);setTimeout(hideOldMailDom,120);return r};rr.__rc370MailPanel=true;window.render=rr;try{render=rr}catch(e){}}}
+  installRender();
+  document.addEventListener('input',function(ev){var t=ev.target;if(t&&/^rc370/.test(t.id||'')){try{window.rc370SyncOldMailFields()}catch(e){}}},true);
+  document.addEventListener('change',function(ev){var t=ev.target;if(t&&/^rc370/.test(t.id||'')){try{window.rc370SyncOldMailFields()}catch(e){}}},true);
+  setTimeout(hideOldMailDom,80);setTimeout(hideOldMailDom,400);setTimeout(ensureAllCc,600);
+})();
+</script>
+<!-- PRIVATE RC370 END: Kundenordner Mailbereich CC Daniel -->
+
 </body></html>
