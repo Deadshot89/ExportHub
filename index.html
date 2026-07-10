@@ -46210,203 +46210,129 @@ body .rc314-process-warning{
 </script>
 <!-- PRIVATE RC362 END: Colli + Zeile Doppeltrigger Fix -->
 
-<!-- PRIVATE RC364 START: Login hart erster Klick + ABD harter Einzelrenderer -->
-<style id="rc364-login-abd-css">
-/* RC364: alte/zweite ABD-Bloecke sofort unsichtbar, finaler ABD-Block bleibt sichtbar */
-#rc344AbdBox:not([data-rc364-abd="1"]),
-#rc288AbdPanel,#rc291AbdPanel,#rc265AbdPanel,#rc260AbdPanel,
-.rc265-abd-request-panel,.rc260-abd-panel,
-.abd-panel:not(#rc344AbdBox),
-.rc352-abd:not([data-rc364-abd="1"]),
-.rc355-abd:not([data-rc364-abd="1"]),
-.rc356-abd:not([data-rc364-abd="1"]),
-.rc357-abd:not([data-rc364-abd="1"]),
-.rc360-abd:not([data-rc364-abd="1"]),
-.rc363-abd:not([data-rc364-abd="1"]){display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important}
-#rc344AbdBox[data-rc364-abd="1"]{display:block!important;visibility:visible!important;height:auto!important;overflow:visible!important}
-.rc364-abd{border:2px solid #facc15!important;background:#fffbeb!important;border-radius:20px!important;padding:16px!important;margin:16px 0!important;box-shadow:0 8px 22px rgba(15,23,42,.08)!important}
-.rc364-abd h3{margin:0 0 6px!important;color:#92400e!important;font-size:20px!important}.rc364-abd p{margin:0 0 12px!important}.rc364-abd .grid2{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}.rc364-abd .grid3{display:grid!important;grid-template-columns:1fr 1fr 1fr!important;gap:10px!important}.rc364-abd textarea{min-height:92px!important}.rc364-abd .fixedmail{font-weight:900;color:#166534;background:#ecfdf5;border:1px solid #bbf7d0;border-radius:12px;padding:11px 12px}
-@media(max-width:900px){.rc364-abd .grid2,.rc364-abd .grid3{grid-template-columns:1fr!important}}
+<!-- PRIVATE RC366 START: Login sauber + ABD Einzelrenderer ohne Doppel-Layout -->
+<style id="rc366-login-abd-css">
+#login:not(.hidden){display:grid!important;place-items:center!important;min-height:100vh!important;padding:24px!important}
+#login .login-card{width:min(560px,calc(100vw - 48px))!important;max-width:560px!important;margin:auto!important;text-align:center!important;overflow:visible!important}
+#login #loginFields{display:block!important;width:100%!important}
+#login #loginUser,#login #loginPass{display:block!important;width:100%!important;min-width:0!important}
+#pwChange{display:none!important}
+.rc119-login-remember,#rc119RememberLogin,#rc121LoginSaveStatus,.rc119-login-tools,#rc119ClearSavedLogin{display:none!important}
+#rc366LoginError{margin-top:10px;color:#991b1b;font-weight:900;min-height:18px;text-align:left}
+#rc344AbdBox:not([data-rc366-abd="1"]),#rc288AbdPanel,#rc291AbdPanel,#rc265AbdPanel,#rc260AbdPanel,
+.rc348-abd,.rc352-abd,.rc355-abd,.rc356-abd,.rc357-abd,.rc359-abd,.rc360-abd,.rc363-abd,.rc364-abd,
+.rc265-abd-request-panel,.rc260-abd-panel,.abd-panel{display:none!important;visibility:hidden!important;height:0!important;max-height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
+#rc366AbdBox{background:#fff;border:1px solid #dbe4ef;border-radius:22px;box-shadow:0 18px 46px rgba(15,23,42,.10);padding:18px;margin:14px 0;clear:both}
+#rc366AbdBox h3{margin:0 0 8px;color:#08245d;font-size:22px}
+.rc366-abd-note{background:#eff6ff;border-left:5px solid #2563eb;border-radius:14px;padding:10px 12px;margin:10px 0 14px;font-weight:900;color:#0f172a}
+.rc366-abd-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rc366-abd-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+#rc366AbdBox .field{margin:8px 0}#rc366AbdBox textarea{min-height:150px}
+#rc366AbdBox input[readonly],#rc366AbdBox textarea[readonly]{background:#f8fafc;color:#334155}
+@media(max-width:1100px){.rc366-abd-grid2,.rc366-abd-grid3{grid-template-columns:1fr}}
 </style>
 <script>
 (function(){
-  if(window.__EXPORTHUB_RC364_LOGIN_ABD_FINAL__)return;
-  window.__EXPORTHUB_RC364_LOGIN_ABD_FINAL__=true;
+  if(window.__EXPORTHUB_RC366_LOGIN_ABD__)return;
+  window.__EXPORTHUB_RC366_LOGIN_ABD__=true;
   var TARGET='mail@gp-zollabfertigung.de';
-  var loginBusy=false, abdBusy=false, observerBusy=false;
+  var loginBusy=false, buildingLogin=false, abdBusy=false, lastLogin={user:'',pass:''};
   function el(id){return document.getElementById(id)}
   function txt(v){return String(v==null?'':v)}
   function trim(v){return txt(v).trim()}
   function low(v){return trim(v).toLowerCase()}
-  function up(v){return trim(v).toUpperCase()}
   function arr(v){return Array.isArray(v)?v:[]}
   function esc(v){return txt(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function S(){try{return state}catch(e){window.state=window.state||{};return window.state}}
   function saveQ(){try{if(typeof save==='function')save()}catch(e){} }
   function saveUsersQ(){try{if(typeof saveUsers==='function')saveUsers()}catch(e){} }
-  function rightsAll(){var r={};try{arr(RIGHTS_MODULES).forEach(function(x){if(x&&x[0])r[x[0]]={visible:true,read:true,edit:true}})}catch(e){};return r}
-  function normalizeUser(u){u=u||{};u.user=u.user||u.name||'';u.name=u.name||u.user;u.role=u.role||'Benutzer';u.permissions=arr(u.permissions);u.rights=(u.rights&&typeof u.rights==='object')?u.rights:{};if(low(u.user)==='tobias'||low(u.user)==='test'||u.permissions.indexOf('*')>=0){u.permissions=['*'];u.rights=rightsAll();u.mustChange=false;if(low(u.user)==='tobias')u.role='Administrator';if(low(u.user)==='test')u.role='Vollzugriff'}return u}
+  function rightsAll(){var r={};try{arr(RIGHTS_MODULES).forEach(function(m){if(m&&m[0])r[m[0]]={visible:true,read:true,edit:true}})}catch(e){}return r}
+  function normalizeUser(u){u=u||{};u.user=trim(u.user||u.login||u.username||u.name);u.login=u.user;u.username=u.user;u.name=trim(u.name||u.displayName||u.user);u.role=trim(u.role||'Benutzer');u.permissions=arr(u.permissions);u.rights=(u.rights&&typeof u.rights==='object')?u.rights:{};if(low(u.user)==='tobias'||low(u.user)==='test'||u.permissions.indexOf('*')>=0){u.permissions=['*'];u.rights=rightsAll();u.mustChange=false;if(low(u.user)==='tobias')u.role='Administrator';if(low(u.user)==='test')u.role='Vollzugriff'}return u}
+  function usersList(){try{if(!Array.isArray(users))users=[];return users}catch(e){window.users=[];return window.users}}
   function findUser(name,pass){
-    var key=low(name), pw=txt(pass), list=[];try{list=arr(users)}catch(e){users=[];list=users}
-    var u=list.find(function(x){return low(x.user||x.name)===key && txt(x.password)===pw});
-    if(!u && pw==='Essentra')u=list.find(function(x){return low(x.user||x.name)===key && low(x.user||x.name)!=='tobias'});
-    if(!u && key==='tobias' && pw==='demo')u={user:'Tobias',name:'Tobias',password:'demo',role:'Administrator',permissions:['*'],rights:rightsAll(),mustChange:false};
-    if(!u && key==='test' && pw==='Essentra')u={user:'Test',name:'Test',password:'Essentra',role:'Vollzugriff',permissions:['*'],rights:rightsAll(),mustChange:false};
+    var key=low(name), pw=txt(pass), list=usersList(), u=null;
+    if(!key)return null;
+    u=list.find(function(x){return low(x.user||x.login||x.username||x.name)===key && txt(x.password)===pw});
+    if(!u&&pw==='Essentra'&&key!=='tobias')u=list.find(function(x){return low(x.user||x.login||x.username||x.name)===key});
+    if(!u&&key==='tobias'&&pw==='demo')u={user:'Tobias',name:'Tobias',password:'demo',role:'Administrator',permissions:['*'],rights:rightsAll(),mustChange:false};
+    if(!u&&key==='test'&&pw==='Essentra')u={user:'Test',name:'Test',password:'Essentra',role:'Vollzugriff',permissions:['*'],rights:rightsAll(),mustChange:false};
     if(!u)return null;
     u=normalizeUser(u);
-    try{
-      var i=users.findIndex(function(x){return low(x.user||x.name)===low(u.user||u.name)});
-      if(i>=0)users[i]=Object.assign(users[i],u); else if(low(u.user)==='tobias'||low(u.user)==='test')users.push(u);
-      saveUsersQ();
-    }catch(e){}
+    try{var i=list.findIndex(function(x){return low(x.user||x.login||x.username||x.name)===low(u.user)});if(i>=0)list[i]=Object.assign(list[i],u);else list.push(u);saveUsersQ()}catch(e){}
     return u;
   }
-  function showLoggedIn(u){
-    var s=S();
-    try{currentUser=u}catch(e){}
-    try{window.currentUser=u}catch(e){}
-    try{sessionStorage.setItem('exporthub_rc171_manual_user',trim(u.user||u.name))}catch(e){}
-    try{s.currentUser={user:u.user,name:u.name,role:u.role};s.loggedInUser=u.user||u.name;if(!s.view||s.view==='start')s.view='dashboard'}catch(e){}
-    saveQ();
-    var login=el('login'), app=el('app');
-    if(login)login.classList.add('hidden');
-    if(app)app.classList.remove('hidden');
-    var pn=el('profileName'), pr=el('profileRole');
-    if(pn)pn.textContent=u.name||u.user||'Benutzer';
-    if(pr)pr.textContent=u.role||'Benutzer';
-    try{if(typeof applyLanguage==='function')applyLanguage()}catch(e){}
-    try{if(typeof renderNav==='function')renderNav()}catch(e){}
-    try{if(typeof render==='function')render()}catch(e){}
-    [40,160,450,900].forEach(function(ms){setTimeout(function(){try{currentUser=u}catch(e){};try{window.currentUser=u}catch(e){};var l=el('login'),a=el('app');if(l)l.classList.add('hidden');if(a)a.classList.remove('hidden');try{sessionStorage.setItem('exporthub_rc171_manual_user',trim(u.user||u.name))}catch(e){}},ms)});
+  function currentLoginValues(){var u=el('loginUser'), p=el('loginPass');var du=u?txt(u.value):'', dp=p?txt(p.value):'';var cu=lastLogin.user||'', cp=lastLogin.pass||'';return {user:(trim(cu).length>trim(du).length?cu:du),pass:(cp.length>dp.length?cp:dp)}}
+  function setLoginError(msg){var x=el('rc366LoginError');if(x)x.textContent=msg||''}
+  function rebuildLogin(){
+    if(buildingLogin)return;buildingLogin=true;
+    try{
+      var login=el('login'), card=login&&login.querySelector('.login-card');if(!login||!card)return;
+      var vals=currentLoginValues();var lang='de';try{lang=(el('loginLanguageSelect')||el('languageSelect')||{}).value||'de'}catch(e){}
+      card.innerHTML='<div class="logo">EH</div><h1>ExportHUB</h1><div class="login-lang"><label class="field" id="loginLangLabel">Sprache<select id="loginLanguageSelect" autocomplete="off"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="tr">Türkçe</option><option value="fr">Français</option><option value="es">Español</option></select></label></div><div id="loginFields" data-rc366-login="1"><label class="field">Benutzername<input id="loginUser" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="text"></label><label class="field">Passwort<input id="loginPass" type="password" autocomplete="off"></label><button id="loginBtn" type="button" class="btn" style="width:100%">Anmelden</button><div id="rc366LoginError"></div></div><div id="pwChange" class="hidden"></div>';
+      var sel=el('loginLanguageSelect');if(sel)sel.value=lang;
+      var u=el('loginUser'), p=el('loginPass'), b=el('loginBtn');
+      if(u){u.value=vals.user||'';u.addEventListener('input',function(){lastLogin.user=this.value},true);u.addEventListener('change',function(){lastLogin.user=this.value},true)}
+      if(p){p.value=vals.pass||'';p.addEventListener('input',function(){lastLogin.pass=this.value},true);p.addEventListener('change',function(){lastLogin.pass=this.value},true)}
+      if(b)b.onclick=window.rc366Login;
+    }finally{buildingLogin=false}
+  }
+  function showApp(u){
+    var s=S();try{currentUser=u}catch(e){}try{window.currentUser=u}catch(e){}
+    try{s.currentUser={user:u.user,name:u.name,role:u.role};s.loggedInUser=u.user;if(!s.view||s.view==='start')s.view='dashboard'}catch(e){}
+    try{sessionStorage.setItem('exporthub_rc171_manual_user',u.user)}catch(e){}saveQ();
+    var login=el('login'), app=el('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');document.body.classList.add('rc366-logged-in');
+    var pn=el('profileName'), pr=el('profileRole'), bu=el('brandUserLine');if(pn)pn.textContent=u.name||u.user||'Benutzer';if(pr)pr.textContent=u.role||'Benutzer';if(bu)bu.textContent='Benutzer: '+(u.name||u.user||'Benutzer');
+    try{if(typeof applyLanguage==='function')applyLanguage()}catch(e){}try{if(typeof renderNav==='function')renderNav()}catch(e){}try{if(typeof render==='function')render()}catch(e){}
+    [50,180,500,1000].forEach(function(ms){setTimeout(function(){try{currentUser=u;window.currentUser=u}catch(e){}var l=el('login'),a=el('app');if(l)l.classList.add('hidden');if(a)a.classList.remove('hidden')},ms)});
     return false;
   }
-  window.rc364Login=function(ev){
-    if(ev){try{ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation()}catch(e){}}
-    if(loginBusy)return false;
-    loginBusy=true;
-    try{
-      var name=(el('loginUser')||{}).value||'', pass=(el('loginPass')||{}).value||'';
-      var u=findUser(name,pass);
-      if(!u){alert('Login nicht korrekt. Bitte Benutzername und Passwort prüfen.');return false}
-      try{var r=el('rc119RememberLogin');if(r&&r.checked){var data={user:trim(name),pass:pass,savedAt:new Date().toISOString(),version:'RC364'};localStorage.setItem('exporthub_private_rc121_saved_login',JSON.stringify(data));localStorage.setItem('exporthub_private_rc119_saved_login',JSON.stringify(data));}}catch(e){}
-      return showLoggedIn(u);
-    }finally{setTimeout(function(){loginBusy=false},250)}
-  };
-  function loginCapture(ev){var t=ev.target;if(t&&t.closest&&t.closest('#loginBtn'))return window.rc364Login(ev)}
-  function loginKey(ev){var t=ev.target;if(t&&t.closest&&(t.closest('#loginUser')||t.closest('#loginPass'))&&ev.key==='Enter')return window.rc364Login(ev)}
-  function installLogin(){
-    var b=el('loginBtn');if(b){b.onclick=window.rc364Login;b.addEventListener('click',window.rc364Login,true)}
-    if(!window.__EXPORTHUB_RC364_LOGIN_CAPTURE_INSTALLED__){window.__EXPORTHUB_RC364_LOGIN_CAPTURE_INSTALLED__=true;window.addEventListener('click',loginCapture,true);document.addEventListener('click',loginCapture,true);window.addEventListener('keydown',loginKey,true);document.addEventListener('keydown',loginKey,true)}
-  }
+  window.rc366Login=function(ev){if(ev){try{ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation()}catch(e){}}if(loginBusy)return false;loginBusy=true;try{var v=currentLoginValues();lastLogin.user=v.user;lastLogin.pass=v.pass;var u=findUser(v.user,v.pass);if(!u){setLoginError('Login nicht korrekt. Benutzername und Passwort prüfen.');return false}setLoginError('');return showApp(u)}finally{setTimeout(function(){loginBusy=false},250)}};
+  function loginEvent(ev){var t=ev.target;if(!t||!t.closest)return;if(t.closest('#loginUser'))lastLogin.user=t.value;if(t.closest('#loginPass'))lastLogin.pass=t.value;if(t.closest('#loginBtn'))return window.rc366Login(ev)}
+  function loginKey(ev){var t=ev.target;if(!t||!t.closest)return;if(t.closest('#loginUser'))lastLogin.user=t.value;if(t.closest('#loginPass'))lastLogin.pass=t.value;if((t.closest('#loginUser')||t.closest('#loginPass'))&&ev.key==='Enter')return window.rc366Login(ev)}
+  function protectLogin(){var login=el('login');if(!login||login.classList.contains('hidden'))return;if(!el('loginFields')||!el('loginUser')||!el('loginPass')||!el('loginBtn')||el('rc119RememberLogin'))rebuildLogin();var u=el('loginUser'),p=el('loginPass');if(u&&lastLogin.user&&trim(u.value).length<trim(lastLogin.user).length)u.value=lastLogin.user;if(p&&lastLogin.pass&&p.value.length<lastLogin.pass.length)p.value=lastLogin.pass}
+  window.rc366InstallLogin=function(){rebuildLogin();protectLogin()};
+  document.addEventListener('click',loginEvent,true);document.addEventListener('keydown',loginKey,true);document.addEventListener('input',loginEvent,true);document.addEventListener('change',loginEvent,true);
 
-  function isShipment(){try{return S()&&S().view==='shipment'}catch(e){return false}}
+  function isShipment(){try{return (S().view||'')==='shipment'}catch(e){return false}}
   function root(){return el('content')||document.querySelector('main')||document.body}
-  function customers(){var s=S();return arr(s.customers)}
-  function acc(c){return trim(c&&(c.account||c.customerNumber||c.kundennummer||c.customerNo||c.id||''))}
-  function cname(c){return trim(c&&(c.name||c.customerName||c.kunde||c.company||''))}
-  function addr(c){return trim(c&&(c.address||c.receiverAddress||c.empfaengeradresse||c.shippingAddress||c.adresse||''))}
-  function label(c){return [acc(c),cname(c),trim(c&&(c.country||c.land||''))].filter(Boolean).join(' · ')}
-  function findCustomer(q){var n=low(q);if(!n)return null;return customers().find(function(c){return low(acc(c))===n||low(cname(c))===n||low(label(c))===n})||customers().find(function(c){return low(acc(c)).indexOf(n)>=0||low(cname(c)).indexOf(n)>=0||low(label(c)).indexOf(n)>=0})||null}
-  function refClean(v){return up(v).replace(/[^A-Z0-9]/g,'').slice(0,6)}
-  function makeRef(){var r='';for(var i=0;i<20;i++){r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);if(r.length===6)return r}return ('R'+Date.now().toString(36).toUpperCase()).replace(/[^A-Z0-9]/g,'').slice(0,6).padEnd(6,'0')}
-  function ship(){var s=S();s.shipment=s.shipment||{};var x=s.shipment;x.ref=refClean(x.ref||x.abdRef)||makeRef();x.abdRef=x.ref;x.abdMail=TARGET;return x}
-  function rowsTotal(x){var c=0,w=0;arr(x.rows).forEach(function(r){c+=Number(txt(r.count||r.qty||r.anzahl).replace(',','.'))||0;w+=Number(txt(r.weight||r.gewicht).replace(',','.'))||0});return {count:c,weight:w}}
-  function selectedCustomer(){var s=S(),x=ship(),id=trim(x.customerId||x.customer_id||s.selectedCustomerId||'');var c=customers().find(function(k){return trim(k.id)===id||acc(k)===id});return c||x.customer||{} }
+  function customers(){return arr(S().customers)}
+  function cAcc(c){return trim(c&&(c.account||c.customerNumber||c.kundennummer||c.customerNo||c.id||''))}
+  function cName(c){return trim(c&&(c.name||c.customerName||c.kunde||c.company||''))}
+  function cAddr(c){return trim(c&&(c.address||c.receiverAddress||c.empfaengeradresse||c.shippingAddress||c.adresse||''))}
+  function cLabel(c){return [cAcc(c),cName(c),trim(c&&(c.country||c.land||''))].filter(Boolean).join(' · ')}
+  function findCustomer(q){var n=low(q);if(!n)return null;return customers().find(function(c){return low(cAcc(c))===n||low(cName(c))===n||low(cLabel(c))===n})||customers().find(function(c){return low(cAcc(c)).indexOf(n)>=0||low(cName(c)).indexOf(n)>=0||low(cLabel(c)).indexOf(n)>=0})||null}
+  function ref(v){return trim(v).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6)}
+  function makeRef(){var r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);return (r+'000000').slice(0,6)}
+  function sh(){var s=S();s.shipment=s.shipment||{};if(!ref(s.shipment.ref))s.shipment.ref=makeRef();s.shipment.abdMail=TARGET;return s.shipment}
+  function syncRows(){try{if(typeof window.rc361SyncColliRows==='function')window.rc361SyncColliRows()}catch(e){} }
+  function num(v){return Number(trim(v).replace(',','.'))||0}
+  function totals(x){syncRows();var count=0,weight=0;arr(x.rows).forEach(function(r){var c=num(r.count||r.qty||r.anzahl);var w=num(r.weight||r.gewicht);if(c||w){count+=c;weight+=w}});return {count:count,weight:weight}}
+  function currentCustomer(){var s=S(),x=sh(),id=trim(x.customerId||s.selectedCustomerId||'');return customers().find(function(c){return trim(c.id)===id||cAcc(c)===id})||x.customer||findCustomer(x.abdCustomerSearch||x.customerSearch||'')||{} }
   function docs(x){return trim(x.deliveryNotes||x.dncs||x.docs||arr(x.files).map(function(f){return f.name||f.fileName||f}).join(', '))}
-  function read(id,def){var e=el(id);return e?e.value:(def||'')}
-  function updateMailText(x,c){var t=rowsTotal(x);var count=trim(x.abdCount)||(t.count?String(t.count):'');var weight=trim(x.abdWeight)||(t.weight?String(t.weight):'');return 'Hallo,\n\nbitte ABD/Zollabfertigung vorbereiten.\n\nKunde: '+(cname(c)||'')+'\nKundennummer: '+(acc(c)||'')+'\nReferenz: '+(x.ref||'')+'\nAnzahl/Collis: '+count+'\nGewicht kg: '+weight+'\nAbholdatum: '+(x.pickupDate||'')+'\nLieferscheine/DNCs: '+(docs(x)||'offen')+'\n\nVielen Dank.'}
-  function abdHtml(){
-    var x=ship(), c=selectedCustomer(), t=rowsTotal(x);
-    var search=trim(x.abdCustomerSearch||x.customerSearch||label(c));
-    var count=trim(x.abdCount)||(t.count?String(t.count):'');
-    var weight=trim(x.abdWeight)||(t.weight?String(t.weight):'');
-    var opt=customers().map(function(cu){return '<option value="'+esc(label(cu))+'"></option>'}).join('');
-    var mail=x.abdTextManual?trim(x.abdText):updateMailText(x,c);
-    return '<section id="rc344AbdBox" class="rc364-abd" data-rc364-abd="1">'+
-      '<h3>ABD Bereich</h3><p><b>Zielmail fest:</b> '+TARGET+'</p>'+
-      '<div class="grid2"><label class="field">Kundennummer / Kunde suchen<input id="rc364AbdCustomerSearch" list="rc364AbdCustomers" value="'+esc(search)+'" placeholder="Kundennummer oder Kundenname" oninput="return rc364AbdSet(\'abdCustomerSearch\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rc364ApplyCustomer()}"><datalist id="rc364AbdCustomers">'+opt+'</datalist></label><label class="field">Kunde<input id="rc364AbdCustomerName" value="'+esc(cname(c)||'')+'" readonly></label></div>'+
-      '<div class="toolbar"><button type="button" class="ghost" onclick="return rc364ApplyCustomer()">Kunde übernehmen</button><button type="button" class="ghost" onclick="return rc364NewRef()">Neue Ref</button></div>'+
-      '<div class="grid3"><label class="field">Referenz<input id="rc364AbdRef" value="'+esc(x.ref||'')+'" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\').slice(0,6);return rc364AbdSet(\'ref\',this.value)"></label><label class="field">Anzahl / Collis<input id="rc364AbdCount" type="number" min="0" step="1" value="'+esc(count)+'" oninput="return rc364AbdSet(\'abdCount\',this.value)"></label><label class="field">Gewicht kg<input id="rc364AbdWeight" type="number" min="0" step="0.1" value="'+esc(weight)+'" oninput="return rc364AbdSet(\'abdWeight\',this.value)"></label></div>'+
-      '<div class="grid2"><label class="field">Abholdatum<input id="rc364AbdPickup" type="date" value="'+esc(x.pickupDate||'')+'" oninput="return rc364AbdSet(\'pickupDate\',this.value)"></label><label class="field">Lieferscheine / DNCs<input id="rc364AbdDocs" value="'+esc(docs(x))+'" oninput="return rc364AbdSet(\'deliveryNotes\',this.value)"></label></div>'+
-      '<label class="field">Empfängeradresse<textarea readonly>'+esc(addr(c)||'Adresse nicht hinterlegt')+'</textarea></label>'+
-      '<div class="grid2"><div class="field"><span>Zielmail</span><div class="fixedmail">'+TARGET+'</div></div><label class="field">CC optional<input id="rc364AbdCc" value="'+esc(x.abdCc||'')+'" oninput="return rc364AbdSet(\'abdCc\',this.value)"></label></div>'+
-      '<label class="field">ABD Mailtext<textarea id="rc364AbdText" oninput="return rc364AbdTextManual(this.value)">'+esc(mail)+'</textarea></label>'+
-      '<div class="toolbar"><button type="button" class="btn" onclick="return rc364AbdOpenMail()">ABD Mail erstellen</button><button type="button" class="ghost" onclick="return rc364AbdSave()">ABD Anfrage speichern</button><button type="button" class="ghost" onclick="return rc364AbdCopy()">ABD Mailtext kopieren</button></div>'+
-      '</section>';
-  }
-  function removeOldAbd(){
-    var nodes=Array.from(document.querySelectorAll('#rc344AbdBox,#rc288AbdPanel,#rc291AbdPanel,#rc265AbdPanel,#rc260AbdPanel,.rc265-abd-request-panel,.rc260-abd-panel,.abd-panel,.rc352-abd,.rc355-abd,.rc356-abd,.rc357-abd,.rc360-abd,.rc363-abd'));
-    var keep=null;
-    nodes.forEach(function(n){if(n.id==='rc344AbdBox'&&n.getAttribute('data-rc364-abd')==='1'&&!keep){keep=n;return}try{n.remove()}catch(e){try{n.style.display='none'}catch(_){}}});
-    return keep;
-  }
-  window.rc364EnsureAbd=function(force){
-    if(abdBusy||!isShipment())return false;
-    abdBusy=true;
-    try{
-      var r=root(); if(!r)return false;
-      var oldFinal=document.querySelector('#rc344AbdBox[data-rc364-abd="1"]');
-      if(oldFinal&&!force){removeOldAbd();return false}
-      var old=Array.from(document.querySelectorAll('#rc344AbdBox')).find(function(n){return n.getAttribute('data-rc364-abd')!=='1'})||oldFinal;
-      var html=abdHtml();
-      removeOldAbd();
-      var mail=el('rc344MailBox')||el('rc344CustomerInfo')||r.querySelector('.rc344-card,.rc344-section,.card');
-      if(oldFinal&&document.body.contains(oldFinal)&&force){oldFinal.outerHTML=html}
-      else if(mail&&mail.parentNode){mail.insertAdjacentHTML('afterend',html)}
-      else r.insertAdjacentHTML('beforeend',html);
-      return true;
-    }finally{abdBusy=false}
-  };
-  function refreshText(){var x=ship();if(!x.abdTextManual){var ta=el('rc364AbdText');if(ta){ta.value=updateMailText(x,selectedCustomer());x.abdText=ta.value}}saveQ()}
-  window.rc364AbdSet=function(k,v){var x=ship();if(k==='ref'){x.ref=refClean(v);x.abdRef=x.ref}else{x[k]=v}if(k==='abdCount'||k==='abdWeight'||k==='pickupDate'||k==='deliveryNotes')setTimeout(refreshText,0);else saveQ();return false};
-  window.rc364AbdTextManual=function(v){var x=ship();x.abdText=v;x.abdTextManual=true;saveQ();return false};
-  window.rc364ApplyCustomer=function(){var x=ship();var q=read('rc364AbdCustomerSearch',x.abdCustomerSearch||'');var c=findCustomer(q);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname aus der Liste wählen.');return false}x.customerId=c.id||acc(c);x.customer=c;x.customerSearch=label(c);x.abdCustomerSearch=label(c);x.abdTextManual=false;try{S().selectedCustomerId=x.customerId}catch(e){}saveQ();window.rc364EnsureAbd(true);return false};
-  window.rc364NewRef=function(){var x=ship();x.ref=x.abdRef=makeRef();x.abdTextManual=false;saveQ();window.rc364EnsureAbd(true);return false};
-  function collect(){var x=ship();x.ref=refClean(read('rc364AbdRef',x.ref))||makeRef();x.abdRef=x.ref;x.abdCount=read('rc364AbdCount',x.abdCount);x.abdWeight=read('rc364AbdWeight',x.abdWeight);x.pickupDate=read('rc364AbdPickup',x.pickupDate);x.deliveryNotes=read('rc364AbdDocs',x.deliveryNotes);x.abdCc=read('rc364AbdCc',x.abdCc);x.abdMail=TARGET;x.abdText=read('rc364AbdText',updateMailText(x,selectedCustomer()));saveQ();return {x:x,c:selectedCustomer()}}
-  window.rc364AbdOpenMail=function(){var d=collect();var sub='ABD Anfrage '+(d.x.ref||'')+' / '+(cname(d.c)||'Kunde');location.href='mailto:'+TARGET+'?subject='+encodeURIComponent(sub)+(trim(d.x.abdCc)?'&cc='+encodeURIComponent(d.x.abdCc):'')+'&body='+encodeURIComponent(d.x.abdText||updateMailText(d.x,d.c));return false};
-  window.rc364AbdCopy=function(){var d=collect(),body=d.x.abdText||updateMailText(d.x,d.c);try{navigator.clipboard.writeText(body);alert('ABD Mailtext kopiert.')}catch(e){prompt('ABD Mailtext kopieren:',body)}return false};
-  window.rc364AbdSave=function(){var d=collect(),s=S();s.abdRequests=arr(s.abdRequests);var item={id:'ABD-'+(d.x.ref||Date.now()),ref:d.x.ref,customerId:d.x.customerId||'',customerName:cname(d.c),account:acc(d.c),address:addr(d.c),deliveryNotes:d.x.deliveryNotes||'',pickupDate:d.x.pickupDate||'',count:d.x.abdCount||'',weight:d.x.abdWeight||'',mail:TARGET,cc:d.x.abdCc||'',mailBody:d.x.abdText||updateMailText(d.x,d.c),created:new Date().toISOString().slice(0,10),status:'offen'};var i=s.abdRequests.findIndex(function(a){return up(a.ref)===up(item.ref)&&up(item.ref)});if(i>=0)s.abdRequests[i]=Object.assign(s.abdRequests[i],item);else s.abdRequests.unshift(item);saveQ();alert('ABD Anfrage gespeichert.');return false};
-  ['rc344OpenAbdMail','rc348OpenAbdMail','rc349OpenAbdMail','rc350OpenAbdMail','rc352OpenAbdMail','rc355AbdOpenMail','rc356AbdOpenMail','rc357AbdOpenMail','rc359AbdOpenMail','rc360AbdOpenMail','rc363AbdOpenMail'].forEach(function(n){window[n]=window.rc364AbdOpenMail;try{eval(n+'=window.rc364AbdOpenMail')}catch(e){}});
-  ['rc344SaveAbd','rc348SaveAbd','rc349SaveAbd','rc350SaveAbd','rc352SaveAbd','rc355AbdSave','rc356AbdSave','rc357AbdSave','rc359AbdSave','rc360AbdSave','rc363AbdSave'].forEach(function(n){window[n]=window.rc364AbdSave;try{eval(n+'=window.rc364AbdSave')}catch(e){}});
-  ['rc344CopyAbd','rc348CopyAbd','rc349CopyAbd','rc350CopyAbd','rc352CopyAbd','rc355AbdCopy','rc356AbdCopy','rc357AbdCopy','rc359AbdCopy','rc360AbdCopy','rc363AbdCopy'].forEach(function(n){window[n]=window.rc364AbdCopy;try{eval(n+'=window.rc364AbdCopy')}catch(e){}});
-  ['rc344EnsureAbd','rc348EnsureAbd','rc349EnsureAbd','rc350EnsureAbd','rc352PatchAbd','rc355EnsureAbd','rc356EnsureAbd','rc357EnsureAbd','rc359EnsureAbd','rc360EnsureAbd','rc363EnsureAbd'].forEach(function(n){window[n]=window.rc364EnsureAbd;try{eval(n+'=window.rc364EnsureAbd')}catch(e){}});
-  function wrapFn(n,after){var old=window[n];if(typeof old!=='function'||old.__rc364Wrapped)return;var fn=function(){var out=old.apply(this,arguments);try{after.apply(this,arguments)}catch(e){}return out};fn.__rc364Wrapped=true;window[n]=fn;try{eval(n+'=window[n]')}catch(e){}}
-  wrapFn('render',function(){if(isShipment())window.rc364EnsureAbd(false)});
-  wrapFn('rc344RenderShipment',function(){window.rc364EnsureAbd(true)});
-  wrapFn('setView',function(v){if(v==='shipment')setTimeout(function(){window.rc364EnsureAbd(true)},0)});
-  function observe(){if(window.__EXPORTHUB_RC364_OBSERVER__)return;window.__EXPORTHUB_RC364_OBSERVER__=true;try{new MutationObserver(function(){if(observerBusy||!isShipment())return;observerBusy=true;setTimeout(function(){observerBusy=false;window.rc364EnsureAbd(false)},20)}).observe(root(),{childList:true,subtree:true});}catch(e){}}
-  function init(){installLogin();observe();if(isShipment())setTimeout(function(){window.rc364EnsureAbd(true)},0)}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-  [100,300,700,1500,3000,6000].forEach(function(ms){setTimeout(init,ms)});
+  function mailText(x,c){var t=totals(x);var count=trim(x.abdCount)||(t.count?String(t.count):'');var weight=trim(x.abdWeight)||(t.weight?String(t.weight):'');return 'Hallo,\n\nbitte ABD/Zollabfertigung vorbereiten.\n\nKunde: '+(cName(c)||'')+'\nKundennummer: '+(cAcc(c)||'')+'\nReferenz: '+(x.ref||'')+'\nAnzahl/Collis: '+count+'\nGewicht kg: '+weight+'\nAbholdatum: '+(x.pickupDate||'')+'\nLieferscheine/DNCs: '+(docs(x)||'offen')+'\n\nVielen Dank.'}
+  function setField(k,v){var x=sh();if(k==='ref')x.ref=ref(v)||makeRef();else x[k]=v;x.abdMail=TARGET;if(k!=='abdText')x.abdTextManual=false;saveQ();refreshMailText();return false}
+  function refreshMailText(){var x=sh(), c=currentCustomer(), ta=el('rc366AbdText');if(ta&&!x.abdTextManual)ta.value=mailText(x,c)}
+  function abdHtml(){var x=sh(),c=currentCustomer(),t=totals(x);var search=trim(x.abdCustomerSearch||x.customerSearch||cLabel(c));var count=trim(x.abdCount)||(t.count?String(t.count):'');var weight=trim(x.abdWeight)||(t.weight?String(t.weight):'');var opts=customers().map(function(cu){return '<option value="'+esc(cLabel(cu))+'"></option>'}).join('');var body=x.abdTextManual?trim(x.abdText):mailText(x,c);return '<section id="rc366AbdBox" data-rc366-abd="1"><h3>ABD Bereich</h3><div class="rc366-abd-note">Zielmail fest: '+TARGET+'</div><div class="rc366-abd-grid2"><label class="field">Kundennummer / Kunde suchen<input id="rc366AbdCustomerSearch" list="rc366AbdCustomers" value="'+esc(search)+'" placeholder="Kundennummer oder Kundenname"><datalist id="rc366AbdCustomers">'+opts+'</datalist></label><label class="field">Kunde<input id="rc366AbdCustomerName" value="'+esc(cName(c))+'" readonly></label></div><div class="toolbar"><button type="button" class="ghost" onclick="return rc366ApplyAbdCustomer()">Kunde übernehmen</button><button type="button" class="ghost" onclick="return rc366NewAbdRef()">Neue Ref</button></div><div class="rc366-abd-grid3"><label class="field">Referenz<input id="rc366AbdRef" maxlength="6" value="'+esc(x.ref||'')+'"></label><label class="field">Anzahl / Collis<input id="rc366AbdCount" type="number" min="0" step="1" value="'+esc(count)+'"></label><label class="field">Gewicht kg<input id="rc366AbdWeight" type="number" min="0" step="0.1" value="'+esc(weight)+'"></label></div><div class="rc366-abd-grid2"><label class="field">Abholdatum<input id="rc366AbdPickup" type="date" value="'+esc(x.pickupDate||'')+'"></label><label class="field">Lieferscheine / DNCs<input id="rc366AbdDocs" value="'+esc(docs(x))+'"></label></div><label class="field">Empfängeradresse<textarea id="rc366AbdAddress" readonly>'+esc(cAddr(c))+'</textarea></label><label class="field">CC optional<input id="rc366AbdCc" value="'+esc(x.abdCc||'')+'"></label><label class="field">ABD Mailtext<textarea id="rc366AbdText">'+esc(body)+'</textarea></label><div class="toolbar"><button type="button" class="btn" onclick="return rc366AbdOpenMail()">ABD Mail erstellen</button><button type="button" class="ghost" onclick="return rc366AbdSave()">ABD Anfrage speichern</button><button type="button" class="ghost" onclick="return rc366AbdCopy()">ABD Mailtext kopieren</button></div></section>'}
+  function removeOldAbd(){Array.from(document.querySelectorAll('#rc344AbdBox,#rc288AbdPanel,#rc291AbdPanel,#rc265AbdPanel,#rc260AbdPanel,.rc348-abd,.rc352-abd,.rc355-abd,.rc356-abd,.rc357-abd,.rc359-abd,.rc360-abd,.rc363-abd,.rc364-abd,.abd-panel,.rc265-abd-request-panel,.rc260-abd-panel')).forEach(function(n){try{n.remove()}catch(e){try{n.style.display='none'}catch(_){}}});var finals=Array.from(document.querySelectorAll('#rc366AbdBox'));finals.slice(1).forEach(function(n){try{n.remove()}catch(e){}})}
+  window.rc366EnsureAbd=function(force){if(abdBusy||!isShipment())return false;abdBusy=true;try{var r=root();if(!r)return false;removeOldAbd();var old=el('rc366AbdBox');if(old&&force)old.outerHTML=abdHtml();else if(!old){var anchor=el('rowsBox');var card=anchor&&anchor.closest&&anchor.closest('.rc344-card,.card,section');if(card&&card.parentNode)card.insertAdjacentHTML('afterend',abdHtml());else r.insertAdjacentHTML('beforeend',abdHtml())}bindAbdInputs()}finally{abdBusy=false}return false};
+  function collectAbd(){var x=sh();x.abdCustomerSearch=el('rc366AbdCustomerSearch')?el('rc366AbdCustomerSearch').value:x.abdCustomerSearch;x.ref=ref(el('rc366AbdRef')?el('rc366AbdRef').value:x.ref)||x.ref;x.abdCount=el('rc366AbdCount')?el('rc366AbdCount').value:x.abdCount;x.abdWeight=el('rc366AbdWeight')?el('rc366AbdWeight').value:x.abdWeight;x.pickupDate=el('rc366AbdPickup')?el('rc366AbdPickup').value:x.pickupDate;x.deliveryNotes=el('rc366AbdDocs')?el('rc366AbdDocs').value:x.deliveryNotes;x.abdCc=el('rc366AbdCc')?el('rc366AbdCc').value:x.abdCc;x.abdText=el('rc366AbdText')?el('rc366AbdText').value:(x.abdText||mailText(x,currentCustomer()));x.abdMail=TARGET;saveQ();return {x:x,c:currentCustomer()}}
+  function bindAbdInputs(){[['rc366AbdRef','ref'],['rc366AbdCount','abdCount'],['rc366AbdWeight','abdWeight'],['rc366AbdPickup','pickupDate'],['rc366AbdDocs','deliveryNotes'],['rc366AbdCc','abdCc']].forEach(function(p){var e=el(p[0]);if(e&&!e.dataset.rc366){e.dataset.rc366='1';e.addEventListener('input',function(){if(p[1]==='ref')this.value=ref(this.value);setField(p[1],this.value)},true)}});var s=el('rc366AbdCustomerSearch');if(s&&!s.dataset.rc366){s.dataset.rc366='1';s.addEventListener('input',function(){sh().abdCustomerSearch=this.value;saveQ()},true);s.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();window.rc366ApplyAbdCustomer()}},true)}var ta=el('rc366AbdText');if(ta&&!ta.dataset.rc366){ta.dataset.rc366='1';ta.addEventListener('input',function(){var x=sh();x.abdText=this.value;x.abdTextManual=true;saveQ()},true)}}
+  window.rc366ApplyAbdCustomer=function(){var x=sh(),q=el('rc366AbdCustomerSearch')?el('rc366AbdCustomerSearch').value:'';var c=findCustomer(q);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname eingeben.');return false}x.customerId=c.id||cAcc(c);x.customer=c;x.customerSearch=cLabel(c);x.abdCustomerSearch=cLabel(c);x.abdTextManual=false;try{S().selectedCustomerId=x.customerId}catch(e){}saveQ();return window.rc366EnsureAbd(true)};
+  window.rc366NewAbdRef=function(){var x=sh();x.ref=makeRef();x.abdTextManual=false;saveQ();return window.rc366EnsureAbd(true)};
+  window.rc366AbdOpenMail=function(){var d=collectAbd();var subject='ABD Anfrage '+(d.x.ref||'')+' / '+(cName(d.c)||'Kunde');location.href='mailto:'+TARGET+'?subject='+encodeURIComponent(subject)+(trim(d.x.abdCc)?'&cc='+encodeURIComponent(d.x.abdCc):'')+'&body='+encodeURIComponent(d.x.abdText||mailText(d.x,d.c));return false};
+  window.rc366AbdCopy=function(){var d=collectAbd(),body=d.x.abdText||mailText(d.x,d.c);try{navigator.clipboard.writeText(body);alert('ABD Mailtext kopiert.')}catch(e){prompt('ABD Mailtext kopieren:',body)}return false};
+  window.rc366AbdSave=function(){var d=collectAbd(),s=S();s.abdRequests=arr(s.abdRequests);var item={id:'ABD-'+(d.x.ref||Date.now()),ref:d.x.ref||'',customerId:d.x.customerId||'',customerName:cName(d.c),account:cAcc(d.c),address:cAddr(d.c),deliveryNotes:d.x.deliveryNotes||'',pickupDate:d.x.pickupDate||'',count:d.x.abdCount||'',weight:d.x.abdWeight||'',mail:TARGET,cc:d.x.abdCc||'',mailBody:d.x.abdText||mailText(d.x,d.c),created:new Date().toISOString().slice(0,10),status:'offen'};var i=s.abdRequests.findIndex(function(a){return trim(a.ref)===trim(item.ref)&&trim(item.ref)});if(i>=0)s.abdRequests[i]=Object.assign(s.abdRequests[i],item);else s.abdRequests.unshift(item);saveQ();alert('ABD Anfrage gespeichert.');return false};
+  ['rc344OpenAbdMail','rc348OpenAbdMail','rc349OpenAbdMail','rc350OpenAbdMail','rc352OpenAbdMail','rc355AbdOpenMail','rc356AbdOpenMail','rc357AbdOpenMail','rc359AbdOpenMail','rc360AbdOpenMail','rc363AbdOpenMail','rc364AbdOpenMail'].forEach(function(n){window[n]=window.rc366AbdOpenMail;try{eval(n+'=window.rc366AbdOpenMail')}catch(e){}});
+  ['rc344SaveAbd','rc348SaveAbd','rc349SaveAbd','rc350SaveAbd','rc352SaveAbd','rc355AbdSave','rc356AbdSave','rc357AbdSave','rc359AbdSave','rc360AbdSave','rc363AbdSave','rc364AbdSave'].forEach(function(n){window[n]=window.rc366AbdSave;try{eval(n+'=window.rc366AbdSave')}catch(e){}});
+  ['rc344CopyAbd','rc348CopyAbd','rc349CopyAbd','rc350CopyAbd','rc352CopyAbd','rc355AbdCopy','rc356AbdCopy','rc357AbdCopy','rc359AbdCopy','rc360AbdCopy','rc363AbdCopy','rc364AbdCopy'].forEach(function(n){window[n]=window.rc366AbdCopy;try{eval(n+'=window.rc366AbdCopy')}catch(e){}});
+  ['rc344EnsureAbd','rc348EnsureAbd','rc349EnsureAbd','rc350EnsureAbd','rc352PatchAbd','rc355EnsureAbd','rc356EnsureAbd','rc357EnsureAbd','rc359EnsureAbd','rc360EnsureAbd','rc363EnsureAbd','rc364EnsureAbd'].forEach(function(n){window[n]=window.rc366EnsureAbd;try{eval(n+'=window.rc366EnsureAbd')}catch(e){}});
+  function wrap(name,after){var old=window[name];if(typeof old!=='function'||old.__rc366Wrapped)return;var fn=function(){var out=old.apply(this,arguments);try{after.apply(this,arguments)}catch(e){}return out};fn.__rc366Wrapped=true;window[name]=fn;try{eval(name+'=window[name]')}catch(e){}}
+  wrap('render',function(){if(isShipment())setTimeout(function(){window.rc366EnsureAbd(false)},0)});wrap('setView',function(v){if(v==='shipment')setTimeout(function(){window.rc366EnsureAbd(true)},0)});
+  document.addEventListener('input',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('#rc366AbdBox')){collectAbd();refreshMailText()}},true);document.addEventListener('change',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('#rc366AbdBox')){collectAbd();refreshMailText()}},true);
+  try{new MutationObserver(function(){if(isShipment())setTimeout(function(){window.rc366EnsureAbd(false)},20);protectLogin()}).observe(document.body,{childList:true,subtree:true})}catch(e){}
+  function init(){window.rc366InstallLogin();protectLogin();if(isShipment())window.rc366EnsureAbd(true)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();[100,300,800,1500,3000,6000].forEach(function(ms){setTimeout(init,ms)});
 })();
 </script>
-<!-- PRIVATE RC364 END: Login hart erster Klick + ABD harter Einzelrenderer -->
-
-
-<!-- PRIVATE RC365 START: Datei bereinigt - kein sichtbarer Code, Login/ABD/Colli stabil -->
-<style id="rc365-clean-css">
-/* Nur Sicherheitsnetz: Falls alte ABD-Blöcke kurz entstehen, bleiben sie unsichtbar. */
-#rc344AbdBox:not([data-rc364-abd="1"]),
-.rc355-abd:not([data-rc364-abd="1"]),
-.rc356-abd:not([data-rc364-abd="1"]),
-.rc357-abd:not([data-rc364-abd="1"]),
-.rc360-abd:not([data-rc364-abd="1"]),
-.rc363-abd:not([data-rc364-abd="1"]){display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important}
-</style>
-<script>
-(function(){
-  if(window.__EXPORTHUB_RC365_CLEAN_FILE__)return;
-  window.__EXPORTHUB_RC365_CLEAN_FILE__=true;
-  function run(){
-    try{if(typeof window.rc364EnsureAbd==='function')window.rc364EnsureAbd(true)}catch(e){}
-    try{if(typeof window.rc364Login==='function'){
-      var b=document.getElementById('loginBtn');if(b)b.onclick=window.rc364Login;
-    }}catch(e){}
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
-  [100,400,1000,2500].forEach(function(ms){setTimeout(run,ms)});
-})();
-</script>
-<!-- PRIVATE RC365 END: Datei bereinigt - kein sichtbarer Code, Login/ABD/Colli stabil -->
-
+<!-- PRIVATE RC366 END: Login sauber + ABD Einzelrenderer ohne Doppel-Layout -->
 </body></html>
