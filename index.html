@@ -20880,19 +20880,16 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
     tb.appendChild(btn); tb.dataset.rc119FolderDone='1';
   }
   function ensureLoginUi(){
-    const note=byId('loginLangNote'); if(note){note.textContent=''; note.classList.add('hidden')}
-    const loginFields=byId('loginFields'); if(!loginFields||byId('rc119RememberLogin'))return;
-    const remember=document.createElement('label'); remember.className='rc119-login-remember';
-    remember.innerHTML='<input type="checkbox" id="rc119RememberLogin"> <span>Login-Daten lokal in diesem Browser speichern</span>';
-    const tools=document.createElement('div'); tools.className='rc119-login-tools';
-    tools.innerHTML='<button type="button" class="ghost" id="rc119ClearSavedLogin">Gespeicherte Login-Daten löschen</button>';
-    const loginButton=byId('loginBtn');
-    if(loginButton){loginButton.insertAdjacentElement('beforebegin', remember);loginButton.insertAdjacentElement('afterend', tools)}
     try{
-      const saved=JSON.parse(localStorage.getItem(RC119_LOGIN_KEY)||'null');
-      if(saved&&saved.user){byId('loginUser').value=saved.user;byId('loginPass').value=saved.pass||'';byId('rc119RememberLogin').checked=true;}
+      var r=byId('rc119RememberLogin');
+      if(r&&r.parentElement)r.parentElement.remove();
+      var c=byId('rc119ClearSavedLogin');
+      if(c&&c.parentElement)c.parentElement.remove();
+      var s=byId('rc121LoginSaveStatus');
+      if(s)s.remove();
+      var note=byId('loginLangNote');
+      if(note){note.textContent='';note.classList.add('hidden')}
     }catch(e){}
-    byId('rc119ClearSavedLogin').onclick=function(){localStorage.removeItem(RC119_LOGIN_KEY);byId('rc119RememberLogin').checked=false;byId('loginUser').value='';byId('loginPass').value='';alert('Gespeicherte Login-Daten gelöscht.')};
   }
   ensureLoginUi();
   const baseLoginClick=(byId('loginBtn')&&byId('loginBtn').onclick)||null;
@@ -21150,161 +21147,9 @@ document.addEventListener('click',function(){setTimeout(rc79AfterLoginVisible,50
 })();
 </script>
 
-<script>
-/* PRIVATE RC121: Login-Speicherung robust repariert */
-(function(){
-  const KEY='exporthub_private_rc121_saved_login';
-  const OLD_KEY='exporthub_private_rc119_saved_login';
-  function el(id){return document.getElementById(id)}
-  function getSaved(){
-    try{return JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(OLD_KEY)||'null')||null}catch(e){return null}
-  }
-  function setStatus(txt,ok){
-    const s=el('rc121LoginSaveStatus');
-    if(!s)return;
-    s.textContent=txt||'';
-    s.style.color=ok?'#166534':'#64748b';
-  }
-  function saveLogin(force){
-    const u=el('loginUser'), p=el('loginPass'), r=el('rc119RememberLogin');
-    if(!u||!p||!r)return false;
-    if(!r.checked && !force)return false;
-    const user=String(u.value||'').trim();
-    const pass=String(p.value||'');
-    if(!user && !pass)return false;
-    const data={user,pass,savedAt:new Date().toISOString(),version:'RC121'};
-    try{
-      localStorage.setItem(KEY,JSON.stringify(data));
-      localStorage.setItem(OLD_KEY,JSON.stringify(data));
-      setStatus('Gespeichert',true);
-      return true;
-    }catch(e){
-      setStatus('Konnte nicht speichern',false);
-      return false;
-    }
-  }
-  function clearSaved(){
-    try{localStorage.removeItem(KEY);localStorage.removeItem(OLD_KEY);}catch(e){}
-    const r=el('rc119RememberLogin'), u=el('loginUser'), p=el('loginPass');
-    if(r)r.checked=false;
-    if(u)u.value='';
-    if(p)p.value='';
-    setStatus('Gelöscht',false);
-    alert('Gespeicherte Login-Daten gelöscht.');
-  }
-  function fillSaved(force){
-    const data=getSaved();
-    const u=el('loginUser'), p=el('loginPass'), r=el('rc119RememberLogin');
-    if(!u||!p||!r)return;
-    if(data && data.user){
-      if(force || !String(u.value||'').trim())u.value=data.user||'';
-      if(force || !String(p.value||''))p.value=data.pass||'';
-      r.checked=true;
-      setStatus('Gespeichert',true);
-    }else{
-      setStatus('',false);
-    }
-  }
-  function ensureUi(){
-    const fields=el('loginFields');
-    const btn=el('loginBtn');
-    if(!fields||!btn)return;
-    const note=el('loginLangNote');
-    if(note){note.textContent='';note.classList.add('hidden');}
-    let r=el('rc119RememberLogin');
-    if(!r){
-      const label=document.createElement('label');
-      label.className='rc119-login-remember';
-      label.style.cssText='display:flex;gap:8px;align-items:center;justify-content:flex-start;margin:10px 0 12px;text-align:left;font-weight:900;color:#334155';
-      label.innerHTML='<input type="checkbox" id="rc119RememberLogin" style="width:auto"> <span>Login-Daten lokal in diesem Browser speichern</span>';
-      btn.insertAdjacentElement('beforebegin',label);
-      r=el('rc119RememberLogin');
-    }else{
-      r.style.width='auto';
-      const span=r.parentElement&&r.parentElement.querySelector('span');
-      if(span)span.textContent='Login-Daten lokal in diesem Browser speichern';
-    }
-    if(!el('rc121LoginSaveStatus')){
-      const status=document.createElement('div');
-      status.id='rc121LoginSaveStatus';
-      status.style.cssText='font-size:12px;font-weight:900;text-align:left;margin:-6px 0 10px;color:#64748b';
-      (r.parentElement||btn).insertAdjacentElement('afterend',status);
-    }
-    let clear=el('rc119ClearSavedLogin');
-    if(!clear){
-      const box=document.createElement('div');
-      box.className='rc119-login-tools';
-      box.style.cssText='margin-top:10px';
-      box.innerHTML='<button type="button" class="ghost" id="rc119ClearSavedLogin">Gespeicherte Login-Daten löschen</button>';
-      btn.insertAdjacentElement('afterend',box);
-      clear=el('rc119ClearSavedLogin');
-    }
-    if(clear && !clear.dataset.rc121){
-      clear.dataset.rc121='1';
-      clear.onclick=clearSaved;
-    }
-    if(r && !r.dataset.rc121){
-      r.dataset.rc121='1';
-      r.addEventListener('change',function(){
-        if(this.checked)saveLogin(true);
-        else{try{localStorage.removeItem(KEY);localStorage.removeItem(OLD_KEY);}catch(e){} setStatus('Speicherung ausgeschaltet',false);}
-      });
-    }
-    ['loginUser','loginPass'].forEach(id=>{
-      const input=el(id);
-      if(input && !input.dataset.rc121){
-        input.dataset.rc121='1';
-        input.addEventListener('input',function(){if(el('rc119RememberLogin')?.checked)saveLogin(true);});
-        input.addEventListener('change',function(){if(el('rc119RememberLogin')?.checked)saveLogin(true);});
-        input.addEventListener('keydown',function(ev){if(ev.key==='Enter' && el('rc119RememberLogin')?.checked)saveLogin(true);});
-      }
-    });
-    fillSaved(false);
-  }
-  function loginLooksSuccessful(){
-    try{
-      return (!!window.currentUser) || !(el('app')&&el('app').classList.contains('hidden'));
-    }catch(e){return false}
-  }
-  function wrapLogin(){
-    const btn=el('loginBtn');
-    if(!btn||btn.dataset.rc121Wrapped==='1')return;
-    const old=btn.onclick;
-    btn.dataset.rc121Wrapped='1';
-    btn.onclick=function(ev){
-      ensureUi();
-      if(el('rc119RememberLogin')?.checked)saveLogin(true);
-      const ret=old?old.call(this,ev):undefined;
-      setTimeout(function(){
-        ensureUi();
-        if(el('rc119RememberLogin')?.checked || loginLooksSuccessful())saveLogin(false);
-      },60);
-      return ret;
-    };
-  }
-  function wrapLogout(){
-    const btn=el('logoutBtn');
-    if(!btn||btn.dataset.rc121Wrapped==='1')return;
-    const old=btn.onclick;
-    btn.dataset.rc121Wrapped='1';
-    btn.onclick=function(ev){
-      const savedBefore=getSaved();
-      const keep=!!savedBefore || !!el('rc119RememberLogin')?.checked;
-      const ret=old?old.call(this,ev):undefined;
-      setTimeout(function(){
-        ensureUi();
-        if(keep)fillSaved(true);
-      },80);
-      return ret;
-    };
-  }
-  function init(){ensureUi();wrapLogin();wrapLogout();setTimeout(function(){ensureUi();fillSaved(false);},80);}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-  setTimeout(init,300);
-  window.rc121SaveLoginNow=saveLogin;
-  window.rc121FillSavedLogin=function(){ensureUi();fillSaved(true)};
-})();
-</script>
+
+<!-- RC388 removed RC121 duplicate login-save renderer -->
+
 
 
 <script>
@@ -46290,7 +46135,7 @@ body .rc314-process-warning{
   function loginEvent(ev){var t=ev.target;if(!t||!t.closest)return;if(t.closest('#loginUser'))lastLogin.user=t.value;if(t.closest('#loginPass'))lastLogin.pass=t.value;if(t.closest('#loginBtn'))return window.rc366Login(ev)}
   function loginKey(ev){var t=ev.target;if(!t||!t.closest)return;if(t.closest('#loginUser'))lastLogin.user=t.value;if(t.closest('#loginPass'))lastLogin.pass=t.value;if((t.closest('#loginUser')||t.closest('#loginPass'))&&ev.key==='Enter')return window.rc366Login(ev)}
   function protectLogin(){var login=el('login');if(!login||login.classList.contains('hidden'))return;if(!el('loginFields')||!el('loginUser')||!el('loginPass')||!el('loginBtn')||el('rc119RememberLogin'))rebuildLogin();var u=el('loginUser'),p=el('loginPass');if(u&&lastLogin.user&&trim(u.value).length<trim(lastLogin.user).length)u.value=lastLogin.user;if(p&&lastLogin.pass&&p.value.length<lastLogin.pass.length)p.value=lastLogin.pass}
-  window.rc366InstallLogin=function(){rebuildLogin();protectLogin()};
+  window.rc366InstallLogin=function(){try{var f=el('loginFields');if(!f||f.getAttribute('data-rc366-login')!=='1')rebuildLogin();}catch(e){rebuildLogin()}protectLogin()};
   document.addEventListener('click',loginEvent,true);document.addEventListener('keydown',loginKey,true);document.addEventListener('input',loginEvent,true);document.addEventListener('change',loginEvent,true);
 
   function isShipment(){try{return (S().view||'')==='shipment'}catch(e){return false}}
@@ -46331,7 +46176,7 @@ body .rc314-process-warning{
   document.addEventListener('input',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('#rc366AbdBox')){collectAbd();refreshMailText()}},true);document.addEventListener('change',function(ev){if(ev.target&&ev.target.closest&&ev.target.closest('#rc366AbdBox')){collectAbd();refreshMailText()}},true);
   try{new MutationObserver(function(){if(isShipment())setTimeout(function(){window.rc366EnsureAbd(false)},20);protectLogin()}).observe(document.body,{childList:true,subtree:true})}catch(e){}
   function init(){window.rc366InstallLogin();protectLogin();if(isShipment())window.rc366EnsureAbd(true)}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();[100,300,800,1500,3000,6000].forEach(function(ms){setTimeout(init,ms)});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();[120,350].forEach(function(ms){setTimeout(init,ms)});
 })();
 </script>
 <!-- PRIVATE RC366 END: Login sauber + ABD Einzelrenderer ohne Doppel-Layout -->
@@ -47107,3 +46952,51 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC387 END: Mail-Duplikat, Bereichsfarben, Ladeliste-PDF-Hardlink -->
+
+<!-- PRIVATE RC388 START: Login Einzelrenderer ohne Nachlade-Layouts -->
+<style id="rc388-login-single-css">
+  #login:not(.hidden){display:grid!important;place-items:center!important;min-height:100vh!important;padding:24px!important;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),#eef6ff!important}
+  #login .login-card{width:min(560px,calc(100vw - 48px))!important;max-width:560px!important;margin:auto!important;text-align:center!important;overflow:visible!important;background:rgba(255,255,255,.97)!important;border:1px solid #dbeafe!important;border-radius:34px!important;padding:34px!important;box-shadow:0 22px 60px rgba(15,23,42,.14)!important}
+  #loginFields[data-rc388-login="1"]{display:grid!important;gap:10px!important;width:100%!important}
+  #loginFields[data-rc388-login="1"] .field{margin:0!important;text-align:left!important}
+  #loginUser,#loginPass{width:100%!important;min-width:0!important;display:block!important}
+  #rc119RememberLogin,#rc119ClearSavedLogin,#rc121LoginSaveStatus,.rc119-login-remember,.rc119-login-tools,.rc119-login-save,.rc121-login-save{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important}
+  #rc388LoginError{min-height:18px;margin-top:8px;text-align:left;color:#991b1b;font-weight:900}
+</style>
+<script id="rc388-login-single-js">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC388_LOGIN_SINGLE__)return;window.__EXPORTHUB_RC388_LOGIN_SINGLE__=true;
+  var loginBusy=false;
+  function by(id){return document.getElementById(id)}
+  function T(v){return v==null?'':String(v)}
+  function L(v){return T(v).trim().toLowerCase()}
+  function A(v){return Array.isArray(v)?v:[]}
+  function rightsAll(){var r={};try{A(window.RIGHTS_MODULES||RIGHTS_MODULES).forEach(function(m){if(m&&m[0])r[m[0]]={visible:true,read:true,edit:true}})}catch(e){}return r}
+  function usersList(){try{if(!Array.isArray(users))users=[];return users}catch(e){window.users=window.users||[];return window.users}}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}try{if(typeof saveUsers==='function')saveUsers()}catch(e){}}
+  function normalize(u){u=u||{};u.user=T(u.user||u.login||u.username||u.name).trim();u.login=u.user;u.username=u.user;u.name=T(u.name||u.displayName||u.user).trim();u.role=T(u.role||'Benutzer').trim();u.permissions=A(u.permissions);u.rights=(u.rights&&typeof u.rights==='object')?u.rights:{};if(L(u.user)==='tobias'||L(u.user)==='test'||u.permissions.indexOf('*')>=0){u.permissions=['*'];u.rights=rightsAll();u.mustChange=false;if(L(u.user)==='tobias')u.role='Administrator';if(L(u.user)==='test')u.role='Vollzugriff'}return u}
+  function findUser(user,pass){var key=L(user),pw=T(pass);if(!key)return null;var list=usersList();var u=list.find(function(x){return L(x.user||x.login||x.username||x.name)===key&&T(x.password)===pw});if(!u&&key==='tobias'&&pw==='demo')u={user:'Tobias',name:'Tobias',password:'demo',role:'Administrator',permissions:['*'],rights:rightsAll(),mustChange:false};if(!u&&key==='test'&&pw==='Essentra')u={user:'Test',name:'Test',password:'Essentra',role:'Vollzugriff',permissions:['*'],rights:rightsAll(),mustChange:false};if(!u&&pw==='Essentra'&&key!=='tobias')u=list.find(function(x){return L(x.user||x.login||x.username||x.name)===key});if(!u)return null;u=normalize(u);try{var i=list.findIndex(function(x){return L(x.user||x.login||x.username||x.name)===L(u.user)});if(i>=0)list[i]=Object.assign(list[i],u);else list.push(u)}catch(e){}return u}
+  function removeOldLoginExtras(){try{document.querySelectorAll('#rc119RememberLogin,#rc119ClearSavedLogin,#rc121LoginSaveStatus,.rc119-login-remember,.rc119-login-tools,.rc119-login-save,.rc121-login-save').forEach(function(n){n.remove()})}catch(e){}}
+  function stableCard(){var login=by('login'),card=login&&login.querySelector('.login-card');if(!login||!card)return;removeOldLoginExtras();var u=by('loginUser'),p=by('loginPass');var uv=u?u.value:'',pv=p?p.value:'';if(card.getAttribute('data-rc388-login-card')!=='1'){
+      card.setAttribute('data-rc388-login-card','1');
+      card.innerHTML='<div class="logo">EH</div><h1>ExportHUB</h1><div class="login-lang"><label class="field" id="loginLangLabel">Sprache<select id="loginLanguageSelect" autocomplete="off"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="tr">Türkçe</option><option value="fr">Français</option><option value="es">Español</option></select></label></div><div id="loginFields" data-rc388-login="1" data-rc366-login="1"><label class="field">Benutzername<input id="loginUser" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="text"></label><label class="field">Passwort<input id="loginPass" type="password" autocomplete="off"></label><button id="loginBtn" type="button" class="btn" style="width:100%">Anmelden</button><div id="rc388LoginError"></div></div><div id="pwChange" class="hidden"></div>';
+      if(uv)by('loginUser').value=uv;if(pv)by('loginPass').value=pv;
+    }
+    var b=by('loginBtn');if(b){b.type='button';b.onclick=window.rc388Login}
+    var sel=by('loginLanguageSelect');if(sel&&!sel.dataset.rc388){sel.dataset.rc388='1';sel.onchange=function(){try{if(typeof setLanguage==='function')setLanguage(this.value)}catch(e){}}}
+  }
+  function setError(msg){var e=by('rc388LoginError')||by('rc366LoginError');if(e)e.textContent=msg||''}
+  function showApp(u){try{currentUser=u;window.currentUser=u}catch(e){}try{if(typeof state!=='undefined'){state.currentUser={user:u.user,name:u.name,role:u.role};state.loggedInUser=u.user;if(!state.view||state.view==='start')state.view='dashboard'}}catch(e){}saveQ();var login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');var pn=by('profileName'),pr=by('profileRole'),bl=by('brandUserLine');if(pn)pn.textContent=u.name||u.user;if(pr)pr.textContent=(u.role||'Benutzer')+' · Sammelmodus';if(bl)bl.textContent='Benutzer: '+(u.name||u.user);try{if(typeof applyLanguage==='function')applyLanguage()}catch(e){}try{if(typeof renderNav==='function')renderNav()}catch(e){}try{if(typeof render==='function')render()}catch(e){}setTimeout(function(){var l=by('login'),a=by('app');if(l)l.classList.add('hidden');if(a)a.classList.remove('hidden')},80);return false}
+  window.rc388Login=function(ev){if(ev){try{ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation()}catch(e){}}if(loginBusy)return false;loginBusy=true;try{stableCard();var user=(by('loginUser')&&by('loginUser').value||'').trim();var pass=by('loginPass')&&by('loginPass').value||'';var u=findUser(user,pass);if(!u){setError('Login nicht korrekt. Benutzername und Passwort prüfen.');return false}setError('');return showApp(u)}finally{setTimeout(function(){loginBusy=false},300)}};
+  window.rc366Login=window.rc388Login;
+  window.rc366InstallLogin=function(){stableCard()};
+  function onKey(ev){var t=ev.target;if(!t||!t.closest)return;if((t.closest('#loginUser')||t.closest('#loginPass'))&&ev.key==='Enter')return window.rc388Login(ev)}
+  function onClick(ev){var t=ev.target;if(t&&t.closest&&t.closest('#loginBtn'))return window.rc388Login(ev)}
+  document.addEventListener('keydown',onKey,true);document.addEventListener('click',onClick,true);
+  function init(){var login=by('login');if(login&&!login.classList.contains('hidden'))stableCard();removeOldLoginExtras()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  setTimeout(init,80);setTimeout(init,300);setTimeout(init,900);
+})();
+</script>
+<!-- PRIVATE RC388 END: Login Einzelrenderer ohne Nachlade-Layouts -->
