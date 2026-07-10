@@ -47110,145 +47110,152 @@ body .rc314-process-warning{
 <!-- PRIVATE RC390 END: Ladeliste Druck, Kundenordner Mailposition, Suche, Rechtevorlagen -->
 
 
-<!-- PRIVATE RC391 START: Ladeliste PDF/Druck Single Print Host Fix -->
-<style id="rc391-css">
-  #rc391PrintHost{display:none!important}
-  .rc391-doc-actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 auto 12px;width:210mm;max-width:100%}
+
+
+<!-- PRIVATE RC392 START: Ladeliste/CMR Druck und PDF direkter Print-Fix -->
+<style id="rc392-css">
+  #rc392PrintHost{display:none!important}
+  .rc392-doc-actions{display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin:0 auto 12px!important;width:210mm!important;max-width:100%!important}
   @media print{
-    body.rc391-printing{background:#fff!important;margin:0!important;padding:0!important;overflow:hidden!important}
-    body.rc391-printing > :not(#rc391PrintHost){display:none!important}
-    body.rc391-printing #rc391PrintHost{display:block!important;position:static!important;inset:auto!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
-    body.rc391-printing #rc391PrintHost .rc390-docview,
-    body.rc391-printing #rc391PrintHost .rc386-docview,
-    body.rc391-printing #rc391PrintHost .rc385-docview{display:block!important;max-width:none!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
-    body.rc391-printing #rc391PrintHost .rc390-bundle,
-    body.rc391-printing #rc391PrintHost .rc386-bundle,
-    body.rc391-printing #rc391PrintHost .rc385-bundle{display:block!important;margin:0!important;padding:0!important;gap:0!important;background:#fff!important}
-    body.rc391-printing #rc391PrintHost .rc390-page,
-    body.rc391-printing #rc391PrintHost .rc386-page,
-    body.rc391-printing #rc391PrintHost .rc385-page{width:210mm!important;height:297mm!important;margin:0!important;padding:7mm 8mm 5mm!important;box-shadow:none!important;border-radius:0!important;border:0!important;page-break-after:always!important;break-after:page!important;box-sizing:border-box!important;overflow:hidden!important;background:#fff!important}
-    body.rc391-printing #rc391PrintHost .rc390-page:last-child,
-    body.rc391-printing #rc391PrintHost .rc386-page:last-child,
-    body.rc391-printing #rc391PrintHost .rc385-page:last-child{page-break-after:auto!important;break-after:auto!important}
-    body.rc391-printing #rc391PrintHost .no-print,
-    body.rc391-printing #rc391PrintHost .rc390-doc-actions,
-    body.rc391-printing #rc391PrintHost .rc386-doc-actions,
-    body.rc391-printing #rc391PrintHost .rc385-doc-actions{display:none!important}
     @page{size:A4;margin:0}
+    html,body{background:#fff!important;margin:0!important;padding:0!important;width:210mm!important;min-height:297mm!important;overflow:visible!important}
+    body.rc392-printing{background:#fff!important;margin:0!important;padding:0!important}
+    body.rc392-printing *{visibility:hidden!important}
+    body.rc392-printing #rc392PrintHost,
+    body.rc392-printing #rc392PrintHost *{visibility:visible!important}
+    body.rc392-printing #rc392PrintHost{display:block!important;position:absolute!important;left:0!important;top:0!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;z-index:2147483647!important}
+    body.rc392-printing #rc392PrintHost .no-print,
+    body.rc392-printing #rc392PrintHost .rc390-doc-actions,
+    body.rc392-printing #rc392PrintHost .rc386-doc-actions,
+    body.rc392-printing #rc392PrintHost .rc385-doc-actions,
+    body.rc392-printing #rc392PrintHost .rc392-doc-actions{display:none!important;visibility:hidden!important}
+    body.rc392-printing #rc392PrintHost .rc390-docview,
+    body.rc392-printing #rc392PrintHost .rc386-docview,
+    body.rc392-printing #rc392PrintHost .rc385-docview{display:block!important;width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;border:0!important}
+    body.rc392-printing #rc392PrintHost .rc390-bundle,
+    body.rc392-printing #rc392PrintHost .rc386-bundle,
+    body.rc392-printing #rc392PrintHost .rc385-bundle{display:block!important;margin:0!important;padding:0!important;gap:0!important;background:#fff!important;width:210mm!important;max-width:210mm!important}
+    body.rc392-printing #rc392PrintHost .rc390-page,
+    body.rc392-printing #rc392PrintHost .rc386-page,
+    body.rc392-printing #rc392PrintHost .rc385-page,
+    body.rc392-printing #rc392PrintHost .rc390-cmr-wrap,
+    body.rc392-printing #rc392PrintHost .rc386-cmr-wrap,
+    body.rc392-printing #rc392PrintHost .rc385-cmr-wrap{display:block!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:7mm 8mm 5mm!important;box-sizing:border-box!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;overflow:hidden!important;page-break-after:always!important;break-after:page!important;transform:none!important;zoom:1!important}
+    body.rc392-printing #rc392PrintHost .rc390-cover,
+    body.rc392-printing #rc392PrintHost .rc386-cover,
+    body.rc392-printing #rc392PrintHost .rc385-cover{padding:14mm!important}
+    body.rc392-printing #rc392PrintHost .rc390-page:last-child,
+    body.rc392-printing #rc392PrintHost .rc386-page:last-child,
+    body.rc392-printing #rc392PrintHost .rc385-page:last-child,
+    body.rc392-printing #rc392PrintHost .rc390-cmr-wrap:last-child,
+    body.rc392-printing #rc392PrintHost .rc386-cmr-wrap:last-child,
+    body.rc392-printing #rc392PrintHost .rc385-cmr-wrap:last-child{page-break-after:auto!important;break-after:auto!important}
   }
 </style>
-<script id="rc391-js">
+<script id="rc392-js">
 (function(){
   'use strict';
-  if(window.__EXPORTHUB_RC391__)return;window.__EXPORTHUB_RC391__=true;
-  function by(id){return document.getElementById(id)}
+  if(window.__EXPORTHUB_RC392__)return;window.__EXPORTHUB_RC392__=true;
   function T(v){return v==null?'':String(v)}
   function trim(v){return T(v).trim()}
-  function qsa(s,r){return Array.from((r||document).querySelectorAll(s))}
+  function by(id){return document.getElementById(id)}
+  function qsa(sel,root){return Array.from((root||document).querySelectorAll(sel))}
   function refText(){try{var s=window.state||state||{};return trim((s.shipment||{}).ref||'Ladeliste')}catch(e){return 'Ladeliste'}}
-  var baseShow=window.rc390ShowDocuments||window.rc386ShowDocuments||window.showCurrentCmr;
-  function ensureDocumentView(){
+  function ensureDocView(){
     if(document.querySelector('.rc390-docview,.rc386-docview,.rc385-docview'))return true;
-    try{if(typeof baseShow==='function')baseShow()}catch(e){}
+    try{if(typeof window.rc390ShowDocuments==='function')window.rc390ShowDocuments()}catch(e){}
+    if(document.querySelector('.rc390-docview,.rc386-docview,.rc385-docview'))return true;
+    try{if(typeof window.showCurrentCmr==='function')window.showCurrentCmr()}catch(e){}
     return !!document.querySelector('.rc390-docview,.rc386-docview,.rc385-docview');
   }
-  function pageIsQr(p){
+  function pageHasQr(p){
     if(!p)return false;
-    var t=trim(p.textContent||'');
-    if(/ohne\s*QR/i.test(t))return false;
-    if(/mit\s*QR/i.test(t))return true;
-    if(p.querySelector('svg,canvas,img[src*="qr" i],.rc390-qrslot:not(.empty),.rc386-qrslot:not(.empty),.rc385-qrslot:not(.empty)'))return true;
+    var tx=trim(p.textContent||'');
+    if(/ohne\s*QR/i.test(tx))return false;
+    if(/mit\s*QR/i.test(tx))return true;
+    if(p.querySelector('.rc390-qrslot:not(.empty),.rc386-qrslot:not(.empty),.rc385-qrslot:not(.empty),svg,canvas,img[src*="qr" i]'))return true;
     return false;
   }
-  function getLoadlistPage(withQr){
-    ensureDocumentView();
+  function cleanClone(c){
+    if(!c)return c;
+    qsa('.no-print,.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc392-doc-actions,.rc390-note-no-cmr,.rc386-note-no-cmr,.rc385-note-no-cmr',c).forEach(function(x){x.remove()});
+    return c;
+  }
+  function getLoadlistHtml(withQr){
+    ensureDocView();
     var pages=qsa('.rc390-load,.rc386-load,.rc385-load');
     if(!pages.length){
-      var all=qsa('.rc390-page,.rc386-page,.rc385-page');
-      pages=all.filter(function(p){return /LADELISTE|Ladeliste/i.test(p.textContent||'')});
+      pages=qsa('.rc390-page,.rc386-page,.rc385-page').filter(function(p){return /LADELISTE|Ladeliste/i.test(p.textContent||'') && !/DECKBLATT|Transportdokumentensatz/i.test(p.textContent||'')});
     }
-    var page=pages.find(function(p){return withQr?pageIsQr(p):!pageIsQr(p)})||pages[withQr?0:1]||pages[0];
-    if(!page){alert('Ladeliste konnte nicht gefunden werden. Bitte Sendung prüfen.');return null}
-    var c=page.cloneNode(true);
-    c.querySelectorAll('.no-print,.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions').forEach(function(x){x.remove()});
-    return c.outerHTML;
+    var page=pages.find(function(p){return withQr?pageHasQr(p):!pageHasQr(p)}) || pages[withQr?0:1] || pages[0];
+    if(!page){alert('Ladeliste konnte nicht gefunden werden. Bitte Sendung öffnen und erneut versuchen.');return ''}
+    return cleanClone(page.cloneNode(true)).outerHTML;
   }
-  function getDocumentBundle(){
-    ensureDocumentView();
+  function getBundleHtml(){
+    ensureDocView();
     var bundle=document.querySelector('.rc390-bundle,.rc386-bundle,.rc385-bundle');
     if(bundle){
-      var c=bundle.cloneNode(true);
-      c.querySelectorAll('.no-print,.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions,.rc390-note-no-cmr,.rc386-note-no-cmr,.rc385-note-no-cmr').forEach(function(x){x.remove()});
+      var c=cleanClone(bundle.cloneNode(true));
       return '<div class="rc390-bundle">'+c.innerHTML+'</div>';
     }
-    return getLoadlistPage(true)||'';
+    var one=getLoadlistHtml(true);
+    return one?'<div class="rc390-bundle">'+one+'</div>':'';
   }
-  function cleanupPrintHost(title){
-    var h=by('rc391PrintHost');if(h)h.remove();
-    document.body.classList.remove('rc391-printing');
-    if(title)try{document.title=title}catch(e){}
-  }
-  function printHtml(html,title){
-    if(!html)return false;
+  function removeHost(){var h=by('rc392PrintHost');if(h)h.remove();document.body.classList.remove('rc392-printing')}
+  function printNow(html,title){
+    if(!html){alert('Es wurde kein Druckinhalt gefunden. Bitte Sendung/Ladeliste erneut öffnen.');return false}
     var oldTitle=document.title;
-    cleanupPrintHost();
-    var host=document.createElement('div');host.id='rc391PrintHost';
-    host.innerHTML='<div class="rc390-docview">'+html+'</div>';
+    removeHost();
+    var host=document.createElement('div');host.id='rc392PrintHost';host.innerHTML='<div class="rc390-docview">'+html+'</div>';
     document.body.appendChild(host);
-    document.body.classList.add('rc391-printing');
+    document.body.classList.add('rc392-printing');
     try{document.title=title||'ExportHUB PDF'}catch(e){}
     var done=false;
-    function clean(){if(done)return;done=true;setTimeout(function(){cleanupPrintHost(oldTitle)},250)}
+    function clean(){if(done)return;done=true;setTimeout(function(){removeHost();try{document.title=oldTitle}catch(e){}},350)}
     try{window.addEventListener('afterprint',clean,{once:true})}catch(e){}
-    setTimeout(function(){try{window.focus()}catch(e){}try{window.print()}catch(err){alert('Druckdialog konnte nicht geöffnet werden: '+err.message);clean()}},120);
-    setTimeout(clean,10000);
+    try{window.focus()}catch(e){}
+    try{window.print()}catch(err){alert('Druckdialog konnte nicht geöffnet werden: '+(err&&err.message?err.message:err));clean()}
+    setTimeout(function(){if(!done){removeHost();try{document.title=oldTitle}catch(e){}}},60000);
     return false;
   }
-  window.rc391DownloadLoadlistPdf=function(){return printHtml(getLoadlistPage(true),'Ladeliste 1 PDF '+refText())};
-  window.rc391DownloadLoadlistPage2Pdf=function(){return printHtml(getLoadlistPage(false),'Ladeliste 2 PDF '+refText())};
-  window.rc391PrintDocuments=function(){return printHtml(getDocumentBundle(),'ExportHUB Dokumentensatz '+refText())};
-  window.rc391PrintLoadlistOnly=function(){return window.rc391DownloadLoadlistPdf()};
-  function overwriteNames(){
-    ['rc390DownloadLoadlistPdf','rc387DownloadLoadlistPdf','rc386DownloadLoadlistPdf','rc385DownloadLoadlistPdf','rc384DownloadLoadlistPdf','rc383DownloadLoadlistPdf','rc381DownloadLoadlistPdf','rc379DownloadLoadlistPdf','rc378DownloadLoadlistPage1Pdf','rc375DownloadLoadlistPdf','rc355DownloadLoadlistPdf','rc353DownloadLoadlistPdf','rc352DownloadLoadlistPdf','rc351DownloadLoadlistPdf','rc55DownloadLoadlistPdf','rc55PdfLoadlist','rc53PdfLoadlist','rc90PrintLoadlistAsPdf','rc91DownloadOriginalLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc211DownloadWebsiteLoadlistPdf','rc216DownloadLoadlistPdf','rc217DownloadLoadlistPdf','rc218DownloadLoadlistPdf'].forEach(function(n){window[n]=window.rc391DownloadLoadlistPdf;try{eval(n+'=window.rc391DownloadLoadlistPdf')}catch(e){}});
-    ['rc390DownloadLoadlistPage2Pdf','rc387DownloadLoadlistPage2Pdf','rc386DownloadLoadlistPage2Pdf','rc385DownloadLoadlistPage2Pdf','rc384DownloadLoadlistPage2Pdf','rc383DownloadLoadlistPage2Pdf','rc381DownloadLoadlistPage2Pdf','rc375DownloadLoadlistPage2Pdf'].forEach(function(n){window[n]=window.rc391DownloadLoadlistPage2Pdf;try{eval(n+'=window.rc391DownloadLoadlistPage2Pdf')}catch(e){}});
-    ['rc390PrintDocuments','rc387PrintDocuments','rc386PrintDocuments','rc385PrintDocuments','rc384PrintDocuments','rc383PrintDocuments','printDocsRC52'].forEach(function(n){window[n]=window.rc391PrintDocuments;try{eval(n+'=window.rc391PrintDocuments')}catch(e){}});
+  window.rc392DownloadLoadlistPdf=function(){return printNow(getLoadlistHtml(true),'Ladeliste 1 PDF '+refText())};
+  window.rc392DownloadLoadlistPage2Pdf=function(){return printNow(getLoadlistHtml(false),'Ladeliste 2 PDF '+refText())};
+  window.rc392PrintDocuments=function(){return printNow(getBundleHtml(),'ExportHUB Ladeliste CMR '+refText())};
+  window.rc392PrintLoadlistOnly=function(){return window.rc392DownloadLoadlistPdf()};
+  function overwrite(){
+    ['rc391DownloadLoadlistPdf','rc390DownloadLoadlistPdf','rc387DownloadLoadlistPdf','rc386DownloadLoadlistPdf','rc385DownloadLoadlistPdf','rc384DownloadLoadlistPdf','rc383DownloadLoadlistPdf','rc381DownloadLoadlistPdf','rc379DownloadLoadlistPdf','rc378DownloadLoadlistPage1Pdf','rc375DownloadLoadlistPdf','rc355DownloadLoadlistPdf','rc353DownloadLoadlistPdf','rc352DownloadLoadlistPdf','rc351DownloadLoadlistPdf','rc55DownloadLoadlistPdf','rc55PdfLoadlist','rc53PdfLoadlist','rc90PrintLoadlistAsPdf','rc91DownloadOriginalLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc211DownloadWebsiteLoadlistPdf','rc216DownloadLoadlistPdf','rc217DownloadLoadlistPdf','rc218DownloadLoadlistPdf'].forEach(function(n){window[n]=window.rc392DownloadLoadlistPdf;try{eval(n+'=window.rc392DownloadLoadlistPdf')}catch(e){}});
+    ['rc391DownloadLoadlistPage2Pdf','rc390DownloadLoadlistPage2Pdf','rc387DownloadLoadlistPage2Pdf','rc386DownloadLoadlistPage2Pdf','rc385DownloadLoadlistPage2Pdf','rc384DownloadLoadlistPage2Pdf','rc383DownloadLoadlistPage2Pdf','rc381DownloadLoadlistPage2Pdf','rc375DownloadLoadlistPage2Pdf'].forEach(function(n){window[n]=window.rc392DownloadLoadlistPage2Pdf;try{eval(n+'=window.rc392DownloadLoadlistPage2Pdf')}catch(e){}});
+    ['rc391PrintDocuments','rc390PrintDocuments','rc387PrintDocuments','rc386PrintDocuments','rc385PrintDocuments','rc384PrintDocuments','rc383PrintDocuments','printDocsRC52'].forEach(function(n){window[n]=window.rc392PrintDocuments;try{eval(n+'=window.rc392PrintDocuments')}catch(e){}});
   }
-  function normalizeButtons(){
-    overwriteNames();
-    var seen={};
-    qsa('button,a').forEach(function(b){
-      var txt=trim(b.textContent||''),oc=trim(b.getAttribute('onclick')||''),hay=txt+' '+oc;
-      if(/Ladeliste/i.test(hay)&&/PDF|herunterladen|Seite\s*1|Seite\s*2|QR/i.test(hay)){
-        var is2=/Seite\s*2|ohne\s*QR/i.test(hay);
-        var key=is2?'l2':'l1';
-        b.textContent=is2?'Ladeliste 2 PDF herunterladen':'Ladeliste 1 PDF herunterladen';
-        b.setAttribute('onclick',is2?'return rc391DownloadLoadlistPage2Pdf()':'return rc391DownloadLoadlistPdf()');
-        if(seen[key] && b.closest('.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions,.toolbar,.actions'))b.remove();
-        else seen[key]=1;
-      }
-      if(/Drucken\s*\/\s*als PDF speichern|Dokumentensatz drucken|Drucken/i.test(txt) && b.closest('.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions')){
-        b.textContent='Drucken / als PDF speichern';
-        b.setAttribute('onclick','return rc391PrintDocuments()');
-      }
-    });
+  function normalize(){
+    overwrite();
     qsa('.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions').forEach(function(bar){
-      bar.classList.add('rc391-doc-actions');
-      if(!bar.querySelector('[onclick*="rc391DownloadLoadlistPdf"]'))bar.insertAdjacentHTML('beforeend','<button type="button" class="ghost" onclick="return rc391DownloadLoadlistPdf()">Ladeliste 1 PDF herunterladen</button>');
-      if(!bar.querySelector('[onclick*="rc391DownloadLoadlistPage2Pdf"]'))bar.insertAdjacentHTML('beforeend','<button type="button" class="ghost" onclick="return rc391DownloadLoadlistPage2Pdf()">Ladeliste 2 PDF herunterladen</button>');
+      bar.classList.add('rc392-doc-actions');
+      qsa('button,a',bar).forEach(function(b){
+        var hay=trim(b.textContent||'')+' '+trim(b.getAttribute('onclick')||'');
+        if(/Zur Sendung/i.test(hay))return;
+        if(/Drucken|CMR|Dokumentensatz/i.test(hay)&&!/Ladeliste\s*[12]/i.test(hay)){b.textContent='Drucken / als PDF speichern';b.setAttribute('onclick','return rc392PrintDocuments()')}
+        else if(/Ladeliste/i.test(hay)){var is2=/Seite\s*2|2\s*PDF|ohne\s*QR/i.test(hay);b.textContent=is2?'Ladeliste 2 PDF herunterladen':'Ladeliste 1 PDF herunterladen';b.setAttribute('onclick',is2?'return rc392DownloadLoadlistPage2Pdf()':'return rc392DownloadLoadlistPdf()')}
+      });
+      if(!bar.querySelector('[onclick*="rc392DownloadLoadlistPdf"]'))bar.insertAdjacentHTML('beforeend','<button type="button" class="ghost" onclick="return rc392DownloadLoadlistPdf()">Ladeliste 1 PDF herunterladen</button>');
+      if(!bar.querySelector('[onclick*="rc392DownloadLoadlistPage2Pdf"]'))bar.insertAdjacentHTML('beforeend','<button type="button" class="ghost" onclick="return rc392DownloadLoadlistPage2Pdf()">Ladeliste 2 PDF herunterladen</button>');
     });
   }
   var oldShow=window.rc390ShowDocuments||window.rc386ShowDocuments||window.showCurrentCmr;
-  if(typeof oldShow==='function'){
-    window.rc390ShowDocuments=function(){var r=oldShow.apply(this,arguments);setTimeout(normalizeButtons,0);setTimeout(normalizeButtons,200);return r};
-    window.showCurrentCmr=window.rc390ShowDocuments;
-    try{showCurrentCmr=window.showCurrentCmr}catch(e){}
+  if(typeof oldShow==='function'&&!oldShow.__rc392){
+    var ns=function(){var r=oldShow.apply(this,arguments);setTimeout(normalize,0);setTimeout(normalize,200);return r};
+    ns.__rc392=true;window.rc390ShowDocuments=ns;window.showCurrentCmr=ns;try{showCurrentCmr=ns}catch(e){}
   }
   var oldSetView=window.setView||((typeof setView==='function')?setView:null);
-  if(typeof oldSetView==='function'&&!oldSetView.__rc391){var sv=function(v){var r=oldSetView.apply(this,arguments);setTimeout(normalizeButtons,0);setTimeout(normalizeButtons,250);return r};sv.__rc391=true;window.setView=sv;try{setView=sv}catch(e){}}
-  var oldRender=window.render||((typeof render==='function')?render:null);
-  if(typeof oldRender==='function'&&!oldRender.__rc391){var rr=function(){var r=oldRender.apply(this,arguments);setTimeout(normalizeButtons,0);setTimeout(normalizeButtons,250);return r};rr.__rc391=true;window.render=rr;try{render=rr}catch(e){}}
-  document.addEventListener('click',function(ev){var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!el)return;var txt=trim(el.textContent||''),oc=trim(el.getAttribute('onclick')||''),hay=txt+' '+oc;if(/Ladeliste/i.test(hay)&&/PDF|herunterladen|Seite\s*1|Seite\s*2|QR/i.test(hay)){ev.preventDefault();ev.stopImmediatePropagation();return /Seite\s*2|ohne\s*QR/i.test(hay)?window.rc391DownloadLoadlistPage2Pdf():window.rc391DownloadLoadlistPdf()}if(/Drucken\s*\/\s*als PDF speichern/i.test(hay)){ev.preventDefault();ev.stopImmediatePropagation();return window.rc391PrintDocuments()}},true);
-  overwriteNames();setTimeout(normalizeButtons,80);setTimeout(normalizeButtons,700);setTimeout(normalizeButtons,1600);
+  if(typeof oldSetView==='function'&&!oldSetView.__rc392){var sv=function(v){var r=oldSetView.apply(this,arguments);setTimeout(normalize,0);setTimeout(normalize,250);return r};sv.__rc392=true;window.setView=sv;try{setView=sv}catch(e){}}
+  document.addEventListener('click',function(ev){
+    var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!el)return;
+    var hay=trim(el.textContent||'')+' '+trim(el.getAttribute('onclick')||'');
+    if(/Ladeliste/i.test(hay)&&/PDF|herunterladen|Seite\s*1|Seite\s*2|QR/i.test(hay)){ev.preventDefault();ev.stopImmediatePropagation();return /Seite\s*2|2\s*PDF|ohne\s*QR/i.test(hay)?window.rc392DownloadLoadlistPage2Pdf():window.rc392DownloadLoadlistPdf()}
+    if(/Drucken\s*\/\s*als PDF speichern|Dokumentensatz drucken|CMR.*drucken/i.test(hay)){ev.preventDefault();ev.stopImmediatePropagation();return window.rc392PrintDocuments()}
+  },true);
+  overwrite();setTimeout(normalize,80);setTimeout(normalize,600);setTimeout(normalize,1500);
 })();
 </script>
-<!-- PRIVATE RC391 END: Ladeliste PDF/Druck Single Print Host Fix -->
+<!-- PRIVATE RC392 END: Ladeliste/CMR Druck und PDF direkter Print-Fix -->
+
