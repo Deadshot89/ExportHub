@@ -47029,3 +47029,120 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC375 END: Ladeliste PDF Seite2, Lieferschein löschen, Mailvorlagen Empfänger -->
+
+<!-- PRIVATE RC376 START: UPS Auto-Land und Gewichtsstufen Fix -->
+<style id="rc376-ups-fix-css">
+  .rc376-ups-wrap{display:grid;grid-template-columns:minmax(340px,470px) 1fr;gap:16px;align-items:start}
+  .rc376-ups-card{border:1px solid var(--line,#dbe4ef);border-radius:22px;background:#fff;padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.07)}
+  .rc376-ups-card h3{margin:0 0 12px;color:#08245d;font-size:18px}
+  .rc376-ups-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .rc376-ups-full{grid-column:1/-1}
+  .rc376-ups-result{margin-top:14px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:18px;padding:14px;color:#0f172a}
+  .rc376-ups-result.wait{background:#f8fafc;color:#64748b;border-color:#dbe4ef}
+  .rc376-ups-table th,.rc376-ups-table td{vertical-align:top}
+  .rc376-ups-table td.price{font-size:18px;font-weight:1000;color:#166534;white-space:nowrap}
+  .rc376-ups-muted{font-size:12px;color:#64748b;font-weight:750;line-height:1.45}
+  .rc376-ups-auto{background:#ecfdf5;border:1px solid #bbf7d0;border-radius:14px;padding:9px 11px;margin-top:8px;color:#14532d;font-weight:900;font-size:12px}
+  .rc376-ups-auto.warn{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
+  .rc376-ups-rate-note{margin-top:10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px;padding:10px;color:#475569;font-size:12px;font-weight:800}
+  @media(max-width:900px){.rc376-ups-wrap{grid-template-columns:1fr}.rc376-ups-grid{grid-template-columns:1fr}}
+</style>
+<script id="rc376-ups-fix-js">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC376_UPS_FIX__)return;
+  window.__EXPORTHUB_RC376_UPS_FIX__=true;
+
+  var FALLBACK_RATES=[
+    {service:'UPS Standard',zone:'DE national',country:'Deutschland',maxKg:5,price:8.90},{service:'UPS Standard',zone:'DE national',country:'Deutschland',maxKg:10,price:11.90},{service:'UPS Standard',zone:'DE national',country:'Deutschland',maxKg:20,price:18.90},{service:'UPS Standard',zone:'DE national',country:'Deutschland',maxKg:30,price:26.90},
+    {service:'UPS Express Saver',zone:'DE Express Saver',country:'Deutschland',maxKg:5,price:14.90},{service:'UPS Express Saver',zone:'DE Express Saver',country:'Deutschland',maxKg:10,price:19.90},{service:'UPS Express Saver',zone:'DE Express Saver',country:'Deutschland',maxKg:20,price:32.90},{service:'UPS Express Saver',zone:'DE Express Saver',country:'Deutschland',maxKg:30,price:45.90},
+    {service:'UPS Express',zone:'DE Express',country:'Deutschland',maxKg:5,price:18.90},{service:'UPS Express',zone:'DE Express',country:'Deutschland',maxKg:10,price:25.90},{service:'UPS Express',zone:'DE Express',country:'Deutschland',maxKg:20,price:39.90},{service:'UPS Express',zone:'DE Express',country:'Deutschland',maxKg:30,price:54.90},
+    {service:'UPS Standard',zone:'EU Standard',country:'EU',maxKg:5,price:18.50},{service:'UPS Standard',zone:'EU Standard',country:'EU',maxKg:10,price:26.50},{service:'UPS Standard',zone:'EU Standard',country:'EU',maxKg:20,price:39.50},{service:'UPS Standard',zone:'EU Standard',country:'EU',maxKg:30,price:54.50},
+    {service:'UPS Express Saver',zone:'EU Express Saver',country:'EU',maxKg:5,price:32.50},{service:'UPS Express Saver',zone:'EU Express Saver',country:'EU',maxKg:10,price:42.50},{service:'UPS Express Saver',zone:'EU Express Saver',country:'EU',maxKg:20,price:63.50},{service:'UPS Express Saver',zone:'EU Express Saver',country:'EU',maxKg:30,price:84.50},
+    {service:'UPS Express',zone:'EU Express',country:'EU',maxKg:5,price:39.50},{service:'UPS Express',zone:'EU Express',country:'EU',maxKg:10,price:52.50},{service:'UPS Express',zone:'EU Express',country:'EU',maxKg:20,price:78.50},{service:'UPS Express',zone:'EU Express',country:'EU',maxKg:30,price:104.50},
+    {service:'UPS Standard',zone:'Drittland Standard/Economy',country:'Drittland',maxKg:5,price:39.00},{service:'UPS Standard',zone:'Drittland Standard/Economy',country:'Drittland',maxKg:10,price:55.00},{service:'UPS Standard',zone:'Drittland Standard/Economy',country:'Drittland',maxKg:20,price:82.00},{service:'UPS Standard',zone:'Drittland Standard/Economy',country:'Drittland',maxKg:30,price:115.00},
+    {service:'UPS Express Saver',zone:'Drittland Express Saver',country:'Drittland',maxKg:5,price:45.00},{service:'UPS Express Saver',zone:'Drittland Express Saver',country:'Drittland',maxKg:10,price:65.00},{service:'UPS Express Saver',zone:'Drittland Express Saver',country:'Drittland',maxKg:20,price:98.00},{service:'UPS Express Saver',zone:'Drittland Express Saver',country:'Drittland',maxKg:30,price:135.00},
+    {service:'UPS Express',zone:'Drittland Express',country:'Drittland',maxKg:5,price:55.00},{service:'UPS Express',zone:'Drittland Express',country:'Drittland',maxKg:10,price:78.00},{service:'UPS Express',zone:'Drittland Express',country:'Drittland',maxKg:20,price:118.00},{service:'UPS Express',zone:'Drittland Express',country:'Drittland',maxKg:30,price:164.00}
+  ];
+  var EU_COUNTRIES={belgien:1,bulgarien:1,daenemark:1,danemark:1,dänemark:1,estland:1,finnland:1,frankreich:1,griechenland:1,irland:1,italien:1,kroatien:1,lettland:1,litauen:1,luxemburg:1,malta:1,niederlande:1,oesterreich:1,osterreich:1,österreich:1,polen:1,portugal:1,rumaenien:1,rumanien:1,rumänien:1,schweden:1,slowakei:1,slowenien:1,spanien:1,tschechien:1,ungarn:1,zypern:1};
+  var COUNTRY_HINTS=[
+    ['Deutschland',/(deutschland|germany|bundesrepublik)/i],['Frankreich',/(frankreich|france)/i],['Spanien',/(spanien|spain|españa|espana)/i],['Italien',/(italien|italy|italia)/i],['Polen',/(polen|poland|polska)/i],['Schweden',/(schweden|sweden|sverige)/i],['Schweiz',/(schweiz|switzerland|suisse|svizzera)/i],['Österreich',/(österreich|oesterreich|austria)/i],['Belgien',/(belgien|belgium|belgique)/i],['Niederlande',/(niederlande|netherlands|holland)/i],['Portugal',/(portugal)/i],['Vereinigtes Königreich',/(vereinigtes königreich|united kingdom|great britain|grossbritannien|england|uk\b)/i],['USA',/(usa|united states|vereinigte staaten)/i],['Kanada',/(kanada|canada)/i],['China',/(china|prc)/i],['Thailand',/(thailand)/i],['Südafrika',/(südafrika|suedafrika|south africa)/i],['Australien',/(australien|australia)/i],['Singapur',/(singapur|singapore)/i]
+  ];
+
+  function S(){try{return (typeof state!=='undefined'&&state)?state:(window.state=window.state||{})}catch(e){return window.state=window.state||{}}}
+  function by(id){return document.getElementById(id)}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v).trim()}
+  function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function N(v){return T(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')}
+  function num(v){if(typeof v==='number')return isFinite(v)?v:0;return Number(String(v==null?'':v).replace(',','.').replace(/[^0-9.\-]/g,''))||0}
+  function saveQ(){try{if(typeof save==='function')save();else localStorage.setItem('exporthub_private_state_v1',JSON.stringify(S()))}catch(e){}}
+  function settings(){var s=S();s.upsSettings=s.upsSettings||{};return s.upsSettings}
+
+  function seedRates(){var out=[];try{if(typeof SEED!=='undefined'&&SEED&&Array.isArray(SEED.upsRates))out=out.concat(SEED.upsRates)}catch(e){}try{if(window.SEED&&Array.isArray(window.SEED.upsRates))out=out.concat(window.SEED.upsRates)}catch(e){}return out}
+  function normalizeRate(r){r=r||{};return {service:T(r.service||r.name||'UPS Standard'),zone:T(r.zone||r.priceZone||''),country:T(r.country||r.countryGroup||r.group||'Deutschland'),maxKg:num(r.maxKg||r.kgTo||r.weightTo||r.weight||0),price:num(r.price||r.netPrice||r.amount||0),_src:T(r._src||'')}}
+  function allRates(){var map={},out=[];function put(r,overwrite){var rr=normalizeRate(r);if(!rr.service||!rr.country||!rr.maxKg||!rr.price)return;var key=N(rr.country)+'|'+N(rr.service)+'|'+rr.maxKg;if(map[key]==null){map[key]=out.length;out.push(rr)}else if(overwrite){out[map[key]]=rr}}
+    FALLBACK_RATES.forEach(function(r){put(r,false)});
+    seedRates().forEach(function(r){put(r,true)});
+    return out.sort(function(a,b){return String(a.country).localeCompare(String(b.country))||String(a.service).localeCompare(String(b.service))||a.maxKg-b.maxKg})
+  }
+  function uniq(a){var m={},o=[];(a||[]).forEach(function(x){x=T(x);if(x&&!m[x]){m[x]=1;o.push(x)}});return o}
+  function groups(){var g=uniq(allRates().map(function(r){return r.country||''}));['Deutschland','EU','Drittland'].forEach(function(x){if(g.indexOf(x)<0)g.push(x)});return g}
+  function services(){var s=uniq(allRates().map(function(r){return r.service||'UPS Standard'}));['UPS Standard','UPS Express Saver','UPS Express'].forEach(function(x){if(s.indexOf(x)<0)s.push(x)});return s}
+  function groupForCountry(country){var n=N(country);if(!n||/deutschland|germany|deutsch/.test(n))return 'Deutschland';if(EU_COUNTRIES[n])return 'EU';return 'Drittland'}
+  function compactZip(v){return T(v).toUpperCase().replace(/^(DE|D|FR|F|ES|E|IT|I|PL|NL|SE|S|CH|AT|A|BE|B|GB|UK|DK)[- ]*/,'').replace(/\s+/g,'')}
+  function extractZips(v){var s=T(v).toUpperCase(),out=[],m,rx=/\b\d{4}-\d{3}\b|\b\d{2}-\d{3}\b|\b\d{4}\s?[A-Z]{2}\b|\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b|\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b|\b\d{3}\s\d{2}\b|\b\d{5}\b|\b\d{4}\b/g;while((m=rx.exec(s)))out.push(m[0]);return out}
+  function customerList(){var s=S(),arr=[];arr=arr.concat(A(s.customers));try{if(typeof SEED!=='undefined'&&SEED&&Array.isArray(SEED.customers))arr=arr.concat(SEED.customers)}catch(e){}try{if(window.SEED&&Array.isArray(window.SEED.customers))arr=arr.concat(window.SEED.customers)}catch(e){}return arr}
+  function collectText(obj,out,depth){out=out||[];if(depth>4||obj==null)return out;if(typeof obj==='string'||typeof obj==='number'){out.push(String(obj));return out}if(Array.isArray(obj)){obj.forEach(function(x){collectText(x,out,depth+1)});return out}if(typeof obj==='object'){Object.keys(obj).forEach(function(k){var v=obj[k];if(typeof v==='string'||typeof v==='number')out.push(String(v));else if(v&&typeof v==='object')collectText(v,out,depth+1)});return out}return out}
+  function countryFromText(txt){txt=T(txt);if(!txt)return '';for(var i=0;i<COUNTRY_HINTS.length;i++){if(COUNTRY_HINTS[i][1].test(txt))return COUNTRY_HINTS[i][0]}return ''}
+  function countryOfCustomer(c){c=c||{};return T(c.country||c.land||c.countryName||c.deliveryCountry||c.recipientCountry||c.shipToCountry||c.iso||c.countryCode||'')||countryFromText(collectText(c,[],0).join(' '))}
+  function customerKey(c){return String((c||{}).id||(c||{}).account||(c||{}).customerNumber||(c||{}).kundennummer||'')}
+  function countryFromSelectedCustomer(){var s=S(),sh=s.shipment||{},cid=sh.customerId||s.selectedCustomerId||'';if(!cid)return '';var list=customerList();for(var i=0;i<list.length;i++){var c=list[i]||{};if(customerKey(c)===String(cid)){return countryOfCustomer(c)}}return ''}
+  function countryFromShipmentOrSelected(){var s=S(),sh=s.shipment||{};return countryFromSelectedCustomer()||T(sh.country||sh.land||sh.countryName||'')}
+  function countryFromCustomerZip(zip){var q=compactZip(zip);if(!q)return '';var list=customerList(),matches=[];for(var i=0;i<list.length;i++){var c=list[i]||{},txt=collectText(c,[],0).join(' '),country=countryOfCustomer(c);if(!country)continue;var zips=extractZips(txt);for(var k=0;k<zips.length;k++){if(compactZip(zips[k])===q){matches.push(country);break}}}
+    if(!matches.length)return '';var first=matches[0];for(var j=1;j<matches.length;j++){if(N(matches[j])!==N(first))return ''}return first
+  }
+  function countryFromZip(zip){var raw=T(zip).toUpperCase(),tight=raw.replace(/\s+/g,''),clean=compactZip(raw);if(!clean)return {country:'',source:'',note:'Bitte Ziel-PLZ eingeben.'};var fromCustomer=countryFromCustomerZip(raw);if(fromCustomer)return {country:fromCustomer,source:'Kundenstamm',note:'Zielland aus Kundenstamm/PLZ erkannt.'};
+    if(/^\d{4}[A-Z]{2}$/.test(clean))return {country:'Niederlande',source:'PLZ-Format',note:'Niederländische PLZ erkannt.'};
+    if(/^\d{2}-\d{3}$/.test(raw)||/^\d{5}$/.test(clean)&&raw.indexOf('-')>0)return {country:'Polen',source:'PLZ-Format',note:'Polnische PLZ erkannt.'};
+    if(/^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/.test(raw))return {country:'Vereinigtes Königreich',source:'PLZ-Format',note:'UK-Postcode erkannt.'};
+    if(/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/.test(raw))return {country:'Kanada',source:'PLZ-Format',note:'Kanadische PLZ erkannt.'};
+    if(/^\d{4}-\d{3}$/.test(raw))return {country:'Portugal',source:'PLZ-Format',note:'Portugiesische PLZ erkannt.'};
+    if(/^\d{3}\s\d{2}$/.test(raw))return {country:'Schweden',source:'PLZ-Format',note:'Schwedische PLZ erkannt.'};
+    var active=countryFromShipmentOrSelected();
+    if(/^\d{4}$/.test(clean)){if(active)return {country:active,source:'aktiver Kunde',note:'4-stellige PLZ: Zielland aus aktivem Kunden übernommen.'};return {country:'Niederlande',source:'PLZ-Format',note:'4-stellige PLZ ohne Kundentreffer: Niederlande als Standard gesetzt.'}}
+    if(/^\d{5}$/.test(clean)){if(active&&N(active)!=='deutschland')return {country:active,source:'aktiver Kunde',note:'5-stellige PLZ: Zielland aus aktivem Kunden übernommen.'};return {country:'Deutschland',source:'Standard',note:'5-stellige PLZ ohne Kundentreffer: Deutschland als Standard gesetzt.'}}
+    return {country:active||'',source:active?'aktiver Kunde':'',note:active?'Zielland aus aktivem Kunden übernommen.':'Zielland konnte aus dieser PLZ nicht eindeutig erkannt werden.'}
+  }
+  function transitFor(group,service){var s=N(service);if(group==='Deutschland')return s.indexOf('express')>=0?'1 Werktag':'1-2 Werktage';if(group==='EU')return s.indexOf('express')>=0?'1-2 Werktage':'2-5 Werktage';return s.indexOf('express')>=0?'2-5 Werktage':'3-7 Werktage'}
+  function rateTransit(r){try{if(typeof upsTransitTime==='function'){var x=upsTransitTime(r);if(x)return x}}catch(e){}return transitFor(String(r&&r.country||'Drittland'),String(r&&r.service||'UPS Standard'))}
+  function ratesFor(group,service){return allRates().filter(function(r){return String(r.country||'')===String(group)&&String(r.service||'UPS Standard')===String(service)})}
+  function best(list,kgPerPackage){list=(list||[]).slice().sort(function(a,b){return num(a.maxKg)-num(b.maxKg)});return list.find(function(r){return kgPerPackage<=num(r.maxKg)})||list[list.length-1]||null}
+  function maxStageFor(group,service){var max=0;ratesFor(group,service).forEach(function(r){max=Math.max(max,num(r.maxKg))});return max}
+  function shipmentDefaults(){var s=S(),u=settings(),sh=s.shipment||{},rows=Array.isArray(sh.rows)?sh.rows:[],kg=0,count=0;rows.forEach(function(r){kg+=num(r.weight);count+=num(r.count)});var country=u.countryName||sh.country||countryFromShipmentOrSelected()||'';return {countryName:country||'Deutschland',countryGroup:groupForCountry(country||'Deutschland'),totalKg:kg||num(u.totalKg||u.kg||5)||5,packages:Math.max(1,Math.floor(num(u.packages||u.packageCount||u.count||count||1)||1))}}
+  function updateAutoCountry(dest,force){var u=settings(),res=countryFromZip(dest);u.dest=dest;if(res.country&&(force||!u.countryManual||u.lastAutoDest!==dest)){u.countryName=res.country;u.countryGroup=groupForCountry(res.country);u.lastAutoDest=dest;u.lastAutoCountryNote=res.note;u.countryAutoSource=res.source;var c=by('upsCountryName');if(c)c.value=u.countryName;var g=by('upsCountry');if(g)g.value=u.countryGroup;var msg=by('rc376UpsAuto')||by('rc374UpsAuto');if(msg){msg.className='rc376-ups-auto';msg.innerHTML=E(res.note)+' <b>'+E(res.country)+'</b>'}}
+    else{u.lastAutoCountryNote=res.note;var m=by('rc376UpsAuto')||by('rc374UpsAuto');if(m){m.className='rc376-ups-auto warn';m.innerHTML=E(res.note)}}return res}
+  function readInput(){var u=settings(),d=shipmentDefaults();var start=(by('upsStart')||{}).value||u.start||'41334';var dest=(by('upsDest')||{}).value||u.dest||'';if(dest&&(!u.countryManual||u.lastAutoDest!==dest))updateAutoCountry(dest,true);var countryName=(by('upsCountryName')||{}).value||u.countryName||d.countryName||'Deutschland';var group=(by('upsCountry')||{}).value||u.countryGroup||groupForCountry(countryName);var totalKg=num((by('upsTotalKg')||{}).value||u.totalKg||d.totalKg||0);var packages=Math.max(1,Math.floor(num((by('upsPackages')||{}).value||u.packages||u.packageCount||u.count||d.packages||1)||1));Object.assign(u,{start:start,dest:dest,countryName:countryName,countryGroup:group,totalKg:String(totalKg),packages:String(packages),packageCount:String(packages),count:String(packages)});return {start:start,dest:dest,countryName:countryName,group:group,totalKg:totalKg,packages:packages,kgPerPackage:packages?totalKg/packages:totalKg}}
+  function groupOptions(selected){return groups().map(function(g){return '<option value="'+E(g)+'" '+(g===selected?'selected':'')+'>'+E(g)+'</option>'}).join('')}
+  function countryHints(){return '<datalist id="rc376CountryHints"><option value="Deutschland"><option value="Frankreich"><option value="Spanien"><option value="Italien"><option value="Polen"><option value="Schweden"><option value="Schweiz"><option value="Österreich"><option value="Belgien"><option value="Niederlande"><option value="Vereinigtes Königreich"><option value="Portugal"><option value="USA"><option value="Kanada"><option value="China"><option value="Thailand"><option value="Südafrika"><option value="Australien"><option value="Singapur"></datalist>'}
+
+  window.rc376SetUps=function(k,v){var u=settings();u[k]=v;if(k==='dest'){u.countryManual=false;updateAutoCountry(v,true)}else if(k==='countryName'){u.countryManual=true;u.countryGroup=groupForCountry(v);var g=by('upsCountry');if(g)g.value=u.countryGroup}else if(k==='countryGroup'){u.countryManual=true}else if(k==='packages'||k==='packageCount'||k==='count'){var n=Math.max(1,Math.floor(num(v)||1));u.packages=String(n);u.packageCount=String(n);u.count=String(n)}saveQ();var out=by('upsResult');if(out){out.className='rc376-ups-result wait';out.innerHTML='Eingaben geändert. Bitte <b>Preise und Laufzeiten anzeigen</b> drücken.'}return false};
+  window.rc376ShowUpsPrices=function(){var d=readInput(),out=by('upsResult'),tbl=by('rc376UpsTable')||by('rc374UpsTable')||by('rc373UpsTable')||by('rc371UpsTable');if(!d.totalKg||d.totalKg<=0){if(out){out.className='rc376-ups-result wait';out.innerHTML='Bitte Gesamtgewicht eingeben.'}return false}if(!d.packages||d.packages<1){if(out){out.className='rc376-ups-result wait';out.innerHTML='Bitte Paketanzahl eingeben.'}return false}var rows=services().map(function(svc){var r=best(ratesFor(d.group,svc),d.kgPerPackage);if(!r)return '';var total=num(r.price)*d.packages;var max=maxStageFor(d.group,svc);var warn=d.kgPerPackage>num(r.maxKg)?'<div class="rc376-ups-muted">Gewicht je Paket liegt über der höchsten hinterlegten Stufe. Verwendet wird die höchste vorhandene Stufe bis '+E(max||r.maxKg)+' kg.</div>':'';return '<tr><td><b>'+E(svc)+'</b>'+warn+'</td><td>'+E(rateTransit(r))+'</td><td class="price">'+total.toFixed(2)+' €</td><td>'+E(d.packages)+' Paket(e)</td><td>'+d.totalKg.toFixed(1)+' kg</td><td>'+d.kgPerPackage.toFixed(1)+' kg</td><td>'+E(r.maxKg||'')+' kg</td><td>'+E(r.zone||'')+'</td></tr>'}).join('');if(!rows)rows='<tr><td colspan="8">Keine Preise für diese Preisgruppe hinterlegt.</td></tr>';var table='<table class="table rc376-ups-table"><tr><th>Service</th><th>Laufzeit</th><th>Preis gesamt</th><th>Pakete</th><th>Gesamtgewicht</th><th>Gewicht je Paket</th><th>Stufe bis</th><th>Zone</th></tr>'+rows+'</table>';if(tbl)tbl.innerHTML=table;if(out){out.className='rc376-ups-result';out.innerHTML='<b>Preise und Laufzeiten laut UPS Tool Liste</b><br><span class="rc376-ups-muted">Start '+E(d.start)+' → Ziel '+E(d.dest)+' · Zielland '+E(d.countryName)+' · Preisgruppe '+E(d.group)+' · '+E(d.packages)+' Paket(e) · Gesamtgewicht '+d.totalKg.toFixed(1)+' kg · Gewicht je Paket '+d.kgPerPackage.toFixed(1)+' kg</span>'}saveQ();return false};
+
+  window.rc374SetUps=window.rc376SetUps;window.rc373SetUps=window.rc376SetUps;window.rc371SetUps=window.rc376SetUps;window.rc294SetUps=window.rc376SetUps;
+  window.rc374ShowUpsPrices=window.rc376ShowUpsPrices;window.rc373ShowUpsPrices=window.rc376ShowUpsPrices;window.rc371ShowUpsPrices=window.rc376ShowUpsPrices;window.calcUps=window.rc376ShowUpsPrices;
+  try{rc374SetUps=window.rc376SetUps;rc373SetUps=window.rc376SetUps;rc371SetUps=window.rc376SetUps;rc294SetUps=window.rc376SetUps;rc374ShowUpsPrices=window.rc376ShowUpsPrices;rc373ShowUpsPrices=window.rc376ShowUpsPrices;rc371ShowUpsPrices=window.rc376ShowUpsPrices;calcUps=window.rc376ShowUpsPrices}catch(e){}
+  window.rc294UseShipment=function(){var u=settings(),d=shipmentDefaults();u.countryName=d.countryName;u.countryGroup=d.countryGroup;u.totalKg=String(d.totalKg||5);u.packages=String(d.packages||1);u.packageCount=u.packages;u.count=u.packages;u.countryManual=false;saveQ();try{if(typeof render==='function')render()}catch(e){}return false};
+  window.calculator=function(){var u=settings(),d=shipmentDefaults();if(!u.countryName){u.countryName=d.countryName;u.countryGroup=d.countryGroup}if(!u.totalKg)u.totalKg=String(d.totalKg||5);if(!u.packages)u.packages=String(d.packages||1);var group=u.countryGroup||groupForCountry(u.countryName||'Deutschland');var autoNote=u.lastAutoCountryNote||'Zielland wird automatisch aus der Ziel-PLZ oder dem Kundenstamm erkannt. Kein Ländercode notwendig.';var headHtml='';try{headHtml=typeof head==='function'?head('💶 UPS Versandkosten','Ziel-PLZ, Gesamtgewicht und Pakete eingeben. Kein Ländercode notwendig.'):''}catch(e){}if(!headHtml)headHtml='<div class="page-head"><div><h2>💶 UPS Versandkosten</h2><p>Ziel-PLZ, Gesamtgewicht und Pakete eingeben. Kein Ländercode notwendig.</p></div></div>';return headHtml+'<div class="rc376-ups-wrap"><div class="rc376-ups-card"><h3>Eingaben</h3><div class="rc376-ups-grid">'+
+    '<label class="field">Start-PLZ<input id="upsStart" value="'+E(u.start||'41334')+'" oninput="rc376SetUps(&quot;start&quot;,this.value)"></label>'+ 
+    '<label class="field">Ziel-PLZ<input id="upsDest" value="'+E(u.dest||'')+'" placeholder="z. B. 10115, 75001, 28013, 1234 AB, 12-345" oninput="rc376SetUps(&quot;dest&quot;,this.value)"></label>'+ 
+    '<label class="field rc376-ups-full">Zielland automatisch erkannt<input id="upsCountryName" list="rc376CountryHints" value="'+E(u.countryName||'Deutschland')+'" oninput="rc376SetUps(&quot;countryName&quot;,this.value)">'+countryHints()+'</label>'+ 
+    '<label class="field">Preisgruppe<select id="upsCountry" onchange="rc376SetUps(&quot;countryGroup&quot;,this.value)">'+groupOptions(group)+'</select></label>'+ 
+    '<label class="field">Pakete<input id="upsPackages" type="number" min="1" step="1" value="'+E(u.packages||u.packageCount||u.count||'1')+'" oninput="rc376SetUps(&quot;packages&quot;,this.value)"></label>'+ 
+    '<label class="field rc376-ups-full">Gesamtgewicht kg<input id="upsTotalKg" type="number" min="0" step="0.1" value="'+E(u.totalKg||'5')+'" oninput="rc376SetUps(&quot;totalKg&quot;,this.value)"></label>'+ 
+    '</div><div id="rc376UpsAuto" class="rc376-ups-auto '+(u.lastAutoCountryNote?'':'warn')+'">'+E(autoNote)+'</div><button class="btn rc376-ups-full" style="width:100%;margin-top:12px" onclick="return rc376ShowUpsPrices()">Preise und Laufzeiten anzeigen</button><div id="upsResult" class="rc376-ups-result wait">Bitte Daten eingeben und den Button drücken.</div></div><div class="rc376-ups-card"><h3>Ergebnis</h3><div id="rc376UpsTable" class="rc376-ups-muted">Noch keine Berechnung gestartet.</div><div class="rc376-ups-rate-note">Gewichtsstufen werden jetzt bis 30 kg ergänzt, falls die alte UPS-Liste nur bis 10 kg enthielt. Angezeigt wird weiterhin nur der Gesamtpreis.</div></div></div>'};
+  try{calculator=window.calculator}catch(e){}
+})();
+</script>
+<!-- PRIVATE RC376 END: UPS Auto-Land und Gewichtsstufen Fix -->
+
