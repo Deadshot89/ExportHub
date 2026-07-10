@@ -46424,6 +46424,8 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC373 END: UPS Pakete PLZ Land -->
+
+
 </body></html>
 <!-- PRIVATE RC374 START: UPS PLZ ohne Laendercode -->
 <style id="rc374-ups-plz-no-code-css">
@@ -47084,7 +47086,9 @@ body .rc314-process-warning{
   function coverHtml(){var x=shipment(),c=shipmentCustomer(x),t=totals(x),d=docs(x),ref=refClean(x);return '<section class="rc390-page rc390-cover"><div class="rc390-cover-top">'+logo('rc390-cover-logo')+'<div class="rc390-ref"><span>Sendungsreferenz</span><div class="num">'+esc(ref)+'</div></div></div><div class="rc390-cover-ref"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="rc390-cover-grid"><div class="rc390-card"><div class="rc390-label">Empfänger</div><strong>'+esc(cname(c)||x.customerName||'')+'</strong><div class="rc390-txt">'+esc(caddr(c)||x.recipientAddress||'')+'</div></div><div class="rc390-card"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt">Zielland: '+esc(destCountry(c,x))+'\nAnzahl: '+esc(fmt(t.count,0))+'\nGewicht: '+esc(fmt(t.weight,1))+' kg</div></div><div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine</div><div class="rc390-txt">'+esc(d.join('\n'))+'</div></div></div></section>'}
   function cmrHtml(){var x=shipment(),c=shipmentCustomer(x),t=totals(x),d=docs(x),out='';for(var i=1;i<=4;i++){var html='';try{if(typeof buildCmrMasterTemplate==='function')html=buildCmrMasterTemplate(x,c,d,t,x.carrier||c.carrier||c.speditionName||'',x.pickupDate||'',x.goodsDescription||'Waren laut Rechnung/Ladeliste')}catch(e){}if(!html)html='<section class="cmr-official"><div class="cmr-of-title"><div class="h1">INTERNATIONALER FRACHTBRIEF</div><div class="round">CMR</div></div></section>';out+='<div class="rc390-cmr-wrap">'+html+'<div class="rc390-cmr-copy">CMR '+i+' / 4</div></div>'}return out}
   function docsHtml(){var x=shipment(),c=shipmentCustomer(x);return '<div class="rc390-docview"><div class="rc390-doc-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zur Sendung</button><button type="button" class="btn" onclick="return rc390PrintDocuments()">Drucken / als PDF speichern</button><button type="button" class="ghost" onclick="return rc390DownloadLoadlistPdf()">Ladeliste 1 PDF</button><button type="button" class="ghost" onclick="return rc390DownloadLoadlistPage2Pdf()">Ladeliste 2 PDF</button></div><div class="rc390-bundle">'+coverHtml()+loadlistHtml(true)+loadlistHtml(false)+(isGermany(c,x)?'<div class="rc390-note-no-cmr no-print">Zielland Deutschland: CMR wird nicht benötigt.</div>':cmrHtml())+'</div></div>'}
-  function popupPrint(html,title){var css=(by('rc390-css')?by('rc390-css').textContent:'');var w=null;try{w=window.open('','_blank')}catch(e){}if(!w){var r=root();r.innerHTML='<div class="rc390-docview">'+html+'</div>';setTimeout(function(){document.body.classList.add('print-rc390');window.print();setTimeout(function(){document.body.classList.remove('print-rc390')},800)},120);return false}w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title||'ExportHUB')+'</title><style>'+css+'@page{size:A4;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm!important;min-height:297mm!important;overflow:hidden!important}.rc390-page{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}</style></head><body class="print-rc390"><div class="rc390-docview">'+html+'</div><script>setTimeout(function(){window.focus();window.print()},500)<\/script></body></html>');w.document.close();return false}
+  function popupPrint(html,title){var css=(by('rc390-css')?by('rc390-css').textContent:'');var w=null;try{w=window.open('','_blank')}catch(e){}if(!w){var r=root();r.innerHTML='<div class="rc390-docview">'+html+'</div>';setTimeout(function(){document.body.classList.add('print-rc390');window.print();setTimeout(function(){document.body.classList.remove('print-rc390')},800)},120);return false}w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title||'ExportHUB')+'</title><style>'+css+'@page{size:A4;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm!important;min-height:297mm!important;overflow:hidden!important}.rc390-page{border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important}</style></head><body class="print-rc390"><div class="rc390-docview">'+html+'</div><script>setTimeout(function(){window.focus();window.print()},500)<\/script></body></html>'
+
+);w.document.close();return false}
   window.rc390DownloadLoadlistPdf=function(){return popupPrint(loadlistHtml(true),'Ladeliste 1 '+refClean(shipment()))};window.rc390DownloadLoadlistPage2Pdf=function(){return popupPrint(loadlistHtml(false),'Ladeliste 2 '+refClean(shipment()))};window.rc390ShowDocuments=function(){S().view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(e){}try{if(typeof renderNav==='function')renderNav()}catch(e){}root().innerHTML=docsHtml();dedupeLoadlistButtons();return false};window.rc390PrintDocuments=function(){if(!root().querySelector('.rc390-docview'))window.rc390ShowDocuments();setTimeout(function(){document.body.classList.add('print-rc390');window.print();setTimeout(function(){document.body.classList.remove('print-rc390')},900)},120);return false};window.showCurrentCmr=function(){S().activeShipmentId='current';saveQ();return window.rc390ShowDocuments()};window.showSavedCmr=function(id){var s=S(),x=A(s.shipments).find(function(y){return T(y.id)===T(id)});if(x){s.shipment=Object.assign({},x);s.activeShipmentId='current';saveQ()}return window.rc390ShowDocuments()};
   ['rc55DownloadLoadlistPdf','rc55PdfLoadlist','rc351DownloadLoadlistPdf','rc352DownloadLoadlistPdf','rc353DownloadLoadlistPdf','rc355DownloadLoadlistPdf','rc375DownloadLoadlistPdf','rc378DownloadLoadlistPage1Pdf','rc379DownloadLoadlistPdf','rc381DownloadLoadlistPdf','rc383DownloadLoadlistPdf','rc384DownloadLoadlistPdf','rc385DownloadLoadlistPdf','rc386DownloadLoadlistPdf','rc387DownloadLoadlistPdf'].forEach(function(n){window[n]=window.rc390DownloadLoadlistPdf;try{eval(n+'=window.rc390DownloadLoadlistPdf')}catch(e){}});['rc375DownloadLoadlistPage2Pdf','rc381DownloadLoadlistPage2Pdf','rc383DownloadLoadlistPage2Pdf','rc384DownloadLoadlistPage2Pdf','rc385DownloadLoadlistPage2Pdf','rc386DownloadLoadlistPage2Pdf','rc387DownloadLoadlistPage2Pdf'].forEach(function(n){window[n]=window.rc390DownloadLoadlistPage2Pdf;try{eval(n+'=window.rc390DownloadLoadlistPage2Pdf')}catch(e){}});['rc385PrintDocuments','rc386PrintDocuments','rc387PrintDocuments','printDocsRC52'].forEach(function(n){window[n]=window.rc390PrintDocuments;try{eval(n+'=window.rc390PrintDocuments')}catch(e){}});
   var oldSetView=window.setView||((typeof setView==='function')?setView:null);if(typeof oldSetView==='function'&&!oldSetView.__rc390){var sv=function(v){if(v==='cmr')return window.rc390ShowDocuments();var r=oldSetView.apply(this,arguments);setTimeout(installAll,0);setTimeout(installAll,200);return r};sv.__rc390=true;window.setView=sv;try{setView=sv}catch(e){}}
@@ -47104,3 +47108,147 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC390 END: Ladeliste Druck, Kundenordner Mailposition, Suche, Rechtevorlagen -->
+
+
+<!-- PRIVATE RC391 START: Ladeliste PDF/Druck Single Print Host Fix -->
+<style id="rc391-css">
+  #rc391PrintHost{display:none!important}
+  .rc391-doc-actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 auto 12px;width:210mm;max-width:100%}
+  @media print{
+    body.rc391-printing{background:#fff!important;margin:0!important;padding:0!important;overflow:hidden!important}
+    body.rc391-printing > :not(#rc391PrintHost){display:none!important}
+    body.rc391-printing #rc391PrintHost{display:block!important;position:static!important;inset:auto!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
+    body.rc391-printing #rc391PrintHost .rc390-docview,
+    body.rc391-printing #rc391PrintHost .rc386-docview,
+    body.rc391-printing #rc391PrintHost .rc385-docview{display:block!important;max-width:none!important;width:210mm!important;margin:0!important;padding:0!important;background:#fff!important}
+    body.rc391-printing #rc391PrintHost .rc390-bundle,
+    body.rc391-printing #rc391PrintHost .rc386-bundle,
+    body.rc391-printing #rc391PrintHost .rc385-bundle{display:block!important;margin:0!important;padding:0!important;gap:0!important;background:#fff!important}
+    body.rc391-printing #rc391PrintHost .rc390-page,
+    body.rc391-printing #rc391PrintHost .rc386-page,
+    body.rc391-printing #rc391PrintHost .rc385-page{width:210mm!important;height:297mm!important;margin:0!important;padding:7mm 8mm 5mm!important;box-shadow:none!important;border-radius:0!important;border:0!important;page-break-after:always!important;break-after:page!important;box-sizing:border-box!important;overflow:hidden!important;background:#fff!important}
+    body.rc391-printing #rc391PrintHost .rc390-page:last-child,
+    body.rc391-printing #rc391PrintHost .rc386-page:last-child,
+    body.rc391-printing #rc391PrintHost .rc385-page:last-child{page-break-after:auto!important;break-after:auto!important}
+    body.rc391-printing #rc391PrintHost .no-print,
+    body.rc391-printing #rc391PrintHost .rc390-doc-actions,
+    body.rc391-printing #rc391PrintHost .rc386-doc-actions,
+    body.rc391-printing #rc391PrintHost .rc385-doc-actions{display:none!important}
+    @page{size:A4;margin:0}
+  }
+</style>
+<script id="rc391-js">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC391__)return;window.__EXPORTHUB_RC391__=true;
+  function by(id){return document.getElementById(id)}
+  function T(v){return v==null?'':String(v)}
+  function trim(v){return T(v).trim()}
+  function qsa(s,r){return Array.from((r||document).querySelectorAll(s))}
+  function refText(){try{var s=window.state||state||{};return trim((s.shipment||{}).ref||'Ladeliste')}catch(e){return 'Ladeliste'}}
+  var baseShow=window.rc390ShowDocuments||window.rc386ShowDocuments||window.showCurrentCmr;
+  function ensureDocumentView(){
+    if(document.querySelector('.rc390-docview,.rc386-docview,.rc385-docview'))return true;
+    try{if(typeof baseShow==='function')baseShow()}catch(e){}
+    return !!document.querySelector('.rc390-docview,.rc386-docview,.rc385-docview');
+  }
+  function pageIsQr(p){
+    if(!p)return false;
+    var t=trim(p.textContent||'');
+    if(/ohne\s*QR/i.test(t))return false;
+    if(/mit\s*QR/i.test(t))return true;
+    if(p.querySelector('svg,canvas,img[src*="qr" i],.rc390-qrslot:not(.empty),.rc386-qrslot:not(.empty),.rc385-qrslot:not(.empty)'))return true;
+    return false;
+  }
+  function getLoadlistPage(withQr){
+    ensureDocumentView();
+    var pages=qsa('.rc390-load,.rc386-load,.rc385-load');
+    if(!pages.length){
+      var all=qsa('.rc390-page,.rc386-page,.rc385-page');
+      pages=all.filter(function(p){return /LADELISTE|Ladeliste/i.test(p.textContent||'')});
+    }
+    var page=pages.find(function(p){return withQr?pageIsQr(p):!pageIsQr(p)})||pages[withQr?0:1]||pages[0];
+    if(!page){alert('Ladeliste konnte nicht gefunden werden. Bitte Sendung prüfen.');return null}
+    var c=page.cloneNode(true);
+    c.querySelectorAll('.no-print,.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions').forEach(function(x){x.remove()});
+    return c.outerHTML;
+  }
+  function getDocumentBundle(){
+    ensureDocumentView();
+    var bundle=document.querySelector('.rc390-bundle,.rc386-bundle,.rc385-bundle');
+    if(bundle){
+      var c=bundle.cloneNode(true);
+      c.querySelectorAll('.no-print,.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions,.rc390-note-no-cmr,.rc386-note-no-cmr,.rc385-note-no-cmr').forEach(function(x){x.remove()});
+      return '<div class="rc390-bundle">'+c.innerHTML+'</div>';
+    }
+    return getLoadlistPage(true)||'';
+  }
+  function cleanupPrintHost(title){
+    var h=by('rc391PrintHost');if(h)h.remove();
+    document.body.classList.remove('rc391-printing');
+    if(title)try{document.title=title}catch(e){}
+  }
+  function printHtml(html,title){
+    if(!html)return false;
+    var oldTitle=document.title;
+    cleanupPrintHost();
+    var host=document.createElement('div');host.id='rc391PrintHost';
+    host.innerHTML='<div class="rc390-docview">'+html+'</div>';
+    document.body.appendChild(host);
+    document.body.classList.add('rc391-printing');
+    try{document.title=title||'ExportHUB PDF'}catch(e){}
+    var done=false;
+    function clean(){if(done)return;done=true;setTimeout(function(){cleanupPrintHost(oldTitle)},250)}
+    try{window.addEventListener('afterprint',clean,{once:true})}catch(e){}
+    setTimeout(function(){try{window.focus()}catch(e){}try{window.print()}catch(err){alert('Druckdialog konnte nicht geöffnet werden: '+err.message);clean()}},120);
+    setTimeout(clean,10000);
+    return false;
+  }
+  window.rc391DownloadLoadlistPdf=function(){return printHtml(getLoadlistPage(true),'Ladeliste 1 PDF '+refText())};
+  window.rc391DownloadLoadlistPage2Pdf=function(){return printHtml(getLoadlistPage(false),'Ladeliste 2 PDF '+refText())};
+  window.rc391PrintDocuments=function(){return printHtml(getDocumentBundle(),'ExportHUB Dokumentensatz '+refText())};
+  window.rc391PrintLoadlistOnly=function(){return window.rc391DownloadLoadlistPdf()};
+  function overwriteNames(){
+    ['rc390DownloadLoadlistPdf','rc387DownloadLoadlistPdf','rc386DownloadLoadlistPdf','rc385DownloadLoadlistPdf','rc384DownloadLoadlistPdf','rc383DownloadLoadlistPdf','rc381DownloadLoadlistPdf','rc379DownloadLoadlistPdf','rc378DownloadLoadlistPage1Pdf','rc375DownloadLoadlistPdf','rc355DownloadLoadlistPdf','rc353DownloadLoadlistPdf','rc352DownloadLoadlistPdf','rc351DownloadLoadlistPdf','rc55DownloadLoadlistPdf','rc55PdfLoadlist','rc53PdfLoadlist','rc90PrintLoadlistAsPdf','rc91DownloadOriginalLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc211DownloadWebsiteLoadlistPdf','rc216DownloadLoadlistPdf','rc217DownloadLoadlistPdf','rc218DownloadLoadlistPdf'].forEach(function(n){window[n]=window.rc391DownloadLoadlistPdf;try{eval(n+'=window.rc391DownloadLoadlistPdf')}catch(e){}});
+    ['rc390DownloadLoadlistPage2Pdf','rc387DownloadLoadlistPage2Pdf','rc386DownloadLoadlistPage2Pdf','rc385DownloadLoadlistPage2Pdf','rc384DownloadLoadlistPage2Pdf','rc383DownloadLoadlistPage2Pdf','rc381DownloadLoadlistPage2Pdf','rc375DownloadLoadlistPage2Pdf'].forEach(function(n){window[n]=window.rc391DownloadLoadlistPage2Pdf;try{eval(n+'=window.rc391DownloadLoadlistPage2Pdf')}catch(e){}});
+    ['rc390PrintDocuments','rc387PrintDocuments','rc386PrintDocuments','rc385PrintDocuments','rc384PrintDocuments','rc383PrintDocuments','printDocsRC52'].forEach(function(n){window[n]=window.rc391PrintDocuments;try{eval(n+'=window.rc391PrintDocuments')}catch(e){}});
+  }
+  function normalizeButtons(){
+    overwriteNames();
+    var seen={};
+    qsa('button,a').forEach(function(b){
+      var txt=trim(b.textContent||''),oc=trim(b.getAttribute('onclick')||''),hay=txt+' '+oc;
+      if(/Ladeliste/i.test(hay)&&/PDF|herunterladen|Seite\s*1|Seite\s*2|QR/i.test(hay)){
+        var is2=/Seite\s*2|ohne\s*QR/i.test(hay);
+        var key=is2?'l2':'l1';
+        b.textContent=is2?'Ladeliste 2 PDF herunterladen':'Ladeliste 1 PDF herunterladen';
+        b.setAttribute('onclick',is2?'return rc391DownloadLoadlistPage2Pdf()':'return rc391DownloadLoadlistPdf()');
+        if(seen[key] && b.closest('.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions,.toolbar,.actions'))b.remove();
+        else seen[key]=1;
+      }
+      if(/Drucken\s*\/\s*als PDF speichern|Dokumentensatz drucken|Drucken/i.test(txt) && b.closest('.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions,.rc391-doc-actions')){
+        b.textContent='Drucken / als PDF speichern';
+        b.setAttribute('onclick','return rc391PrintDocuments()');
+      }
+    });
+    qsa('.rc390-doc-actions,.rc386-doc-actions,.rc385-doc-actions').forEach(function(bar){
+      bar.classList.add('rc391-doc-actions');
+      if(!bar.querySelector('[onclick*="rc391DownloadLoadlistPdf"]'))bar.insertAdjacentHTML('beforeend','<button type="button" class="ghost" onclick="return rc391DownloadLoadlistPdf()">Ladeliste 1 PDF herunterladen</button>');
+      if(!bar.querySelector('[onclick*="rc391DownloadLoadlistPage2Pdf"]'))bar.insertAdjacentHTML('beforeend','<button type="button" class="ghost" onclick="return rc391DownloadLoadlistPage2Pdf()">Ladeliste 2 PDF herunterladen</button>');
+    });
+  }
+  var oldShow=window.rc390ShowDocuments||window.rc386ShowDocuments||window.showCurrentCmr;
+  if(typeof oldShow==='function'){
+    window.rc390ShowDocuments=function(){var r=oldShow.apply(this,arguments);setTimeout(normalizeButtons,0);setTimeout(normalizeButtons,200);return r};
+    window.showCurrentCmr=window.rc390ShowDocuments;
+    try{showCurrentCmr=window.showCurrentCmr}catch(e){}
+  }
+  var oldSetView=window.setView||((typeof setView==='function')?setView:null);
+  if(typeof oldSetView==='function'&&!oldSetView.__rc391){var sv=function(v){var r=oldSetView.apply(this,arguments);setTimeout(normalizeButtons,0);setTimeout(normalizeButtons,250);return r};sv.__rc391=true;window.setView=sv;try{setView=sv}catch(e){}}
+  var oldRender=window.render||((typeof render==='function')?render:null);
+  if(typeof oldRender==='function'&&!oldRender.__rc391){var rr=function(){var r=oldRender.apply(this,arguments);setTimeout(normalizeButtons,0);setTimeout(normalizeButtons,250);return r};rr.__rc391=true;window.render=rr;try{render=rr}catch(e){}}
+  document.addEventListener('click',function(ev){var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!el)return;var txt=trim(el.textContent||''),oc=trim(el.getAttribute('onclick')||''),hay=txt+' '+oc;if(/Ladeliste/i.test(hay)&&/PDF|herunterladen|Seite\s*1|Seite\s*2|QR/i.test(hay)){ev.preventDefault();ev.stopImmediatePropagation();return /Seite\s*2|ohne\s*QR/i.test(hay)?window.rc391DownloadLoadlistPage2Pdf():window.rc391DownloadLoadlistPdf()}if(/Drucken\s*\/\s*als PDF speichern/i.test(hay)){ev.preventDefault();ev.stopImmediatePropagation();return window.rc391PrintDocuments()}},true);
+  overwriteNames();setTimeout(normalizeButtons,80);setTimeout(normalizeButtons,700);setTimeout(normalizeButtons,1600);
+})();
+</script>
+<!-- PRIVATE RC391 END: Ladeliste PDF/Druck Single Print Host Fix -->
