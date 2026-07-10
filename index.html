@@ -46675,3 +46675,149 @@ body .rc314-process-warning{
 <!-- PRIVATE RC362 END: Colli + Zeile Doppeltrigger Fix -->
 
 </body></html>
+
+<!-- PRIVATE RC363 START: Login erster Klick + ABD Einzelrenderer -->
+<style>
+/* RC363: alte ABD-Fremdblöcke in Sendung erstellen optisch neutralisieren */
+body[data-exporthub-view="shipment"] #rc288AbdPanel,
+body[data-exporthub-view="shipment"] #rc291AbdPanel,
+body[data-exporthub-view="shipment"] #rc265AbdPanel,
+body[data-exporthub-view="shipment"] #rc260AbdPanel,
+body[data-exporthub-view="shipment"] .rc265-abd-request-panel,
+body[data-exporthub-view="shipment"] .rc260-abd-panel,
+body[data-exporthub-view="shipment"] .abd-panel:not(#rc344AbdBox){display:none!important}
+body[data-exporthub-view="shipment"] #rc344AbdBox:not([data-rc363-abd="1"]){display:none!important}
+.rc363-abd{border:2px solid #facc15!important;background:#fffbeb!important;border-radius:20px!important;padding:16px!important;margin:16px 0!important;box-shadow:none!important}
+.rc363-abd h3{margin:0 0 8px!important;color:#92400e!important}.rc363-abd .rc363-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc363-abd .rc363-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.rc363-abd .rc363-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.rc363-abd .rc363-summary>div{border:1px solid #fde68a;background:#fff;border-radius:14px;padding:10px;font-weight:900}.rc363-abd .rc363-summary b{display:block;font-size:10px;text-transform:uppercase;color:#92400e;margin-bottom:4px}.rc363-abd textarea{min-height:86px!important}
+@media(max-width:900px){.rc363-abd .rc363-grid2,.rc363-abd .rc363-grid3,.rc363-abd .rc363-summary{grid-template-columns:1fr!important}}
+</style>
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC363_LOGIN_ABD__)return;
+  window.__EXPORTHUB_RC363_LOGIN_ABD__=true;
+  var TARGET='mail@gp-zollabfertigung.de';
+  function byId(id){return document.getElementById(id)}
+  function S(){try{return state}catch(e){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function U(v){return T(v).trim().toUpperCase()}
+  function E(v){try{if(typeof esc==='function')return esc(v)}catch(e){}return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}try{localStorage.setItem('exporthub_private_rc363_state',JSON.stringify(S()))}catch(e){}}
+  function userList(){try{return Array.isArray(users)?users:[]}catch(e){return []}}
+  function norm(v){return T(v).trim().toLowerCase()}
+  function fullRights(){var r={};try{(RIGHTS_MODULES||[]).forEach(function(x){r[x[0]]={visible:true,read:true,edit:true}})}catch(e){}return r}
+  function normalizeUser(u){u=u||{};u.user=u.user||u.name||'';u.name=u.name||u.user;u.role=u.role||'Benutzer';u.permissions=Array.isArray(u.permissions)?u.permissions:[];u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};if(norm(u.user)==='tobias'||norm(u.user)==='test'||u.permissions.indexOf('*')>=0){u.permissions=['*'];u.rights=fullRights();u.mustChange=false;if(norm(u.user)==='tobias')u.role='Administrator';}return u}
+  function findLoginUser(login,password){
+    var key=norm(login), pass=T(password), list=userList().map(normalizeUser), u=null;
+    u=list.find(function(x){return norm(x.user)===key && T(x.password)===pass});
+    if(!u && pass==='Essentra')u=list.find(function(x){return norm(x.user)===key && norm(x.user)!=='tobias'});
+    if(!u && key==='tobias' && pass==='demo')u={user:'Tobias',name:'Tobias',password:'demo',role:'Administrator',permissions:['*'],rights:fullRights(),mustChange:false};
+    if(!u && key==='test' && pass==='Essentra')u={user:'Test',name:'Test',password:'Essentra',role:'Vollzugriff',permissions:['*'],rights:fullRights(),mustChange:false};
+    if(!u)return null;
+    u=normalizeUser(u);
+    try{
+      var idx=users.findIndex(function(x){return norm(x.user)===norm(u.user)});
+      if(idx>=0)users[idx]=Object.assign(users[idx],u); else if(norm(u.user)==='tobias'||norm(u.user)==='test')users.push(u);
+      if(typeof saveUsers==='function')saveUsers();
+    }catch(e){}
+    return u;
+  }
+  function completeLogin(u){
+    try{currentUser=u}catch(e){}
+    try{window.currentUser=u}catch(e){}
+    try{S().currentUser={user:u.user,name:u.name,role:u.role};S().loggedInUser=u.user}catch(e){}
+    try{if(typeof ensureTaskWeekTracking==='function')state=ensureTaskWeekTracking(S())}catch(e){}
+    try{saveQ()}catch(e){}
+    var loginBox=byId('login'),appBox=byId('app');
+    if(loginBox)loginBox.classList.add('hidden');
+    if(appBox)appBox.classList.remove('hidden');
+    var pn=byId('profileName'),pr=byId('profileRole');
+    if(pn)pn.textContent=u.name||u.user;
+    if(pr)pr.textContent=(u.role||'Benutzer')+' · '+(typeof trUI==='function'?trUI('collectMode'):'Sammelmodus');
+    try{if(typeof applyLanguage==='function')applyLanguage()}catch(e){}
+    try{if(typeof renderNav==='function')renderNav()}catch(e){}
+    try{if(typeof render==='function')render()}catch(e){}
+    return false;
+  }
+  window.rc363Login=function(ev){
+    if(ev){try{ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation()}catch(e){}}
+    var loginName=(byId('loginUser')||{}).value||'', pass=(byId('loginPass')||{}).value||'';
+    var u=findLoginUser(loginName,pass);
+    if(!u){alert('Login nicht korrekt. Bitte Benutzername und Passwort prüfen.');return false;}
+    try{var remember=byId('rc119RememberLogin'); if(remember&&remember.checked)localStorage.setItem('exporthub_private_rc119_saved_login',JSON.stringify({user:T(loginName).trim(),pass:pass}));}catch(e){}
+    return completeLogin(u);
+  };
+  function installLogin(){
+    var btn=byId('loginBtn'); if(!btn)return;
+    btn.onclick=window.rc363Login;
+    if(!btn.__rc363Capture){btn.__rc363Capture=true;btn.addEventListener('click',window.rc363Login,true)}
+    ['loginUser','loginPass'].forEach(function(id){var el=byId(id);if(el&&!el.__rc363Enter){el.__rc363Enter=true;el.addEventListener('keydown',function(ev){if(ev.key==='Enter')window.rc363Login(ev)},true)}});
+  }
+
+  function isShipment(){try{return (S().view||'')==='shipment'||document.body.getAttribute('data-exporthub-view')==='shipment'}catch(e){return false}}
+  function root(){return byId('content')||document.querySelector('main')||document.body}
+  function customers(){return A(S().customers)}
+  function acc(c){return T(c&&(c.account||c.customerNumber||c.kundennummer||c.id||''))}
+  function cname(c){return T(c&&(c.name||c.customerName||c.kunde||''))}
+  function label(c){return [acc(c),cname(c),T(c&&(c.country||c.land||''))].filter(Boolean).join(' · ')}
+  function addr(c){return T(c&&(c.address||c.empfaengeradresse||c.receiverAddress||c.shippingAddress||''))}
+  function refClean(v){return U(v).replace(/[^A-Z0-9]/g,'').slice(0,6)}
+  function makeRef(){var r='';for(var i=0;i<100;i++){r=Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(2,8);if(r.length===6)return r}return ('R'+Date.now().toString(36).toUpperCase()).replace(/[^A-Z0-9]/g,'').slice(0,6).padEnd(6,'0')}
+  function sh(){var s=S();s.shipment=s.shipment||{};var x=s.shipment;if(!refClean(x.ref||x.abdRef))x.ref=makeRef();x.ref=refClean(x.ref||x.abdRef)||makeRef();x.abdRef=x.ref;x.abdMail=TARGET;return x}
+  function selectedCustomer(){var s=S(),x=sh(),id=T(x.customerId||x.customer_id||s.selectedCustomerId);var c=customers().find(function(c){return T(c.id)===id||acc(c)===id});return c||x.customer||customers()[0]||{}}
+  function findCustomer(q){var n=norm(q);if(!n)return null;return customers().find(function(c){return norm(acc(c))===n||norm(cname(c))===n||norm(label(c))===n})||customers().find(function(c){return norm(label(c)).indexOf(n)>=0||norm(acc(c)).indexOf(n)>=0||norm(cname(c)).indexOf(n)>=0})||null}
+  function docs(x){return T(x.deliveryNotes||x.dncs||x.docs||A(x.files).map(function(f){return f.name||f.fileName||f}).join(', '))}
+  function totalRows(x){var c=0,w=0;A(x.rows).forEach(function(r){c+=Number(T(r.count||r.qty||r.anzahl).replace(',','.'))||0;w+=Number(T(r.weight||r.gewicht).replace(',','.'))||0});return {count:c,weight:w}}
+  function read(id,def){var el=byId(id);return el?el.value:def}
+  function mailBody(c,x){var t=totalRows(x),cnt=T(x.abdCount)||(t.count?String(t.count):''),wei=T(x.abdWeight)||(t.weight?String(t.weight):'');return 'Hallo,\n\nbitte ABD/Zollabfertigung vorbereiten.\n\nKunde: '+(cname(c)||'')+'\nKundennummer: '+(acc(c)||'')+'\nReferenz: '+(x.ref||'')+'\nAnzahl/Collis: '+cnt+'\nGewicht kg: '+wei+'\nAbholdatum: '+(x.pickupDate||'')+'\nLieferscheine/DNCs: '+(docs(x)||'offen')+'\n\nVielen Dank.'}
+  function abdHtml(){
+    var x=sh(),c=selectedCustomer(),t=totalRows(x),search=T(x.abdCustomerSearch||x.customerSearch||label(c));
+    var count=T(x.abdCount)||(t.count?String(t.count):''),weight=T(x.abdWeight)||(t.weight?String(t.weight):'');
+    var opts=customers().map(function(cu){return '<option value="'+E(label(cu))+'"></option>'}).join('');
+    var text=x.abdTextManual?T(x.abdText):mailBody(c,x);
+    return '<section id="rc344AbdBox" class="rc363-abd" data-rc363-abd="1"><h3>ABD Bereich</h3><p><b>ABD geht immer an GP-Zoll.</b></p>'+
+      '<div class="rc363-grid2"><label class="field">Kundennummer / Kunde suchen<input id="rc363AbdCustomerSearch" list="rc363AbdCustomerList" value="'+E(search)+'" placeholder="Kundennummer oder Kundenname" oninput="return rc363AbdInput(\'abdCustomerSearch\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();rc363ApplyCustomer()}"><datalist id="rc363AbdCustomerList">'+opts+'</datalist></label><label class="field">Kunde<input id="rc363AbdCustomerName" value="'+E(cname(c)||'')+'" readonly></label></div>'+
+      '<div class="toolbar"><button type="button" class="ghost" onclick="return rc363ApplyCustomer()">Kunde übernehmen</button><button type="button" class="ghost" onclick="return rc363NewRef()">Neue Ref</button></div>'+
+      '<div class="rc363-summary"><div><b>Kundennummer</b><span>'+E(acc(c)||'offen')+'</span></div><div><b>Kunde</b><span>'+E(cname(c)||'offen')+'</span></div><div><b>Referenz</b><span>'+E(x.ref||'')+'</span></div><div><b>ABD-Mail</b><span>'+TARGET+'</span></div></div>'+
+      '<div class="rc363-grid3"><label class="field">Referenz<input id="rc363AbdRef" value="'+E(x.ref||'')+'" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\').slice(0,6);return rc363AbdInput(\'ref\',this.value)"></label><label class="field">Anzahl / Collis<input id="rc363AbdCount" type="number" min="0" step="1" value="'+E(count)+'" oninput="return rc363AbdInput(\'abdCount\',this.value)"></label><label class="field">Gewicht kg<input id="rc363AbdWeight" type="number" min="0" step="0.1" value="'+E(weight)+'" oninput="return rc363AbdInput(\'abdWeight\',this.value)"></label></div>'+
+      '<div class="rc363-grid2"><label class="field">Abholdatum<input id="rc363AbdPickup" type="date" value="'+E(x.pickupDate||'')+'" oninput="return rc363AbdInput(\'pickupDate\',this.value)"></label><label class="field">Lieferscheine / DNCs<input id="rc363AbdDocs" value="'+E(docs(x))+'" oninput="return rc363AbdInput(\'deliveryNotes\',this.value)"></label></div>'+
+      '<label class="field">Empfängeradresse<textarea readonly>'+E(addr(c)||'Adresse nicht hinterlegt')+'</textarea></label>'+
+      '<div class="rc363-grid2"><label class="field">Zielmail<input value="'+TARGET+'" readonly></label><label class="field">CC optional<input id="rc363AbdCc" value="'+E(x.abdCc||'')+'" oninput="return rc363AbdInput(\'abdCc\',this.value)"></label></div>'+
+      '<label class="field">ABD Mailtext<textarea id="rc363AbdText" oninput="return rc363AbdTextManual(this.value)">'+E(text)+'</textarea></label>'+
+      '<div class="toolbar"><button type="button" class="btn" onclick="return rc363AbdOpenMail()">ABD Mail erstellen</button><button type="button" class="ghost" onclick="return rc363AbdSave()">ABD Anfrage speichern</button><button type="button" class="ghost" onclick="return rc363AbdCopy()">ABD Mailtext kopieren</button></div></section>';
+  }
+  var abdBusy=false;
+  function removeOldAbd(){Array.from(document.querySelectorAll('#rc288AbdPanel,#rc291AbdPanel,#rc265AbdPanel,#rc260AbdPanel,.rc265-abd-request-panel,.rc260-abd-panel,.abd-panel')).forEach(function(el){if(el.id!=='rc344AbdBox'){try{el.remove()}catch(e){el.style.display='none'}}})}
+  window.rc363EnsureAbd=function(force){
+    if(abdBusy||!isShipment())return false;
+    removeOldAbd();
+    var boxes=Array.from(document.querySelectorAll('#rc344AbdBox'));
+    var box=boxes[0];
+    boxes.slice(1).forEach(function(b){try{b.remove()}catch(e){b.style.display='none'}});
+    if(box&&box.getAttribute('data-rc363-abd')==='1'&&!force)return false;
+    if(box&&box.getAttribute('data-rc363-abd')==='1'&&force)return false;
+    abdBusy=true;
+    try{if(box)box.outerHTML=abdHtml();else root().insertAdjacentHTML('beforeend',abdHtml())}finally{abdBusy=false}
+    return true;
+  };
+  window.rc363AbdInput=function(k,v){var x=sh();if(k==='ref'){x.ref=refClean(v);x.abdRef=x.ref}else{x[k]=v}if(['abdCount','abdWeight','pickupDate','deliveryNotes'].indexOf(k)>=0&&!x.abdTextManual){setTimeout(function(){var ta=byId('rc363AbdText');if(ta){ta.value=mailBody(selectedCustomer(),x);x.abdText=ta.value;saveQ()}},0)}saveQ();return false};
+  window.rc363AbdTextManual=function(v){var x=sh();x.abdText=v;x.abdTextManual=true;saveQ();return false};
+  window.rc363ApplyCustomer=function(){var x=sh(),v=read('rc363AbdCustomerSearch',x.abdCustomerSearch||'');var c=findCustomer(v);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname aus der Liste wählen.');return false}x.customerId=c.id||acc(c);x.customer=c;x.customerSearch=label(c);x.abdCustomerSearch=label(c);x.abdTextManual=false;S().selectedCustomerId=x.customerId;saveQ();window.rc363EnsureAbd(true);return false};
+  window.rc363NewRef=function(){var x=sh();x.ref=x.abdRef=makeRef();x.abdTextManual=false;saveQ();window.rc363EnsureAbd(true);return false};
+  function collect(){var x=sh();x.ref=refClean(read('rc363AbdRef',read('rc360AbdRef',x.ref)))||makeRef();x.abdRef=x.ref;x.abdCount=read('rc363AbdCount',read('rc360AbdCount',x.abdCount));x.abdWeight=read('rc363AbdWeight',read('rc360AbdWeight',x.abdWeight));x.pickupDate=read('rc363AbdPickup',read('rc360AbdPickup',x.pickupDate));x.deliveryNotes=read('rc363AbdDocs',read('rc360AbdDocs',x.deliveryNotes));x.abdCc=read('rc363AbdCc',read('rc360AbdCc',x.abdCc));x.abdMail=TARGET;x.abdText=read('rc363AbdText',read('rc360AbdText',x.abdText||mailBody(selectedCustomer(),x)));saveQ();return {x:x,c:selectedCustomer()}}
+  window.rc363AbdOpenMail=function(){var d=collect(),sub='ABD Anfrage '+(d.x.ref||'')+' / '+(cname(d.c)||'Kunde');location.href='mailto:mail%40gp-zollabfertigung.de?subject='+encodeURIComponent(sub)+(T(d.x.abdCc)?'&cc='+encodeURIComponent(d.x.abdCc):'')+'&body='+encodeURIComponent(d.x.abdText||mailBody(d.c,d.x));return false};
+  window.rc363AbdCopy=function(){var d=collect(),body=d.x.abdText||mailBody(d.c,d.x);try{navigator.clipboard.writeText(body);alert('ABD Mailtext kopiert.')}catch(e){prompt('ABD Mailtext kopieren:',body)}return false};
+  window.rc363AbdSave=function(){var d=collect(),s=S();s.abdRequests=A(s.abdRequests);var item={id:'ABD-'+(d.x.ref||Date.now()),ref:d.x.ref,customerId:d.x.customerId||'',customerName:cname(d.c),account:acc(d.c),address:addr(d.c),deliveryNotes:d.x.deliveryNotes||'',pickupDate:d.x.pickupDate||'',count:d.x.abdCount||'',weight:d.x.abdWeight||'',mail:TARGET,cc:d.x.abdCc||'',mailBody:d.x.abdText||mailBody(d.c,d.x),created:new Date().toISOString().slice(0,10),status:'offen'};var i=s.abdRequests.findIndex(function(a){return U(a.ref)===U(item.ref)&&U(item.ref)});if(i>=0)s.abdRequests[i]=Object.assign(s.abdRequests[i],item);else s.abdRequests.unshift(item);saveQ();alert('ABD Anfrage gespeichert.');return false};
+  ['rc344OpenAbdMail','rc348OpenAbdMail','rc349OpenAbdMail','rc350OpenAbdMail','rc352OpenAbdMail','rc355AbdOpenMail','rc356AbdOpenMail','rc357AbdOpenMail','rc359AbdOpenMail','rc360AbdOpenMail'].forEach(function(n){window[n]=window.rc363AbdOpenMail;try{eval(n+'=window.rc363AbdOpenMail')}catch(e){}});
+  ['rc344SaveAbd','rc348SaveAbd','rc349SaveAbd','rc350SaveAbd','rc352SaveAbd','rc355AbdSave','rc356AbdSave','rc357AbdSave','rc359AbdSave','rc360AbdSave'].forEach(function(n){window[n]=window.rc363AbdSave;try{eval(n+'=window.rc363AbdSave')}catch(e){}});
+  ['rc344CopyAbd','rc348CopyAbd','rc349CopyAbd','rc350CopyAbd','rc352CopyAbd','rc355AbdCopy','rc356AbdCopy','rc357AbdCopy','rc359AbdCopy','rc360AbdCopy'].forEach(function(n){window[n]=window.rc363AbdCopy;try{eval(n+'=window.rc363AbdCopy')}catch(e){}});
+  window.rc356EnsureAbd=window.rc357EnsureAbd=window.rc359EnsureAbd=window.rc360EnsureAbd=window.rc363EnsureAbd;try{rc356EnsureAbd=window.rc363EnsureAbd;rc357EnsureAbd=window.rc363EnsureAbd;rc359EnsureAbd=window.rc363EnsureAbd;rc360EnsureAbd=window.rc363EnsureAbd}catch(e){}
+  var oldSetView=window.setView;window.setView=function(v){var r=oldSetView&&oldSetView.apply(this,arguments);if(v==='shipment')setTimeout(function(){window.rc363EnsureAbd(false)},80);return r};try{setView=window.setView}catch(e){}
+  var oldRender=window.render;window.render=function(){var r=oldRender&&oldRender.apply(this,arguments);if(isShipment())setTimeout(function(){window.rc363EnsureAbd(false)},90);return r};try{render=window.render}catch(e){}
+  function init(){installLogin();if(isShipment())setTimeout(function(){window.rc363EnsureAbd(false)},120)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+  setTimeout(init,350);
+})();
+</script>
+<!-- PRIVATE RC363 END: Login erster Klick + ABD Einzelrenderer -->
+
