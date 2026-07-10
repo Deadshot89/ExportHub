@@ -45791,6 +45791,10 @@ body .rc314-process-warning{
 
 
 
+
+
+
+
 </body></html>');w.document.close();return false}
   window.rc353ShowDocuments=function(sh){sh=sh||activeShipment();S().view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(_){}try{if(typeof renderNav==='function')renderNav()}catch(_){}root().innerHTML=fullDocHtml(sh);return false};
   window.showCurrentCmr=function(){S().activeShipmentId='current';saveQuiet();return window.rc353ShowDocuments(S().shipment||{})};
@@ -46008,6 +46012,10 @@ body .rc314-process-warning{
   function fullHtml(sh){sh=sh||docShipment();var c=customerFor(sh);ensureRef(sh);return '<div id="rc355DocumentPage" class="rc355-doc-page"><div class="rc355-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zurück zu Sendung erstellen</button><button type="button" class="btn" onclick="return rc355PrintDocuments()">Drucken / Als PDF speichern</button><button type="button" class="ghost" onclick="return copyCmrText()">CMR-Text kopieren</button></div><div id="rc355DocumentBundle" class="rc355-bundle">'+cover(sh,c)+loadlist(sh,c,true,'Ladeliste 1 / 2 - mit QR-Code')+loadlist(sh,c,false,'Ladeliste 2 / 2 - ohne QR-Code')+[1,2,3,4].map(function(i){return cmr(sh,c,i)}).join('')+'</div></div>'}
   function loadOnlyHtml(sh){sh=sh||docShipment();var c=customerFor(sh);ensureRef(sh);return '<div id="rc355LoadlistOnlyPage" class="rc355-doc-page"><div class="rc355-actions no-print"><button type="button" class="ghost" onclick="return setView(\'shipment\')">Zurück zu Sendung erstellen</button><button type="button" class="btn" onclick="return rc355PrintLoadlistOnly()">Drucken / Als PDF speichern</button></div><div id="rc355LoadlistOnlyBundle" class="rc355-bundle">'+loadlist(sh,c,true,'Ladeliste 1 / 2 - mit QR-Code')+loadlist(sh,c,false,'Ladeliste 2 / 2 - ohne QR-Code')+'</div></div>'}
   function printWindow(html,title,bodyClass){var w=null;try{w=window.open('','_blank')}catch(_){}if(!w){root().innerHTML=html;setTimeout(function(){document.body.classList.add(bodyClass);window.print();setTimeout(function(){document.body.classList.remove(bodyClass)},900)},60);return false}var styles=Array.from(document.querySelectorAll('style')).map(function(s){return s.outerHTML}).join('\\n');w.document.open();w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+E(title)+'</title>'+styles+'</head><body class="'+bodyClass+'"><div class="app"><main class="main"><section id="content">'+html+'</section></main></div><script>setTimeout(function(){window.focus();window.print();},350)<\/script>
+
+
+
+
 
 
 
@@ -46393,5 +46401,148 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC360 END: ABD GP-Zoll minimal final -->
+
+
+
+
+
+
+<!-- PRIVATE RC361 START: Colli-Zeilen aus sichtbaren Eingaben in Sendung übernehmen -->
+<script>
+(function(){
+  if(window.__EXPORTHUB_RC361_COLLI_SYNC__)return;
+  window.__EXPORTHUB_RC361_COLLI_SYNC__=true;
+
+  function S(){try{return state}catch(e){window.state=window.state||{};return window.state}}
+  function A(v){return Array.isArray(v)?v:[]}
+  function T(v){return String(v==null?'':v)}
+  function clean(v){return T(v).replace(/\s+/g,' ').trim()}
+  function num(v){return Number(T(v).replace(',','.'))||0}
+  function fmt(v,d){return (Number(v)||0).toFixed(d==null?2:d).replace('.',',')}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function blank(){return {type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''}}
+  function sh(){var s=S();s.shipment=s.shipment||{};s.shipment.rows=A(s.shipment.rows);return s.shipment}
+  function packList(){try{return A((S().colliTypes&&S().colliTypes.length?S().colliTypes:SEED.colliTypes))}catch(e){return []}}
+  function findPack(name){name=T(name);return packList().find(function(p){return T(p&&p.name)===name})||null}
+  function applyPack(row){var p=findPack(row.type);if(!p)return row;if(p.ldm!==undefined&&p.ldm!==null)row.ldm=p.ldm;if(p.l!==undefined)row.l=p.l;if(p.w!==undefined)row.w=p.w;if(p.h!==undefined)row.h=p.h;return row}
+  function isShipment(){try{return (S().view||'')==='shipment'||!!document.querySelector('.rc344-root,#rowsBox .rc344-colli-row')}catch(e){return false}}
+  function rowEls(){return Array.prototype.slice.call(document.querySelectorAll('#rowsBox .rc344-colli-row,.rc344-colli-row[data-rc344-row]'))}
+  function readRow(el){
+    var sel=el.querySelector('select');
+    var inputs=Array.prototype.slice.call(el.querySelectorAll('input'));
+    return {
+      type: sel?sel.value:'',
+      count: inputs[0]?inputs[0].value:'',
+      ldm: inputs[1]?inputs[1].value:'',
+      weight: inputs[2]?inputs[2].value:'',
+      l: inputs[3]?inputs[3].value:'',
+      w: inputs[4]?inputs[4].value:'',
+      h: inputs[5]?inputs[5].value:''
+    };
+  }
+  function writeRow(el,row){
+    var sel=el.querySelector('select');
+    var inputs=Array.prototype.slice.call(el.querySelectorAll('input'));
+    if(sel&&sel.value!==T(row.type||''))sel.value=T(row.type||'');
+    ['count','ldm','weight','l','w','h'].forEach(function(k,i){if(inputs[i]&&inputs[i].value!==T(row[k]||''))inputs[i].value=T(row[k]||'')});
+  }
+  function validRow(r){return !!(clean(r&&r.type)&&num(r&&r.count)>0&&num(r&&r.weight)>0)}
+  function activeRows(rows){return A(rows).filter(function(r){return r&&(clean(r.type)||clean(r.count)||clean(r.ldm)||clean(r.weight)||clean(r.l)||clean(r.w)||clean(r.h))})}
+  function totals(rows){return activeRows(rows).reduce(function(a,r){var c=num(r.count),w=num(r.weight),l=num(r.ldm);a.count+=c;a.weight+=w;a.ldm+=c*l;if(validRow(r))a.valid+=1;return a},{count:0,weight:0,ldm:0,valid:0})}
+
+  window.rc361SyncColliRows=function(){
+    if(!isShipment())return false;
+    var els=rowEls();
+    if(!els.length)return false;
+    var rows=els.map(readRow);
+    // Nur wirklich alte Cache-Reste ohne Verpackung/Anzahl/Gewicht entfernen. Manuell angelegte leere Zeilen bleiben erhalten.
+    rows=rows.filter(function(r){return clean(r.type)||clean(r.count)||clean(r.weight)||!(clean(r.ldm)||clean(r.l)||clean(r.w)||clean(r.h))});
+    if(!rows.length)rows=[blank()];
+    sh().rows=rows;
+    S().activeShipmentId='current';
+    saveQ();
+    return true;
+  };
+
+  window.rc361RefreshColliSummary=function(){
+    var rows=sh().rows;
+    var t=totals(rows);
+    var map={count:fmt(t.count,0),weight:fmt(t.weight,1)+' kg',ldm:fmt(t.ldm,2),rows:String(t.valid)};
+    Object.keys(map).forEach(function(k){var el=document.getElementById('rc344Sum_'+k);if(el)el.textContent=map[k]});
+    try{
+      var bad=Array.prototype.slice.call(document.querySelectorAll('.badbox')).find(function(x){return /Colli-Zeile|Sendung noch nicht vollst/i.test(x.textContent||'')});
+      if(bad&&t.valid>0){bad.className='okbox';bad.innerHTML='<b>Colli-Daten übernommen.</b><br>Die sichtbaren Zeilen sind jetzt in der Sendung gespeichert.';}
+    }catch(e){}
+    return false;
+  };
+
+  window.rc361UpdateRow=function(i,k,v,noRender){
+    var ship=sh();
+    ship.rows=A(ship.rows);
+    ship.rows[i]=Object.assign(blank(),ship.rows[i]||{});
+    ship.rows[i][k]=v;
+    if(k==='type'){
+      applyPack(ship.rows[i]);
+      var el=rowEls()[i];
+      if(el)writeRow(el,ship.rows[i]);
+    }
+    saveQ();
+    window.rc361RefreshColliSummary();
+    return false;
+  };
+
+  window.rc361AddRow=function(){
+    window.rc361SyncColliRows();
+    var ship=sh();
+    ship.rows=A(ship.rows);
+    ship.rows.push(blank());
+    S().activeShipmentId='current';
+    saveQ();
+    try{if(typeof window.rc344RenderShipment==='function')return window.rc344RenderShipment()}catch(e){}
+    try{if(typeof render==='function')return render()}catch(e){}
+    return false;
+  };
+  window.rc361RemoveRow=function(i){
+    window.rc361SyncColliRows();
+    var ship=sh();
+    ship.rows=A(ship.rows);
+    ship.rows.splice(i,1);
+    if(!ship.rows.length)ship.rows=[blank()];
+    saveQ();
+    try{if(typeof window.rc344RenderShipment==='function')return window.rc344RenderShipment()}catch(e){}
+    try{if(typeof render==='function')return render()}catch(e){}
+    return false;
+  };
+
+  function wrap(name){
+    var old=window[name];
+    if(typeof old!=='function'||old.__rc361Wrapped)return;
+    var fn=function(){try{window.rc361SyncColliRows();window.rc361RefreshColliSummary()}catch(e){}return old.apply(this,arguments)};
+    fn.__rc361Wrapped=true;
+    window[name]=fn;
+    try{eval(name+'=window[name]')}catch(e){}
+  }
+
+  // Die sichtbaren Felder muessen vor Speichern, Mail, ABD, Ladeliste, CMR, PDF und Labeldruck in die Sendung übernommen werden.
+  ['rc344SaveShipment','saveShipment','showCurrentCmr','showSavedCmr','rc55DownloadLoadlistPdf','rc55PrintLabels','rc351DownloadLoadlistPdf','rc353PrintLoadlist','rc353ShowDocs','rc355ShowDocs','printDocsRC52','rc344OpenMail','rc344CopyMail','rc360AbdOpenMail','rc360AbdSave','rc360AbdCopy'].forEach(wrap);
+
+  window.rc344UpdateRow=window.rc361UpdateRow;
+  window.updateRow=window.rc361UpdateRow;
+  window.rc344AddRow=window.rc361AddRow;
+  window.rc358AddShipmentRow=window.rc361AddRow;
+  window.addShipmentRow=window.rc361AddRow;
+  window.rc325AddRow=window.rc361AddRow;
+  window.rc344RemoveRow=window.rc361RemoveRow;
+  window.removeShipmentRow=window.rc361RemoveRow;
+  try{rc344UpdateRow=window.rc361UpdateRow;updateRow=window.rc361UpdateRow;rc344AddRow=window.rc361AddRow;rc358AddShipmentRow=window.rc361AddRow;addShipmentRow=window.rc361AddRow;rc325AddRow=window.rc361AddRow;rc344RemoveRow=window.rc361RemoveRow;removeShipmentRow=window.rc361RemoveRow}catch(e){}
+
+  document.addEventListener('input',function(ev){var row=ev.target&&ev.target.closest?ev.target.closest('.rc344-colli-row'):null;if(!row)return;window.rc361SyncColliRows();window.rc361RefreshColliSummary();},true);
+  document.addEventListener('change',function(ev){var row=ev.target&&ev.target.closest?ev.target.closest('.rc344-colli-row'):null;if(!row)return;var idx=rowEls().indexOf(row);if(idx>=0&&ev.target&&ev.target.tagName==='SELECT'){window.rc361UpdateRow(idx,'type',ev.target.value,true)}else{window.rc361SyncColliRows();window.rc361RefreshColliSummary();}},true);
+  document.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest?ev.target.closest('button'):null;if(!b||!isShipment())return;if(/^\s*\+\s*Zeile\s*$/i.test(b.textContent||'')){ev.preventDefault();ev.stopPropagation();window.rc361AddRow();}},true);
+
+  setTimeout(function(){try{window.rc361SyncColliRows();window.rc361RefreshColliSummary()}catch(e){}},100);
+})();
+</script>
+<!-- PRIVATE RC361 END: Colli-Zeilen aus sichtbaren Eingaben in Sendung übernehmen -->
 
 </body></html>
