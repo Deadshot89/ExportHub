@@ -46970,3 +46970,140 @@ body .rc314-process-warning{
 })();
 </script>
 <!-- PRIVATE RC386 END: Ladeliste/Deckblatt Layout Restore, QR, Sendung Farben -->
+
+
+<!-- PRIVATE RC387 START: Mail-Duplikat, Bereichsfarben, Ladeliste-PDF-Hardlink -->
+<style id="rc387-style">
+  /* Sendung erstellen: genau ein Mailbereich, klare Hintergrundfarben */
+  body[data-exporthub-view="shipment"] #rc385CustomerMailPanel,
+  body[data-exporthub-view="shipment"] #rc370MailPanel,
+  body[data-exporthub-view="shipment"] #rc377MailPanel,
+  body[data-exporthub-view="shipment"] #rc378MailPanel,
+  body[data-exporthub-view="shipment"] #rc380CustomerMailPanel,
+  body[data-exporthub-view="shipment"] #rc381CustomerMailPanel,
+  body[data-exporthub-view="shipment"] #rc382CustomerMailPanel,
+  body[data-exporthub-view="shipment"] #rc383CustomerMailPanel,
+  body[data-exporthub-view="shipment"] #rc384CustomerMailPanel{display:none!important;visibility:hidden!important;height:0!important;max-height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
+
+  body[data-exporthub-view="shipment"] #content,
+  body[data-exporthub-view="shipment"] .rc344-root{background:#eaf6ff!important;border-radius:20px!important}
+  body[data-exporthub-view="shipment"] #content > section,
+  body[data-exporthub-view="shipment"] #content > div,
+  body[data-exporthub-view="shipment"] .rc344-root > section,
+  body[data-exporthub-view="shipment"] .rc344-root > div,
+  body[data-exporthub-view="shipment"] .rc344-card,
+  body[data-exporthub-view="shipment"] .card{background:#eaf6ff!important;border-color:#93c5fd!important}
+
+  body[data-exporthub-view="shipment"] #rc385ShipmentMailBox,
+  body[data-exporthub-view="shipment"] #rc386ShipmentMailBox,
+  body[data-exporthub-view="shipment"] section.rc344-mail,
+  body[data-exporthub-view="shipment"] .mail-card:not(#rc385CustomerMailPanel){background:#e9fbe7!important;border:1.5px solid #86efac!important;box-shadow:0 14px 34px rgba(22,101,52,.12)!important}
+  body[data-exporthub-view="shipment"] #rc385ShipmentMailBox *,
+  body[data-exporthub-view="shipment"] #rc386ShipmentMailBox *{border-color:#bbf7d0!important}
+  body[data-exporthub-view="shipment"] #rc385ShipmentMailBox h3,
+  body[data-exporthub-view="shipment"] #rc386ShipmentMailBox h3{color:#14532d!important}
+
+  body[data-exporthub-view="shipment"] #rc344AbdBox,
+  body[data-exporthub-view="shipment"] #rc366AbdBox,
+  body[data-exporthub-view="shipment"] .rc344-abd,
+  body[data-exporthub-view="shipment"] .rc352-abd,
+  body[data-exporthub-view="shipment"] .rc356-abd,
+  body[data-exporthub-view="shipment"] .rc357-abd,
+  body[data-exporthub-view="shipment"] .rc360-abd,
+  body[data-exporthub-view="shipment"] section[id*="Abd"],
+  body[data-exporthub-view="shipment"] div[id*="Abd"]{background:#fff2df!important;border:1.5px solid #fdba74!important;box-shadow:0 14px 34px rgba(154,52,18,.12)!important}
+  body[data-exporthub-view="shipment"] #rc344AbdBox *,
+  body[data-exporthub-view="shipment"] #rc366AbdBox *,
+  body[data-exporthub-view="shipment"] .rc344-abd *,
+  body[data-exporthub-view="shipment"] .rc352-abd *,
+  body[data-exporthub-view="shipment"] .rc356-abd *,
+  body[data-exporthub-view="shipment"] .rc357-abd *,
+  body[data-exporthub-view="shipment"] .rc360-abd *{border-color:#fed7aa!important}
+  body[data-exporthub-view="shipment"] #rc344AbdBox h3,
+  body[data-exporthub-view="shipment"] #rc366AbdBox h3,
+  body[data-exporthub-view="shipment"] .rc344-abd h3,
+  body[data-exporthub-view="shipment"] .rc352-abd h3,
+  body[data-exporthub-view="shipment"] .rc356-abd h3,
+  body[data-exporthub-view="shipment"] .rc357-abd h3,
+  body[data-exporthub-view="shipment"] .rc360-abd h3{color:#9a3412!important}
+
+  /* Ladeliste-Popup/Print: keine alte Text-PDF-Ansicht */
+  body.print-rc387, body.print-rc386{background:#fff!important}
+  .rc387-no-print{display:none!important}
+</style>
+<script id="rc387-js">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC387__)return;window.__EXPORTHUB_RC387__=true;
+  function T(v){return v==null?'':String(v)}
+  function clean(v){return T(v).replace(/\s+/g,' ').trim()}
+  function by(id){return document.getElementById(id)}
+  function S(){try{return state}catch(e){return window.state||{}}}
+  function root(){return by('content')||by('app')||document.querySelector('main')||document.body}
+  function isShipment(){try{return (S().view||'')==='shipment'||document.body.getAttribute('data-exporthub-view')==='shipment'||!!root().querySelector('.rc344-root,#rowsBox,.rc344-colli-row')}catch(e){return false}}
+  function isCustomerFolder(){try{return !isShipment()&&(((S().view||'')==='customerfolder')||/Kundenordner/i.test(root().textContent||''))}catch(e){return false}}
+  function markView(){try{if(isShipment())document.body.setAttribute('data-exporthub-view','shipment')}catch(e){}}
+  function removeDuplicateMailPanels(){
+    try{
+      if(!isShipment())return;
+      document.querySelectorAll('#rc385CustomerMailPanel,#rc370MailPanel,#rc377MailPanel,#rc378MailPanel,#rc380CustomerMailPanel,#rc381CustomerMailPanel,#rc382CustomerMailPanel,#rc383CustomerMailPanel,#rc384CustomerMailPanel').forEach(function(n){n.remove()});
+      Array.from(root().querySelectorAll('section,div')).forEach(function(n){
+        if(!n||!n.parentNode)return;
+        if(n.id==='rc385ShipmentMailBox'||n.id==='rc386ShipmentMailBox'||n.closest('#rc385ShipmentMailBox,#rc386ShipmentMailBox'))return;
+        var txt=clean(n.textContent||'');
+        var h=n.querySelector&&n.querySelector('h2,h3,h4');
+        var ht=clean((h&&h.textContent)||'');
+        var isCustomerConfig=/^Mailbereich$/i.test(ht)&&(/Spedition Deutsch|Spedition Englisch|Kunde Deutsch|Kunde Englisch|Maildaten speichern|Eigene Mail Vorlage/i.test(txt));
+        var isOldShipmentMail=/^Mail Bereich$/i.test(ht)&&(/Mail an Kunde\s*\/\s*Spedition|Keine Mailadresse|anbei die Sendungsinformationen|bitte folgende Sendung anmelden/i.test(txt));
+        if(isCustomerConfig||isOldShipmentMail){n.remove()}
+      });
+      var shipmentMails=Array.from(document.querySelectorAll('#rc385ShipmentMailBox,#rc386ShipmentMailBox'));
+      if(shipmentMails.length>1){shipmentMails.slice(0,-1).forEach(function(n){n.remove()})}
+    }catch(e){}
+  }
+  function colorAreas(){
+    try{
+      if(!isShipment())return;markView();
+      var r=root();
+      if(r)r.style.background='#eaf6ff';
+      Array.from(r.querySelectorAll('section,.card,.rc344-card,.rc344-box,.rc344-info')).forEach(function(n){
+        if(!n||!n.style)return;
+        if(n.closest('#rc385ShipmentMailBox,#rc386ShipmentMailBox,#rc344AbdBox,#rc366AbdBox,.rc344-abd,.rc352-abd,.rc356-abd,.rc357-abd,.rc360-abd,#rc385CustomerMailPanel'))return;
+        n.style.background='#eaf6ff';
+        n.style.borderColor='#93c5fd';
+      });
+      Array.from(document.querySelectorAll('#rc385ShipmentMailBox,#rc386ShipmentMailBox')).forEach(function(n){
+        n.style.background='#e9fbe7';n.style.border='1.5px solid #86efac';n.style.boxShadow='0 14px 34px rgba(22,101,52,.12)';n.style.clear='both';
+      });
+      Array.from(document.querySelectorAll('#rc344AbdBox,#rc366AbdBox,.rc344-abd,.rc352-abd,.rc356-abd,.rc357-abd,.rc360-abd')).forEach(function(n){
+        n.style.background='#fff2df';n.style.border='1.5px solid #fdba74';n.style.boxShadow='0 14px 34px rgba(154,52,18,.12)';n.style.clear='both';
+      });
+    }catch(e){}
+  }
+  function forceLoadlistFunctions(){
+    function page1(){if(typeof window.rc386DownloadLoadlistPdf==='function')return window.rc386DownloadLoadlistPdf();if(typeof window.rc385DownloadLoadlistPdf==='function')return window.rc385DownloadLoadlistPdf();if(typeof window.showCurrentCmr==='function')return window.showCurrentCmr();return false}
+    function page2(){if(typeof window.rc386DownloadLoadlistPage2Pdf==='function')return window.rc386DownloadLoadlistPage2Pdf();if(typeof window.rc385DownloadLoadlistPage2Pdf==='function')return window.rc385DownloadLoadlistPage2Pdf();return page1()}
+    function docs(){if(typeof window.rc386PrintDocuments==='function')return window.rc386PrintDocuments();if(typeof window.rc385PrintDocuments==='function')return window.rc385PrintDocuments();if(typeof window.showCurrentCmr==='function')return window.showCurrentCmr();return false}
+    window.rc387DownloadLoadlistPdf=page1;window.rc387DownloadLoadlistPage2Pdf=page2;window.rc387PrintDocuments=docs;
+    ['rc55DownloadLoadlistPdf','rc55PdfLoadlist','rc55LoadlistPdf','rc53PdfLoadlist','rc63LoadlistPdf','rc91DownloadOriginalLoadlistPdf','rc123OpenStyledLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc211DownloadWebsiteLoadlistPdf','rc216DownloadLoadlistPdf','rc217DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc315DownloadLoadlistPdf','rc351DownloadLoadlistPdf','rc352DownloadLoadlistPdf','rc353DownloadLoadlistPdf','rc355DownloadLoadlistPdf','rc375DownloadLoadlistPdf','rc378DownloadLoadlistPage1Pdf','rc379DownloadLoadlistPdf','rc381DownloadLoadlistPdf','rc383DownloadLoadlistPdf','rc384DownloadLoadlistPdf','rc385DownloadLoadlistPdf'].forEach(function(n){window[n]=page1;try{eval(n+'=window.rc387DownloadLoadlistPdf')}catch(e){}});
+    ['rc375DownloadLoadlistPage2Pdf','rc381DownloadLoadlistPage2Pdf','rc383DownloadLoadlistPage2Pdf','rc384DownloadLoadlistPage2Pdf','rc385DownloadLoadlistPage2Pdf'].forEach(function(n){window[n]=page2;try{eval(n+'=window.rc387DownloadLoadlistPage2Pdf')}catch(e){}});
+    if(typeof window.rc386ShowDocuments==='function'){window.rc385ShowDocuments=window.rc386ShowDocuments;try{rc385ShowDocuments=window.rc386ShowDocuments;showCurrentCmr=window.showCurrentCmr;showSavedCmr=window.showSavedCmr}catch(e){}}
+  }
+  function patchButtons(){
+    try{document.querySelectorAll('button,a').forEach(function(b){var txt=clean(b.textContent||''),oc=clean(b.getAttribute('onclick')||'');
+      if(/Ladeliste/i.test(txt)&&/PDF|Drucken|herunterladen|Seite\s*1|Seite\s*2|QR/i.test(txt+' '+oc)){
+        if(/Seite\s*2|ohne\s*QR/i.test(txt+' '+oc)){b.textContent='Ladeliste 2 PDF';b.setAttribute('onclick','return rc387DownloadLoadlistPage2Pdf()')}
+        else{b.textContent='Ladeliste 1 PDF';b.setAttribute('onclick','return rc387DownloadLoadlistPdf()')}
+      }
+      if(/Drucken\s*\/\s*als PDF speichern/i.test(txt)){b.setAttribute('onclick','return rc387PrintDocuments()')}
+    })}catch(e){}
+  }
+  function install(){markView();forceLoadlistFunctions();removeDuplicateMailPanels();colorAreas();patchButtons()}
+  var oldRender=window.render||((typeof render==='function')?render:null);if(typeof oldRender==='function'&&!oldRender.__rc387){var rr=function(){var r=oldRender.apply(this,arguments);setTimeout(install,0);setTimeout(install,180);setTimeout(install,500);return r};rr.__rc387=true;window.render=rr;try{render=rr}catch(e){}}
+  var oldSetView=window.setView||((typeof setView==='function')?setView:null);if(typeof oldSetView==='function'&&!oldSetView.__rc387){var sv=function(v){var r=oldSetView.apply(this,arguments);setTimeout(install,0);setTimeout(install,180);setTimeout(install,500);return r};sv.__rc387=true;window.setView=sv;try{setView=sv}catch(e){}}
+  document.addEventListener('click',function(ev){var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!el)return;var txt=clean(el.textContent||''),oc=clean(el.getAttribute('onclick')||'');if(/Ladeliste/i.test(txt)&&/PDF|Drucken|herunterladen|Seite\s*1|Seite\s*2|QR/i.test(txt+' '+oc)){ev.preventDefault();ev.stopImmediatePropagation();return /Seite\s*2|ohne\s*QR/i.test(txt+' '+oc)?window.rc387DownloadLoadlistPage2Pdf():window.rc387DownloadLoadlistPdf()}},true);
+  try{new MutationObserver(function(){setTimeout(install,80)}).observe(document.body,{childList:true,subtree:true})}catch(e){}
+  setTimeout(install,50);setTimeout(install,400);setTimeout(install,1200);
+})();
+</script>
+<!-- PRIVATE RC387 END: Mail-Duplikat, Bereichsfarben, Ladeliste-PDF-Hardlink -->
