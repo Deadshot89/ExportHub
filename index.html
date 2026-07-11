@@ -48385,7 +48385,7 @@ document.addEventListener('click',function(ev){var el=ev.target&&ev.target.close
         }
       }
       var out=baseSetView.apply(this,arguments);
-      [0,60,180,450,900,1600,2800,4300].forEach(function(ms){setTimeout(function(){if(view()==='abd')renderAbd();else post()},ms)});
+      [0,60,180,450,900,1600,2800,4300].forEach(function(ms){setTimeout(function(){if(view()==='abd'){if(typeof window.rc401RenderAbd==='function')window.rc401RenderAbd();else renderAbd()}else post()},ms)});
       return out;
     };
     window.setView=setView400;try{setView=setView400}catch(e){}
@@ -48394,7 +48394,7 @@ document.addEventListener('click',function(ev){var el=ev.target&&ev.target.close
   var baseRender=window.render||((typeof render==='function')?render:null);
   if(typeof baseRender==='function'){
     var render400=function(){
-      if(view()==='abd'){renderAbd();return}
+      if(view()==='abd'){if(typeof window.rc401RenderAbd==='function')window.rc401RenderAbd();else renderAbd();return}
       var out=baseRender.apply(this,arguments);
       [0,50,150,350,750,1400,2600,4200].forEach(function(ms){setTimeout(post,ms)});
       return out;
@@ -48404,7 +48404,7 @@ document.addEventListener('click',function(ev){var el=ev.target&&ev.target.close
 
   var baseSaveAbd=window.saveAbdRequestFromCurrent||((typeof saveAbdRequestFromCurrent==='function')?saveAbdRequestFromCurrent:null);
   if(typeof baseSaveAbd==='function'){
-    var saveAbd400=function(){var out=baseSaveAbd.apply(this,arguments);dedupeAbdRequests();try{if(typeof save==='function')save()}catch(e){};if(view()==='abd')setTimeout(renderAbd,0);return out};
+    var saveAbd400=function(){var out=baseSaveAbd.apply(this,arguments);dedupeAbdRequests();try{if(typeof save==='function')save()}catch(e){};if(view()==='abd')setTimeout(function(){if(typeof window.rc401RenderAbd==='function')window.rc401RenderAbd();else renderAbd()},0);return out};
     window.saveAbdRequestFromCurrent=saveAbd400;try{saveAbdRequestFromCurrent=saveAbd400}catch(e){}
   }
 
@@ -48429,7 +48429,258 @@ document.addEventListener('click',function(ev){var el=ev.target&&ev.target.close
     observerBusy=true;
     requestAnimationFrame(function(){try{post()}finally{setTimeout(function(){observerBusy=false},40)}});
   }).observe(document.body,{childList:true,subtree:true})}catch(e){}
-  [20,120,350,800,1500,2600,4300,6500].forEach(function(ms){setTimeout(function(){if(view()==='abd')renderAbd();else post()},ms)});
+  [20,120,350,800,1500,2600,4300,6500].forEach(function(ms){setTimeout(function(){if(view()==='abd'){if(typeof window.rc401RenderAbd==='function')window.rc401RenderAbd();else renderAbd()}else post()},ms)});
 })();
 </script>
 <!-- PRIVATE RC400 END -->
+<!-- PRIVATE RC401 START: Kundenordner, eigenständige ABD-Funktion, Sendung ohne ABD -->
+<style id="rc401-style">
+  body[data-rc401-view="shipment"] #rc366AbdBox,
+  body[data-rc401-view="shipment"] #rc344AbdBox,
+  body[data-rc401-view="shipment"] #rc288AbdPanel,
+  body[data-rc401-view="shipment"] #rc291AbdPanel,
+  body[data-rc401-view="shipment"] #rc265AbdPanel,
+  body[data-rc401-view="shipment"] #rc260AbdPanel,
+  body[data-rc401-view="shipment"] #rc400AbdOverviewCard,
+  body[data-rc401-view="shipment"] .abd-panel,
+  body[data-rc401-view="shipment"] .rc265-abd-request-panel,
+  body[data-rc401-view="shipment"] .rc260-abd-panel,
+  body[data-rc401-view="shipment"] .rc348-abd,
+  body[data-rc401-view="shipment"] .rc352-abd,
+  body[data-rc401-view="shipment"] .rc355-abd,
+  body[data-rc401-view="shipment"] .rc356-abd,
+  body[data-rc401-view="shipment"] .rc357-abd,
+  body[data-rc401-view="shipment"] .rc359-abd,
+  body[data-rc401-view="shipment"] .rc360-abd,
+  body[data-rc401-view="shipment"] .rc363-abd,
+  body[data-rc401-view="shipment"] .rc364-abd,
+  body[data-rc401-view="shipment"] .abd-jump-rc70,
+  body[data-rc401-view="shipment"] [data-rc366-abd="1"]{
+    display:none!important;
+    visibility:hidden!important;
+    width:0!important;
+    height:0!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    overflow:hidden!important;
+  }
+  body[data-rc401-view="shipment"] #rc395MailAbdGrid,
+  body[data-rc401-view="shipment"] #rc397MailAbdGrid{
+    display:block!important;
+    grid-template-columns:1fr!important;
+    width:100%!important;
+    max-width:100%!important;
+  }
+  body[data-rc401-view="shipment"] #rc395MailAbdGrid > *,
+  body[data-rc401-view="shipment"] #rc397MailAbdGrid > *{
+    width:100%!important;
+    max-width:100%!important;
+    grid-column:1!important;
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+  }
+  .rc401-abd-panel{
+    background:#fff;
+    border:1px solid #dbe4ef;
+    border-left:7px solid #f59e0b;
+    border-radius:22px;
+    box-shadow:0 18px 46px rgba(15,23,42,.10);
+    padding:18px;
+    margin:0;
+  }
+  .rc401-abd-panel h3{color:#92400e;margin-top:0}
+  .rc401-abd-page{display:grid;gap:14px}
+  .rc401-abd-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .rc401-folder-empty{max-width:1120px}
+  .rc401-folder-search{display:grid;grid-template-columns:minmax(320px,1fr) auto;gap:10px;align-items:end}
+  .rc401-folder-search .field{margin:0}
+  @media(max-width:900px){.rc401-folder-search{grid-template-columns:1fr}}
+</style>
+<script id="rc401-js">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC401__)return;
+  window.__EXPORTHUB_RC401__=true;
+
+  function T(v){return v==null?'':String(v)}
+  function trim(v){return T(v).trim()}
+  function A(v){return Array.isArray(v)?v:[]}
+  function by(id){return document.getElementById(id)}
+  function root(){return by('content')||document.querySelector('main')||document.body}
+  function S(){try{return window.state||state||{}}catch(e){window.state=window.state||{};return window.state}}
+  function E(v){try{return esc(v)}catch(e){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}}
+  function view(){return trim(S().view||'')}
+  function saveQ(){try{if(typeof save==='function')save()}catch(e){}}
+  function callLanguage(){try{if(typeof applyLanguage==='function')applyLanguage()}catch(e){}}
+  function callBind(){try{if(typeof bindAfterRender==='function')bindAfterRender()}catch(e){}}
+  function callNav(){try{if(typeof renderNav==='function')renderNav()}catch(e){}ensureAbdNav()}
+  function setBodyView(v){try{document.body.setAttribute('data-rc401-view',v||'');document.body.setAttribute('data-exporthub-view',v||'')}catch(e){}}
+  function customerId(c){return trim(c&&(c.id||c.account||c.customerNumber||c.name))}
+  function customerAccount(c){return trim(c&&(c.account||c.customerNumber||c.number||c.kundennummer))}
+  function customerName(c){return trim(c&&(c.name||c.customerName||c.kunde||c.company))}
+  function customerLabel(c){return [customerAccount(c),customerName(c),trim(c&&(c.country||c.land))].filter(Boolean).join(' · ')}
+  function customers(){return A(S().customers)}
+  function findCustomer(q){var n=trim(q).toLowerCase();if(!n)return null;return customers().find(function(c){return [customerId(c),customerAccount(c),customerName(c),customerLabel(c)].some(function(x){return trim(x).toLowerCase()===n})})||customers().find(function(c){return [customerId(c),customerAccount(c),customerName(c),customerLabel(c)].some(function(x){return trim(x).toLowerCase().indexOf(n)>=0})})||null}
+
+  function ensureAbdNav(){
+    var n=by('nav');if(!n)return;
+    var buttons=A(Array.from(n.querySelectorAll('button'))),ship=buttons.find(function(b){return /Sendung\s*erstellen/i.test(trim(b.textContent))||/setView\(['"]shipment['"]\)/.test(trim(b.getAttribute('onclick'))) });
+    if(!ship)return;
+    var matches=buttons.filter(function(b){return /ABD\s*erstellen/i.test(trim(b.textContent))||/setView\(['"]abd['"]\)/.test(trim(b.getAttribute('onclick'))) });
+    var btn=matches.shift();matches.forEach(function(x){x.remove()});
+    if(!btn){btn=document.createElement('button');btn.type='button';btn.textContent='📨 ABD erstellen'}
+    btn.setAttribute('onclick',"return setView('abd')");btn.dataset.rc401Nav='abd';btn.className='rc400-nav-abd'+(view()==='abd'?' active':'');
+    if(ship.nextElementSibling!==btn)ship.insertAdjacentElement('afterend',btn);
+  }
+
+  var LEGACY_ABD_SELECTORS=[
+    '#rc366AbdBox','#rc344AbdBox','#rc288AbdPanel','#rc291AbdPanel','#rc265AbdPanel','#rc260AbdPanel',
+    '.abd-panel','.rc265-abd-request-panel','.rc260-abd-panel','.rc348-abd','.rc352-abd','.rc355-abd',
+    '.rc356-abd','.rc357-abd','.rc359-abd','.rc360-abd','.rc363-abd','.rc364-abd','.abd-jump-rc70','[data-rc366-abd="1"]'
+  ].join(',');
+  function cleanupShipmentAbd(){
+    if(view()!=='shipment')return;
+    setBodyView('shipment');
+    var r=root();
+    Array.from(r.querySelectorAll(LEGACY_ABD_SELECTORS)).forEach(function(n){try{n.remove()}catch(e){n.style.display='none'}});
+    Array.from(r.querySelectorAll('section,.card,article,div')).forEach(function(n){
+      if(!n.parentNode||n.closest('#nav'))return;
+      var h=n.querySelector&&n.querySelector(':scope > h2,:scope > h3,:scope > h4');
+      var tx=trim(h&&h.textContent);
+      if(/^ABD\s*(Bereich|Anfrage|erstellen)(\s*·.*)?$/i.test(tx)){try{n.remove()}catch(e){n.style.display='none'}}
+    });
+    Array.from(r.querySelectorAll('button,a')).forEach(function(n){
+      var tx=trim(n.textContent),oc=trim(n.getAttribute('onclick'));
+      if(/^ABD\s*erstellen$/i.test(tx)||/goToAbdFromShipment|setView\(['"]abd['"]\)/i.test(oc)){try{n.remove()}catch(e){n.style.display='none'}}
+    });
+    ['rc395MailAbdGrid','rc397MailAbdGrid'].forEach(function(id){var g=by(id);if(g){g.style.setProperty('display','block','important');g.style.setProperty('grid-template-columns','1fr','important');var mail=g.querySelector('#rc385ShipmentMailBox,#rc386ShipmentMailBox,#rc390ShipmentMailBox,#rc344MailBox,.rc190-mail-card,.rc185-mail-card,[id*="ShipmentMail"]');if(mail){mail.style.setProperty('width','100%','important');mail.style.setProperty('max-width','100%','important')}}});
+  }
+
+  function disableLegacyAbdInjectors(){
+    var noop=function(){if(view()==='shipment')cleanupShipmentAbd();return false};
+    ['rc366EnsureAbd','rc344EnsureAbd','rc348EnsureAbd','rc349EnsureAbd','rc350EnsureAbd','rc352PatchAbd','rc355EnsureAbd','rc356EnsureAbd','rc357EnsureAbd','rc359EnsureAbd','rc360EnsureAbd','rc363EnsureAbd','rc364EnsureAbd','rc265OpenAbdPanel'].forEach(function(n){try{window[n]=noop;eval(n+'=window[n]')}catch(e){}});
+  }
+
+  var baseAbdPanel=typeof window.abdRequestPanel==='function'?window.abdRequestPanel:null;
+  function abdPanelHtml(){
+    var html='';
+    try{html=typeof baseAbdPanel==='function'?T(baseAbdPanel()):''}catch(e){html='<div class="badbox">ABD-Bereich konnte nicht geladen werden: '+E(e&&e.message||e)+'</div>'}
+    if(!trim(html))return '<section id="rc401AbdPanel" class="rc401-abd-panel"><div class="badbox">Der ABD-Bereich konnte nicht aufgebaut werden.</div></section>';
+    var box=document.createElement('div');box.innerHTML=html;var p=box.firstElementChild;
+    if(!p)return '<section id="rc401AbdPanel" class="rc401-abd-panel">'+html+'</section>';
+    p.id='rc401AbdPanel';p.className='rc401-abd-panel';
+    return p.outerHTML;
+  }
+  function abdPageHtml(){
+    var h='';try{h=typeof head==='function'?head('📨 ABD erstellen','ABD-Anfragen werden vollständig getrennt von „Sendung erstellen“ erfasst.'):'<div class="page-head"><div><h2>📨 ABD erstellen</h2><p>ABD-Anfragen getrennt erfassen.</p></div></div>'}catch(e){}
+    return h+'<div class="rc401-abd-page"><div class="rc401-abd-actions"><button class="ghost" onclick="return setView(\'shipment\')">Zur Sendung</button><button class="ghost" onclick="return setView(\'shipmentoverview\')">Sendungsübersicht</button></div>'+abdPanelHtml()+'</div>';
+  }
+  function canReadAbd(){
+    try{if(typeof currentUser!=='undefined'&&currentUser&&(currentUser.permissions||[]).indexOf('*')>=0)return true}catch(e){}
+    try{if(typeof canRead==='function')return canRead('abd')||canRead('shipment')}catch(e){}
+    return true;
+  }
+  function renderAbd(){
+    var s=S();s.view='abd';setBodyView('abd');saveQ();callNav();
+    root().innerHTML=canReadAbd()?abdPageHtml():(typeof noAccessView==='function'?noAccessView():'<div class="noaccess">Kein Leserecht.</div>');
+    callBind();callLanguage();ensureAbdNav();return false;
+  }
+  window.abd=abdPageHtml;
+  window.rc401RenderAbd=renderAbd;
+  try{abd=abdPageHtml}catch(e){}
+
+  var baseCustomerFolder=typeof window.customerfolder==='function'?window.customerfolder:null;
+  function resolveFolderCustomer(){
+    var s=S(),ids=[s.customerFolderOpenId,s.customerFolderId,s.selectedCustomerId,s.lastCustomerId,s.shipment&&s.shipment.customerId];
+    var c=null;for(var i=0;i<ids.length&&!c;i++)c=findCustomer(ids[i]);
+    if(!c&&customers().length===1)c=customers()[0];
+    if(c){var id=customerId(c);s.customerFolderOpenId=id;s.customerFolderId=id;s.selectedCustomerId=id;s.lastCustomerId=id}
+    return c;
+  }
+  function emptyFolderHtml(msg){
+    var h='';try{h=typeof head==='function'?head('📁 Kundenordner','Kundendaten, Kontakte, Sendungen und Dokumente ohne Ladeverzögerung.'):'<div class="page-head"><div><h2>📁 Kundenordner</h2></div></div>'}catch(e){}
+    var opts=customers().map(function(c){return '<option value="'+E(customerLabel(c))+'"></option>'}).join('');
+    return h+'<section id="rc401FolderEmpty" class="card rc401-folder-empty"><h3>Kein Kunde geöffnet</h3><p class="muted">'+E(msg||'Bitte Kundennummer oder Kundenname auswählen.')+'</p><div class="rc401-folder-search"><label class="field">Kundennummer oder Kundenname<input id="rc401FolderSearch" list="rc401FolderList" placeholder="Kunde suchen" onkeydown="if(event.key===\'Enter\'){event.preventDefault();return rc401OpenFolderFromSearch()}"></label><datalist id="rc401FolderList">'+opts+'</datalist><button type="button" class="btn" onclick="return rc401OpenFolderFromSearch()">Kundenordner öffnen</button></div>'+(customers().length?'':'<div class="notice">Es ist noch kein Kunde angelegt. Bitte zuerst unter „Kunden & Dokumente“ einen Kunden speichern.</div><button type="button" class="soft" onclick="return setView(\'customers\')">Kunden anlegen</button>')+'</section>';
+  }
+  function folderHtml(){
+    var c=resolveFolderCustomer();if(!c)return emptyFolderHtml();
+    var html='';try{html=typeof baseCustomerFolder==='function'?T(baseCustomerFolder()):''}catch(e){html=''}
+    if(trim(html).length<500)return emptyFolderHtml('Der ausgewählte Kunde konnte nicht vollständig geladen werden. Bitte erneut öffnen.');
+    return html;
+  }
+  window.rc401OpenFolderFromSearch=function(){
+    var q=trim((by('rc401FolderSearch')||{}).value),c=findCustomer(q);if(!c){alert('Kunde nicht gefunden. Bitte Kundennummer oder Kundenname prüfen.');return false}
+    var s=S(),id=customerId(c);s.customerFolderOpenId=id;s.customerFolderId=id;s.selectedCustomerId=id;s.lastCustomerId=id;s.view='customerfolder';saveQ();return renderFolder();
+  };
+  function renderFolder(){
+    var s=S();s.view='customerfolder';setBodyView('customerfolder');saveQ();callNav();root().innerHTML=folderHtml();callBind();callLanguage();return false;
+  }
+  window.rc401RenderFolder=renderFolder;
+
+  function stabilize(){
+    document.title='ExportHUB Private RC401';
+    try{if(setView401&&window.setView!==setView401){window.setView=setView401;try{setView=setView401}catch(e){}}}catch(e){}
+    try{if(render401&&window.render!==render401){window.render=render401;try{render=render401}catch(e){}}}catch(e){}
+    var v=view();setBodyView(v);ensureAbdNav();disableLegacyAbdInjectors();
+    if(v==='shipment'){cleanupShipmentAbd();return}
+    if(v==='abd'){
+      if(!by('rc401AbdPanel')||!/ABD\s*Anfrage/i.test(trim(root().textContent)))renderAbd();
+      return;
+    }
+    if(v==='customerfolder'){
+      var txt=trim(root().textContent);
+      if(!txt||(!/Kundenordner/i.test(txt)&&!by('rc401FolderEmpty')))renderFolder();
+    }
+  }
+
+  var baseSetView=typeof window.setView==='function'?window.setView:null;
+  var setView401=null,render401=null;
+  if(baseSetView){
+    setView401=function(v){
+      if(v==='abd')return renderAbd();
+      if(v==='customerfolder')return renderFolder();
+      var out=baseSetView.apply(this,arguments);
+      [0,30,100,250,600,1200,2500,5000].forEach(function(ms){setTimeout(stabilize,ms)});
+      return out;
+    };
+    window.setView=setView401;try{setView=setView401}catch(e){}
+  }
+  var baseRender=typeof window.render==='function'?window.render:null;
+  if(baseRender){
+    render401=function(){
+      if(view()==='abd')return renderAbd();
+      if(view()==='customerfolder')return renderFolder();
+      var out=baseRender.apply(this,arguments);[0,40,140,400,900,1800,3600].forEach(function(ms){setTimeout(stabilize,ms)});return out;
+    };
+    window.render=render401;try{render=render401}catch(e){}
+  }
+
+
+  document.addEventListener('click',function(ev){
+    var t=ev.target&&ev.target.closest?ev.target.closest('button,a'):null;if(!t)return;
+    var tx=trim(t.textContent),oc=trim(t.getAttribute('onclick'));
+    if((/^ABD\s*erstellen$/i.test(tx)||/setView\(['"]abd['"]\)/i.test(oc))&&!t.closest('#rc401AbdPanel')){
+      try{ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation()}catch(e){}
+      renderAbd();return false;
+    }
+    if(t.closest('#nav')&&(/Kundenordner/i.test(tx)||/setView\(['"]customerfolder['"]\)/i.test(oc))){
+      try{ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation()}catch(e){}
+      renderFolder();return false;
+    }
+  },true);
+
+  var busy=false;
+  try{new MutationObserver(function(){if(busy)return;var v=view(),need=false;if(v==='shipment')need=!!root().querySelector(LEGACY_ABD_SELECTORS);else if(v==='abd')need=!by('rc401AbdPanel');else if(v==='customerfolder')need=!trim(root().textContent);if(!need)return;busy=true;requestAnimationFrame(function(){try{stabilize()}finally{setTimeout(function(){busy=false},80)}})}).observe(document.body,{childList:true,subtree:true})}catch(e){}
+
+  document.title='ExportHUB Private RC401';
+  try{var titleNode=document.querySelector('title');if(titleNode)new MutationObserver(function(){if(document.title!=='ExportHUB Private RC401')document.title='ExportHUB Private RC401'}).observe(titleNode,{childList:true,characterData:true,subtree:true})}catch(e){}
+  disableLegacyAbdInjectors();
+  [0,50,120,220,350,550,800,1100,1500,2000,2800,3800,5000,6500,8000].forEach(function(ms){setTimeout(stabilize,ms)});
+  setInterval(function(){var v=view();if(v==='shipment'||v==='abd'||v==='customerfolder')stabilize()},1000);
+})();
+</script>
+<!-- PRIVATE RC401 END -->
+
