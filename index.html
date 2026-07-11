@@ -47959,3 +47959,232 @@ document.addEventListener('click',function(ev){var el=ev.target&&ev.target.close
 })();
 </script>
 <!-- PRIVATE RC397 END -->
+
+<!-- PRIVATE RC398 START: Gesamtdruck Deckblatt + beide Ladelisten + CMR; Direktdownload nur Ladeliste Seite 2 -->
+<style id="rc398-css">
+  /* RC397 blendete Ladeliste Seite 1 global aus. Im Dokumentensatz muss sie für Vorschau und Gesamtdruck wieder sichtbar sein. */
+  body[data-exporthub-view="cmr"] .rc390-bundle .rc397-page1-disabled,
+  body[data-exporthub-view="cmr"] .rc386-bundle .rc397-page1-disabled,
+  body[data-exporthub-view="cmr"] .rc385-bundle .rc397-page1-disabled{
+    display:grid!important;
+    visibility:visible!important;
+    width:210mm!important;
+    height:297mm!important;
+    min-height:297mm!important;
+    max-height:297mm!important;
+    margin:0 auto!important;
+    padding:7mm 8mm 5mm!important;
+    border:1px solid #cfe8ff!important;
+    overflow:hidden!important;
+  }
+  .rc398-doc-note{width:210mm;max-width:100%;margin:0 auto 12px;padding:10px 12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;color:#08245d;font-size:12px;font-weight:850;line-height:1.4}
+  .rc398-print-all{border:0!important;background:linear-gradient(135deg,#2563eb,#05b8ff)!important;color:#fff!important;font-weight:950!important}
+
+  #rc398PrintHost{display:none}
+  @page{size:A4;margin:0}
+  @media print{
+    body.rc398-printing *{visibility:hidden!important}
+    body.rc398-printing #rc398PrintHost,
+    body.rc398-printing #rc398PrintHost *{visibility:visible!important}
+    body.rc398-printing #rc398PrintHost{
+      display:block!important;position:absolute!important;left:0!important;top:0!important;
+      width:210mm!important;margin:0!important;padding:0!important;background:#fff!important;z-index:2147483647!important
+    }
+    body.rc398-printing #rc398PrintHost .no-print,
+    body.rc398-printing #rc398PrintHost .rc390-doc-actions,
+    body.rc398-printing #rc398PrintHost .rc392-doc-actions,
+    body.rc398-printing #rc398PrintHost .rc398-doc-note{display:none!important}
+    body.rc398-printing #rc398PrintHost .rc390-bundle,
+    body.rc398-printing #rc398PrintHost .rc386-bundle,
+    body.rc398-printing #rc398PrintHost .rc385-bundle{
+      display:block!important;width:210mm!important;margin:0!important;padding:0!important;gap:0!important;background:#fff!important
+    }
+    body.rc398-printing #rc398PrintHost .rc397-page1-disabled{display:grid!important;visibility:visible!important;height:297mm!important;max-height:297mm!important}
+    body.rc398-printing #rc398PrintHost .rc390-page,
+    body.rc398-printing #rc398PrintHost .rc386-page,
+    body.rc398-printing #rc398PrintHost .rc385-page,
+    body.rc398-printing #rc398PrintHost .rc344-a4,
+    body.rc398-printing #rc398PrintHost .rc351-a4,
+    body.rc398-printing #rc398PrintHost .rc352-a4,
+    body.rc398-printing #rc398PrintHost .rc353-a4,
+    body.rc398-printing #rc398PrintHost .rc355-page{
+      display:grid!important;visibility:visible!important;width:210mm!important;height:297mm!important;
+      min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:7mm 8mm 5mm!important;
+      box-sizing:border-box!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+      overflow:hidden!important;background:#fff!important;page-break-after:always!important;break-after:page!important
+    }
+    body.rc398-printing #rc398PrintHost .rc390-cmr-wrap,
+    body.rc398-printing #rc398PrintHost .rc386-cmr-wrap,
+    body.rc398-printing #rc398PrintHost .rc385-cmr-wrap,
+    body.rc398-printing #rc398PrintHost .rc394-cmr-wrap,
+    body.rc398-printing #rc398PrintHost .rc393-cmr-page{
+      display:block!important;visibility:visible!important;width:210mm!important;height:297mm!important;
+      min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:0!important;
+      box-sizing:border-box!important;border:0!important;box-shadow:none!important;background:#fff!important;
+      overflow:hidden!important;position:relative!important;page-break-after:always!important;break-after:page!important
+    }
+    body.rc398-printing #rc398PrintHost .cmr-official{
+      display:block!important;visibility:visible!important;width:210mm!important;height:297mm!important;
+      min-width:210mm!important;max-width:210mm!important;min-height:297mm!important;max-height:297mm!important;
+      margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;transform:none!important;
+      position:relative!important;overflow:hidden!important;background:#fff!important
+    }
+    body.rc398-printing #rc398PrintHost .rc398-last-page{page-break-after:auto!important;break-after:auto!important}
+  }
+</style>
+<script id="rc398-js">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC398__)return;
+  window.__EXPORTHUB_RC398__=true;
+
+  function T(v){return v==null?'':String(v)}
+  function trim(v){return T(v).trim()}
+  function A(v){return Array.isArray(v)?v:[]}
+  function by(id){return document.getElementById(id)}
+  function root(){return by('content')||document.querySelector('main')||document.body}
+  function S(){try{return window.state||state||{}}catch(e){window.state=window.state||{};return window.state}}
+  function currentView(){return trim((S()||{}).view||document.body.getAttribute('data-exporthub-view')||'')}
+  function shipmentRef(){var sh=(S()||{}).shipment||{};return trim(sh.ref||sh.reference||'Sendung').replace(/[^A-Za-z0-9_-]+/g,'_')||'Sendung'}
+  function qsa(sel,base){return Array.from((base||document).querySelectorAll(sel))}
+
+  function pageText(el){return trim(el&&el.textContent||'')}
+  function isCover(el){var tx=pageText(el);return !!el&&(el.classList.contains('rc390-cover')||el.classList.contains('rc351-cover')||el.classList.contains('rc352-cover')||el.classList.contains('rc355-cover')||/Deckblatt|Transportdokumentensatz/i.test(tx))}
+  function isLoadlist(el){var tx=pageText(el);return !!el&&(/Ladeliste/i.test(tx)&&!/Deckblatt|Transportdokumentensatz/i.test(tx))}
+  function isPage2(el){var tx=pageText(el);return /Ladeliste\s*2\s*\/\s*2|2\s*\/\s*2|ohne\s*QR/i.test(tx)||!!(el&&el.querySelector&&el.querySelector('.rc390-qrslot.empty,.rc386-qrslot.empty,.rc385-qrslot.empty'))}
+  function isPage1(el){var tx=pageText(el);return /Ladeliste\s*1\s*\/\s*2|1\s*\/\s*2|mit\s*QR/i.test(tx)||!!(el&&el.querySelector&&el.querySelector('.rc390-qrslot:not(.empty),.rc386-qrslot:not(.empty),.rc385-qrslot:not(.empty)'))}
+  function isCmr(el){return !!el&&(el.matches('.rc390-cmr-wrap,.rc386-cmr-wrap,.rc385-cmr-wrap,.rc394-cmr-wrap,.rc393-cmr-page')||/CMR\s*\d\s*\/\s*4/i.test(pageText(el)))}
+
+  function getBundle(){return root().querySelector('.rc390-bundle,.rc386-bundle,.rc385-bundle')||document.querySelector('.rc390-bundle,.rc386-bundle,.rc385-bundle')}
+  function ensureDocumentView(){
+    var b=getBundle();if(b)return b;
+    try{if(typeof window.rc390ShowDocuments==='function')window.rc390ShowDocuments();else if(typeof window.showCurrentCmr==='function')window.showCurrentCmr()}catch(e){}
+    return getBundle();
+  }
+
+  function directChildrenOrCandidates(bundle){
+    var direct=Array.from(bundle.children||[]).filter(function(el){return isCover(el)||isLoadlist(el)||isCmr(el)});
+    if(direct.length)return direct;
+    return qsa('.rc390-page,.rc386-page,.rc385-page,.rc344-a4,.rc351-a4,.rc352-a4,.rc353-a4,.rc355-page,.rc390-cmr-wrap,.rc386-cmr-wrap,.rc385-cmr-wrap,.rc394-cmr-wrap,.rc393-cmr-page',bundle);
+  }
+
+  function buildPrintBundle(){
+    var source=ensureDocumentView();
+    if(!source)throw new Error('Dokumentensatz wurde nicht gefunden.');
+    var nodes=directChildrenOrCandidates(source),cover=null,page1=null,page2=null,cmrs=[];
+    nodes.forEach(function(el){
+      if(!cover&&isCover(el)){cover=el;return}
+      if(isLoadlist(el)){
+        if(isPage1(el)&&!page1){page1=el;return}
+        if(isPage2(el)&&!page2){page2=el;return}
+        if(!page1){page1=el;return}
+        if(!page2){page2=el;return}
+      }
+      if(isCmr(el)&&cmrs.length<4)cmrs.push(el);
+    });
+    if(!cover)throw new Error('Deckblatt fehlt.');
+    if(!page1&&!page2)throw new Error('Ladeliste fehlt.');
+    var out=document.createElement('div');out.className='rc390-bundle rc398-print-bundle';
+    [cover,page1,page2].filter(Boolean).forEach(function(el){var c=el.cloneNode(true);c.classList.remove('rc397-page1-disabled','rc395-loadlist-page1');c.removeAttribute('aria-hidden');out.appendChild(c)});
+    cmrs.forEach(function(el){out.appendChild(el.cloneNode(true))});
+    qsa('.no-print,.rc390-doc-actions,.rc392-doc-actions,.rc390-note-no-cmr,.rc386-note-no-cmr,.rc385-note-no-cmr',out).forEach(function(el){el.remove()});
+    qsa('.rc397-page1-disabled',out).forEach(function(el){el.classList.remove('rc397-page1-disabled');el.removeAttribute('aria-hidden')});
+    var pages=Array.from(out.children||[]);if(pages.length)pages[pages.length-1].classList.add('rc398-last-page');
+    out.setAttribute('data-rc398-pages',String(pages.length));
+    out.setAttribute('data-rc398-cover',cover?'1':'0');
+    out.setAttribute('data-rc398-loadlists',String([page1,page2].filter(Boolean).length));
+    out.setAttribute('data-rc398-cmr',String(cmrs.length));
+    return out;
+  }
+
+  var printBusy=false;
+  window.rc398PrintAllDocuments=function(){
+    if(printBusy)return false;
+    printBusy=true;
+    var old=by('rc398PrintHost');if(old)old.remove();
+    var host=document.createElement('div');host.id='rc398PrintHost';
+    try{
+      host.appendChild(buildPrintBundle());document.body.appendChild(host);
+      document.body.classList.add('rc398-printing');
+      var oldTitle=document.title;document.title='ExportHUB_Dokumentensatz_'+shipmentRef();
+      var cleaned=false;
+      function clean(){if(cleaned)return;cleaned=true;setTimeout(function(){document.body.classList.remove('rc398-printing');var h=by('rc398PrintHost');if(h)h.remove();document.title=oldTitle;printBusy=false},300)}
+      try{window.addEventListener('afterprint',clean,{once:true})}catch(e){}
+      setTimeout(function(){try{window.focus();window.print()}catch(err){alert('Druckdialog konnte nicht geöffnet werden: '+(err&&err.message?err.message:err));clean()}},80);
+      setTimeout(clean,60000);
+    }catch(err){printBusy=false;host.remove();alert('Alle Dokumente konnten nicht gedruckt werden. '+(err&&err.message?err.message:err));}
+    return false;
+  };
+
+  var page2Download=window.rc397DownloadLoadlistPage2Pdf||window.rc396DownloadLoadlistPage2Pdf||window.rc395DownloadLoadlistPage2Pdf;
+  window.rc398DownloadLoadlistPage2Pdf=function(){
+    if(typeof page2Download!=='function'){alert('Der direkte PDF-Download für Ladeliste Seite 2 ist nicht verfügbar.');return false}
+    return page2Download.apply(this,arguments);
+  };
+
+  function isAllPrintButton(b){
+    var tx=trim(b&&b.textContent),oc=trim(b&&b.getAttribute&&b.getAttribute('onclick'));
+    if(/Ladeliste\s*Seite\s*2|Ladeliste\s*2|LoadlistPage2/i.test(tx+' '+oc))return false;
+    if(/Drucken\s*\/\s*als PDF speichern|Alle Dokumente drucken|Dokumentensatz/i.test(tx+' '+oc))return true;
+    return currentView()==='cmr'&&/^Drucken$/i.test(tx);
+  }
+  function isAnyLoadlistDownload(b){
+    var h=trim(b&&b.textContent)+' '+trim(b&&b.getAttribute&&b.getAttribute('onclick'));
+    return /Ladeliste/i.test(h)&&/PDF|Download|herunterladen|DownloadLoadlist/i.test(h);
+  }
+
+  function normalizeDocumentView(){
+    document.title='ExportHUB Private RC398';
+    if(currentView()!=='cmr')return;
+    var bundle=getBundle();
+    if(bundle){
+      qsa('.rc397-page1-disabled',bundle).forEach(function(el){el.classList.remove('rc397-page1-disabled');el.removeAttribute('aria-hidden')});
+      qsa('.rc390-page,.rc386-page,.rc385-page,.rc344-a4,.rc351-a4,.rc352-a4,.rc353-a4,.rc355-page',bundle).forEach(function(el){if(isLoadlist(el))el.style.removeProperty('display')});
+    }
+    var view=root().querySelector('.rc390-docview,.rc386-docview,.rc385-docview'),bar=view&&view.querySelector('.rc390-doc-actions,.rc386-doc-actions,.rc385-actions,.rc392-doc-actions');
+    if(bar){
+      var printBtn=null,page2Btn=null;
+      Array.from(bar.querySelectorAll('button,a')).forEach(function(b){
+        if(isAllPrintButton(b)){if(printBtn&&printBtn!==b){b.remove();return}printBtn=b;return}
+        if(isAnyLoadlistDownload(b)){
+          var h=trim(b.textContent)+' '+trim(b.getAttribute('onclick'));
+          if(/Seite\s*2|Ladeliste\s*2|ohne\s*QR|LoadlistPage2/i.test(h)){if(page2Btn&&page2Btn!==b){b.remove();return}page2Btn=b}else b.remove();
+        }
+      });
+      if(!printBtn){printBtn=document.createElement('button');printBtn.type='button';printBtn.className='btn rc398-print-all';bar.appendChild(printBtn)}
+      printBtn.textContent='Alle Dokumente drucken / als PDF speichern';printBtn.setAttribute('onclick','return rc398PrintAllDocuments()');printBtn.classList.add('rc398-print-all');
+      if(!page2Btn){page2Btn=document.createElement('button');page2Btn.type='button';page2Btn.className='ghost rc398-page2-download';bar.appendChild(page2Btn)}
+      page2Btn.textContent='Ladeliste Seite 2 als PDF herunterladen';page2Btn.setAttribute('onclick','return rc398DownloadLoadlistPage2Pdf()');page2Btn.classList.add('rc398-page2-download');
+      var note=view.querySelector('.rc398-doc-note');if(!note){note=document.createElement('div');note.className='rc398-doc-note no-print';bar.insertAdjacentElement('afterend',note)}
+      note.textContent='Gesamtdruck: Deckblatt + Ladeliste Seite 1 + Ladeliste Seite 2 + CMR. Einzel-Download: ausschließlich Ladeliste Seite 2.';
+    }
+  }
+
+  function installAliases(){
+    ['rc393PrintDocuments','rc392PrintDocuments','rc391PrintDocuments','rc390PrintDocuments','rc387PrintDocuments','rc386PrintDocuments','rc385PrintDocuments','rc384PrintDocuments','rc383PrintDocuments','printDocsRC52'].forEach(function(n){window[n]=window.rc398PrintAllDocuments;try{eval(n+'=window.rc398PrintAllDocuments')}catch(e){}});
+    ['rc397DownloadLoadlistPage2Pdf','rc396DownloadLoadlistPage2Pdf','rc395DownloadLoadlistPage2Pdf','rc392DownloadLoadlistPage2Pdf','rc391DownloadLoadlistPage2Pdf','rc390DownloadLoadlistPage2Pdf','rc387DownloadLoadlistPage2Pdf','rc386DownloadLoadlistPage2Pdf','rc385DownloadLoadlistPage2Pdf','rc384DownloadLoadlistPage2Pdf','rc383DownloadLoadlistPage2Pdf','rc381DownloadLoadlistPage2Pdf','rc375DownloadLoadlistPage2Pdf'].forEach(function(n){window[n]=window.rc398DownloadLoadlistPage2Pdf;try{eval(n+'=window.rc398DownloadLoadlistPage2Pdf')}catch(e){}});
+    ['rc390DownloadLoadlistPdf','rc387DownloadLoadlistPdf','rc386DownloadLoadlistPdf','rc385DownloadLoadlistPdf','rc384DownloadLoadlistPdf','rc383DownloadLoadlistPdf','rc381DownloadLoadlistPdf','rc379DownloadLoadlistPdf','rc378DownloadLoadlistPage1Pdf','rc375DownloadLoadlistPdf','rc355DownloadLoadlistPdf','rc353DownloadLoadlistPdf','rc352DownloadLoadlistPdf','rc351DownloadLoadlistPdf','rc315DownloadLoadlistPdf','rc218DownloadLoadlistPdf','rc217DownloadLoadlistPdf','rc216DownloadLoadlistPdf','rc211DownloadWebsiteLoadlistPdf','rc181DownloadLoadlistWebsiteLayoutPdf','rc123OpenStyledLoadlistPdf','rc91DownloadOriginalLoadlistPdf','rc63LoadlistPdf','rc55DownloadLoadlistPdf','rc55PdfLoadlist','rc55LoadlistPdf','downloadLoadListPdf','downloadCurrentLoadListPdf'].forEach(function(n){window[n]=window.rc398DownloadLoadlistPage2Pdf;try{eval(n+'=window.rc398DownloadLoadlistPage2Pdf')}catch(e){}});
+  }
+
+  function updateVersion(){
+    if(currentView()==='update'&&!by('rc398UpdateCard'))root().insertAdjacentHTML('beforeend','<div id="rc398UpdateCard" class="card"><h3>Neu in Private RC398</h3><ul><li>„Alle Dokumente drucken“ druckt Deckblatt, beide Ladelistenseiten und CMR.</li><li>Die erste Ladelistenseite wird im Gesamtdruck nicht mehr ausgeblendet.</li><li>Der separate Ladelisten-Download enthält ausschließlich Ladeliste Seite 2.</li><li>Der Einzel-Download öffnet keinen Druckdialog.</li></ul></div>');
+  }
+  function post(){installAliases();normalizeDocumentView();updateVersion()}
+
+  var baseRender=window.render||((typeof render==='function')?render:null);
+  if(typeof baseRender==='function'&&!baseRender.__rc398){var rr=function(){var out=baseRender.apply(this,arguments);[0,80,220,500,900,1500,2400].forEach(function(ms){setTimeout(post,ms)});return out};rr.__rc398=true;window.render=rr;try{render=rr}catch(e){}}
+  var baseSetView=window.setView||((typeof setView==='function')?setView:null);
+  if(typeof baseSetView==='function'&&!baseSetView.__rc398){var sv=function(){var out=baseSetView.apply(this,arguments);[0,80,220,500,900,1500,2400].forEach(function(ms){setTimeout(post,ms)});return out};sv.__rc398=true;window.setView=sv;try{setView=sv}catch(e){}}
+
+  document.addEventListener('click',function(ev){
+    var b=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!b)return;
+    if(isAllPrintButton(b)){ev.preventDefault();ev.stopImmediatePropagation();return window.rc398PrintAllDocuments()}
+    if(isAnyLoadlistDownload(b)){ev.preventDefault();ev.stopImmediatePropagation();return window.rc398DownloadLoadlistPage2Pdf()}
+  },true);
+
+  var pending=false;
+  try{new MutationObserver(function(){if(pending)return;pending=true;requestAnimationFrame(function(){pending=false;post()})}).observe(root(),{childList:true,subtree:true,attributes:true,characterData:true})}catch(e){}
+  [20,120,350,800,1500,2500,4000].forEach(function(ms){setTimeout(post,ms)});
+})();
+</script>
+<!-- PRIVATE RC398 END -->
