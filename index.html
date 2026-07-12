@@ -49124,3 +49124,155 @@ function install409(){installRootGuard409();lock409();patchNav409();try{window.r
 window.addEventListener('click',function(ev){var b=ev.target&&ev.target.closest&&ev.target.closest('.nav button');if(!b)return;var oc=b.getAttribute('onclick')||'',m=oc.match(/setView\(['"]([^'"]+)/),txt=Q(b.textContent).toLowerCase(),v=m&&m[1];if(!v){if(txt.indexOf('kunden & dokumente')>=0)v='customers';else if(txt.indexOf('kundenordner')>=0)v='customerfolder';else if(txt.indexOf('abd erstellen')>=0)v='abd';else if(txt.indexOf('sendung erstellen')>=0)v='shipment';else if(txt.indexOf('sendungsübersicht')>=0)v='shipmentoverview'}if(!v)return;ev.preventDefault();ev.stopImmediatePropagation();return setView409(v)},true);try{window.rc402OpenAbd=function(){return setView409('abd')};window.rc400OpenAbd=window.rc402OpenAbd;window.rc401OpenAbd=window.rc402OpenAbd}catch(e){}install409();[180,500,1300,1800,3600,5000,9100,10000].forEach(function(ms){setTimeout(install409,ms)});
 })();
 </script>
+
+
+<!-- PRIVATE RC410: Mailbereich-Dauerfix, keine bestehenden Module entfernt -->
+<style id="rc410-mail-style">
+body[data-exporthub-view="shipment"] #rc344MailBox,
+body[data-exporthub-view="shipment"] #rc372MailBox,
+body[data-exporthub-view="shipment"] #rc375MailBox,
+body[data-exporthub-view="shipment"] #rc377ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc378ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc380ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc381ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc382ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc383ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc384ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc385ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc390ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc403ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc403ShipmentMailPanel,
+body[data-exporthub-view="shipment"] #rc404ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc404ShipmentMailPanel,
+body[data-exporthub-view="shipment"] #rc407ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc408ShipmentMailBox,
+body[data-exporthub-view="shipment"] #rc409ShipmentMail,
+body[data-current-view="shipment"] #rc344MailBox,
+body[data-current-view="shipment"] #rc372MailBox,
+body[data-current-view="shipment"] #rc375MailBox,
+body[data-current-view="shipment"] #rc377ShipmentMailBox,
+body[data-current-view="shipment"] #rc378ShipmentMailBox,
+body[data-current-view="shipment"] #rc380ShipmentMailBox,
+body[data-current-view="shipment"] #rc381ShipmentMailBox,
+body[data-current-view="shipment"] #rc382ShipmentMailBox,
+body[data-current-view="shipment"] #rc383ShipmentMailBox,
+body[data-current-view="shipment"] #rc384ShipmentMailBox,
+body[data-current-view="shipment"] #rc385ShipmentMailBox,
+body[data-current-view="shipment"] #rc390ShipmentMailBox,
+body[data-current-view="shipment"] #rc403ShipmentMailBox,
+body[data-current-view="shipment"] #rc403ShipmentMailPanel,
+body[data-current-view="shipment"] #rc404ShipmentMailBox,
+body[data-current-view="shipment"] #rc404ShipmentMailPanel,
+body[data-current-view="shipment"] #rc407ShipmentMailBox,
+body[data-current-view="shipment"] #rc408ShipmentMailBox,
+body[data-current-view="shipment"] #rc409ShipmentMail{display:none!important}
+#rc410ShipmentMail{display:block!important;background:linear-gradient(180deg,#ecfdf5 0%,#f0fdf4 45%,#fff 100%);border:2px solid #22c55e;border-left:8px solid #16a34a;border-radius:22px;padding:18px;margin:16px 0;box-shadow:0 14px 32px rgba(22,163,74,.14);color:#0f172a}
+#rc410ShipmentMail h3,#rc410ShipmentMail h4{color:#166534;margin-top:0}
+.rc410-mail-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.rc410-mail-box{background:#fff;border:1px solid #bbf7d0;border-radius:16px;padding:13px;min-width:0}
+.rc410-mail-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rc410-mail-chips{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 10px}
+.rc410-mail-chip,.rc410-direct-link{display:inline-flex;align-items:center;gap:6px;border:1px solid #86efac;background:#fff;color:#166534;border-radius:12px;padding:8px 10px;text-decoration:none;font-weight:900;cursor:pointer;overflow-wrap:anywhere}
+.rc410-mail-chip:hover,.rc410-direct-link:hover{background:#dcfce7;border-color:#22c55e}
+.rc410-direct-link.disabled{opacity:.45;pointer-events:none}
+.rc410-mail-preview{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:16px;padding:14px;min-height:150px;line-height:1.5;overflow:auto;max-height:330px;margin-top:12px}
+.rc410-mail-meta{line-height:1.6;overflow-wrap:anywhere}.rc410-mail-meta b{color:#166534}
+.rc410-mail-warning{border-left:5px solid #f59e0b;background:#fffbeb;color:#92400e;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:850}
+#rc410ShipmentMail select{background:#fff;border:1px solid #86efac}
+@media(max-width:900px){.rc410-mail-grid,.rc410-mail-row{grid-template-columns:1fr}}
+</style>
+<script id="rc410-mail-hardfix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC410_MAIL_HARDFIX__)return;
+window.__EXPORTHUB_RC410_MAIL_HARDFIX__=true;
+function S(){try{return window.state||state||{}}catch(e){return window.state||(window.state={})}}
+function A(v){return Array.isArray(v)?v:[]}
+function T(v){return v==null?'':String(v)}
+function Q(v){return T(v).trim()}
+function H(v){return T(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function root(){return document.getElementById('content')||document.querySelector('main')||document.body}
+function isShipment(){var s=S(),v=Q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view'));return v==='shipment'}
+function saveQ(){try{if(typeof window.save==='function')window.save();else if(typeof save==='function')save()}catch(e){}try{localStorage.setItem('exporthub_private_rc113_safe_state',JSON.stringify(S()))}catch(e){}}
+function cid(c){return Q(c&&(c.id||c.customerId||c.account||c.customerNumber||c.number||c.kundennummer))}
+function cacc(c){return Q(c&&(c.account||c.customerNumber||c.number||c.kundennummer||c.id))}
+function cname(c){return Q(c&&(c.name||c.customerName||c.label||c.title))}
+function clabel(c){return [cacc(c),cname(c),Q(c&&(c.country||c.land))].filter(Boolean).join(' · ')}
+function customers(){return A(S().customers)}
+function normalizeSearch(v){return Q(v).toLowerCase().replace(/\s*[·|]\s*/g,' ').replace(/\s+/g,' ')}
+function findCustomer(v){var q=normalizeSearch(v);if(!q)return null;var list=customers();var exact=list.find(function(c){return [cid(c),cacc(c),cname(c),clabel(c)].some(function(x){return normalizeSearch(x)===q})});if(exact)return exact;var tokens=q.split(' ').filter(Boolean);return list.find(function(c){var text=normalizeSearch([cid(c),cacc(c),cname(c),Q(c.country||c.land),Q(c.carrier||c.spedition)].join(' '));return tokens.every(function(t){return text.indexOf(t)>=0})})||null}
+function shipment(){var s=S();s.shipment=s.shipment||{};return s.shipment}
+function activeCustomer(){var s=S(),sh=shipment(),c=null;var ids=[sh.customerId,sh.customer&&cid(sh.customer),s.selectedCustomerId,s.lastCustomerId];for(var i=0;i<ids.length&&!c;i++)if(Q(ids[i]))c=findCustomer(ids[i]);if(!c&&sh.customer&&cname(sh.customer))c=sh.customer;var inp=document.getElementById('shipmentCustomerSearch');if(!c&&inp&&Q(inp.value))c=findCustomer(inp.value);return c||null}
+function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(e){return Object.assign({},v||{})}}
+function makeRef(c){try{if(typeof window.generateShipmentRef==='function')return window.generateShipmentRef(c||{})}catch(e){}var ch='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',x='';for(var i=0;i<6;i++)x+=ch[Math.floor(Math.random()*ch.length)];return x}
+function validRef(v){return /^[A-Z0-9]{6}$/.test(Q(v).toUpperCase())}
+function applyCustomer(c){if(!c)return false;var s=S(),sh=shipment(),id=cid(c);sh.customerId=id;sh.customerSearch=clabel(c);sh.customer=clone(c);s.selectedCustomerId=id;s.lastCustomerId=id;if(!Q(sh.carrier)&&Q(c.carrier||c.spedition))sh.carrier=Q(c.carrier||c.spedition);if(!validRef(sh.ref)||sh.refAuto!==false){sh.ref=makeRef(c);sh.refAuto=true}sh.addressConfirmed=false;saveQ();return true}
+function emailArray(v){var out=[],seen={};function scan(x){if(x==null)return;if(Array.isArray(x)){x.forEach(scan);return}if(typeof x==='object'){Object.keys(x).forEach(function(k){scan(x[k])});return}T(x).split(/[;,\n\r\s]+/).forEach(function(p){var m=p.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);if(m){var e=m[0],k=e.toLowerCase();if(!seen[k]){seen[k]=1;out.push(e)}}})}scan(v);return out}
+function keyedEmails(c,re){var vals=[];if(!c)return vals;Object.keys(c).forEach(function(k){if(re.test(k))vals.push(c[k])});return emailArray(vals)}
+function mailData(c){c=c||{};var carrier=emailArray([c.rc385CarrierTo,c.carrierMail,c.carrierEmail,c.speditionMail,c.speditionEmail,c.forwarderMail,c.anmeldungMail,c.mailToSpedition,c.abdMail]);carrier=carrier.concat(keyedEmails(c,/(carrier|spedition|forwarder|freight|anmeldung).*mail|mail.*(carrier|spedition|forwarder)/i));var customer=emailArray([c.rc385CustomerTo,c.customerMail,c.customerEmail,c.mailToCustomer,c.recipientMail,c.empfaengerMail]);customer=customer.concat(keyedEmails(c,/(customer|kunde|recipient|empfaenger).*mail|mail.*(customer|kunde|recipient|empfaenger)/i));var sales=emailArray([c.rc385SalesMail,c.salesMail,c.salesEmail,c.salesPersonMail]);sales=sales.concat(keyedEmails(c,/(sales|verkauf).*mail|mail.*(sales|verkauf)/i));var cc=emailArray([c.rc385Cc,c.mailCc,c.cc,c.ccMail]);cc=cc.concat(keyedEmails(c,/(^|_)cc($|_)|ccmail/i));function uniq(a){var seen={};return a.filter(function(e){var k=e.toLowerCase();if(seen[k])return false;seen[k]=1;return true})}return {carrier:uniq(carrier),customer:uniq(customer),sales:uniq(sales),cc:uniq(cc)}}
+function portal(c){c=c||{};var url=Q(c.portalUrl||c.portalURL||c.portalLink||c.portalHref||c.customerPortalUrl||c.carrierPortalUrl||c.speditionPortalUrl),name=Q(c.portalName||c.portalTitle||c.portalLabel||c.portal||c.carrierPortal||c.speditionPortal)||'Kundenportal';if(!url){Object.keys(c).some(function(k){if(/portal.*(url|link)|(?:url|link).*portal/i.test(k)&&/^https?:\/\//i.test(Q(c[k]))){url=Q(c[k]);return true}return false})}return {url:url,name:name}}
+function total(sh){return A(sh.rows).reduce(function(a,r){var n=Number(T(r&&r.count).replace(',','.'))||0,w=Number(T(r&&r.weight).replace(',','.'))||0,ldm=Number(T(r&&r.ldm).replace(',','.'))||0;a.count+=n;a.weight+=w;a.ldm+=n*ldm;return a},{count:0,weight:0,ldm:0})}
+function fmt(v,d){return (Number(v)||0).toFixed(d).replace('.',',')}
+function template(c,target,lang){var keys=target==='carrier'?(lang==='en'?['rc385CarrierTplEn','carrierTplEn','carrierTemplateEn']:['rc385CarrierTplDe','carrierTplDe','carrierTemplateDe']):(lang==='en'?['rc385CustomerTplEn','customerTplEn','customerTemplateEn']:['rc385CustomerTplDe','customerTplDe','customerTemplateDe']);for(var i=0;i<keys.length;i++)if(Q(c&&c[keys[i]]))return T(c[keys[i]]);return ''}
+function body(c,target,lang){var sh=shipment(),tt=total(sh),tpl=template(c,target,lang);var vars={'{{KUNDE}}':cname(c),'{{KUNDENNUMMER}}':cacc(c),'{{REFERENZ}}':Q(sh.ref),'{{ABHOLDATUM}}':Q(sh.pickupDate)||'offen','{{COLLIS}}':fmt(tt.count,0),'{{GEWICHT}}':fmt(tt.weight,1),'{{LDM}}':fmt(tt.ldm,2),'{{SPEDITION}}':Q(sh.carrier||c.carrier||c.spedition)};if(tpl){Object.keys(vars).forEach(function(k){tpl=tpl.split(k).join(vars[k])});return tpl}var en=lang==='en';var lines=[en?'Dear Sir or Madam,':'Guten Tag,','',en?'please arrange the following shipment:':'bitte melden Sie die folgende Sendung an.','', (en?'Reference: ':'Referenz: ')+(Q(sh.ref)||'offen'),(en?'Customer: ':'Kunde: ')+(cname(c)||'offen'),(en?'Packages: ':'Collis: ')+fmt(tt.count,0),(en?'Total weight: ':'Gesamtgewicht: ')+fmt(tt.weight,1)+' kg',(en?'Loading metres: ':'LDM: ')+fmt(tt.ldm,2),(en?'Pickup date: ':'Abholdatum: ')+(Q(sh.pickupDate)||'offen'),(en?'Carrier: ':'Spedition: ')+(Q(sh.carrier||c.carrier||c.spedition)||'offen'),''];if(target==='carrier')lines.push(en?'Please confirm the pickup date.':'Bitte bestätigen Sie den Abholtermin.');lines.push('',en?'Kind regards':'Viele Grüße');return lines.join('\n')}
+function chipList(arr,label){arr=A(arr);if(!arr.length)return '<span class="muted">'+H(label)+': nicht hinterlegt</span>';return arr.map(function(e){return '<a class="rc410-mail-chip" href="mailto:'+encodeURIComponent(e)+'">✉ '+H(e)+'</a>'}).join('')}
+function currentData(c){var sh=shipment(),m=mailData(c),target=Q(sh.rc410MailTarget||sh.rc409MailTarget||sh.rc403MailTarget||sh.mailTarget||'');if(!/^(carrier|customer|sales)$/.test(target))target=m.carrier.length?'carrier':m.customer.length?'customer':'sales';if(target==='carrier'&&!m.carrier.length&&m.customer.length)target='customer';if(target==='customer'&&!m.customer.length&&m.carrier.length)target='carrier';var lang=Q(sh.rc410MailLang||sh.rc403MailLang||sh.mailLanguage||'de');lang=/^en/i.test(lang)?'en':'de';var to=target==='customer'?m.customer:target==='sales'?m.sales:m.carrier;var subject=(lang==='en'?'Shipment registration ':'Sendungsanmeldung ')+(Q(sh.ref)||'')+(cname(c)?' / '+cname(c):'');return {target:target,lang:lang,to:to,cc:m.cc,subject:subject,body:body(c,target,lang),mails:m}}
+function mailto(d){var q=[];if(d.cc.length)q.push('cc='+encodeURIComponent(d.cc.join(',')));q.push('subject='+encodeURIComponent(d.subject));q.push('body='+encodeURIComponent(d.body));return 'mailto:'+encodeURIComponent(d.to.join(','))+'?'+q.join('&')}
+function directLinks(c){var p=portal(c),id=cid(c);return '<button type="button" class="rc410-direct-link" data-rc410-action="folder" data-id="'+H(id)+'">📁 Kundenordner öffnen</button>'+'<button type="button" class="rc410-direct-link" data-rc410-action="sop" data-id="'+H(id)+'">📋 SOP öffnen</button>'+(p.url?'<a class="rc410-direct-link" href="'+H(p.url)+'" target="_blank" rel="noopener">🌐 '+H(p.name)+' öffnen</a>':'<span class="rc410-direct-link disabled">🌐 Kein Portal hinterlegt</span>')+'<button type="button" class="rc410-direct-link" data-rc410-action="shipmentfolder">🗂 Sendungsordner öffnen</button>'+'<button type="button" class="rc410-direct-link" data-rc410-action="page2">📄 Ladeliste Seite 2 PDF</button>'}
+function build(c){if(!c)return '<section id="rc410ShipmentMail"><h3>✉ Mail Bereich</h3><div class="rc410-mail-warning">Bitte zuerst einen Kunden auswählen und „Kunde übernehmen“ anklicken. Danach werden Mailadressen, Portal und Verlinkungen direkt aus dem Kundenstamm geladen.</div></section>';var d=currentData(c),m=d.mails;return '<section id="rc410ShipmentMail"><h3>✉ Mail Bereich</h3><div class="rc410-mail-grid"><div class="rc410-mail-box"><h4>Mail und Empfänger</h4><div class="rc410-mail-row"><label class="field">Empfängerart<select id="rc410MailTarget"><option value="carrier" '+(d.target==='carrier'?'selected':'')+'>Spedition</option><option value="customer" '+(d.target==='customer'?'selected':'')+'>Kunde</option><option value="sales" '+(d.target==='sales'?'selected':'')+'>Sales</option></select></label><label class="field">Sprache<select id="rc410MailLang"><option value="de" '+(d.lang==='de'?'selected':'')+'>Deutsch</option><option value="en" '+(d.lang==='en'?'selected':'')+'>Englisch</option></select></label></div><div class="rc410-mail-meta"><b>Spedition:</b><div class="rc410-mail-chips">'+chipList(m.carrier,'Spedition')+'</div><b>Kunde:</b><div class="rc410-mail-chips">'+chipList(m.customer,'Kunde')+'</div><b>Sales:</b><div class="rc410-mail-chips">'+chipList(m.sales,'Sales')+'</div></div></div><div class="rc410-mail-box"><h4>Direkte Verlinkungen</h4><div class="rc410-mail-chips">'+directLinks(c)+'</div><div class="rc410-mail-meta"><b>An:</b><div class="rc410-mail-chips">'+chipList(d.to,'Empfänger')+'</div><b>CC:</b><div class="rc410-mail-chips">'+chipList(d.cc,'CC')+'</div><b>Betreff:</b><br>'+H(d.subject)+'</div>'+(d.to.length?'':'<div class="rc410-mail-warning">Für die gewählte Empfängerart ist keine Mailadresse im Kundenordner hinterlegt.</div>')+'</div></div><div class="rc410-mail-preview">'+H(d.body)+'</div><div class="toolbar"><a class="btn" id="rc410OpenMail" href="'+H(mailto(d))+'" '+(d.to.length?'':'aria-disabled="true" style="pointer-events:none;opacity:.45"')+'>Mail in Outlook erstellen</a><button type="button" class="ghost" data-rc410-action="copy">Mailtext kopieren</button></div></section>'}
+var renderBusy=false;
+function knownOldPanel(){var r=root();return r&&r.querySelector('#rc404ShipmentMailPanel,#rc403ShipmentMailPanel,#rc390ShipmentMailBox,#rc385ShipmentMailBox,#rc344MailBox,#rc409ShipmentMail')}
+function signature(c){var sh=shipment(),d=c?currentData(c):null;return JSON.stringify([cid(c),Q(sh.ref),Q(sh.pickupDate),Q(sh.carrier),sh.rows,d&&d.target,d&&d.lang,d&&d.to,d&&d.cc,portal(c)])}
+function ensureMail(force){if(!isShipment()||renderBusy)return false;var r=root();if(!r)return false;try{document.body.setAttribute('data-exporthub-view','shipment');document.body.setAttribute('data-current-view','shipment')}catch(e){}var c=activeCustomer(),sig=signature(c),panel=document.getElementById('rc410ShipmentMail');if(panel&&!force&&panel.getAttribute('data-sig')===sig)return false;renderBusy=true;try{var holder=document.createElement('div');holder.innerHTML=build(c);var fresh=holder.firstElementChild;fresh.setAttribute('data-sig',sig);if(panel&&panel.parentNode)panel.replaceWith(fresh);else{var old=knownOldPanel();if(old&&old.parentNode)old.parentNode.insertBefore(fresh,old);else{var addr=Array.from(r.querySelectorAll('label,.checkrow,section')).find(function(n){return /Adresse geprüft und bestätigt/i.test(Q(n.textContent))});if(addr&&addr.parentNode)addr.parentNode.insertBefore(fresh,addr);else r.appendChild(fresh)}}}finally{renderBusy=false}return false}
+function renderShipmentThenEnsure(){var fn=window.rc344RenderShipment;if(typeof fn==='function'){try{fn()}catch(e){try{if(typeof window.render==='function')window.render()}catch(_){}}}else try{if(typeof window.render==='function')window.render()}catch(e){}[0,30,120,350,900].forEach(function(ms){setTimeout(function(){ensureMail(true)},ms)});return false}
+window.rc410ApplyCustomerSearch=function(){var inp=document.getElementById('shipmentCustomerSearch'),value=Q(inp&&inp.value||shipment().customerSearch),c=findCustomer(value);if(!c){alert('Kunde/Kundennummer nicht gefunden. Bitte einen Eintrag aus der Suche auswählen.');return false}applyCustomer(c);return renderShipmentThenEnsure()};
+window.rc410SelectCustomer=function(id){var c=findCustomer(id);if(!c)return false;applyCustomer(c);return renderShipmentThenEnsure()};
+window.rc410SetMailTarget=function(v){var sh=shipment();sh.rc410MailTarget=/^(customer|sales)$/.test(v)?v:'carrier';sh.mailTarget=sh.rc410MailTarget==='customer'?'customer':'carrier';saveQ();return ensureMail(true)};
+window.rc410SetMailLang=function(v){var sh=shipment();sh.rc410MailLang=/^en/i.test(v)?'en':'de';sh.mailLanguage=sh.rc410MailLang;saveQ();return ensureMail(true)};
+window.rc410OpenFolder=function(id){var s=S();s.customerFolderOpenId=id;s.customerFolderId=id;s.selectedCustomerId=id;s.lastCustomerId=id;saveQ();try{if(typeof window.setView==='function')return window.setView('customerfolder')}catch(e){}return false};
+window.rc410OpenSop=function(id){S().selectedCustomerId=id;saveQ();try{if(typeof window.setView==='function')return window.setView('sop')}catch(e){}return false};
+window.rc410OpenShipmentFolder=function(){try{if(typeof window.rc404OpenShipmentFolder==='function')return window.rc404OpenShipmentFolder()}catch(e){}try{if(typeof window.setView==='function')return window.setView('shipmentoverview')}catch(e){}return false};
+window.rc410DownloadPage2=function(){var names=['rc407DownloadLoadlist2','rc396DownloadLoadlist2Pdf','rc386DownloadLoadlistPage2Pdf','rc395DownloadLoadlistPage2Pdf','rc404DownloadLoadlist2'];for(var i=0;i<names.length;i++){var f=window[names[i]];if(typeof f==='function'&&f!==window.rc410DownloadPage2){try{return f()}catch(e){}}}alert('Ladeliste Seite 2 ist derzeit nicht verfügbar.');return false};
+window.rc410CopyMail=function(){var c=activeCustomer(),d=c?currentData(c):null;if(!d)return false;var txt='An: '+d.to.join('; ')+'\nCC: '+d.cc.join('; ')+'\nBetreff: '+d.subject+'\n\n'+d.body;try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt);return false}}catch(e){}try{prompt('Mailtext kopieren:',txt)}catch(e){}return false};
+function lock(name,fn){try{Object.defineProperty(window,name,{configurable:true,enumerable:true,get:function(){return fn},set:function(v){window['__rc410Ignored_'+name]=v}})}catch(e){try{window[name]=fn}catch(_){}}}
+lock('rc344ApplyCustomerSearch',window.rc410ApplyCustomerSearch);lock('rc385ApplyCustomerSearch',window.rc410ApplyCustomerSearch);lock('rc344SelectCustomer',window.rc410SelectCustomer);lock('rc385SelectShipmentCustomer',window.rc410SelectCustomer);
+document.addEventListener('change',function(ev){var el=ev.target;if(!el)return;if(el.id==='rc410MailTarget'){ev.stopImmediatePropagation();window.rc410SetMailTarget(el.value)}else if(el.id==='rc410MailLang'){ev.stopImmediatePropagation();window.rc410SetMailLang(el.value)}},true);
+document.addEventListener('click',function(ev){var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!el)return;var act=el.getAttribute('data-rc410-action');if(act){ev.preventDefault();ev.stopImmediatePropagation();if(act==='folder')return window.rc410OpenFolder(el.getAttribute('data-id'));if(act==='sop')return window.rc410OpenSop(el.getAttribute('data-id'));if(act==='shipmentfolder')return window.rc410OpenShipmentFolder();if(act==='page2')return window.rc410DownloadPage2();if(act==='copy')return window.rc410CopyMail()}var txt=Q(el.textContent);if(isShipment()&&/Kunde übernehmen/i.test(txt)){ev.preventDefault();ev.stopImmediatePropagation();return window.rc410ApplyCustomerSearch()}},true);
+var scheduled=false;function schedule(force){if(scheduled)return;scheduled=true;requestAnimationFrame(function(){scheduled=false;ensureMail(!!force)})}
+var r=root();if(r&&window.MutationObserver){var obs=new MutationObserver(function(){if(isShipment())schedule(false)});obs.observe(r,{childList:true,subtree:true});window.__rc410MailObserver=obs}
+function install(){lock('rc344ApplyCustomerSearch',window.rc410ApplyCustomerSearch);lock('rc385ApplyCustomerSearch',window.rc410ApplyCustomerSearch);lock('rc344SelectCustomer',window.rc410SelectCustomer);lock('rc385SelectShipmentCustomer',window.rc410SelectCustomer);if(isShipment())ensureMail(true);try{document.title='ExportHUB Private RC410'}catch(e){}try{if(window.SEED){SEED.build='PRIVATE-RC410-MAIL-HARDFIX';SEED.title='ExportHUB Private RC410'}}catch(e){}}
+install();[50,200,600,1500,3500,8000].forEach(function(ms){setTimeout(install,ms)});
+})();
+</script>
+<script id="rc410-mail-activation-fix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC410_MAIL_ACTIVATION__)return;
+window.__EXPORTHUB_RC410_MAIL_ACTIVATION__=true;
+var baseRender=window.rc344RenderShipment;
+function activate(){try{if(typeof window.rc410EnsureMail==='function')window.rc410EnsureMail(true)}catch(e){}}
+if(typeof window.rc410EnsureMail!=='function'){
+  /* Export the private RC410 function through a harmless synthetic customer refresh. */
+  window.rc410EnsureMail=function(){
+    try{
+      var c=(window.state||{}).shipment||{};
+      if(typeof window.rc410SetMailTarget==='function')return window.rc410SetMailTarget(c.rc410MailTarget||c.rc409MailTarget||c.mailTarget||'carrier');
+    }catch(e){}
+    return false;
+  };
+}
+function wrappedShipmentRender(){var r=false;try{r=typeof baseRender==='function'?baseRender.apply(this,arguments):false}catch(e){try{if(typeof window.render==='function')r=window.render()}catch(_){}}[0,25,100,300,900].forEach(function(ms){setTimeout(activate,ms)});return r}
+try{Object.defineProperty(window,'rc344RenderShipment',{configurable:true,enumerable:true,get:function(){return wrappedShipmentRender},set:function(v){if(v!==wrappedShipmentRender&&typeof v==='function')baseRender=v}})}catch(e){window.rc344RenderShipment=wrappedShipmentRender}
+var oldNav=window.rc409Nav;
+window.rc409Nav=function(v){var r=typeof oldNav==='function'?oldNav.apply(this,arguments):false;if(v==='shipment')[0,30,120,400].forEach(function(ms){setTimeout(activate,ms)});return r};
+document.addEventListener('click',function(ev){var el=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!el)return;var tx=(el.textContent||'').replace(/\s+/g,' ').trim();if(/Neue Sendung|Sendung erstellen/i.test(tx)){[20,80,250,700].forEach(function(ms){setTimeout(activate,ms)})}},false);
+window.addEventListener('pageshow',function(){[0,100,500].forEach(function(ms){setTimeout(activate,ms)})});
+[0,100,500,1500].forEach(function(ms){setTimeout(activate,ms)});
+})();
+</script>
+<script id="rc410-version-fix">
+(function(){
+try{if(window.SEED){SEED.build='PRIVATE-RC410-MAIL-HARDFIX';SEED.title='ExportHUB Private RC410'}}catch(e){}
+try{var n=document.querySelector('title');if(n)n.textContent='ExportHUB Private RC410';Object.defineProperty(document,'title',{configurable:true,get:function(){return 'ExportHUB Private RC410'},set:function(){var t=document.querySelector('title');if(t)t.textContent='ExportHUB Private RC410'}})}catch(e){try{document.title='ExportHUB Private RC410'}catch(_){}}
+})();
+</script>
