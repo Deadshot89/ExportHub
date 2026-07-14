@@ -1,0 +1,7 @@
+# Diese Werte in den vorhandenen Azure-Static-Web-Apps-Workflow übernehmen.
+# Die bestehende Zeile azure_static_web_apps_api_token NICHT ändern.
+
+# Repository/Build Configurations
+app_location: "/"
+api_location: "api"
+output_location: ""
