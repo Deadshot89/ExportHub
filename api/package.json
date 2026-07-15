@@ -1,15 +1,11 @@
 {
-  "name": "exporthub-secure-pickup-api",
-  "version": "1.1.0",
+  "name": "exporthub-api",
+  "version": "1.0.0",
   "private": true,
-  "type": "module",
-  "main": "src/functions/*.js",
-  "scripts": {
-    "test": "node --test test/*.test.js"
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
-    "@azure/data-tables": "^13.3.2",
-    "@azure/functions": "^4.16.2",
-    "@azure/storage-blob": "^12.33.0"
+    "@azure/storage-blob": "^12.27.0"
   }
 }
