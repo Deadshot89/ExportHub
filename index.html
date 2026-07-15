@@ -51813,3 +51813,74 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script>
 <!-- PRIVATE RC439 END: Team-Speicher und geräteübergreifende Azure-Synchronisierung -->
 
+
+<!-- PRIVATE RC440 START: stabile Colli-Zeilen, Palettenhöhe und Mehrzeilen-Verpackung -->
+<style id="rc440-colli-style">
+body[data-exporthub-view="shipment"] #rowsBox .rc344-colli-row{position:relative}
+body[data-exporthub-view="shipment"] #rowsBox .rc344-colli-row.rc440-active{border-color:#60a5fa;box-shadow:0 0 0 2px rgba(37,99,235,.08)}
+body[data-exporthub-view="shipment"] #rowsBox label[data-rc440-height] small{display:block;margin-top:5px;color:#475569;font-size:11px;font-weight:800;line-height:1.3}
+#rc440ColliStatus{position:fixed;right:18px;bottom:76px;z-index:2147483100;max-width:min(500px,calc(100vw - 36px));border:1px solid #86efac;background:#f0fdf4;color:#166534;border-radius:14px;padding:10px 13px;font:900 13px/1.35 Segoe UI,Arial,sans-serif;box-shadow:0 12px 30px rgba(15,23,42,.18)}
+@media print{#rc440ColliStatus{display:none!important}}
+</style>
+<script id="rc440-colli-final">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC440_COLLI_FINAL__)return;
+window.__EXPORTHUB_RC440_COLLI_FINAL__=true;
+var VERSION='ExportHUB Private RC440',VERSION_SHORT='Private RC440',ZW='\u200B',patchTimer=0,versionTimer=0;
+function T(v){return v==null?'':String(v)}
+function Q(v){return T(v).replace(/\u200B/g,'').trim()}
+function A(v){return Array.isArray(v)?v:[]}
+function N(v){var s=Q(v).replace(',','.'),n=Number(s);return s!==''&&isFinite(n)?n:''}
+function S(){try{return (typeof state==='object'&&state)||window.state||(window.state={})}catch(e){return window.state||(window.state={})}}
+function saveQ(){try{if(typeof save==='function')save();else if(typeof window.save==='function')window.save()}catch(e){window.__rc440SaveError=T(e&&e.message||e)}}
+function shipment(){var s=S();s.shipment=s.shipment||{};s.shipment.rows=A(s.shipment.rows);return s.shipment}
+function rowId(){return 'COLLI-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)}
+function blank(){return {_rowId:rowId(),_rc440Keep:true,type:'',count:ZW,ldm:'',weight:ZW,l:'',w:'',h:'',height:''}}
+function root(){return document.getElementById('content')||document.body}
+function isShipment(){return Q(S().view)==='shipment'||!!document.querySelector('#rowsBox .rc344-colli-row')}
+function nodes(){var list=Array.from(document.querySelectorAll('#rowsBox .rc344-colli-row,#rowsBox [data-rc344-row]'));return list.filter(function(n,i){return list.indexOf(n)===i&&!list.some(function(p){return p!==n&&p.contains(n)})})}
+function labelControl(node,re){var labels=Array.from(node.querySelectorAll('label.field,label'));for(var i=0;i<labels.length;i++){if(re.test(Q(labels[i].textContent))){var el=labels[i].querySelector('select,input,textarea');if(el)return {label:labels[i],el:el}}}return {label:null,el:null}}
+function controls(node){return {
+ type:labelControl(node,/Verpackung|Colli-Art|Packst/i),
+ count:labelControl(node,/^Anzahl/i),
+ ldm:labelControl(node,/LDM/i),
+ weight:labelControl(node,/Gewicht/i),
+ l:labelControl(node,/Länge|Laenge/i),
+ w:labelControl(node,/Breite/i),
+ h:labelControl(node,/Höhe|Hoehe/i)
+}}
+function packList(){try{var s=S();return A(s.colliTypes&&s.colliTypes.length?s.colliTypes:(typeof SEED!=='undefined'&&SEED?SEED.colliTypes:[]))}catch(e){return []}}
+function pack(name){var wanted=Q(name).toLowerCase();return packList().find(function(p){return Q(p&&p.name).toLowerCase()===wanted})||null}
+function isPallet(v){return /palette|paletten\s*gestell/i.test(Q(v))}
+function ensureRow(r){r=r&&typeof r==='object'?r:{};if(!r._rowId)r._rowId=rowId();r._rc440Keep=true;if(r.height!==undefined&&Q(r.h)===''&&Q(r.height)!=='')r.h=r.height;if(r.h!==undefined)r.height=r.h;return r}
+function readNode(node,index,old){var r=ensureRow(Object.assign({},old||{})),c=controls(node);if(c.type.el)r.type=Q(c.type.el.value);['count','ldm','weight','l','w','h'].forEach(function(k){var el=c[k].el;if(!el)return;var v=N(el.value);r[k]=v;r._rc440Keep=true});r.height=r.h;if(Q(r.h)!==''){r.rc440HeightManual=true;r.rc430HeightManual=true;r.rc429HeightManual=true}else if(isPallet(r.type)){r.rc440HeightManual=false;r.rc430HeightManual=false;r.rc429HeightManual=false}return r}
+function syncVisible(persist){if(!isShipment())return A(shipment().rows);var sh=shipment(),ns=nodes();if(!ns.length)return A(sh.rows);var old=A(sh.rows),rows=ns.map(function(node,index){var pos=Number(node.getAttribute('data-rc344-row'));if(!isFinite(pos))pos=index;return readNode(node,index,old[pos]||old[index])});sh.rows=rows;S().activeShipmentId='current';try{window.__rc440ShipmentRows=JSON.parse(JSON.stringify(rows))}catch(e){}if(persist)saveQ();return rows}
+function setValue(el,v){if(!el||document.activeElement===el)return;var x=Q(v);if(el.value!==x)el.value=x}
+function writeNode(node,index,row){row=ensureRow(row);node.setAttribute('data-rc344-row',String(index));node.setAttribute('data-rc440-row-id',row._rowId);var c=controls(node);if(c.type.el&&document.activeElement!==c.type.el&&c.type.el.value!==Q(row.type))c.type.el.value=Q(row.type);setValue(c.count.el,row.count);setValue(c.ldm.el,row.ldm);setValue(c.weight.el,row.weight);setValue(c.l.el,row.l);setValue(c.w.el,row.w);setValue(c.h.el,row.h);if(c.h.el){c.h.el.placeholder=isPallet(row.type)?'Palettenhöhe manuell eingeben':'Höhe cm';c.h.el.min='0';c.h.el.step='1';c.h.el.setAttribute('inputmode','decimal')}if(c.h.label){c.h.label.setAttribute('data-rc440-height','1');var note=c.h.label.querySelector('.rc440-height-note');if(!note){note=document.createElement('small');note.className='rc440-height-note';c.h.label.appendChild(note)}note.textContent=isPallet(row.type)?'Die Höhe der Palette wird manuell erfasst und bleibt gespeichert.':'Standardmaß aus der Verpackung; manuell änderbar.'}}
+function applyType(row,value){var oldType=Q(row.type),oldHeight=Q(row.h),manual=!!(row.rc440HeightManual||row.rc430HeightManual||row.rc429HeightManual),same=oldType===Q(value);row.type=Q(value);var p=pack(row.type);if(p){if(p.ldm!==undefined&&p.ldm!==null)row.ldm=p.ldm;if(p.l!==undefined&&p.l!==null)row.l=p.l;if(p.w!==undefined&&p.w!==null)row.w=p.w;if(isPallet(row.type)){if(same&&oldHeight!==''){row.h=N(oldHeight);row.height=row.h;row.rc440HeightManual=true;row.rc430HeightManual=true;row.rc429HeightManual=true}else{row.h='';row.height='';row.rc440HeightManual=false;row.rc430HeightManual=false;row.rc429HeightManual=false}}else if(same&&manual&&oldHeight!==''){row.h=N(oldHeight);row.height=row.h}else{row.h=p.h!==undefined&&p.h!==null?N(p.h):'';row.height=row.h;row.rc440HeightManual=false;row.rc430HeightManual=false;row.rc429HeightManual=false}}return row}
+function refreshSummary(){try{if(typeof window.rc361RefreshColliSummary==='function')return window.rc361RefreshColliSummary()}catch(e){}var rs=A(shipment().rows),tot=rs.reduce(function(a,r){var c=Number(N(r.count))||0,w=Number(N(r.weight))||0,l=Number(N(r.ldm))||0;a.count+=c;a.weight+=w;a.ldm+=c*l;if(Q(r.type)&&c>0&&w>0)a.valid++;return a},{count:0,weight:0,ldm:0,valid:0}),vals={count:String(Math.round(tot.count)),weight:tot.weight.toFixed(1).replace('.',',')+' kg',ldm:tot.ldm.toFixed(2).replace('.',','),rows:String(tot.valid)};Object.keys(vals).forEach(function(k){var el=document.getElementById('rc344Sum_'+k);if(el)el.textContent=vals[k]})}
+function status(text){var el=document.getElementById('rc440ColliStatus');if(el)el.remove();el=document.createElement('div');el.id='rc440ColliStatus';el.textContent=text;document.body.appendChild(el);setTimeout(function(){if(el&&el.parentNode)el.remove()},2500)}
+function update(index,key,value){var sh=shipment();syncVisible(false);sh.rows=A(sh.rows);while(sh.rows.length<=index)sh.rows.push(blank());var row=ensureRow(sh.rows[index]);if(key==='type')applyType(row,value);else{var val=N(value);row[key]=val;if(key==='h'){row.height=val;var has=Q(value)!=='';row.rc440HeightManual=has;row.rc430HeightManual=has;row.rc429HeightManual=has}}sh.rows[index]=row;S().activeShipmentId='current';saveQ();var node=nodes()[index];if(node)writeNode(node,index,row);refreshSummary();return false}
+function renderShipment(){try{if(typeof window.rc344RenderShipment==='function')return window.rc344RenderShipment()}catch(e){}try{if(typeof render==='function')return render()}catch(e){}return false}
+function addRow(){syncVisible(false);var sh=shipment();sh.rows=A(sh.rows);sh.rows.push(blank());S().activeShipmentId='current';saveQ();renderShipment();setTimeout(function(){patchDom();var ns=nodes(),last=ns[ns.length-1];if(last){try{last.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}var sel=controls(last).type.el;if(sel)sel.focus()}status('Neue Colli-Zeile hinzugefügt.');},80);return false}
+function removeRow(index){syncVisible(false);var sh=shipment();sh.rows=A(sh.rows);sh.rows.splice(index,1);if(!sh.rows.length)sh.rows=[blank()];saveQ();renderShipment();setTimeout(patchDom,50);return false}
+function targetInfo(target){var node=target&&target.closest&&target.closest('#rowsBox .rc344-colli-row,#rowsBox [data-rc344-row]');if(!node)return null;var ns=nodes(),index=Number(node.getAttribute('data-rc344-row'));if(!isFinite(index))index=ns.indexOf(node);var c=controls(node),key='';Object.keys(c).some(function(k){if(c[k].el===target){key=k;return true}return false});return index>=0&&key?{node:node,index:index,key:key}:null}
+function interceptInput(ev){var x=targetInfo(ev.target);if(!x)return;if(ev.type==='input'&&x.key==='type')return;ev.stopImmediatePropagation();ev.stopPropagation();update(x.index,x.key,ev.target.value)}
+function interceptClick(ev){var b=ev.target&&ev.target.closest&&ev.target.closest('button,a');if(!b||!isShipment())return;var txt=Q(b.textContent),node=b.closest('#rowsBox .rc344-colli-row,#rowsBox [data-rc344-row]');if(/^\+\s*(Neue\s+)?Zeile$/i.test(txt)||/rc344AddRow|addShipmentRow|rc395AddShipmentRow/i.test(Q(b.getAttribute('onclick')))){ev.preventDefault();ev.stopImmediatePropagation();ev.stopPropagation();addRow();return}if(node&&/Entfernen/i.test(txt)){ev.preventDefault();ev.stopImmediatePropagation();ev.stopPropagation();var i=nodes().indexOf(node);if(i>=0)removeRow(i)}}
+function patchDom(){if(!isShipment())return;var sh=shipment(),ns=nodes();if(!ns.length)return;while(sh.rows.length<ns.length)sh.rows.push(blank());ns.forEach(function(node,index){var row=ensureRow(sh.rows[index]||blank());sh.rows[index]=row;writeNode(node,index,row);var c=controls(node);Object.keys(c).forEach(function(k){if(!c[k].el)return;c[k].el.removeAttribute('oninput');c[k].el.removeAttribute('onchange');c[k].el.setAttribute('data-rc440-key',k)});var rem=Array.from(node.querySelectorAll('button')).find(function(x){return /Entfernen/i.test(Q(x.textContent))});if(rem)rem.removeAttribute('onclick')});Array.from(document.querySelectorAll('#rowsBox + button,#rowsBox ~ button')).forEach(function(b){if(/^\+\s*(Neue\s+)?Zeile$/i.test(Q(b.textContent)))b.removeAttribute('onclick')});refreshSummary()}
+function wrapSync(name){var old=window[name];if(typeof old!=='function'||old.__rc440Sync)return;var fn=function(){syncVisible(true);return old.apply(this,arguments)};fn.__rc440Sync=true;window[name]=fn;try{if(name==='saveShipment')saveShipment=fn;else if(name==='rc344SaveShipment')rc344SaveShipment=fn}catch(e){}}
+function forceVersion(){try{document.title=VERSION;var title=document.querySelector('title');if(title)title.textContent=VERSION;if(typeof SEED!=='undefined'&&SEED){SEED.title=VERSION;SEED.build='PRIVATE-RC440-COLLI-HEIGHT-MULTIROW'}}catch(e){}var r=root();if(Q(S().view)!=='update'&&!/Update ExportHUB/i.test(Q(r.textContent)))return;try{var walker=document.createTreeWalker(r,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p||/^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION)$/.test(p.tagName))return NodeFilter.FILTER_REJECT;return /Private\s+RC\d+/i.test(n.nodeValue||'')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}}),all=[],n;while((n=walker.nextNode()))all.push(n);all.forEach(function(x){x.nodeValue=T(x.nodeValue).replace(/Private\s+RC\d+/gi,VERSION_SHORT)});Array.from(r.querySelectorAll('[id$="UpdateCard"],[id*="UpdateCard"]')).forEach(function(el){if(el.id!=='rc440UpdateCard')el.remove()});if(!document.getElementById('rc440UpdateCard'))r.insertAdjacentHTML('beforeend','<div id="rc440UpdateCard" class="card"><h3>Aktueller Stand: Private RC440</h3><ul><li>Palettenhöhe wieder manuell erfassbar und dauerhaft gespeichert.</li><li>Zusätzliche Colli-Zeilen übernehmen ihre eigene Verpackungsart zuverlässig.</li><li>Maße, Gewicht und LDM bleiben je Zeile getrennt erhalten.</li><li>Azure-Team-Speicher aus RC439 bleibt aktiv.</li></ul></div>')}catch(e){}}
+window.rc440SyncColliRows=syncVisible;window.rc440UpdateRow=update;window.rc440AddRow=addRow;window.rc440RemoveRow=removeRow;
+window.rc344UpdateRow=update;window.updateRow=update;window.rc361UpdateRow=update;
+window.rc344AddRow=addRow;window.addShipmentRow=addRow;window.rc361AddRow=addRow;window.rc362AddRow=addRow;window.rc395AddShipmentRow=addRow;window.rc325AddRow=addRow;
+window.rc344RemoveRow=removeRow;window.removeShipmentRow=removeRow;window.rc361RemoveRow=removeRow;
+try{rc344UpdateRow=update;updateRow=update;rc344AddRow=addRow;addShipmentRow=addRow;rc344RemoveRow=removeRow;removeShipmentRow=removeRow}catch(e){}
+['saveShipment','rc344SaveShipment','rc268SaveShipment','showCurrentCmr','rc55DownloadLoadlistPdf','rc55PrintLabels','printDocsRC52','rc344OpenMail','rc344CopyMail'].forEach(wrapSync);
+document.addEventListener('input',interceptInput,true);document.addEventListener('change',interceptInput,true);document.addEventListener('click',interceptClick,true);
+var NativeMO=window.__rc402NativeMutationObserver||window.MutationObserver;try{window.__rc440ColliObserver=new NativeMO(function(){clearTimeout(patchTimer);patchTimer=setTimeout(function(){patchDom();forceVersion()},20)});window.__rc440ColliObserver.observe(document.getElementById('content')||document.body,{childList:true,subtree:true})}catch(e){}
+function boot(){forceVersion();patchDom();clearInterval(versionTimer);versionTimer=setInterval(function(){forceVersion();patchDom()},1000)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
+})();
+</script>
+<!-- PRIVATE RC440 END: stabile Colli-Zeilen, Palettenhöhe und Mehrzeilen-Verpackung -->
