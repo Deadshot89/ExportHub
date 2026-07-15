@@ -1,12 +1,49 @@
 {
   "routes": [
     {
+      "route": "/api/pickup-init",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/api/pickup-health",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/api/pickup-status",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/pickup-confirm",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/pickup-pod",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
       "route": "/api/exporthub/*",
-      "allowedRoles": ["authenticated"]
+      "allowedRoles": [
+        "authenticated"
+      ]
     }
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/api/*", "/.auth/*", "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf}"]
+    "exclude": [
+      "/api/*",
+      "/.auth/*",
+      "/pickup.html",
+      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf}"
+    ]
   }
 }
