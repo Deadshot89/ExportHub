@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "EXPORTHUB_ALLOW_ANONYMOUS": "true",
+    "EXPORTHUB_STORAGE_CONNECTION_STRING": "<Azure-Storage-Verbindungszeichenfolge>"
+  }
+}
