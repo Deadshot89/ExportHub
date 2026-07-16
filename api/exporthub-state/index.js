@@ -8,6 +8,7 @@ const {
   pruneTombstones,
   clone
 } = require('../shared/merge');
+const { applyUserPolicy } = require('../shared/user-policy');
 
 const CONTAINER_NAME = process.env.EXPORTHUB_STORAGE_CONTAINER || 'exporthub-data';
 const BLOB_NAME = process.env.EXPORTHUB_STORAGE_BLOB || 'team-state.json';
@@ -149,7 +150,7 @@ async function saveMerged(blob, incoming, actor) {
     const current = currentDownload.value || emptyDocument();
     const mergedState = pruneTombstones(mergeState(current.state || {}, incoming.state || {}));
     const mergedUsers = mergeUsers(current.users || [], incoming.users || [], mergedState._teamSyncMeta || {});
-    const next = {
+    const next = applyUserPolicy({
       schemaVersion: 2,
       revision: Number(current.revision || 0) + 1,
       updatedAt: new Date().toISOString(),
@@ -158,7 +159,7 @@ async function saveMerged(blob, incoming, actor) {
       clientVersion: incoming.clientVersion || null,
       state: mergedState,
       users: mergedUsers
-    };
+    });
     try {
       await uploadJson(blob, next, currentDownload.etag);
       return next;
@@ -193,7 +194,7 @@ module.exports = async function (context, req) {
         return;
       }
       const stored = await downloadJson(blob);
-      const document = stored.value || emptyDocument();
+      const document = applyUserPolicy(stored.value || emptyDocument());
       context.res = json(200, Object.assign({ ok: true }, document));
       return;
     }
