@@ -187,7 +187,8 @@ module.exports = async function (context, req) {
   try {
     const blob = await blobClient();
     if (req.method === 'GET') {
-      const metaRequested = req.query && (String(req.query.meta || '') === '1' || String(req.query.mode || '').toLowerCase() === 'meta');
+      const mode = req.query ? String(req.query.mode || '').toLowerCase() : '';
+      const metaRequested = req.query && (String(req.query.meta || '') === '1' || mode === 'meta');
       if (metaRequested) {
         const meta = await metadataOnly(blob);
         context.res = json(200, Object.assign({ ok: true, metaOnly: true }, meta));
@@ -195,6 +196,17 @@ module.exports = async function (context, req) {
       }
       const stored = await downloadJson(blob);
       const document = applyUserPolicy(stored.value || emptyDocument());
+      if (mode === 'login' || mode === 'users') {
+        context.res = json(200, {
+          ok: true,
+          loginOnly: true,
+          schemaVersion: Number(document.schemaVersion || 2),
+          revision: Number(document.revision || 0),
+          updatedAt: document.updatedAt || null,
+          users: Array.isArray(document.users) ? document.users : []
+        });
+        return;
+      }
       context.res = json(200, Object.assign({ ok: true }, document));
       return;
     }
@@ -202,6 +214,18 @@ module.exports = async function (context, req) {
     if (req.method === 'POST') {
       const incoming = normalizeIncoming(req.body);
       const saved = await saveMerged(blob, incoming, displayName(principal));
+      const ackOnly = req.query && (String(req.query.ack || '') === '1' || String(req.query.mode || '').toLowerCase() === 'ack');
+      if (ackOnly) {
+        context.res = json(200, {
+          ok: true,
+          ackOnly: true,
+          schemaVersion: Number(saved.schemaVersion || 2),
+          revision: Number(saved.revision || 0),
+          updatedAt: saved.updatedAt || null,
+          updatedBy: saved.updatedBy || null
+        });
+        return;
+      }
       context.res = json(200, Object.assign({ ok: true }, saved));
       return;
     }

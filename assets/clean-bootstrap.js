@@ -1,0 +1,90 @@
+(function(){
+'use strict';
+const VERSION='RC500';
+const API='/api/exporthub/state';
+const native={
+  fetch:window.fetch.bind(window),
+  setTimeout:window.setTimeout.bind(window),
+  clearTimeout:window.clearTimeout.bind(window),
+  setInterval:window.setInterval.bind(window),
+  clearInterval:window.clearInterval.bind(window),
+  MutationObserver:window.MutationObserver
+};
+const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,saveTimer:null,saving:false,pendingSave:false,observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1};
+
+function by(id){return document.getElementById(id)}
+function text(v){return String(v==null?'':v).trim()}
+function lower(v){return text(v).toLowerCase()}
+function status(msg,kind){const e=by('cleanLoginStatus');if(!e)return;e.textContent=msg||'';e.className='clean-login-status '+(kind||'')}
+function progress(p,msg){const panel=by('cleanLoadPanel'),bar=by('cleanProgressBar'),lab=by('cleanProgressLabel'),txt=by('cleanLoadText');if(panel)panel.classList.remove('hidden');if(bar)bar.style.width=Math.max(0,Math.min(100,p))+'%';if(lab)lab.textContent=Math.round(p)+' %';if(txt&&msg)txt.textContent=msg}
+function hideProgress(){const p=by('cleanLoadPanel');if(p)p.classList.add('hidden')}
+function setVersion(){document.title='ExportHUB Clean '+VERSION;document.querySelectorAll('[id*=version i],[class*=version i]').forEach(function(e){if(/Private RC\d+|Aktuelle Version/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/Private RC\d+/gi,'Private '+VERSION).replace(/RC\d+/gi,VERSION)});const login=document.querySelector('.login-card');if(login&&!by('cleanVersionBadge')){const d=document.createElement('div');d.id='cleanVersionBadge';d.className='clean-version-badge';d.textContent='Bereinigte Version · '+VERSION;login.appendChild(d)}}
+
+// ExportHUB keys are kept in memory only. Nothing is persisted in localStorage/IndexedDB.
+const mem=new Map();
+try{
+ const SP=window.Storage&&window.Storage.prototype;
+ if(SP){
+  const g=SP.getItem,s=SP.setItem,r=SP.removeItem,c=SP.clear,k=SP.key;
+  function own(key){return /exporthub|rc\d+/i.test(String(key||''))}
+  SP.getItem=function(key){return own(key)?(mem.has(String(key))?mem.get(String(key)):null):g.call(this,key)};
+  SP.setItem=function(key,val){if(own(key)){mem.set(String(key),String(val));return}return s.call(this,key,val)};
+  SP.removeItem=function(key){if(own(key)){mem.delete(String(key));return}return r.call(this,key)};
+  SP.clear=function(){mem.clear()};
+ }
+}catch(_){ }
+try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('ExportHUB Clean verwendet keinen dauerhaften Browser-Speicher.')}}}catch(_){ }
+
+// One real observer multiplexes all legacy observers with throttling and a circuit breaker.
+(function installObserverHub(){
+ if(!native.MutationObserver)return;
+ const records=runtime.observerRecords;
+ class CleanObserver{
+  constructor(cb){this.cb=cb;this.targets=[];this.active=true;this.last=0;this.fail=0;records.add(this)}
+  observe(target,options){if(target)this.targets.push({target:target,options:options||{}})}
+  disconnect(){this.active=false;records.delete(this)}
+  takeRecords(){return[]}
+ }
+ window.MutationObserver=CleanObserver;
+ let scheduled=false,queue=[];
+ function relevant(rec,muts){if(!rec.targets.length)return true;return muts.some(function(m){return rec.targets.some(function(t){try{return t.target===m.target||t.target.contains(m.target)}catch(_){return false}})})}
+ function drain(deadline){let count=0;while(queue.length&&count<5&&(!deadline||deadline.timeRemaining()>3)){const item=queue.shift(),now=Date.now();if(!item.active||now-item.last<700)continue;item.last=now;try{item.cb([],item);item.fail=0}catch(e){item.fail++;if(item.fail>3)item.disconnect()}count++}if(queue.length){scheduleDrain()}else scheduled=false}
+ function scheduleDrain(){if(window.requestIdleCallback)window.requestIdleCallback(drain,{timeout:500});else native.setTimeout(function(){drain(null)},50)}
+ const hub=new native.MutationObserver(function(muts){records.forEach(function(rec){if(rec.active&&relevant(rec,muts)&&queue.indexOf(rec)<0)queue.push(rec)});if(!scheduled&&queue.length){scheduled=true;scheduleDrain()}native.setTimeout(setVersion,50)});
+ hub.observe(document.documentElement,{childList:true,subtree:true,attributes:true});
+})();
+
+// One scheduler replaces all legacy intervals; minimum cadence 5 seconds.
+(function installIntervalHub(){
+ window.setInterval=function(fn,delay){const args=[].slice.call(arguments,2),id=runtime.intervalSeq++;runtime.intervalJobs.set(id,{fn:fn,args:args,delay:Math.max(5000,Number(delay)||5000),last:Date.now()});return id};
+ window.clearInterval=function(id){runtime.intervalJobs.delete(id)};
+ native.setInterval(function(){const now=Date.now();runtime.intervalJobs.forEach(function(j,id){if(now-j.last>=j.delay){j.last=now;try{typeof j.fn==='function'?j.fn.apply(window,j.args):(0,eval)(String(j.fn))}catch(_){runtime.intervalJobs.delete(id)}}})},1000);
+})();
+
+async function jsonFetch(url,options){const res=await native.fetch(url,Object.assign({credentials:'same-origin',cache:'no-store'},options||{}));const txt=await res.text();let data={};try{data=txt?JSON.parse(txt):{}}catch(_){throw new Error('Ungültige Serverantwort')};if(!res.ok||data.ok===false)throw new Error(data.message||('HTTP '+res.status));return data}
+async function parseLargeJson(textValue){if(!window.Worker)return JSON.parse(textValue);const code='self.onmessage=e=>{try{self.postMessage({ok:true,value:JSON.parse(e.data)})}catch(x){self.postMessage({ok:false,error:x.message})}}';const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{return await new Promise(function(resolve,reject){const w=new Worker(url);w.onmessage=function(e){w.terminate();e.data.ok?resolve(e.data.value):reject(new Error(e.data.error))};w.onerror=function(e){w.terminate();reject(new Error(e.message||'Worker-Fehler'))};w.postMessage(textValue)})}finally{URL.revokeObjectURL(url)}}
+async function loadMicrosoft(){const box=by('cleanMicrosoftStatus');try{const d=await jsonFetch('/.auth/me');const p=d&&d.clientPrincipal;runtime.ms=p||null;if(box){box.querySelector('strong').textContent=p?'Microsoft-Konto angemeldet':'Microsoft-Anmeldung erforderlich';if(p){box.querySelector('span').textContent=p.userDetails||p.userId}else{box.querySelector('span').innerHTML='<a href="/.auth/login/aad?post_login_redirect_uri=/">Mit Microsoft-Konto anmelden</a>'}}return p}catch(e){if(box){box.querySelector('strong').textContent='Microsoft-Anmeldung nicht erkannt';box.querySelector('span').innerHTML='<a href="/.auth/login/aad?post_login_redirect_uri=/">Mit Microsoft-Konto anmelden</a>'}return null}}
+async function loadUsers(){const d=await jsonFetch(API+'?mode=login');runtime.users=Array.isArray(d.users)?d.users:[];runtime.revision=Number(d.revision||0);return runtime.users}
+function findUser(name,password){const n=lower(name);return runtime.users.find(function(u){return lower(u.user||u.login||u.username||u.name)===n&&text(u.password)===text(password)})||null}
+async function loadState(){progress(8,'Azure-Teamdaten werden geladen …');const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store'});if(!res.ok)throw new Error('Teamdaten konnten nicht geladen werden (HTTP '+res.status+').');const txt=await res.text();progress(18,'Teamdaten werden im Hintergrund verarbeitet …');const d=await parseLargeJson(txt);if(!d||d.ok===false)throw new Error((d&&d.message)||'Teamdaten ungültig');runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d}
+
+function runOne(entry){return new Promise(function(resolve){native.setTimeout(function(){try{const s=document.createElement('script');s.dataset.cleanLegacy=String(entry.id);s.text=entry.code+'\n//# sourceURL=exporthub-legacy-'+entry.id+'.js';document.head.appendChild(s);s.remove()}catch(e){console.error('Legacy-Modul '+entry.id,e)}resolve()},0)})}
+async function runScripts(entries){for(let i=0;i<entries.length;i++){await runOne(entries[i]);if(i%3===2)await new Promise(function(r){if(window.requestIdleCallback)requestIdleCallback(function(){r()},{timeout:120});else native.setTimeout(r,20)})}}
+async function loadScript(src){return new Promise(function(resolve,reject){const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=function(){reject(new Error('Modul konnte nicht geladen werden: '+src))};document.head.appendChild(s)})}
+async function loadLegacy(){if(runtime.loaded)return;runtime.loading=true;const manifest=await (await native.fetch('assets/legacy-manifest.json',{cache:'no-store'})).json();for(let i=0;i<manifest.length;i++){progress(20+Math.round((i/manifest.length)*70),'Anwendungsbereiche werden geladen · Paket '+(i+1)+' von '+manifest.length);window.__cleanGroupPromise=null;await loadScript(manifest[i].src);if(window.__cleanGroupPromise)await window.__cleanGroupPromise}runtime.loaded=true;runtime.loading=false;progress(94,'Anmeldung und Oberfläche werden aktiviert …');await new Promise(function(resolve){native.setTimeout(resolve,0)});activateLegacyLogin();progress(100,'ExportHUB ist bereit.');native.setTimeout(hideProgress,450)}
+function activateLegacyLogin(){const u=by('loginUser'),p=by('loginPass');if(u)u.value=runtime.user.user||runtime.user.login||runtime.user.name||'';if(p)p.value=runtime.user.password||'';try{if(typeof window.rc430StrictLogin==='function')window.rc430StrictLogin();else if(by('loginBtn'))by('loginBtn').click()}catch(e){console.error(e)}const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');setVersion();native.setTimeout(setVersion,250)}
+
+async function queueSave(reason){runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){flushSave(reason)},700)}
+async function flushSave(reason){if(runtime.saving){runtime.pendingSave=true;return}const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return;runtime.saving=true;runtime.pendingSave=false;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';try{const payload={clientVersion:VERSION,baseRevision:runtime.revision,reason:reason||'save',state:getState(),users:typeof getUsers==='function'?getUsers():runtime.users};const d=await jsonFetch(API+'?ack=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});runtime.revision=Number(d.revision||runtime.revision);if(info)info.textContent='Dauerhaft in Azure gespeichert · '+new Date().toLocaleTimeString('de-DE')}catch(e){if(info)info.textContent='Nicht gespeichert: '+e.message;alert('Die Änderung konnte nicht dauerhaft in Azure gespeichert werden.\n\n'+e.message)}finally{runtime.saving=false;if(runtime.pendingSave)queueSave('queued')}}
+
+async function login(){if(runtime.loading)return;const name=by('loginUser')&&by('loginUser').value,pass=by('loginPass')&&by('loginPass').value;if(!runtime.ms){status('Bitte zuerst mit dem Microsoft-Konto anmelden.','bad');return}const user=findUser(name,pass);if(!user){status('Benutzername oder Passwort ist falsch.','bad');return}runtime.user=user;status('Anmeldung bestätigt. ExportHUB wird geladen …','ok');try{await loadState();await loadLegacy()}catch(e){hideProgress();status('ExportHUB konnte nicht geladen werden: '+e.message,'bad');console.error(e)}}
+function bindLogin(){const btn=by('loginBtn');if(btn)btn.addEventListener('click',function(e){if(!runtime.loaded){e.preventDefault();e.stopImmediatePropagation();login()}},true);['loginUser','loginPass'].forEach(function(id){const e=by(id);if(e)e.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!runtime.loaded){ev.preventDefault();login()}},true)})}
+
+window.ExportHUBClean={VERSION:VERSION,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,native:native,runtime:runtime};
+window.__EXPORTHUB_RC439_TEAM_SYNC__=true;
+window.__EXPORTHUB_RC467__=true;
+window.__EXPORTHUB_RC466_MEMORY_STORAGE__=true;
+window.addEventListener('error',function(e){console.error('ExportHUB Clean Fehler',e.error||e.message)});
+
+document.addEventListener('DOMContentLoaded',async function(){setVersion();bindLogin();const app=by('app'),loginBox=by('login');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');await loadMicrosoft();try{await loadUsers();status('Anmeldung bereit.','ok')}catch(e){status('Benutzer konnten nicht geladen werden: '+e.message,'bad')}});
+})();

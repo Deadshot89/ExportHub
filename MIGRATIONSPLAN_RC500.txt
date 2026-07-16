@@ -1,0 +1,24 @@
+ExportHUB Clean RC500 – Migrationsplan
+
+Phase 1 (dieses Paket)
+- Schneller Microsoft-/ExportHUB-Login ohne Ausführung der historischen Anwendung.
+- Azure-Benutzerliste vor Login, vollständige Teamdaten erst nach Login.
+- Vorhandene Bereiche, Layouts und Funktionen aus RC467 werden kontrolliert in Originalreihenfolge nachgeladen.
+- Ein einzelner Observer-Hub und ein einzelner Intervall-Scheduler ersetzen die historischen Parallelbeobachter.
+- Dauerhafte Speicherung ausschließlich in Azure.
+
+Phase 2
+- Sendung erstellen, Colli, Höhe, LDM, Dokumente, CMR und QR aus Legacy-Code in echte Module überführen.
+
+Phase 3
+- Aufgaben, Benachrichtigungen, Urlaub/Vertretung, Palettenkonto und Reports modularisieren.
+
+Phase 4
+- Kundenordner, Mailvorlagen, ABD, SOP, Zollwissen, Academy, Prüfungen und Ideenpool modularisieren.
+
+Phase 5
+- Legacy-Gruppen vollständig entfernen, sobald alle Funktionsmodule einzeln getestet wurden.
+
+Regel
+- Layout und Fachfunktionen werden nicht entfernt.
+- Jede migrierte Funktion wird mit gezieltem Funktionstest abgeschlossen.
