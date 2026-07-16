@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VERSION='RC500';
+const VERSION='RC501';
 const API='/api/exporthub/state';
 const native={
   fetch:window.fetch.bind(window),
@@ -61,10 +61,57 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
  native.setInterval(function(){const now=Date.now();runtime.intervalJobs.forEach(function(j,id){if(now-j.last>=j.delay){j.last=now;try{typeof j.fn==='function'?j.fn.apply(window,j.args):(0,eval)(String(j.fn))}catch(_){runtime.intervalJobs.delete(id)}}})},1000);
 })();
 
-async function jsonFetch(url,options){const res=await native.fetch(url,Object.assign({credentials:'same-origin',cache:'no-store'},options||{}));const txt=await res.text();let data={};try{data=txt?JSON.parse(txt):{}}catch(_){throw new Error('Ungültige Serverantwort')};if(!res.ok||data.ok===false)throw new Error(data.message||('HTTP '+res.status));return data}
+async function jsonFetch(url,options){
+ const res=await native.fetch(url,Object.assign({credentials:'same-origin',cache:'no-store'},options||{}));
+ const txt=await res.text();let data={};
+ try{data=txt?JSON.parse(txt):{}}
+ catch(_){
+  const looksLikeHtml=/^\s*</.test(txt||'');
+  if(res.status===401||res.status===403||looksLikeHtml&&/login|auth|unauthorized|forbidden/i.test(txt||''))throw new Error('Microsoft-Anmeldung erforderlich.');
+  throw new Error('Der Server lieferte keine gültige JSON-Antwort (HTTP '+res.status+').');
+ }
+ if(!res.ok||data.ok===false)throw new Error(data.message||('HTTP '+res.status));
+ return data
+}
 async function parseLargeJson(textValue){if(!window.Worker)return JSON.parse(textValue);const code='self.onmessage=e=>{try{self.postMessage({ok:true,value:JSON.parse(e.data)})}catch(x){self.postMessage({ok:false,error:x.message})}}';const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{return await new Promise(function(resolve,reject){const w=new Worker(url);w.onmessage=function(e){w.terminate();e.data.ok?resolve(e.data.value):reject(new Error(e.data.error))};w.onerror=function(e){w.terminate();reject(new Error(e.message||'Worker-Fehler'))};w.postMessage(textValue)})}finally{URL.revokeObjectURL(url)}}
-async function loadMicrosoft(){const box=by('cleanMicrosoftStatus');try{const d=await jsonFetch('/.auth/me');const p=d&&d.clientPrincipal;runtime.ms=p||null;if(box){box.querySelector('strong').textContent=p?'Microsoft-Konto angemeldet':'Microsoft-Anmeldung erforderlich';if(p){box.querySelector('span').textContent=p.userDetails||p.userId}else{box.querySelector('span').innerHTML='<a href="/.auth/login/aad?post_login_redirect_uri=/">Mit Microsoft-Konto anmelden</a>'}}return p}catch(e){if(box){box.querySelector('strong').textContent='Microsoft-Anmeldung nicht erkannt';box.querySelector('span').innerHTML='<a href="/.auth/login/aad?post_login_redirect_uri=/">Mit Microsoft-Konto anmelden</a>'}return null}}
-async function loadUsers(){const d=await jsonFetch(API+'?mode=login');runtime.users=Array.isArray(d.users)?d.users:[];runtime.revision=Number(d.revision||0);return runtime.users}
+function setLoginEnabled(enabled){
+ ['loginUser','loginPass','loginBtn'].forEach(function(id){const e=by(id);if(e)e.disabled=!enabled});
+}
+function updateMicrosoftUi(p,message){
+ const box=by('cleanMicrosoftStatus');
+ const oldBox=by('rc448MicrosoftLoginBox');
+ if(oldBox)oldBox.style.display='none';
+ if(!box)return;
+ const strong=box.querySelector('strong'),span=box.querySelector('span');
+ if(p){
+  if(strong)strong.textContent='Microsoft-Konto angemeldet';
+  if(span)span.innerHTML='<b>'+text(p.userDetails||p.userId)+'</b><br><a href="/.auth/logout?post_logout_redirect_uri=/">Microsoft-Konto abmelden</a>';
+ }else{
+  if(strong)strong.textContent=message||'Microsoft-Anmeldung erforderlich';
+  if(span)span.innerHTML='<a class="btn" style="display:flex;margin-top:8px" href="/.auth/login/aad?post_login_redirect_uri=/">Mit Microsoft-Konto anmelden</a>';
+ }
+}
+async function loadMicrosoft(){
+ try{
+  const d=await jsonFetch('/.auth/me');
+  const p=(d&&d.clientPrincipal)||(Array.isArray(d)&&d[0]&&d[0].clientPrincipal)||null;
+  runtime.ms=p||null;updateMicrosoftUi(runtime.ms);return runtime.ms;
+ }catch(e){runtime.ms=null;updateMicrosoftUi(null,'Microsoft-Anmeldung nicht erkannt');return null}
+}
+async function loadUsers(){
+ if(!runtime.ms)throw new Error('Microsoft-Anmeldung erforderlich.');
+ let firstError=null;
+ for(const url of [API+'?mode=login',API]){
+  try{
+   const d=await jsonFetch(url);
+   if(!Array.isArray(d.users))throw new Error('Die Benutzerliste fehlt in der Serverantwort.');
+   runtime.users=d.users;runtime.revision=Number(d.revision||0);
+   if(!runtime.users.length)throw new Error('Es wurden keine ExportHUB-Benutzer gefunden.');
+   return runtime.users;
+  }catch(e){if(!firstError)firstError=e}
+ }
+ throw firstError||new Error('Benutzer konnten nicht geladen werden.');
+}
 function findUser(name,password){const n=lower(name);return runtime.users.find(function(u){return lower(u.user||u.login||u.username||u.name)===n&&text(u.password)===text(password)})||null}
 async function loadState(){progress(8,'Azure-Teamdaten werden geladen …');const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store'});if(!res.ok)throw new Error('Teamdaten konnten nicht geladen werden (HTTP '+res.status+').');const txt=await res.text();progress(18,'Teamdaten werden im Hintergrund verarbeitet …');const d=await parseLargeJson(txt);if(!d||d.ok===false)throw new Error((d&&d.message)||'Teamdaten ungültig');runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d}
 
@@ -77,7 +124,19 @@ function activateLegacyLogin(){const u=by('loginUser'),p=by('loginPass');if(u)u.
 async function queueSave(reason){runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){flushSave(reason)},700)}
 async function flushSave(reason){if(runtime.saving){runtime.pendingSave=true;return}const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return;runtime.saving=true;runtime.pendingSave=false;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';try{const payload={clientVersion:VERSION,baseRevision:runtime.revision,reason:reason||'save',state:getState(),users:typeof getUsers==='function'?getUsers():runtime.users};const d=await jsonFetch(API+'?ack=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});runtime.revision=Number(d.revision||runtime.revision);if(info)info.textContent='Dauerhaft in Azure gespeichert · '+new Date().toLocaleTimeString('de-DE')}catch(e){if(info)info.textContent='Nicht gespeichert: '+e.message;alert('Die Änderung konnte nicht dauerhaft in Azure gespeichert werden.\n\n'+e.message)}finally{runtime.saving=false;if(runtime.pendingSave)queueSave('queued')}}
 
-async function login(){if(runtime.loading)return;const name=by('loginUser')&&by('loginUser').value,pass=by('loginPass')&&by('loginPass').value;if(!runtime.ms){status('Bitte zuerst mit dem Microsoft-Konto anmelden.','bad');return}const user=findUser(name,pass);if(!user){status('Benutzername oder Passwort ist falsch.','bad');return}runtime.user=user;status('Anmeldung bestätigt. ExportHUB wird geladen …','ok');try{await loadState();await loadLegacy()}catch(e){hideProgress();status('ExportHUB konnte nicht geladen werden: '+e.message,'bad');console.error(e)}}
+async function login(){
+ if(runtime.loading)return;
+ const name=by('loginUser')&&by('loginUser').value,pass=by('loginPass')&&by('loginPass').value;
+ if(!runtime.ms){
+  status('Microsoft-Anmeldung wird erneut geprüft …','');
+  await loadMicrosoft();
+  if(!runtime.ms){status('Bitte zuerst mit dem Microsoft-Konto anmelden.','bad');return}
+  try{await loadUsers();setLoginEnabled(true)}catch(e){status('Benutzer konnten nicht geladen werden: '+e.message,'bad');return}
+ }
+ const user=findUser(name,pass);if(!user){status('Benutzername oder Passwort ist falsch.','bad');return}
+ runtime.user=user;status('Anmeldung bestätigt. ExportHUB wird geladen …','ok');
+ try{await loadState();await loadLegacy()}catch(e){hideProgress();status('ExportHUB konnte nicht geladen werden: '+e.message,'bad');console.error(e)}
+}
 function bindLogin(){const btn=by('loginBtn');if(btn)btn.addEventListener('click',function(e){if(!runtime.loaded){e.preventDefault();e.stopImmediatePropagation();login()}},true);['loginUser','loginPass'].forEach(function(id){const e=by(id);if(e)e.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!runtime.loaded){ev.preventDefault();login()}},true)})}
 
 window.ExportHUBClean={VERSION:VERSION,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,native:native,runtime:runtime};
@@ -86,5 +145,13 @@ window.__EXPORTHUB_RC467__=true;
 window.__EXPORTHUB_RC466_MEMORY_STORAGE__=true;
 window.addEventListener('error',function(e){console.error('ExportHUB Clean Fehler',e.error||e.message)});
 
-document.addEventListener('DOMContentLoaded',async function(){setVersion();bindLogin();const app=by('app'),loginBox=by('login');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');await loadMicrosoft();try{await loadUsers();status('Anmeldung bereit.','ok')}catch(e){status('Benutzer konnten nicht geladen werden: '+e.message,'bad')}});
+document.addEventListener('DOMContentLoaded',async function(){
+ setVersion();bindLogin();setLoginEnabled(false);
+ const app=by('app'),loginBox=by('login');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');
+ const p=await loadMicrosoft();
+ if(!p){status('Bitte zuerst mit dem Microsoft-Konto anmelden.','');return}
+ status('ExportHUB-Benutzer werden geladen …','');
+ try{await loadUsers();setLoginEnabled(true);status('Anmeldung bereit.','ok')}
+ catch(e){setLoginEnabled(false);status('Benutzer konnten nicht geladen werden: '+e.message,'bad')}
+});
 })();
