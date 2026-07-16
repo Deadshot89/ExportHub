@@ -77,9 +77,45 @@ async function uploadJson(blob, value, etag) {
   const conditions = etag ? { ifMatch: etag } : { ifNoneMatch: '*' };
   return blob.upload(body, Buffer.byteLength(body), {
     blobHTTPHeaders: { blobContentType: 'application/json; charset=utf-8' },
+    metadata: {
+      schema: String(value.schemaVersion || 2),
+      revision: String(value.revision || 0),
+      updatedepoch: String(Date.parse(value.updatedAt || '') || Date.now()),
+      clientversion: String(value.clientVersion || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80)
+    },
     conditions
   });
 }
+
+async function metadataOnly(blob) {
+  try {
+    const properties = await blob.getProperties();
+    const metadata = properties.metadata || {};
+    if (metadata.revision !== undefined) {
+      return {
+        schemaVersion: Number(metadata.schema || 2),
+        revision: Number(metadata.revision || 0),
+        updatedAt: metadata.updatedepoch ? new Date(Number(metadata.updatedepoch)).toISOString() : (properties.lastModified || null),
+        clientVersion: metadata.clientversion || null
+      };
+    }
+    const stored = await downloadJson(blob);
+    const value = stored.value || emptyDocument();
+    try {
+      await blob.setMetadata({
+        schema: String(value.schemaVersion || 2),
+        revision: String(value.revision || 0),
+        updatedepoch: String(Date.parse(value.updatedAt || '') || Date.now()),
+        clientversion: String(value.clientVersion || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80)
+      });
+    } catch (_) {}
+    return { schemaVersion: Number(value.schemaVersion || 2), revision: Number(value.revision || 0), updatedAt: value.updatedAt || null, clientVersion: value.clientVersion || null };
+  } catch (error) {
+    if (error && error.statusCode === 404) return { schemaVersion: 2, revision: 0, updatedAt: null, clientVersion: null };
+    throw error;
+  }
+}
+
 
 function emptyDocument() {
   return {
@@ -150,6 +186,12 @@ module.exports = async function (context, req) {
   try {
     const blob = await blobClient();
     if (req.method === 'GET') {
+      const metaRequested = req.query && (String(req.query.meta || '') === '1' || String(req.query.mode || '').toLowerCase() === 'meta');
+      if (metaRequested) {
+        const meta = await metadataOnly(blob);
+        context.res = json(200, Object.assign({ ok: true, metaOnly: true }, meta));
+        return;
+      }
       const stored = await downloadJson(blob);
       const document = stored.value || emptyDocument();
       context.res = json(200, Object.assign({ ok: true }, document));
