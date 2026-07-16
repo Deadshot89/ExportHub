@@ -75,6 +75,27 @@ function authoritativeUsers(existingUsers) {
   ];
 }
 
+
+
+function normalizedOwner(value) {
+  return lower(value).replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function isSevastianTask(task) {
+  const owner = normalizedOwner(task && task.owner);
+  const effective = normalizedOwner(task && task.eowner);
+  return ['sevastian','sebastian','sevastion','sevastain'].includes(owner) ||
+    ['sevastian','sebastian','sevastion','sevastain'].includes(effective) ||
+    !!(task && (task.rc187RestoredSevastian || task.rc86RestoredSevastian));
+}
+
+function applyTaskPolicy(state) {
+  const source = state && typeof state === 'object' ? state : {};
+  if (Array.isArray(source.tasks)) source.tasks = source.tasks.filter((task) => !isSevastianTask(task));
+  if (normalizedOwner(source.taskFilter) === 'sevastian') source.taskFilter = 'Alle Aufgaben anzeigen';
+  return source;
+}
+
 function applyUserPolicy(document) {
   const source = document && typeof document === 'object' ? clone(document) : {};
   const candidates = [
@@ -84,8 +105,9 @@ function applyUserPolicy(document) {
   const users = authoritativeUsers(candidates);
   source.users = clone(users);
   source.state = source.state && typeof source.state === 'object' ? source.state : {};
+  source.state = applyTaskPolicy(source.state);
   source.state.users = clone(users);
   return source;
 }
 
-module.exports = { MODULES, authoritativeUsers, applyUserPolicy };
+module.exports = { MODULES, authoritativeUsers, applyUserPolicy, applyTaskPolicy, isSevastianTask };
