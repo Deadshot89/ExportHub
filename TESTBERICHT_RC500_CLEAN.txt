@@ -1,0 +1,25 @@
+TESTBERICHT RC500 CLEAN FOUNDATION
+
+Quelle: RC467 als Funktions-/Layoutreferenz
+Statische HTML-Größe: 477,850 Bytes
+Legacy-Skripte ausgewählt: 213 von 226
+Legacy-Gruppen: 16
+Legacy-Code: 3,783,051 Zeichen
+Übersprungene Start-/Sync-Blöcke: [0, 1, 2, 3, 4, 5, 6, 132, 177, 206, 211, 212, 225]
+
+Prüfungen:
+- Alle Style- und Layoutblöcke aus RC467 erhalten.
+- Alle ursprünglichen Body-Bereiche erhalten.
+- Login wird ohne Legacy-Skripte ausgeliefert.
+- Vollständige Teamdaten werden erst nach internem Login angefordert.
+- Azure-only Speicherung im Clean-Controller vorhanden.
+- ExportHUB-localStorage wird nur als flüchtiger Arbeitsspeicher emuliert.
+- IndexedDB wird nicht als ExportHUB-Datenspeicher verwendet.
+- Legacy-Observer werden über einen einzelnen nativen Observer multiplexed.
+- Legacy-Intervalle werden über einen einzelnen Scheduler ausgeführt.
+- QR/API-Dateien aus RC467-Paket übernommen.
+
+Hinweis:
+Dies ist die erste bereinigte Grundlage. Wegen der sehr großen historisch gewachsenen Funktionsmenge ist ein echter Live-Funktionstest nach Azure-Deployment erforderlich. Die Architektur verhindert, dass RC467 bereits vor dem Login den Browser blockiert.
+
+Zusätzliche Syntaxprüfung: clean-bootstrap.js, alle Legacy-Gruppen und alle Azure-API-Dateien mit node --check bestanden.

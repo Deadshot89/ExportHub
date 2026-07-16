@@ -1,8 +1,3 @@
-ExportHUB Private RC440 – Azure Static Web Apps
-
 app_location: "/"
 api_location: "api"
 output_location: ""
-
-Azure Anwendungseinstellung:
-EXPORTHUB_STORAGE_CONNECTION_STRING

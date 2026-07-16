@@ -1,0 +1,8 @@
+TESTBERICHT RC501 CLEAN
+
+- Microsoft-Anmeldung wird vor dem Benutzerabruf geprüft.
+- Kein API-Aufruf für Benutzer ohne bestätigte Microsoft-Sitzung.
+- Fallback von ?mode=login auf /api/exporthub/state.
+- HTML-/Auth-Antworten werden als verständliche Anmeldungsmeldung behandelt.
+- Doppelte Microsoft-Anmeldekarte ausgeblendet.
+- JavaScript-Syntaxprüfung bestanden.
