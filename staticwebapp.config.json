@@ -1,6 +1,24 @@
 {
   "routes": [
     {
+      "route": "/index.html",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
+      "route": "/assets/exporthub-ui-rc520.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
+      "route": "/assets/clean-bootstrap.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
       "route": "/api/pickup-init",
       "allowedRoles": [
         "authenticated"

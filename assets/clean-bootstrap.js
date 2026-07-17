@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const VERSION='RC519';
-const LOGIN_RETURN='/?v=519';
+const VERSION='RC520';
+const LOGIN_RETURN='/?v=520';
 const API='/api/exporthub/state';
 const native={
   fetch:window.fetch.bind(window),
@@ -19,6 +19,20 @@ function lower(v){return text(v).toLowerCase()}
 function status(msg,kind){const e=by('cleanLoginStatus');if(!e)return;e.textContent=msg||'';e.className='clean-login-status '+(kind||'')}
 function progress(p,msg){const panel=by('cleanLoadPanel'),bar=by('cleanProgressBar'),lab=by('cleanProgressLabel'),txt=by('cleanLoadText');if(panel)panel.classList.remove('hidden');if(bar)bar.style.width=Math.max(0,Math.min(100,p))+'%';if(lab)lab.textContent=Math.round(p)+' %';if(txt&&msg)txt.textContent=msg}
 function hideProgress(){const p=by('cleanLoadPanel');if(p)p.classList.add('hidden')}
+function rc520StyleHealth(){
+ const app=by('app'),side=document.querySelector('.sidebar');
+ let ok=false;
+ try{ok=!!app&&getComputedStyle(app).display==='grid'&&!!side&&/gradient/i.test(getComputedStyle(side).backgroundImage||'')}catch(_){ok=false}
+ if(ok){document.documentElement.removeAttribute('data-rc520-style-fallback');return Promise.resolve(true)}
+ document.documentElement.setAttribute('data-rc520-style-fallback','1');
+ let link=by('rc520MainStyles');
+ if(!link){link=document.createElement('link');link.id='rc520MainStyles';link.rel='stylesheet';document.head.appendChild(link)}
+ link.href='assets/exporthub-ui-rc520.css?v=520&retry='+Date.now();
+ return fetch('assets/exporthub-ui-rc520.css?v=520',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
+  let st=by('rc520StyleFallback');if(!st){st=document.createElement('style');st.id='rc520StyleFallback';document.head.appendChild(st)}st.textContent=css;
+  return true
+ }).catch(function(e){console.error('RC520 Design konnte nicht nachgeladen werden',e);return false})
+}
 function authLoginUrl(){
  const u=new URL('/.auth/login/aad',window.location.origin);
  u.searchParams.set('post_login_redirect_uri',LOGIN_RETURN);
@@ -248,21 +262,21 @@ async function runScripts(entries){for(let i=0;i<entries.length;i++){await runOn
 async function loadScript(src){return new Promise(function(resolve,reject){const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=function(){reject(new Error('Modul konnte nicht geladen werden: '+src))};document.head.appendChild(s)})}
 async function cleanYield(ms){return new Promise(function(resolve){if(window.requestIdleCallback){requestIdleCallback(function(){native.setTimeout(resolve,ms||20)},{timeout:500})}else native.setTimeout(resolve,ms||40)})}
 
-function rc519FinalFixes(){
+function rc520FinalFixes(){
  try{
-  document.title='ExportHUB RC519';
+  document.title='ExportHUB RC520';
   document.querySelectorAll('body *').forEach(function(el){
    if(el.children&&el.children.length)return;
    var t=String(el.textContent||'');
    if(/Private RC463|Private RC\d+|ExportHUB Private RC\d+/.test(t)){
-    el.textContent=t.replace(/ExportHUB Private RC\d+/g,'ExportHUB RC519').replace(/Private RC\d+/g,'RC519');
+    el.textContent=t.replace(/ExportHUB Private RC\d+/g,'ExportHUB RC520').replace(/Private RC\d+/g,'RC520');
    }
   });
  }catch(_){ }
  // Prevent the legacy RC463 presentation patch from overwriting newer areas again.
  try{
   if(typeof window.rc463Patch==='function'){
-   window.__RC519_ORIGINAL_RC463_PATCH__=window.rc463Patch;
+   window.__RC520_ORIGINAL_RC463_PATCH__=window.rc463Patch;
    window.rc463Patch=function(){return true};
   }
  }catch(_){ }
@@ -291,7 +305,7 @@ function rc519FinalFixes(){
    },20);
   },true);
  }catch(_){ }
- window.__EXPORTHUB_RC519__=true;
+ window.__EXPORTHUB_RC520__=true;
 }
 
 async function loadLegacy(){
@@ -314,7 +328,8 @@ async function loadLegacy(){
  await cleanYield(120);
  activateLegacyLogin();
  await cleanYield(180);
- rc519FinalFixes();
+ rc520FinalFixes();
+ await rc520StyleHealth();
  await cleanYield(80);
  const discardedStartupTimers=runtime.timeoutJobs.size;
  runtime.timeoutJobs.clear();
@@ -380,7 +395,7 @@ window.__EXPORTHUB_RC466_MEMORY_STORAGE__=true;
 window.addEventListener('error',function(e){console.error('ExportHUB Clean Fehler',e.error||e.message)});
 
 document.addEventListener('DOMContentLoaded',async function(){
- setVersion();bindMicrosoftControls();bindLogin();setLoginEnabled(false);
+ await rc520StyleHealth();setVersion();bindMicrosoftControls();bindLogin();setLoginEnabled(false);
  const app=by('app'),loginBox=by('login');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');
  const p=await loadMicrosoft();
  if(!p){status('Bitte zuerst mit dem Microsoft-Konto anmelden.','');return}
