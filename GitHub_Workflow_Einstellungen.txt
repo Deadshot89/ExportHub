@@ -1,3 +1,0 @@
-app_location: "/"
-api_location: "api"
-output_location: ""
