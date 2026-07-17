@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC530',cache:'530',loginReturn:'/?v=530'};
-const VERSION=String(BUILD.version||'RC530');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC531',cache:'531',loginReturn:'/?v=531'};
+const VERSION=String(BUILD.version||'RC531');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -31,13 +31,13 @@ function rc524StyleHealth(){
  try{ok=!!app&&getComputedStyle(app).display==='grid'&&!!side&&/gradient/i.test(getComputedStyle(side).backgroundImage||'')}catch(_){ok=false}
  if(ok){document.documentElement.removeAttribute('data-rc524-style-fallback');return Promise.resolve(true)}
  document.documentElement.setAttribute('data-rc524-style-fallback','1');
- let link=by('rc530MainStyles');
- if(!link){link=document.createElement('link');link.id='rc530MainStyles';link.rel='stylesheet';document.head.appendChild(link)}
- link.href='assets/exporthub-ui-rc530.css?v='+CACHE+'&retry='+Date.now();
- return fetch('assets/exporthub-ui-rc530.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
+ let link=by('rc531MainStyles');
+ if(!link){link=document.createElement('link');link.id='rc531MainStyles';link.rel='stylesheet';document.head.appendChild(link)}
+ link.href='assets/exporthub-ui-rc531.css?v='+CACHE+'&retry='+Date.now();
+ return fetch('assets/exporthub-ui-rc531.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC530 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC531 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -304,7 +304,7 @@ async function loadState(){
  window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d
 }
 
-function runOne(entry){return new Promise(function(resolve){native.setTimeout(function(){runtime.currentModuleId=Number(entry.id)||0;try{const s=document.createElement('script');s.dataset.cleanLegacy=String(entry.id);s.text=entry.code+'\n//# sourceURL=exporthub-legacy-'+entry.id+'.js';document.head.appendChild(s);s.remove();if(Number(entry.id)===148){window.__RC530_CORE_SHOW_DOCUMENTS__=window.rc390ShowDocuments;window.__RC530_CORE_LOADLIST_PDF__=window.rc390DownloadLoadlistPdf;window.__RC530_CORE_LOADLIST_PAGE2_PDF__=window.rc390DownloadLoadlistPage2Pdf;window.__RC530_CORE_PRINT_DOCUMENTS__=window.rc390PrintDocuments}}catch(e){console.error('Legacy-Modul '+entry.id,e)}finally{runtime.currentModuleId=0}resolve()},0)})}
+function runOne(entry){return new Promise(function(resolve){native.setTimeout(function(){runtime.currentModuleId=Number(entry.id)||0;try{const s=document.createElement('script');s.dataset.cleanLegacy=String(entry.id);s.text=entry.code+'\n//# sourceURL=exporthub-legacy-'+entry.id+'.js';document.head.appendChild(s);s.remove();if(Number(entry.id)===148){window.__RC531_CORE_SHOW_DOCUMENTS__=window.rc390ShowDocuments;window.__RC531_CORE_LOADLIST_PDF__=window.rc390DownloadLoadlistPdf;window.__RC531_CORE_LOADLIST_PAGE2_PDF__=window.rc390DownloadLoadlistPage2Pdf;window.__RC531_CORE_PRINT_DOCUMENTS__=window.rc390PrintDocuments}}catch(e){console.error('Legacy-Modul '+entry.id,e)}finally{runtime.currentModuleId=0}resolve()},0)})}
 async function runScripts(entries){for(let i=0;i<entries.length;i++){await runOne(entries[i]);if(i%5===4)await new Promise(function(r){if(window.requestIdleCallback)requestIdleCallback(function(){r()},{timeout:80});else native.setTimeout(r,8)})}}
 async function loadScript(src){return new Promise(function(resolve,reject){const s=document.createElement('script');s.src=src+(String(src).indexOf('?')>=0?'&':'?')+'v='+encodeURIComponent(CACHE);s.async=false;s.onload=resolve;s.onerror=function(){reject(new Error('Modul konnte nicht geladen werden: '+src))};document.head.appendChild(s)})}
 async function cleanYield(ms){return new Promise(function(resolve){if(window.requestIdleCallback){requestIdleCallback(function(){native.setTimeout(resolve,ms||20)},{timeout:500})}else native.setTimeout(resolve,ms||40)})}
@@ -352,7 +352,7 @@ function rc524FinalFixes(){
    },20);
   },true);
  }catch(_){ }
- window.__EXPORTHUB_RC530__=true;
+ window.__EXPORTHUB_RC531__=true;
 }
 
 function quarantineLegacyBackground(){
@@ -380,7 +380,7 @@ function stampChanges(baseState,currentState,baseUsers,currentUsers){const now=n
 function markDeleted(collection,id,extra){id=text(id);if(!id)return null;const state=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||(runtime.state={});const meta=state._teamSyncMeta||(state._teamSyncMeta={fields:{},tombstones:[]});meta.tombstones=Array.isArray(meta.tombstones)?meta.tombstones:[];const now=new Date().toISOString(),key=lower(collection)+':'+lower(id);let found=false;meta.tombstones=meta.tombstones.map(function(item){if(item&&lower(item.collection)+':'+lower(item.id)===key){found=true;return Object.assign({},item,extra||{},{collection:collection,id:id,deletedAt:now,deletedBy:text(runtime.user&&(runtime.user.name||runtime.user.user)),deviceId:runtime.deviceId})}return item});if(!found)meta.tombstones.push(Object.assign({collection:collection,id:id,deletedAt:now,deletedBy:text(runtime.user&&(runtime.user.name||runtime.user.user)),deviceId:runtime.deviceId},extra||{}));runtime.dirty=true;return now}
 function mutateObject(target,source,preserveLocal){if(!isObject(target)||!isObject(source))return;const preserved={};if(preserveLocal)LOCAL_UI_KEYS.forEach(function(key){if(Object.prototype.hasOwnProperty.call(target,key))preserved[key]=target[key]});Object.keys(target).forEach(function(key){if(!preserveLocal||!LOCAL_UI_KEYS.has(key))delete target[key]});Object.keys(source).forEach(function(key){if(!LOCAL_UI_KEYS.has(key))target[key]=clone(source[key])});Object.assign(target,preserved)}
 function refreshCurrentUser(){const users=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;const key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));const fresh=(Array.isArray(users)?users:[]).find(function(u){return lower(u.user||u.login||u.username||u.name)===key})||runtime.user;runtime.user=fresh;try{window.currentUser=fresh;if(typeof currentUser!=='undefined')currentUser=fresh}catch(_){}}
-function applyRemoteDocument(doc,reason){if(!doc||!isObject(doc.state)||(runtime.saving&&reason!=='concurrent-merge'))return false;runtime.applyingRemote=true;try{const state=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state;if(isObject(state))mutateObject(state,doc.state,true);runtime.state=state||clone(doc.state);const targetUsers=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;if(Array.isArray(targetUsers)){targetUsers.splice.apply(targetUsers,[0,targetUsers.length].concat((Array.isArray(doc.users)?doc.users:[]).map(clone)));runtime.users=targetUsers}else runtime.users=clone(doc.users||[]);runtime.revision=Number(doc.revision||runtime.revision);runtime.lastSnapshot=clone(doc.state);runtime.lastUsers=clone(doc.users||runtime.users);runtime.dirty=false;runtime.remoteApplyCount++;window.__CLEAN_BOOT_USERS__=runtime.users;refreshCurrentUser();if(window.ExportHUBRC530&&typeof window.ExportHUBRC530.restoreUsers==='function')window.ExportHUBRC530.restoreUsers();if(typeof window.render==='function')window.render();setVersion();window.dispatchEvent(new CustomEvent('exporthub:sync',{detail:{revision:runtime.revision,reason:reason||'poll'}}));return true}finally{runtime.applyingRemote=false}}
+function applyRemoteDocument(doc,reason){if(!doc||!isObject(doc.state)||(runtime.saving&&reason!=='concurrent-merge'))return false;runtime.applyingRemote=true;try{const state=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state;if(isObject(state))mutateObject(state,doc.state,true);runtime.state=state||clone(doc.state);const targetUsers=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;if(Array.isArray(targetUsers)){targetUsers.splice.apply(targetUsers,[0,targetUsers.length].concat((Array.isArray(doc.users)?doc.users:[]).map(clone)));runtime.users=targetUsers}else runtime.users=clone(doc.users||[]);runtime.revision=Number(doc.revision||runtime.revision);runtime.lastSnapshot=clone(doc.state);runtime.lastUsers=clone(doc.users||runtime.users);runtime.dirty=false;runtime.remoteApplyCount++;window.__CLEAN_BOOT_USERS__=runtime.users;refreshCurrentUser();if(window.ExportHUBRC531&&typeof window.ExportHUBRC531.restoreUsers==='function')window.ExportHUBRC531.restoreUsers();if(typeof window.render==='function')window.render();setVersion();window.dispatchEvent(new CustomEvent('exporthub:sync',{detail:{revision:runtime.revision,reason:reason||'poll'}}));return true}finally{runtime.applyingRemote=false}}
 async function pollRevision(){if(!runtime.ready||runtime.polling||runtime.saving||runtime.dirty||runtime.pendingSave)return;runtime.polling=true;runtime.lastPollAt=Date.now();try{runtime.network.metaGets++;const meta=await jsonFetch(API+'?meta=1');if(Number(meta.revision||0)>runtime.revision){runtime.network.stateGets++;const doc=await jsonFetch(API);applyRemoteDocument(doc,'revision-poll')}}catch(e){console.warn('Live-Synchronisierung pausiert',e.message)}finally{runtime.polling=false}}
 function startRevisionPolling(){if(runtime.pollTimer)return;runtime.pollTimer=native.setInterval(pollRevision,3000);native.setTimeout(pollRevision,800)}
 function ensureUserDisplay(){const name=text(runtime.user&&(runtime.user.name||runtime.user.user||runtime.user.login));const profile=document.querySelector('.profile');if(profile&&name&&!lower(profile.textContent).includes(lower(name))){let strong=profile.querySelector('strong');if(!strong){strong=document.createElement('strong');profile.prepend(strong)}strong.textContent=name}document.documentElement.setAttribute('data-exporthub-user',name)}
@@ -410,7 +410,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC530&&typeof window.ExportHUBRC530.install==='function')window.ExportHUBRC530.install()}catch(e){console.error('RC530 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if(window.ExportHUBRC531&&typeof window.ExportHUBRC531.install==='function')window.ExportHUBRC531.install()}catch(e){console.error('RC531 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network};
  await signalReady();
 
