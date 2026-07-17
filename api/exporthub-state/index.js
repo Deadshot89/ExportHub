@@ -8,7 +8,7 @@ const {
   pruneTombstones,
   clone
 } = require('../shared/merge');
-const { applyUserPolicy } = require('../shared/user-policy');
+const { applyUserPolicy, countAdmins } = require('../shared/user-policy');
 
 const CONTAINER_NAME = process.env.EXPORTHUB_STORAGE_CONTAINER || 'exporthub-data';
 const BLOB_NAME = process.env.EXPORTHUB_STORAGE_BLOB || 'team-state.json';
@@ -79,7 +79,7 @@ async function uploadJson(blob, value, etag) {
   return blob.upload(body, Buffer.byteLength(body), {
     blobHTTPHeaders: { blobContentType: 'application/json; charset=utf-8' },
     metadata: {
-      schema: String(value.schemaVersion || 2),
+      schema: String(value.schemaVersion || 3),
       revision: String(value.revision || 0),
       updatedepoch: String(Date.parse(value.updatedAt || '') || Date.now()),
       clientversion: String(value.clientVersion || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80)
@@ -94,7 +94,7 @@ async function metadataOnly(blob) {
     const metadata = properties.metadata || {};
     if (metadata.revision !== undefined) {
       return {
-        schemaVersion: Number(metadata.schema || 2),
+        schemaVersion: Number(metadata.schema || 3),
         revision: Number(metadata.revision || 0),
         updatedAt: metadata.updatedepoch ? new Date(Number(metadata.updatedepoch)).toISOString() : (properties.lastModified || null),
         clientVersion: metadata.clientversion || null
@@ -104,15 +104,15 @@ async function metadataOnly(blob) {
     const value = stored.value || emptyDocument();
     try {
       await blob.setMetadata({
-        schema: String(value.schemaVersion || 2),
+        schema: String(value.schemaVersion || 3),
         revision: String(value.revision || 0),
         updatedepoch: String(Date.parse(value.updatedAt || '') || Date.now()),
         clientversion: String(value.clientVersion || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80)
       });
     } catch (_) {}
-    return { schemaVersion: Number(value.schemaVersion || 2), revision: Number(value.revision || 0), updatedAt: value.updatedAt || null, clientVersion: value.clientVersion || null };
+    return { schemaVersion: Number(value.schemaVersion || 3), revision: Number(value.revision || 0), updatedAt: value.updatedAt || null, clientVersion: value.clientVersion || null };
   } catch (error) {
-    if (error && error.statusCode === 404) return { schemaVersion: 2, revision: 0, updatedAt: null, clientVersion: null };
+    if (error && error.statusCode === 404) return { schemaVersion: 3, revision: 0, updatedAt: null, clientVersion: null };
     throw error;
   }
 }
@@ -120,7 +120,7 @@ async function metadataOnly(blob) {
 
 function emptyDocument() {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     revision: 0,
     updatedAt: null,
     updatedBy: null,
@@ -150,8 +150,15 @@ async function saveMerged(blob, incoming, actor) {
     const current = currentDownload.value || emptyDocument();
     const mergedState = pruneTombstones(mergeState(current.state || {}, incoming.state || {}));
     const mergedUsers = mergeUsers(current.users || [], incoming.users || [], mergedState._teamSyncMeta || {});
+    if (countAdmins(current.users || []) > 0 && countAdmins(mergedUsers) === 0) {
+      const error = new Error('Der letzte Administrator kann nicht gelöscht oder herabgestuft werden.');
+      error.code = 'LAST_ADMIN_PROTECTED';
+      error.statusCode = 409;
+      throw error;
+    }
+    mergedState.users = clone(mergedUsers);
     const next = applyUserPolicy({
-      schemaVersion: 2,
+      schemaVersion: 3,
       revision: Number(current.revision || 0) + 1,
       updatedAt: new Date().toISOString(),
       updatedBy: actor,
@@ -162,6 +169,8 @@ async function saveMerged(blob, incoming, actor) {
     });
     try {
       await uploadJson(blob, next, currentDownload.etag);
+      next.concurrentMerge = Number(incoming.baseRevision || 0) !== Number(current.revision || 0);
+      next.baseRevision = Number(incoming.baseRevision || 0);
       return next;
     } catch (error) {
       if (error && error.statusCode === 412 && attempt < MAX_RETRIES - 1) continue;
@@ -200,7 +209,7 @@ module.exports = async function (context, req) {
         context.res = json(200, {
           ok: true,
           loginOnly: true,
-          schemaVersion: Number(document.schemaVersion || 2),
+          schemaVersion: Number(document.schemaVersion || 3),
           revision: Number(document.revision || 0),
           updatedAt: document.updatedAt || null,
           users: Array.isArray(document.users) ? document.users : []
@@ -216,14 +225,20 @@ module.exports = async function (context, req) {
       const saved = await saveMerged(blob, incoming, displayName(principal));
       const ackOnly = req.query && (String(req.query.ack || '') === '1' || String(req.query.mode || '').toLowerCase() === 'ack');
       if (ackOnly) {
-        context.res = json(200, {
+        const body = {
           ok: true,
           ackOnly: true,
-          schemaVersion: Number(saved.schemaVersion || 2),
+          schemaVersion: Number(saved.schemaVersion || 3),
           revision: Number(saved.revision || 0),
           updatedAt: saved.updatedAt || null,
-          updatedBy: saved.updatedBy || null
-        });
+          updatedBy: saved.updatedBy || null,
+          concurrentMerge: saved.concurrentMerge === true
+        };
+        if (saved.concurrentMerge === true) {
+          body.state = saved.state;
+          body.users = saved.users;
+        }
+        context.res = json(200, body);
         return;
       }
       context.res = json(200, Object.assign({ ok: true }, saved));
@@ -233,7 +248,7 @@ module.exports = async function (context, req) {
     context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED' }, { Allow: 'GET, POST, OPTIONS' });
   } catch (error) {
     context.log.error('ExportHUB state API error', error);
-    const status = error && error.code === 'STORAGE_NOT_CONFIGURED' ? 503 : 500;
+    const status = error && error.code === 'STORAGE_NOT_CONFIGURED' ? 503 : (error && error.statusCode ? error.statusCode : 500);
     context.res = json(status, {
       ok: false,
       code: error && error.code ? error.code : 'SERVER_ERROR',
