@@ -1,0 +1,36 @@
+ExportHUB CLEAN RC517 – TESTBERICHT
+===================================
+Testdatum: 17.07.2026
+
+Geprüfter Schwerpunkt
+- Browserabsturz während des Starts
+- Azure-Speicherung während Start und Navigation
+- sichtbarer JavaScript-Quelltext / beschädigte HTML-Struktur
+- Stabilität bei großem Teamdatenbestand
+
+Testergebnisse
+1. Start mit 25 MB simulierten Azure-Team- und Dokumentdaten: bestanden.
+2. Ladeablauf bis 100 Prozent: bestanden.
+3. Azure-Schreibvorgänge während des Starts: 0.
+4. Azure-Schreibvorgänge beim Wechsel durch 20 Hauptbereiche: 0.
+5. Hauptbereiche erfolgreich geöffnet:
+   Dashboard, Aufgaben, Urlaub, Sendung erstellen, ABD, Sendungsübersicht,
+   Ladeliste/CMR, Palettenkonto, Kunden/Dokumente, Kundenordner, UPS-Rechner,
+   Zollwissen, SOP, Academy, Prüfung, Ideenpool, Update, Benutzer/Rechte,
+   Sammelmodus und Archiv.
+6. Echte Änderung über den Ideenpool: sichtbar übernommen und genau einmal
+   dauerhaft an die Azure-API gesendet.
+7. Größe der geprüften Speicherung: 26.297.759 Byte.
+8. Nach der Speicherung: keine aktiven Alt-Intervalle, Alt-Observer oder
+   aufgestauten Timer.
+9. Leerlauftest nach Start und Speicherung: bestanden; Browser blieb
+   ansprechbar, keine wiederholten Speicherungen.
+10. HTML-/JavaScript-Strukturprüfung: bestanden; kein Quelltext als Seitentext.
+11. Benutzeranzeige: Name und Rolle werden nach Anmeldung korrekt angezeigt.
+
+Technische Konsolidierung
+- Aktiv geladen werden der vollständige Anwendungskern sowie die einzeln
+  geprüften Korrekturen RC394 bis RC406.
+- Historische Zwischenpatches bleiben im Paket als Ausgangsmaterial erhalten,
+  werden aber nicht mehr automatisch ausgeführt, weil sie dieselben Funktionen
+  mehrfach überschreiben und den Browserabsturz auslösen.

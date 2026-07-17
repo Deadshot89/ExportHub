@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const VERSION='RC506';
-const LOGIN_RETURN='/?v=506';
+const VERSION='RC517';
+const LOGIN_RETURN='/?v=517';
 const API='/api/exporthub/state';
 const native={
   fetch:window.fetch.bind(window),
@@ -11,7 +11,7 @@ const native={
   clearInterval:window.clearInterval.bind(window),
   MutationObserver:window.MutationObserver
 };
-const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,saveTimer:null,saving:false,pendingSave:false,observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:['assets/legacy/group-10.js']};
+const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,startupComplete:false,saveTimer:null,saving:false,pendingSave:false,observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:['historische Zwischenpatches mit mehrfachen Render-, Timer- und Speicherwrappers werden nicht gestartet'],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null};
 
 function by(id){return document.getElementById(id)}
 function text(v){return String(v==null?'':v).trim()}
@@ -40,11 +40,12 @@ async function fetchWithTimeout(url,options,timeoutMs){
 function addSafeLoadNote(){
  const panel=by('cleanLoadPanel'); if(!panel||by('cleanSafeLoadNote'))return;
  const n=document.createElement('div'); n.id='cleanSafeLoadNote'; n.className='clean-safe-note';
- n.textContent='Stabiler Start: Der fehlerhafte Altblock RC374–RC393 wird nicht geladen.';
+ n.textContent='Stabiler Start: Veraltete Reparaturschleifen und Mehrfachspeicherungen bleiben deaktiviert.';
  panel.appendChild(n);
 }
 
-function setVersion(){document.title='ExportHUB Clean '+VERSION;document.querySelectorAll('[id*=version i],[class*=version i]').forEach(function(e){if(/Private RC\d+|Aktuelle Version/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/Private RC\d+/gi,'Private '+VERSION).replace(/RC\d+/gi,VERSION)});const login=document.querySelector('.login-card');if(login&&!by('cleanVersionBadge')){const d=document.createElement('div');d.id='cleanVersionBadge';d.className='clean-version-badge';d.textContent='Bereinigte Version · '+VERSION;login.appendChild(d)}}
+function applyUserIdentity(){if(!runtime.user)return;const name=text(runtime.user.name||runtime.user.user||runtime.user.login)||'Benutzer';const role=text(runtime.user.role)||'Benutzer';const brand=by('brandUserLine'),profile=by('profileName'),profileRole=by('profileRole');if(brand)brand.textContent='ExportHUB-Benutzer: '+name;if(profile)profile.textContent=name;if(profileRole)profileRole.textContent=role+' · Azure-Teamdaten'}
+function setVersion(){document.title='ExportHUB Clean '+VERSION;document.querySelectorAll('[id*=version i],[class*=version i]').forEach(function(e){if(/Private RC\d+|Aktuelle Version/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/Private RC\d+/gi,'Private '+VERSION).replace(/RC\d+/gi,VERSION)});const login=document.querySelector('.login-card');if(login&&!by('cleanVersionBadge')){const d=document.createElement('div');d.id='cleanVersionBadge';d.className='clean-version-badge';d.textContent='Bereinigte Version · '+VERSION;login.appendChild(d)}applyUserIdentity()}
 
 // ExportHUB keys are kept in memory only. Nothing is persisted in localStorage/IndexedDB.
 const mem=new Map();
@@ -69,7 +70,7 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
   try{
    const url=typeof input==='string'?input:(input&&input.url)||'';
    const method=String((options&&options.method)||(input&&input.method)||'GET').toUpperCase();
-   if((runtime.loading||!runtime.loaded)&&method!=='GET'&&method!=='HEAD'&&/\/api\/exporthub\/state/i.test(url)){
+   if(!runtime.startupComplete&&method!=='GET'&&method!=='HEAD'&&/\/api\/exporthub\/state/i.test(url)){
     return Promise.resolve(new Response(JSON.stringify({ok:true,skipped:true,startup:true,revision:runtime.revision}),{status:200,headers:{'Content-Type':'application/json'}}));
    }
   }catch(_){ }
@@ -82,7 +83,7 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
  if(!native.MutationObserver)return;
  const records=runtime.observerRecords;
  class CleanObserver{
-  constructor(cb){this.cb=cb;this.targets=[];this.active=true;this.last=0;this.fail=0;records.add(this)}
+  constructor(cb){this.cb=cb;this.targets=[];this.active=true;this.last=0;this.fail=0;this.moduleId=runtime.currentModuleId||0;records.add(this)}
   observe(target,options){if(target)this.targets.push({target:target,options:options||{}})}
   disconnect(){this.active=false;records.delete(this)}
   takeRecords(){return[]}
@@ -90,17 +91,80 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
  window.MutationObserver=CleanObserver;
  let scheduled=false,queue=[];
  function relevant(rec,muts){if(!rec.targets.length)return true;return muts.some(function(m){return rec.targets.some(function(t){try{return t.target===m.target||t.target.contains(m.target)}catch(_){return false}})})}
- function drain(deadline){if(runtime.loading||!runtime.loaded){queue.length=0;scheduled=false;return}let count=0;while(queue.length&&count<5&&(!deadline||deadline.timeRemaining()>3)){const item=queue.shift(),now=Date.now();if(!item.active||now-item.last<700)continue;item.last=now;try{item.cb([],item);item.fail=0}catch(e){item.fail++;if(item.fail>3)item.disconnect()}count++}if(queue.length){scheduleDrain()}else scheduled=false}
- function scheduleDrain(){if(window.requestIdleCallback)window.requestIdleCallback(drain,{timeout:500});else native.setTimeout(function(){drain(null)},50)}
- const hub=new native.MutationObserver(function(muts){records.forEach(function(rec){if(rec.active&&relevant(rec,muts)&&queue.indexOf(rec)<0)queue.push(rec)});if(!scheduled&&queue.length){scheduled=true;scheduleDrain()}native.setTimeout(setVersion,50)});
+ function drain(deadline){if(runtime.loading||!runtime.loaded){queue.length=0;scheduled=false;return}let count=0;while(queue.length&&count<1&&(!deadline||deadline.timeRemaining()>3)){const item=queue.shift(),now=Date.now();if(!item.active||now-item.last<2500)continue;item.last=now;try{item.cb([],item);item.fail=0}catch(e){item.fail++;if(item.fail>2)item.disconnect()}count++}if(queue.length){scheduleDrain()}else scheduled=false}
+ function scheduleDrain(){native.setTimeout(function(){if(window.requestIdleCallback)window.requestIdleCallback(drain,{timeout:700});else drain(null)},250)}
+ const hub=new native.MutationObserver(function(muts){
+  if(!runtime.loading&&runtime.loaded){records.forEach(function(rec){if(rec.active&&relevant(rec,muts)&&queue.indexOf(rec)<0)queue.push(rec)});if(!scheduled&&queue.length){scheduled=true;scheduleDrain()}}
+  if(runtime.versionTimer)native.clearTimeout(runtime.versionTimer);
+  runtime.versionTimer=native.setTimeout(function(){runtime.versionTimer=null;setVersion()},180);
+ });
  hub.observe(document.documentElement,{childList:true,subtree:true,attributes:true});
 })();
 
-// One scheduler replaces all legacy intervals; minimum cadence 5 seconds.
+// One throttled scheduler replaces legacy timeouts. During startup callbacks are queued,
+// deduplicated and never executed. After the interface is visible they are released gradually.
+(function installTimeoutHub(){
+ function sourceKey(fn,args){
+  try{
+   if(typeof fn==='function'){
+    let id=runtime.timeoutSourceIds.get(fn);
+    if(!id){id=runtime.timeoutSourceSeq++;runtime.timeoutSourceIds.set(fn,id)}
+    return 'f:'+id+':'+JSON.stringify(args||[]);
+   }
+   return 's:'+String(fn)+':'+JSON.stringify(args||[]);
+  }catch(_){return 'x:'+runtime.timeoutSeq}
+ }
+ function removeJob(id){const j=runtime.timeoutJobs.get(id);if(!j)return false;runtime.timeoutJobs.delete(id);return true}
+ window.setTimeout=function(fn,delay){
+  const args=[].slice.call(arguments,2),id=runtime.timeoutSeq++,now=Date.now();
+  const d=Math.max(0,Number(delay)||0),startup=runtime.loading||!runtime.loaded||!runtime.legacyTimersReady;
+  const key=startup?sourceKey(fn,args):'';
+  if(startup&&key){
+   for(const [oldId,old] of runtime.timeoutJobs){
+    if(old.startup&&old.key===key){runtime.timeoutJobs.delete(oldId);runtime.droppedStartupTimers++;break}
+   }
+  }
+  runtime.timeoutJobs.set(id,{fn:fn,args:args,due:now+d,startup:startup,key:key,created:now,moduleId:runtime.currentModuleId||0});
+  return id
+ };
+ window.clearTimeout=function(id){if(removeJob(id))return;try{native.clearTimeout(id)}catch(_){ }};
+ native.setInterval(function(){
+  if(runtime.loading||!runtime.loaded||!runtime.legacyTimersReady)return;
+  const now=Date.now(),due=[];
+  runtime.timeoutJobs.forEach(function(j,id){if(j.due<=now)due.push([id,j])});
+  due.sort(function(a,b){return a[1].due-b[1].due||a[1].created-b[1].created});
+  const maxPerTick=3;
+  for(let i=0;i<due.length&&i<maxPerTick;i++){
+   const id=due[i][0],j=due[i][1];runtime.timeoutJobs.delete(id);
+   try{typeof j.fn==='function'?j.fn.apply(window,j.args):(0,eval)(String(j.fn))}
+   catch(e){console.warn('Legacy-Timer verworfen',e)}
+  }
+ },50);
+})();
+
+// Legacy intervals are delayed, staggered and executed one at a time.
+// Old repair loops do not start together immediately after login.
 (function installIntervalHub(){
- window.setInterval=function(fn,delay){const args=[].slice.call(arguments,2),id=runtime.intervalSeq++;runtime.intervalJobs.set(id,{fn:fn,args:args,delay:Math.max(5000,Number(delay)||5000),last:Date.now()});return id};
+ window.setInterval=function(fn,delay){
+  const args=[].slice.call(arguments,2),id=runtime.intervalSeq++;
+  runtime.intervalJobs.set(id,{fn:fn,args:args,delay:Math.max(30000,Number(delay)||30000),nextDue:Infinity,moduleId:runtime.currentModuleId||0});
+  return id
+ };
  window.clearInterval=function(id){runtime.intervalJobs.delete(id)};
- native.setInterval(function(){if(runtime.loading||!runtime.loaded)return;const now=Date.now();runtime.intervalJobs.forEach(function(j,id){if(now-j.last>=j.delay){j.last=now;try{typeof j.fn==='function'?j.fn.apply(window,j.args):(0,eval)(String(j.fn))}catch(_){runtime.intervalJobs.delete(id)}}})},1000);
+ runtime.armLegacyIntervals=function(){
+  if(runtime.intervalsArmed)return;runtime.intervalsArmed=true;
+  const now=Date.now();let pos=0;
+  runtime.intervalJobs.forEach(function(j){j.nextDue=now+30000+(pos++*2500)});
+ };
+ native.setInterval(function(){
+  if(runtime.loading||!runtime.loaded||!runtime.legacyTimersReady||!runtime.intervalsArmed)return;
+  const now=Date.now();let selected=null,selectedId=null;
+  runtime.intervalJobs.forEach(function(j,id){if(j.nextDue<=now&&(!selected||j.nextDue<selected.nextDue)){selected=j;selectedId=id}});
+  if(!selected)return;
+  selected.nextDue=now+selected.delay;
+  try{typeof selected.fn==='function'?selected.fn.apply(window,selected.args):(0,eval)(String(selected.fn))}
+  catch(_){runtime.intervalJobs.delete(selectedId)}
+ },1000);
 })();
 
 async function jsonFetch(url,options){
@@ -180,7 +244,7 @@ async function loadUsers(){
 function findUser(name,password){const n=lower(name);return runtime.users.find(function(u){return lower(u.user||u.login||u.username||u.name)===n&&text(u.password)===text(password)})||null}
 async function loadState(){progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store'});if(!res.ok)throw new Error('Teamdaten konnten nicht geladen werden (HTTP '+res.status+').');const txt=await res.text();progress(18,'Teamdaten werden im Hintergrund verarbeitet …');const d=await parseLargeJson(txt);if(!d||d.ok===false)throw new Error((d&&d.message)||'Teamdaten ungültig');runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d}
 
-function runOne(entry){return new Promise(function(resolve){native.setTimeout(function(){try{const s=document.createElement('script');s.dataset.cleanLegacy=String(entry.id);s.text=entry.code+'\n//# sourceURL=exporthub-legacy-'+entry.id+'.js';document.head.appendChild(s);s.remove()}catch(e){console.error('Legacy-Modul '+entry.id,e)}resolve()},0)})}
+function runOne(entry){return new Promise(function(resolve){native.setTimeout(function(){runtime.currentModuleId=Number(entry.id)||0;try{const s=document.createElement('script');s.dataset.cleanLegacy=String(entry.id);s.text=entry.code+'\n//# sourceURL=exporthub-legacy-'+entry.id+'.js';document.head.appendChild(s);s.remove()}catch(e){console.error('Legacy-Modul '+entry.id,e)}finally{runtime.currentModuleId=0}resolve()},0)})}
 async function runScripts(entries){for(let i=0;i<entries.length;i++){await runOne(entries[i]);if(i%3===2)await new Promise(function(r){if(window.requestIdleCallback)requestIdleCallback(function(){r()},{timeout:120});else native.setTimeout(r,20)})}}
 async function loadScript(src){return new Promise(function(resolve,reject){const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=function(){reject(new Error('Modul konnte nicht geladen werden: '+src))};document.head.appendChild(s)})}
 async function cleanYield(ms){return new Promise(function(resolve){if(window.requestIdleCallback){requestIdleCallback(function(){native.setTimeout(resolve,ms||20)},{timeout:500})}else native.setTimeout(resolve,ms||40)})}
@@ -200,17 +264,33 @@ async function loadLegacy(){
   await cleanYield(100);
  }
  runtime.loaded=true;runtime.loading=false;
- window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice()};
  progress(94,'Anmeldung und Oberfläche werden aktiviert …');
  await cleanYield(120);
  activateLegacyLogin();
- progress(100,'ExportHUB ist bereit.');
- native.setTimeout(hideProgress,650)
+ await cleanYield(180);
+ // The legacy login calls save()/saveUsers() while the full Azure state is still being activated.
+ // Discard those startup writes before allowing any real serialization or POST.
+ if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}
+ runtime.pendingSave=false;
+ const discardedStartupTimers=runtime.timeoutJobs.size;
+ runtime.timeoutJobs.clear();
+ runtime.droppedStartupTimers+=discardedStartupTimers;
+ const discardedObservers=runtime.observerRecords.size;
+ runtime.observerRecords.forEach(function(o){o.active=false});
+ runtime.observerRecords.clear();
+ const discardedIntervals=runtime.intervalJobs.size;
+ runtime.intervalJobs.clear();
+ runtime.legacyTimersReady=true;
+ runtime.startupComplete=true;
+ window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size};
+ progress(100,'ExportHUB ist bereit. Der konsolidierte Programmstand wurde geladen.');
+ const loadedInfo=by('saveInfo');if(loadedInfo)loadedInfo.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE');
+ native.setTimeout(hideProgress,850)
 }
-function activateLegacyLogin(){const u=by('loginUser'),p=by('loginPass');if(u)u.value=runtime.user.user||runtime.user.login||runtime.user.name||'';if(p)p.value=runtime.user.password||'';try{if(typeof window.rc430StrictLogin==='function')window.rc430StrictLogin();else if(by('loginBtn'))by('loginBtn').click()}catch(e){console.error(e)}const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');setVersion();native.setTimeout(setVersion,250)}
+function activateLegacyLogin(){const u=by('loginUser'),p=by('loginPass');if(u)u.value=runtime.user.user||runtime.user.login||runtime.user.name||'';if(p)p.value=runtime.user.password||'';try{if(typeof window.rc430StrictLogin==='function')window.rc430StrictLogin();else if(by('loginBtn'))by('loginBtn').click()}catch(e){console.error(e)}const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');applyUserIdentity();setVersion();native.setTimeout(function(){applyUserIdentity();setVersion()},250)}
 
-async function queueSave(reason){if(runtime.loading||!runtime.loaded)return;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){flushSave(reason)},700)}
-async function flushSave(reason){if(runtime.loading||!runtime.loaded)return;if(runtime.saving){runtime.pendingSave=true;return}const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return;runtime.saving=true;runtime.pendingSave=false;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';try{const payload={clientVersion:VERSION,baseRevision:runtime.revision,reason:reason||'save',state:getState(),users:typeof getUsers==='function'?getUsers():runtime.users};const d=await jsonFetch(API+'?ack=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});runtime.revision=Number(d.revision||runtime.revision);if(info)info.textContent='Dauerhaft in Azure gespeichert · '+new Date().toLocaleTimeString('de-DE')}catch(e){if(info)info.textContent='Nicht gespeichert: '+e.message;alert('Die Änderung konnte nicht dauerhaft in Azure gespeichert werden.\n\n'+e.message)}finally{runtime.saving=false;if(runtime.pendingSave)queueSave('queued')}}
+async function queueSave(reason){if(window.__EXPORTHUB_NAVIGATION__)return;if(!runtime.startupComplete||runtime.loading||!runtime.loaded)return;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){flushSave(reason)},1800)}
+async function flushSave(reason){if(!runtime.startupComplete||runtime.loading||!runtime.loaded)return;if(runtime.saving){runtime.pendingSave=true;return}const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return;runtime.saving=true;runtime.pendingSave=false;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';try{const payload={clientVersion:VERSION,baseRevision:runtime.revision,reason:reason||'save',state:getState(),users:typeof getUsers==='function'?getUsers():runtime.users};const d=await jsonFetch(API+'?ack=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});runtime.revision=Number(d.revision||runtime.revision);if(info)info.textContent='Dauerhaft in Azure gespeichert · '+new Date().toLocaleTimeString('de-DE')}catch(e){if(info)info.textContent='Nicht gespeichert: '+e.message;alert('Die Änderung konnte nicht dauerhaft in Azure gespeichert werden.\n\n'+e.message)}finally{runtime.saving=false;if(runtime.pendingSave)queueSave('queued')}}
 
 async function login(){
  if(runtime.loading)return;

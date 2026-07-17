@@ -7,101 +7,10 @@
     "bytes": 642718
   },
   {
-    "src": "assets/legacy/group-02.js",
-    "first": 8,
-    "last": 28,
-    "count": 21,
-    "bytes": 226915
-  },
-  {
-    "src": "assets/legacy/group-03.js",
-    "first": 29,
-    "last": 47,
-    "count": 19,
-    "bytes": 226809
-  },
-  {
-    "src": "assets/legacy/group-04.js",
-    "first": 48,
-    "last": 70,
-    "count": 23,
-    "bytes": 226907
-  },
-  {
-    "src": "assets/legacy/group-05.js",
-    "first": 71,
-    "last": 86,
-    "count": 16,
-    "bytes": 220657
-  },
-  {
-    "src": "assets/legacy/group-06.js",
-    "first": 87,
-    "last": 98,
-    "count": 12,
-    "bytes": 225461
-  },
-  {
-    "src": "assets/legacy/group-07.js",
-    "first": 99,
-    "last": 113,
-    "count": 15,
-    "bytes": 229267
-  },
-  {
-    "src": "assets/legacy/group-08.js",
-    "first": 114,
-    "last": 127,
-    "count": 14,
-    "bytes": 217910
-  },
-  {
-    "src": "assets/legacy/group-09.js",
-    "first": 128,
-    "last": 141,
-    "count": 13,
-    "bytes": 213077
-  },
-  {
     "src": "assets/legacy/group-11.js",
     "first": 151,
     "last": 159,
     "count": 9,
     "bytes": 226358
-  },
-  {
-    "src": "assets/legacy/group-12.js",
-    "first": 160,
-    "last": 170,
-    "count": 11,
-    "bytes": 170329
-  },
-  {
-    "src": "assets/legacy/group-13.js",
-    "first": 171,
-    "last": 171,
-    "count": 1,
-    "bytes": 197782
-  },
-  {
-    "src": "assets/legacy/group-14.js",
-    "first": 172,
-    "last": 181,
-    "count": 9,
-    "bytes": 228284
-  },
-  {
-    "src": "assets/legacy/group-15.js",
-    "first": 182,
-    "last": 217,
-    "count": 33,
-    "bytes": 218653
-  },
-  {
-    "src": "assets/legacy/group-16.js",
-    "first": 218,
-    "last": 224,
-    "count": 7,
-    "bytes": 90456
   }
 ]
