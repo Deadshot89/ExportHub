@@ -4,13 +4,69 @@
     "first": 7,
     "last": 7,
     "count": 1,
-    "bytes": 642718
+    "bytes": 648116
   },
   {
-    "src": "assets/legacy/group-11.js",
+    "src": "assets/legacy/group-02-modern-foundation.js",
+    "first": 99,
+    "last": 114,
+    "count": 16,
+    "bytes": 260353
+  },
+  {
+    "src": "assets/legacy/group-03-docs-shipment.js",
+    "first": 117,
+    "last": 131,
+    "count": 15,
+    "bytes": 235987
+  },
+  {
+    "src": "assets/legacy/group-04-modern-ui-mail.js",
+    "first": 133,
+    "last": 150,
+    "count": 15,
+    "bytes": 217715
+  },
+  {
+    "src": "assets/legacy/group-05-views-rights-mail.js",
     "first": 151,
-    "last": 159,
+    "last": 170,
+    "count": 19,
+    "bytes": 358116
+  },
+  {
+    "src": "assets/legacy/group-06-pdf-engine.js",
+    "first": 171,
+    "last": 171,
+    "count": 1,
+    "bytes": 198689
+  },
+  {
+    "src": "assets/legacy/group-07-stow-mail-actions.js",
+    "first": 172,
+    "last": 184,
     "count": 9,
-    "bytes": 226358
+    "bytes": 147530
+  },
+  {
+    "src": "assets/legacy/group-08-online-team-reports.js",
+    "first": 192,
+    "last": 205,
+    "count": 12,
+    "bytes": 94629
+  },
+  {
+    "src": "assets/legacy/group-09-final-functions.js",
+    "first": 210,
+    "last": 224,
+    "count": 12,
+    "bytes": 159635
+  },
+  {
+    "src": "assets/legacy/group-10-rc518-final-fixes.js",
+    "first": 518,
+    "last": 518,
+    "count": 1,
+    "bytes": 6094
   }
 ]

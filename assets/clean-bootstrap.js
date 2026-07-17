@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const VERSION='RC517';
-const LOGIN_RETURN='/?v=517';
+const VERSION='RC518';
+const LOGIN_RETURN='/?v=518';
 const API='/api/exporthub/state';
 const native={
   fetch:window.fetch.bind(window),
@@ -11,7 +11,7 @@ const native={
   clearInterval:window.clearInterval.bind(window),
   MutationObserver:window.MutationObserver
 };
-const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,startupComplete:false,saveTimer:null,saving:false,pendingSave:false,observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:['historische Zwischenpatches mit mehrfachen Render-, Timer- und Speicherwrappers werden nicht gestartet'],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null};
+const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,startupComplete:false,saveTimer:null,saving:false,pendingSave:false,observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:['frühe historische Zwischenpatches bis RC393 werden nicht gestartet; moderne Funktionsmodule und der vollständige Endstand sind aktiv'],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null};
 
 function by(id){return document.getElementById(id)}
 function text(v){return String(v==null?'':v).trim()}
@@ -283,7 +283,8 @@ async function loadLegacy(){
  runtime.legacyTimersReady=true;
  runtime.startupComplete=true;
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size};
- progress(100,'ExportHUB ist bereit. Der konsolidierte Programmstand wurde geladen.');
+ setVersion();try{Object.defineProperty(document,'title',{configurable:true,get:function(){return 'ExportHUB Clean '+VERSION},set:function(){var t=document.querySelector('title');if(t)t.textContent='ExportHUB Clean '+VERSION}})}catch(_){ }
+ progress(100,'ExportHUB ist bereit. Der vollständige Funktionsstand wurde geladen.');
  const loadedInfo=by('saveInfo');if(loadedInfo)loadedInfo.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE');
  native.setTimeout(hideProgress,850)
 }
