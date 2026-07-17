@@ -1,0 +1,9 @@
+ExportHUB Clean RC503 – Testbericht
+
+- JavaScript-Syntax clean-bootstrap.js: bestanden
+- Microsoft-Anmeldelink ist bereits ohne JavaScript im HTML vorhanden: bestanden
+- Absolute Azure-AAD-Anmelde-URL wird beim Klick erzeugt: bestanden
+- /.auth/me Statusprüfung bricht nach 4,5 Sekunden kontrolliert ab: bestanden
+- Anmeldebutton bleibt bei Timeout verfügbar: bestanden
+- Authentifizierte Microsoft-Antwort schaltet internen Login frei: bestanden
+- Nicht authentifizierte Antwort lässt internen Login gesperrt: bestanden
