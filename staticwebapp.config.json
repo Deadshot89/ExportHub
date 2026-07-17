@@ -13,19 +13,19 @@
       }
     },
     {
-      "route": "/assets/exporthub-ui-rc521.css",
+      "route": "/assets/exporthub-ui-rc530.css",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
       }
     },
     {
-      "route": "/assets/exporthub-rc524.css",
+      "route": "/assets/exporthub-rc530.css",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
       }
     },
     {
-      "route": "/assets/rc524-core.js",
+      "route": "/assets/rc530-core.js",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
       }

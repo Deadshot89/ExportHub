@@ -1,0 +1,90 @@
+/* RC524 – konsolidierte Funktions- und Layoutkorrekturen */
+#rc455LocalFirstNote,#rc430Overdue,#rc430PreviewActions{display:none!important}
+.rc524-page{display:grid;gap:18px;min-width:0}
+.rc524-page-head,.rc524-area-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.rc524-page-head h1,.rc524-area-head h2{margin:.15rem 0 .35rem}
+.rc524-page-head p{margin:0;color:var(--muted,#667085);max-width:850px}
+.rc524-kicker{display:block;font-size:.76rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#315da8}
+.rc524-area{margin-top:16px!important;min-width:0}
+.rc524-mail{border-left:5px solid #39a96b!important;background:linear-gradient(180deg,#f4fff8,#fff)!important}
+.rc524-stow{border-left:5px solid #3478c7!important;background:linear-gradient(180deg,#f4f8ff,#fff)!important}
+.rc524-grid-2,.rc524-link-columns,.rc524-rights-layout,.rc524-sop-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rc524-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.rc524-metrics>div{padding:14px;border:1px solid #dce3ee;border-radius:12px;background:#fff;display:grid;gap:4px}
+.rc524-metrics span{font-size:.78rem;color:#667085;text-transform:uppercase;letter-spacing:.04em}
+.rc524-metrics strong{font-size:1.1rem;color:#172033}
+.rc524-table-wrap{width:100%;overflow:auto;border:1px solid #dce3ee;border-radius:12px;background:#fff}
+.rc524-table{width:100%;border-collapse:collapse;min-width:680px}
+.rc524-table th,.rc524-table td{padding:10px 12px;border-bottom:1px solid #e8edf4;text-align:left;vertical-align:top}
+.rc524-table th{background:#f5f7fb;color:#364152;font-size:.82rem;position:sticky;top:0}
+.rc524-card-list{display:grid;gap:16px}
+.rc524-shipment-card{display:grid;gap:14px;border:1px solid #dce3ee!important;box-shadow:0 8px 24px rgba(18,38,63,.06)}
+.rc524-overview-meta{display:flex;flex-wrap:wrap;gap:10px 22px;padding:12px;border-radius:10px;background:#f7f9fc}
+.rc524-action-grid{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px}
+.rc524-upload{display:flex;align-items:center;justify-content:center;min-height:42px;padding:8px 12px;border:1px dashed #7594c7;border-radius:9px;background:#f5f8ff;font-weight:700;cursor:pointer;text-align:center}
+.rc524-upload input{position:absolute;inline-size:1px;block-size:1px;opacity:0;pointer-events:none}
+.rc524-link-columns>section{border:1px solid #dce3ee;border-radius:12px;padding:14px;min-width:0}
+.rc524-link-columns h3{margin-top:0}
+.rc524-file-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf0f5;min-width:0}
+.rc524-file-row>span{overflow-wrap:anywhere}
+.rc524-file-row:last-child{border-bottom:0}
+.rc524-dangerbar{justify-content:flex-end;border-top:1px solid #edf0f5;padding-top:12px}
+.rc524-party-banner{display:grid;gap:4px;margin:14px 0;padding:16px;border:1px solid #b7c9e7;border-radius:12px;background:#f4f8ff}
+.rc524-party-banner span{font-size:.75rem;text-transform:uppercase;color:#315da8;font-weight:800}
+.rc524-party-banner strong{font-size:1.2rem}
+.rc524-party-banner small{color:#667085}
+.rc524-portal-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px}
+.rc524-portal-grid .card{display:flex;flex-direction:column;gap:10px;min-width:0}
+.rc524-portal-grid h3,.rc524-portal-grid p{margin:0}
+.rc524-portal-grid .btn{margin-top:auto;text-align:center}
+.rc524-sop-layout{grid-template-columns:minmax(250px,.75fr) minmax(0,2fr)}
+.rc524-sop-list,.rc524-user-list{display:grid;gap:8px;max-height:680px;overflow:auto}
+.rc524-sop-list button,.rc524-user-list button{border:1px solid #dce3ee;background:#fff;padding:11px 12px;border-radius:9px;text-align:left;cursor:pointer;color:#26364d}
+.rc524-sop-list button.active,.rc524-user-list button.active{background:#eaf1ff;border-color:#6f95d0;color:#173c73}
+.rc524-user-list button{display:grid;gap:2px}
+.rc524-user-list small{color:#667085}
+.rc524-sop-detail ol{display:grid;gap:10px;padding-left:24px}
+.rc524-sop-detail li{padding:10px 12px;border-radius:9px;background:#f7f9fc;line-height:1.45}
+.rc524-rights-layout{grid-template-columns:minmax(220px,.55fr) minmax(0,2fr)}
+.rc524-training-view{display:grid!important;gap:16px!important;max-width:none!important}
+.rc524-training-view .card,.rc524-training-view section{min-width:0}
+.rc524-training-head{padding:18px 20px;border:1px solid #dce3ee;border-radius:14px;background:linear-gradient(135deg,#f4f8ff,#fff)}
+.rc524-training-head h1{margin:.2rem 0 .4rem}
+.rc524-modal{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:rgba(10,20,35,.62)}
+.rc524-dialog{width:min(820px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+.rc524-dialog h2{margin-top:0}
+.ghost.danger,.danger{border-color:#c94444!important;color:#a11c1c!important}
+@media(max-width:1100px){.rc524-portal-grid{grid-template-columns:repeat(3,minmax(150px,1fr))}.rc524-action-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}}
+@media(max-width:760px){.rc524-grid-2,.rc524-link-columns,.rc524-rights-layout,.rc524-sop-layout,.rc524-metrics{grid-template-columns:1fr}.rc524-portal-grid{grid-template-columns:1fr 1fr}.rc524-action-grid{grid-template-columns:1fr}.rc524-page-head>.btn{width:100%}.rc524-file-row{align-items:flex-start;flex-direction:column}.rc524-table{min-width:620px}}
+@media(max-width:480px){.rc524-portal-grid{grid-template-columns:1fr}.rc524-page-head,.rc524-area-head{display:grid}.rc524-page{gap:12px}}
+
+/* RC524 Benutzer- und Prüfungsansicht: gegen alte globale Button-Regeln absichern */
+.rc524-user-list button{display:grid!important;grid-template-columns:1fr!important;gap:3px!important;width:100%!important;min-height:58px!important;padding:11px 13px!important;white-space:normal!important}
+.rc524-user-list button b,.rc524-user-list button small{display:block!important;width:100%!important;line-height:1.25!important}
+.rc524-user-list button small{font-size:.78rem!important;margin-top:2px!important}
+.rc524-rights-view .rights-table td:first-child{display:grid;gap:2px;min-width:210px}
+.rc524-rights-view .rights-table td:first-child small{display:block;color:#667085;font-size:.72rem;font-weight:600}
+.rc524-training-view h1{font-size:clamp(1.65rem,3vw,2.45rem)!important}
+.rc524-training-view .quiz-option{min-height:54px!important;padding:13px 15px!important;border-radius:12px!important}
+
+
+/* RC524: paginierte Sendungsübersicht und Synchronisationsstatus */
+.rc524-overview-controls{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:10px;align-items:end;margin:10px 0 14px}
+.rc524-overview-controls .field{margin:0}
+.rc524-overview-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#475569;font-weight:850}
+.rc524-pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:14px 0}
+.rc524-pagination button{min-width:42px}
+.rc524-shipment-list{content-visibility:auto;contain-intrinsic-size:1200px}
+.rc524-shipment-card{contain:layout style paint;content-visibility:auto;contain-intrinsic-size:180px}
+.rc524-live-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 10px;background:#ecfeff;color:#155e75;font-size:12px;font-weight:900}
+@media(max-width:760px){.rc524-overview-controls{grid-template-columns:1fr}.rc524-pagination{justify-content:flex-start}}
+
+.rc524-update-view{display:block;max-width:1180px;margin:0 auto}
+.rc524-update-card{padding:28px;border-radius:24px;background:linear-gradient(135deg,#fff,#eef7ff);box-shadow:0 18px 55px rgba(22,49,87,.12);border:1px solid rgba(31,104,184,.12)}
+.rc524-update-card h1{margin:.35rem 0 .25rem;font-size:clamp(1.8rem,4vw,3rem)}
+.rc524-update-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:22px}
+.rc524-update-grid article{display:flex;flex-direction:column;gap:7px;padding:18px;border-radius:18px;background:#fff;border:1px solid rgba(31,104,184,.12)}
+.rc524-update-grid strong{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#58708d}
+.rc524-update-grid span{font-weight:800;color:#102a52}
+@media(max-width:760px){.rc524-update-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:440px){.rc524-update-grid{grid-template-columns:1fr}}
