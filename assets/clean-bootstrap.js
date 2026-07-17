@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const VERSION='RC518';
-const LOGIN_RETURN='/?v=518';
+const VERSION='RC519';
+const LOGIN_RETURN='/?v=519';
 const API='/api/exporthub/state';
 const native={
   fetch:window.fetch.bind(window),
@@ -11,7 +11,7 @@ const native={
   clearInterval:window.clearInterval.bind(window),
   MutationObserver:window.MutationObserver
 };
-const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,startupComplete:false,saveTimer:null,saving:false,pendingSave:false,observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:['frühe historische Zwischenpatches bis RC393 werden nicht gestartet; moderne Funktionsmodule und der vollständige Endstand sind aktiv'],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null};
+const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,saveTimer:null,saving:false,pendingSave:false,observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:['assets/legacy/group-10.js'],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null};
 
 function by(id){return document.getElementById(id)}
 function text(v){return String(v==null?'':v).trim()}
@@ -40,12 +40,11 @@ async function fetchWithTimeout(url,options,timeoutMs){
 function addSafeLoadNote(){
  const panel=by('cleanLoadPanel'); if(!panel||by('cleanSafeLoadNote'))return;
  const n=document.createElement('div'); n.id='cleanSafeLoadNote'; n.className='clean-safe-note';
- n.textContent='Stabiler Start: Veraltete Reparaturschleifen und Mehrfachspeicherungen bleiben deaktiviert.';
+ n.textContent='Stabiler Start: Der fehlerhafte Altblock RC374–RC393 wird nicht geladen.';
  panel.appendChild(n);
 }
 
-function applyUserIdentity(){if(!runtime.user)return;const name=text(runtime.user.name||runtime.user.user||runtime.user.login)||'Benutzer';const role=text(runtime.user.role)||'Benutzer';const brand=by('brandUserLine'),profile=by('profileName'),profileRole=by('profileRole');if(brand)brand.textContent='ExportHUB-Benutzer: '+name;if(profile)profile.textContent=name;if(profileRole)profileRole.textContent=role+' · Azure-Teamdaten'}
-function setVersion(){document.title='ExportHUB Clean '+VERSION;document.querySelectorAll('[id*=version i],[class*=version i]').forEach(function(e){if(/Private RC\d+|Aktuelle Version/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/Private RC\d+/gi,'Private '+VERSION).replace(/RC\d+/gi,VERSION)});const login=document.querySelector('.login-card');if(login&&!by('cleanVersionBadge')){const d=document.createElement('div');d.id='cleanVersionBadge';d.className='clean-version-badge';d.textContent='Bereinigte Version · '+VERSION;login.appendChild(d)}applyUserIdentity()}
+function setVersion(){document.title='ExportHUB Clean '+VERSION;document.querySelectorAll('[id*=version i],[class*=version i]').forEach(function(e){if(/Private RC\d+|Aktuelle Version/i.test(e.textContent||''))e.textContent=(e.textContent||'').replace(/Private RC\d+/gi,'Private '+VERSION).replace(/RC\d+/gi,VERSION)});const login=document.querySelector('.login-card');if(login&&!by('cleanVersionBadge')){const d=document.createElement('div');d.id='cleanVersionBadge';d.className='clean-version-badge';d.textContent='Bereinigte Version · '+VERSION;login.appendChild(d)}}
 
 // ExportHUB keys are kept in memory only. Nothing is persisted in localStorage/IndexedDB.
 const mem=new Map();
@@ -70,7 +69,7 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
   try{
    const url=typeof input==='string'?input:(input&&input.url)||'';
    const method=String((options&&options.method)||(input&&input.method)||'GET').toUpperCase();
-   if(!runtime.startupComplete&&method!=='GET'&&method!=='HEAD'&&/\/api\/exporthub\/state/i.test(url)){
+   if((runtime.loading||!runtime.loaded)&&method!=='GET'&&method!=='HEAD'&&/\/api\/exporthub\/state/i.test(url)){
     return Promise.resolve(new Response(JSON.stringify({ok:true,skipped:true,startup:true,revision:runtime.revision}),{status:200,headers:{'Content-Type':'application/json'}}));
    }
   }catch(_){ }
@@ -248,6 +247,53 @@ function runOne(entry){return new Promise(function(resolve){native.setTimeout(fu
 async function runScripts(entries){for(let i=0;i<entries.length;i++){await runOne(entries[i]);if(i%3===2)await new Promise(function(r){if(window.requestIdleCallback)requestIdleCallback(function(){r()},{timeout:120});else native.setTimeout(r,20)})}}
 async function loadScript(src){return new Promise(function(resolve,reject){const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=function(){reject(new Error('Modul konnte nicht geladen werden: '+src))};document.head.appendChild(s)})}
 async function cleanYield(ms){return new Promise(function(resolve){if(window.requestIdleCallback){requestIdleCallback(function(){native.setTimeout(resolve,ms||20)},{timeout:500})}else native.setTimeout(resolve,ms||40)})}
+
+function rc519FinalFixes(){
+ try{
+  document.title='ExportHUB RC519';
+  document.querySelectorAll('body *').forEach(function(el){
+   if(el.children&&el.children.length)return;
+   var t=String(el.textContent||'');
+   if(/Private RC463|Private RC\d+|ExportHUB Private RC\d+/.test(t)){
+    el.textContent=t.replace(/ExportHUB Private RC\d+/g,'ExportHUB RC519').replace(/Private RC\d+/g,'RC519');
+   }
+  });
+ }catch(_){ }
+ // Prevent the legacy RC463 presentation patch from overwriting newer areas again.
+ try{
+  if(typeof window.rc463Patch==='function'){
+   window.__RC519_ORIGINAL_RC463_PATCH__=window.rc463Patch;
+   window.rc463Patch=function(){return true};
+  }
+ }catch(_){ }
+ // A new shipment must start completely empty, including customer/customer search.
+ try{
+  document.addEventListener('click',function(ev){
+   var b=ev.target&&ev.target.closest?ev.target.closest('button,a'):null;
+   if(!b||!/neue\s*sendung/i.test(String(b.textContent||'')))return;
+   native.setTimeout(function(){
+    var selectors=[
+     '#customerSearch','#shipmentCustomerSearch','#newShipmentCustomerSearch',
+     '#customerSelect','#shipmentCustomer','#customerId','#customerNo',
+     'input[name="customer"]','input[name="customerSearch"]','input[name="customerNumber"]',
+     '[data-field="customer"] input','[data-field="customerSearch"] input'
+    ];
+    selectors.forEach(function(sel){document.querySelectorAll(sel).forEach(function(e){
+     if(e.tagName==='SELECT')e.selectedIndex=0;else e.value='';
+     try{e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){ }
+    })});
+    try{
+     var st=typeof window.state!=='undefined'?window.state:null;
+     if(st&&st.currentShipment){
+      ['customerId','customerNo','customerNumber','customerName','customer','customerSearch'].forEach(function(k){st.currentShipment[k]=''});
+     }
+    }catch(_){ }
+   },20);
+  },true);
+ }catch(_){ }
+ window.__EXPORTHUB_RC519__=true;
+}
+
 async function loadLegacy(){
  if(runtime.loaded)return;
  runtime.loading=true;
@@ -268,10 +314,8 @@ async function loadLegacy(){
  await cleanYield(120);
  activateLegacyLogin();
  await cleanYield(180);
- // The legacy login calls save()/saveUsers() while the full Azure state is still being activated.
- // Discard those startup writes before allowing any real serialization or POST.
- if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}
- runtime.pendingSave=false;
+ rc519FinalFixes();
+ await cleanYield(80);
  const discardedStartupTimers=runtime.timeoutJobs.size;
  runtime.timeoutJobs.clear();
  runtime.droppedStartupTimers+=discardedStartupTimers;
@@ -281,17 +325,14 @@ async function loadLegacy(){
  const discardedIntervals=runtime.intervalJobs.size;
  runtime.intervalJobs.clear();
  runtime.legacyTimersReady=true;
- runtime.startupComplete=true;
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size};
- setVersion();try{Object.defineProperty(document,'title',{configurable:true,get:function(){return 'ExportHUB Clean '+VERSION},set:function(){var t=document.querySelector('title');if(t)t.textContent='ExportHUB Clean '+VERSION}})}catch(_){ }
- progress(100,'ExportHUB ist bereit. Der vollständige Funktionsstand wurde geladen.');
- const loadedInfo=by('saveInfo');if(loadedInfo)loadedInfo.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE');
+ progress(100,'ExportHUB ist bereit. Alte Hintergrundprozesse wurden beendet.');
  native.setTimeout(hideProgress,850)
 }
-function activateLegacyLogin(){const u=by('loginUser'),p=by('loginPass');if(u)u.value=runtime.user.user||runtime.user.login||runtime.user.name||'';if(p)p.value=runtime.user.password||'';try{if(typeof window.rc430StrictLogin==='function')window.rc430StrictLogin();else if(by('loginBtn'))by('loginBtn').click()}catch(e){console.error(e)}const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');applyUserIdentity();setVersion();native.setTimeout(function(){applyUserIdentity();setVersion()},250)}
+function activateLegacyLogin(){const u=by('loginUser'),p=by('loginPass');if(u)u.value=runtime.user.user||runtime.user.login||runtime.user.name||'';if(p)p.value=runtime.user.password||'';try{if(typeof window.rc430StrictLogin==='function')window.rc430StrictLogin();else if(by('loginBtn'))by('loginBtn').click()}catch(e){console.error(e)}const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');setVersion();native.setTimeout(setVersion,250)}
 
-async function queueSave(reason){if(window.__EXPORTHUB_NAVIGATION__)return;if(!runtime.startupComplete||runtime.loading||!runtime.loaded)return;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){flushSave(reason)},1800)}
-async function flushSave(reason){if(!runtime.startupComplete||runtime.loading||!runtime.loaded)return;if(runtime.saving){runtime.pendingSave=true;return}const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return;runtime.saving=true;runtime.pendingSave=false;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';try{const payload={clientVersion:VERSION,baseRevision:runtime.revision,reason:reason||'save',state:getState(),users:typeof getUsers==='function'?getUsers():runtime.users};const d=await jsonFetch(API+'?ack=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});runtime.revision=Number(d.revision||runtime.revision);if(info)info.textContent='Dauerhaft in Azure gespeichert · '+new Date().toLocaleTimeString('de-DE')}catch(e){if(info)info.textContent='Nicht gespeichert: '+e.message;alert('Die Änderung konnte nicht dauerhaft in Azure gespeichert werden.\n\n'+e.message)}finally{runtime.saving=false;if(runtime.pendingSave)queueSave('queued')}}
+async function queueSave(reason){if(runtime.loading||!runtime.loaded)return;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){flushSave(reason)},700)}
+async function flushSave(reason){if(runtime.loading||!runtime.loaded)return;if(runtime.saving){runtime.pendingSave=true;return}const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return;runtime.saving=true;runtime.pendingSave=false;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';try{const payload={clientVersion:VERSION,baseRevision:runtime.revision,reason:reason||'save',state:getState(),users:typeof getUsers==='function'?getUsers():runtime.users};const d=await jsonFetch(API+'?ack=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});runtime.revision=Number(d.revision||runtime.revision);if(info)info.textContent='Dauerhaft in Azure gespeichert · '+new Date().toLocaleTimeString('de-DE')}catch(e){if(info)info.textContent='Nicht gespeichert: '+e.message;alert('Die Änderung konnte nicht dauerhaft in Azure gespeichert werden.\n\n'+e.message)}finally{runtime.saving=false;if(runtime.pendingSave)queueSave('queued')}}
 
 async function login(){
  if(runtime.loading)return;

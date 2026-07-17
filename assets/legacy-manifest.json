@@ -4,69 +4,104 @@
     "first": 7,
     "last": 7,
     "count": 1,
-    "bytes": 648116
+    "bytes": 642718
   },
   {
-    "src": "assets/legacy/group-02-modern-foundation.js",
-    "first": 99,
-    "last": 114,
-    "count": 16,
-    "bytes": 260353
+    "src": "assets/legacy/group-02.js",
+    "first": 8,
+    "last": 28,
+    "count": 21,
+    "bytes": 226915
   },
   {
-    "src": "assets/legacy/group-03-docs-shipment.js",
-    "first": 117,
-    "last": 131,
-    "count": 15,
-    "bytes": 235987
-  },
-  {
-    "src": "assets/legacy/group-04-modern-ui-mail.js",
-    "first": 133,
-    "last": 150,
-    "count": 15,
-    "bytes": 217715
-  },
-  {
-    "src": "assets/legacy/group-05-views-rights-mail.js",
-    "first": 151,
-    "last": 170,
+    "src": "assets/legacy/group-03.js",
+    "first": 29,
+    "last": 47,
     "count": 19,
-    "bytes": 358116
+    "bytes": 226809
   },
   {
-    "src": "assets/legacy/group-06-pdf-engine.js",
+    "src": "assets/legacy/group-04.js",
+    "first": 48,
+    "last": 70,
+    "count": 23,
+    "bytes": 226907
+  },
+  {
+    "src": "assets/legacy/group-05.js",
+    "first": 71,
+    "last": 86,
+    "count": 16,
+    "bytes": 220657
+  },
+  {
+    "src": "assets/legacy/group-06.js",
+    "first": 87,
+    "last": 98,
+    "count": 12,
+    "bytes": 225461
+  },
+  {
+    "src": "assets/legacy/group-07.js",
+    "first": 99,
+    "last": 113,
+    "count": 15,
+    "bytes": 229267
+  },
+  {
+    "src": "assets/legacy/group-08.js",
+    "first": 114,
+    "last": 127,
+    "count": 14,
+    "bytes": 217910
+  },
+  {
+    "src": "assets/legacy/group-09.js",
+    "first": 128,
+    "last": 141,
+    "count": 13,
+    "bytes": 213077
+  },
+  {
+    "src": "assets/legacy/group-11.js",
+    "first": 151,
+    "last": 159,
+    "count": 9,
+    "bytes": 226358
+  },
+  {
+    "src": "assets/legacy/group-12.js",
+    "first": 160,
+    "last": 170,
+    "count": 11,
+    "bytes": 170329
+  },
+  {
+    "src": "assets/legacy/group-13.js",
     "first": 171,
     "last": 171,
     "count": 1,
-    "bytes": 198689
+    "bytes": 197782
   },
   {
-    "src": "assets/legacy/group-07-stow-mail-actions.js",
+    "src": "assets/legacy/group-14.js",
     "first": 172,
-    "last": 184,
+    "last": 181,
     "count": 9,
-    "bytes": 147530
+    "bytes": 228284
   },
   {
-    "src": "assets/legacy/group-08-online-team-reports.js",
-    "first": 192,
-    "last": 205,
-    "count": 12,
-    "bytes": 94629
+    "src": "assets/legacy/group-15.js",
+    "first": 182,
+    "last": 217,
+    "count": 33,
+    "bytes": 218653
   },
   {
-    "src": "assets/legacy/group-09-final-functions.js",
-    "first": 210,
+    "src": "assets/legacy/group-16.js",
+    "first": 218,
     "last": 224,
-    "count": 12,
-    "bytes": 159635
-  },
-  {
-    "src": "assets/legacy/group-10-rc518-final-fixes.js",
-    "first": 518,
-    "last": 518,
-    "count": 1,
-    "bytes": 6094
+    "count": 7,
+    "bytes": 90456
   }
 ]
