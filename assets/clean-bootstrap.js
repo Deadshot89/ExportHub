@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC532',cache:'532',loginReturn:'/?v=532'};
-const VERSION=String(BUILD.version||'RC532');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC533',cache:'533',loginReturn:'/?v=533'};
+const VERSION=String(BUILD.version||'RC533');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -33,11 +33,11 @@ function rc524StyleHealth(){
  document.documentElement.setAttribute('data-rc524-style-fallback','1');
  let link=by('rc532MainStyles');
  if(!link){link=document.createElement('link');link.id='rc532MainStyles';link.rel='stylesheet';document.head.appendChild(link)}
- link.href='assets/exporthub-ui-rc532.css?v='+CACHE+'&retry='+Date.now();
- return fetch('assets/exporthub-ui-rc532.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
+ link.href='assets/exporthub-ui-rc533.css?v='+CACHE+'&retry='+Date.now();
+ return fetch('assets/exporthub-ui-rc533.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC532 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC533 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -410,7 +410,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC532&&typeof window.ExportHUBRC532.install==='function')window.ExportHUBRC532.install()}catch(e){console.error('RC532 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if(window.ExportHUBRC532&&typeof window.ExportHUBRC532.install==='function')window.ExportHUBRC532.install()}catch(e){console.error('RC533 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network};
  await signalReady();
 
