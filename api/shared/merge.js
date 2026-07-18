@@ -3,7 +3,7 @@
 const COLLECTION_KEYS = {
   shipments: ['id', 'ref'],
   tasks: ['id', '_syncId'],
-  customers: ['id', 'account', 'customerNumber', 'name'],
+  customers: ['id', 'account', 'customerNumber', 'kundennummer', 'customerNo', 'no', 'name'],
   abdRequests: ['id', 'ref'],
   palletAccount: ['id', '_syncId'],
   vacations: ['id', '_syncId'],
@@ -38,6 +38,45 @@ function itemKey(item, fields, fallbackIndex) {
 function canonicalId(name, item, index) {
   const key = itemKey(item, COLLECTION_KEYS[name] || ['id', '_syncId'], index);
   return key.includes(':') ? key.slice(key.indexOf(':') + 1) : key;
+}
+
+function aliasValue(value) { return norm(value); }
+function recordAliases(name, item, index) {
+  if (!item || typeof item !== 'object') return [`index:${index}`];
+  const aliases = [];
+  const add = (prefix, value) => {
+    const normalized = aliasValue(value);
+    const key = normalized ? `${prefix}:${normalized}` : '';
+    if (key && !aliases.includes(key)) aliases.push(key);
+  };
+  if (name === 'customers') {
+    ['account', 'customerNumber', 'kundennummer', 'customerNo', 'no', 'number', 'debtorNumber'].forEach((field) => add('number', item[field]));
+    ['id', 'customerId', '_syncId'].forEach((field) => add('id', item[field]));
+    const namePart = aliasValue(item.name || item.customerName || item.deliveryName);
+    if (namePart) {
+      const country = aliasValue(item.country || item.land);
+      const postal = aliasValue(item.postalCode || item.zip || item.plz);
+      add('name', [namePart, country, postal].filter(Boolean).join('|'));
+      add('nameonly', namePart);
+    }
+  } else {
+    (COLLECTION_KEYS[name] || ['id', '_syncId']).forEach((field) => add(field, item[field]));
+  }
+  return aliases.length ? aliases : [`index:${index}`];
+}
+function aliasesOverlap(a, b) {
+  if (!a.length || !b.length) return false;
+  const set = new Set(a);
+  const common = b.filter((value) => set.has(value));
+  if (common.some((value) => /^(?:number|id):/.test(value))) return true;
+  const aNumbers = a.filter((value) => value.startsWith('number:'));
+  const bNumbers = b.filter((value) => value.startsWith('number:'));
+  const aIds = a.filter((value) => value.startsWith('id:'));
+  const bIds = b.filter((value) => value.startsWith('id:'));
+  // Gleicher Name darf widersprüchliche Kundennummern oder IDs niemals überstimmen.
+  if ((aNumbers.length && bNumbers.length) || (aIds.length && bIds.length)) return false;
+  // Fallback für den Übergang interne ID <-> Kundennummer: nur bei identischem Namen/Adressschlüssel.
+  return common.some((value) => value.startsWith('name:'));
 }
 function timestamp(value) {
   const candidates = [
@@ -144,26 +183,92 @@ function tombstoneFor(name, item, index, tombstones) {
   return null;
 }
 function mergeCollection(name, serverList, incomingList, tombstones) {
-  const keys = COLLECTION_KEYS[name] || ['id', '_syncId'];
-  const map = new Map();
+  const records = [];
   const ingest = (list) => {
-    (Array.isArray(list) ? list : []).forEach((item, index) => {
+    (Array.isArray(list) ? list : []).forEach((item, sourceIndex) => {
       if (!item || typeof item !== 'object') return;
-      const key = itemKey(item, keys, index);
-      const existing = map.get(key);
-      map.set(key, existing ? mergeRecordFields(existing, item, name) : clone(item));
+      const incomingAliases = recordAliases(name, item, sourceIndex);
+      const matches = [];
+      records.forEach((record, index) => {
+        if (aliasesOverlap(recordAliases(name, record, index), incomingAliases)) matches.push(index);
+      });
+      if (!matches.length) {
+        records.push(clone(item));
+        return;
+      }
+      let merged = clone(records[matches[0]]);
+      for (let i = matches.length - 1; i >= 1; i -= 1) {
+        const index = matches[i];
+        merged = mergeRecordFields(merged, records[index], name);
+        records.splice(index, 1);
+      }
+      merged = mergeRecordFields(merged, item, name);
+      records[matches[0]] = merged;
     });
   };
   ingest(serverList);
   ingest(incomingList);
-  const out = [];
-  let index = 0;
-  for (const item of map.values()) {
-    const tombstone = tombstoneFor(name, item, index++, tombstones);
-    if (tombstone && (Date.parse(tombstone.deletedAt || '') || 0) >= timestamp(item)) continue;
-    out.push(item);
+  return records.filter((item, index) => {
+    const tombstone = tombstoneFor(name, item, index, tombstones);
+    return !(tombstone && (Date.parse(tombstone.deletedAt || '') || 0) >= timestamp(item));
+  });
+}
+
+function materializeChangeSet(incomingState, changeSet) {
+  if (!isObject(changeSet) || Number(changeSet.version || 0) < 1) return incomingState;
+  const sparse = { _teamSyncMeta: { fields: {}, tombstones: [] } };
+  const incomingMeta = isObject(incomingState && incomingState._teamSyncMeta) ? incomingState._teamSyncMeta : {};
+  sparse._teamSyncMeta.tombstones = normalizeTombstones(incomingMeta);
+  const stateFields = isObject(changeSet.stateFields) ? changeSet.stateFields : {};
+  for (const [key, entry] of Object.entries(stateFields)) {
+    if (isLocalOnlyKey(key) || !entry || !Object.prototype.hasOwnProperty.call(entry, 'value')) continue;
+    sparse[key] = clone(entry.value);
+    sparse._teamSyncMeta.fields[key] = {
+      updatedAt: entry.updatedAt || changeSet.updatedAt || new Date(0).toISOString(),
+      deviceId: entry.deviceId || changeSet.deviceId || ''
+    };
   }
-  return out;
+  const collections = isObject(changeSet.collections) ? changeSet.collections : {};
+  for (const [name, patches] of Object.entries(collections)) {
+    if (!Array.isArray(patches)) continue;
+    sparse[name] = patches.map((patch) => {
+      if (patch && patch.isNew && isObject(patch.full)) return clone(patch.full);
+      const record = Object.assign({}, clone(patch && patch.identity || {}), clone(patch && patch.fields || {}));
+      const meta = {};
+      const fieldMeta = isObject(patch && patch.fieldMeta) ? patch.fieldMeta : {};
+      Object.keys(patch && patch.fields || {}).forEach((field) => {
+        const raw = fieldMeta[field];
+        meta[field] = isObject(raw) ? clone(raw) : {
+          updatedAt: patch.updatedAt || changeSet.updatedAt || new Date(0).toISOString(),
+          deviceId: patch.deviceId || changeSet.deviceId || ''
+        };
+      });
+      if (Object.keys(meta).length) record._syncFields = meta;
+      record._syncUpdatedAt = patch.updatedAt || changeSet.updatedAt || record._syncUpdatedAt;
+      return record;
+    });
+  }
+  return sparse;
+}
+
+function materializeUserChanges(incomingUsers, changeSet) {
+  if (!isObject(changeSet) || !Array.isArray(changeSet.users)) return incomingUsers;
+  return changeSet.users.map((patch) => {
+    if (patch && patch.isNew && isObject(patch.full)) return clone(patch.full);
+    const record = Object.assign({}, clone(patch && patch.identity || {}), clone(patch && patch.fields || {}));
+    const meta = {};
+    const fieldMeta = isObject(patch && patch.fieldMeta) ? patch.fieldMeta : {};
+    Object.keys(patch && patch.fields || {}).forEach((field) => {
+      const raw = fieldMeta[field];
+      meta[field] = isObject(raw) ? clone(raw) : {
+        updatedAt: patch.updatedAt || changeSet.updatedAt || new Date(0).toISOString(),
+        deviceId: patch.deviceId || changeSet.deviceId || ''
+      };
+    });
+    if (Object.keys(meta).length) record._syncFields = meta;
+    record._syncUpdatedAt = patch.updatedAt || changeSet.updatedAt || record._syncUpdatedAt;
+    return record;
+  });
 }
 
 function mergeLedger(serverLedger, incomingLedger) {
@@ -265,9 +370,10 @@ function fieldTime(meta, key) {
   const time = Date.parse(value && value.updatedAt ? value.updatedAt : value || '');
   return Number.isFinite(time) ? time : 0;
 }
-function mergeState(serverState, incomingState) {
+function mergeState(serverState, incomingState, changeSet) {
   const server = isObject(serverState) ? clone(serverState) : {};
-  const incoming = isObject(incomingState) ? clone(incomingState) : {};
+  const incomingFull = isObject(incomingState) ? clone(incomingState) : {};
+  const incoming = materializeChangeSet(incomingFull, changeSet);
   const serverMeta = isObject(server._teamSyncMeta) ? server._teamSyncMeta : {};
   const incomingMeta = isObject(incoming._teamSyncMeta) ? incoming._teamSyncMeta : {};
   const mergedMeta = {
@@ -295,9 +401,10 @@ function mergeState(serverState, incomingState) {
   out._teamSyncMeta = mergedMeta;
   return out;
 }
-function mergeUsers(serverUsers, incomingUsers, meta) {
-  return mergeCollection('users', serverUsers, incomingUsers, tombstoneMap(meta || {}));
+function mergeUsers(serverUsers, incomingUsers, meta, changeSet) {
+  return mergeCollection('users', serverUsers, materializeUserChanges(incomingUsers, changeSet), tombstoneMap(meta || {}));
 }
+
 function sanitizeState(state) {
   const source = isObject(state) ? state : {};
   const out = {};
@@ -323,5 +430,5 @@ module.exports = {
   COLLECTION_KEYS, LOCAL_ONLY_KEYS, clone, text, lower, itemKey, canonicalId,
   timestamp, fieldTimestamp, mergeRecordFields, mergeCollection, mergeState,
   mergeUsers, sanitizeState, pruneTombstones, isLocalOnlyKey, normalizeTombstones,
-  tombstoneMap, applyDocumentTombstones
+  tombstoneMap, applyDocumentTombstones, recordAliases, materializeChangeSet, materializeUserChanges
 };

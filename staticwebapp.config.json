@@ -13,19 +13,31 @@
       }
     },
     {
-      "route": "/assets/exporthub-ui-rc532.css",
+      "route": "/assets/exporthub-ui-rc534.css",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
       }
     },
     {
-      "route": "/assets/exporthub-rc532.css",
+      "route": "/assets/exporthub-rc534.css",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
       }
     },
     {
-      "route": "/assets/rc532-core.js",
+      "route": "/assets/rc534-core.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc534-qr-security.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc534-qr-security.css",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
       }

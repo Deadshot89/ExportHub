@@ -140,7 +140,8 @@ function normalizeIncoming(body) {
     deviceId: String(payload.deviceId || ''),
     reason: String(payload.reason || 'save'),
     state: sanitizeState(payload.state || {}),
-    users: Array.isArray(payload.users) ? clone(payload.users) : []
+    users: Array.isArray(payload.users) ? clone(payload.users) : [],
+    changes: payload.changes && typeof payload.changes === 'object' ? clone(payload.changes) : null
   };
 }
 
@@ -148,8 +149,8 @@ async function saveMerged(blob, incoming, actor) {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
     const currentDownload = await downloadJson(blob);
     const current = currentDownload.value || emptyDocument();
-    const mergedState = pruneTombstones(mergeState(current.state || {}, incoming.state || {}));
-    const mergedUsers = mergeUsers(current.users || [], incoming.users || [], mergedState._teamSyncMeta || {});
+    const mergedState = pruneTombstones(mergeState(current.state || {}, incoming.state || {}, incoming.changes));
+    const mergedUsers = mergeUsers(current.users || [], incoming.users || [], mergedState._teamSyncMeta || {}, incoming.changes);
     if (countAdmins(current.users || []) > 0 && countAdmins(mergedUsers) === 0) {
       const error = new Error('Der letzte Administrator kann nicht gelöscht oder herabgestuft werden.');
       error.code = 'LAST_ADMIN_PROTECTED';
@@ -170,6 +171,7 @@ async function saveMerged(blob, incoming, actor) {
     try {
       await uploadJson(blob, next, currentDownload.etag);
       next.concurrentMerge = Number(incoming.baseRevision || 0) !== Number(current.revision || 0);
+      next.serverAdjusted = JSON.stringify((next.state && next.state.customers) || []) !== JSON.stringify((incoming.state && incoming.state.customers) || []);
       next.baseRevision = Number(incoming.baseRevision || 0);
       return next;
     } catch (error) {
@@ -232,9 +234,10 @@ module.exports = async function (context, req) {
           revision: Number(saved.revision || 0),
           updatedAt: saved.updatedAt || null,
           updatedBy: saved.updatedBy || null,
-          concurrentMerge: saved.concurrentMerge === true
+          concurrentMerge: saved.concurrentMerge === true,
+          serverAdjusted: saved.serverAdjusted === true
         };
-        if (saved.concurrentMerge === true) {
+        if (saved.concurrentMerge === true || saved.serverAdjusted === true) {
           body.state = saved.state;
           body.users = saved.users;
         }
