@@ -3,7 +3,7 @@
 const MODULES = [
   'start','dashboard','tasks','vacation','shipment','abd','shipmentoverview',
   'cmr','pallet','customers','customerfolder','calculator','customs','sop',
-  'academy','quiz','ideas','update','rights','teamfile','archive'
+  'academy','quiz','ideas','update','rights','teamfile','archive','qr'
 ];
 
 function clone(value) {
@@ -22,7 +22,7 @@ function defaultRights(admin) {
   const result = {};
   for (const id of MODULES) {
     const allow = admin || id === 'start' || id === 'dashboard';
-    result[id] = { visible: allow, read: allow, edit: admin };
+    result[id] = { level: admin ? 'admin' : (allow ? 'view' : 'none'), visible: allow, read: allow, edit: admin, admin: admin };
   }
   result.rights = { visible: !!admin, read: !!admin, edit: !!admin };
   return result;
@@ -34,10 +34,13 @@ function normalizeRights(value, admin) {
     const old = source[id] && typeof source[id] === 'object' ? source[id] : {};
     const preset = defaultRights(admin)[id];
     const hasExplicit = Object.prototype.hasOwnProperty.call(source, id);
+    const level = admin ? 'admin' : (old.admin === true || old.level === 'admin' ? 'admin' : (old.edit === true || old.level === 'edit' ? 'edit' : (old.read === true || old.visible === true || old.level === 'view' ? 'view' : (hasExplicit ? 'none' : preset.level))));
     result[id] = {
-      visible: admin ? true : (hasExplicit ? (old.visible === true || old.read === true || old.edit === true) : preset.visible === true),
-      read: admin ? true : (hasExplicit ? (old.read === true || old.edit === true) : preset.read === true),
-      edit: admin ? true : (hasExplicit ? old.edit === true : preset.edit === true)
+      level,
+      visible: level !== 'none',
+      read: level !== 'none',
+      edit: level === 'edit' || level === 'admin',
+      admin: level === 'admin'
     };
   }
   return result;
@@ -88,6 +91,11 @@ function applyUserPolicy(document) {
   source.state.users = clone(users);
   return source;
 }
+function isFunctionAdmin(user, moduleId) {
+  if (isAdmin(user)) return true;
+  const right = user && user.rights && user.rights[moduleId] || {};
+  return right.admin === true || right.level === 'admin';
+}
 function countAdmins(users) {
   return (Array.isArray(users) ? users : []).filter(isAdmin).length;
 }
@@ -99,5 +107,6 @@ module.exports = {
   dedupeUsers,
   isAdmin,
   countAdmins,
+  isFunctionAdmin,
   defaultRights
 };

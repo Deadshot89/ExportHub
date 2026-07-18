@@ -6,6 +6,7 @@ const COLLECTION_KEYS = {
   customers: ['id', 'account', 'customerNumber', 'kundennummer', 'customerNo', 'no', 'name'],
   abdRequests: ['id', 'ref'],
   palletAccount: ['id', '_syncId'],
+  palletReconciliations: ['id', 'ref', '_syncId'],
   vacations: ['id', '_syncId'],
   ideas: ['id', '_syncId'],
   customSops: ['id', 'name', '_syncId'],

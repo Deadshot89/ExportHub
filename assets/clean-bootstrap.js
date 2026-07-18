@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC538',cache:'536',loginReturn:'/?v=538'};
-const VERSION=String(BUILD.version||'RC538');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC540',cache:'540',loginReturn:'/?v=540'};
+const VERSION=String(BUILD.version||'RC540');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -33,11 +33,11 @@ function rc524StyleHealth(){
  document.documentElement.setAttribute('data-rc524-style-fallback','1');
  let link=by('rc538MainStyles');
  if(!link){link=document.createElement('link');link.id='rc538MainStyles';link.rel='stylesheet';document.head.appendChild(link)}
- link.href='assets/exporthub-ui-rc538.css?v='+CACHE+'&retry='+Date.now();
- return fetch('assets/exporthub-ui-rc538.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
+ link.href='assets/exporthub-ui-rc540.css?v='+CACHE+'&retry='+Date.now();
+ return fetch('assets/exporthub-ui-rc540.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC538 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC540 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -230,7 +230,7 @@ async function jsonFetch(url,options){
  if(!res.ok||data.ok===false){const error=new Error(data.message||('HTTP '+res.status));error.code=data.code||'HTTP_'+res.status;error.status=res.status;error.data=data;throw error}
  return data
 }
-async function parseLargeJson(textValue){if(!window.Worker)return JSON.parse(textValue);const code='self.onmessage=e=>{try{self.postMessage({ok:true,value:JSON.parse(e.data)})}catch(x){self.postMessage({ok:false,error:x.message})}}';const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{return await new Promise(function(resolve,reject){const w=new Worker(url);w.onmessage=function(e){w.terminate();e.data.ok?resolve(e.data.value):reject(new Error(e.data.error))};w.onerror=function(e){w.terminate();reject(new Error(e.message||'Worker-Fehler'))};w.postMessage(textValue)})}finally{URL.revokeObjectURL(url)}}
+async function parseLargeJson(textValue){if(String(textValue||'').length<1500000||!window.Worker)return JSON.parse(textValue);const code='self.onmessage=e=>{try{self.postMessage({ok:true,value:JSON.parse(e.data)})}catch(x){self.postMessage({ok:false,error:x.message})}}';const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{return await new Promise(function(resolve,reject){let done=false;const w=new Worker(url),finish=function(fn,value){if(done)return;done=true;native.clearTimeout(timer);try{w.terminate()}catch(_){ }fn(value)},timer=native.setTimeout(function(){try{finish(resolve,JSON.parse(textValue))}catch(e){finish(reject,e)}},3000);w.onmessage=function(e){e.data.ok?finish(resolve,e.data.value):finish(reject,new Error(e.data.error))};w.onerror=function(e){try{finish(resolve,JSON.parse(textValue))}catch(x){finish(reject,new Error(e.message||x.message||'Worker-Fehler'))}};try{w.postMessage(textValue)}catch(e){try{finish(resolve,JSON.parse(textValue))}catch(x){finish(reject,x)}}})}finally{URL.revokeObjectURL(url)}}
 function setLoginEnabled(enabled){
  ['loginUser','loginPass','loginBtn'].forEach(function(id){const e=by(id);if(e)e.disabled=!enabled});
 }
@@ -420,7 +420,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if((window.ExportHUBRC538||window.ExportHUBRC532)&&typeof (window.ExportHUBRC538||window.ExportHUBRC532).install==='function')(window.ExportHUBRC538||window.ExportHUBRC532).install()}catch(e){console.error('RC538 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if((window.ExportHUBRC538||window.ExportHUBRC532)&&typeof (window.ExportHUBRC538||window.ExportHUBRC532).install==='function')(window.ExportHUBRC538||window.ExportHUBRC532).install()}catch(e){console.error('RC540 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network};
  await signalReady();
 

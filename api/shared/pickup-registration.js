@@ -11,7 +11,7 @@ function prepareRegistration(existing,input,helpers){
   const days=Math.min(365,Math.max(1,Number(input.expiresDays||180)));
   const record=Object.assign({},old||{}, {
     token:String(input.token||''),shipmentId:String(input.shipmentId||''),reference:String(input.reference||''),
-    customer:String(input.customer||''),recipient:String(input.recipient||''),pinHash,pinLocked:true,
+    customer:String(input.customer||''),recipient:String(input.recipient||''),palletOutgoingCount:Math.max(0,Number(input.palletOutgoingCount||0)),palletAccountType:String(input.palletAccountType||''),palletAccountName:String(input.palletAccountName||''),palletAccountKey:String(input.palletAccountKey||''),pinHash,pinLocked:true,
     credentialVersion,pinRevision,status:old&&old.suspended?'cancelled':(old&&old.confirmedAt?'confirmed':'open'),
     createdAt:old&&old.createdAt||stamp,updatedAt:stamp,
     expiresAt:old&&old.confirmedAt?old.expiresAt:new Date(Date.now()+days*86400000).toISOString(),
