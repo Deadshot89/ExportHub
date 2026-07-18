@@ -12,6 +12,6 @@ module.exports=async function(context,req){
    const old=await store.readJson(blob);result=registration.prepareRegistration(old.value,{token,pin,pinRevision,shipmentId:b.shipmentId,reference:b.reference,customer:b.customer,recipient:b.recipient,expiresDays:b.expiresDays},{hash:store.hash,now:store.now});
    try{await store.writeJson(blob,result.record,old.etag);break}catch(e){if(e&&e.statusCode===412&&attempt<5)continue;throw e}
   }
-  context.res=store.json(200,Object.assign(store.publicRecord(result.record),{registered:true,idempotent:result.idempotent,rotated:result.rotated,credentialVersion:result.credentialVersion,pinRevision,version:'RC538',updatedBy:store.actor(req)}));
+  context.res=store.json(200,Object.assign(store.publicRecord(result.record),{registered:true,idempotent:result.idempotent,rotated:result.rotated,credentialVersion:result.credentialVersion,pinRevision,version:'RC539',updatedBy:store.actor(req)}));
  }catch(e){context.log&&context.log.error&&context.log.error(e);context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Initialisierung fehlgeschlagen.'})}
 };

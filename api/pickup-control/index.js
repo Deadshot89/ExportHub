@@ -34,7 +34,7 @@ async function updateTeamControl(record,action,reason,actor){
    store.stampSyncFields(sh,['processStatus','status','reopenedAt','reopenedBy','pickupQrSuspended','pickupQrUsed','pickupQrUsedAt','podScanConfirmed','actualPickupDate','actualPickupTime','pickedUpAt','podFiles','podStatus','podCount'],iso,'pickup-control');
    for(const t of doc.state.tasks){if((sid&&text(t.linkedShipmentId)===sid)||(ref&&text(t.linkedShipmentRef).toUpperCase()===ref)){if(text(t.area).toLowerCase()==='abholtag'){t.status='offen';t.done=false;t.completedAt='';t.cancelledAt='';store.stampSyncFields(t,['status','done','completedAt','cancelledAt'],iso,'pickup-control')}}}
   }
-  doc.revision=Number(doc.revision||0)+1;doc.updatedAt=iso;doc.updatedBy=actor;doc.updatedByDevice='pickup-control';doc.clientVersion='RC538';
+  doc.revision=Number(doc.revision||0)+1;doc.updatedAt=iso;doc.updatedBy=actor;doc.updatedByDevice='pickup-control';doc.clientVersion='RC539';
   try{await store.writeJson(blob,doc,d.etag);return sh}catch(e){if(e&&e.statusCode===412&&i<5)continue;throw e}
  }
 }
