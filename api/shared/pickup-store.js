@@ -52,19 +52,18 @@ async function createConfirmationPod(record){const existing=(Array.isArray(recor
 async function updateTeam(record,podsToAdd=[]){
   const c=await clients(),blob=c.team.getBlockBlobClient(TEAM_BLOB);
   for(let i=0;i<MAX_RETRIES;i++){
-    const d=await readJson(blob),doc=d.value||{schemaVersion:2,revision:0,updatedAt:null,updatedBy:null,state:{},users:[]};
+    const d=await readJson(blob),doc=d.value||{schemaVersion:3,revision:0,updatedAt:null,updatedBy:null,state:{},users:[]};
     doc.state=doc.state||{};doc.state.shipments=Array.isArray(doc.state.shipments)?doc.state.shipments:[];doc.state.tasks=Array.isArray(doc.state.tasks)?doc.state.tasks:[];
     const ref=String(record.reference||'').trim().toUpperCase(),sid=String(record.shipmentId||'').trim();
     const sh=doc.state.shipments.find(x=>(sid&&String(x.id||x.shipmentId||'')===sid)||(ref&&String(x.ref||'').trim().toUpperCase()===ref));
-    if(sh){
-      const iso=record.confirmedAt||now(),day=iso.slice(0,10),dt=new Date(iso);
-      sh.actualPickupDate=day;sh.pickedUpAtDate=day;sh.actualPickupTime=isNaN(dt)?'':dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});sh.pickedUpAt=iso;sh.pickupStatus='abgeholt';sh.status='erledigt';sh.done=true;sh.completedAt=iso;sh.pickupQrUsed=true;sh.pickupQrUsedAt=iso;sh.podScanConfirmed=true;
-      const changedFields=['actualPickupDate','pickedUpAtDate','actualPickupTime','pickedUpAt','pickupStatus','status','done','completedAt','pickupQrUsed','pickupQrUsedAt','podScanConfirmed'];
-      if(podsToAdd.length){const all=[...(Array.isArray(sh.podFiles)?sh.podFiles:[])];for(const p of podsToAdd){const url='/api/pickup-pod?token='+encodeURIComponent(record.token)+'&file='+encodeURIComponent(p.id);if(!all.some(x=>x.remoteId===p.id||x.url===url))all.push({id:'QR-'+p.id,name:p.name,filename:p.name,url,uploadedAt:p.uploadedAt,added:p.uploadedAt,remote:true,remoteId:p.id,mimeType:p.type,type:p.type,size:p.size,source:'QR',kind:p.kind||''})}sh.podFiles=all;sh.podStatus='POD vorhanden';sh.podCount=all.length;changedFields.push('podFiles','podStatus','podCount')}
-      stampSyncFields(sh,changedFields,iso,'qr-pickup');
-    }
-    for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){const iso=record.confirmedAt||now();t.status='erledigt';t.done=true;t.completedAt=iso;stampSyncFields(t,['status','done','completedAt'],iso,'qr-pickup')}}
-    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC537';
+    if(!sh)throw err('SHIPMENT_NOT_FOUND','Die zugehörige Sendung wurde nicht gefunden.',404);
+    const iso=record.confirmedAt||now(),day=iso.slice(0,10),dt=new Date(iso);
+    sh.actualPickupDate=day;sh.pickedUpAtDate=day;sh.actualPickupTime=isNaN(dt)?'':dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});sh.pickedUpAt=iso;sh.pickupStatus='abgeholt';sh.processStatus='Abgeholt';sh.status='Abgeholt';sh.done=false;sh.completedAt='';sh.pickupQrUsed=true;sh.pickupQrUsedAt=iso;sh.podScanConfirmed=true;
+    const changedFields=['actualPickupDate','pickedUpAtDate','actualPickupTime','pickedUpAt','pickupStatus','processStatus','status','done','completedAt','pickupQrUsed','pickupQrUsedAt','podScanConfirmed'];
+    if(podsToAdd.length){const all=[...(Array.isArray(sh.podFiles)?sh.podFiles:[])];for(const p of podsToAdd){const url='/api/pickup-pod?token='+encodeURIComponent(record.token)+'&file='+encodeURIComponent(p.id);if(!all.some(x=>x.remoteId===p.id||x.url===url))all.push({id:'QR-'+p.id,name:p.name,filename:p.name,url,uploadedAt:p.uploadedAt,added:p.uploadedAt,remote:true,remoteId:p.id,mimeType:p.type,type:p.type,size:p.size,source:'QR',kind:p.kind||''})}sh.podFiles=all;sh.podStatus='Scan bestätigt – POD-Dokument fehlt';sh.podCount=all.length;changedFields.push('podFiles','podStatus','podCount')}
+    stampSyncFields(sh,changedFields,iso,'qr-pickup');
+    for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){t.status='erledigt';t.done=true;t.completedAt=iso;stampSyncFields(t,['status','done','completedAt'],iso,'qr-pickup')}}
+    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC538';
     try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
   }
 }

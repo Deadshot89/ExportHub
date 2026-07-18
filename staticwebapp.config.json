@@ -59,6 +59,18 @@
       "allowedRoles": [
         "authenticated"
       ]
+    },
+    {
+      "route": "/api/pickup-config",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/api/pickup-control",
+      "allowedRoles": [
+        "authenticated"
+      ]
     }
   ],
   "navigationFallback": {
