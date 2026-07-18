@@ -1,4 +1,4 @@
-// ExportHUB RC536 – integrierter Azure-Blob-REST-Adapter ohne externe npm-Abhängigkeit.
+// ExportHUB RC537 – integrierter Azure-Blob-REST-Adapter ohne externe npm-Abhängigkeit.
 'use strict';
 const https = require('https');
 const crypto = require('crypto');

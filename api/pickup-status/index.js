@@ -1,4 +1,19 @@
-
 'use strict';
 const store=require('../shared/pickup-store');
-module.exports=async function(context,req){try{const token=String(req.query&&req.query.token||'').toLowerCase();let got=await store.getRecord(token);if(store.expired(got.record)&&!got.record.confirmedAt){context.res=store.json(410,{ok:false,code:'EXPIRED',message:'QR-Code ist abgelaufen.'});return}if(got.record.confirmedAt&&!(Array.isArray(got.record.podFiles)&&got.record.podFiles.some(x=>x.kind==='scan-confirmation'))){const scanPod=await store.createConfirmationPod(got.record);const rec=await store.mutateRecord(token,async function(r){r.podFiles=Array.isArray(r.podFiles)?r.podFiles:[];if(!r.podFiles.some(x=>x.kind==='scan-confirmation'))r.podFiles.unshift(scanPod);r.updatedAt=store.now();return r});try{await store.updateTeam(rec,[scanPod])}catch(e){context.log.error('Team scan POD update failed',e)}got.record=rec}context.res=store.json(200,store.publicRecord(got.record))}catch(e){context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Status konnte nicht gelesen werden.'})}}
+module.exports=async function(context,req){
+  try{
+    const token=String(req.query&&req.query.token||'').toLowerCase();
+    const got=await store.getRecord(token);
+    if(got.record.confirmedAt){
+      context.res=store.json(410,{ok:false,code:'USED',message:'Dieser QR-Code wurde bereits verwendet und ist dauerhaft gesperrt.'});
+      return;
+    }
+    if(store.expired(got.record)){
+      context.res=store.json(410,{ok:false,code:'EXPIRED',message:'Dieser QR-Code ist abgelaufen.'});
+      return;
+    }
+    context.res=store.json(200,store.publicRecord(got.record));
+  }catch(e){
+    context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Status konnte nicht gelesen werden.'});
+  }
+};

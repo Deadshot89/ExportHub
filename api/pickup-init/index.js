@@ -52,7 +52,7 @@ module.exports = async function (context, req) {
       rotated: result.rotated,
       credentialVersion: result.credentialVersion,
       pinRevision: result.pinRevision,
-      version: 'RC536',
+      version: 'RC537',
       updatedBy: store.actor(req)
     }));
   } catch (error) {

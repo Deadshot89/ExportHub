@@ -1,4 +1,4 @@
-// ExportHUB RC536 – Teamdaten-API mit strukturierter JSON-Fehlerausgabe.
+// ExportHUB RC537 – Teamdaten-API mit strukturierter JSON-Fehlerausgabe.
 'use strict';
 
 const { createBlobServiceClient } = require('../shared/blob-rest');
