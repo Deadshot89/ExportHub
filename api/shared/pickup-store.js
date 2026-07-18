@@ -64,7 +64,7 @@ async function updateTeam(record,podsToAdd=[]){
       stampSyncFields(sh,changedFields,iso,'qr-pickup');
     }
     for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){const iso=record.confirmedAt||now();t.status='erledigt';t.done=true;t.completedAt=iso;stampSyncFields(t,['status','done','completedAt'],iso,'qr-pickup')}}
-    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC535';
+    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC536';
     try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
   }
 }
