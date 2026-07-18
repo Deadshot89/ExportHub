@@ -1,5 +1,5 @@
 /*
- Local QR generator for ExportHUB RC534.
+ Local QR generator for ExportHUB RC535.
  QR algorithm: Kazuhiko Arase, MIT License (bundled from qrcode-terminal vendor/QRCode).
  No token or shipment data is sent to an external QR service.
 */
@@ -1265,5 +1265,5 @@ function req(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new
 var QRCode=req('index'),Level=req('QRErrorCorrectLevel');
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function svg(text,opt){opt=opt||{};var qr=new QRCode(-1,Level.M);qr.addData(String(text||''));qr.make();var count=qr.getModuleCount(),quiet=4,total=count+quiet*2,path=[];for(var r=0;r<count;r++){for(var c=0;c<count;c++){if(qr.isDark(r,c))path.push('M'+(c+quiet)+' '+(r+quiet)+'h1v1h-1z')}}var cls=esc(opt.className||'exporthub-local-qr'),label=esc(opt.label||'QR-Code'),target=esc(String(text||''));return '<svg class="'+cls+'" role="img" aria-label="'+label+'" data-qr-target="'+target+'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+total+' '+total+'" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="'+path.join('')+'" fill="#000"/></svg>'}
-global.ExportHUBQRCode={svg:svg,QRCode:QRCode,ErrorCorrectLevel:Level,version:'RC534-local'};
+global.ExportHUBQRCode={svg:svg,QRCode:QRCode,ErrorCorrectLevel:Level,version:'RC535-local'};
 })(window);

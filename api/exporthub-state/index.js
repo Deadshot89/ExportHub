@@ -1,6 +1,7 @@
+// ExportHUB RC535 – Teamdaten-API mit strukturierter JSON-Fehlerausgabe.
 'use strict';
 
-const { BlobServiceClient } = require('@azure/storage-blob');
+const { createBlobServiceClient } = require('../shared/blob-rest');
 const {
   mergeState,
   mergeUsers,
@@ -51,7 +52,7 @@ async function blobClient() {
     error.code = 'STORAGE_NOT_CONFIGURED';
     throw error;
   }
-  const service = BlobServiceClient.fromConnectionString(connectionString);
+  const service = createBlobServiceClient(connectionString);
   const container = service.getContainerClient(CONTAINER_NAME);
   await container.createIfNotExists();
   return container.getBlockBlobClient(BLOB_NAME);

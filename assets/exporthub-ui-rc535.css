@@ -1,25 +1,18 @@
-<!doctype html>
-<html lang="de">
-<head>
-<script>
-window.EXPORTHUB_BUILD=Object.freeze({
-  version:'RC535',
-  cache:'535',
-  loginReturn:'/?v=535'
-});
-</script>
-<!-- PRIVATE RC466 EARLY START: Azure-only, no persistent browser storage -->
+/* ExportHUB RC535 – aktive UI- und Layoutregeln. */
+/* ExportHUB RC520 – konsolidierte Design- und Layoutregeln. */
+/* clean-shell.css */
 
-<!-- PRIVATE RC466 EARLY END -->
+.clean-load-panel{position:fixed;inset:0;z-index:2147483000;background:rgba(3,15,35,.92);display:grid;place-items:center;padding:24px;font-family:Segoe UI,Arial,sans-serif}.clean-load-panel.hidden{display:none!important}.clean-load-card{width:min(560px,100%);background:#fff;border-radius:28px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.38);text-align:center}.clean-load-card h2{margin:12px 0 8px;color:#08245d}.clean-load-card p{color:#475569;font-weight:700;line-height:1.5}.clean-spinner{width:46px;height:46px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:auto;animation:cleanSpin .9s linear infinite}@keyframes cleanSpin{to{transform:rotate(360deg)}}.clean-progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-top:18px}.clean-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#05b8ff);transition:width .18s ease}.clean-progress-label{margin-top:7px;color:#334155;font-weight:900}.clean-ms-status,.clean-login-status{border-radius:15px;padding:11px 12px;margin:10px 0;text-align:left;line-height:1.35}.clean-ms-status{background:#eff6ff;border:1px solid #bfdbfe;color:#08245d}.clean-ms-status strong,.clean-ms-status span{display:block}.clean-ms-status span{font-size:12px;margin-top:3px;color:#475569}.clean-login-status:empty{display:none}.clean-login-status{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-weight:800}.clean-login-status.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166535}.clean-login-status.bad{background:#fff1f2;border-color:#fecaca;color:#991b1b}.clean-version-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:950;margin-top:7px}
 
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<link id="rc535MainStyles" href="assets/exporthub-ui-rc535.css?v=535" rel="stylesheet"/>
-<meta content="no-referrer" name="referrer"/>
-<title>ExportHUB RC535</title>
-<style>
+.clean-safe-note{margin-top:12px;padding:10px 12px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:12px;font-weight:800;line-height:1.35}
+
+.clean-ms-actions{display:grid;gap:8px;margin:10px 0 12px}.clean-ms-actions .btn,.clean-ms-actions .ghost{width:100%;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}.clean-ms-actions .hidden{display:none!important}.clean-ms-status span{overflow-wrap:anywhere}
+
+
+/* index.html style block 01 */
+
 :root{--bg:#eef6fb;--surface:#fff;--surface2:#f7fbff;--text:#0f172a;--muted:#64748b;--line:#dbe4ef;--nav1:#051937;--nav2:#0b3b72;--blue:#2563eb;--cyan:#05b8ff;--green:#16a34a;--orange:#f97316;--red:#dc2626;--purple:#7e22ce;--yellow:#facc15;--shadow:0 18px 46px rgba(15,23,42,.10);--radius:22px}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}h1,h2,h3,h4{color:#08245d;margin-top:0}.muted{color:var(--muted)}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(680px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:34px;padding:34px;box-shadow:var(--shadow);text-align:center}.logo{width:78px;height:78px;margin:auto;border-radius:25px;background:linear-gradient(135deg,var(--cyan),#a5f3fc);display:grid;place-items:center;color:#062033;font-size:28px;font-weight:1000;box-shadow:0 14px 32px rgba(5,184,255,.28)}.field{display:grid;gap:7px;margin:12px 0;text-align:left;font-weight:900;color:#334155}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:11px;background:#fff;font-weight:800}textarea{min-height:100px;resize:vertical}.btn,.ghost,.danger,.soft{border-radius:14px;padding:10px 14px;font-weight:950;cursor:pointer;min-height:40px}.btn{border:0;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;box-shadow:0 10px 22px rgba(37,99,235,.23)}.ghost{border:1px solid var(--line);background:#fff;color:#334155}.danger{border:0;background:#fee2e2;color:#991b1b}.soft{border:0;background:#eef6ff;color:#075985}.btn:hover,.ghost:hover,.soft:hover,.danger:hover{transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}.app{display:grid;grid-template-columns:318px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:linear-gradient(180deg,var(--nav1),var(--nav2));color:#fff;padding:20px 16px;display:flex;flex-direction:column;gap:12px;overflow:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.18)}.brand .logo{width:48px;height:48px;margin:0;border-radius:16px;font-size:18px;box-shadow:none}.brand strong{display:block;font-size:19px}.brand span,.profile small{display:block;color:#cbd5e1;font-weight:800;font-size:12px}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#dbeafe;text-align:left;border-radius:14px;padding:11px 12px;cursor:pointer;font-weight:900}.nav button:hover,.nav button.active{background:#fff;color:#08245d}.profile{margin-top:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:12px;line-height:1.35}.main{min-width:0;padding:24px 28px 48px}.topbar{display:flex;gap:12px;align-items:center;margin-bottom:20px}.search{flex:1;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;padding:11px 14px}.search input{border:0;outline:0;padding:4px}.card,.metric{background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}.metric span{display:block;color:var(--muted);font-weight:950;margin-bottom:10px}.metric strong{display:block;font-size:32px}.metric.kpi-red{border-left:7px solid var(--red)}.metric.kpi-orange{border-left:7px solid var(--orange)}.metric.kpi-green{border-left:7px solid var(--green)}.metric.kpi-blue{border-left:7px solid var(--blue)}.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.page-head h2{font-size:31px;margin:0 0 8px}.page-head p{margin:0;color:var(--muted);font-weight:750;line-height:1.55;max-width:980px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;margin:3px}.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166534}.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}.purple{background:#f3e8ff;color:#6b21a8}.gray{background:#e2e8f0;color:#334155}.yellow{background:#fef9c3;color:#854d0e}.notice,.okbox,.badbox,.infobox{border-radius:16px;padding:13px;margin:10px 0;font-weight:770;line-height:1.5}.notice{border-left:5px solid var(--orange);background:#fff7ed}.okbox{border-left:5px solid var(--green);background:#f0fdf4}.badbox{border-left:5px solid var(--red);background:#fee2e2}.infobox{border-left:5px solid var(--blue);background:#eff6ff}.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.table{width:100%;border-collapse:collapse}.table th{text-align:left;color:var(--muted);font-size:12px;text-transform:uppercase}.table td,.table th{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}.hero{position:relative;overflow:hidden;border-radius:34px;min-height:560px;background:linear-gradient(rgba(5,20,36,.78),rgba(5,20,36,.92)),radial-gradient(circle at 22% 14%,rgba(5,184,255,.35),transparent 32%),linear-gradient(135deg,#0b2144,#0b4d76 55%,#062033);box-shadow:0 24px 60px rgba(0,0,0,.25);color:#fff;padding:42px}.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.04;color:#fff;margin:0 0 20px}.hero p{max-width:980px;color:#edfaff;font-size:20px;line-height:1.65;font-weight:650}.hero h3{color:#fff}.quick-grid,.hero-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}.hero-kpi,.quick-grid button{padding:20px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);color:#fff;text-align:left}.quick-grid button{cursor:pointer;background:rgba(4,20,38,.72)}.task{display:grid;grid-template-columns:115px 1fr auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin:8px 0}.task.done{opacity:.58}.task.done h3{text-decoration:line-through}.task.high{border-left:7px solid var(--red)}.task.medium{border-left:7px solid var(--orange)}.task.low{border-left:7px solid var(--green)}.taskday{margin:18px 0}.taskday-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}.idea{border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:18px;background:#fff;padding:14px;margin:10px 0}.idea.hoch{border-left-color:var(--red)}.idea.mittel{border-left-color:var(--orange)}.idea.niedrig{border-left-color:var(--green)}.checkrow{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;margin:8px 0}.checkrow input{width:auto;margin-top:4px}.quiz-option{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;font-weight:850}.quiz-option.correct{background:#dcfce7;border-color:#86efac}.quiz-option.wrong{background:#fee2e2;border-color:#fecaca}.printdoc{background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;margin-top:12px}.print-table{width:100%;border-collapse:collapse}.print-table th,.print-table td{border:1px solid #cbd5e1;padding:8px;text-align:left}.split{display:grid;grid-template-columns:360px 1fr;gap:14px}.list{display:grid;gap:8px;max-height:680px;overflow:auto}.list button{border:1px solid var(--line);background:white;border-radius:14px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.list button:hover,.list button.active{background:#eff6ff;border-color:var(--blue)}.wizard-step{border:2px solid var(--blue);border-radius:22px;background:#fff;padding:24px;margin:14px 0;box-shadow:var(--shadow)}.wizard-step .num{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:#dbeafe;color:#08245d;font-weight:950;margin-bottom:12px}.mini-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.mini-steps button{width:auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-weight:900;cursor:pointer}.mini-steps button.done{background:#dcfce7;border-color:#86efac}.mini-steps button.active{background:#dbeafe;border-color:#3b82f6}.copybox{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:18px;padding:16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.55}.previewDoc{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;color:#111}.previewDoc h2{font-size:24px;color:#111}.previewDoc table{width:100%;border-collapse:collapse;margin-top:12px}.previewDoc th,.previewDoc td{border:1px solid #ccd7df;padding:7px;text-align:left}.previewDoc th{background:#eef6fb}.miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.summaryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.summaryBox{background:#f7fbff;border:1px solid var(--line);border-radius:15px;padding:10px}.summaryBox strong{display:block;font-size:20px;color:var(--blue)}.portal-link{display:block;text-decoration:none;color:var(--text);background:white;border:1px solid #bfdbfe;border-radius:14px;padding:12px;margin:8px 0}.portal-link:hover{border-color:#2563eb;box-shadow:0 8px 20px rgba(37,99,235,.12)}.nowrap{white-space:nowrap}.small{font-size:12px;color:var(--muted);font-weight:800}.print-only{display:none}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}h1,h2,h3,h4{color:#08245d;margin-top:0}.muted{color:var(--muted)}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(680px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:34px;padding:34px;box-shadow:var(--shadow);text-align:center}.logo{width:78px;height:78px;margin:auto;border-radius:25px;background:linear-gradient(135deg,var(--cyan),#a5f3fc);display:grid;place-items:center;color:#062033;font-size:28px;font-weight:1000;box-shadow:0 14px 32px rgba(5,184,255,.28)}.field{display:grid;gap:7px;margin:12px 0;text-align:left;font-weight:900;color:#334155}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:11px;background:#fff;font-weight:800}textarea{min-height:100px;resize:vertical}.btn,.ghost,.danger,.soft{border-radius:14px;padding:10px 14px;font-weight:950;cursor:pointer;min-height:40px}.btn{border:0;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;box-shadow:0 10px 22px rgba(37,99,235,.23)}.ghost{border:1px solid var(--line);background:#fff;color:#334155}.danger{border:0;background:#fee2e2;color:#991b1b}.soft{border:0;background:#eef6ff;color:#075985}.btn:hover,.ghost:hover,.soft:hover,.danger:hover{transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}.app{display:grid;grid-template-columns:318px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:linear-gradient(180deg,var(--nav1),var(--nav2));color:#fff;padding:20px 16px;display:flex;flex-direction:column;gap:12px;overflow:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.18)}.brand .logo{width:48px;height:48px;margin:0;border-radius:16px;font-size:18px;box-shadow:none}.brand strong{display:block;font-size:19px}.brand span,.profile small{display:block;color:#cbd5e1;font-weight:800;font-size:12px}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#dbeafe;text-align:left;border-radius:14px;padding:11px 12px;cursor:pointer;font-weight:900}.nav button:hover,.nav button.active{background:#fff;color:#08245d}.profile{margin-top:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:12px;line-height:1.35}.main{min-width:0;padding:24px 28px 48px}.topbar{display:flex;gap:12px;align-items:center;margin-bottom:20px}.search{flex:1;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;padding:11px 14px}.search input{border:0;outline:0;padding:4px}.card,.metric{background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}.metric span{display:block;color:var(--muted);font-weight:950;margin-bottom:10px}.metric strong{display:block;font-size:32px}.metric.kpi-red{border-left:7px solid var(--red)}.metric.kpi-orange{border-left:7px solid var(--orange)}.metric.kpi-green{border-left:7px solid var(--green)}.metric.kpi-blue{border-left:7px solid var(--blue)}.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.page-head h2{font-size:31px;margin:0 0 8px}.page-head p{margin:0;color:var(--muted);font-weight:750;line-height:1.55;max-width:980px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;margin:3px}.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166535}.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}.purple{background:#f3e8ff;color:#6b21a8}.gray{background:#e2e8f0;color:#334155}.yellow{background:#fef9c3;color:#854d0e}.notice,.okbox,.badbox,.infobox{border-radius:16px;padding:13px;margin:10px 0;font-weight:770;line-height:1.5}.notice{border-left:5px solid var(--orange);background:#fff7ed}.okbox{border-left:5px solid var(--green);background:#f0fdf4}.badbox{border-left:5px solid var(--red);background:#fee2e2}.infobox{border-left:5px solid var(--blue);background:#eff6ff}.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.table{width:100%;border-collapse:collapse}.table th{text-align:left;color:var(--muted);font-size:12px;text-transform:uppercase}.table td,.table th{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}.hero{position:relative;overflow:hidden;border-radius:34px;min-height:560px;background:linear-gradient(rgba(5,20,36,.78),rgba(5,20,36,.92)),radial-gradient(circle at 22% 14%,rgba(5,184,255,.35),transparent 32%),linear-gradient(135deg,#0b2144,#0b4d76 55%,#062033);box-shadow:0 24px 60px rgba(0,0,0,.25);color:#fff;padding:42px}.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.04;color:#fff;margin:0 0 20px}.hero p{max-width:980px;color:#edfaff;font-size:20px;line-height:1.65;font-weight:650}.hero h3{color:#fff}.quick-grid,.hero-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}.hero-kpi,.quick-grid button{padding:20px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);color:#fff;text-align:left}.quick-grid button{cursor:pointer;background:rgba(4,20,38,.72)}.task{display:grid;grid-template-columns:115px 1fr auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin:8px 0}.task.done{opacity:.58}.task.done h3{text-decoration:line-through}.task.high{border-left:7px solid var(--red)}.task.medium{border-left:7px solid var(--orange)}.task.low{border-left:7px solid var(--green)}.taskday{margin:18px 0}.taskday-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}.idea{border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:18px;background:#fff;padding:14px;margin:10px 0}.idea.hoch{border-left-color:var(--red)}.idea.mittel{border-left-color:var(--orange)}.idea.niedrig{border-left-color:var(--green)}.checkrow{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;margin:8px 0}.checkrow input{width:auto;margin-top:4px}.quiz-option{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;font-weight:850}.quiz-option.correct{background:#dcfce7;border-color:#86efac}.quiz-option.wrong{background:#fee2e2;border-color:#fecaca}.printdoc{background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;margin-top:12px}.print-table{width:100%;border-collapse:collapse}.print-table th,.print-table td{border:1px solid #cbd5e1;padding:8px;text-align:left}.split{display:grid;grid-template-columns:360px 1fr;gap:14px}.list{display:grid;gap:8px;max-height:680px;overflow:auto}.list button{border:1px solid var(--line);background:white;border-radius:14px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.list button:hover,.list button.active{background:#eff6ff;border-color:var(--blue)}.wizard-step{border:2px solid var(--blue);border-radius:22px;background:#fff;padding:24px;margin:14px 0;box-shadow:var(--shadow)}.wizard-step .num{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:#dbeafe;color:#08245d;font-weight:950;margin-bottom:12px}.mini-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.mini-steps button{width:auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-weight:900;cursor:pointer}.mini-steps button.done{background:#dcfce7;border-color:#86efac}.mini-steps button.active{background:#dbeafe;border-color:#3b82f6}.copybox{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:18px;padding:16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.55}.previewDoc{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;color:#111}.previewDoc h2{font-size:24px;color:#111}.previewDoc table{width:100%;border-collapse:collapse;margin-top:12px}.previewDoc th,.previewDoc td{border:1px solid #ccd7df;padding:7px;text-align:left}.previewDoc th{background:#eef6fb}.miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.summaryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.summaryBox{background:#f7fbff;border:1px solid var(--line);border-radius:15px;padding:10px}.summaryBox strong{display:block;font-size:20px;color:var(--blue)}.portal-link{display:block;text-decoration:none;color:var(--text);background:white;border:1px solid #bfdbfe;border-radius:14px;padding:12px;margin:8px 0}.portal-link:hover{border-color:#2563eb;box-shadow:0 8px 20px rgba(37,99,235,.12)}.nowrap{white-space:nowrap}.small{font-size:12px;color:var(--muted);font-weight:800}.print-only{display:none}
 
 .a4doc{background:#fff;color:#111;width:210mm;max-width:100%;min-height:297mm;margin:20px auto;padding:11mm;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 14px 36px rgba(15,23,42,.16);font-family:Arial,Helvetica,sans-serif}.a4doc h2,.a4doc h3{color:#111;margin:0 0 8px}.a4top{display:flex;justify-content:space-between;gap:14px;border-bottom:3px solid #1d4ed8;padding-bottom:8px;margin-bottom:10px;align-items:flex-start}.load-brand{display:flex;align-items:center;gap:10px}.load-logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);color:#fff;display:grid;place-items:center;font-size:22px;font-weight:900;box-shadow:0 8px 18px rgba(37,99,235,.25)}.load-subtitle{font-size:11px;line-height:1.35;color:#334155}.doc-meta{font-size:12px;line-height:1.45}.doc-title{font-size:25px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#1e3a8a}.load-refbox{background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;padding:10px 12px;min-width:180px}.load-refbox .refcap{font-size:10px;text-transform:uppercase;font-weight:900;color:#1e3a8a}.load-refbox .refno{font-size:22px;font-weight:900;letter-spacing:.08em;color:#111;margin-top:2px}.load-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}.load-table th,.load-table td{border:1px solid #333;padding:5px;vertical-align:top}.load-table th{background:#dbeafe;color:#111}.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.doc-box{border:1px solid #333;padding:7px;min-height:40px;font-size:12px}.doc-box.blue{background:#f8fbff;border-color:#93c5fd}.doc-label{font-size:9px;text-transform:uppercase;font-weight:900;color:#333;display:block;margin-bottom:3px}.cmr-page{padding:7mm}.cmr-title{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-items:end;border-bottom:2px solid #111;margin-bottom:6px;padding-bottom:5px}.cmr-big{font-size:24px;font-weight:900;text-align:center}.cmr-grid{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:minmax(27px,auto);border-left:1px solid #111;border-top:1px solid #111;font-size:10.5px}.cmr-cell{border-right:1px solid #111;border-bottom:1px solid #111;padding:4px;overflow:hidden}.cmr-cell strong{font-size:10px}.cmr-cell .label{display:block;font-weight:900;font-size:9px;margin-bottom:3px;color:#111}.span3{grid-column:span 3}.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}.cmr-sign{min-height:56px}.source-card{border:1px solid #bfdbfe;background:#eff6ff;border-radius:16px;padding:14px;margin:10px 0}.academy-layout{display:grid;grid-template-columns:320px 1fr;gap:16px}.module-list{display:grid;gap:8px}.module-list button{background:white;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:left;font-weight:850;cursor:pointer}.module-list button.active{border-color:var(--blue);background:#dbeafe}.progressbar{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden}.progressbar span{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#05b8ff)}.mail-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.mail-actions button,.mail-actions a{border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:12px;padding:7px 9px;text-decoration:none;font-size:12px;font-weight:900;cursor:pointer}.quiz-nav{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:14px}.quiz-card{border:2px solid var(--blue);border-radius:22px;background:#fff;padding:24px;box-shadow:var(--shadow)}
 @media(max-width:1100px){.academy-layout{grid-template-columns:1fr}.a4doc{width:100%;min-height:auto;padding:14px}.doc-grid{grid-template-columns:1fr}}
@@ -290,7 +283,7 @@ window.EXPORTHUB_BUILD=Object.freeze({
 .sop-detail-box{border:1px solid #dbeafe;background:#f8fbff;border-radius:16px;padding:12px}
 .sop-detail-box b{color:#08245d}
 .sop-warning{border:1px solid #fecaca;background:#fff1f2;color:#991b1b;border-radius:16px;padding:12px;margin-top:10px;font-weight:800}
-.sop-source-badge{display:inline-flex;border:1px solid #bbf7d0;background:#dcfce7;color:#166534;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;margin:2px}
+.sop-source-badge{display:inline-flex;border:1px solid #bbf7d0;background:#dcfce7;color:#166535;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;margin:2px}
 @media(max-width:900px){.sop-detail-grid{grid-template-columns:1fr}}
 
 
@@ -311,7 +304,7 @@ window.EXPORTHUB_BUILD=Object.freeze({
 .task-card p{font-size:12px;color:#475569;margin:8px 0 0;line-height:1.35}
 .task-clickhint{position:absolute;right:12px;bottom:10px;font-size:11px;font-weight:900;color:#2563eb}
 .task-status{font-size:11px;font-weight:900;border-radius:999px;padding:4px 8px;border:1px solid #cbd5e1;background:#fff}
-.task-status.done{background:#dcfce7;border-color:#86efac;color:#166534}
+.task-status.done{background:#dcfce7;border-color:#86efac;color:#166535}
 .task-status.open{background:#fffbeb;border-color:#fbbf24;color:#92400e}
 @media(max-width:1200px){.task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.task-grid{grid-template-columns:1fr}.task-card{min-height:auto}}
@@ -348,7 +341,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .shipment-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:950;border:1px solid #cbd5e1;background:#fff;color:#334155;white-space:nowrap}
 .shipment-status.open{background:#fffbeb;border-color:#fbbf24;color:#92400e}
 .shipment-status.overdue{background:#fee2e2;border-color:#fecaca;color:#991b1b}
-.shipment-status.done{background:#dcfce7;border-color:#86efac;color:#166534}
+.shipment-status.done{background:#dcfce7;border-color:#86efac;color:#166535}
 .shipment-overview-table td{vertical-align:top}.pod-list{display:grid;gap:5px;margin-top:6px}.pod-item{border:1px solid #dbeafe;background:#f8fbff;border-radius:12px;padding:6px 8px;font-size:12px}.pod-item a{font-weight:900;color:#1d4ed8;text-decoration:none}.shipment-mini-actions{display:flex;gap:5px;flex-wrap:wrap}.shipment-mini-actions button,.shipment-mini-actions label{font-size:12px;padding:7px 9px;min-height:0}.dnc-highlight{font-weight:950;color:#1e3a8a}
 
 
@@ -378,7 +371,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 
 /* RC28: Sendungsinformationen als eigenes Mailfeld */
 /* RC29: Sendungsinformationen automatisch aus gespeicherter Sendung */
-.mail-shipment-warning{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:14px;padding:10px;margin:8px 0;font-weight:850}.mail-shipment-ok{border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:14px;padding:10px;margin:8px 0;font-weight:850}
+.mail-shipment-warning{border:1px solid #fed7aa;background:#fff7ed;color:#9a3412;border-radius:14px;padding:10px;margin:8px 0;font-weight:850}.mail-shipment-ok{border:1px solid #bbf7d0;background:#f0fdf4;color:#166535;border-radius:14px;padding:10px;margin:8px 0;font-weight:850}
 #customerFolderShipmentInfoText{min-height:280px!important;line-height:1.45!important;font-family:Segoe UI,Roboto,Arial,sans-serif}
 .customer-mail-lang-row{display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:end}
 .customer-mail-helper{border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;padding:10px;font-size:12px;font-weight:800;color:#08245d;line-height:1.35}
@@ -2028,9 +2021,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 #rc266OfflineStatus,#rc266OfflineNote{display:none!important}
 @media print{#rc266OfflineStatus,#rc266OfflineNote{display:none!important}}
 
-</style>
 
-<style>
+
+/* index.html style block 02 */
+
 /* PRIVATE RC154 Academy */
 .academy-layout{display:grid;grid-template-columns:360px 1fr;gap:14px;align-items:start}
 .module-list{display:grid;gap:8px;max-height:760px;overflow:auto}
@@ -2041,97 +2035,43 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .progressbar{height:12px;background:#dbe4f0;border-radius:999px;overflow:hidden;margin:10px 0 14px}
 .progressbar span{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));}
 @media(max-width:1050px){.academy-layout{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}}
-</style>
-<style id="rc171-clean-css">
+
+
+/* index.html style block 03 */
+
 /* RC171: Keine internen RC-/Patchtexte sichtbar */
 .private-demo-banner,.private-banner,.private-pill,.rc80-clean-store,.runtime-warning-rc77{display:none!important}
 .page-head>.pill.blue{display:none!important}
 .brand span#brandUserLine{color:#dbeafe!important;font-weight:900!important;font-size:13px!important;line-height:1.25!important}
 .profile{overflow:hidden}.profile strong,.profile small{overflow:hidden;text-overflow:ellipsis;white-space:normal}
-</style>
 
 
-<style id="rc430-bootstrap-style">html.rc430-booting #app{visibility:hidden!important}html.rc430-booting body:after{display:none!important;content:none!important}</style>
+/* index.html style block 04 */
+html.rc430-booting #app{visibility:hidden!important}html.rc430-booting body:after{display:none!important;content:none!important}
 
-<style id="rc449-early-login-style">
+/* index.html style block 05 */
+
 #rc448MicrosoftLoginBox{display:block;margin:14px 0 16px;padding:14px;border:1px solid #93c5fd;border-radius:18px;background:linear-gradient(135deg,#eff6ff,#f8fbff);text-align:left;box-shadow:0 8px 20px rgba(37,99,235,.08)}
 #rc448MicrosoftLoginBox h3{margin:0 0 6px;color:#08245d;font-size:17px}
 #rc448MicrosoftStatus{margin:0 0 10px;color:#334155;font-size:12px;font-weight:800;line-height:1.4;overflow-wrap:anywhere}
 #rc448MicrosoftLoginLink{width:100%;text-decoration:none;display:flex;align-items:center;justify-content:center}
 #rc448MicrosoftLogoutLink{display:none;margin-top:9px;text-align:center;color:#475569;font-size:12px;font-weight:850;text-decoration:none}
-</style>
 
-<style id="rc431-pickup-preflight-style">html[data-rc431-pickup="1"] body{background:#eef6fb!important}html[data-rc431-pickup="1"] body>*:not(#rc431PickupApp){display:none!important}</style>
-<style id="rc432-qr-print-clean">
+
+/* index.html style block 06 */
+html[data-rc431-pickup="1"] body{background:#eef6fb!important}html[data-rc431-pickup="1"] body>*:not(#rc431PickupApp){display:none!important}
+
+/* index.html style block 07 */
+
 #rc420Load1 .rc420-qr small,.rc420-load[data-rc420-load="1"] .rc420-qr small,
 #rc420Load1 .rc431-qr-status,.rc420-load[data-rc420-load="1"] .rc431-qr-status{display:none!important}
-</style>
-<meta content="RC535" name="exporthub-clean-version"/><style id="rc501-login-cleanup">#rc448MicrosoftLoginBox{display:none!important}</style><link href="assets/clean-shell.css?v=535" rel="stylesheet"/><link href="assets/exporthub-rc535.css?v=535" rel="stylesheet"/></head>
-<body><div class="clean-load-panel hidden" id="cleanLoadPanel">
-<div class="clean-load-card">
-<div aria-hidden="true" class="clean-spinner"></div>
-<h2 id="cleanLoadTitle">ExportHUB wird vorbereitet</h2>
-<p id="cleanLoadText">Die Anwendungsmodule werden kontrolliert geladen.</p>
-<div class="clean-progress"><span id="cleanProgressBar"></span></div>
-<div class="clean-progress-label" id="cleanProgressLabel">0 %</div>
-</div>
-</div>
-<div class="login" id="login">
-<div class="login-card">
-<div class="logo">EH</div>
-<h1>ExportHUB</h1>
-<div class="login-lang">
-<label class="field" id="loginLangLabel">Sprache
-        <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
-</label>
-<div class="lang-note hidden" id="loginLangNote"></div>
-</div>
-<div class="clean-ms-status" id="cleanMicrosoftStatus">
-<strong>Microsoft-Anmeldung wird geprüft …</strong>
-<span>Die Statusprüfung wird automatisch beendet, falls Microsoft nicht antwortet.</span>
-</div>
-<div class="clean-ms-actions" id="cleanMicrosoftActions">
-<a class="btn" href="/.auth/login/aad?post_login_redirect_uri=%2F%3Fv%3D535" id="cleanMicrosoftLoginButton">Mit Microsoft-Konto anmelden</a>
-<button class="ghost" id="cleanMicrosoftCheckButton" type="button">Anmeldestatus erneut prüfen</button>
-<a class="ghost hidden" href="/.auth/logout?post_logout_redirect_uri=%2F%3Fv%3D535" id="cleanMicrosoftLogoutButton">Microsoft-Konto abmelden</a>
-</div>
-<div aria-live="polite" class="clean-login-status" id="cleanLoginStatus"></div>
-<div id="loginFields">
-<label class="field">Benutzername<input autocapitalize="none" autocomplete="off" id="loginUser" spellcheck="false"/></label>
-<label class="field">Passwort<input autocomplete="off" id="loginPass" type="password"/></label>
-<button class="btn" id="loginBtn" style="width:100%">Anmelden</button>
-</div>
-<div class="hidden" id="pwChange">
-<div class="notice">Erstanmeldung: Bitte neues Passwort setzen.</div>
-<label class="field">Neues Passwort<input id="newPass1" type="password"/></label>
-<label class="field">Passwort wiederholen<input id="newPass2" type="password"/></label>
-<button class="btn" id="savePassBtn" style="width:100%">Passwort speichern</button>
-</div>
-</div>
-</div>
-<div class="app hidden" id="app">
-<aside class="sidebar">
-<div class="brand"><div class="logo">EH</div><div><strong>ExportHUB</strong><span id="brandUserLine">ExportHUB-Benutzer: nicht angemeldet</span></div></div>
-<nav class="nav" id="nav"></nav>
-<div class="profile"><strong id="profileName">Tobias</strong><small id="profileRole">Offline-Modus</small><small id="saveInfo">Noch nicht gespeichert</small></div>
-</aside>
-<main class="main">
-<header class="topbar no-print">
-<div class="search">🔎 <input id="globalSearch" placeholder="Suche oder Befehl: update exporthub"/></div>
-<select class="lang-select" id="languageSelect" title="Sprache"><option value="de">Deutsch</option><option value="en">English</option></select>
-<button class="ghost" id="backupBtn">Backup</button>
-<button class="ghost" id="importBtn">Import</button>
-<input accept="application/json" class="hidden" id="importFile" type="file"/>
-<button class="ghost" id="printBtn">Drucken</button>
-<button class="ghost" id="logoutBtn">Abmelden</button>
-</header>
-<section id="content"></section>
-</main>
-</div>
 
 
+/* index.html style block 08 */
+#rc448MicrosoftLoginBox{display:none!important}
 
-<style>
+/* index.html style block 09 */
+
 /* RC32: ABD Anfrage vollständig unabhängig von der normalen Sendung */
 .abd-manual-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
 .abd-manual-grid .wide{grid-column:1/-1}
@@ -2140,9 +2080,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .abd-panel .abd-section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 6px}
 .abd-panel .abd-inline-summary{font-size:12px;color:#475569;font-weight:900}
 @media(max-width:900px){.abd-manual-grid{grid-template-columns:1fr}}
-</style>
 
-<style>
+
+/* index.html style block 10 */
+
 /* RC35: ABD Anfrage vereinfacht - GPZ + Kundennummer-Suche */
 .abd-rc35-search{display:grid;grid-template-columns:1fr auto;gap:10px;margin:12px 0}
 .abd-rc35-selected{border:1px solid #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px;margin:10px 0;font-weight:850}
@@ -2150,43 +2091,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .abd-rc35-grid .wide{grid-column:1/-1}
 .abd-rc35-grid textarea{min-height:140px}
 @media(max-width:900px){.abd-rc35-search,.abd-rc35-grid{grid-template-columns:1fr}}
-</style>
 
 
+/* index.html style block 11 */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- RC388 removed RC121 duplicate login-save renderer -->
-
-
-<!-- PRIVATE RC172: Rechte strikt + responsive Aufgaben-Kacheln + sichtbare RC-/Code-Reste entfernen -->
-<style id="rc172-rights-responsive-css">
 /* RC172: Wochenaufgaben sauber responsiv darstellen, keine senkrechten Mini-Karten mehr */
 .rc147-week-grid{
   display:grid!important;
@@ -2216,10 +2124,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 #nav button[onclick*="setView('start')"],#nav button[onclick*='setView("start")']{display:none!important;}
 /* private Versionshinweise und Code-Fragmente dürfen nicht sichtbar sein */
 .private-demo-banner,.private-banner,.private-pill,.runtime-warning-rc77,.rc80-clean-store{display:none!important;}
-</style>
 
-<!-- RC174: endgültiger Azure-Code-Endfix + responsive Aufgabenansicht -->
-<style id="rc174-final-clean-responsive-css">
+
+/* index.html style block 12 */
+
 /* Code-/Versionsreste nie sichtbar anzeigen */
 .private-banner,.private-pill,.runtime-warning-rc77,.rc80-clean-store{display:none!important;}
 /* Start-Reiter im internen Menü entfernen */
@@ -2261,10 +2169,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 }
 @media(max-width:1200px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important}}
 @media(max-width:760px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
-</style>
 
-<!-- RC175: Rechte/Benuzteranlage + Profiltext + finaler Code-Endfix -->
-<style id="rc175-rights-profile-responsive-css">
+
+/* index.html style block 13 */
+
 /* Profilbox sauber halten */
 .profile{overflow:hidden!important;}
 .profile strong,.profile small{display:block!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:100%!important;}
@@ -2289,10 +2197,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
   writing-mode:horizontal-tb!important;white-space:normal!important;overflow-wrap:break-word!important;word-break:normal!important;
 }
 @media(max-width:900px){.app{grid-template-columns:1fr!important}.sidebar{position:relative!important;height:auto!important}.main{padding:14px!important}.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
-</style>
 
-<!-- RC176: Benutzer anlegen, Profil öffnen und Rechte speichern stabilisiert -->
-<style id="rc176-user-rights-ui-css">
+
+/* index.html style block 14 */
+
 .rc176-rights-layout{display:grid;grid-template-columns:minmax(280px,390px) 1fr;gap:16px;align-items:start}
 .rc176-user-list{display:grid;gap:8px;max-height:520px;overflow:auto;padding-right:4px}
 .rc176-user-btn{border:1px solid #dbeafe;background:#fff;border-radius:14px;padding:11px;text-align:left;cursor:pointer;font-weight:850;box-shadow:0 4px 12px rgba(15,23,42,.05)}
@@ -2306,10 +2214,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .rc176-admin-lock{border:1px solid #bbf7d0;background:#f0fdf4;color:#14532d;border-radius:14px;padding:10px 12px;margin:8px 0;font-weight:850}
 .rc176-savebar{position:sticky;bottom:10px;background:#fff;border:2px solid #bfdbfe;border-radius:16px;padding:12px;margin-top:12px;box-shadow:0 10px 30px rgba(15,23,42,.12);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 @media(max-width:980px){.rc176-rights-layout{grid-template-columns:1fr}.rc176-user-list{max-height:260px}.rc176-rights-table{font-size:12px}.rc176-rights-table th,.rc176-rights-table td{padding:6px}}
-</style>
 
 
-<style>
+/* index.html style block 15 */
+
 /* PRIVATE RC185: Mail in Sendung erstellen + Kundenordner reparieren */
 .rc185-mail-card{
   border:1px solid #bfdbfe;
@@ -2358,11 +2266,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
   padding:9px 10px;
   font-weight:850;
 }
-</style>
 
 
+/* index.html style block 16 */
 
-<style>
 /* PRIVATE RC188: SharePoint Basisordner Sendungen */
 .rc188-sp-card{
   border:1px solid #bfdbfe;
@@ -2403,9 +2310,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
   color:#334155;
   line-height:1.45;
 }
-</style>
 
-<style>
+
+/* index.html style block 17 */
+
 /* PRIVATE RC190: Sendung Collis + Mailformat/An/CC final */
 .rc190-mail-card{
   border:1px solid #bfdbfe;
@@ -2452,9 +2360,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
   padding:9px 10px;
   font-weight:850;
 }
-</style>
 
-<style>
+
+/* index.html style block 18 */
+
 /* PRIVATE RC191: Sendung erstellen Layout + SharePoint Referenzordner kompakt */
 .rc191-sp-card{
   grid-column:1 / -1;
@@ -2500,9 +2409,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
   opacity:.55;
   pointer-events:none;
 }
-</style>
 
-<style>
+
+/* index.html style block 19 */
+
 /* PRIVATE RC192: Referenzordner-Button neben Ladeliste/CMR, keine eigene SharePoint-Karte */
 .rc182-folder-card,
 .rc188-sp-card,
@@ -2530,9 +2440,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
   border-color:#2563eb;
   box-shadow:0 8px 18px rgba(37,99,235,.12);
 }
-</style>
 
-<style>
+
+/* index.html style block 20 */
+
 /* PRIVATE RC193: Benutzer anlegen + Rechte vergeben final */
 .rc193-rights-layout{
   display:grid;
@@ -2587,9 +2498,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 @media(max-width:1100px){
   .rc193-rights-layout{grid-template-columns:1fr}
 }
-</style>
 
-<style>
+
+/* index.html style block 21 */
+
 /* PRIVATE RC195: Aufgaben direkt bearbeiten */
 .rc195-task-edit-btn{
   border:1px solid #bfdbfe;
@@ -2642,9 +2554,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
     grid-template-columns:1fr;
   }
 }
-</style>
 
-<style>
+
+/* index.html style block 22 */
+
 /* PRIVATE RC196: Benutzer anlegen + Rechte ohne alte Admin-Sperre */
 .rc196-layout{
   display:grid;
@@ -2699,10 +2612,10 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 @media(max-width:1100px){
   .rc196-layout{grid-template-columns:1fr}
 }
-</style>
 
-<!-- PRIVATE RC200 START: Sendungsuebersicht Filter + Loeschen + Referenzordner Button unten -->
-<style>
+
+/* index.html style block 23 */
+
 /* PRIVATE RC200: Sendungsuebersicht steuerbar und Buttons bereinigt */
 .rc200-filterbar{
   display:grid;
@@ -2775,11 +2688,10 @@ button[onclick*="Ordnername"]{
     grid-template-columns:1fr;
   }
 }
-</style>
 
-<!-- PRIVATE RC200 END -->
-<!-- PRIVATE RC201 START: Benutzer anlegen + Teamdaten Speicherfix -->
-<style>
+
+/* index.html style block 24 */
+
 /* PRIVATE RC201: sichtbarer Benutzer-Speicherstatus */
 .rc201-user-status{
   border:1px solid #bfdbfe;
@@ -2793,7 +2705,7 @@ button[onclick*="Ordnername"]{
 .rc201-user-status.ok{
   border-color:#86efac;
   background:#f0fdf4;
-  color:#166534;
+  color:#166535;
 }
 .rc201-user-status.warn{
   border-color:#fed7aa;
@@ -2805,25 +2717,23 @@ button[onclick*="Ordnername"]{
   background:#fee2e2;
   color:#991b1b;
 }
-</style>
 
-<!-- PRIVATE RC201 END -->
-<!-- PRIVATE RC206 START: Sevastian in Benutzerliste sichtbar machen -->
-<style>
+
+/* index.html style block 25 */
+
 .rc206-user-status{
   border:1px solid #86efac;
   background:#f0fdf4;
-  color:#166534;
+  color:#166535;
   border-radius:12px;
   padding:9px 11px;
   margin:8px 0 12px;
   font-weight:900;
 }
-</style>
 
-<!-- PRIVATE RC206 END -->
-<!-- PRIVATE RC208 START: Rechte schneller + nur eine Benutzerauswahl -->
-<style>
+
+/* index.html style block 26 */
+
 .rc196-list,
 .rc193-user-list{
   display:none!important;
@@ -2862,11 +2772,10 @@ button[onclick*="Ordnername"]{
   font-size:12px;
   font-weight:850;
 }
-</style>
 
-<!-- PRIVATE RC208 END -->
-<!-- PRIVATE RC211 START: Nur Website-Ladeliste als PDF -->
-<style>
+
+/* index.html style block 27 */
+
 .rc211-pdf-note{
   border:1px solid #bfdbfe;
   background:#eff6ff;
@@ -2876,14 +2785,10 @@ button[onclick*="Ordnername"]{
   margin:8px 0;
   font-weight:900;
 }
-</style>
 
-<!-- PRIVATE RC211 END -->
-<!-- PRIVATE RC212 START: Ladeliste Europaletten Eingang/Ausgang korrigieren -->
 
-<!-- PRIVATE RC212 END -->
-<!-- PRIVATE RC214 START: Sendungsuebersicht Fokus + POD/ABD Layout + helle Ladeliste -->
-<style>
+/* index.html style block 28 */
+
 /* RC214: gezielte Sendungsuebersicht-Formatierung */
 .rc214-overview-table{
   table-layout:fixed!important;
@@ -3060,14 +2965,10 @@ button[onclick*="Ordnername"]{
   background:#fff7ed!important;
   border-color:#fed7aa!important;
 }
-</style>
 
-<!-- PRIVATE RC214 END -->
-<!-- PRIVATE RC215 START: Ladeliste Europaletten doppelte Felder entfernen und tauschen -->
 
-<!-- PRIVATE RC215 END -->
-<!-- PRIVATE RC218 START: Ladeliste Download/Farben/Paletten final -->
-<style>
+/* index.html style block 29 */
+
 /* RC218: Farben fuer Ladeliste/PDF erzwingen */
 #loadListDoc,
 #loadListDoc *,
@@ -3099,11 +3000,10 @@ button[onclick*="Ordnername"]{
   background:#fff7ed!important;
   border-color:#fed7aa!important;
 }
-</style>
 
-<!-- PRIVATE RC218 END -->
-<!-- PRIVATE RC219 START: Teamdaten Notfallschutz + Azure Save Guard -->
-<style>
+
+/* index.html style block 30 */
+
 .rc219-guard-box{
   border:2px solid #f59e0b;
   background:#fff7ed;
@@ -3116,7 +3016,7 @@ button[onclick*="Ordnername"]{
 .rc219-guard-box.ok{
   border-color:#86efac;
   background:#f0fdf4;
-  color:#166534;
+  color:#166535;
 }
 .rc219-guard-box.bad{
   border-color:#fecaca;
@@ -3134,11 +3034,10 @@ button[onclick*="Ordnername"]{
   border-radius:10px;
   padding:7px 11px;
 }
-</style>
 
-<!-- PRIVATE RC219 END: Teamdaten Notfallschutz + Azure Save Guard -->
-<!-- PRIVATE RC220 START: Ladeliste Paletten endgueltig deduplizieren + Aufgabenfilter bereinigen -->
-<style>
+
+/* index.html style block 31 */
+
 /* RC220: nur die finalen Palettenfelder sichtbar, Ausgangswert deutlich lesbar */
 #loadListDoc .rc220-pallet-field{
   background:#fff7ed!important;
@@ -3170,14 +3069,10 @@ button[onclick*="Ordnername"]{
   color:#334155!important;
   font-weight:900!important;
 }
-</style>
 
-<!-- PRIVATE RC220 END: Ladeliste Paletten endgueltig deduplizieren + Aufgabenfilter bereinigen -->
-<!-- PRIVATE RC222 START: Aufgaben ohne Dokumente/UPS -->
 
-<!-- PRIVATE RC222 END: Aufgaben ohne Dokumente/UPS -->
-<!-- PRIVATE RC223 START: Aufgaben reparieren + Ladeliste unten + Kunden loeschen -->
-<style>
+/* index.html style block 32 */
+
 .rc223-customer-delete{
   border:0;
   background:#fee2e2;
@@ -3206,11 +3101,10 @@ button[onclick*="Ordnername"]{
   font-size:22px!important;
   font-weight:1000!important;
 }
-</style>
 
-<!-- PRIVATE RC223 END: Aufgaben reparieren + Ladeliste unten + Kunden loeschen -->
-<!-- PRIVATE RC225 START: Ladeliste Unterschrift/Paletten unten erzwingen -->
-<style>
+
+/* index.html style block 33 */
+
 #loadListDoc{
   position:relative!important;
   padding-bottom:190px!important;
@@ -3271,11 +3165,10 @@ button[onclick*="Ordnername"]{
   line-height:1!important;
   font-weight:1000!important;
 }
-</style>
 
-<!-- PRIVATE RC225 END: Ladeliste Unterschrift/Paletten unten erzwingen -->
-<!-- PRIVATE RC227 START: Debugmeldungen entfernen + Ladeliste Palettenblock stabilisieren -->
-<style>
+
+/* index.html style block 34 */
+
 /* RC227: technische Colli-Hinweise nicht mehr sichtbar anzeigen */
 #rc221ColliSaveIndicator,
 #rc224ColliGuard,
@@ -3403,11 +3296,10 @@ button[onclick*="Ordnername"]{
   background:#fff7ed!important;
   border-color:#fdba74!important;
 }
-</style>
 
-<!-- PRIVATE RC227 END: Debugmeldungen entfernen + Ladeliste Palettenblock stabilisieren -->
-<!-- PRIVATE RC228 START: Benutzeranlage reparieren + POD/ABD SharePoint-Linkverwaltung -->
-<style>
+
+/* index.html style block 35 */
+
 .rc228-user-grid{
   display:grid;
   grid-template-columns:minmax(260px,.8fr) minmax(420px,1.2fr);
@@ -3453,7 +3345,7 @@ button[onclick*="Ordnername"]{
 .rc228-status{
   border:1px solid #86efac;
   background:#f0fdf4;
-  color:#166534;
+  color:#166535;
   border-radius:12px;
   padding:9px 11px;
   margin:0 0 10px;
@@ -3543,11 +3435,10 @@ button[onclick*="Ordnername"]{
     grid-template-columns:1fr;
   }
 }
-</style>
 
-<!-- PRIVATE RC228 END: Benutzeranlage reparieren + POD/ABD SharePoint-Linkverwaltung -->
-<!-- PRIVATE RC229 START: Aufgaben Tage/Ueberfaellig final reparieren -->
-<style>
+
+/* index.html style block 36 */
+
 .rc229-task-filterbar{
   display:flex;
   gap:8px;
@@ -3695,11 +3586,10 @@ button[onclick*="Ordnername"]{
     grid-template-columns:1fr;
   }
 }
-</style>
 
-<!-- PRIVATE RC229 END: Aufgaben Tage/Ueberfaellig final reparieren -->
-<!-- PRIVATE RC230 START: POD/ABD Datei statt Link + Referenzordner fix + RC219 Meldung ausblenden -->
-<style>
+
+/* index.html style block 37 */
+
 /* RC230: RC219 Statusboxen nicht mehr sichtbar anzeigen */
 #rc219GuardStatus,
 .rc219-guard-box{
@@ -3779,11 +3669,10 @@ button[onclick*="Ordnername"]{
   gap:5px;
   flex-wrap:wrap;
 }
-</style>
 
-<!-- PRIVATE RC230 END: POD/ABD Datei statt Link + Referenzordner fix + RC219 Meldung ausblenden -->
-<!-- PRIVATE RC232 START: SharePoint Referenzordner + Dateiimport aus synchronisiertem Ordner -->
-<style>
+
+/* index.html style block 38 */
+
 .rc232-folder-actions{
   display:flex!important;
   gap:8px!important;
@@ -3811,11 +3700,10 @@ button[onclick*="Ordnername"]{
 .rc232-hidden-folder-input{
   display:none!important;
 }
-</style>
 
-<!-- PRIVATE RC232 END: SharePoint Referenzordner + Dateiimport aus synchronisiertem Ordner -->
-<!-- PRIVATE RC238 START: Teamdaten-/Microsoft-Warnung aus Ladeliste und CMR entfernen -->
-<style>
+
+/* index.html style block 39 */
+
 #rc219GuardStatus,
 .rc219-guard-box,
 .rc219-guard-actions,
@@ -3830,11 +3718,10 @@ button[onclick*="Ordnername"]{
     display:none!important;
   }
 }
-</style>
 
-<!-- PRIVATE RC238 END: Teamdaten-/Microsoft-Warnung aus Ladeliste und CMR entfernen -->
-<!-- PRIVATE RC239 START: Sendungsuebersicht ABD/POD PDF-Link + Format + Buttoncleanup -->
-<style>
+
+/* index.html style block 40 */
+
 .rc230-overview-table{
   table-layout:fixed!important;
   width:100%!important;
@@ -3918,11 +3805,10 @@ button[onclick*="Ordnername"]{
 .rc239-hide{
   display:none!important;
 }
-</style>
 
-<!-- PRIVATE RC239 END: Sendungsuebersicht ABD/POD PDF-Link + Format + Buttoncleanup -->
-<!-- PRIVATE RC241 START: Benutzeranlage Hartfix -->
-<style>
+
+/* index.html style block 41 */
+
 .rc241-user-grid{
   display:grid;
   grid-template-columns:minmax(260px,.75fr) minmax(520px,1.25fr);
@@ -3980,7 +3866,7 @@ button[onclick*="Ordnername"]{
 .rc241-status.ok{
   border-color:#86efac;
   background:#f0fdf4;
-  color:#166534;
+  color:#166535;
 }
 .rc241-status.warn{
   border-color:#fed7aa;
@@ -4031,14 +3917,10 @@ button[onclick*="Ordnername"]{
   .rc241-user-grid,
   .rc241-form-grid{grid-template-columns:1fr}
 }
-</style>
 
-<!-- PRIVATE RC241 END: Benutzeranlage Hartfix -->
-<!-- PRIVATE RC242 START: Benutzer Profil/Anlegen/Rechte Savefix -->
 
-<!-- PRIVATE RC242 END: Benutzer Profil/Anlegen/Rechte Savefix -->
-<!-- PRIVATE RC243 START: Sendungsuebersicht Layout + Ref-Ordner -->
-<style>
+/* index.html style block 42 */
+
 /* PRIVATE RC243: Sendungsuebersicht kompakter und lesbarer */
 .rc228-overview-table,
 .rc230-overview-table{
@@ -4116,14 +3998,10 @@ button[onclick*="Ordnername"]{
   color:#075985!important;
   font-weight:950!important;
 }
-</style>
 
-<!-- PRIVATE RC243 END: Sendungsuebersicht Layout + Ref-Ordner -->
-<!-- PRIVATE RC244 START: Benutzer Formular-Lesefix -->
 
-<!-- PRIVATE RC244 END: Benutzer Formular-Lesefix -->
-<!-- PRIVATE RC246 START: Sendung Buttons + Referenzordner bei Lieferscheinen -->
-<style>
+/* index.html style block 43 */
+
 /* PRIVATE RC246: Referenzordner direkt bei Lieferscheinen, nicht mehr als eigener Block */
 	.rc246-ref-doc-box{
 	  border:1px solid #bfdbfe!important;
@@ -4196,11 +4074,10 @@ button[onclick*="Ordnername"]{
 	  font-weight:850!important;
 	  margin-top:6px!important;
 	}
-	</style>
+	
 
-<!-- PRIVATE RC246 END: Sendung Buttons + Referenzordner bei Lieferscheinen -->
-<!-- PRIVATE RC247 START: Sendungsuebersicht Final ABD/POD/Abgeholt -->
-<style>
+/* index.html style block 44 */
+
 .rc247-filterbar{
   display:flex!important;
   gap:8px!important;
@@ -4337,7 +4214,7 @@ button[onclick*="Ordnername"]{
 .rc247-picked-btn{
   border:1px solid #86efac!important;
   background:#dcfce7!important;
-  color:#166534!important;
+  color:#166535!important;
   font-weight:950!important;
 }
 .rc247-delete{
@@ -4348,14 +4225,10 @@ button[onclick*="Ordnername"]{
 @media(max-width:1100px){
   .rc247-table{display:block!important;overflow-x:auto!important}
 }
-</style>
 
-<!-- PRIVATE RC247 END: Sendungsuebersicht Final ABD/POD/Abgeholt -->
-<!-- PRIVATE RC248 START: ABD/POD Downloadlink + POD-Erkennung -->
 
-<!-- PRIVATE RC248 END: ABD/POD Downloadlink + POD-Erkennung -->
-<!-- PRIVATE RC249 START: Rechte + Vorlagen Speicherfix -->
-<style>
+/* index.html style block 45 */
+
 .rc249-grid{
   display:grid;
   grid-template-columns:minmax(260px,.75fr) minmax(520px,1.25fr);
@@ -4371,7 +4244,7 @@ button[onclick*="Ordnername"]{
 .rc249-status{
   border:1px solid #86efac;
   background:#f0fdf4;
-  color:#166534;
+  color:#166535;
   border-radius:12px;
   padding:9px 11px;
   margin:0 0 12px;
@@ -4429,14 +4302,10 @@ button[onclick*="Ordnername"]{
 @media(max-width:980px){
   .rc249-grid{grid-template-columns:1fr}
 }
-</style>
 
-<!-- PRIVATE RC249 END: Rechte + Vorlagen Speicherfix -->
-<!-- PRIVATE RC250 START: ABD Anfrage Link + POD DeepScan -->
 
-<!-- PRIVATE RC250 END: ABD Anfrage Link + POD DeepScan -->
-<!-- PRIVATE RC252 START: Pruefungsarchiv + Rechte/Vorlagen Hartfix -->
-<style>
+/* index.html style block 46 */
+
 .rc252-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}
 .rc252-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
 .rc252-box{border:1px solid var(--line,#dbe7f3);border-radius:14px;background:#f8fbff;padding:13px}
@@ -4460,14 +4329,13 @@ button[onclick*="Ordnername"]{
 .rc252-rights-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .rc252-rights-table input{width:18px;height:18px}
 .rc252-status{border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:14px;padding:10px;font-weight:900;margin:10px 0}
-.rc252-status.ok{border-color:#86efac;background:#f0fdf4;color:#166534}
+.rc252-status.ok{border-color:#86efac;background:#f0fdf4;color:#166535}
 .rc252-status.warn{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
 @media(max-width:1100px){.rc252-rights-layout{grid-template-columns:1fr}}
-</style>
 
-<!-- PRIVATE RC252 END: Pruefungsarchiv + Rechte/Vorlagen Hartfix -->
-<!-- PRIVATE RC254 START: POD/ABD Linkfix + Benutzer Updatefix -->
-<style>
+
+/* index.html style block 47 */
+
 .rc254-filterbar{display:flex!important;gap:8px!important;flex-wrap:wrap!important;align-items:center!important;margin:0 0 12px!important}
 .rc254-filterbar input{min-width:280px!important;flex:1!important}
 .rc254-table{width:100%!important;border-collapse:separate!important;border-spacing:0 7px!important;table-layout:auto!important}
@@ -4490,7 +4358,7 @@ button[onclick*="Ordnername"]{
 .rc254-doc-actions,.rc254-actions{display:grid!important;grid-template-columns:1fr!important;gap:5px!important;align-content:start!important}
 .rc254-doc-actions a,.rc254-doc-actions button,.rc254-doc-actions label,.rc254-actions button{min-height:27px!important;padding:5px 7px!important;border-radius:8px!important;font-size:11px!important;line-height:1.15!important;white-space:nowrap!important}
 .rc254-file-input{display:none!important}
-.rc254-picked-btn{border:1px solid #86efac!important;background:#dcfce7!important;color:#166534!important;font-weight:950!important}
+.rc254-picked-btn{border:1px solid #86efac!important;background:#dcfce7!important;color:#166535!important;font-weight:950!important}
 .rc254-delete{border:0!important;background:#fee2e2!important;color:#991b1b!important}
 .rc254-rights-layout{display:grid;grid-template-columns:minmax(300px,.8fr) minmax(560px,1.2fr);gap:14px;align-items:start}
 .rc254-user-list{display:grid;gap:8px;max-height:620px;overflow:auto}
@@ -4500,14 +4368,13 @@ button[onclick*="Ordnername"]{
 .rc254-rights-table input{width:18px;height:18px}
 .rc254-savebar{position:sticky;bottom:8px;background:#fff;border:1px solid #bfdbfe;border-radius:16px;padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;box-shadow:0 8px 22px rgba(37,99,235,.12);margin-top:12px}
 .rc254-status{border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:14px;padding:10px;font-weight:900;margin:10px 0}
-.rc254-status.ok{border-color:#86efac;background:#f0fdf4;color:#166534}
+.rc254-status.ok{border-color:#86efac;background:#f0fdf4;color:#166535}
 .rc254-status.warn{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
 @media(max-width:1100px){.rc254-table{display:block!important;overflow-x:auto!important}.rc254-rights-layout{grid-template-columns:1fr}}
-</style>
 
-<!-- PRIVATE RC254 END: POD/ABD Linkfix + Benutzer Updatefix -->
-<!-- PRIVATE RC256 START: ABD/POD Upload-Trennung + Login/User Persistenz -->
-<style>
+
+/* index.html style block 48 */
+
 .rc256-filterbar{display:flex!important;gap:8px!important;flex-wrap:wrap!important;align-items:center!important;margin:0 0 12px!important}
 .rc256-filterbar input{min-width:280px!important;flex:1!important}
 .rc256-table{width:100%!important;border-collapse:separate!important;border-spacing:0 7px!important;table-layout:auto!important}
@@ -4530,14 +4397,12 @@ button[onclick*="Ordnername"]{
 .rc256-doc-actions,.rc256-actions{display:grid!important;grid-template-columns:1fr!important;gap:5px!important;align-content:start!important}
 .rc256-doc-actions a,.rc256-doc-actions button,.rc256-doc-actions label,.rc256-actions button{min-height:27px!important;padding:5px 7px!important;border-radius:8px!important;font-size:11px!important;line-height:1.15!important;white-space:nowrap!important}
 .rc256-file-input{display:none!important}
-.rc256-picked-btn{border:1px solid #86efac!important;background:#dcfce7!important;color:#166534!important;font-weight:950!important}
+.rc256-picked-btn{border:1px solid #86efac!important;background:#dcfce7!important;color:#166535!important;font-weight:950!important}
 .rc256-delete{border:0!important;background:#fee2e2!important;color:#991b1b!important}
-</style>
 
-<!-- PRIVATE RC256 END: ABD/POD Upload-Trennung + Login/User Persistenz -->
-<!-- RC285: TeamLive/MS-Cloud-Block entfernt -->
-<!-- PRIVATE RC260 START: ABD Anfrage + Update-Schutz + Ladeliste A4 + Referenzordner -->
-<style>
+
+/* index.html style block 49 */
+
 .rc260-ref-folder-bar{
   display:flex!important;
   gap:8px!important;
@@ -4671,11 +4536,10 @@ button[onclick*="Ordnername"]{
     print-color-adjust:exact!important;
   }
 }
-</style>
 
-<!-- PRIVATE RC260 END: ABD Anfrage + Update-Schutz + Ladeliste A4 + Referenzordner -->
-<!-- PRIVATE RC261 START: Standardmails pro Kunde -->
-<style>
+
+/* index.html style block 50 */
+
 .rc261-mail-panel{
   border:1px solid #bfdbfe!important;
   background:#eff6ff!important;
@@ -4733,14 +4597,10 @@ button[onclick*="Ordnername"]{
 @media(max-width:900px){
   .rc261-mail-grid{grid-template-columns:1fr!important}
 }
-</style>
 
-<!-- PRIVATE RC261 END: Standardmails pro Kunde -->
-<!-- PRIVATE RC262 START: Benutzer Sabrina Azubi Rechte -->
 
-<!-- PRIVATE RC262 END: Benutzer Sabrina Azubi Rechte -->
-<!-- PRIVATE RC263 START: Alte Mail-senden-Funktion entfernen -->
-<style>
+/* index.html style block 51 */
+
 .rc263-old-mail-hidden{
   display:none!important;
 }
@@ -4754,11 +4614,10 @@ button[onclick*="Ordnername"]{
   font-size:12px!important;
   font-weight:900!important;
 }
-</style>
 
-<!-- PRIVATE RC263 END: Alte Mail-senden-Funktion entfernen -->
-<!-- PRIVATE RC264 START: Academy + Pruefung Schwierigkeit und 15-Fragen Tests -->
-<style>
+
+/* index.html style block 52 */
+
 .rc264-panel{
   border:1px solid #bfdbfe!important;
   background:#f8fbff!important;
@@ -4824,11 +4683,10 @@ button[onclick*="Ordnername"]{
 @media(max-width:900px){
   .rc264-test-grid{grid-template-columns:repeat(2,minmax(100px,1fr))!important}
 }
-</style>
 
-<!-- PRIVATE RC264 END: Academy + Pruefung Schwierigkeit und 15-Fragen Tests -->
-<!-- PRIVATE RC265 START: ABD Anfrage + Refordner Position + Ladeliste A4 + Standardmail Empfaengerfix -->
-<style>
+
+/* index.html style block 53 */
+
 .rc265-abd-request-panel{
   border:1px solid #fdba74!important;
   background:#fff7ed!important;
@@ -4969,11 +4827,10 @@ button[onclick*="Ordnername"]{
 @media(max-width:900px){
   .rc265-grid{grid-template-columns:1fr!important}
 }
-</style>
 
-<!-- PRIVATE RC265 END: ABD Anfrage + Refordner Position + Ladeliste A4 + Standardmail Empfaengerfix -->
-<!-- PRIVATE RC266 START: Offline-Login ohne Microsoft -->
-<style>
+
+/* index.html style block 54 */
+
 .rc266-offline-status{
   position:fixed!important;
   right:14px!important;
@@ -5005,11 +4862,10 @@ button[onclick*="Ordnername"]{
   font-weight:850!important;
   line-height:1.35!important;
 }
-</style>
 
-<!-- PRIVATE RC266 END: Offline-Login ohne Microsoft -->
-<!-- PRIVATE RC268 START: ABD nur Sendung erstellen + Buttonlayout -->
-<style>
+
+/* index.html style block 55 */
+
 .rc268-hidden{
   display:none!important;
 }
@@ -5039,10 +4895,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 .rc260-abd-panel{
   display:none!important;
 }
-</style>
 
-<!-- PRIVATE RC268 END: ABD nur Sendung erstellen + Buttonlayout -->
-<style id="rc274-7-final-css">
+
+/* index.html style block 56 */
+
 	  #rc261MailPanel.rc274-after-colli{
 	    grid-column:1 / -1!important;
 	    margin:12px 0!important;
@@ -5109,9 +4965,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 	  .rc274-delivery-name{
 	    overflow-wrap:anywhere!important;
 	  }
-	</style>
+	
 
-<style id="rc274-13-cleanup-css">
+/* index.html style block 57 */
+
   .rc274-ref-doc-title,
   .rc274-ref-doc-meta,
   .rc246-ref-doc-title,
@@ -5149,25 +5006,26 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   .rc265-abd-request-panel.rc274-13-visible{
     display:block!important;
   }
-</style>
 
-<style id="rc285-emergency-login-css">
+
+/* index.html style block 58 */
+
   html,body{min-height:100%!important;}
   #login{display:grid!important;place-items:center!important;min-height:100vh!important;}
   #login.hidden{display:none!important;}
   #app:not(.hidden){display:grid!important;}
-</style>
 
-<style id="rc287-customer-mail-delete-css">
+
+/* index.html style block 59 */
+
   .rc287-mail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
   .rc287-danger-zone{border:1px solid #fecaca;background:#fff1f2;border-radius:18px;padding:12px;margin-top:12px}
   .rc287-delete-inline{margin-top:6px}
   @media(max-width:900px){.rc287-mail-grid{grid-template-columns:1fr}}
-</style>
 
-<!-- RC285: TeamLive/MS-Cloud-Block entfernt -->
-<!-- PRIVATE RC288 START: ABD Bereich stabil + SharePoint-Lieferschein weg + UPS Land -->
-<style id="rc288-abd-ups-css">
+
+/* index.html style block 60 */
+
   #rc288AbdPanel{
     display:block!important;
     border:2px solid #fdba74!important;
@@ -5187,15 +5045,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   .sharepoint-sync-rc83,.sales-status-empty-rc83,.rc119-folder-warn,.rc119-folder-box,.rc119-folder-panel,.rc232-folder-note,.rc266-offline-status,.rc83SharePointPanel{display:none!important}
   .rc288-ups-result-ok{border-left:5px solid var(--green,#16a34a)!important;background:#f0fdf4!important}
   @media(max-width:900px){#rc288AbdPanel .rc288-grid{grid-template-columns:1fr!important}}
-</style>
 
-<!-- PRIVATE RC288 END: ABD Bereich stabil + SharePoint-Lieferschein weg + UPS Land -->
-<!-- PRIVATE RC289 OFFLINE TEXT REMOVED -->
-<!-- PRIVATE RC290 START: UPS alle Länder -->
 
-<!-- PRIVATE RC290 END: UPS alle Länder -->
-<!-- PRIVATE RC291 START: ABD ein Layout + SharePoint-Ladebereiche entfernen -->
-<style id="rc291-abd-single-css">
+/* index.html style block 61 */
+
   body[data-rc291-view="shipment"] #rc288AbdPanel,
   body[data-rc291-view="shipment"] #rc265AbdPanel,
   body[data-rc291-view="shipment"] .rc265-abd-request-panel,
@@ -5218,84 +5071,69 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   #rc291AbdPreview{white-space:pre-wrap;background:#fff;border:1px solid #fed7aa;border-radius:14px;padding:11px;margin-top:10px;font-size:12px;line-height:1.45;color:#431407;max-height:280px;overflow:auto}
   .rc291-sp-hidden{display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important;margin:0!important;padding:0!important;border:0!important}
   @media(max-width:900px){#rc291AbdPanel .rc291-grid{grid-template-columns:1fr!important}.rc291-wide{grid-column:1!important}}
-</style>
 
-<!-- PRIVATE RC291 END: ABD ein Layout + SharePoint-Ladebereiche entfernen -->
-<!-- PRIVATE RC292 START: UPS Service + Preise repariert -->
 
-<!-- PRIVATE RC292 END: UPS Service + Preise repariert -->
-<!-- PRIVATE RC293 START: Palettenkonto + Academy Logistik -->
-<style>
+/* index.html style block 62 */
+
 .rc293-academy-hero{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#fff);border-radius:24px;padding:16px;margin:10px 0 14px}
 .rc293-academy-card{border:1px solid #dbeafe;background:#fff;border-radius:18px;padding:14px;margin:10px 0;box-shadow:0 8px 18px rgba(15,23,42,.06)}
 .rc293-academy-card h4{margin:0 0 6px;color:#08245d}
 .rc293-lesson-list{display:grid;gap:8px;margin-top:10px}
 .rc293-lesson-list button{border:1px solid #dbeafe;background:#fff;border-radius:14px;padding:10px;text-align:left;font-weight:850;cursor:pointer}
 .rc293-lesson-list button.active{border-color:#2563eb;background:#eff6ff}
-.rc293-pallet-negative{color:#991b1b;font-weight:1000}.rc293-pallet-positive{color:#166534;font-weight:1000}
+.rc293-pallet-negative{color:#991b1b;font-weight:1000}.rc293-pallet-positive{color:#166535;font-weight:1000}
 .rc293-statement{min-height:260px!important;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap}
-</style>
 
-<!-- PRIVATE RC293 END: Palettenkonto + Academy Logistik -->
-<!-- PRIVATE RC294 START: UPS Rechner Preise/Laufzeiten stabil fuer Sendung -->
-<style id="rc294-ups-css">
+
+/* index.html style block 63 */
+
 .rc294-ups-ok{border-left:5px solid var(--green,#16a34a)!important;background:#f0fdf4!important;color:#0f172a}
 .rc294-ups-warn{border-left:5px solid var(--orange,#f97316)!important;background:#fff7ed!important;color:#7c2d12}
 .rc294-ups-table td,.rc294-ups-table th{font-size:12px}
-</style>
 
-<!-- PRIVATE RC294 END: UPS Rechner Preise/Laufzeiten stabil fuer Sendung -->
-<!-- PRIVATE RC295 START: Palettenkonto Partei-Abgleich + professioneller PDF-Report -->
-<style>
+
+/* index.html style block 64 */
+
 .rc295-report-card{border-left:7px solid #0b3b72!important;background:linear-gradient(180deg,#ffffff,#f8fbff)!important}
 .rc295-party-pill{display:inline-flex;align-items:center;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:950;margin:2px}
-.rc295-result-good{color:#166534;font-weight:1000}.rc295-result-warn{color:#92400e;font-weight:1000}.rc295-result-bad{color:#991b1b;font-weight:1000}
+.rc295-result-good{color:#166535;font-weight:1000}.rc295-result-warn{color:#92400e;font-weight:1000}.rc295-result-bad{color:#991b1b;font-weight:1000}
 .rc295-report-preview{min-height:220px!important;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap}
-</style>
 
-<!-- PRIVATE RC295 END: Palettenkonto Partei-Abgleich + professioneller PDF-Report -->
-<!-- PRIVATE RC296 START: UPS-Rechner zeigt Lieferpreis statt Paketpreis -->
-<style id="rc296-ups-delivery-price-css">
-  .rc296-ups-total{font-size:22px;font-weight:1000;color:#166534;display:inline-block;margin:4px 0}
+
+/* index.html style block 65 */
+
+  .rc296-ups-total{font-size:22px;font-weight:1000;color:#166535;display:inline-block;margin:4px 0}
   .rc296-ups-note{font-size:12px;color:#475569;font-weight:800;line-height:1.45;margin-top:6px}
-</style>
 
-<!-- PRIVATE RC296 END: UPS-Rechner zeigt Lieferpreis statt Paketpreis -->
-<!-- PRIVATE RC297 START: Academy + Pruefung nach Lehrjahren -->
-<style>
-.rc297-yearbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}.rc297-yearbar button{border-radius:999px}.rc297-yearbox{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#ffffff);border-radius:20px;padding:14px;margin:10px 0}.rc297-yearbox strong{color:#08245d}.rc297-tag{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:950;margin:2px}.rc297-tag.orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}.rc297-tag.green{border-color:#bbf7d0;background:#f0fdf4;color:#166534}.rc297-module-list{display:grid;gap:8px}.rc297-module-list button{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:15px;padding:10px;text-align:left;font-weight:850;cursor:pointer}.rc297-module-list button.active{border-color:#2563eb;background:#eff6ff}.rc297-lesson{border:1px solid #bfdbfe;background:#f8fbff;border-radius:20px;padding:16px;margin:10px 0;line-height:1.55}.rc297-question-meta{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.rc297-result{font-size:28px;font-weight:1000;color:#08245d}.rc297-exam-table td,.rc297-exam-table th{vertical-align:top}.rc297-explanation{margin-top:10px}.rc297-locked{border-left:5px solid #f97316;background:#fff7ed;border-radius:16px;padding:12px;margin:10px 0;font-weight:800}.rc297-year-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rc297-year-summary .summaryBox{background:#fff;border:1px solid #bfdbfe}.rc297-answer-correct{background:#dcfce7!important;border-color:#86efac!important}.rc297-answer-wrong{background:#fee2e2!important;border-color:#fecaca!important}@media(max-width:900px){.rc297-year-summary{grid-template-columns:1fr}}
-</style>
 
-<!-- PRIVATE RC297 END: Academy + Pruefung nach Lehrjahren -->
-<!-- PRIVATE RC298 START: Benutzer & Rechte mit Vorlagen -->
-<style>
+/* index.html style block 66 */
+
+.rc297-yearbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}.rc297-yearbar button{border-radius:999px}.rc297-yearbox{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#ffffff);border-radius:20px;padding:14px;margin:10px 0}.rc297-yearbox strong{color:#08245d}.rc297-tag{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:950;margin:2px}.rc297-tag.orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}.rc297-tag.green{border-color:#bbf7d0;background:#f0fdf4;color:#166535}.rc297-module-list{display:grid;gap:8px}.rc297-module-list button{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:15px;padding:10px;text-align:left;font-weight:850;cursor:pointer}.rc297-module-list button.active{border-color:#2563eb;background:#eff6ff}.rc297-lesson{border:1px solid #bfdbfe;background:#f8fbff;border-radius:20px;padding:16px;margin:10px 0;line-height:1.55}.rc297-question-meta{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.rc297-result{font-size:28px;font-weight:1000;color:#08245d}.rc297-exam-table td,.rc297-exam-table th{vertical-align:top}.rc297-explanation{margin-top:10px}.rc297-locked{border-left:5px solid #f97316;background:#fff7ed;border-radius:16px;padding:12px;margin:10px 0;font-weight:800}.rc297-year-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rc297-year-summary .summaryBox{background:#fff;border:1px solid #bfdbfe}.rc297-answer-correct{background:#dcfce7!important;border-color:#86efac!important}.rc297-answer-wrong{background:#fee2e2!important;border-color:#fecaca!important}@media(max-width:900px){.rc297-year-summary{grid-template-columns:1fr}}
+
+
+/* index.html style block 67 */
+
 .rc298-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
 .rc298-template-card{border:1px solid #bfdbfe;background:linear-gradient(135deg,#f8fbff,#ffffff);border-radius:20px;padding:14px;box-shadow:0 10px 22px rgba(15,23,42,.06)}
-.rc298-template-list{display:grid;gap:8px;max-height:420px;overflow:auto;padding-right:4px}.rc298-template-row{border:1px solid var(--line);border-radius:16px;background:#fff;padding:11px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.rc298-template-row b{color:#08245d}.rc298-mini{font-size:11px;color:#64748b;font-weight:800;line-height:1.35}.rc298-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc298-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc298-badge.green{border-color:#bbf7d0;background:#dcfce7;color:#166534}.rc298-badge.orange{border-color:#fed7aa;background:#ffedd5;color:#9a3412}.rc298-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#475569}
+.rc298-template-list{display:grid;gap:8px;max-height:420px;overflow:auto;padding-right:4px}.rc298-template-row{border:1px solid var(--line);border-radius:16px;background:#fff;padding:11px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.rc298-template-row b{color:#08245d}.rc298-mini{font-size:11px;color:#64748b;font-weight:800;line-height:1.35}.rc298-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc298-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc298-badge.green{border-color:#bbf7d0;background:#dcfce7;color:#166535}.rc298-badge.orange{border-color:#fed7aa;background:#ffedd5;color:#9a3412}.rc298-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#475569}
 @media(max-width:1100px){.rc298-template-grid{grid-template-columns:1fr}}
-</style>
 
-<!-- PRIVATE RC298 END: Benutzer & Rechte mit Vorlagen -->
-<!-- PRIVATE RC299 START: Academy Logistik + Pruefung grosse Fragenbank nach Lehrjahren -->
-<style id="rc299-academy-css">
+
+/* index.html style block 68 */
+
 .rc299-hero{border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#fff);border-radius:24px;padding:16px;margin:12px 0;box-shadow:0 10px 24px rgba(15,23,42,.06)}
 .rc299-tabs,.rc299-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.rc299-tabs button{border:1px solid #bfdbfe;background:#fff;color:#08245d;border-radius:999px;padding:9px 13px;font-weight:950;cursor:pointer}.rc299-tabs button.active{background:#2563eb;color:#fff;border-color:#2563eb}.rc299-year{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rc299-year button{border:1px solid #bfdbfe;background:#fff;border-radius:18px;text-align:left;padding:13px;cursor:pointer;font-weight:900;color:#0f172a}.rc299-year button.active{border-color:#2563eb;background:#dbeafe;box-shadow:0 10px 22px rgba(37,99,235,.12)}
-.rc299-layout{display:grid;grid-template-columns:340px 1fr;gap:14px}.rc299-area-list{display:grid;gap:8px;max-height:720px;overflow:auto}.rc299-area-list button{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:16px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.rc299-area-list button.active{border-color:#2563eb;background:#eff6ff}.rc299-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:950;margin:2px}.rc299-badge.orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}.rc299-badge.green{border-color:#bbf7d0;background:#f0fdf4;color:#166534}.rc299-badge.red{border-color:#fecaca;background:#fff1f2;color:#991b1b}.rc299-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#334155}
+.rc299-layout{display:grid;grid-template-columns:340px 1fr;gap:14px}.rc299-area-list{display:grid;gap:8px;max-height:720px;overflow:auto}.rc299-area-list button{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:16px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.rc299-area-list button.active{border-color:#2563eb;background:#eff6ff}.rc299-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:950;margin:2px}.rc299-badge.orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}.rc299-badge.green{border-color:#bbf7d0;background:#f0fdf4;color:#166535}.rc299-badge.red{border-color:#fecaca;background:#fff1f2;color:#991b1b}.rc299-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#334155}
 .rc299-question{border:2px solid #2563eb;border-radius:24px;background:#fff;padding:20px;box-shadow:0 12px 30px rgba(37,99,235,.10);margin-top:12px}.rc299-question h2{margin:0 0 12px;color:#08245d}.rc299-option{display:block;width:100%;text-align:left;border:1px solid #cbd5e1;background:#fff;border-radius:16px;padding:13px;margin:8px 0;cursor:pointer;font-weight:850}.rc299-option:hover{border-color:#2563eb;background:#eff6ff}.rc299-option.correct{background:#dcfce7;border-color:#86efac;color:#14532d}.rc299-option.wrong{background:#fee2e2;border-color:#fecaca;color:#7f1d1d}.rc299-feedback{border-left:6px solid #2563eb;background:#eff6ff;border-radius:16px;padding:13px;margin:12px 0;line-height:1.55}.rc299-feedback.bad{border-left-color:#dc2626;background:#fff1f2}.rc299-feedback.good{border-left-color:#16a34a;background:#f0fdf4}.rc299-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-top:14px}.rc299-progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin:10px 0}.rc299-progress span{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#05b8ff)}.rc299-select-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.rc299-table{width:100%;border-collapse:collapse}.rc299-table th,.rc299-table td{border-bottom:1px solid var(--line,#dbe4ef);padding:9px;text-align:left;vertical-align:top}.rc299-table th{font-size:12px;text-transform:uppercase;color:#64748b}.rc299-wrong-detail{border:1px solid #fecaca;background:#fff7f7;border-radius:16px;padding:12px;margin:9px 0}.rc299-result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.rc299-result-grid .summaryBox{background:#f8fbff}.rc299-small{font-size:12px;color:#64748b;font-weight:800;line-height:1.4}@media(max-width:1000px){.rc299-layout,.rc299-select-row,.rc299-year,.rc299-result-grid{grid-template-columns:1fr}}
-</style>
 
-<!-- PRIVATE RC299 END: Academy Logistik + Pruefung grosse Fragenbank nach Lehrjahren -->
-<!-- PRIVATE RC300 START: Benutzer & Rechte Vorlagen Hartfix -->
-<style id="rc300-rights-css">
-.rc300-layout{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}.rc300-card{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:22px;padding:16px;box-shadow:0 10px 24px rgba(15,23,42,.07)}.rc300-user-list{display:grid;gap:8px;max-height:460px;overflow:auto;padding-right:4px}.rc300-user-btn{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:16px;padding:10px;text-align:left;cursor:pointer;font-weight:850}.rc300-user-btn.active{border-color:#2563eb;background:#eff6ff}.rc300-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc300-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.rc300-template-card{border:1px solid #bfdbfe;background:linear-gradient(135deg,#f8fbff,#ffffff);border-radius:20px;padding:14px}.rc300-template-list{display:grid;gap:8px;max-height:420px;overflow:auto;padding-right:4px}.rc300-template-row{border:1px solid var(--line,#dbe4ef);border-radius:16px;background:#fff;padding:11px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.rc300-template-row b{color:#08245d}.rc300-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc300-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc300-badge.green{border-color:#bbf7d0;background:#dcfce7;color:#166534}.rc300-badge.orange{border-color:#fed7aa;background:#ffedd5;color:#9a3412}.rc300-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#475569}.rc300-table{width:100%;border-collapse:collapse}.rc300-table th,.rc300-table td{border-bottom:1px solid var(--line,#dbe4ef);padding:8px;text-align:left;vertical-align:middle}.rc300-table th{font-size:12px;color:#64748b;text-transform:uppercase}.rc300-table input[type="checkbox"]{width:18px;height:18px}.rc300-note{border-left:6px solid #2563eb;background:#eff6ff;border-radius:16px;padding:12px;margin:10px 0;font-weight:850;color:#08245d}.rc300-small{font-size:12px;color:#64748b;font-weight:800;line-height:1.4}@media(max-width:1100px){.rc300-layout,.rc300-template-grid,.rc300-grid2{grid-template-columns:1fr}}
-</style>
 
-<!-- PRIVATE RC300 END: Benutzer & Rechte Vorlagen Hartfix -->
-<!-- PRIVATE RC301 START: Account Anna Azubi -->
+/* index.html style block 69 */
 
-<!-- PRIVATE RC301 END: Account Anna Azubi -->
-<!-- PRIVATE RC311 START: POD Upload Haengerfix + Dokument-Metadaten -->
-<style id="rc311-pod-upload-fix-css">
+.rc300-layout{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}.rc300-card{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:22px;padding:16px;box-shadow:0 10px 24px rgba(15,23,42,.07)}.rc300-user-list{display:grid;gap:8px;max-height:460px;overflow:auto;padding-right:4px}.rc300-user-btn{border:1px solid var(--line,#dbe4ef);background:#fff;border-radius:16px;padding:10px;text-align:left;cursor:pointer;font-weight:850}.rc300-user-btn.active{border-color:#2563eb;background:#eff6ff}.rc300-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc300-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.rc300-template-card{border:1px solid #bfdbfe;background:linear-gradient(135deg,#f8fbff,#ffffff);border-radius:20px;padding:14px}.rc300-template-list{display:grid;gap:8px;max-height:420px;overflow:auto;padding-right:4px}.rc300-template-row{border:1px solid var(--line,#dbe4ef);border-radius:16px;background:#fff;padding:11px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.rc300-template-row b{color:#08245d}.rc300-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc300-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc300-badge.green{border-color:#bbf7d0;background:#dcfce7;color:#166535}.rc300-badge.orange{border-color:#fed7aa;background:#ffedd5;color:#9a3412}.rc300-badge.gray{border-color:#e2e8f0;background:#f8fafc;color:#475569}.rc300-table{width:100%;border-collapse:collapse}.rc300-table th,.rc300-table td{border-bottom:1px solid var(--line,#dbe4ef);padding:8px;text-align:left;vertical-align:middle}.rc300-table th{font-size:12px;color:#64748b;text-transform:uppercase}.rc300-table input[type="checkbox"]{width:18px;height:18px}.rc300-note{border-left:6px solid #2563eb;background:#eff6ff;border-radius:16px;padding:12px;margin:10px 0;font-weight:850;color:#08245d}.rc300-small{font-size:12px;color:#64748b;font-weight:800;line-height:1.4}@media(max-width:1100px){.rc300-layout,.rc300-template-grid,.rc300-grid2{grid-template-columns:1fr}}
+
+
+/* index.html style block 70 */
+
 .rc300-note,
 #rc219GuardStatus,
 .rc219-guard-box {
@@ -5306,11 +5144,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   pointer-events: none !important;
   opacity: .65 !important;
 }
-</style>
 
-<!-- PRIVATE RC311 END: POD Upload Haengerfix + Dokument-Metadaten -->
-<!-- PRIVATE RC312 START: ABD und POD gleich als SharePoint-Dokumente -->
-<style id="rc312-doc-css">
+
+/* index.html style block 71 */
+
 .rc312-filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
 .rc312-filterbar input{min-width:280px;flex:1}
 .rc312-table{width:100%;border-collapse:separate;border-spacing:0 7px}
@@ -5333,11 +5170,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 .rc312-date-stack label{font-size:12px;font-weight:950;color:#334155}
 .rc312-date-stack input{padding:7px 8px;border-radius:9px}
 @media(max-width:1100px){.rc312-table{display:block;overflow-x:auto}}
-</style>
 
-<!-- PRIVATE RC312 END: ABD und POD gleich als SharePoint-Dokumente -->
-<!-- PRIVATE RC313 START: ABD Oeffnen + Erledigt + Fokuszeile -->
-<style id="rc313-overview-polish-css">
+
+/* index.html style block 72 */
+
 .rc313-filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
 .rc313-filterbar input{min-width:280px;flex:1}
 .rc313-filterbar .rc313-check{display:inline-flex;gap:8px;align-items:center;font-weight:900;color:#334155}
@@ -5365,11 +5201,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
 .rc313-date-stack label{font-size:12px;font-weight:950;color:#334155}
 .rc313-date-stack input{padding:7px 8px;border-radius:9px}
 @media(max-width:1100px){.rc313-table{display:block;overflow-x:auto}.rc313-customer{min-width:220px}}
-</style>
 
-<!-- PRIVATE RC313 END: ABD Oeffnen + Erledigt + Fokuszeile -->
-<!-- PRIVATE RC314 START: Ladeliste Ref/Empfaenger groesser + Kundeninfos bestaetigen -->
-<style>
+
+/* index.html style block 73 */
+
 /* RC314: Ladeliste nur leicht staerker lesbar machen */
 #loadListDoc .rc314-load-ref,
 .loadlist-pro .rc314-load-ref{
@@ -5404,11 +5239,10 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   #loadListDoc .rc314-load-recipient,
   .loadlist-pro .rc314-load-recipient{font-size:1.06em!important}
 }
-</style>
 
-<!-- PRIVATE RC314 END: Ladeliste Ref/Empfaenger groesser + Kundeninfos bestaetigen -->
-<!-- PRIVATE RC315 START: Ladeliste PDF Kunde + zweisprachige Felder -->
-<style>
+
+/* index.html style block 74 */
+
 /* RC315: zweisprachige Pflichtfelder auf der Ladeliste leicht hervorheben */
 #loadListDoc .rc315-bilingual-label,
 .loadlist-pro .rc315-bilingual-label{
@@ -5420,28 +5254,19 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   font-weight:900!important;
   color:#0f172a!important;
 }
-</style>
 
-<!-- PRIVATE RC315 END: Ladeliste PDF Kunde + zweisprachige Felder -->
-<!-- PRIVATE RC316 START: Mail wieder nur Deutsch -->
 
-<!-- PRIVATE RC316 END: Mail wieder nur Deutsch -->
-<!-- PRIVATE RC317 START: Kunden-/Adress-/DNC-Felder aus Kundenmail entfernen -->
+/* index.html style block 75 */
 
-<!-- PRIVATE RC317 END: Kunden-/Adress-/DNC-Felder aus Kundenmail entfernen -->
-<!-- PRIVATE RC344 START: Single Renderer Sendung erstellen + Dokumentensatz stabil -->
-<style id="rc344-css">
 .rc344-root{width:100%;max-width:1580px;margin:0 auto;display:grid;gap:16px}
 .rc344-root .page-head{margin-bottom:10px!important}.rc344-root h2,.rc344-root h3{color:#08245d}.rc344-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,.9fr);gap:16px;align-items:start}.rc344-grid>.card{min-width:0;overflow:visible!important}.rc344-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}.rc344-card{background:#fff;border:1px solid var(--line,#dbe4ef);border-radius:22px;box-shadow:var(--shadow,0 18px 46px rgba(15,23,42,.10));padding:18px}.rc344-info,.rc344-mail,.rc344-abd{display:block!important;visibility:visible!important;height:auto!important;max-height:none!important;overflow:visible!important;border-radius:18px;padding:14px;margin:12px 0;font-weight:800;line-height:1.5;color:#0f172a}.rc344-info{border:2px solid #93c5fd;background:#eff6ff}.rc344-mail{border:2px solid #bfdbfe;background:#f8fbff}.rc344-abd{border:2px solid #facc15;background:#fffbeb}.rc344-abd h3{color:#92400e}.rc344-note{background:#fff;border:1px solid #dbeafe;border-radius:14px;padding:10px;margin:8px 0;white-space:pre-wrap}.rc344-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.rc344-choice{border:1px solid #dbeafe;background:#fff;border-radius:14px;padding:10px}.rc344-seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.rc344-seg button{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:999px;padding:8px 12px;min-height:36px;font-weight:950;cursor:pointer}.rc344-seg button.active{background:#2563eb;border-color:#1d4ed8;color:#fff}.rc344-mail-preview{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:14px;padding:12px;margin-top:10px;max-height:190px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.45}.rc344-colli-row{border:1px solid #dbeafe;background:#f8fbff;border-radius:18px;padding:12px;margin:10px 0}.rc344-colli-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rc344-colli-grid .field{margin:0}.rc344-colli-grid input,.rc344-colli-grid select{min-width:0}.rc344-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}.rc344-summary .summaryBox{background:#f7fbff;border:1px solid #dbe4ef;border-radius:15px;padding:10px}.rc344-summary .summaryBox strong{display:block;font-size:20px;color:#2563eb}.rc344-mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rc344-doc-page{width:100%;max-width:980px;margin:0 auto}.rc344-doc-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}.rc344-a4{position:relative;width:210mm;min-height:297mm;margin:18px auto;background:#fff;color:#111;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 14px 36px rgba(15,23,42,.16);padding:11mm;font-family:Arial,Helvetica,sans-serif;overflow:hidden;page-break-after:always;break-after:page}.rc344-a4:last-child{page-break-after:auto;break-after:auto}.rc344-doc-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;border-bottom:4px solid #08245d;padding-bottom:8px;margin-bottom:10px}.rc344-brand{font-size:30px;font-weight:1000;color:#08245d;letter-spacing:.02em}.rc344-brand small{display:block;font-size:12px;color:#334155;letter-spacing:0;margin-top:2px}.rc344-ref{border:2px solid #60a5fa;background:#eff6ff;border-radius:16px;padding:10px 14px;min-width:180px}.rc344-ref span{display:block;text-transform:uppercase;font-size:10px;font-weight:1000;color:#1e3a8a}.rc344-ref strong{font-size:28px;letter-spacing:.08em;color:#0f172a}.rc344-doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.rc344-doc-box{border:1px solid #93c5fd;border-radius:14px;padding:9px;font-size:12px;line-height:1.35;background:#f8fbff}.rc344-doc-box b{display:block;color:#08245d;text-transform:uppercase;font-size:10px;margin-bottom:4px}.rc344-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}.rc344-table th,.rc344-table td{border:1px solid #cbd5e1;padding:5px;text-align:left;vertical-align:top}.rc344-table th{background:#dbeafe;color:#08245d}.rc344-sign-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}.rc344-sign{border:1px solid #93c5fd;border-radius:14px;min-height:56px;padding:9px;background:#fff}.rc344-line{border-bottom:2px solid #111;height:28px;margin-top:8px}.rc344-copy-label{position:absolute;right:10mm;bottom:6mm;font-size:11px;color:#64748b;font-weight:900}.rc344-qr-only{position:absolute;left:12mm;bottom:46mm;width:33mm;height:33mm;border:1px solid #93c5fd;border-radius:10px;padding:3mm;background:#fff}.rc344-qr-only img{width:100%;height:100%;display:block}.rc344-load-with-qr .rc344-sign-grid{margin-left:42mm}.rc344-cmr-title{font-size:25px;font-weight:1000;color:#08245d;border-bottom:3px solid #08245d;padding-bottom:8px;margin-bottom:10px}.rc344-cmr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rc344-cmr-cell{border:1px solid #111;padding:8px;min-height:38px;font-size:11px;white-space:pre-wrap}.rc344-cmr-cell b{display:block;font-size:10px;color:#111;margin-bottom:4px}.rc344-cmr-wide{grid-column:1/-1}.rc344-clean-only{display:block!important}
 @media(max-width:1100px){.rc344-grid{grid-template-columns:1fr}.rc344-choice-grid,.rc344-doc-grid,.rc344-sign-grid{grid-template-columns:1fr}.rc344-a4{width:100%;min-height:auto}.rc344-summary{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.rc344-colli-grid,.rc344-mini,.rc344-summary{grid-template-columns:1fr}}
 @media print{ @page{size:A4;margin:0} body.print-rc344-docs{background:#fff!important} body.print-rc344-docs .sidebar,body.print-rc344-docs .topbar,body.print-rc344-docs .no-print,body.print-rc344-docs .rc344-doc-actions{display:none!important} body.print-rc344-docs .app{display:block!important}body.print-rc344-docs .main{padding:0!important}body.print-rc344-docs #content{margin:0!important;padding:0!important} body.print-rc344-docs #content>*:not(#rc344DocumentPage){display:none!important} body.print-rc344-docs .rc344-a4{width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:10mm!important;page-break-after:always!important;break-after:page!important;overflow:hidden!important} body.print-rc344-docs .rc344-a4:last-child{page-break-after:auto!important;break-after:auto!important}}
-</style>
 
-<!-- PRIVATE RC345: Button Mail erstellen in Aktionsleiste ergänzt -->
-<!-- PRIVATE RC344 END: Single Renderer Sendung erstellen + Dokumentensatz stabil -->
-<!-- PRIVATE RC346 START: Altes Ladelistenlayout + offizieller CMR-Dokumentensatz -->
-<style id="rc346-doc-css">
+
+/* index.html style block 76 */
+
 .rc346-doc-page{width:100%;max-width:980px;margin:0 auto}
 .rc346-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .rc346-cover{background:#fff;color:#111;width:210mm;min-height:297mm;margin:20px auto;padding:12mm;border:1px solid #bfdbfe;border-radius:18px;box-shadow:0 14px 36px rgba(15,23,42,.16);font-family:Arial,Helvetica,sans-serif;position:relative;page-break-after:always;break-after:page}
@@ -5463,29 +5288,26 @@ body[data-rc268-view="shipmentoverview"] button[onclick*='setView("abd")']{
   body.print-rc346-docs .cmr-official{margin:0!important;box-shadow:none!important;page-break-after:always!important;break-after:page!important}
   body.print-rc346-docs .rc346-cmr-wrap:last-child .cmr-official{page-break-after:auto!important;break-after:auto!important}
 }
-</style>
 
-<!-- PRIVATE RC346 END: Altes Ladelistenlayout + offizieller CMR-Dokumentensatz -->
-<!-- PRIVATE RC347 START: Palettenkonto Report sichtbar -->
-<style>
+
+/* index.html style block 77 */
+
 .rc347-pallet-report-note{border:1px solid #bbf7d0;background:#f0fdf4;color:#14532d;border-radius:14px;padding:10px 12px;margin:8px 0 12px;font-weight:850}
 .rc347-balance{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
 .rc347-balance .summaryBox{background:#f8fbff;border-color:#bfdbfe}
 .rc347-balance .summaryBox strong{color:#08245d!important}
 @media(max-width:900px){.rc347-balance{grid-template-columns:1fr 1fr}}
-</style>
 
-<!-- PRIVATE RC347 END: Palettenkonto Report sichtbar -->
-<!-- PRIVATE RC348 START: ABD, Rechte, Ordner-/SOP-Sichtbarkeit -->
-<style id="rc348-css">
+
+/* index.html style block 78 */
+
 .rc348-abd{border:2px solid #f59e0b!important;background:#fffbeb!important;border-radius:22px!important;padding:18px!important;margin:16px 0!important;box-shadow:0 10px 24px rgba(245,158,11,.10)!important;color:#0f172a!important}
-.rc348-abd h3{margin:0 0 8px!important;color:#92400e!important}.rc348-abd-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}.rc348-abd-box{border:1px solid #fbbf24;background:#fff;border-radius:14px;padding:10px;min-height:58px}.rc348-abd-box b{display:block;color:#92400e;font-size:11px;text-transform:uppercase;margin-bottom:4px}.rc348-abd textarea{min-height:86px}.rc348-abd .toolbar{margin-top:12px}.rc348-rights-layout{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px;align-items:start}.rc348-card{background:#fff;border:1px solid var(--line,#dbe4ef);border-radius:22px;box-shadow:var(--shadow,0 18px 46px rgba(15,23,42,.10));padding:18px}.rc348-user-list{display:grid;gap:8px;max-height:520px;overflow:auto}.rc348-user-btn{text-align:left;border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;cursor:pointer}.rc348-user-btn.active{background:#eff6ff;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.rc348-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc348-badge.orange{background:#fffbeb;border-color:#fbbf24;color:#92400e}.rc348-badge.green{background:#f0fdf4;border-color:#86efac;color:#166534}.rc348-rights-table{width:100%;border-collapse:collapse}.rc348-rights-table th,.rc348-rights-table td{border:1px solid #dbe4ef;padding:8px;text-align:left;vertical-align:middle}.rc348-rights-table th{background:#eff6ff;color:#08245d}.rc348-rights-table input[type=checkbox]{width:19px;height:19px;accent-color:#2563eb}.rc348-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc348-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.rc348-template-list{display:grid;gap:8px;margin-top:10px}.rc348-template-row{border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.rc348-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.rc348-small{font-size:12px;color:#64748b;font-weight:800}.rc348-clean-hidden{display:none!important}
+.rc348-abd h3{margin:0 0 8px!important;color:#92400e!important}.rc348-abd-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}.rc348-abd-box{border:1px solid #fbbf24;background:#fff;border-radius:14px;padding:10px;min-height:58px}.rc348-abd-box b{display:block;color:#92400e;font-size:11px;text-transform:uppercase;margin-bottom:4px}.rc348-abd textarea{min-height:86px}.rc348-abd .toolbar{margin-top:12px}.rc348-rights-layout{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px;align-items:start}.rc348-card{background:#fff;border:1px solid var(--line,#dbe4ef);border-radius:22px;box-shadow:var(--shadow,0 18px 46px rgba(15,23,42,.10));padding:18px}.rc348-user-list{display:grid;gap:8px;max-height:520px;overflow:auto}.rc348-user-btn{text-align:left;border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;cursor:pointer}.rc348-user-btn.active{background:#eff6ff;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.rc348-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc348-badge.orange{background:#fffbeb;border-color:#fbbf24;color:#92400e}.rc348-badge.green{background:#f0fdf4;border-color:#86efac;color:#166535}.rc348-rights-table{width:100%;border-collapse:collapse}.rc348-rights-table th,.rc348-rights-table td{border:1px solid #dbe4ef;padding:8px;text-align:left;vertical-align:middle}.rc348-rights-table th{background:#eff6ff;color:#08245d}.rc348-rights-table input[type=checkbox]{width:19px;height:19px;accent-color:#2563eb}.rc348-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc348-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.rc348-template-list{display:grid;gap:8px;margin-top:10px}.rc348-template-row{border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.rc348-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.rc348-small{font-size:12px;color:#64748b;font-weight:800}.rc348-clean-hidden{display:none!important}
 @media(max-width:1100px){.rc348-rights-layout,.rc348-template-grid,.rc348-abd-grid{grid-template-columns:1fr}.rc348-grid2{grid-template-columns:1fr}}
-</style>
 
-<!-- PRIVATE RC348 END: ABD, Rechte, Ordner-/SOP-Sichtbarkeit -->
-<!-- PRIVATE RC349 START: Navigation, Sendung, ABD und alte Hooks stabilisieren -->
-<style id="rc349-final-css">
+
+/* index.html style block 79 */
+
 /* Alte Nachlade-Panels dauerhaft unsichtbar: RC344/RC349 sind die einzigen Sendungsbereiche. */
 #rc288AbdPanel,#rc291AbdPanel,#rc265AbdPanel,#rc260AbdPanel,
 .rc265-abd-request-panel,.rc260-abd-panel,.abd-panel,
@@ -5508,11 +5330,10 @@ body[data-exporthub-view="cmr"] .rc334-process-anchor{
   display:none!important;
 }
 .rc349-hidden{display:none!important}
-</style>
 
-<!-- PRIVATE RC349 END: Navigation, Sendung, ABD und alte Hooks stabilisieren -->
-<!-- PRIVATE RC350 START: Video-Fix Kundeninfo, Colli, ABD, Benutzer -->
-<style id="rc350-video-fix-css">
+
+/* index.html style block 80 */
+
 body:not([data-exporthub-view="shipment"]) .rc314-process-confirm,
 body:not([data-exporthub-view="shipment"]) .rc314-process-warning,
 body:not([data-current-view="shipment"]) .rc314-process-confirm,
@@ -5529,11 +5350,10 @@ body[data-current-view="shipment"] #rc344AbdBox{
   visibility:visible!important;
 }
 .rc350-hidden{display:none!important}
-</style>
 
-<!-- PRIVATE RC350 END: Video-Fix Kundeninfo, Colli, ABD, Benutzer -->
-<!-- PRIVATE RC351 START: ABD Portal + Ladeliste identisch + PDF-Funktion korrigiert -->
-<style id="rc351-css">
+
+/* index.html style block 81 */
+
 .rc351-abd-portal{border:1px solid #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px;margin:12px 0}
 .rc351-abd-portal h4{margin:0 0 8px;color:#08245d;font-size:16px}.rc351-abd-portal .toolbar{margin:8px 0 0}.rc351-abd-portal .small{display:block;margin-top:6px}
 .rc351-doc-page{width:100%;max-width:980px;margin:0 auto}.rc351-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
@@ -5553,11 +5373,10 @@ body[data-current-view="shipment"] #rc344AbdBox{
   body.print-rc351-docs .cmr-official{margin:0!important;box-shadow:none!important;page-break-after:always!important;break-after:page!important}
   body.print-rc351-docs .rc351-cmr-wrap:last-child .cmr-official{page-break-after:auto!important;break-after:auto!important}
 }
-</style>
 
-<!-- PRIVATE RC351 END: ABD Portal + Ladeliste identisch + PDF-Funktion korrigiert -->
-<!-- PRIVATE RC352 START: Ladeliste identisch, Deckblatt Logo, ABD Eingaben, Kundeninfo-Balken weg -->
-<style>
+
+/* index.html style block 82 */
+
 /* RC352: alten globalen Kundeninfo-Balken komplett abschalten; RC344 Kundeninfo bleibt separat sichtbar */
 .rc314-process-confirm,
 .rc314-process-warning,
@@ -5634,20 +5453,16 @@ body .rc314-process-warning{
   .rc352-doc-page{background:#fff!important;padding:0!important}.rc352-bundle{width:210mm!important;margin:0!important}.rc352-cover,.rc352-load{margin:0!important;box-shadow:none!important;border-radius:0!important}.rc352-load{padding:9mm 10mm 8mm!important}.rc352-cover{padding:12mm!important}
   .rc352-load:last-child,.rc352-cover:last-child{page-break-after:auto!important;break-after:auto!important}
 }
-</style>
 
-<!-- PRIVATE RC352 END: Ladeliste identisch, Deckblatt Logo, ABD Eingaben, Kundeninfo-Balken weg -->
-<!-- PRIVATE RC353 REMOVED BY RC390: partial broken block removed -->
-<!-- PRIVATE RC389 START: Azure Team Mode Foundation -->
-<style id="rc389TeamModeStyle">
+
+/* index.html style block 83 */
+
   .rc389-team-badge{position:fixed;right:14px;bottom:14px;z-index:99999;border:1px solid #b7d8ff;background:#eef7ff;color:#0b2a55;border-radius:12px;padding:8px 12px;font:700 12px system-ui,Arial;box-shadow:0 8px 20px rgba(0,0,0,.12);display:none}
   .rc389-team-badge.on{display:block}.rc389-team-badge .muted{display:block;font-weight:600;color:#50657d;font-size:10px;margin-top:2px}
-</style>
 
-<!-- PRIVATE RC389 END: Azure Team Mode Foundation -->
-<!-- PRIVATE RC353 REMOVED BY RC390: orphaned code leak removed -->
-<!-- PRIVATE RC354 START: SOP Portal-Kacheln + Schritttext stabil -->
-<style id="rc354-sop-stable-css">
+
+/* index.html style block 84 */
+
 .rc354-sop-layout{display:grid!important;grid-template-columns:1fr!important;gap:18px!important}
 .rc354-sop-list{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important;gap:10px!important;max-height:300px!important;overflow:auto!important;padding-right:4px!important}
 .rc354-sop-list button{min-height:76px!important;text-align:left!important;border-radius:16px!important;padding:12px!important}
@@ -5665,11 +5480,10 @@ body .rc314-process-warning{
 .rc354-portal-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:8px!important}
 .rc354-note{border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;padding:10px 12px;font-weight:850;color:#08245d;margin:10px 0}
 @media(max-width:900px){.rc354-open-head{display:block!important}.rc354-step-text{font-size:16px!important}.rc354-step-text p{font-size:16px!important}.rc354-portal-grid{grid-template-columns:1fr!important}}
-</style>
 
-<!-- PRIVATE RC354 END: SOP Portal-Kacheln + Schritttext stabil -->
-<!-- PRIVATE RC355 START: Deckblatt reduziert + ABD Eingabemaske + Ladeliste ohne Fehlermeldung -->
-<style id="rc355-css">
+
+/* index.html style block 85 */
+
 .rc355-doc-page{background:#eef6fb;padding:10px 0 30px}
 .rc355-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 auto 14px;max-width:210mm}
 .rc355-bundle{width:210mm;max-width:100%;margin:0 auto}.rc355-page{width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;box-sizing:border-box!important;overflow:hidden!important;margin:18px auto;background:#fff;color:#0f172a;font-family:Segoe UI,Roboto,Arial,sans-serif;box-shadow:0 18px 42px rgba(15,23,42,.13);page-break-after:always;break-after:page;position:relative}.rc355-page:last-child{page-break-after:auto;break-after:auto}
@@ -5679,15 +5493,18 @@ body .rc314-process-warning{
 #rc344AbdBox.rc355-abd{border:2px solid #facc15!important;background:#fffbeb!important;border-radius:20px!important;padding:16px!important;margin:16px 0!important;box-shadow:none!important}.rc355-abd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.rc355-abd-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}.rc355-abd textarea{min-height:150px}.rc355-portal-card{border:1px solid #93c5fd;background:#f8fbff;border-radius:16px;padding:12px;margin:10px 0}.rc355-portal-card h4{margin:0 0 6px;color:#08245d}.rc355-abd .field{margin:0}
 @media(max-width:900px){.rc355-cover-grid,.rc355-grid2,.rc355-abd-grid,.rc355-abd-grid3{grid-template-columns:1fr}.rc355-ref-center{min-width:0;width:100%;padding:10mm 6mm}.rc355-ref-center strong{font-size:34px}.rc355-sign-grid{left:10mm}.rc355-qr{position:static;margin:8px 0}.rc355-load{height:auto!important;min-height:297mm!important}}
 @media print{@page{size:A4;margin:0}body.print-rc355-docs .sidebar,body.print-rc355-docs .topbar,body.print-rc355-docs .no-print,body.print-rc355-docs #content>*:not(#rc355DocumentPage),body.print-rc355-loadlist .sidebar,body.print-rc355-loadlist .topbar,body.print-rc355-loadlist .no-print,body.print-rc355-loadlist #content>*:not(#rc355LoadlistOnlyPage){display:none!important}body.print-rc355-docs .app,body.print-rc355-loadlist .app{display:block!important}body.print-rc355-docs .main,body.print-rc355-loadlist .main{padding:0!important}body.print-rc355-docs #content,body.print-rc355-loadlist #content{display:block!important;margin:0!important;padding:0!important;background:#fff!important}.rc355-doc-page{padding:0!important;background:#fff!important}.rc355-bundle{width:210mm!important;margin:0!important}.rc355-page{margin:0!important;box-shadow:none!important;border-radius:0!important}.rc355-page:last-child{page-break-after:auto!important;break-after:auto!important}}
-</style>
 
-<!-- PRIVATE RC464 END -->
-<link href="assets/rc535-qr-security.css?v=535" rel="stylesheet"/>
-<link href="assets/rc535-ui-fixes.css?v=535" rel="stylesheet"/>
-<script defer="defer" src="assets/qrcode-local.js?v=535"></script>
-<script defer="defer" src="assets/rc535-core.js?v=535"></script>
-<script defer="defer" src="assets/rc535-qr-security.js?v=535"></script>
-<script defer="defer" src="assets/clean-bootstrap.js?v=535"></script>
-<script defer="defer" src="assets/rc535-stabilizer.js?v=535"></script>
-</body>
-</html>
+/* RC521: Mailbereich und Stauplan dauerhaft sichtbar und in fester Position */
+#rc418ShipmentMail.rc521-mail-area,#rc424TruckPanel.rc521-stow-area{display:block!important;visibility:visible!important;width:100%!important;max-width:none!important;grid-column:1/-1!important;box-sizing:border-box!important}
+#rc418ShipmentMail.rc521-mail-area{margin:18px 0!important}
+#rc424TruckPanel.rc521-stow-area{margin:14px 0 18px!important}
+@media(max-width:900px){#rc418ShipmentMail.rc521-mail-area .rc418-mail-grid,#rc418ShipmentMail.rc521-mail-area .rc428-mail-grid{grid-template-columns:1fr!important}}
+
+/* RC521 mobile containment: no area may force the page wider than the device */
+@media(max-width:900px){
+ html,body,#app,.app,.main,#content{min-width:0!important;max-width:100vw!important;overflow-x:hidden!important;box-sizing:border-box!important}
+ #content>* ,.rc344-root,.rc344-card,#rc418ShipmentMail.rc521-mail-area,#rc424TruckPanel.rc521-stow-area{min-width:0!important;max-width:100%!important;width:100%!important;box-sizing:border-box!important}
+ #rc418ShipmentMail.rc521-mail-area *,#rc424TruckPanel.rc521-stow-area *{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;overflow-wrap:anywhere!important}
+ #rc418ShipmentMail.rc521-mail-area input,#rc418ShipmentMail.rc521-mail-area select,#rc418ShipmentMail.rc521-mail-area textarea,#rc424TruckPanel.rc521-stow-area input,#rc424TruckPanel.rc521-stow-area select,#rc424TruckPanel.rc521-stow-area textarea{width:100%!important}
+}
+.rc522-modal{position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px}.rc522-dialog{width:min(900px,96vw);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.3)}.rc522-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc522-dialog label{display:block;font-weight:800;margin:8px 0}.rc522-dialog input,.rc522-dialog select,.rc522-dialog textarea{width:100%;box-sizing:border-box}.rc522-dialog textarea{min-height:100px}.rc522-line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px;border:1px solid #dbe4ef;border-radius:10px;margin:6px 0}.danger{border-color:#fecaca!important;color:#991b1b!important;background:#fff5f5!important}@media(max-width:700px){.rc522-grid{grid-template-columns:1fr}}

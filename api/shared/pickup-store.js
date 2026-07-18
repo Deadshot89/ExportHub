@@ -1,7 +1,7 @@
 
 'use strict';
 const crypto = require('crypto');
-const { BlobServiceClient } = require('@azure/storage-blob');
+const { createBlobServiceClient } = require('./blob-rest');
 
 const RECORD_CONTAINER = process.env.EXPORTHUB_PICKUP_CONTAINER || 'exporthub-pickup';
 const POD_CONTAINER = process.env.EXPORTHUB_POD_CONTAINER || 'exporthub-pod';
@@ -26,7 +26,7 @@ function safeName(v){return String(v||'POD').replace(/[^a-zA-Z0-9._ -]/g,'_').re
 async function clients(){
   const cs=connectionString();
   if(!cs)throw err('STORAGE_NOT_CONFIGURED','App-Einstellung EXPORTHUB_STORAGE_CONNECTION_STRING fehlt.',503);
-  const service=BlobServiceClient.fromConnectionString(cs);
+  const service=createBlobServiceClient(cs);
   const records=service.getContainerClient(RECORD_CONTAINER),pods=service.getContainerClient(POD_CONTAINER),team=service.getContainerClient(TEAM_CONTAINER);
   await Promise.all([records.createIfNotExists(),pods.createIfNotExists(),team.createIfNotExists()]);
   return {service,records,pods,team};
@@ -64,7 +64,7 @@ async function updateTeam(record,podsToAdd=[]){
       stampSyncFields(sh,changedFields,iso,'qr-pickup');
     }
     for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){const iso=record.confirmedAt||now();t.status='erledigt';t.done=true;t.completedAt=iso;stampSyncFields(t,['status','done','completedAt'],iso,'qr-pickup')}}
-    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC534';
+    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC535';
     try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
   }
 }
