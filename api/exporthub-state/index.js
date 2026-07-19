@@ -103,13 +103,22 @@ module.exports = async function (context, req) {
   }
 
   try {
+    const payload = auth.body(req);
+    // Azure Static Web Apps may remove custom authentication headers on proxied
+    // function calls. The same-origin state endpoint therefore accepts the opaque
+    // ExportHUB session token in the JSON body as a secure fallback as well.
+    if (payload.sessionToken && !auth.bearer(req)) {
+      req.headers = Object.assign({}, req.headers || {}, { 'x-exporthub-token': auth.text(payload.sessionToken) });
+    }
     const currentSession = await auth.validateSession(req);
     const c = await auth.clients();
     const blob = c.team;
+    const queryMode = req.query ? String(req.query.mode || '').toLowerCase() : '';
+    const bodyMode = String(payload.action || payload.mode || '').toLowerCase();
+    const mode = queryMode || bodyMode;
 
-    if (req.method === 'GET') {
-      const mode = req.query ? String(req.query.mode || '').toLowerCase() : '';
-      const metaRequested = req.query && (String(req.query.meta || '') === '1' || mode === 'meta');
+    if (req.method === 'GET' || (req.method === 'POST' && (mode === 'read' || mode === 'meta'))) {
+      const metaRequested = mode === 'meta' || (req.query && String(req.query.meta || '') === '1');
       if (metaRequested) {
         const meta = await metadataOnly(blob);
         context.res = auth.json(200, Object.assign({ ok: true, metaOnly: true }, meta));
@@ -123,11 +132,12 @@ module.exports = async function (context, req) {
     }
 
     if (req.method === 'POST') {
+      if (mode && mode !== 'save') throw auth.error('UNKNOWN_STATE_ACTION', 'Unbekannte Teamdatenaktion.', 400);
       if (!auth.hasAnyEditRight(currentSession.user)) throw auth.error('WRITE_FORBIDDEN', 'Für Änderungen fehlen Bearbeitungsrechte.', 403);
-      const incoming = normalizeIncoming(req.body);
+      const incoming = normalizeIncoming(payload);
       const saved = await saveMerged(blob, incoming, currentSession.user);
       const clientSaved = auth.sanitizeDocumentForClient(saved, auth.isAdmin(currentSession.user));
-      const ackOnly = req.query && (String(req.query.ack || '') === '1' || String(req.query.mode || '').toLowerCase() === 'ack');
+      const ackOnly = req.query && (String(req.query.ack || '') === '1' || String(req.query.mode || '').toLowerCase() === 'ack' || String(req.query.mode || '').toLowerCase() === 'save');
       if (ackOnly) {
         const body = {
           ok: true,

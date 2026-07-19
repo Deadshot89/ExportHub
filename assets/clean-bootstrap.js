@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC555',cache:'555',loginReturn:'/?v=555'};
-const VERSION=String(BUILD.version||'RC555');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC556',cache:'556',loginReturn:'/?v=556'};
+const VERSION=String(BUILD.version||'RC556');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC555 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC556 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -299,12 +299,15 @@ async function checkBootstrapStatus(){
   return null;
  }
 }
+async function stateCall(mode,payload){
+ const body=Object.assign({action:mode,mode:mode,sessionToken:runtime.authToken||''},payload||{});
+ return jsonFetch(API+'?mode='+encodeURIComponent(mode),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+}
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
- const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store',headers:runtime.authToken?{Authorization:'Bearer '+runtime.authToken,'X-ExportHUB-Token':runtime.authToken}:{}});
- if(!res.ok)throw new Error('Teamdaten konnten nicht geladen werden (HTTP '+res.status+').');
- const txt=await res.text();progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
- const d=await parseLargeJson(txt);if(!d||d.ok===false)throw new Error((d&&d.message)||'Teamdaten ungültig');
+ const d=await stateCall('read',{});
+ progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
+ if(!d||d.ok===false){const e=new Error((d&&d.message)||'Teamdaten ungültig');e.code=d&&d.code||'TEAMDATA_INVALID';throw e}
  runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);var key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));runtime.user=runtime.users.find(function(u){return lower(u.user||u.login||u.name)===key})||runtime.user;
  runtime.lastSnapshot=clone(runtime.state);runtime.lastUsers=clone(runtime.users);runtime.dirty=false;
  window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d
@@ -396,7 +399,7 @@ function markDeleted(collection,id,extra){id=text(id);if(!id)return null;const s
 function mutateObject(target,source,preserveLocal){if(!isObject(target)||!isObject(source))return;const preserved={};if(preserveLocal)LOCAL_UI_KEYS.forEach(function(key){if(Object.prototype.hasOwnProperty.call(target,key))preserved[key]=target[key]});Object.keys(target).forEach(function(key){if(!preserveLocal||!LOCAL_UI_KEYS.has(key))delete target[key]});Object.keys(source).forEach(function(key){if(!LOCAL_UI_KEYS.has(key))target[key]=clone(source[key])});Object.assign(target,preserved)}
 function refreshCurrentUser(){const users=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;const key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));const fresh=(Array.isArray(users)?users:[]).find(function(u){return lower(u.user||u.login||u.username||u.name)===key})||runtime.user;runtime.user=fresh;try{window.currentUser=fresh;if(typeof currentUser!=='undefined')currentUser=fresh}catch(_){}}
 function applyRemoteDocument(doc,reason){if(!doc||!isObject(doc.state)||(runtime.saving&&reason!=='concurrent-merge'))return false;runtime.applyingRemote=true;try{const state=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state;if(isObject(state))mutateObject(state,doc.state,true);runtime.state=state||clone(doc.state);const targetUsers=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;if(Array.isArray(targetUsers)){targetUsers.splice.apply(targetUsers,[0,targetUsers.length].concat((Array.isArray(doc.users)?doc.users:[]).map(clone)));runtime.users=targetUsers}else runtime.users=clone(doc.users||[]);runtime.revision=Number(doc.revision||runtime.revision);runtime.lastSnapshot=clone(doc.state);runtime.lastUsers=clone(doc.users||runtime.users);runtime.dirty=false;runtime.remoteApplyCount++;window.__CLEAN_BOOT_USERS__=runtime.users;refreshCurrentUser();if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.restoreUsers==='function')window.ExportHUBRC524.restoreUsers();if(typeof window.render==='function')window.render();setVersion();window.dispatchEvent(new CustomEvent('exporthub:sync',{detail:{revision:runtime.revision,reason:reason||'poll'}}));return true}finally{runtime.applyingRemote=false}}
-async function pollRevision(){if(!runtime.ready||runtime.polling||runtime.saving||runtime.dirty||runtime.pendingSave)return;runtime.polling=true;runtime.lastPollAt=Date.now();try{runtime.network.metaGets++;const meta=await jsonFetch(API+'?meta=1');if(Number(meta.revision||0)>runtime.revision){runtime.network.stateGets++;const doc=await jsonFetch(API);applyRemoteDocument(doc,'revision-poll')}}catch(e){console.warn('Live-Synchronisierung pausiert',e.message)}finally{runtime.polling=false}}
+async function pollRevision(){if(!runtime.ready||runtime.polling||runtime.saving||runtime.dirty||runtime.pendingSave)return;runtime.polling=true;runtime.lastPollAt=Date.now();try{runtime.network.metaGets++;const meta=await stateCall('meta',{});if(Number(meta.revision||0)>runtime.revision){runtime.network.stateGets++;const doc=await stateCall('read',{});applyRemoteDocument(doc,'revision-poll')}}catch(e){console.warn('Live-Synchronisierung pausiert',e.message)}finally{runtime.polling=false}}
 function startRevisionPolling(){if(runtime.pollTimer)return;runtime.pollTimer=native.setInterval(pollRevision,3000);native.setTimeout(pollRevision,800)}
 function ensureUserDisplay(){
  const name=text(runtime.user&&(runtime.user.name||runtime.user.user||runtime.user.login));
@@ -480,7 +483,7 @@ async function flushSave(reason){
  try{
   const state=getState(),users=typeof getUsers==='function'?getUsers():runtime.users;stampChanges(runtime.lastSnapshot||{},state,runtime.lastUsers||[],users);
   const payload={clientVersion:VERSION,baseRevision:runtime.revision,deviceId:runtime.deviceId,reason:reason||'save',state:state,users:users};runtime.network.posts++;
-  const d=await jsonFetch(API+'?ack=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await stateCall('save',payload);
   runtime.revision=Number(d.revision||runtime.revision);runtime.lastSnapshot=clone(state);runtime.lastUsers=clone(users);runtime.dirty=false;
   if(d.state&&d.users)applyRemoteDocument(d,'concurrent-merge');
   if(info)info.textContent=(d.concurrentMerge?'Paralleländerungen zusammengeführt · ':'Dauerhaft in Azure gespeichert · ')+new Date().toLocaleTimeString('de-DE');
@@ -490,7 +493,14 @@ async function flushSave(reason){
 
 async function finishAuthenticatedLogin(){
  status('Anmeldung bestätigt. ExportHUB wird geladen …','ok');
- try{await loadState();await loadLegacy()}catch(e){hideProgress();status('ExportHUB konnte nicht geladen werden: '+e.message,'bad');console.error(e)}
+ try{await loadState();await loadLegacy()}
+ catch(e){
+  hideProgress();
+  const code=e&&e.code?'\nFehlercode: '+e.code:'';
+  status('ExportHUB konnte nicht geladen werden: '+(e.message||'Unbekannter Fehler')+code,'bad');
+  const fields=by('loginFields'),change=by('pwChange');if(fields)fields.classList.remove('hidden');if(change)change.classList.add('hidden');setLoginEnabled(true);
+  console.error(e)
+ }
 }
 function showPasswordChange(message){
  const fields=by('loginFields'),change=by('pwChange');

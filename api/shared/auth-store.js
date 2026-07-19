@@ -4,8 +4,8 @@ const crypto = require('crypto');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { applyUserPolicy, isAdmin, normalizeRights, publicUser } = require('./user-policy');
 
-const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || 'exporthub-data';
-const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || 'team-state.json';
+const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
+const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
 const PBKDF2_ITERATIONS = Math.max(120000, Number(process.env.EXPORTHUB_PBKDF2_ITERATIONS || 210000));
