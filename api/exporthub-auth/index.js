@@ -245,7 +245,7 @@ async function bootstrapStatus(payload) {
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC550',
+      version: 'RC552',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -263,7 +263,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC550',
+      version: 'RC552',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -282,7 +282,7 @@ async function bootstrapStatus(payload) {
   const userHasCredential = Boolean(user && auth.credentialOf(user));
   return {
     ok: true,
-    version: 'RC550',
+    version: 'RC552',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,
