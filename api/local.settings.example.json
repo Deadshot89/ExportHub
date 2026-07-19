@@ -10,6 +10,7 @@
     "EXPORTHUB_STORAGE_BLOB": "team-state.json",
     "EXPORTHUB_AUTH_BLOB": "auth-sessions.json",
     "EXPORTHUB_PBKDF2_ITERATIONS": "210000",
-    "EXPORTHUB_SESSION_DAYS": "365"
+    "EXPORTHUB_SESSION_DAYS": "365",
+    "EXPORTHUB_AUTH_SIGNING_SECRET": "<optional-separates-zufaelliges-servergeheimnis; ohne-eintrag-wird-die-storage-verbindung-abgeleitet>"
   }
 }

@@ -228,6 +228,72 @@ async function mutateAuth(mutator) {
   throw error('CONCURRENT_UPDATE', 'Die Sitzung konnte wegen paralleler Änderungen nicht gespeichert werden.', 409);
 }
 function tokenHash(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
+function sessionSigningSecret() {
+  const configured = text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET || process.env.EXPORTHUB_SESSION_SECRET);
+  const fallback = connectionString();
+  const source = configured || fallback;
+  if (!source) throw error('AUTH_SIGNING_NOT_CONFIGURED', 'Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.', 503);
+  return crypto.createHash('sha256').update('ExportHUB/session/v1|' + source).digest();
+}
+function encodeSessionPart(value) {
+  return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value), 'utf8').toString('base64url');
+}
+function signSessionPart(encodedPayload) {
+  return crypto.createHmac('sha256', sessionSigningSecret()).update(encodedPayload).digest('base64url');
+}
+function createSignedSessionToken(session) {
+  const payload = {
+    v: 1,
+    purpose: 'exporthub-session',
+    sid: text(session && session.id),
+    uid: text(session && session.userId),
+    username: text(session && session.username),
+    authVersion: Number(session && session.authVersion || 0),
+    mustChange: Boolean(session && session.mustChange),
+    deviceId: text(session && session.deviceId).slice(0, 120),
+    iat: Date.parse(session && session.createdAt || '') || Date.now(),
+    exp: Date.parse(session && session.expiresAt || '') || (Date.now() + SESSION_DAYS * 86400000),
+    nonce: crypto.randomBytes(12).toString('base64url')
+  };
+  const encoded = encodeSessionPart(payload);
+  return 'ehs1.' + encoded + '.' + signSessionPart(encoded);
+}
+function verifySignedSessionToken(token) {
+  const raw = text(token);
+  const parts = raw.split('.');
+  if (parts.length !== 3 || parts[0] !== 'ehs1' || !parts[1] || !parts[2]) return null;
+  const expected = signSessionPart(parts[1]);
+  if (!safeEqualText(expected, parts[2])) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')); }
+  catch (_) { return null; }
+  if (!payload || payload.purpose !== 'exporthub-session' || Number(payload.v || 0) !== 1) return null;
+  if (!payload.uid || !payload.sid || Number(payload.exp || 0) <= Date.now()) return null;
+  return payload;
+}
+function resolveSession(token, authDocument) {
+  const hash = tokenHash(token);
+  const sessions = authDocument && Array.isArray(authDocument.sessions) ? authDocument.sessions : [];
+  const stored = sessions.find((s) => safeEqualText(s.tokenHash, hash));
+  if (stored) return { session: stored, source: 'blob' };
+  const signed = verifySignedSessionToken(token);
+  if (!signed) return { session: null, source: 'none' };
+  return {
+    source: 'signed',
+    session: {
+      id: text(signed.sid),
+      userId: text(signed.uid),
+      username: text(signed.username),
+      displayName: text(signed.username),
+      deviceId: text(signed.deviceId),
+      createdAt: new Date(Number(signed.iat || Date.now())).toISOString(),
+      expiresAt: new Date(Number(signed.exp)).toISOString(),
+      authVersion: Number(signed.authVersion || 0),
+      mustChange: signed.mustChange === true,
+      signedFallback: true
+    }
+  };
+}
 function bearer(req) {
   const headers = req && req.headers || {};
   const value = headers.authorization || headers.Authorization || '';
@@ -240,10 +306,9 @@ function bearer(req) {
   return text(fallback);
 }
 async function createSession(user, deviceId, mustChange) {
-  const token = crypto.randomBytes(32).toString('base64url');
   const session = {
     id: randomId('SES'),
-    tokenHash: tokenHash(token),
+    tokenHash: '',
     userId: text(user.id),
     username: text(user.user || user.login || user.name),
     displayName: text(user.name || user.user),
@@ -253,6 +318,8 @@ async function createSession(user, deviceId, mustChange) {
     authVersion: Number(user.authVersion || 0),
     mustChange: mustChange === true
   };
+  const token = createSignedSessionToken(session);
+  session.tokenHash = tokenHash(token);
   await mutateAuth((auth) => { auth.sessions.push(session); return session; });
   return { token, session };
 }
@@ -261,9 +328,11 @@ async function validateSession(req, options = {}) {
   if (!token) throw error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
   const c = await clients();
   const authDoc = await readJson(c.auth, emptyAuth());
-  const hash = tokenHash(token);
-  const session = (authDoc.value && Array.isArray(authDoc.value.sessions) ? authDoc.value.sessions : []).find((s) => safeEqualText(s.tokenHash, hash));
-  if (!session || session.revokedAt || Date.parse(session.expiresAt || '') <= Date.now()) throw error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
+  const resolved = resolveSession(token, authDoc.value || emptyAuth());
+  const session = resolved.session;
+  if (!session) throw error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
+  if (session.revokedAt) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
+  if (Date.parse(session.expiresAt || '') <= Date.now()) throw error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
   const teamDoc = await readJson(c.team, emptyTeam());
   const team = applyUserPolicy(teamDoc.value || emptyTeam());
   const user = (team.users || []).find((u) => text(u.id) === text(session.userId) || usernameOf(u) === lower(session.username));
@@ -303,6 +372,7 @@ module.exports = {
   TEAM_CONTAINER, TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
   clone, text, lower, now, json, error, body, clients, parseStoredJson, readJson, writeJson,
   emptyTeam, emptyAuth, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
+  sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
   passwordPolicy, passwordWasUsed, setPassword, generatedPassword, addAudit,
   mutateTeam, mutateAuth, bearer, createSession, validateSession, hasAnyEditRight,

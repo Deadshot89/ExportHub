@@ -324,7 +324,7 @@ async function bootstrapStatus(payload) {
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC556',
+      version: 'RC557',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -342,7 +342,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC556',
+      version: 'RC557',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -362,7 +362,7 @@ async function bootstrapStatus(payload) {
   const userLock = user ? auth.lockInfo(user) : { permanentLocked: false, lockedUntil: null };
   return {
     ok: true,
-    version: 'RC556',
+    version: 'RC557',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,
