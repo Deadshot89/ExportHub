@@ -254,6 +254,7 @@ function publicUsers(users, adminView = false) { return (users || []).map((u) =>
 function findUser(users, username) { const key = lower(username); return (users || []).find((u) => usernameOf(u) === key); }
 function sanitizeDocumentForClient(team, adminView = false) {
   const out = clone(team || emptyTeam());
+  delete out.authBootstrap;
   out.users = publicUsers(out.users, adminView);
   out.state = out.state && typeof out.state === 'object' ? out.state : {};
   out.state.users = clone(out.users);

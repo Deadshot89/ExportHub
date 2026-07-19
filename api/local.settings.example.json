@@ -4,6 +4,7 @@
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "EXPORTHUB_STORAGE_CONNECTION_STRING": "<Azure-Storage-Verbindungszeichenfolge>",
+    "EXPORTHUB_INITIAL_ADMIN_USERNAME": "Tobias",
     "EXPORTHUB_INITIAL_ADMIN_PASSWORD": "<einmaliges-sicheres-Startpasswort-fuer-Tobias>",
     "EXPORTHUB_STORAGE_CONTAINER": "exporthub-data",
     "EXPORTHUB_STORAGE_BLOB": "team-state.json",

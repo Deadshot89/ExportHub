@@ -78,7 +78,10 @@ async function saveMerged(blob, incoming, sessionUser) {
       updatedByDevice: incoming.deviceId || null,
       clientVersion: incoming.clientVersion || null,
       state: mergedState,
-      users: current.users || []
+      users: current.users || [],
+      authBootstrap: current.authBootstrap && typeof current.authBootstrap === 'object'
+        ? auth.clone(current.authBootstrap)
+        : undefined
     };
     try {
       await uploadTeam(blob, next, currentDownload.etag);

@@ -1,7 +1,7 @@
 'use strict';
 
 const auth = require('../shared/auth-store');
-const { MODULES } = require('../shared/user-policy');
+const { MODULES, normalizeUser, defaultRights } = require('../shared/user-policy');
 
 function responseError(context, e) {
   const status = e && e.status ? e.status : 500;
@@ -26,26 +26,72 @@ async function login(payload) {
   const password = String(payload.password || '');
   if (!username || !password) throw auth.error('LOGIN_REQUIRED', 'Benutzername und Passwort sind erforderlich.', 400);
 
+  const bootstrapUsername = auth.text(process.env.EXPORTHUB_INITIAL_ADMIN_USERNAME || 'Tobias') || 'Tobias';
+  const configuredBootstrapPassword = String(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD || '');
+
   const saved = await auth.mutateTeam((team) => {
-    const user = auth.findUser(team.users, username);
+    team.authBootstrap = team.authBootstrap && typeof team.authBootstrap === 'object' ? team.authBootstrap : {};
+    const bootstrapCompleted = Boolean(team.authBootstrap.completedAt);
+    const usernameMatchesBootstrap = auth.lower(username) === auth.lower(bootstrapUsername);
+    let user = auth.findUser(team.users, username);
+
+    // RC545: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
+    // Fehlt Tobias in alten Daten, wird er einmalig nur dann ergänzt, wenn noch kein
+    // sicher eingerichteter globaler Administrator vorhanden ist.
+    if (!user && usernameMatchesBootstrap && configuredBootstrapPassword && !bootstrapCompleted) {
+      const secureAdminExists = (team.users || []).some((candidate) => auth.isAdmin(candidate) && Boolean(auth.credentialOf(candidate)));
+      if (!secureAdminExists) {
+        user = normalizeUser({
+          id: 'USER-' + bootstrapUsername.replace(/[^A-Za-z0-9_-]/g, '-'),
+          user: bootstrapUsername,
+          login: bootstrapUsername,
+          username: bootstrapUsername,
+          name: bootstrapUsername,
+          role: 'Globaler Administrator',
+          globalAdmin: true,
+          permissions: ['*'],
+          rights: defaultRights(true),
+          mustChange: true,
+          authSetupRequired: true,
+          active: true,
+          createdAt: auth.now()
+        }, team.users.length);
+        team.users.push(user);
+      }
+    }
+
     if (!user) return { ok: false, code: 'INVALID_CREDENTIALS', message: 'Benutzername oder Passwort ist falsch.', status: 401 };
     if (!auth.isActive(user)) return { ok: false, code: 'ACCOUNT_DISABLED', message: 'Das Benutzerkonto ist deaktiviert.', status: 403 };
 
+    const secureCredential = auth.credentialOf(user);
+    const bootstrapEligible = Boolean(
+      usernameMatchesBootstrap &&
+      configuredBootstrapPassword &&
+      !bootstrapCompleted &&
+      auth.isAdmin(user) &&
+      (!secureCredential || user.authSetupRequired === true)
+    );
+    const bootstrapPasswordMatches = bootstrapEligible && auth.safeEqualText(configuredBootstrapPassword, password);
+
+    // Ein korrekter einmaliger Azure-Startwert darf eine Sperre aus fehlgeschlagenen
+    // Einrichtungsversuchen aufheben. Nach abgeschlossener Einrichtung gilt das nicht mehr.
     const security = user.loginSecurity && typeof user.loginSecurity === 'object'
       ? user.loginSecurity
       : (user.loginSecurity = { failedAttempts: 0, stage: 'first', lockedUntil: null, permanentLocked: false });
     const lockUntil = Date.parse(security.lockedUntil || '');
-    if (security.permanentLocked === true) {
-      return { ok: false, code: 'ACCOUNT_LOCKED_ADMIN', message: 'Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden.', status: 423 };
-    }
-    if (Number.isFinite(lockUntil) && lockUntil > Date.now()) {
-      return {
-        ok: false,
-        code: 'ACCOUNT_LOCKED_TEMPORARY',
-        message: 'Das Konto ist vorübergehend gesperrt.',
-        status: 423,
-        retryAfterSeconds: Math.max(1, Math.ceil((lockUntil - Date.now()) / 1000))
-      };
+    if (!bootstrapPasswordMatches) {
+      if (security.permanentLocked === true) {
+        return { ok: false, code: 'ACCOUNT_LOCKED_ADMIN', message: 'Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden.', status: 423 };
+      }
+      if (Number.isFinite(lockUntil) && lockUntil > Date.now()) {
+        return {
+          ok: false,
+          code: 'ACCOUNT_LOCKED_TEMPORARY',
+          message: 'Das Konto ist vorübergehend gesperrt.',
+          status: 423,
+          retryAfterSeconds: Math.max(1, Math.ceil((lockUntil - Date.now()) / 1000))
+        };
+      }
     }
     if (Number.isFinite(lockUntil) && lockUntil <= Date.now()) {
       security.lockedUntil = null;
@@ -54,19 +100,42 @@ async function login(payload) {
     }
 
     let valid = false;
-    const credential = auth.credentialOf(user);
-    if (credential) {
-      valid = auth.verifyCredential(password, credential);
+    let bootstrapUsed = false;
+
+    if (bootstrapPasswordMatches) {
+      const policyError = auth.passwordPolicy(configuredBootstrapPassword);
+      if (policyError) {
+        return {
+          ok: false,
+          code: 'INITIAL_ADMIN_PASSWORD_POLICY',
+          message: 'Das in Azure hinterlegte Startpasswort ist ungültig: ' + policyError,
+          status: 503
+        };
+      }
+      auth.setPassword(user, configuredBootstrapPassword, { mustChange: true, allowReuse: true });
+      user.authSetupRequired = false;
+      user.mustChange = true;
+      team.authBootstrap = {
+        completedAt: auth.now(),
+        userId: user.id,
+        username: user.user,
+        source: 'EXPORTHUB_INITIAL_ADMIN_PASSWORD'
+      };
+      valid = true;
+      bootstrapUsed = true;
+    } else if (secureCredential) {
+      valid = auth.verifyCredential(password, secureCredential);
     } else if (user.password != null) {
       valid = auth.safeEqualText(String(user.password), password);
       if (valid) auth.setPassword(user, password, { mustChange: user.mustChange === true, allowReuse: true });
-    } else if (user.authSetupRequired === true) {
-      const configured = String(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD || '');
-      if (!configured) return { ok: false, code: 'INITIAL_ADMIN_NOT_CONFIGURED', message: 'Für die Erstanmeldung muss EXPORTHUB_INITIAL_ADMIN_PASSWORD in Azure konfiguriert werden.', status: 503 };
-      valid = auth.safeEqualText(configured, password);
-      if (valid) {
-        auth.setPassword(user, password, { mustChange: true, allowReuse: true });
-        user.authSetupRequired = false;
+    } else if (user.authSetupRequired === true || (usernameMatchesBootstrap && !bootstrapCompleted)) {
+      if (!configuredBootstrapPassword) {
+        return {
+          ok: false,
+          code: 'INITIAL_ADMIN_NOT_CONFIGURED',
+          message: 'Für die Erstanmeldung muss EXPORTHUB_INITIAL_ADMIN_PASSWORD in Azure konfiguriert werden.',
+          status: 503
+        };
       }
     }
 
@@ -97,6 +166,7 @@ async function login(payload) {
     security.stage = 'first';
     security.lastSuccessAt = auth.now();
     user.updatedAt = auth.now();
+    if (bootstrapUsed) auth.addAudit(team, 'INITIAL_ADMIN_BOOTSTRAPPED', user.name || user.user, { userId: user.id, username: user.user });
     auth.addAudit(team, 'LOGIN_SUCCESS', user.name || user.user, { userId: user.id, username: user.user });
     return { ok: true, userId: user.id, mustChange: user.mustChange === true };
   });
@@ -111,6 +181,66 @@ async function login(payload) {
     mustChange: outcome.mustChange,
     user: auth.publicUser(user, false),
     passwordPolicy: { minLength: 6, upper: true, lower: true, number: true, special: false, history: true }
+  };
+}
+
+async function bootstrapStatus(payload) {
+  const bootstrapUsername = auth.text(process.env.EXPORTHUB_INITIAL_ADMIN_USERNAME || 'Tobias') || 'Tobias';
+  const storageConfigured = Boolean(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage);
+  const initialPasswordConfigured = Boolean(String(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD || ''));
+  if (!storageConfigured) {
+    return {
+      ok: true,
+      version: 'RC545',
+      storageConfigured: false,
+      initialPasswordConfigured,
+      bootstrapUsername,
+      bootstrapCompleted: false,
+      userExists: false,
+      userHasCredential: false,
+      requiresBootstrap: true,
+      message: 'Azure-Speicher ist noch nicht konfiguriert.'
+    };
+  }
+  let stored;
+  try {
+    const c = await auth.clients();
+    stored = await auth.readJson(c.team, auth.emptyTeam());
+  } catch (storageError) {
+    return {
+      ok: true,
+      version: 'RC545',
+      storageConfigured: true,
+      storageReachable: false,
+      initialPasswordConfigured,
+      bootstrapUsername,
+      bootstrapCompleted: false,
+      userExists: false,
+      userHasCredential: false,
+      requiresBootstrap: true,
+      storageErrorCode: storageError && (storageError.code || storageError.name) || 'STORAGE_UNREACHABLE',
+      message: 'Die Azure-Speicherverbindung ist hinterlegt, aber nicht erreichbar.'
+    };
+  }
+  const team = auth.applyUserPolicy(stored.value || auth.emptyTeam());
+  const user = auth.findUser(team.users, bootstrapUsername);
+  const bootstrapCompleted = Boolean(team.authBootstrap && team.authBootstrap.completedAt);
+  const userHasCredential = Boolean(user && auth.credentialOf(user));
+  return {
+    ok: true,
+    version: 'RC545',
+    storageConfigured: true,
+    storageReachable: true,
+    initialPasswordConfigured,
+    bootstrapUsername,
+    bootstrapCompleted,
+    userExists: Boolean(user),
+    userHasCredential,
+    accountActive: Boolean(user && auth.isActive(user)),
+    requiresBootstrap: !bootstrapCompleted && (!userHasCredential || Boolean(user && user.authSetupRequired)),
+    message: !initialPasswordConfigured && !bootstrapCompleted
+      ? 'Das einmalige Admin-Startpasswort ist in Azure noch nicht hinterlegt.'
+      : (!bootstrapCompleted ? 'Die einmalige Admin-Aktivierung ist bereit.' : 'Die sichere Anmeldung ist eingerichtet.')
   };
 }
 
@@ -292,7 +422,8 @@ module.exports = async function (context, req) {
     const payload = auth.body(req);
     const action = auth.lower(payload.action);
     let result;
-    if (action === 'login') result = await login(payload);
+    if (action === 'bootstrap-status') result = await bootstrapStatus(payload);
+    else if (action === 'login') result = await login(payload);
     else if (action === 'change-password') result = await changePassword(req, payload);
     else if (action === 'logout') result = await logout(req);
     else if (action === 'session') {

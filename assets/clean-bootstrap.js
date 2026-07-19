@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC544',cache:'544',loginReturn:'/?v=544'};
-const VERSION=String(BUILD.version||'RC544');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC545',cache:'545',loginReturn:'/?v=545'};
+const VERSION=String(BUILD.version||'RC545');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC544 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC545 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -256,6 +256,35 @@ async function authCall(action,payload,token){
  if(t)headers.Authorization='Bearer '+t;
  return jsonFetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify(Object.assign({action:action},payload||{}))});
 }
+async function checkBootstrapStatus(){
+ try{
+  const d=await authCall('bootstrap-status',{},'');
+  runtime.bootstrapStatus=d;
+  if(!d.storageConfigured){
+   status('Anmeldung blockiert: EXPORTHUB_STORAGE_CONNECTION_STRING ist in Azure noch nicht eingerichtet.','bad');
+   return d;
+  }
+  if(d.storageReachable===false){
+   status('Anmeldung blockiert: Die hinterlegte Azure-Speicherverbindung ist nicht erreichbar.','bad');
+   return d;
+  }
+  if(d.requiresBootstrap&&!d.initialPasswordConfigured){
+   status('Erstanmeldung blockiert: EXPORTHUB_INITIAL_ADMIN_PASSWORD fehlt in Azure.','bad');
+   return d;
+  }
+  if(d.requiresBootstrap){
+   status('Einmalige Admin-Aktivierung bereit. Benutzername: '+(d.bootstrapUsername||'Tobias'),'ok');
+   const u=by('loginUser');if(u&&!text(u.value))u.value=d.bootstrapUsername||'Tobias';
+   return d;
+  }
+  status('Sichere ExportHUB-Anmeldung bereit.','ok');
+  return d;
+ }catch(e){
+  runtime.bootstrapStatus=null;
+  status('Anmelde-API nicht erreichbar: '+(e.message||'Unbekannter Fehler'),'bad');
+  return null;
+ }
+}
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
  const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store',headers:runtime.authToken?{Authorization:'Bearer '+runtime.authToken}:{}});
@@ -392,7 +421,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC544 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC545 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network};
  await signalReady();
 
@@ -449,7 +478,12 @@ async function login(){
   runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
   if(d.mustChange){showPasswordChange();return}
   await finishAuthenticatedLogin();
- }catch(e){status(e.message||'Anmeldung fehlgeschlagen.','bad');setLoginEnabled(true)}
+ }catch(e){
+  var message=e.message||'Anmeldung fehlgeschlagen.';
+  if(e.code==='INITIAL_ADMIN_NOT_CONFIGURED')message+=' Bitte in Azure die Anwendungseinstellung EXPORTHUB_INITIAL_ADMIN_PASSWORD eintragen.';
+  if(e.code==='STORAGE_NOT_CONFIGURED')message+=' Bitte in Azure EXPORTHUB_STORAGE_CONNECTION_STRING eintragen.';
+  status(message,'bad');setLoginEnabled(true)
+ }
 }
 async function saveChangedPassword(){
  const p1=by('newPass1')&&by('newPass1').value,p2=by('newPass2')&&by('newPass2').value,btn=by('savePassBtn');
@@ -484,6 +518,7 @@ window.addEventListener('error',function(e){console.error('ExportHUB Clean Fehle
 document.addEventListener('DOMContentLoaded',async function(){
  await rc524StyleHealth();setVersion();bindMicrosoftControls();bindLogin();setLoginEnabled(true);
  const app=by('app'),loginBox=by('login');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');
- updateMicrosoftUi();status('Anmeldung bereit.','ok');
+ updateMicrosoftUi();status('Anmeldekonfiguration wird geprüft …','');
+ await checkBootstrapStatus();
 });
 })();
