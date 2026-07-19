@@ -1,0 +1,206 @@
+{
+  "version": "RC546",
+  "created": "19.07.2026",
+  "changes": {
+    "legacyModulesRemoved": 32,
+    "legacyBytesRemoved": 329109,
+    "html2canvasLazyBytes": 197782,
+    "parallelLegacyPrefetch": true,
+    "microsoftLoginMarkupRemoved": true,
+    "legacyPlaintextUserFallbackRemoved": true,
+    "secureAuthFallbackOnly": true,
+    "legacyRulesNeutralized": [
+      148,
+      150,
+      151,
+      169,
+      172,
+      182,
+      183,
+      214,
+      224
+    ],
+    "forcedCcRemoved": true,
+    "customerTemplateAutofillRemoved": true,
+    "qrPinDriftRemoved": true,
+    "pickupDoesNotAutoCompleteShipment": true,
+    "reminderSlots": "09:00, 12:00, 15:00"
+  },
+  "removedModules": [
+    {
+      "id": 8,
+      "bytes": 547,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 14,
+      "bytes": 1141,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 16,
+      "bytes": 444,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 17,
+      "bytes": 654,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 30,
+      "bytes": 16514,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 37,
+      "bytes": 1859,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 40,
+      "bytes": 13896,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 43,
+      "bytes": 11522,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 44,
+      "bytes": 9695,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 45,
+      "bytes": 3444,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 46,
+      "bytes": 11315,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 47,
+      "bytes": 17317,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 56,
+      "bytes": 18587,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 58,
+      "bytes": 16761,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 60,
+      "bytes": 11396,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 61,
+      "bytes": 6145,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 62,
+      "bytes": 8716,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 80,
+      "bytes": 20341,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 81,
+      "bytes": 13923,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 83,
+      "bytes": 12768,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 87,
+      "bytes": 18403,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 89,
+      "bytes": 34735,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 94,
+      "bytes": 7185,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 98,
+      "bytes": 9804,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 102,
+      "bytes": 1622,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 113,
+      "bytes": 10979,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 115,
+      "bytes": 20193,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 116,
+      "bytes": 3429,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 147,
+      "bytes": 5794,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 171,
+      "bytes": 197782,
+      "reason": "PDF-Renderer wird erst beim ersten PDF-Download geladen"
+    },
+    {
+      "id": 195,
+      "bytes": 4332,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 196,
+      "bytes": 3606,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    },
+    {
+      "id": 210,
+      "bytes": 12042,
+      "reason": "durch sichere RC544/RC546-Anmeldung und Funktionsrechte ersetzt"
+    }
+  ],
+  "metrics": {
+    "rc545StartupLegacyGroups": 16,
+    "rc546StartupLegacyGroups": 15,
+    "rc545StartupLegacyModules": 206,
+    "rc546StartupLegacyModules": 173,
+    "rc545StartupLegacyBytes": 3579219,
+    "rc546StartupLegacyBytes": 3033129,
+    "startupBytesReduced": 546090,
+    "startupReductionPercent": 15.26
+  }
+}

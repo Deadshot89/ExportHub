@@ -35,7 +35,7 @@ async function login(payload) {
     const usernameMatchesBootstrap = auth.lower(username) === auth.lower(bootstrapUsername);
     let user = auth.findUser(team.users, username);
 
-    // RC545: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
+    // RC546: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
     // Fehlt Tobias in alten Daten, wird er einmalig nur dann ergänzt, wenn noch kein
     // sicher eingerichteter globaler Administrator vorhanden ist.
     if (!user && usernameMatchesBootstrap && configuredBootstrapPassword && !bootstrapCompleted) {
@@ -191,7 +191,7 @@ async function bootstrapStatus(payload) {
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC545',
+      version: 'RC546',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -209,7 +209,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC545',
+      version: 'RC546',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -228,7 +228,7 @@ async function bootstrapStatus(payload) {
   const userHasCredential = Boolean(user && auth.credentialOf(user));
   return {
     ok: true,
-    version: 'RC545',
+    version: 'RC546',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,

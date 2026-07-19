@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC545',cache:'545',loginReturn:'/?v=545'};
-const VERSION=String(BUILD.version||'RC545');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC546',cache:'546',loginReturn:'/?v=546'};
+const VERSION=String(BUILD.version||'RC546');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC545 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC546 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -139,8 +139,10 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
  function scheduleDrain(){native.setTimeout(function(){if(window.requestIdleCallback)window.requestIdleCallback(drain,{timeout:700});else drain(null)},250)}
  const hub=new native.MutationObserver(function(muts){
   if(!runtime.blockLegacyBackground&&!runtime.loading&&runtime.loaded){records.forEach(function(rec){if(rec.active&&relevant(rec,muts)&&queue.indexOf(rec)<0)queue.push(rec)});if(!scheduled&&queue.length){scheduled=true;scheduleDrain()}}
-  if(runtime.versionTimer)native.clearTimeout(runtime.versionTimer);
-  runtime.versionTimer=native.setTimeout(function(){runtime.versionTimer=null;setVersion()},180);
+  if(!runtime.blockLegacyBackground&&!runtime.loading){
+   if(runtime.versionTimer)native.clearTimeout(runtime.versionTimer);
+   runtime.versionTimer=native.setTimeout(function(){runtime.versionTimer=null;setVersion()},350);
+  }
  });
  hub.observe(document.documentElement,{childList:true,subtree:true,attributes:true});
 })();
@@ -298,7 +300,16 @@ async function loadState(){
 
 function runOne(entry){return new Promise(function(resolve){native.setTimeout(function(){runtime.currentModuleId=Number(entry.id)||0;try{const s=document.createElement('script');s.dataset.cleanLegacy=String(entry.id);s.text=entry.code+'\n//# sourceURL=exporthub-legacy-'+entry.id+'.js';document.head.appendChild(s);s.remove();if(Number(entry.id)===148){window.__RC524_CORE_SHOW_DOCUMENTS__=window.rc390ShowDocuments;window.__RC524_CORE_LOADLIST_PDF__=window.rc390DownloadLoadlistPdf;window.__RC524_CORE_LOADLIST_PAGE2_PDF__=window.rc390DownloadLoadlistPage2Pdf;window.__RC524_CORE_PRINT_DOCUMENTS__=window.rc390PrintDocuments}}catch(e){console.error('Legacy-Modul '+entry.id,e)}finally{runtime.currentModuleId=0}resolve()},0)})}
 async function runScripts(entries){for(let i=0;i<entries.length;i++){await runOne(entries[i]);if(i%5===4)await new Promise(function(r){if(window.requestIdleCallback)requestIdleCallback(function(){r()},{timeout:80});else native.setTimeout(r,8)})}}
-async function loadScript(src){return new Promise(function(resolve,reject){const s=document.createElement('script');s.src=src+(String(src).indexOf('?')>=0?'&':'?')+'v='+encodeURIComponent(CACHE);s.async=false;s.onload=resolve;s.onerror=function(){reject(new Error('Modul konnte nicht geladen werden: '+src))};document.head.appendChild(s)})}
+async function fetchScriptText(src){
+ const url=src+(String(src).indexOf('?')>=0?'&':'?')+'v='+encodeURIComponent(CACHE);
+ const res=await native.fetch(url,{cache:'force-cache'});
+ if(!res.ok)throw new Error('Modul konnte nicht vorgeladen werden: '+src+' (HTTP '+res.status+')');
+ return {src:src,code:await res.text()};
+}
+async function executeScriptText(src,code){
+ const script=document.createElement('script');script.dataset.cleanGroup=src;script.text=code+'\n//# sourceURL='+src.replace(/[^A-Za-z0-9._/-]/g,'_');document.head.appendChild(script);script.remove();
+}
+async function loadScript(src){const item=await fetchScriptText(src);return executeScriptText(item.src,item.code)}
 async function cleanYield(ms){return new Promise(function(resolve){if(window.requestIdleCallback){requestIdleCallback(function(){native.setTimeout(resolve,ms||20)},{timeout:500})}else native.setTimeout(resolve,ms||40)})}
 
 function rc524FinalFixes(){
@@ -404,16 +415,22 @@ async function loadLegacy(){
  runtime.loading=true;
  const manifest=await (await native.fetch('assets/legacy-manifest.json',{cache:'no-store'})).json();
  progress(20,'Stabiler Kern wird vorbereitet …');
- await cleanYield(20);
+ await cleanYield(12);
+ const prefetchStarted=performance.now();
+ progress(22,'Anwendungspakete werden parallel vorgeladen …');
+ const prefetched=await Promise.all(manifest.map(function(entry){return fetchScriptText(entry.src)}));
+ runtime.prefetchMs=Math.round(performance.now()-prefetchStarted);
+ runtime.legacyBytes=prefetched.reduce(function(sum,item){return sum+item.code.length},0);
+ await cleanYield(8);
  for(let i=0;i<manifest.length;i++){
-  const entry=manifest[i],started=performance.now();
-  progress(20+Math.round((i/manifest.length)*70),'Anwendungsbereiche werden geladen · stabiles Paket '+(i+1)+' von '+manifest.length);
+  const entry=manifest[i],item=prefetched[i],started=performance.now();
+  progress(24+Math.round((i/manifest.length)*66),'Anwendungsbereiche werden aktiviert · Paket '+(i+1)+' von '+manifest.length);
   window.__cleanGroupPromise=null;
-  await loadScript(entry.src);
+  await executeScriptText(entry.src,item.code);
   if(window.__cleanGroupPromise)await window.__cleanGroupPromise;
   quarantineLegacyBackground();
   runtime.moduleTimes.push({src:entry.src,ms:Math.round(performance.now()-started)});
-  await cleanYield(8);
+  if(i%3===2)await cleanYield(4);
  }
  runtime.loaded=true;runtime.loading=false;
  progress(94,'Anmeldung und Oberfläche werden aktiviert …');
@@ -421,8 +438,8 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC545 Konsolidierung konnte nicht aktiviert werden',e);throw e}
- window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network};
+ try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC546 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network,prefetchMs:runtime.prefetchMs||0,legacyBytes:runtime.legacyBytes||0,lazyPdfRenderer:typeof window.html2canvas==='function'};
  await signalReady();
 
 }
@@ -509,6 +526,18 @@ function bindLogin(){
 }
 
 
+const lazyAssets={html2canvas:null};
+function ensureHtml2Canvas(){
+ if(typeof window.html2canvas==='function')return Promise.resolve(window.html2canvas);
+ if(lazyAssets.html2canvas)return lazyAssets.html2canvas;
+ lazyAssets.html2canvas=new Promise(function(resolve,reject){
+  const script=document.createElement('script');script.src='assets/vendor/html2canvas.min.js?v='+encodeURIComponent(CACHE);script.async=true;
+  script.onload=function(){typeof window.html2canvas==='function'?resolve(window.html2canvas):reject(new Error('PDF-Renderer wurde geladen, ist aber nicht verfügbar.'))};
+  script.onerror=function(){lazyAssets.html2canvas=null;reject(new Error('PDF-Renderer konnte nicht geladen werden.'))};document.head.appendChild(script);
+ });
+ return lazyAssets.html2canvas;
+}
+window.ExportHUBLazy={ensureHtml2Canvas:ensureHtml2Canvas};
 window.ExportHUBClean={VERSION:VERSION,BUILD:BUILD,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,pollRevision:pollRevision,applyRemoteDocument:applyRemoteDocument,native:native,runtime:runtime};
 window.__EXPORTHUB_RC439_TEAM_SYNC__=true;
 window.__EXPORTHUB_RC467__=true;

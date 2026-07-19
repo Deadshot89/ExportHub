@@ -109,7 +109,7 @@ async function updateTeam(record,podsToAdd=[]){
     }
     for(const t of doc.state.tasks){if(String(t.area||t.category||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){t.status='erledigt';t.done=true;t.completed=true;t.completedAt=iso;t._syncUpdatedAt=iso;t._syncDeviceId='qr-pickup'}}
     doc.revision=Number(doc.revision||0)+1;
-    doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC545';
+    doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC546';
     try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
   }
 }
