@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const auth = require('../shared/auth-store');
 const { MODULES, normalizeUser, defaultRights } = require('../shared/user-policy');
 
@@ -41,6 +42,64 @@ function recoverySecretMatches(entered, configured) {
 function soleActiveAdmin(users) {
   const admins = (users || []).filter((candidate) => auth.isAdmin(candidate) && auth.isActive(candidate));
   return admins.length === 1 ? admins[0] : null;
+}
+
+function ticketSecret() {
+  return normalizedSetting(
+    process.env.EXPORTHUB_AUTH_SIGNING_SECRET,
+    normalizedSetting(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage, '')
+  );
+}
+function encodeTicketPart(value) {
+  return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value), 'utf8').toString('base64url');
+}
+function signTicketPart(encodedPayload) {
+  const secret = ticketSecret();
+  if (!secret) throw auth.error('AUTH_SIGNING_NOT_CONFIGURED', 'Der sichere Passwortwechsel ist serverseitig nicht konfiguriert.', 503);
+  return crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
+}
+function createPasswordChangeTicket(user) {
+  const payload = {
+    v: 1,
+    purpose: 'password-change',
+    userId: auth.text(user && user.id),
+    username: auth.usernameOf(user),
+    authVersion: Number(user && user.authVersion || 0),
+    exp: Date.now() + 15 * 60 * 1000,
+    nonce: crypto.randomBytes(12).toString('base64url')
+  };
+  const encoded = encodeTicketPart(payload);
+  return encoded + '.' + signTicketPart(encoded);
+}
+function decodePasswordChangeTicket(ticket) {
+  const raw = String(ticket || '').trim();
+  const parts = raw.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) throw auth.error('PASSWORD_TICKET_INVALID', 'Der Passwortwechsel ist nicht mehr gültig. Bitte die Admin-Wiederherstellung erneut starten.', 401);
+  const expected = signTicketPart(parts[0]);
+  if (!auth.safeEqualText(expected, parts[1])) throw auth.error('PASSWORD_TICKET_INVALID', 'Der Passwortwechsel ist nicht mehr gültig. Bitte die Admin-Wiederherstellung erneut starten.', 401);
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); }
+  catch (_) { throw auth.error('PASSWORD_TICKET_INVALID', 'Der Passwortwechsel ist nicht mehr gültig. Bitte die Admin-Wiederherstellung erneut starten.', 401); }
+  if (!payload || payload.purpose !== 'password-change' || Number(payload.exp || 0) <= Date.now()) throw auth.error('PASSWORD_TICKET_EXPIRED', 'Der Passwortwechsel ist abgelaufen. Bitte die Admin-Wiederherstellung erneut starten.', 401);
+  return payload;
+}
+async function validatePasswordChangeTicket(ticket, payload) {
+  const decoded = decodePasswordChangeTicket(ticket);
+  const c = await auth.clients();
+  const teamDoc = await auth.readJson(c.team, auth.emptyTeam());
+  const team = auth.applyUserPolicy(teamDoc.value || auth.emptyTeam());
+  const user = (team.users || []).find((candidate) =>
+    auth.text(candidate.id) === auth.text(decoded.userId) || auth.usernameOf(candidate) === auth.lower(decoded.username)
+  );
+  if (!user || !auth.isActive(user)) throw auth.error('ACCOUNT_DISABLED', 'Das Benutzerkonto ist deaktiviert.', 403);
+  if (user.mustChange !== true) throw auth.error('PASSWORD_CHANGE_NOT_ALLOWED', 'Für dieses Konto ist kein Passwortwechsel mehr offen.', 403);
+  if (Number(user.authVersion || 0) !== Number(decoded.authVersion || 0)) throw auth.error('PASSWORD_TICKET_REVOKED', 'Der Passwortwechsel wurde bereits verwendet oder zurückgesetzt.', 401);
+  return {
+    user,
+    team,
+    session: { id: '', deviceId: auth.text(payload && payload.deviceId), mustChange: true },
+    passwordTicket: decoded
+  };
 }
 
 async function login(payload) {
@@ -250,6 +309,7 @@ async function login(payload) {
     ok: true,
     token: created.token,
     mustChange: outcome.mustChange,
+    passwordChangeTicket: outcome.mustChange ? createPasswordChangeTicket(user) : '',
     recoveryUsed: outcome.recoveryUsed === true,
     recoveryUnlocked: outcome.recoveryUnlocked === true,
     user: auth.publicUser(user, false),
@@ -264,7 +324,7 @@ async function bootstrapStatus(payload) {
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC554',
+      version: 'RC555',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -282,7 +342,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC554',
+      version: 'RC555',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -302,7 +362,7 @@ async function bootstrapStatus(payload) {
   const userLock = user ? auth.lockInfo(user) : { permanentLocked: false, lockedUntil: null };
   return {
     ok: true,
-    version: 'RC554',
+    version: 'RC555',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,
@@ -324,7 +384,14 @@ async function bootstrapStatus(payload) {
 }
 
 async function changePassword(req, payload) {
-  const current = await auth.validateSession(req, { allowPasswordChange: true });
+  let current;
+  try {
+    current = await auth.validateSession(req, { allowPasswordChange: true });
+  } catch (sessionError) {
+    const fallbackCodes = ['SESSION_INVALID', 'SESSION_REVOKED', 'AUTH_REQUIRED'];
+    if (!payload.passwordChangeTicket || fallbackCodes.indexOf(sessionError && sessionError.code) < 0) throw sessionError;
+    current = await validatePasswordChangeTicket(payload.passwordChangeTicket, payload);
+  }
   if (!current.user.mustChange && !current.session.mustChange) throw auth.error('PASSWORD_CHANGE_NOT_ALLOWED', 'Das eigene Passwort kann nur bei der Erstanmeldung oder nach einem administrativen Reset geändert werden.', 403);
   const password = String(payload.newPassword || '');
   const repeat = String(payload.repeatPassword || payload.confirmPassword || '');

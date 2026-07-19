@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC554',cache:'554',loginReturn:'/?v=554'};
-const VERSION=String(BUILD.version||'RC554');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC555',cache:'555',loginReturn:'/?v=555'};
+const VERSION=String(BUILD.version||'RC555');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC554 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC555 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -504,7 +504,7 @@ async function login(){
  setLoginEnabled(false);status('ExportHUB-Anmeldung wird geprüft …','');
  try{
   const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true},'');
-  runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
+  runtime.authToken=d.token||'';runtime.passwordChangeTicket=d.passwordChangeTicket||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
   const usedRecovery=runtime.adminRecoveryRequested===true;
   runtime.adminRecoveryRequested=false;
   if(d.mustChange){runtime.pendingPasswordLogin={username:text(name),password:String(pass||''),deviceId:runtime.deviceId,recoveryRequested:usedRecovery};runtime.passwordChangeRetry=false;showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return}
@@ -521,7 +521,7 @@ async function saveChangedPassword(){
  if(!p1||!p2){status('Bitte beide Passwortfelder ausfüllen.','bad');return}
  if(p1!==p2){status('Die beiden Passwörter stimmen nicht überein.','bad');return}
  if(btn)btn.disabled=true;status('Neues Passwort wird gespeichert …','');
- async function performChange(){return authCall('change-password',{newPassword:p1,repeatPassword:p2,deviceId:runtime.deviceId})}
+ async function performChange(){return authCall('change-password',{newPassword:p1,repeatPassword:p2,deviceId:runtime.deviceId,passwordChangeTicket:runtime.passwordChangeTicket||''})}
  try{
   let d;
   try{d=await performChange()}
@@ -533,11 +533,11 @@ async function saveChangedPassword(){
    status('Die Wiederherstellungssitzung wird einmalig erneuert …','');
    const fresh=await authCall('login',{username:pending.username,password:pending.password,deviceId:pending.deviceId,recoveryRequested:pending.recoveryRequested===true},'');
    if(!fresh||!fresh.token||fresh.mustChange!==true)throw firstError;
-   runtime.authToken=fresh.token;runtime.user=fresh.user||runtime.user;runtime.users=fresh.user?[fresh.user]:runtime.users;
+   runtime.authToken=fresh.token;runtime.passwordChangeTicket=fresh.passwordChangeTicket||runtime.passwordChangeTicket||'';runtime.user=fresh.user||runtime.user;runtime.users=fresh.user?[fresh.user]:runtime.users;
    d=await performChange();
   }
   runtime.authToken=d.token||runtime.authToken;runtime.user=d.user||runtime.user;runtime.users=d.user?[d.user]:runtime.users;
-  runtime.pendingPasswordLogin=null;runtime.passwordChangeRetry=false;
+  runtime.pendingPasswordLogin=null;runtime.passwordChangeRetry=false;runtime.passwordChangeTicket='';
   const lp=by('loginPass');if(lp)lp.value='';const n1=by('newPass1'),n2=by('newPass2');if(n1)n1.value='';if(n2)n2.value='';
   const change=by('pwChange');if(change)change.classList.add('hidden');
   await finishAuthenticatedLogin();
@@ -548,7 +548,7 @@ async function saveChangedPassword(){
 }
 async function logoutLocal(){
  try{if(runtime.authToken)await authCall('logout',{})}catch(_){ }
- runtime.authToken='';runtime.user=null;runtime.users=[];runtime.state=null;runtime.ready=false;runtime.pendingPasswordLogin=null;runtime.passwordChangeRetry=false;
+ runtime.authToken='';runtime.passwordChangeTicket='';runtime.user=null;runtime.users=[];runtime.state=null;runtime.ready=false;runtime.pendingPasswordLogin=null;runtime.passwordChangeRetry=false;
  window.location.reload();
 }
 function bindMicrosoftControls(){updateMicrosoftUi()}
