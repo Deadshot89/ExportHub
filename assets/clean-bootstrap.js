@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC550',cache:'550',loginReturn:'/?v=550'};
-const VERSION=String(BUILD.version||'RC550');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC553',cache:'553',loginReturn:'/?v=553'};
+const VERSION=String(BUILD.version||'RC553');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -16,7 +16,7 @@ const native={
   requestAnimationFrame:window.requestAnimationFrame?window.requestAnimationFrame.bind(window):null,
   cancelAnimationFrame:window.cancelAnimationFrame?window.cancelAnimationFrame.bind(window):null
 };
-const runtime={users:[],state:null,revision:0,user:null,authToken:'',ms:null,loading:false,loaded:false,ready:false,readyAt:null,saveTimer:null,saving:false,pendingSave:false,dirty:false,lastSnapshot:null,lastUsers:null,pollTimer:null,polling:false,lastPollAt:0,acceptWritesAt:0,lastQueueReason:'',lastQueueAt:0,lastQueueStack:'',remoteApplyCount:0,applyingRemote:false,deviceId:'DEV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:[],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null,blockLegacyBackground:false,blockedLegacyTimeouts:0,blockedLegacyIntervals:0,blockedLegacyObservers:0,blockedLegacyAnimationFrames:0,rafSeq:2000000,network:{stateGets:0,metaGets:0,legacyCachedGets:0,posts:0}};
+const runtime={adminRecoveryRequested:false,users:[],state:null,revision:0,user:null,authToken:'',ms:null,loading:false,loaded:false,ready:false,readyAt:null,saveTimer:null,saving:false,pendingSave:false,dirty:false,lastSnapshot:null,lastUsers:null,pollTimer:null,polling:false,lastPollAt:0,acceptWritesAt:0,lastQueueReason:'',lastQueueAt:0,lastQueueStack:'',remoteApplyCount:0,applyingRemote:false,deviceId:'DEV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:[],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null,blockLegacyBackground:false,blockedLegacyTimeouts:0,blockedLegacyIntervals:0,blockedLegacyObservers:0,blockedLegacyAnimationFrames:0,rafSeq:2000000,network:{stateGets:0,metaGets:0,legacyCachedGets:0,posts:0}};
 
 function by(id){return document.getElementById(id)}
 function text(v){return String(v==null?'':v).trim()}
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC550 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC553 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -281,6 +281,11 @@ async function checkBootstrapStatus(){
    const u=by('loginUser');if(u&&!text(u.value))u.value=d.bootstrapUsername||'Tobias';
    return d;
   }
+  if(d.accountLocked&&d.recoveryAvailable){
+   const u=by('loginUser');if(u&&!text(u.value))u.value=d.bootstrapUsername||'Tobias';
+   status('Das globale Admin-Konto ist gesperrt. Klicke „Admin-Zugang wiederherstellen“ und gib danach dein bekanntes persönliches Passwort ein. Alternativ kann der in Azure sichtbare Startwert verwendet werden.','bad');
+   return d;
+  }
   if(d.recoveryAvailable){
    const u=by('loginUser');if(u&&!text(u.value))u.value=d.bootstrapUsername||'Tobias';
    status('Sichere Anmeldung bereit. Bei Problemen kann der Admin mit dem in Azure hinterlegten Startpasswort wiederhergestellt werden. Benutzername: '+(d.bootstrapUsername||'Tobias'),'ok');
@@ -496,8 +501,8 @@ async function login(){
  if(!text(name)||!text(pass)){status('Benutzername und Passwort sind erforderlich.','bad');return}
  setLoginEnabled(false);status('ExportHUB-Anmeldung wird geprüft …','');
  try{
-  const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId},'');
-  runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
+  const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true},'');
+  runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];runtime.adminRecoveryRequested=false;
   if(d.mustChange){showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return}
   await finishAuthenticatedLogin();
  }catch(e){
@@ -525,7 +530,7 @@ async function logoutLocal(){
 function bindMicrosoftControls(){updateMicrosoftUi()}
 function bindLogin(){
  const btn=by('loginBtn');if(btn)btn.addEventListener('click',function(e){if(!runtime.loaded){e.preventDefault();e.stopImmediatePropagation();login()}},true);
- const recovery=by('adminRecoveryBtn');if(recovery)recovery.addEventListener('click',function(e){e.preventDefault();const info=runtime.bootstrapStatus||{};const u=by('loginUser');if(u)u.value=info.bootstrapUsername||'Tobias';const p=by('loginPass');if(p){p.value='';p.focus()}status('Admin-Wiederherstellung vorbereitet. Jetzt das aktuell in Azure hinterlegte EXPORTHUB_INITIAL_ADMIN_PASSWORD eingeben.','');},true);
+ const recovery=by('adminRecoveryBtn');if(recovery)recovery.addEventListener('click',function(e){e.preventDefault();runtime.adminRecoveryRequested=true;const info=runtime.bootstrapStatus||{};const u=by('loginUser');if(u)u.value=info.bootstrapUsername||'Tobias';const p=by('loginPass');if(p){p.value='';p.focus()}status('Wiederherstellungsmodus aktiv. Gib zuerst dein bekanntes persönliches Passwort ein. Falls es nicht mehr bekannt ist, kann der Wert aus EXPORTHUB_INITIAL_ADMIN_PASSWORD verwendet werden.','');},true);
  const passBtn=by('savePassBtn');if(passBtn)passBtn.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();saveChangedPassword()},true);
  ['loginUser','loginPass'].forEach(function(id){const e=by(id);if(e)e.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!runtime.loaded){ev.preventDefault();login()}},true)});
  const logout=by('logoutBtn');if(logout)logout.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();logoutLocal()},true);
