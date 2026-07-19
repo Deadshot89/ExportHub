@@ -11,9 +11,11 @@ function text(value) { return String(value == null ? '' : value).trim(); }
 function lower(value) { return text(value).toLowerCase(); }
 function userName(user) { return lower(user && (user.user || user.login || user.username || user.name)); }
 function isAdmin(user) {
+  const role = lower(user && (user.role || user.rolle));
+  const globalRole = role === 'admin' || /global.?admin|administrator|vollzugriff/i.test(role);
   return Boolean(user && (
     user.globalAdmin === true ||
-    /global.?admin|administrator|vollzugriff/i.test(text(user.role || user.rolle)) ||
+    globalRole ||
     (Array.isArray(user.permissions) && user.permissions.includes('*'))
   ));
 }

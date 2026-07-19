@@ -32,6 +32,6 @@ module.exports=async function(context,req){
       podFiles:Array.isArray(old.value&&old.value.podFiles)?old.value.podFiles:[]
     });
     await store.writeJson(blob,rec,old.etag);
-    context.res=store.json(200,Object.assign(store.publicRecord(rec),{registered:true,version:'RC546',updatedBy:current.user.name||current.user.user}));
+    context.res=store.json(200,Object.assign(store.publicRecord(rec),{registered:true,version:'RC547',updatedBy:current.user.name||current.user.user}));
   }catch(e){context.log.error(e);context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Initialisierung fehlgeschlagen.'})}
 };

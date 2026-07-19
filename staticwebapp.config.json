@@ -1,28 +1,139 @@
 {
   "routes": [
-    {"route":"/","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/index.html","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/exporthub-ui-rc521.css","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/exporthub-rc524.css","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/exporthub-rc542.css","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/exporthub-rc543.css","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/exporthub-rc544.css","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/rc524-core.js","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/clean-bootstrap.js","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/rc542-process.js","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/rc543-stability.js","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/rc544-auth.js","headers":{"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"}},
-    {"route":"/assets/legacy/*","headers":{"Cache-Control":"public, max-age=31536000, immutable"}},
-    {"route":"/api/exporthub-auth","allowedRoles":["anonymous"]},
-    {"route":"/api/exporthub/*","allowedRoles":["anonymous"]},
-    {"route":"/api/pickup-init","allowedRoles":["anonymous"]},
-    {"route":"/api/pickup-health","allowedRoles":["anonymous"]},
-    {"route":"/api/pickup-status","allowedRoles":["anonymous"]},
-    {"route":"/api/pickup-confirm","allowedRoles":["anonymous"]},
-    {"route":"/api/pickup-pod","allowedRoles":["anonymous"]}
+    {
+      "route": "/",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/index.html",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/exporthub-ui-rc521.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/exporthub-rc524.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/exporthub-rc542.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/exporthub-rc543.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/exporthub-rc544.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/exporthub-rc547.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc524-core.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/clean-bootstrap.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc542-process.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc543-stability.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc544-auth.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/legacy/*",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "route": "/api/exporthub-auth",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/exporthub/*",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/pickup-init",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/pickup-health",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/pickup-status",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/pickup-confirm",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    },
+    {
+      "route": "/api/pickup-pod",
+      "allowedRoles": [
+        "anonymous"
+      ]
+    }
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/api/*","/.auth/*","/pickup.html","/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf}"]
+    "exclude": [
+      "/api/*",
+      "/.auth/*",
+      "/pickup.html",
+      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf}"
+    ]
   }
 }

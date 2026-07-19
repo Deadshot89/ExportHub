@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC546',cache:'546',loginReturn:'/?v=546'};
-const VERSION=String(BUILD.version||'RC546');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC547',cache:'547',loginReturn:'/?v=547'};
+const VERSION=String(BUILD.version||'RC547');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC546 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC547 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -236,7 +236,9 @@ async function jsonFetch(url,options){
  catch(_){
   const looksLikeHtml=/^\s*</.test(txt||'');
   if(res.status===401||res.status===403||looksLikeHtml&&/login|auth|unauthorized|forbidden/i.test(txt||''))throw new Error('ExportHUB-Anmeldung erforderlich.');
-  throw new Error('Der Server lieferte keine gültige JSON-Antwort (HTTP '+res.status+').');
+  const snippet=String(txt||'').replace(/\s+/g,' ').trim().slice(0,180);
+  const err=new Error('Der Server lieferte keine gültige JSON-Antwort (HTTP '+res.status+').'+(snippet?' Antwort: '+snippet:''));
+  err.code='INVALID_SERVER_JSON';err.status=res.status;throw err;
  }
  if(!res.ok||data.ok===false){const error=new Error(data.message||('HTTP '+res.status));error.code=data.code||'HTTP_'+res.status;error.status=res.status;error.data=data;throw error}
  return data
@@ -279,7 +281,7 @@ async function checkBootstrapStatus(){
    const u=by('loginUser');if(u&&!text(u.value))u.value=d.bootstrapUsername||'Tobias';
    return d;
   }
-  status('Sichere ExportHUB-Anmeldung bereit.','ok');
+  status(d.recoveryAvailable?'Sichere ExportHUB-Anmeldung bereit. Admin-Wiederherstellung über das Azure-Startpasswort ist verfügbar.':'Sichere ExportHUB-Anmeldung bereit.','ok');
   return d;
  }catch(e){
   runtime.bootstrapStatus=null;
@@ -438,7 +440,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC546 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC547 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network,prefetchMs:runtime.prefetchMs||0,legacyBytes:runtime.legacyBytes||0,lazyPdfRenderer:typeof window.html2canvas==='function'};
  await signalReady();
 
@@ -480,10 +482,10 @@ async function finishAuthenticatedLogin(){
  status('Anmeldung bestätigt. ExportHUB wird geladen …','ok');
  try{await loadState();await loadLegacy()}catch(e){hideProgress();status('ExportHUB konnte nicht geladen werden: '+e.message,'bad');console.error(e)}
 }
-function showPasswordChange(){
+function showPasswordChange(message){
  const fields=by('loginFields'),change=by('pwChange');
  if(fields)fields.classList.add('hidden');if(change)change.classList.remove('hidden');
- status('Bitte das automatisch erzeugte Startpasswort ändern.','');
+ status(message||'Bitte das automatisch erzeugte Startpasswort ändern.','');
 }
 async function login(){
  if(runtime.loading||runtime.activatingLegacy)return;
@@ -493,7 +495,7 @@ async function login(){
  try{
   const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId},'');
   runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
-  if(d.mustChange){showPasswordChange();return}
+  if(d.mustChange){showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return}
   await finishAuthenticatedLogin();
  }catch(e){
   var message=e.message||'Anmeldung fehlgeschlagen.';

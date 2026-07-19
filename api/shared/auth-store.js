@@ -56,13 +56,35 @@ async function clients() {
     auth: container.getBlockBlobClient(AUTH_BLOB)
   };
 }
+function parseStoredJson(raw, blobName) {
+  const cleaned = String(raw == null ? '' : raw).replace(/^\uFEFF/, '').replace(/\u0000+$/g, '').trim();
+  if (!cleaned) return null;
+  try {
+    let value = JSON.parse(cleaned);
+    // Older exports occasionally stored JSON as a JSON string. Decode one extra layer safely.
+    if (typeof value === 'string' && /^[\[{]/.test(value.trim())) value = JSON.parse(value.trim());
+    return value;
+  } catch (cause) {
+    const e = error('STORAGE_JSON_INVALID', 'Die Azure-Datei '+text(blobName || 'unbekannt')+' enthält keine gültigen ExportHUB-Daten.', 500, { cause });
+    throw e;
+  }
+}
 async function readJson(blob, fallback) {
   try {
     const response = await blob.download(0);
     const chunks = [];
     for await (const chunk of response.readableStreamBody) chunks.push(Buffer.from(chunk));
     const raw = Buffer.concat(chunks).toString('utf8');
-    return { value: raw ? JSON.parse(raw) : clone(fallback), etag: response.etag || null };
+    try {
+      const parsed = parseStoredJson(raw, blob && blob.name);
+      return { value: parsed == null ? clone(fallback) : parsed, etag: response.etag || null };
+    } catch (parseError) {
+      // A damaged session file must not lock every user out. It can be recreated safely.
+      if (text(blob && blob.name).toLowerCase().endsWith(text(AUTH_BLOB).toLowerCase())) {
+        return { value: clone(fallback), etag: response.etag || null, repairedInvalidJson: true };
+      }
+      throw parseError;
+    }
   } catch (e) {
     if (e && e.statusCode === 404) return { value: clone(fallback), etag: null };
     throw e;
@@ -274,7 +296,7 @@ async function revokeUserSessions(userId, reason, exceptSessionId) {
 
 module.exports = {
   TEAM_CONTAINER, TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
-  clone, text, lower, now, json, error, body, clients, readJson, writeJson,
+  clone, text, lower, now, json, error, body, clients, parseStoredJson, readJson, writeJson,
   emptyTeam, emptyAuth, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
   passwordPolicy, passwordWasUsed, setPassword, generatedPassword, addAudit,

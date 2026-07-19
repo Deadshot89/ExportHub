@@ -11,7 +11,7 @@ function Q(v){return String(v==null?'':v).trim()}
 function L(v){return Q(v).toLowerCase()}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
-function isGlobal(u){return !!u&&(u.globalAdmin===true||/global.?admin|administrator|vollzugriff/i.test(Q(u.role))||(u.permissions||[]).indexOf('*')>=0)}
+function isGlobal(u){var role=L(u&&(u.role||u.rolle));return !!u&&(u.globalAdmin===true||role==='admin'||/global.?admin|administrator|vollzugriff/i.test(role)||(u.permissions||[]).indexOf('*')>=0)}
 function currentView(){return Q(S().view||'dashboard')}
 function level(right){var v=L(right&&(right.level||right.access));if(['none','view','edit','admin'].indexOf(v)>=0)return v;if(right&&(right.admin||right.functionAdmin))return'admin';if(right&&right.edit)return'edit';if(right&&(right.read||right.visible))return'view';return'none'}
 function rightObject(v){return {level:v,visible:v!=='none',read:v!=='none',edit:v==='edit'||v==='admin',admin:v==='admin',functionAdmin:v==='admin'}}
@@ -28,7 +28,7 @@ function syncUsers(users){
 function lockText(u){var s=u.loginSecurity||{};if(s.permanentLocked)return'<span class="pill red">Admin-Sperre</span>';if(s.lockedUntil&&Date.parse(s.lockedUntil)>Date.now())return'<span class="pill orange">Bis '+new Date(s.lockedUntil).toLocaleString('de-DE')+' gesperrt</span>';return'<span class="pill green">Anmeldung frei</span>'}
 function userById(){return cache&&cache.users.find(function(u){return Q(u.id)===Q(selectedId)})||cache&&cache.users[0]||null}
 function initDraft(u){draftRights={};(cache.modules||[]).forEach(function(id){draftRights[id]=level(u&&u.rights&&u.rights[id])})}
-function header(){return '<div class="rc544-head"><div><span class="rc544-kicker">Globale Administration</span><h1>Benutzer, Rechte und Sitzungen</h1><p>Passwörter werden ausschließlich serverseitig als Hash gespeichert. Funktionsrechte können für jeden Bereich einzeln vergeben werden.</p></div><span class="pill blue">RC546 · sichere Anmeldung</span></div>'}
+function header(){return '<div class="rc544-head"><div><span class="rc544-kicker">Globale Administration</span><h1>Benutzer, Rechte und Sitzungen</h1><p>Passwörter werden ausschließlich serverseitig als Hash gespeichert. Funktionsrechte können für jeden Bereich einzeln vergeben werden.</p></div><span class="pill blue">RC547 · sichere Anmeldung</span></div>'}
 function loading(){var r=root();if(r)r.innerHTML='<section class="card"><h2>Benutzerverwaltung wird geladen …</h2><p>ExportHUB prüft Benutzer und aktive Sitzungen.</p></section>'}
 function errorBox(message){var r=root();if(r)r.innerHTML='<section class="card"><h1>Benutzerverwaltung nicht verfügbar</h1><div class="badbox">'+E(message)+'</div><button class="ghost" onclick="rc544LoadAdmin()">Erneut versuchen</button></section>'}
 function render(){

@@ -35,7 +35,7 @@ async function login(payload) {
     const usernameMatchesBootstrap = auth.lower(username) === auth.lower(bootstrapUsername);
     let user = auth.findUser(team.users, username);
 
-    // RC546: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
+    // RC547: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
     // Fehlt Tobias in alten Daten, wird er einmalig nur dann ergänzt, wenn noch kein
     // sicher eingerichteter globaler Administrator vorhanden ist.
     if (!user && usernameMatchesBootstrap && configuredBootstrapPassword && !bootstrapCompleted) {
@@ -64,14 +64,18 @@ async function login(payload) {
     if (!auth.isActive(user)) return { ok: false, code: 'ACCOUNT_DISABLED', message: 'Das Benutzerkonto ist deaktiviert.', status: 403 };
 
     const secureCredential = auth.credentialOf(user);
-    const bootstrapEligible = Boolean(
+    const initialPasswordMatches = Boolean(
       usernameMatchesBootstrap &&
       configuredBootstrapPassword &&
+      auth.safeEqualText(configuredBootstrapPassword, password)
+    );
+    const bootstrapEligible = Boolean(
+      initialPasswordMatches &&
       !bootstrapCompleted &&
       auth.isAdmin(user) &&
       (!secureCredential || user.authSetupRequired === true)
     );
-    const bootstrapPasswordMatches = bootstrapEligible && auth.safeEqualText(configuredBootstrapPassword, password);
+    const bootstrapPasswordMatches = bootstrapEligible;
 
     // Ein korrekter einmaliger Azure-Startwert darf eine Sperre aus fehlgeschlagenen
     // Einrichtungsversuchen aufheben. Nach abgeschlossener Einrichtung gilt das nicht mehr.
@@ -79,7 +83,7 @@ async function login(payload) {
       ? user.loginSecurity
       : (user.loginSecurity = { failedAttempts: 0, stage: 'first', lockedUntil: null, permanentLocked: false });
     const lockUntil = Date.parse(security.lockedUntil || '');
-    if (!bootstrapPasswordMatches) {
+    if (!initialPasswordMatches) {
       if (security.permanentLocked === true) {
         return { ok: false, code: 'ACCOUNT_LOCKED_ADMIN', message: 'Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden.', status: 423 };
       }
@@ -101,6 +105,7 @@ async function login(payload) {
 
     let valid = false;
     let bootstrapUsed = false;
+    let recoveryUsed = false;
 
     if (bootstrapPasswordMatches) {
       const policyError = auth.passwordPolicy(configuredBootstrapPassword);
@@ -139,6 +144,40 @@ async function login(payload) {
       }
     }
 
+    // RC547 recovery: if the personal credential is unavailable or no longer known,
+    // the exact Azure initial-admin secret can recover only the configured initial username.
+    // The account is forced through a new password change and all old sessions are revoked.
+    if (!valid && initialPasswordMatches) {
+      const policyError = auth.passwordPolicy(configuredBootstrapPassword);
+      if (policyError) {
+        return {
+          ok: false,
+          code: 'INITIAL_ADMIN_PASSWORD_POLICY',
+          message: 'Das in Azure hinterlegte Admin-Wiederherstellungspasswort ist ungültig: ' + policyError,
+          status: 503
+        };
+      }
+      user.globalAdmin = true;
+      user.role = 'Globaler Administrator';
+      user.permissions = ['*'];
+      user.rights = defaultRights(true);
+      user.active = true;
+      user.disabled = false;
+      user.status = 'Aktiv';
+      auth.setPassword(user, configuredBootstrapPassword, { mustChange: true, allowReuse: true });
+      user.authSetupRequired = false;
+      user.mustChange = true;
+      team.authBootstrap = Object.assign({}, team.authBootstrap || {}, {
+        completedAt: team.authBootstrap && team.authBootstrap.completedAt || auth.now(),
+        recoveredAt: auth.now(),
+        userId: user.id,
+        username: user.user,
+        source: 'EXPORTHUB_INITIAL_ADMIN_PASSWORD_RECOVERY'
+      });
+      valid = true;
+      recoveryUsed = true;
+    }
+
     if (!valid) {
       security.failedAttempts = Number(security.failedAttempts || 0) + 1;
       security.lastFailureAt = auth.now();
@@ -167,18 +206,21 @@ async function login(payload) {
     security.lastSuccessAt = auth.now();
     user.updatedAt = auth.now();
     if (bootstrapUsed) auth.addAudit(team, 'INITIAL_ADMIN_BOOTSTRAPPED', user.name || user.user, { userId: user.id, username: user.user });
-    auth.addAudit(team, 'LOGIN_SUCCESS', user.name || user.user, { userId: user.id, username: user.user });
-    return { ok: true, userId: user.id, mustChange: user.mustChange === true };
+    if (recoveryUsed) auth.addAudit(team, 'INITIAL_ADMIN_RECOVERED', user.name || user.user, { userId: user.id, username: user.user });
+    auth.addAudit(team, 'LOGIN_SUCCESS', user.name || user.user, { userId: user.id, username: user.user, recoveryUsed });
+    return { ok: true, userId: user.id, mustChange: user.mustChange === true, recoveryUsed };
   });
 
   const outcome = saved.result;
   if (!outcome || outcome.ok !== true) throw auth.error(outcome.code, outcome.message, outcome.status, { retryAfterSeconds: outcome.retryAfterSeconds });
   const user = saved.team.users.find((u) => auth.text(u.id) === auth.text(outcome.userId));
+  if (outcome.recoveryUsed) await auth.revokeUserSessions(user.id, 'Admin-Zugang wiederhergestellt');
   const created = await auth.createSession(user, payload.deviceId, outcome.mustChange);
   return {
     ok: true,
     token: created.token,
     mustChange: outcome.mustChange,
+    recoveryUsed: outcome.recoveryUsed === true,
     user: auth.publicUser(user, false),
     passwordPolicy: { minLength: 6, upper: true, lower: true, number: true, special: false, history: true }
   };
@@ -191,7 +233,7 @@ async function bootstrapStatus(payload) {
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC546',
+      version: 'RC547',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -209,7 +251,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC546',
+      version: 'RC547',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -228,7 +270,7 @@ async function bootstrapStatus(payload) {
   const userHasCredential = Boolean(user && auth.credentialOf(user));
   return {
     ok: true,
-    version: 'RC546',
+    version: 'RC547',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,
@@ -238,6 +280,7 @@ async function bootstrapStatus(payload) {
     userHasCredential,
     accountActive: Boolean(user && auth.isActive(user)),
     requiresBootstrap: !bootstrapCompleted && (!userHasCredential || Boolean(user && user.authSetupRequired)),
+    recoveryAvailable: Boolean(initialPasswordConfigured && user),
     message: !initialPasswordConfigured && !bootstrapCompleted
       ? 'Das einmalige Admin-Startpasswort ist in Azure noch nicht hinterlegt.'
       : (!bootstrapCompleted ? 'Die einmalige Admin-Aktivierung ist bereit.' : 'Die sichere Anmeldung ist eingerichtet.')
