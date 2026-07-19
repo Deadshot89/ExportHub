@@ -35,7 +35,7 @@ async function login(payload) {
     const usernameMatchesBootstrap = auth.lower(username) === auth.lower(bootstrapUsername);
     let user = auth.findUser(team.users, username);
 
-    // RC547: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
+    // RC548: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
     // Fehlt Tobias in alten Daten, wird er einmalig nur dann ergänzt, wenn noch kein
     // sicher eingerichteter globaler Administrator vorhanden ist.
     if (!user && usernameMatchesBootstrap && configuredBootstrapPassword && !bootstrapCompleted) {
@@ -144,7 +144,7 @@ async function login(payload) {
       }
     }
 
-    // RC547 recovery: if the personal credential is unavailable or no longer known,
+    // RC548 recovery: if the personal credential is unavailable or no longer known,
     // the exact Azure initial-admin secret can recover only the configured initial username.
     // The account is forced through a new password change and all old sessions are revoked.
     if (!valid && initialPasswordMatches) {
@@ -233,7 +233,7 @@ async function bootstrapStatus(payload) {
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC547',
+      version: 'RC548',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -251,7 +251,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC547',
+      version: 'RC548',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -270,7 +270,7 @@ async function bootstrapStatus(payload) {
   const userHasCredential = Boolean(user && auth.credentialOf(user));
   return {
     ok: true,
-    version: 'RC547',
+    version: 'RC548',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,

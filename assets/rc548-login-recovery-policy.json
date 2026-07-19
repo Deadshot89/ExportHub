@@ -1,0 +1,13 @@
+{
+  "version": "RC548",
+  "focus": "Admin-Login-Wiederherstellung und Login-Diagnose",
+  "fixes": [
+    "Azure-Startpasswort kann den konfigurierten Initial-Admin auch nach einer fehlerhaften Ersteinrichtung wiederherstellen",
+    "Legacy-Rolle Admin wird als globaler Administrator erkannt, Funktions-Admin jedoch nicht",
+    "fehlende oder inkonsistente Bootstrap-Markierung blockiert den Initial-Admin nicht mehr",
+    "beschädigte auth-sessions.json wird sicher als leere Sitzungsliste neu aufgebaut",
+    "BOM und doppelt codierte JSON-Dateien werden robust gelesen",
+    "nicht-JSON-Serverantworten zeigen HTTP-Status und kurzen Antworttext"
+  ],
+  "securityNote": "EXPORTHUB_INITIAL_ADMIN_PASSWORD nach erfolgreichem Passwortwechsel und Kontrolllogin aus Azure entfernen."
+}

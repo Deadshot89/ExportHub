@@ -1,0 +1,19 @@
+{
+  "version": "RC548",
+  "base": "RC547",
+  "focus": "Zentrale Render- und Navigationssteuerung",
+  "changes": {
+    "globalRenderOwner": "ExportHUBRC524.stableRender",
+    "globalSetViewOwner": "ExportHUBRC524.stableSetView",
+    "secondaryRenderWrappersRemoved": [
+      "RC542 process",
+      "RC543 stability",
+      "RC544 auth"
+    ],
+    "eventDrivenPostProcessors": true,
+    "contentClassResetPerView": true,
+    "cmrRouteUsesCapturedRC390Renderer": true,
+    "activeNavigationAriaCurrent": true,
+    "versionConstantsUseBuildObject": true
+  }
+}
