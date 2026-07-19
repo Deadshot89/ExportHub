@@ -232,7 +232,12 @@ function bearer(req) {
   const headers = req && req.headers || {};
   const value = headers.authorization || headers.Authorization || '';
   const match = String(value).match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
+  if (match) return match[1].trim();
+  // Azure Static Web Apps may reserve or rewrite Authorization. ExportHUB therefore
+  // also accepts its same-origin session token through a dedicated custom header.
+  const fallback = headers['x-exporthub-token'] || headers['X-ExportHUB-Token'] ||
+    headers['x-exporthub-session'] || headers['X-ExportHUB-Session'] || '';
+  return text(fallback);
 }
 async function createSession(user, deviceId, mustChange) {
   const token = crypto.randomBytes(32).toString('base64url');

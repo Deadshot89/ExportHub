@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC553',cache:'553',loginReturn:'/?v=553'};
-const VERSION=String(BUILD.version||'RC553');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC554',cache:'554',loginReturn:'/?v=554'};
+const VERSION=String(BUILD.version||'RC554');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -16,7 +16,7 @@ const native={
   requestAnimationFrame:window.requestAnimationFrame?window.requestAnimationFrame.bind(window):null,
   cancelAnimationFrame:window.cancelAnimationFrame?window.cancelAnimationFrame.bind(window):null
 };
-const runtime={adminRecoveryRequested:false,users:[],state:null,revision:0,user:null,authToken:'',ms:null,loading:false,loaded:false,ready:false,readyAt:null,saveTimer:null,saving:false,pendingSave:false,dirty:false,lastSnapshot:null,lastUsers:null,pollTimer:null,polling:false,lastPollAt:0,acceptWritesAt:0,lastQueueReason:'',lastQueueAt:0,lastQueueStack:'',remoteApplyCount:0,applyingRemote:false,deviceId:'DEV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:[],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null,blockLegacyBackground:false,blockedLegacyTimeouts:0,blockedLegacyIntervals:0,blockedLegacyObservers:0,blockedLegacyAnimationFrames:0,rafSeq:2000000,network:{stateGets:0,metaGets:0,legacyCachedGets:0,posts:0}};
+const runtime={adminRecoveryRequested:false,pendingPasswordLogin:null,passwordChangeRetry:false,users:[],state:null,revision:0,user:null,authToken:'',ms:null,loading:false,loaded:false,ready:false,readyAt:null,saveTimer:null,saving:false,pendingSave:false,dirty:false,lastSnapshot:null,lastUsers:null,pollTimer:null,polling:false,lastPollAt:0,acceptWritesAt:0,lastQueueReason:'',lastQueueAt:0,lastQueueStack:'',remoteApplyCount:0,applyingRemote:false,deviceId:'DEV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:[],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null,blockLegacyBackground:false,blockedLegacyTimeouts:0,blockedLegacyIntervals:0,blockedLegacyObservers:0,blockedLegacyAnimationFrames:0,rafSeq:2000000,network:{stateGets:0,metaGets:0,legacyCachedGets:0,posts:0}};
 
 function by(id){return document.getElementById(id)}
 function text(v){return String(v==null?'':v).trim()}
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC553 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC554 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -116,7 +116,7 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
   }catch(_){ }
   try{
    const url=typeof input==='string'?input:(input&&input.url)||'';
-   if(runtime.authToken&&/\/api\//i.test(url)){options=Object.assign({},options||{});options.headers=Object.assign({},options.headers||{}, {Authorization:'Bearer '+runtime.authToken});}
+   if(runtime.authToken&&/\/api\//i.test(url)){options=Object.assign({},options||{});options.headers=Object.assign({},options.headers||{}, {Authorization:'Bearer '+runtime.authToken,'X-ExportHUB-Token':runtime.authToken});}
   }catch(_){ }
   return realFetch(input,options);
  };
@@ -229,7 +229,7 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
 async function jsonFetch(url,options){
  const opts=Object.assign({credentials:'same-origin',cache:'no-store'},options||{});
  opts.headers=Object.assign({},opts.headers||{});
- if(runtime.authToken&&/\/api\//i.test(String(url||'')))opts.headers.Authorization='Bearer '+runtime.authToken;
+ if(runtime.authToken&&/\/api\//i.test(String(url||''))){opts.headers.Authorization='Bearer '+runtime.authToken;opts.headers['X-ExportHUB-Token']=runtime.authToken;}
  const res=await native.fetch(url,opts);
  const txt=await res.text();let data={};
  try{data=txt?JSON.parse(txt):{}}
@@ -257,8 +257,10 @@ async function loadUsers(){return runtime.users}
 async function authCall(action,payload,token){
  const headers={'Content-Type':'application/json'};
  const t=token||runtime.authToken;
- if(t)headers.Authorization='Bearer '+t;
- return jsonFetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify(Object.assign({action:action},payload||{}))});
+ if(t){headers.Authorization='Bearer '+t;headers['X-ExportHUB-Token']=t;}
+ const body=Object.assign({action:action},payload||{});
+ if(t)body.sessionToken=t;
+ return jsonFetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify(body)});
 }
 async function checkBootstrapStatus(){
  try{
@@ -299,7 +301,7 @@ async function checkBootstrapStatus(){
 }
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
- const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store',headers:runtime.authToken?{Authorization:'Bearer '+runtime.authToken}:{}});
+ const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store',headers:runtime.authToken?{Authorization:'Bearer '+runtime.authToken,'X-ExportHUB-Token':runtime.authToken}:{}});
  if(!res.ok)throw new Error('Teamdaten konnten nicht geladen werden (HTTP '+res.status+').');
  const txt=await res.text();progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
  const d=await parseLargeJson(txt);if(!d||d.ok===false)throw new Error((d&&d.message)||'Teamdaten ungültig');
@@ -502,8 +504,10 @@ async function login(){
  setLoginEnabled(false);status('ExportHUB-Anmeldung wird geprüft …','');
  try{
   const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true},'');
-  runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];runtime.adminRecoveryRequested=false;
-  if(d.mustChange){showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return}
+  runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
+  const usedRecovery=runtime.adminRecoveryRequested===true;
+  runtime.adminRecoveryRequested=false;
+  if(d.mustChange){runtime.pendingPasswordLogin={username:text(name),password:String(pass||''),deviceId:runtime.deviceId,recoveryRequested:usedRecovery};runtime.passwordChangeRetry=false;showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return}
   await finishAuthenticatedLogin();
  }catch(e){
   var message=e.message||'Anmeldung fehlgeschlagen.';
@@ -514,17 +518,37 @@ async function login(){
 }
 async function saveChangedPassword(){
  const p1=by('newPass1')&&by('newPass1').value,p2=by('newPass2')&&by('newPass2').value,btn=by('savePassBtn');
+ if(!p1||!p2){status('Bitte beide Passwortfelder ausfüllen.','bad');return}
+ if(p1!==p2){status('Die beiden Passwörter stimmen nicht überein.','bad');return}
  if(btn)btn.disabled=true;status('Neues Passwort wird gespeichert …','');
+ async function performChange(){return authCall('change-password',{newPassword:p1,repeatPassword:p2,deviceId:runtime.deviceId})}
  try{
-  const d=await authCall('change-password',{newPassword:p1,repeatPassword:p2,deviceId:runtime.deviceId});
+  let d;
+  try{d=await performChange()}
+  catch(firstError){
+   const retryable=['SESSION_INVALID','SESSION_REVOKED','AUTH_REQUIRED'].indexOf(firstError.code)>=0;
+   const pending=runtime.pendingPasswordLogin;
+   if(!retryable||!pending||runtime.passwordChangeRetry)throw firstError;
+   runtime.passwordChangeRetry=true;
+   status('Die Wiederherstellungssitzung wird einmalig erneuert …','');
+   const fresh=await authCall('login',{username:pending.username,password:pending.password,deviceId:pending.deviceId,recoveryRequested:pending.recoveryRequested===true},'');
+   if(!fresh||!fresh.token||fresh.mustChange!==true)throw firstError;
+   runtime.authToken=fresh.token;runtime.user=fresh.user||runtime.user;runtime.users=fresh.user?[fresh.user]:runtime.users;
+   d=await performChange();
+  }
   runtime.authToken=d.token||runtime.authToken;runtime.user=d.user||runtime.user;runtime.users=d.user?[d.user]:runtime.users;
+  runtime.pendingPasswordLogin=null;runtime.passwordChangeRetry=false;
+  const lp=by('loginPass');if(lp)lp.value='';const n1=by('newPass1'),n2=by('newPass2');if(n1)n1.value='';if(n2)n2.value='';
   const change=by('pwChange');if(change)change.classList.add('hidden');
   await finishAuthenticatedLogin();
- }catch(e){status(e.message||'Passwort konnte nicht gespeichert werden.','bad');if(btn)btn.disabled=false}
+ }catch(e){
+  const code=e&&e.code?'\nFehlercode: '+e.code:'';
+  status((e.message||'Passwort konnte nicht gespeichert werden.')+code,'bad');if(btn)btn.disabled=false
+ }
 }
 async function logoutLocal(){
  try{if(runtime.authToken)await authCall('logout',{})}catch(_){ }
- runtime.authToken='';runtime.user=null;runtime.users=[];runtime.state=null;runtime.ready=false;
+ runtime.authToken='';runtime.user=null;runtime.users=[];runtime.state=null;runtime.ready=false;runtime.pendingPasswordLogin=null;runtime.passwordChangeRetry=false;
  window.location.reload();
 }
 function bindMicrosoftControls(){updateMicrosoftUi()}

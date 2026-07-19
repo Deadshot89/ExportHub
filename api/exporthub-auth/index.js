@@ -99,7 +99,7 @@ async function login(payload) {
       enteredRecoverySecret &&
       (usernameMatchesBootstrap || auth.isAdmin(user))
     );
-    // RC553: Der sichtbare Wiederherstellungsbutton entsperrt ein dauerhaft
+    // RC554: Der sichtbare Wiederherstellungsbutton entsperrt ein dauerhaft
     // gesperrtes initiales Admin-Konto auch mit dem weiterhin bekannten
     // persönlichen Passwort. Der in Azure konfigurierte Startwert muss dafür
     // nur vorhanden sein; er wird nicht offengelegt und nicht ersetzt.
@@ -264,7 +264,7 @@ async function bootstrapStatus(payload) {
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC553',
+      version: 'RC554',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -282,7 +282,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC553',
+      version: 'RC554',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -302,7 +302,7 @@ async function bootstrapStatus(payload) {
   const userLock = user ? auth.lockInfo(user) : { permanentLocked: false, lockedUntil: null };
   return {
     ok: true,
-    version: 'RC553',
+    version: 'RC554',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,
@@ -499,6 +499,11 @@ module.exports = async function (context, req) {
   }
   try {
     const payload = auth.body(req);
+    // Body fallback is used only for the same-origin authentication endpoint.
+    // It protects the password-change transition if Azure removes Authorization.
+    if (payload.sessionToken && !auth.bearer(req)) {
+      req.headers = Object.assign({}, req.headers || {}, { 'x-exporthub-token': auth.text(payload.sessionToken) });
+    }
     const action = auth.lower(payload.action);
     let result;
     if (action === 'bootstrap-status') result = await bootstrapStatus(payload);
