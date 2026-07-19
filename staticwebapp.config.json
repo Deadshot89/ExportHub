@@ -13,15 +13,45 @@
       }
     },
     {
-      "route": "/assets/*",
+      "route": "/assets/exporthub-ui-rc521.css",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
       }
     },
     {
-      "route": "/pickup.html",
+      "route": "/assets/exporthub-rc524.css",
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc524-core.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/clean-bootstrap.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/rc541-process.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/exporthub-rc541.css",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+      }
+    },
+    {
+      "route": "/assets/legacy/*",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
       }
     },
     {
@@ -59,18 +89,6 @@
       "allowedRoles": [
         "authenticated"
       ]
-    },
-    {
-      "route": "/api/pickup-config",
-      "allowedRoles": [
-        "authenticated"
-      ]
-    },
-    {
-      "route": "/api/pickup-control",
-      "allowedRoles": [
-        "authenticated"
-      ]
     }
   ],
   "navigationFallback": {
@@ -81,11 +99,5 @@
       "/pickup.html",
       "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf}"
     ]
-  },
-  "globalHeaders": {
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
-    "Permissions-Policy": "camera=(self), microphone=(), geolocation=()",
-    "Cache-Control": "no-store"
   }
 }

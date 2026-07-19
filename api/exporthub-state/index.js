@@ -1,7 +1,6 @@
-// ExportHUB RC540 – Teamdaten-API mit strukturierter JSON-Fehlerausgabe.
 'use strict';
 
-const { createBlobServiceClient } = require('../shared/blob-rest');
+const { BlobServiceClient } = require('@azure/storage-blob');
 const {
   mergeState,
   mergeUsers,
@@ -9,7 +8,7 @@ const {
   pruneTombstones,
   clone
 } = require('../shared/merge');
-const { applyUserPolicy, countAdmins, isAdmin } = require('../shared/user-policy');
+const { applyUserPolicy, countAdmins } = require('../shared/user-policy');
 
 const CONTAINER_NAME = process.env.EXPORTHUB_STORAGE_CONTAINER || 'exporthub-data';
 const BLOB_NAME = process.env.EXPORTHUB_STORAGE_BLOB || 'team-state.json';
@@ -52,7 +51,7 @@ async function blobClient() {
     error.code = 'STORAGE_NOT_CONFIGURED';
     throw error;
   }
-  const service = createBlobServiceClient(connectionString);
+  const service = BlobServiceClient.fromConnectionString(connectionString);
   const container = service.getContainerClient(CONTAINER_NAME);
   await container.createIfNotExists();
   return container.getBlockBlobClient(BLOB_NAME);
@@ -119,23 +118,6 @@ async function metadataOnly(blob) {
 }
 
 
-
-function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
-function principalUser(document, principal) {
-  if (!principal) return null;
-  const state = document && document.state || {};
-  const users = [...(Array.isArray(document && document.users) ? document.users : []), ...(Array.isArray(state.users) ? state.users : [])];
-  const ids = [principal.userDetails, principal.userId].map(lower).filter(Boolean);
-  return users.find((user) => [user.microsoftEmail,user.email,user.mail,user.user,user.login,user.username,user.name].map(lower).some((value) => value && ids.includes(value))) || null;
-}
-function usersComparable(users) {
-  return (Array.isArray(users) ? users : []).map((u) => ({id:u.id||'',user:u.user||u.login||u.username||u.name||'',name:u.name||'',role:u.role||u.rolle||'',permissions:Array.isArray(u.permissions)?u.permissions.slice().sort():[],rights:u.rights||{}})).sort((a,b)=>String(a.user).localeCompare(String(b.user)));
-}
-function usersChanged(current, incoming) {
-  if (!Array.isArray(incoming) || !incoming.length) return false;
-  return JSON.stringify(usersComparable(current)) !== JSON.stringify(usersComparable(incoming));
-}
-
 function emptyDocument() {
   return {
     schemaVersion: 3,
@@ -158,24 +140,16 @@ function normalizeIncoming(body) {
     deviceId: String(payload.deviceId || ''),
     reason: String(payload.reason || 'save'),
     state: sanitizeState(payload.state || {}),
-    users: Array.isArray(payload.users) ? clone(payload.users) : [],
-    changes: payload.changes && typeof payload.changes === 'object' ? clone(payload.changes) : null
+    users: Array.isArray(payload.users) ? clone(payload.users) : []
   };
 }
 
-async function saveMerged(blob, incoming, actor, principal, allowAnonymous) {
+async function saveMerged(blob, incoming, actor) {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
     const currentDownload = await downloadJson(blob);
     const current = currentDownload.value || emptyDocument();
-    if (!allowAnonymous && usersChanged(current.users || [], incoming.users || [])) {
-      const actorUser = principalUser(current, principal);
-      if (!isAdmin(actorUser) && !((principal && principal.userRoles) || []).some((role) => /admin/i.test(String(role)))) {
-        const error = new Error('Nur globale Administratoren dürfen Benutzer und Funktionsrechte verändern.');
-        error.code = 'GLOBAL_ADMIN_REQUIRED'; error.statusCode = 403; throw error;
-      }
-    }
-    const mergedState = pruneTombstones(mergeState(current.state || {}, incoming.state || {}, incoming.changes));
-    const mergedUsers = mergeUsers(current.users || [], incoming.users || [], mergedState._teamSyncMeta || {}, incoming.changes);
+    const mergedState = pruneTombstones(mergeState(current.state || {}, incoming.state || {}));
+    const mergedUsers = mergeUsers(current.users || [], incoming.users || [], mergedState._teamSyncMeta || {});
     if (countAdmins(current.users || []) > 0 && countAdmins(mergedUsers) === 0) {
       const error = new Error('Der letzte Administrator kann nicht gelöscht oder herabgestuft werden.');
       error.code = 'LAST_ADMIN_PROTECTED';
@@ -196,7 +170,6 @@ async function saveMerged(blob, incoming, actor, principal, allowAnonymous) {
     try {
       await uploadJson(blob, next, currentDownload.etag);
       next.concurrentMerge = Number(incoming.baseRevision || 0) !== Number(current.revision || 0);
-      next.serverAdjusted = JSON.stringify((next.state && next.state.customers) || []) !== JSON.stringify((incoming.state && incoming.state.customers) || []);
       next.baseRevision = Number(incoming.baseRevision || 0);
       return next;
     } catch (error) {
@@ -249,7 +222,7 @@ module.exports = async function (context, req) {
 
     if (req.method === 'POST') {
       const incoming = normalizeIncoming(req.body);
-      const saved = await saveMerged(blob, incoming, displayName(principal), principal, allowAnonymous);
+      const saved = await saveMerged(blob, incoming, displayName(principal));
       const ackOnly = req.query && (String(req.query.ack || '') === '1' || String(req.query.mode || '').toLowerCase() === 'ack');
       if (ackOnly) {
         const body = {
@@ -259,10 +232,9 @@ module.exports = async function (context, req) {
           revision: Number(saved.revision || 0),
           updatedAt: saved.updatedAt || null,
           updatedBy: saved.updatedBy || null,
-          concurrentMerge: saved.concurrentMerge === true,
-          serverAdjusted: saved.serverAdjusted === true
+          concurrentMerge: saved.concurrentMerge === true
         };
-        if (saved.concurrentMerge === true || saved.serverAdjusted === true) {
+        if (saved.concurrentMerge === true) {
           body.state = saved.state;
           body.users = saved.users;
         }
