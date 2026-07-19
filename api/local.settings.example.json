@@ -3,7 +3,12 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "node",
-    "EXPORTHUB_ALLOW_ANONYMOUS": "true",
-    "EXPORTHUB_STORAGE_CONNECTION_STRING": "<Azure-Storage-Verbindungszeichenfolge>"
+    "EXPORTHUB_STORAGE_CONNECTION_STRING": "<Azure-Storage-Verbindungszeichenfolge>",
+    "EXPORTHUB_INITIAL_ADMIN_PASSWORD": "<einmaliges-sicheres-Startpasswort-fuer-Tobias>",
+    "EXPORTHUB_STORAGE_CONTAINER": "exporthub-data",
+    "EXPORTHUB_STORAGE_BLOB": "team-state.json",
+    "EXPORTHUB_AUTH_BLOB": "auth-sessions.json",
+    "EXPORTHUB_PBKDF2_ITERATIONS": "210000",
+    "EXPORTHUB_SESSION_DAYS": "365"
   }
 }

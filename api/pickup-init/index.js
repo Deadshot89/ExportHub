@@ -1,9 +1,11 @@
 'use strict';
 const store=require('../shared/pickup-store');
+const auth=require('../shared/auth-store');
 module.exports=async function(context,req){
   if(req.method!=='POST'){context.res=store.json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'POST'});return}
-  if(!store.principal(req)&&process.env.AZURE_FUNCTIONS_ENVIRONMENT!=='Development'){context.res=store.json(401,{ok:false,code:'AUTH_REQUIRED',message:'Microsoft-Anmeldung erforderlich.'});return}
   try{
+    const current=await auth.validateSession(req);
+    if(!auth.hasAnyEditRight(current.user))throw auth.error('WRITE_FORBIDDEN','Für die QR-Registrierung fehlen Bearbeitungsrechte.',403);
     const b=store.body(req),token=String(b.token||'').toLowerCase();
     if(!store.validToken(token))throw store.err('INVALID_TOKEN','Ungültiges QR-Token.',400);
     const c=await store.clients(),blob=store.recordBlob(c.records,token),old=await store.readJson(blob),days=Math.min(365,Math.max(1,Number(b.expiresDays||180))),created=old.value&&old.value.createdAt||store.now();
@@ -30,6 +32,6 @@ module.exports=async function(context,req){
       podFiles:Array.isArray(old.value&&old.value.podFiles)?old.value.podFiles:[]
     });
     await store.writeJson(blob,rec,old.etag);
-    context.res=store.json(200,Object.assign(store.publicRecord(rec),{registered:true,version:'RC541',updatedBy:store.actor(req)}));
+    context.res=store.json(200,Object.assign(store.publicRecord(rec),{registered:true,version:'RC544',updatedBy:current.user.name||current.user.user}));
   }catch(e){context.log.error(e);context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Initialisierung fehlgeschlagen.'})}
 };

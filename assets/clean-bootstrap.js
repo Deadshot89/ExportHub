@@ -1,10 +1,11 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC543',cache:'543',loginReturn:'/?v=543'};
-const VERSION=String(BUILD.version||'RC543');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC544',cache:'544',loginReturn:'/?v=544'};
+const VERSION=String(BUILD.version||'RC544');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
+const AUTH_API='/api/exporthub-auth';
 const native={
   fetch:window.fetch.bind(window),
   setTimeout:window.setTimeout.bind(window),
@@ -15,7 +16,7 @@ const native={
   requestAnimationFrame:window.requestAnimationFrame?window.requestAnimationFrame.bind(window):null,
   cancelAnimationFrame:window.cancelAnimationFrame?window.cancelAnimationFrame.bind(window):null
 };
-const runtime={users:[],state:null,revision:0,user:null,ms:null,loading:false,loaded:false,ready:false,readyAt:null,saveTimer:null,saving:false,pendingSave:false,dirty:false,lastSnapshot:null,lastUsers:null,pollTimer:null,polling:false,lastPollAt:0,acceptWritesAt:0,lastQueueReason:'',lastQueueAt:0,lastQueueStack:'',remoteApplyCount:0,applyingRemote:false,deviceId:'DEV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:[],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null,blockLegacyBackground:false,blockedLegacyTimeouts:0,blockedLegacyIntervals:0,blockedLegacyObservers:0,blockedLegacyAnimationFrames:0,rafSeq:2000000,network:{stateGets:0,metaGets:0,legacyCachedGets:0,posts:0}};
+const runtime={users:[],state:null,revision:0,user:null,authToken:'',ms:null,loading:false,loaded:false,ready:false,readyAt:null,saveTimer:null,saving:false,pendingSave:false,dirty:false,lastSnapshot:null,lastUsers:null,pollTimer:null,polling:false,lastPollAt:0,acceptWritesAt:0,lastQueueReason:'',lastQueueAt:0,lastQueueStack:'',remoteApplyCount:0,applyingRemote:false,deviceId:'DEV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9),observerRecords:new Set(),intervalJobs:new Map(),intervalSeq:1,moduleTimes:[],skipped:[],timeoutJobs:new Map(),timeoutSeq:1000000,timeoutSourceIds:new WeakMap(),timeoutSourceSeq:1,legacyTimersReady:false,droppedStartupTimers:0,intervalsArmed:false,currentModuleId:0,versionTimer:null,blockLegacyBackground:false,blockedLegacyTimeouts:0,blockedLegacyIntervals:0,blockedLegacyObservers:0,blockedLegacyAnimationFrames:0,rafSeq:2000000,network:{stateGets:0,metaGets:0,legacyCachedGets:0,posts:0}};
 
 function by(id){return document.getElementById(id)}
 function text(v){return String(v==null?'':v).trim()}
@@ -37,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC543 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC544 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -76,6 +77,7 @@ function setVersion(){
   if(/(?:ExportHUB\s+Private\s+|Private\s+)?RC\d+/i.test(value))e.textContent=value.replace(/ExportHUB\s+Private\s+RC\d+/gi,'ExportHUB '+VERSION).replace(/Private\s+RC\d+/gi,VERSION).replace(/RC\d+/gi,VERSION);
  });
  const login=document.querySelector('.login-card');if(login&&!by('cleanVersionBadge')){const d=document.createElement('div');d.id='cleanVersionBadge';d.className='clean-version-badge';d.textContent='Bereinigte Version · '+VERSION;login.appendChild(d)}
+ try{ensureUserDisplay()}catch(_){ }
 }
 
 
@@ -111,6 +113,10 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
     const body={ok:true,schemaVersion:3,revision:runtime.revision,state:clone(window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||{}),users:clone(window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users||[])};
     return Promise.resolve(new Response(method==='HEAD'?'':JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}}));
    }
+  }catch(_){ }
+  try{
+   const url=typeof input==='string'?input:(input&&input.url)||'';
+   if(runtime.authToken&&/\/api\//i.test(url)){options=Object.assign({},options||{});options.headers=Object.assign({},options.headers||{}, {Authorization:'Bearer '+runtime.authToken});}
   }catch(_){ }
   return realFetch(input,options);
  };
@@ -219,12 +225,15 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
 })();
 
 async function jsonFetch(url,options){
- const res=await native.fetch(url,Object.assign({credentials:'same-origin',cache:'no-store'},options||{}));
+ const opts=Object.assign({credentials:'same-origin',cache:'no-store'},options||{});
+ opts.headers=Object.assign({},opts.headers||{});
+ if(runtime.authToken&&/\/api\//i.test(String(url||'')))opts.headers.Authorization='Bearer '+runtime.authToken;
+ const res=await native.fetch(url,opts);
  const txt=await res.text();let data={};
  try{data=txt?JSON.parse(txt):{}}
  catch(_){
   const looksLikeHtml=/^\s*</.test(txt||'');
-  if(res.status===401||res.status===403||looksLikeHtml&&/login|auth|unauthorized|forbidden/i.test(txt||''))throw new Error('Microsoft-Anmeldung erforderlich.');
+  if(res.status===401||res.status===403||looksLikeHtml&&/login|auth|unauthorized|forbidden/i.test(txt||''))throw new Error('ExportHUB-Anmeldung erforderlich.');
   throw new Error('Der Server lieferte keine gültige JSON-Antwort (HTTP '+res.status+').');
  }
  if(!res.ok||data.ok===false){const error=new Error(data.message||('HTTP '+res.status));error.code=data.code||'HTTP_'+res.status;error.status=res.status;error.data=data;throw error}
@@ -234,72 +243,26 @@ async function parseLargeJson(textValue){if(!window.Worker)return JSON.parse(tex
 function setLoginEnabled(enabled){
  ['loginUser','loginPass','loginBtn'].forEach(function(id){const e=by(id);if(e)e.disabled=!enabled});
 }
-function updateMicrosoftUi(p,message){
- const box=by('cleanMicrosoftStatus');
- const oldBox=by('rc448MicrosoftLoginBox');
- if(oldBox)oldBox.remove();
- const loginLink=by('cleanMicrosoftLoginButton');
- const checkBtn=by('cleanMicrosoftCheckButton');
- const logoutLink=by('cleanMicrosoftLogoutButton');
- if(loginLink)loginLink.href=authLoginUrl();
- if(logoutLink)logoutLink.href=authLogoutUrl();
- if(!box)return;
- const strong=box.querySelector('strong'),span=box.querySelector('span');
- if(p){
-  if(strong)strong.textContent='Microsoft-Konto angemeldet';
-  if(span)span.textContent=text(p.userDetails||p.userId);
-  if(loginLink)loginLink.classList.add('hidden');
-  if(checkBtn)checkBtn.classList.add('hidden');
-  if(logoutLink)logoutLink.classList.remove('hidden');
- }else{
-  if(strong)strong.textContent=message||'Microsoft-Anmeldung erforderlich';
-  if(span)span.textContent='Bitte zuerst das Microsoft-Konto verbinden. Die interne Anmeldung wird danach freigeschaltet.';
-  if(loginLink)loginLink.classList.remove('hidden');
-  if(checkBtn)checkBtn.classList.remove('hidden');
-  if(logoutLink)logoutLink.classList.add('hidden');
- }
+function updateMicrosoftUi(){
+ const box=by('cleanMicrosoftStatus'),actions=by('cleanMicrosoftActions');
+ if(box)box.classList.add('hidden');
+ if(actions)actions.classList.add('hidden');
 }
-async function loadMicrosoft(){
- updateMicrosoftUi(null,'Microsoft-Anmeldung wird geprüft …');
- try{
-  const res=await fetchWithTimeout('/.auth/me',{credentials:'same-origin',cache:'no-store'},4500);
-  const raw=await res.text();
-  let d=null;
-  try{d=raw?JSON.parse(raw):null}catch(_){throw new Error('Ungültige Antwort der Microsoft-Anmeldung.')}
-  const p=(d&&d.clientPrincipal)||(Array.isArray(d)&&d[0]&&d[0].clientPrincipal)||null;
-  runtime.ms=p||null;
-  updateMicrosoftUi(runtime.ms,runtime.ms?'Microsoft-Konto angemeldet':'Microsoft-Anmeldung erforderlich');
-  return runtime.ms;
- }catch(e){
-  runtime.ms=null;
-  const timeout=e&&e.name==='AbortError';
-  updateMicrosoftUi(null,timeout?'Microsoft-Statusprüfung dauert zu lange':'Microsoft-Anmeldung nicht erkannt');
-  status(timeout?'Die Statusprüfung wurde beendet. Die Microsoft-Anmeldung kann trotzdem gestartet werden.':'Bitte mit dem Microsoft-Konto anmelden.','');
-  return null;
- }
+async function loadMicrosoft(){runtime.ms=null;updateMicrosoftUi();return null}
+async function loadUsers(){return runtime.users}
+async function authCall(action,payload,token){
+ const headers={'Content-Type':'application/json'};
+ const t=token||runtime.authToken;
+ if(t)headers.Authorization='Bearer '+t;
+ return jsonFetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify(Object.assign({action:action},payload||{}))});
 }
-async function loadUsers(){
- if(!runtime.ms)throw new Error('Microsoft-Anmeldung erforderlich.');
- let firstError=null;
- for(const url of [API+'?mode=login',API]){
-  try{
-   const d=await jsonFetch(url);
-   if(!Array.isArray(d.users))throw new Error('Die Benutzerliste fehlt in der Serverantwort.');
-   runtime.users=d.users;runtime.revision=Number(d.revision||0);
-   if(!runtime.users.length)throw new Error('Es wurden keine ExportHUB-Benutzer gefunden.');
-   return runtime.users;
-  }catch(e){if(!firstError)firstError=e}
- }
- throw firstError||new Error('Benutzer konnten nicht geladen werden.');
-}
-function findUser(name,password){const n=lower(name);return runtime.users.find(function(u){return lower(u.user||u.login||u.username||u.name)===n&&text(u.password)===text(password)})||null}
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
- const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store'});
+ const res=await native.fetch(API,{credentials:'same-origin',cache:'no-store',headers:runtime.authToken?{Authorization:'Bearer '+runtime.authToken}:{}});
  if(!res.ok)throw new Error('Teamdaten konnten nicht geladen werden (HTTP '+res.status+').');
  const txt=await res.text();progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
  const d=await parseLargeJson(txt);if(!d||d.ok===false)throw new Error((d&&d.message)||'Teamdaten ungültig');
- runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);
+ runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);var key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));runtime.user=runtime.users.find(function(u){return lower(u.user||u.login||u.name)===key})||runtime.user;
  runtime.lastSnapshot=clone(runtime.state);runtime.lastUsers=clone(runtime.users);runtime.dirty=false;
  window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d
 }
@@ -383,9 +346,28 @@ function refreshCurrentUser(){const users=window.__EXPORTHUB_GET_USERS__?window.
 function applyRemoteDocument(doc,reason){if(!doc||!isObject(doc.state)||(runtime.saving&&reason!=='concurrent-merge'))return false;runtime.applyingRemote=true;try{const state=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state;if(isObject(state))mutateObject(state,doc.state,true);runtime.state=state||clone(doc.state);const targetUsers=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;if(Array.isArray(targetUsers)){targetUsers.splice.apply(targetUsers,[0,targetUsers.length].concat((Array.isArray(doc.users)?doc.users:[]).map(clone)));runtime.users=targetUsers}else runtime.users=clone(doc.users||[]);runtime.revision=Number(doc.revision||runtime.revision);runtime.lastSnapshot=clone(doc.state);runtime.lastUsers=clone(doc.users||runtime.users);runtime.dirty=false;runtime.remoteApplyCount++;window.__CLEAN_BOOT_USERS__=runtime.users;refreshCurrentUser();if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.restoreUsers==='function')window.ExportHUBRC524.restoreUsers();if(typeof window.render==='function')window.render();setVersion();window.dispatchEvent(new CustomEvent('exporthub:sync',{detail:{revision:runtime.revision,reason:reason||'poll'}}));return true}finally{runtime.applyingRemote=false}}
 async function pollRevision(){if(!runtime.ready||runtime.polling||runtime.saving||runtime.dirty||runtime.pendingSave)return;runtime.polling=true;runtime.lastPollAt=Date.now();try{runtime.network.metaGets++;const meta=await jsonFetch(API+'?meta=1');if(Number(meta.revision||0)>runtime.revision){runtime.network.stateGets++;const doc=await jsonFetch(API);applyRemoteDocument(doc,'revision-poll')}}catch(e){console.warn('Live-Synchronisierung pausiert',e.message)}finally{runtime.polling=false}}
 function startRevisionPolling(){if(runtime.pollTimer)return;runtime.pollTimer=native.setInterval(pollRevision,3000);native.setTimeout(pollRevision,800)}
-function ensureUserDisplay(){const name=text(runtime.user&&(runtime.user.name||runtime.user.user||runtime.user.login));const profile=document.querySelector('.profile');if(profile&&name&&!lower(profile.textContent).includes(lower(name))){let strong=profile.querySelector('strong');if(!strong){strong=document.createElement('strong');profile.prepend(strong)}strong.textContent=name}document.documentElement.setAttribute('data-exporthub-user',name)}
+function ensureUserDisplay(){
+ const name=text(runtime.user&&(runtime.user.name||runtime.user.user||runtime.user.login));
+ const brand=by('brandUserLine');
+ if(brand)brand.textContent='ExportHUB-Benutzer: '+(name||'nicht angemeldet');
+ const profileName=by('profileName');
+ if(profileName)profileName.textContent=name||'Nicht angemeldet';
+ const profileRole=by('profileRole');
+ if(profileRole)profileRole.textContent=name?text(runtime.user.role||'ExportHUB-Benutzer'):'';
+ ['brandMicrosoftLine','rc448MicrosoftAccount'].forEach(function(id){const el=by(id);if(el){el.textContent='';el.style.display='none';el.setAttribute('aria-hidden','true')}});
+ const profile=document.querySelector('.profile');
+ if(profile&&name){
+  let strong=profile.querySelector('strong');
+  if(strong)strong.textContent=name;
+  profile.querySelectorAll('*').forEach(function(node){
+   if(/Microsoft(?:-Konto)?\s*:\s*nicht angemeldet|nicht intern angemeldet/i.test(text(node.textContent))&&node!==strong)node.style.display='none';
+  });
+ }
+ document.documentElement.setAttribute('data-exporthub-user',name);
+}
 function nextFrame(){return new Promise(function(resolve){(native.requestAnimationFrame||native.setTimeout)(function(){resolve()},16)})}
 async function signalReady(){progress(99,'Oberfläche wird abschließend geprüft …');ensureUserDisplay();setVersion();await nextFrame();await nextFrame();const app=by('app'),content=by('content');if(!app||app.classList.contains('hidden')||!content||!content.children.length)throw new Error('Die Oberfläche ist nach dem Erst-Render noch nicht bedienbar.');const info=by('saveInfo');if(info)info.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});hideProgress();await nextFrame();if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null;runtime.pendingSave=false;runtime.dirty=false;runtime.lastSnapshot=clone(window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||{});runtime.lastUsers=clone(window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users||[]);runtime.ready=true;runtime.acceptWritesAt=0;runtime.readyAt=new Date().toISOString();window.__EXPORTHUB_READY__={ready:true,version:VERSION,revision:runtime.revision,user:text(runtime.user&&(runtime.user.name||runtime.user.user)),readyAt:runtime.readyAt};window.dispatchEvent(new CustomEvent('exporthub:ready',{detail:window.__EXPORTHUB_READY__}));startRevisionPolling()}
+if(!runtime.userDisplayTimer)runtime.userDisplayTimer=native.setInterval(function(){try{ensureUserDisplay()}catch(_){ }},1200);
 window.ExportHUBSync={markDeleted:markDeleted,pollNow:pollRevision,applyRemote:applyRemoteDocument,stampChanges:stampChanges};
 
 async function loadLegacy(){
@@ -410,7 +392,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC543 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC544 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network};
  await signalReady();
 
@@ -423,7 +405,13 @@ function restoreAuthoritativeUsersBeforeLogin(){
   window.users=Array.isArray(target)?target:window.__CLEAN_BOOT_USERS__;
  }catch(e){console.error('Autoritative Benutzer konnten vor Login nicht übernommen werden',e)}
 }
-function activateLegacyLogin(){const u=by('loginUser'),p=by('loginPass'),btn=by('loginBtn');if(u)u.value=runtime.user.user||runtime.user.login||runtime.user.name||'';if(p)p.value=runtime.user.password||'';try{runtime.activatingLegacy=true;if(typeof window.rc430StrictLogin==='function')window.rc430StrictLogin();else if(btn&&typeof btn.onclick==='function')btn.onclick.call(btn,new Event('click'))}catch(e){console.error(e)}finally{runtime.activatingLegacy=false}const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');setVersion();native.setTimeout(setVersion,250)}
+function activateLegacyLogin(){
+ try{window.currentUser=runtime.user;if(typeof currentUser!=='undefined')currentUser=runtime.user}catch(_){ }
+ const u=by('loginUser'),p=by('loginPass');if(u)u.value=runtime.user.user||runtime.user.login||runtime.user.name||'';if(p)p.value='';
+ const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');
+ setVersion();native.setTimeout(setVersion,250);
+}
+
 
 async function queueSave(reason){if(!runtime.ready||runtime.loading||!runtime.loaded||runtime.applyingRemote)return;runtime.lastQueueReason=String(reason||'');runtime.lastQueueAt=Date.now();try{runtime.lastQueueStack=(new Error('queueSave')).stack||''}catch(_){runtime.lastQueueStack=''}runtime.dirty=true;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){flushSave(reason)},700)}
 async function flushSave(reason){
@@ -442,44 +430,50 @@ async function flushSave(reason){
  finally{runtime.saving=false;if(runtime.pendingSave)queueSave('queued')}
 }
 
+async function finishAuthenticatedLogin(){
+ status('Anmeldung bestätigt. ExportHUB wird geladen …','ok');
+ try{await loadState();await loadLegacy()}catch(e){hideProgress();status('ExportHUB konnte nicht geladen werden: '+e.message,'bad');console.error(e)}
+}
+function showPasswordChange(){
+ const fields=by('loginFields'),change=by('pwChange');
+ if(fields)fields.classList.add('hidden');if(change)change.classList.remove('hidden');
+ status('Bitte das automatisch erzeugte Startpasswort ändern.','');
+}
 async function login(){
  if(runtime.loading||runtime.activatingLegacy)return;
  const name=by('loginUser')&&by('loginUser').value,pass=by('loginPass')&&by('loginPass').value;
- if(!runtime.ms){
-  status('Microsoft-Anmeldung wird erneut geprüft …','');
-  await loadMicrosoft();
-  if(!runtime.ms){status('Bitte zuerst mit dem Microsoft-Konto anmelden.','bad');return}
-  try{await loadUsers();setLoginEnabled(true)}catch(e){status('Benutzer konnten nicht geladen werden: '+e.message,'bad');return}
- }
- const user=findUser(name,pass);if(!user){status('Benutzername oder Passwort ist falsch.','bad');return}
- runtime.user=user;status('Anmeldung bestätigt. ExportHUB wird geladen …','ok');
- try{await loadState();await loadLegacy()}catch(e){hideProgress();status('ExportHUB konnte nicht geladen werden: '+e.message,'bad');console.error(e)}
+ if(!text(name)||!text(pass)){status('Benutzername und Passwort sind erforderlich.','bad');return}
+ setLoginEnabled(false);status('ExportHUB-Anmeldung wird geprüft …','');
+ try{
+  const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId},'');
+  runtime.authToken=d.token||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
+  if(d.mustChange){showPasswordChange();return}
+  await finishAuthenticatedLogin();
+ }catch(e){status(e.message||'Anmeldung fehlgeschlagen.','bad');setLoginEnabled(true)}
 }
-function bindMicrosoftControls(){
- const loginLink=by('cleanMicrosoftLoginButton');
- const checkBtn=by('cleanMicrosoftCheckButton');
- const logoutLink=by('cleanMicrosoftLogoutButton');
- if(loginLink){
-  loginLink.href=authLoginUrl();
-  loginLink.addEventListener('click',function(e){
-   e.preventDefault();
-   status('Microsoft-Anmeldung wird geöffnet …','');
-   window.location.assign(authLoginUrl());
-  });
- }
- if(logoutLink)logoutLink.href=authLogoutUrl();
- if(checkBtn)checkBtn.addEventListener('click',async function(){
-  checkBtn.disabled=true;
-  status('Microsoft-Anmeldung wird erneut geprüft …','');
-  const p=await loadMicrosoft();
-  if(p){
-   try{await loadUsers();setLoginEnabled(true);status('Microsoft-Konto erkannt. Anmeldung bereit.','ok')}
-   catch(e){setLoginEnabled(false);status('Benutzer konnten nicht geladen werden: '+e.message,'bad')}
-  }else{setLoginEnabled(false)}
-  checkBtn.disabled=false;
- });
+async function saveChangedPassword(){
+ const p1=by('newPass1')&&by('newPass1').value,p2=by('newPass2')&&by('newPass2').value,btn=by('savePassBtn');
+ if(btn)btn.disabled=true;status('Neues Passwort wird gespeichert …','');
+ try{
+  const d=await authCall('change-password',{newPassword:p1,repeatPassword:p2,deviceId:runtime.deviceId});
+  runtime.authToken=d.token||runtime.authToken;runtime.user=d.user||runtime.user;runtime.users=d.user?[d.user]:runtime.users;
+  const change=by('pwChange');if(change)change.classList.add('hidden');
+  await finishAuthenticatedLogin();
+ }catch(e){status(e.message||'Passwort konnte nicht gespeichert werden.','bad');if(btn)btn.disabled=false}
 }
-function bindLogin(){const btn=by('loginBtn');if(btn)btn.addEventListener('click',function(e){if(!runtime.loaded){e.preventDefault();e.stopImmediatePropagation();login()}},true);['loginUser','loginPass'].forEach(function(id){const e=by(id);if(e)e.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!runtime.loaded){ev.preventDefault();login()}},true)})}
+async function logoutLocal(){
+ try{if(runtime.authToken)await authCall('logout',{})}catch(_){ }
+ runtime.authToken='';runtime.user=null;runtime.users=[];runtime.state=null;runtime.ready=false;
+ window.location.reload();
+}
+function bindMicrosoftControls(){updateMicrosoftUi()}
+function bindLogin(){
+ const btn=by('loginBtn');if(btn)btn.addEventListener('click',function(e){if(!runtime.loaded){e.preventDefault();e.stopImmediatePropagation();login()}},true);
+ const passBtn=by('savePassBtn');if(passBtn)passBtn.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();saveChangedPassword()},true);
+ ['loginUser','loginPass'].forEach(function(id){const e=by(id);if(e)e.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!runtime.loaded){ev.preventDefault();login()}},true)});
+ const logout=by('logoutBtn');if(logout)logout.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();logoutLocal()},true);
+}
+
 
 window.ExportHUBClean={VERSION:VERSION,BUILD:BUILD,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,pollRevision:pollRevision,applyRemoteDocument:applyRemoteDocument,native:native,runtime:runtime};
 window.__EXPORTHUB_RC439_TEAM_SYNC__=true;
@@ -488,12 +482,8 @@ window.__EXPORTHUB_RC466_MEMORY_STORAGE__=true;
 window.addEventListener('error',function(e){console.error('ExportHUB Clean Fehler',e.error||e.message)});
 
 document.addEventListener('DOMContentLoaded',async function(){
- await rc524StyleHealth();setVersion();bindMicrosoftControls();bindLogin();setLoginEnabled(false);
+ await rc524StyleHealth();setVersion();bindMicrosoftControls();bindLogin();setLoginEnabled(true);
  const app=by('app'),loginBox=by('login');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');
- const p=await loadMicrosoft();
- if(!p){status('Bitte zuerst mit dem Microsoft-Konto anmelden.','');return}
- status('ExportHUB-Benutzer werden geladen …','');
- try{await loadUsers();setLoginEnabled(true);status('Anmeldung bereit.','ok')}
- catch(e){setLoginEnabled(false);status('Benutzer konnten nicht geladen werden: '+e.message,'bad')}
+ updateMicrosoftUi();status('Anmeldung bereit.','ok');
 });
 })();

@@ -1,91 +1,29 @@
 'use strict';
 
-const { BlobServiceClient } = require('@azure/storage-blob');
 const {
   mergeState,
-  mergeUsers,
   sanitizeState,
   pruneTombstones,
   clone
 } = require('../shared/merge');
-const { applyUserPolicy, countAdmins } = require('../shared/user-policy');
+const auth = require('../shared/auth-store');
 
-const CONTAINER_NAME = process.env.EXPORTHUB_STORAGE_CONTAINER || 'exporthub-data';
-const BLOB_NAME = process.env.EXPORTHUB_STORAGE_BLOB || 'team-state.json';
 const MAX_RETRIES = 6;
 
-function json(status, body, headers = {}) {
+function normalizeIncoming(body) {
+  let payload = body && typeof body === 'object' ? body : {};
+  if (typeof body === 'string') {
+    try { payload = JSON.parse(body); } catch (_) { payload = {}; }
+  }
+  const state = sanitizeState(payload.state || {});
+  delete state.users;
   return {
-    status,
-    headers: Object.assign({
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store'
-    }, headers),
-    body: JSON.stringify(body)
+    clientVersion: String(payload.clientVersion || ''),
+    baseRevision: Number(payload.baseRevision || 0),
+    deviceId: String(payload.deviceId || ''),
+    reason: String(payload.reason || 'save'),
+    state
   };
-}
-
-function decodePrincipal(req) {
-  try {
-    const header = req.headers && (req.headers['x-ms-client-principal'] || req.headers['X-MS-CLIENT-PRINCIPAL']);
-    if (!header) return null;
-    return JSON.parse(Buffer.from(header, 'base64').toString('utf8'));
-  } catch (_) {
-    return null;
-  }
-}
-
-function displayName(principal) {
-  if (!principal) return 'Unbekannt';
-  return principal.userDetails || principal.userId || 'Microsoft-Benutzer';
-}
-
-function storageConnectionString() {
-  return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || '';
-}
-
-async function blobClient() {
-  const connectionString = storageConnectionString();
-  if (!connectionString) {
-    const error = new Error('Azure-Speicher ist nicht konfiguriert. App-Einstellung EXPORTHUB_STORAGE_CONNECTION_STRING fehlt.');
-    error.code = 'STORAGE_NOT_CONFIGURED';
-    throw error;
-  }
-  const service = BlobServiceClient.fromConnectionString(connectionString);
-  const container = service.getContainerClient(CONTAINER_NAME);
-  await container.createIfNotExists();
-  return container.getBlockBlobClient(BLOB_NAME);
-}
-
-async function downloadJson(blob) {
-  try {
-    const response = await blob.download(0);
-    const chunks = [];
-    for await (const chunk of response.readableStreamBody) chunks.push(Buffer.from(chunk));
-    const text = Buffer.concat(chunks).toString('utf8');
-    return {
-      value: text ? JSON.parse(text) : null,
-      etag: response.etag || null
-    };
-  } catch (error) {
-    if (error && error.statusCode === 404) return { value: null, etag: null };
-    throw error;
-  }
-}
-
-async function uploadJson(blob, value, etag) {
-  const body = JSON.stringify(value);
-  const conditions = etag ? { ifMatch: etag } : { ifNoneMatch: '*' };
-  return blob.upload(body, Buffer.byteLength(body), {
-    blobHTTPHeaders: { blobContentType: 'application/json; charset=utf-8' },
-    metadata: {
-      schema: String(value.schemaVersion || 3),
-      revision: String(value.revision || 0),
-      updatedepoch: String(Date.parse(value.updatedAt || '') || Date.now()),
-      clientversion: String(value.clientVersion || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80)
-    },
-    conditions
-  });
 }
 
 async function metadataOnly(blob) {
@@ -100,16 +38,8 @@ async function metadataOnly(blob) {
         clientVersion: metadata.clientversion || null
       };
     }
-    const stored = await downloadJson(blob);
-    const value = stored.value || emptyDocument();
-    try {
-      await blob.setMetadata({
-        schema: String(value.schemaVersion || 3),
-        revision: String(value.revision || 0),
-        updatedepoch: String(Date.parse(value.updatedAt || '') || Date.now()),
-        clientversion: String(value.clientVersion || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80)
-      });
-    } catch (_) {}
+    const stored = await auth.readJson(blob, auth.emptyTeam());
+    const value = auth.applyUserPolicy(stored.value || auth.emptyTeam());
     return { schemaVersion: Number(value.schemaVersion || 3), revision: Number(value.revision || 0), updatedAt: value.updatedAt || null, clientVersion: value.clientVersion || null };
   } catch (error) {
     if (error && error.statusCode === 404) return { schemaVersion: 3, revision: 0, updatedAt: null, clientVersion: null };
@@ -117,58 +47,41 @@ async function metadataOnly(blob) {
   }
 }
 
-
-function emptyDocument() {
-  return {
-    schemaVersion: 3,
-    revision: 0,
-    updatedAt: null,
-    updatedBy: null,
-    state: {},
-    users: []
-  };
+async function uploadTeam(blob, value, etag) {
+  const body = JSON.stringify(value);
+  const conditions = etag ? { ifMatch: etag } : { ifNoneMatch: '*' };
+  return blob.upload(body, Buffer.byteLength(body), {
+    blobHTTPHeaders: { blobContentType: 'application/json; charset=utf-8' },
+    metadata: {
+      schema: String(value.schemaVersion || 3),
+      revision: String(value.revision || 0),
+      updatedepoch: String(Date.parse(value.updatedAt || '') || Date.now()),
+      clientversion: String(value.clientVersion || '').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 80)
+    },
+    conditions
+  });
 }
 
-function normalizeIncoming(body) {
-  let payload = body && typeof body === 'object' ? body : {};
-  if (typeof body === 'string') {
-    try { payload = JSON.parse(body); } catch (_) { payload = {}; }
-  }
-  return {
-    clientVersion: String(payload.clientVersion || ''),
-    baseRevision: Number(payload.baseRevision || 0),
-    deviceId: String(payload.deviceId || ''),
-    reason: String(payload.reason || 'save'),
-    state: sanitizeState(payload.state || {}),
-    users: Array.isArray(payload.users) ? clone(payload.users) : []
-  };
-}
-
-async function saveMerged(blob, incoming, actor) {
+async function saveMerged(blob, incoming, sessionUser) {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
-    const currentDownload = await downloadJson(blob);
-    const current = currentDownload.value || emptyDocument();
+    const currentDownload = await auth.readJson(blob, auth.emptyTeam());
+    const current = auth.applyUserPolicy(currentDownload.value || auth.emptyTeam());
     const mergedState = pruneTombstones(mergeState(current.state || {}, incoming.state || {}));
-    const mergedUsers = mergeUsers(current.users || [], incoming.users || [], mergedState._teamSyncMeta || {});
-    if (countAdmins(current.users || []) > 0 && countAdmins(mergedUsers) === 0) {
-      const error = new Error('Der letzte Administrator kann nicht gelöscht oder herabgestuft werden.');
-      error.code = 'LAST_ADMIN_PROTECTED';
-      error.statusCode = 409;
-      throw error;
-    }
-    mergedState.users = clone(mergedUsers);
-    const next = applyUserPolicy({
+    delete mergedState.users;
+    mergedState.users = auth.publicUsers(current.users || [], false);
+    const next = {
       schemaVersion: 3,
       revision: Number(current.revision || 0) + 1,
-      updatedAt: new Date().toISOString(),
-      updatedBy: actor,
+      updatedAt: auth.now(),
+      updatedBy: auth.text(sessionUser.name || sessionUser.user),
+      updatedByUserId: auth.text(sessionUser.id),
       updatedByDevice: incoming.deviceId || null,
       clientVersion: incoming.clientVersion || null,
       state: mergedState,
-      users: mergedUsers
-    });
+      users: current.users || []
+    };
     try {
-      await uploadJson(blob, next, currentDownload.etag);
+      await uploadTeam(blob, next, currentDownload.etag);
       next.concurrentMerge = Number(incoming.baseRevision || 0) !== Number(current.revision || 0);
       next.baseRevision = Number(incoming.baseRevision || 0);
       return next;
@@ -177,7 +90,7 @@ async function saveMerged(blob, incoming, actor) {
       throw error;
     }
   }
-  throw new Error('Der Teamstand konnte nach mehreren Konfliktversuchen nicht gespeichert werden.');
+  throw auth.error('CONCURRENT_UPDATE', 'Der Teamstand konnte nach mehreren Konfliktversuchen nicht gespeichert werden.', 409);
 }
 
 module.exports = async function (context, req) {
@@ -186,43 +99,31 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const principal = decodePrincipal(req);
-  const allowAnonymous = process.env.EXPORTHUB_ALLOW_ANONYMOUS === 'true' || process.env.AZURE_FUNCTIONS_ENVIRONMENT === 'Development';
-  if (!principal && !allowAnonymous) {
-    context.res = json(401, { ok: false, code: 'AUTH_REQUIRED', message: 'Microsoft-Anmeldung erforderlich.' });
-    return;
-  }
-
   try {
-    const blob = await blobClient();
+    const currentSession = await auth.validateSession(req);
+    const c = await auth.clients();
+    const blob = c.team;
+
     if (req.method === 'GET') {
       const mode = req.query ? String(req.query.mode || '').toLowerCase() : '';
       const metaRequested = req.query && (String(req.query.meta || '') === '1' || mode === 'meta');
       if (metaRequested) {
         const meta = await metadataOnly(blob);
-        context.res = json(200, Object.assign({ ok: true, metaOnly: true }, meta));
+        context.res = auth.json(200, Object.assign({ ok: true, metaOnly: true }, meta));
         return;
       }
-      const stored = await downloadJson(blob);
-      const document = applyUserPolicy(stored.value || emptyDocument());
-      if (mode === 'login' || mode === 'users') {
-        context.res = json(200, {
-          ok: true,
-          loginOnly: true,
-          schemaVersion: Number(document.schemaVersion || 3),
-          revision: Number(document.revision || 0),
-          updatedAt: document.updatedAt || null,
-          users: Array.isArray(document.users) ? document.users : []
-        });
-        return;
-      }
-      context.res = json(200, Object.assign({ ok: true }, document));
+      const stored = await auth.readJson(blob, auth.emptyTeam());
+      const document = auth.applyUserPolicy(stored.value || auth.emptyTeam());
+      const clientDocument = auth.sanitizeDocumentForClient(document, auth.isAdmin(currentSession.user));
+      context.res = auth.json(200, Object.assign({ ok: true }, clientDocument));
       return;
     }
 
     if (req.method === 'POST') {
+      if (!auth.hasAnyEditRight(currentSession.user)) throw auth.error('WRITE_FORBIDDEN', 'Für Änderungen fehlen Bearbeitungsrechte.', 403);
       const incoming = normalizeIncoming(req.body);
-      const saved = await saveMerged(blob, incoming, displayName(principal));
+      const saved = await saveMerged(blob, incoming, currentSession.user);
+      const clientSaved = auth.sanitizeDocumentForClient(saved, auth.isAdmin(currentSession.user));
       const ackOnly = req.query && (String(req.query.ack || '') === '1' || String(req.query.mode || '').toLowerCase() === 'ack');
       if (ackOnly) {
         const body = {
@@ -235,21 +136,20 @@ module.exports = async function (context, req) {
           concurrentMerge: saved.concurrentMerge === true
         };
         if (saved.concurrentMerge === true) {
-          body.state = saved.state;
-          body.users = saved.users;
+          body.state = clientSaved.state;
+          body.users = clientSaved.users;
         }
-        context.res = json(200, body);
+        context.res = auth.json(200, body);
         return;
       }
-      context.res = json(200, Object.assign({ ok: true }, saved));
+      context.res = auth.json(200, Object.assign({ ok: true }, clientSaved));
       return;
     }
 
-    context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED' }, { Allow: 'GET, POST, OPTIONS' });
+    context.res = auth.json(405, { ok: false, code: 'METHOD_NOT_ALLOWED' }, { Allow: 'GET, POST, OPTIONS' });
   } catch (error) {
-    context.log.error('ExportHUB state API error', error);
-    const status = error && error.code === 'STORAGE_NOT_CONFIGURED' ? 503 : (error && error.statusCode ? error.statusCode : 500);
-    context.res = json(status, {
+    context.log.error('ExportHUB state API error', error && error.code, error && error.message);
+    context.res = auth.json(error && error.status ? error.status : 500, {
       ok: false,
       code: error && error.code ? error.code : 'SERVER_ERROR',
       message: error && error.message ? error.message : 'Unbekannter Speicherfehler.'
