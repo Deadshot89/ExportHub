@@ -20,25 +20,54 @@ function findByIdOrName(users, value) {
   return (users || []).find((u) => auth.text(u.id) === auth.text(value) || auth.usernameOf(u) === key);
 }
 function activeAdminCount(users) { return auth.adminCount(users); }
+function normalizedSetting(value, fallback = '') {
+  let out = String(value == null ? '' : value).trim();
+  if (out.length >= 2 && ((out[0] === '"' && out[out.length - 1] === '"') || (out[0] === "'" && out[out.length - 1] === "'"))) out = out.slice(1, -1).trim();
+  return out || fallback;
+}
+function configuredBootstrapUsername() {
+  return normalizedSetting(process.env.EXPORTHUB_INITIAL_ADMIN_USERNAME, 'Tobias');
+}
+function configuredBootstrapSecret() {
+  return normalizedSetting(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD, '');
+}
+function recoverySecretMatches(entered, configured) {
+  const raw = String(entered == null ? '' : entered);
+  if (!configured) return false;
+  if (auth.safeEqualText(configured, raw)) return true;
+  const trimmed = raw.trim();
+  return trimmed !== raw && auth.safeEqualText(configured, trimmed);
+}
+function soleActiveAdmin(users) {
+  const admins = (users || []).filter((candidate) => auth.isAdmin(candidate) && auth.isActive(candidate));
+  return admins.length === 1 ? admins[0] : null;
+}
 
 async function login(payload) {
   const username = auth.text(payload.username || payload.user || payload.login);
   const password = String(payload.password || '');
   if (!username || !password) throw auth.error('LOGIN_REQUIRED', 'Benutzername und Passwort sind erforderlich.', 400);
 
-  const bootstrapUsername = auth.text(process.env.EXPORTHUB_INITIAL_ADMIN_USERNAME || 'Tobias') || 'Tobias';
-  const configuredBootstrapPassword = String(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD || '');
+  const bootstrapUsername = configuredBootstrapUsername();
+  const configuredBootstrapPassword = configuredBootstrapSecret();
 
   const saved = await auth.mutateTeam((team) => {
     team.authBootstrap = team.authBootstrap && typeof team.authBootstrap === 'object' ? team.authBootstrap : {};
     const bootstrapCompleted = Boolean(team.authBootstrap.completedAt);
-    const usernameMatchesBootstrap = auth.lower(username) === auth.lower(bootstrapUsername);
+    const enteredRecoverySecret = recoverySecretMatches(password, configuredBootstrapPassword);
+    const usernameMatchesBootstrap = auth.lower(username) === auth.lower(bootstrapUsername) || auth.lower(username) === 'admin';
     let user = auth.findUser(team.users, username);
+    // RC550: Das zentrale Azure-Geheimnis kann den konfigurierten Admin auch dann
+    // wiederherstellen, wenn im Login versehentlich "Admin" statt des echten
+    // Benutzernamens verwendet wurde oder ältere Daten einen anderen Adminnamen tragen.
+    if (!user && enteredRecoverySecret && usernameMatchesBootstrap) {
+      user = auth.findUser(team.users, bootstrapUsername) || soleActiveAdmin(team.users);
+    }
 
     // RC548: Bestehende Teamdaten dürfen die Erstanmeldung nicht blockieren.
     // Fehlt Tobias in alten Daten, wird er einmalig nur dann ergänzt, wenn noch kein
     // sicher eingerichteter globaler Administrator vorhanden ist.
-    if (!user && usernameMatchesBootstrap && configuredBootstrapPassword && !bootstrapCompleted) {
+    if (!user && usernameMatchesBootstrap && enteredRecoverySecret && (!bootstrapCompleted || !(team.users || []).some((candidate) => auth.isAdmin(candidate)))) {
       const secureAdminExists = (team.users || []).some((candidate) => auth.isAdmin(candidate) && Boolean(auth.credentialOf(candidate)));
       if (!secureAdminExists) {
         user = normalizeUser({
@@ -65,9 +94,8 @@ async function login(payload) {
 
     const secureCredential = auth.credentialOf(user);
     const initialPasswordMatches = Boolean(
-      usernameMatchesBootstrap &&
-      configuredBootstrapPassword &&
-      auth.safeEqualText(configuredBootstrapPassword, password)
+      enteredRecoverySecret &&
+      (usernameMatchesBootstrap || auth.isAdmin(user))
     );
     const bootstrapEligible = Boolean(
       initialPasswordMatches &&
@@ -108,16 +136,9 @@ async function login(payload) {
     let recoveryUsed = false;
 
     if (bootstrapPasswordMatches) {
-      const policyError = auth.passwordPolicy(configuredBootstrapPassword);
-      if (policyError) {
-        return {
-          ok: false,
-          code: 'INITIAL_ADMIN_PASSWORD_POLICY',
-          message: 'Das in Azure hinterlegte Startpasswort ist ungültig: ' + policyError,
-          status: 503
-        };
-      }
-      auth.setPassword(user, configuredBootstrapPassword, { mustChange: true, allowReuse: true });
+      // Das Azure-Geheimnis ist nur ein temporärer Aktivierungswert. Die normale
+      // Passwortregel gilt anschließend zwingend beim persönlichen Passwortwechsel.
+      auth.setPassword(user, configuredBootstrapPassword, { mustChange: true, allowReuse: true, skipPolicy: true });
       user.authSetupRequired = false;
       user.mustChange = true;
       team.authBootstrap = {
@@ -148,15 +169,6 @@ async function login(payload) {
     // the exact Azure initial-admin secret can recover only the configured initial username.
     // The account is forced through a new password change and all old sessions are revoked.
     if (!valid && initialPasswordMatches) {
-      const policyError = auth.passwordPolicy(configuredBootstrapPassword);
-      if (policyError) {
-        return {
-          ok: false,
-          code: 'INITIAL_ADMIN_PASSWORD_POLICY',
-          message: 'Das in Azure hinterlegte Admin-Wiederherstellungspasswort ist ungültig: ' + policyError,
-          status: 503
-        };
-      }
       user.globalAdmin = true;
       user.role = 'Globaler Administrator';
       user.permissions = ['*'];
@@ -164,7 +176,7 @@ async function login(payload) {
       user.active = true;
       user.disabled = false;
       user.status = 'Aktiv';
-      auth.setPassword(user, configuredBootstrapPassword, { mustChange: true, allowReuse: true });
+      auth.setPassword(user, configuredBootstrapPassword, { mustChange: true, allowReuse: true, skipPolicy: true });
       user.authSetupRequired = false;
       user.mustChange = true;
       team.authBootstrap = Object.assign({}, team.authBootstrap || {}, {
@@ -227,13 +239,13 @@ async function login(payload) {
 }
 
 async function bootstrapStatus(payload) {
-  const bootstrapUsername = auth.text(process.env.EXPORTHUB_INITIAL_ADMIN_USERNAME || 'Tobias') || 'Tobias';
+  const bootstrapUsername = configuredBootstrapUsername();
   const storageConfigured = Boolean(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage);
-  const initialPasswordConfigured = Boolean(String(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD || ''));
+  const initialPasswordConfigured = Boolean(configuredBootstrapSecret());
   if (!storageConfigured) {
     return {
       ok: true,
-      version: 'RC548',
+      version: 'RC550',
       storageConfigured: false,
       initialPasswordConfigured,
       bootstrapUsername,
@@ -251,7 +263,7 @@ async function bootstrapStatus(payload) {
   } catch (storageError) {
     return {
       ok: true,
-      version: 'RC548',
+      version: 'RC550',
       storageConfigured: true,
       storageReachable: false,
       initialPasswordConfigured,
@@ -270,7 +282,7 @@ async function bootstrapStatus(payload) {
   const userHasCredential = Boolean(user && auth.credentialOf(user));
   return {
     ok: true,
-    version: 'RC548',
+    version: 'RC550',
     storageConfigured: true,
     storageReachable: true,
     initialPasswordConfigured,
@@ -283,7 +295,7 @@ async function bootstrapStatus(payload) {
     recoveryAvailable: Boolean(initialPasswordConfigured && user),
     message: !initialPasswordConfigured && !bootstrapCompleted
       ? 'Das einmalige Admin-Startpasswort ist in Azure noch nicht hinterlegt.'
-      : (!bootstrapCompleted ? 'Die einmalige Admin-Aktivierung ist bereit.' : 'Die sichere Anmeldung ist eingerichtet.')
+      : (!bootstrapCompleted ? 'Die einmalige Admin-Aktivierung ist bereit.' : (initialPasswordConfigured ? 'Die sichere Anmeldung ist eingerichtet; Admin-Wiederherstellung ist verfügbar.' : 'Die sichere Anmeldung ist eingerichtet.'))
   };
 }
 

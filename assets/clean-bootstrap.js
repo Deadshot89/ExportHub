@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC548',cache:'548',loginReturn:'/?v=548'};
-const VERSION=String(BUILD.version||'RC548');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC550',cache:'550',loginReturn:'/?v=550'};
+const VERSION=String(BUILD.version||'RC550');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -38,7 +38,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC548 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC550 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -281,7 +281,10 @@ async function checkBootstrapStatus(){
    const u=by('loginUser');if(u&&!text(u.value))u.value=d.bootstrapUsername||'Tobias';
    return d;
   }
-  status(d.recoveryAvailable?'Sichere ExportHUB-Anmeldung bereit. Admin-Wiederherstellung über das Azure-Startpasswort ist verfügbar.':'Sichere ExportHUB-Anmeldung bereit.','ok');
+  if(d.recoveryAvailable){
+   const u=by('loginUser');if(u&&!text(u.value))u.value=d.bootstrapUsername||'Tobias';
+   status('Sichere Anmeldung bereit. Bei Problemen kann der Admin mit dem in Azure hinterlegten Startpasswort wiederhergestellt werden. Benutzername: '+(d.bootstrapUsername||'Tobias'),'ok');
+  }else status('Sichere ExportHUB-Anmeldung bereit.','ok');
   return d;
  }catch(e){
   runtime.bootstrapStatus=null;
@@ -440,7 +443,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC548 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC550 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network,prefetchMs:runtime.prefetchMs||0,legacyBytes:runtime.legacyBytes||0,lazyPdfRenderer:typeof window.html2canvas==='function'};
  await signalReady();
 
@@ -501,7 +504,7 @@ async function login(){
   var message=e.message||'Anmeldung fehlgeschlagen.';
   if(e.code==='INITIAL_ADMIN_NOT_CONFIGURED')message+=' Bitte in Azure die Anwendungseinstellung EXPORTHUB_INITIAL_ADMIN_PASSWORD eintragen.';
   if(e.code==='STORAGE_NOT_CONFIGURED')message+=' Bitte in Azure EXPORTHUB_STORAGE_CONNECTION_STRING eintragen.';
-  status(message,'bad');setLoginEnabled(true)
+  status(message+(e.code?'\nFehlercode: '+e.code:''),'bad');setLoginEnabled(true)
  }
 }
 async function saveChangedPassword(){
@@ -522,6 +525,7 @@ async function logoutLocal(){
 function bindMicrosoftControls(){updateMicrosoftUi()}
 function bindLogin(){
  const btn=by('loginBtn');if(btn)btn.addEventListener('click',function(e){if(!runtime.loaded){e.preventDefault();e.stopImmediatePropagation();login()}},true);
+ const recovery=by('adminRecoveryBtn');if(recovery)recovery.addEventListener('click',function(e){e.preventDefault();const info=runtime.bootstrapStatus||{};const u=by('loginUser');if(u)u.value=info.bootstrapUsername||'Tobias';const p=by('loginPass');if(p){p.value='';p.focus()}status('Admin-Wiederherstellung vorbereitet. Jetzt das aktuell in Azure hinterlegte EXPORTHUB_INITIAL_ADMIN_PASSWORD eingeben.','');},true);
  const passBtn=by('savePassBtn');if(passBtn)passBtn.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();saveChangedPassword()},true);
  ['loginUser','loginPass'].forEach(function(id){const e=by(id);if(e)e.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!runtime.loaded){ev.preventDefault();login()}},true)});
  const logout=by('logoutBtn');if(logout)logout.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();logoutLocal()},true);

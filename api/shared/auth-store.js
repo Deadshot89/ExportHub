@@ -141,7 +141,7 @@ function passwordWasUsed(user, password) {
   return all.some((item) => verifyCredential(password, item));
 }
 function setPassword(user, password, options = {}) {
-  const policyError = passwordPolicy(password);
+  const policyError = options.skipPolicy === true ? '' : passwordPolicy(password);
   if (policyError) throw error('PASSWORD_POLICY', policyError, 400);
   if (!options.allowReuse && passwordWasUsed(user, password)) throw error('PASSWORD_REUSED', 'Ein bereits verwendetes Passwort darf nicht erneut benutzt werden.', 409);
   const previous = credentialOf(user);

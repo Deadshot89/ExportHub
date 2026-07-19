@@ -1,5 +1,5 @@
 {
-  "version": "RC548",
+  "version": "RC550",
   "focus": "Admin-Login-Wiederherstellung und Login-Diagnose",
   "fixes": [
     "Azure-Startpasswort kann den konfigurierten Initial-Admin auch nach einer fehlerhaften Ersteinrichtung wiederherstellen",
