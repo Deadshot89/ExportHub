@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC541',cache:'541',loginReturn:'/?v=541'};
-const VERSION=String(BUILD.version||'RC541');
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC543',cache:'543',loginReturn:'/?v=543'};
+const VERSION=String(BUILD.version||'RC543');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
 const API='/api/exporthub/state';
@@ -37,7 +37,7 @@ function rc524StyleHealth(){
  return fetch('assets/exporthub-ui-rc521.css?v='+CACHE,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('CSS HTTP '+r.status);return r.text()}).then(function(css){
   let st=by('rc521StyleFallback');if(!st){st=document.createElement('style');st.id='rc521StyleFallback';document.head.appendChild(st)}st.textContent=css;
   return true
- }).catch(function(e){console.error('RC541 Design konnte nicht nachgeladen werden',e);return false})
+ }).catch(function(e){console.error('RC543 Design konnte nicht nachgeladen werden',e);return false})
 }
 function authLoginUrl(){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;
@@ -410,7 +410,7 @@ async function loadLegacy(){
  const discardedStartupTimers=runtime.timeoutJobs.size;runtime.timeoutJobs.clear();runtime.droppedStartupTimers+=discardedStartupTimers;
  const discardedObservers=runtime.observerRecords.size;runtime.observerRecords.forEach(function(o){o.active=false});runtime.observerRecords.clear();
  const discardedIntervals=runtime.intervalJobs.size;runtime.intervalJobs.clear();runtime.legacyTimersReady=false;runtime.intervalsArmed=false;runtime.blockLegacyBackground=true;
- try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC541 Konsolidierung konnte nicht aktiviert werden',e);throw e}
+ try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.install==='function')window.ExportHUBRC524.install()}catch(e){console.error('RC543 Konsolidierung konnte nicht aktiviert werden',e);throw e}
  window.__EXPORTHUB_CLEAN_DIAGNOSTICS__={version:VERSION,moduleTimes:runtime.moduleTimes.slice(),skipped:runtime.skipped.slice(),discardedStartupTimers:discardedStartupTimers,droppedStartupTimersTotal:runtime.droppedStartupTimers,discardedLegacyObservers:discardedObservers,activeLegacyObservers:runtime.observerRecords.size,discardedLegacyIntervals:discardedIntervals,activeLegacyIntervals:runtime.intervalJobs.size,network:runtime.network};
  await signalReady();
 
