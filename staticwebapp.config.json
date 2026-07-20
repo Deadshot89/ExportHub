@@ -1,58 +1,70 @@
 {
+  "$schema": "https://json.schemastore.org/staticwebapp.config.json",
   "routes": [
     {
       "route": "/",
+      "rewrite": "/index.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+        "Cache-Control": "no-store, no-cache, must-revalidate"
       }
     },
     {
       "route": "/index.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+        "Cache-Control": "no-store, no-cache, must-revalidate"
       }
     },
     {
-      "route": "/api/exporthub-auth",
+      "route": "/pickup",
+      "rewrite": "/pickup.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer"
+      }
+    },
+    {
+      "route": "/pickup.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "route": "/api/*",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store"
+      }
+    },
+    {
+      "route": "/.auth/*",
       "allowedRoles": [
         "anonymous"
       ]
     },
     {
-      "route": "/api/exporthub/*",
+      "route": "/assets/*",
       "allowedRoles": [
         "anonymous"
-      ]
-    },
-    {
-      "route": "/api/pickup-init",
-      "allowedRoles": [
-        "anonymous"
-      ]
-    },
-    {
-      "route": "/api/pickup-health",
-      "allowedRoles": [
-        "anonymous"
-      ]
-    },
-    {
-      "route": "/api/pickup-status",
-      "allowedRoles": [
-        "anonymous"
-      ]
-    },
-    {
-      "route": "/api/pickup-confirm",
-      "allowedRoles": [
-        "anonymous"
-      ]
-    },
-    {
-      "route": "/api/pickup-pod",
-      "allowedRoles": [
-        "anonymous"
-      ]
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
     }
   ],
   "navigationFallback": {
@@ -61,7 +73,12 @@
       "/api/*",
       "/.auth/*",
       "/pickup.html",
-      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf}"
+      "/assets/*",
+      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}"
     ]
-  }
+  },
+  "platform": {
+    "apiRuntime": "node:20"
+  },
+  "trailingSlash": "never"
 }
