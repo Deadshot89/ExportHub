@@ -1,8 +1,0 @@
-/* ExportHUB RC547 – Admin-Login-Wiederherstellung und Diagnose */
-html[data-exporthub-version="RC547"] .clean-version-badge{
-  background:#eaf3ff;
-  color:#0b55bd;
-  letter-spacing:.02em;
-}
-#cleanLoginStatus.bad{white-space:pre-line}
-#cleanLoginStatus.ok{white-space:normal}

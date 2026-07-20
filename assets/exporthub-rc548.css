@@ -1,6 +1,0 @@
-/* ExportHUB RC548 – zentrale Navigation und saubere Bereichsklassen */
-html[data-exporthub-version="RC548"] .clean-version-badge{border-color:#86efac;background:#f0fdf4;color:#166534}
-#content.content{min-width:0}
-.nav button[aria-current="page"],.nav a[aria-current="page"]{background:#fff!important;color:#08245d!important;box-shadow:0 8px 20px rgba(2,12,27,.18)}
-#content.rc544-admin-view:not([data-rc544-active="1"]){min-height:0}
-.rc548-diagnostic-hidden{display:none!important}
