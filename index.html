@@ -15627,3 +15627,885 @@ window.ExportHUBRC574={version:VERSION,apply:apply,selfTest:function(){var r=doc
 })();
 </script>
 <!-- RC574 SHIPMENT STYLE LOCK END -->
+
+<!-- RC576 TASK CARDS + SHIPMENT DOCUMENTS FINAL FIX START -->
+<style id="rc576-final-fix-css">
+/* Aufgaben mit Sendungsbezug: klare, eindeutige Informationen ohne doppelte Namen. */
+#content [data-rc576-linked-task="1"] .rc575-task-details{display:none!important}
+#content [data-rc576-linked-task="1"] .rc576-task-details{display:grid;gap:7px;margin:5px 0 9px}
+#content [data-rc576-linked-task="1"] .rc576-task-customer{font-size:14px;font-weight:950;color:#0f172a;line-height:1.3;overflow-wrap:anywhere}
+#content [data-rc576-linked-task="1"] .rc576-task-row{display:grid;grid-template-columns:112px minmax(0,1fr);gap:8px;align-items:center;font-size:12px;line-height:1.3}
+#content [data-rc576-linked-task="1"] .rc576-task-row>span{color:#64748b;font-weight:850}
+#content [data-rc576-linked-task="1"] .rc576-task-row>b{color:#0f172a;font-weight:950;overflow-wrap:anywhere}
+#content [data-rc576-linked-task="1"] .rc576-task-name{border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;padding:8px 9px;color:#1e3a8a;font-size:12px;font-weight:900;line-height:1.35}
+#content [data-rc576-linked-task="1"] .rc576-task-ref{margin:7px 0 3px!important;font-size:19px!important;line-height:1.15!important;color:#08245d!important;overflow-wrap:anywhere}
+#content .rc576-area-heading{display:flex!important;align-items:center;gap:8px;color:#08245d!important}
+#content .rc576-area-heading:before{content:"";width:8px;height:8px;border-radius:50%;background:#2563eb;flex:0 0 auto}
+
+/* Sendungsübersicht: Dokumentkacheln und Aktionen dürfen sich nicht überlagern. */
+#content.rc524-overview-view .rc524-shipment-card{overflow:hidden!important;contain:none!important;content-visibility:visible!important}
+#content.rc524-overview-view .rc524-link-columns{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;align-items:stretch!important}
+#content.rc524-overview-view .rc524-link-columns>section{display:flex!important;flex-direction:column!important;gap:8px!important;min-width:0!important;min-height:145px!important;padding:13px!important;background:#fff!important;border:1px solid #d7e4f3!important;border-radius:14px!important;overflow:hidden!important}
+#content.rc524-overview-view .rc524-link-columns>section.rc576-doc-present{background:#f0fdf4!important;border-color:#86efac!important;box-shadow:inset 5px 0 0 #22c55e!important}
+#content.rc524-overview-view .rc524-link-columns>section.rc576-doc-missing{background:#f8fbff!important}
+#content.rc524-overview-view .rc524-link-columns>section>h3{margin:0!important;font-size:15px!important;color:#0f172a!important}
+#content.rc524-overview-view .rc524-link-columns .rc524-file-row{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;align-items:start!important;min-width:0!important;padding:9px!important;border:1px solid rgba(148,163,184,.35)!important;border-radius:11px!important;background:rgba(255,255,255,.82)!important}
+#content.rc524-overview-view .rc524-link-columns .rc524-file-row>span{display:block!important;min-width:0!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;word-break:normal!important;writing-mode:horizontal-tb!important}
+#content.rc524-overview-view .rc524-link-columns .rc524-file-row>.toolbar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin:0!important;padding:0!important;min-width:0!important}
+#content.rc524-overview-view .rc524-link-columns .rc524-file-row>.toolbar>button{width:100%!important;min-width:0!important;margin:0!important;white-space:normal!important}
+#content.rc524-overview-view .rc576-shipment-secondary-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:10px!important}
+#content.rc524-overview-view .rc576-shipment-secondary-actions>*{width:100%!important;min-width:0!important;white-space:normal!important;margin:0!important}
+#content.rc524-overview-view .rc524-dangerbar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important;margin:0!important;padding-top:12px!important}
+#content.rc524-overview-view .rc524-dangerbar>*{width:100%!important;min-width:0!important;margin:0!important}
+
+/* RC576 Dokumentenzentrum: jederzeit erreichbar und zum Nachdruck aus gespeicherten Sendungen. */
+#content.rc576-document-center{display:block!important;min-width:0!important}
+#rc576DocumentHub{display:grid;gap:14px;width:100%;min-width:0}
+#rc576DocumentHead{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,480px);gap:14px;align-items:end;background:#fff;border:1px solid #dbe4ef;border-radius:20px;padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.07)}
+#rc576DocumentHead h1{margin:0 0 5px;color:#08245d;font-size:29px}
+#rc576DocumentHead p{margin:0;color:#64748b;font-weight:750}
+#rc576DocumentHead label{margin:0}
+#rc576DocumentSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+#rc576DocumentSummary>div{border:1px solid #dbeafe;background:#f8fbff;border-radius:13px;padding:10px;min-width:0}
+#rc576DocumentSummary span{display:block;color:#64748b;font-size:10px;font-weight:950;text-transform:uppercase;margin-bottom:4px}
+#rc576DocumentSummary b{display:block;color:#0f172a;overflow-wrap:anywhere}
+#rc576DocumentActions,#rc576DocumentTabs{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border:1px solid #dbe4ef;border-radius:17px;padding:10px}
+#rc576DocumentTabs button.active{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}
+#rc576DocumentStage{background:#eaf2f8;border:1px solid #cbdcea;border-radius:18px;padding:18px;overflow:auto;min-height:420px}
+#rc576DocumentStage .rc390-docview{display:block!important;width:100%!important;max-width:none!important;padding:0!important;overflow:visible!important}
+#rc576DocumentStage .rc390-doc-actions,#rc576DocumentStage #rc568DocTabs,#rc576DocumentStage #rc570DocTabs,#rc576DocumentStage #rc572DocTabs{display:none!important}
+#rc576DocumentStage .rc390-bundle{display:block!important;width:max-content!important;min-width:100%!important;max-width:none!important;overflow:visible!important}
+#rc576DocumentStage .rc390-bundle>:is(.rc390-page,.rc390-cmr-wrap){display:none!important;visibility:hidden!important}
+#rc576DocumentStage[data-doc="cover"] .rc390-bundle>.rc576-cover,
+#rc576DocumentStage[data-doc="load1"] .rc390-bundle>.rc576-load1,
+#rc576DocumentStage[data-doc="load2"] .rc390-bundle>.rc576-load2,
+#rc576DocumentStage[data-doc="cmr"] .rc390-bundle>.rc576-cmr-primary{display:block!important;visibility:visible!important}
+#rc576DocumentStage .rc390-bundle>.rc576-cover{display:none!important}
+#rc576DocumentStage[data-doc="cover"] .rc390-bundle>.rc576-cover{display:flex!important}
+#rc576DocumentStage .rc390-page,#rc576DocumentStage .rc390-cmr-wrap{width:210mm!important;min-width:210mm!important;max-width:210mm!important;min-height:297mm!important;height:auto!important;margin:0 auto!important;box-sizing:border-box!important;background:#fff!important;color:#111!important;border:1px solid #b9c5d3!important;border-radius:4px!important;box-shadow:0 12px 34px rgba(15,23,42,.18)!important;overflow:hidden!important;zoom:1!important;transform:none!important;position:relative!important}
+#rc576DocumentStage .rc390-page{padding:11mm!important;font-family:Arial,Helvetica,sans-serif!important}
+#rc576DocumentStage .rc390-cover{flex-direction:column!important;gap:12mm!important}
+#rc576DocumentStage .rc390-cover-top,#rc576DocumentStage .rc390-head{display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:12mm!important;border-bottom:3px solid #123b7a!important;padding-bottom:6mm!important}
+#rc576DocumentStage .rc390-brand{display:flex!important;align-items:flex-start!important;gap:6mm!important;min-width:0!important}
+#rc576DocumentStage .rc390-logo,#rc576DocumentStage .rc390-cover-logo{display:block!important;max-width:48mm!important;height:auto!important;flex:0 0 auto!important}
+#rc576DocumentStage .rc390-title{font-size:25px!important;font-weight:1000!important;color:#08245d!important;text-transform:uppercase!important}
+#rc576DocumentStage .rc390-sub{font-size:10px!important;line-height:1.4!important;color:#475569!important}
+#rc576DocumentStage .rc390-ref{min-width:52mm!important;border:2px solid #60a5fa!important;background:#eff6ff!important;border-radius:12px!important;padding:8px 10px!important;text-align:left!important}
+#rc576DocumentStage .rc390-ref>span,#rc576DocumentStage .rc390-label{display:block!important;color:#1e3a8a!important;font-size:9px!important;font-weight:950!important;text-transform:uppercase!important;margin-bottom:4px!important}
+#rc576DocumentStage .rc390-ref .num{font-size:21px!important;font-weight:1000!important;letter-spacing:.06em!important;color:#0f172a!important;overflow-wrap:anywhere!important}
+#rc576DocumentStage .rc390-ref .meta{font-size:10px!important;line-height:1.45!important;margin-top:6px!important}
+#rc576DocumentStage .rc390-cover-ref{border:2px solid #123b7a!important;border-radius:14px!important;padding:8mm!important;text-align:center!important;background:#f8fbff!important}
+#rc576DocumentStage .rc390-cover-ref span{display:block!important;font-size:11px!important;text-transform:uppercase!important;font-weight:900!important;color:#475569!important}
+#rc576DocumentStage .rc390-cover-ref b{display:block!important;font-size:32px!important;color:#08245d!important;margin-top:4mm!important;letter-spacing:.08em!important}
+#rc576DocumentStage .rc390-cover-grid,#rc576DocumentStage .rc390-grid2{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7mm!important;margin-top:7mm!important}
+#rc576DocumentStage .rc390-card{border:1px solid #94a3b8!important;border-radius:10px!important;padding:6mm!important;min-width:0!important;background:#fff!important}
+#rc576DocumentStage .rc390-card strong{display:block!important;font-size:13px!important;margin-bottom:3mm!important;overflow-wrap:anywhere!important}
+#rc576DocumentStage .rc390-txt{white-space:pre-line!important;line-height:1.45!important;font-size:11px!important;overflow-wrap:anywhere!important}
+#rc576DocumentStage .rc390-table{width:100%!important;border-collapse:collapse!important;margin-top:7mm!important;font-size:10px!important}
+#rc576DocumentStage .rc390-table th,#rc576DocumentStage .rc390-table td{border:1px solid #64748b!important;padding:4px!important;vertical-align:top!important}
+#rc576DocumentStage .rc390-table th{background:#dbeafe!important;color:#0f172a!important;font-weight:950!important}
+#rc576DocumentStage .rc390-chip{display:inline-block!important;border:1px solid #bfdbfe!important;background:#eff6ff!important;border-radius:999px!important;padding:3px 7px!important;margin:2px!important;font-size:9px!important;font-weight:850!important}
+#rc576DocumentStage .rc390-cmr-wrap{padding:0!important}
+#rc576DocumentStage .rc390-cmr-wrap>.cmr-official,#rc576DocumentStage .rc390-cmr-wrap>.cmr-template{margin:0!important;box-shadow:none!important;border:0!important;transform:none!important}
+#rc576DocumentStage .rc576-cmr-extra{display:none!important;visibility:hidden!important}
+#rc576NoShipment{background:#fff;border:1px dashed #93c5fd;border-radius:18px;padding:28px;text-align:center;color:#475569}
+@media(max-width:900px){#rc576DocumentHead{grid-template-columns:1fr}#rc576DocumentSummary{grid-template-columns:1fr}#rc576DocumentActions,#rc576DocumentTabs{display:grid;grid-template-columns:1fr 1fr}#content.rc524-overview-view .rc524-link-columns{grid-template-columns:1fr!important}}
+@media(max-width:560px){#rc576DocumentActions,#rc576DocumentTabs{grid-template-columns:1fr}#content.rc524-overview-view .rc576-shipment-secondary-actions,#content.rc524-overview-view .rc524-dangerbar{grid-template-columns:1fr!important}}
+@media print{
+ body.rc576-printing .sidebar,body.rc576-printing .topbar,body.rc576-printing #rc576DocumentHead,body.rc576-printing #rc576DocumentActions,body.rc576-printing #rc576DocumentTabs{display:none!important}
+ body.rc576-printing .app{display:block!important}body.rc576-printing .main,body.rc576-printing #content{padding:0!important;margin:0!important;width:210mm!important;max-width:none!important}
+ body.rc576-printing #rc576DocumentStage{border:0!important;background:#fff!important;padding:0!important;overflow:visible!important}
+ body.rc576-printing #rc576DocumentStage .rc390-bundle{width:210mm!important;min-width:210mm!important}
+ body.rc576-printing #rc576DocumentStage .rc390-bundle>:is(.rc390-page,.rc390-cmr-wrap){box-shadow:none!important;border:0!important;border-radius:0!important;margin:0!important;page-break-after:always!important;break-after:page!important;display:block!important;visibility:visible!important}
+ body.rc576-printing[data-rc576-print="cover"] #rc576DocumentStage .rc390-bundle>:not(.rc576-cover),
+ body.rc576-printing[data-rc576-print="load1"] #rc576DocumentStage .rc390-bundle>:not(.rc576-load1),
+ body.rc576-printing[data-rc576-print="load2"] #rc576DocumentStage .rc390-bundle>:not(.rc576-load2),
+ body.rc576-printing[data-rc576-print="cmr"] #rc576DocumentStage .rc390-bundle>:not(.rc576-cmr-primary){display:none!important}
+ body.rc576-printing[data-rc576-print="all"] #rc576DocumentStage .rc576-cmr-extra{display:block!important;visibility:visible!important}
+}
+</style>
+<script id="rc576-final-fix-js">
+(function () {
+  'use strict';
+
+  if (window.__EXPORTHUB_RC576_FINAL_FIX__) return;
+  window.__EXPORTHUB_RC576_FINAL_FIX__ = true;
+
+  var VERSION = 'RC576';
+  var busy = false;
+  var pending = 0;
+  var baseShow = null;
+  var baseSetView = null;
+  var currentDoc = 'load1';
+
+  function q(value) {
+    return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  }
+
+  function low(value) {
+    return q(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function arr(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char];
+    });
+  }
+
+  function clone(value) {
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (_) {
+      return Object.assign({}, value || {});
+    }
+  }
+
+  function state() {
+    try {
+      if (typeof window.__EXPORTHUB_GET_STATE__ === 'function') {
+        var resolved = window.__EXPORTHUB_GET_STATE__();
+        if (resolved) return resolved;
+      }
+    } catch (_) {}
+    return window.state || (window.state = {});
+  }
+
+  function later(callback, delay) {
+    var nativeApi = window.ExportHUBClean && window.ExportHUBClean.native;
+    return (nativeApi && nativeApi.setTimeout ? nativeApi.setTimeout : window.setTimeout)(callback, delay || 0);
+  }
+
+  function shipmentId(shipment) {
+    return q(shipment && (shipment.id || shipment.shipmentId || shipment.ref || shipment.reference));
+  }
+
+  function shipmentReference(shipment) {
+    return q(shipment && (shipment.ref || shipment.reference || shipment.shipmentRef || shipment.sendungsreferenz));
+  }
+
+  function shipmentCustomerName(shipment) {
+    var customer = shipment && shipment.customer;
+    return q(
+      (customer && typeof customer === 'object' && (customer.name || customer.customerName || customer.label)) ||
+      (shipment && shipment.customerName) ||
+      (shipment && shipment.customer) ||
+      ''
+    );
+  }
+
+  function shipmentStatus(shipment) {
+    return q(shipment && (shipment.status || shipment.processStatus || shipment.pickupStatus || shipment.freigabe) || 'Offen');
+  }
+
+  function shipments() {
+    return arr(state().shipments);
+  }
+
+  function findShipment(id) {
+    id = q(id);
+    return shipments().find(function (shipment) {
+      return shipmentId(shipment) === id || shipmentReference(shipment) === id;
+    }) || null;
+  }
+
+  function findShipmentForTask(task) {
+    var ids = [
+      task.linkedShipmentId,
+      task.shipmentId,
+      task.sendungId,
+      task.linkedId,
+      task.relationId,
+      task.parentShipmentId
+    ].map(q).filter(Boolean);
+
+    var refs = [
+      task.linkedShipmentRef,
+      task.shipmentRef,
+      task.reference,
+      task.ref,
+      task.sendungsreferenz,
+      task.linkedRef
+    ].map(q).filter(Boolean);
+
+    var list = shipments();
+    var i;
+    var shipment;
+
+    for (i = 0; i < list.length; i += 1) {
+      shipment = list[i];
+      if (
+        ids.indexOf(shipmentId(shipment)) >= 0 ||
+        ids.indexOf(shipmentReference(shipment)) >= 0 ||
+        refs.indexOf(shipmentReference(shipment)) >= 0 ||
+        refs.indexOf(shipmentId(shipment)) >= 0
+      ) {
+        return shipment;
+      }
+    }
+
+    var searchable = q([
+      task.title,
+      task.name,
+      task.note,
+      task.notes,
+      task.comment,
+      task.description
+    ].join(' '));
+
+    for (i = 0; i < list.length; i += 1) {
+      shipment = list[i];
+      if (shipmentReference(shipment) && low(searchable).indexOf(low(shipmentReference(shipment))) >= 0) {
+        return shipment;
+      }
+    }
+
+    return null;
+  }
+
+  function taskType(task) {
+    var normalized = low(task.rc575TaskType || task.title || task.name || task.type || task.area || 'Aufgabe');
+    if (/speditionsmail|spedition.*mail|carrier.*mail/.test(normalized)) return 'Speditionsmail versenden';
+    if (/kundenmail|kunde.*mail|customer.*mail/.test(normalized)) return 'Kundenmail versenden';
+    if (/eigene mail|own.*mail/.test(normalized)) return 'Eigene Mail versenden';
+    if (/abholtag|abholung|pickup/.test(normalized)) return 'Abholtag';
+    if (/\babd\b/.test(normalized)) return 'ABD bearbeiten';
+    if (/\bpod\b|abliefernachweis/.test(normalized)) return 'POD bearbeiten';
+    return q(task.rc575TaskType || task.title || task.name || task.type || task.area || 'Aufgabe');
+  }
+
+  function taskArea(task) {
+    var normalized = low(taskType(task));
+    var explicitArea = q(task.area || task.department || task.category);
+    if (/mail/.test(normalized)) return 'Mailversand';
+    if (/abhol/.test(normalized)) return 'Abholung';
+    if (/abd/.test(normalized)) return 'ABD';
+    if (/pod|abliefer/.test(normalized)) return 'POD / Dokumente';
+    if (explicitArea && !/^aufgabe$/i.test(explicitArea)) return explicitArea;
+    return 'Sendung';
+  }
+
+  function taskIdFromCard(card) {
+    var id = q(card.dataset.taskId || card.dataset.id);
+    if (id) return id;
+
+    var candidates = card.querySelectorAll('[data-task-id],[data-id],[onclick]');
+    for (var i = 0; i < candidates.length; i += 1) {
+      var candidate = candidates[i];
+      id = q(candidate.dataset && (candidate.dataset.taskId || candidate.dataset.id));
+      if (id) return id;
+
+      var onclick = q(candidate.getAttribute('onclick'));
+      var match = onclick.match(/(?:rc229ToggleTask|rc229OpenTaskEdit|toggleTaskCard|rc524OpenTaskEditor)\s*\(\s*["']([^"']+)/i);
+      if (match) return match[1];
+    }
+
+    return '';
+  }
+
+  function taskById(id) {
+    return arr(state().tasks).find(function (task) {
+      return q(task.id) === q(id);
+    }) || null;
+  }
+
+  function removeExactDuplicate(card, text, keepElement) {
+    if (!text) return;
+    var elements = card.querySelectorAll('span,p,div,strong,b');
+    Array.prototype.slice.call(elements).forEach(function (element) {
+      if (element === keepElement) return;
+      if (element.closest('.rc576-task-details')) return;
+      if (element.children.length) return;
+      if (q(element.textContent) !== q(text)) return;
+      if (element.closest('.task-card-top,.rc229-task-top')) return;
+      element.remove();
+    });
+  }
+
+  function patchTaskCard(card, task) {
+    var shipment = findShipmentForTask(task);
+    if (!shipment) return;
+
+    var reference = shipmentReference(shipment) || q(task.linkedShipmentRef) || shipmentId(shipment);
+    var customer = shipmentCustomerName(shipment) || q(task.linkedCustomer);
+    var currentStatus = shipmentStatus(shipment);
+    var type = taskType(task);
+    var area = taskArea(task);
+
+    card.dataset.rc576LinkedTask = '1';
+    card.dataset.rc576Area = area;
+
+    var heading = card.querySelector('h3,h4');
+    if (heading) {
+      heading.textContent = reference || 'Sendung';
+      heading.classList.add('rc576-task-ref');
+    }
+
+    var oldDetails = card.querySelector('.rc576-task-details');
+    if (oldDetails) oldDetails.remove();
+
+    var details = document.createElement('div');
+    details.className = 'rc576-task-details';
+    details.innerHTML =
+      '<div class="rc576-task-customer">' + esc(customer || 'Kunde nicht zugeordnet') + '</div>' +
+      '<div class="rc576-task-row"><span>Sendungsstatus</span><b>' + esc(currentStatus) + '</b></div>' +
+      '<div class="rc576-task-row"><span>Aufgabenbereich</span><b>' + esc(area) + '</b></div>' +
+      '<div class="rc576-task-name">Aufgabe: ' + esc(type) + '</div>';
+
+    if (heading) heading.insertAdjacentElement('afterend', details);
+    else card.insertBefore(details, card.firstChild);
+
+    removeExactDuplicate(card, customer, details.querySelector('.rc576-task-customer'));
+
+    Array.prototype.slice.call(card.querySelectorAll('.pill,.badge,span')).forEach(function (element) {
+      var text = q(element.textContent);
+      if ((/^Aufgabe$/i.test(text) || /^Ohne Tag$/i.test(text)) && !element.closest('.rc576-task-details')) {
+        element.remove();
+      }
+    });
+  }
+
+  function patchTaskGroups() {
+    var cards = document.querySelectorAll('#content .rc229-task-card,#content .task-card,#content .rc147-card,#content .rc149-card');
+    Array.prototype.slice.call(cards).forEach(function (card) {
+      var task = taskById(taskIdFromCard(card));
+      if (task) patchTaskCard(card, task);
+    });
+
+    Array.prototype.slice.call(document.querySelectorAll('#content h2,#content h3')).forEach(function (heading) {
+      if (!/^Aufgabe$/i.test(q(heading.textContent))) return;
+      var scope = heading.closest('.task-area-block,.task-day-block,section,div');
+      var linkedCards = scope ? Array.prototype.slice.call(scope.querySelectorAll('[data-rc576-linked-task="1"]')) : [];
+      if (!linkedCards.length) return;
+
+      var areas = {};
+      linkedCards.forEach(function (card) {
+        areas[card.dataset.rc576Area || 'Sendung'] = true;
+      });
+      var names = Object.keys(areas);
+      heading.textContent = names.length === 1 ? 'Aufgabenbereich: ' + names[0] : 'Sendungsaufgaben';
+      heading.classList.add('rc576-area-heading');
+    });
+  }
+
+  function patchShipmentCards() {
+    Array.prototype.slice.call(document.querySelectorAll('#content .rc524-shipment-card')).forEach(function (card) {
+      var columns = card.querySelector('.rc524-link-columns');
+      if (columns) {
+        Array.prototype.slice.call(columns.children).forEach(function (section, index) {
+          var present = !!section.querySelector('.rc524-file-row');
+          var kind = index === 0 ? 'POD' : 'ABD';
+          section.classList.toggle('rc576-doc-present', present);
+          section.classList.toggle('rc576-doc-missing', !present);
+          var heading = section.querySelector('h3');
+          if (heading) heading.textContent = present ? kind + ' vorhanden' : kind + ' fehlt';
+          Array.prototype.slice.call(section.querySelectorAll('.rc524-file-row>span')).forEach(function (name) {
+            name.title = q(name.textContent);
+          });
+        });
+      }
+
+      var movePattern = /^(Abholung manuell bestätigen|Aktive Dokumente als ZIP)$/i;
+      var buttons = Array.prototype.slice.call(card.querySelectorAll('button,a')).filter(function (button) {
+        return movePattern.test(q(button.textContent));
+      });
+
+      if (buttons.length) {
+        var host = card.querySelector('.rc576-shipment-secondary-actions');
+        if (!host) {
+          host = document.createElement('div');
+          host.className = 'rc576-shipment-secondary-actions';
+          if (columns) columns.insertAdjacentElement('afterend', host);
+          else card.appendChild(host);
+        }
+        buttons.forEach(function (button) {
+          host.appendChild(button);
+        });
+      }
+    });
+  }
+
+  function normalizeShipment(shipment) {
+    var appState = state();
+    var normalized = clone(shipment);
+    var rows = arr(normalized.rows).length
+      ? normalized.rows
+      : (arr(normalized.colli).length
+        ? normalized.colli
+        : (arr(normalized.collis).length ? normalized.collis : arr(normalized.packages)));
+
+    normalized.rows = clone(rows);
+
+    if (!normalized.customer || typeof normalized.customer !== 'object') {
+      var customerId = q(normalized.customerId || normalized.customerNo || normalized.customerNumber);
+      var customerName = q(normalized.customerName || normalized.customer);
+      var foundCustomer = arr(appState.customers).find(function (customer) {
+        var id = q(customer.id || customer.customerId || customer.customerNo || customer.customerNumber);
+        var name = q(customer.name || customer.customerName);
+        return id === customerId || (customerName && name === customerName);
+      });
+      if (foundCustomer) normalized.customer = clone(foundCustomer);
+    }
+
+    return normalized;
+  }
+
+  function activateShipment(shipment) {
+    var appState = state();
+    var normalized = normalizeShipment(shipment);
+    var id = shipmentId(shipment) || shipmentReference(shipment);
+
+    appState.shipment = normalized;
+    appState.selectedShipment = normalized;
+    appState.currentShipment = normalized;
+    appState.activeShipmentId = 'current';
+    appState.selectedShipmentId = id;
+    appState.documentShipmentId = id;
+    appState.currentShipmentId = id;
+    appState.view = 'cmr';
+
+    try {
+      document.body.setAttribute('data-exporthub-view', 'cmr');
+      document.body.setAttribute('data-current-view', 'cmr');
+      document.body.setAttribute('data-eh-view', 'cmr');
+    } catch (_) {}
+
+    return normalized;
+  }
+
+  function shipmentOptions(selected) {
+    return shipments().map(function (shipment) {
+      var id = shipmentId(shipment) || shipmentReference(shipment);
+      var selectedAttribute = id === selected ? ' selected' : '';
+      var label = (shipmentReference(shipment) || id) + ' · ' +
+        (shipmentCustomerName(shipment) || 'ohne Kunde') + ' · ' + shipmentStatus(shipment);
+      return '<option value="' + esc(id) + '"' + selectedAttribute + '>' + esc(label) + '</option>';
+    }).join('');
+  }
+
+  function hubHtml(selected) {
+    return '' +
+      '<div id="rc576DocumentHub">' +
+        '<section id="rc576DocumentHead">' +
+          '<div><h1>Ladeliste &amp; CMR</h1><p>Gespeicherte Sendung auswählen und jederzeit nachdrucken.</p></div>' +
+          '<label class="field">Sendung auswählen' +
+            '<select id="rc576ShipmentSelect"><option value="">Bitte Sendung wählen</option>' + shipmentOptions(selected) + '</select>' +
+          '</label>' +
+        '</section>' +
+        '<div id="rc576DocumentSummary"></div>' +
+        '<div id="rc576DocumentActions">' +
+          '<button class="ghost" type="button" data-rc576-action="overview">Zur Sendungsübersicht</button>' +
+          '<button class="btn" type="button" data-rc576-action="print-all">Gesamtausgabe drucken / PDF</button>' +
+          '<button class="ghost" type="button" data-rc576-action="print-load1">Ladeliste 1 PDF</button>' +
+          '<button class="ghost" type="button" data-rc576-action="print-load2">Ladeliste 2 PDF</button>' +
+        '</div>' +
+        '<div id="rc576DocumentTabs">' +
+          '<button type="button" data-doc="cover">Deckblatt</button>' +
+          '<button type="button" data-doc="load1" class="active">Ladeliste 1</button>' +
+          '<button type="button" data-doc="load2">Ladeliste 2</button>' +
+          '<button type="button" data-doc="cmr">CMR</button>' +
+        '</div>' +
+        '<div id="rc576DocumentStage" data-doc="load1"><div id="rc576NoShipment">Bitte oben eine gespeicherte Sendung auswählen.</div></div>' +
+      '</div>';
+  }
+
+  function renderHub(selected) {
+    var appState = state();
+    appState.view = 'cmr';
+
+    try {
+      document.body.setAttribute('data-exporthub-view', 'cmr');
+      document.body.setAttribute('data-current-view', 'cmr');
+      document.body.setAttribute('data-eh-view', 'cmr');
+    } catch (_) {}
+
+    var content = document.getElementById('content');
+    if (!content) return false;
+    content.className = 'content rc576-document-center';
+    content.innerHTML = hubHtml(selected || '');
+    bindHub();
+    return false;
+  }
+
+  function bindHub() {
+    var selector = document.getElementById('rc576ShipmentSelect');
+    if (selector) {
+      selector.onchange = function () {
+        if (this.value) openShipmentDocuments(this.value);
+        else renderHub('');
+      };
+    }
+
+    var hub = document.getElementById('rc576DocumentHub');
+    if (!hub) return;
+    hub.onclick = function (event) {
+      var button = event.target.closest('button');
+      if (!button) return;
+      var action = button.dataset.rc576Action;
+      var documentKey = button.dataset.doc;
+
+      if (documentKey) {
+        selectDocument(documentKey);
+        return;
+      }
+
+      if (action === 'overview') {
+        try {
+          return baseSetView ? baseSetView('shipmentoverview') : window.setView('shipmentoverview');
+        } catch (_) {
+          return false;
+        }
+      }
+      if (action === 'print-all') printDocuments('all');
+      if (action === 'print-load1') printDocuments('load1');
+      if (action === 'print-load2') printDocuments('load2');
+    };
+  }
+
+  function classifyDocuments(view) {
+    var bundle = view && view.querySelector('.rc390-bundle');
+    if (!bundle) return null;
+
+    var cover = bundle.querySelector(':scope>.rc390-cover');
+    var loads = Array.prototype.slice.call(bundle.querySelectorAll(':scope>.rc390-load'));
+    var cmrs = Array.prototype.slice.call(bundle.querySelectorAll(':scope>.rc390-cmr-wrap'));
+
+    if (cover) cover.classList.add('rc576-cover');
+    if (loads[0]) loads[0].classList.add('rc576-load1');
+    if (loads[1]) loads[1].classList.add('rc576-load2');
+    cmrs.forEach(function (cmr, index) {
+      cmr.classList.toggle('rc576-cmr-primary', index === 0);
+      cmr.classList.toggle('rc576-cmr-extra', index > 0);
+    });
+
+    return {
+      cover: cover,
+      load1: loads[0] || null,
+      load2: loads[1] || null,
+      cmr: cmrs[0] || null
+    };
+  }
+
+  function updateSummary(shipment) {
+    var summary = document.getElementById('rc576DocumentSummary');
+    if (!summary) return;
+    summary.innerHTML =
+      '<div><span>Referenz</span><b>' + esc(shipmentReference(shipment) || shipmentId(shipment)) + '</b></div>' +
+      '<div><span>Kunde</span><b>' + esc(shipmentCustomerName(shipment) || '–') + '</b></div>' +
+      '<div><span>Status</span><b>' + esc(shipmentStatus(shipment)) + '</b></div>';
+  }
+
+  function selectDocument(key) {
+    var stage = document.getElementById('rc576DocumentStage');
+    if (!stage) return false;
+    var view = stage.querySelector('.rc390-docview');
+    var map = classifyDocuments(view);
+    if (!map) return false;
+
+    if (!map[key]) key = map.load1 ? 'load1' : (map.cover ? 'cover' : (map.cmr ? 'cmr' : 'load2'));
+    currentDoc = key;
+    stage.dataset.doc = key;
+
+    var tabs = document.getElementById('rc576DocumentTabs');
+    if (tabs) {
+      tabs.querySelectorAll('[data-doc]').forEach(function (button) {
+        button.classList.toggle('active', button.dataset.doc === key);
+      });
+    }
+    return false;
+  }
+
+  function fallbackDocuments(shipment) {
+    var rows = arr(shipment.rows);
+    var count = 0;
+    var weight = 0;
+    var ldm = 0;
+
+    rows.forEach(function (row) {
+      var rowCount = Number(row.count || row.qty || row.anzahl) || 0;
+      count += rowCount;
+      weight += Number(row.weight || row.gewicht) || 0;
+      ldm += (Number(row.ldm) || 0) * Math.max(1, rowCount);
+    });
+
+    var rowHtml = rows.map(function (row, index) {
+      return '<tr>' +
+        '<td>' + (index + 1) + '</td>' +
+        '<td>' + esc(row.type || row.packaging || row.verpackung || '') + '</td>' +
+        '<td>' + esc(row.count || row.qty || row.anzahl || '') + '</td>' +
+        '<td>' + esc([row.l || row.length, row.w || row.width, row.h || row.height].filter(Boolean).join(' × ')) + '</td>' +
+        '<td>' + esc(row.weight || row.gewicht || '') + '</td>' +
+        '<td>' + esc(row.ldm || '') + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var reference = esc(shipmentReference(shipment) || shipmentId(shipment));
+    var customer = esc(shipmentCustomerName(shipment));
+    var loadListBody =
+      '<div class="rc390-head">' +
+        '<div class="rc390-brand"><div class="rc390-title">Ladeliste</div></div>' +
+        '<div class="rc390-ref"><span>Sendungsreferenz</span><div class="num">' + reference + '</div></div>' +
+      '</div>' +
+      '<div class="rc390-grid2">' +
+        '<div class="rc390-card"><div class="rc390-label">Empfänger / Kunde</div><strong>' + customer + '</strong><div class="rc390-txt">' + esc(shipment.recipientAddress || '') + '</div></div>' +
+        '<div class="rc390-card"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt">Anzahl: ' + count + '\nGewicht: ' + weight.toLocaleString('de-DE') + ' kg\nLademeter: ' + ldm.toLocaleString('de-DE') + '</div></div>' +
+      '</div>' +
+      '<table class="rc390-table"><thead><tr><th>Pos.</th><th>Verpackung</th><th>Anzahl</th><th>Maße</th><th>Gewicht</th><th>LDM</th></tr></thead><tbody>' + rowHtml + '</tbody></table>';
+
+    return '' +
+      '<div class="rc390-docview"><div class="rc390-bundle">' +
+        '<section class="rc390-page rc390-cover">' +
+          '<div class="rc390-cover-top"><div class="rc390-title">Deckblatt</div><div class="rc390-ref"><span>Sendungsreferenz</span><div class="num">' + reference + '</div></div></div>' +
+          '<div class="rc390-cover-ref"><span>Sendungsreferenz</span><b>' + reference + '</b></div>' +
+          '<div class="rc390-cover-grid"><div class="rc390-card"><div class="rc390-label">Empfänger</div><strong>' + customer + '</strong></div><div class="rc390-card"><div class="rc390-label">Status</div><strong>' + esc(shipmentStatus(shipment)) + '</strong></div></div>' +
+        '</section>' +
+        '<section class="rc390-page rc390-load">' + loadListBody + '</section>' +
+        '<section class="rc390-page rc390-load">' + loadListBody + '</section>' +
+        '<div class="rc390-cmr-wrap"><section class="cmr-official"><div class="cmr-of-title"><div class="h1">INTERNATIONALER FRACHTBRIEF</div><div class="round">CMR</div></div></section></div>' +
+      '</div></div>';
+  }
+
+  function mountLegacyView(shipment) {
+    var content = document.getElementById('content');
+    var legacyView = content && content.querySelector('.rc390-docview');
+
+    if (!legacyView) {
+      var temporary = document.createElement('div');
+      temporary.innerHTML = fallbackDocuments(shipment);
+      legacyView = temporary.firstElementChild;
+    }
+
+    var html = legacyView.outerHTML;
+    renderHub(shipmentId(shipment) || shipmentReference(shipment));
+
+    var stage = document.getElementById('rc576DocumentStage');
+    stage.innerHTML = html;
+    var mountedView = stage.querySelector('.rc390-docview');
+    classifyDocuments(mountedView);
+    updateSummary(shipment);
+    selectDocument(currentDoc);
+
+    var selector = document.getElementById('rc576ShipmentSelect');
+    if (selector) selector.value = shipmentId(shipment) || shipmentReference(shipment);
+  }
+
+  function openShipmentDocuments(id) {
+    var shipment = findShipment(id);
+    if (!shipment) {
+      renderHub('');
+      return false;
+    }
+
+    activateShipment(shipment);
+    var content = document.getElementById('content');
+    if (!content) return false;
+
+    try {
+      if (typeof baseShow === 'function') baseShow();
+      else throw new Error('Kein Altrenderer');
+    } catch (_) {
+      content.innerHTML = fallbackDocuments(shipment);
+    }
+
+    later(function () {
+      mountLegacyView(shipment);
+    }, 0);
+
+    later(function () {
+      if (!document.querySelector('#rc576DocumentStage .rc390-docview')) mountLegacyView(shipment);
+    }, 160);
+
+    return false;
+  }
+
+  function printDocuments(kind) {
+    var stage = document.getElementById('rc576DocumentStage');
+    if (!stage || !stage.querySelector('.rc390-docview')) {
+      alert('Bitte zuerst eine Sendung auswählen.');
+      return false;
+    }
+
+    if (kind !== 'all') selectDocument(kind);
+    document.body.classList.add('rc576-printing');
+    document.body.setAttribute('data-rc576-print', kind);
+
+    var clean = function () {
+      later(function () {
+        document.body.classList.remove('rc576-printing');
+        document.body.removeAttribute('data-rc576-print');
+      }, 180);
+    };
+
+    try {
+      window.addEventListener('afterprint', clean, { once: true });
+    } catch (_) {}
+
+    later(function () {
+      try {
+        window.print();
+      } finally {
+        later(clean, 800);
+      }
+    }, 60);
+
+    return false;
+  }
+
+  function installAuthoritative() {
+    if (!baseShow && typeof window.rc390ShowDocuments === 'function' && !window.rc390ShowDocuments.__rc576) {
+      baseShow = window.rc390ShowDocuments;
+    }
+    if (!baseSetView && typeof window.setView === 'function' && !window.setView.__rc576) {
+      baseSetView = window.setView;
+    }
+
+    var openHub = function () {
+      return renderHub('');
+    };
+    openHub.__rc576 = true;
+
+    var openSaved = function (id) {
+      return openShipmentDocuments(id);
+    };
+    openSaved.__rc576 = true;
+
+    window.rc390ShowDocuments = openHub;
+    window.showCurrentCmr = openHub;
+    window.rc524OpenDocuments = openSaved;
+    window.showSavedCmr = openSaved;
+
+    if (baseSetView) {
+      var setViewWrapper = function (viewName) {
+        if (low(viewName) === 'cmr') return renderHub('');
+        return baseSetView.apply(this, arguments);
+      };
+      setViewWrapper.__rc576 = true;
+      window.setView = setViewWrapper;
+      try {
+        setView = setViewWrapper;
+      } catch (_) {}
+    }
+  }
+
+  function forceVersion() {
+    try {
+      window.EXPORTHUB_BUILD = Object.freeze({ version: VERSION, cache: '576', loginReturn: '/?v=576' });
+    } catch (_) {}
+
+    document.documentElement.setAttribute('data-exporthub-version', VERSION);
+    document.documentElement.setAttribute('data-style-lock', 'STYLE');
+    document.documentElement.setAttribute('data-shipment-style-approved', 'RC574');
+    document.title = 'ExportHUB Online ' + VERSION;
+
+    var title = document.querySelector('title');
+    if (title) title.textContent = 'ExportHUB Online ' + VERSION;
+    var badge = document.getElementById('cleanVersionBadge');
+    if (badge) badge.textContent = 'Bereinigte Version · ' + VERSION;
+  }
+
+  function apply() {
+    if (busy) return;
+    busy = true;
+    try {
+      forceVersion();
+      installAuthoritative();
+      patchTaskGroups();
+      patchShipmentCards();
+    } finally {
+      busy = false;
+    }
+  }
+
+  function schedule() {
+    if (pending) return;
+    pending = later(function () {
+      pending = 0;
+      apply();
+    }, 35);
+  }
+
+  document.addEventListener('click', function (event) {
+    var element = event.target && event.target.closest && event.target.closest('button,a');
+    if (!element) return;
+    if (!/^Ladeliste\s*&\s*CMR$/i.test(q(element.textContent))) return;
+
+    var card = element.closest('[data-shipment]');
+    var id = q(element.dataset && element.dataset.id) || q(card && card.dataset && card.dataset.shipment);
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    if (id) openShipmentDocuments(id);
+    else renderHub('');
+  }, true);
+
+  ['exporthub:ready', 'exporthub:rendered', 'exporthub:viewchange', 'exporthub:sync'].forEach(function (eventName) {
+    window.addEventListener(eventName, schedule);
+  });
+
+  document.addEventListener('DOMContentLoaded', schedule, { once: true });
+  window.addEventListener('pageshow', schedule);
+  document.addEventListener('click', function () {
+    later(schedule, 25);
+  }, true);
+
+  try {
+    var MutationObserverClass =
+      (window.ExportHUBClean && window.ExportHUBClean.native && window.ExportHUBClean.native.MutationObserver) ||
+      window.MutationObserver;
+    new MutationObserverClass(function (records) {
+      if (records.some(function (record) { return record.addedNodes && record.addedNodes.length; })) schedule();
+    }).observe(document.getElementById('content') || document.body, { childList: true, subtree: true });
+  } catch (_) {}
+
+  forceVersion();
+  schedule();
+  later(schedule, 250);
+  later(schedule, 900);
+  later(schedule, 1800);
+
+  window.ExportHUBRC576 = {
+    version: VERSION,
+    apply: apply,
+    openHub: function () { return renderHub(''); },
+    openDocuments: openShipmentDocuments,
+    print: printDocuments,
+    selfTest: function () {
+      var duplicateCustomerCards = Array.prototype.slice.call(
+        document.querySelectorAll('[data-rc576-linked-task="1"]')
+      ).filter(function (card) {
+        var customer = card.querySelector('.rc576-task-customer');
+        if (!customer) return false;
+        return Array.prototype.slice.call(card.querySelectorAll('span,p,div,strong,b')).filter(function (element) {
+          return element !== customer &&
+            !element.closest('.rc576-task-details') &&
+            !element.children.length &&
+            q(element.textContent) === q(customer.textContent);
+        }).length > 0;
+      }).length;
+
+      return {
+        version: VERSION,
+        linkedTasks: document.querySelectorAll('[data-rc576-linked-task="1"]').length,
+        duplicateCustomerCards: duplicateCustomerCards,
+        shipmentCards: document.querySelectorAll('.rc524-shipment-card').length,
+        documentHub: !!document.getElementById('rc576DocumentHub'),
+        styleLockPreserved: document.documentElement.getAttribute('data-shipment-style-approved') === 'RC574'
+      };
+    }
+  };
+})();
+
+</script>
+<!-- RC576 TASK CARDS + SHIPMENT DOCUMENTS FINAL FIX END -->
+
