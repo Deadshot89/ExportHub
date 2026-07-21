@@ -1,0 +1,13 @@
+{
+  "version": "RC591",
+  "files": {
+    "index.html": {
+      "bytes": 4403819,
+      "sha256": "6400182697ea4f2fc2a7ba7b17001fa73e1c2afe4fbccb7e51ee3a68ea7aa48a"
+    },
+    ".github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml": {
+      "bytes": 4324,
+      "sha256": "23412b3f3c147922b6462e095a214be6157ba2bd874bb8a2de3e15467f2544ae"
+    }
+  }
+}
