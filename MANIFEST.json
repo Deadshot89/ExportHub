@@ -1,13 +1,15 @@
 {
-  "version": "RC591",
-  "files": {
-    "index.html": {
-      "bytes": 4403819,
-      "sha256": "6400182697ea4f2fc2a7ba7b17001fa73e1c2afe4fbccb7e51ee3a68ea7aa48a"
-    },
-    ".github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml": {
-      "bytes": 4324,
-      "sha256": "23412b3f3c147922b6462e095a214be6157ba2bd874bb8a2de3e15467f2544ae"
-    }
-  }
+  "checks": {
+    "version": "RC592",
+    "correct_state_api_route": "/api/exporthub/state",
+    "wrong_state_api_route_occurrences": 0,
+    "correct_state_api_route_occurrences": 18,
+    "javascript_blocks_checked": 31,
+    "javascript_syntax_ok": true,
+    "css_unchanged": true,
+    "workflow_changed": false,
+    "api_files_changed": false
+  },
+  "index_sha256": "a99e1caf8354fd45199ac12814eeab49381154192b0fa393850f9a6054e5f3a2",
+  "index_bytes": 4403862
 }
