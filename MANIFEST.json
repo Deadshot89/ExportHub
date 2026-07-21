@@ -1,17 +1,20 @@
 {
-  "version": "RC593",
-  "index_bytes": 4423105,
-  "index_sha256": "76aa5e79e315630233c82f5c463a37af1dc13337fe26fa37e1e6c4078ba23f0f",
+  "version": "RC594",
+  "index_bytes": 4486092,
+  "index_sha256": "e4a87a934a167ae27d1dd7a422834589dbf93fd2da38d771be9aec350be95de3",
   "checks": {
-    "version_rc593": true,
+    "version_rc594": true,
     "state_api_unchanged": true,
-    "a4_fix_present": true,
-    "page_mapping_fix_present": true,
-    "loadlist_1_mapping": true,
-    "loadlist_2_mapping": true,
-    "javascript_blocks_checked": 32,
+    "official_logo_embedded": true,
+    "header_address_removed_by_normalizer": true,
+    "deckblatt_override": true,
+    "cmr_alignment_override": true,
+    "document_only_print_frame": true,
+    "single_toolbar": true,
+    "javascript_blocks_checked": 33,
     "javascript_syntax_ok": true,
-    "fix_is_last_module": true,
-    "shipment_create_style_changed": false
+    "workflow_changed": false,
+    "state_api_changed": false,
+    "shipment_create_changed": false
   }
 }
