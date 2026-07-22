@@ -1,20 +1,19 @@
 {
-  "version": "RC594",
-  "index_bytes": 4486092,
-  "index_sha256": "e4a87a934a167ae27d1dd7a422834589dbf93fd2da38d771be9aec350be95de3",
+  "version": "RC596",
+  "index_bytes": 4549686,
+  "index_sha256": "5b6d59387b931f161e8ef1a619494f97d1500a400c4ced313adc8d037305c1cc",
+  "javascript_blocks_checked": 34,
   "checks": {
-    "version_rc594": true,
-    "state_api_unchanged": true,
-    "official_logo_embedded": true,
-    "header_address_removed_by_normalizer": true,
-    "deckblatt_override": true,
-    "cmr_alignment_override": true,
-    "document_only_print_frame": true,
-    "single_toolbar": true,
-    "javascript_blocks_checked": 33,
-    "javascript_syntax_ok": true,
-    "workflow_changed": false,
-    "state_api_changed": false,
-    "shipment_create_changed": false
+    "version_rc596": true,
+    "state_api_correct": true,
+    "old_rc595_controller_disabled": true,
+    "manual_ldm_supported": true,
+    "manual_ldm_preserved_on_save": true,
+    "stowplan_ldm_basis": true,
+    "print_all_intercept": true,
+    "print_load1_intercept": true,
+    "print_load2_intercept": true,
+    "cmr_primary_visible": true,
+    "webp_logo_mime_correct": true
   }
 }
