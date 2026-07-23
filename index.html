@@ -19919,10 +19919,17 @@ function forceVersion(){
  var title=document.querySelector('title');if(title&&title.textContent!==wanted)title.textContent=wanted;
  var badge=document.getElementById('cleanVersionBadge');if(badge&&badge.textContent!=='Bereinigte Version · '+VERSION)badge.textContent='Bereinigte Version · '+VERSION;
  var login=document.getElementById('login');if(login){
-  var found=false;
-  login.querySelectorAll('[id*=version i],[class*=version i],[data-exporthub-version-label]').forEach(function(el){
-   if(!/RC\d+/i.test(q(el.textContent)))return;
-   if(!found){var v=q(el.textContent).replace(/(?:Private\s+)?RC\d+/gi,VERSION);if(el.textContent!==v)el.textContent=v;el.style.removeProperty('display');found=true}else el.style.display='none';
+  var card=login.querySelector('.login-card')||login;
+  badge=document.getElementById('cleanVersionBadge');
+  if(badge&&card.contains(badge)){badge.textContent='Bereinigte Version · '+VERSION;badge.hidden=false;badge.style.removeProperty('display')}
+  card.querySelectorAll('.clean-version-badge,[data-exporthub-version-label],[data-version-badge],[id*=version i],[class*=version i]').forEach(function(el){
+   if(el===badge)return;
+   if(/RC\d+/i.test(q(el.textContent)))el.style.display='none';
+  });
+  card.querySelectorAll('div,span,small,p,strong').forEach(function(el){
+   if(el===badge||el.children.length)return;
+   var value=q(el.textContent);
+   if(/^(?:Bereinigte\s+Version\s*[·-]\s*)?(?:Private\s+)?RC\d+$/i.test(value)||/^ExportHUB(?:\s+Online)?\s+(?:Private\s+)?RC\d+$/i.test(value))el.style.display='none';
   });
  }
 }
