@@ -7938,6 +7938,16 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
   display: none !important;
 }
 </style>
+
+<style id="rc629-single-login-version-static">
+/* RC629: Im Login genau eine feste Versionszeile anzeigen. Keine JavaScript-Überwachung. */
+#login .login-card .clean-version-badge,
+#login .login-card [data-version-badge],
+#login .login-card [data-exporthub-version-label],
+#login .login-card [id*="version" i],
+#login .login-card [class*="version" i]{display:none!important}
+#login .login-card #rc629LoginVersion{display:inline-flex!important}
+</style>
 </head>
 <body><div class="clean-load-panel hidden" id="cleanLoadPanel">
 <div class="clean-load-card">
@@ -7965,6 +7975,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <label class="field">Passwort<input autocomplete="off" id="loginPass" type="password"/></label>
 <button class="btn" id="loginBtn" style="width:100%">Anmelden</button>
 <button class="ghost" id="adminRecoveryBtn" style="width:100%;margin-top:10px" type="button">Admin-Zugang wiederherstellen</button>
+<div id="rc629LoginVersion" class="clean-version-badge" aria-label="Version">Bereinigte Version · RC629</div>
 </div>
 <div class="hidden" id="pwChange">
 <div class="notice">Erstanmeldung: Bitte neues Passwort setzen.</div>
