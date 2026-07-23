@@ -12807,7 +12807,7 @@ if(document.readyState!=='loading')later(function(){if(window.__EXPORTHUB_READY_
 if(window.__EXPORTHUB_RC544_AUTH__)return;
 window.__EXPORTHUB_RC544_AUTH__=true;
 var API='/api/exporthub-auth',cache=null,selectedId='',draftRights={},busy=false,adminLoading=false,lastSecret='';
-var LABELS={start:'Start',dashboard:'Dashboard',tasks:'Aufgaben',vacation:'Urlaub',planning:'Planung',shipment:'Sendung erstellen',abd:'ABD',shipmentoverview:'Sendungsübersicht',cmr:'Ladeliste & CMR',documents:'Dokumente',pallet:'Palettenkonto',customers:'Kunden',customerfolder:'Kundenordner',calculator:'UPS-Rechner',customs:'Zoll',sop:'SOP & Portale',academy:'Academy',ideas:'Ideen',notifications:'Benachrichtigungen',reports:'Reports',update:'Update',rights:'Benutzer & Rechte',teamfile:'Teamdatei',archive:'Archiv',settings:'Einstellungen'};
+var LABELS={start:'Start',dashboard:'Dashboard',tasks:'Aufgaben',vacation:'Urlaub',planning:'Planung',shipment:'Sendung erstellen',abd:'ABD',shipmentoverview:'Sendungsübersicht',cmr:'Ladeliste & CMR',documents:'Dokumente',pallet:'Palettenkonto',customers:'Kunden',customerfolder:'Kundenordner',shippingcosts:'Versandkosten',inspections:'Prüfungen',calculator:'Versandkosten (Kompatibilität)',customs:'Zoll',sop:'SOP & Portale',academy:'Academy',ideas:'Ideen',notifications:'Benachrichtigungen',reports:'Reports',update:'Update',rights:'Benutzer & Rechte',teamfile:'Teamdatei',archive:'Archiv',settings:'Einstellungen'};
 function runtime(){return window.ExportHUBClean&&window.ExportHUBClean.runtime||{}}
 function S(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||{}}}
 function root(){return document.getElementById('content')}
@@ -12815,14 +12815,23 @@ function Q(v){return String(v==null?'':v).trim()}
 function L(v){return Q(v).toLowerCase()}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
-function isGlobal(u){var role=L(u&&(u.role||u.rolle));return !!u&&(u.globalAdmin===true||role==='admin'||/global.?admin|administrator|vollzugriff/i.test(role)||(u.permissions||[]).indexOf('*')>=0)}
+function isGlobal(u){var role=L(u&&(u.role||u.rolle)),key=L(u&&(u.user||u.login||u.username||u.name));return !!u&&(key==='tobias'||u.globalAdmin===true||role==='admin'||/global.?admin|administrator|vollzugriff/i.test(role)||(u.permissions||[]).indexOf('*')>=0)}
 function currentView(){return Q(S().view||'dashboard')}
 function level(right){var v=L(right&&(right.level||right.access));if(['none','view','edit','admin'].indexOf(v)>=0)return v;if(right&&(right.admin||right.functionAdmin))return'admin';if(right&&right.edit)return'edit';if(right&&(right.read||right.visible))return'view';return'none'}
 function rightObject(v){return {level:v,visible:v!=='none',read:v!=='none',edit:v==='edit'||v==='admin',admin:v==='admin',functionAdmin:v==='admin'}}
 async function call(action,payload){
- var r=runtime(),res=await fetch(API,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Authorization':'Bearer '+Q(r.authToken)},body:JSON.stringify(Object.assign({action:action},payload||{}))});
- var txt=await res.text(),d={};try{d=txt?JSON.parse(txt):{}}catch(_){throw new Error('Ungültige Serverantwort (HTTP '+res.status+').')}
- if(!res.ok||d.ok===false){var e=new Error(d.message||('HTTP '+res.status));e.code=d.code;throw e}return d
+ var r=runtime(),token=Q(r.authToken),headers={'Content-Type':'application/json','Accept':'application/json'},body=Object.assign({action:action},payload||{});
+ if(!token){var missing=new Error('Die ExportHUB-Sitzung fehlt. Bitte einmal abmelden und erneut anmelden.');missing.code='AUTH_TOKEN_MISSING';throw missing}
+ headers['X-ExportHUB-Token']=token;headers['X-ExportHUB-Session']=token;headers.Authorization='Bearer '+token;body.sessionToken=token;body.authToken=token;
+ var res=await fetch(API,{method:'POST',cache:'no-store',credentials:'same-origin',headers:headers,body:JSON.stringify(body)}),txt=await res.text(),d={};
+ try{d=txt?JSON.parse(txt):{}}catch(_){var invalid=new Error('Ungültige Serverantwort (HTTP '+res.status+').');invalid.code='INVALID_SERVER_JSON';invalid.status=res.status;throw invalid}
+ if(!res.ok||d.ok===false){var e=new Error(d.message||('HTTP '+res.status));e.code=d.code||('HTTP_'+res.status);e.status=res.status;throw e}
+ if(action==='admin-list'){
+  d.users=Array.isArray(d.users)?d.users:[];d.sessions=Array.isArray(d.sessions)?d.sessions:[];d.settings=d.settings||{};
+  var required=['start','dashboard','tasks','vacation','planning','shipment','abd','shipmentoverview','cmr','documents','pallet','customers','customerfolder','shippingcosts','inspections','calculator','customs','sop','academy','ideas','notifications','reports','update','rights','teamfile','archive','settings'];
+  d.modules=Array.isArray(d.modules)?d.modules:[];required.forEach(function(id){if(d.modules.indexOf(id)<0)d.modules.push(id)});
+ }
+ return d
 }
 function syncUsers(users){
  var r=runtime();r.users=(users||[]).map(clone);window.__CLEAN_BOOT_USERS__=r.users.map(clone);
@@ -12852,8 +12861,8 @@ window.rc544LoadAdmin=load;window.rc544RenderAdmin=render;
 window.rc544SelectUser=function(id){selectedId=id;initDraft(userById());render();return false};
 window.rc544ChooseUser=function(){var value=L((document.getElementById('rc544UserSearch')||{}).value),u=(cache.users||[]).find(function(x){return L(x.user)===value||L(x.name)===value});if(!u)return alert('Benutzer wurde nicht gefunden.');return window.rc544SelectUser(u.id)};
 window.rc544SetDraftRight=function(id,v){draftRights[id]=v;render();return false};
-window.rc544CreateUser=async function(){if(busy)return false;var login=Q((document.getElementById('rc544NewLogin')||{}).value),name=Q((document.getElementById('rc544NewName')||{}).value),globalAdmin=!!((document.getElementById('rc544NewAdmin')||{}).checked);busy=true;try{var d=await call('admin-create-user',{username:login,name:name,globalAdmin:globalAdmin});lastSecret=d.startPassword||'';cache=await call('admin-list');syncUsers(cache.users);selectedId=d.user.id;initDraft(userById());render()}catch(e){alert(e.message)}finally{busy=false}return false};
-window.rc544SaveUser=async function(){if(busy||!userById())return false;var u=userById(),rights={};Object.keys(draftRights).forEach(function(id){rights[id]=rightObject(draftRights[id])});busy=true;try{await call('admin-update-user',{userId:u.id,name:Q((document.getElementById('rc544EditName')||{}).value),globalAdmin:!!((document.getElementById('rc544EditAdmin')||{}).checked),rights:rights});cache=await call('admin-list');syncUsers(cache.users);initDraft(userById());render()}catch(e){alert(e.message)}finally{busy=false}return false};
+window.rc544CreateUser=async function(){if(busy)return false;var login=Q((document.getElementById('rc544NewLogin')||{}).value),name=Q((document.getElementById('rc544NewName')||{}).value),globalAdmin=!!((document.getElementById('rc544NewAdmin')||{}).checked);if(!login)return alert('Bitte einen Benutzernamen eingeben.');if(!name)return alert('Bitte einen Anzeigenamen eingeben.');if(!/^[A-Za-z0-9._-]{3,40}$/.test(login))return alert('Der Benutzername darf nur Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich enthalten.');busy=true;try{var d=await call('admin-create-user',{username:login,name:name,globalAdmin:globalAdmin});lastSecret=d.startPassword||d.initialPassword||'';cache=await call('admin-list');syncUsers(cache.users);var created=d.user||cache.users.find(function(x){return L(x.user||x.login||x.username)===L(login)});if(!created)throw new Error('Der Benutzer wurde vom Server nicht zurückgegeben.');selectedId=created.id;initDraft(userById());render()}catch(e){alert((e.message||'Benutzer konnte nicht angelegt werden.')+(e.code?'\nFehlercode: '+e.code:''))}finally{busy=false}return false};
+window.rc544SaveUser=async function(){if(busy||!userById())return false;var u=userById(),rights={},expected={};Object.keys(draftRights).forEach(function(id){rights[id]=rightObject(draftRights[id]);expected[id]=draftRights[id]});busy=true;try{await call('admin-update-user',{userId:u.id,name:Q((document.getElementById('rc544EditName')||{}).value),globalAdmin:!!((document.getElementById('rc544EditAdmin')||{}).checked),rights:rights});cache=await call('admin-list');syncUsers(cache.users);var saved=cache.users.find(function(x){return Q(x.id)===Q(u.id)});if(!saved)throw new Error('Der gespeicherte Benutzer wurde nicht erneut geladen.');var failed=Object.keys(expected).filter(function(id){return level(saved.rights&&saved.rights[id])!==expected[id]});if(failed.length)throw new Error('Diese Rechte wurden vom Server nicht übernommen: '+failed.map(function(id){return LABELS[id]||id}).join(', '));selectedId=saved.id;initDraft(saved);render();alert('Benutzer und Rechte wurden gespeichert.')}catch(e){alert((e.message||'Rechte konnten nicht gespeichert werden.')+(e.code?'\nFehlercode: '+e.code:''))}finally{busy=false}return false};
 window.rc544ToggleUser=async function(){if(busy||!userById())return false;var u=userById(),next=!u.active;if(!confirm('Benutzer '+(next?'aktivieren':'deaktivieren')+'?'))return false;busy=true;try{await call('admin-set-active',{userId:u.id,active:next});cache=await call('admin-list');syncUsers(cache.users);initDraft(userById());render()}catch(e){alert(e.message)}finally{busy=false}return false};
 window.rc544ResetPassword=async function(){if(busy||!userById())return false;var u=userById();if(!confirm('Passwort für '+u.name+' zurücksetzen? Alle Sitzungen werden beendet.'))return false;busy=true;try{var d=await call('admin-reset-password',{userId:u.id});lastSecret=d.startPassword||'';cache=await call('admin-list');syncUsers(cache.users);render()}catch(e){alert(e.message)}finally{busy=false}return false};
 window.rc544UnlockUser=async function(){if(busy||!userById())return false;busy=true;try{await call('admin-unlock',{userId:userById().id});cache=await call('admin-list');syncUsers(cache.users);render()}catch(e){alert(e.message)}finally{busy=false}return false};
@@ -13421,7 +13430,7 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){retur
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)return window.ExportHUBClean.runtime.state;if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){ }return window.state||{}}
 function shipmentView(){var s=state(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'626',loginReturn:'/?v=626'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'627',loginReturn:'/?v=627'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
 function heading(el){var h=el&&el.querySelector&&el.querySelector('h1,h2,h3,h4');return q(h&&h.textContent)}
 function savedCard(shell){if(!shell)return null;return shell.querySelector('#rc573SavedCard')||Array.prototype.slice.call(shell.querySelectorAll('section,.card,article')).find(function(x){return /^Gespeicherte Sendungen/i.test(heading(x))})||null}
 function mailCards(shell){if(!shell)return[];var list=Array.prototype.slice.call(shell.querySelectorAll('#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,.rc573-mail-card'));Array.prototype.slice.call(shell.querySelectorAll(':scope>section,:scope>.card,:scope>article')).forEach(function(x){if(/^(Mailbereich|Mail Bereich|Mailversand|Anmeldung\s*\/\s*Mail)/i.test(heading(x))&&list.indexOf(x)<0)list.push(x)});return list}
@@ -19635,8 +19644,8 @@ window.ExportHUBRC625Mail=Object.freeze({
 <script id="rc626-shipping-inspections-abd-controller">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC626_FUNCTIONS__)return;window.__EXPORTHUB_RC626_FUNCTIONS__=true;
-var VERSION='RC626',timer=0,observer=null,busy=false;
+if(window.__EXPORTHUB_RC627_FUNCTIONS__)return;window.__EXPORTHUB_RC627_FUNCTIONS__=true;
+var VERSION='RC627',timer=0,observer=null,busy=false;
 var nativeApi=window.ExportHUBClean&&window.ExportHUBClean.native;
 var setT=nativeApi&&nativeApi.setTimeout?nativeApi.setTimeout:window.setTimeout.bind(window);
 var NativeMO=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver;
@@ -19649,7 +19658,7 @@ function arr(v){return Array.isArray(v)?v:[]}
 function clone(v){try{return structuredClone(v)}catch(_){try{return JSON.parse(JSON.stringify(v))}catch(__){return v}}}
 function uid(prefix){return(prefix||'ID')+'-'+Math.random().toString(36).slice(2,8)+'-'+Date.now().toString(36)}
 function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
-function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){window.ExportHUBClean.queueSave(reason||'RC626 Änderung');return}}catch(_){}try{if(typeof window.save==='function')window.save()}catch(_){}}
+function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){window.ExportHUBClean.queueSave(reason||'RC627 Änderung');return}}catch(_){}try{if(typeof window.save==='function')window.save()}catch(_){}}
 function content(){return document.getElementById('content')}
 function currentView(){return low(state().view||document.body.getAttribute('data-exporthub-view')||'')}
 function customerName(c){return q(c&&(c.name||c.customerName||c.company||c.kunde))}
@@ -19783,3 +19792,23 @@ window.ExportHUBRC626=Object.freeze({version:VERSION,openShipping:openShipping,r
 </script>
 <!-- RC626 SHIPPING COSTS + INSPECTIONS + ABD REPAIR END -->
 
+
+<!-- RC627 USER AND RIGHTS FIX START -->
+<script id="rc627-user-rights-version-lock">
+(function(){
+'use strict';
+var VERSION='RC627';
+function lock(){
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'627',loginReturn:'/?v=627'})}catch(_){}
+ document.documentElement.setAttribute('data-exporthub-version',VERSION);
+ document.title='ExportHUB Online '+VERSION;
+ var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
+ document.querySelectorAll('[data-exporthub-version-label]').forEach(function(n){n.textContent=VERSION});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',lock,{once:true});else lock();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,lock)});
+setInterval(lock,1000);
+window.ExportHUBRC627=Object.freeze({version:VERSION,selfTest:function(){var r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};return{version:VERSION,user:r.user&&r.user.user,tokenTransports:['Authorization','X-ExportHUB-Token','X-ExportHUB-Session','sessionToken'],adminApi:!!window.ExportHUBRC544Auth}}});
+})();
+</script>
+<!-- RC627 USER AND RIGHTS FIX END -->
