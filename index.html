@@ -19812,3 +19812,321 @@ window.ExportHUBRC627=Object.freeze({version:VERSION,selfTest:function(){var r=w
 })();
 </script>
 <!-- RC627 USER AND RIGHTS FIX END -->
+
+<!-- RC628 OVERVIEW FILE OPEN, GREEN STATUS AND PICKUP RESET START -->
+<style id="rc628-overview-functional-style">
+#content .rc524-shipment-card.rc628-picked-up-or-later{
+  background:linear-gradient(180deg,#ecfdf5 0%,#f0fdf4 45%,#ffffff 100%)!important;
+  border-color:#22c55e!important;
+  box-shadow:0 14px 34px rgba(22,163,74,.17)!important;
+}
+#content .rc524-shipment-card.rc628-picked-up-or-later::before{
+  content:"Abholung bestätigt"!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  width:max-content!important;
+  margin:0 0 10px!important;
+  padding:5px 9px!important;
+  border-radius:999px!important;
+  background:#16a34a!important;
+  color:#fff!important;
+  font-size:11px!important;
+  font-weight:950!important;
+}
+#content .rc628-reset-pickup{border-color:#f59e0b!important;color:#92400e!important;background:#fffbeb!important}
+</style>
+<script id="rc628-overview-functional-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC628_OVERVIEW_FUNCTIONS__)return;
+window.__EXPORTHUB_RC628_OVERVIEW_FUNCTIONS__=true;
+var VERSION='RC628',timer=0,observer=null;
+var nativeApi=window.ExportHUBClean&&window.ExportHUBClean.native;
+var setT=nativeApi&&nativeApi.setTimeout?nativeApi.setTimeout:window.setTimeout.bind(window);
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function clone(v){try{return structuredClone(v)}catch(_){try{return JSON.parse(JSON.stringify(v))}catch(__){return v}}}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.savedShipmentId||sh.ref||sh.reference||sh.shipmentRef))}
+function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.sendungsreferenz)).toUpperCase()}
+function shipments(){var s=state();s.shipments=arr(s.shipments);return s.shipments}
+function findShipment(id){var key=q(id),up=key.toUpperCase();return shipments().find(function(sh){return sid(sh)===key||sref(sh)===up})||null}
+function currentUser(){try{var r=window.ExportHUBClean&&window.ExportHUBClean.runtime;return (r&&r.user)||window.currentUser||null}catch(_){return window.currentUser||null}}
+function userKey(u){return low(u&&(u.id||u.userId||u.user||u.login||u.username||u.email||u.name))}
+function isGlobal(u){var role=low(u&&(u.role||u.rolle));return !!u&&(u.globalAdmin===true||userKey(u)==='tobias'||role==='admin'||/global.?admin|administrator|vollzugriff/.test(role)||arr(u.permissions).indexOf('*')>=0)}
+function isCreator(sh,u){var uk=userKey(u);if(!uk)return false;var vals=[sh.createdById,sh.createdByUserId,sh.createdBy,sh.creatorId,sh.creator,sh.ownerId,sh.owner,sh.createdByName].map(low).filter(Boolean);return vals.indexOf(uk)>=0}
+function canReset(sh){var u=currentUser();return isGlobal(u)||isCreator(sh,u)}
+function statusAtOrAfterPickup(sh){var raw=low(sh&&(sh.status||sh.pickupStatus||sh.processStatus));return !!(sh&&(sh.pickupQrUsed||sh.pickedUpAt||sh.actualPickupDate||/abgeholt|pod vorhanden|abgeschlossen|archiviert/.test(raw)))&&!/storniert/.test(raw)}
+function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){window.ExportHUBClean.queueSave(reason);return}}catch(_){}try{if(typeof window.save==='function')window.save(reason)}catch(_){}}
+function refreshOverview(){var s=state();if(low(s.view)!=='shipmentoverview'&&!document.querySelector('#content .rc524-shipment-card'))return;try{if(typeof window.render==='function')window.render()}catch(e){console.error('RC628 Übersicht aktualisieren',e)}setT(patchOverview,0);setT(patchOverview,100);setT(patchOverview,300)}
+function fileList(sh,key){var list=sh&&sh[key];return Array.isArray(list)?list:[]}
+function resolveFile(el){var card=el&&el.closest&&el.closest('[data-shipment]'),id=q((el&&el.dataset&&el.dataset.id)||(card&&card.getAttribute('data-shipment'))),key=q(el&&el.dataset&&el.dataset.key),index=Number(el&&el.dataset&&el.dataset.index),sh=findShipment(id),list=fileList(sh,key);return{card:card,id:id,key:key,index:index,shipment:sh,list:list,file:list[index]}}
+function fileUrl(f){if(!f)return'';var url=q(f.data||f.dataUrl||f.url||f.downloadUrl||f.contentUrl||f.blobUrl);if(url)return url;var base=q(f.base64||f.content||f.fileData);if(!base)return'';if(/^data:/i.test(base))return base;var mime=q(f.type||f.mimeType)||'application/pdf';return'data:'+mime+';base64,'+base.replace(/^base64,/i,'')}
+function openFile(el){var x=resolveFile(el),f=x.file;if(!f){alert('Die Datei wurde nicht gefunden.');return false}var url=fileUrl(f);if(!url){alert('Für diese Datei ist kein Dateiinhalt vorhanden.');return false}try{var a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.setAttribute('data-rc628-document-open','1');document.body.appendChild(a);a.click();a.remove()}catch(e){alert('Die Datei konnte nicht geöffnet werden: '+q(e&&e.message||e))}return false}
+function section(card,kind){return Array.prototype.slice.call(card.querySelectorAll('.rc524-link-columns > section,section')).find(function(sec){var h=sec.querySelector('h1,h2,h3,h4'),t=low(h&&h.textContent);return kind==='pod'?/^pod\b|abliefernachweis/.test(t):/^abd\b|ausfuhrbegleit/.test(t)})||null}
+function patchFileRows(card,id,kind,key){var sec=section(card,kind);if(!sec)return;sec.querySelectorAll('.rc524-file-row').forEach(function(row,index){var buttons=Array.prototype.slice.call(row.querySelectorAll('button,a'));var open=buttons.find(function(b){var t=low(b.textContent),oc=low(b.getAttribute('onclick'));return t==='offnen'||t===kind+' offnen'||/downloadfile|openpod|openabd/.test(oc)});if(!open)return;open.textContent=kind==='pod'?'POD öffnen':'ABD öffnen';open.dataset.id=id;open.dataset.key=key;open.dataset.index=String(index);open.dataset.rc628FileOpen='1';open.removeAttribute('onclick')})}
+function clearPickupFields(sh,reason){var now=new Date().toISOString(),hist=sh.pickupHistory=arr(sh.pickupHistory);hist.push({id:'PICKUP-RESET-'+Date.now(),action:'Abholung zurückgesetzt / QR reaktiviert',reason:reason,at:now,by:q((currentUser()||{}).name||(currentUser()||{}).user||(currentUser()||{}).username)});var dh=sh.documentHistory=arr(sh.documentHistory),pods=arr(sh.podFiles),keep=[];pods.forEach(function(f){var qr=/^QR-/i.test(q(f.id))||/qr|pickup/.test(low(f.source||f.kind||f.docKind))||f.remote===true;if(qr){var old=clone(f);old.status='removed_by_pickup_reset';old.removedAt=now;old.removalReason=reason;dh.push(old)}else keep.push(f)});sh.podFiles=keep;sh.podCount=keep.length;sh.podStatus=keep.length?'POD vorhanden':'POD fehlt';['actualPickupDate','pickedUpAtDate','actualPickupTime','pickedUpAt','pickupQrUsedAt','qrPickupConfirmedAt','pickupDriverName','pickupSource','podSource','pickupConfirmedAt','pickupCompletedAt'].forEach(function(k){sh[k]=''});sh.pickupQrUsed=false;sh.pickupQrDisabled=false;sh.pickupQrRegistered=false;sh.pickupQrActivating=false;sh.pickupQrError='';sh.podScanConfirmed=false;sh.done=false;sh.completed=false;sh.status='Bereit zur Abholung';sh.pickupStatus='Bereit zur Abholung';sh.updatedAt=now;var id=sid(sh),r=sref(sh);arr(state().tasks).forEach(function(t){var linked=(id&&q(t.linkedShipmentId)===id)||(r&&q(t.linkedShipmentRef).toUpperCase()===r);if(linked&&/abholtag|pickup day/.test(low(t.area||t.category||t.title))){t.status='offen';t.done=false;t.completed=false;t.completedAt='';t.doneAt=''}});return sh}
+function reactivateQr(sh){var api=window.ExportHUBRC569QR;if(!api||typeof api.register!=='function')return Promise.resolve(false);return Promise.resolve(api.register(sh,true)).then(function(ok){if(ok!==false){sh.pickupQrRegistered=true;sh.pickupQrDisabled=false;sh.pickupQrUsed=false;sh.pickupQrReactivatedAt=new Date().toISOString();persist('QR nach Abholkorrektur reaktiviert');return true}return false}).catch(function(e){sh.pickupQrRegistered=false;sh.pickupQrError=q(e&&e.message||e);return false})}
+function resetPickup(el){var card=el&&el.closest&&el.closest('[data-shipment]'),id=q((el&&el.dataset&&el.dataset.id)||(card&&card.getAttribute('data-shipment'))),sh=findShipment(id);if(!sh)return false;if(!canReset(sh)){alert('Nur der Ersteller der Sendung oder ein globaler Administrator darf die Abholung zurücksetzen.');return false}if(!confirm('Abholung wirklich zurücksetzen und denselben QR-Code reaktivieren?'))return false;var reason=q(prompt('Grund der Korrektur:','Falsche Abholbestätigung'));if(!reason){alert('Für die Korrektur ist ein Grund erforderlich.');return false}clearPickupFields(sh,reason);var cur=state().shipment;if(cur&&(sid(cur)===sid(sh)||sref(cur)===sref(sh)))Object.assign(cur,clone(sh));persist('Abholung zurückgesetzt');refreshOverview();reactivateQr(sh).then(function(ok){refreshOverview();if(!ok)alert('Die Abholung wurde zurückgesetzt. Der QR-Code konnte aber nicht automatisch beim Server reaktiviert werden. Bitte den QR-Code in der Sendung erneut aktivieren.')});return false}
+function ensureResetButton(card,id,sh){var bar=card.querySelector('.rc524-dangerbar,.toolbar:last-of-type');if(!bar)return;var btn=bar.querySelector('.rc628-reset-pickup');if(statusAtOrAfterPickup(sh)&&canReset(sh)){if(!btn){btn=document.createElement('button');btn.type='button';btn.className='ghost rc628-reset-pickup';btn.textContent='Abholung zurücksetzen / QR reaktivieren';var del=Array.prototype.slice.call(bar.querySelectorAll('button')).find(function(b){return /sendung loschen/.test(low(b.textContent))});if(del)bar.insertBefore(btn,del);else bar.appendChild(btn)}btn.dataset.id=id;btn.dataset.rc628ResetPickup='1'}else if(btn)btn.remove()}
+function patchOverview(){if(!document.querySelector('#content .rc524-shipment-card'))return false;document.querySelectorAll('#content .rc524-shipment-card').forEach(function(card){var id=q(card.getAttribute('data-shipment')),sh=findShipment(id);if(!sh)return;var green=statusAtOrAfterPickup(sh);card.classList.toggle('rc628-picked-up-or-later',green);card.classList.toggle('rc624-qr-completed',false);card.hidden=false;var badge=card.querySelector('.shipment-status,.rc524-area-head .pill');if(badge&&green){badge.classList.remove('blue','orange','red');badge.classList.add('green')}patchFileRows(card,id,'pod','podFiles');patchFileRows(card,id,'abd','abdFiles');ensureResetButton(card,id,sh)});return true}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'628',loginReturn:'/?v=628'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function apply(){forceVersion();patchOverview()}
+function schedule(){if(timer)return;timer=setT(function(){timer=0;apply()},25)}
+document.addEventListener('click',function(e){var open=e.target&&e.target.closest&&e.target.closest('[data-rc628-file-open="1"]');if(open){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();openFile(open);return}var reset=e.target&&e.target.closest&&e.target.closest('[data-rc628-reset-pickup="1"]');if(reset){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();resetPickup(reset)}},true);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,120,400,900].forEach(function(ms){setT(apply,ms)})},{once:true});else[0,120,400,900].forEach(function(ms){setT(apply,ms)});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,schedule)});
+try{observer=new MutationObserver(schedule);observer.observe(document.getElementById('content')||document.body||document.documentElement,{childList:true,subtree:true})}catch(_){}
+setInterval(function(){forceVersion();patchOverview()},1200);
+window.ExportHUBRC628=Object.freeze({version:VERSION,apply:apply,patchOverview:patchOverview,openFile:openFile,resetPickup:resetPickup,selfTest:function(){return{version:VERSION,cards:document.querySelectorAll('#content .rc524-shipment-card').length,greenCards:document.querySelectorAll('#content .rc524-shipment-card.rc628-picked-up-or-later').length,podOpenButtons:document.querySelectorAll('[data-rc628-file-open][data-key="podFiles"]').length,abdOpenButtons:document.querySelectorAll('[data-rc628-file-open][data-key="abdFiles"]').length,resetButtons:document.querySelectorAll('[data-rc628-reset-pickup]').length}}});
+})();
+</script>
+<!-- RC628 OVERVIEW FILE OPEN, GREEN STATUS AND PICKUP RESET END -->
+
+<!-- RC629 FUNCTIONAL FIXES: NO DESIGN CHANGES START -->
+<script id="rc629-functional-fixes">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC629_FUNCTIONAL_FIXES__)return;
+window.__EXPORTHUB_RC629_FUNCTIONAL_FIXES__=true;
+var VERSION='RC629';
+var API='/api/exporthub-auth';
+var timer=0, observer=null, versionObserver=null, printing=false, shippingRerender=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
+function num(v){var n=Number(String(v==null?'':v).replace(',','.'));return isFinite(n)?n:0}
+function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return Object.assign({},v||{})}}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
+function sh(){var s=st();return s.shipment||(s.shipment={})}
+function runtime(){return window.ExportHUBClean&&window.ExportHUBClean.runtime||{}}
+function currentUser(){try{return window.__EXPORTHUB_GET_CURRENT_USER__?window.__EXPORTHUB_GET_CURRENT_USER__():(runtime().user||window.currentUser||null)}catch(_){return runtime().user||window.currentUser||null}}
+function currentView(){return low(st().view||document.body.getAttribute('data-exporthub-view')||'')}
+function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')return window.ExportHUBClean.queueSave(reason||'RC629 Funktionskorrektur')}catch(_){}try{if(typeof window.save==='function')return window.save(reason)}catch(_){}return false}
+function setT(fn,ms){var n=window.ExportHUBClean&&window.ExportHUBClean.native;return(n&&n.setTimeout?n.setTimeout:window.setTimeout)(fn,ms||0)}
+function setI(fn,ms){var n=window.ExportHUBClean&&window.ExportHUBClean.native;return(n&&n.setInterval?n.setInterval:window.setInterval)(fn,ms||250)}
+function cleanEmail(v){var m=String(v||'').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/ig);return m?m.map(function(x){return x.toLowerCase()}):[]}
+function uniqEmails(values){var out=[],seen={};arr(values).forEach(function(v){cleanEmail(v).forEach(function(e){if(!seen[e]){seen[e]=1;out.push(e)}})});return out}
+function customer(){var s=st(),x=sh(),c=x.customer||x.customerData||x.selectedCustomer;if(c&&obj(c))return c;var id=q(x.customerId||x.customerAccount||x.customerNumber||s.selectedCustomerId);return arr(s.customers).find(function(y){return q(y.id||y.account||y.customerNumber)===id})||null}
+function forceVersion(){
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'629',loginReturn:'/?v=629'})}catch(_){}
+ if(document.documentElement.getAttribute('data-exporthub-version')!==VERSION)document.documentElement.setAttribute('data-exporthub-version',VERSION);
+ var wanted='ExportHUB Online '+VERSION;
+ if(document.title!==wanted)document.title=wanted;
+ var title=document.querySelector('title');if(title&&title.textContent!==wanted)title.textContent=wanted;
+ var badge=document.getElementById('cleanVersionBadge');if(badge&&badge.textContent!=='Bereinigte Version · '+VERSION)badge.textContent='Bereinigte Version · '+VERSION;
+ var login=document.getElementById('login');if(login){
+  var found=false;
+  login.querySelectorAll('[id*=version i],[class*=version i],[data-exporthub-version-label]').forEach(function(el){
+   if(!/RC\d+/i.test(q(el.textContent)))return;
+   if(!found){var v=q(el.textContent).replace(/(?:Private\s+)?RC\d+/gi,VERSION);if(el.textContent!==v)el.textContent=v;el.style.removeProperty('display');found=true}else el.style.display='none';
+  });
+ }
+}
+function watchVersion(){
+ try{
+  if(versionObserver)return;
+  var n=window.ExportHUBClean&&window.ExportHUBClean.native,O=n&&n.MutationObserver?n.MutationObserver:window.MutationObserver;if(!O)return;versionObserver=new O(function(){setT(forceVersion,0)});
+  var title=document.querySelector('title');if(title)versionObserver.observe(title,{childList:true,characterData:true,subtree:true});
+  versionObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-exporthub-version']});
+ }catch(_){}
+}
+
+/* Kundenportal in Kundeninfos / Prozesshinweise */
+function validUrl(v){var x=q(v);return /^https?:\/\//i.test(x)?x:''}
+function portalItems(c){
+ var list=[];
+ function add(name,url){url=validUrl(url);if(!url)return;var key=url.toLowerCase();if(list.some(function(x){return x.key===key}))return;list.push({key:key,name:q(name)||'Kundenportal',url:url})}
+ if(!c)return list;
+ add(c.portalName||c.customerPortalName,c.portalUrl||c.portalLink||c.customerPortalUrl||c.customerPortalLink);
+ if(typeof c.portal==='string')add(c.portalName,c.portal);
+ arr(c.portals).concat(arr(c.linkedPortals)).forEach(function(p){if(typeof p==='string')add('Kundenportal',p);else if(p)add(p.name||p.title||p.label,p.url||p.href||p.link||p.portalUrl)});
+ var sopId=q(c.customerSopId||c.sopId),s=st(),sources=arr(s.customSops).concat(arr(window.SEED&&SEED.sops)).concat(arr(window.SEED&&SEED.customSops));
+ sources.forEach(function(p){var match=(sopId&&q(p.id)===sopId)||q(p.customerId)===q(c.id)||q(p.customerAccount)===q(c.account||c.customerNumber)||low(p.customerName)===low(c.name);if(!match)return;add(p.portalName||p.name,p.portalUrl||p.url);arr(p.portals).forEach(function(z){add(z.name||z.title,z.url||z.href||z.link)})});
+ return list
+}
+function patchPortal(){
+ if(currentView()!=='shipment'&&!document.getElementById('rc573CustomerCard'))return;
+ var host=document.getElementById('rc344CustomerInfo')||document.querySelector('#rc573CustomerCard .rc344-note');if(!host)return;
+ var items=portalItems(customer()),box=document.getElementById('rc629CustomerPortalLinks');
+ if(!items.length){if(box)box.remove();return}
+ if(!box){box=document.createElement('div');box.id='rc629CustomerPortalLinks';box.className='rc344-note';host.appendChild(box)}
+ var html='<b>Kundenportal</b><div class="toolbar">'+items.map(function(p){return'<a class="ghost" href="'+esc(p.url)+'" target="_blank" rel="noopener noreferrer">'+esc(p.name)+' öffnen</a>'}).join('')+'</div>';
+ if(box.dataset.html!==html){box.innerHTML=html;box.dataset.html=html}
+}
+
+/* Sales und Kunden-CC immer in Outlook-Mail übernehmen */
+function salesCc(c){
+ if(!c)return['danielollmann@essentra.com'];
+ var vals=[c.rc385SalesMail,c.salesMail,c.salesEmail,c.salesPersonMail,c.salesPersonEmail,c.salesContactMail,c.salesContactEmail,c.rc385Cc,c.mailCc,c.cc,c.ccMail,c.copyMail,c.customerCc];
+ Object.keys(c).forEach(function(k){if(/sales|verkauf|\bcc\b|copy/i.test(k))vals.push(c[k])});
+ vals.push('DanielOllmann@essentra.com');return uniqEmails(vals)
+}
+function parseMailto(href){
+ var raw=String(href||'');if(!/^mailto:/i.test(raw))return null;raw=raw.slice(7);var i=raw.indexOf('?'),to=i>=0?raw.slice(0,i):raw,query=i>=0?raw.slice(i+1):'';var p=new URLSearchParams(query);return{to:decodeURIComponent(to||''),params:p}
+}
+function buildMailto(m){var query=m.params.toString();return'mailto:'+encodeURIComponent(m.to).replace(/%40/g,'@').replace(/%3B/gi,';')+(query?'?'+query:'')}
+function patchMail(){
+ var root=document.querySelector('[data-rc625-primary-mail="1"]')||document.getElementById('rc625PrimaryMail')||document.querySelector('#rc573ShipmentShell .rc418-mail-area,#rc573ShipmentShell #rc418MailArea,#rc573ShipmentShell #rc543MailArea');if(!root)return;
+ var cc=salesCc(customer());
+ root.querySelectorAll('a[href^="mailto:"]').forEach(function(a){var m=parseMailto(a.getAttribute('href'));if(!m)return;var merged=uniqEmails([m.params.get('cc')||'',cc.join(';')]);m.params.set('cc',merged.join(';'));a.setAttribute('href',buildMailto(m));a.dataset.rc629SalesCc=merged.join(';')});
+ root.querySelectorAll('input,textarea').forEach(function(inp){var lab=inp.closest('label'),hint=low((lab&&lab.textContent||'')+' '+inp.id+' '+inp.name);if(!/(^|\s)cc([\s:-]|$)|kopie/.test(hint))return;var merged=uniqEmails([inp.value,cc.join(';')]);if(merged.length)inp.value=merged.join('; ')});
+}
+
+/* Aktuelle Colli aus dem sichtbaren Formular lesen und vollständigen Dokumentcontroller verwenden */
+function inputHint(el){var lab=el.closest&&el.closest('label'),row=el.closest&&el.closest('[data-rc344-row],.rc344-colli-row,#rowsBox .item.card');return low([el.dataset&&el.dataset.field,el.name,el.id,el.getAttribute&&el.getAttribute('aria-label'),el.getAttribute&&el.getAttribute('placeholder'),el.getAttribute&&el.getAttribute('onchange'),lab&&lab.textContent,row&&row.getAttribute&&row.getAttribute('data-row-field')].join(' '))}
+function rowField(el){var h=inputHint(el);if(/verpack|packaging|package.?type|colli.?art|data.*type|\btype\b/.test(h))return'type';if(/anzahl|quantity|\bqty\b|\bcount\b/.test(h))return'count';if(/gewicht|weight/.test(h))return'weight';if(/lade.?meter|loading.?meter|\bldm\b/.test(h))return'ldm';if(/lange|laenge|length|\bl\b/.test(h))return'l';if(/breite|width|\bw\b/.test(h))return'w';if(/hohe|hoehe|height|\bh\b/.test(h))return'h';return''}
+function syncVisibleRows(){
+ try{if(window.ExportHUBRC596&&typeof window.ExportHUBRC596.syncLdm==='function')window.ExportHUBRC596.syncLdm(true)}catch(_){}
+ var els=document.querySelectorAll('#rc573ColliCard .rc344-colli-row,#rc573ColliCard [data-rc344-row],#rc573ColliCard #rowsBox .item.card,#rowsBox .item.card');var rows=[];
+ Array.prototype.forEach.call(els,function(row){var r={},found=false;row.querySelectorAll('input,select,textarea').forEach(function(el){var k=rowField(el);if(!k)return;var v=el.value;if(k==='type')r[k]=v;else r[k]=num(v);found=true});if(found&&(q(r.type)||r.count||r.weight||r.ldm))rows.push(r)});
+ if(rows.length){sh().rows=rows;sh().colliRows=clone(rows);persist('Aktuelle Colli für Gesamtdruck übernommen')}
+ return arr(sh().rows)
+}
+function stablePrintAll(){
+ if(printing)return false;printing=true;syncVisibleRows();var s=st();s.activeShipmentId='current';
+ var api=window.ExportHUBRC616;if(!api||typeof api.openDocuments!=='function'||typeof api.print!=='function'){printing=false;alert('Der vollständige Dokumentdruck ist noch nicht geladen. Bitte die Seite einmal neu laden.');return false}
+ try{api.openDocuments('current')}catch(e){printing=false;alert('Ladeliste/CMR konnte nicht geöffnet werden: '+q(e&&e.message||e));return false}
+ var tries=0,t=setInterval(function(){tries++;var ready=document.querySelector('.rc390-docview .rc390-bundle')||document.querySelector('.rc390-docview');if(ready||tries>60){clearInterval(t);try{api.print('all')}catch(e){alert('Gesamtausgabe konnte nicht gedruckt werden: '+q(e&&e.message||e))}setT(function(){printing=false},800)}},50);return false
+}
+function installPrint(){window.rc573PrintAll=stablePrintAll;window.rc462PrintAllDocuments=stablePrintAll;window.rc629PrintAll=stablePrintAll}
+
+/* Versandkosten: Route wiederherstellen und Gate41 aus Sendung/Stammdaten automatisch füllen */
+function extractPostal(text){var m=String(text||'').match(/\b\d{5}\b/);return m?m[0]:''}
+function senderInfo(){var s=window.SEED&&SEED.sender||{},settings=st().settings||{};return{place:q(settings.shippingOriginPlace||s.city||'Nettetal'),postal:q(settings.shippingOriginPostal||s.zip||s.postalCode||'41334'),country:q(settings.shippingOriginCountry||s.country||'Deutschland')}}
+function shipmentRoute(){var x=sh(),c=customer()||{},addr=q(x.recipientAddress||x.address||c.address),country=q(x.destinationCountry||x.recipientCountry||x.country||c.country||c.land||'Deutschland');return{place:q(x.recipientCity||x.destinationCity||c.city||addr),postal:q(x.recipientPostal||x.destinationPostal||c.postalCode||c.zip||extractPostal(addr)),country:country,address:addr}}
+function shippingState(){var s=st();s.shippingCosts=s.shippingCosts||{};s.shippingCosts.ups=s.shippingCosts.ups||{};s.shippingCosts.gate=s.shippingCosts.gate||{};var o=senderInfo(),d=shipmentRoute(),u=s.shippingCosts.ups,g=s.shippingCosts.gate,x=sh(),sig=q(x.id||x.ref||x.reference)+'|'+d.postal+'|'+d.country;if(!q(u.originPlace))u.originPlace=o.place;if(!q(u.originPostal))u.originPostal=o.postal;if(!q(u.originCountry))u.originCountry=o.country;if(!q(g.originPlace))g.originPlace=o.place;if(!q(g.originPostal))g.originPostal=o.postal;if(u.shipmentRouteSignature!==sig){u.destinationPlace=d.place;u.destinationPostal=d.postal;u.destinationCountry=d.country;u.shipmentRouteSignature=sig}if(g.shipmentRouteSignature!==sig){g.destinationPlace=d.place;g.destinationPostal=d.postal;g.country=d.country;g.shipmentRouteSignature=sig}return s.shippingCosts}
+function rowTotals(){var pallets=0,totalWeight=0,packages=0;arr(sh().rows).forEach(function(r){var count=Math.max(0,num(r.count||r.qty||r.anzahl)),type=low(r.type||r.packaging||r.verpackung),w=num(r.weight||r.gewicht);totalWeight+=w;packages+=count;if(/palette|pallet/.test(type))pallets+=count});return{pallets:pallets||1,totalWeight:totalWeight,packages:packages||1,kgPerPallet:pallets?totalWeight/pallets:totalWeight}}
+function countryCode(v){var x=low(v),map={deutschland:'DE',germany:'DE',osterreich:'AT',austria:'AT',belgien:'BE',belgium:'BE',bulgarien:'BG',bulgaria:'BG',schweiz:'CH',switzerland:'CH',tschechien:'CZ',czechia:'CZ',danemark:'DK',denmark:'DK',spanien:'ES',spain:'ES',estland:'EE',estonia:'EE',finnland:'FI',finland:'FI',frankreich:'FR',france:'FR',grossbritannien:'GB','united kingdom':'GB',ungarn:'HU',hungary:'HU',irland:'IE',ireland:'IE',italien:'IT',italy:'IT',luxemburg:'LU',luxembourg:'LU',litauen:'LT',lithuania:'LT',portugal:'PT',rumanien:'RO',romania:'RO',slowenien:'SI',slovenia:'SI',niederlande:'NL',netherlands:'NL',polen:'PL',poland:'PL'};return map[x]||(q(v).length===2?q(v).toUpperCase():'')}
+function gateRate(pallets,kg){var many=num(pallets)>=10;if(num(kg)<=200)return many?43.43:46.09;if(num(kg)<=400)return many?70.92:73.69;if(num(kg)<=800)return many?94.46:98.61;return 0}
+function configuredZone(c,g){var vals=[g&&g.zone,c&&c.gate41Zone,c&&c.shippingZone,c&&c.freightZone,c&&c.tollZone,c&&c.zone];for(var i=0;i<vals.length;i++)if(q(vals[i]))return q(vals[i]);var tables=[st().gate41Zones,st().shippingTariffs&&st().shippingTariffs.gate41Zones,st().settings&&st().settings.gate41Zones];var cc=countryCode(g.country),plz=q(g.destinationPostal);for(var ti=0;ti<tables.length;ti++){var t=tables[ti];if(!t)continue;var entry=t[cc]||t[g.country]||t[plz]||t[plz.slice(0,2)]||t[plz.slice(0,1)];if(obj(entry))entry=entry.zone||entry.value;if(q(entry))return q(entry)}return''}
+function lookupInternationalPrice(g){var cc=countryCode(g.country),p=Math.max(1,Math.floor(num(g.pallets)||1)),tables=[st().gate41InternationalRates,st().shippingTariffs&&st().shippingTariffs.gate41International,st().settings&&st().settings.gate41InternationalRates];for(var i=0;i<tables.length;i++){var t=tables[i];if(!t)continue;var e=t[cc]||t[g.country];if(Array.isArray(e)){var v=e[p-1];if(num(v)>0)return num(v)}if(obj(e)){var v2=e[p]||e[String(p)]||e['p'+p]||e.price;if(num(v2)>0)return num(v2)}}return 0}
+function lookupToll(g,totalKg){var zone=q(g.tollZone||g.zone),tables=[st().gate41TollRates,st().shippingTariffs&&st().shippingTariffs.gate41Toll,st().settings&&st().settings.gate41TollRates];for(var i=0;i<tables.length;i++){var t=tables[i];if(!t)continue;var e=t[zone]||t['zone'+zone];if(Array.isArray(e)){var row=e.find(function(r){return num(totalKg)<=num(r.maxKg||r.to||r.weight)});if(row&&num(row.price||row.value)>0)return num(row.price||row.value)}if(obj(e)){var keys=Object.keys(e).map(Number).filter(isFinite).sort(function(a,b){return a-b});for(var k=0;k<keys.length;k++)if(totalKg<=keys[k]&&num(e[keys[k]])>0)return num(e[keys[k]])}var weightRows=t.weights||t.rows;if(Array.isArray(weightRows)){var wr=weightRows.find(function(r){return totalKg<=num(r.maxKg||r.to||r.weight)});if(wr&&num(wr[zone]||wr['zone'+zone])>0)return num(wr[zone]||wr['zone'+zone])}}return 0}
+function syncShippingAuto(){var c=shippingState(),u=c.ups,g=c.gate,t=rowTotals(),d=shipmentRoute(),rows=arr(sh().rows);var changed=false;if(rows.length&&num(u.packages)!==t.packages){u.packages=t.packages;changed=true}if(rows.length&&t.totalWeight&&num(u.totalKg)!==t.totalWeight){u.totalKg=t.totalWeight;changed=true}if(rows.length&&num(g.pallets)!==t.pallets){g.pallets=t.pallets;changed=true}if(rows.length&&t.kgPerPallet&&num(g.kgPerPallet)!==Math.round(t.kgPerPallet*100)/100){g.kgPerPallet=Math.round(t.kgPerPallet*100)/100;changed=true}var national=countryCode(g.country)==='DE';var scope=national?'national':'international';if(g.scope!==scope){g.scope=scope;changed=true}var zone=configuredZone(customer()||{},g);if(zone&&q(g.tollZone)!==zone){g.tollZone=zone;g.zone=zone;changed=true}if(national){var rate=gateRate(g.pallets,g.kgPerPallet),base=rate*Math.max(1,Math.floor(num(g.pallets)||1));if(num(g.autoBase)!==base){g.autoBase=base;changed=true}}else{var intl=lookupInternationalPrice(g);if(intl&&num(g.internationalBase)!==intl){g.internationalBase=intl;g.autoBase=intl;changed=true}}var toll=zone?lookupToll(g,t.totalWeight):0;if(toll&&num(g.toll)!==toll){g.toll=toll;changed=true}g.autoZoneFound=!!zone;g.autoTariffFound=national?!!gateRate(g.pallets,g.kgPerPallet):!!num(g.internationalBase);g.autoTollFound=!!toll;return changed}
+function createField(id,label,value,handler){var lab=document.createElement('label');lab.className='field';lab.dataset.rc629Shipping='1';lab.textContent=label;var inp=document.createElement('input');inp.id=id;inp.value=value||'';inp.addEventListener('change',handler);lab.appendChild(inp);return lab}
+function patchShipping(){
+  if(currentView()!=='shippingcosts'&&!document.getElementById('rc626Shipping'))return;
+  var changed=syncShippingAuto();
+  if(changed&&!shippingRerender&&window.ExportHUBRC626&&typeof window.ExportHUBRC626.renderShipping==='function'){
+    shippingRerender=true;
+    persist('Versandkosten automatisch aus Sendung übernommen');
+    setT(function(){
+      try{window.ExportHUBRC626.renderShipping()}
+      finally{shippingRerender=false;setT(patchShipping,30)}
+    },0);
+    return;
+  }
+  var root=document.getElementById('rc626Shipping');
+  if(!root)return;
+  var costs=shippingState(),u=costs.ups,g=costs.gate;
+  var upsCard=Array.prototype.slice.call(root.querySelectorAll('section.card')).find(function(x){
+    return /Pakete\s*[–-]\s*UPS/i.test(q(x.querySelector('h3')&&x.querySelector('h3').textContent));
+  });
+  if(upsCard){
+    var grid=upsCard.querySelector('.rc626-grid3');
+    if(grid&&!grid.querySelector('[data-rc629-shipping]')){
+      var fields=[
+        createField('rc629UpsOrigin','Startort / Start-PLZ',q(u.originPostal+' '+u.originPlace),function(){
+          var m=q(this.value);u.originPostal=extractPostal(m);u.originPlace=q(m.replace(u.originPostal,''));persist('UPS Startort geändert');
+        }),
+        createField('rc629UpsDestination','Zielort / Ziel-PLZ',q(u.destinationPostal+' '+u.destinationPlace),function(){
+          var m=q(this.value);u.destinationPostal=extractPostal(m);u.destinationPlace=q(m.replace(u.destinationPostal,''));persist('UPS Zielort geändert');
+        }),
+        createField('rc629UpsCountry','Zielland',u.destinationCountry,function(){u.destinationCountry=q(this.value);persist('UPS Zielland geändert')})
+      ];
+      for(var i=fields.length-1;i>=0;i--)grid.insertBefore(fields[i],grid.firstChild);
+    }
+    var result=Array.prototype.slice.call(root.querySelectorAll('.rc626-result')).find(function(x){return /UPS-Ergebnis/i.test(q(x.textContent))});
+    if(result){
+      var route=result.querySelector('[data-rc629-ups-route]');
+      if(!route){route=document.createElement('div');route.dataset.rc629UpsRoute='1';result.insertBefore(route,result.firstElementChild&&result.firstElementChild.nextSibling)}
+      var zone='';
+      try{
+        var rates=arr(window.SEED&&SEED.upsRates),cc=countryCode(u.destinationCountry),service=q(u.service);
+        var match=rates.find(function(r){return(countryCode(r.country||r.countryCode)===cc||low(r.country)===low(u.destinationCountry))&&(!service||q(r.service||'UPS Standard')===service)});
+        zone=q(match&&match.zone);
+      }catch(_){}
+      route.textContent='Route: '+q(u.originPostal+' '+u.originPlace)+' → '+q(u.destinationPostal+' '+u.destinationPlace)+' · '+q(u.destinationCountry)+(zone?' · Zone '+zone:'');
+    }
+  }
+  var gateCard=Array.prototype.slice.call(root.querySelectorAll('section.card')).find(function(x){
+    return /Paletten\s*[–-]\s*Gate41/i.test(q(x.querySelector('h3')&&x.querySelector('h3').textContent));
+  });
+  if(gateCard){
+    var gg=gateCard.querySelector('.rc626-grid3');
+    if(gg&&!gg.querySelector('[data-rc629-shipping]')){
+      var f1=createField('rc629GateOrigin','Startort / Start-PLZ',q(g.originPostal+' '+g.originPlace),function(){
+        var m=q(this.value);g.originPostal=extractPostal(m);g.originPlace=q(m.replace(g.originPostal,''));persist('Gate41 Startort geändert');
+      });
+      var f2=createField('rc629GateDestination','Zielort / Ziel-PLZ',q(g.destinationPostal+' '+g.destinationPlace),function(){
+        var m=q(this.value);g.destinationPostal=extractPostal(m);g.destinationPlace=q(m.replace(g.destinationPostal,''));persist('Gate41 Zielort geändert');if(window.ExportHUBRC626)window.ExportHUBRC626.renderShipping();
+      });
+      gg.insertBefore(f2,gg.firstChild);gg.insertBefore(f1,gg.firstChild);
+    }
+    var labels=gateCard.querySelectorAll('label');
+    labels.forEach(function(l){
+      var txt=low(l.firstChild&&l.firstChild.nodeValue||l.textContent),inp=l.querySelector('input,select');
+      if(!inp)return;
+      if(/zielland/.test(txt))inp.value=g.country||'';
+      if(/paletten$/.test(txt))inp.value=g.pallets||1;
+      if(/gewicht je palette/.test(txt))inp.value=g.kgPerPallet||0;
+      if(/mautzone/.test(txt)&&q(g.tollZone))inp.value=g.tollZone;
+      if(/maut laut/.test(txt)){inp.value=num(g.toll).toFixed(2);inp.readOnly=!!g.autoTollFound}
+      if(/internationale grundfracht/.test(txt)){inp.value=num(g.internationalBase).toFixed(2);inp.readOnly=!!g.autoTariffFound}
+    });
+    var warning=gateCard.querySelector('.rc626-warning');
+    if(warning){
+      var national=countryCode(g.country)==='DE';
+      var msg=national?(g.autoTariffFound?'Grundfracht wurde automatisch aus Anzahl und Gewicht ermittelt.':'Für dieses Gewicht ist kein Gate41-Grundtarif hinterlegt.'):(g.autoTariffFound?'Internationale Grundfracht wurde automatisch aus der hinterlegten Ländertabelle ermittelt.':'Für '+q(g.country)+' ist keine Gate41-Ländertabelle hinterlegt.');
+      msg+=' Zone: '+(q(g.tollZone)||'nicht hinterlegt')+'. '+(g.autoTollFound?'Maut wurde automatisch ermittelt.':'Keine passende Mautposition hinterlegt.');
+      warning.innerHTML='<b>Automatische Gate41-Ermittlung:</b> '+esc(msg);
+    }
+  }
+}
+
+/* Prüfungen zurück in Academy */
+function isGlobalAdmin(){var u=currentUser()||{},role=low(u.role||u.rolle);return u.globalAdmin===true||low(u.user||u.login||u.username||u.name)==='tobias'||/global.?admin|administrator|vollzugriff/.test(role)||arr(u.permissions).indexOf('*')>=0}
+function patchAcademy(){
+ var hide=document.getElementById('rc629-hide-standalone-inspections');
+ if(!hide){hide=document.createElement('style');hide.id='rc629-hide-standalone-inspections';hide.textContent='#rc626NavInspections,[data-rc626-view="inspections"]{display:none!important}';(document.head||document.documentElement).appendChild(hide)}
+ document.querySelectorAll('#rc626NavInspections,[data-rc626-view="inspections"]').forEach(function(n){n.hidden=true;n.setAttribute('aria-hidden','true');n.disabled=true;n.remove()});
+ document.querySelectorAll('button[onclick*="quiz"],a[onclick*="quiz"],[data-view="quiz"]').forEach(function(n){if(n.closest('#content')||n.closest('#nav')){n.style.removeProperty('display');n.removeAttribute('aria-hidden')}});
+ if(currentView()==='inspections'){st().view='quiz';persist('Prüfungen in Academy geöffnet');try{if(typeof window.setView==='function')window.setView('quiz');else if(typeof window.render==='function')window.render()}catch(_){}return}
+ if((currentView()==='academy'||currentView()==='quiz')&&isGlobalAdmin()){
+  var buttons=document.querySelectorAll('#content button');buttons.forEach(function(b){if(/Auswertung|Archiv/.test(q(b.textContent)))b.disabled=false})
+ }
+}
+
+/* Benutzeranlage und Rechte: kompatible Azure-Aufrufe */
+function token(){var r=runtime(),s=st();return q(r.authToken||r.sessionToken||r.token||s.authToken||s.sessionToken)}
+async function authRequest(action,payload){var t=token();if(!t){var e=new Error('Die ExportHUB-Sitzung fehlt. Bitte einmal abmelden und erneut anmelden.');e.code='AUTH_TOKEN_MISSING';throw e}var headers={'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'X-ExportHUB-Auth':t,'X-Session-Token':t,'Authorization':'Bearer '+t},body=Object.assign({action:action,sessionToken:t,authToken:t,token:t,session:t},payload||{}),res=await fetch(API,{method:'POST',cache:'no-store',credentials:'same-origin',headers:headers,body:JSON.stringify(body)}),txt=await res.text(),data={};try{data=txt?JSON.parse(txt):{}}catch(_){var x=new Error('Ungültige Serverantwort (HTTP '+res.status+').');x.code='INVALID_SERVER_JSON';x.status=res.status;throw x}if(!res.ok||data.ok===false){var er=new Error(data.message||('HTTP '+res.status));er.code=data.code||('HTTP_'+res.status);er.status=res.status;throw er}return data}
+function retryableAdminError(e){return !e||e.status===400||e.status===404||e.status===405||e.status===422||/unknown|action|schema|payload|validation|parameter|feld|route|not found/i.test(q(e.message)+' '+q(e.code))}
+async function tryAdminCalls(list){var last;for(var i=0;i<list.length;i++){try{return await authRequest(list[i].action,list[i].payload)}catch(e){last=e;if(e.status===401||e.status===403||!retryableAdminError(e))throw e}}throw last||new Error('Admin-Aufruf ist fehlgeschlagen.')}
+function selectedUserId(){var b=document.querySelector('.rc544-user.active');if(!b)return'';var m=String(b.getAttribute('onclick')||'').match(/rc544SelectUser\(['"]([^'"]+)/);return m?m[1]:q(b.dataset.userId)}
+function readRights(){var rights={};document.querySelectorAll('.rc544-right-table tbody tr').forEach(function(row){var id=q(row.querySelector('td small')&&row.querySelector('td small').textContent);if(!id)return;if(id==='inspections')id='academy';var active=row.querySelector('.rc544-rights button.active'),txt=low(active&&active.textContent),level=/funktions/.test(txt)?'admin':/bearbeiten/.test(txt)?'edit':/ansehen/.test(txt)?'view':'none';rights[id]={level:level,read:level!=='none',view:level!=='none',edit:level==='edit'||level==='admin',admin:level==='admin',functionAdmin:level==='admin'}});return rights}
+function storeAdminMessage(data){try{sessionStorage.setItem('rc629AdminMessage',JSON.stringify(data))}catch(_){}}
+function patchAdminMessage(){var raw='';try{raw=sessionStorage.getItem('rc629AdminMessage')||''}catch(_){}if(!raw)return;var data;try{data=JSON.parse(raw)}catch(_){return}var page=document.querySelector('.rc544-page');if(!page||document.getElementById('rc629AdminMessage'))return;var box=document.createElement('div');box.id='rc629AdminMessage';box.className=data.secret?'rc544-secret':'okbox';box.innerHTML='<b>'+esc(data.title||'Erfolgreich')+'</b>'+(data.secret?'<code>'+esc(data.secret)+'</code>':'')+'<p>'+esc(data.message||'')+'</p><button class="ghost" type="button">Schließen</button>';box.querySelector('button').onclick=function(){box.remove();try{sessionStorage.removeItem('rc629AdminMessage')}catch(_){}};page.insertBefore(box,page.firstChild)}
+async function createUser(){
+ var login=q((document.getElementById('rc544NewLogin')||{}).value),name=q((document.getElementById('rc544NewName')||{}).value),globalAdmin=!!((document.getElementById('rc544NewAdmin')||{}).checked);if(!login)return alert('Bitte einen Benutzernamen eingeben.');if(!name)return alert('Bitte einen Anzeigenamen eingeben.');if(!/^[A-Za-z0-9._-]{3,40}$/.test(login))return alert('Der Benutzername darf nur Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich enthalten.');var base={username:login,user:login,login:login,name:name,displayName:name,globalAdmin:globalAdmin,role:globalAdmin?'Globaler Administrator':'Benutzer'};try{var data=await tryAdminCalls([{action:'admin-create-user',payload:{username:login,name:name,globalAdmin:globalAdmin}},{action:'admin-create-user',payload:base},{action:'create-user',payload:base},{action:'admin-user-create',payload:base}]);var secret=q(data.startPassword||data.initialPassword||data.password),list=await authRequest('admin-list',{}),created=data.user||arr(list.users).find(function(u){return low(u.user||u.login||u.username)===low(login)});if(!created)throw new Error('Der Benutzer wurde nach dem Speichern nicht vom Server zurückgegeben.');storeAdminMessage({title:'Benutzer angelegt',secret:secret,message:'Benutzer '+name+' wurde serverseitig angelegt. Rechte können jetzt vergeben werden.'});if(window.__RC629_TEST__)return{data:data,list:list,created:created};location.reload()}catch(e){alert('Benutzer konnte nicht angelegt werden.\n\n'+q(e.message||e)+(e.code?'\nFehlercode: '+e.code:''))}return false
+}
+async function saveUserRights(){
+ var id=selectedUserId();if(!id)return alert('Bitte zuerst einen Benutzer auswählen.');var name=q((document.getElementById('rc544EditName')||{}).value),globalAdmin=!!((document.getElementById('rc544EditAdmin')||{}).checked),rights=readRights(),base={userId:id,id:id,name:name,displayName:name,globalAdmin:globalAdmin,rights:rights,permissions:rights};try{await tryAdminCalls([{action:'admin-update-user',payload:{userId:id,name:name,globalAdmin:globalAdmin,rights:rights}},{action:'admin-update-user',payload:base},{action:'update-user',payload:base},{action:'admin-user-update',payload:base}]);var list=await authRequest('admin-list',{}),saved=arr(list.users).find(function(u){return q(u.id||u.userId)===id});if(!saved)throw new Error('Der gespeicherte Benutzer wurde nicht erneut geladen.');var failed=Object.keys(rights).filter(function(k){var got=saved.rights&&saved.rights[k],lv=low(got&&(got.level||got.access));if(!lv&&got){lv=got.admin||got.functionAdmin?'admin':got.edit?'edit':got.read||got.view?'view':'none'}return lv!==rights[k].level});if(failed.length)throw new Error('Diese Rechte wurden vom Server nicht übernommen: '+failed.join(', '));storeAdminMessage({title:'Benutzer und Rechte gespeichert',message:'Die Rechte wurden gespeichert und vom Server erneut bestätigt.'});if(window.__RC629_TEST__)return{list:list,saved:saved,rights:rights};location.reload()}catch(e){alert('Rechte konnten nicht gespeichert werden.\n\n'+q(e.message||e)+(e.code?'\nFehlercode: '+e.code:''))}return false
+}
+function installAdmin(){window.rc544CreateUser=createUser;window.rc544SaveUser=saveUserRights}
+
+function apply(){forceVersion();watchVersion();installPrint();installAdmin();patchPortal();patchMail();patchShipping();patchAcademy();patchAdminMessage()}
+function schedule(){if(timer)return;timer=setT(function(){timer=0;apply()},25)}
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('#rc573ActionBar button');if(b&&/Gesamtausgabe drucken/i.test(q(b.textContent))){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();stablePrintAll()}},true);
+['input','change'].forEach(function(n){document.addEventListener(n,function(e){if(e.target&&e.target.closest&&e.target.closest('[data-rc625-primary-mail="1"]'))setT(patchMail,0)},true)});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,150,500,1100].forEach(function(ms){setT(apply,ms)})},{once:true});else[0,150,500,1100].forEach(function(ms){setT(apply,ms)});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
+try{observer=new MutationObserver(schedule);observer.observe(document.getElementById('content')||document.body||document.documentElement,{childList:true,subtree:true})}catch(_){}
+setI(function(){forceVersion();installPrint();installAdmin();patchAcademy();patchAdminMessage()},250);
+window.ExportHUBRC629=Object.freeze({version:VERSION,apply:apply,printAll:stablePrintAll,syncRows:syncVisibleRows,patchPortal:patchPortal,patchMail:patchMail,patchShipping:patchShipping,createUser:createUser,saveUserRights:saveUserRights,selfTest:function(){return{version:VERSION,portalLinks:document.querySelectorAll('#rc629CustomerPortalLinks a').length,mailRoots:document.querySelectorAll('[data-rc625-primary-mail="1"]').length,salesCcLinks:document.querySelectorAll('[data-rc629-sales-cc]').length,standaloneInspections:document.querySelectorAll('#rc626NavInspections,[data-rc626-view="inspections"]').length,shippingFields:document.querySelectorAll('[data-rc629-shipping]').length,rows:arr(sh().rows).length}}});
+})();
+
+</script>
+<!-- RC629 FUNCTIONAL FIXES: NO DESIGN CHANGES END -->
