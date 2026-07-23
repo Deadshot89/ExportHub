@@ -1,70 +1,38 @@
 {
-  "version": "RC596",
-  "javascript_blocks_checked": 34,
-  "javascript_syntax_ok": true,
-  "functional_tests": {
-    "automatic_ldm_120x80": {
-      "expected_ldm_per_colli": 0.4,
-      "result": "passed"
-    },
-    "manual_ldm_override": {
-      "manual_value": 0.55,
-      "count": 2,
-      "expected_total_ldm": 1.1,
-      "result": "passed"
-    },
-    "manual_ldm_after_dimension_change": {
-      "manual_value_remained": 0.55,
-      "result": "passed"
-    },
-    "clear_manual_ldm_restores_auto": {
-      "dimensions_cm": "120 x 100",
-      "expected_ldm_per_colli": 0.5,
-      "result": "passed"
-    },
-    "shipment_save_preserves_manual_ldm": {
-      "saved_ldm": 0.55,
-      "saved_manual_flag": true,
-      "result": "passed"
-    },
-    "reload_preserves_manual_ldm": {
-      "reloaded_ldm": 0.55,
-      "result": "passed"
-    },
-    "document_controls": {
-      "action_bars": 1,
-      "tab_bars": 1,
-      "result": "passed"
-    },
-    "complete_document_print": {
-      "cover_pages": 1,
-      "loadlist_pages": 2,
-      "cmr_pages": 4,
-      "website_navigation_in_print": 0,
-      "result": "passed"
-    },
-    "loadlist_1_pdf": {
-      "pages": 1,
-      "result": "passed"
-    },
-    "loadlist_2_pdf": {
-      "pages": 1,
-      "result": "passed"
-    },
-    "deckblatt_layout": {
-      "overlapping_sections": false,
-      "result": "passed"
-    },
-    "cmr_alignment": {
-      "offset_x_px": 0,
-      "offset_y_px": 0,
-      "width_difference_px": 0,
-      "result": "passed"
-    }
+  "version": "RC628",
+  "base": "RC627",
+  "javascript_blocks_checked": 55,
+  "syntax_errors": 0,
+  "checks": {
+    "controller_once": true,
+    "style_once": true,
+    "pod_open": true,
+    "abd_open": true,
+    "green_later": true,
+    "reset_button": true,
+    "same_token_no_clear": true,
+    "qr_register": true
   },
-  "notes": [
-    "Browser-Funktionstests wurden mit einer nachgebildeten Azure-API durchgeführt.",
-    "Nach dem GitHub-Deployment ist noch ein kurzer Live-Test gegen den echten Azure-Speicher erforderlich.",
-    "Workflow, API-Ordner und Layout von Sendung erstellen wurden nicht geändert."
-  ]
+  "changes": [
+    "POD öffnen öffnet Datei und stoppt Kachel-Navigation",
+    "ABD öffnen öffnet Datei und stoppt Kachel-Navigation",
+    "Kachel grün ab Status Abgeholt bis Archiviert",
+    "Button Abholung zurücksetzen / QR reaktivieren sichtbar für Ersteller/globalen Admin",
+    "gleicher QR-Token wird erneut über pickup-init registriert",
+    "QR-PODs werden bei Rücksetzung in Dokumenthistorie verschoben",
+    "Abholtag-Aufgabe wird wieder geöffnet"
+  ],
+  "not_changed": [
+    "Kachelgröße",
+    "Schriftgröße",
+    "POD-/ABD-Feldgröße",
+    "sonstiges Layout",
+    "Mail",
+    "Druck",
+    "Versandkosten",
+    "Prüfungen",
+    "ABD-Erstellung",
+    "Benutzerrechte"
+  ],
+  "style_pending": "Für Größen- und Schriftänderungen ist eine neue ausdrückliche STYLE-Freigabe erforderlich."
 }
