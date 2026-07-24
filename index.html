@@ -100,6 +100,27 @@ document.addEventListener('DOMContentLoaded',install,{once:true});
 })();
 </script>
 
+<script id="rc628-early-colli-height-no-render">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC628_HEIGHT_NO_RENDER__)return;
+window.__EXPORTHUB_RC628_HEIGHT_NO_RENDER__=true;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function numOrBlank(v){return q(v)===''?'':Number(String(v).replace(',','.'))}
+function stateObj(){try{return window.state||{}}catch(_){return{}}}
+function labelText(el){var lab=el&&el.closest&&el.closest('label');return low(lab&&lab.textContent)}
+function keyFor(el){var t=labelText(el);if(/verpack|packart|packaging/.test(t))return'type';if(/anzahl|menge|quantity/.test(t))return'count';if(/gewicht|weight/.test(t))return'weight';if(/lademeter|\bldm\b/.test(t))return'ldm';if(/lange|laenge|length/.test(t))return'l';if(/breite|width/.test(t))return'w';if(/hohe|hoehe|height/.test(t))return'h';return''}
+function rowNode(el){return el&&el.closest&&el.closest('.rc344-colli-row,[data-rc344-row],.item.card')}
+function isColliHeight(el){if(!el||!el.matches||!el.matches('input[type="number"],input'))return false;var node=rowNode(el);if(!node)return false;return keyFor(el)==='h'&&!!el.closest('#rc573ColliCard,.rc344-root,#rc573ShipmentShell')}
+function rowIndex(node){var raw=node&&node.getAttribute&&node.getAttribute('data-rc344-row'),i=Number(raw);if(Number.isFinite(i))return i;var root=node&&node.parentElement;if(!root)return 0;var rows=Array.prototype.slice.call(root.children).filter(function(x){return x.matches&&x.matches('.rc344-colli-row,[data-rc344-row],.item.card')});i=rows.indexOf(node);return i<0?0:i}
+function syncVisibleRow(node,index,heightValue){var st=stateObj(),sh=st.shipment||(st.shipment={}),rows=Array.isArray(sh.rows)?sh.rows:(sh.rows=[]),row=Object.assign({},rows[index]||{});node.querySelectorAll('input,select').forEach(function(input){var key=keyFor(input);if(!key)return;var value=input===heightValue?heightValue.value:input.value;row[key]=key==='type'?q(value):numOrBlank(value);if(key==='h')row.height=row.h});row.h=numOrBlank(heightValue.value);row.height=row.h;row.rc456HeightManual=q(heightValue.value)!=='';row.rc450HeightManual=row.rc456HeightManual;row.rc441HeightManual=row.rc456HeightManual;row.rc440HeightManual=row.rc456HeightManual;row.rc430HeightManual=row.rc456HeightManual;row.rc429HeightManual=row.rc456HeightManual;rows[index]=row;sh.rows=rows;return row}
+function handle(e){var el=e.target;if(!isColliHeight(el))return;var node=rowNode(el),index=rowIndex(node);e.stopImmediatePropagation();e.stopPropagation();syncVisibleRow(node,index,el);try{window.__rc456Rows=JSON.parse(JSON.stringify(stateObj().shipment.rows));window.__rc408ShipmentRowsDraft=JSON.parse(JSON.stringify(stateObj().shipment.rows))}catch(_){}if(e.type==='change'){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Colli-Höhe gespeichert')}catch(_){}setTimeout(function(){try{if(typeof window.rc628RefreshShipmentValidation==='function')window.rc628RefreshShipmentValidation()}catch(_){}},0)}return false}
+window.addEventListener('input',handle,true);
+window.addEventListener('change',handle,true);
+})();
+</script>
+
 <!-- PRIVATE RC466 EARLY START: Azure-only, no persistent browser storage -->
 
 <!-- PRIVATE RC466 EARLY END -->
