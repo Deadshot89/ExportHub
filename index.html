@@ -13441,7 +13441,7 @@ function positionHtml(plan){var html='';plan.rows.forEach(function(row){var used
 function sequenceHtml(plan){if(!plan.rows.length)return'Noch keine Palette erfasst.';return plan.rows.map(function(row){return '<div><strong>Reihe '+row.index+':</strong> '+row.placements.map(function(p){return 'Palette '+p.id+' '+p.orientation}).join(' · ')+'</div>'}).join('')}
 function compactSegments(plan){var groups=[];arr(plan&&plan.rows).forEach(function(row){var p=arr(row.placements)[0];if(!p)return;var start=Number(row.startLdm!=null?row.startLdm:row.start)||0,end=Number(row.endLdm!=null?row.endLdm:(start+(Number(p.ldm)||0)))||start,last=groups[groups.length-1];if(last&&last.source===p.source&&last.type===q(p.type)&&Math.abs(last.end-start)<0.0001){last.count++;last.end=end;last.ldm=Math.round((last.end-last.start)*1000)/1000}else groups.push({source:p.source,type:q(p.type)||'Colli',count:1,start:start,end:end,ldm:Math.round((end-start)*1000)/1000})});return groups}
 function topViewHtml(plan){var capacity=Number(plan&&plan.capacityLdm)||13.6,groups=compactSegments(plan),used=Math.max(0,Math.min(capacity,Number(plan&&plan.usedLdm)||0)),free=Math.max(0,capacity-used),blocks=groups.map(function(g,i){var left=g.start/capacity*100,width=Math.max(.8,(g.end-g.start)/capacity*100),title=g.count+'× '+g.type+' · '+g.ldm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM';return '<div class="rc589-pallet long" style="left:'+left.toFixed(4)+'%;width:'+width.toFixed(4)+'%;top:14%;height:72%" title="'+esc(title)+'"><span class="nr">'+g.count+'×</span><span class="ori">'+g.ldm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM</span></div>'}).join('');if(free>0)blocks+='<div class="rc589-empty" style="width:'+(free/capacity*100).toFixed(4)+'%" title="'+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM frei"></div>';var overflow=arr(plan&&plan.overflow).length,summary='<strong>'+used.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' von 13,60 LDM belegt</strong> · '+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM frei'+(overflow?' · '+overflow+' Colli außerhalb der Kapazität':'');return '<div id="rc589TopView"><div class="rc589-direction"><span>STIRNWAND</span><strong>Stauplan nach LDM</strong><span class="rear">HECKTÜREN</span></div><div class="rc589-plan-scroll"><div class="rc589-plan-shell"><div class="rc589-plan">'+blocks+'</div></div></div><div class="rc589-summary '+(overflow?'rc589-overflow':'')+'">'+summary+'</div></div>'}
-function renderTopView(){if(!shipmentView())return false;var loading=document.getElementById('rc573LoadingArea');if(!loading)return false;var rows=getRows(),plan=planFor(rows),sig=JSON.stringify(rows.map(function(r){return[q(r.type||r.packaging||r.verpackung),q(r.count||r.qty||r.anzahl),q(r.ldm||r.loadingMeter)]}));var current=document.getElementById('rc589TopView');if(current&&current.dataset.rc589Sig===sig)return true;var html=topViewHtml(plan),host=document.createElement('div');host.innerHTML=html;var next=host.firstElementChild;if(!next)return false;next.dataset.rc589Sig=sig;if(current)current.replaceWith(next);else loading.insertAdjacentElement('afterend',next);return true}
+function renderTopView(){return false}
 function apply(){forceVersion();removeMailBelowSaved();renderTopView()}
 function schedule(delays){(delays||[0,50,180]).forEach(function(ms){nativeTimeout(apply,ms)})}
 function wrap(name){var old=window[name];if(typeof old!=='function'||old.__rc589Wrapped)return;var wrapped=function(){var out=old.apply(this,arguments);schedule([0,60,220]);return out};wrapped.__rc589Wrapped=true;wrapped.__rc589Original=old;window[name]=wrapped;try{if(name==='render')render=wrapped}catch(_){ }}
@@ -17745,16 +17745,36 @@ window.ExportHUBRC596=Object.freeze({version:VERSION,syncLdm:sync,totalLdm:total
 /* Die zusätzliche RC597-Prüfliste war nicht gewünscht. */
 #rc597CargoSecurity{display:none!important}
 
-/* Formschlüssige Reihenfolge im bestehenden Stauplan-Schaubild. */
-#rc573LoadingArea .rc574-load-grid{grid-auto-flow:column!important}
-#rc573LoadingArea .rc598-stow-slot{align-self:end!important;position:relative!important;padding:3px 2px!important;line-height:1.05!important;overflow:hidden!important}
-#rc573LoadingArea .rc598-stow-slot small{display:block;font-size:8px;font-weight:850;opacity:.82}
-#rc573LoadingArea .rc598-stow-slot.is-tall{border-color:#1d4ed8!important;background:linear-gradient(180deg,#dbeafe,#bfdbfe)!important}
-#rc573LoadingArea .rc598-stow-slot.is-low{border-color:#0ea5e9!important;background:linear-gradient(180deg,#ecfeff,#cffafe)!important}
-#rc573LoadingArea .rc598-stow-direction{display:flex;justify-content:space-between;gap:10px;margin:0 1px 6px;color:#08245d;font-size:10px;font-weight:1000;letter-spacing:.04em}
-#rc573LoadingArea .rc598-stow-direction span:nth-child(2){flex:1;text-align:center;color:#2563eb}
-
-
+/* Nur ein kompakter Stauplan ohne LKW-Grafik oder Textlisten. */
+#rc589TopView{display:none!important}
+#rc573LoadingArea.rc598-plain-area{padding:14px!important;border:1px solid #cfe0f5!important;border-radius:16px!important;background:linear-gradient(180deg,#ffffff,#f8fbff)!important;overflow:hidden!important}
+#rc573LoadingArea.rc598-plain-area .rc574-truck,
+#rc573LoadingArea.rc598-plain-area .rc574-cab,
+#rc573LoadingArea.rc598-plain-area .rc574-chassis,
+#rc573LoadingArea.rc598-plain-area .rc574-wheel,
+#rc573LoadingArea.rc598-plain-area .rc574-truck-note,
+#rc573LoadingArea.rc598-plain-area .rc598-stow-direction,
+#rc573LoadingArea.rc598-plain-area .rc574-load-grid,
+#rc573LoadingArea.rc598-plain-area .rc598-stow-slot,
+#rc573LoadingArea.rc598-plain-area .rc574-cargo-box,
+#rc573LoadingArea.rc598-plain-area .rc573-trailer,
+#rc573LoadingArea.rc598-plain-area .rc573-bay,
+#rc573LoadingArea.rc598-plain-area .rc573-load{display:none!important}
+#rc573LoadingArea .rc598-plan-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;color:#163b73}
+#rc573LoadingArea .rc598-plan-head strong{font-size:20px;line-height:1.1;font-weight:1000}
+#rc573LoadingArea .rc598-plan-head small{font-size:12px;color:#64748b;font-weight:900}
+#rc573LoadingArea .rc598-axis{display:flex;justify-content:space-between;gap:10px;margin:0 2px 8px;color:#08245d;font-size:11px;font-weight:1000;letter-spacing:.05em}
+#rc573LoadingArea .rc598-track{position:relative;border:4px solid #123b7a;border-radius:16px;background:#fff;min-height:160px;padding:10px;overflow:hidden}
+#rc573LoadingArea .rc598-track-inner{display:flex;align-items:stretch;gap:4px;height:136px}
+#rc573LoadingArea .rc598-block{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;border:2px solid #2563eb;border-radius:10px;background:linear-gradient(180deg,#dbeafe,#eff6ff);color:#08245d;text-align:center;padding:8px 6px;box-sizing:border-box;font-weight:1000}
+#rc573LoadingArea .rc598-block b{display:block;font-size:15px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#rc573LoadingArea .rc598-block small{display:block;font-size:11px;line-height:1.25;opacity:.92;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#rc573LoadingArea .rc598-block.rc598-free{border-style:dashed;border-color:#94a3b8;background:repeating-linear-gradient(135deg,#f8fafc,#f8fafc 10px,#eef2f7 10px,#eef2f7 20px);color:#64748b}
+#rc573LoadingArea .rc598-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#rc573LoadingArea .rc598-meta span{border:1px solid #dbeafe;background:#fff;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;color:#334155}
+#rc573LoadingArea .rc598-summary{margin-top:10px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:10px;padding:8px 10px;color:#1e3a8a;font-size:13px;font-weight:900}
+#rc573LoadingArea .rc598-summary.rc598-overflow{border-left-color:#7c3aed;background:#f5f3ff;color:#5b21b6}
+@media(max-width:760px){#rc573LoadingArea .rc598-track{min-height:140px}#rc573LoadingArea .rc598-track-inner{height:120px}#rc573LoadingArea .rc598-block b{font-size:13px}#rc573LoadingArea .rc598-block small{font-size:10px}}
 </style>
 <script id="rc598-functional-fix-js">
 (function(){
@@ -17868,16 +17888,18 @@ function installUploadFunctions(){
 function cargoLdm(r){var type=low(r&&(r.type||r.packaging||r.verpackung));if(/gestapelt|stacked/.test(type))return .2;var v=n(r&&(r.ldm||r.loadingMeter||r.ldmAuto||r.autoLdm));if(v>0)return Math.round(v*1000)/1000;var l=n(r&&(r.l||r.length)),w=n(r&&(r.w||r.width));return l>0&&w>0?Math.round((l*w/24000)*1000)/1000:0}
 function cargoGroups(){return a(shipment().rows).map(function(r,ri){var count=Math.max(0,Math.round(n(r.count||r.qty||r.anzahl))),ldm=cargoLdm(r),total=Math.round(count*ldm*1000)/1000;return{row:ri+1,type:q(r.type||r.packaging||r.verpackung)||'Colli',count:count,weight:n(r.weight||r.gewicht),ldm:ldm,totalLdm:total}}).filter(function(x){return x.count>0&&x.totalLdm>0})}
 function patchStowDiagram(){
- document.querySelectorAll('#rc597CargoSecurity,#rc588StowInstructions').forEach(function(x){x.remove()});
+ document.querySelectorAll('#rc597CargoSecurity,#rc588StowInstructions,#rc589TopView').forEach(function(x){x.remove()});
  var area=document.getElementById('rc573LoadingArea');if(!area)return false;
- area.dataset.rc598Owner='1';
- var groups=cargoGroups(),capacity=13.6,used=0,overflowLdm=0,planned=[];groups.forEach(function(x){var free=Math.max(0,capacity-used),placed=Math.min(free,x.totalLdm),over=Math.max(0,x.totalLdm-placed);if(placed>0){planned.push({row:x.row,type:x.type,count:x.count,ldm:x.ldm,totalLdm:x.totalLdm,placedLdm:placed,startLdm:used,endLdm:Math.round((used+placed)*1000)/1000});used=Math.round((used+placed)*1000)/1000}overflowLdm=Math.round((overflowLdm+over)*1000)/1000});
- var sig=JSON.stringify(groups.map(function(x){return[x.row,x.type,x.count,x.ldm,x.totalLdm,x.weight]}));if(area.dataset.rc598Sig===sig&&area.querySelector('.rc598-stow-slot')&&/LDM-basierte Beladung/i.test(q(area.textContent)))return true;
- area.dataset.rc598Sig=sig;area.classList.add('rc574-truck-area');
- var slots=planned.map(function(x,i){var ldm=n(x.placedLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}),total=n(x.totalLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}),label=x.count+'×';return '<span class="rc574-load-slot rc598-stow-slot" style="flex:'+Math.max(.001,x.placedLdm)+' 1 0;height:100%" title="'+esc(x.type)+' · '+x.count+' Collis · '+total+' LDM gesamt · Abschnitt '+n(x.startLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'–'+n(x.endLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM"><b>'+label+'</b><small>'+ldm+' LDM</small></span>'}).join('');
- var free=Math.max(0,Math.round((capacity-used)*1000)/1000);if(free>0)slots+='<span class="rc574-load-slot rc598-stow-slot" style="flex:'+free+' 1 0;height:100%;border-style:dashed;opacity:.38" title="Freie Kapazität '+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM"><small>frei</small></span>';
+ area.dataset.rc598Owner='1';area.classList.add('rc598-plain-area');area.classList.remove('rc574-truck-area');
+ var groups=cargoGroups(),capacity=13.6,used=0,overflowLdm=0,planned=[];
+ groups.forEach(function(x){var free=Math.max(0,capacity-used),placed=Math.min(free,x.totalLdm),over=Math.max(0,x.totalLdm-placed);if(placed>0){planned.push({row:x.row,type:x.type,count:x.count,ldm:x.ldm,totalLdm:x.totalLdm,placedLdm:placed,startLdm:used,endLdm:Math.round((used+placed)*1000)/1000,weight:x.weight});used=Math.round((used+placed)*1000)/1000}overflowLdm=Math.round((overflowLdm+over)*1000)/1000});
+ var sig=JSON.stringify(groups.map(function(x){return[x.row,x.type,x.count,x.ldm,x.totalLdm,x.weight]}));
+ if(area.dataset.rc598Sig===sig&&area.querySelector('.rc598-track'))return true;
+ area.dataset.rc598Sig=sig;
+ var blocks=planned.map(function(x){var title=x.type+' · '+x.count+' Collis · '+n(x.totalLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM gesamt · Abschnitt '+n(x.startLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'–'+n(x.endLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM';return '<div class="rc598-block" style="flex:'+Math.max(.001,x.placedLdm)+' 1 0" title="'+esc(title)+'"><b>'+esc(x.count+'× '+x.type)+'</b><small>'+n(x.placedLdm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM</small></div>'}).join('');
+ var free=Math.max(0,Math.round((capacity-used)*1000)/1000);if(free>0)blocks+='<div class="rc598-block rc598-free" style="flex:'+free+' 1 0" title="Freie Kapazität '+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM"><b>frei</b><small>'+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM</small></div>';
  var totalCount=groups.reduce(function(sum,x){return sum+x.count},0),totalWeight=groups.reduce(function(sum,x){return sum+x.weight},0),totalLdm=groups.reduce(function(sum,x){return sum+x.totalLdm},0);
- area.innerHTML='<div class="rc574-truck-caption"><span>Kompletter LKW – LDM-basierte Beladung</span><small>Planungsbasis 13,60 LDM</small></div><div class="rc598-stow-direction"><span>STIRNWAND</span><span>LDM fortlaufend →</span><span>LADETÜR</span></div><div class="rc574-truck"><div class="rc574-cargo-box"><div class="rc574-load-grid" style="display:flex!important;align-items:stretch!important;gap:4px!important">'+slots+'</div></div><div class="rc574-cab"></div><span class="rc574-chassis"></span><span class="rc574-wheel w1"></span><span class="rc574-wheel w2"></span><span class="rc574-wheel w3"></span><span class="rc574-truck-note">Die Ladefläche wird proportional zu den LDM je Colli dargestellt.</span></div><div class="rc574-loading-legend"><span>'+totalCount+' Collis</span><span>'+totalWeight.toLocaleString('de-DE',{maximumFractionDigits:1})+' kg</span><span>'+used.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' / 13,60 LDM geplant</span></div><div class="rc574-loading-hint">'+(overflowLdm>0?overflowLdm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM überschreiten die LKW-Kapazität.':free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM sind noch frei.')+' Gesamtbedarf: '+totalLdm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM.</div>';
+ area.innerHTML='<div class="rc598-plan-head"><strong>Stauplan</strong><small>Planungsbasis 13,60 LDM</small></div><div class="rc598-axis"><span>STIRNWAND</span><span>HECKTÜREN</span></div><div class="rc598-track"><div class="rc598-track-inner">'+blocks+'</div></div><div class="rc598-meta"><span>'+totalCount+' Collis</span><span>'+totalWeight.toLocaleString('de-DE',{maximumFractionDigits:1})+' kg</span><span>'+used.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' / 13,60 LDM belegt</span></div><div class="rc598-summary '+(overflowLdm>0?'rc598-overflow':'')+'">'+(overflowLdm>0?overflowLdm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM über der Kapazität. ':'')+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM frei · Gesamtbedarf: '+totalLdm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM.</div>';
  return true
 }
 
@@ -17887,9 +17909,7 @@ function schedule(){if(pending)return;pending=setT(function(){pending=0;if(!busy
 window.addEventListener('change',function(e){if(e.target&&e.target.type==='file'){var lab=e.target.closest&&e.target.closest('label.field');if(lab&&/lieferscheine hochladen\s*\/\s*anhangen/.test(low(lab.textContent))){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();stableAddDeliveryNoteFiles(e.target.files);try{e.target.value=''}catch(_){ }return false}}},true);
 window.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc609-remove-file]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();stableRemoveDeliveryFile(b.dataset.rc609RemoveFile)},true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,100,350,900].forEach(function(ms){setT(refresh,ms)})},{once:true});else[0,100,350,900].forEach(function(ms){setT(refresh,ms)});
-try{var O=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver,h=document.getElementById('content');if(O&&h)new O(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule()}).observe(h,{childList:true,subtree:true})}catch(_){ }
 window.ExportHUBRC598={version:VERSION,refresh:refresh,uploadDeliveryNotes:stableAddDeliveryNoteFiles,removeDeliveryNote:stableRemoveDeliveryFile,updateDeliveryFileList:updateDeliveryFileList,patchStowDiagram:patchStowDiagram};
-setI(function(){forceVersion();installUploadFunctions();if(inShipment()){updateDeliveryFileList();patchStowDiagram()}},500);
 })();
 </script>
 <!-- RC598 UPLOAD + STOW ONLY END -->
