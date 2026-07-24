@@ -15814,6 +15814,17 @@ window.ExportHUBRC574={version:VERSION,apply:apply,selfTest:function(){var r=doc
 #content .rc628-pickup-task .rc628-pickup-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:2px!important}
 #content .rc628-pickup-task .rc628-pickup-actions button{margin:0!important}
 #content .rc628-pickup-task>.task-card-top,#content .rc628-pickup-task>.rc229-task-top,#content .rc628-pickup-task>.pill,#content .rc628-pickup-task>.badge,#content .rc628-pickup-task>.task-backlog-note,#content .rc628-pickup-task>.rc575-task-details,#content .rc628-pickup-task>.rc576-task-details{display:none!important}
+#content .rc628-mail-task{display:grid!important;gap:10px!important;padding:14px!important;background:#fff!important;border:1px solid #dbe4ef!important;border-left:6px solid #2563eb!important;border-radius:18px!important;box-shadow:0 8px 20px rgba(15,23,42,.08)!important}
+#content .rc628-mail-task.overdue{border-left-color:#dc2626!important;background:#fff7f7!important}
+#content .rc628-mail-task.today{border-left-color:#f59e0b!important;background:#fffbeb!important}
+#content .rc628-mail-task .rc628-mail-refbox{display:block!important;border:2px solid #2563eb!important;border-radius:12px!important;background:#eff6ff!important;color:#08245d!important;padding:10px 12px!important;font-size:18px!important;font-weight:1000!important;line-height:1.15!important;overflow-wrap:anywhere!important}
+#content .rc628-mail-task .rc628-mail-customer{font-size:14px!important;font-weight:950!important;color:#0f172a!important;line-height:1.3!important;overflow-wrap:anywhere!important}
+#content .rc628-mail-task .rc628-mail-due{display:inline-flex!important;width:max-content!important;max-width:100%!important;border-radius:999px!important;padding:6px 10px!important;font-size:12px!important;font-weight:1000!important}
+#content .rc628-mail-task .rc628-mail-due.overdue{background:#fee2e2!important;color:#991b1b!important}
+#content .rc628-mail-task .rc628-mail-due.today{background:#fef3c7!important;color:#92400e!important}
+#content .rc628-mail-task .rc628-mail-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:2px!important}
+#content .rc628-mail-task .rc628-mail-actions button{margin:0!important}
+#content .rc628-mail-task>.task-card-top,#content .rc628-mail-task>.rc229-task-top,#content .rc628-mail-task>.pill,#content .rc628-mail-task>.badge,#content .rc628-mail-task>.task-backlog-note,#content .rc628-mail-task>.rc575-task-details,#content .rc628-mail-task>.rc576-task-details{display:none!important}
 #content .rc576-area-heading{display:flex!important;align-items:center;gap:8px;color:#08245d!important}
 #content .rc576-area-heading:before{content:"";width:8px;height:8px;border-radius:50%;background:#2563eb;flex:0 0 auto}
 
@@ -16154,6 +16165,42 @@ window.ExportHUBRC574={version:VERSION,apply:apply,selfTest:function(){var r=doc
     card.appendChild(actions);
   }
 
+  function rebuildUnsentMailTaskCard(card, task, shipment, reference, customer) {
+    var due = pickupDueState(task, shipment);
+    var actionButtons = Array.prototype.slice.call(card.querySelectorAll('button')).filter(function (button) {
+      return /^(Erledigt|Bearbeiten)$/i.test(q(button.textContent));
+    });
+
+    card.classList.add('rc628-mail-task');
+    card.classList.remove('high', 'low');
+    card.classList.toggle('overdue', due.key === 'overdue');
+    card.classList.toggle('today', due.key === 'today');
+    card.dataset.rc576LinkedTask = '1';
+    card.dataset.rc576Area = 'Nicht verschickte Mail';
+
+    while (card.firstChild) card.removeChild(card.firstChild);
+
+    var refBox = document.createElement('div');
+    refBox.className = 'rc628-mail-refbox';
+    refBox.textContent = reference || 'Referenz fehlt';
+    card.appendChild(refBox);
+
+    var customerBox = document.createElement('div');
+    customerBox.className = 'rc628-mail-customer';
+    customerBox.textContent = customer || 'Kunde nicht zugeordnet';
+    card.appendChild(customerBox);
+
+    var dueBox = document.createElement('span');
+    dueBox.className = 'rc628-mail-due ' + due.key;
+    dueBox.textContent = due.label;
+    card.appendChild(dueBox);
+
+    var actions = document.createElement('div');
+    actions.className = 'rc628-mail-actions';
+    actionButtons.forEach(function (button) { actions.appendChild(button); });
+    card.appendChild(actions);
+  }
+
   function patchTaskCard(card, task) {
     var shipment = findShipmentForTask(task);
     if (!shipment) return;
@@ -16166,6 +16213,11 @@ window.ExportHUBRC574={version:VERSION,apply:apply,selfTest:function(){var r=doc
 
     if (type === 'Abholtag') {
       rebuildPickupTaskCard(card, task, shipment, reference, customer);
+      return;
+    }
+
+    if (/Mail versenden$/i.test(type)) {
+      rebuildUnsentMailTaskCard(card, task, shipment, reference, customer);
       return;
     }
 
@@ -16220,7 +16272,7 @@ window.ExportHUBRC574={version:VERSION,apply:apply,selfTest:function(){var r=doc
         areas[card.dataset.rc576Area || 'Sendung'] = true;
       });
       var names = Object.keys(areas);
-      heading.textContent = names.length === 1 ? (names[0] === 'Abholbereite Sendungen' ? 'Abholbereite Sendungen' : 'Aufgabenbereich: ' + names[0]) : 'Sendungsaufgaben';
+      heading.textContent = names.length === 1 ? ((names[0] === 'Abholbereite Sendungen' || names[0] === 'Nicht verschickte Mail') ? names[0] : 'Aufgabenbereich: ' + names[0]) : 'Sendungsaufgaben';
       heading.classList.add('rc576-area-heading');
     });
   }
