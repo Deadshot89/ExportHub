@@ -29,3 +29,4 @@ module.exports=async function(context,req){
     context.res=store.json(200,{ok:true,status:'confirmed',confirmedAt:rec.confirmedAt,uploadKey,uploadExpiresAt:rec.uploadKeyExpiresAt,podCount:rec.podFiles.filter(x=>x.kind!=='scan-confirmation').length,scanConfirmation:true,palletOut:Math.max(0,Number(rec.palletOut||0)),palletReturned:Math.max(0,Number(rec.palletReturned||0))});
   }catch(e){context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Bestätigung fehlgeschlagen.'})}
 };
+

@@ -9,7 +9,7 @@
         "post",
         "options"
       ],
-      "route": "exporthub-auth"
+      "route": "pickup-disable"
     },
     {
       "type": "http",

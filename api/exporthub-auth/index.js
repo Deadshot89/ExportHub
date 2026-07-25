@@ -598,3 +598,4 @@ module.exports = async function (context, req) {
     responseError(context, e);
   }
 };
+
