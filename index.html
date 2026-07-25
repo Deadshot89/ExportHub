@@ -19594,7 +19594,9 @@ window.ExportHUBRC624=Object.freeze({
 'use strict';
 if(window.__EXPORTHUB_RC624_MAIL_NOTIFICATION__)return;
 window.__EXPORTHUB_RC624_MAIL_NOTIFICATION__=true;
-var VERSION='RC628',timer=0,observer=null;
+var VERSION='RC628',timer=0;
+var nativeApi=window.ExportHUBClean&&window.ExportHUBClean.native;
+var setT=nativeApi&&nativeApi.setTimeout?nativeApi.setTimeout:window.setTimeout.bind(window);
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){ }return window.state||{}}
@@ -19603,57 +19605,33 @@ function heading(el){var h=el&&el.querySelector&&el.querySelector('h1,h2,h3,h4')
 function knownMail(el){
  if(!el||el.nodeType!==1)return false;
  if(/^(rc543MailArea|rc542MailArea|rc524MailArea|rc418ShipmentMail|rc416ShipmentMail|rc410ShipmentMail|rc409ShipmentMail|rc404ShipmentMail|rc404ShipmentMailPanel|rc390ShipmentMail|rc385ShipmentMail|rc344MailBox)$/.test(el.id||''))return true;
- if(el.classList&&el.classList.contains('rc573-mail-card'))return true;
- var h=heading(el);
- if(/^(Mailbereich|Mail Bereich|Mailversand|Anmeldung\s*\/\s*(Mail|Kommunikation))/i.test(h))return true;
- var button=Array.prototype.slice.call(el.querySelectorAll('button,a')).some(function(b){return /Mail\s+in\s+Outlook\s+öffnen|Mailtext\s+kopieren/i.test(q(b.textContent))});
- return button&&!!el.querySelector('textarea');
+ return !!(el.classList&&el.classList.contains('rc573-mail-card'));
 }
 function mailAreas(root){
- var found=[];
- Array.prototype.slice.call(root.querySelectorAll('section,.card,article')).forEach(function(el){if(knownMail(el)&&found.indexOf(el)<0)found.push(el)});
- return found;
+ var found=Array.prototype.slice.call(root.querySelectorAll('#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,.rc573-mail-card')).filter(knownMail);
+ return found.filter(function(el){return !found.some(function(other){return other!==el&&el.contains(other)})});
 }
+function savedCard(root){return root.querySelector('#rc573SavedCard')||Array.prototype.slice.call(root.querySelectorAll('section,.card,article')).find(function(el){return /^Gespeicherte Sendungen/i.test(heading(el))})||null}
 function before(a,b){return !!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING))}
-function savedCard(root){
- return root.querySelector('#rc573SavedCard')||Array.prototype.slice.call(root.querySelectorAll('section,.card,article')).find(function(el){return /^Gespeicherte Sendungen/i.test(heading(el))})||null;
+function preferred(root,all){return root.querySelector('#rc543MailArea')||root.querySelector('#rc542MailArea')||root.querySelector('#rc524MailArea')||all[0]||null}
+function stabilizeMail(){
+ if(!shipmentView())return {areas:0,removed:0};
+ var root=document.getElementById('content');if(!root)return {areas:0,removed:0};
+ var all=mailAreas(root),keep=preferred(root,all),removed=0,saved=savedCard(root);
+ if(!keep)return {areas:0,removed:0};
+ all.forEach(function(el){if(el!==keep&&el.parentNode){el.remove();removed++}});
+ keep.classList.add('rc573-card','rc573-mail-card');
+ keep.setAttribute('data-mail-layout','authoritative');
+ if(saved&&saved.parentNode&&!before(keep,saved))saved.parentNode.insertBefore(keep,saved);
+ return {areas:mailAreas(root).length,removed:removed,primary:keep.id||keep.className};
 }
-function removeSecondMail(){
- if(!shipmentView())return {total:0,removed:0,afterSaved:0};
- var root=document.getElementById('content');if(!root)return {total:0,removed:0,afterSaved:0};
- var saved=savedCard(root),all=mailAreas(root),removed=0;
- if(all.length<=1)return {total:all.length,removed:0,afterSaved:saved&&all[0]&&!before(all[0],saved)?1:0};
- var beforeSaved=saved?all.filter(function(el){return !saved.contains(el)&&before(el,saved)}):[];
- var preferred=beforeSaved.find(function(el){return el.id==='rc543MailArea'})||beforeSaved.find(function(el){return el.id==='rc542MailArea'})||beforeSaved.find(function(el){return el.id==='rc524MailArea'})||beforeSaved[0]||all.find(function(el){return el.id==='rc543MailArea'})||all.find(function(el){return el.id==='rc542MailArea'})||all.find(function(el){return el.id==='rc524MailArea'})||all[0];
- if(saved&&preferred&&!before(preferred,saved)&&saved.parentNode)saved.parentNode.insertBefore(preferred,saved);
- all.forEach(function(el){if(el!==preferred&&el.parentNode){el.remove();removed++}});
- return {total:mailAreas(root).length,removed:removed,afterSaved:saved&&preferred&&!before(preferred,saved)?1:0};
-}
-function correctNotificationLabel(){
- var small=document.querySelector('#rc451NotificationModal .rc451-footer small');
- if(small&&/Feste Prüfzeiten/i.test(q(small.textContent)))small.textContent='Feste Prüfzeiten: 09:00, 12:00 und 15:00 Uhr · ohne Signalton';
-}
-function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'628',loginReturn:'/?v=628'})}catch(_){}
- document.documentElement.setAttribute('data-exporthub-version',VERSION);
- document.title='ExportHUB Online '+VERSION;
- var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
-}
-function apply(){forceVersion();removeSecondMail();correctNotificationLabel()}
-function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;apply()},25)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,120,400,900].forEach(function(ms){setTimeout(apply,ms)})},{once:true});
-else [0,120,400,900].forEach(function(ms){setTimeout(apply,ms)});
+function correctNotificationLabel(){var small=document.querySelector('#rc451NotificationModal .rc451-footer small');if(small&&/Feste Prüfzeiten/i.test(q(small.textContent)))small.textContent='Feste Prüfzeiten: 09:00, 12:00 und 15:00 Uhr · ohne Signalton'}
+function apply(){correctNotificationLabel();return stabilizeMail()}
+function schedule(){if(timer)return;timer=setT(function(){timer=0;apply()},25)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,120,400,900].forEach(function(ms){setT(apply,ms)})},{once:true});
+else [0,120,400,900].forEach(function(ms){setT(apply,ms)});
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
-try{observer=new MutationObserver(schedule);observer.observe(document.body||document.documentElement,{childList:true,subtree:true})}catch(_){}
-setInterval(apply,1300);
-window.ExportHUBRC624=Object.freeze({
- version:VERSION,
- refresh:apply,
- selfTest:function(){
-  var root=document.getElementById('content'),saved=root&&savedCard(root),mails=root?mailAreas(root):[];
-  return{version:VERSION,shipmentView:shipmentView(),mailAreas:mails.length,mailAreasAfterSaved:saved?mails.filter(function(el){return saved.contains(el)||!before(el,saved)}).length:0,notificationTimes:['09:00','12:00','15:00'],browserPushSupportedByExportHUB:false};
- }
-});
+window.ExportHUBRC624=Object.freeze({version:VERSION,refresh:apply,selfTest:function(){var root=document.getElementById('content'),mails=root?mailAreas(root):[];return{version:VERSION,shipmentView:shipmentView(),mailAreas:mails.length,primary:mails[0]&&(mails[0].id||mails[0].className),backgroundObserver:false,backgroundInterval:false}}});
 })();
 </script>
 <!-- RC624 DUPLICATE MAIL AREA + NOTIFICATION LABEL END -->
@@ -19876,11 +19854,9 @@ window.ExportHUBRC624=Object.freeze({version:VERSION,apply:apply,patchOverview:p
 'use strict';
 if(window.__EXPORTHUB_RC625_SINGLE_MAIL__)return;
 window.__EXPORTHUB_RC625_SINGLE_MAIL__=true;
-var VERSION='RC628',busy=false,lastPrimary=null,observer=null,timer=0;
+var VERSION='RC628',busy=false,timer=0,lastPrimary=null;
 var nativeApi=window.ExportHUBClean&&window.ExportHUBClean.native;
 var setT=nativeApi&&nativeApi.setTimeout?nativeApi.setTimeout:window.setTimeout.bind(window);
-var setI=nativeApi&&nativeApi.setInterval?nativeApi.setInterval:window.setInterval.bind(window);
-var NativeMO=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||{}}}
@@ -19888,92 +19864,38 @@ function isShipment(){var v=low(state().view||document.body.getAttribute('data-e
 function heading(el){var h=el&&el.querySelector&&el.querySelector('h1,h2,h3,h4');return q(h&&h.textContent)}
 function known(el){
  if(!el||el.nodeType!==1)return false;
- var id=el.id||'';
- if(/^(rc543MailArea|rc542MailArea|rc524MailArea|rc418ShipmentMail|rc416ShipmentMail|rc410ShipmentMail|rc409ShipmentMail|rc404ShipmentMail|rc404ShipmentMailPanel|rc390ShipmentMail|rc385ShipmentMail|rc344MailBox)$/.test(id))return true;
- if(el.classList&&el.classList.contains('rc573-mail-card'))return true;
- if(/^(Mailbereich|Mail Bereich|Mailversand|Mail und Empfänger|Anmeldung\s*\/\s*(Mail|Kommunikation))/i.test(heading(el)))return true;
- return false;
+ if(/^(rc543MailArea|rc542MailArea|rc524MailArea|rc418ShipmentMail|rc416ShipmentMail|rc410ShipmentMail|rc409ShipmentMail|rc404ShipmentMail|rc404ShipmentMailPanel|rc390ShipmentMail|rc385ShipmentMail|rc344MailBox)$/.test(el.id||''))return true;
+ return !!(el.classList&&el.classList.contains('rc573-mail-card'));
 }
 function candidates(root){
- var all=[];
- Array.prototype.slice.call(root.querySelectorAll('section,.card,article,.rc344-card')).forEach(function(el){if(known(el)&&all.indexOf(el)<0)all.push(el)});
- return all.filter(function(el){return !all.some(function(other){return other!==el&&other.contains(el)})});
+ var all=Array.prototype.slice.call(root.querySelectorAll('#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,.rc573-mail-card')).filter(known);
+ return all.filter(function(el){return !all.some(function(other){return other!==el&&el.contains(other)})});
 }
 function card(root,re){return Array.prototype.slice.call(root.querySelectorAll('section,.card,article,.rc344-card')).find(function(el){return re.test(heading(el))})||null}
 function before(a,b){return !!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING))}
-function after(a,b){return !!(a&&b&&(b.compareDocumentPosition(a)&Node.DOCUMENT_POSITION_FOLLOWING))}
-function usableAction(el){
- var links=Array.prototype.slice.call(el.querySelectorAll('a[href^="mailto:"]'));
- if(links.some(function(a){var h=q(a.getAttribute('href'));return h&&h!=='mailto:'&&h!=='#'&&a.getAttribute('aria-disabled')!=='true'&&a.style.pointerEvents!=='none'}))return true;
- return Array.prototype.slice.call(el.querySelectorAll('button,a')).some(function(b){
-  var txt=q(b.textContent),oc=q(b.getAttribute('onclick')),href=q(b.getAttribute('href'));
-  var action=/Mail.*Outlook|Outlook.*Mail|Mail\s+öffnen/i.test(txt)||/rc543OpenMail|rc524OpenMail|rc418OpenMail|mailto:/i.test(oc+' '+href);
-  return action&&!b.disabled&&b.getAttribute('aria-disabled')!=='true'&&b.style.pointerEvents!=='none';
- });
-}
-function score(el,index,notes,saved){
- var s=index;
- if(el===lastPrimary&&el.isConnected)s+=500;
- if(usableAction(el))s+=5000;
- if(el.querySelector('textarea'))s+=250;
- if(el.querySelector('input[id*="MailTo"],input[id*="MailSubject"],textarea[id*="MailBody"]'))s+=350;
- if(/^rc543MailArea$/i.test(el.id||''))s+=180;
- if(notes&&after(el,notes))s+=900;
- if(saved&&before(el,saved))s+=150;
- var actions=Array.prototype.slice.call(el.querySelectorAll('button,a')).filter(function(b){return /Mail.*Outlook|Outlook.*Mail|Mail\s+öffnen/i.test(q(b.textContent))});
- if(actions.length&&actions.every(function(b){return b.disabled||b.getAttribute('aria-disabled')==='true'||b.style.pointerEvents==='none'}))s-=2500;
- return s;
-}
-function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'628',loginReturn:'/?v=628'})}catch(_){}
- document.documentElement.setAttribute('data-exporthub-version',VERSION);
- document.title='ExportHUB Online '+VERSION;
- var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
-}
+function selectPrimary(root,all){return root.querySelector('#rc543MailArea')||root.querySelector('#rc542MailArea')||root.querySelector('#rc524MailArea')||(lastPrimary&&lastPrimary.isConnected?lastPrimary:null)||all[0]||null}
 function enforce(){
- forceVersion();
  if(busy||!isShipment())return {areas:0};
  var root=document.getElementById('content');if(!root)return {areas:0};
- var all=candidates(root);if(!all.length){lastPrimary=null;return {areas:0}};
+ var all=candidates(root),keep=selectPrimary(root,all);if(!keep){lastPrimary=null;return {areas:0}};
  busy=true;
  try{
-  var notes=card(root,/^Gespeicherte Lieferscheine/i),saved=card(root,/^Gespeicherte Sendungen/i);
-  var ranked=all.map(function(el,i){return{el:el,score:score(el,i,notes,saved)}}).sort(function(a,b){return b.score-a.score});
-  var keep=ranked[0].el;
-  // The live working lower Outlook area wins. Move that exact node; never clone/rebuild it.
-  all.forEach(function(el){
-   if(el!==keep&&el.parentNode){el.setAttribute('data-rc625-duplicate-mail','1');el.remove()}
-  });
-  keep.removeAttribute('data-rc625-duplicate-mail');
+  var saved=card(root,/^Gespeicherte Sendungen/i);
+  all.forEach(function(el){if(el!==keep&&el.parentNode){el.setAttribute('data-duplicate-mail-layout','1');el.remove()}});
+  keep.removeAttribute('data-duplicate-mail-layout');
   keep.setAttribute('data-rc625-primary-mail','1');
+  keep.setAttribute('data-mail-layout','authoritative');
   keep.classList.add('rc625-primary-mail','rc573-card','rc573-mail-card');
-  if(saved&&saved.parentNode&&keep.nextElementSibling!==saved)saved.parentNode.insertBefore(keep,saved);
+  if(saved&&saved.parentNode&&!before(keep,saved))saved.parentNode.insertBefore(keep,saved);
   lastPrimary=keep;
-  return {areas:candidates(root).length,primary:keep.id||keep.className,working:usableAction(keep),beforeSaved:!!(saved&&before(keep,saved))};
+  return {areas:candidates(root).length,primary:keep.id||keep.className,beforeSaved:!!(saved&&before(keep,saved))};
  }finally{busy=false}
 }
-function schedule(){if(timer)return;timer=setT(function(){timer=0;enforce()},0)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,60,180,500,1000].forEach(function(ms){setT(enforce,ms)})},{once:true});
-else [0,60,180,500,1000].forEach(function(ms){setT(enforce,ms)});
+function schedule(){if(timer)return;timer=setT(function(){timer=0;enforce()},20)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,80,220,600,1000].forEach(function(ms){setT(enforce,ms)})},{once:true});
+else [0,80,220,600,1000].forEach(function(ms){setT(enforce,ms)});
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
-try{
- observer=new NativeMO(function(ms){
-  if(ms.some(function(m){return m.type==='childList'}))enforce();
- });
- observer.observe(document.getElementById('content')||document.body||document.documentElement,{childList:true,subtree:true});
-}catch(_){}
-document.addEventListener('input',schedule,true);
-document.addEventListener('change',schedule,true);
-document.addEventListener('click',schedule,true);
-setI(enforce,200);
-window.ExportHUBRC625Mail=Object.freeze({
- version:VERSION,
- refresh:enforce,
- selfTest:function(){
-  var root=document.getElementById('content'),all=root?candidates(root):[],saved=root&&card(root,/^Gespeicherte Sendungen/i),primary=all[0]||null;
-  return{version:VERSION,mailAreas:all.length,working:!!(primary&&usableAction(primary)),beforeSaved:!!(primary&&saved&&before(primary,saved)),primaryId:primary&&(primary.id||primary.className)};
- }
-});
+window.ExportHUBRC625Mail=Object.freeze({version:VERSION,refresh:enforce,selfTest:function(){var root=document.getElementById('content'),all=root?candidates(root):[],primary=all[0]||null;return{version:VERSION,mailAreas:all.length,primaryId:primary&&(primary.id||primary.className),backgroundObserver:false,backgroundInterval:false,inputRerenderListener:false}}});
 })();
 </script>
 <!-- RC625 SINGLE AUTHORITATIVE MAIL AREA END -->
