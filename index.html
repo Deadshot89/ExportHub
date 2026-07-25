@@ -20526,3 +20526,161 @@ window.rc628SyncGoodsDescription=function(element){return sync(element,true)};
 })();
 </script>
 <!-- RC628 GOODS DESCRIPTION INPUT STABILITY END -->
+
+<!-- RC628 SHIPMENT INPUT + CARGO SECURITY + COMPLETE PRINT AUTHORITATIVE FIX START -->
+<script id="rc628-shipment-input-security-print-fix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC628_SHIPMENT_INPUT_SECURITY_PRINT_FIX__)return;
+window.__EXPORTHUB_RC628_SHIPMENT_INPUT_SECURITY_PRINT_FIX__=true;
+
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function later(fn,ms){var n=window.ExportHUBClean&&window.ExportHUBClean.native;return(n&&n.setTimeout?n.setTimeout:window.setTimeout)(fn,ms||0)}
+function num(v){var n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function appStates(){
+ var out=[];
+ function add(s){if(s&&typeof s==='object'&&out.indexOf(s)<0)out.push(s)}
+ try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')add(window.__EXPORTHUB_GET_STATE__())}catch(_){ }
+ try{add(window.state)}catch(_){ }
+ return out;
+}
+function mainState(){var list=appStates();return list[0]||(window.state||(window.state={}))}
+function shipments(){return arr(mainState().shipments)}
+function currentShipment(){var s=mainState();s.shipment=s.shipment||{};s.shipment.rows=arr(s.shipment.rows);return s.shipment}
+function mirrorShipment(mutator){
+ appStates().forEach(function(s){s.shipment=s.shipment||{};s.shipment.rows=arr(s.shipment.rows);mutator(s.shipment,s)});
+}
+function queueSave(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason)}catch(_){ }}
+function shipmentView(){return low(mainState().view)==='shipment'||!!document.getElementById('rc573ShipmentShell')}
+function labelText(el){var lab=el&&el.closest&&el.closest('label');return low(lab&&lab.textContent)}
+function rowNode(el){return el&&el.closest&&el.closest('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card')}
+function rowIndex(node){
+ if(!node)return-1;
+ var raw=node.getAttribute('data-rc344-row'),n=Number(raw);if(Number.isInteger(n)&&n>=0)return n;
+ var box=node.closest('#rowsBox');if(!box)return-1;
+ return Array.prototype.slice.call(box.querySelectorAll(':scope>.rc344-colli-row,:scope>[data-rc344-row],:scope>.item.card')).indexOf(node);
+}
+function fieldKey(el){
+ var text=labelText(el),code=q((el&&el.getAttribute&&el.getAttribute('oninput'))+' '+(el&&el.getAttribute&&el.getAttribute('onchange'))),m=code.match(/(?:rc344UpdateRow|rc456UpdateRow|updateRow)\s*\(\s*\d+\s*,\s*['"](type|count|ldm|weight|l|w|h)['"]/i);
+ if(m)return m[1];
+ if(/verpack|packart|packaging/.test(text))return'type';
+ if(/anzahl|menge|quantity/.test(text))return'count';
+ if(/gewicht|weight/.test(text))return'weight';
+ if(/lademeter|ldm/.test(text))return'ldm';
+ if(/lange|laenge|length/.test(text))return'l';
+ if(/breite|width/.test(text))return'w';
+ if(/hohe|hoehe|height/.test(text))return'h';
+ return'';
+}
+function packagingList(){
+ var s=mainState(),list=arr(s.colliTypes);
+ try{if(!list.length&&window.SEED)list=arr(window.SEED.colliTypes)}catch(_){ }
+ return list;
+}
+function packFor(type){var key=low(type);return packagingList().find(function(p){return low(p&&(p.name||p.type||p.label))===key})||null}
+function valueFor(el,key){if(key==='type')return q(el.value);return q(el.value)===''?'':Number(String(el.value).replace(',','.'))}
+function setVisibleRow(node,row){
+ if(!node)return;
+ node.querySelectorAll('input,select').forEach(function(el){var k=fieldKey(el);if(!k)return;var v=row[k];if(v==null)v='';if(String(el.value)!==String(v))el.value=v});
+}
+function applyPack(row,node){
+ var p=packFor(row.type);if(!p)return;
+ if(p.ldm!==undefined&&p.ldm!==null)row.ldm=p.ldm;
+ if(p.l!==undefined&&p.l!==null)row.l=p.l;
+ if(p.w!==undefined&&p.w!==null)row.w=p.w;
+ if(p.h!==undefined&&p.h!==null)row.h=p.h;
+ setVisibleRow(node,row);
+}
+function totals(){return arr(currentShipment().rows).reduce(function(t,r){var c=num(r&&r.count);t.count+=c;t.weight+=num(r&&r.weight);t.ldm+=c*num(r&&r.ldm);return t},{count:0,weight:0,ldm:0})}
+function updateSummary(){
+ var t=totals(),vals={count:t.count.toLocaleString('de-DE',{maximumFractionDigits:0}),weight:t.weight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' kg',ldm:t.ldm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})};
+ Object.keys(vals).forEach(function(k){var el=document.getElementById('rc344Sum_'+k);if(el)el.textContent=vals[k]});
+ try{if(typeof window.rc361RefreshColliSummary==='function')window.rc361RefreshColliSummary()}catch(_){ }
+ try{if(typeof window.rc628RefreshShipmentValidation==='function')later(window.rc628RefreshShipmentValidation,0)}catch(_){ }
+ try{if(window.ExportHUBRC598&&typeof window.ExportHUBRC598.patchStowDiagram==='function')later(window.rc628RenderSecuredStow||window.ExportHUBRC598.patchStowDiagram,0)}catch(_){ }
+}
+function setRow(index,key,value,node,saveNow){
+ if(index<0||!key)return false;
+ mirrorShipment(function(sh){sh.rows=arr(sh.rows);sh.rows[index]=Object.assign({type:'',count:'',ldm:'',weight:'',l:'',w:'',h:''},sh.rows[index]||{});sh.rows[index][key]=value;if(key==='h')sh.rows[index].height=value;if(key==='type')applyPack(sh.rows[index],node)});
+ updateSummary();if(saveNow)queueSave('Colli-Zeile gespeichert');return false;
+}
+function descriptionField(el){
+ if(!el||el.tagName!=='TEXTAREA'||!shipmentView())return'';
+ var text=labelText(el);if(/warenbeschreibung fur cmr feld 9|goods description for cmr/.test(text))return'goodsDescription';if(/^bemerkung|^comment|^remarks/.test(text))return'comments';return'';
+}
+function setDescription(el,saveNow){var key=descriptionField(el);if(!key)return false;var value=String(el.value==null?'':el.value);mirrorShipment(function(sh){sh[key]=value;if(key==='comments')sh.remarks=value});if(saveNow)queueSave(key==='goodsDescription'?'Warenbeschreibung gespeichert':'Bemerkung gespeichert');return false}
+function protectedShipmentField(el){return shipmentView()&&(!!rowNode(el)||!!descriptionField(el))}
+function handleInput(event,saveNow){
+ var el=event.target;if(!protectedShipmentField(el))return;
+ event.stopImmediatePropagation();event.stopPropagation();
+ var node=rowNode(el);if(node){var key=fieldKey(el);if(key)setRow(rowIndex(node),key,valueFor(el,key),node,saveNow)}else setDescription(el,saveNow);
+}
+document.addEventListener('input',function(e){handleInput(e,false)},true);
+document.addEventListener('change',function(e){handleInput(e,true)},true);
+document.addEventListener('focusout',function(e){if(protectedShipmentField(e.target)){var node=rowNode(e.target);if(node){var key=fieldKey(e.target);if(key)setRow(rowIndex(node),key,valueFor(e.target,key),node,true)}else setDescription(e.target,true)}},true);
+
+/* Direkte Kompatibilitätsfunktionen ohne komplettes Neu-Rendern. */
+window.rc344UpdateRow=function(i,k,v){var node=document.querySelector('#rowsBox [data-rc344-row="'+i+'"],#rowsBox .rc344-colli-row:nth-child('+(Number(i)+1)+')');return setRow(Number(i),k,k==='type'?q(v):(q(v)===''?'':Number(String(v).replace(',','.'))),node,true)};
+window.rc456UpdateRow=window.rc344UpdateRow;
+window.rc628SetShipmentText=function(k,v){mirrorShipment(function(sh){sh[k]=String(v==null?'':v)});queueSave(k==='goodsDescription'?'Warenbeschreibung gespeichert':'Bemerkung gespeichert');return false};
+
+/* Ladungssicherung: kleinste/niedrigste Palette vorne, höchste Palette hinten. */
+function dims(row,type){var l=num(row.l||row.length),w=num(row.w||row.width);var t=low(type);if(!l||!w){if(/industrie/.test(t)){l=120;w=100}else if(/halb|dusseldorf|duesseldorf/.test(t)){l=80;w=60}else{l=120;w=80}}return{l:l,w:w}}
+function orientation(row,type){var d=dims(row,type);return d.w<=d.l?'längs':'quer'}
+function cargoGroups(){
+ return arr(currentShipment().rows).map(function(r,i){var count=Math.max(0,Math.round(num(r.count||r.qty||r.anzahl))),ldm=num(r.ldm||r.loadingMeter||r.ldmAuto||r.autoLdm),height=num(r.h||r.height||r.hoehe),type=q(r.type||r.packaging||r.verpackung)||'Colli';if(/gestapelt|stacked/.test(low(type)))ldm=.2;if(!ldm){var d=dims(r,type);ldm=Math.round((d.l*d.w/24000)*1000)/1000}return{source:r,row:i+1,type:type,count:count,weight:num(r.weight||r.gewicht),ldm:ldm,height:height,totalLdm:Math.round(count*ldm*1000)/1000,orientation:orientation(r,type)}}).filter(function(g){return g.count>0&&g.totalLdm>0}).sort(function(a,b){var ah=a.height>0?a.height:99999,bh=b.height>0?b.height:99999;return ah-bh||a.row-b.row});
+}
+function securedRows(groups,capacity){var out=[],used=0,pallet=1,overflow=0;groups.forEach(function(g){var left=g.count;while(left>0){var free=Math.max(0,capacity-used),fit=Math.floor((free+.0001)/Math.max(.0001,g.ldm));if(fit<=0){overflow+=left;break}var take=Math.min(left,2,fit),rowLdm=Math.round(take*g.ldm*1000)/1000,start=pallet,end=pallet+take-1;out.push({index:out.length+1,type:g.type,height:g.height,orientation:g.orientation,count:take,start:start,end:end,rowLdm:rowLdm,startLdm:used,endLdm:Math.round((used+rowLdm)*1000)/1000});pallet=end+1;used=Math.round((used+rowLdm)*1000)/1000;left-=take}});return{rows:out,used:used,overflow:overflow}}
+function palletLabel(a,b){return a===b?'Palette '+a:'Paletten '+a+'–'+b}
+function renderSecuredStow(){
+ var area=document.getElementById('rc573LoadingArea');if(!area)return false;var groups=cargoGroups(),plan=securedRows(groups,13.6),totalCount=groups.reduce(function(s,g){return s+g.count},0),totalWeight=groups.reduce(function(s,g){return s+g.weight},0),totalLdm=groups.reduce(function(s,g){return s+g.totalLdm},0),free=Math.max(0,Math.round((13.6-plan.used)*1000)/1000),sig=JSON.stringify(groups.map(function(g){return[g.row,g.type,g.count,g.ldm,g.height,g.weight]}));
+ if(area.dataset.rc628SecuritySig===sig&&area.querySelector('.rc598-track'))return true;area.dataset.rc628SecuritySig=sig;area.dataset.rc598Owner='security';area.classList.add('rc598-plain-area');area.classList.remove('rc574-truck-area');
+ var blocks=plan.rows.map(function(x){var h=x.height>0?x.height.toLocaleString('de-DE',{maximumFractionDigits:1})+' cm':'Höhe fehlt',title='Reihe '+x.index+' · '+palletLabel(x.start,x.end)+' · '+h+' · '+x.orientation+' · '+x.startLdm.toFixed(2)+'–'+x.endLdm.toFixed(2)+' LDM';var boxes=[];for(var p=x.start;p<=x.end;p++)boxes.push('<div class="rc598-pallet '+(x.orientation==='quer'?'cross':'long')+'" title="Palette '+p+' · '+esc(h)+'">'+p+'</div>');return'<div class="rc598-rowslice" style="flex:'+Math.max(.001,x.rowLdm)+' 1 0" title="'+esc(title)+'"><em>Reihe '+x.index+'</em><div class="rc598-palletgrid" style="grid-template-rows:repeat('+Math.max(1,x.count)+',1fr)">'+boxes.join('')+'</div><b>'+esc(h)+'</b><small>'+esc(palletLabel(x.start,x.end))+'</small></div>'}).join('');
+ if(free>0)blocks+='<div class="rc598-rowslice free" style="flex:'+free+' 1 0"><em>frei</em><b>'+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM</b><small>Restkapazität</small></div>';
+ var missing=groups.filter(function(g){return g.height<=0}).length;
+ area.innerHTML='<div class="rc598-plan-head"><strong>Stauplan mit Ladungssicherung</strong><small>Planungsbasis 13,60 LDM</small></div><div class="rc598-axis"><span>VORNE / STIRNWAND · niedrigste Paletten</span><span>HINTEN / HECKTÜREN · höchste Paletten</span></div><div class="rc598-track"><div class="rc598-track-inner">'+blocks+'</div></div><div class="rc598-meta"><span>'+totalCount+' Collis</span><span>'+totalWeight.toLocaleString('de-DE',{maximumFractionDigits:1})+' kg</span><span>'+plan.used.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' / 13,60 LDM belegt</span></div><div class="rc598-summary '+(plan.overflow?'rc598-overflow':'')+'">Ladungssicherung: niedrige Paletten werden vorne an der Stirnwand eingeplant, hohe Paletten hinten in Richtung Hecktüren. '+(missing?missing+' Colli-Zeile(n) ohne Höhenangabe müssen vor der Beladung ergänzt werden. ':'')+(plan.overflow?'Kapazität überschritten. ':'')+free.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM frei · Gesamtbedarf: '+totalLdm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM.</div>';
+ return true;
+}
+window.rc628RenderSecuredStow=renderSecuredStow;
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){later(renderSecuredStow,70)})});
+
+/* Vollständige Gesamtausgabe in einem eigenen Dokumentfenster – niemals die Browserseite. */
+function savedShipment(){var cur=currentShipment(),id=q(cur.id||cur.shipmentId),ref=q(cur.ref||cur.reference||cur.shipmentRef).toUpperCase();return shipments().find(function(sh){return(id&&q(sh.id||sh.shipmentId)===id)||(ref&&q(sh.ref||sh.reference||sh.shipmentRef).toUpperCase()===ref)})||null}
+function printLoadingPage(win){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>ExportHUB Gesamtausgabe</title><style>body{font-family:Segoe UI,Arial;padding:40px;color:#0f2f6b;background:#eef6fb}div{max-width:680px;margin:10vh auto;background:#fff;border-radius:24px;padding:28px;box-shadow:0 18px 46px rgba(15,23,42,.12)}h1{margin-top:0}</style></head><body><div><h1>Gesamtausgabe wird vorbereitet …</h1><p>Deckblatt, Ladelisten und erforderliche CMR-Ausfertigungen werden geladen.</p></div></body></html>');win.document.close()}catch(_){ }}
+function markPrinted(sh,pages){if(!sh)return;var stamp=new Date().toISOString();sh.printStatus={complete:true,printedAt:stamp,pages:pages,source:'Gesamtausgabe drucken'};sh.printedAt=stamp;var cur=currentShipment();if(q(cur.id||cur.ref)===q(sh.id||sh.ref))Object.assign(cur,sh);queueSave('Gesamtausgabe gedruckt')}
+window.rc573PrintAll=function(){
+ var saved=savedShipment();if(!saved){alert('Bitte die Sendung zuerst speichern. Erst danach kann der vollständige Dokumentensatz gedruckt werden.');return false}
+ var popup=window.open('','_blank');if(!popup){alert('Das Druckfenster wurde vom Browser blockiert. Bitte Pop-ups für ExportHUB erlauben.');return false}printLoadingPage(popup);
+ var api=window.ExportHUBRC616,target=q(saved.id||saved.shipmentId||saved.ref||saved.reference),oldView=q(mainState().view),tries=0;
+ if(!api||typeof api.openDocuments!=='function'||typeof api.preparePrint!=='function'){popup.close();alert('Die Dokumentausgabe ist nicht verfügbar.');return false}
+ api.openDocuments(target);
+ function build(){
+  tries++;
+  try{
+   var frame=api.preparePrint('all'),pages=Number(frame&&frame.dataset&&frame.dataset.pages||0),ready=frame&&frame.dataset&&frame.dataset.ready==='1';
+   if(frame&&pages>=3&&ready&&frame.contentDocument){
+    var html=frame.contentDocument.documentElement.outerHTML;popup.document.open();popup.document.write(html);popup.document.close();
+    var wait=0;function printNow(){wait++;var imgs=[];try{imgs=Array.prototype.slice.call(popup.document.images)}catch(_){ }var imagesReady=imgs.every(function(img){return img.complete});if(!imagesReady&&wait<40){later(printNow,50);return}try{popup.focus();popup.print();window.__rc628LastCompletePrint={pages:pages,cmr:Number(frame.dataset.cmr||0),separateDocument:true,ref:q(saved.ref||saved.reference)};markPrinted(saved,pages)}catch(e){alert('Der Druckdialog konnte nicht geöffnet werden: '+q(e&&e.message||e))}try{if(oldView==='shipment'&&api.back)later(api.back,100)}catch(_){ }}printNow();return;
+   }
+  }catch(e){console.error('RC628 Gesamtausgabe',e)}
+  if(tries<50){later(build,100);return}try{popup.close()}catch(_){ }alert('Der vollständige Dokumentensatz konnte nicht aufgebaut werden. Bitte die Sendung speichern und erneut versuchen.');
+ }
+ later(build,100);return false;
+};
+window.rc462PrintAllDocuments=window.rc573PrintAll;
+window.rc398PrintAllDocuments=window.rc573PrintAll;
+window.rc405PrintAllDocuments=window.rc573PrintAll;
+
+window.ExportHUBRC628ShipmentFix=Object.freeze({
+ setRow:setRow,
+ setDescription:setDescription,
+ renderStow:renderSecuredStow,
+ printAll:window.rc573PrintAll,
+ selfTest:function(){var hs=cargoGroups().map(function(g){return g.height});return{shipmentView:shipmentView(),rows:arr(currentShipment().rows).length,heightsSorted:hs.every(function(h,i){return i===0||hs[i-1]<=h}),stow:!!document.querySelector('#rc573LoadingArea .rc598-track'),printFunction:window.rc573PrintAll===window.rc462PrintAllDocuments}}
+});
+})();
+</script>
+<!-- RC628 SHIPMENT INPUT + CARGO SECURITY + COMPLETE PRINT AUTHORITATIVE FIX END -->
