@@ -20514,3 +20514,62 @@ if(typeof oldRender==='function'&&!oldRender.__rc628TaskFiltersRefresh){
 })();
 </script>
 <!-- RC628 TASK FILTERS + OVERVIEW VISUAL REFRESH END -->
+
+<!-- RC628 GOODS DESCRIPTION INPUT STABILITY START -->
+<script id="rc628-goods-description-input-stability">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC628_GOODS_DESCRIPTION_INPUT_STABILITY__)return;
+window.__EXPORTHUB_RC628_GOODS_DESCRIPTION_INPUT_STABILITY__=true;
+
+function text(value){return String(value==null?'':value).replace(/\s+/g,' ').trim()}
+function normalized(value){return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function labelOf(element){
+  var label=element&&element.closest&&element.closest('label');
+  return normalized(label&&label.textContent);
+}
+function fieldOf(element){
+  if(!element||element.tagName!=='TEXTAREA')return '';
+  var label=labelOf(element);
+  if(label.indexOf('warenbeschreibung fur cmr feld 9')>=0||label.indexOf('goods description for cmr')>=0)return 'goodsDescription';
+  if(label==='bemerkung'||label.indexOf('bemerkung')===0||label==='comment'||label.indexOf('remarks')===0)return 'comments';
+  return '';
+}
+function stateObjects(){
+  var found=[];
+  function add(value){if(value&&typeof value==='object'&&found.indexOf(value)<0)found.push(value)}
+  try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')add(window.__EXPORTHUB_GET_STATE__())}catch(_){ }
+  try{add(window.state)}catch(_){ }
+  return found;
+}
+function sync(element,saveNow){
+  var field=fieldOf(element);
+  if(!field)return false;
+  var value=String(element.value==null?'':element.value);
+  stateObjects().forEach(function(appState){
+    var shipment=appState.shipment||(appState.shipment={});
+    shipment[field]=value;
+    if(field==='comments'&&Object.prototype.hasOwnProperty.call(shipment,'remarks'))shipment.remarks=value;
+  });
+  try{
+    if(window.__EXPORTHUB_SHIPMENT_DRAFT__&&typeof window.__EXPORTHUB_SHIPMENT_DRAFT__==='object'){
+      window.__EXPORTHUB_SHIPMENT_DRAFT__[field]=value;
+    }
+  }catch(_){ }
+  if(saveNow){
+    try{
+      if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){
+        window.ExportHUBClean.queueSave(field==='goodsDescription'?'Warenbeschreibung gespeichert':'Bemerkung gespeichert');
+      }
+    }catch(_){ }
+  }
+  return true;
+}
+
+window.addEventListener('input',function(event){sync(event.target,false)},true);
+window.addEventListener('change',function(event){sync(event.target,true)},true);
+window.addEventListener('blur',function(event){sync(event.target,true)},true);
+window.rc628SyncGoodsDescription=function(element){return sync(element,true)};
+})();
+</script>
+<!-- RC628 GOODS DESCRIPTION INPUT STABILITY END -->
