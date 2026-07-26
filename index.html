@@ -14,8 +14,8 @@
 <script>
 window.EXPORTHUB_BUILD=Object.freeze({
   version:'RC628',
-  cache:'198',
-  loginReturn:'/?v=198'
+  cache:'199',
+  loginReturn:'/?v=199'
 });
 </script>
 <script id="rc603-version-guard-head">
@@ -23,8 +23,8 @@ window.EXPORTHUB_BUILD=Object.freeze({
 'use strict';
 var BUILD=Object.freeze({
   version:'RC628',
-  cache:'198',
-  loginReturn:'/?v=198'
+  cache:'199',
+  loginReturn:'/?v=199'
 });
 window.EXPORTHUB_BUILD=BUILD;
 document.documentElement.setAttribute('data-exporthub-version','RC628');
@@ -13000,7 +13000,22 @@ function overrideUploads(){
 window.rc542RestoreDocument=function(shid,index){if(!isGlobalAdmin(CU())&&!window.canAdmin('cmr'))return alert('Nur Admin oder Dokumenten-Funktions-Admin darf Dokumente wiederherstellen.');var sh=findShipment(shid),h=sh&&A(sh.documentHistory)[Number(index)];if(!h)return false;var key=h.docKind==='pod'?'podFiles':h.docKind==='abd'?'abdFiles':h.collectionKey||'deliveryFiles';h=clone(h);h.status='active';delete h.deletedAt;delete h.deletedBy;sh[key]=A(sh[key]);sh[key].push(h);sh.documentHistory.splice(Number(index),1);save('Dokument wiederhergestellt');postProcess();return false};
 function ensureGeneratedDocs(sh){if(!sh||!shipmentRef(sh))return;var c=customerForShipment(sh),country=L(sh.country||sh.recipientCountry||c.country||c.land),types=['Deckblatt','Ladeliste Seite 1','Ladeliste Seite 2'];if(country&&country!=='de'&&country!=='deutschland'&&country!=='germany')types.push('CMR');var sig=JSON.stringify({ref:shipmentRef(sh),customer:customerName(c,sh),recipient:sh.recipientName||'',address:sh.recipientAddress||'',pickup:sh.pickupDate||sh.plannedPickupDate||'',carrier:sh.carrier||c.carrier||'',rows:A(sh.rows)}),hash=0;for(var i=0;i<sig.length;i++)hash=((hash<<5)-hash)+sig.charCodeAt(i)|0;sh.generatedDocuments=A(sh.generatedDocuments);types.forEach(function(type){var active=sh.generatedDocuments.find(function(x){return x.type===type&&x.status==='active'});if(!active||active.signature!==String(hash)){if(active){active.status='replaced';active.replacedAt=new Date().toISOString()}var ver=sh.generatedDocuments.filter(function(x){return x.type===type}).length+1;sh.generatedDocuments.push({id:'GEN-'+Date.now()+'-'+type.replace(/\W/g,''),type:type,version:ver,status:'active',signature:String(hash),generatedAt:new Date().toISOString()})}})}
 function wrapDocuments(){var old=window.rc524OpenDocuments;if(typeof old==='function'&&!old.__rc542){var w=function(id){var sh=findShipment(id)||currentShipment();ensureGeneratedDocs(sh);save('Dokumentversionen aktualisiert');return old.apply(this,arguments)};w.__rc542=true;window.rc524OpenDocuments=w}}
-function abdPatch(){var v=Q(S().view),r=root();if(!r)return;if(v==='shipment'){r.querySelectorAll('#rc344AbdBox,#rc352AbdBox,#rc355AbdBox,.rc348-abd,.rc355-abd').forEach(function(x){x.remove()});return}if(v!=='abd'||document.getElementById('rc542AbdStatus'))return;var a=S().abdRequest||S().abdDraft||{},c=findCustomer(a.customerId||a.customerName)||{},ref=Q(a.ref||a.reference||''),status=Q(a.status||'Entwurf'),box=document.createElement('section');box.id='rc542AbdStatus';box.className='card rc542-area';box.innerHTML='<span class="rc542-kicker">ABD-Prozess</span><h2>ABD-Status</h2><div class="rc542-grid3"><label class="field">Kunde<input value="'+E(c.name||a.customerName||'')+'" readonly></label><label class="field">Referenz<input value="'+E(ref)+'" readonly></label><label class="field">Status<input value="'+E(status)+'" readonly></label></div><p><b>Betreff:</b> '+E(subjectFor({ref:ref,customerName:c.name||a.customerName},c,'abd'))+'</p><div class="toolbar"><button class="ghost" onclick="return rc542AbdMarkSent()">ABD-Anfrage als versendet bestätigen</button><button class="ghost" onclick="return rc542CreateShipmentFromAbd()">Sendung aus ABD erstellen</button></div>';r.insertBefore(box,r.firstChild)}
+function abdPatch(){
+ var v=Q(S().view),r=root();
+ if(!r)return;
+ if(v==='shipment'){
+  r.querySelectorAll('#rc344AbdBox,#rc352AbdBox,#rc355AbdBox,.rc348-abd,.rc355-abd').forEach(function(x){x.remove()});
+  return;
+ }
+ /* Der veraltete Bereich "ABD-Status" darf in der ABD-Funktion nicht mehr erscheinen. */
+ r.querySelectorAll('#rc542AbdStatus,#rc543AbdStatus').forEach(function(x){x.remove()});
+ if(v==='abd'){
+  Array.prototype.slice.call(r.querySelectorAll('section,.card,article')).forEach(function(x){
+   var h=x.querySelector&&x.querySelector('h1,h2,h3,h4');
+   if(h&&/^ABD-Status$/i.test(Q(h.textContent)))x.remove();
+  });
+ }
+}
 window.rc542AbdMarkSent=function(){if(!window.canWrite('abd'))return alert('Keine Bearbeitungsrechte.');var a=S().abdRequest||S().abdDraft;if(!a)return alert('Keine ABD-Anfrage geöffnet.');a.status='Angefragt';a.sentAt=new Date().toISOString();a.sentBy=Q((CU()||{}).name||(CU()||{}).user);save('ABD-Anfrage als versendet bestätigt');postProcess();return false};
 window.rc542CreateShipmentFromAbd=function(){var a=S().abdRequest||S().abdDraft;if(!a||!Q(a.ref||a.reference))return alert('ABD-Referenz fehlt.');S().shipment={id:'SHIP-'+Date.now(),ref:Q(a.ref||a.reference),customerId:a.customerId||'',customerName:a.customerName||'',rows:clone(a.rows||[]),abdRequired:true,abdRequestId:a.id||'',abdStatus:a.status||'Entwurf',status:'Entwurf',deliveryFiles:[],podFiles:[],abdFiles:clone(a.abdFiles||[])};S().activeShipmentId='current';S().view='shipment';save('Sendung aus ABD erstellt');if(typeof window.render==='function')window.render();return false};
 function rightsHtml(){var r=root();if(!r)return;if(window.ExportHUBRC544Auth){if(window.__EXPORTHUB_READY__)window.ExportHUBRC544Auth.load();else r.innerHTML='<section class="card"><h1>Benutzerverwaltung wird geladen</h1><p>Die sichere Benutzerverwaltung wird vorbereitet.</p></section>';return}r.innerHTML='<section class="card"><h1>Benutzerverwaltung nicht verfügbar</h1><p>Die sichere serverseitige Benutzerverwaltung konnte nicht geladen werden.</p></section>';r.className='content'}
