@@ -17307,12 +17307,25 @@ function mirrorShipment(sh){
  });
  try{window.state=master;state=master}catch(_){ }
  try{document.body.setAttribute('data-exporthub-view','cmr');document.body.setAttribute('data-current-view','cmr');document.body.setAttribute('data-eh-view','cmr')}catch(_){ }
+ syncNavigation('cmr');
  return copy;
 }
 function optionHtml(){return shipments().map(function(sh){var id=sid(sh)||sref(sh);return '<option value="'+esc(id)+'">'+esc((sref(sh)||id)+' · '+(customer(sh)||'ohne Kunde')+' · '+q(sh.status||sh.processStatus||'Offen'))+'</option>'}).join('')}
 function root(){return document.getElementById('content')}
+function syncNavigation(view){
+ var wanted=low(view),nav=document.getElementById('nav')||document.querySelector('.nav');
+ if(!nav)return;
+ Array.prototype.slice.call(nav.querySelectorAll('button,a')).forEach(function(b){
+  var meta=q(b.getAttribute('data-view')||b.getAttribute('data-page')||b.getAttribute('data-target')||b.getAttribute('data-rc626-view')||b.getAttribute('onclick')),
+      m=meta.match(/setView\(\s*["']([^"']+)/i),id=low((m&&m[1])||b.getAttribute('data-view')||b.getAttribute('data-page')||b.getAttribute('data-target')||b.getAttribute('data-rc626-view')),
+      on=id===wanted;
+  b.classList.toggle('active',on);
+  if(id)b.setAttribute('aria-current',on?'page':'false');
+ });
+}
 function openHub(){
  var s=st();s.view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(_){ }
+ syncNavigation('cmr');
  var r=root();if(!r)return false;
  r.innerHTML='<div class="page-head"><div><h2>Ladeliste &amp; CMR</h2><p>Gespeicherte Sendung auswählen und mit den vorhandenen ExportHUB-Vorlagen nachdrucken.</p></div></div>'+
  '<section class="card"><label class="field">Sendung auswählen<select id="rc590DocumentShipment"><option value="">Bitte Sendung wählen</option>'+optionHtml()+'</select></label><div class="toolbar"><button type="button" class="btn" id="rc590OpenDocuments">Ladeliste &amp; CMR öffnen</button></div><div id="rc590DocumentStatus" class="small"></div></section>';
