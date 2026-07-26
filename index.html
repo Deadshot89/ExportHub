@@ -14,8 +14,8 @@
 <script>
 window.EXPORTHUB_BUILD=Object.freeze({
   version:'RC628',
-  cache:'204',
-  loginReturn:'/?v=204'
+  cache:'205',
+  loginReturn:'/?v=205'
 });
 </script>
 <script id="rc603-version-guard-head">
@@ -23,8 +23,8 @@ window.EXPORTHUB_BUILD=Object.freeze({
 'use strict';
 var BUILD=Object.freeze({
   version:'RC628',
-  cache:'204',
-  loginReturn:'/?v=204'
+  cache:'205',
+  loginReturn:'/?v=205'
 });
 window.EXPORTHUB_BUILD=BUILD;
 document.documentElement.setAttribute('data-exporthub-version','RC628');
@@ -12135,7 +12135,7 @@ window.__EXPORTHUB_RC564_SOURCE_STATS__=stats;
 <script data-inline-source="assets/clean-bootstrap.js">
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC577',cache:'204',loginReturn:'/?v=204'};
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC577',cache:'205',loginReturn:'/?v=205'};
 const VERSION=String(BUILD.version||'RC565');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
@@ -13829,7 +13829,7 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){retur
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)return window.ExportHUBClean.runtime.state;if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){ }return window.state||{}}
 function shipmentView(){var s=state(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
 function heading(el){var h=el&&el.querySelector&&el.querySelector('h1,h2,h3,h4');return q(h&&h.textContent)}
 function savedCard(shell){if(!shell)return null;return shell.querySelector('#rc573SavedCard')||Array.prototype.slice.call(shell.querySelectorAll('section,.card,article')).find(function(x){return /^Gespeicherte Sendungen/i.test(heading(x))})||null}
 function mailCards(shell){if(!shell)return[];var list=Array.prototype.slice.call(shell.querySelectorAll('#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,.rc573-mail-card'));Array.prototype.slice.call(shell.querySelectorAll(':scope>section,:scope>.card,:scope>article')).forEach(function(x){if(/^(Mailbereich|Mail Bereich|Mailversand|Anmeldung\s*\/\s*Mail)/i.test(heading(x))&&list.indexOf(x)<0)list.push(x)});return list}
@@ -15818,7 +15818,7 @@ function findShipment(id){id=q(id);if(!id||id==='current')return st().shipment||
 function currentShipment(){var s=st(),id=q(s.activeShipmentId),found=id&&id!=='current'?findShipment(id):null;return found||s.shipment||null}
 function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'RC572 Änderung');else if(typeof window.save==='function')window.save()}catch(e){console.error('RC572 save',e)}}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }
  try{document.title='ExportHUB '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;document.documentElement.setAttribute('data-exporthub-version',VERSION);document.documentElement.setAttribute('data-exporthub-fix',VERSION)}catch(_){ }
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
  document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(el){if(!el||/^(SCRIPT|STYLE)$/i.test(el.tagName)||el.children.length>8)return;var t=q(el.textContent);if(/RC\d+/i.test(t))el.textContent=t.replace(/RC\d+/ig,VERSION)});
@@ -16004,7 +16004,7 @@ function view(){var s=state();return low(s.view||document.body.getAttribute('dat
 function root(){return document.getElementById('content')}
 function nativeTimeout(fn,ms){var c=window.ExportHUBClean&&window.ExportHUBClean.native;return (c&&c.setTimeout||window.setTimeout)(fn,ms||0)}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.documentElement.setAttribute('data-design-approved','false');
  document.title='ExportHUB '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
@@ -16174,7 +16174,7 @@ function getState(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){v
 function shipment(){return getState().shipment||{}}
 function isShipment(){var s=getState(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-eh-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.documentElement.setAttribute('data-style-lock','STYLE');
  document.documentElement.setAttribute('data-shipment-style-approved','RC574');
@@ -17143,7 +17143,7 @@ function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var 
 function isShipment(){var s=state(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-eh-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
 function nativeTimeout(fn,ms){var c=window.ExportHUBClean&&window.ExportHUBClean.native;return (c&&c.setTimeout||window.setTimeout)(fn,ms||0)}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
@@ -17243,7 +17243,7 @@ function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.
 function shipmentCustomer(sh){var c=sh&&sh.customer;return q((c&&typeof c==='object'&&(c.name||c.customerName||c.label))||sh&&sh.customerName||(typeof c==='string'?c:''))}
 function shipments(){return arr(st().shipments)}
 function findShipment(id){id=q(id);return shipments().find(function(sh){return shipmentId(sh)===id||shipmentRef(sh)===id})||null}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 
 /* ---------- Stauplan: Orientierung, Reihenfolge und Vollstatus ---------- */
 var TRUCK_LENGTH=1360,TRUCK_WIDTH=245;
@@ -17347,7 +17347,7 @@ function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.sendung
 function customer(sh){var c=sh&&sh.customer;return q((c&&typeof c==='object'&&(c.name||c.customerName||c.label))||sh&&sh.customerName||(typeof c==='string'?c:''))}
 function findShipment(id){id=q(id);return shipments().find(function(x){return sid(x)===id||sref(x)===id})||null}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -18197,7 +18197,7 @@ function isLdm(el){var r=root(el);return !!(r&&fields(r).ldm===el)}function manu
 window.addEventListener('input',function(e){if(!isLdm(e.target))return;var raw=e.target.value;e.stopImmediatePropagation();e.stopPropagation();manual(e.target,raw)},true);window.addEventListener('change',function(e){if(!isLdm(e.target))return;var raw=e.target.value;e.stopImmediatePropagation();e.stopPropagation();manual(e.target,raw)},true);
 function recover(target){if(!root(target)||isLdm(target))return;[80,220,500].forEach(function(ms){setT(function(){sync(false);updateStow()},ms)})}window.addEventListener('input',function(e){recover(e.target)},true);window.addEventListener('change',function(e){recover(e.target)},true);
 document.addEventListener('change',function(e){var r=root(e.target);if(!r||isLdm(e.target))return;var f=fields(r),i=indexOf(r);if(i>=0&&(e.target===f.type||e.target===f.l||e.target===f.w)){var row=shipment().rows[i]||(shipment().rows[i]={});if(row.ldmManual!==true||stacked(row,f)){row.ldmAuto=0;setT(function(){var fresh=nodes()[i];if(fresh)apply(fresh,i,true);recalc();queue('LDM automatisch berechnet')},100)}}},false);
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;try{document.title='ExportHUB Online '+VERSION}catch(_){}document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(x){if(/RC\d+/i.test(q(x.textContent)))x.textContent=q(x.textContent).replace(/RC\d+/ig,VERSION)})}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;try{document.title='ExportHUB Online '+VERSION}catch(_){}document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(x){if(/RC\d+/i.test(q(x.textContent)))x.textContent=q(x.textContent).replace(/RC\d+/ig,VERSION)})}
 function refresh(){version();sync(false)}function schedule(){if(timer)return;timer=setT(function(){timer=0;refresh()},30)}['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(x){window.addEventListener(x,schedule)});document.addEventListener('click',function(){setT(refresh,150)},true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,100,350,1000,3000].forEach(function(ms){setT(refresh,ms)})},{once:true});else[0,100,350,1000,3000].forEach(function(ms){setT(refresh,ms)});setI(function(){version();if(nodes().length)sync(false)},1000);try{var O=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver,h=document.getElementById('content');if(O&&h)new O(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule()}).observe(h,{childList:true,subtree:true})}catch(_){}
 window.ExportHUBRC596=Object.freeze({version:VERSION,syncLdm:sync,totalLdm:total,refresh:refresh});
 })();
@@ -18270,7 +18270,7 @@ function esc(v){return q(v).replace(/[&<>\"]/g,function(c){return{'&':'&amp;','<
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var x=window.__EXPORTHUB_GET_STATE__();if(x)return x}}catch(_){ }return window.state||(window.state={})}
 function shipment(){var s=state();s.shipment=s.shipment||{};s.shipment.rows=a(s.shipment.rows);return s.shipment}
 function inShipment(){return !!document.getElementById('rc573ShipmentShell')||low(state().view)==='shipment'}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION}
 function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')return window.ExportHUBClean.queueSave(reason||'Lieferscheine aktualisiert')}catch(_){ }try{if(typeof window.save==='function')return window.save(reason||'Lieferscheine aktualisiert')}catch(_){ }}
 function audit(action,detail){try{if(typeof window.audit==='function')window.audit(action,detail)}catch(_){ }}
 function uid(prefix){try{if(typeof window.uid==='function')return window.uid(prefix)}catch(_){ }return String(prefix||'FILE')+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)}
@@ -18469,7 +18469,7 @@ function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.
 function customerName(sh){var c=sh&&sh.customer;return q(c&&typeof c==='object'?(c.name||c.customerName):sh&&sh.customerName||c)}
 function customerAddress(sh){var c=sh&&sh.customer;return q(c&&typeof c==='object'?(c.address||c.recipientAddress):sh&&sh.recipientAddress||sh&&sh.address)}
 function queueSave(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){window.ExportHUBClean.queueSave(reason);return}}catch(_){}try{if(typeof window.save==='function')window.save(reason)}catch(_){}}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
 
 function docView(){return document.querySelector('#content .rc390-docview,.rc390-docview')}
 function bundle(){var v=docView();return v&&v.querySelector('.rc390-bundle')}
@@ -18643,8 +18643,8 @@ function migrateAll(){
   try{
     window.EXPORTHUB_BUILD=Object.freeze({
       version:VERSION,
-      cache:'204',
-      loginReturn:'/?v=204'
+      cache:'205',
+      loginReturn:'/?v=205'
     });
   }catch(_){}
   document.documentElement.setAttribute('data-exporthub-version',VERSION);
@@ -19071,7 +19071,7 @@ function wrapRc565(){
  wrapped.__rc608Wrapped=true;wrapped.__rc608Base=base;api.saveCustomerFolder=wrapped;
 }
 function install(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  wrapGlobal('rc390SaveCustomerMailPanel');wrapGlobal('rc393SaveCustomerMail');wrapGlobal('rc543SaveCustomerMailRule');wrapGlobal('saveCustomerFolderMail');wrapRc565();ensureEditor();
 }
@@ -19216,7 +19216,7 @@ function install(){
     try{globalThis.rc344SetRef=window.rc344SetRef;globalThis.setShipmentRef=window.setShipmentRef}catch(_){}
 
     try{
-      window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'});
+      window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'});
     }catch(_){}
     document.documentElement.setAttribute('data-exporthub-version',VERSION);
     document.title='ExportHUB Online '+VERSION;
@@ -19362,7 +19362,7 @@ function refreshLocations(){
 }
 function applyLocation(id,save){var l=findLocation(id);if(!l)return false;var x=sh();x.locationId=locationId(l,0);x.selectedLocationId=x.locationId;x.siteId=x.locationId;x.location=JSON.parse(JSON.stringify(l));x.locationData=JSON.parse(JSON.stringify(l));x.siteData=JSON.parse(JSON.stringify(l));x.locationName=locationName(l);x.site=x.locationName;x.standort=x.locationName;x.recipientName=locationName(l)||x.customerName;x.destinationName=locationName(l)||x.destinationName;x.recipientAddress=locationAddress(l)||x.recipientAddress;x.destinationCountry=q(l.country||l.land)||x.destinationCountry;x.recipientCountry=q(l.country||l.land)||x.recipientCountry;var p=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(p)p.textContent=x.recipientAddress||'';refreshLocations();if(save!==false){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Standort ausgewählt')}catch(_){}}return false}
 window.__EXPORTHUB_RC616_AFTER_CUSTOMER__=function(){setT(refreshLocations,0);setT(refreshLocations,80);setT(refreshLocations,250)};
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}document.documentElement.dataset.exporthubVersion=VERSION;document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}document.documentElement.dataset.exporthubVersion=VERSION;document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function refresh(){forceVersion();var v=view();if(v&&v!==installedView)install(true);if(document.getElementById('rc573CustomerCard'))refreshLocations()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,120,500,1000].forEach(function(ms){setT(refresh,ms)})},{once:true});else[0,120,500,1000].forEach(function(ms){setT(refresh,ms)});
 ['exporthub:ready','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,function(){setT(refresh,20)})});
@@ -19688,7 +19688,7 @@ function markPackaging(){
   }catch(_){}
 }
 function version(){
-  try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}
+  try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}
   document.documentElement.setAttribute('data-exporthub-version',VERSION);
   document.title='ExportHUB Online '+VERSION;
   var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -19798,7 +19798,7 @@ document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,100,350,900].forEach(function(ms){setT(apply,ms)})},{once:true});else[0,100,350,900].forEach(function(ms){setT(apply,ms)});
 try{var O=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver,c=document.getElementById('content');if(O&&c)new O(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule()}).observe(c,{childList:true,subtree:true})}catch(_){}
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
 version();
 window.ExportHUBRC624=Object.freeze({version:VERSION,apply:apply,reset:reset,afterSave:afterSave,selfTest:function(){return{address:stickyAddress,process:stickyProcess,stateAddress:!!shipment().addressConfirmed,stateProcess:!!shipment().customerProcessConfirmed,addressInputs:inputs('address').length,processInputs:inputs('process').length}}});
 })();
@@ -19963,7 +19963,7 @@ function patchOverview(){
  return true;
 }
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
 }
@@ -20095,7 +20095,7 @@ function customers(){var s=state();s.customers=arr(s.customers);return s.custome
 function shipments(){var s=state();s.shipments=arr(s.shipments);return s.shipments}
 function findCustomer(id){var key=q(id);return customers().find(function(c){return q(c.id)===key||customerNumber(c)===key||customerName(c)===key})||null}
 function findShipment(id){var key=q(id).toUpperCase();return shipments().find(function(x){return q(x.id||x.shipmentId).toUpperCase()===key||q(x.ref||x.reference||x.shipmentRef).toUpperCase()===key})||null}
-function forceVersion(){try{var build=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'}),desc=Object.getOwnPropertyDescriptor(window,'EXPORTHUB_BUILD');if(!desc||desc.configurable)Object.defineProperty(window,'EXPORTHUB_BUILD',{value:build,writable:false,enumerable:true,configurable:true});else window.EXPORTHUB_BUILD=build}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{var build=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'}),desc=Object.getOwnPropertyDescriptor(window,'EXPORTHUB_BUILD');if(!desc||desc.configurable)Object.defineProperty(window,'EXPORTHUB_BUILD',{value:build,writable:false,enumerable:true,configurable:true});else window.EXPORTHUB_BUILD=build}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 
 /* ---------- Navigation ---------- */
 function navAllowed(view){try{if(typeof window.canView==='function'&&!window.canView(view))return false;if(typeof window.canRead==='function'&&!window.canRead(view))return false}catch(_){}return true}
@@ -20427,7 +20427,7 @@ window.ExportHUBRC626=Object.freeze({version:VERSION,openShipping:openShipping,r
 'use strict';
 var VERSION='RC628';
 function lock(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.title='ExportHUB Online '+VERSION;
  var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -20499,7 +20499,7 @@ function reactivateQr(sh){var api=window.ExportHUBRC569QR;if(!api||typeof api.re
 function resetPickup(el){var card=el&&el.closest&&el.closest('[data-shipment]'),id=q((el&&el.dataset&&el.dataset.id)||(card&&card.getAttribute('data-shipment'))),sh=findShipment(id);if(!sh)return false;if(!canReset(sh)){alert('Nur der Ersteller der Sendung oder ein globaler Administrator darf die Abholung zurücksetzen.');return false}if(!confirm('Abholung wirklich zurücksetzen und denselben QR-Code reaktivieren?'))return false;var reason=q(prompt('Grund der Korrektur:','Falsche Abholbestätigung'));if(!reason){alert('Für die Korrektur ist ein Grund erforderlich.');return false}clearPickupFields(sh,reason);var cur=state().shipment;if(cur&&(sid(cur)===sid(sh)||sref(cur)===sref(sh)))Object.assign(cur,clone(sh));persist('Abholung zurückgesetzt');refreshOverview();reactivateQr(sh).then(function(ok){refreshOverview();if(!ok)alert('Die Abholung wurde zurückgesetzt. Der QR-Code konnte aber nicht automatisch beim Server reaktiviert werden. Bitte den QR-Code in der Sendung erneut aktivieren.')});return false}
 function ensureResetButton(card,id,sh){var bar=card.querySelector('.rc524-dangerbar,.toolbar:last-of-type');if(!bar)return;var btn=bar.querySelector('.rc628-reset-pickup');if(statusAtOrAfterPickup(sh)&&canReset(sh)){if(!btn){btn=document.createElement('button');btn.type='button';btn.className='ghost rc628-reset-pickup';btn.textContent='Abholung zurücksetzen / QR reaktivieren';var del=Array.prototype.slice.call(bar.querySelectorAll('button')).find(function(b){return /sendung loschen/.test(low(b.textContent))});if(del)bar.insertBefore(btn,del);else bar.appendChild(btn)}btn.dataset.id=id;btn.dataset.rc628ResetPickup='1'}else if(btn)btn.remove()}
 function patchOverview(){if(!document.querySelector('#content .rc524-shipment-card'))return false;document.querySelectorAll('#content .rc524-shipment-card').forEach(function(card){var id=q(card.getAttribute('data-shipment')),sh=findShipment(id);if(!sh)return;var green=statusAtOrAfterPickup(sh);card.classList.toggle('rc628-picked-up-or-later',green);card.classList.toggle('rc624-qr-completed',false);card.hidden=false;var badge=card.querySelector('.shipment-status,.rc524-area-head .pill');if(badge&&green){badge.classList.remove('blue','orange','red');badge.classList.add('green')}patchFileRows(card,id,'pod','podFiles');patchFileRows(card,id,'abd','abdFiles');ensureResetButton(card,id,sh)});return true}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'204',loginReturn:'/?v=204'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function apply(){forceVersion();patchOverview()}
 function schedule(){if(timer)return;timer=setT(function(){timer=0;apply()},25)}
 document.addEventListener('click',function(e){var open=e.target&&e.target.closest&&e.target.closest('[data-rc628-file-open="1"]');if(open){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();openFile(open);return}var reset=e.target&&e.target.closest&&e.target.closest('[data-rc628-reset-pickup="1"]');if(reset){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();resetPickup(reset)}},true);
@@ -21627,3 +21627,157 @@ window.ExportHUBIndex202=Object.freeze({patch:patch,applyPackaging:applyPackagin
 }
 </style>
 <!-- INDEX 204 DECKBLATT TYPOGRAPHY END -->
+
+<!-- INDEX 205 DASHBOARD + AUFGABEN PLANER START -->
+<style id="index205-dashboard-planner-style">
+/* index205: Funktionscontroller Dashboard und Aufgaben Planer */
+.rc205-card-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:12px}
+.rc205-card-head h3,.rc205-holiday-head h3{margin:0 0 5px}
+.rc205-quick-card{margin-bottom:14px}
+.rc205-quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rc205-quick{border:1px solid #bfdbfe;background:#f8fbff;color:#08245d;border-radius:16px;padding:14px;text-align:left;cursor:pointer;font-weight:900;min-height:76px}
+.rc205-quick:hover{border-color:#2563eb;background:#eff6ff;transform:translateY(-1px)}
+.rc205-quick span{display:block;font-size:22px;margin-bottom:7px}
+.rc205-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.rc205-widget{min-width:0}
+.rc205-mini-metrics{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px}
+.rc205-mini-metrics .metric{padding:12px;box-shadow:none}
+.rc205-mini-metrics .metric strong{font-size:25px}
+.rc205-list{display:grid;gap:8px}
+.rc205-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff}
+.rc205-row b,.rc205-row small{display:block}
+.rc205-row small{color:#64748b;font-weight:750;margin-top:4px;line-height:1.35}
+.rc205-config{margin-bottom:14px;border:2px solid #93c5fd}
+.rc205-check-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.rc205-check-grid .checkrow{margin:0}
+.rc205-planner-toolbar{align-items:end}
+.rc205-planner-toolbar .field{min-width:220px;margin:0}
+.rc205-holiday-list{display:grid;gap:12px}
+.rc205-holiday{border:1px solid var(--line);border-radius:18px;padding:13px;background:#fff}
+.rc205-holiday.has-tasks{border-color:#fdba74;background:#fffaf5}
+.rc205-holiday-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.rc205-date{font-size:12px;color:#64748b;font-weight:900}
+.rc205-planner-list{display:grid;gap:8px;margin-top:10px}
+.rc205-planner-task{display:grid;grid-template-columns:minmax(220px,1fr) auto minmax(360px,auto);gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff}
+.rc205-planner-task.done{opacity:.65}
+.rc205-planner-main b,.rc205-planner-main span,.rc205-planner-main small{display:block}
+.rc205-planner-main span{margin-top:3px}
+.rc205-planner-main small{color:#64748b;margin-top:3px;font-weight:750}
+.rc205-planner-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.rc205-planner-actions input[type=date]{width:155px;padding:9px}
+.rc205-undated{margin-top:14px}
+@media(max-width:1250px){.rc205-quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.rc205-dashboard-grid{grid-template-columns:1fr}.rc205-planner-task{grid-template-columns:1fr auto}.rc205-planner-actions{grid-column:1/-1;justify-content:flex-start}}
+@media(max-width:760px){.rc205-quick-grid,.rc205-check-grid,.rc205-mini-metrics{grid-template-columns:1fr}.rc205-card-head,.rc205-holiday-head{display:block}.rc205-card-head button{margin-top:10px}.rc205-planner-task{grid-template-columns:1fr}.rc205-planner-actions{grid-column:auto}.rc205-planner-actions input[type=date]{width:100%}}
+
+</style>
+<script id="index205-dashboard-planner-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX205_DASHBOARD_PLANNER__)return;
+window.__EXPORTHUB_INDEX205_DASHBOARD_PLANNER__=true;
+
+var VERSION='RC628';
+var previousAfterRender=window.__EXPORTHUB_AFTER_RENDER__;
+var applying=false;
+var timer=0;
+var MODULES=[
+ {id:'shipment',label:'Sendung erstellen',icon:'🚚'},
+ {id:'tasks',label:'Aufgaben',icon:'✅'},
+ {id:'planning',label:'Aufgaben Planer',icon:'🗓️'},
+ {id:'shipmentoverview',label:'Sendungsübersicht',icon:'📦'},
+ {id:'abd',label:'ABD erstellen',icon:'📨'},
+ {id:'cmr',label:'Ladeliste & CMR',icon:'📄'},
+ {id:'pallet',label:'Palettenkonto',icon:'🧾'},
+ {id:'customers',label:'Kunden & Dokumente',icon:'🏢'},
+ {id:'customerfolder',label:'Kundenordner',icon:'📁'},
+ {id:'shippingcosts',label:'Versandkosten',icon:'💶'},
+ {id:'inspections',label:'Prüfungen',icon:'🔎'},
+ {id:'customs',label:'Zollwissen',icon:'🛃'},
+ {id:'sop',label:'SOP & Portale',icon:'📋'},
+ {id:'academy',label:'Academy',icon:'🎓'},
+ {id:'ideas',label:'Ideen',icon:'💡'},
+ {id:'notifications',label:'Benachrichtigungen',icon:'🔔'},
+ {id:'reports',label:'Reports',icon:'📊'},
+ {id:'rights',label:'Benutzer & Rechte',icon:'🔐'},
+ {id:'teamfile',label:'Teamdatei',icon:'🗂️'},
+ {id:'archive',label:'Archiv',icon:'🗃️'},
+ {id:'settings',label:'Einstellungen',icon:'⚙️'}
+];
+var WIDGETS=[
+ {id:'tasks',label:'Meine Aufgaben'},
+ {id:'shipments',label:'Sendungen und Abholungen'},
+ {id:'abd',label:'ABD-Anfragen'},
+ {id:'pallet',label:'Palettenkonto'}
+];
+var DEFAULT_WIDGETS=['tasks','shipments','abd','pallet'];
+var DEFAULT_LINKS=['shipment','tasks','planning','shipmentoverview','abd','customerfolder'];
+
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function esc(v){return String(v==null?'':v).replace(/[&<>'"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]})}
+function arr(v){return Array.isArray(v)?v:[]}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||{}}}
+function currentUser(){try{return window.__EXPORTHUB_GET_CURRENT_USER__?window.__EXPORTHUB_GET_CURRENT_USER__():(window.currentUser||{})}catch(_){return window.currentUser||{}}}
+function userKey(){var u=currentUser();return low(u.user||u.login||u.username||u.name||'standard')||'standard'}
+function userName(){var u=currentUser();return q(u.name||u.user||u.login||'Benutzer')||'Benutzer'}
+function root(){return document.getElementById('content')}
+function currentView(){return low(state().view||document.body.getAttribute('data-exporthub-view')||'')}
+function localISO(d){d=d||new Date();var z=function(n){return String(n).padStart(2,'0')};return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())}
+function todayISO(){return localISO(new Date())}
+function weekday(iso){var d=iso?new Date(iso+'T12:00:00'):new Date();return ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][d.getDay()]}
+function fmtDate(iso,withWeekday){if(!/^\d{4}-\d{2}-\d{2}$/.test(q(iso)))return'';try{return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',withWeekday?{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}:{day:'2-digit',month:'2-digit',year:'numeric'})}catch(_){return iso}}
+function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Dashboard/Aufgaben Planer gespeichert');else if(typeof window.save==='function')window.save()}catch(e){console.error('ExportHUB Dashboard/Planer speichern',e)}}
+function canOpen(id){try{if(typeof window.canView==='function'&&!window.canView(id))return false;if(typeof window.canRead==='function'&&!window.canRead(id))return false}catch(_){ }return true}
+function availableModules(){return MODULES.filter(function(m){return canOpen(m.id)})}
+function navigate(id){if(!canOpen(id)){alert('Dieser Bereich ist für deinen Benutzer nicht freigegeben.');return false}if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.setView==='function')return window.ExportHUBRC524.setView(id);if(typeof window.setView==='function')return window.setView(id);return false}
+function prefs(){var s=state(),key=userKey();s.dashboardPreferences=s.dashboardPreferences&&typeof s.dashboardPreferences==='object'?s.dashboardPreferences:{};var p=s.dashboardPreferences[key];if(!p||typeof p!=='object')p=s.dashboardPreferences[key]={widgets:DEFAULT_WIDGETS.slice(),quickLinks:DEFAULT_LINKS.slice(),configOpen:false};p.widgets=arr(p.widgets).filter(function(id){return WIDGETS.some(function(w){return w.id===id})});if(!p.widgets.length)p.widgets=DEFAULT_WIDGETS.slice();p.quickLinks=arr(p.quickLinks).filter(function(id){return MODULES.some(function(m){return m.id===id})&&canOpen(id)});if(!p.quickLinks.length)p.quickLinks=DEFAULT_LINKS.filter(canOpen);return p}
+function isDone(v){return /erledigt|abgeschlossen|archiviert|storniert|cancelled|canceled/.test(low(v))}
+function taskDone(t){return isDone(t&&t.status)}
+function taskDate(t){var v=q(t&&(t.dueDate||t.date||t.plannedDate||t.targetDate||''));return /^\d{4}-\d{2}-\d{2}/.test(v)?v.slice(0,10):''}
+function taskOwner(t){return q(t&&(t.eowner||t.owner||t.assignee||t.responsible||t.zustaendig||''))}
+function taskForUser(t){var owner=low(taskOwner(t)),u=low(userName());return !owner||owner==='alle'||owner==='all'||owner.indexOf(u)>=0||u.indexOf(owner)>=0}
+function taskTitle(t){return q(t&&(t.title||t.name||t.subject||'Aufgabe'))||'Aufgabe'}
+function taskRef(t){return q(t&&(t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref||''))}
+function taskCustomer(t){return q(t&&(t.linkedCustomer||t.customerName||t.customer||''))}
+function isTaskOverdue(t){if(taskDone(t))return false;var d=taskDate(t);if(d)return d<todayISO();try{if(typeof window.isTaskOverdue==='function')return !!window.isTaskOverdue(t)}catch(_){ }return false}
+function shipmentDone(s){return isDone(s&&(s.status||s.freigabe||s.state))}
+function shipmentRef(s){return q(s&&(s.ref||s.reference||s.shipmentRef||''))}
+function shipmentCustomer(s){var c=s&&s.customer||{};return q(c.name||s&&s.customerName||s&&s.customer||'')}
+function shipmentPickup(s){var v=q(s&&(s.pickupDate||s.plannedPickupDate||s.collectionDate||''));return /^\d{4}-\d{2}-\d{2}/.test(v)?v.slice(0,10):''}
+function abdDone(a){return !!(a&&(a.done||a.abdDone||arr(a.abdFiles).length||isDone(a.status)))}
+function signedPallet(entry){var n=Number(entry&&(entry.count||entry.quantity||entry.amount||0))||0,t=low(entry&&(entry.type||entry.direction||entry.kind||''));if(/ausgang|out/.test(t))return-n;if(/eingang|in/.test(t))return n;if(/abgleich|korrektur|adjust/.test(t))return Number(entry.balanceChange||entry.delta||n)||0;return 0}
+function metric(label,value,klass,small){return '<article class="metric '+klass+'"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(small||'')+'</small></article>'}
+function statusPill(done,label){return '<span class="pill '+(done?'green':'orange')+'">'+esc(label||((done?'Erledigt':'Offen')))+'</span>'}
+function empty(text){return '<p class="muted">'+esc(text)+'</p>'}
+
+function dashboardTaskWidget(tasks){var open=tasks.filter(function(t){return !taskDone(t)}),overdue=open.filter(isTaskOverdue),today=todayISO(),todayName=weekday(today),dueToday=open.filter(function(t){var d=taskDate(t);return d===today||(!d&&low(t.day)===low(todayName))}),critical=open.slice().sort(function(a,b){var ao=isTaskOverdue(a)?0:1,bo=isTaskOverdue(b)?0:1;if(ao!==bo)return ao-bo;return (taskDate(a)||'9999').localeCompare(taskDate(b)||'9999')}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Meine Aufgaben</h3><p class="muted">Offene und überfällige Aufgaben für '+esc(userName())+'.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','noch zu erledigen')+metric('Heute',dueToday.length,'kpi-blue',todayName)+metric('Überfällig',overdue.length,'kpi-red','sofort prüfen')+'</div><div class="rc205-list">'+(critical.length?critical.map(function(t){var d=taskDate(t),ref=taskRef(t),customer=taskCustomer(t);return '<article class="rc205-row"><div><b>'+esc(taskTitle(t))+'</b><small>'+(d?esc(fmtDate(d,true)):esc(t.day||'Ohne Datum'))+(ref?' · '+esc(ref):'')+(customer?' · '+esc(customer):'')+'</small></div>'+statusPill(false,isTaskOverdue(t)?'Überfällig':'Offen')+'</article>'}).join(''):empty('Keine offenen Aufgaben.'))+'</div></section>'}
+function dashboardShipmentWidget(shipments){var open=shipments.filter(function(s){return !shipmentDone(s)}),today=todayISO(),overdue=open.filter(function(s){var d=shipmentPickup(s);return d&&d<today}),next=open.filter(function(s){return shipmentPickup(s)}).sort(function(a,b){return shipmentPickup(a).localeCompare(shipmentPickup(b))}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Sendungen und Abholungen</h3><p class="muted">Aktive Sendungen mit den nächsten Abholterminen.</p></div><button class="ghost" data-rc205-action="navigate" data-view="shipmentoverview">Übersicht öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offene Sendungen',open.length,'kpi-orange','nicht abgeschlossen')+metric('Abholung überfällig',overdue.length,'kpi-red','Termin überschritten')+metric('Gesamt',shipments.length,'kpi-blue','gespeicherte Sendungen')+'</div><div class="rc205-list">'+(next.length?next.map(function(s){var d=shipmentPickup(s);return '<article class="rc205-row"><div><b>'+esc(shipmentRef(s)||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(s)||'Ohne Kunde')+' · Abholung '+esc(fmtDate(d,true))+'</small></div>'+statusPill(false,d<today?'Überfällig':'Geplant')+'</article>'}).join(''):empty('Keine geplanten Abholungen vorhanden.'))+'</div></section>'}
+function dashboardAbdWidget(items){var open=items.filter(function(a){return !abdDone(a)}),done=items.length-open.length;return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>ABD-Anfragen</h3><p class="muted">Offene Anfragen und fertige ABD-Dokumente.</p></div><button class="ghost" data-rc205-action="navigate" data-view="abd">ABD öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','wartet auf Bearbeitung')+metric('Erledigt',done,'kpi-green','ABD-PDF vorhanden')+metric('Gesamt',items.length,'kpi-blue','gespeicherte Anfragen')+'</div><div class="rc205-list">'+(open.length?open.slice(0,8).map(function(a){return '<article class="rc205-row"><div><b>'+esc(a.ref||a.reference||'Ohne Referenz')+'</b><small>'+esc(a.customerName||'Ohne Kunde')+' · '+esc(a.status||'Entwurf')+'</small></div>'+statusPill(false,'Offen')+'</article>'}).join(''):empty('Keine offenen ABD-Anfragen.'))+'</div></section>'}
+function dashboardPalletWidget(entries){var saldo=entries.reduce(function(sum,e){return sum+signedPallet(e)},0),incoming=entries.filter(function(e){return /eingang|in/.test(low(e.type||e.direction))}).reduce(function(a,e){return a+(Number(e.count||e.quantity)||0)},0),outgoing=entries.filter(function(e){return /ausgang|out/.test(low(e.type||e.direction))}).reduce(function(a,e){return a+(Number(e.count||e.quantity)||0)},0);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Palettenkonto</h3><p class="muted">Aktueller Europaletten-Saldo aus allen Buchungen.</p></div><button class="ghost" data-rc205-action="navigate" data-view="pallet">Palettenkonto öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Saldo',saldo,'kpi-blue','Eingang minus Ausgang')+metric('Eingang',incoming,'kpi-green','gebuchte Paletten')+metric('Ausgang',outgoing,'kpi-orange','gebuchte Paletten')+'</div><div class="rc205-list">'+(entries.length?entries.slice(-6).reverse().map(function(e){return '<article class="rc205-row"><div><b>'+esc(e.customerName||e.customer||e.account||'Palettenbuchung')+'</b><small>'+esc(e.date||e.createdAt||'')+' · '+esc(e.type||e.direction||'Buchung')+'</small></div><strong>'+esc(e.count||e.quantity||0)+'</strong></article>'}).join(''):empty('Noch keine Palettenbuchung vorhanden.'))+'</div></section>'}
+function dashboardConfigHtml(p,modules){return '<section id="rc205DashboardConfig" class="card rc205-config '+(p.configOpen?'':'hidden')+'"><div class="rc205-card-head"><div><h3>Dashboard für '+esc(userName())+' anpassen</h3><p class="muted">Die Auswahl wird nur für diesen ExportHUB-Benutzer gespeichert.</p></div><button class="ghost" data-rc205-action="dashboard-reset">Standard wiederherstellen</button></div><h4>Bereiche auf dem Dashboard</h4><div class="rc205-check-grid">'+WIDGETS.map(function(w){return '<label class="checkrow"><input type="checkbox" data-rc205-change="dashboard-widget" data-widget="'+esc(w.id)+'" '+(p.widgets.indexOf(w.id)>=0?'checked':'')+'><span>'+esc(w.label)+'</span></label>'}).join('')+'</div><h4>Schnellzugriffe</h4><div class="rc205-check-grid">'+modules.map(function(m){return '<label class="checkrow"><input type="checkbox" data-rc205-change="dashboard-link" data-link="'+esc(m.id)+'" '+(p.quickLinks.indexOf(m.id)>=0?'checked':'')+'><span>'+esc(m.icon+' '+m.label)+'</span></label>'}).join('')+'</div></section>'}
+function renderDashboard(){var r=root();if(!r)return;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks),owned=tasks.filter(taskForUser);if(owned.length)tasks=owned;var quick=p.quickLinks.map(function(id){return modules.find(function(m){return m.id===id})}).filter(Boolean);var cards=[];p.widgets.forEach(function(id){if(id==='tasks')cards.push(dashboardTaskWidget(tasks));if(id==='shipments')cards.push(dashboardShipmentWidget(arr(s.shipments)));if(id==='abd')cards.push(dashboardAbdWidget(arr(s.abdRequests)));if(id==='pallet')cards.push(dashboardPalletWidget(arr(s.palletAccount)))});r.innerHTML='<div class="page-head"><div><h2>📊 Dashboard</h2><p>Persönlicher Arbeitsstand für '+esc(userName())+'. Bereiche und Schnellzugriffe können selbst zusammengestellt werden.</p></div><button class="ghost" data-rc205-action="dashboard-config">Dashboard anpassen</button></div>'+dashboardConfigHtml(p,modules)+'<section class="card rc205-quick-card"><h3>Schnellzugriffe</h3><div class="rc205-quick-grid">'+(quick.length?quick.map(function(m){return '<button class="rc205-quick" data-rc205-action="navigate" data-view="'+esc(m.id)+'"><span>'+esc(m.icon)+'</span><b>'+esc(m.label)+'</b></button>'}).join(''):empty('Im Dashboard noch keine Schnellzugriffe ausgewählt.'))+'</div></section><div class="rc205-dashboard-grid">'+(cards.length?cards.join(''):empty('Im Dashboard sind keine Bereiche ausgewählt.'))+'</div>';bindRoot(r)}
+
+function easterSunday(year){var a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;return new Date(Date.UTC(year,month-1,day))}
+function utcISO(d){return d.toISOString().slice(0,10)}
+function addDays(d,n){var x=new Date(d.getTime());x.setUTCDate(x.getUTCDate()+n);return x}
+function holidaysNRW(year){var e=easterSunday(year),fixed=function(m,d,n){return {date:year+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'),name:n}};return [fixed(1,1,'Neujahr'),{date:utcISO(addDays(e,-2)),name:'Karfreitag'},{date:utcISO(addDays(e,1)),name:'Ostermontag'},fixed(5,1,'Tag der Arbeit'),{date:utcISO(addDays(e,39)),name:'Christi Himmelfahrt'},{date:utcISO(addDays(e,50)),name:'Pfingstmontag'},{date:utcISO(addDays(e,60)),name:'Fronleichnam'},fixed(10,3,'Tag der Deutschen Einheit'),fixed(11,1,'Allerheiligen'),fixed(12,25,'1. Weihnachtstag'),fixed(12,26,'2. Weihnachtstag')]}
+function plannerHolidays(year){var s=state(),all=holidaysNRW(year),custom=arr(s.holidays);custom.forEach(function(h){var date=typeof h==='string'?h:q(h.date||h.iso||h.day),name=typeof h==='string'?'Feiertag':q(h.name||h.title||'Feiertag');if(date.slice(0,4)===String(year)&&/^\d{4}-\d{2}-\d{2}$/.test(date.slice(0,10)))all.push({date:date.slice(0,10),name:name})});var map={};all.forEach(function(h){map[h.date]=h});return Object.keys(map).sort().map(function(k){return map[k]})}
+function nextWorkday(iso){var year=Number(iso.slice(0,4)),set=new Set(holidaysNRW(year).concat(holidaysNRW(year+1)).map(function(h){return h.date})),d=new Date(iso+'T12:00:00');do{d.setDate(d.getDate()+1)}while(d.getDay()===0||d.getDay()===6||set.has(localISO(d)));return localISO(d)}
+function taskRowPlanner(t,holiday){var id=q(t.id),d=taskDate(t),suggested=nextWorkday(holiday.date),ref=taskRef(t),customer=taskCustomer(t),done=taskDone(t);return '<article class="rc205-planner-task '+(done?'done':'')+'"><div class="rc205-planner-main"><b>'+esc(ref||taskTitle(t))+'</b>'+(ref?'<span>'+esc(taskTitle(t))+'</span>':'')+(customer?'<small>'+esc(customer)+'</small>':'')+'<small>'+esc(taskOwner(t)||'Ohne Zuständigkeit')+'</small></div>'+statusPill(done,done?'Erledigt':'Offen')+'<div class="rc205-planner-actions"><input type="date" data-date-for="'+esc(id)+'" value="'+esc(suggested)+'"><button class="soft" data-rc205-action="planner-move" data-task-id="'+esc(id)+'">Verschieben</button><button class="ghost" data-rc205-action="planner-next" data-task-id="'+esc(id)+'" data-holiday="'+esc(holiday.date)+'">Nächster Arbeitstag</button></div></article>'}
+function undatedRow(t,defaultDate){var id=q(t.id),ref=taskRef(t),customer=taskCustomer(t);return '<article class="rc205-planner-task"><div class="rc205-planner-main"><b>'+esc(ref||taskTitle(t))+'</b>'+(ref?'<span>'+esc(taskTitle(t))+'</span>':'')+(customer?'<small>'+esc(customer)+'</small>':'')+'<small>'+esc(taskOwner(t)||'Ohne Zuständigkeit')+'</small></div><span class="pill gray">Ohne Datum</span><div class="rc205-planner-actions"><input type="date" data-date-for="'+esc(id)+'" value="'+esc(defaultDate)+'"><button class="soft" data-rc205-action="planner-plan" data-task-id="'+esc(id)+'">Einplanen</button></div></article>'}
+function renderPlanner(){var r=root();if(!r)return;var s=state(),nowYear=new Date().getFullYear(),years=[nowYear,nowYear+1],year=Number(s.taskPlannerYear||s.plannerYear||nowYear);if(years.indexOf(year)<0)year=nowYear;s.taskPlannerYear=year;s.plannerYear=year;var holidays=plannerHolidays(year),tasks=arr(s.tasks),holidaySet=new Set(holidays.map(function(h){return h.date})),holidayTasks=tasks.filter(function(t){return holidaySet.has(taskDate(t))}),openHoliday=holidayTasks.filter(function(t){return !taskDone(t)}),undated=tasks.filter(function(t){return !taskDone(t)&&!taskDate(t)}).slice(0,30),defaultDate=nextWorkday(todayISO());r.innerHTML='<div class="page-head"><div><h2>🗓️ Aufgaben Planer</h2><p>Gesetzliche Feiertage in Nordrhein-Westfalen für das aktuelle und folgende Jahr. Aufgaben auf Feiertagen können direkt verschoben werden.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics">'+metric('Feiertage '+year,holidays.length,'kpi-blue','Nordrhein-Westfalen')+metric('Aufgaben auf Feiertagen',holidayTasks.length,'kpi-orange','mit passendem Fälligkeitsdatum')+metric('Davon offen',openHoliday.length,'kpi-red','müssen verschoben werden')+metric('Offen ohne Datum',undated.length,'kpi-blue','können hier eingeplant werden')+'</div><section class="card"><div class="toolbar rc205-planner-toolbar"><label class="field">Jahr<select data-rc205-change="planner-year">'+years.map(function(y){return '<option value="'+y+'" '+(y===year?'selected':'')+'>'+y+'</option>'}).join('')+'</select></label></div><div class="rc205-holiday-list">'+holidays.map(function(h){var list=tasks.filter(function(t){return taskDate(t)===h.date});return '<section class="rc205-holiday '+(list.length?'has-tasks':'')+'"><div class="rc205-holiday-head"><div><span class="rc205-date">'+esc(fmtDate(h.date,true))+'</span><h3>'+esc(h.name)+'</h3></div><span class="pill '+(list.length?'orange':'gray')+'">'+list.length+' Aufgabe'+(list.length===1?'':'n')+'</span></div>'+(list.length?'<div class="rc205-planner-list">'+list.map(function(t){return taskRowPlanner(t,h)}).join('')+'</div>':empty('Keine Aufgabe auf diesem Feiertag.'))+'</section>'}).join('')+'</div></section><section class="card rc205-undated"><div class="rc205-card-head"><div><h3>Offene Aufgaben ohne Fälligkeitsdatum</h3><p class="muted">Aufgaben können direkt einem konkreten Datum zugeordnet werden.</p></div></div><div class="rc205-planner-list">'+(undated.length?undated.map(function(t){return undatedRow(t,defaultDate)}).join(''):empty('Alle offenen Aufgaben besitzen bereits ein Fälligkeitsdatum.'))+'</div></section>';bindRoot(r)}
+function setTaskDate(id,date,reason){if(!/^\d{4}-\d{2}-\d{2}$/.test(q(date))){alert('Bitte ein gültiges Datum auswählen.');return false}var t=arr(state().tasks).find(function(x){return q(x.id)===q(id)});if(!t){alert('Aufgabe wurde nicht gefunden.');return false}var old=taskDate(t)||q(t.day)||'ohne Datum';t.dueDate=date;t.date=date;t.plannedDate=date;t.day=weekday(date);t.movedFromHoliday=old;t.movedAt=new Date().toISOString();t.movedBy=userName();persist(reason||('Aufgabe verschoben: '+old+' → '+date));renderPlanner();return false}
+
+function bindRoot(r){if(r.__rc205Bound)return;r.__rc205Bound=true;r.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc205-action]');if(!b)return;var action=b.getAttribute('data-rc205-action');if(action==='navigate'){e.preventDefault();navigate(b.getAttribute('data-view'));return}if(action==='dashboard-config'){var p=prefs();p.configOpen=!p.configOpen;persist('Dashboard-Einstellungen geöffnet');renderDashboard();return}if(action==='dashboard-reset'){var p=prefs();p.widgets=DEFAULT_WIDGETS.slice();p.quickLinks=DEFAULT_LINKS.filter(canOpen);p.configOpen=true;persist('Dashboard auf Standard zurückgesetzt');renderDashboard();return}if(action==='planner-move'||action==='planner-plan'){var id=b.getAttribute('data-task-id'),input=r.querySelector('input[data-date-for="'+CSS.escape(id)+'"]');setTaskDate(id,input&&input.value,action==='planner-plan'?'Aufgabe eingeplant':'Aufgabe im Aufgaben Planer verschoben');return}if(action==='planner-next'){setTaskDate(b.getAttribute('data-task-id'),nextWorkday(b.getAttribute('data-holiday')),'Aufgabe auf nächsten Arbeitstag verschoben');return}},true);r.addEventListener('change',function(e){var el=e.target,action=el&&el.getAttribute&&el.getAttribute('data-rc205-change');if(!action)return;if(action==='dashboard-widget'){var p=prefs(),id=el.getAttribute('data-widget');if(el.checked&&p.widgets.indexOf(id)<0)p.widgets.push(id);if(!el.checked)p.widgets=p.widgets.filter(function(x){return x!==id});persist('Persönliches Dashboard geändert');renderDashboard();return}if(action==='dashboard-link'){var p=prefs(),id=el.getAttribute('data-link');if(el.checked&&p.quickLinks.indexOf(id)<0)p.quickLinks.push(id);if(!el.checked)p.quickLinks=p.quickLinks.filter(function(x){return x!==id});persist('Dashboard-Schnellzugriffe geändert');renderDashboard();return}if(action==='planner-year'){state().taskPlannerYear=Number(el.value);state().plannerYear=Number(el.value);persist('Jahr im Aufgaben Planer geändert');renderPlanner();return}},true)}
+function apply(view){if(applying)return;var v=low(view||currentView());if(v!=='dashboard'&&v!=='planning')return;applying=true;try{if(v==='dashboard')renderDashboard();else renderPlanner()}catch(e){console.error('ExportHUB Dashboard/Aufgaben Planer',e);var r=root();if(r)r.innerHTML='<div class="badbox"><h2>Bereich konnte nicht geöffnet werden</h2><p>'+esc(e&&e.message||e)+'</p></div>'}finally{applying=false}}
+function schedule(view){clearTimeout(timer);timer=setTimeout(function(){apply(view)},0)}
+window.__EXPORTHUB_AFTER_RENDER__=function(view){try{if(typeof previousAfterRender==='function')previousAfterRender(view)}catch(e){console.error('Vorheriger ExportHUB Render-Hook',e)}schedule(view)};
+window.addEventListener('exporthub:ready',function(){schedule(currentView())});
+window.addEventListener('exporthub:viewchange',function(e){schedule(e&&e.detail&&e.detail.view)});
+window.addEventListener('exporthub:sync',function(){schedule(currentView())});
+window.ExportHUBRC205={renderDashboard:renderDashboard,renderPlanner:renderPlanner,apply:apply,setTaskDate:setTaskDate,navigate:navigate,holidaysNRW:holidaysNRW};
+try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'205',loginReturn:'/?v=205'})}catch(_){ }
+})();
+
+</script>
+<!-- INDEX 205 DASHBOARD + AUFGABEN PLANER END -->
