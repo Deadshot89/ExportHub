@@ -66,18 +66,18 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <script>
 window.EXPORTHUB_BUILD=Object.freeze({
-  version:'RC210',
-  cache:'210',
-  loginReturn:'/?v=210'
+  version:'RC211',
+  cache:'211',
+  loginReturn:'/?v=211'
 });
 </script>
 <script id="rc603-version-guard-head">
 (function(){
 'use strict';
 var BUILD=Object.freeze({
-  version:'RC210',
-  cache:'210',
-  loginReturn:'/?v=210'
+  version:'RC211',
+  cache:'211',
+  loginReturn:'/?v=211'
 });
 window.EXPORTHUB_BUILD=BUILD;
 document.documentElement.setAttribute('data-exporthub-version','RC628');
@@ -12195,7 +12195,7 @@ window.__EXPORTHUB_RC564_SOURCE_STATS__=stats;
 <script data-inline-source="assets/clean-bootstrap.js">
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC577',cache:'210',loginReturn:'/?v=210'};
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC577',cache:'211',loginReturn:'/?v=211'};
 const VERSION=String(BUILD.version||'RC565');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
@@ -13949,7 +13949,7 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){retur
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)return window.ExportHUBClean.runtime.state;if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){ }return window.state||{}}
 function shipmentView(){var s=state(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
 function heading(el){var h=el&&el.querySelector&&el.querySelector('h1,h2,h3,h4');return q(h&&h.textContent)}
 function savedCard(shell){if(!shell)return null;return shell.querySelector('#rc573SavedCard')||Array.prototype.slice.call(shell.querySelectorAll('section,.card,article')).find(function(x){return /^Gespeicherte Sendungen/i.test(heading(x))})||null}
 function mailCards(shell){if(!shell)return[];var list=Array.prototype.slice.call(shell.querySelectorAll('#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,.rc573-mail-card'));Array.prototype.slice.call(shell.querySelectorAll(':scope>section,:scope>.card,:scope>article')).forEach(function(x){if(/^(Mailbereich|Mail Bereich|Mailversand|Anmeldung\s*\/\s*Mail)/i.test(heading(x))&&list.indexOf(x)<0)list.push(x)});return list}
@@ -15815,7 +15815,7 @@ body.rc569-pdf-export .rc420-qr,body.rc569-pdf-export .rc569-qr-box,[data-rc569-
 (function(){
 'use strict';
 if(window.__EXPORTHUB_RC569_QR__)return;window.__EXPORTHUB_RC569_QR__=true;
-var VERSION='RC210',inflight={},syncBusy=false,installBusy=false,pdfWrapped={},saveWrapped={};
+var VERSION='RC211',inflight={},syncBusy=false,installBusy=false,pdfWrapped={},saveWrapped={};
 function q(v){return String(v==null?'':v).trim()}
 function l(v){return q(v).toLowerCase()}
 function a(v){return Array.isArray(v)?v:[]}
@@ -15938,7 +15938,7 @@ function findShipment(id){id=q(id);if(!id||id==='current')return st().shipment||
 function currentShipment(){var s=st(),id=q(s.activeShipmentId),found=id&&id!=='current'?findShipment(id):null;return found||s.shipment||null}
 function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'RC572 Änderung');else if(typeof window.save==='function')window.save()}catch(e){console.error('RC572 save',e)}}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
  try{document.title='ExportHUB '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;document.documentElement.setAttribute('data-exporthub-version',VERSION);document.documentElement.setAttribute('data-exporthub-fix',VERSION)}catch(_){ }
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
  document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(el){if(!el||/^(SCRIPT|STYLE)$/i.test(el.tagName)||el.children.length>8)return;var t=q(el.textContent);if(/RC\d+/i.test(t))el.textContent=t.replace(/RC\d+/ig,VERSION)});
@@ -16124,7 +16124,7 @@ function view(){var s=state();return low(s.view||document.body.getAttribute('dat
 function root(){return document.getElementById('content')}
 function nativeTimeout(fn,ms){var c=window.ExportHUBClean&&window.ExportHUBClean.native;return (c&&c.setTimeout||window.setTimeout)(fn,ms||0)}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.documentElement.setAttribute('data-design-approved','false');
  document.title='ExportHUB '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
@@ -16294,7 +16294,7 @@ function getState(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){v
 function shipment(){return getState().shipment||{}}
 function isShipment(){var s=getState(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-eh-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.documentElement.setAttribute('data-style-lock','STYLE');
  document.documentElement.setAttribute('data-shipment-style-approved','RC574');
@@ -17263,7 +17263,7 @@ function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var 
 function isShipment(){var s=state(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-eh-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
 function nativeTimeout(fn,ms){var c=window.ExportHUBClean&&window.ExportHUBClean.native;return (c&&c.setTimeout||window.setTimeout)(fn,ms||0)}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
@@ -17363,7 +17363,7 @@ function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.
 function shipmentCustomer(sh){var c=sh&&sh.customer;return q((c&&typeof c==='object'&&(c.name||c.customerName||c.label))||sh&&sh.customerName||(typeof c==='string'?c:''))}
 function shipments(){return arr(st().shipments)}
 function findShipment(id){id=q(id);return shipments().find(function(sh){return shipmentId(sh)===id||shipmentRef(sh)===id})||null}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 
 /* ---------- Stauplan: Orientierung, Reihenfolge und Vollstatus ---------- */
 var TRUCK_LENGTH=1360,TRUCK_WIDTH=245;
@@ -17467,7 +17467,7 @@ function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.sendung
 function customer(sh){var c=sh&&sh.customer;return q((c&&typeof c==='object'&&(c.name||c.customerName||c.label))||sh&&sh.customerName||(typeof c==='string'?c:''))}
 function findShipment(id){id=q(id);return shipments().find(function(x){return sid(x)===id||sref(x)===id})||null}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -18317,7 +18317,7 @@ function isLdm(el){var r=root(el);return !!(r&&fields(r).ldm===el)}function manu
 window.addEventListener('input',function(e){if(!isLdm(e.target))return;var raw=e.target.value;e.stopImmediatePropagation();e.stopPropagation();manual(e.target,raw)},true);window.addEventListener('change',function(e){if(!isLdm(e.target))return;var raw=e.target.value;e.stopImmediatePropagation();e.stopPropagation();manual(e.target,raw)},true);
 function recover(target){if(!root(target)||isLdm(target))return;[80,220,500].forEach(function(ms){setT(function(){sync(false);updateStow()},ms)})}window.addEventListener('input',function(e){recover(e.target)},true);window.addEventListener('change',function(e){recover(e.target)},true);
 document.addEventListener('change',function(e){var r=root(e.target);if(!r||isLdm(e.target))return;var f=fields(r),i=indexOf(r);if(i>=0&&(e.target===f.type||e.target===f.l||e.target===f.w)){var row=shipment().rows[i]||(shipment().rows[i]={});if(row.ldmManual!==true||stacked(row,f)){row.ldmAuto=0;setT(function(){var fresh=nodes()[i];if(fresh)apply(fresh,i,true);recalc();queue('LDM automatisch berechnet')},100)}}},false);
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;try{document.title='ExportHUB Online '+VERSION}catch(_){}document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(x){if(/RC\d+/i.test(q(x.textContent)))x.textContent=q(x.textContent).replace(/RC\d+/ig,VERSION)})}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;try{document.title='ExportHUB Online '+VERSION}catch(_){}document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(x){if(/RC\d+/i.test(q(x.textContent)))x.textContent=q(x.textContent).replace(/RC\d+/ig,VERSION)})}
 function refresh(){version();sync(false)}function schedule(){if(timer)return;timer=setT(function(){timer=0;refresh()},30)}['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(x){window.addEventListener(x,schedule)});document.addEventListener('click',function(){setT(refresh,150)},true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,100,350,1000,3000].forEach(function(ms){setT(refresh,ms)})},{once:true});else[0,100,350,1000,3000].forEach(function(ms){setT(refresh,ms)});setI(function(){version();if(nodes().length)sync(false)},1000);try{var O=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver,h=document.getElementById('content');if(O&&h)new O(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule()}).observe(h,{childList:true,subtree:true})}catch(_){}
 window.ExportHUBRC596=Object.freeze({version:VERSION,syncLdm:sync,totalLdm:total,refresh:refresh});
 })();
@@ -18390,7 +18390,7 @@ function esc(v){return q(v).replace(/[&<>\"]/g,function(c){return{'&':'&amp;','<
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var x=window.__EXPORTHUB_GET_STATE__();if(x)return x}}catch(_){ }return window.state||(window.state={})}
 function shipment(){var s=state();s.shipment=s.shipment||{};s.shipment.rows=a(s.shipment.rows);return s.shipment}
 function inShipment(){return !!document.getElementById('rc573ShipmentShell')||low(state().view)==='shipment'}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION}
 function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')return window.ExportHUBClean.queueSave(reason||'Lieferscheine aktualisiert')}catch(_){ }try{if(typeof window.save==='function')return window.save(reason||'Lieferscheine aktualisiert')}catch(_){ }}
 function audit(action,detail){try{if(typeof window.audit==='function')window.audit(action,detail)}catch(_){ }}
 function uid(prefix){try{if(typeof window.uid==='function')return window.uid(prefix)}catch(_){ }return String(prefix||'FILE')+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)}
@@ -18589,7 +18589,7 @@ function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.
 function customerName(sh){var c=sh&&sh.customer;return q(c&&typeof c==='object'?(c.name||c.customerName):sh&&sh.customerName||c)}
 function customerAddress(sh){var c=sh&&sh.customer;return q(c&&typeof c==='object'?(c.address||c.recipientAddress):sh&&sh.recipientAddress||sh&&sh.address)}
 function queueSave(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){window.ExportHUBClean.queueSave(reason);return}}catch(_){}try{if(typeof window.save==='function')window.save(reason)}catch(_){}}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
 
 function docView(){return document.querySelector('#content .rc390-docview,.rc390-docview')}
 function bundle(){var v=docView();return v&&v.querySelector('.rc390-bundle')}
@@ -18763,8 +18763,8 @@ function migrateAll(){
   try{
     window.EXPORTHUB_BUILD=Object.freeze({
       version:VERSION,
-      cache:'210',
-      loginReturn:'/?v=210'
+      cache:'211',
+      loginReturn:'/?v=211'
     });
   }catch(_){}
   document.documentElement.setAttribute('data-exporthub-version',VERSION);
@@ -19191,7 +19191,7 @@ function wrapRc565(){
  wrapped.__rc608Wrapped=true;wrapped.__rc608Base=base;api.saveCustomerFolder=wrapped;
 }
 function install(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  wrapGlobal('rc390SaveCustomerMailPanel');wrapGlobal('rc393SaveCustomerMail');wrapGlobal('rc543SaveCustomerMailRule');wrapGlobal('saveCustomerFolderMail');wrapRc565();ensureEditor();
 }
@@ -19336,7 +19336,7 @@ function install(){
     try{globalThis.rc344SetRef=window.rc344SetRef;globalThis.setShipmentRef=window.setShipmentRef}catch(_){}
 
     try{
-      window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'});
+      window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'});
     }catch(_){}
     document.documentElement.setAttribute('data-exporthub-version',VERSION);
     document.title='ExportHUB Online '+VERSION;
@@ -19482,7 +19482,7 @@ function refreshLocations(){
 }
 function applyLocation(id,save){var l=findLocation(id);if(!l)return false;var x=sh();x.locationId=locationId(l,0);x.selectedLocationId=x.locationId;x.siteId=x.locationId;x.location=JSON.parse(JSON.stringify(l));x.locationData=JSON.parse(JSON.stringify(l));x.siteData=JSON.parse(JSON.stringify(l));x.locationName=locationName(l);x.site=x.locationName;x.standort=x.locationName;x.recipientName=locationName(l)||x.customerName;x.destinationName=locationName(l)||x.destinationName;x.recipientAddress=locationAddress(l)||x.recipientAddress;x.destinationCountry=q(l.country||l.land)||x.destinationCountry;x.recipientCountry=q(l.country||l.land)||x.recipientCountry;var p=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(p)p.textContent=x.recipientAddress||'';refreshLocations();if(save!==false){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Standort ausgewählt')}catch(_){}}return false}
 window.__EXPORTHUB_RC616_AFTER_CUSTOMER__=function(){setT(refreshLocations,0);setT(refreshLocations,80);setT(refreshLocations,250)};
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.dataset.exporthubVersion=VERSION;document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}document.documentElement.dataset.exporthubVersion=VERSION;document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function refresh(){forceVersion();var v=view();if(v&&v!==installedView)install(true);if(document.getElementById('rc573CustomerCard'))refreshLocations()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,120,500,1000].forEach(function(ms){setT(refresh,ms)})},{once:true});else[0,120,500,1000].forEach(function(ms){setT(refresh,ms)});
 ['exporthub:ready','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,function(){setT(refresh,20)})});
@@ -19808,7 +19808,7 @@ function markPackaging(){
   }catch(_){}
 }
 function version(){
-  try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}
+  try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}
   document.documentElement.setAttribute('data-exporthub-version',VERSION);
   document.title='ExportHUB Online '+VERSION;
   var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -19918,7 +19918,7 @@ document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,100,350,900].forEach(function(ms){setT(apply,ms)})},{once:true});else[0,100,350,900].forEach(function(ms){setT(apply,ms)});
 try{var O=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver,c=document.getElementById('content');if(O&&c)new O(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule()}).observe(c,{childList:true,subtree:true})}catch(_){}
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
 version();
 window.ExportHUBRC624=Object.freeze({version:VERSION,apply:apply,reset:reset,afterSave:afterSave,selfTest:function(){return{address:stickyAddress,process:stickyProcess,stateAddress:!!shipment().addressConfirmed,stateProcess:!!shipment().customerProcessConfirmed,addressInputs:inputs('address').length,processInputs:inputs('process').length}}});
 })();
@@ -20083,7 +20083,7 @@ function patchOverview(){
  return true;
 }
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
 }
@@ -20183,6 +20183,21 @@ window.ExportHUBRC625Mail=Object.freeze({version:VERSION,refresh:enforce,selfTes
 #content .rc626-muted{font-size:12px;color:#64748b;font-weight:750;line-height:1.45}
 #content .rc626-warning{border-left:5px solid #f59e0b;background:#fffbeb;border-radius:14px;padding:12px;line-height:1.5}
 @media(max-width:1000px){#content .rc626-grid2,#content .rc626-grid3,#content .rc626-grid4{grid-template-columns:1fr}#content .rc626-colli-grid{grid-template-columns:1fr 1fr}#content .rc626-colli-grid .rc626-remove{grid-column:1/-1}}
+
+/* RC211: Gate41-Felder klar gruppiert und ohne ungleichmäßige Leerflächen */
+#rc626Shipping .rc211-gate-card{padding:20px!important}
+#rc626Shipping .rc211-gate-groups{display:grid;gap:14px;margin-top:14px}
+#rc626Shipping .rc211-field-group{border:1px solid #dbeafe;background:#f8fbff;border-radius:18px;padding:14px}
+#rc626Shipping .rc211-field-group h4{margin:0 0 11px;color:#08245d;font-size:14px}
+#rc626Shipping .rc211-route-grid,#rc626Shipping .rc211-load-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#rc626Shipping .rc211-cost-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#rc626Shipping .rc211-field-group .field{margin:0;align-content:start}
+#rc626Shipping .rc211-field-group .field input,#rc626Shipping .rc211-field-group .field select{min-height:46px;background:#fff}
+#rc626Shipping .rc211-field-group .field small{display:block;min-height:34px;margin-top:6px;line-height:1.3}
+#rc626Shipping .rc211-gate-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+#rc626Shipping .rc211-gate-actions button{min-width:180px}
+@media(max-width:1250px){#rc626Shipping .rc211-cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){#rc626Shipping .rc211-route-grid,#rc626Shipping .rc211-load-grid,#rc626Shipping .rc211-cost-grid{grid-template-columns:1fr}#rc626Shipping .rc211-field-group .field small{min-height:0}}
 </style>
 
 <style id="rc635-ihk-exam-style">
@@ -20215,7 +20230,7 @@ function customers(){var s=state();s.customers=arr(s.customers);return s.custome
 function shipments(){var s=state();s.shipments=arr(s.shipments);return s.shipments}
 function findCustomer(id){var key=q(id);return customers().find(function(c){return q(c.id)===key||customerNumber(c)===key||customerName(c)===key})||null}
 function findShipment(id){var key=q(id).toUpperCase();return shipments().find(function(x){return q(x.id||x.shipmentId).toUpperCase()===key||q(x.ref||x.reference||x.shipmentRef).toUpperCase()===key})||null}
-function forceVersion(){try{var build=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'}),desc=Object.getOwnPropertyDescriptor(window,'EXPORTHUB_BUILD');if(!desc||desc.configurable)Object.defineProperty(window,'EXPORTHUB_BUILD',{value:build,writable:false,enumerable:true,configurable:true});else window.EXPORTHUB_BUILD=build}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{var build=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'}),desc=Object.getOwnPropertyDescriptor(window,'EXPORTHUB_BUILD');if(!desc||desc.configurable)Object.defineProperty(window,'EXPORTHUB_BUILD',{value:build,writable:false,enumerable:true,configurable:true});else window.EXPORTHUB_BUILD=build}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 
 /* ---------- Navigation ---------- */
 function navAllowed(view){try{if(typeof window.canView==='function'&&!window.canView(view))return false;if(typeof window.canRead==='function'&&!window.canRead(view))return false}catch(_){}return true}
@@ -20269,8 +20284,8 @@ function activeCustomer(){var s=state(),sh=s.shipment||{},id=q(sh.customerId||s.
 function activeShipmentRoute(){var s=state(),sh=s.shipment||{},c=activeCustomer()||{},address=q(sh.recipientAddress||sh.destinationAddress||sh.address||c.address),postal=firstValue(sh,['recipientPostal','destinationPostal','postalCode','zip'])||extractPostal(address)||firstValue(c,['postalCode','zip']),place=firstValue(sh,['recipientCity','destinationCity','city','locationName'])||placeFromAddress(address)||firstValue(c,['city','place']),country=firstValue(sh,['destinationCountry','recipientCountry','country'])||firstValue(c,['country','land'])||'Deutschland';return{postal:postal,place:place,country:country,address:address,signature:[q(sh.id||sh.shipmentId||sh.ref||sh.reference||sh.shipmentRef),postal,place,country].join('|')}}
 function shipmentRows(){var sh=state().shipment||{};return arr(sh.rows||sh.colliRows||sh.packages)}
 function shipmentLoad(){var rows=shipmentRows(),packages=0,pallets=0,totalWeight=0,packageItems=[];rows.forEach(function(r){var count=Math.max(0,Math.floor(num(r.count||r.qty||r.anzahl)||0)),type=low(r.type||r.packaging||r.verpackung||r.name),weight=num(r.totalWeight||r.weightTotal||r.weight||r.gewicht),length=num(r.length||r.laenge||r.l),width=num(r.width||r.breite||r.w),height=num(r.height||r.hoehe||r.h);totalWeight+=weight;if(/palette|pallet|euro/.test(type)){pallets+=count}else if(count>0){packages+=count;packageItems.push({count:count,totalWeight:weight,length:length,width:width,height:height,type:q(r.type||r.packaging||r.verpackung)})}});return{rows:rows,packages:packages||(!pallets&&rows.length?rows.reduce(function(n,r){return n+Math.max(0,Math.floor(num(r.count||r.qty||r.anzahl)||0))},0):0),pallets:pallets,totalWeight:totalWeight,kgPerPallet:pallets?totalWeight/pallets:totalWeight,packageItems:packageItems,signature:JSON.stringify(rows.map(function(r){return[q(r.type||r.packaging),num(r.count||r.qty),num(r.totalWeight||r.weight),num(r.length||r.l),num(r.width||r.w),num(r.height||r.h)]}))}}
-function costState(){var s=state();s.shippingCosts=s.shippingCosts||{};var c=s.shippingCosts;c.mode=c.mode==='gate'?'gate':'ups';c.ups=c.ups||{};c.gate=c.gate||{};var u=c.ups,g=c.gate;if(!q(u.service))u.service='UPS Standard';if(!num(u.packages))u.packages=1;if(u.totalKg==null)u.totalKg=5;if(u.length==null)u.length=0;if(u.width==null)u.width=0;if(u.height==null)u.height=0;if(u.fuelPct==null)u.fuelPct=upsFuelDefault(u.service);if(u.additional==null)u.additional=0;if(u.manualAdditional==null&&u.additional!=null)u.manualAdditional=num(u.additional);if(u.manualBasePrice==null&&u.basePrice!=null)u.manualBasePrice=num(u.basePrice);if(!q(u.transit))u.transit='1–3 Arbeitstage';if(!num(g.pallets))g.pallets=1;if(g.kgPerPallet==null)g.kgPerPallet=200;if(g.dieselPrice==null)g.dieselPrice=1.29;if(g.toll==null)g.toll=0;if(g.additional==null)g.additional=0;if(g.manualToll==null&&g.toll!=null)g.manualToll=num(g.toll);if(g.manualAdditional==null&&g.additional!=null)g.manualAdditional=num(g.additional);if(g.internationalBase==null)g.internationalBase=0;if(!q(g.country))g.country='Deutschland';s.shippingCostHistory=arr(s.shippingCostHistory);return c}
-function syncCostFromShipment(){var c=costState(),u=c.ups,g=c.gate,o=senderRoute(),d=activeShipmentRoute(),load=shipmentLoad(),changed=false;if(!q(u.originPostal||u.originPlace)){u.originPostal=o.postal;u.originPlace=o.place;changed=true}if(!q(g.originPostal||g.originPlace)){g.originPostal=o.postal;g.originPlace=o.place;changed=true}if(d.signature&&u.shipmentRouteSignature!==d.signature){u.destinationPostal=d.postal;u.destinationPlace=d.place;u.destinationCountry=d.country;u.shipmentRouteSignature=d.signature;changed=true}if(d.signature&&g.shipmentRouteSignature!==d.signature){g.destinationPostal=d.postal;g.destinationPlace=d.place;g.country=d.country;g.shipmentRouteSignature=d.signature;changed=true}if(load.rows.length&&u.shipmentLoadSignature!==load.signature){if(load.packages>0){u.packages=load.packages;u.totalKg=load.packageItems.reduce(function(n,x){return n+x.totalWeight},0)||load.totalWeight;u.packageItems=clone(load.packageItems);var one=load.packageItems[0]||{};if(one.length)u.length=one.length;if(one.width)u.width=one.width;if(one.height)u.height=one.height}if(load.pallets>0){g.pallets=load.pallets;g.kgPerPallet=Math.round(load.kgPerPallet*100)/100}u.shipmentLoadSignature=load.signature;g.shipmentLoadSignature=load.signature;changed=true}var scope=countryCode(g.country)==='DE'?'national':'international';if(g.scope!==scope){g.scope=scope;changed=true}return changed}
+function costState(){var s=state();s.shippingCosts=s.shippingCosts||{};var c=s.shippingCosts;c.mode=c.mode==='gate'?'gate':'ups';c.ups=c.ups||{};c.gate=c.gate||{};var u=c.ups,g=c.gate;if(!u.__blankPriceRequest){if(!q(u.service))u.service='UPS Standard';if(!num(u.packages))u.packages=1;if(u.totalKg==null)u.totalKg=5;if(u.length==null)u.length=0;if(u.width==null)u.width=0;if(u.height==null)u.height=0;if(u.fuelPct==null)u.fuelPct=upsFuelDefault(u.service);if(u.additional==null)u.additional=0;if(u.manualAdditional==null&&u.additional!=null)u.manualAdditional=num(u.additional);if(u.manualBasePrice==null&&u.basePrice!=null)u.manualBasePrice=num(u.basePrice);if(!q(u.transit))u.transit='1–3 Arbeitstage'}if(!g.__blankPriceRequest){if(!num(g.pallets))g.pallets=1;if(g.kgPerPallet==null)g.kgPerPallet=200;if(g.dieselPrice==null)g.dieselPrice=1.29;if(g.toll==null)g.toll=0;if(g.additional==null)g.additional=0;if(g.manualToll==null&&g.toll!=null)g.manualToll=num(g.toll);if(g.manualAdditional==null&&g.additional!=null)g.manualAdditional=num(g.additional);if(g.internationalBase==null)g.internationalBase=0;if(!q(g.country))g.country='Deutschland'}s.shippingCostHistory=arr(s.shippingCostHistory);return c}
+function syncCostFromShipment(){var c=costState(),u=c.ups,g=c.gate,o=senderRoute(),d=activeShipmentRoute(),load=shipmentLoad(),changed=false,skipUps=!!u.__blankPriceRequest,skipGate=!!g.__blankPriceRequest;if(!skipUps&&!q(u.originPostal||u.originPlace)){u.originPostal=o.postal;u.originPlace=o.place;changed=true}if(!skipGate&&!q(g.originPostal||g.originPlace)){g.originPostal=o.postal;g.originPlace=o.place;changed=true}if(!skipUps&&d.signature&&u.shipmentRouteSignature!==d.signature){u.destinationPostal=d.postal;u.destinationPlace=d.place;u.destinationCountry=d.country;u.shipmentRouteSignature=d.signature;changed=true}if(!skipGate&&d.signature&&g.shipmentRouteSignature!==d.signature){g.destinationPostal=d.postal;g.destinationPlace=d.place;g.country=d.country;g.shipmentRouteSignature=d.signature;changed=true}if(load.rows.length&&((!skipUps&&u.shipmentLoadSignature!==load.signature)||(!skipGate&&g.shipmentLoadSignature!==load.signature))){if(!skipUps&&load.packages>0){u.packages=load.packages;u.totalKg=load.packageItems.reduce(function(n,x){return n+x.totalWeight},0)||load.totalWeight;u.packageItems=clone(load.packageItems);var one=load.packageItems[0]||{};if(one.length)u.length=one.length;if(one.width)u.width=one.width;if(one.height)u.height=one.height}if(!skipGate&&load.pallets>0){g.pallets=load.pallets;g.kgPerPallet=Math.round(load.kgPerPallet*100)/100}if(!skipUps)u.shipmentLoadSignature=load.signature;if(!skipGate)g.shipmentLoadSignature=load.signature;changed=true}if(!skipGate){var scope=countryCode(g.country)==='DE'?'national':'international';if(g.scope!==scope){g.scope=scope;changed=true}}return changed}
 function upsFuelDefault(service){return /express/i.test(service)?51.10:36.00}
 function upsTransit(rate,group,service){if(rate&&q(rate.transitTime||rate.transit))return q(rate.transitTime||rate.transit);var express=/express/i.test(service||'');if(group==='Deutschland')return express?'1 Arbeitstag':'1–2 Arbeitstage';if(group==='EU')return express?'1–2 Arbeitstage':'2–5 Arbeitstage';return express?'2–4 Arbeitstage':'4–8 Arbeitstage'}
 function findUpsRate(group,service,billable){var list=upsRates().filter(function(r){return q(r.country)===q(group)&&q(r.service||'UPS Standard')===q(service)}).sort(function(a,b){return num(a.maxKg)-num(b.maxKg)});return list.find(function(r){return billable<=num(r.maxKg)})||null}
@@ -20287,6 +20302,7 @@ function calcGate(){syncCostFromShipment();var g=costState().gate||{},pallets=Ma
 function setRoute(section,side,value){var c=costState(),x=c[section]||{},postal=extractPostal(value),place=q(String(value||'').replace(postal,''));if(side==='origin'){x.originPostal=postal;x.originPlace=place}else{x.destinationPostal=postal;x.destinationPlace=place;x.shipmentRouteSignature='manual:'+postal+'|'+place}persist((section==='gate'?'Gate41':'UPS')+' '+(side==='origin'?'Startort':'Zielort')+' geändert');renderShipping();return false}
 function setCost(section,key,value){var c=costState();c[section]=c[section]||{};var x=c[section];if(['packages','totalKg','length','width','height','fuelPct','additional','manualBasePrice','basePrice','pallets','kgPerPallet','dieselPrice','toll','internationalBase'].indexOf(key)>=0)x[key]=num(value);else x[key]=value;if(section==='ups'&&key==='service')x.fuelPct=upsFuelDefault(value);if(section==='ups'&&key==='basePrice')x.manualBasePrice=num(value);if(section==='ups'&&key==='additional')x.manualAdditional=num(value);if(section==='gate'&&key==='country')x.scope=countryCode(value)==='DE'?'national':'international';if(section==='gate'&&key==='tollZone'){x.manualTollZone=q(value);x.zone=q(value);x.tollZone=q(value)}if(section==='gate'&&key==='toll')x.manualToll=num(value);if(section==='gate'&&key==='additional')x.manualAdditional=num(value);persist('Versandkosten Eingabe');renderShipping();return false}
 function setCostMode(mode){costState().mode=mode==='gate'?'gate':'ups';persist('Versandkosten Bereich');renderShipping();return false}
+function newCostRequest(kind){var c=costState(),section=kind==='gate'?'gate':'ups';if(section==='gate'){c.gate={__blankPriceRequest:true,originPostal:'',originPlace:'',destinationPostal:'',destinationPlace:'',country:'',scope:'',pallets:'',kgPerPallet:'',dieselPrice:'',tollZone:'',manualTollZone:'',zone:'',toll:'',manualToll:'',additional:'',manualAdditional:'',internationalBase:'',shipmentRouteSignature:'manual:new',shipmentLoadSignature:'manual:new'}}else{c.ups={__blankPriceRequest:true,originPostal:'',originPlace:'',destinationPostal:'',destinationPlace:'',destinationCountry:'',service:'',packages:'',totalKg:'',length:'',width:'',height:'',fuelPct:'',additional:'',manualAdditional:'',basePrice:'',manualBasePrice:'',transit:'',shipmentRouteSignature:'manual:new',shipmentLoadSignature:'manual:new'}}c.mode=section;persist('Neue Preisanfrage');renderShipping();return false}
 function saveCost(kind){var result=kind==='gate'?calcGate():calcUps();if(!result.origin||!result.destination){alert('Bitte Startort und Zielort vollständig prüfen.');return false}if(kind==='gate'&&!result.valid){alert(result.scope==='national'?'Für das Gewicht ist kein nationaler Gate41-Grundtarif hinterlegt.':'Für dieses Zielland ist keine internationale Gate41-Grundfracht hinterlegt.');return false}if(kind==='ups'&&!result.valid){alert('Für Route, Service oder Berechnungsgewicht wurde kein UPS-Tarif gefunden. Bitte Daten prüfen oder den Grundpreis manuell eintragen.');return false}var s=state();s.shippingCostHistory=arr(s.shippingCostHistory);s.shippingCostHistory.unshift(Object.assign({id:uid('COST'),createdAt:new Date().toISOString(),created:new Date().toLocaleString('de-DE')},clone(result)));persist('Versandkosten gespeichert');renderShipping();return false}
 function deleteCost(id){var s=state();s.shippingCostHistory=arr(s.shippingCostHistory).filter(function(x){return q(x.id)!==q(id)});persist('Versandkosten gelöscht');renderShipping();return false}
 function routeValue(x,side){return q((side==='origin'?x.originPostal:x.destinationPostal)+' '+(side==='origin'?x.originPlace:x.destinationPlace))}
@@ -20307,18 +20323,21 @@ function upsHtml(){syncCostFromShipment();var u=costState().ups,r=calcUps(),base
  '<label class="field">Zusatzkosten €<input type="number" min="0" step="0.01" value="'+esc(r.additional.toFixed(2))+'"'+additionalReadonly+' onchange="return ExportHUBRC626.setCost(\'ups\',\'additional\',this.value)"><small>'+(r.automaticAdditional?'Automatisch aus Zuschlagstabelle':'0,00 € oder manuelle Ergänzung')+'</small></label>'+
  '<label class="field">Laufzeit<input value="'+esc(r.transit)+'" readonly></label></div><div class="toolbar"><button class="btn" onclick="return ExportHUBRC626.saveCost(\'ups\')">Berechnung speichern</button></div></section>'+
  '<section class="rc626-result"><b>UPS-Ergebnis</b><div>Preisgruppe / Zone: '+esc(r.group)+' / '+esc(r.zone||'offen')+'</div><div>Berechnungsgewicht je Paket: '+r.billablePer.toFixed(1)+' kg</div><div>Grundpreis: '+money(r.base)+'</div><div>Fuel '+r.fuelPct.toFixed(2)+' %: '+money(r.fuel)+'</div><div>Zusatzkosten: '+money(r.additional)+'</div><div>Laufzeit: '+esc(r.transit||'offen')+'</div><strong class="total">'+money(r.total)+'</strong></section></div>'}
-function gateHtml(){syncCostFromShipment();var g=costState().gate,r=calcGate(),national=r.scope==='national',tollReadonly=r.automaticToll?' readonly':'',zoneReadonly=r.automaticZone?' readonly':'',additionalReadonly=r.automaticAdditional?' readonly':'',baseReadonly=!national&&g.autoTariffFound?' readonly':'';return '<div class="rc626-grid2"><section class="card"><h3>Paletten – Gate41</h3><p class="rc626-muted">Grundfracht und Diesel werden automatisch berechnet. Die deutsche Mauttabelle wird national und international verwendet.</p><div class="rc626-grid3">'+
+function gateHtml(){syncCostFromShipment();var g=costState().gate,r=calcGate(),hasCountry=!!q(g.country),national=hasCountry&&r.scope==='national',scopeLabel=hasCountry?(national?'Deutschland':'International'):'',tollReadonly=r.automaticToll?' readonly':'',zoneReadonly=r.automaticZone?' readonly':'',additionalReadonly=r.automaticAdditional?' readonly':'',baseReadonly=!national&&g.autoTariffFound?' readonly':'';return '<div class="rc626-grid2"><section class="card rc211-gate-card"><h3>Paletten – Gate41</h3><p class="rc626-muted">Grundfracht und Diesel werden automatisch berechnet. Die deutsche Mauttabelle wird national und international verwendet.</p><div class="rc211-gate-groups">'+
+ '<section class="rc211-field-group"><h4>Route</h4><div class="rc211-route-grid">'+
  '<label class="field">Startort / Start-PLZ<input value="'+esc(routeValue(g,'origin'))+'" onchange="return ExportHUBRC626.setRoute(\'gate\',\'origin\',this.value)"></label>'+
  '<label class="field">Zielort / Ziel-PLZ<input value="'+esc(routeValue(g,'destination'))+'" onchange="return ExportHUBRC626.setRoute(\'gate\',\'destination\',this.value)"></label>'+
- '<label class="field">Zielland<input value="'+esc(g.country)+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'country\',this.value)"></label>'+
- '<label class="field">Bereich<input value="'+(national?'Deutschland':'International')+'" readonly></label>'+
- '<label class="field">Paletten<input type="number" min="1" value="'+esc(g.pallets)+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'pallets\',this.value)"></label>'+
- '<label class="field">Gewicht je Palette kg<input type="number" min="0" step="1" value="'+esc(g.kgPerPallet)+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'kgPerPallet\',this.value)"></label>'+
- (!national?'<label class="field">Internationale Grundfracht €<input type="number" min="0" step="0.01" value="'+esc(r.base.toFixed(2))+'"'+baseReadonly+' onchange="return ExportHUBRC626.setCost(\'gate\',\'internationalBase\',this.value)"></label>':'')+
- '<label class="field">Dieselpreis €/l<input type="number" min="0" step="0.01" value="'+esc(g.dieselPrice)+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'dieselPrice\',this.value)"></label>'+
+ '<label class="field">Zielland<input value="'+esc(g.country||'')+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'country\',this.value)"></label></div></section>'+
+ '<section class="rc211-field-group"><h4>Sendungsdaten</h4><div class="rc211-load-grid">'+
+ '<label class="field">Bereich<input value="'+esc(scopeLabel)+'" readonly></label>'+
+ '<label class="field">Paletten<input type="number" min="1" step="1" inputmode="numeric" value="'+esc(g.pallets)+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'pallets\',this.value)"></label>'+
+ '<label class="field">Gewicht je Palette kg<input type="number" min="0" step="0.01" inputmode="decimal" value="'+esc(g.kgPerPallet)+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'kgPerPallet\',this.value)"></label></div></section>'+
+ '<section class="rc211-field-group"><h4>Preisbestandteile</h4><div class="rc211-cost-grid">'+
+ (!national&&hasCountry?'<label class="field">Internationale Grundfracht €<input type="number" min="0" step="0.01" inputmode="decimal" value="'+esc(r.base?r.base.toFixed(2):'')+'"'+baseReadonly+' onchange="return ExportHUBRC626.setCost(\'gate\',\'internationalBase\',this.value)"><small>'+(g.autoTariffFound?'Automatisch aus Gate41-Tabelle':'Manuelle Eingabe, falls keine Tabelle passt')+'</small></label>':'')+
+ '<label class="field">Dieselpreis €/l<input type="number" min="0" step="0.01" inputmode="decimal" value="'+esc(g.dieselPrice)+'" onchange="return ExportHUBRC626.setCost(\'gate\',\'dieselPrice\',this.value)"><small>Grundlage für den Dieselzuschlag</small></label>'+
  '<label class="field">Deutsche Mautzone<input value="'+esc(r.tollZone)+'"'+zoneReadonly+' onchange="return ExportHUBRC626.setCost(\'gate\',\'tollZone\',this.value)"><small>'+(r.automaticZone?'Automatisch aus Kunde/Zonentabelle':'Manuell, falls keine Zonentabelle hinterlegt ist')+'</small></label>'+
- '<label class="field">Maut laut deutscher Tabelle €<input type="number" min="0" step="0.01" value="'+esc(r.toll.toFixed(2))+'"'+tollReadonly+' onchange="return ExportHUBRC626.setCost(\'gate\',\'toll\',this.value)"><small>'+(r.automaticToll?'Automatisch nach Zone und Gesamtgewicht':'Keine passende Mautposition – manuelle Eingabe möglich')+'</small></label>'+
- '<label class="field">Sonstige Zuschläge €<input type="number" min="0" step="0.01" value="'+esc(r.additional.toFixed(2))+'"'+additionalReadonly+' onchange="return ExportHUBRC626.setCost(\'gate\',\'additional\',this.value)"><small>'+(r.automaticAdditional?'Automatisch aus Zuschlagstabelle':'0,00 € oder manuelle Ergänzung')+'</small></label></div><div class="toolbar"><button class="btn" onclick="return ExportHUBRC626.saveCost(\'gate\')">Berechnung speichern</button></div></section>'+
+ '<label class="field">Maut laut deutscher Tabelle €<input type="number" min="0" step="0.01" inputmode="decimal" value="'+esc((r.toll||g.toll||g.manualToll)?r.toll.toFixed(2):'')+'"'+tollReadonly+' onchange="return ExportHUBRC626.setCost(\'gate\',\'toll\',this.value)"><small>'+(r.automaticToll?'Automatisch nach Zone und Gesamtgewicht':'Keine passende Mautposition – manuelle Eingabe möglich')+'</small></label>'+
+ '<label class="field">Sonstige Zuschläge €<input type="number" min="0" step="0.01" inputmode="decimal" value="'+esc((r.additional||g.additional||g.manualAdditional)?r.additional.toFixed(2):'')+'"'+additionalReadonly+' onchange="return ExportHUBRC626.setCost(\'gate\',\'additional\',this.value)"><small>'+(r.automaticAdditional?'Automatisch aus Zuschlagstabelle':'Manuelle Ergänzung möglich')+'</small></label></div></section></div><div class="rc211-gate-actions"><button class="btn" onclick="return ExportHUBRC626.saveCost(\'gate\')">Berechnung speichern</button><button class="ghost" onclick="return ExportHUBRC626.newCostRequest(\'gate\')">+ Neue Preisanfrage</button></div></section>'+
  '<section><div class="rc626-result"><b>Gate41-Ergebnis</b><div>Grundfracht: '+money(r.base)+'</div><div>Diesel '+r.dieselPct.toFixed(1)+' % nur auf Grundfracht: '+money(r.diesel)+'</div><div>Maut Zone '+esc(r.tollZone||'offen')+': '+money(r.toll)+'</div><div>Sonstige Zuschläge: '+money(r.additional)+'</div><strong class="total">'+money(r.total)+'</strong></div><div class="card" style="margin-top:14px"><h3>Gate41-Grundtarife Deutschland</h3><table class="rc626-rate-table"><tr><th>Paletten</th><th>bis 200 kg</th><th>bis 400 kg</th><th>bis 800 kg</th></tr><tr><td>1–9</td><td>46,09 €</td><td>73,69 €</td><td>98,61 €</td></tr><tr><td>ab 10</td><td>43,43 €</td><td>70,92 €</td><td>94,46 €</td></tr></table><p class="rc626-muted">Diesel wird ausschließlich auf die Grundfracht angewendet.</p></div></section></div>'}
 function historyHtml(){var list=arr(state().shippingCostHistory);if(!list.length)return'<div class="card"><h3>Gespeicherte Berechnungen</h3><p class="muted">Noch keine Berechnung gespeichert.</p></div>';return'<div class="card"><h3>Gespeicherte Berechnungen</h3><div class="rc626-list">'+list.map(function(x){return'<article class="rc626-item"><div class="rc626-item-head"><div><b>'+esc(x.kind)+'</b><div class="rc626-muted">'+esc(x.created||'')+(x.kind==='Gate41'?' · '+esc(x.country||'')+' · '+esc(x.pallets)+' Palette(n)':' · '+esc(x.service||'')+' · '+esc(x.packages)+' Paket(e)')+'</div></div><strong>'+money(x.total)+'</strong></div><div class="toolbar"><button class="danger" onclick="return ExportHUBRC626.deleteCost(\''+esc(x.id)+'\')">Löschen</button></div></article>'}).join('')+'</div></div>'}
 function renderShipping(){var r=content();if(!r)return false;var c=costState(),mode=c.mode==='gate'?'gate':'ups';r.innerHTML='<div id="rc626Shipping" class="rc626-page"><div class="rc626-head"><div><span class="pill blue">VERSANDKOSTEN</span><h2>Versandkosten</h2><p class="muted">Pakete über UPS und Paletten über Gate41 werden getrennt automatisch berechnet.</p></div></div><div class="rc626-tabs"><button class="ghost '+(mode==='ups'?'active':'')+'" onclick="return ExportHUBRC626.setCostMode(\'ups\')">Pakete – UPS</button><button class="ghost '+(mode==='gate'?'active':'')+'" onclick="return ExportHUBRC626.setCostMode(\'gate\')">Paletten – Gate41</button></div>'+(mode==='ups'?upsHtml():gateHtml())+historyHtml()+'</div>';activateNav('shippingcosts');return false}
@@ -20535,7 +20554,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
 try{observer=new NativeMO(schedule);observer.observe(document.getElementById('content')||document.body||document.documentElement,{childList:true,subtree:true})}catch(_){}
 setInterval(function(){forceVersion();ensureNav();installOverrides();renderCurrent()},600);
-window.ExportHUBRC626=Object.freeze({version:VERSION,openShipping:openShipping,renderShipping:renderShipping,setRoute:setRoute,setCost:setCost,setCostMode:setCostMode,saveCost:saveCost,deleteCost:deleteCost,calcUps:calcUps,calcGate:calcGate,syncCostFromShipment:syncCostFromShipment,countryGroup:countryGroup,findUpsRate:findUpsRate,lookupToll:lookupToll,gateDieselPct:gateDieselPct,gateRate:gateRate,openInspections:openInspections,renderInspections:renderInspections,newInspection:newInspection,setInspection:setInspection,saveInspection:saveInspection,editInspection:editInspection,deleteInspection:deleteInspection,openAbd:openAbd,renderAbd:renderAbd,newAbd:newAbd,setAbd:setAbd,setAbdCustomerSearch:setAbdCustomerSearch,setAbdRow:setAbdRow,addAbdRow:addAbdRow,removeAbdRow:removeAbdRow,updateAbdSummary:updateAbdSummary,addInvoices:addInvoices,deleteInvoice:deleteInvoice,uploadCompletedAbd:uploadCompletedAbd,openCompletedAbd:openCompletedAbd,saveAbd:saveAbd,openAbdMail:openAbdMail,copyAbdMail:copyAbdMail,editAbd:editAbd,deleteAbd:deleteAbd,refresh:refresh,selfTest:function(){return{version:VERSION,navShipping:Array.prototype.slice.call(document.querySelectorAll('#nav button,#nav a')).filter(function(b){return q(b.textContent)==='Versandkosten'}).length,oldUpsNav:Array.prototype.slice.call(document.querySelectorAll('#nav button,#nav a')).filter(function(b){return /UPS Preise/i.test(q(b.textContent))}).length,navInspections:Array.prototype.slice.call(document.querySelectorAll('#nav button,#nav a')).filter(function(b){return q(b.textContent)==='Prüfungen'}).length,shipping:!!document.getElementById('rc626Shipping'),inspections:!!document.getElementById('rc626Inspections'),abd:!!document.getElementById('rc626Abd'),abdRows:document.querySelectorAll('#rc626Abd .rc626-colli-row').length,abdTemplate:!!document.querySelector('#rc626Abd .rc626-template')}}});
+window.ExportHUBRC626=Object.freeze({version:VERSION,openShipping:openShipping,renderShipping:renderShipping,setRoute:setRoute,setCost:setCost,setCostMode:setCostMode,newCostRequest:newCostRequest,saveCost:saveCost,deleteCost:deleteCost,calcUps:calcUps,calcGate:calcGate,syncCostFromShipment:syncCostFromShipment,countryGroup:countryGroup,findUpsRate:findUpsRate,lookupToll:lookupToll,gateDieselPct:gateDieselPct,gateRate:gateRate,openInspections:openInspections,renderInspections:renderInspections,newInspection:newInspection,setInspection:setInspection,saveInspection:saveInspection,editInspection:editInspection,deleteInspection:deleteInspection,openAbd:openAbd,renderAbd:renderAbd,newAbd:newAbd,setAbd:setAbd,setAbdCustomerSearch:setAbdCustomerSearch,setAbdRow:setAbdRow,addAbdRow:addAbdRow,removeAbdRow:removeAbdRow,updateAbdSummary:updateAbdSummary,addInvoices:addInvoices,deleteInvoice:deleteInvoice,uploadCompletedAbd:uploadCompletedAbd,openCompletedAbd:openCompletedAbd,saveAbd:saveAbd,openAbdMail:openAbdMail,copyAbdMail:copyAbdMail,editAbd:editAbd,deleteAbd:deleteAbd,refresh:refresh,selfTest:function(){return{version:VERSION,navShipping:Array.prototype.slice.call(document.querySelectorAll('#nav button,#nav a')).filter(function(b){return q(b.textContent)==='Versandkosten'}).length,oldUpsNav:Array.prototype.slice.call(document.querySelectorAll('#nav button,#nav a')).filter(function(b){return /UPS Preise/i.test(q(b.textContent))}).length,navInspections:Array.prototype.slice.call(document.querySelectorAll('#nav button,#nav a')).filter(function(b){return q(b.textContent)==='Prüfungen'}).length,shipping:!!document.getElementById('rc626Shipping'),inspections:!!document.getElementById('rc626Inspections'),abd:!!document.getElementById('rc626Abd'),abdRows:document.querySelectorAll('#rc626Abd .rc626-colli-row').length,abdTemplate:!!document.querySelector('#rc626Abd .rc626-template')}}});
 })();
 </script>
 <!-- RC626 SHIPPING COSTS + INSPECTIONS + ABD REPAIR END -->
@@ -20547,7 +20566,7 @@ window.ExportHUBRC626=Object.freeze({version:VERSION,openShipping:openShipping,r
 'use strict';
 var VERSION='RC628';
 function lock(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.title='ExportHUB Online '+VERSION;
  var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -20619,7 +20638,7 @@ function reactivateQr(sh){var api=window.ExportHUBRC569QR;if(!api||typeof api.re
 function resetPickup(el){var card=el&&el.closest&&el.closest('[data-shipment]'),id=q((el&&el.dataset&&el.dataset.id)||(card&&card.getAttribute('data-shipment'))),sh=findShipment(id);if(!sh)return false;if(!canReset(sh)){alert('Nur der Ersteller der Sendung oder ein globaler Administrator darf die Abholung zurücksetzen.');return false}if(!confirm('Abholung wirklich zurücksetzen und denselben QR-Code reaktivieren?'))return false;var reason=q(prompt('Grund der Korrektur:','Falsche Abholbestätigung'));if(!reason){alert('Für die Korrektur ist ein Grund erforderlich.');return false}clearPickupFields(sh,reason);var cur=state().shipment;if(cur&&(sid(cur)===sid(sh)||sref(cur)===sref(sh)))Object.assign(cur,clone(sh));persist('Abholung zurückgesetzt');refreshOverview();reactivateQr(sh).then(function(ok){refreshOverview();if(!ok)alert('Die Abholung wurde zurückgesetzt. Der QR-Code konnte aber nicht automatisch beim Server reaktiviert werden. Bitte den QR-Code in der Sendung erneut aktivieren.')});return false}
 function ensureResetButton(card,id,sh){var bar=card.querySelector('.rc524-dangerbar,.toolbar:last-of-type');if(!bar)return;var btn=bar.querySelector('.rc628-reset-pickup');if(statusAtOrAfterPickup(sh)&&canReset(sh)){if(!btn){btn=document.createElement('button');btn.type='button';btn.className='ghost rc628-reset-pickup';btn.textContent='Abholung zurücksetzen / QR reaktivieren';var del=Array.prototype.slice.call(bar.querySelectorAll('button')).find(function(b){return /sendung loschen/.test(low(b.textContent))});if(del)bar.insertBefore(btn,del);else bar.appendChild(btn)}btn.dataset.id=id;btn.dataset.rc628ResetPickup='1'}else if(btn)btn.remove()}
 function patchOverview(){if(!document.querySelector('#content .rc524-shipment-card'))return false;document.querySelectorAll('#content .rc524-shipment-card').forEach(function(card){var id=q(card.getAttribute('data-shipment')),sh=findShipment(id);if(!sh)return;var green=statusAtOrAfterPickup(sh);card.classList.toggle('rc628-picked-up-or-later',green);card.classList.toggle('rc624-qr-completed',false);card.hidden=false;var badge=card.querySelector('.shipment-status,.rc524-area-head .pill');if(badge&&green){badge.classList.remove('blue','orange','red');badge.classList.add('green')}patchFileRows(card,id,'pod','podFiles');patchFileRows(card,id,'abd','abdFiles');ensureResetButton(card,id,sh)});return true}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function apply(){forceVersion();patchOverview()}
 function schedule(){if(timer)return;timer=setT(function(){timer=0;apply()},25)}
 document.addEventListener('click',function(e){var open=e.target&&e.target.closest&&e.target.closest('[data-rc628-file-open="1"]');if(open){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();openFile(open);return}var reset=e.target&&e.target.closest&&e.target.closest('[data-rc628-reset-pickup="1"]');if(reset){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();resetPickup(reset)}},true);
@@ -21803,7 +21822,7 @@ window.ExportHUBIndex202=Object.freeze({patch:patch,applyPackaging:applyPackagin
 if(window.__EXPORTHUB_INDEX205_DASHBOARD_PLANNER__)return;
 window.__EXPORTHUB_INDEX205_DASHBOARD_PLANNER__=true;
 
-var VERSION='RC210';
+var VERSION='RC211';
 var previousAfterRender=window.__EXPORTHUB_AFTER_RENDER__;
 var applying=false;
 var timer=0;
@@ -21927,7 +21946,7 @@ window.addEventListener('exporthub:ready',function(){schedule(currentView())});
 window.addEventListener('exporthub:viewchange',function(e){schedule(e&&e.detail&&e.detail.view)});
 window.addEventListener('exporthub:sync',function(){schedule(currentView())});
 window.ExportHUBRC205={renderDashboard:renderDashboard,renderPlanner:renderPlanner,apply:apply,setTaskDate:setTaskDate,planRecurringTask:planRecurringTask,navigate:navigate,holidaysNRW:holidaysNRW,openDirectEntity:openDirectEntity,addDirectEntity:addDirectEntity,removeDirectEntity:removeDirectEntity};window.ExportHUBRC206=window.ExportHUBRC205;window.ExportHUBRC207=window.ExportHUBRC205;window.ExportHUBRC208=window.ExportHUBRC205;window.ExportHUBRC209=window.ExportHUBRC205;window.ExportHUBRC210=window.ExportHUBRC205;
-try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
+try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
 })();
 
 </script>
@@ -21952,13 +21971,13 @@ body#index203PrintBody #index203PrintRoot>.index203-print-sheet>.rc601-cover,
 (function(){
 'use strict';
 if(window.__EXPORTHUB_INDEX209_FINAL__)return;window.__EXPORTHUB_INDEX209_FINAL__=true;
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC210',cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC209')}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC211',cache:'211',loginReturn:'/?v=211'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC209')}
 function patchQrApi(){var api=window.ExportHUBRC569QR;if(!api||api.__index209)return false;var wrapped=Object.assign({},api);wrapped.urlFor=function(sh){var item=sh;try{if(!item)item=(window.state||{}).shipment||{}}catch(_){item={}}var token=String(item&&item.pickupToken||'').trim(),base='';try{base=location.href}catch(_){base=document.baseURI||''}var u=new URL('./',base);u.searchParams.set('pickup',token);u.searchParams.set('v','210');return u.href};wrapped.__index209=true;try{window.ExportHUBRC569QR=wrapped}catch(_){ }return true}
 function install(){version();patchQrApi()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,install)});
 setTimeout(install,120);setTimeout(install,600);
-window.ExportHUBIndex209=Object.freeze({version:'RC210',pickupMode:!!window.__EXPORTHUB_PICKUP_MODE__,selfTest:function(){var api=window.ExportHUBRC569QR,sample={pickupToken:'a'.repeat(48)},url=api&&api.urlFor?api.urlFor(sample):'';return{coverPrintRule:!!document.getElementById('index209-cover-layout-fix'),qrUrl:url,qrUsesIndex:/[?&]pickup=a{48}/.test(url),cache:/[?&]v=210/.test(url)}}});
+window.ExportHUBIndex209=Object.freeze({version:'RC211',pickupMode:!!window.__EXPORTHUB_PICKUP_MODE__,selfTest:function(){var api=window.ExportHUBRC569QR,sample={pickupToken:'a'.repeat(48)},url=api&&api.urlFor?api.urlFor(sample):'';return{coverPrintRule:!!document.getElementById('index209-cover-layout-fix'),qrUrl:url,qrUsesIndex:/[?&]pickup=a{48}/.test(url),cache:/[?&]v=210/.test(url)}}});
 })();
 </script>
 <!-- INDEX 209 DECKBLATT + QR ROUTE FIX END -->
@@ -22002,9 +22021,21 @@ window.ExportHUBIndex209=Object.freeze({version:'RC210',pickupMode:!!window.__EX
 (function(){
 'use strict';
 if(window.__EXPORTHUB_INDEX210__)return;window.__EXPORTHUB_INDEX210__=true;
-function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC210',cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC210');document.title='ExportHUB Online RC210';var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · RC210'}
+function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC211',cache:'211',loginReturn:'/?v=211'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC211');document.title='ExportHUB Online RC211';var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · RC211'}
 lock();['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,lock)});
-window.ExportHUBIndex210=Object.freeze({version:'RC210',selfTest:function(){return{sortSelect:!!document.getElementById('rc210OverviewSort'),directionSelect:!!document.getElementById('rc210OverviewDirection'),coloredCards:document.querySelectorAll('#content .rc524-shipment-card[class*=\"rc210-status-\"]').length,cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+window.ExportHUBIndex210=Object.freeze({version:'RC211',selfTest:function(){return{sortSelect:!!document.getElementById('rc210OverviewSort'),directionSelect:!!document.getElementById('rc210OverviewDirection'),coloredCards:document.querySelectorAll('#content .rc524-shipment-card[class*=\"rc210-status-\"]').length,cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
 })();
 </script>
 <!-- INDEX 210 SENDUNGSUEBERSICHT STATUSFARBEN + SORTIERUNG END -->
+
+
+<script id="index211-gate41-price-request-lock">
+(function(){
+'use strict';
+function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC211',cache:'211',loginReturn:'/?v=211'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC211');document.title='ExportHUB Online RC211';var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · RC211'}
+lock();
+document.addEventListener('DOMContentLoaded',lock,{once:true});
+window.addEventListener('exporthub:ready',lock);
+window.ExportHUBIndex211=Object.freeze({version:'RC211',selfTest:function(){var api=window.ExportHUBRC626||{};return{gateReset:typeof api.newCostRequest==='function',gateGroups:document.querySelectorAll('#rc626Shipping .rc211-field-group').length,newRequestButton:Array.prototype.slice.call(document.querySelectorAll('#rc626Shipping button')).some(function(b){return /Neue Preisanfrage/i.test(b.textContent)}),cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+})();
+</script>
