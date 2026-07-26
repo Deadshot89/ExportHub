@@ -46,22 +46,34 @@ function refreshLater(delay){
  timeout(function(){try{if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.refresh==='function')window.ExportHUBRC524.refresh();else if(typeof window.__EXPORTHUB_AFTER_RENDER__==='function')window.__EXPORTHUB_AFTER_RENDER__('shipment')}catch(error){console.error('ExportHUB Kundenauswahl aktualisieren',error)}},delay||120);
 }
 function applyValue(value,render){
- var core=api(),st=getState(),sh=st.shipment||(st.shipment={}),v=q(value),customer=core&&core.findCustomer?core.findCustomer(v):null;
+ var core=api(),st=getState(),sh=st.shipment||(st.shipment={}),raw=q(value),locationToken='__RC192_LOCATION__|',locationCustomerId='',locationId='';
+ if(raw.indexOf(locationToken)===0){var tokenParts=raw.split('|');locationCustomerId=q(tokenParts[1]);locationId=q(tokenParts.slice(2).join('|'))}
+ var v=locationCustomerId||raw,customer=core&&core.findCustomer?core.findCustomer(v):null;
  if(!customer&&core&&core.findCustomer&&v.indexOf(' · ')>=0)customer=core.findCustomer(v.split(' · ')[0]);
  if(!customer)return false;
  try{
+  var previousCustomerId=q(sh.customerId||sh.customerAccount||sh.customerNumber),customerId=q(customer.id||customer.account||customer.customerNumber),customerChanged=!!previousCustomerId&&previousCustomerId!==customerId;
   core.applyCustomer(sh,customer,false);
-  st.selectedCustomerId=customer.id||customer.account||customer.customerNumber||'';
+  st.selectedCustomerId=customerId;
+  if(!locationId&&customerChanged){delete sh.locationId;delete sh.selectedLocationId;delete sh.siteId;delete sh.location;delete sh.locationName;delete sh.locationData;delete sh.siteData}
+  if(locationId){
+   var list=[].concat(Array.isArray(customer.locations)?customer.locations:[],Array.isArray(customer.sites)?customer.sites:[],Array.isArray(customer.standorte)?customer.standorte:[]),seen={},locations=list.filter(function(l){var id=q(l&&(l.id||l.locationId||l.siteId||l.code||l.name));if(!id||seen[id])return false;seen[id]=1;return true}),location=locations.find(function(l){return q(l&&(l.id||l.locationId||l.siteId||l.code||l.name))===locationId})||null;
+   if(location){
+    var address=q(location.address||[location.street,location.strasse,[location.zip||location.postalCode||location.plz,location.city||location.ort].filter(Boolean).join(' '),location.country||location.land].filter(Boolean).join('\n'));
+    var name=q(location.name||location.locationName||location.siteName||location.standort||location.city||location.ort||address)||'Standort';
+    sh.locationId=locationId;sh.selectedLocationId=locationId;sh.siteId=locationId;sh.location=JSON.parse(JSON.stringify(location));sh.locationData=JSON.parse(JSON.stringify(location));sh.siteData=JSON.parse(JSON.stringify(location));sh.locationName=name;sh.site=name;sh.standort=name;sh.recipientName=name||sh.customerName;sh.destinationName=name||sh.destinationName;sh.recipientAddress=address||sh.recipientAddress;sh.destinationCountry=q(location.country||location.land)||sh.destinationCountry;sh.recipientCountry=q(location.country||location.land)||sh.recipientCountry;
+   }
+  }
   if(window.state&&window.state!==st){window.state.shipment=JSON.parse(JSON.stringify(sh));window.state.selectedCustomerId=st.selectedCustomerId;window.state.customers=st.customers;window.state.shipments=st.shipments}
   var display=sh.customerSearch||((customer.account||customer.customerNumber||'')+' · '+(customer.name||''));
   document.querySelectorAll('#shipmentCustomerSearch,#rc573CustomerCard input[type="text"][list]').forEach(function(input){input.value=display});
-  document.querySelectorAll('#rc573CustomerCard select').forEach(function(select){if(Array.prototype.some.call(select.options,function(option){return q(option.value)===q(st.selectedCustomerId)}))select.value=st.selectedCustomerId});
-  var address=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(address)address.textContent=customer.address||sh.recipientAddress||'';
-  if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Kunde ausgewählt');
+  document.querySelectorAll('#rc573CustomerCard select').forEach(function(select){var wanted=locationId?locationToken+customerId+'|'+locationId:customerId;if(Array.prototype.some.call(select.options,function(option){return q(option.value)===wanted}))select.value=wanted;else if(Array.prototype.some.call(select.options,function(option){return q(option.value)===customerId}))select.value=customerId});
+  var addressNode=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(addressNode)addressNode.textContent=sh.recipientAddress||customer.address||'';
+  if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(locationId?'Standort ausgewählt':'Kunde ausgewählt');
   try{if(typeof window.__EXPORTHUB_RC616_AFTER_CUSTOMER__==='function')window.__EXPORTHUB_RC616_AFTER_CUSTOMER__(customer,sh)}catch(_){ }
   if(render)refreshLater(140);
   return true;
- }catch(error){console.error('ExportHUB Kundenauswahl',error);return false}
+ }catch(error){console.error('ExportHUB Kunden-/Standortauswahl',error);return false}
 }
 window.__EXPORTHUB_RC588_APPLY_CUSTOMER__=applyValue;
 function guard(ev){
@@ -19280,9 +19292,25 @@ function customerFromShipment(){var x=sh();return x.customer||x.customerData||x.
 function locations(){var c=customerFromShipment(),x=sh();return arr((c&&c.locations)||x.locations||x.sites||x.standorte)}
 function locationId(l,i){return q(l.id||l.locationId||l.code||l.name)||String(i)}function locationName(l){return q(l.name||l.locationName||l.siteName||l.city||l.address)||'Standort'}function locationAddress(l){return q(l.address||[l.street,l.zip,l.city,l.country].filter(Boolean).join('\n'))}
 function findLocation(id){return locations().find(function(l,i){return locationId(l,i)===q(id)})||null}
-function updateLocationInfo(id){var i=document.getElementById('rc616LocationInfo'),l=findLocation(id);if(i)i.textContent=l?locationAddress(l):''}
-function refreshLocations(){var card=document.getElementById('rc573CustomerCard');if(!card)return false;var list=locations(),box=document.getElementById('rc616LocationBox');if(!list.length){if(box)box.remove();return false}if(!box){box=document.createElement('div');box.id='rc616LocationBox';var a=card.querySelector('.rc344-actions');if(a&&a.nextSibling)card.insertBefore(box,a.nextSibling);else card.appendChild(box)}var cur=q(sh().locationId||sh().selectedLocationId||sh().siteId),html='<label class="field">Standort<select id="rc616LocationSelect">'+list.map(function(l,i){var id=locationId(l,i);return'<option value="'+esc(id)+'" '+(id===cur?'selected':'')+'>'+esc(locationName(l))+'</option>'}).join('')+'</select></label><div id="rc616LocationInfo"></div>';if(box.dataset.html!==html){box.innerHTML=html;box.dataset.html=html}var s=box.querySelector('select');if(!cur&&list.length){s.value=locationId(list[0],0);applyLocation(s.value,false)}else updateLocationInfo(s.value);return true}
-function applyLocation(id,save){var l=findLocation(id);if(!l)return false;var x=sh();x.locationId=locationId(l,0);x.selectedLocationId=x.locationId;x.siteId=x.locationId;x.location=JSON.parse(JSON.stringify(l));x.locationName=locationName(l);x.recipientName=locationName(l)||x.customerName;x.recipientAddress=locationAddress(l)||x.recipientAddress;x.destinationCountry=q(l.country)||x.destinationCountry;x.recipientCountry=q(l.country)||x.recipientCountry;var p=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(p)p.textContent=x.recipientAddress||'';updateLocationInfo(id);if(save!==false){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Standort ausgewählt')}catch(_){}}return false}
+function customerSelect(){var card=document.getElementById('rc573CustomerCard');if(!card)return null;return card.querySelector('select[onchange*="rc344SelectCustomer"],select[onchange*="SelectCustomer"]')||Array.prototype.slice.call(card.querySelectorAll('label.field')).map(function(label){return label.querySelector('select')}).find(Boolean)||null}
+function customerId(){var x=sh(),c=customerFromShipment();return q(x.customerId||x.customerAccount||x.customerNumber||(c&&(c.id||c.customerId||c.account||c.customerNumber)))}
+function locationToken(id){return'__RC192_LOCATION__|'+customerId()+'|'+q(id)}
+function updateLocationInfo(id){var l=findLocation(id),p=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(p&&l)p.textContent=locationAddress(l)||''}
+function refreshLocations(){
+ var card=document.getElementById('rc573CustomerCard');if(!card)return false;
+ var oldBox=document.getElementById('rc616LocationBox');if(oldBox)oldBox.remove();
+ var select=customerSelect();if(!select)return false;
+ var list=locations(),cid=customerId(),cur=q(sh().locationId||sh().selectedLocationId||sh().siteId);
+ Array.prototype.slice.call(select.querySelectorAll('optgroup[data-rc192-locations],option[data-rc192-location]')).forEach(function(node){node.remove()});
+ var label=select.closest('label.field');if(label&&label.firstChild&&label.firstChild.nodeType===3)label.firstChild.nodeValue='Kunde / Standort';
+ if(!list.length||!cid){if(Array.prototype.some.call(select.options,function(option){return q(option.value)===cid}))select.value=cid;return false}
+ var group=document.createElement('optgroup');group.label='Standorte des gewählten Kunden';group.setAttribute('data-rc192-locations','1');
+ list.forEach(function(l,i){var id=locationId(l,i),option=document.createElement('option');option.value='__RC192_LOCATION__|'+cid+'|'+id;option.setAttribute('data-rc192-location','1');option.textContent='↳ Standort: '+locationName(l);group.appendChild(option)});
+ select.appendChild(group);
+ var wanted=cur?locationToken(cur):cid;if(Array.prototype.some.call(select.options,function(option){return q(option.value)===wanted}))select.value=wanted;else if(Array.prototype.some.call(select.options,function(option){return q(option.value)===cid}))select.value=cid;
+ return true
+}
+function applyLocation(id,save){var l=findLocation(id);if(!l)return false;var x=sh();x.locationId=locationId(l,0);x.selectedLocationId=x.locationId;x.siteId=x.locationId;x.location=JSON.parse(JSON.stringify(l));x.locationData=JSON.parse(JSON.stringify(l));x.siteData=JSON.parse(JSON.stringify(l));x.locationName=locationName(l);x.site=x.locationName;x.standort=x.locationName;x.recipientName=locationName(l)||x.customerName;x.destinationName=locationName(l)||x.destinationName;x.recipientAddress=locationAddress(l)||x.recipientAddress;x.destinationCountry=q(l.country||l.land)||x.destinationCountry;x.recipientCountry=q(l.country||l.land)||x.recipientCountry;var p=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(p)p.textContent=x.recipientAddress||'';refreshLocations();if(save!==false){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Standort ausgewählt')}catch(_){}}return false}
 window.__EXPORTHUB_RC616_AFTER_CUSTOMER__=function(){setT(refreshLocations,0);setT(refreshLocations,80);setT(refreshLocations,250)};
 function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'628',loginReturn:'/?v=628'})}catch(_){}document.documentElement.dataset.exporthubVersion=VERSION;document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function refresh(){forceVersion();var v=view();if(v&&v!==installedView)install(true);if(document.getElementById('rc573CustomerCard'))refreshLocations()}
@@ -20895,6 +20923,7 @@ window.ExportHUBRC628ShipmentFix=Object.freeze({
 <!-- RC628 SHIPMENT INPUT + CARGO SECURITY + COMPLETE PRINT AUTHORITATIVE FIX END -->
 
 
+<!-- INDEX 192: Kundenstandorte sind in der vorhandenen Kundenauswahl auswählbar. -->
 <!-- RC628 CUSTOMER PORTAL BUTTON IN SHIPMENT START -->
 <style id="rc628-customer-portal-button-style">
 #rc344CustomerInfo .rc628-customer-portal-action{
@@ -20991,3 +21020,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 <!-- RC628 CUSTOMER PORTAL BUTTON IN SHIPMENT END -->
+<script id="index192-customer-location-menu-selftest">
+(function(){'use strict';window.ExportHUBIndex192=Object.freeze({selfTest:function(){var card=document.getElementById('rc573CustomerCard'),select=card&&card.querySelector('select[onchange*="rc344SelectCustomer"],select[onchange*="SelectCustomer"]'),group=select&&select.querySelector('optgroup[data-rc192-locations]');return{customerCard:!!card,customerMenu:!!select,locationGroup:!!group,locationOptions:group?group.querySelectorAll('option[data-rc192-location]').length:0,separateLocationBox:!!document.getElementById('rc616LocationBox')}}});})();
+</script>
+
