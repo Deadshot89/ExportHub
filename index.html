@@ -66,18 +66,18 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <script>
 window.EXPORTHUB_BUILD=Object.freeze({
-  version:'RC206',
-  cache:'209',
-  loginReturn:'/?v=209'
+  version:'RC210',
+  cache:'210',
+  loginReturn:'/?v=210'
 });
 </script>
 <script id="rc603-version-guard-head">
 (function(){
 'use strict';
 var BUILD=Object.freeze({
-  version:'RC206',
-  cache:'209',
-  loginReturn:'/?v=209'
+  version:'RC210',
+  cache:'210',
+  loginReturn:'/?v=210'
 });
 window.EXPORTHUB_BUILD=BUILD;
 document.documentElement.setAttribute('data-exporthub-version','RC628');
@@ -12068,11 +12068,18 @@ function fileName(f){return Q(f&&(f.name||f.filename||f.number||'Dokument'))}
 function fileUrl(f){return Q(f&&(f.data||f.dataUrl||f.url||f.downloadUrl))}
 function fileRows(sh,key,id){return fileList(sh,key).map(function(f,i){return '<div class="rc524-file-row"><span>📎 '+E(fileName(f))+'</span><div class="toolbar"><button type="button" class="ghost" data-id="'+E(id)+'" data-key="'+E(key)+'" data-index="'+i+'" onclick="return rc524DownloadFile(this)">Öffnen</button><button type="button" class="ghost danger" data-id="'+E(id)+'" data-key="'+E(key)+'" data-index="'+i+'" onclick="return rc524DeleteFile(this)">Löschen</button></div></div>'}).join('')}
 function matchingAbd(sh){var ref=L(shipmentRef(sh)),cid=L(sh.customerId||sh.customerAccount);return A(S().abdRequests).filter(function(a){return (ref&&L(a.ref||a.reference)===ref)||(cid&&L(a.customerId||a.customerAccount)===cid)})}
-function overviewFiltered(){var st=S(),q=L(st.rc524OverviewSearch||'');var list=A(st.shipments);if(q)list=list.filter(function(sh){var c=shipmentCustomer(sh);return L([shipmentRef(sh),shipmentId(sh),customerName(c,sh),sh.carrier,c.carrier,sh.status,sh.pickupStatus].join(' ')).indexOf(q)>=0});return list}
-function overviewHtml(){var st=S(),list=overviewFiltered(),size=Math.max(10,Math.min(100,Number(st.rc524OverviewPageSize)||25)),pages=Math.max(1,Math.ceil(list.length/size)),page=Math.max(1,Math.min(pages,Number(st.rc524OverviewPage)||1));st.rc524OverviewPage=page;st.rc524OverviewPageSize=size;var visible=list.slice((page-1)*size,page*size);return '<div class="rc524-page"><div class="rc524-page-head"><div><span class="rc524-kicker">Sendungen</span><h1>Sendungsübersicht</h1><p>Referenzordner, Ladeliste/CMR, POD und ABD bleiben dauerhaft an jeder Sendung verfügbar.</p></div><button class="btn" onclick="return setView(\'shipment\')">Neue Sendung</button></div><section class="card rc524-overview-controls"><label class="field">Suchen<input id="rc524OverviewSearch" value="'+E(st.rc524OverviewSearch||'')+'" oninput="return rc524OverviewSearch(this.value)"></label><label class="field">Einträge pro Seite<select onchange="return rc524OverviewPageSize(this.value)"><option '+(size===25?'selected':'')+'>25</option><option '+(size===50?'selected':'')+'>50</option><option '+(size===100?'selected':'')+'>100</option></select></label><div class="rc524-pagination"><button class="ghost" '+(page<=1?'disabled':'')+' onclick="return rc524OverviewPage('+(page-1)+')">Zurück</button><b>Seite '+page+' von '+pages+' · '+list.length+' Sendungen</b><button class="ghost" '+(page>=pages?'disabled':'')+' onclick="return rc524OverviewPage('+(page+1)+')">Weiter</button></div></section><div class="rc524-card-list">'+(visible.length?visible.map(function(sh){var id=shipmentId(sh),c=shipmentCustomer(sh),abds=matchingAbd(sh);return '<article class="card rc524-shipment-card" data-shipment="'+E(id)+'"><div class="rc524-area-head"><div><span class="rc524-kicker">'+E(customerName(c,sh))+'</span><h2>'+E(shipmentRef(sh)||id)+'</h2></div><span class="pill '+(/erledigt|abgeholt/i.test(Q(sh.status||sh.pickupStatus))?'green':'blue')+'">'+E(sh.status||sh.pickupStatus||'offen')+'</span></div><div class="rc524-overview-meta"><span><b>Abholung:</b> '+E(fmtDate(sh.pickupDate||sh.plannedPickupDate)||'–')+'</span><span><b>Spedition:</b> '+E(sh.carrier||c.carrier||'–')+'</span><span><b>ABD:</b> '+E(abds.length?(abds.map(function(a){return (a.ref||a.id)+' · '+(a.status||'offen')}).join(', ')):'nicht verknüpft')+'</span></div><div class="rc524-action-grid"><button class="btn" data-id="'+E(id)+'" onclick="return rc524OpenRef(this.dataset.id)">Ref.-Ordner</button><button class="btn" data-id="'+E(id)+'" onclick="return rc524OpenDocuments(this.dataset.id)">Ladeliste &amp; CMR</button><label class="rc524-upload">POD hochladen<input type="file" accept="application/pdf,image/*" data-id="'+E(id)+'" onchange="return rc524UploadFile(this,\'podFiles\')"></label><label class="rc524-upload">ABD hinterlegen<input type="file" accept="application/pdf,image/*" data-id="'+E(id)+'" onchange="return rc524UploadFile(this,\'abdFiles\')"></label></div><div class="rc524-link-columns"><section><h3>POD-Anbindung</h3>'+(fileRows(sh,'podFiles',id)||'<p class="muted">Noch kein POD hinterlegt.</p>')+'</section><section><h3>ABD-Anbindung</h3>'+(fileRows(sh,'abdFiles',id)||'<p class="muted">Noch kein ABD-Dokument hinterlegt.</p>')+'</section></div><div class="toolbar rc524-dangerbar"><button class="ghost" data-id="'+E(id)+'" onclick="return rc524EditShipment(this.dataset.id)">Sendung bearbeiten</button><button class="ghost danger" data-id="'+E(id)+'" onclick="return rc524DeleteShipment(this.dataset.id)">Sendung löschen</button></div></article>'}).join(''):'<section class="card"><h2>Keine Sendungen auf dieser Seite</h2><p>Prüfe Suche oder Seitenauswahl.</p></section>')+'</div></div>'}
+function overviewStatusLabel(sh){return Q(sh&&(sh.status||sh.pickupStatus||sh.podStatus)||'Offen')||'Offen'}
+function overviewStatusKey(sh){var value=L(overviewStatusLabel(sh)).normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(/storn|cancel/.test(value))return'storniert';if(/nachbearbeit|rework/.test(value))return'nachbearbeitung';if(/archiv/.test(value))return'archiviert';if(/abgeschlossen|completed|erledigt|done/.test(value))return'abgeschlossen';if(/pod/.test(value))return'pod';if(/abgeholt|picked|pickup.*bestat/.test(value))return'abgeholt';if(/bereit.*abhol|ready.*pickup/.test(value))return'bereit';if(/wartet.*abd|abd.*wart|zoll.*wart/.test(value))return'wartetabd';if(/erstellt|created/.test(value))return'erstellt';if(/entwurf|draft/.test(value))return'entwurf';return'offen'}
+function overviewStatusRank(sh){var order={entwurf:10,erstellt:20,wartetabd:30,bereit:40,abgeholt:50,pod:60,abgeschlossen:70,archiviert:80,nachbearbeitung:90,storniert:100,offen:15};return order[overviewStatusKey(sh)]||999}
+function overviewSortTime(sh){var value=Q(sh&&(sh._syncUpdatedAt||sh.updatedAt||sh.modifiedAt||sh.createdAt||sh.created||sh.pickupDate||sh.plannedPickupDate));var time=Date.parse(value);return Number.isFinite(time)?time:0}
+function overviewPickupTime(sh){var value=Q(sh&&(sh.pickupDate||sh.plannedPickupDate||sh.actualPickupDate||sh.pickedUpAtDate));var time=Date.parse(value);return Number.isFinite(time)?time:0}
+function overviewFiltered(){var st=S(),q=L(st.rc524OverviewSearch||'');var list=A(st.shipments).slice();if(q)list=list.filter(function(sh){var c=shipmentCustomer(sh);return L([shipmentRef(sh),shipmentId(sh),customerName(c,sh),sh.carrier,c.carrier,sh.status,sh.pickupStatus].join(' ')).indexOf(q)>=0});var sort=Q(st.rc210OverviewSort||'updated'),direction=Q(st.rc210OverviewDirection||(sort==='updated'?'desc':'asc')),factor=direction==='desc'?-1:1;list.sort(function(a,b){var av,bv;if(sort==='reference'){av=L(shipmentRef(a)||shipmentId(a));bv=L(shipmentRef(b)||shipmentId(b))}else if(sort==='customer'){av=L(customerName(shipmentCustomer(a),a));bv=L(customerName(shipmentCustomer(b),b))}else if(sort==='status'){av=overviewStatusRank(a);bv=overviewStatusRank(b)}else if(sort==='pickup'){av=overviewPickupTime(a);bv=overviewPickupTime(b)}else{av=overviewSortTime(a);bv=overviewSortTime(b)}if(av<bv)return-1*factor;if(av>bv)return 1*factor;return L(shipmentRef(a)||shipmentId(a)).localeCompare(L(shipmentRef(b)||shipmentId(b)),'de')});return list}
+function overviewHtml(){var st=S(),list=overviewFiltered(),size=Math.max(10,Math.min(100,Number(st.rc524OverviewPageSize)||25)),pages=Math.max(1,Math.ceil(list.length/size)),page=Math.max(1,Math.min(pages,Number(st.rc524OverviewPage)||1)),sort=Q(st.rc210OverviewSort||'updated'),direction=Q(st.rc210OverviewDirection||(sort==='updated'?'desc':'asc'));st.rc524OverviewPage=page;st.rc524OverviewPageSize=size;st.rc210OverviewSort=sort;st.rc210OverviewDirection=direction;var visible=list.slice((page-1)*size,page*size);return '<div class="rc524-page"><div class="rc524-page-head"><div><span class="rc524-kicker">Sendungen</span><h1>Sendungsübersicht</h1><p>Referenzordner, Ladeliste/CMR, POD und ABD bleiben dauerhaft an jeder Sendung verfügbar.</p></div><button class="btn" onclick="return setView(\'shipment\')">Neue Sendung</button></div><section class="card rc524-overview-controls"><label class="field">Suchen<input id="rc524OverviewSearch" value="'+E(st.rc524OverviewSearch||'')+'" oninput="return rc524OverviewSearch(this.value)"></label><label class="field">Sortieren nach<select id="rc210OverviewSort" onchange="return rc210OverviewSortChanged(this.value)"><option value="updated" '+(sort==='updated'?'selected':'')+'>Letzte Änderung</option><option value="pickup" '+(sort==='pickup'?'selected':'')+'>Abholdatum</option><option value="status" '+(sort==='status'?'selected':'')+'>Status</option><option value="reference" '+(sort==='reference'?'selected':'')+'>Referenz</option><option value="customer" '+(sort==='customer'?'selected':'')+'>Kunde</option></select></label><label class="field">Reihenfolge<select id="rc210OverviewDirection" onchange="return rc210OverviewDirectionChanged(this.value)"><option value="asc" '+(direction==='asc'?'selected':'')+'>Aufsteigend</option><option value="desc" '+(direction==='desc'?'selected':'')+'>Absteigend</option></select></label><label class="field">Einträge pro Seite<select onchange="return rc524OverviewPageSize(this.value)"><option '+(size===25?'selected':'')+'>25</option><option '+(size===50?'selected':'')+'>50</option><option '+(size===100?'selected':'')+'>100</option></select></label><div class="rc524-pagination"><button class="ghost" '+(page<=1?'disabled':'')+' onclick="return rc524OverviewPage('+(page-1)+')">Zurück</button><b>Seite '+page+' von '+pages+' · '+list.length+' Sendungen</b><button class="ghost" '+(page>=pages?'disabled':'')+' onclick="return rc524OverviewPage('+(page+1)+')">Weiter</button></div></section><div class="rc524-card-list">'+(visible.length?visible.map(function(sh){var id=shipmentId(sh),c=shipmentCustomer(sh),abds=matchingAbd(sh),status=overviewStatusLabel(sh),statusKey=overviewStatusKey(sh);return '<article class="card rc524-shipment-card rc210-status-'+E(statusKey)+'" data-status-key="'+E(statusKey)+'" data-shipment="'+E(id)+'"><div class="rc524-area-head"><div><span class="rc524-kicker">'+E(customerName(c,sh))+'</span><h2>'+E(shipmentRef(sh)||id)+'</h2></div><span class="pill rc210-status-pill rc210-status-pill-'+E(statusKey)+'">'+E(status)+'</span></div><div class="rc524-overview-meta"><span><b>Abholung:</b> '+E(fmtDate(sh.pickupDate||sh.plannedPickupDate)||'–')+'</span><span><b>Spedition:</b> '+E(sh.carrier||c.carrier||'–')+'</span><span><b>ABD:</b> '+E(abds.length?(abds.map(function(a){return (a.ref||a.id)+' · '+(a.status||'offen')}).join(', ')):'nicht verknüpft')+'</span></div><div class="rc524-action-grid"><button class="btn" data-id="'+E(id)+'" onclick="return rc524OpenRef(this.dataset.id)">Ref.-Ordner</button><button class="btn" data-id="'+E(id)+'" onclick="return rc524OpenDocuments(this.dataset.id)">Ladeliste &amp; CMR</button><label class="rc524-upload">POD hochladen<input type="file" accept="application/pdf,image/*" data-id="'+E(id)+'" onchange="return rc524UploadFile(this,\'podFiles\')"></label><label class="rc524-upload">ABD hinterlegen<input type="file" accept="application/pdf,image/*" data-id="'+E(id)+'" onchange="return rc524UploadFile(this,\'abdFiles\')"></label></div><div class="rc524-link-columns"><section><h3>POD-Anbindung</h3>'+(fileRows(sh,'podFiles',id)||'<p class="muted">Noch kein POD hinterlegt.</p>')+'</section><section><h3>ABD-Anbindung</h3>'+(fileRows(sh,'abdFiles',id)||'<p class="muted">Noch kein ABD-Dokument hinterlegt.</p>')+'</section></div><div class="toolbar rc524-dangerbar"><button class="ghost" data-id="'+E(id)+'" onclick="return rc524EditShipment(this.dataset.id)">Sendung bearbeiten</button><button class="ghost danger" data-id="'+E(id)+'" onclick="return rc524DeleteShipment(this.dataset.id)">Sendung löschen</button></div></article>'}).join(''):'<section class="card"><h2>Keine Sendungen auf dieser Seite</h2><p>Prüfe Suche oder Seitenauswahl.</p></section>')+'</div></div>'}
 function renderOverview(){var r=root();if(r){r.innerHTML=overviewHtml();r.className='content rc524-overview-view'}}
 window.rc524OverviewPage=function(page){S().rc524OverviewPage=Number(page)||1;renderOverview();return false};
 window.rc524OverviewPageSize=function(size){S().rc524OverviewPageSize=Number(size)||25;S().rc524OverviewPage=1;renderOverview();return false};
+window.rc210OverviewSortChanged=function(value){S().rc210OverviewSort=Q(value)||'updated';if(!S().rc210OverviewDirection)S().rc210OverviewDirection=S().rc210OverviewSort==='updated'?'desc':'asc';S().rc524OverviewPage=1;renderOverview();return false};
+window.rc210OverviewDirectionChanged=function(value){S().rc210OverviewDirection=Q(value)==='desc'?'desc':'asc';S().rc524OverviewPage=1;renderOverview();return false};
 window.rc524OverviewSearch=function(value){S().rc524OverviewSearch=value;S().rc524OverviewPage=1;if(window.__rc524OverviewSearchTimer)clearTimeout(window.__rc524OverviewSearchTimer);window.__rc524OverviewSearchTimer=setTimeout(renderOverview,180);return false};
 window.rc524OpenRef=window.rc524OpenRef=function(id){var sh=findShipment(id);if(!sh)return false;try{if(typeof window.rc232OpenReferenceFolder==='function')return window.rc232OpenReferenceFolder(shipmentRef(sh));if(typeof window.rc390ShowDocuments==='function')return window.rc390ShowDocuments()}catch(e){console.error(e)}alert('Der Referenzordner konnte nicht geöffnet werden.');return false};
 window.rc524OpenDocuments=function(id){var sh=findShipment(id);if(!sh)return false;var s=S();s.shipment=clone(sh);s.activeShipmentId='current';s.view='cmr';try{document.body.setAttribute('data-exporthub-view','cmr')}catch(e){}try{if(typeof window.__RC524_CORE_SHOW_DOCUMENTS__==='function'){window.__RC524_CORE_SHOW_DOCUMENTS__();postRender();return false}}catch(e){window.__RC524_CMR_ERROR__=Q(e&&e.message||e)}return stableRender()};
@@ -12188,7 +12195,7 @@ window.__EXPORTHUB_RC564_SOURCE_STATS__=stats;
 <script data-inline-source="assets/clean-bootstrap.js">
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC577',cache:'209',loginReturn:'/?v=209'};
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC577',cache:'210',loginReturn:'/?v=210'};
 const VERSION=String(BUILD.version||'RC565');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
@@ -13942,7 +13949,7 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){retur
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)return window.ExportHUBClean.runtime.state;if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){ }return window.state||{}}
 function shipmentView(){var s=state(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;document.querySelectorAll('[data-version-badge]').forEach(function(x){x.textContent=VERSION})}
 function heading(el){var h=el&&el.querySelector&&el.querySelector('h1,h2,h3,h4');return q(h&&h.textContent)}
 function savedCard(shell){if(!shell)return null;return shell.querySelector('#rc573SavedCard')||Array.prototype.slice.call(shell.querySelectorAll('section,.card,article')).find(function(x){return /^Gespeicherte Sendungen/i.test(heading(x))})||null}
 function mailCards(shell){if(!shell)return[];var list=Array.prototype.slice.call(shell.querySelectorAll('#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,.rc573-mail-card'));Array.prototype.slice.call(shell.querySelectorAll(':scope>section,:scope>.card,:scope>article')).forEach(function(x){if(/^(Mailbereich|Mail Bereich|Mailversand|Anmeldung\s*\/\s*Mail)/i.test(heading(x))&&list.indexOf(x)<0)list.push(x)});return list}
@@ -15808,7 +15815,7 @@ body.rc569-pdf-export .rc420-qr,body.rc569-pdf-export .rc569-qr-box,[data-rc569-
 (function(){
 'use strict';
 if(window.__EXPORTHUB_RC569_QR__)return;window.__EXPORTHUB_RC569_QR__=true;
-var VERSION='RC209',inflight={},syncBusy=false,installBusy=false,pdfWrapped={},saveWrapped={};
+var VERSION='RC210',inflight={},syncBusy=false,installBusy=false,pdfWrapped={},saveWrapped={};
 function q(v){return String(v==null?'':v).trim()}
 function l(v){return q(v).toLowerCase()}
 function a(v){return Array.isArray(v)?v:[]}
@@ -15830,7 +15837,7 @@ function party(c){var carrier=q(c.carrierName||c.carrier||c.spedition),cid=q(c.i
 function completed(sh){return !!(sh&&(sh.pickupQrUsed||sh.pickedUpAt||sh.actualPickupDate||/abgeholt|pod vorhanden|abgeschlossen|archiviert/i.test(q(sh.status||sh.pickupStatus))))}
 function cancelled(sh){return !!(sh&&(/storniert|cancelled/i.test(q(sh.status))||sh.cancelled===true||sh.storniert===true))}
 function ensure(sh){if(!sh)return null;if(!/^[a-f0-9]{48}$/i.test(q(sh.pickupToken))){sh.pickupToken=randomToken();sh.pickupQrCreatedAt=new Date().toISOString();sh.pickupQrRegistered=false}delete sh.pickupPin;delete sh.qrPin;sh.pickupQrVersion=6;var x=saved(sh);if(x&&x!==sh){x.pickupToken=sh.pickupToken;delete x.pickupPin;delete x.qrPin;x.pickupQrVersion=6}return sh}
-function url(sh){var base='';try{base=/^https?:/i.test(String(location.href||''))?location.href:document.baseURI||location.href}catch(_){base=document.baseURI||''}var u=new URL('./',base);u.searchParams.set('pickup',q(sh.pickupToken));u.searchParams.set('v','209');return u.href}
+function url(sh){var base='';try{base=/^https?:/i.test(String(location.href||''))?location.href:document.baseURI||location.href}catch(_){base=document.baseURI||''}var u=new URL('./',base);u.searchParams.set('pickup',q(sh.pickupToken));u.searchParams.set('v','210');return u.href}
 function api(path,opt){opt=opt||{};opt.credentials='same-origin';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});return fetch('/api'+path,opt).then(async function(r){var b={};try{b=await r.json()}catch(_){ }if(!r.ok){var e=new Error(b.message||b.error||('HTTP '+r.status));e.status=r.status;e.body=b;throw e}return b})}
 function metadata(sh){var c=customer(sh),p=party(c);return {token:q(sh.pickupToken),pin:activePin(),shipmentId:sid(sh),reference:ref(sh),customer:q(c.name||sh.customerName),recipient:q(sh.recipientName||c.name||sh.customerName),expiresDays:180,palletOut:euros(sh),partyKey:p.key,partyType:p.type,partyName:p.name,customerId:q(c.id||c.account||c.customerNumber),customerName:q(c.name),disabled:cancelled(sh),active:!cancelled(sh)&&!completed(sh),used:completed(sh),version:6}}
 function setServerState(sh,data){sh.pickupQrRegistered=true;sh.pickupQrActivating=false;sh.pickupQrRegisteredAt=new Date().toISOString();sh.pickupQrServerStatus=q(data&&data.status)||'open';sh.pickupQrError='';sh.pickupQrDisabled=cancelled(sh);return sh}
@@ -15931,7 +15938,7 @@ function findShipment(id){id=q(id);if(!id||id==='current')return st().shipment||
 function currentShipment(){var s=st(),id=q(s.activeShipmentId),found=id&&id!=='current'?findShipment(id):null;return found||s.shipment||null}
 function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'RC572 Änderung');else if(typeof window.save==='function')window.save()}catch(e){console.error('RC572 save',e)}}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
  try{document.title='ExportHUB '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;document.documentElement.setAttribute('data-exporthub-version',VERSION);document.documentElement.setAttribute('data-exporthub-fix',VERSION)}catch(_){ }
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
  document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(el){if(!el||/^(SCRIPT|STYLE)$/i.test(el.tagName)||el.children.length>8)return;var t=q(el.textContent);if(/RC\d+/i.test(t))el.textContent=t.replace(/RC\d+/ig,VERSION)});
@@ -16117,7 +16124,7 @@ function view(){var s=state();return low(s.view||document.body.getAttribute('dat
 function root(){return document.getElementById('content')}
 function nativeTimeout(fn,ms){var c=window.ExportHUBClean&&window.ExportHUBClean.native;return (c&&c.setTimeout||window.setTimeout)(fn,ms||0)}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.documentElement.setAttribute('data-design-approved','false');
  document.title='ExportHUB '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
@@ -16287,7 +16294,7 @@ function getState(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){v
 function shipment(){return getState().shipment||{}}
 function isShipment(){var s=getState(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-eh-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.documentElement.setAttribute('data-style-lock','STYLE');
  document.documentElement.setAttribute('data-shipment-style-approved','RC574');
@@ -17256,7 +17263,7 @@ function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var 
 function isShipment(){var s=state(),v=q(s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-eh-view')).toLowerCase();return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
 function nativeTimeout(fn,ms){var c=window.ExportHUBClean&&window.ExportHUBClean.native;return (c&&c.setTimeout||window.setTimeout)(fn,ms||0)}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
@@ -17356,7 +17363,7 @@ function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.
 function shipmentCustomer(sh){var c=sh&&sh.customer;return q((c&&typeof c==='object'&&(c.name||c.customerName||c.label))||sh&&sh.customerName||(typeof c==='string'?c:''))}
 function shipments(){return arr(st().shipments)}
 function findShipment(id){id=q(id);return shipments().find(function(sh){return shipmentId(sh)===id||shipmentRef(sh)===id})||null}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 
 /* ---------- Stauplan: Orientierung, Reihenfolge und Vollstatus ---------- */
 var TRUCK_LENGTH=1360,TRUCK_WIDTH=245;
@@ -17460,7 +17467,7 @@ function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.sendung
 function customer(sh){var c=sh&&sh.customer;return q((c&&typeof c==='object'&&(c.name||c.customerName||c.label))||sh&&sh.customerName||(typeof c==='string'?c:''))}
 function findShipment(id){id=q(id);return shipments().find(function(x){return sid(x)===id||sref(x)===id})||null}
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;
  var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -18310,7 +18317,7 @@ function isLdm(el){var r=root(el);return !!(r&&fields(r).ldm===el)}function manu
 window.addEventListener('input',function(e){if(!isLdm(e.target))return;var raw=e.target.value;e.stopImmediatePropagation();e.stopPropagation();manual(e.target,raw)},true);window.addEventListener('change',function(e){if(!isLdm(e.target))return;var raw=e.target.value;e.stopImmediatePropagation();e.stopPropagation();manual(e.target,raw)},true);
 function recover(target){if(!root(target)||isLdm(target))return;[80,220,500].forEach(function(ms){setT(function(){sync(false);updateStow()},ms)})}window.addEventListener('input',function(e){recover(e.target)},true);window.addEventListener('change',function(e){recover(e.target)},true);
 document.addEventListener('change',function(e){var r=root(e.target);if(!r||isLdm(e.target))return;var f=fields(r),i=indexOf(r);if(i>=0&&(e.target===f.type||e.target===f.l||e.target===f.w)){var row=shipment().rows[i]||(shipment().rows[i]={});if(row.ldmManual!==true||stacked(row,f)){row.ldmAuto=0;setT(function(){var fresh=nodes()[i];if(fresh)apply(fresh,i,true);recalc();queue('LDM automatisch berechnet')},100)}}},false);
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;try{document.title='ExportHUB Online '+VERSION}catch(_){}document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(x){if(/RC\d+/i.test(q(x.textContent)))x.textContent=q(x.textContent).replace(/RC\d+/ig,VERSION)})}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;try{document.title='ExportHUB Online '+VERSION}catch(_){}document.querySelectorAll('[data-exporthub-version-label],[id*=version i],[class*=version i]').forEach(function(x){if(/RC\d+/i.test(q(x.textContent)))x.textContent=q(x.textContent).replace(/RC\d+/ig,VERSION)})}
 function refresh(){version();sync(false)}function schedule(){if(timer)return;timer=setT(function(){timer=0;refresh()},30)}['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(x){window.addEventListener(x,schedule)});document.addEventListener('click',function(){setT(refresh,150)},true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,100,350,1000,3000].forEach(function(ms){setT(refresh,ms)})},{once:true});else[0,100,350,1000,3000].forEach(function(ms){setT(refresh,ms)});setI(function(){version();if(nodes().length)sync(false)},1000);try{var O=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver,h=document.getElementById('content');if(O&&h)new O(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule()}).observe(h,{childList:true,subtree:true})}catch(_){}
 window.ExportHUBRC596=Object.freeze({version:VERSION,syncLdm:sync,totalLdm:total,refresh:refresh});
 })();
@@ -18383,7 +18390,7 @@ function esc(v){return q(v).replace(/[&<>\"]/g,function(c){return{'&':'&amp;','<
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var x=window.__EXPORTHUB_GET_STATE__();if(x)return x}}catch(_){ }return window.state||(window.state={})}
 function shipment(){var s=state();s.shipment=s.shipment||{};s.shipment.rows=a(s.shipment.rows);return s.shipment}
 function inShipment(){return !!document.getElementById('rc573ShipmentShell')||low(state().view)==='shipment'}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION}
 function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')return window.ExportHUBClean.queueSave(reason||'Lieferscheine aktualisiert')}catch(_){ }try{if(typeof window.save==='function')return window.save(reason||'Lieferscheine aktualisiert')}catch(_){ }}
 function audit(action,detail){try{if(typeof window.audit==='function')window.audit(action,detail)}catch(_){ }}
 function uid(prefix){try{if(typeof window.uid==='function')return window.uid(prefix)}catch(_){ }return String(prefix||'FILE')+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)}
@@ -18582,7 +18589,7 @@ function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.
 function customerName(sh){var c=sh&&sh.customer;return q(c&&typeof c==='object'?(c.name||c.customerName):sh&&sh.customerName||c)}
 function customerAddress(sh){var c=sh&&sh.customer;return q(c&&typeof c==='object'?(c.address||c.recipientAddress):sh&&sh.recipientAddress||sh&&sh.address)}
 function queueSave(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){window.ExportHUBClean.queueSave(reason);return}}catch(_){}try{if(typeof window.save==='function')window.save(reason)}catch(_){}}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
 
 function docView(){return document.querySelector('#content .rc390-docview,.rc390-docview')}
 function bundle(){var v=docView();return v&&v.querySelector('.rc390-bundle')}
@@ -18756,8 +18763,8 @@ function migrateAll(){
   try{
     window.EXPORTHUB_BUILD=Object.freeze({
       version:VERSION,
-      cache:'209',
-      loginReturn:'/?v=209'
+      cache:'210',
+      loginReturn:'/?v=210'
     });
   }catch(_){}
   document.documentElement.setAttribute('data-exporthub-version',VERSION);
@@ -19184,7 +19191,7 @@ function wrapRc565(){
  wrapped.__rc608Wrapped=true;wrapped.__rc608Base=base;api.saveCustomerFolder=wrapped;
 }
 function install(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  wrapGlobal('rc390SaveCustomerMailPanel');wrapGlobal('rc393SaveCustomerMail');wrapGlobal('rc543SaveCustomerMailRule');wrapGlobal('saveCustomerFolderMail');wrapRc565();ensureEditor();
 }
@@ -19329,7 +19336,7 @@ function install(){
     try{globalThis.rc344SetRef=window.rc344SetRef;globalThis.setShipmentRef=window.setShipmentRef}catch(_){}
 
     try{
-      window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'});
+      window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'});
     }catch(_){}
     document.documentElement.setAttribute('data-exporthub-version',VERSION);
     document.title='ExportHUB Online '+VERSION;
@@ -19475,7 +19482,7 @@ function refreshLocations(){
 }
 function applyLocation(id,save){var l=findLocation(id);if(!l)return false;var x=sh();x.locationId=locationId(l,0);x.selectedLocationId=x.locationId;x.siteId=x.locationId;x.location=JSON.parse(JSON.stringify(l));x.locationData=JSON.parse(JSON.stringify(l));x.siteData=JSON.parse(JSON.stringify(l));x.locationName=locationName(l);x.site=x.locationName;x.standort=x.locationName;x.recipientName=locationName(l)||x.customerName;x.destinationName=locationName(l)||x.destinationName;x.recipientAddress=locationAddress(l)||x.recipientAddress;x.destinationCountry=q(l.country||l.land)||x.destinationCountry;x.recipientCountry=q(l.country||l.land)||x.recipientCountry;var p=document.querySelector('#rc573CustomerCard .okbox pre,#rc573CustomerCard .badbox pre');if(p)p.textContent=x.recipientAddress||'';refreshLocations();if(save!==false){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Standort ausgewählt')}catch(_){}}return false}
 window.__EXPORTHUB_RC616_AFTER_CUSTOMER__=function(){setT(refreshLocations,0);setT(refreshLocations,80);setT(refreshLocations,250)};
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}document.documentElement.dataset.exporthubVersion=VERSION;document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.dataset.exporthubVersion=VERSION;document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function refresh(){forceVersion();var v=view();if(v&&v!==installedView)install(true);if(document.getElementById('rc573CustomerCard'))refreshLocations()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,120,500,1000].forEach(function(ms){setT(refresh,ms)})},{once:true});else[0,120,500,1000].forEach(function(ms){setT(refresh,ms)});
 ['exporthub:ready','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,function(){setT(refresh,20)})});
@@ -19801,7 +19808,7 @@ function markPackaging(){
   }catch(_){}
 }
 function version(){
-  try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}
+  try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}
   document.documentElement.setAttribute('data-exporthub-version',VERSION);
   document.title='ExportHUB Online '+VERSION;
   var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -19911,7 +19918,7 @@ document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){[0,100,350,900].forEach(function(ms){setT(apply,ms)})},{once:true});else[0,100,350,900].forEach(function(ms){setT(apply,ms)});
 try{var O=nativeApi&&nativeApi.MutationObserver?nativeApi.MutationObserver:window.MutationObserver,c=document.getElementById('content');if(O&&c)new O(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule()}).observe(c,{childList:true,subtree:true})}catch(_){}
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}
 version();
 window.ExportHUBRC624=Object.freeze({version:VERSION,apply:apply,reset:reset,afterSave:afterSave,selfTest:function(){return{address:stickyAddress,process:stickyProcess,stateAddress:!!shipment().addressConfirmed,stateProcess:!!shipment().customerProcessConfirmed,addressInputs:inputs('address').length,processInputs:inputs('process').length}}});
 })();
@@ -20076,7 +20083,7 @@ function patchOverview(){
  return true;
 }
 function forceVersion(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}
  document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;
  var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION;
 }
@@ -20208,7 +20215,7 @@ function customers(){var s=state();s.customers=arr(s.customers);return s.custome
 function shipments(){var s=state();s.shipments=arr(s.shipments);return s.shipments}
 function findCustomer(id){var key=q(id);return customers().find(function(c){return q(c.id)===key||customerNumber(c)===key||customerName(c)===key})||null}
 function findShipment(id){var key=q(id).toUpperCase();return shipments().find(function(x){return q(x.id||x.shipmentId).toUpperCase()===key||q(x.ref||x.reference||x.shipmentRef).toUpperCase()===key})||null}
-function forceVersion(){try{var build=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'}),desc=Object.getOwnPropertyDescriptor(window,'EXPORTHUB_BUILD');if(!desc||desc.configurable)Object.defineProperty(window,'EXPORTHUB_BUILD',{value:build,writable:false,enumerable:true,configurable:true});else window.EXPORTHUB_BUILD=build}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{var build=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'}),desc=Object.getOwnPropertyDescriptor(window,'EXPORTHUB_BUILD');if(!desc||desc.configurable)Object.defineProperty(window,'EXPORTHUB_BUILD',{value:build,writable:false,enumerable:true,configurable:true});else window.EXPORTHUB_BUILD=build}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 
 /* ---------- Navigation ---------- */
 function navAllowed(view){try{if(typeof window.canView==='function'&&!window.canView(view))return false;if(typeof window.canRead==='function'&&!window.canRead(view))return false}catch(_){}return true}
@@ -20540,7 +20547,7 @@ window.ExportHUBRC626=Object.freeze({version:VERSION,openShipping:openShipping,r
 'use strict';
 var VERSION='RC628';
 function lock(){
- try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  document.title='ExportHUB Online '+VERSION;
  var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
@@ -20612,7 +20619,7 @@ function reactivateQr(sh){var api=window.ExportHUBRC569QR;if(!api||typeof api.re
 function resetPickup(el){var card=el&&el.closest&&el.closest('[data-shipment]'),id=q((el&&el.dataset&&el.dataset.id)||(card&&card.getAttribute('data-shipment'))),sh=findShipment(id);if(!sh)return false;if(!canReset(sh)){alert('Nur der Ersteller der Sendung oder ein globaler Administrator darf die Abholung zurücksetzen.');return false}if(!confirm('Abholung wirklich zurücksetzen und denselben QR-Code reaktivieren?'))return false;var reason=q(prompt('Grund der Korrektur:','Falsche Abholbestätigung'));if(!reason){alert('Für die Korrektur ist ein Grund erforderlich.');return false}clearPickupFields(sh,reason);var cur=state().shipment;if(cur&&(sid(cur)===sid(sh)||sref(cur)===sref(sh)))Object.assign(cur,clone(sh));persist('Abholung zurückgesetzt');refreshOverview();reactivateQr(sh).then(function(ok){refreshOverview();if(!ok)alert('Die Abholung wurde zurückgesetzt. Der QR-Code konnte aber nicht automatisch beim Server reaktiviert werden. Bitte den QR-Code in der Sendung erneut aktivieren.')});return false}
 function ensureResetButton(card,id,sh){var bar=card.querySelector('.rc524-dangerbar,.toolbar:last-of-type');if(!bar)return;var btn=bar.querySelector('.rc628-reset-pickup');if(statusAtOrAfterPickup(sh)&&canReset(sh)){if(!btn){btn=document.createElement('button');btn.type='button';btn.className='ghost rc628-reset-pickup';btn.textContent='Abholung zurücksetzen / QR reaktivieren';var del=Array.prototype.slice.call(bar.querySelectorAll('button')).find(function(b){return /sendung loschen/.test(low(b.textContent))});if(del)bar.insertBefore(btn,del);else bar.appendChild(btn)}btn.dataset.id=id;btn.dataset.rc628ResetPickup='1'}else if(btn)btn.remove()}
 function patchOverview(){if(!document.querySelector('#content .rc524-shipment-card'))return false;document.querySelectorAll('#content .rc524-shipment-card').forEach(function(card){var id=q(card.getAttribute('data-shipment')),sh=findShipment(id);if(!sh)return;var green=statusAtOrAfterPickup(sh);card.classList.toggle('rc628-picked-up-or-later',green);card.classList.toggle('rc624-qr-completed',false);card.hidden=false;var badge=card.querySelector('.shipment-status,.rc524-area-head .pill');if(badge&&green){badge.classList.remove('blue','orange','red');badge.classList.add('green')}patchFileRows(card,id,'pod','podFiles');patchFileRows(card,id,'abd','abdFiles');ensureResetButton(card,id,sh)});return true}
-function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function forceVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function apply(){forceVersion();patchOverview()}
 function schedule(){if(timer)return;timer=setT(function(){timer=0;apply()},25)}
 document.addEventListener('click',function(e){var open=e.target&&e.target.closest&&e.target.closest('[data-rc628-file-open="1"]');if(open){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();openFile(open);return}var reset=e.target&&e.target.closest&&e.target.closest('[data-rc628-reset-pickup="1"]');if(reset){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();resetPickup(reset)}},true);
@@ -21796,7 +21803,7 @@ window.ExportHUBIndex202=Object.freeze({patch:patch,applyPackaging:applyPackagin
 if(window.__EXPORTHUB_INDEX205_DASHBOARD_PLANNER__)return;
 window.__EXPORTHUB_INDEX205_DASHBOARD_PLANNER__=true;
 
-var VERSION='RC209';
+var VERSION='RC210';
 var previousAfterRender=window.__EXPORTHUB_AFTER_RENDER__;
 var applying=false;
 var timer=0;
@@ -21919,8 +21926,8 @@ window.__EXPORTHUB_AFTER_RENDER__=function(view){try{if(typeof previousAfterRend
 window.addEventListener('exporthub:ready',function(){schedule(currentView())});
 window.addEventListener('exporthub:viewchange',function(e){schedule(e&&e.detail&&e.detail.view)});
 window.addEventListener('exporthub:sync',function(){schedule(currentView())});
-window.ExportHUBRC205={renderDashboard:renderDashboard,renderPlanner:renderPlanner,apply:apply,setTaskDate:setTaskDate,planRecurringTask:planRecurringTask,navigate:navigate,holidaysNRW:holidaysNRW,openDirectEntity:openDirectEntity,addDirectEntity:addDirectEntity,removeDirectEntity:removeDirectEntity};window.ExportHUBRC206=window.ExportHUBRC205;window.ExportHUBRC207=window.ExportHUBRC205;window.ExportHUBRC208=window.ExportHUBRC205;window.ExportHUBRC209=window.ExportHUBRC205;
-try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'209',loginReturn:'/?v=209'})}catch(_){ }
+window.ExportHUBRC205={renderDashboard:renderDashboard,renderPlanner:renderPlanner,apply:apply,setTaskDate:setTaskDate,planRecurringTask:planRecurringTask,navigate:navigate,holidaysNRW:holidaysNRW,openDirectEntity:openDirectEntity,addDirectEntity:addDirectEntity,removeDirectEntity:removeDirectEntity};window.ExportHUBRC206=window.ExportHUBRC205;window.ExportHUBRC207=window.ExportHUBRC205;window.ExportHUBRC208=window.ExportHUBRC205;window.ExportHUBRC209=window.ExportHUBRC205;window.ExportHUBRC210=window.ExportHUBRC205;
+try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'210',loginReturn:'/?v=210'})}catch(_){ }
 })();
 
 </script>
@@ -21945,14 +21952,59 @@ body#index203PrintBody #index203PrintRoot>.index203-print-sheet>.rc601-cover,
 (function(){
 'use strict';
 if(window.__EXPORTHUB_INDEX209_FINAL__)return;window.__EXPORTHUB_INDEX209_FINAL__=true;
-function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC209',cache:'209',loginReturn:'/?v=209'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC209')}
-function patchQrApi(){var api=window.ExportHUBRC569QR;if(!api||api.__index209)return false;var wrapped=Object.assign({},api);wrapped.urlFor=function(sh){var item=sh;try{if(!item)item=(window.state||{}).shipment||{}}catch(_){item={}}var token=String(item&&item.pickupToken||'').trim(),base='';try{base=location.href}catch(_){base=document.baseURI||''}var u=new URL('./',base);u.searchParams.set('pickup',token);u.searchParams.set('v','209');return u.href};wrapped.__index209=true;try{window.ExportHUBRC569QR=wrapped}catch(_){ }return true}
+function version(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC210',cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC209')}
+function patchQrApi(){var api=window.ExportHUBRC569QR;if(!api||api.__index209)return false;var wrapped=Object.assign({},api);wrapped.urlFor=function(sh){var item=sh;try{if(!item)item=(window.state||{}).shipment||{}}catch(_){item={}}var token=String(item&&item.pickupToken||'').trim(),base='';try{base=location.href}catch(_){base=document.baseURI||''}var u=new URL('./',base);u.searchParams.set('pickup',token);u.searchParams.set('v','210');return u.href};wrapped.__index209=true;try{window.ExportHUBRC569QR=wrapped}catch(_){ }return true}
 function install(){version();patchQrApi()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,install)});
 setTimeout(install,120);setTimeout(install,600);
-window.ExportHUBIndex209=Object.freeze({version:'RC209',pickupMode:!!window.__EXPORTHUB_PICKUP_MODE__,selfTest:function(){var api=window.ExportHUBRC569QR,sample={pickupToken:'a'.repeat(48)},url=api&&api.urlFor?api.urlFor(sample):'';return{coverPrintRule:!!document.getElementById('index209-cover-layout-fix'),qrUrl:url,qrUsesIndex:/[?&]pickup=a{48}/.test(url),cache:/[?&]v=209/.test(url)}}});
+window.ExportHUBIndex209=Object.freeze({version:'RC210',pickupMode:!!window.__EXPORTHUB_PICKUP_MODE__,selfTest:function(){var api=window.ExportHUBRC569QR,sample={pickupToken:'a'.repeat(48)},url=api&&api.urlFor?api.urlFor(sample):'';return{coverPrintRule:!!document.getElementById('index209-cover-layout-fix'),qrUrl:url,qrUsesIndex:/[?&]pickup=a{48}/.test(url),cache:/[?&]v=210/.test(url)}}});
 })();
 </script>
 <!-- INDEX 209 DECKBLATT + QR ROUTE FIX END -->
 
+
+
+<!-- INDEX 210 SENDUNGSUEBERSICHT STATUSFARBEN + SORTIERUNG START -->
+<style id="index210-overview-status-sort-style">
+#content.rc524-overview-view .rc524-overview-controls{grid-template-columns:minmax(230px,1.35fr) minmax(170px,.75fr) minmax(150px,.6fr) minmax(145px,.55fr)!important}
+#content.rc524-overview-view .rc524-overview-controls>.rc524-pagination{grid-column:1/-1!important;margin:2px 0 0!important}
+#content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]::before{display:none!important}
+#content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]{border-width:2px!important;border-left-width:10px!important;transition:transform .12s ease,box-shadow .12s ease!important}
+#content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]:hover{transform:translateY(-2px)!important}
+#content.rc524-overview-view .rc210-status-entwurf{background:linear-gradient(180deg,#f8fafc,#ffffff)!important;border-color:#94a3b8!important;box-shadow:0 12px 28px rgba(100,116,139,.12)!important}
+#content.rc524-overview-view .rc210-status-erstellt{background:linear-gradient(180deg,#eff6ff,#ffffff)!important;border-color:#3b82f6!important;box-shadow:0 12px 28px rgba(37,99,235,.13)!important}
+#content.rc524-overview-view .rc210-status-wartetabd{background:linear-gradient(180deg,#fefce8,#ffffff)!important;border-color:#eab308!important;box-shadow:0 12px 28px rgba(202,138,4,.14)!important}
+#content.rc524-overview-view .rc210-status-bereit{background:linear-gradient(180deg,#fff7ed,#ffffff)!important;border-color:#f97316!important;box-shadow:0 12px 28px rgba(234,88,12,.14)!important}
+#content.rc524-overview-view .rc210-status-abgeholt{background:linear-gradient(180deg,#ecfeff,#ffffff)!important;border-color:#06b6d4!important;box-shadow:0 12px 28px rgba(8,145,178,.14)!important}
+#content.rc524-overview-view .rc210-status-pod{background:linear-gradient(180deg,#faf5ff,#ffffff)!important;border-color:#a855f7!important;box-shadow:0 12px 28px rgba(147,51,234,.14)!important}
+#content.rc524-overview-view .rc210-status-abgeschlossen{background:linear-gradient(180deg,#f0fdf4,#ffffff)!important;border-color:#22c55e!important;box-shadow:0 12px 28px rgba(22,163,74,.14)!important}
+#content.rc524-overview-view .rc210-status-archiviert{background:linear-gradient(180deg,#f1f5f9,#ffffff)!important;border-color:#475569!important;box-shadow:0 12px 28px rgba(51,65,85,.14)!important}
+#content.rc524-overview-view .rc210-status-nachbearbeitung{background:linear-gradient(180deg,#fff1f2,#ffffff)!important;border-color:#f43f5e!important;box-shadow:0 12px 28px rgba(225,29,72,.14)!important}
+#content.rc524-overview-view .rc210-status-storniert{background:linear-gradient(180deg,#fef2f2,#ffffff)!important;border-color:#dc2626!important;box-shadow:0 12px 28px rgba(185,28,28,.14)!important}
+#content.rc524-overview-view .rc210-status-offen{background:linear-gradient(180deg,#fffbeb,#ffffff)!important;border-color:#f59e0b!important;box-shadow:0 12px 28px rgba(217,119,6,.12)!important}
+#content.rc524-overview-view .rc210-status-pill{border:1px solid currentColor!important;font-weight:950!important}
+#content.rc524-overview-view .rc210-status-pill-entwurf{background:#e2e8f0!important;color:#334155!important}
+#content.rc524-overview-view .rc210-status-pill-erstellt{background:#dbeafe!important;color:#1d4ed8!important}
+#content.rc524-overview-view .rc210-status-pill-wartetabd{background:#fef9c3!important;color:#854d0e!important}
+#content.rc524-overview-view .rc210-status-pill-bereit{background:#ffedd5!important;color:#9a3412!important}
+#content.rc524-overview-view .rc210-status-pill-abgeholt{background:#cffafe!important;color:#155e75!important}
+#content.rc524-overview-view .rc210-status-pill-pod{background:#f3e8ff!important;color:#6b21a8!important}
+#content.rc524-overview-view .rc210-status-pill-abgeschlossen{background:#dcfce7!important;color:#166534!important}
+#content.rc524-overview-view .rc210-status-pill-archiviert{background:#cbd5e1!important;color:#1e293b!important}
+#content.rc524-overview-view .rc210-status-pill-nachbearbeitung{background:#ffe4e6!important;color:#9f1239!important}
+#content.rc524-overview-view .rc210-status-pill-storniert{background:#fee2e2!important;color:#991b1b!important}
+#content.rc524-overview-view .rc210-status-pill-offen{background:#fef3c7!important;color:#92400e!important}
+@media(max-width:1050px){#content.rc524-overview-view .rc524-overview-controls{grid-template-columns:1fr 1fr!important}}
+@media(max-width:700px){#content.rc524-overview-view .rc524-overview-controls{grid-template-columns:1fr!important}}
+</style>
+<script id="index210-version-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX210__)return;window.__EXPORTHUB_INDEX210__=true;
+function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:'RC210',cache:'210',loginReturn:'/?v=210'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version','RC210');document.title='ExportHUB Online RC210';var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · RC210'}
+lock();['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,lock)});
+window.ExportHUBIndex210=Object.freeze({version:'RC210',selfTest:function(){return{sortSelect:!!document.getElementById('rc210OverviewSort'),directionSelect:!!document.getElementById('rc210OverviewDirection'),coloredCards:document.querySelectorAll('#content .rc524-shipment-card[class*=\"rc210-status-\"]').length,cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+})();
+</script>
+<!-- INDEX 210 SENDUNGSUEBERSICHT STATUSFARBEN + SORTIERUNG END -->
