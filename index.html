@@ -21477,3 +21477,51 @@ window.ExportHUBIndex196=Object.freeze({
 })();
 </script>
 <!-- INDEX 196 ABD REQUEST SELECTION FIX END -->
+
+
+<!-- INDEX 197 ABD CANONICAL VIEW HARD OVERRIDE START -->
+<script id="index197-abd-canonical-view-hard-override">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX197_ABD_CANONICAL__)return;
+window.__EXPORTHUB_INDEX197_ABD_CANONICAL__=true;
+window.__EXPORTHUB_NEW_ABD_ACTIVE__=true;
+
+var busy=false,pending=0,observer=null,baseSetView=null,installing=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
+function runtime(){try{return window.ExportHUBClean&&window.ExportHUBClean.runtime||{}}catch(_){return{}}}
+function primaryState(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||{}}}
+function stateTargets(){var out=[];function add(s){if(s&&typeof s==='object'&&out.indexOf(s)<0)out.push(s)}add(primaryState());try{add(window.state)}catch(_){}try{add(runtime().state)}catch(_){}return out}
+function root(){return document.getElementById('content')}
+function setAbdView(){stateTargets().forEach(function(s){s.view='abd'});try{document.body.setAttribute('data-exporthub-view','abd');document.body.setAttribute('data-current-view','abd');document.body.setAttribute('data-eh-view','abd')}catch(_){}return true}
+function stateSaysAbd(){var yes=false;stateTargets().forEach(function(s){if(low(s.view)==='abd')yes=true});if(yes)return true;var body=low((document.body&&document.body.getAttribute('data-exporthub-view'))||'');return body==='abd'}
+function domSaysAbd(){var r=root();if(!r)return false;if(document.getElementById('rc626Abd'))return true;var txt=low(r.textContent);return /abd-status|abd erstellen|abd-anfrage erstellen|gespeicherte abd-anfragen/.test(txt)&&(/gpz|zollabfertigung|abd-prozess|abd-referenz/.test(txt))}
+function isAbdIntent(){return stateSaysAbd()||domSaysAbd()}
+function requestList(){var s=primaryState();return Array.isArray(s.abdRequests)?s.abdRequests:[]}
+function requestId(x){return q(x&&(x.id||x.requestId||x.ref||x.reference))}
+function activeRequest(){var s=primaryState(),d=s.abdDraft||{},ids=[s.selectedAbdId,s.activeAbdId,s.currentAbdId,s.linkedAbdId,d.id].map(q).filter(Boolean),list=requestList();for(var i=0;i<ids.length;i++){var item=list.find(function(x){return requestId(x)===ids[i]||q(x.ref||x.reference)===ids[i]});if(item)return item}return null}
+function legacyNodes(){var r=root();if(!r)return[];var selectors=['#rc542AbdStatus','#rc543AbdStatus','#rc409AbdPreview','.rc409-abd','.rc409-panel','.rc408-abd-panel','.rc408-panel','.rc407-abd-card','.rc407-panel','.rc404-abd','.rc403-abd-card'];var list=[];selectors.forEach(function(sel){r.querySelectorAll(sel).forEach(function(n){if(list.indexOf(n)<0)list.push(n)})});Array.prototype.slice.call(r.children).forEach(function(n){if(n.id==='rc626Abd')return;var t=low(n.textContent);if(/abd-status/.test(t)&&/abd-prozess/.test(t)){if(list.indexOf(n)<0)list.push(n);return}if(/abd erstellen/.test(t)&&(/abholdatum|empfangeradresse|abd-mail an gpz erstellen|vollstandige abd-anfrage/.test(t))){if(list.indexOf(n)<0)list.push(n)}});return list}
+function removeLegacy(){legacyNodes().forEach(function(n){if(n&&n.parentNode)n.remove()});return legacyNodes().length===0}
+function canonicalReady(){var c=document.getElementById('rc626Abd');if(!c)return false;var h=Array.prototype.slice.call(c.querySelectorAll('h2,h3')).map(function(n){return low(n.textContent)});return h.some(function(t){return t==='abd-anfrage erstellen'})&&h.some(function(t){return t==='gespeicherte abd-anfragen'})}
+function restoreSelected(){var item=activeRequest();if(!item)return false;stateTargets().forEach(function(s){s.abdDraft=clone(item);s.abdRequest=clone(item);s.selectedAbdId=requestId(item);s.activeAbdId=requestId(item);s.currentAbdId=requestId(item)});return true}
+function renderCanonical(force){if(!isAbdIntent()||busy)return false;var r=root(),api=window.ExportHUBRC626;if(!r||!api||typeof api.renderAbd!=='function')return false;if(!force&&canonicalReady()&&legacyNodes().length===0)return true;busy=true;pending=0;setAbdView();restoreSelected();try{api.renderAbd()}catch(error){console.error('ExportHUB ABD-Ansicht erzwingen',error)}removeLegacy();var ok=canonicalReady();busy=false;return ok}
+function openCanonical(){setAbdView();var api=window.ExportHUBRC626;if(api&&typeof api.openAbd==='function'){busy=true;try{api.openAbd(false)}catch(error){console.error('ExportHUB ABD öffnen',error)}busy=false}else renderCanonical(true);window.setTimeout(function(){renderCanonical(true)},0);window.setTimeout(function(){renderCanonical(false)},80);return false}
+function delegate(){return openCanonical()}
+function replaceLegacyEntrypoints(){['rc260OpenAbd','rc265OpenAbd','rc268OpenAbd','rc344OpenAbd','rc348OpenAbd','rc349OpenAbd','rc350OpenAbd','rc352OpenAbd','rc400OpenAbd','rc401OpenAbd','rc402OpenAbd','rc403RenderAbd','rc404RenderAbd','rc407OpenAbd','rc407RenderAbd','rc408OpenAbd','rc408RenderAbd','rc409OpenAbd','rc409RenderAbd','rc543OpenAbd'].forEach(function(name){try{window[name]=delegate}catch(_){}})}
+function wrappedSetView(name){if(low(name)==='abd')return openCanonical();return baseSetView?baseSetView.apply(this,arguments):false}
+wrappedSetView.__index197=true;
+function installSetView(){if(installing)return;installing=true;var current=window.setView;if(typeof current==='function'&&current!==wrappedSetView&&!current.__index197)baseSetView=current;if(baseSetView&&window.setView!==wrappedSetView){window.setView=wrappedSetView;try{setView=wrappedSetView}catch(_){}}installing=false}
+function viewFromButton(b){var raw=q((b&&b.getAttribute&&b.getAttribute('data-view'))||(b&&b.getAttribute&&b.getAttribute('data-page'))||(b&&b.getAttribute&&b.getAttribute('data-target'))||(b&&b.getAttribute&&b.getAttribute('onclick'))),m=raw.match(/setView\(\s*["']([^"']+)/i);return low((m&&m[1])||(b&&b.dataset&&b.dataset.view)||'')}
+function isAbdButton(b){if(!b)return false;var v=viewFromButton(b),t=low(b.textContent);return v==='abd'||(/^abd(?: erstellen)?$/.test(t)&&!!b.closest('#nav,.nav,.sidebar'))}
+function schedule(force,delay){if(pending)return;pending=window.setTimeout(function(){pending=0;if(isAbdIntent())renderCanonical(!!force)},delay==null?15:delay)}
+function installObserver(){if(observer)return;var r=root();if(!r)return;try{var MO=window.MutationObserver;observer=new MO(function(records){if(busy)return;if(records.some(function(x){return x.type==='childList'}))schedule(false,0)});observer.observe(r,{childList:true,subtree:true})}catch(_){}}
+window.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button,a,[role="button"]');if(!isAbdButton(b))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openCanonical();return false},true);
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){window.__EXPORTHUB_NEW_ABD_ACTIVE__=true;replaceLegacyEntrypoints();installSetView();schedule(false,0)})});
+function boot(){window.__EXPORTHUB_NEW_ABD_ACTIVE__=true;replaceLegacyEntrypoints();installSetView();installObserver();[0,40,120,350,900,1800,3200].forEach(function(ms){window.setTimeout(function(){replaceLegacyEntrypoints();installSetView();if(isAbdIntent())renderCanonical(false)},ms)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.ExportHUBIndex197=Object.freeze({openAbd:openCanonical,enforce:function(){return renderCanonical(true)},selfTest:function(){var item=activeRequest();return{abdIntent:isAbdIntent(),canonicalEditor:canonicalReady(),legacyAreas:legacyNodes().length,savedRequests:requestList().length,selectedRequest:item?requestId(item):'',newButton:!!Array.prototype.slice.call(document.querySelectorAll('#rc626Abd button')).find(function(b){return low(b.textContent)==='neue abd-anfrage'}),valid:!isAbdIntent()||(canonicalReady()&&legacyNodes().length===0)}}});
+})();
+</script>
+<!-- INDEX 197 ABD CANONICAL VIEW HARD OVERRIDE END -->
