@@ -21083,3 +21083,153 @@ window.ExportHUBIndex193=Object.freeze({fixMailPosition:fixMailPosition,selfTest
 </script>
 <!-- INDEX 193 MAIL POSITION + COLLI RENDER LOCK END -->
 
+
+
+<!-- INDEX 194 MAIL MUST STAY ABOVE SAVED SHIPMENTS START -->
+<style id="index194-mail-order-guard-style">
+/* Sicherheitsnetz: Ein nach „Gespeicherte Sendungen“ erzeugter Mailbereich bleibt unsichtbar,
+   bis der DOM-Guard ihn wieder an die einzig erlaubte Position direkt davor verschiebt. */
+#rc573ShipmentShell #rc573SavedCard ~ #rc543MailArea,
+#rc573ShipmentShell #rc573SavedCard ~ #rc542MailArea,
+#rc573ShipmentShell #rc573SavedCard ~ #rc524MailArea,
+#rc573ShipmentShell #rc573SavedCard ~ #rc418ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ #rc416ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ #rc410ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ #rc409ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ #rc404ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ #rc404ShipmentMailPanel,
+#rc573ShipmentShell #rc573SavedCard ~ #rc390ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ #rc385ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ #rc344MailBox,
+#rc573ShipmentShell #rc573SavedCard ~ .rc573-mail-card,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc543MailArea,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc542MailArea,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc524MailArea,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc418ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc416ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc410ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc409ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc404ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc404ShipmentMailPanel,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc390ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc385ShipmentMail,
+#rc573ShipmentShell #rc573SavedCard ~ * #rc344MailBox,
+#rc573ShipmentShell #rc573SavedCard ~ * .rc573-mail-card,
+#rc573SavedCard #rc543MailArea,
+#rc573SavedCard #rc542MailArea,
+#rc573SavedCard #rc524MailArea,
+#rc573SavedCard #rc418ShipmentMail,
+#rc573SavedCard #rc416ShipmentMail,
+#rc573SavedCard #rc410ShipmentMail,
+#rc573SavedCard #rc409ShipmentMail,
+#rc573SavedCard #rc404ShipmentMail,
+#rc573SavedCard #rc404ShipmentMailPanel,
+#rc573SavedCard #rc390ShipmentMail,
+#rc573SavedCard #rc385ShipmentMail,
+#rc573SavedCard #rc344MailBox,
+#rc573SavedCard .rc573-mail-card{
+  display:none!important;
+}
+</style>
+<script id="index194-mail-order-guard">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX194_MAIL_ORDER_GUARD__)return;
+window.__EXPORTHUB_INDEX194_MAIL_ORDER_GUARD__=true;
+
+var pending=0,observer=null;
+var MAIL_SELECTOR='#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,.rc573-mail-card';
+var PRIORITY=['rc543MailArea','rc542MailArea','rc524MailArea','rc418ShipmentMail','rc416ShipmentMail','rc410ShipmentMail','rc409ShipmentMail','rc404ShipmentMail','rc404ShipmentMailPanel','rc390ShipmentMail','rc385ShipmentMail','rc344MailBox'];
+
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function heading(node){var h=node&&node.querySelector&&node.querySelector('h1,h2,h3,h4');return q(h&&h.textContent)}
+function shipmentShell(){return document.getElementById('rc573ShipmentShell')}
+function topChild(root,node){while(node&&node.parentElement&&node.parentElement!==root)node=node.parentElement;return node&&node.parentElement===root?node:null}
+function savedCard(root){
+ if(!root)return null;
+ return root.querySelector('#rc573SavedCard')||Array.prototype.slice.call(root.querySelectorAll('section,.card,article')).find(function(node){return /^Gespeicherte Sendungen/i.test(heading(node))})||null;
+}
+function mailCards(root){
+ if(!root)return[];
+ var out=Array.prototype.slice.call(root.querySelectorAll(MAIL_SELECTOR));
+ Array.prototype.slice.call(root.querySelectorAll('section,.card,article')).forEach(function(node){
+  if(/^(Mailbereich|Mail Bereich|Mailversand|Anmeldung\s*\/\s*Mail)/i.test(heading(node))&&out.indexOf(node)<0)out.push(node);
+ });
+ return out.filter(function(node,index,list){
+  return node&&node.isConnected&&list.indexOf(node)===index&&!list.some(function(other){return other!==node&&node.contains(other)});
+ });
+}
+function preferred(root,list){
+ for(var i=0;i<PRIORITY.length;i++){var found=root.querySelector('#'+PRIORITY[i]);if(found&&list.indexOf(found)>=0)return found}
+ return list[0]||null;
+}
+function enforce(){
+ pending=0;
+ var root=shipmentShell();if(!root)return false;
+ var saved=savedCard(root);if(!saved)return false;
+ var savedTop=topChild(root,saved);
+ if(!savedTop){root.appendChild(saved);savedTop=saved}
+ if(savedTop.id!=='rc573SavedCard')savedTop.id='rc573SavedCard';
+
+ var candidates=mailCards(root);
+ candidates.filter(function(mail){return savedTop.contains(mail)}).forEach(function(mail){mail.remove()});
+ candidates=mailCards(root);
+ var mail=preferred(root,candidates);
+ if(!mail)return false;
+ var mailTop=topChild(root,mail);
+ if(!mailTop){root.insertBefore(mail,savedTop);mailTop=mail}
+ if(mailTop===savedTop)return false;
+
+ candidates.forEach(function(other){
+  var top=topChild(root,other)||other;
+  if(other!==mail&&top!==mailTop&&top!==savedTop&&top.parentNode)top.remove();
+ });
+
+ if(mailTop.parentElement!==root)root.insertBefore(mailTop,savedTop);
+ if(savedTop.parentElement!==root)root.appendChild(savedTop);
+ if(mailTop.nextElementSibling!==savedTop)root.insertBefore(mailTop,savedTop);
+
+ /* Alles unterhalb der gespeicherten Sendungen wird sofort bereinigt. */
+ Array.prototype.slice.call(root.querySelectorAll(MAIL_SELECTOR)).forEach(function(node){
+  var top=topChild(root,node);
+  if(!top||top===mailTop)return;
+  if(savedTop.contains(node)||(savedTop.compareDocumentPosition(top)&Node.DOCUMENT_POSITION_FOLLOWING))top.remove();
+ });
+
+ mailTop.classList.add('rc573-card','rc573-mail-card');
+ mailTop.dataset.index194Position='before-saved-only';
+ savedTop.dataset.index194MailBoundary='1';
+ return mailTop.nextElementSibling===savedTop&&mailCards(root).filter(function(node){return !savedTop.contains(node)}).length===1;
+}
+function schedule(delay){
+ if(pending)return;
+ var nativeApi=window.ExportHUBClean&&window.ExportHUBClean.native;
+ var set=(nativeApi&&nativeApi.setTimeout)||window.setTimeout;
+ pending=set(enforce,delay==null?20:delay);
+}
+function installObserver(){
+ if(observer)return;
+ var content=document.getElementById('content');if(!content)return;
+ try{
+  var nativeApi=window.ExportHUBClean&&window.ExportHUBClean.native;
+  var MO=(nativeApi&&nativeApi.MutationObserver)||window.MutationObserver;
+  observer=new MO(function(records){
+   if(records.some(function(record){return record.type==='childList'}))schedule(0);
+  });
+  observer.observe(content,{childList:true,subtree:true});
+ }catch(_){ }
+}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){schedule(0)})});
+document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573ShipmentShell button,#rc573ShipmentShell a'))schedule(0)},true);
+function boot(){installObserver();[0,30,100,300,800].forEach(function(ms){window.setTimeout(enforce,ms)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.ExportHUBIndex194=Object.freeze({
+ enforceMailOrder:enforce,
+ selfTest:function(){
+  var root=shipmentShell(),saved=root&&savedCard(root),list=root&&mailCards(root)||[],mail=root&&preferred(root,list),after=saved?list.filter(function(node){var top=topChild(root,node)||node;return saved.contains(node)||(saved.compareDocumentPosition(top)&Node.DOCUMENT_POSITION_FOLLOWING)}).length:0;
+  return{shell:!!root,saved:!!saved,mailAreas:list.length,mailDirectlyBeforeSaved:!!(mail&&saved&&(topChild(root,mail)||mail).nextElementSibling===(topChild(root,saved)||saved)),mailAreasBelowSaved:after,valid:!!(root&&saved&&mail&&list.length===1&&after===0)};
+ }
+});
+})();
+</script>
+<!-- INDEX 194 MAIL MUST STAY ABOVE SAVED SHIPMENTS END -->
