@@ -20893,3 +20893,101 @@ window.ExportHUBRC628ShipmentFix=Object.freeze({
 })();
 </script>
 <!-- RC628 SHIPMENT INPUT + CARGO SECURITY + COMPLETE PRINT AUTHORITATIVE FIX END -->
+
+
+<!-- RC628 CUSTOMER PORTAL BUTTON IN SHIPMENT START -->
+<style id="rc628-customer-portal-button-style">
+#rc344CustomerInfo .rc628-customer-portal-action{
+  margin:6px 0!important;
+}
+#rc344CustomerInfo .rc628-customer-portal-button{
+  display:flex!important;
+  width:100%!important;
+  min-height:42px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  text-decoration:none!important;
+}
+</style>
+<script id="rc628-customer-portal-button-fix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC628_CUSTOMER_PORTAL_BUTTON__)return;
+window.__EXPORTHUB_RC628_CUSTOMER_PORTAL_BUTTON__=true;
+
+var pending=0;
+var knownPortals=[
+ {name:'Siemens Energy / AX4 Portal',url:'https://ax4.com/ax4/?ID=3719631',accounts:['3019109231'],keys:['siemens','siemens energy','ax4','elsen','ilop']},
+ {name:'Würth Industrie Portal',url:'https://tmis.wuerth-logistics.com/ls/Login',accounts:['3019105826'],keys:['wurth','wuerth','würth','würth industrie','wuerth industrie']},
+ {name:'DHL Express / MyDHL+',url:'https://mydhl.express.dhl/de/de/auth/login.html',accounts:['3019106452'],keys:['dhl','mydhl','bossard']},
+ {name:'BSH Lieferantenportal',url:'https://supplier-portal.bsh-group.com/',accounts:[],keys:['bsh','bsh portal','bsh lieferantenportal']},
+ {name:'UPS Portal',url:'https://www.ups.com/de/de/Home.page',accounts:[],keys:['ups','ups portal']}
+];
+
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){ }return window.state||(window.state={})}
+function currentCustomer(){
+ var s=state(),sh=s.shipment||{},id=q(sh.customerId||s.selectedCustomerId),search=low(sh.customerSearch),list=arr(s.customers),embedded=sh.customer&&typeof sh.customer==='object'?sh.customer:null;
+ var found=list.find(function(c){return q(c&&c.id)===id||q(c&&(c.account||c.customerNumber))===id})||
+   list.find(function(c){var label=low([c&&c.account,c&&c.customerNumber,c&&c.name].filter(Boolean).join(' '));return search&&(label===search||label.indexOf(search)>=0||search.indexOf(label)>=0)})||embedded;
+ return found||null;
+}
+function validUrl(v){var raw=q(v);if(!raw)return'';if(!/^https?:\/\//i.test(raw))return'';try{var u=new URL(raw,location.href);return /^https?:$/.test(u.protocol)?u.href:''}catch(_){return''}}
+function objectPortal(value){
+ if(!value)return null;
+ if(Array.isArray(value)){for(var i=0;i<value.length;i++){var x=objectPortal(value[i]);if(x&&x.url)return x}return null}
+ if(typeof value==='string'){var u=validUrl(value);return u?{url:u,name:''}:null}
+ if(typeof value!=='object')return null;
+ var u=validUrl(value.url||value.href||value.link||value.portalUrl||value.portalURL),name=q(value.name||value.title||value.label||value.portalName||value.portal);
+ return u?{url:u,name:name}:null;
+}
+function portalInfo(c){
+ if(!c)return null;
+ var objects=[c.portalData,c.portalInfo,c.customerPortal,c.carrierPortal,c.speditionPortal,c.portals];
+ for(var i=0;i<objects.length;i++){var op=objectPortal(objects[i]);if(op&&op.url)return{name:op.name||'Kundenportal',url:op.url}}
+ var rawPortal=q(c.portal),direct=validUrl(c.portalUrl||c.portalURL||c.portalLink||c.portalHref||c.customerPortalUrl||c.carrierPortalUrl||c.speditionPortalUrl||(validUrl(rawPortal)?rawPortal:''));
+ var directName=q(c.portalName||c.portalTitle||c.portalLabel||(!validUrl(rawPortal)?rawPortal:'')||c.carrierPortalName||c.speditionPortalName);
+ if(direct)return{name:directName||'Kundenportal',url:direct};
+ var account=q(c.account||c.customerNumber||c.number),hay=low([c.name,c.customerName,c.portalName,c.portal,c.note,c.customerInfo,c.processInfo].join(' '));
+ var known=knownPortals.find(function(p){return p.accounts.indexOf(account)>=0||p.keys.some(function(k){return hay.indexOf(low(k))>=0})});
+ return known?{name:known.name,url:known.url}:null;
+}
+function noteMatchesPortal(note,name){
+ var t=low(note&&note.textContent),n=low(name);
+ if(!t||!n)return false;
+ if(t===n)return true;
+ return /portal$/.test(t)&&t.replace(/\s+portal$/,'')===n.replace(/\s+portal$/,'');
+}
+function patch(){
+ pending=0;
+ var panel=document.getElementById('rc344CustomerInfo')||document.querySelector('#rc573CustomerCard .rc344-info');
+ if(!panel)return false;
+ var info=portalInfo(currentCustomer()),old=panel.querySelector('.rc628-customer-portal-action');
+ if(!info||!info.url){if(old)old.remove();return false}
+ var notes=Array.prototype.slice.call(panel.querySelectorAll('.rc344-note'));
+ var portalNote=notes.find(function(el){return noteMatchesPortal(el,info.name)})||null;
+ var html='<a class="btn rc628-customer-portal-button" href="'+esc(info.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(info.name)+' öffnen">🌐 '+esc(info.name)+' öffnen</a>';
+ if(!old){
+  old=document.createElement('div');old.className='rc628-customer-portal-action';
+  if(portalNote&&portalNote.parentNode)portalNote.parentNode.replaceChild(old,portalNote);
+  else{var check=panel.querySelector('label.checkrow,.rc314-process-confirm');panel.insertBefore(old,check||null)}
+ }
+ var sig=info.name+'|'+info.url;
+ if(old.dataset.portalSig!==sig){old.dataset.portalSig=sig;old.innerHTML=html}
+ notes.forEach(function(el){if(el!==portalNote&&noteMatchesPortal(el,info.name))el.remove()});
+ return true;
+}
+function schedule(delay){if(pending)return;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;pending=nt(patch,delay||25)}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){schedule(30)})});
+document.addEventListener('change',function(e){var el=e.target;if(el&&el.closest&&el.closest('#rc573CustomerCard'))schedule(80)},true);
+document.addEventListener('click',function(e){var el=e.target&&e.target.closest&&e.target.closest('#rc573CustomerCard button,#rc573CustomerCard a');if(el)schedule(100)},true);
+try{var NativeObserver=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.MutationObserver||window.MutationObserver,content=document.getElementById('content');if(NativeObserver&&content)new NativeObserver(function(ms){if(ms.some(function(m){return m.type==='childList'}))schedule(35)}).observe(content,{childList:true,subtree:true})}catch(_){ }
+window.ExportHUBRC628CustomerPortal=Object.freeze({patch:patch,portalInfo:portalInfo,selfTest:function(){var c=currentCustomer(),p=portalInfo(c),button=document.querySelector('#rc344CustomerInfo .rc628-customer-portal-button');return{customer:!!c,portal:!!p,url:p&&p.url||'',button:!!button,href:button&&button.href||''}}});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){schedule(80)},{once:true});else schedule(80);
+})();
+</script>
+<!-- RC628 CUSTOMER PORTAL BUTTON IN SHIPMENT END -->
