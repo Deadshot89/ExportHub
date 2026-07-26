@@ -22039,3 +22039,232 @@ window.addEventListener('exporthub:ready',lock);
 window.ExportHUBIndex211=Object.freeze({version:'RC211',selfTest:function(){var api=window.ExportHUBRC626||{};return{gateReset:typeof api.newCostRequest==='function',gateGroups:document.querySelectorAll('#rc626Shipping .rc211-field-group').length,newRequestButton:Array.prototype.slice.call(document.querySelectorAll('#rc626Shipping button')).some(function(b){return /Neue Preisanfrage/i.test(b.textContent)}),cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
 })();
 </script>
+
+
+<!-- INDEX 212 COLLI FORMAT + INDIVIDUAL PALLET WEIGHTS START -->
+<style id="index212-colli-weight-style">
+#rc573ColliCard .rc344-colli-row{
+  position:relative!important;
+  padding:14px!important;
+  border-radius:18px!important;
+}
+#rc573ColliCard .rc344-colli-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:12px!important;
+  align-items:start!important;
+}
+#rc573ColliCard .rc344-colli-grid>.index212-packaging-field{
+  grid-column:span 2!important;
+  min-width:0!important;
+}
+#rc573ColliCard .rc344-colli-grid>.field{
+  min-width:0!important;
+  align-self:start!important;
+}
+#rc573ColliCard .rc344-colli-grid input,
+#rc573ColliCard .rc344-colli-grid select{
+  min-height:46px!important;
+  width:100%!important;
+}
+#rc573ColliCard .index212-packaging-field select{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  padding-right:38px!important;
+}
+#rc573ColliCard .index202-packaging-readout,
+#rc573ColliCard .index212-packaging-readout{
+  display:block!important;
+  min-height:18px!important;
+  margin:6px 0 0!important;
+  color:#334155!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  line-height:1.35!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+#rc573ColliCard .index212-weight-field input[data-index212-weight="1"]{
+  cursor:pointer!important;
+  background:#eff6ff!important;
+  border:2px solid #60a5fa!important;
+  color:#0f172a!important;
+  font-weight:950!important;
+}
+#rc573ColliCard .index212-weight-field input[data-index212-weight="1"]:focus{
+  outline:3px solid rgba(37,99,235,.18)!important;
+  border-color:#2563eb!important;
+}
+.index212-weight-hint{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:6px;
+  color:#1d4ed8;
+  font-size:11px;
+  line-height:1.3;
+  font-weight:900;
+}
+.index212-weight-hint.incomplete{color:#9a3412}
+#index212WeightModal{
+  position:fixed;
+  inset:0;
+  z-index:2147483000;
+  display:none;
+  place-items:center;
+  padding:22px;
+  background:rgba(2,12,27,.62);
+  backdrop-filter:blur(3px);
+}
+#index212WeightModal.open{display:grid}
+#index212WeightModal .index212-modal-card{
+  width:min(760px,100%);
+  max-height:min(88vh,900px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#fff;
+  border:1px solid #bfdbfe;
+  border-radius:24px;
+  box-shadow:0 28px 70px rgba(2,12,27,.35);
+}
+.index212-modal-head{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+  padding:20px 22px 14px;
+  border-bottom:1px solid #dbeafe;
+  background:linear-gradient(135deg,#eff6ff,#fff);
+}
+.index212-modal-head h2{margin:0 0 5px;color:#08245d;font-size:24px}
+.index212-modal-head p{margin:0;color:#64748b;font-weight:800}
+.index212-modal-close{
+  width:42px;
+  height:42px;
+  border:1px solid #cbd5e1;
+  border-radius:14px;
+  background:#fff;
+  color:#334155;
+  font-size:22px;
+  font-weight:900;
+  cursor:pointer;
+}
+.index212-modal-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  padding:14px 22px;
+  border-bottom:1px solid #e2e8f0;
+}
+.index212-modal-metric{
+  border:1px solid #dbeafe;
+  border-radius:15px;
+  padding:10px 12px;
+  background:#f8fbff;
+}
+.index212-modal-metric span{display:block;color:#64748b;font-size:11px;font-weight:900;margin-bottom:4px}
+.index212-modal-metric strong{display:block;color:#1d4ed8;font-size:21px}
+.index212-weight-list{
+  overflow:auto;
+  padding:16px 22px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.index212-weight-entry{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:9px;
+  align-items:center;
+  border:1px solid #dbeafe;
+  border-radius:14px;
+  padding:9px 10px;
+  background:#fff;
+}
+.index212-weight-entry b{color:#08245d;min-width:28px}
+.index212-weight-entry input{
+  min-width:0;
+  height:42px;
+  padding:9px 10px;
+  text-align:right;
+  font-weight:950;
+}
+.index212-weight-entry span{color:#64748b;font-size:12px;font-weight:900}
+.index212-modal-footer{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:14px 22px 20px;
+  border-top:1px solid #dbeafe;
+  background:#f8fbff;
+}
+.index212-modal-footer>div{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:1180px){
+  #rc573ColliCard .rc344-colli-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #rc573ColliCard .rc344-colli-grid>.index212-packaging-field{grid-column:1/-1!important}
+}
+@media(max-width:700px){
+  #rc573ColliCard .rc344-colli-grid{grid-template-columns:1fr!important}
+  #rc573ColliCard .rc344-colli-grid>.index212-packaging-field{grid-column:auto!important}
+  .index212-modal-metrics,.index212-weight-list{grid-template-columns:1fr}
+  #index212WeightModal{padding:8px}
+}
+</style>
+<script id="index212-colli-individual-weight-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX212_COLLI_WEIGHT__)return;
+window.__EXPORTHUB_INDEX212_COLLI_WEIGHT__=true;
+var VERSION='RC212',activeIndex=-1,activeNode=null,modal=null,patchTimer=0;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function number(v){var n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
+function positive(v){var n=number(v);return n>0?n:0}
+function fmt(v,digits){return number(v).toLocaleString('de-DE',{minimumFractionDigits:digits||0,maximumFractionDigits:digits==null?2:digits})}
+function later(fn,ms){var n=window.ExportHUBClean&&window.ExportHUBClean.native;return(n&&n.setTimeout?n.setTimeout:window.setTimeout)(fn,ms||0)}
+function states(){var out=[];function add(s){if(s&&typeof s==='object'&&out.indexOf(s)<0)out.push(s)}try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')add(window.__EXPORTHUB_GET_STATE__())}catch(_){ }try{add(window.state)}catch(_){ }return out}
+function mainState(){return states()[0]||(window.state||(window.state={}))}
+function shipment(s){s=s||mainState();s.shipment=s.shipment||{};s.shipment.rows=arr(s.shipment.rows);return s.shipment}
+function rows(){return shipment().rows}
+function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Einzelgewichte gespeichert')}catch(_){ }}
+function labelText(el){var label=el&&el.closest&&el.closest('label,.field');return low(label&&label.textContent)}
+function keyFor(el){var t=labelText(el);if(/verpack|packart|packaging/.test(t))return'type';if(/anzahl|menge|quantity/.test(t))return'count';if(/gewicht|weight/.test(t))return'weight';if(/lademeter|\bldm\b/.test(t))return'ldm';if(/lange|laenge|length/.test(t))return'l';if(/breite|width/.test(t))return'w';if(/hohe|hoehe|height/.test(t))return'h';return''}
+function rowNode(el){return el&&el.closest&&el.closest('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card,#rowsBox>.item')}
+function visibleRows(){var root=document.getElementById('rc573ColliCard')||document.getElementById('rowsBox');if(!root)return[];return Array.prototype.slice.call(root.querySelectorAll('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card,#rowsBox>.item')).filter(function(node){return node.querySelector&&node.querySelector('input,select')})}
+function rowIndex(node){if(!node)return-1;var raw=node.getAttribute&&node.getAttribute('data-rc344-row'),i=Number(raw);if(Number.isInteger(i)&&i>=0)return i;return visibleRows().indexOf(node)}
+function field(node,key){return Array.prototype.slice.call(node.querySelectorAll('input,select')).find(function(el){return keyFor(el)===key})||null}
+function storedWeights(row){var values=arr(row&&(row.palletWeights||row.individualWeights||row.colliWeights)).map(number).filter(function(v){return v>0});return values}
+function totalAllRows(){return rows().reduce(function(sum,row){return sum+positive(row&&(row.weight||row.gewicht||row.totalWeight||row.weightTotal))},0)}
+function mirrorRow(index,mutator){states().forEach(function(s){var sh=shipment(s),old=Object.assign({},sh.rows[index]||{});mutator(old);sh.rows[index]=old;sh.colli=sh.rows.map(function(r){return Object.assign({},r)});sh.collis=sh.rows.map(function(r){return Object.assign({},r)});sh.packages=sh.rows.map(function(r){return Object.assign({},r)});sh.totalWeight=sh.rows.reduce(function(sum,r){return sum+positive(r.weight||r.gewicht)},0)})}
+function updateSummary(){var total=totalAllRows(),card=document.getElementById('rc573ColliCard');if(card){Array.prototype.slice.call(card.querySelectorAll('.rc344-summary .summaryBox')).forEach(function(box){if(/^gewicht\b/i.test(q(box.textContent))){var strong=box.querySelector('strong');if(strong){var text=fmt(total,1)+' kg';if(strong.textContent!==text)strong.textContent=text}}})}try{if(typeof window.rc628RenderSecuredStow==='function')window.rc628RenderSecuredStow()}catch(_){ }}
+function packagingLabel(node){var select=field(node,'type');if(!select)return;var label=select.closest('label,.field')||select.parentElement;label.classList.add('index212-packaging-field');var text=q(select.options&&select.selectedIndex>=0&&select.options[select.selectedIndex]?select.options[select.selectedIndex].text:select.value);select.title=text;var readout=label.querySelector('.index202-packaging-readout,.index212-packaging-readout');if(!readout){readout=document.createElement('span');readout.className='index212-packaging-readout';label.appendChild(readout)}if(readout.textContent!==text)readout.textContent=text}
+function weightHint(node,index){var input=field(node,'weight');if(!input)return;var label=input.closest('label,.field')||input.parentElement;label.classList.add('index212-weight-field');input.dataset.index212Weight='1';input.readOnly=true;input.setAttribute('aria-haspopup','dialog');input.title='Klicken, um die einzelnen Palettengewichte zu erfassen';var row=rows()[index]||{},count=Math.max(0,Math.round(positive(row.count||row.qty||row.anzahl||(field(node,'count')||{}).value))),weights=storedWeights(row),sum=weights.reduce(function(a,b){return a+b},0),hint=label.querySelector('.index212-weight-hint');if(!hint){hint=document.createElement('span');hint.className='index212-weight-hint';label.appendChild(hint)}var complete=count>0&&weights.length===count;hint.classList.toggle('incomplete',!complete);var html=complete?'<span>'+weights.length+' Einzelgewichte</span><span>'+fmt(sum,1)+' kg</span>':'<span>Einzelgewichte erfassen</span><span>'+(weights.length?weights.length+' / '+count:'Klicken')+'</span>';if(hint.innerHTML!==html)hint.innerHTML=html}
+function patchRows(){visibleRows().forEach(function(node,index){packagingLabel(node);weightHint(node,index)})}
+function modalHtml(){return '<div class="index212-modal-card" role="dialog" aria-modal="true" aria-labelledby="index212WeightTitle"><div class="index212-modal-head"><div><h2 id="index212WeightTitle">Einzelgewichte erfassen</h2><p id="index212WeightSubtitle"></p></div><button type="button" class="index212-modal-close" data-index212-action="close" aria-label="Schließen">×</button></div><div class="index212-modal-metrics"><div class="index212-modal-metric"><span>Anzahl Paletten</span><strong id="index212WeightCount">0</strong></div><div class="index212-modal-metric"><span>Summe dieser Zeile</span><strong id="index212RowWeightTotal">0,0 kg</strong></div><div class="index212-modal-metric"><span>Gesamtgewicht aller Zeilen</span><strong id="index212AllWeightTotal">0,0 kg</strong></div></div><div id="index212WeightList" class="index212-weight-list"></div><div class="index212-modal-footer"><div><button type="button" class="ghost" data-index212-action="clear">Alle Gewichte leeren</button></div><div><button type="button" class="ghost" data-index212-action="close">Abbrechen</button><button type="button" class="btn" data-index212-action="save">Gewichte übernehmen</button></div></div></div>'}
+function ensureModal(){if(modal&&document.body.contains(modal))return modal;modal=document.createElement('div');modal.id='index212WeightModal';modal.innerHTML=modalHtml();document.body.appendChild(modal);modal.addEventListener('click',function(e){if(e.target===modal){closeModal();return}var action=e.target&&e.target.closest&&e.target.closest('[data-index212-action]');if(!action)return;var type=action.getAttribute('data-index212-action');if(type==='close')closeModal();else if(type==='clear')clearModal();else if(type==='save')saveModal()});modal.addEventListener('input',function(e){if(e.target&&e.target.matches('.index212-pallet-weight'))updateModalTotals()});modal.addEventListener('keydown',function(e){if(e.key==='Escape'){e.preventDefault();closeModal();return}if(e.key==='Enter'&&e.target&&e.target.matches('.index212-pallet-weight')){e.preventDefault();var inputs=Array.prototype.slice.call(modal.querySelectorAll('.index212-pallet-weight')),i=inputs.indexOf(e.target);if(i>=0&&i<inputs.length-1){inputs[i+1].focus();inputs[i+1].select()}else modal.querySelector('[data-index212-action="save"]').focus()}});return modal}
+function rowCount(index,node){var row=rows()[index]||{},count=Math.round(positive(row.count||row.qty||row.anzahl));if(!count&&node){var f=field(node,'count');count=Math.round(positive(f&&f.value))}return count}
+function openModal(node){var index=rowIndex(node),count=rowCount(index,node);if(index<0)return false;if(count<=0){alert('Bitte zuerst die Anzahl der Paletten in dieser Zeile eintragen.');var c=field(node,'count');if(c)c.focus();return false}activeIndex=index;activeNode=node;var row=rows()[index]||{},weights=storedWeights(row),type=q(row.type||row.packaging||row.verpackung||(field(node,'type')||{}).value)||'Verpackung',m=ensureModal(),list=m.querySelector('#index212WeightList');m.querySelector('#index212WeightSubtitle').textContent='Zeile '+(index+1)+' · '+type;m.querySelector('#index212WeightCount').textContent=String(count);var html='';for(var i=0;i<count;i++){html+='<label class="index212-weight-entry"><b>'+(i+1)+'.</b><input class="index212-pallet-weight" type="number" min="0.01" step="0.01" inputmode="decimal" value="'+(weights[i]?String(weights[i]):'')+'" placeholder="0,00"><span>kg</span></label>'}list.innerHTML=html;m.classList.add('open');document.body.style.overflow='hidden';updateModalTotals();later(function(){var first=Array.prototype.slice.call(m.querySelectorAll('.index212-pallet-weight')).find(function(input){return !q(input.value)})||m.querySelector('.index212-pallet-weight');if(first){first.focus();first.select()}},30);return false}
+function closeModal(){if(!modal)return;modal.classList.remove('open');document.body.style.overflow='';var input=activeNode&&field(activeNode,'weight');activeIndex=-1;activeNode=null;if(input)later(function(){input.focus()},20)}
+function clearModal(){if(!modal)return;modal.querySelectorAll('.index212-pallet-weight').forEach(function(input){input.value='' });updateModalTotals();var first=modal.querySelector('.index212-pallet-weight');if(first)first.focus()}
+function modalValues(){return modal?Array.prototype.slice.call(modal.querySelectorAll('.index212-pallet-weight')).map(function(input){return positive(input.value)}):[]}
+function updateModalTotals(){if(!modal)return;var values=modalValues(),rowTotal=values.reduce(function(a,b){return a+b},0),oldRow=activeIndex>=0?positive((rows()[activeIndex]||{}).weight):0,all=totalAllRows()-oldRow+rowTotal;var rowEl=modal.querySelector('#index212RowWeightTotal'),allEl=modal.querySelector('#index212AllWeightTotal');if(rowEl)rowEl.textContent=fmt(rowTotal,1)+' kg';if(allEl)allEl.textContent=fmt(all,1)+' kg'}
+function saveModal(){if(activeIndex<0||!modal)return;var inputs=Array.prototype.slice.call(modal.querySelectorAll('.index212-pallet-weight')),invalid=inputs.find(function(input){return positive(input.value)<=0});if(invalid){alert('Bitte für jede Palette ein Gewicht größer als 0 kg eingeben.');invalid.focus();invalid.select();return}var values=inputs.map(function(input){return positive(input.value)}),sum=values.reduce(function(a,b){return a+b},0),index=activeIndex,node=activeNode;mirrorRow(index,function(row){row.palletWeights=values.slice();row.individualWeights=values.slice();row.colliWeights=values.slice();row.weight=sum;row.gewicht=sum;row.totalWeight=sum;row.weightTotal=sum});var input=node&&field(node,'weight');if(input)input.value=String(Math.round(sum*100)/100);weightHint(node,index);updateSummary();save('Einzelgewichte Zeile '+(index+1)+' gespeichert');closeModal()}
+function eventWeightTarget(target){if(!target||!target.matches||!target.matches('#rc573ColliCard input[data-index212-weight="1"]'))return null;return target}
+document.addEventListener('click',function(e){var input=eventWeightTarget(e.target);if(!input)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openModal(rowNode(input))},true);
+document.addEventListener('keydown',function(e){var input=eventWeightTarget(e.target);if(!input||!(e.key==='Enter'||e.key===' '))return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openModal(rowNode(input))},true);
+document.addEventListener('focus',function(e){var input=eventWeightTarget(e.target);if(input)input.select()},true);
+document.addEventListener('change',function(e){var el=e.target,node=rowNode(el);if(node&&keyFor(el)==='type')later(function(){packagingLabel(node)},0);if(node&&keyFor(el)==='count')later(function(){weightHint(node,rowIndex(node))},0)},true);
+function lockVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'212',loginReturn:'/?v=212'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION}
+function patch(){lockVersion();patchRows();updateSummary()}
+function schedule(){if(patchTimer)return;patchTimer=later(function(){patchTimer=0;patch()},20)}
+function boot(){ensureModal();patch();[80,250,700,1500].forEach(function(ms){later(patch,ms)});try{var Native=window.ExportHUBClean&&window.ExportHUBClean.native,MO=Native&&Native.MutationObserver||window.MutationObserver,content=document.getElementById('content')||document.documentElement;new MO(function(records){if(records.some(function(r){return r.type==='childList'}))schedule()}).observe(content,{childList:true,subtree:true})}catch(_){ }}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,schedule)});
+window.ExportHUBIndex212=Object.freeze({version:VERSION,openWeight:function(index){var node=visibleRows()[Number(index)];return node?openModal(node):false},patch:patch,selfTest:function(){var nodes=visibleRows(),first=nodes[0],weight=first&&field(first,'weight'),row=rows()[0]||{};return{rows:nodes.length,formatted:!!(first&&first.querySelector('.index212-packaging-field')),weightDialogReady:!!document.getElementById('index212WeightModal'),weightFieldReadonly:!!(weight&&weight.readOnly),storedWeights:storedWeights(row).length,totalWeight:totalAllRows(),cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+})();
+</script>
+<!-- INDEX 212 COLLI FORMAT + INDIVIDUAL PALLET WEIGHTS END -->
