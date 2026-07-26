@@ -21233,3 +21233,120 @@ window.ExportHUBIndex194=Object.freeze({
 })();
 </script>
 <!-- INDEX 194 MAIL MUST STAY ABOVE SAVED SHIPMENTS END -->
+
+
+<!-- INDEX 195 NEW ABD REQUEST RESET START -->
+<script id="index195-new-abd-request-reset">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX195_NEW_ABD_RESET__)return;
+window.__EXPORTHUB_INDEX195_NEW_ABD_RESET__=true;
+
+var pending=0,observer=null;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||{}}}
+function uid(prefix){return (prefix||'ID')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)}
+function blankRow(){return{id:uid('COLLI'),type:'',packaging:'',verpackung:'',count:'',qty:'',anzahl:'',quantity:'',weight:'',gewicht:'',totalWeight:'',l:'',w:'',h:'',length:'',width:'',height:'',ldm:''}}
+function blankAbd(){return{
+ id:'',source:'manual',linkedShipmentId:'',language:'de',to:'mail@gp-zollabfertigung.de',
+ ref:'',reference:'',customerId:'',customerSearch:'',customerName:'',customerNumber:'',country:'',
+ deliveryNotes:'',rows:[blankRow()],invoiceFiles:[],abdFiles:[],mailTemplate:'',mailBody:'',mailSubject:'',
+ status:'Entwurf',mailOpened:false,mailOpenedAt:'',sentAt:'',sentBy:'',createdAt:'',updatedAt:'',
+ rc195FreshEmpty:true
+}}
+function persist(){
+ try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function'){window.ExportHUBClean.queueSave('Neue ABD-Anfrage gestartet');return}}catch(_){}
+ try{if(typeof window.save==='function')window.save('Neue ABD-Anfrage gestartet')}catch(_){}
+}
+function activeRoot(){return document.querySelector('#rc626Abd,#rc543AbdStatus,#rc542AbdStatus')}
+function isFixedField(input){
+ var label=input&&input.closest&&input.closest('label'),txt=low(label&&label.textContent);
+ return /abd-empfanger|empfanger/.test(txt)&&/gp-zollabfertigung/.test(String(input.value||input.defaultValue||''));
+}
+function clearVisible(root){
+ root=root||activeRoot();if(!root)return false;
+ root.querySelectorAll('input,textarea,select').forEach(function(el){
+  var label=low((el.closest&&el.closest('label')&&el.closest('label').textContent)||'');
+  if(el.type==='file'){try{el.value=''}catch(_){}return}
+  if(isFixedField(el)){el.value='mail@gp-zollabfertigung.de';return}
+  if(el.tagName==='SELECT'){
+   if(/sprache/.test(label)){el.value='de';return}
+   el.selectedIndex=0;return;
+  }
+  if(/status/.test(label)){el.value='Entwurf';return}
+  el.value='';
+ });
+ root.querySelectorAll('#rc626AbdCount').forEach(function(n){n.textContent='0'});
+ root.querySelectorAll('#rc626AbdWeight').forEach(function(n){n.textContent='0,0 kg'});
+ root.querySelectorAll('#rc626AbdPreview').forEach(function(n){n.textContent=''});
+ root.querySelectorAll('.rc626-file,.rc543-file-list').forEach(function(n){n.remove()});
+ if(root.id==='rc542AbdStatus'){
+  Array.prototype.slice.call(root.querySelectorAll('p')).forEach(function(p){if(/^Betreff:/i.test(q(p.textContent)))p.innerHTML='<b>Betreff:</b>'});
+ }
+ return true;
+}
+function resetState(){
+ var s=state(),fresh=blankAbd();
+ s.abdRequest=clone(fresh);
+ s.abdDraft=clone(fresh);
+ s.activeAbdId='';s.selectedAbdId='';s.currentAbdId='';s.linkedAbdId='';
+ s.rc195AbdFreshEmpty=true;
+ try{if(window.state&&window.state!==s){window.state.abdRequest=clone(fresh);window.state.abdDraft=clone(fresh);window.state.activeAbdId='';window.state.selectedAbdId='';window.state.currentAbdId='';window.state.linkedAbdId='';window.state.rc195AbdFreshEmpty=true}}catch(_){}
+ persist();
+ return fresh;
+}
+function addButton(){
+ var root=activeRoot();if(!root)return false;
+ var existing=Array.prototype.slice.call(root.querySelectorAll('button,a')).find(function(b){return low(b.textContent)==='neue abd-anfrage'});
+ if(existing){existing.dataset.index195NewAbd='1';return true}
+ var toolbar=root.querySelector('.toolbar');
+ if(!toolbar){toolbar=document.createElement('div');toolbar.className='toolbar';root.appendChild(toolbar)}
+ var button=document.createElement('button');button.type='button';button.className='btn';button.textContent='Neue ABD-Anfrage';button.dataset.index195NewAbd='1';
+ toolbar.insertBefore(button,toolbar.firstChild);
+ return true;
+}
+function refreshAfterReset(){
+ var root=activeRoot();
+ if(root&&root.id==='rc626Abd'&&window.ExportHUBRC626&&typeof window.ExportHUBRC626.renderAbd==='function'){
+  try{window.ExportHUBRC626.renderAbd()}catch(_){}
+ }
+ window.setTimeout(function(){addButton();clearVisible(activeRoot())},0);
+ window.setTimeout(function(){addButton();clearVisible(activeRoot())},80);
+}
+function newRequest(){resetState();refreshAfterReset();return false}
+function requestHasData(s){var list=[s&&s.abdRequest,s&&s.abdDraft].filter(function(x){return x&&typeof x==='object'});return list.some(function(d){if(q(d.customerId||d.customerName||d.customerSearch||d.ref||d.reference||d.country||d.deliveryNotes||d.linkedShipmentId))return true;return Array.isArray(d.rows)&&d.rows.some(function(r){return q(r&&(r.type||r.packaging||r.verpackung||r.count||r.qty||r.anzahl||r.weight||r.gewicht||r.ldm))})})}
+function schedule(){if(pending)return;pending=window.setTimeout(function(){pending=0;addButton();var s=state();if(s.rc195AbdFreshEmpty&&requestHasData(s))s.rc195AbdFreshEmpty=false;if(s.rc195AbdFreshEmpty)clearVisible(activeRoot())},20)}
+function installObserver(){
+ if(observer)return;var content=document.getElementById('content');if(!content)return;
+ try{observer=new MutationObserver(function(records){if(records.some(function(r){return r.type==='childList'}))schedule()});observer.observe(content,{childList:true,subtree:true})}catch(_){}
+}
+document.addEventListener('click',function(e){
+ var b=e.target&&e.target.closest&&e.target.closest('button,a');if(!b)return;
+ var inAbd=b.closest&&b.closest('#rc626Abd,#rc543AbdStatus,#rc542AbdStatus');
+ if(!inAbd||low(b.textContent)!=='neue abd-anfrage')return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();newRequest();
+},true);
+document.addEventListener('input',function(e){
+ var el=e.target;if(!el||!el.closest||!el.closest('#content'))return;
+ var view=low((state().view||''));if(view!=='abd')return;
+ var label=low((el.closest('label')&&el.closest('label').textContent)||'');
+ if(isFixedField(el)||/status/.test(label))return;
+ if(q(el.value)){state().rc195AbdFreshEmpty=false}
+},true);
+document.addEventListener('change',function(e){
+ var el=e.target;if(!el||!el.closest||!el.closest('#content'))return;
+ var view=low((state().view||''));if(view!=='abd')return;
+ var label=low((el.closest('label')&&el.closest('label').textContent)||'');
+ if(isFixedField(el)||/status/.test(label))return;
+ if(q(el.value)){state().rc195AbdFreshEmpty=false}
+},true);
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,schedule)});
+function boot(){installObserver();[0,60,200,600].forEach(function(ms){window.setTimeout(schedule,ms)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.rc195NewAbdRequest=newRequest;
+window.ExportHUBIndex195=Object.freeze({newAbdRequest:newRequest,installButton:addButton,selfTest:function(){var root=activeRoot(),button=root&&Array.prototype.slice.call(root.querySelectorAll('button,a')).find(function(b){return low(b.textContent)==='neue abd-anfrage'}),s=state(),d=s.abdDraft||{};return{abdVisible:!!root,newButton:!!button,customerEmpty:!q(d.customerId||d.customerName||d.customerSearch),referenceEmpty:!q(d.ref||d.reference),linkedShipmentEmpty:!q(d.linkedShipmentId),savedRequestsPreserved:Array.isArray(s.abdRequests)}}});
+})();
+</script>
+<!-- INDEX 195 NEW ABD REQUEST RESET END -->
