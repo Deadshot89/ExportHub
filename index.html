@@ -21350,3 +21350,130 @@ window.ExportHUBIndex195=Object.freeze({newAbdRequest:newRequest,installButton:a
 })();
 </script>
 <!-- INDEX 195 NEW ABD REQUEST RESET END -->
+
+
+<!-- INDEX 196 ABD REQUEST SELECTION FIX START -->
+<script id="index196-abd-request-selection-fix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX196_ABD_SELECTION__)return;
+window.__EXPORTHUB_INDEX196_ABD_SELECTION__=true;
+
+var pending=0,observer=null,rendering=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||{}}}
+function requests(){var s=state();return Array.isArray(s.abdRequests)?s.abdRequests:[]}
+function content(){return document.getElementById('content')}
+function isAbdView(){return low(state().view)==='abd'}
+function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
+function requestById(id){id=q(id);return requests().find(function(x){return q(x&&x.id)===id})||null}
+function extractId(button){
+ var id=q(button&&button.dataset&&button.dataset.index196AbdId);if(id)return id;
+ var code=q(button&&button.getAttribute&&button.getAttribute('onclick'));
+ var m=code.match(/editAbd\(\s*['\"]([^'\"]+)['\"]\s*\)/i);return m?q(m[1]):'';
+}
+function savedCard(button){
+ var card=button&&button.closest&&button.closest('article,.rc626-item,.card,section,div');
+ while(card&&card!==document.body){
+  if(/gespeicherte abd-anfragen/i.test(q(card.textContent))||card.querySelector&&card.querySelector('h3')&&/gespeicherte abd-anfragen/i.test(q(card.querySelector('h3').textContent)))return card;
+  card=card.parentElement;
+ }
+ return null;
+}
+function tagOpenButtons(){
+ var root=document.getElementById('rc626Abd');if(!root)return 0;
+ var count=0;
+ root.querySelectorAll('button,a').forEach(function(button){
+  if(low(button.textContent)!=='offnen')return;
+  var id=extractId(button);if(!id)return;
+  button.dataset.index196AbdId=id;button.dataset.index196OpenAbd='1';count++;
+ });
+ return count;
+}
+function removeLegacyStatus(){
+ if(!isAbdView())return;
+ document.querySelectorAll('#rc542AbdStatus,#rc543AbdStatus').forEach(function(node){node.remove()});
+}
+function renderCanonical(force){
+ if(!isAbdView()||rendering)return false;
+ var root=content(),api=window.ExportHUBRC626;if(!root||!api||typeof api.renderAbd!=='function')return false;
+ var canonical=document.getElementById('rc626Abd');
+ if(!force&&canonical){removeLegacyStatus();tagOpenButtons();return true}
+ rendering=true;
+ try{api.renderAbd()}catch(error){console.error('ExportHUB ABD-Ansicht',error)}
+ rendering=false;
+ removeLegacyStatus();tagOpenButtons();
+ return !!document.getElementById('rc626Abd');
+}
+function selectRequest(id){
+ var s=state(),item=requestById(id);if(!item){alert('Die ausgewählte ABD-Anfrage wurde nicht gefunden.');return false}
+ s.rc195AbdFreshEmpty=false;
+ s.activeAbdId=q(item.id);s.selectedAbdId=q(item.id);s.currentAbdId=q(item.id);s.linkedAbdId=q(item.id);
+ /* Direkt setzen, damit die Auswahl auch dann funktioniert, wenn ein älterer Renderer den Klick blockiert. */
+ s.abdDraft=clone(item);
+ s.abdRequest=clone(item);
+ try{
+  if(window.state&&window.state!==s){
+   window.state.rc195AbdFreshEmpty=false;
+   window.state.activeAbdId=q(item.id);window.state.selectedAbdId=q(item.id);window.state.currentAbdId=q(item.id);window.state.linkedAbdId=q(item.id);
+   window.state.abdDraft=clone(item);window.state.abdRequest=clone(item);
+  }
+ }catch(_){ }
+ var api=window.ExportHUBRC626;
+ if(api&&typeof api.editAbd==='function'){
+  try{api.editAbd(item.id)}catch(error){console.error('ExportHUB ABD öffnen',error);renderCanonical(true)}
+ }else renderCanonical(true);
+ window.setTimeout(function(){renderCanonical(false);tagOpenButtons()},0);
+ window.setTimeout(function(){renderCanonical(false);tagOpenButtons()},80);
+ return false;
+}
+function schedule(force){
+ if(pending)return;
+ pending=window.setTimeout(function(){pending=0;if(!isAbdView())return;renderCanonical(!!force)},20);
+}
+function installObserver(){
+ if(observer)return;var root=content();if(!root)return;
+ try{observer=new MutationObserver(function(records){
+  if(rendering)return;
+  if(records.some(function(r){return r.type==='childList'}))schedule(false);
+ });observer.observe(root,{childList:true,subtree:true})}catch(_){ }
+}
+/* Window-Capture läuft vor älteren Document-Capture-Handlern. Dadurch kann eine gespeicherte Anfrage zuverlässig geöffnet werden. */
+window.addEventListener('click',function(e){
+ var button=e.target&&e.target.closest&&e.target.closest('button,a');if(!button)return;
+ if(button.dataset&&button.dataset.index196OpenAbd==='1'){
+  var id=extractId(button);if(!id)return;
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();selectRequest(id);return false;
+ }
+ if(isAbdView()&&low(button.textContent)==='offnen'&&savedCard(button)){
+  var id2=extractId(button);if(!id2)return;
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();selectRequest(id2);return false;
+ }
+},true);
+
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){schedule(false)})});
+function boot(){installObserver();[0,50,160,500].forEach(function(ms){window.setTimeout(function(){schedule(false)},ms)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+
+window.ExportHUBIndex196=Object.freeze({
+ openSavedAbd:selectRequest,
+ enforceAbdView:function(){return renderCanonical(true)},
+ selfTest:function(){
+  var s=state(),draft=s.abdDraft||{},id=q(s.selectedAbdId||s.activeAbdId||draft.id),item=id&&requestById(id);
+  return{
+   abdView:isAbdView(),
+   canonicalEditor:!!document.getElementById('rc626Abd'),
+   legacyStatusCards:document.querySelectorAll('#rc542AbdStatus,#rc543AbdStatus').length,
+   savedRequests:requests().length,
+   openButtons:tagOpenButtons(),
+   selectedRequestId:id,
+   selectedRequestExists:!id||!!item,
+   selectedCustomer:q(draft.customerName||draft.customerId||draft.customerSearch),
+   valid:!isAbdView()||!!document.getElementById('rc626Abd')
+  };
+ }
+});
+})();
+</script>
+<!-- INDEX 196 ABD REQUEST SELECTION FIX END -->
