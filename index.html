@@ -23491,3 +23491,164 @@ function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;apply()}
 })();
 </script>
 <!-- INDEX 228 MAIL TEMPLATE LINK + OVERVIEW NAME + CUSTOMER SHIPMENT SHORTCUT END -->
+
+<!-- INDEX 229 PALLET BALANCE ON LOADLIST + POD EMERGENCY BACKUP START -->
+<style id="index229-pallet-pod-backup-style">
+.index229-pallet-balance{
+  grid-column:1/-1!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  min-height:48px!important;
+  margin:8px 0 0!important;
+  padding:9px 12px!important;
+  border:1.5px solid #0b3b72!important;
+  border-radius:12px!important;
+  background:#eff6ff!important;
+  color:#0f172a!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+}
+.index229-pallet-balance span{font-size:11px!important;font-weight:900!important;color:#1e3a8a!important;text-transform:uppercase!important;letter-spacing:.035em!important}
+.index229-pallet-balance strong{font-size:18px!important;font-weight:1000!important;color:#08245d!important;white-space:nowrap!important}
+.index229-pod-backup-button{white-space:nowrap!important}
+.index226-pickup-actions .index229-pod-download{display:inline-flex!important}
+@media(max-width:760px){.index229-pallet-balance{align-items:flex-start!important;flex-direction:column!important}.index229-pallet-balance strong{font-size:17px!important}}
+@media print{
+  .index229-pallet-balance{display:flex!important;box-shadow:none!important;border:1.2px solid #0b3b72!important;background:#eff6ff!important;break-inside:avoid!important;page-break-inside:avoid!important}
+  .index229-pallet-balance span{font-size:9px!important}.index229-pallet-balance strong{font-size:14px!important}
+  .index229-pod-backup-button,.index229-pod-download{display:none!important}
+}
+</style>
+<script id="index229-pallet-pod-backup-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX229_PALLET_POD_BACKUP__)return;
+window.__EXPORTHUB_INDEX229_PALLET_POD_BACKUP__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var VERSION='RC229',CACHE='229',timer=0,observer=null,titleObserver=null,backupBusy=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function num(v){var n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||(window.state={})}}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.uuid))}
+function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.dnc))}
+function shipmentCustomer(sh){
+ var s=state(),key=q(sh&&(sh.customerId||sh.customerAccount||sh.customerNumber||sh.customerName)),name=q(sh&&sh.customerName).toLowerCase();
+ return arr(s.customers).find(function(c){return [c.id,c.customerId,c.account,c.customerNumber].some(function(v){return key&&q(v)===key})||(name&&q(c.name||c.customerName).toLowerCase()===name)})||(sh&&sh.customer&&typeof sh.customer==='object'?sh.customer:{})||{};
+}
+function currentShipment(){
+ var s=state(),active=q(s.activeShipmentId||s.selectedShipmentId),list=arr(s.shipments),sh=null;
+ if(active&&active!=='current')sh=list.find(function(x){return sid(x)===active||sref(x)===active});
+ if(!sh&&s.shipment&&typeof s.shipment==='object'&&(sid(s.shipment)||sref(s.shipment)||q(s.shipment.customerName)))sh=s.shipment;
+ if(!sh&&list.length)sh=list[list.length-1];
+ return sh||{};
+}
+function partyFor(c){
+ var carrier=q(c&&(c.carrierName||c.carrier||c.spedition||c.palletCarrier)),cid=q(c&&(c.id||c.customerId||c.account||c.customerNumber)),name=q(c&&(c.name||c.customerName));
+ return carrier?{type:'carrier',key:'carrier:'+low(carrier),name:carrier,customerId:cid,customerName:name}:{type:'customer',key:'customer:'+low(cid||name),name:name,customerId:cid,customerName:name};
+}
+function euroPallets(sh){return arr(sh&&sh.rows).reduce(function(sum,r){var type=q(r&&(r.type||r.packaging||r.verpackung||r.packagingType));return /euro.*palette|europalette|euro pallet/i.test(type)?sum+Math.max(0,Math.round(num(r.count||r.qty||r.quantity||r.anzahl))):sum},0)}
+function signed(entry){var n=Math.abs(num(entry&&(entry.count||entry.quantity||entry.amount))),t=low(entry&&(entry.direction||entry.type||entry.kind||entry.bookingType));if(/ausgang|outgoing|out/.test(t))return-n;if(/eingang|incoming|in/.test(t))return n;if(/abgleich|korrektur|adjust/.test(t))return num(entry.balanceChange||entry.delta||entry.count||entry.quantity);return 0}
+function activeEntry(e){return !/storniert|cancelled|geloscht|deleted/.test(low(e&&e.status))}
+function entryMatchesParty(e,p,c){
+ var pk=low(e&&e.partyKey),pn=low(e&&(e.partyName||e.partnerName)),cid=low(e&&(e.customerId||e.customerAccount||e.customerNumber)),cn=low(e&&(e.customerName||e.customer)),carrier=low(e&&(e.carrierName||e.carrier||e.spedition));
+ if(pk&&pk===low(p.key))return true;
+ if(p.type==='carrier'&&(pn===low(p.name)||carrier===low(p.name)))return true;
+ if(p.customerId&&cid===low(p.customerId))return true;
+ if(p.customerName&&cn===low(p.customerName))return true;
+ return false;
+}
+function sameShipment(e,sh){var id=sid(sh),ref=low(sref(sh));return !!((id&&q(e&&(e.shipmentId||e.linkedShipmentId))===id)||(ref&&low(e&&(e.shipmentRef||e.reference||e.ref))===ref))}
+function palletBalance(sh){
+ var s=state(),c=shipmentCustomer(sh),p=partyFor(c),entries=arr(s.palletAccount).filter(function(e){return activeEntry(e)&&entryMatchesParty(e,p,c)}),base=entries.reduce(function(sum,e){return sum+signed(e)},0),booked=entries.some(function(e){return sameShipment(e,sh)&&/ausgang|outgoing|out/.test(low(e.direction||e.type||e.kind))}),out=euroPallets(sh),projected=base+(booked?0:-out);
+ return{balance:Math.round(projected),base:Math.round(base),outgoing:out,booked:booked,party:p};
+}
+function loadPages(doc){
+ if(!doc)return[];var sel='#rc565LoadList1,#rc565LoadList2,#rc420Load1,#rc420Load2,.rc420-load,.rc390-page.rc390-load,.rc351-load,.rc352-load,.rc346-load,.rc344-load-with-qr,.rc344-load-no-qr,.rc593-load',seen=[],out=[];
+ Array.prototype.slice.call(doc.querySelectorAll(sel)).forEach(function(n){if(seen.indexOf(n)<0){seen.push(n);out.push(n)}});return out;
+}
+function balanceText(v){return(v>0?'+':'')+String(v).replace('-', '−')+' Europaletten'}
+function injectPalletBalance(doc,sh){
+ if(!doc||!sh)return 0;var data=palletBalance(sh),html='<span>Palettenkonto inkl. dieser Lieferung</span><strong>'+esc(balanceText(data.balance))+'</strong>',count=0;
+ loadPages(doc).forEach(function(page){
+  var host=page.querySelector('.rc390-bottom,.load-sign-grid,.load-write-fields,.load-four-fields,.rc420-bottom,.rc351-bottom,.rc352-bottom')||page,box=page.querySelector('.index229-pallet-balance');
+  if(!box){box=doc.createElement('div');box.className='index229-pallet-balance';if(host.classList&&host.classList.contains('rc390-bottom'))host.appendChild(box);else{var copy=page.querySelector('.rc390-copy,.doc-copy,.page-copy');page.insertBefore(box,copy||null)}}
+  if(box.innerHTML!==html)box.innerHTML=html;box.setAttribute('data-index229-balance',String(data.balance));count++;
+ });return count;
+}
+function patchPalletEverywhere(){var sh=currentShipment(),count=injectPalletBalance(document,sh);document.querySelectorAll('iframe').forEach(function(f){try{if(f.contentDocument)count+=injectPalletBalance(f.contentDocument,sh)}catch(_){ }});return count}
+function fileUrl(f){return q(f&&(f.data||f.dataUrl||f.url||f.webUrl||f.downloadUrl||f.base64||f.content))}
+function fileName(f){return q(f&&(f.name||f.filename||f.fileName))||'POD.pdf'}
+function mime(f,url){var m=low(f&&(f.mimeType||f.type||f.contentType));if(m)return m;if(/^data:([^;,]+)/i.test(url))return low((url.match(/^data:([^;,]+)/i)||[])[1]);if(/\.pdf(?:$|[?#])/i.test(url))return'application/pdf';if(/\.png(?:$|[?#])/i.test(url))return'image/png';if(/\.jpe?g(?:$|[?#])/i.test(url))return'image/jpeg';return''}
+function bytesFromBase64(b64){var bin=atob(String(b64).replace(/\s/g,'')),out=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
+function dataUrlBytes(url){var p=String(url).split(','),meta=p.shift()||'',body=p.join(','),bytes=/;base64/i.test(meta)?bytesFromBase64(body):new TextEncoder().encode(decodeURIComponent(body));return{bytes:bytes,mime:low((meta.match(/^data:([^;,]+)/i)||[])[1])}}
+function blobToDataUrl(blob){return new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){resolve(String(r.result||''))};r.onerror=reject;r.readAsDataURL(blob)})}
+function concat(parts){var len=parts.reduce(function(s,p){return s+p.length},0),out=new Uint8Array(len),off=0;parts.forEach(function(p){out.set(p,off);off+=p.length});return out}
+function ascii(s){return new TextEncoder().encode(String(s))}
+function jpegPdf(jpegUrl){
+ return new Promise(function(resolve,reject){var img=new Image();img.onload=function(){try{var canvas=document.createElement('canvas'),max=2200,scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),iw=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)),ih=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));canvas.width=iw;canvas.height=ih;var ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,iw,ih);ctx.drawImage(img,0,0,iw,ih);var jpg=canvas.toDataURL('image/jpeg',.9),raw=dataUrlBytes(jpg).bytes,pageW=595,pageH=842,margin=28,fit=Math.min((pageW-margin*2)/iw,(pageH-margin*2)/ih),dw=(iw*fit).toFixed(2),dh=(ih*fit).toFixed(2),x=((pageW-iw*fit)/2).toFixed(2),y=((pageH-ih*fit)/2).toFixed(2),content='q '+dw+' 0 0 '+dh+' '+x+' '+y+' cm /Im0 Do Q\n',objs=[];
+ objs[1]=ascii('<< /Type /Catalog /Pages 2 0 R >>');objs[2]=ascii('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');objs[3]=ascii('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pageW+' '+pageH+'] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');objs[4]=concat([ascii('<< /Type /XObject /Subtype /Image /Width '+iw+' /Height '+ih+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+raw.length+' >>\nstream\n'),raw,ascii('\nendstream')]);objs[5]=ascii('<< /Length '+ascii(content).length+' >>\nstream\n'+content+'endstream');
+ var parts=[ascii('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n')],offsets=[0],pos=parts[0].length;for(var n=1;n<=5;n++){offsets[n]=pos;var pre=ascii(n+' 0 obj\n'),post=ascii('\nendobj\n');parts.push(pre,objs[n],post);pos+=pre.length+objs[n].length+post.length}var xref=pos,x='xref\n0 6\n0000000000 65535 f \n';for(var j=1;j<=5;j++)x+=String(offsets[j]).padStart(10,'0')+' 00000 n \n';x+='trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';parts.push(ascii(x));resolve(concat(parts))}catch(e){reject(e)}};img.onerror=function(){reject(new Error('Bild-POD konnte nicht in PDF umgewandelt werden.'))};img.src=jpegUrl})
+}
+function fallbackPdf(sh,f){try{if(window.ExportHUBIndex224Pod&&typeof window.ExportHUBIndex224Pod.makeFallbackPdf==='function'){var u=window.ExportHUBIndex224Pod.makeFallbackPdf(sh,f||{});if(/^data:application\/pdf;base64,/i.test(q(u)))return dataUrlBytes(u).bytes}}catch(_){ }return null}
+async function podToPdf(sh,f){
+ var url=fileUrl(f),m=mime(f,url),raw=null;
+ try{
+  if(/^data:/i.test(url)){var d=dataUrlBytes(url);raw=d.bytes;m=m||d.mime}
+  else if(url){var r=await fetch(url,{credentials:'same-origin'});if(!r.ok)throw new Error('HTTP '+r.status);var ct=low(r.headers.get('content-type'));if(/application\/json/.test(ct)){var j=await r.json();throw new Error(q(j&&j.message)||'POD-Endpunkt liefert keine Datei')}var b=await r.blob();m=m||low(b.type||ct);raw=new Uint8Array(await b.arrayBuffer());if(/^image\//.test(m)){url=await blobToDataUrl(b)}}
+  if(raw&&(/application\/pdf/.test(m)||String.fromCharCode.apply(null,Array.prototype.slice.call(raw,0,4))==='%PDF'))return raw;
+  if(/^image\//.test(m)||/^data:image\//i.test(url)){var imageUrl=url;if(!/^data:/i.test(imageUrl)&&raw){imageUrl='data:'+(m||'image/jpeg')+';base64,'+btoa(String.fromCharCode.apply(null,raw))}return await jpegPdf(imageUrl)}
+ }catch(e){console.warn('INDEX229 POD-Datei wird wiederhergestellt',e)}
+ var fb=fallbackPdf(sh,f);if(fb)return fb;throw new Error('Kein PDF für '+fileName(f)+' verfügbar.');
+}
+function sanitize(name){return q(name).replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,'_').slice(0,160)||'POD.pdf'}
+function downloadBytes(bytes,name,type){var blob=new Blob([bytes],{type:type||'application/pdf'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},60000)}
+function shipmentById(id){var s=state(),key=q(id),ref=low(key);return arr(s.shipments).find(function(sh){return sid(sh)===key||low(sref(sh))===ref})||(s.shipment&&(sid(s.shipment)===key||low(sref(s.shipment))===ref)?s.shipment:null)}
+async function downloadLatestPod(id){
+ var sh=shipmentById(id)||currentShipment(),files=arr(sh&&sh.podFiles);if(!sh){alert('Die Sendung wurde nicht gefunden.');return false}
+ try{if(window.ExportHUBIndex224Pod&&typeof window.ExportHUBIndex224Pod.normalizeAll==='function')window.ExportHUBIndex224Pod.normalizeAll()}catch(_){ }
+ files=arr(sh.podFiles);var f=files[files.length-1]||{};if(!files.length&&fallbackPdf(sh,f)==null){alert('Für diese Sendung ist noch kein POD vorhanden.');return false}
+ try{var bytes=await podToPdf(sh,f),name=sanitize('POD_'+(sref(sh)||sid(sh)||'Sendung')+'_'+(fileName(f)||'Abliefernachweis.pdf'));if(!/\.pdf$/i.test(name))name+='.pdf';downloadBytes(bytes,name,'application/pdf')}catch(e){alert('Der POD konnte nicht als PDF heruntergeladen werden: '+q(e&&e.message||e))}return false;
+}
+var crcTable=null;function crc32(bytes){if(!crcTable){crcTable=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);crcTable[n]=c>>>0}}var crc=0xFFFFFFFF;for(var i=0;i<bytes.length;i++)crc=crcTable[(crc^bytes[i])&255]^(crc>>>8);return(crc^0xFFFFFFFF)>>>0}
+function u16(v){var b=new Uint8Array(2),d=new DataView(b.buffer);d.setUint16(0,v,true);return b}function u32(v){var b=new Uint8Array(4),d=new DataView(b.buffer);d.setUint32(0,v>>>0,true);return b}
+function dosStamp(date){var d=date||new Date(),time=((d.getHours()&31)<<11)|((d.getMinutes()&63)<<5)|((Math.floor(d.getSeconds()/2))&31),day=(((d.getFullYear()-1980)&127)<<9)|(((d.getMonth()+1)&15)<<5)|(d.getDate()&31);return{time:time,date:day}}
+function zipBlob(files){var locals=[],centrals=[],offset=0,stamp=dosStamp(new Date());files.forEach(function(f){var name=new TextEncoder().encode(f.name),data=f.bytes,crc=crc32(data),local=concat([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(stamp.time),u16(stamp.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);locals.push(local);var central=concat([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(stamp.time),u16(stamp.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]);centrals.push(central);offset+=local.length});var centralSize=centrals.reduce(function(s,b){return s+b.length},0),end=concat([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(centralSize),u32(offset),u16(0)]);return new Blob(locals.concat(centrals).concat([end]),{type:'application/zip'})}
+function allShipments(){var s=state(),map={};arr(s.shipments).concat(s.shipment&&typeof s.shipment==='object'?[s.shipment]:[]).forEach(function(sh){var k=sid(sh)||sref(sh);if(k)map[k]=sh});return Object.keys(map).map(function(k){return map[k]})}
+async function backupAllPods(button){
+ if(backupBusy)return false;backupBusy=true;var old=button&&button.textContent;if(button){button.disabled=true;button.textContent='PODs werden gesichert …'}
+ try{
+  try{if(window.ExportHUBIndex224Pod&&typeof window.ExportHUBIndex224Pod.normalizeAll==='function')window.ExportHUBIndex224Pod.normalizeAll()}catch(_){ }
+  var records=[],errors=[],overview=['ExportHUB POD-Absicherung','Erstellt: '+new Date().toLocaleString('de-DE'),''];
+  for(var sh of allShipments()){
+   var files=arr(sh.podFiles),fallbackOnly=!files.length&&!!fallbackPdf(sh,{});if(fallbackOnly)files=[{}];
+   for(var i=0;i<files.length;i++){
+    try{var bytes=await podToPdf(sh,files[i]),ref=sref(sh)||sid(sh)||'Ohne_Referenz',customer=q(sh.customerName||(sh.customer&&sh.customer.name)),base=sanitize(ref+'_'+(i+1)+'_'+fileName(files[i]||{}));if(!/\.pdf$/i.test(base))base+='.pdf';records.push({name:'PODs/'+base,bytes:bytes});overview.push(ref+' | '+customer+' | '+base)}catch(e){errors.push((sref(sh)||sid(sh)||'Sendung')+': '+q(e&&e.message||e))}
+   }
+  }
+  if(!records.length){alert('Es sind aktuell keine POD-Dateien vorhanden.');return false}
+  records.push({name:'POD_Uebersicht.txt',bytes:new TextEncoder().encode(overview.join('\r\n'))});if(errors.length)records.push({name:'POD_Fehler.txt',bytes:new TextEncoder().encode(errors.join('\r\n'))});
+  var zip=zipBlob(records),url=URL.createObjectURL(zip),a=document.createElement('a'),now=new Date(),stamp=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');a.href=url;a.download='ExportHUB_POD_Absicherung_'+stamp+'.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},60000);
+ }finally{backupBusy=false;if(button){button.disabled=false;button.textContent=old||'POD-Absicherung'}}return false;
+}
+function patchPodButtons(){
+ document.querySelectorAll('.index226-pickup-proof').forEach(function(panel){var actions=panel.querySelector('.index226-pickup-actions'),id=q(panel.getAttribute('data-index226-shipment'));if(actions&&!actions.querySelector('.index229-pod-download')){var b=document.createElement('button');b.type='button';b.className='ghost index229-pod-download';b.textContent='POD PDF herunterladen';b.setAttribute('data-index229-download-pod',id);actions.insertBefore(b,actions.firstChild)}});
+ var top=document.querySelector('.topbar');if(top&&!top.querySelector('.index229-pod-backup-button')){var b=document.createElement('button');b.type='button';b.className='ghost index229-pod-backup-button';b.textContent='POD-Absicherung';b.setAttribute('data-index229-backup-all','1');var logout=Array.prototype.slice.call(top.querySelectorAll('button')).find(function(x){return /abmelden|logout/i.test(low(x.textContent))});top.insertBefore(b,logout||null)}
+ var hub=document.getElementById('rc576DocumentHub');if(hub&&!hub.querySelector(':scope > .index229-pod-backup-button')){var b2=document.createElement('button');b2.type='button';b2.className='ghost index229-pod-backup-button no-print';b2.textContent='Alle PODs als ZIP sichern';b2.setAttribute('data-index229-backup-all','1');hub.insertBefore(b2,hub.firstChild)}
+}
+function lockVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:CACHE,loginReturn:'/?v='+CACHE})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);var title=document.querySelector('title');if(title&&title.textContent!=='ExportHUB Online '+VERSION)title.textContent='ExportHUB Online '+VERSION;var badge=document.getElementById('cleanVersionBadge');if(badge&&badge.textContent!=='Bereinigte Version · '+VERSION)badge.textContent='Bereinigte Version · '+VERSION}
+function patch(){lockVersion();patchPalletEverywhere();patchPodButtons()}
+function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},40)}
+document.addEventListener('click',function(e){var d=e.target&&e.target.closest&&e.target.closest('[data-index229-download-pod]');if(d){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();downloadLatestPod(d.getAttribute('data-index229-download-pod'));return false}var all=e.target&&e.target.closest&&e.target.closest('[data-index229-backup-all]');if(all){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();backupAllPods(all);return false}var print=e.target&&e.target.closest&&e.target.closest('[data-rc616-print],[data-rc601-print],button,a');if(print&&/drucken|pdf|ladeliste/i.test(low(print.textContent||print.getAttribute('data-rc616-print')||print.getAttribute('data-rc601-print'))))patchPalletEverywhere()},true);
+window.addEventListener('beforeprint',patchPalletEverywhere);
+function install(){if(observer)return;try{var n=window.ExportHUBClean&&window.ExportHUBClean.native,MO=n&&n.MutationObserver||window.MutationObserver;observer=new MO(function(records){if(records.some(function(r){return r.type==='childList'&&r.addedNodes&&r.addedNodes.length}))schedule()});observer.observe(document.getElementById('app')||document.documentElement,{childList:true,subtree:true});var t=document.querySelector('title');if(t){titleObserver=new MO(lockVersion);titleObserver.observe(t,{childList:true,subtree:true,characterData:true})}}catch(_){ }}
+function boot(){install();patch();[120,400,1000,2200].forEach(function(ms){setTimeout(patch,ms)});setInterval(function(){lockVersion();patchPalletEverywhere();patchPodButtons()},1200)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,schedule)});
+window.ExportHUBIndex229=Object.freeze({version:VERSION,palletBalance:palletBalance,patchPallet:patchPalletEverywhere,downloadPod:downloadLatestPod,backupAllPods:backupAllPods,selfTest:function(){var fake={id:'S1',ref:'TEST',customerId:'C1',rows:[{type:'Europalette',count:3}]},s=state(),oldC=s.customers,oldP=s.palletAccount;s.customers=[{id:'C1',name:'Testkunde'}];s.palletAccount=[{customerId:'C1',direction:'Eingang',count:10,status:'Aktiv'}];var b=palletBalance(fake);s.customers=oldC;s.palletAccount=oldP;return{version:VERSION,balanceIncludingShipment:b.balance,expected:7,zipWriter:typeof zipBlob==='function',podBackup:typeof backupAllPods==='function',cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+})();
+</script>
+<!-- INDEX 229 PALLET BALANCE ON LOADLIST + POD EMERGENCY BACKUP END -->
