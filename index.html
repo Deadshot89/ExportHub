@@ -23062,3 +23062,201 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 <!-- INDEX 222 DIGITAL PICKUP POD END -->
+
+<!-- INDEX 223 COLLI ROW FORMATTING REPAIR START -->
+<style id="index223-colli-layout-style">
+#rc573ColliCard .rc344-colli-row{
+  padding:16px!important;
+  margin:12px 0!important;
+  overflow:visible!important;
+}
+#rc573ColliCard [data-index223-grid="1"]{
+  display:grid!important;
+  grid-template-columns:minmax(280px,2.35fr) minmax(105px,.75fr) minmax(175px,1.15fr) minmax(135px,.9fr)!important;
+  grid-template-areas:
+    "type count weight ldm"
+    "length width height action"!important;
+  column-gap:16px!important;
+  row-gap:16px!important;
+  align-items:start!important;
+  width:100%!important;
+  direction:ltr!important;
+}
+#rc573ColliCard [data-index223-grid="1"]>[data-index223-field]{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:7px!important;
+  min-width:0!important;
+  width:auto!important;
+  margin:0!important;
+  position:relative!important;
+}
+#rc573ColliCard [data-index223-field="type"]{grid-area:type!important}
+#rc573ColliCard [data-index223-field="count"]{grid-area:count!important}
+#rc573ColliCard [data-index223-field="weight"]{grid-area:weight!important}
+#rc573ColliCard [data-index223-field="ldm"]{grid-area:ldm!important}
+#rc573ColliCard [data-index223-field="l"]{grid-area:length!important}
+#rc573ColliCard [data-index223-field="w"]{grid-area:width!important}
+#rc573ColliCard [data-index223-field="h"]{grid-area:height!important}
+#rc573ColliCard [data-index223-field="action"]{grid-area:action!important}
+#rc573ColliCard [data-index223-grid="1"]>[data-index223-field] input,
+#rc573ColliCard [data-index223-grid="1"]>[data-index223-field] select,
+#rc573ColliCard [data-index223-grid="1"]>[data-index223-field] button{
+  width:100%!important;
+  min-width:0!important;
+  height:48px!important;
+  min-height:48px!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+}
+#rc573ColliCard [data-index223-field="type"] select{
+  padding-right:40px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#rc573ColliCard [data-index223-field="type"] .index202-packaging-readout,
+#rc573ColliCard [data-index223-field="type"] .index212-packaging-readout{
+  display:block!important;
+  width:100%!important;
+  min-height:20px!important;
+  margin:0!important;
+  padding:6px 9px!important;
+  border-radius:10px!important;
+  background:#eef6ff!important;
+  color:#334155!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  line-height:1.35!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  box-sizing:border-box!important;
+}
+#rc573ColliCard [data-index223-field="weight"] .index212-weight-hint{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  flex-wrap:wrap!important;
+  gap:4px 8px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:6px 9px!important;
+  border-radius:10px!important;
+  background:#eff6ff!important;
+  color:#1d4ed8!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  line-height:1.25!important;
+  box-sizing:border-box!important;
+}
+#rc573ColliCard [data-index223-field="weight"] .index212-weight-hint.incomplete{
+  background:#fff7ed!important;
+  color:#9a3412!important;
+}
+#rc573ColliCard [data-index223-field="action"] button{
+  align-self:stretch!important;
+}
+@media(max-width:1240px){
+  #rc573ColliCard [data-index223-grid="1"]{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    grid-template-areas:
+      "type type"
+      "count weight"
+      "ldm length"
+      "width height"
+      "action action"!important;
+  }
+}
+@media(max-width:680px){
+  #rc573ColliCard [data-index223-grid="1"]{
+    grid-template-columns:1fr!important;
+    grid-template-areas:
+      "type"
+      "count"
+      "weight"
+      "ldm"
+      "length"
+      "width"
+      "height"
+      "action"!important;
+  }
+}
+</style>
+<script id="index223-colli-layout-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX223_COLLI_LAYOUT__)return;
+window.__EXPORTHUB_INDEX223_COLLI_LAYOUT__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var VERSION='RC223',CACHE='223',pending=0,observer=null,busy=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function later(fn,ms){var n=window.ExportHUBClean&&window.ExportHUBClean.native;return(n&&n.setTimeout?n.setTimeout:window.setTimeout)(fn,ms||0)}
+function directChild(grid,node){while(node&&node.parentElement&&node.parentElement!==grid)node=node.parentElement;return node&&node.parentElement===grid?node:null}
+function keyFor(control){
+ var wrap=control&&control.closest&&control.closest('label,.field'),label=low(wrap&&wrap.textContent),code=q((control&&control.getAttribute&&control.getAttribute('oninput')||'')+' '+(control&&control.getAttribute&&control.getAttribute('onchange')||'')),m=code.match(/(?:UpdateRow|updateRow|setRow)\s*\(\s*\d+\s*,\s*['"](type|count|ldm|weight|l|w|h)['"]/i);
+ if(m)return m[1];
+ if(/verpack|packart|packaging/.test(label))return'type';
+ if(/anzahl|menge|quantity/.test(label))return'count';
+ if(/gewicht|weight/.test(label))return'weight';
+ if(/lademeter|\bldm\b/.test(label))return'ldm';
+ if(/lange|laenge|length/.test(label))return'l';
+ if(/breite|width/.test(label))return'w';
+ if(/hohe|hoehe|height/.test(label))return'h';
+ return'';
+}
+function normalizeWeightHint(wrapper){
+ var hint=wrapper&&wrapper.querySelector&&wrapper.querySelector('.index212-weight-hint');
+ if(!hint)return;
+ var text=low(hint.textContent);
+ if(/einzelgewichte/.test(text))hint.innerHTML='<span>Einzelgewichte erfassen</span><span>Gewichtsfeld anklicken</span>';
+}
+function normalizeRow(row){
+ var grid=row.querySelector('.rc344-colli-grid')||row;
+ if(!grid)return false;
+ var found={};
+ Array.prototype.slice.call(row.querySelectorAll('input,select')).forEach(function(control){
+   var key=keyFor(control),wrapper=directChild(grid,control.closest('label,.field')||control.parentElement);
+   if(key&&wrapper&&!found[key])found[key]=wrapper;
+ });
+ var button=Array.prototype.slice.call(row.querySelectorAll('button')).find(function(x){return /entfernen|loschen|löschen/i.test(low(x.textContent))});
+ if(button){var action=directChild(grid,button.closest('label,.field')||button.parentElement);if(action)found.action=action}
+ var order=['type','count','weight','ldm','l','w','h','action'];
+ order.forEach(function(key){var wrapper=found[key];if(!wrapper)return;wrapper.setAttribute('data-index223-field',key);if(key==='weight')normalizeWeightHint(wrapper)});
+ Array.prototype.slice.call(grid.children).forEach(function(child){if(!order.some(function(key){return found[key]===child}))child.removeAttribute('data-index223-field')});
+ var desired=order.map(function(key){return found[key]}).filter(Boolean),current=Array.prototype.slice.call(grid.children).filter(function(child){return desired.indexOf(child)>=0}),different=current.length!==desired.length||current.some(function(child,index){return child!==desired[index]});
+ if(different)desired.forEach(function(wrapper){if(wrapper.parentElement===grid)grid.appendChild(wrapper)});
+ grid.setAttribute('data-index223-grid','1');
+ row.setAttribute('data-index223-row','1');
+ return order.filter(function(key){return !!found[key]}).length>=7;
+}
+function format(){
+ if(busy)return false;busy=true;
+ try{
+   var card=document.getElementById('rc573ColliCard');if(!card)return false;
+   var rows=Array.prototype.slice.call(card.querySelectorAll('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card,#rowsBox>.item')).filter(function(row){return row.querySelector&&row.querySelector('input,select')});
+   rows.forEach(normalizeRow);
+   return rows.length>0;
+ }finally{busy=false}
+}
+function lock(){
+ try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:CACHE,loginReturn:'/?v='+CACHE})}catch(_){ }
+ document.documentElement.setAttribute('data-exporthub-version',VERSION);
+ if(document.title!=='ExportHUB Online '+VERSION)document.title='ExportHUB Online '+VERSION;
+ var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
+}
+function patch(){lock();format()}
+function schedule(){if(pending)return;pending=later(function(){pending=0;patch()},25)}
+function install(){
+ if(observer)return;
+ try{var Native=window.ExportHUBClean&&window.ExportHUBClean.native,MO=Native&&Native.MutationObserver||window.MutationObserver;observer=new MO(function(records){if(records.some(function(r){return r.type==='childList'}))schedule()});observer.observe(document.getElementById('content')||document.documentElement,{childList:true,subtree:true})}catch(_){ }
+}
+function boot(){install();patch();[60,180,500,1200].forEach(function(ms){later(patch,ms)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,schedule)});
+window.ExportHUBIndex223=Object.freeze({version:VERSION,formatColli:format,selfTest:function(){var card=document.getElementById('rc573ColliCard'),row=card&&card.querySelector('[data-index223-row="1"]'),grid=row&&row.querySelector('[data-index223-grid="1"]');return{version:VERSION,row:!!row,grid:!!grid,type:!!(grid&&grid.querySelector('[data-index223-field="type"]')),count:!!(grid&&grid.querySelector('[data-index223-field="count"]')),weight:!!(grid&&grid.querySelector('[data-index223-field="weight"]')),ldm:!!(grid&&grid.querySelector('[data-index223-field="ldm"]')),dimensions:grid?grid.querySelectorAll('[data-index223-field="l"],[data-index223-field="w"],[data-index223-field="h"]').length:0,cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+})();
+</script>
+<!-- INDEX 223 COLLI ROW FORMATTING REPAIR END -->
