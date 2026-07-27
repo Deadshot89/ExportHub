@@ -23652,3 +23652,65 @@ window.ExportHUBIndex229=Object.freeze({version:VERSION,palletBalance:palletBala
 })();
 </script>
 <!-- INDEX 229 PALLET BALANCE ON LOADLIST + POD EMERGENCY BACKUP END -->
+
+<!-- INDEX 230 COLLI PACKAGING LEFT LOCK START -->
+<style id="index230-colli-packaging-left-style">
+#rc573ColliCard,
+#rc573ColliCard .rc344-colli-row,
+#rc573ColliCard .rc344-colli-grid{
+  direction:ltr!important;
+  writing-mode:horizontal-tb!important;
+}
+#rc573ColliCard .rc344-colli-grid[data-index230-grid="1"]{
+  display:grid!important;
+  width:100%!important;
+  max-width:none!important;
+  justify-content:stretch!important;
+  justify-items:stretch!important;
+  align-items:start!important;
+  grid-auto-flow:row!important;
+  gap:16px!important;
+}
+#rc573ColliCard .rc344-colli-grid[data-index230-grid="1"] > [data-index230-field]{
+  min-width:0!important;
+  width:auto!important;
+  margin:0!important;
+  direction:ltr!important;
+  text-align:left!important;
+}
+#rc573ColliCard .rc344-colli-grid[data-index230-grid="1"] > [data-index230-field="type"] select{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+}
+</style>
+<script id="index230-colli-packaging-left-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX230_COLLI_LEFT__)return;
+window.__EXPORTHUB_INDEX230_COLLI_LEFT__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var VERSION='RC230',CACHE='230',timer=0,observer=null,busy=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function later(fn,ms){var n=window.ExportHUBClean&&window.ExportHUBClean.native;return(n&&n.setTimeout?n.setTimeout:window.setTimeout)(fn,ms||0)}
+function labelText(el){var wrap=el&&el.closest&&el.closest('label,.field');return low(wrap&&wrap.textContent)}
+function fieldKey(el){var t=labelText(el),code=q((el&&el.getAttribute&&el.getAttribute('oninput')||'')+' '+(el&&el.getAttribute&&el.getAttribute('onchange')||'')),m=code.match(/(?:UpdateRow|updateRow|setRow)\s*\(\s*\d+\s*,\s*['"](type|count|weight|ldm|l|w|h)['"]/i);if(m)return m[1];if(/verpack|packart|packaging/.test(t))return'type';if(/anzahl|menge|quantity/.test(t))return'count';if(/gewicht|weight/.test(t))return'weight';if(/lademeter|\bldm\b/.test(t))return'ldm';if(/lange|laenge|length/.test(t))return'l';if(/breite|width/.test(t))return'w';if(/hohe|hoehe|height/.test(t))return'h';return''}
+function direct(grid,node){while(node&&node.parentElement&&node.parentElement!==grid)node=node.parentElement;return node&&node.parentElement===grid?node:null}
+function important(el,name,value){if(el&&el.style)el.style.setProperty(name,value,'important')}
+function clearPlacement(el){if(!el||!el.style)return;['grid-column','grid-row','order','justify-self','align-self'].forEach(function(k){el.style.removeProperty(k)})}
+function place(el,col,row,span){if(!el)return;important(el,'grid-column',String(col)+' / span '+String(span||1));important(el,'grid-row',String(row));important(el,'order',String((row-1)*10+col));important(el,'justify-self','stretch');important(el,'align-self','start')}
+function wrappers(row){var grid=row.querySelector('.rc344-colli-grid');if(!grid)return null;var found={};Array.prototype.slice.call(grid.querySelectorAll('input,select')).forEach(function(el){var key=fieldKey(el),wrap=direct(grid,el.closest('label,.field')||el.parentElement);if(key&&wrap&&!found[key])found[key]=wrap});var button=Array.prototype.slice.call(grid.querySelectorAll('button')).find(function(b){return /entfernen|loschen|löschen/i.test(low(b.textContent))});if(button){var action=direct(grid,button.closest('label,.field')||button.parentElement);if(action)found.action=action}return{grid:grid,found:found}}
+function layout(row){var x=wrappers(row);if(!x||!x.found.type)return false;var grid=x.grid,f=x.found,order=['type','count','weight','ldm','l','w','h','action'];order.forEach(function(k){if(f[k]){f[k].setAttribute('data-index230-field',k);clearPlacement(f[k])}});order.forEach(function(k){if(f[k]&&f[k].parentElement===grid)grid.appendChild(f[k])});grid.setAttribute('data-index230-grid','1');important(grid,'display','grid');important(grid,'direction','ltr');important(grid,'writing-mode','horizontal-tb');important(grid,'width','100%');important(grid,'max-width','none');important(grid,'justify-content','stretch');important(grid,'justify-items','stretch');important(grid,'grid-auto-flow','row');important(grid,'gap','16px');var width=Math.max(grid.clientWidth||0,row.clientWidth||0,window.innerWidth||0);if(width>1240){important(grid,'grid-template-columns','minmax(280px,2.35fr) minmax(105px,.75fr) minmax(175px,1.15fr) minmax(135px,.9fr)');place(f.type,1,1);place(f.count,2,1);place(f.weight,3,1);place(f.ldm,4,1);place(f.l,1,2);place(f.w,2,2);place(f.h,3,2);place(f.action,4,2)}else if(width>680){important(grid,'grid-template-columns','repeat(2,minmax(0,1fr))');place(f.type,1,1,2);place(f.count,1,2);place(f.weight,2,2);place(f.ldm,1,3);place(f.l,2,3);place(f.w,1,4);place(f.h,2,4);place(f.action,1,5,2)}else{important(grid,'grid-template-columns','minmax(0,1fr)');place(f.type,1,1);place(f.count,1,2);place(f.weight,1,3);place(f.ldm,1,4);place(f.l,1,5);place(f.w,1,6);place(f.h,1,7);place(f.action,1,8)}row.setAttribute('data-index230-row','1');important(row,'direction','ltr');important(row,'writing-mode','horizontal-tb');return true}
+function patch(){if(busy)return false;busy=true;try{var card=document.getElementById('rc573ColliCard');if(!card)return false;important(card,'direction','ltr');important(card,'writing-mode','horizontal-tb');var rows=Array.prototype.slice.call(card.querySelectorAll('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card,#rowsBox>.item')).filter(function(row){return row.querySelector&&row.querySelector('.rc344-colli-grid input,.rc344-colli-grid select')});rows.forEach(layout);return rows.length>0}finally{busy=false}}
+function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:CACHE,loginReturn:'/?v='+CACHE})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION}
+function run(){timer=0;lock();patch()}
+function schedule(){if(timer)return;timer=later(run,25)}
+function install(){if(observer)return;try{var n=window.ExportHUBClean&&window.ExportHUBClean.native,MO=n&&n.MutationObserver||window.MutationObserver;observer=new MO(function(records){if(records.some(function(r){return r.type==='childList'&&r.addedNodes&&r.addedNodes.length}))schedule()});observer.observe(document.getElementById('content')||document.documentElement,{childList:true,subtree:true})}catch(_){ }}
+function boot(){install();run();[80,250,700,1500].forEach(function(ms){later(run,ms)});window.addEventListener('resize',schedule)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,schedule)});
+window.ExportHUBIndex230=Object.freeze({version:VERSION,patch:patch,selfTest:function(){var grid=document.querySelector('#rc573ColliCard .rc344-colli-grid[data-index230-grid="1"]'),type=grid&&grid.querySelector('[data-index230-field="type"]'),count=grid&&grid.querySelector('[data-index230-field="count"]');return{version:VERSION,grid:!!grid,packagingFirst:!!(grid&&type&&grid.firstElementChild===type),typeColumn:type&&type.style.getPropertyValue('grid-column'),countColumn:count&&count.style.getPropertyValue('grid-column'),direction:grid&&getComputedStyle(grid).direction,cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+})();
+</script>
+<!-- INDEX 230 COLLI PACKAGING LEFT LOCK END -->
