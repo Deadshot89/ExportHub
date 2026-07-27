@@ -21943,13 +21943,63 @@ function renderPlanner(){var r=root();if(!r)return;var s=state(),today=todayISO(
 function setTaskDate(id,date,reason){if(!/^\d{4}-\d{2}-\d{2}$/.test(q(date))){alert('Bitte ein gültiges Datum auswählen.');return false}var t=arr(state().tasks).find(function(x){return q(x.id)===q(id)});if(!t){alert('Aufgabe wurde nicht gefunden.');return false}var old=taskDate(t)||q(t.day)||'ohne Datum';t.dueDate=date;t.date=date;t.plannedDate=date;t.day=weekday(date);t.movedFromHoliday=old;t.movedAt=new Date().toISOString();t.movedBy=userName();persist(reason||('Aufgabe verschoben: '+old+' → '+date));renderPlanner();return false}
 
 function bindRoot(r){if(r.__rc205Bound)return;r.__rc205Bound=true;r.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc205-action]');if(!b)return;var action=b.getAttribute('data-rc205-action');if(action==='navigate'){e.preventDefault();navigate(b.getAttribute('data-view'));return}if(action==='direct-open'){e.preventDefault();openDirectEntity(b.getAttribute('data-entity-type'),b.getAttribute('data-entity-id'));return}if(action==='direct-add'){var type=b.getAttribute('data-entity-type'),select=document.getElementById(type==='shipment'?'rc207DirectShipment':'rc207DirectCustomer');addDirectEntity(type,select&&select.value);return}if(action==='direct-remove'){removeDirectEntity(b.getAttribute('data-entity-type'),b.getAttribute('data-entity-id'));return}if(action==='dashboard-config'){var p=prefs();p.configOpen=!p.configOpen;persist('Dashboard-Einstellungen geöffnet');renderDashboard();return}if(action==='dashboard-reset'){var p=prefs();p.widgets=DEFAULT_WIDGETS.slice();p.quickLinks=DEFAULT_LINKS.filter(canOpen);p.entityLinks=[];p.configOpen=true;persist('Dashboard auf Standard zurückgesetzt');renderDashboard();return}if(action==='planner-move'||action==='planner-plan'){var id=b.getAttribute('data-task-id'),input=r.querySelector('input[data-date-for="'+CSS.escape(id)+'"]');setTaskDate(id,input&&input.value,action==='planner-plan'?'Aufgabe eingeplant':'Aufgabe im Aufgaben Planer verschoben');return}if(action==='planner-recurring-plan'){var templateKey=b.getAttribute('data-template-key'),recurringInput=r.querySelector('input[data-recurring-date-for="'+CSS.escape(templateKey)+'"]');planRecurringTask(templateKey,recurringInput&&recurringInput.value);return}if(action==='planner-next'){setTaskDate(b.getAttribute('data-task-id'),nextWorkday(b.getAttribute('data-holiday')),'Aufgabe auf nächsten Arbeitstag verschoben');return}},true);r.addEventListener('change',function(e){var el=e.target,action=el&&el.getAttribute&&el.getAttribute('data-rc205-change');if(!action)return;if(action==='dashboard-widget'){var p=prefs(),id=el.getAttribute('data-widget');if(el.checked&&p.widgets.indexOf(id)<0)p.widgets.push(id);if(!el.checked)p.widgets=p.widgets.filter(function(x){return x!==id});persist('Persönliches Dashboard geändert');renderDashboard();return}if(action==='dashboard-link'){var p=prefs(),id=el.getAttribute('data-link');if(el.checked&&p.quickLinks.indexOf(id)<0)p.quickLinks.push(id);if(!el.checked)p.quickLinks=p.quickLinks.filter(function(x){return x!==id});persist('Dashboard-Schnellzugriffe geändert');renderDashboard();return}if(action==='planner-year'){state().taskPlannerYear=Number(el.value);state().plannerYear=Number(el.value);persist('Jahr im Aufgaben Planer geändert');renderPlanner();return}},true)}
+
+/* INDEX 215 AUFGABEN PLANER: WOCHENTAGE + TAG-/WOCHENPLANUNG */
+function isWeekendDate(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(q(iso)))return false;var d=new Date(iso+'T12:00:00'),n=d.getDay();return n===0||n===6}
+function plannerHolidays(year){var s=state(),all=holidaysNRW(year),custom=arr(s.holidays);custom.forEach(function(h){var date=typeof h==='string'?h:q(h.date||h.iso||h.day),name=typeof h==='string'?'Feiertag':q(h.name||h.title||'Feiertag');if(date.slice(0,4)===String(year)&&/^\d{4}-\d{2}-\d{2}$/.test(date.slice(0,10)))all.push({date:date.slice(0,10),name:name})});var map={};all.forEach(function(h){if(!isWeekendDate(h.date))map[h.date]=h});return Object.keys(map).sort().map(function(k){return map[k]})}
+function dayNoFromDate(iso){var d=new Date(iso+'T12:00:00'),n=d.getDay();return n===0?7:n}
+function mondayOfWeek(iso){var d=new Date(iso+'T12:00:00'),n=dayNoFromDate(iso);d.setDate(d.getDate()-(n-1));return localISO(d)}
+function plusDaysISO(iso,n){var d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+Number(n||0));return localISO(d)}
+function recurringWeekdays(t){
+ var raw=[];
+ ['day','weekday','weekDay','repeatDay','weekdays','weekDays','repeatDays','days','scheduleDays','recurrence','recurrenceRule','repeatRule','repeatPattern','schedule'].forEach(function(k){var v=t&&t[k];if(Array.isArray(v))raw=raw.concat(v);else if(v!=null)raw.push(v)});
+ var joined=low(raw.join(' ')),result=[];
+ function add(n){if(result.indexOf(n)<0)result.push(n)}
+ var map=[
+  [1,/(^|[^a-z])(montag|monday|mo)([^a-z]|$)|\bMO\b/i],
+  [2,/(^|[^a-z])(dienstag|tuesday|di)([^a-z]|$)|\bTU\b/i],
+  [3,/(^|[^a-z])(mittwoch|wednesday|mi)([^a-z]|$)|\bWE\b/i],
+  [4,/(^|[^a-z])(donnerstag|thursday|do)([^a-z]|$)|\bTH\b/i],
+  [5,/(^|[^a-z])(freitag|friday|fr)([^a-z]|$)|\bFR\b/i],
+  [6,/(^|[^a-z])(samstag|saturday|sa)([^a-z]|$)|\bSA\b/i],
+  [7,/(^|[^a-z])(sonntag|sunday|so)([^a-z]|$)|\bSU\b/i]
+ ];
+ var original=raw.join(' ');
+ map.forEach(function(x){if(x[1].test(original))add(x[0])});
+ if(/werktag|wochentag|weekdays/.test(joined))return[1,2,3,4,5];
+ if(/taglich|taeglich|daily/.test(joined)&&!result.length)return[1,2,3,4,5,6,7];
+ result.sort(function(a,b){return a-b});return result
+}
+function weekdayLabels(days){var names=['','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];return arr(days).map(function(n){return names[n]||''}).filter(Boolean)}
+function recurringDaysHtml(t){var days=recurringWeekdays(t),labels=weekdayLabels(days);return '<div class="rc215-weekdays">'+(labels.length?labels.map(function(label){return '<span>'+esc(label)+'</span>'}).join(''):'<span class="unset">Kein Wochentag festgelegt</span>')+'</div>'}
+function recurringRow(item,defaultDate){var t=item.task,ref=taskRef(t),customer=taskCustomer(t);return '<article class="rc205-planner-task rc215-recurring-row"><div class="rc205-planner-main"><b>'+esc(ref||taskTitle(t))+'</b>'+(ref?'<span>'+esc(taskTitle(t))+'</span>':'')+(customer?'<small>'+esc(customer)+'</small>':'')+'<small>'+esc(taskOwner(t)||'Ohne Zuständigkeit')+'</small>'+recurringDaysHtml(t)+'</div><span class="pill purple">'+esc(recurringLabel(t))+'</span><div class="rc205-planner-actions"><input type="date" min="'+esc(todayISO())+'" data-recurring-date-for="'+esc(item.key)+'" value="'+esc(defaultDate)+'"><button class="soft" data-rc205-action="planner-recurring-plan" data-template-key="'+esc(item.key)+'">Einzeln einplanen</button></div></article>'}
+function createRecurringOccurrence(item,date,periodType,periodStart,periodEnd){
+ date=q(date);if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date<todayISO())return{created:false,reason:'past'};
+ var s=state(),tasks=s.tasks=arr(s.tasks),template=item.task,templateId=q(item.templateId||item.key),duplicate=tasks.some(function(t){return q(t.recurringTemplateId)===templateId&&taskDate(t)===date&&!taskDone(t)});if(duplicate)return{created:false,reason:'duplicate'};
+ var copy=clone(template)||{},stamp=Date.now().toString(36),rand=Math.random().toString(36).slice(2,7);copy.id='task-'+stamp+'-'+rand;copy.status='offen';copy.done=false;copy.completed=false;delete copy.completedAt;delete copy.completedBy;delete copy.closedAt;delete copy.cancelledAt;copy.dueDate=date;copy.date=date;copy.plannedDate=date;copy.targetDate=date;copy.day=weekday(date);copy.recurringTemplateId=templateId;copy.recurringSource=item.source;copy.plannedFromRecurring=true;copy.plannedAt=new Date().toISOString();copy.plannedBy=userName();copy.plannerPeriodType=periodType||'single';copy.plannerPeriodStart=periodStart||date;copy.plannerPeriodEnd=periodEnd||date;tasks.push(copy);return{created:true,task:copy}
+}
+function planRecurringTask(key,date){date=q(date);if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert('Bitte ein gültiges Datum auswählen.');return false}if(date<todayISO()){alert('Vergangene Tage können nicht neu eingeplant werden.');return false}var item=recurringPlannerCache[key]||recurringSources().find(function(x){return x.key===key});if(!item){alert('Die wiederkehrende Aufgabe wurde nicht gefunden.');return false}var result=createRecurringOccurrence(item,date,'single',date,date);if(!result.created){alert(result.reason==='duplicate'?'Diese wiederkehrende Aufgabe ist für den ausgewählten Tag bereits offen eingeplant.':'Die Aufgabe konnte nicht eingeplant werden.');return false}persist('Wiederkehrende Aufgabe eingeplant');renderPlanner();return false}
+function planRecurringRange(mode,date){
+ date=q(date);if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){alert('Bitte ein gültiges Datum auswählen.');return false}if(date<todayISO()&&mode==='day'){alert('Vergangene Tage können nicht geplant werden.');return false}
+ var items=recurringSources(),created=0,duplicates=0,skipped=0,start=date,end=date;
+ if(mode==='week'){start=mondayOfWeek(date);end=plusDaysISO(start,6)}
+ items.forEach(function(item){var days=recurringWeekdays(item.task),targets=[];
+  if(mode==='day'){var n=dayNoFromDate(date);if(days.indexOf(n)>=0)targets=[date];else skipped++}
+  else if(days.length){days.forEach(function(n){targets.push(plusDaysISO(start,n-1))})}else skipped++;
+  targets.forEach(function(target){var r=createRecurringOccurrence(item,target,mode,start,end);if(r.created)created++;else if(r.reason==='duplicate')duplicates++;else skipped++})
+ });
+ if(created)persist(mode==='week'?'Wiederkehrende Aufgaben für komplette Woche eingeplant':'Wiederkehrende Aufgaben für Tag eingeplant');
+ alert((mode==='week'?'Wochenplanung':'Tagesplanung')+': '+created+' Aufgabe(n) eingeplant'+(duplicates?' · '+duplicates+' bereits vorhanden':'')+(skipped?' · '+skipped+' nicht passend/übersprungen':''));renderPlanner();return false
+}
+function bindPlannerRange(r){if(r.__rc215Bound)return;r.__rc215Bound=true;r.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc215-action]');if(!b)return;var input=r.querySelector('#rc215PlannerRangeDate'),date=input&&input.value,action=b.getAttribute('data-rc215-action');if(action==='plan-day')planRecurringRange('day',date);if(action==='plan-week')planRecurringRange('week',date)},true)}
+function renderPlanner(){var r=root();if(!r)return;var s=state(),today=todayISO(),nowYear=new Date().getFullYear(),years=[nowYear,nowYear+1],year=Number(s.taskPlannerYear||s.plannerYear||nowYear);if(years.indexOf(year)<0)year=nowYear;s.taskPlannerYear=year;s.plannerYear=year;var holidays=plannerHolidays(year).filter(function(h){return h.date>=today}),tasks=arr(s.tasks),holidaySet=new Set(holidays.map(function(h){return h.date})),holidayTasks=tasks.filter(function(t){return holidaySet.has(taskDate(t))}),openHoliday=holidayTasks.filter(function(t){return !taskDone(t)}),recurring=recurringSources(),undated=tasks.filter(function(t){return !taskDone(t)&&!taskDate(t)&&!isRecurringTask(t)}).slice(0,30),defaultDate=plannerDefaultDate();recurringPlannerCache={};recurring.forEach(function(item){recurringPlannerCache[item.key]=item});r.innerHTML='<div class="page-head"><div><h2>🗓️ Aufgaben Planer</h2><p>Wiederkehrende Aufgaben werden mit ihren Wochentagen angezeigt. Du kannst einen bestimmten Tag oder eine komplette Kalenderwoche planen.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics">'+metric('Feiertage Mo–Fr '+year,holidays.length,'kpi-blue','Wochenend-Feiertage ausgeblendet')+metric('Aufgaben auf Feiertagen',holidayTasks.length,'kpi-orange','mit passendem Fälligkeitsdatum')+metric('Davon offen',openHoliday.length,'kpi-red','müssen verschoben werden')+metric('Wiederkehrende Aufgaben',recurring.length,'kpi-blue','mit Wochentagen')+'</div><section class="card rc215-period-planner"><div class="rc205-card-head"><div><h3>Zeitraum planen</h3><p class="muted">Tag planen: alle wiederkehrenden Aufgaben dieses Wochentags. Woche planen: alle Vorlagen gemäß hinterlegtem Wochentag von Montag bis Sonntag.</p></div></div><div class="rc215-period-controls"><label class="field">Tag oder Woche auswählen<input id="rc215PlannerRangeDate" type="date" min="'+esc(today)+'" value="'+esc(defaultDate)+'"></label><button class="soft" data-rc215-action="plan-day">Diesen Tag planen</button><button class="btn" data-rc215-action="plan-week">Komplette Woche planen</button></div></section><section class="card"><div class="toolbar rc205-planner-toolbar"><label class="field">Jahr<select data-rc205-change="planner-year">'+years.map(function(y){return '<option value="'+y+'" '+(y===year?'selected':'')+'>'+y+'</option>'}).join('')+'</select></label></div><div class="rc205-holiday-list">'+(holidays.length?holidays.map(function(h){var list=tasks.filter(function(t){return taskDate(t)===h.date});return '<section class="rc205-holiday '+(list.length?'has-tasks':'')+'"><div class="rc205-holiday-head"><div><span class="rc205-date">'+esc(fmtDate(h.date,true))+'</span><h3>'+esc(h.name)+'</h3></div><span class="pill '+(list.length?'orange':'gray')+'">'+list.length+' Aufgabe'+(list.length===1?'':'n')+'</span></div>'+(list.length?'<div class="rc205-planner-list">'+list.map(function(t){return taskRowPlanner(t,h)}).join('')+'</div>':empty('Keine Aufgabe auf diesem Feiertag.'))+'</section>'}).join(''):empty('Für dieses Jahr sind keine heutigen oder zukünftigen Feiertage von Montag bis Freitag mehr vorhanden.'))+'</div></section><section class="card rc205-recurring"><div class="rc205-card-head"><div><h3>Wiederkehrende Aufgaben nach Wochentagen</h3><p class="muted">Die Vorlage bleibt erhalten. Eingeplante Aufgaben erscheinen mit ihrem Fälligkeitsdatum im Bereich Aufgaben.</p></div><span class="pill purple">'+recurring.length+' Vorlage'+(recurring.length===1?'':'n')+'</span></div><div class="rc205-planner-list">'+(recurring.length?recurring.map(function(item){return recurringRow(item,defaultDate)}).join(''):empty('Keine wiederkehrenden Aufgaben gefunden.'))+'</div></section><section class="card rc205-undated"><div class="rc205-card-head"><div><h3>Offene Aufgaben ohne Fälligkeitsdatum</h3><p class="muted">Einmalige Aufgaben können direkt einem konkreten Datum zugeordnet werden.</p></div><span class="pill gray">'+undated.length+'</span></div><div class="rc205-planner-list">'+(undated.length?undated.map(function(t){return undatedRow(t,defaultDate)}).join(''):empty('Alle einmaligen offenen Aufgaben besitzen bereits ein Fälligkeitsdatum.'))+'</div></section>';bindRoot(r);bindPlannerRange(r)}
 function apply(view){if(applying)return;var v=low(view||currentView());if(v!=='dashboard'&&v!=='planning')return;applying=true;try{if(v==='dashboard')renderDashboard();else renderPlanner()}catch(e){console.error('ExportHUB Dashboard/Aufgaben Planer',e);var r=root();if(r)r.innerHTML='<div class="badbox"><h2>Bereich konnte nicht geöffnet werden</h2><p>'+esc(e&&e.message||e)+'</p></div>'}finally{applying=false}}
 function schedule(view){var n=window.ExportHUBClean&&window.ExportHUBClean.native||window;if(timer)n.clearTimeout(timer);timer=n.setTimeout(function(){timer=0;apply(view)},0)}
 window.__EXPORTHUB_AFTER_RENDER__=function(view){try{if(typeof previousAfterRender==='function')previousAfterRender(view)}catch(e){console.error('Vorheriger ExportHUB Render-Hook',e)}schedule(view)};
 window.addEventListener('exporthub:ready',function(){schedule(currentView())});
 window.addEventListener('exporthub:viewchange',function(e){schedule(e&&e.detail&&e.detail.view)});
 window.addEventListener('exporthub:sync',function(){schedule(currentView())});
-window.ExportHUBRC205={renderDashboard:renderDashboard,renderPlanner:renderPlanner,apply:apply,setTaskDate:setTaskDate,planRecurringTask:planRecurringTask,navigate:navigate,holidaysNRW:holidaysNRW,openDirectEntity:openDirectEntity,addDirectEntity:addDirectEntity,removeDirectEntity:removeDirectEntity};window.ExportHUBRC206=window.ExportHUBRC205;window.ExportHUBRC207=window.ExportHUBRC205;window.ExportHUBRC208=window.ExportHUBRC205;window.ExportHUBRC209=window.ExportHUBRC205;window.ExportHUBRC210=window.ExportHUBRC205;
+window.ExportHUBRC205={renderDashboard:renderDashboard,renderPlanner:renderPlanner,apply:apply,setTaskDate:setTaskDate,planRecurringTask:planRecurringTask,planRecurringRange:planRecurringRange,recurringWeekdays:recurringWeekdays,navigate:navigate,holidaysNRW:holidaysNRW,openDirectEntity:openDirectEntity,addDirectEntity:addDirectEntity,removeDirectEntity:removeDirectEntity};window.ExportHUBRC206=window.ExportHUBRC205;window.ExportHUBRC207=window.ExportHUBRC205;window.ExportHUBRC208=window.ExportHUBRC205;window.ExportHUBRC209=window.ExportHUBRC205;window.ExportHUBRC210=window.ExportHUBRC205;
 try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'211',loginReturn:'/?v=211'})}catch(_){ }
 })();
 
@@ -22288,8 +22338,8 @@ window.ExportHUBIndex212=Object.freeze({version:VERSION,openWeight:function(inde
 <script id="index213-gate41-live-version">
 (function(){
 'use strict';
-var VERSION='RC213';
-function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'213',loginReturn:'/?v=213'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+var VERSION='RC214';
+function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'214',loginReturn:'/?v=214'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
 function patch(){lock();try{if(window.ExportHUBRC626&&typeof window.ExportHUBRC626.updateGateLive==='function'&&document.getElementById('rc626Shipping'))window.ExportHUBRC626.updateGateLive()}catch(_){ }}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});else patch();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,patch)});
@@ -22297,3 +22347,136 @@ window.ExportHUBIndex213=Object.freeze({version:VERSION,selfTest:function(){var 
 })();
 </script>
 <!-- INDEX 213 GATE41 AUTO VALUES + STABLE INPUT END -->
+
+
+<!-- INDEX 214 AUTHORITATIVE SINGLE MAIL AREA START -->
+<style id="index214-single-mail-area-style">
+/* Nur der Mailbereich unmittelbar VOR „Gespeicherte Sendungen“ ist erlaubt. */
+#rc573SavedCard ~ #rc543MailArea,
+#rc573SavedCard ~ #rc542MailArea,
+#rc573SavedCard ~ #rc524MailArea,
+#rc573SavedCard ~ #rc418ShipmentMail,
+#rc573SavedCard ~ #rc416ShipmentMail,
+#rc573SavedCard ~ #rc410ShipmentMail,
+#rc573SavedCard ~ #rc409ShipmentMail,
+#rc573SavedCard ~ #rc404ShipmentMail,
+#rc573SavedCard ~ #rc404ShipmentMailPanel,
+#rc573SavedCard ~ #rc390ShipmentMail,
+#rc573SavedCard ~ #rc385ShipmentMail,
+#rc573SavedCard ~ #rc344MailBox,
+#rc573SavedCard ~ #rc261MailPanel,
+#rc573SavedCard ~ #rc319ShipmentMailPanel,
+#rc573SavedCard ~ .rc573-mail-card,
+#rc573SavedCard ~ .rc185-mail-card,
+#rc573SavedCard ~ .rc190-mail-card,
+#rc573SavedCard ~ .rc261-mail-panel,
+#rc573SavedCard ~ .rc327-mail-box,
+#rc573SavedCard ~ .rc330-visible-mail-box,
+#rc573SavedCard ~ .rc334-mail-anchor,
+#rc573SavedCard :is(#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,#rc261MailPanel,#rc319ShipmentMailPanel,.rc573-mail-card,.rc185-mail-card,.rc190-mail-card,.rc261-mail-panel,.rc327-mail-box,.rc330-visible-mail-box,.rc334-mail-anchor){
+  display:none!important;
+  visibility:hidden!important;
+}
+@supports selector(:has(*)){
+  #rc573SavedCard ~ *:has(> #rc543MailArea),
+  #rc573SavedCard ~ *:has(> #rc542MailArea),
+  #rc573SavedCard ~ *:has(> #rc524MailArea),
+  #rc573SavedCard ~ *:has(> #rc418ShipmentMail),
+  #rc573SavedCard ~ *:has(> #rc261MailPanel),
+  #rc573SavedCard ~ *:has(> #rc319ShipmentMailPanel),
+  #rc573SavedCard ~ *:has(> .rc573-mail-card),
+  #rc573SavedCard ~ *:has(> .rc185-mail-card),
+  #rc573SavedCard ~ *:has(> .rc190-mail-card),
+  #rc573SavedCard ~ *:has(> .rc261-mail-panel){
+    display:none!important;
+    visibility:hidden!important;
+  }
+}
+</style>
+<script id="index214-authoritative-single-mail-area">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX214_SINGLE_MAIL__)return;
+window.__EXPORTHUB_INDEX214_SINGLE_MAIL__=true;
+
+var VERSION='RC214',busy=false,pending=0,observer=null,authoritative=null;
+var MAIL_SELECTOR=[
+ '#rc543MailArea','#rc542MailArea','#rc524MailArea','#rc418ShipmentMail',
+ '#rc416ShipmentMail','#rc410ShipmentMail','#rc409ShipmentMail','#rc404ShipmentMail',
+ '#rc404ShipmentMailPanel','#rc390ShipmentMail','#rc385ShipmentMail','#rc344MailBox',
+ '#rc261MailPanel','#rc319ShipmentMailPanel','#rc370MailPanel','#rc372MailBox',
+ '#rc375MailBox','#rc377MailPanel','#rc377ShipmentMailBox','#rc378MailPanel',
+ '#rc378ShipmentMailBox','#rc380ShipmentMailBox','#rc381ShipmentMailBox',
+ '#rc382ShipmentMailBox','#rc383ShipmentMailBox','#rc384ShipmentMailBox',
+ '#rc385ShipmentMailBox','#rc386ShipmentMailBox','#rc390ShipmentMailBox',
+ '#rc403ShipmentMailBox','#rc403ShipmentMailPanel','#rc404ShipmentMailBox',
+ '#rc407ShipmentMailBox','#rc408ShipmentMailBox','.rc573-mail-card',
+ '.rc184-shipment-mail-card','.rc185-mail-card','.rc189-mail-card','.rc190-mail-card',
+ '.rc261-mail-panel','.rc327-mail-box','.rc330-visible-mail-box','.rc334-mail-anchor'
+].join(',');
+
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function later(fn,ms){var n=window.ExportHUBClean&&window.ExportHUBClean.native;return(n&&n.setTimeout?n.setTimeout:window.setTimeout)(fn,ms||0)}
+function root(){return document.getElementById('content')||document.body}
+function shell(){return document.getElementById('rc573ShipmentShell')||root()}
+function heading(node){var h=node&&node.querySelector&&node.querySelector('h1,h2,h3,h4');return q(h&&h.textContent)}
+function savedCard(){var r=root();return document.getElementById('rc573SavedCard')||Array.prototype.slice.call(r.querySelectorAll('section,.card,article')).find(function(node){return /^Gespeicherte Sendungen/i.test(heading(node))})||null}
+function isShipment(){var s={};try{s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){s=window.state||{}}var v=low(s&&s.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view'));return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
+function hasMailControls(node){if(!node||!node.querySelector)return false;return !!node.querySelector('textarea,input[type="email"],input[id*="mail" i],select[id*="mail" i],button[id*="mail" i],a[href^="mailto:"],button,a')}
+function headingMail(node){var h=low(heading(node));if(!h)return false;return /^(mailbereich|mail bereich|mailversand|mail erstellen|mail senden|anmeldung(?:\s*\/|\s*&|\s+-)?\s*(?:mail|kommunikation|mailversand)|e-?mail(?:\s+erstellen|\s+versenden)?)$/.test(h)&&hasMailControls(node)}
+function collect(){var r=root(),list=Array.prototype.slice.call(r.querySelectorAll(MAIL_SELECTOR));Array.prototype.slice.call(r.querySelectorAll('section,article,.card')).forEach(function(node){if(headingMail(node)&&list.indexOf(node)<0)list.push(node)});list=list.filter(function(node,index){return node&&node.isConnected&&list.indexOf(node)===index});/* Bei verschachtelten Treffern bleibt die eigentliche innere Mailkarte. */return list.filter(function(node){return !list.some(function(other){return other!==node&&node.contains(other)})})}
+function before(a,b){return !!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING))}
+function after(a,b){return !!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_PRECEDING))}
+function removeEmptyAncestors(node,stop){var p=node&&node.parentElement;while(p&&p!==stop&&p!==document.body){var next=p.parentElement;if(!q(p.textContent)&&!p.querySelector('input,select,textarea,button,a,img,table'))p.remove();p=next}}
+function choose(all,saved){if(authoritative&&authoritative.isConnected&&before(authoritative,saved)&&all.indexOf(authoritative)>=0)return authoritative;var upper=all.filter(function(node){return before(node,saved)&&!saved.contains(node)});if(upper.length)return upper[upper.length-1];return all.find(function(node){return !saved.contains(node)})||null}
+function lockVersion(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:'214',loginReturn:'/?v=214'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+VERSION}
+function enforce(){
+ pending=0;if(busy)return false;busy=true;
+ try{
+  lockVersion();if(!isShipment())return false;
+  var saved=savedCard();if(!saved||!saved.parentNode)return false;
+  saved.id='rc573SavedCard';
+  var all=collect();
+  /* Mailkarten innerhalb oder unterhalb der gespeicherten Sendungen sind grundsätzlich falsch. */
+  all.filter(function(node){return saved.contains(node)}).forEach(function(node){var p=node.parentElement;node.remove();removeEmptyAncestors(p,root())});
+  all=collect();
+  var keep=choose(all,saved);if(!keep)return false;
+  authoritative=keep;
+  /* Der bestehende obere Mailbereich wird direkt vor die gespeicherten Sendungen gesetzt. */
+  if(keep.parentNode!==saved.parentNode||keep.nextElementSibling!==saved)saved.parentNode.insertBefore(keep,saved);
+  keep.classList.add('rc573-card','rc573-mail-card');
+  keep.dataset.index214Authoritative='1';
+  /* Jeder weitere Mailbereich – besonders unterhalb – wird vollständig entfernt. */
+  collect().forEach(function(node){if(node===keep)return;var p=node.parentElement;node.remove();removeEmptyAncestors(p,root())});
+  /* Zweite Prüfung gegen später erzeugte, bislang unbekannte Legacy-Karten. */
+  Array.prototype.slice.call(root().querySelectorAll('section,article,.card')).forEach(function(node){if(node===keep||saved.contains(node))return;if(headingMail(node)&&(after(node,saved)||node!==keep)){var p=node.parentElement;node.remove();removeEmptyAncestors(p,root())}});
+  if(keep.parentNode!==saved.parentNode||keep.nextElementSibling!==saved)saved.parentNode.insertBefore(keep,saved);
+  return collect().length===1&&keep.nextElementSibling===saved;
+ }finally{busy=false}
+}
+function schedule(delay){if(pending)return;pending=later(enforce,delay==null?0:delay)}
+function install(){if(observer)return;var r=root();try{var n=window.ExportHUBClean&&window.ExportHUBClean.native,MO=n&&n.MutationObserver||window.MutationObserver;observer=new MO(function(records){if(records.some(function(x){return x.type==='childList'}))schedule(0)});observer.observe(r,{childList:true,subtree:true})}catch(_){ }}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){schedule(0)})});
+document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573ShipmentShell button,#rc573ShipmentShell a'))schedule(0)},true);
+function boot(){install();[0,20,80,220,600,1400].forEach(function(ms){later(enforce,ms)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.ExportHUBIndex214=Object.freeze({version:VERSION,enforce:enforce,selfTest:function(){var saved=savedCard(),all=collect(),keep=all.find(function(x){return x.dataset&&x.dataset.index214Authoritative==='1'})||all[0],below=saved?all.filter(function(x){return saved.contains(x)||after(x,saved)}).length:0;return{mailAreas:all.length,mailAboveSaved:!!(keep&&saved&&before(keep,saved)),mailDirectlyBeforeSaved:!!(keep&&saved&&keep.nextElementSibling===saved),mailAreasBelowSaved:below,valid:!!(saved&&keep&&all.length===1&&below===0&&keep.nextElementSibling===saved),cache:window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache}}});
+})();
+</script>
+<!-- INDEX 214 AUTHORITATIVE SINGLE MAIL AREA END -->
+
+<!-- INDEX 215 AUFGABEN PLANER WOCHENTAGE + ZEITRAUM START -->
+<style id="index215-task-planner-style">
+.rc215-period-planner{margin-bottom:14px;border:2px solid #93c5fd}
+.rc215-period-controls{display:grid;grid-template-columns:minmax(260px,1fr) auto auto;gap:10px;align-items:end}
+.rc215-period-controls .field{margin:0}
+.rc215-weekdays{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.rc215-weekdays span{display:inline-flex;border:1px solid #93c5fd;background:#eff6ff;color:#1e3a8a;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900}
+.rc215-weekdays span.unset{border-color:#cbd5e1;background:#f8fafc;color:#64748b}
+@media(max-width:900px){.rc215-period-controls{grid-template-columns:1fr}.rc215-period-controls button{width:100%}}
+</style>
+<script id="index215-version-lock">
+(function(){'use strict';var V='RC215';function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:V,cache:'215',loginReturn:'/?v=215'})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',V);document.title='ExportHUB Online '+V;var b=document.getElementById('cleanVersionBadge');if(b)b.textContent='Bereinigte Version · '+V}lock();['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,lock)});window.ExportHUBIndex215=Object.freeze({version:V,renderPlanner:function(){return window.ExportHUBRC205&&window.ExportHUBRC205.renderPlanner&&window.ExportHUBRC205.renderPlanner()},planDay:function(date){return window.ExportHUBRC205&&window.ExportHUBRC205.planRecurringRange&&window.ExportHUBRC205.planRecurringRange('day',date)},planWeek:function(date){return window.ExportHUBRC205&&window.ExportHUBRC205.planRecurringRange&&window.ExportHUBRC205.planRecurringRange('week',date)}})})();
+</script>
+<!-- INDEX 215 AUFGABEN PLANER WOCHENTAGE + ZEITRAUM END -->
