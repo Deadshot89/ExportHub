@@ -24116,71 +24116,91 @@ window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,sy
 
 <!-- INDEX 269 RC268 SITE RECOVERY: based on intact index(267); broken INDEX268 injection removed; Colli remains 4+4 until mobile -->
 
-
-<!-- INDEX 270 RC269 COLLI FINAL 4+4 ALIGNMENT START -->
-<style id="index270-colli-final-alignment">
-/*
-  Final Colli arrangement approved target:
-  top: Verpackung | Anzahl | Gewicht | Lademeter
-  bottom: Länge | Breite | Höhe | Löschen
-  No DOM movement and no additional renderer.
-*/
+<!-- INDEX 271 RC270 COLLI TRUE 2x4 GRID START -->
+<style id="index271-colli-true-2x4-grid">
+/* Reihe 1: Verpackung | Anzahl | Gewicht | Lademeter
+   Reihe 2: Länge | Breite | Höhe | Löschen
+   Nur CSS: kein DOM-Umbau, kein Renderer, kein Event-Handler. */
 @media (min-width:681px){
-  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]{
+  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid{
     display:grid!important;
-    grid-template-columns:repeat(12,minmax(0,1fr))!important;
-    grid-template-areas:
-      "type type type type type count count weight weight weight ldm ldm"
-      "length length length width width width height height height action action action"!important;
-    column-gap:12px!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    grid-template-rows:auto auto!important;
+    grid-auto-flow:row!important;
+    column-gap:16px!important;
     row-gap:18px!important;
     align-items:start!important;
     width:100%!important;
     min-width:0!important;
   }
-  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]>[data-index234-field]{
-    align-self:start!important;
-    width:100%!important;
-    min-width:0!important;
-    margin:0!important;
+  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid>*{
+    min-width:0!important;width:100%!important;max-width:none!important;margin:0!important;align-self:start!important;
   }
-  body #rc573ColliCard [data-index234-field="type"]{grid-area:type!important}
-  body #rc573ColliCard [data-index234-field="count"]{grid-area:count!important}
-  body #rc573ColliCard [data-index234-field="weight"]{grid-area:weight!important}
-  body #rc573ColliCard [data-index234-field="ldm"]{grid-area:ldm!important}
-  body #rc573ColliCard [data-index234-field="l"]{grid-area:length!important}
-  body #rc573ColliCard [data-index234-field="w"]{grid-area:width!important}
-  body #rc573ColliCard [data-index234-field="h"]{grid-area:height!important}
-  body #rc573ColliCard [data-index234-field="action"]{grid-area:action!important}
-}
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] input,
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] select,
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] button{
-  width:100%!important;
-  height:48px!important;
-  min-height:48px!important;
-  box-sizing:border-box!important;
-}
-body #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint{
-  width:100%!important;
-  min-width:0!important;
-  box-sizing:border-box!important;
-  text-align:center!important;
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-type,
+  body #rc573ColliCard .rc344-colli-grid>.index212-packaging-field,
+  body #rc573ColliCard .rc344-colli-grid>.index202-packaging-field,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="type"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="type"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>select[onchange*="type"]),
+  body #rc573ColliCard .rc344-colli-grid>:has(>select[oninput*="type"]){grid-column:1!important;grid-row:1!important}
+
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-count,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="count"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="count"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="count"]),
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="count"]){grid-column:2!important;grid-row:1!important}
+
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-weight,
+  body #rc573ColliCard .rc344-colli-grid>.index212-weight-field,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="weight"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="weight"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="weight"]),
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="weight"]){grid-column:3!important;grid-row:1!important}
+
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-ldm,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="ldm"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="ldm"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="ldm"]),
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="ldm"]){grid-column:4!important;grid-row:1!important}
+
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-l,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="l"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="l"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="'l'"]),
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="'l'"]){grid-column:1!important;grid-row:2!important}
+
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-w,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="w"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="w"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="'w'"]),
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="'w'"]){grid-column:2!important;grid-row:2!important}
+
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-h,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="h"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="h"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="'h'"]),
+  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="'h'"]){grid-column:3!important;grid-row:2!important}
+
+  body #rc573ColliCard .rc344-colli-grid>.index222-field-action,
+  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="action"],
+  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="action"],
+  body #rc573ColliCard .rc344-colli-grid>:has(>button){grid-column:4!important;grid-row:2!important}
+
+  body #rc573ColliCard .rc344-colli-grid input,
+  body #rc573ColliCard .rc344-colli-grid select,
+  body #rc573ColliCard .rc344-colli-grid button{
+    width:100%!important;min-width:0!important;max-width:none!important;height:48px!important;min-height:48px!important;box-sizing:border-box!important;margin:0!important;
+  }
+  body #rc573ColliCard [data-index232-field="weight"] .index212-weight-hint,
+  body #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint,
+  body #rc573ColliCard .index222-field-weight .index212-weight-hint,
+  body #rc573ColliCard .index212-weight-field .index212-weight-hint{
+    width:100%!important;min-width:0!important;box-sizing:border-box!important;text-align:center!important;
+  }
 }
 @media (max-width:680px){
-  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]{
-    grid-template-columns:1fr!important;
-    grid-template-areas:
-      "type"
-      "count"
-      "weight"
-      "ldm"
-      "length"
-      "width"
-      "height"
-      "action"!important;
-    gap:14px!important;
-  }
+  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:none!important;gap:14px!important}
+  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid>*{grid-column:1!important;grid-row:auto!important;width:100%!important;min-width:0!important}
 }
 </style>
-<!-- INDEX 270 RC269 COLLI FINAL 4+4 ALIGNMENT END -->
+<!-- INDEX 271 RC270 COLLI TRUE 2x4 GRID END -->
