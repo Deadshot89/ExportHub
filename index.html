@@ -24115,3 +24115,72 @@ window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,sy
 <!-- INDEX 267 RC266 TOKEN REGISTRATION + REAL SERVER SIGNATURE END -->
 
 <!-- INDEX 269 RC268 SITE RECOVERY: based on intact index(267); broken INDEX268 injection removed; Colli remains 4+4 until mobile -->
+
+
+<!-- INDEX 270 RC269 COLLI FINAL 4+4 ALIGNMENT START -->
+<style id="index270-colli-final-alignment">
+/*
+  Final Colli arrangement approved target:
+  top: Verpackung | Anzahl | Gewicht | Lademeter
+  bottom: Länge | Breite | Höhe | Löschen
+  No DOM movement and no additional renderer.
+*/
+@media (min-width:681px){
+  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]{
+    display:grid!important;
+    grid-template-columns:repeat(12,minmax(0,1fr))!important;
+    grid-template-areas:
+      "type type type type type count count weight weight weight ldm ldm"
+      "length length length width width width height height height action action action"!important;
+    column-gap:12px!important;
+    row-gap:18px!important;
+    align-items:start!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]>[data-index234-field]{
+    align-self:start!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+  }
+  body #rc573ColliCard [data-index234-field="type"]{grid-area:type!important}
+  body #rc573ColliCard [data-index234-field="count"]{grid-area:count!important}
+  body #rc573ColliCard [data-index234-field="weight"]{grid-area:weight!important}
+  body #rc573ColliCard [data-index234-field="ldm"]{grid-area:ldm!important}
+  body #rc573ColliCard [data-index234-field="l"]{grid-area:length!important}
+  body #rc573ColliCard [data-index234-field="w"]{grid-area:width!important}
+  body #rc573ColliCard [data-index234-field="h"]{grid-area:height!important}
+  body #rc573ColliCard [data-index234-field="action"]{grid-area:action!important}
+}
+body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] input,
+body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] select,
+body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] button{
+  width:100%!important;
+  height:48px!important;
+  min-height:48px!important;
+  box-sizing:border-box!important;
+}
+body #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint{
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  text-align:center!important;
+}
+@media (max-width:680px){
+  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]{
+    grid-template-columns:1fr!important;
+    grid-template-areas:
+      "type"
+      "count"
+      "weight"
+      "ldm"
+      "length"
+      "width"
+      "height"
+      "action"!important;
+    gap:14px!important;
+  }
+}
+</style>
+<!-- INDEX 270 RC269 COLLI FINAL 4+4 ALIGNMENT END -->
