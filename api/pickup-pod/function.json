@@ -7,6 +7,7 @@
       "name": "req",
       "methods": [
         "get",
+        "post",
         "options"
       ],
       "route": "pickup-pod"

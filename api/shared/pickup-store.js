@@ -13,7 +13,7 @@ function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRI
 function secret(){return process.env.EXPORTHUB_PICKUP_SECRET || connectionString() || 'exporthub-local-secret'}
 function hash(value){return crypto.createHmac('sha256',secret()).update(String(value||'')).digest('hex')}
 function safeEqualHex(a,b){try{const aa=Buffer.from(String(a||''),'hex'),bb=Buffer.from(String(b||''),'hex');return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb)}catch(_){return false}}
-function validToken(token){return /^[a-f0-9]{48}$/i.test(String(token||''))}
+function validToken(token){return /^[a-z0-9]{6,64}$/i.test(String(token||'').trim())}
 function json(status,body,headers={}){return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},headers),body:JSON.stringify(body)}}
 function body(req){if(req&&req.body&&typeof req.body==='object')return req.body;try{return JSON.parse(req.body||'{}')}catch(_){return {}}}
 function principal(req){try{const h=req.headers&&(req.headers['x-ms-client-principal']||req.headers['X-MS-CLIENT-PRINCIPAL']);return h?JSON.parse(Buffer.from(h,'base64').toString('utf8')):null}catch(_){return null}}
@@ -89,7 +89,7 @@ async function updateTeam(record,podsToAdd=[]){
       sh.podCount=(hasSignature?1:0)+sh.podFiles.length;
     }
     for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){t.status='erledigt';t.done=true;t.completedAt=record.confirmedAt||now();t._syncUpdatedAt=record.confirmedAt||now();t._syncDeviceId='qr-pickup'}}
-    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC265';
+    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC266';
     try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
   }
 }

@@ -7,8 +7,8 @@
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC265',cache:'265',loginReturn:'/?v=265'});
-var STANDARD_TITLE='ExportHUB Online RC265';
+var BUILD=Object.freeze({version:'RC266',cache:'266',loginReturn:'/?v=266'});
+var STANDARD_TITLE='ExportHUB Online RC266';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -24023,7 +24023,7 @@ window.ExportHUBIndex264=Object.freeze({version:VERSION,isPodAvailable:hasSignat
 'use strict';
 if(window.__EXPORTHUB_INDEX265_CRITICAL__)return;window.__EXPORTHUB_INDEX265_CRITICAL__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC265',busy={},qrQueued=false,uiQueued=false;
+var VERSION='RC266',busy={},qrQueued=false,uiQueued=false;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -24070,18 +24070,18 @@ window.rc263DownloadPod=function(id,button){Promise.resolve(download(id,button))
 function boot(){patchQrApi();queueQr();queueUi()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:pickup-updated'].forEach(function(name){window.addEventListener(name,queueUi)});
-window.ExportHUBIndex265=Object.freeze({version:VERSION,pickupUrl:pickupUrl,canonicalShipment:canonicalShipment,downloadPod:download,patchQr:patchQrEverywhere,selfTest:function(){var token='a'.repeat(48),u=pickupUrl({pickupToken:token}),full={id:'X',ref:'ABC123',rows:[{type:'Europalette'}]},signed={id:'X',ref:'ABC123',pickupDriverSignature:'data:image/jpeg;base64,'+'A'.repeat(240)};var oldState=window.state;try{window.state={shipments:[full],shipment:signed};var c=canonicalShipment('X');return{version:VERSION,queryPickup:/[?&]pickup=a{48}/.test(u),hashFallback:/#pickup=a{48}$/.test(u),cache:/[?&]v=265/.test(u),canonicalHasRows:arr(c&&c.rows).length===1,canonicalHasSignature:!!sigValue(c),automaticSyncIntervals:false,oldPodInterceptorDisabled:true}}finally{window.state=oldState}}});
+window.ExportHUBIndex265=Object.freeze({version:VERSION,pickupUrl:pickupUrl,canonicalShipment:canonicalShipment,downloadPod:download,patchQr:patchQrEverywhere,selfTest:function(){var token='a'.repeat(48),u=pickupUrl({pickupToken:token}),full={id:'X',ref:'ABC123',rows:[{type:'Europalette'}]},signed={id:'X',ref:'ABC123',pickupDriverSignature:'data:image/jpeg;base64,'+'A'.repeat(240)};var oldState=window.state;try{window.state={shipments:[full],shipment:signed};var c=canonicalShipment('X');return{version:VERSION,queryPickup:/[?&]pickup=a{48}/.test(u),hashFallback:/#pickup=a{48}$/.test(u),cache:/[?&]v=266/.test(u),canonicalHasRows:arr(c&&c.rows).length===1,canonicalHasSignature:!!sigValue(c),automaticSyncIntervals:false,oldPodInterceptorDisabled:true}}finally{window.state=oldState}}});
 })();
 </script>
 <!-- INDEX 265 RC264 CRITICAL POD DOWNLOAD + QR TARGET + OVERVIEW SINGLE PASS END -->
 
-<!-- INDEX 266 RC265 REAL SERVER SIGNATURE TRUTH START -->
+<!-- INDEX 267 RC266 TOKEN REGISTRATION + REAL SERVER SIGNATURE START -->
 <script id="index266-real-server-signature-truth">
 (function(){
 'use strict';
 if(window.__EXPORTHUB_INDEX266_REAL_SIGNATURE__)return;window.__EXPORTHUB_INDEX266_REAL_SIGNATURE__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC265',saveTimer=0,syncBusy={};
+var VERSION='RC266',saveTimer=0,syncBusy={};
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -24112,4 +24112,4 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,syncOne:syncOne,selfTest:function(){var a={status:'POD vorhanden',podStatus:'POD vorhanden',podFiles:[{kind:'scan-confirmation',name:'POD_Abholscan_X.pdf'}],pickupQrUsed:true},b={status:'Abgeholt',driverSignatureUrl:'/api/pickup-pod?token=x&signature=1'};applyTruth(a);applyTruth(b);return{version:VERSION,falsePodRemoved:a.status==='Abgeholt'&&a.podAvailable===false,signedUrlAccepted:b.status==='POD vorhanden'&&b.podDocumentType==='signed-loadlist'}}});
 })();
 </script>
-<!-- INDEX 266 RC265 REAL SERVER SIGNATURE TRUTH END -->
+<!-- INDEX 267 RC266 TOKEN REGISTRATION + REAL SERVER SIGNATURE END -->
