@@ -7,8 +7,8 @@
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC264',cache:'264',loginReturn:'/?v=264'});
-var STANDARD_TITLE='ExportHUB Online RC264';
+var BUILD=Object.freeze({version:'RC265',cache:'265',loginReturn:'/?v=265'});
+var STANDARD_TITLE='ExportHUB Online RC265';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -176,6 +176,7 @@ function showSuccessAndClose(data){var card=document.querySelector('.index209-pi
 function request(path,opt){opt=opt||{};opt.credentials='same-origin';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});return fetch('/api'+path,opt).then(async function(response){var body={};try{body=await response.json()}catch(_){ }if(!response.ok){var error=new Error(body.message||body.error||('HTTP '+response.status));error.status=response.status;throw error}return body})}
 function statusNode(text,kind){var node=document.getElementById('index209PickupStatus');if(!node)return;node.className='index209-pickup-status '+(kind||'info');node.textContent=text}
 function confirmed(data){return !!(data&&(data.confirmedAt||data.used||/confirmed|completed|abgeholt|used/i.test(String(data.status||''))))}
+function serverSignatureAvailable(data){return !!(data&&(data.signatureAvailable||data.driverSignatureAvailable||data.driverSignatureUrl||data.pickupSignatureUrl||data.signatureUrl||pickupProofValue(data,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])))}
 function disabled(data){return !!(data&&(data.disabled||/disabled|cancelled|storniert/i.test(String(data.status||''))))}
 function renderShell(){
  var existing=document.getElementById('index209PickupApp');if(existing)return existing;
@@ -206,18 +207,22 @@ function showData(data){
  var ref=data.reference||data.ref||data.shipmentRef||'—',customer=data.recipient||data.customer||data.customerName||'—',pallets=Number(data.palletOut||data.euroPallets||0)||0;
  details.innerHTML='<div class="index209-pickup-info"><div class="index209-pickup-box"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="index209-pickup-box"><span>Empfänger</span><b>'+esc(customer)+'</b></div></div>'+(pallets?'<div class="index209-pickup-box"><span>Europaletten Ausgang</span><b>'+pallets+'</b></div>':'');
  if(disabled(data)){form.hidden=true;statusNode('Dieser QR-Code ist gesperrt oder die Sendung wurde storniert.','bad');return}
- if(confirmed(data)){form.hidden=true;statusNode('Die Abholung und der POD wurden bereits übertragen. Ein zweiter Scan ist nicht möglich.','ok');return}
- form.hidden=false;document.getElementById('index209PickupReturnLabel').hidden=pallets<=0;form.dataset.pallets=String(pallets);statusNode('Bitte die digitale Unterschrift und den persönlichen Verlader-PIN erfassen. Fahrername und Kennzeichen sind optional.','info');
+ if(confirmed(data)&&serverSignatureAvailable(data)){form.hidden=true;statusNode('Die Abholung und die digitale Unterschrift wurden bereits vollständig gespeichert.','ok');return}
+ form.hidden=false;document.getElementById('index209PickupReturnLabel').hidden=pallets<=0;form.dataset.pallets=String(pallets);if(confirmed(data))statusNode('Die Abholung ist bestätigt, aber die digitale Unterschrift fehlt. Bitte jetzt unterschreiben und erneut mit dem Verlader-PIN speichern.','bad');else statusNode('Bitte die digitale Unterschrift und den persönlichen Verlader-PIN erfassen. Fahrername und Kennzeichen sind optional.','info');
 }
 function load(){request('/pickup-status?token='+encodeURIComponent(token),{method:'GET'}).then(showData).catch(function(error){statusNode(error.status===404?'Dieser QR-Code ist nicht registriert oder nicht mehr gültig.':'Sendungsdaten konnten nicht geladen werden: '+error.message,'bad')})}
 function confirmAt(path,body){return request(path,{method:'POST',body:JSON.stringify(body)})}
 function pickupProofValue(raw,names){var seen=[];function walk(x,d){if(!x||typeof x!=='object'||d>8||seen.indexOf(x)>=0)return'';seen.push(x);for(var i=0;i<names.length;i++){var v=x[names[i]];if(v!==undefined&&v!==null&&String(v).trim()!=='')return v}for(var k in x){if(!Object.prototype.hasOwnProperty.call(x,k))continue;var v=x[k];if(v&&typeof v==='object'){var hit=walk(v,d+1);if(hit!==''&&hit!=null)return hit}}return''}return walk(raw,0)}
 function verifyPickupStored(body,responseData){
  var tokenValue=encodeURIComponent(token),confirmedResponse=Object.assign({},responseData||{}),statusUrl='/api/pickup-status?token='+tokenValue+'&verify='+Date.now();
- return fetch(statusUrl,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}).then(async function(r){var b={};try{b=await r.json()}catch(_){}if(!r.ok)throw new Error((b&&b.message)||('HTTP '+r.status));return b}).catch(function(){return null}).then(function(status){
-  var source=status||confirmedResponse,confirmed=pickupProofValue(source,['confirmedAt','pickupConfirmedAt','pickupCompletedAt','qrPickupConfirmedAt','usedAt','completedAt','pickedUpAt'])||pickupProofValue(source,['used','confirmed','completed','pickupQrUsed','podConfirmed','podScanConfirmed']),driver=pickupProofValue(source,['driverName','pickupDriverName','confirmedBy']),signature=pickupProofValue(source,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']),pods=pickupProofValue(source,['podFiles','pods','podDocuments']);
-  if(confirmed&&(signature||(Array.isArray(pods)&&pods.length)))return Object.assign({},confirmedResponse,status||{});
-  return fetch('/api/pickup-pod?token='+tokenValue+'&verify='+Date.now(),{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf,image/*,application/json'}}).then(async function(r){var ct=String(r.headers.get('content-type')||'').toLowerCase();if(!r.ok)throw new Error('HTTP '+r.status);if(/application\/pdf|image\//.test(ct)){var blob=await r.blob();if(blob.size>0)return Object.assign({},confirmedResponse,status||{},{confirmedAt:pickupProofValue(status||{},['confirmedAt'])||new Date().toISOString(),podStored:true})}var b={};try{b=await r.json()}catch(_){}var files=pickupProofValue(b,['podFiles','pods','podDocuments']);if((Array.isArray(files)&&files.length)||pickupProofValue(b,['driverSignature','signatureDataUrl','pickupSignature','signature']))return Object.assign({},confirmedResponse,status||{},b);throw new Error('POD nicht abrufbar')}).catch(function(){throw new Error('Die QR-Bestätigung wurde nicht vollständig serverseitig gespeichert. Bitte nicht schließen und erneut übertragen.')})
+ function readJsonResponse(r){return r.json().catch(function(){return{}}).then(function(b){if(!r.ok){var e=new Error(b.message||('HTTP '+r.status));e.status=r.status;throw e}return b})}
+ function verifySignatureImage(url){return fetch(url,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'image/jpeg,image/png,image/webp'}}).then(function(r){var ct=String(r.headers.get('content-type')||'').toLowerCase();if(!r.ok)throw new Error('HTTP '+r.status);if(!/^image\/(jpeg|png|webp)/.test(ct))throw new Error('Der Server liefert keine digitale Unterschrift.');return r.blob()}).then(function(blob){if(!blob||blob.size<100)throw new Error('Die gespeicherte digitale Unterschrift ist leer.');return true})}
+ return fetch(statusUrl,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}).then(readJsonResponse).catch(function(){return confirmedResponse}).then(function(status){
+  var source=Object.assign({},confirmedResponse,status||{}),isConfirmed=pickupProofValue(source,['confirmedAt','pickupConfirmedAt','pickupCompletedAt','qrPickupConfirmedAt','usedAt','completedAt','pickedUpAt'])||pickupProofValue(source,['used','confirmed','completed','pickupQrUsed']),inlineSignature=pickupProofValue(source,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']),signatureUrl=pickupProofValue(source,['driverSignatureUrl','pickupSignatureUrl','signatureUrl']);
+  if(!isConfirmed)throw new Error('Die Abholung wurde serverseitig nicht bestätigt.');
+  if(inlineSignature&&/^data:image\/(jpeg|png|webp);base64,/i.test(String(inlineSignature)))return source;
+  var url=signatureUrl||('/api/pickup-pod?token='+tokenValue+'&signature=1&verify='+Date.now());
+  return verifySignatureImage(url).then(function(){source.signatureAvailable=true;source.driverSignatureUrl=url;return source});
  })
 }
 function submit(event){
@@ -231,7 +236,7 @@ function submit(event){
  if(!/^data:image\/jpeg;base64,/i.test(signature)){statusNode('Bitte die Unterschrift des Fahrers erfassen.','bad');return false}
  var body={token:token,pin:pin,driverName:driver,confirmedBy:driver,pickupDriverName:driver,licensePlate:plate,vehicleLicensePlate:plate,kennzeichen:plate,loaderId:loader.id,loaderName:loader.name,loadedBy:loader.name,loader:loader.name,verlader:loader.name,pickupLoaderName:loader.name,pickupConfirmedByLoader:loader.name,driverSignature:signature,signatureDataUrl:signature,pickupSignature:signature,signature:signature,returnedEuroPallets:returned,returnPallets:returned,podRequested:true,podType:'digital-pickup-signature'};
  button.disabled=true;statusNode('Abholung und POD werden übertragen …','info');
- confirmAt('/pickup-confirm',body).catch(function(error){if(error.status===404||error.status===405)return confirmAt('/pickup-complete',body);throw error}).catch(function(error){if(error.status===404||error.status===405)return confirmAt('/pickup-status',body);throw error}).then(function(data){return verifyPickupStored(body,data)}).then(function(data){document.getElementById('index209PickupForm').hidden=true;showSuccessAndClose(Object.assign({},data||{},body,{confirmedAt:(data&&data.confirmedAt)||new Date().toISOString(),status:'confirmed'}))}).catch(function(error){button.disabled=false;statusNode(error.status===401||error.status===403?'Verlader-PIN falsch oder Bestätigung nicht erlaubt.':'Abholung konnte nicht bestätigt werden: '+error.message,'bad')});return false;
+ confirmAt('/pickup-confirm',body).then(function(data){return verifyPickupStored(body,data)}).then(function(data){document.getElementById('index209PickupForm').hidden=true;showSuccessAndClose(Object.assign({},data||{},body,{confirmedAt:(data&&data.confirmedAt)||new Date().toISOString(),status:'confirmed'}))}).catch(function(error){button.disabled=false;statusNode(error.status===401||error.status===403?'Verlader-PIN falsch oder Bestätigung nicht erlaubt.':'Abholung konnte nicht bestätigt werden: '+error.message,'bad')});return false;
 }
 function enforcePickupOnly(){
  if(!document.body)return;
@@ -15899,7 +15904,7 @@ function party(c){var carrier=q(c.carrierName||c.carrier||c.spedition),cid=q(c.i
 function completed(sh){return !!(sh&&(sh.pickupQrUsed||sh.pickedUpAt||sh.actualPickupDate||/abgeholt|pod vorhanden|abgeschlossen|archiviert/i.test(q(sh.status||sh.pickupStatus))))}
 function cancelled(sh){return !!(sh&&(/storniert|cancelled/i.test(q(sh.status))||sh.cancelled===true||sh.storniert===true))}
 function ensure(sh){if(!sh)return null;if(!/^[a-f0-9]{48}$/i.test(q(sh.pickupToken))){sh.pickupToken=randomToken();sh.pickupQrCreatedAt=new Date().toISOString();sh.pickupQrRegistered=false}delete sh.pickupPin;delete sh.qrPin;sh.pickupQrVersion=6;var x=saved(sh);if(x&&x!==sh){x.pickupToken=sh.pickupToken;delete x.pickupPin;delete x.qrPin;x.pickupQrVersion=6}return sh}
-function url(sh){var token=q(sh&&sh.pickupToken),origin='';try{origin=location.origin&&location.origin!=='null'?location.origin:new URL(document.baseURI||location.href).origin}catch(_){origin=''}var u=new URL((origin||'')+'/',document.baseURI||location.href);u.search='';u.searchParams.set('pickup',token);u.searchParams.set('v','264');u.hash='pickup='+encodeURIComponent(token);return u.href}
+function url(sh){var token=q(sh&&sh.pickupToken),origin='';try{origin=location.origin&&location.origin!=='null'?location.origin:new URL(document.baseURI||location.href).origin}catch(_){origin=''}var u=new URL((origin||'')+'/',document.baseURI||location.href);u.search='';u.searchParams.set('pickup',token);u.searchParams.set('v','265');u.hash='pickup='+encodeURIComponent(token);return u.href}
 function api(path,opt){opt=opt||{};opt.credentials='same-origin';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});return fetch('/api'+path,opt).then(async function(r){var b={};try{b=await r.json()}catch(_){ }if(!r.ok){var e=new Error(b.message||b.error||('HTTP '+r.status));e.status=r.status;e.body=b;throw e}return b})}
 function metadata(sh){var c=customer(sh),p=party(c);return {token:q(sh.pickupToken),pin:activePin(),shipmentId:sid(sh),reference:ref(sh),customer:q(c.name||sh.customerName),recipient:q(sh.recipientName||c.name||sh.customerName),expiresDays:180,palletOut:euros(sh),partyKey:p.key,partyType:p.type,partyName:p.name,customerId:q(c.id||c.account||c.customerNumber),customerName:q(c.name),disabled:cancelled(sh),active:!cancelled(sh)&&!completed(sh),used:completed(sh),version:6}}
 function setServerState(sh,data){sh.pickupQrRegistered=true;sh.pickupQrActivating=false;sh.pickupQrRegisteredAt=new Date().toISOString();sh.pickupQrServerStatus=q(data&&data.status)||'open';sh.pickupQrError='';sh.pickupQrDisabled=cancelled(sh);return sh}
@@ -24018,7 +24023,7 @@ window.ExportHUBIndex264=Object.freeze({version:VERSION,isPodAvailable:hasSignat
 'use strict';
 if(window.__EXPORTHUB_INDEX265_CRITICAL__)return;window.__EXPORTHUB_INDEX265_CRITICAL__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC264',busy={},qrQueued=false,uiQueued=false;
+var VERSION='RC265',busy={},qrQueued=false,uiQueued=false;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -24065,7 +24070,46 @@ window.rc263DownloadPod=function(id,button){Promise.resolve(download(id,button))
 function boot(){patchQrApi();queueQr();queueUi()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:pickup-updated'].forEach(function(name){window.addEventListener(name,queueUi)});
-window.ExportHUBIndex265=Object.freeze({version:VERSION,pickupUrl:pickupUrl,canonicalShipment:canonicalShipment,downloadPod:download,patchQr:patchQrEverywhere,selfTest:function(){var token='a'.repeat(48),u=pickupUrl({pickupToken:token}),full={id:'X',ref:'ABC123',rows:[{type:'Europalette'}]},signed={id:'X',ref:'ABC123',pickupDriverSignature:'data:image/jpeg;base64,'+'A'.repeat(240)};var oldState=window.state;try{window.state={shipments:[full],shipment:signed};var c=canonicalShipment('X');return{version:VERSION,queryPickup:/[?&]pickup=a{48}/.test(u),hashFallback:/#pickup=a{48}$/.test(u),cache:/[?&]v=264/.test(u),canonicalHasRows:arr(c&&c.rows).length===1,canonicalHasSignature:!!sigValue(c),automaticSyncIntervals:false,oldPodInterceptorDisabled:true}}finally{window.state=oldState}}});
+window.ExportHUBIndex265=Object.freeze({version:VERSION,pickupUrl:pickupUrl,canonicalShipment:canonicalShipment,downloadPod:download,patchQr:patchQrEverywhere,selfTest:function(){var token='a'.repeat(48),u=pickupUrl({pickupToken:token}),full={id:'X',ref:'ABC123',rows:[{type:'Europalette'}]},signed={id:'X',ref:'ABC123',pickupDriverSignature:'data:image/jpeg;base64,'+'A'.repeat(240)};var oldState=window.state;try{window.state={shipments:[full],shipment:signed};var c=canonicalShipment('X');return{version:VERSION,queryPickup:/[?&]pickup=a{48}/.test(u),hashFallback:/#pickup=a{48}$/.test(u),cache:/[?&]v=265/.test(u),canonicalHasRows:arr(c&&c.rows).length===1,canonicalHasSignature:!!sigValue(c),automaticSyncIntervals:false,oldPodInterceptorDisabled:true}}finally{window.state=oldState}}});
 })();
 </script>
 <!-- INDEX 265 RC264 CRITICAL POD DOWNLOAD + QR TARGET + OVERVIEW SINGLE PASS END -->
+
+<!-- INDEX 266 RC265 REAL SERVER SIGNATURE TRUTH START -->
+<script id="index266-real-server-signature-truth">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX266_REAL_SIGNATURE__)return;window.__EXPORTHUB_INDEX266_REAL_SIGNATURE__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var VERSION='RC265',saveTimer=0,syncBusy={};
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase()}
+function arr(v){return Array.isArray(v)?v:[]}
+function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
+function states(){var out=[];function add(x){if(x&&typeof x==='object'&&out.indexOf(x)<0)out.push(x)}try{add(window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}try{add(window.state)}catch(_){}return out}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.uuid||sh.ref||sh.reference))}
+function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id)).toUpperCase()}
+function skey(sh){return(sid(sh)||sref(sh)).toUpperCase()}
+function inlineSignature(sh){var names=['pickupDriverSignature','driverSignature','signatureDataUrl','pickupSignature','qrPickupSignature','signature','signatureImage','signatureData','imageDataUrl'];for(var i=0;i<names.length;i++){var v=q(sh&&sh[names[i]]);if(/^data:image\/(png|jpe?g|webp);base64,/i.test(v))return v}return''}
+function signatureUrl(sh){return q(sh&&(sh.driverSignatureUrl||sh.pickupDriverSignatureUrl||sh.pickupSignatureUrl||sh.signatureUrl))}
+function fakeFile(f){var t=low([f&&f.kind,f&&f.source,f&&f.name,f&&f.filename,f&&f.id].join(' '));return !!(f&&(f.placeholder||f.fallback||f.syntheticFallback||f.recoveredFromPickupPod||/scan-confirmation|pod[_ -]?abholscan|ersatz|placeholder/.test(t)))}
+function realManualFile(f){if(!f||fakeFile(f))return false;var u=q(f.url||f.data||f.dataUrl||f.href||f.downloadUrl),t=low(f.type||f.mimeType),n=low(f.name||f.filename||f.fileName);return /^data:application\/pdf;base64,/i.test(u)||/^data:image\//i.test(u)||/application\/pdf|image\//.test(t)||/\.pdf$|\.(png|jpe?g|webp)$/.test(n)}
+function allShipments(){var map={};states().forEach(function(st){arr(st.shipments).concat(obj(st.shipment)?[st.shipment]:[],obj(st.currentShipment)?[st.currentShipment]:[],obj(st.selectedShipment)?[st.selectedShipment]:[]).forEach(function(sh){var k=skey(sh);if(k&&!map[k])map[k]=sh})});return Object.keys(map).map(function(k){return map[k]})}
+function syncCopies(sh){var k=skey(sh);states().forEach(function(st){arr(st.shipments).forEach(function(x){if(skey(x)===k)Object.assign(x,sh)});['shipment','currentShipment','selectedShipment'].forEach(function(n){if(obj(st[n])&&skey(st[n])===k)Object.assign(st[n],sh)})})}
+function persist(reason){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'POD-Signaturstatus korrigiert');else if(typeof window.save==='function')window.save()}catch(_){}},120)}
+function applyTruth(sh){if(!sh)return false;var changed=false,old=arr(sh.podFiles),clean=old.filter(function(f){return !fakeFile(f)});if(clean.length!==old.length){sh.podFiles=clean;sh.podCount=clean.length;changed=true}var signed=!!inlineSignature(sh),remote=!!signatureUrl(sh),manual=clean.some(realManualFile),proof=signed||remote||manual;function set(k,v){if(sh[k]!==v){sh[k]=v;changed=true}}
+ if(signed||remote){set('signatureAvailable',true);set('podAvailable',true);set('podConfirmed',true);set('podStatus','POD vorhanden');set('podDocumentType','signed-loadlist');set('podDisplayName','Ladeliste mit Unterschrift');if(!/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.status)))set('status','POD vorhanden');if(!/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.processStatus)))set('processStatus','POD vorhanden')}
+ else if(manual){set('podAvailable',true);set('podConfirmed',true);set('podStatus','POD vorhanden');set('podDocumentType','manual-upload');set('podDisplayName','Manuell hochgeladener POD')}
+ else {set('signatureAvailable',false);set('podAvailable',false);set('podConfirmed',false);set('podScanConfirmed',false);set('podStatus','Unterschrift fehlt');if(/pod vorhanden/i.test(q(sh.status)))set('status',sh.pickupQrUsed||sh.pickupConfirmedAt?'Abgeholt':'Erstellt');if(/pod vorhanden/i.test(q(sh.processStatus)))set('processStatus',sh.pickupQrUsed||sh.pickupConfirmedAt?'Abgeholt':'Erstellt')}
+ if(changed){sh.updatedAt=new Date().toISOString();syncCopies(sh)}return changed
+}
+function mergeStatus(sh,data){if(!sh||!data)return false;var changed=false;[['pickupConfirmedAt','confirmedAt'],['pickupDriverName','driverName'],['driverName','driverName'],['pickupLicensePlate','licensePlate'],['licensePlate','licensePlate'],['vehicleLicensePlate','licensePlate'],['loaderName','loaderName'],['loadedBy','loaderName'],['loader','loaderName'],['verlader','loaderName'],['driverSignatureUrl','driverSignatureUrl'],['pickupDriverSignatureUrl','driverSignatureUrl'],['signatureAvailable','signatureAvailable']].forEach(function(p){var v=data[p[1]];if(v!==undefined&&v!==null&&q(v)!==''&&sh[p[0]]!==v){sh[p[0]]=v;changed=true}});return applyTruth(sh)||changed}
+async function syncOne(sh){var token=q(sh&&sh.pickupToken),k=skey(sh);if(!token||syncBusy[k])return false;syncBusy[k]=true;try{var r=await fetch('/api/pickup-status?token='+encodeURIComponent(token)+'&_='+Date.now(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),data={};try{data=await r.json()}catch(_){}if(r.ok){var changed=mergeStatus(sh,data);if(changed)persist('QR-Unterschrift serverseitig synchronisiert');return changed}return applyTruth(sh)}catch(_){return applyTruth(sh)}finally{delete syncBusy[k]}}
+function reconcile(){var changed=false;allShipments().forEach(function(sh){changed=applyTruth(sh)||changed});if(changed)persist('Falschen POD-Status bereinigt')}
+function boot(){reconcile();allShipments().filter(function(sh){return q(sh.pickupToken)&&(sh.pickupQrUsed||sh.pickupConfirmedAt||/pod|abgeholt/i.test(q(sh.status)))}).forEach(syncOne)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:sync','exporthub:pickup-updated'].forEach(function(n){window.addEventListener(n,function(){reconcile()})});
+window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,syncOne:syncOne,selfTest:function(){var a={status:'POD vorhanden',podStatus:'POD vorhanden',podFiles:[{kind:'scan-confirmation',name:'POD_Abholscan_X.pdf'}],pickupQrUsed:true},b={status:'Abgeholt',driverSignatureUrl:'/api/pickup-pod?token=x&signature=1'};applyTruth(a);applyTruth(b);return{version:VERSION,falsePodRemoved:a.status==='Abgeholt'&&a.podAvailable===false,signedUrlAccepted:b.status==='POD vorhanden'&&b.podDocumentType==='signed-loadlist'}}});
+})();
+</script>
+<!-- INDEX 266 RC265 REAL SERVER SIGNATURE TRUTH END -->
