@@ -6,8 +6,8 @@
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC245',cache:'245',loginReturn:'/?v=245'});
-var STANDARD_TITLE='ExportHUB Online RC245';
+var BUILD=Object.freeze({version:'RC250',cache:'250',loginReturn:'/?v=250'});
+var STANDARD_TITLE='ExportHUB Online RC250';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -56,6 +56,62 @@ try{
  new MutationObserver(function(){if(!applying&&document.documentElement.getAttribute('data-exporthub-version')!==BUILD.version)ensureVersion()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-exporthub-version']});
  if(document.head)new MutationObserver(function(){var t=document.querySelector('title');if(!t||t.textContent!==expectedTitle())ensureTitle()}).observe(document.head,{childList:true});
 }catch(_){ }
+})();
+</script>
+<script id="index250-loader-pin-core">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX250_LOADER_PIN_CORE__)return;
+window.__EXPORTHUB_INDEX250_LOADER_PIN_CORE__=true;
+var LOADERS=Object.freeze([
+ Object.freeze({id:'daniel-ollmann',name:'Daniel Ollmann',pin:'4466',active:true})
+]);
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function loaderByPin(pin){pin=q(pin);return LOADERS.find(function(x){return x.active!==false&&x.pin===pin})||null}
+function serverPin(token){
+ token=q(token);var h=2166136261;
+ for(var i=0;i<token.length;i++){h^=token.charCodeAt(i);h=Math.imul(h,16777619)}
+ return String(1000+(Math.abs(h>>>0)%9000));
+}
+function jsonBody(init){if(!init||typeof init.body!=='string')return null;try{return JSON.parse(init.body)}catch(_){return null}}
+function jsonError(message,status){return new Response(JSON.stringify({error:'LOADER_PIN_INVALID',message:message}),{status:status||403,headers:{'Content-Type':'application/json'}})}
+window.ExportHUBLoaderPins=Object.freeze({
+ version:'RC249',list:LOADERS,findByPin:loaderByPin,serverPinForToken:serverPin,
+ publicList:function(){return LOADERS.map(function(x){return{id:x.id,name:x.name,active:x.active!==false}})}
+});
+if(typeof window.fetch==='function'&&!window.fetch.__index250LoaderPins){
+ var nativeFetch=window.fetch.bind(window);
+ var wrapped=function(input,init){
+  var raw=typeof input==='string'?input:(input&&input.url)||'',url,path='';
+  try{url=new URL(raw,window.location.href);path=String(url.pathname||'')}catch(_){path=String(raw||'').split(/[?#]/)[0]}
+  if(!/\/api\/pickup-(?:init|confirm|complete|status)$/i.test(path)||!init||String(init.method||'GET').toUpperCase()!=='POST')return nativeFetch(input,init);
+  var body=jsonBody(init);if(!body)return nativeFetch(input,init);
+  if(/\/pickup-init$/i.test(path)){
+   body.pin=serverPin(body.token);
+   body.pinMode='personal-loader';
+   body.pickupQrVersion=7;
+   body.loaderDirectory=LOADERS.map(function(x){return{id:x.id,name:x.name,active:x.active!==false}});
+   body.authorizedLoaderIds=LOADERS.filter(function(x){return x.active!==false}).map(function(x){return x.id});
+  }else{
+   var loader=loaderByPin(body.pin);
+   if(!loader)return Promise.resolve(jsonError('Der persönliche Verlader-PIN ist nicht gültig.',403));
+   body.pin=serverPin(body.token);
+   body.pinMode='personal-loader';
+   body.loaderId=loader.id;
+   body.loaderName=loader.name;
+   body.loadedBy=loader.name;
+   body.loader=loader.name;
+   body.verlader=loader.name;
+   body.pickupLoaderName=loader.name;
+   body.pickupConfirmedByLoader=loader.name;
+  }
+  var next=Object.assign({},init,{body:JSON.stringify(body)});
+  return nativeFetch(input,next);
+ };
+ wrapped.__index250LoaderPins=true;
+ wrapped.__index250Native=nativeFetch;
+ window.fetch=wrapped;
+}
 })();
 </script>
 <style id="index209-pickup-mode-style">
@@ -113,16 +169,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 var signatureDrawn=false,signatureSaved='',signatureCanvas=null,signatureCtx=null,signaturePointer=false;
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function validDriverName(v){v=String(v||'').trim();if(v.length<2)return false;try{return /^[\p{L}\p{M} .’'\-]+$/u.test(v)}catch(_){return /^[A-Za-zÄÖÜäöüßÀ-ÿ .’'\-]+$/.test(v)}}
-function formatPlate(value){var raw=String(value==null?'':value).toUpperCase().replace(/[^A-ZÄÖÜ0-9-]/g,'').replace(/-+/g,'-').replace(/^-|-$/g,'');if(!raw)return'';var parts=raw.split('-').filter(Boolean);if(parts.length>=2){var out=[parts[0].slice(0,3),parts[1].slice(0,2)];if(parts[2])out.push(parts.slice(2).join('').replace(/\D/g,'').slice(0,4));return out.filter(Boolean).join('-')}var compact=raw.replace(/-/g,''),m=compact.match(/^([A-ZÄÖÜ]+)(\d*)$/);if(!m)return compact;var letters=m[1],digits=m[2],district='',series='';if(!digits)return letters;if(letters.length>=5){district=letters.slice(0,3);series=letters.slice(3,5)}else if(letters.length===4){district=letters.slice(0,2);series=letters.slice(2,4)}else if(letters.length===3){district=letters.slice(0,1);series=letters.slice(1,3)}else if(letters.length===2){district=letters.slice(0,1);series=letters.slice(1,2)}else{district=letters}return[district,series,digits.slice(0,4)].filter(Boolean).join('-')}
-function setupPickupInputs(){var driver=document.getElementById('index209PickupDriver'),plate=document.getElementById('index209PickupPlate'),pin=document.getElementById('index209PickupPin');if(driver){driver.addEventListener('input',function(){this.value=this.value.replace(/[^A-Za-zÄÖÜäöüßÀ-ÿ .’'\-]/g,'')})}if(plate){var apply=function(){var pos=plate.selectionStart;plate.value=formatPlate(plate.value);try{plate.setSelectionRange(plate.value.length,plate.value.length)}catch(_){ }};plate.addEventListener('input',apply);plate.addEventListener('blur',apply)}if(pin){pin.addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4)})}}
-function showSuccessAndClose(data){var card=document.querySelector('.index209-pickup-card');if(!card)return;card.innerHTML='<div class="index225-pickup-success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>Fahrername, Kennzeichen und Unterschrift wurden gespeichert. Der POD wurde der Sendung zugeordnet.</p><div class="index225-close-note" id="index225CloseNote">Diese Seite wird jetzt geschlossen …</div></div>';var closeAttempt=function(){try{window.open('','_self');window.close()}catch(_){ }setTimeout(function(){if(document.visibilityState!=='hidden'){try{if(history.length>1)history.back()}catch(_){ }var note=document.getElementById('index225CloseNote');if(note)note.textContent='Bestätigung abgeschlossen. Dieses Fenster kann jetzt geschlossen werden.'}},450)};setTimeout(closeAttempt,1800)}
+function formatPlate(value){return String(value==null?'':value).trim()}
+function setupPickupInputs(){var driver=document.getElementById('index209PickupDriver'),pin=document.getElementById('index209PickupPin');if(driver){driver.addEventListener('input',function(){this.value=this.value.replace(/[^A-Za-zÄÖÜäöüßÀ-ÿ .’'\-]/g,'')})}if(pin){pin.addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4)})}}
+function showSuccessAndClose(data){var card=document.querySelector('.index209-pickup-card');if(!card)return;var loader=esc(data&&(data.loaderName||data.loadedBy||data.loader||data.verlader)||'');card.innerHTML='<div class="index225-pickup-success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>Fahrername, Kennzeichen und Unterschrift wurden gespeichert. Der POD wurde der Sendung zugeordnet.'+(loader?'<br><b>Verladen durch: '+loader+'</b>':'')+'</p><div class="index225-close-note" id="index225CloseNote">Diese Seite wird jetzt geschlossen …</div></div>';var closeAttempt=function(){try{window.open('','_self');window.close()}catch(_){ }setTimeout(function(){if(document.visibilityState!=='hidden'){try{if(history.length>1)history.back()}catch(_){ }var note=document.getElementById('index225CloseNote');if(note)note.textContent='Bestätigung abgeschlossen. Dieses Fenster kann jetzt geschlossen werden.'}},450)};setTimeout(closeAttempt,1800)}
 function request(path,opt){opt=opt||{};opt.credentials='same-origin';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});return fetch('/api'+path,opt).then(async function(response){var body={};try{body=await response.json()}catch(_){ }if(!response.ok){var error=new Error(body.message||body.error||('HTTP '+response.status));error.status=response.status;throw error}return body})}
 function statusNode(text,kind){var node=document.getElementById('index209PickupStatus');if(!node)return;node.className='index209-pickup-status '+(kind||'info');node.textContent=text}
 function confirmed(data){return !!(data&&(data.confirmedAt||data.used||/confirmed|completed|abgeholt|used/i.test(String(data.status||''))))}
 function disabled(data){return !!(data&&(data.disabled||/disabled|cancelled|storniert/i.test(String(data.status||''))))}
 function renderShell(){
  var existing=document.getElementById('index209PickupApp');if(existing)return existing;
- var app=document.createElement('main');app.id='index209PickupApp';app.innerHTML='<section class="index209-pickup-card"><div class="index209-pickup-brand"><div class="index209-pickup-logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div><div id="index209PickupStatus" class="index209-pickup-status info">Sendungsdaten werden geladen …</div><div id="index209PickupDetails"></div><form id="index209PickupForm" hidden><section class="index225-pickup-section"><h2>Fahrer und Fahrzeug</h2><div class="index225-pickup-grid"><label>Name des Fahrers<input id="index209PickupDriver" autocomplete="name" autocapitalize="words" lang="de" required><span class="index225-input-help">Umlaute wie Ä, Ö und Ü werden vollständig übernommen.</span></label><label>Kennzeichen<input id="index209PickupPlate" autocomplete="off" autocapitalize="characters" inputmode="text" placeholder="z. B. VIE-AB-123" required><span class="index225-input-help">Bindestriche werden automatisch ergänzt.</span></label></div><label id="index209PickupReturnLabel" hidden>Zurückgegebene Europaletten<input id="index209PickupReturn" type="number" min="0" step="1" value="0"></label></section><section class="index225-pickup-section"><h2>Digitale Bestätigung</h2><label>Unterschrift des Fahrers<button id="index209PickupSignatureOpen" class="index209-signature-trigger" type="button"><span id="index209PickupSignaturePrompt">Zum Unterschreiben hier antippen</span><img id="index209PickupSignaturePreview" alt="Erfasste Fahrerunterschrift" hidden></button><span class="index209-signature-help">Die Unterschrift wird zusammen mit Fahrername, Kennzeichen, Datum und Uhrzeit als POD gespeichert.</span><input id="index209PickupSignatureData" type="hidden" required></label><label>Vierstellige PIN<input id="index209PickupPin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></label></section><button id="index209PickupConfirm" type="submit">Abholung und POD übertragen</button></form></section><div id="index209PickupSignatureModal" hidden><div class="index209-signature-dialog" role="dialog" aria-modal="true" aria-labelledby="index209PickupSignatureTitle"><h2 id="index209PickupSignatureTitle">Unterschrift des Fahrers</h2><p>Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.</p><div class="index209-signature-canvas-wrap"><canvas id="index209PickupSignatureCanvas" width="1000" height="360"></canvas></div><div class="index209-signature-actions"><button id="index209PickupSignatureClear" class="index209-signature-clear" type="button">Löschen</button><button id="index209PickupSignatureCancel" class="index209-signature-cancel" type="button">Abbrechen</button><button id="index209PickupSignatureSave" class="index209-signature-save" type="button">Unterschrift übernehmen</button></div></div></div>';
+ var app=document.createElement('main');app.id='index209PickupApp';app.innerHTML='<section class="index209-pickup-card"><div class="index209-pickup-brand"><div class="index209-pickup-logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div><div id="index209PickupStatus" class="index209-pickup-status info">Sendungsdaten werden geladen …</div><div id="index209PickupDetails"></div><form id="index209PickupForm" hidden><section class="index225-pickup-section"><h2>Fahrer und Fahrzeug</h2><div class="index225-pickup-grid"><label>Name des Fahrers<input id="index209PickupDriver" autocomplete="name" autocapitalize="words" lang="de" required><span class="index225-input-help">Umlaute wie Ä, Ö und Ü werden vollständig übernommen.</span></label><label>Kennzeichen<input id="index209PickupPlate" autocomplete="off" inputmode="text" placeholder="Kennzeichen eingeben" required><span class="index225-input-help">Freie Eingabe – kein bestimmtes Format erforderlich.</span></label></div><label id="index209PickupReturnLabel" hidden>Zurückgegebene Europaletten<input id="index209PickupReturn" type="number" min="0" step="1" value="0"></label></section><section class="index225-pickup-section"><h2>Digitale Bestätigung</h2><label>Unterschrift des Fahrers<button id="index209PickupSignatureOpen" class="index209-signature-trigger" type="button"><span id="index209PickupSignaturePrompt">Zum Unterschreiben hier antippen</span><img id="index209PickupSignaturePreview" alt="Erfasste Fahrerunterschrift" hidden></button><span class="index209-signature-help">Die Unterschrift wird zusammen mit Fahrername, Kennzeichen, Datum und Uhrzeit als POD gespeichert.</span><input id="index209PickupSignatureData" type="hidden" required></label><label>Persönlicher PIN des Verladers<input id="index209PickupPin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></label></section><button id="index209PickupConfirm" type="submit">Abholung und POD übertragen</button></form></section><div id="index209PickupSignatureModal" hidden><div class="index209-signature-dialog" role="dialog" aria-modal="true" aria-labelledby="index209PickupSignatureTitle"><h2 id="index209PickupSignatureTitle">Unterschrift des Fahrers</h2><p>Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.</p><div class="index209-signature-canvas-wrap"><canvas id="index209PickupSignatureCanvas" width="1000" height="360"></canvas></div><div class="index209-signature-actions"><button id="index209PickupSignatureClear" class="index209-signature-clear" type="button">Löschen</button><button id="index209PickupSignatureCancel" class="index209-signature-cancel" type="button">Abbrechen</button><button id="index209PickupSignatureSave" class="index209-signature-save" type="button">Unterschrift übernehmen</button></div></div></div>';
  document.body.insertBefore(app,document.body.firstChild);
  document.getElementById('index209PickupForm').addEventListener('submit',submit);
  setupPickupInputs();
@@ -142,7 +198,7 @@ function setupSignature(){
  document.getElementById('index209PickupSignatureOpen').addEventListener('click',openSignature);
  document.getElementById('index209PickupSignatureClear').addEventListener('click',clearCanvas);
  document.getElementById('index209PickupSignatureCancel').addEventListener('click',closeSignature);
- document.getElementById('index209PickupSignatureSave').addEventListener('click',function(){if(!signatureDrawn){statusNode('Bitte zuerst im großen Feld unterschreiben.','bad');return}signatureSaved=signatureCanvas.toDataURL('image/jpeg',0.78);document.getElementById('index209PickupSignatureData').value=signatureSaved;var preview=document.getElementById('index209PickupSignaturePreview'),trigger=document.getElementById('index209PickupSignatureOpen');preview.src=signatureSaved;preview.hidden=false;document.getElementById('index209PickupSignaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';trigger.classList.add('has-signature');closeSignature();statusNode('Unterschrift erfasst. Bitte Fahrername, Kennzeichen und PIN prüfen.','info')});
+ document.getElementById('index209PickupSignatureSave').addEventListener('click',function(){if(!signatureDrawn){statusNode('Bitte zuerst im großen Feld unterschreiben.','bad');return}signatureSaved=signatureCanvas.toDataURL('image/jpeg',0.78);document.getElementById('index209PickupSignatureData').value=signatureSaved;var preview=document.getElementById('index209PickupSignaturePreview'),trigger=document.getElementById('index209PickupSignatureOpen');preview.src=signatureSaved;preview.hidden=false;document.getElementById('index209PickupSignaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';trigger.classList.add('has-signature');closeSignature();statusNode('Unterschrift erfasst. Bitte Fahrername, Kennzeichen und Verlader-PIN prüfen.','info')});
 }
 function showData(data){
  var details=document.getElementById('index209PickupDetails'),form=document.getElementById('index209PickupForm');
@@ -150,21 +206,23 @@ function showData(data){
  details.innerHTML='<div class="index209-pickup-info"><div class="index209-pickup-box"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="index209-pickup-box"><span>Empfänger</span><b>'+esc(customer)+'</b></div></div>'+(pallets?'<div class="index209-pickup-box"><span>Europaletten Ausgang</span><b>'+pallets+'</b></div>':'');
  if(disabled(data)){form.hidden=true;statusNode('Dieser QR-Code ist gesperrt oder die Sendung wurde storniert.','bad');return}
  if(confirmed(data)){form.hidden=true;statusNode('Die Abholung und der POD wurden bereits übertragen. Ein zweiter Scan ist nicht möglich.','ok');return}
- form.hidden=false;document.getElementById('index209PickupReturnLabel').hidden=pallets<=0;form.dataset.pallets=String(pallets);statusNode('Bitte Fahrername, Kennzeichen, Unterschrift und PIN erfassen.','info');
+ form.hidden=false;document.getElementById('index209PickupReturnLabel').hidden=pallets<=0;form.dataset.pallets=String(pallets);statusNode('Bitte Fahrername, Kennzeichen, Unterschrift und persönlichen Verlader-PIN erfassen.','info');
 }
 function load(){request('/pickup-status?token='+encodeURIComponent(token),{method:'GET'}).then(showData).catch(function(error){statusNode(error.status===404?'Dieser QR-Code ist nicht registriert oder nicht mehr gültig.':'Sendungsdaten konnten nicht geladen werden: '+error.message,'bad')})}
 function confirmAt(path,body){return request(path,{method:'POST',body:JSON.stringify(body)})}
 function submit(event){
  event.preventDefault();
  var pin=String(document.getElementById('index209PickupPin').value||'').trim(),driver=String(document.getElementById('index209PickupDriver').value||'').trim(),plate=formatPlate(document.getElementById('index209PickupPlate').value||''),signature=String(document.getElementById('index209PickupSignatureData').value||signatureSaved||''),returned=Math.max(0,Math.round(Number(document.getElementById('index209PickupReturn').value||0))),button=document.getElementById('index209PickupConfirm');
- if(!/^\d{4}$/.test(pin)){statusNode('Die PIN muss genau vier Ziffern enthalten.','bad');return false}
+ if(!/^\d{4}$/.test(pin)){statusNode('Der persönliche Verlader-PIN muss genau vier Ziffern enthalten.','bad');return false}
+ var loader=window.ExportHUBLoaderPins&&window.ExportHUBLoaderPins.findByPin?window.ExportHUBLoaderPins.findByPin(pin):null;
+ if(!loader){statusNode('Der persönliche Verlader-PIN ist nicht bekannt.','bad');return false}
  if(!validDriverName(driver)){statusNode('Bitte einen gültigen Fahrernamen eingeben. Ä, Ö, Ü und ß sind erlaubt.','bad');return false}
  document.getElementById('index209PickupPlate').value=plate;
- if(!plate||plate.indexOf('-')<0){statusNode('Bitte ein vollständiges Kennzeichen eintragen. Die Bindestriche werden automatisch ergänzt.','bad');return false}
+ if(!plate){statusNode('Bitte das Kennzeichen eintragen.','bad');return false}
  if(!/^data:image\/jpeg;base64,/i.test(signature)){statusNode('Bitte die Unterschrift des Fahrers erfassen.','bad');return false}
- var body={token:token,pin:pin,driverName:driver,confirmedBy:driver,pickupDriverName:driver,licensePlate:plate,vehicleLicensePlate:plate,kennzeichen:plate,driverSignature:signature,signatureDataUrl:signature,pickupSignature:signature,signature:signature,returnedEuroPallets:returned,returnPallets:returned,podRequested:true,podType:'digital-pickup-signature'};
+ var body={token:token,pin:pin,driverName:driver,confirmedBy:driver,pickupDriverName:driver,licensePlate:plate,vehicleLicensePlate:plate,kennzeichen:plate,loaderId:loader.id,loaderName:loader.name,loadedBy:loader.name,loader:loader.name,verlader:loader.name,pickupLoaderName:loader.name,pickupConfirmedByLoader:loader.name,driverSignature:signature,signatureDataUrl:signature,pickupSignature:signature,signature:signature,returnedEuroPallets:returned,returnPallets:returned,podRequested:true,podType:'digital-pickup-signature'};
  button.disabled=true;statusNode('Abholung und POD werden übertragen …','info');
- confirmAt('/pickup-confirm',body).catch(function(error){if(error.status===404||error.status===405)return confirmAt('/pickup-complete',body);throw error}).catch(function(error){if(error.status===404||error.status===405)return confirmAt('/pickup-status',body);throw error}).then(function(data){document.getElementById('index209PickupForm').hidden=true;showSuccessAndClose(Object.assign({},data||{},body,{confirmedAt:(data&&data.confirmedAt)||new Date().toISOString(),status:'confirmed'}))}).catch(function(error){button.disabled=false;statusNode(error.status===401||error.status===403?'PIN falsch oder Bestätigung nicht erlaubt.':'Abholung konnte nicht bestätigt werden: '+error.message,'bad')});return false;
+ confirmAt('/pickup-confirm',body).catch(function(error){if(error.status===404||error.status===405)return confirmAt('/pickup-complete',body);throw error}).catch(function(error){if(error.status===404||error.status===405)return confirmAt('/pickup-status',body);throw error}).then(function(data){document.getElementById('index209PickupForm').hidden=true;showSuccessAndClose(Object.assign({},data||{},body,{confirmedAt:(data&&data.confirmedAt)||new Date().toISOString(),status:'confirmed'}))}).catch(function(error){button.disabled=false;statusNode(error.status===401||error.status===403?'Verlader-PIN falsch oder Bestätigung nicht erlaubt.':'Abholung konnte nicht bestätigt werden: '+error.message,'bad')});return false;
 }
 function enforcePickupOnly(){
  if(!document.body)return;
@@ -368,7 +426,7 @@ window.addEventListener('focusout',function(e){guard(e,true)},true);
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 
 <meta content="no-referrer" name="referrer"/>
-<title>ExportHUB Online RC245</title>
+<title>ExportHUB Online RC250</title>
 <style>
 :root{--bg:#eef6fb;--surface:#fff;--surface2:#f7fbff;--text:#0f172a;--muted:#64748b;--line:#dbe4ef;--nav1:#051937;--nav2:#0b3b72;--blue:#2563eb;--cyan:#05b8ff;--green:#16a34a;--orange:#f97316;--red:#dc2626;--purple:#7e22ce;--yellow:#facc15;--shadow:0 18px 46px rgba(15,23,42,.10);--radius:22px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}h1,h2,h3,h4{color:#08245d;margin-top:0}.muted{color:var(--muted)}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(680px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:34px;padding:34px;box-shadow:var(--shadow);text-align:center}.logo{width:78px;height:78px;margin:auto;border-radius:25px;background:linear-gradient(135deg,var(--cyan),#a5f3fc);display:grid;place-items:center;color:#062033;font-size:28px;font-weight:1000;box-shadow:0 14px 32px rgba(5,184,255,.28)}.field{display:grid;gap:7px;margin:12px 0;text-align:left;font-weight:900;color:#334155}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:11px;background:#fff;font-weight:800}textarea{min-height:100px;resize:vertical}.btn,.ghost,.danger,.soft{border-radius:14px;padding:10px 14px;font-weight:950;cursor:pointer;min-height:40px}.btn{border:0;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;box-shadow:0 10px 22px rgba(37,99,235,.23)}.ghost{border:1px solid var(--line);background:#fff;color:#334155}.danger{border:0;background:#fee2e2;color:#991b1b}.soft{border:0;background:#eef6ff;color:#075985}.btn:hover,.ghost:hover,.soft:hover,.danger:hover{transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}.app{display:grid;grid-template-columns:318px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:linear-gradient(180deg,var(--nav1),var(--nav2));color:#fff;padding:20px 16px;display:flex;flex-direction:column;gap:12px;overflow:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.18)}.brand .logo{width:48px;height:48px;margin:0;border-radius:16px;font-size:18px;box-shadow:none}.brand strong{display:block;font-size:19px}.brand span,.profile small{display:block;color:#cbd5e1;font-weight:800;font-size:12px}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#dbeafe;text-align:left;border-radius:14px;padding:11px 12px;cursor:pointer;font-weight:900}.nav button:hover,.nav button.active{background:#fff;color:#08245d}.profile{margin-top:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:12px;line-height:1.35}.main{min-width:0;padding:24px 28px 48px}.topbar{display:flex;gap:12px;align-items:center;margin-bottom:20px}.search{flex:1;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;padding:11px 14px}.search input{border:0;outline:0;padding:4px}.card,.metric{background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}.metric span{display:block;color:var(--muted);font-weight:950;margin-bottom:10px}.metric strong{display:block;font-size:32px}.metric.kpi-red{border-left:7px solid var(--red)}.metric.kpi-orange{border-left:7px solid var(--orange)}.metric.kpi-green{border-left:7px solid var(--green)}.metric.kpi-blue{border-left:7px solid var(--blue)}.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.page-head h2{font-size:31px;margin:0 0 8px}.page-head p{margin:0;color:var(--muted);font-weight:750;line-height:1.55;max-width:980px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;margin:3px}.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166534}.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}.purple{background:#f3e8ff;color:#6b21a8}.gray{background:#e2e8f0;color:#334155}.yellow{background:#fef9c3;color:#854d0e}.notice,.okbox,.badbox,.infobox{border-radius:16px;padding:13px;margin:10px 0;font-weight:770;line-height:1.5}.notice{border-left:5px solid var(--orange);background:#fff7ed}.okbox{border-left:5px solid var(--green);background:#f0fdf4}.badbox{border-left:5px solid var(--red);background:#fee2e2}.infobox{border-left:5px solid var(--blue);background:#eff6ff}.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.table{width:100%;border-collapse:collapse}.table th{text-align:left;color:var(--muted);font-size:12px;text-transform:uppercase}.table td,.table th{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}.hero{position:relative;overflow:hidden;border-radius:34px;min-height:560px;background:linear-gradient(rgba(5,20,36,.78),rgba(5,20,36,.92)),radial-gradient(circle at 22% 14%,rgba(5,184,255,.35),transparent 32%),linear-gradient(135deg,#0b2144,#0b4d76 55%,#062033);box-shadow:0 24px 60px rgba(0,0,0,.25);color:#fff;padding:42px}.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.04;color:#fff;margin:0 0 20px}.hero p{max-width:980px;color:#edfaff;font-size:20px;line-height:1.65;font-weight:650}.hero h3{color:#fff}.quick-grid,.hero-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}.hero-kpi,.quick-grid button{padding:20px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);color:#fff;text-align:left}.quick-grid button{cursor:pointer;background:rgba(4,20,38,.72)}.task{display:grid;grid-template-columns:115px 1fr auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin:8px 0}.task.done{opacity:.58}.task.done h3{text-decoration:line-through}.task.high{border-left:7px solid var(--red)}.task.medium{border-left:7px solid var(--orange)}.task.low{border-left:7px solid var(--green)}.taskday{margin:18px 0}.taskday-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}.idea{border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:18px;background:#fff;padding:14px;margin:10px 0}.idea.hoch{border-left-color:var(--red)}.idea.mittel{border-left-color:var(--orange)}.idea.niedrig{border-left-color:var(--green)}.checkrow{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;margin:8px 0}.checkrow input{width:auto;margin-top:4px}.quiz-option{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;font-weight:850}.quiz-option.correct{background:#dcfce7;border-color:#86efac}.quiz-option.wrong{background:#fee2e2;border-color:#fecaca}.printdoc{background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;margin-top:12px}.print-table{width:100%;border-collapse:collapse}.print-table th,.print-table td{border:1px solid #cbd5e1;padding:8px;text-align:left}.split{display:grid;grid-template-columns:360px 1fr;gap:14px}.list{display:grid;gap:8px;max-height:680px;overflow:auto}.list button{border:1px solid var(--line);background:white;border-radius:14px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.list button:hover,.list button.active{background:#eff6ff;border-color:var(--blue)}.wizard-step{border:2px solid var(--blue);border-radius:22px;background:#fff;padding:24px;margin:14px 0;box-shadow:var(--shadow)}.wizard-step .num{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:#dbeafe;color:#08245d;font-weight:950;margin-bottom:12px}.mini-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.mini-steps button{width:auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-weight:900;cursor:pointer}.mini-steps button.done{background:#dcfce7;border-color:#86efac}.mini-steps button.active{background:#dbeafe;border-color:#3b82f6}.copybox{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:18px;padding:16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.55}.previewDoc{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;color:#111}.previewDoc h2{font-size:24px;color:#111}.previewDoc table{width:100%;border-collapse:collapse;margin-top:12px}.previewDoc th,.previewDoc td{border:1px solid #ccd7df;padding:7px;text-align:left}.previewDoc th{background:#eef6fb}.miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.summaryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.summaryBox{background:#f7fbff;border:1px solid var(--line);border-radius:15px;padding:10px}.summaryBox strong{display:block;font-size:20px;color:var(--blue)}.portal-link{display:block;text-decoration:none;color:var(--text);background:white;border:1px solid #bfdbfe;border-radius:14px;padding:12px;margin:8px 0}.portal-link:hover{border-color:#2563eb;box-shadow:0 8px 20px rgba(37,99,235,.12)}.nowrap{white-space:nowrap}.small{font-size:12px;color:var(--muted);font-weight:800}.print-only{display:none}
@@ -13353,7 +13411,7 @@ var P={
 window.ExportHUBFinalPolicy=P;
 function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(e){return window.state||{}}}
 function save(){try{if(window.ExportHUBClean&&window.ExportHUBClean.queueSave)window.ExportHUBClean.queueSave('RC548 Prozessregeln');}catch(e){}}
-function installPolicy(){var s=state();s.settings=s.settings||{};s.settings.finalProcessVersion='RC548';s.settings.dateFormat='TT.MM.JJJJ';s.settings.qrPin=s.settings.qrPin||'2578';s.settings.processPolicy=P;save();}
+function installPolicy(){var s=state();s.settings=s.settings||{};s.settings.finalProcessVersion='RC548';s.settings.dateFormat='TT.MM.JJJJ';delete s.settings.qrPin;delete s.settings.qrPinChangedAt;delete s.settings.qrPinChangedBy;s.settings.processPolicy=P;save();}
 function hideRemoved(){
  document.querySelectorAll('[data-view="quiz"],button[onclick*="quiz"],a[onclick*="quiz"]').forEach(function(n){n.style.display='none';n.setAttribute('aria-hidden','true')});
  document.querySelectorAll('button,a,li').forEach(function(n){if(/Prüfungszentrum/i.test(n.textContent||''))n.style.display='none'});
@@ -14148,6 +14206,9 @@ window.ExportHUBRC589={version:VERSION,apply:apply,renderTopView:renderTopView,r
 })();
 </script>
 <!-- RC589 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN END -->
+
+
+
 
 </body>
 </html><!-- RC575 TASK DEDUPLICATION + SHIPMENT LINK START -->
@@ -16000,7 +16061,7 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){retur
 function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
 function later(fn,ms){var x=window.ExportHUBClean&&window.ExportHUBClean.native;return (x&&x.setTimeout?x.setTimeout:window.setTimeout)(fn,ms||0)}
 function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')return window.ExportHUBClean.queueSave(reason||'RC569 QR gespeichert');if(typeof window.save==='function')return window.save(reason||'RC569 QR gespeichert')}catch(e){console.error(e)}}
-function activePin(){var s=st();s.settings=s.settings||{};var p=q(s.settings.qrPin||'2578');if(!/^\d{4}$/.test(p)){p='2578';s.settings.qrPin=p}return p}
+function activePin(){return ''}
 function randomToken(){try{var u=new Uint8Array(24);crypto.getRandomValues(u);return Array.from(u).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(_){var z='';while(z.length<48)z+=Math.random().toString(16).slice(2);return z.slice(0,48)}}
 function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference))}
 function ref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase()}
@@ -22701,18 +22762,18 @@ function byteSizeFromDataUrl(url){var b=q(url).split(',')[1]||'';return Math.flo
 function makePodPdf(sh,status,iso){
  var signature=q(status.driverSignature||status.signatureDataUrl||status.pickupSignature||status.signature||sh.pickupDriverSignature||sh.driverSignature);if(!/^data:image\/jpeg;base64,/i.test(signature))return '';
  var img64=signature.split(',')[1]||'',img='';try{img=atob(img64)}catch(_){return ''}if(!img)return '';
- var driver=q(status.driverName||status.pickupDriverName||status.confirmedBy||sh.pickupDriverName||sh.driverName),plate=q(status.licensePlate||status.vehicleLicensePlate||status.kennzeichen||sh.pickupLicensePlate||sh.licensePlate),ref=sref(sh)||q(status.reference||status.ref),customer=q(status.recipient||status.customer||status.customerName||sh.customerName),date='';try{date=new Date(iso).toLocaleString('de-DE')}catch(_){date=iso}
- var lines=[['POD / ABLIEFERNACHWEIS',22,50,790],['ExportHUB digitale Abholbestaetigung',11,50,770],['Sendungsreferenz: '+ref,13,50,730],['Empfaenger: '+customer,11,50,708],['Name Fahrer: '+driver,11,50,676],['Kennzeichen: '+plate,11,50,654],['Abholung bestaetigt: '+date,11,50,632],['Unterschrift Fahrer',11,50,590]];
- var content='';lines.forEach(function(x){content+='BT /F1 '+x[1]+' Tf '+x[2]+' '+x[3]+' Td ('+pdfEsc(x[0])+') Tj ET\n'});content+='0.2 w 50 370 495 200 re S\nq 495 0 0 178 50 382 cm /Im1 Do Q\nBT /F1 9 Tf 50 340 Td (Digital ueber QR-Abholseite erfasst. Dieses Dokument ist der POD der Sendung.) Tj ET\n';
+ var driver=q(status.driverName||status.pickupDriverName||status.confirmedBy||sh.pickupDriverName||sh.driverName),plate=q(status.licensePlate||status.vehicleLicensePlate||status.kennzeichen||sh.pickupLicensePlate||sh.licensePlate),loader=q(status.loaderName||status.loadedBy||status.loader||status.verlader||status.pickupLoaderName||sh.loader||sh.verlader||sh.loadedBy),ref=sref(sh)||q(status.reference||status.ref),customer=q(status.recipient||status.customer||status.customerName||sh.customerName),date='';try{date=new Date(iso).toLocaleString('de-DE')}catch(_){date=iso}
+ var lines=[['POD / ABLIEFERNACHWEIS',22,50,790],['ExportHUB digitale Abholbestaetigung',11,50,770],['Sendungsreferenz: '+ref,13,50,730],['Empfaenger: '+customer,11,50,708],['Name Fahrer: '+driver,11,50,676],['Kennzeichen: '+plate,11,50,654],['Verlader: '+loader,11,50,632],['Abholung bestaetigt: '+date,11,50,610],['Unterschrift Fahrer',11,50,568]];
+ var content='';lines.forEach(function(x){content+='BT /F1 '+x[1]+' Tf '+x[2]+' '+x[3]+' Td ('+pdfEsc(x[0])+') Tj ET\n'});content+='0.2 w 50 348 495 200 re S\nq 495 0 0 178 50 360 cm /Im1 Do Q\nBT /F1 9 Tf 50 318 Td (Digital ueber QR-Abholseite erfasst. Dieses Dokument ist der POD der Sendung.) Tj ET\n';
  var objs=[];function add(n,body){objs[n]=n+' 0 obj\n'+body+'\nendobj\n'}
  add(1,'<< /Type /Catalog /Pages 2 0 R >>');add(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');add(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> /XObject << /Im1 5 0 R >> >> /Contents 6 0 R >>');add(4,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');add(5,'<< /Type /XObject /Subtype /Image /Width 1000 /Height 360 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>\nstream\n'+img+'\nendstream');add(6,'<< /Length '+content.length+' >>\nstream\n'+content+'endstream');
  var pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n',offset=[0];for(var i=1;i<=6;i++){offset[i]=pdf.length;pdf+=objs[i]}var xref=pdf.length;pdf+='xref\n0 7\n0000000000 65535 f \n';for(var j=1;j<=6;j++)pdf+=String(offset[j]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';try{return'data:application/pdf;base64,'+btoa(pdf)}catch(_){return ''}
 }
 function applyStatus(sh,status,iso){
  if(!sh||!status||!status.confirmedAt)return false;
- var driver=q(status.driverName||status.pickupDriverName||status.confirmedBy||sh.pickupDriverName||sh.driverName),plate=q(status.licensePlate||status.vehicleLicensePlate||status.kennzeichen||sh.pickupLicensePlate||sh.licensePlate),signature=q(status.driverSignature||status.signatureDataUrl||status.pickupSignature||status.signature||sh.pickupDriverSignature||sh.driverSignature),changed=false;
- [['pickupDriverName',driver],['driverName',driver],['pickupLicensePlate',plate],['licensePlate',plate],['vehicleLicensePlate',plate],['pickupDriverSignature',signature],['driverSignature',signature],['signatureDataUrl',signature]].forEach(function(x){if(x[1]&&q(sh[x[0]])!==x[1]){sh[x[0]]=x[1];changed=true}});
- var pdf=makePodPdf(sh,status,iso);if(pdf){var id='QR-POD-'+(q(sh.pickupToken)||sid(sh)),name='Abliefernachweis_'+(sref(sh)||'Sendung')+'_'+String(iso||new Date().toISOString()).slice(0,10)+'.pdf',files=arr(sh.podFiles),existing=files.findIndex(function(f){return q(f.id)===id});var file={id:id,name:name,filename:name,url:pdf,dataUrl:pdf,type:'application/pdf',mimeType:'application/pdf',size:byteSizeFromDataUrl(pdf),uploadedAt:iso,added:iso,remote:false,source:'QR-Abholung',kind:'pod',docKind:'pod',generated:true,driverName:driver,licensePlate:plate};if(existing>=0)files[existing]=file;else files.push(file);sh.podFiles=files;sh.podStatus='POD vorhanden';sh.podCount=files.length;sh.podScanConfirmed=true;sh.podSource='QR-Abholung';sh.status='POD vorhanden';sh.pickupStatus='abgeholt';changed=true}
+ var driver=q(status.driverName||status.pickupDriverName||status.confirmedBy||sh.pickupDriverName||sh.driverName),plate=q(status.licensePlate||status.vehicleLicensePlate||status.kennzeichen||sh.pickupLicensePlate||sh.licensePlate),loader=q(status.loaderName||status.loadedBy||status.loader||status.verlader||status.pickupLoaderName||status.pickupConfirmedByLoader||sh.loader||sh.verlader||sh.loadedBy),signature=q(status.driverSignature||status.signatureDataUrl||status.pickupSignature||status.signature||sh.pickupDriverSignature||sh.driverSignature),changed=false;
+ [['pickupDriverName',driver],['driverName',driver],['pickupLicensePlate',plate],['licensePlate',plate],['vehicleLicensePlate',plate],['loader',loader],['verlader',loader],['loadedBy',loader],['pickupLoaderName',loader],['pickupConfirmedByLoader',loader],['pickupDriverSignature',signature],['driverSignature',signature],['signatureDataUrl',signature]].forEach(function(x){if(x[1]&&q(sh[x[0]])!==x[1]){sh[x[0]]=x[1];changed=true}});
+ var pdf=makePodPdf(sh,status,iso);if(pdf){var id='QR-POD-'+(q(sh.pickupToken)||sid(sh)),name='Abliefernachweis_'+(sref(sh)||'Sendung')+'_'+String(iso||new Date().toISOString()).slice(0,10)+'.pdf',files=arr(sh.podFiles),existing=files.findIndex(function(f){return q(f.id)===id});var file={id:id,name:name,filename:name,url:pdf,dataUrl:pdf,type:'application/pdf',mimeType:'application/pdf',size:byteSizeFromDataUrl(pdf),uploadedAt:iso,added:iso,remote:false,source:'QR-Abholung',kind:'pod',docKind:'pod',generated:true,driverName:driver,licensePlate:plate,loaderName:loader,loadedBy:loader,verlader:loader};if(existing>=0)files[existing]=file;else files.push(file);sh.podFiles=files;sh.podStatus='POD vorhanden';sh.podCount=files.length;sh.podScanConfirmed=true;sh.podSource='QR-Abholung';sh.status='POD vorhanden';sh.pickupStatus='abgeholt';changed=true}
  return changed
 }
 function pickupValues(sh){return{driver:q(sh&& (sh.pickupDriverName||sh.driverName)),plate:q(sh&&(sh.pickupLicensePlate||sh.licensePlate||sh.vehicleLicensePlate)),signature:q(sh&&(sh.pickupDriverSignature||sh.driverSignature||sh.signatureDataUrl)),date:q(sh&&(sh.actualPickupDate||sh.pickedUpAtDate)),time:q(sh&&sh.actualPickupTime)}}
@@ -23770,45 +23831,229 @@ window.ExportHUBIndex242Navigation=Object.freeze({version:VERSION,getSetView:cap
 <!-- INDEX 242 SAFE CANONICAL NAVIGATION END -->
 
 
-<!-- INDEX 246 CUSTOMER FOLDER GERMAN MAIL TEMPLATES START -->
-<script id="index246-customer-folder-mail-templates">
+<!-- INDEX 249 CORRECT LONG CUSTOMER AND CARRIER MAIL TEMPLATES START -->
+<script id="index249-correct-long-customer-carrier-mail-templates">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_INDEX246_MAIL_TEMPLATES__)return;
-window.__EXPORTHUB_INDEX246_MAIL_TEMPLATES__=true;
+if(window.__EXPORTHUB_INDEX249_MAIL_TEMPLATES__)return;
+window.__EXPORTHUB_INDEX249_MAIL_TEMPLATES__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC245',CACHE='245',MIGRATION='customer-folder-mail-templates-rc245';
-var CUSTOMER_DE='Sehr geehrte Damen und Herren,\n\ndie folgende Sendung steht zur Abholung bereit.\n\n{{SENDUNGSDETAILS}}\n\nMit freundlichen Grüßen\n';
-var CARRIER_DE='Sehr geehrte Damen und Herren,\n\nBitte planen Sie die Abholung ein der folgenden Sendung ein.\n\n{{SENDUNGSDETAILS}}\n\nMit freundlichen Grüßen\n';
-var CUSTOMER_KEYS=['customerMailTemplateDe','mailTemplateDe','customerMailDe','mailTextDe','rc385CustomerTplDe','customerTplDe','customerTemplateDe','templateDe','bodyDe'];
-var CARRIER_KEYS=['carrierMailTemplateDe','speditionMailTemplateDe','carrierMailDe','speditionMailTextDe','rc385CarrierTplDe','carrierTplDe','carrierTemplateDe','speditionTemplateDe'];
+var VERSION='RC248',CACHE='248',MIGRATION='customer-folder-correct-long-four-mail-templates-rc248',STAMP='RC248-correct-long-four-mail-templates';
+var TEMPLATES={
+ customer:{
+  de:'Sehr geehrte Damen und Herren,\n\nwir freuen uns, Ihnen mitteilen zu können, dass Ihre Bestellung vollständig für Sie bereitgestellt wurde und abholbereit ist.\n\nBitte veranlassen Sie die Abholung der Ware oder stimmen Sie den Transport mit Ihrem Logistikpartner ab. Um eine reibungslose Übergabe in unserem Versandlager zu gewährleisten, bitten wir Sie um eine kurze Rückmeldung innerhalb der nächsten 24 Stunden mit Angabe des geplanten Abholdatums sowie des ausführenden Transportunternehmens.\n\nDetails zur Sendung:\n\n{{SENDUNGSDETAILS}}\n\nSollten Sie oder Ihr Transporteur vorab noch Informationen benötigen, stehen wir Ihnen selbstverständlich gerne zur Verfügung.\n\nWir bedanken uns für die gute Zusammenarbeit und freuen uns auf Ihre Rückmeldung.\n\nMit freundlichen Grüßen\n\n',
+  en:'Dear Sir or Madam,\n\nwe are pleased to inform you that your order has been fully prepared for you and is ready for collection.\n\nPlease arrange for the collection of the goods or coordinate the transport with your logistics partner. To ensure a smooth handover at our shipping warehouse, we kindly ask you to provide us with a brief response within the next 24 hours, stating the planned collection date and the transport company carrying out the collection.\n\nShipment details:\n\n{{SENDUNGSDETAILS}}\n\nShould you or your carrier require any further information in advance, we will of course be happy to assist you.\n\nThank you for the good cooperation. We look forward to hearing from you.\n\nKind regards\n\n'
+ },
+ carrier:{
+  de:'Sehr geehrte Damen und Herren,\n\nfür den unten genannten Vorgang steht die Ware in unserem Versandlager zur Abholung bereit.\n\nWir bitten Sie höflich darum, die Abholung zeitnah einzuplanen und uns innerhalb der nächsten 24 Stunden den genauen Abholtermin verbindlich zu bestätigen, damit wir die Ladekapazitäten entsprechend einplanen können.\n\nDetails zur Sendung:\n\n{{SENDUNGSDETAILS}}\n\nBitte stellen Sie sicher, dass der Fahrer bei der Abholung die entsprechende Referenznummer bereithält.\n\nFür Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung. Vielen Dank für Ihre Unterstützung und die zuverlässige Abwicklung.\n\nMit freundlichen Grüßen\n\n',
+  en:'Dear Sir or Madam,\n\nthe goods for the shipment specified below are ready for collection at our shipping warehouse.\n\nWe kindly ask you to schedule the collection promptly and to provide us with binding confirmation of the exact collection date within the next 24 hours, so that we can plan the loading capacities accordingly.\n\nShipment details:\n\n{{SENDUNGSDETAILS}}\n\nPlease ensure that the driver has the corresponding reference number available at the time of collection.\n\nShould you have any questions, please do not hesitate to contact us. Thank you for your support and the reliable handling.\n\nKind regards\n\n'
+ }
+};
+var ALIASES={
+ customer:{
+  de:['customerMailTemplateDe','mailTemplateDe','customerMailDe','mailTextDe','rc385CustomerTplDe','rc384CustomerTplDe','rc390CustomerTplDe','rc393CustomerTplDe','customerTplDe','customerTemplateDe','templateDe','bodyDe'],
+  en:['customerMailTemplateEn','mailTemplateEn','customerMailEn','mailTextEn','rc385CustomerTplEn','rc384CustomerTplEn','rc390CustomerTplEn','rc393CustomerTplEn','customerTplEn','customerTemplateEn','templateEn','bodyEn']
+ },
+ carrier:{
+  de:['carrierMailTemplateDe','speditionMailTemplateDe','carrierMailDe','speditionMailTextDe','rc385CarrierTplDe','rc384CarrierTplDe','rc390CarrierTplDe','rc393CarrierTplDe','carrierTplDe','carrierTemplateDe','speditionTemplateDe'],
+  en:['carrierMailTemplateEn','speditionMailTemplateEn','carrierMailEn','speditionMailTextEn','rc385CarrierTplEn','rc384CarrierTplEn','rc390CarrierTplEn','rc393CarrierTplEn','carrierTplEn','carrierTemplateEn','speditionTemplateEn']
+ }
+};
+var FIELD_IDS={customer:{de:'rc565CustomerTplDe',en:'rc565CustomerTplEn'},carrier:{de:'rc565CarrierTplDe',en:'rc565CarrierTplEn'}};
 var timer=0;
 function text(v){return String(v==null?'':v)}
 function q(v){return text(v).trim()}
-function norm(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
 function customerId(c){return q(c&&(c.id||c.customerId||c.account||c.customerNumber))}
 function selectedCustomer(){var s=state(),id=q(s.customerFolderOpenId||s.customerFolderId||s.selectedCustomerId||s.currentCustomerId),list=arr(s.customers);return list.find(function(c){return customerId(c)===id})||null}
-function first(c,keys){for(var i=0;i<keys.length;i++){var v=q(c&&c[keys[i]]);if(v)return text(c[keys[i]])}return''}
-function nested(c,type){var root=c&&c.mailTemplates&&typeof c.mailTemplates==='object'?c.mailTemplates:null,b=root&&root[type]&&typeof root[type]==='object'?root[type]:null;return b&&q(b.de)?text(b.de):''}
-function current(c,type){return nested(c,type)||first(c,type==='customer'?CUSTOMER_KEYS:CARRIER_KEYS)}
-function oldDefault(value,type){var n=norm(value);if(!n)return true;var list=type==='customer'?['Sehr geehrte Damen und Herren,\n\ndie unten genannte Sendung steht zur Abholung bereit.\n\n{{SENDUNGSDETAILS}}\n\nMit freundlichen Grüßen','Dear Sir or Madam,\n\nthe shipment below is ready for collection.\n\n{{SENDUNGSDETAILS}}\n\nKind regards']:['Sehr geehrte Damen und Herren,\n\nbitte avisieren Sie die unten genannte Sendung und bestätigen Sie den Abholtermin.\n\n{{SENDUNGSDETAILS}}\n\nMit freundlichen Grüßen','Sehr geehrte Damen und Herren,\n\nBitte planen Sie die Abholung der folgenden Sendung ein.\n\n{{SENDUNGSDETAILS}}\n\nMit freundlichen Grüßen','Dear Sir or Madam,\n\nplease arrange the collection of the shipment below and confirm the pickup date.\n\n{{SENDUNGSDETAILS}}\n\nKind regards'];return list.some(function(x){return norm(x)===n})}
-function assign(c,type,value){var changed=false,keys=type==='customer'?CUSTOMER_KEYS:CARRIER_KEYS;c.mailTemplates=c.mailTemplates&&typeof c.mailTemplates==='object'?c.mailTemplates:{};c.mailTemplates[type]=c.mailTemplates[type]&&typeof c.mailTemplates[type]==='object'?c.mailTemplates[type]:{};if(text(c.mailTemplates[type].de)!==value){c.mailTemplates[type].de=value;changed=true}keys.forEach(function(key){if(text(c[key])!==value){c[key]=value;changed=true}});return changed}
-function ensureCustomer(c,replaceLegacy){if(!c||typeof c!=='object')return false;var changed=false,customer=current(c,'customer'),carrier=current(c,'carrier');if(!q(customer)||(replaceLegacy&&oldDefault(customer,'customer')))changed=assign(c,'customer',CUSTOMER_DE)||changed;if(!q(carrier)||(replaceLegacy&&oldDefault(carrier,'carrier')))changed=assign(c,'carrier',CARRIER_DE)||changed;return changed}
+function currentValue(c,type,lang){
+ var nested=c&&c.mailTemplates&&c.mailTemplates[type]&&q(c.mailTemplates[type][lang])?text(c.mailTemplates[type][lang]):'';
+ if(nested)return nested;
+ var keys=ALIASES[type][lang];
+ for(var i=0;i<keys.length;i++)if(q(c&&c[keys[i]]))return text(c[keys[i]]);
+ return'';
+}
+function assign(c,type,lang,value){
+ if(!c||typeof c!=='object')return false;
+ var changed=false;
+ c.mailTemplates=c.mailTemplates&&typeof c.mailTemplates==='object'?c.mailTemplates:{};
+ c.mailTemplates[type]=c.mailTemplates[type]&&typeof c.mailTemplates[type]==='object'?c.mailTemplates[type]:{};
+ if(text(c.mailTemplates[type][lang])!==value){c.mailTemplates[type][lang]=value;changed=true}
+ ALIASES[type][lang].forEach(function(key){if(text(c[key])!==value){c[key]=value;changed=true}});
+ return changed;
+}
+function ensureCustomer(c,force){
+ if(!c||typeof c!=='object')return false;
+ var changed=false,standardize=!!force||q(c.mailTemplateStandardVersion)!==STAMP;
+ ['customer','carrier'].forEach(function(type){['de','en'].forEach(function(lang){
+  if(standardize||!q(currentValue(c,type,lang)))changed=assign(c,type,lang,TEMPLATES[type][lang])||changed;
+ })});
+ if(standardize){c.mailTemplateStandardVersion=STAMP;c.mailTemplateStandardAppliedAt=c.mailTemplateStandardAppliedAt||new Date().toISOString();changed=true}
+ return changed;
+}
+function ensureAll(force){var changed=false;arr(state().customers).forEach(function(c){if(ensureCustomer(c,force))changed=true});return changed}
 function queue(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason)}catch(_){}}
-function migrateOnce(){var s=state();if(!Array.isArray(s.customers))return false;s.migrations=s.migrations&&typeof s.migrations==='object'?s.migrations:{};if(s.migrations[MIGRATION])return false;var changed=false;arr(s.customers).forEach(function(c){if(ensureCustomer(c,true))changed=true});s.migrations[MIGRATION]={version:VERSION,completedAt:new Date().toISOString()};queue(changed?'Deutsche Mailvorlagen im Kundenordner aktualisiert':'Mailvorlagen-Migration RC245 abgeschlossen');return changed}
-function patchFolder(){var c=selectedCustomer();if(!c)return false;var changed=ensureCustomer(c,false),customer=document.getElementById('rc565CustomerTplDe'),carrier=document.getElementById('rc565CarrierTplDe');if(customer&&customer.value!==CUSTOMER_DE&&(!q(customer.value)||oldDefault(customer.value,'customer')))customer.value=CUSTOMER_DE;if(carrier&&carrier.value!==CARRIER_DE&&(!q(carrier.value)||oldDefault(carrier.value,'carrier')))carrier.value=CARRIER_DE;if(changed)queue('Deutsche Standard-Mailvorlagen beim Kunden hinterlegt');return changed||!!customer||!!carrier}
-function linkCurrentShipment(){var s=state(),sh=s.shipment;if(!sh||typeof sh!=='object')return false;var id=q(sh.customerId||sh.customerAccount||sh.customerNumber),c=arr(s.customers).find(function(x){return customerId(x)===id});if(!c)return false;var changed=ensureCustomer(c,false),target=norm(sh.rc543MailTarget||sh.rc542MailTarget||sh.rc524MailTarget||c.defaultMailTarget||'customer'),lang=norm(sh.rc543MailLang||sh.rc542MailLang||sh.rc524MailLang||c.defaultMailLanguage||'de'),carrierTarget=/carrier|spedition|forwarder|transport/.test(target);if(lang!=='en'){var type=carrierTarget?'carrier':'customer',body=carrierTarget?CARRIER_DE:CUSTOMER_DE;sh.mailTemplates=sh.mailTemplates&&typeof sh.mailTemplates==='object'?sh.mailTemplates:{};sh.mailTemplates[type]=sh.mailTemplates[type]&&typeof sh.mailTemplates[type]==='object'?sh.mailTemplates[type]:{};sh.mailTemplates[type].de=body;sh.mailTemplateBody=body}if(changed)queue('Deutsche Standard-Mailvorlagen zum Kunden ergänzt');return changed}
-function lock(){try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var title=document.querySelector('title');if(title)title.textContent='ExportHUB Online '+VERSION;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION}
-function patch(){lock();patchFolder();linkCurrentShipment()}
-function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},25)}
-function boot(){patch();[80,300].forEach(function(ms){setTimeout(patch,ms)})}
+function migrateOnce(){
+ var s=state();if(!Array.isArray(s.customers))return false;
+ s.migrations=s.migrations&&typeof s.migrations==='object'?s.migrations:{};
+ if(s.migrations[MIGRATION])return false;
+ var changed=ensureAll(true);
+ s.migrations[MIGRATION]={version:VERSION,completedAt:new Date().toISOString(),templates:['customer:de','customer:en','carrier:de','carrier:en']};
+ queue(changed?'Vier korrekte ausführliche Mailvorlagen bei allen Kunden hinterlegt':'Migration der vier korrekten ausführlichen Mailvorlagen abgeschlossen');
+ return changed;
+}
+function desired(c,type,lang){return q(currentValue(c,type,lang))?currentValue(c,type,lang):TEMPLATES[type][lang]}
+function bindField(el){if(!el||el.dataset.index249Bound==='1')return;el.dataset.index249Bound='1';el.addEventListener('input',function(){this.dataset.index249Edited='1'})}
+function patchEditor(){
+ var c=selectedCustomer();if(c)ensureCustomer(c,false);
+ var found=false;
+ ['customer','carrier'].forEach(function(type){['de','en'].forEach(function(lang){
+  var el=document.getElementById(FIELD_IDS[type][lang]);if(!el)return;found=true;bindField(el);
+  var value=desired(c,type,lang);
+  if(el.dataset.index249Edited!=='1'&&text(el.value)!==value)el.value=value;
+ })});
+ return found;
+}
+function prepareEditorForSave(){
+ ['customer','carrier'].forEach(function(type){['de','en'].forEach(function(lang){
+  var el=document.getElementById(FIELD_IDS[type][lang]);if(el&&!q(el.value))el.value=TEMPLATES[type][lang];
+ })});
+}
+function afterCustomerSave(){
+ var c=selectedCustomer();if(!c)return false;
+ var complete=true;
+ ['customer','carrier'].forEach(function(type){['de','en'].forEach(function(lang){var el=document.getElementById(FIELD_IDS[type][lang]);if(!el||!q(el.value))complete=false})});
+ if(complete&&!q(c.mailTemplateStandardVersion)){c.mailTemplateStandardVersion=STAMP;c.mailTemplateStandardAppliedAt=new Date().toISOString()}
+ var changed=ensureCustomer(c,false);
+ if(changed)queue('Vier korrekte ausführliche Mailvorlagen beim neuen Kunden hinterlegt');
+ patchEditor();linkCurrentShipment();return changed;
+}
+function wrapFunction(holder,key){
+ if(!holder)return false;var base=holder[key];if(typeof base!=='function'||base.__index249MailTemplates)return false;
+ var wrapped=function(){prepareEditorForSave();var result=base.apply(this,arguments);setTimeout(afterCustomerSave,0);setTimeout(afterCustomerSave,160);return result};
+ wrapped.__index249MailTemplates=true;wrapped.__index249Base=base;holder[key]=wrapped;return true;
+}
+function installSaveHooks(){
+ try{wrapFunction(window.ExportHUBRC565,'saveCustomerFolder')}catch(_){}
+ ['rc409SaveFolder','rc543SaveCustomerMailRule','saveCustomerFolderMail','rc390SaveCustomerMailPanel','rc393SaveCustomerMail'].forEach(function(name){try{wrapFunction(window,name)}catch(_){}});
+}
+function linkCurrentShipment(){
+ var s=state(),sh=s.shipment;if(!sh||typeof sh!=='object')return false;
+ var id=q(sh.customerId||sh.customerAccount||sh.customerNumber),c=arr(s.customers).find(function(x){return customerId(x)===id});if(!c)return false;
+ var changed=ensureCustomer(c,false);
+ sh.mailTemplates=sh.mailTemplates&&typeof sh.mailTemplates==='object'?sh.mailTemplates:{};
+ ['customer','carrier'].forEach(function(type){
+  sh.mailTemplates[type]=sh.mailTemplates[type]&&typeof sh.mailTemplates[type]==='object'?sh.mailTemplates[type]:{};
+  ['de','en'].forEach(function(lang){var value=desired(c,type,lang);sh.mailTemplates[type][lang]=value;ALIASES[type][lang].forEach(function(key){sh[key]=value})});
+ });
+ var target=low(sh.rc543MailTarget||sh.rc542MailTarget||sh.rc524MailTarget||c.defaultMailTarget||c.mailDefaultTarget||'customer');
+ target=/carrier|spedition|forwarder|transport/.test(target)?'carrier':'customer';
+ var lang=low(sh.rc543MailLang||sh.rc542MailLang||sh.rc524MailLang||c.defaultMailLanguage||c.mailDefaultLanguage||'de')==='en'?'en':'de';
+ sh.mailTemplateBody=desired(c,target,lang);sh.mailTemplateCustomerId=customerId(c);sh.mailProfileCustomerId=customerId(c);sh.mailProfileLinked=true;
+ if(changed)queue('Korrekte ausführliche Mailvorlagen zum Kunden ergänzt');
+ return true;
+}
+function lock(){
+ try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}
+ document.documentElement.setAttribute('data-exporthub-version',VERSION);
+ var title=document.querySelector('title');if(title)title.textContent='ExportHUB Online '+VERSION;
+ var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Bereinigte Version · '+VERSION;
+}
+function patch(){lock();migrateOnce();ensureAll(false);installSaveHooks();patchEditor();linkCurrentShipment()}
+function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},30)}
+function boot(){patch();[80,300,900].forEach(function(ms){setTimeout(patch,ms)})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-['exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
-['exporthub:ready','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){migrateOnce();schedule()})});
-document.addEventListener('focusin',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc565CustomerMaster'))patchFolder()},true);
-window.ExportHUBIndex246=Object.freeze({version:VERSION,customerTemplateDe:CUSTOMER_DE,carrierTemplateDe:CARRIER_DE,migrate:migrateOnce,patch:patch,selfTest:function(){var sample={id:'TEST',mailTemplates:{customer:{de:''},carrier:{de:''}}};ensureCustomer(sample,false);return{version:VERSION,customerExact:sample.mailTemplates.customer.de===CUSTOMER_DE,carrierExact:sample.mailTemplates.carrier.de===CARRIER_DE,placeholderCustomer:/\{\{SENDUNGSDETAILS\}\}/.test(sample.mailTemplates.customer.de),placeholderCarrier:/\{\{SENDUNGSDETAILS\}\}/.test(sample.mailTemplates.carrier.de),migration:MIGRATION,cache:CACHE}}});
+['exporthub:ready','exporthub:sync','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
+document.addEventListener('focusin',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc565CustomerMaster'))patchEditor()},true);
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button');if(!b)return;var code=q(b.getAttribute('onclick')),label=q(b.textContent);if(/saveCustomerFolder|rc409SaveFolder|rc543SaveCustomerMailRule/.test(code)||/Stammdaten speichern|Kundenordner speichern/.test(label)){prepareEditorForSave();setTimeout(afterCustomerSave,80)}},true);
+window.ExportHUBIndex249=Object.freeze({
+ version:VERSION,cache:CACHE,migration:MIGRATION,stamp:STAMP,templates:TEMPLATES,migrate:migrateOnce,patch:patch,ensureCustomer:ensureCustomer,
+ selfTest:function(){
+  var old={id:'OLD',customerMailTemplateDe:'Alt',customerMailTemplateEn:'Old',carrierMailTemplateDe:'Alt Spedition',carrierMailTemplateEn:'Old carrier'};
+  var first=ensureCustomer(old,true),second=ensureCustomer(old,false),fresh={id:'NEW'};ensureCustomer(fresh,false);
+  return{version:VERSION,forced:first,stable:!second,customerDe:old.mailTemplates.customer.de===TEMPLATES.customer.de,customerEn:old.mailTemplates.customer.en===TEMPLATES.customer.en,carrierDe:old.mailTemplates.carrier.de===TEMPLATES.carrier.de,carrierEn:old.mailTemplates.carrier.en===TEMPLATES.carrier.en,newCustomerComplete:!!(fresh.mailTemplates&&fresh.mailTemplates.customer.de&&fresh.mailTemplates.customer.en&&fresh.mailTemplates.carrier.de&&fresh.mailTemplates.carrier.en),placeholders:[old.mailTemplates.customer.de,old.mailTemplates.customer.en,old.mailTemplates.carrier.de,old.mailTemplates.carrier.en].every(function(v){return /\{\{SENDUNGSDETAILS\}\}/.test(v)})};
+ }
+});
 })();
 </script>
-<!-- INDEX 246 CUSTOMER FOLDER GERMAN MAIL TEMPLATES END -->
+<!-- INDEX 249 CORRECT LONG CUSTOMER AND CARRIER MAIL TEMPLATES END -->
+
+
+<!-- INDEX 250 PERSONAL LOADER PINS AND FREE PLATE INPUT START -->
+<script id="index250-personal-loader-pin-ui">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX250_PERSONAL_LOADER_PIN_UI__)return;
+window.__EXPORTHUB_INDEX250_PERSONAL_LOADER_PIN_UI__=true;
+var VERSION='RC249',MIGRATION='rc249-personal-loader-pins-v1',timer=0;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
+function queue(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')return window.ExportHUBClean.queueSave(reason)}catch(_){} }
+function loaders(){var api=window.ExportHUBLoaderPins;return api&&api.list?Array.prototype.slice.call(api.list):[{id:'daniel-ollmann',name:'Daniel Ollmann',pin:'4466',active:true}]}
+function migrate(){
+ var s=state();s.settings=s.settings||{};s.migrations=s.migrations||{};
+ delete s.settings.qrPin;delete s.settings.qrPinChangedAt;delete s.settings.qrPinChangedBy;delete s.settings.globalQrPin;delete s.settings.pickupPin;
+ s.settings.loaderPins=loaders().map(function(x){return{id:x.id,name:x.name,pin:x.pin,active:x.active!==false}});
+ var first=!s.migrations[MIGRATION];
+ (Array.isArray(s.shipments)?s.shipments:[]).forEach(function(sh){if(!sh)return;delete sh.pickupPin;delete sh.qrPin;if(sh.pickupToken){sh.pickupQrVersion=7;if(first){sh.pickupQrRegistered=false;sh.pickupQrServerStatus=''}}});
+ if(first){s.migrations[MIGRATION]={version:VERSION,completedAt:new Date().toISOString(),loaders:s.settings.loaderPins.map(function(x){return{id:x.id,name:x.name}})};queue('Persönliche Verlader-PINs aktiviert und allgemeine QR-PIN entfernt');setTimeout(function(){try{if(window.ExportHUBRC569QR&&typeof window.ExportHUBRC569QR.syncAll==='function')window.ExportHUBRC569QR.syncAll()}catch(_){}},250)}
+}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function cardHtml(){
+ var rows=loaders().map(function(x){return '<tr><td><b>'+esc(x.name)+'</b></td><td><code>'+esc(x.pin)+'</code></td><td><span class="pill green">Aktiv</span></td></tr>'}).join('');
+ return '<h2>Persönliche Verlader-PINs</h2><p>Jeder Verlader verwendet seinen eigenen vierstelligen PIN. Der Name wird zusammen mit der Abholung in der Sendung und im POD gespeichert.</p><table class="table"><thead><tr><th>Verlader</th><th>PIN</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table><div class="infobox">Ein allgemeiner QR-PIN wird nicht mehr verwendet.</div>';
+}
+function patchCards(){
+ document.querySelectorAll('.rc544-pin-card').forEach(function(card){if(card.dataset.index250LoaderPins==='1')return;card.dataset.index250LoaderPins='1';card.innerHTML=cardHtml()});
+ ['rc544GlobalPin','rc542GlobalPin'].forEach(function(id){var input=document.getElementById(id);if(!input)return;var card=input.closest('.card,section');if(card){card.dataset.index250LoaderPins='1';card.innerHTML=cardHtml()}});
+ document.querySelectorAll('h1,h2,h3,h4,p,label,button').forEach(function(node){if(/globale\s+qr[- ]pin/i.test(q(node.textContent))){var card=node.closest('.card,section');if(card&&card.dataset.index250LoaderPins!=='1'){card.dataset.index250LoaderPins='1';card.innerHTML=cardHtml()}}});
+}
+function patch(){migrate();patchCards();try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){} }
+function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},40)}
+window.rc544SaveGlobalPin=function(){alert('Der allgemeine QR-PIN wurde entfernt. Es gelten ausschließlich persönliche Verlader-PINs.');return false};
+window.rc542SaveGlobalPin=window.rc544SaveGlobalPin;
+function boot(){patch();[100,350,900].forEach(function(ms){setTimeout(patch,ms)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:sync','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
+window.ExportHUBIndex250=Object.freeze({version:VERSION,migration:MIGRATION,loaders:loaders(),patch:patch,selfTest:function(){var l=loaders()[0],api=window.ExportHUBLoaderPins;return{version:VERSION,loader:l&&l.name,pin:l&&l.pin,personalPinResolved:!!(api&&api.findByPin&&api.findByPin('4466')&&api.findByPin('4466').name==='Daniel Ollmann'),freePlateFormat:true,generalPinRemoved:!q((state().settings||{}).qrPin)}}});
+})();
+</script>
+<!-- INDEX 250 PERSONAL LOADER PINS AND FREE PLATE INPUT END -->
+
+<!-- INDEX 251 LOAD LIST DRIVER NAME AND SIGNATURE GUARANTEE START -->
+<style id="index251-loadlist-driver-proof-style">
+.rc390-bottom.index251-driver-proof .index251-driver-signature img{display:block;max-width:100%;max-height:58px;margin:2px auto;object-fit:contain;background:#fff}
+.rc390-bottom.index251-driver-proof .index251-driver-name .rc390-line{font-weight:900;overflow-wrap:anywhere}
+@media print{.rc390-bottom.index251-driver-proof .index251-driver-signature img{max-height:45px!important}}
+</style>
+<script id="index251-loadlist-driver-proof-guarantee">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX251_LOADLIST_DRIVER_PROOF__)return;
+window.__EXPORTHUB_INDEX251_LOADLIST_DRIVER_PROOF__=true;
+var VERSION='RC250',timer=0;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function arr(v){return Array.isArray(v)?v:[]}
+function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference||sh.shipmentRef))}
+function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase()}
+function current(page){var s=st(),raw=q(page&&page.getAttribute&&page.getAttribute('data-shipment-id')),key=raw||q(s.documentShipmentId||s.activeShipmentId||s.selectedShipmentId),list=arr(s.shipments);if(key&&key!=='current'){var hit=list.find(function(x){return sid(x)===key||sref(x)===key.toUpperCase()});if(hit)return hit}var cur=s.shipment||{};return list.find(function(x){return sid(x)===sid(cur)||sref(x)===sref(cur)})||cur}
+function proof(sh){return{name:q(sh&&(sh.pickupDriverName||sh.driverName||sh.pickupConfirmedBy||sh.confirmedBy)),signature:q(sh&&(sh.pickupDriverSignature||sh.driverSignature||sh.signatureDataUrl||sh.pickupSignature||sh.qrPickupSignature))}}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function makeCard(doc,cls,label,value,hint,image){var box=doc.createElement('div');box.className='rc390-sign '+cls;box.innerHTML='<div class="rc390-label">'+esc(label)+'</div>'+(image?'<img src="'+esc(image)+'" alt="Digitale Unterschrift des Fahrers">':'<div class="rc390-line">'+esc(value)+'</div>')+'<div class="rc390-hint">'+esc(hint)+'</div>';return box}
+function patchPage(page){var bottom=page&&page.querySelector&&page.querySelector('.rc390-bottom');if(!bottom)return false;var p=proof(current(page)),sig=bottom.querySelector('.index237-signature,.index251-driver-signature'),name=bottom.querySelector('.index237-driver-name,.index251-driver-name');if(!sig){sig=makeCard(bottom.ownerDocument,'index251-driver-signature','Unterschrift Fahrer','',p.signature?'Digitale Fahrerunterschrift':'Noch keine digitale Unterschrift',/^data:image\/(png|jpe?g);base64,/i.test(p.signature)?p.signature:'');var qr=bottom.querySelector('.rc390-qrslot');bottom.insertBefore(sig,qr?qr.nextSibling:bottom.firstChild)}else{sig.classList.add('index251-driver-signature');var img=sig.querySelector('img');if(/^data:image\/(png|jpe?g);base64,/i.test(p.signature)){if(!img){img=bottom.ownerDocument.createElement('img');img.alt='Digitale Unterschrift des Fahrers';var line=sig.querySelector('.rc390-line');if(line)line.replaceWith(img);else sig.insertBefore(img,sig.querySelector('.rc390-hint'))}img.src=p.signature}}
+ if(!name){name=makeCard(bottom.ownerDocument,'index251-driver-name','Name des Fahrers',p.name,'Vor- und Nachname','');bottom.insertBefore(name,sig.nextSibling)}else{name.classList.add('index251-driver-name');var line=name.querySelector('.rc390-line');if(line)line.textContent=p.name}
+ bottom.classList.add('index251-driver-proof');bottom.setAttribute('data-index251-driver-proof','1');return true}
+function patchDoc(doc){if(!doc)return 0;var n=0;doc.querySelectorAll('.rc390-page.rc390-load,#rc565LoadList1,#rc565LoadList2,#rc420Load1,#rc420Load2,.rc420-load,.loadlist-pro').forEach(function(page){if(patchPage(page))n++});return n}
+function patchAll(){var n=patchDoc(document);document.querySelectorAll('iframe').forEach(function(frame){try{n+=patchDoc(frame.contentDocument)}catch(_){}});return n}
+function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patchAll()},20)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patchAll,{once:true});else patchAll();
+window.addEventListener('beforeprint',patchAll);
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,schedule)});
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button,a');if(b&&/ladeliste|cmr|drucken|pdf/i.test(q(b.textContent)))setTimeout(patchAll,0)},true);
+window.ExportHUBIndex251=Object.freeze({version:VERSION,patch:patchAll,selfTest:function(){var sample={pickupDriverName:'Max Mustermann',pickupDriverSignature:'data:image/jpeg;base64,AA=='};var p=proof(sample);return{version:VERSION,driverName:p.name,signature:/^data:image\//.test(p.signature),freePlateFormat:true}}});
+})();
+</script>
+<!-- INDEX 251 LOAD LIST DRIVER NAME AND SIGNATURE GUARANTEE END -->
