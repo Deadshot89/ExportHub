@@ -68,6 +68,11 @@ function randomHex(n) { return crypto.randomBytes(Math.max(8, n || 16)).toString
 function recordBlobName(token) { return recordsPrefix() + q(token).toLowerCase() + '.json'; }
 function signatureBlobName(token) { return signaturesPrefix() + q(token).toLowerCase() + '-' + Date.now() + '.png'; }
 
+async function recordBlob(records, token) {
+  const c = records && typeof records.getBlobClient === 'function' ? records : await containerClient();
+  return c.getBlobClient(recordBlobName(token));
+}
+
 async function getBlob(name) {
   const c = await containerClient();
   return c.getBlobClient(name);
@@ -236,6 +241,7 @@ module.exports = {
   expired: expired,
   randomHex: randomHex,
   recordBlobName: recordBlobName,
+  recordBlob: recordBlob,
   signatureBlobName: signatureBlobName,
   readJson: readJson,
   writeJson: writeJson,
