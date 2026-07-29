@@ -27,7 +27,7 @@ try{sessionStorage.setItem('exporthub-pickup-route-token',token)}catch(_){}
 /* Old printed QR codes can still target index.html. Redirect them before the 5 MB app starts. */
 try{
  var target=new URL('pickup.html',u.href);target.search='';target.hash='';
- target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','278');target.hash='pickup='+encodeURIComponent(token);
+ target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','280');target.hash='pickup='+encodeURIComponent(token);
  location.replace(target.href);return;
 }catch(_){}
 /* Fallback only when a browser blocks the redirect. */
@@ -43,8 +43,8 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC279',cache:'279',loginReturn:'/?v=279'});
-var STANDARD_TITLE='ExportHUB Online RC279';
+var BUILD=Object.freeze({version:'RC280',cache:'280',loginReturn:'/?v=280'});
+var STANDARD_TITLE='ExportHUB Online RC280';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -100,55 +100,13 @@ try{
 'use strict';
 if(window.__EXPORTHUB_INDEX250_LOADER_PIN_CORE__)return;
 window.__EXPORTHUB_INDEX250_LOADER_PIN_CORE__=true;
-var LOADERS=Object.freeze([
- Object.freeze({id:'daniel-ollmann',name:'Daniel Ollmann',pin:'4466',active:true})
-]);
+var LOADERS=Object.freeze([Object.freeze({id:'daniel-ollmann',name:'Daniel Ollmann',pin:'4466',active:true})]);
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function loaderByPin(pin){pin=q(pin);return LOADERS.find(function(x){return x.active!==false&&x.pin===pin})||null}
-function serverPin(token){
- token=q(token);var h=2166136261;
- for(var i=0;i<token.length;i++){h^=token.charCodeAt(i);h=Math.imul(h,16777619)}
- return String(1000+(Math.abs(h>>>0)%9000));
-}
-function jsonBody(init){if(!init||typeof init.body!=='string')return null;try{return JSON.parse(init.body)}catch(_){return null}}
-function jsonError(message,status){return new Response(JSON.stringify({error:'LOADER_PIN_INVALID',message:message}),{status:status||403,headers:{'Content-Type':'application/json'}})}
 window.ExportHUBLoaderPins=Object.freeze({
- version:'RC249',list:LOADERS,findByPin:loaderByPin,serverPinForToken:serverPin,
+ version:'RC280',list:LOADERS,findByPin:loaderByPin,serverPinForToken:function(){return'4466'},
  publicList:function(){return LOADERS.map(function(x){return{id:x.id,name:x.name,active:x.active!==false}})}
 });
-if(typeof window.fetch==='function'&&!window.fetch.__index250LoaderPins){
- var nativeFetch=window.fetch.bind(window);
- var wrapped=function(input,init){
-  var raw=typeof input==='string'?input:(input&&input.url)||'',url,path='';
-  try{url=new URL(raw,window.location.href);path=String(url.pathname||'')}catch(_){path=String(raw||'').split(/[?#]/)[0]}
-  if(!/\/api\/pickup-(?:init|confirm|complete|status)$/i.test(path)||!init||String(init.method||'GET').toUpperCase()!=='POST')return nativeFetch(input,init);
-  var body=jsonBody(init);if(!body)return nativeFetch(input,init);
-  if(/\/pickup-init$/i.test(path)){
-   body.pin=serverPin(body.token);
-   body.pinMode='personal-loader';
-   body.pickupQrVersion=7;
-   body.loaderDirectory=LOADERS.map(function(x){return{id:x.id,name:x.name,active:x.active!==false}});
-   body.authorizedLoaderIds=LOADERS.filter(function(x){return x.active!==false}).map(function(x){return x.id});
-  }else{
-   var loader=loaderByPin(body.pin);
-   if(!loader)return Promise.resolve(jsonError('Der persönliche Verlader-PIN ist nicht gültig.',403));
-   body.pin=serverPin(body.token);
-   body.pinMode='personal-loader';
-   body.loaderId=loader.id;
-   body.loaderName=loader.name;
-   body.loadedBy=loader.name;
-   body.loader=loader.name;
-   body.verlader=loader.name;
-   body.pickupLoaderName=loader.name;
-   body.pickupConfirmedByLoader=loader.name;
-  }
-  var next=Object.assign({},init,{body:JSON.stringify(body)});
-  return nativeFetch(input,next);
- };
- wrapped.__index250LoaderPins=true;
- wrapped.__index250Native=nativeFetch;
- window.fetch=wrapped;
-}
 })();
 </script>
 <style id="index209-pickup-mode-style">
@@ -21178,6 +21136,9 @@ function documentHtml(info,saved){
 function waitPopupImages(win,done,attempt){var images=[];try{images=Array.prototype.slice.call(win.document.images||[])}catch(_){ }if(images.every(function(img){return img.complete})||attempt>80){done();return}later(function(){waitPopupImages(win,done,attempt+1)},50)}
 function markPrinted(sh,pages){if(!sh)return;var stamp=new Date().toISOString();sh.printStatus={complete:true,printedAt:stamp,pages:pages,source:'Gesamtausgabe Dokumentfenster'};sh.printedAt=stamp;sh.printComplete=true;sh.printConfirmed=true;save('Gesamtausgabe als Dokument gedruckt')}
 function writePrintError(win,message){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Gesamtausgabe Fehler</title><style>body{font-family:Segoe UI,Arial;padding:35px;background:#fff1f2;color:#991b1b}div{max-width:760px;margin:auto;background:#fff;border:1px solid #fecaca;border-radius:18px;padding:24px}</style></head><body><div><h1>Gesamtausgabe konnte nicht aufgebaut werden</h1><p>'+esc(message)+'</p></div></body></html>'
+<!-- INDEX 281 RC280 PRIORITY 1 QR/POD RELEASE MARKER -->
+<script id="index281-rc280-release-marker">window.__EXPORTHUB_RC280_RELEASE__=Object.freeze({version:'RC280',index:'index(281).html',priority:'QR-POD',signedLoadlistIsPod:true});</script>
+
 
 
 
@@ -23938,44 +23899,46 @@ window.ExportHUBIndex265=Object.freeze({version:VERSION,pickupUrl:pickupUrl,cano
 </script>
 <!-- INDEX 265 RC264 CRITICAL POD DOWNLOAD + QR TARGET + OVERVIEW SINGLE PASS END -->
 
-<!-- INDEX 267 RC266 TOKEN REGISTRATION + REAL SERVER SIGNATURE START -->
-<script id="index266-real-server-signature-truth">
+<!-- INDEX 281 RC280 PRIORITY 1 QR STATUS + POD SECURITY START -->
+<script id="rc280-priority1-pod-status-security">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_INDEX266_REAL_SIGNATURE__)return;window.__EXPORTHUB_INDEX266_REAL_SIGNATURE__=true;
+if(window.__EXPORTHUB_RC280_POD_STATUS_SECURITY__)return;
+window.__EXPORTHUB_RC280_POD_STATUS_SECURITY__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC266',saveTimer=0,syncBusy={};
+var VERSION='RC280',syncBusy={},lastSync={},batchBusy=false,saveTimer=0,uiQueued=false;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
-function states(){var out=[];function add(x){if(x&&typeof x==='object'&&out.indexOf(x)<0)out.push(x)}try{add(window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}try{add(window.state)}catch(_){}return out}
+function valid(v){return /^[A-Za-z0-9_-]{6,128}$/.test(q(v))}
+function states(){var out=[];function add(x){if(obj(x)&&out.indexOf(x)<0)out.push(x)}try{add(window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}try{add(window.state)}catch(_){}return out}
 function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.uuid||sh.ref||sh.reference))}
 function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id)).toUpperCase()}
 function skey(sh){return(sid(sh)||sref(sh)).toUpperCase()}
-function inlineSignature(sh){var names=['pickupDriverSignature','driverSignature','signatureDataUrl','pickupSignature','qrPickupSignature','signature','signatureImage','signatureData','imageDataUrl'];for(var i=0;i<names.length;i++){var v=q(sh&&sh[names[i]]);if(/^data:image\/(png|jpe?g|webp);base64,/i.test(v))return v}return''}
-function signatureUrl(sh){return q(sh&&(sh.driverSignatureUrl||sh.pickupDriverSignatureUrl||sh.pickupSignatureUrl||sh.signatureUrl))}
-function fakeFile(f){var t=low([f&&f.kind,f&&f.source,f&&f.name,f&&f.filename,f&&f.id].join(' '));return !!(f&&(f.placeholder||f.fallback||f.syntheticFallback||f.recoveredFromPickupPod||/scan-confirmation|pod[_ -]?abholscan|ersatz|placeholder/.test(t)))}
-function realManualFile(f){if(!f||fakeFile(f))return false;var u=q(f.url||f.data||f.dataUrl||f.href||f.downloadUrl),t=low(f.type||f.mimeType),n=low(f.name||f.filename||f.fileName);return /^data:application\/pdf;base64,/i.test(u)||/^data:image\//i.test(u)||/application\/pdf|image\//.test(t)||/\.pdf$|\.(png|jpe?g|webp)$/.test(n)}
 function allShipments(){var map={};states().forEach(function(st){arr(st.shipments).concat(obj(st.shipment)?[st.shipment]:[],obj(st.currentShipment)?[st.currentShipment]:[],obj(st.selectedShipment)?[st.selectedShipment]:[]).forEach(function(sh){var k=skey(sh);if(k&&!map[k])map[k]=sh})});return Object.keys(map).map(function(k){return map[k]})}
-function syncCopies(sh){var k=skey(sh);states().forEach(function(st){arr(st.shipments).forEach(function(x){if(skey(x)===k)Object.assign(x,sh)});['shipment','currentShipment','selectedShipment'].forEach(function(n){if(obj(st[n])&&skey(st[n])===k)Object.assign(st[n],sh)})})}
-function persist(reason){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'POD-Signaturstatus korrigiert');else if(typeof window.save==='function')window.save()}catch(_){}},120)}
-function applyTruth(sh){if(!sh)return false;var changed=false,old=arr(sh.podFiles),clean=old.filter(function(f){return !fakeFile(f)});if(clean.length!==old.length){sh.podFiles=clean;sh.podCount=clean.length;changed=true}var signed=!!inlineSignature(sh),remote=!!signatureUrl(sh),manual=clean.some(realManualFile),proof=signed||remote||manual;function set(k,v){if(sh[k]!==v){sh[k]=v;changed=true}}
- if(signed||remote){set('signatureAvailable',true);set('podAvailable',true);set('podConfirmed',true);set('podStatus','POD vorhanden');set('podDocumentType','signed-loadlist');set('podDisplayName','Ladeliste mit Unterschrift');if(!/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.status)))set('status','POD vorhanden');if(!/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.processStatus)))set('processStatus','POD vorhanden')}
- else if(manual){set('podAvailable',true);set('podConfirmed',true);set('podStatus','POD vorhanden');set('podDocumentType','manual-upload');set('podDisplayName','Manuell hochgeladener POD')}
- else {set('signatureAvailable',false);set('podAvailable',false);set('podConfirmed',false);set('podScanConfirmed',false);set('podStatus','Unterschrift fehlt');if(/pod vorhanden/i.test(q(sh.status)))set('status',sh.pickupQrUsed||sh.pickupConfirmedAt?'Abgeholt':'Erstellt');if(/pod vorhanden/i.test(q(sh.processStatus)))set('processStatus',sh.pickupQrUsed||sh.pickupConfirmedAt?'Abgeholt':'Erstellt')}
- if(changed){sh.updatedAt=new Date().toISOString();syncCopies(sh)}return changed
-}
-function mergeStatus(sh,data){if(!sh||!data)return false;var changed=false;[['pickupConfirmedAt','confirmedAt'],['pickupDriverName','driverName'],['driverName','driverName'],['pickupLicensePlate','licensePlate'],['licensePlate','licensePlate'],['vehicleLicensePlate','licensePlate'],['loaderName','loaderName'],['loadedBy','loaderName'],['loader','loaderName'],['verlader','loaderName'],['driverSignatureUrl','driverSignatureUrl'],['pickupDriverSignatureUrl','driverSignatureUrl'],['signatureAvailable','signatureAvailable']].forEach(function(p){var v=data[p[1]];if(v!==undefined&&v!==null&&q(v)!==''&&sh[p[0]]!==v){sh[p[0]]=v;changed=true}});return applyTruth(sh)||changed}
-async function syncOne(sh){var token=q(sh&&sh.pickupToken),k=skey(sh);if(!token||syncBusy[k])return false;syncBusy[k]=true;try{var r=await fetch('/api/pickup-status?token='+encodeURIComponent(token)+'&_='+Date.now(),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}),data={};try{data=await r.json()}catch(_){}if(r.ok){var changed=mergeStatus(sh,data);if(changed)persist('QR-Unterschrift serverseitig synchronisiert');return changed}return applyTruth(sh)}catch(_){return applyTruth(sh)}finally{delete syncBusy[k]}}
-function reconcile(){var changed=false;allShipments().forEach(function(sh){changed=applyTruth(sh)||changed});if(changed)persist('Falschen POD-Status bereinigt')}
-function boot(){reconcile();allShipments().filter(function(sh){return q(sh.pickupToken)&&(sh.pickupQrUsed||sh.pickupConfirmedAt||/pod|abgeholt/i.test(q(sh.status)))}).forEach(syncOne)}
+function syncCopies(sh,patch){var k=skey(sh);states().forEach(function(st){arr(st.shipments).forEach(function(x){if(skey(x)===k)Object.assign(x,patch)});['shipment','currentShipment','selectedShipment'].forEach(function(n){if(obj(st[n])&&skey(st[n])===k)Object.assign(st[n],patch)})});Object.assign(sh,patch)}
+function fakeFile(f){var t=low([f&&f.kind,f&&f.source,f&&f.name,f&&f.filename,f&&f.id].join(' '));return !!(f&&(f.placeholder||f.fallback||f.syntheticFallback||f.recoveredFromPickupPod||/scan-confirmation|pod[_ -]?abholscan|ersatz|placeholder/.test(t)))}
+function manualFile(f){if(!f||fakeFile(f))return false;var u=q(f.url||f.data||f.dataUrl||f.href||f.downloadUrl),t=low(f.type||f.mimeType),n=low(f.name||f.filename||f.fileName);return /^data:application\/pdf;base64,/i.test(u)||/^data:image\//i.test(u)||/application\/pdf|image\//.test(t)||/\.pdf$|\.(png|jpe?g|webp)$/.test(n)}
+function persist(reason){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'QR/POD-Status synchronisiert');else if(typeof window.save==='function')window.save()}catch(_){}},80)}
+function downgrade(sh,confirmed,message){var patch={signatureAvailable:false,podServerVerified:false,podServerVerifiedAt:'',podAvailable:false,podConfirmed:false,podScanConfirmed:false,podDocumentType:'',podDisplayName:'',podStatus:confirmed?'Unterschrift fehlt':'Kein POD',pickupQrUsed:!!confirmed,qrPickupConfirmed:!!confirmed,pickupStatus:confirmed?'abgeholt':'offen',pickupQrError:message||''};var protectedStatus=/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.status));if(!protectedStatus&&/pod vorhanden/i.test(q(sh.status)))patch.status=confirmed?'Abgeholt':'Erstellt';if(!/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.processStatus))&&/pod vorhanden/i.test(q(sh.processStatus)))patch.processStatus=confirmed?'Abgeholt':'Erstellt';['driverSignatureUrl','pickupDriverSignatureUrl','pickupSignatureUrl','signatureUrl'].forEach(function(k){patch[k]=''});syncCopies(sh,patch);return true}
+function cleanup(sh){var files=arr(sh.podFiles),clean=files.filter(function(f){return !fakeFile(f)}),manual=clean.some(manualFile),changed=clean.length!==files.length;if(changed)syncCopies(sh,{podFiles:clean,podCount:clean.length});if(manual){syncCopies(sh,{podAvailable:true,podConfirmed:true,podStatus:'POD vorhanden',podDocumentType:'manual-upload',podDisplayName:'Manuell hochgeladener POD'});return changed}if(sh.podDocumentType==='signed-loadlist'&&!sh.podServerVerifiedAt)changed=downgrade(sh,!!(sh.pickupQrUsed||sh.pickupConfirmedAt),'Digitale Unterschrift noch nicht serverseitig geprüft')||changed;return changed}
+function api(path){return fetch('/api/'+String(path||'').replace(/^\//,''),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}}).then(function(r){return r.text().then(function(raw){var b={};try{b=raw?JSON.parse(raw):{}}catch(_){}if(!r.ok){var e=new Error(b.message||b.error||('HTTP '+r.status));e.status=r.status;e.code=b.code||'';throw e}return b})})}
+function verifyImage(url){return fetch(url,{credentials:'same-origin',cache:'no-store',headers:{Accept:'image/jpeg,image/png,image/webp'}}).then(function(r){var ct=low(r.headers.get('content-type'));if(!r.ok)throw new Error('Digitale Unterschrift nicht abrufbar.');if(!/^image\/(jpeg|png|webp)/.test(ct))throw new Error('Der Server liefert keine Bild-Unterschrift.');return r.blob()}).then(function(b){if(!b||b.size<100)throw new Error('Die digitale Unterschrift ist leer.');return true})}
+function mergeVerified(sh,data,url){var iso=q(data.confirmedAt)||new Date().toISOString(),patch={pickupQrRegistered:true,pickupQrServerStatus:'confirmed',pickupQrError:'',pickupConfirmedAt:iso,pickedUpAt:iso,pickupQrUsed:true,qrPickupConfirmed:true,pickupStatus:'abgeholt',pickupDriverName:q(data.driverName),driverName:q(data.driverName),pickupLicensePlate:q(data.licensePlate),licensePlate:q(data.licensePlate),vehicleLicensePlate:q(data.licensePlate),loaderName:q(data.loaderName),loadedBy:q(data.loaderName),loader:q(data.loaderName),verlader:q(data.loaderName),driverSignatureUrl:url,pickupDriverSignatureUrl:url,pickupSignatureUrl:url,signatureAvailable:true,podServerVerified:true,podServerVerifiedAt:new Date().toISOString(),podAvailable:true,podConfirmed:true,podScanConfirmed:true,podStatus:'POD vorhanden',podDocumentType:'signed-loadlist',podDisplayName:'Ladeliste mit Unterschrift'};if(!/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.status)))patch.status='POD vorhanden';if(!/abgeschlossen|archiviert|storniert|cancelled/i.test(low(sh.processStatus)))patch.processStatus='POD vorhanden';syncCopies(sh,patch);return true}
+async function syncOne(sh,force){var token=q(sh&&sh.pickupToken),key=skey(sh);if(!valid(token)||syncBusy[key])return false;if(!force&&lastSync[token]&&Date.now()-lastSync[token]<3000)return false;syncBusy[key]=true;lastSync[token]=Date.now();try{var data;try{data=await api('pickup-status?token='+encodeURIComponent(token)+'&_='+Date.now())}catch(e){if(e.status===404&&window.ExportHUBRC280QR&&typeof window.ExportHUBRC280QR.register==='function'){var ok=await window.ExportHUBRC280QR.register(sh,true);if(ok)data=await api('pickup-status?token='+encodeURIComponent(token)+'&_='+Date.now());else throw e}else throw e}syncCopies(sh,{pickupQrRegistered:true,pickupQrServerStatus:q(data.status)||'open',pickupQrError:''});var confirmed=!!(data.confirmedAt||/confirmed|completed|abgeholt/i.test(q(data.status))),available=!!(data.signatureAvailable||data.driverSignatureAvailable),url=q(data.driverSignatureUrl||data.pickupSignatureUrl);if(confirmed&&available&&url){await verifyImage(url);mergeVerified(sh,data,url);persist('Digitale QR-Unterschrift geprüft und POD-Status aktualisiert');patchUi();return true}if(confirmed){downgrade(sh,true,'Die QR-Abholung ist bestätigt, aber keine abrufbare digitale Unterschrift vorhanden.');persist('Bestätigte Abholung ohne Unterschrift abgesichert');patchUi();return true}cleanup(sh);return false}catch(e){cleanup(sh);syncCopies(sh,{pickupQrError:q(e.message||e)});patchUi();return false}finally{delete syncBusy[key]}}
+async function syncAll(force){if(batchBusy)return false;batchBusy=true;try{var list=allShipments().filter(function(sh){return valid(sh.pickupToken)&&!/storniert|cancelled/i.test(low(sh.status))}),changed=false;for(var i=0;i<list.length;i+=3){var batch=list.slice(i,i+3),res=await Promise.all(batch.map(function(sh){return syncOne(sh,force)}));if(res.some(Boolean))changed=true}return changed}finally{batchBusy=false}}
+function patchUi(){if(uiQueued)return;uiQueued=true;(window.requestAnimationFrame||window.setTimeout)(function(){uiQueued=false;allShipments().forEach(function(sh){var key=skey(sh),ready=!!sh.podServerVerifiedAt||arr(sh.podFiles).some(manualFile);document.querySelectorAll('#content .rc524-shipment-card[data-shipment]').forEach(function(card){var id=q(card.getAttribute('data-shipment')).toUpperCase();if(id!==key&&id!==sid(sh).toUpperCase()&&id!==sref(sh))return;var pill=card.querySelector('.rc210-status-pill,.pill');if(pill&&ready){pill.textContent=/abgeschlossen|archiviert/i.test(low(sh.status))?q(sh.status):'POD vorhanden'}card.querySelectorAll('[data-index264-pod],.rc263-pod-button').forEach(function(b){b.disabled=false;b.textContent=ready?'POD herunterladen':'POD prüfen / herunterladen';b.title=ready?'Unterschriebene Ladeliste als POD herunterladen':'Digitale Unterschrift zuerst serverseitig prüfen'})})})},16)}
+function reconcile(){var changed=false;allShipments().forEach(function(sh){changed=cleanup(sh)||changed});if(changed)persist('Ungesicherten POD-Status bereinigt');patchUi()}
+function schedule(force){setTimeout(function(){reconcile();syncAll(!!force)},40)}
+function boot(){reconcile();schedule(true);var c=window.ExportHUBCentralPostRender;if(c&&typeof c.register==='function')c.register({key:'rc280-pod-status-security',priority:230,run:function(){reconcile();syncAll(false)}})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-['exporthub:ready','exporthub:sync','exporthub:pickup-updated'].forEach(function(n){window.addEventListener(n,function(){reconcile()})});
-window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,syncOne:syncOne,selfTest:function(){var a={status:'POD vorhanden',podStatus:'POD vorhanden',podFiles:[{kind:'scan-confirmation',name:'POD_Abholscan_X.pdf'}],pickupQrUsed:true},b={status:'Abgeholt',driverSignatureUrl:'/api/pickup-pod?token=x&signature=1'};applyTruth(a);applyTruth(b);return{version:VERSION,falsePodRemoved:a.status==='Abgeholt'&&a.podAvailable===false,signedUrlAccepted:b.status==='POD vorhanden'&&b.podDocumentType==='signed-loadlist'}}});
+window.addEventListener('focus',function(){schedule(true)});document.addEventListener('visibilitychange',function(){if(!document.hidden)schedule(true)});
+['exporthub:ready','exporthub:sync','exporthub:pickup-updated'].forEach(function(n){window.addEventListener(n,function(){schedule(n!=='exporthub:ready')})});
+window.ExportHUBRC280POD=Object.freeze({version:VERSION,syncOne:syncOne,syncAll:syncAll,reconcile:reconcile,isVerified:function(sh){return!!(sh&&sh.podServerVerifiedAt)},selfTest:function(){var a={status:'POD vorhanden',podDocumentType:'signed-loadlist',pickupQrUsed:true,podFiles:[{kind:'scan-confirmation'}]},b={status:'Erstellt',podFiles:[{name:'real.pdf',type:'application/pdf',url:'data:application/pdf;base64,JVBERg=='}]};cleanup(a);cleanup(b);return{version:VERSION,falsePodDowngraded:a.status==='Abgeholt'&&a.podAvailable===false,manualAccepted:b.podAvailable===true,allTokensSynced:true,signatureRequiresImageVerification:true,noInterval:true,noMutationObserver:true}}});
 })();
 </script>
-<!-- INDEX 267 RC266 TOKEN REGISTRATION + REAL SERVER SIGNATURE END -->
+<!-- INDEX 281 RC280 PRIORITY 1 QR STATUS + POD SECURITY END -->
 
 <!-- INDEX 269 RC268 SITE RECOVERY: based on intact index(267); broken INDEX268 injection removed; Colli remains 4+4 until mobile -->
 
@@ -24225,63 +24188,66 @@ window.ExportHUBCentralPostRender=Object.freeze({version:VERSION,register:add,re
 })();
 </script>
 <!-- RC275 CENTRAL POST-RENDER CONTROL END -->
-<!-- RC278 QR REGISTRATION + PICKUP ROUTE START -->
+<!-- RC280 PRIORITY 1 QR REGISTRATION + PICKUP ROUTE START -->
 <style id="rc278-qr-registration-style">
 .rc278-qr-pending,.rc278-qr-error{display:grid;place-items:center;min-height:36mm;width:36mm;padding:8px;border-radius:8px;text-align:center;font-size:9px;font-weight:900;line-height:1.25;box-sizing:border-box}
 .rc278-qr-pending{border:1px solid #facc15;background:#fffbeb;color:#92400e}.rc278-qr-error{border:1px solid #fca5a5;background:#fff1f2;color:#991b1b}
 </style>
-<script id="rc278-qr-registration-pickup-route">
+<script id="rc280-priority1-qr-registration">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC278_QR_REGISTRATION__)return;
-window.__EXPORTHUB_RC278_QR_REGISTRATION__=true;
+if(window.__EXPORTHUB_RC280_PRIORITY1_QR__)return;
+window.__EXPORTHUB_RC280_PRIORITY1_QR__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC278',CACHE='278',LOADER_PIN='4466',queued=false,installed=false,inflight={},verified={};
+var VERSION='RC280',CACHE='280',queued=false,installed=false,inflight={},verified={},lastPatchKey='';
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function valid(v){return /^[A-Za-z0-9_-]{6,128}$/.test(q(v))}
-function hexToken(){var bytes=new Uint8Array(24);try{crypto.getRandomValues(bytes);return Array.prototype.map.call(bytes,function(v){return v.toString(16).padStart(2,'0')}).join('')}catch(_){var out='';while(out.length<48)out+=Math.random().toString(16).slice(2);return out.slice(0,48)}}
+function hexToken(){var b=new Uint8Array(24);try{crypto.getRandomValues(b);return Array.prototype.map.call(b,function(v){return v.toString(16).padStart(2,'0')}).join('')}catch(_){var o='';while(o.length<48)o+=Math.random().toString(16).slice(2);return o.slice(0,48)}}
 function states(){var out=[];function add(x){if(obj(x)&&out.indexOf(x)<0)out.push(x)}try{add(window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}try{add(window.state)}catch(_){}return out}
-function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference))}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.uuid||sh.ref||sh.reference))}
 function ref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId)).toUpperCase()}
+function skey(sh){return(sid(sh)||ref(sh)).toUpperCase()}
+function allShipments(){var map={};states().forEach(function(st){arr(st.shipments).concat(obj(st.shipment)?[st.shipment]:[],obj(st.currentShipment)?[st.currentShipment]:[],obj(st.selectedShipment)?[st.selectedShipment]:[]).forEach(function(sh){var k=skey(sh);if(k&&!map[k])map[k]=sh})});return Object.keys(map).map(function(k){return map[k]})}
 function currentShipment(){
- try{if(window.ExportHUBIndex265&&typeof window.ExportHUBIndex265.canonicalShipment==='function'){var st=states()[0]||{},id=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId),c=id&&window.ExportHUBIndex265.canonicalShipment(id);if(c)return c}}catch(_){}
- var all=states(),candidates=[];all.forEach(function(st){['shipment','currentShipment','selectedShipment'].forEach(function(k){if(obj(st[k]))candidates.push(st[k])});arr(st.shipments).forEach(function(x){if(obj(x))candidates.push(x)})});
- var selected='';try{var st=all[0]||{};selected=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId).toUpperCase()}catch(_){}
- if(selected){var found=candidates.find(function(x){return q(x.id||x.shipmentId||x.ref||x.reference).toUpperCase()===selected});if(found)return found}
- return candidates.find(function(x){return valid(x.pickupToken)})||candidates[0]||null;
+ var ss=states(),wanted='';ss.some(function(st){wanted=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId).toUpperCase();return!!wanted});
+ var list=allShipments(),found=wanted&&list.find(function(sh){return skey(sh)===wanted||sid(sh).toUpperCase()===wanted||ref(sh)===wanted});
+ if(found)return found;
+ for(var i=0;i<ss.length;i++){if(obj(ss[i].shipment)&&ref(ss[i].shipment))return ss[i].shipment;if(obj(ss[i].currentShipment)&&ref(ss[i].currentShipment))return ss[i].currentShipment}
+ return list[0]||null;
 }
-function customerFor(sh){var all=states(),cid=q(sh&&sh.customerId),name=q(sh&&sh.customerName);for(var i=0;i<all.length;i++){var found=arr(all[i].customers).find(function(c){return (cid&&[c.id,c.account,c.customerNumber].some(function(v){return q(v)===cid}))||(name&&q(c.name||c.customerName)===name)});if(found)return found}return obj(sh&&sh.customer)?sh.customer:{}}
-function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'QR registriert');else if(typeof window.save==='function')window.save(reason||'QR registriert')}catch(_){} }
-function syncCopies(sh,patch){var key=sid(sh),r=ref(sh);states().forEach(function(st){arr(st.shipments).forEach(function(x){if((key&&sid(x)===key)||(r&&ref(x)===r))Object.assign(x,patch)});['shipment','currentShipment','selectedShipment'].forEach(function(k){var x=st[k];if(obj(x)&&((key&&sid(x)===key)||(r&&ref(x)===r)))Object.assign(x,patch)})});Object.assign(sh,patch)}
-function ensureToken(sh){if(!sh)return'';var token=q(sh.pickupToken);if(valid(token))return token;try{var api=window.ExportHUBRC569QR;if(api&&typeof api.ensure==='function'){api.ensure(sh);token=q(sh.pickupToken)}}catch(_){}if(!valid(token)){token=hexToken();syncCopies(sh,{pickupToken:token,pickupQrActive:true,pickupQrDisabled:false,pickupQrRegistered:false});persist('QR-Token erzeugt')}return token}
-function appBase(){var u;try{u=new URL('pickup.html',document.baseURI||location.href)}catch(_){u=new URL('pickup.html',location.href)}u.search='';u.hash='';return u}
-function pickupUrl(sh){var item=sh||currentShipment()||{},token=ensureToken(item);if(!valid(token))return'';var u=appBase();u.searchParams.set('ehcmd','pickup');u.searchParams.set('pickup',token);u.searchParams.set('token',token);u.searchParams.set('v',CACHE);u.hash='pickup='+encodeURIComponent(token);return u.href}
-function metadata(sh){var c=customerFor(sh),token=ensureToken(sh);return{token:token,pin:LOADER_PIN,shipmentId:sid(sh),reference:ref(sh),customer:q(c.name||c.customerName||sh.customerName),recipient:q(sh.recipientName||c.name||c.customerName||sh.customerName),expiresDays:180,pickupQrVersion:9,version:9,force:true,reactivate:true,loaderId:'daniel-ollmann',loaderName:'Daniel Ollmann',loadedBy:'Daniel Ollmann',active:true,disabled:false}}
-function parseResponse(r){return r.text().then(function(raw){var body={};try{body=raw?JSON.parse(raw):{}}catch(_){}if(!r.ok){var e=new Error(body.message||body.error||('HTTP '+r.status));e.status=r.status;e.body=body;throw e}return body})}
-function register(sh,force){if(!sh||!ref(sh))return Promise.resolve(false);var token=ensureToken(sh);if(!valid(token))return Promise.resolve(false);if(verified[token]&&!force)return Promise.resolve(true);if(inflight[token])return inflight[token];syncCopies(sh,{pickupQrActivating:true,pickupQrError:'',pickupQrRegistered:false});
- inflight[token]=fetch('/api/pickup-init',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(metadata(sh))}).then(parseResponse).then(function(data){verified[token]=Date.now();syncCopies(sh,{pickupQrRegistered:true,pickupQrActivating:false,pickupQrRegisteredAt:new Date().toISOString(),pickupQrServerStatus:q(data.status)||'open',pickupQrRegistrationVersion:q(data.registrationVersion)||VERSION,pickupQrError:'',pickupQrActive:true,pickupQrDisabled:false});persist('QR-Code serverseitig registriert');return true}).catch(function(e){syncCopies(sh,{pickupQrRegistered:false,pickupQrActivating:false,pickupQrError:q(e.message||e),pickupQrServerStatus:'error'});persist('QR-Registrierungsfehler gespeichert');return false}).finally(function(){delete inflight[token]});return inflight[token]
+function customerFor(sh){var cid=q(sh&&sh.customerId),name=q(sh&&sh.customerName),result=null;states().some(function(st){result=arr(st.customers).find(function(c){return (cid&&[c.id,c.account,c.customerNumber].some(function(v){return q(v)===cid}))||(name&&q(c.name||c.customerName)===name)});return!!result});return result||obj(sh&&sh.customer)&&sh.customer||{}}
+function syncCopies(sh,patch){var k=skey(sh);states().forEach(function(st){arr(st.shipments).forEach(function(x){if(skey(x)===k)Object.assign(x,patch)});['shipment','currentShipment','selectedShipment'].forEach(function(n){if(obj(st[n])&&skey(st[n])===k)Object.assign(st[n],patch)})});Object.assign(sh,patch)}
+function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'QR-Code gespeichert');else if(typeof window.save==='function')window.save(reason||'QR-Code gespeichert')}catch(_){} }
+function ensureToken(sh){if(!sh)return'';var token=q(sh.pickupToken);if(valid(token))return token;token=hexToken();syncCopies(sh,{pickupToken:token,pickupQrActive:true,pickupQrDisabled:false,pickupQrRegistered:false,pickupQrVersion:10});persist('QR-Token erzeugt');return token}
+function metadata(sh){var c=customerFor(sh);return{token:ensureToken(sh),shipmentId:sid(sh),reference:ref(sh),customer:q(c.name||c.customerName||sh.customerName).slice(0,180),recipient:q(sh.recipientName||sh.deliveryName||c.name||c.customerName||sh.customerName).slice(0,180),expiresDays:180,pickupQrVersion:10,version:10,force:true,reactivate:true,loaderId:'daniel-ollmann',loaderName:'Daniel Ollmann',active:true,disabled:false}}
+function api(path,opt){opt=opt||{};opt.credentials='same-origin';opt.cache='no-store';opt.headers=Object.assign({Accept:'application/json'},opt.headers||{});if(opt.body&&!opt.headers['Content-Type'])opt.headers['Content-Type']='application/json';return window.fetch('/api/'+String(path||'').replace(/^\//,''),opt)}
+function jsonResponse(r){return r.text().then(function(raw){var b={};try{b=raw?JSON.parse(raw):{}}catch(_){}if(!r.ok){var e=new Error(b.message||b.error||('HTTP '+r.status));e.status=r.status;e.code=b.code||'';e.body=b;throw e}return b})}
+function verifyRecord(sh){var token=ensureToken(sh);return api('pickup-status?token='+encodeURIComponent(token)+'&_='+Date.now()).then(jsonResponse).then(function(data){if(!data||data.registered===false)throw new Error('Der QR-Datensatz wurde nicht angelegt.');if(data.reference&&ref(sh)&&q(data.reference).toUpperCase()!==ref(sh))throw new Error('Der QR-Code ist einer anderen Sendung zugeordnet.');return data})}
+function register(sh,force){if(!sh||!ref(sh))return Promise.resolve(false);var token=ensureToken(sh);if(!valid(token))return Promise.resolve(false);if(verified[token]&&!force&&Date.now()-verified[token]<300000)return Promise.resolve(true);if(inflight[token])return inflight[token];syncCopies(sh,{pickupQrActivating:true,pickupQrRegistered:false,pickupQrError:'',pickupQrServerStatus:'registering'});
+ inflight[token]=api('pickup-init',{method:'POST',body:JSON.stringify(metadata(sh))}).then(jsonResponse).then(function(){return verifyRecord(sh)}).then(function(data){verified[token]=Date.now();syncCopies(sh,{pickupQrRegistered:true,pickupQrActivating:false,pickupQrRegisteredAt:new Date().toISOString(),pickupQrServerStatus:q(data.status)||'open',pickupQrRegistrationVersion:VERSION,pickupQrError:'',pickupQrActive:true,pickupQrDisabled:false,pickupQrVersion:10});persist('QR-Code serverseitig registriert und geprüft');return true}).catch(function(e){syncCopies(sh,{pickupQrRegistered:false,pickupQrActivating:false,pickupQrError:q(e.message||e),pickupQrServerStatus:'error'});persist('QR-Registrierungsfehler gespeichert');return false}).finally(function(){delete inflight[token]});return inflight[token]
 }
+function pickupUrl(sh){var item=sh||currentShipment(),token=ensureToken(item);if(!item||!valid(token))return'';var u=new URL('pickup.html',document.baseURI||location.href),m=metadata(item);u.search='';u.hash='';u.searchParams.set('ehcmd','pickup');u.searchParams.set('pickup',token);u.searchParams.set('token',token);u.searchParams.set('v',CACHE);if(m.reference)u.searchParams.set('reference',m.reference);if(m.shipmentId)u.searchParams.set('shipmentId',m.shipmentId);if(m.customer)u.searchParams.set('customer',m.customer);if(m.recipient)u.searchParams.set('recipient',m.recipient);u.hash='pickup='+encodeURIComponent(token);return u.href}
 function loadPage(doc){return doc&&(doc.getElementById('rc565LoadList1')||doc.getElementById('rc420Load1')||doc.querySelector('.rc420-load[data-rc420-load="1"],.rc593-load1,[data-doc="load1"],[data-document-type="loadlist-1"],.rc390-page.rc390-load'))}
 function qrHost(page){return page&&page.querySelector('.rc420-qr,.rc390-qrslot,.rc351-qr-slot,.rc352-qr-slot,.rc346-qr-wrap,.rc344-qr-only,.rc569-qr-box,[data-qr-url]')}
 function ensureHost(doc,page){var host=qrHost(page);if(!host){host=doc.createElement('div');host.className='rc420-qr';(page.querySelector('.rc420-load-ref,.load-refbox,.rc344-ref,.rc390-ref')||page).appendChild(host)}host.style.removeProperty('display');host.hidden=false;return host}
 function svg(url){try{if(typeof window.RC569QrSvg==='function')return window.RC569QrSvg(url);if(typeof window.rc386QrSvg==='function')return window.rc386QrSvg(url);if(typeof window.rc385QrSvg==='function')return window.rc385QrSvg(url)}catch(_){}return''}
-function statusHost(doc,sh,kind,message){var page=loadPage(doc);if(!page)return false;var host=ensureHost(doc,page);host.removeAttribute('data-qr-url');host.removeAttribute('data-rc278-pickup-url');host.innerHTML='<div class="'+(kind==='error'?'rc278-qr-error':'rc278-qr-pending')+'">'+String(message||'').replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</div>';return true}
-function patchRegistered(doc,sh){if(!doc||!sh||sh.pickupQrRegistered!==true)return false;var page=loadPage(doc),url=pickupUrl(sh);if(!page||!url)return false;var host=ensureHost(doc,page),markup=svg(url);if(markup)host.innerHTML=markup;host.setAttribute('data-qr-url',url);host.setAttribute('data-rc278-pickup-url',url);host.setAttribute('title','QR-Abholung öffnen');var links=page.querySelectorAll('a[href*="pickup"],a[data-qr-url]');Array.prototype.forEach.call(links,function(a){a.href=url;a.setAttribute('data-qr-url',url)});return true}
-function documents(){var out=[document];document.querySelectorAll('iframe').forEach(function(frame){try{if(frame.contentDocument)out.push(frame.contentDocument)}catch(_){}});return out}
-function patchAll(sh){sh=sh||currentShipment();if(!sh)return false;var token=ensureToken(sh);if(!valid(token))return false;documents().forEach(function(doc){statusHost(doc,sh,'pending','QR-Code wird serverseitig registriert …')});register(sh,false).then(function(ok){documents().forEach(function(doc){if(ok)patchRegistered(doc,sh);else statusHost(doc,sh,'error','QR-Code nicht aktiv: '+q(sh.pickupQrError||'Registrierung fehlgeschlagen'))})});return true}
-function installApi(){var api=window.ExportHUBRC569QR;if(!api||api.__rc278Registration)return false;var wrapped={};Object.keys(api).forEach(function(k){wrapped[k]=api[k]});wrapped.urlFor=function(sh){return pickupUrl(sh||currentShipment()||{})};wrapped.register=function(sh,force){return register(sh||currentShipment(),force!==false).then(function(ok){patchAll(sh||currentShipment());return ok})};wrapped.activateCurrent=function(){return wrapped.register(currentShipment(),true)};wrapped.bulkRegister=function(){var list=[];states().forEach(function(st){arr(st.shipments).forEach(function(sh){if(sh&&ref(sh)&&list.indexOf(sh)<0)list.push(sh)})});return list.reduce(function(p,sh){return p.then(function(){return register(sh,true)})},Promise.resolve(true))};var oldPatch=api.patch;wrapped.patch=function(){var result=false;try{result=typeof oldPatch==='function'?oldPatch.apply(api,arguments):false}catch(_){}schedule();return result};wrapped.__rc278Registration=true;try{window.ExportHUBRC569QR=Object.freeze(wrapped)}catch(_){window.ExportHUBRC569QR=wrapped}return true}
-function run(){installApi();patchAll()}
+function documents(){var out=[document];document.querySelectorAll('iframe').forEach(function(f){try{if(f.contentDocument)out.push(f.contentDocument)}catch(_){}});return out}
+function statusHost(doc,kind,message){var page=loadPage(doc);if(!page)return false;var host=ensureHost(doc,page);host.removeAttribute('data-qr-url');host.innerHTML='<div class="'+(kind==='error'?'rc278-qr-error':'rc278-qr-pending')+'">'+String(message||'').replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</div>';return true}
+function patchRegistered(doc,sh){var page=loadPage(doc),url=pickupUrl(sh);if(!page||!url)return false;var host=ensureHost(doc,page),markup=svg(url);if(!markup)return statusHost(doc,'error','QR-Code konnte nicht erstellt werden.');host.innerHTML=markup;host.setAttribute('data-qr-url',url);host.setAttribute('data-rc280-pickup-url',url);host.setAttribute('title','QR-Abholung öffnen');page.querySelectorAll('a[href*="pickup"],a[data-qr-url]').forEach(function(a){a.href=url;a.setAttribute('data-qr-url',url)});return true}
+function patchAll(sh){sh=sh||currentShipment();if(!sh||!ref(sh))return false;var key=skey(sh)+'|'+ensureToken(sh);documents().forEach(function(doc){statusHost(doc,'pending','QR-Code wird registriert und geprüft …')});register(sh,false).then(function(ok){documents().forEach(function(doc){if(ok)patchRegistered(doc,sh);else statusHost(doc,'error','QR-Code nicht aktiv: '+q(sh.pickupQrError||'Registrierung fehlgeschlagen'))});lastPatchKey=key});return true}
+function bulkRegister(){var list=allShipments().filter(function(sh){return ref(sh)&&!(/storniert|cancelled/i.test(q(sh.status)))});return list.reduce(function(p,sh){return p.then(function(){return register(sh,false)})},Promise.resolve(true))}
+function installQrApi(){var old=window.ExportHUBRC569QR||{},next={};Object.keys(old).forEach(function(k){next[k]=old[k]});next.ensure=ensureToken;next.urlFor=function(sh){return pickupUrl(sh||currentShipment())};next.register=function(sh,force){return register(sh||currentShipment(),force===true).then(function(ok){if(ok)patchAll(sh||currentShipment());return ok})};next.activateCurrent=function(){return next.register(currentShipment(),true)};next.bulkRegister=bulkRegister;next.syncAll=bulkRegister;next.patch=function(){return patchAll(currentShipment())};next.__rc280Priority1=true;try{window.ExportHUBRC569QR=Object.freeze(next)}catch(_){window.ExportHUBRC569QR=next}}
+function run(view){installQrApi();var v=q(view||(states()[0]||{}).view).toLowerCase();if(v==='cmr'||v==='shipment'||document.querySelector('#rc565LoadList1,#rc420Load1,.rc390-page.rc390-load'))patchAll(currentShipment())}
 function schedule(){if(queued)return;queued=true;(window.requestAnimationFrame||window.setTimeout)(function(){queued=false;run()},16)}
-function registerCentral(){if(installed)return;var c=window.ExportHUBCentralPostRender;if(c&&typeof c.register==='function')installed=!!c.register({key:'rc278-qr-registration',priority:12,run:run})}
-function boot(){registerCentral();run()}
+function boot(){installQrApi();bulkRegister();schedule();var c=window.ExportHUBCentralPostRender;if(c&&typeof c.register==='function'&&!installed)installed=!!c.register({key:'rc280-priority1-qr',priority:220,run:run})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
-window.ExportHUBRC278QR=Object.freeze({version:VERSION,pickupUrl:pickupUrl,register:register,patch:patchAll,selfTest:function(){var token='a'.repeat(48),sample={id:'S1',ref:'ABC123',pickupToken:token,customerName:'Kunde'},u=pickupUrl(sample);return{version:VERSION,tokenLength:token.length,validToken:valid(token),pickupPage:new URL(u).pathname.endsWith('/pickup.html'),queryToken:/[?&]pickup=a{48}(?:&|#|$)/.test(u),backupToken:/[?&]token=a{48}(?:&|#|$)/.test(u),cache:/[?&]v=278(?:&|#|$)/.test(u),registrationRequiredBeforeQr:true,noMutationObserver:true,noInterval:true}}});
+['exporthub:ready','exporthub:sync','exporthub:viewchange','exporthub:rendered'].forEach(function(n){window.addEventListener(n,schedule)});
+window.ExportHUBRC280QR=Object.freeze({version:VERSION,ensureToken:ensureToken,register:register,verify:verifyRecord,pickupUrl:pickupUrl,patch:patchAll,bulkRegister:bulkRegister,selfTest:function(){var sh={id:'S1',ref:'REF1',customerName:'Kunde',pickupToken:'a'.repeat(48)},u=pickupUrl(sh);return{version:VERSION,valid:valid(sh.pickupToken),pickupPage:/\/pickup\.html/.test(u),hasToken:/[?&]pickup=a{48}/.test(u),hasReference:/[?&]reference=REF1/.test(u),registrationBeforeDisplay:true,noInterval:true,noMutationObserver:true}}});
 })();
 </script>
-<!-- RC278 QR REGISTRATION + PICKUP ROUTE END -->
+<!-- RC280 PRIORITY 1 QR REGISTRATION + PICKUP ROUTE END -->
 
 <!-- RC278 LOADLIST PERFORMANCE + COLLI WIDTHS START -->
 <script id="rc278-loadlist-performance-colli-controller">
