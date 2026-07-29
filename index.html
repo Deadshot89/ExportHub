@@ -24288,3 +24288,114 @@ window.ExportHUBRC278Performance=Object.freeze({version:VERSION,install:installO
 })();
 </script>
 <!-- RC278 LOADLIST PERFORMANCE + COLLI WIDTHS END -->
+
+
+<!-- INDEX 282 RC281 COLLI THREE ROW LAYOUT START -->
+<style id="index282-colli-three-row-layout">
+/* Verbindliche Colli-Anordnung: 3 Reihen, ausschließlich CSS, kein DOM-Umbau. */
+@media (min-width:681px){
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid{
+    display:grid!important;
+    grid-template-columns:repeat(12,minmax(0,1fr))!important;
+    grid-template-rows:auto auto auto!important;
+    grid-auto-flow:row!important;
+    column-gap:16px!important;
+    row-gap:16px!important;
+    align-items:start!important;
+    width:100%!important;
+    min-width:0!important;
+    direction:ltr!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field]{
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-start!important;
+    align-items:stretch!important;
+    gap:7px!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    margin:0!important;
+  }
+
+  /* Reihe 1: Verpackung | Löschen */
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="type"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="type"]{
+    grid-area:1 / 1 / 2 / 10!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="action"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="action"]{
+    grid-area:1 / 10 / 2 / 13!important;
+    align-self:end!important;
+    justify-content:flex-end!important;
+    padding-top:25px!important;
+  }
+
+  /* Reihe 2: Anzahl | Gewicht | Lademeter */
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="count"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="count"]{
+    grid-area:2 / 1 / 3 / 3!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="weight"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="weight"]{
+    grid-area:2 / 3 / 3 / 8!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="ldm"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="ldm"]{
+    grid-area:2 / 8 / 3 / 13!important;
+  }
+
+  /* Reihe 3: Länge | Breite | Höhe */
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="l"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="l"]{
+    grid-area:3 / 1 / 4 / 5!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="w"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="w"]{
+    grid-area:3 / 5 / 4 / 9!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field="h"],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field="h"]{
+    grid-area:3 / 9 / 4 / 13!important;
+  }
+
+  html body #content #rc573ColliCard .rc344-colli-grid input,
+  html body #content #rc573ColliCard .rc344-colli-grid select,
+  html body #content #rc573ColliCard .rc344-colli-grid button{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:48px!important;
+    min-height:48px!important;
+    box-sizing:border-box!important;
+    margin:0!important;
+  }
+}
+@media (max-width:680px){
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    grid-template-rows:none!important;
+    gap:14px!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index234-field],
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid>[data-index232-field]{
+    grid-column:1!important;
+    grid-row:auto!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding-top:0!important;
+  }
+  html body #content #rc573ColliCard [data-index234-field="type"],html body #content #rc573ColliCard [data-index232-field="type"]{order:1!important}
+  html body #content #rc573ColliCard [data-index234-field="action"],html body #content #rc573ColliCard [data-index232-field="action"]{order:2!important}
+  html body #content #rc573ColliCard [data-index234-field="count"],html body #content #rc573ColliCard [data-index232-field="count"]{order:3!important}
+  html body #content #rc573ColliCard [data-index234-field="weight"],html body #content #rc573ColliCard [data-index232-field="weight"]{order:4!important}
+  html body #content #rc573ColliCard [data-index234-field="ldm"],html body #content #rc573ColliCard [data-index232-field="ldm"]{order:5!important}
+  html body #content #rc573ColliCard [data-index234-field="l"],html body #content #rc573ColliCard [data-index232-field="l"]{order:6!important}
+  html body #content #rc573ColliCard [data-index234-field="w"],html body #content #rc573ColliCard [data-index232-field="w"]{order:7!important}
+  html body #content #rc573ColliCard [data-index234-field="h"],html body #content #rc573ColliCard [data-index232-field="h"]{order:8!important}
+}
+</style>
+<!-- INDEX 282 RC281 COLLI THREE ROW LAYOUT END -->
