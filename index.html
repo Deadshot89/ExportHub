@@ -1,14 +1,49 @@
 <!DOCTYPE html>
 
 <html lang="de">
-<head>
+<head>\n<!-- RC276 EARLY PICKUP ROUTE BOOTSTRAP START -->
+<script id="rc276-early-pickup-route-bootstrap">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC276_EARLY_PICKUP_ROUTE__)return;
+window.__EXPORTHUB_RC276_EARLY_PICKUP_ROUTE__=true;
+function q(v){return String(v==null?'':v).trim()}
+function valid(v){return /^[A-Za-z0-9_-]{6,128}$/.test(q(v))}
+function fromHash(hash){
+ var h=q(hash).replace(/^#/,'');try{h=decodeURIComponent(h)}catch(_){}
+ var m=h.match(/(?:^|[\/?&])pickup(?:=|\/)([A-Za-z0-9_-]{6,128})(?:$|[&\/?])/i)||h.match(/^pickup=([A-Za-z0-9_-]{6,128})$/i)||h.match(/^\/?pickup\/([A-Za-z0-9_-]{6,128})\/?$/i);
+ return m&&m[1]||'';
+}
+function tokenFromUrl(u){
+ var command=/^pickup$/i.test(q(u.searchParams.get('ehcmd'))),path=String(u.pathname||''),m=path.match(/\/pickup(?:\.html)?\/([A-Za-z0-9_-]{6,128})\/?$/i);
+ var candidates=[u.searchParams.get('pickup'),command&&u.searchParams.get('token'),command&&u.searchParams.get('ref'),m&&m[1],fromHash(u.hash)];
+ for(var i=0;i<candidates.length;i++)if(valid(candidates[i]))return q(candidates[i]);
+ if(command){try{var stored=sessionStorage.getItem('exporthub-pickup-route-token');if(valid(stored))return stored}catch(_){}}
+ return'';
+}
+var u;try{u=new URL(location.href)}catch(_){return}
+var token=tokenFromUrl(u);if(!token)return;
+try{sessionStorage.setItem('exporthub-pickup-route-token',token)}catch(_){}
+window.__EXPORTHUB_PICKUP_ROUTE_TOKEN__=token;
+window.__EXPORTHUB_PICKUP_MODE__=true;
+document.documentElement.setAttribute('data-index209-pickup','1');
+/* Canonical route: preserve the deployed app path and carry the token in every supported form. */
+try{
+ var canonical=new URL(u.href);canonical.search='';canonical.hash='';
+ canonical.searchParams.set('ehcmd','pickup');canonical.searchParams.set('pickup',token);canonical.searchParams.set('token',token);canonical.searchParams.set('v','276');canonical.hash='pickup='+encodeURIComponent(token);
+ if(canonical.href!==u.href)history.replaceState(history.state,'',canonical.href);
+}catch(_){}
+})();
+</script>
+<!-- RC276 EARLY PICKUP ROUTE BOOTSTRAP END -->
+
 <script id="exporthub-canonical-build-source">
 (function(){
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC275',cache:'275',loginReturn:'/?v=275'});
-var STANDARD_TITLE='ExportHUB Online RC275';
+var BUILD=Object.freeze({version:'RC276',cache:'276',loginReturn:'/?v=276'});
+var STANDARD_TITLE='ExportHUB Online RC276';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -24391,5 +24426,74 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.ExportHUBCentralPostRender=Object.freeze({version:VERSION,register:add,request:request,runNow:function(){execute(view(),'manual')},diagnostics:function(){return{version:VERSION,jobs:Array.from(jobs.keys()),jobCount:jobs.size,pending:pending,running:running,runs:runs,jobRuns:Object.assign({},jobRuns),lastView:lastView,lastReason:lastReason,errors:errors.slice(),contentObserversReplaced:9,usesMutationObserver:false}}});
 })();
 </script>
-<!-- RC275 CENTRAL POST-RENDER CONTROL END -->
+<!-- RC275 CENTRAL POST-RENDER CONTROL END -->\n<!-- RC276 QR ROUTE + PICKUP START FIX START -->
+<script id="rc276-qr-route-pickup-start-fix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC276_QR_ROUTE_FIX__)return;
+window.__EXPORTHUB_RC276_QR_ROUTE_FIX__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var VERSION='RC276',CACHE='276',queued=false,installed=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function arr(v){return Array.isArray(v)?v:[]}
+function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
+function valid(v){return /^[A-Za-z0-9_-]{6,128}$/.test(q(v))}
+function hexToken(){
+ var bytes=new Uint8Array(24);try{crypto.getRandomValues(bytes);return Array.prototype.map.call(bytes,function(v){return v.toString(16).padStart(2,'0')}).join('')}catch(_){var out='';while(out.length<48)out+=Math.random().toString(16).slice(2);return out.slice(0,48)}
+}
+function states(){var out=[];function add(x){if(obj(x)&&out.indexOf(x)<0)out.push(x)}try{add(window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}try{add(window.state)}catch(_){}return out}
+function ref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId)).toUpperCase()}
+function currentShipment(){
+ try{if(window.ExportHUBIndex265&&typeof window.ExportHUBIndex265.canonicalShipment==='function'){var st=states()[0]||{},id=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId);var c=id&&window.ExportHUBIndex265.canonicalShipment(id);if(c)return c}}
+ catch(_){}
+ var all=states(),candidates=[];all.forEach(function(st){['shipment','currentShipment','selectedShipment'].forEach(function(k){if(obj(st[k]))candidates.push(st[k])});arr(st.shipments).forEach(function(x){if(obj(x))candidates.push(x)})});
+ var selected='';try{var st=all[0]||{};selected=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId).toUpperCase()}catch(_){}
+ if(selected){var found=candidates.find(function(x){return q(x.id||x.shipmentId||x.ref||x.reference).toUpperCase()===selected});if(found)return found}
+ return candidates.find(function(x){return valid(x.pickupToken)})||candidates[0]||null;
+}
+function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'QR-Abholroute korrigiert')}catch(_){} }
+function ensureToken(sh){
+ if(!sh)return'';var token=q(sh.pickupToken);
+ if(valid(token))return token;
+ try{var api=window.ExportHUBRC569QR;if(api&&typeof api.ensure==='function'){api.ensure(sh);token=q(sh.pickupToken)}}catch(_){}
+ if(!valid(token)){token=hexToken();sh.pickupToken=token;sh.pickupQrActive=true;sh.pickupQrDisabled=false;persist('QR-Token erzeugt')}
+ return token;
+}
+function appBase(){
+ var u;try{u=new URL(document.baseURI||location.href)}catch(_){u=new URL(location.href)}
+ /* Preserve deployment subdirectory and the current index path instead of forcing domain root. */
+ u.search='';u.hash='';return u;
+}
+function pickupUrl(sh){
+ var item=sh||currentShipment()||{},token=ensureToken(item);if(!valid(token))return'';
+ var u=appBase();u.searchParams.set('ehcmd','pickup');u.searchParams.set('pickup',token);u.searchParams.set('token',token);u.searchParams.set('v',CACHE);u.hash='pickup='+encodeURIComponent(token);return u.href;
+}
+function loadPage(doc){return doc&&(doc.getElementById('rc565LoadList1')||doc.getElementById('rc420Load1')||doc.querySelector('.rc420-load[data-rc420-load="1"],.rc593-load1,[data-doc="load1"],[data-document-type="loadlist-1"],.rc390-page.rc390-load'))}
+function qrHost(page){return page&&page.querySelector('.rc420-qr,.rc390-qrslot,.rc351-qr-slot,.rc352-qr-slot,.rc346-qr-wrap,.rc344-qr-only,.rc569-qr-box,[data-qr-url]')}
+function svg(url){try{if(typeof window.RC569QrSvg==='function')return window.RC569QrSvg(url);if(typeof window.rc386QrSvg==='function')return window.rc386QrSvg(url);if(typeof window.rc385QrSvg==='function')return window.rc385QrSvg(url)}catch(_){}return''}
+function patchDocument(doc,sh){
+ if(!doc||!sh)return false;var url=pickupUrl(sh),page=loadPage(doc);if(!url||!page)return false;
+ var host=qrHost(page);if(!host){host=doc.createElement('div');host.className='rc420-qr';(page.querySelector('.rc420-load-ref,.load-refbox,.rc344-ref,.rc390-ref')||page).appendChild(host)}
+ var markup=svg(url);if(markup)host.innerHTML=markup;
+ host.setAttribute('data-qr-url',url);host.setAttribute('data-rc276-pickup-url',url);host.setAttribute('title','QR-Abholung öffnen');host.style.removeProperty('display');host.hidden=false;
+ var links=page.querySelectorAll('a[href*="pickup"],a[data-qr-url]');Array.prototype.forEach.call(links,function(a){a.href=url;a.setAttribute('data-qr-url',url)});
+ return true;
+}
+function patchAll(){var sh=currentShipment();if(!sh)return false;var ok=patchDocument(document,sh);document.querySelectorAll('iframe').forEach(function(frame){try{if(frame.contentDocument)ok=patchDocument(frame.contentDocument,sh)||ok}catch(_){}});return ok}
+function installApi(){
+ var api=window.ExportHUBRC569QR;if(!api)return false;
+ var wrapped={};Object.keys(api).forEach(function(k){wrapped[k]=api[k]});wrapped.urlFor=function(sh){return pickupUrl(sh||currentShipment()||{})};
+ var oldPatch=api.patch;wrapped.patch=function(){var result=false;try{result=typeof oldPatch==='function'?oldPatch.apply(api,arguments):false}catch(_){}schedule();return result};
+ wrapped.__rc276Route=true;try{window.ExportHUBRC569QR=Object.freeze(wrapped)}catch(_){window.ExportHUBRC569QR=wrapped}return true;
+}
+function run(){installApi();patchAll()}
+function schedule(){if(queued)return;queued=true;(window.requestAnimationFrame||window.setTimeout)(function(){queued=false;run()},16)}
+function registerCentral(){if(installed)return;var c=window.ExportHUBCentralPostRender;if(c&&typeof c.register==='function'){installed=!!c.register({key:'rc276-qr-route',priority:12,run:function(){run()}})}}
+function boot(){registerCentral();run()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
+window.ExportHUBRC276QR=Object.freeze({version:VERSION,pickupUrl:pickupUrl,patch:patchAll,selfTest:function(){var token='a'.repeat(48),base=appBase(),u=pickupUrl({pickupToken:token});return{version:VERSION,url:u,tokenInQuery:/[?&]pickup=a{48}(?:&|#|$)/.test(u),tokenBackup:/[?&]token=a{48}(?:&|#|$)/.test(u),command:/[?&]ehcmd=pickup(?:&|#|$)/.test(u),hash:/#pickup=a{48}$/.test(u),cache:/[?&]v=276(?:&|#|$)/.test(u),preservesPath:new URL(u).pathname===base.pathname,tokenLength:token.length,noMutationObserver:true,noInterval:true}}});
+})();
+</script>
+<!-- RC276 QR ROUTE + PICKUP START FIX END -->
 
