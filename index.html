@@ -27,7 +27,7 @@ try{sessionStorage.setItem('exporthub-pickup-route-token',token)}catch(_){}
 /* Old printed QR codes can still target index.html. Redirect them before the 5 MB app starts. */
 try{
  var target=new URL('pickup.html',u.href);target.search='';target.hash='';
- target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','280');target.hash='pickup='+encodeURIComponent(token);
+ target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','282');target.hash='pickup='+encodeURIComponent(token);
  location.replace(target.href);return;
 }catch(_){}
 /* Fallback only when a browser blocks the redirect. */
@@ -43,8 +43,8 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC280',cache:'280',loginReturn:'/?v=280'});
-var STANDARD_TITLE='ExportHUB Online RC280';
+var BUILD=Object.freeze({version:'RC282',cache:'282',loginReturn:'/?v=282'});
+var STANDARD_TITLE='ExportHUB Online RC282';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -21135,20 +21135,7 @@ function documentHtml(info,saved){
 }
 function waitPopupImages(win,done,attempt){var images=[];try{images=Array.prototype.slice.call(win.document.images||[])}catch(_){ }if(images.every(function(img){return img.complete})||attempt>80){done();return}later(function(){waitPopupImages(win,done,attempt+1)},50)}
 function markPrinted(sh,pages){if(!sh)return;var stamp=new Date().toISOString();sh.printStatus={complete:true,printedAt:stamp,pages:pages,source:'Gesamtausgabe Dokumentfenster'};sh.printedAt=stamp;sh.printComplete=true;sh.printConfirmed=true;save('Gesamtausgabe als Dokument gedruckt')}
-function writePrintError(win,message){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Gesamtausgabe Fehler</title><style>body{font-family:Segoe UI,Arial;padding:35px;background:#fff1f2;color:#991b1b}div{max-width:760px;margin:auto;background:#fff;border:1px solid #fecaca;border-radius:18px;padding:24px}</style></head><body><div><h1>Gesamtausgabe konnte nicht aufgebaut werden</h1><p>'+esc(message)+'</p></div></body></html>'
-<!-- INDEX 281 RC280 PRIORITY 1 QR/POD RELEASE MARKER -->
-<script id="index281-rc280-release-marker">window.__EXPORTHUB_RC280_RELEASE__=Object.freeze({version:'RC280',index:'index(281).html',priority:'QR-POD',signedLoadlistIsPod:true});</script>
-
-
-
-
-
-
-
-
-
-
-);win.document.close()}catch(_){ }alert(message)}
+function writePrintError(win,message){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Gesamtausgabe Fehler</title><style>body{font-family:Segoe UI,Arial;padding:35px;background:#fff1f2;color:#991b1b}div{max-width:760px;margin:auto;background:#fff;border:1px solid #fecaca;border-radius:18px;padding:24px}</style></head><body><div><h1>Gesamtausgabe konnte nicht aufgebaut werden</h1><p>'+esc(message)+'</p></div></body></html>');win.document.close()}catch(_){ }alert(message)}
 function completePrint(mode){
  if(mode&&mode!=='all'){
   var fallback=window.__INDEX202_OLD_RC616__;
@@ -24399,3 +24386,5 @@ window.ExportHUBRC278Performance=Object.freeze({version:VERSION,install:installO
 }
 </style>
 <!-- INDEX 282 RC281 COLLI THREE ROW LAYOUT END -->
+<!-- INDEX 283 RC282 PRINT SCRIPT RECOVERY -->
+<script id="index283-rc282-release-marker">window.__EXPORTHUB_RC282_RELEASE__=Object.freeze({version:'RC282',index:'index(283).html',fix:'print-script-recovery',qrPodUnchanged:true,colliThreeRows:true});</script>
