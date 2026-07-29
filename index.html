@@ -43,8 +43,8 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC284',cache:'284',loginReturn:'/?v=284'});
-var STANDARD_TITLE='ExportHUB Online RC284';
+var BUILD=Object.freeze({version:'RC285',cache:'285',loginReturn:'/?v=285'});
+var STANDARD_TITLE='ExportHUB Online RC285';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -21135,7 +21135,7 @@ function documentHtml(info,saved){
 }
 function waitPopupImages(win,done,attempt){var images=[];try{images=Array.prototype.slice.call(win.document.images||[])}catch(_){ }if(images.every(function(img){return img.complete})||attempt>80){done();return}later(function(){waitPopupImages(win,done,attempt+1)},50)}
 function markPrinted(sh,pages){if(!sh)return;var stamp=new Date().toISOString();sh.printStatus={complete:true,printedAt:stamp,pages:pages,source:'Gesamtausgabe Dokumentfenster'};sh.printedAt=stamp;sh.printComplete=true;sh.printConfirmed=true;save('Gesamtausgabe als Dokument gedruckt')}
-function writePrintError(win,message){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Gesamtausgabe Fehler</title><style>body{font-family:Segoe UI,Arial;padding:35px;background:#fff1f2;color:#991b1b}div{max-width:760px;margin:auto;background:#fff;border:1px solid #fecaca;border-radius:18px;padding:24px}</style></head><body><div><h1>Gesamtausgabe konnte nicht aufgebaut werden</h1><p>'+esc(message)+'</p></div></body></html>'<!-- INDEX 285 RC284 QR + STATUS + SINGLE MAIL FIX -->
+function writePrintError(win,message){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Gesamtausgabe Fehler</title><style>body{font-family:Segoe UI,Arial;padding:35px;background:#fff1f2;color:#991b1b}div{max-width:760px;margin:auto;background:#fff;border:1px solid #fecaca;border-radius:18px;padding:24px}</style></head><body><div><h1>Gesamtausgabe konnte nicht aufgebaut werden</h1><p>'+esc(message)+'</p></div></body></html>'
 );win.document.close()}catch(_){ }alert(message)}
 function completePrint(mode){
  if(mode&&mode!=='all'){
@@ -23690,7 +23690,10 @@ function shipmentGroups(){var out=[];states().forEach(function(st){if(arr(st.shi
 function allShipments(){var map={};shipmentGroups().forEach(function(list){list.forEach(function(sh){var k=skey(sh);if(k&&!map[k])map[k]=sh})});return Object.keys(map).map(function(k){return map[k]})}
 function allCustomers(){var map={};states().forEach(function(st){arr(st.customers).forEach(function(c){var k=q(c&&(c.id||c.account||c.customerNumber||c.kundennummer||c.name)).toUpperCase();if(k&&!map[k])map[k]=c})});return Object.keys(map).map(function(k){return map[k]})}
 function findCustomer(v){var k=q(v).toUpperCase();return allCustomers().find(function(c){return[c.id,c.account,c.customerNumber,c.kundennummer,c.name].some(function(x){return q(x).toUpperCase()===k})})||null}
-function currentShipment(){var st=states()[0]||{},wanted=q(st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId||st.documentShipmentId).toUpperCase(),list=allShipments();return list.find(function(sh){return skey(sh)===wanted})||(obj(st.shipment)?st.shipment:null)}
+function shipmentScore(sh){if(!sh)return-1;var n=0;n+=arr(sh.deliveryFiles).length*8+nq(sh.deliveryNote||sh.deliveryNotes||sh.dncNumber)*3;n+=arr(sh.generatedDocuments).length*5+nq(sh.pickupToken||sh.qrToken||sh.pickupQrToken)*6;n+=arr(sh.mailHistory).length*4+(obj(sh.mailCurrent)?Object.keys(sh.mailCurrent).length*5:0);n+=q(sh.status)?2:0;n+=arr(sh.rows).length;return n}
+function nq(v){return q(v)?1:0}
+function shipmentCopies(sh){var key=skey(sh),out=[];function add(x){if(!obj(x)||out.indexOf(x)>=0)return;if(!key||skey(x)===key)out.push(x)}shipmentGroups().forEach(function(list){list.forEach(add)});add(sh);return out}
+function currentShipment(){var st=states()[0]||{},wanted=q(st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId||st.documentShipmentId).toUpperCase(),candidates=[];shipmentGroups().forEach(function(list){list.forEach(function(sh){if(!wanted||skey(sh)===wanted)candidates.push(sh)})});if(obj(st.shipment)&&candidates.indexOf(st.shipment)<0&&(!wanted||skey(st.shipment)===wanted))candidates.push(st.shipment);candidates.sort(function(a,b){return shipmentScore(b)-shipmentScore(a)});return candidates[0]||(obj(st.shipment)?st.shipment:null)}
 function customerFor(sh){var st=states()[0]||{};return findCustomer(st.selectedCustomerId||st.customerFolderId||st.currentCustomerId)||findCustomer(sh&&(sh.customerId||sh.customerAccount||sh.customerNumber||sh.customerName))||null}
 function customerName(c,sh){return q(c&&(c.name||c.customerName)||sh&&(sh.customerName||(sh.customer&&sh.customer.name)))||'Kunde'}
 function activeArea(){return document.querySelector('#rc543MailArea')||document.querySelector('#rc542MailArea')||document.querySelector('#rc524MailArea')}
@@ -23710,15 +23713,17 @@ function sanitizeShipment(sh){if(!sh)return false;var changed=false;arr(sh.mailH
 function prepareMailFields(){var sh=currentShipment(),c=customerFor(sh),f=fields();if(!sh||!f.area)return null;var target=activeTarget(sh),manual=f.to&&f.to.value,rec=buildRecipients(sh,c,target,manual),subject=canonicalSubject(sh,c);if(f.to&&target!=='own')f.to.value=rec.to.join('; ');else if(f.to)f.to.value=rec.to.join('; ');if(f.cc)f.cc.value=rec.cc.join('; ');if(f.subject)f.subject.value=subject;sanitizeCustomer(c);sanitizeShipment(sh);return{sh:sh,c:c,target:target,to:rec.to,cc:rec.cc,subject:subject,body:String(f.body&&f.body.value||''),fields:f}}
 function mailtoUrl(data){var to=data.to.map(encodeURIComponent).join(';'),params=[];params.push('subject='+encodeURIComponent(data.subject||''));if(data.cc.length)params.push('cc='+data.cc.map(encodeURIComponent).join(';'));params.push('body='+encodeURIComponent(data.body||''));return'mailto:'+to+'?'+params.join('&')}
 function persist(reason){clearTimeout(saveTimer);saveTimer=setTimeout(function(){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Mail und Status gespeichert')}catch(_){}},60)}
-function openMail(){var d=prepareMailFields();if(!d)return false;if(!d.to.length){alert('Für die gewählte Mailart ist keine gültige Empfängeradresse hinterlegt.');return false}var stamp=new Date().toISOString();d.sh.mailOpened=obj(d.sh.mailOpened)?d.sh.mailOpened:{};d.sh.mailOpened[d.target]={openedAt:stamp,to:d.to.join('; '),cc:d.cc.join('; '),subject:d.subject};d.sh.mailOpenedAt=stamp;persist('Mail geöffnet – Empfänger, CC und Betreff getrennt');try{window.location.href=mailtoUrl(d)}catch(_){}return false}
-function hasDelivery(sh){return arr(sh&&sh.deliveryFiles).some(function(f){return !/deleted|geloscht|replaced|ersetzt/i.test(low(f&&f.status))})||!!q(sh&&(sh.deliveryNotes||sh.deliveryNote||sh.dncNumber))}
-function hasLoad2(sh){return arr(sh&&sh.generatedDocuments).some(function(x){return /ladeliste.*2|load.*2/i.test(q(x&&(x.type||x.name)))&&!/deleted|geloscht|replaced|ersetzt/i.test(low(x&&x.status))})||!!(sh&&(sh.loadList2Printed||sh.loadList2Generated))}
+function setOpenedOnCopies(sh,target,record){shipmentCopies(sh).forEach(function(x){x.mailOpened=obj(x.mailOpened)?x.mailOpened:{};x.mailOpened[target]=Object.assign({},record);x.mailOpenedAt=record.openedAt})}
+function refreshMailConfirmButtons(){document.querySelectorAll('#rc543MailArea button,#rc542MailArea button,#rc524MailArea button').forEach(function(b){if(/Mail als versendet bestätigen/i.test(q(b.textContent))||/rc543ConfirmMail|rc542ConfirmMail/i.test(q(b.getAttribute('onclick')))){b.disabled=false;b.removeAttribute('disabled');b.removeAttribute('data-lock-reason');b.setAttribute('aria-disabled','false')}})}
+function openMail(){var d=prepareMailFields();if(!d)return false;if(!d.to.length){alert('Für die gewählte Mailart ist keine gültige Empfängeradresse hinterlegt.');return false}var stamp=new Date().toISOString(),record={openedAt:stamp,to:d.to.join('; '),cc:d.cc.join('; '),subject:d.subject};setOpenedOnCopies(d.sh,d.target,record);refreshMailConfirmButtons();persist('Mail geöffnet – Empfänger, CC und Betreff getrennt');try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Mail geöffnet')}catch(_){}try{window.location.href=mailtoUrl(d)}catch(_){}return false}
+function hasDelivery(sh){return shipmentCopies(sh).some(function(x){return arr(x&&x.deliveryFiles).some(function(f){return !/deleted|geloscht|replaced|ersetzt/i.test(low(f&&f.status))})||!!q(x&&(x.deliveryNotes||x.deliveryNote||x.dncNumber))})}
+function hasLoad2(sh){return shipmentCopies(sh).some(function(one){return arr(one&&one.generatedDocuments).some(function(x){return /ladeliste.*2|load.*2/i.test(q(x&&(x.type||x.name)))&&!/deleted|geloscht|replaced|ersetzt/i.test(low(x&&x.status))})||!!(one&&(one.loadList2Printed||one.loadList2Generated||one.loadListGenerated||one.documentsGenerated||one.printComplete||one.printConfirmed||(obj(one.printStatus)&&one.printStatus.complete===true)||one.pickupQrRegistered||one.pickupQrActive||q(one.pickupToken||one.qrToken||one.pickupQrToken)))})}
 function actor(){try{return q((window.currentUser||{}).name||(window.currentUser||{}).user)||'Benutzer'}catch(_){return'Benutzer'}}
-function confirmMail(){var d=prepareMailFields();if(!d)return false;if(!d.to.length){alert('Empfängeradresse fehlt.');return false}var opened=d.sh.mailOpened&&d.sh.mailOpened[d.target];if(!opened)return alert('Die Mail muss zuerst über ExportHUB geöffnet werden.'),false;if(d.target==='customer'&&!hasDelivery(d.sh))return alert('Der Lieferschein fehlt. Versandbestätigung nicht möglich.'),false;if(d.target==='carrier'&&!hasLoad2(d.sh))return alert('Ladeliste Seite 2 fehlt. Versandbestätigung nicht möglich.'),false;var stamp=new Date().toISOString(),h={id:'MAIL-'+Date.now(),type:d.target,to:d.to.join('; '),cc:d.cc.join('; '),subject:d.subject,body:d.body,sentAt:stamp,confirmedAt:stamp,user:actor(),attachment:d.target==='customer'?'Lieferschein':d.target==='carrier'?'Ladeliste Seite 2':'kein Pflichtanhang'};d.sh.mailHistory=arr(d.sh.mailHistory);d.sh.mailHistory.push(h);d.sh.mailCurrent=obj(d.sh.mailCurrent)?d.sh.mailCurrent:{};d.sh.mailCurrent[d.target]=h;d.sh.mailSent=true;d.sh.mailConfirmed=true;d.sh.mailStatus='Versendet';enforceStatus(d.sh,true);persist('Mail als versendet bestätigt und Status aktualisiert');schedule('Mail bestätigt',20);try{patchVisible();window.dispatchEvent(new CustomEvent('exporthub:status-updated',{detail:{shipmentId:sid(d.sh),status:q(d.sh.status)}}))}catch(_){}return false}
+function confirmMail(){var d=prepareMailFields();if(!d)return false;if(!d.to.length){alert('Empfängeradresse fehlt.');return false}var opened=shipmentCopies(d.sh).some(function(x){return x.mailOpened&&x.mailOpened[d.target]});if(!opened)return alert('Die Mail muss zuerst über ExportHUB geöffnet werden.'),false;if(d.target==='customer'&&!hasDelivery(d.sh))return alert('Der Lieferschein fehlt. Versandbestätigung nicht möglich.'),false;if(d.target==='carrier'&&!hasLoad2(d.sh))return alert('Ladeliste Seite 2 fehlt. Versandbestätigung nicht möglich.'),false;var stamp=new Date().toISOString(),h={id:'MAIL-'+Date.now(),type:d.target,to:d.to.join('; '),cc:d.cc.join('; '),subject:d.subject,body:d.body,sentAt:stamp,confirmedAt:stamp,status:'Versendet',user:actor(),attachment:d.target==='customer'?'Lieferschein':d.target==='carrier'?'Ladeliste Seite 2':'kein Pflichtanhang'};shipmentCopies(d.sh).forEach(function(x){x.mailHistory=arr(x.mailHistory);x.mailHistory.push(Object.assign({},h));x.mailCurrent=obj(x.mailCurrent)?x.mailCurrent:{};x.mailCurrent[d.target]=Object.assign({},h);x.mailSent=true;x.mailConfirmed=true;x.mailStatus='Versendet';if(d.target==='carrier'){x.carrierMailSentAt=stamp;x.speditionMailSentAt=stamp;x.carrierMailConfirmedAt=stamp;x.speditionMailConfirmedAt=stamp}else if(d.target==='customer'){x.customerMailSentAt=stamp;x.kundenMailSentAt=stamp;x.customerMailConfirmedAt=stamp}else{x.ownMailSentAt=stamp;x.ownMailConfirmedAt=stamp}});enforceStatus(d.sh,true);persist('Mail als versendet bestätigt und Status aktualisiert');schedule('Mail bestätigt',20);try{patchVisible();window.dispatchEvent(new CustomEvent('exporthub:status-updated',{detail:{shipmentId:sid(d.sh),status:q(d.sh.status)}}))}catch(_){}return false}var opened=d.sh.mailOpened&&d.sh.mailOpened[d.target];if(!opened)return alert('Die Mail muss zuerst über ExportHUB geöffnet werden.'),false;if(d.target==='customer'&&!hasDelivery(d.sh))return alert('Der Lieferschein fehlt. Versandbestätigung nicht möglich.'),false;if(d.target==='carrier'&&!hasLoad2(d.sh))return alert('Ladeliste Seite 2 fehlt. Versandbestätigung nicht möglich.'),false;var stamp=new Date().toISOString(),h={id:'MAIL-'+Date.now(),type:d.target,to:d.to.join('; '),cc:d.cc.join('; '),subject:d.subject,body:d.body,sentAt:stamp,confirmedAt:stamp,user:actor(),attachment:d.target==='customer'?'Lieferschein':d.target==='carrier'?'Ladeliste Seite 2':'kein Pflichtanhang'};d.sh.mailHistory=arr(d.sh.mailHistory);d.sh.mailHistory.push(h);d.sh.mailCurrent=obj(d.sh.mailCurrent)?d.sh.mailCurrent:{};d.sh.mailCurrent[d.target]=h;d.sh.mailSent=true;d.sh.mailConfirmed=true;d.sh.mailStatus='Versendet';enforceStatus(d.sh,true);persist('Mail als versendet bestätigt und Status aktualisiert');schedule('Mail bestätigt',20);try{patchVisible();window.dispatchEvent(new CustomEvent('exporthub:status-updated',{detail:{shipmentId:sid(d.sh),status:q(d.sh.status)}}))}catch(_){}return false}
 openMail.__index263v2=true;confirmMail.__index263v2=true;
 function installFunctions(){window.rc543OpenMail=openMail;window.rc542OpenMail=openMail;window.rc524OpenMail=openMail;window.rc543ConfirmMail=confirmMail;window.rc542ConfirmMail=confirmMail;return true}
 function mailRequirement(c){var v=low(c&&(c.mailRequirement||c.requiredMail||c.mailProfile||c.defaultMailTarget||c.mailDefaultTarget));if(/none|keine/.test(v))return[];if(/both|beide|kundenmail.*speditionsmail/.test(v))return['customer','carrier'];if(/customer|kunde/.test(v))return['customer'];if(/own|eigene/.test(v))return['own'];return['carrier']}
-function mailEvidence(sh,t){
+function mailEvidence(sh,t){return shipmentCopies(sh).some(function(sh){
  var h=sh&&sh.mailCurrent&&sh.mailCurrent[t],aliases=t==='carrier'?['carrier','spedition','shipping','forwarder']:t==='customer'?['customer','kunde']:['own','eigene'];
  if(h&&(q(h.confirmedAt||h.sentAt)||/versendet|sent|bestatigt|bestaetigt|confirmed/.test(low(h.status))))return true;
  if(arr(sh&&sh.mailHistory).some(function(x){var type=low(x&&x.type),state=low([x&&x.status,x&&x.action,x&&x.note].join(' '));return aliases.some(function(a){return type.indexOf(a)>=0})&&(q(x&&x.confirmedAt||x&&x.sentAt)||/versendet|sent|bestatigt|bestaetigt|confirmed/.test(state))}))return true;
@@ -23726,7 +23731,7 @@ function mailEvidence(sh,t){
  if(keys.some(function(k){return q(sh&&sh[k])||sh&&sh[k.replace(/At$/,'')]===true}))return true;
  var statusText=low([sh&&sh.mailStatus,sh&&sh.shippingMailStatus,sh&&sh.carrierMailStatus,sh&&sh.speditionMailStatus,sh&&sh.customerMailStatus].join(' '));
  return sh&&sh.mailSent===true&&sh.mailConfirmed===true||/versendet|sent|bestatigt|bestaetigt|confirmed/.test(statusText);
-}
+})}
 function mailDone(sh,c){var req=mailRequirement(c);return req.every(function(t){return mailEvidence(sh,t)})}
 function printDone(sh){
  if(!sh)return false;
@@ -23757,9 +23762,9 @@ function enforceStatus(sh,force){if(!sh)return false;var before=label(sh.status)
 function patchVisible(){
  allShipments().forEach(function(sh){var rf=sref(sh),st=label(sh.status);if(!rf)return;document.querySelectorAll('#content .rc524-shipment-card[data-shipment],#content tr').forEach(function(node){if(q(node.textContent).toUpperCase().indexOf(rf)<0&&q(node.getAttribute&&node.getAttribute('data-shipment')).toUpperCase()!==skey(sh))return;node.querySelectorAll('.pill,td').forEach(function(el){if(/^(Entwurf|Erstellt|Wartet auf ABD|Bereit zur Abholung|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=st})})
  });
- var cur=currentShipment();if(cur){var currentStatus=label(cur.status),shell=document.getElementById('rc573ShipmentShell')||document.getElementById('content');if(shell)Array.prototype.slice.call(shell.querySelectorAll('.pill,.status-pill,.rc210-status-pill,[data-shipment-status],[data-current-status]')).forEach(function(el){if(/^(Entwurf|Erstellt|Wartet auf ABD|Bereit zur Abholung|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=currentStatus})}
+ var cur=currentShipment();if(cur){var currentStatus=label(cur.status),shell=document.getElementById('rc573ShipmentShell')||document.getElementById('content');if(shell)Array.prototype.slice.call(shell.querySelectorAll('.pill,.status-pill,.rc210-status-pill,.rc573-status-pill,[data-shipment-status],[data-current-status]')).forEach(function(el){if(/^(Entwurf|Erstellt|Wartet auf ABD|Bereit zur Abholung|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=currentStatus})}
 }
-function patch(reason){installFunctions();var changed=false;allCustomers().forEach(function(c){if(sanitizeCustomer(c))changed=true});allShipments().forEach(function(sh){if(sanitizeShipment(sh))changed=true;if(enforceStatus(sh,false))changed=true});prepareMailFields();patchVisible();if(changed)persist(reason||'Mailfelder und Status korrigiert');try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}return changed}
+function patch(reason){installFunctions();refreshMailConfirmButtons();var changed=false;allCustomers().forEach(function(c){if(sanitizeCustomer(c))changed=true});allShipments().forEach(function(sh){if(sanitizeShipment(sh))changed=true;if(enforceStatus(sh,false))changed=true});prepareMailFields();patchVisible();if(changed)persist(reason||'Mailfelder und Status korrigiert');try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}return changed}
 function schedule(reason,delay){clearTimeout(patchTimer);patchTimer=setTimeout(function(){patch(reason)},delay==null?30:delay)}
 function isOpenButton(b){return !!b&&(/rc543OpenMail|rc542OpenMail|rc524OpenMail/i.test(q(b.getAttribute('onclick')))||/Mail in Outlook öffnen/i.test(q(b.textContent)))}
 function isConfirmButton(b){return !!b&&(/rc543ConfirmMail|rc542ConfirmMail/i.test(q(b.getAttribute('onclick')))||/Mail als versendet bestätigen/i.test(q(b.textContent)))}
@@ -24576,3 +24581,65 @@ window.__EXPORTHUB_RC283_RELEASE__=Object.freeze({version:'RC283',index:'index(2
 })();
 </script>
 <!-- INDEX 284 RC283 COLLI ROW STABILITY END -->
+
+<!-- INDEX 286 RC285 COLLI + STATUS + MAIL CONFIRM FIX START -->
+<style id="index286-colli-canonical-three-row-style">
+#rc573ColliCard [data-index286-colli-grid="1"]{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-auto-flow:row!important;
+  gap:14px 16px!important;
+  align-items:end!important;
+}
+#rc573ColliCard [data-index286-field]{min-width:0!important;margin:0!important;align-self:end!important}
+#rc573ColliCard [data-index286-field] input,
+#rc573ColliCard [data-index286-field] select,
+#rc573ColliCard [data-index286-field] button{width:100%!important;min-width:0!important;box-sizing:border-box!important}
+#rc573ColliCard [data-index286-field="type"]{grid-column:1/11!important;grid-row:1!important}
+#rc573ColliCard [data-index286-field="action"]{grid-column:11/13!important;grid-row:1!important}
+#rc573ColliCard [data-index286-field="count"]{grid-column:1/3!important;grid-row:2!important}
+#rc573ColliCard [data-index286-field="weight"]{grid-column:3/8!important;grid-row:2!important}
+#rc573ColliCard [data-index286-field="ldm"]{grid-column:8/13!important;grid-row:2!important}
+#rc573ColliCard [data-index286-field="l"]{grid-column:1/5!important;grid-row:3!important}
+#rc573ColliCard [data-index286-field="w"]{grid-column:5/9!important;grid-row:3!important}
+#rc573ColliCard [data-index286-field="h"]{grid-column:9/13!important;grid-row:3!important}
+#rc573ColliCard [data-index286-field="action"] button{min-height:48px!important}
+@media(max-width:680px){
+ #rc573ColliCard [data-index286-colli-grid="1"]{grid-template-columns:1fr!important}
+ #rc573ColliCard [data-index286-field]{grid-column:1!important;grid-row:auto!important}
+}
+</style>
+<script id="index286-colli-status-mail-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX286_FIX__)return;
+window.__EXPORTHUB_INDEX286_FIX__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var queued=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function states(){var out=[];function add(x){if(x&&typeof x==='object'&&out.indexOf(x)<0)out.push(x)}try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')add(window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.state)}catch(_){}return out}
+function key(control){var label=control&&control.closest&&control.closest('label,.field'),text=low(label&&label.textContent),code=q((control&&control.getAttribute&&control.getAttribute('oninput')||'')+' '+(control&&control.getAttribute&&control.getAttribute('onchange')||'')),m=code.match(/(?:rc344UpdateRow|updateRow|rc456UpdateRow)\s*\(\s*\d+\s*,\s*['\"](type|count|weight|ldm|l|w|h)['\"]/i);if(m)return m[1];if(/verpack|packart|packaging/.test(text))return'type';if(/anzahl|menge|quantity/.test(text))return'count';if(/gewicht|weight/.test(text))return'weight';if(/lademeter|\bldm\b/.test(text))return'ldm';if(/lange|laenge|length/.test(text))return'l';if(/breite|width/.test(text))return'w';if(/hohe|hoehe|height/.test(text))return'h';return''}
+function rows(){var card=document.getElementById('rc573ColliCard'),box=card&&(card.querySelector('#rowsBox')||card);if(!box)return[];return Array.prototype.slice.call(box.children).filter(function(row){return !!row.querySelector('select,input')})}
+function grid(row){return row.querySelector('.rc344-colli-grid,.miniGrid')||row}
+function direct(g,node){while(node&&node.parentElement&&node.parentElement!==g)node=node.parentElement;return node&&node.parentElement===g?node:null}
+function cleanWeightLabel(label){if(!label)return;Array.prototype.slice.call(label.childNodes).forEach(function(n){if(n.nodeType===3&&/Gewicht\s+gesamt\s*kg/i.test(n.nodeValue||''))n.nodeValue=(n.nodeValue||'').replace(/Gewicht\s+gesamt\s*kg/i,'Gewicht gesamt')})}
+function normalize(){queued=false;var list=rows();list.forEach(function(row,index){var g=grid(row),found={};row.setAttribute('data-index286-colli-row',String(index));g.setAttribute('data-index286-colli-grid','1');Array.prototype.slice.call(g.children).forEach(function(x){x.removeAttribute('data-index286-field')});Array.prototype.slice.call(g.querySelectorAll('input,select')).forEach(function(control){var k=key(control),wrap=direct(g,control.closest('label,.field')||control.parentElement);if(k&&wrap&&!found[k]){found[k]=wrap;if(k==='weight')cleanWeightLabel(wrap)}});var button=Array.prototype.slice.call(g.querySelectorAll('button')).find(function(b){return /entfernen|loschen|löschen/i.test(low(b.textContent))});if(button){var a=direct(g,button.closest('label,.field')||button.parentElement);if(a)found.action=a}Object.keys(found).forEach(function(k){found[k].setAttribute('data-index286-field',k)})});return list.length}
+function schedule(){if(queued)return;queued=true;(window.requestAnimationFrame||window.setTimeout)(normalize,16)}
+function currentKey(st){var sh=st&&st.shipment||{},id=q(st&&(st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId)||sh.id||sh.shipmentId||sh.ref||sh.reference);return id.toUpperCase()}
+function copyRowsToState(snapshot){states().forEach(function(st){var wanted=currentKey(st),targets=[];if(st.shipment&&typeof st.shipment==='object')targets.push(st.shipment);arr(st.shipments).forEach(function(sh){var k=q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference)).toUpperCase();if(wanted&&k===wanted)targets.push(sh)});targets.forEach(function(sh){sh.rows=arr(sh.rows);snapshot.forEach(function(data,i){sh.rows[i]=Object.assign({},sh.rows[i]||{},data)})})})}
+function snapshot(){var result=rows().map(function(row){var data={},g=grid(row);Array.prototype.slice.call(g.querySelectorAll('input,select')).forEach(function(control){var k=key(control);if(k)data[k]=control.value});return data});copyRowsToState(result);return result}
+document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573ColliCard'))snapshot()},true);
+document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573ColliCard')){snapshot();schedule()}},true);
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('#rc573ColliCard button');if(!b)return;if(/^\+\s*Zeile$/i.test(q(b.textContent))){snapshot();[0,40,140].forEach(function(ms){setTimeout(schedule,ms)})}},true);
+function patchAll(){normalize();try{if(window.ExportHUBIndex263&&typeof window.ExportHUBIndex263.patch==='function')window.ExportHUBIndex263.patch('Status und Mailbestätigung aktualisiert')}catch(_){}document.querySelectorAll('#rc543MailArea button,#rc542MailArea button,#rc524MailArea button').forEach(function(b){if(/Mail als versendet bestätigen/i.test(q(b.textContent))){b.disabled=false;b.removeAttribute('disabled');b.setAttribute('aria-disabled','false')}})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patchAll,{once:true});else patchAll();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:status-updated','exporthub:tasks-updated'].forEach(function(name){window.addEventListener(name,function(){schedule();setTimeout(patchAll,20)})});
+(window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__=window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__||[]).push({key:'index286-colli-status-mail',priority:38,run:patchAll});
+window.ExportHUBIndex286=Object.freeze({version:'RC285',normalize:normalize,snapshot:snapshot,refresh:function(){return patchAll()},selfTest:function(){var r=rows();return{rows:r.length,normalized:r.filter(function(x){return grid(x).getAttribute('data-index286-colli-grid')==='1'}).length,statusPill:!!document.querySelector('.rc573-status-pill'),mailConfirmButtons:document.querySelectorAll('#rc543MailArea button,#rc542MailArea button,#rc524MailArea button').length}}});
+window.__EXPORTHUB_RC285_RELEASE__=Object.freeze({version:'RC285',index:'index(286).html',fix:'colli-legacy-row-status-visible-mail-confirm'});
+})();
+</script>
+<!-- INDEX 286 RC285 COLLI + STATUS + MAIL CONFIRM FIX END -->
+
