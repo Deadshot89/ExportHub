@@ -43,8 +43,8 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC278',cache:'278',loginReturn:'/?v=278'});
-var STANDARD_TITLE='ExportHUB Online RC278';
+var BUILD=Object.freeze({version:'RC279',cache:'279',loginReturn:'/?v=279'});
+var STANDARD_TITLE='ExportHUB Online RC279';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -22719,122 +22719,30 @@ window.ExportHUBIndex233=Object.freeze({version:VERSION,patch:patch,palletBalanc
 <!-- INDEX 233 LOADLIST 2 PDF + PALLET BALANCE + COLLI WEIGHT FORMAT END -->
 <!-- INDEX 234 COLLI FREEZE + RESPONSIVE FORMAT REPAIR START -->
 <style id="index234-colli-authoritative-style">
-/*
-   Authoritative Colli layout. It uses only CSS grid areas and never moves DOM nodes.
-   This prevents the render/MutationObserver loop that froze the browser.
-*/
-#rc573ColliCard{container-type:inline-size!important;container-name:index234-colli!important}
-body #rc573ColliCard .rc344-colli-row{
-  padding:16px!important;
-  margin:12px 0!important;
-  border:1px solid #bfdbfe!important;
-  border-radius:18px!important;
-  background:#f8fbff!important;
-  overflow:visible!important;
+/* Verbindliches Colli-Layout RC279. Eine CSS-Quelle, kein DOM-Umbau. */
+#rc573ColliCard{container-type:normal!important}
+body #content #rc573ColliCard .rc344-colli-row{padding:16px!important;margin:12px 0!important;border:1px solid #bfdbfe!important;border-radius:18px!important;background:#f8fbff!important;overflow:visible!important}
+@media (min-width:681px){
+ html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid[data-index234-grid="1"]{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-rows:auto auto!important;grid-auto-flow:row!important;column-gap:16px!important;row-gap:18px!important;align-items:start!important;width:100%!important;min-width:0!important;direction:ltr!important}
+ html body #content #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]>[data-index234-field]{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-items:stretch!important;gap:7px!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;align-self:start!important;grid-area:auto!important}
+ html body #content #rc573ColliCard [data-index234-field="type"]{grid-column:1 / span 5!important;grid-row:1!important}
+ html body #content #rc573ColliCard [data-index234-field="count"]{grid-column:6 / span 2!important;grid-row:1!important}
+ html body #content #rc573ColliCard [data-index234-field="weight"]{grid-column:8 / span 3!important;grid-row:1!important}
+ html body #content #rc573ColliCard [data-index234-field="ldm"]{grid-column:11 / span 2!important;grid-row:1!important}
+ html body #content #rc573ColliCard [data-index234-field="l"]{grid-column:1 / span 3!important;grid-row:2!important}
+ html body #content #rc573ColliCard [data-index234-field="w"]{grid-column:4 / span 3!important;grid-row:2!important}
+ html body #content #rc573ColliCard [data-index234-field="h"]{grid-column:7 / span 3!important;grid-row:2!important}
+ html body #content #rc573ColliCard [data-index234-field="action"]{grid-column:10 / span 3!important;grid-row:2!important;align-self:end!important;justify-content:flex-end!important;padding-top:25px!important}
+ html body #content #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] input,html body #content #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] select,html body #content #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] button{width:100%!important;min-width:0!important;max-width:none!important;height:48px!important;min-height:48px!important;box-sizing:border-box!important;margin:0!important}
+ html body #content #rc573ColliCard [data-index234-field="type"] select{padding-right:42px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+ html body #content #rc573ColliCard [data-index234-field="type"] .index202-packaging-readout,html body #content #rc573ColliCard [data-index234-field="type"] .index212-packaging-readout{display:none!important}
+ html body #content #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint{display:block!important;width:100%!important;min-width:0!important;min-height:0!important;margin:0!important;padding:5px 8px!important;border-radius:9px!important;box-sizing:border-box!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;line-height:1.25!important;font-weight:900!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+ html body #content #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint.incomplete{background:#fff7ed!important;color:#9a3412!important}
 }
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]{
-  display:grid!important;
-  grid-template-columns:minmax(250px,2fr) minmax(90px,.55fr) minmax(175px,1fr) minmax(120px,.72fr)!important;
-  grid-template-areas:
-    "type count weight ldm"
-    "length width height action"!important;
-  gap:14px 16px!important;
-  align-items:start!important;
-  direction:ltr!important;
-  width:100%!important;
-  min-width:0!important;
-}
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]>[data-index234-field]{
-  display:flex!important;
-  flex-direction:column!important;
-  justify-content:flex-start!important;
-  align-items:stretch!important;
-  gap:7px!important;
-  width:auto!important;
-  min-width:0!important;
-  max-width:none!important;
-  margin:0!important;
-  grid-column:auto!important;
-  grid-row:auto!important;
-}
-body #rc573ColliCard [data-index234-field="type"]{grid-area:type!important}
-body #rc573ColliCard [data-index234-field="count"]{grid-area:count!important}
-body #rc573ColliCard [data-index234-field="weight"]{grid-area:weight!important}
-body #rc573ColliCard [data-index234-field="ldm"]{grid-area:ldm!important}
-body #rc573ColliCard [data-index234-field="l"]{grid-area:length!important}
-body #rc573ColliCard [data-index234-field="w"]{grid-area:width!important}
-body #rc573ColliCard [data-index234-field="h"]{grid-area:height!important}
-body #rc573ColliCard [data-index234-field="action"]{grid-area:action!important}
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] input,
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] select,
-body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"] button{
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:48px!important;
-  min-height:48px!important;
-  box-sizing:border-box!important;
-  margin:0!important;
-}
-body #rc573ColliCard [data-index234-field="type"] select{
-  padding-right:42px!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-}
-body #rc573ColliCard [data-index234-field="type"] .index202-packaging-readout,
-body #rc573ColliCard [data-index234-field="type"] .index212-packaging-readout{
-  display:none!important;
-}
-body #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint{
-  display:block!important;
-  width:100%!important;
-  min-height:0!important;
-  margin:0!important;
-  padding:5px 8px!important;
-  border-radius:9px!important;
-  background:#eff6ff!important;
-  color:#1d4ed8!important;
-  font-size:11px!important;
-  line-height:1.25!important;
-  font-weight:900!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-}
-body #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint.incomplete{
-  background:#fff7ed!important;
-  color:#9a3412!important;
-}
-body #rc573ColliCard [data-index234-field="action"] button{
-  align-self:stretch!important;
-}
-
-/* Two clean columns when the actual Colli card, not the whole viewport, becomes narrow. */
-@container index234-colli (max-width:900px){
-  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]{
-    grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)!important;
-    grid-template-areas:
-      "type count"
-      "weight ldm"
-      "length width"
-      "height action"!important;
-  }
-}
-@container index234-colli (max-width:540px){
-  body #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]{
-    grid-template-columns:1fr!important;
-    grid-template-areas:
-      "type"
-      "count"
-      "weight"
-      "ldm"
-      "length"
-      "width"
-      "height"
-      "action"!important;
-  }
-  body #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint{white-space:normal!important}
+@media (max-width:680px){
+ html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid[data-index234-grid="1"]{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:none!important;gap:14px!important}
+ html body #content #rc573ColliCard .rc344-colli-grid[data-index234-grid="1"]>[data-index234-field]{grid-column:1!important;grid-row:auto!important;width:100%!important;min-width:0!important;margin:0!important;padding-top:0!important}
+ html body #content #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint{white-space:normal!important}
 }
 </style>
 <script id="index234-colli-authoritative-controller">
@@ -24072,115 +23980,10 @@ window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,sy
 <!-- INDEX 269 RC268 SITE RECOVERY: based on intact index(267); broken INDEX268 injection removed; Colli remains 4+4 until mobile -->
 
 <!-- INDEX 271 RC270 COLLI TRUE 2x4 GRID START -->
-<style id="index271-colli-true-2x4-grid">
-/* Reihe 1: Verpackung | Anzahl | Gewicht | Lademeter
-   Reihe 2: Länge | Breite | Höhe | Löschen
-   Nur CSS: kein DOM-Umbau, kein Renderer, kein Event-Handler. */
-@media (min-width:681px){
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid{
-    display:grid!important;
-    grid-template-columns:repeat(4,minmax(0,1fr))!important;
-    grid-template-rows:auto auto!important;
-    grid-auto-flow:row!important;
-    column-gap:16px!important;
-    row-gap:18px!important;
-    align-items:start!important;
-    width:100%!important;
-    min-width:0!important;
-  }
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid>*{
-    min-width:0!important;width:100%!important;max-width:none!important;margin:0!important;align-self:start!important;
-  }
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-type,
-  body #rc573ColliCard .rc344-colli-grid>.index212-packaging-field,
-  body #rc573ColliCard .rc344-colli-grid>.index202-packaging-field,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="type"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="type"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>select[onchange*="type"]),
-  body #rc573ColliCard .rc344-colli-grid>:has(>select[oninput*="type"]){grid-column:1!important;grid-row:1!important}
-
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-count,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="count"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="count"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="count"]),
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="count"]){grid-column:2!important;grid-row:1!important}
-
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-weight,
-  body #rc573ColliCard .rc344-colli-grid>.index212-weight-field,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="weight"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="weight"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="weight"]),
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="weight"]){grid-column:3!important;grid-row:1!important}
-
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-ldm,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="ldm"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="ldm"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="ldm"]),
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="ldm"]){grid-column:4!important;grid-row:1!important}
-
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-l,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="l"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="l"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="'l'"]),
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="'l'"]){grid-column:1!important;grid-row:2!important}
-
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-w,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="w"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="w"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="'w'"]),
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="'w'"]){grid-column:2!important;grid-row:2!important}
-
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-h,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="h"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="h"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[onchange*="'h'"]),
-  body #rc573ColliCard .rc344-colli-grid>:has(>input[oninput*="'h'"]){grid-column:3!important;grid-row:2!important}
-
-  body #rc573ColliCard .rc344-colli-grid>.index222-field-action,
-  body #rc573ColliCard .rc344-colli-grid>[data-index232-field="action"],
-  body #rc573ColliCard .rc344-colli-grid>[data-index234-field="action"],
-  body #rc573ColliCard .rc344-colli-grid>:has(>button){grid-column:4!important;grid-row:2!important}
-
-  body #rc573ColliCard .rc344-colli-grid input,
-  body #rc573ColliCard .rc344-colli-grid select,
-  body #rc573ColliCard .rc344-colli-grid button{
-    width:100%!important;min-width:0!important;max-width:none!important;height:48px!important;min-height:48px!important;box-sizing:border-box!important;margin:0!important;
-  }
-  body #rc573ColliCard [data-index232-field="weight"] .index212-weight-hint,
-  body #rc573ColliCard [data-index234-field="weight"] .index212-weight-hint,
-  body #rc573ColliCard .index222-field-weight .index212-weight-hint,
-  body #rc573ColliCard .index212-weight-field .index212-weight-hint{
-    width:100%!important;min-width:0!important;box-sizing:border-box!important;text-align:center!important;
-  }
-}
-@media (max-width:680px){
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:none!important;gap:14px!important}
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid>*{grid-column:1!important;grid-row:auto!important;width:100%!important;min-width:0!important}
-}
-</style>
 <!-- INDEX 271 RC270 COLLI TRUE 2x4 GRID END -->
 
 
 <!-- INDEX 272 RC271 COLLI WEIGHT TOP ROW FIX START -->
-<style id="index272-colli-weight-top-row-fix">
-@media (min-width:681px){
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > .index222-field-weight,
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > .index212-weight-field,
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > [data-index232-field="weight"],
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > [data-index234-field="weight"],
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > :has(> .index212-weight-field),
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > :has(.index212-weight-hint),
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > :has(input[data-index212-weight="1"]),
-  body #rc573ColliCard .rc344-colli-row .rc344-colli-grid > :has(input[title*="Einzelgewichte"]){
-    grid-column:3!important;
-    grid-row:1!important;
-    align-self:start!important;
-    min-width:0!important;
-    width:100%!important;
-    margin:0!important;
-  }
-}
-</style>
 <!-- INDEX 272 RC271 COLLI WEIGHT TOP ROW FIX END -->
 
 <!-- INDEX 274 RC273 PACKAGING SELECT + WEIGHT LABEL FIX START -->
@@ -24201,13 +24004,7 @@ window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,sy
   background:#fff!important;
   -webkit-text-fill-color:#0f172a!important;
 }
-@media (min-width:681px){
-  #rc573ColliCard .rc344-colli-grid [data-index274-field="weight"]{
-    grid-column:3!important;
-    grid-row:1!important;
-    align-self:start!important;
-  }
-}
+
 </style>
 <script id="index274-packaging-weight-fix-controller">
 (function(){
@@ -24487,22 +24284,6 @@ window.ExportHUBRC278QR=Object.freeze({version:VERSION,pickupUrl:pickupUrl,regis
 <!-- RC278 QR REGISTRATION + PICKUP ROUTE END -->
 
 <!-- RC278 LOADLIST PERFORMANCE + COLLI WIDTHS START -->
-<style id="rc278-colli-widths-style">
-@media (min-width:681px){
- body #rc573ColliCard .rc344-colli-row .rc344-colli-grid{
-  grid-template-columns:minmax(300px,2.35fr) minmax(78px,.55fr) minmax(160px,1.05fr) minmax(125px,.85fr)!important;
- }
- body #rc573ColliCard .rc344-colli-grid>.index222-field-type,
- body #rc573ColliCard .rc344-colli-grid>.index212-packaging-field,
- body #rc573ColliCard .rc344-colli-grid>.index202-packaging-field,
- body #rc573ColliCard .rc344-colli-grid>[data-index232-field="type"],
- body #rc573ColliCard .rc344-colli-grid>[data-index234-field="type"],
- body #rc573ColliCard .rc344-colli-grid>[data-index274-field="type"]{min-width:0!important}
- body #rc573ColliCard .rc344-colli-grid>.index222-field-count,
- body #rc573ColliCard .rc344-colli-grid>[data-index232-field="count"],
- body #rc573ColliCard .rc344-colli-grid>[data-index234-field="count"]{min-width:0!important}
-}
-</style>
 <script id="rc278-loadlist-performance-colli-controller">
 (function(){
 'use strict';
