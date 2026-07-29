@@ -27,7 +27,7 @@ try{sessionStorage.setItem('exporthub-pickup-route-token',token)}catch(_){}
 /* Old printed QR codes can still target index.html. Redirect them before the 5 MB app starts. */
 try{
  var target=new URL('pickup.html',u.href);target.search='';target.hash='';
- target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','288');target.hash='pickup='+encodeURIComponent(token);
+ target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','289');target.hash='pickup='+encodeURIComponent(token);
  location.replace(target.href);return;
 }catch(_){}
 /* Fallback only when a browser blocks the redirect. */
@@ -43,8 +43,8 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC288',cache:'288',loginReturn:'/?v=288'});
-var STANDARD_TITLE='ExportHUB Online RC288';
+var BUILD=Object.freeze({version:'RC289',cache:'289',loginReturn:'/?v=289'});
+var STANDARD_TITLE='ExportHUB Online RC289';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -24804,3 +24804,49 @@ window.__EXPORTHUB_RC288_RELEASE__=Object.freeze({version:VERSION,index:'index(2
 })();
 </script>
 <!-- INDEX 289 RC288 PRINT QR + PALLET WORDING + LOCATIONS END -->
+
+<!-- INDEX 290 RC289 LOADLIST STACK + PERFORMANCE FIX START -->
+<script id="index290-loadlist-stack-performance-fix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX290_LOADLIST_STACK_FIX__)return;
+window.__EXPORTHUB_INDEX290_LOADLIST_STACK_FIX__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var VERSION='RC289',busy=false,lastOpenAt=0,lastKey='',openCount=0,suppressed=0,patchTimer=0;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function arr(v){return Array.isArray(v)?v:[]}
+function obj(v){return !!(v&&typeof v==='object'&&!Array.isArray(v))}
+function copy(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return Object.assign({},v||{})}}
+function states(){var out=[];function add(x){if(obj(x)&&out.indexOf(x)<0)out.push(x)}try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')add(window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}try{add(window.state)}catch(_){}try{add(window.__EXPORTHUB_STATE__)}catch(_){}if(!out.length){window.state=window.state||{};out.push(window.state)}return out}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.uuid||sh.ref||sh.reference||sh.shipmentRef)).toUpperCase()}
+function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber)).toUpperCase()}
+function allShipments(){var out=[],seen={};states().forEach(function(s){[].concat(arr(s.shipments),arr(s.savedShipments),arr(s.data&&s.data.shipments)).forEach(function(sh){if(!obj(sh))return;var k=sid(sh)||sref(sh);if(!k||seen[k])return;seen[k]=1;out.push(sh)})});return out}
+function currentKey(){var ss=states(),key='';ss.some(function(s){key=q(s.documentShipmentId||s.selectedShipmentId||s.currentShipmentId||s.activeShipmentId);return !!key&&key!=='current'});if(key&&key!=='current')return key;for(var i=0;i<ss.length;i++){var sh=ss[i].shipment||ss[i].currentShipment||ss[i].selectedShipment;if(obj(sh)){key=sid(sh)||sref(sh);if(key)return key}}return''}
+function findShipment(id){var key=q(id||currentKey()).toUpperCase(),list=allShipments(),found=list.find(function(sh){return sid(sh)===key||sref(sh)===key});if(found)return found;var ss=states();for(var i=0;i<ss.length;i++){var sh=ss[i].shipment||ss[i].currentShipment||ss[i].selectedShipment;if(obj(sh)&&(!key||sid(sh)===key||sref(sh)===key))return sh}return null}
+function mirror(sh){var data=copy(sh),key=sid(sh)||sref(sh);states().forEach(function(s){var list=arr(s.shipments),index=list.findIndex(function(x){return sid(x)===key||sref(x)===key});if(index>=0)list[index]=copy(sh);else if(key)list.unshift(copy(sh));s.shipments=list;s.shipment=copy(data);s.currentShipment=copy(data);s.selectedShipment=copy(data);s.activeShipmentId=key;s.selectedShipmentId=key;s.documentShipmentId=key;s.currentShipmentId=key;s.view='cmr'});try{window.state=states()[0]}catch(_){}try{document.body.setAttribute('data-exporthub-view','cmr');document.body.setAttribute('data-current-view','cmr');document.body.setAttribute('data-eh-view','cmr')}catch(_){}return key}
+function unwrap(fn){var seen=[];while(typeof fn==='function'&&seen.indexOf(fn)<0){seen.push(fn);var next=fn.__index289Base||fn.__index288Base||fn.__rc593Original||fn.__rc278Base||fn.__rc565Base||fn.__original||fn.__base;if(typeof next!=='function')break;fn=next}return fn}
+var qrCore=unwrap(window.RC569QrSvg);
+if(typeof qrCore!=='function')qrCore=function(){return''};
+function canonicalUrl(sh){var item=sh||findShipment();var url='';try{if(window.ExportHUBIndex288&&typeof window.ExportHUBIndex288.ensureToken==='function')window.ExportHUBIndex288.ensureToken(item);if(window.ExportHUBIndex288&&typeof window.ExportHUBIndex288.urlFor==='function')url=q(window.ExportHUBIndex288.urlFor(item))}catch(_){}try{if(!url&&window.ExportHUBRC569QR&&typeof window.ExportHUBRC569QR.ensure==='function')window.ExportHUBRC569QR.ensure(item);if(!url&&window.ExportHUBRC569QR&&typeof window.ExportHUBRC569QR.urlFor==='function')url=q(window.ExportHUBRC569QR.urlFor(item))}catch(_){}return url}
+function stableQr(input){var url=q(input),current=canonicalUrl(findShipment());if(current)url=current;return qrCore.call(this,url)}
+stableQr.__index290Stable=true;stableQr.__index290Core=qrCore;
+function lock(name,fn){try{Object.defineProperty(window,name,{configurable:false,enumerable:true,get:function(){return fn},set:function(){return fn}});return true}catch(_){try{window[name]=fn;return window[name]===fn}catch(__){return false}}}
+lock('RC569QrSvg',stableQr);
+var renderer=unwrap(window.__RC590_ORIGINAL_SHOW_DOCUMENTS__||window.rc590CoreShowDocuments);
+function patchAfterOpen(){clearTimeout(patchTimer);var run=function(){try{if(window.ExportHUBRC565&&typeof window.ExportHUBRC565.patchDocuments==='function')window.ExportHUBRC565.patchDocuments()}catch(_){}try{if(window.ExportHUBRC616&&typeof window.ExportHUBRC616.refresh==='function')window.ExportHUBRC616.refresh()}catch(_){}try{if(window.ExportHUBRC616&&typeof window.ExportHUBRC616.select==='function')window.ExportHUBRC616.select('load1')}catch(_){}try{if(window.ExportHUBIndex289&&typeof window.ExportHUBIndex289.patchQr==='function')window.ExportHUBIndex289.patchQr()}catch(_){}try{if(window.ExportHUBIndex289&&typeof window.ExportHUBIndex289.patch==='function'){var pages=document.querySelectorAll('.rc390-load,.rc420-load,[data-document-type*="loadlist"]').length;if(!pages)window.ExportHUBIndex289.patch()}}catch(_){}};if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else patchTimer=setTimeout(run,16)}
+function directOpen(id){var sh=findShipment(id);if(!sh){alert('Die ausgewählte Sendung wurde nicht gefunden.');return false}var key=sid(sh)||sref(sh),now=Date.now();if(busy||(key===lastKey&&now-lastOpenAt<650)){suppressed++;return false}busy=true;lastKey=key;lastOpenAt=now;openCount++;try{if(window.ExportHUBIndex222&&typeof window.ExportHUBIndex222.syncColliRows==='function')window.ExportHUBIndex222.syncColliRows()}catch(_){}mirror(sh);try{if(typeof renderer!=='function')throw new Error('Dokumentenrenderer ist nicht verfügbar.');renderer.call(window);patchAfterOpen();return false}catch(e){console.error('RC289 Ladeliste öffnen',e);alert('Ladeliste und CMR konnten nicht geöffnet werden: '+q(e&&e.message||e));return false}finally{setTimeout(function(){busy=false},120)}}
+function openCurrent(){return directOpen(currentKey())}
+directOpen.__index290Stable=true;openCurrent.__index290Stable=true;
+['rc524OpenDocuments','rc588OpenDocuments','rc590OpenDocuments','rc572OpenDocuments','showSavedCmr','rc453ShowSavedCmr'].forEach(function(n){lock(n,directOpen)});
+['rc221OpenCurrentShipmentDocuments','rc220OpenCurrentShipmentDocuments','rc217OpenCurrentShipmentDocuments','rc573OpenCurrentShipmentDocuments','rc573PrintAll'].forEach(function(n){lock(n,openCurrent)});
+function patchButton(){var shell=document.getElementById('rc573ShipmentShell');if(!shell)return;Array.prototype.slice.call(shell.querySelectorAll('button,a')).forEach(function(b){if(/Ladeliste\s*&\s*CMR\s*öffnen|Gesamtausgabe\s*drucken|Gesamtdruck/i.test(q(b.textContent))){b.setAttribute('onclick','return rc221OpenCurrentShipmentDocuments()');b.setAttribute('data-index290-direct-documents','1')}})}
+function maintain(){patchButton();if(window.RC569QrSvg!==stableQr)lock('RC569QrSvg',stableQr)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',maintain,{once:true});else maintain();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,maintain)});
+(window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__=window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__||[]).push({key:'index290-loadlist-direct-open',priority:130,run:maintain});
+window.ExportHUBIndex290=Object.freeze({version:VERSION,open:directOpen,openCurrent:openCurrent,qr:stableQr,diagnostics:function(){return{version:VERSION,busy:busy,openCount:openCount,suppressed:suppressed,renderer:typeof renderer==='function',stableQr:window.RC569QrSvg===stableQr,directOpen:window.rc524OpenDocuments===directOpen,currentOpen:window.rc221OpenCurrentShipmentDocuments===openCurrent,noInterval:true,noObserver:true}}});
+window.__EXPORTHUB_RC289_RELEASE__=Object.freeze({version:VERSION,index:'index(290).html',fix:'loadlist-stack-overflow-and-open-performance'});
+})();
+</script>
+<!-- INDEX 290 RC289 LOADLIST STACK + PERFORMANCE FIX END -->
+
