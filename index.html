@@ -27,7 +27,7 @@ try{sessionStorage.setItem('exporthub-pickup-route-token',token)}catch(_){}
 /* Old printed QR codes can still target index.html. Redirect them before the 5 MB app starts. */
 try{
  var target=new URL('pickup.html',u.href);target.search='';target.hash='';
- target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','277');target.hash='pickup='+encodeURIComponent(token);
+ target.searchParams.set('pickup',token);target.searchParams.set('token',token);target.searchParams.set('v','278');target.hash='pickup='+encodeURIComponent(token);
  location.replace(target.href);return;
 }catch(_){}
 /* Fallback only when a browser blocks the redirect. */
@@ -43,8 +43,8 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC277',cache:'277',loginReturn:'/?v=277'});
-var STANDARD_TITLE='ExportHUB Online RC277';
+var BUILD=Object.freeze({version:'RC278',cache:'278',loginReturn:'/?v=278'});
+var STANDARD_TITLE='ExportHUB Online RC278';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -24428,74 +24428,116 @@ window.ExportHUBCentralPostRender=Object.freeze({version:VERSION,register:add,re
 })();
 </script>
 <!-- RC275 CENTRAL POST-RENDER CONTROL END -->
-<!-- RC277 QR ROUTE + PICKUP START FIX START -->
-<script id="rc276-qr-route-pickup-start-fix">
+<!-- RC278 QR REGISTRATION + PICKUP ROUTE START -->
+<style id="rc278-qr-registration-style">
+.rc278-qr-pending,.rc278-qr-error{display:grid;place-items:center;min-height:36mm;width:36mm;padding:8px;border-radius:8px;text-align:center;font-size:9px;font-weight:900;line-height:1.25;box-sizing:border-box}
+.rc278-qr-pending{border:1px solid #facc15;background:#fffbeb;color:#92400e}.rc278-qr-error{border:1px solid #fca5a5;background:#fff1f2;color:#991b1b}
+</style>
+<script id="rc278-qr-registration-pickup-route">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC276_QR_ROUTE_FIX__)return;
-window.__EXPORTHUB_RC276_QR_ROUTE_FIX__=true;
+if(window.__EXPORTHUB_RC278_QR_REGISTRATION__)return;
+window.__EXPORTHUB_RC278_QR_REGISTRATION__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC277',CACHE='277',queued=false,installed=false;
+var VERSION='RC278',CACHE='278',LOADER_PIN='4466',queued=false,installed=false,inflight={},verified={};
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function valid(v){return /^[A-Za-z0-9_-]{6,128}$/.test(q(v))}
-function hexToken(){
- var bytes=new Uint8Array(24);try{crypto.getRandomValues(bytes);return Array.prototype.map.call(bytes,function(v){return v.toString(16).padStart(2,'0')}).join('')}catch(_){var out='';while(out.length<48)out+=Math.random().toString(16).slice(2);return out.slice(0,48)}
-}
+function hexToken(){var bytes=new Uint8Array(24);try{crypto.getRandomValues(bytes);return Array.prototype.map.call(bytes,function(v){return v.toString(16).padStart(2,'0')}).join('')}catch(_){var out='';while(out.length<48)out+=Math.random().toString(16).slice(2);return out.slice(0,48)}}
 function states(){var out=[];function add(x){if(obj(x)&&out.indexOf(x)<0)out.push(x)}try{add(window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}try{add(window.state)}catch(_){}return out}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference))}
 function ref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId)).toUpperCase()}
 function currentShipment(){
- try{if(window.ExportHUBIndex265&&typeof window.ExportHUBIndex265.canonicalShipment==='function'){var st=states()[0]||{},id=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId);var c=id&&window.ExportHUBIndex265.canonicalShipment(id);if(c)return c}}
- catch(_){}
+ try{if(window.ExportHUBIndex265&&typeof window.ExportHUBIndex265.canonicalShipment==='function'){var st=states()[0]||{},id=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId),c=id&&window.ExportHUBIndex265.canonicalShipment(id);if(c)return c}}catch(_){}
  var all=states(),candidates=[];all.forEach(function(st){['shipment','currentShipment','selectedShipment'].forEach(function(k){if(obj(st[k]))candidates.push(st[k])});arr(st.shipments).forEach(function(x){if(obj(x))candidates.push(x)})});
  var selected='';try{var st=all[0]||{};selected=q(st.documentShipmentId||st.activeShipmentId||st.selectedShipmentId||st.currentShipmentId).toUpperCase()}catch(_){}
  if(selected){var found=candidates.find(function(x){return q(x.id||x.shipmentId||x.ref||x.reference).toUpperCase()===selected});if(found)return found}
  return candidates.find(function(x){return valid(x.pickupToken)})||candidates[0]||null;
 }
-function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'QR-Abholroute korrigiert')}catch(_){} }
-function ensureToken(sh){
- if(!sh)return'';var token=q(sh.pickupToken);
- if(valid(token))return token;
- try{var api=window.ExportHUBRC569QR;if(api&&typeof api.ensure==='function'){api.ensure(sh);token=q(sh.pickupToken)}}catch(_){}
- if(!valid(token)){token=hexToken();sh.pickupToken=token;sh.pickupQrActive=true;sh.pickupQrDisabled=false;persist('QR-Token erzeugt')}
- return token;
-}
-function appBase(){
- var u;try{u=new URL('pickup.html',document.baseURI||location.href)}catch(_){u=new URL('pickup.html',location.href)}
- /* Dedicated lightweight QR page in the same deployment directory. */
- u.search='';u.hash='';return u;
-}
-function pickupUrl(sh){
- var item=sh||currentShipment()||{},token=ensureToken(item);if(!valid(token))return'';
- var u=appBase();u.searchParams.set('ehcmd','pickup');u.searchParams.set('pickup',token);u.searchParams.set('token',token);u.searchParams.set('v',CACHE);u.hash='pickup='+encodeURIComponent(token);return u.href;
+function customerFor(sh){var all=states(),cid=q(sh&&sh.customerId),name=q(sh&&sh.customerName);for(var i=0;i<all.length;i++){var found=arr(all[i].customers).find(function(c){return (cid&&[c.id,c.account,c.customerNumber].some(function(v){return q(v)===cid}))||(name&&q(c.name||c.customerName)===name)});if(found)return found}return obj(sh&&sh.customer)?sh.customer:{}}
+function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'QR registriert');else if(typeof window.save==='function')window.save(reason||'QR registriert')}catch(_){} }
+function syncCopies(sh,patch){var key=sid(sh),r=ref(sh);states().forEach(function(st){arr(st.shipments).forEach(function(x){if((key&&sid(x)===key)||(r&&ref(x)===r))Object.assign(x,patch)});['shipment','currentShipment','selectedShipment'].forEach(function(k){var x=st[k];if(obj(x)&&((key&&sid(x)===key)||(r&&ref(x)===r)))Object.assign(x,patch)})});Object.assign(sh,patch)}
+function ensureToken(sh){if(!sh)return'';var token=q(sh.pickupToken);if(valid(token))return token;try{var api=window.ExportHUBRC569QR;if(api&&typeof api.ensure==='function'){api.ensure(sh);token=q(sh.pickupToken)}}catch(_){}if(!valid(token)){token=hexToken();syncCopies(sh,{pickupToken:token,pickupQrActive:true,pickupQrDisabled:false,pickupQrRegistered:false});persist('QR-Token erzeugt')}return token}
+function appBase(){var u;try{u=new URL('pickup.html',document.baseURI||location.href)}catch(_){u=new URL('pickup.html',location.href)}u.search='';u.hash='';return u}
+function pickupUrl(sh){var item=sh||currentShipment()||{},token=ensureToken(item);if(!valid(token))return'';var u=appBase();u.searchParams.set('ehcmd','pickup');u.searchParams.set('pickup',token);u.searchParams.set('token',token);u.searchParams.set('v',CACHE);u.hash='pickup='+encodeURIComponent(token);return u.href}
+function metadata(sh){var c=customerFor(sh),token=ensureToken(sh);return{token:token,pin:LOADER_PIN,shipmentId:sid(sh),reference:ref(sh),customer:q(c.name||c.customerName||sh.customerName),recipient:q(sh.recipientName||c.name||c.customerName||sh.customerName),expiresDays:180,pickupQrVersion:9,version:9,force:true,reactivate:true,loaderId:'daniel-ollmann',loaderName:'Daniel Ollmann',loadedBy:'Daniel Ollmann',active:true,disabled:false}}
+function parseResponse(r){return r.text().then(function(raw){var body={};try{body=raw?JSON.parse(raw):{}}catch(_){}if(!r.ok){var e=new Error(body.message||body.error||('HTTP '+r.status));e.status=r.status;e.body=body;throw e}return body})}
+function register(sh,force){if(!sh||!ref(sh))return Promise.resolve(false);var token=ensureToken(sh);if(!valid(token))return Promise.resolve(false);if(verified[token]&&!force)return Promise.resolve(true);if(inflight[token])return inflight[token];syncCopies(sh,{pickupQrActivating:true,pickupQrError:'',pickupQrRegistered:false});
+ inflight[token]=fetch('/api/pickup-init',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','Content-Type':'application/json'},body:JSON.stringify(metadata(sh))}).then(parseResponse).then(function(data){verified[token]=Date.now();syncCopies(sh,{pickupQrRegistered:true,pickupQrActivating:false,pickupQrRegisteredAt:new Date().toISOString(),pickupQrServerStatus:q(data.status)||'open',pickupQrRegistrationVersion:q(data.registrationVersion)||VERSION,pickupQrError:'',pickupQrActive:true,pickupQrDisabled:false});persist('QR-Code serverseitig registriert');return true}).catch(function(e){syncCopies(sh,{pickupQrRegistered:false,pickupQrActivating:false,pickupQrError:q(e.message||e),pickupQrServerStatus:'error'});persist('QR-Registrierungsfehler gespeichert');return false}).finally(function(){delete inflight[token]});return inflight[token]
 }
 function loadPage(doc){return doc&&(doc.getElementById('rc565LoadList1')||doc.getElementById('rc420Load1')||doc.querySelector('.rc420-load[data-rc420-load="1"],.rc593-load1,[data-doc="load1"],[data-document-type="loadlist-1"],.rc390-page.rc390-load'))}
 function qrHost(page){return page&&page.querySelector('.rc420-qr,.rc390-qrslot,.rc351-qr-slot,.rc352-qr-slot,.rc346-qr-wrap,.rc344-qr-only,.rc569-qr-box,[data-qr-url]')}
+function ensureHost(doc,page){var host=qrHost(page);if(!host){host=doc.createElement('div');host.className='rc420-qr';(page.querySelector('.rc420-load-ref,.load-refbox,.rc344-ref,.rc390-ref')||page).appendChild(host)}host.style.removeProperty('display');host.hidden=false;return host}
 function svg(url){try{if(typeof window.RC569QrSvg==='function')return window.RC569QrSvg(url);if(typeof window.rc386QrSvg==='function')return window.rc386QrSvg(url);if(typeof window.rc385QrSvg==='function')return window.rc385QrSvg(url)}catch(_){}return''}
-function patchDocument(doc,sh){
- if(!doc||!sh)return false;var url=pickupUrl(sh),page=loadPage(doc);if(!url||!page)return false;
- var host=qrHost(page);if(!host){host=doc.createElement('div');host.className='rc420-qr';(page.querySelector('.rc420-load-ref,.load-refbox,.rc344-ref,.rc390-ref')||page).appendChild(host)}
- var markup=svg(url);if(markup)host.innerHTML=markup;
- host.setAttribute('data-qr-url',url);host.setAttribute('data-rc277-pickup-url',url);host.setAttribute('title','QR-Abholung öffnen');host.style.removeProperty('display');host.hidden=false;
- var links=page.querySelectorAll('a[href*="pickup"],a[data-qr-url]');Array.prototype.forEach.call(links,function(a){a.href=url;a.setAttribute('data-qr-url',url)});
- return true;
-}
-function patchAll(){var sh=currentShipment();if(!sh)return false;var ok=patchDocument(document,sh);document.querySelectorAll('iframe').forEach(function(frame){try{if(frame.contentDocument)ok=patchDocument(frame.contentDocument,sh)||ok}catch(_){}});return ok}
-function installApi(){
- var api=window.ExportHUBRC569QR;if(!api)return false;
- var wrapped={};Object.keys(api).forEach(function(k){wrapped[k]=api[k]});wrapped.urlFor=function(sh){return pickupUrl(sh||currentShipment()||{})};
- var oldPatch=api.patch;wrapped.patch=function(){var result=false;try{result=typeof oldPatch==='function'?oldPatch.apply(api,arguments):false}catch(_){}schedule();return result};
- wrapped.__rc276Route=true;try{window.ExportHUBRC569QR=Object.freeze(wrapped)}catch(_){window.ExportHUBRC569QR=wrapped}return true;
-}
+function statusHost(doc,sh,kind,message){var page=loadPage(doc);if(!page)return false;var host=ensureHost(doc,page);host.removeAttribute('data-qr-url');host.removeAttribute('data-rc278-pickup-url');host.innerHTML='<div class="'+(kind==='error'?'rc278-qr-error':'rc278-qr-pending')+'">'+String(message||'').replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</div>';return true}
+function patchRegistered(doc,sh){if(!doc||!sh||sh.pickupQrRegistered!==true)return false;var page=loadPage(doc),url=pickupUrl(sh);if(!page||!url)return false;var host=ensureHost(doc,page),markup=svg(url);if(markup)host.innerHTML=markup;host.setAttribute('data-qr-url',url);host.setAttribute('data-rc278-pickup-url',url);host.setAttribute('title','QR-Abholung öffnen');var links=page.querySelectorAll('a[href*="pickup"],a[data-qr-url]');Array.prototype.forEach.call(links,function(a){a.href=url;a.setAttribute('data-qr-url',url)});return true}
+function documents(){var out=[document];document.querySelectorAll('iframe').forEach(function(frame){try{if(frame.contentDocument)out.push(frame.contentDocument)}catch(_){}});return out}
+function patchAll(sh){sh=sh||currentShipment();if(!sh)return false;var token=ensureToken(sh);if(!valid(token))return false;documents().forEach(function(doc){statusHost(doc,sh,'pending','QR-Code wird serverseitig registriert …')});register(sh,false).then(function(ok){documents().forEach(function(doc){if(ok)patchRegistered(doc,sh);else statusHost(doc,sh,'error','QR-Code nicht aktiv: '+q(sh.pickupQrError||'Registrierung fehlgeschlagen'))})});return true}
+function installApi(){var api=window.ExportHUBRC569QR;if(!api||api.__rc278Registration)return false;var wrapped={};Object.keys(api).forEach(function(k){wrapped[k]=api[k]});wrapped.urlFor=function(sh){return pickupUrl(sh||currentShipment()||{})};wrapped.register=function(sh,force){return register(sh||currentShipment(),force!==false).then(function(ok){patchAll(sh||currentShipment());return ok})};wrapped.activateCurrent=function(){return wrapped.register(currentShipment(),true)};wrapped.bulkRegister=function(){var list=[];states().forEach(function(st){arr(st.shipments).forEach(function(sh){if(sh&&ref(sh)&&list.indexOf(sh)<0)list.push(sh)})});return list.reduce(function(p,sh){return p.then(function(){return register(sh,true)})},Promise.resolve(true))};var oldPatch=api.patch;wrapped.patch=function(){var result=false;try{result=typeof oldPatch==='function'?oldPatch.apply(api,arguments):false}catch(_){}schedule();return result};wrapped.__rc278Registration=true;try{window.ExportHUBRC569QR=Object.freeze(wrapped)}catch(_){window.ExportHUBRC569QR=wrapped}return true}
 function run(){installApi();patchAll()}
 function schedule(){if(queued)return;queued=true;(window.requestAnimationFrame||window.setTimeout)(function(){queued=false;run()},16)}
-function registerCentral(){if(installed)return;var c=window.ExportHUBCentralPostRender;if(c&&typeof c.register==='function'){installed=!!c.register({key:'rc276-qr-route',priority:12,run:function(){run()}})}}
+function registerCentral(){if(installed)return;var c=window.ExportHUBCentralPostRender;if(c&&typeof c.register==='function')installed=!!c.register({key:'rc278-qr-registration',priority:12,run:run})}
 function boot(){registerCentral();run()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
-window.ExportHUBRC277QR=Object.freeze({version:VERSION,pickupUrl:pickupUrl,patch:patchAll,selfTest:function(){var token='a'.repeat(48),base=appBase(),u=pickupUrl({pickupToken:token});return{version:VERSION,url:u,tokenInQuery:/[?&]pickup=a{48}(?:&|#|$)/.test(u),tokenBackup:/[?&]token=a{48}(?:&|#|$)/.test(u),command:/[?&]ehcmd=pickup(?:&|#|$)/.test(u),hash:/#pickup=a{48}$/.test(u),cache:/[?&]v=277(?:&|#|$)/.test(u),preservesPath:new URL(u).pathname===base.pathname,tokenLength:token.length,noMutationObserver:true,noInterval:true}}});
+window.ExportHUBRC278QR=Object.freeze({version:VERSION,pickupUrl:pickupUrl,register:register,patch:patchAll,selfTest:function(){var token='a'.repeat(48),sample={id:'S1',ref:'ABC123',pickupToken:token,customerName:'Kunde'},u=pickupUrl(sample);return{version:VERSION,tokenLength:token.length,validToken:valid(token),pickupPage:new URL(u).pathname.endsWith('/pickup.html'),queryToken:/[?&]pickup=a{48}(?:&|#|$)/.test(u),backupToken:/[?&]token=a{48}(?:&|#|$)/.test(u),cache:/[?&]v=278(?:&|#|$)/.test(u),registrationRequiredBeforeQr:true,noMutationObserver:true,noInterval:true}}});
 })();
 </script>
-<!-- RC277 QR ROUTE + PICKUP START FIX END -->
+<!-- RC278 QR REGISTRATION + PICKUP ROUTE END -->
 
+<!-- RC278 LOADLIST PERFORMANCE + COLLI WIDTHS START -->
+<style id="rc278-colli-widths-style">
+@media (min-width:681px){
+ body #rc573ColliCard .rc344-colli-row .rc344-colli-grid{
+  grid-template-columns:minmax(300px,2.35fr) minmax(78px,.55fr) minmax(160px,1.05fr) minmax(125px,.85fr)!important;
+ }
+ body #rc573ColliCard .rc344-colli-grid>.index222-field-type,
+ body #rc573ColliCard .rc344-colli-grid>.index212-packaging-field,
+ body #rc573ColliCard .rc344-colli-grid>.index202-packaging-field,
+ body #rc573ColliCard .rc344-colli-grid>[data-index232-field="type"],
+ body #rc573ColliCard .rc344-colli-grid>[data-index234-field="type"],
+ body #rc573ColliCard .rc344-colli-grid>[data-index274-field="type"]{min-width:0!important}
+ body #rc573ColliCard .rc344-colli-grid>.index222-field-count,
+ body #rc573ColliCard .rc344-colli-grid>[data-index232-field="count"],
+ body #rc573ColliCard .rc344-colli-grid>[data-index234-field="count"]{min-width:0!important}
+}
+</style>
+<script id="rc278-loadlist-performance-colli-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC278_LOADLIST_COLLI__)return;
+window.__EXPORTHUB_RC278_LOADLIST_COLLI__=true;
+var VERSION='RC278',baseOpen=null,installed=false,busy=false,lastKey='',lastAt=0,releaseTimer=0,patchQueued=false,openCalls=0,suppressedCalls=0;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function arr(v){return Array.isArray(v)?v:[]}
+function state(){try{return typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():(window.state||{})}catch(_){return window.state||{}}}
+function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference||sh.shipmentRef))}
+function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase()}
+function currentKey(){var s=state(),selected=q(s.documentShipmentId||s.selectedShipmentId||s.currentShipmentId||s.activeShipmentId);if(selected&&selected!=='current')return selected;var sh=s.shipment||s.currentShipment||s.selectedShipment||{};return sid(sh)||sref(sh)}
+function findKey(id){id=q(id);if(id)return id;return currentKey()}
+function release(){busy=false;releaseTimer=0;try{document.documentElement.removeAttribute('data-rc278-document-opening')}catch(_){}}
+function fastOpen(id){var key=findKey(id),now=Date.now();if((busy||now-lastAt<700)&&(!key||key===lastKey)){suppressedCalls++;return false}busy=true;lastKey=key;lastAt=now;openCalls++;try{document.documentElement.setAttribute('data-rc278-document-opening','1')}catch(_){}clearTimeout(releaseTimer);releaseTimer=setTimeout(release,900);var result;try{result=baseOpen.call(this,key)}catch(e){release();throw e}if(result&&typeof result.finally==='function')result.finally(release);return result}
+function currentOpen(){return fastOpen(currentKey())}
+function installOpenGuard(){
+ var candidate=window.rc524OpenDocuments;
+ if(typeof candidate==='function'&&candidate!==fastOpen&&candidate!==currentOpen&&!candidate.__rc278FastOpen)baseOpen=candidate;
+ if(typeof baseOpen!=='function')return false;
+ fastOpen.__rc278FastOpen=true;fastOpen.__rc278Base=baseOpen;currentOpen.__rc278FastOpen=true;
+ window.rc524OpenDocuments=fastOpen;window.rc588OpenDocuments=fastOpen;window.rc590OpenDocuments=fastOpen;window.rc572OpenDocuments=fastOpen;window.showSavedCmr=fastOpen;window.rc453ShowSavedCmr=fastOpen;window.rc221OpenCurrentShipmentDocuments=currentOpen;
+ installed=true;return true
+}
+function replaceTextNode(label){
+ if(!label)return false;var changed=false;
+ Array.prototype.slice.call(label.childNodes||[]).forEach(function(n){if(n.nodeType!==3)return;var before=n.nodeValue||'',after=before.replace(/\bGewicht\s+gesamt\s*(?:\(\s*kg\s*\)|kg)\b/ig,'Gewicht gesamt').replace(/\bGewicht\s*\(\s*kg\s*\)/ig,'Gewicht');if(after!==before){n.nodeValue=after;changed=true}});
+ Array.prototype.slice.call(label.children||[]).forEach(function(n){if(!/^(SPAN|B|STRONG)$/i.test(n.tagName||''))return;var before=n.textContent||'',after=before.replace(/\bGewicht\s+gesamt\s*(?:\(\s*kg\s*\)|kg)\b/ig,'Gewicht gesamt').replace(/\bGewicht\s*\(\s*kg\s*\)/ig,'Gewicht');if(after!==before){n.textContent=after;changed=true}});return changed
+}
+function patchColli(){var card=document.getElementById('rc573ColliCard');if(!card)return{labels:0};var labels=0;card.querySelectorAll('label,.field').forEach(function(label){var text=q(label.textContent),hasWeight=!!label.querySelector('input[data-index212-weight="1"],input[title*="Einzelgewichte"],input[onchange*="weight"],input[oninput*="weight"]')||/gewicht/i.test(text);if(hasWeight&&replaceTextNode(label))labels++});return{labels:labels}}
+function schedulePatch(){if(patchQueued)return;patchQueued=true;(window.requestAnimationFrame||window.setTimeout)(function(){patchQueued=false;installOpenGuard();patchColli()},16)}
+function boot(){installOpenGuard();patchColli();var c=window.ExportHUBCentralPostRender;if(c&&typeof c.register==='function')c.register({key:'rc278-loadlist-colli',priority:16,run:function(view){installOpenGuard();if(String(view||'').toLowerCase()==='shipment')patchColli()}})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedulePatch)});
+window.ExportHUBRC278Performance=Object.freeze({version:VERSION,install:installOpenGuard,patchColli:patchColli,diagnostics:function(){return{version:VERSION,installed:installed,busy:busy,lastKey:lastKey,openCalls:openCalls,suppressedCalls:suppressedCalls,oneShotRelease:true,noMutationObserver:true,noInterval:true}}});
+})();
+</script>
+<!-- RC278 LOADLIST PERFORMANCE + COLLI WIDTHS END -->
