@@ -7,8 +7,8 @@
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC273',cache:'273',loginReturn:'/?v=273'});
-var STANDARD_TITLE='ExportHUB Online RC273';
+var BUILD=Object.freeze({version:'RC274',cache:'274',loginReturn:'/?v=274'});
+var STANDARD_TITLE='ExportHUB Online RC274';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -24274,3 +24274,101 @@ window.ExportHUBIndex274=Object.freeze({version:VERSION,patch:patch,ensurePackag
 })();
 </script>
 <!-- INDEX 274 RC273 PACKAGING SELECT + WEIGHT LABEL FIX END -->
+<!-- RC274 STOW REFRESH + SINGLE MAIL AREA FIX START -->
+<script id="rc274-stow-refresh-single-mail-fix">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC274_STOW_MAIL_FIX__)return;
+window.__EXPORTHUB_RC274_STOW_MAIL_FIX__=true;
+var VERSION='RC274',refreshBusy=false,mailBusy=false;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function root(){return document.getElementById('rc573ShipmentShell')||document.getElementById('content')}
+function shipmentView(){
+ var r=root(),bodyView=low(document.body&&document.body.getAttribute('data-exporthub-view'));
+ try{var s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():(window.state||{});if(low(s&&s.view)==='shipment')return true}catch(_){ }
+ return bodyView==='shipment'||!!(r&&r.querySelector&&r.querySelector('#rc573SavedCard,#rc524StowPlan'));
+}
+function savedCard(r){
+ if(!r)return null;var direct=r.querySelector('#rc573SavedCard');if(direct)return direct;
+ return Array.prototype.slice.call(r.querySelectorAll('section,article,.card')).find(function(node){var h=node.querySelector(':scope > h1,:scope > h2,:scope > h3,:scope > h4')||node.querySelector('h1,h2,h3,h4');return /^Gespeicherte Sendungen/i.test(q(h&&h.textContent))})||null;
+}
+function directHeading(node){var h=node&&node.querySelector&&node.querySelector(':scope > h1,:scope > h2,:scope > h3,:scope > h4');return q(h&&h.textContent)}
+function hasMailControls(node){return !!(node&&node.querySelector&&node.querySelector('input[type="email"],input[id*="mail" i],textarea,select[id*="mail" i],a[href^="mailto:"],button'))}
+function isMailArea(node){
+ if(!node||!node.isConnected)return false;
+ if(/^(rc543MailArea|rc542MailArea|rc524MailArea|rc418ShipmentMail|rc416ShipmentMail|rc410ShipmentMail|rc409ShipmentMail|rc404ShipmentMail|rc404ShipmentMailPanel|rc390ShipmentMail|rc385ShipmentMail|rc344MailBox)$/.test(node.id||''))return true;
+ if(node.classList&&node.classList.contains('rc573-mail-card'))return true;
+ return /^(?:✉\s*)?(?:Mailbereich|Mail Bereich|Anmeldung\s*\/\s*(?:Mail|Kommunikation)|Mailversand)$/i.test(directHeading(node))&&hasMailControls(node);
+}
+function candidates(r){
+ if(!r)return[];var selector='#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,.rc573-mail-card,section,article,.card';
+ return Array.prototype.slice.call(r.querySelectorAll(selector)).filter(isMailArea).filter(function(node,index,all){return all.indexOf(node)===index});
+}
+function isBefore(a,b){return !!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING))}
+function removeNode(node){if(node&&node.parentNode)node.parentNode.removeChild(node)}
+function enforceSingleMail(){
+ if(mailBusy||!shipmentView())return false;var r=root(),saved=savedCard(r);if(!r||!saved)return false;mailBusy=true;
+ try{
+  var all=candidates(r);
+  /* Alles innerhalb oder unterhalb der gespeicherten Sendungen ist unzulässig. */
+  all.forEach(function(node){if(saved.contains(node)||!isBefore(node,saved))removeNode(node)});
+  all=candidates(r).filter(function(node){return isBefore(node,saved)});
+  if(!all.length)return true;
+  var keep=all.find(function(node){return node.id==='rc543MailArea'})||all.find(function(node){return node.id==='rc542MailArea'})||all.find(function(node){return node.classList&&node.classList.contains('rc573-mail-card')})||all[all.length-1];
+  all.forEach(function(node){if(node!==keep)removeNode(node)});
+  if(keep&&saved.parentNode&&(keep.parentNode!==saved.parentNode||keep.nextElementSibling!==saved))saved.parentNode.insertBefore(keep,saved);
+  return candidates(r).length===1&&keep&&keep.nextElementSibling===saved;
+ }finally{mailBusy=false}
+}
+function ensureStowVisible(){
+ var r=root(),stow=r&&r.querySelector('#rc524StowPlan');
+ if(!stow&&window.ExportHUBRC573&&typeof window.ExportHUBRC573.patch==='function'){
+  try{window.ExportHUBRC573.patch()}catch(_){ }
+  r=root();stow=r&&r.querySelector('#rc524StowPlan');
+ }
+ if(!stow)return null;
+ stow.hidden=false;stow.removeAttribute('hidden');stow.style.removeProperty('display');stow.style.removeProperty('visibility');
+ var details=stow.closest&&stow.closest('details');if(details)details.open=true;
+ var area=stow.querySelector('#rc573LoadingArea');
+ if(!area&&window.ExportHUBRC573&&typeof window.ExportHUBRC573.patch==='function'){
+  try{window.ExportHUBRC573.patch()}catch(_){ }
+  stow=(root()&&root().querySelector('#rc524StowPlan'))||stow;area=stow.querySelector('#rc573LoadingArea');
+ }
+ if(area){area.hidden=false;area.removeAttribute('hidden');area.style.removeProperty('display');area.style.removeProperty('visibility')}
+ return{stow:stow,area:area};
+}
+function saveReason(){
+ try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Stauplan aktualisiert')}
+ catch(_){ }
+}
+function refreshStow(){
+ if(refreshBusy||!shipmentView())return false;refreshBusy=true;
+ try{
+  var before=ensureStowVisible();if(!before||!before.stow)return false;
+  var rendered=false;
+  try{if(typeof window.rc628RenderSecuredStow==='function'){rendered=window.rc628RenderSecuredStow()!==false}}
+  catch(e){console.error('RC274 Stauplan-Refresh',e)}
+  if(!rendered){try{if(window.ExportHUBRC598&&typeof window.ExportHUBRC598.patchStowDiagram==='function')rendered=window.ExportHUBRC598.patchStowDiagram()!==false}catch(e){console.error('RC274 Stauplan-Fallback',e)}}
+  if(!rendered){try{if(window.ExportHUBRC574&&typeof window.ExportHUBRC574.apply==='function')rendered=window.ExportHUBRC574.apply()!==false}catch(e){console.error('RC274 Stauplan-Style-Fallback',e)}}
+  var after=ensureStowVisible();
+  try{if(window.ExportHUBRC588&&typeof window.ExportHUBRC588.patchStow==='function')window.ExportHUBRC588.patchStow()}catch(_){ }
+  enforceSingleMail();saveReason();
+  return !!(after&&after.stow&&after.stow.isConnected);
+ }finally{refreshBusy=false}
+}
+/* Der alte Inline-Handler darf den Stauplan nicht mehr entfernen. */
+window.rc524RecalculateStow=refreshStow;
+document.addEventListener('click',function(event){
+ var button=event.target&&event.target.closest&&event.target.closest('button,a,[role="button"]');
+ if(!button||!/^Stauplan aktualisieren$/i.test(q(button.textContent)))return;
+ event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();refreshStow();
+},true);
+function onRendered(){if(shipmentView())enforceSingleMail()}
+window.addEventListener('exporthub:rendered',onRendered);
+window.addEventListener('exporthub:viewchange',onRendered);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',onRendered,{once:true});else onRendered();
+window.ExportHUBRC274=Object.freeze({version:VERSION,refreshStow:refreshStow,enforceSingleMail:enforceSingleMail,selfTest:function(){var r=root(),saved=savedCard(r),mail=candidates(r),stow=r&&r.querySelector('#rc524StowPlan'),area=stow&&stow.querySelector('#rc573LoadingArea');return{version:VERSION,stowPresent:!!stow,loadingAreaPresent:!!area,stowVisible:!!(stow&&!stow.hidden&&getComputedStyle(stow).display!=='none'),mailAreas:mail.length,mailBelowSaved:saved?mail.filter(function(x){return saved.contains(x)||!isBefore(x,saved)}).length:0,singleMailDirectlyAboveSaved:!!(saved&&mail.length===1&&mail[0].nextElementSibling===saved),noObserver:true,noInterval:true}}});
+})();
+</script>
+<!-- RC274 STOW REFRESH + SINGLE MAIL AREA FIX END -->
