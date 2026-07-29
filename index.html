@@ -43,8 +43,8 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC282',cache:'282',loginReturn:'/?v=282'});
-var STANDARD_TITLE='ExportHUB Online RC282';
+var BUILD=Object.freeze({version:'RC284',cache:'284',loginReturn:'/?v=284'});
+var STANDARD_TITLE='ExportHUB Online RC284';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -21135,7 +21135,8 @@ function documentHtml(info,saved){
 }
 function waitPopupImages(win,done,attempt){var images=[];try{images=Array.prototype.slice.call(win.document.images||[])}catch(_){ }if(images.every(function(img){return img.complete})||attempt>80){done();return}later(function(){waitPopupImages(win,done,attempt+1)},50)}
 function markPrinted(sh,pages){if(!sh)return;var stamp=new Date().toISOString();sh.printStatus={complete:true,printedAt:stamp,pages:pages,source:'Gesamtausgabe Dokumentfenster'};sh.printedAt=stamp;sh.printComplete=true;sh.printConfirmed=true;save('Gesamtausgabe als Dokument gedruckt')}
-function writePrintError(win,message){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Gesamtausgabe Fehler</title><style>body{font-family:Segoe UI,Arial;padding:35px;background:#fff1f2;color:#991b1b}div{max-width:760px;margin:auto;background:#fff;border:1px solid #fecaca;border-radius:18px;padding:24px}</style></head><body><div><h1>Gesamtausgabe konnte nicht aufgebaut werden</h1><p>'+esc(message)+'</p></div></body></html>');win.document.close()}catch(_){ }alert(message)}
+function writePrintError(win,message){try{win.document.open();win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Gesamtausgabe Fehler</title><style>body{font-family:Segoe UI,Arial;padding:35px;background:#fff1f2;color:#991b1b}div{max-width:760px;margin:auto;background:#fff;border:1px solid #fecaca;border-radius:18px;padding:24px}</style></head><body><div><h1>Gesamtausgabe konnte nicht aufgebaut werden</h1><p>'+esc(message)+'</p></div></body></html>'<!-- INDEX 285 RC284 QR + STATUS + SINGLE MAIL FIX -->
+);win.document.close()}catch(_){ }alert(message)}
 function completePrint(mode){
  if(mode&&mode!=='all'){
   var fallback=window.__INDEX202_OLD_RC616__;
@@ -23670,7 +23671,7 @@ window.ExportHUBIndex258=Object.freeze({version:VERSION,patch:patchAll,balanceFo
 if(window.__EXPORTHUB_INDEX263_MAIL_STATUS_V2__)return;
 window.__EXPORTHUB_INDEX263_MAIL_STATUS_V2__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC262',saveTimer=0,patchTimer=0,installTimer=0;
+var VERSION='RC284',saveTimer=0,patchTimer=0,installTimer=0;
 var DANIEL_MAIL='DanielOllmann@essentra.com';
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
@@ -23713,25 +23714,51 @@ function openMail(){var d=prepareMailFields();if(!d)return false;if(!d.to.length
 function hasDelivery(sh){return arr(sh&&sh.deliveryFiles).some(function(f){return !/deleted|geloscht|replaced|ersetzt/i.test(low(f&&f.status))})||!!q(sh&&(sh.deliveryNotes||sh.deliveryNote||sh.dncNumber))}
 function hasLoad2(sh){return arr(sh&&sh.generatedDocuments).some(function(x){return /ladeliste.*2|load.*2/i.test(q(x&&(x.type||x.name)))&&!/deleted|geloscht|replaced|ersetzt/i.test(low(x&&x.status))})||!!(sh&&(sh.loadList2Printed||sh.loadList2Generated))}
 function actor(){try{return q((window.currentUser||{}).name||(window.currentUser||{}).user)||'Benutzer'}catch(_){return'Benutzer'}}
-function confirmMail(){var d=prepareMailFields();if(!d)return false;if(!d.to.length){alert('Empfängeradresse fehlt.');return false}var opened=d.sh.mailOpened&&d.sh.mailOpened[d.target];if(!opened)return alert('Die Mail muss zuerst über ExportHUB geöffnet werden.'),false;if(d.target==='customer'&&!hasDelivery(d.sh))return alert('Der Lieferschein fehlt. Versandbestätigung nicht möglich.'),false;if(d.target==='carrier'&&!hasLoad2(d.sh))return alert('Ladeliste Seite 2 fehlt. Versandbestätigung nicht möglich.'),false;var stamp=new Date().toISOString(),h={id:'MAIL-'+Date.now(),type:d.target,to:d.to.join('; '),cc:d.cc.join('; '),subject:d.subject,body:d.body,sentAt:stamp,confirmedAt:stamp,user:actor(),attachment:d.target==='customer'?'Lieferschein':d.target==='carrier'?'Ladeliste Seite 2':'kein Pflichtanhang'};d.sh.mailHistory=arr(d.sh.mailHistory);d.sh.mailHistory.push(h);d.sh.mailCurrent=obj(d.sh.mailCurrent)?d.sh.mailCurrent:{};d.sh.mailCurrent[d.target]=h;d.sh.mailSent=true;d.sh.mailConfirmed=true;d.sh.mailStatus='Versendet';enforceStatus(d.sh,true);persist('Mail als versendet bestätigt und Status aktualisiert');schedule('Mail bestätigt',20);try{if(typeof window.render==='function')window.render()}catch(_){}return false}
+function confirmMail(){var d=prepareMailFields();if(!d)return false;if(!d.to.length){alert('Empfängeradresse fehlt.');return false}var opened=d.sh.mailOpened&&d.sh.mailOpened[d.target];if(!opened)return alert('Die Mail muss zuerst über ExportHUB geöffnet werden.'),false;if(d.target==='customer'&&!hasDelivery(d.sh))return alert('Der Lieferschein fehlt. Versandbestätigung nicht möglich.'),false;if(d.target==='carrier'&&!hasLoad2(d.sh))return alert('Ladeliste Seite 2 fehlt. Versandbestätigung nicht möglich.'),false;var stamp=new Date().toISOString(),h={id:'MAIL-'+Date.now(),type:d.target,to:d.to.join('; '),cc:d.cc.join('; '),subject:d.subject,body:d.body,sentAt:stamp,confirmedAt:stamp,user:actor(),attachment:d.target==='customer'?'Lieferschein':d.target==='carrier'?'Ladeliste Seite 2':'kein Pflichtanhang'};d.sh.mailHistory=arr(d.sh.mailHistory);d.sh.mailHistory.push(h);d.sh.mailCurrent=obj(d.sh.mailCurrent)?d.sh.mailCurrent:{};d.sh.mailCurrent[d.target]=h;d.sh.mailSent=true;d.sh.mailConfirmed=true;d.sh.mailStatus='Versendet';enforceStatus(d.sh,true);persist('Mail als versendet bestätigt und Status aktualisiert');schedule('Mail bestätigt',20);try{patchVisible();window.dispatchEvent(new CustomEvent('exporthub:status-updated',{detail:{shipmentId:sid(d.sh),status:q(d.sh.status)}}))}catch(_){}return false}
 openMail.__index263v2=true;confirmMail.__index263v2=true;
 function installFunctions(){window.rc543OpenMail=openMail;window.rc542OpenMail=openMail;window.rc524OpenMail=openMail;window.rc543ConfirmMail=confirmMail;window.rc542ConfirmMail=confirmMail;return true}
 function mailRequirement(c){var v=low(c&&(c.mailRequirement||c.requiredMail||c.mailProfile||c.defaultMailTarget||c.mailDefaultTarget));if(/none|keine/.test(v))return[];if(/both|beide|kundenmail.*speditionsmail/.test(v))return['customer','carrier'];if(/customer|kunde/.test(v))return['customer'];if(/own|eigene/.test(v))return['own'];return['carrier']}
-function mailDone(sh,c){var req=mailRequirement(c);return req.every(function(t){var h=sh&&sh.mailCurrent&&sh.mailCurrent[t];return !!q(h&&h.confirmedAt)||arr(sh&&sh.mailHistory).some(function(x){return low(x&&x.type)===t&&!!q(x&&x.confirmedAt)})})}
-function printDone(sh){return !!(sh&&(sh.printComplete===true||sh.printConfirmed===true||q(sh.printedAt)||(obj(sh.printStatus)&&sh.printStatus.complete===true)))}
+function mailEvidence(sh,t){
+ var h=sh&&sh.mailCurrent&&sh.mailCurrent[t],aliases=t==='carrier'?['carrier','spedition','shipping','forwarder']:t==='customer'?['customer','kunde']:['own','eigene'];
+ if(h&&(q(h.confirmedAt||h.sentAt)||/versendet|sent|bestatigt|bestaetigt|confirmed/.test(low(h.status))))return true;
+ if(arr(sh&&sh.mailHistory).some(function(x){var type=low(x&&x.type),state=low([x&&x.status,x&&x.action,x&&x.note].join(' '));return aliases.some(function(a){return type.indexOf(a)>=0})&&(q(x&&x.confirmedAt||x&&x.sentAt)||/versendet|sent|bestatigt|bestaetigt|confirmed/.test(state))}))return true;
+ var keys=t==='carrier'?['carrierMailSentAt','speditionMailSentAt','shippingMailSentAt','forwarderMailSentAt','carrierMailConfirmedAt','speditionMailConfirmedAt']:t==='customer'?['customerMailSentAt','kundenMailSentAt','customerMailConfirmedAt']:['ownMailSentAt','eigeneMailSentAt','ownMailConfirmedAt'];
+ if(keys.some(function(k){return q(sh&&sh[k])||sh&&sh[k.replace(/At$/,'')]===true}))return true;
+ var statusText=low([sh&&sh.mailStatus,sh&&sh.shippingMailStatus,sh&&sh.carrierMailStatus,sh&&sh.speditionMailStatus,sh&&sh.customerMailStatus].join(' '));
+ return sh&&sh.mailSent===true&&sh.mailConfirmed===true||/versendet|sent|bestatigt|bestaetigt|confirmed/.test(statusText);
+}
+function mailDone(sh,c){var req=mailRequirement(c);return req.every(function(t){return mailEvidence(sh,t)})}
+function printDone(sh){
+ if(!sh)return false;
+ if(sh.printComplete===true||sh.printConfirmed===true||q(sh.printedAt)||(obj(sh.printStatus)&&sh.printStatus.complete===true))return true;
+ var docs=arr(sh.generatedDocuments),load1=sh.loadList1Generated===true||sh.loadList1Printed===true||docs.some(function(x){return /ladeliste.*1|load.*1/i.test(q(x&&(x.type||x.name)))&&!/deleted|geloscht|replaced|ersetzt/i.test(low(x&&x.status))}),load2=hasLoad2(sh);
+ return !!(load1&&load2)||!!(load2&&(sh.pickupQrRegistered===true||sh.pickupQrActive===true||q(sh.pickupToken)));
+}
 function abdDone(sh){if(!sh||!sh.abdRequired)return true;if(/erneut prufen|nachbearbeitung/.test(low(sh.abdStatus)))return false;if(/abgeschlossen|dokument vorhanden|abd erhalten|nicht erforderlich|erledigt/.test(low(sh.abdStatus)))return true;return arr(sh.abdFiles).some(function(f){return !/deleted|geloscht|replaced|ersetzt|storniert/.test(low(f&&f.status))})}
 function pickupDone(sh){return !!(sh&&(sh.pickupQrUsed===true||sh.qrPickupConfirmed===true||sh.pickupConfirmed===true||sh.pickupCompleted===true||sh.podScanConfirmed===true||q(sh.pickupConfirmedAt||sh.qrPickupConfirmedAt||sh.pickupCompletedAt||sh.pickedUpAt||sh.actualPickupAt||sh.actualPickupDate)||/abgeholt|picked/i.test(low(sh.pickupStatus))))}
-function podDone(sh){var sig=q(sh&&(sh.pickupDriverSignature||sh.driverSignature||sh.signatureDataUrl||sh.pickupSignature||sh.qrPickupSignature||sh.signature));if(/^data:image\/(png|jpe?g|webp);base64,/i.test(sig))return true;return arr(sh&&sh.podFiles).some(function(f){var u=q(f&&(f.dataUrl||f.data||f.url||f.downloadUrl||f.contentUrl));return !f.placeholder&&!f.fallback&&!f.syntheticFallback&&(/^data:application\/pdf;base64,/i.test(u)||/^data:image\//i.test(u)||/\.pdf(?:$|[?#])/i.test(u))})}
+function podDone(sh){
+ if(!sh)return false;
+ if(sh.podServerVerified===true&&q(sh.podServerVerifiedAt)&&q(sh.driverSignatureUrl||sh.pickupDriverSignatureUrl||sh.pickupSignatureUrl||sh.signatureUrl))return true;
+ return arr(sh.podFiles).some(function(f){var u=q(f&&(f.dataUrl||f.data||f.url||f.downloadUrl||f.contentUrl)),kind=low([f&&f.kind,f&&f.source,f&&f.name,f&&f.filename].join(' '));return !f.placeholder&&!f.fallback&&!f.syntheticFallback&&!/scan-confirmation|ersatz|placeholder/.test(kind)&&(/^data:application\/pdf;base64,/i.test(u)||/^data:image\//i.test(u)||/\.pdf(?:$|[?#])/i.test(u))})
+}
 function palletDone(sh){var n=arr(sh&&sh.rows).reduce(function(sum,r){return sum+(Number(r&&r.euroPallets)||(/euro/i.test(q(r&&r.type))?Number(r&&r.count)||0:0))},0);if(!n)return true;if(sh.palletBookingComplete===true)return true;var k=skey(sh);return states().some(function(st){return arr(st.palletAccount).some(function(b){return(skey({id:b.shipmentId,ref:b.shipmentRef})===k)&&/ausgang/i.test(q(b.direction||b.type))&&!/storniert/i.test(low(b.status))})})}
 function noOpenMandatory(sh){var id=sid(sh),rf=sref(sh);return !states().some(function(st){return arr(st.tasks).some(function(t){var linked=q(t.linkedShipmentId)===id||q(t.linkedShipmentRef).toUpperCase()===rf,mandatory=t.mandatory===true||/pflicht/i.test(q(t.priority||t.type||t.note));return linked&&mandatory&&!/erledigt|storniert|done|cancelled/i.test(low(t.status))})})}
 function persisted(sh){var k=skey(sh);return shipmentGroups().some(function(list){return list.some(function(x){return skey(x)===k})})}
 var ranks={'Entwurf':0,'Erstellt':10,'Wartet auf ABD':15,'Bereit zur Abholung':20,'Abgeholt':30,'POD vorhanden':40,'Abgeschlossen':50,'Archiviert':60};
 function label(v){var s=low(v);if(/archiv/.test(s))return'Archiviert';if(/storn|cancel/.test(s))return'Storniert';if(/nachbearbeit|erneut prufen/.test(s))return'Nachbearbeitung erforderlich';if(/abgeschlossen|completed|erledigt/.test(s))return'Abgeschlossen';if(/pod/.test(s))return'POD vorhanden';if(/abgeholt|picked/.test(s))return'Abgeholt';if(/bereit.*abhol|ready.*pickup/.test(s))return'Bereit zur Abholung';if(/wartet.*abd|abd.*wart/.test(s))return'Wartet auf ABD';if(/erstellt|created/.test(s))return'Erstellt';return'Entwurf'}
 function rank(v){return ranks[label(v)]==null?0:ranks[label(v)]}
-function computeStatus(sh){var current=label(sh&&sh.status),c=customerFor(sh);if(sh&&sh.archived===true||current==='Archiviert')return'Archiviert';if(sh&&(sh.cancelled===true||sh.storniert===true)||current==='Storniert')return'Storniert';if(/erneut prufen|nachbearbeitung/.test(low(sh&&sh.abdStatus)))return'Nachbearbeitung erforderlich';var picked=pickupDone(sh),pod=podDone(sh),ready=hasDelivery(sh)&&printDone(sh)&&mailDone(sh,c)&&abdDone(sh),complete=pod&&ready&&palletDone(sh)&&noOpenMandatory(sh),calculated=complete?'Abgeschlossen':pod?'POD vorhanden':picked?'Abgeholt':sh&&sh.abdRequired&&!abdDone(sh)&&persisted(sh)?'Wartet auf ABD':ready?'Bereit zur Abholung':persisted(sh)?'Erstellt':'Entwurf';return rank(current)>rank(calculated)?current:calculated}
+function computeStatus(sh){
+ var current=label(sh&&sh.status),c=customerFor(sh);if(sh&&sh.archived===true||current==='Archiviert')return'Archiviert';if(sh&&(sh.cancelled===true||sh.storniert===true)||current==='Storniert')return'Storniert';if(/erneut prufen|nachbearbeitung/.test(low(sh&&sh.abdStatus)))return'Nachbearbeitung erforderlich';
+ var picked=pickupDone(sh),pod=podDone(sh),documentsDone=printDone(sh),mailComplete=mailDone(sh,c),ready=hasDelivery(sh)&&documentsDone&&mailComplete&&abdDone(sh),complete=pod&&ready&&palletDone(sh)&&noOpenMandatory(sh),calculated=complete?'Abgeschlossen':pod?'POD vorhanden':picked?'Abgeholt':sh&&sh.abdRequired&&!abdDone(sh)&&persisted(sh)?'Wartet auf ABD':ready?'Bereit zur Abholung':persisted(sh)?'Erstellt':'Entwurf';
+ return rank(current)>rank(calculated)?current:calculated
+}
 function syncStatus(sh,next){var k=skey(sh),changed=false,stamp=new Date().toISOString();shipmentGroups().forEach(function(list){list.forEach(function(x){if(skey(x)!==k)return;if(q(x.status)!==next){x.status=next;changed=true}if(q(x.processStatus)!==next){x.processStatus=next;changed=true}if(next==='Bereit zur Abholung'){x.readyForPickup=true;x.readinessStatus=next}if(next==='Abgeholt'){x.pickupStatus='abgeholt'}if(next==='POD vorhanden'||next==='Abgeschlossen'){x.pickupStatus='abgeholt';x.podStatus='POD vorhanden';x.podConfirmed=true;x.podScanConfirmed=true}if(changed)x.statusUpdatedAt=stamp})});return changed}
 function enforceStatus(sh,force){if(!sh)return false;var before=label(sh.status),next=computeStatus(sh),changed=syncStatus(sh,next);if(changed){sh.statusHistory=arr(sh.statusHistory);sh.statusHistory.push({at:new Date().toISOString(),from:before,to:next,source:'Zentrale Prozessstatus-Aktualisierung'});if(sh.statusHistory.length>100)sh.statusHistory=sh.statusHistory.slice(-100);if(force)persist('Sendungsstatus auf '+next+' aktualisiert')}return changed}
-function patchVisible(){allShipments().forEach(function(sh){var rf=sref(sh),st=label(sh.status);if(!rf)return;document.querySelectorAll('#content .rc524-shipment-card[data-shipment],#content tr').forEach(function(node){if(q(node.textContent).toUpperCase().indexOf(rf)<0&&q(node.getAttribute&&node.getAttribute('data-shipment')).toUpperCase()!==skey(sh))return;node.querySelectorAll('.pill,td').forEach(function(el){if(/^(Entwurf|Erstellt|Wartet auf ABD|Bereit zur Abholung|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=st})})})}
+function patchVisible(){
+ allShipments().forEach(function(sh){var rf=sref(sh),st=label(sh.status);if(!rf)return;document.querySelectorAll('#content .rc524-shipment-card[data-shipment],#content tr').forEach(function(node){if(q(node.textContent).toUpperCase().indexOf(rf)<0&&q(node.getAttribute&&node.getAttribute('data-shipment')).toUpperCase()!==skey(sh))return;node.querySelectorAll('.pill,td').forEach(function(el){if(/^(Entwurf|Erstellt|Wartet auf ABD|Bereit zur Abholung|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=st})})
+ });
+ var cur=currentShipment();if(cur){var currentStatus=label(cur.status),shell=document.getElementById('rc573ShipmentShell')||document.getElementById('content');if(shell)Array.prototype.slice.call(shell.querySelectorAll('.pill,.status-pill,.rc210-status-pill,[data-shipment-status],[data-current-status]')).forEach(function(el){if(/^(Entwurf|Erstellt|Wartet auf ABD|Bereit zur Abholung|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=currentStatus})}
+}
 function patch(reason){installFunctions();var changed=false;allCustomers().forEach(function(c){if(sanitizeCustomer(c))changed=true});allShipments().forEach(function(sh){if(sanitizeShipment(sh))changed=true;if(enforceStatus(sh,false))changed=true});prepareMailFields();patchVisible();if(changed)persist(reason||'Mailfelder und Status korrigiert');try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}return changed}
 function schedule(reason,delay){clearTimeout(patchTimer);patchTimer=setTimeout(function(){patch(reason)},delay==null?30:delay)}
 function isOpenButton(b){return !!b&&(/rc543OpenMail|rc542OpenMail|rc524OpenMail/i.test(q(b.getAttribute('onclick')))||/Mail in Outlook öffnen/i.test(q(b.textContent)))}
@@ -23742,6 +23769,8 @@ document.addEventListener('focusout',function(e){var t=e.target;if(t&&t.matches&
 function boot(){patch('Startprüfung');[100,400,1200,2500].forEach(function(ms){setTimeout(function(){patch('Daten nach Start geladen')},ms)});clearInterval(installTimer);var tries=0;installTimer=setInterval(function(){installFunctions();if(++tries>=80)clearInterval(installTimer)},250)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){schedule('Aktualisierung nach '+name,20)})});
+['exporthub:task-updated','exporthub:tasks-updated','exporthub:status-updated','exporthub:pickup-updated'].forEach(function(name){window.addEventListener(name,function(){schedule('Prozessstatus nach '+name,10)})});
+document.addEventListener('change',function(e){var t=e.target;if(t&&(/task|status|erledigt/i.test(q(t.id)+' '+q(t.name)+' '+q(t.className))))[10,120].forEach(function(ms){setTimeout(function(){patch('Aufgabe oder Prozessschritt geändert')},ms)})},true);
 window.ExportHUBIndex263=Object.freeze({version:VERSION,patch:patch,prepareMail:prepareMailFields,openMail:openMail,confirmMail:confirmMail,recalculate:function(sh){return enforceStatus(sh||currentShipment(),true)},selfTest:function(){var c={name:'Testkunde',customerEmail:'kunde@test.de',carrierEmail:'sped@test.de',salesMail:'sales@test.de',cc:'Testkunde | ABC123 | Avisierung erforderlich; copy@test.de'},sh={id:'ABC123',ref:'ABC123',customerId:'C1',status:'Erstellt',mailCurrent:{},printStatus:{complete:true},deliveryFiles:[{name:'LS.pdf'}],abdRequired:false};var old=allCustomers;sanitizeCustomer(c);var rec=buildRecipients(sh,c,'customer','');sh.mailCurrent.customer={confirmedAt:new Date().toISOString()};var status=computeStatus(sh);return{version:VERSION,cc:c.cc,subjectNotInCc:removeEmails(c.cc)==='',to:rec.to,ccRecipients:rec.cc,containsSales:rec.cc.some(function(x){return /sales@/i.test(x)}),containsDaniel:rec.cc.some(function(x){return /danielollmann@/i.test(x)}),statusAfterSteps:status}}});
 })();
 
@@ -24055,7 +24084,7 @@ window.ExportHUBIndex274=Object.freeze({version:VERSION,patch:patch,ensurePackag
 'use strict';
 if(window.__EXPORTHUB_RC274_STOW_MAIL_FIX__)return;
 window.__EXPORTHUB_RC274_STOW_MAIL_FIX__=true;
-var VERSION='RC274',refreshBusy=false,mailBusy=false;
+var VERSION='RC284',refreshBusy=false,mailBusy=false;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function root(){return document.getElementById('rc573ShipmentShell')||document.getElementById('content')}
@@ -24069,15 +24098,17 @@ function savedCard(r){
  return Array.prototype.slice.call(r.querySelectorAll('section,article,.card')).find(function(node){var h=node.querySelector(':scope > h1,:scope > h2,:scope > h3,:scope > h4')||node.querySelector('h1,h2,h3,h4');return /^Gespeicherte Sendungen/i.test(q(h&&h.textContent))})||null;
 }
 function directHeading(node){var h=node&&node.querySelector&&node.querySelector(':scope > h1,:scope > h2,:scope > h3,:scope > h4');return q(h&&h.textContent)}
-function hasMailControls(node){return !!(node&&node.querySelector&&node.querySelector('input[type="email"],input[id*="mail" i],textarea,select[id*="mail" i],a[href^="mailto:"],button'))}
+function hasMailControls(node){return !!(node&&node.querySelector&&node.querySelector('input[type="email"],input[id*="mail" i],textarea[id*="mail" i],select[id*="mail" i],a[href^="mailto:"],[data-mail-area],[id*="Mail"],[class*="mail-" i]'))}
 function isMailArea(node){
  if(!node||!node.isConnected)return false;
  if(/^(rc543MailArea|rc542MailArea|rc524MailArea|rc418ShipmentMail|rc416ShipmentMail|rc410ShipmentMail|rc409ShipmentMail|rc404ShipmentMail|rc404ShipmentMailPanel|rc390ShipmentMail|rc385ShipmentMail|rc344MailBox)$/.test(node.id||''))return true;
  if(node.classList&&node.classList.contains('rc573-mail-card'))return true;
- return /^(?:✉\s*)?(?:Mailbereich|Mail Bereich|Anmeldung\s*\/\s*(?:Mail|Kommunikation)|Mailversand)$/i.test(directHeading(node))&&hasMailControls(node);
+ var title=directHeading(node),text=low(node.textContent),controls=hasMailControls(node);
+ if(/^(?:✉\s*)?(?:Mailbereich|Mail Bereich|Anmeldung\s*\/\s*(?:Mail|Kommunikation)|Mailversand)$/i.test(title)&&controls)return true;
+ return controls&&((/aktiver standard/.test(text)&&/referenz/.test(text)&&/cc/.test(text))||(/kundenmail/.test(text)&&/speditionsmail/.test(text)&&/mailtext|betreff/.test(text)));
 }
 function candidates(r){
- if(!r)return[];var selector='#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,.rc573-mail-card,section,article,.card';
+ if(!r)return[];var selector='#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,.rc573-mail-card,[data-mail-area],[id*="MailArea"],[id*="ShipmentMail"],section,article,.card';
  return Array.prototype.slice.call(r.querySelectorAll(selector)).filter(isMailArea).filter(function(node,index,all){return all.indexOf(node)===index});
 }
 function isBefore(a,b){return !!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING))}
@@ -24086,8 +24117,9 @@ function enforceSingleMail(){
  if(mailBusy||!shipmentView())return false;var r=root(),saved=savedCard(r);if(!r||!saved)return false;mailBusy=true;
  try{
   var all=candidates(r);
-  /* Alles innerhalb oder unterhalb der gespeicherten Sendungen ist unzulässig. */
   all.forEach(function(node){if(saved.contains(node)||!isBefore(node,saved))removeNode(node)});
+  /* Auch fragmentierte alte Mailfelder unterhalb der gespeicherten Sendungen entfernen. */
+  Array.prototype.slice.call(r.querySelectorAll('section,article,.card,div')).forEach(function(node){if(node===saved||!node.isConnected)return;var below=saved.contains(node)||!isBefore(node,saved);if(below&&isMailArea(node))removeNode(node)});
   all=candidates(r).filter(function(node){return isBefore(node,saved)});
   if(!all.length)return true;
   var keep=all.find(function(node){return node.id==='rc543MailArea'})||all.find(function(node){return node.id==='rc542MailArea'})||all.find(function(node){return node.classList&&node.classList.contains('rc573-mail-card')})||all[all.length-1];
@@ -24139,9 +24171,9 @@ document.addEventListener('click',function(event){
  if(!button||!/^Stauplan aktualisieren$/i.test(q(button.textContent)))return;
  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();refreshStow();
 },true);
-function onRendered(){if(shipmentView())enforceSingleMail()}
-window.addEventListener('exporthub:rendered',onRendered);
-window.addEventListener('exporthub:viewchange',onRendered);
+var mailTimer=0;function onRendered(){clearTimeout(mailTimer);mailTimer=setTimeout(function(){if(shipmentView())enforceSingleMail()},0)}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:status-updated'].forEach(function(name){window.addEventListener(name,onRendered)});
+document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573ShipmentShell button,#rc573ShipmentShell a'))[0,80,250].forEach(function(ms){setTimeout(onRendered,ms)})},true);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',onRendered,{once:true});else onRendered();
 window.ExportHUBRC274=Object.freeze({version:VERSION,refreshStow:refreshStow,enforceSingleMail:enforceSingleMail,selfTest:function(){var r=root(),saved=savedCard(r),mail=candidates(r),stow=r&&r.querySelector('#rc524StowPlan'),area=stow&&stow.querySelector('#rc573LoadingArea');return{version:VERSION,stowPresent:!!stow,loadingAreaPresent:!!area,stowVisible:!!(stow&&!stow.hidden&&getComputedStyle(stow).display!=='none'),mailAreas:mail.length,mailBelowSaved:saved?mail.filter(function(x){return saved.contains(x)||!isBefore(x,saved)}).length:0,singleMailDirectlyAboveSaved:!!(saved&&mail.length===1&&mail[0].nextElementSibling===saved),noObserver:true,noInterval:true}}});
 })();
@@ -24186,7 +24218,7 @@ window.ExportHUBCentralPostRender=Object.freeze({version:VERSION,register:add,re
 if(window.__EXPORTHUB_RC280_PRIORITY1_QR__)return;
 window.__EXPORTHUB_RC280_PRIORITY1_QR__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC280',CACHE='280',queued=false,installed=false,inflight={},verified={},lastPatchKey='';
+var VERSION='RC284',CACHE='284',queued=false,installed=false,inflight={},verified={},lastPatchKey='';
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
@@ -24215,7 +24247,7 @@ function verifyRecord(sh){var token=ensureToken(sh);return api('pickup-status?to
 function register(sh,force){if(!sh||!ref(sh))return Promise.resolve(false);var token=ensureToken(sh);if(!valid(token))return Promise.resolve(false);if(verified[token]&&!force&&Date.now()-verified[token]<300000)return Promise.resolve(true);if(inflight[token])return inflight[token];syncCopies(sh,{pickupQrActivating:true,pickupQrRegistered:false,pickupQrError:'',pickupQrServerStatus:'registering'});
  inflight[token]=api('pickup-init',{method:'POST',body:JSON.stringify(metadata(sh))}).then(jsonResponse).then(function(){return verifyRecord(sh)}).then(function(data){verified[token]=Date.now();syncCopies(sh,{pickupQrRegistered:true,pickupQrActivating:false,pickupQrRegisteredAt:new Date().toISOString(),pickupQrServerStatus:q(data.status)||'open',pickupQrRegistrationVersion:VERSION,pickupQrError:'',pickupQrActive:true,pickupQrDisabled:false,pickupQrVersion:10});persist('QR-Code serverseitig registriert und geprüft');return true}).catch(function(e){syncCopies(sh,{pickupQrRegistered:false,pickupQrActivating:false,pickupQrError:q(e.message||e),pickupQrServerStatus:'error'});persist('QR-Registrierungsfehler gespeichert');return false}).finally(function(){delete inflight[token]});return inflight[token]
 }
-function pickupUrl(sh){var item=sh||currentShipment(),token=ensureToken(item);if(!item||!valid(token))return'';var u=new URL('pickup.html',document.baseURI||location.href),m=metadata(item);u.search='';u.hash='';u.searchParams.set('ehcmd','pickup');u.searchParams.set('pickup',token);u.searchParams.set('token',token);u.searchParams.set('v',CACHE);if(m.reference)u.searchParams.set('reference',m.reference);if(m.shipmentId)u.searchParams.set('shipmentId',m.shipmentId);if(m.customer)u.searchParams.set('customer',m.customer);if(m.recipient)u.searchParams.set('recipient',m.recipient);u.hash='pickup='+encodeURIComponent(token);return u.href}
+function pickupUrl(sh){var item=sh||currentShipment(),token=ensureToken(item);if(!item||!valid(token))return'';var u=new URL('pickup.html',document.baseURI||location.href),m=metadata(item);u.search='';u.hash='';u.searchParams.set('ehcmd','pickup');u.searchParams.set('pickup',token);u.searchParams.set('token',token);u.searchParams.set('v',CACHE);u.searchParams.set('registered','1');if(m.reference)u.searchParams.set('reference',m.reference);if(m.shipmentId)u.searchParams.set('shipmentId',m.shipmentId);if(m.customer)u.searchParams.set('customer',m.customer);if(m.recipient)u.searchParams.set('recipient',m.recipient);u.hash='pickup='+encodeURIComponent(token);return u.href}
 function loadPage(doc){return doc&&(doc.getElementById('rc565LoadList1')||doc.getElementById('rc420Load1')||doc.querySelector('.rc420-load[data-rc420-load="1"],.rc593-load1,[data-doc="load1"],[data-document-type="loadlist-1"],.rc390-page.rc390-load'))}
 function qrHost(page){return page&&page.querySelector('.rc420-qr,.rc390-qrslot,.rc351-qr-slot,.rc352-qr-slot,.rc346-qr-wrap,.rc344-qr-only,.rc569-qr-box,[data-qr-url]')}
 function ensureHost(doc,page){var host=qrHost(page);if(!host){host=doc.createElement('div');host.className='rc420-qr';(page.querySelector('.rc420-load-ref,.load-refbox,.rc344-ref,.rc390-ref')||page).appendChild(host)}host.style.removeProperty('display');host.hidden=false;return host}
@@ -24388,3 +24420,159 @@ window.ExportHUBRC278Performance=Object.freeze({version:VERSION,install:installO
 <!-- INDEX 282 RC281 COLLI THREE ROW LAYOUT END -->
 <!-- INDEX 283 RC282 PRINT SCRIPT RECOVERY -->
 <script id="index283-rc282-release-marker">window.__EXPORTHUB_RC282_RELEASE__=Object.freeze({version:'RC282',index:'index(283).html',fix:'print-script-recovery',qrPodUnchanged:true,colliThreeRows:true});</script>
+
+<!-- INDEX 284 RC283 COLLI ROW STABILITY START -->
+<style id="index284-colli-row-stability-style">
+/* Jede Colli-Zeile nutzt dauerhaft dieselbe 3-Reihen-Struktur. */
+@media (min-width:681px){
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid[data-index284-grid="1"]{
+    display:grid!important;
+    grid-template-columns:repeat(12,minmax(0,1fr))!important;
+    grid-template-rows:auto auto auto!important;
+    grid-auto-flow:row!important;
+    column-gap:16px!important;
+    row-gap:16px!important;
+    align-items:start!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+  html body #content #rc573ColliCard .rc344-colli-grid[data-index284-grid="1"]>[data-index284-field]{
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:flex-start!important;
+    align-items:stretch!important;
+    gap:7px!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    margin:0!important;
+    padding-top:0!important;
+    align-self:start!important;
+  }
+  html body #content #rc573ColliCard [data-index284-field="type"]{grid-area:1 / 1 / 2 / 10!important}
+  html body #content #rc573ColliCard [data-index284-field="action"]{grid-area:1 / 10 / 2 / 13!important;align-self:end!important;justify-content:flex-end!important;padding-top:25px!important}
+  html body #content #rc573ColliCard [data-index284-field="count"]{grid-area:2 / 1 / 3 / 3!important}
+  html body #content #rc573ColliCard [data-index284-field="weight"]{grid-area:2 / 3 / 3 / 8!important}
+  html body #content #rc573ColliCard [data-index284-field="ldm"]{grid-area:2 / 8 / 3 / 13!important}
+  html body #content #rc573ColliCard [data-index284-field="l"]{grid-area:3 / 1 / 4 / 5!important}
+  html body #content #rc573ColliCard [data-index284-field="w"]{grid-area:3 / 5 / 4 / 9!important}
+  html body #content #rc573ColliCard [data-index284-field="h"]{grid-area:3 / 9 / 4 / 13!important}
+  html body #content #rc573ColliCard .rc344-colli-grid[data-index284-grid="1"] input,
+  html body #content #rc573ColliCard .rc344-colli-grid[data-index284-grid="1"] select,
+  html body #content #rc573ColliCard .rc344-colli-grid[data-index284-grid="1"] button{
+    width:100%!important;min-width:0!important;max-width:none!important;height:48px!important;min-height:48px!important;box-sizing:border-box!important;margin:0!important
+  }
+}
+@media (max-width:680px){
+  html body #content #rc573ColliCard .rc344-colli-row .rc344-colli-grid[data-index284-grid="1"]{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:none!important;gap:14px!important}
+  html body #content #rc573ColliCard .rc344-colli-grid[data-index284-grid="1"]>[data-index284-field]{grid-column:1!important;grid-row:auto!important;width:100%!important;min-width:0!important;margin:0!important;padding-top:0!important}
+  html body #content #rc573ColliCard [data-index284-field="type"]{order:1!important}
+  html body #content #rc573ColliCard [data-index284-field="action"]{order:2!important}
+  html body #content #rc573ColliCard [data-index284-field="count"]{order:3!important}
+  html body #content #rc573ColliCard [data-index284-field="weight"]{order:4!important}
+  html body #content #rc573ColliCard [data-index284-field="ldm"]{order:5!important}
+  html body #content #rc573ColliCard [data-index284-field="l"]{order:6!important}
+  html body #content #rc573ColliCard [data-index284-field="w"]{order:7!important}
+  html body #content #rc573ColliCard [data-index284-field="h"]{order:8!important}
+}
+</style>
+<script id="index284-colli-row-stability-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX284_COLLI_STABILITY__)return;
+window.__EXPORTHUB_INDEX284_COLLI_STABILITY__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var queued=false,wrapCount=0;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return Object.assign({},v||{})}}
+function states(){var out=[];function add(s){if(s&&typeof s==='object'&&out.indexOf(s)<0)out.push(s)}try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')add(window.__EXPORTHUB_GET_STATE__())}catch(_){}try{add(window.state)}catch(_){}return out}
+function shipment(s){s=s||states()[0]||(window.state=window.state||{});s.shipment=s.shipment||{};s.shipment.rows=arr(s.shipment.rows);return s.shipment}
+function rows(){var card=document.getElementById('rc573ColliCard');if(!card)return[];return Array.prototype.slice.call(card.querySelectorAll('.rc344-colli-row,[data-rc344-row]')).filter(function(row){return !!row.querySelector('.rc344-colli-grid')})}
+function direct(grid,node){while(node&&node.parentElement&&node.parentElement!==grid)node=node.parentElement;return node&&node.parentElement===grid?node:null}
+function key(control){
+ var wrap=control&&control.closest&&control.closest('label,.field'),text=low(wrap&&wrap.textContent),code=q((control&&control.getAttribute&&control.getAttribute('oninput')||'')+' '+(control&&control.getAttribute&&control.getAttribute('onchange')||'')),m=code.match(/(?:rc344UpdateRow|rc456UpdateRow|UpdateRow|updateRow|setRow)\s*\(\s*\d+\s*,\s*['\"](type|count|weight|ldm|l|w|h)['\"]/i);
+ if(m)return m[1];
+ if(/verpack|packart|packaging/.test(text))return'type';
+ if(/anzahl|menge|quantity/.test(text))return'count';
+ if(/gewicht|weight/.test(text))return'weight';
+ if(/lademeter|\bldm\b/.test(text))return'ldm';
+ if(/lange|laenge|length/.test(text))return'l';
+ if(/breite|width/.test(text))return'w';
+ if(/hohe|hoehe|height/.test(text))return'h';
+ return'';
+}
+function assign(row,k,v){
+ if(k==='type'){row.type=v;row.packaging=v;row.verpackung=v}
+ else if(k==='count'){row.count=v;row.qty=v;row.anzahl=v}
+ else if(k==='weight'){row.weight=v;row.gewicht=v}
+ else if(k==='ldm'){row.ldm=v;row.loadingMeter=v}
+ else if(k==='l'){row.l=v;row.length=v}
+ else if(k==='w'){row.w=v;row.width=v}
+ else if(k==='h'){row.h=v;row.height=v}
+}
+function rowSnapshot(node,index){
+ var base=clone((shipment().rows||[])[index]||{}),grid=node.querySelector('.rc344-colli-grid');
+ if(!grid)return base;
+ Array.prototype.slice.call(grid.querySelectorAll('input,select')).forEach(function(control){
+  var k=key(control);if(!k)return;var value=control.value==null?'':String(control.value);
+  if(k==='weight'&&q(value)===''&&q(base.weight||base.gewicht)!=='')return;
+  assign(base,k,value);
+ });
+ return base;
+}
+function snapshotAll(){return rows().map(rowSnapshot)}
+function mirrorDrafts(list){try{window.__rc456Rows=clone(list);window.__rc408ShipmentRowsDraft=clone(list)}catch(_){} }
+function writeSnapshots(list,keepTail){
+ states().forEach(function(s){var sh=shipment(s),tail=keepTail?sh.rows.slice(list.length):[];list.forEach(function(item,i){sh.rows[i]=Object.assign({},sh.rows[i]||{},clone(item))});if(keepTail)sh.rows=sh.rows.slice(0,list.length).concat(tail)});
+ var primary=shipment().rows;mirrorDrafts(primary);
+}
+function tagRows(){
+ var done=0;
+ rows().forEach(function(row,index){
+  row.setAttribute('data-index284-row',String(index));
+  var grid=row.querySelector('.rc344-colli-grid');if(!grid)return;
+  var found={};
+  Array.prototype.slice.call(grid.querySelectorAll('input,select')).forEach(function(control){var k=key(control),wrap=direct(grid,control.closest('label,.field')||control.parentElement);if(k&&wrap&&!found[k])found[k]=wrap});
+  var button=Array.prototype.slice.call(grid.querySelectorAll('button')).find(function(b){return /entfernen|loschen|löschen/i.test(low(b.textContent))});
+  if(button){var action=direct(grid,button.closest('label,.field')||button.parentElement);if(action)found.action=action}
+  Array.prototype.slice.call(grid.children).forEach(function(child){child.removeAttribute('data-index284-field')});
+  Object.keys(found).forEach(function(k){found[k].setAttribute('data-index284-field',k)});
+  grid.setAttribute('data-index284-grid','1');done++;
+ });
+ return done;
+}
+function restoreDom(list){
+ rows().forEach(function(node,i){var data=list[i];if(!data)return;node.querySelectorAll('input,select').forEach(function(control){var k=key(control);if(!k)return;var value=k==='type'?(data.type||data.packaging||data.verpackung||''):k==='count'?(data.count??data.qty??data.anzahl??''):k==='weight'?(data.weight??data.gewicht??''):k==='ldm'?(data.ldm??data.loadingMeter??''):k==='l'?(data.l??data.length??''):k==='w'?(data.w??data.width??''):(data.h??data.height??'');if(document.activeElement!==control&&String(control.value)!==String(value==null?'':value))control.value=value==null?'':value})
+ });
+}
+function patch(){queued=false;install();tagRows()}
+function schedule(){if(queued)return;queued=true;(window.requestAnimationFrame||window.setTimeout)(patch,16)}
+function install(){
+ var current=window.rc344AddRow;
+ if(typeof current!=='function'||current.__index284StableAdd)return false;
+ var base=current;
+ var wrapped=function(){
+  var before=snapshotAll();writeSnapshots(before,false);
+  var result;
+  try{result=base.apply(this,arguments)}finally{
+   states().forEach(function(s){var sh=shipment(s);before.forEach(function(item,i){sh.rows[i]=Object.assign({},sh.rows[i]||{},clone(item))})});
+   mirrorDrafts(shipment().rows);tagRows();restoreDom(before);schedule();
+   try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Colli-Zeile ergänzt – Werte erhalten')}catch(_){}
+  }
+  return result;
+ };
+ wrapped.__index284StableAdd=true;wrapped.__index284Base=base;window.rc344AddRow=wrapped;wrapCount++;return true;
+}
+function syncBeforeAdd(){var list=snapshotAll();writeSnapshots(list,false);return list}
+document.addEventListener('click',function(event){var button=event.target&&event.target.closest&&event.target.closest('#rc573ColliCard button');if(!button||!/^\+\s*Zeile$/i.test(q(button.textContent)))return;install();syncBeforeAdd()},true);
+function boot(){install();tagRows();schedule()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){install();schedule()})});
+(window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__=window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__||[]).push({key:'index284-colli-row-stability',priority:36,run:function(){install();schedule()}});
+window.ExportHUBIndex284=Object.freeze({version:'RC283',patch:patch,snapshot:snapshotAll,selfTest:function(){var r=rows(),weights=r.map(function(node){var input=Array.prototype.slice.call(node.querySelectorAll('input,select')).find(function(x){return key(x)==='weight'});return input&&input.value});return{rows:r.length,tagged:r.filter(function(node){return !!node.querySelector('.rc344-colli-grid[data-index284-grid="1"]')}).length,weights:weights,wrapped:!!(window.rc344AddRow&&window.rc344AddRow.__index284StableAdd),wrapCount:wrapCount,noObserver:true,noInterval:true}}});
+window.__EXPORTHUB_RC283_RELEASE__=Object.freeze({version:'RC283',index:'index(284).html',fix:'colli-add-row-layout-and-weight-stability'});
+})();
+</script>
+<!-- INDEX 284 RC283 COLLI ROW STABILITY END -->
