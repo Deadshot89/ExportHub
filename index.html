@@ -7,8 +7,8 @@
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC272',cache:'272',loginReturn:'/?v=272'});
-var STANDARD_TITLE='ExportHUB Online RC272';
+var BUILD=Object.freeze({version:'RC273',cache:'273',loginReturn:'/?v=273'});
+var STANDARD_TITLE='ExportHUB Online RC273';
 var PICKUP_TITLE='ExportHUB · Abholung bestätigen';
 var applying=false;
 var nativeSetAttribute=Element.prototype.setAttribute;
@@ -24154,3 +24154,123 @@ window.ExportHUBIndex266=Object.freeze({version:VERSION,applyTruth:applyTruth,sy
 }
 </style>
 <!-- INDEX 272 RC271 COLLI WEIGHT TOP ROW FIX END -->
+
+<!-- INDEX 274 RC273 PACKAGING SELECT + WEIGHT LABEL FIX START -->
+<style id="index274-packaging-weight-fix-style">
+/* Verpackungsauswahl: sichtbare native Liste und lesbare Einträge. */
+#rc573ColliCard .rc344-colli-grid [data-index274-field="type"] select,
+#rc573ColliCard .rc344-colli-grid label:has(>select[onchange*="'type'"]) select,
+#rc573ColliCard .rc344-colli-grid label:has(>select[onchange*='"type"']) select{
+  color:#0f172a!important;
+  background-color:#fff!important;
+  -webkit-text-fill-color:#0f172a!important;
+  opacity:1!important;
+  color-scheme:light!important;
+  cursor:pointer!important;
+}
+#rc573ColliCard .rc344-colli-grid select[data-index274-packaging="1"] option{
+  color:#0f172a!important;
+  background:#fff!important;
+  -webkit-text-fill-color:#0f172a!important;
+}
+@media (min-width:681px){
+  #rc573ColliCard .rc344-colli-grid [data-index274-field="weight"]{
+    grid-column:3!important;
+    grid-row:1!important;
+    align-self:start!important;
+  }
+}
+</style>
+<script id="index274-packaging-weight-fix-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX274_PACKAGING_WEIGHT_FIX__)return;
+window.__EXPORTHUB_INDEX274_PACKAGING_WEIGHT_FIX__=true;
+var VERSION='RC273',queued=false;
+var FALLBACK=[
+ 'Einweg Palette','Euro Palette','Gestapelte Einweg Palette','Gestapelte Euro Palette',
+ 'Gestapelte Industrie Palette','Industrie Palette','Paletten gestell','Holzbox',
+ 'Düsseldorfer Palette','E0','E1','E2','E3','E4','E5','Umschlag','E6'
+];
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function rowOf(el){return el&&el.closest&&el.closest('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card,#rowsBox>.item')}
+function labelOf(el){return el&&el.closest&&el.closest('label,.field')}
+function fieldKey(el){
+ var label=labelOf(el),text=low(label&&label.textContent),code=q((el&&el.getAttribute&&el.getAttribute('onchange')||'')+' '+(el&&el.getAttribute&&el.getAttribute('oninput')||''));
+ if(/(?:UpdateRow|updateRow|setRow)\s*\(\s*\d+\s*,\s*['\"]type['\"]/.test(code)||/verpack|packart|packaging/.test(text))return'type';
+ if(/(?:UpdateRow|updateRow|setRow)\s*\(\s*\d+\s*,\s*['\"]weight['\"]/.test(code)||/gewicht|weight/.test(text))return'weight';
+ return'';
+}
+function stateSources(){
+ var out=[];function add(x){if(x&&typeof x==='object'&&out.indexOf(x)<0)out.push(x)}
+ try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)}catch(_){}
+ try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')add(window.__EXPORTHUB_GET_STATE__())}catch(_){}
+ try{add(window.state)}catch(_){}
+ try{add(window.SEED)}catch(_){}
+ return out;
+}
+function packagingNames(select){
+ var out=[],seen={};function add(v){v=q(v);var k=low(v);if(!v||seen[k])return;seen[k]=1;out.push(v)}
+ if(select)Array.prototype.slice.call(select.options||[]).forEach(function(o){add(q(o.textContent)||q(o.value))});
+ stateSources().forEach(function(s){arr(s&&s.colliTypes).forEach(function(p){add(p&&(p.name||p.type||p.label))})});
+ FALLBACK.forEach(add);return out;
+}
+function setLabelText(label,newText){
+ if(!label)return;
+ for(var i=0;i<label.childNodes.length;i++){
+  var n=label.childNodes[i];
+  if(n.nodeType===3&&/gewicht\s+gesamt(?:\s+kg)?/i.test(q(n.nodeValue))){n.nodeValue=newText;return}
+ }
+ var span=Array.prototype.slice.call(label.children||[]).find(function(x){return x.tagName==='SPAN'&&/gewicht\s+gesamt(?:\s+kg)?/i.test(q(x.textContent))});
+ if(span)span.textContent=newText;
+}
+function ensurePackaging(select){
+ if(!select||select.tagName!=='SELECT')return false;
+ var label=labelOf(select),row=rowOf(select);if(!row||fieldKey(select)!=='type')return false;
+ if(label)label.setAttribute('data-index274-field','type');
+ select.setAttribute('data-index274-packaging','1');
+ select.disabled=false;
+ var current=q(select.value),names=packagingNames(select),existing=Array.prototype.slice.call(select.options||[]),nonEmpty=existing.filter(function(o){return q(o.value)||q(o.textContent)});
+ if(!nonEmpty.length){
+  select.innerHTML='';
+  var ph=document.createElement('option');ph.value='';ph.textContent='Verpackung auswählen';select.appendChild(ph);
+  names.forEach(function(name){var o=document.createElement('option');o.value=name;o.textContent=name;select.appendChild(o)});
+  select.value=current;
+ }else{
+  existing.forEach(function(o,index){
+   if(!q(o.value)&&!q(o.textContent))o.textContent=index===0?'Verpackung auswählen':'';
+   else if(!q(o.textContent)&&q(o.value))o.textContent=q(o.value);
+  });
+  var have={};Array.prototype.slice.call(select.options||[]).forEach(function(o){have[low(q(o.value)||q(o.textContent))]=1});
+  names.forEach(function(name){if(have[low(name)])return;var o=document.createElement('option');o.value=name;o.textContent=name;select.appendChild(o)});
+  if(current)select.value=current;
+ }
+ Array.prototype.slice.call(select.options||[]).forEach(function(o){o.style.color='#0f172a';o.style.backgroundColor='#ffffff';o.style.webkitTextFillColor='#0f172a'});
+ select.style.color='#0f172a';select.style.backgroundColor='#ffffff';select.style.webkitTextFillColor='#0f172a';select.title=q(select.options&&select.selectedIndex>=0&&select.options[select.selectedIndex]?select.options[select.selectedIndex].textContent:select.value);
+ return select.options.length>1;
+}
+function fixWeight(input){
+ if(!input||fieldKey(input)!=='weight')return false;var label=labelOf(input),row=rowOf(input);if(!label||!row)return false;
+ label.setAttribute('data-index274-field','weight');setLabelText(label,'Gewicht gesamt');return true;
+}
+function patch(root){
+ root=root||document;var card=root.querySelector?root.querySelector('#rc573ColliCard'):null;if(!card&&root.id==='rc573ColliCard')card=root;if(!card)return{selects:0,weights:0};
+ var selects=0,weights=0;
+ Array.prototype.slice.call(card.querySelectorAll('select')).forEach(function(el){if(ensurePackaging(el))selects++});
+ Array.prototype.slice.call(card.querySelectorAll('input')).forEach(function(el){if(fixWeight(el))weights++});
+ return{selects:selects,weights:weights};
+}
+function schedule(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;patch(document)})}
+function targetSelect(target){var el=target&&target.closest&&target.closest('select');return el&&fieldKey(el)==='type'?el:null}
+document.addEventListener('pointerdown',function(e){var select=targetSelect(e.target);if(select)ensurePackaging(select)},true);
+document.addEventListener('focusin',function(e){var select=targetSelect(e.target);if(select)ensurePackaging(select)},true);
+document.addEventListener('change',function(e){var select=targetSelect(e.target);if(select){ensurePackaging(select);select.title=q(select.options[select.selectedIndex]&&select.options[select.selectedIndex].textContent)}},true);
+function boot(){patch(document)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
+window.ExportHUBIndex274=Object.freeze({version:VERSION,patch:patch,ensurePackaging:ensurePackaging,selfTest:function(){var r=patch(document),s=document.querySelector('#rc573ColliCard select[data-index274-packaging="1"]'),w=document.querySelector('#rc573ColliCard [data-index274-field="weight"]');return{version:VERSION,selects:r.selects,weights:r.weights,packagingOptions:s?s.options.length:0,packagingEnabled:!!(s&&!s.disabled),weightLabel:w?q(w.childNodes[0]&&w.childNodes[0].nodeValue||w.textContent):''}}});
+})();
+</script>
+<!-- INDEX 274 RC273 PACKAGING SELECT + WEIGHT LABEL FIX END -->
