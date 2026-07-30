@@ -129,7 +129,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC329',cache:'329',loginReturn:'/?v=329'});
+var BUILD=Object.freeze({version:'RC331',cache:'331',loginReturn:'/?v=331'});
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
 function apply(){var version=BUILD.version;document.title=pickupMode()?'ExportHUB · Abholung bestätigen':'ExportHUB Online '+version;document.documentElement.setAttribute('data-exporthub-version',version);var meta=document.querySelector('meta[name="exporthub-clean-version"]');if(!meta){meta=document.createElement('meta');meta.name='exporthub-clean-version';(document.head||document.documentElement).appendChild(meta)}meta.content=version;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Aktuelle Version '+version;document.querySelectorAll('[data-version-badge],[data-exporthub-version-label]').forEach(function(n){n.textContent=version})}
 try{Object.defineProperty(window,'EXPORTHUB_BUILD',{configurable:false,enumerable:true,get:function(){return BUILD}})}catch(_){window.EXPORTHUB_BUILD=BUILD}
@@ -8654,7 +8654,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <div class="login-card">
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
-<div class="clean-version-badge" id="cleanVersionBadge" aria-label="Aktuelle Version RC327">Aktuelle Version RC327</div>
+<div class="clean-version-badge" id="cleanVersionBadge" aria-label="Aktuelle Version RC331">Aktuelle Version RC331</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -12466,10 +12466,10 @@ function clearLogoutSignalForManualLogin(){
  try{if(native.storageRemove&&window.sessionStorage)native.storageRemove.call(window.sessionStorage,LOGOUT_GUARD_KEY)}catch(_){ }
  try{if(native.storageRemove&&window.localStorage)native.storageRemove.call(window.localStorage,LOGOUT_GUARD_KEY)}catch(_){ }
  try{const u=new URL(window.location.href);if(u.searchParams.has('loggedout')){u.searchParams.delete('loggedout');history.replaceState(null,'',u.href)}}catch(_){ }
+ runtime.loggingOut=false;
 }
 function consumeLogoutSignal(){
  clearTabSession();
- try{if(native.storageRemove&&window.sessionStorage)native.storageRemove.call(window.sessionStorage,LOGOUT_GUARD_KEY)}catch(_){ }
  try{const u=new URL(window.location.href);if(u.searchParams.has('loggedout')){u.searchParams.delete('loggedout');history.replaceState(null,'',u.href)}}catch(_){ }
 }
 function readTabSession(){
@@ -13200,15 +13200,14 @@ async function logoutLocal(){
  if(token){
   try{
    const headers={'Content-Type':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,Authorization:'Bearer '+token};
-   native.fetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify({action:'logout',sessionToken:token}),credentials:'same-origin',cache:'no-store',keepalive:true}).catch(function(){})
+   await native.fetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify({action:'logout',sessionToken:token}),credentials:'same-origin',cache:'no-store',keepalive:true}).catch(function(){return null})
   }catch(_){ }
  }
- try{
-  const target=new URL(window.location.href);target.searchParams.set('v',String(CACHE));target.searchParams.set('loggedout','1');target.hash='';
-  native.setTimeout(function(){window.location.replace(target.href)},80)
- }catch(_){native.setTimeout(function(){window.location.reload()},80)}
+ runtime.loggingOut=false;
+ const user=by('loginUser');if(user)user.focus();
  return false
 }
+window.ExportHUBLogout=logoutLocal;
 function bindMicrosoftControls(){updateMicrosoftUi()}
 function bindLogin(){
  const btn=by('loginBtn');if(btn)btn.addEventListener('click',function(e){if(!runtime.loaded){e.preventDefault();e.stopImmediatePropagation();login(true)}},true);
@@ -13254,6 +13253,7 @@ async function keepAuthenticatedSessionAlive(){
  }
 }
 function enforceAuthenticatedUi(){
+ if(logoutSignalPresent()){showLoggedOutScreen();return}
  if(!runtime.ready||!runtime.authToken||!runtime.user)return;
  const app=by('app'),loginBox=by('login');
  if(app)app.classList.remove('hidden');
@@ -25839,7 +25839,7 @@ window.ExportHUBIndex327=Object.freeze({version:VERSION,openCurrent:openCurrent,
 'use strict';
 if(window.__EXPORTHUB_INDEX328_AUTHORITY__)return;window.__EXPORTHUB_INDEX328_AUTHORITY__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC330',busy=false,lastOpen=0,LOGOUT='exporthub_rc324_logout_guard',TAB='exporthub_rc301_tab_session';
+var VERSION='RC331',busy=false,lastOpen=0,LOGOUT='exporthub_rc324_logout_guard',TAB='exporthub_rc301_tab_session';
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -25857,7 +25857,7 @@ function patchAddressInDoc(doc,sh){if(!doc||!sh)return 0;applyLocation(sh);var a
 function patchDocuments(sh){[document].concat(Array.prototype.map.call(document.querySelectorAll('iframe'),function(f){try{return f.contentDocument}catch(_){return null}}).filter(Boolean)).forEach(function(d){patchAddressInDoc(d,sh)})}
 function openCurrent(id){if(busy||Date.now()-lastOpen<250)return false;busy=true;lastOpen=Date.now();try{var sh=current(id);if(!sh){alert('Bitte die Sendung zuerst speichern. Danach kann die Ladeliste geöffnet werden.');return false}sh=activate(sh);var shipmentId=key(sh)||ref(sh),result=false;if(window.ExportHUBRC565&&typeof window.ExportHUBRC565.openDocuments==='function')result=window.ExportHUBRC565.openDocuments(shipmentId);else if(window.ExportHUBIndex290&&typeof window.ExportHUBIndex290.open==='function')result=window.ExportHUBIndex290.open(shipmentId);else if(typeof window.rc524OpenDocuments==='function')result=window.rc524OpenDocuments(shipmentId);else if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.setView==='function')result=window.ExportHUBRC524.setView('cmr');else throw new Error('Der Dokumentenrenderer ist nicht verfügbar.');[0,80,250,650].forEach(function(ms){setTimeout(function(){applyLocation(sh);patchDocuments(sh);try{if(window.ExportHUBIndex326&&typeof window.ExportHUBIndex326.patch==='function')window.ExportHUBIndex326.patch()}catch(_){}},ms)});return result}catch(e){console.error('RC328 Ladeliste öffnen',e);alert('Ladeliste und CMR konnten nicht geöffnet werden: '+q(e&&e.message||e));return false}finally{setTimeout(function(){busy=false},300)}}
 function refreshStatus(reason){var changed=false,api=window.ExportHUBIndex297;try{if(api&&typeof api.refresh==='function'){api.refresh(reason||'RC328');changed=true}}catch(e){console.error('RC328 Status',e)}try{var sh=current();if(sh){var status=q(sh.status||sh.shipmentStatus||sh.state);document.querySelectorAll('[data-shipment-status],.index308-status,.status-pill,.pill').forEach(function(n){var r=q(n.getAttribute('data-shipment-id')||n.closest('[data-shipment-id]')&&n.closest('[data-shipment-id]').getAttribute('data-shipment-id'));if(!r||r===key(sh)||r===ref(sh)){if(status&&/Entwurf|Erstellt|Bereit|Abgeholt|POD|Abgeschlossen|Wartet|Storniert/i.test(q(n.textContent))){n.textContent=status;n.setAttribute('data-status',status.toLowerCase());changed=true}}})}}catch(_){}if(changed)try{window.dispatchEvent(new CustomEvent('exporthub:statuschange',{detail:{reason:reason||'RC328'}}))}catch(_){}return changed}
-function hardLogout(){if(window.__EXPORTHUB_RC328_LOGGING_OUT__)return false;window.__EXPORTHUB_RC328_LOGGING_OUT__=true;var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},token=q(rt.authToken);try{sessionStorage.setItem(LOGOUT,'1');localStorage.setItem(LOGOUT,'1');sessionStorage.removeItem(TAB)}catch(_){}try{['pollTimer','versionTimer','saveTimer','saveRetryTimer','noIdleKeepAliveTimer'].forEach(function(k){var id=rt[k];if(id){clearTimeout(id);clearInterval(id);rt[k]=null}});rt.authToken='';rt.user=null;rt.users=[];rt.state=null;rt.ready=false;rt.loaded=false;rt.loading=false;rt.sessionRestored=false}catch(_){}try{document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden')}catch(_){}if(token)try{fetch('/api/exporthub-auth',{method:'POST',credentials:'same-origin',cache:'no-store',keepalive:true,headers:{'Content-Type':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token},body:JSON.stringify({action:'logout',sessionToken:token,authToken:token})}).catch(function(){})}catch(_){}setTimeout(function(){try{var u=new URL(location.href);u.searchParams.set('v','330');u.searchParams.set('loggedout','1');u.hash='';location.replace(u.href)}catch(_){location.reload()}},80);return false}
+function hardLogout(){if(typeof window.ExportHUBLogout==='function')return window.ExportHUBLogout();return false}
 function patchButton(){var root=document.getElementById('rc573ShipmentShell')||document.getElementById('content');if(!root)return;root.querySelectorAll('button,a').forEach(function(b){if(/Ladeliste\s*&\s*CMR\s*öffnen/i.test(q(b.textContent))){b.onclick=function(e){if(e){e.preventDefault();e.stopPropagation()}return openCurrent()};b.setAttribute('data-index328-loadlist','1');b.removeAttribute('data-index296-fast-doc-open')}})}
 document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button,a');if(!b)return;var text=q(b.textContent)+' '+q(b.id);if(/Abmelden/i.test(text)||b.id==='logoutBtn'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();hardLogout();return false}if(/Ladeliste\s*&\s*CMR\s*öffnen/i.test(text)){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openCurrent();return false}if(/speichern|bestätig|versendet|abd|abhol|pod|abschließen|storn|archiv/i.test(text)){setTimeout(function(){refreshStatus('Aktion: '+text)},100);setTimeout(function(){refreshStatus('Aktion: '+text)},700)}},true);
 function boot(){patchButton();var sh=current();if(sh)applyLocation(sh);refreshStatus('RC329 Start');try{document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB Online '+VERSION}catch(_){}}
