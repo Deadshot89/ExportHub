@@ -7,7 +7,7 @@
 'use strict';
 if(window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__)return;
 window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__=true;
-var VERSION='RC329',builtFor='',routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0;
+var VERSION='RC333',builtFor='',routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0;
 var ITEMS=[
  {group:'Arbeit'},
  {view:'dashboard',label:'Dashboard',icon:'dashboard'},
@@ -26007,3 +26007,52 @@ window.ExportHUBIndex332=Object.freeze({version:VERSION,patch:patch,open:openCur
 })();
 </script>
 <!-- INDEX 332 COLLI / CUSTOMER LOCATIONS / LOADLIST AUTHORITATIVE REPAIR END -->
+
+<!-- INDEX 333 AUTHORITATIVE LOADLIST PRINT QR + PALLET START -->
+<style id="index333-loadlist-print-style">
+.index333-pallet-account{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin:4mm 0 0;padding:3mm;border:1.5px solid #2563eb;border-radius:3mm;background:#eff6ff;color:#0f172a;font-family:Arial,sans-serif;break-inside:avoid;page-break-inside:avoid}
+.index333-pallet-account .title{grid-column:1/-1;font-size:8pt;font-weight:800;text-transform:uppercase;color:#1e3a8a}
+.index333-pallet-account .value{font-size:12pt;font-weight:900;color:#0f172a}
+.index333-pallet-account .meta{font-size:7pt;color:#475569;text-align:right}
+@media print{.index333-pallet-account{margin-top:2.5mm;padding:2.2mm;gap:2mm}.index333-pallet-account .title{font-size:7pt}.index333-pallet-account .value{font-size:10pt}.index333-pallet-account .meta{font-size:6.5pt}}
+</style>
+<script id="index333-authoritative-loadlist-print">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_INDEX333_LOADLIST_PRINT__)return;
+window.__EXPORTHUB_INDEX333_LOADLIST_PRINT__=true;
+var VERSION='RC333', installed=false, last={};
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function num(v){var n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
+function arr(v){return Array.isArray(v)?v:[]}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||window.state||{}}catch(_){return window.state||{}}}
+function key(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference||sh.shipmentRef))}
+function ref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.id||sh.shipmentId))}
+function currentShipment(){var s=state(),wanted=q(s.documentShipmentId||s.selectedShipmentId||s.activeShipmentId||s.editingShipmentId),list=arr(s.shipments);if(wanted){var found=list.find(function(x){return key(x)===wanted||ref(x)===wanted});if(found)return found}return s.shipment||s.currentShipment||s.selectedShipment||null}
+function customerFor(sh){var s=state(),id=q(sh&&(sh.customerId||sh.customerAccount||sh.customerNumber)),name=low(sh&&(sh.customerName||sh.customer));return arr(s.customers).find(function(c){return(id&&[c.id,c.customerId,c.account,c.customerNumber].some(function(v){return q(v)===id}))||(name&&low(c.name||c.customerName)===name)})||{name:q(sh&&(sh.customerName||sh.customer))}}
+function palletBalance(sh){try{if(window.ExportHUBIndex258&&typeof window.ExportHUBIndex258.balanceFor==='function'){var r=window.ExportHUBIndex258.balanceFor(sh);if(r&&Number.isFinite(Number(r.balance)))return Number(r.balance)}}catch(_){}
+ try{if(window.ExportHUBIndex233&&typeof window.ExportHUBIndex233.palletBalance==='function'){var v=window.ExportHUBIndex233.palletBalance(sh);if(Number.isFinite(Number(v)))return Number(v)}}catch(_){}
+ var s=state(),c=customerFor(sh),cid=q(c.id||c.customerId||c.account||c.customerNumber),cn=low(c.name||c.customerName),sum=0;
+ arr(s.palletAccount).forEach(function(b){if(/storniert|cancelled|geloscht|deleted/i.test(low(b.status)))return;var match=(cid&&[b.customerId,b.customerAccount,b.customerNumber].some(function(v){return q(v)===cid}))||(cn&&low(b.customerName||b.customer)===cn);if(!match)return;var n=Math.abs(num(b.count||b.quantity||b.amount||b.pallets)),t=low(b.type||b.direction||b.kind);sum+=/ausgang|out|abgang|belastung/.test(t)?-n:/eingang|in|zugang|gutschrift/.test(t)?n:num(b.delta||b.balanceChange)});return sum}
+function palletOutgoing(sh){return arr(sh&&(sh.rows||sh.colli||sh.lines)).reduce(function(sum,r){var type=low(r&&(r.type||r.packaging||r.verpackung));return sum+(/euro.*palette|europalette/.test(type)?num(r.count||r.qty||r.anzahl):0)},0)}
+function wording(n,sh){n=Math.round(num(n));var a=Math.abs(n),unit=a===1?'Europalette':'Europaletten',name=q(customerFor(sh).name||customerFor(sh).customerName||sh.customerName||'Kunde');if(n<0)return a+' '+unit+' zugunsten Essentra';if(n>0)return a+' '+unit+' zugunsten Kunde '+name;return'0 Europaletten · ausgeglichen'}
+function loadPages(doc){var sels=['.rc390-page.rc390-load','.rc420-page.rc420-load','.rc344-doc-page','.rc390-document-page','[data-doc="load1"]','[data-loadlist-page]'];var out=[];sels.forEach(function(sel){try{doc.querySelectorAll(sel).forEach(function(n){var t=low(n.textContent);if((/ladeliste/.test(t)||n.matches('.rc390-load,.rc420-load,[data-loadlist-page]'))&&!out.includes(n))out.push(n)})}catch(_){}});if(!out.length){doc.querySelectorAll('section,article,main,div').forEach(function(n){if(out.length>3)return;var t=low(n.textContent);if(/^ladeliste/.test(t)&&n.querySelector('table')&&!out.some(function(x){return x.contains(n)||n.contains(x)}))out.push(n)})}return out}
+function screenQr(sh){var r=ref(sh),candidates=[];document.querySelectorAll('.rc569-qr-box,[data-index299-canonical-qr-slot="1"],[data-index326-qr],.rc390-qrslot,.rc420-qr').forEach(function(n){if(n.closest('iframe'))return;var page=n.closest('.rc390-page,.rc420-page,.rc344-doc-page,.rc390-document-page,section,article')||n.parentElement;var txt=q(page&&page.textContent);if(r&&txt&&txt.indexOf(r)<0)return;var svg=n.querySelector('svg');if(svg)candidates.push({html:svg.outerHTML,url:q(n.getAttribute('data-qr-url')||n.getAttribute('data-index326-qr')),ref:q(n.getAttribute('data-qr-reference'))})});return candidates[0]||null}
+function canonicalUrl(sh){var url='';try{if(window.ExportHUBIndex289&&typeof window.ExportHUBIndex289.canonicalQrUrl==='function')url=q(window.ExportHUBIndex289.canonicalQrUrl(sh))}catch(_){}try{if(!url&&window.ExportHUBIndex288&&typeof window.ExportHUBIndex288.urlFor==='function')url=q(window.ExportHUBIndex288.urlFor(sh))}catch(_){}try{if(!url&&window.ExportHUBRC569QR&&typeof window.ExportHUBRC569QR.urlFor==='function')url=q(window.ExportHUBRC569QR.urlFor(sh))}catch(_){}return url||q(sh&&(sh.pickupQrCanonicalUrl||sh.pickupQrUrl))}
+function makeSvg(url){var fn=window.RC569QrSvg||window.rc386QrSvg||window.rc385QrSvg;try{return typeof fn==='function'?fn(url):''}catch(_){return''}}
+function patchQr(doc,page,sh){var source=screenQr(sh),url=source&&source.url||canonicalUrl(sh),html=source&&source.html||makeSvg(url);if(!html)return 0;var hosts=[];['.rc569-qr-box','[data-index299-canonical-qr-slot="1"]','[data-index326-qr]','.rc390-qrslot','.rc420-qr','.qr-code','.qr-box','[data-qr-url]'].forEach(function(sel){try{page.querySelectorAll(sel).forEach(function(n){if(!hosts.includes(n))hosts.push(n)})}catch(_){}});var host=hosts[0];if(!host){host=doc.createElement('div');host.className='rc569-qr-box';var refBox=page.querySelector('.rc390-ref,.rc420-ref,[class*="ref"]');if(refBox)refBox.appendChild(host);else page.insertBefore(host,page.firstChild)}host.innerHTML=html;host.setAttribute('data-index333-qr','1');host.setAttribute('data-qr-url',url);host.setAttribute('data-qr-reference',ref(sh));hosts.slice(1).forEach(function(n){if(n!==host)n.remove()});return 1}
+function patchPallet(doc,page,sh){page.querySelectorAll('.index333-pallet-account').forEach(function(n){n.remove()});var box=doc.createElement('div');box.className='index333-pallet-account';var bal=palletBalance(sh),out=palletOutgoing(sh);box.innerHTML='<div class="title">Palettenkonto inkl. dieser Lieferung</div><div class="value">'+wording(bal,sh)+'</div><div class="meta">Europaletten Ausgang dieser Sendung: '+Math.round(out)+'</div>';var anchor=page.querySelector('.rc390-bottom,.rc420-bottom,.load-sign-grid,.signature-grid,.load-write-fields,[class*="signature"],[class*="bottom"]');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor);else page.appendChild(box);return 1}
+function copyStyle(doc){if(doc.getElementById('index333-loadlist-print-style'))return;var src=document.getElementById('index333-loadlist-print-style');if(src)(doc.head||doc.documentElement).appendChild(src.cloneNode(true))}
+function patchDoc(doc,sh){if(!doc)return 0;sh=sh||currentShipment();if(!sh)return 0;copyStyle(doc);var pages=loadPages(doc),n=0;pages.forEach(function(p){n+=patchQr(doc,p,sh);n+=patchPallet(doc,p,sh)});last={at:new Date().toISOString(),reference:ref(sh),pages:pages.length,changes:n,balance:palletBalance(sh),outgoing:palletOutgoing(sh)};return n}
+function patchAll(sh){sh=sh||currentShipment();patchDoc(document,sh);document.querySelectorAll('iframe').forEach(function(f){try{patchDoc(f.contentDocument,sh)}catch(_){}})}
+function install(){var api=window.ExportHUBRC616;if(!api||api.__index333)return false;var basePrepare=api.preparePrint,basePrint=api.print,next={};Object.keys(api).forEach(function(k){next[k]=api[k]});next.preparePrint=function(mode){var sh=currentShipment();patchAll(sh);var frame=typeof basePrepare==='function'?basePrepare.call(api,mode||'load1'):null;try{if(frame&&frame.contentDocument)patchDoc(frame.contentDocument,sh)}catch(_){}setTimeout(function(){try{if(frame&&frame.contentDocument)patchDoc(frame.contentDocument,sh)}catch(_){}},30);return frame};next.print=function(mode){mode=mode||'load1';var sh=currentShipment(),frame=next.preparePrint(mode);if(frame&&frame.contentWindow){setTimeout(function(){try{patchDoc(frame.contentDocument,sh);frame.contentWindow.focus();frame.contentWindow.print()}catch(e){console.error('RC333 Druck',e);if(typeof basePrint==='function')basePrint.call(api,mode)}},80);return false}patchAll(sh);if(typeof basePrint==='function')return basePrint.call(api,mode);window.print();return false};next.__index333=true;next.__index333Base=api;window.ExportHUBRC616=Object.freeze(next);installed=true;return true}
+function boot(){document.documentElement.setAttribute('data-exporthub-version',VERSION);document.title='ExportHUB '+VERSION;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Aktuelle Version '+VERSION;install();patchAll()}
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button,a');if(!b)return;var t=q(b.textContent)+' '+q(b.id)+' '+q(b.getAttribute('data-rc616-print')||b.getAttribute('data-rc576-action'));if(/Ladeliste|Gesamtausgabe|Gesamtdruck|PDF|Drucken/i.test(t)){install();[0,40,120].forEach(function(ms){setTimeout(function(){patchAll()},ms)})}},true);
+window.addEventListener('beforeprint',function(){install();patchAll()});
+window.addEventListener('exporthub:ready',boot);window.addEventListener('exporthub:rendered',function(){patchAll()});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.ExportHUBIndex333=Object.freeze({version:VERSION,install:install,patch:patchAll,patchDocument:patchDoc,diagnostics:function(){return{version:VERSION,installed:installed,last:last,current:ref(currentShipment())}}});
+})();
+</script>
+<!-- INDEX 333 AUTHORITATIVE LOADLIST PRINT QR + PALLET END -->
