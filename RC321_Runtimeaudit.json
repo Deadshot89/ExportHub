@@ -1,0 +1,380 @@
+{
+  "results": [
+    {
+      "view": "dashboard",
+      "head": "📊 Dashboard",
+      "state": "dashboard",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "planning",
+      "head": "🗓️ Aufgaben Planer",
+      "state": "planning",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "tasks",
+      "head": "Aufgaben",
+      "state": "tasks",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "notifications",
+      "head": "Benachrichtigungen",
+      "state": "notifications",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "shipment",
+      "head": "🚚 Sendung erstellen",
+      "state": "shipment",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "abd",
+      "head": "📨 ABD erstellen",
+      "state": "abd",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "shipmentoverview",
+      "head": "Sendungsübersicht",
+      "state": "shipmentoverview",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "cmr",
+      "head": "Deckblatt",
+      "state": "cmr",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "customers",
+      "head": "🏢 Kunden & Dokumente",
+      "state": "customers",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "customerfolder",
+      "head": "📁 Kundenordner",
+      "state": "customerfolder",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "pallet",
+      "head": "Palettenkonto und Palettenabgleich",
+      "state": "pallet",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "shippingcosts",
+      "head": "Versandkosten",
+      "state": "calculator",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "customs",
+      "head": "🛃 Zollwissen",
+      "state": "customs",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "sop",
+      "head": "SOP starten",
+      "state": "sop",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "academy",
+      "head": "🎓 Academy Logistik",
+      "state": "academy",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "inspections",
+      "head": "Pruefungszentrum Fachkraft fuer Lagerlogistik",
+      "state": "quiz",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "ideas",
+      "head": "💡 Ideenpool",
+      "state": "ideas",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "reports",
+      "head": "Reports",
+      "state": "reports",
+      "initialRenderDelta": 0,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "update",
+      "head": "ExportHUB RC321",
+      "state": "update",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "rights",
+      "head": "Benutzer, Rechte und Sitzungen",
+      "state": "rights",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "teamfile",
+      "head": "🗂️ Sammelmodus",
+      "state": "teamfile",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "archive",
+      "head": "🗃️ Archiv & Audit",
+      "state": "archive",
+      "initialRenderDelta": 1,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    },
+    {
+      "view": "settings",
+      "head": "Einstellungen",
+      "state": "settings",
+      "initialRenderDelta": 0,
+      "initialRouteDelta": 1,
+      "afterRenderDelta": 0,
+      "afterMutationDelta": 0,
+      "hashStable": true,
+      "lengthStable": true
+    }
+  ],
+  "shipmentStability": {
+    "renderDelta": 0,
+    "mutationDelta": 0,
+    "contentStable": true,
+    "stowStable": true,
+    "mailStable": true,
+    "before": {
+      "content": {
+        "mut": 552,
+        "hash": "77de486e",
+        "len": 18491,
+        "head": "🚚 Sendung erstellen",
+        "core": {
+          "installed": true,
+          "version": "RC321",
+          "renderCount": 9,
+          "navigationCount": 8,
+          "lastRenderMs": 17,
+          "lastView": "shipment",
+          "busy": false,
+          "pendingRender": false,
+          "centralRender": true,
+          "centralSetView": true
+        },
+        "nav": {
+          "version": "RC321",
+          "menuItems": 23,
+          "svgIcons": 23,
+          "routeCount": 10,
+          "lastRoute": "shipment",
+          "duplicateRoutesBlocked": 0,
+          "currentView": "shipment",
+          "core": {
+            "installed": true,
+            "version": "RC321",
+            "renderCount": 9,
+            "navigationCount": 8,
+            "lastRenderMs": 17,
+            "lastView": "shipment",
+            "busy": false,
+            "pendingRender": false,
+            "centralRender": true,
+            "centralSetView": true
+          },
+          "hasMutationObserver": false,
+          "hasInterval": false,
+          "hasPointerdown": false
+        },
+        "state": "shipment"
+      },
+      "stowCount": 1,
+      "mailCount": 1,
+      "stowHash": "fc977cdf",
+      "mailHash": "3458ba9d"
+    },
+    "after": {
+      "content": {
+        "mut": 552,
+        "hash": "77de486e",
+        "len": 18491,
+        "head": "🚚 Sendung erstellen",
+        "core": {
+          "installed": true,
+          "version": "RC321",
+          "renderCount": 9,
+          "navigationCount": 8,
+          "lastRenderMs": 17,
+          "lastView": "shipment",
+          "busy": false,
+          "pendingRender": false,
+          "centralRender": true,
+          "centralSetView": true
+        },
+        "nav": {
+          "version": "RC321",
+          "menuItems": 23,
+          "svgIcons": 23,
+          "routeCount": 10,
+          "lastRoute": "shipment",
+          "duplicateRoutesBlocked": 0,
+          "currentView": "shipment",
+          "core": {
+            "installed": true,
+            "version": "RC321",
+            "renderCount": 9,
+            "navigationCount": 8,
+            "lastRenderMs": 17,
+            "lastView": "shipment",
+            "busy": false,
+            "pendingRender": false,
+            "centralRender": true,
+            "centralSetView": true
+          },
+          "hasMutationObserver": false,
+          "hasInterval": false,
+          "hasPointerdown": false
+        },
+        "state": "shipment"
+      },
+      "stowCount": 1,
+      "mailCount": 1,
+      "stowHash": "fc977cdf",
+      "mailHash": "3458ba9d"
+    }
+  },
+  "surface": {
+    "title": "ExportHUB Online RC321",
+    "badge": "Bereinigte Version · RC321",
+    "version": "RC321",
+    "menu": 23,
+    "icons": 23,
+    "visibleCode": false,
+    "runtime": {
+      "observerRecords": 0,
+      "intervalJobs": 0,
+      "timeoutJobs": 0,
+      "blockedTimeouts": 412,
+      "blockedIntervals": 0,
+      "blockedObservers": 0,
+      "blockedRaf": 48
+    }
+  },
+  "errors": []
+}
