@@ -129,7 +129,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC332',cache:'332',loginReturn:'/?v=332'});
+var BUILD=Object.freeze({version:'RC335',cache:'335',loginReturn:'/?v=335'});
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
 function apply(){var version=BUILD.version;document.title=pickupMode()?'ExportHUB · Abholung bestätigen':'ExportHUB Online '+version;document.documentElement.setAttribute('data-exporthub-version',version);var meta=document.querySelector('meta[name="exporthub-clean-version"]');if(!meta){meta=document.createElement('meta');meta.name='exporthub-clean-version';(document.head||document.documentElement).appendChild(meta)}meta.content=version;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Aktuelle Version '+version;document.querySelectorAll('[data-version-badge],[data-exporthub-version-label]').forEach(function(n){n.textContent=version})}
 try{Object.defineProperty(window,'EXPORTHUB_BUILD',{configurable:false,enumerable:true,get:function(){return BUILD}})}catch(_){window.EXPORTHUB_BUILD=BUILD}
@@ -137,9 +137,20 @@ window.ExportHUBBuild=Object.freeze({version:BUILD.version,cache:BUILD.cache,log
 apply();if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});window.addEventListener('exporthub:ready',apply);
 })();
 </script>
-<script id="index305-url-cache-key">
-(function(){'use strict';try{if(window.__EXPORTHUB_PICKUP_MODE__)return;var u=new URL(location.href);if(/^https?:$/.test(u.protocol)&&u.searchParams.get('v')!=='307'){u.searchParams.set('v','308');history.replaceState(null,'',u.pathname+u.search+u.hash)}}catch(_){}})();
+<script id="rc335-canonical-url">
+(function(){'use strict';
+try{
+ if(window.__EXPORTHUB_PICKUP_MODE__)return;
+ var build=window.EXPORTHUB_BUILD||{cache:'335'};
+ var u=new URL(location.href);
+ if(/^https?:$/.test(u.protocol)&&u.searchParams.get('v')!==String(build.cache)){
+   u.searchParams.set('v',String(build.cache));
+   history.replaceState(null,'',u.pathname+u.search+u.hash);
+ }
+}catch(e){console.error('RC335 URL',e)}
+})();
 </script>
+<!-- RC335: obsolete forced v=308 URL rewrite removed -->
 <script id="index250-loader-pin-core">
 (function(){
 'use strict';
