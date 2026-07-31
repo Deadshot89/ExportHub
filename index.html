@@ -7,7 +7,7 @@
 'use strict';
 if(window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__)return;
 window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__=true;
-var VERSION='RC353',initialized=false,routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0,routeBusy=false,stableRenderNav=null;
+var VERSION='RC354',initialized=false,routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0,routeBusy=false,stableRenderNav=null;
 var ITEMS=[
  {group:'Arbeit'},
  {view:'dashboard',label:'Dashboard',right:'dashboard'},
@@ -58,7 +58,21 @@ function setViewState(view){var s=state();s.view=canonical(view);try{document.bo
 function openDocuments(){setViewState('cmr');try{if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.currentOrHub==='function')return window.ExportHUBIndex240.currentOrHub()}catch(e){console.error('RC352 Ladeliste öffnen',e);alert('Ladeliste und CMR konnten nicht geöffnet werden: '+q(e&&e.message||e))}return false}
 function renderReports(){setViewState('reports');var root=document.getElementById('content');if(!root)return false;root.className='content';root.innerHTML='<div class="page-head"><div><h2>Reports</h2><p>Die vorhandenen Auswertungen werden aus den jeweiligen Fachbereichen geöffnet.</p></div><span class="pill blue">'+VERSION+'</span></div><div class="quick-grid"><button type="button" data-index321-route="shipmentoverview"><b>Sendungsreport</b><br>Sendungen, Status und Referenzordner.</button><button type="button" data-index321-route="abd"><b>ABD-Report</b><br>Gespeicherte ABD-Anfragen und Status.</button><button type="button" data-index321-route="tasks"><b>Aufgabenreport</b><br>Offene und erledigte Aufgaben.</button><button type="button" data-index321-action="pallet-report"><b>Palettenreport</b><br>Palettenkonto und Abgleich.</button><button type="button" data-index321-route="archive"><b>Aktivitätsreport</b><br>Archiv und Audit-Protokoll.</button><button type="button" data-index321-route="cmr"><b>Dokumentenreport</b><br>Ladelisten, CMR und Nachweise.</button></div>';updateActive();return false}
 function renderSettings(){setViewState('settings');var root=document.getElementById('content');if(!root)return false;root.className='content';root.innerHTML='<div class="page-head"><div><h2>Einstellungen</h2><p>Zentrale System- und Verwaltungsbereiche.</p></div><span class="pill blue">'+VERSION+'</span></div><div class="quick-grid"><button type="button" data-index321-route="rights"><b>Benutzer &amp; Rechte</b></button><button type="button" data-index321-route="update"><b>Update ExportHUB</b></button><button type="button" data-index321-route="teamfile"><b>Sammelmodus</b></button><button type="button" data-index321-route="archive"><b>Archiv</b></button><button type="button" data-exporthub-ms-switch="1"><b>Microsoft-Konto wechseln</b></button></div>';updateActive();return false}
-function route(view,source){view=canonical(view);var now=Date.now();if(routeBusy||(view===lastRoute&&now-lastRouteAt<120)){duplicateRoutesBlocked++;return false}routeBusy=true;lastRoute=view;lastRouteAt=now;routeCount++;try{if(view==='cmr')return openDocuments();if(view==='reports')return renderReports();if(view==='settings')return renderSettings();setViewState(view);var core=window.ExportHUBRC524;if(core&&typeof core.setView==='function')return core.setView(view);if(typeof window.setView==='function')return window.setView(view);if(typeof window.render==='function')return window.render();return false}finally{routeBusy=false;updateActive()}}
+function route(view,source){view=canonical(view);var now=Date.now();if(routeBusy||(view===lastRoute&&now-lastRouteAt<120)){duplicateRoutesBlocked++;return false}routeBusy=true;lastRoute=view;lastRouteAt=now;routeCount++;try{
+ if(view==='cmr')return openDocuments();
+ if(view==='reports')return renderReports();
+ if(view==='settings')return renderSettings();
+ if(view==='notifications'&&typeof window.rc451OpenNotifications==='function')return window.rc451OpenNotifications();
+ if(view==='shippingcosts'&&window.ExportHUBRC626&&typeof window.ExportHUBRC626.openShipping==='function')return window.ExportHUBRC626.openShipping();
+ if(view==='inspections'&&window.ExportHUBRC626&&typeof window.ExportHUBRC626.openInspections==='function')return window.ExportHUBRC626.openInspections();
+ if(view==='abd'&&window.ExportHUBRC626&&typeof window.ExportHUBRC626.openAbd==='function')return window.ExportHUBRC626.openAbd(false);
+ var core=window.ExportHUBRC524;
+ if(core&&typeof core.setView==='function')return core.setView(view);
+ if(typeof window.setView==='function')return window.setView(view);
+ setViewState(view);
+ if(typeof window.render==='function')return window.render();
+ return false
+}finally{routeBusy=false;updateActive()}}
 function handleClick(e){var node=e.target&&e.target.closest&&e.target.closest('#nav button,[data-index321-route],[data-index321-action],.brand');if(!node)return;if(node.closest&&node.closest('.brand')){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return route('dashboard','brand')}var view=node.getAttribute('data-index321-view')||node.getAttribute('data-index321-route');if(view){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return route(view,node.closest('#nav')?'menu':'route')}var action=node.getAttribute('data-index321-action');if(action==='pallet-report'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();try{if(typeof window.rc542PalletReport==='function')return window.rc542PalletReport()}catch(_){}return route('pallet','report')}}
 function refresh(){buildMenu();installRenderNavLock();applyPermissions();updateActive()}
 function boot(){try{if(window.ExportHUBBuild)window.ExportHUBBuild.applyVersion()}catch(_){}refresh()}
@@ -136,7 +150,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC353',cache:'353',loginReturn:'/?v=353'});
+var BUILD=Object.freeze({version:'RC354',cache:'354',loginReturn:'/?v=354'});
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
 function apply(){var version=BUILD.version;document.title=pickupMode()?'ExportHUB · Abholung bestätigen':'ExportHUB Online '+version;document.documentElement.setAttribute('data-exporthub-version',version);var meta=document.querySelector('meta[name="exporthub-clean-version"]');if(!meta){meta=document.createElement('meta');meta.name='exporthub-clean-version';(document.head||document.documentElement).appendChild(meta)}meta.content=version;var badge=document.getElementById('cleanVersionBadge');if(badge){badge.textContent='Aktuelle Version '+version;badge.setAttribute('aria-label','Aktuelle Version '+version)};document.querySelectorAll('[data-version-badge],[data-exporthub-version-label]').forEach(function(n){n.textContent=version})}
 try{Object.defineProperty(window,'EXPORTHUB_BUILD',{configurable:false,enumerable:true,get:function(){return BUILD}})}catch(_){window.EXPORTHUB_BUILD=BUILD}
@@ -389,7 +403,7 @@ window.addEventListener('focusout',function(e){guard(e,true)},true);
 <meta content="0" http-equiv="Expires"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="no-referrer" name="referrer"/>
-<title>ExportHUB Online RC353</title>
+<title>ExportHUB Online RC354</title>
 <style>
 :root{--bg:#eef6fb;--surface:#fff;--surface2:#f7fbff;--text:#0f172a;--muted:#64748b;--line:#dbe4ef;--nav1:#051937;--nav2:#0b3b72;--blue:#2563eb;--cyan:#05b8ff;--green:#16a34a;--orange:#f97316;--red:#dc2626;--purple:#7e22ce;--yellow:#facc15;--shadow:0 18px 46px rgba(15,23,42,.10);--radius:22px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}h1,h2,h3,h4{color:#08245d;margin-top:0}.muted{color:var(--muted)}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(680px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:34px;padding:34px;box-shadow:var(--shadow);text-align:center}.logo{width:78px;height:78px;margin:auto;border-radius:25px;background:linear-gradient(135deg,var(--cyan),#a5f3fc);display:grid;place-items:center;color:#062033;font-size:28px;font-weight:1000;box-shadow:0 14px 32px rgba(5,184,255,.28)}.field{display:grid;gap:7px;margin:12px 0;text-align:left;font-weight:900;color:#334155}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:11px;background:#fff;font-weight:800}textarea{min-height:100px;resize:vertical}.btn,.ghost,.danger,.soft{border-radius:14px;padding:10px 14px;font-weight:950;cursor:pointer;min-height:40px}.btn{border:0;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;box-shadow:0 10px 22px rgba(37,99,235,.23)}.ghost{border:1px solid var(--line);background:#fff;color:#334155}.danger{border:0;background:#fee2e2;color:#991b1b}.soft{border:0;background:#eef6ff;color:#075985}.btn:hover,.ghost:hover,.soft:hover,.danger:hover{transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}.app{display:grid;grid-template-columns:318px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:linear-gradient(180deg,var(--nav1),var(--nav2));color:#fff;padding:20px 16px;display:flex;flex-direction:column;gap:12px;overflow:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.18)}.brand .logo{width:48px;height:48px;margin:0;border-radius:16px;font-size:18px;box-shadow:none}.brand strong{display:block;font-size:19px}.brand span,.profile small{display:block;color:#cbd5e1;font-weight:800;font-size:12px}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#dbeafe;text-align:left;border-radius:14px;padding:11px 12px;cursor:pointer;font-weight:900}.nav button:hover,.nav button.active{background:#fff;color:#08245d}.profile{margin-top:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:12px;line-height:1.35}.main{min-width:0;padding:24px 28px 48px}.topbar{display:flex;gap:12px;align-items:center;margin-bottom:20px}.search{flex:1;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;padding:11px 14px}.search input{border:0;outline:0;padding:4px}.card,.metric{background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}.metric span{display:block;color:var(--muted);font-weight:950;margin-bottom:10px}.metric strong{display:block;font-size:32px}.metric.kpi-red{border-left:7px solid var(--red)}.metric.kpi-orange{border-left:7px solid var(--orange)}.metric.kpi-green{border-left:7px solid var(--green)}.metric.kpi-blue{border-left:7px solid var(--blue)}.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.page-head h2{font-size:31px;margin:0 0 8px}.page-head p{margin:0;color:var(--muted);font-weight:750;line-height:1.55;max-width:980px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;margin:3px}.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166534}.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}.purple{background:#f3e8ff;color:#6b21a8}.gray{background:#e2e8f0;color:#334155}.yellow{background:#fef9c3;color:#854d0e}.notice,.okbox,.badbox,.infobox{border-radius:16px;padding:13px;margin:10px 0;font-weight:770;line-height:1.5}.notice{border-left:5px solid var(--orange);background:#fff7ed}.okbox{border-left:5px solid var(--green);background:#f0fdf4}.badbox{border-left:5px solid var(--red);background:#fee2e2}.infobox{border-left:5px solid var(--blue);background:#eff6ff}.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.table{width:100%;border-collapse:collapse}.table th{text-align:left;color:var(--muted);font-size:12px;text-transform:uppercase}.table td,.table th{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}.hero{position:relative;overflow:hidden;border-radius:34px;min-height:560px;background:linear-gradient(rgba(5,20,36,.78),rgba(5,20,36,.92)),radial-gradient(circle at 22% 14%,rgba(5,184,255,.35),transparent 32%),linear-gradient(135deg,#0b2144,#0b4d76 55%,#062033);box-shadow:0 24px 60px rgba(0,0,0,.25);color:#fff;padding:42px}.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.04;color:#fff;margin:0 0 20px}.hero p{max-width:980px;color:#edfaff;font-size:20px;line-height:1.65;font-weight:650}.hero h3{color:#fff}.quick-grid,.hero-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}.hero-kpi,.quick-grid button{padding:20px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);color:#fff;text-align:left}.quick-grid button{cursor:pointer;background:rgba(4,20,38,.72)}.task{display:grid;grid-template-columns:115px 1fr auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin:8px 0}.task.done{opacity:.58}.task.done h3{text-decoration:line-through}.task.high{border-left:7px solid var(--red)}.task.medium{border-left:7px solid var(--orange)}.task.low{border-left:7px solid var(--green)}.taskday{margin:18px 0}.taskday-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}.idea{border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:18px;background:#fff;padding:14px;margin:10px 0}.idea.hoch{border-left-color:var(--red)}.idea.mittel{border-left-color:var(--orange)}.idea.niedrig{border-left-color:var(--green)}.checkrow{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;margin:8px 0}.checkrow input{width:auto;margin-top:4px}.quiz-option{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;font-weight:850}.quiz-option.correct{background:#dcfce7;border-color:#86efac}.quiz-option.wrong{background:#fee2e2;border-color:#fecaca}.printdoc{background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;margin-top:12px}.print-table{width:100%;border-collapse:collapse}.print-table th,.print-table td{border:1px solid #cbd5e1;padding:8px;text-align:left}.split{display:grid;grid-template-columns:360px 1fr;gap:14px}.list{display:grid;gap:8px;max-height:680px;overflow:auto}.list button{border:1px solid var(--line);background:white;border-radius:14px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.list button:hover,.list button.active{background:#eff6ff;border-color:var(--blue)}.wizard-step{border:2px solid var(--blue);border-radius:22px;background:#fff;padding:24px;margin:14px 0;box-shadow:var(--shadow)}.wizard-step .num{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:#dbeafe;color:#08245d;font-weight:950;margin-bottom:12px}.mini-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.mini-steps button{width:auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-weight:900;cursor:pointer}.mini-steps button.done{background:#dcfce7;border-color:#86efac}.mini-steps button.active{background:#dbeafe;border-color:#3b82f6}.copybox{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:18px;padding:16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.55}.previewDoc{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;color:#111}.previewDoc h2{font-size:24px;color:#111}.previewDoc table{width:100%;border-collapse:collapse;margin-top:12px}.previewDoc th,.previewDoc td{border:1px solid #ccd7df;padding:7px;text-align:left}.previewDoc th{background:#eef6fb}.miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.summaryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.summaryBox{background:#f7fbff;border:1px solid var(--line);border-radius:15px;padding:10px}.summaryBox strong{display:block;font-size:20px;color:var(--blue)}.portal-link{display:block;text-decoration:none;color:var(--text);background:white;border:1px solid #bfdbfe;border-radius:14px;padding:12px;margin:8px 0}.portal-link:hover{border-color:#2563eb;box-shadow:0 8px 20px rgba(37,99,235,.12)}.nowrap{white-space:nowrap}.small{font-size:12px;color:var(--muted);font-weight:800}.print-only{display:none}
@@ -8527,7 +8541,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
   letter-spacing:.09em;
 }
 #login .login-card>#cleanVersionBadge::after{
-  content:"RC353";
+  content:"RC354";
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -8561,7 +8575,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <div class="login-card">
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
-<div aria-label="Aktuelle Version RC353" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC353</div>
+<div aria-label="Aktuelle Version RC354" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC354</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -8587,7 +8601,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <div class="app hidden" id="app">
 <aside class="sidebar">
 <div class="brand"><div class="logo">EH</div><div><strong>ExportHUB</strong><span id="brandUserLine">ExportHUB-Benutzer: nicht angemeldet</span></div></div>
-<nav id="nav" class="nav" data-index305-authoritative="1" data-index305-static="1" data-index308-menu="1" data-index321-menu="1" data-index321-canonical="RC353" lang="de">
+<nav id="nav" class="nav" data-index305-authoritative="1" data-index305-static="1" data-index308-menu="1" data-index321-menu="1" data-index321-canonical="RC354" lang="de">
 <div data-index308-group="1" data-index305-group="1">Arbeit</div>
 <button type="button" data-index321-view="dashboard" data-index308-view="dashboard" data-index305-view="dashboard" data-eh-view="dashboard" data-view="dashboard" title="Dashboard" aria-label="Dashboard"><span class="index308-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span><span class="index308-nav-label">Dashboard</span></button>
 <button type="button" data-index321-view="planning" data-index308-view="planning" data-index305-view="planning" data-eh-view="planning" data-view="planning" title="Aufgaben Planer" aria-label="Aufgaben Planer"><span class="index308-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><span class="index308-nav-label">Aufgaben Planer</span></button>
@@ -11978,14 +11992,14 @@ body .rc314-process-warning{
 }
 </style>
 <!-- PRIVATE RC352 END: Ladeliste identisch, Deckblatt Logo, ABD Eingaben, Kundeninfo-Balken weg -->
-<!-- PRIVATE RC353 REMOVED BY RC390: partial broken block removed -->
+<!-- PRIVATE RC354 REMOVED BY RC390: partial broken block removed -->
 <!-- PRIVATE RC389 START: Azure Team Mode Foundation -->
 <style id="rc389TeamModeStyle">
   .rc389-team-badge{position:fixed;right:14px;bottom:14px;z-index:99999;border:1px solid #b7d8ff;background:#eef7ff;color:#0b2a55;border-radius:12px;padding:8px 12px;font:700 12px system-ui,Arial;box-shadow:0 8px 20px rgba(0,0,0,.12);display:none}
   .rc389-team-badge.on{display:block}.rc389-team-badge .muted{display:block;font-weight:600;color:#50657d;font-size:10px;margin-top:2px}
 </style>
 <!-- PRIVATE RC389 END: Azure Team Mode Foundation -->
-<!-- PRIVATE RC353 REMOVED BY RC390: orphaned code leak removed -->
+<!-- PRIVATE RC354 REMOVED BY RC390: orphaned code leak removed -->
 <!-- PRIVATE RC354 START: SOP Portal-Kacheln + Schritttext stabil -->
 <style id="rc354-sop-stable-css">
 .rc354-sop-layout{display:grid!important;grid-template-columns:1fr!important;gap:18px!important}
@@ -12296,7 +12310,7 @@ window.__EXPORTHUB_RC564_SOURCE_STATS__=stats;
 <script data-inline-source="assets/clean-bootstrap.js" id="exporthub-rc353-storage-auth-owner">
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC353',cache:'353',loginReturn:'/?v=353'};
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC354',cache:'354',loginReturn:'/?v=354'};
 const VERSION=String(BUILD.version||'RC565');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
@@ -12490,7 +12504,7 @@ try{if(window.indexedDB){window.indexedDB.open=function(){throw new Error('Expor
    const stateUrl=/\/api\/(?:exporthub-state|exporthub\/state)/i.test(url);
    if(stateUrl&&method!=='GET'&&method!=='HEAD'){
     if(runtime.ready&&!runtime.applyingRemote)native.setTimeout(function(){queueSave('Legacy-Änderung über zentralen Azure-Speicher')},0);
-    return Promise.resolve(new Response(JSON.stringify({ok:true,queued:true,owner:'RC353',revision:runtime.revision}),{status:202,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}}));
+    return Promise.resolve(new Response(JSON.stringify({ok:true,queued:true,owner:'RC354',revision:runtime.revision}),{status:202,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}}));
    }
    if(stateUrl&&(method==='GET'||method==='HEAD')){
     runtime.network.legacyCachedGets++;
@@ -12869,7 +12883,7 @@ function ensureUserDisplay(){
 }
 function nextFrame(){return new Promise(function(resolve){(native.requestAnimationFrame||native.setTimeout)(function(){resolve()},16)})}
 async function signalReady(){progress(99,'Oberfläche wird abschließend geprüft …');ensureUserDisplay();setVersion();await nextFrame();await nextFrame();const app=by('app'),content=by('content');if(!app||app.classList.contains('hidden')||!content||!content.children.length)throw new Error('Die Oberfläche ist nach dem Erst-Render noch nicht bedienbar.');const info=by('saveInfo');if(info)info.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});hideProgress();await nextFrame();if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null;runtime.pendingSave=false;runtime.dirty=false;runtime.lastSnapshot=clone(window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||{});runtime.lastUsers=clone(window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users||[]);runtime.ready=true;runtime.acceptWritesAt=0;runtime.readyAt=new Date().toISOString();status('Angemeldet · Azure-Teamdaten geladen.','ok');window.__EXPORTHUB_READY__={ready:true,version:VERSION,revision:runtime.revision,user:text(runtime.user&&(runtime.user.name||runtime.user.user)),readyAt:runtime.readyAt};window.dispatchEvent(new CustomEvent('exporthub:ready',{detail:window.__EXPORTHUB_READY__}));startRevisionPolling();startNoIdleKeepAlive()}
-window.ExportHUBSync=Object.freeze({owner:'RC353',markDeleted:markDeleted,pollNow:pollRevision,applyRemote:applyRemoteDocument,stampChanges:stampChanges,syncNow:async function(){if(runtime.pendingSave||runtime.dirty)await flushSave('Manuelle Synchronisierung',{force:true});return pollRevision()},diagnostics:function(){return{owner:'RC353',endpoint:API,endpointLocked:runtime.stateApiLocked,revision:runtime.revision,dirty:runtime.dirty,pendingSave:runtime.pendingSave,saving:runtime.saving,polling:runtime.polling,remoteApplyCount:runtime.remoteApplyCount,lastSync:window.__EXPORTHUB_LAST_SYNC__||null}}});
+window.ExportHUBSync=Object.freeze({owner:'RC354',markDeleted:markDeleted,pollNow:pollRevision,applyRemote:applyRemoteDocument,stampChanges:stampChanges,syncNow:async function(){if(runtime.pendingSave||runtime.dirty)await flushSave('Manuelle Synchronisierung',{force:true});return pollRevision()},diagnostics:function(){return{owner:'RC354',endpoint:API,endpointLocked:runtime.stateApiLocked,revision:runtime.revision,dirty:runtime.dirty,pendingSave:runtime.pendingSave,saving:runtime.saving,polling:runtime.polling,remoteApplyCount:runtime.remoteApplyCount,lastSync:window.__EXPORTHUB_LAST_SYNC__||null}}});
 
 async function loadLegacy(){
  if(runtime.loaded)return;
@@ -13155,7 +13169,7 @@ function ensureHtml2Canvas(){
  return Promise.reject(new Error('Der integrierte PDF-Renderer ist nicht verfügbar. Bitte die Seite vollständig neu laden.'));
 }
 window.ExportHUBLazy={ensureHtml2Canvas:ensureHtml2Canvas};
-window.ExportHUBClean={VERSION:VERSION,BUILD:BUILD,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,pollRevision:pollRevision,applyRemoteDocument:applyRemoteDocument,switchMicrosoftAccount:switchMicrosoftAccount,keepSessionAlive:keepAuthenticatedSessionAlive,startNoIdleKeepAlive:startNoIdleKeepAlive,native:native,runtime:runtime};window.ExportHUBMicrosoftAccount=Object.freeze({owner:'RC353',switchAccount:switchMicrosoftAccount,handleStage:handleMicrosoftSwitchStage,buildUrls:function(){const provider=cleanReturnUrl({msAccountSwitch:'provider'}),login=cleanReturnUrl({msAccountSwitch:'login'}),done=cleanReturnUrl({msAccountChanged:'1'});return{appLogout:appAuthUrl('/.auth/logout',{post_logout_redirect_uri:provider.pathname+provider.search}),providerLogout:'https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri='+encodeURIComponent(login.href),accountLogin:appAuthUrl('/.auth/login/aad',{post_login_redirect_uri:done.pathname+done.search,prompt:'select_account'}),final:done.href}}});
+window.ExportHUBClean={VERSION:VERSION,BUILD:BUILD,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,pollRevision:pollRevision,applyRemoteDocument:applyRemoteDocument,switchMicrosoftAccount:switchMicrosoftAccount,keepSessionAlive:keepAuthenticatedSessionAlive,startNoIdleKeepAlive:startNoIdleKeepAlive,native:native,runtime:runtime};window.ExportHUBMicrosoftAccount=Object.freeze({owner:'RC354',switchAccount:switchMicrosoftAccount,handleStage:handleMicrosoftSwitchStage,buildUrls:function(){const provider=cleanReturnUrl({msAccountSwitch:'provider'}),login=cleanReturnUrl({msAccountSwitch:'login'}),done=cleanReturnUrl({msAccountChanged:'1'});return{appLogout:appAuthUrl('/.auth/logout',{post_logout_redirect_uri:provider.pathname+provider.search}),providerLogout:'https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri='+encodeURIComponent(login.href),accountLogin:appAuthUrl('/.auth/login/aad',{post_login_redirect_uri:done.pathname+done.search,prompt:'select_account'}),final:done.href}}});
 window.__EXPORTHUB_RC439_TEAM_SYNC__=true;
 window.__EXPORTHUB_RC467__=true;
 window.__EXPORTHUB_RC591_SESSION_FIX__=true;
@@ -16406,7 +16420,7 @@ window.ExportHUBRC588=Object.freeze({version:VERSION,apply:function(){return sch
 #rc576DocumentStage .rc390-cover{flex-direction:column!important;gap:12mm!important}
 #rc576DocumentStage .rc390-cover-top,#rc576DocumentStage .rc390-head{display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:12mm!important;border-bottom:3px solid #123b7a!important;padding-bottom:6mm!important}
 #rc576DocumentStage .rc390-brand{display:flex!important;align-items:flex-start!important;gap:6mm!important;min-width:0!important}
-#rc576DocumentStage .rc390-logo,#rc576DocumentStage .rc390-cover-logo{display:block!important;max-width:48mm!important;height:auto!important;flex:0 0 auto!important}
+#rc576DocumentStage .rc390-logo,#rc576DocumentStage .rc390-cover-logo{display:block!important;width:40mm!important;max-width:40mm!important;max-height:12mm!important;height:auto!important;object-fit:contain!important;object-position:left top!important;flex:0 0 40mm!important}
 #rc576DocumentStage .rc390-title{font-size:25px!important;font-weight:1000!important;color:#08245d!important;text-transform:uppercase!important}
 #rc576DocumentStage .rc390-sub{font-size:10px!important;line-height:1.4!important;color:#475569!important}
 #rc576DocumentStage .rc390-ref{min-width:52mm!important;border:2px solid #60a5fa!important;background:#eff6ff!important;border-radius:12px!important;padding:8px 10px!important;text-align:left!important}
@@ -16506,10 +16520,13 @@ window.ExportHUBRC588=Object.freeze({version:VERSION,apply:function(){return sch
 .rc390-logo,
 .rc390-cover-logo{
   display:block!important;
-  width:52mm!important;
-  max-width:52mm!important;
+  width:40mm!important;
+  max-width:40mm!important;
+  max-height:12mm!important;
   height:auto!important;
-  flex:0 0 auto!important;
+  object-fit:contain!important;
+  object-position:left top!important;
+  flex:0 0 40mm!important;
 }
 .rc390-title{
   margin:0!important;
@@ -16946,8 +16963,8 @@ body#index203PrintBody #index203PrintRoot>.index203-print-sheet>.rc601-cover,
 .index351-qr-box svg{display:block!important;width:31mm!important;height:31mm!important;max-width:31mm!important;max-height:31mm!important}
 .index351-qr-box span{font-size:7px!important;line-height:1.1!important;font-weight:900!important;color:#166534!important}
 .index351-qr-state{font-size:9px;font-weight:900;text-align:center}.index351-qr-state.bad{color:#991b1b}
-.index351-proof-signature{display:block!important;width:100%!important;max-width:48mm!important;height:15mm!important;object-fit:contain!important;object-position:left center!important;background:#fff!important}
-.index351-pod-signed .rc390-sign:first-of-type .rc390-line{min-height:16mm!important}
+.index352-proof-signature{display:block!important;width:100%!important;max-width:100%!important;height:13mm!important;max-height:13mm!important;object-fit:contain!important;object-position:center center!important;background:#fff!important}
+.rc390-sign.index352-signature-box .rc390-line{display:flex!important;align-items:center!important;justify-content:center!important;min-height:15mm!important;height:15mm!important;padding:0!important;overflow:hidden!important}
 .index351-print-frame{position:fixed!important;left:-10000px!important;top:0!important;width:210mm!important;height:297mm!important;border:0!important;opacity:.01!important;pointer-events:none!important}
 .index351-pdf-root{position:fixed!important;left:-12000px!important;top:0!important;width:210mm!important;z-index:-1!important;background:#fff!important;pointer-events:none!important}
 .index351-pdf-root>.index351-output-page{display:block!important;visibility:visible!important;opacity:1!important;width:210mm!important;min-width:210mm!important;max-width:210mm!important;margin:0!important;overflow:hidden!important;background:#fff!important}
@@ -18710,7 +18727,7 @@ function installOverrides(){
 }
 function refresh(){if(busy)return;busy=true;try{forceVersion();ensureNav();installOverrides();renderCurrent()}finally{busy=false}}
 function schedule(){if(timer)return;timer=setT(function(){timer=0;refresh()},30)}
-document.addEventListener('click',function(e){var t=e.target&&e.target.closest&&e.target.closest('#nav button,#nav a');if(!t)return;var txt=q(t.textContent);if(/UPS\s*(Preise|Versandkosten)|^Versandkosten$/i.test(txt)){e.preventDefault();e.stopImmediatePropagation();openShipping()}else if(/^Prüfung(?:en)?$/i.test(txt)){e.preventDefault();e.stopImmediatePropagation();openInspections()}else if(/^ABD\s*(erstellen|Anfrage)?$/i.test(txt)){e.preventDefault();e.stopImmediatePropagation();openAbd(false)}},true);
+/* RC354: Menüaufrufe werden ausschließlich vom zentralen Navigationscontroller verarbeitet. */
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){/* RC306: Navigation erst nach exporthub:ready anfassen. */},{once:true});
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,schedule)});
 /* INDEX234: legacy full-content observer and 600-ms render loop disabled; initial and ExportHUB events remain active. */
@@ -20853,7 +20870,7 @@ function enableBrowser(){if(!('Notification' in window)){alert('Dieser Browser u
 function install(){if(installing)return;installing=true;try{window.rc451OpenNotifications=openView;window.rc451OpenOverview=function(){return navigate('shipmentoverview')};window.rc451OpenTaskList=function(){return navigate('tasks')}}finally{installing=false}}
 function lock(){try{window.EXPORTHUB_BUILD=Object.freeze({version:VERSION,cache:CACHE,loginReturn:'/?v='+CACHE})}catch(_){ }document.documentElement.setAttribute('data-exporthub-version',VERSION);var t=document.querySelector('title');if(t)t.textContent='ExportHUB Online '+VERSION;var b=document.getElementById('cleanVersionBadge');if(b&&window.ExportHUBBuild)window.ExportHUBBuild.applyVersion()}
 
-document.addEventListener('click',function(e){var target=e.target&&e.target.closest&&e.target.closest('button,a');if(!target)return;var action=target.dataset&&target.dataset.index236Action,id=target.dataset&&target.dataset.id,view=low(target.getAttribute('data-view')||target.dataset&&target.dataset.view||''),text=low(target.textContent);if(view==='notifications'||text==='benachrichtigungen'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openView();return}if(!action)return;e.preventDefault();if(action==='close-modal'||action==='close-hint')removeHint();else if(action==='open-center'){removeHint();openView()}else if(action==='check-now')checkSchedule(true);else if(action==='enable-browser')enableBrowser();else if(action==='open-tasks'){removeHint();navigate('tasks')}else if(action==='open-shipments'){removeHint();navigate('shipmentoverview')}else if(action==='open-shipment')openShipment(id);else if(action==='open-task')openTask(id);else if(action==='complete-task')completeTask(id);else if(action==='set-pickup'){var inp=document.querySelector('[data-index236-pickup-date="'+CSS.escape(id)+'"]');setPickupDate(id,inp&&inp.value)}else if(action==='mail-customer-de')reminderMail(id,'customer','de');else if(action==='mail-customer-en')reminderMail(id,'customer','en');else if(action==='mail-carrier-de')reminderMail(id,'carrier','de');else if(action==='mail-carrier-en')reminderMail(id,'carrier','en')},true);
+document.addEventListener('click',function(e){var target=e.target&&e.target.closest&&e.target.closest('button,a');if(!target)return;var action=target.dataset&&target.dataset.index236Action,id=target.dataset&&target.dataset.id;if(!action)return;e.preventDefault();if(action==='close-modal'||action==='close-hint')removeHint();else if(action==='open-center'){removeHint();openView()}else if(action==='check-now')checkSchedule(true);else if(action==='enable-browser')enableBrowser();else if(action==='open-tasks'){removeHint();navigate('tasks')}else if(action==='open-shipments'){removeHint();navigate('shipmentoverview')}else if(action==='open-shipment')openShipment(id);else if(action==='open-task')openTask(id);else if(action==='complete-task')completeTask(id);else if(action==='set-pickup'){var inp=document.querySelector('[data-index236-pickup-date="'+CSS.escape(id)+'"]');setPickupDate(id,inp&&inp.value)}else if(action==='mail-customer-de')reminderMail(id,'customer','de');else if(action==='mail-customer-en')reminderMail(id,'customer','en');else if(action==='mail-carrier-de')reminderMail(id,'carrier','de');else if(action==='mail-carrier-en')reminderMail(id,'carrier','en')},true);
 document.addEventListener('keydown',function(e){if(e.key==='Escape')removeHint()},true);
 document.addEventListener('visibilitychange',function(){if(!document.hidden){checkSchedule(false);updateBadge();if(low(main().view)==='notifications')renderView()}scheduleNext()});
 ['exporthub:ready','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){install();lock();updateBadge();if(low(main().view)==='notifications')renderView();checkSchedule(false);scheduleNext()})});
@@ -20925,7 +20942,7 @@ function renderHub(selected,sh){var content=document.getElementById('content');i
 function docMap(root){root=root||document;var bundle=root.querySelector('#rc576DocumentStage .rc390-bundle')||root.querySelector('.rc390-bundle');if(!bundle)return null;var list=Array.prototype.slice.call(bundle.children),loads=list.filter(function(x){return x.classList.contains('rc390-load')}),cmrs=list.filter(function(x){return x.classList.contains('rc390-cmr-wrap')});return{cover:list.find(function(x){return x.classList.contains('rc390-cover')})||null,load1:list.find(function(x){return x.id==='rc565LoadList1'||x.classList.contains('rc576-load1')||x.classList.contains('rc601-load1')||x.classList.contains('rc593-load1')})||loads[0]||null,load2:list.find(function(x){return x.id==='rc565LoadList2'||x.classList.contains('rc576-load2')||x.classList.contains('rc601-load2')||x.classList.contains('rc593-load2')})||loads[1]||null,cmrs:cmrs}}
 function selectDocument(key,scroll){var stage=document.getElementById('rc576DocumentStage'),view=stage&&stage.querySelector('.rc390-docview'),d=docMap(document);if(!stage||!view||!d)return false;if(key==='cmr'&&!d.cmrs.length)key='load1';var target=key==='cover'?d.cover:key==='load1'?d.load1:key==='load2'?d.load2:d.cmrs[0];if(!target){key=d.load1?'load1':d.cover?'cover':d.load2?'load2':'cmr';target=key==='cover'?d.cover:key==='load1'?d.load1:key==='load2'?d.load2:d.cmrs[0]}activeDoc=key;stage.setAttribute('data-doc',key);view.setAttribute('data-index352-doc',key);[d.cover,d.load1,d.load2].concat(d.cmrs).filter(Boolean).forEach(function(el){var on=el===target;el.style.setProperty('display',on?'block':'none','important');el.style.setProperty('visibility',on?'visible':'hidden','important');el.style.setProperty('opacity',on?'1':'0','important')});document.querySelectorAll('#rc576DocumentTabs [data-index352-doc]').forEach(function(b){var on=b.getAttribute('data-index352-doc')===key;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false')});if(scroll&&target)try{target.scrollIntoView({block:'start',behavior:'auto'});window.scrollBy(0,-120)}catch(_){}return false}
 function proofLine(page,label){return Array.prototype.slice.call(page.querySelectorAll('.rc390-sign')).find(function(box){return low((box.querySelector('.rc390-label')||{}).textContent).indexOf(low(label))>=0})||null}
-function setProofBox(page,label,value,image){var box=proofLine(page,label);if(!box)return;var line=box.querySelector('.rc390-line');if(!line)return;line.innerHTML='';if(image){var img=page.ownerDocument.createElement('img');img.className='index352-proof-signature';img.alt='Digitale Fahrerunterschrift';img.src=image;line.appendChild(img)}else line.textContent=q(value)}
+function setProofBox(page,label,value,image){var box=proofLine(page,label);if(!box)return;var line=box.querySelector('.rc390-line');if(!line)return;var signatureField=low(label).indexOf('unterschrift')>=0;box.classList.toggle('index352-signature-box',signatureField&&!!image);line.innerHTML='';if(image){var img=page.ownerDocument.createElement('img');img.className='index352-proof-signature';img.alt='Digitale Fahrerunterschrift';img.src=image;line.appendChild(img)}else line.textContent=q(value)}
 function decorateDocument(sh,root){root=root||document;var d=docMap(root),qr=window.ExportHUBPickupPOD,proof=qr&&qr.proof?qr.proof(sh):{available:false};if(!d)return false;if(d.load1){var slot=d.load1.querySelector('[data-index240-qr="1"],.rc390-qrslot');if(slot){slot.classList.remove('empty');slot.innerHTML=qr&&qr.qrMarkup?qr.qrMarkup(sh):'';slot.setAttribute('data-index352-qr','1')}}if(d.load2)d.load2.querySelectorAll('.rc390-qrslot,.index352-qr-box').forEach(function(x){x.innerHTML='';x.classList.add('empty')});[d.load1,d.load2].filter(Boolean).forEach(function(page){var signature=proof.signature||proof.signatureUrl||'';setProofBox(page,'Unterschrift Fahrer','',signature);setProofBox(page,'Datum / Uhrzeit',proof.confirmedAt?dateDe(proof.confirmedAt)+' '+(new Date(proof.confirmedAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})):'');setProofBox(page,'Kennzeichen',proof.licensePlate||sh.licensePlate||'');setProofBox(page,'Verlader',proof.loaderName||sh.loaderName||sh.loader||'');page.classList.toggle('index352-pod-signed',!!proof.available)});var podButton=root===document&&document.querySelector('[data-index352-action="download-pod"]');if(podButton)podButton.disabled=!proof.available;var statusNode=root===document&&document.getElementById('index352DocumentShipmentStatus');if(statusNode)statusNode.textContent=status(sh);return true}
 async function prepareShipment(sh){var qr=window.ExportHUBPickupPOD;if(!qr||!sh)return sh;qr.ensure(sh);try{if(sh.pickupToken)await qr.syncOne(sh,false)}catch(_){}if(!qr.hasSignature(sh)&&!/abgeholt|pod vorhanden|abgeschlossen|archiviert/i.test(status(sh))){var ok=await qr.register(sh,false);if(!ok&&!sh.pickupQrRegistered)message('QR-Abholung konnte nicht auf dem Server aktiviert werden. Drucken und PDF bleiben gesperrt, bis die Verbindung wieder verfügbar ist.','bad')}return sh}
 async function ensureOutputReady(sh){var qr=window.ExportHUBPickupPOD;if(!qr)throw new Error('Der QR-/POD-Controller ist nicht verfügbar.');qr.ensure(sh);if(!qr.hasSignature(sh)&&!/abgeholt|pod vorhanden|abgeschlossen|archiviert/i.test(status(sh))){var ok=await qr.register(sh,false);if(!ok&&!sh.pickupQrRegistered)throw new Error('Der QR-Code konnte nicht serverseitig registriert werden. Bitte Verbindung prüfen und erneut versuchen.')}decorateDocument(sh,document);return sh}
@@ -21131,7 +21148,7 @@ function lock(){
  try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}
  document.documentElement.setAttribute('data-exporthub-version',VERSION);
  var title=document.querySelector('title');if(title)title.textContent='ExportHUB Online '+VERSION;
- var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Aktuelle Version RC353';
+ var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Aktuelle Version RC354';
 }
 function patch(){lock();migrateOnce();ensureAll(false);installSaveHooks();patchEditor();linkCurrentShipment()}
 function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},30)}
@@ -21247,7 +21264,7 @@ function installSaveHooks(){try{wrap(window.ExportHUBRC565,'saveCustomerFolder')
 function mailCandidates(root){if(!root)return[];var selector='#rc543MailArea,#rc542MailArea,#rc524MailArea,#rc418ShipmentMail,#rc416ShipmentMail,#rc410ShipmentMail,#rc409ShipmentMail,#rc404ShipmentMail,#rc404ShipmentMailPanel,#rc390ShipmentMail,#rc385ShipmentMail,#rc344MailBox,.rc573-mail-card';var nodes=Array.prototype.slice.call(root.querySelectorAll(selector));Array.prototype.slice.call(root.querySelectorAll('section,article,.card')).forEach(function(node){var h=node.querySelector('h1,h2,h3,h4'),label=q(h&&h.textContent);if(/^(Mailbereich|Mail Bereich|Mailversand|Anmeldung\s*\/\s*Mail)/i.test(label)&&nodes.indexOf(node)<0)nodes.push(node)});return nodes.filter(function(node){return !nodes.some(function(other){return other!==node&&node.contains(other)})})}
 function follows(node,saved){return !!(node&&saved&&(node.compareDocumentPosition(saved)&Node.DOCUMENT_POSITION_PRECEDING))}
 function removeWrongMailArea(){if(busy)return false;busy=true;try{var shell=document.getElementById('rc573ShipmentShell'),saved=document.getElementById('rc573SavedCard');if(!shell||!saved)return false;var removed=0;mailCandidates(shell).forEach(function(node){if(saved.contains(node)||follows(node,saved)){var parent=node.parentElement;node.remove();removed++;while(parent&&parent!==shell&&!q(parent.textContent)&&!parent.querySelector('input,select,textarea,button,a,img,table')){var next=parent.parentElement;parent.remove();parent=next}}});return removed>0}finally{busy=false}}
-function lockVersion(){try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var title=document.querySelector('title');if(title)title.textContent='ExportHUB Online '+VERSION;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Aktuelle Version RC353'}
+function lockVersion(){try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){}document.documentElement.setAttribute('data-exporthub-version',VERSION);var title=document.querySelector('title');if(title)title.textContent='ExportHUB Online '+VERSION;var badge=document.getElementById('cleanVersionBadge');if(badge)badge.textContent='Aktuelle Version RC354'}
 function patch(){lockVersion();migrate();installSaveHooks();patchFields();removeWrongMailArea()}
 function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},25)}
 function installObserver(){if(observer)return;var target=document.getElementById('content')||document.body;if(!target)return;try{observer=new MutationObserver(function(records){if(records.some(function(r){return r.type==='childList'}))schedule()});observer.observe(target,{childList:true,subtree:true})}catch(_){}}
@@ -22214,7 +22231,7 @@ function apply(){
  var login=document.querySelector('#login .login-card');if(!login)return false;
  var badge=document.getElementById('cleanVersionBadge');
  if(!badge){badge=document.createElement('div');badge.id='cleanVersionBadge';badge.className='clean-version-badge'}
- badge.textContent='Aktuelle Version RC353';badge.setAttribute('aria-label','Aktuelle Version '+VERSION);
+ badge.textContent='Aktuelle Version RC354';badge.setAttribute('aria-label','Aktuelle Version '+VERSION);
  var heading=login.querySelector('h1');if(heading&&heading.nextElementSibling!==badge)heading.insertAdjacentElement('afterend',badge);else if(!badge.isConnected)login.insertBefore(badge,login.firstChild);
  try{document.documentElement.setAttribute('data-exporthub-version',VERSION);window.ExportHUBBuild.applyTitle()}catch(_){}
  return true;
@@ -22256,7 +22273,7 @@ function applyCanonical(){
   var login=document.querySelector('#login .login-card'),badge=document.getElementById('cleanVersionBadge');
   if(login){
    if(!badge){badge=document.createElement('div');badge.id='cleanVersionBadge';badge.className='clean-version-badge'}
-   badge.textContent='Aktuelle Version RC353';badge.setAttribute('aria-label','Aktuelle Version '+VERSION);
+   badge.textContent='Aktuelle Version RC354';badge.setAttribute('aria-label','Aktuelle Version '+VERSION);
    var heading=login.querySelector('h1');if(heading&&heading.nextElementSibling!==badge)heading.insertAdjacentElement('afterend',badge);else if(!badge.isConnected)login.insertBefore(badge,login.firstChild);
   }
   try{if(window.ExportHUBBuild){window.ExportHUBBuild.applyTitle();window.ExportHUBBuild.applyVersion()}}catch(_){}
@@ -22512,20 +22529,7 @@ window.ExportHUBIndex297=Object.freeze({version:VERSION,refresh:refresh,schedule
 <!-- INDEX 297 RC297 IMMEDIATE SHIPMENT STATUS END -->
 <!-- INDEX 298 RC306 STABLE MENU + SAVED SHIPMENT LAYOUT START -->
 <style id="index298-stable-navigation-shipment-style">
-#nav.nav a{text-decoration:none!important;box-sizing:border-box!important}
-#nav.nav button[data-index298-special-nav="1"],#nav.nav a[data-index298-special-nav="1"]{display:flex!important;align-items:center!important}
-#nav.nav [data-index298-nav-kind="shipping"]::after,
-#nav.nav [data-index298-nav-kind="inspections"]::after{
-  order:-1;display:inline-grid;place-items:center;width:19px;min-width:19px;height:19px;
-  font-size:14px;line-height:1;filter:saturate(.95)
-}
-#nav.nav [data-index298-nav-kind="shipping"]::after{content:"💶"}
-#nav.nav [data-index298-nav-kind="inspections"]::after{content:"🔎"}
-#nav.nav [data-index298-special-nav="1"][hidden]{display:none!important}
-#nav.nav [data-index296-nav-group="1"]:is(button,a){
-  margin:0!important;padding:10px 12px!important;color:#dbeafe!important;font-size:13px!important;
-  line-height:1.2!important;font-weight:850!important;letter-spacing:0!important;text-transform:none!important
-}
+/* RC354: alte Sondernavigation entfernt; einzig aktiver Eigentümer ist INDEX321. */
 #rc573ShipmentShell[data-index298-canonical="1"]{width:100%}
 </style>
 <script id="index298-stable-navigation-saved-shipment-controller">
@@ -22551,7 +22555,7 @@ function repairShipmentLayout(reason){if(canonicalReady()||currentView()!=='ship
 function scheduleRepair(reason){var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;[0,120,450,1200].forEach(function(ms){nt(function(){if(!canonicalReady())repairShipmentLayout(reason)},ms)})}
 function wrapLoad(name){var original=window[name];if(typeof original!=='function'||original.__index298)return false;var wrapped=function(){var r=original.apply(this,arguments);state().view='shipment';scheduleRepair('Gespeicherte Sendung übernommen');return r};wrapped.__index298=true;wrapped.__index298Original=original;window[name]=wrapped;try{if(name==='loadShipment')loadShipment=wrapped}catch(_){}wrappedLoads++;return true}
 function installLoads(){['loadShipment','rc344LoadShipment','rc456LoadShipment','rc573LoadShipment'].forEach(wrapLoad)}
-function patch(){lockRenderNav();installLoads();normalizeMenu();if(currentView()==='shipment'&&!canonicalReady())repairShipmentLayout('Ansicht stabilisiert')}
+function patch(){installLoads();if(currentView()==='shipment'&&!canonicalReady())repairShipmentLayout('Ansicht stabilisiert')}
 document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button,a');if(!b)return;var t=low(b.textContent),c=low(b.getAttribute('onclick'));if((t==='ubernehmen'||/sendung ubernehmen|loadshipment/.test(t+' '+c))&&(b.closest('#rc573SavedCard')||/gespeicherte sendungen/i.test(q((b.closest('section,.card,article')||{}).textContent))))scheduleRepair('Gespeicherte Sendung übernommen')},true);
 function boot(){patch();setTimeout(patch,120)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();['exporthub:ready','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,patch)});
 window.ExportHUBIndex298=Object.freeze({version:VERSION,patch:patch,normalizeMenu:normalizeMenu,repairShipmentLayout:repairShipmentLayout,diagnostics:function(){var root=nav();return{version:VERSION,menuNodeStable:!!(root&&root===lastMenuNode),baseMenuReady:baseReady(root),navFixes:navFixes,shipmentRepairs:shipmentRepairs,wrappedLoads:wrappedLoads,renderNavLocks:renderNavLocks,shippingButtons:root?root.querySelectorAll('[data-index298-nav-kind="shipping"]').length:0,inspectionButtons:root?root.querySelectorAll('[data-index298-nav-kind="inspections"]').length:0,canonicalShipment:canonicalReady(),renderedEventListener:false}}});
@@ -22667,7 +22671,7 @@ window.ExportHUBRC324Users=Object.freeze({version:VERSION,users:USERS,password:S
 <!-- INDEX 323 LOCAL USERS + QR ACTIVATION REPAIR END -->
 <!-- INDEX 326 AUTHORITATIVE LOADLIST MAIL FIX START -->
 <style id="index326-version-style">
-#login .login-card>#cleanVersionBadge::after{content:"RC353"!important}
+#login .login-card>#cleanVersionBadge::after{content:"RC354"!important}
 </style>
 <script id="index326-authoritative-loadlist-mail-fix">(function(){
 'use strict';
