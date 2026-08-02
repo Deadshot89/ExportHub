@@ -21674,3 +21674,61 @@ function install(){if(installed)return;installed=true;if(window.ExportHUBRC565&&
 var api=Object.freeze({version:VERSION,patch:patch,addRow:addRow,removeRow:removeRow,updateRow:updateRow,openWeight:openWeight,save:saveAction,printAll:printAll,openDocuments:openDocuments,diagnostics:function(){var r=root();return{version:VERSION,shipmentView:isShipmentView(),rows:rowNodes().length,fixedBlocks:document.querySelectorAll('.rc359-fixed-block').length,weightFields:document.querySelectorAll('input[data-rc359-weight="1"]').length,helperTexts:Array.from((r||document).querySelectorAll('.okbox,.badbox,.notice,.infobox,div,p')).filter(function(el){return /^(Anzahl\s*=\s*reale physische Anzahl|Referenzregel:|Dokumente:\s*Ladeliste wird als A4-Seite erzeugt)/i.test(q(el.textContent))}).length,hasMutationObserver:false,hasInterval:false,owner:true}}});window.ExportHUBShipment360=api;window.ExportHUBShipment356=api;
 })();
 </script>
+
+<script id="exporthub-rc361-menu-shipment-cleanup">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC361_MENU_SHIPMENT_CLEANUP__)return;
+window.__EXPORTHUB_RC361_MENU_SHIPMENT_CLEANUP__=true;
+var VERSION='RC361';
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function removeShipmentToolbar(){
+ var root=document.getElementById('content');if(!root)return 0;
+ var removed=0;
+ Array.from(root.querySelectorAll('button,a')).forEach(function(el){
+  var t=low(el.textContent);
+  if(t==='ladeliste/cmr vorschau'||t==='abd erstellen'||t==='ladeliste pdf herunterladen'||t==='versandlabel 4x a4'||t==='versandlabel drucken 4x a4'){
+   var host=el.parentElement;
+   el.remove();removed++;
+   if(host&&host.children.length===0&&!q(host.textContent))host.remove();
+  }
+ });
+ Array.from(root.querySelectorAll('.toolbar,.actions,.btn-row,.btn-row-spaced')).forEach(function(el){
+  if(!el.children.length&&!q(el.textContent))el.remove();
+ });
+ return removed;
+}
+function canonicalNav(){
+ var nav=document.getElementById('nav');if(!nav)return{removed:0,updated:0};
+ var removed=0,updated=0,seen={};
+ Array.from(nav.querySelectorAll('button,a')).forEach(function(el){
+  var view=q(el.getAttribute('data-index321-view')||el.getAttribute('data-index308-view')||el.getAttribute('data-index305-view')||el.getAttribute('data-eh-view')||el.getAttribute('data-view'));
+  var text=low(el.textContent);
+  var key=view||text;
+  if(view==='quiz'||text==='prufungszentrum')key='inspections';
+  if(key==='inspections'){
+   if(seen.inspections){el.remove();removed++;return}
+   seen.inspections=el;
+   ['data-index321-view','data-index308-view','data-index305-view','data-eh-view','data-view'].forEach(function(a){el.setAttribute(a,'inspections')});
+   el.setAttribute('title','Prüfungen');el.setAttribute('aria-label','Prüfungen');
+   var label=el.querySelector('.index308-nav-label')||el.querySelector('span:last-child');if(label)label.textContent='Prüfungen';else el.textContent='Prüfungen';updated++;
+   return;
+  }
+  if(key==='shipmentoverview'){
+   if(seen.shipmentoverview){el.remove();removed++;return}
+   seen.shipmentoverview=el;
+   ['data-index321-view','data-index308-view','data-index305-view','data-eh-view','data-view'].forEach(function(a){el.setAttribute(a,'shipmentoverview')});
+   el.setAttribute('title','Sendungsübersicht');el.setAttribute('aria-label','Sendungsübersicht');
+   var label2=el.querySelector('.index308-nav-label')||el.querySelector('span:last-child');if(label2)label2.textContent='Sendungsübersicht';else el.textContent='Sendungsübersicht';updated++;
+  }
+ });
+ return{removed:removed,updated:updated};
+}
+function apply(){removeShipmentToolbar();canonicalNav();document.documentElement.setAttribute('data-exporthub-version',VERSION);var badge=document.getElementById('cleanVersionBadge');if(badge){badge.textContent='Aktuelle Version '+VERSION;badge.setAttribute('aria-label','Aktuelle Version '+VERSION)}document.title='ExportHUB Online '+VERSION;return true}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,apply)});
+(window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__=window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__||[]).push({key:'rc361-menu-shipment-cleanup',priority:2000,run:apply});
+window.ExportHUBRC361=Object.freeze({version:VERSION,apply:apply,diagnostics:function(){var nav=document.getElementById('nav');return{toolbarButtons:Array.from(document.querySelectorAll('#content button,#content a')).filter(function(el){return /Ladeliste\/CMR Vorschau|Ladeliste PDF herunterladen|Versandlabel 4× A4|Versandlabel 4x A4/i.test(q(el.textContent))}).length,inspections:nav?Array.from(nav.querySelectorAll('button,a')).filter(function(el){return q(el.getAttribute('data-view')||el.getAttribute('data-eh-view'))==='inspections'}).length:0,overview:nav?Array.from(nav.querySelectorAll('button,a')).filter(function(el){return q(el.getAttribute('data-view')||el.getAttribute('data-eh-view'))==='shipmentoverview'}).length:0}}});
+})();
+</script>
