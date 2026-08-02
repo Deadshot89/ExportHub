@@ -21825,3 +21825,169 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 window.ExportHUBShipment356=Object.freeze({version:VERSION,patch:patch,addRow:addRow,removeRow:removeRow,updateRow:updateRow,save:saveAction,printAll:printAll,openDocuments:openDocuments,diagnostics:function(){var r=root();return{version:VERSION,shipmentView:isShipmentView(),rows:rowNodes().length,mailAreas:r?mailAreas(r).length:0,actionBars:document.querySelectorAll('#rc356ShipmentActions').length,qrReady:document.getElementById('rc356ShipmentActions')&&document.getElementById('rc356ShipmentActions').dataset.qrReady==='1',hasMutationObserver:false,hasInterval:false,owner:true,ownedRows:rowNodes().filter(function(x){return x.classList.contains('rc356-owned-row')}).length,globalRemoveOwner:window.removeShipmentRow===removeRow,globalAddOwner:window.addShipmentRow===addRow,globalSaveOwner:window.saveShipment===saveAction}}});
 })();
 </script>
+
+<style id="exporthub-rc357-shipment-style">
+#rc573ShipmentShell .rc357-section-block,
+#rc573ShipmentShell > section.rc573-card,
+#rc573ShipmentShell > .rc573-card,
+#rc573ShipmentShell > .card{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+}
+#rc573ShipmentShell [data-rc357-remove-note="1"]{display:none!important}
+#rc573ColliCard [data-rc357-grid="1"]{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-template-rows:auto auto auto!important;
+  gap:16px 16px!important;
+  align-items:start!important;
+  width:100%!important;
+}
+#rc573ColliCard [data-rc357-grid="1"] > [data-rc357-field]{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:7px!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+}
+#rc573ColliCard [data-rc357-row="1"]{
+  border:1px solid #bfd8ff!important;
+  background:linear-gradient(180deg,#f8fbff 0%,#f4f8ff 100%)!important;
+  border-radius:20px!important;
+  padding:18px!important;
+  margin:12px 0!important;
+  box-shadow:0 8px 22px rgba(15,47,107,.055)!important;
+}
+#rc573ColliCard [data-rc357-field="type"]{grid-area:1 / 1 / 2 / 10!important}
+#rc573ColliCard [data-rc357-field="action"]{grid-area:1 / 10 / 2 / 13!important;align-self:end!important}
+#rc573ColliCard [data-rc357-field="count"]{grid-area:2 / 1 / 3 / 3!important}
+#rc573ColliCard [data-rc357-field="weight"]{grid-area:2 / 3 / 3 / 8!important}
+#rc573ColliCard [data-rc357-field="ldm"]{grid-area:2 / 8 / 3 / 13!important}
+#rc573ColliCard [data-rc357-field="l"]{grid-area:3 / 1 / 4 / 5!important}
+#rc573ColliCard [data-rc357-field="w"]{grid-area:3 / 5 / 4 / 9!important}
+#rc573ColliCard [data-rc357-field="h"]{grid-area:3 / 9 / 4 / 13!important}
+#rc573ColliCard [data-rc357-grid="1"] input,
+#rc573ColliCard [data-rc357-grid="1"] select,
+#rc573ColliCard [data-rc357-grid="1"] button{
+  width:100%!important;
+  min-width:0!important;
+  min-height:48px!important;
+  box-sizing:border-box!important;
+}
+#rc573ColliCard [data-rc357-field="action"] button{
+  border:0!important;
+  background:#fee2e2!important;
+  color:#991b1b!important;
+}
+#rc573ColliCard .rc357-weight-tools{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-top:6px!important;flex-wrap:wrap!important}
+#rc573ColliCard .rc357-weight-tools .rc357-weight-status{font-size:11px!important;font-weight:900!important;color:#1d4ed8!important;line-height:1.25!important}
+#rc573ColliCard .rc357-weight-tools .rc357-weight-status.incomplete{color:#9a3412!important}
+#rc573ColliCard .rc357-weight-tools .rc357-weight-manage{min-height:34px!important;padding:7px 10px!important;white-space:nowrap!important}
+#rc357WeightModal{position:fixed;inset:0;z-index:2147483600;display:none;place-items:center;padding:22px;background:rgba(2,12,27,.62);backdrop-filter:blur(3px)}
+#rc357WeightModal.open{display:grid}
+#rc357WeightModal .rc357-modal-card{width:min(780px,100%);max-height:min(90vh,900px);display:flex;flex-direction:column;overflow:hidden;background:#fff;border:1px solid #bfdbfe;border-radius:24px;box-shadow:0 28px 70px rgba(2,12,27,.35)}
+#rc357WeightModal .rc357-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:20px 22px 14px;border-bottom:1px solid #dbeafe;background:linear-gradient(135deg,#eff6ff,#fff)}
+#rc357WeightModal .rc357-modal-head h2{margin:0 0 5px;color:#08245d;font-size:24px}
+#rc357WeightModal .rc357-modal-head p{margin:0;color:#64748b;font-weight:800}
+#rc357WeightModal .rc357-modal-close{width:42px;height:42px;border:1px solid #cbd5e1;border-radius:14px;background:#fff;color:#334155;font-size:22px;font-weight:900;cursor:pointer}
+#rc357WeightModal .rc357-modal-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 22px;border-bottom:1px solid #e2e8f0}
+#rc357WeightModal .rc357-modal-metric{border:1px solid #dbeafe;border-radius:15px;padding:10px 12px;background:#f8fbff}
+#rc357WeightModal .rc357-modal-metric span{display:block;color:#64748b;font-size:11px;font-weight:900;margin-bottom:4px}
+#rc357WeightModal .rc357-modal-metric strong{display:block;color:#1d4ed8;font-size:21px}
+#rc357WeightModal .rc357-weight-list{overflow:auto;padding:16px 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#rc357WeightModal .rc357-weight-entry{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;border:1px solid #dbeafe;border-radius:14px;padding:9px 10px;background:#fff}
+#rc357WeightModal .rc357-weight-entry b{color:#08245d;min-width:28px}
+#rc357WeightModal .rc357-weight-entry input{min-width:0;height:42px;padding:9px 10px;text-align:right;font-weight:950}
+#rc357WeightModal .rc357-weight-entry span{color:#64748b;font-size:12px;font-weight:900}
+#rc357WeightModal .rc357-modal-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 22px 20px;border-top:1px solid #dbeafe;background:#f8fbff}
+#rc357WeightModal .rc357-modal-footer>div{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){
+  #rc573ColliCard [data-rc357-grid="1"]{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+  #rc573ColliCard [data-rc357-field="type"]{grid-area:1 / 1 / 2 / 5!important}
+  #rc573ColliCard [data-rc357-field="action"]{grid-area:1 / 5 / 2 / 7!important}
+  #rc573ColliCard [data-rc357-field="count"]{grid-area:2 / 1 / 3 / 3!important}
+  #rc573ColliCard [data-rc357-field="weight"]{grid-area:2 / 3 / 3 / 7!important}
+  #rc573ColliCard [data-rc357-field="ldm"]{grid-area:3 / 1 / 4 / 7!important}
+  #rc573ColliCard [data-rc357-field="l"]{grid-area:4 / 1 / 5 / 3!important}
+  #rc573ColliCard [data-rc357-field="w"]{grid-area:4 / 3 / 5 / 5!important}
+  #rc573ColliCard [data-rc357-field="h"]{grid-area:4 / 5 / 5 / 7!important}
+  #rc357WeightModal .rc357-modal-metrics,#rc357WeightModal .rc357-weight-list{grid-template-columns:1fr!important}
+}
+@media(max-width:620px){
+  #rc573ColliCard [data-rc357-grid="1"]{grid-template-columns:1fr!important;grid-template-rows:none!important;gap:13px!important}
+  #rc573ColliCard [data-rc357-grid="1"]>[data-rc357-field]{grid-column:1!important;grid-row:auto!important}
+  #rc573ColliCard [data-rc357-field="type"]{order:1!important}
+  #rc573ColliCard [data-rc357-field="action"]{order:2!important}
+  #rc573ColliCard [data-rc357-field="count"]{order:3!important}
+  #rc573ColliCard [data-rc357-field="weight"]{order:4!important}
+  #rc573ColliCard [data-rc357-field="ldm"]{order:5!important}
+  #rc573ColliCard [data-rc357-field="l"]{order:6!important}
+  #rc573ColliCard [data-rc357-field="w"]{order:7!important}
+  #rc573ColliCard [data-rc357-field="h"]{order:8!important}
+  #rc357WeightModal{padding:8px}
+}
+</style>
+<script id="exporthub-rc357-shipment-controller">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC357_SHIPMENT_REPAIR__)return;
+window.__EXPORTHUB_RC357_SHIPMENT_REPAIR__=true;
+if(window.__EXPORTHUB_PICKUP_MODE__)return;
+var VERSION='RC357';
+var activeWeightIndex=-1;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function arr(v){return Array.isArray(v)?v:[]}
+function num(v){var x=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(x)?x:0}
+function round(v){return Math.round((num(v)+Number.EPSILON)*100)/100}
+function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){}return window.state||(window.state={})}
+function shipment(){var s=state();s.shipment=s.shipment||{};s.shipment.rows=arr(s.shipment.rows);return s.shipment}
+function isShipmentView(){var s=state(),v=low(s.view||document.body.getAttribute('data-exporthub-view')||'');return v==='shipment'||!!document.getElementById('rc573ShipmentShell')}
+function root(){return document.getElementById('content')}
+function rowBox(){return document.getElementById('rowsBox')||document.querySelector('#rc573ColliCard')}
+function rowNodes(){var b=rowBox();if(!b)return[];return Array.from(b.querySelectorAll('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card,#rowsBox>.item')).filter(function(n){return !!(n.querySelector&&n.querySelector('input,select'))}).filter(function(n,i,a){return a.indexOf(n)===i&&!a.some(function(p){return p!==n&&p.contains(n)})})}
+function labelText(el){return q((el&&el.closest&&el.closest('label,.field')&&el.closest('label,.field').textContent)||'')}
+function fieldKey(el){var code=q((el&&el.getAttribute&&el.getAttribute('oninput')||'')+' '+(el&&el.getAttribute&&el.getAttribute('onchange')||'')),m=code.match(/(?:rc344UpdateRow|rc456UpdateRow|UpdateRow|updateRow|setRow)\s*\(\s*\d+\s*,\s*['\"](type|count|weight|ldm|l|w|h)['\"]/i);if(m)return m[1];var lab=low(labelText(el));if(/verpack|packart|packaging/.test(lab))return'type';if(/anzahl|menge|quantity/.test(lab))return'count';if(/gewicht|weight/.test(lab))return'weight';if(/lademeter|\bldm\b/.test(lab))return'ldm';if(/lange|laenge|length/.test(lab))return'l';if(/breite|width/.test(lab))return'w';if(/hohe|hoehe|height/.test(lab))return'h';return''}
+function directChild(grid,node){if(!grid||!node)return null;while(node&&node.parentElement&&node.parentElement!==grid)node=node.parentElement;return node&&node.parentElement===grid?node:null}
+function fieldNode(row,key){return Array.from(row.querySelectorAll('input,select')).find(function(el){return fieldKey(el)===key})||null}
+function rowIndex(node){var idx=Number(node&&node.getAttribute&&node.getAttribute('data-rc344-row'));if(Number.isFinite(idx))return idx;return rowNodes().indexOf(node)}
+function queue(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Sendung aktualisiert')}catch(_){}}
+function hideShipmentHelperTexts(){var r=root();if(!r||!isShipmentView())return 0;var count=0;Array.from(r.querySelectorAll('.okbox,.badbox,.checkrow,.small,.rc344-note,.rc344-info,div,p')).forEach(function(el){if(el.closest('#rc356ShipmentActions'))return;var text=low(el.textContent);if(!text)return;var hide=/dokumente:\s*ladeliste wird als a4-seite erzeugt|referenzregel:\s*exakt 6 zeichen|anzahl\s*=\s*reale physische anzahl|doppel\/?stapellogik/.test(text);if(hide){el.setAttribute('data-rc357-remove-note','1');count++}});return count}
+function fixSectionBlocks(){var shell=document.getElementById('rc573ShipmentShell');if(!shell)return 0;var count=0;Array.from(shell.children).forEach(function(el){if(!(el.matches&&el.matches('section,.card,.rc573-card,article,div')))return;var hasUi=!!el.querySelector('input,select,textarea,button,table,#rowsBox,.rc344-colli-row');if(!hasUi)return;el.classList.add('rc357-section-block');count++});return count}
+function tagColliFixedBlocks(){var card=document.getElementById('rc573ColliCard');if(!card)return 0;var count=0;Array.from(card.querySelectorAll('.rc344-colli-row,[data-rc344-row],#rowsBox>.item.card,#rowsBox>.item')).forEach(function(row){var grid=row.querySelector('.rc344-colli-grid');if(!grid)return;row.setAttribute('data-rc357-row','1');grid.setAttribute('data-rc357-grid','1');var found={};Array.from(grid.querySelectorAll('input,select')).forEach(function(control){var key=fieldKey(control),wrap=directChild(grid,control.closest('label,.field')||control.parentElement);if(key&&wrap&&!found[key])found[key]=wrap});var button=Array.from(grid.querySelectorAll('button,a')).find(function(b){return /entfernen|loschen|löschen/i.test(low(b.textContent))});if(button){var action=directChild(grid,button.closest('label,.field')||button.parentElement);if(action)found.action=action}Object.keys(found).forEach(function(key){found[key].setAttribute('data-rc357-field',key)});count++});return count}
+function modal(){var m=document.getElementById('rc357WeightModal');if(m)return m;m=document.createElement('div');m.id='rc357WeightModal';m.innerHTML='<div class="rc357-modal-card" role="dialog" aria-modal="true" aria-labelledby="rc357WeightTitle"><div class="rc357-modal-head"><div><h2 id="rc357WeightTitle">Einzelgewichte erfassen</h2><p>Gewicht pro Palette oder Colli eingeben. Die Summe wird automatisch in das Gewichtsfeld übernommen.</p></div><button type="button" class="rc357-modal-close" id="rc357WeightClose" aria-label="Schließen">×</button></div><div class="rc357-modal-metrics"><div class="rc357-modal-metric"><span>Zeile</span><strong id="rc357WeightMetricRow">1</strong></div><div class="rc357-modal-metric"><span>Anzahl</span><strong id="rc357WeightMetricCount">1</strong></div><div class="rc357-modal-metric"><span>Summe</span><strong id="rc357WeightMetricTotal">0,0 kg</strong></div></div><div class="rc357-weight-list" id="rc357WeightList"></div><div class="rc357-modal-footer"><div><button type="button" class="ghost" id="rc357WeightDistribute">Gleich verteilen</button><button type="button" class="ghost" id="rc357WeightClear">Leeren</button></div><div><button type="button" class="ghost" id="rc357WeightCancel">Abbrechen</button><button type="button" class="btn" id="rc357WeightSave">Übernehmen</button></div></div></div>';
+(document.body||document.documentElement).appendChild(m);
+m.addEventListener('click',function(e){if(e.target===m||e.target.id==='rc357WeightCancel'||e.target.id==='rc357WeightClose')closeModal()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&m.classList.contains('open'))closeModal()});
+return m}
+function closeModal(){var m=modal();m.classList.remove('open');activeWeightIndex=-1}
+function rowData(index){var rows=shipment().rows;if(!rows[index])rows[index]={};return rows[index]}
+function weightInputsInModal(){return Array.from(modal().querySelectorAll('.rc357-weight-entry input'))}
+function updateModalTotal(){var total=round(weightInputsInModal().reduce(function(sum,input){return sum+num(input.value)},0));var metric=modal().querySelector('#rc357WeightMetricTotal');if(metric)metric.textContent=total.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' kg';return total}
+function applyWeightList(values){var index=activeWeightIndex,row=rowNodes()[index],weight=row&&fieldNode(row,'weight');if(index<0||!row||!weight)return false;var total=round(values.reduce(function(sum,v){return sum+num(v)},0));weight.value=String(total).replace('.',',');weight.setAttribute('data-rc357-weight-mode','split');var data=rowData(index);data.weight=total;data.gewicht=total;data.totalWeight=total;data.weightTotal=total;data.weightInput=String(total);data.individualWeights=values.slice();data.palletWeights=values.slice();data.colliWeights=values.slice();if(typeof window.rc356UpdateRow==='function')try{window.rc356UpdateRow(index,'weight',total,weight)}catch(_){}
+weight.dispatchEvent(new Event('input',{bubbles:true}));
+weight.dispatchEvent(new Event('change',{bubbles:true}));
+queue('Einzelgewichte gespeichert');
+updateWeightTool(row,index);
+closeModal();
+return true}
+function distributeWeights(){var list=weightInputsInModal(),count=list.length||1,row=rowData(activeWeightIndex),total=num((row.weightInput||row.weight||row.gewicht));var base=count?round(total/count):0;list.forEach(function(input,i){var value=i===count-1?round(total-base*(count-1)):base;input.value=value?String(value).replace('.',','):''});updateModalTotal()}
+function clearWeights(){weightInputsInModal().forEach(function(input){input.value=''});updateModalTotal()}
+function openWeightModal(index){index=Number(index);var row=rowNodes()[index],data=rowData(index);if(!row)return false;activeWeightIndex=index;var count=Math.max(1,Math.round(num(((data.count??data.qty??data.anzahl) || (fieldNode(row,'count')&&fieldNode(row,'count').value) || 1))));var values=arr(data.individualWeights).length?arr(data.individualWeights).slice(0,count):arr(data.palletWeights).length?arr(data.palletWeights).slice(0,count):[];while(values.length<count)values.push('');var totalInput=fieldNode(row,'weight');var total=num((totalInput&&totalInput.value)||data.weightInput||data.weight||data.gewicht);var m=modal();m.querySelector('#rc357WeightMetricRow').textContent=String(index+1);m.querySelector('#rc357WeightMetricCount').textContent=String(count);var list=m.querySelector('#rc357WeightList');list.innerHTML='';values.forEach(function(value,i){var item=document.createElement('label');item.className='rc357-weight-entry';item.innerHTML='<b>'+(i+1)+'.</b><input type="number" min="0" step="0.1" inputmode="decimal" value="'+(q(value).replace(/"/g,'&quot;'))+'"><span>kg</span>';list.appendChild(item)});updateModalTotal();m.classList.add('open');setTimeout(function(){var first=list.querySelector('input');if(first)first.focus()},20);m.querySelector('#rc357WeightSave').onclick=function(){applyWeightList(weightInputsInModal().map(function(input){return input.value===''?'':round(input.value)}).filter(function(v){return v!==''}))};m.querySelector('#rc357WeightDistribute').onclick=function(){if(!total&&count){var rowWeight=num((totalInput&&totalInput.value)||0);if(rowWeight>0){data.weight=rowWeight;data.gewicht=rowWeight}}distributeWeights()};m.querySelector('#rc357WeightClear').onclick=clearWeights;list.querySelectorAll('input').forEach(function(input){input.addEventListener('input',updateModalTotal)});if(!values.some(function(v){return q(v)!=='';})&&total>0)distributeWeights();return true}
+function weightStatusText(index){var data=rowData(index),count=Math.max(1,Math.round(num(((data.count??data.qty??data.anzahl)||1)))),list=arr(data.individualWeights).length?arr(data.individualWeights):arr(data.palletWeights),filled=list.filter(function(v){return q(v)!==''&&num(v)>0}).length,total=round(list.reduce(function(sum,v){return sum+num(v)},0));if(count<=1)return{label:'1 Teil · direkt im Feld',incomplete:false};if(!filled)return{label:count+' Teile · nicht aufgeteilt',incomplete:true};if(filled<count)return{label:filled+'/'+count+' Teile erfasst · '+total.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' kg',incomplete:true};return{label:count+' Teile · '+total.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' kg',incomplete:false}}
+function updateWeightTool(row,index){var field=Array.from(row.querySelectorAll('[data-rc357-field="weight"],.index212-weight-field,.field')).find(function(el){return !!(el.querySelector&&el.querySelector('input')&&fieldKey(el.querySelector('input'))==='weight')})||directChild(row.querySelector('.rc344-colli-grid')||row,(fieldNode(row,'weight')||{}).closest&&fieldNode(row,'weight').closest('label,.field'));var input=fieldNode(row,'weight');if(!field||!input)return false;input.setAttribute('data-rc357-weight-input','1');var tools=field.querySelector('.rc357-weight-tools');if(!tools){tools=document.createElement('div');tools.className='rc357-weight-tools';tools.innerHTML='<span class="rc357-weight-status"></span><button type="button" class="ghost rc357-weight-manage">Einzelgewichte</button>';field.appendChild(tools)}var status=tools.querySelector('.rc357-weight-status'),button=tools.querySelector('.rc357-weight-manage');var meta=weightStatusText(index);status.textContent=meta.label;status.classList.toggle('incomplete',!!meta.incomplete);button.onclick=function(e){e.preventDefault();openWeightModal(index)};input.ondblclick=function(){openWeightModal(index)};return true}
+function patchWeightTools(){var rows=rowNodes(),count=0;rows.forEach(function(row,i){if(updateWeightTool(row,i))count++});return count}
+function patch(){if(!isShipmentView())return false;hideShipmentHelperTexts();fixSectionBlocks();tagColliFixedBlocks();patchWeightTools();return true}
+function click(e){var btn=e.target&&e.target.closest&&e.target.closest('.rc357-weight-manage');if(!btn)return;var row=btn.closest('.rc344-colli-row,[data-rc344-row],.item.card');if(!row)return;e.preventDefault();openWeightModal(rowIndex(row))}
+function onField(e){var el=e.target;if(!el||!el.matches||!el.matches('input,select'))return;var row=el.closest&&el.closest('.rc344-colli-row,[data-rc344-row],.item.card');if(!row)return;var idx=rowIndex(row),key=fieldKey(el);if(key==='count'||key==='weight')setTimeout(function(){updateWeightTool(row,idx)},0)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});else patch();
+document.addEventListener('click',click,true);
+document.addEventListener('input',onField,true);
+document.addEventListener('change',onField,true);
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,patch)});
+(window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__=window.__EXPORTHUB_CENTRAL_POST_RENDER_JOBS__||[]).push({key:'rc357-shipment-repair',priority:1010,run:patch});
+window.ExportHUBShipment357=Object.freeze({version:VERSION,patch:patch,openWeightModal:openWeightModal,hideShipmentHelperTexts:hideShipmentHelperTexts,tagColliFixedBlocks:tagColliFixedBlocks,diagnostics:function(){return{version:VERSION,shipmentView:isShipmentView(),helperTextsHidden:document.querySelectorAll('[data-rc357-remove-note="1"]').length,rows:rowNodes().length,weightTools:document.querySelectorAll('.rc357-weight-tools').length,fixedBlocks:document.querySelectorAll('#rc573ShipmentShell .rc357-section-block').length}}});
+})();
+</script>
