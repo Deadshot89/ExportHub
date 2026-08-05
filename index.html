@@ -8,7 +8,7 @@
 'use strict';
 if(window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__)return;
 window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__=true;
-var VERSION='RC447',initialized=false,routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0,routeBusy=false,stableRenderNav=null;
+var VERSION='RC448',initialized=false,routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0,routeBusy=false,stableRenderNav=null;
 var ITEMS=[
  {group:'Arbeit'},
  {view:'dashboard',label:'Dashboard',right:'dashboard'},
@@ -57,7 +57,7 @@ function buildMenu(){var nav=document.getElementById('nav');if(!nav)return false
 function installRenderNavLock(){if(!stableRenderNav){stableRenderNav=function(){applyPermissions();updateActive();return document.getElementById('nav')};stableRenderNav.__index321Canonical=true}if(window.renderNav!==stableRenderNav){window.renderNav=stableRenderNav;try{renderNav=stableRenderNav}catch(_){}}return true}
 function setViewState(view){var s=state();s.view=canonical(view);try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s);document.body.setAttribute('data-exporthub-view',canonical(view));document.body.setAttribute('data-current-view',canonical(view))}catch(_){}return s}
 function prepareDirectView(view){var r=document.getElementById('content');if(!r)return null;r.className='content';r.removeAttribute('data-view');r.removeAttribute('data-rc562-layout');r.removeAttribute('data-exporthub-rendered-view');r.replaceChildren();return r}
-function finishDirectView(view){var r=document.getElementById('content');if(r)r.setAttribute('data-exporthub-rendered-view',canonical(view));try{if(window.ExportHUBRC542&&typeof window.ExportHUBRC542.postProcess==='function')window.ExportHUBRC542.postProcess()}catch(error){console.error('RC447 Bereich nachbereiten',error)}updateActive();return false}
+function finishDirectView(view){var r=document.getElementById('content');if(r)r.setAttribute('data-exporthub-rendered-view',canonical(view));try{if(window.ExportHUBRC542&&typeof window.ExportHUBRC542.postProcess==='function')window.ExportHUBRC542.postProcess()}catch(error){console.error('RC448 Bereich nachbereiten',error)}updateActive();return false}
 function openDocuments(){setViewState('cmr');prepareDirectView('cmr');try{if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.currentOrHub==='function'){var out=window.ExportHUBIndex240.currentOrHub();finishDirectView('cmr');return out}}catch(e){console.error('RC352 Ladeliste öffnen',e);alert('Ladeliste und CMR konnten nicht geöffnet werden: '+q(e&&e.message||e))}finishDirectView('cmr');return false}
 function renderReports(){setViewState('reports');var root=document.getElementById('content');if(!root)return false;root.className='content';root.innerHTML='<div class="page-head"><div><h2>Reports</h2><p>Die vorhandenen Auswertungen werden aus den jeweiligen Fachbereichen geöffnet.</p></div><span class="pill blue">'+VERSION+'</span></div><div class="quick-grid"><button type="button" data-index321-route="shipmentoverview"><b>Sendungsreport</b><br>Sendungen, Status und Referenzordner.</button><button type="button" data-index321-route="abd"><b>ABD-Report</b><br>Gespeicherte ABD-Anfragen und Status.</button><button type="button" data-index321-route="tasks"><b>Aufgabenreport</b><br>Offene und erledigte Aufgaben.</button><button type="button" data-index321-action="pallet-report"><b>Palettenreport</b><br>Palettenkonto und Abgleich.</button><button type="button" data-index321-route="archive"><b>Aktivitätsreport</b><br>Archiv und Audit-Protokoll.</button><button type="button" data-index321-route="cmr"><b>Dokumentenreport</b><br>Ladelisten, CMR und Nachweise.</button></div>';root.setAttribute('data-exporthub-rendered-view','reports');updateActive();return false}
 function renderSettings(){setViewState('settings');var root=document.getElementById('content');if(!root)return false;root.className='content';root.innerHTML='<div class="page-head"><div><h2>Einstellungen</h2><p>Zentrale System- und Verwaltungsbereiche.</p></div><span class="pill blue">'+VERSION+'</span></div><div class="quick-grid"><button type="button" data-index321-route="rights"><b>Benutzer &amp; Rechte</b></button><button type="button" data-index321-route="update"><b>Update ExportHUB</b></button><button type="button" data-index321-route="teamfile"><b>Sammelmodus</b></button><button type="button" data-index321-route="archive"><b>Archiv</b></button><button type="button" data-exporthub-ms-switch="1"><b>Microsoft-Konto wechseln</b></button></div>';root.setAttribute('data-exporthub-rendered-view','settings');updateActive();return false}
@@ -168,9 +168,9 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC447',cache:'447',loginReturn:'/?v=447'});
+var BUILD=Object.freeze({version:'RC448',cache:'448',loginReturn:'/?v=448'});
 var RELEASE=Object.freeze({
- version:'RC447',
+ version:'RC448',
  date:'04.08.2026',
  title:'Smartphone-Designbedienung vollständig vereinheitlicht',
  changes:Object.freeze([
@@ -228,7 +228,7 @@ function cleanPin(value){return String(value==null?'':value).replace(/\D/g,'').s
 function publicLoader(loader){return loader?{id:loader.id,name:loader.name,active:loader.active!==false}:null}
 function findByPin(value){var pin=cleanPin(value),loader=LOADERS.find(function(item){return item.active!==false&&item.pin===pin});return publicLoader(loader)}
 window.ExportHUBLoaderPins=Object.freeze({
- version:'RC447',
+ version:'RC448',
  list:LOADERS.map(publicLoader),
  findByPin:findByPin,
  serverPinForToken:function(value){return findByPin(value)?cleanPin(value):''},
@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded',install,{once:true});
 <meta content="0" http-equiv="Expires"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="no-referrer" name="referrer"/>
-<title>ExportHUB Online RC447</title>
+<title>ExportHUB Online RC448</title>
 <style>
 :root{--bg:#eef6fb;--surface:#fff;--surface2:#f7fbff;--text:#0f172a;--muted:#64748b;--line:#dbe4ef;--nav1:#051937;--nav2:#0b3b72;--blue:#2563eb;--cyan:#05b8ff;--green:#16a34a;--orange:#f97316;--red:#dc2626;--purple:#7e22ce;--yellow:#facc15;--shadow:0 18px 46px rgba(15,23,42,.10);--radius:22px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}h1,h2,h3,h4{color:#08245d;margin-top:0}.muted{color:var(--muted)}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(680px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:34px;padding:34px;box-shadow:var(--shadow);text-align:center}.logo{width:78px;height:78px;margin:auto;border-radius:25px;background:linear-gradient(135deg,var(--cyan),#a5f3fc);display:grid;place-items:center;color:#062033;font-size:28px;font-weight:1000;box-shadow:0 14px 32px rgba(5,184,255,.28)}.field{display:grid;gap:7px;margin:12px 0;text-align:left;font-weight:900;color:#334155}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:11px;background:#fff;font-weight:800}textarea{min-height:100px;resize:vertical}.btn,.ghost,.danger,.soft{border-radius:14px;padding:10px 14px;font-weight:950;cursor:pointer;min-height:40px}.btn{border:0;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;box-shadow:0 10px 22px rgba(37,99,235,.23)}.ghost{border:1px solid var(--line);background:#fff;color:#334155}.danger{border:0;background:#fee2e2;color:#991b1b}.soft{border:0;background:#eef6ff;color:#075985}.btn:hover,.ghost:hover,.soft:hover,.danger:hover{transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}.app{display:grid;grid-template-columns:318px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:linear-gradient(180deg,var(--nav1),var(--nav2));color:#fff;padding:20px 16px;display:flex;flex-direction:column;gap:12px;overflow:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.18)}.brand .logo{width:48px;height:48px;margin:0;border-radius:16px;font-size:18px;box-shadow:none}.brand strong{display:block;font-size:19px}.brand span,.profile small{display:block;color:#cbd5e1;font-weight:800;font-size:12px}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#dbeafe;text-align:left;border-radius:14px;padding:11px 12px;cursor:pointer;font-weight:900}.nav button:hover,.nav button.active{background:#fff;color:#08245d}.profile{margin-top:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:12px;line-height:1.35}.main{min-width:0;padding:24px 28px 48px}.topbar{display:flex;gap:12px;align-items:center;margin-bottom:20px}.search{flex:1;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;padding:11px 14px}.search input{border:0;outline:0;padding:4px}.card,.metric{background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}.metric span{display:block;color:var(--muted);font-weight:950;margin-bottom:10px}.metric strong{display:block;font-size:32px}.metric.kpi-red{border-left:7px solid var(--red)}.metric.kpi-orange{border-left:7px solid var(--orange)}.metric.kpi-green{border-left:7px solid var(--green)}.metric.kpi-blue{border-left:7px solid var(--blue)}.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.page-head h2{font-size:31px;margin:0 0 8px}.page-head p{margin:0;color:var(--muted);font-weight:750;line-height:1.55;max-width:980px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;margin:3px}.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166534}.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}.purple{background:#f3e8ff;color:#6b21a8}.gray{background:#e2e8f0;color:#334155}.yellow{background:#fef9c3;color:#854d0e}.notice,.okbox,.badbox,.infobox{border-radius:16px;padding:13px;margin:10px 0;font-weight:770;line-height:1.5}.notice{border-left:5px solid var(--orange);background:#fff7ed}.okbox{border-left:5px solid var(--green);background:#f0fdf4}.badbox{border-left:5px solid var(--red);background:#fee2e2}.infobox{border-left:5px solid var(--blue);background:#eff6ff}.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.table{width:100%;border-collapse:collapse}.table th{text-align:left;color:var(--muted);font-size:12px;text-transform:uppercase}.table td,.table th{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}.hero{position:relative;overflow:hidden;border-radius:34px;min-height:560px;background:linear-gradient(rgba(5,20,36,.78),rgba(5,20,36,.92)),radial-gradient(circle at 22% 14%,rgba(5,184,255,.35),transparent 32%),linear-gradient(135deg,#0b2144,#0b4d76 55%,#062033);box-shadow:0 24px 60px rgba(0,0,0,.25);color:#fff;padding:42px}.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.04;color:#fff;margin:0 0 20px}.hero p{max-width:980px;color:#edfaff;font-size:20px;line-height:1.65;font-weight:650}.hero h3{color:#fff}.quick-grid,.hero-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}.hero-kpi,.quick-grid button{padding:20px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);color:#fff;text-align:left}.quick-grid button{cursor:pointer;background:rgba(4,20,38,.72)}.task{display:grid;grid-template-columns:115px 1fr auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin:8px 0}.task.done{opacity:.58}.task.done h3{text-decoration:line-through}.task.high{border-left:7px solid var(--red)}.task.medium{border-left:7px solid var(--orange)}.task.low{border-left:7px solid var(--green)}.taskday{margin:18px 0}.taskday-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}.idea{border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:18px;background:#fff;padding:14px;margin:10px 0}.idea.hoch{border-left-color:var(--red)}.idea.mittel{border-left-color:var(--orange)}.idea.niedrig{border-left-color:var(--green)}.checkrow{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;margin:8px 0}.checkrow input{width:auto;margin-top:4px}.quiz-option{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;font-weight:850}.quiz-option.correct{background:#dcfce7;border-color:#86efac}.quiz-option.wrong{background:#fee2e2;border-color:#fecaca}.printdoc{background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;margin-top:12px}.print-table{width:100%;border-collapse:collapse}.print-table th,.print-table td{border:1px solid #cbd5e1;padding:8px;text-align:left}.split{display:grid;grid-template-columns:360px 1fr;gap:14px}.list{display:grid;gap:8px;max-height:680px;overflow:auto}.list button{border:1px solid var(--line);background:white;border-radius:14px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.list button:hover,.list button.active{background:#eff6ff;border-color:var(--blue)}.wizard-step{border:2px solid var(--blue);border-radius:22px;background:#fff;padding:24px;margin:14px 0;box-shadow:var(--shadow)}.wizard-step .num{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:#dbeafe;color:#08245d;font-weight:950;margin-bottom:12px}.mini-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.mini-steps button{width:auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-weight:900;cursor:pointer}.mini-steps button.done{background:#dcfce7;border-color:#86efac}.mini-steps button.active{background:#dbeafe;border-color:#3b82f6}.copybox{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:18px;padding:16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.55}.previewDoc{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;color:#111}.previewDoc h2{font-size:24px;color:#111}.previewDoc table{width:100%;border-collapse:collapse;margin-top:12px}.previewDoc th,.previewDoc td{border:1px solid #ccd7df;padding:7px;text-align:left}.previewDoc th{background:#eef6fb}.miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.summaryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.summaryBox{background:#f7fbff;border:1px solid var(--line);border-radius:15px;padding:10px}.summaryBox strong{display:block;font-size:20px;color:var(--blue)}.portal-link{display:block;text-decoration:none;color:var(--text);background:white;border:1px solid #bfdbfe;border-radius:14px;padding:12px;margin:8px 0}.portal-link:hover{border-color:#2563eb;box-shadow:0 8px 20px rgba(37,99,235,.12)}.nowrap{white-space:nowrap}.small{font-size:12px;color:var(--muted);font-weight:800}.print-only{display:none}
@@ -8661,7 +8661,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <div class="login-card">
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
-<div aria-label="Aktuelle Version RC447" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC447</div>
+<div aria-label="Aktuelle Version RC448" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC448</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -12115,7 +12115,7 @@ function renderLegacyBase(context,args,v){if(typeof baseRender!=='function')retu
 function shipmentIdentity(){var st=S(),sh=st.shipment||{};return Q(st.activeShipmentId||st.editingShipmentId||st.selectedShipmentId||st.currentShipmentId||sh.id||sh.shipmentId||'current')}
 function shipmentPatchApi(){return window.ExportHUBShipment420||window.ExportHUBShipment416||window.ExportHUBShipment415||window.ExportHUBShipment414||window.ExportHUBShipment413||window.ExportHUBShipment412||window.ExportHUBShipment411||window.ExportHUBShipment410||window.ExportHUBShipment409||window.ExportHUBShipment408||window.ExportHUBShipment407||window.ExportHUBShipment406||window.ExportHUBShipment394||window.ExportHUBShipment393||window.ExportHUBShipment391||window.ExportHUBShipment390||window.ExportHUBShipment388||window.ExportHUBShipment387||window.ExportHUBShipment385||window.ExportHUBShipment383||window.ExportHUBShipment380||window.ExportHUBShipment377||null}
 function releaseShipmentNavigationLock(previous,next){if(previous!=='shipment'||next==='shipment')return false;var r=root(),active=document.activeElement;if(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)){try{active.blur()}catch(e){}}window.__EXPORTHUB_SHIPMENT_EDIT_LOCK_UNTIL__=0;return true}
-function hydrateShipmentView(){if(currentView()!=='shipment')return false;var r=root(),active=document.activeElement;if(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)){try{active.blur()}catch(e){}}window.__EXPORTHUB_SHIPMENT_EDIT_LOCK_UNTIL__=0;var api=shipmentPatchApi();try{if(api&&typeof api.patch==='function')api.patch()}catch(e){console.error('RC447 Sendungsformular aufbauen',e)}try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.postProcess==='function')window.ExportHUBRC543.postProcess()}catch(e){console.error('RC447 Sendungsprozesse aufbauen',e)}return !!document.getElementById('rc363FixedShipmentLayout')}
+function hydrateShipmentView(){if(currentView()!=='shipment')return false;var r=root(),active=document.activeElement;if(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)){try{active.blur()}catch(e){}}window.__EXPORTHUB_SHIPMENT_EDIT_LOCK_UNTIL__=0;var api=shipmentPatchApi();try{if(api&&typeof api.patch==='function')api.patch()}catch(e){console.error('RC448 Sendungsformular aufbauen',e)}try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.postProcess==='function')window.ExportHUBRC543.postProcess()}catch(e){console.error('RC448 Sendungsprozesse aufbauen',e)}return !!document.getElementById('rc363FixedShipmentLayout')}
 function shipmentEditActive(){var r=root(),active=document.activeElement,rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},until=Number(window.__EXPORTHUB_SHIPMENT_EDIT_LOCK_UNTIL__||0),last=Number(window.__EXPORTHUB_SHIPMENT_LAST_EDIT_AT__||0),inField=!!(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName));return inField||Date.now()<until||((rt.saving||rt.pendingSave||rt.dirty)&&last&&Date.now()-last<12000)}
 function mayPatchExistingShipment(v,args){if(v!=='shipment')return false;var r=root(),shell=document.getElementById('rc573ShipmentShell')||document.getElementById('rc363FixedShipmentLayout'),first=args&&args[0];if(first===true||first==='force'||first&&typeof first==='object'&&first.force===true)return false;if(!r||!shell||!r.contains(shell)||!r.childElementCount)return false;shipmentEditRenderBlocks++;return true}
 function refreshExistingShipment(){var api=shipmentPatchApi(),layout=document.getElementById('rc363FixedShipmentLayout'),mail=document.getElementById('rc543MailArea')||document.getElementById('rc542MailArea')||document.getElementById('rc524MailArea');if(layout&&mail){try{if(api&&typeof api.refreshVisuals==='function')api.refreshVisuals()}catch(e){console.error('RC399 Sendungswerte aktualisieren',e)}return false}try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.postProcess==='function')window.ExportHUBRC543.postProcess()}catch(e){console.error('RC399 Mailbereich aktualisieren',e)}try{if(api&&typeof api.patch==='function')api.patch()}catch(e){console.error('RC399 Sendungsansicht aktualisieren',e)}return false}
@@ -18712,21 +18712,93 @@ window.rc628SyncGoodsDescription=function(element){return sync(element,true)};
 <!-- INDEX 192: Kundenstandorte sind in der vorhandenen Kundenauswahl auswählbar. -->
 <!-- RC628 CUSTOMER PORTAL BUTTON IN SHIPMENT START -->
 <style id="rc628-customer-portal-button-style">
-#rc344CustomerInfo .rc628-customer-portal-action{
-  margin:6px 0!important;
+#rc363BlockCustomer .rc628-customer-context-grid{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:12px;
+  width:100%;
+  margin:4px 0 2px;
 }
-#rc344CustomerInfo .rc628-customer-portal-button{
+#rc363BlockCustomer .rc628-customer-context-card{
+  min-width:0;
+  border:1px solid var(--eh-border,var(--line,#cbd5e1));
+  border-radius:var(--eh-inner-radius,16px);
+  background:var(--eh-panel2,var(--eh-panel,#fff));
+  color:var(--eh-text,var(--text,#0f172a));
+  padding:14px;
+  box-shadow:var(--eh-inner-shadow,none);
+}
+#rc363BlockCustomer .rc628-customer-context-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:9px;
+}
+#rc363BlockCustomer .rc628-customer-context-head h3{
+  margin:0;
+  color:var(--eh-heading,var(--eh-text,#08245d));
+  font-size:16px;
+  line-height:1.25;
+}
+#rc363BlockCustomer .rc628-customer-context-icon{
+  display:grid;
+  place-items:center;
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  background:var(--eh-accent-soft,#dbeafe);
+  color:var(--eh-accent,var(--blue,#2563eb));
+  font-size:18px;
+}
+#rc363BlockCustomer .rc628-customer-context-customer{
+  display:block;
+  margin:0 0 8px;
+  color:var(--eh-muted,var(--muted,#64748b));
+  font-size:12px;
+  font-weight:850;
+}
+#rc363BlockCustomer .rc628-customer-process-text{
+  margin:0;
+  white-space:pre-line;
+  overflow-wrap:anywhere;
+  line-height:1.5;
+  font-weight:760;
+}
+#rc363BlockCustomer .rc628-customer-empty{
+  margin:0;
+  color:var(--eh-muted,var(--muted,#64748b));
+  line-height:1.45;
+  font-weight:760;
+}
+#rc363BlockCustomer .rc628-customer-portal-list{
+  display:grid;
+  gap:8px;
+}
+#rc363BlockCustomer .rc628-customer-portal-button{
   display:flex!important;
   width:100%!important;
   min-height:42px!important;
   align-items:center!important;
-  justify-content:center!important;
-  text-align:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  text-align:left!important;
   text-decoration:none!important;
+  overflow-wrap:anywhere;
+}
+#rc363BlockCustomer .rc628-customer-portal-button span:last-child{
+  flex:0 0 auto;
+}
+@media(max-width:900px){
+  #rc363BlockCustomer .rc628-customer-context-grid{grid-template-columns:1fr}
 }
 </style>
 <style id="index203-portal-authority-style">
-#rc344CustomerInfo .rc628-customer-portal-action:not([data-index203-exact="1"]){display:none!important}
+#rc363BlockCustomer .rc628-customer-portal-action,
+#rc344CustomerInfo .rc628-customer-portal-action{display:none!important}
+#rc363BlockCustomer #rc628CustomerContext{display:grid!important;visibility:visible!important}
 </style>
 <script id="rc628-customer-portal-button-fix">
 (function(){
@@ -18742,19 +18814,21 @@ var knownPortals=[
 ];
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function raw(v){return String(v==null?'':v).replace(/\r\n?/g,'\n').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function arr(v){return Array.isArray(v)?v:[]}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){ }return window.state||(window.state={})}
 function customerId(c){return q(c&&(c.id||c.customerId||c.account||c.customerNumber||c.number))}
 function account(c){return q(c&&(c.account||c.customerNumber||c.number||c.customerNo))}
+function customerName(c){return q(c&&(c.name||c.customerName||c.company||c.label))}
 function selectCustomerToken(){
- var select=document.querySelector('#rc573CustomerCard select[onchange*="rc344SelectCustomer"],#rc573CustomerCard select[onchange*="SelectCustomer"],#rc573CustomerCard select');
- var raw=q(select&&select.value);
- if(raw.indexOf('__RC192_LOCATION__|')===0){var parts=raw.split('|');return q(parts[1])}
- if(raw)return raw;
- var input=document.getElementById('shipmentCustomerSearch')||document.querySelector('#rc573CustomerCard input[list],#rc573CustomerCard input[type="text"]');
- raw=q(input&&input.value);return raw.indexOf(' · ')>0?q(raw.split(' · ')[0]):raw;
+ var select=document.querySelector('#rc573CustomerCard select[onchange*="rc344SelectCustomer"],#rc573CustomerCard select[onchange*="SelectCustomer"],#rc363BlockCustomer select[onchange*="rc344SelectCustomer"],#rc363BlockCustomer select[onchange*="SelectCustomer"]');
+ var rawValue=q(select&&select.value);
+ if(rawValue.indexOf('__RC192_LOCATION__|')===0){var parts=rawValue.split('|');return q(parts[1])}
+ if(rawValue)return rawValue;
+ var input=document.getElementById('shipmentCustomerSearch')||document.querySelector('#rc363BlockCustomer input[data-exporthub-customer-select="1"],#rc363BlockCustomer input[list]');
+ rawValue=q(input&&input.value);return rawValue.indexOf(' · ')>0?q(rawValue.split(' · ')[0]):rawValue;
 }
 function exactCustomer(){
  var s=state(),sh=s.shipment||{},list=arr(s.customers),ids=[selectCustomerToken(),q(sh.customerId),q(sh.customerAccount),q(sh.customerNumber)].filter(Boolean),found=null;
@@ -18763,52 +18837,80 @@ function exactCustomer(){
   var embedded=sh.customer,expected=ids[0]||'';
   if(!expected||customerId(embedded)===expected||account(embedded)===expected)found=embedded;
  }
+ if(!found&&sh.customerData&&typeof sh.customerData==='object')found=sh.customerData;
+ if(!found&&sh.selectedCustomer&&typeof sh.selectedCustomer==='object')found=sh.selectedCustomer;
  return found;
 }
-function validUrl(v){var raw=q(v);if(!raw||!/^https?:\/\//i.test(raw))return'';try{var u=new URL(raw,location.href);return /^https?:$/.test(u.protocol)?u.href:''}catch(_){return''}}
-function objectPortal(value){
- if(!value)return null;
- if(Array.isArray(value)){for(var i=0;i<value.length;i++){var x=objectPortal(value[i]);if(x&&x.url)return x}return null}
- if(typeof value==='string'){var direct=validUrl(value);return direct?{url:direct,name:''}:null}
- if(typeof value!=='object')return null;
- var url=validUrl(value.url||value.href||value.link||value.portalUrl||value.portalURL),name=q(value.name||value.title||value.label||value.portalName||value.portal);
- return url?{url:url,name:name}:null;
+function validUrl(v){var value=q(v);if(!value||!/^https?:\/\//i.test(value))return'';try{var u=new URL(value,location.href);return /^https?:$/.test(u.protocol)?u.href:''}catch(_){return''}}
+function addText(out,value){
+ if(value==null)return;
+ if(Array.isArray(value)){value.forEach(function(item){addText(out,item)});return}
+ if(typeof value==='object'){
+  ['processNotes','processInfo','processInstructions','prozessHinweise','process','notes','note','text','content','description','instructions','specialNotes','customerNotes'].forEach(function(key){if(Object.prototype.hasOwnProperty.call(value,key))addText(out,value[key])});
+  return;
+ }
+ var text=raw(value);
+ if(!text||validUrl(text))return;
+ var key=low(text);
+ if(!key||out.some(function(item){return low(item)===key}))return;
+ out.push(text);
+}
+function processInfo(c){
+ if(!c)return'';
+ var s=state(),id=customerId(c)||account(c),stored=s.customerNotes&&typeof s.customerNotes==='object'?(s.customerNotes[id]||s.customerNotes[account(c)]||s.customerNotes[customerName(c)]):null,out=[];
+ [c.processNotes,c.processInfo,c.processInstructions,c.prozessHinweise,c.process,c.sopNotes,c.specialNotes,c.customerNotes,c.notes,c.note,stored].forEach(function(value){addText(out,value)});
+ return out.join('\n\n');
+}
+function addPortal(out,seen,name,url){
+ url=validUrl(url);if(!url)return;
+ var key=low(url);if(seen[key])return;seen[key]=1;
+ out.push({name:q(name)||'Kundenportal',url:url});
+}
+function collectPortals(value,out,seen,defaultName){
+ if(!value)return;
+ if(Array.isArray(value)){value.forEach(function(item){collectPortals(item,out,seen,defaultName)});return}
+ if(typeof value==='string'){addPortal(out,seen,defaultName,value);return}
+ if(typeof value!=='object')return;
+ addPortal(out,seen,value.name||value.title||value.label||value.portalName||value.portal||defaultName,value.url||value.href||value.link||value.portalUrl||value.portalURL);
+ ['items','links','portals','portalData','portalInfo','customerPortal'].forEach(function(key){if(value[key]&&value[key]!==value)collectPortals(value[key],out,seen,defaultName)});
 }
 function portalInfo(c){
- if(!c)return null;
- var nested=[c.portalData,c.portalInfo,c.customerPortal,c.portals];
- for(var i=0;i<nested.length;i++){var p=objectPortal(nested[i]);if(p&&p.url)return{name:p.name||'Kundenportal',url:p.url}}
- var raw=q(c.portal),url=validUrl(c.portalUrl||c.portalURL||c.portalLink||c.portalHref||c.customerPortalUrl||(validUrl(raw)?raw:''));
- var name=q(c.portalName||c.portalTitle||c.portalLabel||(!validUrl(raw)?raw:''));
- if(url)return{name:name||'Kundenportal',url:url};
- var acc=account(c),known=knownPortals.find(function(p){return p.accounts.indexOf(acc)>=0});
- return known?{name:known.name,url:known.url}:null;
+ var out=[],seen={};if(!c)return out;
+ [c.portals,c.portalData,c.portalInfo,c.customerPortal].forEach(function(value){collectPortals(value,out,seen,c.portalName||c.portalTitle||'Kundenportal')});
+ var rawPortal=q(c.portal),directUrl=c.portalUrl||c.portalURL||c.portalLink||c.portalHref||c.customerPortalUrl||(validUrl(rawPortal)?rawPortal:'');
+ addPortal(out,seen,c.portalName||c.portalTitle||c.portalLabel||(!validUrl(rawPortal)?rawPortal:'')||'Kundenportal',directUrl);
+ var acc=account(c);knownPortals.forEach(function(portal){if(portal.accounts.indexOf(acc)>=0)addPortal(out,seen,portal.name,portal.url)});
+ return out;
 }
-function portalOnlyNote(el){
- var text=low(el&&el.textContent);
- if(!text)return false;
- return knownPortals.some(function(p){return text===low(p.name)})||/^(kundenportal|customer portal)$/.test(text);
+function targetHost(){return document.querySelector('#rc363BlockCustomer .rc363-process-body')||document.getElementById('rc344CustomerInfo')||document.querySelector('#rc573CustomerCard .rc344-info')}
+function ensureGrid(host){
+ var grid=document.getElementById('rc628CustomerContext');
+ if(!grid){grid=document.createElement('section');grid.id='rc628CustomerContext';grid.className='rc628-customer-context-grid';grid.setAttribute('aria-label','Kundenprozesse und Kundenportal')}
+ var actionHost=document.getElementById('rc380CustomerActions');
+ if(grid.parentElement!==host){if(actionHost&&actionHost.parentElement===host)host.insertBefore(grid,actionHost);else host.appendChild(grid)}
+ return grid;
+}
+function portalMarkup(portals){
+ if(!portals.length)return'<p class="rc628-customer-empty">Für diesen Kunden ist kein Kundenportal hinterlegt.</p>';
+ return'<div class="rc628-customer-portal-list">'+portals.map(function(portal){return'<a class="btn rc628-customer-portal-button" href="'+esc(portal.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(portal.name)+' öffnen"><span>🌐 '+esc(portal.name)+'</span><span>Öffnen ↗</span></a>'}).join('')+'</div>';
 }
 function patch(){
  pending=0;
- var panel=document.getElementById('rc344CustomerInfo')||document.querySelector('#rc573CustomerCard .rc344-info');
- if(!panel)return false;
- var customer=exactCustomer(),info=portalInfo(customer),actions=Array.prototype.slice.call(panel.querySelectorAll('.rc628-customer-portal-action')),action=actions.find(function(node){return node.dataset.index203Exact==='1'})||null;
- actions.forEach(function(node){if(node!==action)node.remove()});
- Array.prototype.slice.call(panel.querySelectorAll('.rc344-note')).forEach(function(node){if(portalOnlyNote(node))node.remove()});
- if(!info||!info.url){if(action)action.remove();panel.dataset.index203PortalCustomer=customerId(customer)||account(customer)||'';panel.dataset.index203PortalUrl='';return false}
- var sig=(customerId(customer)||account(customer))+'|'+info.name+'|'+info.url;
- if(!action){action=document.createElement('div');action.className='rc628-customer-portal-action';action.dataset.index203Exact='1';var check=panel.querySelector('label.checkrow,.rc314-process-confirm');panel.insertBefore(action,check||null)}
- if(action.dataset.portalSig!==sig){action.dataset.portalSig=sig;action.innerHTML='<a class="btn rc628-customer-portal-button" href="'+esc(info.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(info.name)+' öffnen">🌐 '+esc(info.name)+' öffnen</a>'}
- panel.dataset.index203PortalCustomer=customerId(customer)||account(customer)||'';panel.dataset.index203PortalUrl=info.url;
+ var host=targetHost();if(!host)return false;
+ document.querySelectorAll('#rc344CustomerInfo .rc628-customer-portal-action,#rc363BlockCustomer .rc628-customer-portal-action').forEach(function(node){node.remove()});
+ var customer=exactCustomer(),notes=processInfo(customer),portals=portalInfo(customer),label=customer?(customerName(customer)||account(customer)||customerId(customer)):'Noch kein Kunde ausgewählt',grid=ensureGrid(host),sig=[customerId(customer)||account(customer),label,notes,JSON.stringify(portals)].join('|');
+ if(grid.dataset.contextSig===sig)return true;
+ grid.dataset.contextSig=sig;
+ grid.innerHTML='<article class="rc628-customer-context-card" id="rc628CustomerProcessCard"><div class="rc628-customer-context-head"><h3>Prozesse / Kunden-Notizen</h3><span class="rc628-customer-context-icon" aria-hidden="true">📋</span></div><span class="rc628-customer-context-customer">'+esc(label)+'</span>'+(notes?'<p class="rc628-customer-process-text">'+esc(notes).replace(/\n/g,'<br>')+'</p>':'<p class="rc628-customer-empty">Für diesen Kunden sind keine Prozesse oder Kunden-Notizen hinterlegt.</p>')+'</article><article class="rc628-customer-context-card" id="rc628CustomerPortalCard"><div class="rc628-customer-context-head"><h3>Kundenportal</h3><span class="rc628-customer-context-icon" aria-hidden="true">🌐</span></div><span class="rc628-customer-context-customer">'+esc(label)+'</span>'+portalMarkup(portals)+'</article>';
  return true;
 }
 function schedule(delay){if(pending)return;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;pending=nt(patch,delay==null?15:delay)}
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){schedule(10)})});
-document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573CustomerCard'))schedule(0)},true);
-document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573CustomerCard button'))schedule(20)},true);
+document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc363BlockCustomer,#rc573CustomerCard'))schedule(10)},true);
+document.addEventListener('change',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc363BlockCustomer,#rc573CustomerCard'))schedule(0)},true);
+document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc363BlockCustomer button,#rc573CustomerCard button'))schedule(20)},true);
 
-window.ExportHUBRC628CustomerPortal=Object.freeze({patch:patch,portalInfo:portalInfo,currentCustomer:exactCustomer,selfTest:function(){var c=exactCustomer(),p=portalInfo(c),button=document.querySelector('#rc344CustomerInfo .rc628-customer-portal-button');return{customerId:customerId(c)||account(c),portal:!!p,url:p&&p.url||'',button:!!button,href:button&&button.href||'',exact:!!(button&&button.closest('[data-index203-exact="1"]'))}}});
+window.ExportHUBRC628CustomerPortal=Object.freeze({patch:patch,portalInfo:portalInfo,processInfo:processInfo,currentCustomer:exactCustomer,selfTest:function(){var c=exactCustomer(),portals=portalInfo(c),grid=document.getElementById('rc628CustomerContext');return{customerId:customerId(c)||account(c),process:!!processInfo(c),portals:portals.length,grid:!!grid,processCard:!!document.getElementById('rc628CustomerProcessCard'),portalCard:!!document.getElementById('rc628CustomerPortalCard'),insideCustomerBlock:!!(grid&&grid.closest('#rc363BlockCustomer'))}}});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){schedule(30)},{once:true});else schedule(30);
 })();
 </script>
@@ -19112,7 +19214,7 @@ function plannerItemSort(a,b){var ad=recurringWeekdays(a.task)[0]||99,bd=recurri
 function plannerBoardCard(item){var t=item.task,customer=taskCustomer(t),title=taskTitle(t),account=plannerAccount(t),owner=taskOwner(t),note=q(t.note||t.description||'');return '<article class="rc216-board-task"><b>'+esc(customer||title)+'</b>'+(title&&low(title)!==low(customer)?'<span>'+esc(title)+'</span>':'')+(account?'<small class="rc216-account">'+esc(account)+'</small>':'')+(owner?'<small>'+esc(owner)+'</small>':'')+(note?'<p>'+esc(note)+'</p>':'')+'</article>'}
 function plannerWeekBoard(items,title,subtitle,kind){var names=['','Montag','Dienstag','Mittwoch','Donnerstag','Freitag'],sorted=items.slice().sort(plannerItemSort),columns=[1,2,3,4,5].map(function(day){var list=sorted.filter(function(item){return recurringWeekdays(item.task).indexOf(day)>=0});return '<section class="rc216-day-column"><h4>'+names[day]+'</h4><div class="rc216-day-list">'+(list.length?list.map(plannerBoardCard).join(''):'<p class="rc216-empty-day">Keine Aufgabe</p>')+'</div></section>'}).join(''),unassigned=sorted.filter(function(item){var days=recurringWeekdays(item.task);return !days.length||days.every(function(day){return day>5})});return '<section class="card rc216-week-board rc216-'+kind+'"><div class="rc205-card-head"><div><h3>'+esc(title)+'</h3><p class="muted">'+esc(subtitle)+'</p></div><span class="pill '+(kind==='pick'?'blue':'orange')+'">'+items.length+' Vorlage'+(items.length===1?'':'n')+'</span></div><div class="rc216-week-grid">'+columns+'</div>'+(unassigned.length?'<div class="rc216-unassigned"><b>Ohne Montag–Freitag-Zuordnung</b><div>'+unassigned.map(function(item){return '<span>'+esc(taskCustomer(item.task)||taskTitle(item.task))+'</span>'}).join('')+'</div></div>':'')+'</section>'}
 function plannerRecurringLists(pick,registration,other,defaultDate){function block(title,items,klass){return '<div class="rc216-recurring-group '+klass+'"><div class="rc216-group-title"><h4>'+esc(title)+'</h4><span class="pill gray">'+items.length+'</span></div><div class="rc205-planner-list">'+(items.length?items.slice().sort(plannerItemSort).map(function(item){return recurringRow(item,defaultDate)}).join(''):empty('Keine Aufgaben in diesem Bereich.'))+'</div></div>'}return '<section class="card rc205-recurring rc216-individual-planning"><div class="rc205-card-head"><div><h3>Wiederkehrende Aufgaben einzeln einplanen</h3><p class="muted">Picktage und Anmeldungen bleiben getrennt. Die Vorlage bleibt erhalten; die erzeugte Aufgabe erscheint mit Datum im normalen Aufgabenbereich.</p></div><span class="pill purple">'+(pick.length+registration.length+other.length)+' Vorlage'+((pick.length+registration.length+other.length)===1?'':'n')+'</span></div>'+block('Picktage',pick,'pick')+block('Anmeldungen',registration,'registration')+(other.length?block('Weitere wiederkehrende Aufgaben',other,'other'):'')+'</section>'}
-function renderPlanner(){var r=root();if(!r)return;var s=state(),today=todayISO(),nowYear=new Date().getFullYear(),years=[nowYear,nowYear+1],year=Number(s.taskPlannerYear||s.plannerYear||nowYear);if(years.indexOf(year)<0)year=nowYear;s.taskPlannerYear=year;s.plannerYear=year;var holidays=plannerHolidays(year).filter(function(h){return h.date>=today}),tasks=arr(s.tasks),holidaySet=new Set(holidays.map(function(h){return h.date})),holidayTasks=tasks.filter(function(t){return holidaySet.has(taskDate(t))}),openHoliday=holidayTasks.filter(function(t){return !taskDone(t)}),recurring=recurringSources(),pick=recurring.filter(function(item){return plannerCategory(item)==='pick'}),registration=recurring.filter(function(item){return plannerCategory(item)==='registration'}),other=recurring.filter(function(item){return plannerCategory(item)==='other'}),undated=tasks.filter(function(t){return !taskDone(t)&&!taskDate(t)&&!isRecurringTask(t)}).slice(0,30),defaultDate=plannerDefaultDate();recurringPlannerCache={};recurring.forEach(function(item){recurringPlannerCache[item.key]=item});r.innerHTML='<div class="page-head"><div><h2>🗓️ Aufgaben Planer</h2><p>Der obere Wochenplan zeigt die Picktage. Darunter stehen die Anmeldungen und Abholvorbereitungen. Ein bestimmter Tag oder eine komplette Woche kann anschließend in den normalen Aufgabenbereich übernommen werden.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics">'+metric('Feiertage Mo–Fr '+year,holidays.length,'kpi-blue','Wochenend-Feiertage ausgeblendet')+metric('Picktage',pick.length,'kpi-blue','wiederkehrende Vorlagen')+metric('Anmeldungen',registration.length,'kpi-orange','inklusive Abholvorbereitung')+metric('Offene Feiertagsaufgaben',openHoliday.length,'kpi-red','müssen verschoben werden')+'</div><section class="card rc215-period-planner"><div class="rc205-card-head"><div><h3>Zeitraum planen</h3><p class="muted">Tag planen übernimmt alle Pick- und Anmeldeaufgaben dieses Wochentags. Woche planen verteilt alle Vorlagen gemäß ihrem hinterlegten Wochentag.</p></div></div><div class="rc215-period-controls"><label class="field">Tag oder Woche auswählen<input id="rc215PlannerRangeDate" type="date" min="'+esc(today)+'" value="'+esc(defaultDate)+'"></label><button class="soft" data-rc215-action="plan-day">Diesen Tag planen</button><button class="btn" data-rc215-action="plan-week">Komplette Woche planen</button></div></section>'+plannerWeekBoard(pick,'Picktage','Diese Aufgaben entsprechen dem oberen Bereich deiner Vorlage.','pick')+plannerWeekBoard(registration,'Anmeldungen und Abholvorbereitung','Diese Aufgaben entsprechen dem unteren Bereich deiner Vorlage.','registration')+'<section class="card"><div class="toolbar rc205-planner-toolbar"><label class="field">Jahr<select data-rc205-change="planner-year">'+years.map(function(y){return '<option value="'+y+'" '+(y===year?'selected':'')+'>'+y+'</option>'}).join('')+'</select></label></div><div class="rc205-holiday-list">'+(holidays.length?holidays.map(function(h){var list=tasks.filter(function(t){return taskDate(t)===h.date});return '<section class="rc205-holiday '+(list.length?'has-tasks':'')+'"><div class="rc205-holiday-head"><div><span class="rc205-date">'+esc(fmtDate(h.date,true))+'</span><h3>'+esc(h.name)+'</h3></div><span class="pill '+(list.length?'orange':'gray')+'">'+list.length+' Aufgabe'+(list.length===1?'':'n')+'</span></div>'+(list.length?'<div class="rc205-planner-list">'+list.map(function(t){return taskRowPlanner(t,h)}).join('')+'</div>':empty('Keine Aufgabe auf diesem Feiertag.'))+'</section>'}).join(''):empty('Für dieses Jahr sind keine heutigen oder zukünftigen Feiertage von Montag bis Freitag mehr vorhanden.'))+'</div></section>'+plannerRecurringLists(pick,registration,other,defaultDate)+'<section class="card rc205-undated"><div class="rc205-card-head"><div><h3>Offene Aufgaben ohne Fälligkeitsdatum</h3><p class="muted">Einmalige Aufgaben können direkt einem konkreten Datum zugeordnet werden.</p></div><span class="pill gray">'+undated.length+'</span></div><div class="rc205-planner-list">'+(undated.length?undated.map(function(t){return undatedRow(t,defaultDate)}).join(''):empty('Alle einmaligen offenen Aufgaben besitzen bereits ein Fälligkeitsdatum.'))+'</div></section>';bindRoot(r);bindPlannerRange(r);try{if(window.ExportHUBRC542&&typeof window.ExportHUBRC542.postProcess==='function')window.ExportHUBRC542.postProcess()}catch(error){console.error('RC447 Aufgaben-Planer Datum',error)}}
+function renderPlanner(){var r=root();if(!r)return;var s=state(),today=todayISO(),nowYear=new Date().getFullYear(),years=[nowYear,nowYear+1],year=Number(s.taskPlannerYear||s.plannerYear||nowYear);if(years.indexOf(year)<0)year=nowYear;s.taskPlannerYear=year;s.plannerYear=year;var holidays=plannerHolidays(year).filter(function(h){return h.date>=today}),tasks=arr(s.tasks),holidaySet=new Set(holidays.map(function(h){return h.date})),holidayTasks=tasks.filter(function(t){return holidaySet.has(taskDate(t))}),openHoliday=holidayTasks.filter(function(t){return !taskDone(t)}),recurring=recurringSources(),pick=recurring.filter(function(item){return plannerCategory(item)==='pick'}),registration=recurring.filter(function(item){return plannerCategory(item)==='registration'}),other=recurring.filter(function(item){return plannerCategory(item)==='other'}),undated=tasks.filter(function(t){return !taskDone(t)&&!taskDate(t)&&!isRecurringTask(t)}).slice(0,30),defaultDate=plannerDefaultDate();recurringPlannerCache={};recurring.forEach(function(item){recurringPlannerCache[item.key]=item});r.innerHTML='<div class="page-head"><div><h2>🗓️ Aufgaben Planer</h2><p>Der obere Wochenplan zeigt die Picktage. Darunter stehen die Anmeldungen und Abholvorbereitungen. Ein bestimmter Tag oder eine komplette Woche kann anschließend in den normalen Aufgabenbereich übernommen werden.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics">'+metric('Feiertage Mo–Fr '+year,holidays.length,'kpi-blue','Wochenend-Feiertage ausgeblendet')+metric('Picktage',pick.length,'kpi-blue','wiederkehrende Vorlagen')+metric('Anmeldungen',registration.length,'kpi-orange','inklusive Abholvorbereitung')+metric('Offene Feiertagsaufgaben',openHoliday.length,'kpi-red','müssen verschoben werden')+'</div><section class="card rc215-period-planner"><div class="rc205-card-head"><div><h3>Zeitraum planen</h3><p class="muted">Tag planen übernimmt alle Pick- und Anmeldeaufgaben dieses Wochentags. Woche planen verteilt alle Vorlagen gemäß ihrem hinterlegten Wochentag.</p></div></div><div class="rc215-period-controls"><label class="field">Tag oder Woche auswählen<input id="rc215PlannerRangeDate" type="date" min="'+esc(today)+'" value="'+esc(defaultDate)+'"></label><button class="soft" data-rc215-action="plan-day">Diesen Tag planen</button><button class="btn" data-rc215-action="plan-week">Komplette Woche planen</button></div></section>'+plannerWeekBoard(pick,'Picktage','Diese Aufgaben entsprechen dem oberen Bereich deiner Vorlage.','pick')+plannerWeekBoard(registration,'Anmeldungen und Abholvorbereitung','Diese Aufgaben entsprechen dem unteren Bereich deiner Vorlage.','registration')+'<section class="card"><div class="toolbar rc205-planner-toolbar"><label class="field">Jahr<select data-rc205-change="planner-year">'+years.map(function(y){return '<option value="'+y+'" '+(y===year?'selected':'')+'>'+y+'</option>'}).join('')+'</select></label></div><div class="rc205-holiday-list">'+(holidays.length?holidays.map(function(h){var list=tasks.filter(function(t){return taskDate(t)===h.date});return '<section class="rc205-holiday '+(list.length?'has-tasks':'')+'"><div class="rc205-holiday-head"><div><span class="rc205-date">'+esc(fmtDate(h.date,true))+'</span><h3>'+esc(h.name)+'</h3></div><span class="pill '+(list.length?'orange':'gray')+'">'+list.length+' Aufgabe'+(list.length===1?'':'n')+'</span></div>'+(list.length?'<div class="rc205-planner-list">'+list.map(function(t){return taskRowPlanner(t,h)}).join('')+'</div>':empty('Keine Aufgabe auf diesem Feiertag.'))+'</section>'}).join(''):empty('Für dieses Jahr sind keine heutigen oder zukünftigen Feiertage von Montag bis Freitag mehr vorhanden.'))+'</div></section>'+plannerRecurringLists(pick,registration,other,defaultDate)+'<section class="card rc205-undated"><div class="rc205-card-head"><div><h3>Offene Aufgaben ohne Fälligkeitsdatum</h3><p class="muted">Einmalige Aufgaben können direkt einem konkreten Datum zugeordnet werden.</p></div><span class="pill gray">'+undated.length+'</span></div><div class="rc205-planner-list">'+(undated.length?undated.map(function(t){return undatedRow(t,defaultDate)}).join(''):empty('Alle einmaligen offenen Aufgaben besitzen bereits ein Fälligkeitsdatum.'))+'</div></section>';bindRoot(r);bindPlannerRange(r);try{if(window.ExportHUBRC542&&typeof window.ExportHUBRC542.postProcess==='function')window.ExportHUBRC542.postProcess()}catch(error){console.error('RC448 Aufgaben-Planer Datum',error)}}
 function apply(view){if(applying)return;var v=low(view||currentView());if(v!=='dashboard'&&v!=='planning')return;applying=true;try{if(v==='dashboard')renderDashboard();else renderPlanner()}catch(e){console.error('ExportHUB Dashboard/Aufgaben Planer',e);var r=root();if(r)r.innerHTML='<div class="badbox"><h2>Bereich konnte nicht geöffnet werden</h2><p>'+esc(e&&e.message||e)+'</p></div>'}finally{applying=false}}
 function schedule(view){var n=window.ExportHUBClean&&window.ExportHUBClean.native||window;if(timer)n.clearTimeout(timer);timer=n.setTimeout(function(){timer=0;apply(view)},0)}
 window.__EXPORTHUB_AFTER_RENDER__=function(view){try{if(typeof previousAfterRender==='function')previousAfterRender(view)}catch(e){console.error('Vorheriger ExportHUB Render-Hook',e)}schedule(view)};
@@ -19642,7 +19744,7 @@ window.ExportHUBIndex236=Object.freeze({version:VERSION,open:openView,check:chec
 'use strict';
 if(window.__EXPORTHUB_RC352_DOCUMENT_OUTPUT_OWNER__)return;
 window.__EXPORTHUB_RC352_DOCUMENT_OUTPUT_OWNER__=true;
-var BUILD=window.EXPORTHUB_BUILD||{version:'RC447',cache:'447'},VERSION=String(BUILD.version||'RC447'),CACHE=String(BUILD.cache||'446'),opening=false,lastOpened='',activeDoc='load1',printBusy=false,pdfBusy=false;
+var BUILD=window.EXPORTHUB_BUILD||{version:'RC448',cache:'448'},VERSION=String(BUILD.version||'RC448'),CACHE=String(BUILD.cache||'448'),opening=false,lastOpened='',activeDoc='load1',printBusy=false,pdfBusy=false;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -20764,7 +20866,7 @@ window.ExportHUBPickupDate373=Object.freeze({version:'RC418',patch:patch,sync:sy
 if(window.__EXPORTHUB_RC374_SHIPMENT_OWNER__)return;
 window.__EXPORTHUB_RC374_SHIPMENT_OWNER__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC447',installed=false,busy=false,baseSave=null,weightIndex=-1,patchTimer=0,processRetryTimer=0,processRetryCount=0,qrPromise=null,editSaveTimer=0,editSaveReason='',remoteMergeTimer=0,remoteMergePending=false,localFieldDraft={},localFieldDraftShipment='',localRowsDirty=false,localCustomerDirty=false,fullPatchPending=false,deferredPatchTimer=0,editingCustomerLock=null,customerChangeColliLock=null,lockSyncPromise=null,lastLockCheckAt=0,lastLockAlertAt=0;
+var VERSION='RC448',installed=false,busy=false,baseSave=null,weightIndex=-1,patchTimer=0,processRetryTimer=0,processRetryCount=0,qrPromise=null,editSaveTimer=0,editSaveReason='',remoteMergeTimer=0,remoteMergePending=false,localFieldDraft={},localFieldDraftShipment='',localRowsDirty=false,localCustomerDirty=false,fullPatchPending=false,deferredPatchTimer=0,editingCustomerLock=null,customerChangeColliLock=null,lockSyncPromise=null,lastLockCheckAt=0,lastLockAlertAt=0;
 var PACK=[{name:'Einweg Palette',ldm:0.4,l:120,w:80,h:110},{name:'Euro Palette',ldm:0.4,l:120,w:80,h:110},{name:'Gestapelte Einweg Palette',ldm:0.2,l:120,w:80,h:220},{name:'Gestapelte Euro Palette',ldm:0.2,l:120,w:80,h:220},{name:'Gestapelte Industrie Palette',ldm:0.25,l:120,w:100,h:220},{name:'Industrie Palette',ldm:0.5,l:120,w:100,h:110},{name:'Paletten gestell',ldm:0.45,l:120,w:90,h:200},{name:'Holzbox',ldm:0.6,l:'',w:'',h:''},{name:'Düsseldorfer Palette',ldm:0.2,l:80,w:60,h:60},{name:'E0',ldm:0.03,l:30,w:20,h:11},{name:'E1',ldm:0.03,l:39,w:20,h:20},{name:'E2',ldm:0.06,l:46,w:33,h:16},{name:'E3',ldm:0.06,l:43,w:31,h:31},{name:'E4',ldm:0.12,l:66,w:45,h:32},{name:'E5',ldm:0.12,l:66,w:45,h:43},{name:'Umschlag',ldm:0,l:15,w:5,h:1},{name:'E6',ldm:0.0156,l:25,w:15,h:5}];
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}function arr(v){return Array.isArray(v)?v:[]}function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return Object.assign({},v||{})}}function num(v){var x=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(x)?x:0}function round(v){return Math.round((num(v)+Number.EPSILON)*100)/100}
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){}return window.state||(window.state={})}function shipment(){var s=state();s.shipment=s.shipment||{};s.shipment.rows=arr(s.shipment.rows);return s.shipment}function root(){return document.getElementById('content')}
@@ -21246,7 +21348,7 @@ document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&
 
 
 <style id="rc430-canonical-theme-system">
-/* RC447 – einziges verbindliches Theme-System. Keine Renderer, keine DOM-Umbauten. */
+/* RC448 – einziges verbindliches Theme-System. Keine Renderer, keine DOM-Umbauten. */
 :root.eh-theme-changing *, :root.eh-theme-changing *::before, :root.eh-theme-changing *::after{transition:none!important}
 #ehThemeSwitch{display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:5px 8px 5px 11px;white-space:nowrap}
 #ehThemeSwitch>span{font-weight:900;font-size:12px}
@@ -21405,7 +21507,7 @@ body[data-eh-theme]:not([data-eh-theme="current"]) #content :is([class$="-row"],
  body[data-eh-theme]:not([data-eh-theme="current"]) .topbar #ehThemeSelect{min-width:120px!important}
 }
 
-/* RC447 – PC-Designsystem: vollständige, einheitliche Oberfläche ohne Renderer oder DOM-Umbauten. */
+/* RC448 – PC-Designsystem: vollständige, einheitliche Oberfläche ohne Renderer oder DOM-Umbauten. */
 body[data-eh-theme][data-eh-theme="current"]{
  --pc-page:linear-gradient(155deg,#eef6fb 0%,#e7f0f7 45%,#f7fbfe 100%);--pc-side:linear-gradient(180deg,#06345f,#0d5a91);--pc-side-text:#f7fbff;--pc-side-muted:#b7d2e7;
  --pc-top:rgba(255,255,255,.94);--pc-surface:#ffffff;--pc-surface-2:#f5f9fc;--pc-surface-3:#eaf2f8;--pc-field:#ffffff;--pc-line:#cfe0ec;
@@ -21598,7 +21700,7 @@ body[data-eh-theme][data-eh-theme="strategic-graphite"]{
  }
 }
 
-/* RC447 – Smartphone-Designbedienung: ein stabiler mobiler Aufbau für alle neun Designs. */
+/* RC448 – Smartphone-Designbedienung: ein stabiler mobiler Aufbau für alle neun Designs. */
 @media(max-width:900px){
  html,body{width:100%!important;max-width:100%!important;min-height:100%!important;overflow-x:hidden!important}
  body[data-eh-theme][data-eh-theme]{min-height:100dvh!important;background:var(--pc-page)!important;color:var(--pc-text)!important;font-family:var(--pc-font)!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -21768,6 +21870,6 @@ function boot(){refresh()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,refresh)});
 window.addEventListener('storage',function(e){if(e&&e.key&&e.key.indexOf('exporthub-theme-choice')===0)refresh()});
-window.ExportHUBThemeSwitcher=Object.freeze({version:'RC447',themes:THEMES.map(function(x){return{id:x[0],label:x[1]}}),apply:function(t){return apply(t,true)},current:function(){return valid(document.body&&document.body.getAttribute('data-eh-theme'))},refresh:refresh});
+window.ExportHUBThemeSwitcher=Object.freeze({version:'RC448',themes:THEMES.map(function(x){return{id:x[0],label:x[1]}}),apply:function(t){return apply(t,true)},current:function(){return valid(document.body&&document.body.getAttribute('data-eh-theme'))},refresh:refresh});
 })();
 </script>
