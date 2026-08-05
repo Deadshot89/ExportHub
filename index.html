@@ -168,9 +168,9 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC465',cache:'464',loginReturn:'/?v=464'});
+var BUILD=Object.freeze({version:'RC466',cache:'464',loginReturn:'/?v=464'});
 var RELEASE=Object.freeze({
- version:'RC465',
+ version:'RC466',
  date:'05.08.2026',
  title:'Speditionsmail-Aufgaben entfernt',
  changes:Object.freeze([
@@ -228,7 +228,7 @@ function cleanPin(value){return String(value==null?'':value).replace(/\D/g,'').s
 function publicLoader(loader){return loader?{id:loader.id,name:loader.name,active:loader.active!==false}:null}
 function findByPin(value){var pin=cleanPin(value),loader=LOADERS.find(function(item){return item.active!==false&&item.pin===pin});return publicLoader(loader)}
 window.ExportHUBLoaderPins=Object.freeze({
- version:'RC465',
+ version:'RC466',
  list:LOADERS.map(publicLoader),
  findByPin:findByPin,
  serverPinForToken:function(value){return findByPin(value)?cleanPin(value):''},
@@ -281,7 +281,7 @@ var token=tokenFromUrl(current)||q(window.__EXPORTHUB_PICKUP_ROUTE_TOKEN__);if(!
 window.__EXPORTHUB_PICKUP_MODE__=true;window.__EXPORTHUB_PICKUP_CONFIRMATION_OWNER__='RC352';document.documentElement.setAttribute('data-index209-pickup','1');
 var signatureSaved='',canvas=null,ctx=null,drawing=false,drawn=false,submitting=false;
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function request(path,opt){opt=opt||{};opt.credentials='same-origin';opt.cache='no-store';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});return fetch('/api/'+String(path||'').replace(/^\//,''),opt).then(async function(r){var text='',body={};try{text=await r.text();body=text?JSON.parse(text):{}}catch(_){body={}}if(!r.ok){var e=new Error(body.message||body.error||('HTTP '+r.status));e.status=r.status;e.code=body.code||'';e.retryAfter=Math.max(0,Number(r.headers.get('retry-after')||body.retryAfter||body.retryAfterSeconds||0)||0);throw e}return body})}
+function request(path,opt){opt=opt||{};var timeout=Math.max(5000,Number(opt.timeout||30000)),controller=typeof AbortController==='function'?new AbortController():null,timer=null;delete opt.timeout;opt.credentials='same-origin';opt.cache='no-store';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});if(controller)opt.signal=controller.signal;if(controller)timer=setTimeout(function(){controller.abort()},timeout);return fetch('/api/'+String(path||'').replace(/^\//,''),opt).then(async function(r){var text='',body={};try{text=await r.text();body=text?JSON.parse(text):{}}catch(_){body={}}if(!r.ok){var e=new Error(body.message||body.error||('HTTP '+r.status));e.status=r.status;e.code=body.code||'';e.retryAfter=Math.max(0,Number(r.headers.get('retry-after')||body.retryAfter||body.retryAfterSeconds||0)||0);throw e}return body}).catch(function(error){if(error&&error.name==='AbortError'){var e=new Error('Der Server hat innerhalb der zulässigen Zeit nicht geantwortet.');e.code='REQUEST_TIMEOUT';e.timeout=true;throw e}throw error}).finally(function(){if(timer)clearTimeout(timer)})}
 function valueDeep(data,names){var seen=[];function walk(x,d){if(!x||typeof x!=='object'||d>7||seen.indexOf(x)>=0)return'';seen.push(x);for(var i=0;i<names.length;i++){var v=x[names[i]];if(v!==undefined&&v!==null&&q(v)!=='')return v}for(var k in x){if(Object.prototype.hasOwnProperty.call(x,k)&&x[k]&&typeof x[k]==='object'){var hit=walk(x[k],d+1);if(hit!==''&&hit!=null)return hit}}return''}return walk(data,0)}
 function confirmed(data){return !!(data&&(data.confirmedAt||data.pickupConfirmedAt||data.completedAt||data.pickedUpAt||data.used||data.confirmed||/confirmed|completed|abgeholt|used/i.test(q(data.status))))}
 function signatureAvailable(data){return !!(data&&(data.signatureAvailable||data.driverSignatureAvailable||data.driverSignatureUrl||data.pickupSignatureUrl||data.signatureUrl||valueDeep(data,['driverSignature','pickupDriverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])||Array.isArray(data.podFiles)&&data.podFiles.length))}
@@ -331,7 +331,7 @@ function show(data){
 function load(){request('pickup-status?token='+encodeURIComponent(token),{method:'GET'}).then(show).catch(function(e){status(e.status===404?'Dieser QR-Code ist nicht registriert oder nicht mehr gültig.':'Sendungsdaten konnten nicht geladen werden: '+q(e.message||e),'bad')})}
 function loaderByPin(pin){var api=window.ExportHUBLoaderPins;return api&&typeof api.findByPin==='function'?api.findByPin(pin):null}
 function verifySignatureImage(){return fetch('/api/pickup-pod?token='+encodeURIComponent(token)+'&signature=1&verify='+Date.now(),{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'image/jpeg,image/png,image/webp'}}).then(function(r){var ct=String(r.headers.get('content-type')||'').toLowerCase();if(!r.ok)throw new Error('HTTP '+r.status);if(!/^image\/(?:jpeg|png|webp)/.test(ct))throw new Error('Der Server liefert keine digitale Unterschrift.');return r.blob()}).then(function(b){if(!b||b.size<100)throw new Error('Die gespeicherte digitale Unterschrift ist leer.');return true})}
-function verify(response){return request('pickup-status?token='+encodeURIComponent(token)+'&verify='+Date.now(),{method:'GET'}).catch(function(){return response||{}}).then(function(data){var merged=Object.assign({},response||{},data||{});if(!confirmed(merged))throw new Error('Die Abholung wurde serverseitig nicht bestätigt.');var inline=q(valueDeep(merged,['driverSignature','pickupDriverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])),url=q(valueDeep(merged,['driverSignatureUrl','pickupDriverSignatureUrl','pickupSignatureUrl','signatureUrl']));if(/^data:image\/(?:jpeg|png|webp);base64,/i.test(inline)||url)return merged;return verifySignatureImage().then(function(){merged.signatureAvailable=true;merged.driverSignatureUrl='/api/pickup-pod?token='+encodeURIComponent(token)+'&signature=1';return merged})})}
+function verify(response){var attempts=0,maxAttempts=15;function poll(){attempts++;return request('pickup-status?token='+encodeURIComponent(token)+'&verify='+Date.now(),{method:'GET',timeout:12000}).then(function(data){var merged=Object.assign({},response||{},data||{});if(!confirmed(merged)){if(attempts<maxAttempts)return new Promise(function(resolve){setTimeout(resolve,2000)}).then(poll);var e=new Error('Der Server hat die Abholung noch nicht als bestätigt zurückgemeldet. Bitte nicht erneut bestätigen.');e.code='CONFIRM_NOT_VISIBLE';throw e}var inline=q(valueDeep(merged,['driverSignature','pickupDriverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])),url=q(valueDeep(merged,['driverSignatureUrl','pickupDriverSignatureUrl','pickupSignatureUrl','signatureUrl']));if(/^data:image\/(?:jpeg|png|webp);base64,/i.test(inline)||url)return merged;return verifySignatureImage().then(function(){merged.signatureAvailable=true;merged.driverSignatureUrl='/api/pickup-pod?token='+encodeURIComponent(token)+'&signature=1';return merged})}).catch(function(err){if((err.timeout||err.code==='REQUEST_TIMEOUT')&&attempts<maxAttempts)return new Promise(function(resolve){setTimeout(resolve,2000)}).then(poll);throw err})}return poll()}
 function success(data){var card=document.querySelector('.index209-pickup-card');if(!card)return;var loader=esc(data.loaderName||data.loadedBy||data.loader||data.verlader||'');card.innerHTML='<div class="index225-pickup-success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>Die digitale Unterschrift wurde gespeichert und der POD der Sendung zugeordnet.'+(loader?'<br><b>Verladen durch: '+loader+'</b>':'')+'</p><div class="index225-close-note">Dieses Fenster kann jetzt geschlossen werden.</div></div>'}
 function submit(e){
  e.preventDefault();
@@ -343,7 +343,7 @@ function submit(e){
  var body={token:token,pin:pin,driverName:driver,licensePlate:plate,driverSignature:signature,returnedEuroPallets:returned,podRequested:true,podType:'signed-loadlist'};
  if(loader){body.loaderId=loader.id;body.loaderName=loader.name}
  submitting=true;button.disabled=true;status('Abholung und POD werden übertragen …','info');
- request('pickup-confirm',{method:'POST',body:JSON.stringify(body)}).then(verify).then(function(data){success(Object.assign({},body,data||{}))}).catch(function(err){submitting=false;var message=q(err&&err.message||err),tooMany=err.status===429||/zu viele|too many|rate limit/i.test(message);if(tooMany){var seconds=Math.max(1,Math.round(Number(err.retryAfter||300)||300)),until=setCooldown(seconds);button.disabled=true;if(cooldownTimer)clearTimeout(cooldownTimer);function tick(){var left=Math.max(0,Math.ceil((until-Date.now())/1000));status('Der Server hat weitere Bestätigungen vorübergehend gesperrt. Erneut möglich in '+left+' Sekunden. Bitte die Seite nicht neu laden und danach genau einmal bestätigen.','bad');if(left<=0){clearCooldown();button.disabled=false;status('Die serverseitige Wartezeit ist beendet. Bitte die Abholung jetzt genau einmal bestätigen.','info');return}cooldownTimer=setTimeout(tick,1000)}tick();return}button.disabled=false;status(err.status===401||err.status===403?('Verlader-PIN wurde vom Server nicht akzeptiert'+(message?': '+message:'.')):'Abholung konnte nicht bestätigt werden: '+message,'bad')});
+ request('pickup-confirm',{method:'POST',body:JSON.stringify(body),timeout:45000}).then(verify).then(function(data){submitting=false;success(Object.assign({},body,data||{}))}).catch(function(err){submitting=false;var message=q(err&&err.message||err),tooMany=err.status===429||/zu viele|too many|rate limit/i.test(message);if(tooMany){var seconds=Math.max(1,Math.round(Number(err.retryAfter||300)||300)),until=setCooldown(seconds);button.disabled=true;if(cooldownTimer)clearTimeout(cooldownTimer);function tick(){var left=Math.max(0,Math.ceil((until-Date.now())/1000));status('Der Server hat weitere Bestätigungen vorübergehend gesperrt. Erneut möglich in '+left+' Sekunden. Bitte die Seite nicht neu laden und danach genau einmal bestätigen.','bad');if(left<=0){clearCooldown();button.disabled=false;status('Die serverseitige Wartezeit ist beendet. Bitte die Abholung jetzt genau einmal bestätigen.','info');return}cooldownTimer=setTimeout(tick,1000)}tick();return}if(err.timeout||err.code==='REQUEST_TIMEOUT'||err.code==='CONFIRM_NOT_VISIBLE'){button.disabled=true;status('Die Übertragung konnte noch nicht eindeutig bestätigt werden. Bitte nicht erneut bestätigen. Der Status wird automatisch erneut geprüft.','bad');setTimeout(function(){load();button.disabled=false},10000);return}button.disabled=false;status(err.status===401||err.status===403?('Verlader-PIN wurde vom Server nicht akzeptiert'+(message?': '+message:'.')):'Abholung konnte nicht bestätigt werden: '+message,'bad')});
  return false
 }
 function boot(){document.title='ExportHUB · Abholung bestätigen';shell();load();var until=cooldownUntil(),button=document.getElementById('index209PickupConfirm');if(until>Date.now()&&button){button.disabled=true;function resumeTick(){var left=Math.max(0,Math.ceil((until-Date.now())/1000));status('Der Server hat weitere Bestätigungen vorübergehend gesperrt. Erneut möglich in '+left+' Sekunden. Bitte die Seite nicht neu laden und danach genau einmal bestätigen.','bad');if(left<=0){clearCooldown();button.disabled=false;status('Die serverseitige Wartezeit ist beendet. Bitte die Abholung jetzt genau einmal bestätigen.','info');return}cooldownTimer=setTimeout(resumeTick,1000)}resumeTick()}}
@@ -8670,7 +8670,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <div class="login-card">
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
-<div aria-label="Aktuelle Version RC465" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC465</div>
+<div aria-label="Aktuelle Version RC466" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC466</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -12256,7 +12256,7 @@ window.__EXPORTHUB_RC564_SOURCE_STATS__=stats;
 <script data-inline-source="assets/clean-bootstrap.js" id="exporthub-rc353-storage-auth-owner">
 (function(){
 'use strict';
-const BUILD=window.EXPORTHUB_BUILD||{version:'RC465',cache:'418',loginReturn:'/?v=418'};
+const BUILD=window.EXPORTHUB_BUILD||{version:'RC466',cache:'418',loginReturn:'/?v=418'};
 const VERSION=String(BUILD.version||'RC565');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
@@ -14069,7 +14069,7 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
 @media(min-width:901px){#ehMenuBtn{display:none!important}.sidebar{transform:none!important}}
 </style>
 <script id="exporthub-rc352-mobile-menu">
-(function(){'use strict';document.getElementById('rc568MenuBtn')?.remove();document.getElementById('rc568MenuBackdrop')?.remove();document.body.classList.remove('rc568-menu-open');window.ExportHUBMobileMenu=Object.freeze({version:'RC465',open:function(){document.body.classList.add('eh-sidebar-open')},close:function(){document.body.classList.remove('eh-sidebar-open')}})})();
+(function(){'use strict';document.getElementById('rc568MenuBtn')?.remove();document.getElementById('rc568MenuBackdrop')?.remove();document.body.classList.remove('rc568-menu-open');window.ExportHUBMobileMenu=Object.freeze({version:'RC466',open:function(){document.body.classList.add('eh-sidebar-open')},close:function(){document.body.classList.remove('eh-sidebar-open')}})})();
 </script>
 <!-- RC568 SINGLE VERSION, MOBILE MENU AND DOCUMENT VIEW END -->
 
@@ -14218,7 +14218,7 @@ function ensure(){var app=document.getElementById('app'),top=document.querySelec
 document.addEventListener('click',function(e){var toggle=e.target&&e.target.closest&&e.target.closest('#ehMenuBtn');if(toggle){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();setOpen(!document.body.classList.contains('eh-sidebar-open'));return}if(mobile()&&document.body.classList.contains('eh-sidebar-open')&&!e.target.closest('.sidebar'))setOpen(false)},true);
 document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)},true);
 window.addEventListener('resize',ensure);['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,ensure)});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
-window.ExportHUBMobileMenu=Object.freeze({version:'RC465',install:ensure,open:function(){setOpen(true)},close:function(){setOpen(false)}});
+window.ExportHUBMobileMenu=Object.freeze({version:'RC466',install:ensure,open:function(){setOpen(true)},close:function(){setOpen(false)}});
 })();
 </script>
 <style id="rc561-shipment-overview-stability-css">
@@ -19773,7 +19773,7 @@ window.ExportHUBIndex236=Object.freeze({version:VERSION,open:openView,check:chec
 'use strict';
 if(window.__EXPORTHUB_RC352_DOCUMENT_OUTPUT_OWNER__)return;
 window.__EXPORTHUB_RC352_DOCUMENT_OUTPUT_OWNER__=true;
-var BUILD=window.EXPORTHUB_BUILD||{version:'RC465',cache:'465'},VERSION=String(BUILD.version||'RC456'),CACHE=String(BUILD.cache||'456'),opening=false,lastOpened='',activeDoc='load1',printBusy=false,pdfBusy=false;
+var BUILD=window.EXPORTHUB_BUILD||{version:'RC466',cache:'466'},VERSION=String(BUILD.version||'RC456'),CACHE=String(BUILD.cache||'456'),opening=false,lastOpened='',activeDoc='load1',printBusy=false,pdfBusy=false;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -20714,7 +20714,7 @@ document.addEventListener('focusout',function(e){if(e.target&&kindOf(e.target))s
 document.addEventListener('focusin',function(e){if(e.target&&kindOf(e.target))prepare(e.target)},true);
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,patch)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});else patch();
-window.ExportHUBPickupDate373=Object.freeze({version:'RC465',patch:patch,sync:sync,mask:mask,iso:iso,display:display,diagnostics:function(){return{inputs:dateInputs().length,values:dateInputs().map(function(el){return el.value}),format:'TT.MM.JJJJ',noObserver:true,noInterval:true}}});
+window.ExportHUBPickupDate373=Object.freeze({version:'RC466',patch:patch,sync:sync,mask:mask,iso:iso,display:display,diagnostics:function(){return{inputs:dateInputs().length,values:dateInputs().map(function(el){return el.value}),format:'TT.MM.JJJJ',noObserver:true,noInterval:true}}});
 })();
 </script>
 
@@ -21042,7 +21042,7 @@ function renderStowPlan(){
  var plan=buildStowPlan(rows),status=plan.overflowCm>0?'<span class="pill red">'+fmtM(plan.overflowCm)+' zu lang</span>':'<span class="pill green">passt in 13,60 m</span>';
  function slot(p,label){if(!p)return'<div class="rc396-slot empty"><span class="rc396-step">–</span><span class="rc396-slot-text">frei<span class="rc396-position">'+label+'</span></span></div>';return'<div class="rc396-slot'+(p.over?' is-over':'')+'" title="Schritt '+p.step+' · '+esc(p.type)+' · '+label+'"><span class="rc396-step">'+p.step+'</span><span class="rc396-slot-text">'+esc(p.type)+'<span class="rc396-position">'+label+'</span></span></div>'}
  var deck=plan.rows.map(function(row){var slots=[null,null,null];row.placements.slice().sort(function(a,b){return a.visualIndex-b.visualIndex}).forEach(function(p){var pos=low(p.position||'');if(pos.indexOf('links')>=0)slots[0]=p;else if(pos.indexOf('mitte')>=0||pos.indexOf('center')>=0)slots[1]=p;else slots[2]=p});return'<div class="rc396-column'+(row.over?' is-over':'')+'"><div class="rc396-column-head"><b>Reihe '+row.no+'</b><small>'+fmtM(row.startCm)+'–'+fmtM(row.endCm)+'</small></div>'+slot(slots[0],'links')+slot(slots[1],'mitte')+slot(slots[2],'rechts')+'</div>'}).join('');
- try{shipment().stowPlan={version:'RC465',createdAt:new Date().toISOString(),usedCm:plan.usedCm,freeCm:plan.freeCm,overflowCm:plan.overflowCm,rows:plan.rows.map(function(r){return{no:r.no,startCm:r.startCm,endCm:r.endCm,steps:r.placements.map(function(p){return p.step})}}),placements:plan.placements.map(function(p){return{step:p.step,rowNo:p.rowNo,position:p.position,type:p.type,sourceRow:p.sourceRow,lengthAlong:p.lengthAlong,crossWidth:p.crossWidth,weight:p.weight,over:p.over}})}}catch(_){}
+ try{shipment().stowPlan={version:'RC466',createdAt:new Date().toISOString(),usedCm:plan.usedCm,freeCm:plan.freeCm,overflowCm:plan.overflowCm,rows:plan.rows.map(function(r){return{no:r.no,startCm:r.startCm,endCm:r.endCm,steps:r.placements.map(function(p){return p.step})}}),placements:plan.placements.map(function(p){return{step:p.step,rowNo:p.rowNo,position:p.position,type:p.type,sourceRow:p.sourceRow,lengthAlong:p.lengthAlong,crossWidth:p.crossWidth,weight:p.weight,over:p.over}})}}catch(_){}
  card.dataset.sig=sig;card.innerHTML='<div class="rc396-graphic-head"><div><b>Ladegrafik</b><div class="muted">Von links nach rechts: Stirnwand zuerst, Hecktüren zuletzt. Die Nummer zeigt die Ladereihenfolge.</div></div>'+status+'</div><div class="rc396-trailer"><div class="rc396-axis"><span>Stirnwand / Fahrzeugfront</span><span>je Reihe: links · mitte · rechts</span><span>Hecktüren / Fahrzeugheck</span></div><div class="rc396-deck-scroll"><div class="rc396-deck">'+deck+'</div></div></div><div class="rc396-actions"><button type="button" class="btn" id="rc380RefreshStow">Stauplan aktualisieren</button><button type="button" class="ghost" id="rc380PrintStow">Stauplan öffnen / drucken</button></div>';
  return true
 }
@@ -21398,7 +21398,7 @@ document.addEventListener('focusin',function(e){if(!mobile()||document.body.clas
 document.addEventListener('click',function(e){if(!mobile())return;var item=e.target&&e.target.closest&&e.target.closest('#nav>button[data-index321-view]');if(item)setTimeout(close,0)},false);
 window.addEventListener('resize',function(){patch();if(!mobile())close()});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});else patch();['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,patch)});
-window.ExportHUBRC409MobileNav=Object.freeze({version:'RC465',patch:patch,close:close,diagnostics:function(){var n=document.getElementById('nav'),visible=n?Array.from(n.querySelectorAll(':scope>button[data-index321-view]')).filter(function(b){return !b.hidden&&getComputedStyle(b).display!=='none'}).length:0;return{open:document.body.classList.contains('eh-sidebar-open'),buttons:n?n.querySelectorAll(':scope>button[data-index321-view]').length:0,visibleButtons:visible,scrollHeight:n?n.scrollHeight:0,clientHeight:n?n.clientHeight:0,owner:'INDEX321'}}})
+window.ExportHUBRC409MobileNav=Object.freeze({version:'RC466',patch:patch,close:close,diagnostics:function(){var n=document.getElementById('nav'),visible=n?Array.from(n.querySelectorAll(':scope>button[data-index321-view]')).filter(function(b){return !b.hidden&&getComputedStyle(b).display!=='none'}).length:0;return{open:document.body.classList.contains('eh-sidebar-open'),buttons:n?n.querySelectorAll(':scope>button[data-index321-view]').length:0,visibleButtons:visible,scrollHeight:n?n.scrollHeight:0,clientHeight:n?n.clientHeight:0,owner:'INDEX321'}}})
 })();
 </script>
 <style id="rc455-pod-backup-style">
@@ -22139,6 +22139,6 @@ function boot(){refresh()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,refresh)});
 window.addEventListener('storage',function(e){if(e&&e.key&&e.key.indexOf('exporthub-theme-choice')===0)refresh()});
-window.ExportHUBThemeSwitcher=Object.freeze({version:'RC465',themes:THEMES.map(function(x){return{id:x[0],label:x[1]}}),apply:function(t){return apply(t,true)},current:function(){return valid(document.body&&document.body.getAttribute('data-eh-theme'))},refresh:refresh});
+window.ExportHUBThemeSwitcher=Object.freeze({version:'RC466',themes:THEMES.map(function(x){return{id:x[0],label:x[1]}}),apply:function(t){return apply(t,true)},current:function(){return valid(document.body&&document.body.getAttribute('data-eh-theme'))},refresh:refresh});
 })();
 </script>
