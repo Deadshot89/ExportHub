@@ -168,9 +168,9 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC468',cache:'468',loginReturn:'/?v=468'});
+var BUILD=Object.freeze({version:'RC469',cache:'469',loginReturn:'/?v=469'});
 var RELEASE=Object.freeze({
- version:'RC468',
+ version:'RC469',
  date:'05.08.2026',
  title:'Speditionsmail-Aufgaben entfernt',
  changes:Object.freeze([
@@ -228,7 +228,7 @@ function cleanPin(value){return String(value==null?'':value).replace(/\D/g,'').s
 function publicLoader(loader){return loader?{id:loader.id,name:loader.name,active:loader.active!==false}:null}
 function findByPin(value){var pin=cleanPin(value),loader=LOADERS.find(function(item){return item.active!==false&&item.pin===pin});return publicLoader(loader)}
 window.ExportHUBLoaderPins=Object.freeze({
- version:'RC468',
+ version:'RC469',
  list:LOADERS.map(publicLoader),
  findByPin:findByPin,
  serverPinForToken:function(value){return findByPin(value)?cleanPin(value):''},
@@ -279,11 +279,8 @@ function q(v){return String(v==null?'':v).trim()}
 function tokenFromUrl(u){var hash='';try{hash=decodeURIComponent(String(u.hash||'').replace(/^#/,''))}catch(_){hash=String(u.hash||'').replace(/^#/,'')}var hm=hash.match(/(?:^|[\/?&])pickup(?:=|\/)([A-Za-z0-9_-]{6,128})(?:$|[&\/?])/i)||hash.match(/^pickup=([A-Za-z0-9_-]{6,128})$/i),pm=String(u.pathname||'').match(/\/pickup(?:\.html)?\/([A-Za-z0-9_-]{6,128})\/?$/i),legacy=/^pickup$/i.test(q(u.searchParams.get('ehcmd'))),list=[u.searchParams.get('pickup'),u.searchParams.get('token'),legacy&&u.searchParams.get('ref'),pm&&pm[1],hm&&hm[1]];for(var i=0;i<list.length;i++)if(/^[A-Za-z0-9_-]{6,128}$/.test(q(list[i])))return q(list[i]);return''}
 var token=tokenFromUrl(current)||q(window.__EXPORTHUB_PICKUP_ROUTE_TOKEN__);if(!token)return;
 window.__EXPORTHUB_PICKUP_MODE__=true;window.__EXPORTHUB_PICKUP_CONFIRMATION_OWNER__='RC352';document.documentElement.setAttribute('data-index209-pickup','1');
-var signatureSaved='',canvas=null,ctx=null,drawing=false,drawn=false,submitting=false,cooldownTimer=null;
-var COOLDOWN_KEY='exporthub-pickup-cooldown-'+token;
-function cooldownUntil(){try{return Math.max(0,Number(sessionStorage.getItem(COOLDOWN_KEY)||0)||0)}catch(_){return 0}}
-function setCooldown(seconds){var until=Date.now()+Math.max(1,Number(seconds)||300)*1000;try{sessionStorage.setItem(COOLDOWN_KEY,String(until))}catch(_){}return until}
-function clearCooldown(){try{sessionStorage.removeItem(COOLDOWN_KEY)}catch(_){}if(cooldownTimer){clearTimeout(cooldownTimer);cooldownTimer=null}}
+var signatureSaved='',canvas=null,ctx=null,drawing=false,drawn=false,submitting=false;
+function clearCooldown(){return true}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function request(path,opt){opt=opt||{};var timeout=Math.max(5000,Number(opt.timeout||30000)),controller=typeof AbortController==='function'?new AbortController():null,timer=null;delete opt.timeout;opt.credentials='same-origin';opt.cache='no-store';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});if(controller)opt.signal=controller.signal;if(controller)timer=setTimeout(function(){controller.abort()},timeout);return fetch('/api/'+String(path||'').replace(/^\//,''),opt).then(async function(r){var text='',body={};try{text=await r.text();body=text?JSON.parse(text):{}}catch(_){body={}}if(!r.ok){var e=new Error(body.message||body.error||('HTTP '+r.status));e.status=r.status;e.code=body.code||'';e.retryAfter=Math.max(0,Number(r.headers.get('retry-after')||body.retryAfter||body.retryAfterSeconds||0)||0);throw e}return body}).catch(function(error){if(error&&error.name==='AbortError'){var e=new Error('Der Server hat innerhalb der zulässigen Zeit nicht geantwortet.');e.code='REQUEST_TIMEOUT';e.timeout=true;throw e}throw error}).finally(function(){if(timer)clearTimeout(timer)})}
 function valueDeep(data,names){var seen=[];function walk(x,d){if(!x||typeof x!=='object'||d>7||seen.indexOf(x)>=0)return'';seen.push(x);for(var i=0;i<names.length;i++){var v=x[names[i]];if(v!==undefined&&v!==null&&q(v)!=='')return v}for(var k in x){if(Object.prototype.hasOwnProperty.call(x,k)&&x[k]&&typeof x[k]==='object'){var hit=walk(x[k],d+1);if(hit!==''&&hit!=null)return hit}}return''}return walk(data,0)}
@@ -347,10 +344,10 @@ function submit(e){
     Keine lokale Verladerzuordnung und keine mehrfachen Signatur-Aliase. */
  var body={token:token,pin:pin,loaderPin:pin,driverName:driver,licensePlate:plate,signatureDataUrl:signature,returnedEuroPallets:returned};
  submitting=true;button.disabled=true;status('Abholung und POD werden übertragen …','info');
- request('pickup-confirm',{method:'POST',body:JSON.stringify(body),timeout:45000}).then(verify).then(function(data){submitting=false;success(Object.assign({},body,data||{}))}).catch(function(err){submitting=false;var message=q(err&&err.message||err),tooMany=err.status===429||/zu viele|too many|rate limit/i.test(message);if(tooMany){var seconds=Math.max(1,Math.round(Number(err.retryAfter||300)||300)),until=setCooldown(seconds);button.disabled=true;if(cooldownTimer)clearTimeout(cooldownTimer);function tick(){var left=Math.max(0,Math.ceil((until-Date.now())/1000));status('Der Server hat weitere Bestätigungen vorübergehend gesperrt. Erneut möglich in '+left+' Sekunden. Bitte die Seite nicht neu laden und danach genau einmal bestätigen.','bad');if(left<=0){clearCooldown();button.disabled=false;status('Die serverseitige Wartezeit ist beendet. Bitte die Abholung jetzt genau einmal bestätigen.','info');return}cooldownTimer=setTimeout(tick,1000)}tick();return}if(err.timeout||err.code==='REQUEST_TIMEOUT'||err.code==='CONFIRM_NOT_VISIBLE'){button.disabled=true;status('Die Übertragung konnte noch nicht eindeutig bestätigt werden. Bitte nicht erneut bestätigen. Der Status wird automatisch erneut geprüft.','bad');setTimeout(function(){load();button.disabled=false},10000);return}button.disabled=false;status(err.status===401||err.status===403?('Verlader-PIN wurde vom Server nicht akzeptiert'+(message?': '+message:'.')):'Abholung konnte nicht bestätigt werden: '+message,'bad')});
+ request('pickup-confirm',{method:'POST',body:JSON.stringify(body),timeout:45000}).then(verify).then(function(data){submitting=false;success(Object.assign({},body,data||{}))}).catch(function(err){submitting=false;var message=q(err&&err.message||err),tooMany=err.status===429||/zu viele|too many|rate limit/i.test(message);button.disabled=false;if(tooMany){var retry=Math.max(0,Math.round(Number(err.retryAfter||0)||0));status(retry>0?'Der Server lehnt die Bestätigung momentan ab. Bitte nach '+retry+' Sekunden erneut versuchen.':'Der Server lehnt die Bestätigung momentan ab. Es wurde keine lokale Sperre gesetzt. Bitte kurz warten und erneut versuchen.','bad');return}if(err.timeout||err.code==='REQUEST_TIMEOUT'||err.code==='CONFIRM_NOT_VISIBLE'){status('Die Übertragung wurde nicht bestätigt. Der Vorgang wurde nicht lokal gesperrt. Bitte den Sendungsstatus prüfen und nur dann erneut bestätigen, wenn er weiterhin „Bereit zur Abholung“ ist.','bad');setTimeout(load,3000);return}status(err.status===401||err.status===403?('Verlader-PIN wurde vom Server nicht akzeptiert'+(message?': '+message:'.')):'Abholung konnte nicht bestätigt werden: '+message,'bad')});
  return false
 }
-function boot(){document.title='ExportHUB · Abholung bestätigen';shell();load();var until=cooldownUntil(),button=document.getElementById('index209PickupConfirm');if(until>Date.now()&&button){button.disabled=true;function resumeTick(){var left=Math.max(0,Math.ceil((until-Date.now())/1000));status('Der Server hat weitere Bestätigungen vorübergehend gesperrt. Erneut möglich in '+left+' Sekunden. Bitte die Seite nicht neu laden und danach genau einmal bestätigen.','bad');if(left<=0){clearCooldown();button.disabled=false;status('Die serverseitige Wartezeit ist beendet. Bitte die Abholung jetzt genau einmal bestätigen.','info');return}cooldownTimer=setTimeout(resumeTick,1000)}resumeTick()}}
+function boot(){document.title='ExportHUB · Abholung bestätigen';shell();load()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
@@ -8674,7 +8671,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <div class="login-card">
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
-<div aria-label="Aktuelle Version RC468" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC468</div>
+<div aria-label="Aktuelle Version RC469" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC469</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -13173,7 +13170,7 @@ function flushBeforeSuspend(reason){if(!runtime.ready||runtime.loading||runtime.
 try{window.addEventListener('pagehide',function(){flushBeforeSuspend('Seite wird verlassen')},{capture:true});window.addEventListener('beforeunload',function(){flushBeforeSuspend('Browser wird geschlossen')},{capture:true});document.addEventListener('visibilitychange',function(){if(document.hidden)flushBeforeSuspend('App im Hintergrund');else if(runtime.pendingSave||runtime.dirty)flushSave('App wieder aktiv',{force:true})},true);window.addEventListener('freeze',function(){flushBeforeSuspend('Mobile App eingefroren')},{capture:true});window.addEventListener('online',function(){if(runtime.pendingSave||runtime.dirty)flushSave('Verbindung wiederhergestellt',{force:true})})}catch(_){}
 window.ExportHUBClean={VERSION:VERSION,BUILD:BUILD,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,pollRevision:pollRevision,applyRemoteDocument:applyRemoteDocument,switchMicrosoftAccount:switchMicrosoftAccount,keepSessionAlive:keepAuthenticatedSessionAlive,startNoIdleKeepAlive:startNoIdleKeepAlive,native:native,runtime:runtime};window.ExportHUBMicrosoftAccount=Object.freeze({owner:'RC418',switchAccount:switchMicrosoftAccount,handleStage:handleMicrosoftSwitchStage,buildUrls:function(){const provider=cleanReturnUrl({msAccountSwitch:'provider'}),login=cleanReturnUrl({msAccountSwitch:'login'}),done=cleanReturnUrl({msAccountChanged:'1'});return{appLogout:appAuthUrl('/.auth/logout',{post_logout_redirect_uri:provider.pathname+provider.search}),providerLogout:'https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri='+encodeURIComponent(login.href),accountLogin:appAuthUrl('/.auth/login/aad',{post_login_redirect_uri:done.pathname+done.search,prompt:'select_account'}),final:done.href}}});
 window.__EXPORTHUB_RC439_TEAM_SYNC__=true;
-window.__EXPORTHUB_RC468__=true;
+window.__EXPORTHUB_RC469__=true;
 window.__EXPORTHUB_RC591_SESSION_FIX__=true;
 window.__EXPORTHUB_RC592_ROUTE_FIX__=true;
 window.__EXPORTHUB_RC593_LADELISTE_FIX__=true;
