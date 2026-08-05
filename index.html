@@ -8,7 +8,7 @@
 'use strict';
 if(window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__)return;
 window.__EXPORTHUB_INDEX321_SINGLE_NAVIGATION__=true;
-var VERSION='RC455',initialized=false,routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0,routeBusy=false,stableRenderNav=null;
+var VERSION='RC456',initialized=false,routeCount=0,lastRoute='',lastRouteAt=0,duplicateRoutesBlocked=0,routeBusy=false,stableRenderNav=null;
 var ITEMS=[
  {group:'Arbeit'},
  {view:'dashboard',label:'Dashboard',right:'dashboard'},
@@ -168,21 +168,21 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC455',cache:'455',loginReturn:'/?v=455'});
+var BUILD=Object.freeze({version:'RC456',cache:'456',loginReturn:'/?v=456'});
 var RELEASE=Object.freeze({
- version:'RC455',
+ version:'RC456',
  date:'05.08.2026',
- title:'Azure-Speicherung robust wiederhergestellt',
+ title:'Dashboard-Status und POD-Sicherung stabilisiert',
  changes:Object.freeze([
-  'Beim Öffnen einer gespeicherten Sendung wird unter doppelten Datensätzen immer der vollständigste Datensatz verwendet.',
-  'Adresse, Standort, Colli, Gewicht, Maße, LDM und Abholdatum werden vor der ersten Prüfung in den aktiven Entwurf übernommen.',
-  'Datumswerte bleiben auch nach Synchronisierung sichtbar im Format TT.MM.JJJJ.'
+  'Dashboard berechnet den aktuellen Sendungsstatus aus dem vollständigsten Datensatz neu.',
+  'POD-Sicherung verwirft ungültige Dateien und erzeugt QR-PODs bei vorhandener echter Unterschrift lokal als gültige PDF.',
+  'Ungültige gespeicherte Zeiträume werden auf den aktuellen Monat zurückgesetzt.'
  ]),
  tests:Object.freeze([
-  'Doppelte gespeicherte Sendung aus unvollständigem und vollständigem Datensatz auf korrekte Auswahl geprüft',
-  'Erstes Öffnen auf Adresse, Colli, Gewicht, Maße, LDM und Datum geprüft',
-  'Rückweg über Ladeliste/CMR darf keine zusätzliche Datenreparatur mehr auslösen',
-  'JavaScript-Syntax, eindeutige HTML-IDs und unveränderte Anzahl der Skript- und Styleblöcke geprüft'
+  'Dashboard-Status für Erstellt, Wartet auf ABD und Bereit zur Abholung geprüft',
+  'Datumseingabe TT.MM.JJJJ und ungültiges Altjahr geprüft',
+  'PDF-, PNG-, JPG- und WebP-Dateisignaturen sowie ungültige Serverantworten geprüft',
+  'ZIP-Struktur und JavaScript-Syntax geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -228,7 +228,7 @@ function cleanPin(value){return String(value==null?'':value).replace(/\D/g,'').s
 function publicLoader(loader){return loader?{id:loader.id,name:loader.name,active:loader.active!==false}:null}
 function findByPin(value){var pin=cleanPin(value),loader=LOADERS.find(function(item){return item.active!==false&&item.pin===pin});return publicLoader(loader)}
 window.ExportHUBLoaderPins=Object.freeze({
- version:'RC455',
+ version:'RC456',
  list:LOADERS.map(publicLoader),
  findByPin:findByPin,
  serverPinForToken:function(value){return findByPin(value)?cleanPin(value):''},
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded',install,{once:true});
 <meta content="0" http-equiv="Expires"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="no-referrer" name="referrer"/>
-<title>ExportHUB Online RC455</title>
+<title>ExportHUB Online RC456</title>
 <style>
 :root{--bg:#eef6fb;--surface:#fff;--surface2:#f7fbff;--text:#0f172a;--muted:#64748b;--line:#dbe4ef;--nav1:#051937;--nav2:#0b3b72;--blue:#2563eb;--cyan:#05b8ff;--green:#16a34a;--orange:#f97316;--red:#dc2626;--purple:#7e22ce;--yellow:#facc15;--shadow:0 18px 46px rgba(15,23,42,.10);--radius:22px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}h1,h2,h3,h4{color:#08245d;margin-top:0}.muted{color:var(--muted)}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(680px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:34px;padding:34px;box-shadow:var(--shadow);text-align:center}.logo{width:78px;height:78px;margin:auto;border-radius:25px;background:linear-gradient(135deg,var(--cyan),#a5f3fc);display:grid;place-items:center;color:#062033;font-size:28px;font-weight:1000;box-shadow:0 14px 32px rgba(5,184,255,.28)}.field{display:grid;gap:7px;margin:12px 0;text-align:left;font-weight:900;color:#334155}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:11px;background:#fff;font-weight:800}textarea{min-height:100px;resize:vertical}.btn,.ghost,.danger,.soft{border-radius:14px;padding:10px 14px;font-weight:950;cursor:pointer;min-height:40px}.btn{border:0;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;box-shadow:0 10px 22px rgba(37,99,235,.23)}.ghost{border:1px solid var(--line);background:#fff;color:#334155}.danger{border:0;background:#fee2e2;color:#991b1b}.soft{border:0;background:#eef6ff;color:#075985}.btn:hover,.ghost:hover,.soft:hover,.danger:hover{transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none!important}.app{display:grid;grid-template-columns:318px 1fr;min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;background:linear-gradient(180deg,var(--nav1),var(--nav2));color:#fff;padding:20px 16px;display:flex;flex-direction:column;gap:12px;overflow:auto}.brand{display:flex;gap:12px;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.18)}.brand .logo{width:48px;height:48px;margin:0;border-radius:16px;font-size:18px;box-shadow:none}.brand strong{display:block;font-size:19px}.brand span,.profile small{display:block;color:#cbd5e1;font-weight:800;font-size:12px}.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#dbeafe;text-align:left;border-radius:14px;padding:11px 12px;cursor:pointer;font-weight:900}.nav button:hover,.nav button.active{background:#fff;color:#08245d}.profile{margin-top:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:12px;line-height:1.35}.main{min-width:0;padding:24px 28px 48px}.topbar{display:flex;gap:12px;align-items:center;margin-bottom:20px}.search{flex:1;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;padding:11px 14px}.search input{border:0;outline:0;padding:4px}.card,.metric{background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.grid4,.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}.metric span{display:block;color:var(--muted);font-weight:950;margin-bottom:10px}.metric strong{display:block;font-size:32px}.metric.kpi-red{border-left:7px solid var(--red)}.metric.kpi-orange{border-left:7px solid var(--orange)}.metric.kpi-green{border-left:7px solid var(--green)}.metric.kpi-blue{border-left:7px solid var(--blue)}.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.page-head h2{font-size:31px;margin:0 0 8px}.page-head p{margin:0;color:var(--muted);font-weight:750;line-height:1.55;max-width:980px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;margin:3px}.blue{background:#dbeafe;color:#1d4ed8}.green{background:#dcfce7;color:#166534}.orange{background:#ffedd5;color:#9a3412}.red{background:#fee2e2;color:#991b1b}.purple{background:#f3e8ff;color:#6b21a8}.gray{background:#e2e8f0;color:#334155}.yellow{background:#fef9c3;color:#854d0e}.notice,.okbox,.badbox,.infobox{border-radius:16px;padding:13px;margin:10px 0;font-weight:770;line-height:1.5}.notice{border-left:5px solid var(--orange);background:#fff7ed}.okbox{border-left:5px solid var(--green);background:#f0fdf4}.badbox{border-left:5px solid var(--red);background:#fee2e2}.infobox{border-left:5px solid var(--blue);background:#eff6ff}.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}.table{width:100%;border-collapse:collapse}.table th{text-align:left;color:var(--muted);font-size:12px;text-transform:uppercase}.table td,.table th{padding:11px;border-bottom:1px solid var(--line);vertical-align:top}.hero{position:relative;overflow:hidden;border-radius:34px;min-height:560px;background:linear-gradient(rgba(5,20,36,.78),rgba(5,20,36,.92)),radial-gradient(circle at 22% 14%,rgba(5,184,255,.35),transparent 32%),linear-gradient(135deg,#0b2144,#0b4d76 55%,#062033);box-shadow:0 24px 60px rgba(0,0,0,.25);color:#fff;padding:42px}.hero h1{font-size:clamp(38px,5vw,68px);line-height:1.04;color:#fff;margin:0 0 20px}.hero p{max-width:980px;color:#edfaff;font-size:20px;line-height:1.65;font-weight:650}.hero h3{color:#fff}.quick-grid,.hero-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:24px}.hero-kpi,.quick-grid button{padding:20px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);color:#fff;text-align:left}.quick-grid button{cursor:pointer;background:rgba(4,20,38,.72)}.task{display:grid;grid-template-columns:115px 1fr auto;gap:10px;align-items:start;border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;margin:8px 0}.task.done{opacity:.58}.task.done h3{text-decoration:line-through}.task.high{border-left:7px solid var(--red)}.task.medium{border-left:7px solid var(--orange)}.task.low{border-left:7px solid var(--green)}.taskday{margin:18px 0}.taskday-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}.idea{border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:18px;background:#fff;padding:14px;margin:10px 0}.idea.hoch{border-left-color:var(--red)}.idea.mittel{border-left-color:var(--orange)}.idea.niedrig{border-left-color:var(--green)}.checkrow{display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff;margin:8px 0}.checkrow input{width:auto;margin-top:4px}.quiz-option{display:block;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px;margin:8px 0;cursor:pointer;font-weight:850}.quiz-option.correct{background:#dcfce7;border-color:#86efac}.quiz-option.wrong{background:#fee2e2;border-color:#fecaca}.printdoc{background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;margin-top:12px}.print-table{width:100%;border-collapse:collapse}.print-table th,.print-table td{border:1px solid #cbd5e1;padding:8px;text-align:left}.split{display:grid;grid-template-columns:360px 1fr;gap:14px}.list{display:grid;gap:8px;max-height:680px;overflow:auto}.list button{border:1px solid var(--line);background:white;border-radius:14px;padding:11px;text-align:left;font-weight:850;cursor:pointer}.list button:hover,.list button.active{background:#eff6ff;border-color:var(--blue)}.wizard-step{border:2px solid var(--blue);border-radius:22px;background:#fff;padding:24px;margin:14px 0;box-shadow:var(--shadow)}.wizard-step .num{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;background:#dbeafe;color:#08245d;font-weight:950;margin-bottom:12px}.mini-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.mini-steps button{width:auto;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;font-weight:900;cursor:pointer}.mini-steps button.done{background:#dcfce7;border-color:#86efac}.mini-steps button.active{background:#dbeafe;border-color:#3b82f6}.copybox{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;border-radius:18px;padding:16px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.55}.previewDoc{background:white;border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:14px;color:#111}.previewDoc h2{font-size:24px;color:#111}.previewDoc table{width:100%;border-collapse:collapse;margin-top:12px}.previewDoc th,.previewDoc td{border:1px solid #ccd7df;padding:7px;text-align:left}.previewDoc th{background:#eef6fb}.miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.summaryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.summaryBox{background:#f7fbff;border:1px solid var(--line);border-radius:15px;padding:10px}.summaryBox strong{display:block;font-size:20px;color:var(--blue)}.portal-link{display:block;text-decoration:none;color:var(--text);background:white;border:1px solid #bfdbfe;border-radius:14px;padding:12px;margin:8px 0}.portal-link:hover{border-color:#2563eb;box-shadow:0 8px 20px rgba(37,99,235,.12)}.nowrap{white-space:nowrap}.small{font-size:12px;color:var(--muted);font-weight:800}.print-only{display:none}
@@ -8662,7 +8662,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <div class="login-card">
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
-<div aria-label="Aktuelle Version RC455" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC455</div>
+<div aria-label="Aktuelle Version RC456" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC456</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -19146,7 +19146,7 @@ function statusPill(done,label){return '<span class="pill '+(done?'green':'orang
 function empty(text){return '<p class="muted">'+esc(text)+'</p>'}
 
 function dashboardTaskWidget(tasks){var open=tasks.filter(function(t){return !taskDone(t)}),overdue=open.filter(isTaskOverdue),today=todayISO(),todayName=weekday(today),dueToday=open.filter(function(t){var d=taskDate(t);return d===today||(!d&&low(t.day)===low(todayName))}),critical=open.slice().sort(function(a,b){var ao=isTaskOverdue(a)?0:1,bo=isTaskOverdue(b)?0:1;if(ao!==bo)return ao-bo;return (taskDate(a)||'9999').localeCompare(taskDate(b)||'9999')}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Meine Aufgaben</h3><p class="muted">Offene und überfällige Aufgaben für '+esc(userName())+'.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','noch zu erledigen')+metric('Heute',dueToday.length,'kpi-blue',todayName)+metric('Überfällig',overdue.length,'kpi-red','sofort prüfen')+'</div><div class="rc205-list">'+(critical.length?critical.map(function(t){var d=taskDate(t),ref=taskRef(t),customer=taskCustomer(t);return '<article class="rc205-row"><div><b>'+esc(taskTitle(t))+'</b><small>'+(d?esc(fmtDate(d,true)):esc(t.day||'Ohne Datum'))+(ref?' · '+esc(ref):'')+(customer?' · '+esc(customer):'')+'</small></div>'+statusPill(false,isTaskOverdue(t)?'Überfällig':'Offen')+'</article>'}).join(''):empty('Keine offenen Aufgaben.'))+'</div></section>'}
-function dashboardShipmentTruth(sh){try{if(window.ExportHUBShipmentTruth&&typeof window.ExportHUBShipmentTruth.get==='function')return window.ExportHUBShipmentTruth.get(sh)}catch(_){}var raw=low(sh&&(sh.status||sh.podStatus||sh.pickupStatus||sh.processStatus)||'Offen'),label=q(sh&&(sh.status||sh.podStatus||sh.pickupStatus||sh.processStatus)||'Offen')||'Offen',key='offen';if(/storn|cancel/.test(raw))key='storniert';else if(/nachbearbeit|rework/.test(raw))key='nachbearbeitung';else if(/archiv|abgeschlossen|completed|erledigt/.test(raw))key='abgeschlossen';else if(/pod/.test(raw))key='pod';else if(/abgeholt|picked/.test(raw))key='abgeholt';else if(/bereit.*abhol|ready.*pickup/.test(raw))key='bereit';else if(/wartet.*abd|abd.*wart/.test(raw))key='wartetabd';else if(/erstellt|created/.test(raw))key='erstellt';else if(/entwurf|draft/.test(raw))key='entwurf';return{label:label,key:key}}
+function dashboardShipmentTruth(sh){var calculated='';try{if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.recalculate==='function')calculated=q(window.ExportHUBMailStatus373.recalculate(sh))}catch(_){}try{if(window.ExportHUBShipmentTruth&&typeof window.ExportHUBShipmentTruth.get==='function')return window.ExportHUBShipmentTruth.get(sh)}catch(_){}var value=calculated||q(sh&&(sh.status||sh.processStatus||sh.podStatus||sh.pickupStatus)||'Offen'),raw=low(value),label=value||'Offen',key='offen';if(/storn|cancel/.test(raw))key='storniert';else if(/nachbearbeit|rework/.test(raw))key='nachbearbeitung';else if(/archiv|abgeschlossen|completed|erledigt/.test(raw))key='abgeschlossen';else if(/pod/.test(raw))key='pod';else if(/abgeholt|picked/.test(raw))key='abgeholt';else if(/bereit.*abhol|ready.*pickup/.test(raw))key='bereit';else if(/wartet.*abd|abd.*wart/.test(raw))key='wartetabd';else if(/erstellt|created/.test(raw))key='erstellt';else if(/entwurf|draft/.test(raw))key='entwurf';return{label:label,key:key}}
 function dashboardTodayShipmentsWidget(shipments){var today=todayISO(),items=shipments.filter(function(sh){return shipmentPickup(sh)===today}).sort(function(a,b){return shipmentRef(a).localeCompare(shipmentRef(b),'de')});return '<section class="card rc205-widget rc255-today-widget"><div class="rc255-today-head"><div><h3>Heute geplante Sendungen</h3><p class="muted">'+esc(fmtDate(today,true))+' · Referenz, Kunde und aktueller Status</p></div><span class="pill blue">'+items.length+'</span></div><div class="rc255-today-grid">'+(items.length?items.map(function(sh){var t=dashboardShipmentTruth(sh),id=directShipmentId(sh);return '<button type="button" class="rc255-today-tile rc255-status-'+esc(t.key)+'" data-rc205-action="direct-open" data-entity-type="shipment" data-entity-id="'+esc(id)+'"><b>'+esc(shipmentRef(sh)||id||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(sh)||'Ohne Kundenname')+'</small><span class="rc255-today-status">'+esc(t.label)+'</span></button>'}).join(''):empty('Für heute sind keine Sendungen eingeplant.'))+'</div></section>'}
 function dashboardShipmentWidget(shipments){var open=shipments.filter(function(s){return !shipmentDone(s)}),today=todayISO(),overdue=open.filter(function(s){var d=shipmentPickup(s);return d&&d<today}),next=open.filter(function(s){return shipmentPickup(s)}).sort(function(a,b){return shipmentPickup(a).localeCompare(shipmentPickup(b))}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Sendungen und Abholungen</h3><p class="muted">Aktive Sendungen mit den nächsten Abholterminen.</p></div><button class="ghost" data-rc205-action="navigate" data-view="shipmentoverview">Übersicht öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offene Sendungen',open.length,'kpi-orange','nicht abgeschlossen')+metric('Abholung überfällig',overdue.length,'kpi-red','Termin überschritten')+metric('Gesamt',shipments.length,'kpi-blue','gespeicherte Sendungen')+'</div><div class="rc205-list">'+(next.length?next.map(function(s){var d=shipmentPickup(s);return '<article class="rc205-row"><div><b>'+esc(shipmentRef(s)||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(s)||'Ohne Kunde')+' · Abholung '+esc(fmtDate(d,true))+'</small></div>'+statusPill(false,d<today?'Überfällig':'Geplant')+'</article>'}).join(''):empty('Keine geplanten Abholungen vorhanden.'))+'</div></section>'}
 function dashboardAbdWidget(items){var open=items.filter(function(a){return !abdDone(a)}),done=items.length-open.length;return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>ABD-Anfragen</h3><p class="muted">Offene Anfragen und fertige ABD-Dokumente.</p></div><button class="ghost" data-rc205-action="navigate" data-view="abd">ABD öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','wartet auf Bearbeitung')+metric('Erledigt',done,'kpi-green','ABD-PDF vorhanden')+metric('Gesamt',items.length,'kpi-blue','gespeicherte Anfragen')+'</div><div class="rc205-list">'+(open.length?open.slice(0,8).map(function(a){return '<article class="rc205-row"><div><b>'+esc(a.ref||a.reference||'Ohne Referenz')+'</b><small>'+esc(a.customerName||'Ohne Kunde')+' · '+esc(a.status||'Entwurf')+'</small></div>'+statusPill(false,'Offen')+'</article>'}).join(''):empty('Keine offenen ABD-Anfragen.'))+'</div></section>'}
@@ -19763,7 +19763,7 @@ window.ExportHUBIndex236=Object.freeze({version:VERSION,open:openView,check:chec
 'use strict';
 if(window.__EXPORTHUB_RC352_DOCUMENT_OUTPUT_OWNER__)return;
 window.__EXPORTHUB_RC352_DOCUMENT_OUTPUT_OWNER__=true;
-var BUILD=window.EXPORTHUB_BUILD||{version:'RC455',cache:'455'},VERSION=String(BUILD.version||'RC455'),CACHE=String(BUILD.cache||'451'),opening=false,lastOpened='',activeDoc='load1',printBusy=false,pdfBusy=false;
+var BUILD=window.EXPORTHUB_BUILD||{version:'RC456',cache:'456'},VERSION=String(BUILD.version||'RC456'),CACHE=String(BUILD.cache||'456'),opening=false,lastOpened='',activeDoc='load1',printBusy=false,pdfBusy=false;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -19868,7 +19868,7 @@ async function openDocuments(id){if(opening)return false;opening=true;try{var sh
 function currentOrHub(){var sh=currentSaved();return sh?openDocuments(sid(sh)||sref(sh)):openHub(true)}
 function installAliases(){var aliases={rc390ShowDocuments:openHub,showCurrentCmr:currentOrHub,rc524OpenDocuments:openDocuments,showSavedCmr:openDocuments,rc453ShowSavedCmr:openDocuments,rc572OpenDocuments:openDocuments,rc588OpenDocumentHub:openHub,rc588OpenDocuments:openDocuments,rc590OpenDocumentHub:openHub,rc590OpenDocuments:openDocuments,rc221OpenCurrentShipmentDocuments:currentOrHub,rc390PrintDocuments:function(){return printDocuments('all')},rc390DownloadLoadlistPdf:function(){return downloadDocument('load1')},rc390DownloadLoadlistPage2Pdf:function(){return downloadDocument('load2')}};Object.keys(aliases).forEach(function(k){try{window[k]=aliases[k]}catch(_){}})}
 function boot(){installAliases();if(low((states()[0]||{}).view)==='cmr'&&!document.getElementById('rc576DocumentHub'))currentOrHub()}
-var API=Object.freeze({version:VERSION,shipments:shipments,find:find,openHub:openHub,openDocuments:openDocuments,currentOrHub:currentOrHub,routeShipment:routeShipment,patchSelector:patchSelector,select:selectDocument,print:printDocuments,download:downloadDocument,downloadPod:downloadPod,syncPod:syncPod,routeOverview:routeOverview,decorate:decorateDocument,selfTest:function(){var d=docMap(document);return{version:VERSION,shipments:shipments().length,selector:!!document.getElementById('rc576ShipmentSelect'),canonicalHub:!!document.getElementById('rc576DocumentHub'),owner:q((document.getElementById('rc576DocumentHub')||{}).getAttribute&&document.getElementById('rc576DocumentHub').getAttribute('data-index352-owner')),fingerprint:q((document.getElementById('rc576DocumentHub')||{}).getAttribute&&document.getElementById('rc576DocumentHub').getAttribute('data-index352-fingerprint')),cover:!!(d&&d.cover),load1:!!(d&&d.load1),load2:!!(d&&d.load2),cmr:d?d.cmrs.length:0,actions:document.querySelectorAll('#rc576DocumentActions button').length,tabs:document.querySelectorAll('#rc576DocumentTabs button').length,lastOpened:lastOpened,cache:CACHE,noObserver:true,noRenderEvents:true,pdfIsolated:true}}});
+var API=Object.freeze({version:VERSION,shipments:shipments,find:find,openHub:openHub,openDocuments:openDocuments,currentOrHub:currentOrHub,routeShipment:routeShipment,patchSelector:patchSelector,select:selectDocument,print:printDocuments,download:downloadDocument,downloadPod:downloadPod,syncPod:syncPod,createPodBlob:async function(sh){if(!sh)throw new Error('Sendung fehlt.');var out=await createPdf('pod',sh);return{blob:out.blob,name:fileName('pod',sh),pages:out.pages}},routeOverview:routeOverview,decorate:decorateDocument,selfTest:function(){var d=docMap(document);return{version:VERSION,shipments:shipments().length,selector:!!document.getElementById('rc576ShipmentSelect'),canonicalHub:!!document.getElementById('rc576DocumentHub'),owner:q((document.getElementById('rc576DocumentHub')||{}).getAttribute&&document.getElementById('rc576DocumentHub').getAttribute('data-index352-owner')),fingerprint:q((document.getElementById('rc576DocumentHub')||{}).getAttribute&&document.getElementById('rc576DocumentHub').getAttribute('data-index352-fingerprint')),cover:!!(d&&d.cover),load1:!!(d&&d.load1),load2:!!(d&&d.load2),cmr:d?d.cmrs.length:0,actions:document.querySelectorAll('#rc576DocumentActions button').length,tabs:document.querySelectorAll('#rc576DocumentTabs button').length,lastOpened:lastOpened,cache:CACHE,noObserver:true,noRenderEvents:true,pdfIsolated:true}}});
 try{Object.defineProperty(window,'ExportHUBIndex240',{configurable:false,get:function(){return API},set:function(){}})}catch(_){window.ExportHUBIndex240=API}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 window.dispatchEvent(new CustomEvent('exporthub:documents-ready'));
@@ -20131,8 +20131,8 @@ function subjectLike(v){var s=removeEmails(v);return !!s&&(/\|/.test(s)||/betref
 function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.uuid||sh.ref||sh.reference))}
 function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id)).toUpperCase()}
 function skey(sh){return(sid(sh)||sref(sh)).toUpperCase()}
-function shipmentGroups(){var out=[];states().forEach(function(st){if(arr(st.shipments).length)out.push(st.shipments);['shipment','currentShipment','selectedShipment'].forEach(function(n){if(obj(st[n]))out.push([st[n]])})});return out}
-function allShipments(){var map={};shipmentGroups().forEach(function(list){list.forEach(function(sh){var k=skey(sh);if(k&&!map[k])map[k]=sh})});return Object.keys(map).map(function(k){return map[k]})}
+function shipmentGroups(){var out=[];states().forEach(function(st){if(arr(st.shipments).length)out.push(st.shipments);if(arr(st.savedShipments).length)out.push(st.savedShipments);['shipment','currentShipment','selectedShipment'].forEach(function(n){if(obj(st[n]))out.push([st[n]])})});return out}
+function allShipments(){var map={};shipmentGroups().forEach(function(list){list.forEach(function(sh){var k=skey(sh);if(!k)return;if(!map[k]||shipmentScore(sh)>shipmentScore(map[k]))map[k]=sh})});return Object.keys(map).map(function(k){return map[k]})}
 function allCustomers(){var map={};states().forEach(function(st){arr(st.customers).forEach(function(c){var k=q(c&&(c.id||c.account||c.customerNumber||c.kundennummer||c.name)).toUpperCase();if(k&&!map[k])map[k]=c})});return Object.keys(map).map(function(k){return map[k]})}
 function findCustomer(v){var k=q(v).toUpperCase();return allCustomers().find(function(c){return[c.id,c.account,c.customerNumber,c.kundennummer,c.name].some(function(x){return q(x).toUpperCase()===k})})||null}
 function shipmentScore(sh){if(!sh)return-1;var n=0;n+=arr(sh.deliveryFiles).length*8+nq(sh.deliveryNote||sh.deliveryNotes||sh.dncNumber)*3;n+=arr(sh.generatedDocuments).length*5+nq(sh.pickupToken||sh.qrToken||sh.pickupQrToken)*6;n+=arr(sh.mailHistory).length*4+(obj(sh.mailCurrent)?Object.keys(sh.mailCurrent).length*5:0);n+=q(sh.status)?2:0;n+=arr(sh.rows).length;return n}
@@ -20219,10 +20219,11 @@ var ranks={'Entwurf':0,'Erstellt':10,'Wartet auf ABD':15,'Bereit zur Abholung':2
 function label(v){var s=low(v);if(/archiv/.test(s))return'Archiviert';if(/storn|cancel/.test(s))return'Storniert';if(/nachbearbeit|erneut prufen/.test(s))return'Nachbearbeitung erforderlich';if(/abgeschlossen|completed|erledigt/.test(s))return'Abgeschlossen';if(/pod/.test(s))return'POD vorhanden';if(/abgeholt|picked/.test(s))return'Abgeholt';if(/bereit.*abhol|ready.*pickup/.test(s))return'Bereit zur Abholung';if(/wartet.*abd|abd.*wart/.test(s))return'Wartet auf ABD';if(/erstellt|created/.test(s))return'Erstellt';return'Entwurf'}
 function rank(v){return ranks[label(v)]==null?0:ranks[label(v)]}
 function computeStatus(sh){
- var current=label(sh&&sh.status),c=customerFor(sh);if(sh&&sh.archived===true||current==='Archiviert')return'Archiviert';if(sh&&(sh.cancelled===true||sh.storniert===true)||current==='Storniert')return'Storniert';if(/erneut prufen|nachbearbeitung/.test(low(sh&&sh.abdStatus)))return'Nachbearbeitung erforderlich';
- var picked=pickupDone(sh),pod=podDone(sh),documentsDone=printDone(sh),mailComplete=mailDone(sh,c),abdComplete=abdDone(sh),ready=documentsDone&&mailComplete&&abdComplete,palletComplete=palletDone(sh),mandatoryComplete=noOpenMandatory(sh),complete=pod&&ready&&palletComplete&&mandatoryComplete;
- /* Der Status bildet immer den aktuell belegbaren Prozessstand ab. Entfernte Pflichtnachweise dürfen keinen alten höheren Status stehen lassen. */
- return complete?'Abgeschlossen':pod?'POD vorhanden':picked?'Abgeholt':sh&&sh.abdRequired&&!abdComplete&&persisted(sh)?'Wartet auf ABD':ready?'Bereit zur Abholung':persisted(sh)?'Erstellt':'Entwurf'
+ var copies=shipmentCopies(sh),current=label(sh&&sh.status),c=customerFor(sh),archived=copies.some(function(x){return x&&x.archived===true||label(x&&x.status)==='Archiviert'}),cancelled=copies.some(function(x){return x&&(x.cancelled===true||x.storniert===true)||label(x&&x.status)==='Storniert'}),rework=copies.some(function(x){return /erneut prufen|nachbearbeitung/.test(low(x&&x.abdStatus))});
+ if(archived||current==='Archiviert')return'Archiviert';if(cancelled||current==='Storniert')return'Storniert';if(rework)return'Nachbearbeitung erforderlich';
+ var picked=copies.some(pickupDone),pod=copies.some(podDone),documentsDone=copies.some(printDone),mailComplete=mailDone(sh,c),abdRequired=copies.some(function(x){return x&&x.abdRequired===true}),abdComplete=!abdRequired||copies.some(function(x){return x&&x.abdRequired===true&&abdDone(x)}),ready=documentsDone&&mailComplete&&abdComplete,palletComplete=palletDone(sh),mandatoryComplete=noOpenMandatory(sh),complete=pod&&ready&&palletComplete&&mandatoryComplete;
+ /* Der Status wird aus allen vorhandenen Kopien derselben Sendung berechnet. */
+ return complete?'Abgeschlossen':pod?'POD vorhanden':picked?'Abgeholt':abdRequired&&!abdComplete&&persisted(sh)?'Wartet auf ABD':ready?'Bereit zur Abholung':persisted(sh)?'Erstellt':'Entwurf'
 }
 function syncStatus(sh,next){var k=skey(sh),changed=false,stamp=new Date().toISOString();shipmentGroups().forEach(function(list){list.forEach(function(x){if(skey(x)!==k)return;if(q(x.status)!==next){x.status=next;changed=true}if(q(x.processStatus)!==next){x.processStatus=next;changed=true}if(next==='Bereit zur Abholung'){x.readyForPickup=true;x.readinessStatus=next}if(next==='Abgeholt'){x.pickupStatus='abgeholt'}if(next==='POD vorhanden'||next==='Abgeschlossen'){x.pickupStatus='abgeholt';x.podStatus='POD vorhanden';x.podConfirmed=true;x.podScanConfirmed=true}if(changed)x.statusUpdatedAt=stamp})});return changed}
 function enforceStatus(sh,force){if(!sh)return false;var before=label(sh.status),next=computeStatus(sh),changed=syncStatus(sh,next);if(changed){sh.statusHistory=arr(sh.statusHistory);sh.statusHistory.push({at:new Date().toISOString(),from:before,to:next,source:'Zentrale Prozessstatus-Aktualisierung'});if(sh.statusHistory.length>100)sh.statusHistory=sh.statusHistory.slice(-100);if(force)persist('Sendungsstatus auf '+next+' aktualisiert')}return changed}
@@ -20243,7 +20244,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){schedule('Aktualisierung nach '+name,20)})});
 ['exporthub:task-updated','exporthub:tasks-updated','exporthub:status-updated','exporthub:pickup-updated'].forEach(function(name){window.addEventListener(name,function(){schedule('Prozessstatus nach '+name,10)})});
 document.addEventListener('change',function(e){var t=e.target;if(t&&(/task|status|erledigt/i.test(q(t.id)+' '+q(t.name)+' '+q(t.className))))[10,120].forEach(function(ms){setTimeout(function(){patch('Aufgabe oder Prozessschritt geändert')},ms)})},true);
-window.ExportHUBMailStatus373=Object.freeze({version:VERSION,patch:patch,prepareMail:prepareMailFields,openMail:openMail,confirmMail:confirmMail,recalculate:function(sh){return enforceStatus(sh||currentShipment(),true)},selfTest:function(){var c={name:'Testkunde',customerEmail:'kunde@test.de',carrierEmail:'sped@test.de',salesMail:'sales@test.de',cc:'Testkunde | ABC123 | Avisierung erforderlich; copy@test.de'},sh={id:'ABC123',ref:'ABC123',customerId:'C1',status:'Erstellt',mailCurrent:{},printStatus:{complete:true},deliveryFiles:[{name:'LS.pdf'}],abdRequired:false};var old=allCustomers;sanitizeCustomer(c);var rec=buildRecipients(sh,c,'customer','');sh.mailCurrent.customer={confirmedAt:new Date().toISOString()};var status=computeStatus(sh);return{version:VERSION,cc:c.cc,subjectNotInCc:removeEmails(c.cc)==='',to:rec.to,ccRecipients:rec.cc,containsSales:rec.cc.some(function(x){return /sales@/i.test(x)}),containsDaniel:rec.cc.some(function(x){return /danielollmann@/i.test(x)}),statusAfterSteps:status}}});
+window.ExportHUBMailStatus373=Object.freeze({version:VERSION,patch:patch,prepareMail:prepareMailFields,openMail:openMail,confirmMail:confirmMail,recalculate:function(sh){var key=sh&&skey(sh),target=(key&&allShipments().filter(function(x){return skey(x)===key}).sort(function(a,b){return shipmentScore(b)-shipmentScore(a)})[0])||sh||currentShipment();if(!target)return'Entwurf';enforceStatus(target,true);return label(target.status)},selfTest:function(){var c={name:'Testkunde',customerEmail:'kunde@test.de',carrierEmail:'sped@test.de',salesMail:'sales@test.de',cc:'Testkunde | ABC123 | Avisierung erforderlich; copy@test.de'},sh={id:'ABC123',ref:'ABC123',customerId:'C1',status:'Erstellt',mailCurrent:{},printStatus:{complete:true},deliveryFiles:[{name:'LS.pdf'}],abdRequired:false};var old=allCustomers;sanitizeCustomer(c);var rec=buildRecipients(sh,c,'customer','');sh.mailCurrent.customer={confirmedAt:new Date().toISOString()};var status=computeStatus(sh);return{version:VERSION,cc:c.cc,subjectNotInCc:removeEmails(c.cc)==='',to:rec.to,ccRecipients:rec.cc,containsSales:rec.cc.some(function(x){return /sales@/i.test(x)}),containsDaniel:rec.cc.some(function(x){return /danielollmann@/i.test(x)}),statusAfterSteps:status}}});
 })();
 
 </script>
@@ -20700,7 +20701,7 @@ document.addEventListener('focusout',function(e){if(e.target&&kindOf(e.target))s
 document.addEventListener('focusin',function(e){if(e.target&&kindOf(e.target))prepare(e.target)},true);
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,patch)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',patch,{once:true});else patch();
-window.ExportHUBPickupDate373=Object.freeze({version:'RC455',patch:patch,sync:sync,mask:mask,iso:iso,display:display,diagnostics:function(){return{inputs:dateInputs().length,values:dateInputs().map(function(el){return el.value}),format:'TT.MM.JJJJ',noObserver:true,noInterval:true}}});
+window.ExportHUBPickupDate373=Object.freeze({version:'RC456',patch:patch,sync:sync,mask:mask,iso:iso,display:display,diagnostics:function(){return{inputs:dateInputs().length,values:dateInputs().map(function(el){return el.value}),format:'TT.MM.JJJJ',noObserver:true,noInterval:true}}});
 })();
 </script>
 
@@ -20892,7 +20893,7 @@ window.ExportHUBPickupDate373=Object.freeze({version:'RC455',patch:patch,sync:sy
 if(window.__EXPORTHUB_RC374_SHIPMENT_OWNER__)return;
 window.__EXPORTHUB_RC374_SHIPMENT_OWNER__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC455',installed=false,busy=false,baseSave=null,weightIndex=-1,patchTimer=0,processRetryTimer=0,processRetryCount=0,qrPromise=null,editSaveTimer=0,editSaveReason='',remoteMergeTimer=0,remoteMergePending=false,localFieldDraft={},localFieldDraftShipment='',localRowsDirty=false,localCustomerDirty=false,fullPatchPending=false,deferredPatchTimer=0,editingCustomerLock=null,customerChangeColliLock=null,lockSyncPromise=null,lastLockCheckAt=0,lastLockAlertAt=0;
+var VERSION='RC456',installed=false,busy=false,baseSave=null,weightIndex=-1,patchTimer=0,processRetryTimer=0,processRetryCount=0,qrPromise=null,editSaveTimer=0,editSaveReason='',remoteMergeTimer=0,remoteMergePending=false,localFieldDraft={},localFieldDraftShipment='',localRowsDirty=false,localCustomerDirty=false,fullPatchPending=false,deferredPatchTimer=0,editingCustomerLock=null,customerChangeColliLock=null,lockSyncPromise=null,lastLockCheckAt=0,lastLockAlertAt=0;
 var PACK=[{name:'Einweg Palette',ldm:0.4,l:120,w:80,h:110},{name:'Euro Palette',ldm:0.4,l:120,w:80,h:110},{name:'Gestapelte Einweg Palette',ldm:0.2,l:120,w:80,h:220},{name:'Gestapelte Euro Palette',ldm:0.2,l:120,w:80,h:220},{name:'Gestapelte Industrie Palette',ldm:0.25,l:120,w:100,h:220},{name:'Industrie Palette',ldm:0.5,l:120,w:100,h:110},{name:'Paletten gestell',ldm:0.45,l:120,w:90,h:200},{name:'Holzbox',ldm:0.6,l:'',w:'',h:''},{name:'Düsseldorfer Palette',ldm:0.2,l:80,w:60,h:60},{name:'E0',ldm:0.03,l:30,w:20,h:11},{name:'E1',ldm:0.03,l:39,w:20,h:20},{name:'E2',ldm:0.06,l:46,w:33,h:16},{name:'E3',ldm:0.06,l:43,w:31,h:31},{name:'E4',ldm:0.12,l:66,w:45,h:32},{name:'E5',ldm:0.12,l:66,w:45,h:43},{name:'Umschlag',ldm:0,l:15,w:5,h:1},{name:'E6',ldm:0.0156,l:25,w:15,h:5}];
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}function arr(v){return Array.isArray(v)?v:[]}function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return Object.assign({},v||{})}}function num(v){var x=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(x)?x:0}function round(v){return Math.round((num(v)+Number.EPSILON)*100)/100}
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function'){var s=window.__EXPORTHUB_GET_STATE__();if(s)return s}}catch(_){}return window.state||(window.state={})}function shipment(){var s=state();s.shipment=s.shipment||{};s.shipment.rows=arr(s.shipment.rows);return s.shipment}function root(){return document.getElementById('content')}
@@ -21393,10 +21394,10 @@ window.ExportHUBRC409MobileNav=Object.freeze({version:'RC418',patch:patch,close:
 <script id="rc455-pod-backup-controller">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC455_POD_BACKUP__)return;
-window.__EXPORTHUB_RC455_POD_BACKUP__=true;
+if(window.__EXPORTHUB_RC456_POD_BACKUP__)return;
+window.__EXPORTHUB_RC456_POD_BACKUP__=true;
 
-var VERSION='RC455',lastServerSync=0,syncPromise=null;
+var VERSION='RC456',lastServerSync=0,syncPromise=null;
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -21405,11 +21406,15 @@ function safe(v){return q(v).replace(/[<>:"/\\|?*\x00-\x1f]+/g,'_').replace(/\s+
 function clone(v){try{return structuredClone(v)}catch(_){try{return JSON.parse(JSON.stringify(v))}catch(__){return Object.assign({},v||{})}}}
 function iso(v){
  if(!v)return'';
- var s=q(v),m;
- if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
- m=/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/.exec(s);
- if(m)return m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
- var d=new Date(v);return isNaN(d)?'':d.toISOString().slice(0,10)
+ var s=q(v),m,y,mo,d,out,date;
+ if((m=/^(20\d{2})-(\d{2})-(\d{2})(?:[T\s].*)?$/.exec(s))){y=Number(m[1]);mo=Number(m[2]);d=Number(m[3])}
+ else if((m=/^(\d{1,2})[.\/-](\d{1,2})[.\/-](20\d{2})$/.exec(s))){d=Number(m[1]);mo=Number(m[2]);y=Number(m[3])}
+ else if((m=/^(\d{2})(\d{2})(20\d{2})$/.exec(s))){d=Number(m[1]);mo=Number(m[2]);y=Number(m[3])}
+ else return'';
+ date=new Date(y,mo-1,d);
+ if(date.getFullYear()!==y||date.getMonth()!==mo-1||date.getDate()!==d)return'';
+ out=String(y).padStart(4,'0')+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+ return out
 }
 function displayDate(v){var x=iso(v),m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(x);return m?m[3]+'.'+m[2]+'.'+m[1]:''}
 function maskDate(v){var d=q(v).replace(/\D/g,'').slice(0,8);return d.slice(0,2)+(d.length>2?'.'+d.slice(2,4):'')+(d.length>4?'.'+d.slice(4,8):'')}
@@ -21519,20 +21524,38 @@ async function syncServer(force){
  return syncPromise
 }
 function open(){
- var m=modal(),d=dateDefaults(),f=m.querySelector('#rc422PodFrom'),t=m.querySelector('#rc422PodTo'),from=d.from,to=d.to;
- try{from=localStorage.getItem('exporthub-pod-backup-from')||from;to=localStorage.getItem('exporthub-pod-backup-to')||to}catch(_){}
+ var m=modal(),d=dateDefaults(),f=m.querySelector('#rc422PodFrom'),t=m.querySelector('#rc422PodTo'),from=d.from,to=d.to,storedFrom='',storedTo='';
+ try{storedFrom=localStorage.getItem('exporthub-pod-backup-from')||'';storedTo=localStorage.getItem('exporthub-pod-backup-to')||''}catch(_){}
+ from=iso(storedFrom)||d.from;to=iso(storedTo)||d.to;if(from>to){from=d.from;to=d.to}
  f.value=displayDate(from);t.value=displayDate(to);m.hidden=false;document.body.style.overflow='hidden';update();syncServer(true)
 }
 function close(){var m=document.getElementById('rc422PodBackupModal');if(m)m.hidden=true;document.body.style.removeProperty('overflow')}
 function dataUrlBytes(url){var p=url.indexOf(','),meta=url.slice(0,p),raw=url.slice(p+1),bin=/;base64/i.test(meta)?atob(raw):decodeURIComponent(raw),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i)&255;return a}
+function fileFormat(bytes){if(!bytes||bytes.length<4)return'';if(bytes[0]===0x25&&bytes[1]===0x50&&bytes[2]===0x44&&bytes[3]===0x46&&bytes[4]===0x2d)return'pdf';if(bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4e&&bytes[3]===0x47)return'png';if(bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff)return'jpg';if(bytes.length>11&&bytes[0]===0x52&&bytes[1]===0x49&&bytes[2]===0x46&&bytes[3]===0x46&&bytes[8]===0x57&&bytes[9]===0x45&&bytes[10]===0x42&&bytes[11]===0x50)return'webp';return''}
+function bytesBase64(bytes){var out='',size=0x8000;for(var i=0;i<bytes.length;i+=size)out+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+size,bytes.length)));return btoa(out)}
+function applyInlineSignature(sh,dataUrl){if(!sh||!/^data:image\/(?:png|jpe?g|webp);base64,/i.test(dataUrl))return false;var k=key(sh);roots().forEach(function(st){arr(st.shipments).concat(arr(st.savedShipments)).forEach(function(x){if(key(x)===k){x.pickupDriverSignature=dataUrl;x.driverSignature=dataUrl;x.signatureDataUrl=dataUrl;x.signatureAvailable=true;x.driverSignatureAvailable=true}});['shipment','currentShipment','selectedShipment'].forEach(function(n){var x=st[n];if(obj(x)&&key(x)===k){x.pickupDriverSignature=dataUrl;x.driverSignature=dataUrl;x.signatureDataUrl=dataUrl;x.signatureAvailable=true;x.driverSignatureAvailable=true}})});sh.pickupDriverSignature=dataUrl;sh.driverSignature=dataUrl;sh.signatureDataUrl=dataUrl;return true}
+async function ensureInlineSignature(sh){
+ var api=window.ExportHUBPickupPOD,proof=api&&typeof api.proof==='function'?api.proof(sh):{},inline=q(proof.signature||sh&&[sh.pickupDriverSignature,sh.driverSignature,sh.signatureDataUrl,sh.pickupSignature].find(Boolean));
+ if(/^data:image\/(?:png|jpe?g|webp);base64,/i.test(inline))return true;
+ var urls=[proof.signatureUrl,sh&&sh.pickupDriverSignatureUrl,sh&&sh.driverSignatureUrl,sh&&sh.pickupSignatureUrl,sh&&sh.signatureUrl].map(q).filter(Boolean);
+ for(var i=0;i<urls.length;i++){try{var r=await fetch(urls[i],{credentials:'same-origin',cache:'no-store',headers:{Accept:'image/png,image/jpeg,image/webp'}});if(!r.ok)continue;var bytes=new Uint8Array(await r.arrayBuffer()),ext=fileFormat(bytes);if(!/^(png|jpg|webp)$/.test(ext))continue;var mime=ext==='jpg'?'image/jpeg':'image/'+ext;if(applyInlineSignature(sh,'data:'+mime+';base64,'+bytesBase64(bytes)))return true}catch(_){}}
+ return false
+}
 async function load(src){
- if(/^data:/i.test(src.url))return dataUrlBytes(src.url);
- var r=await fetch(src.url,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf,image/png,image/jpeg,image/webp,*/*'}}),ct=low(r.headers&&r.headers.get&&r.headers.get('content-type'));
- if(!r.ok)throw new Error('HTTP '+r.status);
- var bytes=new Uint8Array(await r.arrayBuffer());
- if(!bytes.length)throw new Error('Leere Datei');
- if(/application\/json|text\/html|text\/plain/.test(ct)&&!/application\/pdf/.test(ct))throw new Error('Server lieferte keine POD-Datei ('+(ct||'unbekannter Inhalt')+')');
- return bytes
+ var bytes,ct='';
+ if(/^data:/i.test(src.url))bytes=dataUrlBytes(src.url);
+ else{var r=await fetch(src.url,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf,image/png,image/jpeg,image/webp,*/*'}});ct=low(r.headers&&r.headers.get&&r.headers.get('content-type'));if(!r.ok)throw new Error('HTTP '+r.status);bytes=new Uint8Array(await r.arrayBuffer());if(/application\/json|text\/html|text\/plain/.test(ct)&&!/application\/pdf/.test(ct))throw new Error('Server lieferte keine POD-Datei ('+(ct||'unbekannter Inhalt')+')')}
+ if(!bytes||!bytes.length)throw new Error('Leere Datei');
+ var ext=fileFormat(bytes);if(!ext)throw new Error('Ungültige oder nicht lesbare POD-Datei');
+ return{bytes:bytes,ext:ext}
+}
+function qrSource(src){return /qr|pickup|signed-loadlist|unterschrieben|ladeliste.*unterschrift/.test(low([src&&src.kind,src&&src.name,src&&src.url].join(' ')))}
+async function localSignedPod(sh){
+ if(!await ensureInlineSignature(sh))throw new Error('Digitale Unterschrift ist nicht als Bild verfügbar');
+ var api=window.ExportHUBIndex240;if(!api||typeof api.createPodBlob!=='function')throw new Error('Lokale POD-Erstellung ist nicht verfügbar');
+ var out=await api.createPodBlob(sh),bytes=new Uint8Array(await out.blob.arrayBuffer()),ext=fileFormat(bytes);
+ if(ext!=='pdf')throw new Error('Lokal erzeugter POD ist keine gültige PDF-Datei');
+ return{bytes:bytes,ext:'pdf',name:q(out.name)||('POD_'+ref(sh)+'_Ladeliste_mit_Unterschrift.pdf')}
 }
 var crcTable=null;
 function crc32(data){if(!crcTable){crcTable=new Uint32Array(256);for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;crcTable[n]=c>>>0}}var c=0xffffffff;for(var i=0;i<data.length;i++)c=crcTable[(c^data[i])&255]^(c>>>8);return(c^0xffffffff)>>>0}
@@ -21547,18 +21570,29 @@ async function downloadAll(){
  await syncServer(false);
  var x=update(),m=modal(),btn=m.querySelector('#rc422PodDownload'),status=m.querySelector('#rc422PodStatus'),bar=m.querySelector('#rc422PodProgress');
  if(x.error||!x.jobs.length)return false;
- btn.disabled=true;bar.style.width='0%';var entries=[],fail=[];
+ btn.disabled=true;bar.style.width='0%';var entries=[],fail=[],localDone={};
  for(var i=0;i<x.jobs.length;i++){
-  var job=x.jobs[i];status.className='rc422-pod-status';status.textContent='POD '+(i+1)+' von '+x.jobs.length+' wird geladen: '+ref(job.sh);bar.style.width=Math.round((i/x.jobs.length)*100)+'%';
-  try{var bytes=await load(job.src),ext=extension(job.src),base=q(job.src.name).replace(/\.[^.]+$/,'')||'POD';entries.push({name:safe(podDate(job.sh)+'_'+ref(job.sh)+'_'+base)+'.'+ext,data:bytes})}
-  catch(e){fail.push(ref(job.sh)+' · '+job.src.name+' · '+q(e&&e.message||e))}
+  var job=x.jobs[i],shipmentKey=key(job.sh);status.className='rc422-pod-status';status.textContent='POD '+(i+1)+' von '+x.jobs.length+' wird geprüft: '+ref(job.sh);bar.style.width=Math.round((i/x.jobs.length)*100)+'%';
+  if(localDone[shipmentKey]&&qrSource(job.src))continue;
+  try{
+   var loaded=await load(job.src),base=q(job.src.name).replace(/\.[^.]+$/,'')||'POD';
+   entries.push({name:safe(podDate(job.sh)+'_'+ref(job.sh)+'_'+base)+'.'+loaded.ext,data:loaded.bytes})
+  }catch(first){
+   if(qrSource(job.src)&&!localDone[shipmentKey]){
+    try{var generated=await localSignedPod(job.sh),generatedBase=q(generated.name).replace(/\.[^.]+$/,'')||('POD_'+ref(job.sh));entries.push({name:safe(podDate(job.sh)+'_'+ref(job.sh)+'_'+generatedBase)+'.pdf',data:generated.bytes});localDone[shipmentKey]=true;continue}
+    catch(second){fail.push(ref(job.sh)+' · '+job.src.name+' · '+q(first&&first.message||first)+'; lokale Erstellung: '+q(second&&second.message||second));continue}
+   }
+   fail.push(ref(job.sh)+' · '+job.src.name+' · '+q(first&&first.message||first))
+  }
  }
  bar.style.width='100%';
- if(!entries.length){status.className='rc422-pod-status bad';status.textContent='Kein POD konnte heruntergeladen werden. '+(fail[0]||'Verbindung prüfen.');btn.disabled=false;return false}
- var manifest=['ExportHUB POD-Sicherung','Version: '+VERSION,'Zeitraum: '+(x.from||'Anfang')+' bis '+(x.to||'Heute'),'Erstellt: '+new Date().toLocaleString('de-DE'),'POD-Dateien: '+entries.length,'Fehler: '+fail.length,'',fail.length?'Nicht heruntergeladen:\n'+fail.join('\n'):'Alle PODs erfolgreich geladen.'].join('\n');
+ if(!entries.length){status.className='rc422-pod-status bad';status.textContent='Kein gültiger POD konnte heruntergeladen oder lokal aus der echten Unterschrift erstellt werden. '+(fail[0]||'Verbindung prüfen.');btn.disabled=false;return false}
+ var period=(x.from?displayDate(x.from):'Anfang')+' bis '+(x.to?displayDate(x.to):'Heute');
+ var manifest=['ExportHUB POD-Sicherung','Version: '+VERSION,'Zeitraum: '+period,'Erstellt: '+new Date().toLocaleString('de-DE'),'Gültige POD-Dateien: '+entries.length,'Fehler: '+fail.length,'',fail.length?'Nicht gesichert:\n'+fail.join('\n'):'Alle PODs wurden als gültige PDF- oder Bilddateien geprüft.'].join('\n');
  entries.push({name:'POD_Sicherung_Protokoll.txt',data:new TextEncoder().encode(manifest)});
- saveBlob(zip(entries),'ExportHUB_POD_Sicherung_'+(x.from||'Anfang')+'_bis_'+(x.to||'Heute')+'.zip');
- status.className=fail.length?'rc422-pod-status bad':'rc422-pod-status ok';status.textContent=(entries.length-1)+' POD-Datei'+(entries.length-1===1?'':'en')+' wurden als ZIP heruntergeladen.'+(fail.length?' Nicht geladen: '+fail.length+'. Details stehen im Protokoll.':'');btn.disabled=false;return true
+ var archive=zip(entries);if(!archive||archive.size<100)throw new Error('ZIP-Datei konnte nicht korrekt erstellt werden');
+ saveBlob(archive,'ExportHUB_POD_Sicherung_'+(x.from||'Anfang')+'_bis_'+(x.to||'Heute')+'.zip');
+ status.className=fail.length?'rc422-pod-status bad':'rc422-pod-status ok';status.textContent=(entries.length-1)+' gültige POD-Datei'+(entries.length-1===1?'':'en')+' wurden als ZIP heruntergeladen.'+(fail.length?' Nicht gesichert: '+fail.length+'. Details stehen im Protokoll.':'');btn.disabled=false;return true
 }
 document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('#podBackupBtn');if(!b)return;e.preventDefault();e.stopPropagation();open()},true);
 document.addEventListener('keydown',function(e){if(e.key==='Escape')close()},true);
@@ -22092,6 +22126,6 @@ function boot(){refresh()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,refresh)});
 window.addEventListener('storage',function(e){if(e&&e.key&&e.key.indexOf('exporthub-theme-choice')===0)refresh()});
-window.ExportHUBThemeSwitcher=Object.freeze({version:'RC455',themes:THEMES.map(function(x){return{id:x[0],label:x[1]}}),apply:function(t){return apply(t,true)},current:function(){return valid(document.body&&document.body.getAttribute('data-eh-theme'))},refresh:refresh});
+window.ExportHUBThemeSwitcher=Object.freeze({version:'RC456',themes:THEMES.map(function(x){return{id:x[0],label:x[1]}}),apply:function(t){return apply(t,true)},current:function(){return valid(document.body&&document.body.getAttribute('data-eh-theme'))},refresh:refresh});
 })();
 </script>
