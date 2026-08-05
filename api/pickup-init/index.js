@@ -1,61 +1,37 @@
 'use strict';
-const crypto=require('crypto');
-const store=require('../shared/pickup-store');
+const store = require('../shared/pickup-store');
 
-function pinHash(pin){
-  const secret=process.env.EXPORTHUB_PICKUP_SECRET||process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||'exporthub-local-secret';
-  return crypto.createHmac('sha256',secret).update(String(pin||'')).digest('hex');
-}
+module.exports = async function (context, req) {
+  try {
+    const body = req.body || {};
+    const token = store.text(body.token || (req.query && req.query.token));
+    if (!store.validToken(token)) {
+      context.res = store.error(400, 'INVALID_TOKEN', 'Ungültiger QR-Code.');
+      return;
+    }
 
-module.exports=async function(context,req){
-  if(req.method==='OPTIONS'){
-    context.res={status:204,headers:{'Cache-Control':'no-store'},body:''};
-    return;
-  }
-  if(req.method!=='POST'){
-    context.res=store.json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'},{Allow:'POST, OPTIONS'});
-    return;
-  }
-  try{
-    const b=store.body(req),token=String(b.token||'').trim().toLowerCase(),pin=String(b.pin||'').trim();
-    if(!store.validToken(token))throw store.err('INVALID_TOKEN','Ungültiges QR-Token. Erlaubt sind 6 bis 64 alphanumerische Zeichen.',400);
-    if(!/^\d{4}$/.test(pin))throw store.err('INVALID_PIN','Die persönliche Verlader-PIN muss vier Ziffern enthalten.',400);
-
-    const c=await store.clients(),blob=store.recordBlob(c.records,token),old=await store.readJson(blob),previous=old.value||{};
-    const days=Math.min(365,Math.max(1,Number(b.expiresDays||180)||180)),created=previous.createdAt||store.now();
-    const hasSignature=!!previous.signatureBlobName;
-    const allowPinRefresh=!hasSignature&&(b.force===true||b.reactivate===true||!previous.pinHash);
-    const rec=Object.assign({},previous,{
-      token:token,
-      shipmentId:String(b.shipmentId||previous.shipmentId||''),
-      reference:String(b.reference||b.ref||previous.reference||previous.ref||''),
-      customer:String(b.customer||b.customerName||previous.customer||previous.customerName||''),
-      recipient:String(b.recipient||previous.recipient||''),
-      pinHash:allowPinRefresh?pinHash(pin):(previous.pinHash||pinHash(pin)),
-      status:previous.confirmedAt?'confirmed':'open',
-      createdAt:created,
-      updatedAt:store.now(),
-      expiresAt:previous.confirmedAt&&previous.expiresAt?previous.expiresAt:new Date(Date.now()+days*86400000).toISOString(),
-      confirmedAt:previous.confirmedAt||null,
-      failedAttempts:Number(previous.failedAttempts||0),
-      lockedUntil:previous.lockedUntil||null,
-      podFiles:Array.isArray(previous.podFiles)?previous.podFiles:[],
-      pickupQrVersion:Number(b.pickupQrVersion||b.version||9),
-      loaderId:String(b.loaderId||previous.loaderId||''),
-      loaderName:String(b.loaderName||b.loadedBy||b.loader||b.verlader||previous.loaderName||''),
-      disabled:b.disabled===true,
-      active:b.active!==false
+    const existing = await store.readRecord(token);
+    const timestamp = store.now();
+    const record = Object.assign({}, existing || {}, {
+      token,
+      reference: store.text(body.reference || body.shipmentRef || (existing && existing.reference)),
+      shipmentId: store.text(body.shipmentId || (existing && existing.shipmentId)),
+      customer: store.text(body.customerName || body.customer || body.recipientCustomerName || (existing && existing.customer)),
+      recipient: store.text(body.recipient || body.recipientName || (existing && existing.recipient)),
+      address: store.text(body.recipientAddress || body.deliveryAddress || body.shipToAddress || body.address || (existing && existing.address)),
+      locationName: store.text(body.locationName || (existing && existing.locationName)),
+      palletOut: Math.max(0, Number(body.palletOut || body.euroPallets || (existing && existing.palletOut) || 0) || 0),
+      disabled: Boolean(body.disabled === true || body.active === false || (existing && existing.disabled)),
+      createdAt: (existing && existing.createdAt) || timestamp,
+      updatedAt: timestamp,
+      expiresAt: (existing && existing.expiresAt) || new Date(Date.now() + 180 * 86400000).toISOString(),
+      registrationVersion: 'RC470'
     });
-    await store.writeJson(blob,rec,old.etag);
-    context.res=store.json(200,Object.assign(store.publicRecord(rec),{
-      registered:true,
-      registrationVersion:'RC266',
-      tokenLength:token.length,
-      recordCreated:!old.value,
-      pinRefreshed:allowPinRefresh
-    }));
-  }catch(e){
-    if(context.log&&context.log.error)context.log.error('pickup-init error',e&&e.code,e&&e.message);
-    context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Initialisierung fehlgeschlagen.'});
+
+    await store.writeRecord(token, record);
+    context.res = store.json(200, Object.assign({ registered: true }, store.publicRecord(record)));
+  } catch (err) {
+    context.log.error('pickup-init', err);
+    context.res = store.error(err.statusCode || 500, err.code || 'INIT_FAILED', err.message || 'QR-Code konnte nicht registriert werden.');
   }
 };
