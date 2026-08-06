@@ -15767,7 +15767,7 @@ window.RC569QrSvg=function(value){
 if(window.__EXPORTHUB_RC352_QR_POD_OWNER__)return;
 window.__EXPORTHUB_RC352_QR_POD_OWNER__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC418',inflight=Object.create(null),syncing=Object.create(null),lastSync=Object.create(null);
+var VERSION='RC471',inflight=Object.create(null),syncing=Object.create(null),lastSync=Object.create(null);
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -15812,10 +15812,17 @@ function syncOne(sh,force){sh=sh||current();if(!sh||!validToken(sh.pickupToken))
 async function syncAll(force){var list=allShipments().filter(function(sh){return validToken(sh.pickupToken)&&!cancelled(sh)}),changed=false;for(var i=0;i<list.length;i++){if(await syncOne(list[i],!!force))changed=true}return changed}
 function qrMarkup(sh){sh=sh||current();if(!eligible(sh)||sh.pickupQrRegistered!==true||cancelled(sh))return'';var token=q(sh.pickupToken),url=urlFor(sh),svg='';if(!validToken(token)||!url)return'';try{if(typeof window.RC569QrSvg==='function')svg=window.RC569QrSvg(url)}catch(_){}if(!svg)return'<div class="index351-qr-state bad">QR-Code konnte nicht erzeugt werden</div>';return'<div class="index351-qr-box" data-qr-token="'+token+'">'+svg+'<span>QR-Abholung</span></div>'}
 function downloadUrl(sh){sh=sh||current();if(!eligible(sh))return'';var files=arr(sh&&sh.podFiles).filter(function(f){return q(f.url||f.downloadUrl||f.href)});return q(files[0]&&(files[0].url||files[0].downloadUrl||files[0].href))||(hasSignature(sh)&&validToken(sh.pickupToken)?'/api/pickup-pod?token='+encodeURIComponent(q(sh.pickupToken)):'')}
-function boot(){syncAll(false).catch(function(){}).then(function(){var list=allShipments().filter(function(sh){return eligible(sh)&&!cancelled(sh)&&!completed(sh)&&Number(sh.pickupQrMetadataVersion||0)<11});return list.reduce(function(p,sh){return p.then(function(){return register(sh,true)})},Promise.resolve())}).catch(function(){})}
+function refreshAfterRemotePickup(changed){if(!changed)return false;try{window.dispatchEvent(new CustomEvent('exporthub:sync',{detail:{source:'qr-pod',changed:true}}))}catch(_){}try{if(window.ExportHUBRC620Overview&&typeof window.ExportHUBRC620Overview.refresh==='function')window.ExportHUBRC620Overview.refresh()}catch(e){console.error('QR/POD Übersicht aktualisieren',e)}try{if(window.ExportHUBRC542&&typeof window.ExportHUBRC542.postProcess==='function')window.ExportHUBRC542.postProcess()}catch(_){}return true}
+function syncVisible(force){return syncAll(!!force).then(refreshAfterRemotePickup).catch(function(){return false})}
+function overviewVisible(){var st=states()[0]||{},view=low(st.view||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view'));return !document.hidden&&(view==='shipmentoverview'||view==='cmr'||!!document.querySelector('#content .rc524-shipment-card'))}
+var watchTimer=0;
+function scheduleWatch(){if(watchTimer)return;watchTimer=setTimeout(function tick(){watchTimer=0;if(overviewVisible())syncVisible(true).finally(scheduleWatch);else scheduleWatch()},10000)}
+function boot(){syncVisible(false).then(function(){var list=allShipments().filter(function(sh){return eligible(sh)&&!cancelled(sh)&&!completed(sh)&&Number(sh.pickupQrMetadataVersion||0)<11});return list.reduce(function(p,sh){return p.then(function(){return register(sh,true)})},Promise.resolve())}).catch(function(){});scheduleWatch()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-window.addEventListener('focus',function(){syncAll(false).catch(function(){})});
-document.addEventListener('visibilitychange',function(){if(!document.hidden)syncAll(false).catch(function(){})});
+window.addEventListener('focus',function(){syncVisible(true)});
+document.addEventListener('visibilitychange',function(){if(!document.hidden)syncVisible(true)});
+window.addEventListener('exporthub:viewchange',function(){if(overviewVisible())syncVisible(true)});
+window.addEventListener('exporthub:rendered',function(){if(overviewVisible())syncVisible(true)});
 var API=Object.freeze({version:VERSION,ensure:ensure,ensureToken:ensure,urlFor:urlFor,register:register,disable:disable,syncOne:syncOne,syncAll:syncAll,applyStatus:applyStatus,proof:proof,hasSignature:hasSignature,qrMarkup:qrMarkup,downloadUrl:downloadUrl,current:current,find:find,shipments:allShipments,eligible:eligible,selfTest:function(){var draft={id:'DRAFT-1',ref:'ABC374',rows:[{type:'Euro Palette',count:2,weight:100}],customerName:'Test'};return{version:VERSION,draftTokenBlocked:ensure(draft)==='',draftQrBlocked:qrMarkup(draft)==='',serverRegistrationRequired:true,noObserver:true,noInterval:true}}});
 try{Object.defineProperty(window,'ExportHUBPickupPOD',{configurable:false,get:function(){return API},set:function(){}})}catch(_){window.ExportHUBPickupPOD=API}
 try{Object.defineProperty(window,'ExportHUBRC569QR',{configurable:false,get:function(){return API},set:function(){}})}catch(_){window.ExportHUBRC569QR=API}
