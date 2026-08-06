@@ -47,7 +47,9 @@ module.exports = async function (context, req) {
       signatureContentType: savedSignature.contentType,
       signatureSize: savedSignature.size,
       podType: 'signed-loadlist',
-      confirmationVersion: 'RC470'
+      podCloudBackupStatus: record.podCloudBackupStatus === 'saved' ? 'saved' : 'pending',
+      podCloudBackupRequestedAt: timestamp,
+      confirmationVersion: 'RC479'
     });
 
     await store.writeRecord(token, confirmed);
