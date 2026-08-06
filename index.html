@@ -15767,7 +15767,7 @@ window.RC569QrSvg=function(value){
 if(window.__EXPORTHUB_RC352_QR_POD_OWNER__)return;
 window.__EXPORTHUB_RC352_QR_POD_OWNER__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC472',inflight=Object.create(null),syncing=Object.create(null),lastSync=Object.create(null);
+var VERSION='RC473',inflight=Object.create(null),syncing=Object.create(null),lastSync=Object.create(null);
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -20231,8 +20231,13 @@ function abdDone(sh){if(!sh||!sh.abdRequired)return true;if(/erneut prufen|nachb
 function pickupDone(sh){return !!(sh&&(sh.pickupQrUsed===true||sh.qrPickupConfirmed===true||sh.pickupConfirmed===true||sh.pickupCompleted===true||sh.podScanConfirmed===true||q(sh.pickupConfirmedAt||sh.qrPickupConfirmedAt||sh.pickupCompletedAt||sh.pickedUpAt||sh.actualPickupAt||sh.actualPickupDate)||/abgeholt|picked/i.test(low(sh.pickupStatus))))}
 function podDone(sh){
  if(!sh)return false;
+ /* Eine vom QR-Server bestätigte echte Fahrerunterschrift ist bereits ein gültiger POD-Nachweis. */
+ if(sh.signatureAvailable===true||sh.driverSignatureAvailable===true||sh.podAvailable===true||sh.podConfirmed===true||sh.podScanConfirmed===true)return true;
+ if(q(sh.driverSignature||sh.pickupDriverSignature||sh.signatureDataUrl||sh.pickupSignature))return true;
+ if(q(sh.driverSignatureUrl||sh.pickupDriverSignatureUrl||sh.pickupSignatureUrl||sh.signatureUrl))return true;
+ if(/pod vorhanden/.test(low(sh.podStatus||sh.status||sh.processStatus)))return true;
  if(sh.podServerVerified===true&&q(sh.podServerVerifiedAt)&&q(sh.driverSignatureUrl||sh.pickupDriverSignatureUrl||sh.pickupSignatureUrl||sh.signatureUrl))return true;
- return arr(sh.podFiles).some(function(f){var u=q(f&&(f.dataUrl||f.data||f.url||f.downloadUrl||f.contentUrl)),kind=low([f&&f.kind,f&&f.source,f&&f.name,f&&f.filename].join(' '));return !f.placeholder&&!f.fallback&&!f.syntheticFallback&&!/scan-confirmation|ersatz|placeholder/.test(kind)&&(/^data:application\/pdf;base64,/i.test(u)||/^data:image\//i.test(u)||/\.pdf(?:$|[?#])/i.test(u))})
+ return arr(sh.podFiles).some(function(f){var u=q(f&&(f.dataUrl||f.data||f.url||f.downloadUrl||f.contentUrl)),kind=low([f&&f.kind,f&&f.source,f&&f.name,f&&f.filename].join(' '));return !f.placeholder&&!f.fallback&&!f.syntheticFallback&&!/scan-confirmation|ersatz|placeholder/.test(kind)&&(/^data:application\/pdf;base64,/i.test(u)||/^data:image\//i.test(u)||/\.pdf(?:$|[?#])/i.test(u)||/signed-loadlist|qr-pickup|unterschrieben/.test(kind))})
 }
 function palletDone(sh){var n=arr(sh&&sh.rows).reduce(function(sum,r){return sum+(Number(r&&r.euroPallets)||(/euro/i.test(q(r&&r.type))?Number(r&&r.count)||0:0))},0);if(!n)return true;if(sh.palletBookingComplete===true)return true;var k=skey(sh);return states().some(function(st){return arr(st.palletAccount).some(function(b){return(skey({id:b.shipmentId,ref:b.shipmentRef})===k)&&/ausgang/i.test(q(b.direction||b.type))&&!/storniert/i.test(low(b.status))})})}
 function noOpenMandatory(sh){var id=sid(sh),rf=sref(sh);return !states().some(function(st){return arr(st.tasks).some(function(t){var linked=q(t.linkedShipmentId)===id||q(t.linkedShipmentRef).toUpperCase()===rf,mandatory=t.mandatory===true||/pflicht/i.test(q(t.priority||t.type||t.note));return linked&&mandatory&&!/erledigt|storniert|done|cancelled/i.test(low(t.status))})})}
@@ -20247,7 +20252,7 @@ function computeStatus(sh){
  /* Der Status wird aus allen vorhandenen Kopien derselben Sendung berechnet. */
  return complete?'Abgeschlossen':pod?'POD vorhanden':picked?'Abgeholt':abdRequired&&!abdComplete&&persisted(sh)?'Wartet auf ABD':ready?'Bereit zur Abholung':persisted(sh)?'Erstellt':'Entwurf'
 }
-function syncStatus(sh,next){var k=skey(sh),changed=false,stamp=new Date().toISOString();shipmentGroups().forEach(function(list){list.forEach(function(x){if(skey(x)!==k)return;if(q(x.status)!==next){x.status=next;changed=true}if(q(x.processStatus)!==next){x.processStatus=next;changed=true}if(next==='Bereit zur Abholung'){x.readyForPickup=true;x.readinessStatus=next}if(next==='Abgeholt'){x.pickupStatus='abgeholt'}if(next==='POD vorhanden'||next==='Abgeschlossen'){x.pickupStatus='abgeholt';x.podStatus='POD vorhanden';x.podConfirmed=true;x.podScanConfirmed=true}if(changed)x.statusUpdatedAt=stamp})});return changed}
+function syncStatus(sh,next){var k=skey(sh),changed=false,stamp=new Date().toISOString();shipmentGroups().forEach(function(list){list.forEach(function(x){if(skey(x)!==k)return;var remotePickup=pickupDone(x),remotePod=podDone(x);if(remotePod&&rank(next)<rank('POD vorhanden'))next='POD vorhanden';else if(remotePickup&&rank(next)<rank('Abgeholt'))next='Abgeholt';if(q(x.status)!==next){x.status=next;changed=true}if(q(x.processStatus)!==next){x.processStatus=next;changed=true}if(next==='Bereit zur Abholung'){x.readyForPickup=true;x.readinessStatus=next}if(next==='Abgeholt'){x.pickupStatus='abgeholt';x.readyForPickup=false}if(next==='POD vorhanden'||next==='Abgeschlossen'){x.pickupStatus='abgeholt';x.podStatus='POD vorhanden';x.podConfirmed=true;x.podScanConfirmed=true;x.podAvailable=true;x.readyForPickup=false}if(changed)x.statusUpdatedAt=stamp})});return changed}
 function enforceStatus(sh,force){if(!sh)return false;var before=label(sh.status),next=computeStatus(sh),changed=syncStatus(sh,next);if(changed){sh.statusHistory=arr(sh.statusHistory);sh.statusHistory.push({at:new Date().toISOString(),from:before,to:next,source:'Zentrale Prozessstatus-Aktualisierung'});if(sh.statusHistory.length>100)sh.statusHistory=sh.statusHistory.slice(-100);if(force)persist('Sendungsstatus auf '+next+' aktualisiert')}return changed}
 function patchVisible(){
  allShipments().forEach(function(sh){var rf=sref(sh),st=label(sh.status);if(!rf)return;document.querySelectorAll('#content .rc524-shipment-card[data-shipment],#content tr').forEach(function(node){if(q(node.textContent).toUpperCase().indexOf(rf)<0&&q(node.getAttribute&&node.getAttribute('data-shipment')).toUpperCase()!==skey(sh))return;node.querySelectorAll('.pill,td').forEach(function(el){if(/^(Entwurf|Erstellt|Wartet auf ABD|Bereit zur Abholung|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=st})})
