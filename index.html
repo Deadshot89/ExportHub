@@ -168,20 +168,20 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC479',cache:'479',loginReturn:'/?v=479'});
+var BUILD=Object.freeze({version:'RC480',cache:'480',loginReturn:'/?v=480'});
 var RELEASE=Object.freeze({
- version:'RC479',
+ version:'RC480',
  date:'06.08.2026',
- title:'POD-PDF Download und automatische SharePoint-Sicherung',
+ title:'Dokumentdruck und QR-Standortauflösung repariert',
  changes:Object.freeze([
-  'Unterschriebene Ladeliste wird zuverlässig als POD-PDF erzeugt und lokal heruntergeladen.',
-  'Vorhandene QR-PODs werden automatisch in den festgelegten OneDrive-/SharePoint-Ordner gesichert.',
-  'Cloud-Sicherung ist idempotent, speichert den Graph-Dateiverweis und wiederholt Fehler ohne Render-Schleife.'
+  'Die QR-Metadaten verwenden jetzt eine eigene Standortauflösung im aktiven Controller.',
+  'Die Adressaufbereitung ist im selben Funktionsbereich verfügbar und blockiert den Dokumentdruck nicht mehr.',
+  'Ladeliste, CMR und POD-PDF können wieder ohne ReferenceError erzeugt und gedruckt werden.'
  ]),
  tests:Object.freeze([
-  'POD-PDF-Erstellung mit zuvor geladener Fahrerunterschrift geprüft',
-  'PDF-Signatur, Dateigröße und eindeutiger Dateiname geprüft',
-  'SharePoint-Upload-API, Retry-Sperre und JavaScript-Syntax geprüft'
+  'Standort- und Adressauflösung im QR-Controller geprüft',
+  'Dokumentdruck-Pfad ohne shipmentLocation-ReferenceError geprüft',
+  'Alle eingebetteten JavaScript-Blöcke auf Syntax geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -15766,7 +15766,7 @@ window.RC569QrSvg=function(value){
 if(window.__EXPORTHUB_RC352_QR_POD_OWNER__)return;
 window.__EXPORTHUB_RC352_QR_POD_OWNER__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__)return;
-var VERSION='RC479',inflight=Object.create(null),syncing=Object.create(null),lastSync=Object.create(null);
+var VERSION='RC480',inflight=Object.create(null),syncing=Object.create(null),lastSync=Object.create(null);
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -15796,9 +15796,11 @@ function tokenEvidence(sh,token){if(!obj(sh)||!validToken(token))return 0;var po
 function tokensFor(sh){var map={};copies(sh).forEach(function(x){directTokens(x).forEach(function(token){map[token]=Math.max(map[token]||0,tokenEvidence(x,token))})});directTokens(sh).forEach(function(token){map[token]=Math.max(map[token]||0,tokenEvidence(sh,token))});return Object.keys(map).sort(function(a,b){return map[b]-map[a]})}
 function preferredToken(sh){var list=tokensFor(sh);return list[0]||''}
 function ensure(sh){if(!eligible(sh))return'';var token=preferredToken(sh);if(!validToken(token)){token=randomToken();patchCopies(sh,{pickupToken:token,pickupQrCreatedAt:new Date().toISOString(),pickupQrRegistered:false,pickupQrVersion:8})}else patchCopies(sh,{pickupToken:token,pickupQrVersion:8});copies(sh).forEach(function(x){delete x.pickupPin;delete x.qrPin;delete x.loaderPin});return token}
-function urlFor(sh){var token=ensure(sh),u;if(!token)return'';try{if(location.href&&/^https?:/i.test(location.href))u=new URL(location.href);else if(document.baseURI&&/^https?:/i.test(document.baseURI))u=new URL(document.baseURI);else return'';u.search='';u.hash='';u.searchParams.set('pickup',token);u.searchParams.set('v',String(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache||'478'));u.hash='pickup='+encodeURIComponent(token);return u.href}catch(_){return''}}
+function urlFor(sh){var token=ensure(sh),u;if(!token)return'';try{if(location.href&&/^https?:/i.test(location.href))u=new URL(location.href);else if(document.baseURI&&/^https?:/i.test(document.baseURI))u=new URL(document.baseURI);else return'';u.search='';u.hash='';u.searchParams.set('pickup',token);u.searchParams.set('v',String(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.cache||'480'));u.hash='pickup='+encodeURIComponent(token);return u.href}catch(_){return''}}
 function api(path,opt){opt=opt||{};opt.credentials='same-origin';opt.cache='no-store';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});return fetch('/api/'+String(path||'').replace(/^\//,''),opt).then(async function(r){var text='',body={};try{text=await r.text();body=text?JSON.parse(text):{}}catch(_){body={}}if(!r.ok){var e=new Error(body.message||body.error||('HTTP '+r.status));e.status=r.status;e.code=body.code||'';e.body=body;throw e}return body})}
 function customer(sh){var embedded=sh&&(sh.customer||sh.customerData||sh.selectedCustomer);if(obj(embedded))return embedded;var id=q(sh&&(sh.customerId||sh.customerAccount||sh.customerNumber)),name=low(sh&&sh.customerName),all=[];states().forEach(function(st){all=all.concat(arr(st.customers))});return all.find(function(c){return(id&&[c.id,c.customerId,c.account,c.customerNumber].some(function(v){return q(v)===id}))||(name&&low(c.name||c.customerName)===name)})||{}}
+function addressText(v){if(!v)return'';if(typeof v==='string'||typeof v==='number')return q(v);if(!obj(v))return'';var street=q(v.street||v.strasse||v.streetName||v.addressLine1||v.line1),house=q(v.houseNumber||v.hausnummer||v.streetNumber),zip=q(v.zip||v.postalCode||v.plz),city=q(v.city||v.ort||v.town),country=q(v.country||v.land||v.countryName),formatted=q(v.formatted||v.formattedAddress||v.fullAddress||v.addressText||v.address);return formatted||[q([street,house].filter(Boolean).join(' ')),q([zip,city].filter(Boolean).join(' ')),country].filter(Boolean).join('\n')}
+function shipmentLocation(sh,c){var direct=[sh&&sh.locationData,sh&&sh.siteData,sh&&sh.location,sh&&sh.selectedLocation,sh&&sh.recipient,sh&&sh.destination].find(obj);if(direct)return direct;var wanted=q(sh&&(sh.locationId||sh.selectedLocationId||sh.siteId)),all=[].concat(arr(c&&c.locations),arr(c&&c.sites),arr(c&&c.standorte));return all.find(function(x){return wanted&&q(x&&(x.id||x.locationId||x.siteId||x.code||x.name))===wanted})||{}}
 function euroPallets(sh){return arr(sh&&sh.rows).reduce(function(sum,r){var t=low(r&&(r.type||r.packaging||r.verpackung||r.packagingType));var c=Number(r&&(r.count||r.qty||r.quantity||r.anzahl))||0;return /euro.*palette|europalette|euro pallet/.test(t)?sum+Math.max(0,Math.round(c)):sum},0)}
 function cancelled(sh){return !!(sh&&(sh.cancelled===true||sh.storniert===true||/storniert|cancelled/.test(low(sh.status||sh.processStatus))))}
 function completed(sh){return !!(sh&&(sh.pickupQrUsed||sh.pickupConfirmedAt||sh.pickedUpAt||/abgeholt|pod vorhanden|abgeschlossen|archiviert/.test(low(sh.status||sh.pickupStatus||sh.processStatus))))}
