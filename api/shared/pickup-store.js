@@ -157,6 +157,15 @@ async function readSignature(record) {
   }
 }
 
+async function deleteSignature(record) {
+  const blobName = text(record && record.signatureBlobName);
+  if (!blobName) return false;
+  const c = await container();
+  const blob = c.getBlockBlobClient(blobName);
+  await blob.deleteIfExists({ deleteSnapshots: 'include' });
+  return true;
+}
+
 function publicRecord(record) {
   if (!record) return null;
   const confirmed = Boolean(record.confirmedAt);
@@ -200,14 +209,6 @@ function publicRecord(record) {
     podType: signatureAvailable ? 'signed-loadlist' : '',
     podStatus: signatureAvailable ? 'POD vorhanden' : confirmed ? 'Unterschrift fehlt' : 'POD fehlt',
     podCount: signatureAvailable ? 1 : 0,
-    podCloudBackupStatus: record.podCloudBackupStatus || '',
-    podCloudBackupAt: record.podCloudBackupAt || null,
-    podCloudSavedAt: record.podCloudBackupAt || null,
-    podCloudBackupFileName: record.podCloudBackupFileName || '',
-    podCloudBackupWebUrl: record.podCloudBackupWebUrl || '',
-    podCloudBackupDriveItemId: record.podCloudBackupDriveItemId || '',
-    podCloudBackupHash: record.podCloudBackupHash || '',
-    podCloudBackupError: record.podCloudBackupError || '',
     podFiles: signatureAvailable ? [{
       id: `QR-POD-${record.token}`,
       name: `POD_${record.reference || record.token}_unterschrieben.pdf`,
@@ -232,5 +233,6 @@ module.exports = {
   decodeSignature,
   saveSignature,
   readSignature,
+  deleteSignature,
   publicRecord
 };
