@@ -173,7 +173,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC487',cache:'487',loginReturn:'/?v=487'});
+var BUILD=Object.freeze({version:'RC488',cache:'488',loginReturn:'/?v=488'});
 var RELEASE=Object.freeze({
  version:'RC485',
  date:'06.08.2026',
@@ -749,7 +749,7 @@ document.addEventListener('DOMContentLoaded',install,{once:true});
 .task-day-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
 .task-day-tabs button{border:1px solid #bfdbfe;background:#fff;color:#08245d;border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer}
 .task-day-tabs button.active{background:#2563eb;color:#fff;border-color:#2563eb}
-.task-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+.task-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;align-items:stretch}
 .task-card{position:relative;border:1px solid var(--line);border-left:7px solid var(--orange);border-radius:20px;background:#fff;padding:14px;min-height:145px;box-shadow:0 10px 24px rgba(15,23,42,.08);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
 .task-card:hover{transform:translateY(-2px);box-shadow:0 16px 32px rgba(15,23,42,.14);border-color:#bfdbfe}
 .task-card.done{opacity:.62;background:#f8fafc}
@@ -2895,7 +2895,7 @@ body.rc405-session-restoring #cleanLoadPanel .clean-progress-label{font-size:10p
 .task-day-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
 .task-day-tabs button{border:1px solid #bfdbfe;background:#fff;color:#08245d;border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer}
 .task-day-tabs button.active{background:#2563eb;color:#fff;border-color:#2563eb}
-.task-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+.task-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;align-items:stretch}
 .task-card{position:relative;border:1px solid var(--line);border-left:7px solid var(--orange);border-radius:20px;background:#fff;padding:14px;min-height:145px;box-shadow:0 10px 24px rgba(15,23,42,.08);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
 .task-card:hover{transform:translateY(-2px);box-shadow:0 16px 32px rgba(15,23,42,.14);border-color:#bfdbfe}
 .task-card.done{opacity:.62;background:#f8fafc}
@@ -4771,7 +4771,7 @@ html[data-rc431-pickup="1"] body{background:#eef6fb!important}html[data-rc431-pi
   white-space:normal!important;
   word-break:normal!important;
 }
-@media(max-width:1200px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important}}
+@media(max-width:1200px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important}.task-grid{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))!important}}
 @media(max-width:760px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
 
 
@@ -8325,8 +8325,11 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 <style id="rc628-unified-task-cards-css">
 /* Moderne Aufgabenkacheln mit eigener Bereichsfarbe – nur Darstellung */
 #content .rc229-task-grid{
+  grid-template-columns:repeat(auto-fit,minmax(360px,1fr))!important;
   gap:12px!important;
   align-items:stretch!important;
+  width:100%!important;
+  min-width:0!important;
 }
 
 /* Standard/Fallback */
@@ -8499,7 +8502,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 
 #content .rc229-task-card.rc628-unified-task .rc229-card-actions{
   display:grid!important;
-  grid-template-columns:1fr 1fr!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
   gap:8px!important;
   margin-top:1px!important;
   padding-top:10px!important;
@@ -8544,6 +8547,9 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 #content .rc229-area-block:has(.rc229-task-card[data-task-area="Urlaub & Vertretung"]) .rc229-area-title{border-bottom-color:#f9a8d4!important}
 #content .rc229-area-block:has(.rc229-task-card[data-task-area="Prüfungen"]) .rc229-area-title{border-bottom-color:#fda4af!important}
 #content .rc229-area-block:has(.rc229-task-card[data-task-area="Zoll & Anmeldung"]) .rc229-area-title{border-bottom-color:#7dd3fc!important}
+#content .rc229-task-card.rc628-unified-task>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+#content .rc229-task-card.rc628-unified-task .rc229-card-actions>button{white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+@media(max-width:900px){#content .rc229-task-grid{grid-template-columns:1fr!important}}
 
 @media(max-width:620px){
   #content .rc229-task-card.rc628-unified-task{padding:11px!important;border-radius:17px!important}
@@ -8850,7 +8856,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
   white-space:normal!important;
   word-break:normal!important;
 }
-@media(max-width:1200px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important}}
+@media(max-width:1200px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important}.task-grid{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))!important}}
 @media(max-width:760px){.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
 </style>
 <!-- RC175: Rechte/Benuzteranlage + Profiltext + finaler Code-Endfix -->
