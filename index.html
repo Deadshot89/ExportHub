@@ -173,11 +173,11 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC496',cache:'496',loginReturn:'/?v=496'});
+var BUILD=Object.freeze({version:'RC497',cache:'497',loginReturn:'/?v=497'});
 var RELEASE=Object.freeze({
- version:'RC496',
+ version:'RC497',
  date:'07.08.2026',
- title:'Kundenordner kompakt aufgebaut, Standorte und Mailbereich fest verankert',
+ title:'Kundenordner feste Bereiche nach Navigation stabilisiert',
  changes:Object.freeze([
   'Der Kundenordner besitzt eine feste Bereichsstruktur ohne zufällige Leerflächen durch automatische Grid-Platzierung.',
   'Anmeldung / Maildaten wird nach dem Öffnen eines Kunden immer als fester Bereich angezeigt und enthält die vier zentralen Mailadressen sowie Mailprofil und Vorlagen.',
@@ -14354,7 +14354,7 @@ function removeLocation(btn){var row=btn&&btn.closest('.rc565-location-row'),box
 function afterRender(){if(patching)return;patching=true;try{var v=n(st().view),contentNode=document.getElementById('content');if(contentNode){contentNode.toggleAttribute('data-rc360-customers',v==='customers');contentNode.toggleAttribute('data-rc360-customerfolder',v==='customerfolder')}if(v==='shipment')patchShipment();else if(v==='customerfolder')patchCustomerFolder();else if(v==='cmr')patchDocuments()}finally{patching=false}}
 function install(){if(installing)return;installing=true;try{define('rc344SelectCustomer',selectCustomer);define('rc410SelectCustomer',selectCustomer);define('rc344ApplyCustomerSearch',applyCustomerSearch);define('rc410ApplyCustomerSearch',applyCustomerSearch);define('rc565SelectLocation',locationSelect);define('saveShipment',saveShipment);define('rc434SaveShipment',saveShipment);define('rc344SaveShipment',saveShipment);define('rc268SaveShipment',saveShipment);define('rc409SaveFolder',saveCustomerFolder);define('rc543SaveCustomerMailRule',saveCustomerFolder);define('rc405SaveCustomerFolder',saveCustomerFolder);define('rc405AddNote',saveCustomerFolder);define('saveCustomerFolderDetails',saveCustomerFolder);define('saveCustomerFolderMail',saveCustomerFolder);define('rc542SaveCustomerMailRule',saveCustomerFolder);define('rc565AddLocation',addLocation);define('rc565RemoveLocation',removeLocation);afterRender();document.documentElement.setAttribute('data-exporthub-version',VERSION);document.documentElement.setAttribute('data-design-approved','false')}finally{installing=false}}
 function selfTest(){var sample={id:'C1',account:'100',name:'A',email:'a@x.de',carrierEmail:'c@x.de',locations:[{id:'L1',name:'Werk'}]},sh={};applyCustomer(sh,sample);var checks=[['Build',window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version==='RC565'],['Kunde übernommen',sh.customerId==='C1'&&sh.customerName==='A'],['Kundenmail getrennt',customerMail(sample)==='a@x.de'],['Speditionsmail getrennt',carrierMail(sample)==='c@x.de'],['Standort übernommen',sh.locationId==='L1'],['Speichern installiert',window.saveShipment===saveShipment],['Kundenordner speichern installiert',window.rc409SaveFolder===saveCustomerFolder],['Dokumentauswahl installiert',window.rc524OpenDocuments===openDocuments],['Druckfunktion installiert',window.rc390PrintDocuments===printDocuments],['Ladelisten-PDF installiert',window.rc390DownloadLoadlistPdf===downloadLoadlist1&&window.rc390DownloadLoadlistPage2Pdf===downloadLoadlist2]];return {version:VERSION,passed:checks.filter(function(x){return x[1]}).length,total:checks.length,checks:checks.map(function(x){return {name:x[0],ok:!!x[1]}}),designApproved:false}}
-window.addEventListener('exporthub:ready',install);document.addEventListener('DOMContentLoaded',install,{once:true});
+['exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){window.addEventListener(name,function(){if(n(st().view)==='customerfolder')later(afterRender,0)})});window.addEventListener('exporthub:ready',function(){install();if(n(st().view)==='customerfolder')later(afterRender,0)});document.addEventListener('DOMContentLoaded',install,{once:true});
 window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustomerSearch:applyCustomerSearch,selectLocation:locationSelect,saveShipment:saveShipment,saveCustomerFolder:saveCustomerFolder,patchShipment:patchShipment,patchCustomerFolder:patchCustomerFolder,openDocuments:openDocuments,patchDocuments:patchDocuments,selfTest:selfTest,designApproved:false};
 })();
 </script>
@@ -21779,6 +21779,8 @@ var api=Object.freeze({version:VERSION,patch:patch,refreshVisuals:refreshVisuals
 #content[data-view="customers"] details,#content[data-view="customerfolder"] details{border:1px solid #d8e5f2!important;border-radius:14px!important;background:#fbfdff!important;padding:0!important;overflow:hidden!important}
 #content[data-view="customers"] details>summary,#content[data-view="customerfolder"] details>summary{cursor:pointer!important;padding:11px 13px!important;background:#f1f7ff!important;color:#08245d!important;font-weight:900!important}
 #content[data-view="customerfolder"] .rc405-section{align-self:start!important}
+#content[data-view="customerfolder"]>[data-rc565-area]{min-height:0!important;height:auto!important;align-self:start!important}
+#content[data-view="customerfolder"]>[data-rc565-area="master"],#content[data-view="customerfolder"]>[data-rc565-area="contacts"],#content[data-view="customerfolder"]>[data-rc565-area="portals"],#content[data-view="customerfolder"]>[data-rc565-area="notes"]{margin:0!important}
 #content[data-view="customerfolder"] .rc405-section textarea{min-height:82px!important}
 #content[data-view="customerfolder"] #rc565FixedMail,
 #content[data-view="customerfolder"] #rc565FixedLocations{display:block!important;visibility:visible!important;min-width:0!important}
