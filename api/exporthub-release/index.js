@@ -42,27 +42,6 @@ function detectVersion(html) {
   if (!m) m = s.match(/Aktuelle Version\s+(RC\d+)/i);
   return safeVersion(m && m[1]);
 }
-
-function validateInlineJavaScript(html) {
-  const source = String(html || '');
-  const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-  let match, checked = 0;
-  while ((match = re.exec(source))) {
-    const attrs = String(match[1] || '');
-    if (/\bsrc\s*=/i.test(attrs)) continue;
-    const typeMatch = attrs.match(/\btype\s*=\s*['"]([^'"]+)['"]/i);
-    const type = lower(typeMatch && typeMatch[1]);
-    if (type && type !== 'text/javascript' && type !== 'application/javascript') continue;
-    const code = String(match[2] || '');
-    if (!code.trim()) continue;
-    try { new Function(code); checked += 1; }
-    catch (err) {
-      const e = new Error('JavaScript-Syntaxfehler in der RC-Datei: ' + text(err && err.message));
-      e.code = 'INVALID_RELEASE_JAVASCRIPT'; e.status = 400; throw e;
-    }
-  }
-  return checked;
-}
 function isGlobalAdmin(user) {
   if (!user) return false;
   const role = lower(user.role || user.rolle);
@@ -248,7 +227,6 @@ module.exports = async function (context, req) {
       if (buf.length > MAX_HTML_BYTES) return context.res = json(413, { ok: false, code: 'RELEASE_TOO_LARGE', message: 'Die RC-Datei ist größer als 12 MB.' });
       const html = buf.toString('utf8');
       if (!/<html[\s>]/i.test(html) || !/<script/i.test(html)) return context.res = json(400, { ok: false, code: 'INVALID_HTML', message: 'Die Datei ist kein gültiges ExportHUB-HTML-Dokument.' });
-      validateInlineJavaScript(html);
       const requested = safeVersion(req.query && req.query.version || header(req, 'x-exporthub-version'));
       const detected = detectVersion(html);
       const version = requested || detected;

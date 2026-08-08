@@ -22721,7 +22721,7 @@ function currentChannel(){return low(window.__EXPORTHUB_RELEASE_CHANNEL__||'prod
 function currentRelease(){return q(window.__EXPORTHUB_RELEASE_VERSION__||(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||VERSION)}
 function ribbon(message){var test=currentChannel()==='test'||requested();if(!test){var old=document.getElementById('rc503TestRibbon');if(old)old.remove();document.documentElement.removeAttribute('data-exporthub-portal');return}document.documentElement.setAttribute('data-exporthub-portal','test');var r=document.getElementById('rc503TestRibbon');if(!r){r=document.createElement('div');r.id='rc503TestRibbon';document.body.appendChild(r)}r.innerHTML='<span>TESTPORTAL · LIVE-DATEN</span><span>·</span><span>'+esc(message||currentRelease())+'</span><button type="button" class="ghost" id="rc503BackToMain">Zur Hauptseite</button>';var b=document.getElementById('rc503BackToMain');if(b)b.onclick=function(){setRequested(false);window.__EXPORTHUB_RELEASE_CHANNEL__='production';location.reload();return false}}
 function injectHtml(html,ver){if(!html||!/<html[\\s>]/i.test(html)||html.indexOf('exporthub-canonical-build-source')<0)throw new Error('Die Testversion enthält kein gültiges ExportHUB-HTML-Dokument.');window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=ver;var marker='<script>window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__="test";window.__EXPORTHUB_RELEASE_VERSION__='+JSON.stringify(ver)+';<\\/script>';html=/<head(?:\\s[^>]*)?>/i.test(html)?html.replace(/<head(\\s[^>]*)?>/i,function(m,a){return '<head'+(a||'')+'>'+marker}):marker+html;document.open('text/html','replace');document.write(html);document.close()}
-function staticTestFallback(){try{var u=new URL('/test/index.html',location.origin);u.searchParams.set('portal','test');u.searchParams.set('v','504');location.assign(u.href);return true}catch(_){location.href='/test/index.html?portal=test&v=504';return true}}
+function staticTestFallback(){try{var u=new URL('/test/index.html',location.origin);u.searchParams.set('portal','test');u.searchParams.set('v','505');location.assign(u.href);return true}catch(_){location.href='/test/index.html?portal=test&v=505';return true}}
 async function enterTest(){
  if(enterBusy||!requested())return false;if(currentChannel()==='test'){ribbon();return true}
  var t=token();if(!t)return false;
@@ -22729,15 +22729,29 @@ async function enterTest(){
  enterBusy=true;ribbon('Testversion wird geladen …');
  try{
   var meta=await call('active',{query:'channel=test'}),ver=q(meta.version);
-  if(!ver||Number((ver.match(/\d+/)||[0])[0])<504){ribbon('Statisches Testportal RC504 wird geöffnet …');return staticTestFallback()}
+  if(!ver||Number((ver.match(/\d+/)||[0])[0])<505){ribbon('Statisches Testportal RC505 wird geöffnet …');return staticTestFallback()}
   var res=await fetch(API+'?action=html&channel=test&_='+Date.now(),{credentials:'same-origin',cache:'no-store',headers:headers({Accept:'text/html'})});
   if(!res.ok){var tx=await res.text();throw new Error(tx||('HTTP '+res.status))}
   injectHtml(await res.text(),ver);return true;
- }catch(e){ribbon('Statisches Testportal RC504 wird geöffnet …');return staticTestFallback()}
+ }catch(e){ribbon('Statisches Testportal RC505 wird geöffnet …');return staticTestFallback()}
  finally{enterBusy=false}
 }
-function loginUi(){var btn=document.getElementById('releaseTestPortalBtn'),note=document.getElementById('releaseTestPortalLoginNote');if(!btn)return;var on=requested();btn.classList.toggle('active',on);btn.textContent=on?'Testportal aktiv – jetzt als Admin anmelden':'Testportal – Admin';if(note)note.classList.toggle('hidden',!on)}
-function onTestButton(e){var btn=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!btn)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();var on=!requested();setRequested(on);var st=document.getElementById('cleanLoginStatus');if(st){st.textContent=on?'Testportal ausgewählt. Bitte jetzt mit einem Global-Admin-Konto anmelden.':'Normale Hauptseite ausgewählt.';st.className='clean-login-status '+(on?'bad':'')}return false}
+function loginUi(){var btn=document.getElementById('releaseTestPortalBtn'),note=document.getElementById('releaseTestPortalLoginNote');if(!btn)return;var on=requested();btn.classList.toggle('active',on);btn.textContent=on?'✓ Testportal ausgewählt':'Testportal – Admin';btn.setAttribute('aria-pressed',on?'true':'false');if(note)note.classList.toggle('hidden',!on)}
+function onTestButton(e){var btn=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!btn)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();var on=!requested();setRequested(on);var st=document.getElementById('cleanLoginStatus');if(st){st.textContent=on?'Testportal ausgewählt. Mit dem normalen Button „Anmelden“ anmelden. Danach öffnet sich die Testversion automatisch.':'Normale Hauptseite ausgewählt.';st.className='clean-login-status '+(on?'bad':'')}if(on)watchLogin();return false}
+var loginWatchTimer=0,loginWatchStarted=0;
+function stopLoginWatch(){if(loginWatchTimer){clearInterval(loginWatchTimer);loginWatchTimer=0}loginWatchStarted=0}
+function watchLogin(){
+ if(!requested()||currentChannel()==='test'){stopLoginWatch();return false}
+ if(loginWatchTimer)return true;
+ loginWatchStarted=Date.now();
+ loginWatchTimer=setInterval(function(){
+  if(!requested()||currentChannel()==='test'){stopLoginWatch();return}
+  var u=user(),logged=!!token()&&!!q(u&&(u.user||u.login||u.username||u.name));
+  if(logged){stopLoginWatch();if(!isGlobal(u)){setRequested(false);alert('Das Testportal ist ausschließlich für globale Administratoren freigegeben.');return}enterTest();return}
+  if(Date.now()-loginWatchStarted>180000)stopLoginWatch()
+ },200);
+ return true
+}
 function status(msg,kind){var e=document.getElementById('rc503ReleaseStatus');if(!e)return;e.textContent=msg||'';e.className='rc503-release-status'+(kind?' '+kind:'')}
 function date(v){if(!q(v))return'–';try{return new Date(v).toLocaleString('de-DE')}catch(_){return q(v)}}
 function row(r,m){var activeTest=q(m.test)===q(r.version),activeProd=q(m.production)===q(r.version),tested=!!r.testedAt,flags=[];if(activeProd)flags.push('<span class="rc503-release-pill prod">PRODUKTION</span>');if(activeTest)flags.push('<span class="rc503-release-pill test">TEST AKTIV</span>');if(tested)flags.push('<span class="rc503-release-pill done">GETESTET</span>');return '<tr><td><strong>'+esc(r.version)+'</strong><div>'+flags.join(' ')+'</div></td><td>'+esc(date(r.uploadedAt))+'<br><span class="muted">'+esc(r.uploadedBy||'')+'</span></td><td>'+(tested?esc(date(r.testedAt)):'–')+'</td><td>'+Math.round(Number(r.size||0)/1024)+' KB</td><td><div class="rc503-release-actions">'+(!activeTest?'<button class="ghost" onclick="return rc503SetTest(\''+esc(r.version)+'\')">Im Test aktivieren</button>':'')+(!tested?'<button class="ghost" onclick="return rc503MarkTested(\''+esc(r.version)+'\')">Test bestanden</button>':'')+(tested&&!activeProd?'<button class="btn" onclick="return rc503Promote(\''+esc(r.version)+'\')">Produktion freigeben</button>':'')+'</div></td></tr>'}
@@ -22754,8 +22768,8 @@ window.rc503Promote=function(ver){return guarded(async function(){if(!confirm(ve
 window.rc503Rollback=function(){return guarded(async function(){if(!confirm('Wirklich auf die vorherige Produktionsversion zurückgehen?'))return false;var d=await call('rollback',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});status('Rollback durchgeführt: '+q(d.production),'ok');await load();return false})};
 window.ExportHUBReleasePortal=Object.freeze({version:VERSION,mount:mount,load:load,enterTest:enterTest,isGlobalAdmin:isGlobal,channel:currentChannel,currentRelease:currentRelease});
 function maybeMount(){var st=null;try{st=window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__()}catch(_){ }if(st&&q(st.view)==='update')setTimeout(function(){mount(document.getElementById('content'))},0)}
-function ready(){loginUi();ribbon();enterTest();maybeMount()}
-function init(){loginUi();document.addEventListener('click',onTestButton,true);window.addEventListener('exporthub:ready',ready);window.addEventListener('exporthub:viewchange',maybeMount);if(window.__EXPORTHUB_READY__)ready()}
+function ready(){loginUi();ribbon();if(requested())watchLogin();enterTest();maybeMount()}
+function init(){loginUi();document.addEventListener('click',onTestButton,true);window.addEventListener('exporthub:ready',ready);window.addEventListener('exporthub:viewchange',maybeMount);if(requested())watchLogin();if(window.__EXPORTHUB_READY__)ready()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 </script>
