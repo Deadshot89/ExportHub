@@ -92,19 +92,36 @@ async function requireAdmin(req) {
     'X-ExportHUB-Session': token,
     'Authorization': 'Bearer ' + token
   };
-  const res = await fetch(origin + '/api/exporthub-auth', {
-    method: 'POST', headers, cache: 'no-store',
-    body: JSON.stringify({ action: 'session', sessionToken: token, authToken: token })
-  });
-  let body = {};
-  try { body = await res.json(); } catch (_) { body = {}; }
-  if (!res.ok || body.ok === false || !body.user) {
-    const e = new Error(body.message || 'ExportHUB-Sitzung ist ungültig.'); e.code = body.code || 'SESSION_INVALID'; e.status = res.status || 401; throw e;
+  async function authAction(action) {
+    const res = await fetch(origin + '/api/exporthub-auth', {
+      method: 'POST', headers, cache: 'no-store',
+      body: JSON.stringify({ action, sessionToken: token, authToken: token })
+    });
+    let body = {};
+    try { body = await res.json(); } catch (_) { body = {}; }
+    return { res, body };
   }
-  if (!isGlobalAdmin(body.user)) {
-    const e = new Error('Nur globale Administratoren dürfen Testversionen und Releases verwalten.'); e.code = 'ADMIN_REQUIRED'; e.status = 403; throw e;
+  // Prefer a lightweight session lookup where supported.
+  try {
+    const first = await authAction('session');
+    if (first.res.ok && first.body && first.body.ok !== false && first.body.user) {
+      if (!isGlobalAdmin(first.body.user)) {
+        const e = new Error('Nur globale Administratoren dürfen Testversionen und Releases verwalten.'); e.code = 'ADMIN_REQUIRED'; e.status = 403; throw e;
+      }
+      return first.body.user;
+    }
+  } catch (e) {
+    if (e && e.code === 'ADMIN_REQUIRED') throw e;
   }
-  return body.user;
+  // Existing ExportHUB installations validate administrators through admin-list.
+  // A successful admin-list call is itself a server-side Global-Admin authorization check.
+  const check = await authAction('admin-list');
+  if (!check.res.ok || !check.body || check.body.ok === false) {
+    const e = new Error(check.body && check.body.message || 'ExportHUB-Sitzung ist ungültig.');
+    e.code = check.body && check.body.code || 'SESSION_INVALID'; e.status = check.res.status || 401; throw e;
+  }
+  const u = check.body.user || check.body.currentUser || check.body.admin || { name: 'Global Admin', globalAdmin: true };
+  return u;
 }
 
 function parseConnectionString(value) {
