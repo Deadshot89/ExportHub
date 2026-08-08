@@ -35,6 +35,25 @@ function safeVersion(v) {
   const m = text(v).toUpperCase().match(/^RC(\d{1,7})$/);
   return m ? 'RC' + m[1] : '';
 }
+function validateInlineScripts(html) {
+  const source = String(html || '');
+  const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  let match, count = 0;
+  while ((match = re.exec(source))) {
+    const attrs = String(match[1] || '');
+    if (/\bsrc\s*=/.test(attrs)) continue;
+    const typeMatch = attrs.match(/\btype\s*=\s*['"]([^'"]+)['"]/i);
+    if (typeMatch && !/javascript|ecmascript|module/i.test(typeMatch[1])) continue;
+    const code = String(match[2] || '').trim();
+    if (!code) continue;
+    count++;
+    try { new Function(code); } catch (err) {
+      const e = new Error('JavaScript-Syntaxfehler in Script ' + count + ': ' + text(err && err.message));
+      e.code = 'HTML_SCRIPT_SYNTAX'; e.status = 400; throw e;
+    }
+  }
+  return count;
+}
 function detectVersion(html) {
   const s = String(html || '');
   let m = s.match(/version\s*:\s*['"](RC\d+)['"]/i);
@@ -221,12 +240,40 @@ module.exports = async function (context, req) {
       return context.res = json(200, publicManifest(m));
     }
 
+    if (action === 'seed-production') {
+      const buf = rawBody(req);
+      if (!buf.length) return context.res = json(400, { ok: false, code: 'EMPTY_UPLOAD', message: 'Produktionsbasis ist leer.' });
+      if (buf.length > MAX_HTML_BYTES) return context.res = json(413, { ok: false, code: 'RELEASE_TOO_LARGE', message: 'Die Produktionsbasis ist größer als 12 MB.' });
+      const html = buf.toString('utf8');
+      if (!/<html[\s>]/i.test(html) || !/<script/i.test(html)) return context.res = json(400, { ok: false, code: 'INVALID_HTML', message: 'Die Produktionsbasis ist kein gültiges ExportHUB-HTML-Dokument.' });
+      validateInlineScripts(html);
+      const requested = safeVersion(req.query && req.query.version || header(req, 'x-exporthub-version'));
+      const detected = detectVersion(html);
+      const version = requested || detected;
+      if (!version) return context.res = json(400, { ok: false, code: 'VERSION_MISSING', message: 'Produktionsversion konnte nicht erkannt werden.' });
+      const m = await loadManifest();
+      if (m.production) return context.res = json(409, { ok: false, code: 'PRODUCTION_EXISTS', message: 'Eine Produktionsversion ist bereits registriert.' });
+      let r = releaseByVersion(m, version);
+      if (!r) {
+        const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
+        const blob = 'releases/' + version + '.html';
+        await writeBlob(blob, buf, 'text/html; charset=utf-8');
+        r = { version, blob, uploadedAt: nowIso(), uploadedBy: who, size: buf.length, sha256, testedAt: nowIso(), testedBy: who, promotedAt: nowIso(), promotedBy: who, baseline: true };
+        m.releases.push(r);
+      }
+      m.production = version;
+      m.previousProduction = null;
+      await saveManifest(m);
+      return context.res = json(201, { ok: true, production: version, baseline: true });
+    }
+
     if (action === 'upload') {
       const buf = rawBody(req);
       if (!buf.length) return context.res = json(400, { ok: false, code: 'EMPTY_UPLOAD', message: 'Die RC-HTML-Datei ist leer.' });
       if (buf.length > MAX_HTML_BYTES) return context.res = json(413, { ok: false, code: 'RELEASE_TOO_LARGE', message: 'Die RC-Datei ist größer als 12 MB.' });
       const html = buf.toString('utf8');
       if (!/<html[\s>]/i.test(html) || !/<script/i.test(html)) return context.res = json(400, { ok: false, code: 'INVALID_HTML', message: 'Die Datei ist kein gültiges ExportHUB-HTML-Dokument.' });
+      validateInlineScripts(html);
       const requested = safeVersion(req.query && req.query.version || header(req, 'x-exporthub-version'));
       const detected = detectVersion(html);
       const version = requested || detected;
@@ -254,6 +301,7 @@ module.exports = async function (context, req) {
       const version = safeVersion(body.version);
       const m = await loadManifest(); const r = releaseByVersion(m, version);
       if (!r) return context.res = json(404, { ok: false, code: 'RELEASE_NOT_FOUND', message: version + ' wurde nicht gefunden.' });
+      if (safeVersion(m.test) !== version) return context.res = json(409, { ok: false, code: 'ACTIVE_TEST_REQUIRED', message: version + ' ist nicht die aktive Testversion. Bitte zuerst im Test aktivieren.' });
       r.testedAt = nowIso(); r.testedBy = who; await saveManifest(m);
       return context.res = json(200, { ok: true, version, testedAt: r.testedAt });
     }
@@ -261,6 +309,7 @@ module.exports = async function (context, req) {
       const version = safeVersion(body.version);
       const m = await loadManifest(); const r = releaseByVersion(m, version);
       if (!r) return context.res = json(404, { ok: false, code: 'RELEASE_NOT_FOUND', message: version + ' wurde nicht gefunden.' });
+      if (safeVersion(m.test) !== version) return context.res = json(409, { ok: false, code: 'ACTIVE_TEST_REQUIRED', message: version + ' ist nicht die aktive Testversion. Nur die aktuell getestete RC darf veröffentlicht werden.' });
       if (!r.testedAt) return context.res = json(409, { ok: false, code: 'TEST_REQUIRED', message: version + ' muss vor der Produktionsfreigabe als getestet markiert werden.' });
       if (safeVersion(m.production) !== version) m.previousProduction = safeVersion(m.production) || m.previousProduction || null;
       m.production = version; r.promotedAt = nowIso(); r.promotedBy = who; await saveManifest(m);
