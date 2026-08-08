@@ -82,6 +82,7 @@
     "exclude": [
       "/api/*",
       "/.auth/*",
+      "/test",
       "/test/*",
       "/pickup.html",
       "/assets/*",
