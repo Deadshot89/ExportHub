@@ -53,21 +53,6 @@
       }
     },
     {
-      "route": "/api/*",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store"
-      }
-    },
-    {
-      "route": "/.auth/*",
-      "allowedRoles": [
-        "anonymous"
-      ]
-    },
-    {
       "route": "/assets/*",
       "allowedRoles": [
         "anonymous"
