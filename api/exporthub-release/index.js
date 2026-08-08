@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const auth = require('../shared/auth-store');
 
 const CONTAINER = 'exporthub-releases';
 const MANIFEST_BLOB = 'manifest.json';
@@ -61,67 +62,12 @@ function detectVersion(html) {
   if (!m) m = s.match(/Aktuelle Version\s+(RC\d+)/i);
   return safeVersion(m && m[1]);
 }
-function isGlobalAdmin(user) {
-  if (!user) return false;
-  const role = lower(user.role || user.rolle);
-  const key = lower(user.user || user.login || user.username || user.name);
-  const permissions = Array.isArray(user.permissions) ? user.permissions : [];
-  return key === 'tobias' || user.globalAdmin === true || role === 'admin' || /global.?admin|administrator|vollzugriff/i.test(role) || permissions.indexOf('*') >= 0;
-}
-function tokenFromReq(req) {
-  return text(header(req, 'x-exporthub-token') || header(req, 'x-exporthub-session') || header(req, 'authorization').replace(/^Bearer\s+/i, ''));
-}
-function requestOrigin(req) {
-  const proto = text(header(req, 'x-forwarded-proto') || 'https').split(',')[0];
-  const host = text(header(req, 'x-forwarded-host') || header(req, 'host')).split(',')[0];
-  return host ? proto + '://' + host : '';
-}
 async function requireAdmin(req) {
-  const token = tokenFromReq(req);
-  if (!token) {
-    const e = new Error('ExportHUB-Sitzung fehlt.'); e.code = 'AUTH_REQUIRED'; e.status = 401; throw e;
+  const current = await auth.validateSession(req);
+  if (!current || !current.user || !auth.isAdmin(current.user)) {
+    throw auth.error('ADMIN_REQUIRED', 'Nur globale Administratoren dürfen Testversionen und Releases verwalten.', 403);
   }
-  const origin = requestOrigin(req);
-  if (!origin) {
-    const e = new Error('Serveradresse für die Sitzungsprüfung fehlt.'); e.code = 'AUTH_ORIGIN_MISSING'; e.status = 500; throw e;
-  }
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'X-ExportHUB-Token': token,
-    'X-ExportHUB-Session': token,
-    'Authorization': 'Bearer ' + token
-  };
-  async function authAction(action) {
-    const res = await fetch(origin + '/api/exporthub-auth', {
-      method: 'POST', headers, cache: 'no-store',
-      body: JSON.stringify({ action, sessionToken: token, authToken: token })
-    });
-    let body = {};
-    try { body = await res.json(); } catch (_) { body = {}; }
-    return { res, body };
-  }
-  // Prefer a lightweight session lookup where supported.
-  try {
-    const first = await authAction('session');
-    if (first.res.ok && first.body && first.body.ok !== false && first.body.user) {
-      if (!isGlobalAdmin(first.body.user)) {
-        const e = new Error('Nur globale Administratoren dürfen Testversionen und Releases verwalten.'); e.code = 'ADMIN_REQUIRED'; e.status = 403; throw e;
-      }
-      return first.body.user;
-    }
-  } catch (e) {
-    if (e && e.code === 'ADMIN_REQUIRED') throw e;
-  }
-  // Existing ExportHUB installations validate administrators through admin-list.
-  // A successful admin-list call is itself a server-side Global-Admin authorization check.
-  const check = await authAction('admin-list');
-  if (!check.res.ok || !check.body || check.body.ok === false) {
-    const e = new Error(check.body && check.body.message || 'ExportHUB-Sitzung ist ungültig.');
-    e.code = check.body && check.body.code || 'SESSION_INVALID'; e.status = check.res.status || 401; throw e;
-  }
-  const u = check.body.user || check.body.currentUser || check.body.admin || { name: 'Global Admin', globalAdmin: true };
-  return u;
+  return current.user;
 }
 
 function parseConnectionString(value) {
