@@ -173,25 +173,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC573',cache:'573',loginReturn:'/test?v=573'});
+var BUILD=Object.freeze({version:'RC574',cache:'574',loginReturn:'/test?v=574'});
 var RELEASE=Object.freeze({
- version:'RC573',
+ version:'RC574',
  date:'09.08.2026',
- title:'Legacy-Palettenbuchungen verbindlich validiert',
+ title:'Palettenabgleich wirksam und Theme-Menüs lesbar',
  changes:Object.freeze([
-  'Eine PAL-Zeitstempel-ID gilt nicht mehr automatisch als manuelle Palettenbuchung.',
-  'Bei Ausgang oder Eingang mit Sendungsbezug ist die verknüpfte Sendung immer die maßgebliche Quelle für die Europalettenanzahl.',
-  'Manuelle Palettenbuchungen werden nur noch über eindeutige manuelle Quelle, Abgleich oder Korrektur erkannt.',
-  'Generische amount-Werte sind auch im alten Palettenreport keine Palettenanzahl mehr.',
-  'Ungültige Legacy-Ausgänge ohne nachweisbare Europaletten werden aus Dashboard, Konto, Saldo und Reports ausgeschlossen.',
-  'Design- und Dashboard-Änderungen aus RC572 bleiben unverändert erhalten.'
+  'Bestätigte Palettenabgleiche werden als echte Korrekturbuchungen in den Kontostand eingerechnet.',
+  'Eine PA-Abgleichsnummer wird nicht mehr fälschlich als Sendungsreferenz behandelt.',
+  'Ein vorhandener Abgleich von Systemstand 16 auf Ist-Stand 982 korrigiert den Systemstand auf 982.',
+  'Die autoritative Navigation verwendet keine fest verdrahteten weißen oder hellblauen Menütexte mehr.',
+  'Menütext, Abschnittsüberschriften, Hover, Aktivzustand und Icons folgen der jeweiligen Theme-Palette.',
+  'Mint Pop, Sunny Bloom und Glass Workspace erhalten verstärkten Navigationskontrast.'
  ]),
  tests:Object.freeze([
-  'PAL-Zeitstempel-ID allein erzeugt keine manuelle Palettenbuchung',
-  'Verknüpfte Sendung ohne Europaletten ergibt für den Palettenausgang 0 EP',
-  'Verknüpfte Sendung mit 3 Europaletten ergibt 3 EP statt eines Legacy-Rohwerts',
-  'Explizit manueller Palettenabgleich bleibt gültig',
-  'Palettenreport verwendet kein generisches amount-Feld mehr als EP',
+  'Abgleichsbuchung mit reconciliationId und PA-Referenz wird als Korrektur gezählt',
+  'Systemstand 16 plus Abgleichsdifferenz +966 ergibt Systemstand 982',
+  'Stornierter Abgleich bleibt aus dem Kontostand ausgeschlossen',
+  'Alle neun Themes verwenden lesbare Menüfarben',
   'Inline-JavaScript vollständig auf Syntax geprüft'
  ])
 });
@@ -7678,7 +7677,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC573';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC574';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10402,7 +10401,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var VERSION='RC573',CACHE='573',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var VERSION='RC574',CACHE='574',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -11457,7 +11456,7 @@ function palletBookingDirection542(b){var t=L(b&&(b.direction||b.type||b.kind));
 function palletExplicitCount542(b){var fields=[b&&b.count,b&&b.quantity,b&&b.pallets,b&&b.palletCount,b&&b.euroPallets];for(var i=0;i<fields.length;i++){var n=N(fields[i]);if(n!==0)return Math.abs(Math.round(n))}return 0}
 function palletManualAdjustment542(b){var text=L((b&&b.source||'')+' '+(b&&b.bookingSource||'')+' '+(b&&b.note||'')+' '+(b&&b.comment||'')+' '+(b&&b.reason||'')),id=L(b&&b.id);return /manual|manuell|reconcil|abgleich|adjust|korrektur|correction|admin/.test(text)}
 function palletBookingShipment542(b){var id=Q(b&&(b.shipmentId||b.shipmentID)),ref=L(b&&(b.shipmentRef||b.ref||b.reference)),list=A(S().shipments).concat(A(S().savedShipments));return list.find(function(sh){return(id&&shipmentId(sh)===id)||(ref&&L(shipmentRef(sh))===ref)})||null}
-function palletBookingCount542(b){if(!b||/storniert|cancelled|canceled|deleted|geloscht|gelöscht/.test(L(b.status)))return 0;var dir=palletBookingDirection542(b),hasLink=!!Q(b.shipmentId||b.shipmentID||b.shipmentRef||b.ref||b.reference),sh=hasLink?palletBookingShipment542(b):null,src=L(b.source||b.bookingSource||''),id=L(b.id||''),manual=palletManualAdjustment542(b);if(dir==='adjust'&&manual){var delta=N(b.balanceChange||b.delta);if(delta)return Math.abs(Math.round(delta));return palletExplicitCount542(b)}if(hasLink){if(!sh)return 0;if(dir==='out')return euroPalletCount(sh);if(dir==='in')return Math.max(0,Math.round(N(sh.returnedEuroPallets||sh.returnPallets||sh.palletIn||sh.euroPalletsIn)))}if(src==='shipment-pickup'||/^pal-(?:qr-)?(?:out|in)-/.test(id))return 0;if(manual)return palletExplicitCount542(b);if(dir==='out')return 0;if(dir==='adjust'){var delta2=N(b.balanceChange||b.delta);if(delta2)return Math.abs(Math.round(delta2))}return palletExplicitCount542(b)}
+function palletBookingCount542(b){if(!b||/storniert|cancelled|canceled|deleted|geloscht|gelöscht/.test(L(b.status)))return 0;var dir=palletBookingDirection542(b),src=L(b.source||b.bookingSource||''),id=L(b.id||''),manual=palletManualAdjustment542(b),reconciliation=!!Q(b.reconciliationId)||/^pal-abgl-/.test(id)||/abgleich|reconcil/.test(src);if(reconciliation&&manual){var reconDelta=N(b.balanceChange||b.delta);if(dir==='adjust'&&reconDelta)return Math.abs(Math.round(reconDelta));return palletExplicitCount542(b)}var hasLink=!!Q(b.shipmentId||b.shipmentID||b.shipmentRef||b.ref||b.reference),sh=hasLink?palletBookingShipment542(b):null;if(dir==='adjust'&&manual){var delta=N(b.balanceChange||b.delta);if(delta)return Math.abs(Math.round(delta));return palletExplicitCount542(b)}if(hasLink){if(!sh)return 0;if(dir==='out')return euroPalletCount(sh);if(dir==='in')return Math.max(0,Math.round(N(sh.returnedEuroPallets||sh.returnPallets||sh.palletIn||sh.euroPalletsIn)))}if(src==='shipment-pickup'||/^pal-(?:qr-)?(?:out|in)-/.test(id))return 0;if(manual)return palletExplicitCount542(b);if(dir==='out')return 0;if(dir==='adjust'){var delta2=N(b.balanceChange||b.delta);if(delta2)return Math.abs(Math.round(delta2))}return palletExplicitCount542(b)}
 function activeBookings(){return A(S().palletAccount).filter(function(b){return palletBookingCount542(b)>0})}
 function migrateDhlFreightPalletAccount(){var s=S(),changed=false,stamp=new Date().toISOString(),dhlCustomers=A(s.customers).filter(function(c){return isDhlFreightPalletParty(c&&(c.name||c.customerName||c.account||c.customerNumber))}),ids={};dhlCustomers.forEach(function(c){[c.id,c.account,c.customerNumber,c.kundennummer,c.name,c.customerName].forEach(function(v){var k=L(v);if(k)ids[k]=true})});function fromDhlCustomer(b){var c=findCustomer(b.customerId||b.customerAccount||b.customerName);if(c&&isDhlFreightPalletParty(c.name||c.customerName||c.account||c.customerNumber))return true;if(isDhlFreightPalletParty(b.customerName))return true;return [b.customerId,b.customerAccount,b.customerNumber,b.partyCustomerId,b.partyAccount,b.partyCustomerName].some(function(v){return !!ids[L(v)]})}function dhlKey(v){var k=Q(v),raw=L(k).replace(/^customer:/,'');return isDhlFreightPalletParty(k)||!!ids[raw]}A(s.palletAccount).forEach(function(b){var fromCustomer=fromDhlCustomer(b),asCarrier=isDhlFreightPalletParty(b.partyName||b.carrier||b.spedition||b.partyKey);if(!fromCustomer&&!asCarrier)return;if(fromCustomer&&!b.dhlFreightTransfer){b.dhlFreightTransfer={fromCustomerId:Q(b.customerId),fromCustomerAccount:Q(b.customerAccount||b.customerNumber),fromCustomerName:Q(b.customerName||b.partyCustomerName||'DHL Freight'),transferredAt:stamp}}if(Q(b.partyKey)!=='carrier:dhl freight'||Q(b.partyType)!=='carrier'||Q(b.partyName)!=='DHL Freight'||Q(b.carrier)!=='DHL Freight'||Q(b.spedition)!=='DHL Freight'||(fromCustomer&&(Q(b.customerId)||Q(b.customerAccount)||Q(b.customerNumber)||Q(b.customerName)))){b.partyKey='carrier:dhl freight';b.partyType='carrier';b.partyName='DHL Freight';b.carrier='DHL Freight';b.spedition='DHL Freight';if(fromCustomer){b.customerId='';b.customerAccount='';b.customerNumber='';b.customerName=''}b.updatedAt=stamp;changed=true}});A(s.palletSettlements).forEach(function(x){if(!(dhlKey(x.partyKey)||isDhlFreightPalletParty(x.partyName)))return;if(Q(x.partyKey)!=='carrier:dhl freight'||Q(x.partyType)!=='carrier'||Q(x.partyName)!=='DHL Freight'){x.partyKey='carrier:dhl freight';x.partyType='carrier';x.partyName='DHL Freight';x.updatedAt=stamp;changed=true}});['rc542PalletParty','rc524PalletParty'].forEach(function(key){if(dhlKey(s[key])&&Q(s[key])!=='carrier:dhl freight'){s[key]='carrier:dhl freight';changed=true}});if(changed){s.palletMigrationLog=A(s.palletMigrationLog);s.palletMigrationLog.push({id:'PAL-MIG-DHL-'+Date.now(),type:'DHL Freight Kunde zu Spedition',createdAt:stamp,bookings:A(s.palletAccount).filter(function(b){return Q(b.partyKey)==='carrier:dhl freight'}).length})}return changed}
 function parties(){var map={};A(S().customers).forEach(function(c){var dhl=isDhlFreightPalletParty(c&&(c.name||c.customerName||c.account||c.customerNumber)),p=partyForCustomer(c);if(!p.name)return;if(!map[p.key])map[p.key]={party:p,customers:[],bookings:[]};if(!dhl)map[p.key].customers.push(c)});activeBookings().forEach(function(b){var p=bookingParty(b);if(!p.name)return;if(!map[p.key])map[p.key]={party:p,customers:[],bookings:[]};map[p.key].bookings.push(b)});return Object.keys(map).map(function(k){return map[k]})}
@@ -13807,7 +13806,7 @@ try{Object.defineProperty(window,'ExportHUBRC569QR',{configurable:false,get:func
 <!-- RC573 AUTHORITATIVE SHIPMENT, MAIL, STOW, QR, ABD AND DOCUMENT REPAIR END -->
 <!-- RC573 SHIPMENT CREATE LAYOUT REFINEMENT START -->
 <style id="rc573-shipment-layout-style">
-html[data-exporthub-version="RC573"]{--rc573-surface:#f8fbfe;--rc573-card:#fff;--rc573-line:#d7e3ef;--rc573-soft:#f3f8fc;--rc573-blue:#1769e0;--rc573-ink:#08245d;--rc573-muted:#64748b}
+html[data-exporthub-version="RC574"]{--rc573-surface:#f8fbfe;--rc573-card:#fff;--rc573-line:#d7e3ef;--rc573-soft:#f3f8fc;--rc573-blue:#1769e0;--rc573-ink:#08245d;--rc573-muted:#64748b}
 #content[data-view="shipment"],body[data-exporthub-view="shipment"] #content{background:linear-gradient(180deg,rgba(241,247,252,.68),rgba(248,251,254,.42));border-radius:24px;padding:2px 2px 18px}
 #content[data-view="shipment"] .rc344-root{display:block!important;max-width:none!important}
 #content[data-view="shipment"] .rc344-root>.page-head{position:relative;margin:0 0 12px!important;padding:4px 4px 2px;align-items:flex-start!important}
@@ -18451,12 +18450,12 @@ window.ExportHUBShipmentStatus373=Object.freeze({version:VERSION,refresh:refresh
 <!-- INDEX 308 PUBLICATION REPAIR START -->
 <style id="index308-publication-repair-style">
 #nav[data-index308-menu="1"]{display:grid!important;gap:4px!important;padding:2px 0 10px!important}
-#nav[data-index308-menu="1"]>[data-index308-group]{margin:15px 12px 5px!important;color:#8fb6df!important;font-size:10px!important;font-weight:900!important;letter-spacing:.12em!important;text-transform:uppercase!important}
-#nav[data-index308-menu="1"]>button[data-index308-view]:not([hidden]){display:grid!important;grid-template-columns:34px minmax(0,1fr)!important;align-items:center!important;gap:8px!important;width:100%!important;min-height:46px!important;margin:0!important;padding:7px 11px!important;border:1px solid transparent!important;border-radius:13px!important;color:#e8f2ff!important;background:transparent!important;font-size:14px!important;font-weight:850!important;text-align:left!important;transition:background .14s ease,border-color .14s ease,transform .14s ease!important}
-#nav[data-index308-menu="1"]>button[data-index308-view]:hover{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.12)!important;transform:translateX(2px)!important}
-#nav[data-index308-menu="1"]>button[data-index308-view].active{background:#fff!important;color:#08245d!important;border-color:#fff!important;box-shadow:0 8px 22px rgba(2,17,40,.18)!important}
-#nav[data-index308-menu="1"] .index308-nav-icon{width:30px!important;height:30px!important;display:grid!important;place-items:center!important;border-radius:10px!important;background:rgba(255,255,255,.10)!important;color:currentColor!important}
-#nav[data-index308-menu="1"] button.active .index308-nav-icon{background:#e8f3ff!important;color:#0b5ca8!important}
+#nav[data-index308-menu="1"]>[data-index308-group]{margin:15px 12px 5px!important;color:var(--pc-side-muted,#8fb6df)!important;font-size:10px!important;font-weight:900!important;letter-spacing:.12em!important;text-transform:uppercase!important}
+#nav[data-index308-menu="1"]>button[data-index308-view]:not([hidden]){display:grid!important;grid-template-columns:34px minmax(0,1fr)!important;align-items:center!important;gap:8px!important;width:100%!important;min-height:46px!important;margin:0!important;padding:7px 11px!important;border:1px solid transparent!important;border-radius:13px!important;color:var(--pc-side-text,#e8f2ff)!important;background:var(--pc-nav,transparent)!important;font-size:14px!important;font-weight:850!important;text-align:left!important;transition:background .14s ease,border-color .14s ease,transform .14s ease!important}
+#nav[data-index308-menu="1"]>button[data-index308-view]:hover{background:var(--pc-nav-hover,rgba(255,255,255,.10))!important;border-color:var(--pc-line,rgba(255,255,255,.12))!important;color:var(--pc-side-text,#fff)!important;transform:translateX(2px)!important}
+#nav[data-index308-menu="1"]>button[data-index308-view].active{background:var(--pc-nav-active,#fff)!important;color:var(--pc-nav-active-text,#08245d)!important;border-color:color-mix(in srgb,var(--pc-primary,#0b5ca8) 28%,var(--pc-line,#fff))!important;box-shadow:var(--pc-shadow-soft,0 8px 22px rgba(2,17,40,.18))!important}
+#nav[data-index308-menu="1"] .index308-nav-icon{width:30px!important;height:30px!important;display:grid!important;place-items:center!important;border-radius:10px!important;background:color-mix(in srgb,var(--pc-side-text,#fff) 10%,transparent)!important;color:currentColor!important}
+#nav[data-index308-menu="1"] button.active .index308-nav-icon{background:color-mix(in srgb,var(--pc-primary,#0b5ca8) 14%,var(--pc-nav-active,#fff))!important;color:var(--pc-primary,#0b5ca8)!important}
 #nav[data-index308-menu="1"] .index308-nav-icon svg{width:18px!important;height:18px!important;display:block!important;fill:none!important;stroke:currentColor!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important}
 #nav[data-index308-menu="1"] .index308-nav-label{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 #content.index308-overview-view{display:block!important}
@@ -18477,13 +18476,13 @@ window.ExportHUBShipmentStatus373=Object.freeze({version:VERSION,refresh:refresh
 <!-- INDEX 323 LOGOUT + MENU CONSISTENCY START -->
 <style id="index323-menu-consistency-style">
 #nav[data-index321-menu="1"]{display:flex!important;flex-direction:column!important;gap:4px!important;padding:4px 0 12px!important}
-#nav[data-index321-menu="1"]>[data-index308-group]:not([hidden]){display:block!important;margin:15px 12px 5px!important;padding:0!important;color:#8fb6df!important;font-size:10px!important;line-height:1.2!important;font-weight:900!important;letter-spacing:.12em!important;text-transform:uppercase!important}
-#nav[data-index321-menu="1"]>button[data-index321-view]:not([hidden]){appearance:none!important;-webkit-appearance:none!important;display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;align-items:center!important;justify-items:start!important;gap:9px!important;width:100%!important;min-width:0!important;min-height:46px!important;height:auto!important;margin:0!important;padding:7px 11px!important;border:1px solid transparent!important;border-radius:13px!important;background:transparent!important;color:#e8f2ff!important;font-family:inherit!important;font-size:14px!important;line-height:1.2!important;font-weight:850!important;text-align:left!important;box-shadow:none!important;transform:none!important;cursor:pointer!important}
+#nav[data-index321-menu="1"]>[data-index308-group]:not([hidden]){display:block!important;margin:15px 12px 5px!important;padding:0!important;color:var(--pc-side-muted,#8fb6df)!important;font-size:10px!important;line-height:1.2!important;font-weight:900!important;letter-spacing:.12em!important;text-transform:uppercase!important}
+#nav[data-index321-menu="1"]>button[data-index321-view]:not([hidden]){appearance:none!important;-webkit-appearance:none!important;display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;align-items:center!important;justify-items:start!important;gap:9px!important;width:100%!important;min-width:0!important;min-height:46px!important;height:auto!important;margin:0!important;padding:7px 11px!important;border:1px solid transparent!important;border-radius:13px!important;background:var(--pc-nav,transparent)!important;color:var(--pc-side-text,#e8f2ff)!important;font-family:inherit!important;font-size:14px!important;line-height:1.2!important;font-weight:850!important;text-align:left!important;box-shadow:none!important;transform:none!important;cursor:pointer!important}
 #nav[data-index321-menu="1"]>button[data-index321-view]::before,#nav[data-index321-menu="1"]>button[data-index321-view]::after{content:none!important;display:none!important}
-#nav[data-index321-menu="1"]>button[data-index321-view]:hover{background:rgba(255,255,255,.10)!important;border-color:rgba(255,255,255,.12)!important;color:#fff!important;transform:none!important}
-#nav[data-index321-menu="1"]>button[data-index321-view].active,#nav[data-index321-menu="1"]>button[data-index321-view][aria-current="page"]{background:#fff!important;border-color:#fff!important;color:#08245d!important;box-shadow:0 8px 22px rgba(2,17,40,.18)!important}
-#nav[data-index321-menu="1"] .index308-nav-icon{display:grid!important;place-items:center!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;margin:0!important;padding:0!important;border-radius:10px!important;background:rgba(255,255,255,.10)!important;color:currentColor!important;line-height:1!important}
-#nav[data-index321-menu="1"] button.active .index308-nav-icon,#nav[data-index321-menu="1"] button[aria-current="page"] .index308-nav-icon{background:#e8f3ff!important;color:#0b5ca8!important}
+#nav[data-index321-menu="1"]>button[data-index321-view]:hover{background:var(--pc-nav-hover,rgba(255,255,255,.10))!important;border-color:var(--pc-line,rgba(255,255,255,.12))!important;color:var(--pc-side-text,#fff)!important;transform:none!important}
+#nav[data-index321-menu="1"]>button[data-index321-view].active,#nav[data-index321-menu="1"]>button[data-index321-view][aria-current="page"]{background:var(--pc-nav-active,#fff)!important;border-color:color-mix(in srgb,var(--pc-primary,#0b5ca8) 28%,var(--pc-line,#fff))!important;color:var(--pc-nav-active-text,#08245d)!important;box-shadow:var(--pc-shadow-soft,0 8px 22px rgba(2,17,40,.18))!important}
+#nav[data-index321-menu="1"] .index308-nav-icon{display:grid!important;place-items:center!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;margin:0!important;padding:0!important;border-radius:10px!important;background:color-mix(in srgb,var(--pc-side-text,#fff) 10%,transparent)!important;color:currentColor!important;line-height:1!important}
+#nav[data-index321-menu="1"] button.active .index308-nav-icon,#nav[data-index321-menu="1"] button[aria-current="page"] .index308-nav-icon{background:color-mix(in srgb,var(--pc-primary,#0b5ca8) 14%,var(--pc-nav-active,#fff))!important;color:var(--pc-primary,#0b5ca8)!important}
 #nav[data-index321-menu="1"] .index308-nav-icon svg{display:block!important;width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;margin:0!important;fill:none!important;stroke:currentColor!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important}
 #nav[data-index321-menu="1"] .index308-nav-label{display:block!important;min-width:0!important;width:100%!important;margin:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:inherit!important;font:inherit!important;line-height:1.2!important}
 </style>
@@ -19710,7 +19709,7 @@ html[data-exporthub-testportal="1"][data-rc558-login-visible="1"] #login{positio
 }
 </style>
 <style id="rc430-canonical-theme-system">
-/* RC573 – neun eigenständige Premium-Oberflächen. Jede Vorlage verändert Layout,
+/* RC574 – neun eigenständige Premium-Oberflächen. Jede Vorlage verändert Layout,
    Navigation, Typografie, Karten, Formulare, Tabellen, Schatten und Statusdarstellung. */
 :root.eh-theme-changing *, :root.eh-theme-changing *::before, :root.eh-theme-changing *::after{transition:none!important}
 #ehThemeSwitch{display:inline-grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:8px!important;min-height:42px!important;padding:5px 9px 5px 11px!important;white-space:nowrap!important}
@@ -19896,7 +19895,7 @@ body[data-eh-theme="executive-minimal"] #content .metric{border-top:3px solid va
 /* ---------- 4. Glass Workspace: schwebender Glass-Arbeitsraum ---------- */
 body[data-eh-theme="glass-workspace"]{
  --pc-page:radial-gradient(circle at 8% 2%,rgba(188,226,246,.72),transparent 30%),radial-gradient(circle at 92% 5%,rgba(221,235,244,.74),transparent 32%),linear-gradient(145deg,#d9e8f1,#c9dce7 50%,#b9d2df);
- --pc-side:linear-gradient(180deg,rgba(22,54,76,.72),rgba(31,67,89,.64));--pc-side-text:#f8fcff;--pc-side-muted:#c7dbe7;
+ --pc-side:linear-gradient(180deg,rgba(18,49,70,.88),rgba(28,64,86,.84));--pc-side-text:#ffffff;--pc-side-muted:#d7e7f0;
  --pc-top:rgba(250,253,255,.70);--pc-surface:rgba(255,255,255,.64);--pc-surface-2:rgba(250,253,255,.52);--pc-surface-3:rgba(228,239,246,.54);--pc-field:rgba(255,255,255,.78);--pc-line:rgba(116,151,171,.34);
  --pc-text:#203746;--pc-title:#123a53;--pc-muted:#607887;--pc-primary:#167cab;--pc-primary-2:#44a8c7;--pc-primary-soft:rgba(220,240,248,.78);
  --pc-nav:rgba(255,255,255,.05);--pc-nav-hover:rgba(255,255,255,.14);--pc-nav-active:rgba(255,255,255,.86);--pc-nav-active-text:#174967;
@@ -19941,7 +19940,7 @@ body[data-eh-theme="neon-flow"] #content .metric strong{color:#fff!important;tex
 /* ---------- 6. Sunny Bloom: warmes Premium-Workspace ---------- */
 body[data-eh-theme="sunny-bloom"]{
  --pc-page:radial-gradient(circle at 12% -2%,rgba(255,192,97,.34),transparent 28%),radial-gradient(circle at 90% 4%,rgba(255,130,104,.15),transparent 26%),linear-gradient(150deg,#fffaf4,#ffede2);
- --pc-side:linear-gradient(180deg,#fff2e7,#ffdfcc);--pc-side-text:#5d332c;--pc-side-muted:#986a61;--pc-top:rgba(255,253,249,.96);
+ --pc-side:linear-gradient(180deg,#fff2e7,#ffdfcc);--pc-side-text:#4d2822;--pc-side-muted:#80584f;--pc-top:rgba(255,253,249,.96);
  --pc-surface:#fffdfa;--pc-surface-2:#fff6ef;--pc-surface-3:#ffeadf;--pc-field:#fffefa;--pc-line:#efcdbd;
  --pc-text:#4d2d28;--pc-title:#6c372f;--pc-muted:#8f665f;--pc-primary:#ee6b53;--pc-primary-2:#f4a43f;--pc-primary-soft:#fff0e6;
  --pc-nav:transparent;--pc-nav-hover:#fff8f1;--pc-nav-active:#6b382f;--pc-nav-active-text:#fff;
@@ -19963,7 +19962,7 @@ body[data-eh-theme="sunny-bloom"] #content .metric{background:linear-gradient(14
 /* ---------- 7. Mint Pop: modulare Bento-Oberfläche ---------- */
 body[data-eh-theme="mint-pop"]{
  --pc-page:radial-gradient(circle at 88% -5%,rgba(74,164,255,.19),transparent 28%),radial-gradient(circle at 8% 0,rgba(56,211,163,.18),transparent 26%),linear-gradient(150deg,#f5fffc,#e7faf5);
- --pc-side:linear-gradient(180deg,#e9fff8,#d2f6ed);--pc-side-text:#164a55;--pc-side-muted:#5b868d;--pc-top:rgba(255,255,255,.91);
+ --pc-side:linear-gradient(180deg,#e9fff8,#d2f6ed);--pc-side-text:#103f48;--pc-side-muted:#4d7379;--pc-top:rgba(255,255,255,.91);
  --pc-surface:#fff;--pc-surface-2:#f2fffb;--pc-surface-3:#e5faf3;--pc-field:#fbfffd;--pc-line:#c1e7de;
  --pc-text:#183f47;--pc-title:#0d5159;--pc-muted:#5d7f86;--pc-primary:#10b39f;--pc-primary-2:#43ce8e;--pc-primary-soft:#e1faf2;
  --pc-nav:transparent;--pc-nav-hover:rgba(255,255,255,.72);--pc-nav-active:linear-gradient(135deg,#10b39f,#43ce8e);--pc-nav-active-text:#fff;
@@ -20130,7 +20129,7 @@ body[data-eh-theme="strategic-graphite"] #content.rc524-overview-view .rc210-sta
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var VERSION='RC573',CACHE='573',USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var VERSION='RC574',CACHE='574',USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
