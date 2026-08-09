@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ExportHUB POD-Notfallzugriff RC551</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#0f172a;background:#eef5fb}*{box-sizing:border-box}body{margin:0;padding:24px}.wrap{max-width:1100px;margin:auto}.head,.card{background:#fff;border:1px solid #cfdeeb;border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(15,65,95,.06)}.head{margin-bottom:14px}.head h1{margin:0 0 6px;font-size:26px;color:#08275c}.muted{color:#64748b}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.kpi{background:#f7fbff;border:1px solid #dbe8f2;border-radius:14px;padding:12px}.kpi span{display:block;font-size:12px;font-weight:800;color:#64748b}.kpi strong{display:block;font-size:22px;margin-top:4px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.btn,.filebtn{display:inline-flex;align-items:center;justify-content:center;border:1px solid #bfd6e7;border-radius:11px;padding:9px 12px;background:#eff6ff;color:#0b3568;font-weight:800;cursor:pointer;text-decoration:none}.btn.primary{background:#0ea5e9;color:white;border-color:#0ea5e9}.filebtn input{display:none}.status{padding:11px 12px;border-radius:12px;background:#eff6ff;margin:10px 0;font-weight:700}.status.ok{background:#dcfce7;color:#166534}.status.bad{background:#fee2e2;color:#991b1b}.list{display:grid;gap:8px}.row{display:grid;grid-template-columns:140px 150px minmax(0,1fr) 120px;gap:10px;align-items:center;border:1px solid #dbe8f2;border-radius:12px;padding:10px;background:#fff}.row b{color:#08275c}.small{font-size:12px;color:#64748b}.empty{padding:18px;border:1px dashed #cbd5e1;border-radius:12px;color:#64748b;text-align:center}@media(max-width:760px){body{padding:10px}.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.row .btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="head">
+    <h1>ExportHUB POD-Notfallzugriff</h1>
+    <div class="muted">Unabhängige Notfallseite für gesicherte POD-Dateien · RC551</div>
+    <div class="grid">
+      <div class="kpi"><span>PODs im lokalen Browser-Vault</span><strong id="vaultCount">0</strong></div>
+      <div class="kpi"><span>PODs aus ausgewähltem Notfallordner</span><strong id="folderCount">0</strong></div>
+      <div class="kpi"><span>Modus</span><strong id="mode">Notfall</strong></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="refreshVault">Browser-Vault laden</button>
+      <button class="btn" id="downloadVaultZip">Browser-Vault als ZIP</button>
+      <label class="filebtn">Notfallordner auswählen<input id="folderInput" type="file" webkitdirectory directory multiple accept="application/pdf,image/png,image/jpeg,image/webp"></label>
+    </div>
+    <div id="status" class="status">Bereit.</div>
+  </section>
+  <section class="card">
+    <h2>Verfügbare POD-Dateien</h2>
+    <div id="list" class="list"><div class="empty">Noch keine POD-Dateien geladen.</div></div>
+  </section>
+</div>
+<script>
+(function(){
+'use strict';
+var DB_NAME='ExportHUBPODVault',DB_VERSION=1,POD_STORE='pods',vaultRows=[],folderRows=[];
+function q(v){return String(v==null?'':v).trim()}function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function fmtSize(n){n=Number(n)||0;if(n<1024)return n+' B';if(n<1048576)return(n/1024).toFixed(1)+' KB';return(n/1048576).toFixed(1)+' MB'}function setStatus(t,k){var e=document.getElementById('status');e.className='status'+(k?' '+k:'');e.textContent=t}
+function openDb(){return new Promise(function(resolve,reject){if(!window.indexedDB)return reject(new Error('IndexedDB ist in diesem Browser nicht verfügbar.'));var r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=function(){var db=r.result;if(!db.objectStoreNames.contains(POD_STORE))db.createObjectStore(POD_STORE,{keyPath:'key'});if(!db.objectStoreNames.contains('meta'))db.createObjectStore('meta',{keyPath:'key'})};r.onsuccess=function(){resolve(r.result)};r.onerror=function(){reject(r.error||new Error('POD-Vault konnte nicht geöffnet werden'))}})}
+async function loadVault(){try{var db=await openDb(),rows=await new Promise(function(resolve,reject){var t=db.transaction(POD_STORE,'readonly'),r=t.objectStore(POD_STORE).getAll();r.onsuccess=function(){resolve(r.result||[])};r.onerror=function(){reject(r.error)}});db.close();vaultRows=rows.sort(function(a,b){return q(b.confirmedAt||b.savedAt).localeCompare(q(a.confirmedAt||a.savedAt))});document.getElementById('vaultCount').textContent=vaultRows.length;render();setStatus(vaultRows.length?vaultRows.length+' POD-Datei(en) aus dem lokalen Browser-Vault geladen.':'Im Browser-Vault sind noch keine PODs vorhanden.',vaultRows.length?'ok':'')}catch(e){vaultRows=[];document.getElementById('vaultCount').textContent='0';render();setStatus('Browser-Vault konnte nicht geladen werden: '+q(e.message||e),'bad')}}
+function downloadBlob(blob,name){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name||'POD.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},60000)}
+function render(){var list=document.getElementById('list'),rows=[];vaultRows.forEach(function(r,i){rows.push({source:'Browser-Vault',reference:r.reference,date:(r.confirmedAt||r.savedAt||'').slice(0,10),name:r.fileName,size:r.size,download:function(){downloadBlob(r.blob,r.fileName)}})});folderRows.forEach(function(r){rows.push(r)});if(!rows.length){list.innerHTML='<div class="empty">Keine POD-Dateien verfügbar.</div>';return}list.innerHTML=rows.map(function(r,i){return '<div class="row"><div><b>'+esc(r.reference||'POD')+'</b><div class="small">'+esc(r.source)+'</div></div><div>'+esc(r.date||'')+'</div><div><b>'+esc(r.name)+'</b><div class="small">'+esc(fmtSize(r.size))+'</div></div><button class="btn" data-download="'+i+'">Herunterladen</button></div>'}).join('');list.querySelectorAll('[data-download]').forEach(function(b){b.addEventListener('click',function(){rows[Number(b.getAttribute('data-download'))].download()})})}
+function folderFiles(files){folderRows=[];Array.from(files||[]).filter(function(f){return /\.(pdf|png|jpe?g|webp)$/i.test(f.name)}).forEach(function(f){var rel=q(f.webkitRelativePath||f.name),m=/(?:^|[_\-])(\d{6}|[A-Z0-9]{5,12})(?:[_\-.]|$)/i.exec(f.name);folderRows.push({source:'Notfallordner',reference:m?m[1].toUpperCase():'POD',date:new Date(f.lastModified).toISOString().slice(0,10),name:rel,size:f.size,download:function(){downloadBlob(f,f.name)}})});document.getElementById('folderCount').textContent=folderRows.length;render();setStatus(folderRows.length?folderRows.length+' POD-Datei(en) aus dem Notfallordner geladen.':'Im ausgewählten Ordner wurden keine POD-Dateien gefunden.',folderRows.length?'ok':'')}
+var crcTable=null;function crc32(data){if(!crcTable){crcTable=new Uint32Array(256);for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;crcTable[n]=c>>>0}}var c=0xffffffff;for(var i=0;i<data.length;i++)c=crcTable[(c^data[i])&255]^(c>>>8);return(c^0xffffffff)>>>0}function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}function cat(parts){var len=parts.reduce(function(a,b){return a+b.length},0),out=new Uint8Array(len),p=0;parts.forEach(function(b){out.set(b,p);p+=b.length});return out}function zip(entries){var local=[],central=[],offset=0,enc=new TextEncoder();entries.forEach(function(e){var name=enc.encode(e.name),data=e.data,crc=crc32(data),head=cat([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name]),block=cat([head,data]);local.push(block);central.push(cat([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset),name]));offset+=block.length});var center=cat(central),body=cat(local),end=cat([u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(center.length),u32(body.length),u16(0)]);return new Blob([body,center,end],{type:'application/zip'})}
+async function vaultZip(){if(!vaultRows.length){setStatus('Im Browser-Vault sind keine PODs vorhanden.','bad');return}setStatus('ZIP wird erstellt …');var entries=[];for(var i=0;i<vaultRows.length;i++){var r=vaultRows[i],data=new Uint8Array(await r.blob.arrayBuffer());entries.push({name:q(r.fileName)||('POD_'+(i+1)+'.pdf'),data:data})}downloadBlob(zip(entries),'ExportHUB_POD_Notfall_Vault.zip');setStatus(entries.length+' POD-Datei(en) als Notfall-ZIP erstellt.','ok')}
+document.getElementById('refreshVault').addEventListener('click',loadVault);document.getElementById('downloadVaultZip').addEventListener('click',vaultZip);document.getElementById('folderInput').addEventListener('change',function(){folderFiles(this.files)});loadVault();
+})();
+</script>
+</body>
+</html>
