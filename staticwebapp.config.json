@@ -4,62 +4,61 @@
     {
       "route": "/",
       "rewrite": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/test",
-      "rewrite": "/test/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "rewrite": "/TESTVERSION.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
+      "route": "/test/*",
+      "rewrite": "/TESTVERSION.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
+      "route": "/TESTVERSION.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
+      "route": "/test-loader.html",
+      "rewrite": "/TESTVERSION.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/pickup",
       "rewrite": "/pickup.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
     },
     {
       "route": "/pickup.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff"}
+    },
+    {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store"}
+    },
+    {
+      "route": "/.auth/*",
+      "allowedRoles": ["anonymous"]
     },
     {
       "route": "/assets/*",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     }
   ],
   "navigationFallback": {
@@ -69,13 +68,13 @@
       "/.auth/*",
       "/test",
       "/test/*",
+      "/TESTVERSION.html",
+      "/test-loader.html",
       "/pickup.html",
       "/assets/*",
       "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}"
     ]
   },
-  "platform": {
-    "apiRuntime": "node:20"
-  },
+  "platform": {"apiRuntime": "node:20"},
   "trailingSlash": "never"
 }
