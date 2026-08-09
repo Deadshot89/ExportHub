@@ -172,13 +172,13 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC559',cache:'559',loginReturn:'/test?v=559'});
+var BUILD=Object.freeze({version:'RC560',cache:'560',loginReturn:'/test?v=560'});
 var RELEASE=Object.freeze({
- version:'RC559',
+ version:'RC560',
  date:'09.08.2026',
- title:'Testportal-Login und ABD-Persistenz gehärtet',
+ title:'Testportal-Sitzungsübergabe stabilisiert',
  changes:Object.freeze([
-  'Testportal übernimmt eine bereits bestätigte Hauptseiten-Sitzung und stellt den Benutzernamen beim direkten Testlogin wieder her.',
+  'Testportal übernimmt ausschließlich vollständig persistierte Sitzungen; ein nur im Arbeitsspeicher vorhandener Login löst keinen Seitenwechsel mehr aus.',
   'ABD-Uploads werden nach Azure-Speicherung erneut gegen den synchronisierten Serverzustand geprüft und bei Bedarf einmal verbindlich nachgespeichert.',
   'ABD-Verknüpfung erfolgt nur noch über Sendungs-ID, ABD-Anfrage-ID oder Referenz; Kundenübereinstimmung allein reicht nicht mehr.',
   'Mailanforderung Kundenmail und Speditionsmail verlangt jetzt tatsächlich beide Bestätigungen.',
@@ -20025,14 +20025,14 @@ html[data-exporthub-testportal="1"][data-rc558-login-visible="1"] #login{positio
  html[data-exporthub-testportal="1"] #content .metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 </style>
-<script id="rc559-testportal-releasefix">
+<script id="rc560-testportal-releasefix">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
  var USER_KEY='exporthub_test_login_user';
  function q(v){return String(v==null?'':v).trim()}
  function syncLoginMask(){try{var login=document.getElementById('login'),visible=!!(login&&!login.classList.contains('hidden'));document.documentElement.setAttribute('data-rc558-login-visible',visible?'1':'0')}catch(_){}}
  function restoreUser(){try{var input=document.getElementById('loginUser'),saved=sessionStorage.getItem(USER_KEY);if(input&&!q(input.value)&&q(saved))input.value=q(saved)}catch(_){}}
- function anchorTestRoute(){try{if(window.__EXPORTHUB_PICKUP_MODE__)return;var u=new URL(location.href);if(!/^\/test(?:\/|$)/i.test(u.pathname))u.pathname='/test';u.searchParams.set('v','559');u.searchParams.delete('portal');history.replaceState(history.state||null,'',u.pathname+u.search+u.hash)}catch(_){}}
+ function anchorTestRoute(){try{if(window.__EXPORTHUB_PICKUP_MODE__)return;var u=new URL(location.href);if(!/^\/test(?:\/|$)/i.test(u.pathname))u.pathname='/test';u.searchParams.set('v','560');u.searchParams.delete('portal');history.replaceState(history.state||null,'',u.pathname+u.search+u.hash)}catch(_){}}
  function bind(){anchorTestRoute();restoreUser();syncLoginMask();var login=document.getElementById('login');if(login&&window.MutationObserver)new MutationObserver(function(){syncLoginMask();restoreUser()}).observe(login,{attributes:true,attributeFilter:['class']});}
  window.addEventListener('exporthub:ready',function(){anchorTestRoute();syncLoginMask();try{sessionStorage.removeItem(USER_KEY)}catch(_){}});
  window.addEventListener('exporthub:rendered',syncLoginMask);
