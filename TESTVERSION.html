@@ -172,14 +172,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC562',cache:'562',loginReturn:'/test?v=562'});
+var BUILD=Object.freeze({version:'RC563',cache:'563',loginReturn:'/test?v=563'});
 var RELEASE=Object.freeze({
- version:'RC562',
+ version:'RC563',
  date:'09.08.2026',
- title:'Release-Center wiederhergestellt und Testlaufzeitfehler behoben',
+ title:'Statusfilter aus Sendungsübersicht entfernt',
  changes:Object.freeze([
-  'Release-Center als direkter Besitzer des bisherigen Update-ExportHUB-Bereichs wiederhergestellt.',
-  'Uncaught ReferenceError S is not defined im zentralen Mail-/Statusblock direkt repariert.',
+  'Statusfilter-Leiste aus der Sendungsübersicht wieder entfernt.',
+  'Gespeicherte alte Statusfilter werden beim Öffnen der Sendungsübersicht automatisch zurückgesetzt.',
   'Test bestanden und Produktionsfreigabe werden im Release-Center nachvollziehbar verwaltet.',
   'Produktionsdatei kann erst nach bestandenem Test erzeugt werden; die Hauptseite wird nicht automatisch verändert.',
   'Produktionsversion wird im Release-Center direkt aus /index.html ermittelt.',
@@ -192,7 +192,7 @@ var RELEASE=Object.freeze({
   'TESTPORTAL-Kennzeichnung auf Desktop und Smartphone geprüft',
   'Inline-JavaScript vollständig auf Syntax geprüft',
   'DOM-IDs auf echte Duplikate geprüft',
-  'Kanonische Build-/Cache-Version RC562 geprüft'
+  'Kanonische Build-/Cache-Version RC563 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -7678,7 +7678,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC562';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC563';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10110,15 +10110,12 @@ function overviewSetGroupOrder(order){var defaults=overviewDefaultGroupOrder(),o
 function overviewOrderGroupKeys(groups){var keys=Object.keys(groups||{}),stored=overviewGroupOrder(),out=stored.filter(function(key){return keys.indexOf(key)>=0});keys.forEach(function(key){if(out.indexOf(key)<0)out.push(key)});return out}
 
 function overviewSelectedStatuses(){
- var st=S(),prefs=overviewUiPrefs(),allowed=OVERVIEW_STATUS_OPTIONS.map(function(x){return x.key}),raw=Array.isArray(prefs.statuses)?prefs.statuses:A(st.rc485OverviewStatuses),clean=[];
- raw.forEach(function(value){value=Q(value);if(allowed.indexOf(value)>=0&&clean.indexOf(value)<0)clean.push(value)});
- st.rc485OverviewStatuses=clean.slice();
- return clean
+ var st=S(),prefs=overviewUiPrefs();
+ st.rc485OverviewStatuses=[];
+ if(Array.isArray(prefs.statuses)&&prefs.statuses.length){prefs.statuses=[];overviewSaveUiPrefs(prefs)}
+ return []
 }
-function overviewStatusFilterHtml(){
- var selected=overviewSelectedStatuses(),active={};selected.forEach(function(key){active[key]=true});
- return '<fieldset class="rc485-status-filter"><legend>Status</legend><button type="button" class="ghost rc485-status-all" onclick="return rc485OverviewStatusClear()">Alle</button>'+OVERVIEW_STATUS_OPTIONS.map(function(item){return '<label class="rc485-status-option rc485-status-option-'+E(item.key)+'"><input type="checkbox" '+(active[item.key]?'checked ':'')+'onchange="return rc485OverviewStatusChanged(\''+E(item.key)+'\',this.checked)"><span>'+E(item.label)+'</span></label>'}).join('')+'</fieldset>'
-}
+function overviewStatusFilterHtml(){return ''}
 function overviewPickupCompleted(sh){
  var key=overviewStatusKey(sh);return !!(sh&&(sh.pickedUpAt||sh.actualPickupDate||sh.pickupConfirmedAt||sh.qrPickupConfirmed===true||sh.pickupQrUsed===true||['abgeholt','pod','abgeschlossen','archiviert'].indexOf(key)>=0))
 }
@@ -10394,7 +10391,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var VERSION='RC562',CACHE='562',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var VERSION='RC563',CACHE='563',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -10413,7 +10410,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   setTimeout(refresh,0);
   return '<div class="page-head"><div><span class="rc524-kicker">ADMIN · TEST & VERÖFFENTLICHUNG</span><h2>🚀 Release-Center</h2><p>Testversion prüfen und erst nach bestandenem Test für die Produktion vorbereiten.</p></div></div>'+
    '<div class="rc562-release-grid"><div class="rc562-release-card"><span>Produktion</span><strong id="rc562ProductionVersion">'+esc(productionVersion)+'</strong></div><div class="rc562-release-card"><span>Aktive Testversion</span><strong>'+VERSION+'</strong></div><div class="rc562-release-card"><span>Teststatus</span><strong>'+(ok?'✓ BESTANDEN':'OFFEN')+'</strong></div></div>'+
-   '<div id="rc562ReleaseStatus" class="rc562-release-status '+(ok?'ok':'')+'">'+(ok?('Test bestanden'+(testedBy?' · '+esc(testedBy):'')+(testedAt?' · '+esc(new Date(testedAt).toLocaleString('de-DE')):'')):'RC562 ist noch nicht als vollständig getestet freigegeben.')+'</div>'+
+   '<div id="rc562ReleaseStatus" class="rc562-release-status '+(ok?'ok':'')+'">'+(ok?('Test bestanden'+(testedBy?' · '+esc(testedBy):'')+(testedAt?' · '+esc(new Date(testedAt).toLocaleString('de-DE')):'')):'RC563 ist noch nicht als vollständig getestet freigegeben.')+'</div>'+
    '<div class="card"><h3>Freigabe</h3><div class="rc562-release-actions"><button class="btn" onclick="return rc562MarkTested()" '+(ok?'disabled':'')+'>'+(ok?'✓ Test bestanden':'Test bestanden')+'</button><button class="btn" onclick="return rc562PrepareProduction()" '+(ok?'':'disabled')+'>Produktion freigeben · index.html erstellen</button><button class="ghost" onclick="return rc562RefreshRelease()">Aktualisieren</button>'+(ok?'<button class="ghost" onclick="return rc562ResetTestStatus()">Teststatus zurücksetzen</button>':'')+'</div><p class="rc562-release-note">Die Hauptseite wird nicht automatisch überschrieben. „Produktion freigeben“ erzeugt erst nach bestandenem Test eine bereinigte <b>index.html</b>. Diese Datei wird anschließend wie gewohnt in GitHub als Produktionsdatei veröffentlicht. Dadurch kann die Testseite niemals versehentlich die Live-Seite ersetzen.</p>'+(prepared?'<div class="okbox">Produktionsdatei für '+VERSION+' wurde bereits vorbereitet.</div>':'')+'</div>'+
    '<div class="card"><h3>Freigaberegel</h3><p>Produktion bleibt auf <b>'+esc(productionVersion)+'</b>, bis '+VERSION+' vollständig getestet wurde und die erzeugte index.html bewusst in GitHub veröffentlicht wird. TESTVERSION.html bleibt davon getrennt.</p></div>';
  }
@@ -20089,7 +20086,7 @@ html[data-exporthub-testportal="1"][data-rc558-login-visible="1"] #login{positio
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var VERSION='RC562',CACHE='562',USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var VERSION='RC563',CACHE='563',USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
