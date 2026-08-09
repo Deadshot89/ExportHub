@@ -173,27 +173,26 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC564',cache:'564',loginReturn:'/test?v=564'});
+var BUILD=Object.freeze({version:'RC565',cache:'565',loginReturn:'/test?v=565'});
 var RELEASE=Object.freeze({
- version:'RC564',
+ version:'RC565',
  date:'09.08.2026',
- title:'Release-Center wieder direkt erreichbar',
+ title:'Dashboard ohne Neurendern der Schnellzugriffe',
  changes:Object.freeze([
-  'Release-Center wird beim Menüpunkt Release-Center jetzt direkt vom vorhandenen Release-Controller gerendert.',
-  'Der alte Systemstatus-/Updatebericht kann den Release-Center nicht mehr ersetzen.',
-  'Produktionsversion, aktive Testversion und Teststatus werden im Release-Center angezeigt.',
-  'Test bestanden und Produktionsdatei-Erstellung bleiben an die Freigaberegel gebunden.',
-  'Statusfilter bleiben aus der Sendungsübersicht entfernt.',
-  'Testportal-Verankerung und Smartphone-Kompaktansicht bleiben aktiv.'
+  'Schnellzugriffe werden bei normalen Dashboard-Datenaktualisierungen nicht mehr neu aufgebaut.',
+  'Aufgaben-, Lager-, ABD-, Sendungs- und Palettenänderungen aktualisieren nur noch den Dashboard-Kachelbereich.',
+  'Der zentrale Renderer nutzt für ein bereits geöffnetes Dashboard die Signaturprüfung statt eines erzwungenen Vollrenders.',
+  'Reine Sync-Zeitstempel lösen keine Dashboard-Aktualisierung mehr aus.',
+  'Release-Center, Statusfilter-Entfernung, Testportal-Verankerung und Smartphone-Kompaktansicht bleiben erhalten.'
  ]),
  tests:Object.freeze([
-  'Direktrouting Release-Center geprüft',
-  'Alter Update-Renderer für view=update wird umgangen',
-  'Release-Center-Controller bleibt einzige Freigabeoberfläche',
+  'Dashboard-Schnellzugriffe vom Kachel-Refresh entkoppelt',
+  'Zentraler Dashboard-Renderer auf refreshDashboardIfChanged umgestellt',
+  'Noisy updatedAt-Felder aus der Dashboard-Signatur entfernt',
   'Testportal-Verankerung bleibt aktiv',
   'Inline-JavaScript vollständig auf Syntax geprüft',
   'DOM-IDs auf echte Duplikate geprüft',
-  'Kanonische Build-/Cache-Version RC564 geprüft'
+  'Kanonische Build-/Cache-Version RC565 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -7679,7 +7678,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC564';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC565';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10315,7 +10314,7 @@ function stableRender(){
    if(!domChanged){patchNav();updateActiveNavigation(v);removeNoise();setVersion();lastView=v;lastShipmentObject=null;lastShipmentIdentity='';lastRenderMs=Math.round((performance.now?performance.now():Date.now())-started);return false}
   }else{
    resetContentClasses();
-   if(v==='dashboard'&&window.ExportHUBRC205&&typeof window.ExportHUBRC205.renderDashboard==='function')window.ExportHUBRC205.renderDashboard();
+   if(v==='dashboard'&&window.ExportHUBRC205){if(typeof window.ExportHUBRC205.refreshDashboardIfChanged==='function')window.ExportHUBRC205.refreshDashboardIfChanged(false);else if(typeof window.ExportHUBRC205.renderDashboard==='function')window.ExportHUBRC205.renderDashboard();}
    else if(v==='planning'&&window.ExportHUBIndex218&&typeof window.ExportHUBIndex218.render==='function')window.ExportHUBIndex218.render();
    else if(v==='cmr'){if(!renderDocuments())renderCanonicalView(v)}
    else if(v==='pallet'){if(typeof window.rc542RenderPallet==='function')window.rc542RenderPallet(false);else renderPallet()}
@@ -10392,7 +10391,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var VERSION='RC564',CACHE='564',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var VERSION='RC565',CACHE='565',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -17003,6 +17002,7 @@ window.__EXPORTHUB_INDEX205_DASHBOARD_PLANNER__=true;
 var applying=false;
 var timer=0;
 var lastDashboardSignature='';
+var lastDashboardQuickSignature='';
 var MODULES=[
  {id:'shipment',label:'Sendung erstellen',icon:'🚚'},
  {id:'tasks',label:'Aufgaben',icon:'✅'},
@@ -17129,9 +17129,10 @@ function directOptions(type,p){var used={};arr(p.entityLinks).forEach(function(x
 function directLinksHtml(p){return p.entityLinks.length?p.entityLinks.map(function(link){var label=directEntityLabel(link);return '<div class="rc205-direct-item"><div><b>'+esc(label||link.id)+'</b><small>'+(link.type==='shipment'?'Sendung':'Neue Sendung für Kunde')+'</small></div><button class="danger" data-rc205-action="direct-remove" data-entity-type="'+esc(link.type)+'" data-entity-id="'+esc(link.id)+'">Entfernen</button></div>'}).join(''):empty('Noch keine konkrete Sendung oder kein Kunde als Schnellzugriff hinterlegt.')}
 function dashboardConfigHtml(p,modules){var directAllowed=canOpen('shipment')||canOpen('customerfolder'),widgets=WIDGETS.filter(function(w){return widgetAllowed(w.id)});return '<section id="rc205DashboardConfig" class="card rc205-config '+(p.configOpen?'':'hidden')+'"><div class="rc205-card-head"><div><h3>Dashboard für '+esc(userName())+' anpassen</h3><p class="muted">Auswahl, Reihenfolge, Größe und Farbe werden nur für diesen ExportHUB-Benutzer gespeichert. Aktive Kacheln können unten direkt verschoben werden.</p></div><button class="ghost" data-rc205-action="dashboard-reset">Standard wiederherstellen</button></div><h4>Bereiche auf dem Dashboard</h4><div class="rc205-check-grid">'+widgets.map(function(w){return '<label class="checkrow"><input type="checkbox" data-rc205-change="dashboard-widget" data-widget="'+esc(w.id)+'" '+(p.widgets.indexOf(w.id)>=0?'checked':'')+'><span>'+esc(w.label)+'</span></label>'}).join('')+'</div><h4>Funktions-Schnellzugriffe</h4><div class="rc205-check-grid">'+modules.map(function(m){return '<label class="checkrow"><input type="checkbox" data-rc205-change="dashboard-link" data-link="'+esc(m.id)+'" '+(p.quickLinks.indexOf(m.id)>=0?'checked':'')+'><span>'+esc(m.icon+' '+m.label)+'</span></label>'}).join('')+'</div>'+(directAllowed?'<h4>Direkte Sendung oder neue Sendung für Kunden</h4><p class="muted">Eine bestehende Sendung direkt öffnen oder mit einem Klick eine neue Sendung für einen ausgewählten Kunden starten.</p><div class="rc205-entity-add-grid">'+(canOpen('shipment')?'<label class="field">Sendung<select id="rc207DirectShipment">'+directOptions('shipment',p)+'</select></label><button class="soft" data-rc205-action="direct-add" data-entity-type="shipment">Sendung hinzufügen</button>':'')+(canOpen('customerfolder')?'<label class="field">Kunde<select id="rc207DirectCustomer">'+directOptions('customer',p)+'</select></label><button class="soft" data-rc205-action="direct-add" data-entity-type="customer">Kunde hinzufügen</button>':'')+'</div><div class="rc205-direct-list">'+directLinksHtml(p)+'</div>':'')+'</section>'}
 function directQuickCard(link){var label=directEntityLabel(link)||link.id,type=link.type==='shipment'?'Sendung':'Neue Sendung',detail='';if(link.type==='shipment'){var sh=findDirectShipment(link.id);detail=sh?shipmentCustomer(sh):''}else{var c=findDirectCustomer(link.id);detail=c?directCustomerNumber(c):''}return '<button class="rc205-quick" data-rc205-action="direct-open" data-entity-type="'+esc(link.type)+'" data-entity-id="'+esc(link.id)+'"><span>'+(link.type==='shipment'?'🚚':'➕🚚')+'</span><b>'+esc(label)+'</b><small>'+esc(type+(detail?' · '+detail:''))+'</small></button>'}
-function dashboardSignature(){var s=state(),p=prefs();function taskSig(t){return[q(t.id),q(t.status),taskDate(t),taskOwner(t),q(t.updatedAt||t.modifiedAt)].join('|')}function shipmentSig(sh){return[q(sh.id||sh.shipmentId),shipmentRef(sh),q(sh.status||sh.processStatus||sh.podStatus||sh.pickupStatus),shipmentPickup(sh),q(sh.customerName||(sh.customer&&sh.customer.name)),q(sh.warehouseLocation),q(sh.warehouseMovedAt),q(sh.pickupConfirmedAt||sh.pickedUpAt),q(sh.podCount),dashboardShipmentEuroPallets(sh),q(sh.returnedEuroPallets||sh.returnPallets)].join('|')}function abdSig(a){return[q(a.id),q(a.ref||a.reference),q(a.status),abdDone(a)?1:0,arr(a.abdFiles).length,q(a.updatedAt)].join('|')}function palSig(e){return[q(e.id),q(e.status),dashboardPalletDirection(e),dashboardPalletAmount(e),q(e.shipmentId),q(e.shipmentRef||e.ref),q(e.customerName||e.partyName),q(e.date||e.createdAt)].join('|')}return JSON.stringify({u:userName(),p:[p.widgets,p.quickLinks,p.entityLinks,p.widgetLayout,p.configOpen],t:arr(s.tasks).map(taskSig),s:arr(s.shipments).map(shipmentSig),a:arr(s.abdRequests).map(abdSig),b:arr(s.palletAccount).map(palSig)})}
-function refreshDashboardIfChanged(force){if(low(currentView())!=='dashboard')return false;var r=root(),mounted=!!(r&&r.querySelector&&r.querySelector('.rc205-dashboard-grid')),sig=dashboardSignature();if(!force&&mounted&&sig===lastDashboardSignature)return false;renderDashboard();return true}
-function renderDashboard(){var r=root();if(!r)return;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks),owned=tasks.filter(taskForUser);if(owned.length)tasks=owned;var quick=p.quickLinks.map(function(id){return modules.find(function(m){return m.id===id})}).filter(Boolean),direct=arr(p.entityLinks).map(normalizeDirectLink).filter(Boolean);var cards=[];p.widgets.filter(widgetAllowed).forEach(function(id){var html='';if(id==='todayShipments')html=dashboardTodayShipmentsWidget(arr(s.shipments));if(id==='tasks')html=dashboardTaskWidget(tasks);if(id==='shipments')html=dashboardShipmentWidget(arr(s.shipments));if(id==='abd')html=dashboardAbdWidget(arr(s.abdRequests));if(id==='pallet')html=dashboardPalletWidget(arr(s.palletAccount));if(/^warehouse-/.test(id)&&window.ExportHUBWarehouse&&typeof window.ExportHUBWarehouse.dashboardWidget==='function')html=window.ExportHUBWarehouse.dashboardWidget(id);if(html)cards.push(dashboardWidgetMarkup(id,html,p))});var quickHtml=quick.map(function(m){return '<button class="rc205-quick" data-rc205-action="navigate" data-view="'+esc(m.id)+'"><span>'+esc(m.icon)+'</span><b>'+esc(m.label)+'</b></button>'}).join('')+direct.map(directQuickCard).join('');r.innerHTML='<div class="page-head"><div><h2>📊 Dashboard</h2><p>Persönlicher Arbeitsstand für '+esc(userName())+'. Bereiche und Schnellzugriffe können selbst zusammengestellt werden.</p></div><button class="ghost" data-rc205-action="dashboard-config">'+(p.configOpen?'Dashboard-Anpassung schließen':'Dashboard anpassen')+'</button></div>'+dashboardConfigHtml(p,modules)+'<section class="card rc205-quick-card"><h3>Schnellzugriffe</h3><div class="rc205-quick-grid">'+(quickHtml||empty('Im Dashboard noch keine Schnellzugriffe ausgewählt.'))+'</div></section><div class="rc205-dashboard-grid '+(p.configOpen?'is-editing':'')+'">'+(cards.length?cards.join(''):empty('Im Dashboard sind keine freigegebenen Bereiche ausgewählt.'))+'</div>';bindRoot(r);lastDashboardSignature=dashboardSignature()}
+function dashboardQuickSignature(p,modules,direct){return JSON.stringify({u:userName(),q:arr(p&&p.quickLinks),d:arr(direct).map(function(x){return[x.type,x.id,directEntityLabel(x)]}),m:arr(modules).map(function(x){return[x.id,x.label,x.icon]})})}
+function dashboardSignature(){var s=state(),p=prefs();function taskSig(t){return[q(t.id),q(t.status),taskDate(t),taskOwner(t),taskTitle(t),taskRef(t),taskCustomer(t)].join('|')}function shipmentSig(sh){return[q(sh.id||sh.shipmentId),shipmentRef(sh),q(sh.status||sh.processStatus||sh.podStatus||sh.pickupStatus),shipmentPickup(sh),q(sh.customerName||(sh.customer&&sh.customer.name)),q(sh.warehouseLocation),q(sh.warehouseMovedAt),q(sh.pickupConfirmedAt||sh.pickedUpAt),q(sh.podCount),dashboardShipmentEuroPallets(sh),q(sh.returnedEuroPallets||sh.returnPallets)].join('|')}function abdSig(a){return[q(a.id),q(a.ref||a.reference),q(a.status),abdDone(a)?1:0,arr(a.abdFiles).length].join('|')}function palSig(e){return[q(e.id),q(e.status),dashboardPalletDirection(e),dashboardPalletAmount(e),q(e.shipmentId),q(e.shipmentRef||e.ref),q(e.customerName||e.partyName),q(e.date||e.createdAt)].join('|')}return JSON.stringify({u:userName(),p:[p.widgets,p.quickLinks,p.entityLinks,p.widgetLayout,p.configOpen],t:arr(s.tasks).map(taskSig),s:arr(s.shipments).map(shipmentSig),a:arr(s.abdRequests).map(abdSig),b:arr(s.palletAccount).map(palSig)})}
+function refreshDashboardIfChanged(force){if(low(currentView())!=='dashboard')return false;var r=root(),mounted=!!(r&&r.querySelector&&r.querySelector('.rc205-dashboard-grid')),sig=dashboardSignature();if(!force&&mounted&&sig===lastDashboardSignature)return false;renderDashboard(force===true);return true}
+function renderDashboard(forceFull){var r=root();if(!r)return;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks),owned=tasks.filter(taskForUser);if(owned.length)tasks=owned;var quick=p.quickLinks.map(function(id){return modules.find(function(m){return m.id===id})}).filter(Boolean),direct=arr(p.entityLinks).map(normalizeDirectLink).filter(Boolean),cards=[];p.widgets.filter(widgetAllowed).forEach(function(id){var html='';if(id==='todayShipments')html=dashboardTodayShipmentsWidget(arr(s.shipments));if(id==='tasks')html=dashboardTaskWidget(tasks);if(id==='shipments')html=dashboardShipmentWidget(arr(s.shipments));if(id==='abd')html=dashboardAbdWidget(arr(s.abdRequests));if(id==='pallet')html=dashboardPalletWidget(arr(s.palletAccount));if(/^warehouse-/.test(id)&&window.ExportHUBWarehouse&&typeof window.ExportHUBWarehouse.dashboardWidget==='function')html=window.ExportHUBWarehouse.dashboardWidget(id);if(html)cards.push(dashboardWidgetMarkup(id,html,p))});var quickHtml=quick.map(function(m){return '<button class="rc205-quick" data-rc205-action="navigate" data-view="'+esc(m.id)+'"><span>'+esc(m.icon)+'</span><b>'+esc(m.label)+'</b></button>'}).join('')+direct.map(directQuickCard).join(''),cardsHtml=cards.length?cards.join(''):empty('Im Dashboard sind keine freigegebenen Bereiche ausgewählt.'),quickSig=dashboardQuickSignature(p,modules,direct),configFlag=p.configOpen?'1':'0',existingGrid=r.querySelector&&r.querySelector('.rc205-dashboard-grid'),existingQuick=r.querySelector&&r.querySelector('.rc205-quick-grid'),sameConfig=r.getAttribute&&r.getAttribute('data-rc205-config-open')===configFlag;if(!forceFull&&existingGrid&&existingQuick&&sameConfig&&!p.configOpen){if(quickSig!==lastDashboardQuickSignature)existingQuick.innerHTML=quickHtml||empty('Im Dashboard noch keine Schnellzugriffe ausgewählt.');existingGrid.className='rc205-dashboard-grid';existingGrid.innerHTML=cardsHtml;bindRoot(r);lastDashboardQuickSignature=quickSig;lastDashboardSignature=dashboardSignature();return}r.innerHTML='<div class="page-head"><div><h2>📊 Dashboard</h2><p>Persönlicher Arbeitsstand für '+esc(userName())+'. Bereiche und Schnellzugriffe können selbst zusammengestellt werden.</p></div><button class="ghost" data-rc205-action="dashboard-config">'+(p.configOpen?'Dashboard-Anpassung schließen':'Dashboard anpassen')+'</button></div>'+dashboardConfigHtml(p,modules)+'<section class="card rc205-quick-card"><h3>Schnellzugriffe</h3><div class="rc205-quick-grid">'+(quickHtml||empty('Im Dashboard noch keine Schnellzugriffe ausgewählt.'))+'</div></section><div class="rc205-dashboard-grid '+(p.configOpen?'is-editing':'')+'">'+cardsHtml+'</div>';r.setAttribute('data-rc205-config-open',configFlag);bindRoot(r);lastDashboardQuickSignature=quickSig;lastDashboardSignature=dashboardSignature()}
 
 function easterSunday(year){var a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;return new Date(Date.UTC(year,month-1,day))}
 function utcISO(d){return d.toISOString().slice(0,10)}
@@ -20087,7 +20088,7 @@ html[data-exporthub-testportal="1"][data-rc558-login-visible="1"] #login{positio
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var VERSION='RC564',CACHE='564',USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var VERSION='RC565',CACHE='565',USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
