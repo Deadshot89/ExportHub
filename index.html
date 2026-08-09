@@ -172,24 +172,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC548',cache:'548',loginReturn:'/?v=548'});
+var BUILD=Object.freeze({version:'RC549',cache:'549',loginReturn:'/?v=549'});
 var RELEASE=Object.freeze({
- version:'RC548',
+ version:'RC549',
  date:'09.08.2026',
- title:'Sendungsübersicht Statusgruppen stabil und frei sortierbar',
+ title:'Microsoft-Kontowechsel vollständig abmelden',
  changes:Object.freeze([
-  'Statusgruppen verwenden den kanonischen Sendungsstatus und zeigen immer die passende Statusbezeichnung.',
-  'Statusgruppen können per Drag-and-Drop frei verschoben werden.',
-  'Gruppenreihenfolge und Ein-/Ausklappzustand werden benutzerbezogen lokal gespeichert.',
-  'Gruppierung, Sortierung, Reihenfolge, Seitengröße und Statusfilter bleiben nach F5 erhalten.',
-  'Synchronisierungen ändern die gespeicherte Darstellung der Sendungsübersicht nicht.'
+  'Microsoft-Konto wechseln beendet zuerst die ExportHUB-Sitzung und anschließend die Azure-Authentifizierung.',
+  'Die aktive Microsoft-Identität wird über den Microsoft-Logout mit Benutzerhinweis gezielt abgemeldet, sofern verfügbar.',
+  'Nach dem Provider-Logout wird eine neue Azure-Microsoft-Anmeldung mit Kontoauswahl und erzwungener Neuanmeldung gestartet.',
+  'Die lokale Logout-Sperre bleibt während des kompletten Kontowechsels bestehen und verhindert die Wiederherstellung der alten ExportHUB-Sitzung.',
+  'Der Kontowechsel verwendet absolute Rücksprungadressen und einen persistenten mehrstufigen Wechselstatus.'
  ]),
  tests:Object.freeze([
-  'Kanonischer RC543-Sendungsstatus wird vor Gruppierung ausgewertet',
-  'Gruppenlabel wird aus dem Statusschlüssel wiederhergestellt',
-  'Drag-and-Drop-Reihenfolge wird persistent gespeichert',
-  'Ein-/Ausklappzustand bleibt nach Neurendern und F5 erhalten',
-  'Kanonische Build-/Cache-Version RC548 geprüft'
+  'ExportHUB-Session wird vor Microsoft-Wechsel beendet',
+  'Azure /.auth/logout wird vor der erneuten Anmeldung ausgeführt',
+  'Microsoft-Provider-Logout enthält post_logout_redirect_uri und optional logout_hint',
+  'Neue Microsoft-Anmeldung fordert select_account und max_age=0 an',
+  'Kanonische Build-/Cache-Version RC549 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -10399,18 +10399,44 @@ function rc524StyleHealth(){
  return Promise.resolve(ok)
 }
 const MS_SWITCH_PARAM='msAccountSwitch';
+const MS_SWITCH_FLOW_KEY='exporthub_rc549_ms_switch_active';
+const MS_SWITCH_HINT_KEY='exporthub_rc549_ms_logout_hint';
 function cleanReturnUrl(extra){
  const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;const current=/^(?:about:blank|data:)/i.test(window.location.href)?base:window.location.href;const u=new URL(current,base);u.hash='';u.search='';u.searchParams.set('v',CACHE);if(extra)Object.keys(extra).forEach(function(k){u.searchParams.set(k,extra[k])});return u
 }
 function appAuthUrl(path,params){const base=window.location.origin&&window.location.origin!=='null'?window.location.origin:document.baseURI;const u=new URL(path,base);Object.keys(params||{}).forEach(function(k){u.searchParams.set(k,params[k])});return u.href}
 function navigateMicrosoft(url){if(typeof window.__EXPORTHUB_MS_NAVIGATE__==='function')return window.__EXPORTHUB_MS_NAVIGATE__(url);location.replace(url)}
+function microsoftSwitchStore(key,value){
+ try{if(native.storageSet&&window.sessionStorage)native.storageSet.call(window.sessionStorage,key,String(value||''))}catch(_){}
+ try{if(native.storageSet&&window.localStorage)native.storageSet.call(window.localStorage,key,String(value||''))}catch(_){}
+}
+function microsoftSwitchRead(key){
+ let v='';try{if(native.storageGet&&window.sessionStorage)v=text(native.storageGet.call(window.sessionStorage,key))}catch(_){}
+ try{if(!v&&native.storageGet&&window.localStorage)v=text(native.storageGet.call(window.localStorage,key))}catch(_){}
+ return v
+}
+function microsoftSwitchRemove(key){
+ try{if(native.storageRemove&&window.sessionStorage)native.storageRemove.call(window.sessionStorage,key)}catch(_){}
+ try{if(native.storageRemove&&window.localStorage)native.storageRemove.call(window.localStorage,key)}catch(_){}
+}
+function clearMicrosoftSwitchState(){microsoftSwitchRemove(MS_SWITCH_FLOW_KEY);microsoftSwitchRemove(MS_SWITCH_HINT_KEY);runtime.msSwitchBusy=false}
 function resetClientSessionForMicrosoftSwitch(){
  stopAuthenticatedJobs();clearTabSession();
- try{if(native.storageRemove&&window.sessionStorage)native.storageRemove.call(window.sessionStorage,LOGOUT_GUARD_KEY)}catch(_){}
- try{if(native.storageRemove&&window.localStorage)native.storageRemove.call(window.localStorage,LOGOUT_GUARD_KEY)}catch(_){}
  runtime.authToken='';runtime.passwordChangeTicket='';runtime.user=null;runtime.users=[];runtime.state=null;runtime.ready=false;runtime.loaded=false;runtime.loading=false;runtime.pendingPasswordLogin=null;runtime.passwordChangeRetry=false;runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;
 }
 function accountSwitchDelay(ms){return new Promise(function(resolve){native.setTimeout(resolve,Math.max(20,Number(ms)||80))})}
+async function readMicrosoftLogoutHint(){
+ try{
+  const res=await fetchWithTimeout(appAuthUrl('/.auth/me'),{method:'GET',credentials:'same-origin',cache:'no-store'},5000);if(!res||!res.ok)return'';
+  const raw=await res.json(),item=Array.isArray(raw)?raw[0]:raw,principal=item&&item.clientPrincipal||item&&item.client_principal||item||{},claims=Array.isArray(principal.claims)?principal.claims:[];
+  const direct=text(principal.userDetails||principal.user_details||principal.email||principal.preferred_username||principal.name);if(direct)return direct;
+  const wanted=['preferred_username','email','emails','upn','http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress','http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn'];
+  for(let i=0;i<wanted.length;i++){const hit=claims.find(function(c){return lower(c&&c.typ||c&&c.type)===lower(wanted[i])});if(hit&&text(hit.val||hit.value))return text(hit.val||hit.value)}
+ }catch(_){}
+ return''
+}
+function microsoftProviderLogoutUrl(next,hint){const u=new URL('https://login.microsoftonline.com/common/oauth2/v2.0/logout');u.searchParams.set('post_logout_redirect_uri',String(next||cleanReturnUrl({msAccountSwitch:'login'}).href));if(text(hint))u.searchParams.set('logout_hint',text(hint));return u.href}
+function microsoftAccountLoginUrl(done){return appAuthUrl('/.auth/login/aad',{post_login_redirect_uri:done.href,prompt:'select_account',max_age:'0'})}
 async function settleAzureBeforeMicrosoftSwitch(){
  const deadline=Date.now()+30000;
  while(Date.now()<deadline){
@@ -10428,19 +10454,34 @@ async function endExportHubSessionForMicrosoftSwitch(){
 }
 async function switchMicrosoftAccount(){
  if(runtime.msSwitchBusy)return false;runtime.msSwitchBusy=true;
- try{await settleAzureBeforeMicrosoftSwitch();await endExportHubSessionForMicrosoftSwitch();const back=cleanReturnUrl({msAccountSwitch:'provider'});navigateMicrosoft(appAuthUrl('/.auth/logout',{post_logout_redirect_uri:back.pathname+back.search}))}catch(e){runtime.msSwitchBusy=false;status('Microsoft-Konto konnte nicht gewechselt werden: '+text(e&&e.message||e),'bad')}return false
+ try{
+  await settleAzureBeforeMicrosoftSwitch();
+  const hint=await readMicrosoftLogoutHint();
+  await endExportHubSessionForMicrosoftSwitch();
+  markLogoutSignal();microsoftSwitchStore(MS_SWITCH_FLOW_KEY,String(Date.now()));if(hint)microsoftSwitchStore(MS_SWITCH_HINT_KEY,hint);
+  const back=cleanReturnUrl({msAccountSwitch:'provider'});
+  navigateMicrosoft(appAuthUrl('/.auth/logout',{post_logout_redirect_uri:back.href}));
+ }catch(e){runtime.msSwitchBusy=false;status('Microsoft-Konto konnte nicht gewechselt werden: '+text(e&&e.message||e),'bad')}
+ return false
 }
 function handleMicrosoftSwitchStage(){
- let u;try{u=new URL(window.location.href)}catch(_){return false}const stage=text(u.searchParams.get(MS_SWITCH_PARAM));if(!stage)return false;
- resetClientSessionForMicrosoftSwitch();
+ let u;try{u=new URL(window.location.href)}catch(_){return false}
+ const changed=text(u.searchParams.get('msAccountChanged'));
+ if(changed==='1'){
+  resetClientSessionForMicrosoftSwitch();clearMicrosoftSwitchState();markLogoutSignal();
+  try{u.searchParams.delete('msAccountChanged');history.replaceState(null,'',u.href)}catch(_){}
+  return false
+ }
+ const stage=text(u.searchParams.get(MS_SWITCH_PARAM));if(!stage)return false;
+ resetClientSessionForMicrosoftSwitch();markLogoutSignal();microsoftSwitchStore(MS_SWITCH_FLOW_KEY,microsoftSwitchRead(MS_SWITCH_FLOW_KEY)||String(Date.now()));
  if(stage==='provider'){
-  const next=cleanReturnUrl({msAccountSwitch:'login'}).href;
-  navigateMicrosoft('https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri='+encodeURIComponent(next));return true
+  const next=cleanReturnUrl({msAccountSwitch:'login'}).href,hint=microsoftSwitchRead(MS_SWITCH_HINT_KEY);
+  navigateMicrosoft(microsoftProviderLogoutUrl(next,hint));return true
  }
  if(stage==='login'){
-  const done=cleanReturnUrl({msAccountChanged:'1'});navigateMicrosoft(appAuthUrl('/.auth/login/aad',{post_login_redirect_uri:done.pathname+done.search,prompt:'select_account'}));return true
+  const done=cleanReturnUrl({msAccountChanged:'1'});navigateMicrosoft(microsoftAccountLoginUrl(done));return true
  }
- return false
+ clearMicrosoftSwitchState();return false
 }
 async function fetchWithTimeout(url,options,timeoutMs){
  const controller=typeof AbortController!=='undefined'?new AbortController():null;
@@ -11130,7 +11171,7 @@ function ensureHtml2Canvas(){
 window.ExportHUBLazy={ensureHtml2Canvas:ensureHtml2Canvas};
 function flushBeforeSuspend(reason){if(!runtime.ready||runtime.loading||runtime.applyingRemote)return false;if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}if(runtime.pendingSave||runtime.dirty){try{return flushSave(reason||'Mobile Hintergrundspeicherung',{force:true,keepalive:true})}catch(e){console.error('Mobile Hintergrundspeicherung',e)}}return false}
 try{window.addEventListener('pagehide',function(){flushBeforeSuspend('Seite wird verlassen')},{capture:true});window.addEventListener('beforeunload',function(){flushBeforeSuspend('Browser wird geschlossen')},{capture:true});document.addEventListener('visibilitychange',function(){if(document.hidden)flushBeforeSuspend('App im Hintergrund');else if(runtime.pendingSave||runtime.dirty)flushSave('App wieder aktiv',{force:true})},true);window.addEventListener('freeze',function(){flushBeforeSuspend('Mobile App eingefroren')},{capture:true});window.addEventListener('online',function(){if(runtime.pendingSave||runtime.dirty)flushSave('Verbindung wiederhergestellt',{force:true})})}catch(_){}
-window.ExportHUBClean={VERSION:VERSION,BUILD:BUILD,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,pollRevision:pollRevision,applyRemoteDocument:applyRemoteDocument,switchMicrosoftAccount:switchMicrosoftAccount,keepSessionAlive:keepAuthenticatedSessionAlive,startNoIdleKeepAlive:startNoIdleKeepAlive,native:native,runtime:runtime};window.ExportHUBMicrosoftAccount=Object.freeze({owner:'RC418',switchAccount:switchMicrosoftAccount,handleStage:handleMicrosoftSwitchStage,buildUrls:function(){const provider=cleanReturnUrl({msAccountSwitch:'provider'}),login=cleanReturnUrl({msAccountSwitch:'login'}),done=cleanReturnUrl({msAccountChanged:'1'});return{appLogout:appAuthUrl('/.auth/logout',{post_logout_redirect_uri:provider.pathname+provider.search}),providerLogout:'https://login.microsoftonline.com/common/oauth2/v2.0/logout?post_logout_redirect_uri='+encodeURIComponent(login.href),accountLogin:appAuthUrl('/.auth/login/aad',{post_login_redirect_uri:done.pathname+done.search,prompt:'select_account'}),final:done.href}}});
+window.ExportHUBClean={VERSION:VERSION,BUILD:BUILD,runScripts:runScripts,queueSave:queueSave,flushSave:flushSave,pollRevision:pollRevision,applyRemoteDocument:applyRemoteDocument,switchMicrosoftAccount:switchMicrosoftAccount,keepSessionAlive:keepAuthenticatedSessionAlive,startNoIdleKeepAlive:startNoIdleKeepAlive,native:native,runtime:runtime};window.ExportHUBMicrosoftAccount=Object.freeze({owner:'RC549',switchAccount:switchMicrosoftAccount,handleStage:handleMicrosoftSwitchStage,buildUrls:function(){const provider=cleanReturnUrl({msAccountSwitch:'provider'}),login=cleanReturnUrl({msAccountSwitch:'login'}),done=cleanReturnUrl({msAccountChanged:'1'}),hint=microsoftSwitchRead(MS_SWITCH_HINT_KEY);return{appLogout:appAuthUrl('/.auth/logout',{post_logout_redirect_uri:provider.href}),providerLogout:microsoftProviderLogoutUrl(login.href,hint),accountLogin:microsoftAccountLoginUrl(done),final:done.href}}});
 window.__EXPORTHUB_RC439_TEAM_SYNC__=true;
 window.__EXPORTHUB_RC469__=true;
 window.__EXPORTHUB_RC591_SESSION_FIX__=true;
