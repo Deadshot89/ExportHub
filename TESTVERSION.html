@@ -172,24 +172,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC555',cache:'555',loginReturn:'/?v=555'});
+var BUILD=Object.freeze({version:'RC556',cache:'556',loginReturn:'/test?v=556'});
 var RELEASE=Object.freeze({
- version:'RC555',
+ version:'RC556',
  date:'09.08.2026',
- title:'Testportal-Zugang repariert',
+ title:'Testportal-Login und Smartphone-Ansicht stabilisiert',
  changes:Object.freeze([
-  'POD-Sicherungen verwenden ausschließlich die vollständige unterschriebene Ladeliste als PDF.',
-  'Die POD-PDF wird zusätzlich in SharePoint, im lokalen POD-Vault und bei verbundenem Notfallordner als echte PDF-Datei gespeichert.',
-  'Der Notfallordner erhält einen CSV-Index, eine README und eine eigenständige Offline-Notfallseite.',
-  'Die Offline-Notfallseite kann POD-PDFs aus dem Notfallordner ohne laufende ExportHUB-Website anzeigen und als ZIP herunterladen.',
-  'Bestehende ältere Vault-Einträge werden bei der nächsten Spiegelung auf die offizielle Ladeliste-mit-Unterschrift-PDF aktualisiert.'
+  'Testportal wartet vor dem Wechsel auf eine dauerhaft gespeicherte ExportHUB-Sitzung.',
+  'Die Testversion erkennt /test als eigenen Kanal und löst dort keine erneute Testportal-Weiterleitung aus.',
+  'Login und Anwendung sind strikt getrennt; die Anwendung ist vor erfolgreicher Anmeldung nicht sichtbar.',
+  'Die Smartphone-Darstellung wurde platzsparender ausgelegt: kleinere Karten, Felder, Buttons, Abstände und Tabellen.',
+  'Produktive Fachfunktionen bleiben unverändert; die Änderungen betreffen Testportal-Zugang und Testseiten-Darstellung.'
  ]),
  tests:Object.freeze([
-  'POD-Vault akzeptiert nur gültige PDF-Dateien',
-  'Notfallordner enthält direkt öffnbare POD-PDFs und Offline-Hilfsdateien',
-  'POD-Sammeldownload erzeugt pro Sendung die unterschriebene Ladeliste statt einzelner Signaturbilder',
-  'SharePoint-Backup bleibt als unabhängige zweite Ablage aktiv',
-  'Kanonische Build-/Cache-Version RC554 geprüft'
+  'Testportal-Redirect erst nach persistierter Tab-Sitzung',
+  'Kein Redirect-Loop innerhalb von /test',
+  'Login blendet #app vollständig aus',
+  'Smartphone-Overrides auf <=720 px geprüft',
+  'Kanonische Build-/Cache-Version RC556 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -7673,6 +7673,90 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 #releaseTestPortalBtn.exporthub-testportal-login{border:1px solid #dc2626!important;background:#dc2626!important;color:#fff!important;font-weight:950!important;box-shadow:0 8px 20px rgba(220,38,38,.18)!important}
 #releaseTestPortalBtn.exporthub-testportal-login:hover{background:#b91c1c!important;border-color:#b91c1c!important}
 </style>
+
+<script id="rc556-testportal-mode">
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;document.documentElement.setAttribute('data-exporthub-testportal','1');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+</script>
+
+<style id="rc556-test-mobile-compact-style">
+/* TESTPORTAL: Login vollständig über der Anwendung, keine sichtbare App im Hintergrund. */
+#login:not(.hidden){position:fixed!important;inset:0!important;z-index:2147483000!important;overflow:auto!important;background:var(--bg,#eef6fb)!important}
+#login:not(.hidden)+#app{display:none!important;visibility:hidden!important;pointer-events:none!important}
+body:has(#login:not(.hidden)){overflow:hidden!important}
+html[data-exporthub-testportal="1"] #releaseTestPortalBtn{display:none!important}
+
+@media(max-width:720px){
+ html,body{font-size:13px!important}
+ body{line-height:1.3!important}
+ #login:not(.hidden){padding:8px!important;align-items:start!important;place-items:start center!important}
+ #login:not(.hidden) .login-card{width:min(100%,420px)!important;margin:4px auto!important;padding:15px 12px!important;border-radius:18px!important}
+ #login:not(.hidden) .logo{width:48px!important;height:48px!important;border-radius:15px!important;font-size:18px!important}
+ #login:not(.hidden) h1{font-size:23px!important;margin:6px 0 3px!important}
+ #login:not(.hidden) .clean-version-badge{font-size:11px!important;margin:3px auto 6px!important}
+ #login:not(.hidden) .field{gap:3px!important;margin:6px 0!important;font-size:11px!important}
+ #login:not(.hidden) input,#login:not(.hidden) select{min-height:36px!important;padding:6px 8px!important;font-size:13px!important;border-radius:9px!important}
+ #login:not(.hidden) button{min-height:36px!important;padding:6px 8px!important;font-size:12px!important;border-radius:9px!important;margin-top:5px!important}
+ #login:not(.hidden) .clean-login-status{font-size:11px!important;line-height:1.25!important;margin:6px 0!important;padding:7px!important}
+
+ body[data-eh-theme][data-eh-theme] .main,.main{padding:5px 5px max(14px,env(safe-area-inset-bottom))!important}
+ body[data-eh-theme][data-eh-theme] .topbar,.topbar{gap:4px!important;margin-bottom:6px!important;padding:5px!important;border-radius:12px!important}
+ body[data-eh-theme][data-eh-theme] .topbar .search,.topbar .search{min-height:36px!important;padding:5px 7px!important;border-radius:10px!important}
+ body[data-eh-theme][data-eh-theme] .topbar .search input,.topbar .search input{min-height:26px!important;padding:2px 3px!important;font-size:12px!important}
+ body[data-eh-theme][data-eh-theme] .topbar :is(button,.ghost,.btn),.topbar :is(button,.ghost,.btn){min-height:34px!important;padding:5px 7px!important;font-size:11px!important;border-radius:9px!important}
+ body[data-eh-theme][data-eh-theme] .topbar :is(select,#ehThemeSwitch),.topbar :is(select,#ehThemeSwitch){min-height:34px!important;font-size:11px!important;border-radius:9px!important}
+ body[data-eh-theme][data-eh-theme] .topbar #ehThemeSwitch{min-height:34px!important;padding:3px 6px!important}
+ body[data-eh-theme][data-eh-theme] .topbar #ehThemeSelect{min-height:28px!important;font-size:11px!important}
+ body[data-eh-theme][data-eh-theme] .topbar :is(#podBackupBtn,#backupBtn,#importBtn,#printBtn,#logoutBtn){min-height:34px!important;padding:5px 6px!important;font-size:11px!important}
+
+ body[data-eh-theme][data-eh-theme] .sidebar{width:min(82vw,286px)!important;padding:max(8px,env(safe-area-inset-top)) 8px max(10px,env(safe-area-inset-bottom))!important;gap:5px!important;border-radius:0 16px 16px 0!important}
+ body[data-eh-theme][data-eh-theme] .sidebar .brand{padding:2px 3px 7px!important}
+ body[data-eh-theme][data-eh-theme] .sidebar .brand .logo{width:34px!important;height:34px!important;border-radius:10px!important;font-size:13px!important}
+ body[data-eh-theme][data-eh-theme] .sidebar .brand strong{font-size:14px!important}
+ body[data-eh-theme][data-eh-theme] .sidebar .brand span{font-size:9px!important}
+ body[data-eh-theme][data-eh-theme] #nav.nav{gap:2px!important;padding:1px 1px 12px!important}
+ body[data-eh-theme][data-eh-theme] #nav>[data-index308-group]{margin:7px 6px 2px!important;font-size:8px!important}
+ body[data-eh-theme][data-eh-theme] #nav>button[data-index321-view]:not([hidden]){min-height:38px!important;padding:6px 8px!important;gap:7px!important;border-radius:9px!important;font-size:11px!important;line-height:1.15!important}
+ body[data-eh-theme][data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon{flex-basis:22px!important;width:22px!important;height:22px!important;border-radius:7px!important}
+ body[data-eh-theme][data-eh-theme] .sidebar .profile{padding:7px!important;border-radius:10px!important;font-size:10px!important}
+
+ body[data-eh-theme][data-eh-theme] #content .page-head,#content .page-head{gap:5px!important;margin:0 1px 7px!important;padding:1px!important}
+ body[data-eh-theme][data-eh-theme] #content .page-head h1,body[data-eh-theme][data-eh-theme] #content .page-head h2,#content .page-head h1,#content .page-head h2{font-size:20px!important;line-height:1.08!important;margin-bottom:3px!important}
+ body[data-eh-theme][data-eh-theme] #content .page-head p,#content .page-head p{font-size:11px!important;line-height:1.3!important}
+ #content h3{font-size:15px!important;margin-bottom:6px!important}
+ #content h4{font-size:13px!important;margin-bottom:5px!important}
+ #content .muted,#content small{font-size:10px!important;line-height:1.25!important}
+
+ body[data-eh-theme][data-eh-theme] #content :is(.grid2,.grid3,.split,.miniGrid,.academy-layout,.customer-mail-grid,.customer-mail-lang-row,.sop-detail-grid,.rc344-colli-grid,.rc363-colli-grid,.rc409-grid2,.rc409-grid3,.rc524-card-list,.rc524-overview-controls,.rc524-overview-meta,.rc524-action-grid,.rc543-grid2,.rc543-grid3),#content :is(.grid2,.grid3,.split,.miniGrid,.academy-layout){gap:6px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(.metrics,.grid4,.summaryGrid,.quick-grid,.hero-kpis,.rc205-quick-grid),#content :is(.metrics,.grid4,.summaryGrid,.quick-grid,.hero-kpis){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(.card,.metric,.wizard-step,.idea,.task,.checkrow,.box,.summaryBox,.folder-section,.rc205-widget,.rc205-quick-card,.rc363-process-block,.rc405-section,.rc409-section,.rc524-section,.rc524-panel,.rc543-section,[class$="-card"],[class*="-card "],[class$="-panel"],[class*="-panel "],[class$="-section"],[class*="-section "]):not(.rc390-card):not(.rc390-paper):not(.rc390-load):not(.rc390-cover):not(.rc390-cmr-wrap):not(.index209-signature-dialog){padding:8px!important;border-radius:10px!important}
+ body[data-eh-theme][data-eh-theme] #content .metric,#content .metric{min-height:64px!important;padding:8px!important}
+ body[data-eh-theme][data-eh-theme] #content .metric span,#content .metric span{font-size:9px!important;margin-bottom:3px!important}
+ body[data-eh-theme][data-eh-theme] #content .metric strong,#content .metric strong{font-size:22px!important}
+
+ body[data-eh-theme][data-eh-theme] #content .field,#content .field{gap:3px!important;margin:3px 0!important;padding:5px 6px!important;font-size:10px!important;border-radius:8px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(input,select,textarea),#content :is(input,select,textarea){min-height:36px!important;padding:6px 7px!important;font-size:13px!important;line-height:1.15!important;border-radius:8px!important}
+ body[data-eh-theme][data-eh-theme] #content textarea,#content textarea{min-height:72px!important}
+ body[data-eh-theme][data-eh-theme] #content input[type="checkbox"],body[data-eh-theme][data-eh-theme] #content input[type="radio"]{width:18px!important;min-width:18px!important;height:18px!important;min-height:18px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(button,.btn,.ghost,.soft,.danger,a[role="button"]):not(.index209-signature-trigger),#content :is(button,.btn,.ghost,.soft,.danger,a[role="button"]):not(.index209-signature-trigger){min-height:34px!important;padding:6px 8px!important;font-size:11px!important;line-height:1.15!important;border-radius:8px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(.toolbar,.actions,[class$="-toolbar"],[class$="-actions"]),#content :is(.toolbar,.actions){gap:5px!important;padding:4px!important;margin:5px 0 8px!important}
+ body[data-eh-theme][data-eh-theme] #content .pill,#content .pill{padding:3px 6px!important;font-size:9px!important;margin:2px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(.notice,.okbox,.badbox,.infobox),#content :is(.notice,.okbox,.badbox,.infobox){padding:7px!important;margin:5px 0!important;border-radius:8px!important;font-size:10px!important;line-height:1.25!important}
+
+ body[data-eh-theme][data-eh-theme] #content table:not(.rc390-table):not(.print-table):not(.load-table),#content table:not(.rc390-table):not(.print-table):not(.load-table){font-size:10px!important}
+ body[data-eh-theme][data-eh-theme] #content table:not(.rc390-table):not(.print-table):not(.load-table) :is(th,td),#content table:not(.rc390-table):not(.print-table):not(.load-table) :is(th,td){min-width:88px!important;padding:5px!important;font-size:10px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(.tabs,[class$="-tabs"],[class$="-tabbar"],[class*="-tabs "]),#content :is(.tabs,[class$="-tabs"],[class$="-tabbar"]){gap:4px!important;padding:2px 0 4px!important}
+ body[data-eh-theme][data-eh-theme] #content :is(.tabs,[class$="-tabs"],[class$="-tabbar"],[class*="-tabs "])>*{min-height:32px!important;padding:5px 7px!important;font-size:10px!important}
+
+ /* Sendungsübersicht und Lagerkarten auf dem Handy kompakt halten. */
+ #content .rc524-shipment-card{padding:7px!important;border-radius:10px!important}
+ #content .rc524-overview-meta,#content .rc524-action-grid{gap:5px!important}
+ #content .rc504-shipment{padding:6px!important;border-radius:9px!important}
+ #content .rc504-shipment-ref{font-size:12px!important}
+ #content .rc504-shipment-customer{font-size:9px!important}
+ #content .rc504-meta-chip{padding:3px 5px!important;border-radius:7px!important}
+ #content .rc504-shift-btn{min-height:30px!important;padding:5px 7px!important;font-size:10px!important}
+}
+</style>
 </head>
 <body><div class="clean-load-panel hidden" id="cleanLoadPanel">
 <div class="clean-load-card">
@@ -10263,7 +10347,7 @@ window.ExportHUBRC524={install:install,refresh:stableRender,setView:stableSetVie
 <script id="rc555-testportal-entry">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__=true;
+if(window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__=true;if(window.__EXPORTHUB_TEST_PORTAL__)return;
 var KEY='exporthub_test_portal_requested',TAB='exporthub_rc301_tab_session',timer=0,started=0;
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLowerCase()}

@@ -172,24 +172,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC555',cache:'555',loginReturn:'/?v=555'});
+var BUILD=Object.freeze({version:'RC556',cache:'556',loginReturn:'/?v=556'});
 var RELEASE=Object.freeze({
- version:'RC555',
+ version:'RC556',
  date:'09.08.2026',
- title:'Testportal-Zugang repariert',
+ title:'Testportal-Login und Smartphone-Ansicht stabilisiert',
  changes:Object.freeze([
-  'POD-Sicherungen verwenden ausschließlich die vollständige unterschriebene Ladeliste als PDF.',
-  'Die POD-PDF wird zusätzlich in SharePoint, im lokalen POD-Vault und bei verbundenem Notfallordner als echte PDF-Datei gespeichert.',
-  'Der Notfallordner erhält einen CSV-Index, eine README und eine eigenständige Offline-Notfallseite.',
-  'Die Offline-Notfallseite kann POD-PDFs aus dem Notfallordner ohne laufende ExportHUB-Website anzeigen und als ZIP herunterladen.',
-  'Bestehende ältere Vault-Einträge werden bei der nächsten Spiegelung auf die offizielle Ladeliste-mit-Unterschrift-PDF aktualisiert.'
+  'Testportal wartet vor dem Wechsel auf eine dauerhaft gespeicherte ExportHUB-Sitzung.',
+  'Die Testversion erkennt /test als eigenen Kanal und löst dort keine erneute Testportal-Weiterleitung aus.',
+  'Login und Anwendung sind strikt getrennt; die Anwendung ist vor erfolgreicher Anmeldung nicht sichtbar.',
+  'Die Smartphone-Darstellung wurde platzsparender ausgelegt: kleinere Karten, Felder, Buttons, Abstände und Tabellen.',
+  'Produktive Fachfunktionen bleiben unverändert; die Änderungen betreffen Testportal-Zugang und Testseiten-Darstellung.'
  ]),
  tests:Object.freeze([
-  'POD-Vault akzeptiert nur gültige PDF-Dateien',
-  'Notfallordner enthält direkt öffnbare POD-PDFs und Offline-Hilfsdateien',
-  'POD-Sammeldownload erzeugt pro Sendung die unterschriebene Ladeliste statt einzelner Signaturbilder',
-  'SharePoint-Backup bleibt als unabhängige zweite Ablage aktiv',
-  'Kanonische Build-/Cache-Version RC554 geprüft'
+  'Testportal-Redirect erst nach persistierter Tab-Sitzung',
+  'Kein Redirect-Loop innerhalb von /test',
+  'Login blendet #app vollständig aus',
+  'Smartphone-Overrides auf <=720 px geprüft',
+  'Kanonische Build-/Cache-Version RC556 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -7673,6 +7673,23 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 #releaseTestPortalBtn.exporthub-testportal-login{border:1px solid #dc2626!important;background:#dc2626!important;color:#fff!important;font-weight:950!important;box-shadow:0 8px 20px rgba(220,38,38,.18)!important}
 #releaseTestPortalBtn.exporthub-testportal-login:hover{background:#b91c1c!important;border-color:#b91c1c!important}
 </style>
+
+<style id="rc556-login-isolation-style">
+/* Login und Anwendung dürfen niemals gleichzeitig sichtbar sein. */
+#login:not(.hidden){position:fixed!important;inset:0!important;z-index:2147483000!important;overflow:auto!important;background:var(--bg,#eef6fb)!important}
+#login:not(.hidden)+#app{display:none!important;visibility:hidden!important;pointer-events:none!important}
+body:has(#login:not(.hidden)){overflow:hidden!important}
+@media(max-width:720px){
+ #login:not(.hidden){padding:10px!important;align-items:start!important;place-items:start center!important}
+ #login:not(.hidden) .login-card{width:min(100%,430px)!important;margin:6px auto!important;padding:18px 14px!important;border-radius:20px!important}
+ #login:not(.hidden) .logo{width:54px!important;height:54px!important;border-radius:17px!important;font-size:20px!important}
+ #login:not(.hidden) h1{font-size:25px!important;margin:8px 0 4px!important}
+ #login:not(.hidden) .field{gap:4px!important;margin:7px 0!important;font-size:12px!important}
+ #login:not(.hidden) input,#login:not(.hidden) select{min-height:38px!important;padding:7px 9px!important;font-size:14px!important;border-radius:10px!important}
+ #login:not(.hidden) button{min-height:38px!important;padding:7px 9px!important;font-size:13px!important;border-radius:10px!important;margin-top:6px!important}
+ #login:not(.hidden) .clean-login-status{font-size:12px!important;line-height:1.3!important;margin:7px 0!important;padding:8px!important}
+}
+</style>
 </head>
 <body><div class="clean-load-panel hidden" id="cleanLoadPanel">
 <div class="clean-load-card">
@@ -10276,7 +10293,7 @@ function status(msg,on){var e=document.getElementById('cleanLoginStatus');if(!e)
 function paint(){var b=document.getElementById('releaseTestPortalBtn');if(!b)return;var on=requested();b.textContent=on?'✓ Testportal ausgewählt':'Testportal – Admin';b.setAttribute('aria-pressed',on?'true':'false');b.classList.toggle('active',on)}
 function stop(){if(timer){clearInterval(timer);timer=0}started=0}
 function go(){stop();try{sessionStorage.removeItem(KEY)}catch(_){}location.assign('/test?_='+Date.now())}
-function watch(){if(!requested()){stop();return false}if(timer)return true;started=Date.now();timer=setInterval(function(){if(!requested()){stop();return}var s=runtimeSession()||session();if(s&&q(s.token)&&s.user){if(!isGlobal(s.user)){setRequested(false);stop();alert('Das Testportal ist ausschließlich für globale Administratoren freigegeben.');return}go();return}if(Date.now()-started>180000)stop()},200);return true}
+function watch(){if(!requested()){stop();return false}if(timer)return true;started=Date.now();timer=setInterval(function(){if(!requested()){stop();return}var s=session();if(s&&q(s.token)&&s.user){if(!isGlobal(s.user)){setRequested(false);stop();alert('Das Testportal ist ausschließlich für globale Administratoren freigegeben.');return}go();return}if(Date.now()-started>180000)stop()},200);return true}
 function click(e){var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;e.preventDefault();e.stopPropagation();var on=!requested();setRequested(on);status(on?'Testportal ausgewählt. Jetzt normal anmelden. Nach erfolgreichem Admin-Login öffnet sich die Testversion automatisch.':'Normale Hauptseite ausgewählt.',on);if(on)watch();else stop()}
 function boot(){paint();document.addEventListener('click',click,true);if(requested())watch()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
