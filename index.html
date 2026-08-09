@@ -172,24 +172,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC556',cache:'556',loginReturn:'/?v=556'});
+var BUILD=Object.freeze({version:'RC557',cache:'557',loginReturn:'/?v=557'});
 var RELEASE=Object.freeze({
- version:'RC556',
+ version:'RC557',
  date:'09.08.2026',
- title:'Testportal-Login und Smartphone-Ansicht stabilisiert',
+ title:'Testportal-Direktlogin stabilisiert',
  changes:Object.freeze([
-  'Testportal wartet vor dem Wechsel auf eine dauerhaft gespeicherte ExportHUB-Sitzung.',
+  'Testportal öffnet direkt als eigene Seite und führt den Login vollständig innerhalb der Testversion aus.',
   'Die Testversion erkennt /test als eigenen Kanal und löst dort keine erneute Testportal-Weiterleitung aus.',
   'Login und Anwendung sind strikt getrennt; die Anwendung ist vor erfolgreicher Anmeldung nicht sichtbar.',
   'Die Smartphone-Darstellung wurde platzsparender ausgelegt: kleinere Karten, Felder, Buttons, Abstände und Tabellen.',
   'Produktive Fachfunktionen bleiben unverändert; die Änderungen betreffen Testportal-Zugang und Testseiten-Darstellung.'
  ]),
  tests:Object.freeze([
-  'Testportal-Redirect erst nach persistierter Tab-Sitzung',
+  'Direkter Testportal-Login ohne Hauptseiten-Zwischenlogin',
   'Kein Redirect-Loop innerhalb von /test',
   'Login blendet #app vollständig aus',
   'Smartphone-Overrides auf <=720 px geprüft',
-  'Kanonische Build-/Cache-Version RC556 geprüft'
+  'Kanonische Build-/Cache-Version RC557 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -10277,25 +10277,25 @@ window.ExportHUBRC524={install:install,refresh:stableRender,setView:stableSetVie
 #nav button[data-view="start"],#nav button[onclick*="setView('start')"],#nav button[onclick*='setView("start")']{display:none!important}
 </style>
 <!-- INDEX 305 EARLY AUTHORITATIVE START + NAVIGATION CONTROLLER END -->
-<script id="rc555-testportal-entry">
+<script id="rc557-testportal-entry">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__=true;
-var KEY='exporthub_test_portal_requested',TAB='exporthub_rc301_tab_session',timer=0,started=0;
-function q(v){return String(v==null?'':v).trim()}
-function low(v){return q(v).toLowerCase()}
-function requested(){try{return sessionStorage.getItem(KEY)==='1'}catch(_){return false}}
-function setRequested(v){try{if(v)sessionStorage.setItem(KEY,'1');else sessionStorage.removeItem(KEY)}catch(_){}paint()}
-function session(){try{var raw=sessionStorage.getItem(TAB);if(!raw)return null;var x=JSON.parse(raw);return x&&x.token&&x.user?x:null}catch(_){return null}}
-function runtimeSession(){try{var r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(q(r.authToken)&&r.user)return{token:q(r.authToken),user:r.user}}catch(_){}return null}
-function isGlobal(u){u=u||{};var role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName);return !!(u.globalAdmin===true||u.isAdmin===true||u.admin===true||name==='tobias'||name==='tobias limberg'||role==='admin'||/global.?admin|administrator|vollzugriff/.test(role)||(Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0))}
-function status(msg,on){var e=document.getElementById('cleanLoginStatus');if(!e)return;e.textContent=msg||'';e.className='clean-login-status '+(on?'bad':'')}
-function paint(){var b=document.getElementById('releaseTestPortalBtn');if(!b)return;var on=requested();b.textContent=on?'✓ Testportal ausgewählt':'Testportal – Admin';b.setAttribute('aria-pressed',on?'true':'false');b.classList.toggle('active',on)}
-function stop(){if(timer){clearInterval(timer);timer=0}started=0}
-function go(){stop();try{sessionStorage.removeItem(KEY)}catch(_){}location.assign('/test?_='+Date.now())}
-function watch(){if(!requested()){stop();return false}if(timer)return true;started=Date.now();timer=setInterval(function(){if(!requested()){stop();return}var s=session();if(s&&q(s.token)&&s.user){if(!isGlobal(s.user)){setRequested(false);stop();alert('Das Testportal ist ausschließlich für globale Administratoren freigegeben.');return}go();return}if(Date.now()-started>180000)stop()},200);return true}
-function click(e){var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;e.preventDefault();e.stopPropagation();var on=!requested();setRequested(on);status(on?'Testportal ausgewählt. Jetzt normal anmelden. Nach erfolgreichem Admin-Login öffnet sich die Testversion automatisch.':'Normale Hauptseite ausgewählt.',on);if(on)watch();else stop()}
-function boot(){paint();document.addEventListener('click',click,true);if(requested())watch()}
+if(window.__EXPORTHUB_RC557_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC557_TESTPORTAL_ENTRY__=true;
+function openTestPortal(){
+ try{sessionStorage.setItem('exporthub_test_portal_requested','1')}catch(_){}
+ var url='/test?v=557&_='+Date.now();
+ location.assign(url);
+ return false
+}
+function click(e){
+ var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;
+ e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openTestPortal()
+}
+function boot(){
+ var b=document.getElementById('releaseTestPortalBtn');if(b){b.textContent='Testportal – Admin';b.setAttribute('aria-pressed','false')}
+ document.addEventListener('click',click,true)
+}
+window.__EXPORTHUB_OPEN_TESTPORTAL__=openTestPortal;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
