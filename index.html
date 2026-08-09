@@ -10277,24 +10277,29 @@ window.ExportHUBRC524={install:install,refresh:stableRender,setView:stableSetVie
 #nav button[data-view="start"],#nav button[onclick*="setView('start')"],#nav button[onclick*='setView("start")']{display:none!important}
 </style>
 <!-- INDEX 305 EARLY AUTHORITATIVE START + NAVIGATION CONTROLLER END -->
-<script id="rc557-testportal-entry">
+<script id="rc559-testportal-entry">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC557_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC557_TESTPORTAL_ENTRY__=true;
+if(window.__EXPORTHUB_RC559_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC559_TESTPORTAL_ENTRY__=true;
+var KEY='exporthub_test_portal_requested',USER_KEY='exporthub_test_login_user',TAB='exporthub_rc301_tab_session',timer=0,started=0;
+function q(v){return String(v==null?'':v).trim()}
+function low(v){return q(v).toLowerCase()}
+function rememberUser(){try{var u=document.getElementById('loginUser');if(u&&q(u.value))sessionStorage.setItem(USER_KEY,q(u.value))}catch(_){}}
+function runtimeSession(){try{var r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(q(r.authToken)&&r.user)return{token:q(r.authToken),user:r.user}}catch(_){}return null}
+function storedSession(){try{var raw=sessionStorage.getItem(TAB);if(!raw)return null;var x=JSON.parse(raw);return x&&q(x.token)&&x.user?x:null}catch(_){return null}}
+function isGlobal(u){u=u||{};var role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName);return !!(u.globalAdmin===true||u.isAdmin===true||u.admin===true||name==='tobias'||name==='tobias limberg'||role==='admin'||/global.?admin|administrator|vollzugriff/.test(role)||(Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0))}
+function status(msg,kind){var e=document.getElementById('cleanLoginStatus');if(!e)return;e.textContent=msg||'';e.className='clean-login-status '+(kind||'')}
+function stop(){if(timer){clearInterval(timer);timer=0}started=0}
+function route(){stop();try{sessionStorage.setItem(KEY,'1')}catch(_){}location.assign('/test?v=559&_='+Date.now());return false}
+function watch(){if(timer)return;started=Date.now();timer=setInterval(function(){var s=runtimeSession()||storedSession();if(s&&q(s.token)&&s.user){if(!isGlobal(s.user)){stop();try{sessionStorage.removeItem(KEY)}catch(_){}alert('Das Testportal ist ausschließlich für globale Administratoren freigegeben.');return}route();return}if(Date.now()-started>60000)stop()},150)}
 function openTestPortal(){
- try{sessionStorage.setItem('exporthub_test_portal_requested','1')}catch(_){}
- var url='/test?v=557&_='+Date.now();
- location.assign(url);
- return false
+ rememberUser();try{sessionStorage.setItem(KEY,'1')}catch(_){}
+ var u=document.getElementById('loginUser'),p=document.getElementById('loginPass'),login=document.getElementById('loginBtn');
+ if(u&&p&&q(u.value)&&q(p.value)&&login){status('Testportal-Anmeldung wird geprüft …','');watch();setTimeout(function(){login.click()},0);return false}
+ route();return false
 }
-function click(e){
- var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;
- e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openTestPortal()
-}
-function boot(){
- var b=document.getElementById('releaseTestPortalBtn');if(b){b.textContent='Testportal – Admin';b.setAttribute('aria-pressed','false')}
- document.addEventListener('click',click,true)
-}
+function click(e){var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();openTestPortal()}
+function boot(){var b=document.getElementById('releaseTestPortalBtn');if(b){b.textContent='Testportal – Admin';b.setAttribute('aria-pressed','false')}document.addEventListener('click',click,true)}
 window.__EXPORTHUB_OPEN_TESTPORTAL__=openTestPortal;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
