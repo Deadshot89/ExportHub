@@ -65,7 +65,7 @@ function openDocuments(){setViewState('cmr');prepareDirectView('cmr');try{if(win
 function reportCard(view,title,detail,action){if(!canRoute(view))return'';return '<button type="button" '+(action?'data-index321-action="'+action+'"':'data-index321-route="'+view+'"')+'><b>'+title+'</b><br>'+detail+'</button>'}
 function renderReports(){setViewState('reports');var root=document.getElementById('content');if(!root)return false;root.className='content';var cards=reportCard('shipmentoverview','Sendungsreport','Sendungen, Status und Referenzordner.')+reportCard('abd','ABD-Report','Gespeicherte ABD-Anfragen und Status.')+reportCard('tasks','Aufgabenreport','Offene und erledigte Aufgaben.')+reportCard('pallet','Palettenreport','Palettenkonto und Abgleich.','pallet-report')+reportCard('archive','Aktivitätsreport','Archiv und Audit-Protokoll.')+reportCard('cmr','Dokumentenreport','Ladelisten, CMR und Nachweise.');root.innerHTML='<div class="page-head"><div><h2>Reports</h2><p>Die vorhandenen Auswertungen werden aus den jeweiligen Fachbereichen geöffnet.</p></div><span class="pill blue">'+version()+'</span></div><div class="quick-grid">'+(cards||'<p class="muted">Für diesen Benutzer sind keine Reportbereiche freigegeben.</p>')+'</div>';root.setAttribute('data-exporthub-rendered-view','reports');updateActive();return false}
 function settingsCard(view,title){return canRoute(view)?'<button type="button" data-index321-route="'+view+'"><b>'+title+'</b></button>':''}
-function renderSettings(){setViewState('settings');var root=document.getElementById('content');if(!root)return false;root.className='content';var cards=settingsCard('rights','Benutzer &amp; Rechte')+settingsCard('update','Update ExportHUB')+settingsCard('teamfile','Sammelmodus')+settingsCard('archive','Archiv')+'<button type="button" data-exporthub-ms-switch="1"><b>Microsoft-Konto wechseln</b></button>';root.innerHTML='<div class="page-head"><div><h2>Einstellungen</h2><p>Zentrale System- und Verwaltungsbereiche.</p></div><span class="pill blue">'+version()+'</span></div><div class="quick-grid">'+cards+'</div>';root.setAttribute('data-exporthub-rendered-view','settings');updateActive();return false}
+function renderSettings(){setViewState('settings');var root=document.getElementById('content');if(!root)return false;root.className='content';var cards=settingsCard('rights','Benutzer &amp; Rechte')+settingsCard('update','Release-Center')+settingsCard('teamfile','Sammelmodus')+settingsCard('archive','Archiv')+'<button type="button" data-exporthub-ms-switch="1"><b>Microsoft-Konto wechseln</b></button>';root.innerHTML='<div class="page-head"><div><h2>Einstellungen</h2><p>Zentrale System- und Verwaltungsbereiche.</p></div><span class="pill blue">'+version()+'</span></div><div class="quick-grid">'+cards+'</div>';root.setAttribute('data-exporthub-rendered-view','settings');updateActive();return false}
 function closeMobileMenu(){try{if(window.ExportHUBMobileMenu&&typeof window.ExportHUBMobileMenu.close==='function')return window.ExportHUBMobileMenu.close()}catch(_){}return false}
 var historyReady=false,historyApplying=false,historySeq=0;
 function historyEnabled(){return !window.__EXPORTHUB_PICKUP_MODE__&&!(document.documentElement&&document.documentElement.getAttribute('data-index209-pickup')==='1')}
@@ -81,6 +81,7 @@ function route(view,source){view=canonical(view);if(!canRoute(view)){if(source!=
  if(core&&typeof core.install==='function'&&core.diagnostics&&core.diagnostics().installed!==true){try{core.install()}catch(error){console.error('RC409 Navigation initialisieren',error)}}
  if(view==='cmr')return openDocuments();
  if(view==='warehouse'&&window.ExportHUBWarehouse&&typeof window.ExportHUBWarehouse.render==='function'){setViewState(view);prepareDirectView(view);var outWarehouse=window.ExportHUBWarehouse.render();finishDirectView(view);return outWarehouse}
+ if(view==='update'&&window.ExportHUBReleaseCenter562&&typeof window.ExportHUBReleaseCenter562.renderHtml==='function'){setViewState(view);var outRelease=prepareDirectView(view);if(outRelease){outRelease.innerHTML=window.ExportHUBReleaseCenter562.renderHtml();finishDirectView(view);try{window.ExportHUBReleaseCenter562.refresh()}catch(error){console.error('Release-Center aktualisieren',error)}}return false}
  if(view==='reports')return renderReports();
  if(view==='settings')return renderSettings();
  if(view==='notifications'&&window.ExportHUBIndex236&&typeof window.ExportHUBIndex236.open==='function'){setViewState(view);prepareDirectView(view);var outNotifications=window.ExportHUBIndex236.open();finishDirectView(view);return outNotifications}
@@ -172,27 +173,27 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC563',cache:'563',loginReturn:'/test?v=563'});
+var BUILD=Object.freeze({version:'RC564',cache:'564',loginReturn:'/test?v=564'});
 var RELEASE=Object.freeze({
- version:'RC563',
+ version:'RC564',
  date:'09.08.2026',
- title:'Statusfilter aus Sendungsübersicht entfernt',
+ title:'Release-Center wieder direkt erreichbar',
  changes:Object.freeze([
-  'Statusfilter-Leiste aus der Sendungsübersicht wieder entfernt.',
-  'Gespeicherte alte Statusfilter werden beim Öffnen der Sendungsübersicht automatisch zurückgesetzt.',
-  'Test bestanden und Produktionsfreigabe werden im Release-Center nachvollziehbar verwaltet.',
-  'Produktionsdatei kann erst nach bestandenem Test erzeugt werden; die Hauptseite wird nicht automatisch verändert.',
-  'Produktionsversion wird im Release-Center direkt aus /index.html ermittelt.',
+  'Release-Center wird beim Menüpunkt Release-Center jetzt direkt vom vorhandenen Release-Controller gerendert.',
+  'Der alte Systemstatus-/Updatebericht kann den Release-Center nicht mehr ersetzen.',
+  'Produktionsversion, aktive Testversion und Teststatus werden im Release-Center angezeigt.',
+  'Test bestanden und Produktionsdatei-Erstellung bleiben an die Freigaberegel gebunden.',
+  'Statusfilter bleiben aus der Sendungsübersicht entfernt.',
   'Testportal-Verankerung und Smartphone-Kompaktansicht bleiben aktiv.'
  ]),
  tests:Object.freeze([
-  'Testkanal-Markierungen vor App-Start gesetzt',
-  '/test-Verankerung bei ready, rendered, pageshow und popstate geprüft',
-  'Interne Root-Navigation bleibt im Testportal',
-  'TESTPORTAL-Kennzeichnung auf Desktop und Smartphone geprüft',
+  'Direktrouting Release-Center geprüft',
+  'Alter Update-Renderer für view=update wird umgangen',
+  'Release-Center-Controller bleibt einzige Freigabeoberfläche',
+  'Testportal-Verankerung bleibt aktiv',
   'Inline-JavaScript vollständig auf Syntax geprüft',
   'DOM-IDs auf echte Duplikate geprüft',
-  'Kanonische Build-/Cache-Version RC563 geprüft'
+  'Kanonische Build-/Cache-Version RC564 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -7678,7 +7679,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC563';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC564';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10391,7 +10392,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var VERSION='RC563',CACHE='563',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var VERSION='RC564',CACHE='564',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -10410,7 +10411,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   setTimeout(refresh,0);
   return '<div class="page-head"><div><span class="rc524-kicker">ADMIN · TEST & VERÖFFENTLICHUNG</span><h2>🚀 Release-Center</h2><p>Testversion prüfen und erst nach bestandenem Test für die Produktion vorbereiten.</p></div></div>'+
    '<div class="rc562-release-grid"><div class="rc562-release-card"><span>Produktion</span><strong id="rc562ProductionVersion">'+esc(productionVersion)+'</strong></div><div class="rc562-release-card"><span>Aktive Testversion</span><strong>'+VERSION+'</strong></div><div class="rc562-release-card"><span>Teststatus</span><strong>'+(ok?'✓ BESTANDEN':'OFFEN')+'</strong></div></div>'+
-   '<div id="rc562ReleaseStatus" class="rc562-release-status '+(ok?'ok':'')+'">'+(ok?('Test bestanden'+(testedBy?' · '+esc(testedBy):'')+(testedAt?' · '+esc(new Date(testedAt).toLocaleString('de-DE')):'')):'RC563 ist noch nicht als vollständig getestet freigegeben.')+'</div>'+
+   '<div id="rc562ReleaseStatus" class="rc562-release-status '+(ok?'ok':'')+'">'+(ok?('Test bestanden'+(testedBy?' · '+esc(testedBy):'')+(testedAt?' · '+esc(new Date(testedAt).toLocaleString('de-DE')):'')):VERSION+' ist noch nicht als vollständig getestet freigegeben.')+'</div>'+
    '<div class="card"><h3>Freigabe</h3><div class="rc562-release-actions"><button class="btn" onclick="return rc562MarkTested()" '+(ok?'disabled':'')+'>'+(ok?'✓ Test bestanden':'Test bestanden')+'</button><button class="btn" onclick="return rc562PrepareProduction()" '+(ok?'':'disabled')+'>Produktion freigeben · index.html erstellen</button><button class="ghost" onclick="return rc562RefreshRelease()">Aktualisieren</button>'+(ok?'<button class="ghost" onclick="return rc562ResetTestStatus()">Teststatus zurücksetzen</button>':'')+'</div><p class="rc562-release-note">Die Hauptseite wird nicht automatisch überschrieben. „Produktion freigeben“ erzeugt erst nach bestandenem Test eine bereinigte <b>index.html</b>. Diese Datei wird anschließend wie gewohnt in GitHub als Produktionsdatei veröffentlicht. Dadurch kann die Testseite niemals versehentlich die Live-Seite ersetzen.</p>'+(prepared?'<div class="okbox">Produktionsdatei für '+VERSION+' wurde bereits vorbereitet.</div>':'')+'</div>'+
    '<div class="card"><h3>Freigaberegel</h3><p>Produktion bleibt auf <b>'+esc(productionVersion)+'</b>, bis '+VERSION+' vollständig getestet wurde und die erzeugte index.html bewusst in GitHub veröffentlicht wird. TESTVERSION.html bleibt davon getrennt.</p></div>';
  }
@@ -20086,7 +20087,7 @@ html[data-exporthub-testportal="1"][data-rc558-login-visible="1"] #login{positio
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var VERSION='RC563',CACHE='563',USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var VERSION='RC564',CACHE='564',USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
