@@ -173,26 +173,26 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC565',cache:'565',loginReturn:'/test?v=565'});
+var BUILD=Object.freeze({version:'RC566',cache:'566',loginReturn:'/test?v=566'});
 var RELEASE=Object.freeze({
- version:'RC565',
+ version:'RC566',
  date:'09.08.2026',
- title:'Dashboard ohne Neurendern der Schnellzugriffe',
+ title:'Dashboard-DOM bleibt bei Synchronisierung bestehen',
  changes:Object.freeze([
-  'Schnellzugriffe werden bei normalen Dashboard-Datenaktualisierungen nicht mehr neu aufgebaut.',
-  'Aufgaben-, Lager-, ABD-, Sendungs- und Palettenänderungen aktualisieren nur noch den Dashboard-Kachelbereich.',
-  'Der zentrale Renderer nutzt für ein bereits geöffnetes Dashboard die Signaturprüfung statt eines erzwungenen Vollrenders.',
-  'Reine Sync-Zeitstempel lösen keine Dashboard-Aktualisierung mehr aus.',
-  'Release-Center, Statusfilter-Entfernung, Testportal-Verankerung und Smartphone-Kompaktansicht bleiben erhalten.'
+  'Der zentrale Renderer leert den Dashboard-Inhalt bei wiederholten Render-Aufrufen nicht mehr.',
+  'Ein bereits geöffnetes Dashboard bleibt vollständig im DOM und wird nur noch über die Signaturprüfung aktualisiert.',
+  'Unveränderte Schnellzugriffe behalten dieselben DOM-Elemente und werden bei Sync, Lager-Polling oder Statusaktualisierung nicht neu erzeugt.',
+  'Nur tatsächlich geänderte Dashboard-Daten aktualisieren den Kachelbereich; Dashboard-Anpassungen dürfen weiterhin bewusst neu rendern.',
+  'Release-Center, Testportal-Verankerung, Statuslogik und Smartphone-Kompaktansicht bleiben erhalten.'
  ]),
  tests:Object.freeze([
-  'Dashboard-Schnellzugriffe vom Kachel-Refresh entkoppelt',
-  'Zentraler Dashboard-Renderer auf refreshDashboardIfChanged umgestellt',
-  'Noisy updatedAt-Felder aus der Dashboard-Signatur entfernt',
+  'Zentraler resetContentClasses-Aufruf für bereits montiertes Dashboard verhindert',
+  'Dashboard-Signaturprüfung vor DOM-Neuaufbau aktiv',
+  'Schnellzugriff-DOM bei unveränderter Quick-Signatur unverändert',
   'Testportal-Verankerung bleibt aktiv',
   'Inline-JavaScript vollständig auf Syntax geprüft',
   'DOM-IDs auf echte Duplikate geprüft',
-  'Kanonische Build-/Cache-Version RC565 geprüft'
+  'Kanonische Build-/Cache-Version RC566 geprüft'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -7678,7 +7678,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC565';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__='RC566';document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10313,8 +10313,13 @@ function stableRender(){
    domChanged=renderOverview();
    if(!domChanged){patchNav();updateActiveNavigation(v);removeNoise();setVersion();lastView=v;lastShipmentObject=null;lastShipmentIdentity='';lastRenderMs=Math.round((performance.now?performance.now():Date.now())-started);return false}
   }else{
-   resetContentClasses();
-   if(v==='dashboard'&&window.ExportHUBRC205){if(typeof window.ExportHUBRC205.refreshDashboardIfChanged==='function')window.ExportHUBRC205.refreshDashboardIfChanged(false);else if(typeof window.ExportHUBRC205.renderDashboard==='function')window.ExportHUBRC205.renderDashboard();}
+   var dashboardMounted=v==='dashboard'&&root()&&root().querySelector&&!!root().querySelector('.rc205-dashboard-grid');
+   if(!dashboardMounted)resetContentClasses();
+   if(v==='dashboard'&&window.ExportHUBRC205){
+    if(typeof window.ExportHUBRC205.refreshDashboardIfChanged==='function')domChanged=window.ExportHUBRC205.refreshDashboardIfChanged(false);
+    else if(typeof window.ExportHUBRC205.renderDashboard==='function'){window.ExportHUBRC205.renderDashboard();domChanged=true}
+    else domChanged=false;
+   }
    else if(v==='planning'&&window.ExportHUBIndex218&&typeof window.ExportHUBIndex218.render==='function')window.ExportHUBIndex218.render();
    else if(v==='cmr'){if(!renderDocuments())renderCanonicalView(v)}
    else if(v==='pallet'){if(typeof window.rc542RenderPallet==='function')window.rc542RenderPallet(false);else renderPallet()}
@@ -10391,7 +10396,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var VERSION='RC565',CACHE='565',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var VERSION='RC566',CACHE='566',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -20088,7 +20093,7 @@ html[data-exporthub-testportal="1"][data-rc558-login-visible="1"] #login{positio
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var VERSION='RC565',CACHE='565',USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var VERSION='RC566',CACHE='566',USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
