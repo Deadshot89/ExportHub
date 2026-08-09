@@ -172,9 +172,9 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC549',cache:'549',loginReturn:'/?v=549'});
+var BUILD=Object.freeze({version:'RC550',cache:'550',loginReturn:'/?v=550'});
 var RELEASE=Object.freeze({
- version:'RC549',
+ version:'RC550',
  date:'09.08.2026',
  title:'Microsoft-Kontowechsel vollständig abmelden',
  changes:Object.freeze([
@@ -11477,8 +11477,8 @@ function printComplete(sh){var sig=syncPrintStatus(sh),p=sh.printStatus||{};retu
 function docsBeforePickup(sh){return hasDeliveryNotes(sh)&&generatedDocsComplete(sh)&&abdComplete(sh)}
 function linkedOpenMandatoryTasks(sh){return A(S().tasks).filter(function(t){var linked=Q(t.linkedShipmentId)===shipmentId(sh)||L(t.linkedShipmentRef)===L(shipmentRef(sh)),mandatory=t.mandatory===true||/pflicht/i.test(Q(t.priority||t.type||t.note));return linked&&mandatory&&!/erledigt|storniert|done|cancelled/i.test(L(t.status))})}
 function isPersisted(sh){return A(S().shipments).some(function(x){return shipmentId(x)===shipmentId(sh)||(shipmentRef(sh)&&shipmentRef(x)===shipmentRef(sh))})}
-function statusReasons(sh){var c=customerFor(sh),reasons=[];if(sh.abdRequired&&!abdComplete(sh))reasons.push('ABD noch nicht abgeschlossen');if(!hasDeliveryNotes(sh))reasons.push('Lieferschein fehlt');if(!generatedDocsComplete(sh))reasons.push('Deckblatt, Ladelisten oder CMR fehlen');if(!printComplete(sh))reasons.push('Gesamtausgabe wurde noch nicht gedruckt');if(!mailCondition(sh,c))reasons.push('erforderliche Mail wurde noch nicht als versendet bestätigt');return reasons}
-function recalculate(sh){if(!sh)return '';syncPrintStatus(sh);if(sh.archived===true||/archiviert/i.test(L(sh.status)))return sh.status='Archiviert';if(/storniert|cancelled/i.test(L(sh.status)))return sh.status='Storniert';if(/erneut prüfen|erneut pruefen/i.test(L(sh.abdStatus)))return sh.status='Nachbearbeitung erforderlich';var c=customerFor(sh),picked=pickupComplete(sh),pod=activePods(sh).length>0,ready=docsBeforePickup(sh)&&printComplete(sh)&&mailCondition(sh,c),complete=picked&&pod&&docsBeforePickup(sh)&&mailCondition(sh,c)&&palletComplete(sh)&&linkedOpenMandatoryTasks(sh).length===0;if(complete)sh.status='Abgeschlossen';else if(picked&&pod)sh.status='POD vorhanden';else if(picked)sh.status='Abgeholt';else if(sh.abdRequired&&!abdComplete(sh)&&isPersisted(sh))sh.status='Wartet auf ABD';else if(sh.warehousePrepared===true&&Q(sh.warehouseLocation)&&!/^(eingang)$/i.test(Q(sh.warehouseLocation))&&ready)sh.status='Vorbereitet';else if(ready)sh.status='Bereit zur Abholung';else if(isPersisted(sh))sh.status='Erstellt';else sh.status='Entwurf';return sh.status}
+function statusReasons(sh){var c=customerFor(sh),reasons=[];if(sh.abdRequired&&!abdComplete(sh))reasons.push('ABD noch nicht abgeschlossen');if(!hasDeliveryNotes(sh))reasons.push('Lieferschein fehlt');if(!generatedDocsComplete(sh))reasons.push('Deckblatt, Ladelisten oder CMR fehlen');if(!mailCondition(sh,c))reasons.push('erforderliche Mail wurde noch nicht als versendet bestätigt');return reasons}
+function recalculate(sh){if(!sh)return '';syncPrintStatus(sh);if(sh.archived===true||/archiviert/i.test(L(sh.status)))return sh.status='Archiviert';if(/storniert|cancelled/i.test(L(sh.status)))return sh.status='Storniert';if(/erneut prüfen|erneut pruefen/i.test(L(sh.abdStatus)))return sh.status='Nachbearbeitung erforderlich';var c=customerFor(sh),picked=pickupComplete(sh),pod=activePods(sh).length>0,ready=docsBeforePickup(sh)&&mailCondition(sh,c),complete=picked&&pod&&docsBeforePickup(sh)&&mailCondition(sh,c)&&palletComplete(sh)&&linkedOpenMandatoryTasks(sh).length===0;if(complete)sh.status='Abgeschlossen';else if(picked&&pod)sh.status='POD vorhanden';else if(picked)sh.status='Abgeholt';else if(sh.abdRequired&&!abdComplete(sh)&&isPersisted(sh))sh.status='Wartet auf ABD';else if(sh.warehousePrepared===true&&Q(sh.warehouseLocation)&&!/^(eingang)$/i.test(Q(sh.warehouseLocation))&&ready)sh.status='Vorbereitet';else if(ready)sh.status='Bereit zur Abholung';else if(isPersisted(sh))sh.status='Erstellt';else sh.status='Entwurf';return sh.status}
 function audit(target,action,extra){target.history=A(target.history);target.history.push(Object.assign({id:'HIST-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),action:action,at:now(),user:actor()},extra||{}))}
 function linkedTasks(sh){return A(S().tasks).filter(function(t){return Q(t.linkedShipmentId)===shipmentId(sh)||L(t.linkedShipmentRef)===L(shipmentRef(sh))})}
 function taskType(t){var s=L((t.title||t.name||'')+' '+(t.area||t.category||t.type||''));if(/kundenmail|kunde.*mail|customer.*mail/.test(s))return 'customer';if(/speditionsmail|spedition.*mail|carrier.*mail/.test(s))return 'carrier';if(/eigene mail|own.*mail/.test(s))return 'own';if(/versandmail|mail versenden|e-?mail|nicht verschickte mail|avisierung/.test(s))return 'shipping';return ''}
@@ -15409,10 +15409,10 @@ window.ExportHUBRC610=Object.freeze({
 }
 #content.rc524-overview-view .rc524-shipment-card .rc524-kicker{
   display:block!important;
-  font-size:10px!important;
+  font-size:13px!important;
   line-height:1.25!important;
   font-weight:900!important;
-  letter-spacing:.055em!important;
+  letter-spacing:.02em!important;
   overflow-wrap:break-word!important
 }
 #content.rc524-overview-view .rc524-shipment-card h2{
