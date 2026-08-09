@@ -173,26 +173,25 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC523',cache:'523',loginReturn:'/?v=523'});
+var BUILD=Object.freeze({version:'RC524',cache:'524',loginReturn:'/?v=524'});
 var RELEASE=Object.freeze({
- version:'RC523',
+ version:'RC524',
  date:'09.08.2026',
- title:'Navigation auf einen zentralen Routing-Pfad konsolidiert',
+ title:'Smartphone- und Sidebar-Navigation konsolidiert',
  changes:Object.freeze([
-  'Interne Bereichswechsel aus Dashboard, Aufgabenplaner, Benachrichtigungen, Dokumentenbereich, Sendungsfunktionen und Kundenfunktionen auf ExportHUBRC325.route als zentralen Routing-Pfad umgestellt.',
-  'Direkte Fallback-Ketten über ExportHUBRC524.setView und window.setView aus den aktiven Navigationshelfern entfernt.',
-  'Der zentrale Router delegiert Standardbereiche nur noch an den kanonischen RC524-Renderer; ein zweiter window.setView-Fallback wird nicht mehr ausgeführt.',
-  'Alte setView-Aufrufe in den eingebetteten kanonischen Modulen auf den zentralen Router umgestellt, einschließlich Kunden-, SOP-, Sendungs-, ABD- und Palettennavigation.',
-  'F5-/Wiederherstellungs-, Neue-Sendung- und Gespeicherte-Sendung-Wege verwenden jetzt den zentralen Router beziehungsweise den zentralen Refresh statt paralleler Navigationspfade.',
-  'Dokumenteninterner CMR-State-Setter eindeutig in setDocumentViewState umbenannt, damit er nicht mehr mit der globalen Navigation verwechselt werden kann.',
-  'Design, Layout, Vorlagen, Größen, Farben und Anordnung wurden in RC523 nicht verändert.'
+  'Smartphone-Menü besitzt nur noch einen aktiven JavaScript-Controller: ExportHUBMobileMenu.',
+  'Alte parallele Menü-Besitzer aus RC558 und RC619 entfernt; Öffnen, Schließen, Escape, Bereichsauswahl und Desktop-Rücksetzung laufen zentral.',
+  'RC568- und RC402-Menü-Reparaturschichten in den kanonischen Mobile-Shell-Block übernommen und die alten Reparaturblöcke physisch entfernt.',
+  'Der nicht mehr verwendete Desktop-Collapse-Mechanismus einschließlich eh-sidebar-collapsed wird nicht mehr erzeugt oder separat repariert.',
+  'Alte mobile Sidebar-Positionierungsregeln aus früheren Basis-/Designblöcken entfernt, soweit sie vom kanonischen Mobile-Shell-Block ersetzt werden.',
+  'Responsive Fachbereichsregeln und das bestehende freigegebene Erscheinungsbild bleiben unverändert; RC524 ist eine Funktionskonsolidierung.'
  ]),
  tests:Object.freeze([
-  'JavaScript-Syntax aller direkten Skripte und aller eingebetteten kanonischen Module geprüft',
-  'Genau eine globale window.setView-Zuweisung und eine globale window.render-Zuweisung im zentralen RC524-Kern',
-  'Keine aktiven internen window.setView-Aufrufe außerhalb der zentralen Navigation',
-  'HTML-Doppel-IDs und kanonische Build-/Cache-Version RC523 geprüft',
-  'Headless-Chromium-Smoke-Test konnte in dieser Arbeitsumgebung wegen net::ERR_BLOCKED_BY_ADMINISTRATOR nicht ausgeführt werden'
+  'JavaScript-Syntax aller direkten Skripte und eingebetteten Module geprüft',
+  'Genau ein aktiver Besitzer für eh-sidebar-open und ExportHUBMobileMenu geprüft',
+  'Keine RC619-/RC402-/RC568-Menü-Reparaturblöcke und kein aktiver Collapse-Button mehr vorhanden',
+  'HTML-Doppel-IDs sowie kanonische Build-/Cache-Version RC524 geprüft',
+  'Chromium-Smoke-Test wurde versucht; die Arbeitsumgebung blockiert lokale Navigation mit net::ERR_BLOCKED_BY_ADMINISTRATOR'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -2570,7 +2569,7 @@ label.field > input,label.field > select,label.field > textarea{margin-top:2px}
 .hero p{font-size:18px;max-width:1040px}
 .hero-kpi,.quick-grid button{border-radius:18px}
 @media(max-width:1200px){.app{grid-template-columns:286px 1fr}.main{padding:20px}.topbar{flex-wrap:wrap}}
-@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.topbar{position:relative}.page-head h2{font-size:28px}}
+@media(max-width:900px){.app{grid-template-columns:1fr}.page-head h2{font-size:28px}}
 </style>
 <style id="rc558-complete-design">
 /* INLINE assets/exporthub-ui-rc521.css */
@@ -4761,7 +4760,7 @@ html[data-rc431-pickup="1"] body{background:#eef6fb!important}html[data-rc431-pi
 .rc147-card *,.rc149-card *,.rc138-task-mini *,.task-card *,.task *{
   writing-mode:horizontal-tb!important;white-space:normal!important;overflow-wrap:break-word!important;word-break:normal!important;
 }
-@media(max-width:900px){.app{grid-template-columns:1fr!important}.sidebar{position:relative!important;height:auto!important}.main{padding:14px!important}.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
+@media(max-width:900px){.app{grid-template-columns:1fr!important}.main{padding:14px!important}.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
 
 
 /* index.html style block 14 */
@@ -7302,12 +7301,11 @@ input,select,textarea{min-height:45px;padding:10px 12px!important;border:1px sol
 /* Dialogs and overlays */
 [role=dialog],.modal,.dialog,.overlay-card{border-radius:22px!important;box-shadow:var(--eh-shadow-lg)!important}.clean-load-card{border-radius:28px!important;box-shadow:var(--eh-shadow-lg)!important}
 /* Sidebar collapsed */
-body.eh-sidebar-collapsed{--sidebar-w:86px}body.eh-sidebar-collapsed .brand>div:last-child,body.eh-sidebar-collapsed .nav button,body.eh-sidebar-collapsed .nav a,body.eh-sidebar-collapsed .profile{font-size:0!important}body.eh-sidebar-collapsed .nav button,body.eh-sidebar-collapsed .nav a{padding:11px!important;text-align:center!important}body.eh-sidebar-collapsed .eh-nav-section{display:none}body.eh-sidebar-collapsed .brand{justify-content:center}body.eh-sidebar-collapsed .eh-collapse-btn{right:25px}
 /* Dark mode */
 body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh-text:#e7f1ff;--eh-muted:#a7bad1;--eh-line:#29405d;background:#081526;color:var(--eh-text)}body.eh-dark .topbar,body.eh-dark .card,body.eh-dark .metric,body.eh-dark .wizard-step,body.eh-dark .folder-section,body.eh-dark .idea,body.eh-dark .printdoc,body.eh-dark .previewDoc{background:#0f2037!important;border-color:#29405d!important;color:#e7f1ff!important}body.eh-dark h1,body.eh-dark h2,body.eh-dark h3,body.eh-dark h4,body.eh-dark .page-head h2{color:#e7f1ff!important}body.eh-dark input,body.eh-dark select,body.eh-dark textarea,body.eh-dark .ghost,body.eh-dark .search,body.eh-dark .list button{background:#132943!important;color:#e7f1ff!important;border-color:#385475!important}body.eh-dark .field:focus-within{background:#132943!important}body.eh-dark .table,body.eh-dark .rights-table{background:#0f2037;border-color:#29405d}body.eh-dark .table th,body.eh-dark .rights-table th{background:#132943!important;color:#b8cae0!important}body.eh-dark .table td,body.eh-dark .rights-table td{border-color:#29405d!important}body.eh-dark .table tbody tr:hover td{background:#132943!important}
 /* Responsive */
 @media(max-width:1180px){:root{--sidebar-w:270px}.main{padding:18px}.topbar{flex-wrap:wrap}.grid3{grid-template-columns:1fr 1fr!important}}
-@media(max-width:900px){.app{grid-template-columns:1fr!important}.sidebar{position:fixed;left:0;top:0;width:min(320px,88vw);transform:translateX(-105%);box-shadow:18px 0 48px rgba(0,0,0,.28)}body.eh-sidebar-open .sidebar{transform:translateX(0)}.main{padding:12px}.topbar{top:6px;border-radius:17px}.eh-menu-btn{display:inline-grid}.eh-collapse-btn{display:none}.search{order:10;flex-basis:100%}.grid2,.grid3,.grid4,.metrics,.split,.folder-header,.miniGrid,.summaryGrid{grid-template-columns:1fr!important}.task{grid-template-columns:1fr!important}.page-head h2{font-size:28px}.card{padding:16px!important}}
+@media(max-width:900px){.grid2,.grid3,.grid4,.metrics,.split,.folder-header,.miniGrid,.summaryGrid{grid-template-columns:1fr!important}.task{grid-template-columns:1fr!important}.page-head h2{font-size:28px}.card{padding:16px!important}}
 @media(max-width:560px){body{font-size:14px}.login{padding:0}.login-card{min-height:100vh;border-radius:0;padding:28px 20px}.topbar .ghost:not(#logoutBtn):not(#ehThemeSwitch),.topbar select:not(#ehThemeSelect){display:none}.main{padding:9px}.card{border-radius:17px!important}.metric strong{font-size:31px!important}.toolbar,.actions{display:grid!important;grid-template-columns:1fr}.toolbar button,.actions button{width:100%}}
 @media print{.eh-menu-btn,.eh-collapse-btn,.eh-theme-btn{display:none!important}.topbar,.sidebar{display:none!important}.app{display:block!important}.main{padding:0!important}.card,.metric{box-shadow:none!important}}
 
@@ -7887,7 +7885,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 .rc147-card *,.rc149-card *,.rc138-task-mini *,.task-card *,.task *{
   writing-mode:horizontal-tb!important;white-space:normal!important;overflow-wrap:break-word!important;word-break:normal!important;
 }
-@media(max-width:900px){.app{grid-template-columns:1fr!important}.sidebar{position:relative!important;height:auto!important}.main{padding:14px!important}.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
+@media(max-width:900px){.app{grid-template-columns:1fr!important}.main{padding:14px!important}.rc147-week-grid,.rc150-week-grid,.rc138-week-grid,.task-grid{grid-template-columns:1fr!important}}
 </style>
 <!-- RC176: Benutzer anlegen, Profil öffnen und Rechte speichern stabilisiert -->
 <style id="rc176-user-rights-ui-css">
@@ -11694,12 +11692,8 @@ window.ExportHUBRC588={version:VERSION,apply:apply,selfTest:function(){return{ve
  function viewOf(el){const raw=el&&el.getAttribute&&el.getAttribute('onclick')||'';const m=raw.match(/setView\(['\"]([^'\"]+)/);return m&&m[1]||''}
  function addButton(id,label,title,cls){let b=document.getElementById(id);if(b)return b;b=document.createElement('button');b.id=id;b.type='button';b.className='ghost '+cls;b.textContent=label;b.title=title;return b}
  function ensureControls(){
-  const top=document.querySelector('.topbar'),brand=document.querySelector('.brand');if(!top||!brand)return;
-  let menu=addButton('ehMenuBtn','☰','Menü öffnen','eh-menu-btn');if(!menu.parentNode)top.insertBefore(menu,top.firstChild);
+  const top=document.querySelector('.topbar');if(!top)return;
   let theme=addButton('ehThemeBtn','◐','Helle/dunkle Darstellung','eh-theme-btn');if(!theme.parentNode)top.appendChild(theme);
-  let collapse=addButton('ehCollapseBtn','‹','Navigation einklappen','eh-collapse-btn');if(!collapse.parentNode)brand.appendChild(collapse);
-  menu.onclick=()=>document.body.classList.toggle('eh-sidebar-open');
-  collapse.onclick=()=>{document.body.classList.toggle('eh-sidebar-collapsed');collapse.textContent=document.body.classList.contains('eh-sidebar-collapsed')?'›':'‹'};
   theme.onclick=()=>document.body.classList.toggle('eh-dark');
  }
  function groupNav(){
@@ -11715,7 +11709,6 @@ window.ExportHUBRC588={version:VERSION,apply:apply,selfTest:function(){return{ve
   document.querySelectorAll('input,select,textarea').forEach(el=>{if(!el.closest('.field')&&!el.closest('.search')&&!el.closest('.checkrow'))el.classList.add('eh-control')});
   document.querySelectorAll('table').forEach(t=>t.classList.add('eh-table'));
  }
- document.addEventListener('click',e=>{if(innerWidth<=900&&e.target.closest('.nav button,.nav a'))document.body.classList.remove('eh-sidebar-open')},true);
  window.addEventListener('exporthub:ready',decorate);
  window.addEventListener('exporthub:rendered',decorate);
  window.addEventListener('exporthub:viewchange',decorate);
@@ -12022,14 +12015,7 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
   window.addEventListener('pageshow',function(e){if(e.persisted)neutralize()});
 })();
 </script>
-<!-- RC568 SINGLE VERSION, MOBILE MENU AND DOCUMENT VIEW START -->
-<style id="rc568-authoritative-style">
-#rc568MenuBtn,#rc568MenuBackdrop,#rc567MobileBackdrop{display:none!important}
-@media(max-width:900px){#ehMenuBtn{display:inline-grid!important}}
-@media(min-width:901px){#ehMenuBtn{display:none!important}.sidebar{transform:none!important}}
-</style>
 
-<!-- RC568 SINGLE VERSION, MOBILE MENU AND DOCUMENT VIEW END -->
 <!-- RC589 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN START -->
 <style id="rc589-topdown-style">
 /* Only the explicitly requested Stauplan presentation changes here. */
@@ -12120,62 +12106,56 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
 </style>
 <!-- RC575 TASK DEDUPLICATION + SHIPMENT LINK END -->
 <!-- RC559 + RC560 + RC561 stable patches -->
-<style id="rc559-mobile-shell-final-fix">
-/* RC559 – letzte mobile Regel; steht bewusst am Dateiende und überstimmt alte Legacy-Media-Regeln. */
+<style id="exporthub-canonical-mobile-shell-style">
+/* RC524: funktionaler Besitzer der Smartphone-/Sidebar-Shell. Fachbereichs- und Theme-Design bleiben separat. */
+#ehCollapseBtn,.eh-collapse-btn,#rc568MenuBtn,#rc568MenuBackdrop,#rc567MobileBackdrop{display:none!important}
+@media (min-width:901px){
+  #ehMenuBtn{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+  body .sidebar{transform:none!important}
+}
 @media (max-width:900px){
   html,body{width:100%!important;min-height:100%!important;overflow-x:hidden!important}
   body{background:radial-gradient(circle at 12% 0,rgba(16,184,239,.12),transparent 34%),#eef5fb!important}
   body .app:not(.hidden){display:block!important;width:100%!important;min-height:100dvh!important;background:transparent!important}
-  body .sidebar{
-    position:fixed!important;left:0!important;top:0!important;bottom:0!important;
-    width:min(320px,88vw)!important;height:100dvh!important;max-height:100dvh!important;
-    transform:translateX(-105%)!important;transition:transform .2s ease!important;
-    z-index:1200!important;overflow-y:auto!important;overflow-x:hidden!important;
-    display:flex!important;flex-direction:column!important;
-    background:linear-gradient(180deg,#061a3a,#0a3972)!important;
-    box-shadow:18px 0 48px rgba(0,0,0,.30)!important;
-  }
+  body .sidebar{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:min(320px,88vw)!important;height:100dvh!important;max-height:100dvh!important;transform:translateX(-105%)!important;transition:transform .2s ease!important;z-index:2201!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;background:linear-gradient(180deg,#061a3a,#0a3972)!important;box-shadow:18px 0 48px rgba(0,0,0,.30)!important;touch-action:pan-y!important;overscroll-behavior:contain!important;padding-bottom:max(12px,env(safe-area-inset-bottom))!important}
   body.eh-sidebar-open .sidebar{transform:translateX(0)!important}
-  body .main{
-    display:block!important;width:100%!important;min-width:0!important;min-height:100dvh!important;
-    margin:0!important;padding:10px!important;background:transparent!important;
-  }
-  body .topbar{
-    display:flex!important;position:sticky!important;top:6px!important;z-index:1000!important;
-    width:100%!important;min-height:58px!important;margin:0 0 12px!important;padding:8px!important;
-    border-radius:17px!important;background:rgba(255,255,255,.94)!important;
-  }
+  body .sidebar>.brand{flex:0 0 auto!important}
+  body .sidebar>#nav,body .sidebar>.nav{display:grid!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;touch-action:pan-y!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:0 2px calc(90px + env(safe-area-inset-bottom))!important;scrollbar-gutter:stable!important}
+  body .sidebar>.profile{flex:0 0 auto!important;margin-top:8px!important}
+  body #nav>[data-index308-group]:not([hidden]){position:relative!important;display:block!important;visibility:visible!important;flex:none!important}
+  body #nav>button[data-index321-view]:not([hidden]){position:relative!important;z-index:2202!important;display:flex!important;visibility:visible!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:none!important;-webkit-user-select:none!important;min-height:52px!important;flex:none!important}
+  body #nav>button[data-index321-view][hidden],body #nav>button[data-index308-view][hidden],body #nav>button[data-index305-view][hidden],body #nav>[data-index308-group][hidden],body #nav>[data-index305-group][hidden]{display:none!important;visibility:hidden!important;pointer-events:none!important}
+  body #nav>button[data-index321-view]:active{transform:scale(.985)!important;background:rgba(255,255,255,.16)!important}
+  body .main{display:block!important;width:100%!important;min-width:0!important;min-height:100dvh!important;margin:0!important;padding:10px!important;background:transparent!important}
+  body .topbar{display:flex!important;position:sticky!important;top:6px!important;z-index:1000!important;width:100%!important;min-height:58px!important;margin:0 0 12px!important;padding:8px!important;border-radius:17px!important;background:rgba(255,255,255,.94)!important}
   body .eh-menu-btn{display:inline-grid!important;visibility:visible!important;opacity:1!important;flex:0 0 42px!important}
-  body .eh-collapse-btn{display:none!important}
   body .search{order:10!important;flex:1 0 100%!important;width:100%!important}
   body #content{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;min-height:calc(100dvh - 82px)!important}
   body #content>*{max-width:100%!important}
   body.eh-sidebar-open{overflow:hidden!important}
-  body.eh-sidebar-open::after{
-    content:"";position:fixed;inset:0;background:rgba(2,12,27,.46);z-index:1100;
-  }
-  body.eh-sidebar-open .sidebar{z-index:1201!important}
-  body .grid2,body .grid3,body .grid4,body .metrics,body .split,body .folder-header,body .miniGrid,body .summaryGrid,
-  body .rc147-week-grid,body .rc150-week-grid,body .rc138-week-grid,body .task-grid{grid-template-columns:1fr!important}
+  body.eh-sidebar-open::after{content:"";position:fixed;inset:0;background:rgba(2,12,27,.46);z-index:1100;pointer-events:none!important}
+  body:not(.eh-sidebar-open) #content input,body:not(.eh-sidebar-open) #content select,body:not(.eh-sidebar-open) #content textarea,body:not(.eh-sidebar-open) #content button,body:not(.eh-sidebar-open) #content a,body:not(.eh-sidebar-open) #content label{pointer-events:auto!important;touch-action:manipulation!important}
+  body:not(.eh-sidebar-open) #content input,body:not(.eh-sidebar-open) #content textarea{user-select:text!important;-webkit-user-select:text!important}
+  body:not(.eh-sidebar-open) .main,body:not(.eh-sidebar-open) #content{position:relative!important;z-index:auto!important}
+  body .grid2,body .grid3,body .grid4,body .metrics,body .split,body .folder-header,body .miniGrid,body .summaryGrid,body .rc147-week-grid,body .rc150-week-grid,body .rc138-week-grid,body .task-grid{grid-template-columns:1fr!important}
   body .card,body .metric{max-width:100%!important;overflow-wrap:anywhere!important}
 }
-@media (max-width:560px){
-  body .main{padding:7px!important}
-  body .topbar{top:4px!important}
-  body .page-head h1,body .page-head h2{font-size:25px!important}
-}
+@media (max-width:560px){body .main{padding:7px!important}body .topbar{top:4px!important}body .page-head h1,body .page-head h2{font-size:25px!important}}
 </style>
-<script id="rc559-mobile-shell-final-js">
+<script id="exporthub-canonical-mobile-shell-controller">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC409_MENU_SHELL__)return;window.__EXPORTHUB_RC409_MENU_SHELL__=true;
-function mobile(){return window.matchMedia?window.matchMedia('(max-width:900px)').matches:innerWidth<=900}
-function setOpen(open){document.body.classList.toggle('eh-sidebar-open',!!open&&mobile());if(!document.body.classList.contains('eh-sidebar-open'))document.body.style.removeProperty('overflow');var b=document.getElementById('ehMenuBtn');if(b)b.setAttribute('aria-expanded',document.body.classList.contains('eh-sidebar-open')?'true':'false')}
-function ensure(){var app=document.getElementById('app'),top=document.querySelector('.topbar'),side=document.querySelector('.sidebar'),nav=document.getElementById('nav');if(!app||!top||!side)return false;var btn=document.getElementById('ehMenuBtn');if(!btn){btn=document.createElement('button');btn.id='ehMenuBtn';btn.type='button';btn.className='ghost eh-menu-btn';btn.textContent='☰';btn.setAttribute('aria-label','Menü öffnen');btn.setAttribute('aria-controls','nav');top.insertBefore(btn,top.firstChild)}btn.setAttribute('aria-expanded',document.body.classList.contains('eh-sidebar-open')?'true':'false');if(nav){nav.setAttribute('role','navigation');nav.setAttribute('aria-label','ExportHUB Funktionen');nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){b.type='button';b.style.pointerEvents='auto';b.removeAttribute('onclick')});if(mobile()){nav.style.scrollBehavior='auto';nav.tabIndex=0}}if(!mobile())setOpen(false);return true}
-document.addEventListener('click',function(e){var toggle=e.target&&e.target.closest&&e.target.closest('#ehMenuBtn');if(toggle){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();setOpen(!document.body.classList.contains('eh-sidebar-open'));return}var item=e.target&&e.target.closest&&e.target.closest('#nav>button[data-index321-view]');if(mobile()&&item){setTimeout(function(){setOpen(false)},0);return}if(mobile()&&document.body.classList.contains('eh-sidebar-open')&&!e.target.closest('.sidebar'))setOpen(false)},true);
-document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)},true);document.addEventListener('focusin',function(e){if(!mobile()||document.body.classList.contains('eh-sidebar-open'))return;var field=e.target&&e.target.closest&&e.target.closest('#content input,#content select,#content textarea,#content button');if(field)field.style.pointerEvents='auto'},true);
-window.addEventListener('resize',ensure);['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,ensure)});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
-window.ExportHUBMobileMenu=Object.freeze({version:(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'ExportHUB',install:ensure,open:function(){setOpen(true)},close:function(){setOpen(false)}});
+if(window.__EXPORTHUB_CANONICAL_MOBILE_SHELL__)return;window.__EXPORTHUB_CANONICAL_MOBILE_SHELL__=true;
+var scheduled=false;
+function mobile(){return window.matchMedia?window.matchMedia('(max-width:900px)').matches:window.innerWidth<=900}
+function setOpen(open){var active=!!open&&mobile();document.body.classList.toggle('eh-sidebar-open',active);if(!active)document.body.style.removeProperty('overflow');var b=document.getElementById('ehMenuBtn');if(b)b.setAttribute('aria-expanded',active?'true':'false');return active}
+function removeLegacyControls(){document.body.classList.remove('eh-sidebar-collapsed','rc568-menu-open');document.querySelectorAll('#ehCollapseBtn,.eh-collapse-btn,#rc568MenuBtn,#rc568MenuBackdrop,#rc567MobileBackdrop').forEach(function(el){el.remove()})}
+function ensure(){var app=document.getElementById('app'),top=document.querySelector('.topbar'),side=document.querySelector('.sidebar'),nav=document.getElementById('nav');if(!app||!top||!side)return false;removeLegacyControls();var btn=document.getElementById('ehMenuBtn');if(!btn){btn=document.createElement('button');btn.id='ehMenuBtn';btn.type='button';btn.className='ghost eh-menu-btn';btn.textContent='☰';btn.setAttribute('aria-label','Menü öffnen');btn.setAttribute('aria-controls','nav');top.insertBefore(btn,top.firstChild)}btn.type='button';btn.setAttribute('aria-controls','nav');btn.setAttribute('aria-expanded',document.body.classList.contains('eh-sidebar-open')&&mobile()?'true':'false');if(nav){nav.setAttribute('role','navigation');nav.setAttribute('aria-label','ExportHUB Funktionen');nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){b.type='button';b.style.pointerEvents='auto';b.removeAttribute('onclick')});if(mobile()){nav.style.scrollBehavior='auto';nav.tabIndex=0}else{nav.removeAttribute('tabindex');nav.style.removeProperty('scroll-behavior')}}if(!mobile())setOpen(false);return true}
+function schedule(){if(scheduled)return;scheduled=true;setTimeout(function(){scheduled=false;ensure()},0)}
+document.addEventListener('click',function(e){var toggle=e.target&&e.target.closest&&e.target.closest('#ehMenuBtn');if(toggle){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();setOpen(!document.body.classList.contains('eh-sidebar-open'));return}var item=e.target&&e.target.closest&&e.target.closest('#nav>button[data-index321-view]');if(mobile()&&item){setTimeout(function(){setOpen(false)},0);return}if(mobile()&&document.body.classList.contains('eh-sidebar-open')&&!(e.target&&e.target.closest&&e.target.closest('.sidebar')))setOpen(false)},true);
+document.addEventListener('keydown',function(e){if(e.key==='Escape')setOpen(false)},true);
+window.addEventListener('resize',schedule);['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,schedule)});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensure,{once:true});else ensure();
+window.ExportHUBMobileMenu=Object.freeze({version:(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'ExportHUB',install:ensure,open:function(){return setOpen(true)},close:function(){return setOpen(false)},isOpen:function(){return document.body.classList.contains('eh-sidebar-open')&&mobile()},selfTest:function(){return{mobile:mobile(),menuButtons:document.querySelectorAll('#ehMenuBtn').length,legacyCollapse:document.querySelectorAll('#ehCollapseBtn,.eh-collapse-btn').length,open:document.body.classList.contains('eh-sidebar-open')}}});
 })();
 </script>
 <style id="rc561-shipment-overview-stability-css">
@@ -15535,26 +15515,7 @@ window.ExportHUBRC610=Object.freeze({
 })();
 </script>
 <!-- RC610 REFERENCE CHANGE WITHOUT RENDER END -->
-<style id="rc619-desktop-menu-and-version-fix">
-/* Desktop: Navigation is always fully expanded and has no collapse control. */
-@media (min-width:901px){
-  #ehCollapseBtn,.eh-collapse-btn,#ehMenuBtn,#rc568MenuBtn{
-    display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important
-  }
-  body.eh-sidebar-collapsed{--sidebar-w:304px!important}
-  body.eh-sidebar-collapsed .brand>div:last-child,
-  body.eh-sidebar-collapsed .nav button,
-  body.eh-sidebar-collapsed .nav a,
-  body.eh-sidebar-collapsed .profile{font-size:inherit!important}
-  body.eh-sidebar-collapsed .eh-nav-section{display:block!important}
-  body.eh-sidebar-collapsed .brand{justify-content:flex-start!important}
-}
-/* Smartphone: drawer menu remains available, desktop collapse arrow stays removed. */
-@media (max-width:900px){
-  #ehCollapseBtn,.eh-collapse-btn{display:none!important}
-}
-</style>
-<script id="rc619-desktop-menu-only">(function(){'use strict';if(window.__EXPORTHUB_RC619_MENU_ONLY__)return;window.__EXPORTHUB_RC619_MENU_ONLY__=true;var scheduled=false;function desktop(){return window.matchMedia?window.matchMedia('(min-width:901px)').matches:window.innerWidth>900}function enforceMenu(){try{document.body.classList.remove('eh-sidebar-collapsed');document.querySelectorAll('#ehCollapseBtn,.eh-collapse-btn').forEach(function(el){el.remove()});if(desktop()){document.body.classList.remove('eh-sidebar-open','rc568-menu-open');var app=document.getElementById('app');if(app)app.style.removeProperty('grid-template-columns')}}catch(_){}}function schedule(){if(scheduled)return;scheduled=true;setTimeout(function(){scheduled=false;enforceMenu()},0)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enforceMenu,{once:true});else enforceMenu();window.addEventListener('resize',schedule);['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});window.ExportHUBRC619Menu=Object.freeze({version:window.EXPORTHUB_BUILD.version,refresh:enforceMenu,selfTest:function(){return{desktop:desktop(),collapsedClass:document.body.classList.contains('eh-sidebar-collapsed'),htmlVersion:document.documentElement.getAttribute('data-exporthub-version'),title:document.title}}})})();</script>
+
 <!-- RC624 OVERVIEW TILE STYLE + PACKAGING FIELD START -->
 <style id="rc620-overview-tile-style">
 /* STYLE-Freigabe: ausschließlich Sendungsübersicht und Verpackungsfeld. */
@@ -18198,8 +18159,8 @@ window.ExportHUBIndex289=Object.freeze({version:(window.EXPORTHUB_BUILD&&window.
 .sidebar::-webkit-scrollbar-track{background:transparent}
 .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.20);border-radius:999px}
 @media(max-width:900px){
-.app{grid-template-columns:1fr!important;min-height:0!important;align-content:start!important}.sidebar{position:relative!important;top:auto!important;height:auto!important;min-height:0!important;align-self:start!important;max-height:60vh!important;overflow:hidden!important;padding:10px!important;gap:8px!important}.sidebar .brand{padding:6px 4px 10px!important}.sidebar .profile{display:none!important}#nav.nav{grid-template-columns:repeat(2,minmax(0,1fr))!important;max-height:46vh!important;overflow:auto!important;gap:5px!important}#nav.nav [data-index296-nav-group="1"],#nav.nav [data-index308-group]{grid-column:1/-1!important;margin:8px 6px 2px!important}#nav.nav button{min-height:42px!important;padding:9px!important}.main{padding:12px 10px 28px!important}.topbar{position:sticky!important;top:0!important;z-index:900!important;display:flex!important;flex-wrap:wrap!important;padding:8px!important;margin-bottom:10px!important;background:rgba(238,246,251,.96)!important}.topbar .search{flex:1 1 100%!important;order:-1!important}.page-head{display:block!important}.page-head h2{font-size:25px!important}}
-@media(max-width:560px){.sidebar{max-height:52vh!important}#nav.nav{grid-template-columns:1fr!important;max-height:38vh!important}.main{padding:8px 6px 24px!important}.card,.metric,.rc363-process-block{border-radius:15px!important;padding:11px!important}.topbar>button,.topbar>.ghost,.topbar>.btn,.topbar>select{flex:1 1 calc(50% - 6px)!important;min-width:0!important}.rc363-process-head{align-items:flex-start!important}.rc363-process-head h3{font-size:17px!important}.rc363-process-body{gap:8px!important}}
+.page-head{display:block!important}.page-head h2{font-size:25px!important}}
+@media(max-width:560px){.card,.metric,.rc363-process-block{border-radius:15px!important;padding:11px!important}.rc363-process-head{align-items:flex-start!important}.rc363-process-head h3{font-size:17px!important}.rc363-process-body{gap:8px!important}}
 
 
 </style>
@@ -19043,23 +19004,7 @@ var api=Object.freeze({version:VERSION,patch:patch,refreshVisuals:refreshVisuals
  #content[data-view="customers"] #rc543CustomerMailRule,#content[data-view="customerfolder"] #rc543CustomerMailRule{padding:13px!important;border-radius:15px!important}
 }
 </style>
-<style id="rc402-mobile-navigation-fix">
-@media(max-width:900px){
- body .sidebar{z-index:2201!important;overflow:hidden!important;touch-action:pan-y!important;overscroll-behavior:contain!important;padding-bottom:max(12px,env(safe-area-inset-bottom))!important}
- body .sidebar>.brand{flex:0 0 auto!important}
- body .sidebar>#nav,body .sidebar>.nav{display:grid!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;touch-action:pan-y!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:0 2px calc(90px + env(safe-area-inset-bottom))!important;scrollbar-gutter:stable!important}
- body .sidebar>.profile{flex:0 0 auto!important;margin-top:8px!important}
- body.eh-sidebar-open::after{pointer-events:none!important}
- body .sidebar,body .sidebar *{pointer-events:auto!important}
- body #nav>[data-index308-group]:not([hidden]){position:relative!important;display:block!important;visibility:visible!important;flex:none!important}
- body #nav>button[data-index321-view]:not([hidden]){position:relative!important;z-index:2202!important;display:flex!important;visibility:visible!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:none!important;-webkit-user-select:none!important;min-height:52px!important;flex:none!important}
- body #nav>button[data-index321-view][hidden],body #nav>button[data-index308-view][hidden],body #nav>button[data-index305-view][hidden],body #nav>[data-index308-group][hidden],body #nav>[data-index305-group][hidden]{display:none!important;visibility:hidden!important;pointer-events:none!important}
- body #nav>button[data-index321-view]:active{transform:scale(.985)!important;background:rgba(255,255,255,.16)!important}
- body:not(.eh-sidebar-open) #content input,body:not(.eh-sidebar-open) #content select,body:not(.eh-sidebar-open) #content textarea,body:not(.eh-sidebar-open) #content button,body:not(.eh-sidebar-open) #content a,body:not(.eh-sidebar-open) #content label{pointer-events:auto!important;touch-action:manipulation!important}
- body:not(.eh-sidebar-open) #content input,body:not(.eh-sidebar-open) #content textarea{user-select:text!important;-webkit-user-select:text!important}
- body:not(.eh-sidebar-open) .main,body:not(.eh-sidebar-open) #content{position:relative!important;z-index:auto!important}
-}
-</style>
+
 <style id="rc455-pod-backup-style">
 #rc422PodBackupModal[hidden]{display:none!important}#rc422PodBackupModal{position:fixed;inset:0;z-index:2147483600;background:rgba(15,23,42,.72);padding:18px;display:grid;place-items:center}.rc422-pod-dialog{width:min(760px,100%);max-height:92vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#0f172a);border:1px solid var(--line,#dbe4ef);border-radius:24px;padding:22px;box-shadow:0 28px 80px rgba(0,0,0,.32)}.rc422-pod-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.rc422-pod-head h2{margin:0 0 6px}.rc422-pod-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}.rc422-pod-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.rc422-pod-summary>div{border:1px solid var(--line,#dbe4ef);background:var(--surface2,#f7fbff);border-radius:16px;padding:12px}.rc422-pod-summary span{display:block;color:var(--muted,#64748b);font-size:12px;font-weight:900}.rc422-pod-summary strong{display:block;font-size:24px;margin-top:5px}.rc422-pod-status{min-height:48px;border-radius:14px;padding:12px;background:color-mix(in srgb,var(--blue,#2563eb) 9%,white);font-weight:800;line-height:1.45}.rc422-pod-status.bad{background:#fee2e2;color:#991b1b}.rc422-pod-status.ok{background:#dcfce7;color:#166534}.rc422-pod-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:16px}.rc422-pod-close{font-size:20px;line-height:1;width:40px;height:40px;padding:0}.rc422-pod-progress{height:8px;border-radius:999px;background:var(--line,#dbe4ef);overflow:hidden;margin-top:10px}.rc422-pod-progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue,#2563eb),var(--cyan,#05b8ff));transition:width .2s ease}@media(max-width:620px){.rc422-pod-grid,.rc422-pod-summary{grid-template-columns:1fr}.rc422-pod-dialog{padding:16px;border-radius:19px}.rc422-pod-actions button{flex:1}}
 </style>
