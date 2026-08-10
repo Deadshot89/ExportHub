@@ -173,24 +173,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC581',cache:'581',loginReturn:'/test?v=581'});
+var BUILD=Object.freeze({version:'RC582',cache:'582',loginReturn:'/test?v=582'});
 var RELEASE=Object.freeze({
- version:'RC581',
+ version:'RC582',
  date:'10.08.2026',
- title:'Mailvorlage nach Re-Render automatisch stabilisiert',
+ title:'Colli-Prüfung der QR-Abholseite serverkompatibel stabilisiert',
  changes:Object.freeze([
-  'Nach einer erneuten Verknüpfung der Kunden-Mailvorlagen wird der sichtbare Mailtext jetzt sofort automatisch aktualisiert; ein manuelles Umschalten zwischen Kunden- und Speditionsmail ist nicht mehr erforderlich.',
-  'Der Mailrenderer nutzt bei kurzzeitig noch nicht vollständig geladenem Kundenobjekt zusätzlich die bereits an der Sendung verknüpften Mailvorlagen als sichere Quelle.',
-  'Ein reiner Referenzwert wird nicht mehr als gültige Mailvorlage akzeptiert, wenn eine vollständige verknüpfte Vorlage vorhanden ist.',
-  'Die Verpackungsangabe in den Sendungsdetails aus RC580 bleibt erhalten.',
-  'Bestehende Azure-, Lager-, Colli-, POD- und Designkorrekturen bleiben unverändert erhalten.'
+  'Die QR-Abholseite erkennt die vom Server gelieferte Soll-Colli-Menge jetzt auch über expectedColliCount und weitere vorhandene kompatible Feldnamen.',
+  'Colli-Werte werden robust als Ganzzahl ausgewertet, auch wenn der Server sie als formatierten Text oder lokalisiertes Zahlenformat liefert.',
+  'Die Colli-Summe aus den Sendungszeilen bleibt als Fallback erhalten, wenn keine explizite Sollmenge übertragen wurde.',
+  'Die automatische SharePoint-/POD-Notfallsicherung und der manuelle Zeitraum-ZIP-Download bleiben unverändert getrennt.',
+  'Mail-, Verpackungs-, Azure-, Lager-, POD- und Designkorrekturen aus RC581 bleiben erhalten.'
  ]),
  tests:Object.freeze([
-  'Kundenmail bleibt nach exporthub:rendered und exporthub:sync vollständig sichtbar',
-  'Vorlagen-Neuverknüpfung aktualisiert den offenen Mailbereich ohne Wechsel Kunde → Spedition → Kunde',
-  'Fallback auf sendungsverknüpfte Kunden- und Speditionsvorlagen geprüft',
-  'Referenznummer allein wird bei vorhandener vollständiger Vorlage nicht als Mailtext übernommen',
-  'Sendungsdetails enthalten weiterhin Verpackung/Packaging, Colli, Gewicht und LDM',
+  'pickup-status mit expectedColliCount wird als Soll-Colli-Menge erkannt',
+  'pickup-status mit totalCollis, totalColli, colliCount oder packageCount bleibt kompatibel',
+  'Formatierte Colli-Werte wie 2, 2.0 und 2 Colli werden auf denselben ganzzahligen Prüfwert normalisiert',
+  'Zeilenbasierte Colli-Summe bleibt als Fallback aktiv',
+  'Korrekte Colli-Eingabe wird gegen die ermittelte Sollmenge akzeptiert',
   'Inline-JavaScript vollständig auf Syntax geprüft'
  ])
 });
@@ -380,11 +380,19 @@ function pickupAddress(data){
  if(result&&customer){var escaped=customer.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');result=result.replace(new RegExp('^\\s*'+escaped+'(?:\\s*[,·|\\-]?\\s*|\\r?\\n)+','i'),'').trim()}
  return result
 }
+function pickupColliNumber(value){
+ if(value==null||value==='')return 0;
+ if(typeof value==='number')return Number.isFinite(value)&&value>0?Math.max(0,Math.round(value)):0;
+ var raw=q(value).replace(/\s+/g,'');if(!raw)return 0;
+ var cleaned=raw.replace(/[^0-9,.-]/g,'');if(!cleaned)return 0;
+ if(cleaned.indexOf(',')>=0&&cleaned.indexOf('.')>=0){if(cleaned.lastIndexOf(',')>cleaned.lastIndexOf('.'))cleaned=cleaned.replace(/\./g,'').replace(',','.');else cleaned=cleaned.replace(/,/g,'')}else if(cleaned.indexOf(',')>=0)cleaned=cleaned.replace(',','.');
+ var n=Number(cleaned);return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n)):0
+}
 function pickupExpectedCollis(data){
- var explicit=Number(valueDeep(data,['totalColli','colliCount','packageCount','packagesCount','totalPackages']));
- if(Number.isFinite(explicit)&&explicit>0)return Math.max(0,Math.round(explicit));
+ var explicitNames=['expectedColliCount','pickupColliCount','totalCollis','totalColli','colliCount','packageCount','packagesCount','totalPackages'];
+ for(var e=0;e<explicitNames.length;e++){var explicit=pickupColliNumber(valueDeep(data,[explicitNames[e]]));if(explicit>0)return explicit}
  var lists=[];function walk(x,d){if(!x||typeof x!=='object'||d>6)return;['rows','colli','collis','packages','packageRows','items'].forEach(function(k){if(Array.isArray(x[k]))lists.push(x[k])});Object.keys(x).forEach(function(k){var v=x[k];if(v&&typeof v==='object'&&!Array.isArray(v))walk(v,d+1)})}walk(data,0);
- for(var i=0;i<lists.length;i++){var total=lists[i].reduce(function(sum,row){if(!row||typeof row!=='object')return sum;var count=Number(row.count||row.qty||row.quantity||row.anzahl||row.menge||0);return sum+(Number.isFinite(count)&&count>0?Math.round(count):0)},0);if(total>0)return total}
+ for(var i=0;i<lists.length;i++){var total=lists[i].reduce(function(sum,row){if(!row||typeof row!=='object')return sum;var count=pickupColliNumber(row.count||row.qty||row.quantity||row.anzahl||row.menge||row.colliCount);return sum+count},0);if(total>0)return total}
  return 0
 }
 function resetColliCheck(){colliCountConfirmed=false;var input=document.getElementById('index495PickupColliInput'),result=document.getElementById('index495PickupColliResult');if(input){input.value='';input.removeAttribute('readonly')}if(result){result.className='';result.textContent='Noch nicht geprüft.'}}
