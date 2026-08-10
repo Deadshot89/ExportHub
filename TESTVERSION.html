@@ -174,29 +174,25 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC588',cache:'588',loginReturn:'/test?v=588'});
+var BUILD=Object.freeze({version:'RC589',cache:'589',loginReturn:'/test?v=589'});
 var RELEASE=Object.freeze({
- version:'RC588',
+ version:'RC589',
  date:'10.08.2026',
- title:'Dashboard-Lagerstatus und Rechte-Sichtbarkeit korrigiert',
+ title:'Azure-State-API auf kanonischen Endpunkt zurückgeführt',
  changes:Object.freeze([
-  'Die Lagerkacheln im Dashboard werden automatisch nach dem aktuellen Lagerzustand sortiert: Eingang zuerst, danach belegte Locations und anschließend leere Locations.',
-  'Belegte Lager-Locations werden innerhalb der belegten Gruppe nach Anzahl der Sendungen absteigend sortiert; bei gleicher Belegung bleibt die feste Location-Reihenfolge erhalten.',
-  'Die Dashboard-Lagerfarben zeigen den Zustand direkt: Eingang dunkelgrün, belegte Locations hellgrün und leere Locations grau.',
-  'Die Sortierung und Farbe werden bei jedem Dashboard-Render aus den aktuellen Lagerdaten neu berechnet und reagieren damit auf Umbuchungen und Abholungen.',
-  'Navigationsreiter mit „Kein Zugriff“ bleiben jetzt in allen Themes und auch mobil vollständig ausgeblendet; Theme-CSS kann das hidden-Attribut nicht mehr überschreiben.',
-  'Dashboard-Kacheln und Schnellzugriffe werden weiterhin ausschließlich aus den tatsächlich freigegebenen Funktionen aufgebaut.',
-  'Die Korrekturen aus RC587 für Release-Center, Update ExportHUB sowie alle vorherigen Azure-, POD-, Paletten-, Mail- und Sendungsfunktionen bleiben erhalten.'
+  'Die Testseite verwendet für Teamdaten und dauerhafte Azure-Speicherung wieder ausschließlich den kanonischen Endpunkt /api/exporthub-state.',
+  'Die fehleranfällige Mehrfachsuche über /api/exporthub/state, Slash-Varianten und Legacy-Aliase wurde entfernt.',
+  'Die zugehörige Azure Function muss im Ordner api/exporthub-state ohne benutzerdefinierte route-Angabe veröffentlicht werden; dadurch entspricht der Endpunkt wieder eindeutig dem Function-Ordner.',
+  'Bei nicht bereitgestellter State-Function bleibt ExportHUB weiterhin gesperrt und täuscht keine lokale oder nur vorgemerkte dauerhafte Speicherung vor.',
+  'Dashboard-Lagerfarben, automatische Lager-Sortierung, Rechte-Sichtbarkeit, Release-Center sowie alle Korrekturen aus RC588 bleiben erhalten.'
  ]),
  tests:Object.freeze([
-  'Dashboard-Lageransicht: Eingang wird unabhängig von der Belegung als erste ausgewählte Lagerkachel angezeigt und ist dunkelgrün.',
-  'Dashboard-Lageransicht: belegte Locations stehen vor leeren Locations und sind hellgrün.',
-  'Dashboard-Lageransicht: leere Locations stehen am Ende der Lagerkacheln und sind grau.',
-  'Dashboard-Lageransicht: nach einer Umbuchung oder Abholung aktualisieren sich Reihenfolge und Farbe automatisch.',
-  'Rechte: Ein Benutzer mit „Kein Zugriff“ sieht den zugehörigen Navigationsreiter weder am PC noch auf dem Smartphone und in keinem Theme.',
-  'Rechte: direkte Navigation zu einer nicht freigegebenen Funktion bleibt blockiert.',
-  'Dashboard: nicht freigegebene Funktionen erscheinen weder als auswählbare Kachel noch als Schnellzugriff.',
-  'Release-Center zeigt die Änderungen und diese Testliste für RC588 an.',
+  'GitHub: api/exporthub-state/function.json enthält keine benutzerdefinierte route-Eigenschaft.',
+  'Azure nach vollständigem Deployment: /api/exporthub-state liefert keinen HTTP 404 mehr.',
+  'Testseite: Anmeldung lädt Teamdaten über /api/exporthub-state und erreicht das Dashboard.',
+  'Sendung speichern: Meldung bestätigt dauerhafte Speicherung in Azure.',
+  'Smartphone: Testseite neu laden und prüfen, dass die normale mobile ExportHUB-Oberfläche statt Quelltext oder Fehlerseite erscheint.',
+  'Dashboard-Lageransicht und Rechte-Sichtbarkeit aus RC588 erneut kurz prüfen.',
   'Inline-JavaScript vollständig auf Syntax geprüft.'
  ])
 });
@@ -10479,7 +10475,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC588'),CACHE=String(ACTIVE_BUILD.cache||'588'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC589'),CACHE=String(ACTIVE_BUILD.cache||'589'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -10568,7 +10564,7 @@ const BUILD=window.EXPORTHUB_BUILD||{version:'ExportHUB',cache:'0',loginReturn:'
 const VERSION=String(BUILD.version||'ExportHUB');
 const CACHE=String(BUILD.cache||VERSION.replace(/\D/g,''));
 const LOGIN_RETURN=String(BUILD.loginReturn||('/?v='+CACHE));
-const STATE_API_CANDIDATES=['/api/exporthub/state','/api/exporthub/state/','/api/exporthub-state','/api/exporthub-state/'];
+const STATE_API_CANDIDATES=['/api/exporthub-state'];
 let API=STATE_API_CANDIDATES[0];
 const AUTH_API='/api/exporthub-auth';
 const native={
@@ -20258,7 +20254,7 @@ body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC588'),CACHE=String(ACTIVE_BUILD.cache||'588'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC589'),CACHE=String(ACTIVE_BUILD.cache||'589'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
