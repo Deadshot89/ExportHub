@@ -174,25 +174,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC592',cache:'592',loginReturn:'/test?v=592'});
+var BUILD=Object.freeze({version:'RC593',cache:'593',loginReturn:'/test?v=593'});
 var RELEASE=Object.freeze({
- version:'RC592',
+ version:'RC593',
  date:'10.08.2026',
- title:'Dashboard-Render wiederhergestellt · Lagerkachelfarben bleiben erhalten',
+ title:'Dashboard-Render mit Live-Daten stabilisiert',
  changes:Object.freeze([
-  'Der zusätzliche JavaScript-Eingriff in die zentrale Dashboard-Kachel-Renderfunktion aus RC591 wurde vollständig zurückgenommen.',
-  'Die Lagerstatusfarben werden ausschließlich über die vorhandenen Lagerstatusklassen dargestellt; die zentrale Dashboard-Logik bleibt unverändert.',
-  'Leere Locations sind als gesamte Kachel grau, belegte Locations als gesamte Kachel hellgrün und Eingang als gesamte Kachel dunkelgrün.',
-  'Die automatische Reihenfolge Eingang vor belegt vor leer bleibt erhalten.',
-  'Azure-State-API, Rechte-Sichtbarkeit und die Wiederherstellung aus RC590 bleiben unverändert.'
+  'Dashboard-Statusauswertung akzeptiert fehlende oder unvollständige Statusobjekte aus Live-Sendungsdaten.',
+  'Navigation wird vor dem Inhaltsrender aufgebaut und bleibt bei einem Renderfehler bedienbar.',
+  'Fehler beim Aufbau einer Ansicht dürfen die Oberfläche nicht mehr vollständig leer lassen.',
+  'Lagerstatus färbt die gesamte Dashboard-Kachel: Eingang dunkelgrün, belegt hellgrün, leer grau.',
+  'Sortierung Eingang, belegte Locations, leere Locations bleibt erhalten.'
  ]),
  tests:Object.freeze([
-  'Dashboard öffnet direkt nach der Anmeldung und bleibt nicht leer.',
-  'Navigation ist für den globalen Administrator sichtbar.',
-  'Lagerkacheln: leer grau, belegt hellgrün, Eingang dunkelgrün.',
-  'Sortierung: Eingang vor belegt vor leer.',
-  'Desktop- und Smartphone-Dashboard prüfen.',
-  'Inline-JavaScript vollständig auf Syntax geprüft.'
+  'Dashboard mit Status-Fallback bei fehlendem Statusobjekt',
+  'Navigation vor dem Dashboard-Render vorhanden',
+  'Renderfehler hinterlässt keine vollständig leere Oberfläche',
+  'Lager-Kachelfarben auf der gesamten Kachel',
+  'JavaScript-Syntax aller Inline-Blöcke'
  ])
 });
 function pickupMode(){try{var u=new URL(location.href),h=decodeURIComponent(String(u.hash||'').replace(/^#/,''));return !!(window.__EXPORTHUB_PICKUP_MODE__||u.searchParams.get('pickup')||/^pickup(?:=|\/)/i.test(h)||/(?:^|[\/?&])pickup(?:=|\/)/i.test(h)||/\/pickup(?:\.html)?(?:\/|$)/i.test(u.pathname)||/^pickup$/i.test(String(u.searchParams.get('ehcmd')||'')))}catch(_){return !!window.__EXPORTHUB_PICKUP_MODE__}}
@@ -10386,6 +10385,7 @@ function stableRender(){
  var started=performance.now?performance.now():Date.now(),v=currentView(),patchOnly=mayPatchExistingShipment(v,arguments),domChanged=true;
  try{
   restoreUsers();
+  var navBefore=document.getElementById('nav')||document.querySelector('.nav');if((!navBefore||!navBefore.querySelector('button,a'))&&window.ExportHUBRC325&&typeof window.ExportHUBRC325.buildMenu==='function')try{window.ExportHUBRC325.buildMenu()}catch(e){console.error('Navigation konnte vor dem Rendern nicht aufgebaut werden',e)}
   if(patchOnly){refreshExistingShipment();setVersion();suppressedShipmentRenders++;lastRenderMs=Math.round((performance.now?performance.now():Date.now())-started);return false}
   if(v==='shipmentoverview'){
    domChanged=renderOverview();
@@ -10412,6 +10412,11 @@ function stableRender(){
   if(v==='shipment'){lastShipmentObject=S().shipment||null;lastShipmentIdentity=shipmentIdentity()}else{lastShipmentObject=null;lastShipmentIdentity=''}
   lastRenderMs=Math.round((performance.now?performance.now():Date.now())-started);
   if(domChanged!==false){renderCount++;dispatchUiEvent('exporthub:rendered',{view:v,count:renderCount,ms:lastRenderMs})}
+  return false
+ }catch(renderError){
+  console.error('ExportHUB Renderfehler in '+v,renderError);
+  var fallbackRoot=root();if(fallbackRoot&&!fallbackRoot.childElementCount)fallbackRoot.innerHTML='<section class="card"><h2>ExportHUB</h2><p>Die Ansicht konnte nicht vollständig aufgebaut werden. Die Navigation bleibt verfügbar.</p></section>';
+  try{var navError=document.getElementById('nav')||document.querySelector('.nav');if((!navError||!navError.querySelector('button,a'))&&window.ExportHUBRC325&&typeof window.ExportHUBRC325.buildMenu==='function')window.ExportHUBRC325.buildMenu();patchNav();updateActiveNavigation(v)}catch(_){}
   return false
  }finally{
   busy=false;
@@ -10474,7 +10479,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC592'),CACHE=String(ACTIVE_BUILD.cache||'592'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC593'),CACHE=String(ACTIVE_BUILD.cache||'593'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -11259,7 +11264,7 @@ async function finishAuthenticatedLogin(){
   const code=e&&e.code?'\nFehlercode: '+e.code:'';
   const prefix=isSessionError(e)?'ExportHUB-Sitzung konnte nicht bestätigt werden: ':'ExportHUB konnte nicht geladen werden: ';
   status(prefix+(e.message||'Unbekannter Fehler')+code,'bad');
-  const fields=by('loginFields'),change=by('pwChange');if(fields)fields.classList.remove('hidden');if(change)change.classList.add('hidden');setLoginEnabled(true);
+  const fields=by('loginFields'),change=by('pwChange'),loginBox=by('login'),appBox=by('app');if(fields)fields.classList.remove('hidden');if(change)change.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');if(appBox)appBox.classList.add('hidden');setLoginEnabled(true);
   console.error(e)
  }
 }
@@ -17258,7 +17263,7 @@ function statusPill(done,label){return '<span class="pill '+(done?'green':'orang
 function empty(text){return '<p class="muted">'+esc(text)+'</p>'}
 
 function dashboardTaskWidget(tasks){var open=tasks.filter(function(t){return !taskDone(t)}),overdue=open.filter(isTaskOverdue),today=todayISO(),todayName=weekday(today),dueToday=open.filter(function(t){var d=taskDate(t);return d===today||(!d&&low(t.day)===low(todayName))}),critical=open.slice().sort(function(a,b){var ao=isTaskOverdue(a)?0:1,bo=isTaskOverdue(b)?0:1;if(ao!==bo)return ao-bo;return (taskDate(a)||'9999').localeCompare(taskDate(b)||'9999')}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Meine Aufgaben</h3><p class="muted">Offene und überfällige Aufgaben für '+esc(userName())+'.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','noch zu erledigen')+metric('Heute',dueToday.length,'kpi-blue',todayName)+metric('Überfällig',overdue.length,'kpi-red','sofort prüfen')+'</div><div class="rc205-list">'+(critical.length?critical.map(function(t){var d=taskDate(t),ref=taskRef(t),customer=taskCustomer(t);return '<article class="rc205-row"><div><b>'+esc(taskTitle(t))+'</b><small>'+(d?esc(fmtDate(d,true)):esc(t.day||'Ohne Datum'))+(ref?' · '+esc(ref):'')+(customer?' · '+esc(customer):'')+'</small></div>'+statusPill(false,isTaskOverdue(t)?'Überfällig':'Offen')+'</article>'}).join(''):empty('Keine offenen Aufgaben.'))+'</div></section>'}
-function dashboardShipmentTruth(sh){var calculated='';try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.recalculateShipmentStatus==='function')calculated=q(window.ExportHUBRC543.recalculateShipmentStatus(sh));else if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.recalculate==='function')calculated=q(window.ExportHUBMailStatus373.recalculate(sh))}catch(_){}try{if(window.ExportHUBShipmentTruth&&typeof window.ExportHUBShipmentTruth.get==='function')return window.ExportHUBShipmentTruth.get(sh)}catch(_){}var value=calculated||q(sh&&(sh.status||sh.processStatus||sh.podStatus||sh.pickupStatus)||'Offen'),raw=low(value),label=value||'Offen',key='offen';if(/storn|cancel/.test(raw))key='storniert';else if(/nachbearbeit|rework/.test(raw))key='nachbearbeitung';else if(/archiv|abgeschlossen|completed|erledigt/.test(raw))key='abgeschlossen';else if(/pod/.test(raw))key='pod';else if(/abgeholt|picked/.test(raw))key='abgeholt';else if(/bereit.*abhol|ready.*pickup/.test(raw))key='bereit';else if(/wartet.*abd|abd.*wart/.test(raw))key='wartetabd';else if(/in bearbeitung|processing|bearbeit/.test(raw))key='inbearbeitung';else if(/erstellt|created/.test(raw))key='erstellt';else if(/entwurf|draft/.test(raw))key='entwurf';return{label:label,key:key}}
+function dashboardShipmentTruth(sh){var calculated='';try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.recalculateShipmentStatus==='function')calculated=q(window.ExportHUBRC543.recalculateShipmentStatus(sh));else if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.recalculate==='function')calculated=q(window.ExportHUBMailStatus373.recalculate(sh))}catch(_){}try{if(window.ExportHUBShipmentTruth&&typeof window.ExportHUBShipmentTruth.get==='function'){var truth=window.ExportHUBShipmentTruth.get(sh);if(truth&&typeof truth==='object'&&q(truth.key||truth.label||truth.status))return{label:q(truth.label||truth.status||'Offen')||'Offen',key:q(truth.key||'offen')||'offen'}}}catch(_){}var value=calculated||q(sh&&(sh.status||sh.processStatus||sh.podStatus||sh.pickupStatus)||'Offen'),raw=low(value),label=value||'Offen',key='offen';if(/storn|cancel/.test(raw))key='storniert';else if(/nachbearbeit|rework/.test(raw))key='nachbearbeitung';else if(/archiv|abgeschlossen|completed|erledigt/.test(raw))key='abgeschlossen';else if(/pod/.test(raw))key='pod';else if(/abgeholt|picked/.test(raw))key='abgeholt';else if(/bereit.*abhol|ready.*pickup/.test(raw))key='bereit';else if(/wartet.*abd|abd.*wart/.test(raw))key='wartetabd';else if(/in bearbeitung|processing|bearbeit/.test(raw))key='inbearbeitung';else if(/erstellt|created/.test(raw))key='erstellt';else if(/entwurf|draft/.test(raw))key='entwurf';return{label:label,key:key}}
 function dashboardTodayShipmentsWidget(shipments){var today=todayISO(),items=shipments.filter(function(sh){return shipmentPickup(sh)===today}).sort(function(a,b){return shipmentRef(a).localeCompare(shipmentRef(b),'de')});return '<section class="card rc205-widget rc255-today-widget"><div class="rc255-today-head"><div><h3>Heute geplante Sendungen</h3><p class="muted">'+esc(fmtDate(today,true))+' · Referenz, Kunde und aktueller Status</p></div><span class="pill blue">'+items.length+'</span></div><div class="rc255-today-grid">'+(items.length?items.map(function(sh){var t=dashboardShipmentTruth(sh),id=directShipmentId(sh);return '<button type="button" class="rc255-today-tile rc255-status-'+esc(t.key)+'" data-rc205-action="direct-open" data-entity-type="shipment" data-entity-id="'+esc(id)+'"><b>'+esc(shipmentRef(sh)||id||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(sh)||'Ohne Kundenname')+'</small><span class="rc255-today-status">'+esc(t.label)+'</span></button>'}).join(''):empty('Für heute sind keine Sendungen eingeplant.'))+'</div></section>'}
 function dashboardShipmentWidget(shipments){var open=shipments.filter(function(s){return !shipmentDone(s)}),today=todayISO(),overdue=open.filter(function(s){var d=shipmentPickup(s);return d&&d<today}),next=open.filter(function(s){return shipmentPickup(s)}).sort(function(a,b){return shipmentPickup(a).localeCompare(shipmentPickup(b))}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Sendungen und Abholungen</h3><p class="muted">Aktive Sendungen mit den nächsten Abholterminen.</p></div><button class="ghost" data-rc205-action="navigate" data-view="shipmentoverview">Übersicht öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offene Sendungen',open.length,'kpi-orange','nicht abgeschlossen')+metric('Abholung überfällig',overdue.length,'kpi-red','Termin überschritten')+metric('Gesamt',shipments.length,'kpi-blue','gespeicherte Sendungen')+'</div><div class="rc205-list">'+(next.length?next.map(function(s){var d=shipmentPickup(s);return '<article class="rc205-row"><div><b>'+esc(shipmentRef(s)||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(s)||'Ohne Kunde')+' · Abholung '+esc(fmtDate(d,true))+'</small></div>'+statusPill(false,d<today?'Überfällig':'Geplant')+'</article>'}).join(''):empty('Keine geplanten Abholungen vorhanden.'))+'</div></section>'}
 function dashboardAbdWidget(items){var open=items.filter(function(a){return !abdDone(a)}),done=items.length-open.length;return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>ABD-Anfragen</h3><p class="muted">Offene Anfragen und fertige ABD-Dokumente.</p></div><button class="ghost" data-rc205-action="navigate" data-view="abd">ABD öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','wartet auf Bearbeitung')+metric('Erledigt',done,'kpi-green','ABD-PDF vorhanden')+metric('Gesamt',items.length,'kpi-blue','gespeicherte Anfragen')+'</div><div class="rc205-list">'+(open.length?open.slice(0,8).map(function(a){return '<article class="rc205-row"><div><b>'+esc(a.ref||a.reference||'Ohne Referenz')+'</b><small>'+esc(a.customerName||'Ohne Kunde')+' · '+esc(a.status||'Entwurf')+'</small></div>'+statusPill(false,'Offen')+'</article>'}).join(''):empty('Keine offenen ABD-Anfragen.'))+'</div></section>'}
@@ -20237,21 +20242,21 @@ body[data-eh-theme="strategic-graphite"] #content table:not(.rc390-table):not(.p
 <style id="rc588-dashboard-warehouse-rights-final">
 /* RC588: Rechte-Sichtbarkeit muss stärker als jedes Theme sein. */
 html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[data-eh-theme] #nav.nav>button[data-index321-view][aria-hidden="true"],html body[data-eh-theme] #nav.nav>[data-index308-group][hidden],html body[data-eh-theme] #nav.nav>[data-index308-group][aria-hidden="true"],#nav>button[data-index321-view][hidden],#nav>button[data-index321-view][aria-hidden="true"],#nav>[data-index308-group][hidden],#nav>[data-index308-group][aria-hidden="true"]{display:none!important;visibility:hidden!important;pointer-events:none!important}
-/* RC591: Dashboard-Lagerzustand wird über die gesamte Kachelfarbe dargestellt. */
-html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty{background:#e5e7eb!important;border-color:#cbd5e1!important;box-shadow:0 8px 18px rgba(71,85,105,.08)!important}
+/* RC588: Dashboard-Lagerzustand wird aus den aktuellen Lagerdaten berechnet. */
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty{background:#e5e7eb!important;border-color:#cbd5e1!important;box-shadow:0 8px 18px rgba(71,85,105,.08)!important;color:#1f2937!important}
 html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty :is(h3,.big,.muted,.rc504-dashboard-empty){color:#1f2937!important}
-html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied{background:#dcfce7!important;border-color:#86efac!important;box-shadow:0 9px 20px rgba(22,163,74,.10)!important}
-html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied :is(h3,.big,.muted,.rc504-dashboard-empty){color:#1f2937!important}
-html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang{background:#166534!important;border-color:#14532d!important;box-shadow:0 10px 22px rgba(20,83,45,.20)!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied{background:#dcfce7!important;border-color:#86efac!important;box-shadow:0 9px 20px rgba(22,163,74,.10)!important;color:#1f2937!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied :is(h3,.big,.muted){color:#1f2937!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang{background:#166534!important;border-color:#14532d!important;box-shadow:0 10px 22px rgba(20,83,45,.20)!important;color:#f8fafc!important}
 html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang :is(h3,.big,.muted,.rc504-dashboard-empty){color:#f8fafc!important}
-html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item{background:#f8fafc!important;border-color:#bbf7d0!important}
-html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item b{color:#0f172a!important}
-html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item span{color:#475569!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item{background:#f0fdf4!important;border-color:#bbf7d0!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item b{color:#14532d!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item span{color:#3f6212!important}
 </style>
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC592'),CACHE=String(ACTIVE_BUILD.cache||'592'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC593'),CACHE=String(ACTIVE_BUILD.cache||'593'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
