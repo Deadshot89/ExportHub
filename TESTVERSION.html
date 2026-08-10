@@ -174,25 +174,26 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC590',cache:'590',loginReturn:'/test?v=590'});
+var BUILD=Object.freeze({version:'RC591',cache:'591',loginReturn:'/test?v=591'});
 var RELEASE=Object.freeze({
- version:'RC590',
+ version:'RC591',
  date:'10.08.2026',
- title:'Notfall-Wiederherstellung Hauptseite, Testportal und Azure-State-API',
+ title:'Dashboard-Lagerkacheln zeigen den Status als Kachelfarbe',
  changes:Object.freeze([
-  'Die Testseite verwendet für Teamdaten und dauerhafte Azure-Speicherung wieder ausschließlich den kanonischen Endpunkt /api/exporthub-state.',
-  'Die fehleranfällige Mehrfachsuche über /api/exporthub/state, Slash-Varianten und Legacy-Aliase wurde entfernt.',
-  'Die zugehörige Azure Function muss im Ordner api/exporthub-state ohne benutzerdefinierte route-Angabe veröffentlicht werden; dadurch entspricht der Endpunkt wieder eindeutig dem Function-Ordner.',
-  'Bei nicht bereitgestellter State-Function bleibt ExportHUB weiterhin gesperrt und täuscht keine lokale oder nur vorgemerkte dauerhafte Speicherung vor.',
-  'Dashboard-Lagerfarben, automatische Lager-Sortierung, Rechte-Sichtbarkeit, Release-Center sowie alle Korrekturen aus RC588 bleiben erhalten.'
+  'In der Dashboard-Lageransicht wird der Lagerstatus jetzt über die gesamte Kachelfarbe dargestellt und nicht mehr über grüne oder graue Textfarben.',
+  'Leere Locations erhalten eine graue Kachel, belegte Locations eine hellgrüne Kachel und Eingang eine dunkelgrüne Kachel.',
+  'Die Texte auf leeren und belegten Lagerkacheln bleiben neutral dunkel; auf der dunkelgrünen Eingangskachel bleiben sie aus Lesbarkeitsgründen hell.',
+  'Individuell gespeicherte Dashboard-Kachelfarben können die statusabhängigen Lagerfarben nicht mehr überschreiben; Größen- und Positionsanpassung bleiben möglich.',
+  'Die automatische Reihenfolge bleibt unverändert: Eingang zuerst, danach belegte Locations nach Belegung, anschließend leere Locations.',
+  'Azure-State-API, Rechte-Sichtbarkeit und die Wiederherstellung aus RC590 bleiben unverändert.'
  ]),
  tests:Object.freeze([
-  'GitHub: api/exporthub-state/function.json enthält keine benutzerdefinierte route-Eigenschaft.',
-  'Azure nach vollständigem Deployment: /api/exporthub-state liefert keinen HTTP 404 mehr.',
-  'Testseite: Anmeldung lädt Teamdaten über /api/exporthub-state und erreicht das Dashboard.',
-  'Sendung speichern: Meldung bestätigt dauerhafte Speicherung in Azure.',
-  'Smartphone: Testseite neu laden und prüfen, dass die normale mobile ExportHUB-Oberfläche statt Quelltext oder Fehlerseite erscheint.',
-  'Dashboard-Lageransicht und Rechte-Sichtbarkeit aus RC588 erneut kurz prüfen.',
+  'Dashboard mit leerer Location: gesamte Kachel grau und Text neutral dunkel.',
+  'Dashboard mit belegter Location: gesamte Kachel hellgrün und Text neutral dunkel.',
+  'Dashboard Eingang: gesamte Kachel dunkelgrün und Text kontrastreich hell.',
+  'Vorher gespeicherte benutzerdefinierte Kachelfarbe überschreibt die Lagerstatusfarbe nicht mehr.',
+  'Sortierung: Eingang vor belegt vor leer; bei belegten Locations höhere Belegung zuerst.',
+  'Desktop- und Smartphone-Dashboard prüfen.',
   'Inline-JavaScript vollständig auf Syntax geprüft.'
  ])
 });
@@ -10475,7 +10476,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC590'),CACHE=String(ACTIVE_BUILD.cache||'590'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC591'),CACHE=String(ACTIVE_BUILD.cache||'591'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -17213,7 +17214,7 @@ function dashboardLayout(p,id){p.widgetLayout=p.widgetLayout&&typeof p.widgetLay
 function dashboardSizeOptions(span){return [[3,'Klein · 25 %'],[6,'Mittel · 50 %'],[9,'Groß · 75 %'],[12,'Volle Breite · 100 %']].map(function(x){return '<option value="'+x[0]+'" '+(span===x[0]?'selected':'')+'>'+x[1]+'</option>'}).join('')}
 function dashboardWidgetLabel(id){var w=WIDGETS.find(function(x){return x.id===id});return w?w.label:id}
 function dashboardDecorateCard(html,color){var style=dashboardColorStyle(color);return style?html.replace('<section ','<section style="'+esc(style)+'" '):html}
-function dashboardWidgetMarkup(id,html,p){var x=dashboardLayout(p,id),tools=p.configOpen?'<div class="rc205-tile-tools" data-rc205-tools="'+esc(id)+'"><button type="button" class="ghost rc205-drag-handle" draggable="true" data-rc205-drag-widget="'+esc(id)+'" title="Kachel ziehen">↕ Ziehen</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="-1" title="Eine Position nach links">←</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="1" title="Eine Position nach rechts">→</button><label>Größe<select data-rc205-change="dashboard-size" data-widget="'+esc(id)+'">'+dashboardSizeOptions(x.span)+'</select></label><label>Farbe<input type="color" data-rc205-change="dashboard-color" data-widget="'+esc(id)+'" value="'+esc(x.color||'#DCEEFF')+'"></label><button type="button" class="ghost" data-rc205-action="dashboard-color-reset" data-widget="'+esc(id)+'">Farbe zurücksetzen</button></div>':'';return '<div class="rc205-layout-item" data-dashboard-widget="'+esc(id)+'" style="--rc205-span:'+x.span+'">'+tools+dashboardDecorateCard(html,x.color)+'</div>'}
+function dashboardWidgetMarkup(id,html,p){var x=dashboardLayout(p,id),warehouse=/^warehouse-/.test(id),colorTools=warehouse?'':'<label>Farbe<input type="color" data-rc205-change="dashboard-color" data-widget="'+esc(id)+'" value="'+esc(x.color||'#DCEEFF')+'"></label><button type="button" class="ghost" data-rc205-action="dashboard-color-reset" data-widget="'+esc(id)+'">Farbe zurücksetzen</button>',tools=p.configOpen?'<div class="rc205-tile-tools" data-rc205-tools="'+esc(id)+'"><button type="button" class="ghost rc205-drag-handle" draggable="true" data-rc205-drag-widget="'+esc(id)+'" title="Kachel ziehen">↕ Ziehen</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="-1" title="Eine Position nach links">←</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="1" title="Eine Position nach rechts">→</button><label>Größe<select data-rc205-change="dashboard-size" data-widget="'+esc(id)+'">'+dashboardSizeOptions(x.span)+'</select></label>'+colorTools+'</div>':'';return '<div class="rc205-layout-item" data-dashboard-widget="'+esc(id)+'" style="--rc205-span:'+x.span+'">'+tools+dashboardDecorateCard(html,warehouse?'':x.color)+'</div>'}
 function dashboardMoveWidget(id,delta){var p=prefs(),list=p.widgets.slice(),from=list.indexOf(id);if(from<0)return false;var to=Math.max(0,Math.min(list.length-1,from+Number(delta||0)));if(to===from)return false;list.splice(from,1);list.splice(to,0,id);p.widgets=list;persist('Dashboard-Kachel verschoben');renderDashboard();return false}
 function dashboardDropWidget(source,target){var p=prefs(),list=p.widgets.slice(),from=list.indexOf(source),to=list.indexOf(target);if(from<0||to<0||from===to)return false;list.splice(from,1);to=list.indexOf(target);list.splice(to,0,source);p.widgets=list;persist('Dashboard-Kachel per Drag-and-Drop verschoben');renderDashboard();return false}
 function dashboardPreferenceClone(value){try{return JSON.parse(JSON.stringify(value))}catch(_){return null}}
@@ -20238,23 +20239,21 @@ body[data-eh-theme="strategic-graphite"] #content table:not(.rc390-table):not(.p
 <style id="rc588-dashboard-warehouse-rights-final">
 /* RC588: Rechte-Sichtbarkeit muss stärker als jedes Theme sein. */
 html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[data-eh-theme] #nav.nav>button[data-index321-view][aria-hidden="true"],html body[data-eh-theme] #nav.nav>[data-index308-group][hidden],html body[data-eh-theme] #nav.nav>[data-index308-group][aria-hidden="true"],#nav>button[data-index321-view][hidden],#nav>button[data-index321-view][aria-hidden="true"],#nav>[data-index308-group][hidden],#nav>[data-index308-group][aria-hidden="true"]{display:none!important;visibility:hidden!important;pointer-events:none!important}
-/* RC588: Dashboard-Lagerzustand wird aus den aktuellen Lagerdaten berechnet. */
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty{background:#e5e7eb!important;border-color:#cbd5e1!important;box-shadow:0 8px 18px rgba(71,85,105,.08)!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty :is(h3,.big){color:#334155!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty :is(.muted,.rc504-dashboard-empty){color:#64748b!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied{background:#dcfce7!important;border-color:#86efac!important;box-shadow:0 9px 20px rgba(22,163,74,.10)!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied :is(h3,.big){color:#166534!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied .muted{color:#3f6212!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang{background:#166534!important;border-color:#14532d!important;box-shadow:0 10px 22px rgba(20,83,45,.20)!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang :is(h3,.big,.muted,.rc504-dashboard-empty){color:#f0fdf4!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item{background:#f0fdf4!important;border-color:#bbf7d0!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item b{color:#14532d!important}
-body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item span{color:#3f6212!important}
+/* RC591: Dashboard-Lagerzustand wird über die gesamte Kachelfarbe dargestellt. */
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty{background:#e5e7eb!important;border-color:#cbd5e1!important;box-shadow:0 8px 18px rgba(71,85,105,.08)!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-empty :is(h3,.big,.muted,.rc504-dashboard-empty){color:#1f2937!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied{background:#dcfce7!important;border-color:#86efac!important;box-shadow:0 9px 20px rgba(22,163,74,.10)!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-occupied :is(h3,.big,.muted,.rc504-dashboard-empty){color:#1f2937!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang{background:#166534!important;border-color:#14532d!important;box-shadow:0 10px 22px rgba(20,83,45,.20)!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang :is(h3,.big,.muted,.rc504-dashboard-empty){color:#f8fafc!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item{background:#f8fafc!important;border-color:#bbf7d0!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item b{color:#0f172a!important}
+html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-location-eingang .rc504-dashboard-item span{color:#475569!important}
 </style>
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC590'),CACHE=String(ACTIVE_BUILD.cache||'590'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC591'),CACHE=String(ACTIVE_BUILD.cache||'591'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
