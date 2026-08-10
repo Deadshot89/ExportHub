@@ -174,7 +174,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC600',cache:'600',loginReturn:'/?v=600'});
+var BUILD=Object.freeze({version:'RC600',cache:'600',loginReturn:'/test?v=600'});
 var RELEASE=Object.freeze({
  version:'RC600',
  date:'10.08.2026',
@@ -7747,7 +7747,9 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 #releaseTestPortalBtn.exporthub-testportal-login:hover{background:#b91c1c!important;border-color:#b91c1c!important}
 </style>
 
-
+<script id="rc561-testportal-mode">
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC586');document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+</script>
 
 <style id="rc556-test-mobile-compact-style">
 /* TESTPORTAL: Login vollständig über der Anwendung, keine sichtbare App im Hintergrund. */
@@ -7828,7 +7830,13 @@ html[data-exporthub-testportal="1"] #releaseTestPortalBtn{display:none!important
  #content .rc504-shift-btn{min-height:30px!important;padding:5px 7px!important;font-size:10px!important}
 }
 </style>
-
+<style id="rc561-testportal-identity-style">
+html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147482500;border:2px solid rgba(220,38,38,.75);box-sizing:border-box}
+#rc561TestPortalBadge{position:fixed;top:3px;left:50%;transform:translateX(-50%);z-index:2147483600;background:#b91c1c;color:#fff;border:1px solid #7f1d1d;border-radius:0 0 9px 9px;padding:4px 12px;font:900 11px/1.1 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.06em;box-shadow:0 4px 12px rgba(127,29,29,.25);pointer-events:none;white-space:nowrap}
+#rc561TestRuntimeError{position:fixed;left:50%;bottom:12px;transform:translate(-50%,20px);z-index:2147483601;max-width:min(92vw,900px);background:#7f1d1d;color:#fff;border:1px solid #fecaca;border-radius:10px;padding:8px 12px;font:800 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;box-shadow:0 8px 24px rgba(127,29,29,.3);opacity:0;pointer-events:none;transition:.16s ease}
+#rc561TestRuntimeError.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:720px){#rc561TestPortalBadge{top:2px;padding:3px 8px;font-size:9px;border-radius:0 0 7px 7px;letter-spacing:.035em}#rc561TestRuntimeError{bottom:7px;font-size:10px;padding:6px 8px}}
+</style>
 </head>
 <body><div class="clean-load-panel hidden" id="cleanLoadPanel">
 <div class="clean-load-card">
@@ -20246,5 +20254,25 @@ body[data-eh-theme="strategic-graphite"] #content table:not(.rc390-table):not(.p
 /* RC588: Rechte-Sichtbarkeit muss stärker als jedes Theme sein. */
 html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[data-eh-theme] #nav.nav>button[data-index321-view][aria-hidden="true"],html body[data-eh-theme] #nav.nav>[data-index308-group][hidden],html body[data-eh-theme] #nav.nav>[data-index308-group][aria-hidden="true"],#nav>button[data-index321-view][hidden],#nav>button[data-index321-view][aria-hidden="true"],#nav>[data-index308-group][hidden],#nav>[data-index308-group][aria-hidden="true"]{display:none!important;visibility:hidden!important;pointer-events:none!important}
 </style>
-
+<script id="rc561-testportal-runtime">
+(function(){'use strict';
+ if(!window.__EXPORTHUB_TEST_PORTAL__)return;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC600'),CACHE=String(ACTIVE_BUILD.cache||'600'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ function q(v){return String(v==null?'':v).trim()}
+ function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
+ function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
+ function syncLoginMask(){try{var login=document.getElementById('login'),visible=!!(login&&!login.classList.contains('hidden'));document.documentElement.setAttribute('data-rc558-login-visible',visible?'1':'0')}catch(_){}}
+ function restoreUser(){try{var input=document.getElementById('loginUser'),saved=sessionStorage.getItem(USER_KEY);if(input&&!q(input.value)&&q(saved))input.value=q(saved)}catch(_){}}
+ function anchorTestRoute(){try{if(window.__EXPORTHUB_PICKUP_MODE__)return;var u=new URL(location.href);if(!isTestPath())u.pathname='/test';u.searchParams.set('v',CACHE);u.searchParams.delete('portal');history.replaceState(history.state||null,'',u.pathname+u.search+u.hash);mark()}catch(_){}}
+ function ensureBadge(){var b=document.getElementById('rc561TestPortalBadge');if(!b){b=document.createElement('div');b.id='rc561TestPortalBadge';b.setAttribute('role','status');b.textContent='TESTPORTAL · '+VERSION+' · LIVE-DATEN';(document.body||document.documentElement).appendChild(b)}return b}
+ function showRuntimeError(message){message=q(message);if(!message)return;var box=document.getElementById('rc561TestRuntimeError');if(!box){box=document.createElement('div');box.id='rc561TestRuntimeError';box.setAttribute('role','alert');(document.body||document.documentElement).appendChild(box)}box.textContent='TESTFEHLER: '+message;box.classList.add('show');clearTimeout(errorTimer);errorTimer=setTimeout(function(){box.classList.remove('show')},12000)}
+ function bind(){mark();anchorTestRoute();ensureBadge();restoreUser();syncLoginMask();var login=document.getElementById('login');if(login&&window.MutationObserver)new MutationObserver(function(){syncLoginMask();restoreUser()}).observe(login,{attributes:true,attributeFilter:['class']});}
+ document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a[href]');if(!a||window.__EXPORTHUB_PICKUP_MODE__)return;try{var u=new URL(a.getAttribute('href'),location.href);if(u.origin===location.origin&&(u.pathname==='/'||/\/index\.html$/i.test(u.pathname))&&!/\.auth\//i.test(u.pathname)){e.preventDefault();location.assign('/test?v='+CACHE)}}catch(_){}},true);
+ window.addEventListener('error',function(e){if(e&&e.message)showRuntimeError(e.message)});
+ window.addEventListener('unhandledrejection',function(e){var r=e&&e.reason;showRuntimeError(r&&r.message||r)});
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,function(){mark();anchorTestRoute();ensureBadge();syncLoginMask()})});
+ window.addEventListener('pageshow',function(){mark();anchorTestRoute();ensureBadge()});window.addEventListener('popstate',function(){setTimeout(anchorTestRoute,0)});
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
+</script>
 
