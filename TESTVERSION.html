@@ -174,23 +174,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC593',cache:'593',loginReturn:'/test?v=593'});
+var BUILD=Object.freeze({version:'RC594',cache:'594',loginReturn:'/test?v=594'});
 var RELEASE=Object.freeze({
- version:'RC593',
+ version:'RC594',
  date:'10.08.2026',
- title:'Dashboard-Render mit Live-Daten stabilisiert',
+ title:'Lager-Kacheln im Dashboard nach Live-Status eingefärbt',
  changes:Object.freeze([
-  'Dashboard-Statusauswertung akzeptiert fehlende oder unvollständige Statusobjekte aus Live-Sendungsdaten.',
-  'Navigation wird vor dem Inhaltsrender aufgebaut und bleibt bei einem Renderfehler bedienbar.',
-  'Fehler beim Aufbau einer Ansicht dürfen die Oberfläche nicht mehr vollständig leer lassen.',
-  'Lagerstatus färbt die gesamte Dashboard-Kachel: Eingang dunkelgrün, belegt hellgrün, leer grau.',
-  'Sortierung Eingang, belegte Locations, leere Locations bleibt erhalten.'
+  'Persönlich gespeicherte Dashboard-Farben überschreiben den Lagerstatus nicht mehr.',
+  'Eingang wird als komplette dunkelgrüne Kachel dargestellt.',
+  'Belegte Locations werden als komplette hellgrüne Kacheln dargestellt.',
+  'Leere Locations werden als komplette graue Kacheln dargestellt.',
+  'Automatische Reihenfolge bleibt Eingang, belegte Locations nach Belegung, danach leere Locations.'
  ]),
  tests:Object.freeze([
-  'Dashboard mit Status-Fallback bei fehlendem Statusobjekt',
-  'Navigation vor dem Dashboard-Render vorhanden',
-  'Renderfehler hinterlässt keine vollständig leere Oberfläche',
-  'Lager-Kachelfarben auf der gesamten Kachel',
+  'Lager-Widget ignoriert persönliche Inline-Kachelfarbe',
+  'Eingang dunkelgrün auf der gesamten Kachel',
+  'Belegte Location hellgrün auf der gesamten Kachel',
+  'Leere Location grau auf der gesamten Kachel',
+  'Automatische Sortierung Eingang, belegt, leer',
   'JavaScript-Syntax aller Inline-Blöcke'
  ])
 });
@@ -10479,7 +10480,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC593'),CACHE=String(ACTIVE_BUILD.cache||'593'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC594'),CACHE=String(ACTIVE_BUILD.cache||'594'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -17217,7 +17218,7 @@ function dashboardLayout(p,id){p.widgetLayout=p.widgetLayout&&typeof p.widgetLay
 function dashboardSizeOptions(span){return [[3,'Klein · 25 %'],[6,'Mittel · 50 %'],[9,'Groß · 75 %'],[12,'Volle Breite · 100 %']].map(function(x){return '<option value="'+x[0]+'" '+(span===x[0]?'selected':'')+'>'+x[1]+'</option>'}).join('')}
 function dashboardWidgetLabel(id){var w=WIDGETS.find(function(x){return x.id===id});return w?w.label:id}
 function dashboardDecorateCard(html,color){var style=dashboardColorStyle(color);return style?html.replace('<section ','<section style="'+esc(style)+'" '):html}
-function dashboardWidgetMarkup(id,html,p){var x=dashboardLayout(p,id),tools=p.configOpen?'<div class="rc205-tile-tools" data-rc205-tools="'+esc(id)+'"><button type="button" class="ghost rc205-drag-handle" draggable="true" data-rc205-drag-widget="'+esc(id)+'" title="Kachel ziehen">↕ Ziehen</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="-1" title="Eine Position nach links">←</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="1" title="Eine Position nach rechts">→</button><label>Größe<select data-rc205-change="dashboard-size" data-widget="'+esc(id)+'">'+dashboardSizeOptions(x.span)+'</select></label><label>Farbe<input type="color" data-rc205-change="dashboard-color" data-widget="'+esc(id)+'" value="'+esc(x.color||'#DCEEFF')+'"></label><button type="button" class="ghost" data-rc205-action="dashboard-color-reset" data-widget="'+esc(id)+'">Farbe zurücksetzen</button></div>':'';return '<div class="rc205-layout-item" data-dashboard-widget="'+esc(id)+'" style="--rc205-span:'+x.span+'">'+tools+dashboardDecorateCard(html,x.color)+'</div>'}
+function dashboardWidgetMarkup(id,html,p){var x=dashboardLayout(p,id),tools=p.configOpen?'<div class="rc205-tile-tools" data-rc205-tools="'+esc(id)+'"><button type="button" class="ghost rc205-drag-handle" draggable="true" data-rc205-drag-widget="'+esc(id)+'" title="Kachel ziehen">↕ Ziehen</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="-1" title="Eine Position nach links">←</button><button type="button" class="ghost" data-rc205-action="dashboard-move" data-widget="'+esc(id)+'" data-delta="1" title="Eine Position nach rechts">→</button><label>Größe<select data-rc205-change="dashboard-size" data-widget="'+esc(id)+'">'+dashboardSizeOptions(x.span)+'</select></label><label>Farbe<input type="color" data-rc205-change="dashboard-color" data-widget="'+esc(id)+'" value="'+esc(x.color||'#DCEEFF')+'"></label><button type="button" class="ghost" data-rc205-action="dashboard-color-reset" data-widget="'+esc(id)+'">Farbe zurücksetzen</button></div>':'';return '<div class="rc205-layout-item" data-dashboard-widget="'+esc(id)+'" style="--rc205-span:'+x.span+'">'+tools+dashboardDecorateCard(html,/^warehouse-/.test(id)?'':x.color)+'</div>'}
 function dashboardMoveWidget(id,delta){var p=prefs(),list=p.widgets.slice(),from=list.indexOf(id);if(from<0)return false;var to=Math.max(0,Math.min(list.length-1,from+Number(delta||0)));if(to===from)return false;list.splice(from,1);list.splice(to,0,id);p.widgets=list;persist('Dashboard-Kachel verschoben');renderDashboard();return false}
 function dashboardDropWidget(source,target){var p=prefs(),list=p.widgets.slice(),from=list.indexOf(source),to=list.indexOf(target);if(from<0||to<0||from===to)return false;list.splice(from,1);to=list.indexOf(target);list.splice(to,0,source);p.widgets=list;persist('Dashboard-Kachel per Drag-and-Drop verschoben');renderDashboard();return false}
 function dashboardPreferenceClone(value){try{return JSON.parse(JSON.stringify(value))}catch(_){return null}}
@@ -20256,7 +20257,7 @@ html body #content .rc205-layout-item>.rc504-dashboard-location.rc504-dashboard-
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC593'),CACHE=String(ACTIVE_BUILD.cache||'593'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC594'),CACHE=String(ACTIVE_BUILD.cache||'594'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
