@@ -9,7 +9,8 @@
         "get",
         "post",
         "options"
-      ]
+      ],
+      "route": "exporthub-state"
     },
     {
       "type": "http",
