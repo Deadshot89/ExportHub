@@ -5,12 +5,7 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": [
-        "get",
-        "post",
-        "options"
-      ],
-      "route": "exporthub/state"
+      "methods": ["get", "post", "options"]
     },
     {
       "type": "http",
