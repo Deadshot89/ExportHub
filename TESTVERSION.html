@@ -174,11 +174,11 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC589',cache:'589',loginReturn:'/test?v=589'});
+var BUILD=Object.freeze({version:'RC590',cache:'590',loginReturn:'/test?v=590'});
 var RELEASE=Object.freeze({
- version:'RC589',
+ version:'RC590',
  date:'10.08.2026',
- title:'Azure-State-API auf kanonischen Endpunkt zurückgeführt',
+ title:'Notfall-Wiederherstellung Hauptseite, Testportal und Azure-State-API',
  changes:Object.freeze([
   'Die Testseite verwendet für Teamdaten und dauerhafte Azure-Speicherung wieder ausschließlich den kanonischen Endpunkt /api/exporthub-state.',
   'Die fehleranfällige Mehrfachsuche über /api/exporthub/state, Slash-Varianten und Legacy-Aliase wurde entfernt.',
@@ -10475,7 +10475,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC589'),CACHE=String(ACTIVE_BUILD.cache||'589'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC590'),CACHE=String(ACTIVE_BUILD.cache||'590'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -12381,7 +12381,7 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
 })();
 </script>
 
-<!-- RC589 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN START -->
+<!-- RC590 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN START -->
 <style id="rc589-topdown-style">
 /* Only the explicitly requested Stauplan presentation changes here. */
 #content #rc524StowPlan>#rc573LoadingArea{display:block!important}
@@ -12407,7 +12407,7 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
 #content #rc589TopView .rc589-overflow{border-color:#fecaca;background:#fff1f2;color:#991b1b}
 @media(max-width:720px){#content #rc589TopView .rc589-plan-shell{min-width:700px!important}#content #rc589TopView .rc589-plan{min-height:148px}#content #rc589TopView .rc589-pallet .ori{display:none}}
 </style>
-<!-- RC589 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN END -->
+<!-- RC590 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN END -->
 </body>
 </html><!-- RC575 TASK DEDUPLICATION + SHIPMENT LINK START -->
 <style id="rc575-task-style">
@@ -20254,7 +20254,7 @@ body[data-eh-theme] #content .rc205-layout-item>.rc504-dashboard-location.rc504-
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC589'),CACHE=String(ACTIVE_BUILD.cache||'589'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC590'),CACHE=String(ACTIVE_BUILD.cache||'590'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
