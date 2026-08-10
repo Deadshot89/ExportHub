@@ -173,9 +173,9 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC582',cache:'582',loginReturn:'/test?v=582'});
+var BUILD=Object.freeze({version:'RC583',cache:'583',loginReturn:'/test?v=583'});
 var RELEASE=Object.freeze({
- version:'RC582',
+ version:'RC583',
  date:'10.08.2026',
  title:'Colli-Prüfung der QR-Abholseite serverkompatibel stabilisiert',
  changes:Object.freeze([
@@ -7849,7 +7849,7 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 <div class="login-card">
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
-<div aria-label="Aktuelle Version RC469" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC469</div>
+<div aria-label="Aktuelle Version RC583" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC583</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -10473,7 +10473,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var VERSION='RC580',CACHE='580',productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC583'),CACHE=String(ACTIVE_BUILD.cache||'583'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -10897,7 +10897,7 @@ async function stateCall(mode,payload,requestOptions){
   const endpoint=candidates[i],headers={'Content-Type':'application/json','Accept':'application/json'};
   if(token){headers['X-ExportHUB-Token']=token;headers['X-ExportHUB-Session']=token;headers.Authorization='Bearer '+token}
   try{
-   const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=90000;
+   const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=90000;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=6000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
    const result=await jsonFetch(endpoint+'?mode='+encodeURIComponent(mode),opts);
    API=endpoint;runtime.stateApiLocked=true;runtime.stateApiEndpoint=endpoint;runtime.stateApiReachable=true;runtime.apiReachable=true;runtime.lastStateApiSuccessAt=Date.now();return result
   }catch(error){
@@ -20210,7 +20210,7 @@ body[data-eh-theme="strategic-graphite"] #content table:not(.rc390-table):not(.p
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var VERSION='RC580',CACHE='580',USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC583'),CACHE=String(ACTIVE_BUILD.cache||'583'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
