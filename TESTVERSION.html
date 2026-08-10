@@ -173,25 +173,24 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC580',cache:'580',loginReturn:'/test?v=580'});
+var BUILD=Object.freeze({version:'RC581',cache:'581',loginReturn:'/test?v=581'});
 var RELEASE=Object.freeze({
- version:'RC580',
+ version:'RC581',
  date:'10.08.2026',
- title:'Sendungsdetails um Verpackung ergänzt',
+ title:'Mailvorlage nach Re-Render automatisch stabilisiert',
  changes:Object.freeze([
-  'In den Sendungsdetails der Kunden- und Speditionsmails wird die Verpackung automatisch aus den Colli-Zeilen übernommen und bei mehreren Verpackungsarten zusammengefasst.',
-  'Manuelles Sendungsspeichern wartet jetzt auf eine bereits laufende Azure-Speicherung, statt sie nach kurzer Wartezeit fälschlich als fehlgeschlagen zu melden.',
-  'Ein laufender Azure-Save wird zentral bis zur bestätigten Speichergeneration verfolgt; nachfolgende Änderungen werden anschließend genau einmal nachgespeichert.',
-  'Das Lager-Recht wird über einen vom vorhandenen Auth-Server unterstützten Legacy-Rechteschlüssel dauerhaft serverseitig gespeichert und intern eindeutig als Lager ausgewertet.',
-  'Die nicht mehr verwendete alte Kunden-Rechtezeile wird in der Rechteverwaltung nicht mehr parallel angezeigt.',
-  'Bestehende Lager-, Colli-, POD- und Designkorrekturen bleiben erhalten.'
+  'Nach einer erneuten Verknüpfung der Kunden-Mailvorlagen wird der sichtbare Mailtext jetzt sofort automatisch aktualisiert; ein manuelles Umschalten zwischen Kunden- und Speditionsmail ist nicht mehr erforderlich.',
+  'Der Mailrenderer nutzt bei kurzzeitig noch nicht vollständig geladenem Kundenobjekt zusätzlich die bereits an der Sendung verknüpften Mailvorlagen als sichere Quelle.',
+  'Ein reiner Referenzwert wird nicht mehr als gültige Mailvorlage akzeptiert, wenn eine vollständige verknüpfte Vorlage vorhanden ist.',
+  'Die Verpackungsangabe in den Sendungsdetails aus RC580 bleibt erhalten.',
+  'Bestehende Azure-, Lager-, Colli-, POD- und Designkorrekturen bleiben unverändert erhalten.'
  ]),
  tests:Object.freeze([
-  'Sendungsdetails zeigen Verpackung auf Deutsch und Packaging auf Englisch; gleiche Verpackungsarten werden mengenmäßig zusammengefasst',
-  'Laufende Azure-Speicherung liefert nicht mehr sofort false an einen zweiten Flush-Aufruf',
-  'Sendungsspeicherung prüft die bestätigte Azure-Generation statt eines festen Sieben-Sekunden-Fensters',
-  'Lager-Recht wird nach admin-update-user über den serverkompatiblen Alias erneut aus admin-list gelesen',
-  'Rechteprüfung canView/canRead/canEdit nutzt den Alias nur wenn kein echtes warehouse-Recht vorhanden ist',
+  'Kundenmail bleibt nach exporthub:rendered und exporthub:sync vollständig sichtbar',
+  'Vorlagen-Neuverknüpfung aktualisiert den offenen Mailbereich ohne Wechsel Kunde → Spedition → Kunde',
+  'Fallback auf sendungsverknüpfte Kunden- und Speditionsvorlagen geprüft',
+  'Referenznummer allein wird bei vorhandener vollständiger Vorlage nicht als Mailtext übernommen',
+  'Sendungsdetails enthalten weiterhin Verpackung/Packaging, Colli, Gewicht und LDM',
   'Inline-JavaScript vollständig auf Syntax geprüft'
  ])
 });
@@ -11716,7 +11715,9 @@ function detailsText(sh,c,lang){
  lines.push((english?'Total weight: ':'Gesamtgewicht: ')+weight.toLocaleString(english?'en-GB':'de-DE')+' kg');
  return lines.join('\n')
 }
-function templateFor(type,lang,c){c=c||{};var nested=c.mailTemplates&&typeof c.mailTemplates==='object'?c.mailTemplates:{},bucket=nested[type]&&typeof nested[type]==='object'?nested[type]:{},nestedValue=Q(bucket[lang]);if(nestedValue)return String(bucket[lang]);var keys=type==='customer'?(lang==='en'?['rc385CustomerTplEn','rc384CustomerTplEn','customerTplEn','customerTemplateEn','customerMailTemplateEn','mailTemplateEn','customerMailEn','kundenTemplateEn']:['rc385CustomerTplDe','rc384CustomerTplDe','customerTplDe','customerTemplateDe','customerMailTemplateDe','mailTemplateDe','customerMailDe','kundenTemplateDe']):type==='carrier'?(lang==='en'?['rc385CarrierTplEn','rc384CarrierTplEn','carrierTplEn','carrierTemplateEn','carrierMailTemplateEn','speditionMailTemplateEn','carrierMailEn','speditionTemplateEn']:['rc385CarrierTplDe','rc384CarrierTplDe','carrierTplDe','carrierTemplateDe','carrierMailTemplateDe','speditionMailTemplateDe','carrierMailDe','speditionTemplateDe']):(lang==='en'?['rc543OwnTplEn','rc385OwnTplEn','ownTemplateEn','ownMailTemplateEn','rc385OwnTpl']:['rc543OwnTplDe','rc385OwnTplDe','ownTemplateDe','ownMailTemplateDe','rc385OwnTpl','rc384OwnTpl']);for(var i=0;i<keys.length;i++)if(Q(c[keys[i]]))return String(c[keys[i]]);var generic=Q(lang==='en'?(c.mailTextEn||c.mailBodyEn):(c.mailTextDe||c.mailBodyDe))||Q(c.mailText||c.mailBody);return generic?String(generic):''}
+function validMailTemplate(value,sh){var valueText=Q(value),ref=L(shipmentRef(sh));return !!valueText&&(!ref||L(valueText)!==ref)}
+function templateFrom(source,type,lang){source=source||{};var nested=source.mailTemplates&&typeof source.mailTemplates==='object'?source.mailTemplates:{},bucket=nested[type]&&typeof nested[type]==='object'?nested[type]:{},nestedValue=Q(bucket[lang]);if(nestedValue)return String(bucket[lang]);var keys=type==='customer'?(lang==='en'?['rc385CustomerTplEn','rc384CustomerTplEn','customerTplEn','customerTemplateEn','customerMailTemplateEn','mailTemplateEn','customerMailEn','kundenTemplateEn']:['rc385CustomerTplDe','rc384CustomerTplDe','customerTplDe','customerTemplateDe','customerMailTemplateDe','mailTemplateDe','customerMailDe','kundenTemplateDe']):type==='carrier'?(lang==='en'?['rc385CarrierTplEn','rc384CarrierTplEn','carrierTplEn','carrierTemplateEn','carrierMailTemplateEn','speditionMailTemplateEn','carrierMailEn','speditionTemplateEn']:['rc385CarrierTplDe','rc384CarrierTplDe','carrierTplDe','carrierTemplateDe','carrierMailTemplateDe','speditionMailTemplateDe','carrierMailDe','speditionTemplateDe']):(lang==='en'?['rc543OwnTplEn','rc385OwnTplEn','ownTemplateEn','ownMailTemplateEn','rc385OwnTpl']:['rc543OwnTplDe','rc385OwnTplDe','ownTemplateDe','ownMailTemplateDe','rc385OwnTpl','rc384OwnTpl']);for(var i=0;i<keys.length;i++)if(Q(source[keys[i]]))return String(source[keys[i]]);var generic=Q(lang==='en'?(source.mailTextEn||source.mailBodyEn):(source.mailTextDe||source.mailBodyDe))||Q(source.mailText||source.mailBody);return generic?String(generic):''}
+function templateFor(type,lang,c,sh){c=c||{};sh=sh||{};var customerTemplate=templateFrom(c,type,lang);if(validMailTemplate(customerTemplate,sh))return customerTemplate;var linkedTemplate=templateFrom(sh,type,lang);if(validMailTemplate(linkedTemplate,sh))return linkedTemplate;var standard='';try{var standards=window.ExportHUBIndex249&&window.ExportHUBIndex249.templates;standard=standards&&standards[type]&&standards[type][lang]||''}catch(_){}if(validMailTemplate(standard,sh))return String(standard);return customerTemplate||linkedTemplate||''}
 function subjectFor(sh,c,type,lang){var english=lang==='en';return customerName(c,sh)+' | '+shipmentRef(sh)+' | '+(type==='abd'?(english?'Export declaration request':'ABD-Anfrage'):(english?'Collection notification required':'Avisierung erforderlich'))}
 function hasActive(list){return A(list).some(function(f){return !/deleted|gelöscht|replaced|ersetzt|storniert/i.test(L(f.status))})}
 function deliveryFiles(sh){var out=[];['deliveryFiles','deliveryNotes','lieferscheine'].forEach(function(k){A(sh[k]).forEach(function(f){if(!/deleted|gelöscht|replaced|ersetzt/i.test(L(f.status)))out.push(f)})});return out}
@@ -11760,7 +11761,7 @@ function languageFor(sh,c){return L(sh.rc543MailLang||sh.rc542MailLang||sh.rc524
 function mailData(type){
  var sh=currentShipment(),c=customerFor(sh);
  try{if(window.ExportHUBIndex254&&typeof window.ExportHUBIndex254.ensureCustomer==='function')window.ExportHUBIndex254.ensureCustomer(c,false);else if(window.ExportHUBIndex252&&typeof window.ExportHUBIndex252.ensureCustomer==='function')window.ExportHUBIndex252.ensureCustomer(c,false)}catch(_){}
- var lang=languageFor(sh,c),tpl=templateFor(type,lang,c);
+ var lang=languageFor(sh,c),tpl=templateFor(type,lang,c,sh);
  if(type!=='own'&&tpl&&!/{{LDM}}/i.test(tpl)){tpl=/{{SENDUNGSDETAILS}}/i.test(tpl)?tpl.replace(/{{SENDUNGSDETAILS}}/i,'{{SENDUNGSDETAILS}}\nLDM: {{LDM}}'):tpl.replace(/\s+$/,'')+'\nLDM: {{LDM}}\n'}
  var ldm=A(sh.rows).reduce(function(sum,r){var count=Math.max(0,N(r.count||r.qty||r.anzahl||r.quantity))||1;return sum+count*N(r.ldm||r.loadingMeter||r.loadingMeters||r.lademeter)},0).toLocaleString(lang==='en'?'en-GB':'de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' LDM',
  body=tpl?tpl.replace(/{{SENDUNGSDETAILS}}/g,detailsText(sh,c,lang)).replace(/{{LDM}}/g,ldm):'',
@@ -11833,7 +11834,7 @@ function reconcile(){syncGlobalQrPin();purgeMailTasks();A(S().shipments).forEach
 function post(){if(postBusy){if(!postQueued){postQueued=true;later(function(){postQueued=false;post()},0)}return}postBusy=true;try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle();reconcile();patchMail();patchAbd();patchPrintCard();patchReferenceLock();patchDashboard();patchNavigation();patchShipmentWording();patchVisibleShipmentStatuses();if(Q(S().view)==='shipmentoverview'&&typeof window.rc485PatchOverviewCards==='function')window.rc485PatchOverviewCards();document.querySelectorAll('[data-exporthub-version-label]').forEach(function(n){window.ExportHUBBuild.applyVersion();});try{if(window.ExportHUBShipmentStatus373&&typeof window.ExportHUBShipmentStatus373.refresh==='function')window.ExportHUBShipmentStatus373.refresh('Prozessstatus aktualisiert')}catch(_){}}finally{postBusy=false}}
 function refreshLiveShipmentValidation(){if(Q(S().view)!=='shipment')return false;var sh=currentShipment();try{if(typeof window.__EXPORTHUB_UPDATE_ADDRESS_CONFIRMATION__==='function')window.__EXPORTHUB_UPDATE_ADDRESS_CONFIRMATION__()}catch(_){}recalculate(sh);refreshMailAreaFields();patchAbd();patchPrintCard();patchVisibleShipmentStatuses();try{if(window.ExportHUBShipmentStatus373&&typeof window.ExportHUBShipmentStatus373.refresh==='function')window.ExportHUBShipmentStatus373.refresh('Eingabe vollständig')}catch(_){}return true}
 function liveShipmentFieldEvent(e){var t=e&&e.target;if(Q(S().view)!=='shipment'||!t||!t.matches||!t.matches('input,select,textarea')||t.type==='file')return;later(refreshLiveShipmentValidation,0)}
-function install(){if(installed)return;installed=true;purgeMailTasks();window.rc628RefreshShipmentValidation=refreshLiveShipmentValidation;document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button,a');if(!b)return;if(/Gesamtausgabe\s*drucken|Gesamtdruck/i.test(Q(b.textContent))&&!b.disabled){markPrinted(currentShipment());later(post,50)}else later(post,20)},true);document.addEventListener('input',liveShipmentFieldEvent,false);document.addEventListener('change',liveShipmentFieldEvent,false);window.addEventListener('exporthub:shipment-saved',function(e){var d=e&&e.detail||{},sh=findShipment(d.shipmentId||d.reference)||currentShipment();if(sh){if(isPersisted(sh)){linkedTasks(sh).filter(function(t){return /sendung erstellen/i.test(L(t.title||t.name))}).forEach(function(t){if(!/erledigt/i.test(L(t.status)))setTaskStatus(t,'Erledigt','Sendung erfolgreich gespeichert.')})}syncAbd(sh);recalculate(sh)}post()});window.addEventListener('exporthub:shipment-document-uploaded',function(e){var d=e&&e.detail||{},sh=d.shipment||findShipment(d.shipmentId||d.reference)||currentShipment();if(sh){syncAbd(sh);ensureMailTasks(sh);recalculate(sh)}post()});window.addEventListener('exporthub:rendered',post);window.addEventListener('exporthub:viewchange',post);window.addEventListener('exporthub:sync',post);post();window.ExportHUBMailUtil=Object.freeze({normalize:rc519NormalizeEmail,sales:rc519SalesMail,cc:rc519CcMail,items:rc519EmailItems});window.ExportHUBRC543={postProcess:post,recalculateShipmentStatus:recalculate,statusReasons:statusReasons,mailRequirement:mailRequirement,mailCondition:mailCondition,abdComplete:abdComplete,printComplete:printComplete,documentSignature:documentSignature,createAbdFromShipment:window.rc543CreateAbdFromShipment,refreshValidation:refreshLiveShipmentValidation};window.__EXPORTHUB_RC543_DIAGNOSTICS__={installed:true,version:VERSION,statusEngine:true,abdFromShipment:true,mailTemplatesOnly:true,mailTaskModel:'canonical',printGate:true,alternativeMail:true,eventDriven:true,liveValidation:true,globalRenderWrapped:false}}
+function install(){if(installed)return;installed=true;purgeMailTasks();window.rc628RefreshShipmentValidation=refreshLiveShipmentValidation;document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('button,a');if(!b)return;if(/Gesamtausgabe\s*drucken|Gesamtdruck/i.test(Q(b.textContent))&&!b.disabled){markPrinted(currentShipment());later(post,50)}else later(post,20)},true);document.addEventListener('input',liveShipmentFieldEvent,false);document.addEventListener('change',liveShipmentFieldEvent,false);window.addEventListener('exporthub:shipment-saved',function(e){var d=e&&e.detail||{},sh=findShipment(d.shipmentId||d.reference)||currentShipment();if(sh){if(isPersisted(sh)){linkedTasks(sh).filter(function(t){return /sendung erstellen/i.test(L(t.title||t.name))}).forEach(function(t){if(!/erledigt/i.test(L(t.status)))setTaskStatus(t,'Erledigt','Sendung erfolgreich gespeichert.')})}syncAbd(sh);recalculate(sh)}post()});window.addEventListener('exporthub:shipment-document-uploaded',function(e){var d=e&&e.detail||{},sh=d.shipment||findShipment(d.shipmentId||d.reference)||currentShipment();if(sh){syncAbd(sh);ensureMailTasks(sh);recalculate(sh)}post()});window.addEventListener('exporthub:rendered',post);window.addEventListener('exporthub:viewchange',post);window.addEventListener('exporthub:sync',post);post();window.ExportHUBMailUtil=Object.freeze({normalize:rc519NormalizeEmail,sales:rc519SalesMail,cc:rc519CcMail,items:rc519EmailItems});window.ExportHUBRC543={postProcess:post,refreshMailArea:refreshMailAreaFields,recalculateShipmentStatus:recalculate,statusReasons:statusReasons,mailRequirement:mailRequirement,mailCondition:mailCondition,abdComplete:abdComplete,printComplete:printComplete,documentSignature:documentSignature,createAbdFromShipment:window.rc543CreateAbdFromShipment,refreshValidation:refreshLiveShipmentValidation};window.__EXPORTHUB_RC543_DIAGNOSTICS__={installed:true,version:VERSION,statusEngine:true,abdFromShipment:true,mailTemplatesOnly:true,mailTaskModel:'canonical',printGate:true,alternativeMail:true,eventDriven:true,liveValidation:true,globalRenderWrapped:false}}
 window.addEventListener('exporthub:ready',install,{once:true});
 if(document.readyState!=='loading')later(function(){if(window.__EXPORTHUB_READY__)install()},0);else document.addEventListener('DOMContentLoaded',function(){later(function(){if(window.__EXPORTHUB_READY__)install()},1200)},{once:true});
 })();
@@ -18092,7 +18093,7 @@ function afterCustomerSave(){
  if(complete&&!q(c.mailTemplateStandardVersion)){c.mailTemplateStandardVersion=STAMP;c.mailTemplateStandardAppliedAt=new Date().toISOString()}
  var changed=ensureCustomer(c,false);
  if(changed)queue('Vier korrekte ausführliche Mailvorlagen beim neuen Kunden hinterlegt');
- patchEditor();linkCurrentShipment();return changed;
+ patchEditor();linkCurrentShipment();refreshActiveMail();return changed;
 }
 function linkCurrentShipment(){
  var s=state(),sh=s.shipment;if(!sh||typeof sh!=='object')return false;
@@ -18111,7 +18112,8 @@ function linkCurrentShipment(){
  return true;
 }
 function lock(){try{if(window.ExportHUBBuild){window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}}catch(_){}}
-function patch(){lock();migrateOnce();ensureAll(false);patchEditor();linkCurrentShipment()}
+function refreshActiveMail(){try{var api=window.ExportHUBRC543;if(api&&typeof api.refreshMailArea==='function')api.refreshMailArea()}catch(_){}}
+function patch(){lock();migrateOnce();ensureAll(false);patchEditor();linkCurrentShipment();refreshActiveMail()}
 function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},30)}
 function boot(){patch()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
