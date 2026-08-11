@@ -1,0 +1,171 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: exporthub-swa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    name: Build and Deploy Job
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Validate ExportHUB API core before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f api/exporthub-state/index.js
+          test -f api/exporthub-state/function.json
+          test -f api/exporthub-health/index.js
+          test -f api/exporthub-health/function.json
+          test -f api/shared/merge.js
+          test -f api/package.json
+          node --check api/exporthub-state/index.js
+          node --check api/exporthub-health/index.js
+          node --check api/shared/merge.js
+          node -e "JSON.parse(require('fs').readFileSync('api/exporthub-state/function.json','utf8'));JSON.parse(require('fs').readFileSync('api/exporthub-health/function.json','utf8'));JSON.parse(require('fs').readFileSync('staticwebapp.config.json','utf8'));"
+
+      - name: Deploy attempt 1
+        id: deploy1
+        continue-on-error: true
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: /
+          api_location: api
+          output_location: ""
+
+      - name: Wait 2 minutes before attempt 2
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 120
+
+      - name: Deploy attempt 2
+        id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        continue-on-error: true
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: /
+          api_location: api
+          output_location: ""
+
+      - name: Wait 4 minutes before attempt 3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 240
+
+      - name: Deploy attempt 3
+        id: deploy3
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        continue-on-error: true
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: /
+          api_location: api
+          output_location: ""
+
+      - name: Wait 8 minutes before attempt 4
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure'
+        run: sleep 480
+
+      - name: Deploy attempt 4
+        id: deploy4
+        if: steps.deploy1.outcome == 'failure' && steps.deploy2.outcome == 'failure' && steps.deploy3.outcome == 'failure'
+        continue-on-error: true
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: /
+          api_location: api
+          output_location: ""
+
+      - name: Confirm deployment result
+        if: always()
+        shell: bash
+        run: |
+          echo "Attempt 1: ${{ steps.deploy1.outcome }}"
+          echo "Attempt 2: ${{ steps.deploy2.outcome }}"
+          echo "Attempt 3: ${{ steps.deploy3.outcome }}"
+          echo "Attempt 4: ${{ steps.deploy4.outcome }}"
+
+          if [[ "${{ steps.deploy1.outcome }}" == "success" || \
+                "${{ steps.deploy2.outcome }}" == "success" || \
+                "${{ steps.deploy3.outcome }}" == "success" || \
+                "${{ steps.deploy4.outcome }}" == "success" ]]; then
+            echo "ExportHUB deployment completed successfully."
+            exit 0
+          fi
+
+          echo "All four Azure deployment attempts failed."
+          exit 1
+
+
+      - name: Verify deployed ExportHUB API host and state route
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://wonderful-forest-0f315e310.7.azurestaticapps.net"
+          health="$base/api/exporthub-health"
+          state="$base/api/exporthub-state"
+          health_ok=0
+          state_ok=0
+          for attempt in {1..24}; do
+            hcode=$(curl -sS -o /tmp/eh-health -w "%{http_code}" --max-time 15 "$health" || true)
+            scode=$(curl -sS -o /tmp/eh-state -w "%{http_code}" -X OPTIONS --max-time 15 "$state" || true)
+            echo "Live-Check $attempt/24: health=$hcode state-options=$scode"
+            [[ "$hcode" == "200" ]] && health_ok=1 || true
+            [[ "$scode" == "204" ]] && state_ok=1 || true
+            if [[ "$health_ok" == "1" && "$state_ok" == "1" ]]; then
+              echo "ExportHUB API host und State-Route sind live."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "API-Liveprüfung FEHLGESCHLAGEN."
+          echo "Health Antwort:"; cat /tmp/eh-health 2>/dev/null || true
+          echo; echo "State Antwort:"; cat /tmp/eh-state 2>/dev/null || true
+          exit 1
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+
+    steps:
+      - name: Close pull request environment
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          action: close
