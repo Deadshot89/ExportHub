@@ -174,13 +174,13 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC605',cache:'605',loginReturn:'/?v=605'});
+var BUILD=Object.freeze({version:'RC607',cache:'607',loginReturn:'/?v=607'});
 var RELEASE=Object.freeze({
- version:'RC605',
+ version:'RC607',
  date:'11.08.2026',
- title:'Hauptseite und Testseite auf identischen RC605-Stand synchronisiert',
+ title:'Azure-Speicherung stabilisiert und Haupt-/Testseite synchronisiert',
  changes:Object.freeze([
-  'RC605 basiert fachlich vollständig auf dem stabilen RC601-Stand.',
+  'RC607 basiert fachlich vollständig auf RC605 und stabilisiert ausschließlich die Azure-Speicherung.',
   'Der unvollständige bestehende RC172-CSS-Block wurde direkt geschlossen.',
   'Doppelte spätere Lager-Farbregeln wurden entfernt; die Lagerfarben liegen nur noch im bestehenden Lager-Style.',
   'Eingang wird als komplette dunkelgrüne Kachel mit sichtbarem Titel dargestellt.',
@@ -10481,7 +10481,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC605'),CACHE=String(ACTIVE_BUILD.cache||'605'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC607'),CACHE=String(ACTIVE_BUILD.cache||'607'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -10906,7 +10906,7 @@ async function stateCall(mode,payload,requestOptions){
   const endpoint=candidates[i],headers={'Content-Type':'application/json','Accept':'application/json'};
   if(token){headers['X-ExportHUB-Token']=token;headers['X-ExportHUB-Session']=token;headers.Authorization='Bearer '+token}
   try{
-   const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=20000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=6000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
+   const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=60000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=6000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
    const result=await jsonFetch(endpoint+'?mode='+encodeURIComponent(mode),opts);
    API=endpoint;runtime.stateApiLocked=true;runtime.stateApiEndpoint=endpoint;runtime.stateApiReachable=true;runtime.apiReachable=true;runtime.lastStateApiSuccessAt=Date.now();return result
   }catch(error){
@@ -11200,7 +11200,7 @@ async function queueSave(reason){
  if(!runtime.ready||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;savePersistentFilterState();runtime.lastQueueReason=String(reason||'');runtime.lastQueueAt=Date.now();runtime.changeGeneration++;runtime.dirty=true;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason)},250);return true
 }
 async function flushSave(reason,options){
- options=options||{};if((!runtime.ready&&!options.force)||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;if(!runtime.pendingSave&&!runtime.dirty)return runtime.changeGeneration>0&&runtime.lastSavedGeneration>=runtime.changeGeneration;if(runtime.saving){var wantedGeneration=Number(runtime.changeGeneration||0),waitDeadline=Date.now()+30000;while(runtime.saving&&Date.now()<waitDeadline)await new Promise(function(resolve){native.setTimeout(resolve,100)});if(wantedGeneration>0&&Number(runtime.lastSavedGeneration||0)>=wantedGeneration)return true;if(!runtime.saving&&(runtime.pendingSave||runtime.dirty)&&Number(options._waitPass||0)<2){var nextOptions=Object.assign({},options,{_waitPass:Number(options._waitPass||0)+1});return flushSave(reason,nextOptions)}return false;}
+ options=options||{};if((!runtime.ready&&!options.force)||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;if(!runtime.pendingSave&&!runtime.dirty)return runtime.changeGeneration>0&&runtime.lastSavedGeneration>=runtime.changeGeneration;if(runtime.saving){var wantedGeneration=Number(runtime.changeGeneration||0),waitDeadline=Date.now()+75000;while(runtime.saving&&Date.now()<waitDeadline)await new Promise(function(resolve){native.setTimeout(resolve,100)});if(wantedGeneration>0&&Number(runtime.lastSavedGeneration||0)>=wantedGeneration)return true;if(!runtime.saving&&(runtime.pendingSave||runtime.dirty)&&Number(options._waitPass||0)<2){var nextOptions=Object.assign({},options,{_waitPass:Number(options._waitPass||0)+1});return flushSave(reason,nextOptions)}return false;}
  const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return false;
  const beforeGuardGeneration=runtime.changeGeneration;if(!(await ensureShipmentFlushAllowed(reason))){runtime.lastBlockedShipmentSaveGeneration=Math.max(Number(runtime.lastBlockedShipmentSaveGeneration||0),beforeGuardGeneration);runtime.lastBlockedShipmentSaveAt=new Date().toISOString();runtime.lastBlockedShipmentSaveReason=String(reason||'');if(runtime.changeGeneration<=beforeGuardGeneration){runtime.pendingSave=false;runtime.dirty=false}const blockedInfo=by('saveInfo');if(blockedInfo)blockedInfo.textContent='Sendung gesperrt · veraltete Änderung nicht gespeichert';return false}
  runtime.saving=true;if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}runtime.pendingSave=false;const generation=runtime.changeGeneration;runtime.activeSaveGeneration=generation;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';
@@ -20257,7 +20257,7 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC605'),CACHE=String(ACTIVE_BUILD.cache||'605'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC607'),CACHE=String(ACTIVE_BUILD.cache||'607'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
