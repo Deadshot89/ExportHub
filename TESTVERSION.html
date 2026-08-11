@@ -174,7 +174,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC610',cache:'610',loginReturn:'/test?v=610'});
+var BUILD=Object.freeze({version:'RC611',cache:'611',loginReturn:'/test?v=611'});
 var RELEASE=Object.freeze({
  version:'RC610',
  date:'11.08.2026',
@@ -10485,7 +10485,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC610'),CACHE=String(ACTIVE_BUILD.cache||'610'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC611'),CACHE=String(ACTIVE_BUILD.cache||'611'),productionVersion='wird geprüft',productionChecked=false,PRODUCTION_URL='/index.html',TEST_URL=(function(){var p=String(location.pathname||'');return /^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)?p:'/TESTVERSION.html'})();
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -10924,12 +10924,36 @@ async function stateCall(mode,payload,requestOptions){
  const last=errors.length?errors[errors.length-1].error:null,checked=candidates.map(apiEndpointLabel).filter(function(value,index,array){return value&&array.indexOf(value)===index});
  const error=new Error('Azure-Speicher-API nicht erreichbar. Geprüft: '+(checked.join(', ')||apiEndpointLabel(API))+'.'+(last&&last.message?' Letzter Fehler: '+last.message:''));error.code='STATE_API_UNREACHABLE';error.status=last&&last.status;error.cause=last;error.endpoints=checked;throw error
 }
+function shipmentIdentityValues(item){
+ const out=[];if(!item||typeof item!=='object')return out;['id','shipmentId','ref','reference','shipmentRef','referenceNumber'].forEach(function(key){const v=lower(item[key]);if(v&&out.indexOf(v)<0)out.push(v)});return out
+}
+function shipmentIdentityKey(item){const ids=shipmentIdentityValues(item);return ids.length?ids[0]:''}
+const PRIORITY_SHIPMENT_RECOVERY_REFS=new Set(['pkc5wb','8daxmv']);
+function shipmentRecoveryTarget(item){return shipmentIdentityValues(item).some(function(v){return PRIORITY_SHIPMENT_RECOVERY_REFS.has(v)})}
+function shipmentTombstoneMatches(state,item){
+ if(!isObject(state)||!item)return false;const ids=new Set(shipmentIdentityValues(item)),meta=state._teamSyncMeta,tombs=meta&&Array.isArray(meta.tombstones)?meta.tombstones:[];if(!ids.size)return false;return tombs.some(function(t){if(!t||lower(t.collection)!=='shipments')return false;return [t.id,t.ref,t.reference,t.shipmentId,t.shipmentRef].some(function(v){return ids.has(lower(v))})})
+}
+function promoteSavedShipments(state){
+ if(!isObject(state))return{added:0,keys:[]};state.shipments=Array.isArray(state.shipments)?state.shipments:[];const legacy=Array.isArray(state.savedShipments)?state.savedShipments:[],known=new Set(),keys=[];state.shipments.forEach(function(x){shipmentIdentityValues(x).forEach(function(k){known.add(k)})});
+ legacy.forEach(function(x){if(!x||typeof x!=='object')return;const ids=shipmentIdentityValues(x);if(!ids.length||ids.some(function(k){return known.has(k)}))return;if(shipmentTombstoneMatches(state,x)&&!shipmentRecoveryTarget(x))return;const copy=clone(x);state.shipments.push(copy);ids.forEach(function(k){known.add(k)});keys.push(shipmentIdentityKey(copy))});
+ return{added:keys.length,keys:keys}
+}
+function removeShipmentTombstonesForRecord(state,item){
+ if(!isObject(state)||!item)return[];const ids=new Set(shipmentIdentityValues(item)),meta=state._teamSyncMeta;if(!ids.size||!meta||!Array.isArray(meta.tombstones))return[];const removed=[];meta.tombstones=meta.tombstones.filter(function(t){if(!t||lower(t.collection)!=='shipments')return true;const hit=[t.id,t.ref,t.reference,t.shipmentId,t.shipmentRef].some(function(v){return ids.has(lower(v))});if(hit)removed.push(clone(t));return !hit});return removed
+}
+function removePriorityRecoveryTombstones(state){
+ if(!isObject(state))return[];const pool=(Array.isArray(state.shipments)?state.shipments:[]).concat(Array.isArray(state.savedShipments)?state.savedShipments:[]),removed=[];pool.forEach(function(sh){if(shipmentRecoveryTarget(sh))removed.push.apply(removed,removeShipmentTombstonesForRecord(state,sh))});return removed
+}
+function reviveShipmentRecord(item){
+ const state=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||(runtime.state={});const removed=removeShipmentTombstonesForRecord(state,item);if(removed.length){runtime.dirty=true;runtime.pendingSave=true}return removed.length
+}
+
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
  const d=await stateCall('read',{});
  progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
  if(!d||d.ok===false){const e=new Error((d&&d.message)||'Teamdaten ungültig');e.code=d&&d.code||'TEAMDATA_INVALID';throw e}
- runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);var key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));runtime.user=runtime.users.find(function(u){return lower(u.user||u.login||u.name)===key})||runtime.user;restorePersistentFilterState(runtime.state);
+ runtime.state=d.state||{};const __shipmentPromotion=promoteSavedShipments(runtime.state),__recoveryTombstones=removePriorityRecoveryTombstones(runtime.state);runtime.initialPromotedShipmentKeys=__shipmentPromotion.keys.slice();runtime.initialRemovedShipmentTombstones=__recoveryTombstones.slice();runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);var key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));runtime.user=runtime.users.find(function(u){return lower(u.user||u.login||u.name)===key})||runtime.user;restorePersistentFilterState(runtime.state);
  runtime.lastSnapshot=clone(runtime.state);runtime.lastUsers=clone(runtime.users);runtime.dirty=false;
  window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d
 }
@@ -11060,17 +11084,18 @@ function documentDeletionMap(state){
  });return out
 }
 function captureCanonicalDeletions(baseState,currentState,baseUsers,currentUsers){
- const collections=['shipments','abdRequests','customers','tasks','palletAccount'];
+ /* Sendungen und Sendungsdokumente werden ausschließlich durch ihre expliziten Löschaktionen tombstoned.
+    Ein kurzzeitig unvollständiger Client-/Azure-Stand darf niemals als echte Löschung interpretiert werden. */
+ const collections=['abdRequests','customers','tasks','palletAccount'];
  collections.forEach(function(name){captureCollectionDeletions(name,baseState&&baseState[name],currentState&&currentState[name])});
  captureCollectionDeletions('users',baseUsers,currentUsers);
- const before=documentDeletionMap(baseState||{}),after=documentDeletionMap(currentState||{});before.forEach(function(info,key){if(!after.has(key))markDeleted('documents',info.id,{shipmentId:info.shipmentId,field:info.field,fileId:info.fileId})});
  return true
 }
 
 function mutateObject(target,source,preserveLocal){if(!isObject(target)||!isObject(source))return;const preserved={};if(preserveLocal)Object.keys(target).forEach(function(key){if(isLocalOnlyStateKey(key))preserved[key]=target[key]});Object.keys(target).forEach(function(key){if(!preserveLocal||!isLocalOnlyStateKey(key))delete target[key]});Object.keys(source).forEach(function(key){if(!isLocalOnlyStateKey(key))target[key]=clone(source[key])});Object.assign(target,preserved)}
 function refreshCurrentUser(){const users=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;const key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));const fresh=(Array.isArray(users)?users:[]).find(function(u){return lower(u.user||u.login||u.username||u.name)===key})||runtime.user;runtime.user=fresh;try{window.currentUser=fresh;if(typeof currentUser!=='undefined')currentUser=fresh}catch(_){}}
 function applyRemoteDocument(doc,reason){
- if(!doc||!isObject(doc.state)||runtime.saving)return false;if(Array.isArray(doc.state.savedShipments)&&doc.state.savedShipments.length){doc.state.shipments=Array.isArray(doc.state.shipments)?doc.state.shipments:[];var __knownShipments=new Set(doc.state.shipments.map(function(x){return lower(x&&(x.id||x.ref||x.reference||''))}).filter(Boolean));doc.state.savedShipments.forEach(function(x){var k=lower(x&&(x.id||x.ref||x.reference||''));if(k&&!__knownShipments.has(k)){doc.state.shipments.push(clone(x));__knownShipments.add(k)}})}runtime.applyingRemote=true;
+ if(!doc||!isObject(doc.state)||runtime.saving)return false;promoteSavedShipments(doc.state);removePriorityRecoveryTombstones(doc.state);runtime.applyingRemote=true;
  try{
   const state=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state;if(isObject(state)){mutateObject(state,doc.state,true);restorePersistentFilterState(state)}runtime.state=state||clone(doc.state);window.__CLEAN_BOOT_STATE__=runtime.state;
   const targetUsers=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users;if(Array.isArray(targetUsers)){targetUsers.splice.apply(targetUsers,[0,targetUsers.length].concat((Array.isArray(doc.users)?doc.users:[]).map(clone)));runtime.users=targetUsers}else runtime.users=clone(doc.users||[]);
@@ -11112,12 +11137,13 @@ async function signalReady(){
  const info=by('saveInfo');if(info)info.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
  if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null;runtime.pendingSave=false;runtime.dirty=false;
  runtime.lastSnapshot=clone(window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||{});runtime.lastUsers=clone(window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users||[]);
- runtime.ready=true;runtime.loaded=true;runtime.loading=false;runtime.applyingRemote=false;runtime.acceptWritesAt=0;runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;runtime.sessionExpiredHandled=false;runtime.readyAt=new Date().toISOString();
+ const __promotedKeys=Array.isArray(runtime.initialPromotedShipmentKeys)?runtime.initialPromotedShipmentKeys.slice():[],__removedTombs=Array.isArray(runtime.initialRemovedShipmentTombstones)?runtime.initialRemovedShipmentTombstones.slice():[];if(__promotedKeys.length&&Array.isArray(runtime.lastSnapshot.shipments)){const wanted=new Set(__promotedKeys.map(lower));runtime.lastSnapshot.shipments=runtime.lastSnapshot.shipments.filter(function(sh){return !wanted.has(shipmentIdentityKey(sh))})}if(__removedTombs.length){const meta=runtime.lastSnapshot._teamSyncMeta||(runtime.lastSnapshot._teamSyncMeta={fields:{},tombstones:[]});meta.tombstones=Array.isArray(meta.tombstones)?meta.tombstones:[];__removedTombs.forEach(function(t){const sig=lower(t.collection)+':'+lower(t.id||t.ref||t.reference||'');if(!meta.tombstones.some(function(x){return lower(x&&x.collection)+':'+lower(x&&(x.id||x.ref||x.reference)||'')===sig}))meta.tombstones.push(clone(t))})}
+ runtime.ready=true;runtime.loaded=true;runtime.loading=false;runtime.applyingRemote=false;runtime.acceptWritesAt=0;runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;runtime.sessionExpiredHandled=false;runtime.readyAt=new Date().toISOString();runtime.initialPromotedShipmentKeys=[];runtime.initialRemovedShipmentTombstones=[];if(__promotedKeys.length||__removedTombs.length){native.setTimeout(function(){queueSave('Sendungsbestand wiederhergestellt')},60)}
  if(wasRestored)unlockRestoredApplication();else{document.body.classList.remove('rc405-session-restoring');hideProgress()}
  await nextFrame();writeTabSession();status('Angemeldet · Azure-Teamdaten geladen.','ok');window.__EXPORTHUB_READY__={ready:true,version:VERSION,revision:runtime.revision,user:text(runtime.user&&(runtime.user.name||runtime.user.user)),readyAt:runtime.readyAt,resumed:wasRestored};
  window.dispatchEvent(new CustomEvent('exporthub:ready',{detail:window.__EXPORTHUB_READY__}));startRevisionPolling();startNoIdleKeepAlive()
 }
-window.ExportHUBSync=Object.freeze({owner:'RC418',markDeleted:markDeleted,pollNow:pollRevision,applyRemote:applyRemoteDocument,stampChanges:stampChanges,syncNow:async function(){if(runtime.pendingSave||runtime.dirty)await flushSave('Manuelle Synchronisierung',{force:true});return pollRevision()},diagnostics:function(){return{owner:'RC418',endpoint:API,endpointLocked:runtime.stateApiLocked,revision:runtime.revision,dirty:runtime.dirty,pendingSave:runtime.pendingSave,saving:runtime.saving,polling:runtime.polling,remoteApplyCount:runtime.remoteApplyCount,lastSync:window.__EXPORTHUB_LAST_SYNC__||null}}});
+window.ExportHUBSync=Object.freeze({owner:'RC418',markDeleted:markDeleted,reviveShipment:reviveShipmentRecord,pollNow:pollRevision,applyRemote:applyRemoteDocument,stampChanges:stampChanges,syncNow:async function(){if(runtime.pendingSave||runtime.dirty)await flushSave('Manuelle Synchronisierung',{force:true});return pollRevision()},diagnostics:function(){return{owner:'RC418',endpoint:API,endpointLocked:runtime.stateApiLocked,revision:runtime.revision,dirty:runtime.dirty,pendingSave:runtime.pendingSave,saving:runtime.saving,polling:runtime.polling,remoteApplyCount:runtime.remoteApplyCount,lastSync:window.__EXPORTHUB_LAST_SYNC__||null}}});
 
 
 ['exporthub:viewchange','exporthub:newshipment','exporthub:sync','exporthub:rendered'].forEach(function(name){window.addEventListener(name,bindCanonicalState)});
@@ -19870,6 +19896,7 @@ function recoverMissingLocationRecord(rec){
  restored._recoveredFromLocationRecord=true;
  restored._recoveredAt=new Date().toISOString();
  target.shipments.push(restored);
+ try{if(window.ExportHUBSync&&typeof window.ExportHUBSync.reviveShipment==='function')window.ExportHUBSync.reviveShipment(restored)}catch(_){}
  return true
 }
 function applyRecord(rec){var sh=findRecordShipment(rec);if(!sh)return false;var changed=false;copies(sh).forEach(function(x){if(rec.collected===true){if(x.warehouseLocation||x.warehousePrepared){x.warehouseLocation='';x.warehouseLocationCode=0;x.warehousePrepared=false;changed=true}if(rec.collectedAt&&x.warehouseCollectedAt!==rec.collectedAt){x.warehouseCollectedAt=rec.collectedAt;changed=true}}else{var loc=q(rec.currentLocation)||'Eingang',code=Number(rec.locationCode||0),prepared=rec.prepared===true;if(q(x.warehouseLocation)!==loc){x.warehouseLocation=loc;changed=true}if(Number(x.warehouseLocationCode||0)!==code){x.warehouseLocationCode=code;changed=true}if(x.warehousePrepared!==prepared){x.warehousePrepared=prepared;changed=true}if(q(rec.loaderName)&&q(x.warehouseMovedBy)!==q(rec.loaderName)){x.warehouseMovedBy=q(rec.loaderName);changed=true}if(q(rec.bookedAt)&&q(x.warehouseMovedAt)!==q(rec.bookedAt)){x.warehouseMovedAt=q(rec.bookedAt);changed=true}if(prepared&&!picked(x)&&q(x.status)!=='Vorbereitet'){x.status='Vorbereitet';x.processStatus='Vorbereitet';x.readyForPickup=true;changed=true}if(!prepared&&!picked(x)&&low(loc)==='eingang'&&/vorbereitet/i.test(q(x.status||x.processStatus))){x.status='Bereit zur Abholung';x.processStatus='Bereit zur Abholung';x.readyForPickup=true;changed=true}if(Array.isArray(rec.history)){var sig=JSON.stringify(rec.history);if(JSON.stringify(arr(x.warehouseHistory))!==sig){x.warehouseHistory=rec.history.slice();changed=true}}}});return changed}
@@ -20345,7 +20372,7 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC610'),CACHE=String(ACTIVE_BUILD.cache||'610'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC611'),CACHE=String(ACTIVE_BUILD.cache||'611'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
