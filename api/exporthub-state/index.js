@@ -67,7 +67,12 @@ async function clients(){
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503);
  let service; try{service=BlobServiceClient.fromConnectionString(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die Azure-Speicherverbindung ist ungültig.',503)}
  const container=service.getContainerClient(TEAM_CONTAINER);
- return {container,team:container.getBlockBlobClient(TEAM_BLOB),auth:container.getBlockBlobClient(AUTH_BLOB)};
+ const names=[];
+ [TEAM_CONTAINER,process.env.EXPORTHUB_PICKUP_CONTAINER,process.env.EXPORTHUB_POD_CONTAINER,process.env.EXPORTHUB_LOCATION_CONTAINER,process.env.EXPORTHUB_LOCATION_BOOKING_CONTAINER].forEach(name=>{name=text(name);if(name&&!names.includes(name))names.push(name)});
+ /* TESTSERVICE may have legacy location/recovery containers that were never wired into the state API. Discover only clearly isolated ExportHUB test containers; production-like container names are not broadened implicitly. */
+ try{for await(const item of service.listContainers()){const name=text(item&&item.name);if(name&&/exporthub/i.test(name)&&/test/i.test(name)&&!names.includes(name))names.push(name);if(names.length>=20)break}}catch(_){}
+ const forensicContainers=names.map(name=>({name,client:service.getContainerClient(name)}));
+ return {container,team:container.getBlockBlobClient(TEAM_BLOB),auth:container.getBlockBlobClient(AUTH_BLOB),service,forensicContainers};
 }
 function parseStoredJson(raw,name){
  const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim();
@@ -257,8 +262,9 @@ function candidateStats(doc,knownRefs){
  const count=list.length, ratio=count?validCustomer/count:0,activeRatio=activeCount?activeValidCustomer/activeCount:0;
  return {count,activeCount,validCustomer,validCustomerRatio:ratio,activeValidCustomer,activeValidCustomerRatio:activeRatio,rich,activeRich,coreComplete,activeCoreComplete,suspect,activeSuspect,knownHits,refs,activeRefs,statusCounts};
 }
-function sourceDescriptor(item){
+function sourceDescriptor(item,containerName){
  return {
+  containerName:cleanScalar(containerName)||TEAM_CONTAINER,
   blobName:cleanScalar(item&&item.name)||TEAM_BLOB,
   versionId:cleanScalar(item&&item.versionId),
   snapshot:cleanScalar(item&&item.snapshot),
@@ -536,14 +542,14 @@ async function recoverShipments(container,teamBlob,payload,user){
  const beforeRows=bestShipmentSet(current.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0),afterRows=bestShipmentSet(merged.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0);
  const rowImproved=afterRows>beforeRows,coreImproved=afterStats.coreComplete>beforeStats.coreComplete||afterStats.activeCoreComplete>beforeStats.activeCoreComplete;
  if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','Historische Versionen wurden gefunden, aber sie enthalten keine besseren Sendungsdaten als der aktuelle Stand. Es wurde nichts verändert.',409);
- const backupName=await safetyBackup(container,current,'team-state-before-RC634-recovery');
+ const backupName=await safetyBackup(container,current,'team-state-before-RC635-forensic-recovery');
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
  next.revision=Number(current.revision||0)+1;
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC634-history-recovery';
+ next.clientVersion='RC635-forensic-recovery';
  next.state=merged.state;
  const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>meaningfulRows(sh).length===0).map(refOf).filter(Boolean);
  next.recoveryAudit={at:next.updatedAt,by:next.updatedBy,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,backupBlob:backupName,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
@@ -553,10 +559,125 @@ async function recoverShipments(container,teamBlob,payload,user){
 
 
 
+/* RC635: forensic shipment recovery from every genuine Azure JSON fragment.
+   This does not require one complete historical shipment object. It reconstructs
+   each existing shipment reference from verifiable fragments (team state/history,
+   ABD, location booking, pickup/POD and backup JSON). Unknown values stay empty. */
+function forensicRef(v){
+ if(isObj(v))return refOf(v);
+ const x=cleanScalar(v).toUpperCase();return /^[A-Z0-9]{6}$/.test(x)?x:'';
+}
+function forensicRows(obj){
+ const rows=meaningfulRows(obj);if(rows.length)return clone(rows);
+ /* ABD records sometimes contain only a real aggregate instead of shipment rows. */
+ const count=num(obj&&(obj.colliCount||obj.packageCount||obj.packagesCount||obj.totalColli||obj.totalPackages));
+ const typ=cleanScalar(obj&&(obj.colliType||obj.packageType||obj.packagingType));
+ const weight=num(obj&&(obj.totalWeight||obj.weightTotal||obj.grossWeight||obj.gesamtgewicht));
+ if(count>0&&(typ||weight>0))return [{type:typ||'',packaging:typ||'',count:count,qty:count,weight:weight||'',totalWeight:weight||'',recoverySource:'forensic-aggregate'}];
+ return [];
+}
+function forensicDocs(obj){
+ const out=[];['deliveryFiles','deliveryNotesFiles','lieferscheine','podFiles','abdFiles','invoiceFiles','documents','generatedDocuments','attachments','files'].forEach(k=>arr(obj&&obj[k]).forEach(x=>{if(x&&typeof x==='object')out.push({field:k,value:clone(x)})}));return out;
+}
+function forensicFragment(ref,obj,source,path){
+ if(!ref||!isObj(obj))return null;
+ const f={ref,source:clone(source||{}),path:path||'',score:0,data:{},rows:forensicRows(obj),docs:forensicDocs(obj)};
+ const scalarMap={
+  customerId:['customerId','customerAccount','customerNumber','account'],customerNumber:['customerNumber','customerAccount','account'],customerName:['customerName','customerDisplay','consigneeName','recipientName','companyName'],
+  recipientName:['recipientName','consigneeName','customerName'],recipientAddress:['recipientAddress','deliveryAddress','destinationAddress','address'],destinationCountry:['destinationCountry','recipientCountry','country'],
+  carrier:['carrier','carrierName','spedition','forwarder','freightForwarder'],pickupDate:['pickupDate','plannedPickupDate','actualPickupDate','date'],goodsDescription:['goodsDescription','description','warenbeschreibung'],
+  locationId:['locationId','selectedLocationId','siteId'],locationName:['locationName','location','site','standort','zone'],loader:['loader','loaderName','verlader'],bookedAt:['bookedAt','bookingTime','locationBookedAt','registeredAt'],
+  driverName:['driverName','driver','fahrerName'],vehiclePlate:['vehiclePlate','licensePlate','kennzeichen'],pickupConfirmedAt:['pickupConfirmedAt','confirmedAt','signedAt'],status:['status','processStatus','shipmentStatus']
+ };
+ for(const [dest,keys] of Object.entries(scalarMap))for(const k of keys){let v=obj[k];if(k==='location'&&isObj(v))v=v.name||v.label||v.id;const x=cleanScalar(v);if(x&&!badCustomerValue(x)){f.data[dest]=x;break}}
+ if(!f.data.customerName&&isObj(obj.customer)){const x=cleanScalar(obj.customer.name||obj.customer.customerName||obj.customer.companyName);if(x&&!badCustomerValue(x))f.data.customerName=x}
+ if(!f.data.recipientAddress){for(const k of ['locationData','siteData','recipient','consignee','destination']){const x=obj[k];if(isObj(x)){const a=cleanScalar(x.address||x.fullAddress||x.streetAddress);if(a){f.data.recipientAddress=a;break}}}}
+ const count=num(obj.colliCount||obj.packageCount||obj.totalColli||obj.palletCount||obj.pallets||obj.packageQty);if(count>0)f.data.colliCount=count;
+ const weight=num(obj.totalWeight||obj.weightTotal||obj.grossWeight||obj.gesamtgewicht);if(weight>0)f.data.totalWeight=weight;
+ if(f.rows.length)f.score+=300+rowDataScore(f.rows);
+ if(f.data.customerName)f.score+=80;if(f.data.customerId||f.data.customerNumber)f.score+=40;if(f.data.recipientAddress)f.score+=70;
+ if(f.docs.length)f.score+=Math.min(120,f.docs.length*15);if(f.data.locationName||f.data.locationId)f.score+=25;if(f.data.loader)f.score+=15;if(f.data.bookedAt)f.score+=10;
+ if(f.data.pickupConfirmedAt||f.data.driverName||f.data.vehiclePlate)f.score+=40;if(f.data.carrier)f.score+=20;if(f.data.goodsDescription)f.score+=20;if(f.data.colliCount)f.score+=30;if(f.data.totalWeight)f.score+=20;
+ const src=lower(source&&source.blobName);if(src===lower(TEAM_BLOB)||/recovery|backup|team|state|exporthub/.test(src))f.score+=40;if(/location/.test(src))f.score+=15;if(/pickup|pod/.test(src))f.score+=20;
+ return f;
+}
+function collectForensicFragments(value,source,targetRefs){
+ const out=[],seen=new Set(),maxNodes=250000;let nodes=0;
+ function walk(v,path,depth,keyHint){if(++nodes>maxNodes||depth>18||v==null)return;
+  if(Array.isArray(v)){for(let i=0;i<v.length;i++)walk(v[i],path+'['+i+']',depth+1,'');return}
+  if(!isObj(v))return;
+  let ref=forensicRef(v);
+  if(!ref&&keyHint)ref=forensicRef(keyHint);
+  if(!ref){for(const k of ['shipmentRef','reference','referenceNumber','ref','refNo','refNr','shipmentNumber','sendungsnummer']){ref=forensicRef(v[k]);if(ref)break}}
+  if(ref&&(!targetRefs||targetRefs.has(ref))){const f=forensicFragment(ref,v,source,path);if(f&&f.score>0){const sig=ref+'|'+path+'|'+f.score; if(!seen.has(sig)){seen.add(sig);out.push(f)}}}
+  for(const [k,x] of Object.entries(v)){if(k==='users'||k==='sessions'||k==='passwordHistory')continue;walk(x,path?path+'.'+k:k,depth+1,k)}
+ }
+ walk(value,'',0,'');return out;
+}
+async function listAllForensicSources(container,maxSources=1800,containerName){
+ const out=[],seen=new Set();function add(item){if(!item||!item.name||!/\.json$/i.test(item.name))return;const n=lower(item.name);if(/auth-sessions|session|password|token|pin/.test(n))return;const d=sourceDescriptor(item,containerName),key=[d.containerName,d.blobName,d.versionId||'',d.snapshot||''].join('|');if(!seen.has(key)){seen.add(key);out.push(d)}}
+ try{for await(const item of container.listBlobsFlat({includeVersions:true,includeSnapshots:true,includeMetadata:true,includeDeleted:true,includeDeletedWithVersions:true})){add(item);if(out.length>=maxSources)break}}catch(_){try{for await(const item of container.listBlobsFlat({includeVersions:true,includeSnapshots:true,includeMetadata:true})){add(item);if(out.length>=maxSources)break}}catch(__){}}
+ out.sort((a,b)=>Date.parse(b.lastModified||0)-Date.parse(a.lastModified||0));return out;
+}
+function forensicTargetRefs(state){
+ const refs=new Set();bestShipmentSet(state||{}).forEach(sh=>{const r=refOf(sh);if(!r)return;const inactive=/archiviert|storniert|cancel/.test(lower(sh.status||sh.processStatus));if(inactive)return;if(!customerOf(sh)||meaningfulRows(sh).length===0||!cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address))||recoveryFlagged(sh))refs.add(r)});return refs;
+}
+function customerEvidenceIndex(doc,index){
+ index=index||{customers:new Map(),locations:new Map()};const root=isObj(doc&&doc.state)?doc.state:doc;const customers=arr(root&&root.customers);
+ for(const c of customers){if(!isObj(c))continue;const ids=[c.id,c.customerId,c.account,c.customerNumber].map(cleanScalar).filter(Boolean),name=cleanScalar(c.name||c.customerName||c.companyName);for(const id of ids){const key=lower(id);if(!key)continue;const old=index.customers.get(key)||{};index.customers.set(key,Object.assign({},old,name&&!badCustomerValue(name)?{name}:{}, {source:'customer-master'}))}
+  const locs=arr(c.locations||c.sites||c.deliveryLocations);for(const l of locs){if(!isObj(l))continue;const lid=cleanScalar(l.id||l.locationId||l.siteId||l.code),address=cleanScalar(l.address||l.fullAddress||l.deliveryAddress),lname=cleanScalar(l.name||l.locationName||l.siteName);if(!lid||!address)continue;for(const id of ids){index.locations.set(lower(id)+'|'+lower(lid),{address,name:lname,customerName:name&&!badCustomerValue(name)?name:'',source:'customer-location-master'})}}
+ }
+ return index;
+}
+function enrichForensicWithCustomerMaster(currentState,byRef,index){
+ const currentByRef=new Map();bestShipmentSet(currentState||{}).forEach(sh=>{const r=refOf(sh);if(r)currentByRef.set(r,sh)});
+ for(const [ref,frags] of byRef.entries()){const sh=currentByRef.get(ref)||{},ids=[],locs=[];for(const v of [sh.customerId,sh.customerAccount,sh.customerNumber,sh.account]){const x=cleanScalar(v);if(x)ids.push(x)}for(const v of [sh.locationId,sh.selectedLocationId,sh.siteId]){const x=cleanScalar(v);if(x)locs.push(x)}for(const f of frags){for(const v of [f.data.customerId,f.data.customerNumber]){const x=cleanScalar(v);if(x)ids.push(x)}for(const v of [f.data.locationId]){const x=cleanScalar(v);if(x)locs.push(x)}}
+  let customer=null,location=null;for(const id of ids){customer=index.customers.get(lower(id));if(customer)break}outer:for(const id of ids)for(const lid of locs){const hit=index.locations.get(lower(id)+'|'+lower(lid));if(hit){location=hit;break outer}}
+  if(customer||location){const data={};if(customer&&customer.name)data.customerName=customer.name;if(location&&location.address)data.recipientAddress=location.address;if(location&&location.name)data.locationName=location.name;if(location&&location.customerName&&!data.customerName)data.customerName=location.customerName;frags.push({ref,source:{containerName:TEAM_CONTAINER,blobName:'customer-master',current:true},path:'state.customers',score:140,data,rows:[],docs:[]})}
+ }
+}
+function unionObjects(a,b){const out=arr(a).map(clone),seen=new Set(out.map(x=>JSON.stringify([x&&x.id,x&&x.name,x&&x.fileName,x&&x.url,x&&x.href])));arr(b).forEach(x=>{const k=JSON.stringify([x&&x.id,x&&x.name,x&&x.fileName,x&&x.url,x&&x.href]);if(!seen.has(k)){seen.add(k);out.push(clone(x))}});return out}
+function applyForensicFragments(currentState,fragmentsByRef){
+ const st=clone(currentState||{}),list=bestShipmentSet(st),map=new Map();list.forEach(sh=>{const r=refOf(sh);if(r)map.set(r,clone(sh))});let repaired=0,fields=0,rowsRestored=0,docsRestored=0;const audit=[];
+ for(const [ref,frags0] of fragmentsByRef.entries()){
+  if(!map.has(ref))continue;let sh=map.get(ref),changed=false;const frags=frags0.slice().sort((a,b)=>b.score-a.score);
+  let bestRows=meaningfulRows(sh),bestRowScore=rowDataScore(bestRows);for(const f of frags){if(f.rows.length&&rowDataScore(f.rows)>bestRowScore){bestRows=clone(f.rows);bestRowScore=rowDataScore(f.rows)}}
+  if(meaningfulRows(sh).length===0&&bestRows.length){sh.rows=clone(bestRows);rowsRestored+=bestRows.length;changed=true;fields++}
+  const allowed=['customerId','customerNumber','customerName','recipientName','recipientAddress','destinationCountry','carrier','pickupDate','goodsDescription','locationId','locationName','loader','bookedAt','driverName','vehiclePlate','pickupConfirmedAt','colliCount','totalWeight'];
+  for(const k of allowed){let cur=cleanScalar(sh[k]);if(k==='customerName'&&badCustomerValue(cur))cur='';if(cur)continue;for(const f of frags){const v=f.data[k];if(v!==undefined&&v!==null&&String(v)!==''){sh[k]=clone(v);changed=true;fields++;break}}}
+  /* Preserve current business status; only fill it if completely missing. */ if(!cleanScalar(sh.status)){for(const f of frags){if(f.data.status){sh.status=f.data.status;changed=true;fields++;break}}}
+  for(const f of frags)for(const d of f.docs){const before=arr(sh[d.field]).length;sh[d.field]=unionObjects(sh[d.field], [d.value]);if(arr(sh[d.field]).length>before){docsRestored++;changed=true}}
+  if(changed){delete sh.recoveryIncomplete;delete sh._recoveredFromLocationRecord;sh.recoverySource='RC635-forensic';sh.recoveryForensicAt=now();repaired++;audit.push({ref,sources:Array.from(new Set(frags.slice(0,12).map(f=>f.source&&f.source.blobName).filter(Boolean))),rows:meaningfulRows(sh).length,customer:customerOf(sh),address:cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress),fields:allowed.filter(k=>cleanScalar(sh[k]))})}
+  map.set(ref,sh)
+ }
+ st.shipments=Array.from(map.values());const sm=new Map();arr(st.savedShipments).forEach(sh=>{const r=refOf(sh);if(r)sm.set(r,clone(sh))});st.shipments.forEach(sh=>{const r=refOf(sh);if(r){const old=sm.get(r);if(!old||shipmentRichness(sh)>=shipmentRichness(old))sm.set(r,clone(sh))}});if(sm.size)st.savedShipments=Array.from(sm.values());return {state:st,repaired,fields,rowsRestored,docsRestored,audit}
+}
+async function forensicScan(container,current,targetRefs,maxSources,forensicContainers){
+ const refs=targetRefs||forensicTargetRefs(current.state||{}),byRef=new Map(),customerIndex={customers:new Map(),locations:new Map()};refs.forEach(r=>byRef.set(r,[]));let scanned=0,readErrors=0,fragments=0,sourcesCount=0;
+ function ingest(doc,source){customerEvidenceIndex(doc,customerIndex);for(const f of collectForensicFragments(doc,source,refs)){byRef.get(f.ref).push(f);fragments++}}
+ ingest(current,{containerName:TEAM_CONTAINER,blobName:TEAM_BLOB,current:true,lastModified:current.updatedAt||null});
+ const configured=Array.isArray(forensicContainers)&&forensicContainers.length?forensicContainers:[{name:TEAM_CONTAINER,client:container}];
+ const perContainer=Math.max(150,Math.ceil((Number(maxSources)||1800)/configured.length));
+ for(const entry of configured){
+  const cc=entry&&entry.client;if(!cc)continue;let sources=[];
+  try{sources=await listAllForensicSources(cc,perContainer,entry.name)}catch(_){readErrors++;continue}
+  sourcesCount+=sources.length;
+  for(const src of sources){try{const d=await readJson(historyClient(cc,src),{},false);ingest(d.value,src);scanned++}catch(_){readErrors++}}
+ }
+ enrichForensicWithCustomerMaster(current.state||{},byRef,customerIndex);
+ return {refs,byRef,sourcesCount,scanned,readErrors,fragments,containers:configured.map(x=>x&&x.name).filter(Boolean)};
+}
+async function forensicPreview(container,current,payload,forensicContainers){const refs=forensicTargetRefs(current.state||{}),scan=await forensicScan(container,current,refs,Number(payload&&payload.maxSources)||1800,forensicContainers),summary=[];for(const r of refs){const fs=scan.byRef.get(r)||[];summary.push({ref:r,fragments:fs.length,bestScore:fs.reduce((m,f)=>Math.max(m,f.score),0),rowsFound:fs.some(f=>f.rows.length>0),customerFound:fs.some(f=>!!f.data.customerName),addressFound:fs.some(f=>!!f.data.recipientAddress),sources:Array.from(new Set(fs.map(f=>f.source&&f.source.blobName).filter(Boolean))).slice(0,12)})}return {ok:true,forensicPreview:true,targetRefs:Array.from(refs),containers:scan.containers,sourcesCount:scan.sourcesCount,scanned:scan.scanned,readErrors:scan.readErrors,fragments:scan.fragments,summary}}
+async function forensicRecover(container,teamBlob,current,payload,user,forensicContainers){
+ const refs=forensicTargetRefs(current.state||{});if(!refs.size)return {ok:true,recovered:false,reason:'NO_INCOMPLETE_SHIPMENTS',targetRefs:[]};const scan=await forensicScan(container,current,refs,Number(payload&&payload.maxSources)||1800,forensicContainers),merged=applyForensicFragments(current.state||{},scan.byRef),before=candidateStats(current,Array.from(refs)),after=candidateStats({state:merged.state},Array.from(refs));
+ if(merged.repaired===0)throw error('FORENSIC_NO_EVIDENCE','Für die beschädigten Sendungen wurden keine zusätzlichen echten Datenfragmente gefunden. Es wurde nichts verändert.',409);
+ const backupName=await safetyBackup(container,current,'team-state-before-RC635-forensic');const next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC635-forensic-recovery';next.state=merged.state;next.recoveryAudit={type:'RC635-forensic',at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,targetRefs:Array.from(refs),repaired:merged.repaired,fieldsRestored:merged.fields,rowsRestored:merged.rowsRestored,documentsRestored:merged.docsRestored,containers:scan.containers,sourcesCount:scan.sourcesCount,scanned:scan.scanned,readErrors:scan.readErrors,fragments:scan.fragments,before,after,audit:merged.audit};await uploadJson(teamBlob,next,current.__etag||null);return {ok:true,recovered:true,revision:next.revision,backupBlob:backupName,targetRefs:Array.from(refs),repaired:merged.repaired,fieldsRestored:merged.fields,rowsRestored:merged.rowsRestored,documentsRestored:merged.docsRestored,containers:scan.containers,sourcesCount:scan.sourcesCount,scanned:scan.scanned,readErrors:scan.readErrors,fragments:scan.fragments,audit:merged.audit,remainingIncompleteRefs:forensicTargetRefs(next.state||{}).size?Array.from(forensicTargetRefs(next.state||{})):[]}}
+
+
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS'},body:''};return}
  try{
-  const payload=body(req),c=await clients(),current=await validateSession(req,payload,c),blob=c.team;
+  const payload=body(req),c=await clients(),current=await validateSession(req,payload,c),blob=c.team;current.team.__etag=current.teamEtag||null;
   const queryMode=req.query?lower(req.query.mode):'',mode=queryMode||lower(payload.action||payload.mode);
   if(req.method==='GET'||(req.method==='POST'&&(mode==='read'||mode==='meta'))){
    if(mode==='meta'||(req.query&&String(req.query.meta||'')==='1')){context.res=json(200,Object.assign({ok:true,metaOnly:true},await metadataOnly(blob)));return}
@@ -566,6 +687,14 @@ module.exports=async function(context,req){
    if(mode==='recovery-preview'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
     context.res=json(200,await recoveryPreview(c.container,payload));return
+   }
+   if(mode==='forensic-preview'){
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die forensische Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
+    context.res=json(200,await forensicPreview(c.container,current.team,payload,c.forensicContainers));return
+   }
+   if(mode==='forensic-recover'){
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die forensische Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
+    context.res=json(200,await forensicRecover(c.container,blob,current.team,payload,current.user,c.forensicContainers));return
    }
    if(mode==='recover-shipments'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);

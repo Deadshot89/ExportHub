@@ -174,13 +174,13 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC634',cache:'634',loginReturn:'/test?v=634'});
+var BUILD=Object.freeze({version:'RC635',cache:'635',loginReturn:'/?v=635'});
 var RELEASE=Object.freeze({
- version:'RC634',
+ version:'RC635',
  date:'11.08.2026',
- title:'Recovery-Fehler korrekt behandeln und weitere echte Azure-Backups durchsuchen',
+ title:'Forensische Wiederherstellung aller beschädigten Sendungen · Recovery-Fehler korrekt behandeln und weitere echte Azure-Backups durchsuchen',
  changes:Object.freeze([
-  'RC634 trennt API-Erreichbarkeit und fachliche Recovery-Fehler: HTTP-409-Recoveryantworten werden nicht mehr fälschlich als STATE_API_UNREACHABLE ausgegeben.',
+  'RC635 trennt API-Erreichbarkeit und fachliche Recovery-Fehler: HTTP-409-Recoveryantworten werden nicht mehr fälschlich als STATE_API_UNREACHABLE ausgegeben.',
   'Wenn keine echte historische Packstückquelle gefunden wird, startet ExportHUB trotzdem mit dem vorhandenen Azure-Stand; unvollständige Sendungen bleiben für Ladeliste/PDF geschützt.',
   'Die serverseitige Rettung durchsucht zusätzlich ältere ExportHUB-/Team-/Backup-JSON-Dateien im Azure-Container und unterstützt weitere historische Referenz- und Packstückfeldnamen.',
   'RC632 verlangt keinen vollständigen historischen Gesamtstand mehr: Jede betroffene Sendungsreferenz wird direkt und unabhängig aus der Azure-Versionshistorie rekonstruiert.',
@@ -215,7 +215,7 @@ var RELEASE=Object.freeze({
   'Fehlende Colli-Zeilen lösen auch bei vorhandenem Kundennamen die Azure-Historienrettung aus',
   'Druck/PDF einer unvollständigen Sendung wird mit klarer Meldung blockiert statt leer erzeugt',
   'Smartphone 390 px nutzt mindestens 85 Prozent der Bildschirmbreite für #content',
-  'Hauptseite und TESTVERSION melden beide RC634',
+  'Hauptseite und TESTVERSION melden beide RC635',
   'Beschädigte Kundenwerte false, true, Test, Test Kunde sowie Strichwerte gelten nicht als gültiger Sendungsinhalt',
   'Beschädigter Mehrfachbestand löst vor dem Rendern die sichere Azure-Historienprüfung aus',
   'Sendungsübersicht enthält keine Seitennavigation und keine Einträge-pro-Seite-Auswahl',
@@ -10991,20 +10991,17 @@ function shipmentRecoveryStats(state){
 function shipmentHistoryRecoveryNeeded(state){var s=shipmentRecoveryStats(state);return s.activeCount>=1&&(s.placeholders>0||s.activeNoRows>0||s.activeSuspect>=Math.max(1,Math.ceil(s.activeCount*.20)))}
 async function recoverShipmentHistoryIfNeeded(doc){
  if(!doc||!doc.state||!shipmentHistoryRecoveryNeeded(doc.state))return doc;
- var stats=shipmentRecoveryStats(doc.state),target=Math.max(3,stats.count||25),known=stats.refs.slice(0,80);
- progress(19,'Beschädigter Sendungsbestand erkannt – jede Referenz wird direkt in der Azure-Historie gesucht …');
- progress(21,'Historische Sendungsdaten werden referenzweise wiederhergestellt …');
- var restored;
- try{restored=await stateCall('recover-shipments',{targetCount:target,knownRefs:known,maxVersions:80,deepMaxVersions:500},{timeoutMs:240000,maxAttempts:1})}
+ var stats=shipmentRecoveryStats(doc.state),known=stats.refs.slice(0,120);
+ progress(18,'Beschädigte Sendungen erkannt – forensische Datenrettung aus allen Azure-Quellen startet …');
+ var restored=null;
+ try{restored=await stateCall('forensic-recover',{knownRefs:known,maxSources:1800},{timeoutMs:300000,maxAttempts:1})}
  catch(error){
-  if(error&&error.code==='NO_RECOVERABLE_SHIPMENT_HISTORY'){runtime.shipmentRecoveryWarning={code:'NO_RECOVERABLE_SHIPMENT_HISTORY',at:new Date().toISOString(),stats:stats,message:'Für die betroffenen Sendungsreferenzen wurden noch keine echten historischen Packstückdaten gefunden.'};progress(24,'Keine vollständige historische Packstückquelle gefunden – ExportHUB lädt den vorhandenen Stand geschützt weiter …');console.warn('ExportHUB Sendungsrettung',runtime.shipmentRecoveryWarning);return doc}
-  if(error&&error.code==='RECOVERY_NO_IMPROVEMENT'){runtime.shipmentRecoveryWarning={code:'RECOVERY_NO_IMPROVEMENT',at:new Date().toISOString(),stats:stats,message:'Historische Stände enthalten aktuell keine vollständigeren Sendungsdaten.'};progress(24,'Historische Stände enthalten keine vollständigeren Packstückdaten – ExportHUB lädt den vorhandenen Stand geschützt weiter …');console.warn('ExportHUB Sendungsrettung',runtime.shipmentRecoveryWarning);return doc}
+  if(error&&['FORENSIC_NO_EVIDENCE','NO_RECOVERABLE_SHIPMENT_HISTORY','RECOVERY_NO_IMPROVEMENT'].indexOf(error.code)>=0){runtime.shipmentRecoveryWarning={code:error.code,at:new Date().toISOString(),stats:stats,message:error.message||'Keine zusätzlichen Datenfragmente gefunden.'};progress(24,'Forensische Suche abgeschlossen – vorhandener Stand wird geschützt geladen.');console.warn('ExportHUB forensische Sendungsrettung',runtime.shipmentRecoveryWarning);return doc}
   throw error
  }
- if(!restored||restored.ok===false||restored.recovered!==true){var e2=new Error('Die Azure-Historie konnte nicht sicher wiederhergestellt werden. Der beschädigte Stand wurde nicht als neuer Soll-Stand übernommen.');e2.code='SHIPMENT_RECOVERY_FAILED';throw e2}
- runtime.network.stateGets++;var fresh=await stateCall('read',{}, {timeoutMs:15000,maxAttempts:1}),after=shipmentRecoveryStats(fresh&&fresh.state||{});
- if(!fresh||fresh.ok===false||!fresh.state||after.count===0||(stats.activeNoRows>0&&after.activeNoRows>=stats.activeNoRows)||(stats.activeSuspect>0&&after.activeSuspect>=stats.activeSuspect)){var e3=new Error('Die Wiederherstellung wurde serverseitig ausgeführt, aber die fehlenden Sendungskerndaten wurden nicht verbessert. Bitte keine Sendungen speichern.');e3.code='SHIPMENT_RECOVERY_INCOMPLETE';throw e3}
- runtime.shipmentRecovery={at:new Date().toISOString(),before:stats,after:after,source:restored.source||null,backupBlob:restored.backupBlob||'',restoredRefs:restored.restoredRefs||[],deepRecoveredRefs:restored.deepRecoveredRefs||[],remainingIncompleteRefs:restored.remainingIncompleteRefs||[],deepScannedVersions:Number(restored.deepScannedVersions||0)};return fresh
+ if(!restored||restored.ok===false||restored.recovered!==true)return doc;
+ runtime.network.stateGets++;var fresh=await stateCall('read',{}, {timeoutMs:20000,maxAttempts:1}),after=shipmentRecoveryStats(fresh&&fresh.state||{});
+ runtime.shipmentRecovery={type:'RC635-forensic',at:new Date().toISOString(),before:stats,after:after,backupBlob:restored.backupBlob||'',repaired:Number(restored.repaired||0),fieldsRestored:Number(restored.fieldsRestored||0),rowsRestored:Number(restored.rowsRestored||0),documentsRestored:Number(restored.documentsRestored||0),remainingIncompleteRefs:restored.remainingIncompleteRefs||[],sourcesCount:Number(restored.sourcesCount||0),scanned:Number(restored.scanned||0),fragments:Number(restored.fragments||0)};return fresh
 }
 
 async function loadState(){
