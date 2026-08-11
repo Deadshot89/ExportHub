@@ -129,7 +129,7 @@ async function saveMerged(blob,incoming,user,initialTeam,initialEtag){
 const RC614_TARGET_COUNT=25;
 const RC614_EVIDENCE_REFS=[
  'PKC5WB','8DAXMV','W4MY9T','ECUFAU','BT7U4H','6ZQ6AT','94XD9K','CPZM5E',
- 'KLQA2M','PWFB8E','UBF78K','D97W6U','ONIYV3','Y4ABSN','ASZ9JM','J84J2S'
+ 'KLQA2M','PWFB8E','UBF78K','D97W6U','ONIYV3','Y4ABSN','ASZ9JM','J84J2S','8GYGG3','U2KBBK'
 ];
 function arr(v){return Array.isArray(v)?v:[]}
 function isObj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
@@ -155,7 +155,7 @@ function customerOf(sh){
  if(isObj(sh.customer)){const x=cleanScalar(sh.customer.name||sh.customer.customerName||sh.customer.companyName);if(x&&!badCustomerValue(x))return x}
  return '';
 }
-function rowList(sh){return arr(sh&&(sh.rows||sh.colli||sh.collis||sh.packages||sh.packagingRows))}
+function rowList(sh){return arr(sh&&(sh.rows||sh.colli||sh.collis||sh.packages||sh.packagingRows||sh.shipmentRows||sh.colliRows||sh.items||sh.lines))}
 function docCount(sh){
  if(!isObj(sh))return 0;
  const fields=['podFiles','abdFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments'];
@@ -163,9 +163,9 @@ function docCount(sh){
 }
 function coreContentComplete(sh){
  if(!isObj(sh)||!customerOf(sh))return false;
- const rows=rowList(sh),address=cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address));
- const customerId=cleanScalar(sh.customerId||sh.customerAccount||sh.customerNumber),pickup=cleanScalar(sh.pickupDate||sh.plannedPickupDate),goods=cleanScalar(sh.goodsDescription||sh.description);
- return rows.length>0||!!address||!!(customerId&&pickup&&goods);
+ const rows=rowList(sh),address=cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address));
+ /* RC629: Eine Sendung gilt für die Datenrettung nur dann als vollständig, wenn echte Packstückdaten vorhanden sind. */
+ return rows.length>0&&!!address;
 }
 function recoveryFlagged(sh){
  return !!(sh&&(sh.recoveryIncomplete===true||sh._recoveredFromLocationRecord===true||/location-booking|verified-location-evidence/i.test(lower(sh.recoverySource))||badCustomerValue(sh.customerName||(typeof sh.customer==='string'?sh.customer:''))));
@@ -176,8 +176,8 @@ function shipmentRichness(sh){
  if(refOf(sh))n+=40;
  if(customerOf(sh))n+=50;
  if(cleanScalar(sh.customerId||sh.customerAccount||sh.customerNumber))n+=15;
- if(cleanScalar(sh.recipientAddress||sh.destinationAddress||sh.address))n+=15;
- const rows=rowList(sh);if(rows.length)n+=Math.min(60,rows.length*12);
+ if(cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address)))n+=45;
+ const rows=rowList(sh);if(rows.length)n+=80+Math.min(120,rows.length*18);
  n+=Math.min(60,docCount(sh)*8);
  if(cleanScalar(sh.pickupDate||sh.plannedPickupDate||sh.actualPickupDate))n+=8;
  if(cleanScalar(sh.status||sh.processStatus))n+=5;
@@ -307,6 +307,50 @@ async function inspectHistory(container,targetCount,knownRefs,maxVersions=70){
  }
  return {candidate:bestSafe,inspected,historyCount:history.length};
 }
+function historicalCore(sh){
+ if(!isObj(sh))return {ok:false,customer:false,address:false,rows:0};
+ const customer=!!customerOf(sh),address=!!cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address)),rows=rowList(sh).length;
+ return {ok:customer&&address&&rows>0,customer,address,rows};
+}
+function mergeHistoricalCopy(a,b){
+ if(!isObj(a))return clone(b||{});if(!isObj(b))return clone(a||{});
+ const primary=shipmentRichness(b)>shipmentRichness(a)?clone(b):clone(a),secondary=shipmentRichness(b)>shipmentRichness(a)?a:b;
+ Object.keys(secondary).forEach(k=>{
+  const pv=primary[k],sv=secondary[k];
+  const missing=pv===undefined||pv===null||pv===false||(typeof pv==='string'&&!cleanScalar(pv))||(Array.isArray(pv)&&!pv.length)||(isObj(pv)&&!Object.keys(pv).length);
+  if(missing&&sv!==undefined&&sv!==null&&sv!==false){
+   if(typeof sv==='string'&&!cleanScalar(sv))return;
+   if(Array.isArray(sv)&&!sv.length)return;
+   if(isObj(sv)&&!Object.keys(sv).length)return;
+   if(/customer|consigneeName|recipientName|companyName/i.test(k)&&badCustomerValue(typeof sv==='string'?sv:(sv&&sv.name)))return;
+   primary[k]=clone(sv);
+  }
+ });
+ const ar=rowList(a),br=rowList(b),bestRows=br.length>ar.length?br:ar;
+ if(bestRows.length){['rows','colli','collis','packages','packagingRows','shipmentRows','colliRows','items','lines'].forEach(k=>{if(Array.isArray((br.length>ar.length?b:a)[k])&&((br.length>ar.length?b:a)[k]).length)primary[k]=clone((br.length>ar.length?b:a)[k])});if(!Array.isArray(primary.rows)||!primary.rows.length)primary.rows=clone(bestRows)}
+ ['podFiles','abdFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments'].forEach(k=>{if(Array.isArray(a[k])||Array.isArray(b[k]))primary[k]=mergeUniqueFiles(a[k],b[k])});
+ return primary;
+}
+async function bestHistoricalPerShipment(container,refs,maxVersions=180){
+ const wanted=new Set(arr(refs).map(v=>cleanScalar(v).toUpperCase()).filter(v=>/^[A-Z0-9]{6}$/.test(v))),history=await listHistory(container),map=new Map(),sources=new Map();
+ const max=Math.max(1,Math.min(240,Number(maxVersions)||180));let scanned=0,readErrors=0;
+ for(let i=0;i<history.length&&i<max;i++){
+  const source=history[i];
+  try{
+   const d=await readJson(historyClient(container,source),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;
+   bestShipmentSet(doc.state||{}).forEach(sh=>{
+    const ref=refOf(sh);if(!ref||(wanted.size&&!wanted.has(ref)))return;
+    if(recoveryFlagged(sh)||!customerOf(sh))return;
+    const cur=map.get(ref),merged=cur?mergeHistoricalCopy(cur,sh):clone(sh);
+    if(!cur||shipmentRichness(merged)>=shipmentRichness(cur)){map.set(ref,merged);sources.set(ref,source)}
+   });
+   if(wanted.size&&i>=24){let ready=0;wanted.forEach(ref=>{const hit=map.get(ref);if(hit&&historicalCore(hit).ok)ready++});if(ready===wanted.size)break}
+  }catch(_){readErrors++}
+ }
+ const complete=[],partial=[];
+ map.forEach((sh,ref)=>{const core=historicalCore(sh),entry={ref,shipment:sh,source:sources.get(ref)||null,score:shipmentRichness(sh),core};(core.ok?complete:partial).push(entry)});
+ return {historyCount:history.length,scanned,readErrors,complete,partial};
+}
 function mergeUniqueFiles(a,b){
  const out=[],seen=new Set();
  arr(a).concat(arr(b)).forEach((f,i)=>{
@@ -432,28 +476,42 @@ async function recoverShipments(container,teamBlob,payload,user){
   const d=await readJson(historyClient(container,candidateInfo.source),emptyTeam(),false);candidateDoc=d.value||emptyTeam();
  }
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam();
- const backupName=await safetyBackup(container,current,'team-state-before-RC628-recovery');
- const merged=mergeHistoricalShipments(current.state||{},candidateDoc.state||{});
+ const backupName=await safetyBackup(container,current,'team-state-before-RC629-recovery');
+ /* Erst den sichersten Gesamtstand zusammenführen, danach pro Referenz die vollständigste echte historische Sendung suchen. */
+ let merged=mergeHistoricalShipments(current.state||{},candidateDoc.state||{});
+ const refs=new Set();
+ bestShipmentSet(current.state||{}).concat(bestShipmentSet(candidateDoc.state||{})).forEach(sh=>{const r=refOf(sh);if(r)refs.add(r)});
+ arr(known).forEach(r=>{r=cleanScalar(r).toUpperCase();if(/^[A-Z0-9]{6}$/.test(r))refs.add(r)});
+ const deep=await bestHistoricalPerShipment(container,Array.from(refs),payload&&payload.deepMaxVersions||180);
+ if(deep.complete.length){
+  const deepState={shipments:deep.complete.map(x=>x.shipment)};
+  const deepMerged=mergeHistoricalShipments(merged.state,deepState);
+  merged={state:deepMerged.state,added:merged.added+deepMerged.added,repaired:merged.repaired+deepMerged.repaired,backfilled:merged.backfilled+deepMerged.backfilled,tombstonesRemoved:merged.tombstonesRemoved+deepMerged.tombstonesRemoved,restoredRefs:Array.from(new Set(merged.restoredRefs.concat(deepMerged.restoredRefs)))};
+ }
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
  next.revision=Number(current.revision||0)+1;
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC628-history-recovery';
+ next.clientVersion='RC629-history-recovery';
  next.state=merged.state;
+ const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>{const sk=normalizedStatus(sh);return sk!=='archiviert'&&sk!=='storniert'&&!historicalCore(sh).ok}).map(refOf).filter(Boolean);
  next.recoveryAudit={
   at:next.updatedAt,by:next.updatedBy,source:candidateInfo.source,sourceRevision:candidateInfo.revision,
   sourceUpdatedAt:candidateInfo.updatedAt,backupBlob:backupName,added:merged.added,repaired:merged.repaired,
-  backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs
+  backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,
+  deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,
+  deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete
  };
  await uploadJson(teamBlob,next,fresh.etag);
  return {
   ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,
   source:candidateInfo.source,sourceRevision:candidateInfo.revision,sourceUpdatedAt:candidateInfo.updatedAt,
   sourceStats:candidateInfo.stats,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,
-  tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,
-  finalStats:candidateStats(next,known)
+  tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,finalStats,
+  deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,
+  deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete
  };
 }
 
