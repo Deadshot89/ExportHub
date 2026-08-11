@@ -174,12 +174,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC615',cache:'615',loginReturn:'/test?v=615'});
+var BUILD=Object.freeze({version:'RC616',cache:'616',loginReturn:'/test?v=616'});
 var RELEASE=Object.freeze({
- version:'RC615',
+ version:'RC616',
  date:'11.08.2026',
- title:'Speditionsname in Anmeldung und Ladeliste vollständig übernehmen',
+ title:'POD-belegte Sendungen gezielt wiederherstellen',
  changes:Object.freeze([
+  'Sieben durch unterschriebene POD-Ladelisten belegte Sendungen werden gezielt aus Azure-Historie und QR-/POD-Datensätzen wiederhergestellt: PWFB8E, 6ZQ6AT, 94XD9K, KLQA2M, UBF78K, CPZM5E und BT7U4H.',
+  'Fehlende Sendungen werden auch dann wieder angelegt, wenn keine vollständige 25-Sendungen-Historie gefunden wird; vorhandene vollständige Datensätze bleiben erhalten.',
+  'POD-Datum, POD-Dateiname, Dateigröße und vorhandene serverseitige QR-/POD-Daten werden als Wiederherstellungsnachweis verknüpft.',
+  'Vor der gezielten POD-Wiederherstellung wird der aktuelle Azure-Teamstand separat gesichert.',
   'Speditionsname wird aus Sendung, Kunde und gewähltem Standort einheitlich übernommen und in Anmeldung sowie Ladeliste ausgegeben.',
   'Beim Speichern wird der Speditionsname konsistent in carrier, carrierName, spedition und speditionName gespiegelt.',
   'RC614 stellt fehlende vollständige Sendungsdatensätze ausschließlich aus historischen Azure-Versionen von team-state.json wieder her.',
@@ -10997,9 +11001,33 @@ async function rc614RecoverHistoricalShipmentsIfNeeded(document){
  }
 }
 
+
+const RC616_POD_RECOVERY_REFS=['PWFB8E','6ZQ6AT','94XD9K','KLQA2M','UBF78K','CPZM5E','BT7U4H'];
+function rc616PodRecoveryStatus(document){
+ var all=[];if(document&&document.state){all=all.concat(Array.isArray(document.state.shipments)?document.state.shipments:[],Array.isArray(document.state.savedShipments)?document.state.savedShipments:[])}
+ var map=new Map();all.forEach(function(sh){var r=rc614Ref(sh);if(!r)return;var old=map.get(r),score=(rc614Customer(sh)?10:0)+(Array.isArray(sh.podFiles)&&sh.podFiles.length?5:0);if(!old||score>old.score)map.set(r,{sh:sh,score:score})});
+ var missing=[],withoutPod=[];RC616_POD_RECOVERY_REFS.forEach(function(ref){var x=map.get(ref),sh=x&&x.sh;if(!sh){missing.push(ref);return}var pod=lower(sh.podStatus||sh.status||sh.processStatus||'');if(!/pod/.test(pod)||!rc614SafeScalar(sh.podConfirmedAt||sh.pickupConfirmedAt||sh.pickedUpAt))withoutPod.push(ref)});
+ return{missing:missing,withoutPod:withoutPod,complete:missing.length===0&&withoutPod.length===0}
+}
+async function rc616RecoverPodEvidenceShipmentsIfNeeded(document){
+ try{
+  if(!document||!document.state)return document;
+  var before=rc616PodRecoveryStatus(document);window.__EXPORTHUB_RC616_POD_RECOVERY__={stage:'check',before:before};
+  if(before.complete)return document;
+  progress(15,'POD-belegte Sendungen werden aus Azure- und QR/POD-Daten wiederhergestellt …');
+  var result=await stateCall('recover-pod-shipments',{refs:RC616_POD_RECOVERY_REFS,maxVersions:120},{timeoutMs:180000,maxAttempts:1});
+  window.__EXPORTHUB_RC616_POD_RECOVERY__.result=result;
+  if(!result||result.ok===false)return document;
+  var fresh=await stateCall('read',{}, {timeoutMs:15000,maxAttempts:1});
+  if(fresh&&fresh.state){var after=rc616PodRecoveryStatus(fresh);window.__EXPORTHUB_RC616_POD_RECOVERY__.after=after;window.__EXPORTHUB_RC616_POD_RECOVERY__.stage=after.complete?'recovered':'partial';status(after.complete?'POD-Sendungen wiederhergestellt: '+RC616_POD_RECOVERY_REFS.join(', '):'POD-Wiederherstellung teilweise abgeschlossen. Fehlend: '+after.missing.concat(after.withoutPod).join(', '),after.complete?'ok':'bad');return fresh}
+  return document
+ }catch(e){window.__EXPORTHUB_RC616_POD_RECOVERY__=Object.assign(window.__EXPORTHUB_RC616_POD_RECOVERY__||{},{stage:'failed',error:String(e&&e.message||e),code:String(e&&e.code||'')});console.error('RC616 POD-Sendungswiederherstellung',e);status('POD-Sendungswiederherstellung konnte nicht ausgeführt werden: '+(e&&e.message||'Unbekannter Fehler'),'bad');return document}
+}
+
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
  let d=await stateCall('read',{});
+ d=await rc616RecoverPodEvidenceShipmentsIfNeeded(d);
  d=await rc614RecoverHistoricalShipmentsIfNeeded(d);
  progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
  if(!d||d.ok===false){const e=new Error((d&&d.message)||'Teamdaten ungültig');e.code=d&&d.code||'TEAMDATA_INVALID';throw e}
