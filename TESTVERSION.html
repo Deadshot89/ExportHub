@@ -174,17 +174,17 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC613',cache:'613',loginReturn:'/test?v=613'});
+var BUILD=Object.freeze({version:'RC614',cache:'614',loginReturn:'/test?v=614'});
 var RELEASE=Object.freeze({
- version:'RC613',
+ version:'RC614',
  date:'11.08.2026',
- title:'Sendungsbestand sicher wiederherstellen ohne Lagerdaten zu überschreiben',
+ title:'25 Sendungen aus Azure-Historie sicher wiederherstellen',
  changes:Object.freeze([
-  'RC613 entfernt die automatische Erzeugung unvollständiger Sendungen aus Location-Datensätzen vollständig.',
-  'Lager-/Location-Daten werden nur noch von echten Sendungsdatensätzen mit gültigem Kundennamen aktualisiert.',
-  'Aktive Lagerbuchungen werden ausschließlich mit vorhandenen vollständigen Kopien aus shipments, savedShipments oder Browser-Sicherungen verknüpft.',
-  'Fehlende vollständige Kopien bleiben als sichere Lagerhinweise sichtbar und werden nicht als neue Sendung in Azure gespeichert.',
-  'Automatische Lösch-Tombstones für fehlende Sendungen und Dokumente sind deaktiviert; explizite Löschaktionen bleiben unverändert.',
+  'RC614 stellt fehlende vollständige Sendungsdatensätze ausschließlich aus historischen Azure-Versionen von team-state.json wieder her.',
+  'Vor jeder Wiederherstellung wird der aktuelle Teamstand serverseitig als separates Recovery-Backup gesichert.',
+  'Unvollständige Lagerkarten werden nicht mehr als vollständige Sendungen nach Azure geschrieben.',
+  'Ein bloß vorübergehend fehlender Eintrag in state.shipments erzeugt keinen automatischen Sendungs-Löschtombstone mehr.',
+  'Aktuelle POD-, Abhol- und Lagerinformationen werden beim Wiederherstellen einer älteren vollständigen Sendung erhalten.',
   'RC608 basiert vollständig auf RC607 und repariert Lagerrechte sowie die nicht-destruktive Sendungsbestandspflege.',
   'Der unvollständige bestehende RC172-CSS-Block wurde direkt geschlossen.',
   'Doppelte spätere Lager-Farbregeln wurden entfernt; die Lagerfarben liegen nur noch im bestehenden Lager-Style.',
@@ -10202,7 +10202,7 @@ function overviewPickupCompleted(sh){
  var key=overviewStatusKey(sh);return !!(sh&&(sh.pickedUpAt||sh.actualPickupDate||sh.pickupConfirmedAt||sh.qrPickupConfirmed===true||sh.pickupQrUsed===true||['abgeholt','pod','abgeschlossen','archiviert'].indexOf(key)>=0))
 }
 function overviewFiltered(){
- var st=S(),q=L(st.rc524OverviewSearch||''),selected=overviewSelectedStatuses(),list=A(st.shipments).filter(function(sh){return !(sh&&(sh.recoveryIncomplete===true||sh._recoveredFromLocationRecord===true||L(sh.recoverySource)==='location-booking'));});
+ var st=S(),q=L(st.rc524OverviewSearch||''),selected=overviewSelectedStatuses(),list=A(st.shipments).slice();
  if(q)list=list.filter(function(sh){var c=shipmentCustomer(sh);return L([shipmentRef(sh),shipmentId(sh),customerName(c,sh),sh.carrier,c.carrier,sh.status,sh.pickupStatus,sh.overviewNote,sh.shipmentOverviewNote,overviewAttachmentSearchText(sh)].join(' ')).indexOf(q)>=0});
  if(selected.length)list=list.filter(function(sh){return selected.indexOf(overviewStatusKey(sh))>=0});
  var sort=Q(st.rc210OverviewSort||'updated'),direction=Q(st.rc210OverviewDirection||(sort==='updated'?'desc':'asc')),factor=direction==='desc'?-1:1;
@@ -10929,9 +10929,76 @@ async function stateCall(mode,payload,requestOptions){
  const last=errors.length?errors[errors.length-1].error:null,checked=candidates.map(apiEndpointLabel).filter(function(value,index,array){return value&&array.indexOf(value)===index});
  const error=new Error('Azure-Speicher-API nicht erreichbar. Geprüft: '+(checked.join(', ')||apiEndpointLabel(API))+'.'+(last&&last.message?' Letzter Fehler: '+last.message:''));error.code='STATE_API_UNREACHABLE';error.status=last&&last.status;error.cause=last;error.endpoints=checked;throw error
 }
+
+const RC614_RECOVERY_TARGET=25;
+const RC614_RECOVERY_REFS=['PKC5WB','8DAXMV','W4MY9T','ECUFAU','BT7U4H','6ZQ6AT','94XD9K','CPZM5E','KLQA2M','PWFB8E','UBF78K','D97W6U','ONIYV3','Y4ABSN','ASZ9JM','J84J2S'];
+function rc614SafeScalar(v){
+ if(v==null||typeof v==='boolean'||typeof v==='object')return'';
+ var s=String(v).trim();return /^(?:false|true|null|undefined|\[object Object\])$/i.test(s)?'':s
+}
+function rc614Ref(sh){
+ if(!sh||typeof sh!=='object')return'';
+ var vals=[sh.ref,sh.reference,sh.shipmentRef,sh.referenceNumber,sh.exporthubRef,sh.exportHubReference];
+ for(var i=0;i<vals.length;i++){var x=rc614SafeScalar(vals[i]).toUpperCase();if(/^[A-Z0-9]{6}$/.test(x))return x}
+ return''
+}
+function rc614Customer(sh){
+ if(!sh||typeof sh!=='object')return'';
+ var vals=[sh.customerName,sh.customerDisplay,sh.consigneeName,sh.recipientName,sh.companyName];
+ for(var i=0;i<vals.length;i++){var x=rc614SafeScalar(vals[i]);if(x)return x}
+ if(typeof sh.customer==='string')return rc614SafeScalar(sh.customer);
+ if(sh.customer&&typeof sh.customer==='object')return rc614SafeScalar(sh.customer.name||sh.customer.customerName||sh.customer.companyName);
+ return''
+}
+function rc614RecoveryFlagged(sh){return !!(sh&&(sh.recoveryIncomplete===true||sh._recoveredFromLocationRecord===true||lower(sh.recoverySource)==='location-booking'||lower(sh.customerName)==='false'||lower(sh.customer)==='false'))}
+function rc614CurrentStatus(sh){
+ var s=lower(sh&&(sh.status||sh.processStatus||sh.pickupStatus||''));
+ if(/archiv/.test(s))return'archiviert';if(/storn|cancel/.test(s))return'storniert';return'aktiv'
+}
+function rc614CurrentStats(state){
+ var map=new Map(),all=(Array.isArray(state&&state.shipments)?state.shipments:[]).concat(Array.isArray(state&&state.savedShipments)?state.savedShipments:[]);
+ all.forEach(function(sh){if(!sh||typeof sh!=='object')return;var k=rc614Ref(sh)||rc614SafeScalar(sh.id||sh.shipmentId).toLowerCase();if(!k)return;var old=map.get(k),score=(rc614Customer(sh)?10:0)+(Array.isArray(sh.rows)&&sh.rows.length?4:0)+(rc614RecoveryFlagged(sh)?-20:0);if(!old||score>old.score)map.set(k,{sh:sh,score:score})});
+ var valid=0,suspect=0,known=0,active=0,activeValid=0,activeSuspect=0,refs=new Set(RC614_RECOVERY_REFS);
+ map.forEach(function(v){var sh=v.sh,r=rc614Ref(sh),customerOk=!!rc614Customer(sh),bad=rc614RecoveryFlagged(sh)||!customerOk,isActive=rc614CurrentStatus(sh)==='aktiv';if(customerOk)valid++;if(bad)suspect++;if(r&&refs.has(r))known++;if(isActive){active++;if(customerOk)activeValid++;if(bad)activeSuspect++}});
+ return{count:map.size,activeCount:active,validCustomer:valid,activeValidCustomer:activeValid,suspect:suspect,activeSuspect:activeSuspect,knownHits:known}
+}
+async function rc614RecoverHistoricalShipmentsIfNeeded(document){
+ try{
+  if(!document||!document.state)return document;
+  var stats=rc614CurrentStats(document.state);
+  window.__EXPORTHUB_RC614_RECOVERY__={stage:'check',before:stats};
+  if(stats.activeCount>=RC614_RECOVERY_TARGET&&stats.activeValidCustomer>=20&&stats.activeSuspect===0)return document;
+  progress(11,'Historischen vollständigen Sendungsbestand in Azure prüfen …');
+  var preview=await stateCall('recovery-preview',{targetCount:RC614_RECOVERY_TARGET,knownRefs:RC614_RECOVERY_REFS,maxVersions:100},{timeoutMs:180000,maxAttempts:1});
+  window.__EXPORTHUB_RC614_RECOVERY__.preview=preview;
+  if(!preview||!preview.candidate||preview.candidate.safe!==true){
+   window.__EXPORTHUB_RC614_RECOVERY__.stage='no-safe-history';
+   status('Sendungsbestand unvollständig. Keine ausreichend vollständige Azure-Historie automatisch gefunden – es wurde nichts überschrieben.','bad');
+   return document
+  }
+  progress(14,'Vollständige Sendungen werden aus der letzten sicheren Azure-Version wiederhergestellt …');
+  var recovered=await stateCall('recover-shipments',{targetCount:RC614_RECOVERY_TARGET,knownRefs:RC614_RECOVERY_REFS,source:preview.candidate.source,maxVersions:100},{timeoutMs:180000,maxAttempts:1});
+  window.__EXPORTHUB_RC614_RECOVERY__.recovered=recovered;window.__EXPORTHUB_RC614_RECOVERY__.stage='recovered';
+  if(!recovered||recovered.recovered!==true)return document;
+  var fresh=await stateCall('read',{}, {timeoutMs:15000,maxAttempts:1});
+  if(fresh&&fresh.state){
+   var after=rc614CurrentStats(fresh.state);window.__EXPORTHUB_RC614_RECOVERY__.after=after;
+   status('Sendungsbestand aus Azure-Historie wiederhergestellt: '+after.count+' Sendungen verfügbar.','ok');
+   return fresh
+  }
+  return document
+ }catch(e){
+  window.__EXPORTHUB_RC614_RECOVERY__=Object.assign(window.__EXPORTHUB_RC614_RECOVERY__||{},{stage:'failed',error:String(e&&e.message||e),code:String(e&&e.code||'')});
+  console.error('RC614 Sendungswiederherstellung',e);
+  status('Sendungs-Wiederherstellung konnte nicht sicher ausgeführt werden: '+(e&&e.message||'Unbekannter Fehler')+'. Es wurde nichts automatisch überschrieben.','bad');
+  return document
+ }
+}
+
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
- const d=await stateCall('read',{});
+ let d=await stateCall('read',{});
+ d=await rc614RecoverHistoricalShipmentsIfNeeded(d);
  progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
  if(!d||d.ok===false){const e=new Error((d&&d.message)||'Teamdaten ungültig');e.code=d&&d.code||'TEAMDATA_INVALID';throw e}
  runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);var key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));runtime.user=runtime.users.find(function(u){return lower(u.user||u.login||u.name)===key})||runtime.user;restorePersistentFilterState(runtime.state);
@@ -11065,11 +11132,12 @@ function documentDeletionMap(state){
  });return out
 }
 function captureCanonicalDeletions(baseState,currentState,baseUsers,currentUsers){
- /* RC613: Ein unvollständig geladener Browserzustand darf niemals Sendungen oder Dokumente
-    als gelöscht markieren. Explizite Löschaktionen verwenden weiterhin markDeleted(). */
+ /* RC614: Sendungen dürfen nur über die vorhandene explizite Löschfunktion Tombstones erhalten.
+    Ein unvollständiger/noch nicht geladener Browserzustand darf niemals Sendungen als gelöscht markieren. */
  const collections=['abdRequests','customers','tasks','palletAccount'];
  collections.forEach(function(name){captureCollectionDeletions(name,baseState&&baseState[name],currentState&&currentState[name])});
  captureCollectionDeletions('users',baseUsers,currentUsers);
+ const before=documentDeletionMap(baseState||{}),after=documentDeletionMap(currentState||{});before.forEach(function(info,key){if(!after.has(key))markDeleted('documents',info.id,{shipmentId:info.shipmentId,field:info.field,fileId:info.fileId})});
  return true
 }
 
@@ -19761,10 +19829,9 @@ html body #content .rc205-layout-item[data-dashboard-widget^="warehouse-"]>secti
 (function(){
 'use strict';
 if(window.__EXPORTHUB_RC504_WAREHOUSE__)return;window.__EXPORTHUB_RC504_WAREHOUSE__=true;
-var VERSION=(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'ExportHUB',API='/api/location-booking',syncing=null,lastSync=0,lastRegister=Object.create(null),timer=0,pendingMove='',dragKey='',orphanRecords=[],recoveryStats={restored:0,orphans:0,blockedRegisters:0,candidates:0};
+var VERSION=(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'ExportHUB',API='/api/location-booking',syncing=null,lastSync=0,lastRegister=Object.create(null),timer=0,pendingMove='',dragKey='';
 var LOCS=[['Regal','regal',1],['Lane 1','lane1',2],['Lane 2','lane2',3],['Lane 3','lane3',4],['Lane 4','lane4',5],['Lane 5','lane5',6],['Vor dem Regal','vorregal',7],['Eingang','eingang',0]];
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
-function safeText(v){if(v===true||v===false||v==null)return'';if(typeof v==='object')return'';var x=q(v);return /^(?:true|false|null|undefined)$/i.test(x)?'':x}
 function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -19784,26 +19851,10 @@ function palletCount(sh){return arr(sh&&sh.rows).reduce(function(n,r){var typ=lo
 function packageCount(sh){var rows=(typeof shipmentRows==='function'?shipmentRows(sh):arr(sh&&(sh.rows||sh.colli||sh.collis||sh.packages))),sum=0;rows.forEach(function(r){var typ=low(r&&(r.type||r.packaging||r.verpackung||r.packagingType||r.name)),c=Math.max(0,Math.round(Number(r&&(r.count||r.qty||r.quantity||r.anzahl||r.menge))||0));if(!c)return;if(/palette|pallet/.test(typ))return;sum+=c});if(sum>0)return sum;var explicit=Math.max(0,Math.round(Number(sh&&(sh.totalColli||sh.colliCount||sh.packageCount||sh.packagesCount||sh.totalPackages))||0));return explicit}
 function totalColliCount(sh){var rows=(typeof shipmentRows==='function'?shipmentRows(sh):arr(sh&&(sh.rows||sh.colli||sh.collis||sh.packages))),sum=rows.reduce(function(n,r){var c=Math.max(0,Math.round(Number(r&&(r.count||r.qty||r.quantity||r.anzahl||r.menge))||0));return n+c},0);if(sum>0)return sum;return Math.max(0,Math.round(Number(sh&&(sh.totalColli||sh.totalCollis||sh.colliCount||sh.packageCount||sh.packagesCount||sh.totalPackages))||0))}
 function warehouseLoadSummary(sh){var pallets=palletCount(sh),packages=packageCount(sh);if(pallets>0&&packages>0)return{label:'Ladung',value:pallets+' P / '+packages+' K'};if(pallets>0)return{label:'Paletten',value:String(pallets)};if(packages>0)return{label:'Pakete',value:String(packages)};return{label:'Colli',value:String(totalColliCount(sh))}}
-function syntheticRecovery(sh){return !!(sh&&(sh.recoveryIncomplete===true||sh._recoveredFromLocationRecord===true||low(sh.recoverySource)==='location-booking'||/^recovered-/i.test(q(sh.id))&&(!safeText(sh.customerName)||!arr(sh.rows).length)))}
-function customerValue(sh){if(!sh)return'';var vals=[sh.customerName,sh.customerDisplay,sh.customerSearch,obj(sh.customer)&&sh.customer.name,obj(sh.customerData)&&sh.customerData.name];for(var i=0;i<vals.length;i++){var x=safeText(vals[i]);if(x)return x}return''}
-function shipmentScore(sh){
- if(!obj(sh))return-999999;var score=Object.keys(sh).length;
- if(syntheticRecovery(sh))score-=100000;
- if(customerValue(sh))score+=800;
- if(safeText(sh.customerId||sh.customerAccount||sh.customerNumber))score+=240;
- var rows=arr(sh.rows||sh.colli||sh.collis||sh.packages||sh.packagingRows||sh.shipmentRows);score+=rows.length*80;
- score+=arr(sh.deliveryFiles||sh.deliveryNotesFiles||sh.lieferscheine).length*60;
- score+=arr(sh.podFiles).length*80;
- if(safeText(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress))score+=180;
- if(safeText(sh.pickupDate||sh.plannedPickupDate||sh.createdAt||sh.updatedAt))score+=70;
- if(totalColliCount(sh)>0)score+=120;
- return score
-}
-function authoritative(sh){return obj(sh)&&!syntheticRecovery(sh)&&!!sref(sh)&&!!customerValue(sh)}
-function all(){var map={},order=[];states().forEach(function(st){arr(st.shipments).concat(arr(st.savedShipments)).forEach(function(sh){var k=skey(sh);if(!k)return;if(!map[k]){map[k]=sh;order.push(k)}else if(shipmentScore(sh)>shipmentScore(map[k]))map[k]=sh})});return order.map(function(k){return map[k]}).filter(Boolean)}
+function all(){var map={},order=[];states().forEach(function(st){arr(st.shipments).concat(arr(st.savedShipments)).forEach(function(sh){var k=skey(sh);if(!k)return;if(!map[k]){map[k]=sh;order.push(k)}else if(Object.keys(sh).length>Object.keys(map[k]).length)map[k]=sh})});return order.map(function(k){return map[k]}).filter(Boolean)}
 function copies(sh){var key=skey(sh),out=[];states().forEach(function(st){arr(st.shipments).concat(arr(st.savedShipments)).forEach(function(x){if(skey(x)===key&&out.indexOf(x)<0)out.push(x)});['shipment','currentShipment','selectedShipment'].forEach(function(n){var x=st[n];if(obj(x)&&skey(x)===key&&out.indexOf(x)<0)out.push(x)})});if(sh&&out.indexOf(sh)<0)out.push(sh);return out}
-function token(sh){var api=window.ExportHUBPickupPOD,t='';try{if(api&&typeof api.ensure==='function')t=q(api.ensure(sh))}catch(_){}return t||safeText(sh&&(sh.pickupToken||sh.pickupQrToken||sh.qrToken))}
-function customer(sh){return customerValue(sh)||'—'}
+function token(sh){var api=window.ExportHUBPickupPOD,t='';try{if(api&&typeof api.ensure==='function')t=q(api.ensure(sh))}catch(_){}return t||q(sh&&(sh.pickupToken||sh.pickupQrToken||sh.qrToken))}
+function customer(sh){return q(sh&&(sh.customerName||sh.customerDisplay||sh.customerSearch||(obj(sh.customer)&&sh.customer.name)||(obj(sh.customerData)&&sh.customerData.name)))||'—'}
 function locationName(sh){if(!sh||picked(sh))return'';var x=q(sh.warehouseLocation);return x||'Eingang'}
 function defaultLocation(sh){if(!active(sh)||q(sh.warehouseLocation))return false;copies(sh).forEach(function(x){x.warehouseLocation='Eingang';x.warehouseLocationCode=0;x.warehousePrepared=false});return true}
 function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Lagerstatus aktualisiert')}catch(_){} }
@@ -19811,133 +19862,103 @@ function ready(sh){return sh&&((sh.readyForPickup===true)||/bereit zur abholung|
 function currentUser(){try{return (typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||runtime().user||{}}catch(_){return runtime().user||{}}}
 function isAdmin(){var u=currentUser(),role=low(u&&(u.role||u.rolle||u.level||u.type)),name=low(u&&(u.user||u.username||u.login||u.name||u.displayName));try{if(typeof window.canAdmin==='function'&&window.canAdmin('warehouse'))return true}catch(_){}try{if(typeof window.rc542RightLevel==='function'&&window.rc542RightLevel('warehouse',u)==='admin')return true}catch(_){}return !!(u&&(u.globalAdmin||u.isAdmin||u.admin||name==='tobias'||/admin|vollzugriff|administrator/.test(role)||(u.permissions||[]).indexOf('*')>=0))}
 function fmt(ts){if(!q(ts))return '—';try{return new Date(ts).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(_){return q(ts)}}
-async function register(sh,force){
- if(!sh||picked(sh)||cancelled(sh))return false;
- if(!authoritative(sh)){recoveryStats.blockedRegisters++;return false}
- defaultLocation(sh);var tok=token(sh);if(!tok||!auth())return false;
- var now=Date.now();if(!force&&lastRegister[tok]&&now-lastRegister[tok]<45000)return true;lastRegister[tok]=now;
- try{
-  await api('register',{method:'POST',token:tok,body:{token:tok,shipmentId:sid(sh),reference:sref(sh),customer:customerValue(sh),palletCount:palletCount(sh),packageCount:packageCount(sh),colliCount:totalColliCount(sh),totalColli:totalColliCount(sh),expectedColliCount:totalColliCount(sh),status:q(sh.status||sh.processStatus),ready:ready(sh)}});
-  return true
- }catch(e){lastRegister[tok]=0;console.warn('RC613 Location registrieren',e);return false}
-}
+async function register(sh,force){if(!sh||picked(sh)||cancelled(sh))return false;defaultLocation(sh);var tok=token(sh);if(!tok||!auth())return false;var now=Date.now();if(!force&&lastRegister[tok]&&now-lastRegister[tok]<45000)return true;lastRegister[tok]=now;try{await api('register',{method:'POST',token:tok,body:{token:tok,shipmentId:sid(sh),reference:sref(sh),customer:customer(sh),palletCount:palletCount(sh),packageCount:packageCount(sh),colliCount:totalColliCount(sh),totalColli:totalColliCount(sh),expectedColliCount:totalColliCount(sh),status:q(sh.status||sh.processStatus),ready:ready(sh)}});return true}catch(e){lastRegister[tok]=0;console.warn('RC516 Location registrieren',e);return false}}
 async function collect(sh){var tok=token(sh);if(!tok||!auth())return false;try{await api('collect',{method:'POST',token:tok,body:{token:tok}});return true}catch(_){return false}}
 function primaryState(){var list=states();return list[0]||null}
-function recordRef(rec){var vals=[rec&&rec.reference,rec&&rec.ref,rec&&rec.shipmentRef,rec&&rec.referenceNumber,rec&&rec.exporthubRef,rec&&rec.exportHubReference];for(var i=0;i<vals.length;i++){var x=safeText(vals[i]).toUpperCase();if(/^[A-Z0-9]{6}$/.test(x))return x}return''}
-function recordId(rec){return safeText(rec&&(rec.shipmentId||rec.shipmentID||rec.id)).toUpperCase()}
-function recordToken(rec){return safeText(rec&&(rec.token||rec.pickupToken||rec.qrToken))}
-function recordActive(rec){return obj(rec)&&rec.collected!==true&&rec.deleted!==true&&rec.cancelled!==true&&!/collected|deleted|cancelled|storniert/i.test(low(rec.status))}
-function findRecordShipment(rec){var ref=recordRef(rec),id=recordId(rec),tok=recordToken(rec);return all().find(function(x){return(ref&&sref(x)===ref)||(id&&sid(x)===id)||(tok&&token(x)===tok)})||null}
-function sameRecordShipment(sh,rec){var ref=recordRef(rec),id=recordId(rec),tok=recordToken(rec);return !!(sh&&((ref&&sref(sh)===ref)||(id&&sid(sh)===id)||(tok&&token(sh)===tok)))}
-function emergencyBackup(){
- if(window.__EXPORTHUB_RC613_EMERGENCY_BACKUP__)return;window.__EXPORTHUB_RC613_EMERGENCY_BACKUP__=true;
- try{var st=primaryState();if(!obj(st))return;var key='exporthub:emergency-pre-rc613:'+new Date().toISOString().replace(/[:.]/g,'-');localStorage.setItem(key,JSON.stringify({createdAt:new Date().toISOString(),version:VERSION,state:st}))}catch(_){}
-}
+function findRecordShipment(rec){var key=q(rec&&(rec.reference||rec.shipmentId)).toUpperCase(),tok=q(rec&&rec.token);return all().find(function(x){return(key&&(sref(x)===key||sid(x)===key))||(tok&&q(x.pickupToken||x.pickupQrToken||x.qrToken)===tok)})||null}
 function browserRecoveryCandidates(){
  var out=[],seen=new Set();
- function addShipment(sh){if(!obj(sh))return;var k=skey(sh);if(!k)return;var sig=k+'|'+safeText(sh.id||sh.shipmentId)+'|'+shipmentScore(sh);if(seen.has(sig))return;seen.add(sig);out.push(sh)}
- function walk(value,depth){
-  if(depth>7||value==null)return;
-  if(Array.isArray(value)){value.forEach(function(x){walk(x,depth+1)});return}
-  if(!obj(value))return;
-  var looks=!!sref(value)&&(
-    Object.prototype.hasOwnProperty.call(value,'customerName')||
-    Object.prototype.hasOwnProperty.call(value,'customerId')||
-    Object.prototype.hasOwnProperty.call(value,'rows')||
-    Object.prototype.hasOwnProperty.call(value,'deliveryFiles')||
-    Object.prototype.hasOwnProperty.call(value,'pickupToken')||
-    Object.prototype.hasOwnProperty.call(value,'status')
-  );
-  if(looks)addShipment(value);
-  ['shipments','savedShipments','shipment','currentShipment','selectedShipment','state','data','backup','payload','snapshot','exporthub','document'].forEach(function(k){if(value[k]!=null)walk(value[k],depth+1)})
+ function takeState(st){
+  if(!obj(st))return;
+  [st,obj(st.state)?st.state:null,obj(st.data)?st.data:null].forEach(function(root){
+   if(!obj(root))return;
+   arr(root.shipments).concat(arr(root.savedShipments),obj(root.shipment)?[root.shipment]:[],obj(root.currentShipment)?[root.currentShipment]:[],obj(root.selectedShipment)?[root.selectedShipment]:[]).forEach(function(sh){
+    if(!obj(sh))return;var k=skey(sh);if(!k)return;var sig=k+'|'+q(sh.id||sh.shipmentId);if(seen.has(sig))return;seen.add(sig);out.push(sh)
+   })
+  })
  }
- states().forEach(function(st){walk(st,0)});
- try{var rt=runtime();walk(rt&&rt.lastSnapshot,0);walk(window.__CLEAN_BOOT_STATE__,0)}catch(_){}
- [window.localStorage,window.sessionStorage].forEach(function(store){
-  try{for(var i=0;i<store.length;i++){var key=store.key(i)||'',raw='';try{raw=store.getItem(key)||''}catch(_){continue}if(!raw||raw.length<20||raw.length>30000000)continue;if(!/[{\[]/.test(raw.charAt(0)))continue;if(raw.indexOf('shipment')<0&&raw.indexOf('savedShipments')<0&&raw.indexOf('"ref"')<0)continue;try{walk(JSON.parse(raw),0)}catch(_){}}}catch(_){}
- });
- recoveryStats.candidates=out.length;return out
+ try{
+  for(var i=0;i<localStorage.length;i++){
+   var key=localStorage.key(i)||'',raw='';
+   try{raw=localStorage.getItem(key)||''}catch(_){continue}
+   if(!raw||raw.length<20||raw.length>25000000)continue;
+   if(raw.indexOf('"shipments"')<0&&raw.indexOf('"savedShipments"')<0&&raw.indexOf('"shipment"')<0)continue;
+   try{takeState(JSON.parse(raw))}catch(_){}
+  }
+ }catch(_){}
+ return out
 }
-function bestRealCopy(rec){
- var matches=browserRecoveryCandidates().filter(function(sh){return sameRecordShipment(sh,rec)&&authoritative(sh)});
- if(!matches.length)return null;matches.sort(function(a,b){return shipmentScore(b)-shipmentScore(a)});return matches[0]
+function bestBrowserRecovery(rec){
+ var ref=q(rec&&(rec.reference||rec.ref)).toUpperCase(),id=q(rec&&rec.shipmentId).toUpperCase(),candidates=browserRecoveryCandidates().filter(function(sh){return(ref&&sref(sh)===ref)||(id&&sid(sh)===id)});
+ if(!candidates.length)return null;
+ function score(sh){return Object.keys(sh||{}).length+arr(sh&&sh.rows).length*20+arr(sh&&sh.deliveryFiles).length*12+arr(sh&&sh.podFiles).length*12+(q(sh&&sh.customerId)?40:0)+(q(sh&&sh.pickupDate||sh&&sh.plannedPickupDate)?20:0)}
+ candidates.sort(function(a,b){return score(b)-score(a)});return candidates[0]
 }
-function removeMatchingShipmentTombstones(st,sh){
- var meta=st&&st._teamSyncMeta;if(!meta||!Array.isArray(meta.tombstones))return 0;var ref=sref(sh),id=sid(sh),before=meta.tombstones.length;
- meta.tombstones=meta.tombstones.filter(function(t){if(!t||low(t.collection)!=='shipments')return true;var vals=[t.id,t.ref,t.reference,t.shipmentId,t.shipmentRef].map(function(v){return safeText(v).toUpperCase()});return vals.indexOf(ref)<0&&vals.indexOf(id)<0});
- return before-meta.tombstones.length
-}
-function installRealCopy(rec,candidate){
- if(!candidate||!authoritative(candidate))return false;emergencyBackup();
+function recoverMissingLocationRecord(rec){
+ if(!obj(rec)||rec.collected===true||rec.deleted===true||rec.cancelled===true)return false;
+ var ref=q(rec.reference||rec.ref).toUpperCase(),shipmentId=q(rec.shipmentId).toUpperCase(),tok=q(rec.token);
+ if(!ref&&!shipmentId)return false;
+ if(findRecordShipment(rec))return false;
  var target=primaryState();if(!obj(target))return false;target.shipments=arr(target.shipments);
- var copy=JSON.parse(JSON.stringify(candidate)),ref=recordRef(rec),id=recordId(rec),tok=recordToken(rec);
- if(ref){copy.ref=ref;copy.reference=ref}
- if(id&&!safeText(copy.id))copy.id=id;
- if(id&&!safeText(copy.shipmentId))copy.shipmentId=id;
- if(tok&&!safeText(copy.pickupToken))copy.pickupToken=tok;
- if(safeText(rec&&rec.currentLocation))copy.warehouseLocation=safeText(rec.currentLocation);
- copy.warehouseLocationCode=Number(rec&&rec.locationCode||copy.warehouseLocationCode||0);
- copy.warehousePrepared=rec&&rec.prepared===true;
- if(safeText(rec&&rec.loaderName))copy.warehouseMovedBy=safeText(rec.loaderName);
- if(safeText(rec&&rec.bookedAt))copy.warehouseMovedAt=safeText(rec.bookedAt);
- delete copy.recoveryIncomplete;delete copy.recoverySource;delete copy.recoveryRecoveredAt;delete copy.recoveryNote;delete copy._recoveredFromLocationRecord;delete copy._recoveredAt;
- var idx=-1;for(var i=0;i<target.shipments.length;i++){if(sameRecordShipment(target.shipments[i],rec)){idx=i;break}}
- if(idx>=0){
-  if(authoritative(target.shipments[idx])&&shipmentScore(target.shipments[idx])>=shipmentScore(copy))return false;
-  target.shipments[idx]=copy
- }else target.shipments.push(copy);
- removeMatchingShipmentTombstones(target,copy);recoveryStats.restored++;return true
+ var restored=bestBrowserRecovery(rec);
+ if(restored){restored=JSON.parse(JSON.stringify(restored))}
+ else{
+  var cname=q(rec.customer||rec.customerName),customerId='';
+  arr(target.customers).some(function(c){if(low(c&&(c.name||c.customerName||c.alias))===low(cname)){customerId=q(c.id||c.account||c.customerNumber);return true}return false});
+  restored={
+   id:shipmentId||('RECOVERED-'+ref),
+   shipmentId:shipmentId||undefined,
+   ref:ref||shipmentId,
+   reference:ref||shipmentId,
+   customerId:customerId,
+   customerName:cname,
+   customerSearch:cname,
+   status:q(rec.status)||'Bereit zur Abholung',
+   processStatus:q(rec.status)||'Bereit zur Abholung',
+   readyForPickup:rec.ready===true,
+   pickupToken:tok,
+   warehouseLocation:q(rec.currentLocation)||'Eingang',
+   warehouseLocationCode:Number(rec.locationCode||0),
+   warehousePrepared:rec.prepared===true,
+   totalColli:Number(rec.totalColli||rec.colliCount||rec.expectedColliCount||0),
+   palletCount:Number(rec.palletCount||0),
+   packageCount:Number(rec.packageCount||0),
+   rows:[],
+   deliveryFiles:[],
+   podFiles:[],
+   recoveryIncomplete:true,
+   recoverySource:'location-booking',
+   recoveryRecoveredAt:new Date().toISOString(),
+   recoveryNote:'Aus vorhandenem Lager-/Location-Datensatz wiederhergestellt. Unbekannte Sendungsdetails wurden nicht erfunden.'
+  }
+ }
+ restored.ref=ref||q(restored.ref||restored.reference||shipmentId).toUpperCase();
+ restored.reference=restored.reference||restored.ref;
+ if(shipmentId&&!restored.id)restored.id=shipmentId;
+ if(shipmentId&&!restored.shipmentId)restored.shipmentId=shipmentId;
+ if(tok&&!q(restored.pickupToken))restored.pickupToken=tok;
+ if(q(rec.customer)&&!q(restored.customerName))restored.customerName=q(rec.customer);
+ if(q(rec.currentLocation))restored.warehouseLocation=q(rec.currentLocation);
+ restored.warehouseLocationCode=Number(rec.locationCode||restored.warehouseLocationCode||0);
+ restored.warehousePrepared=rec.prepared===true;
+ restored._recoveredFromLocationRecord=true;
+ restored._recoveredAt=new Date().toISOString();
+ target.shipments.push(restored);
+ return true
 }
-function recoverOnlyFromRealCopy(rec){
- if(!recordActive(rec))return false;
- var current=findRecordShipment(rec);
- if(current&&authoritative(current))return false;
- var candidate=bestRealCopy(rec);
- return candidate?installRealCopy(rec,candidate):false
-}
-function orphanFromRecord(rec){
- var ref=recordRef(rec)||recordId(rec);if(!ref)return null;
- return {__rc613Orphan:true,ref:ref,reference:ref,id:recordId(rec)||('ORPHAN-'+ref),pickupToken:recordToken(rec),warehouseLocation:safeText(rec.currentLocation)||'Eingang',warehouseLocationCode:Number(rec.locationCode||0),warehousePrepared:rec.prepared===true,warehouseMovedBy:safeText(rec.loaderName),warehouseMovedAt:safeText(rec.bookedAt),customerName:'',totalColli:Math.max(0,Math.round(Number(rec.totalColli||rec.colliCount||rec.expectedColliCount||0)||0)),palletCount:Math.max(0,Math.round(Number(rec.palletCount||0)||0)),packageCount:Math.max(0,Math.round(Number(rec.packageCount||0)||0)),status:safeText(rec.status)||'Vorbereitet'}
-}
-function applyRecord(rec){var sh=findRecordShipment(rec);if(!sh||!authoritative(sh))return false;var changed=false;copies(sh).forEach(function(x){if(rec.collected===true){if(x.warehouseLocation||x.warehousePrepared){x.warehouseLocation='';x.warehouseLocationCode=0;x.warehousePrepared=false;changed=true}if(rec.collectedAt&&x.warehouseCollectedAt!==rec.collectedAt){x.warehouseCollectedAt=rec.collectedAt;changed=true}}else{var loc=q(rec.currentLocation)||'Eingang',code=Number(rec.locationCode||0),prepared=rec.prepared===true;if(q(x.warehouseLocation)!==loc){x.warehouseLocation=loc;changed=true}if(Number(x.warehouseLocationCode||0)!==code){x.warehouseLocationCode=code;changed=true}if(x.warehousePrepared!==prepared){x.warehousePrepared=prepared;changed=true}if(q(rec.loaderName)&&q(x.warehouseMovedBy)!==q(rec.loaderName)){x.warehouseMovedBy=q(rec.loaderName);changed=true}if(q(rec.bookedAt)&&q(x.warehouseMovedAt)!==q(rec.bookedAt)){x.warehouseMovedAt=q(rec.bookedAt);changed=true}if(prepared&&!picked(x)&&q(x.status)!=='Vorbereitet'){x.status='Vorbereitet';x.processStatus='Vorbereitet';x.readyForPickup=true;changed=true}if(!prepared&&!picked(x)&&low(loc)==='eingang'&&/vorbereitet/i.test(q(x.status||x.processStatus))){x.status='Bereit zur Abholung';x.processStatus='Bereit zur Abholung';x.readyForPickup=true;changed=true}if(Array.isArray(rec.history)){var sig=JSON.stringify(rec.history);if(JSON.stringify(arr(x.warehouseHistory))!==sig){x.warehouseHistory=rec.history.slice();changed=true}}}});return changed}
-async function sync(force){
- if(syncing)return syncing;if(!auth())return false;if(!force&&Date.now()-lastSync<7000)return false;
- lastSync=Date.now();syncing=(async function(){
-  var changed=false,records=[];
-  try{var d=await api('list');records=arr(d.records)}catch(e){console.warn('RC613 Lagerliste lesen',e)}
-  orphanRecords=[];
-  records.forEach(function(r){
-   if(!recordActive(r))return;
-   if(recoverOnlyFromRealCopy(r))changed=true;
-   var sh=findRecordShipment(r);
-   if(sh&&authoritative(sh)){if(applyRecord(r))changed=true}
-   else{var orphan=orphanFromRecord(r);if(orphan)orphanRecords.push(orphan)}
-  });
-  recoveryStats.orphans=orphanRecords.length;
-  all().forEach(function(sh){if(authoritative(sh)&&defaultLocation(sh))changed=true});
-  var activeList=all().filter(function(sh){return active(sh)&&authoritative(sh)});
-  await Promise.all(activeList.map(function(sh){return register(sh,false)}));
-  await Promise.all(all().filter(function(sh){return authoritative(sh)&&picked(sh)}).map(function(sh){return token(sh)?collect(sh):Promise.resolve(false)}));
-  if(changed)persist('Echte Sendungskopien aus vorhandenem Bestand wiederhergestellt');
-  if(changed||force){try{window.dispatchEvent(new CustomEvent('exporthub:warehouse-updated',{detail:{changed:changed,forced:!!force,restored:recoveryStats.restored,orphans:orphanRecords.length}}))}catch(_){}}
-  if(currentView()==='warehouse'&&(changed||force))render(false);
-  return changed
- })().finally(function(){syncing=null});return syncing
-}
+function applyRecord(rec){var sh=findRecordShipment(rec);if(!sh)return false;var changed=false;copies(sh).forEach(function(x){if(rec.collected===true){if(x.warehouseLocation||x.warehousePrepared){x.warehouseLocation='';x.warehouseLocationCode=0;x.warehousePrepared=false;changed=true}if(rec.collectedAt&&x.warehouseCollectedAt!==rec.collectedAt){x.warehouseCollectedAt=rec.collectedAt;changed=true}}else{var loc=q(rec.currentLocation)||'Eingang',code=Number(rec.locationCode||0),prepared=rec.prepared===true;if(q(x.warehouseLocation)!==loc){x.warehouseLocation=loc;changed=true}if(Number(x.warehouseLocationCode||0)!==code){x.warehouseLocationCode=code;changed=true}if(x.warehousePrepared!==prepared){x.warehousePrepared=prepared;changed=true}if(q(rec.loaderName)&&q(x.warehouseMovedBy)!==q(rec.loaderName)){x.warehouseMovedBy=q(rec.loaderName);changed=true}if(q(rec.bookedAt)&&q(x.warehouseMovedAt)!==q(rec.bookedAt)){x.warehouseMovedAt=q(rec.bookedAt);changed=true}if(prepared&&!picked(x)&&q(x.status)!=='Vorbereitet'){x.status='Vorbereitet';x.processStatus='Vorbereitet';x.readyForPickup=true;changed=true}if(!prepared&&!picked(x)&&low(loc)==='eingang'&&/vorbereitet/i.test(q(x.status||x.processStatus))){x.status='Bereit zur Abholung';x.processStatus='Bereit zur Abholung';x.readyForPickup=true;changed=true}if(Array.isArray(rec.history)){var sig=JSON.stringify(rec.history);if(JSON.stringify(arr(x.warehouseHistory))!==sig){x.warehouseHistory=rec.history.slice();changed=true}}}});return changed}
+async function sync(force){if(syncing)return syncing;if(!auth())return false;if(!force&&Date.now()-lastSync<7000)return false;lastSync=Date.now();syncing=(async function(){var changed=false;all().forEach(function(sh){if(defaultLocation(sh))changed=true});var activeList=all().filter(active);await Promise.all(activeList.map(function(sh){return register(sh,false)}));await Promise.all(all().filter(picked).map(function(sh){return q(sh.pickupToken)?collect(sh):Promise.resolve(false)}));try{var d=await api('list'),records=arr(d.records);records.forEach(function(r){if(recoverMissingLocationRecord(r))changed=true;if(applyRecord(r))changed=true})}catch(e){console.warn('RC516 Lager synchronisieren',e)}if(changed)persist('Lagerlocations synchronisiert');if(changed||force){try{window.dispatchEvent(new CustomEvent('exporthub:warehouse-updated',{detail:{changed:changed,forced:!!force}}))}catch(_){}}if(currentView()==='warehouse'&&(changed||force))render(false);return changed})().finally(function(){syncing=null});return syncing}
 function currentView(){var s=states()[0]||{};return low(s.view||document.body&&document.body.getAttribute('data-exporthub-view'))}
-function zoneData(name){var list=all().filter(function(sh){return active(sh)&&authoritative(sh)}).filter(function(sh){return low(locationName(sh))===low(name)}),keys=new Set(list.map(skey));orphanRecords.forEach(function(o){if(low(locationName(o))===low(name)&&!keys.has(skey(o)))list.push(o)});var p=list.reduce(function(n,sh){return n+(sh.__rc613Orphan?Math.max(0,Math.round(Number(sh.palletCount||0)||0)):palletCount(sh))},0),k=list.reduce(function(n,sh){return n+(sh.__rc613Orphan?Math.max(0,Math.round(Number(sh.packageCount||0)||0)):packageCount(sh))},0);return{list:list,pallets:p,packages:k}}
+function zoneData(name){var list=all().filter(active).filter(function(sh){return low(locationName(sh))===low(name)}),p=list.reduce(function(n,sh){return n+palletCount(sh)},0),k=list.reduce(function(n,sh){return n+packageCount(sh)},0);return{list:list,pallets:p,packages:k}}
 function occupiedCount(){return LOCS.filter(function(x){return zoneData(x[0]).list.length>0}).length}
-function currentMove(){return all().find(function(x){return authoritative(x)&&skey(x)===pendingMove})||null}
+function currentMove(){return all().find(function(x){return skey(x)===pendingMove})||null}
 function moveOptions(selected){return LOCS.map(function(x){return '<option value="'+x[2]+'"'+(Number(selected)===x[2]?' selected':'')+'>'+esc(x[0])+' (Code '+x[2]+')</option>'}).join('')}
 function openMove(key){pendingMove=q(key);render(false);return false}
 function closeMove(){pendingMove='';render(false);return false}
-async function moveShipmentKey(key,code){if(!isAdmin()){alert('Für das manuelle Verschieben ist das Funktionsrecht Lager = Admin erforderlich.');return false}var sh=all().find(function(x){return skey(x)===q(key)});if(!sh||!authoritative(sh)){alert('Diese Lagerbuchung hat noch keinen vollständigen Sendungsdatensatz und wird zum Schutz nicht verändert.');return false;}code=Math.round(Number(code||0));if(code<0||code>7)return false;if(Number(sh.warehouseLocationCode||0)===code)return false;var tok=token(sh);if(!tok){alert('Location-Token fehlt.');return false}try{await api('move',{method:'POST',token:tok,body:{token:tok,locationCode:code,colliCount:totalColliCount(sh),totalColli:totalColliCount(sh),expectedColliCount:totalColliCount(sh)}});pendingMove='';dragKey='';await sync(true);return true}catch(e){alert(e&&e.message||'Sendung konnte nicht verschoben werden.');return false}}
+async function moveShipmentKey(key,code){if(!isAdmin()){alert('Für das manuelle Verschieben ist das Funktionsrecht Lager = Admin erforderlich.');return false}var sh=all().find(function(x){return skey(x)===q(key)});if(!sh)return false;code=Math.round(Number(code||0));if(code<0||code>7)return false;if(Number(sh.warehouseLocationCode||0)===code)return false;var tok=token(sh);if(!tok){alert('Location-Token fehlt.');return false}try{await api('move',{method:'POST',token:tok,body:{token:tok,locationCode:code,colliCount:totalColliCount(sh),totalColli:totalColliCount(sh),expectedColliCount:totalColliCount(sh)}});pendingMove='';dragKey='';await sync(true);return true}catch(e){alert(e&&e.message||'Sendung konnte nicht verschoben werden.');return false}}
 async function submitMove(){var sh=currentMove(),sel=document.getElementById('rc504MoveLocation');if(!sh||!sel)return false;var btn=document.getElementById('rc504MoveSave');if(btn)btn.disabled=true;try{await moveShipmentKey(skey(sh),sel.value)}finally{if(btn)btn.disabled=false}return false}
 function shipmentBadge(sh){var loc=locationName(sh)||'—';return '<span class="rc504-badge loc">'+esc(loc)+'</span>'}
-function shipmentCard(sh){
- var orphan=sh&&sh.__rc613Orphan===true,ref=esc(sref(sh)||sid(sh)),cust=orphan?'Datenverknüpfung fehlt':esc(customer(sh)),loc=locationName(sh),moved=safeText(sh.warehouseMovedBy),movedAt=safeText(sh.warehouseMovedAt),prepared=sh.warehousePrepared===true||/vorbereitet/i.test(q(sh.status||sh.processStatus)),admin=isAdmin()&&!orphan,load=orphan?{label:'Colli',value:String(Math.max(0,Math.round(Number(sh.totalColli||0)||0)))}:warehouseLoadSummary(sh),drag=admin?' draggable="true" data-warehouse-drag-key="'+esc(skey(sh))+'" title="Sendung auf eine andere Location ziehen"':'';
- return '<article class="rc504-shipment"'+drag+'><div class="rc504-shipment-top"><div><div class="rc504-shipment-ref">'+ref+'</div><div class="rc504-shipment-customer">'+cust+'</div></div><div>'+shipmentBadge(sh)+(prepared?'<div style="margin-top:8px"><span class="rc504-badge ready">Vorbereitet</span></div>':'')+'</div></div><div class="rc504-shipment-meta"><div class="rc504-meta-chip"><small>'+esc(load.label)+'</small><b>'+esc(load.value)+'</b></div><div class="rc504-meta-chip"><small>Verlader</small><b>'+esc(moved||'—')+'</b></div><div class="rc504-meta-chip"><small>Gebucht</small><b>'+esc(fmt(movedAt))+'</b></div></div>'+(orphan?'<div class="rc513-drag-help">Vorhandene Lagerbuchung · vollständige Sendungskopie wird gesucht · keine Daten werden überschrieben</div>':(admin?'<div class="rc513-drag-help">↕ Ziehen & ablegen oder manuell verschieben</div><div class="rc504-shipment-actions"><button class="rc504-shift-btn" onclick="return rc504WarehouseMove(&quot;'+esc(skey(sh))+'&quot;)">Manuell verschieben</button></div>':''))+'</article>'
-}
+function shipmentCard(sh){var ref=esc(sref(sh)||sid(sh)),cust=esc(customer(sh)),loc=locationName(sh),moved=q(sh.warehouseMovedBy),movedAt=q(sh.warehouseMovedAt),prepared=sh.warehousePrepared===true||/vorbereitet/i.test(q(sh.status||sh.processStatus)),admin=isAdmin(),load=warehouseLoadSummary(sh),drag=admin?' draggable="true" data-warehouse-drag-key="'+esc(skey(sh))+'" title="Sendung auf eine andere Location ziehen"':'';return '<article class="rc504-shipment"'+drag+'><div class="rc504-shipment-top"><div><div class="rc504-shipment-ref">'+ref+'</div><div class="rc504-shipment-customer">'+cust+'</div></div><div>'+shipmentBadge(sh)+(prepared?'<div style="margin-top:8px"><span class="rc504-badge ready">Vorbereitet</span></div>':'')+'</div></div><div class="rc504-shipment-meta"><div class="rc504-meta-chip"><small>'+esc(load.label)+'</small><b>'+esc(load.value)+'</b></div><div class="rc504-meta-chip"><small>Verlader</small><b>'+esc(moved||'—')+'</b></div><div class="rc504-meta-chip"><small>Gebucht</small><b>'+esc(fmt(movedAt))+'</b></div></div>'+(admin?'<div class="rc513-drag-help">↕ Ziehen & ablegen oder manuell verschieben</div><div class="rc504-shipment-actions"><button class="rc504-shift-btn" onclick="return rc504WarehouseMove(&quot;'+esc(skey(sh))+'&quot;)">Manuell verschieben</button></div>':'')+'</article>'}
 function zone(name,key,code){var d=zoneData(name),cls=key==='eingang'?' eingang':key==='regal'?' regal':key==='vorregal'?' vorregal':'',loadLabel=d.pallets>0&&d.packages>0?(d.pallets+' Paletten · '+d.packages+' Pakete'):d.pallets>0?(d.pallets+' Paletten'):d.packages>0?(d.packages+' Pakete'):'0 Colli';return '<section class="rc504-zone '+esc(key)+cls+'" data-warehouse-drop-code="'+code+'" data-warehouse-drop-name="'+esc(name)+'"><div class="rc504-zone-head"><div class="rc504-zone-title"><span class="rc504-zone-code">'+(code===0?'Eingang':('Code '+code))+'</span><h3>'+esc(name)+'</h3><div class="rc504-zone-count">'+d.list.length+' Sendungen · '+esc(loadLabel)+'</div></div></div><div class="rc504-zone-list">'+(d.list.length?d.list.map(shipmentCard).join(''):'<div class="rc504-zone-empty">Keine Sendung an dieser Location.</div>')+'</div></section>'}
 function moveModal(){var sh=currentMove();if(!sh||!isAdmin())return '';return '<div class="rc504-modal-backdrop" onclick="if(event.target===this)rc504WarehouseCloseMove()"><div class="rc504-modal"><h3>Sendung manuell verschieben</h3><p>Als Admin kannst du die Sendung direkt zwischen Eingang und den Ausgangslocations verschieben.</p><div class="rc504-modal-info"><b>'+esc(sref(sh)||sid(sh))+' · '+esc(customer(sh))+'</b><span>Aktuelle Location: '+esc(locationName(sh))+' · '+palletCount(sh)+' Paletten</span></div><div class="rc504-modal-grid"><div class="field"><label for="rc504MoveLocation">Neue Location</label><select id="rc504MoveLocation">'+moveOptions(Number(sh.warehouseLocationCode||0))+'</select></div><div class="field"><label>Hinweis</label><input type="text" value="Manuelle Admin-Umbuchung" disabled></div></div><div class="rc504-modal-note">Code 0 = Eingang · 1 = Regal · 2–6 = Lane 1–5 · 7 = Vor dem Regal</div><div class="rc504-modal-actions"><button class="ghost" onclick="return rc504WarehouseCloseMove()">Abbrechen</button><button class="rc504-shift-btn primary" id="rc504MoveSave" onclick="return rc504WarehouseSaveMove()">Verschieben</button></div></div></div>'}
 function bindWarehouseDnD(root){if(!root||root.__rc513WarehouseDnD)return;root.__rc513WarehouseDnD=true;root.addEventListener('dragstart',function(e){var card=e.target&&e.target.closest&&e.target.closest('[data-warehouse-drag-key]');if(!card||!isAdmin())return;dragKey=q(card.getAttribute('data-warehouse-drag-key'));card.classList.add('rc513-dragging');try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragKey)}catch(_){}});root.addEventListener('dragend',function(e){var card=e.target&&e.target.closest&&e.target.closest('[data-warehouse-drag-key]');if(card)card.classList.remove('rc513-dragging');root.querySelectorAll('.rc513-drop-target').forEach(function(x){x.classList.remove('rc513-drop-target')});dragKey=''});root.addEventListener('dragover',function(e){if(!dragKey||!isAdmin())return;var zone=e.target&&e.target.closest&&e.target.closest('[data-warehouse-drop-code]');if(!zone)return;e.preventDefault();try{e.dataTransfer.dropEffect='move'}catch(_){}root.querySelectorAll('.rc513-drop-target').forEach(function(x){if(x!==zone)x.classList.remove('rc513-drop-target')});zone.classList.add('rc513-drop-target')});root.addEventListener('dragleave',function(e){var zone=e.target&&e.target.closest&&e.target.closest('[data-warehouse-drop-code]');if(zone&&(!e.relatedTarget||!zone.contains(e.relatedTarget)))zone.classList.remove('rc513-drop-target')});root.addEventListener('drop',function(e){var zone=e.target&&e.target.closest&&e.target.closest('[data-warehouse-drop-code]');if(!zone||!isAdmin())return;e.preventDefault();var key=dragKey;try{key=q(e.dataTransfer.getData('text/plain'))||key}catch(_){}root.querySelectorAll('.rc513-drop-target').forEach(function(x){x.classList.remove('rc513-drop-target')});dragKey='';if(key)moveShipmentKey(key,Number(zone.getAttribute('data-warehouse-drop-code')||0))})}
@@ -19947,14 +19968,14 @@ function locationUrl(sh){var tok=token(sh);if(!tok)return'';try{var u=new URL('/
 function qrMarkup(sh){if(!sh||picked(sh)||cancelled(sh))return'';var tok=token(sh),url=locationUrl(sh),svg='';if(!tok||!url)return'';try{if(typeof window.RC569QrSvg==='function')svg=window.RC569QrSvg(url)}catch(_){}if(!svg)return'';setTimeout(function(){register(sh,false)},0);return '<div class="index351-qr-box rc504-location-qr-box" data-location-token="'+esc(tok)+'">'+svg+'<span>QR-Location</span></div>'}
 function dashboardMeta(id){var map={'warehouse-eingang':['Eingang',0],'warehouse-regal':['Regal',1],'warehouse-lane1':['Lane 1',2],'warehouse-lane2':['Lane 2',3],'warehouse-lane3':['Lane 3',4],'warehouse-lane4':['Lane 4',5],'warehouse-lane5':['Lane 5',6],'warehouse-vorregal':['Vor dem Regal',7]},entry=map[id]||map['warehouse-eingang'],name=entry[0],code=entry[1],d=zoneData(name),count=d.list.length,group=name==='Eingang'?0:(count>0?1:2);return{id:id,name:name,code:code,count:count,group:group,data:d}}
 function sortDashboardWidgets(ids){ids=arr(ids).slice();var sorted=ids.filter(function(id){return /^warehouse-/.test(id)}).sort(function(a,b){var x=dashboardMeta(a),y=dashboardMeta(b);if(x.group!==y.group)return x.group-y.group;if(x.group===1&&x.count!==y.count)return y.count-x.count;return x.code-y.code}),i=0;return ids.map(function(id){return /^warehouse-/.test(id)?sorted[i++]:id})}
-function dashboardWidget(id){var meta=dashboardMeta(id),name=meta.name,d=meta.data,stateClass=name==='Eingang'?'eingang':(meta.count>0?'occupied':'empty'),items=d.list.map(function(sh){return '<div class="rc504-dashboard-item"><b>'+esc(sref(sh)||sid(sh))+'</b><span>'+esc(sh.__rc613Orphan?'Datenverknüpfung fehlt':customer(sh))+'</span></div>'}).join('');return '<section class="card rc205-widget rc504-dashboard-location rc504-dashboard-location-'+stateClass+'" data-warehouse-dashboard-state="'+stateClass+'" data-rc205-action="navigate" data-view="warehouse"><h3>🏭 '+esc(name)+'</h3><div class="big">'+d.list.length+'</div><div class="muted">Sendungen auf dieser Location</div>'+(d.list.length?'<div class="rc504-dashboard-list rc513-dashboard-location-list">'+items+'</div>':'<div class="rc504-dashboard-empty">Keine Sendung auf dieser Location.</div>')+'</section>'}
+function dashboardWidget(id){var meta=dashboardMeta(id),name=meta.name,d=meta.data,stateClass=name==='Eingang'?'eingang':(meta.count>0?'occupied':'empty'),items=d.list.map(function(sh){return '<div class="rc504-dashboard-item"><b>'+esc(sref(sh)||sid(sh))+'</b><span>'+esc(customer(sh))+'</span></div>'}).join('');return '<section class="card rc205-widget rc504-dashboard-location rc504-dashboard-location-'+stateClass+'" data-warehouse-dashboard-state="'+stateClass+'" data-rc205-action="navigate" data-view="warehouse"><h3>🏭 '+esc(name)+'</h3><div class="big">'+d.list.length+'</div><div class="muted">Sendungen auf dieser Location</div>'+(d.list.length?'<div class="rc504-dashboard-list rc513-dashboard-location-list">'+items+'</div>':'<div class="rc504-dashboard-empty">Keine Sendung auf dieser Location.</div>')+'</section>'}
 window.rc504WarehouseRefresh=function(){sync(true);return false};
 window.rc504WarehouseMove=function(key){return openMove(key)};
 window.rc504WarehouseCloseMove=function(){return closeMove()};
 window.rc504WarehouseSaveMove=function(){return submitMove()};
 window.rc504WarehouseOpenFirst=function(){var first=all().filter(active)[0];if(first)return openMove(skey(first));alert('Es gibt aktuell keine aktive Sendung im Lager.');return false};
-window.ExportHUBWarehouse=Object.freeze({version:VERSION,locations:LOCS.slice(),render:render,sync:sync,register:register,collect:collect,qrMarkup:qrMarkup,urlFor:locationUrl,dashboardWidget:dashboardWidget,sortDashboardWidgets:sortDashboardWidgets,dashboardMeta:dashboardMeta,locationFor:locationName,diagnostics:function(){return{version:VERSION,restored:recoveryStats.restored,orphans:recoveryStats.orphans,blockedRegisters:recoveryStats.blockedRegisters,candidates:recoveryStats.candidates,orphanRefs:orphanRecords.map(function(x){return sref(x)||sid(x)})}}});
-function schedule(){clearTimeout(timer);timer=setTimeout(function(){all().filter(authoritative).forEach(defaultLocation);sync(false);paintNavIcon()},350)}
+window.ExportHUBWarehouse=Object.freeze({version:VERSION,locations:LOCS.slice(),render:render,sync:sync,register:register,collect:collect,qrMarkup:qrMarkup,urlFor:locationUrl,dashboardWidget:dashboardWidget,sortDashboardWidgets:sortDashboardWidgets,dashboardMeta:dashboardMeta,locationFor:locationName});
+function schedule(){clearTimeout(timer);timer=setTimeout(function(){all().forEach(defaultLocation);sync(false);paintNavIcon()},350)}
 ['exporthub:ready','exporthub:sync','exporthub:shipment-status-visible'].forEach(function(n){window.addEventListener(n,schedule)});window.addEventListener('focus',function(){sync(false)});window.addEventListener('exporthub:warehouse-updated',function(){if(currentView()==='dashboard'&&window.ExportHUBRC205&&typeof window.ExportHUBRC205.refreshDashboardIfChanged==='function')try{window.ExportHUBRC205.refreshDashboardIfChanged(false)}catch(_){}paintNavIcon()});setInterval(function(){if(document.visibilityState!=='hidden')sync(false)},15000);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 })();
 </script>
