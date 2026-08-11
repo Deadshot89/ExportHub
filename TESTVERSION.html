@@ -174,12 +174,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC621',cache:'621',loginReturn:'/test?v=621'});
+var BUILD=Object.freeze({version:'RC622',cache:'622',loginReturn:'/test?v=622'});
 var RELEASE=Object.freeze({
- version:'RC621',
+ version:'RC622',
  date:'11.08.2026',
- title:'Testservice getrennt · abgeholte Sendungen aus Lager entfernt',
+ title:'Testservice · keine unvollständige Lager-Recovery',
  changes:Object.freeze([
+  'Location-/Lagerdatensätze dürfen keine unvollständigen Ersatzsendungen mehr aus Referenz, Token und Kunde erzeugen.',
+  'Eine Wiederherstellung aus dem Browser wird nur akzeptiert, wenn ein vollständiger Geschäftsdaten-Datensatz vorhanden ist; reine Lagerkarten bleiben unsichtbar.',
   'RC621 basiert auf der getrennten RC620-Testservice-Basis mit separatem Azure-Host und separatem Test-Speicher.',
   'Abgeholte Sendungen, Sendungen mit POD und abgeschlossene oder archivierte Sendungen werden im Lager und in allen Lager-KPIs vollständig ausgeblendet.',
   'Die frühere RC617-POD-/25-Sendungen-Recovery und alle fest eingebauten Produktionsreferenzen wurden aus dem aktiven State-Startpfad vollständig entfernt.',
@@ -19841,17 +19843,21 @@ function bestBrowserRecovery(rec){
  function score(sh){return Object.keys(sh||{}).length+arr(sh&&sh.rows).length*20+arr(sh&&sh.deliveryFiles).length*12+arr(sh&&sh.podFiles).length*12+(q(sh&&sh.customerId)?40:0)+(q(sh&&sh.pickupDate||sh&&sh.plannedPickupDate)?20:0)}
  candidates.sort(function(a,b){return score(b)-score(a)});return candidates[0]
 }
+function isFullBrowserRecovery(sh){
+ if(!obj(sh)||sh.recoveryIncomplete===true||safeScalar(sh.recoverySource)==='location-booking')return false;
+ if(!sref(sh)&&!sid(sh))return false;
+ var hasCustomer=!!safeCustomer(sh.customerName||sh.customerDisplay||(obj(sh.customer)&&(sh.customer.name||sh.customer.customerName)));
+ var hasBusinessData=arr(sh.rows).length>0||arr(sh.deliveryFiles).length>0||arr(sh.podFiles).length>0||!!safeScalar(sh.pickupDate||sh.plannedPickupDate||sh.goodsDescription||sh.comments||sh.customerId||sh.customerAccount);
+ return hasCustomer&&hasBusinessData
+}
 function recoverMissingLocationRecord(rec){
  if(!obj(rec)||rec.collected===true||rec.deleted===true||rec.cancelled===true)return false;
  var ref=recordRef(rec),shipmentId=recordId(rec),tok=recordToken(rec);
  if(!ref&&!shipmentId)return false;if(findRecordShipment(rec))return false;
  var target=primaryState();if(!obj(target))return false;target.shipments=arr(target.shipments);
- var restored=bestBrowserRecovery(rec);if(restored)restored=JSON.parse(JSON.stringify(restored));
- else{
-  var cname=recordCustomer(rec),customerId='';
-  if(cname)arr(target.customers).some(function(c){if(low(safeScalar(c&&(c.name||c.customerName||c.alias)))===low(cname)){customerId=safeScalar(c.id||c.account||c.customerNumber);return true}return false});
-  restored={id:shipmentId||('RECOVERED-'+ref),shipmentId:shipmentId||undefined,ref:ref||shipmentId,reference:ref||shipmentId,customerId:customerId,customerName:cname,customerSearch:cname,status:safeScalar(rec.status)||'Bereit zur Abholung',processStatus:safeScalar(rec.status)||'Bereit zur Abholung',readyForPickup:rec.ready===true,pickupToken:tok,warehouseLocation:safeScalar(rec.currentLocation)||'Eingang',warehouseLocationCode:Number(rec.locationCode||0),warehousePrepared:rec.prepared===true,totalColli:Number(rec.totalColli||rec.colliCount||rec.expectedColliCount||0),palletCount:Number(rec.palletCount||0),packageCount:Number(rec.packageCount||0),rows:[],deliveryFiles:[],podFiles:[],recoveryIncomplete:true,recoverySource:'location-booking',recoveryRecoveredAt:new Date().toISOString(),recoveryNote:'Aus vorhandenem Lager-/Location-Datensatz wiederhergestellt. Unbekannte Sendungsdetails wurden nicht erfunden.'}
- }
+ var restored=bestBrowserRecovery(rec);
+ if(!isFullBrowserRecovery(restored))return false;
+ restored=JSON.parse(JSON.stringify(restored));
  ['customerName','customerDisplay','customerSearch','consigneeName','companyName'].forEach(function(k){if(k in restored&&!safeScalar(restored[k])&&q(restored[k]))restored[k]=''});if(typeof restored.customer==='string'&&!safeScalar(restored.customer)&&q(restored.customer))restored.customer='';
  restored.ref=ref||safeScalar(restored.ref||restored.reference||shipmentId).toUpperCase();restored.reference=restored.reference||restored.ref;if(shipmentId&&!restored.id)restored.id=shipmentId;if(shipmentId&&!restored.shipmentId)restored.shipmentId=shipmentId;if(tok&&!safeScalar(restored.pickupToken))restored.pickupToken=tok;
  var recCustomer=recordCustomer(rec);if(!safeCustomer(restored.customerName)&&recCustomer)restored.customerName=recCustomer;
