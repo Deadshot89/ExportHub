@@ -164,7 +164,7 @@ function docCount(sh){
 function coreContentComplete(sh){
  if(!isObj(sh)||!customerOf(sh))return false;
  const rows=rowList(sh),address=cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address));
- /* RC629: Eine Sendung gilt für die Datenrettung nur dann als vollständig, wenn echte Packstückdaten vorhanden sind. */
+ /* RC630: Eine Sendung gilt für die Datenrettung nur dann als vollständig, wenn echte Packstückdaten vorhanden sind. */
  return rows.length>0&&!!address;
 }
 function recoveryFlagged(sh){
@@ -476,7 +476,7 @@ async function recoverShipments(container,teamBlob,payload,user){
   const d=await readJson(historyClient(container,candidateInfo.source),emptyTeam(),false);candidateDoc=d.value||emptyTeam();
  }
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam();
- const backupName=await safetyBackup(container,current,'team-state-before-RC629-recovery');
+ const backupName=await safetyBackup(container,current,'team-state-before-RC630-recovery');
  /* Erst den sichersten Gesamtstand zusammenführen, danach pro Referenz die vollständigste echte historische Sendung suchen. */
  let merged=mergeHistoricalShipments(current.state||{},candidateDoc.state||{});
  const refs=new Set();
@@ -494,7 +494,7 @@ async function recoverShipments(container,teamBlob,payload,user){
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC629-history-recovery';
+ next.clientVersion='RC630-history-recovery';
  next.state=merged.state;
  const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>{const sk=normalizedStatus(sh);return sk!=='archiviert'&&sk!=='storniert'&&!historicalCore(sh).ok}).map(refOf).filter(Boolean);
  next.recoveryAudit={
