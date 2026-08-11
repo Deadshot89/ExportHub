@@ -174,20 +174,17 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC630',cache:'630',loginReturn:'/test?v=630'});
+var BUILD=Object.freeze({version:'RC631',cache:'631',loginReturn:'/test?v=631'});
 var RELEASE=Object.freeze({
- version:'RC630',
+ version:'RC631',
  date:'11.08.2026',
- title:'Sendungsdaten schützen, Altblock entfernen und Dokumentstruktur stabilisieren',
+ title:'Weiße Startseite beseitigen; Sendungsrettung unverändert erhalten',
  changes:Object.freeze([
-  'RC630 entfernt den verbliebenen inaktiven RC575-Altblock vollständig; kein alter Aufgaben-Renderer oder RC575-Style bleibt aktiv.',
-  'RC630 entfernt die verbliebenen Pagination-CSS-Reste der Sendungsübersicht; der bestehende Renderer zeigt weiterhin alle gefilterten Sendungen ohne Seitenumschaltung.',
-  'RC630 verschiebt die echten Dokument-Endtags ans Dateiende, sodass alle aktiven Styles und Skripte innerhalb einer gültigen HTML-Struktur liegen, ohne Reihenfolge oder Layout zu verändern.',
-  'RC629 durchsucht die Azure-Historie zusätzlich pro Sendungsreferenz und übernimmt für jede Referenz den vollständigsten echten historischen Datensatz; eine einzelne unvollständige Snapshot-Version reicht nicht mehr als Datenquelle.',
+  'RC631 durchsucht die Azure-Historie zusätzlich pro Sendungsreferenz und übernimmt für jede Referenz den vollständigsten echten historischen Datensatz; eine einzelne unvollständige Snapshot-Version reicht nicht mehr als Datenquelle.',
   'Gespeicherte Sendungskopien aus shipments und savedShipments werden für Ladeliste/CMR feldweise zu einem vollständigen Dokumentdatensatz zusammengeführt; leere Kopien dürfen vollständige Colli-, Kunden-, Adress- oder Dokumentdaten nicht verdrängen.',
   'Fehlende Colli-Zeilen in aktiven gespeicherten Sendungen gelten jetzt selbst dann als Recovery-Fehler, wenn Kunde oder Adresse noch vorhanden sind.',
   'Drucken und PDF werden bei fehlenden Sendungskerndaten blockiert statt eine leere Ladeliste zu erzeugen.',
-  'Hauptseite und TESTVERSION werden auf denselben RC629-Stand gebracht; die RC629-Recoverylogik ist damit in beiden Portalen identisch.',
+  'Hauptseite und TESTVERSION werden auf denselben RC631-Stand gebracht; die RC631-Recoverylogik ist damit in beiden Portalen identisch.',
   'Die bestehende mobile Shell wurde direkt korrigiert, sodass App, Hauptbereich, Topbar und Content bei Smartphone-Breite die verfügbare Breite vollständig nutzen.',
   'RC628 stellt beschädigte Sendungsinhalte ausschließlich aus einer ausreichend vollständigen historischen Azure-Version wieder her; keine synthetischen Test-/false-/Strich-Daten werden erzeugt.',
   'Vor jeder historischen Wiederherstellung erstellt die Azure-State-API ein unveränderliches Sicherheitsbackup des aktuellen Teamstands.',
@@ -214,7 +211,7 @@ var RELEASE=Object.freeze({
   'Fehlende Colli-Zeilen lösen auch bei vorhandenem Kundennamen die Azure-Historienrettung aus',
   'Druck/PDF einer unvollständigen Sendung wird mit klarer Meldung blockiert statt leer erzeugt',
   'Smartphone 390 px nutzt mindestens 85 Prozent der Bildschirmbreite für #content',
-  'Hauptseite und TESTVERSION melden beide RC630',
+  'Hauptseite und TESTVERSION melden beide RC631',
   'Beschädigte Kundenwerte false, true, Test, Test Kunde sowie Strichwerte gelten nicht als gültiger Sendungsinhalt',
   'Beschädigter Mehrfachbestand löst vor dem Rendern die sichere Azure-Historienprüfung aus',
   'Sendungsübersicht enthält keine Seitennavigation und keine Einträge-pro-Seite-Auswahl',
@@ -7293,12 +7290,10 @@ body .rc314-process-warning{
 .rc524-training-view .quiz-option{min-height:54px!important;padding:13px 15px!important;border-radius:12px!important}
 
 
-/* RC630: Sendungsübersicht ohne Pagination; Synchronisationsstatus bleibt erhalten. */
+/* RC524: paginierte Sendungsübersicht und Synchronisationsstatus */
 .rc524-overview-controls{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:10px;align-items:end;margin:10px 0 14px}
 .rc524-overview-controls .field{margin:0}
 .rc524-overview-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#475569;font-weight:850}
-
-
 .rc524-shipment-list{content-visibility:auto;contain-intrinsic-size:1200px}
 .rc524-shipment-card{contain:layout style paint;content-visibility:auto;contain-intrinsic-size:180px}
 .rc524-live-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 10px;background:#ecfeff;color:#155e75;font-size:12px;font-weight:900}
@@ -7731,7 +7726,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 @media(max-width:850px){#content .planner-task{grid-template-columns:1fr}#content .planner-move{grid-template-columns:1fr auto}}
 </style>
 <style>
-/* RC630: link-button for password recovery */
+/* RC631: link-button for password recovery */
 .link-btn:hover{text-decoration:underline}
 </style>
 <!-- INDEX 294 RC294 LOGIN BADGE DISPLAY START -->
@@ -12497,7 +12492,10 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
 #content #rc589TopView .rc589-overflow{border-color:#fecaca;background:#fff1f2;color:#991b1b}
 @media(max-width:720px){#content #rc589TopView .rc589-plan-shell{min-width:700px!important}#content #rc589TopView .rc589-plan{min-height:148px}#content #rc589TopView .rc589-pallet .ori{display:none}}
 </style>
-<!-- RC590 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN END --><!-- RC559 + RC560 + RC561 stable patches -->
+<!-- RC590 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN END -->
+</body>
+</html>
+<!-- RC559 + RC560 + RC561 stable patches -->
 <style id="exporthub-canonical-mobile-shell-style">
 /* RC524: funktionaler Besitzer der Smartphone-/Sidebar-Shell. Fachbereichs- und Theme-Design bleiben separat. */
 #ehCollapseBtn,.eh-collapse-btn,#rc568MenuBtn,#rc568MenuBackdrop,#rc567MobileBackdrop{display:none!important}
@@ -17446,7 +17444,6 @@ window.ExportHUBRC205={renderDashboard:renderDashboard,refreshDashboardIfChanged
 #content.rc524-overview-view .rc485-status-all{min-height:34px!important;padding:6px 11px!important}
 #content.rc524-overview-view .rc485-status-option{display:inline-flex!important;align-items:center!important;gap:6px!important;min-height:34px!important;padding:6px 10px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#fff!important;font-size:12px!important;font-weight:900!important;cursor:pointer!important}
 #content.rc524-overview-view .rc485-status-option input{width:16px!important;height:16px!important;margin:0!important;accent-color:#2563eb!important}
-
 #content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]::before{display:none!important}
 #content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]{border-width:3px!important;border-left-width:12px!important;transition:transform .12s ease,box-shadow .12s ease!important;background-clip:padding-box!important}
 #content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]:hover{transform:translateY(-2px)!important}
@@ -20304,5 +20301,4 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
 </script>
-</body>
-</html>
+
