@@ -174,13 +174,13 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC633',cache:'633',loginReturn:'/test?v=633'});
+var BUILD=Object.freeze({version:'RC634',cache:'634',loginReturn:'/test?v=634'});
 var RELEASE=Object.freeze({
- version:'RC633',
+ version:'RC634',
  date:'11.08.2026',
  title:'Recovery-Fehler korrekt behandeln und weitere echte Azure-Backups durchsuchen',
  changes:Object.freeze([
-  'RC633 trennt API-Erreichbarkeit und fachliche Recovery-Fehler: HTTP-409-Recoveryantworten werden nicht mehr fälschlich als STATE_API_UNREACHABLE ausgegeben.',
+  'RC634 trennt API-Erreichbarkeit und fachliche Recovery-Fehler: HTTP-409-Recoveryantworten werden nicht mehr fälschlich als STATE_API_UNREACHABLE ausgegeben.',
   'Wenn keine echte historische Packstückquelle gefunden wird, startet ExportHUB trotzdem mit dem vorhandenen Azure-Stand; unvollständige Sendungen bleiben für Ladeliste/PDF geschützt.',
   'Die serverseitige Rettung durchsucht zusätzlich ältere ExportHUB-/Team-/Backup-JSON-Dateien im Azure-Container und unterstützt weitere historische Referenz- und Packstückfeldnamen.',
   'RC632 verlangt keinen vollständigen historischen Gesamtstand mehr: Jede betroffene Sendungsreferenz wird direkt und unabhängig aus der Azure-Versionshistorie rekonstruiert.',
@@ -215,7 +215,7 @@ var RELEASE=Object.freeze({
   'Fehlende Colli-Zeilen lösen auch bei vorhandenem Kundennamen die Azure-Historienrettung aus',
   'Druck/PDF einer unvollständigen Sendung wird mit klarer Meldung blockiert statt leer erzeugt',
   'Smartphone 390 px nutzt mindestens 85 Prozent der Bildschirmbreite für #content',
-  'Hauptseite und TESTVERSION melden beide RC633',
+  'Hauptseite und TESTVERSION melden beide RC634',
   'Beschädigte Kundenwerte false, true, Test, Test Kunde sowie Strichwerte gelten nicht als gültiger Sendungsinhalt',
   'Beschädigter Mehrfachbestand löst vor dem Rendern die sichere Azure-Historienprüfung aus',
   'Sendungsübersicht enthält keine Seitennavigation und keine Einträge-pro-Seite-Auswahl',
@@ -10975,8 +10975,8 @@ function shipmentRecoveryCustomer(sh){
  if(typeof sh.customer==='string')vals.push(sh.customer);else if(sh.customer&&typeof sh.customer==='object')vals.push(sh.customer.name,sh.customer.customerName,sh.customer.companyName);
  for(var i=0;i<vals.length;i++){var x=shipmentRecoveryScalar(vals[i]);if(x&&!/^(?:test|test kunde|test kunde gmbh)$/i.test(x))return x}return''
 }
-function shipmentRecoveryRef(sh){if(!sh||typeof sh!=='object')return'';var vals=[sh.ref,sh.reference,sh.shipmentRef,sh.referenceNumber,sh.referenceNo,sh.referenceId,sh.refNo,sh.refNr,sh.shipmentNumber,sh.sendungsnummer,sh.exporthubRef,sh.exportHubReference];for(var i=0;i<vals.length;i++){var x=shipmentRecoveryScalar(vals[i]).toUpperCase();if(/^[A-Z0-9]{6}$/.test(x))return x}return''}
-function shipmentRecoveryRows(sh){if(!sh||typeof sh!=='object')return[];var lists=[sh.rows,sh.colli,sh.collis,sh.packages,sh.packagingRows,sh.packageRows,sh.packingRows,sh.shipmentRows,sh.colliRows,sh.cargoRows,sh.freightRows,sh.loadRows,sh.palletRows,sh.handlingUnits,sh.handlingUnitRows,sh.shipmentItems,sh.items,sh.lines,sh.colliData,sh.packagesData,sh.cargo&&sh.cargo.rows,sh.cargoData&&sh.cargoData.rows,sh.freight&&sh.freight.rows,sh.packaging&&sh.packaging.rows,sh.load&&sh.load.rows];for(var i=0;i<lists.length;i++)if(Array.isArray(lists[i])&&lists[i].length)return lists[i];return[]}
+function shipmentRecoveryRef(sh){if(!sh||typeof sh!=='object')return'';var vals=[sh.ref,sh.reference,sh.shipmentRef,sh.referenceNumber,sh.exporthubRef,sh.exportHubReference];for(var i=0;i<vals.length;i++){var x=shipmentRecoveryScalar(vals[i]).toUpperCase();if(/^[A-Z0-9]{6}$/.test(x))return x}return''}
+function shipmentRecoveryRows(sh){if(!sh||typeof sh!=='object')return[];var lists=[sh.rows,sh.colli,sh.collis,sh.packages,sh.packagingRows,sh.shipmentRows,sh.colliRows,sh.items,sh.lines];for(var i=0;i<lists.length;i++)if(Array.isArray(lists[i])&&lists[i].length)return lists[i];return[]}
 function shipmentRecoveryMeaningful(sh){
  if(!sh||typeof sh!=='object')return 0;var n=0;if(shipmentRecoveryRef(sh))n+=40;if(shipmentRecoveryCustomer(sh))n+=50;if(shipmentRecoveryScalar(sh.customerId||sh.customerAccount||sh.customerNumber))n+=15;
  if(shipmentRecoveryScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)))n+=20;
@@ -11287,13 +11287,6 @@ async function ensureShipmentFlushAllowed(reason){if(!shipmentFlushGuardNeeded(r
 async function queueSave(reason){
  if(!runtime.ready||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;savePersistentFilterState();runtime.lastQueueReason=String(reason||'');runtime.lastQueueAt=Date.now();runtime.changeGeneration++;runtime.dirty=true;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason)},250);return true
 }
-function protectShipmentDeltaDuringRecovery(stateDelta,fullStateSnapshot){
- if(!runtime.shipmentRecoveryWarning)return false;
- if(!shipmentHistoryRecoveryNeeded(fullStateSnapshot)){runtime.shipmentRecoveryWarning=null;runtime.shipmentRecoverySaveProtected=false;return false}
- ['shipments','savedShipments','shipment','currentShipment','activeShipment','editingShipment','documentShipment','shipmentsById','savedShipmentsById','shipmentMap','shipmentsMap','activeShipmentId','selectedShipmentId','documentShipmentId','editingShipmentId'].forEach(function(key){if(stateDelta&&Object.prototype.hasOwnProperty.call(stateDelta,key))delete stateDelta[key]});
- if(stateDelta&&stateDelta._teamSyncMeta&&Array.isArray(stateDelta._teamSyncMeta.tombstones))stateDelta._teamSyncMeta.tombstones=stateDelta._teamSyncMeta.tombstones.filter(function(item){return !item||!/^shipments?$|^savedshipments?$/i.test(String(item.collection||''))});
- runtime.shipmentRecoverySaveProtected=true;runtime.shipmentRecoverySaveProtectedAt=new Date().toISOString();return true
-}
 async function flushSave(reason,options){
  options=options||{};if((!runtime.ready&&!options.force)||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;if(!runtime.pendingSave&&!runtime.dirty)return runtime.changeGeneration>0&&runtime.lastSavedGeneration>=runtime.changeGeneration;if(runtime.saving){var wantedGeneration=Number(runtime.changeGeneration||0),waitDeadline=Date.now()+75000;while(runtime.saving&&Date.now()<waitDeadline)await new Promise(function(resolve){native.setTimeout(resolve,100)});if(wantedGeneration>0&&Number(runtime.lastSavedGeneration||0)>=wantedGeneration)return true;if(!runtime.saving&&(runtime.pendingSave||runtime.dirty)&&Number(options._waitPass||0)<2){var nextOptions=Object.assign({},options,{_waitPass:Number(options._waitPass||0)+1});return flushSave(reason,nextOptions)}return false;}
  const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return false;
@@ -11301,12 +11294,12 @@ async function flushSave(reason,options){
  runtime.saving=true;if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}runtime.pendingSave=false;const generation=runtime.changeGeneration;runtime.activeSaveGeneration=generation;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';
  try{
   const liveState=getState(),liveUsers=typeof getUsers==='function'?getUsers():runtime.users;captureCanonicalDeletions(runtime.lastSnapshot||{},liveState,runtime.lastUsers||[],liveUsers);const fullStateSnapshot=clone(liveState),usersSnapshot=clone(liveUsers);stampChanges(runtime.lastSnapshot||{},fullStateSnapshot,runtime.lastUsers||[],usersSnapshot);
-  const stateDelta=buildAzureStateDelta(runtime.lastSnapshot||{},fullStateSnapshot),shipmentDeltaProtected=protectShipmentDeltaDuringRecovery(stateDelta,fullStateSnapshot),operationId=runtime.deviceId+'-'+generation+'-'+Date.now();const payload={clientVersion:VERSION,baseRevision:runtime.revision,deviceId:runtime.deviceId,operationId:operationId,clientMutationId:operationId,reason:reason||'save',state:stateDelta};runtime.network.posts++;
+  const stateDelta=buildAzureStateDelta(runtime.lastSnapshot||{},fullStateSnapshot),operationId=runtime.deviceId+'-'+generation+'-'+Date.now();const payload={clientVersion:VERSION,baseRevision:runtime.revision,deviceId:runtime.deviceId,operationId:operationId,clientMutationId:operationId,reason:reason||'save',state:stateDelta};runtime.network.posts++;
   let payloadBytes=0;try{payloadBytes=new Blob([JSON.stringify(payload)]).size}catch(_){try{payloadBytes=JSON.stringify(payload).length}catch(__){payloadBytes=0}}runtime.lastPayloadBytes=payloadBytes;try{runtime.lastFullStateBytes=new Blob([JSON.stringify(fullStateSnapshot)]).size}catch(_){runtime.lastFullStateBytes=0}
   const requestOptions={keepalive:!!options.keepalive};if(requestOptions.keepalive&&payloadBytes>60000)requestOptions.keepalive=false;const d=await stateCall('save',payload,requestOptions);runtime.revision=Number(d.revision||runtime.revision);runtime.lastSavedGeneration=generation;runtime.saveRetryCount=0;if(runtime.saveRetryTimer){native.clearTimeout(runtime.saveRetryTimer);runtime.saveRetryTimer=null}
   const newer=runtime.changeGeneration>generation;runtime.lastSnapshot=clone(d.state||fullStateSnapshot);runtime.lastUsers=clone(d.users||usersSnapshot);
   if(d.concurrentMerge===true&&d.state&&!newer)applyRemoteDocument(d,'concurrent-merge');
-  runtime.dirty=newer;runtime.pendingSave=newer;if(info)info.textContent=(shipmentDeltaProtected?'Andere Änderungen gespeichert · beschädigte Sendungsdaten geschützt · ':(d.concurrentMerge?'Paralleländerungen zusammengeführt · ':'Dauerhaft in Azure gespeichert · '))+new Date().toLocaleTimeString('de-DE');if(newer)queueSave('Änderung während der Speicherung');return true
+  runtime.dirty=newer;runtime.pendingSave=newer;if(info)info.textContent=(d.concurrentMerge?'Paralleländerungen zusammengeführt · ':'Dauerhaft in Azure gespeichert · ')+new Date().toLocaleTimeString('de-DE');if(newer)queueSave('Änderung während der Speicherung');return true
  }catch(e){
   runtime.dirty=true;runtime.pendingSave=true;const code=String(e&&e.code||''),statusCode=Number(e&&e.status||0),tooLarge=code==='PAYLOAD_TOO_LARGE'||code==='HTTP_413'||statusCode===413,temporary=['API_UNREACHABLE','STATE_API_UNREACHABLE','INVALID_SERVER_JSON','HTTP_408','HTTP_425','HTTP_429','HTTP_500','HTTP_502','HTTP_503','HTTP_504'].indexOf(code)>=0||[408,425,429,500,502,503,504].indexOf(statusCode)>=0,sessionProblem=isSessionError(e);
   if(tooLarge){runtime.saveRetryCount=0;if(info)info.textContent='Azure-Speicherung abgelehnt: Änderungspaket noch zu groß';alert('Die Änderung konnte noch nicht in Azure gespeichert werden. Das Änderungspaket ist für die Azure-API noch zu groß (HTTP 413). Bitte die betroffene Datei kleiner wählen oder erneut speichern. Andere Änderungen bleiben vorgemerkt.')}

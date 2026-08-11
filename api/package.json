@@ -1,9 +1,9 @@
 {
   "name": "exporthub-api",
-  "version": "1.0.0",
+  "version": "1.0.634",
   "private": true,
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.27.0"
