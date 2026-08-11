@@ -67,7 +67,9 @@ async function clients(){
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503);
  let service; try{service=BlobServiceClient.fromConnectionString(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die Azure-Speicherverbindung ist ungültig.',503)}
  const container=service.getContainerClient(TEAM_CONTAINER);
- return {container,team:container.getBlockBlobClient(TEAM_BLOB),auth:container.getBlockBlobClient(AUTH_BLOB)};
+ const pickup=service.getContainerClient(process.env.EXPORTHUB_PICKUP_CONTAINER || 'exporthub-pickup');
+ const pods=service.getContainerClient(process.env.EXPORTHUB_POD_CONTAINER || 'exporthub-pod');
+ return {service,container,team:container.getBlockBlobClient(TEAM_BLOB),auth:container.getBlockBlobClient(AUTH_BLOB),pickup,pods};
 }
 function parseStoredJson(raw,name){
  const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim();
@@ -125,8 +127,8 @@ async function saveMerged(blob,incoming,user,initialTeam,initialEtag){
 }
 
 
-/* RC614: administrative, non-destructive shipment recovery from Azure blob history. */
-const RC614_TARGET_COUNT=25;
+/* RC615: administrative, non-destructive shipment recovery from Azure blob history. */
+const RC614_TARGET_COUNT=1;
 const RC614_EVIDENCE_REFS=[
  'PKC5WB','8DAXMV','W4MY9T','ECUFAU','BT7U4H','6ZQ6AT','94XD9K','CPZM5E',
  'KLQA2M','PWFB8E','UBF78K','D97W6U','ONIYV3','Y4ABSN','ASZ9JM','J84J2S'
@@ -205,25 +207,18 @@ function normalizedStatus(sh){
 function candidateStats(doc,knownRefs){
  const state=isObj(doc&&doc.state)?doc.state:{};
  const list=bestShipmentSet(state), known=new Set(arr(knownRefs).map(x=>String(x).toUpperCase()));
- let validCustomer=0,rich=0,suspect=0,knownHits=0,activeCount=0,activeValidCustomer=0,activeRich=0,activeSuspect=0;
- const refs=[],activeRefs=[],statusCounts={};
+ let validCustomer=0,rich=0,suspect=0,knownHits=0;
+ const refs=[],statusCounts={};
  list.forEach(sh=>{
   const ref=refOf(sh);if(ref)refs.push(ref);
-  const customerOk=!!customerOf(sh),richOk=shipmentRichness(sh)>=90,suspectFlag=recoveryFlagged(sh)||!customerOk;
-  if(customerOk)validCustomer++;
-  if(richOk)rich++;
-  if(suspectFlag)suspect++;
+  if(customerOf(sh))validCustomer++;
+  if(shipmentRichness(sh)>=90)rich++;
+  if(recoveryFlagged(sh)||!customerOf(sh))suspect++;
   if(ref&&known.has(ref))knownHits++;
   const sk=normalizedStatus(sh);statusCounts[sk]=(statusCounts[sk]||0)+1;
-  if(sk!=='archiviert'&&sk!=='storniert'){
-   activeCount++;if(ref)activeRefs.push(ref);
-   if(customerOk)activeValidCustomer++;
-   if(richOk)activeRich++;
-   if(suspectFlag)activeSuspect++;
-  }
  });
- const count=list.length, ratio=count?validCustomer/count:0,activeRatio=activeCount?activeValidCustomer/activeCount:0;
- return {count,activeCount,validCustomer,validCustomerRatio:ratio,activeValidCustomer,activeValidCustomerRatio:activeRatio,rich,activeRich,suspect,activeSuspect,knownHits,refs,activeRefs,statusCounts};
+ const count=list.length, ratio=count?validCustomer/count:0;
+ return {count,validCustomer,validCustomerRatio:ratio,rich,suspect,knownHits,refs,statusCounts};
 }
 function sourceDescriptor(item){
  return {
@@ -266,36 +261,32 @@ async function listHistory(container){
 }
 function safeCandidate(stats,targetCount){
  const target=Math.max(1,Number(targetCount)||RC614_TARGET_COUNT);
- return stats.activeCount>=target && stats.activeCount<=target+12 &&
-        stats.activeValidCustomerRatio>=0.72 &&
-        stats.activeRich>=Math.max(12,Math.floor(target*0.60)) &&
-        stats.activeSuspect<=Math.max(5,Math.floor(target*0.24)) &&
-        (stats.knownHits>=3||stats.activeValidCustomer>=Math.max(20,Math.floor(target*0.82)));
+ return stats.count>=target &&
+        stats.validCustomerRatio>=0.72 &&
+        stats.rich>=Math.max(12,Math.floor(target*0.60)) &&
+        stats.suspect<=Math.max(5,Math.floor(target*0.24)) &&
+        (stats.knownHits>=3||stats.validCustomer>=Math.max(20,Math.floor(target*0.82)));
 }
-async function inspectHistory(container,targetCount,knownRefs,maxVersions=70){
+async function inspectHistory(container,targetCount,knownRefs,maxVersions=100){
  const history=await listHistory(container), inspected=[];
- let bestSafe=null,bestScore=-1;
- const max=Math.max(1,Math.min(100,Number(maxVersions)||70)),priority=['PKC5WB','8DAXMV'];
- for(let i=0;i<history.length&&i<max;i++){
+ const limit=Math.max(1,Math.min(120,Number(maxVersions)||100));
+ let best=null;
+ for(let i=0;i<history.length&&i<limit;i++){
   const source=history[i];
-  if(/^RC61[1-4]/i.test(cleanScalar(source.clientVersion)))continue;
   try{
    const d=await readJson(historyClient(container,source),emptyTeam(),false);
    const doc=d.value||emptyTeam(),stats=candidateStats(doc,knownRefs);
    const item={source,stats,safe:safeCandidate(stats,targetCount),revision:Number(doc.revision||0),updatedAt:doc.updatedAt||source.lastModified||null,updatedBy:cleanScalar(doc.updatedBy),clientVersion:cleanScalar(doc.clientVersion||source.clientVersion)};
    inspected.push(item);
-   if(item.safe){
-    const refs=new Set(stats.refs||[]),priorityHits=priority.filter(r=>refs.has(r)).length;
-    const score=priorityHits*10000+Number(stats.knownHits||0)*500+Number(stats.activeValidCustomer||0)*10-Number(stats.activeSuspect||0)*100;
-    if(score>bestScore){bestScore=score;bestSafe=item}
-    if(priorityHits===priority.length)return {candidate:item,inspected,historyCount:history.length};
-    if(bestSafe&&i>=Math.min(max-1,49))break;
-   }
+   if(!item.safe)continue;
+   const score=(stats.count*1000)+(stats.validCustomer*80)+(stats.rich*40)+(stats.knownHits*20)-(stats.suspect*150);
+   item.score=score;
+   if(!best||score>best.score||(score===best.score&&Date.parse(item.updatedAt||0)>Date.parse(best.updatedAt||0)))best=item;
   }catch(e){
    inspected.push({source,error:e&&e.message||'Historische Version konnte nicht gelesen werden.',safe:false});
   }
  }
- return {candidate:bestSafe,inspected,historyCount:history.length};
+ return {candidate:best,inspected,historyCount:history.length};
 }
 function mergeUniqueFiles(a,b){
  const out=[],seen=new Set();
@@ -364,11 +355,8 @@ function mergeHistoricalShipments(currentState,historicalState){
  const restored=[];
  historyList.forEach(h=>{
   const k=identityOf(h);if(!k)return;
-  const c=map.get(k),historicalStatus=normalizedStatus(h);
-  if(!c){
-   if(historicalStatus==='archiviert'||historicalStatus==='storniert')return;
-   const x=mergeRestoredShipment(h,null);map.set(k,x);restored.push(x);added++;return
-  }
+  const c=map.get(k);
+  if(!c){const x=mergeRestoredShipment(h,null);map.set(k,x);restored.push(x);added++;return}
   const cBad=recoveryFlagged(c)||!customerOf(c)||shipmentRichness(c)<70;
   const hBetter=shipmentRichness(h)>shipmentRichness(c)+15;
   if(cBad||hBetter){const x=mergeRestoredShipment(h,c);map.set(k,x);restored.push(x);repaired++;return}
@@ -421,7 +409,7 @@ async function recoverShipments(container,teamBlob,payload,user){
   const d=await readJson(historyClient(container,candidateInfo.source),emptyTeam(),false);candidateDoc=d.value||emptyTeam();
  }
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam();
- const backupName=await safetyBackup(container,current,'team-state-before-RC614-recovery');
+ const backupName=await safetyBackup(container,current,'team-state-before-RC615-recovery');
  const merged=mergeHistoricalShipments(current.state||{},candidateDoc.state||{});
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
@@ -429,7 +417,7 @@ async function recoverShipments(container,teamBlob,payload,user){
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC614-recovery';
+ next.clientVersion='RC615-recovery';
  next.state=merged.state;
  next.recoveryAudit={
   at:next.updatedAt,by:next.updatedBy,source:candidateInfo.source,sourceRevision:candidateInfo.revision,
@@ -444,6 +432,147 @@ async function recoverShipments(container,teamBlob,payload,user){
   tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,
   finalStats:candidateStats(next,known)
  };
+}
+
+
+/* RC616: targeted recovery for shipments proven by signed POD backups. */
+const RC616_POD_EVIDENCE=Object.freeze([
+ {ref:'PWFB8E',confirmedAt:'2026-08-10T07:01:46.919Z',fileName:'POD_PWFB8E_Ladeliste_mit_Unterschrift.pdf',savedAt:'2026-08-10T10:57:22.870Z',size:389315},
+ {ref:'6ZQ6AT',confirmedAt:'2026-08-07T13:31:50.148Z',fileName:'POD_6ZQ6AT_Ladeliste_mit_Unterschrift.pdf',savedAt:'2026-08-10T10:56:34.587Z',size:377768},
+ {ref:'94XD9K',confirmedAt:'2026-08-07T10:38:59.929Z',fileName:'POD_94XD9K_Ladeliste_mit_Unterschrift.pdf',savedAt:'2026-08-10T10:56:24.175Z',size:387893},
+ {ref:'KLQA2M',confirmedAt:'2026-08-07T09:17:29.590Z',fileName:'POD_KLQA2M_Ladeliste_mit_Unterschrift.pdf',savedAt:'2026-08-10T10:56:20.758Z',size:373727},
+ {ref:'UBF78K',confirmedAt:'2026-08-07T07:38:46.080Z',fileName:'POD_UBF78K_Ladeliste_mit_Unterschrift.pdf',savedAt:'2026-08-10T10:56:27.130Z',size:391647},
+ {ref:'CPZM5E',confirmedAt:'2026-08-06T13:06:11.867Z',fileName:'POD_CPZM5E_Ladeliste_mit_Unterschrift.pdf',savedAt:'2026-08-10T10:56:17.403Z',size:384013},
+ {ref:'BT7U4H',confirmedAt:'2026-08-06T05:56:59.837Z',fileName:'POD_BT7U4H_Ladeliste_mit_Unterschrift.pdf',savedAt:'2026-08-10T11:04:21.795Z',size:375570}
+]);
+function rc616EvidenceForRefs(requested){
+ const allowed=new Set(RC616_POD_EVIDENCE.map(x=>x.ref));
+ const wanted=arr(requested).map(x=>cleanScalar(x).toUpperCase()).filter(x=>allowed.has(x));
+ const set=new Set(wanted.length?wanted:Array.from(allowed));
+ return RC616_POD_EVIDENCE.filter(x=>set.has(x.ref));
+}
+function rc616RecordRef(r){
+ if(!isObj(r))return'';
+ const vals=[r.reference,r.ref,r.shipmentRef,r.referenceNumber];
+ for(const v of vals){const x=cleanScalar(v).toUpperCase();if(/^[A-Z0-9]{6}$/.test(x))return x}
+ return'';
+}
+function rc616RecordScore(r){
+ if(!isObj(r))return-1;
+ let n=0;
+ if(rc616RecordRef(r))n+=40;
+ if(cleanScalar(r.customer||r.customerName))n+=60;
+ if(cleanScalar(r.recipient||r.recipientName))n+=15;
+ if(cleanScalar(r.shipmentId))n+=10;
+ if(cleanScalar(r.confirmedAt))n+=30;
+ if(cleanScalar(r.signatureBlobName))n+=30;
+ n+=Math.min(50,arr(r.podFiles).length*10);
+ return n;
+}
+async function rc616ScanPickupRecords(pickupContainer,evidence){
+ const wanted=new Set(evidence.map(x=>x.ref)),found=new Map();
+ if(!pickupContainer)return found;
+ try{
+  for await(const item of pickupContainer.listBlobsFlat({prefix:'records/'})){
+   if(!/\.json$/i.test(item.name||''))continue;
+   let d;try{d=await readJson(pickupContainer.getBlockBlobClient(item.name),null,false)}catch(_){continue}
+   const rec=d&&d.value,ref=rc616RecordRef(rec);if(!ref||!wanted.has(ref))continue;
+   const old=found.get(ref);if(!old||rc616RecordScore(rec)>rc616RecordScore(old))found.set(ref,clone(rec));
+  }
+ }catch(e){
+  if(!(e&&e.statusCode===404))throw error('PICKUP_RECOVERY_UNAVAILABLE','QR-/POD-Datensätze konnten nicht gelesen werden: '+(e&&e.message||'Unbekannter Fehler'),500);
+ }
+ return found;
+}
+function rc616ConsiderHistorical(best,sh,source){
+ const ref=refOf(sh);if(!ref||!best.has(ref))return;
+ const entry=best.get(ref),score=shipmentRichness(sh);
+ if(!entry.shipment||score>entry.score||(score===entry.score&&Date.parse(source&&source.lastModified||0)>Date.parse(entry.source&&entry.source.lastModified||0))){entry.shipment=clone(sh);entry.score=score;entry.source=source||null}
+}
+async function rc616BestHistoryForRefs(container,evidence,maxVersions){
+ const best=new Map(evidence.map(x=>[x.ref,{shipment:null,score:-1,source:null}]));
+ const history=await listHistory(container),limit=Math.max(1,Math.min(120,Number(maxVersions)||120));
+ for(let i=0;i<history.length&&i<limit;i++){
+  const source=history[i];let d;
+  try{d=await readJson(historyClient(container,source),emptyTeam(),false)}catch(_){continue}
+  bestShipmentSet((d.value||emptyTeam()).state||{}).forEach(sh=>rc616ConsiderHistorical(best,sh,source));
+  if(Array.from(best.values()).every(x=>x.shipment&&x.score>=90))break;
+ }
+ return {best,historyCount:history.length};
+}
+function rc616PickupPodFiles(record){
+ if(!isObj(record))return[];
+ const token=cleanScalar(record.token),out=[];
+ arr(record.podFiles).forEach((p,i)=>{
+  if(!isObj(p))return;
+  const id=cleanScalar(p.id||p.remoteId||('pod-'+i)),name=cleanScalar(p.name||p.filename||('POD_'+rc616RecordRef(record)+'.pdf'));
+  const f={id:'QR-'+id,remoteId:id,name,filename:name,type:cleanScalar(p.type)||'application/pdf',mimeType:cleanScalar(p.type)||'application/pdf',size:Number(p.size||0)||0,uploadedAt:cleanScalar(p.uploadedAt)||cleanScalar(record.confirmedAt)||now(),added:cleanScalar(p.uploadedAt)||cleanScalar(record.confirmedAt)||now(),remote:true,source:'QR',kind:cleanScalar(p.kind)};
+  if(token)f.url='/api/pickup-pod?token='+encodeURIComponent(token)+'&file='+encodeURIComponent(id);
+  out.push(f);
+ });
+ return out;
+}
+function rc616EvidenceFile(ev){
+ return {id:'POD-EVIDENCE-'+ev.ref,name:ev.fileName,filename:ev.fileName,type:'application/pdf',mimeType:'application/pdf',size:Number(ev.size||0),uploadedAt:ev.confirmedAt,added:ev.savedAt||ev.confirmedAt,source:'POD-Notfallsicherung',kind:'signed-loadlist',documentKind:'signed-loadlist',officialPod:true,recoveryEvidence:true,localBackup:true};
+}
+function rc616StatusRank(sh){
+ const s=normalizedStatus(sh);
+ if(s==='archiviert')return 6;if(s==='abgeschlossen')return 5;if(s==='pod')return 4;if(s==='abgeholt')return 3;if(s==='vorbereitet')return 2;return 1;
+}
+function rc616ApplyPodProof(base,record,ev,historyInfo){
+ const out=isObj(base)?clone(base):{};
+ out.ref=ev.ref;if(!cleanScalar(out.reference))out.reference=ev.ref;if(!cleanScalar(out.shipmentRef))out.shipmentRef=ev.ref;
+ const rec=isObj(record)?record:{};
+ const customer=cleanScalar(rec.customer||rec.customerName),recipient=cleanScalar(rec.recipient||rec.recipientName),shipmentId=cleanScalar(rec.shipmentId),token=cleanScalar(rec.token);
+ if(customer&&!customerOf(out)){out.customerName=customer;out.customer=customer}
+ if(recipient&&!cleanScalar(out.recipientName)){out.recipientName=recipient}
+ if(shipmentId&&!idOf(out)){out.id=shipmentId;out.shipmentId=shipmentId}
+ if(token){out.pickupToken=token;out.pickupQrToken=token;out.qrPickupToken=token;out.pickupQrRegistered=true;out.pickupQrActive=true}
+ const confirmed=cleanScalar(rec.confirmedAt)||ev.confirmedAt,day=confirmed.slice(0,10),dt=new Date(confirmed);
+ out.pickupConfirmed=true;out.qrPickupConfirmed=true;out.pickupCompleted=true;out.pickupQrUsed=true;out.podScanConfirmed=true;
+ out.pickupConfirmedAt=confirmed;out.qrPickupConfirmedAt=confirmed;out.pickupCompletedAt=confirmed;out.pickupQrUsedAt=confirmed;out.pickedUpAt=confirmed;out.actualPickupAt=confirmed;out.actualPickupDate=day;out.pickedUpAtDate=day;
+ if(!isNaN(dt))out.actualPickupTime=dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'UTC'});
+ out.pickupStatus='abgeholt';out.podStatus='POD vorhanden';out.podServerVerified=true;out.podServerVerifiedAt=confirmed;out.podConfirmedAt=confirmed;
+ if(rc616StatusRank(out)<4){out.status='POD vorhanden';out.processStatus='POD vorhanden'}
+ const remote=rc616PickupPodFiles(rec),proof=rc616EvidenceFile(ev);out.podFiles=mergeUniqueFiles(out.podFiles,remote.concat([proof]));out.podCount=out.podFiles.length;
+ if(cleanScalar(rec.signatureBlobName)&&token){const sig='/api/pickup-pod?token='+encodeURIComponent(token)+'&signature=1';out.pickupDriverSignature=sig;out.signatureDataUrl=sig;out.pickupSignatureUrl=sig;out.driverSignatureUrl=sig}
+ ['driverName','pickupDriverName','licensePlate','vehicleLicensePlate','kennzeichen','loaderName','loadedBy','loader','verlader','carrier','carrierName','spedition','speditionName','collis','pallets','palletOut','palletReturned'].forEach(k=>copyIfValid(out,rec,k));
+ delete out.recoveryIncomplete;delete out._recoveredFromLocationRecord;delete out.recoveryReason;
+ out.recoverySource='pod-evidence';out.podRecoveryEvidence={reference:ev.ref,confirmedAt:ev.confirmedAt,fileName:ev.fileName,size:ev.size,savedAt:ev.savedAt,documentKind:'signed-loadlist',historySource:historyInfo&&historyInfo.source||null,pickupRecordFound:isObj(record)};
+ out._syncUpdatedAt=now();out._syncDeviceId='RC616-pod-recovery';
+ return out;
+}
+function rc616StateShipmentMap(state){
+ const map=new Map();bestShipmentSet(state||{}).forEach(sh=>{const ref=refOf(sh);if(ref)map.set(ref,sh)});return map;
+}
+function rc616TargetSatisfied(sh,ev){
+ if(!isObj(sh)||refOf(sh)!==ev.ref)return false;
+ const pod=lower(sh.podStatus||sh.status||sh.processStatus);return /pod/.test(pod)&&cleanScalar(sh.podConfirmedAt||sh.pickupConfirmedAt||sh.pickedUpAt)!=='';
+}
+async function rc616RecoverPodEvidenceShipments(c,payload,user){
+ const evidence=rc616EvidenceForRefs(payload&&payload.refs);if(!evidence.length)throw error('NO_POD_RECOVERY_TARGETS','Keine zulässigen POD-Wiederherstellungsreferenzen übergeben.',400);
+ const fresh=await readJson(c.team,emptyTeam(),false),current=fresh.value||emptyTeam(),currentState=isObj(current.state)?clone(current.state):{};
+ const currentMap=rc616StateShipmentMap(currentState);
+ if(evidence.every(ev=>rc616TargetSatisfied(currentMap.get(ev.ref),ev)))return {ok:true,recovered:false,alreadyComplete:true,restoredRefs:[],targetRefs:evidence.map(x=>x.ref)};
+ const pickup=await rc616ScanPickupRecords(c.pickup,evidence),hist=await rc616BestHistoryForRefs(c.container,evidence,payload&&payload.maxVersions);
+ const backupName=await safetyBackup(c.container,current,'team-state-before-RC616-pod-recovery');
+ const shipMap=new Map();arr(currentState.shipments).forEach(sh=>{const k=identityOf(sh);if(k)shipMap.set(k,clone(sh))});
+ const savedMap=new Map();arr(currentState.savedShipments).forEach(sh=>{const k=identityOf(sh);if(k)savedMap.set(k,clone(sh))});
+ const restoredRefs=[],details=[];
+ for(const ev of evidence){
+  const cur=currentMap.get(ev.ref)||null,h=hist.best.get(ev.ref),historical=h&&h.shipment||null,record=pickup.get(ev.ref)||null;
+  let base=null;
+  if(historical&&cur)base=mergeRestoredShipment(historical,cur);else base=historical||cur||{};
+  const restored=rc616ApplyPodProof(base,record,ev,h);
+  const oldKey=cur?identityOf(cur):'';if(oldKey&&oldKey!==ev.ref)shipMap.delete(oldKey);shipMap.set(ev.ref,restored);savedMap.set(ev.ref,clone(restored));restoredRefs.push(ev.ref);
+  details.push({ref:ev.ref,historicalFound:!!historical,pickupRecordFound:!!record,customer:customerOf(restored),shipmentId:idOf(restored),rows:rowList(restored).length,podFiles:arr(restored.podFiles).length,historySource:h&&h.source||null});
+ }
+ currentState.shipments=Array.from(shipMap.values());currentState.savedShipments=Array.from(savedMap.values());
+ const restored=currentState.shipments.filter(sh=>restoredRefs.includes(refOf(sh))),tombstonesRemoved=removeShipmentTombstones(currentState,restored);
+ const next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC616-pod-recovery';next.state=currentState;
+ next.podRecoveryAudit={at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,targetRefs:evidence.map(x=>x.ref),restoredRefs,tombstonesRemoved,historyVersions:hist.historyCount,details};
+ await uploadJson(c.team,next,fresh.etag);
+ return {ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,targetRefs:evidence.map(x=>x.ref),restoredRefs,tombstonesRemoved,historyVersions:hist.historyCount,details};
 }
 
 
@@ -464,6 +593,10 @@ module.exports=async function(context,req){
    if(mode==='recover-shipments'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
     context.res=json(200,await recoverShipments(c.container,blob,payload,current.user));return
+   }
+   if(mode==='recover-pod-shipments'){
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die POD-Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
+    context.res=json(200,await rc616RecoverPodEvidenceShipments(c,payload,current.user));return
    }
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
