@@ -174,17 +174,18 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC631',cache:'631',loginReturn:'/?v=631'});
+var BUILD=Object.freeze({version:'RC632',cache:'632',loginReturn:'/?v=632'});
 var RELEASE=Object.freeze({
- version:'RC631',
+ version:'RC632',
  date:'11.08.2026',
- title:'Weiße Startseite beseitigen; Sendungsrettung unverändert erhalten',
+ title:'Sendungsdaten direkt pro Referenz aus Azure-Historie retten',
  changes:Object.freeze([
-  'RC631 durchsucht die Azure-Historie zusätzlich pro Sendungsreferenz und übernimmt für jede Referenz den vollständigsten echten historischen Datensatz; eine einzelne unvollständige Snapshot-Version reicht nicht mehr als Datenquelle.',
+  'RC632 verlangt keinen vollständigen historischen Gesamtstand mehr: Jede betroffene Sendungsreferenz wird direkt und unabhängig aus der Azure-Versionshistorie rekonstruiert.',
+  'Zusätzlich zu Versionen und Snapshots von team-state.json werden vorhandene recovery-backups durchsucht, damit frühere Sicherheitskopien als echte Rettungsquelle genutzt werden können.',
   'Gespeicherte Sendungskopien aus shipments und savedShipments werden für Ladeliste/CMR feldweise zu einem vollständigen Dokumentdatensatz zusammengeführt; leere Kopien dürfen vollständige Colli-, Kunden-, Adress- oder Dokumentdaten nicht verdrängen.',
   'Fehlende Colli-Zeilen in aktiven gespeicherten Sendungen gelten jetzt selbst dann als Recovery-Fehler, wenn Kunde oder Adresse noch vorhanden sind.',
   'Drucken und PDF werden bei fehlenden Sendungskerndaten blockiert statt eine leere Ladeliste zu erzeugen.',
-  'Hauptseite und TESTVERSION werden auf denselben RC631-Stand gebracht; die RC631-Recoverylogik ist damit in beiden Portalen identisch.',
+  'Hauptseite und TESTVERSION verwenden denselben RC632-Recoverypfad; die fehlerhafte Pflicht zu einer einzigen vollständigen Snapshot-Version entfällt.',
   'Die bestehende mobile Shell wurde direkt korrigiert, sodass App, Hauptbereich, Topbar und Content bei Smartphone-Breite die verfügbare Breite vollständig nutzen.',
   'RC628 stellt beschädigte Sendungsinhalte ausschließlich aus einer ausreichend vollständigen historischen Azure-Version wieder her; keine synthetischen Test-/false-/Strich-Daten werden erzeugt.',
   'Vor jeder historischen Wiederherstellung erstellt die Azure-State-API ein unveränderliches Sicherheitsbackup des aktuellen Teamstands.',
@@ -211,7 +212,7 @@ var RELEASE=Object.freeze({
   'Fehlende Colli-Zeilen lösen auch bei vorhandenem Kundennamen die Azure-Historienrettung aus',
   'Druck/PDF einer unvollständigen Sendung wird mit klarer Meldung blockiert statt leer erzeugt',
   'Smartphone 390 px nutzt mindestens 85 Prozent der Bildschirmbreite für #content',
-  'Hauptseite und TESTVERSION melden beide RC631',
+  'Hauptseite und TESTVERSION melden beide RC632',
   'Beschädigte Kundenwerte false, true, Test, Test Kunde sowie Strichwerte gelten nicht als gültiger Sendungsinhalt',
   'Beschädigter Mehrfachbestand löst vor dem Rendern die sichere Azure-Historienprüfung aus',
   'Sendungsübersicht enthält keine Seitennavigation und keine Einträge-pro-Seite-Auswahl',
@@ -7726,7 +7727,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 @media(max-width:850px){#content .planner-task{grid-template-columns:1fr}#content .planner-move{grid-template-columns:1fr auto}}
 </style>
 <style>
-/* RC631: link-button for password recovery */
+/* RC632: link-button for password recovery */
 .link-btn:hover{text-decoration:underline}
 </style>
 <!-- INDEX 294 RC294 LOGIN BADGE DISPLAY START -->
@@ -10987,15 +10988,19 @@ function shipmentHistoryRecoveryNeeded(state){var s=shipmentRecoveryStats(state)
 async function recoverShipmentHistoryIfNeeded(doc){
  if(!doc||!doc.state||!shipmentHistoryRecoveryNeeded(doc.state))return doc;
  var stats=shipmentRecoveryStats(doc.state),target=Math.max(3,stats.count||25),known=stats.refs.slice(0,80);
- progress(19,'Beschädigter Sendungsbestand erkannt – sichere Azure-Historie wird geprüft …');
- var preview=await stateCall('recovery-preview',{targetCount:target,knownRefs:known,maxVersions:180},{timeoutMs:90000,maxAttempts:1});
- if(!preview||preview.ok===false||!preview.candidate||preview.candidate.safe!==true){var e=new Error('Für den beschädigten Sendungsbestand wurde keine ausreichend vollständige historische Azure-Version gefunden. Es wurde nichts gespeichert.');e.code='NO_SAFE_SHIPMENT_RECOVERY';throw e}
- progress(21,'Vollständige historische Sendungsdaten werden wiederhergestellt …');
- var restored=await stateCall('recover-shipments',{targetCount:target,knownRefs:known,maxVersions:180,deepMaxVersions:180,source:preview.candidate.source},{timeoutMs:150000,maxAttempts:1});
+ progress(19,'Beschädigter Sendungsbestand erkannt – jede Referenz wird direkt in der Azure-Historie gesucht …');
+ progress(21,'Historische Sendungsdaten werden referenzweise wiederhergestellt …');
+ var restored;
+ try{restored=await stateCall('recover-shipments',{targetCount:target,knownRefs:known,maxVersions:80,deepMaxVersions:500},{timeoutMs:240000,maxAttempts:1})}
+ catch(error){
+  if(error&&error.code==='NO_RECOVERABLE_SHIPMENT_HISTORY'){var e=new Error('Für die betroffenen Sendungsreferenzen wurden in der Azure-Historie keine echten Packstückdaten gefunden. Es wurde nichts gespeichert.');e.code='NO_RECOVERABLE_SHIPMENT_HISTORY';throw e}
+  if(error&&error.code==='RECOVERY_NO_IMPROVEMENT'){var e0=new Error('Die gefundenen Azure-Versionen enthalten keine vollständigeren Sendungsdaten als der aktuelle Stand. Es wurde nichts gespeichert.');e0.code='RECOVERY_NO_IMPROVEMENT';throw e0}
+  throw error
+ }
  if(!restored||restored.ok===false||restored.recovered!==true){var e2=new Error('Die Azure-Historie konnte nicht sicher wiederhergestellt werden. Der beschädigte Stand wurde nicht als neuer Soll-Stand übernommen.');e2.code='SHIPMENT_RECOVERY_FAILED';throw e2}
  runtime.network.stateGets++;var fresh=await stateCall('read',{}, {timeoutMs:15000,maxAttempts:1}),after=shipmentRecoveryStats(fresh&&fresh.state||{});
  if(!fresh||fresh.ok===false||!fresh.state||after.count===0||(stats.activeNoRows>0&&after.activeNoRows>=stats.activeNoRows)||(stats.activeSuspect>0&&after.activeSuspect>=stats.activeSuspect)){var e3=new Error('Die Wiederherstellung wurde serverseitig ausgeführt, aber die fehlenden Sendungskerndaten wurden nicht verbessert. Bitte keine Sendungen speichern.');e3.code='SHIPMENT_RECOVERY_INCOMPLETE';throw e3}
- runtime.shipmentRecovery={at:new Date().toISOString(),before:stats,after:after,source:restored.source||preview.candidate.source,backupBlob:restored.backupBlob||'',restoredRefs:restored.restoredRefs||[],deepRecoveredRefs:restored.deepRecoveredRefs||[],remainingIncompleteRefs:restored.remainingIncompleteRefs||[],deepScannedVersions:Number(restored.deepScannedVersions||0)};return fresh
+ runtime.shipmentRecovery={at:new Date().toISOString(),before:stats,after:after,source:restored.source||null,backupBlob:restored.backupBlob||'',restoredRefs:restored.restoredRefs||[],deepRecoveredRefs:restored.deepRecoveredRefs||[],remainingIncompleteRefs:restored.remainingIncompleteRefs||[],deepScannedVersions:Number(restored.deepScannedVersions||0)};return fresh
 }
 
 async function loadState(){
