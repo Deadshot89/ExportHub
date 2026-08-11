@@ -174,12 +174,17 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC627',cache:'627',loginReturn:'/?v=627'});
+var BUILD=Object.freeze({version:'RC628',cache:'628',loginReturn:'/?v=628'});
 var RELEASE=Object.freeze({
- version:'RC627',
+ version:'RC628',
  date:'11.08.2026',
- title:'Gespeicherte Sendungen vollständig laden und sicher speichern',
+ title:'Sendungsbestand aus Azure-Historie wiederherstellen und freigegebene Übersicht sichern',
  changes:Object.freeze([
+  'RC628 stellt beschädigte Sendungsinhalte ausschließlich aus einer ausreichend vollständigen historischen Azure-Version wieder her; keine synthetischen Test-/false-/Strich-Daten werden erzeugt.',
+  'Vor jeder historischen Wiederherstellung erstellt die Azure-State-API ein unveränderliches Sicherheitsbackup des aktuellen Teamstands.',
+  'Ein erkennbar beschädigter Sendungsbestand wird vor dem normalen Start wiederhergestellt und anschließend vollständig neu aus Azure geladen; bis dahin wird er nicht als neuer Soll-Stand gespeichert.',
+  'Die Sendungsübersicht verwendet wieder den freigegebenen Kachelpfad ohne Seiten/Paginierung; alle gefundenen Sendungen werden in der gefilterten Übersicht dargestellt.',
+  'POD- und ABD-Anbindung bleiben bei vorhandenem Dokument grün markiert.',
   'RC627 repariert ausschließlich die Lade-, Speicher- und Statuslogik gespeicherter Sendungen; Design und Layout bleiben unverändert.',
   'Beim Öffnen wird für alle Zustandskopien die vollständigste gespeicherte Sendung als Bearbeitungsbasis verwendet; leere lokale Kopien dürfen die vollständigen Daten nicht mehr verdrängen.',
   'Beim Aktualisieren einer gespeicherten Sendung werden vorhandene Felder nicht mehr vollständig gelöscht, bevor der Bearbeitungsstand übernommen wird.',
@@ -196,6 +201,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+  'Beschädigte Kundenwerte false, true, Test, Test Kunde sowie Strichwerte gelten nicht als gültiger Sendungsinhalt',
+  'Beschädigter Mehrfachbestand löst vor dem Rendern die sichere Azure-Historienprüfung aus',
+  'Sendungsübersicht enthält keine Seitennavigation und keine Einträge-pro-Seite-Auswahl',
+  'Freigegebene Sendungskarten sowie POD-/ABD-Markierung bleiben erhalten',
   'Gespeicherte Sendung mit vollständigen Daten öffnet Kunde, Standort, Sendungsdaten und Collis vollständig',
   'Leere/stale Zustandskopie darf eine vollständigere Sendung beim Öffnen nicht verdrängen',
   'Erneutes Speichern löscht keine nicht neu gerenderten Felder der bestehenden Sendung',
@@ -10098,7 +10107,12 @@ function findCustomer(idOrName){var k=L(idOrName);return A(S().customers).find(f
 function shipmentCustomer(sh){sh=sh||S().shipment||{};return findCustomer(sh.customerId||sh.customerAccount||sh.customerNumber||sh.customerName)||(sh.customer&&typeof sh.customer==='object'?sh.customer:null)||{}}
 function shipmentId(sh){return Q(sh&&(sh.id||sh.shipmentId||sh.ref))}
 function shipmentRef(sh){return Q(sh&&(sh.ref||sh.reference||sh.shipmentRef))}
-function customerName(c,sh){return Q((c&&(c.name||c.customerName))||(sh&&(sh.customerName||sh.customer)))}
+function customerName(c,sh){
+ function valid(v){var x=Q(v);if(!x)return'';return /^(?:false|true|null|undefined|\[object Object\]|-|–|—|test|test kunde|test kunde gmbh)$/i.test(x)?'':x}
+ var direct=valid(c&&(c.name||c.customerName));if(direct)return direct;
+ var fromShipment=valid(sh&&(sh.customerName||(typeof sh.customer==='string'?sh.customer:'')));if(fromShipment)return fromShipment;
+ var id=valid(sh&&(sh.customerId||sh.customerAccount||sh.customerNumber)),found=id&&findCustomer(id);return valid(found&&(found.name||found.customerName))
+}
 function currentShipment(){return S().shipment||(S().shipment={})}
 function findShipment(id){var k=Q(id);return A(S().shipments).find(function(x){return shipmentId(x)===k||shipmentRef(x)===k})||null}
 function mailOnly(v){var m=String(v||'').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);return m?m[0]:''}
@@ -10231,10 +10245,10 @@ function overviewGroupedCardsHtml(visible){
  return overviewOrderGroupKeys(groups).map(function(key){var list=groups[key],closed=collapsed[key]===true,label=overviewGroupLabel(key,list);return '<section class="rc543-overview-group rc543-overview-group-'+E(key)+'" data-overview-group="'+E(key)+'" ondragover="return rc548OverviewGroupDragOver(event,\''+E(key)+'\')" ondragleave="return rc548OverviewGroupDragLeave(event,\''+E(key)+'\')" ondrop="return rc548OverviewGroupDrop(event,\''+E(key)+'\')"><button type="button" class="rc543-overview-group-head" data-overview-group-toggle="'+E(key)+'" aria-expanded="'+(closed?'false':'true')+'" onclick="if(event.target&&event.target.closest&&event.target.closest(\'[data-overview-drag-handle]\'))return false;return rc543OverviewToggleGroup(\''+E(key)+'\')"><span class="rc543-overview-group-title"><span class="pill rc210-status-pill rc210-status-pill-'+E(key)+'">'+E(label)+'</span><b>'+list.length+' '+(list.length===1?'Sendung':'Sendungen')+'</b></span><span class="rc548-overview-group-actions"><span class="rc548-overview-drag" data-overview-drag-handle="1" draggable="true" title="Statusgruppe verschieben" aria-label="Statusgruppe verschieben" ondragstart="event.stopPropagation();return rc548OverviewGroupDragStart(event,\''+E(key)+'\')" ondragend="return rc548OverviewGroupDragEnd(event)">↕</span><span class="rc543-overview-group-arrow" aria-hidden="true">'+(closed?'▸':'▾')+'</span></span></button><div class="rc543-overview-group-body" data-overview-group-body="'+E(key)+'" '+(closed?'hidden':'')+'>'+list.map(overviewCardHtml).join('')+'</div></section>'}).join('')
 }
 function overviewHtml(){
- var st=S(),prefs=overviewUiPrefs(),activeSearch=Q(st.rc524OverviewSearch||''),hasDraft=Object.prototype.hasOwnProperty.call(st,'rc406OverviewSearchDraft'),searchDraft=hasDraft?String(st.rc406OverviewSearchDraft==null?'':st.rc406OverviewSearchDraft):activeSearch,list=overviewFiltered(),size=Math.max(10,Math.min(100,Number(prefs.pageSize||st.rc524OverviewPageSize)||25)),pages=Math.max(1,Math.ceil(list.length/size)),page=Math.max(1,Math.min(pages,Number(st.rc524OverviewPage)||1)),sort=Q(prefs.sort||st.rc210OverviewSort||'updated'),direction=Q(prefs.direction||st.rc210OverviewDirection||(sort==='updated'?'desc':'asc')),groupBy=overviewGroupBy();
- st.rc524OverviewPage=page;st.rc524OverviewPageSize=size;st.rc210OverviewSort=sort;st.rc210OverviewDirection=direction;st.rc406OverviewSearchDraft=searchDraft;
- var visible=list.slice((page-1)*size,page*size),searchState=activeSearch?(list.length+' Treffer für „'+E(activeSearch)+'“'):(list.length+' Sendungen'),cards=groupBy==='status'?overviewGroupedCardsHtml(visible):(visible.length?visible.map(overviewCardHtml).join(''):'<section class="card"><h2>Keine Sendungen gefunden</h2></section>');
- return '<div class="rc524-page"><div class="rc524-page-head"><div><span class="rc524-kicker">Sendungen</span><h1>Sendungsübersicht</h1></div><button class="btn" onclick="return window.rc524StartNewShipment()">Neue Sendung</button></div><section class="card rc524-overview-controls"><div class="rc406-overview-search"><label class="field">Suchen (Referenz, Kunde, Anhang)<input id="rc524OverviewSearch" placeholder="Referenz, Kunde oder Dateiname" value="'+E(searchDraft)+'" oninput="return rc406OverviewSearchDraft(this.value)" onkeydown="return rc406OverviewSearchKey(event)"></label><button type="button" class="btn" onclick="return rc406ApplyOverviewSearch()">Suchen</button><button type="button" class="ghost" onclick="return rc406ResetOverviewSearch()">Zurücksetzen</button><small id="rc406OverviewSearchState" class="rc406-overview-search-state">'+searchState+'</small></div><label class="field">Gruppieren nach<select id="rc543OverviewGrouping" onchange="return rc543OverviewGroupingChanged(this.value)"><option value="status" '+(groupBy==='status'?'selected':'')+'>Status</option><option value="none" '+(groupBy==='none'?'selected':'')+'>Keine Gruppierung</option></select></label><label class="field">Sortieren nach<select id="rc210OverviewSort" onchange="return rc210OverviewSortChanged(this.value)"><option value="updated" '+(sort==='updated'?'selected':'')+'>Letzte Änderung</option><option value="pickup" '+(sort==='pickup'?'selected':'')+'>Abholdatum</option><option value="status" '+(sort==='status'?'selected':'')+'>Status</option><option value="reference" '+(sort==='reference'?'selected':'')+'>Referenz</option><option value="customer" '+(sort==='customer'?'selected':'')+'>Kunde</option></select></label><label class="field">Reihenfolge<select id="rc210OverviewDirection" onchange="return rc210OverviewDirectionChanged(this.value)"><option value="asc" '+(direction==='asc'?'selected':'')+'>Aufsteigend</option><option value="desc" '+(direction==='desc'?'selected':'')+'>Absteigend</option></select></label><label class="field">Einträge pro Seite<select onchange="return rc524OverviewPageSize(this.value)"><option '+(size===25?'selected':'')+'>25</option><option '+(size===50?'selected':'')+'>50</option><option '+(size===100?'selected':'')+'>100</option></select></label>'+overviewStatusFilterHtml()+'<div class="rc524-pagination"><button class="ghost" '+(page<=1?'disabled':'')+' onclick="return rc524OverviewPage('+(page-1)+')">Zurück</button><b>Seite '+page+' von '+pages+' · '+list.length+' Sendungen</b><button class="ghost" '+(page>=pages?'disabled':'')+' onclick="return rc524OverviewPage('+(page+1)+')">Weiter</button></div></section><div class="rc524-card-list">'+cards+'</div></div>'
+ var st=S(),prefs=overviewUiPrefs(),activeSearch=Q(st.rc524OverviewSearch||''),hasDraft=Object.prototype.hasOwnProperty.call(st,'rc406OverviewSearchDraft'),searchDraft=hasDraft?String(st.rc406OverviewSearchDraft==null?'':st.rc406OverviewSearchDraft):activeSearch,list=overviewFiltered(),sort=Q(prefs.sort||st.rc210OverviewSort||'updated'),direction=Q(prefs.direction||st.rc210OverviewDirection||(sort==='updated'?'desc':'asc')),groupBy=overviewGroupBy();
+ st.rc210OverviewSort=sort;st.rc210OverviewDirection=direction;st.rc406OverviewSearchDraft=searchDraft;delete st.rc524OverviewPage;delete st.rc524OverviewPageSize;
+ var visible=list,searchState=activeSearch?(list.length+' Treffer für „'+E(activeSearch)+'“'):(list.length+' Sendungen'),cards=groupBy==='status'?overviewGroupedCardsHtml(visible):(visible.length?visible.map(overviewCardHtml).join(''):'<section class="card"><h2>Keine Sendungen gefunden</h2></section>');
+ return '<div class="rc524-page"><div class="rc524-page-head"><div><span class="rc524-kicker">Sendungen</span><h1>Sendungsübersicht</h1></div><button class="btn" onclick="return window.rc524StartNewShipment()">Neue Sendung</button></div><section class="card rc524-overview-controls"><div class="rc406-overview-search"><label class="field">Suchen (Referenz, Kunde, Anhang)<input id="rc524OverviewSearch" placeholder="Referenz, Kunde oder Dateiname" value="'+E(searchDraft)+'" oninput="return rc406OverviewSearchDraft(this.value)" onkeydown="return rc406OverviewSearchKey(event)"></label><button type="button" class="btn" onclick="return rc406ApplyOverviewSearch()">Suchen</button><button type="button" class="ghost" onclick="return rc406ResetOverviewSearch()">Zurücksetzen</button><small id="rc406OverviewSearchState" class="rc406-overview-search-state">'+searchState+'</small></div><label class="field">Gruppieren nach<select id="rc543OverviewGrouping" onchange="return rc543OverviewGroupingChanged(this.value)"><option value="status" '+(groupBy==='status'?'selected':'')+'>Status</option><option value="none" '+(groupBy==='none'?'selected':'')+'>Keine Gruppierung</option></select></label><label class="field">Sortieren nach<select id="rc210OverviewSort" onchange="return rc210OverviewSortChanged(this.value)"><option value="updated" '+(sort==='updated'?'selected':'')+'>Letzte Änderung</option><option value="pickup" '+(sort==='pickup'?'selected':'')+'>Abholdatum</option><option value="status" '+(sort==='status'?'selected':'')+'>Status</option><option value="reference" '+(sort==='reference'?'selected':'')+'>Referenz</option><option value="customer" '+(sort==='customer'?'selected':'')+'>Kunde</option></select></label><label class="field">Reihenfolge<select id="rc210OverviewDirection" onchange="return rc210OverviewDirectionChanged(this.value)"><option value="asc" '+(direction==='asc'?'selected':'')+'>Aufsteigend</option><option value="desc" '+(direction==='desc'?'selected':'')+'>Absteigend</option></select></label>'+overviewStatusFilterHtml()+'</section><div class="rc524-card-list">'+cards+'</div></div>'
 }
 function overviewCardSelector(id){var value=Q(id);if(!value)return'';try{return '[data-shipment="'+(window.CSS&&CSS.escape?CSS.escape(value):value.replace(/["\\]/g,'\\$&'))+'"]'}catch(_){return''}}
 function patchOverviewCardDom(sh){
@@ -10252,8 +10266,8 @@ window.rc485OverviewStatusKey=overviewStatusKey;
 function overviewInputActive(){var a=document.activeElement;return !!(a&&a.closest&&a.closest('#content.rc524-overview-view')&&(a.id==='rc524OverviewSearch'||a.matches('.rc403-overview-note textarea[data-rc403-note-dirty="1"]')))}
 function renderOverview(force){var r=root();if(!r)return false;var html=overviewHtml(),page=!!r.querySelector(':scope>.rc524-page');if(force!==true&&page&&overviewInputActive()){lastOverviewMarkup=html;overviewRenderSkips++;return false}if(force!==true&&page&&html===lastOverviewMarkup){r.className='content rc524-overview-view';overviewRenderSkips++;return false}r.className='content rc524-overview-view';r.innerHTML=html;patchOverviewGroupHeaders();lastOverviewMarkup=html;overviewDomWrites++;return true}
 window.rc524StartNewShipment=function(){var api=window.ExportHUBShipment420;if(api&&typeof api.startNewShipment==='function')return api.startNewShipment();if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipment','overview-new');return false};
-window.rc524OverviewPage=function(page){S().rc524OverviewPage=Number(page)||1;renderOverview();return false};
-window.rc524OverviewPageSize=function(size){var value=Number(size)||25;S().rc524OverviewPageSize=value;S().rc524OverviewPage=1;overviewSetUiPref('pageSize',value);renderOverview();return false};
+window.rc524OverviewPage=function(page){delete S().rc524OverviewPage;renderOverview(true);return false};
+window.rc524OverviewPageSize=function(size){delete S().rc524OverviewPageSize;delete S().rc524OverviewPage;renderOverview(true);return false};
 window.rc543OverviewGroupingChanged=function(value){var st=S();st.rc543OverviewGrouping=Q(value)==='none'?'none':'status';st.rc524OverviewPage=1;overviewSetUiPref('grouping',st.rc543OverviewGrouping);renderOverview(true);return false};
 window.rc543OverviewToggleGroup=function(key){key=Q(key);if(!key)return false;var collapsed=overviewCollapsedGroups(),closed=collapsed[key]===true;collapsed[key]=!closed;overviewPersistCollapsed(collapsed);var group=document.querySelector('#content.rc524-overview-view [data-overview-group="'+key+'"]');if(group){var body=group.querySelector('[data-overview-group-body="'+key+'"]'),head=group.querySelector('[data-overview-group-toggle="'+key+'"]'),arrow=group.querySelector('.rc543-overview-group-arrow');if(body)body.hidden=!closed;if(head)head.setAttribute('aria-expanded',closed?'true':'false');if(arrow)arrow.textContent=closed?'▾':'▸'}return false};
 var rc548OverviewDragKey='';
@@ -10937,11 +10951,50 @@ async function stateCall(mode,payload,requestOptions){
  const last=errors.length?errors[errors.length-1].error:null,checked=candidates.map(apiEndpointLabel).filter(function(value,index,array){return value&&array.indexOf(value)===index});
  const error=new Error('Azure-Speicher-API nicht erreichbar. Geprüft: '+(checked.join(', ')||apiEndpointLabel(API))+'.'+(last&&last.message?' Letzter Fehler: '+last.message:''));error.code='STATE_API_UNREACHABLE';error.status=last&&last.status;error.cause=last;error.endpoints=checked;throw error
 }
+
+function shipmentRecoveryScalar(v){
+ if(v===null||v===undefined||typeof v==='boolean'||typeof v==='object')return'';
+ var x=String(v).replace(/\s+/g,' ').trim();return /^(?:false|true|null|undefined|\[object Object\]|-|–|—)$/i.test(x)?'':x
+}
+function shipmentRecoveryCustomer(sh){
+ if(!sh||typeof sh!=='object')return'';var vals=[sh.customerName,sh.customerDisplay,sh.consigneeName,sh.recipientName,sh.companyName];
+ if(typeof sh.customer==='string')vals.push(sh.customer);else if(sh.customer&&typeof sh.customer==='object')vals.push(sh.customer.name,sh.customer.customerName,sh.customer.companyName);
+ for(var i=0;i<vals.length;i++){var x=shipmentRecoveryScalar(vals[i]);if(x&&!/^(?:test|test kunde|test kunde gmbh)$/i.test(x))return x}return''
+}
+function shipmentRecoveryRef(sh){if(!sh||typeof sh!=='object')return'';var vals=[sh.ref,sh.reference,sh.shipmentRef,sh.referenceNumber,sh.exporthubRef,sh.exportHubReference];for(var i=0;i<vals.length;i++){var x=shipmentRecoveryScalar(vals[i]).toUpperCase();if(/^[A-Z0-9]{6}$/.test(x))return x}return''}
+function shipmentRecoveryRows(sh){if(!sh||typeof sh!=='object')return[];var lists=[sh.rows,sh.colli,sh.collis,sh.packages,sh.packagingRows,sh.shipmentRows,sh.colliRows,sh.items,sh.lines];for(var i=0;i<lists.length;i++)if(Array.isArray(lists[i])&&lists[i].length)return lists[i];return[]}
+function shipmentRecoveryMeaningful(sh){
+ if(!sh||typeof sh!=='object')return 0;var n=0;if(shipmentRecoveryRef(sh))n+=40;if(shipmentRecoveryCustomer(sh))n+=50;if(shipmentRecoveryScalar(sh.customerId||sh.customerAccount||sh.customerNumber))n+=15;
+ if(shipmentRecoveryScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)))n+=20;
+ var rows=shipmentRecoveryRows(sh);if(rows.length)n+=Math.min(80,rows.length*16);if(shipmentRecoveryScalar(sh.pickupDate||sh.plannedPickupDate))n+=8;if(shipmentRecoveryScalar(sh.goodsDescription||sh.description))n+=8;
+ ['deliveryFiles','podFiles','abdFiles','documents','attachments'].forEach(function(k){if(Array.isArray(sh[k])&&sh[k].length)n+=Math.min(24,sh[k].length*6)});return n
+}
+function shipmentRecoveryStats(state){
+ var map=Object.create(null),all=[];[state&&state.shipments,state&&state.savedShipments].forEach(function(list){(Array.isArray(list)?list:[]).forEach(function(sh){if(!sh||typeof sh!=='object')return;var ref=shipmentRecoveryRef(sh),id=shipmentRecoveryScalar(sh.id||sh.shipmentId||sh._syncId),key=ref||id.toLowerCase();if(!key)return;var old=map[key];if(!old||shipmentRecoveryMeaningful(sh)>shipmentRecoveryMeaningful(old))map[key]=sh})});Object.keys(map).forEach(function(k){all.push(map[k])});
+ var suspect=0,placeholders=0,emptyCore=0,refs=[];all.forEach(function(sh){var raw=String(sh.customerName!=null?sh.customerName:(typeof sh.customer==='string'?sh.customer:'')).trim(),customer=shipmentRecoveryCustomer(sh),score=shipmentRecoveryMeaningful(sh),ref=shipmentRecoveryRef(sh),rows=shipmentRecoveryRows(sh),address=shipmentRecoveryScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)),goods=shipmentRecoveryScalar(sh.goodsDescription||sh.description),docs=['deliveryFiles','podFiles','abdFiles','documents','attachments'].some(function(k){return Array.isArray(sh[k])&&sh[k].length});if(ref)refs.push(ref);if(/^(?:false|true|null|undefined|\[object Object\]|-|–|—|test|test kunde|test kunde gmbh)$/i.test(raw))placeholders++;var coreEmpty=!rows.length&&!address&&!goods&&!docs;if(coreEmpty)emptyCore++;if(!customer||score<85||coreEmpty)suspect++});
+ return{count:all.length,suspect:suspect,placeholders:placeholders,emptyCore:emptyCore,refs:refs,ratio:all.length?suspect/all.length:0}
+}
+function shipmentHistoryRecoveryNeeded(state){var s=shipmentRecoveryStats(state);return s.count>=2&&(s.placeholders>0||s.suspect>=Math.max(2,Math.ceil(s.count*.35)))}
+async function recoverShipmentHistoryIfNeeded(doc){
+ if(!doc||!doc.state||!shipmentHistoryRecoveryNeeded(doc.state))return doc;
+ var stats=shipmentRecoveryStats(doc.state),target=Math.max(3,stats.count||25),known=stats.refs.slice(0,80);
+ progress(19,'Beschädigter Sendungsbestand erkannt – sichere Azure-Historie wird geprüft …');
+ var preview=await stateCall('recovery-preview',{targetCount:target,knownRefs:known,maxVersions:100},{timeoutMs:45000,maxAttempts:1});
+ if(!preview||preview.ok===false||!preview.candidate||preview.candidate.safe!==true){var e=new Error('Für den beschädigten Sendungsbestand wurde keine ausreichend vollständige historische Azure-Version gefunden. Es wurde nichts gespeichert.');e.code='NO_SAFE_SHIPMENT_RECOVERY';throw e}
+ progress(21,'Vollständige historische Sendungsdaten werden wiederhergestellt …');
+ var restored=await stateCall('recover-shipments',{targetCount:target,knownRefs:known,maxVersions:100,source:preview.candidate.source},{timeoutMs:90000,maxAttempts:1});
+ if(!restored||restored.ok===false||restored.recovered!==true){var e2=new Error('Die Azure-Historie konnte nicht sicher wiederhergestellt werden. Der beschädigte Stand wurde nicht als neuer Soll-Stand übernommen.');e2.code='SHIPMENT_RECOVERY_FAILED';throw e2}
+ runtime.network.stateGets++;var fresh=await stateCall('read',{}, {timeoutMs:15000,maxAttempts:1}),after=shipmentRecoveryStats(fresh&&fresh.state||{});
+ if(!fresh||fresh.ok===false||!fresh.state||after.count===0||after.suspect>=stats.suspect){var e3=new Error('Die Wiederherstellung wurde serverseitig ausgeführt, aber der neu geladene Sendungsbestand ist noch nicht vollständig genug. Bitte keine Sendungen speichern.');e3.code='SHIPMENT_RECOVERY_INCOMPLETE';throw e3}
+ runtime.shipmentRecovery={at:new Date().toISOString(),before:stats,after:after,source:restored.source||preview.candidate.source,backupBlob:restored.backupBlob||'',restoredRefs:restored.restoredRefs||[]};return fresh
+}
+
 async function loadState(){
  progress(8,'Azure-Teamdaten werden geladen …');addSafeLoadNote();runtime.network.stateGets++;
- const d=await stateCall('read',{});
+ var d=await stateCall('read',{});
  progress(18,'Teamdaten werden im Hintergrund verarbeitet …');
- if(!d||d.ok===false){const e=new Error((d&&d.message)||'Teamdaten ungültig');e.code=d&&d.code||'TEAMDATA_INVALID';throw e}
+ if(!d||d.ok===false){var e=new Error((d&&d.message)||'Teamdaten ungültig');e.code=d&&d.code||'TEAMDATA_INVALID';throw e}
+ d=await recoverShipmentHistoryIfNeeded(d);
  runtime.state=d.state||{};runtime.users=Array.isArray(d.users)?d.users:runtime.users;runtime.revision=Number(d.revision||0);var key=lower(runtime.user&&(runtime.user.user||runtime.user.login||runtime.user.name));runtime.user=runtime.users.find(function(u){return lower(u.user||u.login||u.name)===key})||runtime.user;restorePersistentFilterState(runtime.state);
  runtime.lastSnapshot=clone(runtime.state);runtime.lastUsers=clone(runtime.users);runtime.dirty=false;
  window.__CLEAN_BOOT_STATE__=runtime.state;window.__CLEAN_BOOT_USERS__=runtime.users;return d
