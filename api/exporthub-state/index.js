@@ -146,7 +146,7 @@ function refOf(sh){
 }
 function idOf(sh){return cleanScalar(sh&&(sh.id||sh.shipmentId||sh._syncId))}
 function identityOf(sh){return refOf(sh)||idOf(sh).toLowerCase()}
-function badCustomerValue(v){const x=cleanScalar(v);return !x||/^(?:test|test kunde|test kunde gmbh)$/i.test(x)}
+function badCustomerValue(v){const x=cleanScalar(v);return !x||/^(?:-|–|—|test|test kunde|test kunde gmbh)$/i.test(x)}
 function customerOf(sh){
  if(!isObj(sh))return '';
  const vals=[sh.customerName,sh.customerDisplay,sh.consigneeName,sh.recipientName,sh.companyName];
@@ -156,6 +156,20 @@ function customerOf(sh){
  return '';
 }
 function rowList(sh){return arr(sh&&(sh.rows||sh.colli||sh.collis||sh.packages||sh.packagingRows||sh.shipmentRows||sh.colliRows||sh.items||sh.lines))}
+function num(v){const n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
+function rowDataScore(rows){
+ return arr(rows).reduce((score,row)=>{
+  row=isObj(row)?row:{};
+  return score+(cleanScalar(row.type||row.packaging||row.verpackung||row.name)?20:0)+(num(row.count||row.qty||row.anzahl||row.quantity)>0?15:0)+(num(row.weight||row.gewicht)>0?12:0)+(num(row.ldm)>0?8:0)+(num(row.l||row.length)>0?4:0)+(num(row.w||row.width)>0?4:0)+(num(row.h||row.height)>0?4:0);
+ },arr(rows).length);
+}
+function meaningfulRows(sh){
+ const rows=rowList(sh);
+ return rows.filter(row=>{
+  row=isObj(row)?row:{};
+  return !!cleanScalar(row.type||row.packaging||row.verpackung||row.name)||num(row.count||row.qty||row.anzahl||row.quantity)>0||num(row.weight||row.gewicht)>0||num(row.ldm)>0;
+ });
+}
 function docCount(sh){
  if(!isObj(sh))return 0;
  const fields=['podFiles','abdFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments'];
@@ -163,9 +177,7 @@ function docCount(sh){
 }
 function coreContentComplete(sh){
  if(!isObj(sh)||!customerOf(sh))return false;
- const rows=rowList(sh),address=cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address));
- /* RC630: Eine Sendung gilt für die Datenrettung nur dann als vollständig, wenn echte Packstückdaten vorhanden sind. */
- return rows.length>0&&!!address;
+ return meaningfulRows(sh).length>0;
 }
 function recoveryFlagged(sh){
  return !!(sh&&(sh.recoveryIncomplete===true||sh._recoveredFromLocationRecord===true||/location-booking|verified-location-evidence/i.test(lower(sh.recoverySource))||badCustomerValue(sh.customerName||(typeof sh.customer==='string'?sh.customer:''))));
@@ -177,7 +189,7 @@ function shipmentRichness(sh){
  if(customerOf(sh))n+=50;
  if(cleanScalar(sh.customerId||sh.customerAccount||sh.customerNumber))n+=15;
  if(cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address)))n+=45;
- const rows=rowList(sh);if(rows.length)n+=80+Math.min(120,rows.length*18);
+ const rows=meaningfulRows(sh);if(rows.length)n+=80+Math.min(120,rows.length*18)+Math.min(120,rowDataScore(rows));
  n+=Math.min(60,docCount(sh)*8);
  if(cleanScalar(sh.pickupDate||sh.plannedPickupDate||sh.actualPickupDate))n+=8;
  if(cleanScalar(sh.status||sh.processStatus))n+=5;
@@ -236,15 +248,17 @@ function candidateStats(doc,knownRefs){
 }
 function sourceDescriptor(item){
  return {
+  blobName:cleanScalar(item&&item.name)||TEAM_BLOB,
   versionId:cleanScalar(item&&item.versionId),
   snapshot:cleanScalar(item&&item.snapshot),
   lastModified:item&&item.properties&&item.properties.lastModified?new Date(item.properties.lastModified).toISOString():null,
   clientVersion:item&&item.metadata&&cleanScalar(item.metadata.clientversion),
-  isCurrentVersion:item&&item.isCurrentVersion===true
+  isCurrentVersion:item&&item.isCurrentVersion===true,
+  isBackup:!!(item&&item.name&&item.name!==TEAM_BLOB)
  };
 }
 function historyClient(container,source){
- let b=container.getBlobClient(TEAM_BLOB);
+ let b=container.getBlobClient(source&&source.blobName||TEAM_BLOB);
  if(source&&source.versionId)b=b.withVersion(source.versionId);
  else if(source&&source.snapshot)b=b.withSnapshot(source.snapshot);
  return b;
@@ -270,8 +284,16 @@ async function listHistory(container){
    }
   }catch(inner){throw error('RECOVERY_HISTORY_UNAVAILABLE','Azure konnte die Versionshistorie von '+TEAM_BLOB+' nicht auflisten: '+(inner&&inner.message||e&&e.message||'Unbekannter Fehler'),500)}
  }
- out.sort((a,b)=>Date.parse(b.lastModified||0)-Date.parse(a.lastModified||0));
- return out;
+ try{
+  for await(const item of container.listBlobsFlat({prefix:'recovery-backups/',includeMetadata:true})){
+   if(!item||!item.name||!/\.json$/i.test(item.name))continue;
+   out.push(sourceDescriptor(item));
+  }
+ }catch(_){}
+ const seen=new Set(),unique=[];
+ out.forEach(source=>{const key=[source.blobName||TEAM_BLOB,source.versionId||'',source.snapshot||''].join('|');if(seen.has(key))return;seen.add(key);unique.push(source)});
+ unique.sort((a,b)=>Date.parse(b.lastModified||0)-Date.parse(a.lastModified||0));
+ return unique;
 }
 function safeCandidate(stats,targetCount){
  const target=Math.max(1,Number(targetCount)||RC614_TARGET_COUNT);
@@ -308,9 +330,12 @@ async function inspectHistory(container,targetCount,knownRefs,maxVersions=70){
  return {candidate:bestSafe,inspected,historyCount:history.length};
 }
 function historicalCore(sh){
- if(!isObj(sh))return {ok:false,customer:false,address:false,rows:0};
- const customer=!!customerOf(sh),address=!!cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address)),rows=rowList(sh).length;
- return {ok:customer&&address&&rows>0,customer,address,rows};
+ if(!isObj(sh))return {ok:false,customer:false,address:false,rows:0,rowScore:0};
+ const customer=!!customerOf(sh),address=!!cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address)),rows=meaningfulRows(sh),rowScore=rowDataScore(rows);
+ return {ok:customer&&rows.length>0,customer,address,rows:rows.length,rowScore};
+}
+function syntheticHistoricalRecovery(sh){
+ return !!(sh&&(sh.recoveryIncomplete===true||sh._recoveredFromLocationRecord===true||/location-booking|verified-location-evidence/i.test(lower(sh.recoverySource))));
 }
 function mergeHistoricalCopy(a,b){
  if(!isObj(a))return clone(b||{});if(!isObj(b))return clone(a||{});
@@ -326,29 +351,31 @@ function mergeHistoricalCopy(a,b){
    primary[k]=clone(sv);
   }
  });
- const ar=rowList(a),br=rowList(b),bestRows=br.length>ar.length?br:ar;
- if(bestRows.length){['rows','colli','collis','packages','packagingRows','shipmentRows','colliRows','items','lines'].forEach(k=>{if(Array.isArray((br.length>ar.length?b:a)[k])&&((br.length>ar.length?b:a)[k]).length)primary[k]=clone((br.length>ar.length?b:a)[k])});if(!Array.isArray(primary.rows)||!primary.rows.length)primary.rows=clone(bestRows)}
+ const ar=meaningfulRows(a),br=meaningfulRows(b),aScore=rowDataScore(ar),bScore=rowDataScore(br),bestSource=bScore>aScore?b:a,bestRows=bScore>aScore?br:ar;
+ if(bestRows.length){['rows','colli','collis','packages','packagingRows','shipmentRows','colliRows','items','lines'].forEach(k=>{if(Array.isArray(bestSource[k])&&bestSource[k].length)primary[k]=clone(bestSource[k])});if(!Array.isArray(primary.rows)||!meaningfulRows(primary).length)primary.rows=clone(bestRows)}
  ['podFiles','abdFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments'].forEach(k=>{if(Array.isArray(a[k])||Array.isArray(b[k]))primary[k]=mergeUniqueFiles(a[k],b[k])});
  return primary;
 }
-async function bestHistoricalPerShipment(container,refs,maxVersions=180){
+async function bestHistoricalPerShipment(container,refs,maxVersions=500){
  const wanted=new Set(arr(refs).map(v=>cleanScalar(v).toUpperCase()).filter(v=>/^[A-Z0-9]{6}$/.test(v))),history=await listHistory(container),map=new Map(),sources=new Map();
- const max=Math.max(1,Math.min(240,Number(maxVersions)||180));let scanned=0,readErrors=0;
+ const max=Math.max(1,Math.min(800,Number(maxVersions)||500));let scanned=0,readErrors=0;
  for(let i=0;i<history.length&&i<max;i++){
   const source=history[i];
   try{
    const d=await readJson(historyClient(container,source),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;
    bestShipmentSet(doc.state||{}).forEach(sh=>{
     const ref=refOf(sh);if(!ref||(wanted.size&&!wanted.has(ref)))return;
-    if(recoveryFlagged(sh)||!customerOf(sh))return;
+    if(syntheticHistoricalRecovery(sh))return;
+    const hasRows=meaningfulRows(sh).length>0,hasCustomer=!!customerOf(sh),hasAddress=!!cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address));
+    if(!hasRows&&!hasCustomer&&!hasAddress)return;
     const cur=map.get(ref),merged=cur?mergeHistoricalCopy(cur,sh):clone(sh);
     if(!cur||shipmentRichness(merged)>=shipmentRichness(cur)){map.set(ref,merged);sources.set(ref,source)}
    });
-   if(wanted.size&&i>=24){let ready=0;wanted.forEach(ref=>{const hit=map.get(ref);if(hit&&historicalCore(hit).ok)ready++});if(ready===wanted.size)break}
+   if(wanted.size&&i>=24){let ready=0;wanted.forEach(ref=>{const hit=map.get(ref);if(hit&&meaningfulRows(hit).length>0)ready++});if(ready===wanted.size)break}
   }catch(_){readErrors++}
  }
  const complete=[],partial=[];
- map.forEach((sh,ref)=>{const core=historicalCore(sh),entry={ref,shipment:sh,source:sources.get(ref)||null,score:shipmentRichness(sh),core};(core.ok?complete:partial).push(entry)});
+ map.forEach((sh,ref)=>{const core=historicalCore(sh),entry={ref,shipment:sh,source:sources.get(ref)||null,score:shipmentRichness(sh),core};(meaningfulRows(sh).length>0?complete:partial).push(entry)});
  return {historyCount:history.length,scanned,readErrors,complete,partial};
 }
 function mergeUniqueFiles(a,b){
@@ -450,70 +477,57 @@ async function safetyBackup(container,doc,label){
 async function recoveryPreview(container,payload){
  const target=Math.max(1,Number(payload&&payload.targetCount)||RC614_TARGET_COUNT);
  const known=arr(payload&&payload.knownRefs).length?payload.knownRefs:RC614_EVIDENCE_REFS;
- const result=await inspectHistory(container,target,known,payload&&payload.maxVersions);
+ const result=await inspectHistory(container,target,known,Math.min(80,Number(payload&&payload.maxVersions)||80));
+ const deep=await bestHistoricalPerShipment(container,known,payload&&payload.deepMaxVersions||500);
  return {
-  ok:true,recoveryPreview:true,targetCount:target,historyCount:result.historyCount,
-  candidate:result.candidate?{
-   source:result.candidate.source,stats:result.candidate.stats,revision:result.candidate.revision,updatedAt:result.candidate.updatedAt,
-   updatedBy:result.candidate.updatedBy,clientVersion:result.candidate.clientVersion,safe:true
-  }:null,
+  ok:true,recoveryPreview:true,targetCount:target,historyCount:Math.max(result.historyCount||0,deep.historyCount||0),
+  candidate:result.candidate?{source:result.candidate.source,stats:result.candidate.stats,revision:result.candidate.revision,updatedAt:result.candidate.updatedAt,updatedBy:result.candidate.updatedBy,clientVersion:result.candidate.clientVersion,safe:true}:null,
+  deepRecoveryPossible:deep.complete.length>0,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),deepScannedVersions:deep.scanned,
   inspected:result.inspected.slice(0,12).map(x=>({source:x.source,stats:x.stats||null,safe:x.safe===true,revision:x.revision||0,updatedAt:x.updatedAt||null,clientVersion:x.clientVersion||'',error:x.error||''}))
  };
 }
 async function recoverShipments(container,teamBlob,payload,user){
  const target=Math.max(1,Number(payload&&payload.targetCount)||RC614_TARGET_COUNT);
  const known=arr(payload&&payload.knownRefs).length?payload.knownRefs:RC614_EVIDENCE_REFS;
+ const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam();
  let source=isObj(payload&&payload.source)?payload.source:null,candidateDoc=null,candidateInfo=null;
  if(source&&(source.versionId||source.snapshot)){
   const d=await readJson(historyClient(container,source),emptyTeam(),false);candidateDoc=d.value||emptyTeam();
   const stats=candidateStats(candidateDoc,known);
-  if(!safeCandidate(stats,target))throw error('RECOVERY_SOURCE_UNSAFE','Die gewählte historische Version ist nicht vollständig genug für eine sichere Wiederherstellung.',409);
-  candidateInfo={source,stats,revision:Number(candidateDoc.revision||0),updatedAt:candidateDoc.updatedAt||source.lastModified||null,clientVersion:cleanScalar(candidateDoc.clientVersion||source.clientVersion)};
- }else{
-  const found=await inspectHistory(container,target,known,payload&&payload.maxVersions);
-  if(!found.candidate)throw error('NO_SAFE_RECOVERY_VERSION','Es wurde keine ausreichend vollständige historische Azure-Version gefunden. Es wurde nichts verändert.',409);
-  candidateInfo=found.candidate;
-  const d=await readJson(historyClient(container,candidateInfo.source),emptyTeam(),false);candidateDoc=d.value||emptyTeam();
+  if(safeCandidate(stats,target))candidateInfo={source,stats,revision:Number(candidateDoc.revision||0),updatedAt:candidateDoc.updatedAt||source.lastModified||null,clientVersion:cleanScalar(candidateDoc.clientVersion||source.clientVersion)};
+  else{candidateDoc=null;candidateInfo=null}
  }
- const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam();
- const backupName=await safetyBackup(container,current,'team-state-before-RC630-recovery');
- /* Erst den sichersten Gesamtstand zusammenführen, danach pro Referenz die vollständigste echte historische Sendung suchen. */
- let merged=mergeHistoricalShipments(current.state||{},candidateDoc.state||{});
  const refs=new Set();
- bestShipmentSet(current.state||{}).concat(bestShipmentSet(candidateDoc.state||{})).forEach(sh=>{const r=refOf(sh);if(r)refs.add(r)});
+ bestShipmentSet(current.state||{}).forEach(sh=>{const r=refOf(sh);if(r)refs.add(r)});
  arr(known).forEach(r=>{r=cleanScalar(r).toUpperCase();if(/^[A-Z0-9]{6}$/.test(r))refs.add(r)});
- const deep=await bestHistoricalPerShipment(container,Array.from(refs),payload&&payload.deepMaxVersions||180);
+ const deep=await bestHistoricalPerShipment(container,Array.from(refs),payload&&payload.deepMaxVersions||500);
+ if(!deep.complete.length&&!candidateInfo)throw error('NO_RECOVERABLE_SHIPMENT_HISTORY','In der Azure-Historie wurde für keine betroffene Sendungsreferenz ein echter Datensatz mit Packstückdaten gefunden. Es wurde nichts verändert.',409);
+ let merged={state:clone(current.state||{}),added:0,repaired:0,backfilled:0,tombstonesRemoved:0,restoredRefs:[]};
+ if(candidateInfo&&candidateDoc)merged=mergeHistoricalShipments(merged.state,candidateDoc.state||{});
  if(deep.complete.length){
   const deepState={shipments:deep.complete.map(x=>x.shipment)};
   const deepMerged=mergeHistoricalShipments(merged.state,deepState);
   merged={state:deepMerged.state,added:merged.added+deepMerged.added,repaired:merged.repaired+deepMerged.repaired,backfilled:merged.backfilled+deepMerged.backfilled,tombstonesRemoved:merged.tombstonesRemoved+deepMerged.tombstonesRemoved,restoredRefs:Array.from(new Set(merged.restoredRefs.concat(deepMerged.restoredRefs)))};
  }
+ const beforeStats=candidateStats(current,known),afterStats=candidateStats({state:merged.state},known);
+ const beforeRows=bestShipmentSet(current.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0),afterRows=bestShipmentSet(merged.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0);
+ const rowImproved=afterRows>beforeRows,coreImproved=afterStats.coreComplete>beforeStats.coreComplete||afterStats.activeCoreComplete>beforeStats.activeCoreComplete;
+ if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','Historische Versionen wurden gefunden, aber sie enthalten keine besseren Sendungsdaten als der aktuelle Stand. Es wurde nichts verändert.',409);
+ const backupName=await safetyBackup(container,current,'team-state-before-RC632-recovery');
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
  next.revision=Number(current.revision||0)+1;
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC630-history-recovery';
+ next.clientVersion='RC632-history-recovery';
  next.state=merged.state;
- const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>{const sk=normalizedStatus(sh);return sk!=='archiviert'&&sk!=='storniert'&&!historicalCore(sh).ok}).map(refOf).filter(Boolean);
- next.recoveryAudit={
-  at:next.updatedAt,by:next.updatedBy,source:candidateInfo.source,sourceRevision:candidateInfo.revision,
-  sourceUpdatedAt:candidateInfo.updatedAt,backupBlob:backupName,added:merged.added,repaired:merged.repaired,
-  backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,
-  deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,
-  deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete
- };
+ const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>meaningfulRows(sh).length===0).map(refOf).filter(Boolean);
+ next.recoveryAudit={at:next.updatedAt,by:next.updatedBy,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,backupBlob:backupName,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
  await uploadJson(teamBlob,next,fresh.etag);
- return {
-  ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,
-  source:candidateInfo.source,sourceRevision:candidateInfo.revision,sourceUpdatedAt:candidateInfo.updatedAt,
-  sourceStats:candidateInfo.stats,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,
-  tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,finalStats,
-  deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,
-  deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete
- };
+ return {ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,sourceStats:candidateInfo&&candidateInfo.stats||null,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,finalStats,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
 }
+
 
 
 module.exports=async function(context,req){
