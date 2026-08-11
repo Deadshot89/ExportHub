@@ -16,7 +16,8 @@ permissions:
 
 concurrency:
   group: exporthub-swa-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   build_and_deploy_job:
@@ -31,6 +32,21 @@ jobs:
         with:
           submodules: true
           lfs: false
+
+      - name: Validate ExportHUB API core before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f api/exporthub-state/index.js
+          test -f api/exporthub-state/function.json
+          test -f api/exporthub-health/index.js
+          test -f api/exporthub-health/function.json
+          test -f api/shared/merge.js
+          test -f api/package.json
+          node --check api/exporthub-state/index.js
+          node --check api/exporthub-health/index.js
+          node --check api/shared/merge.js
+          node -e "JSON.parse(require('fs').readFileSync('api/exporthub-state/function.json','utf8'));JSON.parse(require('fs').readFileSync('api/exporthub-health/function.json','utf8'));JSON.parse(require('fs').readFileSync('staticwebapp.config.json','utf8'));"
 
       - name: Deploy attempt 1
         id: deploy1
@@ -113,6 +129,34 @@ jobs:
           fi
 
           echo "All four Azure deployment attempts failed."
+          exit 1
+
+
+      - name: Verify deployed ExportHUB API host and state route
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://wonderful-forest-0f315e310.7.azurestaticapps.net"
+          health="$base/api/exporthub-health"
+          state="$base/api/exporthub-state"
+          health_ok=0
+          state_ok=0
+          for attempt in {1..24}; do
+            hcode=$(curl -sS -o /tmp/eh-health -w "%{http_code}" --max-time 15 "$health" || true)
+            scode=$(curl -sS -o /tmp/eh-state -w "%{http_code}" -X OPTIONS --max-time 15 "$state" || true)
+            echo "Live-Check $attempt/24: health=$hcode state-options=$scode"
+            [[ "$hcode" == "200" ]] && health_ok=1 || true
+            [[ "$scode" == "204" ]] && state_ok=1 || true
+            if [[ "$health_ok" == "1" && "$state_ok" == "1" ]]; then
+              echo "ExportHUB API host und State-Route sind live."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "API-Liveprüfung FEHLGESCHLAGEN."
+          echo "Health Antwort:"; cat /tmp/eh-health 2>/dev/null || true
+          echo; echo "State Antwort:"; cat /tmp/eh-state 2>/dev/null || true
           exit 1
 
   close_pull_request_job:
