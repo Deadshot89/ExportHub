@@ -174,12 +174,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC629',cache:'629',loginReturn:'/test?v=629'});
+var BUILD=Object.freeze({version:'RC630',cache:'630',loginReturn:'/test?v=630'});
 var RELEASE=Object.freeze({
- version:'RC629',
+ version:'RC630',
  date:'11.08.2026',
- title:'Sendungsdaten tief aus Azure-Historie retten und Ladelisten absichern',
+ title:'Sendungsdaten schützen, Altblock entfernen und Dokumentstruktur stabilisieren',
  changes:Object.freeze([
+  'RC630 entfernt den verbliebenen inaktiven RC575-Altblock vollständig; kein alter Aufgaben-Renderer oder RC575-Style bleibt aktiv.',
+  'RC630 entfernt die verbliebenen Pagination-CSS-Reste der Sendungsübersicht; der bestehende Renderer zeigt weiterhin alle gefilterten Sendungen ohne Seitenumschaltung.',
+  'RC630 verschiebt die echten Dokument-Endtags ans Dateiende, sodass alle aktiven Styles und Skripte innerhalb einer gültigen HTML-Struktur liegen, ohne Reihenfolge oder Layout zu verändern.',
   'RC629 durchsucht die Azure-Historie zusätzlich pro Sendungsreferenz und übernimmt für jede Referenz den vollständigsten echten historischen Datensatz; eine einzelne unvollständige Snapshot-Version reicht nicht mehr als Datenquelle.',
   'Gespeicherte Sendungskopien aus shipments und savedShipments werden für Ladeliste/CMR feldweise zu einem vollständigen Dokumentdatensatz zusammengeführt; leere Kopien dürfen vollständige Colli-, Kunden-, Adress- oder Dokumentdaten nicht verdrängen.',
   'Fehlende Colli-Zeilen in aktiven gespeicherten Sendungen gelten jetzt selbst dann als Recovery-Fehler, wenn Kunde oder Adresse noch vorhanden sind.',
@@ -211,7 +214,7 @@ var RELEASE=Object.freeze({
   'Fehlende Colli-Zeilen lösen auch bei vorhandenem Kundennamen die Azure-Historienrettung aus',
   'Druck/PDF einer unvollständigen Sendung wird mit klarer Meldung blockiert statt leer erzeugt',
   'Smartphone 390 px nutzt mindestens 85 Prozent der Bildschirmbreite für #content',
-  'Hauptseite und TESTVERSION melden beide RC629',
+  'Hauptseite und TESTVERSION melden beide RC630',
   'Beschädigte Kundenwerte false, true, Test, Test Kunde sowie Strichwerte gelten nicht als gültiger Sendungsinhalt',
   'Beschädigter Mehrfachbestand löst vor dem Rendern die sichere Azure-Historienprüfung aus',
   'Sendungsübersicht enthält keine Seitennavigation und keine Einträge-pro-Seite-Auswahl',
@@ -7290,16 +7293,16 @@ body .rc314-process-warning{
 .rc524-training-view .quiz-option{min-height:54px!important;padding:13px 15px!important;border-radius:12px!important}
 
 
-/* RC524: paginierte Sendungsübersicht und Synchronisationsstatus */
+/* RC630: Sendungsübersicht ohne Pagination; Synchronisationsstatus bleibt erhalten. */
 .rc524-overview-controls{display:grid;grid-template-columns:minmax(220px,1fr) auto auto;gap:10px;align-items:end;margin:10px 0 14px}
 .rc524-overview-controls .field{margin:0}
 .rc524-overview-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#475569;font-weight:850}
-.rc524-pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:14px 0}
-.rc524-pagination button{min-width:42px}
+
+
 .rc524-shipment-list{content-visibility:auto;contain-intrinsic-size:1200px}
 .rc524-shipment-card{contain:layout style paint;content-visibility:auto;contain-intrinsic-size:180px}
 .rc524-live-status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 10px;background:#ecfeff;color:#155e75;font-size:12px;font-weight:900}
-@media(max-width:760px){.rc524-overview-controls{grid-template-columns:1fr}.rc524-pagination{justify-content:flex-start}}
+@media(max-width:760px){.rc524-overview-controls{grid-template-columns:1fr}}
 
 .rc524-update-view{display:block;max-width:1180px;margin:0 auto}
 .rc524-update-card{padding:28px;border-radius:24px;background:linear-gradient(135deg,#fff,#eef7ff);box-shadow:0 18px 55px rgba(22,49,87,.12);border:1px solid rgba(31,104,184,.12)}
@@ -7728,7 +7731,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 @media(max-width:850px){#content .planner-task{grid-template-columns:1fr}#content .planner-move{grid-template-columns:1fr auto}}
 </style>
 <style>
-/* RC629: link-button for password recovery */
+/* RC630: link-button for password recovery */
 .link-btn:hover{text-decoration:underline}
 </style>
 <!-- INDEX 294 RC294 LOGIN BADGE DISPLAY START -->
@@ -12494,70 +12497,7 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
 #content #rc589TopView .rc589-overflow{border-color:#fecaca;background:#fff1f2;color:#991b1b}
 @media(max-width:720px){#content #rc589TopView .rc589-plan-shell{min-width:700px!important}#content #rc589TopView .rc589-plan{min-height:148px}#content #rc589TopView .rc589-pallet .ori{display:none}}
 </style>
-<!-- RC590 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN END -->
-</body>
-</html><!-- RC575 TASK DEDUPLICATION + SHIPMENT LINK START -->
-<style id="rc575-task-style">
-#content .rc229-task-card[data-rc575-linked="1"],
-#content .task-card[data-rc575-linked="1"]{
-  min-height:0!important;
-}
-#content .rc575-task-reference{
-  margin:8px 0 4px!important;
-  font-size:18px!important;
-  line-height:1.2!important;
-  color:#08245d!important;
-  overflow-wrap:anywhere;
-}
-#content .rc575-task-customer{
-  margin:0 0 7px;
-  color:#0f172a;
-  font-size:14px;
-  font-weight:900;
-  line-height:1.3;
-}
-#content .rc575-task-meta{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  align-items:center;
-  margin:0 0 8px;
-}
-#content .rc575-task-type{
-  display:block;
-  margin:7px 0 0;
-  color:#475569;
-  font-size:12px;
-  font-weight:850;
-  line-height:1.35;
-}
-#content .rc575-task-status{
-  display:inline-flex;
-  align-items:center;
-  border:1px solid #bfdbfe;
-  background:#eff6ff;
-  color:#1e3a8a;
-  border-radius:999px;
-  padding:5px 9px;
-  font-size:11px;
-  font-weight:950;
-}
-#content .rc575-task-status.is-green{border-color:#86efac;background:#dcfce7;color:#166534}
-#content .rc575-task-status.is-orange{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
-#content .rc575-task-status.is-red{border-color:#fecaca;background:#fee2e2;color:#991b1b}
-#content .rc575-repair-note{
-  border:1px solid #bbf7d0;
-  background:#f0fdf4;
-  color:#166534;
-  border-radius:12px;
-  padding:8px 11px;
-  margin:0 0 10px;
-  font-size:12px;
-  font-weight:850;
-}
-</style>
-<!-- RC575 TASK DEDUPLICATION + SHIPMENT LINK END -->
-<!-- RC559 + RC560 + RC561 stable patches -->
+<!-- RC590 LOWER MAIL CLEANUP + TOP-DOWN STOW PLAN END --><!-- RC559 + RC560 + RC561 stable patches -->
 <style id="exporthub-canonical-mobile-shell-style">
 /* RC524: funktionaler Besitzer der Smartphone-/Sidebar-Shell. Fachbereichs- und Theme-Design bleiben separat. */
 #ehCollapseBtn,.eh-collapse-btn,#rc568MenuBtn,#rc568MenuBackdrop,#rc567MobileBackdrop{display:none!important}
@@ -17506,7 +17446,7 @@ window.ExportHUBRC205={renderDashboard:renderDashboard,refreshDashboardIfChanged
 #content.rc524-overview-view .rc485-status-all{min-height:34px!important;padding:6px 11px!important}
 #content.rc524-overview-view .rc485-status-option{display:inline-flex!important;align-items:center!important;gap:6px!important;min-height:34px!important;padding:6px 10px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#fff!important;font-size:12px!important;font-weight:900!important;cursor:pointer!important}
 #content.rc524-overview-view .rc485-status-option input{width:16px!important;height:16px!important;margin:0!important;accent-color:#2563eb!important}
-#content.rc524-overview-view .rc524-overview-controls>.rc524-pagination{grid-column:1/-1!important;margin:2px 0 0!important}
+
 #content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]::before{display:none!important}
 #content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]{border-width:3px!important;border-left-width:12px!important;transition:transform .12s ease,box-shadow .12s ease!important;background-clip:padding-box!important}
 #content.rc524-overview-view .rc524-shipment-card[class*="rc210-status-"]:hover{transform:translateY(-2px)!important}
@@ -20364,4 +20304,5 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
 </script>
-
+</body>
+</html>
