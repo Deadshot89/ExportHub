@@ -140,7 +140,7 @@ function cleanScalar(v){
 }
 function refOf(sh){
  if(!isObj(sh))return '';
- const vals=[sh.ref,sh.reference,sh.shipmentRef,sh.referenceNumber,sh.exporthubRef,sh.exportHubReference];
+ const vals=[sh.ref,sh.reference,sh.shipmentRef,sh.referenceNumber,sh.referenceNo,sh.referenceId,sh.refNo,sh.refNr,sh.shipmentNumber,sh.sendungsnummer,sh.exporthubRef,sh.exportHubReference];
  for(const v of vals){const x=cleanScalar(v).toUpperCase();if(/^[A-Z0-9]{6}$/.test(x))return x}
  return '';
 }
@@ -155,7 +155,12 @@ function customerOf(sh){
  if(isObj(sh.customer)){const x=cleanScalar(sh.customer.name||sh.customer.customerName||sh.customer.companyName);if(x&&!badCustomerValue(x))return x}
  return '';
 }
-function rowList(sh){return arr(sh&&(sh.rows||sh.colli||sh.collis||sh.packages||sh.packagingRows||sh.shipmentRows||sh.colliRows||sh.items||sh.lines))}
+function rowList(sh){
+ if(!sh)return [];
+ const lists=[sh.rows,sh.colli,sh.collis,sh.packages,sh.packagingRows,sh.packageRows,sh.packingRows,sh.shipmentRows,sh.colliRows,sh.cargoRows,sh.freightRows,sh.loadRows,sh.palletRows,sh.handlingUnits,sh.handlingUnitRows,sh.shipmentItems,sh.items,sh.lines,sh.colliData,sh.packagesData,sh.cargo&&sh.cargo.rows,sh.cargoData&&sh.cargoData.rows,sh.freight&&sh.freight.rows,sh.packaging&&sh.packaging.rows,sh.load&&sh.load.rows];
+ for(const list of lists)if(Array.isArray(list)&&list.length)return list;
+ return [];
+}
 function num(v){const n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
 function rowDataScore(rows){
  return arr(rows).reduce((score,row)=>{
@@ -197,8 +202,13 @@ function shipmentRichness(sh){
  return n;
 }
 function bestShipmentSet(state){
- const map=new Map();
- arr(state&&state.shipments).concat(arr(state&&state.savedShipments)).forEach(sh=>{
+ const map=new Map(),all=[];
+ if(isObj(state)){
+  all.push(...arr(state.shipments),...arr(state.savedShipments));
+  [state.shipment,state.currentShipment,state.activeShipment,state.editingShipment,state.documentShipment].forEach(sh=>{if(isObj(sh))all.push(sh)});
+  ['shipmentsById','savedShipmentsById','shipmentMap','shipmentsMap'].forEach(k=>{if(isObj(state[k]))Object.values(state[k]).forEach(sh=>{if(isObj(sh))all.push(sh)})});
+ }
+ all.forEach(sh=>{
   if(!isObj(sh))return;
   const k=identityOf(sh);if(!k)return;
   const cur=map.get(k);
@@ -221,8 +231,9 @@ function normalizedStatus(sh){
  if(/entwurf|draft/.test(s))return'entwurf';
  return s||'offen';
 }
+function stateOfDocument(doc){if(isObj(doc&&doc.state))return doc.state;if(isObj(doc)&&(Array.isArray(doc.shipments)||Array.isArray(doc.savedShipments)||isObj(doc.shipment)||isObj(doc.shipmentsById)))return doc;return {}}
 function candidateStats(doc,knownRefs){
- const state=isObj(doc&&doc.state)?doc.state:{};
+ const state=stateOfDocument(doc);
  const list=bestShipmentSet(state), known=new Set(arr(knownRefs).map(x=>String(x).toUpperCase()));
  let validCustomer=0,rich=0,coreComplete=0,suspect=0,knownHits=0,activeCount=0,activeValidCustomer=0,activeRich=0,activeCoreComplete=0,activeSuspect=0;
  const refs=[],activeRefs=[],statusCounts={};
@@ -288,6 +299,18 @@ async function listHistory(container){
   for await(const item of container.listBlobsFlat({prefix:'recovery-backups/',includeMetadata:true})){
    if(!item||!item.name||!/\.json$/i.test(item.name))continue;
    out.push(sourceDescriptor(item));
+  }
+ }catch(_){}
+ /* RC633: discover additional genuine ExportHUB/team backup JSON blobs without treating auth/pickup/POD data as shipment backups. */
+ try{
+  let discovered=0;
+  for await(const item of container.listBlobsFlat({prefix:'',includeMetadata:true})){
+   if(!item||!item.name||item.name===TEAM_BLOB||!/\.json$/i.test(item.name))continue;
+   const name=lower(item.name);
+   if(/auth|session|token|pickup|pod|loader|pin|location|warehouse|lock/.test(name))continue;
+   if(!/(?:exporthub|team|state|backup|sammel|recovery|archive)/.test(name))continue;
+   out.push(sourceDescriptor(item));
+   if(++discovered>=500)break;
   }
  }catch(_){}
  const seen=new Set(),unique=[];
@@ -363,7 +386,7 @@ async function bestHistoricalPerShipment(container,refs,maxVersions=500){
   const source=history[i];
   try{
    const d=await readJson(historyClient(container,source),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;
-   bestShipmentSet(doc.state||{}).forEach(sh=>{
+   bestShipmentSet(stateOfDocument(doc)).forEach(sh=>{
     const ref=refOf(sh);if(!ref||(wanted.size&&!wanted.has(ref)))return;
     if(syntheticHistoricalRecovery(sh))return;
     const hasRows=meaningfulRows(sh).length>0,hasCustomer=!!customerOf(sh),hasAddress=!!cleanScalar(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||sh.address||(sh.locationData&&sh.locationData.address)||(sh.siteData&&sh.siteData.address)||(sh.location&&sh.location.address));
@@ -503,7 +526,7 @@ async function recoverShipments(container,teamBlob,payload,user){
  const deep=await bestHistoricalPerShipment(container,Array.from(refs),payload&&payload.deepMaxVersions||500);
  if(!deep.complete.length&&!candidateInfo)throw error('NO_RECOVERABLE_SHIPMENT_HISTORY','In der Azure-Historie wurde für keine betroffene Sendungsreferenz ein echter Datensatz mit Packstückdaten gefunden. Es wurde nichts verändert.',409);
  let merged={state:clone(current.state||{}),added:0,repaired:0,backfilled:0,tombstonesRemoved:0,restoredRefs:[]};
- if(candidateInfo&&candidateDoc)merged=mergeHistoricalShipments(merged.state,candidateDoc.state||{});
+ if(candidateInfo&&candidateDoc)merged=mergeHistoricalShipments(merged.state,stateOfDocument(candidateDoc));
  if(deep.complete.length){
   const deepState={shipments:deep.complete.map(x=>x.shipment)};
   const deepMerged=mergeHistoricalShipments(merged.state,deepState);
@@ -513,14 +536,14 @@ async function recoverShipments(container,teamBlob,payload,user){
  const beforeRows=bestShipmentSet(current.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0),afterRows=bestShipmentSet(merged.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0);
  const rowImproved=afterRows>beforeRows,coreImproved=afterStats.coreComplete>beforeStats.coreComplete||afterStats.activeCoreComplete>beforeStats.activeCoreComplete;
  if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','Historische Versionen wurden gefunden, aber sie enthalten keine besseren Sendungsdaten als der aktuelle Stand. Es wurde nichts verändert.',409);
- const backupName=await safetyBackup(container,current,'team-state-before-RC632-recovery');
+ const backupName=await safetyBackup(container,current,'team-state-before-RC633-recovery');
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
  next.revision=Number(current.revision||0)+1;
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC632-history-recovery';
+ next.clientVersion='RC633-history-recovery';
  next.state=merged.state;
  const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>meaningfulRows(sh).length===0).map(refOf).filter(Boolean);
  next.recoveryAudit={at:next.updatedAt,by:next.updatedBy,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,backupBlob:backupName,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
