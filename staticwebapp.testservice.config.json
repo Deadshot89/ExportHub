@@ -3,20 +3,17 @@
   "routes": [
     {
       "route": "/",
-      "redirect": "/TESTVERSION.html",
-      "statusCode": 302,
       "allowedRoles": [
         "anonymous"
       ],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
-      }
+      },
+      "rewrite": "/index.html"
     },
     {
       "route": "/index.html",
-      "redirect": "/TESTVERSION.html",
-      "statusCode": 302,
       "allowedRoles": [
         "anonymous"
       ],
@@ -27,7 +24,7 @@
     },
     {
       "route": "/test",
-      "rewrite": "/TESTVERSION.html",
+      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
@@ -38,7 +35,7 @@
     },
     {
       "route": "/test/*",
-      "rewrite": "/TESTVERSION.html",
+      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
@@ -118,7 +115,7 @@
     }
   ],
   "navigationFallback": {
-    "rewrite": "/TESTVERSION.html",
+    "rewrite": "/index.html",
     "exclude": [
       "/api/*",
       "/.auth/*",

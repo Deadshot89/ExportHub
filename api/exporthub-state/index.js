@@ -9,6 +9,7 @@ const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EX
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
+const API_VERSION = 'RC637';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -68,7 +69,6 @@ async function clients(){
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','Keine ExportHUB-Speicherverbindung ist in Azure verfügbar.',503);
  let service; try{service=BlobServiceClient.fromConnectionString(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die ExportHUB-Speicherverbindung ist ungültig.',503)}
  const container=service.getContainerClient(TEAM_CONTAINER);
- try{await container.createIfNotExists()}catch(e){const msg=e&&e.message?e.message:'Azure Storage nicht erreichbar.';throw error('STORAGE_UNREACHABLE','Der ExportHUB-Speichercontainer ist nicht erreichbar: '+msg,503)}
  return {container,team:container.getBlockBlobClient(TEAM_BLOB),auth:container.getBlockBlobClient(AUTH_BLOB)};
 }
 function parseStoredJson(raw,name){
@@ -80,7 +80,7 @@ async function readJson(blob,fallback,repairAuth=false){
  try{
   const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));
   try{const v=parseStoredJson(Buffer.concat(chunks).toString('utf8'),blob&&blob.name);return {value:v==null?clone(fallback):v,etag:r.etag||null}}
-  catch(e){if(repairAuth)return {value:clone(fallback),etag:r.etag||null,repairedInvalidJson:true};throw e}
+  catch(e){e.etag=r.etag||null;if(repairAuth)return {value:clone(fallback),etag:r.etag||null,repairedInvalidJson:true};throw e}
  }catch(e){if(e&&e.statusCode===404)return {value:clone(fallback),etag:null};throw e}
 }
 async function uploadJson(blob,value,etag){
@@ -95,9 +95,39 @@ async function uploadJson(blob,value,etag){
 }
 function emptyTeam(){return {schemaVersion:3,revision:0,updatedAt:null,updatedBy:null,state:{},users:[]}}
 function emptyAuth(){return {schemaVersion:1,updatedAt:null,sessions:[]}}
+function usableTeamDocument(value){return !!(value&&typeof value==='object'&&!Array.isArray(value)&&value.state&&typeof value.state==='object'&&!Array.isArray(value.state)&&Array.isArray(value.users))}
+async function latestValidTeamFallback(container){
+ let history=[];try{history=await listHistory(container)}catch(_){history=[]}
+ for(let i=0;i<history.length&&i<500;i++){
+  const source=history[i];
+  try{const d=await readJson(historyClient(container,source),emptyTeam(),false),value=d.value||emptyTeam();if(usableTeamDocument(value)&&value.users.length)return {value,source}}catch(_){}
+ }
+ return null;
+}
+async function readTeamResilient(container,blob){
+ try{
+  const d=await readJson(blob,emptyTeam(),false);
+  if(d.etag||usableTeamDocument(d.value))return d;
+  const fallback=await latestValidTeamFallback(container);
+  return fallback?{value:fallback.value,etag:null,recoveredFromHistory:true,recoverySource:fallback.source,missingCurrent:true}:d;
+ }catch(e){
+  if(e&&e.code!=='STORAGE_JSON_INVALID')throw e;
+  const fallback=await latestValidTeamFallback(container);
+  if(!fallback)throw error('STATE_CORRUPT_NO_BACKUP','Der aktuelle Azure-Teamstand ist beschädigt und es wurde keine lesbare historische Sicherung gefunden.',500);
+  return {value:fallback.value,etag:e&&e.etag||null,recoveredFromHistory:true,recoverySource:fallback.source,corruptCurrent:true};
+ }
+}
+async function safetyRawBackup(container,blob,label){
+ try{
+  const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));
+  const raw=Buffer.concat(chunks);if(!raw.length)return null;
+  const stamp=now().replace(/[:.]/g,'-'),name='recovery-backups/'+String(label||'raw-team-state').replace(/[^A-Za-z0-9_.-]+/g,'-')+'-'+stamp+'.json.raw';
+  const backup=container.getBlockBlobClient(name);await backup.upload(raw,raw.length,{blobHTTPHeaders:{blobContentType:'application/octet-stream'},conditions:{ifNoneMatch:'*'}});return name;
+ }catch(e){if(Number(e&&e.statusCode||0)===404)return null;return null}
+}
 async function validateSession(req,payload,c){
  const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
- const reads=await Promise.all([readJson(c.auth,emptyAuth(),true),readJson(c.team,emptyTeam(),false)]);
+ const reads=await Promise.all([readJson(c.auth,emptyAuth(),true),readTeamResilient(c.container,c.team)]);
  const authDoc=reads[0],teamDoc=reads[1],sessions=Array.isArray(authDoc.value&&authDoc.value.sessions)?authDoc.value.sessions:[];
  const hash=tokenHash(token);let session=sessions.find(s=>safeEqualText(s.tokenHash,hash)),source='blob';
  if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}}
@@ -109,7 +139,7 @@ async function validateSession(req,payload,c){
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);
  if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
  if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);
- return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source};
+ return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true};
 }
 function sanitizeForClient(document,adminView){
  const out=clone(document||emptyTeam());delete out.authBootstrap;out.users=publicUsers(out.users,adminView);out.state=out.state&&typeof out.state==='object'?out.state:{};out.state.users=clone(out.users);return out;
@@ -661,14 +691,14 @@ async function recoverShipments(container,teamBlob,payload,user){
  const beforeRows=bestShipmentSet(current.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0),afterRows=bestShipmentSet(merged.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0);
  const rowImproved=afterRows>beforeRows,coreImproved=afterStats.coreComplete>beforeStats.coreComplete||afterStats.activeCoreComplete>beforeStats.activeCoreComplete;
  if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','Historische Versionen wurden gefunden, aber sie enthalten keine besseren Sendungsdaten als der aktuelle Stand. Es wurde nichts verändert.',409);
- const backupName=await safetyBackup(container,current,'team-state-before-RC636-forensic-recovery');
+ const backupName=await safetyBackup(container,current,'team-state-before-RC637-forensic-recovery');
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
  next.revision=Number(current.revision||0)+1;
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC636-forensic-recovery';
+ next.clientVersion='RC637-forensic-recovery';
  next.state=merged.state;
  const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>meaningfulRows(sh).length===0).map(refOf).filter(Boolean);
  next.recoveryAudit={at:next.updatedAt,by:next.updatedBy,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,backupBlob:backupName,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),currentEvidenceRefs:currentEvidenceRows.map(x=>x.ref),currentEvidenceSources:Object.fromEntries(currentEvidenceRows.map(x=>[x.ref,x.sources])),locationEvidenceUpdatedRefs:locationApplied.updatedRefs,browserEvidenceCount:arr(payload&&payload.browserEvidence).length,remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
@@ -684,13 +714,14 @@ module.exports=async function(context,req){
   const payload=body(req),queryMode=req.query?lower(req.query.mode):'',mode=queryMode||lower(payload.action||payload.mode);
   if(mode==='health'){
    const c=await clients();
-   try{await c.container.getProperties()}catch(e){throw error('STORAGE_UNREACHABLE','ExportHUB kann den konfigurierten Azure-Speichercontainer nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
-   context.res=json(200,{ok:true,service:'exporthub-state',version:'RC636',storageConfigured:true,storageReachable:true,storageSource:connectionSource(),container:TEAM_CONTAINER,blob:TEAM_BLOB,time:now()});return;
+   let authReadable=true;try{await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
+   const teamCheck=await readTeamResilient(c.container,c.team);
+   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,blob:TEAM_BLOB,time:now()});return;
   }
   const c=await clients(),current=await validateSession(req,payload,c),blob=c.team;
   if(req.method==='GET'||(req.method==='POST'&&(mode==='read'||mode==='meta'))){
    if(mode==='meta'||(req.query&&String(req.query.meta||'')==='1')){context.res=json(200,Object.assign({ok:true,metaOnly:true},await metadataOnly(blob)));return}
-   const client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user));context.res=json(200,Object.assign({ok:true},client));return
+   const client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user));context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null},client));return
   }
   if(req.method==='POST'){
    if(mode==='recovery-preview'){
@@ -703,9 +734,11 @@ module.exports=async function(context,req){
    }
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
+   let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC637-save');
    const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));
+   if(corruptBackup)saved.corruptBackup=corruptBackup;
    const ack=req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
-   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
+   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,serverVersion:API_VERSION,corruptBackup:saved.corruptBackup||null};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
    context.res=json(200,Object.assign({ok:true},client));return
   }
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
