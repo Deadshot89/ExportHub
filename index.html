@@ -174,13 +174,13 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC637',cache:'637',loginReturn:'/?v=637'});
+var BUILD=Object.freeze({version:'RC638',cache:'638',loginReturn:'/?v=638'});
 var RELEASE=Object.freeze({
- version:'RC637',
+ version:'RC638',
  date:'12.08.2026',
  title:'Root-URL ohne index.html, stabile Azure-State-API und Sendungsübersicht ohne Status-Neurendern',
  changes:Object.freeze([
-  'RC637 hält die Hauptadresse dauerhaft auf der Root-URL: / wird intern auf index.html umgeschrieben, aber index.html wird nicht mehr per HTTP-Redirect in die Browseradresse geschrieben.',
+  'RC638 hält die Hauptadresse dauerhaft auf der Root-URL: / wird intern auf index.html umgeschrieben, aber index.html wird nicht mehr per HTTP-Redirect in die Browseradresse geschrieben.',
   'Direkt aufgerufene /index.html-Adressen werden nach dem Laden per History-API auf / normalisiert; auf der eingebauten Testseite wird /TESTVERSION.html entsprechend auf /test normalisiert.',
   'Die Sendungsübersicht ersetzt beim Statuswechsel nicht mehr den gesamten Inhaltsbereich. Statuskarten werden als bestehende DOM-Knoten in die passende Statusgruppe verschoben und Gruppen/Zähler werden nur lokal aktualisiert.',
   'Die Azure-State-API benötigt im normalen Lese-/Speicherpfad keine Container-Verwaltungsrechte mehr; sie greift direkt auf Auth- und Team-State-Blobs zu.',
@@ -287,7 +287,7 @@ try{
  if(u.searchParams.get('v')!==String(build.cache))u.searchParams.set('v',String(build.cache));
  var target=path+u.search+u.hash,current=u.pathname+u.search+u.hash;
  if(target!==current)history.replaceState(history.state,'',target);
-}catch(e){console.error('RC637 URL',e)}
+}catch(e){console.error('RC638 URL',e)}
 })();
 </script>
 <script id="index250-loader-pin-core">
@@ -10888,9 +10888,9 @@ async function resilientFetch(url,options){
    if(attempt<maxAttempts)await new Promise(function(resolve){native.setTimeout(resolve,Math.min(1800,attempt*450))});
   }
  }
- const endpoint=apiEndpointLabel(url);
- const err=new Error('Azure-API nicht erreichbar ('+endpoint+'). Prüfe Verbindung, Sitzung und die veröffentlichte API.');
- err.code='API_UNREACHABLE';err.cause=lastError;throw err;
+ const endpoint=apiEndpointLabel(url),timedOut=!!(lastError&&String(lastError.name||'').toLowerCase()==='aborterror');
+ const err=new Error(timedOut?'Zeitüberschreitung beim Azure-API-Aufruf ('+endpoint+'). Die Function antwortet zu langsam oder befindet sich noch im Kaltstart.':'Azure-API nicht erreichbar ('+endpoint+'). Prüfe Verbindung, Sitzung und die veröffentlichte API.');
+ err.code=timedOut?'API_TIMEOUT':'API_UNREACHABLE';err.cause=lastError;throw err;
 }
 async function jsonFetch(url,options){
  const opts=Object.assign({credentials:'same-origin',cache:'no-store'},options||{});
@@ -10984,14 +10984,14 @@ async function stateCall(mode,payload,requestOptions){
   const endpoint=candidates[i],headers={'Content-Type':'application/json','Accept':'application/json'};
   if(token){headers['X-ExportHUB-Token']=token;headers['X-ExportHUB-Session']=token;headers.Authorization='Bearer '+token}
   try{
-   const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=60000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=6000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
+   const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=60000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=15000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=3;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
    const result=await jsonFetch(endpoint+'?mode='+encodeURIComponent(mode),opts);
    API=endpoint;runtime.stateApiLocked=true;runtime.stateApiEndpoint=endpoint;runtime.stateApiReachable=true;runtime.apiReachable=true;runtime.lastStateApiSuccessAt=Date.now();return result
   }catch(error){
    errors.push({endpoint:endpoint,error:error});const code=error&&error.code,statusCode=Number(error&&error.status||0);
    if(statusCode===413||code==='HTTP_413'||code==='PAYLOAD_TOO_LARGE'){error.code='PAYLOAD_TOO_LARGE';error.status=413;throw error}
    if(['SESSION_INVALID','SESSION_REVOKED','AUTH_REQUIRED','STORAGE_NOT_CONFIGURED','STORAGE_UNREACHABLE','AZURE_ROUTE_BLOCKED'].indexOf(code)>=0)throw error;
-   const routeOrTemporary=code==='API_UNREACHABLE'||code==='STATE_API_UNREACHABLE'||code==='INVALID_SERVER_JSON'||statusCode===404||statusCode===405||statusCode===408||statusCode===425||statusCode===429||statusCode===502||statusCode===504;
+   const routeOrTemporary=code==='API_UNREACHABLE'||code==='API_TIMEOUT'||code==='STATE_API_UNREACHABLE'||code==='INVALID_SERVER_JSON'||statusCode===404||statusCode===405||statusCode===408||statusCode===425||statusCode===429||statusCode===502||statusCode===504;
    if(!routeOrTemporary)throw error;
    if(i===candidates.length-1)break
   }
@@ -11047,7 +11047,7 @@ async function recoverShipmentHistoryIfNeeded(doc){
   throw error
  }
  if(!restored||restored.ok===false||restored.recovered!==true){var e2=new Error('Die Azure-Historie konnte nicht sicher wiederhergestellt werden. Der beschädigte Stand wurde nicht als neuer Soll-Stand übernommen.');e2.code='SHIPMENT_RECOVERY_FAILED';throw e2}
- runtime.network.stateGets++;var fresh=await stateCall('read',{}, {timeoutMs:15000,maxAttempts:1}),after=shipmentRecoveryStats(fresh&&fresh.state||{});
+ runtime.network.stateGets++;var fresh=await stateCall('read',{}, {timeoutMs:30000,maxAttempts:2}),after=shipmentRecoveryStats(fresh&&fresh.state||{});
  if(!fresh||fresh.ok===false||!fresh.state||after.count===0||(stats.activeNoRows>0&&after.activeNoRows>=stats.activeNoRows)||(stats.activeSuspect>0&&after.activeSuspect>=stats.activeSuspect)){var e3=new Error('Die Wiederherstellung wurde serverseitig ausgeführt, aber die fehlenden Sendungskerndaten wurden nicht verbessert. Bitte keine Sendungen speichern.');e3.code='SHIPMENT_RECOVERY_INCOMPLETE';throw e3}
  runtime.shipmentRecovery={at:new Date().toISOString(),before:stats,after:after,source:restored.source||null,backupBlob:restored.backupBlob||'',restoredRefs:restored.restoredRefs||[],deepRecoveredRefs:restored.deepRecoveredRefs||[],remainingIncompleteRefs:restored.remainingIncompleteRefs||[],currentEvidenceRefs:restored.currentEvidenceRefs||[],locationEvidenceUpdatedRefs:restored.locationEvidenceUpdatedRefs||[],browserEvidenceCount:Number(restored.browserEvidenceCount||browserEvidence.length||0),deepScannedVersions:Number(restored.deepScannedVersions||0)};return fresh
 }

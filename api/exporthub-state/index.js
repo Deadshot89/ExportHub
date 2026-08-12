@@ -2,14 +2,14 @@
 'use strict';
 
 const crypto = require('crypto');
-const { BlobServiceClient } = require('@azure/storage-blob');
+const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone } = require('../shared/merge');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC637';
+const API_VERSION = 'RC638';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -17,8 +17,8 @@ function now(){ return new Date().toISOString(); }
 function error(code,message,status=400){ const e=new Error(message); e.code=code; e.status=status; return e; }
 function json(status,body,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},headers),body:JSON.stringify(body)}; }
 function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
-function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''; }
-function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_STORAGE_CONNECTION_STRING'; if(process.env.EXPORTHUB_STORAGE_CONNECTION)return 'EXPORTHUB_STORAGE_CONNECTION'; if(process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING'; if(process.env.AzureWebJobsStorage)return 'AzureWebJobsStorage'; return ''; }
+function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || ''; }
+function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_STORAGE_CONNECTION_STRING'; if(process.env.EXPORTHUB_STORAGE_CONNECTION)return 'EXPORTHUB_STORAGE_CONNECTION'; if(process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING'; return ''; }
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
 function isActive(user){ return Boolean(user && user.active!==false && user.disabled!==true && lower(user.status)!=='deaktiviert'); }
 function isAdmin(user){
@@ -67,7 +67,7 @@ function bearer(req,payload){
 async function clients(){
  const cs=connectionString();
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','Keine ExportHUB-Speicherverbindung ist in Azure verfügbar.',503);
- let service; try{service=BlobServiceClient.fromConnectionString(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die ExportHUB-Speicherverbindung ist ungültig.',503)}
+ let service; try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die ExportHUB-Speicherverbindung ist ungültig: '+(e&&e.message||'Konfigurationsfehler'),503)}
  const container=service.getContainerClient(TEAM_CONTAINER);
  return {container,team:container.getBlockBlobClient(TEAM_BLOB),auth:container.getBlockBlobClient(AUTH_BLOB)};
 }
@@ -691,14 +691,14 @@ async function recoverShipments(container,teamBlob,payload,user){
  const beforeRows=bestShipmentSet(current.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0),afterRows=bestShipmentSet(merged.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0);
  const rowImproved=afterRows>beforeRows,coreImproved=afterStats.coreComplete>beforeStats.coreComplete||afterStats.activeCoreComplete>beforeStats.activeCoreComplete;
  if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','Historische Versionen wurden gefunden, aber sie enthalten keine besseren Sendungsdaten als der aktuelle Stand. Es wurde nichts verändert.',409);
- const backupName=await safetyBackup(container,current,'team-state-before-RC637-forensic-recovery');
+ const backupName=await safetyBackup(container,current,'team-state-before-RC638-forensic-recovery');
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
  next.revision=Number(current.revision||0)+1;
  next.updatedAt=now();
  next.updatedBy=text(user.name||user.user);
  next.updatedByUserId=text(user.id);
- next.clientVersion='RC637-forensic-recovery';
+ next.clientVersion='RC638-forensic-recovery';
  next.state=merged.state;
  const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>meaningfulRows(sh).length===0).map(refOf).filter(Boolean);
  next.recoveryAudit={at:next.updatedAt,by:next.updatedBy,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,backupBlob:backupName,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),currentEvidenceRefs:currentEvidenceRows.map(x=>x.ref),currentEvidenceSources:Object.fromEntries(currentEvidenceRows.map(x=>[x.ref,x.sources])),locationEvidenceUpdatedRefs:locationApplied.updatedRefs,browserEvidenceCount:arr(payload&&payload.browserEvidence).length,remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
@@ -712,6 +712,7 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS'},body:''};return}
  try{
   const payload=body(req),queryMode=req.query?lower(req.query.mode):'',mode=queryMode||lower(payload.action||payload.mode);
+  if(mode==='ping'){context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,routeReachable:true,storageChecked:false,time:now()});return}
   if(mode==='health'){
    const c=await clients();
    let authReadable=true;try{await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
@@ -734,7 +735,7 @@ module.exports=async function(context,req){
    }
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
-   let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC637-save');
+   let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC638-save');
    const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const ack=req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
