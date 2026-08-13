@@ -9,7 +9,7 @@ const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EX
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC645';
+const API_VERSION = 'RC648';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -154,21 +154,23 @@ async function validateSession(req,payload,c){
  return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true};
 }
 function sanitizeForClient(document,adminView){
- const out=clone(document||emptyTeam());delete out.authBootstrap;out.users=publicUsers(out.users,adminView);out.state=out.state&&typeof out.state==='object'?mergeState({},out.state):{};out.state.users=clone(out.users);return out;
+ const out=clone(document||emptyTeam());delete out.authBootstrap;delete out.recentOperations;out.users=publicUsers(out.users,adminView);out.state=out.state&&typeof out.state==='object'?mergeState({},out.state):{};out.state.users=clone(out.users);return out;
 }
 async function metadataOnly(blob){
  try{const p=await blob.getProperties(),m=p.metadata||{};if(m.revision!==undefined)return {schemaVersion:Number(m.schema||3),revision:Number(m.revision||0),updatedAt:m.updatedepoch?new Date(Number(m.updatedepoch)).toISOString():(p.lastModified||null),clientVersion:m.clientversion||null};
  const d=await readJson(blob,emptyTeam());const v=d.value||emptyTeam();return {schemaVersion:Number(v.schemaVersion||3),revision:Number(v.revision||0),updatedAt:v.updatedAt||null,clientVersion:v.clientVersion||null};}
  catch(e){if(e&&e.statusCode===404)return {schemaVersion:3,revision:0,updatedAt:null,clientVersion:null};throw e}
 }
-function normalizeIncoming(payload){const state=sanitizeState(payload.state||{});delete state.users;return {clientVersion:text(payload.clientVersion),baseRevision:Number(payload.baseRevision||0),deviceId:text(payload.deviceId),reason:text(payload.reason||'save'),state}}
+function normalizeIncoming(payload){const state=sanitizeState(payload.state||{});delete state.users;return {clientVersion:text(payload.clientVersion),baseRevision:Number(payload.baseRevision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId||payload.clientMutationId),reason:text(payload.reason||'save'),state}}
 async function saveMerged(blob,incoming,user,initialTeam,initialEtag){
  let d={value:initialTeam||emptyTeam(),etag:initialEtag||null};
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   if(attempt>0)d=await readJson(blob,emptyTeam());
-  const current=d.value||emptyTeam();
+  const current=d.value||emptyTeam(),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
+  if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);return replay}
   const merged=pruneTombstones(mergeState(current.state||{},incoming.state||{}));delete merged.users;merged.users=publicUsers(current.users||[],false);
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(user.name||user.user),updatedByUserId:text(user.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
+  next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
   try{await uploadJson(blob,next,d.etag);next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den Teamstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
  }
  throw error('CONCURRENT_UPDATE','Der Teamstand konnte nach mehreren Konfliktversuchen nicht gespeichert werden.',409);
@@ -752,7 +754,7 @@ module.exports=async function(context,req){
    const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const serverMs=Date.now()-requestStarted,ack=req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
-   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,serverVersion:API_VERSION,serverMs,corruptBackup:saved.corruptBackup||null};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
+   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,serverMs,corruptBackup:saved.corruptBackup||null};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
    context.res=json(200,Object.assign({ok:true,serverMs},client));return
   }
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
