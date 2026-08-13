@@ -1,0 +1,92 @@
+{
+  "version": "RC653",
+  "date": "2026-08-13",
+  "focus": "Sendungsstatus bleibt fälschlich auf Erstellt",
+  "root_cause": [
+    "Die kanonische Statusberechnung bewertete nur die jeweils übergebene Sendungskopie.",
+    "ExportHUB hält dieselbe Sendung parallel in shipment/currentShipment/selectedShipment/shipments/savedShipments und teils in mehreren State-Roots.",
+    "Bei gleicher Referenz und unterschiedlichen internen IDs konnte eine veraltete Kopie den Status Erstellt berechnen und anschließend auf die anderen Kopien zurückschreiben.",
+    "Das Mail-/Statusmodul gruppierte bisher bevorzugt über die interne ID statt über die geschäftlich eindeutige Sendungsreferenz."
+  ],
+  "changes": [
+    "Statusidentität ist jetzt referenzbasiert; interne ID dient nur noch als Fallback.",
+    "Statusberechnung sammelt Evidenz aus allen passenden Kopien in Hauptstate, window.state, Clean-Boot-State und ExportHUBClean runtime.state.",
+    "Abholbereitschaft, Abholung, POD und manueller Abschluss werden über alle Kopien gemeinsam bewertet.",
+    "Dokument-, ABD- und Mailnachweise werden ebenfalls kopienübergreifend bewertet.",
+    "setCentralStatus schreibt den berechneten Status in alle Kopien derselben Referenz.",
+    "MailStatus373 gruppiert gleiche Referenzen auch bei verschiedenen internen IDs zusammen."
+  ],
+  "tests": [
+    {
+      "name": "bare persisted remains Erstellt",
+      "expect": "Erstellt",
+      "got": "Erstellt",
+      "pass": true,
+      "copies": 1
+    },
+    {
+      "name": "ready evidence in duplicate ref different ID",
+      "expect": "Bereit zur Abholung",
+      "got": "Bereit zur Abholung",
+      "pass": true,
+      "copies": 2
+    },
+    {
+      "name": "docs evidence split across copies",
+      "expect": "Bereit zur Abholung",
+      "got": "Bereit zur Abholung",
+      "pass": true,
+      "copies": 2
+    },
+    {
+      "name": "pickup evidence in duplicate",
+      "expect": "Abgeholt",
+      "got": "Abgeholt",
+      "pass": true,
+      "copies": 2
+    },
+    {
+      "name": "POD evidence in duplicate",
+      "expect": "POD vorhanden",
+      "got": "POD vorhanden",
+      "pass": true,
+      "copies": 2
+    },
+    {
+      "name": "manual completion evidence in duplicate",
+      "expect": "Abgeschlossen",
+      "got": "Abgeschlossen",
+      "pass": true,
+      "copies": 2
+    },
+    {
+      "name": "recalculate propagates by reference",
+      "expect": "POD vorhanden on both copies",
+      "got": "POD vorhanden",
+      "statuses": [
+        "POD vorhanden",
+        "POD vorhanden"
+      ],
+      "pass": true,
+      "copies": 2
+    },
+    {
+      "name": "ABD blocks readiness",
+      "expect": "Wartet auf ABD",
+      "got": "Wartet auf ABD",
+      "pass": true,
+      "copies": 1
+    }
+  ],
+  "syntax": {
+    "index.html": {
+      "scripts_checked": 60,
+      "errors": 0
+    },
+    "TESTVERSION.html": {
+      "scripts_checked": 60,
+      "errors": 0
+    }
+  },
+  "limitations": "Kein echter Azure-End-to-End-Aufruf aus der lokalen Testumgebung. Nach Deployment im Testservice muss die reale Kette mit vorhandenen Azure-Daten geprüft werden."
+}
