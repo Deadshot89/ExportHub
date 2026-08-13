@@ -66,7 +66,7 @@
     },
     {
       "route": "/pickup",
-      "rewrite": "/pickup.html",
+      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
@@ -78,6 +78,32 @@
     },
     {
       "route": "/pickup.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      },
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/location",
+      "rewrite": "/location.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
+      "route": "/location.html",
       "allowedRoles": [
         "anonymous"
       ],
@@ -123,7 +149,9 @@
       "/pickup.html",
       "/assets/*",
       "/testservice-environment.json",
-      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}"
+      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
+      "/location",
+      "/location.html"
     ]
   },
   "platform": {
