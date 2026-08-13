@@ -1,0 +1,1306 @@
+{
+  "version": "RC652",
+  "syntax": {
+    "index.html": {
+      "scripts_checked": 60,
+      "errors": 0
+    },
+    "TESTVERSION.html": {
+      "scripts_checked": 60,
+      "errors": 0
+    }
+  },
+  "area_runs": {
+    "rc652_quick_index_desktop": {
+      "file": "index",
+      "system": "desktop",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/?v=652"
+      },
+      "views": [
+        {
+          "view": "dashboard",
+          "state": "dashboard",
+          "bad": false,
+          "text": "📊 Dashboard\nDashboard anpassen\nSchnellzugriffe\nHeute geplante Sendungen\n\nDonnerstag, 13.08.2026 · Referenz, Kunde und aktueller Status\n\n0\n\nFür heute sind keine Sendungen eingeplant.\n\nMeine Aufgaben\n\nOffene und überfällige Aufgaben für Tobias Limberg.\n\nOFFEN\n1\nnoch zu erledigen\nHEUTE\n0\nDonnerstag\nÜBERFÄLLIG\n0\nsofort prüfen\nTestaufgabe\nFreitag, 14.08.2026\nOffen\nSendungen und Abholungen\n\nAktive Sendungen mit den nächsten Abholterminen.\n\nOFFENE SENDUNGEN\n5\nnicht abgeschlossen\nABHOLUNG ÜBERFÄLLIG\n0\n",
+          "len": 1269,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "planning",
+          "state": "planning",
+          "bad": false,
+          "text": "🗓️ Aufgaben Planer\nFEIERTAGE MO–FR 2026\n1\nWochenend-Feiertage ausgeblendet\nPICKTAGE\n0\nwiederkehrende Vorlagen\nANMELDUNGEN\n0\ninklusive Abholvorbereitung\nOFFENE FEIERTAGSAUFGABEN\n0\nmüssen verschoben werden\nZeitraum planen\n\nTag planen übernimmt alle Pick- und Anmeldeaufgaben dieses Wochentags. Woche planen verteilt alle Vorlagen gemäß ihrem hinterlegten Wochentag.\n\nTag oder Woche auswählen\nDiesen Tag planen\nKomplette Woche planen\nPicktage\n\nDiese Aufgaben entsprechen dem oberen Bereich deiner Vorla",
+          "len": 1456,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "tasks",
+          "state": "tasks",
+          "bad": false,
+          "text": "Neue Aufgabe / Aufgaben-Editor\n✅ Aufgaben\nAUFGABEN GESAMT\n1\nAKTUELL ANGEZEIGT\n1\nOFFEN IM FILTER\n1\nRÜCKSTAND\n0\nAlle Aufgaben anzeigen\nTobias Limberg\nAlle\nAlle anzeigen\nErledigte einblenden · 0\n+ Manuelle Aufgabe\nAufgaben reparieren\nAlle Tage · 1\nHeute (Donnerstag) · 0\nÜberfällig · 0\nRückstand · 0\nMontag · 0\nDienstag · 0\nMittwoch · 0\nDonnerstag · 0\nFreitag · 0\nOhne Tag · 1\nOhne Tag\n1 Aufgaben 1 offen\nSonstige Aufgaben\n1 gesamt 1 offen\nNormal\nOffen\nTestaufgabe\nOhne TagAufgabe\nBearbeiten",
+          "len": 488,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "notifications",
+          "state": "notifications",
+          "bad": false,
+          "text": "ARBEIT\nBenachrichtigungen\nJetzt prüfen\nBrowser-Benachrichtigungen aktivieren\nBrowser-Benachrichtigung\nIm Browser blockiert\nNächste Prüfung\nFr., 14.08., 09:00\nSignalton\nDeaktiviert\nOFFENE AUFGABEN\n1\nÜBERFÄLLIGE AUFGABEN\n0\nSENDUNGEN ÜBER 3 TAGE\n0\nPRÜFZEITEN\n3\n09:00 · 12:00 · 15:00\nOffene Aufgaben\n\nBis zur Erledigung bei jeder Prüfzeit.\n\nAufgaben öffnen\nTestaufgabe\n\nTobias Limberg · Fr., 14.08.2026\n\nOffen\nAufgabe öffnen\nErledigt\nÜberfällige Sendungen\n\nNur Abholungen, die mehr als drei Tage überfäll",
+          "len": 652,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipment",
+          "state": "shipment",
+          "bad": false,
+          "text": "🚚 Sendung erstellen\n1\nKunde & Empfänger\nKundennummer / Kunde suchen\nStandort auswählen\n—\nMadrid\nEmpfängeradresse:\nMadrid\nProzesse / Kunden-Notizen\n📋\nTest Kunde\n\nFür diesen Kunden sind keine Prozesse oder Kunden-Notizen hinterlegt.\n\nKundenportal\n🌐\nTest Kunde\n\nFür diesen Kunden ist kein Kundenportal hinterlegt.\n\n+ Neue Sendung\nKunde übernehmen\nAdresse geprüft und bestätigt\n2\nSendungsdaten\nAKTUELLER SENDUNGSSTATUS\nBereit zur Abholung\nSendungsreferenz / Referenznummer\nGeplantes Abholdatum\nSpediti",
+          "len": 2550,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "abd",
+          "state": "abd",
+          "bad": false,
+          "text": "ABD\nABD-Anfrage erstellen\n\nManuelle Erstellung · Collis vollständig erfassen und danach die GPZ-Mail in Outlook öffnen.\n\nNeue ABD-Anfrage\n1. Grunddaten\nKundensuche\nReferenznummer\nEmpfängerland\nSprache\nDeutsch\nEnglisch\nABD-Empfänger\n2. Collis\nArt der Colli\nAnzahl\nGesamtgewicht der Zeile (kg)\nEntfernen\n+ Colli hinzufügen\nCollis\n0\nGesamtgewicht\n0,0 kg\n3. Anhänge\n\nRechnung(en) und Lieferschein werden weiterhin manuell in Outlook angehängt.\n\nRechnung optional in ExportHUB hinterlegen\n4. Mailvorgang\nB",
+          "len": 937,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipmentoverview",
+          "state": "shipmentoverview",
+          "bad": false,
+          "text": "SENDUNGEN\nSendungsübersicht\nNeue Sendung\nSuchen (Referenz, Kunde, Anhang)\nSuchen\nZurücksetzen\n6 Sendungen\nGruppieren nach\nStatus\nKeine Gruppierung\nSortieren nach\nLetzte Änderung\nAbholdatum\nStatus\nReferenz\nKunde\nReihenfolge\nAufsteigend\nAbsteigend\nBereit zur Abholung\n2 Sendungen\n↕\n▾\nERST01\nBereit zur Abholung\nAbholung:\n14.08.2026\nSpedition:\n–\nABD:\nnicht verknüpft\nRef.-Ordner\nLadeliste & CMR\nPOD als PDF\nPOD hochladen\nABD hinterlegen\nPOD-Anbindung\n\nNoch keine digitale Unterschrift vorhanden.\n\nABD-An",
+          "len": 2632,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "cmr",
+          "state": "cmr",
+          "bad": false,
+          "text": "Ladeliste & CMR\n\nGespeicherte Sendung auswählen, drucken und als PDF herunterladen.\n\n7 gespeicherte Sendungen geladen\nSendung auswählen\nSendung auswählen\nERST01 · Test Kunde · Bereit zur Abholung\nREADY1 · Test Kunde · Bereit zur Abholung\nPREP01 · Test Kunde · Vorbereitet\nPICK01 · Test Kunde · Abgeholt\nPOD001 · Test Kunde · POD vorhanden\nDONE01 · Test Kunde · Abgeschlossen\nYA6W4N · Test Kunde · offen\nREFERENZ\nYA6W4N\nKUNDE\nTest Kunde\nSTATUS\noffen\nZur Sendung\nZur Sendungsübersicht\nGesamtausgabe dru",
+          "len": 1745,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "warehouse",
+          "state": "warehouse",
+          "bad": false,
+          "text": "🏭 Lager & Locations\n\nAktuelle Position aller noch nicht abgeholten Sendungen. Ausgangslocations zeigen direkt, welche Sendungen dort stehen. Admins können Sendungen zusätzlich manuell verschieben.\n\nAktualisieren\nManuell verschieben\nSENDUNGEN IM LAGER\n4\nBELEGTE LOCATIONS\n2\nIM EINGANG\n3\nVORBEREITET\n1\nCode 1\nLane 1\n1 Sendungen · 1 Paletten\nPREP01\nTest Kunde\nLane 1\nVorbereitet\nPALETTEN\n1\nVERLADER\n—\nGEBUCHT\n—\n↕ Ziehen & ablegen oder manuell verschieben\nManuell verschieben\nCode 2\nLane 2\n0 Sendungen ·",
+          "len": 1376,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customerfolder",
+          "state": "customerfolder",
+          "bad": false,
+          "text": "📁 Kundenordner\nKunde suchen / wechseln\nÖffnen\n+ Neuen Kunden anlegen\nSendungen\n7\nABD-Anfragen\n0\nPalettenbuchungen\n0\nPortale\n0\n1. Kundendaten\nKundenname\nKundennummer\nLand\nZollstatus\nEU\nDrittland / Nicht-EU\nEmpfängeradresse\n2. Anmeldung / Maildaten\nSpeditions-/Anmeldemail\nKundenmail\nSales-Mail\nCC\nMailprofil & Vorlagen\nErforderliche Mailart\nKundenmail\nSpeditionsmail\nKundenmail und Speditionsmail\nEigene Info-Mail (keine Anmeldung)\nKeine Mail erforderlich\nStandard-Mailart\nKundenmail\nSpeditionsmail\nE",
+          "len": 2098,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "pallet",
+          "state": "pallet",
+          "bad": false,
+          "text": "PALETTENPROZESS\nPalettenkonto und Palettenabgleich\n\nEuropaletten werden über das Kundenkonto oder die hinterlegte Spedition geführt. Jeder Abgleich speichert den tatsächlichen Stand und das zugehörige Datum.\n\nKunde oder Spedition\nKonto öffnen\nKONTOART: KUNDE\nTest Kunde\nEingang\n0\nAusgang\n0\nAktueller Systemstand\n0\nSaldo 0 – ausgeglichen\nManuelle Buchung\nAnzahl\nBuchungsdatum\nSendungsreferenz\nEingang\nAusgang\nBemerkung optional\nBuchung speichern\nBuchungen\nDATUM\tREFERENZ\tRICHTUNG\tANZAHL\tSTATUS\t\nPalett",
+          "len": 899,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shippingcosts",
+          "state": "shippingcosts",
+          "bad": false,
+          "text": "VERSANDKOSTEN\nVersandkosten\n\nPakete über UPS und Paletten über Gate41. Route und Sendungsdaten können automatisch aus der geöffneten Sendung übernommen werden.\n\nAus geöffneter Sendung: YA6W4N · 1001 · Test Kunde\nPakete – UPS\nPaletten – Gate41\nPaletten – Gate41\n\nService, Verpackung, Palettenanzahl und Gewicht werden gemeinsam für die Preisanfrage geführt.\n\nRoute\nStartort / Start-PLZ\nZielort / Ziel-PLZ\nZielland\nAutomatisch aus Sendung/Adresse · manuell änderbar\nSendungsdaten\nGate41-Service\nGate41-",
+          "len": 1849,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customs",
+          "state": "customs",
+          "bad": false,
+          "text": "🛃 Zollwissen\nZollwissen für Export / Logistik\n\nFokus: EU/Drittland-Entscheidung, EORI, Ausfuhr, ATLAS/ABD/MRN, Ursprung/Präferenz, EUR.1/A.TR, Verbote & Beschränkungen, Dokumente und Notfalllogik.\n\nWISSENSBEREICHE\n12\nTESTFRAGEN\n80\nBEANTWORTET\n0\nRICHTIG\n0\nZollwissen\nChecklisten\nKI fragen\nTests\nQuellen\nWissensbereiche\n1. Grundentscheidung: EU oder Drittland\nEU · Drittland · Startprüfung\n2. EORI-Nummer\nEORI · Beteiligtenidentifikation\n3. Ausfuhr in Nicht-EU-Staat\nAusfuhr · Drittland · ABD · MRN\n4.",
+          "len": 7558,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "sop",
+          "state": "sop",
+          "bad": false,
+          "text": "ARBEITSANWEISUNGEN\nSOP starten\n\nProzess auswählen, Schritt für Schritt bearbeiten und das benötigte Portal direkt öffnen.\n\nUPS\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nBSH Lieferantenportal\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nSiemens Energy / AX4\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nDHL Express / MyDHL+\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nWürth Industrie\n\nZugangsdaten werden ",
+          "len": 2438,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "academy",
+          "state": "academy",
+          "bad": false,
+          "text": "🎓 Academy Logistik\nRC306: Schwierigkeit wird nach Lehrjahr gesteuert. Im 3. Lehrjahr werden Grundlagen vorausgesetzt und die Fragen sind pruefungs-/praxisnah.\n1. Lehrjahr – Grundlagen\nIm 1. Lehrjahr muss der Mitarbeiter Grundlagen sicher erkennen: richtige Begriffe, einfache Pruefpunkte, Meldewege und sichere Standardhandlungen.\nBestehen ab 60%\n2. Lehrjahr – Prozesse\nIm 2. Lehrjahr wird Prozessverstaendnis erwartet: Zusammenhaenge, Ursachen, Folgen, Buchungen, Kennzahlen und sichere Ablaeufe.\nB",
+          "len": 2697,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "inspections",
+          "state": "inspections",
+          "bad": false,
+          "text": "IHK LOGISTIK\nPrüfungszentrum\n\n10 IHK-nahe Lagerlogistik-Prüfungen auswählen, jeweils 60 Minuten bearbeiten und Probleme nach Fachbereich auswerten. Eigene PDF-Prüfungen können zusätzlich importiert werden.\n\nVerfügbare Inhalte\n10\nEigene Abschlüsse\n0\nEigener Durchschnitt\n0 %\nGrößtes Lernfeld\nnoch offen\nPrüfungen & Übungen\nMeine Auswertung\nAdmin-Auswertung\nPrüfungen verwalten\nPrüfung\nIHK Lagerlogistik – Prüfung 01\n\n60-Minuten-IHK-Simulation für Fachkraft für Lagerlogistik. Original erstellte Aufgab",
+          "len": 3275,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "ideas",
+          "state": "ideas",
+          "bad": false,
+          "text": "💡 Ideenpool\nIdee erfassen\nBereich\nPriorität\nhoch\nmittel\nniedrig\nTitel\nBeschreibung\nIdee speichern\nIdeenliste\n\nKeine Ideen gespeichert.",
+          "len": 135,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "reports",
+          "state": "reports",
+          "bad": false,
+          "text": "Reports\nSendungsreport\nSendungen, Status und Referenzordner.\nABD-Report\nGespeicherte ABD-Anfragen und Status.\nAufgabenreport\nOffene und erledigte Aufgaben.\nPalettenreport\nPalettenkonto und Abgleich.\nAktivitätsreport\nArchiv und Audit-Protokoll.\nDokumentenreport\nLadelisten, CMR und Nachweise.",
+          "len": 291,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "update",
+          "state": "update",
+          "bad": false,
+          "text": "SYSTEMSTATUS\nUpdate ExportHUB\n\nAktive, zentral gesteuerte Anwendungsversion: RC652.\n\nVERSION\nRC652\nDATEN\nAzure-Teamdaten\nSYNCHRONISIERUNG\nRevision-Polling aktiv\nBEREITSCHAFT\nOberfläche vollständig geladen\nÄNDERUNGEN DER AKTUELLEN VERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\n13.08.2026\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render b",
+          "len": 13916,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "release",
+          "state": "release",
+          "bad": false,
+          "text": "ADMIN · TEST & VERÖFFENTLICHUNG\n🚀 Release-Center\nPRODUKTION\nunbekannt\nAKTIVE TESTVERSION\nRC652\nTESTSTATUS\nOFFEN\nRC652 ist noch nicht als vollständig getestet freigegeben.\nAKTUELLE TESTVERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\nÄnderungen dieser Testversion\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render bei Aufgaben Planer und Ben",
+          "len": 14491,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "rights",
+          "state": "rights",
+          "bad": false,
+          "text": "GLOBALE ADMINISTRATION\nBenutzer, Rechte und Sitzungen\n\nPasswörter werden ausschließlich serverseitig als Hash gespeichert. Funktionsrechte können für jeden Bereich einzeln vergeben werden.\n\nRC550 · sichere Anmeldung\nBenutzer\nBenutzer suchen\nBenutzer öffnen\nTobias Limberg\ntobias\nInaktiv\nNeuen Benutzer anlegen\nBenutzername\nAnzeigename\nGlobaler Administrator\nBenutzer anlegen\nTobias Limberg\n\nBenutzername: tobias\n\nDeaktiviertAnmeldung frei\nAnzeigename\nGlobaler Administrator\nBenutzer und Rechte speich",
+          "len": 2958,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "teamfile",
+          "state": "teamfile",
+          "bad": false,
+          "text": "🗂️ Sammelmodus\nKUNDEN\n1\nAUFGABEN\n1\nSENDUNGEN\n7\nOFFENE ÄNDERUNGEN\n9\nseit letztem Sammel-Export/Reset\nWichtig: Das ist kein Live-Teammodus. Jeder bearbeitet lokal im Browser. Du musst nicht nach jeder Änderung exportieren. ExportHUB sammelt Änderungen lokal. Andere Benutzer sind erst enthalten, wenn ihre Pakete vorher importiert wurden. Danach kannst du ein Team-Gesamtpaket oder einen Master-Datenstand exportieren.\n1. Sammelpaket\n\nNur offene Änderungen exportiert deine Änderungen seit dem letzten",
+          "len": 2096,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "archive",
+          "state": "archive",
+          "bad": false,
+          "text": "🗃️ Archiv & Audit\nSendungsarchiv\nDATUM\tREFERENZ\tKUNDE\tABHOLUNG\tGESAMT\n\tERST01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tREADY1\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPREP01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPICK01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPOD001\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tDONE01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tYA6W4N\tTest Kunde\t13-08-2026\t1 Collis · 0.0 kg · 0.40 LDM\nAudit\n\nNoch keine Änderungen protokolliert.",
+          "len": 479,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "settings",
+          "state": "settings",
+          "bad": false,
+          "text": "Einstellungen\nBenutzer & Rechte\nUpdate ExportHUB\nRelease-Center\nSammelmodus\nArchiv\nMicrosoft-Konto wechseln",
+          "len": 107,
+          "overflow": 0,
+          "ok": true
+        }
+      ],
+      "errors": [],
+      "stability": {
+        "planning": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "notifications": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "shipment": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        }
+      }
+    },
+    "rc652_quick_index_mobile": {
+      "file": "index",
+      "system": "mobile",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/?v=652"
+      },
+      "views": [
+        {
+          "view": "dashboard",
+          "state": "dashboard",
+          "bad": false,
+          "text": "📊 Dashboard\nDashboard anpassen\nSchnellzugriffe\nHeute geplante Sendungen\n\nDonnerstag, 13.08.2026 · Referenz, Kunde und aktueller Status\n\n0\n\nFür heute sind keine Sendungen eingeplant.\n\nMeine Aufgaben\n\nOffene und überfällige Aufgaben für Tobias Limberg.\n\nOFFEN\n1\nnoch zu erledigen\nHEUTE\n0\nDonnerstag\nÜBERFÄLLIG\n0\nsofort prüfen\nTestaufgabe\nFreitag, 14.08.2026\nOffen\nSendungen und Abholungen\n\nAktive Sendungen mit den nächsten Abholterminen.\n\nOFFENE SENDUNGEN\n5\nnicht abgeschlossen\nABHOLUNG ÜBERFÄLLIG\n0\n",
+          "len": 1269,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "planning",
+          "state": "planning",
+          "bad": false,
+          "text": "🗓️ Aufgaben Planer\nFEIERTAGE MO–FR 2026\n1\nWochenend-Feiertage ausgeblendet\nPICKTAGE\n0\nwiederkehrende Vorlagen\nANMELDUNGEN\n0\ninklusive Abholvorbereitung\nOFFENE FEIERTAGSAUFGABEN\n0\nmüssen verschoben werden\nZeitraum planen\n\nTag planen übernimmt alle Pick- und Anmeldeaufgaben dieses Wochentags. Woche planen verteilt alle Vorlagen gemäß ihrem hinterlegten Wochentag.\n\nTag oder Woche auswählen\nDiesen Tag planen\nKomplette Woche planen\nPicktage\n\nDiese Aufgaben entsprechen dem oberen Bereich deiner Vorla",
+          "len": 1456,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "tasks",
+          "state": "tasks",
+          "bad": false,
+          "text": "Neue Aufgabe / Aufgaben-Editor\n✅ Aufgaben\nAUFGABEN GESAMT\n1\nAKTUELL ANGEZEIGT\n1\nOFFEN IM FILTER\n1\nRÜCKSTAND\n0\nAlle Aufgaben anzeigen\nTobias Limberg\nAlle\nAlle anzeigen\nErledigte einblenden · 0\n+ Manuelle Aufgabe\nAufgaben reparieren\nAlle Tage · 1\nHeute (Donnerstag) · 0\nÜberfällig · 0\nRückstand · 0\nMontag · 0\nDienstag · 0\nMittwoch · 0\nDonnerstag · 0\nFreitag · 0\nOhne Tag · 1\nOhne Tag\n1 Aufgaben 1 offen\nSonstige Aufgaben\n1 gesamt 1 offen\nNormal\nOffen\nTestaufgabe\nOhne TagAufgabe\nBearbeiten",
+          "len": 488,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "notifications",
+          "state": "notifications",
+          "bad": false,
+          "text": "ARBEIT\nBenachrichtigungen\nJetzt prüfen\nBrowser-Benachrichtigungen aktivieren\nBrowser-Benachrichtigung\nIm Browser blockiert\nNächste Prüfung\nFr., 14.08., 09:00\nSignalton\nDeaktiviert\nOFFENE AUFGABEN\n1\nÜBERFÄLLIGE AUFGABEN\n0\nSENDUNGEN ÜBER 3 TAGE\n0\nPRÜFZEITEN\n3\n09:00 · 12:00 · 15:00\nOffene Aufgaben\n\nBis zur Erledigung bei jeder Prüfzeit.\n\nAufgaben öffnen\nTestaufgabe\n\nTobias Limberg · Fr., 14.08.2026\n\nOffen\nAufgabe öffnen\nErledigt\nÜberfällige Sendungen\n\nNur Abholungen, die mehr als drei Tage überfäll",
+          "len": 652,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipment",
+          "state": "shipment",
+          "bad": false,
+          "text": "🚚 Sendung erstellen\n1\nKunde & Empfänger\nKundennummer / Kunde suchen\nStandort auswählen\n—\nMadrid\nEmpfängeradresse:\nMadrid\nProzesse / Kunden-Notizen\n📋\nTest Kunde\n\nFür diesen Kunden sind keine Prozesse oder Kunden-Notizen hinterlegt.\n\nKundenportal\n🌐\nTest Kunde\n\nFür diesen Kunden ist kein Kundenportal hinterlegt.\n\n+ Neue Sendung\nKunde übernehmen\nAdresse geprüft und bestätigt\n2\nSendungsdaten\nAKTUELLER SENDUNGSSTATUS\nBereit zur Abholung\nSendungsreferenz / Referenznummer\nGeplantes Abholdatum\nSpediti",
+          "len": 2517,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "abd",
+          "state": "abd",
+          "bad": false,
+          "text": "ABD\nABD-Anfrage erstellen\n\nManuelle Erstellung · Collis vollständig erfassen und danach die GPZ-Mail in Outlook öffnen.\n\nNeue ABD-Anfrage\n1. Grunddaten\nKundensuche\nReferenznummer\nEmpfängerland\nSprache\nDeutsch\nEnglisch\nABD-Empfänger\n2. Collis\nArt der Colli\nAnzahl\nGesamtgewicht der Zeile (kg)\nEntfernen\n+ Colli hinzufügen\nCollis\n0\nGesamtgewicht\n0,0 kg\n3. Anhänge\n\nRechnung(en) und Lieferschein werden weiterhin manuell in Outlook angehängt.\n\nRechnung optional in ExportHUB hinterlegen\n4. Mailvorgang\nB",
+          "len": 937,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipmentoverview",
+          "state": "shipmentoverview",
+          "bad": false,
+          "text": "SENDUNGEN\nSendungsübersicht\nNeue Sendung\nSuchen (Referenz, Kunde, Anhang)\nSuchen\nZurücksetzen\n6 Sendungen\nGruppieren nach\nStatus\nKeine Gruppierung\nSortieren nach\nLetzte Änderung\nAbholdatum\nStatus\nReferenz\nKunde\nReihenfolge\nAufsteigend\nAbsteigend\nBereit zur Abholung\n2 Sendungen\n↕\n▾\nERST01\nBereit zur Abholung\nAbholung:\n14.08.2026\nSpedition:\n–\nABD:\nnicht verknüpft\nRef.-Ordner\nLadeliste & CMR\nPOD als PDF\nPOD hochladen\nABD hinterlegen\nPOD-Anbindung\n\nNoch keine digitale Unterschrift vorhanden.\n\nABD-An",
+          "len": 2632,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "cmr",
+          "state": "cmr",
+          "bad": false,
+          "text": "Ladeliste & CMR\n\nGespeicherte Sendung auswählen, drucken und als PDF herunterladen.\n\n7 gespeicherte Sendungen geladen\nSendung auswählen\nSendung auswählen\nERST01 · Test Kunde · Bereit zur Abholung\nREADY1 · Test Kunde · Bereit zur Abholung\nPREP01 · Test Kunde · Vorbereitet\nPICK01 · Test Kunde · Abgeholt\nPOD001 · Test Kunde · POD vorhanden\nDONE01 · Test Kunde · Abgeschlossen\nV2I1K8 · Test Kunde · offen\nREFERENZ\nV2I1K8\nKUNDE\nTest Kunde\nSTATUS\noffen\nZur Sendung\nZur Sendungsübersicht\nGesamtausgabe dru",
+          "len": 1745,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "warehouse",
+          "state": "warehouse",
+          "bad": false,
+          "text": "🏭 Lager & Locations\n\nAktuelle Position aller noch nicht abgeholten Sendungen. Ausgangslocations zeigen direkt, welche Sendungen dort stehen. Admins können Sendungen zusätzlich manuell verschieben.\n\nAktualisieren\nManuell verschieben\nSENDUNGEN IM LAGER\n4\nBELEGTE LOCATIONS\n2\nIM EINGANG\n3\nVORBEREITET\n1\nCode 1\nLane 1\n1 Sendungen · 1 Paletten\nPREP01\nTest Kunde\nLane 1\nVorbereitet\nPALETTEN\n1\nVERLADER\n—\nGEBUCHT\n—\n↕ Ziehen & ablegen oder manuell verschieben\nManuell verschieben\nCode 2\nLane 2\n0 Sendungen ·",
+          "len": 1376,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customerfolder",
+          "state": "customerfolder",
+          "bad": false,
+          "text": "📁 Kundenordner\nKunde suchen / wechseln\nÖffnen\n+ Neuen Kunden anlegen\nSendungen\n7\nABD-Anfragen\n0\nPalettenbuchungen\n0\nPortale\n0\n1. Kundendaten\nKundenname\nKundennummer\nLand\nZollstatus\nEU\nDrittland / Nicht-EU\nEmpfängeradresse\n2. Anmeldung / Maildaten\nSpeditions-/Anmeldemail\nKundenmail\nSales-Mail\nCC\nMailprofil & Vorlagen\nErforderliche Mailart\nKundenmail\nSpeditionsmail\nKundenmail und Speditionsmail\nEigene Info-Mail (keine Anmeldung)\nKeine Mail erforderlich\nStandard-Mailart\nKundenmail\nSpeditionsmail\nE",
+          "len": 2098,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "pallet",
+          "state": "pallet",
+          "bad": false,
+          "text": "PALETTENPROZESS\nPalettenkonto und Palettenabgleich\n\nEuropaletten werden über das Kundenkonto oder die hinterlegte Spedition geführt. Jeder Abgleich speichert den tatsächlichen Stand und das zugehörige Datum.\n\nKunde oder Spedition\nKonto öffnen\nKONTOART: KUNDE\nTest Kunde\nEingang\n0\nAusgang\n0\nAktueller Systemstand\n0\nSaldo 0 – ausgeglichen\nManuelle Buchung\nAnzahl\nBuchungsdatum\nSendungsreferenz\nEingang\nAusgang\nBemerkung optional\nBuchung speichern\nBuchungen\nDATUM\tREFERENZ\tRICHTUNG\tANZAHL\tSTATUS\t\nPalett",
+          "len": 899,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shippingcosts",
+          "state": "shippingcosts",
+          "bad": false,
+          "text": "VERSANDKOSTEN\nVersandkosten\n\nPakete über UPS und Paletten über Gate41. Route und Sendungsdaten können automatisch aus der geöffneten Sendung übernommen werden.\n\nAus geöffneter Sendung: V2I1K8 · 1001 · Test Kunde\nPakete – UPS\nPaletten – Gate41\nPaletten – Gate41\n\nService, Verpackung, Palettenanzahl und Gewicht werden gemeinsam für die Preisanfrage geführt.\n\nRoute\nStartort / Start-PLZ\nZielort / Ziel-PLZ\nZielland\nAutomatisch aus Sendung/Adresse · manuell änderbar\nSendungsdaten\nGate41-Service\nGate41-",
+          "len": 1849,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customs",
+          "state": "customs",
+          "bad": false,
+          "text": "🛃 Zollwissen\nZollwissen für Export / Logistik\n\nFokus: EU/Drittland-Entscheidung, EORI, Ausfuhr, ATLAS/ABD/MRN, Ursprung/Präferenz, EUR.1/A.TR, Verbote & Beschränkungen, Dokumente und Notfalllogik.\n\nWISSENSBEREICHE\n12\nTESTFRAGEN\n80\nBEANTWORTET\n0\nRICHTIG\n0\nZollwissen\nChecklisten\nKI fragen\nTests\nQuellen\nWissensbereiche\n1. Grundentscheidung: EU oder Drittland\nEU · Drittland · Startprüfung\n2. EORI-Nummer\nEORI · Beteiligtenidentifikation\n3. Ausfuhr in Nicht-EU-Staat\nAusfuhr · Drittland · ABD · MRN\n4.",
+          "len": 7558,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "sop",
+          "state": "sop",
+          "bad": false,
+          "text": "ARBEITSANWEISUNGEN\nSOP starten\n\nProzess auswählen, Schritt für Schritt bearbeiten und das benötigte Portal direkt öffnen.\n\nUPS\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nBSH Lieferantenportal\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nSiemens Energy / AX4\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nDHL Express / MyDHL+\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nWürth Industrie\n\nZugangsdaten werden ",
+          "len": 2438,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "academy",
+          "state": "academy",
+          "bad": false,
+          "text": "🎓 Academy Logistik\nRC306: Schwierigkeit wird nach Lehrjahr gesteuert. Im 3. Lehrjahr werden Grundlagen vorausgesetzt und die Fragen sind pruefungs-/praxisnah.\n1. Lehrjahr – Grundlagen\nIm 1. Lehrjahr muss der Mitarbeiter Grundlagen sicher erkennen: richtige Begriffe, einfache Pruefpunkte, Meldewege und sichere Standardhandlungen.\nBestehen ab 60%\n2. Lehrjahr – Prozesse\nIm 2. Lehrjahr wird Prozessverstaendnis erwartet: Zusammenhaenge, Ursachen, Folgen, Buchungen, Kennzahlen und sichere Ablaeufe.\nB",
+          "len": 2697,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "inspections",
+          "state": "inspections",
+          "bad": false,
+          "text": "IHK LOGISTIK\nPrüfungszentrum\n\n10 IHK-nahe Lagerlogistik-Prüfungen auswählen, jeweils 60 Minuten bearbeiten und Probleme nach Fachbereich auswerten. Eigene PDF-Prüfungen können zusätzlich importiert werden.\n\nVerfügbare Inhalte\n10\nEigene Abschlüsse\n0\nEigener Durchschnitt\n0 %\nGrößtes Lernfeld\nnoch offen\nPrüfungen & Übungen\nMeine Auswertung\nAdmin-Auswertung\nPrüfungen verwalten\nPrüfung\nIHK Lagerlogistik – Prüfung 01\n\n60-Minuten-IHK-Simulation für Fachkraft für Lagerlogistik. Original erstellte Aufgab",
+          "len": 3275,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "ideas",
+          "state": "ideas",
+          "bad": false,
+          "text": "💡 Ideenpool\nIdee erfassen\nBereich\nPriorität\nhoch\nmittel\nniedrig\nTitel\nBeschreibung\nIdee speichern\nIdeenliste\n\nKeine Ideen gespeichert.",
+          "len": 135,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "reports",
+          "state": "reports",
+          "bad": false,
+          "text": "Reports\nSendungsreport\nSendungen, Status und Referenzordner.\nABD-Report\nGespeicherte ABD-Anfragen und Status.\nAufgabenreport\nOffene und erledigte Aufgaben.\nPalettenreport\nPalettenkonto und Abgleich.\nAktivitätsreport\nArchiv und Audit-Protokoll.\nDokumentenreport\nLadelisten, CMR und Nachweise.",
+          "len": 291,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "update",
+          "state": "update",
+          "bad": false,
+          "text": "SYSTEMSTATUS\nUpdate ExportHUB\n\nAktive, zentral gesteuerte Anwendungsversion: RC652.\n\nVERSION\nRC652\nDATEN\nAzure-Teamdaten\nSYNCHRONISIERUNG\nRevision-Polling aktiv\nBEREITSCHAFT\nOberfläche vollständig geladen\nÄNDERUNGEN DER AKTUELLEN VERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\n13.08.2026\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render b",
+          "len": 13916,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "release",
+          "state": "release",
+          "bad": false,
+          "text": "ADMIN · TEST & VERÖFFENTLICHUNG\n🚀 Release-Center\nPRODUKTION\nunbekannt\nAKTIVE TESTVERSION\nRC652\nTESTSTATUS\nOFFEN\nRC652 ist noch nicht als vollständig getestet freigegeben.\nAKTUELLE TESTVERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\nÄnderungen dieser Testversion\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render bei Aufgaben Planer und Ben",
+          "len": 14491,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "rights",
+          "state": "rights",
+          "bad": false,
+          "text": "GLOBALE ADMINISTRATION\nBenutzer, Rechte und Sitzungen\n\nPasswörter werden ausschließlich serverseitig als Hash gespeichert. Funktionsrechte können für jeden Bereich einzeln vergeben werden.\n\nRC550 · sichere Anmeldung\nBenutzer\nBenutzer suchen\nBenutzer öffnen\nTobias Limberg\ntobias\nInaktiv\nNeuen Benutzer anlegen\nBenutzername\nAnzeigename\nGlobaler Administrator\nBenutzer anlegen\nTobias Limberg\n\nBenutzername: tobias\n\nDeaktiviertAnmeldung frei\nAnzeigename\nGlobaler Administrator\nBenutzer und Rechte speich",
+          "len": 2958,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "teamfile",
+          "state": "teamfile",
+          "bad": false,
+          "text": "🗂️ Sammelmodus\nKUNDEN\n1\nAUFGABEN\n1\nSENDUNGEN\n7\nOFFENE ÄNDERUNGEN\n9\nseit letztem Sammel-Export/Reset\nWichtig: Das ist kein Live-Teammodus. Jeder bearbeitet lokal im Browser. Du musst nicht nach jeder Änderung exportieren. ExportHUB sammelt Änderungen lokal. Andere Benutzer sind erst enthalten, wenn ihre Pakete vorher importiert wurden. Danach kannst du ein Team-Gesamtpaket oder einen Master-Datenstand exportieren.\n1. Sammelpaket\n\nNur offene Änderungen exportiert deine Änderungen seit dem letzten",
+          "len": 2096,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "archive",
+          "state": "archive",
+          "bad": false,
+          "text": "🗃️ Archiv & Audit\nSendungsarchiv\nDATUM\tREFERENZ\tKUNDE\tABHOLUNG\tGESAMT\n\tERST01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tREADY1\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPREP01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPICK01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPOD001\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tDONE01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tV2I1K8\tTest Kunde\t13-08-2026\t1 Collis · 0.0 kg · 0.40 LDM\nAudit\n\nNoch keine Änderungen protokolliert.",
+          "len": 479,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "settings",
+          "state": "settings",
+          "bad": false,
+          "text": "Einstellungen\nBenutzer & Rechte\nUpdate ExportHUB\nRelease-Center\nSammelmodus\nArchiv\nMicrosoft-Konto wechseln",
+          "len": 107,
+          "overflow": 0,
+          "ok": true
+        }
+      ],
+      "errors": [],
+      "stability": {
+        "planning": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "notifications": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "shipment": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        }
+      }
+    },
+    "rc652_quick_test_desktop": {
+      "file": "test",
+      "system": "desktop",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/test?v=652"
+      },
+      "views": [
+        {
+          "view": "dashboard",
+          "state": "dashboard",
+          "bad": false,
+          "text": "📊 Dashboard\nDashboard anpassen\nSchnellzugriffe\nHeute geplante Sendungen\n\nDonnerstag, 13.08.2026 · Referenz, Kunde und aktueller Status\n\n0\n\nFür heute sind keine Sendungen eingeplant.\n\nMeine Aufgaben\n\nOffene und überfällige Aufgaben für Tobias Limberg.\n\nOFFEN\n1\nnoch zu erledigen\nHEUTE\n0\nDonnerstag\nÜBERFÄLLIG\n0\nsofort prüfen\nTestaufgabe\nFreitag, 14.08.2026\nOffen\nSendungen und Abholungen\n\nAktive Sendungen mit den nächsten Abholterminen.\n\nOFFENE SENDUNGEN\n5\nnicht abgeschlossen\nABHOLUNG ÜBERFÄLLIG\n0\n",
+          "len": 1269,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "planning",
+          "state": "planning",
+          "bad": false,
+          "text": "🗓️ Aufgaben Planer\nFEIERTAGE MO–FR 2026\n1\nWochenend-Feiertage ausgeblendet\nPICKTAGE\n0\nwiederkehrende Vorlagen\nANMELDUNGEN\n0\ninklusive Abholvorbereitung\nOFFENE FEIERTAGSAUFGABEN\n0\nmüssen verschoben werden\nZeitraum planen\n\nTag planen übernimmt alle Pick- und Anmeldeaufgaben dieses Wochentags. Woche planen verteilt alle Vorlagen gemäß ihrem hinterlegten Wochentag.\n\nTag oder Woche auswählen\nDiesen Tag planen\nKomplette Woche planen\nPicktage\n\nDiese Aufgaben entsprechen dem oberen Bereich deiner Vorla",
+          "len": 1456,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "tasks",
+          "state": "tasks",
+          "bad": false,
+          "text": "Neue Aufgabe / Aufgaben-Editor\n✅ Aufgaben\nAUFGABEN GESAMT\n1\nAKTUELL ANGEZEIGT\n1\nOFFEN IM FILTER\n1\nRÜCKSTAND\n0\nAlle Aufgaben anzeigen\nTobias Limberg\nAlle\nAlle anzeigen\nErledigte einblenden · 0\n+ Manuelle Aufgabe\nAufgaben reparieren\nAlle Tage · 1\nHeute (Donnerstag) · 0\nÜberfällig · 0\nRückstand · 0\nMontag · 0\nDienstag · 0\nMittwoch · 0\nDonnerstag · 0\nFreitag · 0\nOhne Tag · 1\nOhne Tag\n1 Aufgaben 1 offen\nSonstige Aufgaben\n1 gesamt 1 offen\nNormal\nOffen\nTestaufgabe\nOhne TagAufgabe\nBearbeiten",
+          "len": 488,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "notifications",
+          "state": "notifications",
+          "bad": false,
+          "text": "ARBEIT\nBenachrichtigungen\nJetzt prüfen\nBrowser-Benachrichtigungen aktivieren\nBrowser-Benachrichtigung\nIm Browser blockiert\nNächste Prüfung\nFr., 14.08., 09:00\nSignalton\nDeaktiviert\nOFFENE AUFGABEN\n1\nÜBERFÄLLIGE AUFGABEN\n0\nSENDUNGEN ÜBER 3 TAGE\n0\nPRÜFZEITEN\n3\n09:00 · 12:00 · 15:00\nOffene Aufgaben\n\nBis zur Erledigung bei jeder Prüfzeit.\n\nAufgaben öffnen\nTestaufgabe\n\nTobias Limberg · Fr., 14.08.2026\n\nOffen\nAufgabe öffnen\nErledigt\nÜberfällige Sendungen\n\nNur Abholungen, die mehr als drei Tage überfäll",
+          "len": 652,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipment",
+          "state": "shipment",
+          "bad": false,
+          "text": "🚚 Sendung erstellen\n1\nKunde & Empfänger\nKundennummer / Kunde suchen\nStandort auswählen\n—\nMadrid\nEmpfängeradresse:\nMadrid\nProzesse / Kunden-Notizen\n📋\nTest Kunde\n\nFür diesen Kunden sind keine Prozesse oder Kunden-Notizen hinterlegt.\n\nKundenportal\n🌐\nTest Kunde\n\nFür diesen Kunden ist kein Kundenportal hinterlegt.\n\n+ Neue Sendung\nKunde übernehmen\nAdresse geprüft und bestätigt\n2\nSendungsdaten\nAKTUELLER SENDUNGSSTATUS\nBereit zur Abholung\nSendungsreferenz / Referenznummer\nGeplantes Abholdatum\nSpediti",
+          "len": 2550,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "abd",
+          "state": "abd",
+          "bad": false,
+          "text": "ABD\nABD-Anfrage erstellen\n\nManuelle Erstellung · Collis vollständig erfassen und danach die GPZ-Mail in Outlook öffnen.\n\nNeue ABD-Anfrage\n1. Grunddaten\nKundensuche\nReferenznummer\nEmpfängerland\nSprache\nDeutsch\nEnglisch\nABD-Empfänger\n2. Collis\nArt der Colli\nAnzahl\nGesamtgewicht der Zeile (kg)\nEntfernen\n+ Colli hinzufügen\nCollis\n0\nGesamtgewicht\n0,0 kg\n3. Anhänge\n\nRechnung(en) und Lieferschein werden weiterhin manuell in Outlook angehängt.\n\nRechnung optional in ExportHUB hinterlegen\n4. Mailvorgang\nB",
+          "len": 937,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipmentoverview",
+          "state": "shipmentoverview",
+          "bad": false,
+          "text": "SENDUNGEN\nSendungsübersicht\nNeue Sendung\nSuchen (Referenz, Kunde, Anhang)\nSuchen\nZurücksetzen\n6 Sendungen\nGruppieren nach\nStatus\nKeine Gruppierung\nSortieren nach\nLetzte Änderung\nAbholdatum\nStatus\nReferenz\nKunde\nReihenfolge\nAufsteigend\nAbsteigend\nBereit zur Abholung\n2 Sendungen\n↕\n▾\nERST01\nBereit zur Abholung\nAbholung:\n14.08.2026\nSpedition:\n–\nABD:\nnicht verknüpft\nRef.-Ordner\nLadeliste & CMR\nPOD als PDF\nPOD hochladen\nABD hinterlegen\nPOD-Anbindung\n\nNoch keine digitale Unterschrift vorhanden.\n\nABD-An",
+          "len": 2632,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "cmr",
+          "state": "cmr",
+          "bad": false,
+          "text": "Ladeliste & CMR\n\nGespeicherte Sendung auswählen, drucken und als PDF herunterladen.\n\n7 gespeicherte Sendungen geladen\nSendung auswählen\nSendung auswählen\nERST01 · Test Kunde · Bereit zur Abholung\nREADY1 · Test Kunde · Bereit zur Abholung\nPREP01 · Test Kunde · Vorbereitet\nPICK01 · Test Kunde · Abgeholt\nPOD001 · Test Kunde · POD vorhanden\nDONE01 · Test Kunde · Abgeschlossen\nGE9F2O · Test Kunde · offen\nREFERENZ\nGE9F2O\nKUNDE\nTest Kunde\nSTATUS\noffen\nZur Sendung\nZur Sendungsübersicht\nGesamtausgabe dru",
+          "len": 1745,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "warehouse",
+          "state": "warehouse",
+          "bad": false,
+          "text": "🏭 Lager & Locations\n\nAktuelle Position aller noch nicht abgeholten Sendungen. Ausgangslocations zeigen direkt, welche Sendungen dort stehen. Admins können Sendungen zusätzlich manuell verschieben.\n\nAktualisieren\nManuell verschieben\nSENDUNGEN IM LAGER\n4\nBELEGTE LOCATIONS\n2\nIM EINGANG\n3\nVORBEREITET\n1\nCode 1\nLane 1\n1 Sendungen · 1 Paletten\nPREP01\nTest Kunde\nLane 1\nVorbereitet\nPALETTEN\n1\nVERLADER\n—\nGEBUCHT\n—\n↕ Ziehen & ablegen oder manuell verschieben\nManuell verschieben\nCode 2\nLane 2\n0 Sendungen ·",
+          "len": 1376,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customerfolder",
+          "state": "customerfolder",
+          "bad": false,
+          "text": "📁 Kundenordner\nKunde suchen / wechseln\nÖffnen\n+ Neuen Kunden anlegen\nSendungen\n7\nABD-Anfragen\n0\nPalettenbuchungen\n0\nPortale\n0\n1. Kundendaten\nKundenname\nKundennummer\nLand\nZollstatus\nEU\nDrittland / Nicht-EU\nEmpfängeradresse\n2. Anmeldung / Maildaten\nSpeditions-/Anmeldemail\nKundenmail\nSales-Mail\nCC\nMailprofil & Vorlagen\nErforderliche Mailart\nKundenmail\nSpeditionsmail\nKundenmail und Speditionsmail\nEigene Info-Mail (keine Anmeldung)\nKeine Mail erforderlich\nStandard-Mailart\nKundenmail\nSpeditionsmail\nE",
+          "len": 2098,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "pallet",
+          "state": "pallet",
+          "bad": false,
+          "text": "PALETTENPROZESS\nPalettenkonto und Palettenabgleich\n\nEuropaletten werden über das Kundenkonto oder die hinterlegte Spedition geführt. Jeder Abgleich speichert den tatsächlichen Stand und das zugehörige Datum.\n\nKunde oder Spedition\nKonto öffnen\nKONTOART: KUNDE\nTest Kunde\nEingang\n0\nAusgang\n0\nAktueller Systemstand\n0\nSaldo 0 – ausgeglichen\nManuelle Buchung\nAnzahl\nBuchungsdatum\nSendungsreferenz\nEingang\nAusgang\nBemerkung optional\nBuchung speichern\nBuchungen\nDATUM\tREFERENZ\tRICHTUNG\tANZAHL\tSTATUS\t\nPalett",
+          "len": 899,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shippingcosts",
+          "state": "shippingcosts",
+          "bad": false,
+          "text": "VERSANDKOSTEN\nVersandkosten\n\nPakete über UPS und Paletten über Gate41. Route und Sendungsdaten können automatisch aus der geöffneten Sendung übernommen werden.\n\nAus geöffneter Sendung: GE9F2O · 1001 · Test Kunde\nPakete – UPS\nPaletten – Gate41\nPaletten – Gate41\n\nService, Verpackung, Palettenanzahl und Gewicht werden gemeinsam für die Preisanfrage geführt.\n\nRoute\nStartort / Start-PLZ\nZielort / Ziel-PLZ\nZielland\nAutomatisch aus Sendung/Adresse · manuell änderbar\nSendungsdaten\nGate41-Service\nGate41-",
+          "len": 1849,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customs",
+          "state": "customs",
+          "bad": false,
+          "text": "🛃 Zollwissen\nZollwissen für Export / Logistik\n\nFokus: EU/Drittland-Entscheidung, EORI, Ausfuhr, ATLAS/ABD/MRN, Ursprung/Präferenz, EUR.1/A.TR, Verbote & Beschränkungen, Dokumente und Notfalllogik.\n\nWISSENSBEREICHE\n12\nTESTFRAGEN\n80\nBEANTWORTET\n0\nRICHTIG\n0\nZollwissen\nChecklisten\nKI fragen\nTests\nQuellen\nWissensbereiche\n1. Grundentscheidung: EU oder Drittland\nEU · Drittland · Startprüfung\n2. EORI-Nummer\nEORI · Beteiligtenidentifikation\n3. Ausfuhr in Nicht-EU-Staat\nAusfuhr · Drittland · ABD · MRN\n4.",
+          "len": 7558,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "sop",
+          "state": "sop",
+          "bad": false,
+          "text": "ARBEITSANWEISUNGEN\nSOP starten\n\nProzess auswählen, Schritt für Schritt bearbeiten und das benötigte Portal direkt öffnen.\n\nUPS\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nBSH Lieferantenportal\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nSiemens Energy / AX4\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nDHL Express / MyDHL+\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nWürth Industrie\n\nZugangsdaten werden ",
+          "len": 2438,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "academy",
+          "state": "academy",
+          "bad": false,
+          "text": "🎓 Academy Logistik\nRC306: Schwierigkeit wird nach Lehrjahr gesteuert. Im 3. Lehrjahr werden Grundlagen vorausgesetzt und die Fragen sind pruefungs-/praxisnah.\n1. Lehrjahr – Grundlagen\nIm 1. Lehrjahr muss der Mitarbeiter Grundlagen sicher erkennen: richtige Begriffe, einfache Pruefpunkte, Meldewege und sichere Standardhandlungen.\nBestehen ab 60%\n2. Lehrjahr – Prozesse\nIm 2. Lehrjahr wird Prozessverstaendnis erwartet: Zusammenhaenge, Ursachen, Folgen, Buchungen, Kennzahlen und sichere Ablaeufe.\nB",
+          "len": 2697,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "inspections",
+          "state": "inspections",
+          "bad": false,
+          "text": "IHK LOGISTIK\nPrüfungszentrum\n\n10 IHK-nahe Lagerlogistik-Prüfungen auswählen, jeweils 60 Minuten bearbeiten und Probleme nach Fachbereich auswerten. Eigene PDF-Prüfungen können zusätzlich importiert werden.\n\nVerfügbare Inhalte\n10\nEigene Abschlüsse\n0\nEigener Durchschnitt\n0 %\nGrößtes Lernfeld\nnoch offen\nPrüfungen & Übungen\nMeine Auswertung\nAdmin-Auswertung\nPrüfungen verwalten\nPrüfung\nIHK Lagerlogistik – Prüfung 01\n\n60-Minuten-IHK-Simulation für Fachkraft für Lagerlogistik. Original erstellte Aufgab",
+          "len": 3275,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "ideas",
+          "state": "ideas",
+          "bad": false,
+          "text": "💡 Ideenpool\nIdee erfassen\nBereich\nPriorität\nhoch\nmittel\nniedrig\nTitel\nBeschreibung\nIdee speichern\nIdeenliste\n\nKeine Ideen gespeichert.",
+          "len": 135,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "reports",
+          "state": "reports",
+          "bad": false,
+          "text": "Reports\nSendungsreport\nSendungen, Status und Referenzordner.\nABD-Report\nGespeicherte ABD-Anfragen und Status.\nAufgabenreport\nOffene und erledigte Aufgaben.\nPalettenreport\nPalettenkonto und Abgleich.\nAktivitätsreport\nArchiv und Audit-Protokoll.\nDokumentenreport\nLadelisten, CMR und Nachweise.",
+          "len": 291,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "update",
+          "state": "update",
+          "bad": false,
+          "text": "SYSTEMSTATUS\nUpdate ExportHUB\n\nAktive, zentral gesteuerte Anwendungsversion: RC652.\n\nVERSION\nRC652\nDATEN\nAzure-Teamdaten\nSYNCHRONISIERUNG\nRevision-Polling aktiv\nBEREITSCHAFT\nOberfläche vollständig geladen\nÄNDERUNGEN DER AKTUELLEN VERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\n13.08.2026\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render b",
+          "len": 13916,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "release",
+          "state": "release",
+          "bad": false,
+          "text": "ADMIN · TEST & VERÖFFENTLICHUNG\n🚀 Release-Center\nPRODUKTION\nunbekannt\nAKTIVE TESTVERSION\nRC652\nTESTSTATUS\nOFFEN\nRC652 ist noch nicht als vollständig getestet freigegeben.\nAKTUELLE TESTVERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\nÄnderungen dieser Testversion\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render bei Aufgaben Planer und Ben",
+          "len": 14491,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "rights",
+          "state": "rights",
+          "bad": false,
+          "text": "GLOBALE ADMINISTRATION\nBenutzer, Rechte und Sitzungen\n\nPasswörter werden ausschließlich serverseitig als Hash gespeichert. Funktionsrechte können für jeden Bereich einzeln vergeben werden.\n\nRC550 · sichere Anmeldung\nBenutzer\nBenutzer suchen\nBenutzer öffnen\nTobias Limberg\ntobias\nInaktiv\nNeuen Benutzer anlegen\nBenutzername\nAnzeigename\nGlobaler Administrator\nBenutzer anlegen\nTobias Limberg\n\nBenutzername: tobias\n\nDeaktiviertAnmeldung frei\nAnzeigename\nGlobaler Administrator\nBenutzer und Rechte speich",
+          "len": 2958,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "teamfile",
+          "state": "teamfile",
+          "bad": false,
+          "text": "🗂️ Sammelmodus\nKUNDEN\n1\nAUFGABEN\n1\nSENDUNGEN\n7\nOFFENE ÄNDERUNGEN\n9\nseit letztem Sammel-Export/Reset\nWichtig: Das ist kein Live-Teammodus. Jeder bearbeitet lokal im Browser. Du musst nicht nach jeder Änderung exportieren. ExportHUB sammelt Änderungen lokal. Andere Benutzer sind erst enthalten, wenn ihre Pakete vorher importiert wurden. Danach kannst du ein Team-Gesamtpaket oder einen Master-Datenstand exportieren.\n1. Sammelpaket\n\nNur offene Änderungen exportiert deine Änderungen seit dem letzten",
+          "len": 2096,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "archive",
+          "state": "archive",
+          "bad": false,
+          "text": "🗃️ Archiv & Audit\nSendungsarchiv\nDATUM\tREFERENZ\tKUNDE\tABHOLUNG\tGESAMT\n\tERST01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tREADY1\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPREP01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPICK01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPOD001\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tDONE01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tGE9F2O\tTest Kunde\t13-08-2026\t1 Collis · 0.0 kg · 0.40 LDM\nAudit\n\nNoch keine Änderungen protokolliert.",
+          "len": 479,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "settings",
+          "state": "settings",
+          "bad": false,
+          "text": "Einstellungen\nBenutzer & Rechte\nUpdate ExportHUB\nRelease-Center\nSammelmodus\nArchiv\nMicrosoft-Konto wechseln",
+          "len": 107,
+          "overflow": 0,
+          "ok": true
+        }
+      ],
+      "errors": [],
+      "stability": {
+        "planning": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "notifications": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "shipment": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        }
+      }
+    },
+    "rc652_quick_test_mobile": {
+      "file": "test",
+      "system": "mobile",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/test?v=652"
+      },
+      "views": [
+        {
+          "view": "dashboard",
+          "state": "dashboard",
+          "bad": false,
+          "text": "📊 Dashboard\nDashboard anpassen\nSchnellzugriffe\nHeute geplante Sendungen\n\nDonnerstag, 13.08.2026 · Referenz, Kunde und aktueller Status\n\n0\n\nFür heute sind keine Sendungen eingeplant.\n\nMeine Aufgaben\n\nOffene und überfällige Aufgaben für Tobias Limberg.\n\nOFFEN\n1\nnoch zu erledigen\nHEUTE\n0\nDonnerstag\nÜBERFÄLLIG\n0\nsofort prüfen\nTestaufgabe\nFreitag, 14.08.2026\nOffen\nSendungen und Abholungen\n\nAktive Sendungen mit den nächsten Abholterminen.\n\nOFFENE SENDUNGEN\n5\nnicht abgeschlossen\nABHOLUNG ÜBERFÄLLIG\n0\n",
+          "len": 1269,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "planning",
+          "state": "planning",
+          "bad": false,
+          "text": "🗓️ Aufgaben Planer\nFEIERTAGE MO–FR 2026\n1\nWochenend-Feiertage ausgeblendet\nPICKTAGE\n0\nwiederkehrende Vorlagen\nANMELDUNGEN\n0\ninklusive Abholvorbereitung\nOFFENE FEIERTAGSAUFGABEN\n0\nmüssen verschoben werden\nZeitraum planen\n\nTag planen übernimmt alle Pick- und Anmeldeaufgaben dieses Wochentags. Woche planen verteilt alle Vorlagen gemäß ihrem hinterlegten Wochentag.\n\nTag oder Woche auswählen\nDiesen Tag planen\nKomplette Woche planen\nPicktage\n\nDiese Aufgaben entsprechen dem oberen Bereich deiner Vorla",
+          "len": 1456,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "tasks",
+          "state": "tasks",
+          "bad": false,
+          "text": "Neue Aufgabe / Aufgaben-Editor\n✅ Aufgaben\nAUFGABEN GESAMT\n1\nAKTUELL ANGEZEIGT\n1\nOFFEN IM FILTER\n1\nRÜCKSTAND\n0\nAlle Aufgaben anzeigen\nTobias Limberg\nAlle\nAlle anzeigen\nErledigte einblenden · 0\n+ Manuelle Aufgabe\nAufgaben reparieren\nAlle Tage · 1\nHeute (Donnerstag) · 0\nÜberfällig · 0\nRückstand · 0\nMontag · 0\nDienstag · 0\nMittwoch · 0\nDonnerstag · 0\nFreitag · 0\nOhne Tag · 1\nOhne Tag\n1 Aufgaben 1 offen\nSonstige Aufgaben\n1 gesamt 1 offen\nNormal\nOffen\nTestaufgabe\nOhne TagAufgabe\nBearbeiten",
+          "len": 488,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "notifications",
+          "state": "notifications",
+          "bad": false,
+          "text": "ARBEIT\nBenachrichtigungen\nJetzt prüfen\nBrowser-Benachrichtigungen aktivieren\nBrowser-Benachrichtigung\nIm Browser blockiert\nNächste Prüfung\nFr., 14.08., 09:00\nSignalton\nDeaktiviert\nOFFENE AUFGABEN\n1\nÜBERFÄLLIGE AUFGABEN\n0\nSENDUNGEN ÜBER 3 TAGE\n0\nPRÜFZEITEN\n3\n09:00 · 12:00 · 15:00\nOffene Aufgaben\n\nBis zur Erledigung bei jeder Prüfzeit.\n\nAufgaben öffnen\nTestaufgabe\n\nTobias Limberg · Fr., 14.08.2026\n\nOffen\nAufgabe öffnen\nErledigt\nÜberfällige Sendungen\n\nNur Abholungen, die mehr als drei Tage überfäll",
+          "len": 652,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipment",
+          "state": "shipment",
+          "bad": false,
+          "text": "🚚 Sendung erstellen\n1\nKunde & Empfänger\nKundennummer / Kunde suchen\nStandort auswählen\n—\nMadrid\nEmpfängeradresse:\nMadrid\nProzesse / Kunden-Notizen\n📋\nTest Kunde\n\nFür diesen Kunden sind keine Prozesse oder Kunden-Notizen hinterlegt.\n\nKundenportal\n🌐\nTest Kunde\n\nFür diesen Kunden ist kein Kundenportal hinterlegt.\n\n+ Neue Sendung\nKunde übernehmen\nAdresse geprüft und bestätigt\n2\nSendungsdaten\nAKTUELLER SENDUNGSSTATUS\nBereit zur Abholung\nSendungsreferenz / Referenznummer\nGeplantes Abholdatum\nSpediti",
+          "len": 2517,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "abd",
+          "state": "abd",
+          "bad": false,
+          "text": "ABD\nABD-Anfrage erstellen\n\nManuelle Erstellung · Collis vollständig erfassen und danach die GPZ-Mail in Outlook öffnen.\n\nNeue ABD-Anfrage\n1. Grunddaten\nKundensuche\nReferenznummer\nEmpfängerland\nSprache\nDeutsch\nEnglisch\nABD-Empfänger\n2. Collis\nArt der Colli\nAnzahl\nGesamtgewicht der Zeile (kg)\nEntfernen\n+ Colli hinzufügen\nCollis\n0\nGesamtgewicht\n0,0 kg\n3. Anhänge\n\nRechnung(en) und Lieferschein werden weiterhin manuell in Outlook angehängt.\n\nRechnung optional in ExportHUB hinterlegen\n4. Mailvorgang\nB",
+          "len": 937,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shipmentoverview",
+          "state": "shipmentoverview",
+          "bad": false,
+          "text": "SENDUNGEN\nSendungsübersicht\nNeue Sendung\nSuchen (Referenz, Kunde, Anhang)\nSuchen\nZurücksetzen\n6 Sendungen\nGruppieren nach\nStatus\nKeine Gruppierung\nSortieren nach\nLetzte Änderung\nAbholdatum\nStatus\nReferenz\nKunde\nReihenfolge\nAufsteigend\nAbsteigend\nBereit zur Abholung\n2 Sendungen\n↕\n▾\nERST01\nBereit zur Abholung\nAbholung:\n14.08.2026\nSpedition:\n–\nABD:\nnicht verknüpft\nRef.-Ordner\nLadeliste & CMR\nPOD als PDF\nPOD hochladen\nABD hinterlegen\nPOD-Anbindung\n\nNoch keine digitale Unterschrift vorhanden.\n\nABD-An",
+          "len": 2632,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "cmr",
+          "state": "cmr",
+          "bad": false,
+          "text": "Ladeliste & CMR\n\nGespeicherte Sendung auswählen, drucken und als PDF herunterladen.\n\n7 gespeicherte Sendungen geladen\nSendung auswählen\nSendung auswählen\nERST01 · Test Kunde · Bereit zur Abholung\nREADY1 · Test Kunde · Bereit zur Abholung\nPREP01 · Test Kunde · Vorbereitet\nPICK01 · Test Kunde · Abgeholt\nPOD001 · Test Kunde · POD vorhanden\nDONE01 · Test Kunde · Abgeschlossen\nJYXMP7 · Test Kunde · offen\nREFERENZ\nJYXMP7\nKUNDE\nTest Kunde\nSTATUS\noffen\nZur Sendung\nZur Sendungsübersicht\nGesamtausgabe dru",
+          "len": 1745,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "warehouse",
+          "state": "warehouse",
+          "bad": false,
+          "text": "🏭 Lager & Locations\n\nAktuelle Position aller noch nicht abgeholten Sendungen. Ausgangslocations zeigen direkt, welche Sendungen dort stehen. Admins können Sendungen zusätzlich manuell verschieben.\n\nAktualisieren\nManuell verschieben\nSENDUNGEN IM LAGER\n4\nBELEGTE LOCATIONS\n2\nIM EINGANG\n3\nVORBEREITET\n1\nCode 1\nLane 1\n1 Sendungen · 1 Paletten\nPREP01\nTest Kunde\nLane 1\nVorbereitet\nPALETTEN\n1\nVERLADER\n—\nGEBUCHT\n—\n↕ Ziehen & ablegen oder manuell verschieben\nManuell verschieben\nCode 2\nLane 2\n0 Sendungen ·",
+          "len": 1376,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customerfolder",
+          "state": "customerfolder",
+          "bad": false,
+          "text": "📁 Kundenordner\nKunde suchen / wechseln\nÖffnen\n+ Neuen Kunden anlegen\nSendungen\n7\nABD-Anfragen\n0\nPalettenbuchungen\n0\nPortale\n0\n1. Kundendaten\nKundenname\nKundennummer\nLand\nZollstatus\nEU\nDrittland / Nicht-EU\nEmpfängeradresse\n2. Anmeldung / Maildaten\nSpeditions-/Anmeldemail\nKundenmail\nSales-Mail\nCC\nMailprofil & Vorlagen\nErforderliche Mailart\nKundenmail\nSpeditionsmail\nKundenmail und Speditionsmail\nEigene Info-Mail (keine Anmeldung)\nKeine Mail erforderlich\nStandard-Mailart\nKundenmail\nSpeditionsmail\nE",
+          "len": 2098,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "pallet",
+          "state": "pallet",
+          "bad": false,
+          "text": "PALETTENPROZESS\nPalettenkonto und Palettenabgleich\n\nEuropaletten werden über das Kundenkonto oder die hinterlegte Spedition geführt. Jeder Abgleich speichert den tatsächlichen Stand und das zugehörige Datum.\n\nKunde oder Spedition\nKonto öffnen\nKONTOART: KUNDE\nTest Kunde\nEingang\n0\nAusgang\n0\nAktueller Systemstand\n0\nSaldo 0 – ausgeglichen\nManuelle Buchung\nAnzahl\nBuchungsdatum\nSendungsreferenz\nEingang\nAusgang\nBemerkung optional\nBuchung speichern\nBuchungen\nDATUM\tREFERENZ\tRICHTUNG\tANZAHL\tSTATUS\t\nPalett",
+          "len": 899,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "shippingcosts",
+          "state": "shippingcosts",
+          "bad": false,
+          "text": "VERSANDKOSTEN\nVersandkosten\n\nPakete über UPS und Paletten über Gate41. Route und Sendungsdaten können automatisch aus der geöffneten Sendung übernommen werden.\n\nAus geöffneter Sendung: JYXMP7 · 1001 · Test Kunde\nPakete – UPS\nPaletten – Gate41\nPaletten – Gate41\n\nService, Verpackung, Palettenanzahl und Gewicht werden gemeinsam für die Preisanfrage geführt.\n\nRoute\nStartort / Start-PLZ\nZielort / Ziel-PLZ\nZielland\nAutomatisch aus Sendung/Adresse · manuell änderbar\nSendungsdaten\nGate41-Service\nGate41-",
+          "len": 1849,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "customs",
+          "state": "customs",
+          "bad": false,
+          "text": "🛃 Zollwissen\nZollwissen für Export / Logistik\n\nFokus: EU/Drittland-Entscheidung, EORI, Ausfuhr, ATLAS/ABD/MRN, Ursprung/Präferenz, EUR.1/A.TR, Verbote & Beschränkungen, Dokumente und Notfalllogik.\n\nWISSENSBEREICHE\n12\nTESTFRAGEN\n80\nBEANTWORTET\n0\nRICHTIG\n0\nZollwissen\nChecklisten\nKI fragen\nTests\nQuellen\nWissensbereiche\n1. Grundentscheidung: EU oder Drittland\nEU · Drittland · Startprüfung\n2. EORI-Nummer\nEORI · Beteiligtenidentifikation\n3. Ausfuhr in Nicht-EU-Staat\nAusfuhr · Drittland · ABD · MRN\n4.",
+          "len": 7558,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "sop",
+          "state": "sop",
+          "bad": false,
+          "text": "ARBEITSANWEISUNGEN\nSOP starten\n\nProzess auswählen, Schritt für Schritt bearbeiten und das benötigte Portal direkt öffnen.\n\nUPS\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nBSH Lieferantenportal\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nSiemens Energy / AX4\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nDHL Express / MyDHL+\n\nZugangsdaten werden nicht in ExportHUB gespeichert.\n\nPortal öffnen\nWürth Industrie\n\nZugangsdaten werden ",
+          "len": 2438,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "academy",
+          "state": "academy",
+          "bad": false,
+          "text": "🎓 Academy Logistik\nRC306: Schwierigkeit wird nach Lehrjahr gesteuert. Im 3. Lehrjahr werden Grundlagen vorausgesetzt und die Fragen sind pruefungs-/praxisnah.\n1. Lehrjahr – Grundlagen\nIm 1. Lehrjahr muss der Mitarbeiter Grundlagen sicher erkennen: richtige Begriffe, einfache Pruefpunkte, Meldewege und sichere Standardhandlungen.\nBestehen ab 60%\n2. Lehrjahr – Prozesse\nIm 2. Lehrjahr wird Prozessverstaendnis erwartet: Zusammenhaenge, Ursachen, Folgen, Buchungen, Kennzahlen und sichere Ablaeufe.\nB",
+          "len": 2697,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "inspections",
+          "state": "inspections",
+          "bad": false,
+          "text": "IHK LOGISTIK\nPrüfungszentrum\n\n10 IHK-nahe Lagerlogistik-Prüfungen auswählen, jeweils 60 Minuten bearbeiten und Probleme nach Fachbereich auswerten. Eigene PDF-Prüfungen können zusätzlich importiert werden.\n\nVerfügbare Inhalte\n10\nEigene Abschlüsse\n0\nEigener Durchschnitt\n0 %\nGrößtes Lernfeld\nnoch offen\nPrüfungen & Übungen\nMeine Auswertung\nAdmin-Auswertung\nPrüfungen verwalten\nPrüfung\nIHK Lagerlogistik – Prüfung 01\n\n60-Minuten-IHK-Simulation für Fachkraft für Lagerlogistik. Original erstellte Aufgab",
+          "len": 3275,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "ideas",
+          "state": "ideas",
+          "bad": false,
+          "text": "💡 Ideenpool\nIdee erfassen\nBereich\nPriorität\nhoch\nmittel\nniedrig\nTitel\nBeschreibung\nIdee speichern\nIdeenliste\n\nKeine Ideen gespeichert.",
+          "len": 135,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "reports",
+          "state": "reports",
+          "bad": false,
+          "text": "Reports\nSendungsreport\nSendungen, Status und Referenzordner.\nABD-Report\nGespeicherte ABD-Anfragen und Status.\nAufgabenreport\nOffene und erledigte Aufgaben.\nPalettenreport\nPalettenkonto und Abgleich.\nAktivitätsreport\nArchiv und Audit-Protokoll.\nDokumentenreport\nLadelisten, CMR und Nachweise.",
+          "len": 291,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "update",
+          "state": "update",
+          "bad": false,
+          "text": "SYSTEMSTATUS\nUpdate ExportHUB\n\nAktive, zentral gesteuerte Anwendungsversion: RC652.\n\nVERSION\nRC652\nDATEN\nAzure-Teamdaten\nSYNCHRONISIERUNG\nRevision-Polling aktiv\nBEREITSCHAFT\nOberfläche vollständig geladen\nÄNDERUNGEN DER AKTUELLEN VERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\n13.08.2026\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render b",
+          "len": 13916,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "release",
+          "state": "release",
+          "bad": false,
+          "text": "ADMIN · TEST & VERÖFFENTLICHUNG\n🚀 Release-Center\nPRODUKTION\nunbekannt\nAKTIVE TESTVERSION\nRC652\nTESTSTATUS\nOFFEN\nRC652 ist noch nicht als vollständig getestet freigegeben.\nAKTUELLE TESTVERSION\nRC652 · Statusabschluss, Testservice und Render-Stabilität\nÄnderungen dieser Testversion\nRC652 synchronisiert Produktion und Testservice auf dieselbe Build-/Cache-Version, speichert manuelle Sendungsabschlüsse in allen Sendungskopien dauerhaft und verhindert unnötige Voll-Render bei Aufgaben Planer und Ben",
+          "len": 14491,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "rights",
+          "state": "rights",
+          "bad": false,
+          "text": "GLOBALE ADMINISTRATION\nBenutzer, Rechte und Sitzungen\n\nPasswörter werden ausschließlich serverseitig als Hash gespeichert. Funktionsrechte können für jeden Bereich einzeln vergeben werden.\n\nRC550 · sichere Anmeldung\nBenutzer\nBenutzer suchen\nBenutzer öffnen\nTobias Limberg\ntobias\nInaktiv\nNeuen Benutzer anlegen\nBenutzername\nAnzeigename\nGlobaler Administrator\nBenutzer anlegen\nTobias Limberg\n\nBenutzername: tobias\n\nDeaktiviertAnmeldung frei\nAnzeigename\nGlobaler Administrator\nBenutzer und Rechte speich",
+          "len": 2958,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "teamfile",
+          "state": "teamfile",
+          "bad": false,
+          "text": "🗂️ Sammelmodus\nKUNDEN\n1\nAUFGABEN\n1\nSENDUNGEN\n7\nOFFENE ÄNDERUNGEN\n9\nseit letztem Sammel-Export/Reset\nWichtig: Das ist kein Live-Teammodus. Jeder bearbeitet lokal im Browser. Du musst nicht nach jeder Änderung exportieren. ExportHUB sammelt Änderungen lokal. Andere Benutzer sind erst enthalten, wenn ihre Pakete vorher importiert wurden. Danach kannst du ein Team-Gesamtpaket oder einen Master-Datenstand exportieren.\n1. Sammelpaket\n\nNur offene Änderungen exportiert deine Änderungen seit dem letzten",
+          "len": 2096,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "archive",
+          "state": "archive",
+          "bad": false,
+          "text": "🗃️ Archiv & Audit\nSendungsarchiv\nDATUM\tREFERENZ\tKUNDE\tABHOLUNG\tGESAMT\n\tERST01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tREADY1\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPREP01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPICK01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tPOD001\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tDONE01\t\t14-08-2026\t1 Collis · 100.0 kg · 0.00 LDM\n\tJYXMP7\tTest Kunde\t13-08-2026\t1 Collis · 0.0 kg · 0.40 LDM\nAudit\n\nNoch keine Änderungen protokolliert.",
+          "len": 479,
+          "overflow": 0,
+          "ok": true
+        },
+        {
+          "view": "settings",
+          "state": "settings",
+          "bad": false,
+          "text": "Einstellungen\nBenutzer & Rechte\nUpdate ExportHUB\nRelease-Center\nSammelmodus\nArchiv\nMicrosoft-Konto wechseln",
+          "len": 107,
+          "overflow": 0,
+          "ok": true
+        }
+      ],
+      "errors": [],
+      "stability": {
+        "planning": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "notifications": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        },
+        "shipment": {
+          "firstSame": true,
+          "htmlSame": true,
+          "mut": 0
+        }
+      }
+    }
+  },
+  "status_mail_completion_runs": {
+    "rc652_special_index_desktop": {
+      "file": "index",
+      "system": "desktop",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/?v=652"
+      },
+      "statuses": {
+        "ERST01": "Bereit zur Abholung",
+        "READY1": "Bereit zur Abholung",
+        "PREP01": "Vorbereitet",
+        "PICK01": "Abgeholt",
+        "POD001": "POD vorhanden",
+        "DONE01": "Abgeschlossen"
+      },
+      "completeButton": true,
+      "completion": {
+        "ship": "Abgeschlossen",
+        "saved": "Abgeschlossen",
+        "shipConfirmed": true,
+        "savedConfirmed": true,
+        "completed": true,
+        "shipHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:27:23.054Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "savedHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:27:23.054Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "saveCalls": 5
+      },
+      "mailBefore": {
+        "exists": true
+      },
+      "mailAfter": {
+        "same": true,
+        "value": "MAIL STABLE RC652",
+        "active": "rc543MailBody"
+      },
+      "cmr": {
+        "cmrDoc": 0,
+        "copy2": 0,
+        "copy3": 0,
+        "cmrDuplicates": [],
+        "allDuplicateCount": 0
+      },
+      "errors": []
+    },
+    "rc652_special_index_mobile": {
+      "file": "index",
+      "system": "mobile",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/?v=652"
+      },
+      "statuses": {
+        "ERST01": "Bereit zur Abholung",
+        "READY1": "Bereit zur Abholung",
+        "PREP01": "Vorbereitet",
+        "PICK01": "Abgeholt",
+        "POD001": "POD vorhanden",
+        "DONE01": "Abgeschlossen"
+      },
+      "completeButton": true,
+      "completion": {
+        "ship": "Abgeschlossen",
+        "saved": "Abgeschlossen",
+        "shipConfirmed": true,
+        "savedConfirmed": true,
+        "completed": true,
+        "shipHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:28:12.336Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "savedHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:28:12.336Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "saveCalls": 5
+      },
+      "mailBefore": {
+        "exists": true
+      },
+      "mailAfter": {
+        "same": true,
+        "value": "MAIL STABLE RC652",
+        "active": "rc543MailBody"
+      },
+      "cmr": {
+        "cmrDoc": 0,
+        "copy2": 0,
+        "copy3": 0,
+        "cmrDuplicates": [],
+        "allDuplicateCount": 0
+      },
+      "errors": []
+    },
+    "rc652_special_test_desktop": {
+      "file": "test",
+      "system": "desktop",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/test?v=652"
+      },
+      "statuses": {
+        "ERST01": "Bereit zur Abholung",
+        "READY1": "Bereit zur Abholung",
+        "PREP01": "Vorbereitet",
+        "PICK01": "Abgeholt",
+        "POD001": "POD vorhanden",
+        "DONE01": "Abgeschlossen"
+      },
+      "completeButton": true,
+      "completion": {
+        "ship": "Abgeschlossen",
+        "saved": "Abgeschlossen",
+        "shipConfirmed": true,
+        "savedConfirmed": true,
+        "completed": true,
+        "shipHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:27:51.620Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "savedHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:27:51.620Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "saveCalls": 5
+      },
+      "mailBefore": {
+        "exists": true
+      },
+      "mailAfter": {
+        "same": true,
+        "value": "MAIL STABLE RC652",
+        "active": "rc543MailBody"
+      },
+      "cmr": {
+        "cmrDoc": 0,
+        "copy2": 0,
+        "copy3": 0,
+        "cmrDuplicates": [],
+        "allDuplicateCount": 0
+      },
+      "errors": []
+    },
+    "rc652_special_test_mobile": {
+      "file": "test",
+      "system": "mobile",
+      "build": {
+        "version": "RC652",
+        "cache": "652",
+        "loginReturn": "/test?v=652"
+      },
+      "statuses": {
+        "ERST01": "Bereit zur Abholung",
+        "READY1": "Bereit zur Abholung",
+        "PREP01": "Vorbereitet",
+        "PICK01": "Abgeholt",
+        "POD001": "POD vorhanden",
+        "DONE01": "Abgeschlossen"
+      },
+      "completeButton": true,
+      "completion": {
+        "ship": "Abgeschlossen",
+        "saved": "Abgeschlossen",
+        "shipConfirmed": true,
+        "savedConfirmed": true,
+        "completed": true,
+        "shipHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:31:01.065Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "savedHistory": {
+          "status": "Abgeschlossen",
+          "at": "2026-08-13T15:31:01.065Z",
+          "by": "Tobias Limberg",
+          "source": "manual-completion"
+        },
+        "saveCalls": 5
+      },
+      "mailBefore": {
+        "exists": true
+      },
+      "mailAfter": {
+        "same": true,
+        "value": "MAIL STABLE RC652",
+        "active": "rc543MailBody"
+      },
+      "cmr": {
+        "cmrDoc": 0,
+        "copy2": 0,
+        "copy3": 0,
+        "cmrDuplicates": [],
+        "allDuplicateCount": 0
+      },
+      "errors": []
+    }
+  },
+  "cmr_foreign_shipment": {
+    "view": "cmr",
+    "clicked": true,
+    "cmrDoc": 1,
+    "copy2": 1,
+    "copy3": 1,
+    "cmrDup": [],
+    "selects": [
+      {
+        "id": "rc576ShipmentSelect",
+        "value": "S-READY1",
+        "opts": [
+          {
+            "v": "",
+            "t": "Sendung auswählen"
+          },
+          {
+            "v": "S-ERST01",
+            "t": "ERST01 · Test Kunde · Bereit zur Abholung"
+          },
+          {
+            "v": "S-READY1",
+            "t": "READY1 · Test Kunde · Bereit zur Abholung"
+          },
+          {
+            "v": "S-PREP01",
+            "t": "PREP01 · Test Kunde · Vorbereitet"
+          },
+          {
+            "v": "S-PICK01",
+            "t": "PICK01 · Test Kunde · Abgeholt"
+          },
+          {
+            "v": "S-POD001",
+            "t": "POD001 · Test Kunde · POD vorhanden"
+          },
+          {
+            "v": "S-DONE01",
+            "t": "DONE01 · Test Kunde · Abgeschlossen"
+          },
+          {
+            "v": "S-og03pg-msrod6gu",
+            "t": "CNB4U4 · Test Kunde · offen"
+          }
+        ]
+      }
+    ],
+    "buttons": [
+      {
+        "id": "",
+        "t": "Zur Sendung"
+      },
+      {
+        "id": "",
+        "t": "Zur Sendungsübersicht"
+      },
+      {
+        "id": "",
+        "t": "Gesamtausgabe drucken"
+      },
+      {
+        "id": "",
+        "t": "Gesamtausgabe als PDF herunterladen"
+      },
+      {
+        "id": "",
+        "t": "Ladeliste 1 als PDF herunterladen"
+      },
+      {
+        "id": "",
+        "t": "QR/POD-Status prüfen"
+      },
+      {
+        "id": "",
+        "t": "POD als PDF herunterladen"
+      },
+      {
+        "id": "",
+        "t": "Deckblatt"
+      },
+      {
+        "id": "",
+        "t": "Ladeliste 1"
+      },
+      {
+        "id": "",
+        "t": "CMR"
+      }
+    ],
+    "text": "Ladeliste & CMR\n\nGespeicherte Sendung auswählen, drucken und als PDF herunterladen.\n\n7 gespeicherte Sendungen geladen\nSendung auswählen\nSendung auswählen\nERST01 · Test Kunde · Bereit zur Abholung\nREADY1 · Test Kunde · Bereit zur Abholung\nPREP01 · Test Kunde · Vorbereitet\nPICK01 · Test Kunde · Abgeholt\nPOD001 · Test Kunde · POD vorhanden\nDONE01 · Test Kunde · Abgeschlossen\nCNB4U4 · Test Kunde · offen\nREFERENZ\nREADY1\nKUNDE\nTest Kunde\nSTATUS\nBereit zur Abholung\nZur Sendung\nZur Sendungsübersicht\nGes"
+  },
+  "live_azure_tested": false,
+  "test_scope": "Lokaler Browser-Regressionslauf mit simulierten Azure-Endpunkten; echter Azure/Testservice-End-to-End-Lauf steht nach Deployment an."
+}
