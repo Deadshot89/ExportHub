@@ -227,13 +227,41 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
   });
 
-  // Status may only follow the newer persisted record; no rank-based auto-promotion here.
-  const newerStatus = newer.status || newer.processStatus;
-  const olderStatus = older.status || older.processStatus;
-  const chosenStatus = meaningfulValue(newerStatus) ? newerStatus : olderStatus;
+  // RC654 status protection: stale clients must not demote process progress.
+  // Evidence is evaluated in addition to the textual status because pickup/location APIs
+  // can already have advanced a shipment while another browser still holds "Erstellt".
+  function evidenceStatus(item) {
+    if (!item || typeof item !== 'object') return '';
+    const raw = lower([item.status,item.processStatus,item.pickupStatus,item.podStatus,item.readinessStatus].filter(Boolean).join(' '));
+    if (item.cancelled === true || item.storniert === true || /storn|cancel/.test(raw)) return 'Storniert';
+    if (item.archived === true || /archiv/.test(raw)) return 'Archiviert';
+    if (item.completionConfirmed === true || item.completedManually === true || item.completed === true || /abgeschlossen|completed|erledigt/.test(raw)) return 'Abgeschlossen';
+    const podFiles = Array.isArray(item.podFiles) ? item.podFiles.filter(f => f && !f.placeholder && !f.fallback && !f.syntheticFallback && !/deleted|gel[oö]scht|replaced|ersetzt/i.test(String(f.status || ''))) : [];
+    if (item.podConfirmed === true || item.podAvailable === true || item.podServerVerified === true || podFiles.length || /pod/.test(raw)) return 'POD vorhanden';
+    if (item.pickupQrUsed === true || item.qrPickupConfirmed === true || item.pickupConfirmed === true || item.pickupCompleted === true || meaningfulValue(item.pickupConfirmedAt || item.pickedUpAt || item.pickupQrUsedAt || item.actualPickupDate) || /abgeholt|picked|confirmed|completed/.test(lower(item.pickupStatus || item.pickupQrServerStatus))) return 'Abgeholt';
+    if (item.warehousePrepared === true || /vorbereit|prepared/.test(raw)) return 'Vorbereitet';
+    if (item.readyForPickup === true || item.pickupQrRegistered === true || /bereit.*abhol|ready.*pickup/.test(raw)) return 'Bereit zur Abholung';
+    if (/wartet.*abd|abd.*wart/.test(raw)) return 'Wartet auf ABD';
+    if (/erstellt|created/.test(raw)) return 'Erstellt';
+    return meaningfulValue(item.status || item.processStatus) ? String(item.status || item.processStatus) : '';
+  }
+  const serverStatus = evidenceStatus(serverItem);
+  const incomingStatus = evidenceStatus(incomingItem);
+  const serverRank = shipmentStatusRank(serverStatus);
+  const incomingRank = shipmentStatusRank(incomingStatus);
+  let chosenStatus = meaningfulValue(newer.status || newer.processStatus) ? String(newer.status || newer.processStatus) : (incomingTs >= serverTs ? incomingStatus : serverStatus);
+  const serverHardFinal = /storniert|archiviert|abgeschlossen|pod vorhanden|abgeholt/i.test(serverStatus);
+  const incomingHardFinal = /storniert|archiviert|abgeschlossen|pod vorhanden|abgeholt/i.test(incomingStatus);
+  const incomingLocationCode = Number(incomingItem.warehouseLocationCode !== undefined ? incomingItem.warehouseLocationCode : (incomingItem.locationCode !== undefined ? incomingItem.locationCode : -1));
+  const incomingWarehouseReturn = incomingTs >= serverTs && incomingItem.warehousePrepared === false && incomingLocationCode === 0 && shipmentStatusRank(incomingStatus) === shipmentStatusRank('Bereit zur Abholung');
+  if (serverHardFinal || incomingHardFinal) chosenStatus = serverRank >= incomingRank ? serverStatus : incomingStatus;
+  else if (incomingWarehouseReturn && serverRank === shipmentStatusRank('Vorbereitet')) chosenStatus = incomingStatus;
+  else chosenStatus = serverRank >= incomingRank ? serverStatus : incomingStatus;
   if (meaningfulValue(chosenStatus)) {
     out.status = clone(chosenStatus);
     out.processStatus = clone(chosenStatus);
+    if (shipmentStatusRank(chosenStatus) >= shipmentStatusRank('Bereit zur Abholung') && shipmentStatusRank(chosenStatus) < shipmentStatusRank('Abgeholt')) out.readyForPickup = true;
+    if (shipmentStatusRank(chosenStatus) >= shipmentStatusRank('Abgeholt')) out.readyForPickup = false;
   }
   return out;
 }

@@ -7,7 +7,8 @@
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-ExportHUB-Environment": "test"
       },
       "rewrite": "/index.html"
     },
@@ -17,27 +18,30 @@
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
       "route": "/test",
-      "rewrite": "/TESTVERSION.html",
+      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
       "route": "/test/*",
-      "rewrite": "/TESTVERSION.html",
+      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
@@ -46,17 +50,18 @@
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
-      "route": "/test-loader.html",
-      "rewrite": "/TESTVERSION.html",
+      "route": "/testservice-environment.json",
       "allowedRoles": [
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
+        "Cache-Control": "no-store",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
@@ -68,43 +73,45 @@
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
-    },
-    {
-      "route": "/pickup/*",
-      "rewrite": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
       "route": "/pickup.html",
-      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      },
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/location",
+      "rewrite": "/location.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
-      "route": "/pickup.html/*",
-      "rewrite": "/index.html",
+      "route": "/location.html",
       "allowedRoles": [
         "anonymous"
       ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
@@ -113,7 +120,8 @@
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store"
+        "Cache-Control": "no-store",
+        "X-ExportHUB-Environment": "test"
       }
     },
     {
@@ -137,16 +145,13 @@
     "exclude": [
       "/api/*",
       "/.auth/*",
-      "/test",
-      "/test/*",
-      "/TESTVERSION.html",
-      "/test-loader.html",
       "/pickup",
       "/pickup.html",
       "/assets/*",
+      "/testservice-environment.json",
       "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
-      "/pickup/*",
-      "/pickup.html/*"
+      "/location",
+      "/location.html"
     ]
   },
   "platform": {

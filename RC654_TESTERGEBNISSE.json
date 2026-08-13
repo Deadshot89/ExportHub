@@ -1,0 +1,296 @@
+{
+  "version": "RC654",
+  "all_ok": true,
+  "browser_matrix": [
+    {
+      "case": "index.html desktop",
+      "file": "index.html",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "title": "ExportHUB Online RC654",
+      "mail_before_len": 948,
+      "mail_same_after_sync": true,
+      "mail_same_after_save": true,
+      "mail_node_same_after_sync": true,
+      "mail_node_same_after_save": true,
+      "status_ready_visible": true,
+      "current_status_created": false,
+      "save_seconds_mock": 0.145,
+      "save_api_calls": 5,
+      "save_api_delta": 2,
+      "save_reasons_delta": [
+        "RC654 Sendung aktualisiert",
+        "RC654 Status und QR-Aktivierung gespeichert"
+      ],
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "case": "index.html mobile",
+      "file": "index.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "ExportHUB Online RC654",
+      "mail_before_len": 948,
+      "mail_same_after_sync": true,
+      "mail_same_after_save": true,
+      "mail_node_same_after_sync": true,
+      "mail_node_same_after_save": true,
+      "status_ready_visible": true,
+      "current_status_created": false,
+      "save_seconds_mock": 0.127,
+      "save_api_calls": 5,
+      "save_api_delta": 2,
+      "save_reasons_delta": [
+        "RC654 Sendung aktualisiert",
+        "RC654 Status und QR-Aktivierung gespeichert"
+      ],
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "case": "TESTVERSION.html desktop",
+      "file": "TESTVERSION.html",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "title": "ExportHUB Online RC654",
+      "mail_before_len": 948,
+      "mail_same_after_sync": true,
+      "mail_same_after_save": true,
+      "mail_node_same_after_sync": true,
+      "mail_node_same_after_save": true,
+      "status_ready_visible": true,
+      "current_status_created": false,
+      "save_seconds_mock": 0.153,
+      "save_api_calls": 5,
+      "save_api_delta": 2,
+      "save_reasons_delta": [
+        "RC654 Sendung aktualisiert",
+        "RC654 Status und QR-Aktivierung gespeichert"
+      ],
+      "page_errors": [],
+      "console_errors": []
+    },
+    {
+      "case": "TESTVERSION.html mobile",
+      "file": "TESTVERSION.html",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "ExportHUB Online RC654",
+      "mail_before_len": 948,
+      "mail_same_after_sync": true,
+      "mail_same_after_save": true,
+      "mail_node_same_after_sync": true,
+      "mail_node_same_after_save": true,
+      "status_ready_visible": true,
+      "current_status_created": false,
+      "save_seconds_mock": 0.138,
+      "save_api_calls": 5,
+      "save_api_delta": 2,
+      "save_reasons_delta": [
+        "RC654 Sendung aktualisiert",
+        "RC654 Status und QR-Aktivierung gespeichert"
+      ],
+      "page_errors": [],
+      "console_errors": []
+    }
+  ],
+  "final_save_payload": {
+    "reason": "RC654 Status und QR-Aktivierung gespeichert",
+    "shipments": [
+      {
+        "ref": "ABC123",
+        "status": "Bereit zur Abholung",
+        "processStatus": "Bereit zur Abholung",
+        "pickupQrRegistered": null,
+        "readyForPickup": true
+      }
+    ],
+    "savedShipments": [
+      {
+        "ref": "ABC123",
+        "status": "Bereit zur Abholung",
+        "processStatus": "Bereit zur Abholung",
+        "pickupQrRegistered": true,
+        "readyForPickup": true
+      }
+    ]
+  },
+  "backend_status_merge": {
+    "all_ok": true,
+    "tests": [
+      {
+        "name": "newer stale Created cannot demote POD",
+        "ok": true,
+        "status": "POD vorhanden",
+        "count": 1
+      },
+      {
+        "name": "pickup evidence advances stale text",
+        "ok": true,
+        "status": "Abgeholt",
+        "count": 1
+      },
+      {
+        "name": "QR registration is readiness evidence",
+        "ok": true,
+        "status": "Bereit zur Abholung",
+        "count": 1
+      },
+      {
+        "name": "ready cannot regress",
+        "ok": true,
+        "status": "Bereit zur Abholung",
+        "count": 1
+      },
+      {
+        "name": "prepared can return to Eingang readiness",
+        "ok": true,
+        "status": "Bereit zur Abholung",
+        "count": 1
+      },
+      {
+        "name": "same ref different id merged once",
+        "ok": true,
+        "status": "Abgeholt",
+        "count": 1
+      }
+    ]
+  },
+  "syntax": {
+    "node_checks": {
+      "api/location-booking/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/shared/blob-rest.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/shared/loader-pin-store.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/shared/pickup-store.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/shared/merge.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/pickup-confirm-v2/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/pickup-pod/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/loader-pins-admin/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/exporthub-state/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/exporthub-health/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/pickup-confirm/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/pickup-status/index.js": {
+        "ok": true,
+        "stderr": ""
+      },
+      "api/pickup-init/index.js": {
+        "ok": true,
+        "stderr": ""
+      }
+    },
+    "json_checks": {
+      "staticwebapp.config.json": {
+        "ok": true,
+        "error": ""
+      },
+      "staticwebapp.testservice.config.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/package.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/host.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/location-booking/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/pickup-confirm-v2/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/pickup-pod/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/loader-pins-admin/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/exporthub-state/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/exporthub-health/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/pickup-confirm/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/pickup-status/function.json": {
+        "ok": true,
+        "error": ""
+      },
+      "api/pickup-init/function.json": {
+        "ok": true,
+        "error": ""
+      }
+    },
+    "html_scripts": {
+      "index.html": {
+        "count": 60,
+        "errors": []
+      },
+      "TESTVERSION.html": {
+        "count": 60,
+        "errors": []
+      },
+      "location.html": {
+        "count": 1,
+        "errors": []
+      }
+    },
+    "all_ok": true
+  },
+  "limits": [
+    "Azure-Live-Speicherlatenz kann lokal nicht zertifiziert werden; der echte Testservice-Lauf ist nach Deployment erforderlich."
+  ]
+}

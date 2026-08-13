@@ -1,0 +1,102 @@
+[
+  {
+    "case": "index.html desktop",
+    "file": "index.html",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "title": "ExportHUB Online RC654",
+    "mail_before_len": 948,
+    "mail_same_after_sync": true,
+    "mail_same_after_save": true,
+    "mail_node_same_after_sync": true,
+    "mail_node_same_after_save": true,
+    "status_ready_visible": true,
+    "current_status_created": false,
+    "save_seconds_mock": 0.145,
+    "save_api_calls": 5,
+    "save_api_delta": 2,
+    "save_reasons_delta": [
+      "RC654 Sendung aktualisiert",
+      "RC654 Status und QR-Aktivierung gespeichert"
+    ],
+    "page_errors": [],
+    "console_errors": []
+  },
+  {
+    "case": "index.html mobile",
+    "file": "index.html",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "title": "ExportHUB Online RC654",
+    "mail_before_len": 948,
+    "mail_same_after_sync": true,
+    "mail_same_after_save": true,
+    "mail_node_same_after_sync": true,
+    "mail_node_same_after_save": true,
+    "status_ready_visible": true,
+    "current_status_created": false,
+    "save_seconds_mock": 0.127,
+    "save_api_calls": 5,
+    "save_api_delta": 2,
+    "save_reasons_delta": [
+      "RC654 Sendung aktualisiert",
+      "RC654 Status und QR-Aktivierung gespeichert"
+    ],
+    "page_errors": [],
+    "console_errors": []
+  },
+  {
+    "case": "TESTVERSION.html desktop",
+    "file": "TESTVERSION.html",
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "title": "ExportHUB Online RC654",
+    "mail_before_len": 948,
+    "mail_same_after_sync": true,
+    "mail_same_after_save": true,
+    "mail_node_same_after_sync": true,
+    "mail_node_same_after_save": true,
+    "status_ready_visible": true,
+    "current_status_created": false,
+    "save_seconds_mock": 0.153,
+    "save_api_calls": 5,
+    "save_api_delta": 2,
+    "save_reasons_delta": [
+      "RC654 Sendung aktualisiert",
+      "RC654 Status und QR-Aktivierung gespeichert"
+    ],
+    "page_errors": [],
+    "console_errors": []
+  },
+  {
+    "case": "TESTVERSION.html mobile",
+    "file": "TESTVERSION.html",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "title": "ExportHUB Online RC654",
+    "mail_before_len": 948,
+    "mail_same_after_sync": true,
+    "mail_same_after_save": true,
+    "mail_node_same_after_sync": true,
+    "mail_node_same_after_save": true,
+    "status_ready_visible": true,
+    "current_status_created": false,
+    "save_seconds_mock": 0.138,
+    "save_api_calls": 5,
+    "save_api_delta": 2,
+    "save_reasons_delta": [
+      "RC654 Sendung aktualisiert",
+      "RC654 Status und QR-Aktivierung gespeichert"
+    ],
+    "page_errors": [],
+    "console_errors": []
+  }
+]
