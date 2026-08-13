@@ -168,6 +168,65 @@ function chooseNewer(serverItem, incomingItem, collectionName) {
   return Object.assign({}, clone(serverItem) || {}, clone(incomingItem) || {});
 }
 
+function meaningfulValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  if (isObject(value)) return Object.keys(value).length > 0;
+  return true;
+}
+
+function shipmentStatusRank(value) {
+  const text = lower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/storn|cancel/.test(text)) return 100;
+  if (/nachbearbeit|rework/.test(text)) return 90;
+  if (/archiv/.test(text)) return 80;
+  if (/abgeschlossen|completed|erledigt|done/.test(text)) return 70;
+  if (/pod/.test(text)) return 60;
+  if (/abgeholt|picked/.test(text)) return 50;
+  if (/vorbereit|prepared/.test(text)) return 45;
+  if (/bereit.*abhol|ready.*pickup/.test(text)) return 40;
+  if (/wartet.*abd|abd.*wart/.test(text)) return 30;
+  if (/in bearbeitung|processing|bearbeit/.test(text)) return 25;
+  if (/erstellt|created/.test(text)) return 20;
+  if (/entwurf|draft/.test(text)) return 10;
+  return 0;
+}
+
+function mergeShipmentProtected(serverItem, incomingItem) {
+  if (!isObject(serverItem)) return clone(incomingItem);
+  if (!isObject(incomingItem)) return clone(serverItem);
+  const serverTs = timestamp(serverItem);
+  const incomingTs = timestamp(incomingItem);
+  const newer = incomingTs >= serverTs ? incomingItem : serverItem;
+  const older = incomingTs >= serverTs ? serverItem : incomingItem;
+  const out = clone(newer) || {};
+
+  // RC641 Bestandsschutz: a newer incomplete copy must never erase existing shipment data.
+  for (const [key, value] of Object.entries(older)) {
+    if (!meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
+  }
+
+  // Rows/documents are additive-protective. Empty arrays can never wipe existing content.
+  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory'].forEach((key) => {
+    const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
+    const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
+    if (!a.length && b.length) out[key] = clone(b);
+    else if (a.length && !b.length) out[key] = clone(a);
+    else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
+  });
+
+  // Status may only follow the newer persisted record; no rank-based auto-promotion here.
+  const newerStatus = newer.status || newer.processStatus;
+  const olderStatus = older.status || older.processStatus;
+  const chosenStatus = meaningfulValue(newerStatus) ? newerStatus : olderStatus;
+  if (meaningfulValue(chosenStatus)) {
+    out.status = clone(chosenStatus);
+    out.processStatus = clone(chosenStatus);
+  }
+  return out;
+}
+
 function normalizeTombstones(meta) {
   const list = meta && Array.isArray(meta.tombstones) ? meta.tombstones : [];
   const map = new Map();
@@ -199,6 +258,7 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
       const key = itemKey(item, keys, index);
       const existing = map.get(key);
       if (!existing) map.set(key, clone(item));
+      else if (name === 'shipments' || name === 'savedShipments') map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
       else map.set(key, source === 'incoming' ? chooseNewer(existing, item, name) : chooseNewer(item, existing, name));
     });
   };
@@ -209,7 +269,9 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
   for (const [key, item] of map.entries()) {
     const rawId = key.includes(':') ? key.slice(key.indexOf(':') + 1) : key;
     const tombstone = tombstones.get(`${name}:${lower(rawId)}`);
-    if (tombstone && Date.parse(tombstone.deletedAt || '') >= timestamp(item)) continue;
+    const shipmentCollection = name === 'shipments' || name === 'savedShipments';
+    const explicitShipmentDelete = shipmentCollection && tombstone && tombstone.explicitUserAction === true;
+    if (tombstone && (!shipmentCollection || explicitShipmentDelete) && Date.parse(tombstone.deletedAt || '') >= timestamp(item)) continue;
     out.push(item);
   }
   return out;
