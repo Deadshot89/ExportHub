@@ -5,6 +5,8 @@ const { Readable } = require('stream');
 
 const STORAGE_API_VERSION = '2023-11-03';
 const TRANSIENT = new Set([408,425,429,500,502,503,504]);
+const STORAGE_TIMEOUT_MS = Math.max(5000, Math.min(15000, Number(process.env.EXPORTHUB_STORAGE_TIMEOUT_MS || 9000)));
+const STORAGE_ATTEMPTS = Math.max(1, Math.min(2, Number(process.env.EXPORTHUB_STORAGE_ATTEMPTS || 1)));
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function parseConnectionString(raw){
@@ -63,20 +65,20 @@ async function parseAzureError(res){
   const msg=xmlValue(raw,'Message')||raw.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()||('Azure Blob HTTP '+res.status);
   return makeError(res.status,code,msg);
 }
-async function doFetch(config,method,url,headers={},body=null,attempts=3){
+async function doFetch(config,method,url,headers={},body=null,attempts=STORAGE_ATTEMPTS){
   const target=new URL(url.toString());
   if(config.sas){const sas=new URLSearchParams(config.sas);sas.forEach((v,k)=>{if(!target.searchParams.has(k))target.searchParams.append(k,v)})}
   let last=null;
   for(let attempt=1;attempt<=attempts;attempt++){
     const h=normalizeHeaders(headers);h['x-ms-date']=new Date().toUTCString();h['x-ms-version']=STORAGE_API_VERSION;
     if(!config.sas)h.authorization=sharedKeyAuthorization(config,method,target,h);
-    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),30000);
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),STORAGE_TIMEOUT_MS);
     try{
       const res=await fetch(target,{method,headers:h,body,signal:controller.signal});clearTimeout(timer);
       if(res.ok)return res;
       const err=await parseAzureError(res);last=err;
       if(!TRANSIENT.has(res.status)||attempt===attempts)throw err;
-    }catch(e){clearTimeout(timer);last=e;if((e&&e.statusCode&&!TRANSIENT.has(Number(e.statusCode)))||attempt===attempts)throw e;}
+    }catch(e){clearTimeout(timer);if(e&&e.name==='AbortError')e=makeError(504,'STORAGE_TIMEOUT','Azure Blob antwortete nicht innerhalb von '+STORAGE_TIMEOUT_MS+' ms.');last=e;if((e&&e.statusCode&&!TRANSIENT.has(Number(e.statusCode)))||attempt===attempts)throw e;}
     await new Promise(r=>setTimeout(r,Math.min(1600,250*attempt)));
   }
   throw last||makeError(503,'StorageRequestFailed','Azure Blob konnte nicht erreicht werden.');
@@ -99,11 +101,11 @@ class RestBlobClient{
   withSnapshot(v){return new RestBlobClient(this.config,this.containerName,this.name,'',String(v||''));}
   async download(offset=0){
     const headers={};if(Number(offset)>0)headers.range='bytes='+Number(offset)+'-';
-    const res=await doFetch(this.config,'GET',this.url(),headers,null,3);const buf=Buffer.from(await res.arrayBuffer());
+    const res=await doFetch(this.config,'GET',this.url(),headers,null,STORAGE_ATTEMPTS);const buf=Buffer.from(await res.arrayBuffer());
     return {etag:res.headers.get('etag'),lastModified:res.headers.get('last-modified')?new Date(res.headers.get('last-modified')):null,metadata:responseMetadata(res.headers),readableStreamBody:Readable.from(buf)};
   }
   async getProperties(){
-    const res=await doFetch(this.config,'HEAD',this.url(),{},null,3);
+    const res=await doFetch(this.config,'HEAD',this.url(),{},null,STORAGE_ATTEMPTS);
     return {etag:res.headers.get('etag'),lastModified:res.headers.get('last-modified')?new Date(res.headers.get('last-modified')):null,metadata:responseMetadata(res.headers)};
   }
   async upload(content,length,options={}){
@@ -111,7 +113,7 @@ class RestBlobClient{
     const ct=options&&options.blobHTTPHeaders&&options.blobHTTPHeaders.blobContentType;if(ct)headers['content-type']=ct;
     const cond=options&&options.conditions||{};if(cond.ifMatch)headers['if-match']=cond.ifMatch;if(cond.ifNoneMatch)headers['if-none-match']=cond.ifNoneMatch;
     Object.keys(options&&options.metadata||{}).forEach(k=>{const v=options.metadata[k];if(v!==undefined&&v!==null)headers['x-ms-meta-'+String(k).toLowerCase()]=String(v)});
-    const res=await doFetch(this.config,'PUT',this.url(),headers,buf,3);return {etag:res.headers.get('etag'),lastModified:res.headers.get('last-modified')};
+    const res=await doFetch(this.config,'PUT',this.url(),headers,buf,STORAGE_ATTEMPTS);return {etag:res.headers.get('etag'),lastModified:res.headers.get('last-modified')};
   }
 }
 class RestContainerClient{
@@ -124,7 +126,7 @@ class RestContainerClient{
       const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName));u.searchParams.set('restype','container');u.searchParams.set('comp','list');u.searchParams.set('maxresults','5000');
       if(options.prefix)u.searchParams.set('prefix',String(options.prefix));if(marker)u.searchParams.set('marker',marker);
       const include=[];if(options.includeSnapshots)include.push('snapshots');if(options.includeMetadata)include.push('metadata');if(options.includeVersions)include.push('versions');if(options.includeDeleted)include.push('deleted');if(options.includeDeletedWithVersions)include.push('deletedwithversions');if(include.length)u.searchParams.set('include',include.join(','));
-      const res=await doFetch(this.config,'GET',u,{},null,3);const parsed=parseListXml(await res.text());for(const item of parsed.items)yield item;marker=parsed.nextMarker||'';
+      const res=await doFetch(this.config,'GET',u,{},null,STORAGE_ATTEMPTS);const parsed=parseListXml(await res.text());for(const item of parsed.items)yield item;marker=parsed.nextMarker||'';
     }while(marker);
   }
 }

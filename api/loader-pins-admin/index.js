@@ -33,7 +33,7 @@ module.exports = async function (context, req) {
     else if (action === 'toggle') list = await pins.toggle(body);
     else if (action === 'delete') list = await pins.remove(body);
     else throw pins.error('INVALID_ACTION', 'Unbekannte PIN-Aktion.', 400);
-    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, version: 'RC500' });
+    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, version: 'RC644' });
   } catch (e) {
     context.log.error('loader-pins-admin', e && e.code, e && e.message);
     context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'Verlader-PINs konnten nicht verwaltet werden.' });

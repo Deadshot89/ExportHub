@@ -5,8 +5,10 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["post", "options"],
-      "route": "pickup-confirm-v2"
+      "methods": [
+        "post",
+        "options"
+      ]
     },
     {
       "type": "http",

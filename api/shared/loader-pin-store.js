@@ -3,16 +3,16 @@
 const crypto = require('crypto');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
-const CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || 'exporthub-data';
+const CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const BLOB_NAME = process.env.EXPORTHUB_LOADER_PIN_BLOB || 'server/loader-pins.json';
 const RECORD_CONTAINER = process.env.EXPORTHUB_PICKUP_CONTAINER || 'exporthub-pickup';
-const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || 'team-state.json';
+const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const MAX_RETRIES = 6;
 
 function text(v) { return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim(); }
 function now() { return new Date().toISOString(); }
 function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
-function conn() { return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''; }
+function conn() { return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''; }
 function error(code, message, status) { const e = new Error(message); e.code = code; e.status = status || 400; return e; }
 function pinSecret() { return process.env.EXPORTHUB_LOADER_PIN_SECRET || process.env.EXPORTHUB_PICKUP_SECRET || process.env.EXPORTHUB_AUTH_SIGNING_SECRET || conn(); }
 function encryptionKey() { const s = pinSecret(); if (!s) throw error('PIN_SECRET_MISSING', 'Für die Verlader-PINs ist kein serverseitiges Geheimnis konfiguriert.', 503); return crypto.createHash('sha256').update('exporthub-loader-pin-encryption-v1:' + s).digest(); }
@@ -68,7 +68,6 @@ async function clients() {
   const service = BlobServiceClient.fromConnectionString(cs);
   const config = service.getContainerClient(CONTAINER);
   const records = service.getContainerClient(RECORD_CONTAINER);
-  await Promise.all([config.createIfNotExists(), records.createIfNotExists()]);
   return { service, config, records };
 }
 async function readBuffer(blob) { const r = await blob.download(0), chunks = []; for await (const c of r.readableStreamBody) chunks.push(Buffer.from(c)); return { buffer: Buffer.concat(chunks), etag: r.etag || null }; }
@@ -171,8 +170,22 @@ async function findByPin(pin) {
   pin = text(pin);
   if (!validPin(pin)) return null;
   const doc = await ensure(), digest = pinHash(pin);
-  const row = doc.pins.find(x => x.active !== false && safeEq(x.pinHash, digest));
-  return row ? { id: text(row.id), name: text(row.name), active: true } : null;
+  let row = doc.pins.find(x => x.active !== false && safeEq(x.pinHash, digest));
+  if (row) return { id: text(row.id), name: text(row.name), active: true };
+  /* RC644: Falls sich das Storage-/Signaturgeheimnis geändert hat, bleiben die explizit konfigurierten bzw. bisherigen Standard-PINs nutzbar. */
+  const fallback = envDefaults().find(x => x.active !== false && text(x.pin) === pin);
+  if (!fallback) return null;
+  row = doc.pins.find(x => x.active !== false && text(x.name).toLowerCase() === text(fallback.name).toLowerCase());
+  const resolved = row || { id: slug(fallback.name) + '-fallback', name: fallback.name, active: true };
+  try {
+    await mutate(function(d){
+      let target=d.pins.find(x=>text(x.id)===text(resolved.id))||d.pins.find(x=>text(x.name).toLowerCase()===text(fallback.name).toLowerCase());
+      if(!target){target=makeRecord(fallback,d.pins.length);d.pins.push(target)}
+      else{target.pinHash=pinHash(pin);target.pinEncrypted=encryptPin(pin);target.active=true;target.updatedAt=now()}
+      return d;
+    });
+  } catch (_) {}
+  return { id: text(resolved.id), name: text(fallback.name), active: true };
 }
 
 function bridgePin() {

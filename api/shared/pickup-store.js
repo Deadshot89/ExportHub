@@ -9,7 +9,7 @@ const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EX
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const MAX_RETRIES = 6;
 
-function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''}
+function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''}
 function secret(){return process.env.EXPORTHUB_PICKUP_SECRET || connectionString() || 'exporthub-local-secret'}
 function hash(value){return crypto.createHmac('sha256',secret()).update(String(value||'')).digest('hex')}
 function safeEqualHex(a,b){try{const aa=Buffer.from(String(a||''),'hex'),bb=Buffer.from(String(b||''),'hex');return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb)}catch(_){return false}}
@@ -32,7 +32,6 @@ async function clients(){
   if(!cs)throw err('STORAGE_NOT_CONFIGURED','App-Einstellung EXPORTHUB_STORAGE_CONNECTION_STRING fehlt.',503);
   const service=BlobServiceClient.fromConnectionString(cs);
   const records=service.getContainerClient(RECORD_CONTAINER),pods=service.getContainerClient(POD_CONTAINER),team=service.getContainerClient(TEAM_CONTAINER);
-  await Promise.all([records.createIfNotExists(),pods.createIfNotExists(),team.createIfNotExists()]);
   return {service,records,pods,team};
 }
 async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));return {buffer:Buffer.concat(chunks),etag:r.etag||null,contentType:r.contentType||r._response&&r._response.headers&&r._response.headers.get&&r._response.headers.get('content-type')||''}}
@@ -84,12 +83,12 @@ async function updateTeam(record,podsToAdd=[]){
       sh.pickupDriverName=record.driverName||'';sh.driverName=record.driverName||'';sh.pickupLicensePlate=record.licensePlate||'';sh.licensePlate=record.licensePlate||'';sh.vehicleLicensePlate=record.licensePlate||'';sh.kennzeichen=record.licensePlate||'';sh.loaderName=record.loaderName||'';sh.loadedBy=record.loaderName||'';sh.loader=record.loaderName||'';sh.verlader=record.loaderName||'';var carrier=sanitizeText(first(record,['carrierName','speditionName','carrier','spedition']),180),expected=Math.max(0,Math.round(Number(first(record,['expectedColliCount','totalColli','colliCount','packageCount']))||0)),entered=Math.max(0,Math.round(Number(first(record,['enteredColliCount','confirmedColliCount','pickupColliCount']))||0)),colliOk=record.colliCountConfirmed===true||record.colliConfirmed===true||record.pickupColliCountConfirmed===true;if(carrier){sh.carrier=carrier;sh.carrierName=carrier;sh.spedition=carrier;sh.speditionName=carrier}sh.expectedColliCount=expected;sh.pickupColliCount=expected;sh.enteredColliCount=entered;sh.colliCountConfirmed=colliOk;sh.pickupColliCountConfirmed=colliOk;
       sh.driverSignatureUrl=sigUrl;sh.pickupDriverSignatureUrl=sigUrl;sh.signatureAvailable=hasSignature;sh.podFiles=(Array.isArray(sh.podFiles)?sh.podFiles:[]).filter(x=>String(x&&x.kind||'').toLowerCase()!=='scan-confirmation');
       if(podsToAdd.length){const all=[...sh.podFiles];for(const p of podsToAdd.filter(x=>String(x&&x.kind||'').toLowerCase()!=='scan-confirmation')){const url='/api/pickup-pod?token='+encodeURIComponent(record.token)+'&file='+encodeURIComponent(p.id);if(!all.some(x=>x.remoteId===p.id||x.url===url))all.push({id:'QR-'+p.id,name:p.name,filename:p.name,url,uploadedAt:p.uploadedAt,added:p.uploadedAt,remote:true,remoteId:p.id,mimeType:p.type,type:p.type,size:p.size,source:'QR',kind:p.kind||''})}sh.podFiles=all}
-      if(hasSignature){sh.podStatus='POD vorhanden';sh.podAvailable=true;sh.podConfirmed=true;sh.podScanConfirmed=true;sh.podDocumentType='signed-loadlist';sh.podDisplayName='Ladeliste mit Unterschrift';sh.status='POD vorhanden';sh.processStatus='POD vorhanden'}
+      if(hasSignature){sh.podStatus='POD vorhanden';sh.podAvailable=true;sh.podConfirmed=true;sh.podScanConfirmed=true;sh.podServerVerified=true;sh.podServerVerifiedAt=iso;sh.remotePickupStatusLocked=true;sh.podDocumentType='signed-loadlist';sh.podDisplayName='Ladeliste mit Unterschrift';sh.status='POD vorhanden';sh.processStatus='POD vorhanden';delete sh.done;delete sh.completed;delete sh.completedAt}
       else{sh.podStatus='Unterschrift fehlt';sh.podAvailable=false;sh.podConfirmed=false;sh.podScanConfirmed=false;if(String(sh.status||'').toLowerCase().includes('pod'))sh.status='Abgeholt';if(String(sh.processStatus||'').toLowerCase().includes('pod'))sh.processStatus='Abgeholt'}
       sh.podCount=(hasSignature?1:0)+sh.podFiles.length;
     }
     for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){t.status='erledigt';t.done=true;t.completedAt=record.confirmedAt||now();t._syncUpdatedAt=record.confirmedAt||now();t._syncDeviceId='qr-pickup'}}
-    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC610';
+    doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC644';
     try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
   }
 }

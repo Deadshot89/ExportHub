@@ -3,6 +3,7 @@ const crypto=require('crypto');
 const store=require('../shared/pickup-store');
 function count(v){const n=Math.round(Number(v));return Number.isFinite(n)&&n>0?n:0}
 module.exports=async function(context,req){
+ if(req.method==='OPTIONS'){context.res=store.json(204,{}, {Allow:'POST, OPTIONS'});return}
  if(req.method!=='POST'){context.res=store.json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'POST'});return}
  try{
   const b=store.body(req),token=String(b.token||'').toLowerCase(),pin=String(b.pin||''),signature=store.first(b,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']);if(!signature)throw store.err('SIGNATURE_REQUIRED','Die digitale Unterschrift ist Pflicht.',400);let uploadKey='';

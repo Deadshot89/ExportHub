@@ -9,7 +9,7 @@ const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EX
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC640';
+const API_VERSION = 'RC644';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -117,6 +117,16 @@ async function readTeamResilient(container,blob){
   return {value:fallback.value,etag:e&&e.etag||null,recoveredFromHistory:true,recoverySource:fallback.source,corruptCurrent:true};
  }
 }
+async function readTeamFast(blob){
+ try{
+  const d=await readJson(blob,emptyTeam(),false);
+  if(d.etag||usableTeamDocument(d.value))return d;
+  throw error('STATE_MISSING','Der aktuelle Azure-Teamstand fehlt. Die Historienrettung wird im normalen Lese-/Speicherpfad nicht automatisch gestartet.',503);
+ }catch(e){
+  if(e&&e.code==='STORAGE_JSON_INVALID')throw error('STATE_CORRUPT_RECOVERY_REQUIRED','Der aktuelle Azure-Teamstand ist beschädigt. Bitte die explizite Wiederherstellung verwenden; normale Speichervorgänge wurden gestoppt.',503);
+  throw e;
+ }
+}
 async function safetyRawBackup(container,blob,label){
  try{
   const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));
@@ -127,7 +137,9 @@ async function safetyRawBackup(container,blob,label){
 }
 async function validateSession(req,payload,c){
  const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
- const reads=await Promise.all([readJson(c.auth,emptyAuth(),true),readTeamResilient(c.container,c.team)]);
+ const requestedMode=lower((req.query&&req.query.mode)||(payload&&payload.action)||(payload&&payload.mode));
+ const teamRead=(requestedMode==='recovery-preview'||requestedMode==='recover-shipments')?readTeamResilient(c.container,c.team):readTeamFast(c.team);
+ const reads=await Promise.all([readJson(c.auth,emptyAuth(),true),teamRead]);
  const authDoc=reads[0],teamDoc=reads[1],sessions=Array.isArray(authDoc.value&&authDoc.value.sessions)?authDoc.value.sessions:[];
  const hash=tokenHash(token);let session=sessions.find(s=>safeEqualText(s.tokenHash,hash)),source='blob';
  if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}}
@@ -736,7 +748,7 @@ module.exports=async function(context,req){
    }
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
-   let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC640-save');
+   let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC644-save');
    const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const serverMs=Date.now()-requestStarted,ack=req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
@@ -746,6 +758,6 @@ module.exports=async function(context,req){
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('ExportHUB state API error',e&&e.code,e&&e.message)}catch(_){}
-  context.res=json(e&&e.status?e.status:500,{ok:false,code:e&&e.code?e.code:'SERVER_ERROR',message:e&&e.message?e.message:'Unbekannter Speicherfehler.'});
+  context.res=json(e&&(e.status||e.statusCode)?Number(e.status||e.statusCode):500,{ok:false,code:e&&e.code?e.code:'SERVER_ERROR',message:e&&e.message?e.message:'Unbekannter Speicherfehler.'});
  }
 };

@@ -1,38 +1,19 @@
+
 'use strict';
-const store = require('../shared/pickup-store');
-
-module.exports = async function (context, req) {
-  try {
-    const token = store.text(req.query && req.query.token);
-    if (!store.validToken(token)) {
-      context.res = store.error(400, 'INVALID_TOKEN', 'Ungültiger QR-Code.');
-      return;
-    }
-    const record = await store.readRecord(token);
-    if (!record) {
-      context.res = store.error(404, 'NOT_FOUND', 'Dieser QR-Code ist nicht registriert.');
-      return;
-    }
-    const signature = await store.readSignature(record);
-    if (!signature || !signature.buffer || signature.buffer.length < 100) {
-      context.res = store.error(404, 'SIGNATURE_NOT_FOUND', 'Für diese Abholung wurde keine gültige Unterschrift gespeichert.');
-      return;
-    }
-
-    // Die HTML-Anwendung erzeugt aus dieser Unterschrift die vollständige unterschriebene Ladeliste als PDF.
-    context.res = {
-      status: 200,
-      isRaw: true,
-      headers: {
-        'Content-Type': signature.contentType,
-        'Content-Length': String(signature.buffer.length),
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Content-Disposition': `inline; filename="Unterschrift_${(record.reference || token).replace(/[^A-Za-z0-9_-]/g, '_')}.jpg"`
-      },
-      body: signature.buffer
-    };
-  } catch (err) {
-    context.log.error('pickup-pod', err);
-    context.res = store.error(500, 'POD_FAILED', err.message || 'POD konnte nicht geladen werden.');
+const crypto=require('crypto');
+const store=require('../shared/pickup-store');
+module.exports=async function(context,req){
+  if(req.method==='OPTIONS'){context.res=store.json(204,{}, {Allow:'GET, POST, OPTIONS'});return}
+  if(req.method==='GET'){
+    try{
+      const token=String(req.query&&req.query.token||'').toLowerCase(),file=String(req.query&&req.query.file||''),wantSignature=String(req.query&&req.query.signature||'')==='1'||!file,got=await store.getRecord(token);
+      if(wantSignature&&got.record.signatureBlobName){const blob=got.clients.pods.getBlockBlobClient(got.record.signatureBlobName),data=await store.readBuffer(blob);if(!data.buffer||data.buffer.length<100)throw store.err('SIGNATURE_NOT_FOUND','Digitale Unterschrift ist nicht gespeichert.',404);context.res={status:200,headers:{'Content-Type':got.record.signatureType||data.contentType||'image/jpeg','Content-Disposition':'inline; filename="Unterschrift_'+store.safeName(got.record.reference||got.record.shipmentId||'Sendung')+'.jpg"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:data.buffer};return}
+      if(!file)throw store.err('SIGNATURE_NOT_FOUND','Digitale Unterschrift ist nicht gespeichert.',404);
+      const meta=store.realPodFiles(got.record).find(x=>String(x.id)===file);if(!meta)throw store.err('NOT_FOUND','POD-Datei nicht gefunden.',404);const blob=got.clients.pods.getBlockBlobClient(meta.blobName),data=await store.readBuffer(blob),name=String(meta.name||'POD.pdf').replace(/["\r\n]/g,'');context.res={status:200,headers:{'Content-Type':meta.type||data.contentType||'application/pdf','Content-Disposition':'attachment; filename="'+name+'"','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'},body:data.buffer};return
+    }catch(e){context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'POD konnte nicht geladen werden.'});return}
   }
+  if(req.method!=='POST'){context.res=store.json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST'});return}
+  try{
+    const b=store.body(req),token=String(b.token||'').toLowerCase(),key=String(b.uploadKey||''),images=Array.isArray(b.images)?b.images.slice(0,6):[];if(!images.length)throw store.err('NO_IMAGES','Keine Fotos übermittelt.',400);const got=await store.getRecord(token),r=got.record;if(!r.confirmedAt)throw store.err('NOT_CONFIRMED','Abholung ist noch nicht bestätigt.',409);if(!r.uploadKeyHash||!store.safeEqualHex(r.uploadKeyHash,store.hash(key))||!r.uploadKeyExpiresAt||Date.now()>Date.parse(r.uploadKeyExpiresAt))throw store.err('INVALID_UPLOAD_KEY','Upload-Freigabe ist ungültig oder abgelaufen.',401);let total=0;for(const img of images)total+=Number(img.size||0);if(total>12*1024*1024)throw store.err('PAYLOAD_TOO_LARGE','Fotos sind insgesamt zu groß.',413);const decoded=[];for(const img of images){const raw=String(img.dataBase64||'');if(!raw||raw.length>5*1024*1024)throw store.err('IMAGE_TOO_LARGE','Ein Foto ist zu groß.',413);const buf=Buffer.from(raw,'base64');if(buf.length<100||buf.length>4*1024*1024)throw store.err('INVALID_IMAGE','Ein Foto ist ungültig oder zu groß.',400);const type=String(img.type||'image/jpeg');if(!/^image\/jpeg$/i.test(type))throw store.err('INVALID_TYPE','Die mobile Seite muss Bilder als JPEG übermitteln.',400);decoded.push({buffer:buf,name:String(img.name||'POD.jpg')})}const pdf=store.imagesPdf(decoded),id=crypto.randomBytes(12).toString('hex'),ref=store.safeName(r.reference||r.shipmentId||'Sendung'),stamp=store.now().replace(/[-:TZ.]/g,'').slice(0,14),name=`POD_QR_Upload_${ref}_${stamp}.pdf`,blobName=token+'/'+id+'.pdf',blob=got.clients.pods.getBlockBlobClient(blobName);await blob.uploadData(pdf,{blobHTTPHeaders:{blobContentType:'application/pdf'},metadata:{token,reference:String(r.reference||''),kind:'qr-upload-pdf'}});const saved={id,name,type:'application/pdf',size:pdf.length,uploadedAt:store.now(),blobName,kind:'qr-upload-pdf',sourceNames:decoded.map(x=>x.name)};const rec=await store.mutateRecord(token,async function(cur){cur.podFiles=[...store.realPodFiles(cur),saved];cur.updatedAt=store.now();return cur});try{await store.updateTeam(rec,[saved])}catch(e){context.log.error('Team POD update failed',e)}context.res=store.json(200,Object.assign(store.publicRecord(rec),{uploaded:images.length,pdfCreated:true,podCount:rec.podFiles.length}))
+  }catch(e){context.log.error(e);context.res=store.json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'POD-Upload fehlgeschlagen.'})}
 };

@@ -61,17 +61,43 @@
     },
     {
       "route": "/pickup",
-      "rewrite": "/pickup.html",
+      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
       "headers": {
         "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer"
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "route": "/pickup/*",
+      "rewrite": "/index.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff"
       }
     },
     {
       "route": "/pickup.html",
+      "rewrite": "/index.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "route": "/pickup.html/*",
+      "rewrite": "/index.html",
       "allowedRoles": [
         "anonymous"
       ],
@@ -118,7 +144,9 @@
       "/pickup",
       "/pickup.html",
       "/assets/*",
-      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}"
+      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
+      "/pickup/*",
+      "/pickup.html/*"
     ]
   },
   "platform": {
