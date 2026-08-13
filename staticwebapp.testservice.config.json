@@ -3,31 +3,26 @@
   "routes": [
     {
       "route": "/",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
       },
-      "rewrite": "/index.html"
+      "rewrite": "/TESTVERSION.html"
     },
     {
       "route": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
-      }
+      },
+      "rewrite": "/TESTVERSION.html"
     },
     {
       "route": "/test",
-      "rewrite": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "rewrite": "/TESTVERSION.html",
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
@@ -35,10 +30,8 @@
     },
     {
       "route": "/test/*",
-      "rewrite": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "rewrite": "/TESTVERSION.html",
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
@@ -46,9 +39,7 @@
     },
     {
       "route": "/TESTVERSION.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
@@ -56,9 +47,7 @@
     },
     {
       "route": "/testservice-environment.json",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store",
         "X-ExportHUB-Environment": "test"
@@ -66,10 +55,8 @@
     },
     {
       "route": "/pickup",
-      "rewrite": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "rewrite": "/TESTVERSION.html",
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -78,23 +65,19 @@
     },
     {
       "route": "/pickup.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
         "X-Content-Type-Options": "nosniff",
         "X-ExportHUB-Environment": "test"
       },
-      "rewrite": "/index.html"
+      "rewrite": "/TESTVERSION.html"
     },
     {
       "route": "/location",
       "rewrite": "/location.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -104,9 +87,7 @@
     },
     {
       "route": "/location.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -116,9 +97,7 @@
     },
     {
       "route": "/api/*",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store",
         "X-ExportHUB-Environment": "test"
@@ -126,22 +105,18 @@
     },
     {
       "route": "/.auth/*",
-      "allowedRoles": [
-        "anonymous"
-      ]
+      "allowedRoles": ["anonymous"]
     },
     {
       "route": "/assets/*",
-      "allowedRoles": [
-        "anonymous"
-      ],
+      "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate"
       }
     }
   ],
   "navigationFallback": {
-    "rewrite": "/index.html",
+    "rewrite": "/TESTVERSION.html",
     "exclude": [
       "/api/*",
       "/.auth/*",

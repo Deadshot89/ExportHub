@@ -174,12 +174,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC656',cache:'656',loginReturn:'/test?v=656'});
+var BUILD=Object.freeze({version:'RC657',cache:'657',loginReturn:'/test?v=657'});
 var RELEASE=Object.freeze({
- version:'RC656',
+ version:'RC657',
  date:'13.08.2026',
- title:'Verbindliche Testservice-Version und Release-Prüfung',
+ title:'Testservice wirklich isoliert ausliefern',
  changes:Object.freeze([
+   'RC657 trennt den Testservice technisch von der Produktions-index: Der Testservice-Workflow ersetzt index.html nur im isolierten Deployment-Arbeitsbereich durch TESTVERSION.html; die Produktionsdatei im Repository bleibt unverändert.',
+   'RC657 leitet Root, /index.html, /test und Navigation-Fallback im Testservice verbindlich auf TESTVERSION.html und verhindert damit, dass der Testservice eine alte Produktions-RC anzeigt.',
+   'RC657 startet den separaten TESTSERVICE-Workflow automatisch bei Änderungen an TESTVERSION.html oder der Testservice-Konfiguration und prüft nach dem Deployment die tatsächlich ausgelieferte RC.',
+   'RC657 schreibt die echte Azure-Testservice-URL in die Workflow-Ausgabe, damit nicht mehr versehentlich die Produktionsdomain wonderful-forest unter /test verwendet wird.',
    'RC656 prüft im Release-Center die tatsächlich ausgelieferte TESTVERSION.html und blockiert Testfreigabe oder Produktion, wenn Online-Version und Soll-Version nicht identisch sind.',
    'RC656 lädt die Testquelle für Releases ausschließlich direkt aus /TESTVERSION.html mit Cache-Busting statt über die möglicherweise veraltete /test-Route.',
    'RC656 bietet im Release-Center einen direkten Neu-Laden-Knopf über /TESTVERSION.html, damit eine zwischengespeicherte /test-Route nicht mehr unbemerkt eine ältere RC anzeigt.',
@@ -7855,7 +7859,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC656');document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC657');document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10626,7 +10630,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC656'),CACHE=String(ACTIVE_BUILD.cache||'656'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC657'),CACHE=String(ACTIVE_BUILD.cache||'657'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({});
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -20459,7 +20463,7 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC656'),CACHE=String(ACTIVE_BUILD.cache||'656'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC657'),CACHE=String(ACTIVE_BUILD.cache||'657'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
