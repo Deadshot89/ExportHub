@@ -174,9 +174,9 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC647',cache:'647',loginReturn:'/?v=647'});
+var BUILD=Object.freeze({version:'RC648',cache:'648',loginReturn:'/?v=648'});
 var RELEASE=Object.freeze({
- version:'RC647',
+ version:'RC648',
  date:'13.08.2026',
  title:'Azure-, QR-, PIN-, Status- und Mail-Stabilisierung',
  changes:Object.freeze([
@@ -187,6 +187,7 @@ var RELEASE=Object.freeze({
    'RC644 hält den Mailbereich beim Aktualisieren im bestehenden DOM; Eingabefokus und unveränderte Mailinhalte bleiben erhalten.',
    'RC644 stellt die vollständigen QR-Abholendpunkte und die serverseitige persönliche Verlader-PIN-Prüfung wieder her.',
    'RC647 trennt POD vorhanden und Abgeschlossen eindeutig: POD wird automatisch erkannt, der Abschluss erfolgt nur noch bewusst über Sendung abschließen und wird mit Zeitpunkt und Benutzer protokolliert.',
+   'RC648 stabilisiert die Azure-Speicherung bei Kaltstarts: längeres einmaliges Save-Zeitfenster, keine parallelen Browser-Wiederholungen und idempotente Speicher-IDs verhindern Doppelbuchungen bei verspäteten Antworten.',
    'RC644 liefert Soll-Colli, Spedition, Adresse und Unterschriftsstatus wieder an die QR-Abholseite und setzt eine unterschriebene QR-Abholung auf POD vorhanden statt künstlich auf erledigt.',
    'RC643 verhindert in der Sendungsübersicht vollständige Neu-Render-Vorgänge bei Status-, Sync- und Speicherereignissen; vorhandene Karten und Gruppen werden ausschließlich lokal aktualisiert.',
    'RC643 hält Sendung erstellen während Eingabe, Blur, Status- und Remote-Sync-Ereignissen im bestehenden DOM und aktualisiert nur Felder, Zusammenfassung, QR-Status und notwendige Prozessinformationen.',
@@ -11009,11 +11010,11 @@ async function checkBootstrapStatus(){
 async function stateCall(mode,payload,requestOptions){
  const token=text(runtime.authToken),body=Object.assign({action:mode,mode:mode,sessionToken:token},payload||{}),candidates=[API].concat(STATE_API_CANDIDATES.filter(function(endpoint){return endpoint!==API})),errors=[];
  for(let i=0;i<candidates.length;i++){
-  const endpoint=candidates[i],headers={'Content-Type':'application/json','Accept':'application/json'},attemptLimit=mode==='save'?2:1;
+  const endpoint=candidates[i],headers={'Content-Type':'application/json','Accept':'application/json'},attemptLimit=1;
   if(token){headers['X-ExportHUB-Token']=token;headers['X-ExportHUB-Session']=token;headers.Authorization='Bearer '+token}
   for(let attempt=1;attempt<=attemptLimit;attempt++){
    try{
-    const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=22000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=14000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
+    const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=50000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=25000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
     const result=await jsonFetch(endpoint+'?mode='+encodeURIComponent(mode),opts);
     API=endpoint;runtime.stateApiLocked=true;runtime.stateApiEndpoint=endpoint;runtime.stateApiReachable=true;runtime.apiReachable=true;runtime.lastStateApiSuccessAt=Date.now();return result
    }catch(error){
@@ -11374,9 +11375,9 @@ async function flushSave(reason,options){
  runtime.saving=true;if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}runtime.pendingSave=false;const generation=runtime.changeGeneration;runtime.activeSaveGeneration=generation;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';
  try{
   const liveState=getState(),liveUsers=typeof getUsers==='function'?getUsers():runtime.users;captureCanonicalDeletions(runtime.lastSnapshot||{},liveState,runtime.lastUsers||[],liveUsers);const fullStateSnapshot=clone(liveState),usersSnapshot=clone(liveUsers);stampChanges(runtime.lastSnapshot||{},fullStateSnapshot,runtime.lastUsers||[],usersSnapshot);
-  const stateDelta=buildAzureStateDelta(runtime.lastSnapshot||{},fullStateSnapshot),operationId=runtime.deviceId+'-'+generation+'-'+Date.now();const payload={clientVersion:VERSION,baseRevision:runtime.revision,deviceId:runtime.deviceId,operationId:operationId,clientMutationId:operationId,reason:reason||'save',state:stateDelta};runtime.network.posts++;
+  const stateDelta=buildAzureStateDelta(runtime.lastSnapshot||{},fullStateSnapshot);if(Number(runtime.pendingOperationGeneration||0)!==generation||!runtime.pendingOperationId){runtime.pendingOperationGeneration=generation;runtime.pendingOperationId=runtime.deviceId+'-'+generation+'-'+Date.now()}const operationId=runtime.pendingOperationId,payload={clientVersion:VERSION,baseRevision:runtime.revision,deviceId:runtime.deviceId,operationId:operationId,clientMutationId:operationId,reason:reason||'save',state:stateDelta};runtime.network.posts++;
   let payloadBytes=0;try{payloadBytes=new Blob([JSON.stringify(payload)]).size}catch(_){try{payloadBytes=JSON.stringify(payload).length}catch(__){payloadBytes=0}}runtime.lastPayloadBytes=payloadBytes;try{runtime.lastFullStateBytes=new Blob([JSON.stringify(fullStateSnapshot)]).size}catch(_){runtime.lastFullStateBytes=0}
-  const requestOptions={keepalive:!!options.keepalive};if(requestOptions.keepalive&&payloadBytes>60000)requestOptions.keepalive=false;const saveStarted=performance&&performance.now?performance.now():Date.now();runtime.lastSaveStartedAt=new Date().toISOString();const d=await stateCall('save',payload,requestOptions);runtime.lastSaveMs=Math.max(0,Math.round((performance&&performance.now?performance.now():Date.now())-saveStarted));runtime.lastServerSaveMs=Math.max(0,Number(d.serverMs||0));runtime.revision=Number(d.revision||runtime.revision);runtime.lastSavedGeneration=generation;runtime.saveRetryCount=0;if(runtime.saveRetryTimer){native.clearTimeout(runtime.saveRetryTimer);runtime.saveRetryTimer=null}
+  const requestOptions={keepalive:!!options.keepalive};if(requestOptions.keepalive&&payloadBytes>60000)requestOptions.keepalive=false;const saveStarted=performance&&performance.now?performance.now():Date.now();runtime.lastSaveStartedAt=new Date().toISOString();const d=await stateCall('save',payload,requestOptions);runtime.lastSaveMs=Math.max(0,Math.round((performance&&performance.now?performance.now():Date.now())-saveStarted));runtime.lastServerSaveMs=Math.max(0,Number(d.serverMs||0));runtime.revision=Number(d.revision||runtime.revision);runtime.lastSavedGeneration=generation;if(Number(runtime.pendingOperationGeneration||0)===generation){runtime.pendingOperationId='';runtime.pendingOperationGeneration=0}runtime.saveRetryCount=0;if(runtime.saveRetryTimer){native.clearTimeout(runtime.saveRetryTimer);runtime.saveRetryTimer=null}
   const newer=runtime.changeGeneration>generation;runtime.lastSnapshot=clone(d.state||fullStateSnapshot);runtime.lastUsers=clone(d.users||usersSnapshot);
   if(d.concurrentMerge===true&&d.state&&!newer)applyRemoteDocument(d,'concurrent-merge');
   runtime.dirty=newer;runtime.pendingSave=newer;if(info)info.textContent=(d.concurrentMerge?'Paralleländerungen zusammengeführt · ':'Dauerhaft in Azure gespeichert · ')+(runtime.lastSaveMs/1000).toFixed(2).replace('.',',')+' s';if(newer)queueSave('Änderung während der Speicherung');return true
