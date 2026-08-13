@@ -1,8 +1,7 @@
 'use strict';
 
 const COLLECTION_KEYS = {
-  shipments: ['ref', 'reference', 'shipmentRef', 'referenceNumber', 'id'],
-  savedShipments: ['ref', 'reference', 'shipmentRef', 'referenceNumber', 'id'],
+  shipments: ['id', 'ref'],
   tasks: ['id'],
   customers: ['id', 'account', 'customerNumber', 'name'],
   abdRequests: ['id', 'ref'],
@@ -45,13 +44,15 @@ function itemKey(item, fields, fallbackIndex) {
   return `index:${fallbackIndex}`;
 }
 
-function shipmentItemKey(item, fallbackIndex) {
+function shipmentIdentityKey(item, fallbackIndex) {
   if (!item || typeof item !== 'object') return `index:${fallbackIndex}`;
-  const reference = text(item.ref || item.reference || item.shipmentRef || item.referenceNumber).toUpperCase();
-  if (reference) return `ref:${lower(reference)}`;
-  const id = text(item.id || item.shipmentId || item._id);
-  if (id) return `id:${lower(id)}`;
-  return `index:${fallbackIndex}`;
+  const refFields = ['ref', 'reference', 'shipmentRef', 'referenceNumber', 'referenceNo', 'refNo', 'refNr', 'sendungsnummer', 'exporthubRef', 'exportHubReference'];
+  for (const field of refFields) {
+    const value = text(item[field]);
+    if (value) return `ref:${lower(value)}`;
+  }
+  const id = text(item.id || item.shipmentId || item._syncId);
+  return id ? `id:${lower(id)}` : `index:${fallbackIndex}`;
 }
 
 function timestamp(value) {
@@ -265,7 +266,8 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
   const ingest = (list, source) => {
     (Array.isArray(list) ? list : []).forEach((item, index) => {
       if (!item || typeof item !== 'object') return;
-      const key = (name === 'shipments' || name === 'savedShipments') ? shipmentItemKey(item, index) : itemKey(item, keys, index);
+      const shipmentCollection = name === 'shipments' || name === 'savedShipments';
+      const key = shipmentCollection ? shipmentIdentityKey(item, index) : itemKey(item, keys, index);
       const existing = map.get(key);
       if (!existing) map.set(key, clone(item));
       else if (name === 'shipments' || name === 'savedShipments') map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
