@@ -1,0 +1,19 @@
+{
+  "version": "RC655",
+  "scope": "TESTSERVICE ONLY",
+  "checks": {
+    "build_rc655": true,
+    "cache_655": true,
+    "test_return_655": true,
+    "first_durable_save_still_awaited": true,
+    "qr_activation_still_awaited": true,
+    "final_status_save_background": true,
+    "final_status_save_keepalive": true,
+    "old_blocking_final_flush_removed": true
+  },
+  "passed": 8,
+  "total": 8,
+  "syntax_scripts": 60,
+  "syntax_errors": 0,
+  "video_observation": "Die Aufnahme zeigt weiterhin spürbare Wartephasen beim Speichern/Navigieren; RC655 entfernt die zweite blockierende Azure-Wartephase aus dem sichtbaren Sendungsspeicher."
+}
