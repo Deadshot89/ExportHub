@@ -174,12 +174,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC669',cache:'669',loginReturn:'/test?v=669'});
+var BUILD=Object.freeze({version:'RC670',cache:'670',loginReturn:'/test?v=670'});
 var RELEASE=Object.freeze({
- version:'RC669',
+ version:'RC670',
  date:'14.08.2026',
  title:'Azure-Speicherbestätigung gegen Lager-Sync stabilisiert',
  changes:Object.freeze([
+   'RC670 macht die DAF-Lagerlocation auf Desktop und Tablet breiter, ohne die übrigen Lagerkacheln zu verändern.',
+   'RC670 zeigt im Testservice die echte bisherige Produktionsversion aus dem versionsgebundenen Release-Snapshot statt eines möglicherweise leeren lokalen Release-Center-Werts.',
    'RC669 behebt den Location-API-Laufzeitfehler LOCS is not defined beim Verschieben von Sendungen; die API verwendet jetzt durchgehend die definierte LOCATIONS-Tabelle.',
    'RC668 trennt die bestätigte Sendungsspeicherung von parallelen Lager-Synchronisierungen: Lagerlocations synchronisiert überschreibt nicht mehr die maßgebliche Sendungs-Speichergeneration.',
    'RC668 wartet bei temporären Azure-/Sitzungsfehlern kontrolliert auf die automatische Wiederholung und bestätigt die Sendung, sobald genau ihre Speichergeneration dauerhaft gespeichert wurde.',
@@ -285,6 +287,8 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'Lager: DAF ist auf Desktop/Tablet breiter als zuvor; Lane-, Regal-, Vor-dem-Regal- und Eingangslayout bleiben unverändert',
+    'Release-Center: PRODUKTION zeigt nach dem Testservice-Deploy die Produktions-RC aus /release-assets.json und ist nicht leer',
     'Location-API: Move auf Regal, Vor dem Regal und DAF verwendet die definierte Location-Tabelle ohne ReferenceError LOCS is not defined',
     'Sendung speichern bleibt erfolgreich, wenn parallel Lagerlocations synchronisiert wird und die eigene Sendungs-Speichergeneration in Azure bestätigt wurde',
     'Ein temporär fehlgeschlagener erster Azure-Flush führt nicht sofort zur Fehlermeldung, wenn die automatische Wiederholung dieselbe Sendungsgeneration anschließend speichert',
@@ -7897,7 +7901,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||''),h=String(location.hostname||'').toLowerCase(),prod='wonderful-forest-0f315e310.7.azurestaticapps.net',namedTest=/-testservice\./i.test(h);if(namedTest||/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC666');window.__EXPORTHUB_TESTSERVICE_HOST_VALID__=h!==prod;document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');document.documentElement.setAttribute('data-exporthub-testservice-host',h===prod?'production-host':'test-host');if(h===prod)console.error('ExportHUB TESTSERVICE: falsche Adresse. wonderful-forest ist die Produktionsumgebung; die Azure testservice-Preview-URL verwenden.');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||''),h=String(location.hostname||'').toLowerCase(),prod='wonderful-forest-0f315e310.7.azurestaticapps.net',namedTest=/-testservice\./i.test(h);if(namedTest||/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC670');window.__EXPORTHUB_TESTSERVICE_HOST_VALID__=h!==prod;document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');document.documentElement.setAttribute('data-exporthub-testservice-host',h===prod?'production-host':'test-host');if(h===prod)console.error('ExportHUB TESTSERVICE: falsche Adresse. wonderful-forest ist die Produktionsumgebung; die Azure testservice-Preview-URL verwenden.');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10672,7 +10676,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC669'),CACHE=String(ACTIVE_BUILD.cache||'669'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC670'),CACHE=String(ACTIVE_BUILD.cache||'670'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({}),RELEASE_BUNDLE_URL='/release-assets.json';
  var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/location-booking/index.js','api/location-booking/function.json','api/shared/merge.js']);
  function q(v){return String(v==null?'':v).trim()}
@@ -10688,7 +10692,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  function rerender(){var root=document.getElementById('content');if(!root)return;root.innerHTML=renderHtml();setTimeout(refresh,0)}
  function parseVersion(html){var h=String(html||''),m=h.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['"](RC\d+)['"]/i)||h.match(/version:\s*['"](RC\d+)['"]/i);return q(m&&m[1])||'unbekannt'}
  function onlineMatches(){return window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false&&testServiceChecked&&q(testServiceVersion)===VERSION}
- async function fetchProduction(){try{var m=meta(),known=q(m.productionReleasedVersion||m.lastProductionVersion||'');productionVersion=known||'separat prüfen';productionChecked=true}catch(e){productionVersion='separat prüfen';productionChecked=true}var el=document.getElementById('rc562ProductionVersion');if(el)el.textContent=productionVersion;return productionVersion}
+ async function fetchProduction(){try{var r=await fetch(RELEASE_BUNDLE_URL+'?production-check='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json','Cache-Control':'no-cache','Pragma':'no-cache'}});if(!r.ok)throw new Error('HTTP '+r.status);var bundle=await r.json(),fromSnapshot=q(bundle&&bundle.productionVersion),m=meta(),known=q(m.productionReleasedVersion||m.lastProductionVersion||'');productionVersion=fromSnapshot||known||'nicht ermittelbar';productionChecked=true}catch(e){try{var mm=meta(),fallback=q(mm.productionReleasedVersion||mm.lastProductionVersion||'');productionVersion=fallback||'nicht ermittelbar'}catch(_){productionVersion='nicht ermittelbar'}productionChecked=true}var el=document.getElementById('rc562ProductionVersion');if(el)el.textContent=productionVersion;return productionVersion}
  async function fetchTestService(){try{var r=await fetch(TEST_URL+'?release-check='+Date.now()+'&expected='+encodeURIComponent(VERSION),{cache:'no-store',credentials:'same-origin',headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache'}});if(!r.ok)throw new Error('HTTP '+r.status);testServiceVersion=parseVersion(await r.text());testServiceChecked=true}catch(e){testServiceVersion='nicht ermittelbar';testServiceChecked=true}var el=document.getElementById('rc562TestServiceVersion');if(el)el.textContent=testServiceVersion;var badge=document.getElementById('rc562TestServiceMatch');if(badge){var good=onlineMatches();badge.textContent=good?'✓ IDENTISCH':'⚠ ABWEICHUNG';badge.style.color=good?'#166534':'#991b1b'}return testServiceVersion}
  function renderHtml(){
   if(!isGlobal())return '<div class="page-head"><div><h2>🚀 Release-Center</h2><p>Dieser Bereich ist ausschließlich für globale Administratoren verfügbar.</p></div></div>';
@@ -19951,6 +19955,7 @@ window.ExportHUBThemeSwitcher=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
 .rc504-zone.regal{grid-column:1/-1;border-color:#7c8ea7;background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%)}
 .rc504-zone.vorregal{grid-column:1/-1;border-color:#f59e0b;background:linear-gradient(180deg,#fff7df 0%,#ffffff 100%)}
 .rc504-zone.lane1,.rc504-zone.lane2,.rc504-zone.lane3,.rc504-zone.lane4,.rc504-zone.lane5{grid-column:span 2}
+.rc504-zone.daf{grid-column:span 2}
 .rc504-zone-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
 .rc504-zone-title{display:flex;flex-direction:column;gap:3px}
 .rc504-zone-title h3{margin:0;color:#0b3568;font-size:30px;line-height:1.05}
@@ -20008,8 +20013,8 @@ html body #content .rc205-layout-item[data-dashboard-widget^="warehouse-"]>secti
 .rc504-modal-info span{display:block;margin-top:4px;color:#5f7285;font-size:13px}
 .rc504-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:16px}
 .rc504-modal-note{margin-top:10px;font-size:12px;color:#64748b}
-@media(max-width:1320px){.rc504-layout{grid-template-columns:repeat(6,minmax(0,1fr))}.rc504-zone.lane1,.rc504-zone.lane2,.rc504-zone.lane3,.rc504-zone.lane4,.rc504-zone.lane5{grid-column:span 3}.rc504-zone-list{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.rc504-zone.lane1 .rc504-zone-list,.rc504-zone.lane2 .rc504-zone-list,.rc504-zone.lane3 .rc504-zone-list,.rc504-zone.lane4 .rc504-zone-list,.rc504-zone.lane5 .rc504-zone-list{grid-template-columns:1fr}}
-@media(max-width:980px){.rc504-warehouse-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.rc504-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.rc504-zone,.rc504-zone.eingang,.rc504-zone.regal,.rc504-zone.vorregal,.rc504-zone.lane1,.rc504-zone.lane2,.rc504-zone.lane3,.rc504-zone.lane4,.rc504-zone.lane5{grid-column:auto}.rc504-zone-list{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}.rc504-zone-meta,.rc504-shipment-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1320px){.rc504-layout{grid-template-columns:repeat(6,minmax(0,1fr))}.rc504-zone.lane1,.rc504-zone.lane2,.rc504-zone.lane3,.rc504-zone.lane4,.rc504-zone.lane5{grid-column:span 3}.rc504-zone.daf{grid-column:span 3}.rc504-zone-list{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}.rc504-zone.lane1 .rc504-zone-list,.rc504-zone.lane2 .rc504-zone-list,.rc504-zone.lane3 .rc504-zone-list,.rc504-zone.lane4 .rc504-zone-list,.rc504-zone.lane5 .rc504-zone-list{grid-template-columns:1fr}}
+@media(max-width:980px){.rc504-warehouse-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.rc504-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.rc504-zone,.rc504-zone.eingang,.rc504-zone.regal,.rc504-zone.vorregal,.rc504-zone.daf,.rc504-zone.lane1,.rc504-zone.lane2,.rc504-zone.lane3,.rc504-zone.lane4,.rc504-zone.lane5{grid-column:auto}.rc504-zone-list{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}.rc504-zone-meta,.rc504-shipment-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.rc504-warehouse-head{display:block}.rc504-warehouse-actions{margin-top:10px}.rc504-warehouse-summary,.rc504-layout,.rc504-shipment-meta,.rc504-modal-grid{grid-template-columns:1fr}.rc504-zone-list{grid-template-columns:1fr}.rc504-zone-title h3{font-size:24px}.rc504-shipment-top{display:block}.rc504-badge{margin-top:6px}.rc504-shipment{padding:8px}.rc504-shift-btn{width:100%}}
 </style>
 <script id="rc504-warehouse-controller">
