@@ -39,7 +39,7 @@ jobs:
           test -f api/exporthub-state/index.js
           test -f api/exporthub-state/function.json
           test -f api/shared/merge.js
-          grep -q "version:'RC658'" TESTVERSION.html
+          grep -Fq "version:'RC660'" TESTVERSION.html
           node --check api/exporthub-state/index.js
           node --check api/shared/merge.js
           node -e "JSON.parse(require('fs').readFileSync('staticwebapp.testservice.config.json','utf8'));"
@@ -56,7 +56,7 @@ jobs:
             "isolated": true,
             "data": "TEST-DATEN",
             "productionWritesAllowed": false,
-            "expectedVersion": "RC658"
+            "expectedVersion": "RC660"
           }
           EOF
 
@@ -82,20 +82,43 @@ jobs:
             echo "Azure hat keine Testservice-URL zurückgegeben."
             exit 1
           fi
+
           echo "TESTSERVICE URL: $TESTSERVICE_URL"
+          tmp_direct="$(mktemp)"
+          tmp_route="$(mktemp)"
+          trap 'rm -f "$tmp_direct" "$tmp_route"' EXIT
+
           ok=0
-          for attempt in {1..24}; do
-            body="$(curl -fsSL --max-time 20 "$TESTSERVICE_URL/TESTVERSION.html?verify=$GITHUB_SHA-$attempt" || true)"
-            if printf '%s' "$body" | grep -q "version:'RC658'"; then
-              echo "RC658 ist im TESTSERVICE live."
+          for attempt in {1..18}; do
+            direct_url="$TESTSERVICE_URL/TESTVERSION.html?verify=$GITHUB_SHA-$attempt"
+            route_url="$TESTSERVICE_URL/test?verify=$GITHUB_SHA-$attempt"
+
+            direct_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_direct" -w '%{http_code}' "$direct_url" || true)"
+            route_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_route" -w '%{http_code}' "$route_url" || true)"
+
+            direct_ok=0
+            route_ok=0
+            if [[ "$direct_code" == "200" ]] && grep -Fq "version:'RC660'" "$tmp_direct"; then
+              direct_ok=1
+            fi
+            if [[ "$route_code" == "200" ]] && grep -Fq "version:'RC660'" "$tmp_route"; then
+              route_ok=1
+            fi
+
+            if [[ "$direct_ok" == "1" && "$route_ok" == "1" ]]; then
+              echo "RC660 ist im TESTSERVICE live. Direktdatei und /test liefern RC660."
               ok=1
               break
             fi
-            echo "Live-Check $attempt/24: RC658 noch nicht sichtbar."
-            sleep 10
+
+            detected_direct="$(grep -m1 -oE "version:'RC[0-9]+'" "$tmp_direct" || true)"
+            detected_route="$(grep -m1 -oE "version:'RC[0-9]+'" "$tmp_route" || true)"
+            echo "Live-Check $attempt/18: direkt HTTP $direct_code ${detected_direct:-keine RC}; /test HTTP $route_code ${detected_route:-keine RC}."
+            sleep 5
           done
+
           if [[ "$ok" != "1" ]]; then
-            echo "TESTSERVICE-Verifikation fehlgeschlagen: RC658 wurde nicht ausgeliefert."
+            echo "TESTSERVICE-Verifikation fehlgeschlagen: RC660 wurde nicht über beide TESTSERVICE-Routen ausgeliefert."
             exit 1
           fi
 
@@ -105,13 +128,13 @@ jobs:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
         run: |
           {
-            echo "## ExportHUB TESTSERVICE RC658"
+            echo "## ExportHUB TESTSERVICE RC660"
             echo
             echo "**Diese Adresse zum Testen verwenden:**"
             echo
-            echo "$TESTSERVICE_URL/test?v=658"
+            echo "$TESTSERVICE_URL/test?v=660"
             echo
-            echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=658"
+            echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=660"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=658"
-          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=658"
+          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=660"
+          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=660"
