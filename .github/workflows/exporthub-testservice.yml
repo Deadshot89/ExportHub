@@ -9,6 +9,7 @@ on:
       - 'TESTVERSION.html'
       - 'staticwebapp.testservice.config.json'
       - '.github/workflows/exporthub-testservice.yml'
+      - 'api/**'
 
 permissions:
   contents: read
@@ -30,7 +31,8 @@ jobs:
           submodules: true
           lfs: false
 
-      - name: Validate TESTSERVICE files
+      - name: Detect and validate TESTSERVICE version
+        id: meta
         shell: bash
         run: |
           set -u
@@ -58,12 +60,13 @@ jobs:
           require_file staticwebapp.testservice.config.json
           require_dir api
 
+          VERSION=""
           if [[ -f TESTVERSION.html ]]; then
-            if grep -Fq "version:'RC661'" TESTVERSION.html; then
-              echo "OK: TESTVERSION.html ist RC661"
+            VERSION="$(grep -oE "version:'RC[0-9]+'" TESTVERSION.html | head -n 1 | sed -E "s/version:'(RC[0-9]+)'/\1/" || true)"
+            if [[ -n "$VERSION" ]]; then
+              echo "OK: erkannte Testversion = $VERSION"
             else
-              echo "FEHLER: TESTVERSION.html enthält nicht die erwartete RC661-Version."
-              grep -oE "version:'RC[0-9]+'" TESTVERSION.html | head -n 3 || true
+              echo "FEHLER: Keine RC-Version in TESTVERSION.html gefunden."
               failed=1
             fi
           fi
@@ -91,28 +94,31 @@ jobs:
           done
 
           if [[ "$failed" != "0" ]]; then
-            echo "TESTSERVICE-Preflight fehlgeschlagen. Oben steht die konkrete fehlende/fehlerhafte Datei."
+            echo "TESTSERVICE-Preflight fehlgeschlagen. Oben steht die konkrete Ursache."
             exit 1
           fi
 
-          echo "TESTSERVICE-Preflight vollständig bestanden."
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TESTSERVICE-Preflight vollständig bestanden für $VERSION."
 
       - name: Prepare isolated TESTSERVICE payload
         shell: bash
+        env:
+          EXPECTED_VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -eu
           cp TESTVERSION.html index.html
           cp staticwebapp.testservice.config.json staticwebapp.config.json
-          cat > testservice-environment.json <<'EOF'
+          cat > testservice-environment.json <<EOF
           {
             "environment": "testservice",
             "isolated": true,
             "data": "TEST-DATEN",
             "productionWritesAllowed": false,
-            "expectedVersion": "RC661"
+            "expectedVersion": "$EXPECTED_VERSION"
           }
           EOF
-          echo "TESTSERVICE-Payload für RC661 vorbereitet."
+          echo "TESTSERVICE-Payload für $EXPECTED_VERSION vorbereitet."
 
       - name: Deploy TESTSERVICE named environment
         id: deploy
@@ -130,14 +136,21 @@ jobs:
         shell: bash
         env:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          EXPECTED_VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -u
           if [[ -z "${TESTSERVICE_URL:-}" ]]; then
             echo "Azure hat keine Testservice-URL zurückgegeben."
             exit 1
           fi
+          if [[ -z "${EXPECTED_VERSION:-}" ]]; then
+            echo "Es wurde keine erwartete Testversion ermittelt."
+            exit 1
+          fi
 
           echo "TESTSERVICE URL: $TESTSERVICE_URL"
+          echo "Erwartete Version: $EXPECTED_VERSION"
+
           ok=0
           tmp_direct="$(mktemp)"
           tmp_route="$(mktemp)"
@@ -152,25 +165,22 @@ jobs:
             direct_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_direct" -w '%{http_code}' "$direct_url" || true)"
             route_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_route" -w '%{http_code}' "$route_url" || true)"
 
-            direct_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_direct" | head -n 1 || true)"
-            route_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_route" | head -n 1 || true)"
+            direct_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_direct" | head -n 1 | sed -E "s/version:'(RC[0-9]+)'/\1/" || true)"
+            route_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_route" | head -n 1 | sed -E "s/version:'(RC[0-9]+)'/\1/" || true)"
+
             echo "Live-Check $attempt/24: direct HTTP=$direct_code ${direct_version:-keine-RC} | /test HTTP=$route_code ${route_version:-keine-RC}"
 
-            direct_ok=0
-            route_ok=0
-            if [[ "$direct_code" == "200" ]] && grep -Fq "version:'RC661'" "$tmp_direct"; then direct_ok=1; fi
-            if [[ "$route_code" == "200" ]] && grep -Fq "version:'RC661'" "$tmp_route"; then route_ok=1; fi
-
-            if [[ "$direct_ok" == "1" && "$route_ok" == "1" ]]; then
-              echo "RC661 ist im TESTSERVICE live. Direktdatei und /test liefern RC661."
+            if [[ "$direct_code" == "200" && "$route_code" == "200" && "$direct_version" == "$EXPECTED_VERSION" && "$route_version" == "$EXPECTED_VERSION" ]]; then
+              echo "$EXPECTED_VERSION ist im TESTSERVICE live."
               ok=1
               break
             fi
+
             sleep 10
           done
 
           if [[ "$ok" != "1" ]]; then
-            echo "TESTSERVICE-Verifikation fehlgeschlagen: RC661 wurde nicht auf beiden Testservice-Routen ausgeliefert."
+            echo "TESTSERVICE-Verifikation fehlgeschlagen: erwartet $EXPECTED_VERSION."
             exit 1
           fi
 
@@ -178,15 +188,16 @@ jobs:
         shell: bash
         env:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          EXPECTED_VERSION: ${{ steps.meta.outputs.version }}
         run: |
           {
-            echo "## ExportHUB TESTSERVICE RC661"
+            echo "## ExportHUB TESTSERVICE $EXPECTED_VERSION"
             echo
             echo "**Diese Adresse zum Testen verwenden:**"
             echo
-            echo "$TESTSERVICE_URL/test?v=661"
+            echo "$TESTSERVICE_URL/test?v=${EXPECTED_VERSION#RC}"
             echo
-            echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=661"
+            echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=${EXPECTED_VERSION#RC}"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=661"
-          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=661"
+          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=${EXPECTED_VERSION#RC}"
+          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=${EXPECTED_VERSION#RC}"
