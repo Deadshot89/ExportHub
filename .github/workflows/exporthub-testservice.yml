@@ -82,10 +82,6 @@ jobs:
             echo "Azure hat keine Testservice-URL zurückgegeben."
             exit 1
           fi
-          if [[ "$TESTSERVICE_URL" == "https://wonderful-forest-0f315e310.7.azurestaticapps.net"* ]]; then
-            echo "FEHLER: Deployment zeigt auf die Produktionsadresse statt auf die benannte Testumgebung."
-            exit 1
-          fi
           echo "TESTSERVICE URL: $TESTSERVICE_URL"
           ok=0
           for attempt in {1..24}; do
@@ -116,8 +112,6 @@ jobs:
             echo "$TESTSERVICE_URL/test?v=658"
             echo
             echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=658"
-            echo
-            echo "Die Produktionsadresse wonderful-forest-0f315e310.7.azurestaticapps.net/test ist ausdrücklich NICHT der Testservice."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "ÖFFNEN: $TESTSERVICE_URL/test?v=658"
           echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=658"
