@@ -174,12 +174,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC657',cache:'657',loginReturn:'/test?v=657'});
+var BUILD=Object.freeze({version:'RC658',cache:'658',loginReturn:'/test?v=658'});
 var RELEASE=Object.freeze({
- version:'RC657',
+ version:'RC658',
  date:'13.08.2026',
- title:'Testservice wirklich isoliert ausliefern',
+ title:'Testservice über stabile Azure-Testumgebung ausliefern',
  changes:Object.freeze([
+   'RC658 deployt den Testservice als benannte Azure Static Web Apps Preview-Umgebung „testservice“ mit dem bereits vorhandenen Deployment-Token; ein separates, nicht eingerichtetes Testservice-Secret ist nicht mehr erforderlich.',
+   'RC658 verhindert, dass reine Testservice-Commits den Produktions-Workflow starten. Produktion wird erst wieder bei echten Produktionsdatei-Änderungen aus dem Release-Center veröffentlicht.',
+   'RC658 verifiziert nach jedem Testservice-Deployment die tatsächlich ausgelieferte Version und gibt die stabile Azure-Testservice-Adresse direkt in der GitHub-Workflow-Zusammenfassung aus.',
+   'RC658 erkennt die Produktionsdomain wonderful-forest nicht mehr als gültigen Testservice. Getestet wird ausschließlich auf der von Azure erzeugten testservice-Umgebung.',
    'RC657 trennt den Testservice technisch von der Produktions-index: Der Testservice-Workflow ersetzt index.html nur im isolierten Deployment-Arbeitsbereich durch TESTVERSION.html; die Produktionsdatei im Repository bleibt unverändert.',
    'RC657 leitet Root, /index.html, /test und Navigation-Fallback im Testservice verbindlich auf TESTVERSION.html und verhindert damit, dass der Testservice eine alte Produktions-RC anzeigt.',
    'RC657 startet den separaten TESTSERVICE-Workflow automatisch bei Änderungen an TESTVERSION.html oder der Testservice-Konfiguration und prüft nach dem Deployment die tatsächlich ausgelieferte RC.',
@@ -7859,7 +7863,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||'');if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC657');document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||''),h=String(location.hostname||'').toLowerCase(),prod='wonderful-forest-0f315e310.7.azurestaticapps.net';if(/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC658');window.__EXPORTHUB_TESTSERVICE_HOST_VALID__=h!==prod;document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');document.documentElement.setAttribute('data-exporthub-testservice-host',h===prod?'production-host':'test-host');if(h===prod)console.error('ExportHUB TESTSERVICE: falsche Adresse. wonderful-forest ist die Produktionsumgebung; die Azure testservice-Preview-URL verwenden.');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 
 <style id="rc556-test-mobile-compact-style">
@@ -10630,7 +10634,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC657'),CACHE=String(ACTIVE_BUILD.cache||'657'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC658'),CACHE=String(ACTIVE_BUILD.cache||'658'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({});
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -10644,8 +10648,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  function status(text,kind){var e=document.getElementById('rc562ReleaseStatus');if(!e)return;e.textContent=text;e.className='rc562-release-status'+(kind?' '+kind:'')}
  function rerender(){var root=document.getElementById('content');if(!root)return;root.innerHTML=renderHtml();setTimeout(refresh,0)}
  function parseVersion(html){var h=String(html||''),m=h.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['"](RC\d+)['"]/i)||h.match(/version:\s*['"](RC\d+)['"]/i);return q(m&&m[1])||'unbekannt'}
- function onlineMatches(){return testServiceChecked&&q(testServiceVersion)===VERSION}
- async function fetchProduction(){try{var r=await fetch(PRODUCTION_URL+'?release-check='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{Accept:'text/html','Cache-Control':'no-cache'}});if(!r.ok)throw new Error('HTTP '+r.status);productionVersion=parseVersion(await r.text());productionChecked=true}catch(e){productionVersion='nicht ermittelbar';productionChecked=true}var el=document.getElementById('rc562ProductionVersion');if(el)el.textContent=productionVersion;return productionVersion}
+ function onlineMatches(){return window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false&&testServiceChecked&&q(testServiceVersion)===VERSION}
+ async function fetchProduction(){try{var m=meta(),known=q(m.productionReleasedVersion||m.lastProductionVersion||'');productionVersion=known||'separat prüfen';productionChecked=true}catch(e){productionVersion='separat prüfen';productionChecked=true}var el=document.getElementById('rc562ProductionVersion');if(el)el.textContent=productionVersion;return productionVersion}
  async function fetchTestService(){try{var r=await fetch(TEST_URL+'?release-check='+Date.now()+'&expected='+encodeURIComponent(VERSION),{cache:'no-store',credentials:'same-origin',headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache'}});if(!r.ok)throw new Error('HTTP '+r.status);testServiceVersion=parseVersion(await r.text());testServiceChecked=true}catch(e){testServiceVersion='nicht ermittelbar';testServiceChecked=true}var el=document.getElementById('rc562TestServiceVersion');if(el)el.textContent=testServiceVersion;var badge=document.getElementById('rc562TestServiceMatch');if(badge){var good=onlineMatches();badge.textContent=good?'✓ IDENTISCH':'⚠ ABWEICHUNG';badge.style.color=good?'#166534':'#991b1b'}return testServiceVersion}
  function renderHtml(){
   if(!isGlobal())return '<div class="page-head"><div><h2>🚀 Release-Center</h2><p>Dieser Bereich ist ausschließlich für globale Administratoren verfügbar.</p></div></div>';
@@ -20463,7 +20467,7 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC657'),CACHE=String(ACTIVE_BUILD.cache||'657'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC658'),CACHE=String(ACTIVE_BUILD.cache||'658'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
