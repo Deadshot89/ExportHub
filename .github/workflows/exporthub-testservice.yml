@@ -108,7 +108,7 @@ jobs:
         run: |
           set -eu
 
-          # RC670: Build a version-bound snapshot of the production files BEFORE
+          # RC671: Build a version-bound snapshot and apply TESTSERVICE-only release overrides BEFORE
           # the TESTSERVICE payload replaces index.html/staticwebapp.config.json.
           node <<'NODE'
           const fs = require('fs');
@@ -117,6 +117,19 @@ jobs:
 
           const version = String(process.env.EXPECTED_VERSION || '').trim();
           if (!/^RC\d+$/.test(version)) throw new Error('Ungültige EXPECTED_VERSION: ' + version);
+
+          const testHtml = fs.readFileSync('TESTVERSION.html', 'utf8');
+          const overrides = new Map();
+          const overrideRe = /<!--\s*EXPORTHUB_TESTSERVICE_FILE_BEGIN\s+path=([^\s]+)\s+encoding=base64\s+sha256=([a-f0-9]{64})\s*\n([A-Za-z0-9+/=\r\n]+?)\nEXPORTHUB_TESTSERVICE_FILE_END\s*-->/g;
+          let om;
+          while ((om = overrideRe.exec(testHtml))) {
+            const rel = String(om[1] || '').replace(/\\/g, '/').replace(/^\.\//, '');
+            if (!rel || rel.startsWith('/') || rel.includes('..')) throw new Error('Ungültiger TESTSERVICE-Override-Pfad: ' + rel);
+            const data = Buffer.from(String(om[3] || '').replace(/\s+/g, ''), 'base64');
+            const actual = crypto.createHash('sha256').update(data).digest('hex');
+            if (actual !== String(om[2]).toLowerCase()) throw new Error('SHA-256 stimmt für TESTSERVICE-Override nicht: ' + rel);
+            overrides.set(rel, data);
+          }
 
           const productionHtml = fs.existsSync('index.html') ? fs.readFileSync('index.html', 'utf8') : '';
           const productionMatch =
@@ -174,7 +187,7 @@ jobs:
           }
 
           const files = paths.map(file => {
-            const data = fs.readFileSync(file);
+            const data = overrides.has(file) ? overrides.get(file) : fs.readFileSync(file);
             return {
               path: file,
               encoding: 'base64',
@@ -193,9 +206,15 @@ jobs:
             files
           };
           fs.writeFileSync('release-assets.json', JSON.stringify(manifest));
-          console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien · Produktion ${productionVersion}.`);
+          for (const [rel, data] of overrides) {
+            fs.mkdirSync(path.dirname(rel), { recursive: true });
+            fs.writeFileSync(rel, data);
+            console.log(`TESTSERVICE-Override angewendet: ${rel} · ${data.length} Bytes`);
+          }
+          console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien · Produktion ${productionVersion} · Overrides ${overrides.size}.`);
           NODE
 
+          node --check api/exporthub-state/index.js
           cp TESTVERSION.html index.html
           cp staticwebapp.testservice.config.json staticwebapp.config.json
           cat > testservice-environment.json <<EOF
