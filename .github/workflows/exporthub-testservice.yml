@@ -108,7 +108,7 @@ jobs:
         run: |
           set -eu
 
-          # RC665: Build a version-bound snapshot of the production files BEFORE
+          # RC670: Build a version-bound snapshot of the production files BEFORE
           # the TESTSERVICE payload replaces index.html/staticwebapp.config.json.
           node <<'NODE'
           const fs = require('fs');
@@ -117,6 +117,12 @@ jobs:
 
           const version = String(process.env.EXPECTED_VERSION || '').trim();
           if (!/^RC\d+$/.test(version)) throw new Error('Ungültige EXPECTED_VERSION: ' + version);
+
+          const productionHtml = fs.existsSync('index.html') ? fs.readFileSync('index.html', 'utf8') : '';
+          const productionMatch =
+            productionHtml.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['"](RC\d+)['"]/i) ||
+            productionHtml.match(/version:\s*['"](RC\d+)['"]/i);
+          const productionVersion = productionMatch ? String(productionMatch[1]).trim() : 'unbekannt';
 
           const required = [
             'staticwebapp.config.json',
@@ -180,13 +186,14 @@ jobs:
           const manifest = {
             schema: 'exporthub-release-assets-v1',
             version,
+            productionVersion,
             gitSha: String(process.env.GITHUB_SHA || ''),
             generatedAt: new Date().toISOString(),
             mode: 'full-production-snapshot',
             files
           };
           fs.writeFileSync('release-assets.json', JSON.stringify(manifest));
-          console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien.`);
+          console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien · Produktion ${productionVersion}.`);
           NODE
 
           cp TESTVERSION.html index.html
