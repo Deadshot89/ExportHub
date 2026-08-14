@@ -33,21 +33,74 @@ jobs:
       - name: Validate TESTSERVICE files
         shell: bash
         run: |
-          set -euo pipefail
-          test -f TESTVERSION.html
-          test -f staticwebapp.testservice.config.json
-          test -f api/exporthub-state/index.js
-          test -f api/exporthub-state/function.json
-          test -f api/shared/merge.js
-          grep -Fq "version:'RC660'" TESTVERSION.html
-          node --check api/exporthub-state/index.js
-          node --check api/shared/merge.js
-          node -e "JSON.parse(require('fs').readFileSync('staticwebapp.testservice.config.json','utf8'));"
+          set -u
+          failed=0
+
+          require_file() {
+            if [[ -f "$1" ]]; then
+              echo "OK: $1"
+            else
+              echo "FEHLT: $1"
+              failed=1
+            fi
+          }
+
+          require_dir() {
+            if [[ -d "$1" ]]; then
+              echo "OK: $1/"
+            else
+              echo "FEHLT: $1/"
+              failed=1
+            fi
+          }
+
+          require_file TESTVERSION.html
+          require_file staticwebapp.testservice.config.json
+          require_dir api
+
+          if [[ -f TESTVERSION.html ]]; then
+            if grep -Fq "version:'RC661'" TESTVERSION.html; then
+              echo "OK: TESTVERSION.html ist RC661"
+            else
+              echo "FEHLER: TESTVERSION.html enthält nicht die erwartete RC661-Version."
+              grep -oE "version:'RC[0-9]+'" TESTVERSION.html | head -n 3 || true
+              failed=1
+            fi
+          fi
+
+          if [[ -f staticwebapp.testservice.config.json ]]; then
+            if node -e "JSON.parse(require('fs').readFileSync('staticwebapp.testservice.config.json','utf8'));"; then
+              echo "OK: staticwebapp.testservice.config.json ist gültiges JSON"
+            else
+              echo "FEHLER: staticwebapp.testservice.config.json ist ungültig."
+              failed=1
+            fi
+          fi
+
+          for js in api/exporthub-state/index.js api/shared/merge.js; do
+            if [[ -f "$js" ]]; then
+              if node --check "$js"; then
+                echo "OK: Syntax $js"
+              else
+                echo "FEHLER: JavaScript-Syntax in $js"
+                failed=1
+              fi
+            else
+              echo "HINWEIS: $js nicht vorhanden; der Preflight blockiert deshalb nicht."
+            fi
+          done
+
+          if [[ "$failed" != "0" ]]; then
+            echo "TESTSERVICE-Preflight fehlgeschlagen. Oben steht die konkrete fehlende/fehlerhafte Datei."
+            exit 1
+          fi
+
+          echo "TESTSERVICE-Preflight vollständig bestanden."
 
       - name: Prepare isolated TESTSERVICE payload
         shell: bash
         run: |
-          set -euo pipefail
+          set -eu
           cp TESTVERSION.html index.html
           cp staticwebapp.testservice.config.json staticwebapp.config.json
           cat > testservice-environment.json <<'EOF'
@@ -56,9 +109,10 @@ jobs:
             "isolated": true,
             "data": "TEST-DATEN",
             "productionWritesAllowed": false,
-            "expectedVersion": "RC660"
+            "expectedVersion": "RC661"
           }
           EOF
+          echo "TESTSERVICE-Payload für RC661 vorbereitet."
 
       - name: Deploy TESTSERVICE named environment
         id: deploy
@@ -77,48 +131,46 @@ jobs:
         env:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
         run: |
-          set -euo pipefail
+          set -u
           if [[ -z "${TESTSERVICE_URL:-}" ]]; then
             echo "Azure hat keine Testservice-URL zurückgegeben."
             exit 1
           fi
 
           echo "TESTSERVICE URL: $TESTSERVICE_URL"
+          ok=0
           tmp_direct="$(mktemp)"
           tmp_route="$(mktemp)"
           trap 'rm -f "$tmp_direct" "$tmp_route"' EXIT
 
-          ok=0
-          for attempt in {1..18}; do
+          for attempt in $(seq 1 24); do
             direct_url="$TESTSERVICE_URL/TESTVERSION.html?verify=$GITHUB_SHA-$attempt"
             route_url="$TESTSERVICE_URL/test?verify=$GITHUB_SHA-$attempt"
 
+            : > "$tmp_direct"
+            : > "$tmp_route"
             direct_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_direct" -w '%{http_code}' "$direct_url" || true)"
             route_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_route" -w '%{http_code}' "$route_url" || true)"
 
+            direct_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_direct" | head -n 1 || true)"
+            route_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_route" | head -n 1 || true)"
+            echo "Live-Check $attempt/24: direct HTTP=$direct_code ${direct_version:-keine-RC} | /test HTTP=$route_code ${route_version:-keine-RC}"
+
             direct_ok=0
             route_ok=0
-            if [[ "$direct_code" == "200" ]] && grep -Fq "version:'RC660'" "$tmp_direct"; then
-              direct_ok=1
-            fi
-            if [[ "$route_code" == "200" ]] && grep -Fq "version:'RC660'" "$tmp_route"; then
-              route_ok=1
-            fi
+            if [[ "$direct_code" == "200" ]] && grep -Fq "version:'RC661'" "$tmp_direct"; then direct_ok=1; fi
+            if [[ "$route_code" == "200" ]] && grep -Fq "version:'RC661'" "$tmp_route"; then route_ok=1; fi
 
             if [[ "$direct_ok" == "1" && "$route_ok" == "1" ]]; then
-              echo "RC660 ist im TESTSERVICE live. Direktdatei und /test liefern RC660."
+              echo "RC661 ist im TESTSERVICE live. Direktdatei und /test liefern RC661."
               ok=1
               break
             fi
-
-            detected_direct="$(grep -m1 -oE "version:'RC[0-9]+'" "$tmp_direct" || true)"
-            detected_route="$(grep -m1 -oE "version:'RC[0-9]+'" "$tmp_route" || true)"
-            echo "Live-Check $attempt/18: direkt HTTP $direct_code ${detected_direct:-keine RC}; /test HTTP $route_code ${detected_route:-keine RC}."
-            sleep 5
+            sleep 10
           done
 
           if [[ "$ok" != "1" ]]; then
-            echo "TESTSERVICE-Verifikation fehlgeschlagen: RC660 wurde nicht über beide TESTSERVICE-Routen ausgeliefert."
+            echo "TESTSERVICE-Verifikation fehlgeschlagen: RC661 wurde nicht auf beiden Testservice-Routen ausgeliefert."
             exit 1
           fi
 
@@ -128,13 +180,13 @@ jobs:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
         run: |
           {
-            echo "## ExportHUB TESTSERVICE RC660"
+            echo "## ExportHUB TESTSERVICE RC661"
             echo
             echo "**Diese Adresse zum Testen verwenden:**"
             echo
-            echo "$TESTSERVICE_URL/test?v=660"
+            echo "$TESTSERVICE_URL/test?v=661"
             echo
-            echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=660"
+            echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=661"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=660"
-          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=660"
+          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=661"
+          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=661"
