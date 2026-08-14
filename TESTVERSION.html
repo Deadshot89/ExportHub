@@ -174,12 +174,13 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC668',cache:'668',loginReturn:'/test?v=668'});
+var BUILD=Object.freeze({version:'RC669',cache:'669',loginReturn:'/test?v=669'});
 var RELEASE=Object.freeze({
- version:'RC668',
+ version:'RC669',
  date:'14.08.2026',
  title:'Azure-Speicherbestätigung gegen Lager-Sync stabilisiert',
  changes:Object.freeze([
+   'RC669 behebt den Location-API-Laufzeitfehler LOCS is not defined beim Verschieben von Sendungen; die API verwendet jetzt durchgehend die definierte LOCATIONS-Tabelle.',
    'RC668 trennt die bestätigte Sendungsspeicherung von parallelen Lager-Synchronisierungen: Lagerlocations synchronisiert überschreibt nicht mehr die maßgebliche Sendungs-Speichergeneration.',
    'RC668 wartet bei temporären Azure-/Sitzungsfehlern kontrolliert auf die automatische Wiederholung und bestätigt die Sendung, sobald genau ihre Speichergeneration dauerhaft gespeichert wurde.',
    'RC667 behebt ausschließlich auf der Testseite den Laufzeitfehler currentView is not defined im eingebetteten Dokument-/Prozessblock; Produktion bleibt unverändert.',
@@ -284,6 +285,7 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'Location-API: Move auf Regal, Vor dem Regal und DAF verwendet die definierte Location-Tabelle ohne ReferenceError LOCS is not defined',
     'Sendung speichern bleibt erfolgreich, wenn parallel Lagerlocations synchronisiert wird und die eigene Sendungs-Speichergeneration in Azure bestätigt wurde',
     'Ein temporär fehlgeschlagener erster Azure-Flush führt nicht sofort zur Fehlermeldung, wenn die automatische Wiederholung dieselbe Sendungsgeneration anschließend speichert',
     'Testseite öffnet ohne ReferenceError currentView is not defined; Dokument-Upload und Ansichtsprüfung lesen die aktive Ansicht direkt aus dem bestehenden State',
@@ -10670,7 +10672,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC668'),CACHE=String(ACTIVE_BUILD.cache||'668'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC669'),CACHE=String(ACTIVE_BUILD.cache||'669'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html';
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({}),RELEASE_BUNDLE_URL='/release-assets.json';
  var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/location-booking/index.js','api/location-booking/function.json','api/shared/merge.js']);
  function q(v){return String(v==null?'':v).trim()}
