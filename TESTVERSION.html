@@ -179,12 +179,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC680',cache:'680',loginReturn:'/test?v=680'});
+var BUILD=Object.freeze({version:'RC681',cache:'681',loginReturn:'/test?v=681'});
 var RELEASE=Object.freeze({
- version:'RC680',
+ version:'RC681',
  date:'14.08.2026',
- title:'Globaler Ladebalken für laufende Vorgänge',
+ title:'Ladeanzeige startet sofort bei Anmeldung',
  changes:Object.freeze([
+    'RC681 startet die sichtbare Ladeanzeige unmittelbar beim Klick auf Anmelden; während einer langsamen Serverantwort bleibt ein animierter Fortschrittsbalken mit laufender Wartezeit sichtbar.',
+    'RC681 entfernt bei einer frisch bestätigten Anmeldung die unmittelbar anschließende redundante zweite Auth-Sitzungsabfrage. Die Azure-Teamdaten-API validiert den Sitzungsschlüssel weiterhin; bei F5/Sitzungswiederherstellung bleibt die zusätzliche Sitzungsprüfung erhalten.',
+    'RC681 beendet die Login-Ladeanzeige bei Fehlanmeldung oder Passwortwechsel zuverlässig und wechselt nach erfolgreicher Authentifizierung direkt in den echten Teamdaten-/Modulfortschritt.',
     'RC680 ergänzt einen globalen Ladebalken am oberen Bildschirmrand für laufende ExportHUB-Vorgänge. Speichern, Dokumente, Drucken/PDF und andere zentrale Arbeitsstatus-Aktionen zeigen damit zusätzlich sichtbar, dass die Seite arbeitet.',
     'RC680 zeigt den Ladebalken auch bei Ansichtswechseln aus Menü, Schnellzugriffen und Marke. Sehr kurze Wechsel werden verzögert eingeblendet, damit die Oberfläche nicht flackert; nach erfolgreichem Rendern verschwindet der Balken automatisch.',
     'RC679 verhindert, dass eine geplante Eingabe-Nachspeicherung parallel zum manuellen Speichern startet; automatische Eingabespeicherung wartet auf echte Eingaberuhe, der manuelle Speichern-Klick bleibt unmittelbar führend.',
@@ -319,6 +322,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+     'Login-Ladeanzeige: Klick auf Anmelden zeigt den Ladefortschritt vor dem ersten authCall sofort sichtbar an',
+     'Login-Ladeanzeige: langsame Authentifizierung zeigt eine animierte Aktivitätsanzeige mit verstrichener Zeit statt einer scheinbar eingefrorenen Loginmaske',
+     'Login-Fehlerpfad: bei Fehlanmeldung oder verpflichtendem Passwortwechsel wird die Ladeanzeige sauber beendet',
+     'Login-Performance: frische Anmeldung startet nach erfolgreichem Login direkt den authentifizierten Teamdaten-Read; F5/Sitzungswiederherstellung behält verifySessionForLoad',
      'Ladebalken: zentraler Arbeitsstatus startet, aktualisiert und beendet den globalen Balken synchron zu Speichern, Dokumenten und Ausgabe',
      'Ladebalken: Ansichtswechsel über Navigation oder Schnellzugriff zeigen den Balken nur bei wahrnehmbarer Ladezeit und blenden ihn nach dem Rendern wieder aus',
     'Performance Speichern: eine geplante Eingabe-Nachspeicherung wird beim manuellen Speichern verworfen und startet während der manuellen Speichertransaktion nicht parallel',
@@ -2932,7 +2939,7 @@ body.rc405-session-restoring #cleanLoadPanel p{font-size:11px!important;line-hei
 body.rc405-session-restoring #cleanLoadPanel .clean-progress{height:6px!important;margin-top:7px!important}
 body.rc405-session-restoring #cleanLoadPanel .clean-progress-label{font-size:10px!important;margin-top:3px!important}
 @media(max-width:620px){body.rc405-session-restoring #cleanLoadPanel{left:12px!important;right:12px!important;bottom:12px!important;width:auto!important}}
-.clean-load-card{width:min(560px,100%);background:#fff;border-radius:28px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.38);text-align:center}.clean-load-card h2{margin:12px 0 8px;color:#08245d}.clean-load-card p{color:#475569;font-weight:700;line-height:1.5}.clean-spinner{width:46px;height:46px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:auto;animation:cleanSpin .9s linear infinite}@keyframes cleanSpin{to{transform:rotate(360deg)}}.clean-progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-top:18px}.clean-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#05b8ff);transition:width .18s ease}.clean-progress-label{margin-top:7px;color:#334155;font-weight:900}.clean-ms-status,.clean-login-status{border-radius:15px;padding:11px 12px;margin:10px 0;text-align:left;line-height:1.35}.clean-ms-status{background:#eff6ff;border:1px solid #bfdbfe;color:#08245d}.clean-ms-status strong,.clean-ms-status span{display:block}.clean-ms-status span{font-size:12px;margin-top:3px;color:#475569}.clean-login-status:empty{display:none}.clean-login-status{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-weight:800}.clean-login-status.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}.clean-login-status.bad{background:#fff1f2;border-color:#fecaca;color:#991b1b}.clean-version-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:950;margin-top:7px}
+.clean-load-card{width:min(560px,100%);background:#fff;border-radius:28px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.38);text-align:center}.clean-load-card h2{margin:12px 0 8px;color:#08245d}.clean-load-card p{color:#475569;font-weight:700;line-height:1.5}.clean-spinner{width:46px;height:46px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:auto;animation:cleanSpin .9s linear infinite}@keyframes cleanSpin{to{transform:rotate(360deg)}}.clean-progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-top:18px}.clean-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#05b8ff);transition:width .18s ease}#cleanProgressBar.clean-login-indeterminate{width:36%!important;animation:cleanLoginProgress 1.15s ease-in-out infinite!important;transition:none!important;will-change:transform}@keyframes cleanLoginProgress{0%{transform:translateX(-115%)}100%{transform:translateX(305%)}}.clean-progress-label{margin-top:7px;color:#334155;font-weight:900}.clean-ms-status,.clean-login-status{border-radius:15px;padding:11px 12px;margin:10px 0;text-align:left;line-height:1.35}.clean-ms-status{background:#eff6ff;border:1px solid #bfdbfe;color:#08245d}.clean-ms-status strong,.clean-ms-status span{display:block}.clean-ms-status span{font-size:12px;margin-top:3px;color:#475569}.clean-login-status:empty{display:none}.clean-login-status{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-weight:800}.clean-login-status.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}.clean-login-status.bad{background:#fff1f2;border-color:#fecaca;color:#991b1b}.clean-version-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:950;margin-top:7px}
 
 .clean-safe-note{margin-top:12px;padding:10px 12px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:12px;font-weight:800;line-height:1.35}
 
@@ -7450,7 +7457,7 @@ body .rc314-process-warning{
 
 /* INLINE assets/clean-shell.css */
 
-.clean-load-panel{position:fixed;inset:0;z-index:2147483000;background:rgba(3,15,35,.92);display:grid;place-items:center;padding:24px;font-family:Segoe UI,Arial,sans-serif}.clean-load-panel.hidden{display:none!important}.clean-load-card{width:min(560px,100%);background:#fff;border-radius:28px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.38);text-align:center}.clean-load-card h2{margin:12px 0 8px;color:#08245d}.clean-load-card p{color:#475569;font-weight:700;line-height:1.5}.clean-spinner{width:46px;height:46px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:auto;animation:cleanSpin .9s linear infinite}@keyframes cleanSpin{to{transform:rotate(360deg)}}.clean-progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-top:18px}.clean-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#05b8ff);transition:width .18s ease}.clean-progress-label{margin-top:7px;color:#334155;font-weight:900}.clean-ms-status,.clean-login-status{border-radius:15px;padding:11px 12px;margin:10px 0;text-align:left;line-height:1.35}.clean-ms-status{background:#eff6ff;border:1px solid #bfdbfe;color:#08245d}.clean-ms-status strong,.clean-ms-status span{display:block}.clean-ms-status span{font-size:12px;margin-top:3px;color:#475569}.clean-login-status:empty{display:none}.clean-login-status{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-weight:800}.clean-login-status.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}.clean-login-status.bad{background:#fff1f2;border-color:#fecaca;color:#991b1b}.clean-version-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:950;margin-top:7px}
+.clean-load-panel{position:fixed;inset:0;z-index:2147483000;background:rgba(3,15,35,.92);display:grid;place-items:center;padding:24px;font-family:Segoe UI,Arial,sans-serif}.clean-load-panel.hidden{display:none!important}.clean-load-card{width:min(560px,100%);background:#fff;border-radius:28px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.38);text-align:center}.clean-load-card h2{margin:12px 0 8px;color:#08245d}.clean-load-card p{color:#475569;font-weight:700;line-height:1.5}.clean-spinner{width:46px;height:46px;border:5px solid #dbeafe;border-top-color:#2563eb;border-radius:50%;margin:auto;animation:cleanSpin .9s linear infinite}@keyframes cleanSpin{to{transform:rotate(360deg)}}.clean-progress{height:12px;border-radius:999px;background:#e2e8f0;overflow:hidden;margin-top:18px}.clean-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#05b8ff);transition:width .18s ease}#cleanProgressBar.clean-login-indeterminate{width:36%!important;animation:cleanLoginProgress 1.15s ease-in-out infinite!important;transition:none!important;will-change:transform}@keyframes cleanLoginProgress{0%{transform:translateX(-115%)}100%{transform:translateX(305%)}}.clean-progress-label{margin-top:7px;color:#334155;font-weight:900}.clean-ms-status,.clean-login-status{border-radius:15px;padding:11px 12px;margin:10px 0;text-align:left;line-height:1.35}.clean-ms-status{background:#eff6ff;border:1px solid #bfdbfe;color:#08245d}.clean-ms-status strong,.clean-ms-status span{display:block}.clean-ms-status span{font-size:12px;margin-top:3px;color:#475569}.clean-login-status:empty{display:none}.clean-login-status{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-weight:800}.clean-login-status.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}.clean-login-status.bad{background:#fff1f2;border-color:#fecaca;color:#991b1b}.clean-version-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:950;margin-top:7px}
 
 .clean-safe-note{margin-top:12px;padding:10px 12px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:12px;font-weight:800;line-height:1.35}
 
@@ -11002,6 +11009,14 @@ function isObject(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function status(msg,kind){const e=by('cleanLoginStatus');if(!e)return;e.textContent=msg||'';e.className='clean-login-status '+(kind||'')}
 function progress(p,msg){const panel=by('cleanLoadPanel'),bar=by('cleanProgressBar'),lab=by('cleanProgressLabel'),txt=by('cleanLoadText');if(panel)panel.classList.remove('hidden');if(bar)bar.style.width=Math.max(0,Math.min(100,p))+'%';if(lab)lab.textContent=Math.round(p)+' %';if(txt&&msg)txt.textContent=msg}
 function hideProgress(){const p=by('cleanLoadPanel');if(p)p.classList.add('hidden')}
+let loginProgressTimer=null,loginProgressStartedAt=0;
+function startLoginProgress(){
+ if(loginProgressTimer){try{native.clearInterval(loginProgressTimer)}catch(_){ }loginProgressTimer=null}
+ loginProgressStartedAt=Date.now();const panel=by('cleanLoadPanel'),bar=by('cleanProgressBar'),lab=by('cleanProgressLabel'),txt=by('cleanLoadText');
+ if(panel)panel.classList.remove('hidden');if(bar){bar.classList.add('clean-login-indeterminate');bar.style.width='36%'}if(lab)lab.textContent='Anmeldung läuft · 0 s';if(txt)txt.textContent='Anmeldedaten werden geprüft …';
+ loginProgressTimer=native.setInterval(function(){var sec=Math.max(0,Math.floor((Date.now()-loginProgressStartedAt)/1000));if(lab)lab.textContent='Anmeldung läuft · '+sec+' s';if(txt)txt.textContent=sec<8?'Anmeldedaten werden geprüft …':sec<20?'Azure-Anmeldung antwortet noch …':'Serverantwort wird weiterhin erwartet …'},1000);return true
+}
+function stopLoginProgress(){if(loginProgressTimer){try{native.clearInterval(loginProgressTimer)}catch(_){ }loginProgressTimer=null}const bar=by('cleanProgressBar');if(bar){bar.classList.remove('clean-login-indeterminate');bar.style.transform='';bar.style.removeProperty('will-change')}return true}
 function rc524StyleHealth(){
  const inline=document.getElementById('rc558-complete-design');
  if(inline){document.documentElement.removeAttribute('data-rc524-style-fallback');return Promise.resolve(true)}
@@ -11654,10 +11669,11 @@ async function verifySessionForLoad(){
  throw lastError
 }
 async function finishAuthenticatedLogin(){
- status(runtime.sessionRestored?'Sitzung wird nach dem Neuladen wiederhergestellt …':'Anmeldung bestätigt. Sitzung wird geprüft …','ok');
+ stopLoginProgress();progress(runtime.sessionRestored?5:6,runtime.sessionRestored?'Gespeicherte Sitzung wird geprüft …':'Anmeldung bestätigt · Teamdaten werden vorbereitet …');
+ status(runtime.sessionRestored?'Sitzung wird nach dem Neuladen wiederhergestellt …':'Anmeldung bestätigt. Teamdaten werden geladen …','ok');
  try{var loginBox=by('login'),appBox=by('app'),contentBox=by('content');if(loginBox)loginBox.classList.add('hidden');if(appBox)appBox.classList.remove('hidden');if(contentBox&&!text(contentBox.textContent))contentBox.innerHTML='<section class="card" id="rc654LoadState"><h2>ExportHUB wird geladen …</h2><p>Teamdaten und Funktionen werden synchronisiert.</p></section>'}catch(_){}
  try{
-  await verifySessionForLoad();
+  if(runtime.sessionRestored)await verifySessionForLoad();
   try{await loadState()}
   catch(firstError){
    if(!isSessionError(firstError)||!await renewSessionOnce())throw firstError;
@@ -11667,7 +11683,7 @@ async function finishAuthenticatedLogin(){
   await loadCanonicalModules()
  }
  catch(e){
-  hideProgress();
+  stopLoginProgress();hideProgress();
   if(isSessionError(e)){clearTabSession();runtime.authToken='';runtime.user=null;runtime.users=[];runtime.state=null}
   runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;
   const code=e&&e.code?'\nFehlercode: '+e.code:'';
@@ -11688,17 +11704,18 @@ async function login(manual){
  if(manual===true){clearLogoutSignalForManualLogin();runtime.sessionExpiredHandled=false;}
  const name=by('loginUser')&&by('loginUser').value,pass=by('loginPass')&&by('loginPass').value;
  if(!text(name)||!text(pass)){status('Benutzername und Passwort sind erforderlich.','bad');return}
- setLoginEnabled(false);status('ExportHUB-Anmeldung wird geprüft …','');
+ setLoginEnabled(false);status('ExportHUB-Anmeldung wird geprüft …','');startLoginProgress();
  try{
   const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true},'');
+  stopLoginProgress();progress(6,'Anmeldung bestätigt · Teamdaten werden vorbereitet …');
   runtime.authToken=text(d.token);runtime.passwordChangeTicket=d.passwordChangeTicket||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
   runtime.loginRetryCredentials={username:text(name),password:String(pass||''),deviceId:runtime.deviceId};runtime.sessionRefreshAttempted=false;
   const usedRecovery=runtime.adminRecoveryRequested===true;
   runtime.adminRecoveryRequested=false;
-  if(d.mustChange){runtime.pendingPasswordLogin={username:text(name),password:String(pass||''),deviceId:runtime.deviceId,recoveryRequested:usedRecovery};runtime.passwordChangeRetry=false;showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return}
+  if(d.mustChange){stopLoginProgress();hideProgress();runtime.pendingPasswordLogin={username:text(name),password:String(pass||''),deviceId:runtime.deviceId,recoveryRequested:usedRecovery};runtime.passwordChangeRetry=false;showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return}
   await finishAuthenticatedLogin();
  }catch(e){
-  var message=e.message||'Anmeldung fehlgeschlagen.';
+  stopLoginProgress();hideProgress();var message=e.message||'Anmeldung fehlgeschlagen.';
   if(e.code==='INITIAL_ADMIN_NOT_CONFIGURED')message+=' Bitte in Azure die Anwendungseinstellung EXPORTHUB_INITIAL_ADMIN_PASSWORD eintragen.';
   if(e.code==='STORAGE_NOT_CONFIGURED')message+=' Bitte in Azure EXPORTHUB_STORAGE_CONNECTION_STRING eintragen.';
   status(message+(e.code?'\nFehlercode: '+e.code:''),'bad');setLoginEnabled(true)
