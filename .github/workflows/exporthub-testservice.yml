@@ -6,9 +6,9 @@ on:
     branches:
       - main
     paths:
-      - TESTVERSION.html
-      - staticwebapp.testservice.config.json
-      - .github/workflows/exporthub-testservice.yml
+      - 'TESTVERSION.html'
+      - 'staticwebapp.testservice.config.json'
+      - '.github/workflows/exporthub-testservice.yml'
 
 permissions:
   contents: read
@@ -21,7 +21,7 @@ jobs:
   deploy_testservice:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    name: Deploy isolated TESTSERVICE
+    name: Deploy TESTSERVICE preview environment
 
     steps:
       - name: Checkout repository
@@ -39,12 +39,12 @@ jobs:
           test -f api/exporthub-state/index.js
           test -f api/exporthub-state/function.json
           test -f api/shared/merge.js
-          grep -q "version:'RC657'" TESTVERSION.html
+          grep -q "version:'RC658'" TESTVERSION.html
           node --check api/exporthub-state/index.js
           node --check api/shared/merge.js
           node -e "JSON.parse(require('fs').readFileSync('staticwebapp.testservice.config.json','utf8'));"
 
-      - name: Prepare isolated TESTSERVICE deployment
+      - name: Prepare isolated TESTSERVICE payload
         shell: bash
         run: |
           set -euo pipefail
@@ -52,24 +52,25 @@ jobs:
           cp staticwebapp.testservice.config.json staticwebapp.config.json
           cat > testservice-environment.json <<'EOF'
           {
-            "environment": "test",
+            "environment": "testservice",
             "isolated": true,
             "data": "TEST-DATEN",
             "productionWritesAllowed": false,
-            "expectedVersion": "RC657"
+            "expectedVersion": "RC658"
           }
           EOF
 
-      - name: Deploy TESTSERVICE
+      - name: Deploy TESTSERVICE named environment
         id: deploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORTHUB_TESTSERVICE }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           app_location: /
           api_location: api
           output_location: ""
+          deployment_environment: testservice
 
       - name: Verify live TESTSERVICE version
         shell: bash
@@ -77,28 +78,46 @@ jobs:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
         run: |
           set -euo pipefail
-          test -n "$TESTSERVICE_URL"
+          if [[ -z "${TESTSERVICE_URL:-}" ]]; then
+            echo "Azure hat keine Testservice-URL zurückgegeben."
+            exit 1
+          fi
+          if [[ "$TESTSERVICE_URL" == "https://wonderful-forest-0f315e310.7.azurestaticapps.net"* ]]; then
+            echo "FEHLER: Deployment zeigt auf die Produktionsadresse statt auf die benannte Testumgebung."
+            exit 1
+          fi
           echo "TESTSERVICE URL: $TESTSERVICE_URL"
           ok=0
           for attempt in {1..24}; do
             body="$(curl -fsSL --max-time 20 "$TESTSERVICE_URL/TESTVERSION.html?verify=$GITHUB_SHA-$attempt" || true)"
-            if printf '%s' "$body" | grep -q "version:'RC657'"; then
-              echo "RC657 ist im isolierten TESTSERVICE live."
+            if printf '%s' "$body" | grep -q "version:'RC658'"; then
+              echo "RC658 ist im TESTSERVICE live."
               ok=1
               break
             fi
-            echo "Live-Check $attempt/24: RC657 noch nicht sichtbar."
+            echo "Live-Check $attempt/24: RC658 noch nicht sichtbar."
             sleep 10
           done
           if [[ "$ok" != "1" ]]; then
-            echo "TESTSERVICE-Verifikation fehlgeschlagen: RC657 wurde nicht ausgeliefert."
+            echo "TESTSERVICE-Verifikation fehlgeschlagen: RC658 wurde nicht ausgeliefert."
             exit 1
           fi
 
-      - name: TESTSERVICE address
+      - name: Publish TESTSERVICE address
         shell: bash
         env:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
         run: |
-          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=657"
-          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=657"
+          {
+            echo "## ExportHUB TESTSERVICE RC658"
+            echo
+            echo "**Diese Adresse zum Testen verwenden:**"
+            echo
+            echo "$TESTSERVICE_URL/test?v=658"
+            echo
+            echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=658"
+            echo
+            echo "Die Produktionsadresse wonderful-forest-0f315e310.7.azurestaticapps.net/test ist ausdrücklich NICHT der Testservice."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "ÖFFNEN: $TESTSERVICE_URL/test?v=658"
+          echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=658"
