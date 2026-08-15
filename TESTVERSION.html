@@ -179,12 +179,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC687',cache:'687',loginReturn:'/test?v=687'});
+var BUILD=Object.freeze({version:'RC688',cache:'688',loginReturn:'/test?v=688'});
 var RELEASE=Object.freeze({
- version:'RC687',
+ version:'RC688',
  date:'15.08.2026',
- title:'Direkter Testservice-Login repariert',
+ title:'Testservice-Login vollständig neu aufgebaut',
  changes:Object.freeze([
+   'RC688 trennt die Anmeldung sichtbar nach Umgebung: Produktion und Testservice werden bereits vor der Eingabe der Zugangsdaten ausgewählt; ein Wechsel zum Testservice startet niemals zuerst eine Produktionsanmeldung.',
+   'RC688 verwendet auf der echten -testservice-Domain genau einen eigenen Login-Ablauf gegen die dortige ExportHUB-Auth-API; die anonyme Bootstrap-Prüfung wird dort vor der Anmeldung nicht mehr vorgeschaltet.',
+   'RC688 lässt Benutzername und Passwort während des kompletten Testservice-Starts im Formular erhalten und leert das Passwort erst nach vollständig erfolgreichem App-Start; schlägt eine nachgelagerte Ladephase fehl, müssen die Zugangsdaten nicht erneut eingegeben werden.',
+   'RC688 begrenzt den eigentlichen Testservice-Login auf genau einen Netzwerkversuch und wiederholt nur den anschließenden Teamdaten-Lesevorgang kontrolliert; dadurch entstehen keine mehrfachen Login-Anfragen aus einem einzigen Klick.',
    'RC687 repariert den Zugang über die normale Loginseite: Testservice – Admin öffnet sofort die echte Azure-Testservice-Loginseite, statt zuerst eine Produktionssitzung aufzubauen und erst danach umzuleiten.',
    'RC687 entfernt die nicht übertragbare Produktions-Session-Kopplung aus dem Testservice-Einstieg; die Anmeldung erfolgt direkt auf der separaten Testservice-Domain gegen deren ExportHUB-Auth-API.',
    'RC686 stellt eine gespeicherte ExportHUB-Sitzung sofort wieder her, statt vorher auf die anonyme Bootstrap-Prüfung zu warten; dadurch bleibt die Testseite beim F5/Neuaufruf nicht mehr leer.',
@@ -336,6 +340,11 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC688 Login-Umgebung: Produktion und Testservice werden vor der Zugangsdaten-Eingabe eindeutig gewählt; Testservice-Navigation führt direkt auf die -testservice-Domain',
+    'RC688 Testservice-Login: auf der -testservice-Domain wird bootstrap-status vor der manuellen Anmeldung übersprungen und genau ein Login-POST pro Klick ausgelöst',
+    'RC688 Zugangsdaten: Passwort wird erst nach exporthub:ready/erfolgreichem App-Start geleert; bei Ladefehlern bleibt es für denselben Loginversuch erhalten',
+    'RC688 Teamdaten: temporäre Testservice-Lesefehler werden einmal intern wiederholt, ohne dass der Benutzer seine Zugangsdaten erneut eingeben muss',
+    'RC688 Origin-Erkennung: /test auf der Produktionsdomain gilt nicht mehr als Testservice; ausschließlich die Azure-Named-Environment mit -testservice im Hostnamen aktiviert den Testmodus',
     'RC687 Testservice-Login: Klick auf Testservice – Admin navigiert unmittelbar zur festen Azure-Named-Environment und verlangt keinen vorherigen Produktions-Login',
     'RC687 Origin-Trennung: keine Produktions-Session wird für den Testservice erwartet oder per sessionStorage überwacht; Login erfolgt direkt auf dem Testservice',
     'RC687 Testservice-Loginseite: auf der -testservice-Domain bleibt der Testportal-Einstiegsbutton ausgeblendet und der normale ExportHUB-Login aktiv',
@@ -8054,12 +8063,17 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 #content.rc524-overview-view .rc524-link-columns .rc524-file-row:has(>span:only-child){display:block!important}
 </style>
 <style id="exporthub-testportal-login-style">
-#releaseTestPortalBtn.exporthub-testportal-login{border:1px solid #dc2626!important;background:#dc2626!important;color:#fff!important;font-weight:950!important;box-shadow:0 8px 20px rgba(220,38,38,.18)!important}
-#releaseTestPortalBtn.exporthub-testportal-login:hover{background:#b91c1c!important;border-color:#b91c1c!important}
+.eh-login-environment{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 12px;padding:6px;border:1px solid #dbeafe;border-radius:16px;background:#f8fbff}
+.eh-login-environment button{min-height:40px;border:1px solid #cbd5e1;border-radius:11px;background:#fff;color:#334155;font-weight:950;cursor:pointer}
+.eh-login-environment button.active[data-environment="production"]{border-color:#2563eb;background:#eff6ff;color:#1e3a8a}
+.eh-login-environment button.active[data-environment="testservice"]{border-color:#ea580c;background:#fff7ed;color:#9a3412;box-shadow:0 6px 16px rgba(234,88,12,.12)}
+.eh-login-environment-note{margin:-3px 0 9px;font-size:12px;font-weight:850;color:#64748b}
+html[data-exporthub-testportal="1"] .eh-login-environment-note{color:#9a3412}
+html[data-exporthub-testportal="1"] #loginMicrosoftAccountSwitchBtn{display:none!important}
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||''),h=String(location.hostname||'').toLowerCase(),prod='wonderful-forest-0f315e310.7.azurestaticapps.net',namedTest=/-testservice\./i.test(h);if(namedTest||/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC687');window.__EXPORTHUB_TESTSERVICE_HOST_VALID__=h!==prod;document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');document.documentElement.setAttribute('data-exporthub-testservice-host',h===prod?'production-host':'test-host');if(h===prod)console.error('ExportHUB TESTSERVICE: falsche Adresse. wonderful-forest ist die Produktionsumgebung; die Azure testservice-Preview-URL verwenden.');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var h=String(location.hostname||'').toLowerCase(),prod='wonderful-forest-0f315e310.7.azurestaticapps.net',namedTest=/-testservice\./i.test(h);window.__EXPORTHUB_TESTSERVICE_ORIGIN__=namedTest===true;window.__EXPORTHUB_TESTSERVICE_HOST_VALID__=namedTest===true;if(namedTest){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC688');document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');document.documentElement.setAttribute('data-exporthub-testservice-host','test-host');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}else{document.documentElement.setAttribute('data-exporthub-testservice-host',h===prod?'production-host':'other-host');if(h===prod&&/^\/test(?:\/|$)/i.test(String(location.pathname||'')))console.error('ExportHUB: /test auf der Produktionsdomain ist kein Testservice. Bitte die -testservice Azure-Umgebung verwenden.')}}catch(_){}})();
 </script>
 <script id="rc677-testservice-badge">
 (function(){'use strict';
@@ -8076,7 +8090,6 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 #login:not(.hidden){position:fixed!important;inset:0!important;z-index:2147483000!important;overflow:auto!important;background:var(--bg,#eef6fb)!important}
 #login:not(.hidden)+#app{display:none!important;visibility:hidden!important;pointer-events:none!important}
 body:has(#login:not(.hidden)){overflow:hidden!important}
-html[data-exporthub-testportal="1"] #releaseTestPortalBtn{display:none!important}
 
 @media(max-width:720px){
  html,body{font-size:13px!important}
@@ -8182,6 +8195,8 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 <div class="logo">EH</div>
 <h1>ExportHUB</h1>
 <div aria-label="Aktuelle Version RC583" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC583</div>
+<div class="eh-login-environment" id="ehLoginEnvironment" aria-label="ExportHUB-Umgebung"><button type="button" id="ehLoginProduction" data-environment="production">Produktion</button><button type="button" id="ehLoginTestservice" data-environment="testservice">Testservice</button></div>
+<div class="eh-login-environment-note" id="ehLoginEnvironmentNote"></div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -8190,12 +8205,11 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 </div>
 <div aria-live="polite" class="clean-login-status" id="cleanLoginStatus"></div>
 <div id="loginFields">
-<label class="field">Benutzername<input autocapitalize="none" autocomplete="off" data-1p-ignore="true" data-lpignore="true" id="loginUser" name="exporthub_login_user" spellcheck="false" value=""/></label>
+<label class="field">Benutzername<input autocapitalize="none" autocomplete="username" id="loginUser" name="exporthub_login_user" spellcheck="false" value=""/></label>
 <label class="field">Passwort<input autocomplete="current-password" id="loginPass" type="password"/></label>
 <button class="btn" id="loginBtn" style="width:100%">Anmelden</button>
 <button class="ghost" data-exporthub-ms-switch="1" id="loginMicrosoftAccountSwitchBtn" style="width:100%;margin-top:10px" type="button">Microsoft-Konto wechseln</button>
 <button class="ghost" id="adminRecoveryBtn" style="width:100%;margin-top:10px" type="button">Admin-Zugang wiederherstellen</button>
-<button class="exporthub-testportal-login" id="releaseTestPortalBtn" style="width:100%;margin-top:10px" type="button" aria-pressed="false">Testservice – Admin</button>
 </div>
 <div class="hidden" id="pwChange">
 <div class="notice">Erstanmeldung: Bitte neues Passwort setzen.</div>
@@ -10819,22 +10833,20 @@ window.ExportHUBRC524={install:install,refresh:stableRender,setView:stableSetVie
 #nav button[data-view="start"],#nav button[onclick*="setView('start')"],#nav button[onclick*='setView("start")']{display:none!important}
 </style>
 <!-- INDEX 305 EARLY AUTHORITATIVE START + NAVIGATION CONTROLLER END -->
-<script id="rc555-testportal-entry">
+<script id="rc688-login-environment-router">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__=true;if(window.__EXPORTHUB_TEST_PORTAL__)return;
-var TAB='exporthub_rc301_tab_session',TESTSERVICE_URL='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/test';
+if(window.__EXPORTHUB_RC688_LOGIN_ENVIRONMENT__)return;window.__EXPORTHUB_RC688_LOGIN_ENVIRONMENT__=true;
+var PRODUCTION_URL='https://wonderful-forest-0f315e310.7.azurestaticapps.net/',TESTSERVICE_URL='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/test';
 function q(v){return String(v==null?'':v).trim()}
-function low(v){return q(v).toLowerCase()}
-function session(){try{var raw=sessionStorage.getItem(TAB);if(!raw)return null;var x=JSON.parse(raw);return x&&x.token&&x.user?x:null}catch(_){return null}}
-function runtimeSession(){try{var r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(q(r.authToken)&&r.user)return{token:q(r.authToken),user:r.user}}catch(_){}return null}
-function isGlobal(u){u=u||{};var role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName);return !!(u.globalAdmin===true||u.isAdmin===true||u.admin===true||name==='tobias'||name==='tobias limberg'||role==='admin'||/global.?admin|administrator|vollzugriff/.test(role)||(Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0))}
-function target(){var build=window.EXPORTHUB_BUILD||{},v=q(build.cache||String(build.version||'').replace(/\D/g,''));return TESTSERVICE_URL+(v?'?v='+encodeURIComponent(v)+'&entry=login':'?entry=login')}
-function go(){location.assign(target());return false}
-function paint(){var b=document.getElementById('releaseTestPortalBtn'),s=runtimeSession()||session(),top=document.getElementById('openTestserviceBtn');if(b){b.textContent='Testservice – Admin';b.setAttribute('aria-pressed','false');b.classList.remove('active')}if(top)top.hidden=!(s&&s.user&&isGlobal(s.user))}
-function click(e){var direct=e.target&&e.target.closest&&e.target.closest('#openTestserviceBtn');if(direct){e.preventDefault();e.stopPropagation();var s=runtimeSession()||session();if(!s||!s.user||!isGlobal(s.user)){alert('Der direkte Testservice-Zugang ist nur für globale Administratoren verfügbar.');return}go();return}var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;e.preventDefault();e.stopPropagation();go()}
-function boot(){paint();document.addEventListener('click',click,true);['exporthub:ready','exporthub:rendered','exporthub:sync','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,paint)})}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+function isTest(){return /-testservice\./i.test(String(location.hostname||''))}
+function cache(){var b=window.EXPORTHUB_BUILD||{};return q(b.cache||String(b.version||'').replace(/\D/g,''))}
+function target(kind){var base=kind==='testservice'?TESTSERVICE_URL:PRODUCTION_URL,v=cache();return base+(base.indexOf('?')>=0?'&':'?')+'v='+encodeURIComponent(v||'688')}
+function go(kind){var same=kind==='testservice'?isTest():!isTest();if(same)return false;location.assign(target(kind));return false}
+function paint(){var test=isTest(),prod=document.getElementById('ehLoginProduction'),tst=document.getElementById('ehLoginTestservice'),note=document.getElementById('ehLoginEnvironmentNote'),btn=document.getElementById('loginBtn'),title=document.getElementById('cleanLoadTitle');if(prod){prod.classList.toggle('active',!test);prod.setAttribute('aria-pressed',test?'false':'true')}if(tst){tst.classList.toggle('active',test);tst.setAttribute('aria-pressed',test?'true':'false')}if(note)note.textContent=test?'TESTSERVICE · separate Testumgebung · Zugangsdaten einmal eingeben':'PRODUKTION · für Tests zuerst „Testservice“ auswählen';if(btn)btn.textContent=test?'Am Testservice anmelden':'Anmelden';if(title&&test)title.textContent='TESTSERVICE wird geladen'}
+function bind(){paint();var prod=document.getElementById('ehLoginProduction'),tst=document.getElementById('ehLoginTestservice');if(prod)prod.addEventListener('click',function(e){e.preventDefault();go('production')});if(tst)tst.addEventListener('click',function(e){e.preventDefault();go('testservice')});['exporthub:ready','exporthub:rendered'].forEach(function(name){window.addEventListener(name,paint)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,openTestservice:function(){return go('testservice')},openProduction:function(){return go('production')},testserviceUrl:TESTSERVICE_URL,productionUrl:PRODUCTION_URL});
 })();
 </script>
 
@@ -11047,6 +11059,7 @@ window.__EXPORTHUB_WRITE_TAB_SESSION__=writeTabSession;
 function by(id){return document.getElementById(id)}
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
+function isTestServiceOrigin(){return /-testservice\./i.test(String(location.hostname||''))}
 function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
 function scheduleSaveSizeDiagnostics(payload,fullStateSnapshot,knownPayloadBytes){var run=function(){try{runtime.lastPayloadBytes=Number(knownPayloadBytes)>=0?Number(knownPayloadBytes):new Blob([JSON.stringify(payload)]).size}catch(_){try{runtime.lastPayloadBytes=Number(knownPayloadBytes)>=0?Number(knownPayloadBytes):JSON.stringify(payload).length}catch(__){runtime.lastPayloadBytes=0}}try{runtime.lastFullStateBytes=new Blob([JSON.stringify(fullStateSnapshot)]).size}catch(_){runtime.lastFullStateBytes=0}};try{if(typeof window.requestIdleCallback==='function'){window.requestIdleCallback(run,{timeout:1800});return true}}catch(_){}native.setTimeout(run,0);return true}
 function isObject(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
@@ -11257,7 +11270,7 @@ function updateMicrosoftUi(){
 }
 async function loadMicrosoft(){runtime.ms=null;updateMicrosoftUi();return null}
 async function loadUsers(){return runtime.users}
-async function authCall(action,payload,token){
+async function authCall(action,payload,token,requestOptions){
  const headers={'Content-Type':'application/json'};
  const t=text(token||runtime.authToken);
  if(t){
@@ -11267,9 +11280,12 @@ async function authCall(action,payload,token){
  }
  const body=Object.assign({action:action},payload||{});
  if(t)body.sessionToken=t;
- return jsonFetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify(body)});
+ const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});
+ opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});
+ return jsonFetch(AUTH_API,opts);
 }
 async function checkBootstrapStatus(){
+ if(isTestServiceOrigin()){runtime.bootstrapStatus={ok:true,testService:true,skipped:true};runtime.authApiReachable=null;status('TESTSERVICE bereit · Zugangsdaten einmal eingeben.','');return runtime.bootstrapStatus}
  try{
   const d=await jsonFetch(AUTH_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'bootstrap-status'}),timeoutMs:12000,maxAttempts:1});
   runtime.authApiReachable=true;runtime.apiReachable=true;runtime.lastAuthApiSuccessAt=Date.now();
@@ -11572,7 +11588,7 @@ async function signalReady(){
  const info=by('saveInfo');if(info)info.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
  if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null;runtime.pendingSave=false;runtime.dirty=false;
  runtime.lastSnapshot=clone(window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||{});runtime.lastUsers=clone(window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users||[]);
- runtime.ready=true;runtime.loaded=true;runtime.loading=false;runtime.applyingRemote=false;runtime.acceptWritesAt=0;runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;runtime.sessionExpiredHandled=false;runtime.readyAt=new Date().toISOString();
+ runtime.ready=true;runtime.loaded=true;runtime.loading=false;runtime.applyingRemote=false;runtime.acceptWritesAt=0;var readyPass=by('loginPass');if(readyPass)readyPass.value='';if(isTestServiceOrigin()){try{var readyUser=by('loginUser');if(readyUser&&text(readyUser.value))sessionStorage.setItem('exporthub_test_login_user',text(readyUser.value))}catch(_){}}runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;runtime.sessionExpiredHandled=false;runtime.readyAt=new Date().toISOString();
  if(wasRestored)unlockRestoredApplication();else{document.body.classList.remove('rc405-session-restoring');hideProgress()}
  await nextFrame();writeTabSession();status('Angemeldet · Azure-Teamdaten geladen.','ok');window.__EXPORTHUB_READY__={ready:true,version:VERSION,revision:runtime.revision,user:text(runtime.user&&(runtime.user.name||runtime.user.user)),readyAt:runtime.readyAt,resumed:wasRestored};
  window.dispatchEvent(new CustomEvent('exporthub:ready',{detail:window.__EXPORTHUB_READY__}));startRevisionPolling();startNoIdleKeepAlive()
@@ -11623,7 +11639,7 @@ function restoreAuthoritativeUsersBeforeLogin(){
 }
 function activateApplicationLogin(){
  try{window.currentUser=runtime.user;if(typeof currentUser!=='undefined')currentUser=runtime.user}catch(_){ }
- const u=by('loginUser'),p=by('loginPass');if(p)p.value='';
+ const u=by('loginUser'),p=by('loginPass');
  const login=by('login'),app=by('app');if(login)login.classList.add('hidden');if(app)app.classList.remove('hidden');
  setVersion();native.setTimeout(setVersion,250);
 }
@@ -11712,27 +11728,32 @@ async function verifySessionForLoad(){
  }
  throw lastError
 }
+
+function isTransientLoginLoadError(error){var code=String(error&&error.code||''),statusCode=Number(error&&error.status||0);return ['API_UNREACHABLE','API_TIMEOUT','STATE_API_UNREACHABLE','INVALID_SERVER_JSON','HTTP_408','HTTP_425','HTTP_429','HTTP_500','HTTP_502','HTTP_503','HTTP_504'].indexOf(code)>=0||[408,425,429,500,502,503,504].indexOf(statusCode)>=0}
+async function loadStateAfterLogin(){
+ try{return await loadState()}catch(firstError){
+  if(isSessionError(firstError)&&await renewSessionOnce())return loadState();
+  if(isTestServiceOrigin()&&isTransientLoginLoadError(firstError)){status('TESTSERVICE antwortet noch · Teamdaten werden einmal automatisch erneut geladen …','');await new Promise(function(resolve){native.setTimeout(resolve,650)});return loadState()}
+  throw firstError
+ }
+}
 async function finishAuthenticatedLogin(){
  stopLoginProgress();progress(runtime.sessionRestored?5:6,runtime.sessionRestored?'Gespeicherte Sitzung wird geprüft …':'Anmeldung bestätigt · Teamdaten werden vorbereitet …');
  status(runtime.sessionRestored?'Sitzung wird nach dem Neuladen wiederhergestellt …':'Anmeldung bestätigt. Teamdaten werden geladen …','ok');
  try{var loginBox=by('login'),appBox=by('app'),contentBox=by('content');if(loginBox)loginBox.classList.add('hidden');if(appBox)appBox.classList.remove('hidden');if(contentBox&&!text(contentBox.textContent))contentBox.innerHTML='<section class="card" id="rc654LoadState"><h2>ExportHUB wird geladen …</h2><p>Teamdaten und Funktionen werden synchronisiert.</p></section>'}catch(_){}
  try{
   if(runtime.sessionRestored)await verifySessionForLoad();
-  try{await loadState()}
-  catch(firstError){
-   if(!isSessionError(firstError)||!await renewSessionOnce())throw firstError;
-   await loadState();
-  }
+  await loadStateAfterLogin();
   runtime.sessionRefreshAttempted=false;
   await loadCanonicalModules()
  }
  catch(e){
   stopLoginProgress();hideProgress();
   if(isSessionError(e)){clearTabSession();runtime.authToken='';runtime.user=null;runtime.users=[];runtime.state=null}
-  runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;
+  if(!isTestServiceOrigin())runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;
   const code=e&&e.code?'\nFehlercode: '+e.code:'';
   const prefix=isSessionError(e)?'ExportHUB-Sitzung konnte nicht bestätigt werden: ':'ExportHUB konnte nicht geladen werden: ';
-  status(prefix+(e.message||'Unbekannter Fehler')+code,'bad');
+  status(prefix+(e.message||'Unbekannter Fehler')+code+(isTestServiceOrigin()?'\nDie eingegebenen Testservice-Zugangsdaten bleiben erhalten; keine zweite Eingabe erforderlich.':''),'bad');
   const fields=by('loginFields'),change=by('pwChange'),loginBox=by('login'),appBox=by('app');if(fields)fields.classList.remove('hidden');if(change)change.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden');if(appBox)appBox.classList.add('hidden');setLoginEnabled(true);
   console.error(e)
  }
@@ -11748,9 +11769,10 @@ async function login(manual){
  if(manual===true){clearLogoutSignalForManualLogin();runtime.sessionExpiredHandled=false;}
  const name=by('loginUser')&&by('loginUser').value,pass=by('loginPass')&&by('loginPass').value;
  if(!text(name)||!text(pass)){status('Benutzername und Passwort sind erforderlich.','bad');return}
- setLoginEnabled(false);status('ExportHUB-Anmeldung wird geprüft …','');startLoginProgress();
+ var testLogin=isTestServiceOrigin();runtime.sessionRestored=false;setLoginEnabled(false);status(testLogin?'TESTSERVICE-Anmeldung wird geprüft …':'ExportHUB-Anmeldung wird geprüft …','');startLoginProgress();
  try{
-  const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true},'');
+  const loginOptions=testLogin?{timeoutMs:45000,maxAttempts:1}:undefined;
+  const d=await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true},'',loginOptions);
   stopLoginProgress();progress(6,'Anmeldung bestätigt · Teamdaten werden vorbereitet …');
   runtime.authToken=text(d.token);runtime.passwordChangeTicket=d.passwordChangeTicket||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];
   runtime.loginRetryCredentials={username:text(name),password:String(pass||''),deviceId:runtime.deviceId};runtime.sessionRefreshAttempted=false;
@@ -11762,7 +11784,7 @@ async function login(manual){
   stopLoginProgress();hideProgress();var message=e.message||'Anmeldung fehlgeschlagen.';
   if(e.code==='INITIAL_ADMIN_NOT_CONFIGURED')message+=' Bitte in Azure die Anwendungseinstellung EXPORTHUB_INITIAL_ADMIN_PASSWORD eintragen.';
   if(e.code==='STORAGE_NOT_CONFIGURED')message+=' Bitte in Azure EXPORTHUB_STORAGE_CONNECTION_STRING eintragen.';
-  status(message+(e.code?'\nFehlercode: '+e.code:''),'bad');setLoginEnabled(true)
+  status(message+(e.code?'\nFehlercode: '+e.code:'')+(testLogin?'\nTestservice: Zugangsdaten bleiben im Formular; bitte nicht erneut eingeben.':''),'bad');setLoginEnabled(true)
  }
 }
 async function saveChangedPassword(){
@@ -11926,7 +11948,7 @@ document.addEventListener('DOMContentLoaded',async function(){
  const app=by('app'),loginBox=by('login'),contentBox=by('content');
  if(restoredSession){document.body.classList.add('rc405-session-restoring');if(app)app.classList.remove('hidden');if(loginBox)loginBox.classList.add('hidden');if(contentBox&&!text(contentBox.textContent))contentBox.innerHTML='<section class="card" id="rc654LoadState"><h2>ExportHUB wird geladen …</h2><p>Gespeicherte Sitzung und Teamdaten werden wiederhergestellt.</p></section>';progress(8,'Sitzung und aktuelle Ansicht werden wiederhergestellt …')}
  else{document.body.classList.remove('rc405-session-restoring');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden')}
- updateMicrosoftUi();status(restoredSession?'Gespeicherte Sitzung wird wiederhergestellt …':'Anmeldekonfiguration wird geprüft …','');
+ updateMicrosoftUi();status(restoredSession?'Gespeicherte Sitzung wird wiederhergestellt …':(isTestServiceOrigin()?'TESTSERVICE bereit · Zugangsdaten einmal eingeben.':'Anmeldekonfiguration wird geprüft …'),'');
  if(explicitLogout){consumeLogoutSignal();showLoggedOutScreen();return}
  if(restoredSession){await finishAuthenticatedLogin();return}
  await checkBootstrapStatus();
@@ -20804,14 +20826,14 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC666'),CACHE=String(ACTIVE_BUILD.cache||'666'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC688'),CACHE=String(ACTIVE_BUILD.cache||'688'),USER_KEY='exporthub_test_login_user',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
- function isTestPath(){var h=String(location.hostname||'').toLowerCase();return /-testservice\./i.test(h)||/^\/test(?:\/|$)/i.test(String(location.pathname||''))||/\/TESTVERSION\.html$/i.test(String(location.pathname||''))}
+ function isTestPath(){return /-testservice\./i.test(String(location.hostname||'').toLowerCase())}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
  function canonicalProbe(){try{if(sessionStorage.getItem('exporthub_test_probe_'+VERSION)==='1')return;sessionStorage.setItem('exporthub_test_probe_'+VERSION,'1');fetch('/TESTVERSION.html?runtime-probe='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache'}}).then(function(r){return r.ok?r.text():''}).then(function(h){var m=String(h||'').match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['\"](RC\d+)['\"]/i);var remote=String(m&&m[1]||'');if(remote&&remote!==VERSION){var n=parseInt(remote.replace(/\D/g,''),10)||0,c=parseInt(VERSION.replace(/\D/g,''),10)||0;if(n>c)location.replace('/TESTVERSION.html?v='+n+'&reload='+Date.now())}}).catch(function(){})}catch(_){}}
  function syncLoginMask(){try{var login=document.getElementById('login'),visible=!!(login&&!login.classList.contains('hidden'));document.documentElement.setAttribute('data-rc558-login-visible',visible?'1':'0')}catch(_){}}
- function restoreUser(){try{var input=document.getElementById('loginUser'),saved=sessionStorage.getItem(USER_KEY);if(input&&!q(input.value)&&q(saved))input.value=q(saved)}catch(_){}}
- function anchorTestRoute(){try{if(window.__EXPORTHUB_PICKUP_MODE__)return;var u=new URL(location.href);if(!isTestPath())u.pathname='/test';u.searchParams.set('v',CACHE);u.searchParams.delete('portal');history.replaceState(history.state||null,'',u.pathname+u.search+u.hash);mark()}catch(_){}}
+ function restoreUser(){try{var input=document.getElementById('loginUser'),saved=sessionStorage.getItem(USER_KEY);if(input&&!q(input.value)&&q(saved))input.value=q(saved);if(input&&!input.dataset.rc688UserMemory){input.dataset.rc688UserMemory='1';input.addEventListener('input',function(){try{var v=q(input.value);if(v)sessionStorage.setItem(USER_KEY,v);else sessionStorage.removeItem(USER_KEY)}catch(_){}})}}catch(_){}}
+ function anchorTestRoute(){try{if(window.__EXPORTHUB_PICKUP_MODE__||!isTestPath())return;var u=new URL(location.href);if(!/^\/test(?:\/|$)/i.test(u.pathname))u.pathname='/test';u.searchParams.set('v',CACHE);u.searchParams.delete('portal');u.searchParams.delete('entry');history.replaceState(history.state||null,'',u.pathname+u.search+u.hash);mark()}catch(_){}}
  function ensureBadge(){var b=document.getElementById('rc561TestPortalBadge');if(!b){b=document.createElement('div');b.id='rc561TestPortalBadge';b.setAttribute('role','status');b.textContent='TESTSERVICE · '+VERSION+' · NICHT PRODUKTION';(document.body||document.documentElement).appendChild(b)}return b}
  function showRuntimeError(message){message=q(message);if(!message)return;var box=document.getElementById('rc561TestRuntimeError');if(!box){box=document.createElement('div');box.id='rc561TestRuntimeError';box.setAttribute('role','alert');(document.body||document.documentElement).appendChild(box)}box.textContent='TESTFEHLER: '+message;box.classList.add('show');clearTimeout(errorTimer);errorTimer=setTimeout(function(){box.classList.remove('show')},12000)}
  function bind(){mark();canonicalProbe();anchorTestRoute();ensureBadge();restoreUser();syncLoginMask();var login=document.getElementById('login');if(login&&window.MutationObserver)new MutationObserver(function(){syncLoginMask();restoreUser()}).observe(login,{attributes:true,attributeFilter:['class']});}
