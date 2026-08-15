@@ -179,12 +179,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC690',cache:'690',loginReturn:'/test?v=690'});
+var BUILD=Object.freeze({version:'RC691',cache:'691',loginReturn:'/TESTVERSION.html?v=691'});
 var RELEASE=Object.freeze({
- version:'RC690',
+ version:'RC691',
  date:'15.08.2026',
- title:'Testservice-Login vollständig neu aufgebaut',
+ title:'Login endgültig getrennt: Produktion und Testservice',
  changes:Object.freeze([
+    'RC691 entfernt den alten Testportal-Auswahlmodus vollständig aus dem neuen Produktions-Login. Der Produktions-Login authentifiziert ausschließlich Produktion.',
+    'RC691 bietet auf Produktion nur noch den separaten Knopf Testservice öffnen. Dieser wechselt vor jeder Zugangsdaten-Eingabe direkt auf die feste Azure-Named-Environment.',
+    'RC691 zeigt auf der Testservice-Domain ausschließlich den Testservice-Login. Benutzername und Passwort werden dort genau einmal eingegeben.',
+    'RC691 fängt /test auf der Produktionsdomain bereits beim Seitenstart ab und leitet unmittelbar auf /TESTVERSION.html der echten Testservice-Domain weiter.',
     'RC690 ersetzt den bisherigen gemeinsamen Produktions-/Testservice-Login vollständig: Produktion und Testservice haben jetzt getrennte Einstiegspfade und keine gemeinsam weitergereichte Sitzung mehr.',
     'RC690 öffnet den Testservice ausschließlich über die direkte Datei /TESTVERSION.html auf der festen Azure-Named-Environment; /test auf der Produktionsdomain wird weder für Navigation noch für die Anmeldung verwendet.',
     'RC690 verwendet auf der Testservice-Domain einen eigenen einmaligen Auth-Request ohne generische Login-Wiederholung. Nach erfolgreicher Anmeldung werden Teamdaten mit demselben Sitzungsschlüssel geladen; ein zweiter Login wird nicht automatisch ausgelöst.',
@@ -349,6 +353,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC691 Produktion: kein Testportal-Auswahlmodus und keine Anmeldung vor dem Wechsel zum Testservice',
+    'RC691 Produktion: Testservice öffnen navigiert direkt zur -testservice-Domain /TESTVERSION.html?v=691',
+    'RC691 Testservice: eigene Loginansicht ohne Produktionsumschaltung; ein Login-Handler und ein Login-Request pro Klick',
+    'RC691 Legacy: /test auf der Produktionsdomain wird vor Login/Renderer sofort zur Testservice-Domain umgeleitet',
     'RC690 Loginseite: Produktionsseite zeigt Produktion und einen separaten Testservice-Einstieg; Testservice-Seite zeigt nur die eigene Testservice-Anmeldung',
     'RC690 Testservice-Navigation: Testservice öffnen verwendet direkt https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/TESTVERSION.html mit Cache-Buster und niemals /test auf der Produktionsdomain',
     'RC690 Testservice-Auth: pro Klick auf Im Testservice anmelden wird exakt ein POST an /api/exporthub-auth mit action=login ausgeführt',
@@ -8219,9 +8227,9 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 <h1>ExportHUB</h1>
 <div aria-label="Aktuelle Version RC583" class="clean-version-badge" id="cleanVersionBadge">Aktuelle Version RC583</div>
 <div class="eh-login-mode-head" id="ehLoginModeHead"><div class="eh-login-mode-kicker" id="ehLoginKicker">PRODUKTION</div><h2 id="ehLoginModeTitle">ExportHUB anmelden</h2><p id="ehLoginModeText">Melde dich hier am produktiven ExportHUB an oder öffne den getrennten Testservice.</p></div>
-<div class="eh-login-environment" id="ehLoginEnvironment" aria-label="ExportHUB-Umgebung"><button type="button" id="ehLoginProduction" class="active" data-environment="production"><strong>Produktion</strong><span>Live-System · normale Anmeldung</span></button><button type="button" id="ehLoginTestservice" data-environment="testservice"><strong>Testservice</strong><span>Separate Testumgebung öffnen · erst dort anmelden</span></button></div>
+<div class="eh-login-environment" id="ehLoginEnvironment" aria-label="Testumgebung"><button type="button" id="ehLoginTestservice" data-environment="testservice"><strong>Testservice öffnen</strong><span>Separate Testumgebung · Anmeldung erfolgt erst dort</span></button></div>
 <button class="ghost hidden" id="ehBackProduction" type="button">Zur Produktion</button>
-<div class="eh-login-environment-note" id="ehLoginEnvironmentNote">Testservice öffnet eine eigene Azure-Umgebung. Zugangsdaten werden nicht von Produktion übernommen.</div>
+<div class="eh-login-environment-note" id="ehLoginEnvironmentNote">Produktion und Testservice sind vollständig getrennt.</div>
 <div class="login-lang">
 <label class="field" id="loginLangLabel">Sprache
         <select autocomplete="off" id="loginLanguageSelect"><option value="de">Deutsch</option><option value="en">English</option></select>
@@ -10859,18 +10867,17 @@ window.ExportHUBRC524={install:install,refresh:stableRender,setView:stableSetVie
 #nav button[data-view="start"],#nav button[onclick*="setView('start')"],#nav button[onclick*='setView("start")']{display:none!important}
 </style>
 <!-- INDEX 305 EARLY AUTHORITATIVE START + NAVIGATION CONTROLLER END -->
-<script id="rc690-login-entry-controller">
+<script id="rc691-login-entry-controller">
 (function(){'use strict';
-if(window.__EXPORTHUB_RC690_LOGIN_ENTRY__)return;window.__EXPORTHUB_RC690_LOGIN_ENTRY__=true;
-var PRODUCTION_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net',TESTSERVICE_ORIGIN='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
-function q(v){return String(v==null?'':v).trim()}function host(){return String(location.hostname||'').toLowerCase()}function isTest(){return /-testservice\./i.test(host())}function isProduction(){return host()==='wonderful-forest-0f315e310.7.azurestaticapps.net'}
-function testEntryUrl(){return TESTSERVICE_ORIGIN+'/TESTVERSION.html?entry=login&_='+Date.now()}function productionEntryUrl(){var b=window.EXPORTHUB_BUILD||{},v=q(b.cache||String(b.version||'').replace(/\D/g,''));return PRODUCTION_ORIGIN+'/?v='+encodeURIComponent(v||'690')}
-function goTest(){if(isTest())return false;location.assign(testEntryUrl());return false}function goProduction(){if(isProduction()&&!/^\/test(?:\/|$)/i.test(String(location.pathname||'')))return false;location.assign(productionEntryUrl());return false}
-function protectLegacyProductionTestPath(){if(isProduction()&&/^\/test(?:\/|$)/i.test(String(location.pathname||''))){location.replace(testEntryUrl());return true}return false}
-function paint(){var test=isTest(),prod=document.getElementById('ehLoginProduction'),tst=document.getElementById('ehLoginTestservice'),env=document.getElementById('ehLoginEnvironment'),back=document.getElementById('ehBackProduction'),note=document.getElementById('ehLoginEnvironmentNote'),kicker=document.getElementById('ehLoginKicker'),title=document.getElementById('ehLoginModeTitle'),modeText=document.getElementById('ehLoginModeText'),btn=document.getElementById('loginBtn'),ms=document.getElementById('loginMicrosoftAccountSwitchBtn');if(test){document.documentElement.setAttribute('data-exporthub-testportal','1');if(env)env.style.display='none';if(back){back.classList.remove('hidden');back.style.display=''}if(kicker)kicker.textContent='TESTSERVICE · NICHT PRODUKTION';if(title)title.textContent='Am Testservice anmelden';if(modeText)modeText.textContent='Separate Azure-Testumgebung. Benutzername und Passwort werden nur hier eingegeben.';if(note)note.textContent='Ein Login · keine Produktionssitzung · keine zweite Zugangsdaten-Eingabe.';if(btn)btn.textContent='Im Testservice anmelden';if(ms)ms.style.display='none'}else{if(env)env.style.display='grid';if(back){back.classList.add('hidden');back.style.display='none'}if(prod){prod.classList.add('active');prod.setAttribute('aria-pressed','true')}if(tst){tst.classList.remove('active');tst.setAttribute('aria-pressed','false')}if(kicker)kicker.textContent='PRODUKTION';if(title)title.textContent='ExportHUB anmelden';if(modeText)modeText.textContent='Melde dich hier am produktiven ExportHUB an oder öffne den getrennten Testservice.';if(note)note.textContent='Testservice öffnet eine eigene Azure-Umgebung. Zugangsdaten werden nicht von Produktion übernommen.';if(btn)btn.textContent='Anmelden';if(ms)ms.style.display=''}}
-function bind(){if(protectLegacyProductionTestPath())return;paint();var tst=document.getElementById('ehLoginTestservice'),back=document.getElementById('ehBackProduction'),top=document.getElementById('openTestserviceBtn');if(tst&&!tst.dataset.rc690Bound){tst.dataset.rc690Bound='1';tst.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();goTest()})}if(back&&!back.dataset.rc690Bound){back.dataset.rc690Bound='1';back.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();goProduction()})}if(top&&!top.dataset.rc690Bound){top.dataset.rc690Bound='1';top.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();goTest()})}['exporthub:ready','exporthub:rendered'].forEach(function(name){window.addEventListener(name,paint)})}
-if(protectLegacyProductionTestPath())return;if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
-window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,openTestservice:goTest,openProduction:goProduction,testserviceUrl:TESTSERVICE_ORIGIN+'/TESTVERSION.html',productionUrl:PRODUCTION_ORIGIN+'/'});
+if(window.__EXPORTHUB_RC691_LOGIN_ENTRY__)return;window.__EXPORTHUB_RC691_LOGIN_ENTRY__=true;
+var PROD='wonderful-forest-0f315e310.7.azurestaticapps.net',PROD_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net',TEST_ORIGIN='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
+function host(){return String(location.hostname||'').toLowerCase()}function isTest(){return /-testservice\./i.test(host())}function isProd(){return host()===PROD}
+function testUrl(){return TEST_ORIGIN+'/TESTVERSION.html?v=691&entry=login&_='+Date.now()}function prodUrl(){return PROD_ORIGIN+'/?v=691'}
+function openTest(){if(isTest())return false;location.replace(testUrl());return false}function openProd(){if(isProd())return false;location.replace(prodUrl());return false}
+function legacyGuard(){if(isProd()&&/^\/test(?:\/|$)/i.test(String(location.pathname||''))){location.replace(testUrl());return true}return false}
+function paint(){var test=isTest(),env=document.getElementById('ehLoginEnvironment'),testBtn=document.getElementById('ehLoginTestservice'),back=document.getElementById('ehBackProduction'),note=document.getElementById('ehLoginEnvironmentNote'),k=document.getElementById('ehLoginKicker'),title=document.getElementById('ehLoginModeTitle'),txt=document.getElementById('ehLoginModeText'),btn=document.getElementById('loginBtn'),ms=document.getElementById('loginMicrosoftAccountSwitchBtn');if(test){document.documentElement.setAttribute('data-exporthub-testportal','1');if(env)env.style.display='none';if(testBtn)testBtn.style.display='none';if(back){back.classList.remove('hidden');back.style.display=''}if(k)k.textContent='TESTSERVICE · NICHT PRODUKTION';if(title)title.textContent='Testservice anmelden';if(txt)txt.textContent='Anmeldung ausschließlich in der separaten Testumgebung.';if(note)note.textContent='Benutzername und Passwort einmal eingeben. Keine Produktionsanmeldung.';if(btn)btn.textContent='Im Testservice anmelden';if(ms)ms.style.display='none'}else{document.documentElement.removeAttribute('data-exporthub-testportal');if(env)env.style.display='grid';if(testBtn)testBtn.style.display='';if(back){back.classList.add('hidden');back.style.display='none'}if(k)k.textContent='PRODUKTION';if(title)title.textContent='ExportHUB Produktion';if(txt)txt.textContent='Hier nur am Produktivsystem anmelden. Der Testservice wird separat geöffnet.';if(note)note.textContent='Für den Testservice keine Zugangsdaten hier eingeben – zuerst Testservice öffnen.';if(btn)btn.textContent='Produktion anmelden';if(ms)ms.style.display=''}}
+function capture(e){var n=e.target&&e.target.closest&&e.target.closest('#ehLoginTestservice,#openTestserviceBtn,[data-exporthub-open-testservice="1"],#ehBackProduction');if(!n)return;if(n.id==='ehBackProduction'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return openProd()}e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return openTest()}
+if(legacyGuard())return;document.addEventListener('click',capture,true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',paint,{once:true});else paint();['exporthub:ready','exporthub:rendered'].forEach(function(x){window.addEventListener(x,paint)});window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,openTestservice:openTest,openProduction:openProd,testserviceUrl:TEST_ORIGIN+'/TESTVERSION.html?v=691',productionUrl:PROD_ORIGIN+'/?v=691'});
 })();
 </script>
 
@@ -10890,7 +10897,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,openTestser
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC689'),CACHE=String(ACTIVE_BUILD.cache||'689'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html',TESTSERVICE_PUBLIC_URL='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/test';
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC691'),CACHE=String(ACTIVE_BUILD.cache||'691'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html',TESTSERVICE_PUBLIC_URL='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/TESTVERSION.html?v=691';
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({}),RELEASE_BUNDLE_URL='/release-assets.json';
  var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/location-booking/index.js','api/location-booking/function.json','api/shared/merge.js']);
  function q(v){return String(v==null?'':v).trim()}
