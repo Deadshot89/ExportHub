@@ -179,15 +179,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC710',cache:'710',loginReturn:'/TESTVERSION.html?v=710'});
+var BUILD=Object.freeze({version:'RC711',cache:'711',loginReturn:'/TESTVERSION.html?v=711'});
 var RELEASE=Object.freeze({
- version:'RC710',
+ version:'RC711',
  date:'15.08.2026',
- title:'Performance: Colli-Eingabe vom Stauplan entkoppelt',
+ title:'Stauplan deutlich kompakter dargestellt',
  changes:Object.freeze([
-    'RC710 entkoppelt Colli-Eingaben vollständig von der unmittelbaren Stauplan-Neuberechnung; während eines aktiven Colli-Felds wird kein Stauplan-DOM neu aufgebaut.',
-    'RC710 startet die automatische Stauplan-Aktualisierung erst nach Verlassen des Colli-Bereichs und einer Browser-Ruhephase; der manuelle Aktualisieren-Knopf bleibt sofort.',
-    'RC710 ersetzt die unmittelbare Colli-Speicherung auf change durch gebündeltes Autosave nach kurzer Ruhephase und verhindert damit gleichzeitiges Tippen, Stauplan-Rendern und Azure-Speichern.',
+    'RC711 verkleinert den sichtbaren Stauplan deutlich, damit mehr Reihen gleichzeitig ohne großes Scrollen sichtbar bleiben.',
+    'RC711 reduziert nur Höhe, Abstände, Kopfbereich und Bedienknöpfe des Stauplans; die Lade-Logik bleibt unverändert.',
+    'RC711 ändert keine anderen Bereiche und baut auf der bestehenden Performance-Reparatur aus RC710 auf.',
     'RC709 reduziert beim Bearbeiten von Colli-Zeilen die bisherigen mehrfachen Tiefkopien und hält die bestehenden Zeilen-Aliase ohne wiederholte JSON-Kopien synchron.',
     'RC709 ersetzt die speicherintensive JSON-Stringify-Gleichheitsprüfung im Azure-Speicherpfad durch einen exakten rekursiven Vergleich und nutzt die bereits gesetzten Sync-Zeitstempel für den Delta-Aufbau.',
     'RC709 vermeidet doppelte Sendungsstatus-Berechnungen und bündelt Statusereignisse, ohne Eingaben, manuelles Speichern oder Fachlogik zu verzögern.',
@@ -19618,6 +19618,38 @@ window.ExportHUBPickupDate373=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
 #rc380StowPlan .rc396-actions{margin-top:4px!important}
 #rc380StowPlan .rc396-actions button{min-height:34px!important;padding:6px 10px!important;font-size:11px!important}
 @media(max-width:760px){#rc380StowPlan .rc706-row-track{min-height:46px!important}#rc380StowPlan .rc706-load,#rc380StowPlan .rc706-gap{min-height:46px!important}}
+
+/* RC711: Stauplan noch kompakter */
+#rc380StowPlan{gap:5px!important}
+#rc380StowPlan .rc396-graphic-head{margin-bottom:2px!important;gap:6px!important}
+#rc380StowPlan .rc396-graphic-head b{font-size:13px!important}
+#rc380StowPlan .rc396-graphic-head .muted{font-size:9px!important}
+#rc380StowPlan .rc396-head-pills{gap:4px!important}
+#rc380StowPlan .rc396-head-pills .pill{padding:2px 6px!important;font-size:9px!important}
+#rc380StowPlan .rc706-shell{gap:4px!important}
+#rc380StowPlan .rc396-orientation{gap:4px!important;font-size:8px!important}
+#rc380StowPlan .rc396-orientation .rc396-front,#rc380StowPlan .rc396-orientation .rc396-rear{padding:3px 7px!important}
+#rc380StowPlan .rc706-rows{gap:4px!important}
+#rc380StowPlan .rc706-row{padding:4px!important;gap:3px!important;border-radius:8px!important}
+#rc380StowPlan .rc706-row-head{font-size:8px!important;line-height:1!important}
+#rc380StowPlan .rc706-row-track{gap:3px!important;min-height:40px!important}
+#rc380StowPlan .rc706-load,#rc380StowPlan .rc706-gap{border-radius:8px!important;padding:2px 3px!important;min-height:40px!important}
+#rc380StowPlan .rc706-step{top:2px!important;left:2px!important;width:16px!important;height:16px!important;font-size:8px!important}
+#rc380StowPlan .rc706-shape{min-height:30px!important;gap:1px!important}
+#rc380StowPlan .rc706-top.small{width:28px!important;height:12px!important}
+#rc380StowPlan .rc706-top.large{width:34px!important;height:13px!important}
+#rc380StowPlan .rc706-top.mini{width:21px!important;height:10px!important}
+#rc380StowPlan .rc706-top.high{height:18px!important}
+#rc380StowPlan .rc706-top.rotated.small{width:12px!important;height:28px!important}
+#rc380StowPlan .rc706-top.rotated.large{width:14px!important;height:34px!important}
+#rc380StowPlan .rc706-top.rotated.mini{width:10px!important;height:21px!important}
+#rc380StowPlan .rc706-top.box.rotated.small{width:12px!important;height:28px!important}
+#rc380StowPlan .rc706-top.box.rotated.large{width:14px!important;height:34px!important}
+#rc380StowPlan .rc706-top.box.rotated.mini{width:10px!important;height:21px!important}
+#rc380StowPlan .rc706-arrow{font-size:12px!important}
+#rc380StowPlan .rc396-actions{margin-top:3px!important;gap:6px!important}
+#rc380StowPlan .rc396-actions button{min-height:30px!important;padding:5px 9px!important;font-size:10px!important}
+@media(max-width:760px){#rc380StowPlan .rc706-row-track{min-height:38px!important}#rc380StowPlan .rc706-load,#rc380StowPlan .rc706-gap{min-height:38px!important}}
 
 /* RC682: Verpackungsauswahl als dreispaltiges Menü im bestehenden Colli-Block. */
 #rc573ColliCard .rc682-packaging-picker{position:relative!important;width:100%!important;min-width:0!important;isolation:isolate!important}
