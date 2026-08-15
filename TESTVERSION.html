@@ -179,12 +179,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC686',cache:'686',loginReturn:'/test?v=686'});
+var BUILD=Object.freeze({version:'RC687',cache:'687',loginReturn:'/test?v=687'});
 var RELEASE=Object.freeze({
- version:'RC686',
- date:'14.08.2026',
- title:'Start und Sitzungswiederherstellung repariert',
+ version:'RC687',
+ date:'15.08.2026',
+ title:'Direkter Testservice-Login repariert',
  changes:Object.freeze([
+   'RC687 repariert den Zugang über die normale Loginseite: Testservice – Admin öffnet sofort die echte Azure-Testservice-Loginseite, statt zuerst eine Produktionssitzung aufzubauen und erst danach umzuleiten.',
+   'RC687 entfernt die nicht übertragbare Produktions-Session-Kopplung aus dem Testservice-Einstieg; die Anmeldung erfolgt direkt auf der separaten Testservice-Domain gegen deren ExportHUB-Auth-API.',
    'RC686 stellt eine gespeicherte ExportHUB-Sitzung sofort wieder her, statt vorher auf die anonyme Bootstrap-Prüfung zu warten; dadurch bleibt die Testseite beim F5/Neuaufruf nicht mehr leer.',
    'RC686 begrenzt die anonyme Bootstrap-Prüfung auf einen einzelnen 12-Sekunden-Aufruf und zeigt bei laufender Sitzungswiederherstellung sofort den sichtbaren Ladezustand im Inhaltsbereich.',
    'RC685 zeigt im Bereich Prüfungen verwalten jetzt die 10 fest integrierten IHK-Lagerlogistik-Prüfungen gemeinsam mit zusätzlich importierten Prüfungen an.',
@@ -334,6 +336,9 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC687 Testservice-Login: Klick auf Testservice – Admin navigiert unmittelbar zur festen Azure-Named-Environment und verlangt keinen vorherigen Produktions-Login',
+    'RC687 Origin-Trennung: keine Produktions-Session wird für den Testservice erwartet oder per sessionStorage überwacht; Login erfolgt direkt auf dem Testservice',
+    'RC687 Testservice-Loginseite: auf der -testservice-Domain bleibt der Testportal-Einstiegsbutton ausgeblendet und der normale ExportHUB-Login aktiv',
     'RC686 Start: gespeicherte Sitzung ruft finishAuthenticatedLogin unmittelbar auf und wartet nicht zuerst auf checkBootstrapStatus',
     'RC686 Bootstrap: bootstrap-status verwendet maximal einen API-Versuch mit 12 Sekunden Zeitlimit statt der generischen Vierfach-Wiederholung',
     'RC686 Startanzeige: bei Sitzungswiederherstellung wird vor dem ersten API-Aufruf ein sichtbarer ExportHUB-wird-geladen-Status in #content gesetzt',
@@ -8054,7 +8059,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 </style>
 
 <script id="rc561-testportal-mode">
-(function(){'use strict';try{var p=String(location.pathname||''),h=String(location.hostname||'').toLowerCase(),prod='wonderful-forest-0f315e310.7.azurestaticapps.net',namedTest=/-testservice\./i.test(h);if(namedTest||/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC683');window.__EXPORTHUB_TESTSERVICE_HOST_VALID__=h!==prod;document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');document.documentElement.setAttribute('data-exporthub-testservice-host',h===prod?'production-host':'test-host');if(h===prod)console.error('ExportHUB TESTSERVICE: falsche Adresse. wonderful-forest ist die Produktionsumgebung; die Azure testservice-Preview-URL verwenden.');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
+(function(){'use strict';try{var p=String(location.pathname||''),h=String(location.hostname||'').toLowerCase(),prod='wonderful-forest-0f315e310.7.azurestaticapps.net',namedTest=/-testservice\./i.test(h);if(namedTest||/^\/test(?:\/|$)/i.test(p)||/\/TESTVERSION\.html$/i.test(p)){window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=String((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'RC687');window.__EXPORTHUB_TESTSERVICE_HOST_VALID__=h!==prod;document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');document.documentElement.setAttribute('data-exporthub-testservice-host',h===prod?'production-host':'test-host');if(h===prod)console.error('ExportHUB TESTSERVICE: falsche Adresse. wonderful-forest ist die Produktionsumgebung; die Azure testservice-Preview-URL verwenden.');try{sessionStorage.removeItem('exporthub_test_portal_requested')}catch(_){}}}catch(_){}})();
 </script>
 <script id="rc677-testservice-badge">
 (function(){'use strict';
@@ -10818,21 +10823,17 @@ window.ExportHUBRC524={install:install,refresh:stableRender,setView:stableSetVie
 (function(){
 'use strict';
 if(window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__)return;window.__EXPORTHUB_RC555_TESTPORTAL_ENTRY__=true;if(window.__EXPORTHUB_TEST_PORTAL__)return;
-var KEY='exporthub_test_portal_requested',TAB='exporthub_rc301_tab_session',timer=0,started=0,TESTSERVICE_URL='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/test';
+var TAB='exporthub_rc301_tab_session',TESTSERVICE_URL='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/test';
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLowerCase()}
-function requested(){try{return sessionStorage.getItem(KEY)==='1'}catch(_){return false}}
-function setRequested(v){try{if(v)sessionStorage.setItem(KEY,'1');else sessionStorage.removeItem(KEY)}catch(_){}paint()}
 function session(){try{var raw=sessionStorage.getItem(TAB);if(!raw)return null;var x=JSON.parse(raw);return x&&x.token&&x.user?x:null}catch(_){return null}}
 function runtimeSession(){try{var r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};if(q(r.authToken)&&r.user)return{token:q(r.authToken),user:r.user}}catch(_){}return null}
 function isGlobal(u){u=u||{};var role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName);return !!(u.globalAdmin===true||u.isAdmin===true||u.admin===true||name==='tobias'||name==='tobias limberg'||role==='admin'||/global.?admin|administrator|vollzugriff/.test(role)||(Array.isArray(u.permissions)&&u.permissions.indexOf('*')>=0))}
-function status(msg,on){var e=document.getElementById('cleanLoginStatus');if(!e)return;e.textContent=msg||'';e.className='clean-login-status '+(on?'bad':'')}
-function paint(){var b=document.getElementById('releaseTestPortalBtn'),s=runtimeSession()||session(),top=document.getElementById('openTestserviceBtn');if(b){var on=requested();b.textContent=on?'✓ Testservice ausgewählt':'Testservice – Admin';b.setAttribute('aria-pressed',on?'true':'false');b.classList.toggle('active',on)}if(top)top.hidden=!(s&&s.user&&isGlobal(s.user))}
-function stop(){if(timer){clearInterval(timer);timer=0}started=0}
-function go(){stop();try{sessionStorage.removeItem(KEY)}catch(_){}location.assign(TESTSERVICE_URL+'?entry='+Date.now())}
-function watch(){if(!requested()){stop();return false}if(timer)return true;started=Date.now();timer=setInterval(function(){if(!requested()){stop();return}var s=runtimeSession()||session();if(s&&q(s.token)&&s.user){if(!isGlobal(s.user)){setRequested(false);stop();alert('Das Testportal ist ausschließlich für globale Administratoren freigegeben.');return}go();return}if(Date.now()-started>180000)stop()},200);return true}
-function click(e){var direct=e.target&&e.target.closest&&e.target.closest('#openTestserviceBtn');if(direct){e.preventDefault();e.stopPropagation();var s=runtimeSession()||session();if(!s||!s.user||!isGlobal(s.user)){alert('Der direkte Testservice-Zugang ist nur für globale Administratoren verfügbar.');return}go();return}var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;e.preventDefault();e.stopPropagation();var on=!requested();setRequested(on);status(on?'Testservice ausgewählt. Jetzt normal anmelden. Nach erfolgreichem Admin-Login öffnet sich die separate Azure-Testumgebung automatisch.':'Normale Hauptseite ausgewählt.',on);if(on)watch();else stop()}
-function boot(){paint();document.addEventListener('click',click,true);['exporthub:ready','exporthub:rendered','exporthub:sync','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,paint)});if(requested())watch()}
+function target(){var build=window.EXPORTHUB_BUILD||{},v=q(build.cache||String(build.version||'').replace(/\D/g,''));return TESTSERVICE_URL+(v?'?v='+encodeURIComponent(v)+'&entry=login':'?entry=login')}
+function go(){location.assign(target());return false}
+function paint(){var b=document.getElementById('releaseTestPortalBtn'),s=runtimeSession()||session(),top=document.getElementById('openTestserviceBtn');if(b){b.textContent='Testservice – Admin';b.setAttribute('aria-pressed','false');b.classList.remove('active')}if(top)top.hidden=!(s&&s.user&&isGlobal(s.user))}
+function click(e){var direct=e.target&&e.target.closest&&e.target.closest('#openTestserviceBtn');if(direct){e.preventDefault();e.stopPropagation();var s=runtimeSession()||session();if(!s||!s.user||!isGlobal(s.user)){alert('Der direkte Testservice-Zugang ist nur für globale Administratoren verfügbar.');return}go();return}var b=e.target&&e.target.closest&&e.target.closest('#releaseTestPortalBtn');if(!b)return;e.preventDefault();e.stopPropagation();go()}
+function boot(){paint();document.addEventListener('click',click,true);['exporthub:ready','exporthub:rendered','exporthub:sync','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,paint)})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 </script>
