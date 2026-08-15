@@ -179,12 +179,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC685',cache:'685',loginReturn:'/test?v=685'});
+var BUILD=Object.freeze({version:'RC686',cache:'686',loginReturn:'/test?v=686'});
 var RELEASE=Object.freeze({
- version:'RC685',
+ version:'RC686',
  date:'14.08.2026',
- title:'Prüfungszentrum zeigt integrierte Prüfungen vollständig',
+ title:'Start und Sitzungswiederherstellung repariert',
  changes:Object.freeze([
+   'RC686 stellt eine gespeicherte ExportHUB-Sitzung sofort wieder her, statt vorher auf die anonyme Bootstrap-Prüfung zu warten; dadurch bleibt die Testseite beim F5/Neuaufruf nicht mehr leer.',
+   'RC686 begrenzt die anonyme Bootstrap-Prüfung auf einen einzelnen 12-Sekunden-Aufruf und zeigt bei laufender Sitzungswiederherstellung sofort den sichtbaren Ladezustand im Inhaltsbereich.',
    'RC685 zeigt im Bereich Prüfungen verwalten jetzt die 10 fest integrierten IHK-Lagerlogistik-Prüfungen gemeinsam mit zusätzlich importierten Prüfungen an.',
    'RC685 kennzeichnet integrierte Prüfungen als Systemprüfung und schützt sie im Verwaltungsbereich vor versehentlichem Löschen oder Zurückziehen; importierte Prüfungen behalten ihre bisherigen Verwaltungsaktionen.',
    'RC684 korrigiert die Darstellung des dreispaltigen Verpackungsmenüs: das geöffnete Menü liegt eindeutig über den übrigen Colli-Feldern, sodass Anzahl, Gewicht und LDM nicht mehr durch die Spaltenüberschriften laufen.',
@@ -332,6 +334,9 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC686 Start: gespeicherte Sitzung ruft finishAuthenticatedLogin unmittelbar auf und wartet nicht zuerst auf checkBootstrapStatus',
+    'RC686 Bootstrap: bootstrap-status verwendet maximal einen API-Versuch mit 12 Sekunden Zeitlimit statt der generischen Vierfach-Wiederholung',
+    'RC686 Startanzeige: bei Sitzungswiederherstellung wird vor dem ersten API-Aufruf ein sichtbarer ExportHUB-wird-geladen-Status in #content gesetzt',
     'RC685 Prüfungszentrum: Prüfungen verwalten listet die 10 integrierten IHK-Prüfungen auch dann, wenn keine importierte Prüfung in ihkExamTemplates vorhanden ist',
     'RC685 Prüfungszentrum: integrierte Prüfungen sind im Verwaltungsbereich als Systemprüfung geschützt; importierte Prüfungen behalten Bearbeiten, Veröffentlichen und Löschen',
     'RC684 Verpackungsmenü: geöffnetes Menü erhält auf Feld- und Picker-Ebene die höchste Colli-Ebene; nach Schließen werden diese Klassen vollständig entfernt',
@@ -11265,7 +11270,7 @@ async function authCall(action,payload,token){
 }
 async function checkBootstrapStatus(){
  try{
-  const d=await authCall('bootstrap-status',{},'');
+  const d=await jsonFetch(AUTH_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'bootstrap-status'}),timeoutMs:12000,maxAttempts:1});
   runtime.authApiReachable=true;runtime.apiReachable=true;runtime.lastAuthApiSuccessAt=Date.now();
   runtime.bootstrapStatus=d;
   if(!d.storageConfigured){
@@ -11917,13 +11922,13 @@ document.addEventListener('DOMContentLoaded',async function(){
  const explicitLogout=logoutSignalPresent();
  const restoredSession=!explicitLogout&&restoreTabSession();
  await rc524StyleHealth();setVersion();bindMicrosoftControls();bindLogin();setLoginEnabled(!restoredSession);
- const app=by('app'),loginBox=by('login');
- if(restoredSession){document.body.classList.add('rc405-session-restoring');if(app)app.classList.remove('hidden');if(loginBox)loginBox.classList.add('hidden');progress(8,'Sitzung und aktuelle Ansicht werden wiederhergestellt …')}
+ const app=by('app'),loginBox=by('login'),contentBox=by('content');
+ if(restoredSession){document.body.classList.add('rc405-session-restoring');if(app)app.classList.remove('hidden');if(loginBox)loginBox.classList.add('hidden');if(contentBox&&!text(contentBox.textContent))contentBox.innerHTML='<section class="card" id="rc654LoadState"><h2>ExportHUB wird geladen …</h2><p>Gespeicherte Sitzung und Teamdaten werden wiederhergestellt.</p></section>';progress(8,'Sitzung und aktuelle Ansicht werden wiederhergestellt …')}
  else{document.body.classList.remove('rc405-session-restoring');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden')}
  updateMicrosoftUi();status(restoredSession?'Gespeicherte Sitzung wird wiederhergestellt …':'Anmeldekonfiguration wird geprüft …','');
- await checkBootstrapStatus();
  if(explicitLogout){consumeLogoutSignal();showLoggedOutScreen();return}
- if(restoredSession)await finishAuthenticatedLogin();
+ if(restoredSession){await finishAuthenticatedLogin();return}
+ await checkBootstrapStatus();
 });
 })();
 
