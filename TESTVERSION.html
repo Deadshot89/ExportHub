@@ -179,11 +179,11 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC716',cache:'716',loginReturn:'/TESTVERSION.html?v=716'});
+var BUILD=Object.freeze({version:'RC717',cache:'717',loginReturn:'/TESTVERSION.html?v=717'});
 var RELEASE=Object.freeze({
- version:'RC716',
+ version:'RC717',
  date:'15.08.2026',
- title:'Stauplan in technischer Industrie-Draufsicht',
+ title:'Stauplan als breite, maßhaltige Fahrzeug-Draufsicht ohne Seitenscrollen',
  changes:Object.freeze([
     'RC716 stellt den Stauplan optisch auf eine nüchterne technische Industrie-Draufsicht um; Ladeberechnung und Performancepfade bleiben unverändert.',
     'RC716 ersetzt die verspielte Fahrerhaus- und Palettenoptik durch neutrale Fahrzeugkonturen, technische Linien und zurückhaltende Farben.',
@@ -19770,6 +19770,45 @@ window.ExportHUBPickupDate373=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
 #rc380StowPlan .rc713-vehicle.container .rc713-cab{display:none!important}
 @media(max-width:760px){#rc380StowPlan .rc713-cab{flex-basis:58px!important;width:58px!important;height:31px!important;border-radius:4px 9px 9px 4px!important}#rc380StowPlan .rc713-cab-window{left:7px!important;right:14px!important;top:5px!important;height:10px!important}#rc380StowPlan .rc713-cab:before{top:5px!important;height:19px!important}}
 
+/* RC717: Breite Draufsicht ohne Seitenscrollen */
+#rc380StowPlan .rc717-shell{display:grid!important;gap:8px!important}
+#rc380StowPlan .rc717-axis{display:grid!important;grid-template-columns:1fr auto 1fr!important;gap:8px!important;align-items:center!important;font-size:10px!important;font-weight:950!important;text-transform:uppercase!important;color:#7c2d12!important}
+#rc380StowPlan .rc717-axis span:first-child{text-align:left!important}#rc380StowPlan .rc717-axis span:nth-child(2){text-align:center!important}#rc380StowPlan .rc717-axis span:last-child{text-align:right!important}
+#rc380StowPlan .rc717-vehicle{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:8px!important;align-items:start!important}
+#rc380StowPlan .rc717-cab{width:68px!important;height:48px!important;border:2px solid #475569!important;border-radius:8px!important;background:#e5e7eb!important;position:relative!important;box-shadow:inset 0 -2px 0 #94a3b8!important;margin-top:6px!important}
+#rc380StowPlan .rc717-cab:before,#rc380StowPlan .rc717-cab:after{content:''!important;position:absolute!important;top:11px!important;width:7px!important;height:24px!important;background:#e5e7eb!important;border:2px solid #475569!important}
+#rc380StowPlan .rc717-cab:before{left:-9px!important;border-right:none!important;border-radius:6px 0 0 6px!important}
+#rc380StowPlan .rc717-cab:after{right:-9px!important;border-left:none!important;border-radius:0 6px 6px 0!important}
+#rc380StowPlan .rc717-cab-window{position:absolute!important;left:10px!important;right:10px!important;top:12px!important;height:14px!important;border:1px solid #64748b!important;border-radius:3px!important;background:linear-gradient(90deg,#94a3b8,#cbd5e1)!important;display:block!important}
+#rc380StowPlan .rc717-box{min-width:0!important;border:2px solid #475569!important;border-radius:10px!important;background:#f8fafc!important;padding:8px!important;display:grid!important;gap:6px!important}
+#rc380StowPlan .rc717-frontline,#rc380StowPlan .rc717-rearline{height:10px!important;border:1px solid #94a3b8!important;border-radius:999px!important;background:#f8fafc!important}
+#rc380StowPlan .rc717-floor{position:relative!important;height:230px!important;border:1px solid #94a3b8!important;border-radius:8px!important;background:linear-gradient(180deg,#ffffff,#f8fafc)!important;overflow:hidden!important}
+#rc380StowPlan .rc717-band{position:absolute!important;top:0!important;bottom:0!important;padding:32px 2px 8px!important;box-sizing:border-box!important}
+#rc380StowPlan .rc717-band-label{position:absolute!important;left:2px!important;right:2px!important;top:4px!important;font-size:9px!important;font-weight:950!important;line-height:1.1!important;color:#7c2d12!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#rc380StowPlan .rc717-band-inner{position:relative!important;width:100%!important;height:100%!important;border-left:1px solid #dbeafe!important;border-right:1px solid #dbeafe!important;background:linear-gradient(180deg,rgba(219,234,254,.12),rgba(219,234,254,.02))!important}
+#rc380StowPlan .rc717-band.is-over .rc717-band-inner{background:rgba(254,226,226,.35)!important;border-color:#fca5a5!important}
+#rc380StowPlan .rc717-block,#rc380StowPlan .rc717-gap{position:absolute!important;box-sizing:border-box!important;border-radius:4px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+#rc380StowPlan .rc717-block{border:1.5px solid #2563eb!important;background:#dbeafe!important;color:#08245d!important}
+#rc380StowPlan .rc717-block.is-high{background:#ffedd5!important;border-color:#f97316!important}
+#rc380StowPlan .rc717-block.is-box{background:#cffafe!important;border-color:#0891b2!important}
+#rc380StowPlan .rc717-block.is-over{background:#fee2e2!important;border-color:#dc2626!important}
+#rc380StowPlan .rc717-gap{border:1.5px dashed #cbd5e1!important;background:rgba(248,250,252,.7)!important}
+#rc380StowPlan .rc717-step{position:absolute!important;left:3px!important;top:3px!important;width:16px!important;height:16px!important;border-radius:999px!important;background:#0f172a!important;color:#fff!important;font-size:8px!important;font-weight:1000!important;display:grid!important;place-items:center!important}
+#rc380StowPlan .rc717-shape{display:block!important;position:relative!important;background:linear-gradient(180deg,#d8b185,#b38755)!important;border:1px solid #9a6d3c!important}
+#rc380StowPlan .rc717-shape:before,#rc380StowPlan .rc717-shape:after{content:''!important;position:absolute!important;background:#9a6d3c!important}
+#rc380StowPlan .rc717-block.is-laengs .rc717-shape{width:30px!important;height:14px!important}
+#rc380StowPlan .rc717-block.is-laengs .rc717-shape:before,#rc380StowPlan .rc717-block.is-laengs .rc717-shape:after{bottom:-3px!important;width:6px!important;height:3px!important}
+#rc380StowPlan .rc717-block.is-laengs .rc717-shape:before{left:6px!important}#rc380StowPlan .rc717-block.is-laengs .rc717-shape:after{right:6px!important}
+#rc380StowPlan .rc717-block.is-quer .rc717-shape{width:14px!important;height:30px!important}
+#rc380StowPlan .rc717-block.is-quer .rc717-shape:before,#rc380StowPlan .rc717-block.is-quer .rc717-shape:after{right:-3px!important;width:3px!important;height:6px!important}
+#rc380StowPlan .rc717-block.is-quer .rc717-shape:before{top:6px!important}#rc380StowPlan .rc717-block.is-quer .rc717-shape:after{bottom:6px!important}
+#rc380StowPlan .rc717-block.is-box .rc717-shape{background:#ecfeff!important;border-color:#0891b2!important}
+#rc380StowPlan .rc717-block.is-box .rc717-shape:before,#rc380StowPlan .rc717-block.is-box .rc717-shape:after{display:none!important}
+#rc380StowPlan .rc717-block.large .rc717-shape{transform:scale(1.12)!important}#rc380StowPlan .rc717-block.mini .rc717-shape{transform:scale(.86)!important}
+#rc380StowPlan .rc717-dim{position:absolute!important;right:3px!important;bottom:2px!important;font-size:8px!important;font-weight:900!important;color:#334155!important;background:rgba(255,255,255,.75)!important;padding:1px 3px!important;border-radius:999px!important}
+@media(max-width:980px){#rc380StowPlan .rc717-floor{height:210px!important}#rc380StowPlan .rc717-band-label{font-size:8px!important}}
+@media(max-width:760px){#rc380StowPlan .rc717-axis{font-size:8px!important}#rc380StowPlan .rc717-cab{width:48px!important;height:36px!important}#rc380StowPlan .rc717-cab:before,#rc380StowPlan .rc717-cab:after{top:8px!important;height:18px!important}#rc380StowPlan .rc717-cab-window{left:7px!important;right:7px!important;top:8px!important;height:11px!important}#rc380StowPlan .rc717-floor{height:180px!important}#rc380StowPlan .rc717-band{padding-top:26px!important}#rc380StowPlan .rc717-step{width:14px!important;height:14px!important;font-size:7px!important}#rc380StowPlan .rc717-dim{font-size:7px!important;padding:1px 2px!important}}
+
 /* RC682: Verpackungsauswahl als dreispaltiges Menü im bestehenden Colli-Block. */
 #rc573ColliCard .rc682-packaging-picker{position:relative!important;width:100%!important;min-width:0!important;isolation:isolate!important}
 #rc573ColliCard .rc682-packaging-picker.rc682-packaging-open{z-index:2147482500!important}
@@ -20019,12 +20058,23 @@ function renderStowPlan(){
  if(card.dataset.sig===sig){rc710StowDirty=false;card.removeAttribute('data-rc710-stow-dirty');return true;}
  var plan=buildStowPlan(rows,vehicle),status=plan.overflowCm>0?'<span class="pill red">'+fmtM(plan.overflowCm)+' zu lang</span>':'<span class="pill green">passt in '+fmtM(plan.vehicleLength)+'</span>',usedLabel=fmtM(plan.usedCm)+' belegt',freeLabel=fmtM(plan.freeCm)+' frei',rowLabel=plan.rows.length+' Reihen';
  function sizeClass(p){var c=num(p.crossWidth);if(c>=95)return'large';if(c&&c<=65)return'mini';return'small'}
- function rowHeight(row){var d=num(row.depth);if(d<=80)return 44;if(d<=120)return 50;return 56}
- function blockHtml(p){var basis=Math.max(8,Math.min(100,num(p.widthPct)||33));return '<div class="rc713-block'+(p.pallet?' is-pallet':' is-box')+(num(p.height)>=170?' is-high':'')+(p.rotated?' is-quer':' is-laengs')+(p.over?' is-over':'')+'" style="flex-basis:'+basis+'%;max-width:'+basis+'%" title="Schritt '+p.step+' · '+esc(p.type)+'"><span class="rc713-step">'+p.step+'</span><span class="rc713-cube '+sizeClass(p)+'"><i></i></span><span class="rc713-dir" aria-hidden="true">'+(p.rotated?'↔':'↕')+'</span></div>'}
- function gapHtml(row){if(!(num(row.gapWidth)>0))return'';var basis=Math.max(3,Math.min(100,round((num(row.gapWidth)/plan.vehicleWidth)*100,1)));return '<div class="rc713-gap" style="flex-basis:'+basis+'%;max-width:'+basis+'%" aria-hidden="true"></div>'}
- function rowHtml(row){var items=row.placements.slice().sort(function(a,b){return a.visualIndex-b.visualIndex}).map(blockHtml).join('')+gapHtml(row);return '<div class="rc713-row'+(row.over?' is-over':'')+'" style="height:'+rowHeight(row)+'px"><div class="rc713-meter">Reihe '+row.no+' · '+fmtM(row.startCm)+'–'+fmtM(row.endCm)+'</div><div class="rc713-track">'+items+'</div></div>'}
- card.dataset.sig=sig;rc710StowDirty=false;card.removeAttribute('data-rc710-stow-dirty');card.innerHTML='<div class="rc396-graphic-head"><div><b>Ladegrafik</b><div class="muted">'+plan.totalUnits+' physische Collis · '+plan.totalFloorUnits+' Stellplätze · '+plan.rows.length+' Reihen</div></div><div class="rc396-head-pills">'+status+'<span class="pill blue">'+usedLabel+'</span><span class="pill gray">'+freeLabel+'</span><span class="pill gray">'+rowLabel+'</span></div></div><div class="rc713-toolbar"><label for="rc713VehicleType">Fahrzeug</label><select id="rc713VehicleType">'+STOW_VEHICLES.map(function(v){return '<option value="'+v.id+'"'+(v.id===vehicle.id?' selected':'')+'>'+esc(v.label)+'</option>'}).join('')+'</select><span class="pill gray">'+fmtM(plan.vehicleLength)+' × '+fmtWidth(plan.vehicleWidth)+'</span></div><div class="rc713-shell"><div class="rc713-axis"><span>Vorne / Stirnwand</span><span>'+esc(vehicle.label)+'</span><span>Hinten / Türen</span></div><div class="rc713-vehicle '+esc(vehicle.kind)+'"><div class="rc713-frontzone"><div class="rc713-cab" aria-hidden="true"><span class="rc713-cab-window"></span></div><div class="rc713-frontcap"></div></div><div class="rc713-floor">'+plan.rows.map(rowHtml).join('')+'</div><div class="rc713-reardoor"></div></div></div><div class="rc396-actions"><button type="button" class="btn" id="rc380RefreshStow">Stauplan aktualisieren</button><button type="button" class="ghost" id="rc380PrintStow">Stauplan öffnen / drucken</button></div>';
+ function dimLabel(p){var a=Math.round(num(p.lengthAlong)||0),b=Math.round(num(p.crossWidth)||0);return a&&b?(a+'×'+b):''}
+ function bandHeightPct(cm){return Math.max(8,Math.min(100,(num(cm)/plan.vehicleWidth)*100))}
+ function blockTopPct(y){return Math.max(0,Math.min(100,(y/plan.vehicleWidth)*100))}
+ function bandHtml(row){
+   var left=(num(row.startCm)/plan.vehicleLength)*100,width=(num(row.depth)/plan.vehicleLength)*100,cursor=0,blocks='';
+   row.placements.slice().sort(function(a,b){return a.visualIndex-b.visualIndex}).forEach(function(p){
+     var h=bandHeightPct(p.crossWidth),top=blockTopPct(cursor),w=100;
+     blocks+='<div class="rc717-block'+(p.pallet?' is-pallet':' is-box')+(num(p.height)>=170?' is-high':'')+(p.rotated?' is-quer':' is-laengs')+(p.over?' is-over':'')+' '+sizeClass(p)+'" style="left:1%;width:98%;top:'+top+'%;height:'+h+'%" title="Schritt '+p.step+' · '+esc(p.type)+'"><span class="rc717-step">'+p.step+'</span><span class="rc717-shape"></span><span class="rc717-dim">'+esc(dimLabel(p))+'</span></div>';
+     cursor+=num(p.crossWidth);
+   });
+   var gap='';
+   if(num(row.gapWidth)>0){gap='<div class="rc717-gap" style="left:1%;width:98%;top:'+blockTopPct(cursor)+'%;height:'+bandHeightPct(row.gapWidth)+'%"></div>'}
+   return '<div class="rc717-band'+(row.over?' is-over':'')+'" style="left:'+left+'%;width:'+Math.max(2,width)+'%"><div class="rc717-band-label">R'+row.no+' · '+fmtM(row.startCm)+'–'+fmtM(row.endCm)+'</div><div class="rc717-band-inner">'+blocks+gap+'</div></div>';
+ }
+ card.dataset.sig=sig;rc710StowDirty=false;card.removeAttribute('data-rc710-stow-dirty');card.innerHTML='<div class="rc396-graphic-head"><div><b>Ladegrafik</b><div class="muted">'+plan.totalUnits+' physische Collis · '+plan.totalFloorUnits+' Stellplätze · '+plan.rows.length+' Reihen</div></div><div class="rc396-head-pills">'+status+'<span class="pill blue">'+usedLabel+'</span><span class="pill gray">'+freeLabel+'</span><span class="pill gray">'+rowLabel+'</span></div></div><div class="rc713-toolbar"><label for="rc713VehicleType">Fahrzeug</label><select id="rc713VehicleType">'+STOW_VEHICLES.map(function(v){return '<option value="'+v.id+'"'+(v.id===vehicle.id?' selected':'')+'>'+esc(v.label)+'</option>'}).join('')+'</select><span class="pill gray">'+fmtM(plan.vehicleLength)+' × '+fmtWidth(plan.vehicleWidth)+'</span></div><div class="rc717-shell"><div class="rc717-axis"><span>Vorne / Stirnwand</span><span>'+esc(vehicle.label)+'</span><span>Hinten / Türen</span></div><div class="rc717-vehicle '+esc(vehicle.kind)+'"><div class="rc717-cab" aria-hidden="true"><span class="rc717-cab-window"></span></div><div class="rc717-box"><div class="rc717-frontline"></div><div class="rc717-floor">'+plan.rows.map(bandHtml).join('')+'</div><div class="rc717-rearline"></div></div></div></div><div class="rc396-actions"><button type="button" class="btn" id="rc380RefreshStow">Stauplan aktualisieren</button><button type="button" class="ghost" id="rc380PrintStow">Stauplan öffnen / drucken</button></div>';
  var vs=card.querySelector('#rc713VehicleType');if(vs&&!vs.dataset.bound){vs.dataset.bound='1';vs.addEventListener('change',function(){setCurrentStowVehicle(this.value)})}
+ var cab=card.querySelector('.rc717-cab');if(cab&&vehicle.kind==='container')cab.style.display='none';
  return true
  }finally{rc707StowRendering=false}
 }
