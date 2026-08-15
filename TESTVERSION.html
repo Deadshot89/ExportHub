@@ -179,17 +179,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC696',cache:'696',loginReturn:'/TESTVERSION.html?v=696'});
+var BUILD=Object.freeze({version:'RC697',cache:'697',loginReturn:'/TESTVERSION.html?v=697'});
 var RELEASE=Object.freeze({
- version:'RC696',
+ version:'RC697',
  date:'15.08.2026',
- title:'Bedienung und Hintergrundlast deutlich geglättet',
+ title:'Stauplan nur grafisch und ohne Textüberladung',
  changes:Object.freeze([
-    'RC696 bündelt automatische Eingabe-Speicherungen länger, damit Tippen und Auswählen nicht durch fortlaufende Azure-Vorbereitung ausgebremst werden; explizites Speichern bleibt sofort.',
-    'RC696 führt die aufwendige Filter-/DOM-Sicherung nur noch für echte Filter-, Such-, Sortier- und Planeraktionen aus statt bei jedem beliebigen Speichervorgang.',
-    'RC696 berechnet den sichtbaren Sendungsstatus nur noch, wenn Sendung erstellen tatsächlich geöffnet ist, und vermeidet dadurch Statusscans bei Aufgaben-, Dashboard- und anderen Ereignissen.',
-    'RC696 begrenzt Lager-Hintergrundsynchronisierung auf Dashboard/Lager und verlängert den periodischen Lagercheck auf 60 Sekunden; manuelles Aktualisieren bleibt unverändert.',
-    'RC696 reduziert unnötige DOM-Nacharbeit des Lieferschein-/Stauplan-Kompatibilitätsblocks außerhalb von Sendung erstellen und stellt Filterwerte nur noch bei echten Ansichtswechseln wieder her.',
+    'RC697 zeigt den Stauplan als deutlich reduzierte Ladegrafik ohne Textüberladung in den einzelnen Ladeplätzen.',
+    'RC697 entfernt Freitexte wie frei, Formschluss und Stirnwand aus den Ladefeldern und lässt nur die grafische Palettenansicht mit Reihenfolge sichtbar.',
+    'RC697 korrigiert zusätzlich die Lade-Reihenfolge und ändert keine übrigen Sendungsfunktionen.',
     'RC694 repariert den Syntaxfehler im RC693-Stauplan-Druckstil, der den zentralen Sendungs-Controller blockiert und Sendung erstellen unvollständig gemacht hat.',
     'RC694 behält die neue grafische Stauplan-Darstellung mit Ladefolge, Formschluss, hohen Paletten hinten und kleinen Einheiten vorne bei.',
     'RC693 stellt den Stauplan als klare Ladegrafik für Verlader dar und zeigt Front, Heck, Formschluss und Ladungssicherung direkt im Plan.',
