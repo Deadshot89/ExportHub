@@ -179,11 +179,11 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC703',cache:'703',loginReturn:'/TESTVERSION.html?v=703'});
+var BUILD=Object.freeze({version:'RC704',cache:'704',loginReturn:'/TESTVERSION.html?v=704'});
 var RELEASE=Object.freeze({
- version:'RC703',
+ version:'RC704',
  date:'15.08.2026',
- title:'Speicherpfad ohne vollständige Zustandskopien optimiert',
+ title:'Stauplan zeigt Quer/Längs und Palettengröße klarer',
  changes:Object.freeze([
     'RC703 basiert wieder auf dem schnelleren RC701-Verhalten und verwirft die verzögerten globalen RC702-Änderungen vollständig.',
     'RC703 entfernt vollständige Tiefkopien des gesamten ExportHUB-Zustands aus dem normalen Azure-Speicherpfad und berechnet weiterhin denselben Delta-Stand direkt aus dem Live-Zustand.',
@@ -19421,6 +19421,21 @@ window.ExportHUBPickupDate373=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
 .rc396-box-shape.rotated{width:18px!important;height:34px!important}
 .rc396-box-shape.rotated:after{left:0!important;right:0!important;top:50%!important;bottom:auto!important;border-left:none!important;border-top:2px solid rgba(14,165,233,.35)!important}
 
+
+/* RC704: Stauplan mit klarer Quer/Längs- und Größenkennzeichnung */
+.rc396-legend-lite{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rc396-legend-lite-item{display:flex;align-items:center;gap:8px;border:1px solid #fed7aa;border-radius:12px;background:#fff;padding:7px 10px;color:#7c2d12;font-weight:900;min-width:0}
+.rc396-legend-lite-item b,.rc396-legend-lite-item small{font:inherit;line-height:1.1}
+.rc396-legend-shape{display:inline-block;position:relative;flex:0 0 auto;width:28px;height:12px;border-radius:3px;background:linear-gradient(180deg,#e7c7a5,#cda074);box-shadow:0 3px 0 #b88454}
+.rc396-legend-shape.small{width:24px}.rc396-legend-shape.large{width:34px}.rc396-legend-shape.rotated{width:12px;height:28px;box-shadow:3px 0 0 #b88454}
+.rc396-slot-badges{position:absolute;top:5px;right:5px;display:flex;gap:4px;z-index:2}
+.rc396-mini-badge{min-width:18px;height:18px;padding:0 4px;border-radius:999px;display:grid;place-items:center;background:#fff;color:#7c2d12;border:1px solid #f5b274;font-size:10px;font-weight:1000;line-height:1}
+.rc396-mini-dir{background:#fff7ed}.rc396-mini-size{background:#eff6ff;color:#1d4ed8;border-color:#93c5fd}
+.rc396-slot.empty{background:#fafcff!important}
+.rc396-pallet-shape.small{width:38px;height:18px}.rc396-pallet-shape.large{width:48px;height:18px}.rc396-pallet-shape.mini{width:28px;height:16px}
+.rc396-pallet-shape.rotated.small{width:18px!important;height:40px!important}.rc396-pallet-shape.rotated.large{width:20px!important;height:46px!important}.rc396-pallet-shape.rotated.mini{width:16px!important;height:30px!important}
+@media(max-width:900px){.rc396-legend-lite{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 /* RC682: Verpackungsauswahl als dreispaltiges Menü im bestehenden Colli-Block. */
 #rc573ColliCard .rc682-packaging-picker{position:relative!important;width:100%!important;min-width:0!important;isolation:isolate!important}
 #rc573ColliCard .rc682-packaging-picker.rc682-packaging-open{z-index:2147482500!important}
@@ -19615,11 +19630,16 @@ function renderStowPlan(){
  if(!rows.length){if(card.dataset.sig!=='empty'){card.dataset.sig='empty';card.innerHTML=''}return false}
  if(card.dataset.sig===sig)return true;
  var plan=buildStowPlan(rows),status=plan.overflowCm>0?'<span class="pill red">'+fmtM(plan.overflowCm)+' zu lang</span>':'<span class="pill green">passt in 13,60 m</span>',usedLabel=fmtM(plan.usedCm)+' belegt',freeLabel=fmtM(plan.freeCm)+' frei',rowLabel=plan.rows.length+' Reihen';
- function shapeFor(p){if(!p)return'';if(p.pallet)return'<span class="rc396-pallet-shape'+(num(p.height)>=170?' high':'')+(p.rotated?' rotated':'')+'" aria-hidden="true"></span>';return'<span class="rc396-box-shape'+(p.rotated?' rotated':'')+'" aria-hidden="true"></span>'}
- function slot(p){if(!p)return'<div class="rc396-slot empty" aria-hidden="true"></div>';var isHigh=!!p.pallet&&num(p.height)>=170,classes='rc396-slot'+(p.over?' is-over':'')+(p.pallet?(isHigh?' pallet-high':' pallet-low'):' box-small');return'<div class="'+classes+'" title="Schritt '+p.step+' · '+esc(p.type)+'"><span class="rc396-step">'+p.step+'</span><span class="rc396-load-shape">'+shapeFor(p)+'</span></div>'}
+ function palletBase(p){var a=num(p.lengthAlong),b=num(p.crossWidth),vals=[a,b].filter(function(x){return x>0});return vals.length?Math.min.apply(Math,vals):0}
+ function palletScaleClass(p){var base=palletBase(p);if(base>=95)return' large';if(base&&base<=65)return' mini';return' small'}
+ function dirBadge(p){return p.rotated?'Q':'L'}
+ function sizeBadge(p){var base=Math.round(palletBase(p));return base?String(base):''}
+ function legendIcon(rot,size){return'<span class="rc396-legend-shape'+(rot?' rotated':'')+(size?' '+size:'')+'" aria-hidden="true"></span>'}
+ function shapeFor(p){if(!p)return'';if(p.pallet)return'<span class="rc396-pallet-shape'+(num(p.height)>=170?' high':'')+(p.rotated?' rotated':'')+palletScaleClass(p)+'" aria-hidden="true"></span>';return'<span class="rc396-box-shape'+(p.rotated?' rotated':'')+'" aria-hidden="true"></span>'}
+ function slot(p){if(!p)return'<div class="rc396-slot empty" aria-hidden="true"></div>';var isHigh=!!p.pallet&&num(p.height)>=170,classes='rc396-slot'+(p.over?' is-over':'')+(p.pallet?(isHigh?' pallet-high':' pallet-low'):' box-small'),meta=p.pallet?'<div class="rc396-slot-badges"><span class="rc396-mini-badge rc396-mini-dir">'+dirBadge(p)+'</span><span class="rc396-mini-badge rc396-mini-size">'+esc(sizeBadge(p))+'</span></div>':'';return'<div class="'+classes+'" title="Schritt '+p.step+' · '+esc(p.type)+'"><span class="rc396-step">'+p.step+'</span>'+meta+'<span class="rc396-load-shape">'+shapeFor(p)+'</span></div>'}
  var deck=plan.rows.map(function(row){var slots=[null,null,null];row.placements.slice().sort(function(a,b){return a.visualIndex-b.visualIndex}).forEach(function(p){var pos=low(p.position||'');if(pos.indexOf('links')>=0)slots[0]=p;else if(pos.indexOf('mitte')>=0||pos.indexOf('center')>=0)slots[1]=p;else slots[2]=p});return'<div class="rc396-column'+(row.over?' is-over':'')+'"><div class="rc396-column-head"><b>Reihe '+row.no+'</b><small>'+fmtM(row.startCm)+'–'+fmtM(row.endCm)+'</small></div>'+slot(slots[0])+slot(slots[1])+slot(slots[2])+'</div>'}).join('');
  try{shipment().stowPlan={version:VERSION,createdAt:new Date().toISOString(),usedCm:plan.usedCm,freeCm:plan.freeCm,overflowCm:plan.overflowCm,totalPhysicalUnits:plan.totalUnits,totalFloorPositions:plan.totalFloorUnits,rows:plan.rows.map(function(r){return{no:r.no,startCm:r.startCm,endCm:r.endCm,steps:r.placements.map(function(p){return p.step})}}),placements:plan.placements.map(function(p){return{step:p.step,rowNo:p.rowNo,position:p.position,type:p.type,sourceRow:p.sourceRow,physicalCount:p.physicalCount,stackFactor:p.stackFactor,lengthAlong:p.lengthAlong,crossWidth:p.crossWidth,weight:p.weight,height:p.height,rotated:!!p.rotated,over:p.over}})}}catch(_){}
- card.dataset.sig=sig;card.innerHTML='<div class="rc396-graphic-head"><div><b>Ladegrafik</b><div class="muted">'+plan.totalUnits+' physische Collis · '+plan.totalFloorUnits+' Stellplätze · '+plan.rows.length+' Reihen</div></div><div class="rc396-head-pills">'+status+'<span class="pill blue">'+usedLabel+'</span><span class="pill gray">'+freeLabel+'</span><span class="pill gray">'+rowLabel+'</span></div></div><div class="rc396-plan-shell rc396-plan-shell-minimal"><div class="rc396-orientation"><span class="rc396-front">Vorne</span><span class="rc396-mid">Ladereihenfolge 1 → '+plan.placements.length+'</span><span class="rc396-rear">Hinten</span></div><div class="rc396-trailer"><div class="rc396-axis"><span>Stirnwand</span><span></span><span>Hecktüren</span></div><div class="rc396-deck-scroll"><div class="rc396-deck">'+deck+'</div></div></div></div><div class="rc396-actions"><button type="button" class="btn" id="rc380RefreshStow">Stauplan aktualisieren</button><button type="button" class="ghost" id="rc380PrintStow">Stauplan öffnen / drucken</button></div>';
+ card.dataset.sig=sig;card.innerHTML='<div class="rc396-graphic-head"><div><b>Ladegrafik</b><div class="muted">'+plan.totalUnits+' physische Collis · '+plan.totalFloorUnits+' Stellplätze · '+plan.rows.length+' Reihen</div></div><div class="rc396-head-pills">'+status+'<span class="pill blue">'+usedLabel+'</span><span class="pill gray">'+freeLabel+'</span><span class="pill gray">'+rowLabel+'</span></div></div><div class="rc396-plan-shell rc396-plan-shell-minimal"><div class="rc396-orientation"><span class="rc396-front">Vorne</span><span class="rc396-mid">Ladereihenfolge 1 → '+plan.placements.length+'</span><span class="rc396-rear">Hinten</span></div><div class="rc396-legend-lite"><span class="rc396-legend-lite-item">'+legendIcon(false,'small')+'<b>Längs</b></span><span class="rc396-legend-lite-item">'+legendIcon(true,'small')+'<b>Quer</b></span><span class="rc396-legend-lite-item">'+legendIcon(false,'small')+'<small>80 = klein</small></span><span class="rc396-legend-lite-item">'+legendIcon(false,'large')+'<small>100 = groß</small></span></div><div class="rc396-trailer"><div class="rc396-axis"><span>Stirnwand</span><span></span><span>Hecktüren</span></div><div class="rc396-deck-scroll"><div class="rc396-deck">'+deck+'</div></div></div></div><div class="rc396-actions"><button type="button" class="btn" id="rc380RefreshStow">Stauplan aktualisieren</button><button type="button" class="ghost" id="rc380PrintStow">Stauplan öffnen / drucken</button></div>';
  return true
 }
 
