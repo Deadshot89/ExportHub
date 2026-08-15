@@ -179,15 +179,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC699',cache:'699',loginReturn:'/TESTVERSION.html?v=699'});
+var BUILD=Object.freeze({version:'RC700',cache:'700',loginReturn:'/TESTVERSION.html?v=700'});
 var RELEASE=Object.freeze({
- version:'RC699',
+ version:'RC700',
  date:'15.08.2026',
- title:'Stauplan vereinfacht, querladung sichtbar, weniger Text',
+ title:'Hellere Palettenfarben im Stauplan',
  changes:Object.freeze([
-    'RC699 vereinfacht den Stauplan auf eine deutlich grafischere Darstellung ohne Textüberladung in den Ladefeldern.',
-    'RC699 zeigt quer verladene Paletten auch visuell quer und reduziert freie Plätze auf neutrale leere Felder.',
-    'RC699 behält die Verlader-Erfassung weiterhin ausschließlich bei der QR-Abholung und ändert keine übrigen Sendungsfunktionen.',
+    'RC700 verwendet im Stauplan hellere Palettenfarben für eine ruhigere und besser lesbare Darstellung.',
+    'RC700 ändert nur die optische Farbgebung der Palettengrafik; Logik, Reihenfolge und Querladung bleiben unverändert.',
+    'RC700 behält die Verlader-Erfassung weiterhin ausschließlich bei der QR-Abholung und ändert keine übrigen Sendungsfunktionen.',
     'RC694 repariert den Syntaxfehler im RC693-Stauplan-Druckstil, der den zentralen Sendungs-Controller blockiert und Sendung erstellen unvollständig gemacht hat.',
     'RC694 behält die neue grafische Stauplan-Darstellung mit Ladefolge, Formschluss, hohen Paletten hinten und kleinen Einheiten vorne bei.',
     'RC693 stellt den Stauplan als klare Ladegrafik für Verlader dar und zeigt Front, Heck, Formschluss und Ladungssicherung direkt im Plan.',
@@ -19397,7 +19397,7 @@ window.ExportHUBPickupDate373=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
 .rc396-column-head{text-align:center;line-height:1.15;border-radius:10px;background:#fff;padding:5px 4px;border:1px solid #ffedd5}.rc396-column-head b{display:block;font-size:12px;color:#7c2d12}.rc396-column-head small{display:block;font-size:10px;color:#9a3412;font-weight:800}.rc396-row-rule{display:grid;grid-template-columns:1fr 1fr;gap:4px}.rc396-rule-chip{border-radius:999px;background:#fff7ed;border:1px solid #fdba74;padding:3px 5px;text-align:center;font-size:9px;font-weight:950;color:#9a3412}
 .rc396-slot{border:1px solid #fdba74;border-radius:12px;background:linear-gradient(180deg,#e0f2fe,#f8fafc);display:grid;grid-template-rows:auto auto 1fr auto auto;justify-items:center;align-items:start;gap:2px;padding:6px;min-width:0;position:relative;overflow:hidden}.rc396-slot.pallet-high{background:linear-gradient(180deg,#ffedd5,#fff7ed)}.rc396-slot.pallet-low{background:linear-gradient(180deg,#dbeafe,#eff6ff)}.rc396-slot.box-small{background:linear-gradient(180deg,#ecfeff,#f8fafc)}.rc396-slot.empty{border-style:dashed;border-color:#cbd5e1;background:#fff;color:#94a3b8;display:grid;place-items:center;grid-template-rows:auto auto}.rc396-slot.is-over{border-color:#ef4444;background:#fee2e2}
 .rc396-step{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#08245d;color:#fff;font-size:11px;font-weight:1000}.rc396-slot.empty .rc396-step{background:#cbd5e1;color:#475569}
-.rc396-load-shape{display:grid;place-items:center;height:22px;width:100%}.rc396-pallet-shape{width:42px;height:18px;border-radius:4px;background:linear-gradient(180deg,#c08457,#8b5e34);box-shadow:0 4px 0 #7c4a22;position:relative}.rc396-pallet-shape:before,.rc396-pallet-shape:after{content:"";position:absolute;bottom:-4px;width:8px;height:4px;background:#7c4a22;border-radius:0 0 2px 2px}.rc396-pallet-shape:before{left:7px}.rc396-pallet-shape:after{right:7px}.rc396-pallet-shape.high{height:26px;box-shadow:0 5px 0 #7c4a22}.rc396-box-shape{width:34px;height:18px;border:2px solid #0ea5e9;border-radius:4px;background:linear-gradient(135deg,#cffafe,#ecfeff);position:relative}.rc396-box-shape:after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px solid rgba(14,165,233,.35)}
+.rc396-load-shape{display:grid;place-items:center;height:22px;width:100%}.rc396-pallet-shape{width:42px;height:18px;border-radius:4px;background:linear-gradient(180deg,#e7c7a5,#cda074);box-shadow:0 4px 0 #b88454;position:relative}.rc396-pallet-shape:before,.rc396-pallet-shape:after{content:"";position:absolute;bottom:-4px;width:8px;height:4px;background:#b88454;border-radius:0 0 2px 2px}.rc396-pallet-shape:before{left:7px}.rc396-pallet-shape:after{right:7px}.rc396-pallet-shape.high{height:26px;box-shadow:0 5px 0 #b88454}.rc396-box-shape{width:34px;height:18px;border:2px solid #0ea5e9;border-radius:4px;background:linear-gradient(135deg,#cffafe,#ecfeff);position:relative}.rc396-box-shape:after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px solid rgba(14,165,233,.35)}
 .rc396-slot-text{min-width:0;width:100%;text-align:center;font-size:11px;font-weight:950;line-height:1.1;color:#08245d;overflow:hidden;text-overflow:ellipsis}.rc396-slot-sub{font-size:10px;color:#64748b;font-weight:850;line-height:1.1;text-align:center}.rc396-position{display:block;font-size:10px;color:#7c2d12;font-weight:950;text-transform:uppercase;text-align:center}.rc396-secure-badge,.rc396-form-badge{display:none!important}
 .rc396-endnote{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.rc396-endnote .rc396-note{border:1px solid #fed7aa;border-radius:12px;background:#fff;padding:8px 10px;font-size:11px;font-weight:900;color:#7c2d12;line-height:1.25}.rc396-note.center{text-align:center}.rc396-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:900px){.rc396-legend{grid-template-columns:repeat(2,minmax(0,1fr))}.rc396-endnote{grid-template-columns:1fr}.rc396-orientation,.rc396-axis{grid-template-columns:1fr;justify-items:start}.rc396-axis span:last-child{text-align:left}}
@@ -19412,11 +19412,11 @@ window.ExportHUBPickupDate373=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
 .rc396-slot.empty .rc396-step{display:none!important}
 .rc396-load-shape{height:28px!important}
 .rc396-slot-text,.rc396-slot-sub,.rc396-position,.rc396-form-badge,.rc396-secure-badge{display:none!important}
-.rc396-pallet-shape.rotated{width:18px!important;height:42px!important;box-shadow:4px 0 0 #7c4a22!important}
+.rc396-pallet-shape.rotated{width:18px!important;height:42px!important;box-shadow:4px 0 0 #b88454!important}
 .rc396-pallet-shape.rotated:before,.rc396-pallet-shape.rotated:after{bottom:auto!important;top:7px!important;width:4px!important;height:8px!important}
 .rc396-pallet-shape.rotated:before{left:auto!important;right:-4px!important}
 .rc396-pallet-shape.rotated:after{right:auto!important;left:-4px!important}
-.rc396-pallet-shape.high.rotated{width:22px!important;height:48px!important;box-shadow:5px 0 0 #7c4a22!important}
+.rc396-pallet-shape.high.rotated{width:22px!important;height:48px!important;box-shadow:5px 0 0 #b88454!important}
 .rc396-box-shape.rotated{width:18px!important;height:34px!important}
 .rc396-box-shape.rotated:after{left:0!important;right:0!important;top:50%!important;bottom:auto!important;border-left:none!important;border-top:2px solid rgba(14,165,233,.35)!important}
 
