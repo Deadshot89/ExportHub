@@ -179,11 +179,11 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC718',cache:'718',loginReturn:'/TESTVERSION.html?v=718'});
+var BUILD=Object.freeze({version:'RC719',cache:'719',loginReturn:'/TESTVERSION.html?v=719'});
 var RELEASE=Object.freeze({
- version:'RC718',
+ version:'RC719',
  date:'15.08.2026',
- title:'Stauplan mit technischerem Fahrerhaus und Farblegende',
+ title:'Stauplan: hohe Paletten vorne laden',
  changes:Object.freeze([
     'RC716 stellt den Stauplan optisch auf eine nüchterne technische Industrie-Draufsicht um; Ladeberechnung und Performancepfade bleiben unverändert.',
     'RC716 ersetzt die verspielte Fahrerhaus- und Palettenoptik durch neutrale Fahrzeugkonturen, technische Linien und zurückhaltende Farben.',
@@ -20043,7 +20043,7 @@ rows.forEach(function(r,rowIndex){
  groups.push({rowIndex:rowIndex+1,type:type,physicalCount:physicalCount,floorCount:floorCount,stackFactor:stackFactor,weightEachPhysical:weightEachPhysical,weightTotal:weightTotal,options:options,dims:dims,pallet:/palette|paletten|pallet/i.test(type)});
  totalWeight+=weightTotal;totalUnits+=physicalCount;totalFloorUnits+=floorCount
  });
- groups.sort(function(a,b){var ah=num(a.dims&&a.dims.h),bh=num(b.dims&&b.dims.h),aPal=!!a.pallet,bPal=!!b.pallet;if(ah!==bh)return ah-bh;if(aPal!==bPal)return aPal?1:-1;if(a.weightEachPhysical!==b.weightEachPhysical)return b.weightEachPhysical-a.weightEachPhysical;return((num(b.dims&&b.dims.l)*num(b.dims&&b.dims.w))-(num(a.dims&&a.dims.l)*num(a.dims&&a.dims.w)))||(a.rowIndex-b.rowIndex)});
+ groups.sort(function(a,b){var ah=num(a.dims&&a.dims.h),bh=num(b.dims&&b.dims.h),aPal=!!a.pallet,bPal=!!b.pallet;if(ah!==bh)return bh-ah;if(aPal!==bPal)return aPal?-1:1;if(a.weightEachPhysical!==b.weightEachPhysical)return b.weightEachPhysical-a.weightEachPhysical;return((num(b.dims&&b.dims.l)*num(b.dims&&b.dims.w))-(num(a.dims&&a.dims.l)*num(a.dims&&a.dims.w)))||(a.rowIndex-b.rowIndex)});
  var rowsOut=[],placements=[],cursor=0,rowNo=1,step=1;
  groups.forEach(function(g){
   var remainingFloor=g.floorCount,remainingPhysical=g.physicalCount;
