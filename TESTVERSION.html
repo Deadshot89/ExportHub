@@ -179,12 +179,17 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC695',cache:'695',loginReturn:'/TESTVERSION.html?v=695'});
+var BUILD=Object.freeze({version:'RC696',cache:'696',loginReturn:'/TESTVERSION.html?v=696'});
 var RELEASE=Object.freeze({
- version:'RC695',
+ version:'RC696',
  date:'15.08.2026',
- title:'Direkter Umgebungswechsel im Login',
+ title:'Bedienung und Hintergrundlast deutlich geglättet',
  changes:Object.freeze([
+    'RC696 bündelt automatische Eingabe-Speicherungen länger, damit Tippen und Auswählen nicht durch fortlaufende Azure-Vorbereitung ausgebremst werden; explizites Speichern bleibt sofort.',
+    'RC696 führt die aufwendige Filter-/DOM-Sicherung nur noch für echte Filter-, Such-, Sortier- und Planeraktionen aus statt bei jedem beliebigen Speichervorgang.',
+    'RC696 berechnet den sichtbaren Sendungsstatus nur noch, wenn Sendung erstellen tatsächlich geöffnet ist, und vermeidet dadurch Statusscans bei Aufgaben-, Dashboard- und anderen Ereignissen.',
+    'RC696 begrenzt Lager-Hintergrundsynchronisierung auf Dashboard/Lager und verlängert den periodischen Lagercheck auf 60 Sekunden; manuelles Aktualisieren bleibt unverändert.',
+    'RC696 reduziert unnötige DOM-Nacharbeit des Lieferschein-/Stauplan-Kompatibilitätsblocks außerhalb von Sendung erstellen und stellt Filterwerte nur noch bei echten Ansichtswechseln wieder her.',
     'RC694 repariert den Syntaxfehler im RC693-Stauplan-Druckstil, der den zentralen Sendungs-Controller blockiert und Sendung erstellen unvollständig gemacht hat.',
     'RC694 behält die neue grafische Stauplan-Darstellung mit Ladefolge, Formschluss, hohen Paletten hinten und kleinen Einheiten vorne bei.',
     'RC693 stellt den Stauplan als klare Ladegrafik für Verlader dar und zeigt Front, Heck, Formschluss und Ladungssicherung direkt im Plan.',
@@ -358,6 +363,11 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC696 Performance: automatische Eingaben werden 650 ms gebündelt; explizite Speicheraktionen bleiben ohne künstliche Wartezeit',
+    'RC696 Performance: queueSave durchsucht Filter-/Formularzustand nicht bei normalen Sendungs- und Fachbereichsspeicherungen',
+    'RC696 Performance: sichtbarer Sendungsstatus wird außerhalb der Sendungsansicht nicht vollständig neu berechnet',
+    'RC696 Performance: Lager synchronisiert periodisch nur bei sichtbarem Dashboard/Lager und maximal einmal pro 60 Sekunden',
+    'RC696 Performance: persistente Filterwerte werden nicht mehr nach jedem render/sync-Ereignis erneut in alle Controls geschrieben',
      'RC692 Login-Umgebung: Produktion und Testservice werden auf beiden Loginseiten gleichzeitig als Umschalter angezeigt',
      'RC692 Produktion: Produktion ist aktiv markiert; Testservice wechselt direkt auf die -testservice-Domain',
      'RC692 Testservice: Testservice ist aktiv markiert; Produktion wechselt direkt auf die Produktionsdomain',
@@ -11717,7 +11727,7 @@ function markLocalUiMutation(target,reason){
  if(isPersistentFilterControl(target)||target.closest('.rc524-overview-controls')){persistentFilterInteractionAt=Date.now();schedulePersistentFilterSave(0);return false}
  runtime.lastQueueReason=String(reason||'Eingabe aktualisiert');runtime.lastQueueAt=Date.now();runtime.changeGeneration++;runtime.dirty=true;runtime.pendingSave=true;
  if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);
- runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason||'Eingabe aktualisiert')},320);if(isPersistentFilterControl(target)){persistentFilterInteractionAt=Date.now();schedulePersistentFilterSave(0)}
+ runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason||'Eingabe aktualisiert')},650);if(isPersistentFilterControl(target)){persistentFilterInteractionAt=Date.now();schedulePersistentFilterSave(0)}
  return true
 }
 function unlockRestoredApplication(){
@@ -11734,15 +11744,16 @@ function unlockRestoredApplication(){
 document.addEventListener('input',function(event){markLocalUiMutation(event.target,'Eingabe aktualisiert')},true);
 document.addEventListener('change',function(event){markLocalUiMutation(event.target,'Auswahl aktualisiert')},true);
 document.addEventListener('click',function(event){var node=event.target&&event.target.closest&&event.target.closest('button,a,label,fieldset,.toolbar,[class*=filter],[class*=search],[class*=controls]');if(!node)return;var textValue=String((node.id||'')+' '+(node.className||'')+' '+(node.textContent||'')+' '+(node.getAttribute&&node.getAttribute('onclick')||''));if(/filter|search|sort|status|zurücksetzen|suchen|seite|planner|jahr|reihenfolge/i.test(textValue)){persistentFilterInteractionAt=Date.now();schedulePersistentFilterSave(0)}},true);
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:resume'].forEach(function(name){window.addEventListener(name,function(){schedulePersistentFilterRestore(35)})});
+['exporthub:ready','exporthub:viewchange','exporthub:resume'].forEach(function(name){window.addEventListener(name,function(){schedulePersistentFilterRestore(45)})});
 window.addEventListener('pageshow',function(event){if(event.persisted&&runtime.authToken&&runtime.user){runtime.ready=true;runtime.loaded=true;unlockRestoredApplication();schedulePersistentFilterRestore(35)}},true);
 
 function authoritativeShipmentSyncReason(reason){return /QR-Abholung und POD verbindlich synchronisiert|QR\/POD.*synchron|POD.*(?:Cloud|Sicherung|Backup|synchron)|Abholung.*(?:Server|synchron)|pickup.*(?:server|sync)|Lagerlocations synchronisiert|Lager.*synchron|warehouse.*sync/i.test(String(reason||''))}
 function shipmentFlushGuardNeeded(reason){if(authoritativeShipmentSyncReason(reason))return false;var currentState=null;try{currentState=window.__EXPORTHUB_GET_STATE__&&window.__EXPORTHUB_GET_STATE__()}catch(_){currentState=runtime.state}var view=lower(currentState&&currentState.view||'');return view==='shipment'||/Sendungseingabe|Sendung aktualisiert|Sendung gespeichert|Kunde ausgewählt|Standort ausgewählt|Colli-Zeile|Einzelgewichte|Adressprüfung|Zolldokumentprüfung/i.test(String(reason||''))}
 async function ensureShipmentFlushAllowed(reason){if(!shipmentFlushGuardNeeded(reason))return true;var guard=window.__EXPORTHUB_ENSURE_SHIPMENT_WRITE_ALLOWED__;if(typeof guard!=='function')return true;try{return (await guard(reason))!==false}catch(error){console.warn('Sendungssperre konnte vor Azure-Speicherung nicht bestätigt werden',error);return false}}
-function queueSaveDelay(reason){var r=String(reason||'');if(/Status und QR-Aktivierung|Lagerlocations synchronisiert|Lager.*synchron|warehouse.*sync/i.test(r))return 140;if(/Eingabe aktualisiert|Auswahl aktualisiert/i.test(r))return 180;if(/Filter|Suche|Sort|Planer|Benachrichtigung/i.test(r))return 120;return 0}
+function queueSaveDelay(reason){var r=String(reason||'');if(/Status und QR-Aktivierung|Lagerlocations synchronisiert|Lager.*synchron|warehouse.*sync/i.test(r))return 220;if(/Eingabe aktualisiert|Auswahl aktualisiert|Sendungseingabe/i.test(r))return 650;if(/Filter|Suche|Sort|Planer|Benachrichtigung/i.test(r))return 350;return 0}
+function shouldPersistFilterStateForSave(reason){var r=String(reason||'');if(currentPersistentFilterView()==='shipment')return false;return /Filter|Suche|Sort|Planer|Benachrichtigung|Dashboard-Einstellungen|Jahr im Aufgaben Planer/i.test(r)}
 async function queueSave(reason){
- if(!runtime.ready||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;savePersistentFilterState();runtime.lastQueueReason=String(reason||'');runtime.lastQueueAt=Date.now();runtime.changeGeneration++;runtime.dirty=true;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);var delay=queueSaveDelay(reason);runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason)},delay);return true
+ if(!runtime.ready||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;if(shouldPersistFilterStateForSave(reason))savePersistentFilterState();runtime.lastQueueReason=String(reason||'');runtime.lastQueueAt=Date.now();runtime.changeGeneration++;runtime.dirty=true;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);var delay=queueSaveDelay(reason);runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason)},delay);return true
 }
 async function flushSave(reason,options){
  options=options||{};if((!runtime.ready&&!options.force)||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;if(!runtime.pendingSave&&!runtime.dirty)return runtime.changeGeneration>0&&runtime.lastSavedGeneration>=runtime.changeGeneration;if(runtime.saving){var wantedGeneration=Number(runtime.changeGeneration||0),waitDeadline=Date.now()+75000;while(runtime.saving&&Date.now()<waitDeadline)await new Promise(function(resolve){native.setTimeout(resolve,100)});if(wantedGeneration>0&&Number(runtime.lastSavedGeneration||0)>=wantedGeneration)return true;if(!runtime.saving&&(runtime.pendingSave||runtime.dirty)&&Number(options._waitPass||0)<2){var nextOptions=Object.assign({},options,{_waitPass:Number(options._waitPass||0)+1});return flushSave(reason,nextOptions)}return false;}
@@ -15602,7 +15613,7 @@ function patchStowDiagram(){
  return true
 }
 
-function refresh(){forceVersion();installUploadFunctions();updateDeliveryFileList()}
+function refresh(){forceVersion();installUploadFunctions();if(inShipment())updateDeliveryFileList()}
 function schedule(){if(pending)return;pending=setT(function(){pending=0;if(!busy){busy=true;try{refresh()}finally{busy=false}}},35)}
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(x){window.addEventListener(x,schedule)});
 window.addEventListener('change',function(e){if(e.target&&e.target.type==='file'){var lab=e.target.closest&&e.target.closest('label.field');if(lab&&/lieferscheine hochladen\s*\/\s*anhangen/.test(low(lab.textContent))){e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();stableAddDeliveryNoteFiles(e.target.files);try{e.target.value=''}catch(_){ }return false}}},true);
@@ -19079,7 +19090,7 @@ function statusFromCopies(sh){var best=effectiveStatus(sh),rank=ranks[best]||0;c
 function classFor(status){return /storniert|nachbearbeitung/i.test(status)?'is-red':/entwurf|erstellt|in bearbeitung|wartet/i.test(status)?'is-orange':'is-green'}
 function patchVisible(status){var fixed=document.getElementById('rc363BlockShipment'),shell=document.getElementById('rc573ShipmentShell')||fixed;if(!shell)return false;var box=document.getElementById('rc573ShipmentStatus');if(!box){var head=fixed&&fixed.querySelector('.rc363-process-head')||shell.querySelector('.rc573-page-head,.page-head,.rc363-process-head');if(!head)return false;box=document.createElement('div');box.id='rc573ShipmentStatus';box.setAttribute('aria-live','polite');box.setAttribute('role','status');head.appendChild(box)}var caption=box.querySelector('.rc573-status-label');if(!caption){caption=document.createElement('span');caption.className='rc573-status-label';caption.textContent='Aktueller Sendungsstatus';box.appendChild(caption)}var pill=box.querySelector('.rc573-status-pill');if(!pill){pill=document.createElement('span');pill.className='rc573-status-pill';box.appendChild(pill)}var changed=q(pill.textContent)!==status;if(changed)pill.textContent=status;pill.setAttribute('data-index297-status',status);pill.classList.remove('is-green','is-orange','is-red');pill.classList.add(classFor(status));box.setAttribute('data-current-status',status);return changed}
 function persist(sh,status){copies(sh).forEach(function(x){x.status=status;x.processStatus=status})}
-function refresh(reason){if(inRefresh)return lastVisible;inRefresh=true;refreshRuns++;try{var sh=currentShipment();if(!sh)return false;var status=statusFromCopies(sh);var changed=patchVisible(status);if(status!==lastVisible||changed){lastVisible=status;statusChanges++;try{window.dispatchEvent(new CustomEvent('exporthub:shipment-status-visible',{detail:{shipmentId:sid(sh),reference:sref(sh),status:status,reason:q(reason)}}))}catch(_){}}return status}finally{inRefresh=false}}
+function refresh(reason){if(inRefresh)return lastVisible;var visibleShell=document.getElementById('rc573ShipmentShell')||document.getElementById('rc363FixedShipmentLayout'),activeState=states()[0]||{},activeView=low(activeState.view||document.body.getAttribute('data-exporthub-view')||'');if(!visibleShell&&activeView!=='shipment')return false;inRefresh=true;refreshRuns++;try{var sh=currentShipment();if(!sh)return false;var status=statusFromCopies(sh);var changed=patchVisible(status);if(status!==lastVisible||changed){lastVisible=status;statusChanges++;try{window.dispatchEvent(new CustomEvent('exporthub:shipment-status-visible',{detail:{shipmentId:sid(sh),reference:sref(sh),status:status,reason:q(reason)}}))}catch(_){}}return status}finally{inRefresh=false}}
 function schedule(reason,delays){clearTimeout(timer);clearTimeout(lateTimer);var d=delays||[0,450];timer=setTimeout(function(){refresh(reason)},Math.max(0,d[0]||0));if(d.length>1)lateTimer=setTimeout(function(){refresh(reason)},Math.max(0,d[d.length-1]||0))}
 function relevant(target){var b=target&&target.closest&&target.closest('button,a,label'),input=target&&target.closest&&target.closest('input[type="file"]'),t=low(q(b&&b.textContent)+' '+q(b&&b.id)+' '+q(b&&b.getAttribute&&b.getAttribute('onclick'))+' '+q(input&&input.getAttribute('onchange')));return !!input||/speichern|bestatig|versendet|abd|abhol|pickup|pod|druck|upload|abschlie|erledigt|storn|archiv/.test(t)}
 document.addEventListener('click',function(e){if(relevant(e.target))schedule('Prozessschritt ausgeführt',[0,700])},true);document.addEventListener('change',function(e){if(relevant(e.target)||/status|erledigt|complete|confirmed/i.test(q(e.target&&e.target.id)+' '+q(e.target&&e.target.name)))schedule('Prozessdaten geändert',[0,500])},true);
@@ -20430,8 +20441,9 @@ window.rc504WarehouseCloseMove=function(){return closeMove()};
 window.rc504WarehouseSaveMove=function(){return submitMove()};
 window.rc504WarehouseOpenFirst=function(){var first=all().filter(active)[0];if(first)return openMove(skey(first));alert('Es gibt aktuell keine aktive Sendung im Lager.');return false};
 window.ExportHUBWarehouse=Object.freeze({version:VERSION,locations:LOCS.slice(),render:render,sync:sync,register:register,collect:collect,qrMarkup:qrMarkup,urlFor:locationUrl,dashboardWidget:dashboardWidget,sortDashboardWidgets:sortDashboardWidgets,dashboardMeta:dashboardMeta,locationFor:locationName});
-function schedule(){clearTimeout(timer);timer=setTimeout(function(){all().forEach(defaultLocation);sync(false);paintNavIcon()},350)}
-['exporthub:ready','exporthub:sync','exporthub:shipment-status-visible'].forEach(function(n){window.addEventListener(n,schedule)});window.addEventListener('focus',function(){sync(false)});window.addEventListener('exporthub:warehouse-updated',function(){if(currentView()==='dashboard'&&window.ExportHUBRC205&&typeof window.ExportHUBRC205.refreshDashboardIfChanged==='function')try{window.ExportHUBRC205.refreshDashboardIfChanged(false)}catch(_){}paintNavIcon()});setInterval(function(){if(document.visibilityState!=='hidden')sync(false)},30000);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+function warehouseBackgroundRelevant(){var v=currentView();return v==='warehouse'||v==='dashboard'}
+function schedule(){clearTimeout(timer);timer=setTimeout(function(){all().forEach(defaultLocation);if(warehouseBackgroundRelevant())sync(false);paintNavIcon()},500)}
+['exporthub:ready','exporthub:sync','exporthub:shipment-status-visible'].forEach(function(n){window.addEventListener(n,schedule)});window.addEventListener('focus',function(){if(warehouseBackgroundRelevant())sync(false)});window.addEventListener('exporthub:warehouse-updated',function(){if(currentView()==='dashboard'&&window.ExportHUBRC205&&typeof window.ExportHUBRC205.refreshDashboardIfChanged==='function')try{window.ExportHUBRC205.refreshDashboardIfChanged(false)}catch(_){}paintNavIcon()});setInterval(function(){if(document.visibilityState!=='hidden'&&warehouseBackgroundRelevant())sync(false)},60000);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 })();
 </script>
 <style id="rc558-testportal-releasefix-style">
