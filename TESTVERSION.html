@@ -189,12 +189,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC726',cache:'726',loginReturn:'/TESTVERSION.html?v=726'});
+var BUILD=Object.freeze({version:'RC727',cache:'727',loginReturn:'/TESTVERSION.html?v=727'});
 var RELEASE=Object.freeze({
- version:'RC726',
+ version:'RC727',
  date:'16.08.2026',
- title:'Login-Daten sicher im Browser speichern',
+ title:'Persönliche Verlader-PINs wieder serverseitig verwalten',
  changes:Object.freeze([
+    'RC727 bindet die bestehende serverseitige Verlader-PIN-Administration wieder direkt an die ExportHUB-Rechteverwaltung an.',
+    'RC727 erlaubt globalen Administratoren, persönliche vierstellige Verlader-PINs anzulegen, zu ändern, zu aktivieren/deaktivieren und zu löschen.',
+    'RC727 speichert die PIN-Werte ausschließlich über /api/loader-pins-admin im dafür vorgesehenen Azure-Blob und nicht im normalen ExportHUB-Teamstand oder in Sendungen.',
+    'RC727 lädt die gespeicherten PINs nach jeder Änderung erneut vom Server und zeigt eine eindeutige Erfolg- oder Fehlermeldung an.',
     'RC726 ergänzt auf der Login-Seite die Option Login-Daten auf diesem Gerät speichern.',
     'RC726 speichert Passwörter nicht im ExportHUB-LocalStorage, sondern über die Credential-/Passwortmanager-Funktion des Browsers; ExportHUB selbst merkt sich nur die aktivierte Option und den Benutzernamen.',
     'RC726 stellt gespeicherte Anmeldedaten beim nächsten Öffnen der jeweiligen Umgebung wieder bereit; Produktion und Testservice bleiben durch ihre getrennten Origins getrennt.',
@@ -18939,27 +18943,52 @@ window.ExportHUBIndex249=Object.freeze({
 'use strict';
 if(window.__EXPORTHUB_INDEX250_PERSONAL_LOADER_PIN_UI__)return;
 window.__EXPORTHUB_INDEX250_PERSONAL_LOADER_PIN_UI__=true;
-var VERSION='RC418',MIGRATION='rc374-server-loader-pins-v1',timer=0;
+var VERSION='RC727',MIGRATION='rc374-server-loader-pins-v1',API='/api/loader-pins-admin',timer=0,loading=false,busy=false,serverPins=null,lastError='';
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
+function runtime(){try{return window.ExportHUBClean&&window.ExportHUBClean.runtime||{}}catch(_){return{}}}
 function queue(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')return window.ExportHUBClean.queueSave(reason)}catch(_){} }
-function loaders(){var api=window.ExportHUBLoaderPins;return api&&api.publicList?api.publicList():[]}
 function migrate(){
  var s=state();s.settings=s.settings||{};s.migrations=s.migrations||{};
  delete s.settings.qrPin;delete s.settings.qrPinChangedAt;delete s.settings.qrPinChangedBy;delete s.settings.globalQrPin;delete s.settings.pickupPin;delete s.settings.loaderPins;
  (Array.isArray(s.shipments)?s.shipments:[]).forEach(function(sh){if(!sh)return;delete sh.pickupPin;delete sh.qrPin;delete sh.loaderPin});
  if(!s.migrations[MIGRATION]){s.migrations[MIGRATION]={version:VERSION,completedAt:new Date().toISOString(),serverValidated:true};queue('Verlader-PINs auf serverseitige Prüfung umgestellt')}
 }
-function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function cardHtml(){var rows=loaders().map(function(x){return '<tr><td><b>'+esc(x.name)+'</b></td><td><span class="pill green">Aktiv</span></td></tr>'}).join('');return '<h2>Persönliche Verlader-PINs</h2><p>Die PINs werden ausschließlich auf dem Server gespeichert und geprüft. In der HTML-Datei und im Browser werden keine PIN-Werte angezeigt oder gespeichert.</p><table class="table"><thead><tr><th>Verlader</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table><div class="infobox">PIN-Änderungen erfolgen ausschließlich über die serverseitige Administration.</div>'}
-function patchCards(){document.querySelectorAll('.rc544-pin-card').forEach(function(card){card.dataset.index250LoaderPins='1';card.innerHTML=cardHtml()});['rc544GlobalPin','rc542GlobalPin'].forEach(function(id){var input=document.getElementById(id);if(!input)return;var card=input.closest('.card,section');if(card){card.dataset.index250LoaderPins='1';card.innerHTML=cardHtml()}})}
-function patch(){migrate();patchCards();try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){} }
-function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},40)}
-window.rc544SaveGlobalPin=function(){alert('PINs werden ausschließlich serverseitig verwaltet.');return false};window.rc542SaveGlobalPin=window.rc544SaveGlobalPin;
-function boot(){patch();[100,350,900].forEach(function(ms){setTimeout(patch,ms)})}
+function token(){var r=runtime();return q(r.authToken||r.sessionToken||window.__EXPORTHUB_AUTH_TOKEN__||'')}
+async function serverCall(action,payload){
+ var t=token();if(!t){var e=new Error('Die ExportHUB-Admin-Sitzung fehlt. Bitte einmal abmelden und erneut anmelden.');e.code='AUTH_REQUIRED';throw e}
+ var headers={'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'Authorization':'Bearer '+t},body=Object.assign({action:action,sessionToken:t,authToken:t},payload||{}),controller=typeof AbortController==='function'?new AbortController():null,timeout=0;
+ try{
+  if(controller)timeout=setTimeout(function(){try{controller.abort()}catch(_){}},15000);
+  var res=await fetch(API,{method:'POST',cache:'no-store',credentials:'same-origin',headers:headers,body:JSON.stringify(body),signal:controller&&controller.signal}),raw=await res.text(),data={};
+  try{data=raw?JSON.parse(raw):{}}catch(_){var invalid=new Error('Die Verlader-PIN-API lieferte keine gültige Antwort (HTTP '+res.status+').');invalid.code='INVALID_SERVER_JSON';throw invalid}
+  if(!res.ok||data.ok===false){var err=new Error(data.message||('Verlader-PIN konnte nicht gespeichert werden (HTTP '+res.status+').'));err.code=data.code||('HTTP_'+res.status);err.status=res.status;throw err}
+  serverPins=Array.isArray(data.pins)?data.pins:[];lastError='';return data
+ }catch(e){if(e&&e.name==='AbortError'){var to=new Error('Die Verlader-PIN-API hat nicht rechtzeitig geantwortet.');to.code='REQUEST_TIMEOUT';throw to}throw e}finally{if(timeout)clearTimeout(timeout)}
+}
+function rows(){if(Array.isArray(serverPins))return serverPins;var api=window.ExportHUBLoaderPins;return api&&api.publicList?api.publicList():[]}
+function statusHtml(){if(loading)return '<div class="infobox" id="rc727PinStatus">Verlader-PINs werden vom Server geladen …</div>';if(lastError)return '<div class="badbox" id="rc727PinStatus">'+esc(lastError)+'</div>';return '<div class="infobox" id="rc727PinStatus">PINs werden verschlüsselt serverseitig gespeichert und bei der QR-Abholung geprüft.</div>'}
+function cardHtml(){
+ var list=rows(),body=list.length?list.map(function(x,i){var id=esc(x.id||('loader-'+i)),name=esc(x.name||''),pin=esc(x.pin||''),active=x.active!==false;return '<tr data-rc727-pin-row="'+id+'"><td><input class="rc727-pin-name" value="'+name+'" autocomplete="off" aria-label="Verladername"></td><td><input class="rc727-pin-code" value="'+pin+'" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" aria-label="Verladecode"></td><td><label class="rc544-check"><input class="rc727-pin-active" type="checkbox" '+(active?'checked':'')+'> Aktiv</label></td><td><div class="toolbar"><button type="button" class="btn" onclick="return rc727SaveLoaderPin(this)">Speichern</button><button type="button" class="danger" onclick="return rc727DeleteLoaderPin(this)">Löschen</button></div></td></tr>'}).join(''):'<tr><td colspan="4">Noch keine Verlader-PINs vorhanden.</td></tr>';
+ return '<h2>Persönliche Verlader-PINs</h2><p>Jeder Verlader erhält einen eigenen vierstelligen Code. Änderungen werden direkt auf dem Server gespeichert.</p>'+statusHtml()+'<div class="table-wrap"><table class="table"><thead><tr><th>Verlader</th><th>Verladecode</th><th>Status</th><th>Aktion</th></tr></thead><tbody>'+body+'</tbody></table></div><hr><h3>Neuen Verlader anlegen</h3><div class="rc544-form-grid"><label class="field">Name<input id="rc727NewLoaderName" autocomplete="off" placeholder="Name"></label><label class="field">4-stelliger Verladecode<input id="rc727NewLoaderPin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="0000"></label></div><button type="button" class="btn" onclick="return rc727CreateLoaderPin()">Verlader speichern</button>'
+}
+function pinCard(){return document.querySelector('.rc544-pin-card')}
+function patchCards(){var cards=document.querySelectorAll('.rc544-pin-card');cards.forEach(function(card){card.dataset.index250LoaderPins='1';if(document.activeElement&&card.contains(document.activeElement))return;card.innerHTML=cardHtml()});['rc544GlobalPin','rc542GlobalPin'].forEach(function(id){var input=document.getElementById(id);if(!input)return;var card=input.closest('.card,section');if(card){card.classList.add('rc544-pin-card');card.dataset.index250LoaderPins='1';card.innerHTML=cardHtml()}})}
+function setStatus(message,bad){lastError=bad?q(message):'';var el=document.getElementById('rc727PinStatus');if(el){el.className=bad?'badbox':'okbox';el.textContent=q(message)}}
+async function refresh(force){if(loading||busy)return false;if(!force&&Array.isArray(serverPins))return true;if(!pinCard()&&q(state().view)!=='rights')return false;loading=true;patchCards();try{await serverCall('list');patchCards();return true}catch(e){lastError=q(e&&e.message||e);patchCards();return false}finally{loading=false;patchCards()}}
+function rowFromButton(btn){var tr=btn&&btn.closest&&btn.closest('[data-rc727-pin-row]');if(!tr)return null;return{tr:tr,id:q(tr.getAttribute('data-rc727-pin-row')),name:q((tr.querySelector('.rc727-pin-name')||{}).value),pin:q((tr.querySelector('.rc727-pin-code')||{}).value),active:!!((tr.querySelector('.rc727-pin-active')||{}).checked)}}
+function validate(name,pin){if(!q(name)){alert('Bitte einen Verlader-Namen eingeben.');return false}if(!/^\d{4}$/.test(q(pin))){alert('Der Verladecode muss genau vier Ziffern enthalten.');return false}return true}
+window.rc727SaveLoaderPin=async function(btn){if(busy)return false;var row=rowFromButton(btn);if(!row||!validate(row.name,row.pin))return false;busy=true;btn.disabled=true;try{await serverCall('update',{id:row.id,name:row.name,pin:row.pin,active:row.active});patchCards();setStatus('Verladecode für '+row.name+' wurde serverseitig gespeichert.',false)}catch(e){setStatus((e&&e.message)||'Verladecode konnte nicht gespeichert werden.',true)}finally{busy=false;if(btn&&btn.isConnected)btn.disabled=false}return false};
+window.rc727CreateLoaderPin=async function(){if(busy)return false;var name=q((document.getElementById('rc727NewLoaderName')||{}).value),pin=q((document.getElementById('rc727NewLoaderPin')||{}).value);if(!validate(name,pin))return false;busy=true;try{await serverCall('create',{name:name,pin:pin,active:true});patchCards();setStatus('Verlader '+name+' wurde mit persönlichem Verladecode angelegt.',false)}catch(e){setStatus((e&&e.message)||'Verlader konnte nicht angelegt werden.',true)}finally{busy=false}return false};
+window.rc727DeleteLoaderPin=async function(btn){if(busy)return false;var row=rowFromButton(btn);if(!row)return false;if(!confirm('Verladecode für '+row.name+' wirklich löschen?'))return false;busy=true;btn.disabled=true;try{await serverCall('delete',{id:row.id});patchCards();setStatus('Verladecode für '+row.name+' wurde gelöscht.',false)}catch(e){setStatus((e&&e.message)||'Verladecode konnte nicht gelöscht werden.',true)}finally{busy=false;if(btn&&btn.isConnected)btn.disabled=false}return false};
+function patch(){migrate();patchCards();if(q(state().view)==='rights')refresh(false);try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){} }
+function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},80)}
+window.rc544SaveGlobalPin=function(){refresh(true);return false};window.rc542SaveGlobalPin=window.rc544SaveGlobalPin;
+function boot(){patch();setTimeout(function(){patch();refresh(false)},250)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:sync','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,schedule)});
-window.ExportHUBIndex250=Object.freeze({version:VERSION,migration:MIGRATION,loaders:loaders(),patch:patch,selfTest:function(){return{version:VERSION,pinsExposed:false,serverValidated:true,generalPinRemoved:!q((state().settings||{}).qrPin)}}});
+window.ExportHUBIndex250=Object.freeze({version:VERSION,migration:MIGRATION,refresh:function(){return refresh(true)},patch:patch,selfTest:function(){return{version:VERSION,serverValidated:true,adminApi:API,generalPinRemoved:!q((state().settings||{}).qrPin),serverPinsLoaded:Array.isArray(serverPins),count:Array.isArray(serverPins)?serverPins.length:0}}});
 })();
 </script>
 <!-- INDEX 250 PERSONAL LOADER PINS AND FREE PLATE INPUT END -->
