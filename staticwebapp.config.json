@@ -24,7 +24,8 @@
     },
     {
       "route": "/test",
-      "rewrite": "/index.html",
+      "redirect": "https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/TESTVERSION.html?entry=login",
+      "statusCode": 302,
       "allowedRoles": [
         "anonymous"
       ],
@@ -35,7 +36,8 @@
     },
     {
       "route": "/test/*",
-      "rewrite": "/index.html",
+      "redirect": "https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/TESTVERSION.html?entry=login",
+      "statusCode": 302,
       "allowedRoles": [
         "anonymous"
       ],
@@ -115,6 +117,59 @@
       }
     },
     {
+      "route": "/customer-avis",
+      "rewrite": "/customer-avis.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Cross-Origin-Resource-Policy": "same-origin",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+        "Content-Security-Policy": "default-src 'none'; connect-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: https:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
+      "route": "/customer-avis.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Cross-Origin-Resource-Policy": "same-origin",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+        "Content-Security-Policy": "default-src 'none'; connect-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: https:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
+      "route": "/api/customer-avis*",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Cross-Origin-Resource-Policy": "same-origin",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
       "route": "/api/*",
       "allowedRoles": [
         "anonymous"
@@ -151,7 +206,9 @@
       "/testservice-environment.json",
       "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
       "/location",
-      "/location.html"
+      "/location.html",
+      "/customer-avis",
+      "/customer-avis.html"
     ]
   },
   "platform": {
