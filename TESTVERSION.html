@@ -191,12 +191,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC736',cache:'736',loginReturn:'/TESTVERSION.html?v=736'});
+var BUILD=Object.freeze({version:'RC737',cache:'737',loginReturn:'/TESTVERSION.html?v=737'});
 var RELEASE=Object.freeze({
- version:'RC736',
+ version:'RC737',
  date:'16.08.2026',
- title:'Datenschutz: Kontaktdaten, Protokolle und Logout abgesichert',
+ title:'Release-Center: Scrollposition bleibt bei Testbestätigungen erhalten',
  changes:Object.freeze([
+    'RC737 hält die aktuelle Scrollposition im Release-Center beim Abhaken einzelner Testpunkte, bei Test bestanden und beim Zurücksetzen stabil.',
+    'RC737 stellt die Position auch nach der asynchronen Online-Prüfung von Produktion und Testservice wieder her, sodass die Checkliste nicht mehr nach oben springt.',
     'RC736 entfernt E-Mail-Adressen, Telefonnummern und kontaktbezogene Felder aus dem technischen Audit-Protokoll und speichert dort nur noch maskierte beziehungsweise neutrale Angaben.',
     'RC736 leert beim Logout und bei abgelaufener Sitzung den sichtbaren Arbeitsbereich sowie den Fast-View-Zwischenspeicher, damit Kunden-, Sendungs- und Kontaktdaten nicht im DOM zurückbleiben.',
     'RC736 kennzeichnet Kontaktfelder im Kundenordner als nicht für Browser-Autofill vorgesehen und zeigt dort einen verbindlichen Hinweis zur Datenminimierung.',
@@ -464,6 +466,8 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC737 Release-Center: Einen Testpunkt weiter unten in der Checkliste bestätigen; die Seite bleibt an exakt derselben Scrollposition.',
+    'RC737 Release-Center: Test bestanden oder Teststatus zurücksetzen; kein Sprung an den Seitenanfang.',
     'RC736 Datenschutz: Kundenordner zeigt den Hinweis, nur geschäftlich notwendige Kontaktdaten einzutragen.',
     'RC736 Datenschutz: Audit-/Aktivitätsprotokolle enthalten keine unmaskierten E-Mail-Adressen, Telefonnummern oder kontaktbezogenen Feldwerte.',
     'RC736 Datenschutz: Nach Logout oder Sitzungsablauf sind Kunden-/Sendungsdaten aus #content entfernt und der Fast-View-Cache ist geleert.',
@@ -11193,7 +11197,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function tested(){var m=meta();return q(m.testedVersion)===VERSION&&!!m.testedAt}
  function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Release-Center gespeichert');else if(typeof window.save==='function')window.save()}catch(_){}}
  function status(text,kind){var e=document.getElementById('rc562ReleaseStatus');if(!e)return;e.textContent=text;e.className='rc562-release-status'+(kind?' '+kind:'')}
- function rerender(){var root=document.getElementById('content');if(!root)return;root.innerHTML=renderHtml();setTimeout(refresh,0)}
+ function rerender(){var root=document.getElementById('content');if(!root)return;var scroller=document.scrollingElement||document.documentElement,pageX=window.scrollX||scroller&&scroller.scrollLeft||0,pageY=window.scrollY||scroller&&scroller.scrollTop||0,rootTop=root.scrollTop||0,rootLeft=root.scrollLeft||0;function restoreScroll(){try{if(scroller){scroller.scrollLeft=pageX;scroller.scrollTop=pageY}window.scrollTo(pageX,pageY);root.scrollLeft=rootLeft;root.scrollTop=rootTop}catch(_){}}root.innerHTML=renderHtml();restoreScroll();var raf=window.requestAnimationFrame||function(fn){return setTimeout(fn,16)};raf(function(){restoreScroll();Promise.resolve(refresh()).catch(function(error){console.error('Release-Center aktualisieren',error)}).finally(function(){restoreScroll();raf(restoreScroll);setTimeout(restoreScroll,80)})});return true}
  function parseVersion(html){var h=String(html||''),m=h.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['"](RC\d+)['"]/i)||h.match(/version:\s*['"](RC\d+)['"]/i);return q(m&&m[1])||'unbekannt'}
  function onNamedTestservice(){return /-testservice\./i.test(String(location.hostname||''))&&window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false}function onlineMatches(){if(onNamedTestservice())return q((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||VERSION)===VERSION;return window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false&&testServiceChecked&&q(testServiceVersion)===VERSION}
  function releaseTests(){var release=window.ExportHUBRelease||{},tests=Array.isArray(release.tests)?release.tests:[];return tests.filter(function(item){return q(item)!==''})}
