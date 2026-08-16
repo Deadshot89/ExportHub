@@ -189,12 +189,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC725',cache:'725',loginReturn:'/TESTVERSION.html?v=725'});
+var BUILD=Object.freeze({version:'RC726',cache:'726',loginReturn:'/TESTVERSION.html?v=726'});
 var RELEASE=Object.freeze({
- version:'RC725',
+ version:'RC726',
  date:'16.08.2026',
- title:'Fast-View-Navigation und zentrale Renderlast weiter reduziert',
+ title:'Login-Daten sicher im Browser speichern',
  changes:Object.freeze([
+    'RC726 ergänzt auf der Login-Seite die Option Login-Daten auf diesem Gerät speichern.',
+    'RC726 speichert Passwörter nicht im ExportHUB-LocalStorage, sondern über die Credential-/Passwortmanager-Funktion des Browsers; ExportHUB selbst merkt sich nur die aktivierte Option und den Benutzernamen.',
+    'RC726 stellt gespeicherte Anmeldedaten beim nächsten Öffnen der jeweiligen Umgebung wieder bereit; Produktion und Testservice bleiben durch ihre getrennten Origins getrennt.',
     'RC725 hält die schweren Ansichten Sendung erstellen, Sendungsübersicht und Ladeliste/CMR beim schnellen Wegwechsel kurz als echten DOM-Zustand im Speicher und setzt sie beim Zurückwechseln wieder ein, statt sie vollständig neu zu erzeugen.',
     'RC725 entfernt die Azure-Speicherung Dokumentversionen aktualisiert aus dem reinen Öffnen von Ladeliste/CMR; Dokumente werden beim Navigieren nur lokal vorbereitet.',
     'RC725 verhindert, dass die globalen RC542-/RC543-Nachbearbeiter auf Menü- und Routen-Klicks sofort den gesamten sichtbaren Bereich erneut durchsuchen.',
@@ -8420,14 +8423,15 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 <div class="lang-note hidden" id="loginLangNote"></div>
 </div>
 <div aria-live="polite" class="clean-login-status" id="cleanLoginStatus"></div>
-<div id="loginFields">
-<label class="field">Benutzername<input autocapitalize="none" autocomplete="username" id="loginUser" name="exporthub_login_user" spellcheck="false" value=""/></label>
-<label class="field">Passwort<input autocomplete="current-password" id="loginPass" type="password"/></label>
-<button class="btn" id="loginBtn" style="width:100%">Anmelden</button>
+<form id="loginFields" autocomplete="on" novalidate>
+<label class="field">Benutzername<input autocapitalize="none" autocomplete="username" id="loginUser" name="username" spellcheck="false" value=""/></label>
+<label class="field">Passwort<input autocomplete="current-password" id="loginPass" name="password" type="password"/></label>
+<label class="rc119-login-remember" for="loginRemember"><input id="loginRemember" type="checkbox" autocomplete="off"/><span><strong>Login-Daten auf diesem Gerät speichern</strong><small style="display:block;font-weight:600;color:#64748b;margin-top:2px">Passwort wird im Passwortmanager des Browsers gespeichert.</small></span></label>
+<button class="btn" id="loginBtn" style="width:100%" type="button">Anmelden</button>
 <button class="ghost hidden" id="testserviceContinueBtn" type="button">Teamdaten erneut laden</button>
 <button class="ghost" data-exporthub-ms-switch="1" id="loginMicrosoftAccountSwitchBtn" style="width:100%;margin-top:10px" type="button">Microsoft-Konto wechseln</button>
 <button class="ghost" id="adminRecoveryBtn" style="width:100%;margin-top:10px" type="button">Admin-Zugang wiederherstellen</button>
-</div>
+</form>
 <div class="hidden" id="pwChange">
 <div class="notice">Erstanmeldung: Bitte neues Passwort setzen.</div>
 <label class="field">Neues Passwort<input id="newPass1" type="password"/></label>
@@ -8436,6 +8440,32 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 </div>
 </div>
 </div>
+<script id="exporthub-rc726-login-credentials">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC726_LOGIN_CREDENTIALS__)return;
+window.__EXPORTHUB_RC726_LOGIN_CREDENTIALS__=true;
+var PREF='exporthub_login_remember_v1',USER='exporthub_login_user_v1',pending=null;
+function by(id){return document.getElementById(id)}
+function q(v){return String(v==null?'':v).trim()}
+function pref(){try{return localStorage.getItem(PREF)==='1'}catch(_){return false}}
+function setPref(on,user){try{if(on){localStorage.setItem(PREF,'1');if(q(user))localStorage.setItem(USER,q(user))}else{localStorage.removeItem(PREF);localStorage.removeItem(USER)}}catch(_){}}
+async function restore(){var remember=by('loginRemember'),u=by('loginUser'),p=by('loginPass');if(remember)remember.checked=pref();if(!pref())return false;try{var saved=q(localStorage.getItem(USER));if(u&&!q(u.value)&&saved)u.value=saved}catch(_){}
+ if(!navigator.credentials||typeof navigator.credentials.get!=='function')return false;
+ try{var cred=await navigator.credentials.get({password:true,mediation:'optional'});if(!cred)return false;if(u&&q(cred.id))u.value=q(cred.id);if(p&&typeof cred.password==='string')p.value=cred.password;return true}catch(_){return false}}
+function capture(){var u=by('loginUser'),p=by('loginPass'),r=by('loginRemember');pending={user:q(u&&u.value),pass:String(p&&p.value||''),remember:!!(r&&r.checked)};setPref(pending.remember,pending.user)}
+async function storePending(){var x=pending;pending=null;if(!x||!x.remember||!x.user||!x.pass)return false;setPref(true,x.user);if(!navigator.credentials||typeof navigator.credentials.store!=='function'||typeof window.PasswordCredential!=='function')return false;try{var cred=new PasswordCredential({id:x.user,name:x.user,password:x.pass});await navigator.credentials.store(cred);return true}catch(_){return false}}
+function bind(){var form=by('loginFields'),remember=by('loginRemember'),user=by('loginUser');if(form&&!form.dataset.rc726){form.dataset.rc726='1';form.addEventListener('submit',function(e){e.preventDefault()})}
+ if(remember&&!remember.dataset.rc726){remember.dataset.rc726='1';remember.addEventListener('change',function(){setPref(this.checked,q(user&&user.value));if(!this.checked&&navigator.credentials&&typeof navigator.credentials.preventSilentAccess==='function'){try{navigator.credentials.preventSilentAccess()}catch(_){}}})}
+ document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('#loginBtn,#savePassBtn');if(!b)return;if(b.id==='savePassBtn'){var r=by('loginRemember'),u=by('loginUser'),np=by('newPass1');if(r&&r.checked)pending={user:q(u&&u.value),pass:String(np&&np.value||''),remember:true};return}capture()},true);
+ document.addEventListener('keydown',function(e){var t=e.target;if(e.key==='Enter'&&t&&/^(loginUser|loginPass)$/.test(t.id))capture()},true);
+ restore();
+}
+window.addEventListener('exporthub:ready',storePending);
+window.addEventListener('exporthub:logout',function(){setTimeout(restore,30)});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
+</script>
 <div class="app hidden" id="app">
 <aside class="sidebar">
 <div class="brand"><div class="logo">EH</div><div><strong>ExportHUB</strong><span id="brandUserLine">ExportHUB-Benutzer: nicht angemeldet</span></div></div>
