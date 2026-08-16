@@ -189,12 +189,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC733',cache:'733',loginReturn:'/TESTVERSION.html?v=733'});
+var BUILD=Object.freeze({version:'RC734',cache:'734',loginReturn:'/TESTVERSION.html?v=734'});
 var RELEASE=Object.freeze({
- version:'RC733',
+ version:'RC734',
  date:'16.08.2026',
- title:'Release-Center Download vereinfacht',
+ title:'Login-Umschalter Produktion und Testservice repariert',
  changes:Object.freeze([
+    'RC734 zeigt den Umgebungsumschalter Produktion / Testservice auch auf der echten Testservice-Loginseite dauerhaft an.',
+    'RC734 erlaubt vor der Anmeldung jederzeit den direkten Wechsel vom Testservice zurück zur Produktions-Hauptseite und umgekehrt.',
+    'RC734 markiert die aktuell geöffnete Umgebung weiterhin eindeutig als AKTIV und verändert die getrennten Anmeldesitzungen nicht.',
     'RC733 entfernt die doppelten Release-ZIP-Aktionen und zeigt pro Zustand nur noch einen eindeutigen Speicher-Button.',
     'RC733 verwendet nach erfolgreicher Release-Erstellung nur noch „Release-ZIP erneut speichern“; der separate Download-Link und der zusätzliche Speichern-unter-Button entfallen.',
     'RC733 nutzt bei Browsern ohne File System Access API denselben einzelnen Speicher-Button als direkten Download-Fallback.',
@@ -8287,7 +8290,7 @@ body.eh-dark{--eh-bg:#081526;--eh-surface:#0f2037;--eh-surface-soft:#132943;--eh
 .eh-login-environment button[data-environment="testservice"]{border-color:#fdba74;background:#fff7ed;color:#9a3412}.eh-login-environment button[data-environment="testservice"] span{color:#c2410c}.eh-login-environment button[data-environment="testservice"]:hover{border-color:#ea580c;background:#ffedd5}
 .eh-login-switch button.is-active{cursor:default;box-shadow:0 0 0 3px rgba(37,99,235,.12),0 8px 20px rgba(15,23,42,.08);transform:none!important}.eh-login-switch button[data-environment="production"].is-active{border-color:#2563eb;background:#dbeafe}.eh-login-switch button[data-environment="testservice"].is-active{border-color:#ea580c;background:#ffedd5;box-shadow:0 0 0 3px rgba(234,88,12,.12),0 8px 20px rgba(15,23,42,.08)}.eh-login-switch button.is-active strong:after{content:' · AKTIV';font-size:11px;letter-spacing:.04em}.eh-login-switch button.is-active span{font-weight:850}
 .eh-login-environment-note{margin:0 0 12px;font-size:12px;font-weight:800;color:#64748b;line-height:1.45;text-align:left}#ehBackProduction{display:none!important;width:100%;margin:0 0 12px}#testserviceContinueBtn{width:100%;margin-top:10px;border-color:#fb923c!important;background:#fff7ed!important;color:#9a3412!important}
-html[data-exporthub-testportal="1"] #login .login-card{border:2px solid #fb923c!important;box-shadow:0 22px 60px rgba(154,52,18,.18)!important}html[data-exporthub-testportal="1"] .eh-login-mode-head{border-color:#fdba74;background:#fff7ed}html[data-exporthub-testportal="1"] .eh-login-mode-kicker{color:#c2410c}html[data-exporthub-testportal="1"] .eh-login-mode-head h2{color:#9a3412}html[data-exporthub-testportal="1"] .eh-login-mode-head p,html[data-exporthub-testportal="1"] .eh-login-environment-note{color:#9a3412}html[data-exporthub-testportal="1"] #ehLoginEnvironment{display:none!important}html[data-exporthub-testportal="1"] #loginMicrosoftAccountSwitchBtn{display:none!important}
+html[data-exporthub-testportal="1"] #login .login-card{border:2px solid #fb923c!important;box-shadow:0 22px 60px rgba(154,52,18,.18)!important}html[data-exporthub-testportal="1"] .eh-login-mode-head{border-color:#fdba74;background:#fff7ed}html[data-exporthub-testportal="1"] .eh-login-mode-kicker{color:#c2410c}html[data-exporthub-testportal="1"] .eh-login-mode-head h2{color:#9a3412}html[data-exporthub-testportal="1"] .eh-login-mode-head p,html[data-exporthub-testportal="1"] .eh-login-environment-note{color:#9a3412}html[data-exporthub-testportal="1"] #ehLoginEnvironment{display:grid!important}html[data-exporthub-testportal="1"] #loginMicrosoftAccountSwitchBtn{display:none!important}
 @media(max-width:600px){#login .login-card{padding:20px!important}.eh-login-environment{grid-template-columns:1fr}.eh-login-environment button{min-height:66px}.eh-login-mode-head{padding:12px}.eh-login-mode-head h2{font-size:19px}}
 </style>
 
@@ -11124,7 +11127,7 @@ function isTest(){return /-testservice\./i.test(host())}
 function isProd(){return host()===PROD_HOST}
 function cache(){return Date.now()}
 function testUrl(){return TEST_ORIGIN+'/TESTVERSION.html?entry=login&_='+cache()}
-function prodUrl(){return PROD_ORIGIN+'/?entry=login&_='+cache()}
+function prodUrl(){return PROD_ORIGIN+'/index.html?entry=login&_='+cache()}
 function go(url){if(!url)return false;location.assign(url);return false}
 function openTest(){if(isTest())return false;return go(testUrl())}
 function openProd(){if(isProd())return false;return go(prodUrl())}
@@ -11138,7 +11141,7 @@ function paint(){
 }
 function capture(e){var n=e.target&&e.target.closest&&e.target.closest('#ehLoginProduction,#ehLoginTestservice,#openTestserviceBtn,[data-exporthub-open-testservice="1"],#ehBackProduction');if(!n)return;if(n.id==='ehLoginProduction'||n.id==='ehBackProduction'){if(isProd())return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return openProd()}if(n.id==='ehLoginTestservice'||n.id==='openTestserviceBtn'||n.hasAttribute('data-exporthub-open-testservice')){if(isTest())return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return openTest()}}
 if(legacyGuard())return;document.addEventListener('click',capture,true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',paint,{once:true});else paint();['exporthub:ready','exporthub:rendered'].forEach(function(x){window.addEventListener(x,paint)});
-window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProduction:isProd,openTestservice:openTest,openProduction:openProd,testserviceUrl:TEST_ORIGIN+'/TESTVERSION.html',productionUrl:PROD_ORIGIN+'/'});
+window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProduction:isProd,openTestservice:openTest,openProduction:openProd,testserviceUrl:TEST_ORIGIN+'/TESTVERSION.html',productionUrl:PROD_ORIGIN+'/index.html'});
 })();
 </script>
 
@@ -11158,7 +11161,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC733'),CACHE=String(ACTIVE_BUILD.cache||'733'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html',TESTSERVICE_ORIGIN='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net',TESTSERVICE_PUBLIC_URL=TESTSERVICE_ORIGIN+'/TESTVERSION.html?v='+encodeURIComponent(CACHE);
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC734'),CACHE=String(ACTIVE_BUILD.cache||'734'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html',TESTSERVICE_ORIGIN='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net',TESTSERVICE_PUBLIC_URL=TESTSERVICE_ORIGIN+'/TESTVERSION.html?v='+encodeURIComponent(CACHE);
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({}),RELEASE_BUNDLE_URL='/release-assets.json';
  var releasePreparing=false;
  var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/location-booking/index.js','api/location-booking/function.json','api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/shared/merge.js']);
