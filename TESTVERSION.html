@@ -194,12 +194,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC739',cache:'739',loginReturn:'/TESTVERSION.html?v=739'});
+var BUILD=Object.freeze({version:'RC740',cache:'740',loginReturn:'/TESTVERSION.html?v=740'});
 var RELEASE=Object.freeze({
- version:'RC739',
+ version:'RC740',
  date:'17.08.2026',
- title:'Globaler Lade- und Befehlsstatus',
+ title:'Keine unnötigen Azure-Speicherungen',
  changes:Object.freeze([
+    'RC740 verhindert Azure-Speicherungen, wenn sich der persistierte Teamstand und die Benutzer tatsächlich nicht verändert haben.',
+    'RC740 prüft unmittelbar vor jedem Azure-POST den persistenten Zustand gegen den letzten bestätigten Azure-Snapshot; reine UI-, Render- oder Hintergrundauslöser werden als No-Change beendet.',
+    'RC740 führt die persönlichen Benachrichtigungszeiten 09:00, 12:00 und 15:00 sowie deren Erinnerungsverlauf lokal pro Benutzer und Gerät statt im Azure-Teamstand.',
+    'RC740 verhindert beim Mailvorlagen-Abgleich falsche Änderungsmeldungen und speichert einen bereits identischen Vorlagenbestand nicht erneut in Azure.',
     'RC739 ergänzt einen zentralen Lade- und Befehlsstatus für Navigation, Buttons, Formulare, Dateiübernahmen und weitere Benutzeraktionen.',
     'RC739 zeigt aktive Vorgänge als globalen Ladebalken am oberen Bildschirmrand mit Klartext und bestätigt abgeschlossene beziehungsweise ausgelöste Aktionen sichtbar.',
     'RC739 bindet die tatsächliche Azure-Speicherung an den globalen Ladebalken an, sodass Start, erfolgreicher Abschluss und Speicherfehler beziehungsweise Wiederholung sichtbar werden.',
@@ -477,6 +481,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC740 Leerlauf: ExportHUB mindestens zwei Minuten ohne Eingabe geöffnet lassen; es darf kein Azure-Speicherbalken erscheinen und kein State-POST ausgelöst werden.',
+    'RC740 Benachrichtigungen: Nach einem fälligen 09/12/15-Uhr-Slot erscheint die Erinnerung, ohne dass Änderungen werden in Azure gespeichert angezeigt wird.',
+    'RC740 Mailvorlagen: Kundenordner und Mailbereich mehrfach öffnen, ohne Daten zu ändern; identische Vorlagen dürfen keinen Azure-Speichervorgang auslösen.',
+    'RC740 Echte Änderung: Ein tatsächlich geändertes persistentes Feld wird weiterhin genau einmal in Azure gespeichert und anschließend als dauerhaft gespeichert bestätigt.',
     'RC739 Globaler Ladebalken: Menüwechsel zeigt sofort den aktuellen Ladevorgang und bestätigt anschließend, dass der Bereich geladen wurde.',
     'RC739 Befehlsstatus: Buttons wie Aktualisieren, Öffnen, Prüfen, Drucken oder Speichern zeigen unmittelbar, dass die Aktion ausgelöst wurde.',
     'RC739 Azure-Speicherung: Bei einer Änderung erscheint während des tatsächlichen Azure-Speicherns ein Ladehinweis und danach die Bestätigung Dauerhaft in Azure gespeichert.',
@@ -12067,14 +12075,28 @@ function shipmentFlushGuardNeeded(reason){if(authoritativeShipmentSyncReason(rea
 async function ensureShipmentFlushAllowed(reason){if(!shipmentFlushGuardNeeded(reason))return true;var guard=window.__EXPORTHUB_ENSURE_SHIPMENT_WRITE_ALLOWED__;if(typeof guard!=='function')return true;try{return (await guard(reason))!==false}catch(error){console.warn('Sendungssperre konnte vor Azure-Speicherung nicht bestätigt werden',error);return false}}
 function queueSaveDelay(reason){var r=String(reason||'');if(/Status und QR-Aktivierung|Lagerlocations synchronisiert|Lager.*synchron|warehouse.*sync/i.test(r))return 220;if(/Eingabe aktualisiert|Auswahl aktualisiert|Sendungseingabe/i.test(r))return 650;if(/Filter|Suche|Sort|Planer|Benachrichtigung/i.test(r))return 350;return 0}
 function shouldPersistFilterStateForSave(reason){var r=String(reason||'');if(currentPersistentFilterView()==='shipment')return false;return /Filter|Suche|Sort|Planer|Benachrichtigung|Dashboard-Einstellungen|Jahr im Aufgaben Planer/i.test(r)}
+function persistentStateEqual(baseState,currentState){
+ const base=isObject(baseState)?baseState:{},current=isObject(currentState)?currentState:{},keys=new Set(Object.keys(base).concat(Object.keys(current)));
+ for(const key of keys){if(key==='users'||isLocalOnlyStateKey(key))continue;if(!sameValue(base[key],current[key]))return false}return true
+}
+function hasPersistentChanges(baseState,currentState,baseUsers,currentUsers){
+ if(!runtime.lastSnapshot)return true;if(!persistentStateEqual(baseState,currentState))return true;return !sameValue(Array.isArray(baseUsers)?baseUsers:[],Array.isArray(currentUsers)?currentUsers:[])
+}
+function finishNoChangeSave(reason,generation){
+ runtime.pendingSave=false;runtime.dirty=false;runtime.lastSavedGeneration=Math.max(Number(runtime.lastSavedGeneration||0),Number(generation||runtime.changeGeneration||0));runtime.lastNoChangeAt=new Date().toISOString();runtime.lastNoChangeReason=String(reason||'');runtime.noChangeSaveSkips=Number(runtime.noChangeSaveSkips||0)+1;
+ if(Number(runtime.pendingOperationGeneration||0)<=Number(generation||0)){runtime.pendingOperationId='';runtime.pendingOperationGeneration=0}
+ const info=by('saveInfo');if(info&&/Speicher|Azure|vorgemerkt/i.test(String(info.textContent||'')))info.textContent='Keine Änderung · keine Azure-Speicherung nötig';return true
+}
 async function queueSave(reason){
  if(!runtime.ready||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;if(shouldPersistFilterStateForSave(reason))savePersistentFilterState();runtime.lastQueueReason=String(reason||'');runtime.lastQueueAt=Date.now();runtime.changeGeneration++;runtime.dirty=true;runtime.pendingSave=true;if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);var delay=queueSaveDelay(reason),navUntil=Number(window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__||0),navWait=Math.max(0,navUntil-Date.now()+320);delay=Math.max(delay,navWait);runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason)},delay);return true
 }
 async function flushSave(reason,options){
  options=options||{};var navUntil=Number(window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__||0);if(options.userInitiated!==true&&!options.keepalive&&Date.now()<navUntil){if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=native.setTimeout(function(){runtime.saveTimer=null;flushSave(reason,options)},Math.max(250,navUntil-Date.now()+320));return false}if((!runtime.ready&&!options.force)||runtime.loading||!runtime.loaded||runtime.applyingRemote)return false;if(!runtime.pendingSave&&!runtime.dirty)return runtime.changeGeneration>0&&runtime.lastSavedGeneration>=runtime.changeGeneration;if(runtime.saving){var wantedGeneration=Number(runtime.changeGeneration||0),waitDeadline=Date.now()+75000;while(runtime.saving&&Date.now()<waitDeadline)await new Promise(function(resolve){native.setTimeout(resolve,100)});if(wantedGeneration>0&&Number(runtime.lastSavedGeneration||0)>=wantedGeneration)return true;if(!runtime.saving&&(runtime.pendingSave||runtime.dirty)&&Number(options._waitPass||0)<2){var nextOptions=Object.assign({},options,{_waitPass:Number(options._waitPass||0)+1});return flushSave(reason,nextOptions)}return false;}
  const getState=window.__EXPORTHUB_GET_STATE__,getUsers=window.__EXPORTHUB_GET_USERS__;if(typeof getState!=='function')return false;
+ const queuedGeneration=runtime.changeGeneration,preState=getState(),preUsers=typeof getUsers==='function'?getUsers():runtime.users;if(!hasPersistentChanges(runtime.lastSnapshot||{},preState,runtime.lastUsers||[],preUsers)){if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}return finishNoChangeSave(reason,queuedGeneration)}
  const beforeGuardGeneration=runtime.changeGeneration;if(!(await ensureShipmentFlushAllowed(reason))){runtime.lastBlockedShipmentSaveGeneration=Math.max(Number(runtime.lastBlockedShipmentSaveGeneration||0),beforeGuardGeneration);runtime.lastBlockedShipmentSaveAt=new Date().toISOString();runtime.lastBlockedShipmentSaveReason=String(reason||'');if(runtime.changeGeneration<=beforeGuardGeneration){runtime.pendingSave=false;runtime.dirty=false}const blockedInfo=by('saveInfo');if(blockedInfo)blockedInfo.textContent='Sendung gesperrt · veraltete Änderung nicht gespeichert';return false}
- runtime.saving=true;if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}runtime.pendingSave=false;const generation=runtime.changeGeneration;runtime.activeSaveGeneration=generation;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';const globalSaveApi=window.ExportHUBLoadingBar,globalSaveToken=globalSaveApi&&typeof globalSaveApi.start==='function'?globalSaveApi.start('Änderungen werden in Azure gespeichert …',120):0;
+ const postGuardState=getState(),postGuardUsers=typeof getUsers==='function'?getUsers():runtime.users,generation=runtime.changeGeneration;if(!hasPersistentChanges(runtime.lastSnapshot||{},postGuardState,runtime.lastUsers||[],postGuardUsers))return finishNoChangeSave(reason,generation);
+ runtime.saving=true;if(runtime.saveTimer){native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null}runtime.pendingSave=false;runtime.activeSaveGeneration=generation;const info=by('saveInfo');if(info)info.textContent='Speicherung in Azure läuft …';const globalSaveApi=window.ExportHUBLoadingBar,globalSaveToken=globalSaveApi&&typeof globalSaveApi.start==='function'?globalSaveApi.start('Änderungen werden in Azure gespeichert …',120):0;
  try{
   const liveState=getState(),liveUsers=typeof getUsers==='function'?getUsers():runtime.users;captureCanonicalDeletions(runtime.lastSnapshot||{},liveState,runtime.lastUsers||[],liveUsers);const stampAt=stampChanges(runtime.lastSnapshot||{},liveState,runtime.lastUsers||[],liveUsers);
   const stateDelta=buildAzureStateDelta(runtime.lastSnapshot||{},liveState,stampAt);if(Number(runtime.pendingOperationGeneration||0)!==generation||!runtime.pendingOperationId){runtime.pendingOperationGeneration=generation;runtime.pendingOperationId=runtime.deviceId+'-'+generation+'-'+Date.now()}const operationId=runtime.pendingOperationId,payload={clientVersion:VERSION,baseRevision:runtime.revision,deviceId:runtime.deviceId,operationId:operationId,clientMutationId:operationId,reason:reason||'save',state:stateDelta};runtime.network.posts++;
@@ -18660,9 +18682,12 @@ function shipmentCustomer(sh){var c=sh&&sh.customer;return q(c&&typeof c==='obje
 function shipmentPickup(sh){return iso(sh&&(sh.plannedPickupDate||sh.pickupDate||sh.dueDate||sh.targetDate))}
 function shipments(){try{if(window.ExportHUBIndex235&&typeof window.ExportHUBIndex235.shipments==='function')return window.ExportHUBIndex235.shipments()}catch(_){ }return arr(main().shipments)}
 function overdueShipments(){var today=localISO();return shipments().filter(function(sh){if(!sh||isDone(sh)||sh.actualPickupDate||sh.pickedUpAt)return false;var d=shipmentPickup(sh);return !!d&&dayDiff(d,today)>3}).sort(function(a,b){return shipmentPickup(a).localeCompare(shipmentPickup(b))})}
-function centerState(){var s=main();s.notificationCenter=s.notificationCenter&&typeof s.notificationCenter==='object'?s.notificationCenter:{};s.notificationCenter.seen=s.notificationCenter.seen&&typeof s.notificationCenter.seen==='object'?s.notificationCenter.seen:{};s.notificationCenter.history=arr(s.notificationCenter.history).slice(-80);return s.notificationCenter}
+var notificationLocalCache=null,notificationLocalKey='';
+function notificationStoreKey(){return 'exporthub_notifications_local_v2:'+userKey()}
+function loadLocalNotificationCenter(){var key=notificationStoreKey();if(notificationLocalCache&&notificationLocalKey===key)return notificationLocalCache;var data=null;try{data=JSON.parse(localStorage.getItem(key)||'null')}catch(_){data=null}if(!data||typeof data!=='object'){var legacy=main().notificationCenter&&typeof main().notificationCenter==='object'?main().notificationCenter:{},k=userKey();data={seen:{},history:arr(legacy.history).filter(function(x){return !x||!q(x.user)||low(x.user)===low(userName())}).slice(-80)};if(legacy.seen&&legacy.seen[k])data.seen[k]=clone(legacy.seen[k])}data.seen=data.seen&&typeof data.seen==='object'?data.seen:{};data.history=arr(data.history).slice(-80);notificationLocalKey=key;notificationLocalCache=data;return data}
+function centerState(){return loadLocalNotificationCenter()}
 function seenForToday(){var c=centerState(),k=userKey(),d=localISO();c.seen[k]=c.seen[k]&&typeof c.seen[k]==='object'?c.seen[k]:{};c.seen[k][d]=c.seen[k][d]&&typeof c.seen[k][d]==='object'?c.seen[k][d]:{};return c.seen[k][d]}
-function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Benachrichtigungen gespeichert');else if(typeof window.save==='function')window.save()}catch(e){console.error('ExportHUB Benachrichtigungen speichern',e)}}
+function persist(reason){var c=centerState();try{localStorage.setItem(notificationStoreKey(),JSON.stringify({seen:c.seen||{},history:arr(c.history).slice(-80),updatedAt:new Date().toISOString()}));return true}catch(e){console.warn('Lokaler Benachrichtigungsstatus konnte nicht gespeichert werden',e);return false}}
 function addHistory(slot,label,counts){var c=centerState();c.history.push({at:new Date().toISOString(),slot:slot||'',label:label||'',tasks:counts.tasks||0,overdueTasks:counts.overdueTasks||0,shipments:counts.shipments||0,user:userName()});c.history=c.history.slice(-80)}
 function counts(){return{tasks:openTasks().length,overdueTasks:overdueTasks().length,shipments:overdueShipments().length}}
 function slotsDue(now){now=now||new Date();if(!isWorkday(now))return[];var mins=now.getHours()*60+now.getMinutes(),seen=seenForToday();return SLOTS.filter(function(s){return mins>=s.minutes&&!seen[s.id]})}
@@ -18991,24 +19016,23 @@ function ensureCustomer(c,force){
  ['customer','carrier'].forEach(function(type){['de','en'].forEach(function(lang){
   if(standardize||!q(currentValue(c,type,lang)))changed=assign(c,type,lang,TEMPLATES[type][lang])||changed;
  })});
- if(standardize){c.mailTemplateStandardVersion=STAMP;c.mailTemplateStandardAppliedAt=c.mailTemplateStandardAppliedAt||new Date().toISOString();changed=true}
+ if(standardize){if(q(c.mailTemplateStandardVersion)!==STAMP){c.mailTemplateStandardVersion=STAMP;changed=true}if(!q(c.mailTemplateStandardAppliedAt)){c.mailTemplateStandardAppliedAt=new Date().toISOString();changed=true}}
  return changed;
 }
 function ensureAll(force){var changed=false;arr(state().customers).forEach(function(c){if(ensureCustomer(c,force))changed=true});return changed}
 function queue(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason)}catch(_){}}
 function migrateOnce(){
  var s=state();if(!Array.isArray(s.customers))return false;
- s.migrations=s.migrations&&typeof s.migrations==='object'?s.migrations:{};
- if(s.migrations[MIGRATION])return false;
+ s.migrations=s.migrations&&typeof s.migrations==='object'?s.migrations:{};var localKey='exporthub_mail_template_scan:'+MIGRATION;
+ if(s.migrations[MIGRATION]){try{localStorage.setItem(localKey,'1')}catch(_){}return false}try{if(localStorage.getItem(localKey)==='1')return false}catch(_){}
  var changed=ensureAll(true);
- s.migrations[MIGRATION]={version:VERSION,completedAt:new Date().toISOString(),templates:['customer:de','customer:en','carrier:de','carrier:en']};
- queue(changed?'Vier korrekte ausführliche Mailvorlagen bei allen Kunden hinterlegt':'Migration der vier korrekten ausführlichen Mailvorlagen abgeschlossen');
- return changed;
+ if(changed){s.migrations[MIGRATION]={version:VERSION,completedAt:new Date().toISOString(),templates:['customer:de','customer:en','carrier:de','carrier:en']};queue('Vier korrekte ausführliche Mailvorlagen bei allen Kunden hinterlegt')}
+ try{localStorage.setItem(localKey,'1')}catch(_){}return changed;
 }
 function desired(c,type,lang){return q(currentValue(c,type,lang))?currentValue(c,type,lang):TEMPLATES[type][lang]}
 function bindField(el){if(!el||el.dataset.index249Bound==='1')return;el.dataset.index249Bound='1';el.addEventListener('input',function(){this.dataset.index249Edited='1'})}
 function patchEditor(){
- var c=selectedCustomer();if(c)ensureCustomer(c,false);
+ var c=selectedCustomer();
  var found=false;
  ['customer','carrier'].forEach(function(type){['de','en'].forEach(function(lang){
   var el=document.getElementById(FIELD_IDS[type][lang]);if(!el)return;found=true;bindField(el);
@@ -19034,7 +19058,6 @@ function afterCustomerSave(){
 function linkCurrentShipment(){
  var s=state(),sh=s.shipment;if(!sh||typeof sh!=='object')return false;
  var id=q(sh.customerId||sh.customerAccount||sh.customerNumber),c=arr(s.customers).find(function(x){return customerId(x)===id});if(!c)return false;
- var changed=ensureCustomer(c,false);
  sh.mailTemplates=sh.mailTemplates&&typeof sh.mailTemplates==='object'?sh.mailTemplates:{};
  ['customer','carrier'].forEach(function(type){
   sh.mailTemplates[type]=sh.mailTemplates[type]&&typeof sh.mailTemplates[type]==='object'?sh.mailTemplates[type]:{};
@@ -19044,12 +19067,11 @@ function linkCurrentShipment(){
  target=/carrier|spedition|forwarder|transport/.test(target)?'carrier':'customer';
  var lang=low(sh.rc543MailLang||sh.rc542MailLang||sh.rc524MailLang||c.defaultMailLanguage||c.mailDefaultLanguage||'de')==='en'?'en':'de';
  sh.mailTemplateBody=desired(c,target,lang);sh.mailTemplateCustomerId=customerId(c);sh.mailProfileCustomerId=customerId(c);sh.mailProfileLinked=true;
- if(changed)queue('Korrekte ausführliche Mailvorlagen zum Kunden ergänzt');
  return true;
 }
 function lock(){try{if(window.ExportHUBBuild){window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}}catch(_){}}
 function refreshActiveMail(){try{var api=window.ExportHUBRC543;if(api&&typeof api.refreshMailArea==='function')api.refreshMailArea()}catch(_){}}
-function patch(){lock();migrateOnce();ensureAll(false);patchEditor();linkCurrentShipment();refreshActiveMail()}
+function patch(){lock();migrateOnce();patchEditor();linkCurrentShipment();refreshActiveMail()}
 function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},30)}
 function boot(){patch()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
