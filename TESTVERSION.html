@@ -194,12 +194,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC755',cache:'755',loginReturn:'/TESTVERSION.html?v=755'});
+var BUILD=Object.freeze({version:'RC756',cache:'756',loginReturn:'/TESTVERSION.html?v=756'});
 var RELEASE=Object.freeze({
- version:'RC755',
+ version:'RC756',
  date:'18.08.2026',
- title:'Academy für kaufmännische Ausbildungsberufe erweitert',
+ title:'Rechte für Prüfungen und Versandkosten repariert',
  changes:Object.freeze([
+    'RC756 vereinheitlicht die Rechteverwaltung für Versandkosten: Die sichtbare Funktion shippingcosts wird beim bestehenden Server-Rechtekern korrekt über den Kompatibilitätsschlüssel calculator gespeichert und anschließend wieder als Versandkosten angezeigt.',
+    'RC756 vereinheitlicht die Rechteverwaltung für Prüfungen: Die sichtbare Funktion inspections wird beim bestehenden Server-Rechtekern korrekt über den Kompatibilitätsschlüssel quiz gespeichert und anschließend wieder als Prüfungen angezeigt.',
+    'RC756 entfernt doppelte Kompatibilitätszeilen für calculator/quiz aus Benutzer & Rechte, prüft gespeicherte Rechte über dieselbe kanonische Zuordnung und verhindert dadurch die bisherigen falschen Meldungen Rechte wurden vom Server nicht übernommen.',
+    'RC756 normalisiert die vom Server geladenen Benutzerrechte zusätzlich im Laufzeit-Benutzerobjekt, damit Navigation, Prüfungs-Funktionsadmin und Versandkosten unmittelbar denselben gespeicherten Stand verwenden.',
     'RC754 übernimmt das Empfängerland der ABD-Anfrage aus dem tatsächlich ausgewählten Sendungsstandort; locationData, siteData und die zugeordnete Kunden-Location werden vor allgemeinen Kunden-Länderfeldern ausgewertet.',
     'RC754 speichert das ermittelte Empfängerland direkt in der verknüpften ABD-Anfrage, zeigt es im ABD-Bereich sichtbar an und verwendet denselben Wert in der Outlook-ABD-Mail.',
     'RC754 vereinheitlicht zusätzlich den separaten Menüpunkt ABD erstellen: country, recipientCountry und destinationCountry werden dort aus derselben Sendungs-/Standortquelle übernommen, sodass das sichtbare Empfängerland nicht mehr leer bleibt.',
@@ -526,6 +530,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC756 Rechte Versandkosten: Bei einem Testbenutzer Versandkosten auf Anzeigen, Bearbeiten und Funktionsadmin stellen; jede Stufe muss ohne Fehlermeldung speichern und nach erneutem Öffnen identisch angezeigt werden.',
+    'RC756 Rechte Prüfungen: Bei einem Testbenutzer Prüfungen auf Anzeigen, Bearbeiten und Funktionsadmin stellen; jede Stufe muss ohne Fehlermeldung speichern und nach erneutem Öffnen identisch angezeigt werden.',
+    'RC756 Rechte-Dubletten: Benutzer & Rechte zeigt genau eine Zeile Versandkosten und genau eine Zeile Prüfungen; calculator und quiz dürfen nicht als zusätzliche Kompatibilitätsfunktionen erscheinen.',
+    'RC756 Zugriff: Nach Speichern muss der Testbenutzer Versandkosten beziehungsweise Prüfungen entsprechend seiner Stufe öffnen können; Funktionsadmin Prüfungen erhält zusätzlich Auswertung und Prüfungen verwalten.',
     'RC754 ABD Empfängerland: Sendung mit Kundenstandort und dort hinterlegtem Land öffnen, ABD erforderlich setzen und ABD erstellen; im ABD-Bereich muss exakt das Standortland erscheinen.',
     'RC754 ABD Outlook-Mail: ABD-Mail öffnen; Empfängerland muss mit dem ausgewählten Sendungsstandort übereinstimmen und darf nicht leer sein, wenn das Land nur in locationData/siteData gespeichert ist.',
     'RC754 ABD Regression: Kunde mit mehreren Standorten und unterschiedlichen Ländern prüfen; das Land des ausgewählten Standorts muss Vorrang vor einem allgemeinen Kundenland haben.',
@@ -12896,8 +12904,10 @@ function isGlobal(u){var role=L(u&&(u.role||u.rolle)),key=L(u&&(u.user||u.login|
 function currentView(){return Q(S().view||'dashboard')}
 function level(right){var v=L(right&&(right.level||right.access));if(['none','view','edit','admin'].indexOf(v)>=0)return v;if(right&&(right.admin||right.functionAdmin))return'admin';if(right&&right.edit)return'edit';if(right&&(right.read||right.visible))return'view';return'none'}
 function rightObject(v){return {level:v,visible:v!=='none',read:v!=='none',edit:v==='edit'||v==='admin',admin:v==='admin',functionAdmin:v==='admin'}}
-function serverRightId(id){return Q(id)==='warehouse'?'customers':Q(id)}
-function serverRight(u,id){var rights=u&&u.rights||{},key=serverRightId(id);return rights&&rights[key]||{}}
+function canonicalRightId(id){id=Q(id);if(id==='calculator')return'shippingcosts';if(id==='quiz')return'inspections';if(id==='customers')return'warehouse';return id}
+function serverRightId(id){id=canonicalRightId(id);if(id==='warehouse')return'customers';if(id==='shippingcosts')return'calculator';if(id==='inspections')return'quiz';return id}
+function serverRight(u,id){var rights=u&&u.rights||{},canonical=canonicalRightId(id),server=serverRightId(canonical);if(Object.prototype.hasOwnProperty.call(rights,server))return rights[server]||{};return rights[canonical]||{}}
+function normalizeClientUserRights(u){u=clone(u||{});u.rights=u.rights&&typeof u.rights==='object'?u.rights:{};[['warehouse','customers'],['shippingcosts','calculator'],['inspections','quiz']].forEach(function(pair){var canonical=pair[0],legacy=pair[1],source=Object.prototype.hasOwnProperty.call(u.rights,legacy)?u.rights[legacy]:u.rights[canonical];if(source)u.rights[canonical]=clone(source)});return u}
 async function call(action,payload){
  var r=runtime(),token=Q(r.authToken),headers={'Content-Type':'application/json','Accept':'application/json'},body=Object.assign({action:action},payload||{});
  if(!token){var missing=new Error('Die ExportHUB-Sitzung fehlt. Bitte einmal abmelden und erneut anmelden.');missing.code='AUTH_TOKEN_MISSING';throw missing}
@@ -12907,13 +12917,13 @@ async function call(action,payload){
  if(!res.ok||d.ok===false){var e=new Error(d.message||('HTTP '+res.status));e.code=d.code||('HTTP_'+res.status);e.status=res.status;throw e}
  if(action==='admin-list'){
   d.users=Array.isArray(d.users)?d.users:[];d.sessions=Array.isArray(d.sessions)?d.sessions:[];d.settings=d.settings||{};
-  var required=['start','dashboard','tasks','planning','shipment','abd','shipmentoverview','cmr','warehouse','documents','pallet','customers','customerfolder','shippingcosts','inspections','calculator','customs','sop','academy','ideas','notifications','reports','update','rights','teamfile','archive','settings'];
-  d.modules=Array.isArray(d.modules)?d.modules:[];required.forEach(function(id){if(d.modules.indexOf(id)<0)d.modules.push(id)});d.modules=d.modules.filter(function(id){return id!=='customers'});
+  var required=['start','dashboard','tasks','planning','shipment','abd','shipmentoverview','cmr','warehouse','documents','pallet','customerfolder','shippingcosts','inspections','customs','sop','academy','ideas','notifications','reports','update','rights','teamfile','archive','privacy','settings'],seen={};
+  d.modules=(Array.isArray(d.modules)?d.modules:[]).map(canonicalRightId).concat(required).filter(function(id){id=canonicalRightId(id);if(!id||id==='customers'||id==='calculator'||id==='quiz'||seen[id])return false;seen[id]=1;return true});
  }
  return d
 }
 function syncUsers(users){
- var r=runtime();r.users=(users||[]).map(clone);window.__CLEAN_BOOT_USERS__=r.users.map(clone);
+ var r=runtime();r.users=(users||[]).map(normalizeClientUserRights);window.__CLEAN_BOOT_USERS__=r.users.map(clone);
  try{var target=window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():null;if(Array.isArray(target))target.splice.apply(target,[0,target.length].concat(r.users.map(clone)));window.users=Array.isArray(target)?target:r.users}catch(_){ }
  var key=L(r.user&&(r.user.user||r.user.login||r.user.name)),fresh=r.users.find(function(u){return L(u.user||u.login||u.name)===key});if(fresh){r.user=fresh;try{window.currentUser=fresh;if(typeof currentUser!=='undefined')currentUser=fresh}catch(_){ }}
 }
@@ -12943,7 +12953,7 @@ window.rc544SelectUser=function(id){selectedId=id;initDraft(userById());render()
 window.rc544ChooseUser=function(){var value=L((document.getElementById('rc544UserSearch')||{}).value),u=(cache.users||[]).find(function(x){return L(x.user)===value||L(x.name)===value});if(!u)return alert('Benutzer wurde nicht gefunden.');return window.rc544SelectUser(u.id)};
 window.rc544SetDraftRight=function(id,v){draftRights[id]=v;render();return false};
 window.rc544CreateUser=async function(){if(busy)return false;var login=Q((document.getElementById('rc544NewLogin')||{}).value),name=Q((document.getElementById('rc544NewName')||{}).value),globalAdmin=!!((document.getElementById('rc544NewAdmin')||{}).checked);if(!login)return alert('Bitte einen Benutzernamen eingeben.');if(!name)return alert('Bitte einen Anzeigenamen eingeben.');if(!validUsername(login))return alert('Der Benutzername darf Buchstaben einschließlich Ä, Ö, Ü und ß, Zahlen, Punkt, Unterstrich und Bindestrich enthalten.');busy=true;try{var d=await call('admin-create-user',{username:login,name:name,globalAdmin:globalAdmin});lastSecret=d.startPassword||d.initialPassword||'';cache=await call('admin-list');syncUsers(cache.users);var created=d.user||cache.users.find(function(x){return L(x.user||x.login||x.username)===L(login)});if(!created)throw new Error('Der Benutzer wurde vom Server nicht zurückgegeben.');selectedId=created.id;initDraft(userById());render()}catch(e){alert((e.message||'Benutzer konnte nicht angelegt werden.')+(e.code?'\nFehlercode: '+e.code:''))}finally{busy=false}return false};
-window.rc544SaveUser=async function(){if(busy||!userById())return false;var u=userById(),rights={},expected={};Object.keys(draftRights).forEach(function(id){rights[serverRightId(id)]=rightObject(draftRights[id]);expected[id]=draftRights[id]});busy=true;try{await call('admin-update-user',{userId:u.id,name:Q((document.getElementById('rc544EditName')||{}).value),globalAdmin:!!((document.getElementById('rc544EditAdmin')||{}).checked),rights:rights});cache=await call('admin-list');syncUsers(cache.users);var saved=cache.users.find(function(x){return Q(x.id)===Q(u.id)});if(!saved)throw new Error('Der gespeicherte Benutzer wurde nicht erneut geladen.');var failed=Object.keys(expected).filter(function(id){return level(serverRight(saved,id))!==expected[id]});if(failed.length)throw new Error('Diese Rechte wurden vom Server nicht übernommen: '+failed.map(function(id){return LABELS[id]||id}).join(', '));selectedId=saved.id;initDraft(saved);render();alert('Benutzer und Rechte wurden gespeichert.')}catch(e){alert((e.message||'Rechte konnten nicht gespeichert werden.')+(e.code?'\nFehlercode: '+e.code:''))}finally{busy=false}return false};
+window.rc544SaveUser=async function(){if(busy||!userById())return false;var u=userById(),rights={},expected={};Object.keys(draftRights).forEach(function(id){var canonical=canonicalRightId(id);rights[serverRightId(canonical)]=rightObject(draftRights[id]);expected[canonical]=draftRights[id]});busy=true;try{await call('admin-update-user',{userId:u.id,name:Q((document.getElementById('rc544EditName')||{}).value),globalAdmin:!!((document.getElementById('rc544EditAdmin')||{}).checked),rights:rights});cache=await call('admin-list');syncUsers(cache.users);var saved=cache.users.find(function(x){return Q(x.id)===Q(u.id)});if(!saved)throw new Error('Der gespeicherte Benutzer wurde nicht erneut geladen.');var failed=Object.keys(expected).filter(function(id){return level(serverRight(saved,id))!==expected[id]});if(failed.length)throw new Error('Diese Rechte wurden vom Server nicht übernommen: '+failed.map(function(id){return LABELS[id]||id}).join(', '));selectedId=saved.id;initDraft(saved);render();alert('Benutzer und Rechte wurden gespeichert.')}catch(e){alert((e.message||'Rechte konnten nicht gespeichert werden.')+(e.code?'\nFehlercode: '+e.code:''))}finally{busy=false}return false};
 window.rc544ToggleUser=async function(){if(busy||!userById())return false;var u=userById(),next=!u.active;if(!confirm('Benutzer '+(next?'aktivieren':'deaktivieren')+'?'))return false;busy=true;try{await call('admin-set-active',{userId:u.id,active:next});cache=await call('admin-list');syncUsers(cache.users);initDraft(userById());render()}catch(e){alert(e.message)}finally{busy=false}return false};
 window.rc544ResetPassword=async function(){if(busy||!userById())return false;var u=userById();if(!confirm('Passwort für '+u.name+' zurücksetzen? Alle Sitzungen werden beendet.'))return false;busy=true;try{var d=await call('admin-reset-password',{userId:u.id});lastSecret=d.startPassword||'';cache=await call('admin-list');syncUsers(cache.users);render()}catch(e){alert(e.message)}finally{busy=false}return false};
 window.rc544UnlockUser=async function(){if(busy||!userById())return false;busy=true;try{await call('admin-unlock',{userId:userById().id});cache=await call('admin-list');syncUsers(cache.users);render()}catch(e){alert(e.message)}finally{busy=false}return false};
