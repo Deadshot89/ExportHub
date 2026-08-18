@@ -194,12 +194,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC749',cache:'749',loginReturn:'/TESTVERSION.html?v=749'});
+var BUILD=Object.freeze({version:'RC750',cache:'750',loginReturn:'/TESTVERSION.html?v=750'});
 var RELEASE=Object.freeze({
- version:'RC749',
+ version:'RC750',
  date:'18.08.2026',
- title:'Verlader-PINs zuverlässig verwalten · kein Admin-Leerlaufspeichern',
+ title:'Verlader-PIN-Adminprüfung repariert · Serverliste verbindlich',
  changes:Object.freeze([
+    'RC750 ersetzt die fehleranfällige interne Weiterleitung der Verlader-PIN-Adminprüfung an /api/exporthub-auth durch eine direkte serverseitige Prüfung der bestehenden ExportHUB-Sitzung.',
+    'RC750 erkennt einen authentifizierten Tobias-Global-Admin serverseitig konsistent über Benutzerkonto, Global-Admin-Kennzeichen, Vollzugriffsrolle oder die bekannten Tobias-Administratorkonten.',
+    'RC750 übernimmt nach Anlegen, Ändern oder Löschen die vom Server zurückgegebene vollständige Verlader-PIN-Liste als verbindlichen Stand und lädt sie anschließend erneut.',
+    'RC750 nimmt die Verlader-PIN-Admin-API und ihre Abhängigkeiten in die Pflichtdateiprüfung des Produktions-Releases auf, damit die korrigierte Serverfunktion nicht beim Release fehlen kann.',
     'RC749 verschiebt Persönliche Verlader-PINs im Bereich Benutzer & Rechte direkt über Aktive Sitzungen.',
     'RC749 normalisiert unterschiedliche gültige Antwortformate der Verlader-PIN-API und lädt die Serverliste nach Anlegen, Ändern und Löschen erneut; neu angelegte Verlader erscheinen sofort.',
     'RC749 führt die alte Verlader-PIN-Migration nur noch einmal aus und verändert beim bloßen Rendern keine Sendungs- oder Einstellungsdaten mehr.',
@@ -508,6 +512,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC750 Adminprüfung: Als Tobias anmelden und Benutzer & Rechte öffnen; Persönliche Verlader-PINs darf keinen roten Hinweis Nur globale Administratoren anzeigen.',
+    'RC750 Serverliste: Vorhandene Verlader-PINs müssen nach dem Öffnen vollständig aus /api/loader-pins-admin geladen und angezeigt werden.',
+    'RC750 Neuer Verlader: Einen neuen Namen mit vierstelligem Code anlegen; der Eintrag muss sofort erscheinen und nach Seite neu laden weiterhin vorhanden sein.',
+    'RC750 PIN-CRUD: Einen Code ändern, deaktivieren/aktivieren und einen Testverlader löschen; nach jeder Aktion muss die sichtbare Liste dem Serverstand entsprechen.',
     'RC749 Benutzer & Rechte: Persönliche Verlader-PINs steht direkt über Aktive Sitzungen.',
     'RC749 Neuer PIN: Verlader mit vierstelligem Code anlegen; nach Serverbestätigung erscheint er sofort in der Liste und bleibt nach Neu laden vorhanden.',
     'RC749 Leerlauf: Benutzer & Rechte zwei Minuten geöffnet lassen und PIN-Felder nicht ändern; es darf keine Azure-Teamstand-Speicherung ausgelöst werden.',
@@ -11266,7 +11274,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC734'),CACHE=String(ACTIVE_BUILD.cache||'734'),productionVersion='wird geprüft',productionChecked=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_URL='/index.html',TEST_URL='/TESTVERSION.html',TESTSERVICE_ORIGIN='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net',TESTSERVICE_PUBLIC_URL=TESTSERVICE_ORIGIN+'/TESTVERSION.html?v='+encodeURIComponent(CACHE);
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({}),RELEASE_BUNDLE_URL='/release-assets.json';
  var releasePreparing=false;
- var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/location-booking/index.js','api/location-booking/function.json','api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/shared/merge.js']);
+ var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/location-booking/index.js','api/location-booking/function.json','api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js','api/loader-pins-admin/function.json','api/shared/loader-pin-store.js','api/pickup-confirm-v2/index.js','api/pickup-confirm-v2/function.json','api/shared/merge.js']);
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -11330,14 +11338,14 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function base64Bytes(value){var raw=atob(String(value||'').replace(/\s+/g,'')),out=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i)&255;return out}
  function hex(data){return Array.prototype.map.call(new Uint8Array(data),function(b){return b.toString(16).padStart(2,'0')}).join('')}
  async function sha256(data){if(!window.crypto||!window.crypto.subtle||typeof window.crypto.subtle.digest!=='function')throw new Error('SHA-256-Prüfung ist in diesem Browser nicht verfügbar.');return hex(await window.crypto.subtle.digest('SHA-256',data))}
- var EMBEDDED_PRODUCTION_FALLBACKS=Object.freeze(['api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html']);
+ var EMBEDDED_PRODUCTION_FALLBACKS=Object.freeze(['api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js']);
  async function embeddedProductionAssets(sourceHtml){
   var out={},wanted={};EMBEDDED_PRODUCTION_FALLBACKS.forEach(function(path){wanted[path]=true});
   var re=/<!--\s*EXPORTHUB_TESTSERVICE_FILE_BEGIN\s+path=([^\s]+)\s+encoding=base64\s+sha256=([a-f0-9]{64})\s*\r?\n([\s\S]*?)\r?\nEXPORTHUB_TESTSERVICE_FILE_END\s*-->/gi,m;
   while((m=re.exec(String(sourceHtml||'')))){var path=releasePath(m[1]);if(!path||!wanted[path])continue;var data=base64Bytes(m[3]),expected=q(m[2]).toLowerCase(),actual=await sha256(data);if(actual!==expected)throw new Error('SHA-256-Prüfung der eingebetteten Produktionsdatei fehlgeschlagen: '+path);out[path]=data}
-  EMBEDDED_PRODUCTION_FALLBACKS.forEach(function(path){if(!out[path])throw new Error('Aktuelle Kunden-Avis-Pflichtdatei fehlt in TESTVERSION: '+path)});return out
+  EMBEDDED_PRODUCTION_FALLBACKS.forEach(function(path){if(!out[path])throw new Error('Aktuelle eingebettete Produktions-Pflichtdatei fehlt in TESTVERSION: '+path)});return out
  }
- async function fetchReleaseBundle(sourceHtml){var r=await fetch(RELEASE_BUNDLE_URL+'?release='+Date.now()+'&expected='+encodeURIComponent(VERSION),{cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json','Cache-Control':'no-cache','Pragma':'no-cache'}});if(!r.ok)throw new Error('Release-Snapshot '+RELEASE_BUNDLE_URL+' konnte nicht geladen werden (HTTP '+r.status+'). Bitte zuerst den TESTSERVICE-Workflow mit '+VERSION+' veröffentlichen.');var bundle;try{bundle=await r.json()}catch(_){throw new Error('Release-Snapshot ist keine gültige JSON-Datei.')}if(!bundle||q(bundle.schema)!=='exporthub-release-assets-v1')throw new Error('Release-Snapshot hat ein unbekanntes Format.');if(q(bundle.version)!==VERSION)throw new Error('Release-Snapshot gehört zu '+q(bundle.version||'unbekannt')+' statt '+VERSION+'.');var rows=Array.isArray(bundle.files)?bundle.files:[];if(!rows.length)throw new Error('Release-Snapshot enthält keine Produktionsdateien.');var files={},seen={};for(var i=0;i<rows.length;i++){var row=rows[i]||{},path=releasePath(row.path);if(!path)throw new Error('Release-Snapshot enthält einen unzulässigen Dateipfad.');if(seen[path])throw new Error('Release-Snapshot enthält '+path+' doppelt.');seen[path]=true;if(q(row.encoding).toLowerCase()!=='base64')throw new Error('Release-Snapshot verwendet für '+path+' keine Base64-Kodierung.');var data;try{data=base64Bytes(row.content)}catch(_){throw new Error('Release-Snapshot enthält ungültige Base64-Daten für '+path+'.')}var expectedSize=Number(row.size);if(!Number.isFinite(expectedSize)||expectedSize!==data.length)throw new Error('Größenprüfung fehlgeschlagen für '+path+'.');var expectedHash=q(row.sha256).toLowerCase();if(!/^[a-f0-9]{64}$/.test(expectedHash))throw new Error('SHA-256 fehlt oder ist ungültig für '+path+'.');var actualHash=await sha256(data);if(actualHash!==expectedHash)throw new Error('SHA-256-Prüfung fehlgeschlagen für '+path+'.');files[path]=data}var embedded=await embeddedProductionAssets(sourceHtml);Object.keys(embedded).forEach(function(path){files[path]=embedded[path]});REQUIRED_RELEASE_FILES.forEach(function(path){if(!files[path])throw new Error('Pflichtdatei fehlt im Release-Snapshot bzw. geprüften TESTVERSION-Fallback: '+path)});return{files:files,gitSha:q(bundle.gitSha),generatedAt:q(bundle.generatedAt),mode:q(bundle.mode)||'full-production-snapshot+verified-customer-avis'}}
+ async function fetchReleaseBundle(sourceHtml){var r=await fetch(RELEASE_BUNDLE_URL+'?release='+Date.now()+'&expected='+encodeURIComponent(VERSION),{cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json','Cache-Control':'no-cache','Pragma':'no-cache'}});if(!r.ok)throw new Error('Release-Snapshot '+RELEASE_BUNDLE_URL+' konnte nicht geladen werden (HTTP '+r.status+'). Bitte zuerst den TESTSERVICE-Workflow mit '+VERSION+' veröffentlichen.');var bundle;try{bundle=await r.json()}catch(_){throw new Error('Release-Snapshot ist keine gültige JSON-Datei.')}if(!bundle||q(bundle.schema)!=='exporthub-release-assets-v1')throw new Error('Release-Snapshot hat ein unbekanntes Format.');if(q(bundle.version)!==VERSION)throw new Error('Release-Snapshot gehört zu '+q(bundle.version||'unbekannt')+' statt '+VERSION+'.');var rows=Array.isArray(bundle.files)?bundle.files:[];if(!rows.length)throw new Error('Release-Snapshot enthält keine Produktionsdateien.');var files={},seen={};for(var i=0;i<rows.length;i++){var row=rows[i]||{},path=releasePath(row.path);if(!path)throw new Error('Release-Snapshot enthält einen unzulässigen Dateipfad.');if(seen[path])throw new Error('Release-Snapshot enthält '+path+' doppelt.');seen[path]=true;if(q(row.encoding).toLowerCase()!=='base64')throw new Error('Release-Snapshot verwendet für '+path+' keine Base64-Kodierung.');var data;try{data=base64Bytes(row.content)}catch(_){throw new Error('Release-Snapshot enthält ungültige Base64-Daten für '+path+'.')}var expectedSize=Number(row.size);if(!Number.isFinite(expectedSize)||expectedSize!==data.length)throw new Error('Größenprüfung fehlgeschlagen für '+path+'.');var expectedHash=q(row.sha256).toLowerCase();if(!/^[a-f0-9]{64}$/.test(expectedHash))throw new Error('SHA-256 fehlt oder ist ungültig für '+path+'.');var actualHash=await sha256(data);if(actualHash!==expectedHash)throw new Error('SHA-256-Prüfung fehlgeschlagen für '+path+'.');files[path]=data}var embedded=await embeddedProductionAssets(sourceHtml);Object.keys(embedded).forEach(function(path){files[path]=embedded[path]});REQUIRED_RELEASE_FILES.forEach(function(path){if(!files[path])throw new Error('Pflichtdatei fehlt im Release-Snapshot bzw. geprüften TESTVERSION-Fallback: '+path)});return{files:files,gitSha:q(bundle.gitSha),generatedAt:q(bundle.generatedAt),mode:q(bundle.mode)||'full-production-snapshot+verified-embedded-assets'}}
  function releaseFiles(indexHtml,bundle){var files={'index.html':indexHtml},snap=bundle&&bundle.files||{},extra=RELEASE_ASSETS||{};Object.keys(snap).forEach(function(path){var safe=releasePath(path);if(safe)files[safe]=snap[path]});Object.keys(extra).forEach(function(path){var safe=releasePath(path),item=extra[path],content=item&&typeof item==='object'&&Object.prototype.hasOwnProperty.call(item,'content')?item.content:item;if(safe&&(typeof content==='string'||content instanceof Uint8Array))files[safe]=content});REQUIRED_RELEASE_FILES.forEach(function(path){if(!files[path])throw new Error('Pflichtdatei fehlt im Release-Paket: '+path)});var list=Object.keys(files).sort(),detail='ExportHUB '+VERSION+'\nErstellt: '+new Date().toLocaleString('de-DE')+'\nQuelle: geprüfter TESTSERVICE Produktions-Snapshot'+(bundle&&bundle.gitSha?'\nGit SHA: '+bundle.gitSha:'')+(bundle&&bundle.generatedAt?'\nSnapshot erstellt: '+bundle.generatedAt:'')+'\n\nDateien:\n'+list.map(function(x){return'- '+x}).join('\n')+'\n';files['RELEASE_MANIFEST.txt']=detail;return files}
  async function prepareProduction(){
   if(releasePreparing)return false;if(!isGlobal())return false;if(!onlineMatches()){alert('Produktionsfreigabe gesperrt: Online läuft '+testServiceVersion+' statt '+VERSION+'.');return false}if(!tested()){alert('Die Testversion muss zuerst vollständig getestet und als „Test bestanden“ markiert werden.');return false}
@@ -19225,7 +19233,7 @@ window.ExportHUBIndex249=Object.freeze({
 'use strict';
 if(window.__EXPORTHUB_INDEX250_PERSONAL_LOADER_PIN_UI__)return;
 window.__EXPORTHUB_INDEX250_PERSONAL_LOADER_PIN_UI__=true;
-var VERSION='RC749',MIGRATION='rc374-server-loader-pins-v1',API='/api/loader-pins-admin',timer=0,loading=false,busy=false,serverPins=null,lastError='',optimisticPins=[];
+var VERSION='RC750',MIGRATION='rc374-server-loader-pins-v1',API='/api/loader-pins-admin',timer=0,loading=false,busy=false,serverPins=null,lastError='',optimisticPins=[];
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -19271,7 +19279,7 @@ async function refresh(force){if(loading)return false;if(busy&&force!==true)retu
 function rowFromButton(btn){var tr=btn&&btn.closest&&btn.closest('[data-rc727-pin-row]');if(!tr)return null;return{tr:tr,id:q(tr.getAttribute('data-rc727-pin-row')),name:q((tr.querySelector('.rc727-pin-name')||{}).value),pin:q((tr.querySelector('.rc727-pin-code')||{}).value),active:!!((tr.querySelector('.rc727-pin-active')||{}).checked)}}
 function validate(name,pin){if(!q(name)){alert('Bitte einen Verlader-Namen eingeben.');return false}if(!/^\d{4}$/.test(q(pin))){alert('Der Verladecode muss genau vier Ziffern enthalten.');return false}return true}
 window.rc727SaveLoaderPin=async function(btn){if(busy)return false;var row=rowFromButton(btn);if(!row||!validate(row.name,row.pin))return false;busy=true;btn.disabled=true;try{var data=await serverCall('update',{id:row.id,name:row.name,pin:row.pin,active:row.active});mergeOptimistic(responseSinglePin(data)||{id:row.id,name:row.name,pin:row.pin,active:row.active});busy=false;await refresh(true);patchCards();setStatus('Verladecode für '+row.name+' wurde serverseitig gespeichert und die Liste neu geladen.',false)}catch(e){setStatus((e&&e.message)||'Verladecode konnte nicht gespeichert werden.',true)}finally{busy=false;if(btn&&btn.isConnected)btn.disabled=false}return false};
-window.rc727CreateLoaderPin=async function(){if(busy)return false;var name=q((document.getElementById('rc727NewLoaderName')||{}).value),pin=q((document.getElementById('rc727NewLoaderPin')||{}).value);if(!validate(name,pin))return false;busy=true;try{var data=await serverCall('create',{name:name,pin:pin,code:pin,loaderPin:pin,active:true});var created=responseSinglePin(data)||{id:q(data&&data.id)||('loader-'+Date.now()),name:name,pin:pin,active:true};mergeOptimistic(created);patchCards();busy=false;await refresh(true);patchCards();setStatus('Verlader '+name+' wurde serverseitig angelegt und wird in der aktuellen Liste angezeigt.',false)}catch(e){setStatus((e&&e.message)||'Verlader konnte nicht angelegt werden.',true)}finally{busy=false}return false};
+window.rc727CreateLoaderPin=async function(){if(busy)return false;var name=q((document.getElementById('rc727NewLoaderName')||{}).value),pin=q((document.getElementById('rc727NewLoaderPin')||{}).value);if(!validate(name,pin))return false;busy=true;try{var data=await serverCall('create',{name:name,pin:pin,code:pin,loaderPin:pin,active:true}),list=responsePins(data);if(list===null){var created=responseSinglePin(data)||{id:q(data&&data.id)||('loader-'+Date.now()),name:name,pin:pin,active:true};mergeOptimistic(created)}patchCards();busy=false;await refresh(true);patchCards();setStatus('Verlader '+name+' wurde mit persönlichem Verladecode angelegt und vom Server neu geladen.',false)}catch(e){setStatus((e&&e.message)||'Verlader konnte nicht angelegt werden.',true)}finally{busy=false}return false};
 window.rc727DeleteLoaderPin=async function(btn){if(busy)return false;var row=rowFromButton(btn);if(!row)return false;if(!confirm('Verladecode für '+row.name+' wirklich löschen?'))return false;busy=true;btn.disabled=true;try{await serverCall('delete',{id:row.id,name:row.name});optimisticPins=optimisticPins.filter(function(x){return q(x.id)!==q(row.id)&&q(x.name).toLowerCase()!==q(row.name).toLowerCase()});if(Array.isArray(serverPins))serverPins=serverPins.filter(function(x){return q(x.id)!==q(row.id)&&q(x.name).toLowerCase()!==q(row.name).toLowerCase()});busy=false;await refresh(true);patchCards();setStatus('Verladecode für '+row.name+' wurde gelöscht und die Serverliste neu geladen.',false)}catch(e){setStatus((e&&e.message)||'Verladecode konnte nicht gelöscht werden.',true)}finally{busy=false;if(btn&&btn.isConnected)btn.disabled=false}return false};
 function patch(){migrate();positionCard();patchCards();if(q(state().view)==='rights')refresh(false);try{window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}catch(_){} }
 function schedule(){if(timer)return;timer=setTimeout(function(){timer=0;patch()},80)}
@@ -22563,6 +22571,102 @@ bGU9J0V4cG9ydEhVQiDCtyBBYmhvbHVuZyBiZXN0w6R0aWdlbic7c2hlbGwoKTtsb2FkKCl9Cmlm
 KGRvY3VtZW50LnJlYWR5U3RhdGU9PT0nbG9hZGluZycpZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5l
 cignRE9NQ29udGVudExvYWRlZCcsYm9vdCx7b25jZTp0cnVlfSk7ZWxzZSBib290KCk7Cn0pKCk7
 Cgo8L3NjcmlwdD4KPC9ib2R5Pgo8L2h0bWw+Cg==
+EXPORTHUB_TESTSERVICE_FILE_END -->
+
+<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/loader-pins-admin/index.js encoding=base64 sha256=683e9b5ff31d08b3b52053f86c54220ebcaaa79d18ba22c0ed84503234c877e1
+Cid1c2Ugc3RyaWN0JzsKY29uc3QgY3J5cHRvID0gcmVxdWlyZSgnY3J5cHRvJyk7CmNvbnN0IHsgQmxvYlNlcnZpY2VDbGllbnQgfSA9IHJlcXVpcmUoJ0Bh
+enVyZS9zdG9yYWdlLWJsb2InKTsKY29uc3QgcGlucyA9IHJlcXVpcmUoJy4uL3NoYXJlZC9sb2FkZXItcGluLXN0b3JlJyk7Cgpjb25zdCBURUFNX0NPTlRB
+SU5FUiA9IHByb2Nlc3MuZW52LkVYUE9SVEhVQl9TVE9SQUdFX0NPTlRBSU5FUiB8fCBwcm9jZXNzLmVudi5FWFBPUlRIVUJfQ09OVEFJTkVSIHx8ICdleHBv
+cnRodWItZGF0YSc7CmNvbnN0IFRFQU1fQkxPQiA9IHByb2Nlc3MuZW52LkVYUE9SVEhVQl9TVE9SQUdFX0JMT0IgfHwgcHJvY2Vzcy5lbnYuRVhQT1JUSFVC
+X1NUQVRFX0JMT0IgfHwgJ3RlYW0tc3RhdGUuanNvbic7CmNvbnN0IEFVVEhfQkxPQiA9IHByb2Nlc3MuZW52LkVYUE9SVEhVQl9BVVRIX0JMT0IgfHwgJ2F1
+dGgtc2Vzc2lvbnMuanNvbic7CgpmdW5jdGlvbiBqc29uKHN0YXR1cywgYm9keSkgewogIHJldHVybiB7IHN0YXR1cywgaGVhZGVyczogeyAnQ29udGVudC1U
+eXBlJzogJ2FwcGxpY2F0aW9uL2pzb247IGNoYXJzZXQ9dXRmLTgnLCAnQ2FjaGUtQ29udHJvbCc6ICduby1zdG9yZSwgbm8tY2FjaGUsIG11c3QtcmV2YWxp
+ZGF0ZScsICdYLUNvbnRlbnQtVHlwZS1PcHRpb25zJzogJ25vc25pZmYnIH0sIGJvZHk6IEpTT04uc3RyaW5naWZ5KGJvZHkpIH07Cn0KZnVuY3Rpb24gdGV4
+dCh2KSB7IHJldHVybiBTdHJpbmcodiA9PSBudWxsID8gJycgOiB2KS50cmltKCk7IH0KZnVuY3Rpb24gbG93ZXIodikgeyByZXR1cm4gdGV4dCh2KS50b0xv
+d2VyQ2FzZSgpOyB9CmZ1bmN0aW9uIGJvZHkocmVxKSB7IGlmIChyZXEgJiYgcmVxLmJvZHkgJiYgdHlwZW9mIHJlcS5ib2R5ID09PSAnb2JqZWN0JykgcmV0
+dXJuIHJlcS5ib2R5OyB0cnkgeyByZXR1cm4gSlNPTi5wYXJzZShyZXEgJiYgcmVxLmJvZHkgfHwgJ3t9Jyk7IH0gY2F0Y2ggKF8pIHsgcmV0dXJuIHt9OyB9
+IH0KZnVuY3Rpb24gaGVhZGVyKHJlcSwgbmFtZSkgeyBjb25zdCBoID0gcmVxICYmIHJlcS5oZWFkZXJzIHx8IHt9OyByZXR1cm4gaFtuYW1lLnRvTG93ZXJD
+YXNlKCldIHx8IGhbbmFtZV0gfHwgJyc7IH0KZnVuY3Rpb24gdG9rZW4ocmVxLCBwYXlsb2FkKSB7IGNvbnN0IGF1dGggPSBTdHJpbmcoaGVhZGVyKHJlcSwg
+J2F1dGhvcml6YXRpb24nKSB8fCAnJykucmVwbGFjZSgvXkJlYXJlclxzKy9pLCAnJyk7IHJldHVybiB0ZXh0KGhlYWRlcihyZXEsICd4LWV4cG9ydGh1Yi10
+b2tlbicpIHx8IGhlYWRlcihyZXEsICd4LWV4cG9ydGh1Yi1zZXNzaW9uJykgfHwgcGF5bG9hZC5zZXNzaW9uVG9rZW4gfHwgcGF5bG9hZC5hdXRoVG9rZW4g
+fHwgYXV0aCk7IH0KZnVuY3Rpb24gY29ubmVjdGlvblN0cmluZygpIHsgcmV0dXJuIHByb2Nlc3MuZW52LkVYUE9SVEhVQl9TVE9SQUdFX0NPTk5FQ1RJT05f
+U1RSSU5HIHx8IHByb2Nlc3MuZW52LkF6dXJlV2ViSm9ic1N0b3JhZ2UgfHwgJyc7IH0KZnVuY3Rpb24gdXNlcm5hbWVPZih1c2VyKSB7IHJldHVybiBsb3dl
+cih1c2VyICYmICh1c2VyLnVzZXIgfHwgdXNlci5sb2dpbiB8fCB1c2VyLnVzZXJuYW1lIHx8IHVzZXIubmFtZSB8fCB1c2VyLmRpc3BsYXlOYW1lKSk7IH0K
+ZnVuY3Rpb24gaXNBY3RpdmUodXNlcikgeyByZXR1cm4gQm9vbGVhbih1c2VyICYmIHVzZXIuYWN0aXZlICE9PSBmYWxzZSAmJiB1c2VyLmRpc2FibGVkICE9
+PSB0cnVlICYmIGxvd2VyKHVzZXIuc3RhdHVzKSAhPT0gJ2RlYWt0aXZpZXJ0Jyk7IH0KZnVuY3Rpb24gaXNHbG9iYWxBZG1pbih1c2VyKSB7CiAgaWYgKCF1
+c2VyKSByZXR1cm4gZmFsc2U7CiAgaWYgKHVzZXIuZ2xvYmFsQWRtaW4gPT09IHRydWUgfHwgdXNlci5pc0dsb2JhbEFkbWluID09PSB0cnVlIHx8IHVzZXIu
+aXNBZG1pbiA9PT0gdHJ1ZSB8fCB1c2VyLmFkbWluID09PSB0cnVlKSByZXR1cm4gdHJ1ZTsKICBpZiAoQXJyYXkuaXNBcnJheSh1c2VyLnBlcm1pc3Npb25z
+KSAmJiB1c2VyLnBlcm1pc3Npb25zLmluY2x1ZGVzKCcqJykpIHJldHVybiB0cnVlOwogIGNvbnN0IGtleSA9IHVzZXJuYW1lT2YodXNlcik7CiAgaWYgKFsn
+dG9iaWFzJywndC5saW1iZXJnJywndG9iaWFzIGxpbWJlcmcnLCd0b2JpYXMubGltYmVyZyddLmluY2x1ZGVzKGtleSkpIHJldHVybiB0cnVlOwogIGNvbnN0
+IHJvbGUgPSBsb3dlcih1c2VyLnJvbGUgfHwgdXNlci5yb2xsZSk7CiAgcmV0dXJuIFsnZ2xvYmFsZXIgYWRtaW5pc3RyYXRvcicsJ2dsb2JhbGVyIGFkbWlu
+JywnZ2xvYmFsIGFkbWluJywnYWRtaW5pc3RyYXRvcicsJ2FkbWluJywndm9sbHp1Z3JpZmYnXS5pbmNsdWRlcyhyb2xlKTsKfQpmdW5jdGlvbiBzYWZlRXF1
+YWxUZXh0KGEsIGIpIHsgY29uc3QgYWEgPSBCdWZmZXIuZnJvbShTdHJpbmcoYSB8fCAnJyksICd1dGY4JyksIGJiID0gQnVmZmVyLmZyb20oU3RyaW5nKGIg
+fHwgJycpLCAndXRmOCcpOyByZXR1cm4gYWEubGVuZ3RoID09PSBiYi5sZW5ndGggJiYgYWEubGVuZ3RoID4gMCAmJiBjcnlwdG8udGltaW5nU2FmZUVxdWFs
+KGFhLCBiYik7IH0KZnVuY3Rpb24gdG9rZW5IYXNoKHZhbHVlKSB7IHJldHVybiBjcnlwdG8uY3JlYXRlSGFzaCgnc2hhMjU2JykudXBkYXRlKFN0cmluZyh2
+YWx1ZSB8fCAnJykpLmRpZ2VzdCgnaGV4Jyk7IH0KZnVuY3Rpb24gc2lnbmluZ1NlY3JldCgpIHsKICBjb25zdCBzb3VyY2UgPSB0ZXh0KHByb2Nlc3MuZW52
+LkVYUE9SVEhVQl9BVVRIX1NJR05JTkdfU0VDUkVUIHx8IHByb2Nlc3MuZW52LkVYUE9SVEhVQl9TRVNTSU9OX1NFQ1JFVCkgfHwgY29ubmVjdGlvblN0cmlu
+ZygpOwogIGlmICghc291cmNlKSB0aHJvdyBwaW5zLmVycm9yKCdBVVRIX1NJR05JTkdfTk9UX0NPTkZJR1VSRUQnLCAnRGllIHNpY2hlcmUgRXhwb3J0SFVC
+LVNpdHp1bmdzcHLDvGZ1bmcgaXN0IHNlcnZlcnNlaXRpZyBuaWNodCBrb25maWd1cmllcnQuJywgNTAzKTsKICByZXR1cm4gY3J5cHRvLmNyZWF0ZUhhc2go
+J3NoYTI1NicpLnVwZGF0ZSgnRXhwb3J0SFVCL3Nlc3Npb24vdjF8JyArIHNvdXJjZSkuZGlnZXN0KCk7Cn0KZnVuY3Rpb24gdmVyaWZ5U2lnbmVkU2Vzc2lv
+blRva2VuKHZhbHVlKSB7CiAgY29uc3QgcmF3ID0gdGV4dCh2YWx1ZSksIHBhcnRzID0gcmF3LnNwbGl0KCcuJyk7CiAgaWYgKHBhcnRzLmxlbmd0aCAhPT0g
+MyB8fCBwYXJ0c1swXSAhPT0gJ2VoczEnIHx8ICFwYXJ0c1sxXSB8fCAhcGFydHNbMl0pIHJldHVybiBudWxsOwogIGNvbnN0IGV4cGVjdGVkID0gY3J5cHRv
+LmNyZWF0ZUhtYWMoJ3NoYTI1NicsIHNpZ25pbmdTZWNyZXQoKSkudXBkYXRlKHBhcnRzWzFdKS5kaWdlc3QoJ2Jhc2U2NHVybCcpOwogIGlmICghc2FmZUVx
+dWFsVGV4dChleHBlY3RlZCwgcGFydHNbMl0pKSByZXR1cm4gbnVsbDsKICBsZXQgZGF0YTsgdHJ5IHsgZGF0YSA9IEpTT04ucGFyc2UoQnVmZmVyLmZyb20o
+cGFydHNbMV0sICdiYXNlNjR1cmwnKS50b1N0cmluZygndXRmOCcpKTsgfSBjYXRjaCAoXykgeyByZXR1cm4gbnVsbDsgfQogIGlmICghZGF0YSB8fCBkYXRh
+LnB1cnBvc2UgIT09ICdleHBvcnRodWItc2Vzc2lvbicgfHwgTnVtYmVyKGRhdGEudiB8fCAwKSAhPT0gMSB8fCAhZGF0YS51aWQgfHwgIWRhdGEuc2lkIHx8
+IE51bWJlcihkYXRhLmV4cCB8fCAwKSA8PSBEYXRlLm5vdygpKSByZXR1cm4gbnVsbDsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBwYXJzZVN0b3JlZEpz
+b24ocmF3KSB7CiAgY29uc3QgY2xlYW5lZCA9IFN0cmluZyhyYXcgPT0gbnVsbCA/ICcnIDogcmF3KS5yZXBsYWNlKC9eXHVGRUZGLywgJycpLnJlcGxhY2Uo
+L1x1MDAwMCskL2csICcnKS50cmltKCk7CiAgaWYgKCFjbGVhbmVkKSByZXR1cm4gbnVsbDsKICBsZXQgdmFsdWUgPSBKU09OLnBhcnNlKGNsZWFuZWQpOwog
+IGlmICh0eXBlb2YgdmFsdWUgPT09ICdzdHJpbmcnICYmIC9eW1xbe10vLnRlc3QodmFsdWUudHJpbSgpKSkgdmFsdWUgPSBKU09OLnBhcnNlKHZhbHVlLnRy
+aW0oKSk7CiAgcmV0dXJuIHZhbHVlOwp9CmFzeW5jIGZ1bmN0aW9uIHJlYWRKc29uKGJsb2IsIGZhbGxiYWNrLCByZXBhaXJJbnZhbGlkKSB7CiAgdHJ5IHsK
+ICAgIGNvbnN0IHJlc3BvbnNlID0gYXdhaXQgYmxvYi5kb3dubG9hZCgwKSwgY2h1bmtzID0gW107CiAgICBmb3IgYXdhaXQgKGNvbnN0IGNodW5rIG9mIHJl
+c3BvbnNlLnJlYWRhYmxlU3RyZWFtQm9keSkgY2h1bmtzLnB1c2goQnVmZmVyLmZyb20oY2h1bmspKTsKICAgIHRyeSB7IGNvbnN0IHZhbHVlID0gcGFyc2VT
+dG9yZWRKc29uKEJ1ZmZlci5jb25jYXQoY2h1bmtzKS50b1N0cmluZygndXRmOCcpKTsgcmV0dXJuIHZhbHVlID09IG51bGwgPyBmYWxsYmFjayA6IHZhbHVl
+OyB9CiAgICBjYXRjaCAoZSkgeyBpZiAocmVwYWlySW52YWxpZCkgcmV0dXJuIGZhbGxiYWNrOyB0aHJvdyBlOyB9CiAgfSBjYXRjaCAoZSkgewogICAgaWYg
+KGUgJiYgZS5zdGF0dXNDb2RlID09PSA0MDQpIHJldHVybiBmYWxsYmFjazsKICAgIHRocm93IGU7CiAgfQp9CmFzeW5jIGZ1bmN0aW9uIHZhbGlkYXRlR2xv
+YmFsQWRtaW4ocmVxLCBwYXlsb2FkKSB7CiAgY29uc3QgdCA9IHRva2VuKHJlcSwgcGF5bG9hZCk7CiAgaWYgKCF0KSB0aHJvdyBwaW5zLmVycm9yKCdBVVRI
+X1JFUVVJUkVEJywgJ0V4cG9ydEhVQi1BZG1pbi1Bbm1lbGR1bmcgZXJmb3JkZXJsaWNoLicsIDQwMSk7CiAgY29uc3QgY3MgPSBjb25uZWN0aW9uU3RyaW5n
+KCk7CiAgaWYgKCFjcykgdGhyb3cgcGlucy5lcnJvcignU1RPUkFHRV9OT1RfQ09ORklHVVJFRCcsICdBenVyZS1TcGVpY2hlciBpc3QgbmljaHQga29uZmln
+dXJpZXJ0LicsIDUwMyk7CiAgY29uc3Qgc2VydmljZSA9IEJsb2JTZXJ2aWNlQ2xpZW50LmZyb21Db25uZWN0aW9uU3RyaW5nKGNzKSwgY29udGFpbmVyID0g
+c2VydmljZS5nZXRDb250YWluZXJDbGllbnQoVEVBTV9DT05UQUlORVIpOwogIGNvbnN0IFthdXRoRG9jLCB0ZWFtRG9jXSA9IGF3YWl0IFByb21pc2UuYWxs
+KFsKICAgIHJlYWRKc29uKGNvbnRhaW5lci5nZXRCbG9ja0Jsb2JDbGllbnQoQVVUSF9CTE9CKSwgeyBzY2hlbWFWZXJzaW9uOiAxLCBzZXNzaW9uczogW10g
+fSwgdHJ1ZSksCiAgICByZWFkSnNvbihjb250YWluZXIuZ2V0QmxvY2tCbG9iQ2xpZW50KFRFQU1fQkxPQiksIHsgc2NoZW1hVmVyc2lvbjogMywgc3RhdGU6
+IHt9LCB1c2VyczogW10gfSwgZmFsc2UpCiAgXSk7CiAgY29uc3Qgc2Vzc2lvbnMgPSBBcnJheS5pc0FycmF5KGF1dGhEb2MgJiYgYXV0aERvYy5zZXNzaW9u
+cykgPyBhdXRoRG9jLnNlc3Npb25zIDogW107CiAgY29uc3QgZGlnZXN0ID0gdG9rZW5IYXNoKHQpOwogIGxldCBzZXNzaW9uID0gc2Vzc2lvbnMuZmluZChz
+ID0+IHNhZmVFcXVhbFRleHQocyAmJiBzLnRva2VuSGFzaCwgZGlnZXN0KSk7CiAgaWYgKCFzZXNzaW9uKSB7CiAgICBjb25zdCBzaWduZWQgPSB2ZXJpZnlT
+aWduZWRTZXNzaW9uVG9rZW4odCk7CiAgICBpZiAoc2lnbmVkKSBzZXNzaW9uID0geyBpZDogdGV4dChzaWduZWQuc2lkKSwgdXNlcklkOiB0ZXh0KHNpZ25l
+ZC51aWQpLCB1c2VybmFtZTogdGV4dChzaWduZWQudXNlcm5hbWUpLCBleHBpcmVzQXQ6IG5ldyBEYXRlKE51bWJlcihzaWduZWQuZXhwKSkudG9JU09TdHJp
+bmcoKSwgYXV0aFZlcnNpb246IE51bWJlcihzaWduZWQuYXV0aFZlcnNpb24gfHwgMCksIG11c3RDaGFuZ2U6IHNpZ25lZC5tdXN0Q2hhbmdlID09PSB0cnVl
+LCBzaWduZWRGYWxsYmFjazogdHJ1ZSB9OwogIH0KICBpZiAoIXNlc3Npb24pIHRocm93IHBpbnMuZXJyb3IoJ1NFU1NJT05fSU5WQUxJRCcsICdEaWUgRXhw
+b3J0SFVCLVNpdHp1bmcgaXN0IG5pY2h0IG1laHIgZ8O8bHRpZy4gQml0dGUgZXJuZXV0IGFubWVsZGVuLicsIDQwMSk7CiAgaWYgKHNlc3Npb24ucmV2b2tl
+ZEF0KSB0aHJvdyBwaW5zLmVycm9yKCdTRVNTSU9OX1JFVk9LRUQnLCAnRGllIEV4cG9ydEhVQi1TaXR6dW5nIHd1cmRlIGJlZW5kZXQuIEJpdHRlIGVybmV1
+dCBhbm1lbGRlbi4nLCA0MDEpOwogIGlmIChzZXNzaW9uLmV4cGlyZXNBdCAmJiBEYXRlLnBhcnNlKHNlc3Npb24uZXhwaXJlc0F0KSA8PSBEYXRlLm5vdygp
+KSB0aHJvdyBwaW5zLmVycm9yKCdTRVNTSU9OX0lOVkFMSUQnLCAnRGllIEV4cG9ydEhVQi1TaXR6dW5nIGlzdCBhYmdlbGF1ZmVuLiBCaXR0ZSBlcm5ldXQg
+YW5tZWxkZW4uJywgNDAxKTsKICBjb25zdCB1c2VycyA9IEFycmF5LmlzQXJyYXkodGVhbURvYyAmJiB0ZWFtRG9jLnVzZXJzKSA/IHRlYW1Eb2MudXNlcnMg
+OiBbXTsKICBjb25zdCB1c2VyID0gdXNlcnMuZmluZCh1ID0+IHRleHQodSAmJiB1LmlkKSA9PT0gdGV4dChzZXNzaW9uLnVzZXJJZCkgfHwgdXNlcm5hbWVP
+Zih1KSA9PT0gbG93ZXIoc2Vzc2lvbi51c2VybmFtZSkpOwogIGlmICghdXNlciB8fCAhaXNBY3RpdmUodXNlcikpIHRocm93IHBpbnMuZXJyb3IoJ0FDQ09V
+TlRfRElTQUJMRUQnLCAnRGFzIEV4cG9ydEhVQi1CZW51dHplcmtvbnRvIGlzdCBuaWNodCBha3Rpdi4nLCA0MDMpOwogIGlmIChOdW1iZXIoc2Vzc2lvbi5h
+dXRoVmVyc2lvbiB8fCAwKSAhPT0gTnVtYmVyKHVzZXIuYXV0aFZlcnNpb24gfHwgMCkpIHRocm93IHBpbnMuZXJyb3IoJ1NFU1NJT05fUkVWT0tFRCcsICdE
+aWUgRXhwb3J0SFVCLVNpdHp1bmcgd3VyZGUgYmVlbmRldC4gQml0dGUgZXJuZXV0IGFubWVsZGVuLicsIDQwMSk7CiAgaWYgKChzZXNzaW9uLm11c3RDaGFu
+Z2UgfHwgdXNlci5tdXN0Q2hhbmdlKSA9PT0gdHJ1ZSkgdGhyb3cgcGlucy5lcnJvcignUEFTU1dPUkRfQ0hBTkdFX1JFUVVJUkVEJywgJ1ZvciBkZXIgTnV0
+enVuZyBtdXNzIGRhcyBTdGFydHBhc3N3b3J0IGdlw6RuZGVydCB3ZXJkZW4uJywgNDAzKTsKICBpZiAoIWlzR2xvYmFsQWRtaW4odXNlcikpIHRocm93IHBp
+bnMuZXJyb3IoJ0dMT0JBTF9BRE1JTl9SRVFVSVJFRCcsICdOdXIgZ2xvYmFsZSBBZG1pbmlzdHJhdG9yZW4gZMO8cmZlbiBWZXJsYWRlci1QSU5zIHZlcndh
+bHRlbi4nLCA0MDMpOwogIHJldHVybiB1c2VyOwp9Cgptb2R1bGUuZXhwb3J0cyA9IGFzeW5jIGZ1bmN0aW9uIChjb250ZXh0LCByZXEpIHsKICBpZiAocmVx
+Lm1ldGhvZCA9PT0gJ09QVElPTlMnKSB7IGNvbnRleHQucmVzID0geyBzdGF0dXM6IDIwNCwgaGVhZGVyczogeyAnQ2FjaGUtQ29udHJvbCc6ICduby1zdG9y
+ZScsICdBbGxvdyc6ICdQT1NULCBPUFRJT05TJyB9LCBib2R5OiAnJyB9OyByZXR1cm47IH0KICBpZiAocmVxLm1ldGhvZCAhPT0gJ1BPU1QnKSB7IGNvbnRl
+eHQucmVzID0ganNvbig0MDUsIHsgb2s6IGZhbHNlLCBjb2RlOiAnTUVUSE9EX05PVF9BTExPV0VEJywgbWVzc2FnZTogJ051ciBQT1NUIGlzdCBlcmxhdWJ0
+LicgfSk7IHJldHVybjsgfQogIHRyeSB7CiAgICBjb25zdCBwYXlsb2FkID0gYm9keShyZXEpLCBhZG1pbiA9IGF3YWl0IHZhbGlkYXRlR2xvYmFsQWRtaW4o
+cmVxLCBwYXlsb2FkKSwgYWN0aW9uID0gdGV4dChwYXlsb2FkLmFjdGlvbiB8fCAnbGlzdCcpLnRvTG93ZXJDYXNlKCk7CiAgICBsZXQgbGlzdDsKICAgIGlm
+IChhY3Rpb24gPT09ICdsaXN0JykgbGlzdCA9IGF3YWl0IHBpbnMubGlzdCgpOwogICAgZWxzZSBpZiAoYWN0aW9uID09PSAnY3JlYXRlJykgbGlzdCA9IGF3
+YWl0IHBpbnMuY3JlYXRlKHBheWxvYWQpOwogICAgZWxzZSBpZiAoYWN0aW9uID09PSAndXBkYXRlJykgbGlzdCA9IGF3YWl0IHBpbnMudXBkYXRlKHBheWxv
+YWQpOwogICAgZWxzZSBpZiAoYWN0aW9uID09PSAndG9nZ2xlJykgbGlzdCA9IGF3YWl0IHBpbnMudG9nZ2xlKHBheWxvYWQpOwogICAgZWxzZSBpZiAoYWN0
+aW9uID09PSAnZGVsZXRlJykgbGlzdCA9IGF3YWl0IHBpbnMucmVtb3ZlKHBheWxvYWQpOwogICAgZWxzZSB0aHJvdyBwaW5zLmVycm9yKCdJTlZBTElEX0FD
+VElPTicsICdVbmJla2FubnRlIFBJTi1Ba3Rpb24uJywgNDAwKTsKICAgIGNvbnRleHQucmVzID0ganNvbigyMDAsIHsgb2s6IHRydWUsIHBpbnM6IGxpc3Qs
+IGNvdW50OiBsaXN0Lmxlbmd0aCwgc2VydmVyU3RvcmVkOiB0cnVlLCBhZG1pbjogdGV4dChhZG1pbi5uYW1lIHx8IGFkbWluLnVzZXIgfHwgYWRtaW4udXNl
+cm5hbWUpLCB2ZXJzaW9uOiAnUkM3NTAnIH0pOwogIH0gY2F0Y2ggKGUpIHsKICAgIGNvbnRleHQubG9nICYmIGNvbnRleHQubG9nLmVycm9yICYmIGNvbnRl
+eHQubG9nLmVycm9yKCdsb2FkZXItcGlucy1hZG1pbicsIGUgJiYgZS5jb2RlLCBlICYmIGUubWVzc2FnZSk7CiAgICBjb250ZXh0LnJlcyA9IGpzb24oZS5z
+dGF0dXMgfHwgNTAwLCB7IG9rOiBmYWxzZSwgY29kZTogZS5jb2RlIHx8ICdTRVJWRVJfRVJST1InLCBtZXNzYWdlOiBlLm1lc3NhZ2UgfHwgJ1ZlcmxhZGVy
+LVBJTnMga29ubnRlbiBuaWNodCB2ZXJ3YWx0ZXQgd2VyZGVuLicgfSk7CiAgfQp9Owo=
 EXPORTHUB_TESTSERVICE_FILE_END -->
 
 <!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/customer-avis/index.js encoding=base64 sha256=1baffa28087371bff42ef536ca0ec523f913562fdb8033535335d651e55d94f9
