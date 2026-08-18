@@ -15,6 +15,10 @@ const COLLECTION_KEYS = {
 const LOCAL_ONLY_KEYS = new Set([
   'view', 'q', 'taskSearch', 'taskFilter', 'taskDay', 'shipmentOverviewSearch',
   'shipmentOverviewStatus', 'selectedCustomerId', 'shipment', 'activeShipmentId',
+  'currentShipment', 'selectedShipment', 'currentShipmentId', 'selectedShipmentId',
+  'editingShipmentId', 'documentShipmentId', 'openShipmentId', 'customerFolderId',
+  'customerFolderOpenId', 'currentCustomerId', 'selectedCustomer', 'currentCustomer',
+  'shipmentDraft', 'customerDraft', 'abdDraft',
   'sopId', 'sopStep', 'academyId', 'academyStep', 'quizAnswers', 'quizStep',
   'language', 'rc438NotifySnoozeUntil', 'rc439SyncStatus'
 ]);
@@ -187,6 +191,46 @@ function meaningfulValue(value) {
   return true;
 }
 
+function mergeCustomerProtected(serverItem, incomingItem) {
+  if (!isObject(serverItem)) return clone(incomingItem);
+  if (!isObject(incomingItem)) return clone(serverItem);
+  const serverTs = timestamp(serverItem);
+  const incomingTs = timestamp(incomingItem);
+  const newer = incomingTs >= serverTs ? incomingItem : serverItem;
+  const older = incomingTs >= serverTs ? serverItem : incomingItem;
+  const out = clone(newer) || {};
+
+  // Customer master data is loss-protected: an empty/missing value from a newer partial client
+  // may not erase a previously persisted non-empty value.
+  for (const [key, value] of Object.entries(older)) {
+    if (!meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
+  }
+
+  // Template/profile objects need the same protection recursively.
+  if (isObject(serverItem.mailTemplates) || isObject(incomingItem.mailTemplates)) {
+    out.mailTemplates = mergePlainObject(serverItem.mailTemplates, incomingItem.mailTemplates);
+    const preserveNested = (olderNode, targetNode) => {
+      if (!isObject(olderNode) || !isObject(targetNode)) return;
+      for (const [key, value] of Object.entries(olderNode)) {
+        if (isObject(value)) {
+          if (!isObject(targetNode[key])) targetNode[key] = {};
+          preserveNested(value, targetNode[key]);
+        } else if (!meaningfulValue(targetNode[key]) && meaningfulValue(value)) targetNode[key] = clone(value);
+      }
+    };
+    preserveNested(older.mailTemplates, out.mailTemplates);
+  }
+
+  ['locations', 'sites', 'standorte', 'deliveryLocations', 'shipToLocations'].forEach((key) => {
+    const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
+    const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
+    if (a.length && !b.length) out[key] = clone(a);
+    else if (!a.length && b.length) out[key] = clone(b);
+    else if (a.length && b.length) out[key] = clone(incomingTs >= serverTs ? b : a);
+  });
+  return out;
+}
+
 function shipmentStatusRank(value) {
   const text = lower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   if (/storn|cancel/.test(text)) return 100;
@@ -227,41 +271,13 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
   });
 
-  // RC654 status protection: stale clients must not demote process progress.
-  // Evidence is evaluated in addition to the textual status because pickup/location APIs
-  // can already have advanced a shipment while another browser still holds "Erstellt".
-  function evidenceStatus(item) {
-    if (!item || typeof item !== 'object') return '';
-    const raw = lower([item.status,item.processStatus,item.pickupStatus,item.podStatus,item.readinessStatus].filter(Boolean).join(' '));
-    if (item.cancelled === true || item.storniert === true || /storn|cancel/.test(raw)) return 'Storniert';
-    if (item.archived === true || /archiv/.test(raw)) return 'Archiviert';
-    if (item.completionConfirmed === true || item.completedManually === true || item.completed === true || /abgeschlossen|completed|erledigt/.test(raw)) return 'Abgeschlossen';
-    const podFiles = Array.isArray(item.podFiles) ? item.podFiles.filter(f => f && !f.placeholder && !f.fallback && !f.syntheticFallback && !/deleted|gel[oö]scht|replaced|ersetzt/i.test(String(f.status || ''))) : [];
-    if (item.podConfirmed === true || item.podAvailable === true || item.podServerVerified === true || podFiles.length || /pod/.test(raw)) return 'POD vorhanden';
-    if (item.pickupQrUsed === true || item.qrPickupConfirmed === true || item.pickupConfirmed === true || item.pickupCompleted === true || meaningfulValue(item.pickupConfirmedAt || item.pickedUpAt || item.pickupQrUsedAt || item.actualPickupDate) || /abgeholt|picked|confirmed|completed/.test(lower(item.pickupStatus || item.pickupQrServerStatus))) return 'Abgeholt';
-    if (item.warehousePrepared === true || /vorbereit|prepared/.test(raw)) return 'Vorbereitet';
-    if (item.readyForPickup === true || item.pickupQrRegistered === true || /bereit.*abhol|ready.*pickup/.test(raw)) return 'Bereit zur Abholung';
-    if (/wartet.*abd|abd.*wart/.test(raw)) return 'Wartet auf ABD';
-    if (/erstellt|created/.test(raw)) return 'Erstellt';
-    return meaningfulValue(item.status || item.processStatus) ? String(item.status || item.processStatus) : '';
-  }
-  const serverStatus = evidenceStatus(serverItem);
-  const incomingStatus = evidenceStatus(incomingItem);
-  const serverRank = shipmentStatusRank(serverStatus);
-  const incomingRank = shipmentStatusRank(incomingStatus);
-  let chosenStatus = meaningfulValue(newer.status || newer.processStatus) ? String(newer.status || newer.processStatus) : (incomingTs >= serverTs ? incomingStatus : serverStatus);
-  const serverHardFinal = /storniert|archiviert|abgeschlossen|pod vorhanden|abgeholt/i.test(serverStatus);
-  const incomingHardFinal = /storniert|archiviert|abgeschlossen|pod vorhanden|abgeholt/i.test(incomingStatus);
-  const incomingLocationCode = Number(incomingItem.warehouseLocationCode !== undefined ? incomingItem.warehouseLocationCode : (incomingItem.locationCode !== undefined ? incomingItem.locationCode : -1));
-  const incomingWarehouseReturn = incomingTs >= serverTs && incomingItem.warehousePrepared === false && incomingLocationCode === 0 && shipmentStatusRank(incomingStatus) === shipmentStatusRank('Bereit zur Abholung');
-  if (serverHardFinal || incomingHardFinal) chosenStatus = serverRank >= incomingRank ? serverStatus : incomingStatus;
-  else if (incomingWarehouseReturn && serverRank === shipmentStatusRank('Vorbereitet')) chosenStatus = incomingStatus;
-  else chosenStatus = serverRank >= incomingRank ? serverStatus : incomingStatus;
+  // Status may only follow the newer persisted record; no rank-based auto-promotion here.
+  const newerStatus = newer.status || newer.processStatus;
+  const olderStatus = older.status || older.processStatus;
+  const chosenStatus = meaningfulValue(newerStatus) ? newerStatus : olderStatus;
   if (meaningfulValue(chosenStatus)) {
     out.status = clone(chosenStatus);
     out.processStatus = clone(chosenStatus);
-    if (shipmentStatusRank(chosenStatus) >= shipmentStatusRank('Bereit zur Abholung') && shipmentStatusRank(chosenStatus) < shipmentStatusRank('Abgeholt')) out.readyForPickup = true;
-    if (shipmentStatusRank(chosenStatus) >= shipmentStatusRank('Abgeholt')) out.readyForPickup = false;
   }
   return out;
 }
@@ -299,6 +315,7 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
       const existing = map.get(key);
       if (!existing) map.set(key, clone(item));
       else if (name === 'shipments' || name === 'savedShipments') map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
+      else if (name === 'customers') map.set(key, source === 'incoming' ? mergeCustomerProtected(existing, item) : mergeCustomerProtected(item, existing));
       else map.set(key, source === 'incoming' ? chooseNewer(existing, item, name) : chooseNewer(item, existing, name));
     });
   };
