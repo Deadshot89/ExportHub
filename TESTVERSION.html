@@ -194,12 +194,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC752',cache:'752',loginReturn:'/TESTVERSION.html?v=752'});
+var BUILD=Object.freeze({version:'RC753',cache:'753',loginReturn:'/TESTVERSION.html?v=753'});
 var RELEASE=Object.freeze({
- version:'RC752',
+ version:'RC753',
  date:'18.08.2026',
- title:'Anmeldungen: Sevastian automatisch im CC',
+ title:'Sendung: Verpackungsmenü und Stauplan stabil sichtbar',
  changes:Object.freeze([
+    'RC753 repariert direkt die RC725-Render-Containment-Regel: Sendungs-Prozessblöcke werden nicht mehr mit content-visibility:auto und Paint-Containment gekapselt; geöffnete Auswahlmenüs können den Colli-Block wieder vollständig verlassen.',
+    'RC753 stellt den Colli-Karten-Overflow bereits in der ursprünglichen Layoutregel auf sichtbar, damit das dreispaltige Verpackungsmenü nicht von einer älteren overflow:hidden-Regel abhängig von der CSS-Reihenfolge abgeschnitten wird.',
+    'RC753 setzt den Stauplan beim Aufbau des festen Sendungslayouts ausdrücklich sichtbar; die bestehende Stauplan-Berechnung und der verzögerte Idle-Render bleiben erhalten.',
     'RC752 ergänzt SevastianMarcu@essentra.com bei jeder Anmeldung automatisch im CC, exakt über dieselben zentralen Empfängerpfade wie Daniel Ollmann.',
     'RC752 übernimmt Sevastian auch in den Speditions-/Erinnerungsmailpfad; vorhandene Kunden-, Sales- und zusätzliche CC-Empfänger bleiben erhalten und doppelte Adressen werden weiterhin entfernt.',
     'RC751 verhindert versteckte Zustandsänderungen beim Mailvorlagen-Abgleich: leere mailTemplates-Strukturen werden nicht mehr erzeugt und identische Vorlagen lösen keine Speicherung mehr aus.',
@@ -519,6 +522,9 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC753 Verpackungsmenü: Verpackung öffnen; Pakete, Paletten und Sonstiges müssen vollständig sichtbar sein und dürfen weder am Colli-Block noch am Prozessblock abgeschnitten werden.',
+    'RC753 Stauplan: Sendung erstellen öffnen und bis zum Stauplan scrollen; Block und Ladegrafik müssen sichtbar bleiben und dürfen nicht durch Lazy-Containment eingeklappt werden.',
+    'RC753 Regression: Andere große Bereiche behalten die RC725-Renderoptimierung; Sendungs-Prozessblöcke selbst dürfen kein content-visibility:auto mehr erhalten.',
     'RC752 Anmeldung: Speditionsmail öffnen; DanielOllmann@essentra.com und SevastianMarcu@essentra.com müssen beide genau einmal im CC stehen.',
     'RC752 Erinnerung: Überfällige Sendung über Spedition DE oder EN öffnen; Daniel und Sevastian müssen beide automatisch im CC enthalten sein.',
     'RC752 CC-Erhalt: Zusätzlich hinterlegte Kunden-, Sales- oder manuelle CC-Adressen bleiben neben Daniel und Sevastian erhalten; Duplikate dürfen nicht entstehen.',
@@ -8529,16 +8535,14 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 <style id="rc725-render-containment">
 /* RC725: Große, außerhalb des Viewports liegende Bereiche verursachen keine unnötige Layout-/Paint-Arbeit. */
 #content > :is(section,.card,article,.rc524-page,.rc504-warehouse,#index218Planner),
-#content .rc363-process-block,
 #content .rc573-card,
 #content .rc543-overview-group{
   content-visibility:auto;
   contain-intrinsic-size:auto 420px;
 }
-#content .rc363-process-block{contain-intrinsic-size:auto 360px}
 @media print{
   #content > :is(section,.card,article,.rc524-page,.rc504-warehouse,#index218Planner),
-  #content .rc363-process-block,#content .rc573-card,#content .rc543-overview-group{
+  #content .rc573-card,#content .rc543-overview-group{
     content-visibility:visible!important;contain:none!important;
   }
 }
@@ -14932,7 +14936,7 @@ html[data-exporthub-version="RC574"]{--rc573-surface:#f8fbfe;--rc573-card:#fff;-
 #rc573ReferenceCard .rc573-ref-actions{display:flex;gap:7px;flex-wrap:wrap;margin:3px 0 8px}
 #rc573ReferenceCard .small{display:block;border:1px solid #dbeafe;background:#f8fbff;border-radius:12px;padding:8px 10px;margin:7px 0}
 #rc573PickupCard .rc344-mini{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
-#rc573ColliCard{overflow:hidden}
+#rc573ColliCard{overflow:visible}
 #rc573ColliCard #rowsBox{display:grid;gap:8px}
 #rc573ColliCard .rc344-colli-row{margin:0!important;padding:10px!important;border-radius:15px!important;background:#f7fbff!important}
 #rc573ColliCard .rc344-colli-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important;align-items:end}
@@ -20595,6 +20599,7 @@ function applyFixedBlocks(){
      abdDecisionBlock=processBlock('rc363BlockAbdDecision','7','ABD erforderlich?',false),
      mailBlock=processBlock('rc363BlockMail','8','Mailbereich',false),
      actions=processBlock('rc363BlockActions','9','Speichern & Ausgabe',false);
+ stow.hidden=false;stow.removeAttribute('hidden');
  [customer,shipmentBlock].forEach(function(x){left.appendChild(x)});
  [colli,documents,abdDecisionBlock].forEach(function(x){right.appendChild(x)});
  [top,stow,mailBlock,actions].forEach(function(x){layout.appendChild(x)});
