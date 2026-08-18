@@ -9,7 +9,7 @@ const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EX
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC654';
+const API_VERSION = 'RC767';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -722,6 +722,43 @@ async function recoverShipments(container,teamBlob,payload,user){
 
 
 
+function customerRecoveryValue(v){if(v===null||v===undefined)return false;if(typeof v==='string')return cleanScalar(v)!=='';if(Array.isArray(v))return v.length>0;if(isObj(v))return Object.keys(v).length>0;return true}
+function customerRecoveryAliases(c){
+ const out=[],seen=new Set();if(!isObj(c))return out;['id','customerId','account','customerNumber','kundennummer','customerAccount','number','name','customerName'].forEach(k=>{const v=lower(c[k]);if(v&&!seen.has(v)){seen.add(v);out.push(v)}});return out
+}
+function customerRecoveryScore(c){
+ if(!isObj(c))return 0;let score=0;const weights={id:12,customerId:12,account:18,customerNumber:18,kundennummer:18,name:16,customerName:16,address:12,country:5,land:5,customerMail:8,customerEmail:8,email:6,carrierEmail:6,carrierMail:6,speditionMail:6,salesMail:6,salesEmail:6,salesPersonMail:6,salesPersonEmail:6,salesContactMail:6,salesContactEmail:6,rc385SalesMail:6,cc:4,mailCc:4,locations:12,sites:12,standorte:12,mailTemplates:18,customerMailTemplateDe:8,customerMailTemplateEn:8,carrierMailTemplateDe:8,carrierMailTemplateEn:8,ownMailTemplateDe:10,ownMailTemplateEn:10,rc385OwnTplDe:8,rc385OwnTplEn:8,rc543OwnTplDe:8,rc543OwnTplEn:8,portalName:4,portalUrl:4,processNotes:6};Object.keys(weights).forEach(k=>{if(customerRecoveryValue(c[k]))score+=weights[k]});return score
+}
+function customerSame(a,b){const aa=customerRecoveryAliases(a),bb=new Set(customerRecoveryAliases(b));return aa.some(v=>bb.has(v))}
+function customerTombstoned(state,c){
+ const ids=new Set(customerRecoveryAliases(c)),meta=isObj(state&&state._teamSyncMeta)?state._teamSyncMeta:{},list=arr(meta.tombstones);return list.some(t=>lower(t&&t.collection)==='customers'&&ids.has(lower(t&&t.id)))
+}
+function customerRecoveryFieldStamp(c,key){return String(c&&isObj(c._syncFields)&&c._syncFields[key]||'')}
+function mergeMissingCustomerFields(target,source){
+ if(!isObj(target)||!isObj(source))return false;let changed=false;Object.keys(source).forEach(k=>{if(k==='_syncFields'||k==='_syncUpdatedAt')return;const sv=source[k],tv=target[k];if(!customerRecoveryValue(sv))return;const targetStamp=customerRecoveryFieldStamp(target,k),sourceStamp=customerRecoveryFieldStamp(source,k);if(!customerRecoveryValue(tv)){if(targetStamp&&(!sourceStamp||targetStamp>=sourceStamp))return;target[k]=clone(sv);changed=true;return}if(isObj(tv)&&isObj(sv)&&!Array.isArray(tv)&&!Array.isArray(sv)){if(targetStamp&&sourceStamp&&targetStamp>=sourceStamp)return;if(mergeMissingCustomerFields(tv,sv))changed=true}});return changed
+}
+function collectCustomerCandidatesFromDoc(doc,source,out){
+ const st=stateOfDocument(doc);arr(st&&st.customers).forEach(c=>{if(!isObj(c)||!customerRecoveryAliases(c).length)return;out.push({customer:clone(c),source,score:customerRecoveryScore(c)})})
+}
+async function scanHistoricalCustomers(container,maxVersions=500){
+ const history=await listHistory(container),candidates=[],max=Math.max(1,Math.min(800,Number(maxVersions)||500));let scanned=0,readErrors=0;
+ for(let i=0;i<history.length&&i<max;i++){
+  const source=history[i];try{const d=await readJson(historyClient(container,source),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;collectCustomerCandidatesFromDoc(doc,source,candidates)}catch(_){readErrors++}
+ }
+ const best=[];candidates.sort((a,b)=>b.score-a.score);candidates.forEach(item=>{const hit=best.find(x=>customerSame(x.customer,item.customer));if(!hit)best.push(item);else if(item.score>hit.score){hit.customer=item.customer;hit.source=item.source;hit.score=item.score}});
+ return {historyCount:history.length,scanned,readErrors,best}
+}
+async function recoverCustomers(container,teamBlob,payload,user){
+ const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam(),state=clone(current.state||{});state.customers=arr(state.customers).map(clone);
+ const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500);let restored=0,filled=0;const restoredAccounts=[],restoredIds=[];
+ history.best.forEach(item=>{const c=item.customer;if(customerRecoveryScore(c)<34)return;const hit=state.customers.find(x=>customerSame(x,c));if(hit){if(mergeMissingCustomerFields(hit,c))filled++;return}if(customerTombstoned(state,c))return;state.customers.push(clone(c));restored++;const acc=cleanScalar(c.account||c.customerNumber||c.kundennummer),id=cleanScalar(c.id||c.customerId);if(acc)restoredAccounts.push(acc);if(id)restoredIds.push(id)});
+ if(!restored&&!filled)throw error('CUSTOMER_RECOVERY_NO_IMPROVEMENT','In der Azure-Historie wurden keine besseren Kundendaten oder Kundenvorlagen als im aktuellen Stand gefunden. Es wurde nichts verändert.',409);
+ const backupName=await safetyBackup(container,current,'team-state-before-RC767-customer-recovery'),next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC767-customer-recovery';next.state=state;next.customerRecoveryAudit={at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds};
+ try{await uploadJson(teamBlob,next,fresh.etag)}catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Azure-Teamstand wurde während der Kundenrettung gleichzeitig geändert. Die Wiederherstellung wurde sicher abgebrochen und kann erneut gestartet werden.',409);if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den wiederhergestellten Kundenstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+ return {ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds,state:next.state,users:next.users||current.users||[]}
+}
+
+
 module.exports=async function(context,req){
  const requestStarted=Date.now();
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS'},body:''};return}
@@ -748,12 +785,16 @@ module.exports=async function(context,req){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
     context.res=json(200,await recoverShipments(c.container,blob,payload,current.user));return
    }
+   if(mode==='recover-customers'){
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Kundenwiederherstellung ist nur für globale Administratoren verfügbar.',403);
+    context.res=json(200,await recoverCustomers(c.container,blob,payload,current.user));return
+   }
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC644-save');
    const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));
    if(corruptBackup)saved.corruptBackup=corruptBackup;
-   const serverMs=Date.now()-requestStarted,ack=req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
+   const serverMs=Date.now()-requestStarted,full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
    if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,serverMs,corruptBackup:saved.corruptBackup||null};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
    context.res=json(200,Object.assign({ok:true,serverMs},client));return
   }
