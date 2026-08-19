@@ -198,9 +198,9 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC777',cache:'777',loginReturn:'/TESTVERSION.html?v=777'});
+var BUILD=Object.freeze({version:'RC778',cache:'778',loginReturn:'/TESTVERSION.html?v=778'});
 var RELEASE=Object.freeze({
- version:'RC777',
+ version:'RC778',
  date:'19.08.2026',
  title:'Aufgabenansicht und Ladeanzeige bereinigt',
  changes:Object.freeze([
@@ -8769,8 +8769,8 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 <form id="loginFields" autocomplete="on" novalidate>
 <label class="field">Benutzername<input autocapitalize="none" autocomplete="username" id="loginUser" name="username" spellcheck="false" value=""/></label>
 <label class="field">Passwort<input autocomplete="current-password" id="loginPass" name="password" type="password"/></label>
-<label class="rc119-login-remember" for="loginRemember"><input id="loginRemember" type="checkbox" autocomplete="off"/><span><strong>Login-Daten auf diesem Gerät speichern</strong><small style="display:block;font-weight:600;color:#64748b;margin-top:2px">Passwort wird im Passwortmanager des Browsers gespeichert.</small></span></label>
-<button class="btn" id="loginBtn" style="width:100%" type="button">Anmelden</button>
+<label class="rc119-login-remember" for="loginRemember"><input id="loginRemember" type="checkbox" autocomplete="off"/><span><strong>Login-Daten auf diesem Gerät speichern</strong><small id="loginRememberHint" style="display:block;font-weight:600;color:#64748b;margin-top:2px">Benutzername wird von ExportHUB gemerkt. Das Passwort verwaltet ausschließlich der Browser-Passwortmanager.</small></span></label>
+<button class="btn" id="loginBtn" style="width:100%" type="submit">Anmelden</button>
 <button class="ghost hidden" id="testserviceContinueBtn" type="button">Teamdaten erneut laden</button>
 <button class="ghost" data-exporthub-ms-switch="1" id="loginMicrosoftAccountSwitchBtn" style="width:100%;margin-top:10px" type="button">Microsoft-Konto wechseln</button>
 <button class="ghost" id="adminRecoveryBtn" style="width:100%;margin-top:10px" type="button">Admin-Zugang wiederherstellen</button>
@@ -8783,30 +8783,31 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 </div>
 </div>
 </div>
-<script id="exporthub-rc726-login-credentials">
+<script id="exporthub-rc778-login-credentials">
 (function(){
 'use strict';
-if(window.__EXPORTHUB_RC726_LOGIN_CREDENTIALS__)return;
-window.__EXPORTHUB_RC726_LOGIN_CREDENTIALS__=true;
-var PREF='exporthub_login_remember_v1',USER='exporthub_login_user_v1',pending=null;
+if(window.__EXPORTHUB_RC778_LOGIN_CREDENTIALS__)return;
+window.__EXPORTHUB_RC778_LOGIN_CREDENTIALS__=true;
+var PREF='exporthub_login_remember_v1',USER='exporthub_login_user_v1';
 function by(id){return document.getElementById(id)}
 function q(v){return String(v==null?'':v).trim()}
 function pref(){try{return localStorage.getItem(PREF)==='1'}catch(_){return false}}
-function setPref(on,user){try{if(on){localStorage.setItem(PREF,'1');if(q(user))localStorage.setItem(USER,q(user))}else{localStorage.removeItem(PREF);localStorage.removeItem(USER)}}catch(_){}}
-async function restore(){var remember=by('loginRemember'),u=by('loginUser'),p=by('loginPass');if(remember)remember.checked=pref();if(!pref())return false;try{var saved=q(localStorage.getItem(USER));if(u&&!q(u.value)&&saved)u.value=saved}catch(_){}
- if(!navigator.credentials||typeof navigator.credentials.get!=='function')return false;
- try{var cred=await navigator.credentials.get({password:true,mediation:'optional'});if(!cred)return false;if(u&&q(cred.id))u.value=q(cred.id);if(p&&typeof cred.password==='string')p.value=cred.password;return true}catch(_){return false}}
-function capture(){var u=by('loginUser'),p=by('loginPass'),r=by('loginRemember');pending={user:q(u&&u.value),pass:String(p&&p.value||''),remember:!!(r&&r.checked)};setPref(pending.remember,pending.user)}
-async function storeCredential(user,pass){user=q(user);pass=String(pass||'');var remember=by('loginRemember');if(!(remember&&remember.checked)||!user||!pass)return false;setPref(true,user);if(!navigator.credentials||typeof navigator.credentials.store!=='function'||typeof window.PasswordCredential!=='function')return false;try{var cred=null,form=by('loginFields'),u=by('loginUser'),p=by('loginPass');if(u)u.value=user;if(p)p.value=pass;try{if(form)cred=new PasswordCredential(form)}catch(_){}if(!cred)cred=new PasswordCredential({id:user,name:user,password:pass});await navigator.credentials.store(cred);return true}catch(_){return false}}
-async function storePending(){var x=pending;pending=null;if(!x||!x.remember||!x.user||!x.pass)return false;return storeCredential(x.user,x.pass)}
-window.__EXPORTHUB_STORE_LOGIN_CREDENTIALS__=function(user,pass){pending=null;return storeCredential(user,pass)};
-function bind(){var form=by('loginFields'),remember=by('loginRemember'),user=by('loginUser');if(form&&!form.dataset.rc726){form.dataset.rc726='1';form.addEventListener('submit',function(e){e.preventDefault()})}
- if(remember&&!remember.dataset.rc726){remember.dataset.rc726='1';remember.addEventListener('change',function(){setPref(this.checked,q(user&&user.value));if(!this.checked&&navigator.credentials&&typeof navigator.credentials.preventSilentAccess==='function'){try{navigator.credentials.preventSilentAccess()}catch(_){}}})}
- document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('#loginBtn,#savePassBtn');if(!b)return;if(b.id==='savePassBtn'){var r=by('loginRemember'),u=by('loginUser'),np=by('newPass1');if(r&&r.checked)pending={user:q(u&&u.value),pass:String(np&&np.value||''),remember:true};return}capture()},true);
- document.addEventListener('keydown',function(e){var t=e.target;if(e.key==='Enter'&&t&&/^(loginUser|loginPass)$/.test(t.id))capture()},true);
+function hint(text,kind){var h=by('loginRememberHint');if(!h)return;h.textContent=text||'Benutzername wird von ExportHUB gemerkt. Das Passwort verwaltet ausschließlich der Browser-Passwortmanager.';h.style.color=kind==='ok'?'#166534':kind==='warn'?'#92400e':'#64748b'}
+function setPref(on,user){try{if(on){localStorage.setItem(PREF,'1');if(q(user))localStorage.setItem(USER,q(user))}else{localStorage.removeItem(PREF);localStorage.removeItem(USER)}}catch(_){}return !!on}
+function credentialApi(){return !!(window.isSecureContext&&navigator.credentials&&typeof navigator.credentials.get==='function')}
+async function restore(){var remember=by('loginRemember'),u=by('loginUser'),p=by('loginPass'),on=pref();if(remember)remember.checked=on;if(!on){hint();return false}try{var saved=q(localStorage.getItem(USER));if(u&&!q(u.value)&&saved)u.value=saved}catch(_){}
+ if(!credentialApi()){hint('Benutzername gespeichert · Passwort kann der Browser-Passwortmanager beim Anmelden anbieten.','warn');return false}
+ try{var cred=await navigator.credentials.get({password:true,mediation:'optional'});if(!cred){hint('Benutzername gespeichert · Passwort kann der Browser-Passwortmanager beim Anmelden anbieten.');return false}if(u&&q(cred.id))u.value=q(cred.id);if(p&&typeof cred.password==='string')p.value=cred.password;hint('Login-Daten aus dem Browser-Passwortmanager eingesetzt.','ok');return true}catch(_){hint('Benutzername gespeichert · Passwort kann der Browser-Passwortmanager beim Anmelden anbieten.','warn');return false}}
+async function storeCredential(user,pass){user=q(user);pass=String(pass||'');var remember=by('loginRemember');if(!(remember&&remember.checked)||!user||!pass)return false;setPref(true,user);
+ if(!(window.isSecureContext&&navigator.credentials&&typeof navigator.credentials.store==='function'&&typeof window.PasswordCredential==='function')){hint('Benutzername gespeichert · Passwortspeicherung übernimmt der Browser-Passwortmanager.','warn');return false}
+ try{var cred=null,form=by('loginFields'),u=by('loginUser'),p=by('loginPass');if(u)u.value=user;if(p)p.value=pass;try{if(form)cred=new PasswordCredential(form)}catch(_){}if(!cred)cred=new PasswordCredential({id:user,name:user,password:pass});await navigator.credentials.store(cred);hint('Benutzername und Passwort im Browser-Passwortmanager gespeichert.','ok');return true}catch(_){hint('Benutzername gespeichert · Passwortspeicherung übernimmt der Browser-Passwortmanager.','warn');return false}}
+window.__EXPORTHUB_STORE_LOGIN_CREDENTIALS__=function(user,pass){return storeCredential(user,pass)};
+function capturePreference(){var r=by('loginRemember'),u=by('loginUser');setPref(!!(r&&r.checked),q(u&&u.value))}
+function bind(){var form=by('loginFields'),remember=by('loginRemember'),user=by('loginUser');if(form&&!form.dataset.rc778){form.dataset.rc778='1';form.addEventListener('submit',capturePreference,true)}
+ if(remember&&!remember.dataset.rc778){remember.dataset.rc778='1';remember.addEventListener('change',function(){setPref(this.checked,q(user&&user.value));if(this.checked)hint('Benutzername wird gespeichert. Das Passwort verwaltet ausschließlich der Browser-Passwortmanager.');else{hint();if(navigator.credentials&&typeof navigator.credentials.preventSilentAccess==='function'){try{navigator.credentials.preventSilentAccess()}catch(_){}}}})}
+ if(user&&!user.dataset.rc778){user.dataset.rc778='1';user.addEventListener('change',function(){if(pref())setPref(true,q(this.value))})}
  restore();
 }
-window.addEventListener('exporthub:ready',storePending);
 window.addEventListener('exporthub:logout',function(){setTimeout(restore,30)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
@@ -12670,15 +12671,14 @@ window.ExportHUBLogout=logoutLocal;
 function bindMicrosoftControls(){updateMicrosoftUi()}
 function bindLogin(){
  if(runtime.delegatedLoginBound)return;runtime.delegatedLoginBound=true;
- document.addEventListener('click',function(e){var node=e.target&&e.target.closest&&e.target.closest('#loginBtn,#testserviceContinueBtn,#adminRecoveryBtn,#savePassBtn,#logoutBtn,[data-exporthub-ms-switch="1"]');if(!node)return;
-  if(node.id==='loginBtn'&&!runtime.loaded){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();login(true);return}
+ document.addEventListener('submit',function(e){var form=e.target;if(!form||form.id!=='loginFields'||runtime.loaded)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();login(true)},true);
+ document.addEventListener('click',function(e){var node=e.target&&e.target.closest&&e.target.closest('#testserviceContinueBtn,#adminRecoveryBtn,#savePassBtn,#logoutBtn,[data-exporthub-ms-switch="1"]');if(!node)return;
   if(node.id==='testserviceContinueBtn'&&!runtime.loaded){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();continueTestserviceLoad();return}
   if(node.id==='adminRecoveryBtn'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();runtime.adminRecoveryRequested=true;const p=by('loginPass');if(p){p.value='';p.focus()}status('Wiederherstellungsmodus aktiv. Benutzername und Passwort eingeben.','');return}
   if(node.id==='savePassBtn'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();saveChangedPassword();return}
   if(node.id==='logoutBtn'){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();logoutLocal();return}
   if(node.matches&&node.matches('[data-exporthub-ms-switch="1"]')){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();switchMicrosoftAccount();return}
  },true);
- document.addEventListener('keydown',function(ev){var node=ev.target&&ev.target.closest&&ev.target.closest('#loginUser,#loginPass');if(node&&ev.key==='Enter'&&!runtime.loaded){ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();login(true)}},true);
 }
 
 
