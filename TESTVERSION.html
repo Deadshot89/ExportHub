@@ -198,12 +198,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC800',cache:'800',loginReturn:'/TESTVERSION.html?v=800'});
+var BUILD=Object.freeze({version:'RC801',cache:'801',loginReturn:'/TESTVERSION.html?v=801'});
 var RELEASE=Object.freeze({
- version:'RC800',
+ version:'RC801',
  date:'19.08.2026',
- title:'Vollständiges visuelles Redesign aller neun ExportHUB-Designs',
+ title:'Login-Sichtbarkeit in dunklen Designs repariert',
  changes:Object.freeze([
+    'RC801 repariert die Login-Sichtbarkeit in Technical Teal und Boardroom Elite. Die Login-Karte, Überschriften, Hilfetexte, Felder, Buttons und Umgebungswahl verwenden jetzt dieselben kanonischen Theme-Flächen und Vordergrundfarben wie die restliche Oberfläche; helle Schrift kann dadurch nicht mehr auf einer weißen Altfläche verschwinden.',
+    'RC801 bindet die Login-Oberfläche direkt in den bestehenden kanonischen Theme-Owner ein. Es wurde kein zusätzlicher Reparatur- oder Overlayblock angelegt; Fachlogik, Authentifizierung, Azure-Speicherung und Navigation bleiben unverändert.',
     'RC800 überarbeitet alle neun vorhandenen Design-Themen als vollständige, eigenständige visuelle Systeme. Farbpalette, Typografie-Kontrast, Flächen, Navigation, Topbar, Karten, Formulare, Tabellen, Statusflächen, Dokumentbereiche, Dialoge und Diagramme folgen jetzt pro Theme einer klaren gemeinsamen Designsprache.',
     'RC800 führt verbindliche Vordergrundfarben für helle, dunkle und akzentfarbene Flächen ein. Primärtext, Sekundärtext, Tabellenköpfe, Buttons, Links, Hinweise und Statusmeldungen bleiben dadurch auch in den dunklen Themes Technical Teal und Boardroom Elite sowie auf kräftigen Akzentflächen zuverlässig lesbar.',
     'RC800 überarbeitet die Icon-Sprache vollständig. Navigationsicons, Aktionsicons, Kundenkontext-Icons, Update-Icons sowie SVG-Icons in Buttons und Karten erhalten themeabhängige Vordergrund-, Hintergrund-, Rahmen-, Hover- und Aktivfarben statt einer universellen Blauwirkung.',
@@ -21875,6 +21877,20 @@ body[data-eh-theme] #content :is(.pill.blue,.badge.blue,.status-info,.info) :is(
 body[data-eh-theme] #content :is(a:not(.btn):not(.ghost):not(.soft)){color:color-mix(in srgb,var(--pc-primary) 84%,#071d2d)!important;font-weight:650!important}
 body[data-eh-theme] .topbar :is(button,select,input){color:var(--pc-text)!important}
 body[data-eh-theme] .topbar :is(button,.ghost,.soft){background:var(--pc-ghost-bg)!important;border-color:var(--pc-line-strong)!important}
+body[data-eh-theme] #login:not(.hidden){background:var(--pc-body-bg,var(--pc-page))!important;color:var(--pc-text)!important}
+body[data-eh-theme] #cleanLoadPanel{background:var(--pc-body-bg,var(--pc-page))!important;color:var(--pc-text)!important}
+body[data-eh-theme] #cleanLoadPanel .clean-load-card{background:var(--pc-card-bg,var(--pc-surface))!important;border-color:var(--pc-line-strong)!important;color:var(--pc-text)!important}
+body[data-eh-theme] #cleanLoadPanel .clean-load-card :is(h1,h2,h3,strong,b){color:var(--pc-title)!important}
+body[data-eh-theme] #login .login-card{background:var(--pc-card-bg,var(--pc-surface))!important;border-color:var(--pc-line-strong)!important;color:var(--pc-text)!important;box-shadow:var(--pc-shadow-float)!important}
+body[data-eh-theme] #login .login-card :is(h1,h2,h3,strong,b,label){color:var(--pc-title)!important}
+body[data-eh-theme] #login .login-card :is(p,.small,.muted,.hint,.helper,.eh-login-environment-note,.clean-version-badge){color:var(--pc-muted)!important}
+body[data-eh-theme] #login:not(.hidden) .login-card #loginUser,body[data-eh-theme] #login:not(.hidden) .login-card #loginPass,body[data-eh-theme] #login:not(.hidden) .login-card #newPass1,body[data-eh-theme] #login:not(.hidden) .login-card #newPass2,body[data-eh-theme] #login:not(.hidden) .login-card #loginLanguageSelect{background:var(--pc-field)!important;background-color:var(--pc-field)!important;color:var(--pc-text)!important;border-color:var(--pc-line-strong)!important;caret-color:var(--pc-primary)!important}
+body[data-eh-theme] #login .login-card :is(input,textarea)::placeholder{color:var(--pc-subtle)!important;opacity:1!important}
+body[data-eh-theme] #login .login-card :is(button,.btn){background:var(--pc-button-bg)!important;border-color:var(--pc-primary)!important;color:var(--pc-on-primary)!important}
+body[data-eh-theme] #login .login-card :is(button.ghost,.ghost,button.soft,.soft){background:var(--pc-ghost-bg)!important;border-color:var(--pc-line-strong)!important;color:var(--pc-title)!important}
+body[data-eh-theme] #login .eh-login-mode-head,body[data-eh-theme] #login .eh-login-environment button{background:var(--pc-surface-2)!important;border-color:var(--pc-line)!important;color:var(--pc-text)!important}
+body[data-eh-theme] #login .eh-login-mode-kicker{color:var(--pc-primary)!important}
+body[data-eh-theme] #login .eh-login-mode-head :is(h2,p),body[data-eh-theme] #login .eh-login-environment button :is(b,span,small){color:inherit!important}
 body[data-eh-theme] .sidebar :is(.brand,.brand *, .profile,.profile *,#nav>[data-index308-group]){text-shadow:0 1px 1px rgba(0,0,0,.14)}
 body[data-eh-theme="current"]{
  --pc-primary:#0b66b2;--pc-primary-2:#1782cf;--pc-primary-soft:#e7f1fb;--pc-focus:#3c97d5;--pc-on-primary:#ffffff;
