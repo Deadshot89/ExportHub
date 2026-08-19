@@ -197,12 +197,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC773',cache:'773',loginReturn:'/TESTVERSION.html?v=773'});
+var BUILD=Object.freeze({version:'RC774',cache:'774',loginReturn:'/TESTVERSION.html?v=774'});
 var RELEASE=Object.freeze({
- version:'RC773',
+ version:'RC774',
  date:'19.08.2026',
- title:'Professional Designsystem · Mailvorlagen & Lieferavis stabil',
+ title:'Azure-Speicherbestätigung Sendungen korrigiert',
  changes:Object.freeze([
+    'RC774 korrigiert die doppelte Sendungs-Speicherbestätigung: Ein erfolgreiches flushSave-Azure-ACK gilt verbindlich. Ein nachgelagerter Generationsvergleich darf einen bereits bestätigten Save nicht mehr fälschlich als unbestätigt melden.',
+    'RC774 behält die Sperrprüfung für bereits abgeholte bzw. gesperrte Sendungen vollständig bei; echte Azure-Fehler bleiben weiterhin sichtbar und werden nicht als Erfolg gewertet.',
     'RC773 führt das bestehende Theme-System zu einem einheitlichen professionellen ExportHUB-Designsystem zusammen. Hintergrund, Navigation, Typografie, Karten, Kacheln, Formulare, Tabellen, Statusflächen, Diagrammcontainer, Modale und mobile Darstellung verwenden jetzt dieselben semantischen Designregeln.',
     'RC773 modernisiert alle neun vorhandenen Designs als professionelle Farbvarianten derselben Komponentenbasis. Es werden keine Fachfunktionen ersetzt und keine Funktionsblöcke deaktiviert.',
     'RC773 macht die gespeicherte Kundenvorlage zur verbindlichen Quelle der Kundenmail. ExportHUB ergänzt keine LDM- oder Sendungsdaten mehr ungefragt; dynamische Angaben werden ausschließlich an ausdrücklich vorhandenen Platzhaltern eingesetzt.',
@@ -13463,18 +13465,17 @@ async function confirmShipmentAzureSave(clean,reason){
  if(rt.loading||rt.applyingRemote||!rt.loaded||!rt.ready)return false;
  var queued=await Promise.resolve(clean.queueSave(reason)),target=Number(rt.changeGeneration||0);
  if(!queued){
-  if(rt.saving&&Number(rt.activeSaveGeneration||0)>0)target=Number(rt.activeSaveGeneration||0);
-  else if(!rt.pendingSave&&!rt.dirty){target=Number(rt.lastSavedGeneration||target||0);rt.lastShipmentSaveTargetGeneration=target;rt.lastShipmentSaveReason=String(reason||'');rt.lastConfirmedShipmentSaveGeneration=target;return true}
+  if(rt.saving&&Number(rt.activeSaveGeneration||0)>0)target=Math.max(target,Number(rt.activeSaveGeneration||0));
+  else if(!rt.pendingSave&&!rt.dirty){target=Math.max(target,Number(rt.lastSavedGeneration||0));rt.lastShipmentSaveTargetGeneration=target;rt.lastShipmentSaveReason=String(reason||'');rt.lastConfirmedShipmentSaveGeneration=target;return true}
  }
  rt.lastShipmentSaveTargetGeneration=target;rt.lastShipmentSaveReason=String(reason||'');
  if(target>0&&Number(rt.lastBlockedShipmentSaveGeneration||0)>=target)return false;
- if(target<=0||Number(rt.lastSavedGeneration||0)>=target){rt.lastConfirmedShipmentSaveGeneration=target;return true}
- var flushOk=false;try{flushOk=(await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:true})))===true}catch(e){console.error('Bestätigte Azure-Speicherung',e)}
+ if(target>0&&Number(rt.lastSavedGeneration||0)>=target){rt.lastConfirmedShipmentSaveGeneration=target;return true}
+ var flushOk=false;try{flushOk=(await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:true})))===true}catch(e){console.error('Bestätigte Azure-Speicherung',e);flushOk=false}
  if(target>0&&Number(rt.lastBlockedShipmentSaveGeneration||0)>=target)return false;
- if(Number(rt.lastSavedGeneration||0)>=target){rt.lastConfirmedShipmentSaveGeneration=target;return true}
- if(!flushOk)return false;
- var confirmDeadline=Date.now()+1200;while(Date.now()<confirmDeadline&&rt.saving){if(Number(rt.lastSavedGeneration||0)>=target){rt.lastConfirmedShipmentSaveGeneration=target;return true}await wait(80)}
- return Number(rt.lastSavedGeneration||0)>=target
+ if(flushOk){rt.lastConfirmedShipmentSaveGeneration=Math.max(target,Number(rt.lastSavedGeneration||0));return true}
+ if(target>0&&Number(rt.lastSavedGeneration||0)>=target){rt.lastConfirmedShipmentSaveGeneration=target;return true}
+ return false
 }
 async function persistShipment(){if(typeof window.__EXPORTHUB_ENSURE_SHIPMENT_WRITE_ALLOWED__==='function'){var writeAllowed=await window.__EXPORTHUB_ENSURE_SHIPMENT_WRITE_ALLOWED__('RC565 Sendung speichern');if(writeAllowed===false)return false}var s=st(),sh=s.shipment||(s.shipment={});cancelFresh(sh);syncRows();var refInput=Array.from(document.querySelectorAll('#content input')).find(function(x){var label=x.closest&&x.closest('label,.field');return /sendungsreferenz|referenznummer/i.test((x.id||'')+' '+(x.name||'')+' '+(label&&label.textContent||''))});if(refInput&&q(refInput.value))sh.ref=q(refInput.value).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);['pickupDate','carrier','licensePlate','loader','incoterm','goodsDescription','comments','deliveryNotes'].forEach(function(k){var v=fieldValueByHandler(k);if(v!=='')sh[k]=v});var existingIdsBefore=[s.activeShipmentId,s.editingShipmentId,s.selectedShipmentId,s.currentShipmentId,s.documentShipmentId,s.openShipmentId,sh.__savedShipmentId,sh.savedShipmentId,sh.id,sh.shipmentId].map(q).filter(function(v){return v&&v!=='current'}),existingIdBefore=existingIdsBefore[0]||'',existingRefBefore=q(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber).toUpperCase(),existingSavedBefore=a(s.shipments).find(function(x){var xid=q(x.id||x.shipmentId),xref=q(x.ref||x.reference||x.shipmentRef||x.referenceNumber).toUpperCase();return(existingIdsBefore.length&&existingIdsBefore.indexOf(xid)>=0)||(existingRefBefore&&xref===existingRefBefore)})||null;
 if(existingSavedBefore){
