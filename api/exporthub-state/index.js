@@ -9,7 +9,7 @@ const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EX
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC768';
+const API_VERSION = 'RC770';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -748,12 +748,19 @@ async function scanHistoricalCustomers(container,maxVersions=500){
  const best=[];candidates.sort((a,b)=>b.score-a.score);candidates.forEach(item=>{const hit=best.find(x=>customerSame(x.customer,item.customer));if(!hit)best.push(item);else if(item.score>hit.score){hit.customer=item.customer;hit.source=item.source;hit.score=item.score}});
  return {historyCount:history.length,scanned,readErrors,best}
 }
+async function previewCustomerRecovery(container,teamBlob,payload){
+ const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam(),state=clone(current.state||{});state.customers=arr(state.customers).map(clone);
+ const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500);let restorable=0,fillable=0;const restorableAccounts=[],fillableAccounts=[];
+ history.best.forEach(item=>{const c=item.customer;if(customerRecoveryScore(c)<34)return;const hit=state.customers.find(x=>customerSame(x,c));if(hit){const trial=clone(hit);if(mergeMissingCustomerFields(trial,c)){fillable++;const acc=cleanScalar(hit.account||hit.customerNumber||hit.kundennummer||hit.name||hit.customerName);if(acc)fillableAccounts.push(acc)}return}if(customerTombstoned(state,c))return;restorable++;const acc=cleanScalar(c.account||c.customerNumber||c.kundennummer||c.name||c.customerName);if(acc)restorableAccounts.push(acc)});
+ return {ok:true,preview:true,currentCount:state.customers.length,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,candidateCount:history.best.length,restorable,fillable,restorableAccounts,fillableAccounts,noImprovement:restorable===0&&fillable===0}
+}
+
 async function recoverCustomers(container,teamBlob,payload,user){
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam(),state=clone(current.state||{});state.customers=arr(state.customers).map(clone);
  const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500);let restored=0,filled=0;const restoredAccounts=[],restoredIds=[];
  history.best.forEach(item=>{const c=item.customer;if(customerRecoveryScore(c)<34)return;const hit=state.customers.find(x=>customerSame(x,c));if(hit){if(mergeMissingCustomerFields(hit,c))filled++;return}if(customerTombstoned(state,c))return;state.customers.push(clone(c));restored++;const acc=cleanScalar(c.account||c.customerNumber||c.kundennummer),id=cleanScalar(c.id||c.customerId);if(acc)restoredAccounts.push(acc);if(id)restoredIds.push(id)});
  if(!restored&&!filled)throw error('CUSTOMER_RECOVERY_NO_IMPROVEMENT','In der Azure-Historie wurden keine besseren Kundendaten oder Kundenvorlagen als im aktuellen Stand gefunden. Es wurde nichts verändert.',409);
- const backupName=await safetyBackup(container,current,'team-state-before-RC767-customer-recovery'),next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC767-customer-recovery';next.state=state;next.customerRecoveryAudit={at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds};
+ const backupName=await safetyBackup(container,current,'team-state-before-RC770-customer-recovery'),next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC770-customer-recovery';next.state=state;next.customerRecoveryAudit={at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds};
  try{await uploadJson(teamBlob,next,fresh.etag)}catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Azure-Teamstand wurde während der Kundenrettung gleichzeitig geändert. Die Wiederherstellung wurde sicher abgebrochen und kann erneut gestartet werden.',409);if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den wiederhergestellten Kundenstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
  return {ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds,state:next.state,users:next.users||current.users||[]}
 }
@@ -784,6 +791,10 @@ module.exports=async function(context,req){
    if(mode==='recover-shipments'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
     context.res=json(200,await recoverShipments(c.container,blob,payload,current.user));return
+   }
+   if(mode==='recovery-preview-customers'){
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Kunden-Historienprüfung ist nur für globale Administratoren verfügbar.',403);
+    context.res=json(200,await previewCustomerRecovery(c.container,blob,payload));return
    }
    if(mode==='recover-customers'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Kundenwiederherstellung ist nur für globale Administratoren verfügbar.',403);
