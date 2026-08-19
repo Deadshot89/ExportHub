@@ -198,12 +198,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC780',cache:'780',loginReturn:'/TESTVERSION.html?v=780'});
+var BUILD=Object.freeze({version:'RC781',cache:'781',loginReturn:'/TESTVERSION.html?v=781'});
 var RELEASE=Object.freeze({
- version:'RC780',
+ version:'RC781',
  date:'19.08.2026',
- title:'Stabile Rechtegruppen und Gruppenzuordnung',
+ title:'Neun klar getrennte professionelle Designs',
  changes:Object.freeze([
+    'RC781 trennt alle neun vorhandenen Designs visuell deutlich voneinander, ohne die Komponenten-Geometrie oder Fachlogik zu verändern. Designwechsel ändern ausschließlich visuelle Eigenschaften wie Palette, Flächenwirkung, Linien, Schatten und Materialcharakter.',
+    'RC781 gibt Professional Standard, Operations Blue, Executive Minimal, Glass Workspace, Technical Teal, Warm Business, Mint Professional, Boardroom Elite und Strategic Graphite jeweils eine eigenständige Webdesign-Identität auf derselben unveränderten ExportHUB-Struktur.',
+    'RC781 entfernt die bisherigen themeabhängigen Radius-Abweichungen. Breiten, Höhen, Abstände, Grid-/Flex-Aufbau, Reihenfolge, Sichtbarkeit, Navigation, Formwerte und Azure-Zustand bleiben beim Umschalten des Designs unverändert.',
     'RC780 speichert Rechtegruppen jetzt mit einer stabilen Benutzer-zu-Gruppe-Zuordnung im Azure-Teamstand. Eine Gruppe wird nicht mehr ausschließlich daraus abgeleitet, dass einzelne Benutzer zufällig exakt dieselben Rechte besitzen.',
     'RC780 verwendet bei Gruppenänderungen die feste Zuordnung als führende Mitgliedschaft und übernimmt bisher noch nicht zugeordnete Altbenutzer einmalig anhand der bestehenden Gruppenrechte. Individuell geänderte Benutzer werden aus der festen Gruppenzuordnung entfernt.',
     'RC780 bestätigt Gruppenänderungen zweistufig: Benutzerrechte werden über die bestehende Auth-API gesetzt und erneut gelesen; Gruppendefinition und Gruppenzuordnungen werden anschließend gemeinsam im Teamstand bestätigt. Scheitert die Teamstand-Bestätigung, werden bereits geänderte Benutzerrechte zurückgesetzt.',
@@ -222,7 +225,7 @@ var RELEASE=Object.freeze({
     'RC775 erzwingt für alle neun Designs lesbare WCAG-orientierte Kontraste: Text, Hilfetext, Tabellen, Felder, Buttons, Badges, Navigation und SVG-/Diagrammtexte verwenden feste semantische Vordergrundfarben statt riskanter Theme-Mischungen.',
     'RC775 sperrt die Azure-Testservice-Umgebung für alle Nicht-Global-Admins. Nach erfolgreicher Serverauthentifizierung wird die Rolle geprüft; Nicht-Global-Admins werden vor dem Laden der Teamdaten abgewiesen und ihre Testservice-Sitzung sofort verworfen. Gespeicherte Nicht-Admin-Sitzungen werden ebenfalls blockiert.',
     'RC773 führt das bestehende Theme-System zu einem einheitlichen professionellen ExportHUB-Designsystem zusammen. Hintergrund, Navigation, Typografie, Karten, Kacheln, Formulare, Tabellen, Statusflächen, Diagrammcontainer, Modale und mobile Darstellung verwenden jetzt dieselben semantischen Designregeln.',
-    'RC773 modernisiert alle neun vorhandenen Designs als professionelle Farbvarianten derselben Komponentenbasis. Es werden keine Fachfunktionen ersetzt und keine Funktionsblöcke deaktiviert.',
+    'RC773 modernisierte die gemeinsame Komponentenbasis aller neun Designs. RC781 entwickelt diese Basis zu neun klar unterscheidbaren visuellen Identitäten weiter; Fachfunktionen bleiben unverändert.',
     'RC773 macht die gespeicherte Kundenvorlage zur verbindlichen Quelle der Kundenmail. ExportHUB ergänzt keine LDM- oder Sendungsdaten mehr ungefragt; dynamische Angaben werden ausschließlich an ausdrücklich vorhandenen Platzhaltern eingesetzt.',
     'RC773 verwirft veraltete automatische Sendungs-Mailentwürfe, sobald sich die zugrunde liegende Kundenvorlage geändert hat. Nur ein in derselben Sendung tatsächlich manuell bearbeiteter Entwurf zur aktuellen Vorlage darf Vorrang haben.',
     'RC773 hält Lieferavis / Kunden-Avis auch im deaktivierten Zustand dauerhaft sichtbar. Deaktivieren entfernt nur den Link und den Avis-Block aus der Mail; die Funktion selbst bleibt im Mailbereich mit Aktivieren-Schaltfläche bestehen.',
@@ -21922,16 +21925,106 @@ body[data-eh-theme] #content :is(a:not(.btn):not(.ghost):not(.soft)){color:color
 body[data-eh-theme] .topbar :is(button,select,input){color:var(--pc-text)!important}
 body[data-eh-theme] .topbar :is(button,.ghost,.soft){background:var(--pc-surface)!important;border-color:var(--pc-line-strong)!important}
 body[data-eh-theme] .sidebar :is(.brand,.brand *, .profile,.profile *,#nav>[data-index308-group]){text-shadow:0 1px 1px rgba(0,0,0,.14)}
-body[data-eh-theme="current"]{--pc-primary:#0f6cbd;--pc-primary-2:#0b5a9f;--pc-primary-soft:#eaf3fb;--pc-side:#0d2438;--pc-side-2:#12324d;--pc-page:#f4f7fb;--pc-page-accent:#eaf1f8}
-body[data-eh-theme="command-center"]{--pc-primary:#2455a4;--pc-primary-2:#1d478c;--pc-primary-soft:#edf3ff;--pc-side:#09192e;--pc-side-2:#102b4a;--pc-page:#f2f5fa;--pc-page-accent:#e7edf6;--pc-title:#112d50}
-body[data-eh-theme="executive-minimal"]{--pc-primary:#35546a;--pc-primary-2:#2c4659;--pc-primary-soft:#edf2f5;--pc-side:#1d2933;--pc-side-2:#2a3945;--pc-page:#f6f7f8;--pc-page-accent:#eceff1;--pc-title:#1c2c36;--pc-radius:13px;--pc-radius-lg:17px}
-body[data-eh-theme="glass-workspace"]{--pc-primary:#2b6688;--pc-primary-2:#245875;--pc-primary-soft:#e8f3f8;--pc-side:#16394d;--pc-side-2:#24546a;--pc-page:#eff5f8;--pc-page-accent:#ddeaf0;--pc-top:rgba(255,255,255,.82);--pc-surface:rgba(255,255,255,.88)}
-body[data-eh-theme="glass-workspace"] :is(.topbar,#content .card,#content .metric){backdrop-filter:blur(16px) saturate(108%)!important}
-body[data-eh-theme="neon-flow"]{--pc-primary:#066b7b;--pc-primary-2:#055a68;--pc-primary-soft:#e7f7f8;--pc-side:#0b2934;--pc-side-2:#124352;--pc-page:#eff7f8;--pc-page-accent:#dfeff1;--pc-title:#123b45}
-body[data-eh-theme="sunny-bloom"]{--pc-primary:#a6533c;--pc-primary-2:#8f4632;--pc-primary-soft:#fff0e9;--pc-side:#54372d;--pc-side-2:#6f493a;--pc-page:#faf7f3;--pc-page-accent:#f3e9df;--pc-title:#492f27}
-body[data-eh-theme="mint-pop"]{--pc-primary:#187a70;--pc-primary-2:#12675f;--pc-primary-soft:#e8f7f4;--pc-side:#133b38;--pc-side-2:#1c514c;--pc-page:#f1f8f6;--pc-page-accent:#e2f1ed;--pc-title:#173d39}
-body[data-eh-theme="boardroom-elite"]{--pc-primary:#365f9f;--pc-primary-2:#2d5187;--pc-primary-soft:#edf2fa;--pc-side:#0b1e3b;--pc-side-2:#15335d;--pc-page:#f5f5f3;--pc-page-accent:#ebe9e3;--pc-title:#13294d;--pc-warning:#8d6a1f}
-body[data-eh-theme="strategic-graphite"]{--pc-primary:#267366;--pc-primary-2:#1e6257;--pc-primary-soft:#eaf5f2;--pc-side:#202b2f;--pc-side-2:#2e3c40;--pc-page:#f4f6f5;--pc-page-accent:#e8ecea;--pc-title:#1c3031;--pc-radius:10px;--pc-radius-lg:14px}
+body[data-eh-theme="current"]{
+ --pc-primary:#0f6cbd;--pc-primary-2:#0b5a9f;--pc-primary-soft:#eaf3fb;--pc-focus:#3b9bdc;
+ --pc-page:#f4f7fb;--pc-page-accent:#e7eff8;--pc-surface:#ffffff;--pc-surface-2:#f8fafc;--pc-surface-3:#eef3f8;--pc-field:#ffffff;
+ --pc-line:#d7e1eb;--pc-line-strong:#becddb;--pc-text:#172b3a;--pc-title:#0c2438;--pc-muted:#52697b;--pc-subtle:#5b7183;
+ --pc-side:#0d2438;--pc-side-2:#12324d;--pc-side-text:#f5f9fc;--pc-side-muted:#a8bdce;--pc-nav-hover:rgba(255,255,255,.07);--pc-nav-active:#ffffff;--pc-nav-active-text:#0b3f69;
+ --pc-top:rgba(255,255,255,.95);--pc-shadow:0 14px 34px rgba(18,42,64,.08);--pc-shadow-soft:0 5px 16px rgba(18,42,64,.055);--pc-shadow-float:0 20px 52px rgba(18,42,64,.13)
+}
+body[data-eh-theme="current"] .sidebar{background:linear-gradient(180deg,#0d2438 0%,#12324d 100%)!important}
+body[data-eh-theme="current"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%)!important}
+
+body[data-eh-theme="command-center"]{
+ --pc-primary:#1f63b5;--pc-primary-2:#174f93;--pc-primary-soft:#e5effb;--pc-focus:#4b91d9;
+ --pc-page:#eaf0f6;--pc-page-accent:#d8e3ee;--pc-surface:#fdfefe;--pc-surface-2:#f2f6fa;--pc-surface-3:#e6edf4;--pc-field:#ffffff;
+ --pc-line:#c9d6e2;--pc-line-strong:#aebfd0;--pc-text:#122a3f;--pc-title:#0a2846;--pc-muted:#4c667b;--pc-subtle:#5d7385;
+ --pc-side:#061a30;--pc-side-2:#0b3157;--pc-side-text:#f4f8fc;--pc-side-muted:#a8bfd4;--pc-nav-hover:rgba(83,153,217,.15);--pc-nav-active:#dcecff;--pc-nav-active-text:#092e53;
+ --pc-top:rgba(247,250,253,.96);--pc-shadow:0 12px 28px rgba(7,40,72,.12);--pc-shadow-soft:0 4px 12px rgba(7,40,72,.09);--pc-shadow-float:0 22px 50px rgba(7,40,72,.18)
+}
+body[data-eh-theme="command-center"] .sidebar{background:linear-gradient(180deg,#061a30 0%,#0b3157 62%,#0a2745 100%)!important;box-shadow:10px 0 30px rgba(4,27,50,.18)!important}
+body[data-eh-theme="command-center"] .topbar{border-color:#b9c9d8!important;box-shadow:0 5px 0 rgba(31,99,181,.07),var(--pc-shadow-soft)!important}
+body[data-eh-theme="command-center"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){border-color:#c4d2df!important;box-shadow:0 4px 0 rgba(31,99,181,.035),var(--pc-shadow-soft)!important}
+
+body[data-eh-theme="executive-minimal"]{
+ --pc-primary:#3e586b;--pc-primary-2:#304756;--pc-primary-soft:#eef2f4;--pc-focus:#718899;
+ --pc-page:#f7f7f6;--pc-page-accent:#efefed;--pc-surface:#ffffff;--pc-surface-2:#fafafa;--pc-surface-3:#f1f2f2;--pc-field:#ffffff;
+ --pc-line:#dedfdf;--pc-line-strong:#c9cbcc;--pc-text:#222a2f;--pc-title:#151c20;--pc-muted:#5d666b;--pc-subtle:#70787c;
+ --pc-side:#24292d;--pc-side-2:#30363b;--pc-side-text:#f7f7f7;--pc-side-muted:#bfc4c7;--pc-nav-hover:rgba(255,255,255,.055);--pc-nav-active:#f6f6f5;--pc-nav-active-text:#1d252a;
+ --pc-top:rgba(255,255,255,.97);--pc-shadow:0 9px 22px rgba(28,36,42,.05);--pc-shadow-soft:0 2px 7px rgba(28,36,42,.045);--pc-shadow-float:0 16px 36px rgba(28,36,42,.10)
+}
+body[data-eh-theme="executive-minimal"] .sidebar{background:linear-gradient(180deg,#24292d 0%,#30363b 100%)!important;box-shadow:6px 0 18px rgba(20,24,27,.07)!important}
+body[data-eh-theme="executive-minimal"] .topbar{backdrop-filter:none!important;box-shadow:0 1px 3px rgba(28,36,42,.04)!important}
+body[data-eh-theme="executive-minimal"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:#ffffff!important;box-shadow:0 1px 3px rgba(28,36,42,.035)!important}
+
+body[data-eh-theme="glass-workspace"]{
+ --pc-primary:#2b6f91;--pc-primary-2:#215a77;--pc-primary-soft:#e4f1f7;--pc-focus:#55a3c4;
+ --pc-page:#eaf3f7;--pc-page-accent:#d7e8ef;--pc-surface:rgba(255,255,255,.76);--pc-surface-2:rgba(246,251,253,.72);--pc-surface-3:rgba(227,240,246,.76);--pc-field:rgba(255,255,255,.88);
+ --pc-line:rgba(132,166,184,.38);--pc-line-strong:rgba(102,143,165,.50);--pc-text:#183646;--pc-title:#0f3041;--pc-muted:#526f7d;--pc-subtle:#647f8c;
+ --pc-side:#16394d;--pc-side-2:#245b72;--pc-side-text:#f6fbfd;--pc-side-muted:#bdd2dc;--pc-nav-hover:rgba(255,255,255,.10);--pc-nav-active:rgba(255,255,255,.92);--pc-nav-active-text:#16455b;
+ --pc-top:rgba(255,255,255,.68);--pc-shadow:0 18px 46px rgba(44,91,113,.13);--pc-shadow-soft:0 8px 24px rgba(44,91,113,.09);--pc-shadow-float:0 24px 60px rgba(44,91,113,.18)
+}
+body[data-eh-theme="glass-workspace"]{background:radial-gradient(circle at 86% 8%,rgba(93,169,198,.20),transparent 28%),radial-gradient(circle at 12% 92%,rgba(126,182,204,.18),transparent 32%),linear-gradient(145deg,var(--pc-page),var(--pc-page-accent))!important}
+body[data-eh-theme="glass-workspace"] .sidebar{background:linear-gradient(180deg,rgba(18,53,72,.96),rgba(35,91,114,.94))!important;backdrop-filter:blur(18px) saturate(120%)!important}
+body[data-eh-theme="glass-workspace"] :is(.topbar,#content .card,#content .metric,#content .folder-section,#content .rc205-widget,#content .rc524-panel,#content .rc543-section){backdrop-filter:blur(18px) saturate(118%)!important}
+body[data-eh-theme="glass-workspace"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(244,251,253,.64))!important;border-color:rgba(126,163,181,.38)!important}
+
+body[data-eh-theme="neon-flow"]{
+ --pc-primary:#2dd4bf;--pc-primary-2:#14b8a6;--pc-primary-soft:#123c3b;--pc-focus:#5eead4;--pc-on-primary:#073b36;
+ --pc-page:#07171d;--pc-page-accent:#0b2229;--pc-surface:#10262d;--pc-surface-2:#0d2026;--pc-surface-3:#17323a;--pc-field:#0b1d23;
+ --pc-line:#28505a;--pc-line-strong:#356572;--pc-text:#e6f4f3;--pc-title:#f1fbfa;--pc-muted:#a8c7c7;--pc-subtle:#8fb3b5;
+ --pc-side:#051217;--pc-side-2:#09252b;--pc-side-text:#ecfffc;--pc-side-muted:#8eb9b7;--pc-nav-hover:rgba(45,212,191,.11);--pc-nav-active:#c8fff7;--pc-nav-active-text:#083d38;
+ --pc-top:rgba(12,31,37,.94);--pc-shadow:0 16px 38px rgba(0,0,0,.25);--pc-shadow-soft:0 6px 18px rgba(0,0,0,.20);--pc-shadow-float:0 24px 56px rgba(0,0,0,.34);
+ --pc-success:#48d7a4;--pc-success-soft:#12382f;--pc-warning:#f5be63;--pc-warning-soft:#3a2d18;--pc-danger:#ff7b7b;--pc-danger-soft:#3d2024;--pc-info:#7db9ff;--pc-info-soft:#172f4a
+}
+body[data-eh-theme="neon-flow"]{background:radial-gradient(circle at 82% 4%,rgba(45,212,191,.09),transparent 27%),linear-gradient(145deg,#07171d 0%,#0b2229 100%)!important}
+body[data-eh-theme="neon-flow"] .sidebar{background:linear-gradient(180deg,#051217 0%,#09252b 100%)!important;border-right-color:rgba(45,212,191,.14)!important;box-shadow:9px 0 30px rgba(0,0,0,.28)!important}
+body[data-eh-theme="neon-flow"] .topbar{border-color:#244b54!important;box-shadow:0 0 0 1px rgba(45,212,191,.035),var(--pc-shadow-soft)!important}
+body[data-eh-theme="neon-flow"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:linear-gradient(180deg,#10262d 0%,#0d2228 100%)!important;border-color:#28505a!important;box-shadow:0 0 0 1px rgba(45,212,191,.025),var(--pc-shadow-soft)!important}
+
+body[data-eh-theme="sunny-bloom"]{
+ --pc-primary:#9d4e36;--pc-primary-2:#7f3e2c;--pc-primary-soft:#fae9e1;--pc-focus:#c8785d;
+ --pc-page:#f8f2ea;--pc-page-accent:#efe2d4;--pc-surface:#fffdf9;--pc-surface-2:#fbf7f1;--pc-surface-3:#f3ebe1;--pc-field:#fffefb;
+ --pc-line:#dfd0c2;--pc-line-strong:#cdb9a7;--pc-text:#3e332d;--pc-title:#352720;--pc-muted:#75645b;--pc-subtle:#85736a;
+ --pc-side:#49342c;--pc-side-2:#68483a;--pc-side-text:#fff9f4;--pc-side-muted:#d7c1b5;--pc-nav-hover:rgba(255,232,218,.10);--pc-nav-active:#fff4ec;--pc-nav-active-text:#613625;
+ --pc-top:rgba(255,252,247,.96);--pc-shadow:0 14px 32px rgba(85,55,38,.09);--pc-shadow-soft:0 5px 15px rgba(85,55,38,.065);--pc-shadow-float:0 22px 48px rgba(85,55,38,.14)
+}
+body[data-eh-theme="sunny-bloom"] .sidebar{background:linear-gradient(180deg,#49342c 0%,#68483a 100%)!important}
+body[data-eh-theme="sunny-bloom"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:linear-gradient(180deg,#fffdf9 0%,#fbf6ef 100%)!important;border-color:#dfd0c2!important}
+body[data-eh-theme="sunny-bloom"] .topbar{border-color:#dccdbf!important}
+
+body[data-eh-theme="mint-pop"]{
+ --pc-primary:#187a70;--pc-primary-2:#12675f;--pc-primary-soft:#e2f5ef;--pc-focus:#43a99c;
+ --pc-page:#eef8f5;--pc-page-accent:#dff0ea;--pc-surface:#fcfffe;--pc-surface-2:#f4fbf8;--pc-surface-3:#e7f3ef;--pc-field:#ffffff;
+ --pc-line:#c9e0d9;--pc-line-strong:#aed0c6;--pc-text:#173b37;--pc-title:#0e302c;--pc-muted:#56746f;--pc-subtle:#66827d;
+ --pc-side:#103a36;--pc-side-2:#1a544e;--pc-side-text:#f2fffb;--pc-side-muted:#afd1c9;--pc-nav-hover:rgba(111,220,196,.10);--pc-nav-active:#e1fbf3;--pc-nav-active-text:#0d5148;
+ --pc-top:rgba(251,255,253,.95);--pc-shadow:0 14px 34px rgba(18,92,81,.09);--pc-shadow-soft:0 5px 16px rgba(18,92,81,.06);--pc-shadow-float:0 22px 52px rgba(18,92,81,.15)
+}
+body[data-eh-theme="mint-pop"] .sidebar{background:linear-gradient(180deg,#103a36 0%,#1a544e 100%)!important}
+body[data-eh-theme="mint-pop"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:linear-gradient(180deg,#fcfffe 0%,#f5fbf9 100%)!important;border-color:#c7dfd8!important}
+body[data-eh-theme="mint-pop"] .topbar{border-color:#c5ddd6!important}
+
+body[data-eh-theme="boardroom-elite"]{
+ --pc-primary:#9a6b1f;--pc-primary-2:#795318;--pc-primary-soft:#f5ead5;--pc-focus:#c29a57;
+ --pc-page:#f3f1ec;--pc-page-accent:#e5e1d8;--pc-surface:#fffefa;--pc-surface-2:#f8f6f0;--pc-surface-3:#ece8df;--pc-field:#fffefa;
+ --pc-line:#d6cfbf;--pc-line-strong:#beb49f;--pc-text:#253246;--pc-title:#102844;--pc-muted:#667080;--pc-subtle:#767f8c;
+ --pc-side:#091a33;--pc-side-2:#112f55;--pc-side-text:#fbfcff;--pc-side-muted:#aab8cc;--pc-nav-hover:rgba(196,155,83,.11);--pc-nav-active:#fbf3e4;--pc-nav-active-text:#173657;
+ --pc-top:rgba(255,254,250,.96);--pc-shadow:0 15px 34px rgba(12,33,61,.11);--pc-shadow-soft:0 5px 15px rgba(12,33,61,.075);--pc-shadow-float:0 24px 54px rgba(12,33,61,.17);--pc-warning:#8a611d
+}
+body[data-eh-theme="boardroom-elite"] .sidebar{background:linear-gradient(180deg,#091a33 0%,#112f55 100%)!important;border-right-color:rgba(191,153,81,.22)!important}
+body[data-eh-theme="boardroom-elite"] .topbar{border-color:#d2c8b4!important;box-shadow:0 3px 0 rgba(154,107,31,.055),var(--pc-shadow-soft)!important}
+body[data-eh-theme="boardroom-elite"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:linear-gradient(180deg,#fffefa 0%,#f9f6ef 100%)!important;border-color:#d6cfbf!important;box-shadow:0 2px 0 rgba(154,107,31,.035),var(--pc-shadow-soft)!important}
+
+body[data-eh-theme="strategic-graphite"]{
+ --pc-primary:#37746e;--pc-primary-2:#2b605b;--pc-primary-soft:#e5efed;--pc-focus:#679c97;
+ --pc-page:#eff1f0;--pc-page-accent:#dfe3e1;--pc-surface:#f9faf9;--pc-surface-2:#f2f4f3;--pc-surface-3:#e7eae8;--pc-field:#ffffff;
+ --pc-line:#cdd3d0;--pc-line-strong:#b4bdb9;--pc-text:#283230;--pc-title:#172422;--pc-muted:#606d69;--pc-subtle:#717d79;
+ --pc-side:#20282a;--pc-side-2:#303b3e;--pc-side-text:#f5f7f6;--pc-side-muted:#b6c0bd;--pc-nav-hover:rgba(128,166,158,.10);--pc-nav-active:#eef3f1;--pc-nav-active-text:#263b38;
+ --pc-top:rgba(248,250,249,.96);--pc-shadow:0 13px 30px rgba(32,43,43,.10);--pc-shadow-soft:0 4px 13px rgba(32,43,43,.07);--pc-shadow-float:0 22px 48px rgba(32,43,43,.16)
+}
+body[data-eh-theme="strategic-graphite"] .sidebar{background:linear-gradient(180deg,#20282a 0%,#303b3e 100%)!important}
+body[data-eh-theme="strategic-graphite"] .topbar{border-color:#c5cdca!important}
+body[data-eh-theme="strategic-graphite"] #content :is(.card,.metric,.folder-section,.rc205-widget,.rc524-panel,.rc543-section){background:linear-gradient(180deg,#f9faf9 0%,#f1f4f2 100%)!important;border-color:#cbd2cf!important;box-shadow:0 5px 12px rgba(32,43,43,.065)!important}
 /* Responsive */
 @media(max-width:1180px){body[data-eh-theme]{--pc-side-width:246px}body[data-eh-theme] .main{padding:15px 17px 34px!important}body[data-eh-theme] #content :is(.grid4,.metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:760px){body[data-eh-theme] .app{display:block!important;width:100%!important;min-width:0!important}body[data-eh-theme] .sidebar{position:fixed!important;z-index:2147483000!important;left:0!important;top:0!important;width:min(86vw,310px)!important;height:100dvh!important;transform:translateX(-105%)!important;transition:transform .18s ease!important;box-shadow:var(--pc-shadow-float)!important}body[data-eh-theme].eh-sidebar-open .sidebar,body.eh-sidebar-open[data-eh-theme] .sidebar{transform:translateX(0)!important}body[data-eh-theme] .main{width:100%!important;max-width:100%!important;padding:7px 7px 22px!important}body[data-eh-theme] .topbar{top:5px!important;display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:6px!important;margin-bottom:9px!important;padding:6px!important;border-radius:12px!important}body[data-eh-theme] .topbar .search{grid-column:1/-1!important;width:100%!important}#ehThemeSwitch{min-width:0!important}#ehThemeSelect{min-width:0!important}body[data-eh-theme] #content .page-head{display:block!important;margin-bottom:9px!important;padding:5px 3px 9px!important}body[data-eh-theme] #content .page-head h1,body[data-eh-theme] #content .page-head h2{font-size:23px!important}body[data-eh-theme] #content :is(.metrics,.grid4,.summaryGrid,.quick-grid,.hero-kpis,.rc205-quick-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}body[data-eh-theme] #content :is(.grid2,.grid3,.split,.miniGrid,.academy-layout,.customer-mail-grid,.sop-detail-grid,.rc524-card-list){grid-template-columns:minmax(0,1fr)!important;gap:8px!important}body[data-eh-theme] #content :is(.card,.folder-section,.rc205-widget,.rc205-quick-card,.rc524-panel,.rc543-section){padding:12px!important;border-radius:13px!important}body[data-eh-theme] #content :is(input,select,textarea){min-height:39px!important;font-size:13px!important}body[data-eh-theme] #content :is(button,.btn,.ghost,.soft,.danger){min-height:37px!important}body[data-eh-theme] .rc705-avis-top{display:grid!important}.rc705-avis-link{grid-template-columns:1fr!important}.rc705-avis-link button{width:100%!important}}
