@@ -198,12 +198,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC805',cache:'805',loginReturn:'/TESTVERSION.html?v=805'});
+var BUILD=Object.freeze({version:'RC806',cache:'806',loginReturn:'/TESTVERSION.html?v=806'});
 var RELEASE=Object.freeze({
- version:'RC805',
+ version:'RC806',
  date:'19.08.2026',
- title:'Lesbarkeit und Helligkeitsbalance aller neun Designs',
+ title:'Produktions-Update lädt immer die saubere Root-URL',
  changes:Object.freeze([
+     'RC806 korrigiert den Produktions-Updatepfad: Der Update-Button lädt nach einer erkannten neuen Version ausschließlich die saubere Root-Adresse der Azure Static Web App. Es werden weder /index.html noch ?update=... noch ?v=... in die sichtbare Produktions-URL übernommen.',
+     'RC806 bereinigt beim Start der Produktions-Hauptseite verbliebene Update- und Versionsparameter automatisch aus der URL. Ein alter Link wie /?update=...&v=... wird dadurch direkt auf / normalisiert, ohne dass der Benutzer die Adresse manuell bis .net kürzen muss.',
+     'RC806 lässt Testservice-, Pickup- und sonstige fachliche Routen unverändert. Die Änderung betrifft ausschließlich die kanonische Produktions-Root-URL und den bestehenden Produktions-Updatebutton.',
      'RC805 setzt eine verbindliche Helligkeitslogik für alle neun Designs durch: sieben helle Themes verwenden im gesamten Arbeitsbereich helle Karten, Tabellen, Felder und Iconflächen; Technical Teal und Boardroom Elite verwenden durchgehend abgestufte dunkle Arbeitsflächen statt schwarzer und weißer Extremkontraste.',
      'RC805 überarbeitet die linke Navigation für Lesbarkeit: Menüschrift und Gruppenüberschriften sind größer, stärker und explizit an die Sidebar-Vordergrundfarbe gebunden. Normal-, Hover- und Aktivzustand von Text und Icons besitzen in jedem Theme einen kontrollierten Kontrast.',
      'RC805 entfernt harte Hell-Dunkel-Sprünge innerhalb der hellen Designs. Operations Blue und Strategic Graphite verwenden keine fast schwarzen Tabellen- oder Iconflächen mehr auf hellen Karten; Tabellenkopf, Karten, Felder und Aktionsicons bleiben in derselben Helligkeitsfamilie.',
@@ -988,10 +991,11 @@ try{
  if(!/^https?:$/.test(u.protocol))return;
  if(testBuild){
    if(/\/(?:TESTVERSION|test-loader)\.html$/i.test(path))path=path.replace(/\/(?:TESTVERSION|test-loader)\.html$/i,'/test')||'/test';
- }else if(/\/index\.html$/i.test(path)){
-   path=path.replace(/index\.html$/i,'')||'/';
+   if(u.searchParams.get('v')!==String(build.cache))u.searchParams.set('v',String(build.cache));
+ }else{
+   if(/\/index\.html$/i.test(path))path=path.replace(/index\.html$/i,'')||'/';
+   if(path==='/'||path===''){u.searchParams.delete('v');u.searchParams.delete('update')}
  }
- if(u.searchParams.get('v')!==String(build.cache))u.searchParams.set('v',String(build.cache));
  var target=path+u.search+u.hash,current=u.pathname+u.search+u.hash;
  if(target!==current)history.replaceState(history.state,'',target);
 }catch(e){console.error('RC640 URL',e)}
@@ -13751,7 +13755,7 @@ function hide(){var b=document.getElementById('ehProductionUpdateBtn');if(b){b.r
 function show(info){var b=ensureButton();if(!b)return;latest=info;var small=b.querySelector('[data-eh-rc741-version]');if(small)small.textContent=q(info.version)||'neuere Version';b.title='Neue ExportHUB-Version '+q(info.version)+' verfügbar. Einmal aktualisieren, um das Update zu laden.';b.setAttribute('aria-label','Update verfügbar: '+q(info.version)+'. Seite einmal aktualisieren.');b.style.display='inline-flex';b.setAttribute('data-visible','1')}
 function nativeFetch(){try{var n=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.fetch;if(typeof n==='function')return n}catch(_){}return window.fetch.bind(window)}
 async function check(force){if(!isProduction())return false;var now=Date.now();if(checking||(!force&&now-lastCheck<55000))return false;checking=true;lastCheck=now;try{var f=nativeFetch(),r=await f('/index.html?exporthub-version-check='+now,{cache:'no-store',credentials:'same-origin',headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache'}});if(!r||!r.ok)return false;var info=parse(await r.text());if(info.version&&newer(info.version,info.cache))show(info);else hide();return true}catch(_){return false}finally{checking=false}}
-function reloadLatest(){if(!latest)return false;try{if(typeof window.__EXPORTHUB_WRITE_TAB_SESSION__==='function')window.__EXPORTHUB_WRITE_TAB_SESSION__()}catch(_){}var api=window.ExportHUBLoadingBar,token=api&&typeof api.start==='function'?api.start('Neue Version '+q(latest.version)+' wird geladen …',0):0;try{var u=new URL('/index.html',location.origin);u.searchParams.set('v',q(latest.cache)||q(latest.version).replace(/\D/g,''));u.searchParams.set('update',String(Date.now()));location.assign(u.href)}catch(e){if(token&&api&&typeof api.fail==='function')api.fail(token,'Update konnte nicht geladen werden');location.reload()}return false}
+function reloadLatest(){if(!latest)return false;try{if(typeof window.__EXPORTHUB_WRITE_TAB_SESSION__==='function')window.__EXPORTHUB_WRITE_TAB_SESSION__()}catch(_){}var api=window.ExportHUBLoadingBar,token=api&&typeof api.start==='function'?api.start('Neue Version '+q(latest.version)+' wird geladen …',0):0;try{var root=new URL('/',location.origin);location.replace(root.href)}catch(e){if(token&&api&&typeof api.fail==='function')api.fail(token,'Update konnte nicht geladen werden');try{location.replace(location.origin+'/')}catch(_){location.reload()}}return false}
 function schedule(){if(!isProduction())return;ensureButton();check(true);if(timer)clearInterval(timer);timer=setInterval(function(){check(false)},180000)}
 window.addEventListener('focus',function(){check(false)});document.addEventListener('visibilitychange',function(){if(!document.hidden)check(false)});window.addEventListener('exporthub:ready',function(){ensureButton();check(false)});window.addEventListener('exporthub:rendered',ensureButton);
 window.ExportHUBProductionUpdate=Object.freeze({version:'RC744',check:function(){return check(true)},reload:reloadLatest,current:function(){return{loaded:CURRENT_VERSION,latest:latest&&latest.version||''}}});
