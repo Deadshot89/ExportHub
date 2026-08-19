@@ -60,7 +60,7 @@ function current(){return canonical(state().view||document.body.getAttribute('da
 function itemForView(view){view=canonical(view);return ITEMS.find(function(item){return item.view===view})||null}
 function rawRightAllowed(right){var u=user();if(!u||!q(u.user||u.username||u.login||u.name||u.displayName))return false;var storedRight=right==='warehouse'&&!(u.rights&&Object.prototype.hasOwnProperty.call(u.rights,'warehouse'))?'customers':right,r=u.rights&&u.rights[storedRight]||{},level=low(r.level||r.access||'');if(['view','edit','admin'].indexOf(level)>=0)return true;if(level==='none')return false;return !!(r.read||r.visible||r.edit||r.admin||r.functionAdmin)}
 function allowed(item){if(item&&item.group)return true;if(!item)return false;if(item.view==='privacy'){var pu=user();return !!q(pu&&pu.user||pu&&pu.username||pu&&pu.login||pu&&pu.name||pu&&pu.displayName)}if(item.view==='release')return isAdmin();if(isAdmin())return true;var right=item.right||item.view;try{if(typeof window.canView==='function'&&typeof window.canRead==='function')return !!(window.canView(right)&&window.canRead(right)&&(right!=='rights'||typeof window.canManageRights!=='function'||window.canManageRights()))}catch(_){return false}return rawRightAllowed(right)}
-function canRoute(view){view=canonical(view);if(view==='shipmentview'||view==='documentviewer'){var overview=itemForView('shipmentoverview');return overview?allowed(overview):false}var item=itemForView(view);return item?allowed(item):true}
+function canRoute(view){view=canonical(view);if(view==='shipmentview'){var overview=itemForView('shipmentoverview');return overview?allowed(overview):false}var item=itemForView(view);return item?allowed(item):true}
 function buttonFor(view){var nav=document.getElementById('nav');return nav&&nav.querySelector(':scope>button[data-index321-view="'+view+'"]')}
 function applyPermissions(){var nav=document.getElementById('nav');ITEMS.forEach(function(item){if(!item.view)return;var b=buttonFor(item.view);if(!b)return;var show=allowed(item);b.hidden=!show;b.style.display=show?'':'none';b.disabled=!show;b.setAttribute('aria-hidden',show?'false':'true')});if(nav){Array.prototype.slice.call(nav.querySelectorAll(':scope>div[data-index308-group]')).forEach(function(g){var n=g.nextElementSibling,visible=false;while(n&&!n.hasAttribute('data-index308-group')){if(n.matches&&n.matches('button[data-index321-view]')&&!n.hidden&&n.style.display!=='none'){visible=true;break}n=n.nextElementSibling}g.hidden=!visible;g.style.display=visible?'':'none';g.setAttribute('aria-hidden',visible?'false':'true')})}}
 function updateActive(){var nav=document.getElementById('nav'),v=current();if(!nav)return;nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){var on=b.getAttribute('data-index321-view')===v;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')})}
@@ -103,7 +103,6 @@ function route(view,source){view=canonical(view);window.__EXPORTHUB_NAVIGATION_A
  var core=window.ExportHUBRC524;
  if(core&&typeof core.install==='function'&&core.diagnostics&&core.diagnostics().installed!==true){try{core.install()}catch(error){console.error('RC409 Navigation initialisieren',error)}}
  if(view==='shipmentview'&&window.ExportHUBShipmentView&&typeof window.ExportHUBShipmentView.render==='function'){setViewState(view);return window.ExportHUBShipmentView.render()}
- if(view==='documentviewer'&&window.ExportHUBDocumentViewer&&typeof window.ExportHUBDocumentViewer.render==='function'){setViewState(view);return window.ExportHUBDocumentViewer.render()}
  if(view==='cmr')return openDocuments();
  if(view==='warehouse'&&window.ExportHUBWarehouse&&typeof window.ExportHUBWarehouse.render==='function'){setViewState(view);prepareDirectView(view);var outWarehouse=window.ExportHUBWarehouse.render(false);finishDirectView(view);return outWarehouse}
  if(view==='release'&&window.ExportHUBReleaseCenter562&&typeof window.ExportHUBReleaseCenter562.renderHtml==='function'){setViewState(view);var outRelease=prepareDirectView(view);if(outRelease){outRelease.innerHTML=window.ExportHUBReleaseCenter562.renderHtml();finishDirectView(view);if(releaseRefreshTimer)clearTimeout(releaseRefreshTimer);var ntRelease=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;releaseRefreshTimer=ntRelease(function(){releaseRefreshTimer=0;if(current()!=='release')return;try{window.ExportHUBReleaseCenter562.refresh()}catch(error){console.error('Release-Center aktualisieren',error)}},900)}return false}
@@ -199,17 +198,18 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC786',cache:'786',loginReturn:'/TESTVERSION.html?v=786'});
+var BUILD=Object.freeze({version:'RC800',cache:'800',loginReturn:'/TESTVERSION.html?v=800'});
 var RELEASE=Object.freeze({
- version:'RC786',
+ version:'RC800',
  date:'19.08.2026',
- title:'Ref-Ordner-Dateiliste und sendungsgebundener Dokumentviewer',
+ title:'Vollständiges visuelles Redesign aller neun ExportHUB-Designs',
  changes:Object.freeze([
-    'RC786 baut Dateien & Dokumente in der schreibgeschützten Sendungsansicht direkt aus dem SharePoint-/OneDrive-Ref-Ordner 003 Export/ExportHub/Sendungen/<Referenz> auf. Angezeigt werden echte Dateinamen, Dokumenttyp, Erstellungszeit und – sofern vorhanden – Dateigröße.',
-    'RC786 ergänzt je vorhandener Ref-Ordner-Datei die Aktionen Öffnen, Download und bei PDF-/Bilddateien Drucken. Öffnen und Drucken verwenden ausschließlich den bereits vorhandenen Dateiinhalt aus dem Ref-Ordner und erzeugen keine neue PDF.',
-    'RC786 führt einen internen sendungsgebundenen Dokumentviewer ein. Dessen feste Kopfzeile zeigt Zurück zur Sendung <Referenz>; Zurück und Schließen stellen exakt die zuvor geöffnete Nur-Lesen-Sendungsansicht derselben Referenz wieder her.',
-    'RC786 erhält Dokumentcenter öffnen als Gesamtfunktion. Wird das Dokumentcenter aus der Nur-Lesen-Sendungsansicht geöffnet, führt dessen Zur Sendung ebenfalls wieder in dieselbe Sendungsansicht statt automatisch in die Bearbeitungsmaske.',
-    'RC786 ergänzt die serverseitige API /api/reference-files. Sie verwendet die bestehende ExportHUB-Sitzung und die bereits serverseitig konfigurierten Microsoft-Graph-Zugangsdaten; Graph-Secrets werden nicht an den Browser übertragen. Der Dateizugriff ist auf den jeweiligen Ref-Ordner der sechsstelligen Sendungsreferenz begrenzt.',
+    'RC800 überarbeitet alle neun vorhandenen Design-Themen als vollständige, eigenständige visuelle Systeme. Farbpalette, Typografie-Kontrast, Flächen, Navigation, Topbar, Karten, Formulare, Tabellen, Statusflächen, Dokumentbereiche, Dialoge und Diagramme folgen jetzt pro Theme einer klaren gemeinsamen Designsprache.',
+    'RC800 führt verbindliche Vordergrundfarben für helle, dunkle und akzentfarbene Flächen ein. Primärtext, Sekundärtext, Tabellenköpfe, Buttons, Links, Hinweise und Statusmeldungen bleiben dadurch auch in den dunklen Themes Technical Teal und Boardroom Elite sowie auf kräftigen Akzentflächen zuverlässig lesbar.',
+    'RC800 überarbeitet die Icon-Sprache vollständig. Navigationsicons, Aktionsicons, Kundenkontext-Icons, Update-Icons sowie SVG-Icons in Buttons und Karten erhalten themeabhängige Vordergrund-, Hintergrund-, Rahmen-, Hover- und Aktivfarben statt einer universellen Blauwirkung.',
+    'RC800 hält semantische Farben bewusst von der Theme-Akzentfarbe getrennt: Grün bleibt Erfolg, Amber Warnung, Rot Fehler/Gefahr und Blau beziehungsweise Cyan Information. Dadurch bleibt der Bedienstatus in jedem Theme sofort verständlich.',
+    'RC800 schärft die neun Identitäten: Professional Standard = Navy/Cobalt, Operations Blue = technisches Stahlblau, Executive Minimal = monochromes Graphit, Glass Workspace = helles Eisglas, Technical Teal = dunkles Teal/Cyan, Warm Business = Sand/Terrakotta, Mint Professional = Mint/Waldgrün, Boardroom Elite = Navy/Gold und Strategic Graphite = Graphit/Orange.',
+    'RC800 ist eine reine Designrevision auf Basis RC785. Fachlogik, Azure-Speicherpfade, Rechte, Navigation, Sendungsdaten, Dokumentlogik und bestehende Abläufe bleiben unverändert.',
     'RC785 baut alle neun Designs zu vollständigen Oberflächensystemen aus. Seitenhintergrund, Sidebar, Navigation, Topbar, Überschriften, Karten, KPI-Kacheln, Formulare, Buttons, Tabellen, Statusflächen, Dialogflächen, Diagrammcontainer, Mailbereich, Avis und die schreibgeschützte Sendungsansicht verwenden gemeinsam die aktive Designidentität.',
     'RC785 verbindet die ältere ExportHUB-CSS-Variablenbasis mit dem kanonischen Theme-System. Dadurch folgen auch ältere Bereiche und RC776/RC784-Komponenten den aktuellen Theme-Werten statt auf festen Blau-/Weißwerten stehen zu bleiben.',
     'RC785 entfernt die Testservice-Farbüberschreibung des kompletten Seitenhintergrunds und der Topbar. Der Testservice bleibt über seine bestehende Kennzeichnung und eine feste Warnmarkierung eindeutig von Produktion unterscheidbar, ohne die gewählte Designpalette zu verdecken.',
@@ -662,12 +662,11 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
-    'RC786 Ref-Ordner-Dateiliste: Eine Sendung mit mehreren Dateien im SharePoint-Ref-Ordner öffnen. Dateien & Dokumente muss jeden echten Dateinamen genau einmal mit Dokumenttyp, Datum/Uhrzeit und optional Größe anzeigen; die Liste darf nicht aus generischen Erzeugtes-Dokument-Metadaten aufgebaut werden.',
-    'RC786 vorhandene Datei öffnen: Eine gespeicherte CMR-/Ladelisten-PDF über Öffnen aufrufen. Es darf keine PDF-Erzeugungsfunktion starten; der interne Viewer muss die vorhandene Ref-Ordner-Datei anzeigen und oben dauerhaft Zurück zur Sendung REF anbieten.',
-    'RC786 Viewer-Rückweg: Aus Sendungsansicht REF eine Datei öffnen und Zurück beziehungsweise Schließen verwenden. Exakt dieselbe Nur-Lesen-Sendungsansicht REF muss wieder erscheinen; Startseite, Dokumentcenter oder Bearbeitungsmaske dürfen nicht als Rücksprungziel verwendet werden.',
-    'RC786 Dokumentaktionen: Öffnen, Download und Drucken einer vorhandenen PDF prüfen. Download muss den echten Dateinamen verwenden; Drucken darf die gespeicherte Datei verwenden und keine neue CMR/Ladeliste erzeugen.',
-    'RC786 Dokumentcenter-Rückweg: Dokumentcenter öffnen aus der Sendungsansicht REF und dort Zur Sendung wählen. Der Rückweg muss in Sendungsansicht REF führen und darf keinen Azure-Save auslösen.',
-    'RC786 API-Sicherheit: /api/reference-files ohne gültige ExportHUB-Sitzung sowie mit ungültiger Referenz aufrufen. Die API muss den Zugriff ablehnen; Graph-Zugangsdaten dürfen in keiner Browserantwort erscheinen.',
+    'RC800 Theme-Matrix: Alle neun Designs auf Dashboard, Sendungsübersicht, Sendungsansicht, Aufgaben, Kundenordner, Dokumentcenter und Einstellungen prüfen. Text, Icons, Karten, Tabellen, Felder und Buttons müssen pro Theme konsistent und ohne fremde Altfarben dargestellt werden.',
+    'RC800 Kontrastprüfung: In jedem Theme Primärtext, Hilfetext, Navigation, aktive Navigation, Tabellenkopf, Primärbutton, Ghost-/Soft-Button, Statusbadge und Dialog prüfen. Kein Text oder Icon darf auf seiner Fläche visuell verschwinden.',
+    'RC800 Iconprüfung: Navigation, Topbar, Kartenaktionen, Kundenkontext, Dokumentaktionen und SVG-Symbole in normalem, Hover-, aktivem und deaktiviertem Zustand prüfen. Iconfarbe und Iconfläche müssen sichtbar zum gewählten Theme wechseln.',
+    'RC800 Semantikprüfung: Erfolg, Warnung, Fehler und Information müssen in allen neun Designs weiterhin eindeutig grün, amber, rot und blau/cyan erkennbar bleiben und dürfen nicht durch die jeweilige Theme-Akzentfarbe ersetzt werden.',
+    'RC800 Designwechsel ohne Fachwirkung: Mehrfach zwischen allen neun Designs wechseln. Aktiver View, Formwerte, Sendungszustand und Azure-Teamstand müssen unverändert bleiben; Designwechsel darf keinen Speichervorgang auslösen.',
     'RC785 Volltheme: Alle neun Designs nacheinander auf Dashboard, Sendungsübersicht, Sendungsansicht, Aufgaben, Kundenordner und Einstellungen auswählen. Seitenhintergrund, Sidebar, Topbar, Karten, Tabellen, Buttons und Formulare müssen jeweils sichtbar gemeinsam wechseln; kein Bereich darf auf der alten Blau-/Weißbasis stehen bleiben.',
     'RC785 Testservice: Mehrere Designs wechseln. Der Testservice muss weiterhin eindeutig als TESTSERVICE markiert bleiben, darf aber Seitenhintergrund und Topbar nicht mehr auf eine für alle Themes identische Warm-Palette zwingen.',
     'RC785 Designwechsel ohne Datenwirkung: Während eines Theme-Wechsels dürfen weder queueSave noch flushSave, Render-Neuaufbau, Änderung von Formwerten oder Änderung des aktiven Views ausgelöst werden.',
@@ -1092,121 +1091,14 @@ html[data-index209-pickup="1"] body>*:not(#index209PickupApp){display:none!impor
 @media(max-width:620px){#index209PickupApp{padding:10px}.index209-pickup-card{margin:0 auto;padding:18px;border-radius:20px}.index209-pickup-info{grid-template-columns:1fr}.index209-signature-dialog{padding:12px;border-radius:18px}.index209-signature-actions button{flex:1}}
 
 
-/* ---------- RC577: Menü-Kontrast + gezielte Design-Nachschärfung ---------- */
-body[data-eh-theme]{--pc-font:"Segoe UI",Arial,sans-serif!important;--pc-heading:"Segoe UI",Arial,sans-serif!important}
-body[data-eh-theme] .sidebar .brand strong,
-body[data-eh-theme] .sidebar .brand b,
-body[data-eh-theme] .sidebar .profile,
-body[data-eh-theme] .sidebar .profile b,
-body[data-eh-theme] .sidebar .profile strong,
-body[data-eh-theme] #nav>[data-index308-group],
-body[data-eh-theme] #nav>button[data-index321-view],
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-label,
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon{opacity:1!important;filter:none!important}
-body[data-eh-theme] #nav>[data-index308-group]{font-weight:800!important;letter-spacing:.11em!important}
-body[data-eh-theme] #nav>button[data-index321-view]{font-weight:700!important}
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-label{color:inherit!important}
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon{background:color-mix(in srgb,var(--pc-surface) 78%,var(--pc-primary) 22%)!important;border:1px solid color-mix(in srgb,var(--pc-primary) 24%,var(--pc-line))!important}
-body[data-eh-theme] #nav>button[data-index321-view].active .index308-nav-icon,
-body[data-eh-theme] #nav>button[data-index321-view][aria-current="page"] .index308-nav-icon{background:color-mix(in srgb,var(--pc-nav-active) 80%,var(--pc-primary) 20%)!important}
-
-body[data-eh-theme="glass-workspace"]{
- --pc-page:radial-gradient(circle at 9% 0,rgba(164,208,231,.42),transparent 28%),radial-gradient(circle at 92% 3%,rgba(225,236,243,.68),transparent 31%),linear-gradient(145deg,#edf5f8,#deebf1 52%,#d8e6ed)!important;
- --pc-side:rgba(252,254,255,.76)!important;--pc-side-text:#173b50!important;--pc-side-muted:#567487!important;
- --pc-top:rgba(255,255,255,.82)!important;--pc-surface:rgba(255,255,255,.80)!important;--pc-surface-2:rgba(250,253,255,.72)!important;--pc-surface-3:rgba(232,240,246,.78)!important;
- --pc-field:rgba(255,255,255,.92)!important;--pc-line:rgba(107,145,167,.30)!important;--pc-primary:#2b7fa8!important;--pc-primary-2:#74adc2!important
-}
-body[data-eh-theme="glass-workspace"] .sidebar{background:rgba(255,255,255,.56)!important;border:1px solid rgba(255,255,255,.72)!important;backdrop-filter:blur(16px) saturate(112%)!important;box-shadow:0 18px 42px rgba(43,75,94,.12)!important}
-body[data-eh-theme="glass-workspace"] .topbar,
-body[data-eh-theme="glass-workspace"] #content :is(.card,.metric,.rc205-widget,.rc205-quick-card,.folder-section){backdrop-filter:blur(14px) saturate(110%)!important}
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view]{background:rgba(255,255,255,.34)!important;border:1px solid rgba(119,153,172,.26)!important;color:#173b50!important}
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view]:hover{background:rgba(255,255,255,.62)!important}
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view].active,
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view][aria-current="page"]{background:rgba(221,239,247,.88)!important;border-color:rgba(66,126,158,.34)!important;color:#15425b!important;box-shadow:0 8px 18px rgba(43,127,168,.10)!important}
-
-body[data-eh-theme="neon-flow"]{
- --pc-page:radial-gradient(circle at 10% -5%,rgba(0,255,214,.17),transparent 28%),radial-gradient(circle at 92% 0,rgba(0,180,255,.16),transparent 30%),linear-gradient(155deg,#edf8fb,#deedf4 58%,#d9eaf3)!important;
- --pc-side:linear-gradient(180deg,#17384e 0%,#1d4860 62%,#275873 100%)!important;--pc-side-text:#eefbff!important;--pc-side-muted:#b8dce9!important;
- --pc-top:rgba(246,252,255,.93)!important;--pc-surface:#ffffff!important;--pc-surface-2:#f4fbfd!important;--pc-surface-3:#e9f5f9!important;--pc-field:#fff!important;--pc-line:#abd5e1!important;
- --pc-text:#204051!important;--pc-title:#0f425b!important;--pc-muted:#5f7f90!important;--pc-primary:#00c9c9!important;--pc-primary-2:#24a8ff!important;--pc-primary-soft:#ddfbfb!important;
- --pc-nav:rgba(255,255,255,.06)!important;--pc-nav-hover:rgba(255,255,255,.12)!important;--pc-nav-active:linear-gradient(135deg,rgba(0,201,201,.24),rgba(36,168,255,.28))!important;--pc-nav-active-text:#ffffff!important
-}
-body[data-eh-theme="neon-flow"] .sidebar{border-right:1px solid rgba(0,201,201,.34)!important;box-shadow:8px 0 28px rgba(25,84,110,.14)!important}
-body[data-eh-theme="neon-flow"] .sidebar .brand,
-body[data-eh-theme="neon-flow"] .sidebar .brand strong,
-body[data-eh-theme="neon-flow"] .sidebar .profile,
-body[data-eh-theme="neon-flow"] #nav>[data-index308-group],
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view]{color:#eefbff!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view]{background:rgba(255,255,255,.03)!important;border:1px solid rgba(146,223,237,.14)!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view]:hover{background:rgba(255,255,255,.08)!important;border-color:rgba(0,201,201,.30)!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view].active,
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view][aria-current="page"]{background:linear-gradient(135deg,rgba(0,201,201,.24),rgba(36,168,255,.24))!important;border-color:rgba(0,201,201,.38)!important;color:#ffffff!important;box-shadow:0 0 0 1px rgba(0,201,201,.16),0 0 18px rgba(0,201,201,.12)!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view] .index308-nav-icon{background:rgba(255,255,255,.10)!important;border-color:rgba(139,229,239,.22)!important}
-
-
-/* ---------- RC677: TESTSERVICE muss sich farblich von Produktion unterscheiden ---------- */
-html[data-exporthub-testportal="1"] body{
- background:linear-gradient(180deg,#fff7ed 0%,#fffaf4 16%,#fff 100%)!important;
-}
-html[data-exporthub-testportal="1"] .sidebar{
- background:linear-gradient(180deg,#7c2d12 0%,#9a3412 55%,#c2410c 100%)!important;
- border-right:1px solid rgba(251,146,60,.45)!important;
- box-shadow:10px 0 28px rgba(154,52,18,.16)!important;
-}
-html[data-exporthub-testportal="1"] .sidebar .brand .logo{
- background:linear-gradient(135deg,#fdba74,#fb7185)!important;
- color:#4a1306!important;
- box-shadow:0 0 0 2px rgba(255,255,255,.18),0 8px 18px rgba(74,19,6,.18)!important;
-}
-html[data-exporthub-testportal="1"] .sidebar .brand,
-html[data-exporthub-testportal="1"] .sidebar .brand strong,
-html[data-exporthub-testportal="1"] .sidebar .profile,
-html[data-exporthub-testportal="1"] #nav>[data-index308-group],
-html[data-exporthub-testportal="1"] #nav>button[data-index321-view]{color:#fff7ed!important}
-html[data-exporthub-testportal="1"] #nav>button[data-index321-view]{background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,237,213,.12)!important}
-html[data-exporthub-testportal="1"] #nav>button[data-index321-view]:hover{background:rgba(255,255,255,.11)!important;border-color:rgba(253,186,116,.28)!important}
-html[data-exporthub-testportal="1"] #nav>button[data-index321-view].active,
-html[data-exporthub-testportal="1"] #nav>button[data-index321-view][aria-current="page"]{background:linear-gradient(135deg,rgba(251,146,60,.34),rgba(251,113,133,.28))!important;border-color:rgba(255,237,213,.34)!important;color:#ffffff!important;box-shadow:0 0 0 1px rgba(255,237,213,.12),0 10px 18px rgba(124,45,18,.18)!important}
-html[data-exporthub-testportal="1"] .topbar{
- background:linear-gradient(180deg,#fff7ed,#fffbf5)!important;
- border:2px solid #fdba74!important;
- box-shadow:0 10px 28px rgba(251,146,60,.10)!important;
-}
-html[data-exporthub-testportal="1"] .topbar .search{
- border-color:#fdba74!important;
- background:#fffdf8!important;
-}
-html[data-exporthub-testportal="1"] .topbar :is(button,.btn,.ghost,select){
- border-color:#fdba74!important;
-}
+/* ---------- RC800: Legacy-Theme-Overrides entfernt; kanonisches Theme-System ist alleiniger Design-Owner ---------- */
 html[data-exporthub-testportal="1"] #openTestserviceBtn{display:none!important}
-html[data-exporthub-testportal="1"] #content .page-head{
- background:linear-gradient(180deg,#fff3e6,#fff9f2)!important;
- border:1px solid #fed7aa!important;
- border-left:6px solid #f97316!important;
- border-radius:18px!important;
- padding:14px 18px!important;
- box-shadow:0 8px 22px rgba(249,115,22,.08)!important;
-}
-html[data-exporthub-testportal="1"] #content :is(.card,.metric,.rc205-widget,.rc205-quick-card,.folder-section){
- border-color:#fed7aa!important;
- box-shadow:0 8px 18px rgba(194,65,12,.06)!important;
-}
 html[data-exporthub-testportal="1"] .eh-testservice-ribbon,
-html[data-exporthub-testportal="1"] .eh-testservice-brand-badge{
- display:inline-flex;align-items:center;gap:8px;border-radius:999px;font-weight:900;letter-spacing:.04em
-}
-html[data-exporthub-testportal="1"] .eh-testservice-ribbon{
- background:linear-gradient(135deg,#f97316,#ef4444)!important;color:#fff!important;border:1px solid rgba(255,255,255,.22)!important;
- padding:9px 14px!important;box-shadow:0 10px 20px rgba(239,68,68,.16)!important;font-size:12px!important;white-space:nowrap
-}
-html[data-exporthub-testportal="1"] .eh-testservice-ribbon small{font-size:11px;font-weight:800;opacity:.96}
-html[data-exporthub-testportal="1"] .eh-testservice-brand-badge{
- margin-top:8px;background:rgba(255,255,255,.12)!important;color:#fff7ed!important;border:1px solid rgba(255,237,213,.18)!important;padding:6px 9px!important;font-size:11px!important
-}
-@media (max-width:900px){
- html[data-exporthub-testportal="1"] .eh-testservice-ribbon{width:100%;justify-content:center;padding:8px 10px!important}
-}
+html[data-exporthub-testportal="1"] .eh-testservice-brand-badge{display:inline-flex;align-items:center;gap:8px;font-weight:900;letter-spacing:.04em}
+html[data-exporthub-testportal="1"] .eh-testservice-ribbon{padding:8px 12px!important;border:1px solid #f59e0b!important;border-radius:10px!important;background:#fff7ed!important;color:#7c2d12!important;box-shadow:0 8px 18px rgba(124,45,18,.10)!important;font-size:12px!important;white-space:nowrap}
+html[data-exporthub-testportal="1"] .eh-testservice-ribbon small{font-size:11px;font-weight:800;color:#9a3412!important}
+html[data-exporthub-testportal="1"] .eh-testservice-brand-badge{margin-top:8px;padding:5px 8px!important;border:1px solid #f59e0b!important;border-radius:999px!important;background:#fff7ed!important;color:#7c2d12!important;font-size:10px!important}
+@media(max-width:900px){html[data-exporthub-testportal="1"] .eh-testservice-ribbon{width:100%;justify-content:center}}
 </style>
 <style id="index225-pickup-layout-style">
 html[data-index209-pickup="1"]{color-scheme:light}
@@ -11309,7 +11201,7 @@ window.rc406UpdateOverviewNote=function(id,value,control){
 };
 window.rc406FlushOverviewNote=function(id,control){persistOverviewNote(id,control);return false};
 window.rc403UpdateOverviewNote=window.rc406UpdateOverviewNote;
-window.rc524OpenRef=window.rc524OpenRef=function(id){var sh=findShipment(id),cur=currentShipment(),key=Q(id);if(!sh&&cur&&(shipmentId(cur)===key||shipmentRef(cur)===key))sh=cur;if(!sh)return false;var ref=shipmentRef(sh);try{if(ref){var base='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen',url=base.replace(/\/+$/,'')+'/'+encodeURIComponent(ref)+'?csf=1&web=1';window.open(url,'_blank','noopener,noreferrer');return false}if(typeof window.rc390ShowDocuments==='function')return window.rc390ShowDocuments()}catch(e){console.error(e)}alert('Der Referenzordner konnte nicht geöffnet werden.');return false};
+window.rc524OpenRef=window.rc524OpenRef=function(id){var sh=findShipment(id),cur=currentShipment(),key=Q(id);if(!sh&&cur&&(shipmentId(cur)===key||shipmentRef(cur)===key))sh=cur;if(!sh)return false;try{if(typeof window.rc232OpenReferenceFolder==='function')return window.rc232OpenReferenceFolder(shipmentRef(sh));if(typeof window.rc390ShowDocuments==='function')return window.rc390ShowDocuments()}catch(e){console.error(e)}alert('Der Referenzordner konnte nicht geöffnet werden.');return false};
 
 
 function completePickupFromPod(sh){var stamp=new Date().toISOString(),date=stamp.slice(0,10);sh.podStatus='POD vorhanden';sh.podUploadedAt=stamp;sh.actualPickupDate=sh.actualPickupDate||date;sh.pickedUpAtDate=sh.pickedUpAtDate||date;sh.pickedUpAt=sh.pickedUpAt||stamp;sh.pickupStatus='abgeholt';sh.status='erledigt';sh.done=true;A(S().tasks).forEach(function(t){var linked=(Q(t.linkedShipmentId)&&Q(t.linkedShipmentId)===shipmentId(sh))||(Q(t.linkedShipmentRef)&&L(t.linkedShipmentRef)===L(shipmentRef(sh)));if(linked&&/^(Abholtag|Pickup Day)$/i.test(Q(t.area||t.category))){t.status='erledigt';t.done=true;t.completed=true;t.completedAt=stamp}})}
@@ -11413,7 +11305,7 @@ function hydrateShipmentView(){if(currentView()!=='shipment')return false;var r=
 function shipmentEditActive(){var r=root(),active=document.activeElement,rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},until=Number(window.__EXPORTHUB_SHIPMENT_EDIT_LOCK_UNTIL__||0),last=Number(window.__EXPORTHUB_SHIPMENT_LAST_EDIT_AT__||0),inField=!!(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName));return inField||Date.now()<until||((rt.saving||rt.pendingSave||rt.dirty)&&last&&Date.now()-last<12000)}
 function mayPatchExistingShipment(v,args){if(v!=='shipment')return false;var r=root(),shell=document.getElementById('rc573ShipmentShell')||document.getElementById('rc363FixedShipmentLayout');if(!r||!shell||!r.contains(shell)||!r.childElementCount)return false;shipmentEditRenderBlocks++;return true}
 function refreshExistingShipment(){var r=root(),active=document.activeElement,rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},inField=!!(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName));if(inField||rt.dirty||rt.pendingSave||rt.saving)return false;var api=shipmentPatchApi();try{if(api&&typeof api.refreshVisuals==='function')api.refreshVisuals()}catch(e){console.error('RC641 Sendungsvisualisierung aktualisieren',e)}return false}
-function viewDomMatches(v){var r=root();if(!r||!r.childElementCount)return false;if(Q(r.getAttribute('data-exporthub-rendered-view'))!==Q(v))return false;if(v==='shipmentoverview')return r.classList.contains('rc524-overview-view')&&!!r.querySelector(':scope>.rc524-page');if(v==='shipment')return !!(document.getElementById('rc363FixedShipmentLayout')||document.getElementById('rc573ShipmentShell'));if(v==='shipmentview')return r.classList.contains('rc776-shipment-view')&&!!r.querySelector(':scope>.rc776-page');if(v==='documentviewer')return r.classList.contains('rc786-document-viewer')&&!!r.querySelector(':scope>.rc786-viewer-shell');if(v==='cmr')return !!(document.getElementById('rc576DocumentHub')||document.getElementById('rc576ShipmentSelect'));return true}
+function viewDomMatches(v){var r=root();if(!r||!r.childElementCount)return false;if(Q(r.getAttribute('data-exporthub-rendered-view'))!==Q(v))return false;if(v==='shipmentoverview')return r.classList.contains('rc524-overview-view')&&!!r.querySelector(':scope>.rc524-page');if(v==='shipment')return !!(document.getElementById('rc363FixedShipmentLayout')||document.getElementById('rc573ShipmentShell'));if(v==='shipmentview')return r.classList.contains('rc776-shipment-view')&&!!r.querySelector(':scope>.rc776-page');if(v==='cmr')return !!(document.getElementById('rc576DocumentHub')||document.getElementById('rc576ShipmentSelect'));return true}
 function stableRender(){
  if(busy){pendingRender=true;return false}
  busy=true;pendingRender=false;
@@ -11437,7 +11329,6 @@ function stableRender(){
    }
    else if(v==='planning'&&window.ExportHUBIndex218&&typeof window.ExportHUBIndex218.render==='function')window.ExportHUBIndex218.render();
    else if(v==='shipmentview'&&window.ExportHUBShipmentView&&typeof window.ExportHUBShipmentView.render==='function')window.ExportHUBShipmentView.render();
-   else if(v==='documentviewer'&&window.ExportHUBDocumentViewer&&typeof window.ExportHUBDocumentViewer.render==='function')window.ExportHUBDocumentViewer.render();
    else if(v==='cmr'){if(!renderDocuments())renderCanonicalView(v)}
    else if(v==='pallet'){if(typeof window.rc542RenderPallet==='function')window.rc542RenderPallet(false);else renderPallet()}
    else if(v==='sop')renderSop();
@@ -11462,7 +11353,7 @@ function stableRender(){
   if(pendingRender){pendingRender=false;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(stableRender,0)}
  }
 }
-function stableSetView(v){v=canonicalView(v);var access=(v==='shipmentview'||v==='documentviewer')?'shipmentoverview':v,visibleAllowed=typeof window.canView!=='function'||window.canView(access),readAllowed=typeof window.canRead!=='function'||window.canRead(access),rightsAllowed=v!=='rights'||typeof window.canManageRights!=='function'||window.canManageRights();if(!visibleAllowed||!readAllowed||!rightsAllowed){alert('Dieser Bereich ist für deinen Benutzer nicht freigegeben.');return false}var previous=currentView();if(previous===v&&viewDomMatches(v))return false;releaseShipmentNavigationLock(previous,v);window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;navigationTransition=true;navigationEventSeq++;S().view=v;try{document.body.setAttribute('data-exporthub-view',v);document.body.setAttribute('data-current-view',v);document.body.setAttribute('data-eh-view',v)}catch(e){}navigationCount++;try{var out=stableRender();dispatchUiEvent('exporthub:viewchange',{view:v,previous:previous,count:navigationCount});return out}finally{navigationTransition=false}}
+function stableSetView(v){v=canonicalView(v);var access=v==='shipmentview'?'shipmentoverview':v,visibleAllowed=typeof window.canView!=='function'||window.canView(access),readAllowed=typeof window.canRead!=='function'||window.canRead(access),rightsAllowed=v!=='rights'||typeof window.canManageRights!=='function'||window.canManageRights();if(!visibleAllowed||!readAllowed||!rightsAllowed){alert('Dieser Bereich ist für deinen Benutzer nicht freigegeben.');return false}var previous=currentView();if(previous===v&&viewDomMatches(v))return false;releaseShipmentNavigationLock(previous,v);window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;navigationTransition=true;navigationEventSeq++;S().view=v;try{document.body.setAttribute('data-exporthub-view',v);document.body.setAttribute('data-current-view',v);document.body.setAttribute('data-eh-view',v)}catch(e){}navigationCount++;try{var out=stableRender();dispatchUiEvent('exporthub:viewchange',{view:v,previous:previous,count:navigationCount});return out}finally{navigationTransition=false}}
 function diagnostics(){return {installed:installed,version:BUILD,renderCount:renderCount,navigationCount:navigationCount,lastRenderMs:lastRenderMs,lastView:lastView,busy:busy,pendingRender:pendingRender,suppressedShipmentRenders:suppressedShipmentRenders,shipmentEditRenderBlocks:shipmentEditRenderBlocks,shipmentEditActive:shipmentEditActive(),shipmentDomPreserved:true,overviewDomWrites:overviewDomWrites,overviewRenderSkips:overviewRenderSkips,centralRender:window.render===stableRender,centralSetView:window.setView===stableSetView,navigationTransition:navigationTransition,navigationEventsBundled:true}}
 function install(){if(installed)return stableRender();installed=true;restoreUsers();installRights();window.render=stableRender;window.setView=stableSetView;setVersion();removeNoise();stableRender();window.__EXPORTHUB_RC524_DIAGNOSTICS__=diagnostics();window.__EXPORTHUB_RC548_NAVIGATION__=diagnostics;return true}
 window.ExportHUBRC524={install:install,refresh:stableRender,setView:stableSetView,postRender:postRender,restoreUsers:restoreUsers,markDeleted:markDeleted,diagnostics:diagnostics};
@@ -11616,7 +11507,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  async function sha256(data){if(!window.crypto||!window.crypto.subtle||typeof window.crypto.subtle.digest!=='function')throw new Error('SHA-256-Prüfung ist in diesem Browser nicht verfügbar.');return hex(await window.crypto.subtle.digest('SHA-256',data))}
  function scriptBlocks(html){var map={},re=/<script\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/script>/gi,m;while((m=re.exec(String(html||''))))map[q(m[1])]=m[2];return map}
  function assertProductionScriptParity(sourceHtml,productionHtml){var source=scriptBlocks(sourceHtml),prod=scriptBlocks(productionHtml),skip={'rc561-testportal-mode':1,'rc561-testportal-runtime':1,'exporthub-canonical-build-source':1};Object.keys(source).forEach(function(id){if(skip[id])return;if(!Object.prototype.hasOwnProperty.call(prod,id))throw new Error('Produktionsparität fehlgeschlagen: Skript '+id+' fehlt in index.html.');if(source[id]!==prod[id])throw new Error('Produktionsparität fehlgeschlagen: Skript '+id+' weicht von der getesteten TESTVERSION ab.')});return true}
- var EMBEDDED_PRODUCTION_FALLBACKS=Object.freeze(['api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js','api/reference-files/index.js','api/reference-files/function.json']);
+ var EMBEDDED_PRODUCTION_FALLBACKS=Object.freeze(['api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js']);
  async function embeddedProductionAssets(sourceHtml){
   var out={},wanted={};EMBEDDED_PRODUCTION_FALLBACKS.forEach(function(path){wanted[path]=true});
   var re=/<!--\s*EXPORTHUB_TESTSERVICE_FILE_BEGIN\s+path=([^\s]+)\s+encoding=base64\s+sha256=([a-f0-9]{64})\s*\r?\n([\s\S]*?)\r?\nEXPORTHUB_TESTSERVICE_FILE_END\s*-->/gi,m;
@@ -19402,7 +19293,7 @@ function fileName(mode,sh){var ref=sref(sh)||sid(sh)||'Sendung';return mode==='a
 async function downloadDocument(mode,button){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(pdfBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}pdfBusy=true;var old=q(button&&button.textContent),label=mode==='all'?'Gesamtausgabe':mode==='load1'?'Ladeliste 1':'Ladeliste 2',opToken=docWorkStart(label+' als PDF wird vorbereitet …');if(button){button.disabled=true;button.textContent=label+' wird erstellt …'}try{docWorkStep(opToken,'PDF-Dokumentseiten werden vorbereitet …');var out=await createPdf(mode||'all',sh);docWorkStep(opToken,'PDF wird zum Download bereitgestellt …');downloadBlob(out.blob,fileName(mode||'all',sh));window.__INDEX352_LAST_PDF__={ok:true,mode:mode||'all',pages:out.pages,bytes:out.blob.size,ref:sref(sh)||sid(sh),owner:VERSION};docWorkDone(opToken,label+' als PDF erstellt')}catch(e){console.error('RC352 PDF',e);var detail=q(e&&e.message||e);window.__INDEX352_LAST_PDF__={ok:false,mode:mode||'all',error:detail,owner:VERSION};docWorkFail(opToken,label+' konnte nicht erstellt werden');message(label+' konnte nicht erstellt werden: '+detail,'bad');alert(label+' konnte nicht heruntergeladen werden.\n\n'+detail)}finally{pdfBusy=false;if(button){button.disabled=false;button.textContent=old}}return false}
 async function syncPod(button){var sh=currentSaved(),api=window.ExportHUBPickupPOD;if(!sh||!api)return false;var old=q(button&&button.textContent);if(button){button.disabled=true;button.textContent='QR/POD wird geprüft …'}try{await api.syncOne(sh,true);if(api.hasSignature(sh))await hydrateSignature(sh);decorateDocument(sh,document,'normal');message(api.hasSignature(sh)?'POD vorhanden: Die Unterschrift wird ausschließlich in der separaten POD-PDF verwendet. Die normale Ladeliste bleibt ohne Unterschrift.':'Abholung noch nicht vollständig mit Unterschrift bestätigt.',api.hasSignature(sh)?'ok':'info')}catch(e){message('QR/POD-Status konnte nicht vollständig geladen werden: '+q(e&&e.message||e),'bad')}finally{if(button){button.disabled=false;button.textContent=old}}return false}
 async function downloadPod(button){var sh=currentSaved(),api=window.ExportHUBPickupPOD;if(!sh||!api)return false;try{await api.syncOne(sh,true)}catch(_){}if(!api.hasSignature(sh)){alert('Es liegt noch kein echter POD mit digitaler Unterschrift vor.');return false}if(pdfBusy)return false;pdfBusy=true;var old=q(button&&button.textContent);if(button){button.disabled=true;button.textContent='Unterschriebene Ladeliste wird erstellt …'}try{await hydrateSignature(sh);var out=await createPdf('pod',sh),name=fileName('pod',sh);if(!out||!out.blob||out.blob.size<1000)throw new Error('Die unterschriebene Ladeliste wurde nicht vollständig erzeugt.');downloadBlob(out.blob,name);window.__INDEX352_LAST_PDF__={ok:true,mode:'pod',signedLoadlist:true,pages:out.pages,bytes:out.blob.size,ref:sref(sh)||sid(sh),owner:VERSION};message('POD-PDF wurde lokal heruntergeladen. Die Cloud-Sicherung läuft automatisch.','ok');var cloud=window.ExportHUBPODCloudBackup;if(cloud&&typeof cloud.backupBlob==='function')cloud.backupBlob(sh,{blob:out.blob,name:name,pages:out.pages,signedLoadlist:true,documentKind:'signed-loadlist'},{force:true,source:'manual-download'}).then(function(result){if(result&&result.saved)message('POD-PDF wurde lokal heruntergeladen und in SharePoint gesichert.','ok')}).catch(function(error){message('POD wurde lokal heruntergeladen. Die SharePoint-Sicherung ist noch offen: '+q(error&&error.message||error),'bad')})}catch(e){console.error('RC352 POD-PDF',e);alert('Die unterschriebene Ladeliste konnte nicht als POD heruntergeladen werden.\n\n'+q(e&&e.message||e))}finally{pdfBusy=false;if(button){button.disabled=false;button.textContent=old}}return false}
-function routeShipment(){var sh=currentSaved(),id=sh&&(sid(sh)||sref(sh)),ctx=null;try{var raw=sessionStorage.getItem('exporthub_document_return_v1');ctx=raw&&JSON.parse(raw)}catch(_){}var ref=sh&&sref(sh);if(ctx&&low(ctx.view)==='shipmentview'&&sh&&(q(ctx.shipmentId)===q(id)||q(ctx.reference).toUpperCase()===q(ref).toUpperCase())){states().forEach(function(st){st.shipmentViewId=id;st.selectedShipmentId=id;st.documentShipmentId=id});try{sessionStorage.removeItem('exporthub_document_return_v1')}catch(_){}try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentview','documents-return-view')}catch(_){}return false}states().forEach(function(st){if(sh){st.shipment=clone(sh);st.currentShipment=clone(sh);st.selectedShipment=clone(sh);st.activeShipmentId=id;st.selectedShipmentId=id;st.currentShipmentId=id;st.editingShipmentId=id;st.documentShipmentId=id}});try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipment','documents-return');states().forEach(function(st){st.view='shipment'});document.body.setAttribute('data-exporthub-view','shipment');document.body.setAttribute('data-current-view','shipment');document.body.setAttribute('data-eh-view','shipment');if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.setView==='function')return window.ExportHUBRC524.setView('shipment')}catch(_){}return false}
+function routeShipment(){var sh=currentSaved(),id=sh&&(sid(sh)||sref(sh));states().forEach(function(st){if(sh){st.shipment=clone(sh);st.currentShipment=clone(sh);st.selectedShipment=clone(sh);st.activeShipmentId=id;st.selectedShipmentId=id;st.currentShipmentId=id;st.editingShipmentId=id;st.documentShipmentId=id}});try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipment','documents-return');states().forEach(function(st){st.view='shipment'});document.body.setAttribute('data-exporthub-view','shipment');document.body.setAttribute('data-current-view','shipment');document.body.setAttribute('data-eh-view','shipment');if(window.ExportHUBRC524&&typeof window.ExportHUBRC524.setView==='function')return window.ExportHUBRC524.setView('shipment')}catch(_){}return false}
 function routeOverview(){try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentoverview','documents')}catch(_){}return false}
 function patchSelector(selected){var sel=document.getElementById('rc576ShipmentSelect');if(!sel)return shipments().length;var keep=q(selected||sel.value),html=options(keep);if(sel.innerHTML!==html)sel.innerHTML=html;if(keep)sel.value=keep;var info=document.getElementById('index240DocumentStatus');if(info)info.textContent=shipments().length+' gespeicherte Sendung'+(shipments().length===1?'':'en')+' geladen';return shipments().length}
 function setDocumentViewState(){states().forEach(function(st){st.view='cmr'});try{document.body.setAttribute('data-exporthub-view','cmr');document.body.setAttribute('data-current-view','cmr');document.body.setAttribute('data-eh-view','cmr')}catch(_){}}
@@ -21817,8 +21708,8 @@ html[data-exporthub-testportal="1"][data-rc558-login-visible="1"] #login{positio
 </style>
 <style id="rc430-canonical-theme-system">
 
-/* RC773 – Professional ExportHUB Design System.
-   Existing theme owner rewritten in place; no repair overlay and no disabled functionality. */
+/* RC800 – ExportHUB Visual Design System.
+   Canonical theme owner rewritten in place; no repair overlay and no functional changes. */
 :root.eh-theme-changing *,:root.eh-theme-changing *::before,:root.eh-theme-changing *::after{transition:none!important}
 body[data-eh-theme]{
  --pc-page:#f4f7fb;--pc-page-accent:#eaf1f8;--pc-surface:#ffffff;--pc-surface-2:#f8fafc;--pc-surface-3:#eef3f8;--pc-field:#ffffff;
@@ -21833,7 +21724,7 @@ body[data-eh-theme]{
  --pc-card-bg:linear-gradient(180deg,var(--pc-surface) 0%,color-mix(in srgb,var(--pc-surface) 92%,var(--pc-surface-2)) 100%);--pc-kpi-bg:var(--pc-surface);--pc-table-head-bg:var(--pc-surface-3);--pc-table-row-bg:var(--pc-surface);--pc-table-hover:color-mix(in srgb,var(--pc-primary-soft) 45%,var(--pc-surface));
  --pc-button-bg:linear-gradient(180deg,var(--pc-primary-2),var(--pc-primary));--pc-ghost-bg:var(--pc-surface);--pc-soft-bg:var(--pc-primary-soft);--pc-detail-bg:var(--pc-surface-2);--pc-profile-bg:rgba(255,255,255,.055);
  --pc-top-line:var(--pc-line);--pc-page-head-line:color-mix(in srgb,var(--pc-line) 78%,transparent);--pc-side-line:rgba(255,255,255,.08);--pc-nav-active-border:rgba(255,255,255,.25);--pc-top-filter:blur(18px) saturate(115%);
- --pc-heading-weight:720;--pc-heading-spacing:-.025em;--pc-success-text:#0d6045;--pc-warning-text:#6b3d00;--pc-danger-text:#8f2222;--pc-info-text:#244d8d;
+ --pc-heading-weight:720;--pc-heading-spacing:-.025em;--pc-success-text:#0d6045;--pc-warning-text:#6b3d00;--pc-danger-text:#8f2222;--pc-info-text:#244d8d;--pc-icon-bg:#e8f2fb;--pc-icon-text:#0f6cbd;--pc-icon-border:#bdd4e8;--pc-icon-active-bg:#0f6cbd;--pc-icon-active-text:#ffffff;--pc-icon-hover-bg:#dcecf9;--pc-icon-muted:#687f92;
  --pc-font:"Segoe UI Variable Text","Aptos","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
  --pc-heading:"Segoe UI Variable Display","Aptos Display","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
  --eh-bg:var(--pc-page);--eh-surface:var(--pc-surface);--eh-surface-soft:var(--pc-surface-2);--eh-surface-2:var(--pc-surface-2);--eh-text:var(--pc-text);--eh-muted:var(--pc-muted);--eh-line:var(--pc-line);--eh-border:var(--pc-line);--eh-primary:var(--pc-primary);--eh-primary2:var(--pc-primary-2);--eh-accent:var(--pc-primary);--eh-accent-soft:var(--pc-primary-soft);--eh-heading:var(--pc-title);--eh-success:var(--pc-success);--eh-warning:var(--pc-warning);--eh-danger:var(--pc-danger);--eh-info:var(--pc-info);--eh-focus-bg:var(--pc-primary-soft);--eh-focus-line:var(--pc-focus);--eh-radius:var(--pc-card-radius);--eh-shadow:var(--pc-shadow-soft);--eh-shadow-lg:var(--pc-shadow-float);
@@ -21859,8 +21750,11 @@ body[data-eh-theme] #nav>[data-index308-group]{margin:13px 8px 4px!important;fon
 body[data-eh-theme] #nav>button[data-index321-view]{min-height:41px!important;padding:7px 9px!important;border:1px solid transparent!important;border-radius:var(--pc-nav-radius)!important;background:transparent!important;color:var(--pc-side-text)!important;font-size:12px!important;font-weight:650!important;box-shadow:none!important;transition:background .14s ease,border-color .14s ease,transform .14s ease!important}
 body[data-eh-theme] #nav>button[data-index321-view]:hover{background:var(--pc-nav-hover)!important;border-color:rgba(255,255,255,.08)!important;transform:translateX(1px)!important}
 body[data-eh-theme] #nav>button[data-index321-view].active,body[data-eh-theme] #nav>button[data-index321-view][aria-current="page"]{background:var(--pc-nav-active)!important;color:var(--pc-nav-active-text)!important;border-color:var(--pc-nav-active-border)!important;box-shadow:var(--pc-nav-active-shadow,0 8px 20px rgba(0,0,0,.13))!important}
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon{display:inline-grid!important;place-items:center!important;width:27px!important;height:27px!important;border-radius:var(--pc-icon-radius)!important;background:color-mix(in srgb,var(--pc-primary) 16%,transparent)!important;border:1px solid color-mix(in srgb,var(--pc-primary) 35%,transparent)!important;color:var(--pc-primary)!important}
-body[data-eh-theme] #nav>button[data-index321-view].active .index308-nav-icon,body[data-eh-theme] #nav>button[data-index321-view][aria-current="page"] .index308-nav-icon{background:color-mix(in srgb,var(--pc-primary) 14%,var(--pc-surface))!important}
+body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon{display:inline-grid!important;place-items:center!important;width:28px!important;height:28px!important;border-radius:var(--pc-icon-radius)!important;background:var(--pc-icon-bg)!important;border:1px solid var(--pc-icon-border)!important;color:var(--pc-icon-text)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important}
+body[data-eh-theme] #nav>button[data-index321-view]:hover .index308-nav-icon{background:var(--pc-icon-hover-bg)!important;color:var(--pc-icon-text)!important;border-color:color-mix(in srgb,var(--pc-icon-text) 42%,var(--pc-icon-border))!important}
+body[data-eh-theme] #nav>button[data-index321-view].active .index308-nav-icon,body[data-eh-theme] #nav>button[data-index321-view][aria-current="page"] .index308-nav-icon{background:var(--pc-icon-active-bg)!important;color:var(--pc-icon-active-text)!important;border-color:color-mix(in srgb,var(--pc-icon-active-bg) 72%,var(--pc-line-strong))!important;box-shadow:none!important}
+body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon :is(svg,path,g,circle,rect,line,polyline,polygon){color:inherit!important;stroke:currentColor!important}
+body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon svg [fill]:not([fill="none"]){fill:currentColor!important}
 body[data-eh-theme] .main{min-width:0!important;padding:18px 24px 42px!important}
 body[data-eh-theme] .topbar{position:sticky!important;top:10px!important;z-index:100!important;display:flex!important;align-items:center!important;gap:10px!important;margin-bottom:20px!important;padding:9px 11px!important;border:1px solid var(--pc-top-line)!important;border-radius:var(--pc-top-radius)!important;background:var(--pc-top-bg)!important;backdrop-filter:var(--pc-top-filter)!important;box-shadow:var(--pc-top-shadow,var(--pc-shadow-soft))!important;color:var(--pc-text)!important}
 body[data-eh-theme] .search{min-height:40px!important;background:var(--pc-field)!important;border:1px solid var(--pc-line)!important;border-radius:var(--pc-control-radius)!important;color:var(--pc-text)!important;box-shadow:var(--pc-field-shadow,inset 0 1px 0 rgba(255,255,255,.75))!important}
@@ -21968,102 +21862,132 @@ body[data-eh-theme] #content :is(.pill.orange,.badge.orange,.status-warning,.war
 body[data-eh-theme] #content :is(.pill.red,.badge.red,.status-danger,.bad,.badbox,.error){background:var(--pc-danger-soft)!important;color:var(--pc-danger-text)!important;border-color:color-mix(in srgb,var(--pc-danger) 38%,var(--pc-line))!important}
 body[data-eh-theme] #content :is(.pill.blue,.badge.blue,.status-info,.info){background:var(--pc-info-soft)!important;color:var(--pc-info-text)!important;border-color:color-mix(in srgb,var(--pc-info) 38%,var(--pc-line))!important}
 body[data-eh-theme] #content :is(svg text,.chart-label,.chart-axis,.chart-legend,.recharts-text,.apexcharts-text,.apexcharts-legend-text){fill:var(--pc-text)!important;color:var(--pc-text)!important}
+body[data-eh-theme] :is(.icon,.eh-rc741-update-icon,.rc628-customer-context-icon){color:var(--pc-icon-text)!important}
+body[data-eh-theme] #content :is(.icon,.eh-rc741-update-icon,.rc628-customer-context-icon){background:var(--pc-icon-bg)!important;border-color:var(--pc-icon-border)!important;color:var(--pc-icon-text)!important}
+body[data-eh-theme] :is(button,a,.btn,.ghost,.soft,.danger) > svg,body[data-eh-theme] :is(button,a,.btn,.ghost,.soft,.danger) .icon svg{color:currentColor!important;stroke:currentColor!important}
+body[data-eh-theme] :is(button,a,.btn,.ghost,.soft,.danger) > svg [stroke],body[data-eh-theme] :is(button,a,.btn,.ghost,.soft,.danger) .icon svg [stroke]{stroke:currentColor!important}
+body[data-eh-theme] :is(button,a,.btn,.ghost,.soft,.danger) > svg [fill]:not([fill="none"]),body[data-eh-theme] :is(button,a,.btn,.ghost,.soft,.danger) .icon svg [fill]:not([fill="none"]){fill:currentColor!important}
+body[data-eh-theme] #content :is(.rc776-doc,.folder-section,.rc524-shipment-card) :is(.icon,.rc628-customer-context-icon){background:var(--pc-icon-bg)!important;color:var(--pc-icon-text)!important;border:1px solid var(--pc-icon-border)!important;border-radius:var(--pc-icon-radius)!important}
+body[data-eh-theme] #content :is(.pill.green,.badge.green,.status-success,.ok) :is(svg,.icon){color:var(--pc-success-text)!important}
+body[data-eh-theme] #content :is(.pill.orange,.badge.orange,.status-warning,.warn,.warning) :is(svg,.icon){color:var(--pc-warning-text)!important}
+body[data-eh-theme] #content :is(.pill.red,.badge.red,.status-danger,.bad,.error) :is(svg,.icon){color:var(--pc-danger-text)!important}
+body[data-eh-theme] #content :is(.pill.blue,.badge.blue,.status-info,.info) :is(svg,.icon){color:var(--pc-info-text)!important}
 body[data-eh-theme] #content :is(a:not(.btn):not(.ghost):not(.soft)){color:color-mix(in srgb,var(--pc-primary) 84%,#071d2d)!important;font-weight:650!important}
 body[data-eh-theme] .topbar :is(button,select,input){color:var(--pc-text)!important}
 body[data-eh-theme] .topbar :is(button,.ghost,.soft){background:var(--pc-ghost-bg)!important;border-color:var(--pc-line-strong)!important}
 body[data-eh-theme] .sidebar :is(.brand,.brand *, .profile,.profile *,#nav>[data-index308-group]){text-shadow:0 1px 1px rgba(0,0,0,.14)}
 body[data-eh-theme="current"]{
- --pc-primary:#0f6cbd;--pc-primary-2:#0b5a9f;--pc-primary-soft:#eaf3fb;--pc-focus:#3b9bdc;
- --pc-page:#f4f7fb;--pc-page-accent:#e7eff8;--pc-surface:#ffffff;--pc-surface-2:#f8fafc;--pc-surface-3:#eef3f8;--pc-field:#ffffff;
- --pc-line:#d7e1eb;--pc-line-strong:#becddb;--pc-text:#172b3a;--pc-title:#0c2438;--pc-muted:#52697b;--pc-subtle:#5b7183;
- --pc-side:#0d2438;--pc-side-2:#12324d;--pc-side-text:#f5f9fc;--pc-side-muted:#a8bdce;--pc-nav-hover:rgba(255,255,255,.07);--pc-nav-active:#ffffff;--pc-nav-active-text:#0b3f69;
- --pc-body-bg:linear-gradient(145deg,#f6f9fc 0%,#e8f0f8 100%);--pc-side-bg:linear-gradient(180deg,#0d2438 0%,#12324d 100%);--pc-top-bg:rgba(255,255,255,.95);--pc-card-bg:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);--pc-kpi-bg:#ffffff;--pc-table-head-bg:#edf3f8;--pc-table-row-bg:#ffffff;--pc-table-hover:#eef6fc;--pc-button-bg:linear-gradient(180deg,#2187d5,#0f6cbd);--pc-button-hover:#0b5a9f;--pc-ghost-bg:#ffffff;--pc-soft-bg:#eaf3fb;--pc-profile-bg:rgba(255,255,255,.055);
- --pc-card-radius:16px;--pc-control-radius:10px;--pc-button-radius:10px;--pc-nav-radius:11px;--pc-icon-radius:8px;--pc-kpi-radius:15px;--pc-top-radius:15px;--pc-top-filter:blur(18px) saturate(115%);
- --pc-shadow:0 14px 34px rgba(18,42,64,.08);--pc-shadow-soft:0 5px 16px rgba(18,42,64,.055);--pc-shadow-float:0 20px 52px rgba(18,42,64,.13)
+ --pc-primary:#0b66b2;--pc-primary-2:#1782cf;--pc-primary-soft:#e7f1fb;--pc-focus:#3c97d5;--pc-on-primary:#ffffff;
+ --pc-page:#f3f6fa;--pc-page-accent:#e7eef6;--pc-surface:#ffffff;--pc-surface-2:#f7f9fc;--pc-surface-3:#eaf0f6;--pc-field:#ffffff;
+ --pc-line:#d4dee9;--pc-line-strong:#b8c8d7;--pc-text:#172b3a;--pc-title:#0a2235;--pc-muted:#50687b;--pc-subtle:#63798a;
+ --pc-side:#0b2236;--pc-side-2:#113a5a;--pc-side-text:#f7fbff;--pc-side-muted:#afc5d8;--pc-nav-hover:rgba(255,255,255,.075);--pc-nav-active:#f7fbff;--pc-nav-active-text:#0b4f85;
+ --pc-body-bg:linear-gradient(145deg,#f7f9fc 0%,#e7eef6 100%);--pc-side-bg:linear-gradient(180deg,#0b2236 0%,#113a5a 100%);--pc-top-bg:rgba(255,255,255,.96);--pc-card-bg:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%);--pc-kpi-bg:#ffffff;--pc-table-head-bg:#e9f0f6;--pc-table-row-bg:#ffffff;--pc-table-hover:#edf5fc;--pc-button-bg:linear-gradient(180deg,#1782cf,#0b66b2);--pc-button-hover:#095592;--pc-ghost-bg:#ffffff;--pc-soft-bg:#e7f1fb;--pc-profile-bg:rgba(255,255,255,.06);
+ --pc-icon-bg:#e5f0fa;--pc-icon-text:#0b66b2;--pc-icon-border:#b9d2e7;--pc-icon-hover-bg:#d8e9f7;--pc-icon-active-bg:#0b66b2;--pc-icon-active-text:#ffffff;
+ --pc-card-radius:15px;--pc-control-radius:9px;--pc-button-radius:9px;--pc-nav-radius:10px;--pc-icon-radius:8px;--pc-kpi-radius:14px;--pc-top-radius:14px;--pc-top-filter:blur(18px) saturate(112%);
+ --pc-shadow:0 14px 34px rgba(18,42,64,.08);--pc-shadow-soft:0 5px 15px rgba(18,42,64,.055);--pc-shadow-float:0 20px 50px rgba(18,42,64,.13)
 }
 
 body[data-eh-theme="command-center"]{
- --pc-primary:#1473d2;--pc-primary-2:#0956a8;--pc-primary-soft:#dcecff;--pc-focus:#42a5ff;
- --pc-page:#dce6f0;--pc-page-accent:#c7d6e5;--pc-surface:#f6f9fc;--pc-surface-2:#eaf1f7;--pc-surface-3:#d6e2ed;--pc-field:#f9fbfd;
- --pc-line:#b7c8d8;--pc-line-strong:#93abc0;--pc-text:#122b42;--pc-title:#071e34;--pc-muted:#49647a;--pc-subtle:#587188;
- --pc-side:#04182d;--pc-side-2:#0a3158;--pc-side-text:#f3f8ff;--pc-side-muted:#9db8d1;--pc-nav-hover:rgba(49,139,224,.13);--pc-nav-active:#1473d2;--pc-nav-active-text:#ffffff;
- --pc-body-bg:linear-gradient(160deg,#dfe8f0 0%,#c9d8e6 55%,#d8e3ec 100%);--pc-side-bg:linear-gradient(180deg,#04182d 0%,#0a3158 62%,#082746 100%);--pc-top-bg:linear-gradient(180deg,#f8fbfe,#eaf1f7);--pc-card-bg:linear-gradient(180deg,#f8fbfe 0%,#eaf1f7 100%);--pc-kpi-bg:linear-gradient(145deg,#f9fcff,#e8f2fb);--pc-table-head-bg:#173b5e;--pc-table-head-text:#f4f8fc;--pc-table-row-bg:#f7fafc;--pc-table-hover:#dfedfa;--pc-button-bg:linear-gradient(180deg,#2287e6,#0d62bb);--pc-button-hover:#084f99;--pc-ghost-bg:#eef4f8;--pc-soft-bg:#d8eaff;--pc-profile-bg:rgba(20,115,210,.10);
- --pc-card-radius:10px;--pc-control-radius:7px;--pc-button-radius:7px;--pc-nav-radius:7px;--pc-icon-radius:6px;--pc-kpi-radius:9px;--pc-top-radius:9px;--pc-top-filter:none;--pc-heading-spacing:-.015em;--pc-heading-weight:760;
- --pc-shadow:0 10px 22px rgba(4,24,45,.13);--pc-shadow-soft:0 3px 8px rgba(4,24,45,.09);--pc-shadow-float:0 18px 38px rgba(4,24,45,.20);--pc-side-shadow:10px 0 30px rgba(4,24,45,.20);--pc-nav-active-border:rgba(94,173,246,.55);--pc-nav-active-shadow:0 5px 12px rgba(4,24,45,.26)
+ --pc-primary:#0d62bb;--pc-primary-2:#1d7ed7;--pc-primary-soft:#dbeafb;--pc-focus:#48a4f2;--pc-on-primary:#ffffff;
+ --pc-page:#dce5ee;--pc-page-accent:#c6d3df;--pc-surface:#f5f8fb;--pc-surface-2:#e9eff5;--pc-surface-3:#d6e0ea;--pc-field:#fbfcfe;
+ --pc-line:#b5c4d2;--pc-line-strong:#8fa5b8;--pc-text:#102a41;--pc-title:#061d32;--pc-muted:#486277;--pc-subtle:#5a7286;
+ --pc-side:#03172b;--pc-side-2:#082d52;--pc-side-text:#f4f9ff;--pc-side-muted:#9eb8cf;--pc-nav-hover:rgba(57,146,230,.14);--pc-nav-active:#0d62bb;--pc-nav-active-text:#ffffff;
+ --pc-body-bg:linear-gradient(160deg,#dfe7ef 0%,#c8d4df 55%,#d8e1e9 100%);--pc-side-bg:linear-gradient(180deg,#03172b 0%,#082d52 64%,#062541 100%);--pc-top-bg:linear-gradient(180deg,#f9fbfd,#e7eef5);--pc-card-bg:linear-gradient(180deg,#f8fafc 0%,#e9eff5 100%);--pc-kpi-bg:linear-gradient(145deg,#fbfdff,#e8f1f9);--pc-table-head-bg:#163a5d;--pc-table-head-text:#f5f9fd;--pc-table-row-bg:#f7f9fb;--pc-table-hover:#dfeaf5;--pc-button-bg:linear-gradient(180deg,#2185df,#0d62bb);--pc-button-hover:#084e96;--pc-ghost-bg:#edf2f6;--pc-soft-bg:#dbeafb;--pc-profile-bg:rgba(13,98,187,.10);
+ --pc-icon-bg:#153a5d;--pc-icon-text:#cfe9ff;--pc-icon-border:#2e5b82;--pc-icon-hover-bg:#1b4b75;--pc-icon-active-bg:#f3f8ff;--pc-icon-active-text:#0b4f92;
+ --pc-card-radius:9px;--pc-control-radius:6px;--pc-button-radius:6px;--pc-nav-radius:6px;--pc-icon-radius:5px;--pc-kpi-radius:8px;--pc-top-radius:8px;--pc-top-filter:none;--pc-heading-spacing:-.014em;--pc-heading-weight:770;
+ --pc-shadow:0 10px 22px rgba(3,23,43,.14);--pc-shadow-soft:0 3px 8px rgba(3,23,43,.09);--pc-shadow-float:0 18px 38px rgba(3,23,43,.22);--pc-side-shadow:10px 0 30px rgba(3,23,43,.22);--pc-nav-active-border:#55a7ed;--pc-nav-active-shadow:0 5px 12px rgba(3,23,43,.28)
 }
 
 body[data-eh-theme="executive-minimal"]{
- --pc-primary:#343a40;--pc-primary-2:#171a1d;--pc-primary-soft:#eceeef;--pc-focus:#626a70;
- --pc-page:#f7f7f5;--pc-page-accent:#efefec;--pc-surface:#ffffff;--pc-surface-2:#fafafa;--pc-surface-3:#f0f0ee;--pc-field:#ffffff;
- --pc-line:#dadbd8;--pc-line-strong:#bfc2be;--pc-text:#25282a;--pc-title:#111315;--pc-muted:#666b6e;--pc-subtle:#777c7f;
- --pc-side:#242628;--pc-side-2:#303234;--pc-side-text:#f7f7f5;--pc-side-muted:#bfc2c3;--pc-nav-hover:rgba(255,255,255,.055);--pc-nav-active:#f7f7f5;--pc-nav-active-text:#202326;
- --pc-body-bg:#f4f4f1;--pc-side-bg:#272a2c;--pc-top-bg:#ffffff;--pc-card-bg:#ffffff;--pc-kpi-bg:#ffffff;--pc-table-head-bg:#f0f0ee;--pc-table-row-bg:#ffffff;--pc-table-hover:#f6f6f4;--pc-button-bg:#262a2d;--pc-button-hover:#111315;--pc-ghost-bg:#ffffff;--pc-soft-bg:#f0f0ee;--pc-profile-bg:transparent;
- --pc-card-radius:4px;--pc-control-radius:4px;--pc-button-radius:4px;--pc-nav-radius:3px;--pc-icon-radius:3px;--pc-kpi-radius:4px;--pc-top-radius:4px;--pc-top-filter:none;--pc-heading-spacing:-.035em;--pc-heading-weight:640;
- --pc-shadow:none;--pc-shadow-soft:none;--pc-shadow-float:0 12px 28px rgba(20,22,24,.10);--pc-card-shadow:none;--pc-top-shadow:none;--pc-side-shadow:none;--pc-nav-active-shadow:none;--pc-side-line:#424648
+ --pc-primary:#2f3438;--pc-primary-2:#171a1d;--pc-primary-soft:#eceeed;--pc-focus:#646b70;--pc-on-primary:#ffffff;
+ --pc-page:#f5f5f2;--pc-page-accent:#ecece8;--pc-surface:#ffffff;--pc-surface-2:#fafaf8;--pc-surface-3:#efefec;--pc-field:#ffffff;
+ --pc-line:#d8d9d5;--pc-line-strong:#bcbfba;--pc-text:#242729;--pc-title:#111315;--pc-muted:#62676a;--pc-subtle:#74797b;
+ --pc-side:#252729;--pc-side-2:#2d3032;--pc-side-text:#f8f8f5;--pc-side-muted:#c2c4c3;--pc-nav-hover:rgba(255,255,255,.06);--pc-nav-active:#f7f7f3;--pc-nav-active-text:#202326;
+ --pc-body-bg:#f3f3f0;--pc-side-bg:#27292b;--pc-top-bg:#ffffff;--pc-card-bg:#ffffff;--pc-kpi-bg:#ffffff;--pc-table-head-bg:#efefec;--pc-table-row-bg:#ffffff;--pc-table-hover:#f5f5f2;--pc-button-bg:#272b2e;--pc-button-hover:#111315;--pc-ghost-bg:#ffffff;--pc-soft-bg:#efefec;--pc-profile-bg:transparent;
+ --pc-icon-bg:#f0f0ed;--pc-icon-text:#303437;--pc-icon-border:#d0d1cd;--pc-icon-hover-bg:#e4e5e1;--pc-icon-active-bg:#25282a;--pc-icon-active-text:#ffffff;
+ --pc-card-radius:4px;--pc-control-radius:4px;--pc-button-radius:4px;--pc-nav-radius:3px;--pc-icon-radius:3px;--pc-kpi-radius:4px;--pc-top-radius:4px;--pc-top-filter:none;--pc-heading-spacing:-.032em;--pc-heading-weight:650;
+ --pc-shadow:none;--pc-shadow-soft:none;--pc-shadow-float:0 12px 28px rgba(20,22,24,.11);--pc-card-shadow:none;--pc-top-shadow:none;--pc-side-shadow:none;--pc-nav-active-shadow:none;--pc-side-line:#424648
 }
 
 body[data-eh-theme="glass-workspace"]{
- --pc-primary:#2d84ad;--pc-primary-2:#17668e;--pc-primary-soft:rgba(214,240,250,.72);--pc-focus:#63b6d4;
- --pc-page:#dcebf2;--pc-page-accent:#c8dde7;--pc-surface:rgba(255,255,255,.72);--pc-surface-2:rgba(237,247,251,.62);--pc-surface-3:rgba(216,235,243,.62);--pc-field:rgba(255,255,255,.82);
- --pc-line:rgba(91,138,160,.30);--pc-line-strong:rgba(72,121,145,.45);--pc-text:#183849;--pc-title:#0f3144;--pc-muted:#557487;--pc-subtle:#658295;
- --pc-side:#173b50;--pc-side-2:#245e78;--pc-side-text:#f5fcff;--pc-side-muted:#bdd9e5;--pc-nav-hover:rgba(255,255,255,.12);--pc-nav-active:rgba(225,246,254,.86);--pc-nav-active-text:#17465d;
- --pc-body-bg:radial-gradient(circle at 85% 7%,rgba(72,164,202,.28),transparent 28%),radial-gradient(circle at 10% 92%,rgba(111,178,205,.24),transparent 33%),linear-gradient(145deg,#e4f0f5 0%,#cbdfe8 100%);--pc-side-bg:linear-gradient(180deg,rgba(18,53,72,.91),rgba(35,91,114,.88));--pc-top-bg:rgba(255,255,255,.61);--pc-card-bg:linear-gradient(145deg,rgba(255,255,255,.78),rgba(235,247,251,.54));--pc-kpi-bg:rgba(255,255,255,.68);--pc-table-head-bg:rgba(214,235,244,.72);--pc-table-row-bg:rgba(255,255,255,.64);--pc-table-hover:rgba(225,244,251,.86);--pc-button-bg:linear-gradient(135deg,rgba(45,132,173,.96),rgba(23,102,142,.96));--pc-button-hover:#17668e;--pc-ghost-bg:rgba(255,255,255,.58);--pc-soft-bg:rgba(214,240,250,.68);--pc-profile-bg:rgba(255,255,255,.10);
- --pc-card-radius:24px;--pc-control-radius:15px;--pc-button-radius:15px;--pc-nav-radius:14px;--pc-icon-radius:12px;--pc-kpi-radius:20px;--pc-top-radius:22px;--pc-top-filter:blur(22px) saturate(130%);--pc-field-shadow:inset 0 1px 0 rgba(255,255,255,.88);
- --pc-shadow:0 20px 44px rgba(36,78,99,.13);--pc-shadow-soft:0 10px 26px rgba(36,78,99,.085);--pc-shadow-float:0 28px 60px rgba(36,78,99,.18);--pc-side-shadow:10px 0 35px rgba(31,75,96,.16);--pc-card-shadow:0 12px 28px rgba(42,84,103,.09)
+ --pc-primary:#176b93;--pc-primary-2:#2f8eb7;--pc-primary-soft:rgba(215,239,249,.78);--pc-focus:#64b5d2;--pc-on-primary:#ffffff;
+ --pc-page:#dceaf1;--pc-page-accent:#c7dbe5;--pc-surface:rgba(255,255,255,.76);--pc-surface-2:rgba(238,247,251,.66);--pc-surface-3:rgba(216,234,242,.72);--pc-field:rgba(255,255,255,.88);
+ --pc-line:rgba(82,128,151,.33);--pc-line-strong:rgba(58,108,133,.50);--pc-text:#173747;--pc-title:#0c2e40;--pc-muted:#506f81;--pc-subtle:#607f90;
+ --pc-side:#15384d;--pc-side-2:#245d76;--pc-side-text:#f6fcff;--pc-side-muted:#c1dbe6;--pc-nav-hover:rgba(255,255,255,.13);--pc-nav-active:rgba(230,247,254,.92);--pc-nav-active-text:#12445c;
+ --pc-body-bg:radial-gradient(circle at 84% 8%,rgba(69,159,197,.30),transparent 29%),radial-gradient(circle at 12% 90%,rgba(111,178,205,.25),transparent 34%),linear-gradient(145deg,#e5f0f5 0%,#c9dde6 100%);--pc-side-bg:linear-gradient(180deg,rgba(17,50,69,.92),rgba(34,91,114,.89));--pc-top-bg:rgba(255,255,255,.66);--pc-card-bg:linear-gradient(145deg,rgba(255,255,255,.82),rgba(235,247,251,.58));--pc-kpi-bg:rgba(255,255,255,.72);--pc-table-head-bg:rgba(211,232,241,.82);--pc-table-row-bg:rgba(255,255,255,.70);--pc-table-hover:rgba(224,243,250,.92);--pc-button-bg:linear-gradient(135deg,rgba(47,142,183,.98),rgba(23,107,147,.98));--pc-button-hover:#145f84;--pc-ghost-bg:rgba(255,255,255,.64);--pc-soft-bg:rgba(215,239,249,.74);--pc-profile-bg:rgba(255,255,255,.11);
+ --pc-icon-bg:rgba(226,244,251,.82);--pc-icon-text:#176b93;--pc-icon-border:rgba(78,139,166,.36);--pc-icon-hover-bg:rgba(211,237,248,.94);--pc-icon-active-bg:#176b93;--pc-icon-active-text:#ffffff;
+ --pc-card-radius:22px;--pc-control-radius:14px;--pc-button-radius:14px;--pc-nav-radius:13px;--pc-icon-radius:11px;--pc-kpi-radius:19px;--pc-top-radius:21px;--pc-top-filter:blur(22px) saturate(128%);--pc-field-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+ --pc-shadow:0 20px 44px rgba(34,76,97,.14);--pc-shadow-soft:0 10px 26px rgba(34,76,97,.09);--pc-shadow-float:0 28px 60px rgba(34,76,97,.19);--pc-side-shadow:10px 0 35px rgba(31,75,96,.17);--pc-card-shadow:0 12px 28px rgba(42,84,103,.095)
 }
 body[data-eh-theme="glass-workspace"] :is(.topbar,#content .card,#content .metric,#content .folder-section,#content .rc205-widget,#content .rc524-panel,#content .rc543-section,#content .rc776-card,#content .rc776-hero,#content .rc776-metric){backdrop-filter:blur(18px) saturate(120%)!important}
 
 body[data-eh-theme="neon-flow"]{
- --pc-primary:#2dd4bf;--pc-primary-2:#0fae9d;--pc-primary-soft:#123c3c;--pc-focus:#5eead4;
- --pc-page:#07171d;--pc-page-accent:#0c2930;--pc-surface:#10262d;--pc-surface-2:#0c2026;--pc-surface-3:#16353d;--pc-field:#0b1d23;
- --pc-line:#28505a;--pc-line-strong:#3b6972;--pc-text:#e3f5f3;--pc-title:#f2fffd;--pc-muted:#9fc4c3;--pc-subtle:#7fa9a8;--pc-on-primary:#03201d;
+ --pc-primary:#2dd4bf;--pc-primary-2:#0ea5a5;--pc-primary-soft:#123c3c;--pc-focus:#5eead4;--pc-on-primary:#03201d;
+ --pc-page:#06161b;--pc-page-accent:#0b272e;--pc-surface:#0f252c;--pc-surface-2:#0b1f25;--pc-surface-3:#15343c;--pc-field:#0a1c22;
+ --pc-line:#2a5059;--pc-line-strong:#3d6871;--pc-text:#e4f4f2;--pc-title:#f3fffd;--pc-muted:#a4c5c3;--pc-subtle:#85aaa8;
  --pc-success:#4ade80;--pc-success-soft:#153b27;--pc-warning:#facc15;--pc-warning-soft:#40370f;--pc-danger:#fb7185;--pc-danger-soft:#461c25;--pc-info:#67e8f9;--pc-info-soft:#123845;--pc-success-text:#86efac;--pc-warning-text:#fde68a;--pc-danger-text:#fda4af;--pc-info-text:#a5f3fc;
- --pc-side:#051217;--pc-side-2:#09252b;--pc-side-text:#ecfffc;--pc-side-muted:#8ec5c0;--pc-nav-hover:rgba(45,212,191,.08);--pc-nav-active:#173f42;--pc-nav-active-text:#bffcf3;
- --pc-body-bg:radial-gradient(circle at 82% 4%,rgba(45,212,191,.12),transparent 27%),radial-gradient(circle at 16% 92%,rgba(34,211,238,.08),transparent 30%),linear-gradient(145deg,#061419 0%,#0a2228 100%);--pc-side-bg:linear-gradient(180deg,#041015 0%,#08242a 100%);--pc-top-bg:rgba(10,30,36,.94);--pc-card-bg:linear-gradient(180deg,#112a31 0%,#0d2228 100%);--pc-kpi-bg:linear-gradient(145deg,#123039,#0e252b);--pc-table-head-bg:#173941;--pc-table-head-text:#d9fffb;--pc-table-row-bg:#0f252b;--pc-table-hover:#16363e;--pc-button-bg:linear-gradient(135deg,#2dd4bf,#0ea5a5);--pc-button-hover:#36e2cd;--pc-ghost-bg:#0e252b;--pc-soft-bg:#123c3c;--pc-soft-text:#9ff8ec;--pc-profile-bg:rgba(45,212,191,.06);--pc-detail-bg:#0c2026;
+ --pc-side:#041116;--pc-side-2:#08242a;--pc-side-text:#ecfffc;--pc-side-muted:#92c8c3;--pc-nav-hover:rgba(45,212,191,.09);--pc-nav-active:#173f42;--pc-nav-active-text:#c2fff6;
+ --pc-body-bg:radial-gradient(circle at 82% 4%,rgba(45,212,191,.13),transparent 27%),radial-gradient(circle at 16% 92%,rgba(34,211,238,.09),transparent 30%),linear-gradient(145deg,#051318 0%,#092127 100%);--pc-side-bg:linear-gradient(180deg,#031015 0%,#072329 100%);--pc-top-bg:rgba(9,29,35,.95);--pc-card-bg:linear-gradient(180deg,#112a31 0%,#0c2228 100%);--pc-kpi-bg:linear-gradient(145deg,#123039,#0d252b);--pc-table-head-bg:#163841;--pc-table-head-text:#ddfffb;--pc-table-row-bg:#0e242a;--pc-table-hover:#16353d;--pc-button-bg:linear-gradient(135deg,#2dd4bf,#0ea5a5);--pc-button-hover:#36dfcc;--pc-ghost-bg:#0d242a;--pc-soft-bg:#123c3c;--pc-soft-text:#a3f8ee;--pc-profile-bg:rgba(45,212,191,.065);--pc-detail-bg:#0b2026;
+ --pc-icon-bg:#12383d;--pc-icon-text:#71f1e1;--pc-icon-border:#245d62;--pc-icon-hover-bg:#17474b;--pc-icon-active-bg:#2dd4bf;--pc-icon-active-text:#03201d;
  --pc-card-radius:12px;--pc-control-radius:9px;--pc-button-radius:9px;--pc-nav-radius:9px;--pc-icon-radius:7px;--pc-kpi-radius:11px;--pc-top-radius:12px;--pc-top-filter:blur(14px) saturate(120%);--pc-heading-spacing:-.012em;--pc-heading-weight:760;
- --pc-shadow:0 0 0 1px rgba(45,212,191,.055),0 18px 38px rgba(0,0,0,.25);--pc-shadow-soft:0 0 0 1px rgba(45,212,191,.035),0 8px 20px rgba(0,0,0,.20);--pc-shadow-float:0 0 32px rgba(45,212,191,.10),0 28px 60px rgba(0,0,0,.34);--pc-side-line:rgba(45,212,191,.15);--pc-top-line:#234b53;--pc-page-head-line:#244b53;--pc-chart-shadow:none
+ --pc-shadow:0 0 0 1px rgba(45,212,191,.055),0 18px 38px rgba(0,0,0,.26);--pc-shadow-soft:0 0 0 1px rgba(45,212,191,.035),0 8px 20px rgba(0,0,0,.21);--pc-shadow-float:0 0 32px rgba(45,212,191,.11),0 28px 60px rgba(0,0,0,.35);--pc-side-line:rgba(45,212,191,.16);--pc-top-line:#234b53;--pc-page-head-line:#244b53;--pc-chart-shadow:none
 }
 
 body[data-eh-theme="sunny-bloom"]{
- --pc-primary:#a85235;--pc-primary-2:#843f29;--pc-primary-soft:#f8e4d9;--pc-focus:#cf7a5d;
- --pc-page:#f7efe5;--pc-page-accent:#eadbc9;--pc-surface:#fffaf4;--pc-surface-2:#f9f0e7;--pc-surface-3:#efe1d3;--pc-field:#fffdf9;
- --pc-line:#ddc8b6;--pc-line-strong:#c8aa94;--pc-text:#40332c;--pc-title:#33231d;--pc-muted:#765f53;--pc-subtle:#866e61;
- --pc-side:#49342c;--pc-side-2:#704c3c;--pc-side-text:#fff9f4;--pc-side-muted:#dcc4b8;--pc-nav-hover:rgba(255,232,218,.10);--pc-nav-active:#fff1e7;--pc-nav-active-text:#633723;
- --pc-body-bg:radial-gradient(circle at 90% 0%,rgba(193,111,73,.10),transparent 30%),linear-gradient(145deg,#faf4ec 0%,#eadccb 100%);--pc-side-bg:linear-gradient(180deg,#49342c 0%,#704c3c 100%);--pc-top-bg:rgba(255,250,244,.96);--pc-card-bg:linear-gradient(180deg,#fffaf4 0%,#f8eee4 100%);--pc-kpi-bg:#fffaf4;--pc-table-head-bg:#efe0d2;--pc-table-row-bg:#fffaf4;--pc-table-hover:#faeadf;--pc-button-bg:linear-gradient(180deg,#bd6547,#98452e);--pc-button-hover:#7f3826;--pc-ghost-bg:#fffaf4;--pc-soft-bg:#f8e4d9;--pc-profile-bg:rgba(255,245,238,.06);
- --pc-card-radius:19px;--pc-control-radius:12px;--pc-button-radius:12px;--pc-nav-radius:12px;--pc-icon-radius:10px;--pc-kpi-radius:18px;--pc-top-radius:18px;--pc-top-filter:blur(12px);--pc-heading-spacing:-.02em;--pc-heading-weight:700;
- --pc-shadow:0 16px 34px rgba(89,55,39,.10);--pc-shadow-soft:0 6px 16px rgba(89,55,39,.065);--pc-shadow-float:0 24px 52px rgba(89,55,39,.15)
+ --pc-primary:#98472f;--pc-primary-2:#b85f42;--pc-primary-soft:#f7e4da;--pc-focus:#ce795c;--pc-on-primary:#ffffff;
+ --pc-page:#f6eee4;--pc-page-accent:#e8d8c6;--pc-surface:#fffaf5;--pc-surface-2:#f8efe6;--pc-surface-3:#eddfd1;--pc-field:#fffdf9;
+ --pc-line:#dcc6b3;--pc-line-strong:#c5a78f;--pc-text:#40322b;--pc-title:#32221c;--pc-muted:#715a4e;--pc-subtle:#826a5d;
+ --pc-side:#463229;--pc-side-2:#704a39;--pc-side-text:#fff9f4;--pc-side-muted:#dec7bc;--pc-nav-hover:rgba(255,232,218,.11);--pc-nav-active:#fff0e5;--pc-nav-active-text:#63341f;
+ --pc-body-bg:radial-gradient(circle at 90% 0%,rgba(193,111,73,.11),transparent 30%),linear-gradient(145deg,#faf4ec 0%,#e9dac8 100%);--pc-side-bg:linear-gradient(180deg,#463229 0%,#704a39 100%);--pc-top-bg:rgba(255,250,245,.97);--pc-card-bg:linear-gradient(180deg,#fffaf5 0%,#f8eee4 100%);--pc-kpi-bg:#fffaf5;--pc-table-head-bg:#ecddcf;--pc-table-row-bg:#fffaf5;--pc-table-hover:#fae9de;--pc-button-bg:linear-gradient(180deg,#b85f42,#98472f);--pc-button-hover:#7d3826;--pc-ghost-bg:#fffaf5;--pc-soft-bg:#f7e4da;--pc-profile-bg:rgba(255,245,238,.065);
+ --pc-icon-bg:#f6e4da;--pc-icon-text:#98472f;--pc-icon-border:#dcb7a4;--pc-icon-hover-bg:#f1d5c6;--pc-icon-active-bg:#98472f;--pc-icon-active-text:#ffffff;
+ --pc-card-radius:18px;--pc-control-radius:11px;--pc-button-radius:11px;--pc-nav-radius:11px;--pc-icon-radius:9px;--pc-kpi-radius:17px;--pc-top-radius:17px;--pc-top-filter:blur(12px);--pc-heading-spacing:-.019em;--pc-heading-weight:705;
+ --pc-shadow:0 16px 34px rgba(89,55,39,.105);--pc-shadow-soft:0 6px 16px rgba(89,55,39,.07);--pc-shadow-float:0 24px 52px rgba(89,55,39,.16)
 }
 
 body[data-eh-theme="mint-pop"]{
- --pc-primary:#187a70;--pc-primary-2:#0f6058;--pc-primary-soft:#def4ec;--pc-focus:#43a99c;
- --pc-page:#eaf7f2;--pc-page-accent:#d7eee6;--pc-surface:#fbfffd;--pc-surface-2:#f0faf6;--pc-surface-3:#dff1eb;--pc-field:#ffffff;
- --pc-line:#c5dfd6;--pc-line-strong:#a5cfc3;--pc-text:#173b37;--pc-title:#0d302b;--pc-muted:#56746f;--pc-subtle:#66827d;
- --pc-side:#103a36;--pc-side-2:#1b5c54;--pc-side-text:#f2fffb;--pc-side-muted:#afd7cd;--pc-nav-hover:rgba(111,220,196,.10);--pc-nav-active:#dff9f0;--pc-nav-active-text:#0b5148;
- --pc-body-bg:radial-gradient(circle at 88% 4%,rgba(66,178,151,.12),transparent 30%),linear-gradient(145deg,#eefaf6 0%,#d9eee6 100%);--pc-side-bg:linear-gradient(180deg,#103a36 0%,#1b5c54 100%);--pc-top-bg:rgba(249,255,252,.95);--pc-card-bg:linear-gradient(180deg,#fbfffd 0%,#eff9f5 100%);--pc-kpi-bg:linear-gradient(145deg,#ffffff,#eefaf5);--pc-table-head-bg:#dff1eb;--pc-table-row-bg:#fbfffd;--pc-table-hover:#e6f7f1;--pc-button-bg:linear-gradient(180deg,#249586,#156d64);--pc-button-hover:#0f5a53;--pc-ghost-bg:#fbfffd;--pc-soft-bg:#def4ec;--pc-profile-bg:rgba(197,244,231,.07);
- --pc-card-radius:21px;--pc-control-radius:14px;--pc-button-radius:14px;--pc-nav-radius:14px;--pc-icon-radius:11px;--pc-kpi-radius:20px;--pc-top-radius:20px;--pc-top-filter:blur(14px) saturate(108%);
- --pc-shadow:0 15px 34px rgba(18,92,81,.09);--pc-shadow-soft:0 6px 17px rgba(18,92,81,.06);--pc-shadow-float:0 24px 52px rgba(18,92,81,.15)
+ --pc-primary:#136e64;--pc-primary-2:#248c7e;--pc-primary-soft:#dcf2ea;--pc-focus:#45a89a;--pc-on-primary:#ffffff;
+ --pc-page:#e9f6f1;--pc-page-accent:#d4ebe3;--pc-surface:#fbfffd;--pc-surface-2:#eff9f5;--pc-surface-3:#dcede7;--pc-field:#ffffff;
+ --pc-line:#c1ddd3;--pc-line-strong:#9fcabd;--pc-text:#163934;--pc-title:#0b2d28;--pc-muted:#526f69;--pc-subtle:#64817b;
+ --pc-side:#0e3732;--pc-side-2:#19584f;--pc-side-text:#f3fffb;--pc-side-muted:#b2d9cf;--pc-nav-hover:rgba(111,220,196,.11);--pc-nav-active:#def8ef;--pc-nav-active-text:#0a4c44;
+ --pc-body-bg:radial-gradient(circle at 88% 4%,rgba(66,178,151,.13),transparent 30%),linear-gradient(145deg,#eefaf6 0%,#d7ece4 100%);--pc-side-bg:linear-gradient(180deg,#0e3732 0%,#19584f 100%);--pc-top-bg:rgba(249,255,252,.96);--pc-card-bg:linear-gradient(180deg,#fbfffd 0%,#eef9f5 100%);--pc-kpi-bg:linear-gradient(145deg,#ffffff,#edf9f4);--pc-table-head-bg:#dcefe8;--pc-table-row-bg:#fbfffd;--pc-table-hover:#e3f5ee;--pc-button-bg:linear-gradient(180deg,#248c7e,#136e64);--pc-button-hover:#0e584f;--pc-ghost-bg:#fbfffd;--pc-soft-bg:#dcf2ea;--pc-profile-bg:rgba(197,244,231,.075);
+ --pc-icon-bg:#daf1e8;--pc-icon-text:#136e64;--pc-icon-border:#add6ca;--pc-icon-hover-bg:#cce9df;--pc-icon-active-bg:#136e64;--pc-icon-active-text:#ffffff;
+ --pc-card-radius:20px;--pc-control-radius:13px;--pc-button-radius:13px;--pc-nav-radius:13px;--pc-icon-radius:10px;--pc-kpi-radius:19px;--pc-top-radius:19px;--pc-top-filter:blur(14px) saturate(108%);
+ --pc-shadow:0 15px 34px rgba(18,92,81,.095);--pc-shadow-soft:0 6px 17px rgba(18,92,81,.065);--pc-shadow-float:0 24px 52px rgba(18,92,81,.16)
 }
 
 body[data-eh-theme="boardroom-elite"]{
- --pc-primary:#b99045;--pc-primary-2:#8c6828;--pc-primary-soft:#302b24;--pc-focus:#d3b26d;--pc-on-primary:#091a33;
- --pc-page:#07182d;--pc-page-accent:#0d2847;--pc-surface:#102842;--pc-surface-2:#0c2138;--pc-surface-3:#173552;--pc-field:#0b2037;
- --pc-line:#3b4e63;--pc-line-strong:#5d6b77;--pc-text:#f2eee6;--pc-title:#fff8e8;--pc-muted:#b9c1ca;--pc-subtle:#9ca8b5;
+ --pc-primary:#b99045;--pc-primary-2:#d0aa62;--pc-primary-soft:#302b24;--pc-focus:#d8ba79;--pc-on-primary:#07182d;
+ --pc-page:#06172b;--pc-page-accent:#0c2744;--pc-surface:#0f2741;--pc-surface-2:#0b2037;--pc-surface-3:#17344f;--pc-field:#0a1f35;
+ --pc-line:#3a4d62;--pc-line-strong:#5c6a76;--pc-text:#f1eee7;--pc-title:#fff8e8;--pc-muted:#bcc3cb;--pc-subtle:#a4adb8;
  --pc-success:#5ecf91;--pc-success-soft:#163b31;--pc-warning:#e4b960;--pc-warning-soft:#3a3020;--pc-danger:#ef7c7c;--pc-danger-soft:#40252a;--pc-info:#8ec5f4;--pc-info-soft:#17354e;--pc-success-text:#94e7b7;--pc-warning-text:#f5d795;--pc-danger-text:#f4a6a6;--pc-info-text:#b8dcfb;
- --pc-side:#050f1e;--pc-side-2:#0b213d;--pc-side-text:#fff9ec;--pc-side-muted:#b7c0cb;--pc-nav-hover:rgba(185,144,69,.10);--pc-nav-active:#b99045;--pc-nav-active-text:#07182d;
- --pc-body-bg:radial-gradient(circle at 86% 4%,rgba(185,144,69,.11),transparent 25%),linear-gradient(145deg,#061426 0%,#0c2744 100%);--pc-side-bg:linear-gradient(180deg,#050f1e 0%,#0b213d 100%);--pc-top-bg:rgba(10,31,53,.96);--pc-card-bg:linear-gradient(180deg,#122d4a 0%,#0d243d 100%);--pc-kpi-bg:linear-gradient(145deg,#15314e,#102842);--pc-table-head-bg:#b99045;--pc-table-head-text:#07182d;--pc-table-row-bg:#102842;--pc-table-hover:#183754;--pc-button-bg:linear-gradient(180deg,#d1aa5e,#a67d35);--pc-button-hover:#e0bd77;--pc-ghost-bg:#102842;--pc-soft-bg:#302b24;--pc-soft-text:#e7c984;--pc-profile-bg:rgba(185,144,69,.055);--pc-detail-bg:#0c2138;
- --pc-card-radius:8px;--pc-control-radius:7px;--pc-button-radius:6px;--pc-nav-radius:6px;--pc-icon-radius:5px;--pc-kpi-radius:7px;--pc-top-radius:8px;--pc-top-filter:blur(10px);--pc-heading-spacing:.005em;--pc-heading-weight:690;
- --pc-shadow:0 15px 36px rgba(0,0,0,.28);--pc-shadow-soft:0 7px 18px rgba(0,0,0,.20);--pc-shadow-float:0 28px 60px rgba(0,0,0,.40);--pc-side-line:rgba(185,144,69,.24);--pc-top-line:#435267;--pc-page-head-line:rgba(185,144,69,.27);--pc-nav-active-border:#d8b970;--pc-nav-active-shadow:0 5px 16px rgba(0,0,0,.28)
+ --pc-side:#040f1d;--pc-side-2:#0a203a;--pc-side-text:#fff9ec;--pc-side-muted:#bac2cc;--pc-nav-hover:rgba(185,144,69,.11);--pc-nav-active:#b99045;--pc-nav-active-text:#06172b;
+ --pc-body-bg:radial-gradient(circle at 86% 4%,rgba(185,144,69,.12),transparent 25%),linear-gradient(145deg,#051325 0%,#0b2642 100%);--pc-side-bg:linear-gradient(180deg,#040f1d 0%,#0a203a 100%);--pc-top-bg:rgba(9,29,50,.97);--pc-card-bg:linear-gradient(180deg,#122d49 0%,#0c233b 100%);--pc-kpi-bg:linear-gradient(145deg,#14304d,#0f2741);--pc-table-head-bg:#b99045;--pc-table-head-text:#06172b;--pc-table-row-bg:#0f2741;--pc-table-hover:#183650;--pc-button-bg:linear-gradient(180deg,#d0aa62,#b99045);--pc-button-hover:#dfbd7a;--pc-ghost-bg:#0f2741;--pc-soft-bg:#302b24;--pc-soft-text:#e8cb89;--pc-profile-bg:rgba(185,144,69,.06);--pc-detail-bg:#0b2037;
+ --pc-icon-bg:#2c2a28;--pc-icon-text:#e2c47f;--pc-icon-border:#5a4f3b;--pc-icon-hover-bg:#3a342c;--pc-icon-active-bg:#b99045;--pc-icon-active-text:#06172b;
+ --pc-card-radius:8px;--pc-control-radius:7px;--pc-button-radius:6px;--pc-nav-radius:6px;--pc-icon-radius:5px;--pc-kpi-radius:7px;--pc-top-radius:8px;--pc-top-filter:blur(10px);--pc-heading-spacing:.004em;--pc-heading-weight:700;
+ --pc-shadow:0 15px 36px rgba(0,0,0,.29);--pc-shadow-soft:0 7px 18px rgba(0,0,0,.21);--pc-shadow-float:0 28px 60px rgba(0,0,0,.41);--pc-side-line:rgba(185,144,69,.25);--pc-top-line:#435267;--pc-page-head-line:rgba(185,144,69,.28);--pc-nav-active-border:#dabd7b;--pc-nav-active-shadow:0 5px 16px rgba(0,0,0,.29)
 }
 
 body[data-eh-theme="strategic-graphite"]{
- --pc-primary:#d07a2d;--pc-primary-2:#a75d1f;--pc-primary-soft:#eee2d6;--pc-focus:#e29a56;
- --pc-page:#d9dddc;--pc-page-accent:#c8cecc;--pc-surface:#eef0ef;--pc-surface-2:#e4e7e6;--pc-surface-3:#d5d9d7;--pc-field:#f4f5f4;
- --pc-line:#b9c0bd;--pc-line-strong:#969f9b;--pc-text:#252d2b;--pc-title:#141a19;--pc-muted:#5c6864;--pc-subtle:#6b7773;
- --pc-side:#1d2325;--pc-side-2:#343c3e;--pc-side-text:#f4f6f5;--pc-side-muted:#b8c0bd;--pc-nav-hover:rgba(208,122,45,.09);--pc-nav-active:#d07a2d;--pc-nav-active-text:#161b1a;
- --pc-body-bg:linear-gradient(145deg,#e0e3e2 0%,#c8cecc 100%);--pc-side-bg:linear-gradient(180deg,#1d2325 0%,#343c3e 100%);--pc-top-bg:#e9ecea;--pc-card-bg:linear-gradient(180deg,#f0f2f1 0%,#e3e7e5 100%);--pc-kpi-bg:#edf0ee;--pc-table-head-bg:#323a3c;--pc-table-head-text:#f4f6f5;--pc-table-row-bg:#eef0ef;--pc-table-hover:#e4ddd5;--pc-button-bg:linear-gradient(180deg,#dd8a3d,#bd6924);--pc-button-hover:#a4551c;--pc-ghost-bg:#eef0ef;--pc-soft-bg:#eee2d6;--pc-profile-bg:rgba(255,255,255,.035);
- --pc-card-radius:3px;--pc-control-radius:2px;--pc-button-radius:2px;--pc-nav-radius:2px;--pc-icon-radius:2px;--pc-kpi-radius:3px;--pc-top-radius:3px;--pc-top-filter:none;--pc-heading-spacing:.015em;--pc-heading-weight:760;
- --pc-shadow:0 8px 18px rgba(31,39,39,.10);--pc-shadow-soft:0 3px 8px rgba(31,39,39,.075);--pc-shadow-float:0 18px 38px rgba(31,39,39,.18);--pc-side-shadow:7px 0 18px rgba(31,39,39,.14);--pc-side-line:#4a5351;--pc-nav-active-border:#e09a58;--pc-nav-active-shadow:none
+ --pc-primary:#c86d24;--pc-primary-2:#df8737;--pc-primary-soft:#eee1d4;--pc-focus:#e59c59;--pc-on-primary:#161b1a;
+ --pc-page:#d8dcda;--pc-page-accent:#c6ccca;--pc-surface:#eef0ef;--pc-surface-2:#e3e6e5;--pc-surface-3:#d3d8d6;--pc-field:#f5f6f5;
+ --pc-line:#b7bfbc;--pc-line-strong:#939d99;--pc-text:#242c2a;--pc-title:#131918;--pc-muted:#596660;--pc-subtle:#687570;
+ --pc-side:#1c2224;--pc-side-2:#333b3d;--pc-side-text:#f5f7f6;--pc-side-muted:#bac2bf;--pc-nav-hover:rgba(200,109,36,.10);--pc-nav-active:#c86d24;--pc-nav-active-text:#161b1a;
+ --pc-body-bg:linear-gradient(145deg,#e0e3e2 0%,#c6ccca 100%);--pc-side-bg:linear-gradient(180deg,#1c2224 0%,#333b3d 100%);--pc-top-bg:#e9ecea;--pc-card-bg:linear-gradient(180deg,#f0f2f1 0%,#e2e6e4 100%);--pc-kpi-bg:#edf0ee;--pc-table-head-bg:#31393b;--pc-table-head-text:#f5f7f6;--pc-table-row-bg:#eef0ef;--pc-table-hover:#e5ddd5;--pc-button-bg:linear-gradient(180deg,#df8737,#c86d24);--pc-button-hover:#a9551b;--pc-ghost-bg:#eef0ef;--pc-soft-bg:#eee1d4;--pc-profile-bg:rgba(255,255,255,.04);
+ --pc-icon-bg:#363d3e;--pc-icon-text:#f2ad70;--pc-icon-border:#555f5d;--pc-icon-hover-bg:#454e4d;--pc-icon-active-bg:#c86d24;--pc-icon-active-text:#161b1a;
+ --pc-card-radius:3px;--pc-control-radius:2px;--pc-button-radius:2px;--pc-nav-radius:2px;--pc-icon-radius:2px;--pc-kpi-radius:3px;--pc-top-radius:3px;--pc-top-filter:none;--pc-heading-spacing:.014em;--pc-heading-weight:770;
+ --pc-shadow:0 8px 18px rgba(31,39,39,.105);--pc-shadow-soft:0 3px 8px rgba(31,39,39,.08);--pc-shadow-float:0 18px 38px rgba(31,39,39,.19);--pc-side-shadow:7px 0 18px rgba(31,39,39,.15);--pc-side-line:#495250;--pc-nav-active-border:#e4a064;--pc-nav-active-shadow:none
 }
+/* RC800 interaction and icon contrast */
+body[data-eh-theme] :is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:3px solid color-mix(in srgb,var(--pc-focus) 72%,#ffffff)!important;outline-offset:2px!important}
+body[data-eh-theme] #content :is(button,.btn):not(.ghost):not(.soft):not(.danger):hover:not(:disabled){background:var(--pc-button-hover,var(--pc-primary-2))!important;color:var(--pc-on-primary)!important}
+body[data-eh-theme] #content :is(.ghost,button.ghost):hover:not(:disabled){background:var(--pc-surface-2)!important;color:var(--pc-title)!important}
+body[data-eh-theme] #content :is(.soft,button.soft):hover:not(:disabled){background:color-mix(in srgb,var(--pc-soft-bg) 84%,var(--pc-primary) 16%)!important;color:var(--pc-soft-text,var(--pc-primary))!important}
+body[data-eh-theme] #content :is(.danger,button.danger):hover:not(:disabled){background:color-mix(in srgb,var(--pc-danger-soft) 86%,var(--pc-danger) 14%)!important;color:var(--pc-danger-text)!important}
+body[data-eh-theme] #content :is(.rc776-doc,.folder-section,.rc524-shipment-card) :is(strong,h3,h4){color:var(--pc-title)!important}
+body[data-eh-theme] #content :is(.rc776-doc,.folder-section,.rc524-shipment-card) :is(small,.muted,.sub){color:var(--pc-muted)!important}
+body[data-eh-theme] #content :is(.rc776-doc,.folder-section,.rc524-shipment-card):hover :is(.icon,.rc628-customer-context-icon){background:var(--pc-icon-hover-bg)!important;border-color:color-mix(in srgb,var(--pc-icon-text) 36%,var(--pc-icon-border))!important}
+body[data-eh-theme] :is(.topbar,#content) :is(button,a,.btn,.ghost,.soft,.danger):disabled :is(svg,.icon){color:var(--pc-icon-muted)!important;opacity:.72!important}
+
 /* Responsive */
 @media(max-width:1180px){body[data-eh-theme]{--pc-side-width:246px}body[data-eh-theme] .main{padding:15px 17px 34px!important}body[data-eh-theme] #content :is(.grid4,.metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:760px){body[data-eh-theme] .app{display:block!important;width:100%!important;min-width:0!important}body[data-eh-theme] .sidebar{position:fixed!important;z-index:2147483000!important;left:0!important;top:0!important;width:min(86vw,310px)!important;height:100dvh!important;transform:translateX(-105%)!important;transition:transform .18s ease!important;box-shadow:var(--pc-shadow-float)!important}body[data-eh-theme].eh-sidebar-open .sidebar,body.eh-sidebar-open[data-eh-theme] .sidebar{transform:translateX(0)!important}body[data-eh-theme] .main{width:100%!important;max-width:100%!important;padding:7px 7px 22px!important}body[data-eh-theme] .topbar{top:5px!important;display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:6px!important;margin-bottom:9px!important;padding:6px!important;border-radius:12px!important}body[data-eh-theme] .topbar .search{grid-column:1/-1!important;width:100%!important}#ehThemeSwitch{min-width:0!important}#ehThemeSelect{min-width:0!important}body[data-eh-theme] #content .page-head{display:block!important;margin-bottom:9px!important;padding:5px 3px 9px!important}body[data-eh-theme] #content .page-head h1,body[data-eh-theme] #content .page-head h2{font-size:23px!important}body[data-eh-theme] #content :is(.metrics,.grid4,.summaryGrid,.quick-grid,.hero-kpis,.rc205-quick-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}body[data-eh-theme] #content :is(.grid2,.grid3,.split,.miniGrid,.academy-layout,.customer-mail-grid,.sop-detail-grid,.rc524-card-list){grid-template-columns:minmax(0,1fr)!important;gap:8px!important}body[data-eh-theme] #content :is(.card,.folder-section,.rc205-widget,.rc205-quick-card,.rc524-panel,.rc543-section){padding:12px!important;border-radius:13px!important}body[data-eh-theme] #content :is(input,select,textarea){min-height:39px!important;font-size:13px!important}body[data-eh-theme] #content :is(button,.btn,.ghost,.soft,.danger){min-height:37px!important}body[data-eh-theme] .rc705-avis-top{display:grid!important}.rc705-avis-link{grid-template-columns:1fr!important}.rc705-avis-link button{width:100%!important}}
@@ -22121,14 +22045,8 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
 .rc776-history{display:grid;gap:8px}.rc776-history-row{display:grid;grid-template-columns:minmax(140px,.35fr) minmax(0,1fr);gap:12px;padding:10px 12px;border-bottom:1px solid var(--pc-line,var(--eh-border,#e2e8f0))}.rc776-history-row:last-child{border-bottom:0}.rc776-history-row time{font-weight:800;color:var(--pc-muted,var(--eh-muted,#64748b))}.rc776-history-row b{color:var(--pc-text,var(--eh-text,#0f172a))}
 @media(max-width:900px){#content.rc776-shipment-view{padding:14px!important}.rc776-hero{display:block;padding:19px}.rc776-hero-actions{justify-content:flex-start;margin-top:14px}.rc776-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rc776-grid{grid-template-columns:1fr}.rc776-fields{grid-template-columns:1fr}.rc776-history-row{grid-template-columns:1fr}}
 @media(max-width:480px){.rc776-metrics{grid-template-columns:1fr}.rc776-doc{display:block}.rc776-doc .toolbar{margin-top:9px}.rc776-hero h1{font-size:30px}}
-.rc786-doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}.rc786-doc-head h2{margin:0 0 3px}.rc786-doc-head small{color:var(--pc-muted,var(--eh-muted,#64748b));font-weight:800}.rc786-doc-head-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-.rc786-doc-source{margin:0 0 9px;padding:7px 9px;border-radius:var(--pc-control-radius,12px);background:var(--pc-detail-bg,var(--eh-surface-2,#f8fafc));color:var(--pc-muted,var(--eh-muted,#64748b));font-size:11px;font-weight:850}
-.rc786-doc-row{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:11px;align-items:center;padding:12px 13px;border:1px solid var(--pc-line,var(--eh-border,#dbe4ef));border-radius:var(--pc-control-radius,14px);background:var(--pc-detail-bg,var(--eh-surface-2,#f8fafc));min-width:0}.rc786-doc-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--pc-primary-soft,#eef2ff);font-size:18px}.rc786-doc-main{min-width:0}.rc786-doc-main b{display:block;color:var(--pc-text,var(--eh-text,#0f172a));font-size:14px;overflow-wrap:anywhere}.rc786-doc-main small{display:block;margin-top:3px;color:var(--pc-muted,var(--eh-muted,#64748b));font-size:11px;font-weight:750;overflow-wrap:anywhere}.rc786-doc-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.rc786-doc-loading{padding:15px;border:1px dashed var(--pc-line,var(--eh-border,#cbd5e1));border-radius:var(--pc-control-radius,14px);color:var(--pc-muted,var(--eh-muted,#64748b));background:var(--pc-detail-bg,var(--eh-surface-2,#f8fafc));font-weight:800}
-#content.rc786-document-viewer{padding:16px!important;min-width:0}.rc786-viewer-shell{min-height:calc(100vh - 150px);display:grid;grid-template-rows:auto minmax(520px,1fr);gap:12px}.rc786-viewer-head{position:sticky;top:0;z-index:4;display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:15px 17px;border:1px solid var(--pc-line,var(--eh-border,#cbd5e1));border-radius:var(--pc-card-radius,18px);background:var(--pc-card-bg,var(--eh-surface,#fff));box-shadow:var(--pc-card-shadow,var(--eh-shadow,0 10px 28px rgba(15,23,42,.08)))}.rc786-viewer-back{appearance:none;border:0;background:transparent;color:var(--pc-primary,var(--eh-accent,#1d4ed8));padding:0;font:inherit;font-size:13px;font-weight:950;cursor:pointer}.rc786-viewer-back:hover{text-decoration:underline}.rc786-viewer-head h1{margin:7px 0 3px;color:var(--pc-text,var(--eh-text,#0f172a));font-size:20px;overflow-wrap:anywhere}.rc786-viewer-meta{color:var(--pc-muted,var(--eh-muted,#64748b));font-size:12px;font-weight:800}.rc786-viewer-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.rc786-viewer-stage{min-width:0;min-height:520px;overflow:hidden;border:1px solid var(--pc-line,var(--eh-border,#cbd5e1));border-radius:var(--pc-card-radius,18px);background:#fff}.rc786-viewer-stage iframe{display:block;width:100%;height:calc(100vh - 245px);min-height:620px;border:0;background:#fff}.rc786-viewer-error{display:grid;gap:10px;justify-items:start;align-content:center;min-height:320px;padding:30px;color:var(--pc-text,var(--eh-text,#0f172a));background:var(--pc-card-bg,var(--eh-surface,#fff))}.rc786-viewer-error span{color:var(--pc-muted,var(--eh-muted,#64748b))}
-@media(max-width:760px){.rc786-doc-head,.rc786-viewer-head{display:block}.rc786-doc-head-actions,.rc786-viewer-actions{justify-content:flex-start;margin-top:10px}.rc786-doc-row{grid-template-columns:34px minmax(0,1fr)}.rc786-doc-actions{grid-column:1/-1;justify-content:flex-start}.rc786-viewer-shell{grid-template-rows:auto minmax(420px,1fr)}.rc786-viewer-stage iframe{height:70vh;min-height:480px}}
 </style>
 <script id="exporthub-rc776-shipment-view">
-
 (function(){
 'use strict';
 if(window.__EXPORTHUB_RC776_SHIPMENT_VIEW__)return;window.__EXPORTHUB_RC776_SHIPMENT_VIEW__=true;
@@ -22153,254 +22071,22 @@ var GROUPS=[['deliveryFiles','Lieferscheine'],['deliveryNotesFiles','Lieferschei
 function documentFallback(field,label,index){return field==='generatedDocuments'?'Erzeugtes Dokument '+(index+1):label+' '+(index+1)}
 function collectDocs(sh){var out=[],seen={};GROUPS.forEach(function(g){arr(sh&&sh[g[0]]).forEach(function(f,i){var name=fileName(f,documentFallback(g[0],g[1],i)),url=fileUrl(f),key=g[0]+'|'+name+'|'+url;if(seen[key])return;seen[key]=1;out.push({group:g[1],field:g[0],index:i,name:name,file:f,url:url})})});var s=state(),sid=idOf(sh),ref=refOf(sh);arr(s.abdRequests).forEach(function(a){if(!a)return;var linked=(sid&&q(a.linkedShipmentId)===sid)||(ref&&q(a.ref||a.reference).toUpperCase()===ref);if(!linked)return;arr(a.abdFiles).concat(arr(a.documents)).concat(arr(a.attachments)).forEach(function(f,i){var name=fileName(f,'ABD '+(i+1)),url=fileUrl(f),key='abdRequest|'+name+'|'+url;if(seen[key])return;seen[key]=1;out.push({group:'ABD',field:'abdRequest',index:i,name:name,file:f,url:url})})});return out}
 function podEvidence(sh){var direct=q(sh&&(sh.pickupDriverSignature||sh.driverSignature||sh.signatureDataUrl||sh.pickupSignature||sh.pickupDriverSignatureUrl||sh.driverSignatureUrl||sh.pickupSignatureUrl||sh.signatureUrl));return !!direct||sh&&sh.podAvailable===true||sh&&sh.podConfirmed===true||sh&&sh.podServerVerified===true||arr(sh&&sh.podFiles).some(function(f){return !!fileUrl(f)})}
+function docHtml(d,i){var available=!!d.url,generated=d.field==='generatedDocuments',note=available?'Datei verfügbar':generated?'Erzeugtes Dokument · über Dokumentcenter öffnen oder erneut ausgeben':'Dokument registriert · im Dokumentcenter prüfen',action=available?'<button type="button" class="ghost" data-rc776-open-file="'+i+'">Öffnen</button>':'<button type="button" class="ghost" data-rc776-documents="1">Dokumentcenter öffnen</button>';return '<div class="rc776-doc"><div><b>📎 '+esc(d.name)+'</b><small>'+esc(d.group)+' · '+esc(note)+'</small></div><div class="toolbar">'+action+'</div></div>'}
 function historyHtml(sh){var h=arr(sh&&sh.statusHistory).slice().reverse();if(!h.length)return '<div class="rc776-empty">Noch kein Statusverlauf gespeichert.</div>';return '<div class="rc776-history">'+h.slice(0,40).map(function(x){return '<div class="rc776-history-row"><time>'+esc(fmtDate(x.at||x.date||x.createdAt))+'</time><div><b>'+esc(x.status||x.action||'Statusänderung')+'</b>'+(q(x.by||x.user||x.source)?'<small> · '+esc(x.by||x.user||x.source)+'</small>':'')+'</div></div>'}).join('')+'</div>'}
-var referenceCache=Object.create(null),referenceCacheMs=30000,viewerMemory=null,viewerObjectUrl='',viewerLoadSeq=0,downloadBusy=false;
-function fmtSize(v){var n=Number(v||0);if(!Number.isFinite(n)||n<=0)return'';if(n<1024)return n+' B';if(n<1024*1024)return(n/1024).toLocaleString('de-DE',{maximumFractionDigits:1})+' KB';return(n/(1024*1024)).toLocaleString('de-DE',{maximumFractionDigits:1})+' MB'}
-function docType(name,group){var s=low((name||'')+' '+(group||''));if(/lieferschein|delivery[ _-]?note|\bdnc\b/.test(s))return'Lieferschein';if(/\bcmr\b/.test(s))return'CMR';if(/ladeliste|load[ _-]?list/.test(s))return'Ladeliste';if(/\bpod\b|abliefernachweis|unterschrift|signed/.test(s))return'POD';if(/\babd\b|ausfuhrbegleit/.test(s))return'ABD';if(/deckblatt|cover/.test(s))return'Deckblatt';if(/rechnung|invoice/.test(s))return'Rechnung';if(/label|etikett/.test(s))return'Versandlabel';return q(group)||'Dokument'}
-function isPrintable(d){var mime=low(d&&d.mimeType),name=low(d&&d.name);return mime.indexOf('pdf')>=0||mime.indexOf('image/')===0||/\.(pdf|png|jpe?g|webp)$/i.test(name)}
-function normalizeFallback(d){var f=obj(d&&d.file)?d.file:{},created=q(f.createdAt||f.uploadedAt||f.added||f.savedAt||f.generatedAt||f.lastModified||f.modifiedAt),size=num(f.size||f.fileSize||f.bytes),mime=q(f.mimeType||f.type||f.contentType),name=q(d&&d.name)||'Dokument';return Object.assign({},d,{source:'shipmentState',documentType:docType(name,d&&d.group),createdAt:created,size:size,mimeType:mime})}
-function liveDoc(x,ref){var name=q(x&&x.name)||'Dokument';return{source:'referenceFolder',reference:ref,itemId:q(x&&x.id),name:name,group:'Ref-Ordner',documentType:docType(name,''),createdAt:q(x&&x.createdDateTime||x&&x.lastModifiedDateTime),modifiedAt:q(x&&x.lastModifiedDateTime),size:num(x&&x.size),mimeType:q(x&&x.mimeType)||'application/octet-stream',webUrl:q(x&&x.webUrl)}}
-function fileCountLabel(n){n=Number(n||0);return n+' '+(n===1?'Datei':'Dateien')}
-function referenceHeaders(){var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},token=q(rt.authToken),h={Accept:'application/json'};if(token){h['X-ExportHUB-Token']=token;h['X-ExportHUB-Session']=token;h.Authorization='Bearer '+token}return h}
-async function referenceList(ref,force){ref=q(ref).toUpperCase();var cached=referenceCache[ref];if(!force&&cached&&Date.now()-cached.at<referenceCacheMs)return cached.value;var res=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&_='+Date.now(),{method:'GET',headers:referenceHeaders(),credentials:'same-origin',cache:'no-store'}),data={};try{data=await res.json()}catch(_){}if(!res.ok||data.ok===false){var e=new Error(q(data.message)||('Ref-Ordner konnte nicht gelesen werden (HTTP '+res.status+').'));e.code=q(data.code)||'REFERENCE_FILES_FAILED';e.status=res.status;throw e}referenceCache[ref]={at:Date.now(),value:data};return data}
-function referenceFolderUrl(ref){ref=q(ref).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,20);var base='https://essentra-my.sharepoint.com/:f:/r/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Sendungen';return ref?base+'/'+encodeURIComponent(ref)+'?csf=1&web=1':base+'?csf=1&web=1'}
-function docMeta(d){var parts=[q(d.documentType)||docType(d.name,d.group)],stamp=q(d.createdAt||d.modifiedAt);if(stamp)parts.push(fmtDate(stamp));var size=fmtSize(d.size);if(size)parts.push(size);return parts.filter(Boolean).join(' · ')}
-function docHtml(d,i){var usable=!!(d&&((d.source==='referenceFolder'&&d.itemId)||d.url)),buttons=[];if(usable){buttons.push('<button type="button" class="ghost" data-rc786-open-file="'+i+'">Öffnen</button>');buttons.push('<button type="button" class="ghost" data-rc786-download-file="'+i+'">Download</button>');if(isPrintable(d))buttons.push('<button type="button" class="ghost" data-rc786-print-file="'+i+'">Drucken</button>')}else buttons.push('<button type="button" class="ghost" data-rc776-documents="1">Erneut ausgeben</button>');return '<article class="rc786-doc-row"><div class="rc786-doc-icon" aria-hidden="true">📄</div><div class="rc786-doc-main"><b>'+esc(d.name||'Dokument')+'</b><small>'+esc(docMeta(d))+'</small></div><div class="rc786-doc-actions">'+buttons.join('')+'</div></article>'}
-function docsPanelHtml(docs,source,error){docs=arr(docs);var sourceText=source==='referenceFolder'?'Direkt aus dem Ref-Ordner der Sendung':source==='fallback'?'Gespeicherte Dateiinformationen aus der Sendung':'';var note=sourceText?'<div class="rc786-doc-source">'+esc(sourceText)+(error?' · Live-Zugriff derzeit nicht verfügbar':'')+'</div>':'';var body=docs.length?'<div class="rc776-docs">'+docs.map(docHtml).join('')+'</div>':'<div class="rc776-empty">'+(source==='referenceFolder'?'Im Ref-Ordner sind aktuell keine Dateien vorhanden.':'Keine Dateien verfügbar.')+'</div>';return note+body}
-function setDocsPanel(docs,source,error){var panel=document.getElementById('rc786ReferenceFilesPanel'),title=document.getElementById('rc786ReferenceFilesTitle');if(!panel)return false;window.__EXPORTHUB_RC776_VIEW_DOCS__=arr(docs);if(title)title.textContent='📎 Dateien & Dokumente · '+fileCountLabel(arr(docs).length);panel.innerHTML=docsPanelHtml(docs,source,error);return true}
-async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref;if(!ref)return setDocsPanel(fallback,'fallback',true);try{var data=await referenceList(ref,false),live=arr(data.files).map(function(x){return liveDoc(x,ref)});var current=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)!=='shipmentview'||!current||(idOf(current)||refOf(current))!==expected)return false;setDocsPanel(live,'referenceFolder',false)}catch(e){console.warn('RC786 Ref-Ordner',e);var current2=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)==='shipmentview'&&current2&&(idOf(current2)||refOf(current2))===expected)setDocsPanel(fallback,'fallback',true)}return false}
-function render(){var s=state(),sh=find(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId),root=document.getElementById('content');if(!root)return false;root.className='content rc776-shipment-view';root.setAttribute('data-exporthub-rendered-view','shipmentview');if(!sh){root.innerHTML='<div class="rc776-page"><section class="rc776-card"><h2>Sendung nicht gefunden</h2><p class="muted">Die ausgewählte Sendung ist im aktuellen Teamstand nicht mehr vorhanden.</p><button type="button" class="btn" data-rc776-back="1">Zurück</button></section></div>';return false}var c=customer(sh),t=totals(sh),rs=rows(sh),fallback=collectDocs(sh).map(normalizeFallback),id=idOf(sh)||refOf(sh),ref=refOf(sh)||id,st=status(sh),location=obj(sh.locationData)?sh.locationData:obj(sh.location)?sh.location:{},address=q(sh.recipientAddress||sh.destinationAddress||sh.deliveryAddress||location.address||c.address),actual=q(sh.actualPickupDate||sh.pickedUpAtDate||sh.pickedUpAt||sh.pickupConfirmedAt),avis=sh.customerAvisEnabled===true||sh.avisEnabled===true?'Aktiv':'Aus',abd=q(sh.abdStatus||sh.customsStatus),pod=podEvidence(sh),stow=obj(sh.stowPlan)&&arr(sh.stowPlan.placements).length?'Vorhanden':'–';window.__EXPORTHUB_RC776_VIEW_DOCS__=fallback;window.__EXPORTHUB_RC776_VIEW_SHIPMENT__=sh;
+function render(){var s=state(),sh=find(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId);var root=document.getElementById('content');if(!root)return false;root.className='content rc776-shipment-view';root.setAttribute('data-exporthub-rendered-view','shipmentview');if(!sh){root.innerHTML='<div class="rc776-page"><section class="rc776-card"><h2>Sendung nicht gefunden</h2><p class="muted">Die ausgewählte Sendung ist im aktuellen Teamstand nicht mehr vorhanden.</p><button type="button" class="btn" data-rc776-back="1">Zurück</button></section></div>';return false}var c=customer(sh),t=totals(sh),rs=rows(sh),docs=collectDocs(sh),id=idOf(sh)||refOf(sh),ref=refOf(sh)||id,st=status(sh),location=obj(sh.locationData)?sh.locationData:obj(sh.location)?sh.location:{},address=q(sh.recipientAddress||sh.destinationAddress||sh.deliveryAddress||location.address||c.address),actual=q(sh.actualPickupDate||sh.pickedUpAtDate||sh.pickedUpAt||sh.pickupConfirmedAt),avis=sh.customerAvisEnabled===true||sh.avisEnabled===true?'Aktiv':'Aus',abd=q(sh.abdStatus||sh.customsStatus),pod=podEvidence(sh),stow=obj(sh.stowPlan)&&arr(sh.stowPlan.placements).length?'Vorhanden':'–';window.__EXPORTHUB_RC776_VIEW_DOCS__=docs;window.__EXPORTHUB_RC776_VIEW_SHIPMENT__=sh;
 var rowHtml=rs.length?'<div class="rc776-table-wrap"><table class="rc776-table"><thead><tr><th>Verpackung</th><th>Anzahl</th><th>Maße L × B × H</th><th>Gewicht</th><th>LDM</th></tr></thead><tbody>'+rs.map(function(r){var count=num(r.count||r.qty||r.anzahl),dims=[r.l||r.length,r.w||r.width,r.h||r.height].map(q).filter(Boolean).join(' × '),ldm=num(r.ldm||r.loadingMeter);return '<tr><td><b>'+esc(r.type||r.packaging||r.verpackung||'–')+'</b></td><td>'+esc(fmt(count,0))+'</td><td>'+esc(dims||'–')+'</td><td>'+esc(fmt(r.weight||r.gewicht,2))+' kg</td><td>'+esc(fmt(ldm*(count||1),3))+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="rc776-empty">Keine Colli-Zeilen gespeichert.</div>';
+var docsHtml=docs.length?'<div class="rc776-docs">'+docs.map(docHtml).join('')+'</div>':'<div class="rc776-empty">Keine hochgeladenen Dateien im Sendungsdatensatz vorhanden.</div>';
 var podHtml=pod?'<div class="rc776-doc"><div><b>Unterschriebener POD / Abliefernachweis</b><small>Digitaler oder hochgeladener POD vorhanden</small></div><div class="toolbar"><button type="button" class="btn" data-id="'+esc(id)+'" data-rc628-official-pod-open="1">POD öffnen</button></div></div>':'<div class="rc776-empty">Noch kein echter POD vorhanden.</div>';
-root.innerHTML='<div class="rc776-page" data-shipment="'+esc(id)+'"><nav class="rc784-view-context" aria-label="Sendungsnavigation"><button type="button" data-rc784-overview="1">Sendungsübersicht</button><span class="rc784-view-context-sep">›</span><span class="rc784-view-context-current">Sendungsansicht · '+esc(ref)+'</span></nav><section class="rc776-hero"><div><span class="rc776-kicker">Sendungsansicht · nur lesen</span><h1>'+esc(ref)+'</h1><div class="toolbar"><span class="rc776-status">'+esc(st)+'</span><span class="rc776-readonly">Keine Bearbeitung</span></div></div><div class="rc776-hero-actions"><button type="button" class="ghost" data-rc776-back="1">← Zurück</button><button type="button" class="btn" data-rc776-documents="1">Ladeliste &amp; CMR</button>'+(pod?'<button type="button" class="ghost" data-id="'+esc(id)+'" data-rc628-official-pod-open="1">POD öffnen</button>':'')+'</div></section><div class="rc776-metrics"><div class="rc776-metric"><span>Status</span><strong>'+esc(st)+'</strong></div><div class="rc776-metric"><span>Colli</span><strong>'+esc(fmt(t.count,0))+'</strong></div><div class="rc776-metric"><span>Gesamtgewicht</span><strong>'+esc(fmt(t.weight,2))+' kg</strong></div><div class="rc776-metric"><span>Lademeter</span><strong>'+esc(fmt(t.ldm,3))+' LDM</strong></div></div><div class="rc776-grid"><section class="rc776-card"><h2>Kunde &amp; Empfänger</h2><div class="rc776-fields">'+field('Kunde',q(sh.customerName||c.name))+field('Kundennummer',q(sh.customerAccount||sh.customerNumber||c.account||c.customerNumber))+field('Empfängerland',q(sh.recipientCountry||sh.destinationCountry||location.country||c.country))+field('Standort',q(location.name||sh.locationName||sh.locationId))+field('Empfängeradresse',address,true)+'</div></section><section class="rc776-card"><h2>Transport &amp; Termine</h2><div class="rc776-fields">'+field('Geplante Abholung',fmtDate(sh.pickupDate||sh.plannedPickupDate))+field('Tatsächliche Abholung',fmtDate(actual))+field('Spedition',q(sh.carrier||sh.forwarder||c.carrier||c.speditionName))+field('Kennzeichen',q(sh.licensePlate||sh.plate||sh.kennzeichen))+field('Verlader',q(sh.loader||sh.loadedBy||sh.verlader))+field('Incoterm',q(sh.incoterm))+'</div></section><section class="rc776-card"><h2>Sendungsinformationen</h2><div class="rc776-fields">'+field('Referenz',ref)+field('Erstellt',fmtDate(sh.createdAt||sh.created))+field('Letzte Änderung',fmtDate(sh.updatedAt||sh._syncUpdatedAt||sh.modifiedAt))+field('Stauplan',stow)+field('Warenbeschreibung',q(sh.goodsDescription||sh.description),true)+field('Bemerkung / Notiz',q(sh.comments||sh.notes||sh.remark||sh.overviewNote),true)+'</div></section><section class="rc776-card"><h2>Prozessstatus</h2><div class="rc776-fields">'+field('Sendungsstatus',st)+field('ABD',abd||'–')+field('Lieferavis',avis)+field('POD',pod?'Vorhanden':'Nicht vorhanden')+field('Abholung',actual?'Bestätigt':'Noch nicht bestätigt')+field('Abgeschlossen',sh.completed===true||sh.completionConfirmed===true||q(sh.completedAt)?'Ja':'Nein')+'</div></section></div><section class="rc776-card"><h2>Colli, Maße, Gewicht &amp; LDM</h2>'+rowHtml+'</section><div class="rc776-grid"><section class="rc776-card" id="rc786ReferenceFilesCard"><div class="rc786-doc-head"><div><h2 id="rc786ReferenceFilesTitle">📎 Dateien & Dokumente</h2><small>Ref-Ordner · '+esc(ref)+'</small></div><div class="rc786-doc-head-actions"><button type="button" class="ghost" data-rc786-open-ref="1">Ref-Ordner öffnen</button><button type="button" class="ghost" data-rc776-documents="1">Dokumentcenter öffnen</button></div></div><div id="rc786ReferenceFilesPanel"><div class="rc786-doc-loading">Dateien aus dem Ref-Ordner werden geladen …</div></div></section><section class="rc776-card"><h2>POD</h2>'+podHtml+'</section></div><section class="rc776-card"><h2>Statusverlauf</h2>'+historyHtml(sh)+'</section></div>';loadReferenceDocs(sh,fallback);return false}
-function open(value,source){var sh=find(value);if(!sh){alert('Die gespeicherte Sendung wurde nicht gefunden.');return false}var s=state(),cur=low(s.view||document.body.getAttribute('data-exporthub-view')||'shipmentoverview');s.shipmentViewId=idOf(sh)||refOf(sh);if(cur!=='shipmentview'&&cur!=='documentviewer')s.shipmentViewReturnView=source&&source!=='shipmentview'?source:cur;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s)}catch(_){}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentview','shipment-view-open');s.view='shipmentview';return render()}
-function back(){var s=state(),target=low(s.shipmentViewReturnView)||'shipmentoverview';if(target==='shipmentview'||target==='documentviewer')target='shipmentoverview';if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route(target,'shipment-view-back');return false}
+root.innerHTML='<div class="rc776-page" data-shipment="'+esc(id)+'"><nav class="rc784-view-context" aria-label="Sendungsnavigation"><button type="button" data-rc784-overview="1">Sendungsübersicht</button><span class="rc784-view-context-sep">›</span><span class="rc784-view-context-current">Sendungsansicht · '+esc(ref)+'</span></nav><section class="rc776-hero"><div><span class="rc776-kicker">Sendungsansicht · nur lesen</span><h1>'+esc(ref)+'</h1><div class="toolbar"><span class="rc776-status">'+esc(st)+'</span><span class="rc776-readonly">Keine Bearbeitung</span></div></div><div class="rc776-hero-actions"><button type="button" class="ghost" data-rc776-back="1">← Zurück</button><button type="button" class="btn" data-rc776-documents="1">Ladeliste &amp; CMR</button>'+(pod?'<button type="button" class="ghost" data-id="'+esc(id)+'" data-rc628-official-pod-open="1">POD öffnen</button>':'')+'</div></section><div class="rc776-metrics"><div class="rc776-metric"><span>Status</span><strong>'+esc(st)+'</strong></div><div class="rc776-metric"><span>Colli</span><strong>'+esc(fmt(t.count,0))+'</strong></div><div class="rc776-metric"><span>Gesamtgewicht</span><strong>'+esc(fmt(t.weight,2))+' kg</strong></div><div class="rc776-metric"><span>Lademeter</span><strong>'+esc(fmt(t.ldm,3))+' LDM</strong></div></div><div class="rc776-grid"><section class="rc776-card"><h2>Kunde &amp; Empfänger</h2><div class="rc776-fields">'+field('Kunde',q(sh.customerName||c.name))+field('Kundennummer',q(sh.customerAccount||sh.customerNumber||c.account||c.customerNumber))+field('Empfängerland',q(sh.recipientCountry||sh.destinationCountry||location.country||c.country))+field('Standort',q(location.name||sh.locationName||sh.locationId))+field('Empfängeradresse',address,true)+'</div></section><section class="rc776-card"><h2>Transport &amp; Termine</h2><div class="rc776-fields">'+field('Geplante Abholung',fmtDate(sh.pickupDate||sh.plannedPickupDate))+field('Tatsächliche Abholung',fmtDate(actual))+field('Spedition',q(sh.carrier||sh.forwarder||c.carrier||c.speditionName))+field('Kennzeichen',q(sh.licensePlate||sh.plate||sh.kennzeichen))+field('Verlader',q(sh.loader||sh.loadedBy||sh.verlader))+field('Incoterm',q(sh.incoterm))+'</div></section><section class="rc776-card"><h2>Sendungsinformationen</h2><div class="rc776-fields">'+field('Referenz',ref)+field('Erstellt',fmtDate(sh.createdAt||sh.created))+field('Letzte Änderung',fmtDate(sh.updatedAt||sh._syncUpdatedAt||sh.modifiedAt))+field('Stauplan',stow)+field('Warenbeschreibung',q(sh.goodsDescription||sh.description),true)+field('Bemerkung / Notiz',q(sh.comments||sh.notes||sh.remark||sh.overviewNote),true)+'</div></section><section class="rc776-card"><h2>Prozessstatus</h2><div class="rc776-fields">'+field('Sendungsstatus',st)+field('ABD',abd||'–')+field('Lieferavis',avis)+field('POD',pod?'Vorhanden':'Nicht vorhanden')+field('Abholung',actual?'Bestätigt':'Noch nicht bestätigt')+field('Abgeschlossen',sh.completed===true||sh.completionConfirmed===true||q(sh.completedAt)?'Ja':'Nein')+'</div></section></div><section class="rc776-card"><h2>Colli, Maße, Gewicht &amp; LDM</h2>'+rowHtml+'</section><div class="rc776-grid"><section class="rc776-card"><h2>Dateien &amp; Dokumente</h2>'+docsHtml+'</section><section class="rc776-card"><h2>POD</h2>'+podHtml+'</section></div><section class="rc776-card"><h2>Statusverlauf</h2>'+historyHtml(sh)+'</section></div>';return false}
+function open(value,source){var sh=find(value);if(!sh){alert('Die gespeicherte Sendung wurde nicht gefunden.');return false}var s=state(),cur=low(s.view||document.body.getAttribute('data-exporthub-view')||'shipmentoverview');s.shipmentViewId=idOf(sh)||refOf(sh);if(cur!=='shipmentview')s.shipmentViewReturnView=source&&source!=='shipmentview'?source:cur;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s)}catch(_){}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentview','shipment-view-open');s.view='shipmentview';return render()}
+function back(){var s=state(),target=low(s.shipmentViewReturnView)||'shipmentoverview';if(target==='shipmentview')target='shipmentoverview';if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route(target,'shipment-view-back');return false}
 function overview(){if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentoverview','shipment-view-overview');return false}
-function currentDocs(){return arr(window.__EXPORTHUB_RC776_VIEW_DOCS__)}
-function currentShipmentForDocs(){return window.__EXPORTHUB_RC776_VIEW_SHIPMENT__||find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId)}
-function viewerStore(ctx){viewerMemory=ctx;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(ctx.persist||ctx))}catch(_){}return ctx}
-function viewerRead(){if(viewerMemory)return viewerMemory;try{var raw=sessionStorage.getItem('exporthub_document_viewer_v1'),v=raw&&JSON.parse(raw);return v?{persist:v,doc:v.doc||v}:null}catch(_){return null}}
-function viewerClearUrl(){if(viewerObjectUrl){try{URL.revokeObjectURL(viewerObjectUrl)}catch(_){}viewerObjectUrl=''}}
-function viewerContextFor(d,sh,autoPrint){var ref=refOf(sh),id=idOf(sh)||ref,persist={reference:ref,shipmentId:id,name:q(d.name)||'Dokument',documentType:q(d.documentType)||docType(d.name,d.group),itemId:q(d.itemId),source:q(d.source),url:d.url&&!/^data:|^blob:/i.test(d.url)?q(d.url):'',mimeType:q(d.mimeType),size:num(d.size),createdAt:q(d.createdAt||d.modifiedAt),autoPrint:autoPrint===true,doc:{reference:ref,shipmentId:id,name:q(d.name)||'Dokument',documentType:q(d.documentType)||docType(d.name,d.group),itemId:q(d.itemId),source:q(d.source),url:d.url&&!/^data:|^blob:/i.test(d.url)?q(d.url):'',mimeType:q(d.mimeType),size:num(d.size),createdAt:q(d.createdAt||d.modifiedAt)}};return viewerStore({persist:persist,doc:d})}
-function routeViewer(d,autoPrint){var sh=currentShipmentForDocs();if(!d||!sh)return false;viewerContextFor(d,sh,autoPrint);var s=state();s.shipmentViewId=idOf(sh)||refOf(sh);if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('documentviewer','stored-document-open');s.view='documentviewer';return renderViewer()}
-async function fetchDocBlob(d){if(!d)throw new Error('Datei fehlt.');if(d._blob instanceof Blob)return d._blob;if(d.source==='referenceFolder'&&d.itemId){var ref=q(d.reference)||refOf(currentShipmentForDocs()),res=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(d.itemId)+'&mode=inline&_='+Date.now(),{method:'GET',headers:referenceHeaders(),credentials:'same-origin',cache:'no-store'});if(!res.ok){var message='Datei konnte nicht geöffnet werden.';try{var data=await res.json();message=q(data.message)||message}catch(_){}throw new Error(message)}return await res.blob()}if(d.url&&(/^data:|^blob:|^\/api\//i.test(d.url))){var r=await fetch(d.url,{headers:/^\/api\//i.test(d.url)?referenceHeaders():{},credentials:'same-origin',cache:'no-store'});if(!r.ok)throw new Error('Datei konnte nicht geladen werden.');return await r.blob()}return null}
-async function downloadDocObject(d){if(downloadBusy||!d)return false;downloadBusy=true;try{var blob=await fetchDocBlob(d);if(blob){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=q(d.name)||'Dokument';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){try{URL.revokeObjectURL(u)}catch(_){}},30000);return false}if(d.url){var a2=document.createElement('a');a2.href=d.url;a2.target='_blank';a2.rel='noopener noreferrer';a2.download=q(d.name)||'';document.body.appendChild(a2);a2.click();a2.remove();return false}return openDocuments()}catch(e){alert('Die Datei konnte nicht heruntergeladen werden.\n\n'+q(e&&e.message||e));return false}finally{downloadBusy=false}}
-function openDoc(index){var d=currentDocs()[Number(index)];if(!d)return false;if(!((d.source==='referenceFolder'&&d.itemId)||d.url))return openDocuments();return routeViewer(d,false)}
-function downloadDoc(index){var d=currentDocs()[Number(index)];return d?downloadDocObject(d):false}
-function printDoc(index){var d=currentDocs()[Number(index)];if(!d)return false;if(!isPrintable(d))return false;return routeViewer(d,true)}
-function openReferenceFolder(){var sh=currentShipmentForDocs(),id=sh&&(idOf(sh)||refOf(sh));if(id&&typeof window.rc524OpenRef==='function')return window.rc524OpenRef(id);var ref=sh&&refOf(sh);if(ref){window.open(referenceFolderUrl(ref),'_blank','noopener,noreferrer');return false}return false}
-function openDocuments(){var sh=currentShipmentForDocs(),id=sh&&(idOf(sh)||refOf(sh));if(!id)return false;var s=state();s.documentShipmentId=id;s.selectedShipmentId=id;try{sessionStorage.setItem('exporthub_document_return_v1',JSON.stringify({view:'shipmentview',shipmentId:id,reference:refOf(sh),at:Date.now()}))}catch(_){}if(typeof window.rc524OpenDocuments==='function')return window.rc524OpenDocuments(id);if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.openDocuments==='function')return window.ExportHUBIndex240.openDocuments(id);return false}
-function viewerPersist(){var v=viewerRead();return v&&v.persist?v.persist:v||null}
-function viewerBack(){var v=viewerPersist(),s=state();viewerClearUrl();if(v){s.shipmentViewId=q(v.shipmentId||v.reference);try{sessionStorage.removeItem('exporthub_document_viewer_v1')}catch(_){}viewerMemory=null}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentview','document-viewer-back');s.view='shipmentview';return render()}
-function viewerCurrentDoc(){var v=viewerRead();if(!v)return null;return v.doc||v.persist&&v.persist.doc||v.persist||v}
-async function viewerLoad(){var seq=++viewerLoadSeq,v=viewerPersist(),d=viewerCurrentDoc(),stage=document.getElementById('rc786DocumentStage');if(!v||!d||!stage)return false;try{var blob=await fetchDocBlob(Object.assign({},d,{reference:v.reference}));if(seq!==viewerLoadSeq||low(state().view)!=='documentviewer')return false;if(blob){viewerClearUrl();viewerObjectUrl=URL.createObjectURL(blob);stage.innerHTML='<iframe id="rc786DocumentFrame" title="'+esc(v.name||'Dokument')+'"></iframe>';var frame=document.getElementById('rc786DocumentFrame');frame.onload=function(){if(v.autoPrint===true){v.autoPrint=false;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){}setTimeout(function(){try{frame.contentWindow.focus();frame.contentWindow.print()}catch(e){console.warn('RC786 Drucken',e)}},180)}};frame.src=viewerObjectUrl;return false}if(d.url){stage.innerHTML='<iframe id="rc786DocumentFrame" src="'+esc(d.url)+'" title="'+esc(v.name||'Dokument')+'"></iframe>';return false}throw new Error('Für diese Datei ist kein vorhandener Dateiinhalt erreichbar.')}catch(e){if(seq!==viewerLoadSeq)return false;stage.innerHTML='<div class="rc786-viewer-error"><b>Datei konnte nicht geöffnet werden.</b><span>'+esc(q(e&&e.message||e))+'</span><button type="button" class="ghost" data-rc786-open-ref="1">Ref-Ordner öffnen</button></div>';return false}}
-function renderViewer(){var v=viewerPersist(),d=viewerCurrentDoc(),root=document.getElementById('content');if(!root)return false;root.className='content rc786-document-viewer';root.setAttribute('data-exporthub-rendered-view','documentviewer');if(!v){root.innerHTML='<div class="rc786-viewer-shell"><div class="rc786-viewer-error"><b>Kein Dokument ausgewählt.</b><button type="button" class="btn" data-rc786-viewer-back="1">Zurück zur Sendung</button></div></div>';return false}var meta=[q(v.documentType)||docType(v.name,''),v.createdAt?fmtDate(v.createdAt):'',fmtSize(v.size)].filter(Boolean).join(' · ');root.innerHTML='<div class="rc786-viewer-shell"><header class="rc786-viewer-head"><div><button type="button" class="rc786-viewer-back" data-rc786-viewer-back="1">← Zurück zur Sendung '+esc(v.reference||'')+'</button><h1>'+esc(v.name||'Dokument')+'</h1><div class="rc786-viewer-meta">'+esc(meta)+'</div></div><div class="rc786-viewer-actions"><button type="button" class="ghost" data-rc786-viewer-download="1">Download</button>'+(isPrintable(d)?'<button type="button" class="ghost" data-rc786-viewer-print="1">Drucken</button>':'')+'<button type="button" class="ghost" data-rc786-viewer-back="1">Schließen</button></div></header><main id="rc786DocumentStage" class="rc786-viewer-stage"><div class="rc786-doc-loading">Vorhandene Datei wird aus dem Ref-Ordner geladen …</div></main></div>';viewerLoad();return false}
-function viewerDownload(){var d=viewerCurrentDoc(),v=viewerPersist();return d?downloadDocObject(Object.assign({},d,{reference:v&&v.reference})):false}
-function viewerPrint(){var frame=document.getElementById('rc786DocumentFrame');if(frame){try{frame.contentWindow.focus();frame.contentWindow.print();return false}catch(_){}}var v=viewerPersist();if(v){v.autoPrint=true;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){}}viewerLoad();return false}
-document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc776-back],[data-rc784-overview],[data-rc786-open-file],[data-rc786-download-file],[data-rc786-print-file],[data-rc776-documents],[data-rc786-open-ref],[data-rc786-viewer-back],[data-rc786-viewer-download],[data-rc786-viewer-print]');if(!b)return;if(b.hasAttribute('data-rc776-back')){e.preventDefault();return back()}if(b.hasAttribute('data-rc784-overview')){e.preventDefault();return overview()}if(b.hasAttribute('data-rc786-open-file')){e.preventDefault();return openDoc(b.getAttribute('data-rc786-open-file'))}if(b.hasAttribute('data-rc786-download-file')){e.preventDefault();return downloadDoc(b.getAttribute('data-rc786-download-file'))}if(b.hasAttribute('data-rc786-print-file')){e.preventDefault();return printDoc(b.getAttribute('data-rc786-print-file'))}if(b.hasAttribute('data-rc776-documents')){e.preventDefault();return openDocuments()}if(b.hasAttribute('data-rc786-open-ref')){e.preventDefault();return openReferenceFolder()}if(b.hasAttribute('data-rc786-viewer-back')){e.preventDefault();return viewerBack()}if(b.hasAttribute('data-rc786-viewer-download')){e.preventDefault();return viewerDownload()}if(b.hasAttribute('data-rc786-viewer-print')){e.preventDefault();return viewerPrint()}},true);
-window.ExportHUBShipmentView=Object.freeze({version:'RC786',open:open,render:render,back:back,overview:overview,find:find,openFile:openDoc,downloadFile:downloadDoc,printFile:printDoc,openDocuments:openDocuments,refreshReferenceFiles:function(){var sh=currentShipmentForDocs();if(!sh)return false;delete referenceCache[refOf(sh)];return loadReferenceDocs(sh,collectDocs(sh).map(normalizeFallback))},diagnostics:function(){return{view:low(state().view),shipmentId:q(state().shipmentViewId),readOnly:true,referenceApi:true,inputs:document.querySelectorAll('#content.rc776-shipment-view input,#content.rc776-shipment-view select,#content.rc776-shipment-view textarea').length,saveButtons:Array.from(document.querySelectorAll('#content.rc776-shipment-view button')).filter(function(b){return /speichern|save/i.test(q(b.textContent))}).length}}});
-window.ExportHUBDocumentViewer=Object.freeze({version:'RC786',render:renderViewer,back:viewerBack,download:viewerDownload,print:viewerPrint,diagnostics:function(){var v=viewerPersist();return{view:low(state().view),reference:v&&v.reference||'',name:v&&v.name||'',itemId:v&&v.itemId||'',storedFileOnly:true}}});
+function openDoc(index){var docs=window.__EXPORTHUB_RC776_VIEW_DOCS__||[],d=docs[Number(index)];if(!d||!d.url){alert('Für diese Datei ist kein Dateiinhalt vorhanden.');return false}try{var a=document.createElement('a');a.href=d.url;a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove()}catch(e){alert('Die Datei konnte nicht geöffnet werden: '+q(e&&e.message||e))}return false}
+function openDocuments(){var sh=window.__EXPORTHUB_RC776_VIEW_SHIPMENT__,id=sh&&(idOf(sh)||refOf(sh));if(!id)return false;var s=state();s.documentShipmentId=id;s.selectedShipmentId=id;if(typeof window.rc524OpenDocuments==='function')return window.rc524OpenDocuments(id);if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.openDocuments==='function')return window.ExportHUBIndex240.openDocuments(id);return false}
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc776-back],[data-rc784-overview],[data-rc776-open-file],[data-rc776-documents]');if(!b)return;if(b.hasAttribute('data-rc776-back')){e.preventDefault();return back()}if(b.hasAttribute('data-rc784-overview')){e.preventDefault();return overview()}if(b.hasAttribute('data-rc776-open-file')){e.preventDefault();return openDoc(b.getAttribute('data-rc776-open-file'))}if(b.hasAttribute('data-rc776-documents')){e.preventDefault();return openDocuments()}},true);
+window.ExportHUBShipmentView=Object.freeze({version:'RC784',open:open,render:render,back:back,overview:overview,find:find,openFile:openDoc,openDocuments:openDocuments,diagnostics:function(){return{view:low(state().view),shipmentId:q(state().shipmentViewId),readOnly:true,inputs:document.querySelectorAll('#content.rc776-shipment-view input,#content.rc776-shipment-view select,#content.rc776-shipment-view textarea').length,saveButtons:Array.from(document.querySelectorAll('#content.rc776-shipment-view button')).filter(function(b){return /speichern|save/i.test(q(b.textContent))}).length}}});
 })();
-
 </script>
-<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/reference-files/index.js encoding=base64 sha256=4d9aedc79b4424b6d5a0f15c94a77cfc50284c8702b59a823f7dd2142c7f847d
-J3VzZSBzdHJpY3QnOwpjb25zdCBjcnlwdG89cmVxdWlyZSgnY3J5cHRvJyk7CmNvbnN0IHtCbG9i
-U2VydmljZUNsaWVudH09cmVxdWlyZSgnQGF6dXJlL3N0b3JhZ2UtYmxvYicpOwoKY29uc3QgVEVB
-TV9DT05UQUlORVI9cHJvY2Vzcy5lbnYuRVhQT1JUSFVCX1NUT1JBR0VfQ09OVEFJTkVSfHxwcm9j
-ZXNzLmVudi5FWFBPUlRIVUJfQ09OVEFJTkVSfHwnZXhwb3J0aHViLWRhdGEnOwpjb25zdCBURUFN
-X0JMT0I9cHJvY2Vzcy5lbnYuRVhQT1JUSFVCX1NUT1JBR0VfQkxPQnx8cHJvY2Vzcy5lbnYuRVhQ
-T1JUSFVCX1NUQVRFX0JMT0J8fCd0ZWFtLXN0YXRlLmpzb24nOwpjb25zdCBBVVRIX0JMT0I9cHJv
-Y2Vzcy5lbnYuRVhQT1JUSFVCX0FVVEhfQkxPQnx8J2F1dGgtc2Vzc2lvbnMuanNvbic7CmNvbnN0
-IEdSQVBIX0JBU0U9J2h0dHBzOi8vZ3JhcGgubWljcm9zb2Z0LmNvbS92MS4wJzsKY29uc3QgUkVG
-RVJFTkNFX0ZPTERFUj0ocHJvY2Vzcy5lbnYuRVhQT1JUSFVCX1JFRkVSRU5DRV9GT0xERVJ8fCcw
-MDMgRXhwb3J0L0V4cG9ydEh1Yi9TZW5kdW5nZW4nKS5yZXBsYWNlKC9eXC8rfFwvKyQvZywnJyk7
-CmNvbnN0IERSSVZFX1VTRVI9cHJvY2Vzcy5lbnYuRVhQT1JUSFVCX1JFRkVSRU5DRV9EUklWRV9V
-U0VSfHxwcm9jZXNzLmVudi5FWFBPUlRIVUJfUE9EX0RSSVZFX1VTRVJ8fCd0b2JpYXNsaW1iZXJn
-QGVzc2VudHJhLmNvbSc7CmNvbnN0IE1BWF9GSUxFX0JZVEVTPTM1KjEwMjQqMTAyNDsKbGV0IGdy
-YXBoVG9rZW5DYWNoZT1udWxsOwoKZnVuY3Rpb24gdGV4dCh2KXtyZXR1cm4gU3RyaW5nKHY9PW51
-bGw/Jyc6dikudHJpbSgpfQpmdW5jdGlvbiBsb3dlcih2KXtyZXR1cm4gdGV4dCh2KS50b0xvd2Vy
-Q2FzZSgpfQpmdW5jdGlvbiBqc29uKHN0YXR1cyxib2R5LGhlYWRlcnMpe3JldHVybntzdGF0dXMs
-aGVhZGVyczpPYmplY3QuYXNzaWduKHsnQ29udGVudC1UeXBlJzonYXBwbGljYXRpb24vanNvbjsg
-Y2hhcnNldD11dGYtOCcsJ0NhY2hlLUNvbnRyb2wnOiduby1zdG9yZScsJ1gtQ29udGVudC1UeXBl
-LU9wdGlvbnMnOidub3NuaWZmJ30saGVhZGVyc3x8e30pLGJvZHk6SlNPTi5zdHJpbmdpZnkoYm9k
-eSl9fQpmdW5jdGlvbiBlcnJvcihjb2RlLG1lc3NhZ2Usc3RhdHVzKXtjb25zdCBlPW5ldyBFcnJv
-cihtZXNzYWdlfHxjb2RlKTtlLmNvZGU9Y29kZXx8J1NFUlZFUl9FUlJPUic7ZS5zdGF0dXM9TnVt
-YmVyKHN0YXR1c3x8NTAwKTtyZXR1cm4gZX0KZnVuY3Rpb24gY29ubmVjdGlvblN0cmluZygpe3Jl
-dHVybiBwcm9jZXNzLmVudi5FWFBPUlRIVUJfU1RPUkFHRV9DT05ORUNUSU9OX1NUUklOR3x8cHJv
-Y2Vzcy5lbnYuQXp1cmVXZWJKb2JzU3RvcmFnZXx8Jyd9CmZ1bmN0aW9uIHNhZmVFcXVhbFRleHQo
-YSxiKXtjb25zdCBhYT1CdWZmZXIuZnJvbShTdHJpbmcoYXx8JycpLCd1dGY4JyksYmI9QnVmZmVy
-LmZyb20oU3RyaW5nKGJ8fCcnKSwndXRmOCcpO3JldHVybiBhYS5sZW5ndGg9PT1iYi5sZW5ndGgm
-JmFhLmxlbmd0aD4wJiZjcnlwdG8udGltaW5nU2FmZUVxdWFsKGFhLGJiKX0KZnVuY3Rpb24gdG9r
-ZW5IYXNoKHRva2VuKXtyZXR1cm4gY3J5cHRvLmNyZWF0ZUhhc2goJ3NoYTI1NicpLnVwZGF0ZShT
-dHJpbmcodG9rZW58fCcnKSkuZGlnZXN0KCdoZXgnKX0KZnVuY3Rpb24gdXNlcm5hbWVPZih1c2Vy
-KXtyZXR1cm4gbG93ZXIodXNlciYmKHVzZXIudXNlcnx8dXNlci5sb2dpbnx8dXNlci51c2VybmFt
-ZXx8dXNlci5uYW1lKSl9CmZ1bmN0aW9uIGlzQWN0aXZlKHVzZXIpe3JldHVybiBCb29sZWFuKHVz
-ZXImJnVzZXIuYWN0aXZlIT09ZmFsc2UmJnVzZXIuZGlzYWJsZWQhPT10cnVlJiZsb3dlcih1c2Vy
-LnN0YXR1cykhPT0nZGVha3RpdmllcnQnKX0KZnVuY3Rpb24gc2lnbmluZ1NlY3JldCgpe2NvbnN0
-IGNvbmZpZ3VyZWQ9dGV4dChwcm9jZXNzLmVudi5FWFBPUlRIVUJfQVVUSF9TSUdOSU5HX1NFQ1JF
-VHx8cHJvY2Vzcy5lbnYuRVhQT1JUSFVCX1NFU1NJT05fU0VDUkVUKSxzb3VyY2U9Y29uZmlndXJl
-ZHx8Y29ubmVjdGlvblN0cmluZygpO2lmKCFzb3VyY2UpdGhyb3cgZXJyb3IoJ0FVVEhfU0lHTklO
-R19OT1RfQ09ORklHVVJFRCcsJ0RpZSBzaWNoZXJlIFNpdHp1bmdzc2lnbmF0dXIgaXN0IHNlcnZl
-cnNlaXRpZyBuaWNodCBrb25maWd1cmllcnQuJyw1MDMpO3JldHVybiBjcnlwdG8uY3JlYXRlSGFz
-aCgnc2hhMjU2JykudXBkYXRlKCdFeHBvcnRIVUIvc2Vzc2lvbi92MXwnK3NvdXJjZSkuZGlnZXN0
-KCl9CmZ1bmN0aW9uIHZlcmlmeVNpZ25lZFNlc3Npb25Ub2tlbih0b2tlbil7Y29uc3QgcGFydHM9
-dGV4dCh0b2tlbikuc3BsaXQoJy4nKTtpZihwYXJ0cy5sZW5ndGghPT0zfHxwYXJ0c1swXSE9PSdl
-aHMxJylyZXR1cm4gbnVsbDtjb25zdCBleHBlY3RlZD1jcnlwdG8uY3JlYXRlSG1hYygnc2hhMjU2
-JyxzaWduaW5nU2VjcmV0KCkpLnVwZGF0ZShwYXJ0c1sxXSkuZGlnZXN0KCdiYXNlNjR1cmwnKTtp
-Zighc2FmZUVxdWFsVGV4dChleHBlY3RlZCxwYXJ0c1syXSkpcmV0dXJuIG51bGw7bGV0IHA7dHJ5
-e3A9SlNPTi5wYXJzZShCdWZmZXIuZnJvbShwYXJ0c1sxXSwnYmFzZTY0dXJsJykudG9TdHJpbmco
-J3V0ZjgnKSl9Y2F0Y2goXyl7cmV0dXJuIG51bGx9aWYoIXB8fHAucHVycG9zZSE9PSdleHBvcnRo
-dWItc2Vzc2lvbid8fE51bWJlcihwLnZ8fDApIT09MXx8IXAudWlkfHwhcC5zaWR8fE51bWJlcihw
-LmV4cHx8MCk8PURhdGUubm93KCkpcmV0dXJuIG51bGw7cmV0dXJuIHB9CmZ1bmN0aW9uIGJlYXJl
-cihyZXEpe2NvbnN0IGg9cmVxJiZyZXEuaGVhZGVyc3x8e30sZGVkaWNhdGVkPWhbJ3gtZXhwb3J0
-aHViLXRva2VuJ118fGhbJ1gtRXhwb3J0SFVCLVRva2VuJ118fGhbJ3gtZXhwb3J0aHViLXNlc3Np
-b24nXXx8aFsnWC1FeHBvcnRIVUItU2Vzc2lvbiddO2lmKHRleHQoZGVkaWNhdGVkKSlyZXR1cm4g
-dGV4dChkZWRpY2F0ZWQpO2NvbnN0IGF1dGg9aC5hdXRob3JpemF0aW9ufHxoLkF1dGhvcml6YXRp
-b258fCcnLG09U3RyaW5nKGF1dGgpLm1hdGNoKC9eQmVhcmVyXHMrKC4rKSQvaSk7cmV0dXJuIG0/
-bVsxXS50cmltKCk6Jyd9CmFzeW5jIGZ1bmN0aW9uIHJlYWRKc29uKGJsb2IsZmFsbGJhY2sscmVw
-YWlyKXt0cnl7Y29uc3Qgcj1hd2FpdCBibG9iLmRvd25sb2FkKDApLGNodW5rcz1bXTtmb3IgYXdh
-aXQoY29uc3QgYyBvZiByLnJlYWRhYmxlU3RyZWFtQm9keSljaHVua3MucHVzaChCdWZmZXIuZnJv
-bShjKSk7dHJ5e2NvbnN0IHJhdz1CdWZmZXIuY29uY2F0KGNodW5rcykudG9TdHJpbmcoJ3V0Zjgn
-KS5yZXBsYWNlKC9eXHVGRUZGLywnJykucmVwbGFjZSgvXHUwMDAwKyQvZywnJykudHJpbSgpO3Jl
-dHVybnt2YWx1ZTpyYXc/SlNPTi5wYXJzZShyYXcpOmZhbGxiYWNrLGV0YWc6ci5ldGFnfHxudWxs
-fX1jYXRjaChlKXtpZihyZXBhaXIpcmV0dXJue3ZhbHVlOmZhbGxiYWNrLGV0YWc6ci5ldGFnfHxu
-dWxsfTt0aHJvdyBlfX1jYXRjaChlKXtpZihlJiZlLnN0YXR1c0NvZGU9PT00MDQpcmV0dXJue3Zh
-bHVlOmZhbGxiYWNrLGV0YWc6bnVsbH07dGhyb3cgZX19CmFzeW5jIGZ1bmN0aW9uIHZhbGlkYXRl
-U2Vzc2lvbihyZXEpe2NvbnN0IHRva2VuPWJlYXJlcihyZXEpO2lmKCF0b2tlbil0aHJvdyBlcnJv
-cignQVVUSF9SRVFVSVJFRCcsJ0V4cG9ydEhVQi1Bbm1lbGR1bmcgZXJmb3JkZXJsaWNoLicsNDAx
-KTtjb25zdCBjcz1jb25uZWN0aW9uU3RyaW5nKCk7aWYoIWNzKXRocm93IGVycm9yKCdTVE9SQUdF
-X05PVF9DT05GSUdVUkVEJywnQXp1cmUtU3BlaWNoZXIgaXN0IG5pY2h0IGtvbmZpZ3VyaWVydC4n
-LDUwMyk7Y29uc3Qgc3ZjPUJsb2JTZXJ2aWNlQ2xpZW50LmZyb21Db25uZWN0aW9uU3RyaW5nKGNz
-KSxjb250YWluZXI9c3ZjLmdldENvbnRhaW5lckNsaWVudChURUFNX0NPTlRBSU5FUiksYXV0aEJs
-b2I9Y29udGFpbmVyLmdldEJsb2NrQmxvYkNsaWVudChBVVRIX0JMT0IpLHRlYW1CbG9iPWNvbnRh
-aW5lci5nZXRCbG9ja0Jsb2JDbGllbnQoVEVBTV9CTE9CKSxyZWFkcz1hd2FpdCBQcm9taXNlLmFs
-bChbcmVhZEpzb24oYXV0aEJsb2Ise3Nlc3Npb25zOltdfSx0cnVlKSxyZWFkSnNvbih0ZWFtQmxv
-Yix7c3RhdGU6e30sdXNlcnM6W119LGZhbHNlKV0pLHNlc3Npb25zPUFycmF5LmlzQXJyYXkocmVh
-ZHNbMF0udmFsdWUmJnJlYWRzWzBdLnZhbHVlLnNlc3Npb25zKT9yZWFkc1swXS52YWx1ZS5zZXNz
-aW9uczpbXSxoYXNoPXRva2VuSGFzaCh0b2tlbik7bGV0IHNlc3Npb249c2Vzc2lvbnMuZmluZChz
-PT5zYWZlRXF1YWxUZXh0KHMudG9rZW5IYXNoLGhhc2gpKTtpZighc2Vzc2lvbil7Y29uc3Qgc2ln
-bmVkPXZlcmlmeVNpZ25lZFNlc3Npb25Ub2tlbih0b2tlbik7aWYoc2lnbmVkKXNlc3Npb249e2lk
-OnRleHQoc2lnbmVkLnNpZCksdXNlcklkOnRleHQoc2lnbmVkLnVpZCksdXNlcm5hbWU6dGV4dChz
-aWduZWQudXNlcm5hbWUpLGV4cGlyZXNBdDpuZXcgRGF0ZShOdW1iZXIoc2lnbmVkLmV4cCkpLnRv
-SVNPU3RyaW5nKCksYXV0aFZlcnNpb246TnVtYmVyKHNpZ25lZC5hdXRoVmVyc2lvbnx8MCksbXVz
-dENoYW5nZTpzaWduZWQubXVzdENoYW5nZT09PXRydWV9fQogaWYoIXNlc3Npb24pdGhyb3cgZXJy
-b3IoJ1NFU1NJT05fSU5WQUxJRCcsJ0RpZSBTaXR6dW5nIGlzdCBuaWNodCBtZWhyIGfDvGx0aWcu
-IEJpdHRlIGVybmV1dCBhbm1lbGRlbi4nLDQwMSk7aWYoc2Vzc2lvbi5yZXZva2VkQXR8fERhdGUu
-cGFyc2Uoc2Vzc2lvbi5leHBpcmVzQXR8fCcnKTw9RGF0ZS5ub3coKSl0aHJvdyBlcnJvcignU0VT
-U0lPTl9JTlZBTElEJywnRGllIFNpdHp1bmcgaXN0IG5pY2h0IG1laHIgZ8O8bHRpZy4gQml0dGUg
-ZXJuZXV0IGFubWVsZGVuLicsNDAxKTtjb25zdCB0ZWFtPXJlYWRzWzFdLnZhbHVlfHx7fSx1c2Vy
-cz1BcnJheS5pc0FycmF5KHRlYW0udXNlcnMpP3RlYW0udXNlcnM6W10sdXNlcj11c2Vycy5maW5k
-KHU9PnRleHQodS5pZCk9PT10ZXh0KHNlc3Npb24udXNlcklkKXx8dXNlcm5hbWVPZih1KT09PWxv
-d2VyKHNlc3Npb24udXNlcm5hbWUpKTtpZighdXNlcnx8IWlzQWN0aXZlKHVzZXIpKXRocm93IGVy
-cm9yKCdBQ0NPVU5UX0RJU0FCTEVEJywnRGFzIEJlbnV0emVya29udG8gaXN0IGRlYWt0aXZpZXJ0
-LicsNDAzKTtpZihOdW1iZXIoc2Vzc2lvbi5hdXRoVmVyc2lvbnx8MCkhPT1OdW1iZXIodXNlci5h
-dXRoVmVyc2lvbnx8MCkpdGhyb3cgZXJyb3IoJ1NFU1NJT05fUkVWT0tFRCcsJ0RpZSBTaXR6dW5n
-IHd1cmRlIGJlZW5kZXQuIEJpdHRlIGVybmV1dCBhbm1lbGRlbi4nLDQwMSk7aWYoKHNlc3Npb24u
-bXVzdENoYW5nZXx8dXNlci5tdXN0Q2hhbmdlKT09PXRydWUpdGhyb3cgZXJyb3IoJ1BBU1NXT1JE
-X0NIQU5HRV9SRVFVSVJFRCcsJ1ZvciBkZXIgTnV0enVuZyBtdXNzIGRhcyBTdGFydHBhc3N3b3J0
-IGdlw6RuZGVydCB3ZXJkZW4uJyw0MDMpO3JldHVybnt1c2VyLHRlYW19fQpmdW5jdGlvbiBncmFw
-aENvbmZpZygpe2NvbnN0IHRlbmFudD10ZXh0KHByb2Nlc3MuZW52LkVYUE9SVEhVQl9HUkFQSF9U
-RU5BTlRfSUQpLGNsaWVudElkPXRleHQocHJvY2Vzcy5lbnYuRVhQT1JUSFVCX0dSQVBIX0NMSUVO
-VF9JRCksc2VjcmV0PXRleHQocHJvY2Vzcy5lbnYuRVhQT1JUSFVCX0dSQVBIX0NMSUVOVF9TRUNS
-RVQpO2lmKCF0ZW5hbnR8fCFjbGllbnRJZHx8IXNlY3JldHx8IURSSVZFX1VTRVIpdGhyb3cgZXJy
-b3IoJ0dSQVBIX05PVF9DT05GSUdVUkVEJywnRGVyIE1pY3Jvc29mdC1HcmFwaC1adWdyaWZmIGbD
-vHIgZGllIFJlZi1PcmRuZXIgaXN0IHNlcnZlcnNlaXRpZyBuaWNodCB2b2xsc3TDpG5kaWcga29u
-ZmlndXJpZXJ0LicsNTAzKTtyZXR1cm57dGVuYW50LGNsaWVudElkLHNlY3JldH19CmFzeW5jIGZ1
-bmN0aW9uIGdyYXBoVG9rZW4oKXtpZihncmFwaFRva2VuQ2FjaGUmJmdyYXBoVG9rZW5DYWNoZS5l
-eHBpcmVzQXQ+RGF0ZS5ub3coKSs2MDAwMClyZXR1cm4gZ3JhcGhUb2tlbkNhY2hlLnRva2VuO2Nv
-bnN0IGM9Z3JhcGhDb25maWcoKSxmb3JtPW5ldyBVUkxTZWFyY2hQYXJhbXMoe2NsaWVudF9pZDpj
-LmNsaWVudElkLGNsaWVudF9zZWNyZXQ6Yy5zZWNyZXQsc2NvcGU6J2h0dHBzOi8vZ3JhcGgubWlj
-cm9zb2Z0LmNvbS8uZGVmYXVsdCcsZ3JhbnRfdHlwZTonY2xpZW50X2NyZWRlbnRpYWxzJ30pLHJl
-cz1hd2FpdCBmZXRjaCgnaHR0cHM6Ly9sb2dpbi5taWNyb3NvZnRvbmxpbmUuY29tLycrZW5jb2Rl
-VVJJQ29tcG9uZW50KGMudGVuYW50KSsnL29hdXRoMi92Mi4wL3Rva2VuJyx7bWV0aG9kOidQT1NU
-JyxoZWFkZXJzOnsnQ29udGVudC1UeXBlJzonYXBwbGljYXRpb24veC13d3ctZm9ybS11cmxlbmNv
-ZGVkJ30sYm9keTpmb3JtLnRvU3RyaW5nKCl9KTtsZXQgZGF0YT17fTt0cnl7ZGF0YT1hd2FpdCBy
-ZXMuanNvbigpfWNhdGNoKF8pe31pZighcmVzLm9rfHwhZGF0YS5hY2Nlc3NfdG9rZW4pdGhyb3cg
-ZXJyb3IoJ0dSQVBIX0FVVEhfRkFJTEVEJyxkYXRhLmVycm9yX2Rlc2NyaXB0aW9ufHwnTWljcm9z
-b2Z0IEdyYXBoIGtvbm50ZSBuaWNodCBhdXRoZW50aWZpemllcnQgd2VyZGVuLicsNTAyKTtncmFw
-aFRva2VuQ2FjaGU9e3Rva2VuOmRhdGEuYWNjZXNzX3Rva2VuLGV4cGlyZXNBdDpEYXRlLm5vdygp
-K01hdGgubWF4KDMwMCxOdW1iZXIoZGF0YS5leHBpcmVzX2lufHwzNjAwKSkqMTAwMH07cmV0dXJu
-IGdyYXBoVG9rZW5DYWNoZS50b2tlbn0KYXN5bmMgZnVuY3Rpb24gZ3JhcGhGZXRjaCh1cmwsb3B0
-aW9ucyl7Y29uc3QgdG9rZW49YXdhaXQgZ3JhcGhUb2tlbigpLG9wdHM9T2JqZWN0LmFzc2lnbih7
-fSxvcHRpb25zfHx7fSksaGVhZGVycz1PYmplY3QuYXNzaWduKHtBdXRob3JpemF0aW9uOidCZWFy
-ZXIgJyt0b2tlbixBY2NlcHQ6J2FwcGxpY2F0aW9uL2pzb24nfSxvcHRzLmhlYWRlcnN8fHt9KTtv
-cHRzLmhlYWRlcnM9aGVhZGVycztjb25zdCByZXM9YXdhaXQgZmV0Y2godXJsLG9wdHMpO3JldHVy
-biByZXN9CmZ1bmN0aW9uIGVuY1BhdGgocGF0aCl7cmV0dXJuIFN0cmluZyhwYXRofHwnJykuc3Bs
-aXQoJy8nKS5maWx0ZXIoQm9vbGVhbikubWFwKGVuY29kZVVSSUNvbXBvbmVudCkuam9pbignLycp
-fQpmdW5jdGlvbiByZWZWYWx1ZSh2KXtjb25zdCByZWY9dGV4dCh2KS50b1VwcGVyQ2FzZSgpO2lm
-KCEvXltBLVowLTldezZ9JC8udGVzdChyZWYpKXRocm93IGVycm9yKCdJTlZBTElEX1JFRkVSRU5D
-RScsJ0RpZSBTZW5kdW5nc3JlZmVyZW56IGlzdCB1bmfDvGx0aWcuJyw0MDApO3JldHVybiByZWZ9
-CmZ1bmN0aW9uIGZvbGRlclBhdGgocmVmKXtyZXR1cm4gUkVGRVJFTkNFX0ZPTERFUisnLycrcmVm
-fQphc3luYyBmdW5jdGlvbiBsaXN0RmlsZXMocmVmKXtjb25zdCBwYXRoPWZvbGRlclBhdGgocmVm
-KSxzZWxlY3Q9J2lkLG5hbWUsc2l6ZSxmaWxlLGZvbGRlcixjcmVhdGVkRGF0ZVRpbWUsbGFzdE1v
-ZGlmaWVkRGF0ZVRpbWUsd2ViVXJsLHBhcmVudFJlZmVyZW5jZScsZmlyc3Q9R1JBUEhfQkFTRSsn
-L3VzZXJzLycrZW5jb2RlVVJJQ29tcG9uZW50KERSSVZFX1VTRVIpKycvZHJpdmUvcm9vdDovJytl
-bmNQYXRoKHBhdGgpKyc6L2NoaWxkcmVuPyR0b3A9MjAwJiRzZWxlY3Q9JytlbmNvZGVVUklDb21w
-b25lbnQoc2VsZWN0KTtsZXQgdXJsPWZpcnN0LGZpbGVzPVtdLHBhZ2VzPTAsZm9sZGVyV2ViVXJs
-PScnO3doaWxlKHVybCYmcGFnZXM8Nil7Y29uc3QgcmVzPWF3YWl0IGdyYXBoRmV0Y2godXJsKTtp
-ZihyZXMuc3RhdHVzPT09NDA0KXJldHVybntmaWxlczpbXSxmb2xkZXJQYXRoOnBhdGgsZm9sZGVy
-TWlzc2luZzp0cnVlLGZvbGRlcldlYlVybDonJ307bGV0IGRhdGE9e307dHJ5e2RhdGE9YXdhaXQg
-cmVzLmpzb24oKX1jYXRjaChfKXt9aWYoIXJlcy5vayl0aHJvdyBlcnJvcignR1JBUEhfTElTVF9G
-QUlMRUQnLGRhdGEuZXJyb3ImJmRhdGEuZXJyb3IubWVzc2FnZXx8KCdSZWYtT3JkbmVyIGtvbm50
-ZSBuaWNodCBnZWxlc2VuIHdlcmRlbiAoSFRUUCAnK3Jlcy5zdGF0dXMrJykuJykscmVzLnN0YXR1
-cz49NTAwPzUwMjpyZXMuc3RhdHVzKTtmb3IoY29uc3QgaXRlbSBvZiBBcnJheS5pc0FycmF5KGRh
-dGEudmFsdWUpP2RhdGEudmFsdWU6W10pe2lmKCFpdGVtfHwhaXRlbS5maWxlKWNvbnRpbnVlO2Zp
-bGVzLnB1c2goe2lkOnRleHQoaXRlbS5pZCksbmFtZTp0ZXh0KGl0ZW0ubmFtZSl8fCdEb2t1bWVu
-dCcsc2l6ZTpOdW1iZXIoaXRlbS5zaXplfHwwKSxtaW1lVHlwZTp0ZXh0KGl0ZW0uZmlsZSYmaXRl
-bS5maWxlLm1pbWVUeXBlKXx8J2FwcGxpY2F0aW9uL29jdGV0LXN0cmVhbScsY3JlYXRlZERhdGVU
-aW1lOml0ZW0uY3JlYXRlZERhdGVUaW1lfHxudWxsLGxhc3RNb2RpZmllZERhdGVUaW1lOml0ZW0u
-bGFzdE1vZGlmaWVkRGF0ZVRpbWV8fG51bGwsd2ViVXJsOnRleHQoaXRlbS53ZWJVcmwpfSk7aWYo
-IWZvbGRlcldlYlVybCYmaXRlbS5wYXJlbnRSZWZlcmVuY2UmJml0ZW0ucGFyZW50UmVmZXJlbmNl
-LnBhdGgpZm9sZGVyV2ViVXJsPXRleHQoaXRlbS5wYXJlbnRSZWZlcmVuY2UucGF0aCl9dXJsPWRh
-dGFbJ0BvZGF0YS5uZXh0TGluayddfHwnJztwYWdlcysrfWZpbGVzLnNvcnQoKGEsYik9PlN0cmlu
-ZyhiLmNyZWF0ZWREYXRlVGltZXx8Yi5sYXN0TW9kaWZpZWREYXRlVGltZXx8JycpLmxvY2FsZUNv
-bXBhcmUoU3RyaW5nKGEuY3JlYXRlZERhdGVUaW1lfHxhLmxhc3RNb2RpZmllZERhdGVUaW1lfHwn
-JykpfHxhLm5hbWUubG9jYWxlQ29tcGFyZShiLm5hbWUsJ2RlJykpO3JldHVybntmaWxlcyxmb2xk
-ZXJQYXRoOnBhdGgsZm9sZGVyTWlzc2luZzpmYWxzZSxmb2xkZXJXZWJVcmx9fQpmdW5jdGlvbiBk
-aXNwb3NpdGlvbihuYW1lLG1vZGUpe2NvbnN0IHNhZmU9dGV4dChuYW1lKS5yZXBsYWNlKC9bXHJc
-biJdL2csJ18nKS5zbGljZSgwLDE4MCl8fCdEb2t1bWVudCc7cmV0dXJuKG1vZGU9PT0nZG93bmxv
-YWQnPydhdHRhY2htZW50JzonaW5saW5lJykrIjsgZmlsZW5hbWUqPVVURi04JyciK2VuY29kZVVS
-SUNvbXBvbmVudChzYWZlKX0KbW9kdWxlLmV4cG9ydHM9YXN5bmMgZnVuY3Rpb24oY29udGV4dCxy
-ZXEpe3RyeXtpZihyZXEubWV0aG9kPT09J09QVElPTlMnKXtjb250ZXh0LnJlcz1qc29uKDIwNCx7
-fSwge0FsbG93OidHRVQsIE9QVElPTlMnfSk7cmV0dXJufWlmKHJlcS5tZXRob2QhPT0nR0VUJyl7
-Y29udGV4dC5yZXM9anNvbig0MDUse29rOmZhbHNlLGNvZGU6J01FVEhPRF9OT1RfQUxMT1dFRCcs
-bWVzc2FnZTonTnVyIEdFVCBpc3QgZXJsYXVidC4nfSx7QWxsb3c6J0dFVCwgT1BUSU9OUyd9KTty
-ZXR1cm59YXdhaXQgdmFsaWRhdGVTZXNzaW9uKHJlcSk7Y29uc3QgcmVmPXJlZlZhbHVlKHJlcS5x
-dWVyeSYmcmVxLnF1ZXJ5LnJlZmVyZW5jZSksbGlzdGVkPWF3YWl0IGxpc3RGaWxlcyhyZWYpLGl0
-ZW1JZD10ZXh0KHJlcS5xdWVyeSYmcmVxLnF1ZXJ5Lml0ZW1JZCk7aWYoIWl0ZW1JZCl7Y29udGV4
-dC5yZXM9anNvbigyMDAse29rOnRydWUscmVmZXJlbmNlOnJlZixmb2xkZXJQYXRoOmxpc3RlZC5m
-b2xkZXJQYXRoLGZvbGRlck1pc3Npbmc6bGlzdGVkLmZvbGRlck1pc3NpbmcsZmlsZXM6bGlzdGVk
-LmZpbGVzfSk7cmV0dXJufWNvbnN0IGl0ZW09bGlzdGVkLmZpbGVzLmZpbmQoZj0+Zi5pZD09PWl0
-ZW1JZCk7aWYoIWl0ZW0pdGhyb3cgZXJyb3IoJ0ZJTEVfTk9UX0ZPVU5EJywnRGllIERhdGVpIGdl
-aMO2cnQgbmljaHQgenVtIFJlZi1PcmRuZXIgZGllc2VyIFNlbmR1bmcgb2RlciB3dXJkZSBlbnRm
-ZXJudC4nLDQwNCk7aWYoTnVtYmVyKGl0ZW0uc2l6ZXx8MCk+TUFYX0ZJTEVfQllURVMpdGhyb3cg
-ZXJyb3IoJ0ZJTEVfVE9PX0xBUkdFJywnRGllIERhdGVpIGlzdCBmw7xyIGRpZSBkaXJla3RlIEV4
-cG9ydEhVQi1BbnNpY2h0IHp1IGdyb8OfLicsNDEzKTtjb25zdCB1cmw9R1JBUEhfQkFTRSsnL3Vz
-ZXJzLycrZW5jb2RlVVJJQ29tcG9uZW50KERSSVZFX1VTRVIpKycvZHJpdmUvaXRlbXMvJytlbmNv
-ZGVVUklDb21wb25lbnQoaXRlbS5pZCkrJy9jb250ZW50JyxyZXM9YXdhaXQgZ3JhcGhGZXRjaCh1
-cmwse2hlYWRlcnM6e0FjY2VwdDonKi8qJ319KTtpZighcmVzLm9rKXRocm93IGVycm9yKCdHUkFQ
-SF9GSUxFX0ZBSUxFRCcsJ0RpZSBEYXRlaSBrb25udGUgbmljaHQgYXVzIGRlbSBSZWYtT3JkbmVy
-IGdlbGFkZW4gd2VyZGVuLicscmVzLnN0YXR1cz49NTAwPzUwMjpyZXMuc3RhdHVzKTtjb25zdCBi
-dWZmZXI9QnVmZmVyLmZyb20oYXdhaXQgcmVzLmFycmF5QnVmZmVyKCkpLG1vZGU9bG93ZXIocmVx
-LnF1ZXJ5JiZyZXEucXVlcnkubW9kZSk9PT0nZG93bmxvYWQnPydkb3dubG9hZCc6J2lubGluZSc7
-Y29udGV4dC5yZXM9e3N0YXR1czoyMDAsaGVhZGVyczp7J0NvbnRlbnQtVHlwZSc6aXRlbS5taW1l
-VHlwZXx8cmVzLmhlYWRlcnMuZ2V0KCdjb250ZW50LXR5cGUnKXx8J2FwcGxpY2F0aW9uL29jdGV0
-LXN0cmVhbScsJ0NvbnRlbnQtTGVuZ3RoJzpTdHJpbmcoYnVmZmVyLmxlbmd0aCksJ0NvbnRlbnQt
-RGlzcG9zaXRpb24nOmRpc3Bvc2l0aW9uKGl0ZW0ubmFtZSxtb2RlKSwnQ2FjaGUtQ29udHJvbCc6
-J25vLXN0b3JlJywnWC1Db250ZW50LVR5cGUtT3B0aW9ucyc6J25vc25pZmYnfSxib2R5OmJ1ZmZl
-cn07fWNhdGNoKGUpe2NvbnRleHQubG9nJiZjb250ZXh0LmxvZy5lcnJvciYmY29udGV4dC5sb2cu
-ZXJyb3IoJ3JlZmVyZW5jZS1maWxlcycsZSYmZS5jb2RlLGUmJmUubWVzc2FnZSk7Y29udGV4dC5y
-ZXM9anNvbihlLnN0YXR1c3x8NTAwLHtvazpmYWxzZSxjb2RlOmUuY29kZXx8J1NFUlZFUl9FUlJP
-UicsbWVzc2FnZTplLm1lc3NhZ2V8fCdSZWYtT3JkbmVyIGtvbm50ZSBuaWNodCBnZWxlc2VuIHdl
-cmRlbi4nfSl9fQo=
-EXPORTHUB_TESTSERVICE_FILE_END -->
-<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/reference-files/function.json encoding=base64 sha256=363ba97cd242d0a5134ea89cf9cfd3205faa56a8dbfcb3d6373c437c1675c373
-ewogICJiaW5kaW5ncyI6IFsKICAgIHsKICAgICAgImF1dGhMZXZlbCI6ICJhbm9ueW1vdXMiLAog
-ICAgICAidHlwZSI6ICJodHRwVHJpZ2dlciIsCiAgICAgICJkaXJlY3Rpb24iOiAiaW4iLAogICAg
-ICAibmFtZSI6ICJyZXEiLAogICAgICAibWV0aG9kcyI6IFsiZ2V0IiwgIm9wdGlvbnMiXQogICAg
-fSwKICAgIHsKICAgICAgInR5cGUiOiAiaHR0cCIsCiAgICAgICJkaXJlY3Rpb24iOiAib3V0IiwK
-ICAgICAgIm5hbWUiOiAicmVzIgogICAgfQogIF0KfQo=
-EXPORTHUB_TESTSERVICE_FILE_END -->
 <!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=pickup.html encoding=base64 sha256=0103daa26cf76d0d7a4006b87191fdd4578ee249efb8268c6ecf7a81b9213fee
 PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9ImRlIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0
 Zi04Ij4KPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCxp
