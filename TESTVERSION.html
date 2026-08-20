@@ -201,12 +201,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC816',cache:'816',loginReturn:'/TESTVERSION.html?v=816'});
+var BUILD=Object.freeze({version:'RC817',cache:'817',loginReturn:'/TESTVERSION.html?v=817'});
 var RELEASE=Object.freeze({
- version:'RC816',
- date:'19.08.2026',
- title:'Kundenmail mit AVIS zuverlässig öffnen',
+ version:'RC817',
+ date:'20.08.2026',
+ title:'Produktionsstand direkt erkennen und Login dauerhaft merken',
  changes:Object.freeze([
+    'RC817 prüft den tatsächlich ausgelieferten Produktionsstand direkt gegen die Hauptseiten-Root. Auf Produktion wird die Root-Datei mit no-store gelesen; auf dem Testservice übernimmt ein fester serverseitiger Produktions-Check die öffentliche Hauptseite. Eine veraltete production-version.js darf dadurch keinen älteren RC-Stand mehr vortäuschen.',
+    'RC817 repariert Login-Daten auf diesem Gerät speichern. Der alte neutrale Login-Guard darf gespeicherten Benutzernamen und Browser-Autofill nicht mehr nach dem Seitenstart löschen; Testservice und Hauptseite verwenden dieselbe dauerhafte localStorage-Einstellung für den Benutzernamen.',
+    'RC817 lässt das Passwort weiterhin ausschließlich beim Browser-Passwortmanager. Die semantischen username/current-password-Felder bleiben erhalten und der gespeicherte Login wird beim erneuten Anzeigen der Loginmaske wiederhergestellt, ohne Passwort in ExportHUB-Daten oder localStorage abzulegen.',
     'RC815 repariert den RC814-Codebruch vollständig: Der Premium-Theme-Block lag versehentlich innerhalb des Stauplan-Druck-HTML-Strings und enthielt dort ein echtes Script-Ende. Der Block ist entfernt und die vier Themes sind direkt in den kanonischen Theme-Owner integriert; JavaScript darf dadurch nicht mehr als sichtbarer Seiteninhalt erscheinen.',
     'RC815 verschiebt den Kunden-Avis aus dem Mailbereich direkt unter die Sendungsdetails im Bereich Sendungsdaten. Der Avis bleibt dort dauerhaft als sendungsbezogene Funktion sichtbar und wird nicht mehr zwischen Mailfeldern dargestellt.',
     'RC815 kennzeichnet aktive Kunden-Avis-Links prominent als nur einmal gültig. Der vorhandene serverseitige Einmal-Schutz bleibt unverändert: Erst die erfolgreiche Bestätigung der Sendungsreferenz verbraucht den Link; ein bereits verwendeter Link wird abgelehnt.',
@@ -712,6 +715,8 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    'RC817 Produktionserkennung: Nach Veröffentlichung von RC817 auf der Produktions-Root muss Release-Center PRODUKTION RC817 ✓ DIREKT VON HAUPTSEITE zeigen, auch wenn eine ältere production-version.js vorhanden war.',
+    'RC817 Login merken: Login-Daten speichern aktivieren, erfolgreich anmelden, abmelden sowie Browser neu öffnen. Benutzername muss dauerhaft wieder erscheinen; gespeichertes Passwort muss vom Browser-Passwortmanager angeboten/eingesetzt werden und darf nicht durch RC566/RC561 gelöscht werden.',
     'RC813 Aufgaben: Aufgaben öffnen. Normale Wochenaufgaben müssen zuerst erscheinen; fehlende PODs dürfen die Seite nicht mit großen Einzelkarten überfluten und erscheinen nur als kompakter Hinweis unterhalb der Aufgaben.',
     'RC813 Urlaub: Navigation, Benutzer & Rechte und Sammelmodus prüfen. Urlaub/Vertretung darf nicht als eigener Funktionsbereich, Rechtemodul oder auswählbarer Sammelbereich erscheinen.',
     'RC813 Rechte: Benutzer und Rechtegruppen öffnen. Angezeigt werden ausschließlich die aktuell delegierbaren Funktionen; alte Einträge Start, Dashboard, vacation, documents, customers, calculator, quiz, Release-Center, Benutzer & Rechte und Datenschutz dürfen nicht als normale Rechtezeilen erscheinen.',
@@ -8846,12 +8851,13 @@ async function storeCredential(user,pass){user=q(user);pass=String(pass||'');var
  try{var cred=null,form=by('loginFields'),u=by('loginUser'),p=by('loginPass');if(u)u.value=user;if(p)p.value=pass;try{if(form)cred=new PasswordCredential(form)}catch(_){}if(!cred)cred=new PasswordCredential({id:user,name:user,password:pass});await navigator.credentials.store(cred);hint('Benutzername und Passwort im Browser-Passwortmanager gespeichert.','ok');return true}catch(_){hint('Benutzername gespeichert · Passwortspeicherung übernimmt der Browser-Passwortmanager.','warn');return false}}
 window.__EXPORTHUB_STORE_LOGIN_CREDENTIALS__=function(user,pass){return storeCredential(user,pass)};
 function capturePreference(){var r=by('loginRemember'),u=by('loginUser');setPref(!!(r&&r.checked),q(u&&u.value))}
-function bind(){var form=by('loginFields'),remember=by('loginRemember'),user=by('loginUser');if(form&&!form.dataset.rc778){form.dataset.rc778='1';form.addEventListener('submit',capturePreference,true)}
- if(remember&&!remember.dataset.rc778){remember.dataset.rc778='1';remember.addEventListener('change',function(){setPref(this.checked,q(user&&user.value));if(this.checked)hint('Benutzername wird gespeichert. Das Passwort verwaltet ausschließlich der Browser-Passwortmanager.');else{hint();if(navigator.credentials&&typeof navigator.credentials.preventSilentAccess==='function'){try{navigator.credentials.preventSilentAccess()}catch(_){}}}})}
+function bind(){var form=by('loginFields'),remember=by('loginRemember'),user=by('loginUser'),login=by('login');if(form&&!form.dataset.rc778){form.dataset.rc778='1';form.addEventListener('submit',capturePreference,true)}
+ if(remember&&!remember.dataset.rc778){remember.dataset.rc778='1';remember.addEventListener('change',function(){setPref(this.checked,q(user&&user.value));if(this.checked)hint('Benutzername wird dauerhaft gespeichert. Das Passwort verwaltet ausschließlich der Browser-Passwortmanager.');else{hint();if(navigator.credentials&&typeof navigator.credentials.preventSilentAccess==='function'){try{navigator.credentials.preventSilentAccess()}catch(_){}}}})}
  if(user&&!user.dataset.rc778){user.dataset.rc778='1';user.addEventListener('change',function(){if(pref())setPref(true,q(this.value))})}
+ if(login&&!login.dataset.rc817RememberObserver&&window.MutationObserver){login.dataset.rc817RememberObserver='1';new MutationObserver(function(){if(!login.classList.contains('hidden'))setTimeout(restore,20)}).observe(login,{attributes:true,attributeFilter:['class']})}
  restore();
 }
-window.addEventListener('exporthub:logout',function(){setTimeout(restore,30)});
+window.addEventListener('exporthub:logout',function(){setTimeout(restore,30)});window.addEventListener('pageshow',function(){setTimeout(restore,20)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
 </script>
@@ -11528,10 +11534,10 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
 <script id="rc562-release-center-controller">
 (function(){'use strict';
  if(window.ExportHUBReleaseCenter562)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC734'),CACHE=String(ACTIVE_BUILD.cache||'734'),productionVersion='wird geprüft',productionChecked=false,productionVerified=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net',PRODUCTION_URL=PRODUCTION_ORIGIN+'/index.html',PRODUCTION_VERSION_URL=PRODUCTION_ORIGIN+'/production-version.js',TEST_URL='/TESTVERSION.html',TESTSERVICE_ORIGIN='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net',TESTSERVICE_PUBLIC_URL=TESTSERVICE_ORIGIN+'/TESTVERSION.html?v='+encodeURIComponent(CACHE);
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC734'),CACHE=String(ACTIVE_BUILD.cache||'734'),productionVersion='wird geprüft',productionChecked=false,productionVerified=false,testServiceVersion='wird geprüft',testServiceChecked=false,PRODUCTION_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net',PRODUCTION_ROOT_URL=PRODUCTION_ORIGIN+'/',PRODUCTION_URL=PRODUCTION_ORIGIN+'/index.html',PRODUCTION_VERSION_URL=PRODUCTION_ORIGIN+'/production-version.js',PRODUCTION_CHECK_API='/api/production-version-check',TEST_URL='/TESTVERSION.html',TESTSERVICE_ORIGIN='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net',TESTSERVICE_PUBLIC_URL=TESTSERVICE_ORIGIN+'/TESTVERSION.html?v='+encodeURIComponent(CACHE);
  var RELEASE_ASSETS=(window.__EXPORTHUB_RELEASE_ASSETS__&&typeof window.__EXPORTHUB_RELEASE_ASSETS__==='object')?window.__EXPORTHUB_RELEASE_ASSETS__:Object.freeze({}),RELEASE_BUNDLE_URL='/release-assets.json';
  var releasePreparing=false,releaseChecklistSaveTimer=0,releaseChecklistPending=Object.create(null),testChecklistPending=Object.create(null);
- var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/location-booking/index.js','api/location-booking/function.json','api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js','api/loader-pins-admin/function.json','api/shared/loader-pin-store.js','api/pickup-confirm-v2/index.js','api/pickup-confirm-v2/function.json','api/shared/merge.js']);
+ var REQUIRED_RELEASE_FILES=Object.freeze(['staticwebapp.config.json','location.html','pickup.html','pod-notfall.html','.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json','api/exporthub-health/index.js','api/exporthub-health/function.json','api/production-version-check/index.js','api/production-version-check/function.json','api/location-booking/index.js','api/location-booking/function.json','api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js','api/loader-pins-admin/function.json','api/shared/loader-pin-store.js','api/pickup-confirm-v2/index.js','api/pickup-confirm-v2/function.json','api/shared/merge.js']);
  function q(v){return String(v==null?'':v).trim()}
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function st(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
@@ -11547,7 +11553,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function versionMismatchError(sourceVersion){var e=new Error('Freigabe abgebrochen: '+TEST_URL+' liefert '+sourceVersion+' statt '+VERSION+'.');e.code='TEST_VERSION_MISMATCH';e.sourceVersion=q(sourceVersion);return e}
  function reloadDetectedTestVersion(sourceVersion){var v=q(sourceVersion);if(!/^RC\d+$/i.test(v))return false;var n=(v.match(/\d+/)||[])[0]||CACHE;location.href=TEST_URL+'?v='+encodeURIComponent(n)+'&reload='+Date.now();return false}
   function handleVersionMismatch(e,rc739Op,rc739Token){var detected=q(e&&e.sourceVersion),mismatch='Freigabe sicher gestoppt: Die geöffnete Seite ist '+VERSION+', aber '+TEST_URL+' liefert '+detected+'. Es wurden keine Produktionsdateien erzeugt.';status(mismatch,'bad');if(rc739Token&&rc739Op&&typeof rc739Op.fail==='function')rc739Op.fail(rc739Token,'Versionskonflikt – Freigabe sicher gestoppt');if(/^RC\d+$/i.test(detected)&&confirm(mismatch+'\n\nJetzt die erkannte '+detected+' vollständig neu laden?'))return reloadDetectedTestVersion(detected);alert(mismatch);return false}
- function onNamedTestservice(){return /-testservice\./i.test(String(location.hostname||''))&&window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false}function onlineMatches(){if(onNamedTestservice())return q((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||VERSION)===VERSION;return window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false&&testServiceChecked&&q(testServiceVersion)===VERSION}
+ function onNamedTestservice(){return /-testservice\./i.test(String(location.hostname||''))&&window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false}function onProductionOrigin(){try{return String(location.origin||'').toLowerCase()===PRODUCTION_ORIGIN.toLowerCase()}catch(_){return false}}function onlineMatches(){if(onNamedTestservice())return q((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||VERSION)===VERSION;return window.__EXPORTHUB_TESTSERVICE_HOST_VALID__!==false&&testServiceChecked&&q(testServiceVersion)===VERSION}
  function releaseItemsForCurrentVersion(items){items=Array.isArray(items)?items:[];var prefix=VERSION.toUpperCase(),current=items.filter(function(item){var value=q(item),upper=value.toUpperCase();return value!==''&&(upper.indexOf(prefix+' ')===0||upper.indexOf(prefix+':')===0||upper.indexOf(prefix+' -')===0)});return current}
  function rcNumber(value){var m=q(value).match(/\bRC\s*(\d+)\b/i);return m?Number(m[1]):NaN}
  function releaseItemVersion(item){var m=q(item).match(/^RC\s*(\d+)\b/i);return m?Number(m[1]):NaN}
@@ -11583,8 +11589,25 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function checkAllTests(){var tests=releaseTests(),state=checklistState(true);for(var i=0;i<tests.length;i++){state[i]=true;testChecklistPending[String(i)]=true}scheduleConfirmationSave('Release-Center: alle Testpunkte bestätigt');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});return false}
  function resetChecklist(){if(!confirm('Checkliste für '+VERSION+' wirklich zurücksetzen?'))return false;var m=meta(true);m.testChecklist=m.testChecklist&&typeof m.testChecklist==='object'?m.testChecklist:{};m.testChecklist[VERSION]={};testChecklistPending=Object.create(null);save('Release-Center: Checkliste zurückgesetzt');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});return false}
  async function fetchProduction(){
-  productionVerified=false;try{delete window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__}catch(_){window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__=''}
-  try{await new Promise(function(resolve,reject){var old=document.getElementById('rc761ProductionVersionProbe');if(old)old.remove();var sc=document.createElement('script'),timer=setTimeout(function(){sc.remove();reject(new Error('Timeout'))},5000);sc.id='rc761ProductionVersionProbe';sc.async=true;sc.src=PRODUCTION_VERSION_URL+'?production-check='+Date.now();sc.onload=function(){try{clearTimeout(timer)}catch(_){}sc.remove();resolve()};sc.onerror=function(){try{clearTimeout(timer)}catch(_){}sc.remove();reject(new Error('Probe nicht vorhanden'))};document.head.appendChild(sc)});var direct=q(window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__);if(/^RC\d+$/i.test(direct)){productionVersion=direct.toUpperCase();productionVerified=true;productionChecked=true}}catch(_){ }
+  productionVerified=false;productionChecked=false;
+  try{delete window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__}catch(_){window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__=''}
+  /* 1) Verbindlich: tatsächliche Produktions-Root lesen. Auf Produktion direkt, auf Testservice über den festen Server-Proxy. */
+  try{
+   var rootVersion='';
+   if(onProductionOrigin()){
+    var rootResponse=await fetch('/?exporthub-production-root='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache'}});
+    if(rootResponse&&rootResponse.ok)rootVersion=parseVersion(await rootResponse.text());
+   }else if(onNamedTestservice()){
+    var proxyResponse=await fetch(PRODUCTION_CHECK_API+'?production-check='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json','Cache-Control':'no-cache','Pragma':'no-cache'}});
+    if(proxyResponse&&proxyResponse.ok){var proxyData=await proxyResponse.json();rootVersion=q(proxyData&&proxyData.version)}
+   }else{
+    try{var cross=await fetch(PRODUCTION_ROOT_URL+'?exporthub-production-root='+Date.now(),{cache:'no-store',mode:'cors',credentials:'omit',headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache'}});if(cross&&cross.ok)rootVersion=parseVersion(await cross.text())}catch(_){}
+   }
+   if(/^RC\d+$/i.test(rootVersion)){productionVersion=rootVersion.toUpperCase();productionVerified=true;productionChecked=true}
+  }catch(_){ }
+  /* 2) Fallback für ältere Deployments: versionsgebundene JS-Probe. */
+  if(!productionVerified){try{await new Promise(function(resolve,reject){var old=document.getElementById('rc761ProductionVersionProbe');if(old)old.remove();var sc=document.createElement('script'),timer=setTimeout(function(){sc.remove();reject(new Error('Timeout'))},5000);sc.id='rc761ProductionVersionProbe';sc.async=true;sc.src=PRODUCTION_VERSION_URL+'?production-check='+Date.now();sc.onload=function(){try{clearTimeout(timer)}catch(_){}sc.remove();resolve()};sc.onerror=function(){try{clearTimeout(timer)}catch(_){}sc.remove();reject(new Error('Probe nicht vorhanden'))};document.head.appendChild(sc)});var direct=q(window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__);if(/^RC\d+$/i.test(direct)){productionVersion=direct.toUpperCase();productionVerified=true;productionChecked=true}}catch(_){ }}
+  /* 3) Letzter Fallback: Snapshot/Release-Historie – niemals als direkte Hauptseitenprüfung markieren. */
   if(!productionVerified){try{var r=await fetch(RELEASE_BUNDLE_URL+'?production-check='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json','Cache-Control':'no-cache','Pragma':'no-cache'}});if(!r.ok)throw new Error('HTTP '+r.status);var bundle=await r.json(),fromSnapshot=q(bundle&&bundle.productionVersion),m=meta(),known=q(m.productionReleasedVersion||m.lastProductionVersion||'');productionVersion=fromSnapshot||known||'nicht direkt verifiziert';productionChecked=true}catch(e){try{var mm=meta(),fallback=q(mm.productionReleasedVersion||mm.lastProductionVersion||'');productionVersion=fallback||'nicht direkt verifiziert'}catch(_){productionVersion='nicht direkt verifiziert'}productionChecked=true}}
   var el=document.getElementById('rc562ProductionVersion');if(el)el.textContent=productionVersion;var badge=document.getElementById('rc761ProductionVerified');if(badge){badge.textContent=productionVerified?'✓ DIREKT VON HAUPTSEITE':'⚠ NICHT DIREKT VERIFIZIERT';badge.style.color=productionVerified?'#166534':'#991b1b'}return productionVersion
  }
@@ -11620,7 +11643,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  async function sha256(data){if(!window.crypto||!window.crypto.subtle||typeof window.crypto.subtle.digest!=='function')throw new Error('SHA-256-Prüfung ist in diesem Browser nicht verfügbar.');return hex(await window.crypto.subtle.digest('SHA-256',data))}
  function scriptBlocks(html){var map={},re=/<script\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/script>/gi,m;while((m=re.exec(String(html||''))))map[q(m[1])]=m[2];return map}
  function assertProductionScriptParity(sourceHtml,productionHtml){var source=scriptBlocks(sourceHtml),prod=scriptBlocks(productionHtml),skip={'rc561-testportal-mode':1,'rc561-testportal-runtime':1,'exporthub-canonical-build-source':1};Object.keys(source).forEach(function(id){if(skip[id])return;if(!Object.prototype.hasOwnProperty.call(prod,id))throw new Error('Produktionsparität fehlgeschlagen: Skript '+id+' fehlt in index.html.');if(source[id]!==prod[id])throw new Error('Produktionsparität fehlgeschlagen: Skript '+id+' weicht von der getesteten TESTVERSION ab.')});return true}
- var EMBEDDED_PRODUCTION_FALLBACKS=Object.freeze(['api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js','api/reference-files/index.js','api/reference-files/function.json']);
+ var EMBEDDED_PRODUCTION_FALLBACKS=Object.freeze(['api/customer-avis/index.js','api/customer-avis/function.json','customer-avis.html','api/loader-pins-admin/index.js','api/reference-files/index.js','api/reference-files/function.json','api/production-version-check/index.js','api/production-version-check/function.json']);
  async function embeddedProductionAssets(sourceHtml){
   var out={},wanted={};EMBEDDED_PRODUCTION_FALLBACKS.forEach(function(path){wanted[path]=true});
   var re=/<!--\s*EXPORTHUB_TESTSERVICE_FILE_BEGIN\s+path=([^\s]+)\s+encoding=base64\s+sha256=([a-f0-9]{64})\s*\r?\n([\s\S]*?)\r?\nEXPORTHUB_TESTSERVICE_FILE_END\s*-->/gi,m;
@@ -12445,7 +12468,7 @@ async function signalReady(){
  const info=by('saveInfo');if(info)info.textContent='Azure-Teamdaten geladen · '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
  if(runtime.saveTimer)native.clearTimeout(runtime.saveTimer);runtime.saveTimer=null;runtime.pendingSave=false;runtime.dirty=false;
  var __cleanupBase=runtime.customerRecoveryPending&&runtime.customerRecoveryBase?runtime.customerRecoveryBase:(runtime.shipmentGhostCleanupPending&&runtime.shipmentGhostCleanupBase?runtime.shipmentGhostCleanupBase:null);runtime.lastSnapshot=__cleanupBase||clone(window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():runtime.state||{});runtime.lastUsers=clone(window.__EXPORTHUB_GET_USERS__?window.__EXPORTHUB_GET_USERS__():runtime.users||[]);
- runtime.ready=true;runtime.loaded=true;runtime.loading=false;runtime.applyingRemote=false;runtime.acceptWritesAt=0;var readyPass=by('loginPass');if(readyPass)readyPass.value='';var readyRetry=by('testserviceContinueBtn');if(readyRetry)readyRetry.classList.add('hidden');if(isTestServiceOrigin()){try{var readyUser=by('loginUser');if(readyUser&&text(readyUser.value))sessionStorage.setItem('exporthub_test_login_user',text(readyUser.value))}catch(_){}}runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;runtime.sessionExpiredHandled=false;runtime.readyAt=new Date().toISOString();
+ runtime.ready=true;runtime.loaded=true;runtime.loading=false;runtime.applyingRemote=false;runtime.acceptWritesAt=0;var readyPass=by('loginPass');if(readyPass)readyPass.value='';var readyRetry=by('testserviceContinueBtn');if(readyRetry)readyRetry.classList.add('hidden');if(isTestServiceOrigin()){try{var readyUser=by('loginUser'),remember=localStorage.getItem('exporthub_login_remember_v1')==='1';if(remember&&readyUser&&text(readyUser.value))localStorage.setItem('exporthub_login_user_v1',text(readyUser.value))}catch(_){}}runtime.loginRetryCredentials=null;runtime.sessionRefreshAttempted=false;runtime.sessionExpiredHandled=false;runtime.readyAt=new Date().toISOString();
  if(wasRestored)unlockRestoredApplication();else{document.body.classList.remove('rc405-session-restoring');hideProgress()}
  await nextFrame();writeTabSession();status('Angemeldet · Azure-Teamdaten geladen.','ok');window.__EXPORTHUB_READY__={ready:true,version:VERSION,revision:runtime.revision,user:text(runtime.user&&(runtime.user.name||runtime.user.user)),readyAt:runtime.readyAt,resumed:wasRestored};
  window.dispatchEvent(new CustomEvent('exporthub:ready',{detail:window.__EXPORTHUB_READY__}));startRevisionPolling();startNoIdleKeepAlive();scheduleCustomerHistoryRecovery();if(runtime.customerRecoveryPending){runtime.customerRecoveryQueued=false;runtime.customerRecoveryPending=false;runtime.customerRecoveryBase=null}if(runtime.shipmentGhostCleanupPending){runtime.shipmentGhostCleanupPending=false;runtime.shipmentGhostCleanupBase=null}
@@ -13774,10 +13797,15 @@ window.ExportHUBRC565={install:install,selectCustomer:selectCustomer,applyCustom
     var login=document.getElementById('login');
     var app=document.getElementById('app');
     if(!login||login.classList.contains('hidden')||(app&&!app.classList.contains('hidden')))return;
+    var remembered=false;try{remembered=localStorage.getItem('exporthub_login_remember_v1')==='1'}catch(_){}
     var u=document.getElementById('loginUser');
     var p=document.getElementById('loginPass');
-    if(u&&!u.dataset.userEdited){u.value='';u.setAttribute('value','')}
-    if(p&&!p.dataset.userEdited){p.value='';p.setAttribute('value','')}
+    function autofilled(el){try{return !!(el&&el.matches&&el.matches(':-webkit-autofill'))}catch(_){return false}}
+    /* Nie gespeicherte Login-Daten oder Browser-Autofill löschen. Der Guard entfernt nur alte hart codierte Vorbelegungen. */
+    if(!remembered){
+      if(u&&!u.dataset.userEdited&&!autofilled(u)){var raw=(u.getAttribute('value')||'').trim();if(/^(Tobias|Test)$/i.test(raw)){u.value='';u.setAttribute('value','')}}
+      if(p&&!p.dataset.userEdited&&!autofilled(p)&&p.getAttribute('value')){p.value='';p.setAttribute('value','')}
+    }
     var profile=document.getElementById('profileName');
     if(profile&&/^(Tobias|Test)$/i.test((profile.textContent||'').trim()))profile.textContent='Nicht angemeldet';
   }
@@ -22225,13 +22253,13 @@ html body[data-eh-theme] #nav.nav>button[data-index321-view][hidden],html body[d
 <script id="rc561-testportal-runtime">
 (function(){'use strict';
  if(!window.__EXPORTHUB_TEST_PORTAL__)return;
- var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC690'),CACHE=String(ACTIVE_BUILD.cache||'690'),USER_KEY='exporthub_test_login_user',errorTimer=0;
+ var ACTIVE_BUILD=window.EXPORTHUB_BUILD||{},VERSION=String(ACTIVE_BUILD.version||'RC690'),CACHE=String(ACTIVE_BUILD.cache||'690'),USER_KEY='exporthub_login_user_v1',PREF_KEY='exporthub_login_remember_v1',errorTimer=0;
  function q(v){return String(v==null?'':v).trim()}
  function isTestPath(){return /-testservice\./i.test(String(location.hostname||'').toLowerCase())}
  function mark(){try{window.__EXPORTHUB_TEST_PORTAL__=true;window.__EXPORTHUB_RELEASE_STREAMED__=true;window.__EXPORTHUB_RELEASE_CHANNEL__='test';window.__EXPORTHUB_RELEASE_VERSION__=VERSION}catch(_){}document.documentElement.setAttribute('data-exporthub-testportal','1');document.documentElement.setAttribute('data-exporthub-portal','test');try{document.title='TESTPORTAL · ExportHUB Online '+VERSION}catch(_){}}
  function canonicalProbe(){try{if(sessionStorage.getItem('exporthub_test_probe_'+VERSION)==='1')return;sessionStorage.setItem('exporthub_test_probe_'+VERSION,'1');fetch('/TESTVERSION.html?runtime-probe='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache'}}).then(function(r){return r.ok?r.text():''}).then(function(h){var m=String(h||'').match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['\"](RC\d+)['\"]/i);var remote=String(m&&m[1]||'');if(remote&&remote!==VERSION){var n=parseInt(remote.replace(/\D/g,''),10)||0,c=parseInt(VERSION.replace(/\D/g,''),10)||0;if(n>c)location.replace('/TESTVERSION.html?v='+n+'&reload='+Date.now())}}).catch(function(){})}catch(_){}}
  function syncLoginMask(){try{var login=document.getElementById('login'),visible=!!(login&&!login.classList.contains('hidden'));document.documentElement.setAttribute('data-rc558-login-visible',visible?'1':'0')}catch(_){}}
- function restoreUser(){try{var input=document.getElementById('loginUser'),saved=sessionStorage.getItem(USER_KEY);if(input&&!q(input.value)&&q(saved))input.value=q(saved);if(input&&!input.dataset.rc688UserMemory){input.dataset.rc688UserMemory='1';input.addEventListener('input',function(){try{var v=q(input.value);if(v)sessionStorage.setItem(USER_KEY,v);else sessionStorage.removeItem(USER_KEY)}catch(_){}})}}catch(_){}}
+ function restoreUser(){try{var input=document.getElementById('loginUser'),remember=localStorage.getItem(PREF_KEY)==='1',saved=remember?localStorage.getItem(USER_KEY):'';if(input&&!q(input.value)&&q(saved))input.value=q(saved);if(input&&!input.dataset.rc688UserMemory){input.dataset.rc688UserMemory='1';input.addEventListener('input',function(){try{if(localStorage.getItem(PREF_KEY)!=='1')return;var v=q(input.value);if(v)localStorage.setItem(USER_KEY,v);else localStorage.removeItem(USER_KEY)}catch(_){}})}}catch(_){}}
  function anchorTestRoute(){try{if(window.__EXPORTHUB_PICKUP_MODE__||!isTestPath())return;var u=new URL(location.href);if(!/^\/test(?:\/|$)/i.test(u.pathname))u.pathname='/test';u.searchParams.set('v',CACHE);u.searchParams.delete('portal');u.searchParams.delete('entry');history.replaceState(history.state||null,'',u.pathname+u.search+u.hash);mark()}catch(_){}}
  function ensureBadge(){var b=document.getElementById('rc561TestPortalBadge');if(!b){b=document.createElement('div');b.id='rc561TestPortalBadge';b.setAttribute('role','status');b.textContent='TESTSERVICE · '+VERSION+' · NICHT PRODUKTION';(document.body||document.documentElement).appendChild(b)}return b}
  function showRuntimeError(message){message=q(message);if(!message)return;var box=document.getElementById('rc561TestRuntimeError');if(!box){box=document.createElement('div');box.id='rc561TestRuntimeError';box.setAttribute('role','alert');(document.body||document.documentElement).appendChild(box)}box.textContent='TESTFEHLER: '+message;box.classList.add('show');clearTimeout(errorTimer);errorTimer=setTimeout(function(){box.classList.remove('show')},12000)}
@@ -22366,6 +22394,32 @@ window.ExportHUBShipmentView=Object.freeze({version:'RC809',open:open,render:ren
 window.ExportHUBDocumentViewer=Object.freeze({version:'RC809',render:renderViewer,back:viewerBack,download:viewerDownload,print:viewerPrint,diagnostics:function(){var v=viewerPersist();return{view:low(state().view),reference:v&&v.reference||'',name:v&&v.name||'',itemId:v&&v.itemId||'',storedFileOnly:true}}});
 })();
 </script>
+<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/production-version-check/index.js encoding=base64 sha256=11b9262ff7a90b1a34ee4e2983d5477c7a36d809aa1e5e77c4e2a0ceadb7d480
+J3VzZSBzdHJpY3QnOwpjb25zdCBQUk9EVUNUSU9OX1JPT1Q9J2h0dHBzOi8vd29uZGVyZnVsLWZvcmVzdC0wZjMxNWUzMTAuNy5henVyZXN0YXRpY2FwcHMu
+bmV0Lyc7CmZ1bmN0aW9uIHZlcnNpb25Gcm9tKGh0bWwpewogIGNvbnN0IHRleHQ9U3RyaW5nKGh0bWx8fCcnKTsKICBjb25zdCBtPXRleHQubWF0Y2goL3Zh
+clxzK0JVSUxEXHMqPVxzKk9iamVjdFwuZnJlZXplXChce3ZlcnNpb246XHMqWyciXShSQ1xkKylbJyJdL2kpfHx0ZXh0Lm1hdGNoKC92ZXJzaW9uOlxzKlsn
+Il0oUkNcZCspWyciXS9pKTsKICByZXR1cm4gbT9TdHJpbmcobVsxXSkudG9VcHBlckNhc2UoKTonJzsKfQptb2R1bGUuZXhwb3J0cz1hc3luYyBmdW5jdGlv
+bihjb250ZXh0LHJlcSl7CiAgaWYoU3RyaW5nKHJlcS5tZXRob2R8fCdHRVQnKS50b1VwcGVyQ2FzZSgpPT09J09QVElPTlMnKXsKICAgIGNvbnRleHQucmVz
+PXtzdGF0dXM6MjA0LGhlYWRlcnM6eydBY2Nlc3MtQ29udHJvbC1BbGxvdy1NZXRob2RzJzonR0VULE9QVElPTlMnLCdBY2Nlc3MtQ29udHJvbC1BbGxvdy1I
+ZWFkZXJzJzonQ29udGVudC1UeXBlJywnQ2FjaGUtQ29udHJvbCc6J25vLXN0b3JlJ319O3JldHVybjsKICB9CiAgdHJ5ewogICAgY29uc3QgdXJsPVBST0RV
+Q1RJT05fUk9PVCsnP2V4cG9ydGh1Yi1wcm9kdWN0aW9uLXByb3h5PScrRGF0ZS5ub3coKTsKICAgIGNvbnN0IHJlc3BvbnNlPWF3YWl0IGZldGNoKHVybCx7
+bWV0aG9kOidHRVQnLGhlYWRlcnM6e0FjY2VwdDondGV4dC9odG1sJywnQ2FjaGUtQ29udHJvbCc6J25vLWNhY2hlJywnUHJhZ21hJzonbm8tY2FjaGUnLCdV
+c2VyLUFnZW50JzonRXhwb3J0SFVCLVJlbGVhc2VDZW50ZXIvUkM4MTcnfX0pOwogICAgaWYoIXJlc3BvbnNlLm9rKXRocm93IG5ldyBFcnJvcignUHJvZHVr
+dGlvbnMtUm9vdCBIVFRQICcrcmVzcG9uc2Uuc3RhdHVzKTsKICAgIGNvbnN0IGh0bWw9YXdhaXQgcmVzcG9uc2UudGV4dCgpOwogICAgY29uc3QgdmVyc2lv
+bj12ZXJzaW9uRnJvbShodG1sKTsKICAgIGlmKCEvXlJDXGQrJC9pLnRlc3QodmVyc2lvbikpdGhyb3cgbmV3IEVycm9yKCdCVUlMRC1WZXJzaW9uIHd1cmRl
+IGF1ZiBkZXIgUHJvZHVrdGlvbnMtUm9vdCBuaWNodCBnZWZ1bmRlbi4nKTsKICAgIGNvbnRleHQucmVzPXtzdGF0dXM6MjAwLGhlYWRlcnM6eydDb250ZW50
+LVR5cGUnOidhcHBsaWNhdGlvbi9qc29uOyBjaGFyc2V0PXV0Zi04JywnQ2FjaGUtQ29udHJvbCc6J25vLXN0b3JlLCBtYXgtYWdlPTAnLCdQcmFnbWEnOidu
+by1jYWNoZSd9LGJvZHk6e29rOnRydWUsdmVyc2lvbixzb3VyY2U6J3Byb2R1Y3Rpb24tcm9vdCcsY2hlY2tlZEF0Om5ldyBEYXRlKCkudG9JU09TdHJpbmco
+KX19OwogIH1jYXRjaChlcnJvcil7CiAgICBjb250ZXh0LmxvZy5lcnJvcigncHJvZHVjdGlvbi12ZXJzaW9uLWNoZWNrJyxlcnJvcik7CiAgICBjb250ZXh0
+LnJlcz17c3RhdHVzOjUwMixoZWFkZXJzOnsnQ29udGVudC1UeXBlJzonYXBwbGljYXRpb24vanNvbjsgY2hhcnNldD11dGYtOCcsJ0NhY2hlLUNvbnRyb2wn
+Oiduby1zdG9yZSd9LGJvZHk6e29rOmZhbHNlLGVycm9yOidQUk9EVUNUSU9OX1ZFUlNJT05fQ0hFQ0tfRkFJTEVEJyxtZXNzYWdlOlN0cmluZyhlcnJvciYm
+ZXJyb3IubWVzc2FnZXx8ZXJyb3IpfX07CiAgfQp9Owo=
+EXPORTHUB_TESTSERVICE_FILE_END -->
+<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/production-version-check/function.json encoding=base64 sha256=818e365355ac4d967585590e3a26b3e3ad8daa063727666a0fbe4355925df585
+eyJiaW5kaW5ncyI6W3siYXV0aExldmVsIjoiYW5vbnltb3VzIiwidHlwZSI6Imh0dHBUcmlnZ2VyIiwiZGlyZWN0aW9uIjoiaW4iLCJuYW1lIjoicmVxIiwi
+bWV0aG9kcyI6WyJnZXQiLCJvcHRpb25zIl0sInJvdXRlIjoicHJvZHVjdGlvbi12ZXJzaW9uLWNoZWNrIn0seyJ0eXBlIjoiaHR0cCIsImRpcmVjdGlvbiI6
+Im91dCIsIm5hbWUiOiJyZXMifV19Cg==
+EXPORTHUB_TESTSERVICE_FILE_END -->
 <!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/reference-files/index.js encoding=base64 sha256=4d9aedc79b4424b6d5a0f15c94a77cfc50284c8702b59a823f7dd2142c7f847d
 J3VzZSBzdHJpY3QnOwpjb25zdCBjcnlwdG89cmVxdWlyZSgnY3J5cHRvJyk7CmNvbnN0IHtCbG9i
 U2VydmljZUNsaWVudH09cmVxdWlyZSgnQGF6dXJlL3N0b3JhZ2UtYmxvYicpOwoKY29uc3QgVEVB
