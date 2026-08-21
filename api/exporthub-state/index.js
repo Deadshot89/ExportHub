@@ -10,7 +10,7 @@ const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTH
 const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/'+String(TEAM_BLOB_BASE||'team-state.json').replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC855';
+const API_VERSION = 'RC856';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
