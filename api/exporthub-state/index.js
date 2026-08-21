@@ -6,10 +6,11 @@ const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone } = require('../shared/merge');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
-const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
+const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
+const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/'+String(TEAM_BLOB_BASE||'team-state.json').replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC770';
+const API_VERSION = 'RC855';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -18,6 +19,18 @@ function error(code,message,status=400){ const e=new Error(message); e.code=code
 function json(status,body,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},headers),body:JSON.stringify(body)}; }
 function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
 function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || ''; }
+function requestHost(req){
+ const h=req&&req.headers||{};
+ return lower(h['x-forwarded-host']||h['X-Forwarded-Host']||h.host||h.Host||'');
+}
+function requestedEnvironment(req,payload){
+ const h=req&&req.headers||{},raw=lower(h['x-exporthub-environment']||h['X-ExportHUB-Environment']||(payload&&payload.environment)||'');
+ const host=requestHost(req),hostEnv=/-testservice\./i.test(host)?'testservice':'production';
+ if(raw&&raw!==hostEnv)throw error('ENVIRONMENT_MISMATCH','Test- und Produktionsdaten dürfen nicht über dieselbe Umgebung angefordert werden.',409);
+ return hostEnv;
+}
+function teamBlobForEnvironment(env){return env==='testservice'?TEST_TEAM_BLOB:TEAM_BLOB_BASE}
+function recoveryPrefixForEnvironment(env){return env==='testservice'?'testservice/recovery-backups/':'recovery-backups/'}
 function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_STORAGE_CONNECTION_STRING'; if(process.env.EXPORTHUB_STORAGE_CONNECTION)return 'EXPORTHUB_STORAGE_CONNECTION'; if(process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING'; return ''; }
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
 function isActive(user){ return Boolean(user && user.active!==false && user.disabled!==true && lower(user.status)!=='deaktiviert'); }
@@ -64,12 +77,12 @@ function bearer(req,payload){
  if(payload&&text(payload.sessionToken))return text(payload.sessionToken);
  const auth=h.authorization||h.Authorization||''; const m=String(auth).match(/^Bearer\s+(.+)$/i); return m?m[1].trim():'';
 }
-async function clients(){
+async function clients(req,payload){
  const cs=connectionString();
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','Keine ExportHUB-Speicherverbindung ist in Azure verfügbar.',503);
  let service; try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die ExportHUB-Speicherverbindung ist ungültig: '+(e&&e.message||'Konfigurationsfehler'),503)}
- const container=service.getContainerClient(TEAM_CONTAINER);
- return {container,team:container.getBlockBlobClient(TEAM_BLOB),auth:container.getBlockBlobClient(AUTH_BLOB)};
+ const container=service.getContainerClient(TEAM_CONTAINER),environment=requestedEnvironment(req,payload),teamBlobName=teamBlobForEnvironment(environment);
+ return {container,environment,teamBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),productionTeam:container.getBlockBlobClient(TEAM_BLOB_BASE),auth:container.getBlockBlobClient(AUTH_BLOB)};
 }
 function parseStoredJson(raw,name){
  const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim();
@@ -96,23 +109,23 @@ async function uploadJson(blob,value,etag){
 function emptyTeam(){return {schemaVersion:3,revision:0,updatedAt:null,updatedBy:null,state:{},users:[]}}
 function emptyAuth(){return {schemaVersion:1,updatedAt:null,sessions:[]}}
 function usableTeamDocument(value){return !!(value&&typeof value==='object'&&!Array.isArray(value)&&value.state&&typeof value.state==='object'&&!Array.isArray(value.state)&&Array.isArray(value.users))}
-async function latestValidTeamFallback(container){
- let history=[];try{history=await listHistory(container)}catch(_){history=[]}
+async function latestValidTeamFallback(container,teamBlobName,recoveryPrefix,allowDiscovery){
+ let history=[];try{history=await listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery)}catch(_){history=[]}
  for(let i=0;i<history.length&&i<500;i++){
   const source=history[i];
-  try{const d=await readJson(historyClient(container,source),emptyTeam(),false),value=d.value||emptyTeam();if(usableTeamDocument(value)&&value.users.length)return {value,source}}catch(_){}
+  try{const d=await readJson(historyClient(container,source,teamBlobName),emptyTeam(),false),value=d.value||emptyTeam();if(usableTeamDocument(value)&&value.users.length)return {value,source}}catch(_){}
  }
  return null;
 }
-async function readTeamResilient(container,blob){
+async function readTeamResilient(container,blob,teamBlobName,recoveryPrefix,allowDiscovery){
  try{
   const d=await readJson(blob,emptyTeam(),false);
   if(d.etag||usableTeamDocument(d.value))return d;
-  const fallback=await latestValidTeamFallback(container);
+  const fallback=await latestValidTeamFallback(container,teamBlobName,recoveryPrefix,allowDiscovery);
   return fallback?{value:fallback.value,etag:null,recoveredFromHistory:true,recoverySource:fallback.source,missingCurrent:true}:d;
  }catch(e){
   if(e&&e.code!=='STORAGE_JSON_INVALID')throw e;
-  const fallback=await latestValidTeamFallback(container);
+  const fallback=await latestValidTeamFallback(container,teamBlobName,recoveryPrefix,allowDiscovery);
   if(!fallback)throw error('STATE_CORRUPT_NO_BACKUP','Der aktuelle Azure-Teamstand ist beschädigt und es wurde keine lesbare historische Sicherung gefunden.',500);
   return {value:fallback.value,etag:e&&e.etag||null,recoveredFromHistory:true,recoverySource:fallback.source,corruptCurrent:true};
  }
@@ -127,18 +140,28 @@ async function readTeamFast(blob){
   throw e;
  }
 }
-async function safetyRawBackup(container,blob,label){
+async function ensureEnvironmentTeam(c){
+ if(!c||c.environment!=='testservice')return false;
+ const existing=await readJson(c.team,emptyTeam(),false);
+ if(existing.etag)return false;
+ const prod=await readJson(c.productionTeam,emptyTeam(),false),base=prod.value||emptyTeam();
+ if(!usableTeamDocument(base))throw error('TEST_STATE_SEED_FAILED','Der Testservice konnte keinen gültigen Produktions-Ausgangsstand lesen.',503);
+ const next=clone(base);next.schemaVersion=Math.max(3,Number(next.schemaVersion||3));next.revision=1;next.updatedAt=now();next.updatedBy='Testservice Initialisierung';next.updatedByUserId=null;next.updatedByDevice=null;next.clientVersion='RC855-testservice-seed';next.dataEnvironment='testservice';next.state=isObj(next.state)?clone(next.state):{};next.state._exporthubEnvironment={name:'testservice',isolated:true,seededAt:next.updatedAt,sourceBlob:TEAM_BLOB_BASE};
+ try{await uploadJson(c.team,next,null);return true}catch(e){if(Number(e&&e.statusCode||0)===409||Number(e&&e.statusCode||0)===412)return false;throw e}
+}
+async function safetyRawBackup(container,blob,label,recoveryPrefix){
  try{
   const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));
   const raw=Buffer.concat(chunks);if(!raw.length)return null;
-  const stamp=now().replace(/[:.]/g,'-'),name='recovery-backups/'+String(label||'raw-team-state').replace(/[^A-Za-z0-9_.-]+/g,'-')+'-'+stamp+'.json.raw';
+  const stamp=now().replace(/[:.]/g,'-'),name=(cleanScalar(recoveryPrefix)||'recovery-backups/')+String(label||'raw-team-state').replace(/[^A-Za-z0-9_.-]+/g,'-')+'-'+stamp+'.json.raw';
   const backup=container.getBlockBlobClient(name);await backup.upload(raw,raw.length,{blobHTTPHeaders:{blobContentType:'application/octet-stream'},conditions:{ifNoneMatch:'*'}});return name;
  }catch(e){if(Number(e&&e.statusCode||0)===404)return null;return null}
 }
 async function validateSession(req,payload,c){
  const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
+ await ensureEnvironmentTeam(c);
  const requestedMode=lower((req.query&&req.query.mode)||(payload&&payload.action)||(payload&&payload.mode));
- const teamRead=(requestedMode==='recovery-preview'||requestedMode==='recover-shipments')?readTeamResilient(c.container,c.team):readTeamFast(c.team);
+ const teamRead=(requestedMode==='recovery-preview'||requestedMode==='recover-shipments')?readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery):readTeamFast(c.team);
  const reads=await Promise.all([readJson(c.auth,emptyAuth(),true),teamRead]);
  const authDoc=reads[0],teamDoc=reads[1],sessions=Array.isArray(authDoc.value&&authDoc.value.sessions)?authDoc.value.sessions:[];
  const hash=tokenHash(token);let session=sessions.find(s=>safeEqualText(s.tokenHash,hash)),source='blob';
@@ -418,64 +441,65 @@ function candidateStats(doc,knownRefs){
  const count=list.length, ratio=count?validCustomer/count:0,activeRatio=activeCount?activeValidCustomer/activeCount:0;
  return {count,activeCount,validCustomer,validCustomerRatio:ratio,activeValidCustomer,activeValidCustomerRatio:activeRatio,rich,activeRich,coreComplete,activeCoreComplete,suspect,activeSuspect,knownHits,refs,activeRefs,statusCounts};
 }
-function sourceDescriptor(item){
+function sourceDescriptor(item,teamBlobName){
  return {
-  blobName:cleanScalar(item&&item.name)||TEAM_BLOB,
+  blobName:cleanScalar(item&&item.name)||teamBlobName||TEAM_BLOB_BASE,
   versionId:cleanScalar(item&&item.versionId),
   snapshot:cleanScalar(item&&item.snapshot),
   lastModified:item&&item.properties&&item.properties.lastModified?new Date(item.properties.lastModified).toISOString():null,
   clientVersion:item&&item.metadata&&cleanScalar(item.metadata.clientversion),
   isCurrentVersion:item&&item.isCurrentVersion===true,
-  isBackup:!!(item&&item.name&&item.name!==TEAM_BLOB)
+  isBackup:!!(item&&item.name&&item.name!==(teamBlobName||TEAM_BLOB_BASE))
  };
 }
-function historyClient(container,source){
- let b=container.getBlobClient(source&&source.blobName||TEAM_BLOB);
+function historyClient(container,source,teamBlobName){
+ let b=container.getBlobClient(source&&source.blobName||teamBlobName||TEAM_BLOB_BASE);
  if(source&&source.versionId)b=b.withVersion(source.versionId);
  else if(source&&source.snapshot)b=b.withSnapshot(source.snapshot);
  return b;
 }
-async function listHistory(container){
+async function listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery){
+ teamBlobName=cleanScalar(teamBlobName)||TEAM_BLOB_BASE;recoveryPrefix=cleanScalar(recoveryPrefix)||'recovery-backups/';allowDiscovery=allowDiscovery!==false;
  const out=[];
  try{
-  for await(const item of container.listBlobsFlat({prefix:TEAM_BLOB,includeVersions:true,includeSnapshots:true,includeMetadata:true,includeDeleted:true,includeDeletedWithVersions:true})){
-   if(item.name!==TEAM_BLOB)continue;
-   const d=sourceDescriptor(item);
+  for await(const item of container.listBlobsFlat({prefix:teamBlobName,includeVersions:true,includeSnapshots:true,includeMetadata:true,includeDeleted:true,includeDeletedWithVersions:true})){
+   if(item.name!==teamBlobName)continue;
+   const d=sourceDescriptor(item,teamBlobName);
    if(d.isCurrentVersion===true)continue;
    if(!d.versionId&&!d.snapshot)continue;
    out.push(d);
   }
  }catch(e){
   try{
-   for await(const item of container.listBlobsFlat({prefix:TEAM_BLOB,includeVersions:true,includeSnapshots:true,includeMetadata:true})){
-    if(item.name!==TEAM_BLOB)continue;
-    const d=sourceDescriptor(item);
+   for await(const item of container.listBlobsFlat({prefix:teamBlobName,includeVersions:true,includeSnapshots:true,includeMetadata:true})){
+    if(item.name!==teamBlobName)continue;
+    const d=sourceDescriptor(item,teamBlobName);
     if(d.isCurrentVersion===true)continue;
     if(!d.versionId&&!d.snapshot)continue;
     out.push(d);
    }
-  }catch(inner){throw error('RECOVERY_HISTORY_UNAVAILABLE','Azure konnte die Versionshistorie von '+TEAM_BLOB+' nicht auflisten: '+(inner&&inner.message||e&&e.message||'Unbekannter Fehler'),500)}
+  }catch(inner){throw error('RECOVERY_HISTORY_UNAVAILABLE','Azure konnte die Versionshistorie von '+teamBlobName+' nicht auflisten: '+(inner&&inner.message||e&&e.message||'Unbekannter Fehler'),500)}
  }
  try{
-  for await(const item of container.listBlobsFlat({prefix:'recovery-backups/',includeMetadata:true})){
+  for await(const item of container.listBlobsFlat({prefix:recoveryPrefix,includeMetadata:true})){
    if(!item||!item.name||!/\.json$/i.test(item.name))continue;
-   out.push(sourceDescriptor(item));
+   out.push(sourceDescriptor(item,teamBlobName));
   }
  }catch(_){}
  /* RC634: discover additional genuine ExportHUB/team backup JSON blobs without treating auth/pickup/POD data as shipment backups. */
- try{
+ if(allowDiscovery)try{
   let discovered=0;
   for await(const item of container.listBlobsFlat({prefix:'',includeMetadata:true})){
-   if(!item||!item.name||item.name===TEAM_BLOB||!/\.json$/i.test(item.name))continue;
+   if(!item||!item.name||item.name===teamBlobName||!/\.json$/i.test(item.name))continue;
    const name=lower(item.name);
    if(/auth|session|token|pickup|pod|loader|pin|location|warehouse|lock/.test(name))continue;
    if(!/(?:exporthub|team|state|backup|sammel|recovery|archive)/.test(name))continue;
-   out.push(sourceDescriptor(item));
+   out.push(sourceDescriptor(item,teamBlobName));
    if(++discovered>=500)break;
   }
  }catch(_){}
  const seen=new Set(),unique=[];
- out.forEach(source=>{const key=[source.blobName||TEAM_BLOB,source.versionId||'',source.snapshot||''].join('|');if(seen.has(key))return;seen.add(key);unique.push(source)});
+ out.forEach(source=>{const key=[source.blobName||teamBlobName,source.versionId||'',source.snapshot||''].join('|');if(seen.has(key))return;seen.add(key);unique.push(source)});
  unique.sort((a,b)=>Date.parse(b.lastModified||0)-Date.parse(a.lastModified||0));
  return unique;
 }
@@ -488,15 +512,15 @@ function safeCandidate(stats,targetCount){
         stats.activeSuspect<=Math.max(5,Math.floor(target*0.24)) &&
         (stats.knownHits>=3||stats.activeValidCustomer>=Math.max(20,Math.floor(target*0.82)));
 }
-async function inspectHistory(container,targetCount,knownRefs,maxVersions=70){
- const history=await listHistory(container), inspected=[];
+async function inspectHistory(container,targetCount,knownRefs,maxVersions=70,teamBlobName,recoveryPrefix,allowDiscovery){
+ const history=await listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery), inspected=[];
  let bestSafe=null,bestScore=-1;
  const max=Math.max(1,Math.min(100,Number(maxVersions)||70)),priority=['PKC5WB','8DAXMV'];
  for(let i=0;i<history.length&&i<max;i++){
   const source=history[i];
   if(/^RC61[1-4]/i.test(cleanScalar(source.clientVersion)))continue;
   try{
-   const d=await readJson(historyClient(container,source),emptyTeam(),false);
+   const d=await readJson(historyClient(container,source,teamBlobName),emptyTeam(),false);
    const doc=d.value||emptyTeam(),stats=candidateStats(doc,knownRefs);
    const item={source,stats,safe:safeCandidate(stats,targetCount),revision:Number(doc.revision||0),updatedAt:doc.updatedAt||source.lastModified||null,updatedBy:cleanScalar(doc.updatedBy),clientVersion:cleanScalar(doc.clientVersion||source.clientVersion)};
    inspected.push(item);
@@ -540,13 +564,13 @@ function mergeHistoricalCopy(a,b){
  ['podFiles','abdFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments'].forEach(k=>{if(Array.isArray(a[k])||Array.isArray(b[k]))primary[k]=mergeUniqueFiles(a[k],b[k])});
  return primary;
 }
-async function bestHistoricalPerShipment(container,refs,maxVersions=500){
- const wanted=new Set(arr(refs).map(v=>cleanScalar(v).toUpperCase()).filter(v=>/^[A-Z0-9]{6}$/.test(v))),history=await listHistory(container),map=new Map(),sources=new Map();
+async function bestHistoricalPerShipment(container,refs,maxVersions=500,teamBlobName,recoveryPrefix,allowDiscovery){
+ const wanted=new Set(arr(refs).map(v=>cleanScalar(v).toUpperCase()).filter(v=>/^[A-Z0-9]{6}$/.test(v))),history=await listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery),map=new Map(),sources=new Map();
  const max=Math.max(1,Math.min(800,Number(maxVersions)||500));let scanned=0,readErrors=0;
  for(let i=0;i<history.length&&i<max;i++){
   const source=history[i];
   try{
-   const d=await readJson(historyClient(container,source),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;
+   const d=await readJson(historyClient(container,source,teamBlobName),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;
    recoveryEvidenceShipmentSet(stateOfDocument(doc)).forEach(sh=>{
     const ref=refOf(sh);if(!ref||(wanted.size&&!wanted.has(ref)))return;
     if(syntheticHistoricalRecovery(sh))return;
@@ -652,16 +676,16 @@ function mergeHistoricalShipments(currentState,historicalState){
  const tombstonesRemoved=removeShipmentTombstones(cur,restored);
  return {state:cur,added,repaired,backfilled,tombstonesRemoved,restoredRefs:Array.from(new Set(restored.map(refOf).filter(Boolean)))};
 }
-async function safetyBackup(container,doc,label){
- const stamp=now().replace(/[:.]/g,'-'),name='recovery-backups/'+String(label||'team-state').replace(/[^A-Za-z0-9_.-]+/g,'-')+'-'+stamp+'.json';
+async function safetyBackup(container,doc,label,recoveryPrefix){
+ const stamp=now().replace(/[:.]/g,'-'),name=(cleanScalar(recoveryPrefix)||'recovery-backups/')+String(label||'team-state').replace(/[^A-Za-z0-9_.-]+/g,'-')+'-'+stamp+'.json';
  const raw=JSON.stringify(doc),blob=container.getBlockBlobClient(name);
  await blob.upload(raw,Buffer.byteLength(raw),{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifNoneMatch:'*'}});
  return name;
 }
-async function recoveryPreview(container,payload){
+async function recoveryPreview(container,payload,teamBlobName,recoveryPrefix,allowDiscovery){
  const target=Math.max(1,Number(payload&&payload.targetCount)||RC614_TARGET_COUNT);
  const known=arr(payload&&payload.knownRefs).length?payload.knownRefs:RC614_EVIDENCE_REFS;
- const result=await inspectHistory(container,target,known,Math.min(80,Number(payload&&payload.maxVersions)||80));
+ const result=await inspectHistory(container,target,known,Math.min(80,Number(payload&&payload.maxVersions)||80),teamBlobName,recoveryPrefix,allowDiscovery);
  const deep=await bestHistoricalPerShipment(container,known,payload&&payload.deepMaxVersions||500);
  return {
   ok:true,recoveryPreview:true,targetCount:target,historyCount:Math.max(result.historyCount||0,deep.historyCount||0),
@@ -670,14 +694,14 @@ async function recoveryPreview(container,payload){
   inspected:result.inspected.slice(0,12).map(x=>({source:x.source,stats:x.stats||null,safe:x.safe===true,revision:x.revision||0,updatedAt:x.updatedAt||null,clientVersion:x.clientVersion||'',error:x.error||''}))
  };
 }
-async function recoverShipments(container,teamBlob,payload,user){
+async function recoverShipments(container,teamBlob,payload,user,teamBlobName,recoveryPrefix,allowDiscovery){
  const target=Math.max(1,Number(payload&&payload.targetCount)||RC614_TARGET_COUNT);
  const known=arr(payload&&payload.knownRefs).length?payload.knownRefs:RC614_EVIDENCE_REFS;
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam();
  const locationApplied=applyLocationEvidence(current.state||{},payload&&payload.locationEvidence),currentBase=clone(current);currentBase.state=locationApplied.state;
  let source=isObj(payload&&payload.source)?payload.source:null,candidateDoc=null,candidateInfo=null;
  if(source&&(source.versionId||source.snapshot)){
-  const d=await readJson(historyClient(container,source),emptyTeam(),false);candidateDoc=d.value||emptyTeam();
+  const d=await readJson(historyClient(container,source,teamBlobName),emptyTeam(),false);candidateDoc=d.value||emptyTeam();
   const stats=candidateStats(candidateDoc,known);
   if(safeCandidate(stats,target))candidateInfo={source,stats,revision:Number(candidateDoc.revision||0),updatedAt:candidateDoc.updatedAt||source.lastModified||null,clientVersion:cleanScalar(candidateDoc.clientVersion||source.clientVersion)};
   else{candidateDoc=null;candidateInfo=null}
@@ -705,7 +729,7 @@ async function recoverShipments(container,teamBlob,payload,user){
  const beforeRows=bestShipmentSet(current.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0),afterRows=bestShipmentSet(merged.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0);
  const rowImproved=afterRows>beforeRows,coreImproved=afterStats.coreComplete>beforeStats.coreComplete||afterStats.activeCoreComplete>beforeStats.activeCoreComplete;
  if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','Historische Versionen wurden gefunden, aber sie enthalten keine besseren Sendungsdaten als der aktuelle Stand. Es wurde nichts verändert.',409);
- const backupName=await safetyBackup(container,current,'team-state-before-RC640-forensic-recovery');
+ const backupName=await safetyBackup(container,current,'team-state-before-RC640-forensic-recovery',recoveryPrefix);
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
  next.revision=Number(current.revision||0)+1;
@@ -740,27 +764,27 @@ function mergeMissingCustomerFields(target,source){
 function collectCustomerCandidatesFromDoc(doc,source,out){
  const st=stateOfDocument(doc);arr(st&&st.customers).forEach(c=>{if(!isObj(c)||!customerRecoveryAliases(c).length)return;out.push({customer:clone(c),source,score:customerRecoveryScore(c)})})
 }
-async function scanHistoricalCustomers(container,maxVersions=500){
- const history=await listHistory(container),candidates=[],max=Math.max(1,Math.min(800,Number(maxVersions)||500));let scanned=0,readErrors=0;
+async function scanHistoricalCustomers(container,maxVersions=500,teamBlobName,recoveryPrefix,allowDiscovery){
+ const history=await listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery),candidates=[],max=Math.max(1,Math.min(800,Number(maxVersions)||500));let scanned=0,readErrors=0;
  for(let i=0;i<history.length&&i<max;i++){
-  const source=history[i];try{const d=await readJson(historyClient(container,source),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;collectCustomerCandidatesFromDoc(doc,source,candidates)}catch(_){readErrors++}
+  const source=history[i];try{const d=await readJson(historyClient(container,source,teamBlobName),emptyTeam(),false),doc=d.value||emptyTeam();scanned++;collectCustomerCandidatesFromDoc(doc,source,candidates)}catch(_){readErrors++}
  }
  const best=[];candidates.sort((a,b)=>b.score-a.score);candidates.forEach(item=>{const hit=best.find(x=>customerSame(x.customer,item.customer));if(!hit)best.push(item);else if(item.score>hit.score){hit.customer=item.customer;hit.source=item.source;hit.score=item.score}});
  return {historyCount:history.length,scanned,readErrors,best}
 }
-async function previewCustomerRecovery(container,teamBlob,payload){
+async function previewCustomerRecovery(container,teamBlob,payload,teamBlobName,recoveryPrefix,allowDiscovery){
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam(),state=clone(current.state||{});state.customers=arr(state.customers).map(clone);
- const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500);let restorable=0,fillable=0;const restorableAccounts=[],fillableAccounts=[];
+ const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500,teamBlobName,recoveryPrefix,allowDiscovery);let restorable=0,fillable=0;const restorableAccounts=[],fillableAccounts=[];
  history.best.forEach(item=>{const c=item.customer;if(customerRecoveryScore(c)<34)return;const hit=state.customers.find(x=>customerSame(x,c));if(hit){const trial=clone(hit);if(mergeMissingCustomerFields(trial,c)){fillable++;const acc=cleanScalar(hit.account||hit.customerNumber||hit.kundennummer||hit.name||hit.customerName);if(acc)fillableAccounts.push(acc)}return}if(customerTombstoned(state,c))return;restorable++;const acc=cleanScalar(c.account||c.customerNumber||c.kundennummer||c.name||c.customerName);if(acc)restorableAccounts.push(acc)});
  return {ok:true,preview:true,currentCount:state.customers.length,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,candidateCount:history.best.length,restorable,fillable,restorableAccounts,fillableAccounts,noImprovement:restorable===0&&fillable===0}
 }
 
-async function recoverCustomers(container,teamBlob,payload,user){
+async function recoverCustomers(container,teamBlob,payload,user,teamBlobName,recoveryPrefix,allowDiscovery){
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam(),state=clone(current.state||{});state.customers=arr(state.customers).map(clone);
- const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500);let restored=0,filled=0;const restoredAccounts=[],restoredIds=[];
+ const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500,teamBlobName,recoveryPrefix,allowDiscovery);let restored=0,filled=0;const restoredAccounts=[],restoredIds=[];
  history.best.forEach(item=>{const c=item.customer;if(customerRecoveryScore(c)<34)return;const hit=state.customers.find(x=>customerSame(x,c));if(hit){if(mergeMissingCustomerFields(hit,c))filled++;return}if(customerTombstoned(state,c))return;state.customers.push(clone(c));restored++;const acc=cleanScalar(c.account||c.customerNumber||c.kundennummer),id=cleanScalar(c.id||c.customerId);if(acc)restoredAccounts.push(acc);if(id)restoredIds.push(id)});
  if(!restored&&!filled)throw error('CUSTOMER_RECOVERY_NO_IMPROVEMENT','In der Azure-Historie wurden keine besseren Kundendaten oder Kundenvorlagen als im aktuellen Stand gefunden. Es wurde nichts verändert.',409);
- const backupName=await safetyBackup(container,current,'team-state-before-RC770-customer-recovery'),next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC770-customer-recovery';next.state=state;next.customerRecoveryAudit={at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds};
+ const backupName=await safetyBackup(container,current,'team-state-before-RC770-customer-recovery',recoveryPrefix),next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC770-customer-recovery';next.state=state;next.customerRecoveryAudit={at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds};
  try{await uploadJson(teamBlob,next,fresh.etag)}catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Azure-Teamstand wurde während der Kundenrettung gleichzeitig geändert. Die Wiederherstellung wurde sicher abgebrochen und kann erneut gestartet werden.',409);if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den wiederhergestellten Kundenstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
  return {ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds,state:next.state,users:next.users||current.users||[]}
 }
@@ -771,43 +795,43 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS'},body:''};return}
  try{
   const payload=body(req),queryMode=req.query?lower(req.query.mode):'',mode=queryMode||lower(payload.action||payload.mode);
-  if(mode==='ping'){context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,routeReachable:true,storageChecked:false,time:now()});return}
+  if(mode==='ping'){const environment=requestedEnvironment(req,payload);context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,routeReachable:true,storageChecked:false,environment,blob:teamBlobForEnvironment(environment),time:now()});return}
   if(mode==='health'){
-   const c=await clients(),authStarted=Date.now();
+   const c=await clients(req,payload),authStarted=Date.now();
    let authReadable=true;try{await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
-   const authReadMs=Date.now()-authStarted,teamStarted=Date.now(),teamCheck=await readTeamResilient(c.container,c.team),teamReadMs=Date.now()-teamStarted;
-   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,blob:TEAM_BLOB,authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
+   await ensureEnvironmentTeam(c);const authReadMs=Date.now()-authStarted,teamStarted=Date.now(),teamCheck=await readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery),teamReadMs=Date.now()-teamStarted;
+   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
   }
-  const c=await clients(),current=await validateSession(req,payload,c),blob=c.team;
+  const c=await clients(req,payload),current=await validateSession(req,payload,c),blob=c.team;
   if(req.method==='GET'||(req.method==='POST'&&(mode==='read'||mode==='meta'))){
-   if(mode==='meta'||(req.query&&String(req.query.meta||'')==='1')){context.res=json(200,Object.assign({ok:true,metaOnly:true},await metadataOnly(blob)));return}
-   const client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user));context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null},client));return
+   if(mode==='meta'||(req.query&&String(req.query.meta||'')==='1')){context.res=json(200,Object.assign({ok:true,metaOnly:true,environment:c.environment,blob:c.teamBlobName},await metadataOnly(blob)));return}
+   const client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user));context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null},client));return
   }
   if(req.method==='POST'){
    if(mode==='recovery-preview'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
-    context.res=json(200,await recoveryPreview(c.container,payload));return
+    context.res=json(200,await recoveryPreview(c.container,payload,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode==='recover-shipments'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
-    context.res=json(200,await recoverShipments(c.container,blob,payload,current.user));return
+    context.res=json(200,await recoverShipments(c.container,blob,payload,current.user,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode==='recovery-preview-customers'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Kunden-Historienprüfung ist nur für globale Administratoren verfügbar.',403);
-    context.res=json(200,await previewCustomerRecovery(c.container,blob,payload));return
+    context.res=json(200,await previewCustomerRecovery(c.container,blob,payload,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode==='recover-customers'){
     if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Kundenwiederherstellung ist nur für globale Administratoren verfügbar.',403);
-    context.res=json(200,await recoverCustomers(c.container,blob,payload,current.user));return
+    context.res=json(200,await recoverCustomers(c.container,blob,payload,current.user,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
-   let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC644-save');
-   const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));
+   let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
+   const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));saved.dataEnvironment=c.environment;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const serverMs=Date.now()-requestStarted,full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
-   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,serverMs,corruptBackup:saved.corruptBackup||null};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
-   context.res=json(200,Object.assign({ok:true,serverMs},client));return
+   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,serverMs,corruptBackup:saved.corruptBackup||null};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
+   context.res=json(200,Object.assign({ok:true,environment:c.environment,blob:c.teamBlobName,serverMs},client));return
   }
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
  }catch(e){
