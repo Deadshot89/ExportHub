@@ -10,7 +10,7 @@ const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTH
 const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/'+String(TEAM_BLOB_BASE||'team-state.json').replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC855';
+const API_VERSION = 'RC858';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -837,7 +837,7 @@ module.exports=async function(context,req){
    const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag),client=sanitizeForClient(saved,isAdmin(current.user));saved.dataEnvironment=c.environment;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const serverMs=Date.now()-requestStarted,full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
-   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,serverMs,corruptBackup:saved.corruptBackup||null};if(saved.concurrentMerge){out.state=client.state;out.users=client.users}context.res=json(200,out);return}
+   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,serverMs,corruptBackup:saved.corruptBackup||null};context.res=json(200,out);return}
    context.res=json(200,Object.assign({ok:true,environment:c.environment,blob:c.teamBlobName,serverMs},client));return
   }
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
