@@ -10,7 +10,7 @@ const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTH
 const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/'+String(TEAM_BLOB_BASE||'team-state.json').replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC856';
+const API_VERSION = 'RC855';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -21,13 +21,20 @@ function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body
 function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || ''; }
 function requestHost(req){
  const h=req&&req.headers||{};
- return lower(h['x-forwarded-host']||h['X-Forwarded-Host']||h.host||h.Host||'');
+ return lower(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||h['X-Original-Host']||h.host||h.Host||'');
+}
+function requestEnvironmentEvidence(req){
+ const h=req&&req.headers||{};
+ return [h.origin,h.Origin,h.referer,h.Referer,h['x-forwarded-host'],h['X-Forwarded-Host'],h['x-original-host'],h['X-Original-Host'],h['x-ms-original-url'],h['X-MS-Original-URL'],h.host,h.Host].map(text).filter(Boolean).join(' ');
 }
 function requestedEnvironment(req,payload){
  const h=req&&req.headers||{},raw=lower(h['x-exporthub-environment']||h['X-ExportHUB-Environment']||(payload&&payload.environment)||'');
- const host=requestHost(req),hostEnv=/-testservice\./i.test(host)?'testservice':'production';
- if(raw&&raw!==hostEnv)throw error('ENVIRONMENT_MISMATCH','Test- und Produktionsdaten dürfen nicht über dieselbe Umgebung angefordert werden.',409);
- return hostEnv;
+ if(raw&&raw!=='production'&&raw!=='testservice')throw error('ENVIRONMENT_INVALID','Unbekannte ExportHUB-Datenumgebung.',400);
+ const evidence=requestEnvironmentEvidence(req),origin=lower(h.origin||h.Origin||h.referer||h.Referer||''),originTest=/-testservice\./i.test(origin),originAzure=/\.azurestaticapps\.net(?:[:/]|$)/i.test(origin),originProd=originAzure&&!originTest;
+ if(originTest){if(raw&&raw!=='testservice')throw error('ENVIRONMENT_MISMATCH','Ein Testservice-Aufruf darf keine Produktionsdaten anfordern.',409);return'testservice'}
+ if(originProd){if(raw&&raw!=='production')throw error('ENVIRONMENT_MISMATCH','Die Produktionsseite darf keine Testservice-Daten anfordern.',409);return'production'}
+ if(raw)return raw;
+ return /-testservice\./i.test(evidence)?'testservice':'production';
 }
 function teamBlobForEnvironment(env){return env==='testservice'?TEST_TEAM_BLOB:TEAM_BLOB_BASE}
 function recoveryPrefixForEnvironment(env){return env==='testservice'?'testservice/recovery-backups/':'recovery-backups/'}
