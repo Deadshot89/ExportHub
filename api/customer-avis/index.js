@@ -76,15 +76,45 @@ function updatedStamp(sh){
  const raw=text(sh&&(sh.updatedAt||sh._syncUpdatedAt||sh.modifiedAt||sh.lastModifiedAt||sh.createdAt||sh.created));
  const ms=Date.parse(raw);return Number.isFinite(ms)?ms:0;
 }
+function eventStamp(v){ const ms=Date.parse(text(v));return Number.isFinite(ms)?ms:-1; }
+function avisDisabledAt(sh){ return text(sh&&(sh.customerAvisAutoDisabledAt||sh.avisAutoDisabledAt||sh.customerAvisDisabledAt||sh.avisDisabledAt)); }
 function newestCopy(state,anchor){
  if(!anchor)return null;
  const copies=findCopies(state,anchor).slice().sort((a,b)=>updatedStamp(b)-updatedStamp(a)||score(b)-score(a));
- const fresh=copies[0]||anchor;
- return Object.assign({},anchor,fresh);
+ return copies[0]||anchor;
+}
+function effectiveAvisCopy(state,anchor){
+ if(!anchor)return null;
+ const copies=findCopies(state,anchor),fresh=newestCopy(state,anchor)||anchor;
+ let enabledSource=null,enabledMs=-1,disabledMs=-1;
+ copies.forEach(sh=>{
+  const dis=eventStamp(avisDisabledAt(sh));if(dis>disabledMs)disabledMs=dis;
+  if(!avisEnabled(sh)||!avisToken(sh))return;
+  let at=eventStamp(avisEnabledAt(sh));if(at<0)at=updatedStamp(sh);
+  if(!enabledSource||at>enabledMs||(at===enabledMs&&avisSecurityVersion(sh)>avisSecurityVersion(enabledSource))){enabledSource=sh;enabledMs=at}
+ });
+ const out=Object.assign({},fresh);
+ if(!enabledSource||enabledMs<=disabledMs){
+  out.customerAvisEnabled=false;out.avisEnabled=false;out.customerAvisToken='';out.avisToken='';
+  out.customerAvisSecurityVersion=0;out.avisSecurityVersion=0;return out;
+ }
+ const t=avisToken(enabledSource),v=avisSecurityVersion(enabledSource),at=avisEnabledAt(enabledSource);
+ out.customerAvisEnabled=true;out.avisEnabled=true;out.customerAvisToken=t;out.avisToken=t;
+ out.customerAvisSecurityVersion=v;out.avisSecurityVersion=v;out.customerAvisEnabledAt=at;out.avisEnabledAt=at;
+ out.customerAvisDisabledAt='';out.avisDisabledAt='';out.customerAvisAutoDisabledAt='';out.avisAutoDisabledAt='';
+ return out;
 }
 function tokenMatches(sh,token){ const a=Buffer.from(avisToken(sh)),b=Buffer.from(text(token));return a.length===b.length&&a.length>0&&crypto.timingSafeEqual(a,b); }
-function findAnyByToken(state,token){ const matches=shipmentCopies(state).filter(sh=>tokenMatches(sh,token));matches.sort((a,b)=>updatedStamp(b)-updatedStamp(a)||score(b)-score(a));return matches[0]?newestCopy(state,matches[0]):null; }
-function findByTokenHash(state,tokenHash){ const matches=shipmentCopies(state).filter(sh=>avisToken(sh)&&safeEqual(hash(avisToken(sh)),tokenHash));matches.sort((a,b)=>updatedStamp(b)-updatedStamp(a)||score(b)-score(a));return matches[0]?newestCopy(state,matches[0]):null; }
+function findAnyByToken(state,token){
+ const matches=shipmentCopies(state).filter(sh=>tokenMatches(sh,token)).sort((a,b)=>updatedStamp(b)-updatedStamp(a)||score(b)-score(a));
+ for(const anchor of matches){const effective=effectiveAvisCopy(state,anchor);if(effective&&avisEnabled(effective)&&tokenMatches(effective,token))return effective}
+ return null;
+}
+function findByTokenHash(state,tokenHash){
+ const matches=shipmentCopies(state).filter(sh=>avisToken(sh)&&safeEqual(hash(avisToken(sh)),tokenHash)).sort((a,b)=>updatedStamp(b)-updatedStamp(a)||score(b)-score(a));
+ for(const anchor of matches){const effective=effectiveAvisCopy(state,anchor);if(effective&&avisEnabled(effective)&&avisToken(effective)&&safeEqual(hash(avisToken(effective)),tokenHash))return effective}
+ return null;
+}
 function assertSecureAvis(sh){
  if(!sh||!avisEnabled(sh))throw error('AVIS_DISABLED','Dieser Kunden-Avis-Link ist nicht mehr aktiv.',410);
  if(avisAutoExpired(sh))throw error('AVIS_AUTO_EXPIRED','Dieser Kunden-Avis wurde automatisch drei Arbeitstage nach der tatsächlichen Abholung deaktiviert. Samstag und Sonntag wurden nicht mitgerechnet.',410);
@@ -183,7 +213,7 @@ function mutateAppointment(state,target,payload){
 async function saveAppointment(blob,sessionPayload,session,payload){
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   const d=await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{},target=findByTokenHash(state,sessionPayload.th);if(!target)throw error('AVIS_DISABLED','Dieser Kunden-Avis-Link ist nicht mehr aktiv.',410);assertSecureAvis(target);if(sref(target)!==upper(sessionPayload.ref))throw error('AVIS_SESSION_INVALID','Die Avis-Sitzung ist ungültig.',401);
-  mutateAppointment(state,target,payload);team.state=state;team.revision=Number(team.revision||0)+1;team.updatedAt=now();team.updatedBy='Kunden-Avis';team.updatedByUserId='customer-avis';team.clientVersion=text(team.clientVersion)||'customer-avis-v3';
+  mutateAppointment(state,target,payload);team.state=state;team.revision=Number(team.revision||0)+1;team.updatedAt=now();team.updatedBy='Kunden-Avis';team.updatedByUserId='customer-avis';team.clientVersion=text(team.clientVersion)||'customer-avis-v4';
   try{await writeTeam(blob,team,d.etag);const fresh=findByTokenHash(team.state,sessionPayload.th)||target;return publicShipment(fresh,session)}catch(e){if(isConflict(e)&&attempt<MAX_RETRIES-1){await wait(80+attempt*120);continue}throw e}
  }
  throw error('CONCURRENT_UPDATE','Die Abholmeldung konnte wegen einer gleichzeitigen Änderung noch nicht gespeichert werden. Bitte erneut versuchen.',409);
