@@ -201,12 +201,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC836',cache:'836',loginReturn:'/TESTVERSION.html?v=836'});
+var BUILD=Object.freeze({version:'RC837',cache:'837',loginReturn:'/TESTVERSION.html?v=837'});
 var RELEASE=Object.freeze({
- version:'RC836',
+ version:'RC837',
  date:'21.08.2026',
- title:'Aufgabenbestand bereinigt und gelöschte Serien dauerhaft gesperrt',
+ title:'Testseiten-Start und datengetriebener Aufgabenplaner repariert',
  changes:Object.freeze([
+    'RC837 repariert den Ladefehler aus RC836: Der Aufgaben Planer ruft keine entfernten customerPick/intercompanyPick-Funktionen mehr auf.',
+    'RC837 baut die Pick-Bereiche ausschließlich aus den tatsächlich gespeicherten wiederkehrenden Aufgaben auf. Es gibt keine zweite hart codierte Pick-Aufgabenquelle.',
+    'RC837 trennt gespeicherte Pick-Aufgaben nur dann als Intercompany, wenn ihre gespeicherten Felder dies ausdrücklich kennzeichnen; alle übrigen gespeicherten Pick-Aufgaben bleiben Kunden-Picken.',
     'RC836 entfernt die automatische Wiederherstellung alter SEED- und RC49-Aufgaben aus der laufenden Wochenlogik. Beim Öffnen der Aufgaben werden ausschließlich die tatsächlich im Teamstand vorhandenen aktiven Aufgaben als Quelle verwendet.',
     'RC836 respektiert Aufgaben-Löschungen dauerhaft. Beim Löschen einer wiederkehrenden Aufgabe wird die komplette Serienkennung als Tombstone gespeichert; aktuelle und zukünftige Wocheninstanzen derselben Serie dürfen danach nicht erneut erzeugt werden.',
     'RC836 bereinigt von RC834 neu erzeugte Seed-Geister der aktuellen Woche, wenn dafür keine echte aktive Aufgabenquelle mehr im Teamstand existiert. Bereits gelöschte Standardaufgaben können dadurch nicht unter neuer WK-ID zurückkehren.',
@@ -762,6 +765,9 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+  'RC837 Starttest: Testseite muss von Dashboard und aus einem zuletzt gespeicherten Aufgaben-Planer-Zustand ohne ReferenceError laden.',
+  'RC837 Planertest: customerPick und intercompanyPick dürfen nicht mehr als Funktionsaufrufe vorhanden sein; Gruppen werden aus recurringSources gefiltert.',
+  'RC837 Datenquellentest: Der Aufgaben Planer erzeugt keine hart codierten Pick-Aufgaben und verwendet nur gespeicherte Aufgaben-/Seriendaten.',
   'RC836 Löschtest: Eine wiederkehrende Aufgabe löschen, Aufgabenansicht verlassen und erneut öffnen. Die Aufgabe und alle Instanzen derselben Serie dürfen nicht wieder erscheinen.',
   'RC836 Seed-Geister-Test: Eine früher gelöschte SEED-/RC49-Aufgabe darf nach Öffnen von Aufgaben, Aufgaben Planer, Sync oder F5 nicht mit neuer WK-ID wieder erzeugt werden.',
   'RC836 Wiederholungs-Test: Eine normale Aufgabe mit Wochentag, aber ohne Wiederholungskennzeichen darf nicht automatisch als wöchentliche Serie fortgeschrieben werden.',
@@ -19249,8 +19255,9 @@ function weekdays(t){var raw=[];['day','weekday','weekDay','repeatDay','weekdays
 
 
 function category(t){var raw=low([t&&t.area,t&&t.category,taskTitle(t),taskCustomer(t),t&&t.note,t&&t.description].join(' '));if(/pick|picken|picking|kommission/.test(raw))return'pick';if(/anmeld|abhol|avis|abd|lieferschein|gate41|power bi|pod|transport order|spedition|foto|papiere|collection/.test(raw))return'registration';return'other'}
-function recurringSources(){var s=st(),sets=[['tasks',arr(s.tasks),true],['recurringTasks',arr(s.recurringTasks)],['taskTemplates',arr(s.taskTemplates)],['recurringTaskTemplates',arr(s.recurringTaskTemplates)],['standardTasks',arr(s.standardTasks)],['routineTasks',arr(s.routineTasks)],['taskSeries',arr(s.taskSeries)]],seen={},out=[];sets.forEach(function(set){set[1].forEach(function(t,i){if(!t||!meaningfulTaskRC818(t)||plannerTaskIsTestRC833(t)||(set[2]&&!recurring(t))||set[0]!=='tasks'&&t.enabled===false)return;if(category(t)==='pick')return;var base=q(t.recurringSeriesId||t.weeklySeriesId||t.recurringTemplateId||t.templateId||t.recurringId||t.seriesId||t.id)||low(taskTitle(t)+'|'+taskOwner(t)+'|'+(t.day||t.weekday||i));if(seen[set[0]+'|'+base])return;seen[set[0]+'|'+base]=1;var days=weekdays(t);if(!days.length){out.push({key:set[0]+'|'+base,templateId:set[0]+'|'+base,source:set[0],group:category(t),task:t});return}days.forEach(function(d){var c=clone(t);c.day=weekdayName(d);c.weekday=weekdayName(d);c.weekdays=[weekdayName(d)];out.push({key:set[0]+'|'+base+'|d'+d,templateId:set[0]+'|'+base+'|d'+d,source:set[0],group:category(t),task:c})})})});return dedupeRecurringItemsRC818(out)}
-function groups(){var r=recurringSources();return{customer:customerPick(),intercompany:intercompanyPick(),registration:r.filter(function(x){return x.group==='registration'}),other:r.filter(function(x){return x.group==='other'})}}
+function pickGroupRC837(t){var raw=low([t&&t.plannerGroup,t&&t.group,t&&t.taskGroup,t&&t.area,t&&t.category,t&&t.type,t&&t.note,t&&t.description].join(' '));return /intercompany|inter company/.test(raw)?'intercompany':'customer'}
+function recurringSources(){var s=st(),sets=[['tasks',arr(s.tasks),true],['recurringTasks',arr(s.recurringTasks)],['taskTemplates',arr(s.taskTemplates)],['recurringTaskTemplates',arr(s.recurringTaskTemplates)],['standardTasks',arr(s.standardTasks)],['routineTasks',arr(s.routineTasks)],['taskSeries',arr(s.taskSeries)]],seen={},out=[];sets.forEach(function(set){set[1].forEach(function(t,i){if(!t||!meaningfulTaskRC818(t)||plannerTaskIsTestRC833(t)||(set[2]&&!recurring(t))||set[0]!=='tasks'&&t.enabled===false)return;var base=q(t.recurringSeriesId||t.weeklySeriesId||t.recurringTemplateId||t.templateId||t.recurringId||t.seriesId||t.id)||low(taskTitle(t)+'|'+taskOwner(t)+'|'+(t.day||t.weekday||i));if(seen[set[0]+'|'+base])return;seen[set[0]+'|'+base]=1;var group=category(t);if(group==='pick')group=pickGroupRC837(t);var days=weekdays(t);if(!days.length){out.push({key:set[0]+'|'+base,templateId:set[0]+'|'+base,source:set[0],group:group,task:t});return}days.forEach(function(d){var c=clone(t);c.day=weekdayName(d);c.weekday=weekdayName(d);c.weekdays=[weekdayName(d)];out.push({key:set[0]+'|'+base+'|d'+d,templateId:set[0]+'|'+base+'|d'+d,source:set[0],group:group,task:c})})})});return dedupeRecurringItemsRC818(out)}
+function groups(){var r=recurringSources();return{customer:r.filter(function(x){return x.group==='customer'}),intercompany:r.filter(function(x){return x.group==='intercompany'}),registration:r.filter(function(x){return x.group==='registration'}),other:r.filter(function(x){return x.group==='other'})}}
 function allItems(g){return g.customer.concat(g.intercompany,g.registration,g.other)}
 function draftStore(){var s=st();s.taskPlannerWeekDrafts=s.taskPlannerWeekDrafts&&typeof s.taskPlannerWeekDrafts==='object'?s.taskPlannerWeekDrafts:{};return s.taskPlannerWeekDrafts}
 function daysBetween(a,b){return Math.round((dateObj(b)-dateObj(a))/86400000)}
