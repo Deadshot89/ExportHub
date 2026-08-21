@@ -201,12 +201,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC846',cache:'846',loginReturn:'/TESTVERSION.html?v=846'});
+var BUILD=Object.freeze({version:'RC847',cache:'847',loginReturn:'/TESTVERSION.html?v=847'});
 var RELEASE=Object.freeze({
- version:'RC846',
+ version:'RC847',
  date:'21.08.2026',
- title:'Aufgaben-Masterplan aus Original-Upload wiederhergestellt',
+ title:'Lieferavis gegen verzögerte Voll-Render dauerhaft abgesichert',
  changes:Object.freeze([
+    "RC847 macht den Lieferavis unabhängig vom Lebenszyklus eines einzelnen #content-Knotens: Die Überwachung hängt dauerhaft an document.body und erkennt auch komplette Ersetzungen der Sendungsansicht durch spätere Renderer.",
+    "RC847 priorisiert die tatsächlich aktive Sendungsansicht anhand des gerenderten Content-Status und sichtbarer DOM-Blöcke. Alte oder gleichzeitig vorhandene Avis-Hosts dürfen den Lieferavis nicht mehr in eine falsche bzw. nicht sichtbare Ansicht ziehen.",
+    "RC847 ergänzt einen leichten Lieferavis-Wächter. Solange eine Sendung geöffnet ist, prüft er nur Host und Avis-Panel und stellt ausschließlich den Lieferavis wieder her, falls ein verzögerter Sync-/Layout-Render ihn entfernt hat; kein Seiten-Vollrender wird dadurch ausgelöst.",
     "RC846 stellt den vollständigen Aufgaben-Masterplan aus dem früher hochgeladenen Aufgabenplan wieder her. Die fünf festen Gruppen sind wieder Picken, ABD erstellen, Anmelden, Aufträge kontrollieren und Zusatzaufgaben; Montag bis Freitag bleiben die verbindliche Wochenstruktur.",
     "RC846 verwendet für Aufgaben und Aufgaben Planer dieselbe Quelle: state.tasks plus den geschützten Masterplan. Ist der Azure-/Team-Aufgabenbestand leer oder unvollständig, werden fehlende Masteraufgaben der aktuellen Woche wiederhergestellt, ohne manuelle oder sendungsbezogene Aufgaben zu löschen.",
     "RC846 führt eine einmalige Neuaktivierung des hochgeladenen Masterplans durch. Alte Tombstones aus den fehlerhaften RC836-RC845-Aufgabenmigrationen werden nur für die jetzt ausdrücklich wiederhergestellten Masteraufgaben zurückgesetzt; ab RC846 neu gelöschte Aufgabenserien bleiben dauerhaft gelöscht und werden nach F5 oder Sync nicht erneut angelegt.",
@@ -799,6 +802,9 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+  'RC847 Lieferavis-Dauerlauf: Sendung öffnen und mindestens 10 Sekunden mehrere Layout-/Sync-/Content-Neuaufbauten auslösen. Der Lieferavis muss dauerhaft sichtbar bleiben und darf nicht nachträglich verschwinden.',
+  'RC847 Content-Ersatz: Den gesamten #content-Inhalt nach erstem Avis-Render neu aufbauen. Der body-weite Avis-Wächter muss den neuen Host erkennen und ausschließlich den Lieferavis erneut einsetzen.',
+  'RC847 Ansichtspriorität: Falls alte Edit-/Read-Hosts gleichzeitig im DOM vorhanden sind, muss die tatsächlich gerenderte bzw. sichtbare Sendungsansicht den Avis-Host bestimmen.',
     "RC846 Wiederherstellung: state.tasks leer starten. Nach dem Boot müssen alle nicht ausgeschlossenen Masteraufgaben aus dem hochgeladenen Aufgabenplan wieder vorhanden und in Aufgaben sichtbar sein.",
     "RC846 Gruppen: Aufgaben und Aufgaben Planer müssen die Gruppen Picken, ABD erstellen, Anmelden, Aufträge kontrollieren und Zusatzaufgaben in genau dieser Reihenfolge verwenden.",
     "RC846 Gleichbestand: Aufgaben und Aufgaben Planer müssen denselben offenen state.tasks-Bestand verwenden; der Planer darf keine zweite Template-/Serienquelle erzeugen.",
@@ -1239,7 +1245,7 @@ try{
 if(window.__EXPORTHUB_CUSTOMER_AVIS_706__)return;
 window.__EXPORTHUB_CUSTOMER_AVIS_706__=true;
 if(window.__EXPORTHUB_PICKUP_MODE__||window.__EXPORTHUB_AVIS_MODE__)return;
-var VERSION=(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'ExportHUB',timer=0,lastSig='',SECURITY_VERSION=2,avisRetry=0,avisObserver=null;
+var VERSION=(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||'ExportHUB',timer=0,lastSig='',SECURITY_VERSION=2,avisRetry=0,avisObserver=null,avisWatchdog=0;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function arr(v){return Array.isArray(v)?v:[]}
@@ -1267,7 +1273,8 @@ function fmt(v){if(!v)return'–';try{var d=/^\d{4}-\d{2}-\d{2}$/.test(v)?new Da
 function fmtLang(v,lang){if(!v)return'–';try{var d=/^\d{4}-\d{2}-\d{2}$/.test(v)?new Date(v+'T12:00:00'):new Date(v),locale=lang==='en'?'en-GB':'de-DE';return isFinite(d)?d.toLocaleString(locale,{dateStyle:'short',timeStyle:String(v).indexOf('T')>=0?'short':undefined}):q(v)}catch(_){return q(v)}}
 function responseText(sh,lang){lang=lang==='en'?'en':'de';var d=q(sh.customerAvisPickupDate||sh.avisPickupDate),a=q(sh.customerAvisPickupTimeFrom||sh.avisPickupTimeFrom),b=q(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo),stamp=q(sh.customerAvisResponseAt||sh.avisResponseAt);if(!d)return lang==='en'?'No response from the recipient yet.':'Noch keine Rückmeldung vom Empfänger.';return fmtLang(d,lang)+(a||b?' · '+[a,b].filter(Boolean).join(' – ')+(lang==='en'?'':' Uhr'):'')+(stamp?' · '+(lang==='en'?'Received ':'Eingang ')+fmtLang(stamp,lang):'')}
 function viewState(){try{return q((roots()[0]||{}).view||document.body.getAttribute('data-exporthub-view')).toLowerCase()}catch(_){return''}}
-function visibleShipmentView(){var content=document.getElementById('content'),rendered=q(content&&content.getAttribute('data-exporthub-rendered-view')).toLowerCase();if(document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||(content&&content.classList.contains('rc776-shipment-view'))||rendered==='shipmentview')return'shipmentview';if(document.getElementById('rc845AvisEditHost')||document.getElementById('rc363BlockShipment')||rendered==='shipment')return'shipment';return viewState()}
+function nodeVisible(el){if(!el||!el.isConnected)return false;try{var cs=getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return false;var r=el.getBoundingClientRect();return !!(r.width||r.height||el.getClientRects().length)}catch(_){return true}}
+function visibleShipmentView(){var content=document.getElementById('content'),rendered=q(content&&content.getAttribute('data-exporthub-rendered-view')).toLowerCase(),readHost=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost'),editBlock=document.getElementById('rc363BlockShipment'),editHost=document.getElementById('rc845AvisEditHost');if(rendered==='shipmentview'||(content&&content.classList.contains('rc776-shipment-view')))return'shipmentview';if(rendered==='shipment')return'shipment';if(nodeVisible(editBlock)||nodeVisible(editHost))return'shipment';if(nodeVisible(readHost))return'shipmentview';var v=viewState();return v==='shipmentview'||v==='shipment'?v:''}
 function stateLabel(sh,lang){var en=lang==='en';if(used(sh))return en?'USED':'VERWENDET';return enabled(sh)?(en?'ACTIVE':'AKTIV'):(en?'OFF':'AUS')}
 function avisHost(view){view=view||visibleShipmentView();if(view==='shipmentview')return document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||document.querySelector('#content.rc776-shipment-view .rc844-avis-host')||null;if(view==='shipment')return document.getElementById('rc845AvisEditHost')||document.querySelector('#rc363BlockShipment .rc363-process-body')||document.getElementById('rc363BlockShipment')||document.getElementById('rc573ShipmentShell')||null;return null}
 function render(){
@@ -1309,14 +1316,17 @@ function injectMailBody(sh,target,body,langOverride){
  return insertAvisBlock(clean,block,lang)
 }
 function click(e){var b=e.target&&e.target.closest&&e.target.closest('.rc705AvisPanel [data-rc705-action],[data-rc705-panel="1"] [data-rc705-action]');if(!b)return;var a=b.getAttribute('data-rc705-action'),sh=current(),lang=mailLanguage(sh),en=lang==='en';e.preventDefault();e.stopPropagation();if(a==='enable'||a==='renew')return toggle(true);if(a==='disable'){if(confirm(en?'Disable the customer collection notice? The current one-time link becomes invalid immediately.':'Kunden-Avis deaktivieren? Der bisherige Einmal-Link wird sofort ungültig.'))return toggle(false);return false}if(a==='open'){var u=link(sh);if(u)window.open(u,'_blank','noopener,noreferrer');return false}if(a==='copy'){var u=link(sh);if(!u)return false;navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(u).then(function(){var old=b.textContent;b.textContent=en?'Copied':'Kopiert';setTimeout(function(){b.textContent=old},1200)}):prompt(en?'Customer collection notice link':'Kunden-Avis-Link',u);return false}}
-function schedule(){if(timer)return;avisRetry=0;function attempt(){timer=0;var ok=render(),vv=visibleShipmentView();if(ok){avisRetry=0;return}if((vv==='shipment'||vv==='shipmentview')&&avisRetry<16){avisRetry++;timer=setTimeout(attempt,70+avisRetry*30)}}timer=setTimeout(attempt,25)}
-function ensureAvisObserver(){if(avisObserver||typeof MutationObserver!=='function')return;var rootHost=document.getElementById('content')||document.body;avisObserver=new MutationObserver(function(){var vv=visibleShipmentView();if(vv!=='shipment'&&vv!=='shipmentview')return;var area=avisHost(vv),mount=document.getElementById(vv==='shipmentview'?'rc705AvisMountRead':'rc705AvisMountEdit'),panel=mount&&mount.querySelector('.rc705AvisPanel');if(area&&(!mount||!panel||!mount.contains(panel)||mount.parentNode!==area))schedule()});avisObserver.observe(rootHost,{childList:true,subtree:true})}
+function avisIntact(){var vv=visibleShipmentView();if(vv!=='shipment'&&vv!=='shipmentview')return true;var area=avisHost(vv),mount=document.getElementById(vv==='shipmentview'?'rc705AvisMountRead':'rc705AvisMountEdit'),panel=mount&&mount.querySelector('.rc705AvisPanel');return !!(area&&mount&&panel&&mount.isConnected&&panel.isConnected&&mount.parentNode===area&&mount.contains(panel))}
+function schedule(){if(timer)return;avisRetry=0;function attempt(){timer=0;var ok=render(),vv=visibleShipmentView();if(ok&&avisIntact()){avisRetry=0;return}if((vv==='shipment'||vv==='shipmentview')&&avisRetry<30){avisRetry++;timer=setTimeout(attempt,70+Math.min(430,avisRetry*30))}}timer=setTimeout(attempt,20)}
+function ensureAvisObserver(){if(avisObserver||typeof MutationObserver!=='function')return;var rootHost=document.body||document.documentElement;if(!rootHost)return;avisObserver=new MutationObserver(function(){var vv=visibleShipmentView();if(vv!=='shipment'&&vv!=='shipmentview')return;if(!avisIntact())schedule()});avisObserver.observe(rootHost,{childList:true,subtree:true})}
+function ensureAvisWatchdog(){if(avisWatchdog)return;avisWatchdog=setInterval(function(){var vv=visibleShipmentView();if(vv!=='shipment'&&vv!=='shipmentview')return;if(!avisIntact()){lastSig='';schedule()}},600)}
+function burst(){[0,60,140,280,550,900,1500,2500,4000,6500,10000].forEach(function(ms){setTimeout(function(){if(!avisIntact()){lastSig='';schedule()}else render()},ms)})}
 document.addEventListener('click',click,true);
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(n){window.addEventListener(n,function(){lastSig='';ensureAvisObserver();schedule()})});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(n){window.addEventListener(n,function(){lastSig='';ensureAvisObserver();ensureAvisWatchdog();schedule();burst()})});
 var api=Object.freeze({version:VERSION,securityVersion:SECURITY_VERSION,render:render,enabled:enabled,expired:expired,link:link,injectMailBody:injectMailBody,toggle:toggle});
 window.ExportHUBCustomerAvis706=api;
 window.ExportHUBCustomerAvis705=api;
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){ensureAvisObserver();schedule()},{once:true});else{ensureAvisObserver();schedule()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){ensureAvisObserver();ensureAvisWatchdog();schedule();burst()},{once:true});else{ensureAvisObserver();ensureAvisWatchdog();schedule();burst()}
 })();
 </script>
 <style id="index209-pickup-mode-style">
