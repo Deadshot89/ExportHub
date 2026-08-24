@@ -9,8 +9,12 @@ const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EX
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/'+String(TEAM_BLOB_BASE||'team-state.json').replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
+const DIAGNOSTICS_BLOB_BASE = process.env.EXPORTHUB_DIAGNOSTICS_BLOB || 'diagnostics/team-diagnostics.json';
+const TEST_DIAGNOSTICS_BLOB = process.env.EXPORTHUB_TEST_DIAGNOSTICS_BLOB || 'testservice/diagnostics/team-diagnostics.json';
+const DIAGNOSTICS_MAX_RECORDS = 5000;
+const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC858';
+const API_VERSION = 'RC864';
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -38,6 +42,7 @@ function requestedEnvironment(req,payload){
 }
 function teamBlobForEnvironment(env){return env==='testservice'?TEST_TEAM_BLOB:TEAM_BLOB_BASE}
 function recoveryPrefixForEnvironment(env){return env==='testservice'?'testservice/recovery-backups/':'recovery-backups/'}
+function diagnosticsBlobForEnvironment(env){return env==='testservice'?TEST_DIAGNOSTICS_BLOB:DIAGNOSTICS_BLOB_BASE}
 function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_STORAGE_CONNECTION_STRING'; if(process.env.EXPORTHUB_STORAGE_CONNECTION)return 'EXPORTHUB_STORAGE_CONNECTION'; if(process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING'; return ''; }
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
 function isActive(user){ return Boolean(user && user.active!==false && user.disabled!==true && lower(user.status)!=='deaktiviert'); }
@@ -89,7 +94,8 @@ async function clients(req,payload){
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','Keine ExportHUB-Speicherverbindung ist in Azure verfügbar.',503);
  let service; try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die ExportHUB-Speicherverbindung ist ungültig: '+(e&&e.message||'Konfigurationsfehler'),503)}
  const container=service.getContainerClient(TEAM_CONTAINER),environment=requestedEnvironment(req,payload),teamBlobName=teamBlobForEnvironment(environment);
- return {container,environment,teamBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),productionTeam:container.getBlockBlobClient(TEAM_BLOB_BASE),auth:container.getBlockBlobClient(AUTH_BLOB)};
+ const diagnosticsBlobName=diagnosticsBlobForEnvironment(environment);
+ return {container,environment,teamBlobName,diagnosticsBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),productionTeam:container.getBlockBlobClient(TEAM_BLOB_BASE),auth:container.getBlockBlobClient(AUTH_BLOB)};
 }
 function parseStoredJson(raw,name){
  const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim();
@@ -797,6 +803,51 @@ async function recoverCustomers(container,teamBlob,payload,user,teamBlobName,rec
 }
 
 
+function diagnosticsEmpty(){return {schemaVersion:1,revision:0,updatedAt:null,records:[]}}
+function diagnosticScalar(v,max=1000){return text(v).replace(/\s+/g,' ').slice(0,max)}
+function diagnosticSafeDetails(value){
+ if(!value||typeof value!=='object'||Array.isArray(value))return null;
+ const out={};Object.keys(value).slice(0,24).forEach(k=>{
+  if(/token|authorization|password|passwort|session|signature|base64|dataurl|filedata|content/i.test(k)){out[k]='[geschützt]';return}
+  const v=value[k];if(v==null||typeof v==='number'||typeof v==='boolean')out[k]=v;else out[k]=diagnosticScalar(v,500)
+ });return out
+}
+function diagnosticRecordId(record,payload,user){
+ const explicit=diagnosticScalar(record&&record.id,180);if(explicit)return explicit;
+ const raw=[diagnosticScalar(payload&&payload.deviceId,100),diagnosticScalar(record&&record.at,40),diagnosticScalar(record&&record.seq,30),diagnosticScalar(record&&record.category,40),diagnosticScalar(record&&record.message,240),diagnosticScalar(user&&user.id,80)].join('|');
+ return crypto.createHash('sha256').update(raw).digest('hex').slice(0,40)
+}
+function sanitizeDiagnosticRecord(record,payload,user,environment){
+ record=record&&typeof record==='object'?record:{};
+ const at=diagnosticScalar(record.at||record.lastAt||now(),40),lastAt=diagnosticScalar(record.lastAt||record.at||at,40);
+ return {id:diagnosticRecordId(record,payload,user),seq:Number(record.seq||0)||0,at,lastAt,level:['error','warning','info'].includes(lower(record.level))?lower(record.level):'info',category:diagnosticScalar(record.category||'system',50),area:diagnosticScalar(record.area||'unbekannt',160),message:diagnosticScalar(record.message||'Unbekanntes Ereignis',1500),details:diagnosticSafeDetails(record.details),count:Math.max(1,Math.min(100000,Number(record.count||1)||1)),user:diagnosticScalar(user&&(user.name||user.user||user.username)||'Benutzer',120),userId:diagnosticScalar(user&&user.id,100),deviceId:diagnosticScalar(payload&&payload.deviceId,120),clientVersion:diagnosticScalar(payload&&payload.clientVersion,80),environment:environment==='testservice'?'testservice':'production'}
+}
+async function appendDiagnostics(blob,records,user,payload,environment){
+ const incoming=(Array.isArray(records)?records:[]).slice(0,100).map(r=>sanitizeDiagnosticRecord(r,payload,user,environment));
+ if(!incoming.length)return {ok:true,appended:0,revision:0};
+ for(let attempt=0;attempt<MAX_RETRIES;attempt++){
+  const d=await readJson(blob,diagnosticsEmpty(),false),current=d.value&&typeof d.value==='object'?d.value:diagnosticsEmpty(),existing=Array.isArray(current.records)?current.records.slice():[],byId=new Map(existing.map((r,i)=>[text(r&&r.id),i]));let appended=0,updated=0;
+  incoming.forEach(r=>{const pos=byId.get(r.id);if(pos===undefined){byId.set(r.id,existing.length);existing.push(r);appended++}else{const prev=existing[pos]||{};existing[pos]=Object.assign({},prev,r,{at:prev.at||r.at,lastAt:r.lastAt||r.at,count:Math.max(Number(prev.count||1),Number(r.count||1))});updated++}});
+  const cutoff=Date.now()-DIAGNOSTICS_RETENTION_MS,kept=existing.filter(r=>{const t=Date.parse(text(r&&r.lastAt||r&&r.at));return !Number.isFinite(t)||t>=cutoff}).slice(-DIAGNOSTICS_MAX_RECORDS),next={schemaVersion:1,revision:Number(current.revision||0)+1,updatedAt:now(),clientVersion:diagnosticScalar(payload&&payload.clientVersion,80),records:kept};
+  try{await uploadJson(blob,next,d.etag);return {ok:true,appended,updated,records:kept.length,revision:next.revision,updatedAt:next.updatedAt}}
+  catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;if(e&&e.statusCode>=500)throw error('DIAGNOSTICS_STORAGE_UNREACHABLE','Azure Storage konnte die Fehlerdiagnose nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+ }
+ throw error('DIAGNOSTICS_CONCURRENT_UPDATE','Die Fehlerdiagnose wurde gleichzeitig aktualisiert. Bitte erneut versuchen.',409)
+}
+async function readDiagnostics(blob,limit){
+ const d=await readJson(blob,diagnosticsEmpty(),false),doc=d.value&&typeof d.value==='object'?d.value:diagnosticsEmpty(),n=Math.max(1,Math.min(DIAGNOSTICS_MAX_RECORDS,Number(limit||1000)||1000)),rows=Array.isArray(doc.records)?doc.records.slice(-n):[];
+ return {ok:true,schemaVersion:1,revision:Number(doc.revision||0),updatedAt:doc.updatedAt||null,records:rows,total:Array.isArray(doc.records)?doc.records.length:0,maxRecords:DIAGNOSTICS_MAX_RECORDS,retentionDays:30}
+}
+async function clearDiagnostics(blob,user){
+ for(let attempt=0;attempt<MAX_RETRIES;attempt++){
+  const d=await readJson(blob,diagnosticsEmpty(),false),current=d.value||diagnosticsEmpty(),next={schemaVersion:1,revision:Number(current.revision||0)+1,updatedAt:now(),clearedAt:now(),clearedBy:diagnosticScalar(user&&(user.name||user.user),120),records:[]};
+  try{await uploadJson(blob,next,d.etag);return {ok:true,revision:next.revision,updatedAt:next.updatedAt}}
+  catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;throw e}
+ }
+ throw error('DIAGNOSTICS_CONCURRENT_UPDATE','Die Fehlerdiagnose wurde gleichzeitig aktualisiert. Bitte erneut versuchen.',409)
+}
+
+
 module.exports=async function(context,req){
  const requestStarted=Date.now();
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS'},body:''};return}
@@ -810,6 +861,19 @@ module.exports=async function(context,req){
    context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
   }
   const c=await clients(req,payload),current=await validateSession(req,payload,c),blob=c.team;
+  if(mode==='diagnostics-read'){
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die zentrale Fehlerdiagnose ist nur für globale Administratoren verfügbar.',403);
+   const result=await readDiagnostics(c.diagnostics,req.query&&req.query.limit||payload.limit);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
+  }
+  if(mode==='diagnostics-append'){
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Diagnoseereignisse müssen per POST übertragen werden.',405);
+   const result=await appendDiagnostics(c.diagnostics,payload.records,current.user,payload,c.environment);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
+  }
+  if(mode==='diagnostics-clear'){
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Das Diagnoseprotokoll kann nur per POST gelöscht werden.',405);
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Nur globale Administratoren dürfen die zentrale Fehlerdiagnose löschen.',403);
+   const result=await clearDiagnostics(c.diagnostics,current.user);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
+  }
   if(req.method==='GET'||(req.method==='POST'&&(mode==='read'||mode==='meta'))){
    if(mode==='meta'||(req.query&&String(req.query.meta||'')==='1')){context.res=json(200,Object.assign({ok:true,metaOnly:true,environment:c.environment,blob:c.teamBlobName},await metadataOnly(blob)));return}
    const client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user));context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null},client));return
