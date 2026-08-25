@@ -285,12 +285,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC864',cache:'864',loginReturn:'/TESTVERSION.html?v=864'});
+var BUILD=Object.freeze({version:'RC865',cache:'865',loginReturn:'/TESTVERSION.html?v=865'});
 var RELEASE=Object.freeze({
- version:'RC864',
- date:'24.08.2026',
- title:'Zentrale Azure-Fehlerdiagnose für alle Geräte',
+ version:'RC865',
+ date:'25.08.2026',
+ title:'Testservice-Anmeldung ohne 45-Sekunden-Abbruch',
  changes:Object.freeze([
+     "RC865 repariert TESTSERVICE_AUTH_TIMEOUT: Der Testservice bricht den einmaligen Login-Request nicht mehr nach starr 45 Sekunden ab. Für einen Azure-Function-Kaltstart erhält derselbe Request jetzt bis zu 120 Sekunden Antwortzeit.",
+     "RC865 sendet weiterhin exakt einen Login-POST pro manueller Anmeldung. Es gibt weder automatische Login-Wiederholung noch parallele Requests; die bestehende loginBusy-Sperre bleibt unverändert aktiv.",
+     "RC865 verwendet für den Testservice-Login den vorhandenen resilienten Fetch-Pfad mit maxAttempts=1. Dadurch bleibt die Netzwerkbehandlung konsistent, ohne Zugangsdaten ein zweites Mal zu senden.",
+     "RC865 lässt Produktions-Anmeldung, Rechteprüfung, Global-Admin-Sperre, Testservice-Datenisolation und Teamdaten-Ladevorgang unverändert.",
      "RC864 speichert Diagnoseereignisse geräteübergreifend in einem eigenen Azure-Blob. Produktion und Testservice besitzen getrennte Diagnoseprotokolle; der normale Teamstand bleibt davon vollständig getrennt.",
      "RC864 sammelt Fehler, Netzwerk/API-Probleme, Performance-Warnungen und Neu-Render-Ereignisse von allen angemeldeten ExportHUB-Benutzern. Nur globale Administratoren dürfen das zentrale Protokoll lesen, exportieren oder löschen.",
      "RC864 ergänzt jeden zentral gespeicherten Eintrag serverseitig um Benutzer, Gerät, Datenumgebung und Client-Version. Sicherheitswerte wie Tokens, Passwörter, Sitzungen, Signaturen und Datei-Inhalte werden nicht in der Diagnose gespeichert.",
@@ -958,6 +962,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+    "RC865 Testservice-Kaltstart: Testservice-Anmeldung bei verzögerter Auth-Function ausführen. Nach 45 Sekunden darf der Browser den Login nicht mehr selbst abbrechen; derselbe Request darf bis maximal 120 Sekunden weiterlaufen.",
+    "RC865 Einzelrequest-Test: Login einmal anklicken und Netzwerkprotokoll prüfen. Für action=login darf genau ein POST an /api/exporthub-auth entstehen; auch bei Timeout darf kein automatischer zweiter Login-POST folgen.",
+    "RC865 Login-Sperre: Während der laufenden Testservice-Anmeldung den Login erneut auslösen. loginBusy muss weitere Submit-/Klick-Versuche blockieren und darf keinen Parallelrequest erzeugen.",
+    "RC865 Regression: Produktionslogin, Testservice-Global-Admin-Prüfung und anschließendes Laden der isolierten Testservice-Teamdaten müssen unverändert funktionieren.",
     "RC864 Geräteübergreifend: Auf Gerät A einen kontrollierten Fehler erzeugen, anschließend als Global Admin auf Gerät B das Dashboard öffnen. Der Fehler muss nach Azure-Aktualisierung mit Benutzer, Gerät, Zeit und Bereich erscheinen.",
     "RC864 Rechte: Ein normaler angemeldeter Benutzer darf Diagnoseereignisse hochladen, aber diagnostics-read und diagnostics-clear müssen mit 403 gesperrt bleiben. Global Admin darf lesen, exportieren und löschen.",
     "RC864 Isolation: Testservice-Diagnosen müssen ausschließlich testservice/diagnostics/team-diagnostics.json verwenden; Produktion ausschließlich diagnostics/team-diagnostics.json. Kein Diagnoseereignis darf zwischen den Umgebungen erscheinen.",
@@ -12588,8 +12596,20 @@ async function authCall(action,payload,token,requestOptions){
 }
 async function testserviceLoginOnce(username,password,recoveryRequested){
  if(!isTestServiceOrigin())throw new Error('Testservice-Login wurde außerhalb der Testservice-Domain aufgerufen.');
- var controller=typeof AbortController!=='undefined'?new AbortController():null,timer=0;if(controller)timer=native.setTimeout(function(){try{controller.abort()}catch(_){}},45000);
- try{runtime.testserviceLoginRequests=Number(runtime.testserviceLoginRequests||0)+1;var response=await native.fetch(AUTH_API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action:'login',username:String(username||''),password:String(password||''),deviceId:runtime.deviceId,recoveryRequested:recoveryRequested===true}),credentials:'same-origin',cache:'no-store',signal:controller&&controller.signal});var raw=await response.text(),data={};try{data=raw?JSON.parse(raw):{}}catch(_){var bad=new Error('Die Testservice-Anmelde-API lieferte keine gültige Antwort.');bad.code='TESTSERVICE_AUTH_INVALID_RESPONSE';bad.status=response.status;throw bad}if(!response.ok||data.ok===false){var err=new Error(data.message||('Testservice-Anmeldung fehlgeschlagen (HTTP '+response.status+').'));err.code=data.code||('HTTP_'+response.status);err.status=response.status;throw err}if(!text(data.token)&&data.mustChange!==true){var missing=new Error('Die Testservice-Anmeldung wurde nicht mit einem Sitzungsschlüssel bestätigt.');missing.code='TESTSERVICE_AUTH_TOKEN_MISSING';throw missing}return data}catch(error){if(error&&error.name==='AbortError'){var timeout=new Error('Die Testservice-Anmeldung hat nach 45 Sekunden nicht geantwortet.');timeout.code='TESTSERVICE_AUTH_TIMEOUT';throw timeout}throw error}finally{if(timer)native.clearTimeout(timer)}}
+ var startedAt=Date.now();runtime.testserviceLoginRequests=Number(runtime.testserviceLoginRequests||0)+1;
+ try{
+  var response=await resilientFetch(AUTH_API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action:'login',username:String(username||''),password:String(password||''),deviceId:runtime.deviceId,recoveryRequested:recoveryRequested===true}),credentials:'same-origin',cache:'no-store',timeoutMs:120000,maxAttempts:1});
+  var raw=await response.text(),data={};
+  try{data=raw?JSON.parse(raw):{}}catch(_){var bad=new Error('Die Testservice-Anmelde-API lieferte keine gültige Antwort.');bad.code='TESTSERVICE_AUTH_INVALID_RESPONSE';bad.status=response.status;throw bad}
+  if(!response.ok||data.ok===false){var err=new Error(data.message||('Testservice-Anmeldung fehlgeschlagen (HTTP '+response.status+').'));err.code=data.code||('HTTP_'+response.status);err.status=response.status;throw err}
+  if(!text(data.token)&&data.mustChange!==true){var missing=new Error('Die Testservice-Anmeldung wurde nicht mit einem Sitzungsschlüssel bestätigt.');missing.code='TESTSERVICE_AUTH_TOKEN_MISSING';throw missing}
+  runtime.lastTestserviceLoginDurationMs=Math.max(0,Date.now()-startedAt);runtime.authApiReachable=true;runtime.apiReachable=true;runtime.lastAuthApiSuccessAt=Date.now();return data
+ }catch(error){
+  runtime.lastTestserviceLoginDurationMs=Math.max(0,Date.now()-startedAt);
+  if(error&&error.code==='API_TIMEOUT'){var timeout=new Error('Die Testservice-Anmeldung hat auch nach 120 Sekunden keine Antwort erhalten. Der einmalige Login-Request wurde beendet.');timeout.code='TESTSERVICE_AUTH_TIMEOUT';timeout.cause=error;throw timeout}
+  throw error
+ }
+}
 async function checkBootstrapStatus(){
  if(isTestServiceOrigin()){runtime.bootstrapStatus={ok:true,testService:true,skipped:true};runtime.authApiReachable=null;status('TESTSERVICE · Nur Globaler Admin · Zugangsdaten eingeben.','');return runtime.bootstrapStatus}
  try{
