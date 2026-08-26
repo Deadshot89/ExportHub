@@ -7,9 +7,9 @@
       "name": "req",
       "methods": [
         "get",
-        "post"
-      ],
-      "route": "pod-backup"
+        "post",
+        "options"
+      ]
     },
     {
       "type": "http",

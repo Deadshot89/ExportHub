@@ -1,55 +1,7 @@
 'use strict';
-const crypto = require('crypto');
-const pins = require('../shared/loader-pin-store');
-const store = require('../shared/pickup-store');
-
+const crypto=require('crypto');
+const pins=require('../shared/loader-pin-store');
+const store=require('../shared/pickup-store');
 function count(v){const n=Math.round(Number(v));return Number.isFinite(n)&&n>0?n:0}
-function json(status, body){return store.json(status, body, {'Cache-Control':'no-store, no-cache, must-revalidate'});}
-
-module.exports = async function(context, req){
-  if(req.method==='OPTIONS'){context.res=json(204,{});return;}
-  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return;}
-  try{
-    const b=store.body(req), token=String(b.token||'').trim().toLowerCase();
-    if(!store.validToken(token)) throw store.err('INVALID_TOKEN','Ungültiger QR-Code.',400);
-    const personalPin=pins.text(b.pin||b.loaderPin||b.personalLoaderPin);
-    if(!pins.validPin(personalPin)) throw pins.error('INVALID_PIN','Bitte die vierstellige persönliche Verlader-PIN eingeben.',400);
-    const loader=await pins.findByPin(personalPin);
-    if(!loader) throw pins.error('INVALID_PIN','Verlader-PIN ist nicht korrekt oder deaktiviert.',401);
-
-    const signature=store.first(b,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']);
-    if(!signature) throw store.err('SIGNATURE_REQUIRED','Die digitale Unterschrift ist Pflicht.',400);
-    let uploadKey='';
-    const rec=await store.mutateRecord(token,async function(r,clients){
-      if(store.expired(r)&&!r.confirmedAt) throw store.err('EXPIRED','QR-Code ist abgelaufen.',410);
-      if(r.confirmedAt&&r.signatureBlobName) throw store.err('ALREADY_CONFIRMED','Abholung und digitale Unterschrift wurden bereits gespeichert.',409);
-      const spedition=store.sanitizeText(store.first(b,['carrierName','speditionName','carrier','spedition'])||store.first(r,['carrierName','speditionName','carrier','spedition']),180);
-      if(!spedition) throw store.err('CARRIER_REQUIRED','Speditionsname fehlt. Die Abholung darf nicht abgeschlossen werden.',409);
-      const expected=count(store.first(r,['expectedColliCount','totalColli','colliCount','packageCount']));
-      const entered=count(store.first(b,['enteredColliCount','colliCount','pickupColliCount']));
-      if(!expected) throw store.err('COLLI_EXPECTED_MISSING','Die Soll-Colli-Anzahl fehlt im QR-Datensatz. Bitte den QR-Code in ExportHUB aktualisieren.',409);
-      if(!entered) throw store.err('COLLI_REQUIRED','Bitte die gezählte Colli-Anzahl eingeben.',400);
-      if(entered!==expected) throw store.err('COLLI_MISMATCH','Colli-Anzahl stimmt nicht. Bitte alle Collis erneut zählen.',409);
-
-      const signatureMeta=await store.saveDriverSignature(clients,r,signature),iso=r.confirmedAt||store.now();
-      uploadKey=crypto.randomBytes(32).toString('hex');
-      r.status='confirmed';r.confirmedAt=iso;r.updatedAt=store.now();r.failedAttempts=0;r.lockedUntil=null;
-      r.uploadKeyHash=store.hash(uploadKey);r.uploadKeyExpiresAt=new Date(Date.now()+2*3600000).toISOString();
-      r.driverName=store.sanitizeText(store.first(b,['driverName','pickupDriverName','confirmedBy']),180);
-      r.licensePlate=store.sanitizeText(store.first(b,['licensePlate','vehicleLicensePlate','kennzeichen','plate']),80);
-      r.loaderName=loader.name;r.loadedBy=loader.name;r.loader=loader.name;r.verlader=loader.name;r.loaderId=loader.id;
-      r.returnedEuroPallets=Math.max(0,Math.round(Number(b.returnedEuroPallets||b.returnPallets||0)||0));
-      r.carrierName=spedition;r.speditionName=spedition;r.carrier=spedition;r.spedition=spedition;
-      r.enteredColliCount=entered;r.confirmedColliCount=entered;r.colliCountConfirmed=true;r.colliConfirmed=true;r.pickupColliCountConfirmed=true;
-      r.signatureBlobName=signatureMeta.signatureBlobName;r.signatureType=signatureMeta.signatureType;r.signatureSize=signatureMeta.signatureSize;r.signatureStoredAt=signatureMeta.signatureStoredAt;
-      r.podType='signed-loadlist';r.podFiles=store.realPodFiles(r);r.confirmationVersion='RC646';
-      return r;
-    });
-    try{await store.updateTeam(rec,[]);}catch(e){context.log&&context.log.error&&context.log.error('Team state update failed',e);}
-    try{await pins.patchPickupIdentity(token,loader);}catch(e){context.log&&context.log.warn&&context.log.warn('loader identity patch failed',e&&e.message);}
-    context.res=json(200,Object.assign(store.publicRecord(rec),{uploadKey,uploadExpiresAt:rec.uploadKeyExpiresAt,signatureStored:true,loaderName:loader.name,loadedBy:loader.name,loader:loader.name,verlader:loader.name,loaderId:loader.id,personalPinValidated:true,version:'RC646'}));
-  }catch(e){
-    context.log&&context.log.error&&context.log.error('pickup-confirm-v2 RC646',e&&e.code,e&&e.message);
-    context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Abholung konnte nicht bestätigt werden.'});
-  }
-};
+function json(status,body){return store.json(status,body,{'Cache-Control':'no-store, no-cache, must-revalidate'})}
+module.exports=async function(context,req){if(req.method==='OPTIONS'){context.res=json(204,{});return}if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}try{const b=store.body(req),token=String(b.token||'').trim().toLowerCase();if(!store.validToken(token))throw store.err('INVALID_TOKEN','Ungültiger QR-Code.',400);const personalPin=pins.text(b.pin||b.loaderPin||b.personalLoaderPin);if(!pins.validPin(personalPin))throw pins.error('INVALID_PIN','Bitte die vierstellige persönliche Verlader-PIN eingeben.',400);const loader=await pins.findByPin(personalPin);if(!loader)throw pins.error('INVALID_PIN','Verlader-PIN ist nicht korrekt oder deaktiviert.',401);const signature=store.first(b,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']);if(!signature)throw store.err('SIGNATURE_REQUIRED','Die digitale Unterschrift ist Pflicht.',400);let uploadKey='';const rec=await store.mutateRecord(token,async function(r,clients){if(store.expired(r)&&!r.confirmedAt)throw store.err('EXPIRED','QR-Code ist abgelaufen.',410);if(r.confirmedAt&&r.signatureBlobName)throw store.err('ALREADY_CONFIRMED','Abholung und digitale Unterschrift wurden bereits gespeichert.',409);const spedition=store.sanitizeText(store.first(b,['carrierName','speditionName','carrier','spedition'])||store.first(r,['carrierName','speditionName','carrier','spedition']),180);if(!spedition)throw store.err('CARRIER_REQUIRED','Speditionsname fehlt. Die Abholung darf nicht abgeschlossen werden.',409);const plate=store.sanitizeText(store.first(b,['licensePlate','vehicleLicensePlate','kennzeichen','plate']),80);if(!plate)throw store.err('LICENSE_PLATE_REQUIRED','Kennzeichen fehlt. Die Abholung darf nicht abgeschlossen werden.',409);const expected=count(store.first(r,['expectedColliCount','totalColli','colliCount','packageCount']));const entered=count(store.first(b,['enteredColliCount','colliCount','pickupColliCount']));if(!expected)throw store.err('COLLI_EXPECTED_MISSING','Die Soll-Colli-Anzahl fehlt im QR-Datensatz. Bitte den QR-Code in ExportHUB aktualisieren.',409);if(!entered)throw store.err('COLLI_REQUIRED','Bitte die gezählte Colli-Anzahl eingeben.',400);if(entered!==expected)throw store.err('COLLI_MISMATCH','Colli-Anzahl stimmt nicht. Bitte alle Collis erneut zählen.',409);const signatureMeta=await store.saveDriverSignature(clients,r,signature),iso=r.confirmedAt||store.now();uploadKey=crypto.randomBytes(32).toString('hex');r.status='confirmed';r.confirmedAt=iso;r.updatedAt=store.now();r.failedAttempts=0;r.lockedUntil=null;r.uploadKeyHash=store.hash(uploadKey);r.uploadKeyExpiresAt=new Date(Date.now()+2*3600000).toISOString();r.driverName=store.sanitizeText(store.first(b,['driverName','pickupDriverName','confirmedBy']),180);r.licensePlate=plate;r.loaderName=loader.name;r.loadedBy=loader.name;r.loader=loader.name;r.verlader=loader.name;r.loaderId=loader.id;r.returnedEuroPallets=Math.max(0,Math.round(Number(b.returnedEuroPallets||b.returnPallets||0)||0));r.carrierName=spedition;r.speditionName=spedition;r.carrier=spedition;r.spedition=spedition;r.enteredColliCount=entered;r.confirmedColliCount=entered;r.colliCountConfirmed=true;r.colliConfirmed=true;r.pickupColliCountConfirmed=true;r.signatureBlobName=signatureMeta.signatureBlobName;r.signatureType=signatureMeta.signatureType;r.signatureSize=signatureMeta.signatureSize;r.signatureStoredAt=signatureMeta.signatureStoredAt;r.podType='signed-loadlist';r.podFiles=store.realPodFiles(r);r.confirmationVersion='RC869';return r});try{await store.updateTeam(rec,[])}catch(e){context.log&&context.log.error&&context.log.error('Team state update failed',e)}try{await pins.patchPickupIdentity(token,loader)}catch(e){context.log&&context.log.warn&&context.log.warn('loader identity patch failed',e&&e.message)}context.res=json(200,Object.assign(store.publicRecord(rec),{uploadKey,uploadExpiresAt:rec.uploadKeyExpiresAt,signatureStored:true,loaderName:loader.name,loadedBy:loader.name,loader:loader.name,verlader:loader.name,loaderId:loader.id,personalPinValidated:true,version:'RC869'}))}catch(e){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 RC869',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Abholung konnte nicht bestätigt werden.'})}}
