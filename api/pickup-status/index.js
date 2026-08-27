@@ -10,9 +10,9 @@ module.exports=async function(context,req){
     if(!token)throw store.err('TOKEN_REQUIRED','QR-Token fehlt.',400);
     if(!store.validToken(token))throw store.err('INVALID_TOKEN','Ungültiger QR-Code.',404);
     const got=await store.getRecord(token),rec=got.record||{},pub=store.publicRecord(rec),confirmed=!!rec.confirmedAt||String(rec.status||'').toLowerCase()==='confirmed';
-    context.res=json(200,Object.assign({},pub,{confirmed,used:confirmed,completedAt:rec.confirmedAt||null,pickupConfirmedAt:rec.confirmedAt||null,serverTime:new Date().toISOString(),version:'RC872'}));
+    context.res=json(200,Object.assign({},pub,{confirmed,used:confirmed,completedAt:rec.confirmedAt||null,pickupConfirmedAt:rec.confirmedAt||null,serverTime:new Date().toISOString(),version:'RC873'}));
   }catch(e){
-    context.log&&context.log.error&&context.log.error('pickup-status RC872',e&&e.code,e&&e.message);
+    context.log&&context.log.error&&context.log.error('pickup-status RC873',e&&e.code,e&&e.message);
     context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Pickup-Status konnte nicht geladen werden.'});
   }
 }
