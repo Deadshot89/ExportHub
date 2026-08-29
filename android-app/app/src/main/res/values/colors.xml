@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="exporthub_navy">#08245D</color>
+    <color name="exporthub_test_bg">#FFF4E5</color>
+    <color name="exporthub_test_text">#7C2D12</color>
+    <color name="exporthub_white">#FFFFFF</color>
+</resources>

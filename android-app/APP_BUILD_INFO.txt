@@ -1,0 +1,7 @@
+ExportHUB Android Test
+App-Version: 1.0-test1-rc876
+Basis: TESTVERSION_RC876.html (29.08.2026)
+Application ID Debug: de.exporthub.test.debug
+Application ID Release: de.exporthub.test
+Testservice Host: wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
+Produktionszugriff im WebView: gesperrt
