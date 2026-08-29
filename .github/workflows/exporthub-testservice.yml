@@ -59,6 +59,8 @@ jobs:
           require_file TESTVERSION.html
           require_file staticwebapp.testservice.config.json
           require_dir api
+          require_file api/exporthub-auth-fast/index.js
+          require_file api/exporthub-auth-fast/function.json
 
           VERSION=""
           if [[ -f TESTVERSION.html ]]; then
@@ -80,7 +82,7 @@ jobs:
             fi
           fi
 
-          for js in api/exporthub-state/index.js api/shared/merge.js; do
+          for js in api/exporthub-state/index.js api/exporthub-auth-fast/index.js api/shared/merge.js; do
             if [[ -f "$js" ]]; then
               if node --check "$js"; then
                 echo "OK: Syntax $js"
@@ -108,8 +110,6 @@ jobs:
         run: |
           set -eu
 
-          # RC671: Build a version-bound snapshot and apply TESTSERVICE-only release overrides BEFORE
-          # the TESTSERVICE payload replaces index.html/staticwebapp.config.json.
           node <<'NODE'
           const fs = require('fs');
           const path = require('path');
@@ -117,25 +117,6 @@ jobs:
 
           const version = String(process.env.EXPECTED_VERSION || '').trim();
           if (!/^RC\d+$/.test(version)) throw new Error('Ungültige EXPECTED_VERSION: ' + version);
-
-          const testHtml = fs.readFileSync('TESTVERSION.html', 'utf8');
-          const overrides = new Map();
-          const overrideRe = /<!--\s*EXPORTHUB_TESTSERVICE_FILE_BEGIN\s+path=([^\s]+)\s+encoding=base64\s+sha256=([a-f0-9]{64})\s*\n([A-Za-z0-9+/=\r\n]+?)\nEXPORTHUB_TESTSERVICE_FILE_END\s*-->/g;
-          let om;
-          while ((om = overrideRe.exec(testHtml))) {
-            const rel = String(om[1] || '').replace(/\\/g, '/').replace(/^\.\//, '');
-            if (!rel || rel.startsWith('/') || rel.includes('..')) throw new Error('Ungültiger TESTSERVICE-Override-Pfad: ' + rel);
-            const data = Buffer.from(String(om[3] || '').replace(/\s+/g, ''), 'base64');
-            const actual = crypto.createHash('sha256').update(data).digest('hex');
-            if (actual !== String(om[2]).toLowerCase()) throw new Error('SHA-256 stimmt für TESTSERVICE-Override nicht: ' + rel);
-            overrides.set(rel, data);
-          }
-
-          const productionHtml = fs.existsSync('index.html') ? fs.readFileSync('index.html', 'utf8') : '';
-          const productionMatch =
-            productionHtml.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['"](RC\d+)['"]/i) ||
-            productionHtml.match(/version:\s*['"](RC\d+)['"]/i);
-          const productionVersion = productionMatch ? String(productionMatch[1]).trim() : 'unbekannt';
 
           const required = [
             'staticwebapp.config.json',
@@ -187,7 +168,7 @@ jobs:
           }
 
           const files = paths.map(file => {
-            const data = overrides.has(file) ? overrides.get(file) : fs.readFileSync(file);
+            const data = fs.readFileSync(file);
             return {
               path: file,
               encoding: 'base64',
@@ -199,25 +180,18 @@ jobs:
           const manifest = {
             schema: 'exporthub-release-assets-v1',
             version,
-            productionVersion,
             gitSha: String(process.env.GITHUB_SHA || ''),
             generatedAt: new Date().toISOString(),
             mode: 'full-production-snapshot',
             files
           };
           fs.writeFileSync('release-assets.json', JSON.stringify(manifest));
-          for (const [rel, data] of overrides) {
-            fs.mkdirSync(path.dirname(rel), { recursive: true });
-            fs.writeFileSync(rel, data);
-            console.log(`TESTSERVICE-Override angewendet: ${rel} · ${data.length} Bytes`);
-          }
-          console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien · Produktion ${productionVersion} · Overrides ${overrides.size}.`);
+          console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien.`);
           NODE
 
-          node --check api/exporthub-state/index.js
           cp TESTVERSION.html index.html
           cp staticwebapp.testservice.config.json staticwebapp.config.json
-          cat > testservice-environment.json <<EOF
+          cat > testservice-environment.json <<EOF2
           {
             "environment": "testservice",
             "isolated": true,
@@ -225,7 +199,7 @@ jobs:
             "productionWritesAllowed": false,
             "expectedVersion": "$EXPECTED_VERSION"
           }
-          EOF
+          EOF2
           echo "TESTSERVICE-Payload für $EXPECTED_VERSION vorbereitet."
 
       - name: Deploy TESTSERVICE named environment
@@ -238,7 +212,46 @@ jobs:
           app_location: /
           api_location: api
           output_location: ""
+          skip_app_build: true
           deployment_environment: testservice
+
+      - name: Verify live TESTSERVICE authentication
+        shell: bash
+        env:
+          TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${TESTSERVICE_URL:-}" ]]; then
+            echo "Azure hat keine Testservice-URL zurückgegeben."
+            exit 1
+          fi
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          code="$(curl -sS --connect-timeout 5 --max-time 15 \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json' \
+            -H 'X-ExportHUB-Environment: testservice' \
+            -X POST \
+            --data '{"action":"health","environment":"testservice"}' \
+            -o "$body_file" -w '%{http_code}' \
+            "$TESTSERVICE_URL/api/exporthub-auth-fast" || true)"
+          echo "Auth-Health HTTP=$code"
+          cat "$body_file" || true
+          echo
+          if [[ "$code" != "200" ]]; then
+            echo "TESTSERVICE-Auth ist nach dem Deployment nicht erreichbar."
+            exit 1
+          fi
+          node - "$body_file" <<'NODE'
+          const fs = require('fs');
+          const p = process.argv[2];
+          const d = JSON.parse(fs.readFileSync(p,'utf8'));
+          if (d.ok !== true) throw new Error('Auth-Health ok=true fehlt');
+          if (d.environment !== 'testservice') throw new Error('Auth-Health meldet nicht testservice');
+          if (d.storageReachable !== true) throw new Error('Azure-Speicher ist für Auth nicht erreichbar');
+          if (!d.teamBlob) throw new Error('Auth-Health meldet keinen Team-Blob');
+          console.log(`Auth-Health bestanden: ${d.elapsedMs || 0} ms · ${d.teamBlob} · ${d.teamBytes || 0} Bytes`);
+          NODE
 
       - name: Verify live TESTSERVICE version
         shell: bash
