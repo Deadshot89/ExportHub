@@ -1,0 +1,415 @@
+name: RC883 TESTSERVICE Clean Rollback
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: exporthub-rc883-clean-rollback
+  cancel-in-progress: false
+
+jobs:
+  rollback-testservice:
+    name: Restore TESTSERVICE to known RC883 backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout main with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Validate exact RC883 backup
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_TAG="backup-rc883-before-rc884-navigation-search-ux"
+          EXPECTED_SHA_PREFIX="8b038fb"
+
+          git fetch origin main --tags --force
+
+          if ! git rev-parse -q --verify "refs/tags/${TARGET_TAG}" >/dev/null; then
+            echo "::error::Der bekannte RC883-Sicherungstag ${TARGET_TAG} fehlt."
+            exit 1
+          fi
+
+          BASE_SHA="$(git rev-parse "${TARGET_TAG}^{commit}")"
+          echo "Gefundener RC883-Sicherungspunkt: ${BASE_SHA}"
+
+          case "${BASE_SHA}" in
+            ${EXPECTED_SHA_PREFIX}*) ;;
+            *)
+              echo "::error::Der RC883-Tag zeigt unerwartet auf ${BASE_SHA}. Erwartet wird ${EXPECTED_SHA_PREFIX}..."
+              exit 1
+              ;;
+          esac
+
+          if ! git cat-file -e "${TARGET_TAG}:TESTVERSION.html" 2>/dev/null; then
+            echo "::error::TESTVERSION.html fehlt im RC883-Sicherungspunkt."
+            exit 1
+          fi
+
+          git show "${TARGET_TAG}:TESTVERSION.html" > /tmp/RC883_TESTVERSION.html
+
+          VERSION="$(
+            grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" /tmp/RC883_TESTVERSION.html \
+            | head -n 1 \
+            | sed -E "s/.*version:'(RC[0-9]+)'/\1/" || true
+          )"
+
+          if [[ -z "${VERSION}" ]]; then
+            VERSION="$(
+              grep -oE "BUILD[^\n]{0,160}version:'RC[0-9]+'" /tmp/RC883_TESTVERSION.html \
+              | head -n 1 \
+              | grep -oE "RC[0-9]+" || true
+            )"
+          fi
+
+          if [[ "${VERSION}" != "RC883" ]]; then
+            echo "::error::Der Sicherungspunkt enthält nicht RC883, sondern '${VERSION:-keine erkennbare Version}'."
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "sha=${BASE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "OK: Exakter RC883-Sicherungspunkt bestätigt."
+
+      - name: Browser-near safety test of RC883 source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          import sys
+
+          p = Path("/tmp/RC883_TESTVERSION.html")
+          src = p.read_text(encoding="utf-8", errors="replace")
+
+          class VisibleTextParser(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.script_depth = 0
+                  self.style_depth = 0
+                  self.visible = []
+
+              def handle_starttag(self, tag, attrs):
+                  t = tag.lower()
+                  if t == "script":
+                      self.script_depth += 1
+                  elif t == "style":
+                      self.style_depth += 1
+
+              def handle_endtag(self, tag):
+                  t = tag.lower()
+                  if t == "script" and self.script_depth:
+                      self.script_depth -= 1
+                  elif t == "style" and self.style_depth:
+                      self.style_depth -= 1
+
+              def handle_data(self, data):
+                  if self.script_depth == 0 and self.style_depth == 0:
+                      self.visible.append(data)
+
+          parser = VisibleTextParser()
+          try:
+              parser.feed(src)
+              parser.close()
+          except Exception as exc:
+              raise SystemExit(f"HTML konnte nicht sicher geparst werden: {exc}")
+
+          visible = "\n".join(parser.visible)
+
+          leaked_js_anchors = [
+              "applyFixedBlocks",
+              "canonicalActionButtons",
+              "function createQr",
+              "window.open('about:blank'",
+              'window.open("about:blank"',
+              "pickupQrActivating",
+          ]
+
+          leaks = [a for a in leaked_js_anchors if a in visible]
+          if leaks:
+              raise SystemExit(
+                  "RC883-Sicherungspunkt enthält JavaScript als sichtbaren HTML-Text: "
+                  + ", ".join(leaks)
+              )
+
+          if re.search(r"\bRC(?:885|886|887|888|889|890|891|892)\b", src):
+              raise SystemExit("RC883-Sicherungspunkt enthält unerwartete spätere Produktivitätsmodule.")
+
+          if not re.search(r"\bRC883\b", src):
+              raise SystemExit("RC883-Kennung fehlt im Sicherungsstand.")
+
+          if "<html" not in src.lower() or "</html>" not in src.lower():
+              raise SystemExit("HTML-Grundstruktur ist unvollständig.")
+
+          print("OK: RC883 ist frei von den bekannten sichtbaren JavaScript-Leaks.")
+          PY
+
+      - name: Create immutable pre-rollback backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="backup-before-clean-rc883-rollback-${GITHUB_RUN_ID}"
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "Backup-Tag existiert bereits: ${TAG}"
+          else
+            git tag -a "${TAG}" -m "Backup before clean TESTSERVICE rollback to RC883"
+            git push origin "refs/tags/${TAG}"
+            echo "Backup erstellt: ${TAG}"
+          fi
+
+      - name: Restore ONLY TESTVERSION.html from RC883
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_TAG="backup-rc883-before-rc884-navigation-search-ux"
+
+          git checkout "${TARGET_TAG}" -- TESTVERSION.html
+
+          mapfile -t CHANGED < <(git diff --cached --name-only)
+
+          if [[ "${#CHANGED[@]}" -eq 0 ]]; then
+            echo "TESTVERSION.html entspricht bereits dem RC883-Sicherungspunkt."
+            exit 0
+          fi
+
+          if [[ "${#CHANGED[@]}" -ne 1 || "${CHANGED[0]}" != "TESTVERSION.html" ]]; then
+            echo "::error::Rollback würde mehr als TESTVERSION.html verändern:"
+            printf ' - %s\n' "${CHANGED[@]}"
+            exit 1
+          fi
+
+          echo "OK: Ausschließlich TESTVERSION.html ist für den Rollback vorgemerkt."
+
+      - name: Validate restored working tree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="$(
+            grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" TESTVERSION.html \
+            | head -n 1 \
+            | sed -E "s/.*version:'(RC[0-9]+)'/\1/" || true
+          )"
+
+          if [[ -z "${VERSION}" ]]; then
+            VERSION="$(
+              grep -oE "BUILD[^\n]{0,160}version:'RC[0-9]+'" TESTVERSION.html \
+              | head -n 1 \
+              | grep -oE "RC[0-9]+" || true
+            )"
+          fi
+
+          [[ "${VERSION}" == "RC883" ]] || {
+            echo "::error::Nach Restore ist nicht RC883 aktiv: '${VERSION:-unbekannt}'."
+            exit 1
+          }
+
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          src = Path("TESTVERSION.html").read_text(encoding="utf-8", errors="replace")
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.script = 0
+                  self.style = 0
+                  self.out = []
+              def handle_starttag(self, tag, attrs):
+                  t = tag.lower()
+                  if t == "script": self.script += 1
+                  if t == "style": self.style += 1
+              def handle_endtag(self, tag):
+                  t = tag.lower()
+                  if t == "script" and self.script: self.script -= 1
+                  if t == "style" and self.style: self.style -= 1
+              def handle_data(self, data):
+                  if not self.script and not self.style:
+                      self.out.append(data)
+
+          p = P()
+          p.feed(src)
+          p.close()
+          visible = "\n".join(p.out)
+
+          anchors = [
+              "applyFixedBlocks",
+              "canonicalActionButtons",
+              "function createQr",
+              "window.open('about:blank'",
+              'window.open("about:blank"',
+              "pickupQrActivating",
+          ]
+          bad = [a for a in anchors if a in visible]
+          if bad:
+              raise SystemExit("Sichtbarer JavaScript-Code nach Restore: " + ", ".join(bad))
+
+          print("OK: Wiederhergestellte RC883-Datei besteht den Render-Text-Test.")
+          PY
+
+          mapfile -t CHANGED < <(git diff --cached --name-only)
+          if [[ "${#CHANGED[@]}" -gt 0 ]]; then
+            [[ "${#CHANGED[@]}" -eq 1 && "${CHANGED[0]}" == "TESTVERSION.html" ]] || {
+              echo "::error::Unerlaubte Dateien im Commit."
+              printf ' - %s\n' "${CHANGED[@]}"
+              exit 1
+            }
+          fi
+
+      - name: Commit clean RC883 TESTSERVICE rollback
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Kein Commit nötig; TESTVERSION.html ist bereits RC883."
+          else
+            git commit -m "TESTSERVICE: clean rollback to RC883"
+            git push origin main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "RC883-Rollback wurde auf main gepusht."
+          fi
+
+      - name: Snapshot existing TESTSERVICE deploy runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run list \
+            --workflow exporthub-testservice.yml \
+            --limit 50 \
+            --json databaseId \
+            --jq '.[].databaseId' > /tmp/testservice_runs_before.txt || true
+
+      - name: Dispatch TESTSERVICE deploy explicitly
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "Starte ExportHUB TESTSERVICE Deploy explizit für main..."
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/exporthub-testservice.yml/dispatches" \
+            -f ref=main
+          echo "Dispatch gesendet."
+
+      - name: Find and wait for new TESTSERVICE deployment
+        id: deploy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          RUN_ID=""
+
+          for attempt in $(seq 1 60); do
+            mapfile -t IDS < <(
+              gh run list \
+                --workflow exporthub-testservice.yml \
+                --event workflow_dispatch \
+                --branch main \
+                --limit 20 \
+                --json databaseId \
+                --jq '.[].databaseId'
+            )
+
+            for id in "${IDS[@]}"; do
+              if ! grep -qx "${id}" /tmp/testservice_runs_before.txt 2>/dev/null; then
+                RUN_ID="${id}"
+                break
+              fi
+            done
+
+            if [[ -n "${RUN_ID}" ]]; then
+              break
+            fi
+
+            echo "Warte auf neuen TESTSERVICE-Run... (${attempt}/60)"
+            sleep 5
+          done
+
+          if [[ -z "${RUN_ID}" ]]; then
+            echo "::error::Der explizit gestartete TESTSERVICE-Deploy wurde nicht gefunden."
+            exit 1
+          fi
+
+          echo "Gefundener TESTSERVICE-Run: ${RUN_ID}"
+          echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+
+          gh run watch "${RUN_ID}" --exit-status
+
+      - name: Verify deployed workflow targeted RC883
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_RUN_ID: ${{ steps.deploy.outputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          CONCLUSION="$(
+            gh run view "${DEPLOY_RUN_ID}" \
+              --json conclusion \
+              --jq '.conclusion'
+          )"
+
+          if [[ "${CONCLUSION}" != "success" ]]; then
+            echo "::error::TESTSERVICE-Deploy endete mit '${CONCLUSION}'."
+            exit 1
+          fi
+
+          CURRENT_VERSION="$(
+            grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" TESTVERSION.html \
+            | head -n 1 \
+            | sed -E "s/.*version:'(RC[0-9]+)'/\1/" || true
+          )"
+
+          [[ "${CURRENT_VERSION}" == "RC883" ]] || {
+            echo "::error::Lokale TESTVERSION ist nach Rollback nicht RC883."
+            exit 1
+          }
+
+          echo "OK: TESTSERVICE-Deploy erfolgreich; Zielstand RC883."
+
+      - name: Rollback summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## ExportHUB TESTSERVICE Rollback"
+            echo
+            echo "- Ziel: **RC883**"
+            echo "- Sicherung: **backup-rc883-before-rc884-navigation-search-ux**"
+            echo "- Gesicherter Commit: **8b038fb...**"
+            echo "- Produktionsdateien: **nicht verändert**"
+            echo "- Geänderte Projektdatei: **nur TESTVERSION.html**"
+            echo "- Neue Produktivitätsmodule RC885-RC892: **nicht übernommen**"
+            echo
+            echo "Nach erfolgreichem Deploy die Testseite mit **Strg + F5** neu laden."
+          } >> "$GITHUB_STEP_SUMMARY"
