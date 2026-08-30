@@ -1,8 +1,8 @@
-# ExportHUB Professional 0.4 – Architektur
+# ExportHUB Professional 0.2 – Architektur
 
 Professional wird parallel zu ExportHUB Internal entwickelt. Internal bleibt das aktive Ursprungssystem, bis ein späterer Cutover separat freigegeben wurde.
 
-## Phase 0.4
+## Phase 0.2
 
 - modulare Web-App
 - Azure-Functions-kompatible API-Struktur
