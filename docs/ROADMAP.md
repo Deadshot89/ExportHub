@@ -1,38 +1,36 @@
-# ExportHUB Professional 0.4 – Architektur
+# ExportHUB Professional Roadmap
 
-Professional wird parallel zu ExportHUB Internal entwickelt. Internal bleibt das aktive Ursprungssystem, bis ein späterer Cutover separat freigegeben wurde.
+## 0.1 – abgeschlossen
+- getrennte Professional-Shell
+- Backup-Inventur
+- SHA-256
+- Read-only/Cutover-Gates
 
-## Phase 0.4
+## 0.2 – aktueller Stand
+- echter Legacy-Backup-Adapter
+- Mandantenvorschau
+- Benutzer/Rollen ohne Passwortübernahme
+- Kundenbestand Read-only
+- Sendungsbestand Read-only
+- Status- und Sperrerhalt
+- POD-Cloud-Link-Erkennung
+- Dubletten-Mapping
 
-- modulare Web-App
-- Azure-Functions-kompatible API-Struktur
-- noch keine produktive Datenbankverbindung
-- Read-only-Migrationsprüfung
-- Legacy-Importadapter für ältere ExportHUB-Backups
-- Mandantenmodell und Tenant-ID an jedem normalisierten Datensatz
-- Read-only-Ansicht für Benutzer/Rollen, Kunden und Sendungen
-- POD-/Abhol-Sperrerhalt
-- Dokumentinventur mit Inline-Hash, Remote-Erfassung und Metadatenstatus
-- vollständige Herkunftszuordnung über Source Pointer
+## 0.3 – nächster Schritt
+- Dokument-Migrationsregister: jede aktuelle Datei bekommt einen eindeutigen Erhaltungsstatus
+- Remote-POD-Capture-Plan
+- Zuordnung der 212 aktuell nur als Metadaten sichtbaren Dokumentartefakte zu Quelle/Regenerierbarkeit/fehlendem Inhalt
+- Kundenstandorte normalisieren
+- strukturierte Audit-Migration
 
-## Sicherheitsprinzip
+## 0.4
+- echte Professional-Authentifizierung
+- serverseitige Tenant-/Rollenprüfung
+- noch ohne produktiven Cutover
 
-Frontend-Read-only ist nur die erste Ebene. Sobald eine produktive Datenbank/API aktiviert wird, muss jede API-Operation die Tenant-ID und Rolle serverseitig prüfen. Kein Mandant darf Daten eines anderen Mandanten über IDs, URLs oder API-Aufrufe erreichen.
-
-## Nächste Zielmodule
-
-- produktive Authentifizierung mit Passwort-Neuvergabe/SSO-Option
-- serverseitige Tenant- und Rollenprüfung
-- Dokumentenspeicher
-- Kundenstandorte
+## 0.5+
+- persistente Datenbank
+- Blob-Dokumentenspeicher
 - Sendungserstellung
 - Aufgaben & Planung
-- strukturiertes Audit
-- Plattformadministration
-
-
-## 0.4 – aktueller Stand
-- Kundenstandorte normalisieren und Sendungen zuordnen
-- Audit strukturiert migrieren, Secret-Felder in der Normalform redigieren
-- Dokument-Capture-/Recovery-Plan ohne falsche Vollständigkeitsbehauptung
-- Generierte Artefakt-Metadaten separat erhalten
+- kontrollierter Parallelbetrieb und später Cutover

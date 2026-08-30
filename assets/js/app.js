@@ -1,12 +1,12 @@
 import {inventoryBackup,buildMigrationPackage,summarizePackage} from '../../shared/migration-core.js';
 
 const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
-let sourceText='', sourcePayload=null, migrationPackage=null, currentInventory=null, currentDocumentRows=[];
+let sourceText='', sourcePayload=null, migrationPackage=null, currentInventory=null;
 
 function setView(name){
   $$('.view').forEach(v=>v.classList.toggle('active',v.dataset.view===name));
   $$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));
-  $('#pageTitle').textContent=({overview:'Übersicht',migration:'Migration',tenants:'Mandanten',users:'Benutzer & Rollen',customers:'Kunden',locations:'Standorte',shipments:'Sendungen',documents:'Dokumente',audit:'Audit'}[name]||'ExportHUB Professional');
+  $('#pageTitle').textContent=({overview:'Übersicht',migration:'Migration',tenants:'Mandanten',users:'Benutzer & Rollen',customers:'Kunden',shipments:'Sendungen',audit:'Audit'}[name]||'ExportHUB Professional');
 }
 $$('.nav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.nav)));
 
@@ -18,24 +18,6 @@ function fmt(n){return new Intl.NumberFormat('de-DE').format(Number(n||0))}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function hintOptions(){return {sourceVersionHint:($('#sourceVersionHint')?.value||'').trim(),tenantNameHint:($('#tenantNameHint')?.value||'').trim()}}
 function statusPill(s){const k=String(s||'');let c='neutral';if(/POD vorhanden|Abgeschlossen|Archiviert/.test(k))c='good';else if(/Abgeholt|Bereit|Vorbereitet/.test(k))c='info';else if(/Wartet|Nachbearbeitung/.test(k))c='warn';return `<span class="status-pill ${c}">${esc(k||'Entwurf')}</span>`}
-
-function documentStatusPill(s){
-  const k=String(s||'');
-  if(k==='VERIFIED_INLINE') return '<span class="status-pill good">Verifiziert</span>';
-  if(k==='REMOTE_CAPTURE_REQUIRED') return '<span class="status-pill warn">Remote sichern</span>';
-  if(k==='CONTENT_MISSING') return '<span class="status-pill lock">Dateiinhalt fehlt</span>';
-  if(k==='HASH_ERROR') return '<span class="status-pill warn">Hashfehler</span>';
-  return `<span class="status-pill">${esc(k||'Offen')}</span>`;
-}
-function recoveryLabel(v){
-  return ({NONE:'Keine Aktion',CAPTURE_SHAREPOINT_AUTHORIZED:'SharePoint-Datei autorisiert sichern',CAPTURE_LEGACY_API:'ExportHUB-API-Datei sichern',CAPTURE_AUTHORIZED_REMOTE:'Remote-Datei autorisiert sichern',REGENERATE_FROM_LOCKED_SNAPSHOT:'Aus gesperrtem Sendungsstand regenerierbar',SOURCE_FILE_REQUIRED:'Originaldatei erforderlich'}[String(v||'')]||String(v||'Offen'));
-}
-function renderDocumentRows(){
-  const qv=($('#documentSearch')?.value||'').trim().toLowerCase();
-  const kind=$('#documentKindFilter')?.value||'', st=$('#documentStatusFilter')?.value||'';
-  const rows=currentDocumentRows.filter(d=>(!kind||d.kind===kind)&&(!st||d.migrationStatus===st)&&(!qv||[d.reference,d.name,d.kind,d.remoteSourceClass].join(' ').toLowerCase().includes(qv)));
-  $('#documentRows').innerHTML=rows.map(d=>`<tr><td><b>${esc(d.reference||'–')}</b></td><td>${esc(d.kind)}</td><td><b>${esc(d.name)}</b><div class="muted">${fmt(d.size)} B · ${fmt(d.sourceRecordCount||1)} Quelle(n)</div></td><td>${esc(d.storage==='inline-source'?'Im Backup':(d.remoteSourceClass||'Nur Metadaten'))}</td><td>${documentStatusPill(d.migrationStatus)}</td><td>${esc(recoveryLabel(d.recoveryAction))}</td><td><span class="status-pill ${d.migrationPriority==='P0'?'warn':(d.migrationPriority==='OK'?'good':'info')}">${esc(d.migrationPriority)}</span></td></tr>`).join('') || '<tr><td colspan="7" class="muted">Keine Dokumente für diesen Filter.</td></tr>';
-}
 
 function renderInventory(inv){
   currentInventory=inv;const c=inv.counts;
@@ -62,25 +44,9 @@ function renderReadOnlyViews(pkg){
   $('#usersCount').textContent=fmt((n.users||[]).length)+' Benutzer aus dem Altbestand';
   $('#customerRows').innerHTML=(n.customers||[]).map(c=>`<tr><td><b>${esc(c.account)}</b></td><td>${esc(c.name)}</td><td>${esc(c.country)}</td><td>${esc(c.carrier)}</td></tr>`).join('');
   $('#customersCount').textContent=fmt((n.customers||[]).length)+' eindeutige Kunden';
-  const customerById=new Map((n.customers||[]).map(c=>[c.id,c]));
-  $('#locationRows').innerHTML=(n.locations||[]).map(l=>{const c=customerById.get(l.customerId)||{};return `<tr><td><b>${esc(c.name||c.account||l.customerId)}</b></td><td>${esc(l.name)}</td><td>${esc(l.address||'–')}</td><td>${esc(l.country||'–')}</td><td>${l.derivedMain?'Abgeleitete Hauptadresse':'Gespeicherter Standort'}</td></tr>`}).join('')||'<tr><td colspan="5" class="muted">Keine Standorte gefunden.</td></tr>';
-  $('#locationsCount').textContent=fmt((n.locations||[]).length)+' eindeutige Standorte · '+fmt(m.locations?.shipmentsResolved)+' Sendungen direkt zugeordnet';
   $('#shipmentRows').innerHTML=(n.shipments||[]).map(sh=>`<tr><td><b>${esc(sh.reference)}</b><div class="muted">${esc(sh.legacyShipmentId)}</div></td><td>${esc(sh.customerName||sh.customerAccount)}</td><td>${statusPill(sh.canonicalStatus)}</td><td>${sh.podEvidence?'<span class="status-pill good">POD-Evidenz</span>':'–'}</td><td>${sh.locked?'<span class="status-pill lock">Gesperrt</span>':'Read only'}</td><td>${esc(sh.actualPickupDate||sh.pickupDate)}</td></tr>`).join('');
   $('#shipmentsCount').textContent=fmt((n.shipments||[]).length)+' eindeutige Sendungen · '+fmt(m.sourceCounts?.shipmentSourceRecords)+' Quellstände';
-  currentDocumentRows=(n.documents||[]).slice();
-  $('#documentsCount').textContent=fmt(currentDocumentRows.length)+' eindeutige Dokumente · '+fmt(m.documents?.inlineHashed)+' verifiziert · '+fmt(m.documents?.remoteCaptureRequired)+' remote · '+fmt(m.documents?.contentMissing)+' ohne Inhalt';
-  const kinds=[...new Set(currentDocumentRows.map(d=>d.kind).filter(Boolean))].sort();
-  $('#documentKindFilter').innerHTML='<option value="">Alle</option>'+kinds.map(k=>`<option value="${esc(k)}">${esc(k)}</option>`).join('');
-  const byStatus=m.documents?.byStatus||{};
-  $('#documentSummary').innerHTML=Object.entries(byStatus).map(([k,v])=>`<div>${documentStatusPill(k)}<b>${fmt(v)}</b></div>`).join('');
-  const pg=m.documents?.podGate||{};
-  $('#podGatePill').className='pill '+(pg.ready?'good':'warn');
-  $('#podGatePill').textContent=pg.ready?'POD vollständig verifiziert':`${fmt(pg.blockers)} POD-Dateien offen`;
-  renderDocumentRows();
-  const audits=(n.auditEvents||[]).slice();
-  $('#auditCount').textContent=fmt(audits.length)+' Audit-Ereignisse · Anzeige der letzten '+fmt(Math.min(200,audits.length));
-  $('#auditPreview').innerHTML=`<div class="read-grid"><div class="read-kpi"><b>${fmt(m.mapping?.mapped)}</b><span>Quellobjekte zugeordnet</span></div><div class="read-kpi"><b>${fmt(m.audit?.total)}</b><span>Audit-Ereignisse strukturiert</span></div><div class="read-kpi"><b>${fmt(m.recovery?.captureRequired)}</b><span>Remote-Captures offen</span></div><div class="read-kpi"><b>${fmt(m.recovery?.sourceFileRequired)}</b><span>Originaldateien erforderlich</span></div></div><div class="notice" style="margin-top:14px">Professional 0.4 bewahrt Audittexte, redigiert aber bekannte Secret-Felder in strukturierten Details. Es werden keine fehlenden POD-/Quelldateien erfunden oder als erfolgreich migriert markiert.</div>`;
-  $('#auditRows').innerHTML=audits.slice(-200).reverse().map(a=>`<tr><td>${esc(a.at||'–')}</td><td>${esc(a.actor||'System')}</td><td>${esc(a.category)}</td><td><b>${esc(a.action)}</b><div class="muted">${esc(a.detail||'')}</div></td><td>${esc(a.source)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Keine Audit-Ereignisse gefunden.</td></tr>';
+  $('#auditPreview').innerHTML=`<div class="read-grid"><div class="read-kpi"><b>${fmt(m.mapping?.mapped)}</b><span>Quellobjekte zugeordnet</span></div><div class="read-kpi"><b>${fmt(m.documents?.inlineHashed)}</b><span>Dateien mit SHA-256</span></div><div class="read-kpi"><b>${fmt(m.documents?.remoteCaptureRequired)}</b><span>Remote-Dateien offen</span></div><div class="read-kpi"><b>0</b><span>Legacy-Passwörter übernommen</span></div></div><div class="notice" style="margin-top:14px">Professional 0.2 verwendet strukturierte Migrations- und Sicherheitsereignisse. Die Originaldaten bleiben unverändert im Source Snapshot; operative Schreibvorgänge sind deaktiviert.</div>`;
   $$('.needs-migration').forEach(x=>x.classList.add('hidden'));$$('.has-migration').forEach(x=>x.classList.remove('hidden'));
 }
 
@@ -114,8 +80,8 @@ $('#buildPackageBtn').addEventListener('click',async()=>{
     $('#cutoverGate').className='gate '+(g.cutoverReady?'good':'warn');$('#cutoverGate').textContent=g.cutoverReady?'✓ CUTOVER_READY':'⚠ CUTOVER weiterhin blockiert – '+(g.cutoverBlockers.join(', ')||'weitere Prüfung erforderlich');
     $('#hashValue').textContent=migrationPackage.manifest.sourceSha256;
     $('#docVerify').textContent=`${fmt(d.inlineHashed)} eingebettete Dateien gehasht · ${fmt(d.remoteCaptureRequired)} Remote-Dateien separat zu sichern · ${fmt(d.contentMissing)} ohne Dateinhalt`;
-    $('#packageStatus').textContent=`Migrationsprüfung abgeschlossen: ${fmt(s.customers)} Kunden · ${fmt(s.canonicalShipments)} Sendungen · ${fmt(s.documents)} Dokumente · ${fmt(s.users)} Benutzer · ${fmt(migrationPackage.normalized?.locations?.length)} Standorte · ${fmt(migrationPackage.normalized?.auditEvents?.length)} Audit-Ereignisse.`;
-    $('#downloadPackageBtn').disabled=!g.readOnlyReady;$('#downloadDocumentRegistryBtn').disabled=!g.readOnlyReady;$('#packageResult').classList.remove('hidden');renderReadOnlyViews(migrationPackage);
+    $('#packageStatus').textContent=`Migrationsprüfung abgeschlossen: ${fmt(s.customers)} Kunden · ${fmt(s.canonicalShipments)} Sendungen · ${fmt(s.documents)} Dokumente · ${fmt(s.users)} Benutzer.`;
+    $('#downloadPackageBtn').disabled=!g.readOnlyReady;$('#packageResult').classList.remove('hidden');renderReadOnlyViews(migrationPackage);
   }catch(err){$('#packageStatus').textContent='Fehler: '+(err&&err.message||err);$('#packageProgress').style.width='0'}finally{btn.disabled=false}
 });
 
@@ -123,12 +89,5 @@ $('#downloadPackageBtn').addEventListener('click',()=>{
   if(!migrationPackage)return;
   const ts=new Date().toISOString().replace(/[:.]/g,'-');download(`ExportHUB_Professional_Migration_${ts}.json`,JSON.stringify(migrationPackage,null,2));
 });
-$('#downloadDocumentRegistryBtn').addEventListener('click',()=>{
-  if(!migrationPackage)return;
-  const m=migrationPackage.manifest||{}, docs=(migrationPackage.normalized?.documents||[]).map(d=>({id:d.id,reference:d.reference,kind:d.kind,name:d.name,mimeType:d.mimeType,size:d.size,storage:d.storage,migrationStatus:d.migrationStatus,migrationPriority:d.migrationPriority,cutoverBlocking:d.cutoverBlocking,remoteSourceClass:d.remoteSourceClass,remoteLocatorPresent:!!d.remoteUrl,recoveryAction:d.recoveryAction,sha256:d.sha256||'',sourcePointers:d.sourcePointers}));
-  const safe={type:'ExportHUB_Professional_Document_Registry',version:m.professionalVersion,generatedAt:m.generatedAt,sourceSha256:m.sourceSha256,sourceMetadata:m.sourceMetadata,summary:m.documents,documents:docs};
-  const ts=new Date().toISOString().replace(/[:.]/g,'-');download(`ExportHUB_Professional_Dokumentregister_${ts}.json`,JSON.stringify(safe,null,2));
-});
-['documentSearch','documentKindFilter','documentStatusFilter'].forEach(id=>document.getElementById(id)?.addEventListener(id==='documentSearch'?'input':'change',renderDocumentRows));
 
 setView('overview');
