@@ -1,0 +1,79 @@
+TESTBERICHT RC886 – PRODUKTIVITÄTSSTUFE 2
+
+Scope:
+- Ausschließlich TESTSERVICE / TESTVERSION.html
+- Keine Produktionsdatei und keine API geändert
+- RC884 Navigation/Suche und RC885 globale Suche/Arbeitsfokus bleiben erhalten
+
+Neue Funktionen:
+1. Sendungs-Fortschritt
+   - In Sendung erstellen und Sendungsansicht
+   - Kunde
+   - Empfänger / Adresse
+   - Colli: Verpackung + Anzahl + Gewicht
+   - Lieferschein
+   - ABD nur wenn erforderlich
+   - Ladeliste
+   - CMR nur bei Ausland
+   - POD erst nach Abholung
+   - Prozentanzeige und x von y vollständig
+
+2. Dokumenten-Ampel
+   - LS
+   - Ladeliste
+   - CMR
+   - ABD
+   - POD
+   - Unnötige Dokumente werden als "Nicht erforderlich" dargestellt
+
+3. Nächste sinnvolle Aktion
+   - Zeigt den ersten echten offenen Prozessschritt
+   - Verwendet bestehende ExportHUB-Bedienelemente/Routen
+   - Keine automatische Statusänderung
+   - Keine zweite Speicherlogik
+
+Verbindlicher Live-Test im Testservice:
+A. Testservice öffnen und Version prüfen.
+   Erwartung: RC886.
+
+B. Neue Sendung öffnen.
+   Erwartung: Direkt unter dem Seitenkopf erscheint "Sendungs-Fortschritt".
+
+C. Kunde auswählen und Empfänger/Adresse prüfen.
+   Erwartung: Kunde und Empfänger wechseln von offen auf vollständig, ohne zusätzliche Bestätigung.
+
+D. Colli erfassen.
+   Erwartung: Eine Zeile ist vollständig, sobald Verpackung, Anzahl > 0 und Gewicht > 0 vorhanden sind. Maße/LDM sind keine künstliche Pflicht.
+
+E. Lieferschein hochladen/hinterlegen.
+   Erwartung: LS in der Dokumenten-Ampel = Vorhanden.
+
+F. Inlandssendung Deutschland prüfen.
+   Erwartung: CMR = Nicht erforderlich und blockiert den Fortschritt nicht.
+
+G. Auslandssendung prüfen.
+   Erwartung: CMR wird zum erforderlichen Schritt. Nach vorhandener aktiver CMR-Version wird CMR grün.
+
+H. Sendung mit ABD-Pflicht prüfen.
+   Erwartung: ABD erscheint als Pflichtschritt. Ohne ABD ist die nächste sinnvolle Aktion ABD; mit vorhandenem ABD wird der Schritt vollständig.
+
+I. Nicht abgeholte Sendung prüfen.
+   Erwartung: POD ist noch keine Pflicht.
+
+J. Abgeholte Sendung ohne POD prüfen.
+   Erwartung: POD wird jetzt Pflicht und als nächste sinnvolle Aktion angezeigt.
+
+K. Abgeholte Sendung mit echtem POD prüfen.
+   Erwartung: POD = Vorhanden.
+
+L. Strg+K drücken und Dashboard öffnen.
+   Erwartung: RC885 globale Suche und "Meine Arbeit heute" funktionieren weiterhin.
+
+M. Aus Sendungsansicht nacheinander Aufgaben, Dashboard und Kunden öffnen.
+   Erwartung: RC884 Navigation bleibt stabil; kein Zurückspringen in Sendungsansicht.
+
+N. Sendung erstellen prüfen.
+   Erwartung: "Kunde übernehmen", "Adresse geprüft und bestätigt" und interner Kunden-Avis bleiben entfernt.
+
+O. Fehlerdiagnose exportieren.
+   Erwartung: version = RC886 und keine neue RC886 JavaScript-Exception.
