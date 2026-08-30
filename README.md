@@ -1,50 +1,25 @@
-# ExportHUB Professional 0.2.0
+# ExportHUB Professional 0.4.0
 
-Professional 0.2 ist weiterhin vollständig von ExportHUB Internal getrennt. Der aktuelle interne Datenbestand wird ausschließlich lokal gelesen und als schreibgeschützte Professional-Vorschau normalisiert.
+Separate Professional-/SaaS-Basis. ExportHUB Internal wird nicht beschrieben oder automatisch verändert.
 
-## Neu in 0.2
+## Neu in 0.4
 
-- akzeptiert aktuelle `ExportHUB_BACKUP`-Dateien und ältere Legacy-Backups mit `state + users`
-- Quellversion kann für Legacy-Backups ausdrücklich bestätigt werden, z. B. RC826
-- `shipments` und `savedShipments` werden auf eindeutige Sendungen zusammengeführt statt doppelt angelegt
-- aktueller `processStatus` wird vor historischen Hilfsfeldern erhalten
-- Abholung/POD/Signatur bleiben als Sperre erhalten
-- `podCloudBackupWebUrl` und weitere Remote-POD-Felder werden als externe Dokumentquelle erkannt
-- Benutzer und Rollen werden als Read-only-Vorschau übernommen
-- alte Passwörter werden nicht in die normalisierte Professional-Benutzerstruktur übernommen; Anmeldung erfordert später eine Neuvergabe
-- Kunden, Sendungen und Benutzer können nach erfolgreicher lokaler Prüfung direkt in den entsprechenden Professional-Bereichen angesehen werden
-- Source Snapshot bleibt unverändert; keine Schreibverbindung zu Internal
+- Kundenstandorte werden mandanten- und kundenbezogen normalisiert; eine vorhandene Hauptadresse wird nur als abgeleiteter Standort ergänzt, wenn sie nicht bereits als Standort existiert.
+- Sendungen erhalten eine Professional-Standortzuordnung, soweit die Legacy-Daten sie eindeutig zulassen. Nicht eindeutige Standorte werden nicht geraten.
+- `state.audit` und `state.auditLog` werden als strukturierte Audit-Ereignisse übernommen. Bekannte Secret-Felder wie Passwort, Token, Session, Authorization oder Connection String werden in der normalisierten Sicht redigiert. Der Source Snapshot bleibt unverändert.
+- Dokumente erhalten einen Wiederherstellungsplan: autorisierter SharePoint-Capture, Legacy-API-Capture, sonstiger Remote-Capture, Originaldatei erforderlich oder – nur bei generierbaren Ausgabedokumenten – Regeneration aus einem gesperrten Sendungsstand.
+- Metadaten bereits generierter Deckblätter/Ladelisten/CMRs werden separat als `generatedArtifacts` erhalten. Sie gelten nicht als Ersatz für eine tatsächlich migrierte Originaldatei.
+- POD/ABD/Lieferschein werden niemals aus Metadaten als erfolgreich migriert markiert.
+- `READ_ONLY_READY` und `CUTOVER_READY` bleiben getrennte Gates.
 
-## Sicherheits-Gates
+## Sicherheitsregel
 
-`READ_ONLY_READY` bedeutet: Alle relevanten Quellobjekte sind einem Professional-Zielobjekt zugeordnet und die schreibgeschützte Migration kann geprüft werden.
+Ein Cutover bleibt blockiert, solange Remote-Dokumente, fehlende Dateiinhalte oder nicht vollständig erfasste POD-Dokumente vorhanden sind. Es findet in 0.4 kein automatischer Zugriff auf SharePoint oder andere Remote-Quellen statt.
 
-`CUTOVER_READY` ist deutlich strenger. Remote-Dateien und Dokumente ohne gesicherten Inhalt blockieren den Cutover weiterhin.
+## Lokal testen
 
-## Migration testen
+```text
+npm test
+```
 
-1. Unter **Migration** optional die Quellversion eintragen, wenn der Alt-Export keine eigene Versionsmetadaten besitzt.
-2. Mandantenname für die Vorschau eintragen.
-3. Backup auswählen.
-4. Inventur und Statusverteilung kontrollieren.
-5. **Migrationspaket prüfen & erzeugen** starten.
-6. Erst bei `READ_ONLY_READY` die Read-only-Bereiche Mandanten, Benutzer, Kunden und Sendungen prüfen.
-7. Ein produktiver Cutover ist in 0.2 weiterhin deaktiviert.
-
-CLI:
-
-`npm run analyze -- /pfad/backup.json /pfad/migration.json --source-version RC826 --tenant "Firma"`
-
-Danach:
-
-`npm run verify -- /pfad/backup.json /pfad/migration.json --source-version RC826`
-
-## Datenverlustschutz
-
-- keine Änderungen an ExportHUB Internal
-- keine automatische Löschung
-- keine automatische Datenbankmigration
-- vollständiger Source Snapshot plus SHA-256
-- Source Pointer für jede Migration
-- doppelte Quellstände werden dokumentiert, aber nicht doppelt als neue Sendung angelegt
-- POD- und Abholsperren werden nicht aufgehoben
+Der Browser-Migrationschecker verarbeitet das ausgewählte Backup ausschließlich lokal.

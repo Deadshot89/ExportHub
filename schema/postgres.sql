@@ -1,4 +1,4 @@
--- ExportHUB Professional 0.2 – Zielschema (noch nicht automatisch aktiv)
+-- ExportHUB Professional 0.4 – Zielschema (noch nicht automatisch aktiv)
 create table if not exists tenants (
   id uuid primary key,
   name text not null,
@@ -33,6 +33,24 @@ create table if not exists customers (
 );
 create index if not exists customers_tenant_idx on customers(tenant_id);
 
+
+create table if not exists customer_locations (
+  id uuid primary key,
+  tenant_id uuid not null references tenants(id),
+  customer_id uuid not null references customers(id),
+  legacy_location_id text,
+  name text not null,
+  address text,
+  country text,
+  contact_name text,
+  email text,
+  phone text,
+  derived_main boolean not null default false,
+  source_metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists customer_locations_tenant_customer_idx on customer_locations(tenant_id, customer_id);
+
 create table if not exists shipments (
   id uuid primary key,
   tenant_id uuid not null references tenants(id),
@@ -62,10 +80,29 @@ create table if not exists documents (
   sha256 text,
   storage_key text,
   verification_status text not null,
+  migration_priority text not null default 'OK',
+  cutover_blocking boolean not null default true,
+  remote_source_class text,
+  recovery_action text not null default 'SOURCE_FILE_REQUIRED',
+  source_metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 create index if not exists documents_tenant_idx on documents(tenant_id);
 create index if not exists documents_shipment_idx on documents(shipment_id);
+
+create table if not exists generated_artifacts (
+  id uuid primary key,
+  tenant_id uuid not null references tenants(id),
+  shipment_id uuid not null references shipments(id),
+  artifact_type text not null,
+  legacy_id text,
+  version integer,
+  status text,
+  signature text,
+  generated_at timestamptz,
+  metadata jsonb not null default '{}'::jsonb
+);
+create index if not exists generated_artifacts_shipment_idx on generated_artifacts(shipment_id);
 
 create table if not exists migration_runs (
   id uuid primary key,
