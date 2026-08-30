@@ -1,6 +1,11 @@
 {
-  "name": "exporthub-professional-api",
-  "version": "0.3.0",
+  "name": "exporthub-api",
+  "version": "1.0.0",
   "private": true,
-  "dependencies": {}
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@azure/storage-blob": "12.27.0"
+  }
 }
