@@ -1,0 +1,33 @@
+TESTBERICHT RC883 – PERFORMANCE / HAUPTSEITE
+
+Grundlage:
+- RC882 Produktionsdiagnose vom 30.08.2026
+- Reparatur wird ausschließlich in TESTVERSION.html vorbereitet.
+- Produktion/index.html, APIs, pickup.html, location.html und staticwebapp.config.json werden nicht verändert.
+
+Behoben:
+1. flushBeforeSuspend beendet einen bereits laufenden Azure-State-Save nicht mehr per AbortController.
+2. Pending/Dirty bleibt beim Hintergrundwechsel vorgemerkt und kann nach Rückkehr weiter gespeichert werden.
+3. Status-/Sync-Ereignisse der Sendungsübersicht werden 320 ms entprellt und zu einem Patch zusammengefasst.
+4. Der vorhandene Overview-Patch bleibt erhalten; Layout und Fachlogik werden nicht verändert.
+5. RC883 Build-/Cache-Kennung für den Testservice gesetzt.
+
+Automatische Prüfungen:
+- RC882 als Ausgangsversion erkannt.
+- Alter abortender flushBeforeSuspend-Block genau einmal gefunden und ersetzt.
+- Alter 40-ms-Overview-Trigger genau einmal gefunden und ersetzt.
+- Neuer flushBeforeSuspend enthält keinen activeSaveAbortController.abort()-Aufruf.
+- Neuer Overview-Trigger enthält clearTimeout + 320-ms-Debounce.
+- Geänderte Funktionen syntaktisch geparst.
+- Produktions- und API-Dateien unverändert.
+
+Verbindlicher Live-Test im Testservice:
+A. Sendung ändern und sofort zu einer anderen ExportHUB-Ansicht wechseln.
+   Erwartung: Kein AbortError aus flushBeforeSuspend; Änderung bleibt gespeichert/vorgemerkt.
+B. Sendungsübersicht 30–60 Sekunden geöffnet lassen.
+   Erwartung: Keine Serie großer Voll-Render direkt hintereinander.
+C. Suche/Filter in der Sendungsübersicht bedienen.
+   Erwartung: Eingabe bleibt stabil; kein Flackern/Zurückspringen.
+D. QR/Pickup-Status aktualisieren.
+   Erwartung: Kachelstatus wird aktualisiert, ohne mehrfachen Vollaufbau der Übersicht.
+E. Neue Fehlerdiagnose exportieren und mit RC882 vergleichen.
