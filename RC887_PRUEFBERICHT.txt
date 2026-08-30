@@ -1,0 +1,74 @@
+TESTBERICHT RC887 – PRODUKTIVITÄTSSTUFE 3
+
+Scope:
+- Ausschließlich TESTSERVICE / TESTVERSION.html
+- Keine Produktionsdatei und keine API geändert
+- RC884 Navigation/Suche, RC885 Arbeitsfokus und RC886 Sendungsfortschritt bleiben erhalten
+
+Neue Funktionen:
+1. Bereichsfavoriten
+   - Aktuellen Hauptbereich mit ★ anheften/entfernen
+   - Favoriten erscheinen auf dem Dashboard als Schnellzugriff
+   - Nur persönliche Browser-Präferenz, keine Änderung an Team-/Fachdaten
+
+2. Kundenfavoriten
+   - Aktuell gewählten Kunden in Sendung erstellen merken
+   - Favoriten auf Dashboard und in der Schnellerfassung
+   - Auswahl verwendet die bestehende ExportHUB-Kundenauswahl
+
+3. Sendungsvorlagen
+   - Vorlage aus dem aktuellen Entwurf speichern
+   - Übernommen werden nur wiederkehrende Grunddaten wie Kunde, Standort/Empfänger, Spedition und Verpackungsstruktur
+   - Referenz, Datum, Status, Dokumente, ABD, POD, Anzahl und Gewicht werden NICHT kopiert
+   - Anwendung verändert nur den aktuellen Entwurf und speichert ihn nicht automatisch
+
+4. Schnellerfassung
+   - Direkt unter dem RC886-Sendungsfortschritt
+   - Kundenfavoriten und Vorlagen ohne Umweg erreichbar
+   - Keine zusätzliche Bestätigung für normale Kundenauswahl
+
+Verbindlicher Live-Test im Testservice:
+A. Testservice öffnen.
+   Erwartung: Version RC887.
+
+B. Dashboard prüfen.
+   Erwartung: Unter "Meine Arbeit heute" erscheint "Favoriten & Vorlagen".
+
+C. Einen Hauptbereich öffnen, z. B. Aufgaben oder Versandkosten.
+   Erwartung: Oben erscheint ☆ Anheften. Anklicken -> ★ Favorit.
+
+D. Dashboard öffnen.
+   Erwartung: Der angeheftete Bereich erscheint unter Bereiche und öffnet mit einem Klick den korrekten Bereich.
+
+E. Sendung erstellen öffnen und Kunden auswählen.
+   Erwartung: Unter dem RC886-Fortschritt erscheint "Schnellerfassung".
+
+F. "Kunde merken" anklicken.
+   Erwartung: Kunde erscheint sofort als Kundenfavorit und bleibt nach F5 auf diesem Browser erhalten.
+
+G. Einen anderen Kunden wählen und danach den Favoriten anklicken.
+   Erwartung: ExportHUB übernimmt den Favoriten über die bestehende Kundenauswahl. Kein zusätzlicher "Kunde übernehmen"-Schritt.
+
+H. Eine Verpackungsstruktur erfassen und "Vorlage speichern" wählen.
+   Erwartung: Vorlage erscheint in der Liste.
+
+I. Vorlage auf einer neuen/leeren Sendung anwenden.
+   Erwartung: Kunde/Grundstruktur/Verpackungsart werden übernommen. Anzahl und Gewicht bleiben leer.
+
+J. Nach Anwendung der Vorlage prüfen:
+   Erwartung: Neue Referenz bleibt die Referenz der aktuellen Sendung; Abholdatum, Status, Lieferscheine, ABD, CMR, POD und erzeugte Dokumente wurden nicht aus der Vorlage übernommen.
+
+K. Sendung normal weiter erfassen und speichern.
+   Erwartung: Bestehender Speicherweg funktioniert unverändert; RC887 führt keine eigene Speicherung aus.
+
+L. Strg+K globale Suche testen.
+   Erwartung: RC885 Suche funktioniert unverändert.
+
+M. Sendungs-Fortschritt und Dokumenten-Ampel prüfen.
+   Erwartung: RC886 bleibt sichtbar und reagiert auf die aktuellen Sendungsdaten.
+
+N. Aus Sendungsansicht Dashboard, Aufgaben, Kunden und Versandkosten öffnen.
+   Erwartung: Navigation bleibt stabil; keine Sendungsansicht blockiert andere Bereiche.
+
+O. Fehlerdiagnose exportieren.
+   Erwartung: version = RC887 und keine neue RC887 JavaScript-Exception.
