@@ -1,28 +1,31 @@
-# ExportHUB Professional 0.1 – Architektur
+# ExportHUB Professional 0.2 – Architektur
 
-Professional wird parallel zu ExportHUB Internal entwickelt. Der aktuelle interne RC-Stand bleibt eigenständig.
+Professional wird parallel zu ExportHUB Internal entwickelt. Internal bleibt das aktive Ursprungssystem, bis ein späterer Cutover separat freigegeben wurde.
 
-## Phase 0.1
+## Phase 0.2
 
-- statische, modulare Web-App
+- modulare Web-App
 - Azure-Functions-kompatible API-Struktur
-- keine produktive Datenbankverbindung
+- noch keine produktive Datenbankverbindung
 - Read-only-Migrationsprüfung
-- Mandantenmodell bereits im Zieldatenmodell
+- Legacy-Importadapter für ältere ExportHUB-Backups
+- Mandantenmodell und Tenant-ID an jedem normalisierten Datensatz
+- Read-only-Ansicht für Benutzer/Rollen, Kunden und Sendungen
+- POD-/Abhol-Sperrerhalt
+- Dokumentinventur mit Inline-Hash, Remote-Erfassung und Metadatenstatus
 - vollständige Herkunftszuordnung über Source Pointer
 
-## Zielmodule
+## Sicherheitsprinzip
 
-- Dashboard
-- Mandanten
-- Benutzer & Rollen
-- Kunden
-- Sendungen
-- Dokumente
+Frontend-Read-only ist nur die erste Ebene. Sobald eine produktive Datenbank/API aktiviert wird, muss jede API-Operation die Tenant-ID und Rolle serverseitig prüfen. Kein Mandant darf Daten eines anderen Mandanten über IDs, URLs oder API-Aufrufe erreichen.
+
+## Nächste Zielmodule
+
+- produktive Authentifizierung mit Passwort-Neuvergabe/SSO-Option
+- serverseitige Tenant- und Rollenprüfung
+- Dokumentenspeicher
+- Kundenstandorte
+- Sendungserstellung
 - Aufgaben & Planung
-- Audit
+- strukturiertes Audit
 - Plattformadministration
-
-## Zieldatenbank
-
-Das mitgelieferte PostgreSQL-Schema ist ein Entwurf für die spätere persistente Plattform. Es wird in 0.1 noch nicht automatisch ausgeführt.

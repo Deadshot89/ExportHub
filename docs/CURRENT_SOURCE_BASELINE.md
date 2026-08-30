@@ -1,10 +1,7 @@
-# Aktueller Internal-Ausgangspunkt
+# Aktuelle Migrations-Baseline
 
-Professional 0.1 wurde gegen die ExportHUB-Internal-Codebasis RC878 vorbereitet.
+Professional 0.2 wurde gegen einen echten Legacy-Export aus ExportHUB Internal geprüft.
 
-- Internal Build: RC878
-- SHA-256 von TESTVERSION_RC878.html: `076b24f9661324e30976c83006629ce8f87817cd94cdb7822cc41ed2030a5818`
-- bestätigtes Backupformat: `ExportHUB_BACKUP`
-- Backup enthält vollständigen `state` sowie `users`
+Die Quelle besitzt keinen modernen `type/version/exportedAt`-Kopf. Sie besteht aus den Top-Level-Strukturen `state` und `users`. Die Quellversion wird deshalb bei der Migration explizit als Versionshinweis bestätigt und zusätzlich durch SHA-256 an die konkrete Quelldatei gebunden.
 
-Dieser Hash bezieht sich nur auf die Codebasis, nicht auf aktuelle Betriebsdaten. Für die echte Datenmigration wird ein frisch exportiertes Backup benötigt und separat gehasht.
+Wichtig: Ein Versionshinweis ändert keine Daten im Backup. Er dient ausschließlich der Dokumentation der Herkunft.

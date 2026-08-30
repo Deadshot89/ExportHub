@@ -1,30 +1,36 @@
-# ExportHUB Professional – Roadmap
+# ExportHUB Professional Roadmap
 
-## 0.1 – Migrationsschutz & Plattform-Shell
-- getrenntes Professional-Projekt
+## 0.1 – abgeschlossen
+- getrennte Professional-Shell
 - Backup-Inventur
-- SHA-256-Prüfung
-- Source-Pointer-Mapping
-- Read-only-Preview
+- SHA-256
+- Read-only/Cutover-Gates
 
-## 0.2 – Mandanten & Auth
-- Tenant-Isolation
-- Plattform-Admin / Firmen-Admin
-- serverseitige Rechteprüfung
-- echte Benutzeranmeldung
+## 0.2 – aktueller Stand
+- echter Legacy-Backup-Adapter
+- Mandantenvorschau
+- Benutzer/Rollen ohne Passwortübernahme
+- Kundenbestand Read-only
+- Sendungsbestand Read-only
+- Status- und Sperrerhalt
+- POD-Cloud-Link-Erkennung
+- Dubletten-Mapping
 
-## 0.3 – Kunden & Sendungen read-only
-- migrierte Kunden
-- migrierte Sendungen
-- Dokumentindex
-- POD-Vollständigkeitsprüfung
+## 0.3 – nächster Schritt
+- Dokument-Migrationsregister: jede aktuelle Datei bekommt einen eindeutigen Erhaltungsstatus
+- Remote-POD-Capture-Plan
+- Zuordnung der 212 aktuell nur als Metadaten sichtbaren Dokumentartefakte zu Quelle/Regenerierbarkeit/fehlendem Inhalt
+- Kundenstandorte normalisieren
+- strukturierte Audit-Migration
 
-## 0.4 – kontrollierter Parallelbetrieb
-- neue Testsendungen in Professional
-- Internal bleibt System of Record für Bestand
-- Differenzbericht
+## 0.4
+- echte Professional-Authentifizierung
+- serverseitige Tenant-/Rollenprüfung
+- noch ohne produktiven Cutover
 
-## 1.0 – Cutover-fähig
-- Cutover nur bei 100 % Daten-/Dokumentprüfung
-- Rollback-Plan
-- Monitoring / Backup / Restore-Test
+## 0.5+
+- persistente Datenbank
+- Blob-Dokumentenspeicher
+- Sendungserstellung
+- Aufgaben & Planung
+- kontrollierter Parallelbetrieb und später Cutover

@@ -1,0 +1,42 @@
+{
+  "professionalVersion": "0.2.0",
+  "sourceVersionHint": "RC826",
+  "sourceFormat": "legacy-state-users",
+  "sourceSha256": "0116233db4c343c56ae61d4b8a93b9d296c9ed48eb832019e8e4448defd170dd",
+  "readOnlyReady": true,
+  "cutoverReady": false,
+  "core": {
+    "customers": 65,
+    "shipmentSourceRecords": 208,
+    "canonicalShipments": 128,
+    "users": 23
+  },
+  "statusCounts": {
+    "POD vorhanden": 60,
+    "Abgeholt": 52,
+    "Bereit zur Abholung": 13,
+    "Erstellt": 2,
+    "Vorbereitet": 1
+  },
+  "pods": {
+    "fileEntries": 65,
+    "shipmentsWithPodFile": 59,
+    "shipmentsWithPodEvidence": 61,
+    "inline": 33,
+    "remote": 29,
+    "metadataOnly": 3
+  },
+  "mapping": {
+    "expected": 898,
+    "mapped": 898,
+    "complete": true
+  },
+  "security": {
+    "legacyPasswordsMigrated": false,
+    "normalizedUsersWithPasswordField": 0
+  },
+  "cutoverBlockers": [
+    "REMOTE_DOCUMENTS_REQUIRE_CAPTURE",
+    "DOCUMENT_CONTENT_MISSING"
+  ]
+}

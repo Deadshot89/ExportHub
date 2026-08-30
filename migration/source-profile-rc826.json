@@ -1,0 +1,34 @@
+{
+  "profile": "ExportHUB Internal Legacy Backup",
+  "sourceVersionHint": "RC826",
+  "format": "legacy-state-users",
+  "validatedAgainstRealBackup": true,
+  "expectedCoreCounts": {
+    "customers": 65,
+    "shipments": 128,
+    "shipmentSourceRecords": 208,
+    "users": 23,
+    "podFileEntries": 65,
+    "podFileShipments": 59,
+    "podEvidenceShipments": 61
+  },
+  "expectedPodStorage": {
+    "inline": 33,
+    "remote": 29,
+    "metadataOnly": 3
+  },
+  "expectedProcessStatusCounts": {
+    "POD vorhanden": 60,
+    "Abgeholt": 52,
+    "Bereit zur Abholung": 13,
+    "Erstellt": 2,
+    "Vorbereitet": 1
+  },
+  "migrationRules": [
+    "shipments + savedShipments must map to 128 canonical shipments",
+    "processStatus takes precedence over stale historical completion helpers",
+    "pickup/POD evidence keeps shipment locked even if status fields conflict",
+    "podCloudBackupWebUrl is a remote document source",
+    "legacy passwords are never copied into normalized Professional users"
+  ]
+}

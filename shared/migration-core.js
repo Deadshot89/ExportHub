@@ -1,5 +1,5 @@
 const BACKUP_TYPE = 'ExportHUB_BACKUP';
-const PROFESSIONAL_VERSION = '0.1.0';
+const PROFESSIONAL_VERSION = '0.2.0';
 
 function q(v){ return v == null ? '' : String(v).trim(); }
 function low(v){ return q(v).toLowerCase(); }
@@ -7,13 +7,14 @@ function obj(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
 function arr(v){ return Array.isArray(v) ? v : []; }
 function clone(v){ return JSON.parse(JSON.stringify(v)); }
 function normalizeKey(v){ return q(v).normalize('NFKC').toLowerCase().replace(/\s+/g,' '); }
-function safeId(v){ return q(v).replace(/[^A-Za-z0-9._:-]+/g,'_').replace(/^_+|_+$/g,''); }
 
 function refOf(sh){ return q(sh && (sh.ref || sh.reference || sh.referenceNumber || sh.folderRef || sh.shipmentRef)); }
-function shipmentIdOf(sh){ return q(sh && (sh.id || sh.shipmentId || sh.uuid)); }
+function shipmentIdOf(sh){ return q(sh && (sh.id || sh.shipmentId || sh.uuid || sh.savedShipmentId || sh.__savedShipmentId)); }
 function customerIdOf(c){ return q(c && (c.id || c.customerId)); }
-function customerAccountOf(c){ return q(c && (c.account || c.customerNumber || c.customerAccount)); }
+function customerAccountOf(c){ return q(c && (c.account || c.customerNumber || c.customerAccount || c.customerNo)); }
 function customerNameOf(c){ return q(c && (c.name || c.customerName)); }
+function userNameOf(u,key){ return q(u && (u.username || u.login || u.user || u.name || u.displayName || key)); }
+function userDisplayNameOf(u,key){ return q(u && (u.name || u.displayName || u.user || u.username || u.login || key)); }
 
 function looksLikeShipment(x){
   if(!obj(x)) return false;
@@ -22,16 +23,22 @@ function looksLikeShipment(x){
   return !!(shipmentIdOf(x) && (Array.isArray(x.rows) || q(x.customerName) || q(x.customerId) || q(x.pickupDate) || q(x.status) || Array.isArray(x.podFiles)));
 }
 
-function looksLikeFile(x){
-  if(!obj(x)) return false;
-  const name = q(x.name || x.filename || x.fileName || x.originalName);
-  if(!name) return false;
-  return !!(q(x.data || x.dataUrl || x.base64 || x.url || x.downloadUrl || x.href || x.webUrl) || x.contentStored === true || Number(x.size || 0) > 0 || q(x.type || x.mimeType));
+function looksLikeLegacyBackup(payload){
+  if(!obj(payload) || !obj(payload.state)) return false;
+  const s=payload.state;
+  return Array.isArray(s.shipments) && Array.isArray(s.customers) && (Array.isArray(payload.users) || obj(payload.users));
 }
 
-function fileNameOf(x){ return q(x.name || x.filename || x.fileName || x.originalName) || 'Dokument'; }
+function looksLikeFile(x){
+  if(!obj(x)) return false;
+  const name = q(x.name || x.filename || x.fileName || x.originalName || x.title);
+  if(!name) return false;
+  return !!(q(x.data || x.dataUrl || x.base64 || x.url || x.downloadUrl || x.href || x.webUrl || x.podCloudBackupWebUrl || x.sharePointUrl || x.remoteUrl || x.cloudUrl) || x.contentStored === true || Number(x.size || 0) > 0 || q(x.mimeType) || /\.(pdf|docx?|xlsx?|csv|txt|zip|png|jpe?g|webp)$/i.test(name));
+}
+
+function fileNameOf(x){ return q(x.name || x.filename || x.fileName || x.originalName || x.title) || 'Dokument'; }
 function filePayloadOf(x){ return q(x.data || x.dataUrl || x.base64); }
-function fileUrlOf(x){ return q(x.url || x.downloadUrl || x.href || x.webUrl); }
+function fileUrlOf(x){ return q(x.url || x.downloadUrl || x.href || x.webUrl || x.podCloudBackupWebUrl || x.sharePointUrl || x.remoteUrl || x.cloudUrl); }
 function fileMimeOf(x){ return q(x.type || x.mimeType); }
 
 function classifyDocument(path, file){
@@ -69,7 +76,54 @@ function customerIdentity(c, pointer){
   return 'pointer:'+pointer;
 }
 
-function findDocuments(root, basePath, ownerType, ownerPointer){
+function pickupEvidence(sh){
+  if(!obj(sh)) return false;
+  const raw=low([sh.status,sh.processStatus,sh.pickupStatus,sh.readinessStatus].join(' '));
+  return !!(q(sh.pickedUpAt)||q(sh.actualPickupDate)||sh.pickupConfirmed===true||sh.warehouseCollected===true||/abgeholt|picked|collected/.test(raw));
+}
+function podEvidence(sh){
+  if(!obj(sh)) return false;
+  const raw=low([sh.status,sh.processStatus,sh.podStatus,sh.readinessStatus].join(' '));
+  return !!(arr(sh.podFiles).length||sh.podConfirmed===true||sh.podAvailable===true||sh.podScanConfirmed===true||sh.signatureAvailable===true||/pod\s*vorhanden/.test(raw));
+}
+function canonicalStatusOf(sh){
+  // Bei Bestandsmigration hat der aktuell gespeicherte Prozessstatus Vorrang vor alten Hilfsfeldern.
+  // So werden historische completedAt/done-Felder nicht fälschlich zu einem neuen Status hochgestuft.
+  const direct=q(sh&&sh.processStatus)||q(sh&&sh.status);
+  const directLow=low(direct);
+  if(/^(pod\s*vorhanden)$/.test(directLow)) return 'POD vorhanden';
+  if(/^(abgeholt|picked(?:\s*up)?)$/.test(directLow)) return 'Abgeholt';
+  if(/^(bereit\s*zur\s*abholung|ready\s*for\s*pickup)$/.test(directLow)) return 'Bereit zur Abholung';
+  if(/^(vorbereitet)$/.test(directLow)) return 'Vorbereitet';
+  if(/^(wartet\s*auf\s*abd)$/.test(directLow)) return 'Wartet auf ABD';
+  if(/^(erstellt|created)$/.test(directLow)) return 'Erstellt';
+  if(/^(abgeschlossen|completed|erledigt)$/.test(directLow)) return 'Abgeschlossen';
+  if(/^(archiviert|archived)$/.test(directLow)) return 'Archiviert';
+  if(/storn|cancel/.test(directLow)) return 'Storniert';
+  if(/nachbearbeit/.test(directLow)) return 'Nachbearbeitung erforderlich';
+  const raw=low([sh&&sh.status,sh&&sh.processStatus,sh&&sh.freigabe,sh&&sh.abdStatus,sh&&sh.readinessStatus].join(' '));
+  if(/storn|cancel/.test(raw)) return 'Storniert';
+  if(/archiv/.test(raw)) return 'Archiviert';
+  if(/nachbearbeit/.test(raw)) return 'Nachbearbeitung erforderlich';
+  if(podEvidence(sh)||/pod\s*vorhanden/.test(raw)) return 'POD vorhanden';
+  if(pickupEvidence(sh)||/abgeholt|picked/.test(raw)) return 'Abgeholt';
+  if(sh&&sh.warehousePrepared===true||/vorbereitet/.test(raw)) return 'Vorbereitet';
+  if(sh&&sh.readyForPickup===true||/bereit.*abhol|ready.*pickup/.test(raw)) return 'Bereit zur Abholung';
+  if(/wartet.*abd|abd.*wart/.test(raw)) return 'Wartet auf ABD';
+  if(/abgeschlossen|completed|erledigt/.test(raw)) return 'Abgeschlossen';
+  if(/erstellt|created/.test(raw)) return 'Erstellt';
+  return 'Entwurf';
+}
+function sourcePriority(r){ return r.sourceCollection==='shipments'?0:r.sourceCollection==='savedShipments'?1:2; }
+function updateStamp(sh){ return q(sh&& (sh._syncUpdatedAt || sh.updatedAt || sh.statusUpdatedAt || sh.updated || sh.createdIso || sh.created)); }
+function choosePrimary(records){
+  return records.slice().sort((a,b)=>{
+    const p=sourcePriority(a)-sourcePriority(b); if(p) return p;
+    return updateStamp(b.value).localeCompare(updateStamp(a.value));
+  })[0];
+}
+
+function findDocuments(root, basePath, ownerType, ownerPointer, canonicalOwnerKey){
   const docs=[];
   const seen=new WeakSet();
   function walk(v,path,depth){
@@ -82,6 +136,7 @@ function findDocuments(root, basePath, ownerType, ownerPointer){
           sourcePath:path,
           ownerType,
           ownerPointer,
+          canonicalOwnerKey:q(canonicalOwnerKey),
           name:fileNameOf(v),
           kind:classifyDocument(path,v),
           mimeType:fileMimeOf(v),
@@ -89,8 +144,10 @@ function findDocuments(root, basePath, ownerType, ownerPointer){
           inlinePayload:filePayloadOf(v),
           remoteUrl:fileUrlOf(v),
           contentStored:v.contentStored === true,
-          sourceId:q(v.id || v.remoteId),
-          declaredHash:q(v.hash || v.sha256 || v.podCloudBackupHash)
+          sourceId:q(v.id || v.remoteId || v.driveItemId || v.podCloudBackupDriveItemId),
+          declaredHash:q(v.hash || v.sha256 || v.podCloudBackupHash),
+          uploadedAt:q(v.uploadedAt || v.createdAt || v.savedAt || v.podBackupAt),
+          uploadedBy:q(v.uploadedBy || v.user || v.createdBy)
         });
         return;
       }
@@ -103,6 +160,13 @@ function findDocuments(root, basePath, ownerType, ownerPointer){
   return docs;
 }
 
+function documentIdentity(d){
+  const owner=q(d.canonicalOwnerKey||d.ownerPointer), id=q(d.sourceId), hash=q(d.declaredHash), name=normalizeKey(d.name), size=Number(d.size||0), kind=q(d.kind);
+  if(id) return owner+'|id:'+normalizeKey(id);
+  if(hash) return owner+'|hash:'+normalizeKey(hash);
+  return owner+'|'+kind+'|'+name+'|'+size;
+}
+
 function knownAuditArrays(state){
   const names=['audit','auditLog','auditTrail','activityLog','history','logs','protocol','protokoll','protokolle'];
   const out=[];
@@ -110,107 +174,174 @@ function knownAuditArrays(state){
   return out;
 }
 
-export function validateBackupPayload(payload){
+export function validateBackupPayload(payload, options={}){
   const errors=[], warnings=[];
   if(!obj(payload)) errors.push('BACKUP_NOT_OBJECT');
-  if(obj(payload) && payload.type !== BACKUP_TYPE) errors.push('BACKUP_TYPE_INVALID');
   if(obj(payload) && !obj(payload.state)) errors.push('BACKUP_STATE_MISSING');
-  if(obj(payload) && !payload.version) warnings.push('SOURCE_VERSION_MISSING');
+  const typed=obj(payload)&&payload.type===BACKUP_TYPE;
+  const legacy=looksLikeLegacyBackup(payload);
+  if(obj(payload) && !typed && !legacy) errors.push('BACKUP_FORMAT_UNSUPPORTED');
+  if(legacy && !typed) warnings.push('LEGACY_BACKUP_WITHOUT_METADATA');
+  if(obj(payload) && !payload.version && !q(options.sourceVersionHint)) warnings.push('SOURCE_VERSION_MISSING');
   if(obj(payload) && !payload.exportedAt) warnings.push('SOURCE_TIMESTAMP_MISSING');
   if(obj(payload) && payload.users != null && !Array.isArray(payload.users) && !obj(payload.users)) warnings.push('USERS_FORMAT_UNKNOWN');
-  return {ok:errors.length===0, errors, warnings};
+  return {ok:errors.length===0, errors, warnings, format:typed?'typed-exporthub-backup':(legacy?'legacy-state-users':'unknown')};
 }
 
-export function inventoryBackup(payload){
-  const validation=validateBackupPayload(payload);
+export function inventoryBackup(payload, options={}){
+  const validation=validateBackupPayload(payload,options);
   if(!validation.ok) return {validation, inventory:null};
   const state=payload.state;
   const customers=arr(state.customers).map((value,index)=>({sourceCollection:'customers',sourceIndex:index,value}));
   const shipments=shipmentCollections(state);
   const users=Array.isArray(payload.users) ? payload.users.map((value,index)=>({sourceCollection:'users',sourceIndex:index,value})) : (obj(payload.users) ? Object.keys(payload.users).map((key,index)=>({sourceCollection:'users',sourceIndex:index,sourceKey:key,value:payload.users[key]})) : []);
-  const shipmentDocs=[];
-  shipments.forEach(r=>shipmentDocs.push(...findDocuments(r.value,`${r.sourceCollection}[${r.sourceIndex}]`,'shipment',`${r.sourceCollection}[${r.sourceIndex}]`)));
-  const abdDocs=[];
-  arr(state.abdRequests).forEach((v,i)=>abdDocs.push(...findDocuments(v,`abdRequests[${i}]`,'abdRequest',`abdRequests[${i}]`)));
-  const customerDocs=[];
-  customers.forEach(r=>customerDocs.push(...findDocuments(r.value,`customers[${r.sourceIndex}]`,'customer',`customers[${r.sourceIndex}]`)));
-  const documents=[...shipmentDocs,...abdDocs,...customerDocs];
+
   const semanticShipmentGroups=new Map();
   shipments.forEach(r=>{
     const pointer=`${r.sourceCollection}[${r.sourceIndex}]`, key=shipmentIdentity(r.value,pointer);
     if(!semanticShipmentGroups.has(key)) semanticShipmentGroups.set(key,[]);
-    semanticShipmentGroups.get(key).push(pointer);
+    semanticShipmentGroups.get(key).push(r);
   });
   const semanticCustomerGroups=new Map();
   customers.forEach(r=>{
     const pointer=`customers[${r.sourceIndex}]`, key=customerIdentity(r.value,pointer);
     if(!semanticCustomerGroups.has(key)) semanticCustomerGroups.set(key,[]);
-    semanticCustomerGroups.get(key).push(pointer);
+    semanticCustomerGroups.get(key).push(r);
   });
+
+  const shipmentDocs=[];
+  shipments.forEach(r=>{
+    const pointer=`${r.sourceCollection}[${r.sourceIndex}]`, key=shipmentIdentity(r.value,pointer);
+    shipmentDocs.push(...findDocuments(r.value,pointer,'shipment',pointer,key));
+  });
+  const abdDocs=[];
+  arr(state.abdRequests).forEach((v,i)=>abdDocs.push(...findDocuments(v,`abdRequests[${i}]`,'abdRequest',`abdRequests[${i}]`,`abdRequest:${i}`)));
+  const customerDocs=[];
+  customers.forEach(r=>customerDocs.push(...findDocuments(r.value,`customers[${r.sourceIndex}]`,'customer',`customers[${r.sourceIndex}]`,customerIdentity(r.value,`customers[${r.sourceIndex}]`))));
+  const documentSources=[...shipmentDocs,...abdDocs,...customerDocs];
+  const canonicalDocumentGroups=new Map();
+  documentSources.forEach(d=>{ const key=documentIdentity(d); if(!canonicalDocumentGroups.has(key)) canonicalDocumentGroups.set(key,[]); canonicalDocumentGroups.get(key).push(d); });
+
+  const canonicalShipments=[...semanticShipmentGroups.entries()].map(([key,records])=>({key,records,primary:choosePrimary(records)}));
+  const canonicalCustomers=[...semanticCustomerGroups.entries()].map(([key,records])=>({key,records,primary:records[0]}));
+  const statusCounts={};
+  let podEvidenceShipments=0,podFileShipments=0;
+  canonicalShipments.forEach(g=>{
+    const st=canonicalStatusOf(g.primary.value); statusCounts[st]=(statusCounts[st]||0)+1;
+    if(g.records.some(r=>podEvidence(r.value))) podEvidenceShipments++;
+    if(g.records.some(r=>arr(r.value.podFiles).length>0)) podFileShipments++;
+  });
+  const primaryPodFiles=arr(state.shipments).flatMap(sh=>arr(sh&&sh.podFiles));
+  const primaryPodStats={entries:primaryPodFiles.length,inline:0,remote:0,metadataOnly:0};
+  primaryPodFiles.forEach(f=>{if(filePayloadOf(f))primaryPodStats.inline++;else if(fileUrlOf(f))primaryPodStats.remote++;else primaryPodStats.metadataOnly++;});
+
   const collectionCounts={};
   Object.keys(state).forEach(k=>{ if(Array.isArray(state[k])) collectionCounts[k]=state[k].length; });
+  const version=q(payload.version)||q(options.sourceVersionHint)||'unbekannt';
   return {
     validation,
     inventory:{
-      source:{type:payload.type,version:q(payload.version),exportedAt:q(payload.exportedAt),exportedBy:q(payload.exportedBy)},
+      source:{type:q(payload.type)||'LEGACY_EXPORT',format:validation.format,version,versionSource:q(payload.version)?'backup-metadata':(q(options.sourceVersionHint)?'user-confirmed-hint':'unknown'),exportedAt:q(payload.exportedAt),exportedBy:q(payload.exportedBy)},
       counts:{
         customers:customers.length,
+        canonicalCustomers:canonicalCustomers.length,
         shipmentSourceRecords:shipments.length,
-        canonicalShipmentGroups:semanticShipmentGroups.size,
+        canonicalShipmentGroups:canonicalShipments.length,
         users:users.length,
-        documents:documents.length,
-        pods:documents.filter(d=>d.kind==='POD').length,
-        deliveryNotes:documents.filter(d=>d.kind==='LIEFERSCHEIN').length,
-        abdDocuments:documents.filter(d=>d.kind==='ABD').length,
+        documentSourceRecords:documentSources.length,
+        documents:canonicalDocumentGroups.size,
+        pods:[...canonicalDocumentGroups.values()].filter(g=>g[0].kind==='POD').length,
+        podSourceRecords:documentSources.filter(d=>d.kind==='POD').length,
+        podEvidenceShipments,
+        podFileShipments,
+        podFileEntries:primaryPodStats.entries,
+        podFileInline:primaryPodStats.inline,
+        podFileRemote:primaryPodStats.remote,
+        podFileMetadataOnly:primaryPodStats.metadataOnly,
+        deliveryNotes:[...canonicalDocumentGroups.values()].filter(g=>g[0].kind==='LIEFERSCHEIN').length,
+        abdDocuments:[...canonicalDocumentGroups.values()].filter(g=>g[0].kind==='ABD').length,
         tasks:arr(state.tasks).length,
         abdRequests:arr(state.abdRequests).length,
         palletBookings:arr(state.palletBookings).length + arr(state.palletAccount).length,
         archiveEntries:arr(state.archive).length
       },
+      statusCounts,
       collectionCounts,
       auditArrays:knownAuditArrays(state),
-      duplicateShipmentGroups:[...semanticShipmentGroups.entries()].filter(([,p])=>p.length>1).map(([key,pointers])=>({key,pointers})),
-      duplicateCustomerGroups:[...semanticCustomerGroups.entries()].filter(([,p])=>p.length>1).map(([key,pointers])=>({key,pointers})),
-      documents,
+      duplicateShipmentGroups:canonicalShipments.filter(g=>g.records.length>1).map(g=>({key:g.key,pointers:g.records.map(r=>`${r.sourceCollection}[${r.sourceIndex}]`)})),
+      duplicateCustomerGroups:canonicalCustomers.filter(g=>g.records.length>1).map(g=>({key:g.key,pointers:g.records.map(r=>`customers[${r.sourceIndex}]`)})),
+      duplicateDocumentGroups:[...canonicalDocumentGroups.entries()].filter(([,g])=>g.length>1).map(([key,g])=>({key,pointers:g.map(d=>d.sourcePath)})),
+      documentSources,
+      canonicalDocumentGroups,
       shipments,
+      canonicalShipments,
       customers,
+      canonicalCustomers,
       users
     }
   };
 }
 
-export function createNormalizedSkeleton(payload, inventory){
+function professionalRole(u){
+  const role=low(u&&u.role), perms=arr(u&&u.permissions).map(low);
+  if(/global.*admin|globaler administrator|plattform/.test(role)||perms.includes('*')) return 'PLATFORM_ADMIN';
+  if(/admin/.test(role)) return 'TENANT_ADMIN';
+  return 'USER';
+}
+
+export function createNormalizedSkeleton(payload, inventory, options={}){
   const tenantId='tenant-legacy-import';
+  const tenantName=q(options.tenantNameHint)||'Legacy ExportHUB Import';
   const migrationMap=[];
-  const customers=inventory.customers.map((r,index)=>{
-    const pointer=`customers[${r.sourceIndex}]`, c=r.value, id='cust-'+String(index+1).padStart(6,'0');
-    migrationMap.push({sourcePointer:pointer,targetType:'customer',targetId:id});
-    return {id,tenantId,legacy:{pointer,id:customerIdOf(c),account:customerAccountOf(c)},account:customerAccountOf(c),name:customerNameOf(c),sourcePointer:pointer};
+  const customerTargetByLegacy=new Map();
+  const customers=inventory.canonicalCustomers.map((g,index)=>{
+    const r=g.primary, pointer=`customers[${r.sourceIndex}]`, c=r.value, id='cust-'+String(index+1).padStart(6,'0');
+    g.records.forEach(x=>migrationMap.push({sourcePointer:`customers[${x.sourceIndex}]`,targetType:'customer',targetId:id,duplicateAlias:x!==r}));
+    const legacyId=customerIdOf(c),account=customerAccountOf(c);
+    if(legacyId) customerTargetByLegacy.set('id:'+normalizeKey(legacyId),id);
+    if(account) customerTargetByLegacy.set('account:'+normalizeKey(account),id);
+    return {id,tenantId,legacy:{pointers:g.records.map(x=>`customers[${x.sourceIndex}]`),id:legacyId,account},account,name:customerNameOf(c),country:q(c.country||c.land),iso:q(c.iso),address:q(c.address),carrier:q(c.carrier||c.spedition||c.carrierName||c.speditionName)};
   });
-  const shipmentGroupMap=new Map(), shipments=[];
-  inventory.shipments.forEach(r=>{
-    const pointer=`${r.sourceCollection}[${r.sourceIndex}]`, sh=r.value, key=shipmentIdentity(sh,pointer);
-    let target=shipmentGroupMap.get(key);
-    if(!target){
-      target={id:'ship-'+String(shipments.length+1).padStart(7,'0'),tenantId,reference:refOf(sh),legacyShipmentId:shipmentIdOf(sh),status:q(sh.status||sh.processStatus),sourcePointers:[]};
-      shipmentGroupMap.set(key,target); shipments.push(target);
-    }
-    target.sourcePointers.push(pointer);
-    migrationMap.push({sourcePointer:pointer,targetType:'shipment',targetId:target.id,duplicateAlias:target.sourcePointers.length>1});
+
+  const shipmentTargetByKey=new Map();
+  const shipments=inventory.canonicalShipments.map((g,index)=>{
+    const sh=g.primary.value, id='ship-'+String(index+1).padStart(7,'0'), pointers=g.records.map(r=>`${r.sourceCollection}[${r.sourceIndex}]`);
+    shipmentTargetByKey.set(g.key,id);
+    g.records.forEach(r=>migrationMap.push({sourcePointer:`${r.sourceCollection}[${r.sourceIndex}]`,targetType:'shipment',targetId:id,duplicateAlias:r!==g.primary}));
+    const customerLegacyId=q(sh.customerId || (sh.customer&&sh.customer.id) || (sh.customerData&&sh.customerData.id));
+    const customerAccount=q(sh.customerAccount||sh.customerNumber||sh.customerNo||(sh.customer&&customerAccountOf(sh.customer))||(sh.customerData&&customerAccountOf(sh.customerData)));
+    const customerId=customerTargetByLegacy.get('id:'+normalizeKey(customerLegacyId))||customerTargetByLegacy.get('account:'+normalizeKey(customerAccount))||'';
+    const canonicalStatus=canonicalStatusOf(sh), hasPod=g.records.some(r=>podEvidence(r.value)), picked=g.records.some(r=>pickupEvidence(r.value));
+    return {
+      id,tenantId,customerId,reference:refOf(sh),legacyShipmentId:shipmentIdOf(sh),canonicalStatus,
+      sourceStatus:q(sh.status),processStatus:q(sh.processStatus),readinessStatus:q(sh.readinessStatus),podStatus:q(sh.podStatus),
+      locked:hasPod||picked||['POD vorhanden','Abgeholt','Abgeschlossen','Archiviert'].includes(canonicalStatus),lockReason:hasPod?'POD_OR_SIGNATURE_EVIDENCE':(picked?'PICKUP_EVIDENCE':''),
+      pickupDate:q(sh.pickupDate),actualPickupDate:q(sh.actualPickupDate),actualPickupTime:q(sh.actualPickupTime),pickedUpAt:q(sh.pickedUpAt),pickupMethod:q(sh.pickupMethod),pickupConfirmedBy:q(sh.pickupConfirmedBy),
+      podEvidence:hasPod,podConfirmed:g.records.some(r=>r.value&&r.value.podConfirmed===true),podAvailable:g.records.some(r=>r.value&&r.value.podAvailable===true),podScanConfirmed:g.records.some(r=>r.value&&r.value.podScanConfirmed===true),signatureAvailable:g.records.some(r=>r.value&&r.value.signatureAvailable===true),
+      customerLegacyId,customerAccount,customerName:q(sh.customerName||(sh.customer&&customerNameOf(sh.customer))||(sh.customerData&&customerNameOf(sh.customerData))),carrier:q(sh.carrier||sh.carrierName||sh.spedition),destinationCountry:q(sh.destinationCountry||sh.recipientCountry||(sh.customer&&sh.customer.country)),
+      sourcePointers:pointers
+    };
   });
+
   const users=inventory.users.map((r,index)=>{
-    const pointer=r.sourceKey?`users.${r.sourceKey}`:`users[${r.sourceIndex}]`, u=r.value, id='user-'+String(index+1).padStart(5,'0');
+    const pointer=r.sourceKey?`users.${r.sourceKey}`:`users[${r.sourceIndex}]`, u=r.value||{}, id='user-'+String(index+1).padStart(5,'0');
     migrationMap.push({sourcePointer:pointer,targetType:'user',targetId:id});
-    return {id,tenantId,name:q(u&& (u.name||u.user||u.username||u.displayName||r.sourceKey)),legacyPointer:pointer};
+    return {id,tenantId,username:userNameOf(u,r.sourceKey),displayName:userDisplayNameOf(u,r.sourceKey),legacyRole:q(u.role),professionalRole:professionalRole(u),active:u.active!==false,locked:u.locked===true,mustChangeLegacyPassword:u.mustChange===true,passwordMigration:'RESET_REQUIRED',legacyPointer:pointer};
   });
-  const documents=inventory.documents.map((d,index)=>{
-    const id='doc-'+String(index+1).padStart(8,'0');
-    migrationMap.push({sourcePointer:d.sourcePath,targetType:'document',targetId:id});
-    return {id,tenantId,kind:d.kind,name:d.name,mimeType:d.mimeType,size:d.size,ownerType:d.ownerType,ownerPointer:d.ownerPointer,sourcePointer:d.sourcePath,storage:d.inlinePayload?'inline-source':(d.remoteUrl?'remote-source':'metadata-only'),remoteUrl:d.remoteUrl||'',declaredHash:d.declaredHash||''};
-  });
+
+  const documents=[];
+  let docIndex=0;
+  for(const [,group] of inventory.canonicalDocumentGroups.entries()){
+    const d=group[0], id='doc-'+String(++docIndex).padStart(8,'0');
+    group.forEach(src=>migrationMap.push({sourcePointer:src.sourcePath,targetType:'document',targetId:id,duplicateAlias:src!==d}));
+    const shipmentId=d.ownerType==='shipment'?shipmentTargetByKey.get(d.canonicalOwnerKey)||'':'';
+    const customerId=d.ownerType==='customer'?customerTargetByLegacy.get(d.canonicalOwnerKey)||'':'';
+    documents.push({id,tenantId,shipmentId,customerId,kind:d.kind,name:d.name,mimeType:d.mimeType,size:d.size,sourcePointers:group.map(x=>x.sourcePath),storage:d.inlinePayload?'inline-source':(d.remoteUrl?'remote-source':'metadata-only'),remoteUrl:d.remoteUrl||'',declaredHash:d.declaredHash||'',uploadedAt:d.uploadedAt||'',uploadedBy:d.uploadedBy||''});
+  }
+
   return {
-    schemaVersion:'professional-0.1',
-    tenant:{id:tenantId,name:'Legacy ExportHUB Import',migrationOnly:true},
+    schemaVersion:'professional-0.2',
+    tenant:{id:tenantId,name:tenantName,migrationOnly:true},
     users,customers,shipments,documents,
     tasks:arr(payload.state.tasks).map((x,i)=>({id:'task-'+String(i+1).padStart(7,'0'),tenantId,sourcePointer:`tasks[${i}]`,title:q(x&&x.title),status:q(x&&x.status)})),
     migrationMap
@@ -244,30 +375,34 @@ export async function sha256Hex(input){
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-export async function buildMigrationPackage(payload, sourceText){
-  const invResult=inventoryBackup(payload);
+export async function buildMigrationPackage(payload, sourceText, options={}){
+  const invResult=inventoryBackup(payload,options);
   if(!invResult.validation.ok) throw new Error('Ungültiges ExportHUB-Backup: '+invResult.validation.errors.join(', '));
   const inv=invResult.inventory;
-  const normalized=createNormalizedSkeleton(payload,inv);
+  const normalized=createNormalizedSkeleton(payload,inv,options);
   const sourceSha256=await sha256Hex(sourceText ?? JSON.stringify(payload));
   const docVerification=[];
   let inlineCount=0, remoteCount=0, missingCount=0, hashErrors=0;
-  for(let i=0;i<inv.documents.length;i++){
-    const d=inv.documents[i];
-    const rec={sourcePointer:d.sourcePath,name:d.name,kind:d.kind,storage:d.inlinePayload?'inline':(d.remoteUrl?'remote':'metadata-only'),sha256:'',status:''};
-    if(d.inlinePayload){
+  for(const [,group] of inv.canonicalDocumentGroups.entries()){
+    const d=group[0];
+    const inline=group.find(x=>x.inlinePayload), remote=group.find(x=>x.remoteUrl), declared=group.find(x=>x.declaredHash);
+    const rec={sourcePointers:group.map(x=>x.sourcePath),name:d.name,kind:d.kind,storage:inline?'inline':(remote?'remote':'metadata-only'),sha256:'',declaredHash:q(declared&&declared.declaredHash),status:''};
+    if(inline){
       inlineCount++;
-      try{ rec.sha256=await sha256Hex(bytesFromDataUrl(d.inlinePayload)); rec.status='HASHED'; }
+      try{ rec.sha256=await sha256Hex(bytesFromDataUrl(inline.inlinePayload)); rec.status='HASHED'; }
       catch(e){ rec.status='HASH_ERROR'; rec.error=q(e&&e.message||e); hashErrors++; }
-    }else if(d.remoteUrl){ remoteCount++; rec.status='REMOTE_CAPTURE_REQUIRED'; }
+    }else if(remote){ remoteCount++; rec.status='REMOTE_CAPTURE_REQUIRED'; rec.remoteUrl=remote.remoteUrl; }
     else{ missingCount++; rec.status='CONTENT_MISSING'; }
     docVerification.push(rec);
   }
   const sourceCoverage=normalized.migrationMap.length;
-  const expectedCoverage=inv.customers.length+inv.shipments.length+inv.users.length+inv.documents.length;
+  const expectedCoverage=inv.customers.length+inv.shipments.length+inv.users.length+inv.documentSources.length;
   const readOnlyErrors=[];
   if(sourceCoverage!==expectedCoverage) readOnlyErrors.push('SOURCE_MAPPING_INCOMPLETE');
   if(hashErrors) readOnlyErrors.push('INLINE_DOCUMENT_HASH_ERROR');
+  if(normalized.shipments.length!==inv.counts.canonicalShipmentGroups) readOnlyErrors.push('CANONICAL_SHIPMENT_COUNT_MISMATCH');
+  if(normalized.customers.length!==inv.counts.canonicalCustomers) readOnlyErrors.push('CANONICAL_CUSTOMER_COUNT_MISMATCH');
+  if(normalized.documents.length!==inv.counts.documents) readOnlyErrors.push('CANONICAL_DOCUMENT_COUNT_MISMATCH');
   const cutoverBlockers=[...readOnlyErrors];
   if(remoteCount) cutoverBlockers.push('REMOTE_DOCUMENTS_REQUIRE_CAPTURE');
   if(missingCount) cutoverBlockers.push('DOCUMENT_CONTENT_MISSING');
@@ -277,10 +412,12 @@ export async function buildMigrationPackage(payload, sourceText){
     sourceSha256,
     sourceMetadata:inv.source,
     sourceCounts:inv.counts,
+    statusCounts:inv.statusCounts,
     collectionCounts:inv.collectionCounts,
     mapping:{expected:expectedCoverage,mapped:sourceCoverage,complete:sourceCoverage===expectedCoverage},
-    documents:{total:inv.documents.length,inlineHashed:inlineCount,remoteCaptureRequired:remoteCount,contentMissing:missingCount,hashErrors,verification:docVerification},
-    duplicates:{shipmentGroups:inv.duplicateShipmentGroups,customerGroups:inv.duplicateCustomerGroups},
+    documents:{total:inv.counts.documents,sourceRecords:inv.counts.documentSourceRecords,inlineHashed:inlineCount,remoteCaptureRequired:remoteCount,contentMissing:missingCount,hashErrors,verification:docVerification},
+    duplicates:{shipmentGroups:inv.duplicateShipmentGroups,customerGroups:inv.duplicateCustomerGroups,documentGroups:inv.duplicateDocumentGroups},
+    security:{legacyPasswordsMigrated:false,passwordPolicy:'RESET_REQUIRED',sourceSnapshotContainsLegacySensitiveFields:true},
     gates:{
       readOnlyReady:readOnlyErrors.length===0,
       readOnlyErrors,
@@ -302,9 +439,12 @@ export function summarizePackage(pkg){
   const m=pkg&&pkg.manifest||{}, c=m.sourceCounts||{}, d=m.documents||{}, g=m.gates||{};
   return {
     sourceVersion:q(m.sourceMetadata&&m.sourceMetadata.version),
-    customers:Number(c.customers||0),
+    sourceFormat:q(m.sourceMetadata&&m.sourceMetadata.format),
+    customers:Number(c.canonicalCustomers||c.customers||0),
     shipmentSourceRecords:Number(c.shipmentSourceRecords||0),
     canonicalShipments:Number(c.canonicalShipmentGroups||0),
+    podEvidenceShipments:Number(c.podEvidenceShipments||0),
+    podFileEntries:Number(c.podFileEntries||0),
     pods:Number(c.pods||0),
     documents:Number(c.documents||0),
     users:Number(c.users||0),
@@ -315,4 +455,4 @@ export function summarizePackage(pkg){
   };
 }
 
-export { BACKUP_TYPE, PROFESSIONAL_VERSION };
+export { BACKUP_TYPE, PROFESSIONAL_VERSION, canonicalStatusOf, podEvidence, pickupEvidence };
