@@ -15,5 +15,7 @@ const actual={customers:c.canonicalCustomers,shipments:c.canonicalShipmentGroups
 const diffs=[];
 for(const [k,v] of Object.entries(profile.expectedCoreCounts)){ if(actual[k]!==v) diffs.push(`${k}: erwartet ${v}, erhalten ${actual[k]}`); }
 for(const [k,v] of Object.entries(profile.expectedProcessStatusCounts)){ if((s[k]||0)!==v) diffs.push(`Status ${k}: erwartet ${v}, erhalten ${s[k]||0}`); }
-console.log(JSON.stringify({ok:diffs.length===0,sourceSha256:pkg.manifest.sourceSha256,actual,diffs},null,2));
+const p04=profile.expectedProfessional04||{}, actual04={locations:pkg.manifest.locations.total,customersWithLocations:pkg.manifest.locations.customersWithLocations,shipmentsWithResolvedLocation:pkg.manifest.locations.shipmentsResolved,shipmentsWithUnresolvedNamedLocation:pkg.manifest.locations.shipmentsUnresolved,auditEvents:pkg.manifest.audit.total,legacyAuditEvents:pkg.manifest.audit.legacyAudit,securityAuditEvents:pkg.manifest.audit.securityAudit,remoteCaptureActions:pkg.manifest.recovery.captureRequired,sourceFileRequired:pkg.manifest.recovery.sourceFileRequired,regenerableDocuments:pkg.manifest.recovery.regenerableDocuments,generatedArtifactMetadata:pkg.manifest.recovery.generatedArtifacts,mappingExpected:pkg.manifest.mapping.expected,mappingMapped:pkg.manifest.mapping.mapped};
+for(const [k,v] of Object.entries(p04)){ if(actual04[k]!==v) diffs.push(`Professional 0.4 ${k}: erwartet ${v}, erhalten ${actual04[k]}`); }
+console.log(JSON.stringify({ok:diffs.length===0,sourceSha256:pkg.manifest.sourceSha256,actual,actual04,diffs},null,2));
 if(diffs.length) process.exitCode=4;

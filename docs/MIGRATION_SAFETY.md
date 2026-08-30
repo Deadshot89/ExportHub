@@ -1,4 +1,4 @@
-# Migrationssicherheit Professional 0.3
+# Migrationssicherheit Professional 0.4
 
 1. Das Originalbackup wird niemals verändert.
 2. Die komplette Quelldatei erhält SHA-256.

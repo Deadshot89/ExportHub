@@ -1,43 +1,38 @@
-# ExportHUB Professional Roadmap
+# ExportHUB Professional 0.4 – Architektur
 
-## 0.1 – abgeschlossen
-- getrennte Professional-Shell
-- Backup-Inventur
-- SHA-256
-- Read-only/Cutover-Gates
+Professional wird parallel zu ExportHUB Internal entwickelt. Internal bleibt das aktive Ursprungssystem, bis ein späterer Cutover separat freigegeben wurde.
 
-## 0.2 – abgeschlossen
-- echter Legacy-Backup-Adapter
-- Mandantenvorschau
-- Benutzer/Rollen ohne Passwortübernahme
-- Kundenbestand Read-only
-- Sendungsbestand Read-only
-- Status- und Sperrerhalt
-- POD-Cloud-Link-Erkennung
-- Dubletten-Mapping
+## Phase 0.4
 
-## 0.3 – aktueller Stand
-- Dokument-Migrationsregister
-- Dokumentstatus `VERIFIED_INLINE`, `REMOTE_CAPTURE_REQUIRED`, `CONTENT_MISSING`, `HASH_ERROR`
-- P0-Schutz für offene POD-/ABD-Dateien
-- Remote-Quellenklassifizierung
-- ABD-Dokumente wieder mit Sendungsreferenz verknüpft
-- separates sicheres Dokumentregister ohne rohe Remote-URLs
+- modulare Web-App
+- Azure-Functions-kompatible API-Struktur
+- noch keine produktive Datenbankverbindung
+- Read-only-Migrationsprüfung
+- Legacy-Importadapter für ältere ExportHUB-Backups
+- Mandantenmodell und Tenant-ID an jedem normalisierten Datensatz
+- Read-only-Ansicht für Benutzer/Rollen, Kunden und Sendungen
+- POD-/Abhol-Sperrerhalt
+- Dokumentinventur mit Inline-Hash, Remote-Erfassung und Metadatenstatus
+- vollständige Herkunftszuordnung über Source Pointer
 
-## 0.4 – nächster Schritt
-- Remote-POD-Capture-Plan und tatsächliche Dateisicherung
-- Regenerierbarkeitsregeln für Lieferscheine/Ladelisten/CMR
-- Kundenstandorte normalisieren
-- strukturierte Audit-Migration
+## Sicherheitsprinzip
 
-## 0.5
-- echte Professional-Authentifizierung
-- serverseitige Tenant-/Rollenprüfung
-- noch ohne produktiven Cutover
+Frontend-Read-only ist nur die erste Ebene. Sobald eine produktive Datenbank/API aktiviert wird, muss jede API-Operation die Tenant-ID und Rolle serverseitig prüfen. Kein Mandant darf Daten eines anderen Mandanten über IDs, URLs oder API-Aufrufe erreichen.
 
-## 0.6+
-- persistente Datenbank
-- Blob-Dokumentenspeicher
+## Nächste Zielmodule
+
+- produktive Authentifizierung mit Passwort-Neuvergabe/SSO-Option
+- serverseitige Tenant- und Rollenprüfung
+- Dokumentenspeicher
+- Kundenstandorte
 - Sendungserstellung
 - Aufgaben & Planung
-- kontrollierter Parallelbetrieb und später Cutover
+- strukturiertes Audit
+- Plattformadministration
+
+
+## 0.4 – aktueller Stand
+- Kundenstandorte normalisieren und Sendungen zuordnen
+- Audit strukturiert migrieren, Secret-Felder in der Normalform redigieren
+- Dokument-Capture-/Recovery-Plan ohne falsche Vollständigkeitsbehauptung
+- Generierte Artefakt-Metadaten separat erhalten

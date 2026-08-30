@@ -1,9 +1,9 @@
 {
   "name": "exporthub-professional",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "ExportHUB Professional - 0.3 migration-safe document registry and read-only tenant/user/customer/shipment foundation",
+  "description": "ExportHUB Professional - 0.4 migration-safe locations, structured audit and document recovery planning",
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "analyze": "node migration/analyze-exporthub-backup.mjs",

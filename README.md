@@ -1,51 +1,25 @@
-# ExportHUB Professional 0.3.0
+# ExportHUB Professional 0.4.0
 
-Professional 0.3 bleibt vollständig von ExportHUB Internal getrennt. Der interne Datenbestand wird nur lokal gelesen und als schreibgeschützte Professional-Struktur normalisiert.
+Separate Professional-/SaaS-Basis. ExportHUB Internal wird nicht beschrieben oder automatisch verändert.
 
-## Neu in 0.3
+## Neu in 0.4
 
-- strukturiertes Dokument-Migrationsregister für POD, Lieferschein, ABD, CMR, Ladeliste, Rechnung und sonstige Dokumente
-- jedes eindeutige Dokument erhält Referenz, Quelle, Speicherstatus, Migrationsstatus, Priorität und Cutover-Sperre
-- eingebettete Dateien werden per SHA-256 verifiziert
-- Remote-Dokumente werden nach ExportHUB-API, SharePoint oder externer HTTP-Quelle klassifiziert
-- POD-Dokumente besitzen ein eigenes P0-Gate: ein Cutover bleibt blockiert, solange ein POD nicht vollständig gesichert ist
-- ABD-Dokumente aus `abdRequests` werden anhand der Referenz wieder der richtigen Sendung zugeordnet
-- Dokumentregister kann separat und ohne rohe Remote-URLs heruntergeladen werden
-- bestehende Read-only-Ansichten für Mandant, Benutzer/Rollen, Kunden und Sendungen bleiben erhalten
-- Legacy-Passwörter werden weiterhin nicht übernommen
+- Kundenstandorte werden mandanten- und kundenbezogen normalisiert; eine vorhandene Hauptadresse wird nur als abgeleiteter Standort ergänzt, wenn sie nicht bereits als Standort existiert.
+- Sendungen erhalten eine Professional-Standortzuordnung, soweit die Legacy-Daten sie eindeutig zulassen. Nicht eindeutige Standorte werden nicht geraten.
+- `state.audit` und `state.auditLog` werden als strukturierte Audit-Ereignisse übernommen. Bekannte Secret-Felder wie Passwort, Token, Session, Authorization oder Connection String werden in der normalisierten Sicht redigiert. Der Source Snapshot bleibt unverändert.
+- Dokumente erhalten einen Wiederherstellungsplan: autorisierter SharePoint-Capture, Legacy-API-Capture, sonstiger Remote-Capture, Originaldatei erforderlich oder – nur bei generierbaren Ausgabedokumenten – Regeneration aus einem gesperrten Sendungsstand.
+- Metadaten bereits generierter Deckblätter/Ladelisten/CMRs werden separat als `generatedArtifacts` erhalten. Sie gelten nicht als Ersatz für eine tatsächlich migrierte Originaldatei.
+- POD/ABD/Lieferschein werden niemals aus Metadaten als erfolgreich migriert markiert.
+- `READ_ONLY_READY` und `CUTOVER_READY` bleiben getrennte Gates.
 
-## Sicherheits-Gates
+## Sicherheitsregel
 
-`READ_ONLY_READY` bedeutet: Der Bestand ist vollständig zugeordnet und darf schreibgeschützt geprüft werden.
+Ein Cutover bleibt blockiert, solange Remote-Dokumente, fehlende Dateiinhalte oder nicht vollständig erfasste POD-Dokumente vorhanden sind. Es findet in 0.4 kein automatischer Zugriff auf SharePoint oder andere Remote-Quellen statt.
 
-`CUTOVER_READY` ist strenger. Remote-Dateien, fehlende Dateiinhalte oder nicht vollständig gesicherte POD-Dokumente blockieren den Cutover.
+## Lokal testen
 
-## Migration testen
+```text
+npm test
+```
 
-1. Unter **Migration** bei einem Legacy-Backup die Quellversion bestätigen, z. B. RC826.
-2. Mandantenname eintragen.
-3. Backup auswählen.
-4. Inventur prüfen.
-5. **Migrationspaket prüfen & erzeugen** starten.
-6. Bei `READ_ONLY_READY` Kunden, Sendungen und Dokumentregister prüfen.
-7. Das separate Dokumentregister zeigt alle noch offenen Dateien priorisiert an.
-8. Ein produktiver Cutover ist in 0.3 weiterhin deaktiviert.
-
-CLI:
-
-`npm run analyze -- /pfad/backup.json /pfad/migration.json --source-version RC826 --tenant "Firma"`
-
-Danach:
-
-`npm run verify -- /pfad/backup.json /pfad/migration.json --source-version RC826`
-
-## Datenverlustschutz
-
-- keine Änderungen an ExportHUB Internal
-- keine automatische Löschung
-- keine automatische Datenbankmigration
-- vollständiger Source Snapshot plus SHA-256
-- Source Pointer für jede Migration
-- doppelte Quellstände werden dokumentiert, aber nicht doppelt angelegt
-- POD- und Abholsperren bleiben erhalten
-- Remote-URLs werden im separaten sicheren Dokumentregister nicht ausgegeben
+Der Browser-Migrationschecker verarbeitet das ausgewählte Backup ausschließlich lokal.

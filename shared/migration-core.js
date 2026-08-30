@@ -1,5 +1,5 @@
 const BACKUP_TYPE = 'ExportHUB_BACKUP';
-const PROFESSIONAL_VERSION = '0.3.0';
+const PROFESSIONAL_VERSION = '0.4.0';
 
 function q(v){ return v == null ? '' : String(v).trim(); }
 function low(v){ return q(v).toLowerCase(); }
@@ -46,7 +46,7 @@ function classifyDocument(path, file){
   if(/pod|proof.of.delivery|unterschrift|signed-loadlist/.test(s)) return 'POD';
   if(/lieferschein|delivery.?note|packing.?slip|dnc/.test(s)) return 'LIEFERSCHEIN';
   if(/(?:^|[^a-z0-9])abd(?:[^a-z0-9]|$)|ausfuhr|export.?declaration/.test(s)) return 'ABD';
-  if(/\bcmr\b/.test(s)) return 'CMR';
+  if(/(?:^|[^a-z0-9])cmr(?:[^a-z0-9]|$)/.test(s)) return 'CMR';
   if(/rechnung|invoice/.test(s)) return 'RECHNUNG';
   if(/ladeliste|load.?list/.test(s)) return 'LADELISTE';
   return 'DOKUMENT';
@@ -310,6 +310,92 @@ function migrationPriority(kind,status){
   return 'OK';
 }
 
+function locationNameOf(x){ return q(x && (x.name || x.locationName || x.siteName || x.standort || x.title)) || 'Standort'; }
+function locationAddressOf(x){ return q(x && (x.address || x.recipientAddress || x.streetAddress || x.fullAddress)); }
+function locationCountryOf(x){ return q(x && (x.country || x.land || x.destinationCountry || x.recipientCountry)); }
+function locationIdOf(x){ return q(x && (x.id || x.locationId || x.siteId || x.uuid)); }
+function locationIdentity(x){
+  const id=locationIdOf(x); if(id) return 'id:'+normalizeKey(id);
+  return 'nameaddr:'+normalizeKey(locationNameOf(x))+'|'+normalizeKey(locationAddressOf(x))+'|'+normalizeKey(locationCountryOf(x));
+}
+function collectLocations(inventory, customerTargetByLegacy, tenantId){
+  const locations=[], byCustomerLegacy=new Map(); let pos=0;
+  inventory.canonicalCustomers.forEach((g,index)=>{
+    const c=g.primary.value||{}, legacyId=customerIdOf(c), acc=customerAccountOf(c);
+    const customerId=customerTargetByLegacy.get('id:'+normalizeKey(legacyId))||customerTargetByLegacy.get('account:'+normalizeKey(acc))||('cust-'+String(index+1).padStart(6,'0'));
+    const candidates=[];
+    ['locations','sites','standorte'].forEach(k=>arr(c[k]).forEach((x,i)=>{ if(obj(x)) candidates.push({value:x,pointer:`customers[${g.primary.sourceIndex}].${k}[${i}]`,derivedMain:false}); }));
+    const main={id:q(c.mainLocationId),name:'Hauptadresse',address:q(c.address),country:q(c.country||c.land),_derivedMain:true};
+    if(main.address){
+      const mainKey=locationIdentity(main), exists=candidates.some(r=>locationIdentity(r.value)===mainKey || (normalizeKey(locationAddressOf(r.value))===normalizeKey(main.address)&&normalizeKey(locationCountryOf(r.value))===normalizeKey(main.country)));
+      if(!exists) candidates.unshift({value:main,pointer:`customers[${g.primary.sourceIndex}].address`,derivedMain:true});
+    }
+    const seen=new Map();
+    candidates.forEach(r=>{
+      const key=locationIdentity(r.value); if(seen.has(key)) { seen.get(key).sourcePointers.push(r.pointer); return; }
+      const id='loc-'+String(++pos).padStart(7,'0'), legacyLocationId=locationIdOf(r.value);
+      const row={id,tenantId,customerId,legacyLocationId,name:locationNameOf(r.value),address:locationAddressOf(r.value),country:locationCountryOf(r.value),contactName:q(r.value.contactName||r.value.contact||r.value.ansprechpartner),email:q(r.value.email||r.value.mail||r.value.contactEmail),phone:q(r.value.phone||r.value.telefon||r.value.contactPhone),openingHours:q(r.value.openingHours||r.value.zeiten),notes:q(r.value.note||r.value.notes),derivedMain:!!(r.derivedMain||r.value._derivedMain),sourcePointers:[r.pointer]};
+      locations.push(row); seen.set(key,row);
+      if(legacyLocationId) byCustomerLegacy.set(customerId+'|id:'+normalizeKey(legacyLocationId),id);
+      byCustomerLegacy.set(customerId+'|name:'+normalizeKey(row.name),id);
+      if(row.address) byCustomerLegacy.set(customerId+'|addr:'+normalizeKey(row.address),id);
+    });
+  });
+  return {locations,byCustomerLegacy};
+}
+function resolveShipmentLocation(sh,customerId,index){
+  if(!customerId||!index) return '';
+  const legacy=q(sh.locationId||sh.selectedLocationId||sh.siteId||(sh.location&&locationIdOf(sh.location))||(sh.locationData&&locationIdOf(sh.locationData)));
+  const name=q(sh.locationName||sh.site||sh.standort||sh.recipientName||sh.destinationName||(sh.location&&locationNameOf(sh.location)));
+  const address=q(sh.recipientAddress||(sh.location&&locationAddressOf(sh.location))||(sh.locationData&&locationAddressOf(sh.locationData)));
+  return (legacy&&index.get(customerId+'|id:'+normalizeKey(legacy)))||(name&&index.get(customerId+'|name:'+normalizeKey(name)))||(address&&index.get(customerId+'|addr:'+normalizeKey(address)))||'';
+}
+const AUDIT_SECRET_KEY=/pass(word|wort)?|token|session|authorization|secret|connection.?string|api.?key|cookie|credential|base64|dataurl|filedata/i;
+function safeAuditValue(v,key='',depth=0){
+  if(AUDIT_SECRET_KEY.test(q(key))) return '[REDACTED_FOR_MIGRATION]';
+  if(depth>8) return '[TRUNCATED_STRUCTURE]';
+  if(Array.isArray(v)) return v.map((x,i)=>safeAuditValue(x,String(i),depth+1));
+  if(obj(v)){ const out={}; Object.keys(v).forEach(k=>{out[k]=safeAuditValue(v[k],k,depth+1)}); return out; }
+  return v;
+}
+function auditCategory(action,type){
+  const s=low(q(type)+' '+q(action));
+  if(/login|logout|auth/.test(s)) return 'AUTH';
+  if(/pod|abhol|pickup/.test(s)) return 'POD_PICKUP';
+  if(/liefer|dokument|abd|cmr|datei|file/.test(s)) return 'DOCUMENT';
+  if(/kunde|customer/.test(s)) return 'CUSTOMER';
+  if(/sendung|shipment/.test(s)) return 'SHIPMENT';
+  if(/task|aufgabe|plan/.test(s)) return 'TASK';
+  return 'GENERAL';
+}
+function collectAuditEvents(state,tenantId){
+  const out=[]; let pos=0;
+  arr(state.audit).forEach((x,i)=>{ if(!obj(x)) return; const action=q(x.action||x.type||'Audit'); out.push({id:'audit-'+String(++pos).padStart(9,'0'),tenantId,sourcePointer:`audit[${i}]`,legacyId:q(x.id),at:q(x.at||x.time||x.timestamp),actor:q(x.user||x.actor||x.by),action,category:auditCategory(action,x.type),detail:q(x.detail||x.message),details:safeAuditValue(x.details||{},'details'),source:'LEGACY_AUDIT'}); });
+  arr(state.auditLog).forEach((x,i)=>{ if(!obj(x)) return; const action=q(x.type||x.action||'Audit'); out.push({id:'audit-'+String(++pos).padStart(9,'0'),tenantId,sourcePointer:`auditLog[${i}]`,legacyId:q(x.id),at:q(x.at||x.time||x.timestamp),actor:q(x.actor||x.user||x.by),action,category:auditCategory(action,x.type),detail:q(x.detail||x.message),details:safeAuditValue(x.details||{},'details'),source:'SECURITY_AUDIT'}); });
+  return out;
+}
+function collectGeneratedArtifacts(inventory,tenantId,shipmentTargetByKey,shipmentReferenceById){
+  const out=[], seen=new Set(); let pos=0;
+  inventory.canonicalShipments.forEach(g=>{
+    const shipmentId=shipmentTargetByKey.get(g.key)||'', reference=shipmentReferenceById.get(shipmentId)||'';
+    g.records.forEach(r=>arr(r.value&&r.value.generatedDocuments).forEach((d,i)=>{
+      if(!obj(d)) return; const key=[shipmentId,q(d.id),q(d.type),q(d.version),q(d.signature)].join('|'); if(seen.has(key)) return; seen.add(key);
+      out.push({id:'artifact-'+String(++pos).padStart(8,'0'),tenantId,shipmentId,reference,legacyId:q(d.id),type:q(d.type),version:Number(d.version||0)||0,status:q(d.status),signature:q(d.signature),generatedAt:q(d.generatedAt),replacedAt:q(d.replacedAt),replacedReason:q(d.replacedReason),sourcePointer:`${r.sourceCollection}[${r.sourceIndex}].generatedDocuments[${i}]`});
+    }));
+  });
+  return out;
+}
+function documentRecoveryAction(d){
+  if(d.migrationStatus==='VERIFIED_INLINE') return 'NONE';
+  if(d.migrationStatus==='REMOTE_CAPTURE_REQUIRED'){
+    if(d.remoteSourceClass==='SHAREPOINT') return 'CAPTURE_SHAREPOINT_AUTHORIZED';
+    if(d.remoteSourceClass==='EXPORTHUB_API') return 'CAPTURE_LEGACY_API';
+    return 'CAPTURE_AUTHORIZED_REMOTE';
+  }
+  if(d.migrationStatus==='CONTENT_MISSING' && (d.kind==='CMR'||d.kind==='LADELISTE')) return 'REGENERATE_FROM_LOCKED_SNAPSHOT';
+  return 'SOURCE_FILE_REQUIRED';
+}
+
 export function createNormalizedSkeleton(payload, inventory, options={}){
   const tenantId='tenant-legacy-import';
   const tenantName=q(options.tenantNameHint)||'Legacy ExportHUB Import';
@@ -323,6 +409,9 @@ export function createNormalizedSkeleton(payload, inventory, options={}){
     if(account) customerTargetByLegacy.set('account:'+normalizeKey(account),id);
     return {id,tenantId,legacy:{pointers:g.records.map(x=>`customers[${x.sourceIndex}]`),id:legacyId,account},account,name:customerNameOf(c),country:q(c.country||c.land),iso:q(c.iso),address:q(c.address),carrier:q(c.carrier||c.spedition||c.carrierName||c.speditionName)};
   });
+
+  const locationBuild=collectLocations(inventory,customerTargetByLegacy,tenantId);
+  const locations=locationBuild.locations;
 
   const shipmentTargetByKey=new Map();
   const shipmentTargetByRef=new Map();
@@ -345,6 +434,7 @@ export function createNormalizedSkeleton(payload, inventory, options={}){
       pickupDate:q(sh.pickupDate),actualPickupDate:q(sh.actualPickupDate),actualPickupTime:q(sh.actualPickupTime),pickedUpAt:q(sh.pickedUpAt),pickupMethod:q(sh.pickupMethod),pickupConfirmedBy:q(sh.pickupConfirmedBy),
       podEvidence:hasPod,podConfirmed:g.records.some(r=>r.value&&r.value.podConfirmed===true),podAvailable:g.records.some(r=>r.value&&r.value.podAvailable===true),podScanConfirmed:g.records.some(r=>r.value&&r.value.podScanConfirmed===true),signatureAvailable:g.records.some(r=>r.value&&r.value.signatureAvailable===true),
       customerLegacyId,customerAccount,customerName:q(sh.customerName||(sh.customer&&customerNameOf(sh.customer))||(sh.customerData&&customerNameOf(sh.customerData))),carrier:q(sh.carrier||sh.carrierName||sh.spedition),destinationCountry:q(sh.destinationCountry||sh.recipientCountry||(sh.customer&&sh.customer.country)),
+      locationId:resolveShipmentLocation(sh,customerId,locationBuild.byCustomerLegacy),legacyLocationId:q(sh.locationId||sh.selectedLocationId||sh.siteId),locationName:q(sh.locationName||sh.site||sh.standort||sh.recipientName||sh.destinationName),recipientAddress:q(sh.recipientAddress),
       sourcePointers:pointers
     };
   });
@@ -382,10 +472,13 @@ export function createNormalizedSkeleton(payload, inventory, options={}){
     });
   }
 
+  documents.forEach(d=>{d.recoveryAction=documentRecoveryAction(d);});
+  const auditEvents=collectAuditEvents(payload.state,tenantId);
+  const generatedArtifacts=collectGeneratedArtifacts(inventory,tenantId,shipmentTargetByKey,shipmentReferenceById);
   return {
-    schemaVersion:'professional-0.3',
+    schemaVersion:'professional-0.4',
     tenant:{id:tenantId,name:tenantName,migrationOnly:true},
-    users,customers,shipments,documents,
+    users,customers,locations,shipments,documents,auditEvents,generatedArtifacts,
     tasks:arr(payload.state.tasks).map((x,i)=>({id:'task-'+String(i+1).padStart(7,'0'),tenantId,sourcePointer:`tasks[${i}]`,title:q(x&&x.title),status:q(x&&x.status)})),
     migrationMap
   };
@@ -444,6 +537,7 @@ export async function buildMigrationPackage(payload, sourceText, options={}){
       normalizedDoc.cutoverBlocking=rec.status!=='HASHED';
       normalizedDoc.migrationPriority=migrationPriority(normalizedDoc.kind,normalizedDoc.migrationStatus);
       if(rec.remoteUrl && !normalizedDoc.remoteUrl) normalizedDoc.remoteUrl=rec.remoteUrl;
+      normalizedDoc.recoveryAction=documentRecoveryAction(normalizedDoc);
     }
   }
   const sourceCoverage=normalized.migrationMap.length;
@@ -478,7 +572,10 @@ export async function buildMigrationPackage(payload, sourceText, options={}){
     mapping:{expected:expectedCoverage,mapped:sourceCoverage,complete:sourceCoverage===expectedCoverage},
     documents:{total:inv.counts.documents,sourceRecords:inv.counts.documentSourceRecords,inlineHashed:inlineCount,remoteCaptureRequired:remoteCount,contentMissing:missingCount,hashErrors,byKind:documentByKind,byStatus:documentByStatus,remoteBySource,podGate:{total:podDocs.length,ready:podReady,blockers:podBlockers},verification:docVerification},
     duplicates:{shipmentGroups:inv.duplicateShipmentGroups,customerGroups:inv.duplicateCustomerGroups,documentGroups:inv.duplicateDocumentGroups},
-    security:{legacyPasswordsMigrated:false,passwordPolicy:'RESET_REQUIRED',sourceSnapshotContainsLegacySensitiveFields:true},
+    locations:{total:normalized.locations.length,customersWithLocations:new Set(normalized.locations.map(x=>x.customerId)).size,derivedMain:normalized.locations.filter(x=>x.derivedMain).length,shipmentsResolved:normalized.shipments.filter(x=>x.locationId).length,shipmentsUnresolved:normalized.shipments.filter(x=>x.locationName&&!x.locationId).length},
+    audit:{total:normalized.auditEvents.length,legacyAudit:normalized.auditEvents.filter(x=>x.source==='LEGACY_AUDIT').length,securityAudit:normalized.auditEvents.filter(x=>x.source==='SECURITY_AUDIT').length,redactionPolicy:'SECRET_KEYS_REDACTED'},
+    recovery:{captureRequired:normalized.documents.filter(x=>/^CAPTURE_/.test(x.recoveryAction)).length,sourceFileRequired:normalized.documents.filter(x=>x.recoveryAction==='SOURCE_FILE_REQUIRED').length,regenerableDocuments:normalized.documents.filter(x=>x.recoveryAction==='REGENERATE_FROM_LOCKED_SNAPSHOT').length,generatedArtifacts:normalized.generatedArtifacts.length,actions:normalized.documents.reduce((a,x)=>(a[x.recoveryAction]=(a[x.recoveryAction]||0)+1,a),{})},
+    security:{legacyPasswordsMigrated:false,passwordPolicy:'RESET_REQUIRED',sourceSnapshotContainsLegacySensitiveFields:true,auditSecretFieldsRedactedInNormalizedView:true},
     gates:{
       readOnlyReady:readOnlyErrors.length===0,
       readOnlyErrors,

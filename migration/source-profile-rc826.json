@@ -47,6 +47,24 @@
     "POD documents must have a dedicated cutover gate",
     "ABD request documents must relink to their shipment reference",
     "remote URLs are classified but not exposed in the safe document register",
-    "legacy passwords are never copied into normalized Professional users"
-  ]
+    "legacy passwords are never copied into normalized Professional users",
+    "customer locations are deduplicated per customer and no unresolved shipment location is guessed",
+    "audit detail text is preserved while structured secret keys are redacted in normalized audit details",
+    "generated document metadata is kept separately and never counted as a successfully migrated source file"
+  ],
+  "expectedProfessional04": {
+    "locations": 66,
+    "customersWithLocations": 63,
+    "shipmentsWithResolvedLocation": 92,
+    "shipmentsWithUnresolvedNamedLocation": 27,
+    "auditEvents": 12278,
+    "legacyAuditEvents": 11480,
+    "securityAuditEvents": 798,
+    "remoteCaptureActions": 32,
+    "sourceFileRequired": 211,
+    "regenerableDocuments": 1,
+    "generatedArtifactMetadata": 2029,
+    "mappingExpected": 898,
+    "mappingMapped": 898
+  }
 }
