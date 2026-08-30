@@ -1,13 +1,16 @@
-ExportHUB RC740
-Erstellt: 17.8.2026, 17:19:27
+ExportHUB RC882
+Erstellt: 30.8.2026, 15:10:34
 Quelle: geprüfter TESTSERVICE Produktions-Snapshot
-Git SHA: 018602af282404504bf5477ae2b2089189f4d75f
-Snapshot erstellt: 2026-08-17T15:06:59.708Z
+Git SHA: e620356f0bf3728da8cf49244386e7e3311300fe
+Snapshot erstellt: 2026-08-30T13:05:14.871Z
 
 Dateien:
 - .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+- RELEASE_MANIFEST.txt
 - api/customer-avis/function.json
 - api/customer-avis/index.js
+- api/exporthub-auth-probe/function.json
+- api/exporthub-auth-probe/index.js
 - api/exporthub-auth/function.json
 - api/exporthub-auth/index.js
 - api/exporthub-health/function.json
@@ -16,6 +19,8 @@ Dateien:
 - api/exporthub-release/index.js
 - api/exporthub-state/function.json
 - api/exporthub-state/index.js
+- api/health/function.json
+- api/health/index.js
 - api/host.json
 - api/loader-pins-admin/function.json
 - api/loader-pins-admin/index.js
@@ -39,6 +44,10 @@ Dateien:
 - api/pickup-status/index.js
 - api/pod-backup/function.json
 - api/pod-backup/index.js
+- api/production-version-check/function.json
+- api/production-version-check/index.js
+- api/reference-files/function.json
+- api/reference-files/index.js
 - api/shared/auth-store.js
 - api/shared/blob-rest.js
 - api/shared/graph-drive.js
@@ -46,11 +55,15 @@ Dateien:
 - api/shared/merge.js
 - api/shared/pickup-store.js
 - api/shared/user-policy.js
+- assets/css/app.css
+- assets/js/app.js
 - customer-avis.html
 - index.html
 - infra/production-loader.html
 - infra/test-loader.html
 - location.html
+- package.json
 - pickup.html
 - pod-notfall.html
+- production-version.js
 - staticwebapp.config.json
