@@ -5,7 +5,12 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["get", "options"]
+      "methods": [
+        "get",
+        "post",
+        "options"
+      ],
+      "route": "pickup-status"
     },
     {
       "type": "http",
