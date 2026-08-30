@@ -1,0 +1,279 @@
+name: RC887 Quick Work Stage 3 v2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: exporthub-rc887-quickwork-v2
+  cancel-in-progress: false
+
+jobs:
+  patch-testservice:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Internal main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Guard RC886 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f TESTVERSION.html ]; then
+            echo "::error title=TESTVERSION fehlt::TESTVERSION.html wurde im Repository nicht gefunden."
+            exit 1
+          fi
+          VERSION="$(grep -o "version:'RC[0-9]*',cache:'[0-9]*',loginReturn:'/TESTVERSION.html?v=[0-9]*'" TESTVERSION.html | head -n1 | sed -E "s/version:'(RC[0-9]+)'.*/\1/")"
+          echo "Detected TESTVERSION baseline: ${VERSION:-unbekannt}"
+          if [ "$VERSION" != "RC886" ]; then
+            echo "::error title=RC886 Voraussetzung fehlt::Erkannt wurde ${VERSION:-keine Version}. Bitte zuerst 'RC886 Shipment Progress Stage 2 v2' erfolgreich ausführen. RC887 verändert in diesem Zustand nichts."
+            exit 1
+          fi
+          required_marker() {
+            local marker="$1"
+            local label="$2"
+            if ! grep -Fq "$marker" TESTVERSION.html; then
+              echo "::error title=RC886 unvollständig::$label fehlt. RC887 wird aus Sicherheitsgründen nicht installiert."
+              exit 1
+            fi
+          }
+          required_marker "Produktivitätsstufe 2: Sendungsfortschritt und Dokumenten-Ampel" "RC886 Release-Metadaten"
+          required_marker 'id="exporthub-rc885-productivity"' "RC885 Produktivitätsmodul"
+          required_marker 'ExportHUBProductivity885=Object.freeze' "RC885 Diagnose-API"
+          required_marker 'id="exporthub-rc886-shipment-progress"' "RC886 Fortschrittsmodul"
+          required_marker 'ExportHUBShipmentProgress886=Object.freeze' "RC886 Diagnose-API"
+          required_marker '__EXPORTHUB_RC843_RELEASE_SHIPMENT_VIEW__' "RC884 Navigationsschutz"
+          required_marker 'rc807ShipmentSearch' "RC884 Sendungssuche"
+          required_marker 'function setShipmentCustomerSearchAuto(v)' "bestehende Kundensuche"
+          if grep -Fq 'id="exporthub-rc887-quickwork"' TESTVERSION.html; then
+            echo "::error title=RC887 bereits vorhanden::Der RC887-Modulmarker ist bereits vorhanden. Workflow beendet sicher, statt doppelt zu installieren."
+            exit 1
+          fi
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ExportHUB Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Create immutable RC886 backup tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="backup-rc886-before-rc887-quickwork"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Backup tag already exists: $TAG"
+          else
+            git tag -a "$TAG" -m "Last known RC886 baseline before RC887 quick work"
+            git push origin "$TAG"
+          fi
+
+      - name: Patch TESTVERSION only
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'TESTVERSION.html';
+          let text = fs.readFileSync(path, 'utf8');
+          const original = text;
+
+          function replaceOnce(oldText, newText, label) {
+            const first = text.indexOf(oldText);
+            if (first < 0) throw new Error(label + ': Ausgangsblock nicht gefunden');
+            if (text.indexOf(oldText, first + oldText.length) >= 0) throw new Error(label + ': Ausgangsblock mehrfach gefunden');
+            text = text.slice(0, first) + newText + text.slice(first + oldText.length);
+          }
+
+          replaceOnce(
+            "var BUILD=Object.freeze({version:'RC886',cache:'886',loginReturn:'/TESTVERSION.html?v=886'});",
+            "var BUILD=Object.freeze({version:'RC887',cache:'887',loginReturn:'/TESTVERSION.html?v=887'});",
+            'Canonical BUILD'
+          );
+
+          replaceOnce(
+            " version:'RC886',\n date:'30.08.2026',\n title:'Produktivitätsstufe 2: Sendungsfortschritt und Dokumenten-Ampel',",
+            " version:'RC887',\n date:'30.08.2026',\n title:'Produktivitätsstufe 3: Favoriten, Vorlagen und Schnellerfassung',",
+            'Release metadata'
+          );
+
+          const moduleBase64 = 'PHN0eWxlIGlkPSJleHBvcnRodWItcmM4ODctcXVpY2t3b3JrLXN0eWxlIj4KLnJjODg3LXF1aWNrLWNhcmR7bWFyZ2luOjAgMCAxNHB4O2JvcmRlcjoxcHggc29saWQgI2Q3ZTNmMDtib3JkZXItcmFkaXVzOjE4cHg7YmFja2dyb3VuZDojZmZmO3BhZGRpbmc6MTRweDtib3gtc2hhZG93OjAgOHB4IDIycHggcmdiYSgxNSw0NywxMDcsLjA1KTtjb2xvcjojMGYxNzJhfS5yYzg4Ny1xdWljay1oZWFke2Rpc3BsYXk6Z3JpZDtncmlkLXRlbXBsYXRlLWNvbHVtbnM6bWlubWF4KDAsMWZyKSBhdXRvO2dhcDoxMnB4O2FsaWduLWl0ZW1zOnN0YXJ0fS5yYzg4Ny1xdWljay1oZWFkIGgze21hcmdpbjoycHggMCAycHg7Zm9udC1zaXplOjE3cHg7Y29sb3I6IzA4MjQ1ZH0ucmM4ODctcXVpY2staGVhZCBwe21hcmdpbjowO2ZvbnQtc2l6ZToxMXB4O2NvbG9yOiM2NDc0OGJ9LnJjODg3LWtpY2tlcntkaXNwbGF5OmJsb2NrO2ZvbnQtc2l6ZTo5cHg7Zm9udC13ZWlnaHQ6MTAwMDtsZXR0ZXItc3BhY2luZzouMTJlbTtjb2xvcjojMjU2M2VifS5yYzg4Ny1xdWljay1ncmlke2Rpc3BsYXk6Z3JpZDtncmlkLXRlbXBsYXRlLWNvbHVtbnM6cmVwZWF0KDMsbWlubWF4KDAsMWZyKSk7Z2FwOjlweDttYXJnaW4tdG9wOjExcHh9LnJjODg3LWJveHtib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7Ym9yZGVyLXJhZGl1czoxM3B4O2JhY2tncm91bmQ6I2ZiZmRmZjtwYWRkaW5nOjEwcHg7bWluLXdpZHRoOjB9LnJjODg3LWJveCBoNHttYXJnaW46MCAwIDdweDtmb250LXNpemU6MTJweDtjb2xvcjojMGYyZjZifS5yYzg4Ny1jaGlwLWxpc3R7ZGlzcGxheTpmbGV4O2dhcDo2cHg7ZmxleC13cmFwOndyYXB9LnJjODg3LWNoaXB7Ym9yZGVyOjFweCBzb2xpZCAjZDhlM2VmO2JhY2tncm91bmQ6I2ZmZjtib3JkZXItcmFkaXVzOjk5OXB4O21pbi1oZWlnaHQ6MzBweDtwYWRkaW5nOjVweCA5cHg7Zm9udC1zaXplOjEwcHg7Zm9udC13ZWlnaHQ6ODAwO2N1cnNvcjpwb2ludGVyO21heC13aWR0aDoxMDAlO292ZXJmbG93OmhpZGRlbjt0ZXh0LW92ZXJmbG93OmVsbGlwc2lzO3doaXRlLXNwYWNlOm5vd3JhcH0ucmM4ODctY2hpcDpob3Zlcntib3JkZXItY29sb3I6IzkzYzVmZDtiYWNrZ3JvdW5kOiNlZmY2ZmZ9LnJjODg3LWNoaXAucHJpbWFyeXtib3JkZXItY29sb3I6I2JmZGJmZTtiYWNrZ3JvdW5kOiNlZmY2ZmY7Y29sb3I6IzFkNGVkOH0ucmM4ODctY2hpcC5kYW5nZXJ7Ym9yZGVyLWNvbG9yOiNmZWNhY2E7YmFja2dyb3VuZDojZmZmN2Y3O2NvbG9yOiM5OTFiMWJ9LnJjODg3LWVtcHR5e2ZvbnQtc2l6ZToxMHB4O2NvbG9yOiM2NDc0OGI7cGFkZGluZzo1cHggMH0ucmM4ODctYWN0aW9uc3tkaXNwbGF5OmZsZXg7Z2FwOjZweDtmbGV4LXdyYXA6d3JhcH0ucmM4ODctYWN0aW9ucyBidXR0b257bWluLWhlaWdodDozMXB4IWltcG9ydGFudDtwYWRkaW5nOjZweCA5cHghaW1wb3J0YW50O2JvcmRlci1yYWRpdXM6OXB4IWltcG9ydGFudDtmb250LXNpemU6MTBweCFpbXBvcnRhbnR9LnJjODg3LXRlbXBsYXRlLXJvd3tkaXNwbGF5OmdyaWQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOm1pbm1heCgwLDFmcikgYXV0bztnYXA6NnB4O2FsaWduLWl0ZW1zOmNlbnRlcjtib3JkZXI6MXB4IHNvbGlkICNlZGYyZjc7YmFja2dyb3VuZDojZmZmO2JvcmRlci1yYWRpdXM6MTBweDtwYWRkaW5nOjdweDttYXJnaW4tdG9wOjVweH0ucmM4ODctdGVtcGxhdGUtcm93OmZpcnN0LWNoaWxke21hcmdpbi10b3A6MH0ucmM4ODctdGVtcGxhdGUtcm93IGJ7ZGlzcGxheTpibG9jaztmb250LXNpemU6MTAuNXB4O292ZXJmbG93OmhpZGRlbjt0ZXh0LW92ZXJmbG93OmVsbGlwc2lzO3doaXRlLXNwYWNlOm5vd3JhcH0ucmM4ODctdGVtcGxhdGUtcm93IHNtYWxse2Rpc3BsYXk6YmxvY2s7Zm9udC1zaXplOjlweDtjb2xvcjojNjQ3NDhiO21hcmdpbi10b3A6MnB4fS5yYzg4Ny10ZW1wbGF0ZS1yb3cgLnJjODg3LXJvdy1hY3Rpb25ze2Rpc3BsYXk6ZmxleDtnYXA6NHB4fS5yYzg4Ny10ZW1wbGF0ZS1yb3cgYnV0dG9ue21pbi1oZWlnaHQ6MjhweCFpbXBvcnRhbnQ7cGFkZGluZzo0cHggN3B4IWltcG9ydGFudDtib3JkZXItcmFkaXVzOjhweCFpbXBvcnRhbnQ7Zm9udC1zaXplOjlweCFpbXBvcnRhbnR9LnJjODg3LXRvcC1waW57ZGlzcGxheTppbmxpbmUtZmxleCFpbXBvcnRhbnQ7YWxpZ24taXRlbXM6Y2VudGVyIWltcG9ydGFudDtnYXA6NXB4IWltcG9ydGFudDt3aGl0ZS1zcGFjZTpub3dyYXAhaW1wb3J0YW50fS5yYzg4Ny10b3AtcGluIHNwYW57Zm9udC1zaXplOjE1cHh9LnJjODg3LXRvcC1waW4uYWN0aXZle2JvcmRlci1jb2xvcjojZjRjODRkIWltcG9ydGFudDtiYWNrZ3JvdW5kOiNmZmY4ZGQhaW1wb3J0YW50O2NvbG9yOiM3YzUyMDAhaW1wb3J0YW50fS5yYzg4Ny1oaW50e21hcmdpbi10b3A6N3B4O2ZvbnQtc2l6ZTo5LjVweDtjb2xvcjojNjQ3NDhifS5yYzg4Ny1kYXNoYm9hcmQtY2FyZHttYXJnaW4tdG9wOjEwcHh9CkBtZWRpYShtYXgtd2lkdGg6OTAwcHgpey5yYzg4Ny1xdWljay1ncmlke2dyaWQtdGVtcGxhdGUtY29sdW1uczoxZnJ9LnJjODg3LXF1aWNrLWhlYWR7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOjFmcn19CkBtZWRpYShtYXgtd2lkdGg6NTIwcHgpey5yYzg4Ny1xdWljay1jYXJke3BhZGRpbmc6MTBweDtib3JkZXItcmFkaXVzOjE0cHh9LnJjODg3LXRlbXBsYXRlLXJvd3tncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyfS5yYzg4Ny1yb3ctYWN0aW9uc3t3aWR0aDoxMDAlfS5yYzg4Ny1yb3ctYWN0aW9ucyBidXR0b257ZmxleDoxfS5yYzg4Ny10b3AtcGluIGJ7ZGlzcGxheTpub25lfX0KPC9zdHlsZT4KPHNjcmlwdCBpZD0iZXhwb3J0aHViLXJjODg3LXF1aWNrd29yayI+CihmdW5jdGlvbigpewondXNlIHN0cmljdCc7CmlmKHdpbmRvdy5fX0VYUE9SVEhVQl9SQzg4N19RVUlDS1dPUktfXylyZXR1cm47CndpbmRvdy5fX0VYUE9SVEhVQl9SQzg4N19RVUlDS1dPUktfXz10cnVlOwp2YXIgQ1VTVE9NRVJfS0VZPSdleHBvcnRodWI6cmM4ODc6ZmF2b3VyaXRlLWN1c3RvbWVyczp2MScsVklFV19LRVk9J2V4cG9ydGh1YjpyYzg4NzpmYXZvdXJpdGUtdmlld3M6djEnLFRFTVBMQVRFX0tFWT0nZXhwb3J0aHViOnJjODg3OnNoaXBtZW50LXRlbXBsYXRlczp2MScsTUFYX0NVU1RPTUVSUz04LE1BWF9WSUVXUz04LE1BWF9URU1QTEFURVM9MTIsdGltZXI9MCxwZW5kaW5nQ3VzdG9tZXI9Jyc7CmZ1bmN0aW9uIHEodil7cmV0dXJuIFN0cmluZyh2PT1udWxsPycnOnYpLnJlcGxhY2UoL1xzKy9nLCcgJykudHJpbSgpfQpmdW5jdGlvbiBsb3codil7dmFyIHM9cSh2KS50b0xvd2VyQ2FzZSgpO3RyeXtzPXMubm9ybWFsaXplKCdORkQnKS5yZXBsYWNlKC9bXHUwMzAwLVx1MDM2Zl0vZywnJyl9Y2F0Y2goXyl7fXJldHVybiBzfQpmdW5jdGlvbiBlc2Modil7cmV0dXJuIFN0cmluZyh2PT1udWxsPycnOnYpLnJlcGxhY2UoL1smPD4iJ10vZyxmdW5jdGlvbihjKXtyZXR1cm4geycmJzonJmFtcDsnLCc8JzonJmx0OycsJz4nOicmZ3Q7JywnIic6JyZxdW90OycsIiciOicmIzM5Oyd9W2NdfSl9CmZ1bmN0aW9uIGFycih2KXtyZXR1cm4gQXJyYXkuaXNBcnJheSh2KT92OltdfQpmdW5jdGlvbiBjbG9uZSh2KXt0cnl7cmV0dXJuIEpTT04ucGFyc2UoSlNPTi5zdHJpbmdpZnkodikpfWNhdGNoKF8pe3JldHVybiB2fX0KZnVuY3Rpb24gc3RhdGUoKXt0cnl7cmV0dXJuIHdpbmRvdy5fX0VYUE9SVEhVQl9HRVRfU1RBVEVfXz93aW5kb3cuX19FWFBPUlRIVUJfR0VUX1NUQVRFX18oKTood2luZG93LkV4cG9ydEhVQkNsZWFuJiZ3aW5kb3cuRXhwb3J0SFVCQ2xlYW4ucnVudGltZSYmd2luZG93LkV4cG9ydEhVQkNsZWFuLnJ1bnRpbWUuc3RhdGUpfHx3aW5kb3cuc3RhdGV8fHt9fWNhdGNoKF8pe3JldHVybiB3aW5kb3cuc3RhdGV8fHt9fX0KZnVuY3Rpb24gdmlldygpe3JldHVybiBsb3coc3RhdGUoKS52aWV3fHxkb2N1bWVudC5ib2R5JiZkb2N1bWVudC5ib2R5LmdldEF0dHJpYnV0ZSgnZGF0YS1leHBvcnRodWItdmlldycpfHwnZGFzaGJvYXJkJyl9CmZ1bmN0aW9uIHJlYWQoa2V5KXt0cnl7dmFyIHg9SlNPTi5wYXJzZShsb2NhbFN0b3JhZ2UuZ2V0SXRlbShrZXkpfHwnW10nKTtyZXR1cm4gQXJyYXkuaXNBcnJheSh4KT94OltdfWNhdGNoKF8pe3JldHVybiBbXX19CmZ1bmN0aW9uIHdyaXRlKGtleSx2YWx1ZSxtYXgpe3RyeXtsb2NhbFN0b3JhZ2Uuc2V0SXRlbShrZXksSlNPTi5zdHJpbmdpZnkoYXJyKHZhbHVlKS5zbGljZSgwLG1heHx8NTApKSk7cmV0dXJuIHRydWV9Y2F0Y2goXyl7cmV0dXJuIGZhbHNlfX0KZnVuY3Rpb24gY3VzdG9tZXJJZChjKXtyZXR1cm4gcShjJiYoYy5pZHx8Yy5hY2NvdW50fHxjLmN1c3RvbWVyTnVtYmVyfHxjLm51bWJlcnx8Yy5jdXN0b21lcklkKSl9CmZ1bmN0aW9uIGN1c3RvbWVyTmFtZShjKXtyZXR1cm4gcShjJiYoYy5uYW1lfHxjLmN1c3RvbWVyTmFtZXx8Yy5jb21wYW55TmFtZSkpfQpmdW5jdGlvbiBjdXN0b21lck51bWJlcihjKXtyZXR1cm4gcShjJiYoYy5hY2NvdW50fHxjLmN1c3RvbWVyTnVtYmVyfHxjLm51bWJlcnx8Yy5pZCkpfQpmdW5jdGlvbiBjdXN0b21lckxhYmVsKGMpe3JldHVybiBbY3VzdG9tZXJOdW1iZXIoYyksY3VzdG9tZXJOYW1lKGMpXS5maWx0ZXIoQm9vbGVhbikuam9pbignIMK3ICcpfHxjdXN0b21lcklkKGMpfQpmdW5jdGlvbiBjdXN0b21lcnMoKXtyZXR1cm4gYXJyKHN0YXRlKCkuY3VzdG9tZXJzKX0KZnVuY3Rpb24gZmluZEN1c3RvbWVyKGlkKXtpZD1xKGlkKTtyZXR1cm4gY3VzdG9tZXJzKCkuZmluZChmdW5jdGlvbihjKXtyZXR1cm4gY3VzdG9tZXJJZChjKT09PWlkfSl8fG51bGx9CmZ1bmN0aW9uIHNoaXBtZW50KCl7dmFyIHM9c3RhdGUoKTtyZXR1cm4gcy5zaGlwbWVudCYmdHlwZW9mIHMuc2hpcG1lbnQ9PT0nb2JqZWN0Jz9zLnNoaXBtZW50Om51bGx9CmZ1bmN0aW9uIHNlbGVjdGVkQ3VzdG9tZXJJZCgpe3JldHVybiBxKHNoaXBtZW50KCkmJnNoaXBtZW50KCkuY3VzdG9tZXJJZCl9CmZ1bmN0aW9uIHNlbGVjdGVkQ3VzdG9tZXIoKXtyZXR1cm4gZmluZEN1c3RvbWVyKHNlbGVjdGVkQ3VzdG9tZXJJZCgpKX0KdmFyIFZJRVdfTEFCRUxTPXtkYXNoYm9hcmQ6J0Rhc2hib2FyZCcsc2hpcG1lbnQ6J1NlbmR1bmcgZXJzdGVsbGVuJyxzaGlwbWVudG92ZXJ2aWV3OidTZW5kdW5nc8O8YmVyc2ljaHQnLHNoaXBtZW50c2VhcmNoOidTZW5kdW5nIHN1Y2hlbicsdGFza3M6J0F1ZmdhYmVuJyxwbGFubmluZzonUGxhbnVuZycsY3VzdG9tZXJzOidLdW5kZW4nLGN1c3RvbWVyZm9sZGVyOidLdW5kZW5vcmRuZXInLGFiZDonQUJEJyxzaGlwcGluZ2Nvc3RzOidWZXJzYW5ka29zdGVuJyxwYWxsZXQ6J1BhbGV0dGVua29udG8nLHJlcG9ydHM6J1JlcG9ydHMnLGFjYWRlbXk6J0FjYWRlbXknLG5vdGlmaWNhdGlvbnM6J0JlbmFjaHJpY2h0aWd1bmdlbicsc2V0dGluZ3M6J0VpbnN0ZWxsdW5nZW4nfTsKZnVuY3Rpb24gcm91dGVOb2RlKHYpe3JldHVybiBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCdbZGF0YS12aWV3PSInK3YrJyJdLFtkYXRhLXJvdXRlPSInK3YrJyJdLFtkYXRhLXRhcmdldC12aWV3PSInK3YrJyJdJyl9CmZ1bmN0aW9uIG5hdmlnYXRlKHYpe3Y9cSh2KTt2YXIgbj1yb3V0ZU5vZGUodik7aWYobiYmdHlwZW9mIG4uY2xpY2s9PT0nZnVuY3Rpb24nKXtuLmNsaWNrKCk7cmV0dXJuIHRydWV9dHJ5e2lmKHdpbmRvdy5FeHBvcnRIVUJSQzMyNSYmdHlwZW9mIHdpbmRvdy5FeHBvcnRIVUJSQzMyNS5yb3V0ZT09PSdmdW5jdGlvbicpcmV0dXJuIHdpbmRvdy5FeHBvcnRIVUJSQzMyNS5yb3V0ZSh2LCdyYzg4Ny1xdWlja3dvcmsnKSE9PWZhbHNlfWNhdGNoKF8pe310cnl7aWYodHlwZW9mIHdpbmRvdy5zZXRWaWV3PT09J2Z1bmN0aW9uJyl7d2luZG93LnNldFZpZXcodik7cmV0dXJuIHRydWV9fWNhdGNoKF8pe31yZXR1cm4gZmFsc2V9CmZ1bmN0aW9uIHJlbmRlck5vdygpe3RyeXtpZih0eXBlb2Ygd2luZG93LnJlbmRlcj09PSdmdW5jdGlvbicpe3dpbmRvdy5yZW5kZXIoKTtyZXR1cm4gdHJ1ZX19Y2F0Y2goXyl7fXRyeXtpZih3aW5kb3cuRXhwb3J0SFVCQ2xlYW4mJnR5cGVvZiB3aW5kb3cuRXhwb3J0SFVCQ2xlYW4ucmVuZGVyPT09J2Z1bmN0aW9uJyl7d2luZG93LkV4cG9ydEhVQkNsZWFuLnJlbmRlcigpO3JldHVybiB0cnVlfX1jYXRjaChfKXt9c2NoZWR1bGUoKTtyZXR1cm4gZmFsc2V9CmZ1bmN0aW9uIGZhdkN1c3RvbWVycygpe3JldHVybiByZWFkKENVU1RPTUVSX0tFWSkuZmlsdGVyKGZ1bmN0aW9uKGlkKXtyZXR1cm4gISFmaW5kQ3VzdG9tZXIoaWQpfSkuc2xpY2UoMCxNQVhfQ1VTVE9NRVJTKX0KZnVuY3Rpb24gdG9nZ2xlQ3VzdG9tZXIoaWQpe2lkPXEoaWQpO2lmKCFpZClyZXR1cm4gZmFsc2U7dmFyIGxpc3Q9ZmF2Q3VzdG9tZXJzKCksaT1saXN0LmluZGV4T2YoaWQpO2lmKGk+PTApbGlzdC5zcGxpY2UoaSwxKTtlbHNlIGxpc3QudW5zaGlmdChpZCk7d3JpdGUoQ1VTVE9NRVJfS0VZLGxpc3QsTUFYX0NVU1RPTUVSUyk7c2NoZWR1bGUoKTtyZXR1cm4gaTwwfQpmdW5jdGlvbiBmYXZWaWV3cygpe3JldHVybiByZWFkKFZJRVdfS0VZKS5maWx0ZXIoZnVuY3Rpb24odil7cmV0dXJuICEhVklFV19MQUJFTFNbdl19KS5zbGljZSgwLE1BWF9WSUVXUyl9CmZ1bmN0aW9uIHRvZ2dsZVZpZXcodil7dj1xKHYpO2lmKCFWSUVXX0xBQkVMU1t2XXx8dj09PSdkYXNoYm9hcmQnKXJldHVybiBmYWxzZTt2YXIgbGlzdD1mYXZWaWV3cygpLGk9bGlzdC5pbmRleE9mKHYpO2lmKGk+PTApbGlzdC5zcGxpY2UoaSwxKTtlbHNlIGxpc3QudW5zaGlmdCh2KTt3cml0ZShWSUVXX0tFWSxsaXN0LE1BWF9WSUVXUyk7c2NoZWR1bGUoKTtyZXR1cm4gaTwwfQpmdW5jdGlvbiBjdXN0b21lck9wdGlvbihjKXt0cnl7aWYodHlwZW9mIHdpbmRvdy5jdXN0b21lck9wdGlvbj09PSdmdW5jdGlvbicpcmV0dXJuIHEod2luZG93LmN1c3RvbWVyT3B0aW9uKGMpKX1jYXRjaChfKXt9cmV0dXJuIFtjdXN0b21lck51bWJlcihjKSxjdXN0b21lck5hbWUoYykscShjJiZjLmNvdW50cnkpXS5maWx0ZXIoQm9vbGVhbikuam9pbignIMK3ICcpfQpmdW5jdGlvbiBhcHBseUN1c3RvbWVyRGlyZWN0KGlkKXt2YXIgYz1maW5kQ3VzdG9tZXIoaWQpO2lmKCFjKXJldHVybiBmYWxzZTt0cnl7aWYodHlwZW9mIHdpbmRvdy5zZWxlY3RTaGlwbWVudEN1c3RvbWVyPT09J2Z1bmN0aW9uJyl7d2luZG93LnNlbGVjdFNoaXBtZW50Q3VzdG9tZXIoaWQpO3JldHVybiB0cnVlfX1jYXRjaChfKXt9dmFyIGlucHV0PWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdzaGlwbWVudEN1c3RvbWVyU2VhcmNoJyk7dmFyIHZhbHVlPWN1c3RvbWVyT3B0aW9uKGMpO2lmKGlucHV0KXtpbnB1dC52YWx1ZT12YWx1ZTt0cnl7aWYodHlwZW9mIHdpbmRvdy5zZXRTaGlwbWVudEN1c3RvbWVyU2VhcmNoQXV0bz09PSdmdW5jdGlvbicpd2luZG93LnNldFNoaXBtZW50Q3VzdG9tZXJTZWFyY2hBdXRvKHZhbHVlKX1jYXRjaChfKXt9dHJ5e2lmKHR5cGVvZiB3aW5kb3cuYXBwbHlDdXN0b21lclNlYXJjaD09PSdmdW5jdGlvbicpe3dpbmRvdy5hcHBseUN1c3RvbWVyU2VhcmNoKCk7cmV0dXJuIHRydWV9fWNhdGNoKF8pe31pbnB1dC5kaXNwYXRjaEV2ZW50KG5ldyBFdmVudCgnaW5wdXQnLHtidWJibGVzOnRydWV9KSk7aW5wdXQuZGlzcGF0Y2hFdmVudChuZXcgRXZlbnQoJ2NoYW5nZScse2J1YmJsZXM6dHJ1ZX0pKTtyZXR1cm4gdHJ1ZX12YXIgc2g9c2hpcG1lbnQoKTtpZihzaCl7c2guY3VzdG9tZXJJZD1pZDtzaC5jdXN0b21lclNlYXJjaD12YWx1ZTtyZW5kZXJOb3coKTtyZXR1cm4gdHJ1ZX1yZXR1cm4gZmFsc2V9CmZ1bmN0aW9uIGFwcGx5Q3VzdG9tZXIoaWQpe2lkPXEoaWQpO2lmKCFpZClyZXR1cm4gZmFsc2U7aWYodmlldygpIT09J3NoaXBtZW50Jyl7cGVuZGluZ0N1c3RvbWVyPWlkO25hdmlnYXRlKCdzaGlwbWVudCcpO3NldFRpbWVvdXQoZnVuY3Rpb24oKXtpZihwZW5kaW5nQ3VzdG9tZXIpe3ZhciB4PXBlbmRpbmdDdXN0b21lcjtwZW5kaW5nQ3VzdG9tZXI9Jyc7YXBwbHlDdXN0b21lckRpcmVjdCh4KX19LDE4MCk7cmV0dXJuIHRydWV9cmV0dXJuIGFwcGx5Q3VzdG9tZXJEaXJlY3QoaWQpfQpmdW5jdGlvbiB0ZW1wbGF0ZXMoKXtyZXR1cm4gcmVhZChURU1QTEFURV9LRVkpLnNsaWNlKDAsTUFYX1RFTVBMQVRFUyl9CmZ1bmN0aW9uIHNhZmVSb3cocil7cj1yfHx7fTt2YXIgb3V0PXt9O1sncGFja2FnaW5nJywncGFja2FnaW5nVHlwZScsJ3BhY2thZ2VUeXBlJywndHlwZScsJ2Rlc2NyaXB0aW9uJywnbGVuZ3RoJywnd2lkdGgnLCdoZWlnaHQnLCdsZG0nLCdzdGFja2FibGUnLCdwYWxsZXRUeXBlJywncGFja2FnaW5nSWQnXS5mb3JFYWNoKGZ1bmN0aW9uKGspe2lmKHJba10hPW51bGwmJnEocltrXSkhPT0nJylvdXRba109Y2xvbmUocltrXSl9KTtvdXQuY291bnQ9Jyc7b3V0LnF1YW50aXR5PScnO291dC53ZWlnaHQ9Jyc7cmV0dXJuIG91dH0KZnVuY3Rpb24gY29weVByZXNlbnQoc3JjLGtleXMpe3ZhciBvdXQ9e307a2V5cy5mb3JFYWNoKGZ1bmN0aW9uKGspe2lmKHNyYyYmc3JjW2tdIT1udWxsJiZxKHNyY1trXSkhPT0nJylvdXRba109Y2xvbmUoc3JjW2tdKX0pO3JldHVybiBvdXR9CmZ1bmN0aW9uIGNhcHR1cmVUZW1wbGF0ZSgpe3ZhciBzaD1zaGlwbWVudCgpO2lmKCFzaCl7YWxlcnQoJ0JpdHRlIHp1ZXJzdCBTZW5kdW5nIGVyc3RlbGxlbiDDtmZmbmVuLicpO3JldHVybiBmYWxzZX12YXIgbmFtZT1xKHByb21wdCgnTmFtZSBkZXIgU2VuZHVuZ3N2b3JsYWdlOicsJ1N0YW5kYXJkICcrKGN1c3RvbWVyTmFtZShzZWxlY3RlZEN1c3RvbWVyKCkpfHwnU2VuZHVuZycpKSk7aWYoIW5hbWUpcmV0dXJuIGZhbHNlO3ZhciB0cGw9e2lkOid0cGwtJytEYXRlLm5vdygpLG5hbWU6bmFtZSxjdXN0b21lcklkOnEoc2guY3VzdG9tZXJJZCksY3VzdG9tZXJTZWFyY2g6cShzaC5jdXN0b21lclNlYXJjaCksZmllbGRzOmNvcHlQcmVzZW50KHNoLFsnbG9jYXRpb25JZCcsJ3JlY2lwaWVudElkJywncmVjaXBpZW50TmFtZScsJ3JlY2lwaWVudEFkZHJlc3MnLCdkZWxpdmVyeUFkZHJlc3MnLCdkZWxpdmVyeVN0cmVldCcsJ2RlbGl2ZXJ5WmlwJywnZGVsaXZlcnlDaXR5JywnZGVsaXZlcnlDb3VudHJ5JywnZGVzdGluYXRpb25Db3VudHJ5JywnY291bnRyeScsJ2NhcnJpZXJJZCcsJ2NhcnJpZXInLCdjYXJyaWVyTmFtZScsJ2ZyZWlnaHRGb3J3YXJkZXJJZCcsJ2ZyZWlnaHRGb3J3YXJkZXInLCdzcGVkaXRpb25JZCcsJ3NwZWRpdGlvbiddKSxyb3dzOmFycihzaC5yb3dzKS5tYXAoc2FmZVJvdykuZmlsdGVyKGZ1bmN0aW9uKHIpe3JldHVybiBPYmplY3Qua2V5cyhyKS5zb21lKGZ1bmN0aW9uKGspe3JldHVybiBrIT09J2NvdW50JyYmayE9PSdxdWFudGl0eScmJmshPT0nd2VpZ2h0JyYmcShyW2tdKSE9PScnfSl9KSxjcmVhdGVkQXQ6bmV3IERhdGUoKS50b0lTT1N0cmluZygpfTt2YXIgbGlzdD10ZW1wbGF0ZXMoKS5maWx0ZXIoZnVuY3Rpb24oeCl7cmV0dXJuIGxvdyh4Lm5hbWUpIT09bG93KG5hbWUpfSk7bGlzdC51bnNoaWZ0KHRwbCk7d3JpdGUoVEVNUExBVEVfS0VZLGxpc3QsTUFYX1RFTVBMQVRFUyk7c2NoZWR1bGUoKTtyZXR1cm4gdHJ1ZX0KZnVuY3Rpb24gbWVhbmluZ2Z1bFJvd3Mocm93cyl7cmV0dXJuIGFycihyb3dzKS5zb21lKGZ1bmN0aW9uKHIpe3JldHVybiBxKHImJihyLnBhY2thZ2luZ3x8ci5wYWNrYWdpbmdUeXBlfHxyLnBhY2thZ2VUeXBlfHxyLnR5cGUpKXx8TnVtYmVyKHImJihyLmNvdW50fHxyLnF1YW50aXR5KSk+MHx8TnVtYmVyKFN0cmluZyhyJiZyLndlaWdodHx8JycpLnJlcGxhY2UoJywnLCcuJykpPjB9KX0KZnVuY3Rpb24gYXBwbHlUZW1wbGF0ZShpZCl7dmFyIHRwbD10ZW1wbGF0ZXMoKS5maW5kKGZ1bmN0aW9uKHgpe3JldHVybiBxKHguaWQpPT09cShpZCl9KTtpZighdHBsKXJldHVybiBmYWxzZTtpZih2aWV3KCkhPT0nc2hpcG1lbnQnKXtuYXZpZ2F0ZSgnc2hpcG1lbnQnKTtzZXRUaW1lb3V0KGZ1bmN0aW9uKCl7YXBwbHlUZW1wbGF0ZShpZCl9LDIwMCk7cmV0dXJuIHRydWV9dmFyIHNoPXNoaXBtZW50KCk7aWYoIXNoKXJldHVybiBmYWxzZTtpZihtZWFuaW5nZnVsUm93cyhzaC5yb3dzKSYmdHBsLnJvd3MmJnRwbC5yb3dzLmxlbmd0aCl7aWYoIWNvbmZpcm0oJ1ZvcmhhbmRlbmUgQ29sbGktWmVpbGVuIGR1cmNoIGRpZSBWZXJwYWNrdW5nc3N0cnVrdHVyIGRlciBWb3JsYWdlIGVyc2V0emVuPycpKXJldHVybiBmYWxzZX1pZih0cGwuY3VzdG9tZXJJZClhcHBseUN1c3RvbWVyRGlyZWN0KHRwbC5jdXN0b21lcklkKTtzaD1zaGlwbWVudCgpfHxzaDtPYmplY3Qua2V5cyh0cGwuZmllbGRzfHx7fSkuZm9yRWFjaChmdW5jdGlvbihrKXtzaFtrXT1jbG9uZSh0cGwuZmllbGRzW2tdKX0pO2lmKHRwbC5yb3dzJiZ0cGwucm93cy5sZW5ndGgpc2gucm93cz10cGwucm93cy5tYXAoZnVuY3Rpb24ocil7cmV0dXJuIGNsb25lKHIpfSk7cmVuZGVyTm93KCk7c2V0VGltZW91dChzY2hlZHVsZSw4MCk7cmV0dXJuIHRydWV9CmZ1bmN0aW9uIGRlbGV0ZVRlbXBsYXRlKGlkKXt2YXIgdHBsPXRlbXBsYXRlcygpLmZpbmQoZnVuY3Rpb24oeCl7cmV0dXJuIHEoeC5pZCk9PT1xKGlkKX0pO2lmKCF0cGwpcmV0dXJuIGZhbHNlO2lmKCFjb25maXJtKCdWb3JsYWdlIOKAnicrcSh0cGwubmFtZSkrJ+KAnCBsw7ZzY2hlbj8nKSlyZXR1cm4gZmFsc2U7d3JpdGUoVEVNUExBVEVfS0VZLHRlbXBsYXRlcygpLmZpbHRlcihmdW5jdGlvbih4KXtyZXR1cm4gcSh4LmlkKSE9PXEoaWQpfSksTUFYX1RFTVBMQVRFUyk7c2NoZWR1bGUoKTtyZXR1cm4gdHJ1ZX0KZnVuY3Rpb24gY2hpcHNDdXN0b21lcnMoKXt2YXIgbGlzdD1mYXZDdXN0b21lcnMoKTtpZighbGlzdC5sZW5ndGgpcmV0dXJuICc8ZGl2IGNsYXNzPSJyYzg4Ny1lbXB0eSI+Tm9jaCBrZWluZSBLdW5kZW5mYXZvcml0ZW4uIMOWZmZuZSBlaW5lIFNlbmR1bmcgbWl0IEt1bmRlIHVuZCB3w6RobGUg4oCeS3VuZGUg4piF4oCcLjwvZGl2Pic7cmV0dXJuICc8ZGl2IGNsYXNzPSJyYzg4Ny1jaGlwLWxpc3QiPicrbGlzdC5tYXAoZnVuY3Rpb24oaWQpe3ZhciBjPWZpbmRDdXN0b21lcihpZCk7cmV0dXJuICc8YnV0dG9uIHR5cGU9ImJ1dHRvbiIgY2xhc3M9InJjODg3LWNoaXAgcHJpbWFyeSIgZGF0YS1yYzg4Ny1jdXN0b21lcj0iJytlc2MoaWQpKyciPicrZXNjKGN1c3RvbWVyTGFiZWwoYykpKyc8L2J1dHRvbj4nfSkuam9pbignJykrJzwvZGl2Pid9CmZ1bmN0aW9uIGNoaXBzVmlld3MoKXt2YXIgbGlzdD1mYXZWaWV3cygpO2lmKCFsaXN0Lmxlbmd0aClyZXR1cm4gJzxkaXYgY2xhc3M9InJjODg3LWVtcHR5Ij5Ob2NoIGtlaW5lIEJlcmVpY2hzZmF2b3JpdGVuLiBNaXQg4piFIG9iZW4ga2FubnN0IGR1IGVpbmVuIEJlcmVpY2ggYW5oZWZ0ZW4uPC9kaXY+JztyZXR1cm4gJzxkaXYgY2xhc3M9InJjODg3LWNoaXAtbGlzdCI+JytsaXN0Lm1hcChmdW5jdGlvbih2KXtyZXR1cm4gJzxidXR0b24gdHlwZT0iYnV0dG9uIiBjbGFzcz0icmM4ODctY2hpcCIgZGF0YS1yYzg4Ny12aWV3PSInK2VzYyh2KSsnIj4nK2VzYyhWSUVXX0xBQkVMU1t2XSkrJzwvYnV0dG9uPid9KS5qb2luKCcnKSsnPC9kaXY+J30KZnVuY3Rpb24gdGVtcGxhdGVSb3dzKCl7dmFyIGxpc3Q9dGVtcGxhdGVzKCk7aWYoIWxpc3QubGVuZ3RoKXJldHVybiAnPGRpdiBjbGFzcz0icmM4ODctZW1wdHkiPk5vY2gga2VpbmUgVm9ybGFnZSBnZXNwZWljaGVydC48L2Rpdj4nO3JldHVybiBsaXN0LnNsaWNlKDAsNikubWFwKGZ1bmN0aW9uKHQpe3ZhciBjPWZpbmRDdXN0b21lcih0LmN1c3RvbWVySWQpLG1ldGE9W2MmJmN1c3RvbWVyTGFiZWwoYyksYXJyKHQucm93cykubGVuZ3RoP2Fycih0LnJvd3MpLmxlbmd0aCsnIFZlcnBhY2t1bmdzdHlwKGVuKSc6J29obmUgVmVycGFja3VuZyddLmZpbHRlcihCb29sZWFuKS5qb2luKCcgwrcgJyk7cmV0dXJuICc8ZGl2IGNsYXNzPSJyYzg4Ny10ZW1wbGF0ZS1yb3ciPjxzcGFuPjxiPicrZXNjKHQubmFtZSkrJzwvYj48c21hbGw+Jytlc2MobWV0YSkrJzwvc21hbGw+PC9zcGFuPjxzcGFuIGNsYXNzPSJyYzg4Ny1yb3ctYWN0aW9ucyI+PGJ1dHRvbiB0eXBlPSJidXR0b24iIGNsYXNzPSJnaG9zdCIgZGF0YS1yYzg4Ny10ZW1wbGF0ZT0iJytlc2ModC5pZCkrJyI+QW53ZW5kZW48L2J1dHRvbj48YnV0dG9uIHR5cGU9ImJ1dHRvbiIgY2xhc3M9Imdob3N0IiBkYXRhLXJjODg3LWRlbGV0ZS10ZW1wbGF0ZT0iJytlc2ModC5pZCkrJyI+w5c8L2J1dHRvbj48L3NwYW4+PC9kaXY+J30pLmpvaW4oJycpfQpmdW5jdGlvbiBkYXNoYm9hcmRIdG1sKCl7cmV0dXJuICc8c2VjdGlvbiBpZD0icmM4ODdRdWlja0FjY2VzcyIgY2xhc3M9InJjODg3LXF1aWNrLWNhcmQgcmM4ODctZGFzaGJvYXJkLWNhcmQiPjxkaXYgY2xhc3M9InJjODg3LXF1aWNrLWhlYWQiPjxkaXY+PHNwYW4gY2xhc3M9InJjODg3LWtpY2tlciI+U0NITkVMTFpVR1JJRkY8L3NwYW4+PGgzPkZhdm9yaXRlbiAmIFZvcmxhZ2VuPC9oMz48cD5Iw6R1ZmlnZSBXZWdlIG9obmUgVW13ZWcgw7ZmZm5lbi48L3A+PC9kaXY+PGJ1dHRvbiB0eXBlPSJidXR0b24iIGNsYXNzPSJnaG9zdCIgZGF0YS1yYzg4Ny12aWV3PSJzaGlwbWVudCI+77yLIE5ldWUgU2VuZHVuZzwvYnV0dG9uPjwvZGl2PjxkaXYgY2xhc3M9InJjODg3LXF1aWNrLWdyaWQiPjxkaXYgY2xhc3M9InJjODg3LWJveCI+PGg0PkJlcmVpY2hlPC9oND4nK2NoaXBzVmlld3MoKSsnPC9kaXY+PGRpdiBjbGFzcz0icmM4ODctYm94Ij48aDQ+S3VuZGVuPC9oND4nK2NoaXBzQ3VzdG9tZXJzKCkrJzwvZGl2PjxkaXYgY2xhc3M9InJjODg3LWJveCI+PGg0PlNlbmR1bmdzdm9ybGFnZW48L2g0PicrdGVtcGxhdGVSb3dzKCkrJzwvZGl2PjwvZGl2Pjwvc2VjdGlvbj4nfQpmdW5jdGlvbiBzaGlwbWVudEh0bWwoKXt2YXIgY2lkPXNlbGVjdGVkQ3VzdG9tZXJJZCgpLGZhdj1mYXZDdXN0b21lcnMoKS5pbmRleE9mKGNpZCk+PTA7cmV0dXJuICc8c2VjdGlvbiBpZD0icmM4ODdTaGlwbWVudFF1aWNrU3RhcnQiIGNsYXNzPSJyYzg4Ny1xdWljay1jYXJkIj48ZGl2IGNsYXNzPSJyYzg4Ny1xdWljay1oZWFkIj48ZGl2PjxzcGFuIGNsYXNzPSJyYzg4Ny1raWNrZXIiPlNDSE5FTExFUkZBU1NVTkc8L3NwYW4+PGgzPkZhdm9yaXRlbiAmIFNlbmR1bmdzdm9ybGFnZW48L2gzPjxwPkt1bmRlIHVuZCB3aWVkZXJrZWhyZW5kZSBHcnVuZHN0cnVrdHVyIGRpcmVrdCDDvGJlcm5laG1lbi4gUmVmZXJlbnosIERhdHVtLCBEb2t1bWVudGUsIFN0YXR1cywgQUJEIHVuZCBQT0Qgd2VyZGVuIG5pZSBhdXMgZWluZXIgVm9ybGFnZSBrb3BpZXJ0LjwvcD48L2Rpdj48ZGl2IGNsYXNzPSJyYzg4Ny1hY3Rpb25zIj48YnV0dG9uIHR5cGU9ImJ1dHRvbiIgY2xhc3M9Imdob3N0IiBkYXRhLXJjODg3LXRvZ2dsZS1jdXN0b21lcj0iMSInKyhjaWQ/Jyc6JyBkaXNhYmxlZCcpKyc+JysoZmF2PyfimIUgS3VuZGUgZ2VtZXJrdCc6J+KYhiBLdW5kZSBtZXJrZW4nKSsnPC9idXR0b24+PGJ1dHRvbiB0eXBlPSJidXR0b24iIGNsYXNzPSJnaG9zdCIgZGF0YS1yYzg4Ny1zYXZlLXRlbXBsYXRlPSIxIj5Wb3JsYWdlIHNwZWljaGVybjwvYnV0dG9uPjwvZGl2PjwvZGl2PjxkaXYgY2xhc3M9InJjODg3LXF1aWNrLWdyaWQiPjxkaXYgY2xhc3M9InJjODg3LWJveCI+PGg0Pkt1bmRlbmZhdm9yaXRlbjwvaDQ+JytjaGlwc0N1c3RvbWVycygpKyc8L2Rpdj48ZGl2IGNsYXNzPSJyYzg4Ny1ib3giPjxoND5Wb3JsYWdlbjwvaDQ+Jyt0ZW1wbGF0ZVJvd3MoKSsnPC9kaXY+PGRpdiBjbGFzcz0icmM4ODctYm94Ij48aDQ+U2ljaGVyIMO8YmVybm9tbWVuPC9oND48ZGl2IGNsYXNzPSJyYzg4Ny1lbXB0eSI+S3VuZGUgwrcgU3RhbmRvcnQvRW1wZsOkbmdlciDCtyBTcGVkaXRpb24gwrcgVmVycGFja3VuZ3NhcnQvTWHDn2UuIEFuemFobCB1bmQgR2V3aWNodCBibGVpYmVuIGxlZXIgdW5kIG3DvHNzZW4gZsO8ciBkaWUgbmV1ZSBTZW5kdW5nIGVyZmFzc3Qgd2VyZGVuLjwvZGl2PjxkaXYgY2xhc3M9InJjODg3LWhpbnQiPktlaW5lIGF1dG9tYXRpc2NoZSBTcGVpY2hlcnVuZyB1bmQga2VpbmUgU3RhdHVzw6RuZGVydW5nIGR1cmNoIFJDODg3LjwvZGl2PjwvZGl2PjwvZGl2Pjwvc2VjdGlvbj4nfQpmdW5jdGlvbiBtb3VudERhc2hib2FyZCgpe2lmKHZpZXcoKSE9PSdkYXNoYm9hcmQnKXt2YXIgb2xkPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyYzg4N1F1aWNrQWNjZXNzJyk7aWYob2xkKW9sZC5yZW1vdmUoKTtyZXR1cm4gZmFsc2V9dmFyIHJvb3Q9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NvbnRlbnQnKTtpZighcm9vdClyZXR1cm4gZmFsc2U7dmFyIHRlbXA9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnZGl2Jyk7dGVtcC5pbm5lckhUTUw9ZGFzaGJvYXJkSHRtbCgpO3ZhciBub2RlPXRlbXAuZmlyc3RFbGVtZW50Q2hpbGQsb2xkPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyYzg4N1F1aWNrQWNjZXNzJyk7aWYob2xkKW9sZC5yZXBsYWNlV2l0aChub2RlKTtlbHNle3ZhciBhbmNob3I9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JjODg1V29ya1RvZGF5Jyk7aWYoYW5jaG9yKWFuY2hvci5pbnNlcnRBZGphY2VudEVsZW1lbnQoJ2FmdGVyZW5kJyxub2RlKTtlbHNlIHJvb3QuaW5zZXJ0QmVmb3JlKG5vZGUscm9vdC5maXJzdENoaWxkKX1yZXR1cm4gdHJ1ZX0KZnVuY3Rpb24gbW91bnRTaGlwbWVudCgpe2lmKHZpZXcoKSE9PSdzaGlwbWVudCcpe3ZhciBvbGQ9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JjODg3U2hpcG1lbnRRdWlja1N0YXJ0Jyk7aWYob2xkKW9sZC5yZW1vdmUoKTtyZXR1cm4gZmFsc2V9dmFyIHJvb3Q9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NvbnRlbnQnKTtpZighcm9vdClyZXR1cm4gZmFsc2U7dmFyIHRlbXA9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnZGl2Jyk7dGVtcC5pbm5lckhUTUw9c2hpcG1lbnRIdG1sKCk7dmFyIG5vZGU9dGVtcC5maXJzdEVsZW1lbnRDaGlsZCxvbGQ9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JjODg3U2hpcG1lbnRRdWlja1N0YXJ0Jyk7aWYob2xkKW9sZC5yZXBsYWNlV2l0aChub2RlKTtlbHNle3ZhciBhbmNob3I9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JjODg2U2hpcG1lbnRQcm9ncmVzcycpO2lmKGFuY2hvcilhbmNob3IuaW5zZXJ0QWRqYWNlbnRFbGVtZW50KCdhZnRlcmVuZCcsbm9kZSk7ZWxzZXt2YXIgaGVhZD1yb290LnF1ZXJ5U2VsZWN0b3IoJy5wYWdlLWhlYWQsLnJjMjA1LXBhZ2UtaGVhZCcpO2lmKGhlYWQpaGVhZC5pbnNlcnRBZGphY2VudEVsZW1lbnQoJ2FmdGVyZW5kJyxub2RlKTtlbHNlIHJvb3QuaW5zZXJ0QmVmb3JlKG5vZGUscm9vdC5maXJzdENoaWxkKX19cmV0dXJuIHRydWV9CmZ1bmN0aW9uIGluc3RhbGxQaW4oKXt2YXIgaG9zdD1kb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcudG9wYmFyIC5laC10b3BiYXItYWN0aW9ucycpfHxkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcudG9wYmFyJyk7aWYoIWhvc3QpcmV0dXJuO3ZhciBiPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyYzg4N0Zhdm9yaXRlVmlld0J1dHRvbicpLHY9dmlldygpO2lmKHY9PT0nZGFzaGJvYXJkJ3x8dj09PSdzaGlwbWVudHZpZXcnKXtpZihiKWIucmVtb3ZlKCk7cmV0dXJufWlmKCFWSUVXX0xBQkVMU1t2XSl7aWYoYiliLnJlbW92ZSgpO3JldHVybn1pZighYil7Yj1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdidXR0b24nKTtiLnR5cGU9J2J1dHRvbic7Yi5pZD0ncmM4ODdGYXZvcml0ZVZpZXdCdXR0b24nO2IuY2xhc3NOYW1lPSdnaG9zdCByYzg4Ny10b3AtcGluJztiLnNldEF0dHJpYnV0ZSgnZGF0YS1yYzg4Ny10b2dnbGUtdmlldycsJzEnKTtob3N0LmFwcGVuZENoaWxkKGIpfXZhciBhY3RpdmU9ZmF2Vmlld3MoKS5pbmRleE9mKHYpPj0wO2IuY2xhc3NMaXN0LnRvZ2dsZSgnYWN0aXZlJyxhY3RpdmUpO2IuaW5uZXJIVE1MPSc8c3Bhbj4nKyhhY3RpdmU/J+KYhSc6J+KYhicpKyc8L3NwYW4+PGI+JysoYWN0aXZlPydGYXZvcml0JzonQW5oZWZ0ZW4nKSsnPC9iPic7Yi50aXRsZT0oYWN0aXZlPydCZXJlaWNoIGF1cyBGYXZvcml0ZW4gZW50ZmVybmVuOiAnOidCZXJlaWNoIHp1IEZhdm9yaXRlbiBoaW56dWbDvGdlbjogJykrVklFV19MQUJFTFNbdl19CmZ1bmN0aW9uIG1vdW50KCl7aW5zdGFsbFBpbigpO21vdW50RGFzaGJvYXJkKCk7bW91bnRTaGlwbWVudCgpO2lmKHBlbmRpbmdDdXN0b21lciYmdmlldygpPT09J3NoaXBtZW50Jyl7dmFyIHg9cGVuZGluZ0N1c3RvbWVyO3BlbmRpbmdDdXN0b21lcj0nJztzZXRUaW1lb3V0KGZ1bmN0aW9uKCl7YXBwbHlDdXN0b21lckRpcmVjdCh4KX0sMzApfX0KZnVuY3Rpb24gc2NoZWR1bGUoKXtpZih0aW1lciljbGVhclRpbWVvdXQodGltZXIpO3RpbWVyPXNldFRpbWVvdXQoZnVuY3Rpb24oKXt0aW1lcj0wO21vdW50KCl9LDkwKX0KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignY2xpY2snLGZ1bmN0aW9uKGUpe3ZhciBiPWUudGFyZ2V0JiZlLnRhcmdldC5jbG9zZXN0JiZlLnRhcmdldC5jbG9zZXN0KCdbZGF0YS1yYzg4Ny1jdXN0b21lcl0sW2RhdGEtcmM4ODctdmlld10sW2RhdGEtcmM4ODctdG9nZ2xlLWN1c3RvbWVyXSxbZGF0YS1yYzg4Ny10b2dnbGUtdmlld10sW2RhdGEtcmM4ODctc2F2ZS10ZW1wbGF0ZV0sW2RhdGEtcmM4ODctdGVtcGxhdGVdLFtkYXRhLXJjODg3LWRlbGV0ZS10ZW1wbGF0ZV0nKTtpZighYilyZXR1cm47ZS5wcmV2ZW50RGVmYXVsdCgpO2lmKGIuaGFzQXR0cmlidXRlKCdkYXRhLXJjODg3LWN1c3RvbWVyJykpcmV0dXJuIGFwcGx5Q3VzdG9tZXIoYi5nZXRBdHRyaWJ1dGUoJ2RhdGEtcmM4ODctY3VzdG9tZXInKSk7aWYoYi5oYXNBdHRyaWJ1dGUoJ2RhdGEtcmM4ODctdmlldycpKXJldHVybiBuYXZpZ2F0ZShiLmdldEF0dHJpYnV0ZSgnZGF0YS1yYzg4Ny12aWV3JykpO2lmKGIuaGFzQXR0cmlidXRlKCdkYXRhLXJjODg3LXRvZ2dsZS1jdXN0b21lcicpKXt2YXIgaWQ9c2VsZWN0ZWRDdXN0b21lcklkKCk7aWYoaWQpdG9nZ2xlQ3VzdG9tZXIoaWQpO3JldHVybn1pZihiLmhhc0F0dHJpYnV0ZSgnZGF0YS1yYzg4Ny10b2dnbGUtdmlldycpKXt0b2dnbGVWaWV3KHZpZXcoKSk7cmV0dXJufWlmKGIuaGFzQXR0cmlidXRlKCdkYXRhLXJjODg3LXNhdmUtdGVtcGxhdGUnKSlyZXR1cm4gY2FwdHVyZVRlbXBsYXRlKCk7aWYoYi5oYXNBdHRyaWJ1dGUoJ2RhdGEtcmM4ODctdGVtcGxhdGUnKSlyZXR1cm4gYXBwbHlUZW1wbGF0ZShiLmdldEF0dHJpYnV0ZSgnZGF0YS1yYzg4Ny10ZW1wbGF0ZScpKTtpZihiLmhhc0F0dHJpYnV0ZSgnZGF0YS1yYzg4Ny1kZWxldGUtdGVtcGxhdGUnKSlyZXR1cm4gZGVsZXRlVGVtcGxhdGUoYi5nZXRBdHRyaWJ1dGUoJ2RhdGEtcmM4ODctZGVsZXRlLXRlbXBsYXRlJykpfSx0cnVlKTsKWydleHBvcnRodWI6cmVhZHknLCdleHBvcnRodWI6cmVuZGVyZWQnLCdleHBvcnRodWI6dmlld2NoYW5nZScsJ2V4cG9ydGh1YjpzeW5jJywnZXhwb3J0aHViOnNoaXBtZW50LXNhdmVkJ10uZm9yRWFjaChmdW5jdGlvbihuYW1lKXt3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcihuYW1lLHNjaGVkdWxlKX0pOwppZihkb2N1bWVudC5yZWFkeVN0YXRlPT09J2xvYWRpbmcnKWRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ0RPTUNvbnRlbnRMb2FkZWQnLHNjaGVkdWxlLHtvbmNlOnRydWV9KTtlbHNlIHNjaGVkdWxlKCk7CndpbmRvdy5FeHBvcnRIVUJRdWlja1dvcms4ODc9T2JqZWN0LmZyZWV6ZSh7dmVyc2lvbjonUkM4ODcnLG1vdW50Om1vdW50LGZhdm91cml0ZUN1c3RvbWVyczpmYXZDdXN0b21lcnMsZmF2b3VyaXRlVmlld3M6ZmF2Vmlld3MsdGVtcGxhdGVzOnRlbXBsYXRlcyxhcHBseUN1c3RvbWVyOmFwcGx5Q3VzdG9tZXIsYXBwbHlUZW1wbGF0ZTphcHBseVRlbXBsYXRlLGRpYWdub3N0aWNzOmZ1bmN0aW9uKCl7cmV0dXJue3ZpZXc6dmlldygpLGN1c3RvbWVyRmF2b3JpdGVzOmZhdkN1c3RvbWVycygpLmxlbmd0aCx2aWV3RmF2b3JpdGVzOmZhdlZpZXdzKCkubGVuZ3RoLHRlbXBsYXRlczp0ZW1wbGF0ZXMoKS5sZW5ndGgsZGFzaGJvYXJkTW91bnRlZDohIWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyYzg4N1F1aWNrQWNjZXNzJyksc2hpcG1lbnRNb3VudGVkOiEhZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JjODg3U2hpcG1lbnRRdWlja1N0YXJ0Jyl9fX0pOwp9KSgpOwo8L3NjcmlwdD4K';
+          const moduleHtml = Buffer.from(moduleBase64, 'base64').toString('utf8');
+          if (!moduleHtml.includes('exporthub-rc887-quickwork') || !moduleHtml.includes('ExportHUBQuickWork887')) throw new Error('RC887 Modul beschädigt');
+          const bodyClose = text.lastIndexOf('</body>');
+          if (bodyClose < 0) throw new Error('HTML body-Ende fehlt');
+          text = text.slice(0, bodyClose) + '\n' + moduleHtml + '\n' + text.slice(bodyClose);
+
+          const changesAnchor = " changes:Object.freeze([\n";
+          const changesPos = text.indexOf(changesAnchor);
+          if (changesPos < 0) throw new Error('Release changes: Anker fehlt');
+          const newChanges =
+            '    "RC887 ergänzt persönliche Schnellzugriffe auf häufig verwendete Bereiche und Kunden. Gespeichert werden nur UI-Favoriten im Browser; Kundenstamm und Sendungsdaten werden nicht dupliziert.",\n' +
+            '    "RC887 ergänzt Sendungsvorlagen für wiederkehrende Grundstrukturen. Referenz, Datum, Dokumente, Status, ABD, POD, Anzahl und Gewicht werden bewusst nicht aus Vorlagen übernommen.",\n' +
+            '    "RC887 ergänzt in Sendung erstellen eine Schnellerfassung mit Kundenfavoriten und Vorlagen. Die Anwendung füllt nur den aktuellen Entwurf und verwendet weiterhin die vorhandene ExportHUB-Kundenauswahl und Renderlogik.",\n' +
+            '    "RC887 ändert ausschließlich TESTVERSION.html. Produktion, APIs, Pickup, Location, Customer-Avis und Produktionskonfiguration bleiben unverändert.",\n';
+          text = text.slice(0, changesPos + changesAnchor.length) + newChanges + text.slice(changesPos + changesAnchor.length);
+
+          if (text === original) throw new Error('Keine Änderung erzeugt');
+          fs.writeFileSync(path, text, 'utf8');
+          NODE
+
+      - name: Static RC887 safety tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const text = fs.readFileSync('TESTVERSION.html', 'utf8');
+          function required(rx, message) { if (!rx.test(text)) throw new Error(message); }
+
+          required(/version:'RC887',cache:'887',loginReturn:'\/TESTVERSION\.html\?v=887'/, 'RC887 BUILD fehlt');
+          required(/Produktivitätsstufe 3: Favoriten, Vorlagen und Schnellerfassung/, 'RC887 Release-Metadaten fehlen');
+
+          // Vorherige stabile Stufen bleiben erhalten.
+          required(/__EXPORTHUB_RC843_RELEASE_SHIPMENT_VIEW__/, 'RC884 Navigation-Guard fehlt');
+          required(/rc807ShipmentSearch/, 'RC884 Sendungssuche fehlt');
+          required(/id="exporthub-rc885-productivity"/, 'RC885 Produktivitätsmodul fehlt');
+          required(/ExportHUBProductivity885=Object\.freeze/, 'RC885 Diagnose-API fehlt');
+          required(/id="exporthub-rc886-shipment-progress"/, 'RC886 Fortschrittsmodul fehlt');
+          required(/ExportHUBShipmentProgress886=Object\.freeze/, 'RC886 Diagnose-API fehlt');
+
+          // Neue RC887 Oberfläche.
+          required(/id="exporthub-rc887-quickwork-style"/, 'RC887 CSS fehlt');
+          required(/id="exporthub-rc887-quickwork"/, 'RC887 Modul fehlt');
+          required(/__EXPORTHUB_RC887_QUICKWORK__/, 'RC887 Single-Install-Guard fehlt');
+          required(/ExportHUBQuickWork887=Object\.freeze/, 'RC887 Diagnose-API fehlt');
+          required(/Favoriten & Vorlagen/, 'Dashboard-Schnellzugriff fehlt');
+          required(/SCHNELLERFASSUNG/, 'Schnellerfassung fehlt');
+          required(/Vorlage speichern/, 'Vorlagenfunktion fehlt');
+          required(/Kundenfavoriten/, 'Kundenfavoriten fehlen');
+
+          const scriptStart = text.indexOf('<script id="exporthub-rc887-quickwork">');
+          const bodyStart = text.indexOf('\n', scriptStart) + 1;
+          const scriptEnd = text.indexOf('</script>', bodyStart);
+          if (scriptStart < 0 || bodyStart <= 0 || scriptEnd < 0) throw new Error('RC887 Script kann nicht extrahiert werden');
+          const js = text.slice(bodyStart, scriptEnd);
+          new Function(js);
+
+          // RC887 darf keine eigenen Team-/Netzwerk-Speicherwege einführen.
+          if (/fetch\s*\(|XMLHttpRequest|queueSave\s*\(|saveShipment\s*\(/.test(js)) throw new Error('RC887 enthält unerlaubten Netzwerk- oder Team-Speicherweg');
+          if (/state\(\)\.shipments\s*=|\.shipments\.push\s*\(/.test(js)) throw new Error('RC887 schreibt direkt in gespeicherte Sendungen');
+
+          // Vorlagen dürfen keine transaktionsbezogenen Felder übernehmen.
+          const capture = js.match(/copyPresent\(sh,\[([^\]]+)\]\)/);
+          if (!capture) throw new Error('RC887 Template-Whitelist fehlt');
+          const list = capture[1];
+          ['ref','reference','status','processStatus','plannedPickupDate','actualPickupDate','deliveryFiles','podFiles','abdFiles','generatedDocuments'].forEach(function(forbidden) {
+            if (new RegExp("['\"]" + forbidden + "['\"]").test(list)) throw new Error('Unerlaubtes Vorlagenfeld: ' + forbidden);
+          });
+          required(/out\.count='';out\.quantity='';out\.weight=''/, 'Anzahl/Gewicht werden in Verpackungsvorlagen nicht zurückgesetzt');
+          console.log('RC887 static safety tests: PASS');
+          NODE
+
+      - name: Verify production scope untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- index.html production-version.js api pickup.html location.html customer-avis.html staticwebapp.config.json staticwebapp.testservice.config.json; then
+            echo "ERROR: Production/API/public files changed."
+            git diff -- index.html production-version.js api pickup.html location.html customer-avis.html staticwebapp.config.json staticwebapp.testservice.config.json
+            exit 1
+          fi
+          CHANGED="$(git diff --name-only)"
+          echo "$CHANGED"
+          test "$CHANGED" = "TESTVERSION.html"
+
+      - name: Write RC887 test report
+        shell: bash
+        run: |
+          cat > RC887_PRUEFBERICHT.txt <<'EOF'
+          TESTBERICHT RC887 – PRODUKTIVITÄTSSTUFE 3
+
+          Scope:
+          - Ausschließlich TESTSERVICE / TESTVERSION.html
+          - Keine Produktionsdatei und keine API geändert
+          - RC884 Navigation/Suche, RC885 Arbeitsfokus und RC886 Sendungsfortschritt bleiben erhalten
+
+          Neue Funktionen:
+          1. Bereichsfavoriten
+             - Aktuellen Hauptbereich mit ★ anheften/entfernen
+             - Favoriten erscheinen auf dem Dashboard als Schnellzugriff
+             - Nur persönliche Browser-Präferenz, keine Änderung an Team-/Fachdaten
+
+          2. Kundenfavoriten
+             - Aktuell gewählten Kunden in Sendung erstellen merken
+             - Favoriten auf Dashboard und in der Schnellerfassung
+             - Auswahl verwendet die bestehende ExportHUB-Kundenauswahl
+
+          3. Sendungsvorlagen
+             - Vorlage aus dem aktuellen Entwurf speichern
+             - Übernommen werden nur wiederkehrende Grunddaten wie Kunde, Standort/Empfänger, Spedition und Verpackungsstruktur
+             - Referenz, Datum, Status, Dokumente, ABD, POD, Anzahl und Gewicht werden NICHT kopiert
+             - Anwendung verändert nur den aktuellen Entwurf und speichert ihn nicht automatisch
+
+          4. Schnellerfassung
+             - Direkt unter dem RC886-Sendungsfortschritt
+             - Kundenfavoriten und Vorlagen ohne Umweg erreichbar
+             - Keine zusätzliche Bestätigung für normale Kundenauswahl
+
+          Verbindlicher Live-Test im Testservice:
+          A. Testservice öffnen.
+             Erwartung: Version RC887.
+
+          B. Dashboard prüfen.
+             Erwartung: Unter "Meine Arbeit heute" erscheint "Favoriten & Vorlagen".
+
+          C. Einen Hauptbereich öffnen, z. B. Aufgaben oder Versandkosten.
+             Erwartung: Oben erscheint ☆ Anheften. Anklicken -> ★ Favorit.
+
+          D. Dashboard öffnen.
+             Erwartung: Der angeheftete Bereich erscheint unter Bereiche und öffnet mit einem Klick den korrekten Bereich.
+
+          E. Sendung erstellen öffnen und Kunden auswählen.
+             Erwartung: Unter dem RC886-Fortschritt erscheint "Schnellerfassung".
+
+          F. "Kunde merken" anklicken.
+             Erwartung: Kunde erscheint sofort als Kundenfavorit und bleibt nach F5 auf diesem Browser erhalten.
+
+          G. Einen anderen Kunden wählen und danach den Favoriten anklicken.
+             Erwartung: ExportHUB übernimmt den Favoriten über die bestehende Kundenauswahl. Kein zusätzlicher "Kunde übernehmen"-Schritt.
+
+          H. Eine Verpackungsstruktur erfassen und "Vorlage speichern" wählen.
+             Erwartung: Vorlage erscheint in der Liste.
+
+          I. Vorlage auf einer neuen/leeren Sendung anwenden.
+             Erwartung: Kunde/Grundstruktur/Verpackungsart werden übernommen. Anzahl und Gewicht bleiben leer.
+
+          J. Nach Anwendung der Vorlage prüfen:
+             Erwartung: Neue Referenz bleibt die Referenz der aktuellen Sendung; Abholdatum, Status, Lieferscheine, ABD, CMR, POD und erzeugte Dokumente wurden nicht aus der Vorlage übernommen.
+
+          K. Sendung normal weiter erfassen und speichern.
+             Erwartung: Bestehender Speicherweg funktioniert unverändert; RC887 führt keine eigene Speicherung aus.
+
+          L. Strg+K globale Suche testen.
+             Erwartung: RC885 Suche funktioniert unverändert.
+
+          M. Sendungs-Fortschritt und Dokumenten-Ampel prüfen.
+             Erwartung: RC886 bleibt sichtbar und reagiert auf die aktuellen Sendungsdaten.
+
+          N. Aus Sendungsansicht Dashboard, Aufgaben, Kunden und Versandkosten öffnen.
+             Erwartung: Navigation bleibt stabil; keine Sendungsansicht blockiert andere Bereiche.
+
+          O. Fehlerdiagnose exportieren.
+             Erwartung: version = RC887 und keine neue RC887 JavaScript-Exception.
+          EOF
+
+      - name: Commit RC887 testservice
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add TESTVERSION.html RC887_PRUEFBERICHT.txt
+          git commit -m "RC887: add favourites templates and quick shipment entry"
+          git push origin main
