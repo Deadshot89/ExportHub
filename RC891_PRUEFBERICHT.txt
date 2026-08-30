@@ -1,0 +1,80 @@
+TESTBERICHT RC891 – PRODUKTIVITÄTSSTUFE 7
+
+Scope:
+- Ausschließlich TESTSERVICE / TESTVERSION.html
+- Keine Produktionsdatei und keine API geändert
+- RC884 bis RC890 bleiben erhalten
+
+Neue Funktionen:
+1. Professionelle Sendungsübersicht
+   - Zusätzliche kompakte Arbeitsansicht oberhalb der bestehenden Sendungsübersicht
+   - Bestehende Übersicht bleibt unverändert darunter erhalten
+   - Direkte Öffnung nutzt den vorhandenen ExportHUBShipmentView-Pfad
+
+2. Zentrale Suche innerhalb der Übersicht
+   - Referenz
+   - Kunde
+   - Kundennummer
+   - Empfänger
+   - Spedition
+   - Status
+   - Dokumentnamen aus bereits geladenen Sendungsdaten
+
+3. Schnellfilter
+   - Alle
+   - Heute
+   - Überfällig
+   - ABD offen
+   - POD fehlt
+   - Bereit zur Abholung
+   - Abgeholt
+   - Abgeschlossen
+
+4. Zeitraum und Sortierung
+   - Alle Termine / nächste 7 Tage / nächste 30 Tage
+   - Abholung zuerst oder zuletzt
+   - Kunde A-Z
+   - Status A-Z
+   - Referenz A-Z
+
+5. Gespeicherte Ansichten
+   - Aktuelle Filterkombination kann benannt und gespeichert werden
+   - Gespeicherte Ansichten sind nur auf diesem Gerät im Browser gespeichert
+   - Ansichten können angewendet und gelöscht werden
+   - Keine Cloud-Speicherung und keine Änderung an Sendungsdaten
+
+6. Kompakte Darstellung
+   - Umschaltbar zwischen Standard- und Kompaktzeilen
+   - Für große Sendungsmengen werden zunächst 40 Treffer dargestellt
+   - Weitere Treffer können schrittweise eingeblendet werden
+
+Sicherheit:
+- Keine neue API
+- Keine Netzwerkaufrufe
+- Keine automatische Speicherung
+- Keine Statusänderung
+- Keine Änderung an Abholung, POD oder Aufgaben
+- Filter/Ansichten ausschließlich localStorage
+- Bestehende Sendungsübersicht bleibt als Rückfallebene erhalten
+
+Wo sichtbar:
+A. RC891 erfolgreich ausführen und Testservice mit Strg+F5 neu laden.
+B. Version RC891 prüfen.
+C. „Sendungsübersicht“ öffnen.
+D. Unter „Schnellaktionen & kritische Sendungen“ erscheint „Filter, Sortierung & gespeicherte Ansichten“.
+E. Suche mit Referenz oder Kundenname testen.
+F. Schnellfilter „Heute“, „ABD offen“, „POD fehlt“ testen.
+G. Sortierung ändern.
+H. Eine Ansicht speichern, Seite neu laden und erneut anwenden.
+I. Kompaktmodus ein-/ausschalten.
+J. Eine Trefferzeile öffnen und prüfen, dass die bestehende Sendungsansicht erscheint.
+
+Regression:
+- RC884 Navigation/Suche/KundenAvis-Trennung
+- RC885 globale Suche/Meine Arbeit heute
+- RC886 Fortschritt/Dokumenten-Ampel
+- RC887 Favoriten/Vorlagen
+- RC888 Übergabe/Timeline/Performance
+- RC889 Aktionsleiste/Sperrgründe/Arbeitszustände
+- RC890 Arbeitsplatz/Warncenter/Schnellaktionen
+- Produktion unverändert
