@@ -66,6 +66,8 @@ jobs:
           require_file api/package.json
           require_file api/exporthub-auth-probe/index.js
           require_file api/exporthub-auth-probe/function.json
+          require_file api/pickup-status/index.js
+          require_file api/pickup-status/function.json
 
           VERSION=""
           if [[ -f TESTVERSION.html ]]; then
@@ -111,7 +113,7 @@ jobs:
             fi
           fi
 
-          for js in api/exporthub-state/index.js api/exporthub-auth/index.js api/exporthub-auth-probe/index.js api/shared/auth-store.js api/shared/user-policy.js api/shared/merge.js; do
+          for js in api/exporthub-state/index.js api/exporthub-auth/index.js api/exporthub-auth-probe/index.js api/pickup-status/index.js api/shared/auth-store.js api/shared/user-policy.js api/shared/merge.js; do
             if [[ -f "$js" ]]; then
               if node --check "$js"; then
                 echo "OK: Syntax $js"
