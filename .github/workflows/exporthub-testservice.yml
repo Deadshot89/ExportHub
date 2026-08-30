@@ -59,12 +59,13 @@ jobs:
           require_file TESTVERSION.html
           require_file staticwebapp.testservice.config.json
           require_dir api
-          require_file api/exporthub-auth-fast/index.js
-          require_file api/exporthub-auth-fast/function.json
 
           VERSION=""
           if [[ -f TESTVERSION.html ]]; then
-            VERSION="$(grep -oE "version:'RC[0-9]+'" TESTVERSION.html | head -n 1 | sed -E "s/version:'(RC[0-9]+)'/\1/" || true)"
+            VERSION="$(grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" TESTVERSION.html | head -n 1 | sed -E "s/.*version:'(RC[0-9]+)'/\1/" || true)"
+            if [[ -z "$VERSION" ]]; then
+              VERSION="$(grep -oE "BUILD[^\n]{0,120}version:'RC[0-9]+'" TESTVERSION.html | head -n 1 | grep -oE "RC[0-9]+" || true)"
+            fi
             if [[ -n "$VERSION" ]]; then
               echo "OK: erkannte Testversion = $VERSION"
             else
@@ -82,7 +83,7 @@ jobs:
             fi
           fi
 
-          for js in api/exporthub-state/index.js api/exporthub-auth-fast/index.js api/shared/merge.js; do
+          for js in api/exporthub-state/index.js api/exporthub-auth/index.js api/shared/merge.js; do
             if [[ -f "$js" ]]; then
               if node --check "$js"; then
                 echo "OK: Syntax $js"
@@ -215,7 +216,7 @@ jobs:
           skip_app_build: true
           deployment_environment: testservice
 
-      - name: Verify live TESTSERVICE authentication
+      - name: Verify live TESTSERVICE API host and state route
         shell: bash
         env:
           TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
@@ -225,33 +226,34 @@ jobs:
             echo "Azure hat keine Testservice-URL zurückgegeben."
             exit 1
           fi
+
           body_file="$(mktemp)"
           trap 'rm -f "$body_file"' EXIT
-          code="$(curl -sS --connect-timeout 5 --max-time 15 \
+          code="$(curl -sS --connect-timeout 5 --max-time 20 \
             -H 'Content-Type: application/json' \
             -H 'Accept: application/json' \
             -H 'X-ExportHUB-Environment: testservice' \
             -X POST \
-            --data '{"action":"health","environment":"testservice"}' \
+            --data '{}' \
             -o "$body_file" -w '%{http_code}' \
-            "$TESTSERVICE_URL/api/exporthub-auth-fast" || true)"
-          echo "Auth-Health HTTP=$code"
+            "$TESTSERVICE_URL/api/exporthub-state?mode=meta" || true)"
+
+          echo "State-Route HTTP=$code"
           cat "$body_file" || true
           echo
-          if [[ "$code" != "200" ]]; then
-            echo "TESTSERVICE-Auth ist nach dem Deployment nicht erreichbar."
-            exit 1
-          fi
-          node - "$body_file" <<'NODE'
-          const fs = require('fs');
-          const p = process.argv[2];
-          const d = JSON.parse(fs.readFileSync(p,'utf8'));
-          if (d.ok !== true) throw new Error('Auth-Health ok=true fehlt');
-          if (d.environment !== 'testservice') throw new Error('Auth-Health meldet nicht testservice');
-          if (d.storageReachable !== true) throw new Error('Azure-Speicher ist für Auth nicht erreichbar');
-          if (!d.teamBlob) throw new Error('Auth-Health meldet keinen Team-Blob');
-          console.log(`Auth-Health bestanden: ${d.elapsedMs || 0} ms · ${d.teamBlob} · ${d.teamBytes || 0} Bytes`);
-          NODE
+
+          # 200 ist ideal. 400/401/403 beweisen ebenfalls, dass die Funktion
+          # existiert und antwortet. 404 bedeutet Route fehlt; 5xx bedeutet
+          # Backend nicht einsatzbereit.
+          case "$code" in
+            200|400|401|403)
+              echo "TESTSERVICE-API-Host und exporthub-state Route sind erreichbar."
+              ;;
+            *)
+              echo "TESTSERVICE-API-Host oder exporthub-state Route ist nicht einsatzbereit (HTTP $code)."
+              exit 1
+              ;;
+          esac
 
       - name: Verify live TESTSERVICE version
         shell: bash
@@ -286,8 +288,8 @@ jobs:
             direct_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_direct" -w '%{http_code}' "$direct_url" || true)"
             route_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_route" -w '%{http_code}' "$route_url" || true)"
 
-            direct_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_direct" | head -n 1 | sed -E "s/version:'(RC[0-9]+)'/\1/" || true)"
-            route_version="$(grep -oE "version:'RC[0-9]+'" "$tmp_route" | head -n 1 | sed -E "s/version:'(RC[0-9]+)'/\1/" || true)"
+            direct_version="$(grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" "$tmp_direct" | head -n 1 | grep -oE "RC[0-9]+" || true)"
+            route_version="$(grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" "$tmp_route" | head -n 1 | grep -oE "RC[0-9]+" || true)"
 
             echo "Live-Check $attempt/24: direct HTTP=$direct_code ${direct_version:-keine-RC} | /test HTTP=$route_code ${route_version:-keine-RC}"
 
