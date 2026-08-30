@@ -1,5 +1,4 @@
 'use strict';
-
 const MODULES = [
   'start','dashboard','tasks','vacation','planning','shipment','abd','shipmentoverview',
   'cmr','documents','pallet','customers','customerfolder','calculator','customs','sop',
@@ -10,6 +9,7 @@ function clone(value) { return value === undefined ? undefined : JSON.parse(JSON
 function text(value) { return String(value == null ? '' : value).trim(); }
 function lower(value) { return text(value).toLowerCase(); }
 function userName(user) { return lower(user && (user.user || user.login || user.username || user.name)); }
+
 function isAdmin(user) {
   const role = lower(user && (user.role || user.rolle));
   const globalRole = role === 'admin' || /global.?admin|administrator|vollzugriff/i.test(role);
@@ -19,6 +19,7 @@ function isAdmin(user) {
     (Array.isArray(user.permissions) && user.permissions.includes('*'))
   ));
 }
+
 function defaultRights(admin) {
   const result = {};
   for (const id of MODULES) {
@@ -38,6 +39,7 @@ function defaultRights(admin) {
   };
   return result;
 }
+
 function normalizeLevel(old, fallback) {
   const raw = lower(old && (old.level || old.access));
   if (['none','view','edit','admin'].includes(raw)) return raw;
@@ -46,6 +48,7 @@ function normalizeLevel(old, fallback) {
   if (old && (old.read === true || old.visible === true)) return 'view';
   return fallback;
 }
+
 function normalizeRights(value, admin) {
   const source = value && typeof value === 'object' ? value : {};
   const result = {};
@@ -64,6 +67,7 @@ function normalizeRights(value, admin) {
   }
   return result;
 }
+
 function normalizeUser(user, index) {
   const source = user && typeof user === 'object' ? clone(user) : {};
   const login = text(source.user || source.login || source.username || source.name) || `Benutzer${index + 1}`;
@@ -83,6 +87,7 @@ function normalizeUser(user, index) {
   source.loginSecurity = source.loginSecurity && typeof source.loginSecurity === 'object' ? source.loginSecurity : { failedAttempts: 0, stage: 'first', lockedUntil: null, permanentLocked: false };
   return source;
 }
+
 function dedupeUsers(users) {
   const map = new Map();
   (Array.isArray(users) ? users : []).forEach((user, index) => {
@@ -96,6 +101,7 @@ function dedupeUsers(users) {
   });
   return Array.from(map.values());
 }
+
 function ensureInitialAdmin(users) {
   if (users.length) return users;
   return [normalizeUser({
@@ -105,6 +111,7 @@ function ensureInitialAdmin(users) {
     active: true, createdAt: new Date().toISOString()
   }, 0)];
 }
+
 function publicUser(user, adminView = false) {
   const u = normalizeUser(user || {}, 0);
   const out = {
@@ -130,16 +137,24 @@ function publicUser(user, adminView = false) {
   }
   return out;
 }
+
+// RC879: Nur der kleine Benutzerbereich wird normalisiert. Der große state-Block
+// wird nicht mehr per JSON.stringify/parse vollständig dupliziert. Bei großen
+// Teamständen (inkl. POD-/Dokumentdaten) reduziert das die Speicher-Spitzen des
+// Auth- und State-Backends deutlich, ohne Daten zu entfernen oder umzuschreiben.
 function applyUserPolicy(document) {
-  const source = document && typeof document === 'object' ? clone(document) : {};
-  source.state = source.state && typeof source.state === 'object' ? source.state : {};
-  const topUsers = Array.isArray(source.users) ? source.users : [];
-  const fallbackUsers = Array.isArray(source.state.users) ? source.state.users : [];
+  const input = document && typeof document === 'object' ? document : {};
+  const source = Object.assign({}, input);
+  const inputState = input.state && typeof input.state === 'object' ? input.state : {};
+  source.state = Object.assign({}, inputState);
+  const topUsers = Array.isArray(input.users) ? input.users : [];
+  const fallbackUsers = Array.isArray(inputState.users) ? inputState.users : [];
   const users = ensureInitialAdmin(dedupeUsers(topUsers.length ? topUsers : fallbackUsers));
   source.users = clone(users);
   source.state.users = users.map((u) => publicUser(u, false));
   return source;
 }
+
 function countAdmins(users) {
   return (Array.isArray(users) ? users : []).filter((u) => isAdmin(u) && u.active !== false && u.disabled !== true).length;
 }
