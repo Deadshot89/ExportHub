@@ -63,6 +63,9 @@ jobs:
           require_file api/exporthub-auth/function.json
           require_file api/shared/auth-store.js
           require_file api/shared/user-policy.js
+          require_file api/package.json
+          require_file api/exporthub-auth-probe/index.js
+          require_file api/exporthub-auth-probe/function.json
 
           VERSION=""
           if [[ -f TESTVERSION.html ]]; then
@@ -87,7 +90,17 @@ jobs:
             fi
           fi
 
-          for js in api/exporthub-state/index.js api/exporthub-auth/index.js api/shared/auth-store.js api/shared/user-policy.js api/shared/merge.js; do
+          if [[ -f staticwebapp.testservice.config.json ]]; then
+            API_RUNTIME="$(node -e "const c=JSON.parse(require('fs').readFileSync('staticwebapp.testservice.config.json','utf8')); process.stdout.write(String(c&&c.platform&&c.platform.apiRuntime||''));")"
+            if [[ "$API_RUNTIME" == "node:20" ]]; then
+              echo "OK: Testservice API-Runtime = node:20"
+            else
+              echo "FEHLER: Testservice API-Runtime muss node:20 sein, ist aber '${API_RUNTIME:-nicht gesetzt}'."
+              failed=1
+            fi
+          fi
+
+          for js in api/exporthub-state/index.js api/exporthub-auth/index.js api/exporthub-auth-probe/index.js api/shared/auth-store.js api/shared/user-policy.js api/shared/merge.js; do
             if [[ -f "$js" ]]; then
               if node --check "$js"; then
                 echo "OK: Syntax $js"
@@ -207,6 +220,32 @@ jobs:
           EOF2
           echo "TESTSERVICE-Payload für $EXPECTED_VERSION vorbereitet."
 
+      - name: Install and smoke-test TESTSERVICE API runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GitHub Node: $(node --version)"
+          cd api
+          npm install --omit=dev --no-audit --no-fund
+          node - <<'NODE'
+          const checks = [
+            ['@azure/storage-blob', () => require('@azure/storage-blob')],
+            ['shared/user-policy', () => require('./shared/user-policy')],
+            ['shared/auth-store', () => require('./shared/auth-store')],
+            ['exporthub-auth', () => require('./exporthub-auth/index.js')],
+            ['exporthub-auth-probe', () => require('./exporthub-auth-probe/index.js')]
+          ];
+          for (const [name, load] of checks) {
+            const mod = load();
+            if (!mod) throw new Error(name + ' wurde leer geladen');
+            console.log('OK require:', name);
+          }
+          if (typeof require('./exporthub-auth/index.js') !== 'function') {
+            throw new Error('exporthub-auth exportiert keine Azure-Function');
+          }
+          console.log('TESTSERVICE API runtime smoke-test bestanden.');
+          NODE
+
       - name: Deploy TESTSERVICE named environment
         id: deploy
         uses: Azure/static-web-apps-deploy@v1
@@ -218,7 +257,46 @@ jobs:
           api_location: api
           output_location: ""
           skip_app_build: true
+          skip_api_build: true
           deployment_environment: testservice
+
+      - name: Verify live TESTSERVICE authentication runtime
+        shell: bash
+        env:
+          TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${TESTSERVICE_URL:-}" ]]; then
+            echo "Azure hat keine Testservice-URL zurückgegeben."
+            exit 1
+          fi
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          code="$(curl -sS --connect-timeout 5 --max-time 30 \
+            -H 'Accept: application/json' \
+            -o "$body_file" -w '%{http_code}' \
+            "$TESTSERVICE_URL/api/exporthub-auth-probe" || true)"
+          echo "Auth runtime probe HTTP=$code"
+          cat "$body_file" || true
+          echo
+          if [[ "$code" != "200" ]]; then
+            echo "TESTSERVICE-Auth-Runtime-Probe selbst ist nicht erreichbar."
+            exit 1
+          fi
+          node - "$body_file" <<'NODE'
+          const fs = require('fs');
+          const p = process.argv[2];
+          const d = JSON.parse(fs.readFileSync(p,'utf8'));
+          if (d.ok !== true) throw new Error('Runtime-Probe ok=true fehlt');
+          if (d.runtimeReady !== true) {
+            console.error('Runtime-Probe meldet Modulfehler:', JSON.stringify(d.modules || {}, null, 2));
+            process.exit(1);
+          }
+          if (!d.runtime || !/^v20\./.test(String(d.runtime.node || ''))) {
+            throw new Error('Azure API läuft nicht auf Node 20: ' + String(d.runtime && d.runtime.node || 'unbekannt'));
+          }
+          console.log('Auth-Runtime bereit auf ' + d.runtime.node + '.');
+          NODE
 
       - name: Verify live TESTSERVICE authentication backend
         shell: bash
