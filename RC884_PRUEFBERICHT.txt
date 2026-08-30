@@ -1,0 +1,55 @@
+TESTBERICHT RC884 – NAVIGATION / SUCHE / SENDUNG ERSTELLEN
+
+Ausgangslage:
+- RC883 Testservice als Basis.
+- Die hochgeladene neue Fehlerdiagnose des Anwenders meldete RC882 production.
+- Daher dient sie als Fehlernachweis der Hauptseite, nicht als Messung des RC883-Testservice.
+
+Behoben:
+1. Shipment-View-Guard wird bei Navigation aus shipmentview sofort freigegeben.
+2. Ein bereits geplanter RC843 sync/render-Timer darf eine aktive Navigation nicht mehr auf shipmentview zurücksetzen.
+3. Sendungssuche rc807ShipmentSearch bleibt aktiv und wird nicht mehr vom Shipment-View-Guard verdrängt.
+4. Kunden-Avis/Lieferavis wird intern in Sendung erstellen und Sendungsansicht nicht mehr gerendert.
+5. Separate customer-avis.html und API bleiben unverändert.
+6. "Kunde übernehmen" wird aus Sendung erstellen entfernt.
+7. "Adresse geprüft und bestätigt" wird aus Sendung erstellen entfernt.
+8. Bestehende automatische Kundensuche/-auswahl bleibt erhalten.
+
+Automatische Sicherheitsprüfungen:
+- RC883 Build als Ausgangsbasis erkannt.
+- RC843 Release-Hook vorhanden.
+- Navigation gibt RC843 Guard vor dem Renderwechsel frei.
+- rc843EnsureView respektiert aktive Navigation.
+- rc807ShipmentSearch Input-Handler vorhanden.
+- shipmentsearch Route vorhanden.
+- Interner Kunden-Avis-Renderer ist Cleanup/No-Op.
+- customer-avis.html ist weiterhin im Testservice-Paket vorhanden.
+- Adressbestätigungs-Button wird nicht mehr erzeugt.
+- Kunde-übernehmen-Button wird aus dem Workflow entfernt.
+- Produktionsdateien, APIs und öffentliche Customer-Avis-Datei unverändert.
+
+Verbindlicher Live-Test im Testservice:
+A. Eine Sendung über Sendungsübersicht -> Sendungsansicht öffnen.
+   Danach nacheinander Aufgaben, Planung, Dashboard und Kunden öffnen.
+   Erwartung: Jeder gewählte Bereich bleibt sichtbar. Kein Zurückspringen auf Sendungsansicht.
+
+B. Sendungsansicht/Suche öffnen und nach Referenz, Kunde und Kennzeichen suchen.
+   Erwartung: Suchergebnisse reagieren auf Eingaben; Seite bleibt in der Suche.
+
+C. Sendung erstellen öffnen.
+   Erwartung: Kein Button "Kunde übernehmen".
+   Kunde über Suchfeld/Datalist auswählen.
+   Erwartung: Kundendaten/Standort werden ohne separaten Bestätigungsbutton übernommen.
+
+D. Sendung erstellen.
+   Erwartung: Kein Button "Adresse geprüft und bestätigt".
+
+E. Sendung erstellen UND schreibgeschützte Sendungsansicht.
+   Erwartung: Kein interner Block "KUNDEN-AVIS / LIEFERAVIS".
+
+F. Separate customer-avis.html über einen gültigen Kunden-Avis-Link prüfen.
+   Erwartung: Customer-Avis funktioniert dort weiterhin.
+
+G. Fehlerdiagnose aus dem TESTSERVICE exportieren.
+   Erwartung: version = RC884.
+   Wenn version = RC882/production erscheint, wurde weiterhin die Hauptseite getestet.
