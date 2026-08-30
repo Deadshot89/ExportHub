@@ -1,35 +1,35 @@
-# ExportHUB Professional 0.2.0
+# ExportHUB Professional 0.3.0
 
-Professional 0.2 ist weiterhin vollständig von ExportHUB Internal getrennt. Der aktuelle interne Datenbestand wird ausschließlich lokal gelesen und als schreibgeschützte Professional-Vorschau normalisiert.
+Professional 0.3 bleibt vollständig von ExportHUB Internal getrennt. Der interne Datenbestand wird nur lokal gelesen und als schreibgeschützte Professional-Struktur normalisiert.
 
-## Neu in 0.2
+## Neu in 0.3
 
-- akzeptiert aktuelle `ExportHUB_BACKUP`-Dateien und ältere Legacy-Backups mit `state + users`
-- Quellversion kann für Legacy-Backups ausdrücklich bestätigt werden, z. B. RC826
-- `shipments` und `savedShipments` werden auf eindeutige Sendungen zusammengeführt statt doppelt angelegt
-- aktueller `processStatus` wird vor historischen Hilfsfeldern erhalten
-- Abholung/POD/Signatur bleiben als Sperre erhalten
-- `podCloudBackupWebUrl` und weitere Remote-POD-Felder werden als externe Dokumentquelle erkannt
-- Benutzer und Rollen werden als Read-only-Vorschau übernommen
-- alte Passwörter werden nicht in die normalisierte Professional-Benutzerstruktur übernommen; Anmeldung erfordert später eine Neuvergabe
-- Kunden, Sendungen und Benutzer können nach erfolgreicher lokaler Prüfung direkt in den entsprechenden Professional-Bereichen angesehen werden
-- Source Snapshot bleibt unverändert; keine Schreibverbindung zu Internal
+- strukturiertes Dokument-Migrationsregister für POD, Lieferschein, ABD, CMR, Ladeliste, Rechnung und sonstige Dokumente
+- jedes eindeutige Dokument erhält Referenz, Quelle, Speicherstatus, Migrationsstatus, Priorität und Cutover-Sperre
+- eingebettete Dateien werden per SHA-256 verifiziert
+- Remote-Dokumente werden nach ExportHUB-API, SharePoint oder externer HTTP-Quelle klassifiziert
+- POD-Dokumente besitzen ein eigenes P0-Gate: ein Cutover bleibt blockiert, solange ein POD nicht vollständig gesichert ist
+- ABD-Dokumente aus `abdRequests` werden anhand der Referenz wieder der richtigen Sendung zugeordnet
+- Dokumentregister kann separat und ohne rohe Remote-URLs heruntergeladen werden
+- bestehende Read-only-Ansichten für Mandant, Benutzer/Rollen, Kunden und Sendungen bleiben erhalten
+- Legacy-Passwörter werden weiterhin nicht übernommen
 
 ## Sicherheits-Gates
 
-`READ_ONLY_READY` bedeutet: Alle relevanten Quellobjekte sind einem Professional-Zielobjekt zugeordnet und die schreibgeschützte Migration kann geprüft werden.
+`READ_ONLY_READY` bedeutet: Der Bestand ist vollständig zugeordnet und darf schreibgeschützt geprüft werden.
 
-`CUTOVER_READY` ist deutlich strenger. Remote-Dateien und Dokumente ohne gesicherten Inhalt blockieren den Cutover weiterhin.
+`CUTOVER_READY` ist strenger. Remote-Dateien, fehlende Dateiinhalte oder nicht vollständig gesicherte POD-Dokumente blockieren den Cutover.
 
 ## Migration testen
 
-1. Unter **Migration** optional die Quellversion eintragen, wenn der Alt-Export keine eigene Versionsmetadaten besitzt.
-2. Mandantenname für die Vorschau eintragen.
+1. Unter **Migration** bei einem Legacy-Backup die Quellversion bestätigen, z. B. RC826.
+2. Mandantenname eintragen.
 3. Backup auswählen.
-4. Inventur und Statusverteilung kontrollieren.
+4. Inventur prüfen.
 5. **Migrationspaket prüfen & erzeugen** starten.
-6. Erst bei `READ_ONLY_READY` die Read-only-Bereiche Mandanten, Benutzer, Kunden und Sendungen prüfen.
-7. Ein produktiver Cutover ist in 0.2 weiterhin deaktiviert.
+6. Bei `READ_ONLY_READY` Kunden, Sendungen und Dokumentregister prüfen.
+7. Das separate Dokumentregister zeigt alle noch offenen Dateien priorisiert an.
+8. Ein produktiver Cutover ist in 0.3 weiterhin deaktiviert.
 
 CLI:
 
@@ -46,5 +46,6 @@ Danach:
 - keine automatische Datenbankmigration
 - vollständiger Source Snapshot plus SHA-256
 - Source Pointer für jede Migration
-- doppelte Quellstände werden dokumentiert, aber nicht doppelt als neue Sendung angelegt
-- POD- und Abholsperren werden nicht aufgehoben
+- doppelte Quellstände werden dokumentiert, aber nicht doppelt angelegt
+- POD- und Abholsperren bleiben erhalten
+- Remote-URLs werden im separaten sicheren Dokumentregister nicht ausgegeben

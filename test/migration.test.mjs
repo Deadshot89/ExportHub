@@ -51,3 +51,22 @@ test('inline documents receive hashes',async()=>{
 test('source hash is deterministic',async()=>{
   const text='{"a":1}';assert.equal(await sha256Hex(text),await sha256Hex(text));
 });
+
+test('document registry exposes migration status and remote source class',async()=>{
+  const payload=typedSample(true),pkg=await buildMigrationPackage(payload,JSON.stringify(payload));
+  const pod=pkg.normalized.documents.find(d=>d.kind==='POD');
+  assert.equal(pod.migrationStatus,'REMOTE_CAPTURE_REQUIRED');
+  assert.equal(pod.remoteSourceClass,'EXTERNAL_HTTP');
+  assert.equal(pod.cutoverBlocking,true);
+  assert.equal(pkg.manifest.documents.podGate.ready,false);
+});
+
+test('ABD request document is linked to shipment by reference',async()=>{
+  const payload=typedSample(false);
+  payload.state.abdRequests=[{id:'A1',ref:'ABC123',abdFiles:[{id:'A-DOC',name:'ABD_26DE_TEST.pdf',type:'application/pdf',data:'data:application/pdf;base64,JVBERi0xLjQK'}]}];
+  const pkg=await buildMigrationPackage(payload,JSON.stringify(payload));
+  const abd=pkg.normalized.documents.find(d=>d.kind==='ABD');
+  assert.ok(abd);
+  assert.equal(abd.reference,'ABC123');
+  assert.equal(abd.shipmentId,pkg.normalized.shipments[0].id);
+});

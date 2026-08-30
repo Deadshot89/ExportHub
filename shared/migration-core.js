@@ -1,5 +1,5 @@
 const BACKUP_TYPE = 'ExportHUB_BACKUP';
-const PROFESSIONAL_VERSION = '0.2.0';
+const PROFESSIONAL_VERSION = '0.3.0';
 
 function q(v){ return v == null ? '' : String(v).trim(); }
 function low(v){ return q(v).toLowerCase(); }
@@ -45,7 +45,7 @@ function classifyDocument(path, file){
   const s = low(path + ' ' + fileNameOf(file) + ' ' + q(file.kind || file.docKind || file.documentKind || file.source));
   if(/pod|proof.of.delivery|unterschrift|signed-loadlist/.test(s)) return 'POD';
   if(/lieferschein|delivery.?note|packing.?slip|dnc/.test(s)) return 'LIEFERSCHEIN';
-  if(/\babd\b|ausfuhr|export.?declaration/.test(s)) return 'ABD';
+  if(/(?:^|[^a-z0-9])abd(?:[^a-z0-9]|$)|ausfuhr|export.?declaration/.test(s)) return 'ABD';
   if(/\bcmr\b/.test(s)) return 'CMR';
   if(/rechnung|invoice/.test(s)) return 'RECHNUNG';
   if(/ladeliste|load.?list/.test(s)) return 'LADELISTE';
@@ -289,6 +289,27 @@ function professionalRole(u){
   return 'USER';
 }
 
+function remoteSourceClass(url){
+  const u=q(url);
+  if(!u) return '';
+  if(/^\/api\//i.test(u)) return 'EXPORTHUB_API';
+  if(/sharepoint\.com/i.test(u)) return 'SHAREPOINT';
+  if(/^https?:\/\//i.test(u)) return 'EXTERNAL_HTTP';
+  return 'OTHER_REMOTE';
+}
+function documentMigrationStatus(group){
+  if(group.some(x=>x.inlinePayload)) return 'VERIFIED_INLINE';
+  if(group.some(x=>x.remoteUrl)) return 'REMOTE_CAPTURE_REQUIRED';
+  return 'CONTENT_MISSING';
+}
+function migrationPriority(kind,status){
+  if(kind==='POD' && status!=='VERIFIED_INLINE') return 'P0';
+  if(kind==='ABD' && status!=='VERIFIED_INLINE') return 'P0';
+  if(status==='REMOTE_CAPTURE_REQUIRED') return 'P1';
+  if(status==='CONTENT_MISSING') return 'P1';
+  return 'OK';
+}
+
 export function createNormalizedSkeleton(payload, inventory, options={}){
   const tenantId='tenant-legacy-import';
   const tenantName=q(options.tenantNameHint)||'Legacy ExportHUB Import';
@@ -304,9 +325,14 @@ export function createNormalizedSkeleton(payload, inventory, options={}){
   });
 
   const shipmentTargetByKey=new Map();
+  const shipmentTargetByRef=new Map();
+  const shipmentReferenceById=new Map();
   const shipments=inventory.canonicalShipments.map((g,index)=>{
     const sh=g.primary.value, id='ship-'+String(index+1).padStart(7,'0'), pointers=g.records.map(r=>`${r.sourceCollection}[${r.sourceIndex}]`);
     shipmentTargetByKey.set(g.key,id);
+    const shipmentRef=refOf(sh);
+    if(shipmentRef) shipmentTargetByRef.set(normalizeKey(shipmentRef),id);
+    shipmentReferenceById.set(id,shipmentRef);
     g.records.forEach(r=>migrationMap.push({sourcePointer:`${r.sourceCollection}[${r.sourceIndex}]`,targetType:'shipment',targetId:id,duplicateAlias:r!==g.primary}));
     const customerLegacyId=q(sh.customerId || (sh.customer&&sh.customer.id) || (sh.customerData&&sh.customerData.id));
     const customerAccount=q(sh.customerAccount||sh.customerNumber||sh.customerNo||(sh.customer&&customerAccountOf(sh.customer))||(sh.customerData&&customerAccountOf(sh.customerData)));
@@ -334,13 +360,30 @@ export function createNormalizedSkeleton(payload, inventory, options={}){
   for(const [,group] of inventory.canonicalDocumentGroups.entries()){
     const d=group[0], id='doc-'+String(++docIndex).padStart(8,'0');
     group.forEach(src=>migrationMap.push({sourcePointer:src.sourcePath,targetType:'document',targetId:id,duplicateAlias:src!==d}));
-    const shipmentId=d.ownerType==='shipment'?shipmentTargetByKey.get(d.canonicalOwnerKey)||'':'';
-    const customerId=d.ownerType==='customer'?customerTargetByLegacy.get(d.canonicalOwnerKey)||'':'';
-    documents.push({id,tenantId,shipmentId,customerId,kind:d.kind,name:d.name,mimeType:d.mimeType,size:d.size,sourcePointers:group.map(x=>x.sourcePath),storage:d.inlinePayload?'inline-source':(d.remoteUrl?'remote-source':'metadata-only'),remoteUrl:d.remoteUrl||'',declaredHash:d.declaredHash||'',uploadedAt:d.uploadedAt||'',uploadedBy:d.uploadedBy||''});
+    let shipmentId=d.ownerType==='shipment'?shipmentTargetByKey.get(d.canonicalOwnerKey)||'':'';
+    let customerId=d.ownerType==='customer'?customerTargetByLegacy.get(d.canonicalOwnerKey)||'':'';
+    let ownerReference='';
+    if(d.ownerType==='abdRequest'){
+      const m=/abdRequests\[(\d+)\]/.exec(d.ownerPointer||'');
+      const req=m ? arr(payload.state.abdRequests)[Number(m[1])] : null;
+      ownerReference=q(req&&(req.ref||req.reference||req.shipmentRef));
+      shipmentId=shipmentTargetByRef.get(normalizeKey(ownerReference))||'';
+      const reqCustomerId=q(req&&req.customerId), reqAccount=q(req&&(req.customerNumber||req.customerAccount||req.customerNo));
+      customerId=customerTargetByLegacy.get('id:'+normalizeKey(reqCustomerId))||customerTargetByLegacy.get('account:'+normalizeKey(reqAccount))||'';
+    }
+    if(shipmentId && !ownerReference) ownerReference=shipmentReferenceById.get(shipmentId)||'';
+    const inline=group.find(x=>x.inlinePayload), remote=group.find(x=>x.remoteUrl), declared=group.find(x=>x.declaredHash);
+    const migrationStatus=documentMigrationStatus(group), remoteUrl=q(remote&&remote.remoteUrl), sourceClass=remoteSourceClass(remoteUrl);
+    documents.push({
+      id,tenantId,shipmentId,customerId,reference:ownerReference,kind:d.kind,name:d.name,mimeType:d.mimeType,size:d.size,
+      sourcePointers:group.map(x=>x.sourcePath),sourceRecordCount:group.length,
+      storage:inline?'inline-source':(remote?'remote-source':'metadata-only'),migrationStatus,migrationPriority:migrationPriority(d.kind,migrationStatus),cutoverBlocking:migrationStatus!=='VERIFIED_INLINE',
+      remoteSourceClass:sourceClass,remoteUrl,declaredHash:q(declared&&declared.declaredHash),uploadedAt:d.uploadedAt||'',uploadedBy:d.uploadedBy||''
+    });
   }
 
   return {
-    schemaVersion:'professional-0.2',
+    schemaVersion:'professional-0.3',
     tenant:{id:tenantId,name:tenantName,migrationOnly:true},
     users,customers,shipments,documents,
     tasks:arr(payload.state.tasks).map((x,i)=>({id:'task-'+String(i+1).padStart(7,'0'),tenantId,sourcePointer:`tasks[${i}]`,title:q(x&&x.title),status:q(x&&x.status)})),
@@ -382,7 +425,7 @@ export async function buildMigrationPackage(payload, sourceText, options={}){
   const normalized=createNormalizedSkeleton(payload,inv,options);
   const sourceSha256=await sha256Hex(sourceText ?? JSON.stringify(payload));
   const docVerification=[];
-  let inlineCount=0, remoteCount=0, missingCount=0, hashErrors=0;
+  let inlineCount=0, remoteCount=0, missingCount=0, hashErrors=0, docPos=0;
   for(const [,group] of inv.canonicalDocumentGroups.entries()){
     const d=group[0];
     const inline=group.find(x=>x.inlinePayload), remote=group.find(x=>x.remoteUrl), declared=group.find(x=>x.declaredHash);
@@ -394,6 +437,14 @@ export async function buildMigrationPackage(payload, sourceText, options={}){
     }else if(remote){ remoteCount++; rec.status='REMOTE_CAPTURE_REQUIRED'; rec.remoteUrl=remote.remoteUrl; }
     else{ missingCount++; rec.status='CONTENT_MISSING'; }
     docVerification.push(rec);
+    const normalizedDoc=normalized.documents[docPos++];
+    if(normalizedDoc){
+      normalizedDoc.sha256=rec.sha256||'';
+      normalizedDoc.migrationStatus=rec.status==='HASHED'?'VERIFIED_INLINE':rec.status;
+      normalizedDoc.cutoverBlocking=rec.status!=='HASHED';
+      normalizedDoc.migrationPriority=migrationPriority(normalizedDoc.kind,normalizedDoc.migrationStatus);
+      if(rec.remoteUrl && !normalizedDoc.remoteUrl) normalizedDoc.remoteUrl=rec.remoteUrl;
+    }
   }
   const sourceCoverage=normalized.migrationMap.length;
   const expectedCoverage=inv.customers.length+inv.shipments.length+inv.users.length+inv.documentSources.length;
@@ -406,6 +457,16 @@ export async function buildMigrationPackage(payload, sourceText, options={}){
   const cutoverBlockers=[...readOnlyErrors];
   if(remoteCount) cutoverBlockers.push('REMOTE_DOCUMENTS_REQUIRE_CAPTURE');
   if(missingCount) cutoverBlockers.push('DOCUMENT_CONTENT_MISSING');
+  const documentByKind={}, documentByStatus={}, remoteBySource={};
+  for(const d of normalized.documents){
+    documentByKind[d.kind]=(documentByKind[d.kind]||0)+1;
+    documentByStatus[d.migrationStatus]=(documentByStatus[d.migrationStatus]||0)+1;
+    if(d.remoteSourceClass) remoteBySource[d.remoteSourceClass]=(remoteBySource[d.remoteSourceClass]||0)+1;
+  }
+  const podDocs=normalized.documents.filter(d=>d.kind==='POD');
+  const podReady=podDocs.every(d=>d.migrationStatus==='VERIFIED_INLINE');
+  const podBlockers=podDocs.filter(d=>d.migrationStatus!=='VERIFIED_INLINE').length;
+  if(podBlockers) cutoverBlockers.push('POD_DOCUMENTS_NOT_FULLY_CAPTURED');
   const manifest={
     professionalVersion:PROFESSIONAL_VERSION,
     generatedAt:new Date().toISOString(),
@@ -415,7 +476,7 @@ export async function buildMigrationPackage(payload, sourceText, options={}){
     statusCounts:inv.statusCounts,
     collectionCounts:inv.collectionCounts,
     mapping:{expected:expectedCoverage,mapped:sourceCoverage,complete:sourceCoverage===expectedCoverage},
-    documents:{total:inv.counts.documents,sourceRecords:inv.counts.documentSourceRecords,inlineHashed:inlineCount,remoteCaptureRequired:remoteCount,contentMissing:missingCount,hashErrors,verification:docVerification},
+    documents:{total:inv.counts.documents,sourceRecords:inv.counts.documentSourceRecords,inlineHashed:inlineCount,remoteCaptureRequired:remoteCount,contentMissing:missingCount,hashErrors,byKind:documentByKind,byStatus:documentByStatus,remoteBySource,podGate:{total:podDocs.length,ready:podReady,blockers:podBlockers},verification:docVerification},
     duplicates:{shipmentGroups:inv.duplicateShipmentGroups,customerGroups:inv.duplicateCustomerGroups,documentGroups:inv.duplicateDocumentGroups},
     security:{legacyPasswordsMigrated:false,passwordPolicy:'RESET_REQUIRED',sourceSnapshotContainsLegacySensitiveFields:true},
     gates:{

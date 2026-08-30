@@ -8,14 +8,30 @@
     "shipments": 128,
     "shipmentSourceRecords": 208,
     "users": 23,
-    "podFileEntries": 65,
+    "podFileEntriesDirect": 65,
     "podFileShipments": 59,
-    "podEvidenceShipments": 61
+    "podEvidenceShipments": 61,
+    "canonicalDocuments": 305,
+    "documentSourceRecords": 602,
+    "canonicalPodDocuments": 68
   },
-  "expectedPodStorage": {
+  "expectedDirectPodStorage": {
     "inline": 33,
     "remote": 29,
     "metadataOnly": 3
+  },
+  "expectedCanonicalDocumentStatus": {
+    "verifiedInline": 61,
+    "remoteCaptureRequired": 32,
+    "contentMissing": 212
+  },
+  "expectedCanonicalDocumentKinds": {
+    "POD": 68,
+    "LIEFERSCHEIN": 151,
+    "ABD": 35,
+    "DOKUMENT": 48,
+    "RECHNUNG": 2,
+    "LADELISTE": 1
   },
   "expectedProcessStatusCounts": {
     "POD vorhanden": 60,
@@ -28,7 +44,9 @@
     "shipments + savedShipments must map to 128 canonical shipments",
     "processStatus takes precedence over stale historical completion helpers",
     "pickup/POD evidence keeps shipment locked even if status fields conflict",
-    "podCloudBackupWebUrl is a remote document source",
+    "POD documents must have a dedicated cutover gate",
+    "ABD request documents must relink to their shipment reference",
+    "remote URLs are classified but not exposed in the safe document register",
     "legacy passwords are never copied into normalized Professional users"
   ]
 }

@@ -1,4 +1,4 @@
--- ExportHUB Professional 0.2 – Zielschema (noch nicht automatisch aktiv)
+-- ExportHUB Professional 0.3 – Zielschema (noch nicht automatisch aktiv)
 create table if not exists tenants (
   id uuid primary key,
   name text not null,
@@ -62,6 +62,10 @@ create table if not exists documents (
   sha256 text,
   storage_key text,
   verification_status text not null,
+  migration_priority text not null default 'OK',
+  cutover_blocking boolean not null default true,
+  remote_source_class text,
+  source_metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 create index if not exists documents_tenant_idx on documents(tenant_id);

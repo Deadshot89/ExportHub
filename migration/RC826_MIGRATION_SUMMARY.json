@@ -1,5 +1,5 @@
 {
-  "professionalVersion": "0.2.0",
+  "professionalVersion": "0.3.0",
   "sourceVersionHint": "RC826",
   "sourceFormat": "legacy-state-users",
   "sourceSha256": "0116233db4c343c56ae61d4b8a93b9d296c9ed48eb832019e8e4448defd170dd",
@@ -12,19 +12,41 @@
     "users": 23
   },
   "statusCounts": {
-    "POD vorhanden": 60,
     "Abgeholt": 52,
+    "POD vorhanden": 60,
+    "Vorbereitet": 1,
     "Bereit zur Abholung": 13,
-    "Erstellt": 2,
-    "Vorbereitet": 1
+    "Erstellt": 2
   },
   "pods": {
     "fileEntries": 65,
     "shipmentsWithPodFile": 59,
     "shipmentsWithPodEvidence": 61,
-    "inline": 33,
-    "remote": 29,
-    "metadataOnly": 3
+    "directInline": 33,
+    "directRemote": 29,
+    "directMetadataOnly": 3,
+    "canonicalPodDocuments": 68,
+    "canonicalPodOpen": 35
+  },
+  "documents": {
+    "total": 305,
+    "sourceRecords": 602,
+    "inlineHashed": 61,
+    "remoteCaptureRequired": 32,
+    "contentMissing": 212,
+    "byKind": {
+      "POD": 68,
+      "LIEFERSCHEIN": 151,
+      "DOKUMENT": 48,
+      "ABD": 35,
+      "RECHNUNG": 2,
+      "LADELISTE": 1
+    },
+    "remoteBySource": {
+      "SHAREPOINT": 4,
+      "EXPORTHUB_API": 28,
+      "OTHER_REMOTE": 1
+    }
   },
   "mapping": {
     "expected": 898,
@@ -37,6 +59,7 @@
   },
   "cutoverBlockers": [
     "REMOTE_DOCUMENTS_REQUIRE_CAPTURE",
-    "DOCUMENT_CONTENT_MISSING"
+    "DOCUMENT_CONTENT_MISSING",
+    "POD_DOCUMENTS_NOT_FULLY_CAPTURED"
   ]
 }
