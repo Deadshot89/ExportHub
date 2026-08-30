@@ -100,6 +100,17 @@ jobs:
             fi
           fi
 
+          if [[ -f api/package.json ]]; then
+            STORAGE_DEP="$(node -e "const p=require('./api/package.json'); process.stdout.write(String(p&&p.dependencies&&p.dependencies['@azure/storage-blob']||''));" 2>/dev/null || true)"
+            if [[ "$STORAGE_DEP" == "12.27.0" ]]; then
+              echo "OK: api/package.json enthält @azure/storage-blob 12.27.0"
+            else
+              echo "FEHLER: api/package.json enthält @azure/storage-blob nicht korrekt (gefunden: '${STORAGE_DEP:-fehlt}')."
+              echo "Der API-Paketstand wurde vermutlich durch eine andere Projektdatei überschrieben."
+              failed=1
+            fi
+          fi
+
           for js in api/exporthub-state/index.js api/exporthub-auth/index.js api/exporthub-auth-probe/index.js api/shared/auth-store.js api/shared/user-policy.js api/shared/merge.js; do
             if [[ -f "$js" ]]; then
               if node --check "$js"; then
@@ -220,13 +231,22 @@ jobs:
           EOF2
           echo "TESTSERVICE-Payload für $EXPECTED_VERSION vorbereitet."
 
+      - name: Use Node 20 for TESTSERVICE API validation
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
       - name: Install and smoke-test TESTSERVICE API runtime
         shell: bash
         run: |
           set -euo pipefail
           echo "GitHub Node: $(node --version)"
           cd api
+          node -e "const p=require('./package.json'); const v=p.dependencies&&p.dependencies['@azure/storage-blob']; if(v!=='12.27.0') throw new Error('@azure/storage-blob 12.27.0 fehlt in api/package.json'); console.log('OK package dependency:',v);"
+          rm -rf node_modules
           npm install --omit=dev --no-audit --no-fund
+          test -f node_modules/@azure/storage-blob/package.json
+          npm ls @azure/storage-blob --depth=0
           node - <<'NODE'
           const checks = [
             ['@azure/storage-blob', () => require('@azure/storage-blob')],
@@ -257,7 +277,6 @@ jobs:
           api_location: api
           output_location: ""
           skip_app_build: true
-          skip_api_build: true
           deployment_environment: testservice
 
       - name: Verify live TESTSERVICE authentication runtime
