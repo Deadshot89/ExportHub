@@ -142,6 +142,11 @@ public class MainActivity extends Activity {
         cookies.setAcceptCookie(true);
         cookies.setAcceptThirdPartyCookies(webView, true);
 
+        webView.setClickable(true);
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        webView.requestFocus(View.FOCUS_DOWN);
+
         webView.addJavascriptInterface(new AndroidBridge(), "ExportHUBAndroid");
         webView.setWebViewClient(new ExportHubWebViewClient());
         webView.setWebChromeClient(new ExportHubWebChromeClient());
@@ -362,6 +367,34 @@ public class MainActivity extends Activity {
                 "window.print=()=>ExportHUBAndroid.printPage();" +
                 "window.addEventListener('online',()=>ExportHUBAndroid.networkHint(true));" +
                 "window.addEventListener('offline',()=>ExportHUBAndroid.networkHint(false));" +
+                "const installMenuFix=()=>{" +
+                "try{" +
+                "const old=document.getElementById('ehMenuBtn');if(!old)return false;" +
+                "if(old.dataset.ehAndroidTapFix==='1')return true;" +
+                "const btn=old.cloneNode(true);" +
+                "btn.dataset.ehMenuBound='1';btn.dataset.ehAndroidTapFix='1';" +
+                "btn.style.touchAction='manipulation';btn.style.pointerEvents='auto';" +
+                "old.replaceWith(btn);" +
+                "let last=0;" +
+                "const toggle=(e)=>{" +
+                "const now=Date.now();if(now-last<260)return;last=now;" +
+                "if(e){e.preventDefault();e.stopPropagation();}" +
+                "btn.dataset.ehSkipClick='1';setTimeout(()=>{if(btn.dataset.ehSkipClick==='1')delete btn.dataset.ehSkipClick;},700);" +
+                "const api=window.ExportHUBMobileMenu;" +
+                "if(api&&typeof api.isOpen==='function'&&typeof api.open==='function'&&typeof api.close==='function'){api.isOpen()?api.close():api.open();return;}" +
+                "const open=document.body.classList.contains('eh-sidebar-open');" +
+                "document.body.classList.toggle('eh-sidebar-open',!open);" +
+                "btn.setAttribute('aria-expanded',open?'false':'true');" +
+                "};" +
+                "if(window.PointerEvent){btn.addEventListener('pointerup',toggle,{passive:false});}" +
+                "else{btn.addEventListener('touchend',toggle,{passive:false});}" +
+                "return true;" +
+                "}catch(_){return false;}" +
+                "};" +
+                "installMenuFix();" +
+                "const mo=new MutationObserver(()=>installMenuFix());" +
+                "mo.observe(document.documentElement,{childList:true,subtree:true});" +
+                "['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(n=>window.addEventListener(n,()=>setTimeout(installMenuFix,0)));" +
                 "}catch(e){}})();";
         webView.evaluateJavascript(script, null);
     }
