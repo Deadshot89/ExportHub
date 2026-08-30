@@ -1,0 +1,19 @@
+{
+  "sourceVersion": "RC878",
+  "backupType": "ExportHUB_BACKUP",
+  "confirmedBackupEnvelope": ["type", "version", "exportedAt", "exportedAtText", "exportedBy", "state", "users"],
+  "knownStateCollections": [
+    "customers",
+    "shipments",
+    "savedShipments",
+    "tasks",
+    "abdRequests",
+    "palletBookings",
+    "palletAccount",
+    "salesSharedShipments",
+    "archive",
+    "ideas",
+    "customerNotes"
+  ],
+  "migrationRule": "Source backup is immutable. Every normalized record keeps a source pointer and the full sourceSnapshot is retained in the migration package."
+}

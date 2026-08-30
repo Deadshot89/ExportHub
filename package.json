@@ -1,0 +1,15 @@
+{
+  "name": "exporthub-professional",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ExportHUB Professional - Phase 0 migration-safe SaaS foundation",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "analyze": "node migration/analyze-exporthub-backup.mjs",
+    "verify": "node migration/verify-migration-package.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
