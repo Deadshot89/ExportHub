@@ -1,0 +1,365 @@
+name: RC888 Professional Sendung erstellen TESTSERVICE
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: exporthub-rc888-shipment-create-professional
+  cancel-in-progress: false
+
+jobs:
+  patch-testservice:
+    name: RC888 Sendung erstellen
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout RC887 main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard RC887 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f TESTVERSION.html
+          grep -Fq "version:'RC887',cache:'887',loginReturn:'/TESTVERSION.html?v=887'" TESTVERSION.html
+          grep -Fq "/* exporthub-rc885-clean-workspace-v4 */" TESTVERSION.html
+          grep -Fq "/* exporthub-rc886-testservice-api-hotfix */" TESTVERSION.html
+          grep -Fq "__rc887AvisAllowed" TESTVERSION.html
+          grep -Fq "function avisHost(view)" TESTVERSION.html
+          grep -Fq "rc573ShipmentShell" TESTVERSION.html
+          grep -Fq "rc363BlockCustomer" TESTVERSION.html
+          grep -Fq "rc363BlockActions" TESTVERSION.html
+
+          if grep -Fq "exporthub-rc888-shipment-create-professional" TESTVERSION.html; then
+            echo "::error::RC888 ist bereits vorhanden."
+            exit 1
+          fi
+
+      - name: RED regression - current shipment create has no RC888 professional layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -Fq "rc888ShipmentHeader" TESTVERSION.html; then
+            echo "::error::RED-Test ungültig: RC888 Header existiert bereits."
+            exit 1
+          fi
+          echo "RED bestätigt: professionelle RC888-Schicht fehlt noch."
+
+      - name: Snapshot source boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+          for name,value in {
+              "script_open":src.lower().count("<script"),
+              "script_close":src.lower().count("</script>"),
+              "style_open":src.lower().count("<style"),
+              "style_close":src.lower().count("</style>")
+          }.items():
+              Path("/tmp/rc888_"+name).write_text(str(value))
+          PY
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ExportHUB Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Create immutable RC887 backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="backup-clean-rc887-before-rc888-${GITHUB_RUN_ID}"
+          git tag -a "$TAG" -m "Clean RC887 before professional shipment create RC888"
+          git push origin "refs/tags/$TAG"
+
+      - name: Patch TESTVERSION only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+
+          p=Path("TESTVERSION.html")
+          src=p.read_text(encoding="utf-8")
+
+          old_build="var BUILD=Object.freeze({version:'RC887',cache:'887',loginReturn:'/TESTVERSION.html?v=887'});"
+          new_build="var BUILD=Object.freeze({version:'RC888',cache:'888',loginReturn:'/TESTVERSION.html?v=888'});"
+
+          if src.count(old_build)!=1:
+              raise SystemExit("RC887 BUILD nicht eindeutig gefunden")
+          src=src.replace(old_build,new_build,1)
+
+          old_release=(
+              " version:'RC887',\n"
+              " date:'31.08.2026',\n"
+              " title:'Lieferavis wiederhergestellt und Dashboard-Dubletten entfernt',"
+          )
+          new_release=(
+              " version:'RC888',\n"
+              " date:'31.08.2026',\n"
+              " title:'Sendung erstellen kompakter und professioneller gestaltet',"
+          )
+          if old_release in src:
+              src=src.replace(old_release,new_release,1)
+
+          payload=(
+            "LyogZXhwb3J0aHViLXJjODg4LXNoaXBtZW50LWNyZWF0ZS1wcm9mZXNzaW9uYWwgKi8KKGZ1bmN0aW9uKCl7CiAgJ3VzZSBzdHJpY3QnOwogIGlmKHdpbmRvdy5fX0VYUE9SVEhVQl9SQzg4OF9TSElQTUVOVF9D"
+            "UkVBVEVfXykgcmV0dXJuOwogIHdpbmRvdy5fX0VYUE9SVEhVQl9SQzg4OF9TSElQTUVOVF9DUkVBVEVfXz10cnVlOwoKICB2YXIgY3NzPSdJM0pqT0RnNFUyaHBjRzFsYm5SSVpXRmtaWEo3Q2lBZ2JXRnlaMmx1"
+            "T2pBZ01DQXhOSEI0T3dvZ0lIQmhaR1JwYm1jNk1UUndlQ0F4Tm5CNE93b2dJR0p2Y21SbGNqb3hjSGdnYzI5c2FXUWdJMlE0WlRSbFpqc0tJQ0JpYjNKa1pYSXRjbUZrYVhWek9qRTJjSGc3Q2lBZ1ltRmphMmR5"
+            "YjNWdVpEcHNhVzVsWVhJdFozSmhaR2xsYm5Rb01UZ3daR1ZuTENObVptWm1abVlnTUNVc0kyWTRabUptWlNBeE1EQWxLVHNLSUNCaWIzZ3RjMmhoWkc5M09qQWdOM0I0SURJMGNIZ2djbWRpWVNneE5Td3lNeXcw"
+            "TWl3dU1EWXBPd3A5Q2lOeVl6ZzRPRk5vYVhCdFpXNTBTR1ZoWkdWeUlDNXlZemc0T0MxMGIzQjdDaUFnWkdsemNHeGhlVHBtYkdWNE93b2dJR0ZzYVdkdUxXbDBaVzF6T21ac1pYZ3RjM1JoY25RN0NpQWdhblZ6"
+            "ZEdsbWVTMWpiMjUwWlc1ME9uTndZV05sTFdKbGRIZGxaVzQ3Q2lBZ1oyRndPakUyY0hnN0NpQWdabXhsZUMxM2NtRndPbmR5WVhBN0NuMEtJM0pqT0RnNFUyaHBjRzFsYm5SSVpXRmtaWElnTG5Kak9EZzRMV3Rw"
+            "WTJ0bGNuc0tJQ0JtYjI1MExYTnBlbVU2TVRCd2VEc0tJQ0JzYVc1bExXaGxhV2RvZERveE93b2dJR1p2Ym5RdGQyVnBaMmgwT2pnMU1Ec0tJQ0IwWlhoMExYUnlZVzV6Wm05eWJUcDFjSEJsY21OaGMyVTdDaUFn"
+            "YkdWMGRHVnlMWE53WVdOcGJtYzZMakE1WlcwN0NpQWdZMjlzYjNJNkl6STFOak5sWWpzS0lDQnRZWEpuYVc0dFltOTBkRzl0T2pWd2VEc0tmUW9qY21NNE9EaFRhR2x3YldWdWRFaGxZV1JsY2lBdWNtTTRPRGd0"
+            "ZEdsMGJHVjdDaUFnWm05dWRDMXphWHBsT2pJeGNIZzdDaUFnYkdsdVpTMW9aV2xuYUhRNk1TNHhOVHNLSUNCbWIyNTBMWGRsYVdkb2REbzVNREE3Q2lBZ1kyOXNiM0k2SXpFd01tRTBNenNLZlFvamNtTTRPRGhU"
+            "YUdsd2JXVnVkRWhsWVdSbGNpQXVjbU00T0RndGMzVmlld29nSUcxaGNtZHBiaTEwYjNBNk5IQjRPd29nSUdadmJuUXRjMmw2WlRveE1uQjRPd29nSUdOdmJHOXlPaU0yTkRjME9HSTdDbjBLSTNKak9EZzRVMmhw"
+            "Y0cxbGJuUklaV0ZrWlhJZ0xuSmpPRGc0TFhCeWIyZHlaWE56ZXdvZ0lHMXBiaTEzYVdSMGFEb3lNVEJ3ZURzS0lDQnRZWGd0ZDJsa2RHZzZNekF3Y0hnN0NpQWdabXhsZURveElERWdNakl3Y0hnN0NuMEtJM0pq"
+            "T0RnNFUyaHBjRzFsYm5SSVpXRmtaWElnTG5Kak9EZzRMWEJ5YjJkeVpYTnpMV3hwYm1WN0NpQWdhR1ZwWjJoME9qZHdlRHNLSUNCaVlXTnJaM0p2ZFc1a09pTmxOMlZsWmpVN0NpQWdZbTl5WkdWeUxYSmhaR2wx"
+            "Y3pvNU9UbHdlRHNLSUNCdmRtVnlabXh2ZHpwb2FXUmtaVzQ3Q2lBZ2JXRnlaMmx1TFhSdmNEbzJjSGc3Q24wS0kzSmpPRGc0VTJocGNHMWxiblJJWldGa1pYSWdMbkpqT0RnNExYQnliMmR5WlhOekxXWnBiR3g3"
+            "Q2lBZ2FHVnBaMmgwT2pFd01DVTdDaUFnZDJsa2RHZzZNRHNLSUNCaVlXTnJaM0p2ZFc1a09pTXlOVFl6WldJN0NpQWdZbTl5WkdWeUxYSmhaR2wxY3pvNU9UbHdlRHNLSUNCMGNtRnVjMmwwYVc5dU9uZHBaSFJv"
+            "SUM0eWN5QmxZWE5sT3dwOUNpTnlZemc0T0ZOb2FYQnRaVzUwU0dWaFpHVnlJQzV5WXpnNE9DMXdjbTluY21WemN5MTBaWGgwZXdvZ0lHUnBjM0JzWVhrNlpteGxlRHNLSUNCcWRYTjBhV1o1TFdOdmJuUmxiblE2"
+            "YzNCaFkyVXRZbVYwZDJWbGJqc0tJQ0JuWVhBNk1UQndlRHNLSUNCamIyeHZjam9qTlRNMllqZ3dPd29nSUdadmJuUXRjMmw2WlRveE1YQjRPd29nSUdadmJuUXRkMlZwWjJoME9qYzFNRHNLZlFvamNtTTRPRGhU"
+            "YUdsd2JXVnVkRWhsWVdSbGNpQXVjbU00T0RndGMzUmxjSE43Q2lBZ1pHbHpjR3hoZVRwbWJHVjRPd29nSUdkaGNEbzNjSGc3Q2lBZ1pteGxlQzEzY21Gd09uZHlZWEE3Q2lBZ2JXRnlaMmx1TFhSdmNEb3hNbkI0"
+            "T3dvZ0lIQmhaR1JwYm1jdGRHOXdPakV4Y0hnN0NpQWdZbTl5WkdWeUxYUnZjRG94Y0hnZ2MyOXNhV1FnSTJVM1pXVm1OVHNLZlFvamNtTTRPRGhUYUdsd2JXVnVkRWhsWVdSbGNpQXVjbU00T0RndGMzUmxjSHNL"
+            "SUNCaWIzSmtaWEk2TVhCNElITnZiR2xrSUNOalkyUmlaV0U3Q2lBZ1ltRmphMmR5YjNWdVpEb2pabVptT3dvZ0lHTnZiRzl5T2lNek16UmxOamc3Q2lBZ1ltOXlaR1Z5TFhKaFpHbDFjem81T1Rsd2VEc0tJQ0J3"
+            "WVdSa2FXNW5Palp3ZUNBeE1IQjRPd29nSUdadmJuUXRjMmw2WlRveE1YQjRPd29nSUdadmJuUXRkMlZwWjJoME9qZ3dNRHNLSUNCamRYSnpiM0k2Y0c5cGJuUmxjanNLZlFvamNtTTRPRGhUYUdsd2JXVnVkRWhs"
+            "WVdSbGNpQXVjbU00T0RndGMzUmxjRHBvYjNabGNuc0tJQ0JpYjNKa1pYSXRZMjlzYjNJNkl6ZGhZVGRrTXpzS0lDQmlZV05yWjNKdmRXNWtPaU5tTldZNVptUTdDbjBLSTNKak9EZzRVMmhwY0cxbGJuUklaV0Zr"
+            "WlhJZ0xuSmpPRGc0TFhOMFpYQmJaR0YwWVMxeVpXRmtlVDBpTVNKZGV3b2dJR0poWTJ0bmNtOTFibVE2STJWbVptRm1OanNLSUNCaWIzSmtaWEl0WTI5c2IzSTZJemxsWkdKak5Uc0tJQ0JqYjJ4dmNqb2pNVEky"
+            "WVRSa093cDlDaU55WXpnNE9GTm9hWEJ0Wlc1MFNHVmhaR1Z5SUM1eVl6ZzRPQzF6ZEdWd1cyUmhkR0V0WVdOMGFYWmxQU0l4SWwxN0NpQWdZbUZqYTJkeWIzVnVaRG9qWldGbU1tWm1Pd29nSUdKdmNtUmxjaTFq"
+            "YjJ4dmNqb2pOMlZpTUdZME93b2dJR052Ykc5eU9pTXhaRFJsWkRnN0NuMEtDaU55WXpVM00xTm9hWEJ0Wlc1MFUyaGxiR3d1Y21NNE9EZ3RjSEp2Wm1WemMybHZibUZzTEFvamNtTXpOak5HYVhobFpGTm9hWEJ0"
+            "Wlc1MFRHRjViM1YwTG5Kak9EZzRMWEJ5YjJabGMzTnBiMjVoYkhzS0lDQXRMWEpqT0RnNExXZGhjRG94TW5CNE93cDlDaU55WXpVM00xTm9hWEJ0Wlc1MFUyaGxiR3d1Y21NNE9EZ3RjSEp2Wm1WemMybHZibUZz"
+            "SUM1allYSmtMQW9qY21NMU56TlRhR2x3YldWdWRGTm9aV3hzTG5Kak9EZzRMWEJ5YjJabGMzTnBiMjVoYkNBdWMyVmpkR2x2Yml3S0kzSmpOVGN6VTJocGNHMWxiblJUYUdWc2JDNXlZemc0T0Mxd2NtOW1aWE56"
+            "YVc5dVlXd2dZWEowYVdOc1pTd0tJM0pqTlRjelUyaHBjRzFsYm5SVGFHVnNiQzV5WXpnNE9DMXdjbTltWlhOemFXOXVZV3dnVzJsa1hqMGljbU16TmpOQ2JHOWpheUpkTEFvamNtTTFOek5UYUdsd2JXVnVkRk5v"
+            "Wld4c0xuSmpPRGc0TFhCeWIyWmxjM05wYjI1aGJDQWpjbU0xTnpORGIyeHNhVU5oY21SN0NpQWdZbTl5WkdWeUxYSmhaR2wxY3pveE5IQjRJQ0ZwYlhCdmNuUmhiblE3Q24wS0kzSmpOVGN6VTJocGNHMWxiblJU"
+            "YUdWc2JDNXlZemc0T0Mxd2NtOW1aWE56YVc5dVlXd2dXMmxrWGowaWNtTXpOak5DYkc5amF5SmRMQW9qY21NMU56TlRhR2x3YldWdWRGTm9aV3hzTG5Kak9EZzRMWEJ5YjJabGMzTnBiMjVoYkNBamNtTTFOek5E"
+            "YjJ4c2FVTmhjbVI3Q2lBZ1ltOXlaR1Z5T2pGd2VDQnpiMnhwWkNBalpHWmxPR1l3SUNGcGJYQnZjblJoYm5RN0NpQWdZbTk0TFhOb1lXUnZkem93SURSd2VDQXhOSEI0SUhKblltRW9NVFVzTWpNc05ESXNMakF6"
+            "TlNrZ0lXbHRjRzl5ZEdGdWREc0tmUW9qY21NMU56TlRhR2x3YldWdWRGTm9aV3hzTG5Kak9EZzRMWEJ5YjJabGMzTnBiMjVoYkNCb01pd0tJM0pqTlRjelUyaHBjRzFsYm5SVGFHVnNiQzV5WXpnNE9DMXdjbTlt"
+            "WlhOemFXOXVZV3dnYURNc0NpTnlZelUzTTFOb2FYQnRaVzUwVTJobGJHd3VjbU00T0RndGNISnZabVZ6YzJsdmJtRnNJR2cwZXdvZ0lHTnZiRzl5T2lNeE56TXlOR1E3Q24wS0kzSmpOVGN6VTJocGNHMWxiblJU"
+            "YUdWc2JDNXlZemc0T0Mxd2NtOW1aWE56YVc5dVlXd2dhVzV3ZFhRc0NpTnlZelUzTTFOb2FYQnRaVzUwVTJobGJHd3VjbU00T0RndGNISnZabVZ6YzJsdmJtRnNJSE5sYkdWamRDd0tJM0pqTlRjelUyaHBjRzFs"
+            "Ym5SVGFHVnNiQzV5WXpnNE9DMXdjbTltWlhOemFXOXVZV3dnZEdWNGRHRnlaV0Y3Q2lBZ1ltOXlaR1Z5TFhKaFpHbDFjem81Y0hnZ0lXbHRjRzl5ZEdGdWREc0tJQ0J0YVc0dGFHVnBaMmgwT2pNNGNIZzdDbjBL"
+            "STNKak5UY3pVMmhwY0cxbGJuUlRhR1ZzYkM1eVl6ZzRPQzF3Y205bVpYTnphVzl1WVd3Z2RHVjRkR0Z5WldGN0NpQWdiV2x1TFdobGFXZG9kRG8zTm5CNE93cDlDaU55WXpVM00xTm9hWEJ0Wlc1MFUyaGxiR3d1"
+            "Y21NNE9EZ3RjSEp2Wm1WemMybHZibUZzSUdKMWRIUnZibnNLSUNCdGFXNHRhR1ZwWjJoME9qTTJjSGc3Q24wS0kzSmpOVGN6VTJocGNHMWxiblJUYUdWc2JDNXlZemc0T0Mxd2NtOW1aWE56YVc5dVlXd2dMbkpq"
+            "TXpZekxYQnliMk5sYzNNdFltOWtlWHNLSUNCd1lXUmthVzVuTFhSdmNEb3hNSEI0SUNGcGJYQnZjblJoYm5RN0NuMEtJM0pqTlRjelUyaHBjRzFsYm5SVGFHVnNiQzV5WXpnNE9DMXdjbTltWlhOemFXOXVZV3dn"
+            "TG5Kak9EZzRMWE4wWlhBdGJHRmlaV3g3Q2lBZ1pHbHpjR3hoZVRwcGJteHBibVV0Wm14bGVEc0tJQ0JoYkdsbmJpMXBkR1Z0Y3pwalpXNTBaWEk3Q2lBZ2FuVnpkR2xtZVMxamIyNTBaVzUwT21ObGJuUmxjanNL"
+            "SUNCdGFXNHRkMmxrZEdnNk1qUndlRHNLSUNCb1pXbG5hSFE2TWpSd2VEc0tJQ0JpYjNKa1pYSXRjbUZrYVhWek9qaHdlRHNLSUNCdFlYSm5hVzR0Y21sbmFIUTZPSEI0T3dvZ0lHSmhZMnRuY205MWJtUTZJMlZo"
+            "WmpKbVpqc0tJQ0JqYjJ4dmNqb2pNV1EwWldRNE93b2dJR1p2Ym5RdGMybDZaVG94TVhCNE93b2dJR1p2Ym5RdGQyVnBaMmgwT2prd01Ec0tJQ0IyWlhKMGFXTmhiQzFoYkdsbmJqcHRhV1JrYkdVN0NuMEtJM0pq"
+            "TlRjelUyaHBjRzFsYm5SVGFHVnNiQzV5WXpnNE9DMXdjbTltWlhOemFXOXVZV3dnTG5Kak9EZzRMWEpsY1hWcGNtVmtld29nSUdKdmVDMXphR0ZrYjNjNk1DQXdJREFnTW5CNElISm5ZbUVvTWpFM0xERXhPU3cy"
+            "TEM0eE1DazdDbjBLSTNKak5UY3pVMmhwY0cxbGJuUlRhR1ZzYkM1eVl6ZzRPQzF3Y205bVpYTnphVzl1WVd3Z0kzSmpNell6UW14dlkydEJZM1JwYjI1emV3b2dJSEJ2YzJsMGFXOXVPbk4wYVdOcmVUc0tJQ0Jp"
+            "YjNSMGIyMDZPSEI0T3dvZ0lIb3RhVzVrWlhnNk1qVTdDaUFnWW1GamEyZHliM1Z1WkRweVoySmhLREkxTlN3eU5UVXNNalUxTEM0NU5pa2dJV2x0Y0c5eWRHRnVkRHNLSUNCaVlXTnJaSEp2Y0MxbWFXeDBaWEk2"
+            "WW14MWNpZzNjSGdwT3dvZ0lHSnZlQzF6YUdGa2IzYzZNQ0F0TkhCNElESXdjSGdnY21kaVlTZ3hOU3d5TXl3ME1pd3VNRGdwSUNGcGJYQnZjblJoYm5RN0NuMEtRRzFsWkdsaElDaHRZWGd0ZDJsa2RHZzZPVEF3"
+            "Y0hncGV3b2dJQ055WXpnNE9GTm9hWEJ0Wlc1MFNHVmhaR1Z5ZTNCaFpHUnBibWM2TVRKd2VIMEtJQ0FqY21NNE9EaFRhR2x3YldWdWRFaGxZV1JsY2lBdWNtTTRPRGd0Y0hKdlozSmxjM043YldGNExYZHBaSFJv"
+            "T201dmJtVjlDaUFnSTNKak9EZzRVMmhwY0cxbGJuUklaV0ZrWlhJZ0xuSmpPRGc0TFhOMFpYQjdjR0ZrWkdsdVp6bzJjSGdnT0hCNGZRb2dJQ055WXpVM00xTm9hWEJ0Wlc1MFUyaGxiR3d1Y21NNE9EZ3RjSEp2"
+            "Wm1WemMybHZibUZzSUNOeVl6TTJNMEpzYjJOclFXTjBhVzl1YzNzS0lDQWdJSEJ2YzJsMGFXOXVPbk4wWVhScFl6c0tJQ0I5Q24wPSc7CiAgdmFyIHRpbWVyPTA7CgogIGZ1bmN0aW9uIHEodil7cmV0dXJuIFN0"
+            "cmluZyh2PT1udWxsPycnOnYpLnRyaW0oKX0KICBmdW5jdGlvbiBsb3codil7cmV0dXJuIHEodikudG9Mb3dlckNhc2UoKX0KCiAgZnVuY3Rpb24gZW5zdXJlU3R5bGUoKXsKICAgIGlmKGRvY3VtZW50LmdldEVs"
+            "ZW1lbnRCeUlkKCdyYzg4OFNoaXBtZW50Q3JlYXRlU3R5bGUnKSkgcmV0dXJuOwogICAgdmFyIHM9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnc3R5bGUnKTsKICAgIHMuaWQ9J3JjODg4U2hpcG1lbnRDcmVhdGVT"
+            "dHlsZSc7CiAgICBzLnRleHRDb250ZW50PWF0b2IoY3NzKTsKICAgIChkb2N1bWVudC5oZWFkfHxkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQpLmFwcGVuZENoaWxkKHMpCiAgfQoKICBmdW5jdGlvbiBzdGF0ZU9i"
+            "aigpewogICAgdHJ5ewogICAgICBpZih0eXBlb2Ygd2luZG93LnN0YXRlPT09J2Z1bmN0aW9uJyl7CiAgICAgICAgdmFyIHM9d2luZG93LnN0YXRlKCk7CiAgICAgICAgaWYocyYmdHlwZW9mIHM9PT0nb2JqZWN0"
+            "JykgcmV0dXJuIHMKICAgICAgfQogICAgfWNhdGNoKF8gKXt9CiAgICByZXR1cm4gd2luZG93LlNUQVRFJiZ0eXBlb2Ygd2luZG93LlNUQVRFPT09J29iamVjdCc/d2luZG93LlNUQVRFOnt9CiAgfQoKICBmdW5j"
+            "dGlvbiBjdXJyZW50VmlldygpewogICAgdmFyIHM9c3RhdGVPYmooKTsKICAgIHJldHVybiBsb3coCiAgICAgIHMudmlld3x8CiAgICAgIGRvY3VtZW50LmJvZHkuZ2V0QXR0cmlidXRlKCdkYXRhLWV4cG9ydGh1"
+            "Yi12aWV3Jyl8fAogICAgICBkb2N1bWVudC5ib2R5LmdldEF0dHJpYnV0ZSgnZGF0YS1jdXJyZW50LXZpZXcnKQogICAgKQogIH0KCiAgZnVuY3Rpb24gc2hlbGwoKXsKICAgIHJldHVybiBkb2N1bWVudC5nZXRF"
+            "bGVtZW50QnlJZCgncmM1NzNTaGlwbWVudFNoZWxsJyl8fAogICAgICAgICAgIGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyYzM2M0ZpeGVkU2hpcG1lbnRMYXlvdXQnKQogIH0KCiAgZnVuY3Rpb24gaXNDcmVh"
+            "dGUoKXsKICAgIHZhciB2PWN1cnJlbnRWaWV3KCk7CiAgICBpZigvY3JlYXRlfHNoaXBtZW50Y3JlYXRlfG5ld3NoaXBtZW50fHNlbmR1bmcuKmVyc3RlbGwvLnRlc3QodikpIHJldHVybiB0cnVlOwogICAgdmFy"
+            "IHNoPXNoZWxsKCk7CiAgICBpZighc2gpIHJldHVybiBmYWxzZTsKICAgIHZhciBoPXNoLnF1ZXJ5U2VsZWN0b3IoJ2gxLGgyLGgzJyk7CiAgICByZXR1cm4gISEoaCYmL3NlbmR1bmcuKmVyc3RlbGwvaS50ZXN0"
+            "KHEoaC50ZXh0Q29udGVudCkpKQogIH0KCiAgdmFyIHN0ZXBzPVsKICAgIHtpZDoncmMzNjNCbG9ja0N1c3RvbWVyJyxuOicxJyxsYWJlbDonS3VuZGUgJiBFbXBmw6RuZ2VyJ30sCiAgICB7aWQ6J3JjMzYzQmxv"
+            "Y2tTaGlwbWVudCcsbjonMicsbGFiZWw6J1NlbmR1bmdzZGF0ZW4nfSwKICAgIHtpZDoncmM1NzNDb2xsaUNhcmQnLG46JzMnLGxhYmVsOidDb2xsaSAmIExETSd9LAogICAge2lkOidyYzM2M0Jsb2NrRG9jdW1l"
+            "bnRzJyxuOic0JyxsYWJlbDonRG9rdW1lbnRlJ30sCiAgICB7aWQ6J3JjMzYzQmxvY2tTdG93JyxuOic1JyxsYWJlbDonU3RhdXBsYW4nfSwKICAgIHtpZDoncmMzNjNCbG9ja0FiZERlY2lzaW9uJyxuOic2Jyxs"
+            "YWJlbDonQUJEJ30sCiAgICB7aWQ6J3JjMzYzQmxvY2tNYWlsJyxuOic3JyxsYWJlbDonTWFpbCd9LAogICAge2lkOidyYzM2M0Jsb2NrQWN0aW9ucycsbjonOCcsbGFiZWw6J1NwZWljaGVybiAmIEF1c2dhYmUn"
+            "fQogIF07CgogIGZ1bmN0aW9uIGhhc1ZhbHVlKGVsKXsKICAgIGlmKCFlbCkgcmV0dXJuIGZhbHNlOwogICAgaWYoZWwudHlwZT09PSdjaGVja2JveCd8fGVsLnR5cGU9PT0ncmFkaW8nKSByZXR1cm4gISFlbC5j"
+            "aGVja2VkOwogICAgcmV0dXJuICEhcShlbC52YWx1ZSkKICB9CgogIGZ1bmN0aW9uIGJsb2NrUmVhZHkoaWQpewogICAgdmFyIGVsPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKGlkKTsKICAgIGlmKCFlbCkgcmV0"
+            "dXJuIGZhbHNlOwoKICAgIGlmKGlkPT09J3JjMzYzQmxvY2tTdG93J3x8aWQ9PT0ncmMzNjNCbG9ja0FjdGlvbnMnKSByZXR1cm4gdHJ1ZTsKCiAgICB2YXIgZmllbGRzPUFycmF5LnByb3RvdHlwZS5zbGljZS5j"
+            "YWxsKAogICAgICBlbC5xdWVyeVNlbGVjdG9yQWxsKCdpbnB1dDpub3QoW3R5cGU9ImhpZGRlbiJdKSxzZWxlY3QsdGV4dGFyZWEnKQogICAgKS5maWx0ZXIoZnVuY3Rpb24oeCl7cmV0dXJuICF4LmRpc2FibGVk"
+            "JiZ4Lm9mZnNldFBhcmVudCE9PW51bGx9KTsKCiAgICBpZighZmllbGRzLmxlbmd0aCkgcmV0dXJuIHRydWU7CgogICAgaWYoaWQ9PT0ncmM1NzNDb2xsaUNhcmQnKXsKICAgICAgdmFyIHNlbGVjdHM9ZmllbGRz"
+            "LmZpbHRlcihmdW5jdGlvbih4KXtyZXR1cm4geC50YWdOYW1lPT09J1NFTEVDVCd9KTsKICAgICAgdmFyIG51bXM9ZmllbGRzLmZpbHRlcihmdW5jdGlvbih4KXtyZXR1cm4geC50YWdOYW1lPT09J0lOUFVUJyYm"
+            "L251bWJlcnx0ZXh0Ly50ZXN0KHgudHlwZSl9KTsKICAgICAgcmV0dXJuIHNlbGVjdHMuc29tZShoYXNWYWx1ZSkmJm51bXMuc29tZShoYXNWYWx1ZSkKICAgIH0KCiAgICByZXR1cm4gZmllbGRzLnNvbWUoaGFz"
+            "VmFsdWUpCiAgfQoKICBmdW5jdGlvbiBkZWNvcmF0ZUJsb2NrcygpewogICAgc3RlcHMuZm9yRWFjaChmdW5jdGlvbihzdCl7CiAgICAgIHZhciBlbD1kb2N1bWVudC5nZXRFbGVtZW50QnlJZChzdC5pZCk7CiAg"
+            "ICAgIGlmKCFlbCkgcmV0dXJuOwoKICAgICAgZWwuc2V0QXR0cmlidXRlKCdkYXRhLXJjODg4LXN0ZXAnLHN0Lm4pOwoKICAgICAgdmFyIGhlYWRpbmc9ZWwucXVlcnlTZWxlY3RvcignaDEsaDIsaDMsaDQsLnRp"
+            "dGxlLC5zZWN0aW9uLXRpdGxlJyk7CiAgICAgIGlmKGhlYWRpbmcmJiFoZWFkaW5nLnF1ZXJ5U2VsZWN0b3IoJy5yYzg4OC1zdGVwLWxhYmVsJykpewogICAgICAgIHZhciBiYWRnZT1kb2N1bWVudC5jcmVhdGVF"
+            "bGVtZW50KCdzcGFuJyk7CiAgICAgICAgYmFkZ2UuY2xhc3NOYW1lPSdyYzg4OC1zdGVwLWxhYmVsJzsKICAgICAgICBiYWRnZS50ZXh0Q29udGVudD1zdC5uOwogICAgICAgIGhlYWRpbmcuaW5zZXJ0QmVmb3Jl"
+            "KGJhZGdlLGhlYWRpbmcuZmlyc3RDaGlsZCkKICAgICAgfQogICAgfSkKICB9CgogIGZ1bmN0aW9uIGNvdW50UmVhZHkoKXsKICAgIHZhciB0b3RhbD0wLHJlYWR5PTA7CiAgICBzdGVwcy5mb3JFYWNoKGZ1bmN0"
+            "aW9uKHN0KXsKICAgICAgaWYoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoc3QuaWQpKXsKICAgICAgICB0b3RhbCsrOwogICAgICAgIGlmKGJsb2NrUmVhZHkoc3QuaWQpKSByZWFkeSsrCiAgICAgIH0KICAgIH0p"
+            "OwogICAgcmV0dXJuIHtyZWFkeTpyZWFkeSx0b3RhbDp0b3RhbHx8c3RlcHMubGVuZ3RofQogIH0KCiAgZnVuY3Rpb24gbWFrZUhlYWRlcigpewogICAgdmFyIHNoPXNoZWxsKCk7CiAgICBpZighc2gpIHJldHVy"
+            "biBudWxsOwoKICAgIHZhciBoZWFkZXI9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JjODg4U2hpcG1lbnRIZWFkZXInKTsKICAgIGlmKCFoZWFkZXIpewogICAgICBoZWFkZXI9ZG9jdW1lbnQuY3JlYXRlRWxl"
+            "bWVudCgnc2VjdGlvbicpOwogICAgICBoZWFkZXIuaWQ9J3JjODg4U2hpcG1lbnRIZWFkZXInOwogICAgICBpZihzaC5maXJzdEVsZW1lbnRDaGlsZCkgc2guaW5zZXJ0QmVmb3JlKGhlYWRlcixzaC5maXJzdEVs"
+            "ZW1lbnRDaGlsZCk7CiAgICAgIGVsc2Ugc2guYXBwZW5kQ2hpbGQoaGVhZGVyKQogICAgfQoKICAgIHZhciBwPWNvdW50UmVhZHkoKTsKICAgIHZhciBwZXJjZW50PU1hdGgubWF4KDAsTWF0aC5taW4oMTAwLE1h"
+            "dGgucm91bmQoKHAucmVhZHkvcC50b3RhbCkqMTAwKSkpOwoKICAgIGhlYWRlci5pbm5lckhUTUw9CiAgICAgICc8ZGl2IGNsYXNzPSJyYzg4OC10b3AiPicrCiAgICAgICAgJzxkaXY+JysKICAgICAgICAgICc8"
+            "ZGl2IGNsYXNzPSJyYzg4OC1raWNrZXIiPlNlbmR1bmcgZXJzdGVsbGVuPC9kaXY+JysKICAgICAgICAgICc8ZGl2IGNsYXNzPSJyYzg4OC10aXRsZSI+VmVyc2FuZGF1ZnRyYWc8L2Rpdj4nKwogICAgICAgICAg"
+            "JzxkaXYgY2xhc3M9InJjODg4LXN1YiI+QWxsZSBWZXJzYW5kZGF0ZW4gaW4gZWluZW0ga2xhcmVuIEFyYmVpdHNhYmxhdWYuIEJlc3RlaGVuZGUgRnVua3Rpb25lbiB1bmQgU3BlaWNoZXJsb2dpayBibGVpYmVu"
+            "IHVudmVyw6RuZGVydC48L2Rpdj4nKwogICAgICAgICc8L2Rpdj4nKwogICAgICAgICc8ZGl2IGNsYXNzPSJyYzg4OC1wcm9ncmVzcyI+JysKICAgICAgICAgICc8ZGl2IGNsYXNzPSJyYzg4OC1wcm9ncmVzcy10"
+            "ZXh0Ij48c3Bhbj5CZWFyYmVpdHVuZ3NzdGFuZDwvc3Bhbj48c3Ryb25nPicrcC5yZWFkeSsnIC8gJytwLnRvdGFsKyc8L3N0cm9uZz48L2Rpdj4nKwogICAgICAgICAgJzxkaXYgY2xhc3M9InJjODg4LXByb2dy"
+            "ZXNzLWxpbmUiPjxkaXYgY2xhc3M9InJjODg4LXByb2dyZXNzLWZpbGwiIHN0eWxlPSJ3aWR0aDonK3BlcmNlbnQrJyUiPjwvZGl2PjwvZGl2PicrCiAgICAgICAgJzwvZGl2PicrCiAgICAgICc8L2Rpdj4nKwog"
+            "ICAgICAnPGRpdiBjbGFzcz0icmM4ODgtc3RlcHMiPicrCiAgICAgICAgc3RlcHMuZmlsdGVyKGZ1bmN0aW9uKHN0KXtyZXR1cm4gISFkb2N1bWVudC5nZXRFbGVtZW50QnlJZChzdC5pZCl9KS5tYXAoZnVuY3Rp"
+            "b24oc3QpewogICAgICAgICAgcmV0dXJuICc8YnV0dG9uIHR5cGU9ImJ1dHRvbiIgY2xhc3M9InJjODg4LXN0ZXAiIGRhdGEtcmM4ODgtdGFyZ2V0PSInK3N0LmlkKyciIGRhdGEtcmVhZHk9IicrKGJsb2NrUmVh"
+            "ZHkoc3QuaWQpPycxJzonMCcpKyciPicrCiAgICAgICAgICAgIHN0Lm4rJyDCtyAnK3N0LmxhYmVsKwogICAgICAgICAgJzwvYnV0dG9uPicKICAgICAgICB9KS5qb2luKCcnKSsKICAgICAgJzwvZGl2Pic7Cgog"
+            "ICAgcmV0dXJuIGhlYWRlcgogIH0KCiAgZnVuY3Rpb24gcmVtb3ZlVW53YW50ZWRDcmVhdGVDb250cm9scygpewogICAgdmFyIHNoPXNoZWxsKCk7CiAgICBpZighc2gpIHJldHVybjsKCiAgICBBcnJheS5wcm90"
+            "b3R5cGUuc2xpY2UuY2FsbChzaC5xdWVyeVNlbGVjdG9yQWxsKCdidXR0b24sYSxbcm9sZT0iYnV0dG9uIl0nKSkuZm9yRWFjaChmdW5jdGlvbihlbCl7CiAgICAgIHZhciB0PWxvdyhlbC50ZXh0Q29udGVudCk7"
+            "CiAgICAgIGlmKHQ9PT0na3VuZGUgw7xiZXJuZWhtZW4nfHx0PT09J2FkcmVzc2UgZ2VwcsO8ZnQgdW5kIGJlc3TDpHRpZ3QnfHx0PT09J2FkcmVzc2UgcHLDvGZlbicpewogICAgICAgIGVsLnN0eWxlLmRpc3Bs"
+            "YXk9J25vbmUnCiAgICAgIH0KICAgIH0pOwoKICAgIC8vIEt1bmRlbkF2aXMvTGllZmVyYXZpcyBiZWxvbmdzIG9ubHkgdG8gdGhlIGRlZGljYXRlZCBBdmlzIHBhZ2UuCiAgICBBcnJheS5wcm90b3R5cGUuc2xp"
+            "Y2UuY2FsbChzaC5xdWVyeVNlbGVjdG9yQWxsKCcqJykpLmZvckVhY2goZnVuY3Rpb24oZWwpewogICAgICBpZihlbC5jaGlsZHJlbi5sZW5ndGg+MjApIHJldHVybjsKICAgICAgdmFyIHQ9bG93KGVsLnRleHRD"
+            "b250ZW50KTsKICAgICAgaWYoKHQ9PT0na3VuZGVuLWF2aXMgLyBsaWVmZXJhdmlzJ3x8dD09PSdrdW5kZW5hdmlzIC8gbGllZmVyYXZpcycpJiYKICAgICAgICAgIS9hdmlzLy50ZXN0KGN1cnJlbnRWaWV3KCkp"
+            "KXsKICAgICAgICB2YXIgY2FyZD1lbC5jbG9zZXN0KCcuY2FyZCwuc2VjdGlvbixhcnRpY2xlLFtpZF49InJjMzYzQmxvY2siXSxbaWQqPSJBdmlzIl0nKTsKICAgICAgICBpZihjYXJkKSBjYXJkLnN0eWxlLmRp"
+            "c3BsYXk9J25vbmUnCiAgICAgIH0KICAgIH0pCiAgfQoKICBmdW5jdGlvbiBtYXJrUmVxdWlyZWQoKXsKICAgIHZhciBzaD1zaGVsbCgpOwogICAgaWYoIXNoKSByZXR1cm47CiAgICBBcnJheS5wcm90b3R5cGUu"
+            "c2xpY2UuY2FsbChzaC5xdWVyeVNlbGVjdG9yQWxsKCdbcmVxdWlyZWRdJykpLmZvckVhY2goZnVuY3Rpb24oZWwpewogICAgICBpZighaGFzVmFsdWUoZWwpKSBlbC5jbGFzc0xpc3QuYWRkKCdyYzg4OC1yZXF1"
+            "aXJlZCcpOwogICAgICBlbHNlIGVsLmNsYXNzTGlzdC5yZW1vdmUoJ3JjODg4LXJlcXVpcmVkJykKICAgIH0pCiAgfQoKICBmdW5jdGlvbiByZWZyZXNoKCl7CiAgICB0aW1lcj0wOwogICAgaWYoIWlzQ3JlYXRl"
+            "KCkpewogICAgICB2YXIgb2xkPWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCdyYzg4OFNoaXBtZW50SGVhZGVyJyk7CiAgICAgIGlmKG9sZCkgb2xkLnJlbW92ZSgpOwogICAgICB2YXIgb2xkU2hlbGw9c2hlbGwo"
+            "KTsKICAgICAgaWYob2xkU2hlbGwpIG9sZFNoZWxsLmNsYXNzTGlzdC5yZW1vdmUoJ3JjODg4LXByb2Zlc3Npb25hbCcpOwogICAgICByZXR1cm4KICAgIH0KCiAgICBlbnN1cmVTdHlsZSgpOwogICAgdmFyIHNo"
+            "PXNoZWxsKCk7CiAgICBpZighc2gpIHJldHVybjsKICAgIHNoLmNsYXNzTGlzdC5hZGQoJ3JjODg4LXByb2Zlc3Npb25hbCcpOwoKICAgIHZhciBsYXlvdXQ9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3JjMzYz"
+            "Rml4ZWRTaGlwbWVudExheW91dCcpOwogICAgaWYobGF5b3V0KSBsYXlvdXQuY2xhc3NMaXN0LmFkZCgncmM4ODgtcHJvZmVzc2lvbmFsJyk7CgogICAgZGVjb3JhdGVCbG9ja3MoKTsKICAgIG1ha2VIZWFkZXIo"
+            "KTsKICAgIHJlbW92ZVVud2FudGVkQ3JlYXRlQ29udHJvbHMoKTsKICAgIG1hcmtSZXF1aXJlZCgpCiAgfQoKICBmdW5jdGlvbiBzY2hlZHVsZSgpewogICAgaWYodGltZXIpIHJldHVybjsKICAgIHRpbWVyPXNl"
+            "dFRpbWVvdXQocmVmcmVzaCw5MCkKICB9CgogIGRvY3VtZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2NsaWNrJyxmdW5jdGlvbihldil7CiAgICB2YXIgYnRuPWV2LnRhcmdldCYmZXYudGFyZ2V0LmNsb3Nlc3QmJmV2"
+            "LnRhcmdldC5jbG9zZXN0KCdbZGF0YS1yYzg4OC10YXJnZXRdJyk7CiAgICBpZighYnRuKSByZXR1cm47CiAgICB2YXIgaWQ9YnRuLmdldEF0dHJpYnV0ZSgnZGF0YS1yYzg4OC10YXJnZXQnKTsKICAgIHZhciBl"
+            "bD1kb2N1bWVudC5nZXRFbGVtZW50QnlJZChpZCk7CiAgICBpZihlbCl7CiAgICAgIGVsLnNjcm9sbEludG9WaWV3KHtiZWhhdmlvcjonc21vb3RoJyxibG9jazonc3RhcnQnfSk7CiAgICAgIGJ0bi5zZXRBdHRy"
+            "aWJ1dGUoJ2RhdGEtYWN0aXZlJywnMScpOwogICAgICBzZXRUaW1lb3V0KGZ1bmN0aW9uKCl7YnRuLnJlbW92ZUF0dHJpYnV0ZSgnZGF0YS1hY3RpdmUnKX0sOTAwKQogICAgfQogIH0sdHJ1ZSk7CgogIGRvY3Vt"
+            "ZW50LmFkZEV2ZW50TGlzdGVuZXIoJ2lucHV0JyxzY2hlZHVsZSx0cnVlKTsKICBkb2N1bWVudC5hZGRFdmVudExpc3RlbmVyKCdjaGFuZ2UnLHNjaGVkdWxlLHRydWUpOwoKICB2YXIgbW89bmV3IE11dGF0aW9u"
+            "T2JzZXJ2ZXIoc2NoZWR1bGUpOwogIG1vLm9ic2VydmUoZG9jdW1lbnQuZG9jdW1lbnRFbGVtZW50LHsKICAgIHN1YnRyZWU6dHJ1ZSwKICAgIGNoaWxkTGlzdDp0cnVlLAogICAgYXR0cmlidXRlczp0cnVlLAog"
+            "ICAgYXR0cmlidXRlRmlsdGVyOlsnZGF0YS1leHBvcnRodWItdmlldycsJ2RhdGEtY3VycmVudC12aWV3J10KICB9KTsKCiAgc2V0SW50ZXJ2YWwoc2NoZWR1bGUsMjUwMCk7CgogIGlmKGRvY3VtZW50LnJlYWR5"
+            "U3RhdGU9PT0nbG9hZGluZycpewogICAgZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcscmVmcmVzaCx7b25jZTp0cnVlfSkKICB9ZWxzZXsKICAgIHJlZnJlc2goKQogIH0KfSko"
+            "KTsK"
+          )
+          js=base64.b64decode(payload).decode("utf-8")
+
+          marker="/* exporthub-rc888-shipment-create-professional */"
+          if marker in src:
+              raise SystemExit("RC888 Marker bereits vorhanden")
+
+          # Reuse the same proven classic script anchor as RC885/RC886.
+          anchor="function avisHost(view)"
+          pos=src.find(anchor)
+          if pos<0 or src.find(anchor,pos+1)>=0:
+              raise SystemExit("Sicherer Script-Anker avisHost ist nicht eindeutig")
+
+          open_pos=src.rfind("<script",0,pos)
+          open_end=src.find(">",open_pos)
+          if open_pos<0 or open_end<0 or src.find("</script>",open_end,pos)>=0:
+              raise SystemExit("avisHost liegt nicht sicher in einem Scriptblock")
+
+          src=src[:pos]+js+"\n"+src[pos:]
+          p.write_text(src,encoding="utf-8")
+          print("RC888 Pure-JS Modul eingefügt.")
+          PY
+
+      - name: GREEN regression and source safety
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          grep -Fq "version:'RC888',cache:'888',loginReturn:'/TESTVERSION.html?v=888'" TESTVERSION.html
+          grep -Fq "/* exporthub-rc888-shipment-create-professional */" TESTVERSION.html
+          grep -Fq "rc888ShipmentHeader" TESTVERSION.html
+          grep -Fq "Fällige Aufgaben" TESTVERSION.html
+          grep -Fq "Speichern & Ausgabe" TESTVERSION.html
+          grep -Fq "Kunde & Empfänger" TESTVERSION.html
+          grep -Fq "Colli & LDM" TESTVERSION.html
+          grep -Fq "/* exporthub-rc886-testservice-api-hotfix */" TESTVERSION.html
+          grep -Fq "__rc887AvisAllowed" TESTVERSION.html
+
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8",errors="replace")
+
+          expected={
+              "script_open":int(Path("/tmp/rc888_script_open").read_text()),
+              "script_close":int(Path("/tmp/rc888_script_close").read_text()),
+              "style_open":int(Path("/tmp/rc888_style_open").read_text()),
+              "style_close":int(Path("/tmp/rc888_style_close").read_text())
+          }
+          actual={
+              "script_open":src.lower().count("<script"),
+              "script_close":src.lower().count("</script>"),
+              "style_open":src.lower().count("<style"),
+              "style_close":src.lower().count("</style>")
+          }
+
+          if expected!=actual:
+              raise SystemExit("RC888 hat HTML Script-/Style-Grenzen verändert: "+repr({"vorher":expected,"nachher":actual}))
+
+          class V(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.script=0; self.style=0; self.parts=[]
+              def handle_starttag(self,tag,attrs):
+                  if tag.lower()=="script": self.script+=1
+                  elif tag.lower()=="style": self.style+=1
+              def handle_endtag(self,tag):
+                  if tag.lower()=="script" and self.script: self.script-=1
+                  elif tag.lower()=="style" and self.style: self.style-=1
+              def handle_data(self,data):
+                  if not self.script and not self.style: self.parts.append(data)
+
+          p=V(); p.feed(src); p.close()
+          visible="\n".join(p.parts)
+          bad=[
+              "function applyFixedBlocks()",
+              "window.open('about:blank'",
+              'window.open("about:blank"',
+              "exporthub-rc888-shipment-create-professional",
+              "function makeHeader()"
+          ]
+          leaks=[x for x in bad if x in visible]
+          if leaks:
+              raise SystemExit("JavaScript als sichtbarer Seitentext: "+", ".join(leaks))
+
+          print("GREEN: RC888 vorhanden, HTML-Grenzen unverändert, keine bekannten JS-Leaks.")
+          PY
+
+      - name: Verify TESTSERVICE-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! git diff --quiet --             index.html             production-version.js             api             pickup.html             location.html             customer-avis.html             staticwebapp.config.json             staticwebapp.testservice.config.json             .github/workflows
+          then
+            echo "::error::Produktion/API/Deploy wurde verändert."
+            exit 1
+          fi
+
+          mapfile -t CHANGED < <(git diff --name-only)
+          if [[ "${#CHANGED[@]}" -ne 1 || "${CHANGED[0]}" != "TESTVERSION.html" ]]; then
+            echo "::error::RC888 darf ausschließlich TESTVERSION.html ändern."
+            printf ' - %s\n' "${CHANGED[@]}"
+            exit 1
+          fi
+
+      - name: Commit RC888 TESTSERVICE
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add TESTVERSION.html
+          git commit -m "TESTSERVICE RC888: professional shipment create layout"
+          git push origin main
+
+      - name: RC888 summary
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## ExportHUB RC888"
+            echo
+            echo "- Sendung erstellen erhält kompakte professionelle Kopfzeile"
+            echo "- 8 klare Arbeitsschritte mit Schnellnavigation"
+            echo "- Fortschritt wird kompakt aus den vorhandenen Feldern abgeleitet"
+            echo "- Pflichtfelder werden dezent hervorgehoben"
+            echo "- Speichern & Ausgabe bleibt als vorhandener Funktionsblock und wird besser hervorgehoben"
+            echo "- Keine Fachlogik, Speicherlogik oder Dokumentlogik neu geschrieben"
+            echo "- Keine bestehenden Funktionsblöcke verschoben"
+            echo "- Keine neuen HTML-Script-/Style-Grenzen"
+            echo "- Nur TESTVERSION.html geändert"
+            echo
+            echo "Nach diesem Commit den bereits funktionierenden TESTSERVICE Deploy starten."
+          } >> "$GITHUB_STEP_SUMMARY"
