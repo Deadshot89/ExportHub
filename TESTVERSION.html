@@ -290,7 +290,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC889',cache:'889',loginReturn:'/TESTVERSION.html?v=889'});
+var BUILD=Object.freeze({version:'RC890',cache:'890',loginReturn:'/TESTVERSION.html?v=890'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -2479,6 +2479,165 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
   (document.head||document.documentElement).appendChild(s);
 })();
 
+/* exporthub-rc890-dashboard-avis-stability */
+(function(){
+  function norm(v){
+    return String(v||'').replace(/\s+/g,' ').trim().toLowerCase();
+  }
+  function text(el){
+    return norm(el && (el.textContent||el.innerText||''));
+  }
+  function matchesText(el,rx){
+    return !!el && rx.test(text(el));
+  }
+  function findHeading(rx){
+    var nodes=document.querySelectorAll('h1,h2,h3,h4,h5,h6,strong,b,div,span');
+    for(var i=0;i<nodes.length;i++){
+      if(matchesText(nodes[i],rx)) return nodes[i];
+    }
+    return null;
+  }
+  function blockFor(el){
+    var cur=el;
+    while(cur && cur!==document.body){
+      var tag=(cur.tagName||'').toUpperCase();
+      var cls=String(cur.className||'');
+      if(tag==='SECTION' || tag==='ARTICLE') return cur;
+      if(/card|panel|section|tile|box|block|shell|wrap|container/i.test(cls)) return cur;
+      cur=cur.parentElement;
+    }
+    return el ? el.parentElement : null;
+  }
+  function setFullWidth(block){
+    if(!block) return;
+    block.style.gridColumn='1 / -1';
+    block.style.width='100%';
+    block.style.maxWidth='100%';
+    block.style.justifySelf='stretch';
+    block.style.alignSelf='stretch';
+    var p=block.parentElement;
+    if(p){
+      var cs=getComputedStyle(p);
+      if((cs.display||'').indexOf('grid')>=0){
+        p.style.gridTemplateColumns='minmax(0,1fr)';
+        p.style.alignItems='stretch';
+      }
+    }
+  }
+  function applyFullWidthCards(){
+    [
+      /arbeitsfokus/i,
+      /schnellzugriffe/i,
+      /heute geplante sendungen/i,
+      /sendungen und abholungen/i,
+      /abd-anfragen/i
+    ].forEach(function(rx){
+      var h=findHeading(rx);
+      if(h) setFullWidth(blockFor(h));
+    });
+  }
+  function moveArbeitsfokusAfterToday(){
+    var focus=findHeading(/arbeitsfokus/i);
+    var today=findHeading(/heute geplante sendungen/i);
+    if(!focus || !today) return;
+    var focusBlock=blockFor(focus);
+    var todayBlock=blockFor(today);
+    if(!focusBlock || !todayBlock || focusBlock===todayBlock) return;
+    setFullWidth(focusBlock);
+    setFullWidth(todayBlock);
+    if(todayBlock.nextElementSibling!==focusBlock && todayBlock.parentElement){
+      todayBlock.parentElement.insertBefore(focusBlock, todayBlock.nextElementSibling);
+    }
+  }
+  function toolbarButtonTemplate(){
+    var list=Array.from(document.querySelectorAll('button,a'));
+    return list.find(function(el){
+      return /pod-sicherung|backup|import|drucken/i.test(text(el));
+    }) || null;
+  }
+  function toolbarContainer(){
+    var sample=toolbarButtonTemplate();
+    return sample ? sample.parentElement : null;
+  }
+  function goAvis(){
+    try{
+      window.location.href='/customer-avis.html?v=890';
+    }catch(e){}
+  }
+  function ensureLieferAvis(){
+    if(document.getElementById('rc890LieferAvisBtn')) return;
+    var bar=toolbarContainer();
+    var sample=toolbarButtonTemplate();
+    if(!bar || !sample) return;
+
+    var btn=document.createElement(sample.tagName.toLowerCase()==='a'?'a':'button');
+    btn.id='rc890LieferAvisBtn';
+    if(btn.tagName.toLowerCase()==='button') btn.type='button';
+    btn.className=sample.className || '';
+    btn.textContent='Lieferavis';
+    btn.setAttribute('aria-label','Lieferavis öffnen');
+    btn.addEventListener('click',function(ev){
+      ev.preventDefault();
+      goAvis();
+    });
+
+    var inserted=false;
+    var buttons=Array.from(bar.querySelectorAll('button,a'));
+    for(var i=0;i<buttons.length;i++){
+      if(/backup/i.test(text(buttons[i]))){
+        bar.insertBefore(btn, buttons[i]);
+        inserted=true;
+        break;
+      }
+    }
+    if(!inserted) bar.appendChild(btn);
+  }
+  function stabilizeSendungsdaten(){
+    var h=findHeading(/sendungsdaten/i);
+    if(!h) return;
+    var box=blockFor(h);
+    if(!box) return;
+
+    if(!box.dataset.rc890Stable){
+      box.dataset.rc890Stable='1';
+      box.style.contain='layout paint';
+      box.style.backfaceVisibility='hidden';
+      box.style.transform='translateZ(0)';
+    }
+
+    var nodes=[box].concat(Array.from(box.querySelectorAll('*')));
+    nodes.forEach(function(el){
+      el.style.animation='none';
+      el.style.transition='none';
+    });
+
+    var rect=box.getBoundingClientRect();
+    if(rect.height>160){
+      var current=parseInt(box.style.minHeight||'0',10)||0;
+      var next=Math.ceil(rect.height);
+      if(next>current) box.style.minHeight=next+'px';
+    }
+  }
+  var scheduled=false;
+  function run(){
+    scheduled=false;
+    applyFullWidthCards();
+    moveArbeitsfokusAfterToday();
+    ensureLieferAvis();
+    stabilizeSendungsdaten();
+  }
+  function schedule(){
+    if(scheduled) return;
+    scheduled=true;
+    requestAnimationFrame(run);
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',schedule,{once:true});
+  }
+  schedule();
+  window.addEventListener('load',schedule,{once:false});
+  new MutationObserver(function(){ schedule(); }).observe(document.documentElement,{childList:true,subtree:true});
+})();
 function avisHost(view){view=view||visibleShipmentView();var host=null;if(view==='shipmentview'){host=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||document.querySelector('#content.rc776-shipment-view .rc844-avis-host');if(!host){var page=document.querySelector('#content.rc776-shipment-view .rc776-page');if(page){host=document.createElement('div');host.id='rc845AvisReadHost';host.className='rc844-avis-host';host.setAttribute('data-rc845-avis-host','readonly');var grids=page.querySelectorAll(':scope > .rc776-grid');if(grids.length&&grids[0].nextSibling)page.insertBefore(host,grids[0].nextSibling);else page.appendChild(host)}}return host||null}if(view==='shipment'){host=document.getElementById('rc845AvisEditHost');if(!host){var body=document.querySelector('#rc363BlockShipment .rc363-process-body')||document.getElementById('rc363BlockShipment')||document.getElementById('rc573ShipmentShell');if(body){host=document.createElement('div');host.id='rc845AvisEditHost';host.className='rc845-avis-host';host.setAttribute('data-rc845-avis-host','edit');body.appendChild(host)}}return host||null}return null}
 function render(){var __rc887AvisState=(typeof state==='function'?state():(window.STATE||{})),__rc887AvisView=String((__rc887AvisState&&__rc887AvisState.view)||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view')||'').toLowerCase(),__rc887AvisAllowed=/avis/.test(__rc887AvisView)&&!/shipment/.test(__rc887AvisView);if(!__rc887AvisAllowed){['rc705AvisMountRead','rc705AvisMountEdit','rc845AvisReadHost','rc845AvisEditHost','rc844AvisHost','rc849AvisReadCard','rc363BlockAvis'].forEach(function(id){var node=document.getElementById(id);if(node)node.remove()});lastSig='';return false;}
  var view=visibleShipmentView();if(view!=='shipment'&&view!=='shipmentview')return false;
