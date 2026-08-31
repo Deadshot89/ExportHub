@@ -1,0 +1,274 @@
+name: RC886 TESTSERVICE Auth Runtime Fix v3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: exporthub-rc886-testservice-auth-runtime-fix-v3
+  cancel-in-progress: false
+
+jobs:
+  repair-testservice:
+    name: Repair live TESTSERVICE auth verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard committed RC886 state
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f TESTVERSION.html
+          test -f .github/workflows/exporthub-testservice.yml
+          grep -Fq "version:'RC886',cache:'886',loginReturn:'/TESTVERSION.html?v=886'" TESTVERSION.html
+          grep -Fq "/* exporthub-rc886-testservice-api-hotfix */" TESTVERSION.html
+          grep -Fq "name: Verify live TESTSERVICE authentication runtime" .github/workflows/exporthub-testservice.yml
+          grep -Fq "deployment_environment: testservice" .github/workflows/exporthub-testservice.yml
+          echo "OK: RC886 ist committed. TESTVERSION.html wird nicht geändert."
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ExportHUB Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Backup current TESTSERVICE workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="backup-testservice-before-auth-runtime-fix-v2-${GITHUB_RUN_ID}"
+          git tag -a "${TAG}" -m "Backup before TESTSERVICE auth runtime fix v2"
+          git push origin "refs/tags/${TAG}"
+
+      - name: Patch live TESTSERVICE verification only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+
+          payload = (
+            "ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpwID0gUGF0aCgiLmdpdGh1Yi93b3JrZmxvd3MvZXhwb3J0aHViLXRlc3RzZXJ2aWNlLnltbCIpCnNyYyA9IHAucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCm9y"
+            "aWdpbmFsID0gc3JjCgpzdGFydF9tYXJrZXIgPSAiICAgICAgLSBuYW1lOiBWZXJpZnkgbGl2ZSBURVNUU0VSVklDRSBhdXRoZW50aWNhdGlvbiBydW50aW1lXG4iCmVuZF9tYXJrZXIgPSAiICAgICAgLSBuYW1l"
+            "OiBWZXJpZnkgbGl2ZSBURVNUU0VSVklDRSBhdXRoZW50aWNhdGlvbiBiYWNrZW5kXG4iCgpzdGFydCA9IHNyYy5maW5kKHN0YXJ0X21hcmtlcikKZW5kID0gc3JjLmZpbmQoZW5kX21hcmtlciwgc3RhcnQgKyBs"
+            "ZW4oc3RhcnRfbWFya2VyKSkKCmlmIHN0YXJ0IDwgMCBvciBlbmQgPCAwOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiQWx0ZXIgQXV0aC1SdW50aW1lLVByw7xmYmxvY2sgbmljaHQgZ2VmdW5kZW4uIikKaWYgc3Jj"
+            "LmZpbmQoc3RhcnRfbWFya2VyLCBzdGFydCArIDEpID49IDA6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJBbHRlciBBdXRoLVJ1bnRpbWUtUHLDvGZibG9jayBtZWhyZmFjaCBnZWZ1bmRlbi4iKQoKTkVXX0JMT0NL"
+            "ID0gJyAgICAgIC0gbmFtZTogUmVzb2x2ZSBhbmQgdmVyaWZ5IGxpdmUgVEVTVFNFUlZJQ0UgYXV0aGVudGljYXRpb24gcnVudGltZVxuICAgICAgICBpZDogbGl2ZV90ZXN0c2VydmljZVxuICAgICAgICBzaGVs"
+            "bDogYmFzaFxuICAgICAgICBlbnY6XG4gICAgICAgICAgQUNUSU9OX1VSTDogJHt7IHN0ZXBzLmRlcGxveS5vdXRwdXRzLnN0YXRpY193ZWJfYXBwX3VybCB9fVxuICAgICAgICAgIEVYUEVDVEVEX1ZFUlNJT046"
+            "ICR7eyBzdGVwcy5tZXRhLm91dHB1dHMudmVyc2lvbiB9fVxuICAgICAgICAgIFNXQV9CQVNFX0hPU1RfUFJFRklYOiB3b25kZXJmdWwtZm9yZXN0LTBmMzE1ZTMxMFxuICAgICAgICBydW46IHxcbiAgICAgICAg"
+            "ICBzZXQgLWV1byBwaXBlZmFpbFxuXG4gICAgICAgICAgaWYgW1sgLXogIiR7QUNUSU9OX1VSTDotfSIgXV07IHRoZW5cbiAgICAgICAgICAgIGVjaG8gIkF6dXJlIGhhdCBrZWluZSBVUkwgYXVzIGRlbSBEZXBs"
+            "b3ktU2Nocml0dCB6dXLDvGNrZ2VnZWJlbi4iXG4gICAgICAgICAgICBleGl0IDFcbiAgICAgICAgICBmaVxuICAgICAgICAgIGlmIFtbIC16ICIke0VYUEVDVEVEX1ZFUlNJT046LX0iIF1dOyB0aGVuXG4gICAg"
+            "ICAgICAgICBlY2hvICJFcndhcnRldGUgVEVTVFNFUlZJQ0UtVmVyc2lvbiBmZWhsdC4iXG4gICAgICAgICAgICBleGl0IDFcbiAgICAgICAgICBmaVxuXG4gICAgICAgICAgQUNUSU9OX1VSTD0iJHtBQ1RJT05f"
+            "VVJMJS99IlxuXG4gICAgICAgICAgTkFNRURfVVJMPSIkKFxuICAgICAgICAgICAgcHl0aG9uMyAtYyBcJ1xuICAgICAgICAgIGZyb20gdXJsbGliLnBhcnNlIGltcG9ydCB1cmxwYXJzZVxuICAgICAgICAgIGlt"
+            "cG9ydCBzeXNcbiAgICAgICAgICByYXc9c3lzLmFyZ3ZbMV0uc3RyaXAoKVxuICAgICAgICAgIGJhc2U9c3lzLmFyZ3ZbMl0uc3RyaXAoKVxuICAgICAgICAgIHU9dXJscGFyc2UocmF3KVxuICAgICAgICAgIGlm"
+            "IG5vdCB1LnNjaGVtZSBvciBub3QgdS5uZXRsb2M6XG4gICAgICAgICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoIlVuZ8O8bHRpZ2UgQXp1cmUgRGVwbG95IFVSTDogIityYXcpXG4gICAgICAgICAgaG9zdD11Lmhv"
+            "c3RuYW1lIG9yICIiXG4gICAgICAgICAgcGFydHM9aG9zdC5zcGxpdCgiLiIsMSlcbiAgICAgICAgICBpZiBsZW4ocGFydHMpIT0yOlxuICAgICAgICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KCJVbmVyd2FydGV0"
+            "ZXIgQXp1cmUgSG9zdG5hbWU6ICIraG9zdClcbiAgICAgICAgICBwcmludChmInt1LnNjaGVtZX06Ly97YmFzZX0tdGVzdHNlcnZpY2Uue3BhcnRzWzFdfSIpXG4gICAgICAgICAgXCcgIiRBQ1RJT05fVVJMIiAi"
+            "JFNXQV9CQVNFX0hPU1RfUFJFRklYIlxuICAgICAgICAgICkiXG5cbiAgICAgICAgICBDQU5ESURBVEVTPSgiJE5BTUVEX1VSTCIpXG4gICAgICAgICAgaWYgW1sgIiRBQ1RJT05fVVJMIiAhPSAiJE5BTUVEX1VS"
+            "TCIgXV07IHRoZW5cbiAgICAgICAgICAgIENBTkRJREFURVMrPSgiJEFDVElPTl9VUkwiKVxuICAgICAgICAgIGZpXG5cbiAgICAgICAgICBlY2hvICJBenVyZSBBY3Rpb24gVVJMOiAkQUNUSU9OX1VSTCJcbiAg"
+            "ICAgICAgICBlY2hvICJadSBwcsO8ZmVuZGUgVEVTVFNFUlZJQ0UtQWRyZXNzZW46IlxuICAgICAgICAgIHByaW50ZiBcJyAtICVzXFxuXCcgIiR7Q0FORElEQVRFU1tAXX0iXG5cbiAgICAgICAgICBib2R5PSIk"
+            "KG1rdGVtcCkiXG4gICAgICAgICAgcGFnZT0iJChta3RlbXApIlxuICAgICAgICAgIHRyYXAgXCdybSAtZiAiJGJvZHkiICIkcGFnZSJcJyBFWElUXG5cbiAgICAgICAgICBWRVJJRklFRF9VUkw9IiJcblxuICAg"
+            "ICAgICAgIGZvciBhdHRlbXB0IGluICQoc2VxIDEgMzApOyBkb1xuICAgICAgICAgICAgZWNobyAiPT09IFRFU1RTRVJWSUNFIExpdmUtQ2hlY2sgJGF0dGVtcHQvMzAgPT09IlxuXG4gICAgICAgICAgICBmb3Ig"
+            "YmFzZV91cmwgaW4gIiR7Q0FORElEQVRFU1tAXX0iOyBkb1xuICAgICAgICAgICAgICA6ID4gIiRwYWdlIlxuICAgICAgICAgICAgICA6ID4gIiRib2R5IlxuXG4gICAgICAgICAgICAgIHZlcnNpb25fY29kZT0i"
+            "JChcbiAgICAgICAgICAgICAgICBjdXJsIC1zUyBcXFxuICAgICAgICAgICAgICAgICAgLS1jb25uZWN0LXRpbWVvdXQgNSBcXFxuICAgICAgICAgICAgICAgICAgLS1tYXgtdGltZSAyMCBcXFxuICAgICAgICAg"
+            "ICAgICAgICAgLW8gIiRwYWdlIiBcXFxuICAgICAgICAgICAgICAgICAgLXcgXCcle2h0dHBfY29kZX1cJyBcXFxuICAgICAgICAgICAgICAgICAgIiRiYXNlX3VybC9URVNUVkVSU0lPTi5odG1sP3ZlcmlmeT0k"
+            "e0dJVEhVQl9TSEF9LSR7YXR0ZW1wdH0iIHx8IHRydWVcbiAgICAgICAgICAgICAgKSJcblxuICAgICAgICAgICAgICB2ZXJzaW9uPSIkKFxuICAgICAgICAgICAgICAgIGdyZXAgLW9FICJ2YXIgQlVJTEQ9T2Jq"
+            "ZWN0XFwuZnJlZXplXFwoXFx7dmVyc2lvbjpcJ1JDWzAtOV0rXCciICIkcGFnZSIgXFxcbiAgICAgICAgICAgICAgICB8IGhlYWQgLW4gMSBcXFxuICAgICAgICAgICAgICAgIHwgZ3JlcCAtb0UgXCdSQ1swLTld"
+            "K1wnIHx8IHRydWVcbiAgICAgICAgICAgICAgKSJcblxuICAgICAgICAgICAgICBwcm9iZV9tZXRhPSIkKFxuICAgICAgICAgICAgICAgIGN1cmwgLXNTIFxcXG4gICAgICAgICAgICAgICAgICAtLWNvbm5lY3Qt"
+            "dGltZW91dCA1IFxcXG4gICAgICAgICAgICAgICAgICAtLW1heC10aW1lIDMwIFxcXG4gICAgICAgICAgICAgICAgICAtSCBcJ0FjY2VwdDogYXBwbGljYXRpb24vanNvblwnIFxcXG4gICAgICAgICAgICAgICAg"
+            "ICAtbyAiJGJvZHkiIFxcXG4gICAgICAgICAgICAgICAgICAtdyBcJyV7aHR0cF9jb2RlfXwle2NvbnRlbnRfdHlwZX18JXtyZWRpcmVjdF91cmx9XCcgXFxcbiAgICAgICAgICAgICAgICAgICIkYmFzZV91cmwv"
+            "YXBpL2V4cG9ydGh1Yi1hdXRoLXByb2JlP3ZlcmlmeT0ke0dJVEhVQl9TSEF9LSR7YXR0ZW1wdH0iIHx8IHRydWVcbiAgICAgICAgICAgICAgKSJcblxuICAgICAgICAgICAgICBJRlM9XCd8XCcgcmVhZCAtciBw"
+            "cm9iZV9jb2RlIGNvbnRlbnRfdHlwZSByZWRpcmVjdF91cmwgPDw8ICIkcHJvYmVfbWV0YSJcblxuICAgICAgICAgICAgICBlY2hvICIkYmFzZV91cmwgfCBwYWdlIEhUVFA9JHt2ZXJzaW9uX2NvZGV9IHZlcnNp"
+            "b249JHt2ZXJzaW9uOi1rZWluZS1SQ30gfCBwcm9iZSBIVFRQPSR7cHJvYmVfY29kZTotMDAwfSB0eXBlPSR7Y29udGVudF90eXBlOi11bmJla2FubnR9JHtyZWRpcmVjdF91cmw6KyByZWRpcmVjdD0kcmVkaXJl"
+            "Y3RfdXJsfSJcblxuICAgICAgICAgICAgICBpZiBbWyAiJHZlcnNpb25fY29kZSIgIT0gIjIwMCIgfHwgIiR2ZXJzaW9uIiAhPSAiJEVYUEVDVEVEX1ZFUlNJT04iIF1dOyB0aGVuXG4gICAgICAgICAgICAgICAg"
+            "Y29udGludWVcbiAgICAgICAgICAgICAgZmlcblxuICAgICAgICAgICAgICBpZiBbWyAiJHtwcm9iZV9jb2RlOi19IiAhPSAiMjAwIiBdXTsgdGhlblxuICAgICAgICAgICAgICAgIGNvbnRpbnVlXG4gICAgICAg"
+            "ICAgICAgIGZpXG5cbiAgICAgICAgICAgICAgaWYgW1sgIiR7Y29udGVudF90eXBlLCx9IiA9PSAqInRleHQvaHRtbCIqIF1dOyB0aGVuXG4gICAgICAgICAgICAgICAgZWNobyAiUHJvYmUgbGllZmVydCBIVE1M"
+            "IHN0YXR0IEpTT047IEFQSSBpc3Qgbm9jaCBuaWNodCBiZXJlaXQuIlxuICAgICAgICAgICAgICAgIGNvbnRpbnVlXG4gICAgICAgICAgICAgIGZpXG5cbiAgICAgICAgICAgICAgaWYgcHl0aG9uMyAtYyBcJ1xu"
+            "ICAgICAgICAgIGltcG9ydCBqc29uLHN5c1xuICAgICAgICAgIHA9c3lzLmFyZ3ZbMV1cbiAgICAgICAgICB3aXRoIG9wZW4ocCwiciIsZW5jb2Rpbmc9InV0Zi04IikgYXMgZjpcbiAgICAgICAgICAgICAgZD1q"
+            "c29uLmxvYWQoZilcbiAgICAgICAgICBpZiBkLmdldCgib2siKSBpcyBub3QgVHJ1ZTpcbiAgICAgICAgICAgICAgcmFpc2UgU3lzdGVtRXhpdCgiUnVudGltZS1Qcm9iZSBvaz10cnVlIGZlaGx0IilcbiAgICAg"
+            "ICAgICBpZiBkLmdldCgicnVudGltZVJlYWR5IikgaXMgbm90IFRydWU6XG4gICAgICAgICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoIlJ1bnRpbWUgbm9jaCBuaWNodCBiZXJlaXQiKVxuICAgICAgICAgIG5vZGU9"
+            "c3RyKChkLmdldCgicnVudGltZSIpIG9yIHt9KS5nZXQoIm5vZGUiKSBvciAiIilcbiAgICAgICAgICBpZiBub3Qgbm9kZS5zdGFydHN3aXRoKCJ2MjAuIik6XG4gICAgICAgICAgICAgIHJhaXNlIFN5c3RlbUV4"
+            "aXQoIkF6dXJlIEFQSSBsw6R1ZnQgbmljaHQgYXVmIE5vZGUgMjA6ICIrKG5vZGUgb3IgInVuYmVrYW5udCIpKVxuICAgICAgICAgIHByaW50KCJBdXRoLVJ1bnRpbWUgYmVyZWl0IGF1ZiAiK25vZGUpXG4gICAg"
+            "ICAgICAgXCcgIiRib2R5IlxuICAgICAgICAgICAgICB0aGVuXG4gICAgICAgICAgICAgICAgVkVSSUZJRURfVVJMPSIkYmFzZV91cmwiXG4gICAgICAgICAgICAgICAgYnJlYWsgMlxuICAgICAgICAgICAgICBm"
+            "aVxuICAgICAgICAgICAgZG9uZVxuXG4gICAgICAgICAgICBzbGVlcCAxMFxuICAgICAgICAgIGRvbmVcblxuICAgICAgICAgIGlmIFtbIC16ICIkVkVSSUZJRURfVVJMIiBdXTsgdGhlblxuICAgICAgICAgICAg"
+            "ZWNobyAiVEVTVFNFUlZJQ0UgQXV0aC9BUEktUnVudGltZSB3dXJkZSBpbm5lcmhhbGIgdm9uIDUgTWludXRlbiBuaWNodCBiZXJlaXQuIlxuICAgICAgICAgICAgZWNobyAiTGV0enRlIFByb2JlLUFudHdvcnQ6"
+            "IlxuICAgICAgICAgICAgY2F0ICIkYm9keSIgfHwgdHJ1ZVxuICAgICAgICAgICAgZXhpdCAxXG4gICAgICAgICAgZmlcblxuICAgICAgICAgIGVjaG8gIlZlcmlmaXppZXJ0ZXIgVEVTVFNFUlZJQ0U6ICRWRVJJ"
+            "RklFRF9VUkwiXG4gICAgICAgICAgZWNobyAidXJsPSRWRVJJRklFRF9VUkwiID4+ICIkR0lUSFVCX09VVFBVVCJcbicKCnNyYyA9IHNyY1s6c3RhcnRdICsgTkVXX0JMT0NLICsgc3JjW2VuZDpdCgpyYXdfZW52"
+            "ID0gJyAgICAgICAgICBURVNUU0VSVklDRV9VUkw6ICR7eyBzdGVwcy5kZXBsb3kub3V0cHV0cy5zdGF0aWNfd2ViX2FwcF91cmwgfX0nCnZlcmlmaWVkX2VudiA9ICcgICAgICAgICAgVEVTVFNFUlZJQ0VfVVJM"
+            "OiAke3sgc3RlcHMubGl2ZV90ZXN0c2VydmljZS5vdXRwdXRzLnVybCB9fScKCmNvdW50ID0gc3JjLmNvdW50KHJhd19lbnYpCmlmIGNvdW50IDwgMzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoZiJadSB3ZW5pZ2Ug"
+            "bmFjaGdlbGFnZXJ0ZSBURVNUU0VSVklDRV9VUkwtVmVyd2VuZHVuZ2VuIGdlZnVuZGVuOiB7Y291bnR9IikKCnNyYyA9IHNyYy5yZXBsYWNlKHJhd19lbnYsIHZlcmlmaWVkX2VudikKCmlmICJpZDogbGl2ZV90"
+            "ZXN0c2VydmljZSIgbm90IGluIHNyYzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoImxpdmVfdGVzdHNlcnZpY2UgU3RlcCBmZWhsdCBuYWNoIFBhdGNoLiIpCmlmICJkZXBsb3ltZW50X2Vudmlyb25tZW50OiB0ZXN0"
+            "c2VydmljZSIgbm90IGluIHNyYzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoImRlcGxveW1lbnRfZW52aXJvbm1lbnQgZ2luZyB2ZXJsb3Jlbi4iKQppZiAidXNlczogQXp1cmUvc3RhdGljLXdlYi1hcHBzLWRlcGxv"
+            "eUB2MSIgbm90IGluIHNyYzoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkF6dXJlIERlcGxveS1TY2hyaXR0IHd1cmRlIHVuZXJ3YXJ0ZXQgdmVyw6RuZGVydC4iKQppZiBzcmMgPT0gb3JpZ2luYWw6CiAgICByYWlz"
+            "ZSBTeXN0ZW1FeGl0KCJQYXRjaCBoYXQga2VpbmUgw4RuZGVydW5nIGVyemV1Z3QuIikKCnAud3JpdGVfdGV4dChzcmMsIGVuY29kaW5nPSJ1dGYtOCIpCnByaW50KGYiTGl2ZS1WZXJpZmlrYXRpb24gZXJzZXR6"
+            "dDsge2NvdW50fSBVUkwtVmVyd2VuZHVuZ2VuIGF1ZiB2ZXJpZml6aWVydGUgQWRyZXNzZSB1bWdlc3RlbGx0LiIpCg=="
+          )
+          script = base64.b64decode(payload).decode("utf-8")
+          exec(compile(script, "<rc886-auth-runtime-patch>", "exec"))
+          PY
+
+      - name: Validate repaired TESTSERVICE workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE=".github/workflows/exporthub-testservice.yml"
+
+          grep -Fq "id: live_testservice" "$FILE"
+          grep -Fq "SWA_BASE_HOST_PREFIX: wonderful-forest-0f315e310" "$FILE"
+          grep -Fq "steps.live_testservice.outputs.url" "$FILE"
+          grep -Fq "api/exporthub-auth-probe?verify=" "$FILE"
+
+          if grep -Fq "name: Verify live TESTSERVICE authentication runtime" "$FILE"; then
+            echo "::error::Alter Einmal-Probe-Schritt ist noch vorhanden."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          text = Path(".github/workflows/exporthub-testservice.yml").read_text(encoding="utf-8")
+          data = yaml.safe_load(text)
+
+          if not isinstance(data, dict):
+              raise SystemExit("Workflow ist kein gültiges YAML-Objekt.")
+          if text.count("id: live_testservice") != 1:
+              raise SystemExit("live_testservice ist nicht eindeutig.")
+          if text.count("steps.live_testservice.outputs.url") < 3:
+              raise SystemExit("Nachgelagerte Live-Prüfungen verwenden die verifizierte URL nicht überall.")
+          if "deployment_environment: testservice" not in text:
+              raise SystemExit("deployment_environment fehlt.")
+          if "uses: Azure/static-web-apps-deploy@v1" not in text:
+              raise SystemExit("Azure Deploy-Schritt wurde verändert.")
+
+          print("Reparierter TESTSERVICE Workflow: YAML PASS")
+          PY
+
+      - name: Verify repair scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t CHANGED < <(git diff --name-only)
+          printf 'Geänderte Dateien:\n'
+          printf ' - %s\n' "${CHANGED[@]}"
+
+          if [[ "${#CHANGED[@]}" -ne 1 || "${CHANGED[0]}" != ".github/workflows/exporthub-testservice.yml" ]]; then
+            echo "::error::Es darf ausschließlich exporthub-testservice.yml geändert werden."
+            exit 1
+          fi
+
+          if ! git diff --quiet -- TESTVERSION.html; then
+            echo "::error::TESTVERSION.html wurde unerwartet verändert."
+            exit 1
+          fi
+
+      - name: Commit TESTSERVICE auth verification fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add .github/workflows/exporthub-testservice.yml
+          git commit -m "TESTSERVICE: resolve named URL and wait for auth runtime"
+          git push origin main
+
+      - name: Snapshot existing TESTSERVICE deploy runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run list             --workflow exporthub-testservice.yml             --limit 50             --json databaseId             --jq '.[].databaseId' > /tmp/testservice_runs_before.txt || true
+
+      - name: Dispatch repaired TESTSERVICE deploy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api             --method POST             "repos/${GITHUB_REPOSITORY}/actions/workflows/exporthub-testservice.yml/dispatches"             -f ref=main
+
+      - name: Find repaired TESTSERVICE deploy
+        id: deploy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID=""
+
+          for attempt in $(seq 1 60); do
+            mapfile -t IDS < <(
+              gh run list                 --workflow exporthub-testservice.yml                 --event workflow_dispatch                 --branch main                 --limit 20                 --json databaseId                 --jq '.[].databaseId'
+            )
+
+            for id in "${IDS[@]}"; do
+              if ! grep -qx "${id}" /tmp/testservice_runs_before.txt 2>/dev/null; then
+                RUN_ID="${id}"
+                break
+              fi
+            done
+
+            [[ -n "$RUN_ID" ]] && break
+            sleep 5
+          done
+
+          if [[ -z "$RUN_ID" ]]; then
+            echo "::error::Neuer TESTSERVICE Deploy wurde nicht gefunden."
+            exit 1
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for repaired TESTSERVICE deploy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.deploy.outputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          gh run watch "$RUN_ID" || true
+          CONCLUSION="$(gh run view "$RUN_ID" --json conclusion --jq '.conclusion')"
+
+          if [[ "$CONCLUSION" != "success" ]]; then
+            {
+              echo "## Reparierter TESTSERVICE Deploy fehlgeschlagen"
+              echo
+              echo "Run: $RUN_ID"
+              echo
+              echo '```text'
+              gh run view "$RUN_ID" --log-failed 2>&1 | tail -n 280 || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            echo "::error::TESTSERVICE Deploy endete mit $CONCLUSION. Die echten Fehlerlogs stehen in dieser Zusammenfassung."
+            exit 1
+          fi
+
+          echo "TESTSERVICE Deploy erfolgreich."
+
+      - name: Summary
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## RC886 TESTSERVICE Auth Runtime Fix v3"
+            echo
+            echo "- RC886 TESTVERSION.html unverändert"
+            echo "- Nur exporthub-testservice.yml geändert"
+            echo "- stabile -testservice-Adresse wird zuerst geprüft"
+            echo "- API-Warmup bis zu 5 Minuten"
+            echo "- RC886-Seite und Auth-Probe müssen auf derselben Adresse bereit sein"
+            echo "- nachgelagerte Checks und veröffentlichter Link verwenden die verifizierte URL"
+          } >> "$GITHUB_STEP_SUMMARY"
