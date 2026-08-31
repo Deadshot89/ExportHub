@@ -290,7 +290,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC888',cache:'888',loginReturn:'/TESTVERSION.html?v=888'});
+var BUILD=Object.freeze({version:'RC889',cache:'889',loginReturn:'/TESTVERSION.html?v=889'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -1998,108 +1998,141 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
   }
 
   function warningData(){
-    var ts=taskOpenList();
-    var ss=shipmentOpenList();
+              var ts=taskOpenList();
+              var ss=shipmentOpenList();
 
-    var overdueTasks=ts.filter(dueTask);
-    var docs=ss.filter(shipmentNeedsDocuments);
-    var pickups=ss.filter(shipmentNeedsPickup);
-    var pods=ss.filter(shipmentNeedsPod);
+              var overdueTasks=ts.filter(dueTask);
+              var docs=ss.filter(shipmentNeedsDocuments);
+              var pickups=ss.filter(shipmentNeedsPickup);
+              var pods=ss.filter(shipmentNeedsPod);
 
-    var items=[];
+              function taskItem(t){
+                return {
+                  title:itemTitle(t,'Überfällige Aufgabe'),
+                  sub:'Aufgabe fällig',
+                  route:'tasks'
+                }
+              }
 
-    overdueTasks.slice(0,3).forEach(function(t){
-      items.push({
-        title:itemTitle(t,'Überfällige Aufgabe'),
-        sub:'Aufgabe fällig',
-        route:'tasks'
-      })
-    });
+              function shipmentItem(s,sub){
+                return {
+                  title:itemTitle(s,'Sendung'),
+                  sub:sub,
+                  route:'shipmentoverview'
+                }
+              }
 
-    docs.slice(0,2).forEach(function(s){
-      items.push({
-        title:itemTitle(s,'Sendung'),
-        sub:'Dokumente prüfen',
-        route:'shipmentoverview'
-      })
-    });
+              var groups=[
+                {
+                  id:'overdue',
+                  label:'Überfällig',
+                  count:overdueTasks.length,
+                  route:'tasks',
+                  items:overdueTasks.slice(0,3).map(taskItem)
+                },
+                {
+                  id:'documents',
+                  label:'Dokumente',
+                  count:docs.length,
+                  route:'shipmentoverview',
+                  items:docs.slice(0,3).map(function(s){return shipmentItem(s,'Dokumente prüfen')})
+                },
+                {
+                  id:'pickup',
+                  label:'Abholung',
+                  count:pickups.length,
+                  route:'shipmentoverview',
+                  items:pickups.slice(0,3).map(function(s){return shipmentItem(s,'Abholung offen')})
+                },
+                {
+                  id:'other',
+                  label:'Sonstige',
+                  count:pods.length,
+                  route:'shipmentoverview',
+                  items:pods.slice(0,3).map(function(s){return shipmentItem(s,'POD fehlt')})
+                }
+              ];
 
-    pods.slice(0,2).forEach(function(s){
-      items.push({
-        title:itemTitle(s,'Sendung'),
-        sub:'POD fehlt',
-        route:'shipmentoverview'
-      })
-    });
-
-    pickups.slice(0,2).forEach(function(s){
-      items.push({
-        title:itemTitle(s,'Sendung'),
-        sub:'Abholung offen',
-        route:'shipmentoverview'
-      })
-    });
-
-    return {
-      overdue:overdueTasks.length,
-      documents:docs.length,
-      pod:pods.length,
-      pickup:pickups.length,
-      total:overdueTasks.length+docs.length+pods.length+pickups.length,
-      items:items.slice(0,8)
-    }
-  }
+              return {
+                overdue:overdueTasks.length,
+                documents:docs.length,
+                pod:pods.length,
+                pickup:pickups.length,
+                total:overdueTasks.length+docs.length+pods.length+pickups.length,
+                groups:groups
+              }
+            }
 
   function ensureWarningUi(){
-    var d=warningData();
+              var d=warningData();
 
-    var btn=document.getElementById('rc885WarningButton');
-    if(!btn){
-      btn=document.createElement('button');
-      btn.type='button';
-      btn.id='rc885WarningButton';
-      document.body.appendChild(btn)
-    }
-    btn.innerHTML='Warncenter <span class="rc885-warning-count">'+d.total+'</span>';
+              var btn=document.getElementById('rc885WarningButton');
+              if(!btn){
+                btn=document.createElement('button');
+                btn.type='button';
+                btn.id='rc885WarningButton';
+                document.body.appendChild(btn)
+              }
+              btn.innerHTML='Warncenter <span class="rc885-warning-count">'+d.total+'</span>';
 
-    var drawer=document.getElementById('rc885WarningDrawer');
-    if(!drawer){
-      drawer=document.createElement('div');
-      drawer.id='rc885WarningDrawer';
-      drawer.innerHTML=
-        '<div class="rc885-drawer">'+
-          '<div class="rc885-drawer-head">'+
-            '<div><div class="rc885-drawer-title">Warncenter</div><div class="rc885-sub">Nur Punkte mit Handlungsbedarf</div></div>'+
-            '<button type="button" class="rc885-close">Schließen</button>'+
-          '</div>'+
-          '<div class="rc885-summary"></div>'+
-          '<div class="rc885-warning-list"></div>'+
-        '</div>';
-      document.body.appendChild(drawer)
-    }
+              var drawer=document.getElementById('rc885WarningDrawer');
+              if(!drawer){
+                drawer=document.createElement('div');
+                drawer.id='rc885WarningDrawer';
+                document.body.appendChild(drawer)
+              }
 
-    var summary=drawer.querySelector('.rc885-summary');
-    if(summary){
-      summary.innerHTML=[
-        ['Fällige Aufgaben',d.overdue],
-        ['Dokumente',d.documents],
-        ['POD fehlt',d.pod],
-        ['Abholung',d.pickup]
-      ].map(function(x){
-        return '<div class="rc885-summary-card"><div class="rc885-summary-label">'+esc(x[0])+'</div><div class="rc885-summary-value">'+x[1]+'</div></div>'
-      }).join('')
-    }
+              var overview=d.groups.map(function(g){
+                return '<div class="rc889-overview-card" data-active="'+(g.count>0?'1':'0')+'">'+
+                  '<div class="rc889-overview-label">'+esc(g.label)+'</div>'+
+                  '<div class="rc889-overview-value">'+g.count+'</div>'+
+                '</div>'
+              }).join('');
 
-    var list=drawer.querySelector('.rc885-warning-list');
-    if(list){
-      list.innerHTML=d.items.length?d.items.map(function(x){
-        return '<button type="button" class="rc885-warning-item" data-rc885-route="'+esc(x.route)+'">'+
-          '<strong>'+esc(x.title)+'</strong>'+
-          '<span>'+esc(x.sub)+'</span>'+
-        '</button>'
-      }).join(''):'<div class="rc885-empty">Aktuell kein dringender Handlungsbedarf.</div>'
-    }
-  }
+              function groupHtml(g){
+                if(!g.count) return '';
+
+                var items=g.items.map(function(x){
+                  return '<button type="button" class="rc889-item" data-rc885-route="'+esc(x.route)+'">'+
+                    '<span class="rc889-item-main">'+
+                      '<span class="rc889-item-title">'+esc(x.title)+'</span>'+
+                      '<span class="rc889-item-sub">'+esc(x.sub)+'</span>'+
+                    '</span>'+
+                    '<span class="rc889-item-open">Öffnen</span>'+
+                  '</button>'
+                }).join('');
+
+                var more=g.count>g.items.length?
+                  '<button type="button" class="rc889-more" data-rc885-route="'+esc(g.route)+'">'+
+                    'Weitere '+(g.count-g.items.length)+' anzeigen'+
+                  '</button>':'';
+
+                return '<section class="rc889-group" data-kind="'+esc(g.id)+'">'+
+                  '<div class="rc889-group-head">'+
+                    '<div class="rc889-group-title">'+esc(g.label)+'</div>'+
+                    '<div class="rc889-group-count">'+g.count+'</div>'+
+                  '</div>'+
+                  '<div class="rc889-items">'+items+more+'</div>'+
+                '</section>'
+              }
+
+              var activeGroups=d.groups.filter(function(g){return g.count>0});
+              drawer.innerHTML=
+                '<div class="rc885-drawer">'+
+                  '<div class="rc885-drawer-head">'+
+                    '<div>'+
+                      '<div class="rc885-drawer-title">Warncenter</div>'+
+                      '<div class="rc885-sub">Kompakt nach Handlungsart gruppiert</div>'+
+                    '</div>'+
+                    '<button type="button" class="rc885-close">Schließen</button>'+
+                  '</div>'+
+                  '<div class="rc889-overview">'+overview+'</div>'+
+                  (activeGroups.length?
+                    '<div class="rc889-groups">'+activeGroups.map(groupHtml).join('')+'</div>':
+                    '<div class="rc889-empty">Aktuell kein dringender Handlungsbedarf.</div>'
+                  )+
+                '</div>'
+            }
 
   function mountWorkspace(){
     if(!isDashboard()) {
@@ -2435,6 +2468,15 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
   }else{
     refresh()
   }
+})();
+
+/* exporthub-rc889-warningcenter-style */
+(function(){
+  if(document.getElementById('rc889WarningStyle')) return;
+  var s=document.createElement('style');
+  s.id='rc889WarningStyle';
+  s.textContent=atob('I3JjODg1V2FybmluZ0RyYXdlciAucmM4ODUtZHJhd2VyewogIHdpZHRoOm1pbig1MjBweCxjYWxjKDEwMHZ3IC0gMThweCkpICFpbXBvcnRhbnQ7CiAgcGFkZGluZzoxNHB4ICFpbXBvcnRhbnQ7Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODUtZHJhd2VyLWhlYWR7CiAgbWFyZ2luLWJvdHRvbToxMHB4ICFpbXBvcnRhbnQ7Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktb3ZlcnZpZXd7CiAgZGlzcGxheTpncmlkOwogIGdyaWQtdGVtcGxhdGUtY29sdW1uczpyZXBlYXQoNCxtaW5tYXgoMCwxZnIpKTsKICBnYXA6N3B4OwogIG1hcmdpbjowIDAgMTBweDsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1vdmVydmlldy1jYXJkewogIGJvcmRlcjoxcHggc29saWQgI2RkZTdmMDsKICBiYWNrZ3JvdW5kOiNmOGZiZmQ7CiAgYm9yZGVyLXJhZGl1czoxMXB4OwogIHBhZGRpbmc6OHB4IDlweDsKICBtaW4td2lkdGg6MDsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1vdmVydmlldy1jYXJkW2RhdGEtYWN0aXZlPSIxIl17CiAgYmFja2dyb3VuZDojZmZmOwogIGJvcmRlci1jb2xvcjojYmRkMmU1Owp9CiNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg5LW92ZXJ2aWV3LWxhYmVsewogIGZvbnQtc2l6ZTo5cHg7CiAgbGluZS1oZWlnaHQ6MS4yOwogIHRleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTsKICBsZXR0ZXItc3BhY2luZzouMDVlbTsKICBjb2xvcjojNjE3NzhiOwogIGZvbnQtd2VpZ2h0Ojg1MDsKICB3aGl0ZS1zcGFjZTpub3dyYXA7CiAgb3ZlcmZsb3c6aGlkZGVuOwogIHRleHQtb3ZlcmZsb3c6ZWxsaXBzaXM7Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktb3ZlcnZpZXctdmFsdWV7CiAgbWFyZ2luLXRvcDozcHg7CiAgZm9udC1zaXplOjE4cHg7CiAgbGluZS1oZWlnaHQ6MTsKICBjb2xvcjojMTczMjRkOwogIGZvbnQtd2VpZ2h0OjkwMDsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1ncm91cHN7CiAgZGlzcGxheTpmbGV4OwogIGZsZXgtZGlyZWN0aW9uOmNvbHVtbjsKICBnYXA6OXB4OwogIG1heC1oZWlnaHQ6Y2FsYygxMDB2aCAtIDIxMHB4KTsKICBvdmVyZmxvdzphdXRvOwogIHBhZGRpbmctcmlnaHQ6MnB4Owp9CiNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg5LWdyb3VwewogIGJvcmRlcjoxcHggc29saWQgI2UwZThlZjsKICBib3JkZXItcmFkaXVzOjEycHg7CiAgYmFja2dyb3VuZDojZmZmOwogIG92ZXJmbG93OmhpZGRlbjsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1ncm91cC1oZWFkewogIGRpc3BsYXk6ZmxleDsKICBhbGlnbi1pdGVtczpjZW50ZXI7CiAganVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47CiAgZ2FwOjEwcHg7CiAgcGFkZGluZzo4cHggMTBweDsKICBiYWNrZ3JvdW5kOiNmOGZhZmM7CiAgYm9yZGVyLWJvdHRvbToxcHggc29saWQgI2U3ZWRmMzsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1ncm91cC10aXRsZXsKICBmb250LXNpemU6MTJweDsKICBjb2xvcjojMjAzOTRmOwogIGZvbnQtd2VpZ2h0OjkwMDsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1ncm91cC1jb3VudHsKICBkaXNwbGF5OmlubGluZS1mbGV4OwogIGFsaWduLWl0ZW1zOmNlbnRlcjsKICBqdXN0aWZ5LWNvbnRlbnQ6Y2VudGVyOwogIG1pbi13aWR0aDoyM3B4OwogIGhlaWdodDoyM3B4OwogIHBhZGRpbmc6MCA3cHg7CiAgYm9yZGVyLXJhZGl1czo5OTlweDsKICBiYWNrZ3JvdW5kOiNlOWYxZjg7CiAgY29sb3I6IzI0NDc2MTsKICBmb250LXNpemU6MTFweDsKICBmb250LXdlaWdodDo5MDA7Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktZ3JvdXBbZGF0YS1raW5kPSJvdmVyZHVlIl0gLnJjODg5LWdyb3VwLWNvdW50ewogIGJhY2tncm91bmQ6I2ZkZTdlNzsKICBjb2xvcjojYTgyNDI0Owp9CiNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg5LWdyb3VwW2RhdGEta2luZD0iZG9jdW1lbnRzIl0gLnJjODg5LWdyb3VwLWNvdW50ewogIGJhY2tncm91bmQ6I2ZmZjNkYzsKICBjb2xvcjojOGE1YTAwOwp9CiNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg5LWdyb3VwW2RhdGEta2luZD0icGlja3VwIl0gLnJjODg5LWdyb3VwLWNvdW50ewogIGJhY2tncm91bmQ6I2U3ZjdlZjsKICBjb2xvcjojMTc2YTQ5Owp9CiNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg5LWl0ZW1zewogIGRpc3BsYXk6ZmxleDsKICBmbGV4LWRpcmVjdGlvbjpjb2x1bW47Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktaXRlbXsKICBhcHBlYXJhbmNlOm5vbmU7CiAgYm9yZGVyOjA7CiAgYm9yZGVyLWJvdHRvbToxcHggc29saWQgI2VkZjJmNjsKICBiYWNrZ3JvdW5kOiNmZmY7CiAgcGFkZGluZzo5cHggMTBweDsKICB0ZXh0LWFsaWduOmxlZnQ7CiAgY3Vyc29yOnBvaW50ZXI7CiAgZGlzcGxheTpmbGV4OwogIGFsaWduLWl0ZW1zOmNlbnRlcjsKICBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsKICBnYXA6MTBweDsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1pdGVtOmxhc3QtY2hpbGR7CiAgYm9yZGVyLWJvdHRvbTowOwp9CiNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg5LWl0ZW06aG92ZXJ7CiAgYmFja2dyb3VuZDojZjdmYmZmOwp9CiNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg5LWl0ZW0tbWFpbnsKICBtaW4td2lkdGg6MDsKfQojcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1pdGVtLXRpdGxlewogIGRpc3BsYXk6YmxvY2s7CiAgY29sb3I6IzE3MzI0ZDsKICBmb250LXNpemU6MTFweDsKICBsaW5lLWhlaWdodDoxLjI1OwogIGZvbnQtd2VpZ2h0Ojg1MDsKICB3aGl0ZS1zcGFjZTpub3dyYXA7CiAgb3ZlcmZsb3c6aGlkZGVuOwogIHRleHQtb3ZlcmZsb3c6ZWxsaXBzaXM7Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktaXRlbS1zdWJ7CiAgZGlzcGxheTpibG9jazsKICBtYXJnaW4tdG9wOjJweDsKICBjb2xvcjojNmM4MDkxOwogIGZvbnQtc2l6ZTo5cHg7Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktaXRlbS1vcGVuewogIGNvbG9yOiMzMTcwYTg7CiAgZm9udC1zaXplOjEwcHg7CiAgZm9udC13ZWlnaHQ6ODAwOwogIGZsZXg6MCAwIGF1dG87Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktbW9yZXsKICB3aWR0aDoxMDAlOwogIGJvcmRlcjowOwogIGJvcmRlci10b3A6MXB4IHNvbGlkICNlZGYyZjY7CiAgYmFja2dyb3VuZDojZmJmZGZmOwogIHBhZGRpbmc6N3B4IDEwcHg7CiAgY29sb3I6IzQ3Njk4MTsKICBmb250LXNpemU6MTBweDsKICBmb250LXdlaWdodDo4MDA7CiAgY3Vyc29yOnBvaW50ZXI7Cn0KI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODktZW1wdHl7CiAgYm9yZGVyOjFweCBzb2xpZCAjZGNlOWUyOwogIGJhY2tncm91bmQ6I2YzZmJmNzsKICBjb2xvcjojMzI2NDRmOwogIGJvcmRlci1yYWRpdXM6MTJweDsKICBwYWRkaW5nOjE0cHg7CiAgZm9udC1zaXplOjExcHg7CiAgZm9udC13ZWlnaHQ6NzUwOwp9CkBtZWRpYSAobWF4LXdpZHRoOjUyMHB4KXsKICAjcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4OS1vdmVydmlld3sKICAgIGdyaWQtdGVtcGxhdGUtY29sdW1uczpyZXBlYXQoMixtaW5tYXgoMCwxZnIpKTsKICB9Cn0=');
+  (document.head||document.documentElement).appendChild(s);
 })();
 
 function avisHost(view){view=view||visibleShipmentView();var host=null;if(view==='shipmentview'){host=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||document.querySelector('#content.rc776-shipment-view .rc844-avis-host');if(!host){var page=document.querySelector('#content.rc776-shipment-view .rc776-page');if(page){host=document.createElement('div');host.id='rc845AvisReadHost';host.className='rc844-avis-host';host.setAttribute('data-rc845-avis-host','readonly');var grids=page.querySelectorAll(':scope > .rc776-grid');if(grids.length&&grids[0].nextSibling)page.insertBefore(host,grids[0].nextSibling);else page.appendChild(host)}}return host||null}if(view==='shipment'){host=document.getElementById('rc845AvisEditHost');if(!host){var body=document.querySelector('#rc363BlockShipment .rc363-process-body')||document.getElementById('rc363BlockShipment')||document.getElementById('rc573ShipmentShell');if(body){host=document.createElement('div');host.id='rc845AvisEditHost';host.className='rc845-avis-host';host.setAttribute('data-rc845-avis-host','edit');body.appendChild(host)}}return host||null}return null}
