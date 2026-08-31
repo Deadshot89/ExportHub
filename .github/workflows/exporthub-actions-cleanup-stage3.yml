@@ -1,0 +1,280 @@
+name: ExportHUB Actions Cleanup Stage 3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: exporthub-actions-cleanup-stage-3
+  cancel-in-progress: false
+
+jobs:
+  cleanup-actions:
+    name: Purge old workflow history
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Inventory all workflow runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="$GITHUB_REPOSITORY"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$REPO/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | [.id,.workflow_id,.name,(.conclusion // ""),.created_at] | @tsv' \
+            > /tmp/all-runs.tsv
+
+          TOTAL="$(wc -l < /tmp/all-runs.tsv | tr -d ' ')"
+          echo "Gefundene Workflow-Runs: $TOTAL"
+
+          if [[ "$TOTAL" -lt 100 ]]; then
+            echo "::warning::Es wurden weniger als 100 Runs gefunden. Cleanup läuft trotzdem, aber die erwarteten ~1595 Runs sind möglicherweise bereits teilweise gelöscht."
+          fi
+
+      - name: Select the runs and workflows to preserve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="$GITHUB_REPOSITORY"
+          CURRENT_RUN="$GITHUB_RUN_ID"
+          CURRENT_WORKFLOW_ID="$(
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/$REPO/actions/runs/$CURRENT_RUN" \
+              --jq '.workflow_id'
+          )"
+
+          : > /tmp/keep-runs.txt
+          : > /tmp/keep-workflows.txt
+          echo "$CURRENT_RUN" >> /tmp/keep-runs.txt
+          echo "$CURRENT_WORKFLOW_ID" >> /tmp/keep-workflows.txt
+
+          choose_latest() {
+            local mode="$1"
+            local pattern="$2"
+            local line=""
+
+            if [[ "$mode" == "exact" ]]; then
+              line="$(
+                awk -F '\t' -v p="$pattern" \
+                  '$3==p && $4=="success" {print; exit}' \
+                  /tmp/all-runs.tsv
+              )"
+              if [[ -z "$line" ]]; then
+                line="$(
+                  awk -F '\t' -v p="$pattern" \
+                    '$3==p {print; exit}' \
+                    /tmp/all-runs.tsv
+                )"
+              fi
+            else
+              line="$(
+                awk -F '\t' -v p="$pattern" \
+                  'index($3,p)==1 && $4=="success" {print; exit}' \
+                  /tmp/all-runs.tsv
+              )"
+              if [[ -z "$line" ]]; then
+                line="$(
+                  awk -F '\t' -v p="$pattern" \
+                    'index($3,p)==1 {print; exit}' \
+                    /tmp/all-runs.tsv
+                )"
+              fi
+            fi
+
+            if [[ -n "$line" ]]; then
+              local run_id workflow_id name conclusion created
+              IFS=$'\t' read -r run_id workflow_id name conclusion created <<< "$line"
+              echo "$run_id" >> /tmp/keep-runs.txt
+              echo "$workflow_id" >> /tmp/keep-workflows.txt
+              echo "BEHALTEN: $name | run=$run_id | workflow=$workflow_id | ${conclusion:-kein-status}"
+            else
+              echo "HINWEIS: Kein Run gefunden für '$pattern'."
+            fi
+          }
+
+          choose_latest exact "ExportHUB PRODUCTION Deploy"
+          choose_latest exact "ExportHUB TESTSERVICE Deploy"
+          choose_latest exact "Build ExportHUB Android Test APK"
+          choose_latest prefix "RC888"
+
+          sort -u /tmp/keep-runs.txt -o /tmp/keep-runs.txt
+          sort -u /tmp/keep-workflows.txt -o /tmp/keep-workflows.txt
+
+          echo
+          echo "Run-IDs, die erhalten bleiben:"
+          cat /tmp/keep-runs.txt
+
+          echo
+          echo "Workflow-IDs, die aktiv bleiben:"
+          cat /tmp/keep-workflows.txt
+
+      - name: RED audit old history
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          awk -F '\t' '{print $1}' /tmp/all-runs.tsv | sort -u > /tmp/all-run-ids.txt
+          grep -vxFf /tmp/keep-runs.txt /tmp/all-run-ids.txt > /tmp/delete-runs.txt || true
+
+          DELETE_COUNT="$(wc -l < /tmp/delete-runs.txt | tr -d ' ')"
+          KEEP_COUNT="$(wc -l < /tmp/keep-runs.txt | tr -d ' ')"
+
+          echo "Zu löschende alte Runs: $DELETE_COUNT"
+          echo "Zu behaltende Runs: $KEEP_COUNT"
+
+          if [[ "$DELETE_COUNT" -eq 0 ]]; then
+            echo "::error::Keine alten Workflow-Runs mehr vorhanden. Stage 3 ist vermutlich bereits durchgeführt."
+            exit 1
+          fi
+
+      - name: Delete obsolete workflow runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="$GITHUB_REPOSITORY"
+          export GH_TOKEN REPO
+
+          DELETE_COUNT="$(wc -l < /tmp/delete-runs.txt | tr -d ' ')"
+          echo "Lösche $DELETE_COUNT alte Workflow-Runs..."
+
+          # Parallel, but kept conservative to stay well below API rate limits.
+          xargs -r -n 1 -P 6 bash -c '
+            id="$1"
+            if gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              "repos/$REPO/actions/runs/$id" >/dev/null 2>&1
+            then
+              echo "gelöscht: $id"
+            else
+              echo "FEHLER beim Löschen: $id" >&2
+              exit 1
+            fi
+          ' _ < /tmp/delete-runs.txt
+
+      - name: Disable obsolete workflow definitions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="$GITHUB_REPOSITORY"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$REPO/actions/workflows?per_page=100" \
+            --jq '.workflows[] | [.id,.name,.path,.state] | @tsv' \
+            > /tmp/all-workflows.tsv
+
+          : > /tmp/workflows-to-delete-manually.tsv
+
+          while IFS=$'\t' read -r workflow_id name path state; do
+            if grep -qxF "$workflow_id" /tmp/keep-workflows.txt; then
+              echo "AKTIV BEHALTEN: $name | $path"
+              continue
+            fi
+
+            echo -e "$workflow_id\t$name\t$path\t$state" >> /tmp/workflows-to-delete-manually.tsv
+
+            if [[ "$state" == "active" ]]; then
+              if gh api \
+                --method PUT \
+                -H "Accept: application/vnd.github+json" \
+                "repos/$REPO/actions/workflows/$workflow_id/disable" >/dev/null
+              then
+                echo "DEAKTIVIERT: $name | $path"
+              else
+                echo "::warning::Workflow konnte nicht deaktiviert werden: $name | $path"
+              fi
+            else
+              echo "BEREITS INAKTIV: $name | $path"
+            fi
+          done < /tmp/all-workflows.tsv
+
+      - name: GREEN verify Actions history cleanup
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="$GITHUB_REPOSITORY"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/$REPO/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | [.id,.name,.conclusion,.created_at] | @tsv' \
+            > /tmp/runs-after.tsv
+
+          REMAINING="$(wc -l < /tmp/runs-after.tsv | tr -d ' ')"
+
+          echo "Verbleibende Workflow-Runs: $REMAINING"
+          cat /tmp/runs-after.tsv
+
+          # Current cleanup run + up to four intentionally preserved runs.
+          if [[ "$REMAINING" -gt 5 ]]; then
+            echo "::error::Nach dem Cleanup sind noch mehr als 5 Workflow-Runs vorhanden."
+            exit 1
+          fi
+
+          while IFS= read -r keep_id; do
+            if [[ "$keep_id" == "$GITHUB_RUN_ID" ]]; then
+              continue
+            fi
+            if ! awk -F '\t' -v id="$keep_id" '$1==id {found=1} END{exit !found}' /tmp/runs-after.tsv; then
+              echo "::error::Ein bewusst erhaltener Workflow-Run fehlt nach dem Cleanup: $keep_id"
+              exit 1
+            fi
+          done < /tmp/keep-runs.txt
+
+          echo "GREEN: Alte Action-Laufhistorie wurde entfernt."
+
+      - name: Publish exact workflow files still needing manual deletion
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## ExportHUB Actions Cleanup Stage 3"
+            echo
+            echo "### Workflow-Runs"
+            if [[ -f /tmp/runs-after.tsv ]]; then
+              echo "Verbleibend: $(wc -l < /tmp/runs-after.tsv | tr -d ' ')"
+            fi
+            echo
+            echo "### Alte Workflow-Dateien"
+            echo "GitHub Actions kann seine eigenen Dateien unter .github/workflows nicht mit dem normalen GITHUB_TOKEN löschen."
+            echo "Die folgenden Dateien sind nach diesem Lauf deaktiviert und können anschließend im GitHub-Codebereich gelöscht werden:"
+            echo
+            if [[ -s /tmp/workflows-to-delete-manually.tsv ]]; then
+              while IFS=$'\t' read -r id name path state; do
+                echo "- \`$path\` — $name"
+              done < /tmp/workflows-to-delete-manually.tsv
+            else
+              echo "- Keine"
+            fi
+            echo
+            echo "Aktiv bleiben nur die Workflow-Definitionen, die zu Produktion, aktuellem TESTSERVICE, Android, RC888 und diesem Cleanup gehören."
+          } >> "$GITHUB_STEP_SUMMARY"
