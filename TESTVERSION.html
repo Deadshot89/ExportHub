@@ -290,11 +290,11 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC884',cache:'884',loginReturn:'/TESTVERSION.html?v=884'});
+var BUILD=Object.freeze({version:'RC885',cache:'885',loginReturn:'/TESTVERSION.html?v=885'});
 var RELEASE=Object.freeze({
- version:'RC884',
- date:'30.08.2026',
- title:'Navigation, Suche und Sendung erstellen bereinigt',
+ version:'RC885',
+ date:'31.08.2026',
+ title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
     "RC884 gibt die Sendungsansicht bei echter Navigation zuverlässig frei; Aufgaben, Dashboard, Kunden und andere Bereiche bleiben nach dem Anklicken geöffnet.",
     "RC884 hält die bestehende Sendungssuche aktiv und verhindert, dass der Sendungsansicht-Guard die Suche verdrängt.",
@@ -1687,6 +1687,497 @@ function viewState(){try{return q((roots()[0]||{}).view||document.body.getAttrib
 function nodeVisible(el){if(!el||!el.isConnected)return false;try{var cs=getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return false;var r=el.getBoundingClientRect();return !!(r.width||r.height||el.getClientRects().length)}catch(_){return true}}
 function visibleShipmentView(){var content=document.getElementById('content'),rendered=q(content&&content.getAttribute('data-exporthub-rendered-view')).toLowerCase(),readHost=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost'),editBlock=document.getElementById('rc363BlockShipment'),editHost=document.getElementById('rc845AvisEditHost');if(rendered==='shipmentview'||(content&&content.classList.contains('rc776-shipment-view')))return'shipmentview';if(rendered==='shipment')return'shipment';if(nodeVisible(editBlock)||nodeVisible(editHost))return'shipment';if(nodeVisible(readHost))return'shipmentview';var v=viewState();return v==='shipmentview'||v==='shipment'?v:''}
 function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':'AKTIV'):(en?'OFF':'AUS')}
+/* exporthub-rc885-clean-workspace-v4 */
+(function(){
+  'use strict';
+  if(!document.getElementById('exporthub-rc885-clean-workspace-style')){
+    var style=document.createElement('style');
+    style.id='exporthub-rc885-clean-workspace-style';
+    style.textContent=atob('I3JjODg1V29ya3NwYWNlewogICAgbWFyZ2luOjAgMCAxOHB4OwogICAgYm9yZGVyOjFweCBzb2xpZCAjZDllNGVlOwogICAgYm9yZGVyLXJhZGl1czoxOHB4OwogICAgYmFja2dyb3VuZDojZmZmOwogICAgYm94LXNoYWRvdzowIDhweCAyOHB4IHJnYmEoMTUsMjMsNDIsLjA2KTsKICAgIG92ZXJmbG93OmhpZGRlbjsKICB9CiAgI3JjODg1V29ya3NwYWNlIC5yYzg4NS1oZWFkewogICAgZGlzcGxheTpmbGV4OwogICAgYWxpZ24taXRlbXM6Y2VudGVyOwogICAganVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47CiAgICBnYXA6MTZweDsKICAgIHBhZGRpbmc6MThweCAyMHB4IDE0cHg7CiAgICBib3JkZXItYm90dG9tOjFweCBzb2xpZCAjZThlZWY0OwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LWtpY2tlcnsKICAgIGZvbnQtc2l6ZToxMXB4OwogICAgZm9udC13ZWlnaHQ6ODAwOwogICAgbGV0dGVyLXNwYWNpbmc6LjA4ZW07CiAgICB0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2U7CiAgICBjb2xvcjojMjU2M2ViOwogICAgbWFyZ2luLWJvdHRvbTozcHg7CiAgfQogICNyYzg4NVdvcmtzcGFjZSBoMnsKICAgIG1hcmdpbjowOwogICAgZm9udC1zaXplOjIycHg7CiAgICBsaW5lLWhlaWdodDoxLjI7CiAgICBjb2xvcjojMTAyYTQzOwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LXN1YnsKICAgIG1hcmdpbi10b3A6NHB4OwogICAgZm9udC1zaXplOjEzcHg7CiAgICBjb2xvcjojNjQ3NDhiOwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LWZvY3VzewogICAgZGlzcGxheTpmbGV4OwogICAgZmxleC13cmFwOndyYXA7CiAgICBnYXA6OHB4OwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LWZvY3VzIGJ1dHRvbnsKICAgIGJvcmRlcjoxcHggc29saWQgI2NiZDllNzsKICAgIGJhY2tncm91bmQ6I2Y4ZmJmZTsKICAgIGNvbG9yOiMzMzQxNTU7CiAgICBib3JkZXItcmFkaXVzOjk5OXB4OwogICAgcGFkZGluZzo4cHggMTNweDsKICAgIGZvbnQtd2VpZ2h0Ojc1MDsKICAgIGN1cnNvcjpwb2ludGVyOwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LWZvY3VzIGJ1dHRvblthcmlhLXByZXNzZWQ9InRydWUiXXsKICAgIGJvcmRlci1jb2xvcjojMjU2M2ViOwogICAgYmFja2dyb3VuZDojZWFmMmZmOwogICAgY29sb3I6IzFkNGVkODsKICAgIGJveC1zaGFkb3c6MCAwIDAgMnB4IHJnYmEoMzcsOTksMjM1LC4wOCk7CiAgfQogICNyYzg4NVdvcmtzcGFjZSAucmM4ODUtZ3JpZHsKICAgIGRpc3BsYXk6Z3JpZDsKICAgIGdyaWQtdGVtcGxhdGUtY29sdW1uczptaW5tYXgoMCwxZnIpIG1pbm1heCgwLDFmcik7CiAgICBnYXA6MTRweDsKICAgIHBhZGRpbmc6MTZweCAyMHB4IDIwcHg7CiAgfQogICNyYzg4NVdvcmtzcGFjZSAucmM4ODUtcGFuZWx7CiAgICBib3JkZXI6MXB4IHNvbGlkICNlMmU4ZjA7CiAgICBib3JkZXItcmFkaXVzOjE1cHg7CiAgICBiYWNrZ3JvdW5kOiNmYmZkZmY7CiAgICBwYWRkaW5nOjE1cHg7CiAgICBtaW4taGVpZ2h0OjE2NHB4OwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LXBhbmVsLWhlYWR7CiAgICBkaXNwbGF5OmZsZXg7CiAgICBhbGlnbi1pdGVtczpjZW50ZXI7CiAgICBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsKICAgIGdhcDoxMHB4OwogICAgbWFyZ2luLWJvdHRvbToxMnB4OwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LXBhbmVsLXRpdGxlewogICAgZGlzcGxheTpmbGV4OwogICAgYWxpZ24taXRlbXM6Y2VudGVyOwogICAgZ2FwOjlweDsKICAgIGZvbnQtc2l6ZToxNnB4OwogICAgZm9udC13ZWlnaHQ6ODUwOwogICAgY29sb3I6IzE3MzI0ZDsKICB9CiAgI3JjODg1V29ya3NwYWNlIC5yYzg4NS1iYWRnZXsKICAgIGRpc3BsYXk6aW5saW5lLWZsZXg7CiAgICBtaW4td2lkdGg6MjdweDsKICAgIGhlaWdodDoyN3B4OwogICAgYWxpZ24taXRlbXM6Y2VudGVyOwogICAganVzdGlmeS1jb250ZW50OmNlbnRlcjsKICAgIHBhZGRpbmc6MCA3cHg7CiAgICBib3JkZXItcmFkaXVzOjk5OXB4OwogICAgYmFja2dyb3VuZDojZTlmMmZmOwogICAgY29sb3I6IzFkNGVkODsKICAgIGZvbnQtc2l6ZToxMnB4OwogICAgZm9udC13ZWlnaHQ6ODUwOwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LW9wZW57CiAgICBib3JkZXI6MXB4IHNvbGlkICNiZGQzZTc7CiAgICBib3JkZXItcmFkaXVzOjEwcHg7CiAgICBiYWNrZ3JvdW5kOiNmZmY7CiAgICBwYWRkaW5nOjdweCAxMXB4OwogICAgZm9udC13ZWlnaHQ6NzUwOwogICAgY29sb3I6IzFmNGY3NTsKICAgIGN1cnNvcjpwb2ludGVyOwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LWxpc3R7CiAgICBkaXNwbGF5OmdyaWQ7CiAgICBnYXA6OHB4OwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LXJvd3sKICAgIGRpc3BsYXk6ZmxleDsKICAgIGdhcDoxMHB4OwogICAgYWxpZ24taXRlbXM6ZmxleC1zdGFydDsKICAgIGp1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuOwogICAgcGFkZGluZzoxMHB4IDExcHg7CiAgICBib3JkZXI6MXB4IHNvbGlkICNlNWViZjE7CiAgICBib3JkZXItcmFkaXVzOjExcHg7CiAgICBiYWNrZ3JvdW5kOiNmZmY7CiAgfQogICNyYzg4NVdvcmtzcGFjZSAucmM4ODUtcm93LW1haW57CiAgICBtaW4td2lkdGg6MDsKICB9CiAgI3JjODg1V29ya3NwYWNlIC5yYzg4NS1yb3ctdGl0bGV7CiAgICBmb250LXdlaWdodDo3ODA7CiAgICBjb2xvcjojMWUyOTNiOwogICAgd2hpdGUtc3BhY2U6bm93cmFwOwogICAgb3ZlcmZsb3c6aGlkZGVuOwogICAgdGV4dC1vdmVyZmxvdzplbGxpcHNpczsKICB9CiAgI3JjODg1V29ya3NwYWNlIC5yYzg4NS1yb3ctc3ViewogICAgbWFyZ2luLXRvcDozcHg7CiAgICBmb250LXNpemU6MTJweDsKICAgIGNvbG9yOiM2NDc0OGI7CiAgfQogICNyYzg4NVdvcmtzcGFjZSAucmM4ODUtcHJpb3sKICAgIGZsZXg6MCAwIGF1dG87CiAgICBib3JkZXItcmFkaXVzOjk5OXB4OwogICAgcGFkZGluZzo0cHggOHB4OwogICAgZm9udC1zaXplOjExcHg7CiAgICBmb250LXdlaWdodDo4NTA7CiAgICBiYWNrZ3JvdW5kOiNmZmYxZjI7CiAgICBjb2xvcjojYmUxMjNjOwogIH0KICAjcmM4ODVXb3Jrc3BhY2UgLnJjODg1LWVtcHR5ewogICAgcGFkZGluZzoxNnB4IDEwcHg7CiAgICBjb2xvcjojNjQ3NDhiOwogICAgZm9udC1zaXplOjEzcHg7CiAgfQoKICAjcmM4ODVXYXJuaW5nQnV0dG9uewogICAgcG9zaXRpb246Zml4ZWQ7CiAgICB0b3A6MTRweDsKICAgIHJpZ2h0OjE4cHg7CiAgICB6LWluZGV4OjE5MDA7CiAgICBkaXNwbGF5OmZsZXg7CiAgICBhbGlnbi1pdGVtczpjZW50ZXI7CiAgICBnYXA6OHB4OwogICAgYm9yZGVyOjFweCBzb2xpZCAjYzdkOGU3OwogICAgYm9yZGVyLXJhZGl1czoxMnB4OwogICAgYmFja2dyb3VuZDojZmZmOwogICAgYm94LXNoYWRvdzowIDhweCAyMnB4IHJnYmEoMTUsMjMsNDIsLjEyKTsKICAgIHBhZGRpbmc6OHB4IDExcHg7CiAgICBjb2xvcjojMTczMjRkOwogICAgZm9udC13ZWlnaHQ6ODAwOwogICAgY3Vyc29yOnBvaW50ZXI7CiAgfQogICNyYzg4NVdhcm5pbmdCdXR0b24gLnJjODg1LXdhcm5pbmctY291bnR7CiAgICBtaW4td2lkdGg6MjRweDsKICAgIGhlaWdodDoyNHB4OwogICAgYm9yZGVyLXJhZGl1czo5OTlweDsKICAgIGRpc3BsYXk6aW5saW5lLWZsZXg7CiAgICBhbGlnbi1pdGVtczpjZW50ZXI7CiAgICBqdXN0aWZ5LWNvbnRlbnQ6Y2VudGVyOwogICAgcGFkZGluZzowIDZweDsKICAgIGJhY2tncm91bmQ6I2RjMjYyNjsKICAgIGNvbG9yOiNmZmY7CiAgICBmb250LXNpemU6MTFweDsKICB9CgogICNyYzg4NVdhcm5pbmdEcmF3ZXJ7CiAgICBwb3NpdGlvbjpmaXhlZDsKICAgIGluc2V0OjA7CiAgICB6LWluZGV4OjI1MDA7CiAgICBkaXNwbGF5Om5vbmU7CiAgICBiYWNrZ3JvdW5kOnJnYmEoMTUsMjMsNDIsLjI4KTsKICB9CiAgI3JjODg1V2FybmluZ0RyYXdlcltkYXRhLW9wZW49IjEiXXtkaXNwbGF5OmJsb2NrfQogICNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg1LWRyYXdlcnsKICAgIHBvc2l0aW9uOmFic29sdXRlOwogICAgcmlnaHQ6MDsKICAgIHRvcDowOwogICAgYm90dG9tOjA7CiAgICB3aWR0aDptaW4oNDMwcHgsOTR2dyk7CiAgICBiYWNrZ3JvdW5kOiNmZmY7CiAgICBib3gtc2hhZG93Oi0xNHB4IDAgMzhweCByZ2JhKDE1LDIzLDQyLC4xOCk7CiAgICBkaXNwbGF5OmZsZXg7CiAgICBmbGV4LWRpcmVjdGlvbjpjb2x1bW47CiAgfQogICNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg1LWRyYXdlci1oZWFkewogICAgcGFkZGluZzoxOHB4OwogICAgYm9yZGVyLWJvdHRvbToxcHggc29saWQgI2U1ZWJmMTsKICAgIGRpc3BsYXk6ZmxleDsKICAgIGp1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuOwogICAgZ2FwOjE0cHg7CiAgICBhbGlnbi1pdGVtczpjZW50ZXI7CiAgfQogICNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg1LWRyYXdlci10aXRsZXsKICAgIGZvbnQtc2l6ZToyMHB4OwogICAgZm9udC13ZWlnaHQ6OTAwOwogICAgY29sb3I6IzEyMjYzYTsKICB9CiAgI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODUtY2xvc2V7CiAgICBib3JkZXI6MXB4IHNvbGlkICNjYmQ5ZTc7CiAgICBiYWNrZ3JvdW5kOiNmZmY7CiAgICBib3JkZXItcmFkaXVzOjEwcHg7CiAgICBwYWRkaW5nOjdweCAxMHB4OwogICAgZm9udC13ZWlnaHQ6NzUwOwogICAgY3Vyc29yOnBvaW50ZXI7CiAgfQogICNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg1LXN1bW1hcnl7CiAgICBkaXNwbGF5OmdyaWQ7CiAgICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyIDFmcjsKICAgIGdhcDo5cHg7CiAgICBwYWRkaW5nOjE0cHggMThweDsKICAgIGJvcmRlci1ib3R0b206MXB4IHNvbGlkICNlZWYyZjY7CiAgfQogICNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg1LXN1bW1hcnktY2FyZHsKICAgIGJvcmRlcjoxcHggc29saWQgI2UzZTllZjsKICAgIGJvcmRlci1yYWRpdXM6MTJweDsKICAgIHBhZGRpbmc6MTBweDsKICAgIGJhY2tncm91bmQ6I2Y4ZmFmYzsKICB9CiAgI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODUtc3VtbWFyeS1sYWJlbHsKICAgIGZvbnQtc2l6ZToxMXB4OwogICAgY29sb3I6IzY0NzQ4YjsKICAgIGZvbnQtd2VpZ2h0Ojc1MDsKICB9CiAgI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODUtc3VtbWFyeS12YWx1ZXsKICAgIG1hcmdpbi10b3A6M3B4OwogICAgZm9udC1zaXplOjIycHg7CiAgICBmb250LXdlaWdodDo5MDA7CiAgICBjb2xvcjojMTczMjRkOwogIH0KICAjcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4NS13YXJuaW5nLWxpc3R7CiAgICBwYWRkaW5nOjEycHggMThweCAyMnB4OwogICAgb3ZlcmZsb3c6YXV0bzsKICAgIGRpc3BsYXk6Z3JpZDsKICAgIGdhcDo4cHg7CiAgfQogICNyYzg4NVdhcm5pbmdEcmF3ZXIgLnJjODg1LXdhcm5pbmctaXRlbXsKICAgIGJvcmRlcjoxcHggc29saWQgI2U1ZWJmMTsKICAgIGJvcmRlci1yYWRpdXM6MTJweDsKICAgIHBhZGRpbmc6MTFweDsKICAgIGJhY2tncm91bmQ6I2ZmZjsKICB9CiAgI3JjODg1V2FybmluZ0RyYXdlciAucmM4ODUtd2FybmluZy1pdGVtIHN0cm9uZ3sKICAgIGRpc3BsYXk6YmxvY2s7CiAgICBjb2xvcjojMWUyOTNiOwogIH0KICAjcmM4ODVXYXJuaW5nRHJhd2VyIC5yYzg4NS13YXJuaW5nLWl0ZW0gc3BhbnsKICAgIGRpc3BsYXk6YmxvY2s7CiAgICBjb2xvcjojNjQ3NDhiOwogICAgZm9udC1zaXplOjEycHg7CiAgICBtYXJnaW4tdG9wOjNweDsKICB9CgogIEBtZWRpYSAobWF4LXdpZHRoOjkwMHB4KXsKICAgICNyYzg4NVdvcmtzcGFjZSAucmM4ODUtZ3JpZHtncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyfQogICAgI3JjODg1V29ya3NwYWNlIC5yYzg4NS1oZWFke2FsaWduLWl0ZW1zOmZsZXgtc3RhcnQ7ZmxleC1kaXJlY3Rpb246Y29sdW1ufQogICAgI3JjODg1V2FybmluZ0J1dHRvbnt0b3A6MTBweDtyaWdodDoxMHB4fQogIH0=');
+    (document.head||document.documentElement).appendChild(style);
+  }
+})();
+(function(){
+  'use strict';
+
+  if(window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__) return;
+  window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;
+
+  var focus = 'all';
+  var scheduled = 0;
+
+  function q(v){return String(v==null?'':v).trim()}
+  function low(v){return q(v).toLowerCase()}
+  function arr(v){return Array.isArray(v)?v:[]}
+  function esc(v){
+    return q(v).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+    })
+  }
+
+  function getState(){
+    try{
+      if(typeof window.state==='function'){
+        var s=window.state();
+        if(s&&typeof s==='object') return s
+      }
+    }catch(_){}
+    try{
+      if(window.STATE&&typeof window.STATE==='object') return window.STATE
+    }catch(_){}
+    return {}
+  }
+
+  function firstArray(candidates){
+    for(var i=0;i<candidates.length;i++){
+      if(Array.isArray(candidates[i])) return candidates[i]
+    }
+    return []
+  }
+
+  function shipments(){
+    var s=getState();
+    return firstArray([
+      s.shipments,
+      s.savedShipments,
+      s.shipmentList,
+      s.saved,
+      window.SHIPMENTS,
+      window.shipments
+    ])
+  }
+
+  function tasks(){
+    var s=getState();
+    return firstArray([
+      s.tasks,
+      s.taskList,
+      s.todos,
+      window.TASKS,
+      window.tasks
+    ])
+  }
+
+  function currentView(){
+    var s=getState();
+    return low(
+      s.view ||
+      document.body.getAttribute('data-exporthub-view') ||
+      document.body.getAttribute('data-current-view')
+    )
+  }
+
+  function isDashboard(){
+    var v=currentView();
+    if(v==='dashboard'||v==='home'||v==='start') return true;
+    var h=document.querySelector('main h1,main h2,#content h1,#content h2,.content h1,.content h2');
+    return !!(h && /dashboard|startseite|übersicht/i.test(q(h.textContent)))
+  }
+
+  function mainHost(){
+    return document.querySelector(
+      '#dashboardView,#dashboard,#mainContent,#content,main,.main-content,.content'
+    )
+  }
+
+  function routeTo(view){
+    try{
+      if(typeof window.route==='function'){
+        window.route(view,'rc885-workspace');
+        return true
+      }
+    }catch(_){}
+
+    var labels={
+      tasks:/^(meine\s+)?aufgaben$/i,
+      shipmentoverview:/sendungsübersicht|meine sendungen|sendungen/i
+    };
+    var rx=labels[view];
+    if(!rx) return false;
+
+    var nodes=Array.prototype.slice.call(
+      document.querySelectorAll('button,a,[role="button"]')
+    );
+    for(var i=0;i<nodes.length;i++){
+      if(rx.test(q(nodes[i].textContent))){
+        try{nodes[i].click();return true}catch(_){}
+      }
+    }
+    return false
+  }
+
+  function dateValue(obj){
+    var keys=['dueDate','due','date','plannedPickupDate','pickupDate','plannedDate','createdAt'];
+    for(var i=0;i<keys.length;i++){
+      var v=obj&&obj[keys[i]];
+      if(!v) continue;
+      var d=new Date(v);
+      if(!isNaN(d.getTime())) return d
+    }
+    return null
+  }
+
+  function dayKey(d){
+    if(!d) return '';
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+  }
+
+  function todayKey(){
+    return dayKey(new Date())
+  }
+
+  function isDone(v){
+    var s=low(
+      (v&&v.status) ||
+      (v&&v.state) ||
+      (v&&v.taskStatus)
+    );
+    return !!(
+      (v&&v.completed===true) ||
+      (v&&v.done===true) ||
+      /erledigt|abgeschlossen|archiviert|storniert|completed|done/.test(s)
+    )
+  }
+
+  function itemTitle(v,fallback){
+    return q(
+      v && (
+        v.title ||
+        v.name ||
+        v.subject ||
+        v.reference ||
+        v.ref ||
+        v.shipmentRef ||
+        v.customerName ||
+        v.customer
+      )
+    ) || fallback
+  }
+
+  function customer(v){
+    return q(v&&(v.customerName||v.customer||v.customerNo||v.customerNumber))
+  }
+
+  function status(v){
+    return q(v&&(v.status||v.state||v.taskStatus))
+  }
+
+  function taskOpenList(){
+    return tasks().filter(function(t){return t && !isDone(t)})
+  }
+
+  function shipmentOpenList(){
+    return shipments().filter(function(s){return s && !isDone(s)})
+  }
+
+  function dueTask(t){
+    var d=dateValue(t);
+    if(!d) return false;
+    return dayKey(d)<=todayKey()
+  }
+
+  function shipmentNeedsDocuments(s){
+    var st=low(status(s));
+    if(/wartet auf abd|abd/.test(st)) return true;
+    var docs=s&&(s.documents||s.docs||s.files);
+    if(Array.isArray(docs)){
+      var names=docs.map(function(d){return low(d&& (d.name||d.fileName||d.type||d))}).join(' ');
+      if(names && !/lieferschein|delivery/.test(names)) return true
+    }
+    return false
+  }
+
+  function shipmentNeedsPickup(s){
+    var st=low(status(s));
+    return /bereit.*abholung|erstellt|wartet auf abd/.test(st)
+  }
+
+  function shipmentNeedsPod(s){
+    var st=low(status(s));
+    return /abgeholt/.test(st) && !/pod vorhanden/.test(st)
+  }
+
+  function taskRows(){
+    var list=taskOpenList();
+
+    if(focus==='due') list=list.filter(dueTask);
+    if(focus==='documents') list=list.filter(function(t){
+      return /abd|dokument|lieferschein|cmr|pod/i.test(itemTitle(t,'')+' '+status(t))
+    });
+    if(focus==='pickup') list=list.filter(function(t){
+      return /abhol|pickup/i.test(itemTitle(t,'')+' '+status(t))
+    });
+
+    return list.slice(0,5)
+  }
+
+  function shipmentRows(){
+    var list=shipmentOpenList();
+
+    if(focus==='due') list=list.filter(function(s){
+      var d=dateValue(s);
+      return d && dayKey(d)<=todayKey()
+    });
+    if(focus==='documents') list=list.filter(shipmentNeedsDocuments);
+    if(focus==='pickup') list=list.filter(shipmentNeedsPickup);
+
+    return list.slice(0,5)
+  }
+
+  function rowHtml(v,type){
+    var title=itemTitle(v,type==='task'?'Aufgabe':'Sendung');
+    var c=customer(v);
+    var st=status(v);
+    var d=dateValue(v);
+    var sub=[c,st,d?d.toLocaleDateString('de-DE'):''].filter(Boolean).join(' · ');
+    var urgent=(type==='task'&&dueTask(v))||(type==='shipment'&&d&&dayKey(d)<todayKey());
+    return '<div class="rc885-row">'+
+      '<div class="rc885-row-main">'+
+        '<div class="rc885-row-title">'+esc(title)+'</div>'+
+        '<div class="rc885-row-sub">'+esc(sub||'Offen')+'</div>'+
+      '</div>'+
+      (urgent?'<span class="rc885-prio">Fällig</span>':'')+
+    '</div>'
+  }
+
+  function panelHtml(type){
+    var isTask=type==='task';
+    var rows=isTask?taskRows():shipmentRows();
+    var total=isTask?taskOpenList().length:shipmentOpenList().length;
+    var view=isTask?'tasks':'shipmentoverview';
+    var title=isTask?'Meine Aufgaben':'Meine Sendungen';
+
+    return '<section class="rc885-panel">'+
+      '<div class="rc885-panel-head">'+
+        '<div class="rc885-panel-title">'+
+          '<span>'+esc(title)+'</span>'+
+          '<span class="rc885-badge">'+total+'</span>'+
+        '</div>'+
+        '<button type="button" class="rc885-open" data-rc885-route="'+view+'">Öffnen</button>'+
+      '</div>'+
+      '<div class="rc885-list">'+
+        (rows.length?rows.map(function(v){return rowHtml(v,type)}).join(''):
+        '<div class="rc885-empty">'+
+          (isTask?'Keine passenden offenen Aufgaben.':'Keine passenden offenen Sendungen.')+
+        '</div>')+
+      '</div>'+
+    '</section>'
+  }
+
+  function workspaceHtml(){
+    var labels=[
+      ['all','Alles'],
+      ['due','Fällig'],
+      ['documents','Dokumente'],
+      ['pickup','Abholung']
+    ];
+    return '<section id="rc885Workspace">'+
+      '<div class="rc885-head">'+
+        '<div>'+
+          '<div class="rc885-kicker">Persönlicher Arbeitsplatz</div>'+
+          '<h2>Mein Arbeitsfokus</h2>'+
+          '<div class="rc885-sub">Aufgaben und Sendungen werden bewusst getrennt angezeigt.</div>'+
+        '</div>'+
+        '<div class="rc885-focus" aria-label="Arbeitsfokus">'+
+          labels.map(function(x){
+            return '<button type="button" data-rc885-focus="'+x[0]+'" aria-pressed="'+(focus===x[0]?'true':'false')+'">'+x[1]+'</button>'
+          }).join('')+
+        '</div>'+
+      '</div>'+
+      '<div class="rc885-grid">'+panelHtml('task')+panelHtml('shipment')+'</div>'+
+    '</section>'
+  }
+
+  function warningData(){
+    var ts=taskOpenList();
+    var ss=shipmentOpenList();
+
+    var overdueTasks=ts.filter(dueTask);
+    var docs=ss.filter(shipmentNeedsDocuments);
+    var pickups=ss.filter(shipmentNeedsPickup);
+    var pods=ss.filter(shipmentNeedsPod);
+
+    var items=[];
+
+    overdueTasks.slice(0,3).forEach(function(t){
+      items.push({
+        title:itemTitle(t,'Überfällige Aufgabe'),
+        sub:'Aufgabe fällig',
+        route:'tasks'
+      })
+    });
+
+    docs.slice(0,2).forEach(function(s){
+      items.push({
+        title:itemTitle(s,'Sendung'),
+        sub:'Dokumente prüfen',
+        route:'shipmentoverview'
+      })
+    });
+
+    pods.slice(0,2).forEach(function(s){
+      items.push({
+        title:itemTitle(s,'Sendung'),
+        sub:'POD fehlt',
+        route:'shipmentoverview'
+      })
+    });
+
+    pickups.slice(0,2).forEach(function(s){
+      items.push({
+        title:itemTitle(s,'Sendung'),
+        sub:'Abholung offen',
+        route:'shipmentoverview'
+      })
+    });
+
+    return {
+      overdue:overdueTasks.length,
+      documents:docs.length,
+      pod:pods.length,
+      pickup:pickups.length,
+      total:overdueTasks.length+docs.length+pods.length+pickups.length,
+      items:items.slice(0,8)
+    }
+  }
+
+  function ensureWarningUi(){
+    var d=warningData();
+
+    var btn=document.getElementById('rc885WarningButton');
+    if(!btn){
+      btn=document.createElement('button');
+      btn.type='button';
+      btn.id='rc885WarningButton';
+      document.body.appendChild(btn)
+    }
+    btn.innerHTML='Warncenter <span class="rc885-warning-count">'+d.total+'</span>';
+
+    var drawer=document.getElementById('rc885WarningDrawer');
+    if(!drawer){
+      drawer=document.createElement('div');
+      drawer.id='rc885WarningDrawer';
+      drawer.innerHTML=
+        '<div class="rc885-drawer">'+
+          '<div class="rc885-drawer-head">'+
+            '<div><div class="rc885-drawer-title">Warncenter</div><div class="rc885-sub">Nur Punkte mit Handlungsbedarf</div></div>'+
+            '<button type="button" class="rc885-close">Schließen</button>'+
+          '</div>'+
+          '<div class="rc885-summary"></div>'+
+          '<div class="rc885-warning-list"></div>'+
+        '</div>';
+      document.body.appendChild(drawer)
+    }
+
+    var summary=drawer.querySelector('.rc885-summary');
+    if(summary){
+      summary.innerHTML=[
+        ['Fällige Aufgaben',d.overdue],
+        ['Dokumente',d.documents],
+        ['POD fehlt',d.pod],
+        ['Abholung',d.pickup]
+      ].map(function(x){
+        return '<div class="rc885-summary-card"><div class="rc885-summary-label">'+esc(x[0])+'</div><div class="rc885-summary-value">'+x[1]+'</div></div>'
+      }).join('')
+    }
+
+    var list=drawer.querySelector('.rc885-warning-list');
+    if(list){
+      list.innerHTML=d.items.length?d.items.map(function(x){
+        return '<button type="button" class="rc885-warning-item" data-rc885-route="'+esc(x.route)+'">'+
+          '<strong>'+esc(x.title)+'</strong>'+
+          '<span>'+esc(x.sub)+'</span>'+
+        '</button>'
+      }).join(''):'<div class="rc885-empty">Aktuell kein dringender Handlungsbedarf.</div>'
+    }
+  }
+
+  function mountWorkspace(){
+    if(!isDashboard()) {
+      var old=document.getElementById('rc885Workspace');
+      if(old) old.remove();
+      return
+    }
+
+    var host=mainHost();
+    if(!host) return;
+
+    var existing=document.getElementById('rc885Workspace');
+    var html=workspaceHtml();
+
+    if(existing){
+      var tmp=document.createElement('div');
+      tmp.innerHTML=html;
+      existing.replaceWith(tmp.firstElementChild)
+    }else{
+      var wrap=document.createElement('div');
+      wrap.innerHTML=html;
+      var node=wrap.firstElementChild;
+      if(host.firstElementChild) host.insertBefore(node,host.firstElementChild);
+      else host.appendChild(node)
+    }
+  }
+
+  function refresh(){
+    scheduled=0;
+    try{
+      mountWorkspace();
+      ensureWarningUi()
+    }catch(e){
+      console.error('RC885 workspace:',e)
+    }
+  }
+
+  function schedule(){
+    if(scheduled) return;
+    scheduled=window.setTimeout(refresh,80)
+  }
+
+  document.addEventListener('click',function(ev){
+    var focusBtn=ev.target&&ev.target.closest&&ev.target.closest('[data-rc885-focus]');
+    if(focusBtn){
+      focus=focusBtn.getAttribute('data-rc885-focus')||'all';
+      refresh();
+      return
+    }
+
+    var routeBtn=ev.target&&ev.target.closest&&ev.target.closest('[data-rc885-route]');
+    if(routeBtn){
+      var view=routeBtn.getAttribute('data-rc885-route');
+      var drawer=document.getElementById('rc885WarningDrawer');
+      if(drawer) drawer.setAttribute('data-open','0');
+      routeTo(view)
+    }
+
+    if(ev.target&&ev.target.closest&&ev.target.closest('#rc885WarningButton')){
+      var d=document.getElementById('rc885WarningDrawer');
+      if(d) d.setAttribute('data-open','1')
+    }
+
+    if(ev.target&&ev.target.closest&&ev.target.closest('#rc885WarningDrawer .rc885-close')){
+      var dr=document.getElementById('rc885WarningDrawer');
+      if(dr) dr.setAttribute('data-open','0')
+    }
+
+    if(ev.target&&ev.target.id==='rc885WarningDrawer'){
+      ev.target.setAttribute('data-open','0')
+    }
+  },true);
+
+  var mo=new MutationObserver(schedule);
+  mo.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['data-exporthub-view','data-current-view']});
+
+  window.addEventListener('hashchange',schedule);
+  window.addEventListener('popstate',schedule);
+  window.setInterval(schedule,2500);
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',refresh,{once:true})
+  }else{
+    refresh()
+  }
+})();
+
 function avisHost(view){view=view||visibleShipmentView();var host=null;if(view==='shipmentview'){host=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||document.querySelector('#content.rc776-shipment-view .rc844-avis-host');if(!host){var page=document.querySelector('#content.rc776-shipment-view .rc776-page');if(page){host=document.createElement('div');host.id='rc845AvisReadHost';host.className='rc844-avis-host';host.setAttribute('data-rc845-avis-host','readonly');var grids=page.querySelectorAll(':scope > .rc776-grid');if(grids.length&&grids[0].nextSibling)page.insertBefore(host,grids[0].nextSibling);else page.appendChild(host)}}return host||null}if(view==='shipment'){host=document.getElementById('rc845AvisEditHost');if(!host){var body=document.querySelector('#rc363BlockShipment .rc363-process-body')||document.getElementById('rc363BlockShipment')||document.getElementById('rc573ShipmentShell');if(body){host=document.createElement('div');host.id='rc845AvisEditHost';host.className='rc845-avis-host';host.setAttribute('data-rc845-avis-host','edit');body.appendChild(host)}}return host||null}return null}
 function render(){['rc705AvisMountRead','rc705AvisMountEdit','rc845AvisReadHost','rc845AvisEditHost','rc844AvisHost','rc849AvisReadCard','rc363BlockAvis'].forEach(function(id){var node=document.getElementById(id);if(node)node.remove()});lastSig='';return false}
 async function toggle(on){var sh=current();if(!sh)return false;if(on&&pickupStamp(sh)){alert('Der Lieferavis ist nach der Abholung geschlossen und kann nicht erneut aktiviert werden.');return false}if(on&&!ref(sh)){alert('Die Sendung benötigt zuerst eine Referenznummer.');return false}var stamp=new Date().toISOString(),values;if(on){var newToken=makeToken();values={customerAvisEnabled:true,avisEnabled:true,customerAvisToken:newToken,avisToken:newToken,customerAvisAccessCode:'',avisAccessCode:'',customerAvisSecurityVersion:SECURITY_VERSION,avisSecurityVersion:SECURITY_VERSION,customerAvisEnabledAt:stamp,avisEnabledAt:stamp,customerAvisExpiresAt:'',avisExpiresAt:'',customerAvisUsedAt:'',avisUsedAt:'',customerAvisDisabledAt:'',avisDisabledAt:'',customerAvisResponseStatus:'offen',avisResponseStatus:'offen',customerAvisAutoDisabledAt:'',avisAutoDisabledAt:'',customerAvisAutoDisabledReason:'',avisAutoDisabledReason:''}}else{values={customerAvisEnabled:false,avisEnabled:false,customerAvisToken:'',avisToken:'',customerAvisAccessCode:'',avisAccessCode:'',customerAvisSecurityVersion:0,avisSecurityVersion:0,customerAvisExpiresAt:'',avisExpiresAt:'',customerAvisUsedAt:'',avisUsedAt:'',customerAvisDisabledAt:stamp,avisDisabledAt:stamp,customerAvisAutoDisabledAt:'',avisAutoDisabledAt:'',customerAvisAutoDisabledReason:'',avisAutoDisabledReason:''}}var targets=copies(sh),keys=Object.keys(values),before=targets.map(function(x){var v={};keys.forEach(function(k){v[k]=x[k]});return{x:x,v:v}});patchCopies(sh,values);lastSig='';render();try{await persist(on?'Kunden-Avis sicher aktiviert':'Kunden-Avis deaktiviert');window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{reference:ref(sh),enabled:on}}));try{if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.patch==='function')window.ExportHUBMailStatus373.patch('Kunden-Avis geändert')}catch(_){}}catch(e){before.forEach(function(row){Object.keys(row.v).forEach(function(k){if(row.v[k]===undefined)delete row.x[k];else row.x[k]=row.v[k]})});lastSig='';render();alert('Kunden-Avis konnte nicht dauerhaft in Azure gespeichert werden. Der vorherige Zustand wurde wiederhergestellt.\n\n'+q(e&&e.message||e));return false}lastSig='';render();schedule();return false}
