@@ -290,7 +290,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC896',cache:'896',loginReturn:'/TESTVERSION.html?v=896'});
+var BUILD=Object.freeze({version:'RC898',cache:'898',loginReturn:'/TESTVERSION.html?v=898'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -2135,31 +2135,28 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
             }
 
   function mountWorkspace(){
-    if(!isDashboard()) {
-      var old=document.getElementById('rc885Workspace');
-      if(old) old.remove();
+    var host=mainHost();
+    var v=currentView();
+    if(!host||!isDashboard()||/login|signin|auth|pickup|customer-avis/i.test(v)){
+      var orphan=document.getElementById('rc885Workspace');
+      if(orphan) orphan.remove();
       return
     }
-
-    var host=mainHost();
-    if(!host) return;
 
     var existing=document.getElementById('rc885Workspace');
     var html=workspaceHtml();
 
-    if(existing&&existing.getAttribute('data-rc896-html')===html)return;
-    if(existing){
-      var tmp=document.createElement('div');
-      tmp.innerHTML=html;
-      var next=tmp.firstElementChild;next.setAttribute('data-rc896-html',html);
-      existing.replaceWith(next)
-    }else{
-      var wrap=document.createElement('div');
-      wrap.innerHTML=html;
-      var node=wrap.firstElementChild;node.setAttribute('data-rc896-html',html);
-      if(host.firstElementChild) host.insertBefore(node,host.firstElementChild);
-      else host.appendChild(node)
-    }
+    if(existing&&existing.getAttribute('data-rc897-html')===html&&existing.parentElement===host)return;
+
+    var wrap=document.createElement('div');
+    wrap.innerHTML=html;
+    var node=wrap.firstElementChild;
+    node.setAttribute('data-rc897-html',html);
+    node.setAttribute('data-rc897-global-workspace','1');
+
+    if(existing) existing.remove();
+    if(host.firstElementChild) host.insertBefore(node,host.firstElementChild);
+    else host.appendChild(node)
   }
 
   function refresh(){
@@ -2172,7 +2169,7 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
     }
   }
 
-  function schedule(){return false}
+  function schedule(){if(scheduled)return;scheduled=requestAnimationFrame(function(){scheduled=0;refresh()})}
 
   document.addEventListener('click',function(ev){
     var focusBtn=ev.target&&ev.target.closest&&ev.target.closest('[data-rc885-focus]');
@@ -23081,13 +23078,14 @@ function childByText(parent,selector,rx){return Array.from((parent||document).qu
 function directCards(r){return Array.from(r.children).filter(function(el){return el.matches&&el.matches('.card,section,article,.grid2')})}
 function take(body,node){if(!node||!body||node===body)return false;if(node.parentNode!==body)body.appendChild(node);return true}
 function canonicalColliCard(){var rows=document.getElementById('rowsBox'),card=rows&&rows.closest('.card,section,article');if(card&&card.querySelector('input,select')){var wrong=document.getElementById('rc573ColliCard');if(wrong&&wrong!==card)wrong.removeAttribute('id');card.id='rc573ColliCard';return card}card=document.getElementById('rc573ColliCard');if(card&&card.querySelector('#rowsBox,[data-rc375-rows],.rc344-colli-row'))return card;if(card)card.removeAttribute('id');card=document.createElement('section');card.id='rc573ColliCard';card.className='card';card.setAttribute('data-rc375-canonical-colli','1');card.innerHTML='<div id="rowsBox" data-rc375-rows="1"></div><button type="button" class="ghost" data-rc363-add-row="1">+ Zeile</button><div class="rc344-summary summaryGrid"><div class="summaryBox"><span>Collis</span><strong id="rc344Sum_count">0</strong></div><div class="summaryBox"><span>Gesamtgewicht</span><strong id="rc344Sum_weight">0,0 kg</strong></div><div class="summaryBox"><span>Lademeter</span><strong id="rc344Sum_ldm">0,00</strong></div></div>';return card}
+/* exporthub-rc898-dashboard-only-compact-shipment-inline-avis */
 /* exporthub-rc894-shipment-core */
 /* exporthub-rc896-shipment-field-layout */
 function ensureRC894Style(){
  var style=document.getElementById('rc894ShipmentCoreStyle');
  if(style)return style;
  style=document.createElement('style');style.id='rc894ShipmentCoreStyle';
- style.textContent='.rc894-full-stack{display:flex!important;flex-direction:column!important;gap:18px!important;width:100%!important;max-width:none!important;grid-template-columns:none!important}.rc894-full-stack>.rc363-process-block{width:100%!important;max-width:none!important}.rc894-full-stack #rc383LeftColumn,.rc894-full-stack #rc383RightColumn{display:none!important}#rc363FixedShipmentLayout{display:flex!important;flex-direction:column!important;width:100%!important;max-width:none!important;gap:18px!important}#rc363BlockShipment .rc363-process-body[data-rc896-layout="1"]{display:block!important;width:100%!important}#rc896ShipmentFieldGrid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:16px 20px!important;align-items:start!important;width:100%!important}#rc896ShipmentFieldGrid>*{min-width:0!important;width:100%!important;margin:0!important}#rc896ShipmentFieldGrid [data-rc896-field="reference"]{grid-column:span 2!important;order:10}#rc896ShipmentFieldGrid [data-rc896-field="pickup"]{grid-column:span 2!important;order:20}#rc896ShipmentFieldGrid [data-rc896-field="carrier"]{grid-column:span 2!important;order:30}#rc896ShipmentFieldGrid [data-rc896-field="description"]{grid-column:span 3!important;order:40}#rc896ShipmentFieldGrid [data-rc896-field="remark"]{grid-column:span 3!important;order:50}#rc845AvisEditHost,#rc845AvisReadHost,#rc890LieferAvisBtn,#rc891LieferAvisBtn,#rc892LieferAvisBtn,#rc894LieferAvisBtn{display:none!important}@media(max-width:900px){#rc896ShipmentFieldGrid{grid-template-columns:1fr!important}#rc896ShipmentFieldGrid [data-rc896-field]{grid-column:1/-1!important}}';
+ style.textContent='.rc894-full-stack{display:grid!important;grid-template-columns:minmax(340px,1.05fr) minmax(390px,1.15fr) minmax(360px,.95fr)!important;gap:14px!important;align-items:start!important;width:100%!important;max-width:1420px!important;margin:0 auto!important}.rc894-full-stack>.rc363-process-block{width:100%!important;max-width:none!important;min-width:0!important}.rc894-full-stack #rc383LeftColumn,.rc894-full-stack #rc383RightColumn{display:none!important}#rc573ShipmentShell{width:min(100%,1420px)!important;max-width:1420px!important;margin-left:auto!important;margin-right:auto!important}#rc363FixedShipmentLayout{display:flex!important;flex-direction:column!important;width:100%!important;max-width:1420px!important;margin:0 auto!important;gap:14px!important}#rc363BlockShipment .rc363-process-body[data-rc896-layout="1"]{display:block!important;width:100%!important}#rc383TopPair.rc894-full-stack>#rc363BlockCustomer{grid-column:1!important;grid-row:1!important}#rc383TopPair.rc894-full-stack>#rc363BlockShipment{grid-column:2!important;grid-row:1!important}#rc383TopPair.rc894-full-stack>#rc363BlockColli{grid-column:3!important;grid-row:1!important}#rc383TopPair.rc894-full-stack>#rc363BlockDocuments{grid-column:1 / span 2!important;grid-row:auto!important}#rc383TopPair.rc894-full-stack>#rc363BlockAbdDecision{grid-column:3!important;grid-row:auto!important}#rc383TopPair.rc894-full-stack>.rc363-process-block{padding:12px!important;border-radius:18px!important}#rc383TopPair.rc894-full-stack .rc363-process-head{margin-bottom:8px!important}#rc383TopPair.rc894-full-stack .rc363-process-head h2{font-size:18px!important}#rc896ShipmentFieldGrid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:10px 12px!important;align-items:start!important;width:100%!important}#rc896ShipmentFieldGrid>*{min-width:0!important;width:100%!important;margin:0!important}#rc896ShipmentFieldGrid [data-rc896-field="reference"]{grid-column:span 2!important;order:10}#rc896ShipmentFieldGrid [data-rc896-field="pickup"]{grid-column:span 2!important;order:20}#rc896ShipmentFieldGrid [data-rc896-field="carrier"]{grid-column:span 2!important;order:30}#rc896ShipmentFieldGrid [data-rc896-field="description"]{grid-column:span 3!important;order:40}#rc896ShipmentFieldGrid [data-rc896-field="remark"]{grid-column:span 3!important;order:50}#rc363BlockShipment #rc896ShipmentFieldGrid textarea{min-height:88px!important;height:88px!important}#rc363BlockShipment #rc896ShipmentFieldGrid .field{margin:0!important}#rc363BlockColli #rc573ColliCard #rowsBox{display:grid!important;gap:8px!important}#rc363BlockColli #rc573ColliCard .rc363-owned-row{padding:9px!important;border-radius:14px!important}#rc363BlockColli #rc573ColliCard .rc363-colli-grid{gap:7px 8px!important}#rc363BlockColli #rc573ColliCard .rc344-summary{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}#rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox{padding:7px!important}#rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox strong{font-size:15px!important}#rc845AvisEditHost,#rc845AvisReadHost,#rc890LieferAvisBtn,#rc891LieferAvisBtn,#rc892LieferAvisBtn,#rc894LieferAvisBtn,#lieferAvisBtn{display:none!important}@media(max-width:900px){#rc896ShipmentFieldGrid{grid-template-columns:1fr!important}#rc896ShipmentFieldGrid [data-rc896-field]{grid-column:1/-1!important}}#rc897LieferavisPanel{display:grid;gap:9px!important;margin-top:12px!important;padding:11px 12px!important;border:1px solid #f2c46d!important;border-radius:14px!important;background:linear-gradient(180deg,#fffdf7,#fff9eb)!important}#rc897LieferavisPanel .rc897-avis-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;font-size:14px!important;color:#17324d!important}#rc897LieferavisPanel .rc897-avis-head strong{font-size:14px!important}#rc897LieferavisPanel .rc897-avis-summary{display:grid;grid-template-columns:minmax(90px,.55fr) minmax(100px,.65fr) minmax(0,1.8fr);gap:8px;align-items:stretch}#rc897LieferavisPanel .rc897-avis-box{border:1px solid #d7e5ef;border-radius:10px;background:#fff;padding:8px 10px;min-width:0}#rc897LieferavisPanel .rc897-avis-label{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#657c8d;margin-bottom:5px}#rc897LieferavisPanel .rc897-avis-value{font-size:14px;font-weight:750;color:#17324d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#rc897LieferavisPanel .rc897-avis-status[data-active="1"]{color:#087a5a}#rc897LieferavisPanel .rc897-avis-status[data-active="0"]{color:#9a5510}#rc897LieferavisPanel .rc897-avis-actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center;justify-content:flex-end}#rc897LieferavisPanel .rc897-avis-actions button{min-height:34px!important;padding:6px 9px!important;font-size:11px!important}#rc897LieferavisPanel .rc897-avis-help{font-size:12px;color:#667b8c;line-height:1.45}@media(max-width:1280px){.rc894-full-stack{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}#rc383TopPair.rc894-full-stack>#rc363BlockCustomer{grid-column:1!important}#rc383TopPair.rc894-full-stack>#rc363BlockShipment{grid-column:2!important}#rc383TopPair.rc894-full-stack>#rc363BlockColli,#rc383TopPair.rc894-full-stack>#rc363BlockDocuments,#rc383TopPair.rc894-full-stack>#rc363BlockAbdDecision{grid-column:1/-1!important}}@media(max-width:900px){#rc573ShipmentShell,#rc363FixedShipmentLayout,.rc894-full-stack{max-width:100%!important}.rc894-full-stack{grid-template-columns:1fr!important}#rc383TopPair.rc894-full-stack>.rc363-process-block{grid-column:1/-1!important;grid-row:auto!important}#rc897LieferavisPanel .rc897-avis-summary{grid-template-columns:1fr!important}}';
  (document.head||document.documentElement).appendChild(style);return style
 }
 function applyRC894ShipmentFieldGrid(body){
@@ -23100,7 +23098,53 @@ function applyRC894ShipmentFieldGrid(body){
  Array.prototype.slice.call(grid.children).forEach(function(node){if(!node.getAttribute('data-rc896-field'))grid.removeChild(node)});
  return Object.keys(found).length
 }
-function ensureRC894LieferavisButton(){var old=document.getElementById('rc894LieferAvisBtn');if(old)old.remove();return !!document.getElementById('lieferAvisBtn')}
+function rc897AvisApi(){return window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705||null}
+function rc897AvisShipment(){try{return shipment()}catch(_){return null}}
+function updateRC897LieferavisPanel(){
+ var panel=document.getElementById('rc897LieferavisPanel');if(!panel)return false;
+ var api=rc897AvisApi(),sh=rc897AvisShipment(),reference=q(refOf(sh)),active=false,url='';
+ try{active=!!(api&&api.enabled&&api.enabled(sh))}catch(_){}
+ try{url=q(api&&api.link&&api.link(sh))}catch(_){}
+ var status=panel.querySelector('[data-rc897-avis-status]'),refEl=panel.querySelector('[data-rc897-avis-ref]'),linkEl=panel.querySelector('[data-rc897-avis-link]');
+ if(status){status.textContent=active?'Aktiv':'Inaktiv';status.setAttribute('data-active',active?'1':'0')}
+ if(refEl)refEl.textContent=reference||'Noch keine Referenz';
+ if(linkEl){linkEl.textContent=url||'Noch kein Kundenlink';linkEl.title=url||''}
+ var toggleBtn=panel.querySelector('[data-rc897-avis-action="toggle"]'),copyBtn=panel.querySelector('[data-rc897-avis-action="copy"]'),openBtn=panel.querySelector('[data-rc897-avis-action="open"]');
+ if(toggleBtn){toggleBtn.textContent=active?'Lieferavis deaktivieren':'Lieferavis aktivieren';toggleBtn.disabled=!api||!reference}
+ if(copyBtn)copyBtn.disabled=!url;
+ if(openBtn)openBtn.disabled=!url;
+ panel.setAttribute('data-active',active?'1':'0');
+ return true
+}
+function ensureRC897LieferavisPanel(body){
+ if(!body)return false;ensureRC894Style();
+ var panel=document.getElementById('rc897LieferavisPanel');
+ if(!panel){
+   panel=document.createElement('div');panel.id='rc897LieferavisPanel';panel.setAttribute('data-rc897-lieferavis','1');
+   panel.innerHTML='<div class="rc897-avis-head"><strong>🚚 Lieferavis (Kunden-Avis)</strong><span class="rc897-avis-help">Direkt in dieser Sendung</span></div><div class="rc897-avis-summary"><div class="rc897-avis-box"><div class="rc897-avis-label">Status</div><div class="rc897-avis-value rc897-avis-status" data-rc897-avis-status data-active="0">Inaktiv</div></div><div class="rc897-avis-box"><div class="rc897-avis-label">Referenz</div><div class="rc897-avis-value" data-rc897-avis-ref>Noch keine Referenz</div></div><div class="rc897-avis-box"><div class="rc897-avis-label">Kundenlink</div><div class="rc897-avis-value" data-rc897-avis-link>Noch kein Kundenlink</div></div></div><div class="rc897-avis-actions"><button type="button" class="btn" data-rc897-avis-action="toggle">Lieferavis aktivieren</button><button type="button" class="ghost" data-rc897-avis-action="copy">Link kopieren</button><button type="button" class="ghost" data-rc897-avis-action="open">Vorschau öffnen</button></div><div class="rc897-avis-help">Der Lieferavis ist Teil der Sendung. Der Kundenlink wird nur bei aktivem Lieferavis erzeugt und drei Arbeitstage nach der tatsächlichen Abholung automatisch deaktiviert.</div>';
+ }
+ if(panel.parentElement!==body)body.appendChild(panel);
+ if(!window.__EXPORTHUB_RC897_AVIS_EVENTS__){
+   window.__EXPORTHUB_RC897_AVIS_EVENTS__=true;
+   document.addEventListener('click',function(ev){
+     var btn=ev.target&&ev.target.closest&&ev.target.closest('#rc897LieferavisPanel [data-rc897-avis-action]');if(!btn)return;
+     ev.preventDefault();ev.stopPropagation();
+     var action=btn.getAttribute('data-rc897-avis-action'),api=rc897AvisApi(),sh=rc897AvisShipment();if(!api||!sh)return;
+     if(action==='toggle'){
+       var active=false;try{active=!!api.enabled(sh)}catch(_){}
+       btn.disabled=true;
+       Promise.resolve(api.toggle(!active)).catch(function(e){console.error('RC897 Lieferavis toggle',e)}).finally(function(){btn.disabled=false;updateRC897LieferavisPanel()});
+       return
+     }
+     var url='';try{url=q(api.link(sh))}catch(_){}
+     if(action==='copy'&&url){if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).catch(function(){prompt('Lieferavis-Link',url)});else prompt('Lieferavis-Link',url);return}
+     if(action==='open'&&url){window.open(url,'_blank','noopener,noreferrer');return}
+   },true);
+   ['exporthub:ready','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated'].forEach(function(name){window.addEventListener(name,function(){requestAnimationFrame(updateRC897LieferavisPanel)})});
+ }
+ updateRC897LieferavisPanel();return true
+}
+function ensureRC894LieferavisButton(){var old=document.getElementById('lieferAvisBtn');if(old)old.remove();return !!document.getElementById('rc897LieferavisPanel')}
 function applyFixedBlocks(){
  var r=root(),shell=document.getElementById('rc573ShipmentShell')||r;if(!r||!shell)return 0;
  var layout=document.getElementById('rc363FixedShipmentLayout');
@@ -23108,7 +23152,7 @@ function applyFixedBlocks(){
  function box(id,cls,parent){var el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;el.className=cls}if(el.className!==cls)el.className=cls;if(el.parentElement!==parent)parent.appendChild(el);return el}
  var top=box('rc383TopPair','rc383-layout-pair',layout),left=box('rc383LeftColumn','rc383-column-stack',top),right=box('rc383RightColumn','rc383-column-stack',top);
  var obsoletePair=document.getElementById('rc383DecisionPair');if(obsoletePair)obsoletePair.remove();
- var obsoleteDocuments=document.getElementById('rc363BlockDocumentsAbd');if(obsoleteDocuments)obsoleteDocuments.remove();
+ var obsoleteDocuments=document.getElementById('rc363BlockDocumentsAbd');if(obsoleteDocuments)obsoleteDocuments.remove();var obsoleteAvis=document.getElementById('rc897BlockLieferavis');if(obsoleteAvis)obsoleteAvis.remove();
  r.querySelectorAll('#rc524StowPlan,#rc573LoadingArea').forEach(function(x){x.remove()});
  var customer=processBlock('rc363BlockCustomer','1','Kunde & Empfänger',true),
      shipmentBlock=processBlock('rc363BlockShipment','2','Sendungsdaten',true),
@@ -23146,7 +23190,7 @@ function applyFixedBlocks(){
  if(colliCard){Array.from(colliCard.children).forEach(function(node){var text=low(node.textContent);if(node.matches&&node.matches('.badbox,.okbox,.notice,.infobox')&&/sendung kann|bitte erfassen|abgeschlossen/.test(text))take(actionsBody,node)})}
  Array.from(shipmentBody.querySelectorAll('label,.field,.form-group,.input-group')).forEach(function(node){if(/^verlader\b/.test(low(node.textContent)))node.remove()});placeWorkflowButtons(customerBody,shipmentBody,documentsBody);
  [customerBody,shipmentBody,documentsBody].forEach(function(body){Array.from(body.children).forEach(function(node){node.removeAttribute('data-rc387-wide');var t=low(node.textContent);if(node.id==='rc380CustomerActions'||node.id==='rc386CustomsActions'||node.id==='rc845AvisEditHost'||node.matches&&node.matches('.okbox,.badbox,.notice,.infobox')||node.querySelector&&node.querySelector('textarea'))node.setAttribute('data-rc387-wide','1');if(/empfangeradresse/.test(t))node.setAttribute('data-rc387-wide','1')})});
- applyRC894ShipmentFieldGrid(shipmentBody);ensureRC894LieferavisButton();
+ applyRC894ShipmentFieldGrid(shipmentBody);ensureRC897LieferavisPanel(shipmentBody);
  var saved=document.getElementById('rc573SavedCard')||Array.from(r.querySelectorAll(':scope > .card,:scope > section,:scope > article,#rc573SavedCard')).find(function(el){return el.id==='rc573SavedCard'||/^(Gespeicherte Sendungen|Saved Shipments)/i.test(heading(el))});if(saved){if(!saved.id)saved.id='rc573SavedCard';layout.insertBefore(saved,actions.nextSibling);saved.setAttribute('data-rc383-position','directly-after-actions')}
  directLegacyGrids.forEach(function(grid){if(grid.parentNode&&!q(grid.textContent)&&!grid.querySelector('input,select,textarea,button,table'))grid.remove()});
  shell.setAttribute('data-rc383-fixed-layout','1');layout.setAttribute('data-rc383-owner','1');markStowDirty();scheduleStowRender(650,true);ensureRC894LieferavisButton();return layout.querySelectorAll('.rc363-process-block').length
