@@ -290,7 +290,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC886',cache:'886',loginReturn:'/TESTVERSION.html?v=886'});
+var BUILD=Object.freeze({version:'RC887',cache:'887',loginReturn:'/TESTVERSION.html?v=887'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -1965,26 +1965,35 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
   }
 
   function workspaceHtml(){
-    var labels=[
-      ['all','Alles'],
-      ['due','Fällig'],
-      ['documents','Dokumente'],
-      ['pickup','Abholung']
-    ];
+    var openTasks=taskOpenList(),openShipments=shipmentOpenList();
+    var due=openTasks.filter(dueTask).length;
+    var docs=openShipments.filter(shipmentNeedsDocuments).length;
+    var pickup=openShipments.filter(shipmentNeedsPickup).length;
+
+    function card(label,value,sub,route){
+      return '<button type="button" class="rc885-panel" data-rc885-route="'+route+'" style="width:100%;text-align:left;cursor:pointer">'+
+        '<div class="rc885-panel-head">'+
+          '<div class="rc885-panel-title"><span>'+esc(label)+'</span><span class="rc885-badge">'+value+'</span></div>'+
+          '<span class="rc885-open">Öffnen</span>'+
+        '</div>'+
+        '<div class="rc885-row-sub">'+esc(sub)+'</div>'+
+      '</button>'
+    }
+
     return '<section id="rc885Workspace">'+
       '<div class="rc885-head">'+
         '<div>'+
           '<div class="rc885-kicker">Persönlicher Arbeitsplatz</div>'+
-          '<h2>Mein Arbeitsfokus</h2>'+
-          '<div class="rc885-sub">Aufgaben und Sendungen werden bewusst getrennt angezeigt.</div>'+
-        '</div>'+
-        '<div class="rc885-focus" aria-label="Arbeitsfokus">'+
-          labels.map(function(x){
-            return '<button type="button" data-rc885-focus="'+x[0]+'" aria-pressed="'+(focus===x[0]?'true':'false')+'">'+x[1]+'</button>'
-          }).join('')+
+          '<h2>Arbeitsfokus</h2>'+
+          '<div class="rc885-sub">Nur Kennzahlen und Schnellzugriffe. Aufgaben und Sendungen werden darunter nur einmal im bestehenden Dashboard angezeigt.</div>'+
         '</div>'+
       '</div>'+
-      '<div class="rc885-grid">'+panelHtml('task')+panelHtml('shipment')+'</div>'+
+      '<div class="rc885-grid">'+
+        card('Fällige Aufgaben',due,'Direkt zu den offenen Aufgaben','tasks')+
+        card('Offene Sendungen',openShipments.length,'Direkt zur Sendungsübersicht','shipmentoverview')+
+        card('Dokumente prüfen',docs,'Sendungen mit Dokumentenbedarf','shipmentoverview')+
+        card('Abholung offen',pickup,'Sendungen vor bzw. zur Abholung','shipmentoverview')+
+      '</div>'+
     '</section>'
   }
 
@@ -2179,7 +2188,20 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
 })();
 
 function avisHost(view){view=view||visibleShipmentView();var host=null;if(view==='shipmentview'){host=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||document.querySelector('#content.rc776-shipment-view .rc844-avis-host');if(!host){var page=document.querySelector('#content.rc776-shipment-view .rc776-page');if(page){host=document.createElement('div');host.id='rc845AvisReadHost';host.className='rc844-avis-host';host.setAttribute('data-rc845-avis-host','readonly');var grids=page.querySelectorAll(':scope > .rc776-grid');if(grids.length&&grids[0].nextSibling)page.insertBefore(host,grids[0].nextSibling);else page.appendChild(host)}}return host||null}if(view==='shipment'){host=document.getElementById('rc845AvisEditHost');if(!host){var body=document.querySelector('#rc363BlockShipment .rc363-process-body')||document.getElementById('rc363BlockShipment')||document.getElementById('rc573ShipmentShell');if(body){host=document.createElement('div');host.id='rc845AvisEditHost';host.className='rc845-avis-host';host.setAttribute('data-rc845-avis-host','edit');body.appendChild(host)}}return host||null}return null}
-function render(){['rc705AvisMountRead','rc705AvisMountEdit','rc845AvisReadHost','rc845AvisEditHost','rc844AvisHost','rc849AvisReadCard','rc363BlockAvis'].forEach(function(id){var node=document.getElementById(id);if(node)node.remove()});lastSig='';return false}
+function render(){var __rc887AvisState=(typeof state==='function'?state():(window.STATE||{})),__rc887AvisView=String((__rc887AvisState&&__rc887AvisState.view)||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view')||'').toLowerCase(),__rc887AvisAllowed=/avis/.test(__rc887AvisView)&&!/shipment/.test(__rc887AvisView);if(!__rc887AvisAllowed){['rc705AvisMountRead','rc705AvisMountEdit','rc845AvisReadHost','rc845AvisEditHost','rc844AvisHost','rc849AvisReadCard','rc363BlockAvis'].forEach(function(id){var node=document.getElementById(id);if(node)node.remove()});lastSig='';return false;}
+ var view=visibleShipmentView();if(view!=='shipment'&&view!=='shipmentview')return false;
+ var host=avisHost(view),sh=current();if(!host||!sh)return false;
+ var readOnly=view==='shipmentview',mountId=readOnly?'rc705AvisMountRead':'rc705AvisMountEdit',hostId=id(sh),hostRef=ref(sh);host.setAttribute('data-rc849-shipment-id',hostId);host.setAttribute('data-rc849-shipment-ref',hostRef);
+ var mount=document.getElementById(mountId);if(!mount){mount=document.createElement('div');mount.id=mountId;mount.className='rc705-avis-mount rc815-avis-under-details';mount.setAttribute('data-rc705-view',view)}if(mount.parentNode!==host)host.appendChild(mount);mount.setAttribute('data-rc849-shipment-id',hostId);mount.setAttribute('data-rc849-shipment-ref',hostRef);
+ var lang=mailLanguage(sh),en=lang==='en',picked=pickupStamp(sh),pickupCarrier=pickupDetail(sh,['pickupCarrierName','pickupSpeditionName','carrierName','speditionName','carrier','spedition']),pickupPlate=pickupDetail(sh,['pickupLicensePlate','licensePlate','vehicleLicensePlate','kennzeichen']),pickupDriver=pickupDetail(sh,['pickupDriverName','driverName','confirmedBy']),active=enabled(sh),autoOff=expired(sh),expiry=autoExpiresOn(sh),url=link(sh),response=responseText(sh,lang),sig=[view,key(sh),picked,pickupCarrier,pickupPlate,pickupDriver,active,autoOff,expiry,url,response,lang].join('|');
+ var panel=mount.querySelector('.rc705AvisPanel');if(sig===lastSig&&panel&&mount.contains(panel))return true;lastSig=sig;if(!panel){panel=document.createElement('section');panel.className='rc705AvisPanel rc705-avis-panel rc815-avis-panel';panel.setAttribute('data-rc705-panel','1');mount.replaceChildren(panel)}
+ var state=picked?(en?'CLOSED':'GESCHLOSSEN'):stateLabel(sh,lang),stateClass=picked?'off':(active?'on':'off'),detail='';
+ if(picked){detail='<div class="rc815-avis-used"><strong>'+(en?'CUSTOMER AVIS CLOSED':'LIEFERAVIS GESCHLOSSEN')+'</strong><span>'+(en?'The shipment has been collected. The public avis is now read-only and only shows the collection details.':'Die Sendung wurde abgeholt. Der öffentliche Lieferavis ist jetzt geschlossen und zeigt nur noch die Abholdaten.')+'</span></div><div class="rc705-avis-response"><b>'+(en?'Collection completed':'Abholung abgeschlossen')+'</b><span><b>'+(en?'Collected:':'Abgeholt:')+'</b> '+esc(fmtLang(picked,lang))+'</span><span><b>'+(en?'Carrier:':'Spedition:')+'</b> '+esc(pickupCarrier||'–')+'</span><span><b>'+(en?'License plate:':'Kennzeichen:')+'</b> '+esc(pickupPlate||'–')+'</span>'+(pickupDriver?'<span><b>'+(en?'Driver:':'Fahrer:')+'</b> '+esc(pickupDriver)+'</span>':'')+'</div>'}
+ else if(active){detail='<div class="rc815-avis-onetime"><strong>'+(en?'ACTIVE CUSTOMER AVIS':'AKTIVER KUNDEN-AVIS')+'</strong><span>'+(en?'The link remains active until collection. After collection only the collection details remain visible until automatic expiry.':'Der Link bleibt bis zur Abholung aktiv. Danach sind bis zum automatischen Ablauf nur noch die Abholdaten sichtbar.')+'</span></div><div class="rc705-avis-link"><input id="rc705AvisLink" value="'+esc(url)+'" readonly aria-label="'+(en?'Customer collection notice link':'Kunden-Avis-Link')+'"><button type="button" class="soft" data-rc705-action="copy">'+(en?'Copy link':'Link kopieren')+'</button><button type="button" class="btn" data-rc705-action="open">'+(en?'Open customer portal':'Kundenportal öffnen')+'</button></div><div class="rc705-avis-response"><b>'+(en?'Customer collection notice active':'Kunden-Avis aktiv')+'</b><span>'+(en?'Until collection, the recipient can view the shipment information and documents and submit the planned collection date.':'Bis zur Abholung kann der Empfänger die Sendungsinformationen und Dokumente einsehen und den geplanten Abholtermin übermitteln.')+'</span><span><b>'+(en?'Recipient response:':'Rückmeldung des Empfängers:')+'</b> '+esc(response)+'</span></div><div class="rc705-avis-actions"><button type="button" class="ghost danger" data-rc705-action="disable">'+(en?'Disable collection notice':'Lieferavis deaktivieren')+'</button></div>'}
+ else if(autoOff){detail='<div class="rc815-avis-used"><strong>'+(en?'AUTOMATICALLY DEACTIVATED':'AUTOMATISCH DEAKTIVIERT')+'</strong><span>'+(en?'The customer avis expired three business days after the actual collection. Saturday and Sunday were not counted.':'Der Kunden-Avis ist drei Arbeitstage nach der tatsächlichen Abholung automatisch abgelaufen. Samstag und Sonntag wurden nicht mitgerechnet.')+'</span></div>'}
+ else{detail='<div class="rc705-avis-response"><b>'+(en?'Customer collection notice is disabled':'Kunden-Avis ist deaktiviert')+'</b><span>'+(en?'Activate a secure personal link when the recipient should receive access before collection.':'Aktivieren Sie einen sicheren persönlichen Link, wenn der Empfänger vor der Abholung Zugriff erhalten soll.')+'</span></div><div class="rc705-avis-actions"><button type="button" class="btn" data-rc705-action="enable" '+(!ref(sh)?'disabled title="'+(en?'Shipment reference is missing':'Sendungsreferenz fehlt')+'"':'')+'>'+(en?'Activate avis link':'Avis-Link aktivieren')+'</button></div>'}
+ panel.innerHTML='<div class="rc705-avis-top"><div><span class="rc705-avis-kicker">'+(en?'CUSTOMER COLLECTION NOTICE':'KUNDEN-AVIS / LIEFERAVIS')+'</span><h3>'+(en?'Customer avis for this shipment':'Kunden-Avis für diese Sendung')+'</h3><p>'+(picked?(en?'The shipment has been collected; only the final collection details remain visible.':'Die Sendung wurde abgeholt; im Lieferavis bleiben nur die finalen Abholdaten sichtbar.'):(en?'This access is assigned exclusively to this shipment. Only forward it to the intended recipient.':'Dieser Zugang ist ausschließlich dieser Sendung zugeordnet. Bitte nur an den vorgesehenen Empfänger weitergeben.'))+'</p></div><span class="rc705-avis-state '+stateClass+'">'+state+'</span></div>'+detail;return true
+}
 async function toggle(on){var sh=current();if(!sh)return false;if(on&&pickupStamp(sh)){alert('Der Lieferavis ist nach der Abholung geschlossen und kann nicht erneut aktiviert werden.');return false}if(on&&!ref(sh)){alert('Die Sendung benötigt zuerst eine Referenznummer.');return false}var stamp=new Date().toISOString(),values;if(on){var newToken=makeToken();values={customerAvisEnabled:true,avisEnabled:true,customerAvisToken:newToken,avisToken:newToken,customerAvisAccessCode:'',avisAccessCode:'',customerAvisSecurityVersion:SECURITY_VERSION,avisSecurityVersion:SECURITY_VERSION,customerAvisEnabledAt:stamp,avisEnabledAt:stamp,customerAvisExpiresAt:'',avisExpiresAt:'',customerAvisUsedAt:'',avisUsedAt:'',customerAvisDisabledAt:'',avisDisabledAt:'',customerAvisResponseStatus:'offen',avisResponseStatus:'offen',customerAvisAutoDisabledAt:'',avisAutoDisabledAt:'',customerAvisAutoDisabledReason:'',avisAutoDisabledReason:''}}else{values={customerAvisEnabled:false,avisEnabled:false,customerAvisToken:'',avisToken:'',customerAvisAccessCode:'',avisAccessCode:'',customerAvisSecurityVersion:0,avisSecurityVersion:0,customerAvisExpiresAt:'',avisExpiresAt:'',customerAvisUsedAt:'',avisUsedAt:'',customerAvisDisabledAt:stamp,avisDisabledAt:stamp,customerAvisAutoDisabledAt:'',avisAutoDisabledAt:'',customerAvisAutoDisabledReason:'',avisAutoDisabledReason:''}}var targets=copies(sh),keys=Object.keys(values),before=targets.map(function(x){var v={};keys.forEach(function(k){v[k]=x[k]});return{x:x,v:v}});patchCopies(sh,values);lastSig='';render();try{await persist(on?'Kunden-Avis sicher aktiviert':'Kunden-Avis deaktiviert');window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{reference:ref(sh),enabled:on}}));try{if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.patch==='function')window.ExportHUBMailStatus373.patch('Kunden-Avis geändert')}catch(_){}}catch(e){before.forEach(function(row){Object.keys(row.v).forEach(function(k){if(row.v[k]===undefined)delete row.x[k];else row.x[k]=row.v[k]})});lastSig='';render();alert('Kunden-Avis konnte nicht dauerhaft in Azure gespeichert werden. Der vorherige Zustand wurde wiederhergestellt.\n\n'+q(e&&e.message||e));return false}lastSig='';render();schedule();return false}
 async function autoDisableIfDue(){if(avisAutoBusy)return false;var sh=current();if(!sh||!configured(sh)||!expired(sh))return false;avisAutoBusy=true;var stamp=new Date().toISOString(),until=autoExpiresOn(sh),values={customerAvisEnabled:false,avisEnabled:false,customerAvisToken:'',avisToken:'',customerAvisSecurityVersion:0,avisSecurityVersion:0,customerAvisExpiresAt:until,avisExpiresAt:until,customerAvisDisabledAt:stamp,avisDisabledAt:stamp,customerAvisAutoDisabledAt:stamp,avisAutoDisabledAt:stamp,customerAvisAutoDisabledReason:'3 Arbeitstage nach tatsächlicher Abholung',avisAutoDisabledReason:'3 business days after actual collection'};patchCopies(sh,values);lastSig='';render();try{await persist('Kunden-Avis automatisch nach 3 Arbeitstagen deaktiviert');window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{reference:ref(sh),enabled:false,automatic:true,expiresOn:until}}));try{if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.patch==='function')window.ExportHUBMailStatus373.patch('Kunden-Avis automatisch deaktiviert')}catch(_){}}catch(e){console.error('Automatische Avis-Deaktivierung konnte noch nicht bestätigt werden',e)}finally{avisAutoBusy=false}return false}
 function stripBlock(body){var text=String(body||'').replace(/\r\n/g,'\n');text=text.replace(/\n*--- ExportHUB Kunden-Avis ---[\s\S]*?\n---(?=\n|$)/g,'');text=text.replace(/\n*─{8,}\n(?:LIEFERAVIS \/ KUNDENPORTAL|COLLECTION NOTICE \/ CUSTOMER PORTAL|KUNDEN-AVIS – LIVE-ZUGANG|CUSTOMER COLLECTION NOTICE – LIVE AVIS)[\s\S]*?\n─{8,}(?=\n|$)/g,'');text=text.replace(/\n*-{20,}\n(?:KUNDEN-AVIS – DAUERHAFTER ZUGANG|CUSTOMER COLLECTION NOTICE – PERSISTENT ACCESS|KUNDEN-AVIS – LIVE-ZUGANG|CUSTOMER COLLECTION NOTICE – LIVE AVIS)[\s\S]*?\n-{20,}(?=\n|$)/g,'');return text.replace(/\n{3,}/g,'\n\n')}
