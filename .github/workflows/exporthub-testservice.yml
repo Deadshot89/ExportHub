@@ -23,7 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     name: Deploy TESTSERVICE preview environment
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,7 +45,6 @@ jobs:
               failed=1
             fi
           }
-
           require_dir() {
             if [[ -d "$1" ]]; then
               echo "OK: $1/"
@@ -140,7 +138,6 @@ jobs:
           EXPECTED_VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -eu
-
           node <<'NODE'
           const fs = require('fs');
           const path = require('path');
@@ -163,7 +160,10 @@ jobs:
             'api/shared/merge.js'
           ];
 
-          function posix(rel) { return rel.split(path.sep).join('/').replace(/^\.\//, ''); }
+          function posix(rel) {
+            return rel.split(path.sep).join('/').replace(/^\.\//, '');
+          }
+
           function walk(dir) {
             const out = [];
             if (!fs.existsSync(dir)) return out;
@@ -174,6 +174,7 @@ jobs:
             }
             return out;
           }
+
           function excluded(rel) {
             const r = posix(rel);
             if (!r || r === 'index.html' || r === 'TESTVERSION.html' || r === 'test-loader.html') return true;
@@ -184,6 +185,7 @@ jobs:
             if (/(^|\/)node_modules\//i.test(r)) return true;
             return false;
           }
+
           function productionScope(rel) {
             const r = posix(rel);
             if (excluded(r)) return false;
@@ -194,6 +196,7 @@ jobs:
           }
 
           const paths = walk('.').filter(productionScope).sort();
+
           for (const file of required) {
             if (!paths.includes(file)) throw new Error('Pflichtdatei fehlt im Produktions-Snapshot: ' + file);
           }
@@ -208,6 +211,7 @@ jobs:
               content: data.toString('base64')
             };
           });
+
           const manifest = {
             schema: 'exporthub-release-assets-v1',
             version,
@@ -216,12 +220,14 @@ jobs:
             mode: 'full-production-snapshot',
             files
           };
+
           fs.writeFileSync('release-assets.json', JSON.stringify(manifest));
           console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien.`);
           NODE
 
           cp TESTVERSION.html index.html
           cp staticwebapp.testservice.config.json staticwebapp.config.json
+
           cat > testservice-environment.json <<EOF2
           {
             "environment": "testservice",
@@ -231,6 +237,7 @@ jobs:
             "expectedVersion": "$EXPECTED_VERSION"
           }
           EOF2
+
           echo "TESTSERVICE-Payload für $EXPECTED_VERSION vorbereitet."
 
       - name: Use Node 20 for TESTSERVICE API validation
@@ -242,13 +249,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           echo "GitHub Node: $(node --version)"
           cd api
+
           node -e "const p=require('./package.json'); const v=p.dependencies&&p.dependencies['@azure/storage-blob']; if(v!=='12.27.0') throw new Error('@azure/storage-blob 12.27.0 fehlt in api/package.json'); console.log('OK package dependency:',v);"
+
           rm -rf node_modules
           npm install --omit=dev --no-audit --no-fund
           test -f node_modules/@azure/storage-blob/package.json
           npm ls @azure/storage-blob --depth=0
+
           node - <<'NODE'
           const checks = [
             ['@azure/storage-blob', () => require('@azure/storage-blob')],
@@ -257,14 +268,17 @@ jobs:
             ['exporthub-auth', () => require('./exporthub-auth/index.js')],
             ['exporthub-auth-probe', () => require('./exporthub-auth-probe/index.js')]
           ];
+
           for (const [name, load] of checks) {
             const mod = load();
             if (!mod) throw new Error(name + ' wurde leer geladen');
             console.log('OK require:', name);
           }
+
           if (typeof require('./exporthub-auth/index.js') !== 'function') {
             throw new Error('exporthub-auth exportiert keine Azure-Function');
           }
+
           console.log('TESTSERVICE API runtime smoke-test bestanden.');
           NODE
 
@@ -281,101 +295,247 @@ jobs:
           skip_app_build: true
           deployment_environment: testservice
 
-      - name: Verify live TESTSERVICE authentication runtime
+      # IMPORTANT:
+      # Azure can return a preview/PR-style URL from the deploy action even when
+      # deployment_environment=testservice is used. The named environment itself
+      # has a stable URL ending in "-testservice.<location>.azurestaticapps.net".
+      # We therefore resolve and verify the stable environment before any API check.
+      - name: Resolve and verify live TESTSERVICE authentication runtime
+        id: live_testservice
         shell: bash
         env:
-          TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          ACTION_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          EXPECTED_VERSION: ${{ steps.meta.outputs.version }}
+          SWA_BASE_HOST_PREFIX: wonderful-forest-0f315e310
         run: |
           set -euo pipefail
-          if [[ -z "${TESTSERVICE_URL:-}" ]]; then
-            echo "Azure hat keine Testservice-URL zurückgegeben."
+
+          if [[ -z "${ACTION_URL:-}" ]]; then
+            echo "Azure hat keine URL aus dem Deploy-Schritt zurückgegeben."
             exit 1
           fi
+
+          if [[ -z "${EXPECTED_VERSION:-}" ]]; then
+            echo "Erwartete TESTSERVICE-Version fehlt."
+            exit 1
+          fi
+
+          ACTION_URL="${ACTION_URL%/}"
+
+          NAMED_URL="$(
+            python3 -c '
+          from urllib.parse import urlparse
+          import sys
+
+          raw = sys.argv[1].strip()
+          base = sys.argv[2].strip()
+          u = urlparse(raw)
+
+          if not u.scheme or not u.netloc:
+              raise SystemExit("Ungültige Azure Deploy URL: " + raw)
+
+          host = u.hostname or ""
+          parts = host.split(".", 1)
+
+          if len(parts) != 2:
+              raise SystemExit("Unerwarteter Azure Hostname: " + host)
+
+          print(f"{u.scheme}://{base}-testservice.{parts[1]}")
+          ' "$ACTION_URL" "$SWA_BASE_HOST_PREFIX"
+          )"
+
+          CANDIDATES=("$NAMED_URL")
+          if [[ "$ACTION_URL" != "$NAMED_URL" ]]; then
+            CANDIDATES+=("$ACTION_URL")
+          fi
+
+          echo "Azure Action URL: $ACTION_URL"
+          echo "Zu prüfende TESTSERVICE-Adressen:"
+          printf ' - %s\n' "${CANDIDATES[@]}"
+
           body_file="$(mktemp)"
-          trap 'rm -f "$body_file"' EXIT
-          code="$(curl -sS --connect-timeout 5 --max-time 30 \
-            -H 'Accept: application/json' \
-            -o "$body_file" -w '%{http_code}' \
-            "$TESTSERVICE_URL/api/exporthub-auth-probe" || true)"
-          echo "Auth runtime probe HTTP=$code"
-          cat "$body_file" || true
-          echo
-          if [[ "$code" != "200" ]]; then
-            echo "TESTSERVICE-Auth-Runtime-Probe selbst ist nicht erreichbar."
+          page_file="$(mktemp)"
+          trap 'rm -f "$body_file" "$page_file"' EXIT
+
+          VERIFIED_URL=""
+
+          for attempt in $(seq 1 30); do
+            echo "=== TESTSERVICE Live-Check $attempt/30 ==="
+
+            for base_url in "${CANDIDATES[@]}"; do
+              : > "$body_file"
+              : > "$page_file"
+
+              version_code="$(
+                curl -sS \
+                  --connect-timeout 5 \
+                  --max-time 20 \
+                  -o "$page_file" \
+                  -w '%{http_code}' \
+                  "$base_url/TESTVERSION.html?verify=${GITHUB_SHA}-${attempt}" || true
+              )"
+
+              version="$(
+                grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" "$page_file" \
+                  | head -n 1 \
+                  | grep -oE 'RC[0-9]+' || true
+              )"
+
+              probe_meta="$(
+                curl -sS \
+                  --connect-timeout 5 \
+                  --max-time 30 \
+                  -H 'Accept: application/json' \
+                  -o "$body_file" \
+                  -w '%{http_code}|%{content_type}|%{redirect_url}' \
+                  "$base_url/api/exporthub-auth-probe?verify=${GITHUB_SHA}-${attempt}" || true
+              )"
+
+              IFS='|' read -r probe_code content_type redirect_url <<< "$probe_meta"
+
+              echo "$base_url | page HTTP=${version_code:-000} version=${version:-keine-RC} | probe HTTP=${probe_code:-000} type=${content_type:-unbekannt}${redirect_url:+ redirect=$redirect_url}"
+
+              if [[ "$version_code" != "200" || "$version" != "$EXPECTED_VERSION" ]]; then
+                continue
+              fi
+
+              if [[ "${probe_code:-}" != "200" ]]; then
+                continue
+              fi
+
+              if [[ "${content_type,,}" == *"text/html"* ]]; then
+                echo "Probe liefert HTML statt JSON; diese Adresse ist nicht die bereite TESTSERVICE-API."
+                continue
+              fi
+
+              if node - "$body_file" <<'NODE'
+              const fs = require('fs');
+              const p = process.argv[2];
+
+              let d;
+              try {
+                d = JSON.parse(fs.readFileSync(p, 'utf8'));
+              } catch (e) {
+                console.error('Runtime-Probe ist kein gültiges JSON:', e.message);
+                process.exit(1);
+              }
+
+              if (d.ok !== true) {
+                console.error('Runtime-Probe ok=true fehlt.');
+                process.exit(1);
+              }
+
+              if (d.runtimeReady !== true) {
+                console.error('Runtime-Probe meldet Modulfehler:', JSON.stringify(d.modules || {}, null, 2));
+                process.exit(1);
+              }
+
+              const nodeVersion = String(d.runtime && d.runtime.node || '');
+              if (!/^v20\./.test(nodeVersion)) {
+                console.error('Azure API läuft nicht auf Node 20:', nodeVersion || 'unbekannt');
+                process.exit(1);
+              }
+
+              console.log('Auth-Runtime bereit auf ' + nodeVersion + '.');
+              NODE
+              then
+                VERIFIED_URL="$base_url"
+                break 2
+              fi
+            done
+
+            sleep 10
+          done
+
+          if [[ -z "$VERIFIED_URL" ]]; then
+            echo "TESTSERVICE Auth/API-Runtime wurde innerhalb von 5 Minuten nicht bereit."
+            echo "Letzte Probe-Antwort:"
+            cat "$body_file" || true
             exit 1
           fi
-          node - "$body_file" <<'NODE'
-          const fs = require('fs');
-          const p = process.argv[2];
-          const d = JSON.parse(fs.readFileSync(p,'utf8'));
-          if (d.ok !== true) throw new Error('Runtime-Probe ok=true fehlt');
-          if (d.runtimeReady !== true) {
-            console.error('Runtime-Probe meldet Modulfehler:', JSON.stringify(d.modules || {}, null, 2));
-            process.exit(1);
-          }
-          if (!d.runtime || !/^v20\./.test(String(d.runtime.node || ''))) {
-            throw new Error('Azure API läuft nicht auf Node 20: ' + String(d.runtime && d.runtime.node || 'unbekannt'));
-          }
-          console.log('Auth-Runtime bereit auf ' + d.runtime.node + '.');
-          NODE
+
+          echo "Verifizierter TESTSERVICE: $VERIFIED_URL"
+          echo "url=$VERIFIED_URL" >> "$GITHUB_OUTPUT"
 
       - name: Verify live TESTSERVICE authentication backend
         shell: bash
         env:
-          TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          TESTSERVICE_URL: ${{ steps.live_testservice.outputs.url }}
         run: |
           set -euo pipefail
+
           if [[ -z "${TESTSERVICE_URL:-}" ]]; then
-            echo "Azure hat keine Testservice-URL zurückgegeben."
+            echo "Verifizierte Testservice-URL fehlt."
             exit 1
           fi
+
           body_file="$(mktemp)"
           trap 'rm -f "$body_file"' EXIT
-          code="$(curl -sS --connect-timeout 5 --max-time 30 \
-            -H 'Content-Type: application/json' \
-            -H 'Accept: application/json' \
-            -X POST \
-            --data '{"action":"bootstrap-status"}' \
-            -o "$body_file" -w '%{http_code}' \
-            "$TESTSERVICE_URL/api/exporthub-auth" || true)"
+
+          code="$(
+            curl -sS \
+              --connect-timeout 5 \
+              --max-time 30 \
+              -H 'Content-Type: application/json' \
+              -H 'Accept: application/json' \
+              -X POST \
+              --data '{"action":"bootstrap-status"}' \
+              -o "$body_file" \
+              -w '%{http_code}' \
+              "$TESTSERVICE_URL/api/exporthub-auth" || true
+          )"
+
           echo "Auth bootstrap-status HTTP=$code"
           cat "$body_file" || true
           echo
+
           if [[ "$code" != "200" ]]; then
             echo "TESTSERVICE-Auth-Backend ist nach dem Deployment nicht einsatzbereit."
             exit 1
           fi
+
           node - "$body_file" <<'NODE'
           const fs = require('fs');
           const p = process.argv[2];
           const d = JSON.parse(fs.readFileSync(p,'utf8'));
+
           if (d.ok !== true) throw new Error('Auth bootstrap-status ok=true fehlt');
           if (d.storageConfigured !== true) throw new Error('Auth: Azure-Speicher ist nicht konfiguriert');
           if (d.storageReachable !== true) throw new Error('Auth: Azure-Speicher ist nicht erreichbar');
-          console.log(`Auth-Backend bereit · Bootstrap=${d.bootstrapCompleted === true ? 'abgeschlossen' : 'offen'} · Benutzer=${d.userExists === true ? 'vorhanden' : 'nicht vorhanden'}`);
+
+          console.log(
+            `Auth-Backend bereit · Bootstrap=${d.bootstrapCompleted === true ? 'abgeschlossen' : 'offen'} · Benutzer=${d.userExists === true ? 'vorhanden' : 'nicht vorhanden'}`
+          );
           NODE
 
       - name: Verify live TESTSERVICE API host and state route
         shell: bash
         env:
-          TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          TESTSERVICE_URL: ${{ steps.live_testservice.outputs.url }}
         run: |
           set -euo pipefail
+
           if [[ -z "${TESTSERVICE_URL:-}" ]]; then
-            echo "Azure hat keine Testservice-URL zurückgegeben."
+            echo "Verifizierte Testservice-URL fehlt."
             exit 1
           fi
 
           body_file="$(mktemp)"
           trap 'rm -f "$body_file"' EXIT
-          code="$(curl -sS --connect-timeout 5 --max-time 20 \
-            -H 'Content-Type: application/json' \
-            -H 'Accept: application/json' \
-            -H 'X-ExportHUB-Environment: testservice' \
-            -X POST \
-            --data '{}' \
-            -o "$body_file" -w '%{http_code}' \
-            "$TESTSERVICE_URL/api/exporthub-state?mode=meta" || true)"
+
+          code="$(
+            curl -sS \
+              --connect-timeout 5 \
+              --max-time 20 \
+              -H 'Content-Type: application/json' \
+              -H 'Accept: application/json' \
+              -H 'X-ExportHUB-Environment: testservice' \
+              -X POST \
+              --data '{}' \
+              -o "$body_file" \
+              -w '%{http_code}' \
+              "$TESTSERVICE_URL/api/exporthub-state?mode=meta" || true
+          )"
 
           echo "State-Route HTTP=$code"
           cat "$body_file" || true
@@ -397,14 +557,16 @@ jobs:
       - name: Verify live TESTSERVICE version
         shell: bash
         env:
-          TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          TESTSERVICE_URL: ${{ steps.live_testservice.outputs.url }}
           EXPECTED_VERSION: ${{ steps.meta.outputs.version }}
         run: |
           set -u
+
           if [[ -z "${TESTSERVICE_URL:-}" ]]; then
-            echo "Azure hat keine Testservice-URL zurückgegeben."
+            echo "Verifizierte Testservice-URL fehlt."
             exit 1
           fi
+
           if [[ -z "${EXPECTED_VERSION:-}" ]]; then
             echo "Es wurde keine erwartete Testversion ermittelt."
             exit 1
@@ -424,6 +586,7 @@ jobs:
 
             : > "$tmp_direct"
             : > "$tmp_route"
+
             direct_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_direct" -w '%{http_code}' "$direct_url" || true)"
             route_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp_route" -w '%{http_code}' "$route_url" || true)"
 
@@ -449,7 +612,7 @@ jobs:
       - name: Publish TESTSERVICE address
         shell: bash
         env:
-          TESTSERVICE_URL: ${{ steps.deploy.outputs.static_web_app_url }}
+          TESTSERVICE_URL: ${{ steps.live_testservice.outputs.url }}
           EXPECTED_VERSION: ${{ steps.meta.outputs.version }}
         run: |
           {
@@ -461,5 +624,6 @@ jobs:
             echo
             echo "Direktprüfung: $TESTSERVICE_URL/TESTVERSION.html?v=${EXPECTED_VERSION#RC}"
           } >> "$GITHUB_STEP_SUMMARY"
+
           echo "ÖFFNEN: $TESTSERVICE_URL/test?v=${EXPECTED_VERSION#RC}"
           echo "DIREKT: $TESTSERVICE_URL/TESTVERSION.html?v=${EXPECTED_VERSION#RC}"
