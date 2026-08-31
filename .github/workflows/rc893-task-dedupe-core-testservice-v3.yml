@@ -1,0 +1,311 @@
+name: RC893 Task Dedupe Core TESTSERVICE v3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: exporthub-rc893-task-dedupe-core
+  cancel-in-progress: false
+
+jobs:
+  repair-testservice:
+    name: RC893 task dedupe core
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout RC892 main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard RC892 confirmed baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f TESTVERSION.html
+
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+          required={
+            "RC892 BUILD":"var BUILD=Object.freeze({version:'RC892',cache:'892',loginReturn:'/TESTVERSION.html?v=892'});",
+            "Aufgaben-Seite RC874":"let base=dedupeVisibleTasksRC874(rawOpen).map(t=>({...t,eowner:effectiveOwner(t)}));",
+            "RC885 Workspace":"/* exporthub-rc885-clean-workspace-v4 */",
+            "RC885 Rohfilter":"return tasks().filter(function(t){return t && !isDone(t)})",
+            "Index218":"function openTasksForWeek",
+            "RC892 Render":"/* exporthub-rc892-render-rootfix */",
+            "RC892 Avis":"rc892LieferAvisBtn",
+            "RC892 Grid":"rc892-shipment-grid"
+          }
+          missing=[label for label,needle in required.items() if needle not in src]
+          if missing:
+              raise SystemExit("Baseline fehlt: "+", ".join(missing))
+          print("RC892 bestätigte Baseline vorhanden.")
+          PY
+
+      - name: RED reproduce confirmed duplicate task sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+          if "ExportHUBTaskSourceRC893" in src:
+              raise SystemExit("RC893 bereits vorhanden")
+
+          old="let base=dedupeVisibleTasksRC874(rawOpen).map(t=>({...t,eowner:effectiveOwner(t)}));"
+          if old not in src:
+              raise SystemExit("Aufgaben-Seite RC874 Quelle fehlt")
+
+          marker=src.find("/* exporthub-rc885-clean-workspace-v4 */")
+          workspace=src[marker:marker+90000]
+          if "return tasks().filter(function(t){return t && !isDone(t)})" not in workspace:
+              raise SystemExit("RC885 Rohfilter fehlt")
+
+          print("RED bestätigt: Aufgaben-Seite und RC885 verwenden unterschiedliche Quellen.")
+          print("Index218 wird in RC893 v3 bewusst nicht angenommen oder verändert.")
+          PY
+
+      - name: Snapshot source boundaries and Index218
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+
+          def find_function(source,name):
+              start=source.find("function "+name+"(")
+              if start<0: raise SystemExit(name+" fehlt")
+              brace=source.find("{",start)
+              depth=0; quote=""; esc=False; line=False; block=False
+              i=brace
+              while i<len(source):
+                  c=source[i]; n=source[i+1] if i+1<len(source) else ""
+                  if line:
+                      if c=="\n": line=False
+                      i+=1; continue
+                  if block:
+                      if c=="*" and n=="/": block=False; i+=2; continue
+                      i+=1; continue
+                  if quote:
+                      if esc: esc=False; i+=1; continue
+                      if c=="\\": esc=True; i+=1; continue
+                      if c==quote: quote=""
+                      i+=1; continue
+                  if c=="/" and n=="/": line=True; i+=2; continue
+                  if c=="/" and n=="*": block=True; i+=2; continue
+                  if c in ("'",'"',"`"): quote=c; i+=1; continue
+                  if c=="{": depth+=1
+                  elif c=="}":
+                      depth-=1
+                      if depth==0: return source[start:i+1]
+                  i+=1
+              raise SystemExit(name+" Ende fehlt")
+
+          planner=find_function(src,"openTasksForWeek")
+          Path("/tmp/rc893_planner.sha").write_text(hashlib.sha256(planner.encode()).hexdigest())
+
+          for k,v in {
+            "script_open":src.lower().count("<script"),
+            "script_close":src.lower().count("</script>"),
+            "style_open":src.lower().count("<style"),
+            "style_close":src.lower().count("</style>")
+          }.items():
+              Path("/tmp/rc893_"+k).write_text(str(v))
+          PY
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ExportHUB Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Create immutable RC892 backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="backup-before-rc893-v3-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Backup bereits vorhanden: $TAG"
+          else
+            git tag -a "$TAG" -m "Backup before RC893 task dedupe core"
+            git push origin "refs/tags/$TAG"
+          fi
+
+      - name: Apply RC893 task dedupe core
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          payload=(
+            "ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCmltcG9ydCBiYXNlNjQKCnA9UGF0aCgiVEVTVFZFUlNJT04uaHRtbCIpCnNyYz1wLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQoKZGVmIGZpbmRfZnVuY3Rpb24o"
+            "c291cmNlLG5hbWUsc3RhcnRfYXQ9MCk6CiAgICBtYXJrZXI9ImZ1bmN0aW9uICIrbmFtZSsiKCIKICAgIHN0YXJ0PXNvdXJjZS5maW5kKG1hcmtlcixzdGFydF9hdCkKICAgIGlmIHN0YXJ0PDA6CiAgICAgICAg"
+            "cmFpc2UgU3lzdGVtRXhpdChuYW1lKyI6IEZ1bmt0aW9uIG5pY2h0IGdlZnVuZGVuIikKICAgIGJyYWNlPXNvdXJjZS5maW5kKCJ7IixzdGFydCkKICAgIGlmIGJyYWNlPDA6CiAgICAgICAgcmFpc2UgU3lzdGVt"
+            "RXhpdChuYW1lKyI6IMO2ZmZuZW5kZSBLbGFtbWVyIGZlaGx0IikKICAgIGRlcHRoPTAKICAgIHF1b3RlPSIiCiAgICBlc2M9RmFsc2UKICAgIGxpbmU9RmFsc2UKICAgIGJsb2NrPUZhbHNlCiAgICBpPWJyYWNl"
+            "CiAgICB3aGlsZSBpPGxlbihzb3VyY2UpOgogICAgICAgIGM9c291cmNlW2ldCiAgICAgICAgbj1zb3VyY2VbaSsxXSBpZiBpKzE8bGVuKHNvdXJjZSkgZWxzZSAiIgogICAgICAgIGlmIGxpbmU6CiAgICAgICAg"
+            "ICAgIGlmIGM9PSJcbiI6IGxpbmU9RmFsc2UKICAgICAgICAgICAgaSs9MTsgY29udGludWUKICAgICAgICBpZiBibG9jazoKICAgICAgICAgICAgaWYgYz09IioiIGFuZCBuPT0iLyI6CiAgICAgICAgICAgICAg"
+            "ICBibG9jaz1GYWxzZTsgaSs9MjsgY29udGludWUKICAgICAgICAgICAgaSs9MTsgY29udGludWUKICAgICAgICBpZiBxdW90ZToKICAgICAgICAgICAgaWYgZXNjOgogICAgICAgICAgICAgICAgZXNjPUZhbHNl"
+            "OyBpKz0xOyBjb250aW51ZQogICAgICAgICAgICBpZiBjPT0iXFwiOgogICAgICAgICAgICAgICAgZXNjPVRydWU7IGkrPTE7IGNvbnRpbnVlCiAgICAgICAgICAgIGlmIGM9PXF1b3RlOiBxdW90ZT0iIgogICAg"
+            "ICAgICAgICBpKz0xOyBjb250aW51ZQogICAgICAgIGlmIGM9PSIvIiBhbmQgbj09Ii8iOgogICAgICAgICAgICBsaW5lPVRydWU7IGkrPTI7IGNvbnRpbnVlCiAgICAgICAgaWYgYz09Ii8iIGFuZCBuPT0iKiI6"
+            "CiAgICAgICAgICAgIGJsb2NrPVRydWU7IGkrPTI7IGNvbnRpbnVlCiAgICAgICAgaWYgYyBpbiAoIiciLCciJywiYCIpOgogICAgICAgICAgICBxdW90ZT1jOyBpKz0xOyBjb250aW51ZQogICAgICAgIGlmIGM9"
+            "PSJ7IjoKICAgICAgICAgICAgZGVwdGgrPTEKICAgICAgICBlbGlmIGM9PSJ9IjoKICAgICAgICAgICAgZGVwdGgtPTEKICAgICAgICAgICAgaWYgZGVwdGg9PTA6CiAgICAgICAgICAgICAgICByZXR1cm4geyJz"
+            "dGFydCI6c3RhcnQsImVuZCI6aSsxLCJzb3VyY2UiOnNvdXJjZVtzdGFydDppKzFdfQogICAgICAgIGkrPTEKICAgIHJhaXNlIFN5c3RlbUV4aXQobmFtZSsiOiBGdW5rdGlvbnNlbmRlIGZlaGx0IikKCmlmICIv"
+            "KiBleHBvcnRodWItcmM4OTMtY2Fub25pY2FsLXRhc2stc291cmNlICovIiBpbiBzcmM6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJSQzg5MyBUYXNrIFNvdXJjZSBiZXJlaXRzIHZvcmhhbmRlbiIpCgpkZWR1cGU9"
+            "ZmluZF9mdW5jdGlvbihzcmMsImRlZHVwZVZpc2libGVUYXNrc1JDODc0IikKcGF5bG9hZD0oCiAgICAiTHlvZ1pYaHdiM0owYUhWaUxYSmpPRGt6TFdOaGJtOXVhV05oYkMxMFlYTnJMWE52ZFhKalpTQXFMd3Az"
+            "YVc1a2IzY3VSWGh3YjNKMFNGVkNWR0Z6YTFOdmRYSmpaVkpET0RrelBVOWlhbVZqZEM1bWNtVmxlbVVvZXdvZ0lIWmxjbk5wYjI0NkoxSkRPRGt6Snl3S0lDQnZjR1Z1VkdGeiIKICAgICJhM002Wm5WdVkzUnBi"
+            "MjRvYjNCMGFXOXVjeWw3Q2lBZ0lDQnZjSFJwYjI1elBXOXdkR2x2Ym5OOGZIdDlPd29nSUNBZ2RtRnlJSE4wUFNoMGVYQmxiMllnYzNSaGRHVWhQVDBuZFc1a1pXWnBibVZrSnlZbWMzUmhkR1VtSm5SNWNHVnZa"
+            "aUJ6ZEdGMFpUMDlQU2R2WW1wbFkzUW5LVDl6IgogICAgImRHRjBaVHA3ZlRzS0lDQWdJSFpoY2lCc2FYTjBQVUZ5Y21GNUxtbHpRWEp5WVhrb2MzUXVkR0Z6YTNNcFAzTjBMblJoYzJ0ek9sdGRPd29nSUNBZ2Rt"
+            "RnlJSEpoZHoxc2FYTjBMbVpwYkhSbGNpaG1kVzVqZEdsdmJpaDBLWHNLSUNBZ0lDQWdjbVYwZFhKdUlDRWhLQW9nSUNBZ0lDQWciCiAgICAiSUhRZ0ppWUtJQ0FnSUNBZ0lDQWhkR0Z6YTBOdmJYQnNaWFJsWkZK"
+            "RE56YzNLSFFwSUNZbUNpQWdJQ0FnSUNBZ2RHRnphMDFsWVc1cGJtZG1kV3hTUXpneE9DaDBLU0FtSmdvZ0lDQWdJQ0FnSUNGMFlYTnJUR2x1YTJWa1ZHVnpkRk5vYVhCdFpXNTBVa000TVRnb2RDa0tJQ0FnSUNB"
+            "ZyIKICAgICJLVHNLSUNBZ0lIMHBPd29nSUNBZ2RtRnlJR0poYzJVOVpHVmtkWEJsVm1semFXSnNaVlJoYzJ0elVrTTROelFvY21GM0tUc0tDaUFnSUNCcFppaHZjSFJwYjI1ekxtMXBibVZQYm14NVBUMDlkSEox"
+            "WlNsN0NpQWdJQ0FnSUhaaGNpQjFQVzUxYkd3N0NpQWdJQ0FnSUhSeWVYc0tJQ0FnIgogICAgIklDQWdJQ0IxUFNoMGVYQmxiMllnWTNWeWNtVnVkRlZ6WlhJaFBUMG5kVzVrWldacGJtVmtKeVltWTNWeWNtVnVk"
+            "RlZ6WlhJcGZId0tJQ0FnSUNBZ0lDQWdJSE4wTG1OMWNuSmxiblJWYzJWeWZId0tJQ0FnSUNBZ0lDQWdJSE4wTG5WelpYSjhmQW9nSUNBZ0lDQWdJQ0FnYm5Wc2JEc0siCiAgICAiSUNBZ0lDQWdmV05oZEdOb0tG"
+            "OHBld29nSUNBZ0lDQWdJSFU5YzNRdVkzVnljbVZ1ZEZWelpYSjhmSE4wTG5WelpYSjhmRzUxYkd3N0NpQWdJQ0FnSUgwS0NpQWdJQ0FnSUdaMWJtTjBhVzl1SUc0b2RpbDdDaUFnSUNBZ0lDQWdjbVYwZFhKdUlG"
+            "TjBjbWx1WnloMlBUMXVkV3hzUHljbiIKICAgICJPbllwTG5SeWFXMG9LUzUwYjB4dmQyVnlRMkZ6WlNncE93b2dJQ0FnSUNCOUNnb2dJQ0FnSUNCMllYSWdkWE5sY2s1aGJXVTliaWdLSUNBZ0lDQWdJQ0FvZFNZ"
+            "bUtIVXVkWE5sY254OGRTNTFjMlZ5Ym1GdFpYeDhkUzVzYjJkcGJueDhkUzV1WVcxbGZIeDFMbVJwYzNCc1lYbE9ZVzFsIgogICAgIktTbDhmQW9nSUNBZ0lDQWdJSE4wTG1OMWNuSmxiblJWYzJWeVRtRnRaWHg4"
+            "Q2lBZ0lDQWdJQ0FnSnljS0lDQWdJQ0FnS1RzS0NpQWdJQ0FnSUdsbUtIVnpaWEpPWVcxbEtYc0tJQ0FnSUNBZ0lDQmlZWE5sUFdKaGMyVXVabWxzZEdWeUtHWjFibU4wYVc5dUtIUXBld29nSUNBZ0lDQWciCiAg"
+            "ICAiSUNBZ2RtRnlJRzkzYm1WeVBXNG9kQ1ltS0hRdWIzZHVaWEo4ZkhRdVlYTnphV2R1WldWOGZIUXVaVzkzYm1WeWZId25KeWtwT3dvZ0lDQWdJQ0FnSUNBZ2FXWW9iM2R1WlhJOVBUMG5ZV3hzWlNjcGNtVjBk"
+            "WEp1SUhSeWRXVTdDaUFnSUNBZ0lDQWdJQ0JwWmlnaGIzZHVaWElwY21WMCIKICAgICJkWEp1SUdaaGJITmxPd29nSUNBZ0lDQWdJQ0FnY21WMGRYSnVJRzkzYm1WeVBUMDlkWE5sY2s1aGJXVWdmSHdLSUNBZ0lD"
+            "QWdJQ0FnSUNBZ2IzZHVaWEl1YVc1a1pYaFBaaWgxYzJWeVRtRnRaU2srUFRBZ2ZId0tJQ0FnSUNBZ0lDQWdJQ0FnZFhObGNrNWhiV1V1YVc1a1pYaFBaaWh2IgogICAgImQyNWxjaWsrUFRBN0NpQWdJQ0FnSUNB"
+            "Z2ZTazdDaUFnSUNBZ0lIMEtJQ0FnSUgwS0NpQWdJQ0J5WlhSMWNtNGdZbUZ6WlM1emJHbGpaU2dwT3dvZ0lIMEtmU2s3IgopCmNhbm9uaWNhbD1iYXNlNjQuYjY0ZGVjb2RlKHBheWxvYWQpLmRlY29kZSgidXRm"
+            "LTgiKQpzcmM9c3JjWzpkZWR1cGVbImVuZCJdXSsiXG4iK2Nhbm9uaWNhbCsiXG4iK3NyY1tkZWR1cGVbImVuZCJdOl0KCm9sZF9iYXNlPSJsZXQgYmFzZT1kZWR1cGVWaXNpYmxlVGFza3NSQzg3NChyYXdPcGVu"
+            "KS5tYXAodD0+KHsuLi50LGVvd25lcjplZmZlY3RpdmVPd25lcih0KX0pKTsiCm5ld19iYXNlPSJsZXQgYmFzZT13aW5kb3cuRXhwb3J0SFVCVGFza1NvdXJjZVJDODkzLm9wZW5UYXNrcyh7bWluZU9ubHk6ZmFs"
+            "c2V9KS5tYXAodD0+KHsuLi50LGVvd25lcjplZmZlY3RpdmVPd25lcih0KX0pKTsiCmlmIHNyYy5jb3VudChvbGRfYmFzZSkhPTE6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJBdWZnYWJlbi1TZWl0ZTogZXJ3YXJ0"
+            "ZXRlIFJDODc0LVplaWxlIG5pY2h0IGVpbmRldXRpZzogIitzdHIoc3JjLmNvdW50KG9sZF9iYXNlKSkpCnNyYz1zcmMucmVwbGFjZShvbGRfYmFzZSxuZXdfYmFzZSwxKQoKbWFya2VyPXNyYy5maW5kKCIvKiBl"
+            "eHBvcnRodWItcmM4ODUtY2xlYW4td29ya3NwYWNlLXY0ICovIikKaWYgbWFya2VyPDA6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJSQzg4NSBXb3Jrc3BhY2UgZmVobHQiKQoKZm49ZmluZF9mdW5jdGlvbihzcmMs"
+            "InRhc2tPcGVuTGlzdCIsbWFya2VyKQpyYXc9InJldHVybiB0YXNrcygpLmZpbHRlcihmdW5jdGlvbih0KXtyZXR1cm4gdCAmJiAhaXNEb25lKHQpfSkiCmlmIHJhdyBub3QgaW4gZm5bInNvdXJjZSJdOgogICAg"
+            "cmFpc2UgU3lzdGVtRXhpdCgiUkM4ODUgdGFza09wZW5MaXN0IFJvaGZpbHRlciBmZWhsdCIpCgpyZXBsYWNlbWVudD0iIiJmdW5jdGlvbiB0YXNrT3Blbkxpc3QoKXsKICAgIGlmKHdpbmRvdy5FeHBvcnRIVUJU"
+            "YXNrU291cmNlUkM4OTMmJnR5cGVvZiB3aW5kb3cuRXhwb3J0SFVCVGFza1NvdXJjZVJDODkzLm9wZW5UYXNrcz09PSdmdW5jdGlvbicpewogICAgICByZXR1cm4gd2luZG93LkV4cG9ydEhVQlRhc2tTb3VyY2VS"
+            "Qzg5My5vcGVuVGFza3Moe21pbmVPbmx5OnRydWV9KQogICAgfQogICAgcmV0dXJuIHRhc2tzKCkuZmlsdGVyKGZ1bmN0aW9uKHQpe3JldHVybiB0ICYmICFpc0RvbmUodCl9KQogIH0iIiIKc3JjPXNyY1s6Zm5b"
+            "InN0YXJ0Il1dK3JlcGxhY2VtZW50K3NyY1tmblsiZW5kIl06XQoKb2xkX2J1aWxkPSJ2YXIgQlVJTEQ9T2JqZWN0LmZyZWV6ZSh7dmVyc2lvbjonUkM4OTInLGNhY2hlOic4OTInLGxvZ2luUmV0dXJuOicvVEVT"
+            "VFZFUlNJT04uaHRtbD92PTg5Mid9KTsiCm5ld19idWlsZD0idmFyIEJVSUxEPU9iamVjdC5mcmVlemUoe3ZlcnNpb246J1JDODkzJyxjYWNoZTonODkzJyxsb2dpblJldHVybjonL1RFU1RWRVJTSU9OLmh0bWw/"
+            "dj04OTMnfSk7IgppZiBzcmMuY291bnQob2xkX2J1aWxkKSE9MToKICAgIHJhaXNlIFN5c3RlbUV4aXQoIlJDODkyIEJVSUxEIG5pY2h0IGVpbmRldXRpZyIpCnNyYz1zcmMucmVwbGFjZShvbGRfYnVpbGQsbmV3"
+            "X2J1aWxkLDEpCgpzcmM9c3JjLnJlcGxhY2UoIiB2ZXJzaW9uOidSQzg5MicsIiwiIHZlcnNpb246J1JDODkzJywiLDEpCgpwLndyaXRlX3RleHQoc3JjLGVuY29kaW5nPSJ1dGYtOCIpCnByaW50KCJSQzg5MyBB"
+            "dWZnYWJlbi1EZWR1cGUtQ29yZSBlaW5nZWJhdXQ7IEluZGV4MjE4IG5pY2h0IHZlcsOkbmRlcnQuIikK"
+          )
+          script=base64.b64decode(payload).decode()
+          exec(compile(script,"<rc893_patch>","exec"))
+          PY
+
+      - name: GREEN verify canonical tasks and untouched Index218
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+
+          for needle in (
+            "var BUILD=Object.freeze({version:'RC893',cache:'893',loginReturn:'/TESTVERSION.html?v=893'});",
+            "/* exporthub-rc893-canonical-task-source */",
+            "ExportHUBTaskSourceRC893.openTasks({mineOnly:false})",
+            "ExportHUBTaskSourceRC893.openTasks({mineOnly:true})",
+            "/* exporthub-rc892-render-rootfix */",
+            "rc892LieferAvisBtn",
+            "rc892-shipment-grid"
+          ):
+              if needle not in src:
+                  raise SystemExit("Fehlt nach Patch: "+needle)
+
+          old="let base=dedupeVisibleTasksRC874(rawOpen).map(t=>({...t,eowner:effectiveOwner(t)}));"
+          if old in src:
+              raise SystemExit("Aufgaben-Seite verwendet noch alte parallele Quelle")
+
+          def find_function(source,name):
+              start=source.find("function "+name+"(")
+              if start<0: raise SystemExit(name+" fehlt")
+              brace=source.find("{",start)
+              depth=0; quote=""; esc=False; line=False; block=False
+              i=brace
+              while i<len(source):
+                  c=source[i]; n=source[i+1] if i+1<len(source) else ""
+                  if line:
+                      if c=="\n": line=False
+                      i+=1; continue
+                  if block:
+                      if c=="*" and n=="/": block=False; i+=2; continue
+                      i+=1; continue
+                  if quote:
+                      if esc: esc=False; i+=1; continue
+                      if c=="\\": esc=True; i+=1; continue
+                      if c==quote: quote=""
+                      i+=1; continue
+                  if c=="/" and n=="/": line=True; i+=2; continue
+                  if c=="/" and n=="*": block=True; i+=2; continue
+                  if c in ("'",'"',"`"): quote=c; i+=1; continue
+                  if c=="{": depth+=1
+                  elif c=="}":
+                      depth-=1
+                      if depth==0: return source[start:i+1]
+                  i+=1
+              raise SystemExit(name+" Ende fehlt")
+
+          planner=find_function(src,"openTasksForWeek")
+          before=Path("/tmp/rc893_planner.sha").read_text().strip()
+          after=hashlib.sha256(planner.encode()).hexdigest()
+          if before!=after:
+              raise SystemExit("Index218 wurde verändert; RC893 v3 darf den Planner nicht anfassen")
+
+          expected={
+            "script_open":int(Path("/tmp/rc893_script_open").read_text()),
+            "script_close":int(Path("/tmp/rc893_script_close").read_text()),
+            "style_open":int(Path("/tmp/rc893_style_open").read_text()),
+            "style_close":int(Path("/tmp/rc893_style_close").read_text())
+          }
+          actual={
+            "script_open":src.lower().count("<script"),
+            "script_close":src.lower().count("</script>"),
+            "style_open":src.lower().count("<style"),
+            "style_close":src.lower().count("</style>")
+          }
+          if expected!=actual:
+              raise SystemExit("HTML-Grenzen verändert")
+
+          print("GREEN: Aufgaben/Arbeitsfokus/Warncenter gemeinsame Quelle; Index218 unverändert.")
+          PY
+
+      - name: Verify TESTSERVICE-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t CHANGED < <(git diff --name-only)
+          if [[ "${#CHANGED[@]}" -ne 1 || "${CHANGED[0]}" != "TESTVERSION.html" ]]; then
+            echo "::error::Nur TESTVERSION.html darf geändert werden."
+            printf ' - %s\n' "${CHANGED[@]}"
+            exit 1
+          fi
+
+      - name: Commit RC893 TESTSERVICE
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add TESTVERSION.html
+          git commit -m "TESTSERVICE RC893: unify task list source without touching planner"
+          git push origin main
+
+      - name: RC893 summary
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo "## ExportHUB RC893 v3"
+            echo
+            echo "- Aufgaben-Seite und RC885 Arbeitsfokus/Warncenter verwenden dieselbe deduplizierte Aufgabenquelle"
+            echo "- Dashboard zeigt aktuellen Benutzer plus 'Alle'"
+            echo "- Index218 Aufgabenplaner wurde per SHA256 vor/nach Patch nachweislich nicht verändert"
+            echo "- RC892 Render/Lieferavis/Sendungsdaten bleiben erhalten"
+            echo "- Planner-Reparatur erfolgt separat nach Analyse seiner tatsächlichen Quelle"
+          } >> "$GITHUB_STEP_SUMMARY"
