@@ -1,0 +1,453 @@
+name: RC886 TESTSERVICE API Hotfix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: exporthub-rc886-testservice-api-hotfix
+  cancel-in-progress: false
+
+jobs:
+  hotfix-testservice:
+    name: RC886 same-origin API hotfix
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout RC885 main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Diagnose and guard RC885 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f TESTVERSION.html
+          grep -Fq "version:'RC885',cache:'885',loginReturn:'/TESTVERSION.html?v=885'" TESTVERSION.html
+          grep -Fq "/* exporthub-rc885-clean-workspace-v4 */" TESTVERSION.html
+
+          echo "=== ExportHUB API markers in current TESTVERSION ==="
+          grep -o "AZURE_ROUTE_BLOCKED" TESTVERSION.html | wc -l | xargs echo "AZURE_ROUTE_BLOCKED occurrences:"
+          grep -o "/api/exporthub-[A-Za-z0-9_-]*" TESTVERSION.html | sort -u | head -50 || true
+
+          if ! grep -Fq "AZURE_ROUTE_BLOCKED" TESTVERSION.html; then
+            echo "::error::Die bekannte AZURE_ROUTE_BLOCKED-Fehlerbehandlung wurde nicht gefunden."
+            exit 1
+          fi
+
+          if ! grep -Eq "/api/exporthub-(state|auth|auth-probe)" TESTVERSION.html; then
+            echo "::error::Keine erwartete ExportHUB-API-Route in TESTVERSION gefunden."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8",errors="replace")
+
+          class V(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.script=0
+                  self.style=0
+                  self.parts=[]
+              def handle_starttag(self,tag,attrs):
+                  t=tag.lower()
+                  if t=="script": self.script+=1
+                  elif t=="style": self.style+=1
+              def handle_endtag(self,tag):
+                  t=tag.lower()
+                  if t=="script" and self.script: self.script-=1
+                  elif t=="style" and self.style: self.style-=1
+              def handle_data(self,data):
+                  if not self.script and not self.style:
+                      self.parts.append(data)
+
+          p=V()
+          p.feed(src)
+          p.close()
+          visible="\n".join(p.parts)
+
+          bad=[
+              "function applyFixedBlocks()",
+              "window.open('about:blank'",
+              'window.open("about:blank"',
+              "function warningData()"
+          ]
+          leaks=[x for x in bad if x in visible]
+          if leaks:
+              raise SystemExit("RC885 ist bereits vor dem API-Hotfix beschädigt: "+", ".join(leaks))
+
+          marker=src.find("AZURE_ROUTE_BLOCKED")
+          if marker < 0:
+              raise SystemExit("AZURE_ROUTE_BLOCKED fehlt.")
+
+          open_pos=src.rfind("<script",0,marker)
+          open_end=src.find(">",open_pos)
+          close_pos=src.find("</script>",marker)
+
+          if open_pos < 0 or open_end < 0 or close_pos < 0:
+              raise SystemExit("Scriptblock der API-Fehlerbehandlung konnte nicht sicher bestimmt werden.")
+
+          if src.find("</script>",open_end,marker) >= 0:
+              raise SystemExit("AZURE_ROUTE_BLOCKED liegt nicht innerhalb des erwarteten Scriptblocks.")
+
+          open_tag=src[open_pos:open_end+1].lower()
+          if "application/json" in open_tag or "application/ld+json" in open_tag:
+              raise SystemExit("API-Fehlerbehandlung liegt in einem nicht ausführbaren Scriptblock.")
+
+          Path("/tmp/rc886_api_script_open").write_text(str(open_pos))
+          Path("/tmp/rc886_api_script_open_end").write_text(str(open_end))
+          Path("/tmp/rc886_script_open_count").write_text(str(src.lower().count("<script")))
+          Path("/tmp/rc886_script_close_count").write_text(str(src.lower().count("</script>")))
+          Path("/tmp/rc886_style_open_count").write_text(str(src.lower().count("<style")))
+          Path("/tmp/rc886_style_close_count").write_text(str(src.lower().count("</style>")))
+
+          print("OK: API-Fehlerbehandlung liegt in einem klassischen Scriptblock.")
+          PY
+
+      - name: Regression test same-origin API rule
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          function oldBehavior(url){ return url; }
+          function fixedBehavior(url,origin){
+            var u=new URL(url,origin);
+            if(/^\/api\/exporthub(?:-|\/|$)/i.test(u.pathname||'')){
+              return new URL((u.pathname||'')+(u.search||'')+(u.hash||''),origin).href;
+            }
+            return u.href;
+          }
+
+          var origin='https://testservice.example';
+          var legacy='https://production.example/api/exporthub-state?team=1';
+
+          if(oldBehavior(legacy)===origin+'/api/exporthub-state?team=1'){
+            throw new Error('RED-Test ungültig: Altverhalten ist bereits same-origin');
+          }
+          console.log('RED bestätigt: alte URL bleibt auf fremdem Origin.');
+
+          var result=fixedBehavior(legacy,origin);
+          if(result!==origin+'/api/exporthub-state?team=1'){
+            throw new Error('GREEN fehlgeschlagen: '+result);
+          }
+
+          var external='https://carrier.example/api/rates';
+          if(fixedBehavior(external,origin)!==external){
+            throw new Error('Externe Nicht-ExportHUB-API darf nicht umgeschrieben werden.');
+          }
+
+          console.log('GREEN bestätigt: nur /api/exporthub-* wird auf Testservice-Origin gesetzt.');
+          NODE
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ExportHUB Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Create immutable RC885 backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="backup-clean-rc885-before-rc886-api-${GITHUB_RUN_ID}"
+          git tag -a "${TAG}" -m "Clean RC885 before TESTSERVICE API hotfix RC886"
+          git push origin "refs/tags/${TAG}"
+
+      - name: Patch TESTVERSION API behavior only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+
+          p=Path("TESTVERSION.html")
+          src=p.read_text(encoding="utf-8")
+
+          old_build="var BUILD=Object.freeze({version:'RC885',cache:'885',loginReturn:'/TESTVERSION.html?v=885'});"
+          new_build="var BUILD=Object.freeze({version:'RC886',cache:'886',loginReturn:'/TESTVERSION.html?v=886'});"
+          if src.count(old_build)!=1:
+              raise SystemExit("RC885 BUILD nicht eindeutig gefunden.")
+          src=src.replace(old_build,new_build,1)
+
+          old_release=(
+              " version:'RC885',\n"
+              " date:'30.08.2026',\n"
+              " title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',"
+          )
+          new_release=(
+              " version:'RC886',\n"
+              " date:'31.08.2026',\n"
+              " title:'TESTSERVICE API-Aufrufe auf same-origin abgesichert',"
+          )
+          if old_release in src:
+              src=src.replace(old_release,new_release,1)
+
+          # Replace only the misleading instruction if it exists.
+          src=src.replace(
+              "Lade die mitgelieferte staticwebapp.config.json hoch.",
+              "Der Testservice verwendet für ExportHUB-API-Aufrufe jetzt dieselbe Testservice-Adresse. Die Anmeldung wird nicht automatisch neu gestartet."
+          )
+
+          payload=(
+            "LyogZXhwb3J0aHViLXJjODg2LXRlc3RzZXJ2aWNlLWFwaS1ob3RmaXggKi8KKGZ1bmN0aW9uKCl7CiAgJ3VzZSBzdHJpY3QnOwoKICBpZih3aW5kb3cuX19FWFBPUlRIVUJfUkM4ODZfQVBJX0hPVEZJWF9fKSBy"
+            "ZXR1cm47CiAgd2luZG93Ll9fRVhQT1JUSFVCX1JDODg2X0FQSV9IT1RGSVhfXyA9IHRydWU7CgogIHZhciBuYXRpdmVGZXRjaCA9IHdpbmRvdy5mZXRjaCAmJiB3aW5kb3cuZmV0Y2guYmluZCh3aW5kb3cpOwog"
+            "IGlmKHR5cGVvZiBuYXRpdmVGZXRjaCAhPT0gJ2Z1bmN0aW9uJykgcmV0dXJuOwoKICB2YXIgZGlhZ25vc3RpY3MgPSB7CiAgICB2ZXJzaW9uOiAnUkM4ODYnLAogICAgaW5zdGFsbGVkQXQ6IG5ldyBEYXRlKCku"
+            "dG9JU09TdHJpbmcoKSwKICAgIHJld3JpdHRlbjogMCwKICAgIGxhc3RSZXF1ZXN0OiAnJywKICAgIGxhc3RFcnJvcjogbnVsbAogIH07CgogIGZ1bmN0aW9uIGFzVXJsKHZhbHVlKXsKICAgIHRyeXsKICAgICAg"
+            "aWYodmFsdWUgaW5zdGFuY2VvZiBVUkwpIHJldHVybiBuZXcgVVJMKHZhbHVlLmhyZWYpOwogICAgICBpZih0eXBlb2YgUmVxdWVzdCAhPT0gJ3VuZGVmaW5lZCcgJiYgdmFsdWUgaW5zdGFuY2VvZiBSZXF1ZXN0"
+            "KSByZXR1cm4gbmV3IFVSTCh2YWx1ZS51cmwsIHdpbmRvdy5sb2NhdGlvbi5ocmVmKTsKICAgICAgcmV0dXJuIG5ldyBVUkwoU3RyaW5nKHZhbHVlKSwgd2luZG93LmxvY2F0aW9uLmhyZWYpOwogICAgfWNhdGNo"
+            "KF8pewogICAgICByZXR1cm4gbnVsbDsKICAgIH0KICB9CgogIGZ1bmN0aW9uIGlzRXhwb3J0SHViQXBpVXJsKHVybCl7CiAgICByZXR1cm4gISEodXJsICYmIC9eXC9hcGlcL2V4cG9ydGh1Yig/Oi18XC98JCkv"
+            "aS50ZXN0KHVybC5wYXRobmFtZSB8fCAnJykpOwogIH0KCiAgZnVuY3Rpb24gc2FtZU9yaWdpbkFwaVVybCh1cmwpewogICAgaWYoIWlzRXhwb3J0SHViQXBpVXJsKHVybCkpIHJldHVybiB1cmw7CiAgICByZXR1"
+            "cm4gbmV3IFVSTCgKICAgICAgKHVybC5wYXRobmFtZSB8fCAnJykgKyAodXJsLnNlYXJjaCB8fCAnJykgKyAodXJsLmhhc2ggfHwgJycpLAogICAgICB3aW5kb3cubG9jYXRpb24ub3JpZ2luCiAgICApOwogIH0K"
+            "CiAgZnVuY3Rpb24gaXNBdXRoUmVkaXJlY3RSZXNwb25zZShyZXNwb25zZSl7CiAgICB0cnl7CiAgICAgIGlmKHJlc3BvbnNlICYmIHJlc3BvbnNlLnR5cGUgPT09ICdvcGFxdWVyZWRpcmVjdCcpIHJldHVybiB0"
+            "cnVlOwogICAgICB2YXIgZmluYWxVcmwgPSByZXNwb25zZSAmJiByZXNwb25zZS51cmwgPyBuZXcgVVJMKHJlc3BvbnNlLnVybCwgd2luZG93LmxvY2F0aW9uLmhyZWYpIDogbnVsbDsKICAgICAgaWYoZmluYWxV"
+            "cmwgJiYgL1wvXC5hdXRoXC8oPzpsb2dpbnxtZXxsb2dvdXQpL2kudGVzdChmaW5hbFVybC5wYXRobmFtZSB8fCAnJykpIHJldHVybiB0cnVlOwogICAgICBpZihyZXNwb25zZSAmJiByZXNwb25zZS5yZWRpcmVj"
+            "dGVkICYmIGZpbmFsVXJsICYmIC9cL1wuYXV0aFwvL2kudGVzdChmaW5hbFVybC5wYXRobmFtZSB8fCAnJykpIHJldHVybiB0cnVlOwogICAgfWNhdGNoKF8pe30KICAgIHJldHVybiBmYWxzZTsKICB9CgogIGZ1"
+            "bmN0aW9uIGlzSHRtbEFwaVJlc3BvbnNlKHJlc3BvbnNlKXsKICAgIHRyeXsKICAgICAgdmFyIGN0ID0gcmVzcG9uc2UgJiYgcmVzcG9uc2UuaGVhZGVycyAmJiByZXNwb25zZS5oZWFkZXJzLmdldAogICAgICAg"
+            "ID8gU3RyaW5nKHJlc3BvbnNlLmhlYWRlcnMuZ2V0KCdjb250ZW50LXR5cGUnKSB8fCAnJykudG9Mb3dlckNhc2UoKQogICAgICAgIDogJyc7CiAgICAgIHJldHVybiBjdC5pbmRleE9mKCd0ZXh0L2h0bWwnKSA+"
+            "PSAwIHx8IGN0LmluZGV4T2YoJ2FwcGxpY2F0aW9uL3hodG1sK3htbCcpID49IDA7CiAgICB9Y2F0Y2goXyl7CiAgICAgIHJldHVybiBmYWxzZTsKICAgIH0KICB9CgogIGZ1bmN0aW9uIHJvdXRlRXJyb3Ioa2lu"
+            "ZCwgcmVxdWVzdFVybCwgcmVzcG9uc2UpewogICAgdmFyIGVyciA9IG5ldyBFcnJvcigKICAgICAga2luZCA9PT0gJ2F1dGgtcmVkaXJlY3QnCiAgICAgICAgPyAnRGVyIEV4cG9ydEhVQi1UZXN0c2VydmljZSBo"
+            "YXQgZGVuIEFQSS1BdWZydWYgenVyIE1pY3Jvc29mdC1Bbm1lbGR1bmcgdW1nZWxlaXRldC4gRGllIEFubWVsZHVuZyB3aXJkIG5pY2h0IGVybmV1dCBnZXN0YXJ0ZXQ7IFRlYW1kYXRlbiBrw7ZubmVuIG1pdCBk"
+            "ZXJzZWxiZW4gU2l0enVuZyBlcm5ldXQgZ2VsYWRlbiB3ZXJkZW4uJwogICAgICAgIDogJ0RlciBFeHBvcnRIVUItVGVzdHNlcnZpY2UgaGF0IHN0YXR0IGVpbmVyIEFQSS1BbnR3b3J0IEhUTUwgZ2VsaWVmZXJ0"
+            "LiBEaWUgQW5tZWxkdW5nIHdpcmQgbmljaHQgZXJuZXV0IGdlc3RhcnRldDsgVGVhbWRhdGVuIGvDtm5uZW4gbWl0IGRlcnNlbGJlbiBTaXR6dW5nIGVybmV1dCBnZWxhZGVuIHdlcmRlbi4nCiAgICApOwogICAg"
+            "ZXJyLm5hbWUgPSAnRXhwb3J0SHViQXBpUm91dGVFcnJvcic7CiAgICBlcnIuY29kZSA9ICdBWlVSRV9ST1VURV9CTE9DS0VEJzsKICAgIGVyci5raW5kID0ga2luZDsKICAgIGVyci5yZXF1ZXN0VXJsID0gcmVx"
+            "dWVzdFVybCB8fCAnJzsKICAgIGVyci5zdGF0dXMgPSByZXNwb25zZSAmJiB0eXBlb2YgcmVzcG9uc2Uuc3RhdHVzID09PSAnbnVtYmVyJyA/IHJlc3BvbnNlLnN0YXR1cyA6IDA7CiAgICBkaWFnbm9zdGljcy5s"
+            "YXN0RXJyb3IgPSB7CiAgICAgIGNvZGU6IGVyci5jb2RlLAogICAgICBraW5kOiBlcnIua2luZCwKICAgICAgdXJsOiBlcnIucmVxdWVzdFVybCwKICAgICAgc3RhdHVzOiBlcnIuc3RhdHVzLAogICAgICBhdDog"
+            "bmV3IERhdGUoKS50b0lTT1N0cmluZygpCiAgICB9OwogICAgcmV0dXJuIGVycjsKICB9CgogIGZ1bmN0aW9uIHJlcXVlc3RGb3IoaW5wdXQsIGluaXQpewogICAgdmFyIG9yaWdpbmFsVXJsID0gYXNVcmwoaW5w"
+            "dXQpOwogICAgaWYoIWlzRXhwb3J0SHViQXBpVXJsKG9yaWdpbmFsVXJsKSkgcmV0dXJuIHsgYXBpOmZhbHNlLCBpbnB1dDppbnB1dCwgaW5pdDppbml0LCB1cmw6b3JpZ2luYWxVcmwgfTsKCiAgICB2YXIgcmV3"
+            "cml0dGVuID0gc2FtZU9yaWdpbkFwaVVybChvcmlnaW5hbFVybCk7CiAgICBkaWFnbm9zdGljcy5yZXdyaXR0ZW4rKzsKICAgIGRpYWdub3N0aWNzLmxhc3RSZXF1ZXN0ID0gcmV3cml0dGVuLmhyZWY7CgogICAg"
+            "dmFyIG5leHRJbml0ID0gT2JqZWN0LmFzc2lnbih7fSwgaW5pdCB8fCB7fSk7CiAgICBuZXh0SW5pdC5jcmVkZW50aWFscyA9ICdzYW1lLW9yaWdpbic7CiAgICBuZXh0SW5pdC5yZWRpcmVjdCA9ICdtYW51YWwn"
+            "OwoKICAgIGlmKHR5cGVvZiBSZXF1ZXN0ICE9PSAndW5kZWZpbmVkJyAmJiBpbnB1dCBpbnN0YW5jZW9mIFJlcXVlc3QpewogICAgICB2YXIgYmFzZSA9IG5ldyBSZXF1ZXN0KHJld3JpdHRlbi5ocmVmLCBpbnB1"
+            "dCk7CiAgICAgIHJldHVybiB7IGFwaTp0cnVlLCBpbnB1dDpuZXcgUmVxdWVzdChiYXNlLCBuZXh0SW5pdCksIGluaXQ6dW5kZWZpbmVkLCB1cmw6cmV3cml0dGVuIH07CiAgICB9CgogICAgcmV0dXJuIHsgYXBp"
+            "OnRydWUsIGlucHV0OnJld3JpdHRlbi5ocmVmLCBpbml0Om5leHRJbml0LCB1cmw6cmV3cml0dGVuIH07CiAgfQoKICB3aW5kb3cuZmV0Y2ggPSBmdW5jdGlvbihpbnB1dCwgaW5pdCl7CiAgICB2YXIgcmVxID0g"
+            "cmVxdWVzdEZvcihpbnB1dCwgaW5pdCk7CiAgICBpZighcmVxLmFwaSkgcmV0dXJuIG5hdGl2ZUZldGNoKGlucHV0LCBpbml0KTsKCiAgICByZXR1cm4gbmF0aXZlRmV0Y2gocmVxLmlucHV0LCByZXEuaW5pdCku"
+            "dGhlbihmdW5jdGlvbihyZXNwb25zZSl7CiAgICAgIGlmKGlzQXV0aFJlZGlyZWN0UmVzcG9uc2UocmVzcG9uc2UpKXsKICAgICAgICB0aHJvdyByb3V0ZUVycm9yKCdhdXRoLXJlZGlyZWN0JywgcmVxLnVybCAm"
+            "JiByZXEudXJsLmhyZWYsIHJlc3BvbnNlKTsKICAgICAgfQogICAgICBpZihpc0h0bWxBcGlSZXNwb25zZShyZXNwb25zZSkpewogICAgICAgIHRocm93IHJvdXRlRXJyb3IoJ2h0bWwtcmVzcG9uc2UnLCByZXEu"
+            "dXJsICYmIHJlcS51cmwuaHJlZiwgcmVzcG9uc2UpOwogICAgICB9CiAgICAgIHJldHVybiByZXNwb25zZTsKICAgIH0pOwogIH07CgogIGRpYWdub3N0aWNzLm5vcm1hbGl6ZSA9IGZ1bmN0aW9uKHZhbHVlKXsK"
+            "ICAgIHZhciB1ID0gYXNVcmwodmFsdWUpOwogICAgcmV0dXJuIHUgPyBzYW1lT3JpZ2luQXBpVXJsKHUpLmhyZWYgOiAnJzsKICB9OwogIGRpYWdub3N0aWNzLmlzRXhwb3J0SHViQXBpVXJsID0gZnVuY3Rpb24o"
+            "dmFsdWUpewogICAgcmV0dXJuIGlzRXhwb3J0SHViQXBpVXJsKGFzVXJsKHZhbHVlKSk7CiAgfTsKCiAgd2luZG93Ll9fRVhQT1JUSFVCX1RFU1RTRVJWSUNFX0FQSV9ESUFHTk9TVElDU19fID0gZGlhZ25vc3Rp"
+            "Y3M7Cn0pKCk7Cg=="
+          )
+          js=base64.b64decode(payload).decode("utf-8")
+          marker="/* exporthub-rc886-testservice-api-hotfix */"
+          if marker in src:
+              raise SystemExit("RC886 API-Hotfix ist bereits vorhanden.")
+
+          api_marker=src.find("AZURE_ROUTE_BLOCKED")
+          if api_marker < 0:
+              raise SystemExit("AZURE_ROUTE_BLOCKED nicht gefunden.")
+
+          open_pos=src.rfind("<script",0,api_marker)
+          open_end=src.find(">",open_pos)
+          close_pos=src.find("</script>",api_marker)
+          if open_pos < 0 or open_end < 0 or close_pos < 0:
+              raise SystemExit("API-Scriptblock nicht sicher gefunden.")
+          if src.find("</script>",open_end,api_marker) >= 0:
+              raise SystemExit("API-Marker liegt nicht innerhalb desselben Scriptblocks.")
+
+          # Insert directly after the already-existing opening tag.
+          # No new script/style boundaries are introduced.
+          insert_at=open_end+1
+          src=src[:insert_at]+"\n"+js+"\n"+src[insert_at:]
+
+          p.write_text(src,encoding="utf-8")
+          print("RC886 API-Hotfix in bestehenden API-Scriptblock eingefügt.")
+          PY
+
+      - name: Verify RC886 API hotfix and unchanged script boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          grep -Fq "version:'RC886',cache:'886',loginReturn:'/TESTVERSION.html?v=886'" TESTVERSION.html
+          grep -Fq "/* exporthub-rc886-testservice-api-hotfix */" TESTVERSION.html
+          grep -Fq "window.location.origin" TESTVERSION.html
+          grep -Fq "redirect = 'manual'" TESTVERSION.html
+          grep -Fq "credentials = 'same-origin'" TESTVERSION.html
+          grep -Fq "__EXPORTHUB_TESTSERVICE_API_DIAGNOSTICS__" TESTVERSION.html
+
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8",errors="replace")
+          expected={
+              "script_open":int(Path("/tmp/rc886_script_open_count").read_text()),
+              "script_close":int(Path("/tmp/rc886_script_close_count").read_text()),
+              "style_open":int(Path("/tmp/rc886_style_open_count").read_text()),
+              "style_close":int(Path("/tmp/rc886_style_close_count").read_text()),
+          }
+          actual={
+              "script_open":src.lower().count("<script"),
+              "script_close":src.lower().count("</script>"),
+              "style_open":src.lower().count("<style"),
+              "style_close":src.lower().count("</style>"),
+          }
+          if actual!=expected:
+              raise SystemExit("RC886 hat Script-/Style-Grenzen verändert: "+repr({"vorher":expected,"nachher":actual}))
+
+          class V(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.script=0
+                  self.style=0
+                  self.parts=[]
+              def handle_starttag(self,tag,attrs):
+                  t=tag.lower()
+                  if t=="script": self.script+=1
+                  elif t=="style": self.style+=1
+              def handle_endtag(self,tag):
+                  t=tag.lower()
+                  if t=="script" and self.script: self.script-=1
+                  elif t=="style" and self.style: self.style-=1
+              def handle_data(self,data):
+                  if not self.script and not self.style:
+                      self.parts.append(data)
+
+          p=V()
+          p.feed(src)
+          p.close()
+          visible="\n".join(p.parts)
+          bad=[
+              "function applyFixedBlocks()",
+              "window.open('about:blank'",
+              'window.open("about:blank"',
+              "function requestFor(",
+              "exporthub-rc886-testservice-api-hotfix"
+          ]
+          leaks=[x for x in bad if x in visible]
+          if leaks:
+              raise SystemExit("JavaScript als sichtbarer Seitentext: "+", ".join(leaks))
+
+          # Ensure the hotfix is located before the legacy route-error marker in the same script.
+          hot=src.find("/* exporthub-rc886-testservice-api-hotfix */")
+          legacy=src.find("AZURE_ROUTE_BLOCKED")
+          if hot < 0 or legacy < 0 or hot >= legacy:
+              raise SystemExit("RC886 API-Hotfix wird nicht vor der bisherigen Fehlerbehandlung ausgeführt.")
+
+          if src.find("</script>",hot,legacy) >= 0:
+              raise SystemExit("RC886 API-Hotfix und bisherige API-Fehlerbehandlung liegen nicht im selben Scriptblock.")
+
+          print("RC886 source safety PASS")
+          PY
+
+      - name: Verify TESTSERVICE-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! git diff --quiet --             index.html             production-version.js             api             pickup.html             location.html             customer-avis.html             staticwebapp.config.json             staticwebapp.testservice.config.json
+          then
+            echo "::error::Produktions-/API-/Config-Dateien wurden verändert."
+            exit 1
+          fi
+
+          mapfile -t CHANGED < <(git diff --name-only)
+          if [[ "${#CHANGED[@]}" -ne 1 || "${CHANGED[0]}" != "TESTVERSION.html" ]]; then
+            echo "::error::RC886 darf ausschließlich TESTVERSION.html ändern."
+            printf ' - %s\n' "${CHANGED[@]}"
+            exit 1
+          fi
+
+      - name: Commit RC886 TESTSERVICE API hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add TESTVERSION.html
+          git commit -m "TESTSERVICE RC886: same-origin ExportHUB API hotfix"
+          git push origin main
+
+      - name: Snapshot TESTSERVICE deploy runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run list             --workflow exporthub-testservice.yml             --limit 50             --json databaseId             --jq '.[].databaseId' > /tmp/testservice_runs_before.txt || true
+
+      - name: Dispatch TESTSERVICE deploy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api             --method POST             "repos/${GITHUB_REPOSITORY}/actions/workflows/exporthub-testservice.yml/dispatches"             -f ref=main
+
+      - name: Wait for RC886 TESTSERVICE deploy
+        id: deploy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID=""
+
+          for attempt in $(seq 1 60); do
+            mapfile -t IDS < <(
+              gh run list                 --workflow exporthub-testservice.yml                 --event workflow_dispatch                 --branch main                 --limit 20                 --json databaseId                 --jq '.[].databaseId'
+            )
+
+            for id in "${IDS[@]}"; do
+              if ! grep -qx "${id}" /tmp/testservice_runs_before.txt 2>/dev/null; then
+                RUN_ID="${id}"
+                break
+              fi
+            done
+
+            [[ -n "${RUN_ID}" ]] && break
+            sleep 5
+          done
+
+          if [[ -z "${RUN_ID}" ]]; then
+            echo "::error::TESTSERVICE-Deploy wurde nicht gefunden."
+            exit 1
+          fi
+
+          echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+          gh run watch "${RUN_ID}" --exit-status
+
+      - name: Verify RC886 deploy success
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_RUN_ID: ${{ steps.deploy.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          CONCLUSION="$(gh run view "${DEPLOY_RUN_ID}" --json conclusion --jq '.conclusion')"
+          if [[ "${CONCLUSION}" != "success" ]]; then
+            echo "::error::TESTSERVICE-Deploy endete mit ${CONCLUSION}."
+            exit 1
+          fi
+          echo "RC886 TESTSERVICE API-Hotfix wurde erfolgreich deployed."
+
+      - name: RC886 summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## RC886 TESTSERVICE API Hotfix"
+            echo
+            echo "- Basis: RC885 Clean Workspace v4"
+            echo "- Änderung: nur TESTVERSION.html"
+            echo "- /api/exporthub-* wird auf window.location.origin normalisiert"
+            echo "- API-Cookies: credentials=same-origin"
+            echo "- Microsoft-/Auth-Redirects: redirect=manual, keine automatische Neuanmeldung"
+            echo "- HTML statt API-Antwort wird separat erkannt"
+            echo "- Bestehende Teamdaten-Wiederholung nutzt dieselbe Sitzung"
+            echo "- Keine neuen HTML-Script-/Style-Grenzen"
+            echo "- Produktion, APIs und Static-Web-App-Konfiguration unverändert"
+            echo
+            echo "Nach grünem Deploy Testseite mit Strg+F5 öffnen und Teamdaten erneut laden."
+          } >> "$GITHUB_STEP_SUMMARY"
