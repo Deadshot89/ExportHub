@@ -290,7 +290,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC885',cache:'885',loginReturn:'/TESTVERSION.html?v=885'});
+var BUILD=Object.freeze({version:'RC886',cache:'886',loginReturn:'/TESTVERSION.html?v=886'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -12905,6 +12905,135 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 <script data-inline-source="assets/clean-bootstrap.js" id="exporthub-rc353-storage-auth-owner">
+/* exporthub-rc886-testservice-api-hotfix */
+(function(){
+  'use strict';
+
+  if(window.__EXPORTHUB_RC886_API_HOTFIX__) return;
+  window.__EXPORTHUB_RC886_API_HOTFIX__ = true;
+
+  var nativeFetch = window.fetch && window.fetch.bind(window);
+  if(typeof nativeFetch !== 'function') return;
+
+  var diagnostics = {
+    version: 'RC886',
+    installedAt: new Date().toISOString(),
+    rewritten: 0,
+    lastRequest: '',
+    lastError: null
+  };
+
+  function asUrl(value){
+    try{
+      if(value instanceof URL) return new URL(value.href);
+      if(typeof Request !== 'undefined' && value instanceof Request) return new URL(value.url, window.location.href);
+      return new URL(String(value), window.location.href);
+    }catch(_){
+      return null;
+    }
+  }
+
+  function isExportHubApiUrl(url){
+    return !!(url && /^\/api\/exporthub(?:-|\/|$)/i.test(url.pathname || ''));
+  }
+
+  function sameOriginApiUrl(url){
+    if(!isExportHubApiUrl(url)) return url;
+    return new URL(
+      (url.pathname || '') + (url.search || '') + (url.hash || ''),
+      window.location.origin
+    );
+  }
+
+  function isAuthRedirectResponse(response){
+    try{
+      if(response && response.type === 'opaqueredirect') return true;
+      var finalUrl = response && response.url ? new URL(response.url, window.location.href) : null;
+      if(finalUrl && /\/\.auth\/(?:login|me|logout)/i.test(finalUrl.pathname || '')) return true;
+      if(response && response.redirected && finalUrl && /\/\.auth\//i.test(finalUrl.pathname || '')) return true;
+    }catch(_){}
+    return false;
+  }
+
+  function isHtmlApiResponse(response){
+    try{
+      var ct = response && response.headers && response.headers.get
+        ? String(response.headers.get('content-type') || '').toLowerCase()
+        : '';
+      return ct.indexOf('text/html') >= 0 || ct.indexOf('application/xhtml+xml') >= 0;
+    }catch(_){
+      return false;
+    }
+  }
+
+  function routeError(kind, requestUrl, response){
+    var err = new Error(
+      kind === 'auth-redirect'
+        ? 'Der ExportHUB-Testservice hat den API-Aufruf zur Microsoft-Anmeldung umgeleitet. Die Anmeldung wird nicht erneut gestartet; Teamdaten können mit derselben Sitzung erneut geladen werden.'
+        : 'Der ExportHUB-Testservice hat statt einer API-Antwort HTML geliefert. Die Anmeldung wird nicht erneut gestartet; Teamdaten können mit derselben Sitzung erneut geladen werden.'
+    );
+    err.name = 'ExportHubApiRouteError';
+    err.code = 'AZURE_ROUTE_BLOCKED';
+    err.kind = kind;
+    err.requestUrl = requestUrl || '';
+    err.status = response && typeof response.status === 'number' ? response.status : 0;
+    diagnostics.lastError = {
+      code: err.code,
+      kind: err.kind,
+      url: err.requestUrl,
+      status: err.status,
+      at: new Date().toISOString()
+    };
+    return err;
+  }
+
+  function requestFor(input, init){
+    var originalUrl = asUrl(input);
+    if(!isExportHubApiUrl(originalUrl)) return { api:false, input:input, init:init, url:originalUrl };
+
+    var rewritten = sameOriginApiUrl(originalUrl);
+    diagnostics.rewritten++;
+    diagnostics.lastRequest = rewritten.href;
+
+    var nextInit = Object.assign({}, init || {});
+    nextInit.credentials = 'same-origin';
+    nextInit.redirect = 'manual';
+
+    if(typeof Request !== 'undefined' && input instanceof Request){
+      var base = new Request(rewritten.href, input);
+      return { api:true, input:new Request(base, nextInit), init:undefined, url:rewritten };
+    }
+
+    return { api:true, input:rewritten.href, init:nextInit, url:rewritten };
+  }
+
+  window.fetch = function(input, init){
+    var req = requestFor(input, init);
+    if(!req.api) return nativeFetch(input, init);
+
+    return nativeFetch(req.input, req.init).then(function(response){
+      if(isAuthRedirectResponse(response)){
+        throw routeError('auth-redirect', req.url && req.url.href, response);
+      }
+      if(isHtmlApiResponse(response)){
+        throw routeError('html-response', req.url && req.url.href, response);
+      }
+      return response;
+    });
+  };
+
+  diagnostics.normalize = function(value){
+    var u = asUrl(value);
+    return u ? sameOriginApiUrl(u).href : '';
+  };
+  diagnostics.isExportHubApiUrl = function(value){
+    return isExportHubApiUrl(asUrl(value));
+  };
+
+  window.__EXPORTHUB_TESTSERVICE_API_DIAGNOSTICS__ = diagnostics;
+})();
+
+
 (function(){
 'use strict';
 const BUILD=window.EXPORTHUB_BUILD||{version:'ExportHUB',cache:'0',loginReturn:'/'};
@@ -13196,7 +13325,7 @@ async function jsonFetch(url,options){
   if(res.ok&&saveRequest&&(!cleanText||/^(?:ok|saved|success|true)(?:|\s|$)/i.test(cleanText))){data={ok:true,message:cleanText||'Gespeichert'}}
   else{
    if(res.status===401||res.status===403||looksLikeHtml&&/login|auth|unauthorized|forbidden|microsoft/i.test(txt||'')){
-    const authError=new Error('Azure hat den ExportHUB-API-Aufruf blockiert oder zur Microsoft-Anmeldung umgeleitet. Lade die mitgelieferte staticwebapp.config.json hoch.');
+    const authError=new Error('Azure hat den ExportHUB-API-Aufruf blockiert oder zur Microsoft-Anmeldung umgeleitet. Der Testservice verwendet für ExportHUB-API-Aufrufe jetzt dieselbe Testservice-Adresse. Die Anmeldung wird nicht automatisch neu gestartet.');
     authError.code='AZURE_ROUTE_BLOCKED';authError.status=res.status;throw authError;
    }
    const snippet=cleanText.slice(0,180);
