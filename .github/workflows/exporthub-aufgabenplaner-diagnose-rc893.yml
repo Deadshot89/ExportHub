@@ -1,0 +1,360 @@
+name: ExportHUB Aufgabenplaner Diagnose TESTSERVICE
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-planner:
+    name: Diagnose Aufgabenplaner
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Guard RC893 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f TESTVERSION.html
+
+          grep -Fq "var BUILD=Object.freeze({version:'RC893',cache:'893',loginReturn:'/TESTVERSION.html?v=893'});" TESTVERSION.html
+          grep -Fq "function openTasksForWeek" TESTVERSION.html
+          grep -Fq "window.ExportHUBIndex218=Object.freeze" TESTVERSION.html
+          grep -Fq "/* exporthub-rc893-canonical-task-source */" TESTVERSION.html
+          grep -Fq "/* exporthub-rc892-render-rootfix */" TESTVERSION.html
+
+          echo "RC893 Baseline bestätigt."
+
+      - name: Diagnose planner source and task writers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, json, hashlib
+
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8",errors="replace")
+
+          def find_function(source,name,start_at=0):
+              marker="function "+name+"("
+              start=source.find(marker,start_at)
+              if start<0:
+                  return None
+              brace=source.find("{",start)
+              if brace<0:
+                  return None
+
+              depth=0
+              quote=""
+              esc=False
+              line=False
+              block=False
+              i=brace
+
+              while i<len(source):
+                  c=source[i]
+                  n=source[i+1] if i+1<len(source) else ""
+
+                  if line:
+                      if c=="\n": line=False
+                      i+=1
+                      continue
+
+                  if block:
+                      if c=="*" and n=="/":
+                          block=False
+                          i+=2
+                          continue
+                      i+=1
+                      continue
+
+                  if quote:
+                      if esc:
+                          esc=False
+                          i+=1
+                          continue
+                      if c=="\\":
+                          esc=True
+                          i+=1
+                          continue
+                      if c==quote:
+                          quote=""
+                      i+=1
+                      continue
+
+                  if c=="/" and n=="/":
+                      line=True
+                      i+=2
+                      continue
+
+                  if c=="/" and n=="*":
+                      block=True
+                      i+=2
+                      continue
+
+                  if c in ("'",'"',"`"):
+                      quote=c
+                      i+=1
+                      continue
+
+                  if c=="{":
+                      depth+=1
+                  elif c=="}":
+                      depth-=1
+                      if depth==0:
+                          return source[start:i+1]
+
+                  i+=1
+
+              return None
+
+          # ---- authoritative planner core
+          open_week=find_function(src,"openTasksForWeek")
+          if not open_week:
+              raise SystemExit("openTasksForWeek konnte nicht extrahiert werden")
+
+          Path("/tmp/openTasksForWeek.txt").write_text(open_week,encoding="utf-8")
+
+          reads=[]
+          for needle in (
+              "st().tasks",
+              "state.tasks",
+              "tasks()",
+              "ExportHUBTaskSourceRC893.openTasks",
+              "dedupeVisibleTasksRC874",
+              "taskCompletedRC777",
+              "taskMeaningfulRC818",
+              "taskLinkedTestShipmentRC818"
+          ):
+              if needle in open_week:
+                  reads.append(needle)
+
+          # ---- inventory interesting function declarations
+          names=re.findall(r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\(",src)
+          keywords=("task","planner","week","weekly","recurr","repeat","material","schedule","aufgab","woche")
+          interesting=[]
+
+          for name in names:
+              lname=name.lower()
+              if not any(k in lname for k in keywords):
+                  continue
+              fn=find_function(src,name)
+              if not fn:
+                  continue
+
+              interesting.append({
+                  "name":name,
+                  "sha256":hashlib.sha256(fn.encode()).hexdigest(),
+                  "length":len(fn),
+                  "reads_raw_tasks":any(x in fn for x in ("st().tasks","state.tasks","tasks()")),
+                  "reads_canonical":"ExportHUBTaskSourceRC893.openTasks" in fn,
+                  "writes_tasks":bool(re.search(
+                      r"(?:state|st\(\))\.tasks\s*(?:=|\.push\s*\(|\.splice\s*\()|"
+                      r"\b(?:addTask|createTask|pushTask|saveTask|materialize|ensureWeek)\s*\(",
+                      fn,
+                      flags=re.I
+                  )),
+                  "mentions_week":bool(re.search(r"week|woche|monday|montag|kw|calendar",fn,re.I)),
+                  "mentions_recurring":bool(re.search(r"repeat|recurr|wiederhol|weekly|wöch",fn,re.I))
+              })
+
+          # ---- direct task-array writers throughout the whole source
+          writer_patterns=[
+              ("state.tasks assignment",r"state\.tasks\s*="),
+              ("st().tasks assignment",r"st\(\)\.tasks\s*="),
+              ("state.tasks.push",r"state\.tasks\.push\s*\("),
+              ("st().tasks.push",r"st\(\)\.tasks\.push\s*\("),
+              ("tasks splice",r"(?:state\.tasks|st\(\)\.tasks)\.splice\s*\("),
+              ("addTask call",r"\baddTask\s*\("),
+              ("createTask call",r"\bcreateTask\s*\("),
+              ("materialize call",r"\bmaterial\w*\s*\("),
+              ("ensure week call",r"\bensure\w*Week\w*\s*\("),
+          ]
+
+          direct_writers=[]
+          for label,pat in writer_patterns:
+              hits=list(re.finditer(pat,src,re.I))
+              for hit in hits:
+                  a=max(0,hit.start()-180)
+                  b=min(len(src),hit.end()+260)
+                  snippet=re.sub(r"\s+"," ",src[a:b]).strip()
+                  direct_writers.append({
+                      "type":label,
+                      "position":hit.start(),
+                      "snippet":snippet[:700]
+                  })
+
+          # ---- references to openTasksForWeek
+          refs=[]
+          for m in re.finditer(r"\bopenTasksForWeek\s*\(",src):
+              a=max(0,m.start()-180)
+              b=min(len(src),m.end()+260)
+              refs.append({
+                  "position":m.start(),
+                  "snippet":re.sub(r"\s+"," ",src[a:b]).strip()[:700]
+              })
+
+          # ---- evidence for multiple planner renderers / registrations
+          planner_markers={
+              "Index218 API":src.count("window.ExportHUBIndex218=Object.freeze"),
+              "openTasksForWeek declarations":len(re.findall(r"\bfunction\s+openTasksForWeek\s*\(",src)),
+              "renderPlanner assignments":len(re.findall(r"\.renderPlanner\s*=",src)),
+              "planner render functions":len(re.findall(r"\bfunction\s+\w*Planner\w*\s*\(",src,re.I)),
+              "planner event listeners":len(re.findall(r"addEventListener\s*\([^)]*(?:planner|viewchange|sync|ready)",src,re.I))
+          }
+
+          # ---- candidate duplicate risks
+          risks=[]
+          if any(x in open_week for x in ("st().tasks","state.tasks","tasks()")) and \
+             "ExportHUBTaskSourceRC893.openTasks" not in open_week:
+              risks.append("openTasksForWeek liest eine Roh-Aufgabenquelle statt der RC893-Quelle")
+
+          raw_readers=[x["name"] for x in interesting if x["reads_raw_tasks"]]
+          canonical_readers=[x["name"] for x in interesting if x["reads_canonical"]]
+          writers=[x["name"] for x in interesting if x["writes_tasks"]]
+          recurrent=[x["name"] for x in interesting if x["mentions_recurring"]]
+
+          if len(writers)>1:
+              risks.append("Mehrere Planner-/Task-Funktionen können Aufgaben schreiben oder materialisieren")
+          if len(recurrent)>1:
+              risks.append("Mehrere Funktionen enthalten Wiederholungs-/Wochenlogik")
+          if planner_markers["renderPlanner assignments"]>1:
+              risks.append("Mehr als eine renderPlanner-Zuweisung gefunden")
+          if planner_markers["openTasksForWeek declarations"]!=1:
+              risks.append("openTasksForWeek ist nicht genau einmal deklariert")
+
+          report={
+              "rc":"RC893",
+              "openTasksForWeek":{
+                  "sha256":hashlib.sha256(open_week.encode()).hexdigest(),
+                  "length":len(open_week),
+                  "reads":reads,
+                  "source":open_week
+              },
+              "plannerMarkers":planner_markers,
+              "interestingFunctions":interesting,
+              "directTaskWriters":direct_writers,
+              "openTasksForWeekReferences":refs,
+              "rawTaskReaders":raw_readers,
+              "canonicalTaskReaders":canonical_readers,
+              "taskWriterFunctions":writers,
+              "recurringFunctions":recurrent,
+              "risks":risks
+          }
+
+          Path("planner-diagnose-rc893.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2),
+              encoding="utf-8"
+          )
+
+          # Compact markdown for job summary
+          lines=[]
+          lines.append("## ExportHUB Aufgabenplaner Diagnose")
+          lines.append("")
+          lines.append("**Stand:** RC893")
+          lines.append("")
+          lines.append("### openTasksForWeek")
+          lines.append("")
+          lines.append("- SHA256: `"+report["openTasksForWeek"]["sha256"]+"`")
+          lines.append("- Länge: "+str(report["openTasksForWeek"]["length"])+" Zeichen")
+          lines.append("- Datenquellen: "+(", ".join(reads) if reads else "keine bekannte Quelle erkannt"))
+          lines.append("")
+          lines.append("### Planner-Struktur")
+          lines.append("")
+          for k,v in planner_markers.items():
+              lines.append("- "+k+": **"+str(v)+"**")
+          lines.append("")
+          lines.append("### Funktionen mit Roh-Aufgabenzugriff")
+          lines.append("")
+          if raw_readers:
+              for x in raw_readers:
+                  lines.append("- `"+x+"`")
+          else:
+              lines.append("- keine")
+          lines.append("")
+          lines.append("### Funktionen mit RC893-Aufgabenquelle")
+          lines.append("")
+          if canonical_readers:
+              for x in canonical_readers:
+                  lines.append("- `"+x+"`")
+          else:
+              lines.append("- keine")
+          lines.append("")
+          lines.append("### Kandidaten, die Aufgaben erzeugen/materialisieren")
+          lines.append("")
+          if writers:
+              for x in writers:
+                  lines.append("- `"+x+"`")
+          else:
+              lines.append("- keine über Funktionsanalyse erkannt")
+          lines.append("")
+          lines.append("### Wiederholungs-/Wochenlogik")
+          lines.append("")
+          if recurrent:
+              for x in recurrent:
+                  lines.append("- `"+x+"`")
+          else:
+              lines.append("- keine über Namens-/Inhaltsanalyse erkannt")
+          lines.append("")
+          lines.append("### Verdachtsmomente")
+          lines.append("")
+          if risks:
+              for x in risks:
+                  lines.append("- ⚠️ "+x)
+          else:
+              lines.append("- Keine eindeutige statische Dublettenursache erkannt.")
+          lines.append("")
+          lines.append("Der vollständige Quellbericht liegt als `planner-diagnose-rc893.json` im Workflow-Artefakt.")
+
+          Path("/tmp/planner-summary.md").write_text("\n".join(lines),encoding="utf-8")
+
+          print("\n".join(lines))
+          PY
+
+      - name: Verify diagnostic did not modify ExportHUB
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! git diff --quiet -- \
+            TESTVERSION.html \
+            index.html \
+            api \
+            customer-avis.html \
+            staticwebapp.config.json \
+            staticwebapp.testservice.config.json \
+            .github/workflows
+          then
+            echo "::error::Diagnose darf ExportHUB nicht verändern."
+            git diff --name-status
+            exit 1
+          fi
+
+          test -f planner-diagnose-rc893.json
+          test -s planner-diagnose-rc893.json
+
+          echo "Diagnose ist read-only."
+
+      - name: Publish planner diagnosis summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat /tmp/planner-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload planner diagnosis report
+        uses: actions/upload-artifact@v4
+        with:
+          name: exporthub-planner-diagnose-rc893
+          path: planner-diagnose-rc893.json
+          if-no-files-found: error
+          retention-days: 7
