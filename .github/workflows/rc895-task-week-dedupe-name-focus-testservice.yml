@@ -1,0 +1,371 @@
+name: RC895 Task Week Dedupe and Name Focus TESTSERVICE
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: exporthub-rc895-task-week-dedupe
+  cancel-in-progress: false
+
+jobs:
+  repair-testservice:
+    name: RC895 planner week dedupe
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout RC894 main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Guard RC894 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f TESTVERSION.html
+          grep -Fq "var BUILD=Object.freeze({version:'RC894',cache:'894',loginReturn:'/TESTVERSION.html?v=894'});" TESTVERSION.html
+          grep -Fq "/* exporthub-rc894-shipment-core */" TESTVERSION.html
+          grep -Fq 'id="exporthub-canonical-modules"' TESTVERSION.html
+          grep -Fq "window.ExportHUBIndex218=Object.freeze" TESTVERSION.html
+          grep -Fq "function openTasksForWeek" TESTVERSION.html
+          grep -Fq "function taskCard(t,displayDate)" TESTVERSION.html
+          grep -Fq "function dedupeTasksRC874" TESTVERSION.html
+
+          if grep -Fq "/* exporthub-rc895-task-week-dedupe */" TESTVERSION.html; then
+            echo "::error::RC895 marker already exists."
+            exit 1
+          fi
+
+      - name: RED reproduce duplicate week and task-name UI issues
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8",errors="strict")
+
+          def find_function(source,name):
+              marker="function "+name+"("
+              start=source.find(marker)
+              if start<0:return None
+              brace=source.find("{",start)
+              depth=0;quote="";esc=False;line=False;block=False;i=brace
+              while i<len(source):
+                  c=source[i];n=source[i+1] if i+1<len(source) else ""
+                  if line:
+                      if c=="\n":line=False
+                      i+=1;continue
+                  if block:
+                      if c=="*" and n=="/":block=False;i+=2;continue
+                      i+=1;continue
+                  if quote:
+                      if esc:esc=False;i+=1;continue
+                      if c=="\\":esc=True;i+=1;continue
+                      if c==quote:quote=""
+                      i+=1;continue
+                  if c=="/" and n=="/":line=True;i+=2;continue
+                  if c=="/" and n=="*":block=True;i+=2;continue
+                  if c in ("'",'"','`'):quote=c;i+=1;continue
+                  if c=="{":depth+=1
+                  elif c=="}":
+                      depth-=1
+                      if depth==0:return source[start:i+1]
+                  i+=1
+              return None
+
+          planner=None
+          for m in re.finditer(r'<script\b([^>]*)>(.*?)</script>',src,re.I|re.S):
+              attrs=m.group(1) or "";body=m.group(2)
+              if re.search(r'\bid=["\']exporthub-canonical-modules["\']',attrs,re.I):continue
+              if "window.ExportHUBIndex218=Object.freeze" in body and "function openTasksForWeek" in body:
+                  planner=body;break
+          if not planner:raise SystemExit("RED: executable Index218 planner not found")
+
+          open_fn=find_function(planner,"openTasksForWeek") or ""
+          card_fn=find_function(planner,"taskCard") or ""
+          problems=[]
+          if "logicalTaskKeyRC895" not in open_fn:
+              problems.append("planner does not collapse logical weekly duplicates across W36/W52 instances")
+          if "sourceWeekMatches(t,ws)" in open_fn and "dedupeTasksRC874(raw)" in open_fn:
+              problems.append("planner only uses RC874 identity dedupe after broad week membership")
+          if "<b>'+esc(t.title||t.name)+'</b>" in card_fn:
+              problems.append("task name has no dedicated primary visual class")
+          if "i218-task-actions" in card_fn and "rc895-task-date-actions" not in card_fn:
+              problems.append("date/action row is not visually secondary")
+
+          if len(problems)<4:
+              raise SystemExit("RED did not reproduce all RC895 issues: "+repr(problems))
+          print("RED reproduced:")
+          for p in problems:print(" -",p)
+          PY
+
+      - name: Snapshot canonical modules and HTML boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,hashlib,json
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+          m=re.search(r'<script\b[^>]*\bid=["\']exporthub-canonical-modules["\'][^>]*>(.*?)</script>',src,re.I|re.S)
+          if not m:raise SystemExit("Canonical module script missing")
+          Path("/tmp/rc895-canonical.sha").write_text(hashlib.sha256(m.group(1).encode()).hexdigest())
+          Path("/tmp/rc895-boundaries.json").write_text(json.dumps({
+              "script_open":src.lower().count("<script"),
+              "script_close":src.lower().count("</script>"),
+              "style_open":src.lower().count("<style"),
+              "style_close":src.lower().count("</style>")
+          }))
+          print("RC895 protected source snapshot captured")
+          PY
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ExportHUB Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Create immutable RC894 backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="backup-before-rc895-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Backup tag already exists and will be reused: $TAG"
+          else
+            git tag -a "$TAG" -m "Backup before RC895 task week dedupe"
+            git push origin "refs/tags/$TAG"
+            echo "Backup tag created: $TAG"
+          fi
+
+      - name: Apply RC895 planner core repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path=Path("TESTVERSION.html")
+          src=path.read_text(encoding="utf-8",errors="strict")
+
+          old_build="var BUILD=Object.freeze({version:'RC894',cache:'894',loginReturn:'/TESTVERSION.html?v=894'});"
+          new_build="var BUILD=Object.freeze({version:'RC895',cache:'895',loginReturn:'/TESTVERSION.html?v=895'});"
+          if src.count(old_build)!=1:
+              raise SystemExit("RC895: expected exactly one RC894 BUILD declaration")
+          src=src.replace(old_build,new_build,1)
+
+          def find_function(source,name):
+              marker="function "+name+"("
+              start=source.find(marker)
+              if start<0:return None
+              brace=source.find("{",start)
+              if brace<0:return None
+              depth=0;quote="";esc=False;line=False;block=False;i=brace
+              while i<len(source):
+                  c=source[i];n=source[i+1] if i+1<len(source) else ""
+                  if line:
+                      if c=="\n":line=False
+                      i+=1;continue
+                  if block:
+                      if c=="*" and n=="/":block=False;i+=2;continue
+                      i+=1;continue
+                  if quote:
+                      if esc:esc=False;i+=1;continue
+                      if c=="\\":esc=True;i+=1;continue
+                      if c==quote:quote=""
+                      i+=1;continue
+                  if c=="/" and n=="/":line=True;i+=2;continue
+                  if c=="/" and n=="*":block=True;i+=2;continue
+                  if c in ("'",'"','`'):quote=c;i+=1;continue
+                  if c=="{":depth+=1
+                  elif c=="}":
+                      depth-=1
+                      if depth==0:return (start,i+1,source[start:i+1])
+                  i+=1
+              return None
+
+          script_re=re.compile(r'<script\b([^>]*)>(.*?)</script>',re.I|re.S)
+          chosen=None
+          for m in script_re.finditer(src):
+              attrs=m.group(1) or "";body=m.group(2)
+              if re.search(r'\bid=["\']exporthub-canonical-modules["\']',attrs,re.I):continue
+              if "window.ExportHUBIndex218=Object.freeze" in body and "function openTasksForWeek" in body and "function taskCard(t,displayDate)" in body:
+                  chosen=m;break
+          if not chosen:
+              raise SystemExit("RC895: executable Index218 planner script not found")
+
+          body=chosen.group(2)
+          if "/* exporthub-rc895-task-week-dedupe */" in body:
+              raise SystemExit("RC895 marker already exists in planner")
+
+          open_fn=find_function(body,"openTasksForWeek")
+          if not open_fn:
+              raise SystemExit("RC895 openTasksForWeek missing")
+
+          open_new=r'''/* exporthub-rc895-task-week-dedupe */
+          function logicalTaskKeyRC895(t){return [low(t&&(t.title||t.name||'')),low(groupName(t)),low(t&&(t.originalDay||t.day||'')),low(t&&(t.owner||t.eowner||'Alle'))].join('|')}
+          function openTasksForWeek(ws){
+           var raw=[],end=localISO(addDays(mondayOf(ws),4));
+           (st().tasks||[]).forEach(function(t){if(!t||done(t)||!q(t.title||t.name)||isTest(t))return;var ed=effectiveDate(t),belongs=sourceWeekMatches(t,ws)||(ed&&ed>=ws&&ed<=end);if(belongs)raw.push(t)});
+           var visible=dedupeTasksRC874(raw),map=new Map();
+           visible.forEach(function(t,index){
+             var key=logicalTaskKeyRC895(t),ed=effectiveDate(t),score=0,order=Number(t&&t.masterOrder);
+             if(sourceWeekMatches(t,ws))score+=8;
+             if(q(t&&t.sourceWeekStart)===ws)score+=4;
+             if(ed&&ed>=ws&&ed<=end)score+=2;
+             if(q(t&&(t.weekKey||t.createdForWeek))===weekKey(ws))score+=1;
+             if(!Number.isFinite(order))order=999999;
+             var prev=map.get(key);
+             if(!prev||score>prev.score||(score===prev.score&&order<prev.order)||(score===prev.score&&order===prev.order&&index<prev.index))map.set(key,{task:t,score:score,order:order,index:index})
+           });
+           return Array.from(map.values()).sort(function(a,b){return a.order-b.order||a.index-b.index}).map(function(x){return x.task})
+          }'''
+          body=body[:open_fn[0]]+open_new+body[open_fn[1]:]
+
+          card_fn=find_function(body,"taskCard")
+          if not card_fn:
+              raise SystemExit("RC895 taskCard missing")
+          card_src=card_fn[2]
+          old_title="<b>'+esc(t.title||t.name)+'</b><small>"
+          new_title="<strong class=\"i218-task-name rc895-task-name\">'+esc(t.title||t.name)+'</strong><small class=\"rc895-task-meta\">"
+          if old_title not in card_src:
+              raise SystemExit("RC895 expected taskCard title markup not found")
+          card_src=card_src.replace(old_title,new_title,1)
+          card_src=card_src.replace('<div class="i218-task-actions">','<div class="i218-task-actions rc895-task-date-actions">',1)
+          body=body[:card_fn[0]]+card_src+body[card_fn[1]:]
+
+          render_fn=find_function(body,"render")
+          if not render_fn:
+              raise SystemExit("RC895 planner render missing")
+          render_src=render_fn[2]
+          # Install style at render time without adding another HTML style block.
+          needle="function render(){if(rendering||view()!=='planning')return false;"
+          if needle not in render_src:
+              raise SystemExit("RC895 expected planner render prefix not found")
+          render_src=render_src.replace(needle,needle+"ensureRC895PlannerStyle();",1)
+          body=body[:render_fn[0]]+render_src+body[render_fn[1]:]
+
+          style_helper=r'''
+          function ensureRC895PlannerStyle(){var s=document.getElementById('rc895PlannerStyle');if(s)return s;s=document.createElement('style');s.id='rc895PlannerStyle';s.textContent='#index218Planner .rc895-task-name{display:block!important;font-size:17px!important;line-height:1.2!important;font-weight:950!important;color:#0f172a!important;margin:0 0 5px!important}#index218Planner .rc895-task-meta{display:block!important;font-size:10px!important;color:#64748b!important;margin-bottom:4px!important}#index218Planner .rc895-task-date-actions{margin-top:7px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:center!important}#index218Planner .rc895-task-date-actions input[type="date"]{min-height:34px!important;height:34px!important;font-size:11px!important;padding:5px 8px!important;font-weight:650!important}#index218Planner .rc895-task-date-actions button{min-height:34px!important;padding:5px 10px!important;font-size:11px!important}@media(max-width:700px){#index218Planner .rc895-task-name{font-size:16px!important}}';(document.head||document.documentElement).appendChild(s);return s}
+          '''
+          card_pos=body.find("function taskCard(t,displayDate)")
+          if card_pos<0:
+              raise SystemExit("RC895 card insertion point missing")
+          body=body[:card_pos]+style_helper+body[card_pos:]
+
+          replacement=chosen.group(0).replace(chosen.group(2),body,1)
+          src=src[:chosen.start()]+replacement+src[chosen.end():]
+          path.write_text(src,encoding="utf-8")
+          print("RC895 planner core repair written")
+          PY
+
+      - name: GREEN verify RC895 source invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "var BUILD=Object.freeze({version:'RC895',cache:'895',loginReturn:'/TESTVERSION.html?v=895'});" TESTVERSION.html
+          grep -Fq "/* exporthub-rc895-task-week-dedupe */" TESTVERSION.html
+          grep -Fq "logicalTaskKeyRC895" TESTVERSION.html
+          grep -Fq "rc895-task-name" TESTVERSION.html
+          grep -Fq "rc895-task-date-actions" TESTVERSION.html
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,hashlib,json
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+          canonical=re.search(r'<script\b[^>]*\bid=["\']exporthub-canonical-modules["\'][^>]*>(.*?)</script>',src,re.I|re.S)
+          if not canonical:raise SystemExit("Canonical module script missing after RC895")
+          before=Path("/tmp/rc895-canonical.sha").read_text().strip()
+          after=hashlib.sha256(canonical.group(1).encode()).hexdigest()
+          if before!=after:raise SystemExit("Canonical module script changed during RC895")
+
+          bounds_before=json.loads(Path("/tmp/rc895-boundaries.json").read_text())
+          bounds_after={"script_open":src.lower().count("<script"),"script_close":src.lower().count("</script>"),"style_open":src.lower().count("<style"),"style_close":src.lower().count("</style>")}
+          if bounds_before!=bounds_after:raise SystemExit("HTML script/style boundaries changed")
+
+          target=None
+          for m in re.finditer(r'<script\b([^>]*)>(.*?)</script>',src,re.I|re.S):
+              attrs=m.group(1) or "";body=m.group(2)
+              if re.search(r'\bid=["\']exporthub-canonical-modules["\']',attrs,re.I):continue
+              if "/* exporthub-rc895-task-week-dedupe */" in body:target=body;break
+          if not target:raise SystemExit("RC895 executable planner script missing")
+
+          required=[
+              "logicalTaskKeyRC895(t)",
+              "sourceWeekMatches(t,ws))score+=8",
+              "q(t&&t.sourceWeekStart)===ws",
+              "weekKey(ws)",
+              "i218-task-name rc895-task-name",
+              "i218-task-actions rc895-task-date-actions"
+          ]
+          missing=[x for x in required if x not in target]
+          if missing:raise SystemExit("RC895 GREEN missing: "+repr(missing))
+          print("RC895 GREEN source verification passed")
+          PY
+
+      - name: Check modified planner script syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src=Path("TESTVERSION.html").read_text(encoding="utf-8")
+          for i,m in enumerate(re.finditer(r'<script\b([^>]*)>(.*?)</script>',src,re.I|re.S)):
+              body=m.group(2)
+              if "/* exporthub-rc895-task-week-dedupe */" in body:
+                  Path("/tmp/rc895-planner.js").write_text(body,encoding="utf-8")
+                  print("Extracted planner script",i,"length",len(body))
+                  break
+          else:raise SystemExit("RC895 planner script not found")
+          PY
+          node --check /tmp/rc895-planner.js
+
+      - name: Verify TESTSERVICE-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t CHANGED < <(git diff --name-only)
+          if [[ "${#CHANGED[@]}" -ne 1 || "${CHANGED[0]}" != "TESTVERSION.html" ]]; then
+            echo "::error::RC895 may only change TESTVERSION.html"
+            printf ' - %s\n' "${CHANGED[@]}"
+            exit 1
+          fi
+          git diff --check
+          git diff --stat
+          if ! git diff --quiet -- index.html api staticwebapp.config.json staticwebapp.testservice.config.json .github/workflows customer-avis.html; then
+            echo "::error::Production/API/workflows/customer-avis were modified."
+            exit 1
+          fi
+
+      - name: Commit RC895 TESTSERVICE
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add TESTVERSION.html
+          git commit -m "TESTSERVICE RC895: dedupe weekly tasks and prioritize task names"
+          git push origin main
+
+      - name: RC895 summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## ExportHUB RC895"
+            echo ""
+            echo "- Logical weekly duplicates collapsed by task + group + weekday + owner"
+            echo "- Exact selected-week instance wins over foreign week instances"
+            echo "- Task name is the visual focus"
+            echo "- Date and move controls are secondary"
+            echo "- Canonical module script protected by SHA-256"
+            echo "- Scope: TESTVERSION.html only"
+          } >> "$GITHUB_STEP_SUMMARY"
