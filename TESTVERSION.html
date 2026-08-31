@@ -290,7 +290,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC890',cache:'890',loginReturn:'/TESTVERSION.html?v=890'});
+var BUILD=Object.freeze({version:'RC891',cache:'891',loginReturn:'/TESTVERSION.html?v=891'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -2479,164 +2479,247 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
   (document.head||document.documentElement).appendChild(s);
 })();
 
-/* exporthub-rc890-dashboard-avis-stability */
+/* exporthub-rc891-layout-avis-render-fix */
 (function(){
   function norm(v){
-    return String(v||'').replace(/\s+/g,' ').trim().toLowerCase();
+    return String(v || '').replace(/\s+/g,' ').trim().toLowerCase();
   }
-  function text(el){
-    return norm(el && (el.textContent||el.innerText||''));
+  function txt(el){
+    return norm(el && (el.textContent || el.innerText || ''));
   }
-  function matchesText(el,rx){
-    return !!el && rx.test(text(el));
+  function isHeading(el, rx){
+    if(!el) return false;
+    var t = txt(el);
+    return !!t && rx.test(t);
+  }
+  function all(sel, root){
+    return Array.from((root || document).querySelectorAll(sel));
+  }
+  function unique(arr){
+    return arr.filter(function(x, i){ return x && arr.indexOf(x) === i; });
   }
   function findHeading(rx){
-    var nodes=document.querySelectorAll('h1,h2,h3,h4,h5,h6,strong,b,div,span');
+    var nodes = all('h1,h2,h3,h4,h5,h6,strong,b,legend,label,div,span');
     for(var i=0;i<nodes.length;i++){
-      if(matchesText(nodes[i],rx)) return nodes[i];
+      if(isHeading(nodes[i], rx)) return nodes[i];
     }
     return null;
   }
   function blockFor(el){
-    var cur=el;
-    while(cur && cur!==document.body){
-      var tag=(cur.tagName||'').toUpperCase();
-      var cls=String(cur.className||'');
-      if(tag==='SECTION' || tag==='ARTICLE') return cur;
-      if(/card|panel|section|tile|box|block|shell|wrap|container/i.test(cls)) return cur;
-      cur=cur.parentElement;
+    var cur = el;
+    while(cur && cur !== document.body){
+      var tag = (cur.tagName || '').toUpperCase();
+      var cls = String(cur.className || '');
+      if(tag === 'SECTION' || tag === 'ARTICLE' || /card|panel|section|tile|box|block|shell|wrap|container/i.test(cls)){
+        return cur;
+      }
+      cur = cur.parentElement;
     }
     return el ? el.parentElement : null;
   }
-  function setFullWidth(block){
-    if(!block) return;
-    block.style.gridColumn='1 / -1';
-    block.style.width='100%';
-    block.style.maxWidth='100%';
-    block.style.justifySelf='stretch';
-    block.style.alignSelf='stretch';
-    var p=block.parentElement;
-    if(p){
-      var cs=getComputedStyle(p);
-      if((cs.display||'').indexOf('grid')>=0){
-        p.style.gridTemplateColumns='minmax(0,1fr)';
-        p.style.alignItems='stretch';
+  function ensureStyle(){
+    if(document.getElementById('rc891PatchStyle')) return;
+    var s = document.createElement('style');
+    s.id = 'rc891PatchStyle';
+    s.textContent = [
+      '.rc891-fullwidth{grid-column:1 / -1 !important;width:100% !important;max-width:100% !important;justify-self:stretch !important;align-self:stretch !important;}',
+      '.rc891-onecol{grid-template-columns:minmax(0,1fr) !important;align-items:stretch !important;}',
+      '.rc891-sendungsdaten-fields{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:14px !important;align-items:start !important;}',
+      '.rc891-field-half{grid-column:span 1 !important;min-width:0 !important;}',
+      '.rc891-field-full{grid-column:1 / -1 !important;min-width:0 !important;width:100% !important;}',
+      '.rc891-sendungsdaten-fields textarea,.rc891-sendungsdaten-fields input,.rc891-sendungsdaten-fields select{width:100% !important;box-sizing:border-box !important;}',
+      '@media (max-width:900px){.rc891-sendungsdaten-fields{grid-template-columns:minmax(0,1fr) !important;}.rc891-field-half,.rc891-field-full{grid-column:1 / -1 !important;}}'
+    ].join('');
+    (document.head || document.documentElement).appendChild(s);
+  }
+  function setFullWidthFromHeading(rx){
+    var h = findHeading(rx);
+    if(!h) return null;
+    var block = blockFor(h);
+    if(!block) return null;
+    block.classList.add('rc891-fullwidth');
+    var p = block.parentElement;
+    if(p && String(getComputedStyle(p).display || '').indexOf('grid') >= 0){
+      p.classList.add('rc891-onecol');
+    }
+    return block;
+  }
+  function moveArbeitsfokusAfterToday(){
+    var todayBlock = setFullWidthFromHeading(/heute geplante sendungen/i);
+    var focusBlock = setFullWidthFromHeading(/arbeitsfokus/i);
+    setFullWidthFromHeading(/schnellzugriffe/i);
+    setFullWidthFromHeading(/sendungen und abholungen/i);
+    setFullWidthFromHeading(/abd-anfragen/i);
+
+    if(todayBlock && focusBlock && todayBlock.parentElement === focusBlock.parentElement){
+      if(todayBlock.nextElementSibling !== focusBlock){
+        todayBlock.parentElement.insertBefore(focusBlock, todayBlock.nextElementSibling);
       }
     }
   }
-  function applyFullWidthCards(){
-    [
-      /arbeitsfokus/i,
-      /schnellzugriffe/i,
-      /heute geplante sendungen/i,
-      /sendungen und abholungen/i,
-      /abd-anfragen/i
-    ].forEach(function(rx){
-      var h=findHeading(rx);
-      if(h) setFullWidth(blockFor(h));
-    });
-  }
-  function moveArbeitsfokusAfterToday(){
-    var focus=findHeading(/arbeitsfokus/i);
-    var today=findHeading(/heute geplante sendungen/i);
-    if(!focus || !today) return;
-    var focusBlock=blockFor(focus);
-    var todayBlock=blockFor(today);
-    if(!focusBlock || !todayBlock || focusBlock===todayBlock) return;
-    setFullWidth(focusBlock);
-    setFullWidth(todayBlock);
-    if(todayBlock.nextElementSibling!==focusBlock && todayBlock.parentElement){
-      todayBlock.parentElement.insertBefore(focusBlock, todayBlock.nextElementSibling);
+  function fieldBlockForControl(control){
+    var cur = control;
+    while(cur && cur !== document.body){
+      if(cur.parentElement){
+        var siblings = Array.from(cur.parentElement.children).filter(function(node){
+          return !!node.querySelector && !!node.querySelector('input,textarea,select');
+        });
+        if(siblings.length >= 2) return cur;
+      }
+      cur = cur.parentElement;
     }
+    return control.parentElement;
   }
-  function toolbarButtonTemplate(){
-    var list=Array.from(document.querySelectorAll('button,a'));
-    return list.find(function(el){
-      return /pod-sicherung|backup|import|drucken/i.test(text(el));
-    }) || null;
+  function gatherFieldBlocks(section){
+    var controls = all('input,textarea,select', section).filter(function(el){
+      if(el.type === 'hidden') return false;
+      return true;
+    });
+    var blocks = unique(controls.map(fieldBlockForControl));
+    return blocks.filter(Boolean);
   }
-  function toolbarContainer(){
-    var sample=toolbarButtonTemplate();
-    return sample ? sample.parentElement : null;
+  function blockByPattern(blocks, rx){
+    for(var i=0;i<blocks.length;i++){
+      if(rx.test(txt(blocks[i]))) return blocks[i];
+    }
+    return null;
   }
-  function goAvis(){
-    try{
-      window.location.href='/customer-avis.html?v=890';
-    }catch(e){}
+  function stabilizeSendungsdatenLayout(){
+    var heading = findHeading(/sendungsdaten/i);
+    if(!heading) return;
+    var section = blockFor(heading);
+    if(!section) return;
+
+    section.classList.add('rc891-fullwidth');
+
+    var blocks = gatherFieldBlocks(section);
+    if(!blocks.length) return;
+
+    var gridParent = null;
+    for(var i=0;i<blocks.length;i++){
+      var p = blocks[i].parentElement;
+      if(!p) continue;
+      var siblings = Array.from(p.children).filter(function(node){
+        return blocks.indexOf(node) >= 0;
+      });
+      if(siblings.length >= 2){
+        gridParent = p;
+        break;
+      }
+    }
+    if(!gridParent){
+      gridParent = blocks[0].parentElement;
+    }
+    if(!gridParent) return;
+
+    gridParent.classList.add('rc891-sendungsdaten-fields');
+
+    blocks.forEach(function(b){
+      b.classList.remove('rc891-field-half','rc891-field-full');
+      b.classList.add('rc891-field-full');
+    });
+
+    var ref = blockByPattern(blocks, /sendungsreferenz|referenznummer/);
+    var date = blockByPattern(blocks, /geplantes abholdatum|abholdatum/);
+    var sped = blockByPattern(blocks, /spedition/);
+    var cmr = blockByPattern(blocks, /warenbeschreibung|cmr feld 9/);
+    var note = blockByPattern(blocks, /bemerkung/);
+
+    if(ref) ref.classList.remove('rc891-field-full'), ref.classList.add('rc891-field-half');
+    if(date) date.classList.remove('rc891-field-full'), date.classList.add('rc891-field-half');
+    if(sped) sped.classList.remove('rc891-field-half'), sped.classList.add('rc891-field-full');
+    if(cmr) cmr.classList.remove('rc891-field-half'), cmr.classList.add('rc891-field-full');
+    if(note) note.classList.remove('rc891-field-half'), note.classList.add('rc891-field-full');
+
+    blocks.forEach(function(b){
+      b.style.minWidth = '0';
+      var inputs = all('input,textarea,select', b);
+      inputs.forEach(function(el){
+        el.style.width = '100%';
+        el.style.boxSizing = 'border-box';
+        el.style.transition = 'none';
+        el.style.animation = 'none';
+      });
+    });
+
+    section.style.contain = 'layout paint';
+    section.style.backfaceVisibility = 'hidden';
+    section.style.transform = 'translateZ(0)';
+  }
+  function toolbarButtons(){
+    return all('button,a').filter(function(el){
+      var t = txt(el);
+      return /pod-sicherung|backup|import|drucken|abmelden/.test(t);
+    });
   }
   function ensureLieferAvis(){
-    if(document.getElementById('rc890LieferAvisBtn')) return;
-    var bar=toolbarContainer();
-    var sample=toolbarButtonTemplate();
-    if(!bar || !sample) return;
+    all('#rc890LieferAvisBtn,#rc891LieferAvisBtn').forEach(function(n, idx){
+      if(idx > 0 || n.id === 'rc890LieferAvisBtn') n.remove();
+    });
+    if(document.getElementById('rc891LieferAvisBtn')) return true;
 
-    var btn=document.createElement(sample.tagName.toLowerCase()==='a'?'a':'button');
-    btn.id='rc890LieferAvisBtn';
-    if(btn.tagName.toLowerCase()==='button') btn.type='button';
-    btn.className=sample.className || '';
-    btn.textContent='Lieferavis';
-    btn.setAttribute('aria-label','Lieferavis öffnen');
-    btn.addEventListener('click',function(ev){
+    var buttons = toolbarButtons();
+    if(!buttons.length) return false;
+    var bar = buttons[0].parentElement;
+    if(!bar) return false;
+
+    var sample = buttons[0];
+    var btn = document.createElement(sample.tagName.toLowerCase() === 'a' ? 'a' : 'button');
+    btn.id = 'rc891LieferAvisBtn';
+    if(btn.tagName.toLowerCase() === 'button') btn.type = 'button';
+    btn.className = sample.className || '';
+    btn.textContent = 'Lieferavis';
+    btn.setAttribute('aria-label', 'Lieferavis öffnen');
+    btn.addEventListener('click', function(ev){
       ev.preventDefault();
-      goAvis();
+      window.location.href = '/customer-avis.html?v=891';
     });
 
-    var inserted=false;
-    var buttons=Array.from(bar.querySelectorAll('button,a'));
+    var inserted = false;
     for(var i=0;i<buttons.length;i++){
-      if(/backup/i.test(text(buttons[i]))){
+      var t = txt(buttons[i]);
+      if(/import|backup/.test(t)){
         bar.insertBefore(btn, buttons[i]);
-        inserted=true;
+        inserted = true;
         break;
       }
     }
     if(!inserted) bar.appendChild(btn);
+    return true;
   }
-  function stabilizeSendungsdaten(){
-    var h=findHeading(/sendungsdaten/i);
-    if(!h) return;
-    var box=blockFor(h);
-    if(!box) return;
-
-    if(!box.dataset.rc890Stable){
-      box.dataset.rc890Stable='1';
-      box.style.contain='layout paint';
-      box.style.backfaceVisibility='hidden';
-      box.style.transform='translateZ(0)';
-    }
-
-    var nodes=[box].concat(Array.from(box.querySelectorAll('*')));
-    nodes.forEach(function(el){
-      el.style.animation='none';
-      el.style.transition='none';
-    });
-
-    var rect=box.getBoundingClientRect();
-    if(rect.height>160){
-      var current=parseInt(box.style.minHeight||'0',10)||0;
-      var next=Math.ceil(rect.height);
-      if(next>current) box.style.minHeight=next+'px';
+  function onceReady(fn){
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', fn, {once:true});
+    } else {
+      fn();
     }
   }
-  var scheduled=false;
-  function run(){
-    scheduled=false;
-    applyFullWidthCards();
+  function runPatch(){
+    ensureStyle();
     moveArbeitsfokusAfterToday();
+    stabilizeSendungsdatenLayout();
     ensureLieferAvis();
-    stabilizeSendungsdaten();
   }
-  function schedule(){
-    if(scheduled) return;
-    scheduled=true;
-    requestAnimationFrame(run);
+  function limitedRetries(){
+    var tries = 0;
+    var timer = setInterval(function(){
+      tries += 1;
+      runPatch();
+      if(document.getElementById('rc891LieferAvisBtn') && tries >= 3){
+        clearInterval(timer);
+      }
+      if(tries >= 24){
+        clearInterval(timer);
+      }
+    }, 300);
   }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',schedule,{once:true});
-  }
-  schedule();
-  window.addEventListener('load',schedule,{once:false});
-  new MutationObserver(function(){ schedule(); }).observe(document.documentElement,{childList:true,subtree:true});
+  onceReady(function(){
+    runPatch();
+    limitedRetries();
+    window.addEventListener('load', runPatch, {once:false});
+    window.addEventListener('hashchange', function(){ setTimeout(runPatch, 60); });
+    window.addEventListener('popstate', function(){ setTimeout(runPatch, 60); });
+  });
 })();
 function avisHost(view){view=view||visibleShipmentView();var host=null;if(view==='shipmentview'){host=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||document.querySelector('#content.rc776-shipment-view .rc844-avis-host');if(!host){var page=document.querySelector('#content.rc776-shipment-view .rc776-page');if(page){host=document.createElement('div');host.id='rc845AvisReadHost';host.className='rc844-avis-host';host.setAttribute('data-rc845-avis-host','readonly');var grids=page.querySelectorAll(':scope > .rc776-grid');if(grids.length&&grids[0].nextSibling)page.insertBefore(host,grids[0].nextSibling);else page.appendChild(host)}}return host||null}if(view==='shipment'){host=document.getElementById('rc845AvisEditHost');if(!host){var body=document.querySelector('#rc363BlockShipment .rc363-process-body')||document.getElementById('rc363BlockShipment')||document.getElementById('rc573ShipmentShell');if(body){host=document.createElement('div');host.id='rc845AvisEditHost';host.className='rc845-avis-host';host.setAttribute('data-rc845-avis-host','edit');body.appendChild(host)}}return host||null}return null}
 function render(){var __rc887AvisState=(typeof state==='function'?state():(window.STATE||{})),__rc887AvisView=String((__rc887AvisState&&__rc887AvisState.view)||document.body.getAttribute('data-exporthub-view')||document.body.getAttribute('data-current-view')||'').toLowerCase(),__rc887AvisAllowed=/avis/.test(__rc887AvisView)&&!/shipment/.test(__rc887AvisView);if(!__rc887AvisAllowed){['rc705AvisMountRead','rc705AvisMountEdit','rc845AvisReadHost','rc845AvisEditHost','rc844AvisHost','rc849AvisReadCard','rc363BlockAvis'].forEach(function(id){var node=document.getElementById(id);if(node)node.remove()});lastSig='';return false;}
