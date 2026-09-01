@@ -309,12 +309,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC917',cache:'917',loginReturn:'/TESTVERSION.html?v=917'});
+var BUILD=Object.freeze({version:'RC918',cache:'918',loginReturn:'/TESTVERSION.html?v=918'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
+    "RC918 trennt Benachrichtigungscenter und Warncenter fachlich eindeutig: Benachrichtigungen erinnern nur noch an persönliche offene Aufgaben zu den festen Prüfzeiten 09:00, 12:00 und 15:00 Uhr; operative Sendungsabweichungen gehören ausschließlich in das Warncenter.",
+    "RC918 entfernt überfällige Sendungen aus Benachrichtigungsseite, Browser-Hinweis und Benachrichtigungszähler. Die bestehenden Abholerinnerungs-Mails bleiben weiterhin direkt in Sendungsübersicht und Sendungsansicht verfügbar.",
+    "RC918 entfernt Aufgaben aus dem Warncenter. Dort werden ausschließlich Sendungsprobleme nach POD fehlt, Dokumente und Abholung gruppiert; eine Sendung wird dabei nur einmal in der jeweils wichtigsten Handlungsgruppe gezählt und angezeigt.",
+    "RC918 hält Erinnerungsverlauf und 09/12/15-Uhr-Status lokal pro Benutzer und Gerät. Die Trennung von Benachrichtigung und Warnung erzeugt keinen Azure-Save.",
     "RC917 vereinheitlicht die öffentliche QR-Abholung endgültig mit dem aktuellen Serverformat: Als Pickup-Token werden ausschließlich 48-stellige hexadezimale Tokens akzeptiert.",
     "RC917 blockiert beschädigte, alte Kurz- und fremde Base64URL-Tokens bereits im frühen Pickup-Router und in pickup.html. Solche Werte werden nicht mehr an pickup-status gesendet und können keine unnötigen HTTP-400-/Diagnoseereignisse auslösen.",
     "RC917 prüft auch den intern weitergereichten Pickup-Routentoken erneut gegen dasselbe 48-Hex-Format. Persönlicher Verlader-PIN, Colli-Gesamtprüfung, Fahrerunterschrift, POD-Übernahme und Kunden-Avis-Sicherheitslogik bleiben unverändert.",
@@ -1073,6 +1077,10 @@ var RELEASE=Object.freeze({
   'Auf dem Deckblatt werden Location-QR links und QR-Abholung rechts gleichzeitig dargestellt.'
  ]),
  tests:Object.freeze([
+   'RC918 Benachrichtigungen: Der Bereich zeigt nur persönliche offene Aufgaben, Prüfzeiten und Erinnerungsverlauf. Überfällige Sendungen erscheinen dort weder als Kennzahl noch als Liste.',
+   'RC918 Browser-Erinnerung: Eine fällige 09/12/15-Uhr-Erinnerung nennt nur offene Aufgaben und erzeugt keinen zweiten Hinweis für Sendungswarnungen.',
+   'RC918 Warncenter: Überfällige Aufgaben erscheinen dort nicht. POD-, Dokument- und Abholprobleme werden als Sendungswarnungen gruppiert.',
+   'RC918 Warncenter-Deduplizierung: Erfüllt eine Sendung mehrere Warnregeln, erscheint und zählt sie nur einmal; Priorität ist POD fehlt vor Dokumente vor Abholung.',
   'RC882 Login-Stabilität: Nach erfolgreicher Anmeldung zwischen Dashboard, Aufgaben, Sendungen, Lager und Kunden wechseln. #login und seine Eingabefelder dürfen dabei nicht neu beschrieben, ein-/ausgeblendet oder erneut initialisiert werden.',
   'RC882 Dashboard Eingang: Dashboard anpassen öffnen, bei Lager · Eingang eine eigene Farbe wählen und Anpassung schließen. Nur die Dashboard-Kachel muss die gewählte Farbe behalten.',
   'RC882 Lager Eingang: Anschließend Lager & Locations öffnen. Eingang muss dort unabhängig von der persönlichen Dashboard-Farbe fest grün dargestellt werden; Location-Code 0 und Lagerfunktion bleiben unverändert.',
@@ -2036,22 +2044,28 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
     '</section>'
   }
 
-  function warningData(){
-              var ts=taskOpenList();
+  
+  function warningShipmentKey(s){
+    return low(q(s&&(s.id||s.shipmentId||s._syncId||s.ref||s.reference||s.shipmentRef||s.referenceNumber))||itemTitle(s,'Sendung'))
+  }
+
+  function warningUniqueShipments(list,used){
+    used=used||Object.create(null);
+    return arr(list).filter(function(s){
+      var k=warningShipmentKey(s);
+      if(!k||used[k])return false;
+      used[k]=1;
+      return true
+    })
+  }
+
+function warningData(){
               var ss=shipmentOpenList();
+              var used=Object.create(null);
 
-              var overdueTasks=ts.filter(dueTask);
-              var docs=ss.filter(shipmentNeedsDocuments);
-              var pickups=ss.filter(shipmentNeedsPickup);
-              var pods=ss.filter(shipmentNeedsPod);
-
-              function taskItem(t){
-                return {
-                  title:itemTitle(t,'Überfällige Aufgabe'),
-                  sub:'Aufgabe fällig',
-                  route:'tasks'
-                }
-              }
+              var pods=warningUniqueShipments(ss.filter(shipmentNeedsPod),used);
+              var docs=warningUniqueShipments(ss.filter(shipmentNeedsDocuments),used);
+              var pickups=warningUniqueShipments(ss.filter(shipmentNeedsPickup),used);
 
               function shipmentItem(s,sub){
                 return {
@@ -2063,11 +2077,11 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
 
               var groups=[
                 {
-                  id:'overdue',
-                  label:'Überfällig',
-                  count:overdueTasks.length,
-                  route:'tasks',
-                  items:overdueTasks.slice(0,3).map(taskItem)
+                  id:'pod',
+                  label:'POD fehlt',
+                  count:pods.length,
+                  route:'shipmentoverview',
+                  items:pods.slice(0,3).map(function(s){return shipmentItem(s,'POD fehlt')})
                 },
                 {
                   id:'documents',
@@ -2082,22 +2096,14 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
                   count:pickups.length,
                   route:'shipmentoverview',
                   items:pickups.slice(0,3).map(function(s){return shipmentItem(s,'Abholung offen')})
-                },
-                {
-                  id:'other',
-                  label:'Sonstige',
-                  count:pods.length,
-                  route:'shipmentoverview',
-                  items:pods.slice(0,3).map(function(s){return shipmentItem(s,'POD fehlt')})
                 }
               ];
 
               return {
-                overdue:overdueTasks.length,
                 documents:docs.length,
                 pod:pods.length,
                 pickup:pickups.length,
-                total:overdueTasks.length+docs.length+pods.length+pickups.length,
+                total:pods.length+docs.length+pickups.length,
                 groups:groups
               }
             }
@@ -2161,7 +2167,7 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
                   '<div class="rc885-drawer-head">'+
                     '<div>'+
                       '<div class="rc885-drawer-title">Warncenter</div>'+
-                      '<div class="rc885-sub">Kompakt nach Handlungsart gruppiert</div>'+
+                      '<div class="rc885-sub">Operative Sendungswarnungen · Aufgaben-Erinnerungen stehen getrennt unter Benachrichtigungen</div>'+
                     '</div>'+
                     '<button type="button" class="rc885-close">Schließen</button>'+
                   '</div>'+
@@ -21103,7 +21109,7 @@ window.ExportHUBIndex232=Object.freeze({version:VERSION,patch:patch,tagColli:tag
 .index236-statusbar>div{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
 .index236-statusbar span{display:block;color:var(--muted);font-size:12px;font-weight:900;margin-bottom:6px}
 .index236-statusbar strong{font-size:16px;color:#08245d}
-.index236-metrics{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.index236-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .index236-metrics small{display:block;margin-top:5px;color:var(--muted);font-weight:800}
 .index236-columns{align-items:start}
 .index236-section-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
@@ -21194,16 +21200,16 @@ function centerState(){return loadLocalNotificationCenter()}
 function seenForToday(){var c=centerState(),k=userKey(),d=localISO();c.seen[k]=c.seen[k]&&typeof c.seen[k]==='object'?c.seen[k]:{};c.seen[k][d]=c.seen[k][d]&&typeof c.seen[k][d]==='object'?c.seen[k][d]:{};return c.seen[k][d]}
 function persist(reason){var c=centerState();try{localStorage.setItem(notificationStoreKey(),JSON.stringify({seen:c.seen||{},history:arr(c.history).slice(-80),updatedAt:new Date().toISOString()}));return true}catch(e){console.warn('Lokaler Benachrichtigungsstatus konnte nicht gespeichert werden',e);return false}}
 function addHistory(slot,label,counts){var c=centerState();c.history.push({at:new Date().toISOString(),slot:slot||'',label:label||'',tasks:counts.tasks||0,overdueTasks:counts.overdueTasks||0,shipments:counts.shipments||0,user:userName()});c.history=c.history.slice(-80)}
-function counts(){return{tasks:openTasks().length,overdueTasks:overdueTasks().length,shipments:overdueShipments().length}}
+function counts(){return{tasks:openTasks().length,overdueTasks:overdueTasks().length}}
 function slotsDue(now){now=now||new Date();if(!isWorkday(now))return[];var mins=now.getHours()*60+now.getMinutes(),seen=seenForToday();return SLOTS.filter(function(s){return mins>=s.minutes&&!seen[s.id]})}
 function markDueSeen(due){var seen=seenForToday();due.forEach(function(s){seen[s.id]=new Date().toISOString()});persist('Benachrichtigungszeit gespeichert')}
 function permissionText(){if(!('Notification' in window))return'Browser unterstützt keine Systembenachrichtigungen';if(Notification.permission==='granted')return'Aktiv';if(Notification.permission==='denied')return'Im Browser blockiert';return'Noch nicht aktiviert'}
 function nextCheck(now){now=now||new Date();for(var offset=0;offset<15;offset++){var d=new Date(now);d.setDate(d.getDate()+offset);d.setHours(0,0,0,0);if(!isWorkday(d))continue;for(var i=0;i<SLOTS.length;i++){var x=new Date(d);x.setHours(Math.floor(SLOTS[i].minutes/60),SLOTS[i].minutes%60,0,0);if(x>now)return x}}return null}
 function scheduleNext(){if(timer)clearTimeout(timer);var next=nextCheck(new Date()),delay=next?Math.max(1000,next-Date.now()+500):3600000;timer=setTimeout(function(){checkSchedule(false);scheduleNext()},delay)}
-function nativeNotify(c,label){if(!('Notification' in window)||Notification.permission!=='granted'||(!c.tasks&&!c.shipments))return;try{var n=new Notification('ExportHUB · '+label,{body:c.tasks+' offene Aufgabe'+(c.tasks===1?'':'n')+' · '+c.shipments+' Sendung'+(c.shipments===1?'':'en')+' über 3 Tage überfällig',tag:'exporthub-'+localISO()+'-'+label.replace(/\D/g,''),renotify:true,silent:true,requireInteraction:false});n.onclick=function(){try{window.focus()}catch(_){ }openView();try{n.close()}catch(_){ }}}catch(e){console.warn('Browser-Benachrichtigung',e)}}
+function nativeNotify(c,label){if(!('Notification' in window)||Notification.permission!=='granted'||!c.tasks)return;try{var n=new Notification('ExportHUB · '+label,{body:c.tasks+' offene Aufgabe'+(c.tasks===1?'':'n')+' · '+c.overdueTasks+' überfällig',tag:'exporthub-'+localISO()+'-'+label.replace(/\D/g,''),renotify:true,silent:true,requireInteraction:false});n.onclick=function(){try{window.focus()}catch(_){ }openView();try{n.close()}catch(_){ }}}catch(e){console.warn('Browser-Benachrichtigung',e)}}
 function removeHint(){if(hintTimer){clearLater(hintTimer);hintTimer=0}['index236NotificationHint','index236NotificationModal','rc451NotificationModal'].forEach(function(id){var n=document.getElementById(id);if(n)n.remove()})}
-function hintHtml(c,label,manual){var empty=!c.tasks&&!c.shipments,title=empty?'Keine offenen Vorgänge':'Offene Vorgänge',text=manual?'Manuelle Prüfung abgeschlossen':'Geplante Erinnerung · '+label;return '<section class="index236-hint" role="status" aria-live="polite" aria-atomic="true"><div class="index236-hint-head"><div><span class="index236-kicker">'+esc(text)+'</span><h3>'+esc(title)+'</h3><p>'+esc(new Date().toLocaleString('de-DE'))+' · die aktuelle Arbeit bleibt geöffnet</p></div><button class="index236-hint-close" type="button" aria-label="Hinweis schließen" data-index236-action="close-hint">×</button></div>'+(empty?'<div class="index236-hint-counts"><span>Alles aktuell</span></div>':'<div class="index236-hint-counts"><span class="is-alert">'+c.tasks+' offene Aufgabe'+(c.tasks===1?'':'n')+'</span><span class="is-alert">'+c.overdueTasks+' überfällig</span><span class="is-alert">'+c.shipments+' Sendung'+(c.shipments===1?'':'en')+' &gt; 3 Tage</span></div>')+'<div class="index236-hint-actions"><button class="btn" data-index236-action="open-center">Benachrichtigungen öffnen</button>'+(empty?'':'<button class="ghost" data-index236-action="open-tasks">Aufgaben</button><button class="ghost" data-index236-action="open-shipments">Sendungen</button>')+'</div></section>'}
-function showHint(c,label,manual){removeHint();if(!manual&&!c.tasks&&!c.shipments)return;var host=document.createElement('div');host.id='index236NotificationHint';host.className='index236-hint-host';host.innerHTML=hintHtml(c,label,!!manual);document.body.appendChild(host);hintTimer=later(removeHint,manual?7000:10000)}
+function hintHtml(c,label,manual){var empty=!c.tasks,title=empty?'Keine offenen Aufgaben':'Offene Aufgaben',text=manual?'Manuelle Prüfung abgeschlossen':'Geplante Erinnerung · '+label;return '<section class="index236-hint" role="status" aria-live="polite" aria-atomic="true"><div class="index236-hint-head"><div><span class="index236-kicker">'+esc(text)+'</span><h3>'+esc(title)+'</h3><p>'+esc(new Date().toLocaleString('de-DE'))+' · die aktuelle Arbeit bleibt geöffnet</p></div><button class="index236-hint-close" type="button" aria-label="Hinweis schließen" data-index236-action="close-hint">×</button></div>'+(empty?'<div class="index236-hint-counts"><span>Alles aktuell</span></div>':'<div class="index236-hint-counts"><span class="is-alert">'+c.tasks+' offene Aufgabe'+(c.tasks===1?'':'n')+'</span><span class="is-alert">'+c.overdueTasks+' überfällig</span></div>')+'<div class="index236-hint-actions"><button class="btn" data-index236-action="open-center">Benachrichtigungen öffnen</button>'+(empty?'':'<button class="ghost" data-index236-action="open-tasks">Aufgaben</button>')+'</div></section>'}
+function showHint(c,label,manual){removeHint();if(!manual&&!c.tasks)return;var host=document.createElement('div');host.id='index236NotificationHint';host.className='index236-hint-host';host.innerHTML=hintHtml(c,label,!!manual);document.body.appendChild(host);hintTimer=later(removeHint,manual?7000:10000)}
 function checkSchedule(manual){var c=counts();if(manual){showHint(c,'Manuelle Prüfung',true);renderView();return false}var due=slotsDue(new Date());if(!due.length)return false;markDueSeen(due);var label=due[due.length-1].label;addHistory(due.map(function(s){return s.id}).join(','),label,c);persist('Benachrichtigung protokolliert');showHint(c,label,false);nativeNotify(c,label);renderView();return false}
 function findShipment(id){var key=q(id),up=key.toUpperCase();return shipments().find(function(sh){return shipmentId(sh)===key||shipmentId(sh).toUpperCase()===up||shipmentRef(sh).toUpperCase()===up})||null}
 function findTask(id){var key=q(id);return arr(main().tasks).find(function(t){return taskId(t)===key})||null}
@@ -21250,9 +21256,9 @@ function reminderMail(id,target,lang){
 function taskCard(t){var d=taskDate(t),late=d&&d<localISO(),ref=taskRef(t),id=taskId(t);return '<article class="index236-item '+(late?'is-overdue':'')+'"><div class="index236-item-head"><div><h3>'+esc(taskTitle(t))+'</h3><p>'+esc(taskOwner(t)||'Alle')+(d?' · '+esc(fmtDate(d)):' · ohne Fälligkeitsdatum')+(ref?' · '+esc(ref):'')+'</p></div><span class="pill '+(late?'red':'orange')+'">'+(late?'Überfällig':'Offen')+'</span></div><div class="actions"><button class="btn" data-index236-action="open-task" data-id="'+esc(id)+'">Aufgabe öffnen</button><button class="ghost" data-index236-action="complete-task" data-id="'+esc(id)+'">Erledigt</button>'+(ref?'<button class="soft" data-index236-action="open-shipment" data-id="'+esc(ref)+'">Sendung öffnen</button>':'')+'</div></article>'}
 function shipmentCard(sh){var id=shipmentId(sh),ref=shipmentRef(sh)||id,d=shipmentPickup(sh),days=dayDiff(d,localISO());return '<article class="index236-item is-overdue"><div class="index236-item-head"><div><h3>'+esc(ref)+'</h3><p>'+esc(shipmentCustomer(sh)||'Ohne Kunde')+' · Abholung '+esc(fmtDate(d))+'</p></div><span class="pill red">'+days+' Tag'+(days===1?'':'e')+' überfällig</span></div><div class="index236-date-row"><input type="date" value="'+esc(addDays(localISO(),1))+'" data-index236-pickup-date="'+esc(id)+'"><button class="ghost" data-index236-action="set-pickup" data-id="'+esc(id)+'">Neues Abholdatum</button></div><div class="actions"><button class="btn" data-index236-action="open-shipment" data-id="'+esc(id)+'">Sendung öffnen</button></div>'+reminderButtons(sh)+'</article>'}
 function historyHtml(){var h=centerState().history.slice().reverse().slice(0,12);if(!h.length)return'<div class="index236-empty">Noch keine geplante Erinnerung protokolliert.</div>';return h.map(function(x){return'<div class="index236-history"><b>'+esc(new Date(x.at).toLocaleString('de-DE'))+'</b><span>'+esc(x.label||x.slot)+' · '+Number(x.tasks||0)+' Aufgaben · '+Number(x.shipments||0)+' Sendungen</span></div>'}).join('')}
-function renderView(force){if(low(main().view)!=='notifications'&&low((document.body?document.body.getAttribute('data-exporthub-view'):''))!=='notifications')return false;var r=root();if(!r)return false;var tasks=openTasks(),late=overdueTasks(),ships=overdueShipments(),next=nextCheck(new Date()),perm=permissionText();var html='<div id="index236NotificationCenter" class="index236-center"><div class="page-head"><div><span class="index236-kicker">ARBEIT</span><h2>Benachrichtigungen</h2><p>Offene Aufgaben werden an Arbeitstagen um 09:00, 12:00 und 15:00 Uhr erinnert. Überfällige Sendungen erscheinen hier ab dem ersten Tag nach dem geplanten Abholtermin.</p></div><div class="actions"><button class="btn" data-index236-action="check-now">Jetzt prüfen</button><button class="ghost" data-index236-action="enable-browser">Browser-Benachrichtigungen aktivieren</button></div></div><div class="index236-statusbar"><div><span>Browser-Benachrichtigung</span><strong>'+esc(perm)+'</strong></div><div><span>Nächste Prüfung</span><strong>'+(next?esc(next.toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})):'—')+'</strong></div><div><span>Signalton</span><strong>Deaktiviert</strong></div></div><div class="metrics index236-metrics"><div class="metric kpi-orange"><span>Offene Aufgaben</span><strong>'+tasks.length+'</strong></div><div class="metric kpi-red"><span>Überfällige Aufgaben</span><strong>'+late.length+'</strong></div><div class="metric kpi-red"><span>Überfällige Sendungen</span><strong>'+ships.length+'</strong></div><div class="metric kpi-blue"><span>Prüfzeiten</span><strong>3</strong><small>09:00 · 12:00 · 15:00</small></div></div><div class="grid2 index236-columns"><section class="card"><div class="index236-section-head"><div><h3>Offene Aufgaben</h3><p>Bis zur Erledigung bei jeder Prüfzeit.</p></div><button class="ghost" data-index236-action="open-tasks">Aufgaben öffnen</button></div><div class="index236-list">'+(tasks.length?tasks.slice().sort(function(a,b){return (taskDate(a)||'9999').localeCompare(taskDate(b)||'9999')}).map(taskCard).join(''):'<div class="index236-empty">Keine offenen Aufgaben.</div>')+'</div></section><section class="card"><div class="index236-section-head"><div><h3>Überfällige Sendungen</h3><p>Alle Sendungen mit überschrittenem geplantem Abholtermin und noch nicht bestätigter Abholung.</p></div><button class="ghost" data-index236-action="open-shipments">Sendungsübersicht</button></div><div class="index236-list">'+(ships.length?ships.map(shipmentCard).join(''):'<div class="index236-empty">Keine Sendung ist aktuell überfällig.</div>')+'</div></section></div><section class="card index236-history-card"><h3>Erinnerungsverlauf</h3>'+historyHtml()+'</section></div>';var mounted=!!r.querySelector(':scope>#index236NotificationCenter'),active=document.activeElement,editing=!!(mounted&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName));if(force!==true&&editing){lastNotificationMarkup=html;notificationRenderSkips++;updateBadge();return false}if(force!==true&&mounted&&html===lastNotificationMarkup){notificationRenderSkips++;updateBadge();return false}var scrollTop=r.scrollTop||0;r.innerHTML=html;lastNotificationMarkup=html;notificationDomWrites++;if(scrollTop)r.scrollTop=scrollTop;updateBadge();return true}
+function renderView(force){if(low(main().view)!=='notifications'&&low((document.body?document.body.getAttribute('data-exporthub-view'):''))!=='notifications')return false;var r=root();if(!r)return false;var tasks=openTasks(),late=overdueTasks(),next=nextCheck(new Date()),perm=permissionText();var html='<div id="index236NotificationCenter" class="index236-center"><div class="page-head"><div><span class="index236-kicker">PERSÖNLICHE ERINNERUNGEN</span><h2>Benachrichtigungen</h2><p>Hier erscheinen ausschließlich deine offenen Aufgaben. ExportHUB erinnert an Arbeitstagen um 09:00, 12:00 und 15:00 Uhr. Operative Probleme an Sendungen werden getrennt im Warncenter angezeigt.</p></div><div class="actions"><button class="btn" data-index236-action="check-now">Jetzt prüfen</button><button class="ghost" data-index236-action="enable-browser">Browser-Benachrichtigungen aktivieren</button></div></div><div class="index236-statusbar"><div><span>Browser-Benachrichtigung</span><strong>'+esc(perm)+'</strong></div><div><span>Nächste Prüfung</span><strong>'+(next?esc(next.toLocaleString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})):'—')+'</strong></div><div><span>Signalton</span><strong>Deaktiviert</strong></div></div><div class="metrics index236-metrics"><div class="metric kpi-orange"><span>Offene Aufgaben</span><strong>'+tasks.length+'</strong></div><div class="metric kpi-red"><span>Überfällige Aufgaben</span><strong>'+late.length+'</strong></div><div class="metric kpi-blue"><span>Prüfzeiten</span><strong>3</strong><small>09:00 · 12:00 · 15:00</small></div></div><section class="card"><div class="index236-section-head"><div><h3>Offene Aufgaben</h3><p>Bis zur Erledigung bei jeder Prüfzeit. Sendungswarnungen werden hier bewusst nicht doppelt angezeigt.</p></div><button class="ghost" data-index236-action="open-tasks">Aufgaben öffnen</button></div><div class="index236-list">'+(tasks.length?tasks.slice().sort(function(a,b){return (taskDate(a)||'9999').localeCompare(taskDate(b)||'9999')}).map(taskCard).join(''):'<div class="index236-empty">Keine offenen Aufgaben.</div>')+'</div></section><section class="card index236-history-card"><h3>Erinnerungsverlauf</h3>'+historyHtml()+'</section></div>';var mounted=!!r.querySelector(':scope>#index236NotificationCenter'),active=document.activeElement,editing=!!(mounted&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName));if(force!==true&&editing){lastNotificationMarkup=html;notificationRenderSkips++;updateBadge();return false}if(force!==true&&mounted&&html===lastNotificationMarkup){notificationRenderSkips++;updateBadge();return false}var scrollTop=r.scrollTop||0;r.innerHTML=html;lastNotificationMarkup=html;notificationDomWrites++;if(scrollTop)r.scrollTop=scrollTop;updateBadge();return true}
 function openView(){removeHint();setViewRaw('notifications');renderView();return false}
-function updateBadge(){var total=openTasks().length+overdueShipments().length,b=document.getElementById('index236NotifyBadge');if(b){try{b.remove()}catch(_){b.style.display='none'}}var shown=total>99?'99+':String(total);document.querySelectorAll('.nav button,[data-view="notifications"]').forEach(function(x){if(low(x.getAttribute('data-view')||x.dataset&&x.dataset.view||x.textContent)==='notifications'||/benachrichtigungen/.test(low(x.textContent))){x.setAttribute('data-index236-notification-count',shown);x.title=total+' offene Benachrichtigung'+(total===1?'':'en');x.classList.toggle('index236-has-alerts',total>0)}})}
+function updateBadge(){var total=openTasks().length,b=document.getElementById('index236NotifyBadge');if(b){try{b.remove()}catch(_){b.style.display='none'}}var shown=total>99?'99+':String(total);document.querySelectorAll('.nav button,[data-view="notifications"]').forEach(function(x){if(low(x.getAttribute('data-view')||x.dataset&&x.dataset.view||x.textContent)==='notifications'||/benachrichtigungen/.test(low(x.textContent))){x.setAttribute('data-index236-notification-count',shown);x.title=total+' offene Aufgaben-Erinnerung'+(total===1?'':'en');x.classList.toggle('index236-has-alerts',total>0)}})}
 function enableBrowser(){if(!('Notification' in window)){alert('Dieser Browser unterstützt keine Systembenachrichtigungen.');renderView();return false}Notification.requestPermission().then(function(p){if(p==='granted'){var n=new Notification('ExportHUB Benachrichtigungen aktiviert',{body:'Erinnerungen erscheinen um 09:00, 12:00 und 15:00 Uhr, solange ExportHUB geöffnet ist.',silent:true,tag:'exporthub-enabled'});setTimeout(function(){try{n.close()}catch(_){ }},3500)}renderView()});return false}
 function install(){if(installing)return;installing=true;try{window.rc451OpenNotifications=openView;window.rc451OpenOverview=function(){return navigate('shipmentoverview')};window.rc451OpenTaskList=function(){return navigate('tasks')}}finally{installing=false}}
 function lock(){if(window.ExportHUBBuild){window.ExportHUBBuild.applyVersion();window.ExportHUBBuild.applyTitle()}}
