@@ -18,7 +18,8 @@ function currentView(){try{var s=window.__EXPORTHUB_GET_STATE__?window.__EXPORTH
 function safeUrl(value){try{var u=new URL(String(value||''),location.href),keep=[];['action','mode','full','ack','environment'].forEach(function(k){if(u.searchParams.has(k))keep.push(k+'='+encodeURIComponent(u.searchParams.get(k)||''))});return u.pathname+(keep.length?'?'+keep.join('&'):'')}catch(_){return q(String(value||'').split('?')[0]).slice(0,300)}}
 function perfThreshold(url){url=low(url);if(/exporthub-state.*mode=meta|diagnostics-(?:append|read)/.test(url))return 8000;if(/exporthub-auth/.test(url))return 5000;if(/location-booking/.test(url))return 4000;if(/pickup-status/.test(url))return 3500;return 1500}
 function expectedProbe404(url,status){return Number(status)===404&&/\/api\/pickup-(?:status|pod)(?:$|\?)/i.test(String(url||''))}
-function cleanText(v){var text='';try{if(v instanceof Error)text=(v.name? v.name+': ':'')+(v.message||'')+(v.stack?' | '+v.stack:'');else if(typeof v==='object'&&v!==null)text=JSON.stringify(v,function(k,val){return /token|authorization|password|passwort|session|signature|base64|dataurl/i.test(k)?'[geschützt]':val});else text=String(v==null?'':v)}catch(_){text=String(v==null?'':v)}return q(text).replace(/(bearer\s+)[a-z0-9._~+\/-]+/ig,'$1[geschützt]').replace(/([?&](?:token|session|auth|code)=)[^&\s]+/ig,'$1[geschützt]').slice(0,1800)}
+/* exporthub-rc902-diagnostics-security */
+function cleanText(v){var text='';try{if(v instanceof Error)text=(v.name? v.name+': ':'')+(v.message||'')+(v.stack?' | '+v.stack:'');else if(typeof v==='object'&&v!==null)text=JSON.stringify(v,function(k,val){return /token|authorization|password|passwort|session|signature|base64|dataurl/i.test(k)?'[geschützt]':val});else text=String(v==null?'':v)}catch(_){text=String(v==null?'':v)}return q(text).replace(/(bearer\s+)[a-z0-9._~+\/-]+/ig,'$1[geschützt]').replace(/([?&](?:password|passwort|username|user|token|session|auth|code)=)[^&\s)]+/ig,'$1[geschützt]').replace(/((?:password|passwort|username|user)\s*[:=]\s*)[^\s,;|]+/ig,'$1[geschützt]').slice(0,1800)}
 function sanitizeDetails(d){if(!d||typeof d!=='object')return d==null?null:cleanText(d);var out={};Object.keys(d).slice(0,24).forEach(function(k){if(/token|authorization|password|passwort|session|signature|base64|dataurl|filedata|content/i.test(k)){out[k]='[geschützt]';return}var v=d[k];if(typeof v==='string')out[k]=cleanText(v).slice(0,500);else if(typeof v==='number'||typeof v==='boolean'||v==null)out[k]=v;else out[k]=cleanText(v).slice(0,500)});return out}
 function load(){var raw='';try{raw=localStorage.getItem(KEY)||''}catch(_){}if(!raw)try{raw=sessionStorage.getItem(KEY)||''}catch(_){}try{var a=JSON.parse(raw||'[]');if(Array.isArray(a)){records=a.slice(-MAX);records.forEach(function(x){seq=Math.max(seq,Number(x&&x.seq||0))})}}catch(_){} }
 function persistSoon(){if(persistTimer)return;persistTimer=setTimeout(function(){persistTimer=0;var raw=JSON.stringify(records.slice(-MAX));try{localStorage.setItem(KEY,raw)}catch(_){try{sessionStorage.setItem(KEY,raw)}catch(__){}}},4000)}
@@ -290,7 +291,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC901',cache:'901',loginReturn:'/TESTVERSION.html?v=901'});
+var BUILD=Object.freeze({version:'RC902',cache:'902',loginReturn:'/TESTVERSION.html?v=902'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -12743,7 +12744,7 @@ function markDocumentDeleted(sh,key,file,index){var sid=shipmentId(sh)||shipment
 function setVersion(){try{if(window.ExportHUBBuild){window.ExportHUBBuild.applyTitle();window.ExportHUBBuild.applyVersion()}}catch(_){}}
 function removeNoise(){
  ['rc455LocalFirstNote','rc430Overdue','rc430PreviewActions','rc453SyncBadge','rc455VersionBadge'].forEach(function(id){var n=document.getElementById(id);if(n)n.remove()});
- document.querySelectorAll('body *').forEach(function(n){if(n.children.length)return;var t=Q(n.textContent);if(t==='Lokale Daten sind sofort verfügbar. Teamdaten werden im Hintergrund geprüft.'||/^⚠\s*Überfällige Abholungen\s*\(/i.test(t))n.remove()});
+ return true
 }
 function restoreUsers(){
  var r=window.ExportHUBClean&&window.ExportHUBClean.runtime,auth=A(r&&r.users).map(clone),before=CU();
@@ -13050,7 +13051,7 @@ function dispatchUiEvent(name,detail){
 }
 function renderDocuments(){try{var a=window.ExportHUBIndex240;return a&&typeof a.currentOrHub==='function'?a.currentOrHub():false}catch(e){console.error('RC352 Ladeliste öffnen',e);return false}}
 function postRender(){
- restoreUsers();setVersion();removeNoise();patchNav();var v=currentView(),r=root();if(!r)return;
+ var v=currentView(),r=root();if(!r)return;
  r.classList.remove('rc524-overview-view','rc524-pallet-view','rc542-pallet-view','rc524-sop-view','rc524-rights-view','rc544-admin-view','rc524-training-view','rc524-shipment-view','rc524-update-view');
  if(v==='shipment')postShipment();
  else if(v==='shipmentoverview')renderOverview();
@@ -13058,8 +13059,7 @@ function postRender(){
  else if(v==='sop')renderSop();
  else if(v==='rights')renderRights();
  else if(v==='update')renderUpdate();
-
- enhanceDeliveryNotes();enhanceTasks();restoreUsers();removeNoise();setVersion();patchNav();
+ enhanceDeliveryNotes();enhanceTasks();
 }
 function renderCanonicalView(v){
  var r=root();if(!r)return false;
@@ -13082,6 +13082,7 @@ function shipmentEditActive(){var r=root(),active=document.activeElement,rt=wind
 function mayPatchExistingShipment(v,args){if(v!=='shipment')return false;var r=root(),shell=document.getElementById('rc573ShipmentShell')||document.getElementById('rc363FixedShipmentLayout');if(!r||!shell||!r.contains(shell)||!r.childElementCount)return false;shipmentEditRenderBlocks++;return true}
 function refreshExistingShipment(){var r=root(),active=document.activeElement,rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},inField=!!(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName));if(inField||rt.dirty||rt.pendingSave||rt.saving)return false;var api=shipmentPatchApi();try{if(api&&typeof api.refreshVisuals==='function')api.refreshVisuals()}catch(e){console.error('RC641 Sendungsvisualisierung aktualisieren',e)}return false}
 function viewDomMatches(v){var r=root();if(!r||!r.childElementCount)return false;if(Q(r.getAttribute('data-exporthub-rendered-view'))!==Q(v))return false;if(v==='shipmentoverview')return r.classList.contains('rc524-overview-view')&&!!r.querySelector(':scope>.rc524-page');if(v==='shipment')return !!(document.getElementById('rc363FixedShipmentLayout')||document.getElementById('rc573ShipmentShell'));if(v==='shipmentsearch')return r.classList.contains('rc807-shipment-search')&&!!r.querySelector(':scope>.rc807-search-page');if(v==='shipmentview')return r.classList.contains('rc776-shipment-view')&&!!r.querySelector(':scope>.rc776-page');if(v==='documentviewer')return r.classList.contains('rc786-document-viewer')&&!!r.querySelector(':scope>.rc786-viewer-shell');if(v==='cmr')return !!(document.getElementById('rc576DocumentHub')||document.getElementById('rc576ShipmentSelect'));return true}
+/* exporthub-rc902-render-performance */
 function stableRender(){
  if(busy){pendingRender=true;return false}
  busy=true;pendingRender=false;
@@ -14105,19 +14106,9 @@ async function executeScriptText(src,code){
 async function loadScript(src){const item=await fetchScriptText(src);return executeScriptText(item.src,item.code)}
 async function cleanYield(ms){var wait=Number(ms);if(!Number.isFinite(wait)||wait<0)wait=0;return new Promise(function(resolve){native.setTimeout(resolve,wait)})}
 
+/* exporthub-rc902-bootstrap-performance */
 function rc524FinalFixes(){
- try{
-  window.ExportHUBBuild.applyTitle();
-  document.querySelectorAll('body *').forEach(function(el){
-   if(el.children&&el.children.length)return;
-   var t=String(el.textContent||'');
-   if(/Private RC464|Private RC\d+|ExportHUB Private RC\d+/.test(t)){
-    window.ExportHUBBuild.applyVersion();
-   }
-  });
- }catch(_){ }
- // RC768: Die kanonische newShipment()-Funktion verwaltet den Kundenwechsel selbst.
- // Kein zusätzlicher Klick-Handler darf Kundenfelder leeren oder synthetische change-Events auslösen.
+ try{if(window.ExportHUBBuild){window.ExportHUBBuild.applyTitle();window.ExportHUBBuild.applyVersion()}}catch(_){}
  window.__EXPORTHUB_RC524__=true;
 }
 
@@ -22910,7 +22901,8 @@ function totals(){return arr(shipment().rows).reduce(function(t,r){var c=Math.ma
  var card=document.getElementById('rc573ColliCard'),summary=card&&card.querySelector('.rc344-summary');
  if(summary){var lineBox=summary.querySelector('[data-rc901-summary="lines"]');if(!lineBox){lineBox=document.createElement('div');lineBox.className='summaryBox';lineBox.setAttribute('data-rc901-summary','lines');lineBox.innerHTML='<span>Zeilen</span><strong id="rc901Sum_lines">0</strong>';summary.appendChild(lineBox)}var lineValue=document.getElementById('rc901Sum_lines'),rows=arr(shipment().rows);if(lineValue)lineValue.textContent=String(rows.length)}
  if(found<3&&card)Array.from(card.querySelectorAll('.summaryBox,.rc344-summary>div')).forEach(function(b){var text=low(b.textContent),n=b.querySelector('b,strong'),p=b.querySelector('span');if(!n)return;if(/collis|anzahl/.test(text)){n.textContent=vals.count;if(p)p.textContent='Collis'}else if(/gewicht/.test(text)){n.textContent=vals.weight;if(p)p.textContent='Gewicht'}else if(/lademeter|ldm/.test(text)){n.textContent=vals.ldm;if(p)p.textContent='Lademeter'}});
- markStowDirty()
+ var stowRows=arr(shipment().rows),stowSig=stowRows.map(function(r){return[q(r.type||r.packaging||r.verpackung),num(r.count||r.qty||r.anzahl),num(r.weight||r.gewicht),num(r.ldm),num(r.l||r.length),num(r.w||r.width),num(r.h||r.height)].join(':')}).join('|');
+ if(stowSig!==rc902LastStowRowsSig){rc902LastStowRowsSig=stowSig;markStowDirty()}
 }
 function comparable(v){return low(v).replace(/europalette/g,'euro palette').replace(/einwegpalette/g,'einweg palette').replace(/industriepalette/g,'industrie palette').replace(/\s+/g,' ')}function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function show(v){return v===0?'0':(v==null?'':String(v))}
 function packagingCategory(name){var k=low(name);if(/^e\d+(?:\b|$)/i.test(k))return'packages';if(/palett/.test(k))return'pallets';return'other'}
@@ -22973,7 +22965,8 @@ function placeWorkflowButtons(customerBody,shipmentBody,documentsBody){
  r.querySelectorAll('.btn-row-spaced').forEach(function(row){if(!row.querySelector('button'))row.remove();else Array.from(row.childNodes).forEach(function(n){if(n.nodeType===3||n.matches&&n.matches('span,p,small'))n.remove()})});
  updateConfirmationButtons()
 }
-var rc701StowRenderTimer=0,rc710StowIdleHandle=0,rc710StowDirty=false;function markStowDirty(){rc710StowDirty=true;var card=document.getElementById('rc380StowPlan');if(card)card.setAttribute('data-rc710-stow-dirty','1');return true}function cancelStowIdle(){if(rc701StowRenderTimer){clearTimeout(rc701StowRenderTimer);rc701StowRenderTimer=0}if(rc710StowIdleHandle&&typeof window.cancelIdleCallback==='function'){try{window.cancelIdleCallback(rc710StowIdleHandle)}catch(_){}}rc710StowIdleHandle=0}function scheduleStowRender(delay,force){if(!isShipmentView())return false;markStowDirty();cancelStowIdle();if(force!==true)return true;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;rc701StowRenderTimer=nt(function(){rc701StowRenderTimer=0;if(!isShipmentView()||document.hidden||!rc710StowDirty)return;var run=function(){rc710StowIdleHandle=0;if(!isShipmentView()||document.hidden||!rc710StowDirty)return;renderStowPlan()};if(typeof window.requestIdleCallback==='function'){rc710StowIdleHandle=window.requestIdleCallback(run,{timeout:900})}else run()},Math.max(120,Number(delay)||180));return true}
+/* exporthub-rc902-shipment-performance */
+var rc701StowRenderTimer=0,rc710StowIdleHandle=0,rc710StowDirty=false,rc902LastStowRowsSig='';function markStowDirty(){rc710StowDirty=true;var card=document.getElementById('rc380StowPlan');if(card)card.setAttribute('data-rc710-stow-dirty','1');return true}function cancelStowIdle(){if(rc701StowRenderTimer){clearTimeout(rc701StowRenderTimer);rc701StowRenderTimer=0}if(rc710StowIdleHandle&&typeof window.cancelIdleCallback==='function'){try{window.cancelIdleCallback(rc710StowIdleHandle)}catch(_){}}rc710StowIdleHandle=0}function scheduleStowRender(delay,force){if(!isShipmentView())return false;markStowDirty();cancelStowIdle();if(force!==true)return true;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;rc701StowRenderTimer=nt(function(){rc701StowRenderTimer=0;if(!isShipmentView()||document.hidden||!rc710StowDirty)return;var run=function(){rc710StowIdleHandle=0;if(!isShipmentView()||document.hidden||!rc710StowDirty)return;renderStowPlan()};if(typeof window.requestIdleCallback==='function'){rc710StowIdleHandle=window.requestIdleCallback(run,{timeout:900})}else run()},Math.max(120,Number(delay)||180));return true}
 function stowRows(){return arr(shipment().rows).map(normalizeRow).filter(function(r){return q(r.type)>''&&num(r.count)>0})}
 function stowStackFactor(r){var name=low(r&&(r.type||r.packaging||r.verpackung));return /gestapelt|stacked/.test(name)&&/palette|paletten|pallet/.test(name)?2:1}
 function stowLdm(r){var v=num(r.ldm);if(v>0||q(r.ldm)!=='')return v;var name=low(r.type||r.packaging||r.verpackung),master=PACK.find(function(p){return low(p.name)===name});if(master&&master.ldm!==undefined&&master.ldm!==null)return num(master.ldm);var l=num(r.l),w=num(r.w);return l>0&&w>0?round(l*w/24000):0}
@@ -23390,10 +23383,16 @@ function queueShipmentEdit(event){if(event&&event.isTrusted===false)return false
 function blockLockedInteraction(e){var locked=lockedShipment(),target=e&&e.target;if(!locked||!target||!target.closest||!target.closest('#rc363FixedShipmentLayout'))return false;var allowed=target.closest('#rc363OpenDocuments,#rc363PrintAll,[data-rc386-action="new-shipment"],[data-rc410-open-shipment]');if(allowed)return false;if(e.cancelable)e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();lockShipmentForm(locked,e.type==='click');return true}
 function refreshLockOnReturn(){if(!isShipmentView()||isFreshDraft())return;refreshShipmentLock(true).then(function(hit){if(hit)lockShipmentForm(hit,false);else unlockEditableShipmentForm()})}
 function install(){if(installed)return;installed=true;registerOwners();window.__EXPORTHUB_SHIPMENT_EDIT_ALLOWED__=function(){return !lockedShipment()&&!lockSyncPromise};window.__EXPORTHUB_ENSURE_SHIPMENT_WRITE_ALLOWED__=async function(reason){if(/QR-Abholung und POD verbindlich synchronisiert|QR\/POD.*synchron|POD.*(?:Cloud|Sicherung|Backup|synchron)|Abholung.*(?:Server|synchron)|pickup.*(?:server|sync)/i.test(q(reason)))return true;if(Number(window.__EXPORTHUB_SHIPMENT_WRITE_GRANT_UNTIL__||0)>Date.now())return true;var locked=await refreshShipmentLock(true);if(locked){lockShipmentForm(locked,false);return false}window.__EXPORTHUB_SHIPMENT_WRITE_GRANT_UNTIL__=Date.now()+4500;return true};window.__EXPORTHUB_BLOCK_SHIPMENT_EDIT__=function(notify){var locked=lockedShipment();if(locked){lockShipmentForm(locked,notify===true);return false}return !lockSyncPromise};installExactSelectedCustomer();installExactLoadShipment();if(window.ExportHUBRC565&&typeof window.ExportHUBRC565.persistShipment==='function')persistenceSave=window.ExportHUBRC565.persistShipment;ensureWeightModal();document.addEventListener('click',blockLockedInteraction,true);document.addEventListener('beforeinput',blockLockedInteraction,true);document.addEventListener('click',click,true);window.addEventListener('beforeinput',function(e){markEditing(e.target,12000)},true);window.addEventListener('input',captureShipmentField,true);window.addEventListener('change',captureShipmentField,true);document.addEventListener('focusin',function(e){if(isShipmentView()&&e.target&&e.target.closest&&e.target.closest('#rc363FixedShipmentLayout')){markEditing(e.target,12000);if(Date.now()-lastLockCheckAt>20000)refreshShipmentLock(false)}},true);document.addEventListener('input',function(e){markEditing(e.target,6500)},true);document.addEventListener('change',function(e){markEditing(e.target,9000)},true);document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc363WeightModal'))updateModalTotals();else onField(e)},false);document.addEventListener('change',onField,false);document.addEventListener('focusout',function(e){var el=e.target;if(!isShipmentView()||!el||!el.closest||!el.closest('.rc363-owned-row'))return;if(el.getAttribute('data-rc712-live-dirty')==='1')commitColliElement(el);markStowDirty();scheduleEditSave('Colli-Zeile gespeichert',4800);scheduleStowRender(1800,true)},true);document.addEventListener('input',queueShipmentEdit,false);document.addEventListener('change',queueShipmentEdit,false);document.addEventListener('blur',queueShipmentEdit,true);document.addEventListener('visibilitychange',function(){if(document.hidden)flushEditSave('Sendungseingabe vor App-Wechsel gespeichert',true);else refreshLockOnReturn()},true);window.addEventListener('focus',refreshLockOnReturn);window.addEventListener('pagehide',function(){flushEditSave('Sendungseingabe vor Verlassen gespeichert',true)},{capture:true});document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(document.getElementById('rc363WeightModal')&&document.getElementById('rc363WeightModal').classList.contains('open'))closeWeight();closePackagingMenus()},true);patch()}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-location-changed'].forEach(function(name){window.addEventListener(name,schedulePatch)});window.addEventListener('exporthub:sync',function(event){if(event&&event.detail&&event.detail.remote===true)scheduleRemoteMerge(0)});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+['exporthub:ready','exporthub:viewchange','exporthub:shipment-location-changed'].forEach(function(name){window.addEventListener(name,schedulePatch)});
+window.addEventListener('exporthub:rendered',function(event){
+ if(!isShipmentView())return;
+ var detail=event&&event.detail||{},layout=document.getElementById('rc363FixedShipmentLayout');
+ if(layout&&detail.view==='shipment')return;
+ schedulePatch()
+});window.addEventListener('exporthub:sync',function(event){if(event&&event.detail&&event.detail.remote===true)scheduleRemoteMerge(0)});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 function refreshVisuals(){updateSummary();var active=document.activeElement,editing=!!(active&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)&&active.closest&&active.closest('#rc573ColliCard'));if(rc710StowDirty){if(!editing)scheduleStowRender(120,true)}else if(!editing)renderStowPlan();updateQr();return true}
 
-['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,function(){var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(ensureRC894LieferavisButton,0)})});
+['exporthub:ready','exporthub:viewchange'].forEach(function(name){window.addEventListener(name,function(){var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(ensureRC894LieferavisButton,0)})});
 var api=Object.freeze({version:VERSION,patch:patch,refreshVisuals:refreshVisuals,startNewShipment:startFreshShipment,openSavedShipment:openSavedExact,addRow:addRow,removeRow:removeRow,updateRow:updateRow,openWeight:openWeight,save:saveAction,printAll:printAll,openDocuments:openDocuments,mergeRemote:mergeRemote,mergeActiveRemote:mergeActiveRemote,renderStowPlan:renderStowPlan,activateQr:activateQr,diagnostics:function(){var r=root(),layout=document.getElementById('rc363FixedShipmentLayout'),stow=document.getElementById('rc380StowPlan');return{version:VERSION,shipmentView:isShipmentView(),readOnly:!!lockedShipment(),readOnlyStatus:lockedShipment()?lockText(lockedShipment()):'',rows:rowNodes().length,inputDirtyImmediate:true,remoteMergePending:remoteMergePending,customerChangeColliLock:!!customerChangeColliLock,activeShipmentField:activeShipmentField(),fixedBlocks:layout?layout.querySelectorAll('.rc363-process-block').length:0,blockOrder:layout?Array.from(layout.querySelectorAll('.rc363-process-block')).map(function(x){return x.id}):[],weightFields:document.querySelectorAll('input[data-rc363-weight="1"]').length,helperTexts:Array.from((r||document).querySelectorAll('.okbox,.badbox,.notice,.infobox,div,p')).filter(function(el){return /^(Anzahl\s*=\s*reale physische Anzahl|Referenzregel:|Dokumente:\s*Ladeliste wird als A4-Seite erzeugt)/i.test(q(el.textContent))}).length,hasMutationObserver:false,hasInterval:false,coalescedPatchTimer:true,stowDetachedFromColliInput:true,stowIdleOnly:true,singlePhaseSettle:true,processRetryCount:processRetryCount,processAreasReady:!!document.getElementById('rc543MailArea')&&!!document.getElementById('rc543AbdDecision')&&!!document.getElementById('rc543PrintStatus'),owner:true,stowVisible:!!(stow&&stow.offsetParent),stowSegments:stow?stow.querySelectorAll('.rc396-slot:not(.empty)').length:0,qrReady:document.getElementById('rc363ShipmentActions')&&document.getElementById('rc363ShipmentActions').dataset.qrReady==='1',obsoleteStowController:!!document.getElementById('rc588-stow-only-js'),savedDirectlyAfterActions:(function(){var a=document.getElementById('rc363BlockActions'),v=document.getElementById('rc573SavedCard');return!!(a&&v&&a.nextElementSibling===v&&a.parentElement===v.parentElement)})()}}});window.ExportHUBShipment420=api;window.ExportHUBShipment416=api;window.ExportHUBShipment415=api;window.ExportHUBShipment414=api;window.ExportHUBShipment413=api;window.ExportHUBShipment412=api;window.ExportHUBShipment411=api;window.ExportHUBShipment410=api;window.ExportHUBShipment409=api;window.ExportHUBShipment408=api;window.ExportHUBShipment407=api;window.ExportHUBShipment406=api;window.ExportHUBShipment405=api;window.ExportHUBShipment399=api;window.ExportHUBShipment398=api;window.ExportHUBShipment397=api;window.ExportHUBShipment396=api;window.ExportHUBShipment395=api;window.ExportHUBShipment394=api;window.ExportHUBShipment393=api;window.ExportHUBShipment392=api;window.ExportHUBShipment391=api;window.ExportHUBShipment390=api;window.ExportHUBShipment388=api;window.ExportHUBShipment386=api;window.ExportHUBShipment385=api;window.ExportHUBShipment383=api;window.ExportHUBShipment380=api;window.ExportHUBShipment377=api;window.ExportHUBShipment376=api;window.ExportHUBShipment375=api;
 })();
 </script>
