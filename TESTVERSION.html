@@ -310,12 +310,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC929',cache:'929',loginReturn:'/TESTVERSION.html?v=929'});
+var BUILD=Object.freeze({version:'RC930',cache:'930',loginReturn:'/TESTVERSION.html?v=930'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
+    'RC930 verhindert einen stillen Testservice-Mischstand: Für read, meta und save akzeptiert der Browser nur noch eine exporthub-state-API ab RC925. Eine ältere oder nicht versionsgekennzeichnete State-API wird mit STATE_API_OUTDATED klar blockiert statt weiter mit den alten langsamen Speicherpfaden zu arbeiten.',
+    'RC930 liefert die bereits in RC925 entwickelte schnelle exporthub-state-API jetzt zusätzlich als explizite Testservice-Datei aus. Dadurch können Warm-Cache, metadata-only Revisionsprüfung, optimistischer ETag-Save und kleiner ACK-Pfad auf dem echten Testservice tatsächlich aktiv werden.',
+    'RC930 ändert keine fachlichen Teamdaten, Sendungsregeln oder Benutzerrechte. Bei Paralleländerungen bleibt If-Match aktiv; nach Konflikt wird der aktuelle Teamstand neu gelesen und erneut autorisiert.',
     'RC929 vergrößert auf der Ladeliste/POD-Ausgabe die Werte und Beschriftungen für Fahrername, Datum/Uhrzeit, Kennzeichen, Verlader und Europaletten. Das Unterschriftsfeld und die Signaturgröße bleiben unverändert.',
     'RC929 stellt Kennzeichen in der Ladelisten-/POD-Ausgabe konsequent in Großbuchstaben dar, ohne den gespeicherten Originalwert der Sendung zu verändern.',
     'RC929 verhindert den POD-Cloud-Abbruch allein wegen fehlendem EXPORTHUB_POD_DRIVE_USER: api/pod-backup verwendet dann dieselbe bereits projektweit festgelegte Standard-Zielablage; explizite App-Settings bleiben vorrangig.',
@@ -13842,11 +13845,13 @@ async function stateCall(mode,payload,requestOptions){
    try{
     const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=50000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=25000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
     const result=verifyStateEnvironment(await jsonFetch(endpoint+'?mode='+encodeURIComponent(mode)+(mode==='save'?'&ack=1':''),opts),mode);
-    API=endpoint;runtime.stateApiLocked=true;runtime.stateApiEndpoint=endpoint;runtime.stateApiReachable=true;runtime.apiReachable=true;runtime.lastStateApiSuccessAt=Date.now();noteAzureNetworkSuccess();return result
+    const MIN_STATE_API_VERSION=925,serverVersionText=text(result&&result.serverVersion),serverVersionMatch=serverVersionText.match(/^RC(\d+)$/i),serverVersionNumber=serverVersionMatch?Number(serverVersionMatch[1]||0):0;
+    if((mode==='read'||mode==='meta'||mode==='save')&&serverVersionNumber<MIN_STATE_API_VERSION){const outdated=new Error('Die Azure-State-API des '+(DATA_ENVIRONMENT==='testservice'?'Testservice':'Produktionssystems')+' ist veraltet: '+(serverVersionText||'keine Versionskennung')+'. Benötigt wird mindestens RC'+MIN_STATE_API_VERSION+'. Bitte api/exporthub-state/index.js aus dieser Testversion veröffentlichen.');outdated.code='STATE_API_OUTDATED';outdated.status=409;outdated.serverVersion=serverVersionText||'';outdated.requiredVersion='RC'+MIN_STATE_API_VERSION;throw outdated}
+    runtime.stateApiServerVersion=serverVersionText;API=endpoint;runtime.stateApiLocked=true;runtime.stateApiEndpoint=endpoint;runtime.stateApiReachable=true;runtime.apiReachable=true;runtime.lastStateApiSuccessAt=Date.now();noteAzureNetworkSuccess();return result
    }catch(error){
     errors.push({endpoint:endpoint,error:error});const code=error&&error.code,statusCode=Number(error&&error.status||0);
     if(statusCode===413||code==='HTTP_413'||code==='PAYLOAD_TOO_LARGE'){error.code='PAYLOAD_TOO_LARGE';error.status=413;throw error}
-    if(['SESSION_INVALID','SESSION_REVOKED','AUTH_REQUIRED','STORAGE_NOT_CONFIGURED','STORAGE_UNREACHABLE','AZURE_ROUTE_BLOCKED'].indexOf(code)>=0)throw error;
+    if(['SESSION_INVALID','SESSION_REVOKED','AUTH_REQUIRED','STORAGE_NOT_CONFIGURED','STORAGE_UNREACHABLE','AZURE_ROUTE_BLOCKED','STATE_API_OUTDATED'].indexOf(code)>=0)throw error;
     const storageConflict=code==='CONCURRENT_UPDATE'||code==='ConditionNotMet'||code==='TargetConditionNotMet'||statusCode===412;const temporary=storageConflict||code==='API_UNREACHABLE'||code==='API_TIMEOUT'||code==='STATE_API_UNREACHABLE'||code==='INVALID_SERVER_JSON'||statusCode===408||statusCode===425||statusCode===429||statusCode===500||statusCode===502||statusCode===503||statusCode===504;
     const routeOrTemporary=temporary||statusCode===404||statusCode===405;
     if(!routeOrTemporary)throw error;
@@ -25081,7 +25086,7 @@ KGUuc3RhdHVzIHx8IGUuc3RhdHVzQ29kZSB8fCA1MDAsIHsgb2s6IGZhbHNlLCBjb2RlOiBlLmNvZGUg
 bWVzc2FnZSB8fCAnUE9ELVNpY2hlcnVuZyBpc3QgZmVobGdlc2NobGFnZW4uJyB9KTsKICB9Cn07Cg==
 EXPORTHUB_TESTSERVICE_FILE_END -->
 
-<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/exporthub-state/index.js encoding=base64 sha256=279d0d3df09b69a2dd0f53c345b4ba2c60cada255ec2333ca3e77bfd4ba55776
+<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/exporthub-state/index.js encoding=base64 sha256=31f0e4e5237ac82b2de6494861e6f881c2690bd6ac208ed12949ca4da2f84b15
 Cid1c2Ugc3RyaWN0JzsKCmNvbnN0IGNyeXB0byA9IHJlcXVpcmUoJ2NyeXB0bycpOwpjb25zdCB7IGNyZWF0ZUJsb2JTZXJ2aWNlQ2xpZW50IH0gPSByZXF1
 aXJlKCcuLi9zaGFyZWQvYmxvYi1yZXN0Jyk7CmNvbnN0IHsgbWVyZ2VTdGF0ZSwgc2FuaXRpemVTdGF0ZSwgcHJ1bmVUb21ic3RvbmVzLCBjbG9uZSB9ID0g
 cmVxdWlyZSgnLi4vc2hhcmVkL21lcmdlJyk7Cgpjb25zdCBURUFNX0NPTlRBSU5FUiA9IHByb2Nlc3MuZW52LkVYUE9SVEhVQl9TVE9SQUdFX0NPTlRBSU5F
@@ -25093,7 +25098,7 @@ QVVUSF9CTE9CIHx8ICdhdXRoLXNlc3Npb25zLmpzb24nOwpjb25zdCBESUFHTk9TVElDU19CTE9CX0JB
 R05PU1RJQ1NfQkxPQiB8fCAnZGlhZ25vc3RpY3MvdGVhbS1kaWFnbm9zdGljcy5qc29uJzsKY29uc3QgVEVTVF9ESUFHTk9TVElDU19CTE9CID0gcHJvY2Vz
 cy5lbnYuRVhQT1JUSFVCX1RFU1RfRElBR05PU1RJQ1NfQkxPQiB8fCAndGVzdHNlcnZpY2UvZGlhZ25vc3RpY3MvdGVhbS1kaWFnbm9zdGljcy5qc29uJzsK
 Y29uc3QgRElBR05PU1RJQ1NfTUFYX1JFQ09SRFMgPSA1MDAwOwpjb25zdCBESUFHTk9TVElDU19SRVRFTlRJT05fTVMgPSAzMCAqIDI0ICogNjAgKiA2MCAq
-IDEwMDA7CmNvbnN0IE1BWF9SRVRSSUVTID0gNjsKY29uc3QgQVBJX1ZFUlNJT04gPSAnUkM5MjUnOwpjb25zdCBURUFNX1dBUk1fQ0FDSEUgPSBuZXcgTWFw
+IDEwMDA7CmNvbnN0IE1BWF9SRVRSSUVTID0gNjsKY29uc3QgQVBJX1ZFUlNJT04gPSAnUkM5MzAnOwpjb25zdCBURUFNX1dBUk1fQ0FDSEUgPSBuZXcgTWFw
 KCk7CgpmdW5jdGlvbiB0ZXh0KHYpeyByZXR1cm4gU3RyaW5nKHYgPT0gbnVsbCA/ICcnIDogdikudHJpbSgpOyB9CmZ1bmN0aW9uIGxvd2VyKHYpeyByZXR1
 cm4gdGV4dCh2KS50b0xvd2VyQ2FzZSgpOyB9CmZ1bmN0aW9uIG5vdygpeyByZXR1cm4gbmV3IERhdGUoKS50b0lTT1N0cmluZygpOyB9CmZ1bmN0aW9uIGVy
 cm9yKGNvZGUsbWVzc2FnZSxzdGF0dXM9NDAwKXsgY29uc3QgZT1uZXcgRXJyb3IobWVzc2FnZSk7IGUuY29kZT1jb2RlOyBlLnN0YXR1cz1zdGF0dXM7IHJl
