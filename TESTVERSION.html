@@ -291,7 +291,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC909',cache:'909',loginReturn:'/TESTVERSION.html?v=909'});
+var BUILD=Object.freeze({version:'RC910',cache:'910',loginReturn:'/TESTVERSION.html?v=910'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -20510,9 +20510,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 .rc205-quick{border:1px solid #bfdbfe;background:#f8fbff;color:#08245d;border-radius:16px;padding:14px;text-align:left;cursor:pointer;font-weight:900;min-height:76px}
 .rc205-quick:hover{border-color:#2563eb;background:#eff6ff;transform:translateY(-1px)}
 .rc205-quick span{display:block;font-size:22px;margin-bottom:7px}
-.rc205-dashboard-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;align-items:start}
+.rc205-dashboard-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;align-items:start;grid-auto-flow:row dense}/* exporthub-rc910-dashboard-dense */
 .rc205-layout-item{grid-column:span var(--rc205-span,6);min-width:0;position:relative;transition:opacity .15s ease,transform .15s ease}
-.rc205-layout-item>.rc205-widget{height:100%;min-width:0}
+.rc205-layout-item>.rc205-widget{height:auto;min-width:0;align-self:start}
 .rc205-layout-item.rc205-dragging{opacity:.45;transform:scale(.985)}
 .rc205-layout-item.rc205-drop-target{outline:3px dashed #2563eb;outline-offset:4px;border-radius:18px}
 .rc205-tile-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 7px;padding:6px 7px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff}
@@ -20630,7 +20630,8 @@ var WIDGETS=[
  {id:'warehouse-vorregal',label:'Lager · Vor dem Regal'},
  {id:'warehouse-daf',label:'Lager · DAF'}
 ];
-var DEFAULT_WIDGETS=['todayShipments','tasks','shipments','abd','pallet'];
+/* exporthub-rc910-dashboard-dedup */
+var DEFAULT_WIDGETS=['todayShipments','abd','pallet'];
 var WIDGET_RIGHTS={todayShipments:'shipmentoverview',tasks:'tasks',shipments:'shipmentoverview',abd:'abd',pallet:'pallet','warehouse-eingang':'warehouse','warehouse-regal':'warehouse','warehouse-lane1':'warehouse','warehouse-lane2':'warehouse','warehouse-lane3':'warehouse','warehouse-lane4':'warehouse','warehouse-lane5':'warehouse','warehouse-vorregal':'warehouse','warehouse-daf':'warehouse'};
 var DEFAULT_LINKS=['shipment','tasks','planning','shipmentoverview','abd','customerfolder'];
 
@@ -20651,7 +20652,10 @@ function fmtDate(iso,withWeekday){if(!/^\d{4}-\d{2}-\d{2}$/.test(q(iso)))return'
 function persist(reason){dashboardLocalChangeUntil=Date.now()+3500;try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Dashboard/Aufgaben Planer gespeichert');else if(typeof window.save==='function')window.save()}catch(e){console.error('ExportHUB Dashboard/Planer speichern',e)}}
 function accessRightId(id){id=low(id);if(id==='calculator')return'shippingcosts';if(id==='quiz')return'inspections';return id}
 function canOpen(id){id=accessRightId(id);var u=currentUser();try{if(typeof window.canView==='function'&&typeof window.canRead==='function')return !!(window.canView(id)&&window.canRead(id)&&(id!=='rights'||typeof window.canManageRights!=='function'||window.canManageRights()))}catch(_){return false}var r=u&&u.rights&&u.rights[id]||{},level=low(r.level||r.access||'');if(/admin/.test(low(u&&u.role))||u&&u.globalAdmin)return true;return ['view','edit','admin'].indexOf(level)>=0||!!(r.read||r.visible||r.edit||r.admin||r.functionAdmin)}
-function widgetAllowed(id){var right=WIDGET_RIGHTS[id];return !!right&&canOpen(right)}
+function widgetAllowed(id){
+ if(id==='tasks'||id==='shipments')return false;
+ var right=WIDGET_RIGHTS[id];return !!right&&canOpen(right)
+}
 function availableModules(){return MODULES.filter(function(m){return canOpen(m.id)})}
 function navigate(id){if(!canOpen(id)){alert('Dieser Bereich ist für deinen Benutzer nicht freigegeben.');return false}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route(id,'dashboard');return false}
 function directShipmentId(s){return q(s&&(s.id||s.shipmentId||s.ref||s.reference||s.shipmentRef))}
@@ -20682,12 +20686,18 @@ function prefs(){
  var s=state(),key=userKey(),store=s.dashboardPreferences&&typeof s.dashboardPreferences==='object'?s.dashboardPreferences:(s.dashboardPreferences={}),cached=dashboardPreferenceCache[key],p=store[key];
  if(!p||typeof p!=='object'){p=cached&&typeof cached==='object'?dashboardPreferenceClone(cached):null;if(!p)p={widgets:DEFAULT_WIDGETS.filter(widgetAllowed),quickLinks:DEFAULT_LINKS.filter(canOpen),entityLinks:[],configOpen:false,widgetLayout:{}};store[key]=p}
  p.widgets=arr(p.widgets).filter(function(id){return WIDGETS.some(function(w){return w.id===id})&&widgetAllowed(id)});if(!p.widgets.length){var cw=cached&&arr(cached.widgets).filter(widgetAllowed);p.widgets=cw&&cw.length?cw.slice():DEFAULT_WIDGETS.filter(widgetAllowed)}
+ if(p.dashboardDedupVersion!=='RC910'){
+  p.widgets=p.widgets.filter(function(id){return id!=='tasks'&&id!=='shipments'});
+  if(widgetAllowed('todayShipments')&&p.widgets.indexOf('todayShipments')<0)p.widgets.unshift('todayShipments');
+  p.dashboardDedupVersion='RC910';
+  setTimeout(function(){persist('Dashboard: doppelte Aufgaben-/Sendungskacheln entfernt')},0)
+ }
  p.widgetLayout=p.widgetLayout&&typeof p.widgetLayout==='object'?p.widgetLayout:{};p.widgets.forEach(function(id){dashboardLayout(p,id)});
  if(p.todayShipmentsWidgetVersion!=='RC254'){if(widgetAllowed('todayShipments')&&p.widgets.indexOf('todayShipments')<0)p.widgets.unshift('todayShipments');p.todayShipmentsWidgetVersion='RC254';setTimeout(function(){persist('Dashboard: heutige Sendungen aktiviert')},0)}
  if(!Array.isArray(p.quickLinks)){p.quickLinks=cached&&Array.isArray(cached.quickLinks)?cached.quickLinks.slice():DEFAULT_LINKS.filter(canOpen)}else p.quickLinks=p.quickLinks.filter(function(id){return MODULES.some(function(m){return m.id===id})&&canOpen(id)});
  if(!Array.isArray(p.entityLinks)&&cached&&Array.isArray(cached.entityLinks))p.entityLinks=dashboardPreferenceClone(cached.entityLinks)||[];
  var seen={};p.entityLinks=arr(p.entityLinks).map(normalizeDirectLink).filter(function(x){if(!x)return false;var k=x.type+'|'+x.id;if(seen[k])return false;seen[k]=true;return true});
- dashboardPreferenceCache[key]=dashboardPreferenceClone({widgets:p.widgets,quickLinks:p.quickLinks,entityLinks:p.entityLinks,configOpen:!!p.configOpen,widgetLayout:p.widgetLayout,todayShipmentsWidgetVersion:p.todayShipmentsWidgetVersion})||p;
+ dashboardPreferenceCache[key]=dashboardPreferenceClone({widgets:p.widgets,quickLinks:p.quickLinks,entityLinks:p.entityLinks,configOpen:!!p.configOpen,widgetLayout:p.widgetLayout,todayShipmentsWidgetVersion:p.todayShipmentsWidgetVersion,dashboardDedupVersion:p.dashboardDedupVersion})||p;
  return p
 }
 function isDone(v){return /erledigt|abgeschlossen|archiviert|storniert|cancelled|canceled/.test(low(v))}
