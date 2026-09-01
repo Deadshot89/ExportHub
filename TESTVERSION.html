@@ -309,12 +309,16 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC918',cache:'918',loginReturn:'/TESTVERSION.html?v=918'});
+var BUILD=Object.freeze({version:'RC919',cache:'919',loginReturn:'/TESTVERSION.html?v=919'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
+    "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
+    "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
+    "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
+    "RC919 bestätigt den bestehenden Lager-Optimistic-Move: die Lagerkachel wird weiterhin vor dem Location-API-Warten lokal in die Ziellocation gesetzt; bei Serverfehler wird ausschließlich dieser lokale Schritt zurückgerollt.",
     "RC918 trennt Benachrichtigungscenter und Warncenter fachlich eindeutig: Benachrichtigungen erinnern nur noch an persönliche offene Aufgaben zu den festen Prüfzeiten 09:00, 12:00 und 15:00 Uhr; operative Sendungsabweichungen gehören ausschließlich in das Warncenter.",
     "RC918 entfernt überfällige Sendungen aus Benachrichtigungsseite, Browser-Hinweis und Benachrichtigungszähler. Die bestehenden Abholerinnerungs-Mails bleiben weiterhin direkt in Sendungsübersicht und Sendungsansicht verfügbar.",
     "RC918 entfernt Aufgaben aus dem Warncenter. Dort werden ausschließlich Sendungsprobleme nach POD fehlt, Dokumente und Abholung gruppiert; eine Sendung wird dabei nur einmal in der jeweils wichtigsten Handlungsgruppe gezählt und angezeigt.",
@@ -20969,10 +20973,14 @@ function plannerUpdateDayCountRC907(section){
  if(count===0&&!list.querySelector('.i218-empty'))list.innerHTML='<p class="i218-empty">Keine offene Aufgabe</p>';
  return true
 }
-function plannerMoveDomRC907(id,date){
- var card=document.querySelector('[data-i218-drag="'+CSS.escape(q(id))+'"]'),target=document.querySelector('[data-i218-drop-date="'+CSS.escape(q(date))+'"]');
- if(!card||!target)return false;
- var source=card.closest('[data-i218-drop-date]'),list=target.querySelector('.i218-list');if(!list)return false;
+function plannerMoveDomRC907(id,date,targetSection){
+ var card=document.querySelector('[data-i218-drag="'+CSS.escape(q(id))+'"]');if(!card)return false;
+ var source=card.closest('[data-i218-drop-date]'),group=source&&source.closest('[data-i218-group]'),selector='[data-i218-drop-date="'+CSS.escape(q(date))+'"]',target=null;
+ if(targetSection&&targetSection.matches&&targetSection.matches(selector))target=targetSection;
+ else if(group)target=group.querySelector(selector);
+ else target=document.querySelector(selector);
+ if(!target)return false;
+ var list=target.querySelector('.i218-list');if(!list)return false;
  var empty=list.querySelector('.i218-empty');if(empty)empty.remove();
  list.appendChild(card);card.classList.add('is-moved');
  var input=card.querySelector('[data-i218-date]');if(input)input.value=date;
@@ -20984,12 +20992,12 @@ function plannerQueueReconcileRC907(){
  rc907PlannerReconcileTimer=setTimeout(function(){rc907PlannerReconcileTimer=0;rc907PlannerMoveQuietUntil=0;render()},520)
 }
 
-function moveTask(id,date){
+function moveTask(id,date,targetSection){
  var t=(st().tasks||[]).find(function(x){return q(x&&(x.id||x.taskId))===q(id)});if(!t)return alert('Aufgabe wurde nicht gefunden.'),false;
  if(!/^\d{4}-\d{2}-\d{2}$/.test(q(date)))return alert('Bitte ein gültiges Datum auswählen.'),false;
  if(!isWorkday(date))return alert('Das gewählte Datum ist Wochenende oder Feiertag. Bitte einen Arbeitstag wählen.'),false;
  setDateFields(t,date,'manual','Manuell im Aufgaben Planner verschoben');
- rc907PlannerMoveQuietUntil=Date.now()+500;plannerMoveDomRC907(id,date);
+ rc907PlannerMoveQuietUntil=Date.now()+500;plannerMoveDomRC907(id,date,targetSection);
  setTimeout(function(){persist('Aufgabe im Planner auf '+date+' verschoben');plannerQueueReconcileRC907()},0);
  return false
 }
@@ -21030,7 +21038,7 @@ document.addEventListener('change',function(e){if(e.target&&e.target.hasAttribut
 document.addEventListener('dragstart',function(e){var card=e.target&&e.target.closest&&e.target.closest('[data-i218-drag]');if(!card||!e.dataTransfer)return;try{e.dataTransfer.setData('text/plain',card.getAttribute('data-i218-drag'));e.dataTransfer.effectAllowed='move'}catch(_){}},true);
 document.addEventListener('dragover',function(e){var day=e.target&&e.target.closest&&e.target.closest('[data-i218-drop-date]');if(!day)return;e.preventDefault();day.classList.add('drag-over')},true);
 document.addEventListener('dragleave',function(e){var day=e.target&&e.target.closest&&e.target.closest('[data-i218-drop-date]');if(day)day.classList.remove('drag-over')},true);
-document.addEventListener('drop',function(e){var day=e.target&&e.target.closest&&e.target.closest('[data-i218-drop-date]');if(!day||!e.dataTransfer)return;e.preventDefault();day.classList.remove('drag-over');var id='';try{id=e.dataTransfer.getData('text/plain')}catch(_){}if(id)moveTask(id,day.getAttribute('data-i218-drop-date'))},true);
+document.addEventListener('drop',function(e){var day=e.target&&e.target.closest&&e.target.closest('[data-i218-drop-date]');if(!day||!e.dataTransfer)return;e.preventDefault();day.classList.remove('drag-over');var id='';try{id=e.dataTransfer.getData('text/plain')}catch(_){}if(id)moveTask(id,day.getAttribute('data-i218-drop-date'),day)},true);
 function boot(){schedule()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:ready','exporthub:viewchange','exporthub:sync','exporthub:tasks-updated'].forEach(function(n){window.addEventListener(n,schedule)});
