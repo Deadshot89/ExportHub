@@ -14,7 +14,7 @@ const TEST_DIAGNOSTICS_BLOB = process.env.EXPORTHUB_TEST_DIAGNOSTICS_BLOB || 'te
 const DIAGNOSTICS_MAX_RECORDS = 5000;
 const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC930';
+const API_VERSION = 'RC931';
 const TEAM_WARM_CACHE = new Map();
 
 function text(v){ return String(v == null ? '' : v).trim(); }
@@ -22,6 +22,7 @@ function lower(v){ return text(v).toLowerCase(); }
 function now(){ return new Date().toISOString(); }
 function error(code,message,status=400){ const e=new Error(message); e.code=code; e.status=status; return e; }
 function json(status,body,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},headers),body:JSON.stringify(body)}; }
+function timingHeaders(t={}){const h={'X-ExportHUB-Server-Ms':String(Math.max(0,Number(t.serverMs||0)||0)),'X-ExportHUB-Auth-Ms':String(Math.max(0,Number(t.authMs||0)||0)),'X-ExportHUB-Team-Ms':String(Math.max(0,Number(t.teamMs||0)||0)),'X-ExportHUB-Team-Cache':text(t.teamCache||'none')||'none'};if(t.mergeMs!==undefined)h['X-ExportHUB-Merge-Ms']=String(Math.max(0,Number(t.mergeMs||0)||0));if(t.uploadMs!==undefined)h['X-ExportHUB-Upload-Ms']=String(Math.max(0,Number(t.uploadMs||0)||0));if(t.retryReadMs!==undefined)h['X-ExportHUB-Retry-Read-Ms']=String(Math.max(0,Number(t.retryReadMs||0)||0));return h}
 function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
 function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || ''; }
 function requestHost(req){
@@ -170,14 +171,14 @@ function teamWarmCacheKey(c){return String(c&&c.environment||'production')+'|'+S
 function rememberWarmTeam(c,value,etag){if(!c||!value||!etag)return false;TEAM_WARM_CACHE.set(teamWarmCacheKey(c),{value:clone(value),etag:String(etag),at:Date.now()});return true}
 function forgetWarmTeam(c){TEAM_WARM_CACHE.delete(teamWarmCacheKey(c))}
 async function readTeamCachedForSession(c,requestedMode){
- if(requestedMode==='recovery-preview'||requestedMode==='recover-shipments'||requestedMode==='recovery-preview-customers'||requestedMode==='recover-customers')return readTeamForSession(c,requestedMode);
+ if(requestedMode==='recovery-preview'||requestedMode==='recover-shipments'||requestedMode==='recovery-preview-customers'||requestedMode==='recover-customers'){const recovered=await readTeamForSession(c,requestedMode);recovered.cacheMode='recovery-read';return recovered}
  const cached=TEAM_WARM_CACHE.get(teamWarmCacheKey(c));
  if(cached&&cached.value&&cached.etag){
-  if(requestedMode==='save')return {value:clone(cached.value),etag:String(cached.etag),warmCache:true,optimisticSave:true};
-  try{const props=await c.team.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:clone(cached.value),etag:etag,warmCache:true};forgetWarmTeam(c)}
+  if(requestedMode==='save')return {value:clone(cached.value),etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};
+  try{const props=await c.team.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:clone(cached.value),etag:etag,warmCache:true,cacheMode:'memory-etag'};forgetWarmTeam(c)}
   catch(e){forgetWarmTeam(c);if(Number(e&&e.statusCode||0)!==404)throw e}
  }
- const fresh=await readTeamForSession(c,requestedMode);rememberWarmTeam(c,fresh&&fresh.value,fresh&&fresh.etag);return fresh
+ const fresh=await readTeamForSession(c,requestedMode);fresh.cacheMode='full-read';rememberWarmTeam(c,fresh&&fresh.value,fresh&&fresh.etag);return fresh
 }
 async function safetyRawBackup(container,blob,label,recoveryPrefix){
  try{
@@ -201,15 +202,18 @@ async function validateSessionAuthOnly(req,payload,c){
  return {token,session,sessionSource:resolved.source,user:{id:text(session.userId),name:username,user:username,username}}
 }
 async function validateSession(req,payload,c){
- const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
+ const validationStarted=Date.now(),token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
  const requestedMode=lower((req.query&&req.query.mode)||(payload&&payload.action)||(payload&&payload.mode));
- const reads=await Promise.all([readJson(c.auth,emptyAuth(),true),readTeamCachedForSession(c,requestedMode)]),authDoc=reads[0],teamDoc=reads[1],resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,source=resolved.source;
+ let authMs=0,teamMs=0;
+ const authStarted=Date.now(),authPromise=readJson(c.auth,emptyAuth(),true).then(v=>{authMs=Date.now()-authStarted;return v},e=>{authMs=Date.now()-authStarted;throw e});
+ const teamStarted=Date.now(),teamPromise=readTeamCachedForSession(c,requestedMode).then(v=>{teamMs=Date.now()-teamStarted;return v},e=>{teamMs=Date.now()-teamStarted;throw e});
+ const reads=await Promise.all([authPromise,teamPromise]),authDoc=reads[0],teamDoc=reads[1],resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,source=resolved.source;
  const team=teamDoc.value||emptyTeam(),users=Array.isArray(team.users)?team.users:[];
  const user=users.find(u=>text(u.id)===text(session.userId)||usernameOf(u)===lower(session.username));
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);
  if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
  if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);
- return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true};
+ return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true,timing:{authMs,teamMs,validationMs:Date.now()-validationStarted,teamCache:teamDoc.cacheMode||'unknown'}};
 }
 function sanitizeForClient(document,adminView){
  const out=clone(document||emptyTeam());delete out.authBootstrap;delete out.recentOperations;out.users=publicUsers(out.users,adminView);out.state=out.state&&typeof out.state==='object'?mergeState({},out.state):{};out.state.users=clone(out.users);return out;
@@ -222,15 +226,15 @@ async function metadataOnly(blob){
 function normalizeIncoming(payload){const state=sanitizeState(payload.state||{});delete state.users;return {clientVersion:text(payload.clientVersion),baseRevision:Number(payload.baseRevision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId||payload.clientMutationId),reason:text(payload.reason||'save'),state}}
 function validateWriteUserAgainstTeam(team,user,session){const users=Array.isArray(team&&team.users)?team.users:[],fresh=users.find(u=>text(u.id)===text(user&&user.id)||usernameOf(u)===usernameOf(user));if(!fresh||!isActive(fresh))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);if(session&&Number(session.authVersion||0)!==Number(fresh.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);if((session&&session.mustChange||fresh.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);if(!hasAnyEditRight(fresh))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);return fresh}
 async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
- let d={value:initialTeam||emptyTeam(),etag:initialEtag||null};
+ let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0;
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
-  if(attempt>0)d=await readJson(blob,emptyTeam());
+  if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
   const current=d.value||emptyTeam(),writeUser=validateWriteUserAgainstTeam(current,user,session),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
-  if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false})}catch(_){}return replay}
-  const merged=pruneTombstones(mergeState(current.state||{},incoming.state||{}));delete merged.users;merged.users=publicUsers(current.users||[],false);
+  if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs},enumerable:false})}catch(_){}return replay}
+  const mergeStarted=Date.now(),merged=pruneTombstones(mergeState(current.state||{},incoming.state||{}));delete merged.users;merged.users=publicUsers(current.users||[],false);mergeMs+=Date.now()-mergeStarted;
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(writeUser.name||writeUser.user),updatedByUserId:text(writeUser.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
   next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
-  try{const uploaded=await uploadJson(blob,next,d.etag);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den Teamstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs},enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den Teamstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
  }
  throw error('CONCURRENT_UPDATE','Der Teamstand konnte nach mehreren Konfliktversuchen nicht gespeichert werden.',409);
 }
@@ -883,7 +887,7 @@ module.exports=async function(context,req){
    await ensureEnvironmentTeam(c);const authReadMs=Date.now()-authStarted,teamStarted=Date.now(),teamCheck=await readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery),teamReadMs=Date.now()-teamStarted;
    context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
   }
-  const c=await clients(req,payload);
+  const clientsStarted=Date.now(),c=await clients(req,payload),clientsMs=Date.now()-clientsStarted;
   if(mode==='diagnostics-append'){
    if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Diagnoseereignisse müssen per POST übertragen werden.',405);
    const diagnosticSession=await validateSessionAuthOnly(req,payload,c),result=await appendDiagnostics(c.diagnostics,payload.records,diagnosticSession.user,payload,c.environment);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
@@ -902,7 +906,7 @@ module.exports=async function(context,req){
    const result=await clearDiagnostics(c.diagnostics,current.user);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
   }
   if(req.method==='GET'||(req.method==='POST'&&mode==='read')){
-   const client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user));context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null},client));return
+   const serializeStarted=Date.now(),client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user)),serializeMs=Date.now()-serializeStarted,serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',serializeMs};context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null,serverMs,timing},client),timingHeaders(timing));return
   }
   if(req.method==='POST'){
    if(mode==='recovery-preview'){
@@ -924,12 +928,12 @@ module.exports=async function(context,req){
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
-   const saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag,current.session);rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;
+   const saveStarted=Date.now(),saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag,current.session),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
+   const phase=saved&&saved.__timing||{},serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',mergeMs:Number(phase.mergeMs||0),uploadMs:Number(phase.uploadMs||0),retryReadMs:Number(phase.retryReadMs||0),saveMs};
    const full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
-   if(ack){const serverMs=Date.now()-requestStarted,out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,serverMs,corruptBackup:saved.corruptBackup||null};context.res=json(200,out);return}
-   const client=sanitizeForClient(saved,isAdmin(current.user)),serverMs=Date.now()-requestStarted;
-   context.res=json(200,Object.assign({ok:true,environment:c.environment,blob:c.teamBlobName,serverMs},client));return
+   if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,serverMs,timing,corruptBackup:saved.corruptBackup||null};context.res=json(200,out,timingHeaders(timing));return}
+   const serializeStarted=Date.now(),client=sanitizeForClient(saved,isAdmin(current.user));timing.serializeMs=Date.now()-serializeStarted;context.res=json(200,Object.assign({ok:true,environment:c.environment,blob:c.teamBlobName,serverMs,timing},client),timingHeaders(timing));return
   }
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
  }catch(e){
