@@ -308,12 +308,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC915',cache:'915',loginReturn:'/TESTVERSION.html?v=915'});
+var BUILD=Object.freeze({version:'RC916',cache:'916',loginReturn:'/TESTVERSION.html?v=916'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
+    "RC916 entfernt den verbliebenen RC892-Laufzeitblock vollständig. Der alte Block darf Sendung erstellen nicht mehr mit einer zweiten Feldklassifizierung, Paint-Containment oder eigenen Render-Events nachbearbeiten.",
+    "RC916 entfernt den alten globalen Lieferavis-Fallback aus der internen ExportHUB-Oberfläche. Kunden-/Lieferavis bleibt ausschließlich über die dafür vorgesehene Kunden-Avis-Funktion beziehungsweise öffentliche Avis-Seite erreichbar.",
+    "RC916 beseitigt die veraltete Weiterleitung customer-avis.html?v=892. Dashboard-Masonry, persönliche Kachelbreiten und das aktuelle RC894/RC896-Sendungslayout bleiben alleinige Layout-Owner.",
     "RC915 entfernt den veralteten RC892-Dashboard-Zwang. Persönliche Kachelbreiten und die gespeicherte Reihenfolge bleiben jetzt allein beim aktuellen RC205-Dashboard; Arbeitsfokus beziehungsweise andere Dashboard-Karten werden nicht mehr nachträglich umsortiert oder auf volle Breite gezwungen.",
     "RC915 entfernt die veraltete URL-Rücksetzung auf v=892. Die Testversion hält den sichtbaren Versionsparameter jetzt auf RC915 und fällt bei Render-, Sync- oder Navigationsereignissen nicht mehr auf einen alten Cache-Key zurück.",
     "RC915 lässt die aktuelle RC914-Masonry-Anordnung, Smartphone-Darstellung, Sendung-erstellen-Layout, Lager-Optimistic-Move und Aufgaben-Planer-Optimistic-Move unverändert bestehen.",
@@ -2485,201 +2488,6 @@ window.addEventListener('exporthub:rendered',function(){if(isDashboard())schedul
   (document.head||document.documentElement).appendChild(s);
 })();
 
-/* exporthub-rc892-render-rootfix */
-(function(){
-  'use strict';
-  if(window.__EXPORTHUB_RC892__) return;
-  window.__EXPORTHUB_RC892__ = true;
-
-  function norm(v){
-    return String(v == null ? '' : v).replace(/\s+/g,' ').trim().toLowerCase();
-  }
-  function txt(el){
-    return norm(el && (el.textContent || el.innerText || ''));
-  }
-  function all(sel, root){
-    return Array.from((root || document).querySelectorAll(sel));
-  }
-  function ensureStyle(){
-    if(document.getElementById('rc892Style')) return;
-    var s = document.createElement('style');
-    s.id = 'rc892Style';
-    s.textContent = [
-      '#rc363BlockShipment .rc363-process-body.rc892-shipment-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 18px!important;align-items:start!important;}',
-      '#rc363BlockShipment .rc892-half{grid-column:span 1!important;min-width:0!important;}',
-      '#rc363BlockShipment .rc892-full{grid-column:1 / -1!important;min-width:0!important;width:100%!important;}',
-      '#rc363BlockShipment .rc892-half input,#rc363BlockShipment .rc892-half select,#rc363BlockShipment .rc892-half textarea,#rc363BlockShipment .rc892-full input,#rc363BlockShipment .rc892-full select,#rc363BlockShipment .rc892-full textarea{width:100%!important;box-sizing:border-box!important;}',
-      '#rc892LieferAvisFallback{position:fixed;right:18px;top:62px;z-index:9998;border:1px solid #b9d3e8;background:#fff;color:#244761;border-radius:10px;padding:9px 13px;font:800 12px/1.1 system-ui,sans-serif;box-shadow:0 5px 18px rgba(15,23,42,.10);cursor:pointer;}',
-      '@media(max-width:900px){#rc363BlockShipment .rc363-process-body.rc892-shipment-grid{grid-template-columns:minmax(0,1fr)!important;}#rc363BlockShipment .rc892-half,#rc363BlockShipment .rc892-full{grid-column:1 / -1!important;}}'
-    ].join('');
-    (document.head || document.documentElement).appendChild(s);
-  }
-
-  function directChildOf(el, parent){
-    var cur = el;
-    while(cur && cur.parentElement && cur.parentElement !== parent){
-      cur = cur.parentElement;
-    }
-    return cur && cur.parentElement === parent ? cur : null;
-  }
-
-  function shipmentLayout(){
-    var block = document.getElementById('rc363BlockShipment');
-    if(!block) return false;
-    var body = block.querySelector('.rc363-process-body') || block;
-    if(!body) return false;
-
-    body.classList.add('rc892-shipment-grid');
-
-    var controls = all('input:not([type="hidden"]),select,textarea', body);
-    var wrappers = [];
-    controls.forEach(function(control){
-      var w = directChildOf(control, body);
-      if(w && wrappers.indexOf(w) < 0) wrappers.push(w);
-    });
-
-    wrappers.forEach(function(w){
-      w.classList.remove('rc892-half','rc892-full');
-      w.classList.add('rc892-full');
-    });
-
-    function classify(rx, cls){
-      wrappers.forEach(function(w){
-        if(rx.test(txt(w))){
-          w.classList.remove('rc892-half','rc892-full');
-          w.classList.add(cls);
-        }
-      });
-    }
-
-    classify(/sendungsreferenz|referenznummer/, 'rc892-half');
-    classify(/geplantes abholdatum|abholdatum/, 'rc892-half');
-    classify(/spedition/, 'rc892-full');
-    classify(/warenbeschreibung|cmr feld 9/, 'rc892-full');
-    classify(/bemerkung/, 'rc892-full');
-
-    if(block.dataset.rc892Stable !== '1'){
-      block.dataset.rc892Stable = '1';
-      block.style.contain = 'layout paint';
-      block.style.backfaceVisibility = 'hidden';
-      block.style.transform = 'translateZ(0)';
-    }
-
-    return true;
-  }
-
-  function findHeading(rx){
-    var nodes = all('h1,h2,h3,h4,h5,h6,strong,b,div,span');
-    for(var i=0;i<nodes.length;i++){
-      if(rx.test(txt(nodes[i]))) return nodes[i];
-    }
-    return null;
-  }
-
-  function cardFor(el){
-    var cur = el;
-    while(cur && cur !== document.body){
-      var tag = String(cur.tagName || '').toUpperCase();
-      var cls = String(cur.className || '');
-      if(tag === 'SECTION' || tag === 'ARTICLE' || /card|panel|section|tile|box|block|wrap|container/i.test(cls)){
-        return cur;
-      }
-      cur = cur.parentElement;
-    }
-    return null;
-  }
-
-  function fullDashboard(){
-    all('.rc892-dashboard-full,.rc892-dashboard-onecol').forEach(function(el){
-      el.classList.remove('rc892-dashboard-full','rc892-dashboard-onecol');
-    });
-    return true;
-  }
-
-  function toolbar(){
-    var candidates = all('button,a').filter(function(el){
-      return /pod-sicherung|backup|import|drucken|abmelden/.test(txt(el));
-    });
-    return candidates.length ? candidates[0].parentElement : null;
-  }
-
-  function makeAvisButton(id, cls){
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.id = id;
-    b.className = cls || '';
-    b.textContent = 'Lieferavis';
-    b.setAttribute('aria-label','Lieferavis öffnen');
-    b.addEventListener('click', function(ev){
-      ev.preventDefault();
-      window.location.href = '/customer-avis.html?v=892';
-    });
-    return b;
-  }
-
-  function ensureAvis(){
-    var old = document.getElementById('rc890LieferAvisBtn');
-    if(old) old.remove();
-
-    var bar = toolbar();
-    var existing = document.getElementById('rc892LieferAvisBtn');
-    var fallback = document.getElementById('rc892LieferAvisFallback');
-
-    if(bar){
-      if(fallback) fallback.remove();
-      if(existing && existing.parentElement === bar) return true;
-      if(existing) existing.remove();
-
-      var sample = bar.querySelector('button,a');
-      var btn = makeAvisButton('rc892LieferAvisBtn', sample ? sample.className : '');
-      var before = all('button,a', bar).find(function(el){ return /backup|import/.test(txt(el)); });
-      if(before) bar.insertBefore(btn, before);
-      else bar.appendChild(btn);
-      return true;
-    }
-
-    if(!fallback){
-      fallback = makeAvisButton('rc892LieferAvisFallback','');
-      document.body && document.body.appendChild(fallback);
-    }
-    return false;
-  }
-
-  function canonicalVersion(){
-    try{
-      var u = new URL(window.location.href);
-      if(u.searchParams.get('v') !== '915'){
-        u.searchParams.set('v','915');
-        history.replaceState(history.state,'',u.pathname + '?' + u.searchParams.toString() + u.hash);
-      }
-    }catch(_){}
-  }
-
-  function apply(){
-    if(!document.body) return;
-    ensureStyle();
-    canonicalVersion();
-    fullDashboard();
-    shipmentLayout();
-    ensureAvis();
-  }
-
-  function deferred(){
-    setTimeout(apply, 60);
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', apply, {once:true});
-  } else {
-    apply();
-  }
-
-  window.addEventListener('load', apply, {once:true});
-  window.addEventListener('popstate', deferred);
-  window.addEventListener('hashchange', deferred);
-  window.addEventListener('exporthub:viewchange', deferred);
-  window.addEventListener('exporthub:sync', deferred);
-})();
 function avisHost(view){view=view||visibleShipmentView();var host=null;if(view==='shipmentview'){host=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost')||document.querySelector('#content.rc776-shipment-view .rc844-avis-host');if(!host){var page=document.querySelector('#content.rc776-shipment-view .rc776-page');if(page){host=document.createElement('div');host.id='rc845AvisReadHost';host.className='rc844-avis-host';host.setAttribute('data-rc845-avis-host','readonly');var grids=page.querySelectorAll(':scope > .rc776-grid');if(grids.length&&grids[0].nextSibling)page.insertBefore(host,grids[0].nextSibling);else page.appendChild(host)}}return host||null}if(view==='shipment'){host=document.getElementById('rc845AvisEditHost');if(!host){var body=document.querySelector('#rc363BlockShipment .rc363-process-body')||document.getElementById('rc363BlockShipment')||document.getElementById('rc573ShipmentShell');if(body){host=document.createElement('div');host.id='rc845AvisEditHost';host.className='rc845-avis-host';host.setAttribute('data-rc845-avis-host','edit');body.appendChild(host)}}return host||null}return null}
 function render(){return false}
 async function toggle(on){var sh=current();if(!sh)return false;if(on&&pickupStamp(sh)){alert('Der Lieferavis ist nach der Abholung geschlossen und kann nicht erneut aktiviert werden.');return false}if(on&&!ref(sh)){alert('Die Sendung benötigt zuerst eine Referenznummer.');return false}var stamp=new Date().toISOString(),values;if(on){var newToken=makeToken();values={customerAvisEnabled:true,avisEnabled:true,customerAvisToken:newToken,avisToken:newToken,customerAvisAccessCode:'',avisAccessCode:'',customerAvisSecurityVersion:SECURITY_VERSION,avisSecurityVersion:SECURITY_VERSION,customerAvisEnabledAt:stamp,avisEnabledAt:stamp,customerAvisExpiresAt:'',avisExpiresAt:'',customerAvisUsedAt:'',avisUsedAt:'',customerAvisDisabledAt:'',avisDisabledAt:'',customerAvisResponseStatus:'offen',avisResponseStatus:'offen',customerAvisAutoDisabledAt:'',avisAutoDisabledAt:'',customerAvisAutoDisabledReason:'',avisAutoDisabledReason:''}}else{values={customerAvisEnabled:false,avisEnabled:false,customerAvisToken:'',avisToken:'',customerAvisAccessCode:'',avisAccessCode:'',customerAvisSecurityVersion:0,avisSecurityVersion:0,customerAvisExpiresAt:'',avisExpiresAt:'',customerAvisUsedAt:'',avisUsedAt:'',customerAvisDisabledAt:stamp,avisDisabledAt:stamp,customerAvisAutoDisabledAt:'',avisAutoDisabledAt:'',customerAvisAutoDisabledReason:'',avisAutoDisabledReason:''}}var targets=copies(sh),keys=Object.keys(values),before=targets.map(function(x){var v={};keys.forEach(function(k){v[k]=x[k]});return{x:x,v:v}});patchCopies(sh,values);lastSig='';render();try{await persist(on?'Kunden-Avis sicher aktiviert':'Kunden-Avis deaktiviert');window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{reference:ref(sh),enabled:on}}));try{if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.patch==='function')window.ExportHUBMailStatus373.patch('Kunden-Avis geändert')}catch(_){}}catch(e){before.forEach(function(row){Object.keys(row.v).forEach(function(k){if(row.v[k]===undefined)delete row.x[k];else row.x[k]=row.v[k]})});lastSig='';render();alert('Kunden-Avis konnte nicht dauerhaft in Azure gespeichert werden. Der vorherige Zustand wurde wiederhergestellt.\n\n'+q(e&&e.message||e));return false}lastSig='';render();schedule();return false}
