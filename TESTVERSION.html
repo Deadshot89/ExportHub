@@ -291,7 +291,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC906',cache:'906',loginReturn:'/TESTVERSION.html?v=906'});
+var BUILD=Object.freeze({version:'RC907',cache:'907',loginReturn:'/TESTVERSION.html?v=907'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -2142,29 +2142,16 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
             }
 
   function mountWorkspace(){
-    var host=mainHost();
-    var v=currentView();
-    if(!host||!isDashboard()||/login|signin|auth|pickup|customer-avis/i.test(v)){
-      var orphan=document.getElementById('rc885Workspace');
-      if(orphan) orphan.remove();
-      return
-    }
-
-    var existing=document.getElementById('rc885Workspace');
-    var html=workspaceHtml();
-
-    if(existing&&existing.getAttribute('data-rc897-html')===html&&existing.parentElement===host)return;
-
-    var wrap=document.createElement('div');
-    wrap.innerHTML=html;
-    var node=wrap.firstElementChild;
-    node.setAttribute('data-rc897-html',html);
-    node.setAttribute('data-rc897-global-workspace','1');
-
-    if(existing) existing.remove();
-    if(host.firstElementChild) host.insertBefore(node,host.firstElementChild);
-    else host.appendChild(node)
-  }
+ var host=mainHost(),v=currentView(),slot=document.getElementById('rc907WorkspaceSlot');
+ if(!host||!isDashboard()||/login|signin|auth|pickup|customer-avis/i.test(v)||!slot){
+  var orphan=document.getElementById('rc885Workspace');if(orphan)orphan.remove();return
+ }
+ var existing=document.getElementById('rc885Workspace'),html=workspaceHtml();
+ if(existing&&existing.getAttribute('data-rc897-html')===html&&existing.parentElement===slot)return;
+ var wrap=document.createElement('div');wrap.innerHTML=html;var node=wrap.firstElementChild;
+ node.setAttribute('data-rc897-html',html);node.setAttribute('data-rc897-global-workspace','1');node.setAttribute('data-rc907-dashboard-position','1');node.style.margin='0';
+ if(existing)existing.remove();slot.replaceChildren(node)
+}
 
   function refresh(){
     scheduled=0;
@@ -2211,6 +2198,7 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
 
   /* exporthub-rc896-workspace-event-driven */
   ['exporthub:ready','exporthub:viewchange','exporthub:sync','exporthub:tasks-updated','exporthub:shipment-saved'].forEach(function(name){window.addEventListener(name,schedule)});
+window.addEventListener('exporthub:rendered',function(){if(isDashboard())schedule()});
   window.addEventListener('hashchange',schedule);
   window.addEventListener('popstate',schedule);
 
@@ -20736,7 +20724,7 @@ function empty(text){return '<p class="muted">'+esc(text)+'</p>'}
 
 function dashboardTaskWidget(tasks){var open=tasks.filter(function(t){return !taskDone(t)}),overdue=open.filter(isTaskOverdue),today=todayISO(),todayName=weekday(today),dueToday=open.filter(function(t){var d=taskDate(t);return d===today||(!d&&low(t.day)===low(todayName))}),critical=open.slice().sort(function(a,b){var ao=isTaskOverdue(a)?0:1,bo=isTaskOverdue(b)?0:1;if(ao!==bo)return ao-bo;return (taskDate(a)||'9999').localeCompare(taskDate(b)||'9999')}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Meine Aufgaben</h3><p class="muted">Offene und überfällige Aufgaben für '+esc(userName())+'.</p></div><button class="ghost" data-rc205-action="navigate" data-view="tasks">Aufgaben öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','noch zu erledigen')+metric('Heute',dueToday.length,'kpi-blue',todayName)+metric('Überfällig',overdue.length,'kpi-red','sofort prüfen')+'</div><div class="rc205-list">'+(critical.length?critical.map(function(t){var d=taskDate(t),ref=taskRef(t),customer=taskCustomer(t);return '<article class="rc205-row"><div><b>'+esc(taskTitle(t))+'</b><small>'+(d?esc(fmtDate(d,true)):esc(t.day||'Ohne Datum'))+(ref?' · '+esc(ref):'')+(customer?' · '+esc(customer):'')+'</small></div>'+statusPill(false,isTaskOverdue(t)?'Überfällig':'Offen')+'</article>'}).join(''):empty('Keine offenen Aufgaben.'))+'</div></section>'}
 function dashboardShipmentTruth(sh){var calculated='';try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.computeShipmentStatus==='function')calculated=q(window.ExportHUBRC543.computeShipmentStatus(sh));else calculated=q(sh&&(sh.status||sh.processStatus))}catch(_){}try{if(window.ExportHUBShipmentTruth&&typeof window.ExportHUBShipmentTruth.get==='function'){var truth=window.ExportHUBShipmentTruth.get(sh);if(truth&&typeof truth==='object'&&q(truth.key||truth.label||truth.status))return{label:q(truth.label||truth.status||'Offen')||'Offen',key:q(truth.key||'offen')||'offen'}}}catch(_){}var value=calculated||q(sh&&(sh.status||sh.processStatus||sh.podStatus||sh.pickupStatus)||'Offen'),raw=low(value),label=value||'Offen',key='offen';if(/storn|cancel/.test(raw))key='storniert';else if(/nachbearbeit|rework/.test(raw))key='nachbearbeitung';else if(/archiv|abgeschlossen|completed|erledigt/.test(raw))key='abgeschlossen';else if(/pod/.test(raw))key='pod';else if(/abgeholt|picked/.test(raw))key='abgeholt';else if(/bereit.*abhol|ready.*pickup/.test(raw))key='bereit';else if(/wartet.*abd|abd.*wart/.test(raw))key='wartetabd';else if(/in bearbeitung|processing|bearbeit/.test(raw))key='inbearbeitung';else if(/erstellt|created/.test(raw))key='erstellt';else if(/entwurf|draft/.test(raw))key='entwurf';return{label:label,key:key}}
-function dashboardTodayShipmentsWidget(shipments){var today=todayISO(),items=shipments.filter(function(sh){return shipmentPickup(sh)===today}).sort(function(a,b){return shipmentRef(a).localeCompare(shipmentRef(b),'de')});return '<section class="card rc205-widget rc255-today-widget"><div class="rc255-today-head"><div><h3>Heute geplante Sendungen</h3><p class="muted">'+esc(fmtDate(today,true))+' · Referenz, Kunde und aktueller Status</p></div><span class="pill blue">'+items.length+'</span></div><div class="rc255-today-grid">'+(items.length?items.map(function(sh){var t=dashboardShipmentTruth(sh),id=directShipmentId(sh);return '<button type="button" class="rc255-today-tile rc255-status-'+esc(t.key)+'" data-rc821-today-shipment="1" data-entity-type="shipment" data-entity-id="'+esc(id)+'" title="Sendung in der Sendungsansicht öffnen" aria-label="Sendung '+esc(shipmentRef(sh)||id||'')+' in der Sendungsansicht öffnen" onclick="return ExportHUBRC205.openDirectEntity(\'shipment\',this.dataset.entityId)"><b>'+esc(shipmentRef(sh)||id||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(sh)||'Ohne Kundenname')+'</small><span class="rc255-today-status">'+esc(t.label)+'</span></button>'}).join(''):empty('Für heute sind keine Sendungen eingeplant.'))+'</div></section>'}
+function dashboardTodayShipmentsWidget(shipments){var today=todayISO(),items=shipments.filter(function(sh){return shipmentPickup(sh)===today}).sort(function(a,b){return shipmentRef(a).localeCompare(shipmentRef(b),'de')});return '<section class="card rc205-widget rc255-today-widget"><div class="rc255-today-head"><div><h3>Heute geplante Sendungen</h3><p class="muted">'+esc(fmtDate(today,true))+' · Referenz, Kunde und aktueller Status</p></div><span class="pill blue">'+items.length+'</span></div><div class="rc255-today-grid">'+(items.length?items.map(function(sh){var t=dashboardShipmentTruth(sh),id=directShipmentId(sh);return '<button type="button" class="rc255-today-tile rc255-status-'+esc(t.key)+'" data-rc821-today-shipment="1" data-entity-type="shipment" data-entity-id="'+esc(id)+'" title="Sendung in der Sendungsansicht öffnen" aria-label="Sendung '+esc(shipmentRef(sh)||id||'')+' in der Sendungsansicht öffnen" onclick="return ExportHUBRC205.openDirectEntity(\'shipment\',this.dataset.entityId)"><b>'+esc(shipmentRef(sh)||id||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(sh)||'Ohne Kundenname')+'</small><span class="rc255-today-status">'+esc(t.label)+'</span></button>'}).join(''):empty('Für heute sind keine Sendungen eingeplant.'))+'</div></section><div id="rc907WorkspaceSlot" data-rc907-workspace-slot="1" style="margin-top:12px"></div>'}
 function dashboardShipmentWidget(shipments){var open=shipments.filter(function(s){return !shipmentDone(s)}),today=todayISO(),overdue=open.filter(function(s){var d=shipmentPickup(s);return d&&d<today}),next=open.filter(function(s){return shipmentPickup(s)}).sort(function(a,b){return shipmentPickup(a).localeCompare(shipmentPickup(b))}).slice(0,8);return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Sendungen und Abholungen</h3><p class="muted">Aktive Sendungen mit den nächsten Abholterminen.</p></div><button class="ghost" data-rc205-action="navigate" data-view="shipmentoverview">Übersicht öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offene Sendungen',open.length,'kpi-orange','nicht abgeschlossen')+metric('Abholung überfällig',overdue.length,'kpi-red','Termin überschritten')+metric('Gesamt',shipments.length,'kpi-blue','gespeicherte Sendungen')+'</div><div class="rc205-list">'+(next.length?next.map(function(s){var d=shipmentPickup(s);return '<article class="rc205-row"><div><b>'+esc(shipmentRef(s)||'Ohne Referenz')+'</b><small>'+esc(shipmentCustomer(s)||'Ohne Kunde')+' · Abholung '+esc(fmtDate(d,true))+'</small></div>'+statusPill(false,d<today?'Überfällig':'Geplant')+'</article>'}).join(''):empty('Keine geplanten Abholungen vorhanden.'))+'</div></section>'}
 function dashboardAbdWidget(items){var open=items.filter(function(a){return !abdDone(a)}),done=items.length-open.length;return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>ABD-Anfragen</h3><p class="muted">Offene Anfragen und fertige ABD-Dokumente.</p></div><button class="ghost" data-rc205-action="navigate" data-view="abd">ABD öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Offen',open.length,'kpi-orange','wartet auf Bearbeitung')+metric('Erledigt',done,'kpi-green','ABD-PDF vorhanden')+metric('Gesamt',items.length,'kpi-blue','gespeicherte Anfragen')+'</div><div class="rc205-list">'+(open.length?open.slice(0,8).map(function(a){return '<article class="rc205-row"><div><b>'+esc(a.ref||a.reference||'Ohne Referenz')+'</b><small>'+esc(a.customerName||'Ohne Kunde')+' · '+esc(a.status||'Entwurf')+'</small></div>'+statusPill(false,'Offen')+'</article>'}).join(''):empty('Keine offenen ABD-Anfragen.'))+'</div></section>'}
 function dashboardPalletWidget(entries){var valid=dashboardPalletEntries(entries),ledger=null;try{if(window.ExportHUBPalletLedger&&typeof window.ExportHUBPalletLedger.summary==='function')ledger=window.ExportHUBPalletLedger.summary()}catch(_){}var incoming=ledger?ledger.incoming:valid.filter(function(e){return dashboardPalletDirection(e)==='in'}).reduce(function(a,e){return a+dashboardPalletAmount(e)},0),outgoing=ledger?ledger.outgoing:valid.filter(function(e){return dashboardPalletDirection(e)==='out'}).reduce(function(a,e){return a+dashboardPalletAmount(e)},0),saldo=ledger?ledger.balance:(outgoing-incoming),accounts=ledger&&arr(ledger.accounts).filter(function(x){return x.balance!==0}).sort(function(a,b){return Math.abs(b.balance)-Math.abs(a.balance)}).slice(0,6);var list=accounts&&accounts.length?accounts.map(function(x){return '<article class="rc205-row"><div><b>'+esc(x.name||x.label||'Palettenkonto')+'</b><small>'+esc(x.label||'Konto')+' · aktueller Kontostand</small></div><strong>'+esc((x.balance>0?'+':'')+x.balance+' EP')+'</strong></article>'}).join(''):(valid.length?valid.slice(-6).reverse().map(function(e){return '<article class="rc205-row"><div><b>'+esc(e.customerName||e.customer||e.partyName||e.account||'Palettenbuchung')+'</b><small>'+esc(dashboardPalletDate(e))+' · '+esc(dashboardPalletType(e))+'</small></div><strong>'+esc(dashboardPalletLabel(e))+'</strong></article>'}).join(''):empty('Noch keine gültige Palettenbuchung vorhanden.'));return '<section class="card rc205-widget"><div class="rc205-card-head"><div><h3>Palettenkonto</h3><p class="muted">Aktueller Kontostand inklusive bestätigter Palettenabgleiche.</p></div><button class="ghost" data-rc205-action="navigate" data-view="pallet">Palettenkonto öffnen</button></div><div class="metrics rc205-mini-metrics">'+metric('Saldo',saldo,'kpi-blue','Ausgang minus Eingang')+metric('Eingang',incoming,'kpi-green','inkl. Abgleich')+metric('Ausgang',outgoing,'kpi-orange','inkl. Abgleich')+'</div><div class="rc205-list">'+list+'</div></section>'}
@@ -21035,6 +21023,7 @@ body[data-eh-theme] #content.rc524-overview-view .rc524-shipment-card[class*="rc
 if(window.__EXPORTHUB_INDEX218_TASK_PLANNER_RC848__)return;
 window.__EXPORTHUB_INDEX218_TASK_PLANNER_RC848__=true;
 var VERSION='RC882',rendering=false,pending=0,lastMarkup='';
+var rc907PlannerMoveQuietUntil=0,rc907PlannerReconcileTimer=0;
 var GROUPS=['Picken','ABD erstellen','Anmelden','Aufträge kontrollieren','Zusatzaufgaben'];
 var DAYS=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag'];
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
@@ -21112,7 +21101,39 @@ function routeKey(t){var s=low(t&&(t.title||t.name||''));s=s.replace(/^abd\s+(fu
 function setDateFields(t,date,kind,reason){if(!t||!date)return false;var old=effectiveDate(t)||originalDate(t);t.plannedDate=date;t.dueDate=date;t.date=date;t.targetDate=date;t.day=DAYS[(parseDate(date).getDay()||7)-1]||t.day;t.lastPlannedAt=new Date().toISOString();t.lastPlannedBy=q((st().currentUser&&st().currentUser.name)||st().currentUserName||'');if(kind==='manual'){t.manualMoved=true;t.holidayAutoMoved=false;t.plannerMoveReason=reason||'Manuell verschoben'}else if(kind==='holiday'){t.holidayAutoMoved=true;t.manualMoved=false;t.plannerMoveReason=reason||'Feiertag'}return old!==date}
 function resetAutoMove(t){if(!t||!t.holidayAutoMoved||t.manualMoved)return false;var base=originalDate(t);if(!base)return false;t.plannedDate=base;t.dueDate=base;t.date=base;t.targetDate=base;t.day=q(t.originalDay||t.day);t.holidayAutoMoved=false;t.plannerMoveReason='';return true}
 function persist(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason);else if(typeof window.save==='function')window.save()}catch(e){console.error('RC848 Planner speichern',e)}try{window.dispatchEvent(new CustomEvent('exporthub:tasks-updated',{detail:{version:VERSION,reason:reason}}))}catch(_){}return true}
-function moveTask(id,date){var t=(st().tasks||[]).find(function(x){return q(x&& (x.id||x.taskId))===q(id)});if(!t)return alert('Aufgabe wurde nicht gefunden.'),false;if(!/^\d{4}-\d{2}-\d{2}$/.test(q(date)))return alert('Bitte ein gültiges Datum auswählen.'),false;if(!isWorkday(date))return alert('Das gewählte Datum ist Wochenende oder Feiertag. Bitte einen Arbeitstag wählen.'),false;setDateFields(t,date,'manual','Manuell im Aufgaben Planner verschoben');persist('Aufgabe im Planner auf '+date+' verschoben');render();return false}
+
+/* exporthub-rc907-planner-optimistic-move */
+function plannerUpdateDayCountRC907(section){
+ if(!section)return false;var list=section.querySelector('.i218-list'),head=section.querySelector('.i218-day-head h4');if(!list||!head)return false;
+ var count=list.querySelectorAll(':scope > .i218-task').length,day=q(section.getAttribute('data-i218-day-label')||head.textContent.split('·')[0]);
+ head.textContent=day+' · '+count;
+ if(count===0&&!list.querySelector('.i218-empty'))list.innerHTML='<p class="i218-empty">Keine offene Aufgabe</p>';
+ return true
+}
+function plannerMoveDomRC907(id,date){
+ var card=document.querySelector('[data-i218-drag="'+CSS.escape(q(id))+'"]'),target=document.querySelector('[data-i218-drop-date="'+CSS.escape(q(date))+'"]');
+ if(!card||!target)return false;
+ var source=card.closest('[data-i218-drop-date]'),list=target.querySelector('.i218-list');if(!list)return false;
+ var empty=list.querySelector('.i218-empty');if(empty)empty.remove();
+ list.appendChild(card);card.classList.add('is-moved');
+ var input=card.querySelector('[data-i218-date]');if(input)input.value=date;
+ plannerUpdateDayCountRC907(source);plannerUpdateDayCountRC907(target);
+ return true
+}
+function plannerQueueReconcileRC907(){
+ clearTimeout(rc907PlannerReconcileTimer);
+ rc907PlannerReconcileTimer=setTimeout(function(){rc907PlannerReconcileTimer=0;rc907PlannerMoveQuietUntil=0;render()},520)
+}
+
+function moveTask(id,date){
+ var t=(st().tasks||[]).find(function(x){return q(x&&(x.id||x.taskId))===q(id)});if(!t)return alert('Aufgabe wurde nicht gefunden.'),false;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(q(date)))return alert('Bitte ein gültiges Datum auswählen.'),false;
+ if(!isWorkday(date))return alert('Das gewählte Datum ist Wochenende oder Feiertag. Bitte einen Arbeitstag wählen.'),false;
+ setDateFields(t,date,'manual','Manuell im Aufgaben Planner verschoben');
+ rc907PlannerMoveQuietUntil=Date.now()+500;plannerMoveDomRC907(id,date);
+ setTimeout(function(){persist('Aufgabe im Planner auf '+date+' verschoben');plannerQueueReconcileRC907()},0);
+ return false
+}
 function resetTask(id){var t=(st().tasks||[]).find(function(x){return q(x&& (x.id||x.taskId))===q(id)});if(!t)return false;var base=originalDate(t);if(!base)return false;t.manualMoved=false;t.holidayAutoMoved=false;t.plannerMoveReason='';t.plannedDate=base;t.dueDate=base;t.date=base;t.targetDate=base;t.day=q(t.originalDay||t.day);persist('Planner-Verschiebung zurückgesetzt');render();return false}
 function autoPlanHolidays(){var ws=selectedWeek(),nextWs=weekStart(addDays(mondayOf(ws),7));try{if(window.ExportHUBTaskMasterRC848){window.ExportHUBTaskMasterRC848.ensureWeek(ws,true);window.ExportHUBTaskMasterRC848.ensureWeek(nextWs,true)}}catch(_){}var tasks=(st().tasks||[]).filter(function(t){return t&&!done(t)&&(sourceWeekMatches(t,ws)||sourceWeekMatches(t,nextWs))}),changed=0,moved=0,conflicts=0;
  tasks.forEach(function(t){if(resetAutoMove(t))changed++});
@@ -21126,7 +21147,7 @@ function autoPlanHolidays(){var ws=selectedWeek(),nextWs=weekStart(addDays(monda
 
 function ensureRC895PlannerStyle(){var old=document.getElementById('rc895PlannerStyle');if(old)old.remove();var s=document.getElementById('rc896PlannerStyle');if(s)return s;s=document.createElement('style');s.id='rc896PlannerStyle';s.textContent='#index218Planner .rc896-task-name{display:block!important;font-size:20px!important;line-height:1.15!important;font-weight:950!important;color:#0f172a!important;margin:0 0 4px!important}#index218Planner .rc896-task-meta{display:block!important;font-size:11px!important;color:#64748b!important;margin-bottom:5px!important}#index218Planner .rc896-task-planning{margin-top:8px!important;padding-top:8px!important;border-top:1px solid #e2e8f0!important;display:grid!important;grid-template-columns:auto minmax(120px,150px) auto!important;gap:7px!important;align-items:center!important}#index218Planner .rc896-task-planning-label{font-size:10px!important;font-weight:850!important;text-transform:uppercase!important;letter-spacing:.06em!important;color:#94a3b8!important}#index218Planner .rc896-task-planning input[type="date"]{min-height:32px!important;height:32px!important;font-size:11px!important;padding:4px 7px!important;font-weight:650!important;max-width:150px!important}#index218Planner .rc896-task-planning button{min-height:32px!important;padding:4px 9px!important;font-size:11px!important}#index218Planner .i218-task-links{margin-top:7px!important}@media(max-width:700px){#index218Planner .rc896-task-name{font-size:18px!important}#index218Planner .rc896-task-planning{grid-template-columns:1fr auto!important}#index218Planner .rc896-task-planning-label{grid-column:1/-1}#index218Planner .rc896-task-planning input[type="date"]{max-width:none!important;width:100%!important}}';(document.head||document.documentElement).appendChild(s);return s}
 function taskCard(t,displayDate){var id=q(t.id||t.taskId),bi=t.biweekly===true||Number(t.repeatEveryWeeks)===2||/14.?tag|alle 2 wochen|biweekly/i.test([t.title,t.recurrence,t.repeatRule].join(' ')),moved=!!(t.manualMoved||t.holidayAutoMoved),conflict=!isWorkday(displayDate)&&!moved,reason=q(t.plannerMoveReason),cls='i218-task'+(moved?' is-moved':'')+(conflict?' is-conflict':'');return '<article class="'+cls+'" draggable="true" data-i218-drag="'+esc(id)+'"><strong class="i218-task-name rc896-task-name">'+esc(t.title||t.name)+'</strong><small class="rc896-task-meta">'+esc(t.owner||'Alle')+' · '+esc(groupName(t))+(t.time?' · '+esc(t.time):'')+'</small><div class="i218-badges">'+(bi?'<span class="i218-badge purple">14-tägig</span>':'')+(moved?'<span class="i218-badge orange">verschoben</span>':'')+(conflict?'<span class="i218-badge red">Feiertagskonflikt</span>':'')+'</div>'+(reason?'<small>'+esc(reason)+'</small>':'')+'<div class="i218-task-actions rc896-task-planning"><span class="rc896-task-planning-label">Termin</span><input type="date" data-i218-date="'+esc(id)+'" value="'+esc(displayDate)+'"><button class="soft" data-i218-move="'+esc(id)+'">Verschieben</button></div><div class="i218-task-links"><button class="ghost" data-i218-open="'+esc(id)+'">Öffnen</button>'+(moved?'<button class="ghost" data-i218-reset="'+esc(id)+'">Standardtag</button>':'')+'</div></article>'}
-function dayColumn(day,date,tasks){var h=holidayName(date),list=tasks.filter(function(t){return effectiveDate(t)===date});return '<section class="i218-day '+(h?'is-holiday':'')+'" data-i218-drop-date="'+esc(date)+'"><div class="i218-day-head"><div><h4>'+esc(day)+' · '+list.length+'</h4><span class="i218-date">'+esc(dateDe(date))+'</span>'+(h?'<span class="i218-holiday">'+esc(h)+'</span>':'')+'</div></div><div class="i218-list">'+(list.length?list.sort(function(a,b){return (a.masterOrder||999)-(b.masterOrder||999)}).map(function(t){return taskCard(t,date)}).join(''):'<p class="i218-empty">Keine offene Aufgabe</p>')+'</div></section>'}
+function dayColumn(day,date,tasks){var h=holidayName(date),list=tasks.filter(function(t){return effectiveDate(t)===date});return '<section class="i218-day '+(h?'is-holiday':'')+'" data-i218-drop-date="'+esc(date)+'" data-i218-day-label="'+esc(day)+'"><div class="i218-day-head"><div><h4>'+esc(day)+' · '+list.length+'</h4><span class="i218-date">'+esc(dateDe(date))+'</span>'+(h?'<span class="i218-holiday">'+esc(h)+'</span>':'')+'</div></div><div class="i218-list">'+(list.length?list.sort(function(a,b){return (a.masterOrder||999)-(b.masterOrder||999)}).map(function(t){return taskCard(t,date)}).join(''):'<p class="i218-empty">Keine offene Aufgabe</p>')+'</div></section>'}
 function groupWeekHtml(name,tasks,ws){return '<div class="i218-week">'+DAYS.map(function(day){return dayColumn(day,dayDate(ws,day),tasks)}).join('')+'</div>'}
 function groupSection(name,tasks,ws){
  var forceOpen=tasks.some(function(t){var d=effectiveDate(t);return t.manualMoved||t.holidayAutoMoved||(d&&!isWorkday(d))}),isOpen=groupOpen(name,forceOpen),body=isOpen?groupWeekHtml(name,tasks,ws):'';
@@ -21138,7 +21159,11 @@ function setWeek(ws){var cur=weekStart(new Date());ws=weekStart(ws);if(ws<cur)ws
 function shiftWeek(n){return setWeek(localISO(addDays(mondayOf(selectedWeek()),n*7)))}
 function navigateTasks(){if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('tasks','task-planner');try{if(typeof window.setView==='function')window.setView('tasks')}catch(_){}return false}
 function render(){if(rendering||view()!=='planning')return false;ensureRC895PlannerStyle();var r=root();if(!r)return false;rendering=true;try{var ws=selectedWeek();try{if(window.ExportHUBTaskMasterRC848)window.ExportHUBTaskMasterRC848.ensureWeek(ws,true)}catch(_){}var tasks=openTasksForWeek(ws),hcount=0;DAYS.forEach(function(d){if(holidayName(dayDate(ws,d)))hcount++});var moved=tasks.filter(function(t){return t.manualMoved||t.holidayAutoMoved}).length,conflicts=tasks.filter(function(t){var d=effectiveDate(t);return d&&!isWorkday(d)&&groupName(t)!=='ABD erstellen'&&groupName(t)!=='Anmelden'}).length,forecast=holidayListFrom(ws),nextImpact=forecast.find(function(h){var d=parseDate(h.date);return d&&d.getDay()!==0&&d.getDay()!==6}),nextLabel=nextImpact?(nextImpact.name+' · in '+daysUntil(nextImpact.date)+' Tagen'):'kein Arbeitstags-Feiertag in 120 Tagen';var html='<div id="index218Planner"><div class="i218-head"><div><h2>🗓️ Aufgaben Planer</h2><p>Woche planen, Aufgaben nach Bereich öffnen und Feiertage frühzeitig berücksichtigen.</p></div><div class="actions"><button class="ghost" data-i218-action="tasks">Aufgaben öffnen</button></div></div><div class="i218-toolbar"><button class="ghost" data-i218-action="prev" '+(ws<=weekStart(new Date())?'disabled':'')+'>← Vorwoche</button><label>Woche<input type="date" min="'+esc(weekStart(new Date()))+'" data-i218-week value="'+esc(ws)+'"></label><button class="ghost" data-i218-action="next">Nächste Woche →</button><button class="soft" data-i218-action="holidays">Feiertage automatisch planen</button></div><div class="i218-statusbar"><b>'+esc(kwLabel(ws))+'</b><span class="i218-status-item">Offen <strong>'+tasks.length+'</strong></span><span class="i218-status-item">Verschoben <strong>'+moved+'</strong></span><span class="i218-status-item">Konflikte <strong>'+conflicts+'</strong></span><span class="i218-status-item">Feiertage diese Woche <strong>'+hcount+'</strong></span><span class="i218-status-item">Nächster Arbeitstags-Feiertag <strong>'+esc(nextLabel)+'</strong></span></div>'+holidayStrip(ws)+weekOverview(tasks,ws)+'<details class="i218-rule"><summary>Feiertagsregel anzeigen</summary><p>ABD am Feiertag → nächster Arbeitstag. Trifft es dort auf die zugehörige Anmeldung, wandert die Anmeldung auf den darauffolgenden Arbeitstag. Andere Aufgaben bleiben als Feiertagskonflikt sichtbar und können manuell verschoben werden.</p></details><div class="i218-group-tools"><h3>Aufgabengruppen</h3><div class="actions"><button class="ghost" data-i218-action="open-all">Alle öffnen</button><button class="ghost" data-i218-action="close-all">Alle schließen</button></div></div>'+GROUPS.map(function(g){return groupSection(g,tasks.filter(function(t){return groupName(t)===g}),ws)}).join('')+extras(tasks,ws)+'</div>';if(r.querySelector(':scope>#index218Planner')&&html===lastMarkup)return false;lastMarkup=html;r.className='content';r.innerHTML=html;return true}finally{rendering=false}}
-function schedule(){if(pending)return;pending=later(function(){pending=0;render()},0)}
+function schedule(){
+ if(pending)return;
+ var wait=Math.max(0,rc907PlannerMoveQuietUntil-Date.now());
+ pending=later(function(){pending=0;if(Date.now()<rc907PlannerMoveQuietUntil)return schedule();render()},wait?wait+24:0)
+}
 function openEditor(id){try{if(typeof window.rc524OpenTaskEditor==='function'){window.rc524OpenTaskEditor(id);return}if(typeof window.openTaskEditor==='function'){window.openTaskEditor(id);return}}catch(_){}return false}
 document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-i218-action],[data-i218-move],[data-i218-open],[data-i218-reset],[data-i218-holiday-week]');if(!b)return;if(b.hasAttribute('data-i218-holiday-week')){e.preventDefault();return setWeek(b.getAttribute('data-i218-holiday-week'))}if(b.hasAttribute('data-i218-action')){e.preventDefault();var a=b.getAttribute('data-i218-action');if(a==='tasks')return navigateTasks();if(a==='open-all')return setAllGroups(true);if(a==='close-all')return setAllGroups(false);if(a==='prev')return shiftWeek(-1);if(a==='next')return shiftWeek(1);if(a==='holidays')return autoPlanHolidays()}if(b.hasAttribute('data-i218-open')){e.preventDefault();return openEditor(b.getAttribute('data-i218-open'))}if(b.hasAttribute('data-i218-reset')){e.preventDefault();return resetTask(b.getAttribute('data-i218-reset'))}if(b.hasAttribute('data-i218-move')){e.preventDefault();var id=b.getAttribute('data-i218-move'),inp=document.querySelector('[data-i218-date="'+CSS.escape(id)+'"]');return moveTask(id,inp&&inp.value)}},true);
 document.addEventListener('toggle',function(e){var el=e.target;if(el&&el.matches&&el.matches('#index218Planner details.i218-group')){rememberGroup(el.getAttribute('data-i218-group')||'',el.open);hydrateGroup(el)}},true);
@@ -24049,7 +24074,62 @@ function currentMove(){return all().find(function(x){return skey(x)===pendingMov
 function moveOptions(selected){return LOCS.map(function(x){return '<option value="'+x[2]+'"'+(Number(selected)===x[2]?' selected':'')+'>'+esc(x[0])+' (Code '+x[2]+')</option>'}).join('')}
 function openMove(key){pendingMove=q(key);render(false);return false}
 function closeMove(){pendingMove='';render(false);return false}
-async function moveShipmentKey(key,code){if(!isAdmin()){alert('Für das manuelle Verschieben ist das Funktionsrecht Lager = Admin erforderlich.');return false}var sh=all().find(function(x){return skey(x)===q(key)});if(!sh)return false;code=Math.round(Number(code||0));if(code<0||code>8)return false;if(Number(sh.warehouseLocationCode||0)===code)return false;var tok=token(sh);if(!tok){alert('Location-Token fehlt.');return false}try{await api('move',{method:'POST',token:tok,body:{token:tok,locationCode:code,colliCount:totalColliCount(sh),totalColli:totalColliCount(sh),expectedColliCount:totalColliCount(sh)}});pendingMove='';dragKey='';await sync(true);return true}catch(e){alert(e&&e.message||'Sendung konnte nicht verschoben werden.');return false}}
+
+/* exporthub-rc907-warehouse-optimistic-move */
+function warehouseMoveSnapshotRC907(sh){
+ return copies(sh).map(function(x){return{x:x,warehouseLocation:x.warehouseLocation,warehouseLocationCode:x.warehouseLocationCode,warehouseMovedBy:x.warehouseMovedBy,warehouseMovedAt:x.warehouseMovedAt}})
+}
+function warehouseApplyLocalMoveRC907(sh,code){
+ var found=LOCS.find(function(x){return x[2]===Number(code)}),loc=found?found[0]:'Eingang',u=currentUser(),who=q(u&&(u.name||u.displayName||u.user||u.username||u.login))||'Admin',at=new Date().toISOString();
+ copies(sh).forEach(function(x){x.warehouseLocation=loc;x.warehouseLocationCode=Number(code);x.warehouseMovedBy=who;x.warehouseMovedAt=at});
+ return{location:loc,code:Number(code),movedBy:who,movedAt:at}
+}
+function warehouseRestoreMoveRC907(snapshot){
+ arr(snapshot).forEach(function(s){if(!s||!s.x)return;s.x.warehouseLocation=s.warehouseLocation;s.x.warehouseLocationCode=s.warehouseLocationCode;s.x.warehouseMovedBy=s.warehouseMovedBy;s.x.warehouseMovedAt=s.warehouseMovedAt});
+ return true
+}
+function warehouseZoneRefreshRC907(code){
+ var zone=document.querySelector('[data-warehouse-drop-code="'+Number(code)+'"]');if(!zone)return false;
+ var name=q(zone.getAttribute('data-warehouse-drop-name')),d=zoneData(name),count=zone.querySelector('.rc504-zone-count');
+ if(count){var load=d.pallets>0&&d.packages>0?(d.pallets+' Paletten · '+d.packages+' Pakete'):d.pallets>0?(d.pallets+' Paletten'):d.packages>0?(d.packages+' Pakete'):'0 Colli';count.textContent=d.list.length+' Sendungen · '+load}
+ var list=zone.querySelector('.rc504-zone-list');if(list&&!list.querySelector('.rc504-shipment'))list.innerHTML='<div class="rc504-zone-empty">Keine Sendung an dieser Location.</div>';
+ return true
+}
+function warehouseMoveDomRC907(key,fromCode,toCode,local){
+ if(currentView()!=='warehouse')return false;
+ var card=document.querySelector('[data-warehouse-drag-key="'+CSS.escape(q(key))+'"]'),target=document.querySelector('[data-warehouse-drop-code="'+Number(toCode)+'"] .rc504-zone-list');
+ if(!card||!target)return false;
+ var empty=target.querySelector('.rc504-zone-empty');if(empty)empty.remove();
+ target.appendChild(card);
+ var badge=card.querySelector('.rc504-badge.loc');if(badge)badge.textContent=q(local&&local.location)||'—';
+ var moved=card.querySelectorAll('.rc504-meta-chip b');if(moved[1])moved[1].textContent=q(local&&local.movedBy)||'—';if(moved[2])moved[2].textContent=fmt(local&&local.movedAt);
+ warehouseZoneRefreshRC907(fromCode);warehouseZoneRefreshRC907(toCode);
+ var modal=document.querySelector('.rc504-modal-backdrop');if(modal)modal.remove();
+ return true
+}
+
+async function moveShipmentKey(key,code){
+ if(!isAdmin()){alert('Für das manuelle Verschieben ist das Funktionsrecht Lager = Admin erforderlich.');return false}
+ var sh=all().find(function(x){return skey(x)===q(key)});if(!sh)return false;
+ code=Math.round(Number(code||0));if(code<0||code>8)return false;
+ var fromCode=Number(sh.warehouseLocationCode||0);if(fromCode===code)return false;
+ var tok=token(sh);if(!tok){alert('Location-Token fehlt.');return false}
+ var snapshot=warehouseMoveSnapshotRC907(sh),local=warehouseApplyLocalMoveRC907(sh,code);
+ pendingMove='';dragKey='';warehouseMoveDomRC907(key,fromCode,code,local);
+ try{
+  var result=await api('move',{method:'POST',token:tok,body:{token:tok,locationCode:code,colliCount:totalColliCount(sh),totalColli:totalColliCount(sh),expectedColliCount:totalColliCount(sh)}});
+  if(result&&result.record)applyRecord(result.record);
+  persist('Lagerlocation verschoben');
+  try{window.dispatchEvent(new CustomEvent('exporthub:warehouse-updated',{detail:{changed:true,optimistic:true,reference:sref(sh),locationCode:code}}))}catch(_){}
+  setTimeout(function(){sync(false)},1400);
+  return true
+ }catch(e){
+  warehouseRestoreMoveRC907(snapshot);
+  if(currentView()==='warehouse')render(false);
+  alert(e&&e.message||'Sendung konnte nicht verschoben werden.');
+  return false
+ }
+}
 async function submitMove(){var sh=currentMove(),sel=document.getElementById('rc504MoveLocation');if(!sh||!sel)return false;var btn=document.getElementById('rc504MoveSave');if(btn)btn.disabled=true;try{await moveShipmentKey(skey(sh),sel.value)}finally{if(btn)btn.disabled=false}return false}
 function shipmentBadge(sh){var loc=locationName(sh)||'—';return '<span class="rc504-badge loc">'+esc(loc)+'</span>'}
 function shipmentCard(sh){var ref=esc(sref(sh)||sid(sh)),cust=esc(customer(sh)),moved=q(sh.warehouseMovedBy),movedAt=q(sh.warehouseMovedAt),prepared=sh.warehousePrepared===true||/vorbereitet/i.test(q(sh.status||sh.processStatus)),admin=isAdmin(),load=warehouseLoadSummary(sh),dateClass=shipmentDateClass(sh),drag=admin?' draggable="true" data-warehouse-drag-key="'+esc(skey(sh))+'" title="Sendung auf eine andere Location ziehen"':'';return '<article class="rc504-shipment'+dateClass+'"'+drag+'><div class="rc504-shipment-top"><div><div class="rc504-shipment-ref">'+ref+'</div><div class="rc504-shipment-customer">'+cust+'</div></div></div><div class="rc664-shipment-badges">'+shipmentBadge(sh)+(prepared?'<span class="rc504-badge ready">Vorbereitet</span>':'')+'</div><div class="rc504-shipment-meta"><div class="rc504-meta-chip"><small>'+esc(load.label)+'</small><b>'+esc(load.value)+'</b></div><div class="rc504-meta-chip"><small>Verlader</small><b>'+esc(moved||'—')+'</b></div><div class="rc504-meta-chip"><small>Gebucht</small><b>'+esc(fmt(movedAt))+'</b></div></div></article>'}
