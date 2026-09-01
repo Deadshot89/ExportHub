@@ -308,7 +308,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC911',cache:'911',loginReturn:'/TESTVERSION.html?v=911'});
+var BUILD=Object.freeze({version:'RC912',cache:'912',loginReturn:'/TESTVERSION.html?v=912'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -22964,6 +22964,190 @@ window.ExportHUBPickupDate373=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
 .rc807-search-box{grid-template-columns:minmax(0,1fr) auto auto!important;gap:8px!important}
 .rc807-search-box .rc911-search-clear{min-height:34px!important;padding:5px 9px!important;font-size:10px!important}
 @media(max-width:650px){.rc807-search-box{grid-template-columns:minmax(0,1fr) auto!important}.rc807-search-box .rc807-search-count{grid-column:1/-1!important}}
+
+
+/* exporthub-rc912-mobile-responsive */
+@media(max-width:760px){
+  html,body{max-width:100%!important;overflow-x:hidden!important}
+  body #content,body[data-eh-theme] #content{padding:8px!important;max-width:100%!important;min-width:0!important}
+
+  /* Seitenkopf */
+  body #content>.page-head,body[data-eh-theme] #content>.page-head{
+    display:grid!important;grid-template-columns:1fr!important;gap:7px!important;
+    padding:10px 11px!important;margin:0 0 8px!important;border-radius:12px!important
+  }
+  body #content>.page-head h1,body #content>.page-head h2{font-size:20px!important;line-height:1.1!important}
+  body #content>.page-head p{font-size:10px!important;line-height:1.3!important;margin-top:3px!important}
+  body #content>.page-head>button{width:100%!important;margin:0!important;min-height:34px!important}
+
+  /* Dashboard + Schnellzugriffe */
+  body #content .rc205-dashboard-grid{gap:7px!important}
+  body #content .rc205-quick-card{padding:9px!important;margin-bottom:8px!important}
+  body #content .rc205-quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  body #content .rc205-quick{min-height:56px!important;padding:8px!important;border-radius:11px!important;font-size:10px!important}
+  body #content .rc205-quick span{font-size:16px!important;margin-bottom:3px!important}
+  body #content .rc205-widget{padding:9px!important;border-radius:12px!important}
+  body #content .rc205-card-head{margin-bottom:7px!important}
+  body #content .rc205-card-head h3{font-size:14px!important;margin-bottom:2px!important}
+  body #content .rc205-card-head p{font-size:9px!important;line-height:1.25!important}
+  body #content .rc255-today-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  body #content .rc255-today-tile{
+    min-height:60px!important;padding:7px 7px 6px 10px!important;border-left-width:4px!important;border-radius:10px!important
+  }
+  body #content .rc255-today-tile b{font-size:12px!important;line-height:1.1!important}
+  body #content .rc255-today-tile small{font-size:9px!important;line-height:1.15!important}
+  body #content .rc255-today-status{font-size:8px!important;margin-top:2px!important}
+  body #content .rc255-today-status:before{width:6px!important;height:6px!important}
+
+  /* Arbeitsfokus */
+  #rc885Workspace{margin:0 0 8px!important;border-radius:12px!important}
+  #rc885Workspace .rc885-head{padding:10px 11px 8px!important;gap:6px!important}
+  #rc885Workspace .rc885-kicker{font-size:8px!important;margin-bottom:2px!important}
+  #rc885Workspace h2{font-size:17px!important}
+  #rc885Workspace .rc885-sub{font-size:9px!important;line-height:1.25!important;margin-top:2px!important}
+  #rc885Workspace .rc885-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;padding:8px 10px 10px!important}
+  #rc885Workspace .rc885-panel{min-height:0!important;padding:8px!important;border-radius:10px!important}
+  #rc885Workspace .rc885-panel-head{margin-bottom:4px!important;gap:5px!important}
+  #rc885Workspace .rc885-panel-title{font-size:10px!important;gap:5px!important}
+  #rc885Workspace .rc885-badge{min-width:21px!important;height:21px!important;padding:0 5px!important;font-size:9px!important}
+  #rc885Workspace .rc885-row-sub{font-size:8px!important;line-height:1.2!important;margin-top:2px!important}
+  #rc885Workspace .rc885-open{display:none!important}
+
+  /* Warncenter: nicht mehr über dem oberen Menü */
+  #rc885WarningButton{
+    top:auto!important;bottom:10px!important;right:10px!important;
+    min-height:36px!important;padding:6px 9px!important;border-radius:11px!important;font-size:10px!important
+  }
+  #rc885WarningButton .rc885-warning-count{min-width:21px!important;height:21px!important;font-size:9px!important}
+  #rc885WarningDrawer .rc885-drawer{
+    width:100vw!important;max-width:100vw!important;padding:10px!important;border-radius:0!important
+  }
+  #rc885WarningDrawer .rc885-drawer-head{padding:10px!important}
+  #rc885WarningDrawer .rc889-overview{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important}
+  #rc885WarningDrawer .rc889-overview-card{padding:7px!important}
+  #rc885WarningDrawer .rc889-groups{max-height:calc(100vh - 170px)!important;gap:6px!important}
+  #rc885WarningDrawer .rc889-item{padding:8px!important}
+
+  /* Sendung erstellen */
+  #rc363FixedShipmentLayout{gap:7px!important}
+  #rc363FixedShipmentLayout .rc363-process-block{padding:8px!important;border-radius:12px!important}
+  #rc363FixedShipmentLayout .rc363-process-head{gap:6px!important;margin-bottom:5px!important;padding-bottom:5px!important}
+  #rc363FixedShipmentLayout .rc363-process-number{width:22px!important;height:22px!important;flex-basis:22px!important;font-size:10px!important;border-radius:7px!important}
+  #rc363FixedShipmentLayout .rc363-process-head h2{font-size:14px!important}
+  #rc363FixedShipmentLayout .rc363-process-body{gap:5px!important}
+  #rc363FixedShipmentLayout .rc363-process-block .field{padding:5px 6px!important;font-size:10px!important}
+  #rc363FixedShipmentLayout .rc363-process-block input,
+  #rc363FixedShipmentLayout .rc363-process-block select,
+  #rc363FixedShipmentLayout .rc363-process-block textarea{min-height:34px!important;padding:6px 7px!important;font-size:12px!important}
+  #rc363FixedShipmentLayout .rc363-process-block textarea{min-height:78px!important}
+
+  /* Colli: nicht mehr jedes Feld einzeln untereinander */
+  #rc363BlockColli #rc573ColliCard .rc363-owned-row{padding:7px!important;border-radius:12px!important}
+  #rc363BlockColli #rc573ColliCard .rc363-colli-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:none!important;gap:6px!important
+  }
+  #rc363BlockColli #rc573ColliCard .rc363-colli-grid>[data-rc363-field]{grid-row:auto!important;min-width:0!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="type"]{grid-column:1/-1!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="action"]{grid-column:1/-1!important;align-items:flex-end!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="action"] button{width:auto!important;min-width:94px!important;min-height:30px!important;padding:4px 8px!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="count"]{grid-column:1!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="weight"]{grid-column:2!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="ldm"]{grid-column:1/-1!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="l"]{grid-column:1!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="w"]{grid-column:2!important}
+  #rc363BlockColli #rc573ColliCard [data-rc363-field="h"]{grid-column:1/-1!important}
+  #rc573ColliCard .rc682-packaging-menu{
+    width:calc(100vw - 24px)!important;max-width:calc(100vw - 24px)!important;left:0!important;padding:7px!important;max-height:60vh!important
+  }
+  #rc573ColliCard .rc682-packaging-columns{
+    grid-template-columns:1fr!important;min-width:0!important;gap:6px!important
+  }
+  #rc573ColliCard .rc682-packaging-column{padding:6px!important}
+  #rc573ColliCard .rc682-packaging-option{min-height:31px!important;padding:5px 7px!important;font-size:10px!important}
+
+  /* Mail: Reiter bleiben nebeneinander statt drei große Zeilen */
+  #rc543MailArea{padding:8px!important}
+  #rc543MailArea .rc543-segments{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
+  #rc543MailArea .rc543-segments button{min-height:30px!important;padding:4px 5px!important;font-size:8px!important}
+  #rc543MailArea .rc543-grid2{grid-template-columns:1fr!important}
+  #rc543MailArea>.toolbar{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #rc543MailArea>.toolbar button:last-child{grid-column:1/-1!important}
+  #rc543MailArea #rc543MailBody{height:108px!important;min-height:90px!important}
+
+  /* Speichern & Ausgabe */
+  #rc363ShipmentActions .rc363-actions-buttons{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #rc363ShipmentActions #rc363SaveShipment{grid-column:1/-1!important}
+  #rc363ShipmentActions .rc363-actions-buttons button{min-height:34px!important;font-size:9px!important}
+  #rc363ShipmentQr{grid-template-columns:54px minmax(0,1fr)!important}
+  #rc363ShipmentQr .index351-qr-box,
+  #rc363ShipmentQr svg,#rc363ShipmentQr canvas,#rc363ShipmentQr img{
+    width:50px!important;height:50px!important;max-width:50px!important;max-height:50px!important
+  }
+
+  /* Stauplan */
+  #rc380StowPlan .rc713-toolbar{grid-template-columns:1fr!important}
+  #rc380StowPlan .rc713-toolbar label,
+  #rc380StowPlan .rc713-toolbar select{width:100%!important;min-width:0!important}
+  #rc380StowPlan .rc717-floor{height:150px!important}
+  #rc380StowPlan .rc717-cab{width:34px!important;height:23px!important}
+
+  /* Aufgabenplaner */
+  #index218Planner{gap:8px!important}
+  #index218Planner .i218-head{gap:7px!important}
+  #index218Planner .i218-head h2{font-size:18px!important}
+  #index218Planner .i218-head p{font-size:9px!important}
+  #index218Planner .i218-head .actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important}
+  #index218Planner .i218-head .actions button{width:100%!important;min-height:32px!important;font-size:9px!important}
+  #index218Planner .i218-toolbar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;padding:8px!important}
+  #index218Planner .i218-toolbar>*{min-width:0!important;width:100%!important}
+  #index218Planner .i218-overview{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important}
+  #index218Planner .i218-overview-day{padding:7px!important}
+  #index218Planner .i218-week{grid-template-columns:1fr!important;gap:6px!important}
+  #index218Planner .i218-day{padding:6px!important;min-height:72px!important}
+  #index218Planner .i218-task{padding:6px!important}
+  #index218Planner .i218-task-actions{grid-template-columns:minmax(0,1fr) auto!important}
+  #index218Planner .i218-holiday-forecast{grid-template-columns:1fr!important}
+
+  /* Lager */
+  .rc504-warehouse-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  .rc504-layout{grid-template-columns:1fr!important;gap:7px!important}
+  .rc504-zone{padding:8px!important;border-radius:12px!important}
+  .rc504-zone-head{margin-bottom:6px!important}
+  .rc504-zone-title h3{font-size:18px!important}
+  .rc504-zone-code{font-size:9px!important;padding:3px 6px!important}
+  .rc504-zone-count{font-size:10px!important}
+  .rc504-zone-list{grid-template-columns:1fr!important;gap:5px!important}
+  .rc504-shipment{padding:6px!important;border-radius:9px!important}
+  .rc504-shipment-meta{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
+  .rc504-shipment-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important}
+  .rc504-shift-btn{width:100%!important;min-height:32px!important;padding:5px 6px!important;font-size:9px!important}
+  .rc504-modal{padding:11px!important;border-radius:14px!important}
+  .rc504-modal-grid{grid-template-columns:1fr!important}
+
+  /* Sendungssuche */
+  .rc807-search-page{padding:0 0 12px!important}
+  .rc807-search-head{margin-bottom:8px!important}
+  .rc807-search-head h1{font-size:22px!important;margin-bottom:3px!important}
+  .rc807-search-head p{font-size:10px!important;line-height:1.25!important}
+  .rc807-search-box{grid-template-columns:minmax(0,1fr) auto!important;gap:5px!important;padding:8px!important;margin-bottom:8px!important}
+  .rc807-search-box input{min-height:36px!important;font-size:12px!important}
+  .rc807-search-box .rc911-search-clear{min-height:36px!important;padding:5px 8px!important;font-size:9px!important}
+  .rc807-search-count{grid-column:1/-1!important;font-size:9px!important}
+  .rc807-result-list{gap:6px!important}
+  .rc807-result{grid-template-columns:1fr!important;gap:5px!important;padding:8px!important;border-radius:10px!important}
+  .rc807-result-ref b{font-size:14px!important}
+  .rc807-result small,.rc807-result-meta{font-size:9px!important}
+  .rc807-result-docs,.rc807-result .toolbar{grid-column:auto!important}
+  .rc807-result .toolbar{display:grid!important;grid-template-columns:1fr!important;gap:4px!important}
+  .rc807-result .toolbar button{width:100%!important;min-height:32px!important}
+}
+@media(max-width:420px){
+  body #content .rc205-quick-grid,
+  body #content .rc255-today-grid,
+  #rc885Workspace .rc885-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #rc363BlockColli #rc573ColliCard .rc363-colli-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #index218Planner .i218-toolbar{grid-template-columns:1fr!important}
+}
 
 /* RC682: Verpackungsauswahl als dreispaltiges Menü im bestehenden Colli-Block. */
 #rc573ColliCard .rc682-packaging-picker{position:relative!important;width:100%!important;min-width:0!important;isolation:isolate!important}
