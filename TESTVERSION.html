@@ -291,7 +291,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC908',cache:'908',loginReturn:'/TESTVERSION.html?v=908'});
+var BUILD=Object.freeze({version:'RC909',cache:'909',loginReturn:'/TESTVERSION.html?v=909'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -22885,6 +22885,52 @@ window.ExportHUBPickupDate373=Object.freeze({version:(window.EXPORTHUB_BUILD&&wi
  #rc543MailArea>.toolbar{grid-template-columns:1fr!important}
  #rc543MailArea #rc543MailAttachment{grid-template-columns:1fr!important}
  #rc543MailArea #rc543MailBody{height:128px!important;max-height:180px!important}
+}
+
+
+/* exporthub-rc909-actions-compact */
+#rc363BlockActions .rc363-process-body{display:grid!important;grid-template-columns:1fr!important;gap:7px!important;align-content:start!important}
+#rc363BlockActions #rc543PrintStatus{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;margin:0!important;padding:8px 10px!important;border-radius:10px!important;box-shadow:none!important}
+#rc363BlockActions #rc543PrintStatus .rc543-kicker{font-size:8px!important;line-height:1!important;margin:0 0 2px!important}
+#rc363BlockActions #rc543PrintStatus h3{font-size:12px!important;line-height:1.15!important;margin:0!important}
+#rc363BlockActions #rc543PrintStatus p{font-size:9px!important;line-height:1.2!important;margin:2px 0 0!important}
+#rc363BlockActions #rc543PrintStatus>.pill{font-size:8px!important;padding:3px 6px!important;white-space:nowrap!important}
+#rc363ShipmentActions{display:grid!important;grid-template-columns:minmax(190px,.72fr) minmax(0,1.8fr)!important;gap:8px 12px!important;align-items:center!important;margin:0!important;padding:0!important}
+#rc363ShipmentActions .rc363-actions-copy{min-width:0!important}
+#rc363ShipmentActions .rc363-actions-copy h3{font-size:13px!important;line-height:1.15!important;margin:0 0 2px!important}
+#rc363ShipmentActions .rc363-actions-copy p{font-size:9px!important;line-height:1.25!important;margin:0!important}
+#rc363ShipmentActions .rc363-actions-buttons{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;width:100%!important}
+#rc363ShipmentActions .rc363-actions-buttons button{min-height:32px!important;height:auto!important;padding:5px 8px!important;font-size:9px!important;line-height:1.15!important;border-radius:9px!important}
+#rc363ShipmentQr{grid-column:1/-1!important;display:grid!important;grid-template-columns:84px minmax(0,1fr)!important;gap:9px!important;align-items:center!important;border-top:1px solid #e2e8f0!important;padding-top:7px!important;min-height:0!important}
+#rc363ShipmentQr:empty{display:none!important}
+#rc363ShipmentQr .index351-qr-box,
+#rc363ShipmentQr svg,
+#rc363ShipmentQr canvas,
+#rc363ShipmentQr img{max-width:76px!important;max-height:76px!important;width:76px!important;height:76px!important;object-fit:contain!important}
+#rc363ShipmentQr .rc363-qr-copy{font-size:9px!important;line-height:1.28!important;font-weight:700!important}
+#rc363ShipmentQr .rc363-qr-copy b{font-size:11px!important;line-height:1.15!important;margin:0 0 2px!important}
+#rc363ShipmentQr .toolbar{margin-top:5px!important;gap:5px!important}
+#rc363ShipmentQr .toolbar button{min-height:29px!important;width:auto!important;padding:4px 7px!important;font-size:8px!important}
+#rc363BlockActions .badbox,
+#rc363BlockActions .okbox,
+#rc363BlockActions .notice,
+#rc363BlockActions .infobox{margin:0!important;padding:7px 9px!important;border-radius:9px!important;font-size:9px!important;line-height:1.25!important}
+@media(max-width:900px){
+ #rc363ShipmentActions{grid-template-columns:1fr!important}
+ #rc363ShipmentActions .rc363-actions-copy{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important}
+ #rc363ShipmentActions .rc363-actions-copy p{max-width:65%!important;text-align:right!important}
+}
+@media(max-width:650px){
+ #rc363BlockActions #rc543PrintStatus{grid-template-columns:1fr auto!important}
+ #rc363BlockActions #rc543PrintStatus p{display:none!important}
+ #rc363ShipmentActions .rc363-actions-copy{display:block!important}
+ #rc363ShipmentActions .rc363-actions-copy p{max-width:none!important;text-align:left!important}
+ #rc363ShipmentActions .rc363-actions-buttons{grid-template-columns:1fr!important}
+ #rc363ShipmentQr{grid-template-columns:64px minmax(0,1fr)!important}
+ #rc363ShipmentQr .index351-qr-box,
+ #rc363ShipmentQr svg,
+ #rc363ShipmentQr canvas,
+ #rc363ShipmentQr img{max-width:58px!important;max-height:58px!important;width:58px!important;height:58px!important}
 }
 
 /* RC682: Verpackungsauswahl als dreispaltiges Menü im bestehenden Colli-Block. */
