@@ -309,12 +309,15 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC919',cache:'919',loginReturn:'/TESTVERSION.html?v=919'});
+var BUILD=Object.freeze({version:'RC920',cache:'920',loginReturn:'/TESTVERSION.html?v=920'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
+    "RC920 berechnet die Dashboard-Masonry-Höhe bei jeder Größenänderung aus der natürlichen aktuellen Kachelhöhe neu. Alte Grid-Row-Spans werden vor der Messung entfernt, damit geschrumpfte Kacheln keine leeren Flächen zurücklassen.",
+    "RC920 beobachtet für die Masonry-Aktualisierung die tatsächlichen Kachelinhalte statt den durch das Raster künstlich gestreckten äußeren Grid-Eintrag. Dadurch entstehen bei Status-, Aufgaben- und Datenänderungen weniger unnötige Resize-Nachläufe.",
+    "RC920 bestätigt die Smartphone-Darstellung von Dashboard und Sendung erstellen bei 320 bis 768 Pixel Breite ohne horizontalen Seitenüberstand; auf bis zu 760 Pixel bleiben Dashboard-Kacheln einspaltig und ohne Grid-Row-Zwang.",
     "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
     "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
     "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
@@ -20594,12 +20597,14 @@ function dashboardSignature(){
   r:arr(s.palletSettlements).map(function(x){return[q(x.id),q(x.status),q(x.partyKey),q(x.reconciliationDate||x.checkDate||x.to),q(x.systemBalance),q(x.actualBalance),q(x.difference),q(x.adjustmentBookingId)].join('|')}).sort()
  })
 }
-/* exporthub-rc914-dashboard-masonry */
+/* exporthub-rc920-dashboard-dynamic-masonry */
 function dashboardMasonryMobile(){return !!(window.matchMedia&&window.matchMedia('(max-width:760px)').matches)}
 function dashboardMasonryMeasure(grid){
  if(!grid||!grid.isConnected)return false;
  var items=Array.prototype.slice.call(grid.querySelectorAll(':scope > .rc205-layout-item[data-dashboard-widget]'));if(!items.length)return false;
- if(dashboardMasonryMobile()){items.forEach(function(item){item.style.removeProperty('grid-row-end')});return true}
+ items.forEach(function(item){item.style.removeProperty('grid-row-end')});
+ if(dashboardMasonryMobile())return true;
+ void grid.offsetHeight;
  var cs=window.getComputedStyle(grid),row=parseFloat(cs.gridAutoRows)||4,gap=parseFloat(cs.rowGap)||10,unit=row+gap;
  items.forEach(function(item){var height=Math.max(1,Math.ceil(item.scrollHeight||item.getBoundingClientRect().height||1)),span=Math.max(1,Math.ceil((height+gap)/unit));item.style.gridRowEnd='span '+span});
  return true
@@ -20612,7 +20617,14 @@ function dashboardMasonrySchedule(grid){
 function dashboardMasonryBind(grid){
  if(!grid)return false;dashboardMasonryGrid=grid;
  if(dashboardMasonryObserver){try{dashboardMasonryObserver.disconnect()}catch(_){}}
- if(typeof window.ResizeObserver==='function'){dashboardMasonryObserver=new ResizeObserver(function(){dashboardMasonrySchedule(grid)});Array.prototype.slice.call(grid.querySelectorAll(':scope > .rc205-layout-item[data-dashboard-widget]')).forEach(function(item){try{dashboardMasonryObserver.observe(item)}catch(_){}})}
+ if(typeof window.ResizeObserver==='function'){
+  dashboardMasonryObserver=new ResizeObserver(function(){dashboardMasonrySchedule(grid)});
+  Array.prototype.slice.call(grid.querySelectorAll(':scope > .rc205-layout-item[data-dashboard-widget]')).forEach(function(item){
+   var targets=Array.prototype.slice.call(item.children).filter(function(node){return node&&node.nodeType===1});
+   if(!targets.length)targets=[item];
+   targets.forEach(function(target){try{dashboardMasonryObserver.observe(target)}catch(_){}})
+  })
+ }
  dashboardMasonryMeasure(grid);dashboardMasonrySchedule(grid);return true
 }
 window.addEventListener('resize',function(){if(dashboardMasonryResizeTimer)clearTimeout(dashboardMasonryResizeTimer);dashboardMasonryResizeTimer=setTimeout(function(){dashboardMasonryResizeTimer=0;dashboardMasonrySchedule(dashboardMasonryGrid)},80)},{passive:true});
