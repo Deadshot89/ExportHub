@@ -27,6 +27,48 @@ def contexts(label, needle, limit=8, radius=1800):
         out.append(f'\n### line~{line_of(pos)} pos={pos}\n```text\n{snippet}\n```')
 
 
+def extract_named_function(name, occurrence=-1):
+    token = f'function {name}('
+    positions=[]
+    start=0
+    while True:
+        pos=text.find(token,start)
+        if pos<0:
+            break
+        positions.append(pos)
+        start=pos+len(token)
+    if not positions:
+        return None
+    pos=positions[occurrence]
+    brace=text.find('{',pos)
+    if brace<0:
+        return None
+    depth=0
+    quote=None
+    esc=False
+    i=brace
+    while i < len(text):
+        ch=text[i]
+        if quote:
+            if esc:
+                esc=False
+            elif ch=='\\':
+                esc=True
+            elif ch==quote:
+                quote=None
+        else:
+            if ch in ('\"', "'", '`'):
+                quote=ch
+            elif ch=='{':
+                depth+=1
+            elif ch=='}':
+                depth-=1
+                if depth==0:
+                    return pos, text[pos:i+1]
+        i+=1
+    return pos, text[pos:min(len(text),pos+12000)]
+
+
 build = re.search(r"version:'RC\d+',cache:'\d+',loginReturn:'/TESTVERSION\.html\?v=\d+'", text)
 out.append('# RC950 Active Path Audit')
 out.append(f'file_bytes={len(text.encode("utf-8"))}')
@@ -63,6 +105,22 @@ needles = [
 
 for label, needle in needles:
     contexts(label, needle)
+
+hot_functions = [
+    'loadingBarStart','loadingBarDone','operationStart','operationDone','operationFail',
+    'scheduleEditSave','flushEditSave','queueShipmentEdit','safePatchDuringEdit','deferFullPatch',
+    'schedulePatch','patch','renderSearchResults','renderSearch','rc843EnsureView','rc843ScheduleViewGuard',
+    'dashboardMasonrySchedule','dashboardMasonryBind','renderDashboard','saveAction','printAll','openDocuments',
+    'viewerDownload','viewerPrint'
+]
+out.append('\n## Exact hot function bodies')
+for name in hot_functions:
+    found=extract_named_function(name)
+    if not found:
+        out.append(f'\n### {name}\nNOT FOUND')
+        continue
+    pos,body=found
+    out.append(f'\n### {name} line~{line_of(pos)} pos={pos}\n```javascript\n{body}\n```')
 
 # Function inventory for likely active areas.
 func_re = re.compile(r'function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)')
