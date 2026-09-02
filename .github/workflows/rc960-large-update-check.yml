@@ -33,9 +33,12 @@ jobs:
         run: python .github/rc960_exact_extract.py
       - name: RC960 release confirmation extract
         run: python .github/rc960_release_exact.py
+      - name: RC960 regression contract
+        run: python .github/rc960_regression.py
       - name: Existing baseline tests
         run: npm test
       - name: Capture audit result on feature branch
+        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
