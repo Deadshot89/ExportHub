@@ -1,0 +1,24 @@
+name: RC961 Startup Diagnose
+
+on:
+  push:
+    branches:
+      - rc961-startup-timeout
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Locate active startup loader
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== exact loader texts ==='
+          grep -n -C 12 -E 'Azure-Teamdaten|ExportHUB wird vorbereitet|Teamdaten werden geladen' TESTVERSION.html || true
+          echo '=== startup/progress candidates ==='
+          grep -n -C 8 -E 'startup|bootstrap|boot|progress|15%|15 %|elapsed|Sekunden|seconds|exporthub-state' TESTVERSION.html | head -n 1600 || true
