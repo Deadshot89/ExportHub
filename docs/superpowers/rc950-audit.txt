@@ -3162,6 +3162,162 @@ document.addEventListener('keydown',function(e){var input=e.target;if(input&&inp
 document.addEventListener('click',function(e){var clearSearch=e.target&&e.target.closest&&e.target.closest('[data-rc911-search-clear]');if(clearSearch){e.preventDefault();shipmentSearchQuery='';var input=document.getElementById('rc807ShipmentSearch');if(input)input.value='';return renderSearchResults('')}var openSearch=e.target&&e.target.closest&&e.target.closest('[data-rc807-open-shipment]');if(openSearch){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();return open(openSearch.getAttribute('data-rc807-open-shipment'),'shipmentsearch')}var b=e.target&&e.target.closest&&e.target.closest('[data-rc776-back],[data-rc784-overview],[data-rc786-open-file],[data-rc7
 ```
 
+## Exact hot function bodies
+
+### loadingBarStart line~23161 pos=4608458
+```javascript
+function loadingBarStart(text,delay){var token=++loadingBarSeq,wait=Math.max(0,Number(delay)||0),task={token:token,text:q(text)||'ExportHUB arbeitet …',visible:wait<=0,startedAt:Date.now(),showTimer:0,fallbackTimer:0};loadingBarTasks[token]=task;loadingBarLastToken=token;if(loadingBarHideTimer){clearTimeout(loadingBarHideTimer);loadingBarHideTimer=0}if(wait>0)task.showTimer=setTimeout(function(){var current=loadingTask(token);if(!current)return;current.showTimer=0;current.visible=true;loadingBarPaintActive()},wait);else loadingBarPaintActive();task.fallbackTimer=setTimeout(function(){if(loadingTask(token))loadingBarDone(token,'Ladeanzeige automatisch beendet')},45000);return token}
+```
+
+### loadingBarDone line~23163 pos=4609325
+```javascript
+function loadingBarDone(token,text,failed){var task=loadingTask(token);if(!task)return false;if(task.showTimer)clearTimeout(task.showTimer);if(task.fallbackTimer)clearTimeout(task.fallbackTimer);delete loadingBarTasks[token];var next=activeLoadingTask();if(next){loadingBarPaintActive();return true}var wrap=ensureLoadingBar(),fill=wrap.querySelector('[data-rc680-loading-fill="1"]'),label=document.getElementById('rc739LoadingStatus'),message=q(text)||(failed?'Vorgang nicht abgeschlossen':'Erledigt');wrap.removeAttribute('data-active');wrap.setAttribute('aria-busy','false');wrap.style.display='block';if(fill){fill.style.width='100%';fill.style.transform='translateX(0)';fill.style.background=failed?'#dc2626':'#16a34a'}if(label){label.textContent=(failed?'⚠ ':'✓ ')+message;label.style.background=failed?'#991b1b':'#166534';label.style.display='block'}loadingBarVisible=false;if(loadingBarHideTimer)clearTimeout(loadingBarHideTimer);loadingBarHideTimer=setTimeout(function(){if(activeLoadingTask())return loadingBarPaintActive();wrap.style.display='none';if(label)label.style.display='none';if(fill){fill.style.width='38%';fill.style.background='linear-gradient(90deg,#2563eb,#05b8ff,#2563eb)'}},failed?3200:1300);return true}
+```
+
+### operationStart line~23168 pos=4611120
+```javascript
+function operationStart(text){operationStatusSeq++;operationStatusStartedAt=Date.now();operationStatusText=q(text)||'ExportHUB arbeitet …';if(operationStatusTimer)clearInterval(operationStatusTimer);if(operationStatusHideTimer)clearTimeout(operationStatusHideTimer);operationLoadingToken=loadingBarStart(operationStatusText,0);operationRender(operationStatusSeq);var token=operationStatusSeq;operationStatusTimer=setInterval(function(){operationRender(token)},1000);operationStatusHideTimer=setTimeout(function(){if(token!==operationStatusSeq)return;if(operationStatusTimer){clearInterval(operationStatusTimer);operationStatusTimer=0}if(operationLoadingToken&&loadingTask(operationLoadingToken))loadingBarDone(operationLoadingToken,'Ladeanzeige automatisch beendet');operationLoadingToken=0;operationStatusHideTimer=0},45000);return token}
+```
+
+### operationDone line~23171 pos=4612686
+```javascript
+function operationDone(token,text){return operationFinish(token,text,false)}
+```
+
+### operationFail line~23172 pos=4612763
+```javascript
+function operationFail(token,text){return operationFinish(token,text,true)}
+```
+
+### scheduleEditSave line~23211 pos=4627409
+```javascript
+function scheduleEditSave(reason,delay){if(lockedShipment()){lockShipmentForm(lockedShipment(),false);return false}editSaveReason=reason||editSaveReason||'Sendungseingabe lokal aktualisiert';if(editSaveTimer){clearTimeout(editSaveTimer);editSaveTimer=0}return true}
+```
+
+### flushEditSave line~23212 pos=4627675
+```javascript
+function flushEditSave(reason,keepalive){if(lockedShipment()){cancelPendingEditSave();lockShipmentForm(lockedShipment(),false);return false}if(needsLockSync()){cancelPendingEditSave();refreshShipmentLock(true);return false}if(editSaveTimer){clearTimeout(editSaveTimer);editSaveTimer=0}var r=reason||editSaveReason||'Sendungseingabe gespeichert';editSaveReason='';queue(r);var clean=window.ExportHUBClean;if(keepalive&&clean&&typeof clean.flushSave==='function'){try{return Promise.resolve(clean.flushSave(r,{force:true,keepalive:true}))}catch(_){}}return true}
+```
+
+### queueShipmentEdit line~23745 pos=4804452
+```javascript
+function queueShipmentEdit(event){if(event&&event.isTrusted===false)return false;var locked=lockedShipment();if(locked){lockShipmentForm(locked,false);return}var el=event.target;if(!isShipmentView()||!el||!el.matches||!el.matches('input,select,textarea')||el.type==='file'||!el.closest('#rc363FixedShipmentLayout,#rc573ShipmentShell')||el.closest('#rc363WeightModal')||(el.closest&&el.closest('#rc543MailArea')))return;if(el.closest('.rc363-owned-row'))return;if(el.closest('#rc363BlockCustomer')||el.id==='shipmentCustomerSearch'||el.id==='index289LocationSelect')localCustomerDirty=true;applyCanonicalShipmentField(el);if(el.closest('#rc363BlockCustomer')||el.id==='shipmentCustomerSearch'||el.id==='index289LocationSelect')updateConfirmationButtons();if(event.type==='blur'){window.__EXPORTHUB_SHIPMENT_EDIT_LOCK_UNTIL__=Date.now()+180;scheduleEditSave('Sendungseingabe gespeichert',320);return}markEditing(el,event.type==='input'?6500:9000);if(event.type==='input'){scheduleEditSave('Sendungseingabe gespeichert',1100);return}if(event.type==='change'){scheduleEditSave('Sendungseingabe gespeichert',420);return}}
+```
+
+### safePatchDuringEdit line~23739 pos=4796011
+```javascript
+function safePatchDuringEdit(){enforceEditingCustomerLock();var block=document.getElementById('rc363BlockShipment'),body=block&&block.querySelector('.rc363-process-body');applyRC894ShipmentFieldGrid(body);ensureRC894LieferavisButton();updateSummary();updateQr();updateConfirmationButtons();return true}
+```
+
+### deferFullPatch line~23740 pos=4796314
+```javascript
+function deferFullPatch(delay){if(!isShipmentView())return false;fullPatchPending=false;safePatchDuringEdit();return true}
+```
+
+### schedulePatch line~23741 pos=4796437
+```javascript
+function schedulePatch(){if(!isShipmentView())return false;var layout=document.getElementById('rc363FixedShipmentLayout');if(layout||editLockActive()){safePatchDuringEdit();return true}if(patchTimer)return true;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;patchTimer=nt(function(){patchTimer=0;patch()},16);return true}
+```
+
+### patch line~23742 pos=4796831
+```javascript
+function patch(){if(busy){safePatchDuringEdit();return true}if(!isShipmentView())return false;var r=root();if(!r)return false;if(editLockActive()){safePatchDuringEdit();return true}busy=true;try{enforceEditingCustomerLock();var colliLocked=enforceCustomerChangeColli();cleanupOldActions();var fresh=enforceFreshDraft();if(!fresh&&!colliLocked)syncRows();enforceCustomerChangeColli();normalizeRowsDom();reindex();ensureProcessCards();canonicalMail();ensureActions();removeHints();clearChoosePrompts();applyFixedBlocks();patchSavedOpenControls();unlockEditableShipmentForm();prepareCanonicalShipmentFields();restoreLocalFieldDraft();enforceEditingCustomerLock();try{if(window.ExportHUBIndex289&&typeof window.ExportHUBIndex289.patch==='function')window.ExportHUBIndex289.patch()}catch(e){console.error('RC413 Standortauswahl',e)}enforceCustomerChangeColli();if(isFreshDraft())enforceFreshDraft();else enforceEditingCustomerLock();syncReferenceField(ensureReference(shipment()));updateSummary();updateQr();updateConfirmationButtons();unlockEditableShipmentForm();return true}finally{busy=false}}
+```
+
+### renderSearchResults line~24992 pos=5040794
+```javascript
+function renderSearchResults(query){shipmentSearchQuery=q(query);var list=document.getElementById('rc807ShipmentResults'),count=document.getElementById('rc807ShipmentCount');if(!list)return false;var results=shipmentSearchResults(shipmentSearchQuery);if(count)count.textContent=results.length+' Treffer';list.innerHTML=results.length?results.map(shipmentSearchResultHtml).join(''):'<div class="rc807-empty">Keine passende Sendung gefunden.</div>';return false}
+```
+
+### renderSearch line~24993 pos=5041255
+```javascript
+function renderSearch(){var root=document.getElementById('content');if(!root)return false;root.className='content rc807-shipment-search';root.setAttribute('data-exporthub-rendered-view','shipmentsearch');root.innerHTML='<div class="rc807-search-page"><div class="rc807-search-head"><div><span class="rc776-kicker">Sendungsansicht · nur lesen</span><h1>Sendungsansicht</h1><p>Gespeicherte Sendungen nach Kunde, Referenz, Kundennummer oder hinterlegten Anhängen und Dateinamen suchen.</p></div></div><div class="rc807-search-box"><input id="rc807ShipmentSearch" type="search" autocomplete="off" placeholder="Kunde, Referenz, Kundennummer oder Anhang suchen …" value="'+esc(shipmentSearchQuery)+'" aria-label="Sendungen durchsuchen"><span class="rc807-search-count" id="rc807ShipmentCount"></span><button type="button" class="ghost rc911-search-clear" data-rc911-search-clear="1">Leeren</button></div><div class="rc807-result-list" id="rc807ShipmentResults"></div></div>';renderSearchResults(shipmentSearchQuery);return false}
+```
+
+### rc843EnsureView line~24930 pos=5022751
+```javascript
+function rc843EnsureView(){if(rc843ViewGuardBusy||!rc843ViewGuard)return false;var g=rc843ViewGuard,sh=find(g.id||g.ref);if(!sh){rc843ReleaseViewGuard('shipment-missing');return false}var s=state(),wanted=idOf(sh)||refOf(sh),currentId=q(s.shipmentViewId);if(low(s.view)!=='shipmentview'&&Date.now()<Number(window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__||0)){rc843ReleaseViewGuard('explicit-navigation');return false}if(low(s.view)==='shipmentview'&&currentId===wanted&&rc843ViewDomOk())return true;rc843ViewGuardBusy=true;try{s.shipmentViewId=wanted;if(!q(s.shipmentViewReturnView))s.shipmentViewReturnView=g.source||'shipmentoverview';s.view='shipmentview';try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s)}catch(_){}try{document.body.setAttribute('data-exporthub-view','shipmentview');document.body.setAttribute('data-current-view','shipmentview')}catch(_){}render();return true}finally{rc843ViewGuardBusy=false}}
+```
+
+### rc843ScheduleViewGuard line~24931 pos=5023709
+```javascript
+function rc843ScheduleViewGuard(delay){if(!rc843ViewGuard)return false;if(rc843ViewGuardTimer)clearTimeout(rc843ViewGuardTimer);rc843ViewGuardTimer=setTimeout(function(){rc843ViewGuardTimer=0;rc843EnsureView()},Math.max(0,Number(delay)||0));return true}
+```
+
+### dashboardMasonrySchedule line~20708 pos=4163718
+```javascript
+function dashboardMasonrySchedule(grid){
+ if(grid)dashboardMasonryGrid=grid;if(!dashboardMasonryGrid)return false;
+ if(dashboardMasonryFrame){try{(window.cancelAnimationFrame||clearTimeout)(dashboardMasonryFrame)}catch(_){}}
+ var raf=window.requestAnimationFrame||function(fn){return setTimeout(fn,16)};dashboardMasonryFrame=raf(function(){dashboardMasonryFrame=0;dashboardMasonryMeasure(dashboardMasonryGrid)});return true
+}
+```
+
+### dashboardMasonryBind line~20713 pos=4164144
+```javascript
+function dashboardMasonryBind(grid){
+ if(!grid)return false;
+ if(dashboardMasonryGrid!==grid){if(dashboardMasonryObserver){try{dashboardMasonryObserver.disconnect()}catch(_){}}dashboardMasonryObserver=null;dashboardMasonryTargets=new Set();dashboardMasonryGrid=grid}
+ if(typeof window.ResizeObserver==='function'&&!dashboardMasonryObserver)dashboardMasonryObserver=new ResizeObserver(function(){dashboardMasonrySchedule(dashboardMasonryGrid)});
+ if(dashboardMasonryObserver){
+  var nextTargets=new Set();
+  Array.prototype.slice.call(grid.querySelectorAll(':scope > .rc205-layout-item[data-dashboard-widget]')).forEach(function(item){
+   var targets=Array.prototype.slice.call(item.children).filter(function(node){return node&&node.nodeType===1});
+   if(!targets.length)targets=[item];
+   targets.forEach(function(target){nextTargets.add(target);if(!dashboardMasonryTargets.has(target))try{dashboardMasonryObserver.observe(target)}catch(_){}})
+  });
+  dashboardMasonryTargets.forEach(function(target){if(!nextTargets.has(target))try{dashboardMasonryObserver.unobserve(target)}catch(_){}});dashboardMasonryTargets=nextTargets
+ }
+ dashboardMasonrySchedule(grid);return true
+}
+```
+
+### renderDashboard line~20768 pos=4171767
+```javascript
+function renderDashboard(forceFull){
+ var r=root();if(!r)return false;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks).filter(taskMeaningfulDashboardRC818).filter(function(t){return !dashboardTaskIsTestRC818(t)}),owned=tasks.filter(taskForUser);if(owned.length)tasks=owned;
+ var quick=p.quickLinks.map(function(id){return modules.find(function(m){return m.id===id})}).filter(Boolean),direct=arr(p.entityLinks).map(normalizeDirectLink).filter(Boolean),cards=[];
+ var dashboardWidgetIds=p.widgets.filter(widgetAllowed);if(window.ExportHUBWarehouse&&typeof window.ExportHUBWarehouse.sortDashboardWidgets==='function')dashboardWidgetIds=window.ExportHUBWarehouse.sortDashboardWidgets(dashboardWidgetIds);dashboardWidgetIds.forEach(function(id){var html='';if(id==='todayShipments')html=dashboardTodayShipmentsWidget(arr(s.shipments));if(id==='tasks')html=dashboardTaskWidget(tasks);if(id==='shipments')html=dashboardShipmentWidget(arr(s.shipments));if(id==='abd')html=dashboardAbdWidget(arr(s.abdRequests));if(id==='pallet')html=dashboardPalletWidget(arr(s.palletAccount));if(/^warehouse-/.test(id)&&window.ExportHUBWarehouse&&typeof window.ExportHUBWarehouse.dashboardWidget==='function')html=window.ExportHUBWarehouse.dashboardWidget(id);if(html){var markup=dashboardWidgetMarkup(id,html,p);cards.push({id:id,markup:markup,signature:dashboardMarkupHash(markup)})}});
+ var quickHtml=quick.map(function(m){return '<button class="rc205-quick" data-rc205-action="navigate" data-view="'+esc(m.id)+'"><span>'+esc(m.icon)+'</span><b>'+esc(m.label)+'</b></button>'}).join('')+direct.map(directQuickCard).join(''),cardsHtml=cards.length?cards.map(function(c){return c.markup}).join(''):empty('Im Dashboard sind keine freigegebenen Bereiche ausgewählt.'),quickSig=dashboardQuickSignature(p,modules,direct),configFlag=p.configOpen?'1':'0',existingGrid=r.querySelector&&r.querySelector('.rc205-dashboard-grid'),existingQuick=r.querySelector&&r.querySelector('.rc205-quick-grid'),sameConfig=r.getAttribute&&r.getAttribute('data-rc205-config-open')===configFlag;
+ if(!forceFull&&existingGrid&&existingQuick&&sameConfig){
+  var changed=false,desiredQuick=quickHtml||empty('Im Dashboard noch keine Schnellzugriffe ausgewählt.');
+  if(quickSig!==lastDashboardQuickSignature){if(existingQuick.innerHTML!==desiredQuick){existingQuick.innerHTML=desiredQuick;changed=true}lastDashboardQuickSignature=quickSig}
+  if(existingGrid.className!=='rc205-dashboard-grid'){existingGrid.className='rc205-dashboard-grid';changed=true}
+  if(dashboardPatchGrid(existingGrid,cards))changed=true;
+  if(changed)bindRoot(r);
+  lastDashboardSignature=dashboardSignature();
+  return changed
+ }
+ r.innerHTML='<div class="page-head"><div><h2>📊 Dashboard</h2><p>Persönlicher Arbeitsstand für '+esc(userName())+'. Bereiche und Schnellzugriffe können selbst zusammengestellt werden.</p></div><button class="ghost" data-rc205-action="dashboard-config">'+(p.configOpen?'Dashboard-Anpassung schließen':'Dashboard anpassen')+'</button></div>'+dashboardConfigHtml(p,modules)+'<section class="card rc205-quick-card"><h3>Schnellzugriffe</h3><div class="rc205-quick-grid">'+(quickHtml||empty('Im Dashboard noch keine Schnellzugriffe ausgewählt.'))+'</div></section><div class="rc205-dashboard-grid '+(p.configOpen?'is-editing':'')+'">'+cardsHtml+'</div>';
+ r.setAttribute('data-rc205-config-open',configFlag);bindRoot(r);dashboardTagGrid(r.querySelector('.rc205-dashboard-grid'),cards);lastDashboardQuickSignature=quickSig;lastDashboardSignature=dashboardSignature();return true
+}
+```
+
+### saveAction line~23599 pos=4752171
+```javascript
+function saveAction(){window.__EXPORTHUB_SHIPMENT_SAVE_TX__=true;var beforeSaveRef=refOf(shipment()),button=document.getElementById('rc363SaveShipment'),oldText=button&&button.textContent,opToken=operationStart('Speichern wird vorbereitet …'),saveConfirmed=false;if(button){button.disabled=true;button.textContent='Speichern wird vorbereitet …'}cancelPendingEditSave();var cleanBefore=window.ExportHUBClean;if(cleanBefore&&cleanBefore.runtime&&cleanBefore.runtime.saveTimer){try{(cleanBefore.native&&cleanBefore.native.clearTimeout||window.clearTimeout)(cleanBefore.runtime.saveTimer)}catch(_){}cleanBefore.runtime.saveTimer=null}try{operationStep(opToken,'Sendungssperre wird geprüft …');if(button)button.textContent='Sendungssperre wird geprüft …';var locked=await refreshShipmentLock(true);if(locked){lockShipmentForm(locked,true);operationFail(opToken,'Sendung ist bereits gesperrt');return false}window.__EXPORTHUB_SHIPMENT_WRITE_GRANT_UNTIL__=Date.now()+60000;operationStep(opToken,'Sendungsdaten werden vorbereitet …');if(button)button.textContent='Sendungsdaten werden vorbereitet …';prepareCanonicalShipmentFields();restoreLocalFieldDraft();syncVisibleShipmentFields();syncRows();reconcileLatestSavedBeforeSave();locked=lockedShipment();if(locked){lockShipmentForm(locked,true);operationFail(opToken,'Sendung wurde während der Vorbereitung gesperrt');return false}restorePersistedCustomerForSave();var creatorStamp=currentCreator(),savingShipment=shipment();if(repairActive(savingShipment)){markRepairAudit(savingShipment);applyRepairEvidence(savingShipment)}if(isFreshDraft()&&!q(savingShipment.createdBy||savingShipment.createdByName)){savingShipment.createdBy=creatorStamp.name;savingShipment.createdByName=creatorStamp.name;savingShipment.createdById=creatorStamp.id}try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.recalculateShipmentStatus==='function')window.ExportHUBRC543.recalculateShipmentStatus(shipment())}catch(e){console.error('RC679 Status vor Speicherung',e)}if(repairActive(savingShipment))applyRepairEvidence(savingShipment);if(!persistenceSave)persistenceSave=window.ExportHUBRC565&&window.ExportHUBRC565.persistShipment;if(typeof persistenceSave!=='function'){operationFail(opToken,'Speicherfunktion ist nicht verfügbar');alert('Die Speicherfunktion ist nicht verfügbar.');return false}operationStep(opToken,'Sendung wird dauerhaft in Azure gespeichert …');if(button)button.textContent='Speicherung in Azure läuft …';var ok=await persistenceSave();if(ok!==true){operationFail(opToken,'Speichern nicht abgeschlossen');return false}saveConfirmed=true;clearLocalFieldDraft();var saved=currentSaved();if(saved&&repairActive(saved))applyRepairEvidence(saved);var wasRepair=!!(saved&&repairActive(saved));if(saved){try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.recalculateShipmentStatus==='function')window.ExportHUBRC543.recalculateShipmentStatus(saved)}catch(e){console.error('RC679 Status nach Speicherung',e)}if(wasRepair)applyRepairEvidence(saved);updateQr();if(wasRepair){operationDone(opToken,'Datenreparatur dauerhaft gespeichert · Abholung/POD unverändert');try{window.dispatchEvent(new CustomEvent('exporthub:shipment-saved',{detail:{shipmentId:idOf(saved),reference:refOf(saved),previousReference:beforeSaveRef,shipment:saved,qrReady:saved.pickupQrRegistered===true,status:q(saved.status||saved.processStatus),backgroundQr:false,dataRepair:true}}))}catch(_){}}else{operationDone(opToken,'Sendung dauerhaft gespeichert · QR-Freigabe läuft im Hintergrund');try{window.dispatchEvent(new CustomEvent('exporthub:shipment-saved',{detail:{shipmentId:idOf(saved),reference:refOf(saved),previousReference:beforeSaveRef,shipment:saved,qrReady:saved.pickupQrRegistered===true,status:q(saved.status||saved.processStatus),backgroundQr:true}}))}catch(_){}var backgroundQr=Promise.resolve().then(function(){return activateQr(saved)}).then(function(qrOk){try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.recalculateShipmentStatus==='function')window.ExportHUBRC543.recalculateShipmentStatus(saved)}catch(e){console.error('RC678 Status nach QR',e)}updateQr();try{var info=document.getElementById('saveInfo');if(info)info.textContent=qrOk===true?'Sendung gespeichert · QR-Code freigegeben':'Sendung gespeichert · QR-Freigabe noch offen'}catch(_){}return qrOk===true}).catch(function(e){console.error('RC678 QR-Hintergrundfreigabe',e);try{var info=document.getElementById('saveInfo');if(info)info.textContent='Sendung gespeichert · QR-Freigabe wird später erneut versucht'}catch(_){}return false});window.__EXPORTHUB_BACKGROUND_QR_PROMISE__=backgroundQr}}else operationDone(opToken,'Sendung dauerhaft gespeichert');if(wasRepair){clearRepairMode();var lockedAfterRepair=currentSaved();if(lockedAfterRepair)lockShipmentForm(lockedAfterRepair,false)}else safePatchDuringEdit();return false}catch(e){console.error('RC679 Speichern',e);operationFail(opToken,saveConfirmed?'Sendung gespeichert · Nachbearbeitung läuft im Hintergrund':'Speichern fehlgeschlagen');throw e}finally{window.__EXPORTHUB_SHIPMENT_SAVE_TX__=false;window.__EXPORTHUB_SHIPMENT_WRITE_GRANT_UNTIL__=0;if(button){var finalLock=lockedShipment();if(finalLock){button.disabled=true;button.textContent='Bearbeitung gesperrt'}else{button.disabled=false;button.textContent=oldText||'Sendung speichern'}}}}
+```
+
+### printAll line~23601 pos=4757720
+```javascript
+function printAll(){syncRows();var saved=selectSaved();if(!saved){alert('Bitte die Sendung zuerst speichern.');return false}var api=window.ExportHUBIndex240;if(!api||typeof api.print!=='function'){alert('Die Gesamtdruck-Funktion ist nicht verfügbar.');return false}var button=document.getElementById('rc363PrintAll'),oldText=button&&button.textContent,opToken=operationStart('Gesamtausgabe wird vorbereitet …');if(button){button.disabled=true;button.textContent='Druck wird vorbereitet …'}try{await Promise.resolve(api.print('all'));var result=window.__INDEX352_LAST_PRINT__;if(result&&result.ok===false)operationFail(opToken,'Drucken konnte nicht gestartet werden');else if(!result)operationDone(opToken,'Druckauftrag verarbeitet');return false}catch(e){operationFail(opToken,'Drucken fehlgeschlagen');throw e}finally{if(button){button.disabled=false;button.textContent=oldText||'Gesamtausgabe drucken'}}}
+```
+
+### openDocuments line~25016 pos=5056463
+```javascript
+function openDocuments(){var sh=currentShipmentForDocs(),id=sh&&(idOf(sh)||refOf(sh));rc843ReleaseViewGuard('documents');if(!id)return false;var s=state();s.documentShipmentId=id;try{sessionStorage.setItem('exporthub_document_return_v1',JSON.stringify({view:'shipmentview',shipmentId:id,reference:refOf(sh),at:Date.now()}))}catch(_){}if(typeof window.rc524OpenDocuments==='function')return window.rc524OpenDocuments(id);if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.openDocuments==='function')return window.ExportHUBIndex240.openDocuments(id);return false}
+```
+
+### viewerDownload line~25022 pos=5060555
+```javascript
+function viewerDownload(){var d=viewerCurrentDoc(),v=viewerPersist();return d?downloadDocObject(Object.assign({},d,{reference:v&&v.reference})):false}
+```
+
+### viewerPrint line~25023 pos=5060706
+```javascript
+function viewerPrint(){var frame=document.getElementById('rc786DocumentFrame');if(frame){try{frame.contentWindow.focus();frame.contentWindow.print();return false}catch(_){}}var v=viewerPersist();if(v){v.autoPrint=true;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){} }viewerLoad();return false}
+```
+
 ## Interesting function inventory
 15413: persistShipment
 15426: patchShipment
