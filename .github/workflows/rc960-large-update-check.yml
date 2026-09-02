@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.20.2'
+      - name: Apply RC960 GREEN patch
+        run: python .github/rc960_apply.py
       - name: RC960 active-path audit
         run: python .github/rc960_audit.py | tee docs/superpowers/rc960-audit.txt
       - name: RC960 focused function extract
@@ -37,15 +39,17 @@ jobs:
         run: python .github/rc960_regression.py
       - name: Existing baseline tests
         run: npm test
-      - name: Capture audit result on feature branch
+      - name: Diff whitespace check
+        run: git diff --check
+      - name: Commit verified RC960 changes
         if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/superpowers/rc960-audit.txt docs/superpowers/rc960-focus.txt docs/superpowers/rc960-runtime-focus.txt docs/superpowers/rc960-shipping-focus.txt docs/superpowers/rc960-pickup-focus.txt docs/superpowers/rc960-release-focus.txt docs/superpowers/rc960-admin-focus.txt docs/superpowers/rc960-target-focus.txt docs/superpowers/rc960-exact-focus.txt docs/superpowers/rc960-release-exact.txt
+          git add TESTVERSION.html pickup.html api/shared/pickup-store.js api/pickup-init/index.js api/pickup-confirm-v2/index.js docs/superpowers/rc960-audit.txt docs/superpowers/rc960-focus.txt docs/superpowers/rc960-runtime-focus.txt docs/superpowers/rc960-shipping-focus.txt docs/superpowers/rc960-pickup-focus.txt docs/superpowers/rc960-release-focus.txt docs/superpowers/rc960-admin-focus.txt docs/superpowers/rc960-target-focus.txt docs/superpowers/rc960-exact-focus.txt docs/superpowers/rc960-release-exact.txt
           if git diff --cached --quiet; then
-            echo "Audit output unchanged."
+            echo "RC960 working tree already verified and unchanged."
             exit 0
           fi
-          git commit -m "test: capture RC960 audit output [rc960-audit-output]"
+          git commit -m "RC960 Großupdate Kernbetrieb Versand Abholung Admin"
           git push origin HEAD:rc960-large-update
