@@ -885,7 +885,7 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS'},body:''};return}
  try{
   const payload=body(req),queryMode=req.query?lower(req.query.mode):'',mode=queryMode||lower(payload.action||payload.mode);
-  if(mode==='ping'){const environment=requestedEnvironment(req,payload);context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,routeReachable:true,storageChecked:false,environment,blob:teamBlobForEnvironment(environment),time:now()});return}
+  if(mode==='ping'){const environment=requestedEnvironment(req,payload);context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,serverVersion:API_VERSION,routeReachable:true,storageChecked:false,environment,blob:teamBlobForEnvironment(environment),time:now()});return}
   if(mode==='health'){
    const c=await clients(req,payload),authStarted=Date.now();
    let authReadable=true;try{await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
@@ -898,7 +898,7 @@ module.exports=async function(context,req){
    const diagnosticSession=await validateSessionAuthOnly(req,payload,c),result=await appendDiagnostics(c.diagnostics,payload.records,diagnosticSession.user,payload,c.environment);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
   }
   if(mode==='meta'||(req.query&&String(req.query.meta||'')==='1')){
-   await validateSessionAuthOnly(req,payload,c);context.res=json(200,Object.assign({ok:true,metaOnly:true,environment:c.environment,blob:c.teamBlobName},await metadataOnly(c.team)));return
+   await validateSessionAuthOnly(req,payload,c);context.res=json(200,Object.assign({ok:true,metaOnly:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName},await metadataOnly(c.team)));return
   }
   const current=await validateSession(req,payload,c),blob=c.team;
   if(mode==='diagnostics-read'){
