@@ -1,0 +1,92 @@
+name: RC963 Render Performance Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc963-render-performance-apply.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply_rc963:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: RED - RC962 muss den RC963 Regressionstest noch nicht bestehen
+        id: red
+        continue-on-error: true
+        run: node tests/rc963-render-performance.test.cjs
+
+      - name: RED bestätigen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.red.outcome }}" != "failure" ]]; then
+            echo 'Der RC963-Test war vor dem Patch nicht rot. Patch wird aus Sicherheitsgründen abgebrochen.'
+            exit 1
+          fi
+          echo 'RED bestätigt: aktueller Stand erfüllt RC963 noch nicht.'
+
+      - name: RC963 exakt in bestehenden Render-Pfad integrieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'TESTVERSION.html';
+          let source = fs.readFileSync(file, 'utf8');
+
+          function replaceOnce(label, before, after) {
+            const count = source.split(before).length - 1;
+            if (count !== 1) throw new Error(`${label}: erwartet exakt 1 Treffer, gefunden ${count}`);
+            source = source.replace(before, after);
+          }
+
+          replaceOnce(
+            'RC962 Build-Kennung',
+            "var BUILD=Object.freeze({version:'RC962',cache:'962',loginReturn:'/TESTVERSION.html?v=962'});",
+            "var BUILD=Object.freeze({version:'RC963',cache:'963',loginReturn:'/TESTVERSION.html?v=963'});"
+          );
+
+          const oldRenderEntry = `/* exporthub-rc902-render-performance */\nfunction stableRender(){`;
+          const newRenderEntry = `/* exporthub-rc902-render-performance */\n/* exporthub-rc963-render-coordinator */\nfunction rc963CreateFrameCoordinator(schedule,cancel){var frame=0,task=null,requests=0,runs=0,coalesced=0;return{request:function(next){requests++;task=next;if(frame){coalesced++;return false}frame=schedule(function(){frame=0;var run=task;task=null;runs++;if(typeof run==='function')run()});return false},cancel:function(){if(frame){try{cancel(frame)}catch(_){}frame=0}task=null;return false},stats:function(){return{requests:requests,runs:runs,coalesced:coalesced,scheduled:!!frame}}}}\nfunction rc963NeedsImmediateRender(lastView,currentView,domMatches,isNavigationTransition){return !!(isNavigationTransition||lastView!==currentView||!domMatches)}\nvar rc963RenderCoordinator=rc963CreateFrameCoordinator(function(callback){if(document.hidden||typeof window.requestAnimationFrame!=='function')return window.setTimeout(callback,0);return window.requestAnimationFrame(callback)},function(handle){try{if(typeof window.cancelAnimationFrame==='function')window.cancelAnimationFrame(handle)}catch(_){}try{window.clearTimeout(handle)}catch(_){}});\nfunction stableRender(){var context=this,args=arguments,v=currentView(),domMatches=viewDomMatches(v);if(rc963NeedsImmediateRender(lastView,v,domMatches,navigationTransition)){rc963RenderCoordinator.cancel();return performStableRender.apply(context,args)}return rc963RenderCoordinator.request(function(){performStableRender.apply(context,args)})}\nfunction performStableRender(){`;
+          replaceOnce('RC902 stableRender Einstieg', oldRenderEntry, newRenderEntry);
+
+          fs.writeFileSync(file, source);
+          NODE
+
+          grep -q "version:'RC963',cache:'963'" TESTVERSION.html
+          test "$(grep -c 'exporthub-rc963-render-coordinator' TESTVERSION.html)" -eq 1
+          test "$(grep -c '^function performStableRender(){' TESTVERSION.html)" -eq 1
+          git diff --check
+
+      - name: GREEN - RC963 Regressionstest
+        run: node tests/rc963-render-performance.test.cjs
+
+      - name: Commit RC963
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add TESTVERSION.html
+          if git diff --cached --quiet; then
+            echo 'Keine RC963-Änderung erzeugt.'
+            exit 1
+          fi
+          git commit -m 'RC963: Render-Aufrufe pro Browser-Frame bündeln'
+          git push origin HEAD:main
