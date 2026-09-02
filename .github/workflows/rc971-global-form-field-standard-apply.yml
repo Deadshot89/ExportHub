@@ -1,0 +1,58 @@
+name: RC971 Global Form Field Standard Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc971-global-form-field-standard-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: RC971 Produktpatch anwenden
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import base64
+
+          p=Path('TESTVERSION.html')
+          s=p.read_text(encoding='utf-8')
+          assert 'id="rc971-global-form-field-standard"' not in s, 'RC971 Style bereits vorhanden'
+          assert "var BUILD=Object.freeze({version:'RC970',cache:'970'" in s, 'Erwarteter RC970 BUILD fehlt'
+
+          style=base64.b64decode('PHN0eWxlIGlkPSJyYzk3MS1nbG9iYWwtZm9ybS1maWVsZC1zdGFuZGFyZCI+QGxheWVyIHJjOTcxezpyb290ey0tcmM5NzEtY29udHJvbC1oOjQycHg7LS1yYzk3MS1jb250cm9sLWZvbnQ6MTRweDstLXJjOTcxLWxhYmVsLWZvbnQ6MTJweDstLXJjOTcxLWhlbHAtZm9udDoxMXB4Oy0tcmM5NzEtYnV0dG9uLWZvbnQ6MTNweDstLXJjOTcxLXJhZGl1czoxMXB4Oy0tcmM5NzEtcGFkLXk6OXB4Oy0tcmM5NzEtcGFkLXg6MTFweDstLXJjOTcxLWJvcmRlcjojYmZkMWU0Oy0tcmM5NzEtYm9yZGVyLWhvdmVyOiM4ZmI2ZGY7LS1yYzk3MS1mb2N1czojM2I4MmY2Oy0tcmM5NzEtZm9jdXMtcmluZzowIDAgMCAzcHggcmdiYSg1OSwxMzAsMjQ2LC4xNCk7LS1yYzk3MS10ZXh0OiMxODMyNGE7LS1yYzk3MS1tdXRlZDojNjE3NThhOy0tcmM5NzEtYmc6I2ZmZjstLXJjOTcxLXJlYWRvbmx5OiNmN2ZhZmM7fTppcygjY29udGVudCwjbG9naW4sW3JvbGU9ImRpYWxvZyJdKTppcyguZmllbGQsbGFiZWwuZmllbGQsW2NsYXNzJD0iLWZpZWxkIl0sW2NsYXNzKj0iLWZpZWxkICJdKTpub3QoI2xvYWRMaXN0RG9jICopOm5vdCgucmMzOTAtcGFwZXIgKik6bm90KC5pbmRleDIwOS1zaWduYXR1cmUtZGlhbG9nICope2dhcDo1cHghaW1wb3J0YW50O21hcmdpbi10b3A6NXB4IWltcG9ydGFudDttYXJnaW4tYm90dG9tOjVweCFpbXBvcnRhbnQ7Zm9udC1zaXplOnZhcigtLXJjOTcxLWxhYmVsLWZvbnQpIWltcG9ydGFudDtsaW5lLWhlaWdodDoxLjI1IWltcG9ydGFudDtmb250LXdlaWdodDo4MDAhaW1wb3J0YW50O2NvbG9yOiMzMzQxNTUhaW1wb3J0YW50O306aXMoI2NvbnRlbnQsI2xvZ2luLFtyb2xlPSJkaWFsb2ciXSkgbGFiZWw6bm90KCNsb2FkTGlzdERvYyAqKTpub3QoLnJjMzkwLXBhcGVyICopOm5vdCguaW5kZXgyMDktc2lnbmF0dXJlLWRpYWxvZyAqKXtmb250LXNpemU6dmFyKC0tcmM5NzEtbGFiZWwtZm9udCkhaW1wb3J0YW50O2xpbmUtaGVpZ2h0OjEuMjUhaW1wb3J0YW50O306aXMoI2NvbnRlbnQsI2xvZ2luLFtyb2xlPSJkaWFsb2ciXSkgLmZpZWxkOmZvY3VzLXdpdGhpbnt0cmFuc2Zvcm06bm9uZSFpbXBvcnRhbnQ7fTppcygjY29udGVudCwjbG9naW4sW3JvbGU9ImRpYWxvZyJdKTppcyggaW5wdXQ6bm90KFt0eXBlPSJjaGVja2JveCJdKTpub3QoW3R5cGU9InJhZGlvIl0pOm5vdChbdHlwZT0icmFuZ2UiXSk6bm90KFt0eXBlPSJjb2xvciJdKTpub3QoW3R5cGU9ImhpZGRlbiJdKSxzZWxlY3QsdGV4dGFyZWEgKTpub3QoI2xvYWRMaXN0RG9jICopOm5vdCgucmMzOTAtcGFwZXIgKik6bm90KC5pbmRleDIwOS1zaWduYXR1cmUtZGlhbG9nICope3dpZHRoOjEwMCUhaW1wb3J0YW50O21pbi13aWR0aDowIWltcG9ydGFudDtib3gtc2l6aW5nOmJvcmRlci1ib3ghaW1wb3J0YW50O21pbi1oZWlnaHQ6dmFyKC0tcmM5NzEtY29udHJvbC1oKSFpbXBvcnRhbnQ7aGVpZ2h0OnZhcigtLXJjOTcxLWNvbnRyb2wtaCkhaW1wb3J0YW50O3BhZGRpbmc6dmFyKC0tcmM5NzEtcGFkLXkpIHZhcigtLXJjOTcxLXBhZC14KSFpbXBvcnRhbnQ7Ym9yZGVyOjFweCBzb2xpZCB2YXIoLS1yYzk3MS1ib3JkZXIpIWltcG9ydGFudDtib3JkZXItcmFkaXVzOnZhcigtLXJjOTcxLXJhZGl1cykhaW1wb3J0YW50O2JhY2tncm91bmQ6dmFyKC0tcmM5NzEtYmcpIWltcG9ydGFudDtjb2xvcjp2YXIoLS1yYzk3MS10ZXh0KSFpbXBvcnRhbnQ7Zm9udC1mYW1pbHk6SW50ZXIsIlNlZ29lIFVJIixSb2JvdG8sQXJpYWwsc2Fucy1zZXJpZiFpbXBvcnRhbnQ7Zm9udC1zaXplOnZhcigtLXJjOTcxLWNvbnRyb2wtZm9udCkhaW1wb3J0YW50O2ZvbnQtd2VpZ2h0OjY1MCFpbXBvcnRhbnQ7bGluZS1oZWlnaHQ6MS4yNSFpbXBvcnRhbnQ7Ym94LXNoYWRvdzpub25lIWltcG9ydGFudDt2ZXJ0aWNhbC1hbGlnbjptaWRkbGUhaW1wb3J0YW50O306aXMoI2NvbnRlbnQsI2xvZ2luLFtyb2xlPSJkaWFsb2ciXSkgdGV4dGFyZWE6bm90KCNsb2FkTGlzdERvYyAqKTpub3QoLnJjMzkwLXBhcGVyICopOm5vdCguaW5kZXgyMDktc2lnbmF0dXJlLWRpYWxvZyAqKXttaW4taGVpZ2h0OjEwNHB4IWltcG9ydGFudDtoZWlnaHQ6YXV0byFpbXBvcnRhbnQ7bWF4LWhlaWdodDpub25lIWltcG9ydGFudDtwYWRkaW5nLXRvcDoxMHB4IWltcG9ydGFudDtwYWRkaW5nLWJvdHRvbToxMHB4IWltcG9ydGFudDtyZXNpemU6dmVydGljYWwhaW1wb3J0YW50O306aXMoI2NvbnRlbnQsI2xvZ2luLFtyb2xlPSJkaWFsb2ciXSk6aXMoaW5wdXQsc2VsZWN0LHRleHRhcmVhKTpub3QoI2xvYWRMaXN0RG9jICopOm5vdCgucmMzOTAtcGFwZXIgKik6bm90KC5pbmRleDIwOS1zaWduYXR1cmUtZGlhbG9nICopOmhvdmVye2JvcmRlci1jb2xvcjp2YXIoLS1yYzk3MS1ib3JkZXItaG92ZXIpIWltcG9ydGFudDt9OmlzKCNjb250ZW50LCNsb2dpbixbcm9sZT0iZGlhbG9nIl0pOmlzKGlucHV0LHNlbGVjdCx0ZXh0YXJlYSk6bm90KCNsb2FkTGlzdERvYyAqKTpub3QoLnJjMzkwLXBhcGVyICopOm5vdCguaW5kZXgyMDktc2lnbmF0dXJlLWRpYWxvZyAqKTpmb2N1c3tvdXRsaW5lOm5vbmUhaW1wb3J0YW50O2JvcmRlci1jb2xvcjp2YXIoLS1yYzk3MS1mb2N1cykhaW1wb3J0YW50O2JveC1zaGFkb3c6dmFyKC0tcmM5NzEtZm9jdXMtcmluZykhaW1wb3J0YW50O2JhY2tncm91bmQ6I2Y4ZmJmZiFpbXBvcnRhbnQ7fTppcygjY29udGVudCwjbG9naW4sW3JvbGU9ImRpYWxvZyJdKTppcyhpbnB1dCx0ZXh0YXJlYSk6bm90KCNsb2FkTGlzdERvYyAqKTpub3QoLnJjMzkwLXBhcGVyICopOm5vdCguaW5kZXgyMDktc2lnbmF0dXJlLWRpYWxvZyAqKTo6cGxhY2Vob2xkZXJ7Y29sb3I6IzgxOTNhOCFpbXBvcnRhbnQ7Zm9udC1zaXplOjEzcHghaW1wb3J0YW50O2ZvbnQtd2VpZ2h0OjYwMCFpbXBvcnRhbnQ7b3BhY2l0eToxIWltcG9ydGFudDt9OmlzKCNjb250ZW50LCNsb2dpbixbcm9sZT0iZGlhbG9nIl0pIGlucHV0W3R5cGU9Im51bWJlciJdOm5vdCgjbG9hZExpc3REb2MgKik6bm90KC5yYzM5MC1wYXBlciAqKTpub3QoLmluZGV4MjA5LXNpZ25hdHVyZS1kaWFsb2cgKXt<TRUNCATED_BASE64>','utf-8').decode('ascii'))
+
+          s=s.replace("var BUILD=Object.freeze({version:'RC970',cache:'970'","var BUILD=Object.freeze({version:'RC971',cache:'971'",1)
+          needle=' changes:Object.freeze([\n'
+          assert needle in s
+          notes=("    'RC971 führt einen globalen Form-&-Field-Standard für ExportHUB ein: Text-, Zahl-, Datums-, Such-, E-Mail-, Passwort-, Select-, Textarea- und Uploadfelder erhalten einheitliche Höhen, Innenabstände, Schriftgrößen, Fokuszustände und Placeholder-Typografie.',\n"
+                 "    'RC971 korrigiert zusätzlich die besonders kompakten Sonderbereiche Sendung/Colli, Dokumente & ABD, Mail, Aufgabenplaner und Stauplan. Druck-/CMR- und Signaturbereiche bleiben von der Bildschirm-Formularnorm ausgeschlossen; Fach- und Speicherlogik bleiben unverändert.',\n")
+          s=s.replace(needle,needle+notes,1)
+          assert '</head>' in s
+          s=s.replace('</head>',style+'\n</head>',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+          git diff --check
+          node --test test/rc971-global-form-field-standard.test.mjs
+          npm test
+
+      - name: Commit RC971 Produktpatch
+        shell: bash
+        run: |
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add TESTVERSION.html
+          git commit -m 'RC971: globalen Form- und Feldstandard anwenden'
+          git push origin main
