@@ -6,7 +6,7 @@ on:
       - rc962-state-performance
     paths:
       - 'api/exporthub-state/index.js'
-      - 'tests/rc962-state-performance.test.js'
+      - 'tests/rc962-state-performance.test.cjs'
       - '.github/workflows/rc962-state-performance-test.yml'
   workflow_dispatch:
 
@@ -27,4 +27,4 @@ jobs:
           node-version: '20'
 
       - name: Run RC962 regression test
-        run: node tests/rc962-state-performance.test.js
+        run: node tests/rc962-state-performance.test.cjs
