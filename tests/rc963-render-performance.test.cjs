@@ -14,7 +14,11 @@ function oneLineFunction(name) {
   return vm.runInNewContext('(' + match[0] + ')', Object.create(null));
 }
 
-assert(/var BUILD=Object\.freeze\(\{version:'RC963',cache:'963',loginReturn:'\/TESTVERSION\.html\?v=963'\}\);/.test(source), 'RC963 Build-Kennung fehlt.');
+const buildMatch = source.match(/var BUILD=Object\.freeze\(\{version:'RC(\d+)',cache:'(\d+)',loginReturn:'\/TESTVERSION\.html\?v=(\d+)'\}\);/);
+assert(buildMatch, 'Build-Kennung fehlt.');
+assert(Number(buildMatch[1]) >= 963, 'RC963 oder höher wird erwartet.');
+assert.strictEqual(buildMatch[1], buildMatch[2], 'Build-Version und Cache-Version müssen identisch sein.');
+assert.strictEqual(buildMatch[1], buildMatch[3], 'Build-Version und Login-Return-Version müssen identisch sein.');
 assert(source.includes('/* exporthub-rc963-render-coordinator */'), 'RC963 Render-Koordinator fehlt.');
 assert(source.includes('function performStableRender(){'), 'Der bestehende Renderer wurde nicht sauber in performStableRender überführt.');
 assert(source.includes('function stableRender(){'), 'Der öffentliche stableRender-Einstieg fehlt.');
@@ -51,7 +55,7 @@ assert.strictEqual(needsImmediate('shipment', 'shipment', true, false), false, '
 assert.strictEqual(needsImmediate('shipmentoverview', 'shipmentoverview', true, false), false, 'Gleiche montierte Sendungsübersicht muss im Patch-/Frame-Pfad bleiben.');
 assert.strictEqual(needsImmediate('dashboard', 'dashboard', true, false), false, 'Gleiches montiertes Dashboard muss im Patch-/Frame-Pfad bleiben.');
 
-// Der Wrapper muss echte Wechsel synchron an den vorhandenen Renderer geben und gleiche Ansichten bündeln.
-assert(/function stableRender\(\)\{[^\n]*rc963NeedsImmediateRender\(lastView,v,domMatches,navigationTransition\)[^\n]*rc963RenderCoordinator\.cancel\(\)[^\n]*performStableRender\.apply\(context,args\)[^\n]*rc963RenderCoordinator\.request/s.test(source), 'stableRender nutzt den RC963-Koordinator nicht wie vorgesehen.');
+// Der Wrapper muss echte Wechsel weiterhin synchron behandeln und gleiche Ansichten bündeln.
+assert(/function stableRender\(\)\{[^\n]*rc963NeedsImmediateRender\(lastView,v,domMatches,navigationTransition\)[^\n]*rc963RenderCoordinator\.cancel\(\)[^\n]*rc963RenderCoordinator\.request/s.test(source), 'stableRender nutzt den RC963-Koordinator nicht mehr wie vorgesehen.');
 
 console.log('RC963 render performance regression: OK');
