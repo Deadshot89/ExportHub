@@ -28,6 +28,14 @@ replace_once(
     'document viewer print'
 )
 
+# Harden shipment save against a pickup/POD that is confirmed while the form is being prepared.
+replace_once(
+    'TESTVERSION.html',
+    "if(!persistenceSave)persistenceSave=window.ExportHUBRC565&&window.ExportHUBRC565.persistShipment;if(typeof persistenceSave!=='function'){operationFail(opToken,'Speicherfunktion ist nicht verfügbar');alert('Die Speicherfunktion ist nicht verfügbar.');return false}operationStep(opToken,'Sendung wird dauerhaft in Azure gespeichert …');",
+    "if(!persistenceSave)persistenceSave=window.ExportHUBRC565&&window.ExportHUBRC565.persistShipment;if(typeof persistenceSave!=='function'){operationFail(opToken,'Speicherfunktion ist nicht verfügbar');alert('Die Speicherfunktion ist nicht verfügbar.');return false}operationStep(opToken,'Sendungssperre wird vor dem Speichern erneut geprüft …');if(button)button.textContent='Sendungssperre wird erneut geprüft …';locked=await refreshShipmentLock(true);if(locked){lockShipmentForm(locked,true);operationFail(opToken,'Sendung wurde vor dem Speichern gesperrt');return false}operationStep(opToken,'Sendung wird dauerhaft in Azure gespeichert …');",
+    'authoritative shipment lock before persist'
+)
+
 # Pickup client: trusted aggregate totals first, row-array sum second, ambiguous legacy fields last.
 replace_once(
     'pickup.html',
