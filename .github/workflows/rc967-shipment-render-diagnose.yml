@@ -17,79 +17,56 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Sendungsansicht Renderpfade analysieren
+      - name: Shipment Patchpfad gezielt analysieren
         shell: bash
         run: |
           node <<'NODE'
-          const fs = require('fs');
-          const s = fs.readFileSync('TESTVERSION.html','utf8');
+          const fs=require('fs');
+          const s=fs.readFileSync('TESTVERSION.html','utf8');
+          const build=s.match(/var BUILD=Object\.freeze\(\{version:'(RC\d+)'/);
+          console.log('BUILD',build?build[1]:'unbekannt');
 
-          const build = s.match(/var BUILD=Object\.freeze\(\{version:'(RC\d+)'/);
-          console.log('BUILD', build ? build[1] : 'unbekannt');
-
-          function extractFunction(name){
-            const re = new RegExp('function\\s+' + name.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&') + '\\s*\\([^)]*\\)\\s*\\{','g');
-            const m = re.exec(s);
-            if(!m) return null;
-            let i = s.indexOf('{', m.index), depth = 0, quote = '', esc = false, line = false, block = false;
-            for(; i < s.length; i++){
-              const c=s[i], n=s[i+1];
-              if(line){ if(c==='\n') line=false; continue; }
-              if(block){ if(c==='*'&&n==='/'){block=false;i++;} continue; }
-              if(quote){ if(esc){esc=false;continue;} if(c==='\\'){esc=true;continue;} if(c===quote){quote='';} continue; }
-              if(c==='/'&&n==='/'){line=true;i++;continue;}
-              if(c==='/'&&n==='*'){block=true;i++;continue;}
-              if(c==='"'||c==="'"||c==='`'){quote=c;continue;}
-              if(c==='{') depth++;
-              else if(c==='}' && --depth===0) return s.slice(m.index,i+1);
-            }
-            return null;
+          function show(name,max=16000){
+            const token='function '+name+'(';
+            const i=s.indexOf(token);
+            console.log('\n=== '+name+' @ '+i+' ===');
+            if(i<0)return;
+            let end=s.indexOf('\nfunction ',i+token.length);
+            const end2=s.indexOf('\n function ',i+token.length);
+            if(end<0||(end2>=0&&end2<end))end=end2;
+            if(end<0||end-i>max)end=Math.min(s.length,i+max);
+            const body=s.slice(i,end);
+            console.log('lenShown='+body.length+' innerHTML='+(body.match(/\.innerHTML\s*=/g)||[]).length+' textContent='+(body.match(/\.textContent\s*=/g)||[]).length+' querySelectorAll='+(body.match(/querySelectorAll\(/g)||[]).length+' stableRender='+(body.match(/stableRender\(/g)||[]).length);
+            console.log(body);
           }
 
-          const names=[];
-          const re=/function\s+([A-Za-z_$][\w$]*)\s*\(/g;
-          let m;
-          while((m=re.exec(s))) names.push(m[1]);
-          const uniq=[...new Set(names)];
+          [
+            'mayPatchExistingShipment',
+            'refreshExistingShipment',
+            'shipmentIdentity',
+            'hydrateShipmentView',
+            'renderCanonicalView',
+            'postShipment',
+            'patchShipment',
+            'shipmentHostPosition',
+            'enhanceDeliveryNotes'
+          ].forEach(n=>show(n));
 
-          function count(body, needle){ return body ? body.split(needle).length-1 : 0; }
-          const rows=[];
-          for(const name of uniq){
-            const body=extractFunction(name);
-            if(!body) continue;
-            const dom = count(body,'.innerHTML') + count(body,'insertAdjacentHTML') + count(body,'replaceChildren(') + count(body,'appendChild(') + count(body,'append(');
-            const shipmentRefs = (body.match(/shipment|sendung|colli|lademeter|ladeliste|cmr/ig)||[]).length;
-            const renderRefs = (body.match(/stableRender\(|performStableRender\(|render\(/g)||[]).length;
-            if(shipmentRefs && (dom || renderRefs || /shipment|sendung/i.test(name))) rows.push({name,len:body.length,dom,shipmentRefs,renderRefs});
-          }
-          rows.sort((a,b)=>(b.dom*100000+b.renderRefs*10000+b.shipmentRefs*100+b.len)-(a.dom*100000+a.renderRefs*10000+a.shipmentRefs*100+a.len));
-          console.log('\n=== Shipment-nahe Funktionen mit DOM/Render-Aktivität ===');
-          rows.slice(0,35).forEach(x=>console.log(JSON.stringify(x)));
-
-          const core=['stableRender','performStableRender','renderShipment','shipmentView','showShipment','renderShipmentView','viewShipment'];
-          console.log('\n=== Kernfunktionen ===');
-          for(const name of core){
-            const body=extractFunction(name);
-            if(!body) continue;
-            console.log('\n--- '+name+' len='+body.length+' innerHTML='+count(body,'.innerHTML')+' ---');
-            console.log(body.slice(0,5000));
-            if(body.length>5000) console.log('...[gekürzt]...\n'+body.slice(-1400));
+          console.log('\n=== refreshExistingShipment Aufrufer-Kontexte ===');
+          let pos=0,count=0;
+          while((pos=s.indexOf('refreshExistingShipment()',pos))>=0&&count<20){
+            console.log('CALL '+(++count),s.slice(Math.max(0,pos-500),Math.min(s.length,pos+900)).replace(/\s+/g,' '));
+            pos+=10;
           }
 
-          console.log('\n=== stableRender Aufrufer ===');
-          for(const name of uniq){
-            const body=extractFunction(name);
-            if(body && name!=='stableRender' && body.includes('stableRender()')){
-              console.log(name,'len='+body.length,'calls='+count(body,'stableRender()'),'shipmentRefs='+(body.match(/shipment|sendung/ig)||[]).length);
-            }
+          console.log('\n=== Shipment-Refresh Helferreferenzen ===');
+          const target=s.indexOf('function refreshExistingShipment(');
+          if(target>=0){
+            const body=s.slice(target,Math.min(s.length,target+22000));
+            const calls=[...body.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)].map(m=>m[1]);
+            const ignore=new Set(['if','for','while','switch','catch','function','return','typeof','String','Number','Boolean','Array','Object','Math','Date','Promise','setTimeout']);
+            const freq={};
+            for(const c of calls){if(!ignore.has(c))freq[c]=(freq[c]||0)+1;}
+            Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,50).forEach(x=>console.log(x[0],x[1]));
           }
-
-          console.log('\n=== direkte Shipment/Sendung innerHTML-Kontexte ===');
-          const needleRe=/(shipment|sendung)[^\n]{0,500}innerHTML|innerHTML[^\n]{0,500}(shipment|sendung)/ig;
-          let nm, shown=0;
-          while((nm=needleRe.exec(s)) && shown<30){
-            console.log('CTX',shown+1, s.slice(Math.max(0,nm.index-350),Math.min(s.length,nm.index+900)).replace(/\s+/g,' '));
-            shown++;
-          }
-          console.log('contexts',shown);
           NODE
