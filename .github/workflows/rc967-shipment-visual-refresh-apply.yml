@@ -1,0 +1,80 @@
+name: RC967 Shipment Visual Refresh Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc967-shipment-visual-refresh-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: RED Test bestätigen
+        shell: bash
+        run: |
+          set +e
+          node tests/rc967-shipment-visual-refresh-performance.test.cjs
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo 'RC967-Test war vor dem Patch bereits grün; Abbruch zum Schutz vor Doppelpatch.'
+            exit 1
+          fi
+          echo 'RED bestätigt: unveränderter Stauplan wird noch direkt gerendert.'
+
+      - name: RC967 minimal patchen
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const file='TESTVERSION.html';
+          let s=fs.readFileSync(file,'utf8');
+          const oldBuild="var BUILD=Object.freeze({version:'RC966',cache:'966',loginReturn:'/TESTVERSION.html?v=966'});";
+          const newBuild="var BUILD=Object.freeze({version:'RC967',cache:'967',loginReturn:'/TESTVERSION.html?v=967'});";
+          const oldRefresh="function refreshVisuals(){updateSummary();var active=document.activeElement,editing=!!(active&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)&&active.closest&&active.closest('#rc573ColliCard'));if(rc710StowDirty){if(!editing)scheduleStowRender(120,true)}else if(!editing)renderStowPlan();updateQr();return true}";
+          const newRefresh="function refreshVisuals(){updateSummary();var active=document.activeElement,editing=!!(active&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName)&&active.closest&&active.closest('#rc573ColliCard'));if(rc710StowDirty&&!editing)scheduleStowRender(120,true);updateQr();return true}";
+          function count(text,needle){return text.split(needle).length-1}
+          if(count(s,oldBuild)!==1)throw new Error('RC966 Build-Kennung nicht exakt einmal gefunden.');
+          if(count(s,oldRefresh)!==1)throw new Error('Alter refreshVisuals-Pfad nicht exakt einmal gefunden.');
+          s=s.replace(oldBuild,newBuild).replace(oldRefresh,newRefresh);
+          fs.writeFileSync(file,s);
+          const after=fs.readFileSync(file,'utf8');
+          if(count(after,newBuild)!==1)throw new Error('RC967 Build-Kennung nicht sauber gesetzt.');
+          if(count(after,newRefresh)!==1)throw new Error('RC967 refreshVisuals-Pfad nicht sauber gesetzt.');
+          if(after.includes('else if(!editing)renderStowPlan()'))throw new Error('Alter direkter Same-View-Stauplan-Render ist noch vorhanden.');
+          console.log('RC967 Minimalpatch geschrieben.');
+          NODE
+
+      - name: GREEN Regressionen
+        shell: bash
+        run: |
+          node tests/rc963-render-performance.test.cjs
+          node tests/rc964-render-metrics.test.cjs
+          node tests/rc965-avis-retry-performance.test.cjs
+          node tests/rc966-warning-ui-render-performance.test.cjs
+          node tests/rc967-shipment-visual-refresh-performance.test.cjs
+          git diff --check
+
+      - name: Produktänderung committen
+        shell: bash
+        run: |
+          if git diff --quiet -- TESTVERSION.html; then
+            echo 'Keine Produktänderung vorhanden.'
+            exit 1
+          fi
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add TESTVERSION.html
+          git commit -m 'RC967: unveränderten Stauplan-Refresh überspringen'
+          git push origin HEAD:main
