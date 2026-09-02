@@ -1,30 +1,43 @@
 from pathlib import Path
 import re
 
-p=Path('TESTVERSION.html')
-s=p.read_text(encoding='utf-8')
+s=Path('TESTVERSION.html').read_text(encoding='utf-8')
+out=[]
+out.append(f'TESTVERSION length: {len(s)}')
 
-tokens=[
+def nearest_function(pos):
+    start=max(0,pos-30000)
+    block=s[start:pos]
+    matches=list(re.finditer(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(', block))
+    return matches[-1].group(1) if matches else '<none>'
+
+def emit(token, before=2600, after=5200, limit=6):
+    hits=[m.start() for m in re.finditer(re.escape(token),s)]
+    out.append(f'\n=== {token!r} hits={len(hits)} ===')
+    for idx,pos in enumerate(hits[:limit],1):
+        lo=max(0,pos-before); hi=min(len(s),pos+after)
+        out.append(f'\n--- hit {idx} pos={pos} nearest_function={nearest_function(pos)} ---')
+        out.append(s[lo:hi])
+
+for token in [
     'Azure-Teamdaten werden geladen',
     'ExportHUB wird vorbereitet',
     'Teamdaten werden geladen',
+    'exporthub-state?mode',
     'exporthub-state',
-    'bootstrap-status',
-    'startup',
-    'Startup',
-    'boot',
-    'Boot',
-]
+    'Promise.race',
+    'AbortController',
+    'setTimeout',
+]:
+    emit(token)
 
-print('TESTVERSION length', len(s))
-for token in tokens:
-    hits=[m.start() for m in re.finditer(re.escape(token), s)]
-    print(f'\n=== TOKEN {token!r}: {len(hits)} hits ===')
-    for n,pos in enumerate(hits[:12],1):
-        lo=max(0,pos-4500); hi=min(len(s),pos+6500)
-        ctx=s[lo:hi]
-        funcs=list(re.finditer(r'(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(', s[max(0,pos-16000):pos]))
-        fname=funcs[-1].group(0) if funcs else '<none>'
-        print(f'--- hit {n} pos={pos} nearest={fname} ---')
-        print(ctx)
-        print('--- end hit ---')
+# Compact inventory of startup/team sync function declarations.
+out.append('\n=== FUNCTION INVENTORY ===')
+for m in re.finditer(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s):
+    name=m.group(1)
+    low=name.lower()
+    if any(k in low for k in ['boot','start','team','azure','state','sync','load','init','hydrate']):
+        out.append(f'{m.start()}: {name}')
+
+Path('docs/rc961-startup-diagnosis.txt').write_text('\n'.join(out),encoding='utf-8')
+print('Wrote docs/rc961-startup-diagnosis.txt')
