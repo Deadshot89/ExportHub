@@ -1,4 +1,5 @@
 {
+  "scriptFile": "wrapper.js",
   "bindings": [
     {
       "authLevel": "anonymous",
