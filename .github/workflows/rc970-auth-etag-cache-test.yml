@@ -1,0 +1,85 @@
+name: RC970 Auth ETag Cache Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/exporthub-state/**'
+      - 'TESTVERSION.html'
+      - '.github/workflows/rc970-auth-etag-cache-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: RC970 Auth Cache Regression
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),vm=require('vm'),assert=require('assert');
+          const source=fs.readFileSync('api/exporthub-state/index.js','utf8');
+          const html=fs.readFileSync('TESTVERSION.html','utf8');
+
+          assert(/const API_VERSION = 'RC970';/.test(source),'API_VERSION muss RC970 sein');
+          assert(/version:'RC970'/.test(html),'TESTVERSION muss RC970 sein');
+          assert(/AUTH_WARM_CACHE/.test(source),'Auth-Warm-Cache fehlt');
+          assert(/async function readAuthCached\(/.test(source),'readAuthCached fehlt');
+          assert(/getProperties\(\)/.test(source),'ETag-Prüfung per getProperties fehlt');
+          assert(/authCache/.test(source),'authCache Diagnose fehlt');
+          assert(/X-ExportHUB-Auth-Cache/.test(source),'Auth-Cache Timing-Header fehlt');
+
+          const testSource=source+'\nmodule.exports.__rc970={readAuthCached,forgetWarmAuth};';
+          const sandbox={
+            module:{exports:{}},exports:{},Buffer,Date,console,
+            process:{env:{}},
+            require:(id)=>{
+              if(id==='crypto') return require('crypto');
+              if(id==='../shared/blob-rest') return {createBlobServiceClient:()=>{throw new Error('not used')}};
+              if(id==='../shared/merge') return {mergeState:(a)=>a,sanitizeState:(a)=>a,pruneTombstones:(a)=>a,clone:(v)=>v===undefined?undefined:JSON.parse(JSON.stringify(v)),isLocalOnlyKey:()=>false};
+              throw new Error('unexpected require '+id);
+            }
+          };
+          vm.runInNewContext(testSource,sandbox,{filename:'index.js'});
+          const {readAuthCached,forgetWarmAuth}=sandbox.module.exports.__rc970;
+
+          let downloads=0,properties=0,currentEtag='"e1"';
+          let currentDoc={schemaVersion:1,updatedAt:'2026-09-02T20:00:00Z',sessions:[{id:'s1',tokenHash:'h1'}]};
+          const auth={
+            name:'auth-sessions.json',
+            async getProperties(){properties++;return {etag:currentEtag}},
+            async download(){
+              downloads++;
+              const raw=Buffer.from(JSON.stringify(currentDoc));
+              return {etag:currentEtag,readableStreamBody:(async function*(){yield raw})()};
+            }
+          };
+          const c={auth};
+
+          (async()=>{
+            forgetWarmAuth(c);
+            const first=await readAuthCached(c);
+            assert.strictEqual(first.cacheMode,'full-read');
+            assert.strictEqual(downloads,1,'Erster Aufruf muss Auth vollständig laden');
+            assert.strictEqual(properties,0,'Erster Aufruf braucht keine separate ETag-Prüfung');
+
+            const second=await readAuthCached(c);
+            assert.strictEqual(second.cacheMode,'memory-etag');
+            assert.strictEqual(downloads,1,'Unveränderter Auth-Stand darf nicht erneut heruntergeladen werden');
+            assert.strictEqual(properties,1,'Unveränderter Auth-Stand muss per ETag geprüft werden');
+
+            currentEtag='"e2"';
+            currentDoc={schemaVersion:1,updatedAt:'2026-09-02T20:01:00Z',sessions:[{id:'s1',tokenHash:'h1',revokedAt:'2026-09-02T20:01:00Z'}]};
+            const third=await readAuthCached(c);
+            assert.strictEqual(third.cacheMode,'full-read');
+            assert.strictEqual(downloads,2,'Geändertes ETag muss sofort einen frischen Auth-Download auslösen');
+            assert.strictEqual(properties,2,'ETag muss auch vor dem Reload geprüft werden');
+            assert.strictEqual(third.value.sessions[0].revokedAt,'2026-09-02T20:01:00Z','Widerruf muss sofort im frischen Auth-Dokument ankommen');
+            console.log('RC970 auth etag cache regression OK');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
