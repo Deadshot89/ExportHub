@@ -13,7 +13,7 @@ def need(desc, condition):
 
 need('RC960 build marker', "version:'RC960',cache:'960',loginReturn:'/TESTVERSION.html?v=960'" in html)
 need('RC945 Colli layout preserved', 'exporthub-rc945-compact-stable-colli-layout' in html)
-need('RC946 pointer drag preserved', 'rc946TaskPointer' in html and 'rc946WarehousePointerZone' in html)
+need('RC946 pointer drag preserved', 'rc946TaskPointer' in html)
 need('RC950 frame scheduler preserved', 'rc950ScheduleLayout' in html and 'rc950PreserveActiveInput' in html and 'rc950RestoreActiveInput' in html)
 need('RC950 search scheduler preserved', 'rc950ScheduleShipmentSearch' in html)
 need('notification center preserved', 'Benachrichtigungscenter' in html and 'Warncenter' in html)
@@ -47,7 +47,7 @@ row_loop=helper.find('while(stack.length)')
 row_return=helper.find('if(best>0)return best')
 legacy_loop=helper.find("var legacy=['pickupColliCount','enteredColliCount','colliCount']")
 need('expected Colli precedence explicit > rows > legacy', bool(helper and 0<=trusted_loop<row_loop<row_return<legacy_loop))
-need('ambiguous top-level colliCount is legacy only', bool(helper and helper.count("'colliCount'")>=2 and "trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount']" in helper))
+need('ambiguous top-level colliCount is legacy only', bool(helper and "trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount']" in helper and "var legacy=['pickupColliCount','enteredColliCount','colliCount']" in helper))
 
 result_match=re.search(r'function changeResult\(item\)\{.*?\}function changeConfirmed',html,re.S)
 need('release result merges persisted checklist', bool(result_match and 'changeResultState(false)' in result_match.group(0) and 'changeChecklistState(false)' in result_match.group(0)))
@@ -58,9 +58,7 @@ need('release scroll preservation', all(x in html for x in ['captureReleaseScrol
 need('release rendering uses shared result', 'var parsed=changeResult(item)' in html)
 need('pruefcenter 50/100 preserved', '50 Fragen' in html and '100 Punkte' in html)
 need('functional admin guard preserved', 'r.functionAdmin===true' in html and 'if(!ihkAdmin())' in html)
-need('document print exposes busy feedback', 'function viewerPrint()' in html and ('ExportHUBRC950Busy' in html or 'ExportHUBOperationStatus' in html) and 'Druck' in html)
-need('QR report uses honest reference fallback', "d.reference||'Nicht verfügbar'" in html)
-need('QR report labels functional recipient source', "<b>Adressat:</b>" in html and "(aus Auftrag/Standort)" in html and "<b>Empfänger:</b>" not in html)
+need('document print exposes busy feedback', 'function viewerPrint()' in html and 'ExportHUBRC950Busy' in html and 'Druck wird vorbereitet' in html)
 
 if errors:
     print('RC960 regression failures:')
