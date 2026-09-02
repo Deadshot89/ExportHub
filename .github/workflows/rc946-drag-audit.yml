@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Aktive Drag- und Kachelpfade erfassen
+      - name: Aktive Task- und Lager-Dragpfade präzisieren
         shell: bash
         run: |
           python3 <<'PY'
@@ -26,29 +26,56 @@ jobs:
           text=Path('TESTVERSION.html').read_text(encoding='utf-8')
           assert "version:'RC945',cache:'945',loginReturn:'/TESTVERSION.html?v=945'" in text, 'Basis ist nicht RC945'
 
-          # Event-/Timing-Code, der Verschieben verzögern kann.
-          patterns=[
-              r'addEventListener\(["\'](?:dragstart|dragend|dragover|drop|pointerdown|pointermove|pointerup|touchstart|touchmove|touchend|mousedown|mousemove|mouseup)["\']',
-              r'on(?:dragstart|dragend|dragover|drop|pointerdown|pointermove|pointerup|touchstart|touchmove|touchend|mousedown|mousemove|mouseup)\s*=',
-              r'setTimeout\([^\n]{0,220}',
-              r'long.?press|press.?hold|hold.?timer|drag.?delay|touch.?delay',
+          needles=[
+            'function initTasksMoveMode()',
+            'function moveTaskCard',
+            'function moveTaskRow',
+            'function persistUserTaskOrder',
+            'exporthub-rc311-task-drag-stability',
+            'exporthub-rc457-task-drop-standard',
+            'exporthub-rc615-no-task-drag-modals',
+            'exporthub-rc620-task-move-fix',
+            'exporthub-rc735-task-move-fix',
+            'function initWarehouseColumnDrag()',
+            'function setWarehouseColumnOrder',
+            'function applyWarehouseOrder',
+            'warehouseColumnOrder',
+            'draggable="true"',
+            "setAttribute('draggable','true')",
+            'data-move',
           ]
-          hits=[]
-          for pat in patterns:
-              for m in re.finditer(pat,text,re.I):
-                  hits.append((m.start(),m.group(0)))
-          hits.sort()
-          print('EVENT/TIMER HITS',len(hits))
-          for i,(pos,match) in enumerate(hits,1):
-              lo=max(0,pos-1300); hi=min(len(text),pos+2600)
-              ctx=text[lo:hi]
-              if re.search(r'Lager|lager|Aufgabe|aufgabe|Planner|planner|Task|task|drag|Drag|Kachel|card|tile',ctx):
-                  print(f'\n=== HIT {i} pos={pos} match={match!r} ===\n{ctx.replace("><",">\\n<")}')
 
-          print('\n=== RELEVANTE FUNKTIONEN / IDS ===')
-          tokens=sorted(set(re.findall(r'[A-Za-z_$][A-Za-z0-9_$.-]{0,80}',text)))
-          for token in tokens:
-              low=token.lower()
-              if any(x in low for x in ('drag','drop','task','aufgab','lager','warehouse','planner','kanban','sortable','move')):
-                  print(token)
+          for needle in needles:
+            positions=[]; start=0
+            while True:
+              pos=text.find(needle,start)
+              if pos<0: break
+              positions.append(pos)
+              start=pos+len(needle)
+            print(f'\n### {needle} COUNT={len(positions)} POS={positions}')
+            for pos in positions[-12:]:
+              lo=max(0,pos-4200); hi=min(len(text),pos+7200)
+              print(f'\n=== {needle} @ {pos} ===\n{text[lo:hi].replace("><",">\\n<")}\n')
+
+          print('\n=== DRAG LISTENER OCCURRENCES ===')
+          for m in re.finditer(r'addEventListener\(["\'](dragstart|dragend|dragover|drop|pointerdown|pointermove|pointerup|touchstart|touchmove|touchend|mousedown|mousemove|mouseup)["\']', text):
+            pos=m.start(); lo=max(0,pos-900); hi=min(len(text),pos+1800)
+            ctx=text[lo:hi]
+            if re.search(r'task|aufgab|warehouse|lager|planner|card|column|tile',ctx,re.I):
+              print(f'\n--- {m.group(1)} @ {pos} ---\n{ctx.replace("><",">\\n<")}')
+
+          print('\n=== RELEVANTE CSS-BLÖCKE ===')
+          css_needles=['.task-card{','#warehouse .ext-table-wrap','[draggable="true"]','cursor:grab','cursor:grabbing','touch-action','user-select']
+          for needle in css_needles:
+            positions=[]; start=0
+            while True:
+              pos=text.find(needle,start)
+              if pos<0: break
+              positions.append(pos); start=pos+len(needle)
+            print(f'\nCSS {needle} COUNT={len(positions)} POS={positions[-20:]}')
+            for pos in positions[-10:]:
+              lo=max(0,pos-1200); hi=min(len(text),pos+2400)
+              ctx=text[lo:hi]
+              if re.search(r'task|aufgab|warehouse|lager|planner|card|column|tile|drag',ctx,re.I):
+                print(ctx.replace('><','>\\n<'))
           PY
