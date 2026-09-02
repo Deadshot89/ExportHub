@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC967',cache:'967',loginReturn:'/TESTVERSION.html?v=967'});
+var BUILD=Object.freeze({version:'RC968',cache:'968',loginReturn:'/TESTVERSION.html?v=968'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -23281,8 +23281,8 @@ function totals(){return arr(shipment().rows).reduce(function(t,r){var c=Math.ma
  var t=totals(),vals={count:t.count.toLocaleString('de-DE',{maximumFractionDigits:0}),weight:t.weight.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' kg',ldm:t.ldm.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})},labels={count:'Collis',weight:'Gewicht',ldm:'Lademeter'},found=0;
  Object.keys(vals).forEach(function(k){var e=document.getElementById('rc344Sum_'+k);if(e){if(e.textContent!==vals[k])e.textContent=vals[k];var p=e.previousElementSibling;if(p&&labels[k]&&p.textContent!==labels[k])p.textContent=labels[k];found++}});
  var card=document.getElementById('rc573ColliCard'),summary=card&&card.querySelector('.rc344-summary');
- if(summary){var lineBox=summary.querySelector('[data-rc901-summary="lines"]');if(!lineBox){lineBox=document.createElement('div');lineBox.className='summaryBox';lineBox.setAttribute('data-rc901-summary','lines');lineBox.innerHTML='<span>Zeilen</span><strong id="rc901Sum_lines">0</strong>';summary.appendChild(lineBox)}var lineValue=document.getElementById('rc901Sum_lines'),rows=arr(shipment().rows);if(lineValue)lineValue.textContent=String(rows.length)}
- if(found<3&&card)Array.from(card.querySelectorAll('.summaryBox,.rc344-summary>div')).forEach(function(b){var text=low(b.textContent),n=b.querySelector('b,strong'),p=b.querySelector('span');if(!n)return;if(/collis|anzahl/.test(text)){n.textContent=vals.count;if(p)p.textContent='Collis'}else if(/gewicht/.test(text)){n.textContent=vals.weight;if(p)p.textContent='Gewicht'}else if(/lademeter|ldm/.test(text)){n.textContent=vals.ldm;if(p)p.textContent='Lademeter'}});
+ if(summary){var lineBox=summary.querySelector('[data-rc901-summary="lines"]');if(!lineBox){lineBox=document.createElement('div');lineBox.className='summaryBox';lineBox.setAttribute('data-rc901-summary','lines');lineBox.innerHTML='<span>Zeilen</span><strong id="rc901Sum_lines">0</strong>';summary.appendChild(lineBox)}var lineValue=document.getElementById('rc901Sum_lines'),rows=arr(shipment().rows);if(lineValue&&lineValue.textContent!==String(rows.length))lineValue.textContent=String(rows.length)}
+ if(found<3&&card)Array.from(card.querySelectorAll('.summaryBox,.rc344-summary>div')).forEach(function(b){var text=low(b.textContent),n=b.querySelector('b,strong'),p=b.querySelector('span');if(!n)return;if(/collis|anzahl/.test(text)){if(n.textContent!==vals.count)n.textContent=vals.count;if(p&&p.textContent!=='Collis')p.textContent='Collis'}else if(/gewicht/.test(text)){if(n.textContent!==vals.weight)n.textContent=vals.weight;if(p&&p.textContent!=='Gewicht')p.textContent='Gewicht'}else if(/lademeter|ldm/.test(text)){if(n.textContent!==vals.ldm)n.textContent=vals.ldm;if(p&&p.textContent!=='Lademeter')p.textContent='Lademeter'}});
  var stowRows=arr(shipment().rows),stowSig=stowRows.map(function(r){return[q(r.type||r.packaging||r.verpackung),num(r.count||r.qty||r.anzahl),num(r.weight||r.gewicht),num(r.ldm),num(r.l||r.length),num(r.w||r.width),num(r.h||r.height)].join(':')}).join('|');
  if(stowSig!==rc902LastStowRowsSig){rc902LastStowRowsSig=stowSig;markStowDirty()}
 }
