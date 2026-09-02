@@ -1,6 +1,6 @@
 {
   "purpose": "testservice-deploy-marker",
-  "requestedFrontendVersion": "RC967",
+  "requestedFrontendVersion": "RC968",
   "requiredStateApiVersion": "RC931",
   "requestedAt": "2026-09-02"
 }
