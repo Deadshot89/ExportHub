@@ -27,9 +27,9 @@ jobs:
           const html=fs.readFileSync('TESTVERSION.html','utf8');
 
           const apiVersion=Number((source.match(/const API_VERSION = 'RC(\d+)';/)||[])[1]||0);
-          const frontendVersion=Number((html.match(/version:'RC(\d+)'/)||[])[1]||0);
+          const frontendVersion=Number((html.match(/var BUILD=Object\.freeze\(\{version:'RC(\d+)'/)||[])[1]||0);
           assert(apiVersion>=970,'API_VERSION muss RC970 oder höher sein');
-          assert(frontendVersion>=970,'TESTVERSION muss RC970 oder höher sein');
+          assert(frontendVersion>=970,'TESTVERSION BUILD muss RC970 oder höher sein');
           assert(/AUTH_WARM_CACHE/.test(source),'Auth-Warm-Cache fehlt');
           assert(/async function readAuthCached\(/.test(source),'readAuthCached fehlt');
           assert(/getProperties\(\)/.test(source),'ETag-Prüfung per getProperties fehlt');
