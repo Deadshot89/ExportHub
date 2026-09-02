@@ -7,17 +7,30 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: rc960-large-update
       - uses: actions/setup-node@v4
         with:
           node-version: '20.20.2'
       - name: RC960 active-path audit
-        run: python .github/rc960_audit.py
+        run: python .github/rc960_audit.py | tee docs/superpowers/rc960-audit.txt
       - name: Existing baseline tests
         run: npm test
+      - name: Capture audit result on feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/superpowers/rc960-audit.txt
+          if git diff --cached --quiet; then
+            echo "Audit output unchanged."
+            exit 0
+          fi
+          git commit -m "test: capture RC960 audit output [rc960-audit-output]"
+          git push origin HEAD:rc960-large-update
