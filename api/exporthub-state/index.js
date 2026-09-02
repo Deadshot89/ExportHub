@@ -14,7 +14,7 @@ const TEST_DIAGNOSTICS_BLOB = process.env.EXPORTHUB_TEST_DIAGNOSTICS_BLOB || 'te
 const DIAGNOSTICS_MAX_RECORDS = 5000;
 const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC931';
+const API_VERSION = 'RC969';
 const TEAM_WARM_CACHE = new Map();
 
 function text(v){ return String(v == null ? '' : v).trim(); }
@@ -911,6 +911,8 @@ module.exports=async function(context,req){
    const result=await clearDiagnostics(c.diagnostics,current.user);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
   }
   if(req.method==='GET'||(req.method==='POST'&&mode==='read')){
+   const knownRevision=Math.max(0,Number(payload&&payload.knownRevision||req.query&&req.query.knownRevision||0)||0),currentRevision=Number(current.team&&current.team.revision||0);
+   if(knownRevision>0&&knownRevision===currentRevision){const serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',notModified:true};context.res=json(200,{ok:true,notModified:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,schemaVersion:Number(current.team&&current.team.schemaVersion||3),revision:currentRevision,updatedAt:current.team&&current.team.updatedAt||null,serverMs,timing},timingHeaders(timing));return}
    const serializeStarted=Date.now(),client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user)),serializeMs=Date.now()-serializeStarted,serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',serializeMs};context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null,serverMs,timing},client),timingHeaders(timing));return
   }
   if(req.method==='POST'){
