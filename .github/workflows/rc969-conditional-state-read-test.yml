@@ -26,9 +26,14 @@ jobs:
           const assert=require('assert');
           const api=fs.readFileSync('api/exporthub-state/index.js','utf8');
           const html=fs.readFileSync('TESTVERSION.html','utf8');
+          const fn=JSON.parse(fs.readFileSync('api/exporthub-state/function.json','utf8'));
 
           assert(/const API_VERSION = 'RC969';/.test(api),'API_VERSION muss RC969 sein');
           assert(/version:'RC969'/.test(html),'TESTVERSION muss RC969 sein');
+          assert.strictEqual(fn.scriptFile,'index.js','State-Function muss direkt index.js laden');
+          assert(!fs.existsSync('api/exporthub-state/wrapper.js'),'RC931 Wrapper muss entfernt sein');
+          assert(/mode==='ping'[\s\S]{0,500}serverVersion:API_VERSION/.test(api),'Ping muss echte serverVersion liefern');
+          assert(/mode==='meta'[\s\S]{0,500}serverVersion:API_VERSION/.test(api),'Meta muss echte serverVersion liefern');
 
           const validatePos=api.indexOf('const current=await validateSession(req,payload,c),blob=c.team;');
           const notModifiedPos=api.indexOf('notModified:true');
@@ -47,5 +52,3 @@ jobs:
 
           console.log('RC969 conditional read regression OK');
           NODE
-
-# final verification trigger
