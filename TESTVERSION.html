@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC965',cache:'965',loginReturn:'/TESTVERSION.html?v=965'});
+var BUILD=Object.freeze({version:'RC966',cache:'966',loginReturn:'/TESTVERSION.html?v=966'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -2168,6 +2168,8 @@ function warningData(){
               }
             }
 
+  /* exporthub-rc966-warning-ui-diff */ function rc966PatchHtml(node,html){if(!node)return false;html=String(html==null?'':html);if(node.getAttribute('data-rc966-html')===html)return false;node.innerHTML=html;node.setAttribute('data-rc966-html',html);return true}
+
   function ensureWarningUi(){
               var d=warningData();
 
@@ -2178,7 +2180,7 @@ function warningData(){
                 btn.id='rc885WarningButton';
                 document.body.appendChild(btn)
               }
-              btn.innerHTML='Warncenter <span class="rc885-warning-count">'+d.total+'</span>';
+              rc966PatchHtml(btn,'Warncenter <span class="rc885-warning-count">'+d.total+'</span>');
 
               var drawer=document.getElementById('rc885WarningDrawer');
               if(!drawer){
@@ -2222,7 +2224,7 @@ function warningData(){
               }
 
               var activeGroups=d.groups.filter(function(g){return g.count>0});
-              drawer.innerHTML=
+              rc966PatchHtml(drawer,
                 '<div class="rc885-drawer">'+
                   '<div class="rc885-drawer-head">'+
                     '<div>'+
@@ -2237,6 +2239,7 @@ function warningData(){
                     '<div class="rc889-empty">Aktuell kein dringender Handlungsbedarf.</div>'
                   )+
                 '</div>'
+            )
             }
 
   function mountWorkspace(){
