@@ -22,6 +22,8 @@ jobs:
         with:
           ref: rc961-startup-teamdata-timeout
           fetch-depth: 0
+      - name: RC961 startup total-timeout regression
+        run: node .github/rc961_statecall_test.js
       - name: Extract startup and teamdata paths
         run: python .github/rc961_startup_diag.py
       - name: Persist diagnosis
