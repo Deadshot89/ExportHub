@@ -21,7 +21,7 @@ def fn(name):
         i+=1
     return text[start:i]
 
-names=['calcGate','syncCostFromShipment','activeShipmentRoute','shipmentLoad','changeKey','changeConfirmed','changeFailed','changeItemByKey','recordPassed','recordOpen','recordFailure','unreleasedChanges','changeChecklistProgress','refreshUnreleasedChangesCard','viewerPrint','viewerLoad']
+names=['calcGate','syncCostFromShipment','activeShipmentRoute','shipmentLoad','changeKey','changeResultState','changeResult','changeConfirmed','changeFailed','changeItemByKey','recordPassed','recordOpen','recordFailure','applyPendingConfirmations','scheduleConfirmationSave','renderUnreleasedChangesInner','unreleasedChanges','changeChecklistProgress','refreshUnreleasedChangesCard','viewerPrint','viewerLoad']
 out=[]
 for n in names:
     body=fn(n);out.append(f'\n=== {n} len={len(body)} ===\n{body[:30000]}')
