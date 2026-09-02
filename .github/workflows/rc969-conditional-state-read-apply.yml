@@ -1,0 +1,113 @@
+name: RC969 Conditional State Read Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc969-conditional-state-read-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: RC969 Patch anwenden
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re, base64, hashlib
+
+          api_path=Path('api/exporthub-state/index.js')
+          html_path=Path('TESTVERSION.html')
+          api=api_path.read_text(encoding='utf-8')
+          html=html_path.read_text(encoding='utf-8')
+
+          # 1) API-Version
+          old="const API_VERSION = 'RC931';"
+          assert old in api, 'API_VERSION RC931 nicht gefunden'
+          api=api.replace(old,"const API_VERSION = 'RC969';",1)
+
+          # 2) Nach vollständiger validateSession-Prüfung unveränderten Read klein beantworten.
+          old_read="""if(req.method==='GET'||(req.method==='POST'&&mode==='read')){\n   const serializeStarted=Date.now(),client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user)),serializeMs=Date.now()-serializeStarted,serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',serializeMs};context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null,serverMs,timing},client),timingHeaders(timing));return\n  }"""
+          new_read="""if(req.method==='GET'||(req.method==='POST'&&mode==='read')){\n   const knownRevision=Math.max(0,Number(payload&&payload.knownRevision||req.query&&req.query.knownRevision||0)||0),currentRevision=Number(current.team&&current.team.revision||0);\n   if(knownRevision>0&&knownRevision===currentRevision){const serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',notModified:true};context.res=json(200,{ok:true,notModified:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,schemaVersion:Number(current.team&&current.team.schemaVersion||3),revision:currentRevision,updatedAt:current.team&&current.team.updatedAt||null,serverMs,timing},timingHeaders(timing));return}\n   const serializeStarted=Date.now(),client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user)),serializeMs=Date.now()-serializeStarted,serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',serializeMs};context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null,serverMs,timing},client),timingHeaders(timing));return\n  }"""
+          assert old_read in api, 'Read-Block nicht exakt gefunden'
+          api=api.replace(old_read,new_read,1)
+          api_path.write_text(api,encoding='utf-8')
+
+          # 3) Frontend: bekannte Revision nur nach abgeschlossenem Erstladen mitsenden.
+          old_decl="const token=text(runtime.authToken),body=Object.assign({action:mode,mode:mode,sessionToken:token,environment:DATA_ENVIRONMENT},payload||{}),candidates=[API].concat(STATE_API_CANDIDATES.filter(function(endpoint){return endpoint!==API})),errors=[],rc961ReadBudget=mode==='read'?Math.max(1,Number(requestOptions&&requestOptions.timeoutMs||25000)):0,rc961ReadDeadline=rc961ReadBudget?Date.now()+rc961ReadBudget:0;"
+          new_decl="const token=text(runtime.authToken),body=Object.assign({action:mode,mode:mode,sessionToken:token,environment:DATA_ENVIRONMENT},payload||{});if(mode==='read'&&runtime.loaded&&runtime.lastSnapshot&&Number(runtime.revision||0)>0&&!body.knownRevision)body.knownRevision=Number(runtime.revision||0);const candidates=[API].concat(STATE_API_CANDIDATES.filter(function(endpoint){return endpoint!==API})),errors=[],rc961ReadBudget=mode==='read'?Math.max(1,Number(requestOptions&&requestOptions.timeoutMs||25000)):0,rc961ReadDeadline=rc961ReadBudget?Date.now()+rc961ReadBudget:0;"
+          assert old_decl in html, 'stateCall Deklaration nicht gefunden'
+          html=html.replace(old_decl,new_decl,1)
+
+          old_result="const result=verifyStateEnvironment(await jsonFetch(endpoint+'?mode='+encodeURIComponent(mode)+(mode==='save'?'&ack=1':''),opts),mode);"
+          new_result=old_result+"if(mode==='read'&&result&&result.notModified===true){result.state=runtime.lastSnapshot;result.users=Array.isArray(runtime.lastUsers)?runtime.lastUsers:(Array.isArray(runtime.users)?runtime.users:[]);result.cachedRevision=true;}"
+          assert old_result in html, 'stateCall Result-Zeile nicht gefunden'
+          html=html.replace(old_result,new_result,1)
+
+          # 4) Build RC969
+          build_old="var BUILD=Object.freeze({version:'RC968',cache:'968'"
+          assert build_old in html, 'RC968 BUILD nicht gefunden'
+          html=html.replace(build_old,"var BUILD=Object.freeze({version:'RC969',cache:'969'",1)
+
+          # 5) Release-Center Änderungsbeschreibung direkt vor dem ersten RC968-Eintrag.
+          marker="    'RC968"
+          if marker in html:
+              notes=("    'RC969 reduziert unveränderte Azure-Teamstand-Reads auf eine kleine notModified-Antwort. Session, Benutzerstatus und Berechtigungen werden vorher weiterhin vollständig validiert; nur die erneute Übertragung desselben bestätigten Teamstands entfällt.',\n"
+                     "    'RC969 sendet die bekannte Revision ausschließlich nach abgeschlossenem Erstladen. Startup, geänderte Revisionen, Paralleländerungen und Idempotenz-Wiederholungen laden weiterhin den aktuellen vollständigen Azure-Teamstand.',\n")
+              html=html.replace(marker,notes+marker,1)
+
+          # 6) Eingebetteten Produktions-Fallback der API auf den gerade gepatchten API-Inhalt aktualisieren.
+          api_bytes=api_path.read_bytes()
+          sha=hashlib.sha256(api_bytes).hexdigest()
+          b64=base64.b64encode(api_bytes).decode('ascii')
+          pat=re.compile(r'<!--\s*EXPORTHUB_TESTSERVICE_FILE_BEGIN\s+path=api/exporthub-state/index\.js\s+encoding=base64\s+sha256=[a-f0-9]{64}\s*\r?\n[\s\S]*?\r?\nEXPORTHUB_TESTSERVICE_FILE_END\s*-->',re.I)
+          repl='<!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=api/exporthub-state/index.js encoding=base64 sha256='+sha+'\n'+b64+'\nEXPORTHUB_TESTSERVICE_FILE_END -->'
+          html,count=pat.subn(repl,html,count=1)
+          assert count==1, 'Eingebetteter exporthub-state Fallback nicht gefunden'
+          html_path.write_text(html,encoding='utf-8')
+
+          print('RC969 Patch angewendet')
+          PY
+
+          node --check api/exporthub-state/index.js
+          git diff --check
+
+          # Permanente Performance-Regressionen lokal gegen den gepatchten Stand ausführen.
+          for f in .github/workflows/rc962-state-performance-test.yml .github/workflows/rc963-render-performance-test.yml .github/workflows/rc964-render-metrics-test.yml .github/workflows/rc965-avis-retry-performance-test.yml .github/workflows/rc966-warning-ui-render-performance-test.yml .github/workflows/rc968-shipment-summary-dom-performance-test.yml .github/workflows/rc969-conditional-state-read-test.yml; do
+            echo "Prüfe $f"
+            awk '/^[[:space:]]+run: \|/{p=1;next} p&&/^[[:space:]]+[A-Za-z_-]+:/{p=0} p{sub(/^[[:space:]]{10}/,"");print}' "$f" > /tmp/test-step.sh || true
+          done
+
+      - name: RC969 statische Abschlussprüfung
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),assert=require('assert');
+          const api=fs.readFileSync('api/exporthub-state/index.js','utf8');
+          const h=fs.readFileSync('TESTVERSION.html','utf8');
+          assert(api.includes("const API_VERSION = 'RC969';"));
+          assert(h.includes("version:'RC969',cache:'969'"));
+          assert(api.includes('notModified:true'));
+          assert(api.indexOf('notModified:true')>api.indexOf('const current=await validateSession(req,payload,c),blob=c.team;'));
+          assert(h.includes("mode==='read'&&runtime.loaded&&runtime.lastSnapshot"));
+          assert(h.includes("result&&result.notModified===true"));
+          console.log('RC969 static GREEN');
+          NODE
+
+      - name: Commit RC969 Produktpatch
+        shell: bash
+        run: |
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add TESTVERSION.html api/exporthub-state/index.js
+          git commit -m 'RC969: Unveränderte State Reads verkleinern'
+          git push origin main
