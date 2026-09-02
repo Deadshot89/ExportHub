@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: refreshVisuals Implementierung analysieren
+      - name: Stauplan Dirty und Signaturlogik analysieren
         shell: bash
         run: |
           node <<'NODE'
@@ -26,20 +26,27 @@ jobs:
           const build=s.match(/var BUILD=Object\.freeze\(\{version:'(RC\d+)'/);
           console.log('BUILD',build?build[1]:'unbekannt');
 
-          function context(label,token,before=1200,after=7000,limit=20){
+          function showFn(name,max=14000){
+            const token='function '+name+'(';
+            const i=s.lastIndexOf(token);
+            console.log('\n=== '+name+' @ '+i+' ===');
+            if(i<0)return;
+            let end=s.indexOf('\nfunction ',i+token.length),end2=s.indexOf('\n function ',i+token.length);
+            if(end<0||(end2>=0&&end2<end))end=end2;
+            if(end<0||end-i>max)end=Math.min(s.length,i+max);
+            console.log(s.slice(i,end));
+          }
+          ['renderStowPlan','scheduleStowRender','updateSummary','updateQr'].forEach(n=>showFn(n));
+
+          function contexts(label,re,before=650,after=1100,limit=40){
             console.log('\n=== '+label+' ===');
-            let pos=0,count=0;
-            while((pos=s.indexOf(token,pos))>=0&&count<limit){
+            let m,count=0;
+            while((m=re.exec(s))&&count<limit){
               count++;
-              const out=s.slice(Math.max(0,pos-before),Math.min(s.length,pos+after));
-              console.log('\n--- '+count+' @ '+pos+' ---\n'+out);
-              pos+=token.length;
+              console.log('\n--- '+count+' @ '+m.index+' ---\n'+s.slice(Math.max(0,m.index-before),Math.min(s.length,m.index+after)).replace(/\s+/g,' '));
             }
             console.log('COUNT',count);
           }
-
-          context('shipmentPatchApi','function shipmentPatchApi(',500,5000,10);
-          context('refreshVisuals symbol','refreshVisuals',1400,7000,20);
-          context('refreshVisuals property','refreshVisuals:',1400,9000,20);
-          context('refreshVisuals assignment','.refreshVisuals=',1400,9000,20);
+          contexts('rc710StowDirty Zuweisungen',/rc710StowDirty\s*=\s*[^;\n]+/g,800,1300,50);
+          contexts('Stow Signatur/Cache Begriffe',/(stowSignature|stowSig|lastStow|stowCache|stowDirty|StowDirty|renderStowPlan\(\))/g,600,1000,60);
           NODE
