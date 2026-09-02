@@ -1,0 +1,76 @@
+
+=== calcGate ===
+LINE 19546 len=20
+function calcGate(){
+
+=== syncCostFromShipment ===
+LINE 19523 len=692
+function syncCostFromShipment(){var c=costState(),u=c.ups,g=c.gate,o=senderRoute(),d=activeShipmentRoute(),load=shipmentLoad(),changed=false;if(c.manualPriceRequest===true){var manualSig=q(c.manualPriceRequestShipmentSignature);if(!d.signature||manualSig===d.signature)return false;c.manualPriceRequest=false;c.manualMode=false;c.shipmentSourceSignature='';delete c.manualPriceRequestShipmentSignature;changed=true}var sourceSig=[d.signature,load.signature].join('||'),newSource=!!(sourceSig&&c.shipmentSourceSignature!==sourceSig);if(newSource){c.shipmentSourceSignature=sourceSig;c.manualMode=false;u.manualRoute=false;u.manualLoad=false;g.manualRoute=false;g.manualLoad=false;changed=true}
+
+=== shipmentRecipientCountry ===
+LINE 19431 len=1361
+function shipmentRecipientCountry(sh,c){sh=sh||{};c=c||{};var nested=[sh.locationData,sh.siteData,sh.location,sh.recipient,sh.destination,sh.deliveryLocation,sh.shipTo];for(var i=0;i<nested.length;i++){var n=nested[i];if(!n||typeof n!=='object'||Array.isArray(n))continue;var v=q(n.country||n.land||n.countryName||n.recipientCountry||n.destinationCountry||n.deliveryCountry||n.shipToCountry||n.countryCode||n.isoCountry||n.iso);if(v)return v}var wanted=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId),wantedName=low(sh.locationName||sh.site||sh.standort||sh.destinationName),locations=[].concat(arr(c.locations),arr(c.sites),arr(c.standorte),arr(c.deliveryLocations),arr(c.shipToLocations));for(var j=0;j<locations.length;j++){var loc=locations[j]||{},locId=q(loc.id||loc.locationId||loc.selectedLocationId||loc.siteId||loc.destinationId||loc.code||loc.number),locName=low(loc.name||loc.locationName||loc.siteName);if((wanted&&locId===wanted)||(wantedName&&locName===wantedName)){var lc=q(loc.country||loc.land||loc.countryName||loc.recipientCountry||loc.destinationCountry||loc.deliveryCountry||loc.countryCode||loc.isoCountry||loc.iso);if(lc)return lc}}var direct=q(sh.recipientCountry||sh.destinationCountry);if(direct)return direct;return q(sh.country||sh.land||sh.countryName||sh.deliveryCountry||sh.shipToCountry)||customerCountry(c)}
+
+=== activateQr ===
+LINE 23444 len=1689
+function activateQr(saved){saved=saved||currentSaved();var api=window.ExportHUBPickupPOD;if(!saved||!api||typeof api.register!=='function'){updateQr();return Promise.resolve(false)}if(qrPromise)return qrPromise;function timeout(p,ms,label){return new Promise(function(resolve,reject){var done=false,t=setTimeout(function(){if(done)return;done=true;reject(new Error(label||'Zeitüberschreitung'))},ms);Promise.resolve(p).then(function(v){if(done)return;done=true;clearTimeout(t);resolve(v)},function(e){if(done)return;done=true;clearTimeout(t);reject(e)})})}updateQr();qrPromise=(async function(){try{if((saved.pickupToken||saved.pickupQrToken||saved.qrToken)&&typeof api.syncOne==='function'){try{await timeout(api.syncOne(saved,true),14000,'QR-Serverstatus konnte nicht rechtzeitig geprüft werden.')}catch(_){}if(saved.pickupQrRegistered===true)return true}var ok=await timeout(api.register(saved,false),28000,'QR-Aktivierung wurde nach 28 Sekunden beendet.');return !!ok}catch(e){try{saved.pickupQrActivating=false;saved.pickupQrActivationStartedAt='';saved.pickupQrError=q(e&&e.message||e)||'QR-Aktivierung nicht bestätigt.'}catch(_){}return false}})().then(function(ok){if(!ok){try{saved.pickupQrActivating=false;saved.pickupQrActivationStartedAt='';if(!saved.pickupQrError)saved.pickupQrError='QR-Aktivierung konnte nicht bestätigt werden. Erneut versuchen.'}catch(_){}}updateQr();return !!ok}).finally(function(){try{if(saved&&saved.pickupQrActivating===true){saved.pickupQrActivating=false;saved.pickupQrActivationStartedAt='';if(!saved.pickupQrError)saved.pickupQrError='QR-Aktivierung wurde beendet. Bitte erneut versuchen.'}}catch(_){}qrPromise=null;updateQr()});return qrPromise}
+
+=== updateQr ===
+LINE 23584 len=2188
+function updateQr(bar){bar=bar||document.getElementById('rc363ShipmentActions');if(!bar)return;var box=bar.querySelector('#rc363ShipmentQr'),saved=currentSaved(),ref=refOf(saved),markup='',print=bar.querySelector('#rc363PrintAll'),docs=bar.querySelector('#rc363OpenDocuments');if(saved&&saved.pickupQrActivating===true&&!qrPromise){var started=Date.parse(q(saved.pickupQrActivationStartedAt));if(!started||Date.now()-started>35000){saved.pickupQrActivating=false;saved.pickupQrActivationStartedAt='';if(!saved.pickupQrError)saved.pickupQrError='Eine alte QR-Aktivierung wurde beendet. Bitte QR erneut aktivieren.'}}if(print)print.disabled=!saved;if(docs)docs.disabled=!saved;if(saved&&saved.pickupQrRegistered===true){try{if(/^[A-Z0-9]{6}$/.test(ref)&&window.ExportHUBPickupPOD&&typeof window.ExportHUBPickupPOD.qrMarkup==='function')markup=window.ExportHUBPickupPOD.qrMarkup(saved)||''}catch(e){console.error('RC399 QR',e)}}var stateKey=!saved?'draft':ref+'|'+String(saved.pickupQrRegistered===true)+'|'+String(saved.pickupQrActivating===true)+'|'+q(saved.pickupQrError)+'|'+String(!!markup);if(box.dataset.rc380Sig===stateKey)return;box.dataset.rc380Sig=stateKey;if(markup){bar.dataset.qrReady='1';box.innerHTML=markup+'<div class="rc363-qr-copy"><b>QR-Abholung</b>Sendung <strong>'+ref+'</strong> ist serverseitig registriert und der QR-Code ist einsatzbereit.</div>'}else{bar.dataset.qrReady='0';var text=!saved?'Nach dem erfolgreichen Speichern einer gültigen Sendung wird der QR-Code angezeigt.':saved.pickupQrActivating?'QR-Abholung wird serverseitig aktiviert …':saved.pickupQrServerMismatch?q(saved.pickupQrError):saved.pickupQrError?'QR-Aktivierung fehlgeschlagen: '+q(saved.pickupQrError):saved.pickupQrRegistered===true?'Die Registrierung ist vorhanden, aber der QR-Code konnte nicht erzeugt werden.':'QR-Abholung wird nach dem Speichern serverseitig registriert.';box.innerHTML='<div class="rc363-qr-copy"><b>QR-Abholung</b>'+text+(saved&&!saved.pickupQrActivating&&!saved.pickupQrRegistered?'<div class="toolbar" style="margin-top:8px"><button type="button" class="ghost" onclick="return ExportHUBShipment420.activateQr()">QR erneut aktivieren</button></div>':'')+'</div>'}}
+
+=== registerPickup ===
+LINE 14797 len=1596
+function install(){if(installed)return;installed=true;installRightsApi();try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.buildMenu==='function')window.ExportHUBRC325.buildMenu()}catch(e){console.error('Rechte-Navigation aktualisieren',e)}overrideUploads();document.addEventListener('click',function(e){prepareDateAction(e);var t=e.target&&e.target.closest&&e.target.closest('button,a,[role="button"],input[type="checkbox"],input[type="radio"],select');if(!t||t.closest&&t.closest('#nav')||t.hasAttribute&&t.hasAttribute('data-index321-route')||t.hasAttribute&&t.hasAttribute('data-index321-view'))return;schedulePostProcess(260)},true);window.addEventListener('exporthub:documents-opening',function(e){var d=e&&e.detail||{},sh=d.shipment||findShipment(d.shipmentId||d.reference)||currentShipment();if(sh)ensureGeneratedDocs(sh)});window.addEventListener('exporthub:shipment-saved',function(e){var d=e&&e.detail||{},sh=findShipment(d.shipmentId||d.reference)||currentShipment();if(sh){recalculateShipmentStatus(sh);later(function(){registerPickupMeta(sh)},600)}});window.addEventListener('exporthub:rendered',function(){schedulePostProcess(320)});window.addEventListener('exporthub:viewchange',function(){schedulePostProcess(380)});window.addEventListener('exporthub:sync',function(){schedulePostProcess(180)});postProcess();window.__EXPORTHUB_RC542_DIAGNOSTICS__={installed:true,version:VERSION,rightLevels:true,palletProcess:true,documentHistory:true,manualPickup:true,eventDriven:true,postCoalescing:true,globalRenderWrapped:false,navClicksSkipped:true,documentOpenSaveRemoved:true}}
+LINE 14790 len=128
+function registerPickupMeta(sh){return window.ExportHUBRC569QR?window.ExportHUBRC569QR.register(sh,true):Promise.resolve(false)}
+
+=== unreleasedChanges ===
+LINE 13095 len=401
+ function unreleasedChanges(){var release=window.ExportHUBRelease||{},items=Array.isArray(release.changes)?release.changes:[],prod=rcNumber(productionVersion),current=rcNumber(VERSION);return items.filter(function(item){var n=releaseItemVersion(item);if(!Number.isFinite(n))return false;if(!Number.isFinite(current)||n>current)return false;if(!Number.isFinite(prod))return n===current;return n>prod})}
+
+=== changeChecklistProgress ===
+LINE 13111 len=268
+ function changeChecklistProgress(){var list=unreleasedChanges(),done=0,failed=0;list.forEach(function(item){if(changeConfirmed(item))done++;else if(changeFailed(item))failed++});return{total:list.length,done:done,failed:failed,remaining:Math.max(0,list.length-done)}}
+
+=== changePassRecord ===
+
+=== releaseItemVersion ===
+LINE 13093 len=99
+ function releaseItemVersion(item){var m=q(item).match(/^RC\s*(\d+)\b/i);return m?Number(m[1]):NaN}
+
+=== captureReleaseScroll ===
+LINE 13117 len=349
+ function captureReleaseScroll(){var root=document.getElementById('content'),scroller=document.scrollingElement||document.documentElement;return{root:root,scroller:scroller,pageX:window.scrollX||scroller&&scroller.scrollLeft||0,pageY:window.scrollY||scroller&&scroller.scrollTop||0,rootTop:root&&root.scrollTop||0,rootLeft:root&&root.scrollLeft||0}}
+
+=== restoreReleaseScroll ===
+LINE 13118 len=265
+ function restoreReleaseScroll(pos){if(!pos)return;try{if(pos.scroller){pos.scroller.scrollLeft=pos.pageX;pos.scroller.scrollTop=pos.pageY}window.scrollTo(pos.pageX,pos.pageY);if(pos.root){pos.root.scrollLeft=pos.rootLeft;pos.root.scrollTop=pos.rootTop}}catch(_){}}
+
+=== preserveReleaseScroll ===
+LINE 13119 len=299
+ function preserveReleaseScroll(fn){var pos=captureReleaseScroll();try{fn&&fn()}finally{restoreReleaseScroll(pos);var raf=window.requestAnimationFrame||function(cb){return setTimeout(cb,16)};raf(function(){restoreReleaseScroll(pos)});setTimeout(function(){restoreReleaseScroll(pos)},60)}return true}
+
+=== viewerPrint ===
+LINE 25035 len=333
+function viewerPrint(){var frame=document.getElementById('rc786DocumentFrame');if(frame){try{frame.contentWindow.focus();frame.contentWindow.print();return false}catch(_){}}var v=viewerPersist();if(v){v.autoPrint=true;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){} }viewerLoad();return false}
+
+=== viewerLoad ===
+LINE 25032 len=1372
+async function viewerLoad(){var seq=++viewerLoadSeq,v=viewerPersist(),d=viewerCurrentDoc(),stage=document.getElementById('rc786DocumentStage');if(!v||!d||!stage)return false;try{var blob=await fetchDocBlob(Object.assign({},d,{reference:v.reference}));if(seq!==viewerLoadSeq||low(state().view)!=='documentviewer')return false;if(blob){viewerClearUrl();viewerObjectUrl=URL.createObjectURL(blob);stage.innerHTML='<iframe id="rc786DocumentFrame" title="'+esc(v.name||'Dokument')+'"></iframe>';var frame=document.getElementById('rc786DocumentFrame');frame.onload=function(){if(v.autoPrint===true){v.autoPrint=false;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){}setTimeout(function(){try{frame.contentWindow.focus();frame.contentWindow.print()}catch(e){console.warn('RC808 Drucken',e)}},180)}};frame.src=viewerObjectUrl;return false}if(d.url){stage.innerHTML='<iframe id="rc786DocumentFrame" src="'+esc(d.url)+'" title="'+esc(v.name||'Dokument')+'"></iframe>';return false}throw new Error('Für diese Datei ist kein vorhandener Dateiinhalt erreichbar.')}catch(e){if(seq!==viewerLoadSeq)return false;stage.innerHTML='<div class="rc786-viewer-error"><b>Datei konnte nicht geöffnet werden.</b><span>'+esc(q(e&&e.message||e))+'</span><button type="button" class="ghost" data-rc786-open-ref="1">Ref-Ordner öffnen</button></div>';return false}}
+
+=== terminateSession ===
+LINE 15163 len=288
+window.rc544TerminateSession=async function(sessionId){if(busy)return false;busy=true;try{await call('admin-terminate-sessions',{sessionId:sessionId});cache=sanitizeCache(await call('admin-list'));syncUsers(cache.users);render()}catch(e){alert(e.message)}finally{busy=false}return false};
+LINE 15139 len=370
+ var sessionRows=userSessions.length?userSessions.map(function(s){return '<tr><td>'+E(s.deviceId||'Unbekanntes Gerät')+'</td><td>'+E(new Date(s.createdAt).toLocaleString('de-DE'))+'</td><td><button class="danger" onclick="return rc544TerminateSession(\''+E(s.id)+'\')">Sitzung beenden</button></td></tr>'}).join(''):'<tr><td colspan="3">Keine aktive Sitzung.</td></tr>';
+
+=== endSession ===
+
+=== isGlobal ===
+LINE 64 len=435
+function isGlobal(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),p=Array.isArray(u.permissions)?u.permissions:[];return !!(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||/global.?admin|administrator|vollzugriff/.test(role)||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
+
+=== ihkAdmin ===
+LINE 19667 len=555
+function ihkAdmin(){var u=ihkUser()||{},key=ihkUserKey(u),role=low(u.role||u.rolle),rights=u.rights||{},has=Object.prototype.hasOwnProperty.call(rights,'inspections'),r=has?(rights.inspections||{}):(rights.quiz||{}),level=low(r.level||r.access||'');if(u.globalAdmin===true||u.isAdmin===true||u.admin===true||key==='tobias'||key==='t.limberg'||key==='tobias limberg'||key==='tobias.limberg'||arr(u.permissions).indexOf('*')>=0||/global.?admin|vollzugriff|administrator/.test(role))return true;return level==='admin'||r.admin===true||r.functionAdmin===true}
