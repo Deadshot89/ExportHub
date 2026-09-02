@@ -1,0 +1,35 @@
+name: RC944 Testservice Deploy Trigger
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc944-trigger-testservice.yml'
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  trigger:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Bestehenden Testservice-Workflow starten
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run exporthub-testservice.yml --ref main
+          echo "ExportHUB TESTSERVICE Deploy wurde für RC944 gestartet."
+
+      - name: Einmaligen Trigger wieder entfernen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/rc944-trigger-testservice.yml
+          git commit -m "RC944 Testservice-Trigger entfernen"
+          git push origin HEAD:main
