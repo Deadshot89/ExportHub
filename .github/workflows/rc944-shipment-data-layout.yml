@@ -1,4 +1,4 @@
-name: RC944 Sichtbaren Sendungsdaten Formularblock eingrenzen
+name: RC944 Sichtbaren Sendungsdaten HTML-Ausschnitt präzisieren
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Sichtbaren Formularblock extrahieren
+      - name: Kleinen Formularausschnitt extrahieren
         shell: bash
         run: |
           python3 <<'PY'
@@ -41,12 +41,10 @@ jobs:
               positions.append(i); p=i+1
           assert positions, 'Bemerkungs-Handler nicht gefunden'
           anchor=positions[-1]
-          start=max(0,anchor-18000)
-          end=min(len(text),anchor+14000)
-          chunk=text[start:end]
-          Path('_rc944_active_snippet.txt').write_text('anchor='+str(anchor)+'\n---SNIPPET---\n'+chunk,encoding='utf-8')
+          chunk=text[max(0,anchor-6000):min(len(text),anchor+5000)]
           assert 'Bemerkung' in chunk, 'Bemerkungsfeld nicht im Ausschnitt'
-          print('anchor',anchor,'Sendungsdaten',chunk.count('Sendungsdaten'),'Bemerkung',chunk.count('Bemerkung'))
+          Path('_rc944_active_snippet.txt').write_text('anchor='+str(anchor)+'\n---SNIPPET---\n'+chunk,encoding='utf-8')
+          print('anchor',anchor,'chars',len(chunk))
           PY
 
       - name: Diagnose-Ausschnitt aktualisieren
@@ -55,5 +53,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add _rc944_active_snippet.txt
-          git commit -m "RC944 sichtbaren Sendungsdaten-Formularblock erfassen"
+          git commit -m "RC944 sichtbaren Sendungsdaten-HTML-Ausschnitt erfassen"
           git push origin HEAD:main
