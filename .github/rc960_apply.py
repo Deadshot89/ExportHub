@@ -1,73 +1,72 @@
 from pathlib import Path
 
 
+def read(path):
+    return Path(path).read_text()
+
+
+def write(path, text):
+    Path(path).write_text(text)
+
+
+def require(path, marker, label):
+    text = read(path)
+    if marker not in text:
+        raise SystemExit(f'{label}: required marker missing in {path}')
+    return text
+
+
 def replace_once(path, old, new, label):
-    text = Path(path).read_text()
+    text = read(path)
     if new in text:
         return False
     count = text.count(old)
     if count != 1:
-        raise SystemExit(f"{label}: {path}: expected exactly one active match, found {count}")
-    Path(path).write_text(text.replace(old, new, 1))
+        raise SystemExit(f'{label}: {path}: expected exactly one match, found {count}')
+    write(path, text.replace(old, new, 1))
     return True
 
 
-# RC960 canonical TESTSERVICE build marker.
-replace_once(
-    'TESTVERSION.html',
-    "version:'RC950',cache:'950',loginReturn:'/TESTVERSION.html?v=950'",
-    "version:'RC960',cache:'960',loginReturn:'/TESTVERSION.html?v=960'",
-    'build marker'
-)
+def replace_block(path, start_token, end_token, new_block, label):
+    text = read(path)
+    start = text.find(start_token)
+    if start < 0:
+        raise SystemExit(f'{label}: start token missing in {path}')
+    end = text.find(end_token, start + len(start_token))
+    if end < 0:
+        raise SystemExit(f'{label}: end token missing in {path}')
+    old = text[start:end]
+    if old == new_block:
+        return False
+    write(path, text[:start] + new_block + text[end:])
+    return True
 
-# Active document viewer print path: reuse the RC950 busy system instead of creating another overlay.
-replace_once(
-    'TESTVERSION.html',
-    "function viewerPrint(){var frame=document.getElementById('rc786DocumentFrame');if(frame){try{frame.contentWindow.focus();frame.contentWindow.print();return false}catch(_){}}var v=viewerPersist();if(v){v.autoPrint=true;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){} }viewerLoad();return false}",
-    "function viewerPrint(){var frame=document.getElementById('rc786DocumentFrame'),busy=window.ExportHUBRC950Busy;if(frame){try{(busy&&busy.withBusy?busy.withBusy('Druck wird vorbereitet …',function(){frame.contentWindow.focus();frame.contentWindow.print();return true}):(function(){frame.contentWindow.focus();frame.contentWindow.print();return true})());return false}catch(_){}}var v=viewerPersist();if(v){v.autoPrint=true;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){} }return busy&&busy.withBusy?(busy.withBusy('Druckansicht wird geladen …',function(){return viewerLoad()}),false):(viewerLoad(),false)}",
-    'document viewer print'
-)
 
-# Harden shipment save against a pickup/POD that is confirmed while the form is being prepared.
-replace_once(
-    'TESTVERSION.html',
-    "if(!persistenceSave)persistenceSave=window.ExportHUBRC565&&window.ExportHUBRC565.persistShipment;if(typeof persistenceSave!=='function'){operationFail(opToken,'Speicherfunktion ist nicht verfügbar');alert('Die Speicherfunktion ist nicht verfügbar.');return false}operationStep(opToken,'Sendung wird dauerhaft in Azure gespeichert …');",
-    "if(!persistenceSave)persistenceSave=window.ExportHUBRC565&&window.ExportHUBRC565.persistShipment;if(typeof persistenceSave!=='function'){operationFail(opToken,'Speicherfunktion ist nicht verfügbar');alert('Die Speicherfunktion ist nicht verfügbar.');return false}operationStep(opToken,'Sendungssperre wird vor dem Speichern erneut geprüft …');if(button)button.textContent='Sendungssperre wird erneut geprüft …';locked=await refreshShipmentLock(true);if(locked){lockShipmentForm(locked,true);operationFail(opToken,'Sendung wurde vor dem Speichern gesperrt');return false}operationStep(opToken,'Sendung wird dauerhaft in Azure gespeichert …');",
-    'authoritative shipment lock before persist'
-)
+# RC960 core changes must already be present before the final pickup normalization.
+html = require('TESTVERSION.html', "version:'RC960',cache:'960',loginReturn:'/TESTVERSION.html?v=960'", 'RC960 build marker')
+for marker, label in [
+    ('Sendungssperre wird vor dem Speichern erneut geprüft', 'authoritative save lock'),
+    ('Druck wird vorbereitet', 'document print busy feedback'),
+    ('rc950ScheduleLayout', 'RC950 layout scheduler'),
+    ('rc950ScheduleShipmentSearch', 'RC950 search scheduler'),
+]:
+    if marker not in html:
+        raise SystemExit(f'{label}: marker missing in TESTVERSION.html')
 
-# Pickup client: trusted aggregate totals first, row-array sum second, ambiguous legacy fields last.
-replace_once(
-    'pickup.html',
-    "var explicitNames=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount','colliCount'];",
-    "var explicitNames=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];",
-    'pickup client trusted totals'
-)
-replace_once(
-    'pickup.html',
-    "return pickupColliNumber(valueDeep(data,['pickupColliCount','enteredColliCount']))",
-    "return pickupColliNumber(valueDeep(data,['pickupColliCount','enteredColliCount','colliCount']))",
-    'pickup client legacy fallback'
-)
-
-# Pickup server: one authoritative expected-Colli rule shared by init, confirmation, public view and team confirmation.
-# Precedence is deliberate: explicit aggregate > summed physical rows > ambiguous legacy fallback.
-store_helper = r"""function positiveColliCount(value){
-  var n=Number(value);
-  if(!isFinite(n)||n<=0)return 0;
-  return Math.max(0,Math.round(n));
+# Visible physical Colli rows are authoritative. Trusted aggregate totals are fallback only.
+pickup_block = """function pickupExpectedCollis(data){
+ var explicitNames=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];
+ var lists=[];function walk(x,d){if(!x||typeof x!=='object'||d>6)return;['rows','colli','collis','packages','packageRows','items'].forEach(function(k){if(Array.isArray(x[k]))lists.push(x[k])});Object.keys(x).forEach(function(k){var v=x[k];if(v&&typeof v==='object'&&!Array.isArray(v))walk(v,d+1)})}walk(data,0);
+ var best=0;for(var i=0;i<lists.length;i++){var total=lists[i].reduce(function(sum,row){if(!row||typeof row!=='object')return sum;var count=pickupColliNumber(row.count||row.qty||row.quantity||row.anzahl||row.menge||row.colliCount);return sum+count},0);if(total>best)best=total}
+ if(best>0)return best;
+ for(var e=0;e<explicitNames.length;e++){var explicit=pickupColliNumber(valueDeep(data,[explicitNames[e]]));if(explicit>0)return explicit}
+ return pickupColliNumber(valueDeep(data,['pickupColliCount','enteredColliCount','colliCount']))
 }
-function physicalColliCount(value){
-  var n=Number(value);
-  if(!isFinite(n)||n<=0)return 0;
-  return Math.max(0,Math.ceil(n));
-}
-function expectedCollis(source){
+"""
+replace_block('pickup.html', 'function pickupExpectedCollis(data){', 'function resetColliCheck', pickup_block, 'pickup client physical Colli precedence')
+
+store_block = """function expectedCollis(source){
   var src=source&&typeof source==='object'?source:{},trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'],lists=['rows','colli','collis','packages','packageRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],i,j;
-  for(i=0;i<trusted.length;i+=1){
-    var total=positiveColliCount(src[trusted[i]]);
-    if(total>0)return total;
-  }
   var best=0,seen=[],stack=[src];
   while(stack.length){
     var node=stack.pop();
@@ -92,59 +91,59 @@ function expectedCollis(source){
     });
   }
   if(best>0)return best;
+  for(i=0;i<trusted.length;i+=1){
+    var total=positiveColliCount(src[trusted[i]]);
+    if(total>0)return total;
+  }
   var legacy=['pickupColliCount','enteredColliCount','colliCount'];
   for(i=0;i<legacy.length;i+=1){
     var fallback=positiveColliCount(src[legacy[i]]);
     if(fallback>0)return fallback;
   }
   return 0;
-}"""
+}
+"""
+replace_block('api/shared/pickup-store.js', 'function expectedCollis(source){', 'function signatureUrl', store_block, 'pickup server physical Colli precedence')
 
-store_path = 'api/shared/pickup-store.js'
-store = Path(store_path).read_text()
-if 'function expectedCollis(source)' not in store:
-    anchor = "function sanitizeText(v,max=180){return String(v==null?'':v).replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,max)}"
-    if store.count(anchor) != 1:
-        raise SystemExit(f'pickup-store helper anchor: expected 1 active match, found {store.count(anchor)}')
-    store = store.replace(anchor, anchor + '\n' + store_helper, 1)
+# Preserve the physical rows in the QR pickup record so later checks retain the authoritative source.
+init_path = 'api/pickup-init/index.js'
+init = require(init_path, 'const expected=store.expectedCollis(b);', 'pickup init shared expectedCollis')
+if 'const physicalRows=' not in init:
+    init = init.replace(
+        "const expected=store.expectedCollis(b);if(!expected)throw store.err('COLLI_REQUIRED','Die Soll-Colli-Anzahl fehlt. Bitte die Sendung mit vollständigen Colli-Daten speichern.',400);",
+        "const expected=store.expectedCollis(b);if(!expected)throw store.err('COLLI_REQUIRED','Die Soll-Colli-Anzahl fehlt. Bitte die Sendung mit vollständigen Colli-Daten speichern.',400);const physicalRows=Array.isArray(b.rows)?b.rows:Array.isArray(b.colli)?b.colli:Array.isArray(b.collis)?b.collis:Array.isArray(b.packages)?b.packages:[];",
+        1,
+    )
+if 'if(physicalRows.length)record.rows=physicalRows.map' not in init:
+    init = init.replace(
+        'record.expectedColliCount=expected;record.colliCount=expected;record.totalColli=expected;record.packageCount=expected;',
+        'if(physicalRows.length)record.rows=physicalRows.map(row=>store.clone(row));record.expectedColliCount=expected;record.colliCount=expected;record.totalColli=expected;record.packageCount=expected;',
+        1,
+    )
+init = init.replace("record.registrationVersion='RC644';record.metadataVersion=14;", "record.registrationVersion='RC960';record.metadataVersion=15;")
+init = init.replace("'pickup-init RC644'", "'pickup-init RC960'")
+write(init_path, init)
 
-old_public = "Math.max(0,Math.round(Number(first(r,['expectedColliCount','totalColli','colliCount','packageCount']))||0))"
-if old_public in store:
-    store = store.replace(old_public, 'expectedCollis(r)', 1)
-elif 'expected=expectedCollis(r)' not in store:
-    raise SystemExit('pickup-store public expected-Colli anchor mismatch')
+# Version the confirmation path with the release that owns the corrected Colli contract.
+confirm_path = 'api/pickup-confirm-v2/index.js'
+confirm = require(confirm_path, 'const expected=store.expectedCollis(r);', 'pickup confirmation shared expectedCollis')
+confirm = confirm.replace("r.confirmationVersion='RC873'", "r.confirmationVersion='RC960'")
+confirm = confirm.replace("version:'RC873'", "version:'RC960'")
+confirm = confirm.replace("'pickup-confirm-v2 RC873'", "'pickup-confirm-v2 RC960'")
+write(confirm_path, confirm)
 
-old_team = "Math.max(0,Math.round(Number(first(record,['expectedColliCount','totalColli','colliCount','packageCount']))||0))"
-if old_team in store:
-    store = store.replace(old_team, 'expectedCollis(record)', 1)
-elif 'expected=expectedCollis(record)' not in store:
-    raise SystemExit('pickup-store team expected-Colli anchor mismatch')
-
-if 'realPodFiles,first,sanitizeText,expectedCollis};' not in store:
-    old_export = 'realPodFiles,first,sanitizeText};'
-    if old_export not in store:
-        raise SystemExit('pickup-store export anchor mismatch')
-    store = store.replace(old_export, 'realPodFiles,first,sanitizeText,expectedCollis};', 1)
-
-helper_start = store.find('function expectedCollis(source)')
-helper_end = store.find('function signatureUrl', helper_start)
-helper = store[helper_start:helper_end]
-trusted_loop = helper.find('for(i=0;i<trusted.length;i+=1)')
-row_loop = helper.find('while(stack.length)')
-legacy_loop = helper.find("var legacy=['pickupColliCount','enteredColliCount','colliCount']")
-if not (0 <= trusted_loop < row_loop < legacy_loop):
-    raise SystemExit('pickup-store expected-Colli precedence is not explicit > rows > legacy')
-Path(store_path).write_text(store)
-
-replace_once(
-    'api/pickup-init/index.js',
-    "const expected=count(b.expectedColliCount||b.totalColli||b.colliCount||b.packageCount);",
-    "const expected=store.expectedCollis(b);",
-    'pickup init expected Colli'
-)
-replace_once(
-    'api/pickup-confirm-v2/index.js',
-    "const expected=count(store.first(r,['expectedColliCount','totalColli','colliCount','packageCount']));",
-    "const expected=store.expectedCollis(r);",
-    'pickup confirm expected Colli'
-)
+# Final invariants.
+pickup = read('pickup.html')
+store = read('api/shared/pickup-store.js')
+init = read(init_path)
+confirm = read(confirm_path)
+client = pickup[pickup.find('function pickupExpectedCollis(data){'):pickup.find('function resetColliCheck')]
+server = store[store.find('function expectedCollis(source){'):store.find('function signatureUrl')]
+if not (0 <= client.find('var lists=[]') < client.find('if(best>0)return best') < client.find('for(var e=0;e<explicitNames.length;e++)')):
+    raise SystemExit('pickup client precedence is not physical rows > aggregate > legacy')
+if not (0 <= server.find('while(stack.length)') < server.find('if(best>0)return best') < server.find('for(i=0;i<trusted.length;i+=1)') < server.find("var legacy=['pickupColliCount','enteredColliCount','colliCount']")):
+    raise SystemExit('pickup server precedence is not physical rows > aggregate > legacy')
+if not all(x in init for x in ['const physicalRows=', 'record.rows=physicalRows.map', "registrationVersion='RC960'", 'metadataVersion=15']):
+    raise SystemExit('pickup init does not preserve RC960 physical Colli metadata')
+if not all(x in confirm for x in ["confirmationVersion='RC960'", "version:'RC960'", "pickup-confirm-v2 RC960"]):
+    raise SystemExit('pickup confirmation is not versioned RC960')
