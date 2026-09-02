@@ -52,8 +52,8 @@ LINE 13119 len=299
  function preserveReleaseScroll(fn){var pos=captureReleaseScroll();try{fn&&fn()}finally{restoreReleaseScroll(pos);var raf=window.requestAnimationFrame||function(cb){return setTimeout(cb,16)};raf(function(){restoreReleaseScroll(pos)});setTimeout(function(){restoreReleaseScroll(pos)},60)}return true}
 
 === viewerPrint ===
-LINE 25035 len=333
-function viewerPrint(){var frame=document.getElementById('rc786DocumentFrame');if(frame){try{frame.contentWindow.focus();frame.contentWindow.print();return false}catch(_){}}var v=viewerPersist();if(v){v.autoPrint=true;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){} }viewerLoad();return false}
+LINE 25035 len=643
+function viewerPrint(){var frame=document.getElementById('rc786DocumentFrame'),busy=window.ExportHUBRC950Busy;if(frame){try{(busy&&busy.withBusy?busy.withBusy('Druck wird vorbereitet …',function(){frame.contentWindow.focus();frame.contentWindow.print();return true}):(function(){frame.contentWindow.focus();frame.contentWindow.print();return true})());return false}catch(_){}}var v=viewerPersist();if(v){v.autoPrint=true;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){} }return busy&&busy.withBusy?(busy.withBusy('Druckansicht wird geladen …',function(){return viewerLoad()}),false):(viewerLoad(),false)}
 
 === viewerLoad ===
 LINE 25032 len=1372
