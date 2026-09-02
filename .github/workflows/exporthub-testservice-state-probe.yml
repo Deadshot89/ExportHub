@@ -6,17 +6,22 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/exporthub-testservice-state-probe.yml'
+      - 'api/**'
+      - 'TESTVERSION.html'
 
 permissions:
   contents: read
 
+concurrency:
+  group: exporthub-testservice-state-probe
+  cancel-in-progress: true
+
 jobs:
   probe_state_api:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Probe live TESTSERVICE state API version
+      - name: Wait for live TESTSERVICE state API RC931+
         shell: bash
         env:
           TESTSERVICE_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
@@ -29,41 +34,50 @@ jobs:
           body="$(mktemp)"
           trap 'rm -f "$headers" "$body"' EXIT
 
-          http="$(curl --silent --show-error --location \
-            --connect-timeout 15 --max-time 45 \
-            --dump-header "$headers" --output "$body" \
-            --write-out '%{http_code}' "$url")"
+          for attempt in $(seq 1 30); do
+            : > "$headers"
+            : > "$body"
 
-          echo "HTTP $http"
-          echo '--- response headers ---'
-          cat "$headers"
-          echo '--- response body ---'
-          cat "$body"
-          echo
+            http="$(curl --silent --show-error --location \
+              --connect-timeout 8 --max-time 20 \
+              --dump-header "$headers" --output "$body" \
+              --write-out '%{http_code}' "$url" || true)"
 
-          if [[ "$http" != "200" ]]; then
-            echo "FEHLER: State-API Ping liefert HTTP $http statt 200."
-            exit 1
-          fi
-
-          node - "$body" "$MIN_STATE_API_VERSION" <<'NODE'
+            version="$(node - "$body" <<'NODE'
           const fs = require('fs');
-          const [file, minimum] = process.argv.slice(2);
-          const raw = fs.readFileSync(file, 'utf8');
-          let data;
-          try { data = JSON.parse(raw); }
-          catch (error) { throw new Error('State-API antwortet nicht mit gültigem JSON: ' + raw.slice(0, 500)); }
-
-          const version = String(data.serverVersion || data.version || '').trim();
-          if (!/^RC\d+$/.test(version)) {
-            throw new Error('State-API liefert keine Versionskennung. Antwort: ' + JSON.stringify(data));
-          }
-
-          const current = Number(version.slice(2));
-          const required = Number(String(minimum).replace(/^RC/, ''));
-          if (!Number.isFinite(current) || current < required) {
-            throw new Error(`State-API ist zu alt: ${version}; benötigt mindestens ${minimum}.`);
-          }
-
-          console.log(`OK: Live-State-API ${version} erfüllt Mindeststand ${minimum}.`);
+          const file = process.argv[2];
+          let raw = '';
+          try { raw = fs.readFileSync(file, 'utf8'); } catch (_) {}
+          try {
+            const data = JSON.parse(raw || '{}');
+            process.stdout.write(String(data.serverVersion || data.version || '').trim());
+          } catch (_) {}
           NODE
+            )"
+
+            echo "State-API Live-Check $attempt/30: HTTP=${http:-000} Version=${version:-keine Versionskennung}"
+
+            if [[ "$http" == "200" && "$version" =~ ^RC[0-9]+$ ]]; then
+              current="${version#RC}"
+              required="${MIN_STATE_API_VERSION#RC}"
+              if (( current >= required )); then
+                echo "OK: Live-State-API $version erfüllt Mindeststand $MIN_STATE_API_VERSION."
+                echo '--- response body ---'
+                cat "$body"
+                echo
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" != "30" ]]; then
+              sleep 10
+            fi
+          done
+
+          echo "FEHLER: Der TESTSERVICE liefert nach dem Deploy keine State-API ab $MIN_STATE_API_VERSION."
+          echo '--- letzte response headers ---'
+          cat "$headers" || true
+          echo '--- letzte response body ---'
+          cat "$body" || true
+          echo
+          exit 1
