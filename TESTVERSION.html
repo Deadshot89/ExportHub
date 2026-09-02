@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC964',cache:'964',loginReturn:'/TESTVERSION.html?v=964'});
+var BUILD=Object.freeze({version:'RC965',cache:'965',loginReturn:'/TESTVERSION.html?v=965'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -2580,7 +2580,7 @@ function injectMailBody(sh,target,body,langOverride){
 }
 function click(e){var b=e.target&&e.target.closest&&e.target.closest('.rc705AvisPanel [data-rc705-action],[data-rc705-panel="1"] [data-rc705-action]');if(!b)return;var a=b.getAttribute('data-rc705-action'),sh=current(),lang=mailLanguage(sh),en=lang==='en';e.preventDefault();e.stopPropagation();if(a==='enable'||a==='renew')return toggle(true);if(a==='disable'){if(confirm(en?'Disable the customer collection notice? The current avis link becomes invalid immediately.':'Kunden-Avis deaktivieren? Der aktuelle Avis-Link wird sofort ungültig.'))return toggle(false);return false}if(a==='open'){var u=link(sh);if(u)window.open(u,'_blank','noopener,noreferrer');return false}if(a==='copy'){var u=link(sh);if(!u)return false;navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(u).then(function(){var old=b.textContent;b.textContent=en?'Copied':'Kopiert';setTimeout(function(){b.textContent=old},1200)}):prompt(en?'Customer collection notice link':'Kunden-Avis-Link',u);return false}}
 function avisIntact(){var vv=visibleShipmentView();if(vv!=='shipment'&&vv!=='shipmentview')return true;var area=avisHost(vv),mount=document.getElementById(vv==='shipmentview'?'rc705AvisMountRead':'rc705AvisMountEdit'),panel=mount&&mount.querySelector('.rc705AvisPanel'),sh=current(),want=sh&&(ref(sh)||id(sh).toUpperCase()),have=q(area&&(area.getAttribute('data-rc849-shipment-ref')||area.getAttribute('data-rc849-shipment-id'))).toUpperCase();return !!(area&&mount&&panel&&mount.isConnected&&panel.isConnected&&mount.parentNode===area&&mount.contains(panel)&&(!want||!have||want===have))}
-function schedule(){if(timer)return;avisRetry=0;function attempt(){timer=0;var ok=render(),vv=visibleShipmentView();if(ok&&avisIntact()){avisRetry=0;return}if((vv==='shipment'||vv==='shipmentview')&&avisRetry<30){avisRetry++;timer=setTimeout(attempt,70+Math.min(430,avisRetry*30))}}timer=setTimeout(attempt,20)}
+/* exporthub-rc965-avis-retry-disabled */ function schedule(){return false}
 function ensureAvisObserver(){return false}
 function ensureAvisWatchdog(){return false}
 function burst(){return false}
