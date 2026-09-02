@@ -1,4 +1,4 @@
-name: RC944 Aktiven nummerierten Sendungsdaten Override prüfen
+name: RC944 Sendungsdaten DOM Override exakt eingrenzen
 
 on:
   workflow_dispatch:
@@ -26,28 +26,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Aktive Layout-Overrides extrahieren
+      - name: DOM-Override-Kontexte extrahieren
         shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
           text=Path('TESTVERSION.html').read_text(encoding='utf-8')
           assert "version:'RC943',cache:'943',loginReturn:'/TESTVERSION.html?v=943'" in text, 'Basis ist nicht RC943'
-          needles=['rc363FixedShipmentLayout','rc363-process-head','rc573ShipmentShell','rc573ShipmentStatus']
+          needle='rc363BlockShipment'
+          pos=[]; p=0
+          while True:
+              i=text.find(needle,p)
+              if i<0: break
+              pos.append(i); p=i+1
+          assert pos, 'rc363BlockShipment nicht gefunden'
           parts=[]
-          for needle in needles:
-              positions=[]; p=0
-              while True:
-                  i=text.find(needle,p)
-                  if i<0: break
-                  positions.append(i); p=i+1
-              if positions:
-                  anchor=positions[-1]
-                  chunk=text[max(0,anchor-7000):min(len(text),anchor+9000)]
-                  parts.append('\n=== '+needle+' @ '+str(anchor)+' ===\n'+chunk)
-          assert parts, 'Kein aktiver Layout-Override gefunden'
+          for n,i in enumerate(pos):
+              parts.append('\n=== occurrence '+str(n+1)+' @ '+str(i)+' ===\n'+text[max(0,i-3500):min(len(text),i+5000)])
           Path('_rc944_active_snippet.txt').write_text(''.join(parts),encoding='utf-8')
-          print('Overrides',len(parts))
+          print('occurrences',len(pos),pos)
           PY
 
       - name: Diagnose-Ausschnitt aktualisieren
@@ -56,5 +53,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add _rc944_active_snippet.txt
-          git commit -m "RC944 nummerierten Sendungsdaten-Override erfassen"
+          git commit -m "RC944 Sendungsdaten-DOM-Override erfassen"
           git push origin HEAD:main
