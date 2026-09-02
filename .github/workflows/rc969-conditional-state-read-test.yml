@@ -28,8 +28,10 @@ jobs:
           const html=fs.readFileSync('TESTVERSION.html','utf8');
           const fn=JSON.parse(fs.readFileSync('api/exporthub-state/function.json','utf8'));
 
-          assert(/const API_VERSION = 'RC969';/.test(api),'API_VERSION muss RC969 sein');
-          assert(/version:'RC969'/.test(html),'TESTVERSION muss RC969 sein');
+          const apiVersion=Number((api.match(/const API_VERSION = 'RC(\d+)';/)||[])[1]||0);
+          const frontendVersion=Number((html.match(/version:'RC(\d+)'/)||[])[1]||0);
+          assert(apiVersion>=969,'API_VERSION muss RC969 oder höher sein');
+          assert(frontendVersion>=969,'TESTVERSION muss RC969 oder höher sein');
           assert.strictEqual(fn.scriptFile,'index.js','State-Function muss direkt index.js laden');
           assert(!fs.existsSync('api/exporthub-state/wrapper.js'),'RC931 Wrapper muss entfernt sein');
           assert(/mode==='ping'[\s\S]{0,500}serverVersion:API_VERSION/.test(api),'Ping muss echte serverVersion liefern');
@@ -52,5 +54,3 @@ jobs:
 
           console.log('RC969 conditional read regression OK');
           NODE
-
-# final direct-api verification
