@@ -14,27 +14,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Analyse dashboard and shipment render paths
+      - name: Analyse Avis and dashboard post-render paths
         shell: bash
         run: |
           node <<'NODE'
-          const fs = require('fs');
-          const s = fs.readFileSync('TESTVERSION.html','utf8');
-          function indices(needle){const a=[];let p=0;while((p=s.indexOf(needle,p))!==-1){a.push(p);p+=needle.length}return a}
-          function clip(i,r=620){return s.slice(Math.max(0,i-r),Math.min(s.length,i+r)).replace(/\s+/g,' ')}
-          function show(label,needle,r=620){const a=indices(needle);console.log(`\n### ${label} ${JSON.stringify(needle)} COUNT=${a.length}`);a.slice(0,40).forEach((i,k)=>console.log(`\n--- ${label}_${k+1} OFFSET=${i} ---\n${clip(i,r)}`))}
-
+          const fs=require('fs');
+          const s=fs.readFileSync('TESTVERSION.html','utf8');
+          function around(label,needle,before=2200,after=4200){
+            const i=s.indexOf(needle);
+            console.log(`\n### ${label} needle=${JSON.stringify(needle)} offset=${i}`);
+            if(i<0)return;
+            console.log(s.slice(Math.max(0,i-before),Math.min(s.length,i+after)).replace(/\s+/g,' '));
+          }
+          function count(needle){let n=0,p=0;while((p=s.indexOf(needle,p))!==-1){n++;p+=needle.length}return n}
           console.log('FILE_BYTES='+Buffer.byteLength(s));
-          show('PERFORM_ASSIGN','performStableRender=',900);
-          show('WINDOW_RENDER_ASSIGN','window.render=',800);
-          show('WINDOW_RENDER_CALL','window.render()',600);
-          show('DASHBOARD','renderDashboard(',900);
-          show('DASHBOARD_REFRESH','refreshDashboardIfChanged(',900);
-          show('SHIPMENT_MODULE','ExportHUBShipmentView.render()',900);
-          show('SHIPMENT_GUARD','rc843EnsureView',1200);
-          show('RENDER_EVENT',"exporthub:rendered",900);
-          show('VIEWCHANGE_EVENT',"exporthub:viewchange",900);
-          show('SYNC_EVENT',"exporthub:sync",900);
-          show('TIMEOUT_RENDER','setTimeout(()=>render()',900);
-          show('TIMEOUT_WINDOW_RENDER',"setTimeout(function(){try{if(typeof window.render==='function')window.render()",900);
+          console.log('AVIS_SCHEDULE_COUNT='+count('function schedule(){if(timer)return;avisRetry=0;'));
+          console.log('AVIS_RETRY_30_COUNT='+count('avisRetry<30'));
+          console.log('WORKSPACE_MARKER_COUNT='+count('exporthub-rc896-workspace-event-driven'));
+          around('AVIS_RETRY','function schedule(){if(timer)return;avisRetry=0;',5000,8000);
+          around('AVIS_INTACT','function avisIntact()',3500,5500);
+          around('AVIS_VISIBLE','function visibleShipmentView()',3500,5500);
+          around('AVIS_LASTSIG','lastSig=',3000,6500);
+          around('WORKSPACE','exporthub-rc896-workspace-event-driven',6000,9000);
+          around('DASHBOARD_LOCAL_CHANGE','dashboardLocalChangeUntil',3500,7000);
           NODE
