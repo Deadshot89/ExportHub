@@ -2,16 +2,15 @@ from pathlib import Path
 import re
 
 s=Path('TESTVERSION.html').read_text(encoding='utf-8')
-out=[]
-out.append(f'TESTVERSION length: {len(s)}')
+out=[f'TESTVERSION length: {len(s)}']
 
 def nearest_function(pos):
-    start=max(0,pos-30000)
+    start=max(0,pos-24000)
     block=s[start:pos]
     matches=list(re.finditer(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(', block))
     return matches[-1].group(1) if matches else '<none>'
 
-def emit(token, before=2600, after=5200, limit=6):
+def emit(token, before=2200, after=4200, limit=5):
     hits=[m.start() for m in re.finditer(re.escape(token),s)]
     out.append(f'\n=== {token!r} hits={len(hits)} ===')
     for idx,pos in enumerate(hits[:limit],1):
@@ -23,16 +22,13 @@ for token in [
     'Azure-Teamdaten werden geladen',
     'ExportHUB wird vorbereitet',
     'Teamdaten werden geladen',
-    'exporthub-state?mode',
     'exporthub-state',
     'Promise.race',
     'AbortController',
-    'setTimeout',
 ]:
     emit(token)
 
-# Compact inventory of startup/team sync function declarations.
-out.append('\n=== FUNCTION INVENTORY ===')
+out.append('\n=== RELEVANT FUNCTION INVENTORY ===')
 for m in re.finditer(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s):
     name=m.group(1)
     low=name.lower()
