@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC962',cache:'962',loginReturn:'/TESTVERSION.html?v=962'});
+var BUILD=Object.freeze({version:'RC963',cache:'963',loginReturn:'/TESTVERSION.html?v=963'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -12957,7 +12957,12 @@ function mayPatchExistingShipment(v,args){if(v!=='shipment')return false;var r=r
 function refreshExistingShipment(){var r=root(),active=document.activeElement,rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},inField=!!(r&&active&&r.contains(active)&&/^(INPUT|SELECT|TEXTAREA)$/.test(active.tagName));if(inField||rt.dirty||rt.pendingSave||rt.saving)return false;var api=shipmentPatchApi();try{if(api&&typeof api.refreshVisuals==='function')api.refreshVisuals()}catch(e){console.error('RC641 Sendungsvisualisierung aktualisieren',e)}return false}
 function viewDomMatches(v){var r=root();if(!r||!r.childElementCount)return false;if(Q(r.getAttribute('data-exporthub-rendered-view'))!==Q(v))return false;if(v==='shipmentoverview')return r.classList.contains('rc524-overview-view')&&!!r.querySelector(':scope>.rc524-page');if(v==='shipment')return !!(document.getElementById('rc363FixedShipmentLayout')||document.getElementById('rc573ShipmentShell'));if(v==='shipmentsearch')return r.classList.contains('rc807-shipment-search')&&!!r.querySelector(':scope>.rc807-search-page');if(v==='shipmentview')return r.classList.contains('rc776-shipment-view')&&!!r.querySelector(':scope>.rc776-page');if(v==='documentviewer')return r.classList.contains('rc786-document-viewer')&&!!r.querySelector(':scope>.rc786-viewer-shell');if(v==='cmr')return !!(document.getElementById('rc576DocumentHub')||document.getElementById('rc576ShipmentSelect'));return true}
 /* exporthub-rc902-render-performance */
-function stableRender(){
+/* exporthub-rc963-render-coordinator */
+function rc963CreateFrameCoordinator(schedule,cancel){var frame=0,task=null,requests=0,runs=0,coalesced=0;return{request:function(next){requests++;task=next;if(frame){coalesced++;return false}frame=schedule(function(){frame=0;var run=task;task=null;runs++;if(typeof run==='function')run()});return false},cancel:function(){if(frame){try{cancel(frame)}catch(_){}frame=0}task=null;return false},stats:function(){return{requests:requests,runs:runs,coalesced:coalesced,scheduled:!!frame}}}}
+function rc963NeedsImmediateRender(lastView,currentView,domMatches,isNavigationTransition){return !!(isNavigationTransition||lastView!==currentView||!domMatches)}
+var rc963RenderCoordinator=rc963CreateFrameCoordinator(function(callback){if(document.hidden||typeof window.requestAnimationFrame!=='function')return window.setTimeout(callback,0);return window.requestAnimationFrame(callback)},function(handle){try{if(typeof window.cancelAnimationFrame==='function')window.cancelAnimationFrame(handle)}catch(_){}try{window.clearTimeout(handle)}catch(_){}});
+function stableRender(){var context=this,args=arguments,v=currentView(),domMatches=viewDomMatches(v);if(rc963NeedsImmediateRender(lastView,v,domMatches,navigationTransition)){rc963RenderCoordinator.cancel();return performStableRender.apply(context,args)}return rc963RenderCoordinator.request(function(){performStableRender.apply(context,args)})}
+function performStableRender(){
  if(busy){pendingRender=true;return false}
  busy=true;pendingRender=false;
  var started=performance.now?performance.now():Date.now(),v=currentView(),patchOnly=mayPatchExistingShipment(v,arguments),domChanged=true;
