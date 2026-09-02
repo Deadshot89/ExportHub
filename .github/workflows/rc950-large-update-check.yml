@@ -1,5 +1,6 @@
 name: RC950 Large Update Check
 
+# committed-state verification for the bundled RC950 release
 on:
   push:
     branches:
