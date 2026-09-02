@@ -27,9 +27,9 @@ require('aria-busy', 'Busy accessibility state missing')
 # Hot-path optimization must be active, not just defined.
 require("return rc950ScheduleLayout('schedulePatch')", 'Shipment patch scheduler is not used')
 require("return rc950ScheduleLayout('deferFullPatch')", 'Deferred shipment patch is not coalesced')
-require("if(input&&input.id==='rc807ShipmentSearch')return rc950ScheduleShipmentSearch(input.value)", 'Shipment search input is not coalesced')
+require("document.addEventListener('input',function(e){var input=e.target;if(input&&input.id==='rc807ShipmentSearch')return rc950ScheduleShipmentSearch(input.value)},true);", 'Shipment search input is not coalesced')
 forbid("if(layout||editLockActive()){safePatchDuringEdit();return true}", 'Old synchronous shipment patch hot path still active')
-forbid("if(input&&input.id==='rc807ShipmentSearch')return renderSearchResults(input.value)", 'Old synchronous search input hot path still active')
+forbid("document.addEventListener('input',function(e){var input=e.target;if(input&&input.id==='rc807ShipmentSearch')return renderSearchResults(input.value)},true);", 'Old synchronous search input hot path still active')
 
 # Existing dashboard coalescing must remain rather than being replaced.
 require('function dashboardMasonrySchedule(grid)', 'Dashboard masonry scheduler missing')
