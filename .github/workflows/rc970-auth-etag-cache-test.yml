@@ -26,8 +26,10 @@ jobs:
           const source=fs.readFileSync('api/exporthub-state/index.js','utf8');
           const html=fs.readFileSync('TESTVERSION.html','utf8');
 
-          assert(/const API_VERSION = 'RC970';/.test(source),'API_VERSION muss RC970 sein');
-          assert(/version:'RC970'/.test(html),'TESTVERSION muss RC970 sein');
+          const apiVersion=Number((source.match(/const API_VERSION = 'RC(\d+)';/)||[])[1]||0);
+          const frontendVersion=Number((html.match(/version:'RC(\d+)'/)||[])[1]||0);
+          assert(apiVersion>=970,'API_VERSION muss RC970 oder höher sein');
+          assert(frontendVersion>=970,'TESTVERSION muss RC970 oder höher sein');
           assert(/AUTH_WARM_CACHE/.test(source),'Auth-Warm-Cache fehlt');
           assert(/async function readAuthCached\(/.test(source),'readAuthCached fehlt');
           assert(/getProperties\(\)/.test(source),'ETag-Prüfung per getProperties fehlt');
@@ -83,5 +85,3 @@ jobs:
             console.log('RC970 auth etag cache regression OK');
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
-
-# final verification trigger
