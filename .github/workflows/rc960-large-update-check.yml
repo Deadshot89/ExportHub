@@ -1,0 +1,23 @@
+name: RC960 Large Update Check
+
+on:
+  push:
+    branches:
+      - rc960-large-update
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+      - name: RC960 active-path audit
+        run: python .github/rc960_audit.py
+      - name: Existing baseline tests
+        run: npm test
