@@ -3,7 +3,7 @@
 
 const crypto = require('crypto');
 const { createBlobServiceClient } = require('../shared/blob-rest');
-const { mergeState, sanitizeState, pruneTombstones, clone } = require('../shared/merge');
+const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -168,14 +168,14 @@ async function readTeamForSession(c,requestedMode){
  try{return await read()}catch(e){if(c&&c.environment==='testservice'&&e&&e.code==='STATE_MISSING'){await ensureEnvironmentTeam(c);return await read()}throw e}
 }
 function teamWarmCacheKey(c){return String(c&&c.environment||'production')+'|'+String(c&&c.teamBlobName||'team-state.json')}
-function rememberWarmTeam(c,value,etag){if(!c||!value||!etag)return false;TEAM_WARM_CACHE.set(teamWarmCacheKey(c),{value:clone(value),etag:String(etag),at:Date.now()});return true}
+function rememberWarmTeam(c,value,etag){if(!c||!value||!etag)return false;TEAM_WARM_CACHE.set(teamWarmCacheKey(c),{value:value,etag:String(etag),at:Date.now()});return true}
 function forgetWarmTeam(c){TEAM_WARM_CACHE.delete(teamWarmCacheKey(c))}
 async function readTeamCachedForSession(c,requestedMode){
  if(requestedMode==='recovery-preview'||requestedMode==='recover-shipments'||requestedMode==='recovery-preview-customers'||requestedMode==='recover-customers'){const recovered=await readTeamForSession(c,requestedMode);recovered.cacheMode='recovery-read';return recovered}
  const cached=TEAM_WARM_CACHE.get(teamWarmCacheKey(c));
  if(cached&&cached.value&&cached.etag){
-  if(requestedMode==='save')return {value:clone(cached.value),etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};
-  try{const props=await c.team.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:clone(cached.value),etag:etag,warmCache:true,cacheMode:'memory-etag'};forgetWarmTeam(c)}
+  if(requestedMode==='save')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};
+  try{const props=await c.team.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:cached.value,etag:etag,warmCache:true,cacheMode:'memory-etag'};forgetWarmTeam(c)}
   catch(e){forgetWarmTeam(c);if(Number(e&&e.statusCode||0)!==404)throw e}
  }
  const fresh=await readTeamForSession(c,requestedMode);fresh.cacheMode='full-read';rememberWarmTeam(c,fresh&&fresh.value,fresh&&fresh.etag);return fresh
@@ -215,8 +215,13 @@ async function validateSession(req,payload,c){
  if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);
  return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true,timing:{authMs,teamMs,validationMs:Date.now()-validationStarted,teamCache:teamDoc.cacheMode||'unknown'}};
 }
+function clientStateForRead(state){
+ const source=state&&typeof state==='object'&&!Array.isArray(state)?state:{},out={};
+ for(const [key,value] of Object.entries(source)){if(key==='users'||isLocalOnlyKey(key))continue;out[key]=value}
+ return out;
+}
 function sanitizeForClient(document,adminView){
- const out=clone(document||emptyTeam());delete out.authBootstrap;delete out.recentOperations;out.users=publicUsers(out.users,adminView);out.state=out.state&&typeof out.state==='object'?mergeState({},out.state):{};out.state.users=clone(out.users);return out;
+ const source=document&&typeof document==='object'&&!Array.isArray(document)?document:emptyTeam(),out=Object.assign({},source);delete out.authBootstrap;delete out.recentOperations;out.users=publicUsers(source.users,adminView);out.state=clientStateForRead(source.state);out.state.users=clone(out.users);return out;
 }
 async function metadataOnly(blob){
  try{const p=await blob.getProperties(),m=p.metadata||{};if(m.revision!==undefined)return {schemaVersion:Number(m.schema||3),revision:Number(m.revision||0),updatedAt:m.updatedepoch?new Date(Number(m.updatedepoch)).toISOString():(p.lastModified||null),clientVersion:m.clientversion||null};
