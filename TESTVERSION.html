@@ -311,12 +311,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC970',cache:'970',loginReturn:'/TESTVERSION.html?v=968'});
+var BUILD=Object.freeze({version:'RC971',cache:'971',loginReturn:'/TESTVERSION.html?v=968'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
+    'RC971 führt einen globalen Form-&-Field-Standard für ExportHUB ein: Text-, Zahl-, Datums-, Such-, E-Mail-, Passwort-, Select-, Textarea- und Uploadfelder erhalten einheitliche Höhen, Innenabstände, Schriftgrößen, Fokuszustände und Placeholder-Typografie.',
+    'RC971 korrigiert zusätzlich die besonders kompakten Sonderbereiche Sendung/Colli, Dokumente & ABD, Mail, Aufgabenplaner und Stauplan. Druck-/CMR- und Signaturbereiche bleiben von der Bildschirm-Formularnorm ausgeschlossen; Fach- und Speicherlogik bleiben unverändert.',
     'RC943 entfernt in Sendung erstellen die sichtbaren Eingabefelder Geplantes Abholdatum und Spedition. Die vorhandenen Abhol-, Aufgaben-, QR-, Speditions- und Dokumentdatenpfade bleiben unverändert erhalten.',
     'RC942 beseitigt den letzten dreifachen Kundenstandort-Schreibpfad: Beim dauerhaften Speichern des Kundenordners werden Standort-IDs jetzt auch dort unter locationId, selectedLocationId, siteId und destinationId gemeinsam persistiert.',
     'RC941 vereinheitlicht Kundenstandort-Rohdaten und Länder-Fallbacks: Der Kundenordner speichert jede Standort-ID unter locationId, selectedLocationId, siteId und destinationId; Mail-/Versandland-Ermittlung erkennt historische Standorte auch über selectedLocationId/destinationId.',
@@ -10285,6 +10287,46 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
   }
 }
 </style>
+<style id="rc971-global-form-field-standard">@layer rc971{
+:root{--rc971-control-h:42px;--rc971-control-font:14px;--rc971-label-font:12px;--rc971-help-font:11px;--rc971-button-font:13px;--rc971-radius:11px;--rc971-border:#bfd1e4;--rc971-focus:#3b82f6;--rc971-text:#18324a}
+:is(#content,#login,[role="dialog"]) :is(.field,label.field,[class$="-field"],[class*="-field "]):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){gap:5px!important;margin:5px 0!important;font-size:var(--rc971-label-font)!important;line-height:1.25!important;font-weight:800!important;color:#334155!important}
+:is(#content,#login,[role="dialog"]) label:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){font-size:var(--rc971-label-font)!important;line-height:1.25!important}
+:is(#content,#login,[role="dialog"]) .field:focus-within{transform:none!important}
+:is(#content,#login,[role="dialog"]) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),select,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){width:100%!important;min-width:0!important;box-sizing:border-box!important;min-height:var(--rc971-control-h)!important;height:var(--rc971-control-h)!important;padding:9px 11px!important;border:1px solid var(--rc971-border)!important;border-radius:var(--rc971-radius)!important;background:#fff!important;color:var(--rc971-text)!important;font:650 var(--rc971-control-font)/1.25 Inter,"Segoe UI",Roboto,Arial,sans-serif!important;box-shadow:none!important}
+:is(#content,#login,[role="dialog"]) textarea:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){min-height:104px!important;height:auto!important;max-height:none!important;resize:vertical!important}
+:is(#content,#login,[role="dialog"]) :is(input,select,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *):focus{outline:none!important;border-color:var(--rc971-focus)!important;box-shadow:0 0 0 3px rgba(59,130,246,.14)!important;background:#f8fbff!important}
+:is(#content,#login,[role="dialog"]) :is(input,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *)::placeholder{color:#8193a8!important;font-size:13px!important;font-weight:600!important;opacity:1!important}
+:is(#content,#login,[role="dialog"]) input[type="number"]:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){padding-inline-end:30px!important}
+:is(#content,#login,[role="dialog"]) input[type="file"]:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){padding:5px 7px!important;font-size:13px!important}
+:is(#content,#login,[role="dialog"]) input[type="file"]::file-selector-button{margin-right:8px!important;padding:5px 9px!important;border:1px solid #a9bfd6!important;border-radius:8px!important;background:#f3f7fb!important;font:800 12px/1.15 Inter,"Segoe UI",sans-serif!important}
+:is(#content,#login,[role="dialog"]) input[type="checkbox"]:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *),:is(#content,#login,[role="dialog"]) input[type="radio"]:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){width:18px!important;min-width:18px!important;height:18px!important;min-height:18px!important;padding:0!important;margin:0 7px 0 0!important;accent-color:#2563eb!important}
+#content :is(.field small,.field .muted,[class$="-field"]>small,[class*="-field "]>small){font-size:var(--rc971-help-font)!important;line-height:1.35!important}
+#content :is(.notice,.okbox,.badbox,.infobox){padding:10px 12px!important;font-size:12px!important;line-height:1.4!important;border-radius:10px!important}
+#content :is(.btn,.ghost,.soft,.danger,button):not(.index209-signature-trigger):not(#loadListDoc *):not(.rc390-paper *){min-height:36px!important;padding:7px 10px!important;border-radius:10px!important;font-size:12px!important;line-height:1.2!important;font-weight:800!important}
+#content :is(.field,.actions,.toolbar,.rc543-segments,.rc363-actions-buttons) :is(button,.btn,.ghost,.soft,.danger){min-height:40px!important;font-size:var(--rc971-button-font)!important}
+#rc363BlockColli #rc573ColliCard .rc363-owned-row{padding:9px 10px!important;border-radius:14px!important}
+#rc363BlockColli #rc573ColliCard .rc363-colli-grid{gap:8px 9px!important;align-items:end!important}
+#rc363BlockColli #rc573ColliCard .rc363-colli-grid>[data-rc363-field]{gap:5px!important;padding:0!important;margin:0!important;font-size:var(--rc971-label-font)!important;line-height:1.25!important;font-weight:800!important}
+#rc363BlockColli #rc573ColliCard .rc363-colli-grid :is(input,select,button,.rc682-packaging-toggle){min-height:var(--rc971-control-h)!important;height:var(--rc971-control-h)!important;padding:8px 10px!important;border-radius:var(--rc971-radius)!important;font-size:var(--rc971-control-font)!important}
+#rc363BlockColli #rc573ColliCard [data-rc363-field="action"] button{font-size:var(--rc971-button-font)!important}
+#rc363BlockColli #rc573ColliCard [data-rc363-add-row]{min-height:38px!important;font-size:12px!important}
+#rc363BlockColli #rc573ColliCard .rc344-summary{gap:6px!important;margin-top:10px!important;padding:6px!important}
+#rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox{min-height:56px!important;padding:7px 9px!important}
+#rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox span{font-size:11px!important;line-height:1.2!important}
+#rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox strong{font-size:16px!important;line-height:1.15!important}
+#rc363BlockDocuments .rc899-doc-main textarea{min-height:104px!important;height:auto!important;max-height:none!important;font-size:var(--rc971-control-font)!important}
+#rc363BlockDocuments .rc899-doc-main input[type="file"]{min-height:var(--rc971-control-h)!important;height:var(--rc971-control-h)!important;font-size:13px!important}
+#rc363BlockAbdDecision .rc543-segments button{min-height:40px!important;font-size:var(--rc971-button-font)!important}
+#rc543MailArea :is(.field,label.field){font-size:var(--rc971-label-font)!important}
+#rc543MailArea :is(input,select){min-height:var(--rc971-control-h)!important;height:var(--rc971-control-h)!important;font-size:var(--rc971-control-font)!important}
+#rc543MailArea textarea{min-height:110px!important;height:auto!important;font-size:var(--rc971-control-font)!important}
+#index218Planner :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){min-height:40px!important;height:40px!important;font-size:var(--rc971-control-font)!important}
+#index218Planner textarea{min-height:92px!important;height:auto!important}
+#index218Planner :is(.i218-toolbar label,.rc896-task-planning-label){font-size:var(--rc971-label-font)!important}
+#rc380StowPlan .rc713-toolbar label{font-size:var(--rc971-label-font)!important}
+#rc380StowPlan .rc713-toolbar select{min-height:40px!important;height:40px!important;font-size:13px!important}
+@media(max-width:720px){:root{--rc971-control-h:42px;--rc971-control-font:16px;--rc971-label-font:12px;--rc971-help-font:11px;--rc971-button-font:13px}:is(#content,#login,[role="dialog"]) textarea:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){min-height:96px!important}#content :is(.field,.actions,.toolbar,.rc543-segments,.rc363-actions-buttons) :is(button,.btn,.ghost,.soft,.danger){min-height:40px!important;font-size:var(--rc971-button-font)!important}}
+}</style>
 </head>
 <body><div class="clean-load-panel hidden" id="cleanLoadPanel">
 <div class="clean-load-card">
