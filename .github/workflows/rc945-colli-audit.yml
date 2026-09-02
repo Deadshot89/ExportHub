@@ -1,0 +1,71 @@
+name: RC945 Colli Layout Audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/rc945-colli-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Aktiven Colli Bereich erfassen
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('TESTVERSION.html').read_text(encoding='utf-8')
+          assert "version:'RC944',cache:'944',loginReturn:'/TESTVERSION.html?v=944'" in text, 'Basis ist nicht RC944'
+
+          needles = [
+              'Colli & Lademeter',
+              'Lademeter',
+              'colli',
+              'Colli',
+              'rc896Colli',
+              'rc897Colli',
+              'rc898Colli',
+              'rc899Colli',
+          ]
+
+          positions = []
+          for needle in needles:
+              start = 0
+              while True:
+                  i = text.find(needle, start)
+                  if i < 0:
+                      break
+                  positions.append((i, needle))
+                  start = i + len(needle)
+
+          # deduplicate nearby hits and prioritize the newest/last overrides in the single-file app
+          positions.sort()
+          picked = []
+          for pos, needle in positions:
+              if picked and abs(pos - picked[-1][0]) < 300:
+                  continue
+              picked.append((pos, needle))
+
+          print('TOTAL_MATCHES', len(positions), 'UNIQUE_CONTEXTS', len(picked))
+          for n, (pos, needle) in enumerate(picked[-35:], 1):
+              lo = max(0, pos - 900)
+              hi = min(len(text), pos + 1800)
+              snippet = text[lo:hi].replace('><', '>\n<')
+              print(f'\n=== COLLISION {n} needle={needle!r} pos={pos} ===\n{snippet}\n')
+
+          # List likely Colli-related ids/classes/functions so the patch can target the active block only.
+          tokens = sorted(set(re.findall(r'[A-Za-z0-9_#.-]{0,45}(?:colli|Colli|Ldm|LDM|Lademeter)[A-Za-z0-9_#.-]{0,45}', text)))
+          print('\n=== TOKENS ===')
+          for token in tokens[-250:]:
+              print(token)
+          PY
