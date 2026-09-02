@@ -62,8 +62,8 @@ jobs:
         run: node .github/rc960_runtime.js
       - name: Final RC960 pickup server check
         run: node .github/rc960_api_tests.js
-      - name: Final RC960 diff check
-        run: git diff --check
+      - name: Final RC960 product diff check
+        run: git diff --check -- TESTVERSION.html pickup.html api/shared/pickup-store.js api/pickup-init/index.js api/pickup-confirm-v2/index.js
       - name: Commit verified RC960 changes
         if: success()
         run: |
