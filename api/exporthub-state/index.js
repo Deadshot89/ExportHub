@@ -14,15 +14,16 @@ const TEST_DIAGNOSTICS_BLOB = process.env.EXPORTHUB_TEST_DIAGNOSTICS_BLOB || 'te
 const DIAGNOSTICS_MAX_RECORDS = 5000;
 const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 6;
-const API_VERSION = 'RC969';
+const API_VERSION = 'RC970';
 const TEAM_WARM_CACHE = new Map();
+const AUTH_WARM_CACHE = new Map();
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
 function now(){ return new Date().toISOString(); }
 function error(code,message,status=400){ const e=new Error(message); e.code=code; e.status=status; return e; }
 function json(status,body,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},headers),body:JSON.stringify(body)}; }
-function timingHeaders(t={}){const h={'X-ExportHUB-Server-Ms':String(Math.max(0,Number(t.serverMs||0)||0)),'X-ExportHUB-Auth-Ms':String(Math.max(0,Number(t.authMs||0)||0)),'X-ExportHUB-Team-Ms':String(Math.max(0,Number(t.teamMs||0)||0)),'X-ExportHUB-Team-Cache':text(t.teamCache||'none')||'none'};if(t.mergeMs!==undefined)h['X-ExportHUB-Merge-Ms']=String(Math.max(0,Number(t.mergeMs||0)||0));if(t.uploadMs!==undefined)h['X-ExportHUB-Upload-Ms']=String(Math.max(0,Number(t.uploadMs||0)||0));if(t.retryReadMs!==undefined)h['X-ExportHUB-Retry-Read-Ms']=String(Math.max(0,Number(t.retryReadMs||0)||0));return h}
+function timingHeaders(t={}){const h={'X-ExportHUB-Server-Ms':String(Math.max(0,Number(t.serverMs||0)||0)),'X-ExportHUB-Auth-Ms':String(Math.max(0,Number(t.authMs||0)||0)),'X-ExportHUB-Auth-Cache':text(t.authCache||'none')||'none','X-ExportHUB-Team-Ms':String(Math.max(0,Number(t.teamMs||0)||0)),'X-ExportHUB-Team-Cache':text(t.teamCache||'none')||'none'};if(t.mergeMs!==undefined)h['X-ExportHUB-Merge-Ms']=String(Math.max(0,Number(t.mergeMs||0)||0));if(t.uploadMs!==undefined)h['X-ExportHUB-Upload-Ms']=String(Math.max(0,Number(t.uploadMs||0)||0));if(t.retryReadMs!==undefined)h['X-ExportHUB-Retry-Read-Ms']=String(Math.max(0,Number(t.retryReadMs||0)||0));return h}
 function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
 function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || ''; }
 function requestHost(req){
@@ -188,6 +189,17 @@ async function safetyRawBackup(container,blob,label,recoveryPrefix){
   const backup=container.getBlockBlobClient(name);await backup.upload(raw,raw.length,{blobHTTPHeaders:{blobContentType:'application/octet-stream'},conditions:{ifNoneMatch:'*'}});return name;
  }catch(e){if(Number(e&&e.statusCode||0)===404)return null;return null}
 }
+function authWarmCacheKey(c){return String(c&&c.auth&&c.auth.name||AUTH_BLOB)}
+function rememberWarmAuth(c,value,etag){if(!c||!value||!etag)return false;AUTH_WARM_CACHE.set(authWarmCacheKey(c),{value:value,etag:String(etag),at:Date.now()});return true}
+function forgetWarmAuth(c){AUTH_WARM_CACHE.delete(authWarmCacheKey(c))}
+async function readAuthCached(c){
+ const cached=AUTH_WARM_CACHE.get(authWarmCacheKey(c));
+ if(cached&&cached.value&&cached.etag){
+  try{const props=await c.auth.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:cached.value,etag:etag,warmCache:true,cacheMode:'memory-etag'};forgetWarmAuth(c)}
+  catch(e){forgetWarmAuth(c);if(Number(e&&e.statusCode||0)!==404)throw e}
+ }
+ const fresh=await readJson(c.auth,emptyAuth(),true);fresh.cacheMode='full-read';rememberWarmAuth(c,fresh&&fresh.value,fresh&&fresh.etag);return fresh
+}
 function resolveSessionFromAuth(token,authDoc){
  const sessions=Array.isArray(authDoc&&authDoc.value&&authDoc.value.sessions)?authDoc.value.sessions:[],hash=tokenHash(token);let session=sessions.find(s=>safeEqualText(s.tokenHash,hash)),source='blob';
  if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}}
@@ -198,14 +210,14 @@ function resolveSessionFromAuth(token,authDoc){
 }
 async function validateSessionAuthOnly(req,payload,c){
  const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
- const authDoc=await readJson(c.auth,emptyAuth(),true),resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,username=text(session.username)||'Benutzer';
+ const authDoc=await readAuthCached(c),resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,username=text(session.username)||'Benutzer';
  return {token,session,sessionSource:resolved.source,user:{id:text(session.userId),name:username,user:username,username}}
 }
 async function validateSession(req,payload,c){
  const validationStarted=Date.now(),token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
  const requestedMode=lower((req.query&&req.query.mode)||(payload&&payload.action)||(payload&&payload.mode));
- let authMs=0,teamMs=0;
- const authStarted=Date.now(),authPromise=readJson(c.auth,emptyAuth(),true).then(v=>{authMs=Date.now()-authStarted;return v},e=>{authMs=Date.now()-authStarted;throw e});
+ let authMs=0,teamMs=0,authCache='unknown';
+ const authStarted=Date.now(),authPromise=readAuthCached(c).then(v=>{authMs=Date.now()-authStarted;authCache=v&&v.cacheMode||'unknown';return v},e=>{authMs=Date.now()-authStarted;throw e});
  const teamStarted=Date.now(),teamPromise=readTeamCachedForSession(c,requestedMode).then(v=>{teamMs=Date.now()-teamStarted;return v},e=>{teamMs=Date.now()-teamStarted;throw e});
  const reads=await Promise.all([authPromise,teamPromise]),authDoc=reads[0],teamDoc=reads[1],resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,source=resolved.source;
  const team=teamDoc.value||emptyTeam(),users=Array.isArray(team.users)?team.users:[];
@@ -213,7 +225,7 @@ async function validateSession(req,payload,c){
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);
  if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
  if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);
- return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true,timing:{authMs,teamMs,validationMs:Date.now()-validationStarted,teamCache:teamDoc.cacheMode||'unknown'}};
+ return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true,timing:{authMs,authCache,teamMs,validationMs:Date.now()-validationStarted,teamCache:teamDoc.cacheMode||'unknown'}};
 }
 function clientStateForRead(state){
  const source=state&&typeof state==='object'&&!Array.isArray(state)?state:{},out={};
@@ -912,8 +924,8 @@ module.exports=async function(context,req){
   }
   if(req.method==='GET'||(req.method==='POST'&&mode==='read')){
    const knownRevision=Math.max(0,Number(payload&&payload.knownRevision||req.query&&req.query.knownRevision||0)||0),currentRevision=Number(current.team&&current.team.revision||0);
-   if(knownRevision>0&&knownRevision===currentRevision){const serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',notModified:true};context.res=json(200,{ok:true,notModified:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,schemaVersion:Number(current.team&&current.team.schemaVersion||3),revision:currentRevision,updatedAt:current.team&&current.team.updatedAt||null,serverMs,timing},timingHeaders(timing));return}
-   const serializeStarted=Date.now(),client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user)),serializeMs=Date.now()-serializeStarted,serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',serializeMs};context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null,serverMs,timing},client),timingHeaders(timing));return
+   if(knownRevision>0&&knownRevision===currentRevision){const serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),authCache:text(current.timing&&current.timing.authCache||'unknown')||'unknown',teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',notModified:true};context.res=json(200,{ok:true,notModified:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,schemaVersion:Number(current.team&&current.team.schemaVersion||3),revision:currentRevision,updatedAt:current.team&&current.team.updatedAt||null,serverMs,timing},timingHeaders(timing));return}
+   const serializeStarted=Date.now(),client=sanitizeForClient(current.team||emptyTeam(),isAdmin(current.user)),serializeMs=Date.now()-serializeStarted,serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),authCache:text(current.timing&&current.timing.authCache||'unknown')||'unknown',teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',serializeMs};context.res=json(200,Object.assign({ok:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,teamStateRecoveredFromHistory:current.teamRecoveredFromHistory===true,teamRecoverySource:current.teamRecoverySource||null,serverMs,timing},client),timingHeaders(timing));return
   }
   if(req.method==='POST'){
    if(mode==='recovery-preview'){
@@ -937,7 +949,7 @@ module.exports=async function(context,req){
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
    const saveStarted=Date.now(),saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag,current.session),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
-   const phase=saved&&saved.__timing||{},serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',mergeMs:Number(phase.mergeMs||0),uploadMs:Number(phase.uploadMs||0),retryReadMs:Number(phase.retryReadMs||0),saveMs};
+   const phase=saved&&saved.__timing||{},serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),authCache:text(current.timing&&current.timing.authCache||'unknown')||'unknown',teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',mergeMs:Number(phase.mergeMs||0),uploadMs:Number(phase.uploadMs||0),retryReadMs:Number(phase.retryReadMs||0),saveMs};
    const full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
    if(ack){const out={ok:true,ackOnly:true,schemaVersion:Number(saved.schemaVersion||3),revision:Number(saved.revision||0),updatedAt:saved.updatedAt||null,updatedBy:saved.updatedBy||null,concurrentMerge:saved.concurrentMerge===true,idempotentReplay:saved.idempotentReplay===true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName,serverMs,timing,corruptBackup:saved.corruptBackup||null};context.res=json(200,out,timingHeaders(timing));return}
    const serializeStarted=Date.now(),client=sanitizeForClient(saved,isAdmin(current.user));timing.serializeMs=Date.now()-serializeStarted;context.res=json(200,Object.assign({ok:true,environment:c.environment,blob:c.teamBlobName,serverMs,timing},client),timingHeaders(timing));return
