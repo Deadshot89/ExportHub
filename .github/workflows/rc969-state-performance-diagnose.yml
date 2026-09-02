@@ -17,38 +17,45 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Frontend Read Sync Auslöser analysieren
+      - name: Kunden Save ACK Bestätigungspfad analysieren
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
           const s=fs.readFileSync('TESTVERSION.html','utf8');
-          const build=s.match(/var BUILD=Object\.freeze\(\{version:'(RC\d+)'/);
-          console.log('BUILD',build?build[1]:'unbekannt');
+          const needle='const waits=[0,250,700,1400]';
+          const pos=s.indexOf(needle);
+          console.log('BUILD', (s.match(/var BUILD=Object\.freeze\(\{version:'(RC\d+)'/)||[])[1]||'unbekannt');
+          console.log('wait-loop-pos',pos);
+          if(pos<0)throw new Error('Kunden-Save-Bestätigungsschleife nicht gefunden');
 
-          function context(label,token,before=1800,after=6500,limit=30){
-            console.log('\n=== '+label+' ===');
-            let pos=0,count=0;
-            while((pos=s.indexOf(token,pos))>=0&&count<limit){
-              count++;
-              console.log('\n--- '+count+' @ '+pos+' ---\n'+s.slice(Math.max(0,pos-before),Math.min(s.length,pos+after)));
-              pos+=token.length;
-            }
-            console.log('COUNT',count);
+          function findContainingFunction(at){
+            const re=/\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g;
+            let m,last=null;
+            while((m=re.exec(s))&&m.index<at)last={name:m[1],index:m.index};
+            return last;
+          }
+          const fn=findContainingFunction(pos);
+          console.log('containing-function',fn);
+          console.log('\n=== Funktionskontext ===\n'+s.slice(Math.max(0,fn.index-1200),Math.min(s.length,pos+9000)));
+
+          for(const helper of ['criticalSaveDeltaConfirmed','persistentStateShapeComplete','stateCall','flushSave']){
+            const p=s.lastIndexOf('function '+helper+'(',pos);
+            const pa=s.lastIndexOf('async function '+helper+'(',pos);
+            const start=Math.max(p,pa);
+            console.log('\n=== '+helper+' @ '+start+' ===');
+            if(start>=0)console.log(s.slice(start,Math.min(s.length,start+8500)));
           }
 
-          for(const token of ['mode=read','mode%3Dread','exporthub-state','readRemote','loadRemote','syncRemote','pullRemote','cloudRead','teamRead']) context(token,token,1400,5200,18);
-
-          console.log('\n=== Timer / Visibility / Focus Kontexte mit State-Sync ===');
-          const lines=s.split('\n');
-          lines.forEach((line,i)=>{
-            if(/setInterval|setTimeout|visibilitychange|focus|online|BroadcastChannel/.test(line) && /sync|cloud|state|azure|remote|read|pull/i.test(line)){
-              console.log(String(i+1).padStart(5),line.trim().slice(0,2200));
+          if(fn&&fn.name){
+            console.log('\n=== Aufrufer von '+fn.name+' ===');
+            const token=fn.name+'(';
+            let p=0,n=0;
+            while((p=s.indexOf(token,p))>=0&&n<20){
+              n++;
+              console.log('\n--- CALL '+n+' @ '+p+' ---\n'+s.slice(Math.max(0,p-1600),Math.min(s.length,p+3500)));
+              p+=token.length;
             }
-          });
-
-          console.log('\n=== fetch/POST Zeilen mit exporthub-state ===');
-          lines.forEach((line,i)=>{
-            if(/exporthub-state/.test(line))console.log(String(i+1).padStart(5),line.trim().slice(0,3000));
-          });
+            console.log('caller-count',n);
+          }
           NODE
