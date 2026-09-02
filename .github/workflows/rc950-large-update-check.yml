@@ -19,9 +19,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  audit-red:
+  audit-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout RC950 branch
         uses: actions/checkout@v4
@@ -32,15 +32,22 @@ jobs:
       - name: Generate active-path audit
         run: python3 .github/rc950_audit.py
 
-      - name: Verify RED baseline
+      - name: Verify RED or GREEN phase
         shell: bash
         run: |
           set -euo pipefail
-          if python3 .github/rc950_regression.py; then
-            echo 'RC950 regression unexpectedly passed before implementation.'
-            exit 1
+          if grep -Fq "version:'RC950',cache:'950',loginReturn:'/TESTVERSION.html?v=950'" TESTVERSION.html; then
+            echo 'RC950 implementation detected: GREEN required.'
+            python3 .github/rc950_regression.py
+            npm test
+          else
+            echo 'Pre-implementation baseline detected: RED required.'
+            if python3 .github/rc950_regression.py; then
+              echo 'RC950 regression unexpectedly passed before implementation.'
+              exit 1
+            fi
+            echo 'Expected RED baseline confirmed.'
           fi
-          echo 'Expected RED baseline confirmed.'
 
       - name: Commit audit output when changed
         shell: bash
