@@ -1,7 +1,7 @@
 {
   "purpose": "testservice-deploy-marker",
-  "requestedFrontendVersion": "RC970",
+  "requestedFrontendVersion": "RC971",
   "requiredStateApiVersion": "RC970",
   "requestedAt": "2026-09-02",
-  "deployGeneration": 3
+  "deployGeneration": 4
 }
