@@ -16,31 +16,11 @@ concurrency:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: rc961-startup-teamdata-timeout
           fetch-depth: 0
-      - name: Apply RC961 startup repair
-        run: python .github/rc961_apply.py
-      - name: RC961 startup total-timeout runtime regression
-        run: node .github/rc961_statecall_test.js
-      - name: RC961 static regression
-        run: python .github/rc961_regression.py
-      - name: Existing baseline tests
-        run: npm test
-      - name: RC961 product diff check
-        run: git diff --check -- TESTVERSION.html
-      - name: Commit verified RC961 product change
-        if: success()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add TESTVERSION.html
-          if git diff --cached --quiet; then
-            echo "RC961 product file already applied and verified."
-            exit 0
-          fi
-          git commit -m "RC961 Startup Azure-Teamdaten Timeout begrenzen"
-          git push origin HEAD:rc961-startup-teamdata-timeout
+      - name: RED - startup total-timeout regression before repair
+        run: node .github/rc961_statecall_test.cjs
