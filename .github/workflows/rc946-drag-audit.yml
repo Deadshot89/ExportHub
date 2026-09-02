@@ -1,0 +1,54 @@
+name: RC946 Drag Audit
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc946-drag-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aktive Drag- und Kachelpfade erfassen
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          text=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          assert "version:'RC945',cache:'945',loginReturn:'/TESTVERSION.html?v=945'" in text, 'Basis ist nicht RC945'
+
+          # Event-/Timing-Code, der Verschieben verzögern kann.
+          patterns=[
+              r'addEventListener\(["\'](?:dragstart|dragend|dragover|drop|pointerdown|pointermove|pointerup|touchstart|touchmove|touchend|mousedown|mousemove|mouseup)["\']',
+              r'on(?:dragstart|dragend|dragover|drop|pointerdown|pointermove|pointerup|touchstart|touchmove|touchend|mousedown|mousemove|mouseup)\s*=',
+              r'setTimeout\([^\n]{0,220}',
+              r'long.?press|press.?hold|hold.?timer|drag.?delay|touch.?delay',
+          ]
+          hits=[]
+          for pat in patterns:
+              for m in re.finditer(pat,text,re.I):
+                  hits.append((m.start(),m.group(0)))
+          hits.sort()
+          print('EVENT/TIMER HITS',len(hits))
+          for i,(pos,match) in enumerate(hits,1):
+              lo=max(0,pos-1300); hi=min(len(text),pos+2600)
+              ctx=text[lo:hi]
+              if re.search(r'Lager|lager|Aufgabe|aufgabe|Planner|planner|Task|task|drag|Drag|Kachel|card|tile',ctx):
+                  print(f'\n=== HIT {i} pos={pos} match={match!r} ===\n{ctx.replace("><",">\\n<")}')
+
+          print('\n=== RELEVANTE FUNKTIONEN / IDS ===')
+          tokens=sorted(set(re.findall(r'[A-Za-z_$][A-Za-z0-9_$.-]{0,80}',text)))
+          for token in tokens:
+              low=token.lower()
+              if any(x in low for x in ('drag','drop','task','aufgab','lager','warehouse','planner','kanban','sortable','move')):
+                  print(token)
+          PY
