@@ -8,7 +8,7 @@ on:
       - '.github/workflows/rc946-drag-audit.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
@@ -16,17 +16,17 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Aktive Task- und Lager-Dragpfade präzisieren
+      - name: Aktive Task- und Lager-Dragpfade kompakt erfassen
         shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
           import re
 
-          text=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          text = Path('TESTVERSION.html').read_text(encoding='utf-8')
           assert "version:'RC945',cache:'945',loginReturn:'/TESTVERSION.html?v=945'" in text, 'Basis ist nicht RC945'
 
-          needles=[
+          needles = [
             'function initTasksMoveMode()',
             'function moveTaskCard',
             'function moveTaskRow',
@@ -45,37 +45,50 @@ jobs:
             'data-move',
           ]
 
+          out = []
           for needle in needles:
-            positions=[]; start=0
+            positions = []
+            start = 0
             while True:
-              pos=text.find(needle,start)
-              if pos<0: break
+              pos = text.find(needle, start)
+              if pos < 0:
+                break
               positions.append(pos)
-              start=pos+len(needle)
-            print(f'\n### {needle} COUNT={len(positions)} POS={positions}')
-            for pos in positions[-12:]:
-              lo=max(0,pos-4200); hi=min(len(text),pos+7200)
-              print(f'\n=== {needle} @ {pos} ===\n{text[lo:hi].replace("><",">\\n<")}\n')
+              start = pos + len(needle)
+            out.append(f'\n### {needle} COUNT={len(positions)} POS={positions}\n')
+            for pos in positions[-6:]:
+              lo = max(0, pos - 1800)
+              hi = min(len(text), pos + 3600)
+              out.append(f'\n=== {needle} @ {pos} ===\n{text[lo:hi]}\n')
 
-          print('\n=== DRAG LISTENER OCCURRENCES ===')
-          for m in re.finditer(r'addEventListener\(["\'](dragstart|dragend|dragover|drop|pointerdown|pointermove|pointerup|touchstart|touchmove|touchend|mousedown|mousemove|mouseup)["\']', text):
-            pos=m.start(); lo=max(0,pos-900); hi=min(len(text),pos+1800)
-            ctx=text[lo:hi]
-            if re.search(r'task|aufgab|warehouse|lager|planner|card|column|tile',ctx,re.I):
-              print(f'\n--- {m.group(1)} @ {pos} ---\n{ctx.replace("><",">\\n<")}')
+          out.append('\n=== RELEVANTE EVENT-LISTENER ===\n')
+          listener_re = re.compile(r'addEventListener\(["\'](dragstart|dragend|dragover|drop|pointerdown|pointermove|pointerup|pointercancel|touchstart|touchmove|touchend|mousedown|mousemove|mouseup)["\']')
+          matches = []
+          for m in listener_re.finditer(text):
+            pos = m.start()
+            ctx = text[max(0,pos-1000):min(len(text),pos+2200)]
+            if re.search(r'task|aufgab|warehouse|lager|planner|card|column|tile', ctx, re.I):
+              matches.append((m.group(1), pos, ctx))
+          out.append(f'COUNT={len(matches)}\n')
+          for event, pos, ctx in matches[-40:]:
+            out.append(f'\n--- {event} @ {pos} ---\n{ctx}\n')
 
-          print('\n=== RELEVANTE CSS-BLÖCKE ===')
-          css_needles=['.task-card{','#warehouse .ext-table-wrap','[draggable="true"]','cursor:grab','cursor:grabbing','touch-action','user-select']
-          for needle in css_needles:
-            positions=[]; start=0
-            while True:
-              pos=text.find(needle,start)
-              if pos<0: break
-              positions.append(pos); start=pos+len(needle)
-            print(f'\nCSS {needle} COUNT={len(positions)} POS={positions[-20:]}')
-            for pos in positions[-10:]:
-              lo=max(0,pos-1200); hi=min(len(text),pos+2400)
-              ctx=text[lo:hi]
-              if re.search(r'task|aufgab|warehouse|lager|planner|card|column|tile|drag',ctx,re.I):
-                print(ctx.replace('><','>\\n<'))
+          report = ''.join(out)
+          # Keep the artifact small enough to inspect through the connector.
+          if len(report) > 180000:
+            report = report[-180000:]
+          Path('rc946-drag-audit-output.txt').write_text(report, encoding='utf-8')
+          print(f'wrote {len(report)} chars')
           PY
+      - name: Audit-Ergebnis versionieren
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add rc946-drag-audit-output.txt
+          if git diff --cached --quiet; then
+            echo 'Keine Änderung im Audit-Ergebnis.'
+            exit 0
+          fi
+          git commit -m 'Capture RC946 drag audit output'
+          git push
