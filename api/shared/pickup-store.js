@@ -23,6 +23,53 @@ function clone(v){return JSON.parse(JSON.stringify(v))}
 function safeName(v){return String(v||'POD').replace(/[^a-zA-Z0-9._ -]/g,'_').replace(/\s+/g,'_').slice(0,100)}
 function first(body,names){for(const name of names){const v=body&&body[name];if(v!==undefined&&v!==null&&String(v).trim()!=='')return v}return ''}
 function sanitizeText(v,max=180){return String(v==null?'':v).replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max)}
+function positiveColliCount(value){
+  var n=Number(value);
+  if(!isFinite(n)||n<=0)return 0;
+  return Math.max(0,Math.round(n));
+}
+function physicalColliCount(value){
+  var n=Number(value);
+  if(!isFinite(n)||n<=0)return 0;
+  return Math.max(0,Math.ceil(n));
+}
+function expectedCollis(source){
+  var src=source&&typeof source==='object'?source:{},trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'],lists=['rows','colli','collis','packages','packageRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],i,j;
+  var best=0,seen=[],stack=[src];
+  while(stack.length){
+    var node=stack.pop();
+    if(!node||typeof node!=='object'||seen.indexOf(node)>=0)continue;
+    seen.push(node);
+    for(i=0;i<lists.length;i+=1){
+      if(!Array.isArray(node[lists[i]]))continue;
+      var sum=0;
+      for(j=0;j<node[lists[i]].length;j+=1){
+        var row=node[lists[i]][j]||{},k,rowCount=0;
+        for(k=0;k<rowFields.length;k+=1){
+          rowCount=physicalColliCount(row[rowFields[k]]);
+          if(rowCount>0)break;
+        }
+        sum+=rowCount;
+      }
+      if(sum>best)best=sum;
+    }
+    Object.keys(node).forEach(function(key){
+      var child=node[key];
+      if(child&&typeof child==='object'&&!Array.isArray(child))stack.push(child);
+    });
+  }
+  if(best>0)return best;
+  for(i=0;i<trusted.length;i+=1){
+    var total=positiveColliCount(src[trusted[i]]);
+    if(total>0)return total;
+  }
+  var legacy=['pickupColliCount','enteredColliCount','colliCount'];
+  for(i=0;i<legacy.length;i+=1){
+    var fallback=positiveColliCount(src[legacy[i]]);
+    if(fallback>0)return fallback;
+  }
+  return 0;
+}
 function signatureUrl(record){return record&&record.signatureBlobName?'/api/pickup-pod?token='+encodeURIComponent(record.token)+'&signature=1':''}
 function realPodFiles(record){return (Array.isArray(record&&record.podFiles)?record.podFiles:[]).filter(f=>String(f&&f.kind||'').toLowerCase()!=='scan-confirmation')}
 
@@ -58,7 +105,7 @@ async function saveDriverSignature(c,record,dataUrl){
   return {signatureBlobName:blobName,signatureType:parsed.type,signatureSize:parsed.buffer.length,signatureStoredAt:now()};
 }
 function publicRecord(r){
-  const files=realPodFiles(r),url=signatureUrl(r),available=!!url,carrier=sanitizeText(first(r,['carrierName','speditionName','carrier','spedition']),180),expected=Math.max(0,Math.round(Number(first(r,['expectedColliCount','totalColli','colliCount','packageCount']))||0)),entered=Math.max(0,Math.round(Number(first(r,['enteredColliCount','confirmedColliCount','pickupColliCount']))||0)),colliOk=r.colliCountConfirmed===true||r.colliConfirmed===true||r.pickupColliCountConfirmed===true;
+  const files=realPodFiles(r),url=signatureUrl(r),available=!!url,carrier=sanitizeText(first(r,['carrierName','speditionName','carrier','spedition']),180),expected=expectedCollis(r),entered=Math.max(0,Math.round(Number(first(r,['enteredColliCount','confirmedColliCount','pickupColliCount']))||0)),colliOk=r.colliCountConfirmed===true||r.colliConfirmed===true||r.pickupColliCountConfirmed===true;
   return {ok:true,status:r.status||'open',reference:r.reference||'',customer:r.customer||'',recipient:r.recipient||'',address:r.address||'',locationName:r.locationName||'',shipmentId:r.shipmentId||'',palletOut:Math.max(0,Number(r.palletOut||0)||0),carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,expectedColliCount:expected,colliCount:expected,totalColli:expected,packageCount:expected,enteredColliCount:entered,colliCountConfirmed:colliOk,colliConfirmed:colliOk,pickupColliCountConfirmed:colliOk,createdAt:r.createdAt||null,expiresAt:r.expiresAt||null,confirmedAt:r.confirmedAt||null,driverName:r.driverName||'',pickupDriverName:r.driverName||'',licensePlate:r.licensePlate||'',vehicleLicensePlate:r.licensePlate||'',kennzeichen:r.licensePlate||'',loaderName:r.loaderName||'',loadedBy:r.loaderName||'',loader:r.loaderName||'',verlader:r.loaderName||'',signatureAvailable:available,driverSignatureAvailable:available,signatureStored:available,driverSignatureUrl:url,pickupSignatureUrl:url,podType:available?'signed-loadlist':'',podStatus:available?'POD vorhanden':'Unterschrift fehlt',podCount:(available?1:0)+files.length,podFiles:files.map(f=>({id:f.id,name:f.name,type:f.type,size:f.size,uploadedAt:f.uploadedAt,kind:f.kind||'',url:'/api/pickup-pod?token='+encodeURIComponent(r.token)+'&file='+encodeURIComponent(f.id)}))};
 }
 
@@ -80,7 +127,7 @@ async function updateTeam(record,podsToAdd=[]){
     if(sh){
       const iso=record.confirmedAt||now(),day=iso.slice(0,10),dt=new Date(iso);
       sh.actualPickupDate=day;sh.pickedUpAtDate=day;sh.actualPickupTime=isNaN(dt)?'':dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});sh.pickedUpAt=iso;sh.pickupConfirmedAt=iso;sh.pickupStatus='abgeholt';sh.pickupQrUsed=true;sh.pickupQrUsedAt=iso;sh.qrPickupConfirmed=true;sh._syncUpdatedAt=iso;sh._syncDeviceId='qr-pickup';
-      sh.pickupDriverName=record.driverName||'';sh.driverName=record.driverName||'';sh.pickupLicensePlate=record.licensePlate||'';sh.licensePlate=record.licensePlate||'';sh.vehicleLicensePlate=record.licensePlate||'';sh.kennzeichen=record.licensePlate||'';sh.loaderName=record.loaderName||'';sh.loadedBy=record.loaderName||'';sh.loader=record.loaderName||'';sh.verlader=record.loaderName||'';var carrier=sanitizeText(first(record,['carrierName','speditionName','carrier','spedition']),180),expected=Math.max(0,Math.round(Number(first(record,['expectedColliCount','totalColli','colliCount','packageCount']))||0)),entered=Math.max(0,Math.round(Number(first(record,['enteredColliCount','confirmedColliCount','pickupColliCount']))||0)),colliOk=record.colliCountConfirmed===true||record.colliConfirmed===true||record.pickupColliCountConfirmed===true;if(carrier){sh.carrier=carrier;sh.carrierName=carrier;sh.spedition=carrier;sh.speditionName=carrier}sh.expectedColliCount=expected;sh.pickupColliCount=expected;sh.enteredColliCount=entered;sh.colliCountConfirmed=colliOk;sh.pickupColliCountConfirmed=colliOk;
+      sh.pickupDriverName=record.driverName||'';sh.driverName=record.driverName||'';sh.pickupLicensePlate=record.licensePlate||'';sh.licensePlate=record.licensePlate||'';sh.vehicleLicensePlate=record.licensePlate||'';sh.kennzeichen=record.licensePlate||'';sh.loaderName=record.loaderName||'';sh.loadedBy=record.loaderName||'';sh.loader=record.loaderName||'';sh.verlader=record.loaderName||'';var carrier=sanitizeText(first(record,['carrierName','speditionName','carrier','spedition']),180),expected=expectedCollis(record),entered=Math.max(0,Math.round(Number(first(record,['enteredColliCount','confirmedColliCount','pickupColliCount']))||0)),colliOk=record.colliCountConfirmed===true||record.colliConfirmed===true||record.pickupColliCountConfirmed===true;if(carrier){sh.carrier=carrier;sh.carrierName=carrier;sh.spedition=carrier;sh.speditionName=carrier}sh.expectedColliCount=expected;sh.pickupColliCount=expected;sh.enteredColliCount=entered;sh.colliCountConfirmed=colliOk;sh.pickupColliCountConfirmed=colliOk;
       sh.driverSignatureUrl=sigUrl;sh.pickupDriverSignatureUrl=sigUrl;sh.signatureAvailable=hasSignature;sh.podFiles=(Array.isArray(sh.podFiles)?sh.podFiles:[]).filter(x=>String(x&&x.kind||'').toLowerCase()!=='scan-confirmation');
       if(podsToAdd.length){const all=[...sh.podFiles];for(const p of podsToAdd.filter(x=>String(x&&x.kind||'').toLowerCase()!=='scan-confirmation')){const url='/api/pickup-pod?token='+encodeURIComponent(record.token)+'&file='+encodeURIComponent(p.id);if(!all.some(x=>x.remoteId===p.id||x.url===url))all.push({id:'QR-'+p.id,name:p.name,filename:p.name,url,uploadedAt:p.uploadedAt,added:p.uploadedAt,remote:true,remoteId:p.id,mimeType:p.type,type:p.type,size:p.size,source:'QR',kind:p.kind||''})}sh.podFiles=all}
       if(hasSignature){sh.podStatus='POD vorhanden';sh.podAvailable=true;sh.podConfirmed=true;sh.podScanConfirmed=true;sh.podDocumentType='signed-loadlist';sh.podDisplayName='Ladeliste mit Unterschrift';sh.status='POD vorhanden';sh.processStatus='POD vorhanden'}
@@ -92,4 +139,4 @@ async function updateTeam(record,podsToAdd=[]){
     try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
   }
 }
-module.exports={RECORD_CONTAINER,POD_CONTAINER,TEAM_CONTAINER,TEAM_BLOB,clients,connectionString,hash,safeEqualHex,validToken,json,body,principal,actor,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,safeName,confirmationPdf,imagesPdf,createConfirmationPod,parseSignature,saveDriverSignature,signatureUrl,realPodFiles,first,sanitizeText};
+module.exports={RECORD_CONTAINER,POD_CONTAINER,TEAM_CONTAINER,TEAM_BLOB,clients,connectionString,hash,safeEqualHex,validToken,json,body,principal,actor,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,safeName,confirmationPdf,imagesPdf,createConfirmationPod,parseSignature,saveDriverSignature,signatureUrl,realPodFiles,first,sanitizeText,expectedCollis};

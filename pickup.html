@@ -161,12 +161,12 @@ function pickupColliNumber(value){
  var n=Number(cleaned);return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n)):0
 }
 function pickupExpectedCollis(data){
- var explicitNames=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount','colliCount'];
- for(var e=0;e<explicitNames.length;e++){var explicit=pickupColliNumber(valueDeep(data,[explicitNames[e]]));if(explicit>0)return explicit}
+ var explicitNames=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];
  var lists=[];function walk(x,d){if(!x||typeof x!=='object'||d>6)return;['rows','colli','collis','packages','packageRows','items'].forEach(function(k){if(Array.isArray(x[k]))lists.push(x[k])});Object.keys(x).forEach(function(k){var v=x[k];if(v&&typeof v==='object'&&!Array.isArray(v))walk(v,d+1)})}walk(data,0);
  var best=0;for(var i=0;i<lists.length;i++){var total=lists[i].reduce(function(sum,row){if(!row||typeof row!=='object')return sum;var count=pickupColliNumber(row.count||row.qty||row.quantity||row.anzahl||row.menge||row.colliCount);return sum+count},0);if(total>best)best=total}
  if(best>0)return best;
- return pickupColliNumber(valueDeep(data,['pickupColliCount','enteredColliCount']))
+ for(var e=0;e<explicitNames.length;e++){var explicit=pickupColliNumber(valueDeep(data,[explicitNames[e]]));if(explicit>0)return explicit}
+ return pickupColliNumber(valueDeep(data,['pickupColliCount','enteredColliCount','colliCount']))
 }
 function resetColliCheck(){colliCountConfirmed=false;var input=document.getElementById('index495PickupColliInput'),result=document.getElementById('index495PickupColliResult');if(input){input.value='';input.removeAttribute('readonly')}if(result){result.className='';result.textContent='Gesamtmenge noch nicht geprüft.'}}
 function checkPickupCollis(){var input=document.getElementById('index495PickupColliInput'),result=document.getElementById('index495PickupColliResult'),value=Math.max(0,Math.round(Number(input&&input.value||0)));colliCountConfirmed=false;if(!value){if(result){result.className='bad';result.textContent='Bitte die gezählte Gesamt-Colli-Anzahl eingeben.'}if(input)input.focus();return false}if(!(expectedPickupCollis>0)){if(result){result.className='bad';result.textContent='Die Gesamt-Colli-Sollmenge konnte nicht geladen werden. Bitte die Sendungsdaten prüfen.'}return false}if(value===expectedPickupCollis){colliCountConfirmed=true;if(result){result.className='ok';result.textContent='✓ Gesamt-Colli-Anzahl stimmt: '+expectedPickupCollis+'.'}if(input)input.setAttribute('readonly','readonly');return true}if(result){result.className='bad';result.textContent='Gesamtmenge stimmt nicht. Erwartet werden '+expectedPickupCollis+' Colli. Bitte erneut zählen.'}if(input){input.value='';input.focus()}return false}
