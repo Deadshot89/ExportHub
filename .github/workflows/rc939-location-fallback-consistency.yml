@@ -1,0 +1,282 @@
+name: RC939 Standort-Fallback-Konsistenz
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc939-location-fallback-consistency.yml'
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: rc939-location-fallback-consistency
+  cancel-in-progress: false
+
+jobs:
+  patch_verify_deploy:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: RED – RC938 muss die Fallback-Lücken noch zeigen
+        id: red
+        continue-on-error: true
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          text=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          assert "version:'RC938',cache:'938',loginReturn:'/TESTVERSION.html?v=938'" in text, 'Basis ist nicht exakt RC938.'
+
+          desired=[
+            "var wanted=q(sh&&(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId))",
+            "x.id||x.locationId||x.selectedLocationId||x.siteId||x.destinationId||x.code||x.name",
+            "address=q(sh.customerAddress||sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress)",
+            "locationId=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId)",
+            "loc.locationId=loc.id;loc.selectedLocationId=loc.id;loc.siteId=loc.id;loc.destinationId=loc.id;",
+            "address=q(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||existing.recipientAddress||existing.deliveryAddress||existing.destinationAddress)",
+            "existing.destinationId",
+            "var wanted=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId||sh.locationName)",
+            "locations:q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId)?",
+            "function locationId(l){return q(l&&(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number||l.name))}",
+            "function locId(l){return q(l&&(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number))}"
+          ]
+          for needle in desired:
+              assert needle in text, needle
+          PY
+
+      - name: RED-Ergebnis verifizieren
+        shell: bash
+        env:
+          RED_OUTCOME: ${{ steps.red.outcome }}
+        run: |
+          if [[ "$RED_OUTCOME" != "failure" ]]; then
+            echo "RED ist nicht wie erwartet fehlgeschlagen. RC938 wird nicht verändert."
+            exit 1
+          fi
+          echo "RED bestätigt: Die Fallback-Leser sind auf RC938 noch unvollständig."
+
+      - name: RC939 direkt in bestehenden Fallback-Lesern korrigieren
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          p=Path('TESTVERSION.html')
+          text=p.read_text(encoding='utf-8')
+
+          def once(src,old,new,label):
+              n=src.count(old)
+              if n!=1:
+                  raise SystemExit(f'{label}: erwartet 1 Fundstelle, gefunden {n}')
+              return src.replace(old,new,1)
+
+          text=once(text,
+              "version:'RC938',cache:'938',loginReturn:'/TESTVERSION.html?v=938'",
+              "version:'RC939',cache:'939',loginReturn:'/TESTVERSION.html?v=939'",
+              'BUILD-Version')
+
+          marker="changes:Object.freeze([\n"
+          if text.count(marker)!=1:
+              raise SystemExit('Release-Anker nicht eindeutig')
+          note="    'RC939 vereinheitlicht die Fallback-Leser für ältere Sendungen und Dokumente: gespeicherte Standorte werden auch über selectedLocationId/destinationId sowie Liefer- und Zieladresse wiedererkannt, ohne künstliche neue Standort-ID zu erzeugen.',\n"
+          text=text.replace(marker,marker+note,1)
+
+          # A) Zwei identische shipmentLocation-Fallbacks direkt aktualisieren.
+          old="function shipmentLocation(sh,c){var direct=[sh&&sh.locationData,sh&&sh.siteData,sh&&sh.location,sh&&sh.selectedLocation,sh&&sh.recipient,sh&&sh.destination].find(obj);if(direct)return direct;var wanted=q(sh&&(sh.locationId||sh.selectedLocationId||sh.siteId)),all=[].concat(arr(c&&c.locations),arr(c&&c.sites),arr(c&&c.standorte));return all.find(function(x){return wanted&&q(x&&(x.id||x.locationId||x.siteId||x.code||x.name))===wanted})||{}}"
+          new="function shipmentLocation(sh,c){var direct=[sh&&sh.locationData,sh&&sh.siteData,sh&&sh.location,sh&&sh.selectedLocation,sh&&sh.recipient,sh&&sh.destination].find(obj);if(direct)return direct;var wanted=q(sh&&(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId)),all=[].concat(arr(c&&c.locations),arr(c&&c.sites),arr(c&&c.standorte));return all.find(function(x){return wanted&&q(x&&(x.id||x.locationId||x.selectedLocationId||x.siteId||x.destinationId||x.code||x.name))===wanted})||{}}"
+          count=text.count(old)
+          if count!=2:
+              raise SystemExit(f'shipmentLocation: erwartet 2 identische Alt-Fundstellen, gefunden {count}')
+          text=text.replace(old,new)
+
+          # B) embeddedShipmentCustomer direkt reparieren.
+          start=text.find('function embeddedShipmentCustomer(sh){')
+          end=text.find('function visibleShipmentCustomer(sh,existing){',start)
+          if start<0 or end<0:
+              raise SystemExit('embeddedShipmentCustomer Block nicht gefunden')
+          block=text[start:end]
+          block=once(block,
+              "address=q(sh.customerAddress||sh.recipientAddress)",
+              "address=q(sh.customerAddress||sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress)",
+              'embedded address')
+          block=once(block,
+              "q(l.id||l.locationId||l.siteId)||q(l.address)",
+              "q(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId)||q(l.address)",
+              'embedded locData id')
+          block=once(block,
+              "locationId=q(sh.locationId||sh.selectedLocationId||sh.siteId)",
+              "locationId=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId)",
+              'embedded shipment id')
+          block=once(block,
+              "loc.id=q(loc.id||loc.locationId||loc.siteId||locationId)",
+              "loc.id=q(loc.id||loc.locationId||loc.selectedLocationId||loc.siteId||loc.destinationId||locationId)",
+              'embedded loc id')
+          block=once(block,
+              "loc.locationId=loc.id;loc.siteId=loc.id;",
+              "loc.locationId=loc.id;loc.selectedLocationId=loc.id;loc.siteId=loc.id;loc.destinationId=loc.id;",
+              'embedded alias normalization')
+          block=once(block,
+              "loc.address=q(loc.address||sh.recipientAddress);",
+              "loc.address=q(loc.address||sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress);",
+              'embedded address fallback')
+          text=text[:start]+block+text[end:]
+
+          # C) visibleShipmentCustomer direkt reparieren.
+          start=text.find('function visibleShipmentCustomer(sh,existing){')
+          end=text.find('function resolveShipmentCustomer(sh){',start)
+          if start<0 or end<0:
+              raise SystemExit('visibleShipmentCustomer Block nicht gefunden')
+          block=text[start:end]
+          block=once(block,
+              "address=q(sh.recipientAddress||existing.recipientAddress)",
+              "address=q(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||existing.recipientAddress||existing.deliveryAddress||existing.destinationAddress)",
+              'visible address')
+          block=once(block,
+              "locationId=q(sh.locationId||sh.selectedLocationId||sh.siteId||existing.locationId||existing.selectedLocationId||existing.siteId);",
+              "locationId=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId||existing.locationId||existing.selectedLocationId||existing.siteId||existing.destinationId);",
+              'visible location id')
+          old_obj="var l={id:locationId||('LOC-'+(account||id||'SAVED')),locationId:locationId||('LOC-'+(account||id||'SAVED')),siteId:locationId||('LOC-'+(account||id||'SAVED')),name:"
+          new_obj="var l={id:locationId||('LOC-'+(account||id||'SAVED')),locationId:locationId||('LOC-'+(account||id||'SAVED')),selectedLocationId:locationId||('LOC-'+(account||id||'SAVED')),siteId:locationId||('LOC-'+(account||id||'SAVED')),destinationId:locationId||('LOC-'+(account||id||'SAVED')),name:"
+          block=once(block,old_obj,new_obj,'visible synthesized location aliases')
+          text=text[:start]+block+text[end:]
+
+          # D) Mail-Fallback locationFor direkt reparieren.
+          old="function locationFor(c,sh){if(!sh)return null;var direct=sh.locationData||sh.siteData||(obj(sh.location)?sh.location:null);if(obj(direct))return direct;var wanted=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.locationName),list=[].concat(arr(c&&c.locations),arr(c&&c.sites),arr(c&&c.standorte));return list.find(function(x){return q(x&&(x.id||x.locationId||x.siteId||x.code||x.name))===wanted})||null}"
+          new="function locationFor(c,sh){if(!sh)return null;var direct=sh.locationData||sh.siteData||(obj(sh.location)?sh.location:null);if(obj(direct))return direct;var wanted=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId||sh.locationName),list=[].concat(arr(c&&c.locations),arr(c&&c.sites),arr(c&&c.standorte));return list.find(function(x){return q(x&&(x.id||x.locationId||x.selectedLocationId||x.siteId||x.destinationId||x.code||x.name))===wanted})||null}"
+          text=once(text,old,new,'locationFor')
+
+          # E) Bestätigungs-Fallback-Kunde direkt reparieren.
+          start=text.find('function customerForConfirmation(){')
+          end=text.find('function addressSelectionValid(){',start)
+          if start<0 or end<0:
+              raise SystemExit('customerForConfirmation Block nicht gefunden')
+          block=text[start:end]
+          old_tail="address:q(sh.recipientAddress),locations:sh.locationId?[{id:q(sh.locationId),locationId:q(sh.locationId),siteId:q(sh.locationId),name:q(sh.locationName||sh.destinationName||sh.recipientName),address:q(sh.recipientAddress)}]:[]"
+          idexpr="q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId)"
+          new_tail="address:q(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress),locations:"+idexpr+"?[{id:"+idexpr+",locationId:"+idexpr+",selectedLocationId:"+idexpr+",siteId:"+idexpr+",destinationId:"+idexpr+",name:q(sh.locationName||sh.destinationName||sh.recipientName),address:q(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress)}]:[]"
+          block=once(block,old_tail,new_tail,'customerForConfirmation fallback')
+          text=text[:start]+block+text[end:]
+
+          # F) shipmentLocationIdentity: Roh-/Nested-IDs vollständig lesen.
+          start=text.find('function shipmentLocationIdentity(sh,rootState){')
+          end=text.find('function applyShipmentLocationIdentity(',start)
+          if start<0 or end<0:
+              raise SystemExit('shipmentLocationIdentity Block nicht gefunden')
+          block=text[start:end]
+          block=once(block,
+              "nested&&(nested.id||nested.locationId||nested.siteId||nested.code||nested.number)",
+              "nested&&(nested.id||nested.locationId||nested.selectedLocationId||nested.siteId||nested.destinationId||nested.code||nested.number)",
+              'identity nested id')
+          block=once(block,
+              "function locId(l){return q(l&&(l.id||l.locationId||l.siteId||l.code||l.number))}",
+              "function locId(l){return q(l&&(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number))}",
+              'identity locId')
+          text=text[:start]+block+text[end:]
+
+          # G) Routen-/Kosten-Fallback: Location-ID-Helfer vollständig lesen.
+          text=once(text,
+              "function locationId(l){return q(l&&(l.id||l.locationId||l.siteId||l.code||l.number||l.name))}",
+              "function locationId(l){return q(l&&(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number||l.name))}",
+              'route locationId helper')
+
+          p.write_text(text,encoding='utf-8')
+          PY
+
+      - name: GREEN – RC939 Fallback-Konsistenz prüfen
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          text=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          assert "version:'RC939',cache:'939',loginReturn:'/TESTVERSION.html?v=939'" in text
+          assert "RC939 vereinheitlicht die Fallback-Leser für ältere Sendungen und Dokumente" in text
+
+          required=[
+            "var wanted=q(sh&&(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId))",
+            "x.id||x.locationId||x.selectedLocationId||x.siteId||x.destinationId||x.code||x.name",
+            "address=q(sh.customerAddress||sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress)",
+            "locationId=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId)",
+            "loc.locationId=loc.id;loc.selectedLocationId=loc.id;loc.siteId=loc.id;loc.destinationId=loc.id;",
+            "loc.address=q(loc.address||sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress);",
+            "address=q(sh.recipientAddress||sh.deliveryAddress||sh.destinationAddress||existing.recipientAddress||existing.deliveryAddress||existing.destinationAddress)",
+            "existing.siteId||existing.destinationId",
+            "var wanted=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId||sh.locationName)",
+            "function locationId(l){return q(l&&(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number||l.name))}",
+            "function locId(l){return q(l&&(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number))}",
+            "locations:q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId)?"
+          ]
+          for needle in required:
+              assert needle in text, needle
+
+          old_shipment="function shipmentLocation(sh,c){var direct=[sh&&sh.locationData,sh&&sh.siteData,sh&&sh.location,sh&&sh.selectedLocation,sh&&sh.recipient,sh&&sh.destination].find(obj);if(direct)return direct;var wanted=q(sh&&(sh.locationId||sh.selectedLocationId||sh.siteId)),"
+          assert old_shipment not in text
+          assert "locationId=q(sh.locationId||sh.selectedLocationId||sh.siteId),locationName=" not in text
+          assert "var wanted=q(sh.locationId||sh.selectedLocationId||sh.siteId||sh.locationName)" not in text
+
+          # Keine einfache Schreibstelle darf nach RC938/939 wieder nur drei IDs setzen.
+          bad=[]
+          for m in re.finditer(r'[^\n]{0,220}(?:sh|x)\.locationId\s*=.*?(?:sh|x)\.selectedLocationId\s*=.*?(?:sh|x)\.siteId\s*=[^\n]{0,220}',text):
+              s=m.group(0)
+              if 'destinationId' not in s: bad.append(s)
+          assert not bad, bad[:3]
+          print('GREEN: RC939 Fallback-Leser konsistent; 3-ID-Schreibstellen = 0.')
+          PY
+
+      - name: Diff und Integrität prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --stat
+          grep -m1 -oE "version:'RC[0-9]+'" TESTVERSION.html
+
+      - name: RC939 nach main übernehmen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TESTVERSION.html
+          if git diff --cached --quiet; then
+            echo "Keine Änderung erzeugt – Abbruch."
+            exit 1
+          fi
+          git commit -m "RC939 Standort-Fallback-Leser vereinheitlichen"
+          git push origin HEAD:main
+
+      - name: Temporären RC939-Workflow entfernen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin main
+          git rm .github/workflows/rc939-location-fallback-consistency.yml
+          git commit -m "RC939 temporären Patch-Workflow entfernen"
+          git push origin HEAD:main
+
+      - name: TESTSERVICE-Deploy für RC939 auslösen
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -o /tmp/dispatch.out -w '%{http_code}' -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/actions/workflows/exporthub-testservice-final-artifact-fix.yml/dispatches" \
+            -d '{"ref":"main"}')"
+          cat /tmp/dispatch.out || true
+          [[ "$code" == "204" ]] || { echo "Dispatch fehlgeschlagen: HTTP $code"; exit 1; }
+          echo "TESTSERVICE-Deploy RC939 ausgelöst."
