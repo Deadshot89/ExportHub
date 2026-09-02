@@ -1,4 +1,4 @@
-name: RC944 Sendungsdaten Layout diagnostizieren
+name: RC944 Sendungsdaten Layout Ausschnitt
 
 on:
   workflow_dispatch:
@@ -9,14 +9,14 @@ on:
       - '.github/workflows/rc944-shipment-data-layout.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rc944-shipment-data-layout
   cancel-in-progress: false
 
 jobs:
-  diagnose:
+  inspect:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -26,30 +26,37 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Aktiven Sendungsdaten-Block diagnostizieren
+      - name: Aktiven Block extrahieren
         shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
           text=Path('TESTVERSION.html').read_text(encoding='utf-8')
           assert "version:'RC943',cache:'943',loginReturn:'/TESTVERSION.html?v=943'" in text, 'Basis ist nicht RC943'
-          needles=[
-              'Sendungsdaten',
-              'rc363FixedShipmentLayout',
-              'rc363-process-head',
-              'rc573ShipmentShell',
-              'goodsDescription',
-              'state.shipment.comments=this.value',
-              'rc573ShipmentStatus'
-          ]
+          needles=['state.shipment.comments=this.value','goodsDescription','rc573ShipmentStatus','rc573ShipmentShell']
+          positions=[]
           for needle in needles:
-              positions=[]; p=0
+              found=[]; p=0
               while True:
                   i=text.find(needle,p)
                   if i<0: break
-                  positions.append(i); p=i+1
-              print('\n===',needle,'Treffer',len(positions),'===')
-              for i in positions[-12:]:
-                  print('INDEX',i)
-                  print(repr(text[max(0,i-2600):i+5200]))
+                  found.append(i); p=i+1
+              if found:
+                  positions.append((needle,found[-1]))
+          assert positions, 'Kein aktiver Sendungsdaten-Marker gefunden'
+          anchor=max(i for _,i in positions)
+          start=max(0,anchor-14000)
+          end=min(len(text),anchor+18000)
+          header='\n'.join(f'{n}: {i}' for n,i in positions)
+          Path('_rc944_active_snippet.txt').write_text(header+'\n\n---SNIPPET---\n'+text[start:end],encoding='utf-8')
+          print(header)
           PY
+
+      - name: Diagnose-Ausschnitt committen
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add _rc944_active_snippet.txt
+          git commit -m "RC944 aktiven Sendungsdaten-Ausschnitt erfassen"
+          git push origin HEAD:main
