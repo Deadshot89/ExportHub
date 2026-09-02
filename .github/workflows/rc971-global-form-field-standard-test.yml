@@ -20,3 +20,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: RC971 Form Field Regression
         run: node --test test/rc971-global-form-field-standard.test.mjs
+
+# final RC971 verification trigger
