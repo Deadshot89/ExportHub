@@ -35,3 +35,5 @@ jobs:
           node tests/rc966-warning-ui-render-performance.test.cjs
           node tests/rc967-shipment-visual-refresh-performance.test.cjs
           node tests/rc968-shipment-summary-dom-performance.test.cjs
+
+# RC968 final product verification trigger
