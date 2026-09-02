@@ -33,3 +33,5 @@ jobs:
           node tests/rc965-avis-retry-performance.test.cjs
           node tests/rc966-warning-ui-render-performance.test.cjs
           node tests/rc967-shipment-visual-refresh-performance.test.cjs
+
+# RC967 final product verification trigger
