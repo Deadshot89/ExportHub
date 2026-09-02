@@ -29,9 +29,9 @@ jobs:
           const fn=JSON.parse(fs.readFileSync('api/exporthub-state/function.json','utf8'));
 
           const apiVersion=Number((api.match(/const API_VERSION = 'RC(\d+)';/)||[])[1]||0);
-          const frontendVersion=Number((html.match(/version:'RC(\d+)'/)||[])[1]||0);
+          const frontendVersion=Number((html.match(/var BUILD=Object\.freeze\(\{version:'RC(\d+)'/)||[])[1]||0);
           assert(apiVersion>=969,'API_VERSION muss RC969 oder höher sein');
-          assert(frontendVersion>=969,'TESTVERSION muss RC969 oder höher sein');
+          assert(frontendVersion>=969,'TESTVERSION BUILD muss RC969 oder höher sein');
           assert.strictEqual(fn.scriptFile,'index.js','State-Function muss direkt index.js laden');
           assert(!fs.existsSync('api/exporthub-state/wrapper.js'),'RC931 Wrapper muss entfernt sein');
           assert(/mode==='ping'[\s\S]{0,500}serverVersion:API_VERSION/.test(api),'Ping muss echte serverVersion liefern');
