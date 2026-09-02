@@ -1,0 +1,55 @@
+name: RC944 Sendungsdaten Layout diagnostizieren
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc944-shipment-data-layout.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc944-shipment-data-layout
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sendungsdaten-Markup diagnostizieren
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          text=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          assert "version:'RC943',cache:'943',loginReturn:'/TESTVERSION.html?v=943'" in text, 'Basis ist nicht RC943'
+          needles=[
+              'Sendungsreferenz / Referenznummer',
+              'Warenbeschreibung für CMR Feld 9',
+              'Aktueller Sendungsstatus',
+              'AKTUELLER SENDUNGSSTATUS',
+              'Bemerkung'
+          ]
+          for needle in needles:
+              positions=[]
+              p=0
+              while True:
+                  i=text.find(needle,p)
+                  if i<0: break
+                  positions.append(i)
+                  p=i+1
+              print('\n===',needle,'Treffer',len(positions),'===')
+              for i in positions[:8]:
+                  print('INDEX',i)
+                  print(repr(text[max(0,i-2200):i+4200]))
+          PY
