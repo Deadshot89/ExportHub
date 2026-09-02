@@ -1,6 +1,6 @@
 {
   "purpose": "force-testservice-api-redeploy",
-  "requestedFrontendVersion": "RC960",
+  "requestedFrontendVersion": "RC962",
   "requiredStateApiVersion": "RC931",
   "requestedAt": "2026-09-02"
 }
