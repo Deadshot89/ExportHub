@@ -1,0 +1,33 @@
+name: RC964 Render Metrics Regression
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'TESTVERSION.html'
+      - 'tests/rc964-render-metrics.test.cjs'
+      - '.github/workflows/rc964-render-metrics-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rc964_render_metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run RC963 render regression
+        run: node tests/rc963-render-performance.test.cjs
+
+      - name: Run RC964 render metrics regression
+        run: node tests/rc964-render-metrics.test.cjs
