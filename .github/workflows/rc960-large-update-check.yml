@@ -29,13 +29,15 @@ jobs:
         run: python .github/rc960_group_extract.py
       - name: RC960 target runtime extract
         run: python .github/rc960_target_extract.py
+      - name: RC960 exact function extract
+        run: python .github/rc960_exact_extract.py
       - name: Existing baseline tests
         run: npm test
       - name: Capture audit result on feature branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/superpowers/rc960-audit.txt docs/superpowers/rc960-focus.txt docs/superpowers/rc960-runtime-focus.txt docs/superpowers/rc960-shipping-focus.txt docs/superpowers/rc960-pickup-focus.txt docs/superpowers/rc960-release-focus.txt docs/superpowers/rc960-admin-focus.txt docs/superpowers/rc960-target-focus.txt
+          git add docs/superpowers/rc960-audit.txt docs/superpowers/rc960-focus.txt docs/superpowers/rc960-runtime-focus.txt docs/superpowers/rc960-shipping-focus.txt docs/superpowers/rc960-pickup-focus.txt docs/superpowers/rc960-release-focus.txt docs/superpowers/rc960-admin-focus.txt docs/superpowers/rc960-target-focus.txt docs/superpowers/rc960-exact-focus.txt
           if git diff --cached --quiet; then
             echo "Audit output unchanged."
             exit 0
