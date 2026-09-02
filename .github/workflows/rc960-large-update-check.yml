@@ -9,18 +9,35 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: rc960-large-update-check
+  cancel-in-progress: true
+
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           ref: rc960-large-update
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20.20.2'
       - name: Apply RC960 GREEN patch
         run: python .github/rc960_apply.py
+      - name: RC960 static regression contract
+        run: python .github/rc960_regression.py
+      - name: RC960 pickup client behavior
+        run: node .github/rc960_runtime.js
+      - name: RC960 pickup server behavior
+        run: node .github/rc960_api_tests.js
+      - name: Syntax checks
+        run: |
+          node --check api/shared/pickup-store.js
+          node --check api/pickup-init/index.js
+          node --check api/pickup-confirm-v2/index.js
       - name: RC960 active-path audit
         run: python .github/rc960_audit.py | tee docs/superpowers/rc960-audit.txt
       - name: RC960 focused function extract
@@ -35,12 +52,15 @@ jobs:
         run: python .github/rc960_exact_extract.py
       - name: RC960 release confirmation extract
         run: python .github/rc960_release_exact.py
-      - name: RC960 regression contract
-        run: python .github/rc960_regression.py
       - name: Existing baseline tests
         run: npm test
-      - name: Diff whitespace check
-        run: git diff --check
+      - name: Final RC960 verification
+        run: |
+          python .github/rc960_apply.py
+          python .github/rc960_regression.py
+          node .github/rc960_runtime.js
+          node .github/rc960_api_tests.js
+          git diff --check
       - name: Commit verified RC960 changes
         if: success()
         run: |
