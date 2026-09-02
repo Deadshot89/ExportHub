@@ -2,10 +2,8 @@ TESTVERSION length: 5384284
 
 === 'Azure-Teamdaten werden geladen' hits=4 ===
 
---- hit 1 pos=88246 nearest_function=tokenFromUrl ---
-80 stabilisiert den Testservice-API-Start: GitHub installiert die Node-Abhängigkeiten vor dem Deploy und Azure übernimmt den bereits vorbereiteten API-Ordner mit skip_api_build=true.",
-    "RC880 prüft exporthub-auth und seine Abhängigkeiten bereits vor dem Deploy als echte Node-Module. Ein Syntax-Check allein reicht nicht mehr aus.",
-    "RC880 ergänzt /api/exporthub-auth-probe. Die Probe verrät nach dem Deploy ohne Geheimnisse offenzulegen, ob user-policy, auth-store und @azure/storage-blob im Azure-Functions-Runtime geladen werden können.",
+--- hit 1 pos=88246 nearest_function=<none> ---
+nach dem Deploy ohne Geheimnisse offenzulegen, ob user-policy, auth-store und @azure/storage-blob im Azure-Functions-Runtime geladen werden können.",
     "RC879 stabilisiert die Testservice-Anmeldung bei großen Azure-Teamständen: Die Benutzer-Policy dupliziert den kompletten state-Block nicht mehr per JSON-Serialisierung. Nur Benutzer und der flache State-Rahmen werden für die Normalisierung kopiert; Sendungen, Kunden, PODs und Dokumentdaten bleiben unverändert erhalten.",
     "RC879 prüft im Testservice vor der Anmeldung die echte exporthub-auth-Konfiguration mit bootstrap-status. Ein nicht erreichbarer oder falsch konfigurierter Auth-/Storage-Backendzustand wird bereits vor dem Login sichtbar und nicht mehr erst als unklarer HTTP-500-Loginfehler gemeldet.",
     "RC879 erweitert den Testservice-Deploy um eine verbindliche Auth-Backend-Prüfung. Ein Deploy darf nur noch grün werden, wenn /api/exporthub-auth bootstrap-status erfolgreich beantwortet und der Azure-Speicher erreichbar ist.",
@@ -25,15 +23,10 @@ TESTVERSION length: 5384284
     "RC874 gruppiert die Aufgabenansicht verbindlich nach Picken, ABD erstellen, Anmelden, Aufträge kontrollieren, Zusatzaufgaben und weiteren Aufgaben. Jede Gruppe kann einzeln ein- und ausgeklappt werden; zusätzlich stehen Alle Gruppen öffnen und Alle Gruppen schließen bereit. Der Klappzustand bleibt lokal auf dem Gerät erhalten und erzeugt keinen Azure-Save.",
     "RC874 entdoppelt offene Aufgaben in Aufgaben und Aufgaben Planer semantisch. Gleiche Wochen-/Tagesaufgaben mit anderem technischen Datensatz-ID werden nur einmal angezeigt; sendungsbezogene Aufgaben bleiben durch ihre Referenz getrennt. Der Masterplan entfernt zusätzlich echte doppelte Masterinstanzen derselben Serie/Woche, ohne manuelle Einzelaufgaben zusammenzufassen.",
     "RC874 macht Feiertage im Aufgaben Planer dauerhaft sichtbar: Die ausgewählte Woche markiert Feiertage direkt am Tag und ein eigener kompakter Bereich zeigt die nächsten gesetzlichen Feiertage in Nordrhein-Westfalen. Die bestehende ABD-/Anmeldelogik für Feiertagsverschiebungen bleibt erhalten.",
-    "RC874 baut den Aufgaben Planer kompakter auf: oben steht eine 5-Tage-Wochenübersicht, darunter folgen einklappbare Aufgabengruppen. Eingeklappte Gruppen erzeugen ihre vielen Aufgabenkarten erst beim Öffnen; reine Wochen- und Gruppenansicht löst keinen zusätzlichen Azure-Save aus.",
-    "RC873 protokolliert normale Navigation und normale Einzel-Render nicht mehr als Info-Ereignisse. Die Fehlerdiagnose konzentriert sich auf echte Fehler, Warnungen, langsame Vorgänge und Render-Schleifen; dadurch sinken LocalStorage-, DOM- und Azure-Diagnoselast deutlich.",
-    "RC873 behandelt 404-Antworten von pickup-status und pickup-pod differenziert als erwartete Nichtvorhanden-Antworten, wenn alte QR-/POD-Datensätze geprüft werden. Tote Pickup-Tokens werden zehn Minuten lokal pausiert und nicht bei jedem Bereichswechsel erneut abgefragt.",
-    "RC873 akzeptiert eine alte /api/pickup-pod-URL nicht mehr automatisch als echten Signaturnachweis. Die automatische POD-Sicherung läuft in Fehlerdiagnose, Release-Center und Update-Bereich nicht im Hintergrund und startet nur mit bestätigtem abrufbarem Signaturnachweis.",
-    "RC873 drosselt Location-Registrierungen über einen 15-Minuten-Sitzungscache, entfernt die zusätzliche Regi
+    "RC874 baut den Aufgaben Planer kompakter auf: oben steht eine 5-Tage-Wochenübersicht, darunter folgen einklappbare Aufgabengruppen. Eingeklappte Gruppen erzeugen ihre vielen Aufgabenkarten erst beim Öffnen; reine Wochen- und Gr
 
 --- hit 2 pos=2232299 nearest_function=startStartupStateReadProgress ---
-0,sources:0};var remote=Array.isArray(remoteState.customers)?remoteState.customers:(remoteState.customers=[]),evidence=[];customerRecoveryCollectState(preLoadState,'preload',evidence,true);try{customerRecoveryCollectState(window.__CLEAN_BOOT_STATE__,'boot',evidence,true)}catch(_){}customerRecoveryBrowser(evidence);customerRecoveryCollectState(remoteState,'remote',evidence,false);
- var best=new Map();evidence.forEach(function(item){var aliases=customerIdentityValues(item.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
+();evidence.forEach(function(item){var aliases=customerIdentityValues(item.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
  function sameCustomer(a,b){var aa=customerIdentityValues(a),bb=new Set(customerIdentityValues(b));return aa.some(function(v){return bb.has(v)})}
  remote.forEach(function(c){var matches=Array.from(best.values()).filter(function(item){return sameCustomer(c,item.data)}).sort(function(a,b){return Number(b.master)-Number(a.master)||b.score-a.score});if(matches.length&&customerRecoveryMergeBlank(c,matches[0].data)){filled++;changed=true}});
  Array.from(best.values()).filter(function(item){return item.master&&customerRecoveryKey(item.data)&&item.score>=34&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true});
@@ -76,17 +69,10 @@ async function loadScript(src){const item=await fetchScriptText(src);return exec
 async function cleanYield(ms){var wait=Number(ms);if(!Number.isFinite(wait)||wait<0)wait=0;return new Promise(function(resolve){native.setTimeout(resolve,wait)})}
 
 /* exporthub-rc902-bootstrap-performance */
-function rc524FinalFixes(){
- try{if(window.ExportHUBBuild){window.ExportHUBBuild.applyTitle();window.ExportHUBBuild.applyVersion()}}catch(_){}
- window.__EXPORTHUB_RC524__=true;
-}
-
-const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login','username','name']};
-const LOCAL_UI_KEYS=new Set(['view','q','taskSearch','taskFilter','taskDay','shipmentOverviewSearch','shipmentOverviewStatus','selectedCustomerId','shipment','activeShipmentId','sopId','sopStep','academyId','academyStep','quizAnswers','quizStep','language','rc438NotifySnoozeUntil','rc439SyncStatus','currentShipment','selectedShipment','currentShipmentId','selectedShipmentId','editingShipmentId','documentShipmentId','openShipmentId','shipmentViewId','shipmentViewReturnView','customerFolderId','customerFold
+functi
 
 --- hit 3 pos=2232525 nearest_function=startStartupStateReadProgress ---
-ow.__CLEAN_BOOT_STATE__,'boot',evidence,true)}catch(_){}customerRecoveryBrowser(evidence);customerRecoveryCollectState(remoteState,'remote',evidence,false);
- var best=new Map();evidence.forEach(function(item){var aliases=customerIdentityValues(item.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
+master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
  function sameCustomer(a,b){var aa=customerIdentityValues(a),bb=new Set(customerIdentityValues(b));return aa.some(function(v){return bb.has(v)})}
  remote.forEach(function(c){var matches=Array.from(best.values()).filter(function(item){return sameCustomer(c,item.data)}).sort(function(a,b){return Number(b.master)-Number(a.master)||b.score-a.score});if(matches.length&&customerRecoveryMergeBlank(c,matches[0].data)){filled++;changed=true}});
  Array.from(best.values()).filter(function(item){return item.master&&customerRecoveryKey(item.data)&&item.score>=34&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true});
@@ -134,12 +120,10 @@ function rc524FinalFixes(){
  window.__EXPORTHUB_RC524__=true;
 }
 
-const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login','username','name']};
-const LOCAL_UI_KEYS=new Set(['view','q','taskSearch','taskFilter','taskDay','shipmentOverviewSearch','shipmentOverviewStatus','selectedCustomerId','shipment','activeShipmentId','sopId','sopStep','academyId','academyStep','quizAnswers','quizStep','language','rc438NotifySnoozeUntil','rc439SyncStatus','currentShipment','selectedShipment','currentShipmentId','selectedShipmentId','editingShipmentId','documentShipmentId','openShipmentId','shipmentViewId','shipmentViewReturnView','customerFolderId','customerFolderOpenId','currentCustomerId','selectedCustomer','currentCustomer','shipmentDraft','customerDraft','abdDraft','lastCustomerId','rc524OverviewPage','rc524OverviewPageSize','rc524OverviewSearch','rc562ShipmentId','rc562ShipmentM
+const SYNC_COLLECTION_KEYS={shipments:['id','ref'],t
 
 --- hit 4 pos=2232767 nearest_function=loadState ---
-s(item.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
- function sameCustomer(a,b){var aa=customerIdentityValues(a),bb=new Set(customerIdentityValues(b));return aa.some(function(v){return bb.has(v)})}
+function(v){return bb.has(v)})}
  remote.forEach(function(c){var matches=Array.from(best.values()).filter(function(item){return sameCustomer(c,item.data)}).sort(function(a,b){return Number(b.master)-Number(a.master)||b.score-a.score});if(matches.length&&customerRecoveryMergeBlank(c,matches[0].data)){filled++;changed=true}});
  Array.from(best.values()).filter(function(item){return item.master&&customerRecoveryKey(item.data)&&item.score>=34&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true});
  if(!restored){Array.from(best.values()).filter(function(item){return customerRecoveryKey(item.data)&&item.score>=60&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true})}
@@ -186,15 +170,12 @@ function rc524FinalFixes(){
  window.__EXPORTHUB_RC524__=true;
 }
 
-const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login','username','name']};
-const LOCAL_UI_KEYS=new Set(['view','q','taskSearch','taskFilter','taskDay','shipmentOverviewSearch','shipmentOverviewStatus','selectedCustomerId','shipment','activeShipmentId','sopId','sopStep','academyId','academyStep','quizAnswers','quizStep','language','rc438NotifySnoozeUntil','rc439SyncStatus','currentShipment','selectedShipment','currentShipmentId','selectedShipmentId','editingShipmentId','documentShipmentId','openShipmentId','shipmentViewId','shipmentViewReturnView','customerFolderId','customerFolderOpenId','currentCustomerId','selectedCustomer','currentCustomer','shipmentDraft','customerDraft','abdDraft','lastCustomerId','rc524OverviewPage','rc524OverviewPageSize','rc524OverviewSearch','rc562ShipmentId','rc562ShipmentMode','shipmentCustomerId','shipmentLocationId','selectedAbdId','currentAbdId','__rc560FreshShipment','__rc562FreshShipment','__rc350UserTouchedColli','__rc350FreshShipmentUntil','rc406OverviewSearchDraft','rc485OverviewStatuses','rc210Overvie
+const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login'
 
 === 'ExportHUB wird vorbereitet' hits=1 ===
 
 --- hit 1 pos=859468 nearest_function=apply ---
-y[data-eh-theme] .main,html[data-exporthub-testportal="1"] .main{background:rgba(255,247,237,.72)!important}
-html[data-exporthub-testportal="1"] body[data-eh-theme] #content,html[data-exporthub-testportal="1"] #content{background:rgba(255,247,237,.48)!important;border-radius:18px}
-html[data-exporthub-testportal="1"] #login,html[data-exporthub-testportal="1"] #cleanLoadPanel{background:linear-gradient(135deg,#fff7ed,#fffbeb)!important}
+ent(135deg,#fff7ed,#fffbeb)!important}
 html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147482500;border:4px solid rgba(234,88,12,.72);box-sizing:border-box}
 #rc561TestPortalBadge{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:2147483600;background:#c2410c;color:#fff;border:1px solid #9a3412;border-radius:0 0 12px 12px;padding:7px 18px;font:950 12px/1.15 system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.075em;box-shadow:0 6px 18px rgba(154,52,18,.3);pointer-events:none;white-space:nowrap}
 #rc561TestRuntimeError{position:fixed;left:50%;bottom:12px;transform:translate(-50%,20px);z-index:2147483601;max-width:min(92vw,900px);background:#7f1d1d;color:#fff;border:1px solid #fecaca;border-radius:10px;padding:8px 12px;font:800 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;box-shadow:0 8px 24px rgba(127,29,29,.3);opacity:0;pointer-events:none;transition:.16s ease}
@@ -272,18 +253,12 @@ function by(id){return document.getElementById(id)}
 function q(v){return String(v==null?'':v).trim()}
 function pref(){try{return localStorage.getItem(PREF)==='1'}catch(_){return false}}
 function hint(text,kind){var h=by('loginRememberHint');if(!h)return;h.textContent=text||'Benutzername wird von ExportHUB gemerkt. Das Passwort verwaltet ausschließlich der Browser-Passwortmanager.';h.style.color=kind==='ok'?'#166534':kind==='warn'?'#92400e':'#64748b'}
-function setPref(on,user){try{if(on){localStorage.setItem(PREF,'1');if(q(user))localStorage.setItem(USER,q(user))}else{localStorage.removeItem(PREF);localStorage.removeItem(USER)}}catch(_){}return !!on}
-function credentialApi(){return !!(window.isSecureContext&&navigator.credentials&&typeof navigator.credentials.get==='function')}
-async function restore(){var remember=by('loginRemember'),u=by('loginUser'),p=by('loginPass'),on=pref();if(remember)remember.checked=on;if(!on){hint();return false}try{var saved=q(localStorage.getItem(USER));if(u&&!q(u.value)&&saved)u.value=saved}catch(_){}
- if(!credentialApi()){hint('Benutzername gespeichert · Passwort kann der Browser-Passwortmanager beim Anmelden anbieten.','warn');return false}
- try{var cred=await navigator.credentials.get({password:true,mediation:'optional'});if(!cred){hint('Benutzername gespeichert · Passwort kann der Browser-Passwortmanager beim Anmelden anbieten.');return false}if(u&&q(cred.id))u.value=q(cred.id);if(p&&typeof cred.password==='string')p.value=cred.password
+function setPref(on,user){try{if(on){l
 
 === 'Teamdaten werden geladen' hits=5 ===
 
---- hit 1 pos=88252 nearest_function=tokenFromUrl ---
-bilisiert den Testservice-API-Start: GitHub installiert die Node-Abhängigkeiten vor dem Deploy und Azure übernimmt den bereits vorbereiteten API-Ordner mit skip_api_build=true.",
-    "RC880 prüft exporthub-auth und seine Abhängigkeiten bereits vor dem Deploy als echte Node-Module. Ein Syntax-Check allein reicht nicht mehr aus.",
-    "RC880 ergänzt /api/exporthub-auth-probe. Die Probe verrät nach dem Deploy ohne Geheimnisse offenzulegen, ob user-policy, auth-store und @azure/storage-blob im Azure-Functions-Runtime geladen werden können.",
+--- hit 1 pos=88252 nearest_function=<none> ---
+em Deploy ohne Geheimnisse offenzulegen, ob user-policy, auth-store und @azure/storage-blob im Azure-Functions-Runtime geladen werden können.",
     "RC879 stabilisiert die Testservice-Anmeldung bei großen Azure-Teamständen: Die Benutzer-Policy dupliziert den kompletten state-Block nicht mehr per JSON-Serialisierung. Nur Benutzer und der flache State-Rahmen werden für die Normalisierung kopiert; Sendungen, Kunden, PODs und Dokumentdaten bleiben unverändert erhalten.",
     "RC879 prüft im Testservice vor der Anmeldung die echte exporthub-auth-Konfiguration mit bootstrap-status. Ein nicht erreichbarer oder falsch konfigurierter Auth-/Storage-Backendzustand wird bereits vor dem Login sichtbar und nicht mehr erst als unklarer HTTP-500-Loginfehler gemeldet.",
     "RC879 erweitert den Testservice-Deploy um eine verbindliche Auth-Backend-Prüfung. Ein Deploy darf nur noch grün werden, wenn /api/exporthub-auth bootstrap-status erfolgreich beantwortet und der Azure-Speicher erreichbar ist.",
@@ -303,15 +278,10 @@ bilisiert den Testservice-API-Start: GitHub installiert die Node-Abhängigkeiten
     "RC874 gruppiert die Aufgabenansicht verbindlich nach Picken, ABD erstellen, Anmelden, Aufträge kontrollieren, Zusatzaufgaben und weiteren Aufgaben. Jede Gruppe kann einzeln ein- und ausgeklappt werden; zusätzlich stehen Alle Gruppen öffnen und Alle Gruppen schließen bereit. Der Klappzustand bleibt lokal auf dem Gerät erhalten und erzeugt keinen Azure-Save.",
     "RC874 entdoppelt offene Aufgaben in Aufgaben und Aufgaben Planer semantisch. Gleiche Wochen-/Tagesaufgaben mit anderem technischen Datensatz-ID werden nur einmal angezeigt; sendungsbezogene Aufgaben bleiben durch ihre Referenz getrennt. Der Masterplan entfernt zusätzlich echte doppelte Masterinstanzen derselben Serie/Woche, ohne manuelle Einzelaufgaben zusammenzufassen.",
     "RC874 macht Feiertage im Aufgaben Planer dauerhaft sichtbar: Die ausgewählte Woche markiert Feiertage direkt am Tag und ein eigener kompakter Bereich zeigt die nächsten gesetzlichen Feiertage in Nordrhein-Westfalen. Die bestehende ABD-/Anmeldelogik für Feiertagsverschiebungen bleibt erhalten.",
-    "RC874 baut den Aufgaben Planer kompakter auf: oben steht eine 5-Tage-Wochenübersicht, darunter folgen einklappbare Aufgabengruppen. Eingeklappte Gruppen erzeugen ihre vielen Aufgabenkarten erst beim Öffnen; reine Wochen- und Gruppenansicht löst keinen zusätzlichen Azure-Save aus.",
-    "RC873 protokolliert normale Navigation und normale Einzel-Render nicht mehr als Info-Ereignisse. Die Fehlerdiagnose konzentriert sich auf echte Fehler, Warnungen, langsame Vorgänge und Render-Schleifen; dadurch sinken LocalStorage-, DOM- und Azure-Diagnoselast deutlich.",
-    "RC873 behandelt 404-Antworten von pickup-status und pickup-pod differenziert als erwartete Nichtvorhanden-Antworten, wenn alte QR-/POD-Datensätze geprüft werden. Tote Pickup-Tokens werden zehn Minuten lokal pausiert und nicht bei jedem Bereichswechsel erneut abgefragt.",
-    "RC873 akzeptiert eine alte /api/pickup-pod-URL nicht mehr automatisch als echten Signaturnachweis. Die automatische POD-Sicherung läuft in Fehlerdiagnose, Release-Center und Update-Bereich nicht im Hintergrund und startet nur mit bestätigtem abrufbarem Signaturnachweis.",
-    "RC873 drosselt Location-Registrierungen über einen 15-Minuten-Sitzungscache, entfernt die zusätzliche Registrier
+    "RC874 baut den Aufgaben Planer kompakter auf: oben steht eine 5-Tage-Wochenübersicht, darunter folgen einklappbare Aufgabengruppen. Eingeklappte Gruppen erzeugen ihre vielen Aufgabenkarten erst beim Öffnen; reine Wochen- und Gruppena
 
 --- hit 2 pos=2232305 nearest_function=startStartupStateReadProgress ---
-ces:0};var remote=Array.isArray(remoteState.customers)?remoteState.customers:(remoteState.customers=[]),evidence=[];customerRecoveryCollectState(preLoadState,'preload',evidence,true);try{customerRecoveryCollectState(window.__CLEAN_BOOT_STATE__,'boot',evidence,true)}catch(_){}customerRecoveryBrowser(evidence);customerRecoveryCollectState(remoteState,'remote',evidence,false);
- var best=new Map();evidence.forEach(function(item){var aliases=customerIdentityValues(item.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
+dence.forEach(function(item){var aliases=customerIdentityValues(item.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
  function sameCustomer(a,b){var aa=customerIdentityValues(a),bb=new Set(customerIdentityValues(b));return aa.some(function(v){return bb.has(v)})}
  remote.forEach(function(c){var matches=Array.from(best.values()).filter(function(item){return sameCustomer(c,item.data)}).sort(function(a,b){return Number(b.master)-Number(a.master)||b.score-a.score});if(matches.length&&customerRecoveryMergeBlank(c,matches[0].data)){filled++;changed=true}});
  Array.from(best.values()).filter(function(item){return item.master&&customerRecoveryKey(item.data)&&item.score>=34&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true});
@@ -354,17 +324,10 @@ async function loadScript(src){const item=await fetchScriptText(src);return exec
 async function cleanYield(ms){var wait=Number(ms);if(!Number.isFinite(wait)||wait<0)wait=0;return new Promise(function(resolve){native.setTimeout(resolve,wait)})}
 
 /* exporthub-rc902-bootstrap-performance */
-function rc524FinalFixes(){
- try{if(window.ExportHUBBuild){window.ExportHUBBuild.applyTitle();window.ExportHUBBuild.applyVersion()}}catch(_){}
- window.__EXPORTHUB_RC524__=true;
-}
-
-const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login','username','name']};
-const LOCAL_UI_KEYS=new Set(['view','q','taskSearch','taskFilter','taskDay','shipmentOverviewSearch','shipmentOverviewStatus','selectedCustomerId','shipment','activeShipmentId','sopId','sopStep','academyId','academyStep','quizAnswers','quizStep','language','rc438NotifySnoozeUntil','rc439SyncStatus','currentShipment','selectedShipment','currentShipmentId','selectedShipmentId','editingShipmentId','documentShipmentId','openShipmentId','shipmentViewId','shipmentViewReturnView','customerFolderId','customerFolderOpen
+function rc5
 
 --- hit 3 pos=2232531 nearest_function=startStartupStateReadProgress ---
-LEAN_BOOT_STATE__,'boot',evidence,true)}catch(_){}customerRecoveryBrowser(evidence);customerRecoveryCollectState(remoteState,'remote',evidence,false);
- var best=new Map();evidence.forEach(function(item){var aliases=customerIdentityValues(item.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
+&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
  function sameCustomer(a,b){var aa=customerIdentityValues(a),bb=new Set(customerIdentityValues(b));return aa.some(function(v){return bb.has(v)})}
  remote.forEach(function(c){var matches=Array.from(best.values()).filter(function(item){return sameCustomer(c,item.data)}).sort(function(a,b){return Number(b.master)-Number(a.master)||b.score-a.score});if(matches.length&&customerRecoveryMergeBlank(c,matches[0].data)){filled++;changed=true}});
  Array.from(best.values()).filter(function(item){return item.master&&customerRecoveryKey(item.data)&&item.score>=34&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true});
@@ -412,12 +375,10 @@ function rc524FinalFixes(){
  window.__EXPORTHUB_RC524__=true;
 }
 
-const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login','username','name']};
-const LOCAL_UI_KEYS=new Set(['view','q','taskSearch','taskFilter','taskDay','shipmentOverviewSearch','shipmentOverviewStatus','selectedCustomerId','shipment','activeShipmentId','sopId','sopStep','academyId','academyStep','quizAnswers','quizStep','language','rc438NotifySnoozeUntil','rc439SyncStatus','currentShipment','selectedShipment','currentShipmentId','selectedShipmentId','editingShipmentId','documentShipmentId','openShipmentId','shipmentViewId','shipmentViewReturnView','customerFolderId','customerFolderOpenId','currentCustomerId','selectedCustomer','currentCustomer','shipmentDraft','customerDraft','abdDraft','lastCustomerId','rc524OverviewPage','rc524OverviewPageSize','rc524OverviewSearch','rc562ShipmentId','rc562ShipmentMode','
+const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:[
 
 --- hit 4 pos=2232773 nearest_function=loadState ---
-.data),key=customerRecoveryKey(item.data)||aliases[0]||lower(item.data.name||item.data.customerName);if(!key)return;var old=best.get(key);if(!old||item.master&&!old.master||item.master===old.master&&item.score>old.score)best.set(key,item)});var changed=false,restored=0,filled=0;
- function sameCustomer(a,b){var aa=customerIdentityValues(a),bb=new Set(customerIdentityValues(b));return aa.some(function(v){return bb.has(v)})}
+on(v){return bb.has(v)})}
  remote.forEach(function(c){var matches=Array.from(best.values()).filter(function(item){return sameCustomer(c,item.data)}).sort(function(a,b){return Number(b.master)-Number(a.master)||b.score-a.score});if(matches.length&&customerRecoveryMergeBlank(c,matches[0].data)){filled++;changed=true}});
  Array.from(best.values()).filter(function(item){return item.master&&customerRecoveryKey(item.data)&&item.score>=34&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true});
  if(!restored){Array.from(best.values()).filter(function(item){return customerRecoveryKey(item.data)&&item.score>=60&&!customerRecoveryTombstoned(remoteState,item.data)}).sort(function(a,b){return b.score-a.score}).forEach(function(item){if(remote.some(function(c){return sameCustomer(c,item.data)}))return;remote.push(clone(item.data));restored++;changed=true})}
@@ -464,22 +425,10 @@ function rc524FinalFixes(){
  window.__EXPORTHUB_RC524__=true;
 }
 
-const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login','username','name']};
-const LOCAL_UI_KEYS=new Set(['view','q','taskSearch','taskFilter','taskDay','shipmentOverviewSearch','shipmentOverviewStatus','selectedCustomerId','shipment','activeShipmentId','sopId','sopStep','academyId','academyStep','quizAnswers','quizStep','language','rc438NotifySnoozeUntil','rc439SyncStatus','currentShipment','selectedShipment','currentShipmentId','selectedShipmentId','editingShipmentId','documentShipmentId','openShipmentId','shipmentViewId','shipmentViewReturnView','customerFolderId','customerFolderOpenId','currentCustomerId','selectedCustomer','currentCustomer','shipmentDraft','customerDraft','abdDraft','lastCustomerId','rc524OverviewPage','rc524OverviewPageSize','rc524OverviewSearch','rc562ShipmentId','rc562ShipmentMode','shipmentCustomerId','shipmentLocationId','selectedAbdId','currentAbdId','__rc560FreshShipment','__rc562FreshShipment','__rc350UserTouchedColli','__rc350FreshShipmentUntil','rc406OverviewSearchDraft','rc485OverviewStatuses','rc210OverviewSort'
+const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:['id','_syncId'],customers:['id','account','customerNumber','name'],abdRequests:['id','ref'],palletAccount:['id','_syncId'],ideas:['id','_syncId'],customSops:['id','name','_syncId'],sops:['id','name','_syncId'],users:['id','user','login','user
 
 --- hit 5 pos=2316193 nearest_function=finishAuthenticatedLogin ---
-;e.code=d&&d.code||'SESSION_CHECK_FAILED';throw e}
- runtime.user=d.user||runtime.user;
- runtime.users=d.user?[d.user]:runtime.users;
- writeTabSession();
- return d
-}
-async function renewSessionOnce(){
- const pending=runtime.loginRetryCredentials;
- if(!pending||runtime.sessionRefreshAttempted)return false;
- runtime.sessionRefreshAttempted=true;
- status('Die Sitzung wird einmalig erneuert …','');
- const fresh=await authCall('login',{username:pending.username,password:pending.password,deviceId:pending.deviceId,recoveryRequested:false},'');
+nst fresh=await authCall('login',{username:pending.username,password:pending.password,deviceId:pending.deviceId,recoveryRequested:false},'');
  if(!fresh||!text(fresh.token)||fresh.mustChange===true)return false;
  runtime.authToken=text(fresh.token);runtime.user=fresh.user||runtime.user;runtime.users=fresh.user?[fresh.user]:runtime.users;
  await verifyCurrentSession();
@@ -524,10 +473,7 @@ async function login(manual){
  if(runtime.loading||runtime.loginBusy)return false;if(logoutSignalPresent()&&manual!==true){showLoggedOutScreen();return false}if(manual===true){clearLogoutSignalForManualLogin();runtime.sessionExpiredHandled=false}
  const name=by('loginUser')&&by('loginUser').value,pass=by('loginPass')&&by('loginPass').value;if(!text(name)||!text(pass)){status('Benutzername und Passwort sind erforderlich.','bad');return false}
  var testLogin=isTestServiceOrigin(),retry=by('testserviceContinueBtn');if(retry)retry.classList.add('hidden');runtime.sessionRestored=false;runtime.loginBusy=true;setLoginEnabled(false);status(testLogin?'TESTSERVICE-Anmeldung wird einmalig geprüft …':'ExportHUB-Anmeldung wird geprüft …','');startLoginProgress();
- try{const d=testLogin?await testserviceLoginOnce(name,pass,runtime.adminRecoveryRequested===true):await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true});if(testLogin)await rejectTestserviceNonGlobal(d.user,d.token);stopLoginProgress();progress(6,'Anmeldung bestätigt · Teamdaten werden vorbereitet …');runtime.authToken=text(d.token);runtime.passwordChangeTicket=d.passwordChangeTicket||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];runtime.loginRetryCredentials=testLogin?null:{username:text(name),password:String(pass||''),deviceId:runtime.deviceId};runtime.sessionRefreshAttempted=false;const usedRecovery=runtime.adminRecoveryRequested===true;runtime.adminRecoveryRequested=false;if(d.mustChange){stopLoginProgress();hideProgress();runtime.pendingPasswordLogin={username:text(name),password:String(pass||''),deviceId:runtime.deviceId,recoveryRequested:usedRecovery};runtime.passwordChangeRetry=false;showPasswordChange(d.recoveryUsed?'Admin-Zugang wiederhergestellt. Bitte jetzt ein neues persönliches Passwort festlegen.':'Bitte das automatisch erzeugte Startpasswort ändern.');return false}try{if(typeof window.__EXPORTHUB_STORE_LOGIN_CREDENTIALS__==='function')await Promise.resolve(window.__EXPORTHUB_STORE_LOGIN_CREDENTIALS__(name,pass))}catch(_){}await finishAuthenticatedLogin();return false}
- catch(e){stopLoginProgress();hideProgress();var message=e.message||'Anmeldung fehlgeschlagen.';if(e.code==='INITIAL_ADMIN_NOT_CONFIGURED')message+=' Bitte in Azure die Anwendungseinstellung EXPORTHUB_INITIAL_ADMIN_PASSWORD eintragen.';if(e.code==='S
-
-=== 'exporthub-state?mode' hits=0 ===
+ try{const d=testLogin?await testserviceLoginOnce(name,pass,runtime.adminRecoveryRequested===true):await authCall('login',{username:name,password:pass,deviceId:runtime.deviceId,recoveryRequested:runtime.adminRecoveryRequested===true});if(testLogin)await rejectTestserviceNonGlobal(d.user,d.token);stopLoginProgress();progress(6,'Anmeldung bestätigt · Teamdaten werden vorbereitet …');runtime.authToken=text(d.token);runtime.passwordChangeTicket=d.passwordChangeTicket||'';runtime.user=d.user||null;runtime.users=d.user?[d.user]:[];runtime.loginRetryCredentials=testLogin?null:{username:text(name),password:String(pass||''),deviceId:runtime.deviceId};ru
 
 === 'exporthub-state' hits=21 ===
 
@@ -563,15 +509,10 @@ function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
 function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
 function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
 load();
-window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
-window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
-if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
-if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
-if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
-if(nativeFetch){window.fe
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.file
 
 --- hit 2 pos=13717 nearest_function=watchContent ---
-ending.areas).filter(function(x){return x&&x!=='DIAG_IGNORE'}),view=currentView(),cause=Date.now()-lastSignal.at<1000?lastSignal.name:'DOM-Änderung',detail={mutations:pending.count,added:pending.added,removed:pending.removed,cause:cause,areas:areas.slice(0,4)},label=areas.length===1?areas[0]:(areas.length?areas.slice(0,2).join(' / '):'Gesamtbereich '+view),mutationCount=pending.count;pending={count:0,added:0,removed:0,areas:Object.create(null)};if(!areas.length)return;if(mutationCount>=120)add('performance','warning','Großer Render-Vorgang: '+label,detail,view);if(mutationCount<15)return;var key=low(view+'|'+label),a=renderBurst[key]||(renderBurst[key]=[]),t=Date.now();a.push(t);while(a.length&&t-a[0]>3500)a.shift();if(a.length>=4){add('performance','warning','Häufiges Neu-Rendern erkannt: '+label,{rendersIn3_5s:a.length,view:view,cause:cause},view);a.length=0}}
+t:0,added:0,removed:0,areas:Object.create(null)};if(!areas.length)return;if(mutationCount>=120)add('performance','warning','Großer Render-Vorgang: '+label,detail,view);if(mutationCount<15)return;var key=low(view+'|'+label),a=renderBurst[key]||(renderBurst[key]=[]),t=Date.now();a.push(t);while(a.length&&t-a[0]>3500)a.shift();if(a.length>=4){add('performance','warning','Häufiges Neu-Rendern erkannt: '+label,{rendersIn3_5s:a.length,view:view,cause:cause},view);a.length=0}}
 function watchContent(){var content=document.getElementById('content');if(!content||content.__ehDiag863Observed)return false;content.__ehDiag863Observed=true;var mo=new MutationObserver(function(list){var view=currentView();if(view==='diagnostics')return;var count=0,added=0,removed=0;for(var i=0;i<list.length;i++){var m=list[i];if(!m||m.type!=='childList')continue;var target=m.target&&m.target.nodeType===1?m.target:null;if(target&&target.closest&&(target.closest('#rc863Diagnostics')||target.closest('[data-rc871-diagnostics-view]')))continue;count++;added+=m.addedNodes?m.addedNodes.length:0;removed+=m.removedNodes?m.removedNodes.length:0}if(!count)return;pending.count+=count;pending.added+=added;pending.removed+=removed;pending.areas['Gesamtbereich '+(view||'unbekannt')]=1;if(renderTimer)clearTimeout(renderTimer);renderTimer=setTimeout(flushRender,320)});mo.observe(content,{childList:true,subtree:true});return true}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchContent,{once:true});else watchContent();
 window.addEventListener('exporthub:ready',watchContent);window.addEventListener('exporthub:rendered',function(){setTimeout(watchContent,0)});window.addEventListener('exporthub:viewchange',function(){setTimeout(watchContent,0)});
@@ -602,13 +543,10 @@ function lastSentSeq(){try{return Number(sessionStorage.getItem(lastSeqKey())||0
 function setLastSentSeq(n){try{sessionStorage.setItem(lastSeqKey(),String(Number(n)||0))}catch(_){}}
 function notify(){try{window.dispatchEvent(new CustomEvent('exporthub:diagnostics-cloud-updated',{detail:{status:remoteMeta.status,total:remoteMeta.total}}))}catch(_){}}
 function setStatus(status,error){remoteMeta.status=status;remoteMeta.lastError=q(error||'');notify()}
-async function request(mode,opt){var f=rawFetch(),t=token();if(!f)throw new Error('Fetch ist nicht verfügbar.');if(!t)throw new Error('Keine angemeldete ExportHUB-Sitzung.');if(navigator.onLine===false){var offline=new Error('Offline');offline.code='OFFLINE';throw offline}opt=opt||{};var method=opt.method||'GET',url=endpoint+'?mode='+encodeURIComponent(mode)+'&environment='+encodeURIComponent(environment());if(opt.limit)url+='&limit='+encodeURIComponent(opt.limit);var controller=typeof AbortController==='function'?new AbortController():null,timer=controller?setTimeout(function(){try{controller.abort()}catch(_){}},45000):0,init={method:method,credentials:'same-origin',cache:'no-store',headers:headers()};if(controller)init.signal=controller.signal;if(opt.body)init.body=JSON.stringify(opt.body);var r,raw='';try{r=await f(url,init)}finally{if(timer)clearTimeout(timer)}try{raw=await r.text()}catch(_){}var data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={}}if(!r.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+r.status));e.status=r.status;e.code=q(data.code);throw e}return data}
-async function uploadPending(force){if(busyUpload)return false;var t=token();if(!t){setStatus('Warte auf Anmeldung');return false}if(!force&&(document.hidden||navigator.onLine===false||Date.now()<uploadRetryAt)){setStatus(navigator.onLine===false?'Diagnose lokal · offline':'Azure-Sync ausstehend',remoteMeta.lastError);return false}var rows=localRecords(),last=lastSentSeq(),pending=rows.filter(function(r){return Number(r&&r.seq||0)>last});if(!pending.length){if(remoteMeta.status==='Warte auf Anmeldung')setStatus('Azure bereit');return false}var batch=pending.slice(0,50).map(function(r){return{id:eventId(r),seq:Number(r.seq||0),at:r.at,lastAt:r.lastAt,level:r.level,category:r.category,area:r.area,message:r.message,details:r.details,count:r.count}});busyUpload=true;try{setStatus('Synchronisiert Diagnose …');var data=await request('diagnostics-append',{method:'POST',body:{action:'diagnostics-append',enviro
+async function request(mode,opt){var f=rawFetch(),t=token();if(!f)throw new Error('Fetch ist nicht verfügbar.');if(!t)throw new Error('Keine angemeldete ExportHUB-Sitzung.');if(navigator.onLine===false){var offline=new Error('Offline');offline.code='OFFLINE';throw offline}opt=opt||{};var method=opt.method||'GET',url=endpoint+'?mode='+encodeURIComponent(mode)+'&environment='+encodeURIComponent(environment());if(opt.limit)url+='&limit='+encodeURIComponent(opt.limit);var controller=typeof AbortController==='function'?new AbortController():null,timer=controller?setTimeout(function(){try{controller.abort()}catch(_){}},45000):0,init={method:method,credentials:'same-origin',cache:'no-store',headers:headers()};if(controller)init.signal=controller.signal;if(opt.body)init.body=JSON.stringify(opt.body);var r,raw='';try{r=await f(url,init)}finally{if(timer)clearTimeout(timer)}try{raw=await r.text()}catch(_){}var data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={}}if(!r.ok||data.ok===false){var e=new Error(q(data.mess
 
 --- hit 3 pos=68832 nearest_function=tokenFromUrl ---
-t und Adressbestätigung schreiben locationId, selectedLocationId, siteId und destinationId sowie Empfänger-, Liefer- und Zieladresse gemeinsam.',
-    'RC937 vereinheitlicht die letzten Standort-Leser und den Kundenwechsel: destinationId wird bei Erkennung und Anzeige berücksichtigt; beim Kundenwechsel werden selectedLocationId sowie Liefer- und Zieladresse ohne Altlasten zurückgesetzt.',
-    'RC936 vereinheitlicht den Neu-Sendungs-Reset: selectedLocationId, locationName sowie Empfänger-, Liefer- und Zieladresse werden gemeinsam mit den übrigen Standortfeldern zurückgesetzt.',
+6 vereinheitlicht den Neu-Sendungs-Reset: selectedLocationId, locationName sowie Empfänger-, Liefer- und Zieladresse werden gemeinsam mit den übrigen Standortfeldern zurückgesetzt.',
     'RC936 vereinheitlicht den bestehenden Speicher-/Wiederherstellungspfad: destinationId sowie Empfänger-, Liefer- und Zieladresse werden gemeinsam gelesen und wiederhergestellt, damit kein Standort-Alias mehr auseinanderläuft.',
     'RC935 beseitigt den letzten Standort-Alias-Drift beim Speichern und Synchronisieren: locationId, selectedLocationId, siteId und destinationId sowie Empfänger-, Liefer- und Zieladresse werden in allen Wiederherstellungspfaden gemeinsam gesetzt.',
     'RC935 entfernt beim Zurücksetzen eines Standorts auch destinationId sowie Empfänger- und Zielland, damit kein alter Zielstandort unsichtbar in CMR, Ladeliste oder Mailbereich erhalten bleibt.',
@@ -634,16 +572,10 @@ t und Adressbestätigung schreiben locationId, selectedLocationId, siteId und de
   'RC925 verhindert damit UI-Hänger bei großen Teamständen, ohne zusätzliche Azure-Speicherungen zu erzeugen: unveränderte bzw. rein lokale UI-Zustände werden weiterhin vor dem Netzwerkzugriff als No-Change erkannt.',
   'RC925 reduziert im bestätigten Speicherpfad weitere vollständige Teamstand-Kopien: derselbe bereits getrennte Sendesnapshot wird für die laufende Speicherung wiederverwendet; der bestätigte Azure-Snapshot wird ohne erneutes JSON-Klonen als letzte Vergleichsbasis übernommen.',
   'RC925 hält den Azure-Teamstand innerhalb derselben warmen Function-Instanz als getrennten Snapshot im Speicher. Wiederholte Reads prüfen nur den Blob-ETag; unveränderte Teamdaten werden nicht erneut vollständig heruntergeladen.',
-  'RC925 kann wiederholte Saves auf einer warmen Function-Instanz direkt mit dem zuletzt bestätigten ETag schreiben. Bei einer Paralleländerung erzwingt Azure per If-Match einen Konflikt; danach wird der aktuelle Teamstand neu gelesen, Benutzerrechte werden erneut geprüft und erst dann zusammengeführt.',
-  'RC925 beendet eine ACK-Bestätigung ohne Paralleländerung ohne zweiten Vollklon und ohne zweiten Vollvergleich des Teamstands. Die Sendungssperre wird außerdem nur bei tatsächlichen Sendungsänderungen ein zweites Mal geprüft.',
-  'RC925 lädt nach einer Parallelzusammenführung oder Idempotenz-Wiederholung den tatsächlich zusammengeführten Azure-Teamstand einmal vollständig zurück, bevor der lokale Stand als bestätigt gilt. Dadurch gehen fremde Paralleländerungen im Browser nicht verloren.',
-  'RC924 beseitigt den horizontalen Überstand in Sendung erstellen bei schmalem Desktop/Notebook: Das bestehende Zwei-Spalten-Raster greift jetzt bis 1500 px, bevor die feste Dreispalten-Mindestbreite den Inhaltsbereich überschreiten kann.',
-  'RC924 beschleunigt das Prüfungszentrum ohne Funktionsverlust: Die 30 integrierten Prüfungen mit 1.200 Fragen liegen nicht mehr als rund 838 KB ausführbarer JavaScript-Objektliteral im Lazy-Controlle
+  'RC925 kann wiederholte Saves auf einer warmen Function-Instanz direkt mit dem zuletzt bestätigten ETag schreiben. Bei einer Paralleländerung erzwingt Azure per If-Match einen Konflikt; danach wird der aktuelle Teamstand neu gelesen, Benutzerre
 
 --- hit 4 pos=69090 nearest_function=tokenFromUrl ---
-d Anzeige berücksichtigt; beim Kundenwechsel werden selectedLocationId sowie Liefer- und Zieladresse ohne Altlasten zurückgesetzt.',
-    'RC936 vereinheitlicht den Neu-Sendungs-Reset: selectedLocationId, locationName sowie Empfänger-, Liefer- und Zieladresse werden gemeinsam mit den übrigen Standortfeldern zurückgesetzt.',
-    'RC936 vereinheitlicht den bestehenden Speicher-/Wiederherstellungspfad: destinationId sowie Empfänger-, Liefer- und Zieladresse werden gemeinsam gelesen und wiederhergestellt, damit kein Standort-Alias mehr auseinanderläuft.',
+: destinationId sowie Empfänger-, Liefer- und Zieladresse werden gemeinsam gelesen und wiederhergestellt, damit kein Standort-Alias mehr auseinanderläuft.',
     'RC935 beseitigt den letzten Standort-Alias-Drift beim Speichern und Synchronisieren: locationId, selectedLocationId, siteId und destinationId sowie Empfänger-, Liefer- und Zieladresse werden in allen Wiederherstellungspfaden gemeinsam gesetzt.',
     'RC935 entfernt beim Zurücksetzen eines Standorts auch destinationId sowie Empfänger- und Zielland, damit kein alter Zielstandort unsichtbar in CMR, Ladeliste oder Mailbereich erhalten bleibt.',
     'RC934 hält den gewählten Kundenstandort nach Speichern und erneutem Öffnen vollständig synchron: Location-ID, Destination-ID, Empfänger-, Liefer- und Zieladresse werden gemeinsam wiederhergestellt oder gemeinsam zurückgesetzt.',
@@ -669,16 +601,10 @@ d Anzeige berücksichtigt; beim Kundenwechsel werden selectedLocationId sowie Li
   'RC925 reduziert im bestätigten Speicherpfad weitere vollständige Teamstand-Kopien: derselbe bereits getrennte Sendesnapshot wird für die laufende Speicherung wiederverwendet; der bestätigte Azure-Snapshot wird ohne erneutes JSON-Klonen als letzte Vergleichsbasis übernommen.',
   'RC925 hält den Azure-Teamstand innerhalb derselben warmen Function-Instanz als getrennten Snapshot im Speicher. Wiederholte Reads prüfen nur den Blob-ETag; unveränderte Teamdaten werden nicht erneut vollständig heruntergeladen.',
   'RC925 kann wiederholte Saves auf einer warmen Function-Instanz direkt mit dem zuletzt bestätigten ETag schreiben. Bei einer Paralleländerung erzwingt Azure per If-Match einen Konflikt; danach wird der aktuelle Teamstand neu gelesen, Benutzerrechte werden erneut geprüft und erst dann zusammengeführt.',
-  'RC925 beendet eine ACK-Bestätigung ohne Paralleländerung ohne zweiten Vollklon und ohne zweiten Vollvergleich des Teamstands. Die Sendungssperre wird außerdem nur bei tatsächlichen Sendungsänderungen ein zweites Mal geprüft.',
-  'RC925 lädt nach einer Parallelzusammenführung oder Idempotenz-Wiederholung den tatsächlich zusammengeführten Azure-Teamstand einmal vollständig zurück, bevor der lokale Stand als bestätigt gilt. Dadurch gehen fremde Paralleländerungen im Browser nicht verloren.',
-  'RC924 beseitigt den horizontalen Überstand in Sendung erstellen bei schmalem Desktop/Notebook: Das bestehende Zwei-Spalten-Raster greift jetzt bis 1500 px, bevor die feste Dreispalten-Mindestbreite den Inhaltsbereich überschreiten kann.',
-  'RC924 beschleunigt das Prüfungszentrum ohne Funktionsverlust: Die 30 integrierten Prüfungen mit 1.200 Fragen liegen nicht mehr als rund 838 KB ausführbarer JavaScript-Objektliteral im Lazy-Controller, sondern als inerte JSON-Daten und werden erst bei Bedarf über den schnellen JSON-Parser geladen.',
-  'RC924 entfernt zusätzlich die mehrfach redundante Normalisierung und Vollkopie derselben Prüfungsfragen beim ersten Öffnen. Der 50-Fragen-Aufbau wird aus
+  'RC925 beendet eine ACK-Bestätigung ohne Paralleländerung ohne zweiten Vollklon und ohne zweiten Vollvergleich des Teamstands. Die Sendungssperre wird außerdem nur bei tatsächlichen Sendungsänderu
 
 --- hit 5 pos=107853 nearest_function=<none> ---
-derselben Änderung auslösen.",
-     "RC862 Regression: Lazy-Module werden beim ersten Aufruf synchron aus dem bereits ausgelieferten HTML aktiviert; es wird keine externe Bibliothek und kein CDN benötigt. Testservice-/Produktions-Isolation, Avis, QR/POD und Release-Center bleiben unverändert.",
-     "RC861 entfernt den Mail-Dateibereich vollständig. Es gibt weder Dateien für Kundenmail noch Dateien für Speditionsmail/Eigene Info-Mail und keinen EML-Mailpaket-Button mehr; die normalen Mailvorlagen und Outlook-mailto-Funktion bleiben erhalten.",
+n für Speditionsmail/Eigene Info-Mail und keinen EML-Mailpaket-Button mehr; die normalen Mailvorlagen und Outlook-mailto-Funktion bleiben erhalten.",
      "RC861 vereinheitlicht den Lieferavis-Status über alle Kopien derselben Sendung. Maßgeblich ist das zeitlich jüngste echte Avis-Ereignis (Aktivierung oder Deaktivierung) statt eines zufällig neueren, aber fachlich veralteten Sendungsobjekts.",
      "RC861 stellt den Lieferavis-Link nach erfolgreicher Aktivierung wieder zuverlässig in der Kundenmail dar. Eine alte deaktivierte Sendungskopie darf den aktuellen aktiven Avis weder im Mailtext noch im Kundenportal überdecken.",
      "RC861 macht die Customer-Avis-API token-konsistent: Ein aktiver aktueller Token bleibt gültig, alte Tokens nach erneuter Aktivierung bleiben ungültig und eine spätere manuelle/automatische Deaktivierung gewinnt weiterhin eindeutig.",
@@ -708,62 +634,12 @@ derselben Änderung auslösen.",
      "RC855 trennt Testservice und Produktion auf Azure-Speicherebene. Die Produktionsdomain verwendet weiterhin team-state.json; die echte -testservice-Domain verwendet ausschließlich testservice/team-state.json beziehungsweise EXPORTHUB_TEST_STORAGE_BLOB.",
      "RC855 verlangt bei jedem Teamdaten-Read, Meta-Check und Save eine bestätigte Server-Umgebung. Der Testservice verweigert den Start und jede Speicherung, wenn die State-API die isolierte testservice-Umgebung nicht ausdrücklich bestätigt. Damit kann eine alte gemeinsame State-API keine Testdaten mehr unbemerkt in Produktion schreiben.",
      "RC855 initialisiert den isolierten Testservice-Bestand beim ersten Start einmalig aus dem aktuellen Produktionsstand, damit reale Ausgangsdaten zum Testen verfügbar bleiben. Ab diesem Zeitpunkt laufen Revisionen, Saves, Recovery-Versionen und Backups des Testservice ausschließlich im Testservice-Namensraum.",
-     "RC855 hält die Produktionsfreigabe konsistent: Die geprüfte api/exporthub-state/index.js ist als versionsgebundener TESTVERSION-Fallback eingebettet und überschreibt beim Release die ältere State-API aus dem Snapshot. Produktions- und Testblob werden dadurch mit derselben Isolationsregel betrieben.",
-     "RC855 kennzeichnet die aktive Datenumgebung in der Sync-Diagnose. Produktion akzeptiert niemals einen testservice-Blob; Testservice akzeptiert niemals den Produktionsblob.",
-
-     "RC854 zeigt Daten für Mail sofort aus dem geöffneten Sendungsstand an. Lokale Uploads und bereits bekannte Ref-Ordner-Dateien werden vor jedem Netzwerkzugriff dargestellt; SharePoint ergänzt die Liste ausschließlich im Hintergrund.",
-     "RC854 entfernt die Restverzögerung bei gleicher Sendung/Mailart: Auch wenn der Mail-Dateibereich bereits existiert, werden geänderte lokale Dateidaten sofort über die bestehende Signaturprüfung übernommen statt erst auf die Ref-Ordner-Antwort zu warten.",
-     "RC854 zeigt im Mailbereich die konkrete Vorlagenquelle an: Kundenordner
-
---- hit 6 pos=112055 nearest_function=<none> ---
-ng an. Wiederholte Avis-Meldungen aktualisieren denselben Sendungsnummer-Eintrag statt Duplikate zu erzeugen.",
-     "RC857 trennt auch die öffentliche customer-avis API zwischen Testservice und Produktion. Ein Avis aus dem Testservice liest und schreibt ausschließlich testservice/team-state.json; Produktions-Avis bleiben ausschließlich im Produktionsbestand.",
-     "RC856 wertet eine erfolgreich beantwortete Azure-Speicheranforderung mit ok=true, bestätigter Datenumgebung und Server-Revision als verbindliche Dauer-Speicherbestätigung. Ein verzögerter Kontroll-Read darf diesen bereits bestätigten Save nicht mehr fälschlich in 'nicht dauerhaft gespeichert' zurückstufen.",
-     "RC856 verhindert beim Kunden-Avis das Zurückrollen eines bereits serverseitig gespeicherten Aktivieren/Deaktivieren nur wegen eines späteren, veralteten Kontroll-Snapshots. Netzwerk- oder API-Fehler vor der Serverbestätigung bleiben weiterhin echte Fehler.",
-     "RC856 behandelt einen Save ohne noch offene Änderungen als erfolgreich. Dadurch erzeugen idempotente Benutzeraktionen keine falsche Azure-Fehlermeldung mehr, wenn der gewünschte Stand bereits gespeichert ist.",
-     "RC856 protokolliert die letzte serverseitig bestätigte Save-Generation, Revision, Operation-ID und Datenumgebung. Sendung speichern und Lieferavis können diese Bestätigung gemeinsam verwenden, statt voneinander abweichende Erfolgskriterien zu haben.",
-     "RC856 behält die RC855-Trennung von Testservice und Produktion unverändert bei; die stärkere Save-Bestätigung gilt nur innerhalb der vom Server bestätigten richtigen Datenumgebung.",
-
-     "RC855 trennt Testservice und Produktion auf Azure-Speicherebene. Die Produktionsdomain verwendet weiterhin team-state.json; die echte -testservice-Domain verwendet ausschließlich testservice/team-state.json beziehungsweise EXPORTHUB_TEST_STORAGE_BLOB.",
-     "RC855 verlangt bei jedem Teamdaten-Read, Meta-Check und Save eine bestätigte Server-Umgebung. Der Testservice verweigert den Start und jede Speicherung, wenn die State-API die isolierte testservice-Umgebung nicht ausdrücklich bestätigt. Damit kann eine alte gemeinsame State-API keine Testdaten mehr unbemerkt in Produktion schreiben.",
-     "RC855 initialisiert den isolierten Testservice-Bestand beim ersten Start einmalig aus dem aktuellen Produktionsstand, damit reale Ausgangsdaten zum Testen verfügbar bleiben. Ab diesem Zeitpunkt laufen Revisionen, Saves, Recovery-Versionen und Backups des Testservice ausschließlich im Testservice-Namensraum.",
-     "RC855 hält die Produktionsfreigabe konsistent: Die geprüfte api/exporthub-state/index.js ist als versionsgebundener TESTVERSION-Fallback eingebettet und überschreibt beim Release die ältere State-API aus dem Snapshot. Produktions- und Testblob werden dadurch mit derselben Isolationsregel betrieben.",
-     "RC855 kennzeichnet die aktive Datenumgebung in der Sync-Diagnose. Produktion akzeptiert niemals einen testservice-Blob; Testservice akzeptiert niemals den Produktionsblob.",
-
-     "RC854 zeigt Daten für Mail sofort aus dem geöffneten Sendungsstand an. Lokale Uploads und bereits bekannte Ref-Ordner-Dateien werden vor jedem Netzwerkzugriff dargestellt; SharePoint ergänzt die Liste ausschließlich im Hintergrund.",
-     "RC854 entfernt die Restverzögerung bei gleicher Sendung/Mailart: Auch wenn der Mail-Dateibereich bereits existiert, werden geänderte lokale Dateidaten sofort über die bestehende Signaturprüfung übernommen statt erst auf die Ref-Ordner-Antwort zu warten.",
-     "RC854 zeigt im Mailbereich die konkrete Vorlagenquelle an: Kundenordner hat Vorrang, danach eine sendungsbezogene Vorlage und zuletzt der ExportHUB-Standard. Mailart und Sprache bleiben Teil der Auswahl.",
-     "RC854 benennt den bisherigen Anhangweg korrekt als EML-Mailpaket für Classic Outlook. Ein Browser-mailto kann keine echten Anhänge an Outlook übergeben; für einen echten Outlook-Entwurf mit Anhängen in Neuem Outlook ist eine Microsoft-Graph-Anbindung erforderlich.",
-
-
-    "RC853 öffnet den SharePoint-Ref-Ordner wieder ausdrücklich in einem separaten Browser-Tab. Der aktuelle ExportHUB-Tab bleibt auf derselben Sendung geöffnet.",
-    "RC853 löst beim Öffnen des Ref-Ordners den Schutz der geöffneten Sendungsansicht nicht mehr. Dadurch darf ein nachfolgender Sync die weiterhin geöffnete Sendung nicht nur wegen des externen SharePoint-Tabs verlassen.",
-    "RC853 verwendet für den externen Ref-Ordner eine echte neue-Tab-Navigation mit noopener/noreferrer statt window.location im ExportHUB-Tab.",
-
-    "RC852 beendet das periodische Neu-Rendern von 'Daten für Mail' in Sendung erstellen. Die RC851-Dateiliste wird nicht mehr alle 1,2 Sekunden abgefragt und vollständig per innerHTML neu aufgebaut.",
-    "RC852 aktualisiert Mail-Dateien ausschließlich ereignisgesteuert bei echten Änderungen wie Datei-Upload, Sendungswechsel, Sync, Avis-Änderung oder Mailartwechsel. Eine stabile Signatur verhindert jeden DOM-Austausch, wenn Referenz, Mailart, Dateibestand und Auswahl unverändert sind.",
-    "RC852 hält Fokus, Scrollposition und geöffnete Mailfelder stabil. Lokale Sendungsdateien werden nur beim ersten Aufbau sofort gezeigt; ein nachgeladener Ref-Ordner aktualisiert die Dateiliste höchstens einmal und nur wenn sich der Inhalt tatsächlich unterscheidet.",
-
-    "RC851 koppelt die Kundenmail an den Lieferavis: Ist der Avis aktiv, werden die ausgeschriebenen Sendungsdetails inklusive LDM aus der Kundenmail entfernt und durch den Avis-Link ersetzt. Ist der Avis deaktiviert oder automatisch abgelaufen, wird die vollständige Kundenmail mit Sendungsdetails wieder aus der Kunden-Vorlage aufgebaut.",
-    "RC851 deaktiviert den Kunden-Avis automatisch drei Arbeitstage nach der tatsächlichen Abholung. Samstag und Sonntag zählen nicht mit; die Regel wird sowohl im Kunden-Avis-API als auch in ExportHUB geprüft. Eine manuelle frühere Deaktivierung bleibt jederzeit möglich.",
-    "RC851 zeigt die einer Sendung zugeordneten Dateien im Mailbereich als eigene Dateiliste. Gespeicherte Uploads und vorhandene Dateien aus dem Ref-Ordner können innerhalb von ExportHUB geöffnet beziehungsweise heruntergeladen und für den Mailversand ausgewählt werden.",
-    "RC851 ergänzt einen Outlook-Entwurf mit ausgewählten Anhängen als EML-Datei. Damit können echte in ExportHUB erreichbare Dateien zusammen mit Empfänger, CC, Betreff und aktuellem Mailtext an Outlook übergeben werden, ohne die bestehende mailto-Funktion zu verändern.",
-    "RC850 macht den Kunden-Avis dauerhaft: Ein aktivierter Avis-Link bleibt serverseitig unbegrenzt wiederverwendbar, bis er in ExportHUB ausdrücklich deaktiviert wird. Die frühere Einmal-Verbrauchslogik nach Referenzbestätigung ist entfernt.",
-    "RC850 zeigt im Kunden-Avis den aktuellen Sendungsstatus aus dem neuesten Azure-Sendungsstand. Die Portalansicht aktualisiert sich automatisch alle 15 Sekunden sowie bei Fokus/Rückkehr in den Tab; alte Sendungskopien dürfen den Status nicht mehr überdecken.",
-    "RC850 stellt vorhandene POD-Dateien im Kunden-Avis als Download bereit. Manuell hochgeladene PODs und gespeicherte POD-Sicherungen werden als POD-Dokumente ausgegeben; eine in Azure gespeicherte digitale Fahrerunterschrift wird als zusätzlicher herunterladbarer POD-Nachweis angeboten, falls keine POD-Datei vorhanden ist.",
-    "RC849 bindet den Lieferavis an die tatsächlich sichtbare Sendung: Der Edit- und Nur-Lesen-Host tragen Referenz und Sendungs-ID direkt im DOM. Ein später veraltetes shipmentViewId/selectedShipmentId darf den Avis nicht mehr von der geöffneten Sendung lösen.",
-    "RC849 macht die Avis-Hosts selbstheilend. Fehlt ein Host nach einem Fremd-Renderer, wird er im sichtbaren Sendungsblock neu erzeugt und sofort mit derselben Sendungsidentität befüllt; der Avis wird danach ohne Seiten-
+     "RC855 hält die Produktionsfreigabe konsistent: Die geprüfte ap
 
 === 'Promise.race' hits=1 ===
 
 --- hit 1 pos=4348259 nearest_function=createPdf ---
-blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();later(function(){URL.revokeObjectURL(url)},60000)}
-function bundledHtml2CanvasSource(){
- var scripts=Array.prototype.slice.call(document.scripts||[]),hit=scripts.find(function(s){
-  var t=s.textContent||'';
-  return !s.id&&t.length>150000&&t.indexOf('html2canvas 1.4.1')>=0;
- });
- return hit?(hit.textContent||''):'';
+ hit?(hit.textContent||''):'';
 }
 async function renderer(targetWindow){
  var w=targetWindow||window;
@@ -797,13 +673,12 @@ async function createPdf(mode,sh){var outputMode=low(mode)==='pod'?'pod':'normal
 function fileName(mode,sh){var ref=sref(sh)||sid(sh)||'Sendung';return mode==='all'?'Gesamtausgabe_'+ref+'.pdf':mode==='load1'?'Ladeliste_1_'+ref+'.pdf':mode==='load2'?'Ladeliste_2_'+ref+'.pdf':'POD_'+ref+'_Ladeliste_mit_Unterschrift.pdf'}
 async function downloadDocument(mode,button){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(pdfBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}pdfBusy=true;var old=q(button&&button.textContent),label=mode==='all'?'Gesamtausgabe':mode==='load1'?'Ladeliste 1':'Ladeliste 2',opToken=docWorkStart(label+' als PDF wird vorbereitet …');if(button){button.disabled=true;button.textContent=label+' wird erstellt …'}try{docWorkStep(opToken,'PDF-Dokumentseiten werden vorbereitet …');var out=await createPdf(mode||'all',sh);docWorkStep(opToken,'PDF wird zum Download bereitgestellt …');downloadBlob(out.blob,fileName(mode||'all',sh));window.__INDEX352_LAST_PDF__={ok:true,mode:mode||'all',pages:out.pages,bytes:out.blob.size,ref:sref(sh)||sid(sh),owner:VERSION};docWorkDone(opToken,label+' als PDF erstellt')}catch(e){console.error('RC352 PDF',e);var detail=q(e&&e.message||e);window.__INDEX352_LAST_PDF__={ok:false,mode:mode||'all',error:detail,owner:VERSION};docWorkFail(opToken,label+' konnte nicht erstellt werden');message(label+' konnte nicht erstellt werden: '+detail,'bad');alert(label+' konnte nicht heruntergeladen werden.\n\n'+detail)}finally{pdfBusy=false;if(button){button.disabled=false;button.textContent=old}}return false}
 async function syncPod(button){var sh=currentSaved(),api=window.ExportHUBPickupPOD;if(!sh||!api)return false;var old=q(button&&button.textContent);if(button){button.disabled=true;button.textContent='QR/POD wird geprüft …'}try{await api.syncOne(sh,true);if(api.hasSignature(sh))await hydrateSignature(sh);decorateDocument(sh,document,'normal');message(api.hasSignature(sh)?'POD vorhanden: Die Unterschrift wird ausschließlich in der separaten POD-PDF verwendet. Die normale Ladeliste bleibt ohne Unterschrift.':'Abholung noch nicht vollständig mit Unterschrift bestätigt.',api.hasSignature(sh)?'ok':'info')}catch(e){message('QR/POD-Status konnte nicht vollständig geladen werden: '+q(e&&e.message||e),'bad')}finally{if(button){button.disabled=false;button.textContent=old}}return false}
-async function downloadPod(button){var sh=currentSaved(),api=window.ExportHUBPickupPOD;if(!sh||!api)return false;try{await api.syncOne(sh,true)}catch(_){}if(!api.hasSignature(sh)){alert('Es liegt noch kein echter POD mit digitaler Unterschrift vor.');return false}if(pdfBusy)return false;pdfBusy=true;var old=q(button&&button.textContent);if(button){button.disabled=true;button.textContent='Unterschriebene Ladeliste wird erstellt …'}try{await hydrateSignature(sh);var out=await createPdf('pod',sh),name=fileName('pod',sh);if(!out||!out.blob||out.blob.size<1000)throw new Error('Die unterschriebene Ladeliste wurde nicht vollständig erzeugt.');downloadBlob(out.blob,name);window.__INDEX352_LAST_PDF__={ok:true,mode:'pod',signedLoadlist:true,pages:out.pages,bytes:out.blob.size,ref:sref(sh)||sid(sh),owner:VERSION};message('POD-PDF wurde lokal heruntergeladen. Die Cloud-Sicherung läuft automatisch.','ok');var cloud=window.ExportHUBPODCloudBackup;if(cloud&&typeof cloud.backupBlob==='function')cloud.backupBlob(sh,{blob:out.blob,name:name,pages:out.pages,signedLoadlist:true,documentKind:'signed-loadlist'},{force:true,source:'manual-download'}).then(function(result){if(result&&result.saved)message('POD-PDF wurde lokal heruntergeladen und in SharePoint gesichert.','ok')}).catch(function(error){message('POD wurde lokal heruntergeladen. Die SharePoint-Sicherung ist noch offen: '+q(error&&error.message||error),'bad')})}catch(e){
+async function downloadPod(button){var sh=currentSaved(),api=window.ExportHUBPickupPOD;if(!sh||!api)return false;try{await api.syncOne(sh,true)}catch(_){}if(!api.hasSignature(sh)){alert('Es liegt noch kein echter POD mit digitaler Unterschrift vor.');return false}if(pdfBusy)return false;pdfBusy=true;var old=q(button&&button.textContent);if(button){button.disabled=true;button.textContent='Unterschriebene Ladeliste wird erstellt 
 
 === 'AbortController' hits=22 ===
 
 --- hit 1 pos=17383 nearest_function=request ---
-ser||{}}catch(_){return window.currentUser||{}}}
-function isGlobal(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),p=Array.isArray(u.permissions)?u.permissions:[];return !!(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||/global.?admin|administrator|vollzugriff/.test(role)||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
+e==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
 function deviceId(){var rt=runtime(),id=q(rt.deviceId);if(id)return id;var key='exporthub:diagnostics-device-id',saved='';try{saved=q(localStorage.getItem(key))}catch(_){}if(saved)return saved;try{var a=new Uint8Array(12);crypto.getRandomValues(a);saved='diag-'+Array.prototype.map.call(a,function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(_){saved='diag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}try{localStorage.setItem(key,saved)}catch(_){}return saved}
 function headers(){var t=token(),h={'Accept':'application/json','Content-Type':'application/json','Cache-Control':'no-cache','X-ExportHUB-Environment':environment()};if(t){h['X-ExportHUB-Token']=t;h['X-ExportHUB-Session']=t;h.Authorization='Bearer '+t}return h}
 function clientVersion(){return q(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version||'RC864')}
@@ -819,14 +694,10 @@ async function uploadPending(force){if(busyUpload)return false;var t=token();if(
 function scheduleUpload(delay){if(uploadTimer)clearTimeout(uploadTimer);if(document.hidden||navigator.onLine===false)return false;var wait=Math.max(500,Number(delay)||2200,uploadRetryAt>Date.now()?uploadRetryAt-Date.now():0);uploadTimer=setTimeout(function(){uploadTimer=0;uploadPending(false)},wait);return true}
 async function refresh(force){if(!isGlobal())return false;if(busyRead)return false;if(!token()){setStatus('Warte auf Anmeldung');return false}if(!force&&Date.now()-lastReadAt<12000)return false;busyRead=true;try{var data=await request('diagnostics-read',{limit:5000});remoteRecords=Array.isArray(data.records)?data.records:[];remoteMeta.lastSyncAt=new Date().toISOString();remoteMeta.revision=Number(data.revision||0);remoteMeta.total=Number(data.total||remoteRecords.length);remoteMeta.maxRecords=Number(data.maxRecords||5000);remoteMeta.retentionDays=Number(data.retentionDays||30);lastReadAt=Date.now();setStatus('Azure synchronisiert');return true}catch(e){setStatus('Azure lesen fehlgeschlagen',e&&e.message||e);return false}finally{busyRead=false}}
 function combinedRecords(){var out=remoteRecords.slice(),seen=Object.create(null);out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().forEach(function(r){var id=eventId(r);if(seen[id])return;var u=user();out.push(Object.assign({},r,{id:id,user:q(u.name||u.user||u.username)||'Dieses Gerät',deviceId:deviceId(),clientVersion:clientVersion(),environment:environment(),localPending:true}));seen[id]=1});out.sort(function(a,b){return Date.parse(q(a.lastAt||a.at)) - Date.parse(q(b.lastAt||b.at))});return out}
-function recentRecords(limit){var n=Math.max(1,Math.min(1000,Number(limit)||250)),out=remoteRecords.slice(-n),seen=Object.create(null),u=user();out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().slice(-n).forEach(function(r){var id=eventId(r);if(seen[id])return;out.push(Object.assign({},r,{id:id,user:q(u.name||u.user||u.username)||'Dieses Gerät',deviceId:deviceId(),clientVersion:clientVersion(),environment:environment(),localPending:true}));seen[id]=1});out.sort(function(a,b){return Date.parse(q(a.lastAt||a.at)) - Date.parse(q(b.lastAt||b.at))});return out.slice(-n)}
-async function clearAll(){if(!isGlobal())throw new Error('Nur globale Administratoren dürfen die Diagnose löschen.');await request('diagnostics-clear',{method:'POST',body:{action:'diagnostics-clear',environment:environment()}});remoteRecords=[];remoteMeta.total=0;remoteMeta.revision++;lastReadAt=Date.now();setLastSentSeq(localRecords().reduce(function(m,r){return Math.max(m,Number(r&&r.seq||0))},0));setStatus('Azure-Protokoll gelöscht');return true}
-function status(){return Object.assign({environment:environment(),deviceId:deviceId(),pending:localRecords().filter(function(r){return Number(r&&r.seq||0)>lastSentSeq()}).length},remoteMeta)}
-function diagnosticsViewOpen(){var s=store();try{
+function recentRecords(limit){var n=Math.max(1,Math.min(1000,Number(limit)||250)),out=remoteRecords.slice(-n),seen=Object.create(null),u=user();out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().slice(-n).forEach(function(r){var id=eventId(r);if(seen[id])return;out.pus
 
 --- hit 2 pos=17416 nearest_function=request ---
-rrentUser||{}}}
-function isGlobal(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),p=Array.isArray(u.permissions)?u.permissions:[];return !!(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||/global.?admin|administrator|vollzugriff/.test(role)||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
+|name==='tobias limberg'||name==='tobias.limberg')}
 function deviceId(){var rt=runtime(),id=q(rt.deviceId);if(id)return id;var key='exporthub:diagnostics-device-id',saved='';try{saved=q(localStorage.getItem(key))}catch(_){}if(saved)return saved;try{var a=new Uint8Array(12);crypto.getRandomValues(a);saved='diag-'+Array.prototype.map.call(a,function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(_){saved='diag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}try{localStorage.setItem(key,saved)}catch(_){}return saved}
 function headers(){var t=token(),h={'Accept':'application/json','Content-Type':'application/json','Cache-Control':'no-cache','X-ExportHUB-Environment':environment()};if(t){h['X-ExportHUB-Token']=t;h['X-ExportHUB-Session']=t;h.Authorization='Bearer '+t}return h}
 function clientVersion(){return q(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version||'RC864')}
@@ -842,15 +713,10 @@ async function uploadPending(force){if(busyUpload)return false;var t=token();if(
 function scheduleUpload(delay){if(uploadTimer)clearTimeout(uploadTimer);if(document.hidden||navigator.onLine===false)return false;var wait=Math.max(500,Number(delay)||2200,uploadRetryAt>Date.now()?uploadRetryAt-Date.now():0);uploadTimer=setTimeout(function(){uploadTimer=0;uploadPending(false)},wait);return true}
 async function refresh(force){if(!isGlobal())return false;if(busyRead)return false;if(!token()){setStatus('Warte auf Anmeldung');return false}if(!force&&Date.now()-lastReadAt<12000)return false;busyRead=true;try{var data=await request('diagnostics-read',{limit:5000});remoteRecords=Array.isArray(data.records)?data.records:[];remoteMeta.lastSyncAt=new Date().toISOString();remoteMeta.revision=Number(data.revision||0);remoteMeta.total=Number(data.total||remoteRecords.length);remoteMeta.maxRecords=Number(data.maxRecords||5000);remoteMeta.retentionDays=Number(data.retentionDays||30);lastReadAt=Date.now();setStatus('Azure synchronisiert');return true}catch(e){setStatus('Azure lesen fehlgeschlagen',e&&e.message||e);return false}finally{busyRead=false}}
 function combinedRecords(){var out=remoteRecords.slice(),seen=Object.create(null);out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().forEach(function(r){var id=eventId(r);if(seen[id])return;var u=user();out.push(Object.assign({},r,{id:id,user:q(u.name||u.user||u.username)||'Dieses Gerät',deviceId:deviceId(),clientVersion:clientVersion(),environment:environment(),localPending:true}));seen[id]=1});out.sort(function(a,b){return Date.parse(q(a.lastAt||a.at)) - Date.parse(q(b.lastAt||b.at))});return out}
-function recentRecords(limit){var n=Math.max(1,Math.min(1000,Number(limit)||250)),out=remoteRecords.slice(-n),seen=Object.create(null),u=user();out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().slice(-n).forEach(function(r){var id=eventId(r);if(seen[id])return;out.push(Object.assign({},r,{id:id,user:q(u.name||u.user||u.username)||'Dieses Gerät',deviceId:deviceId(),clientVersion:clientVersion(),environment:environment(),localPending:true}));seen[id]=1});out.sort(function(a,b){return Date.parse(q(a.lastAt||a.at)) - Date.parse(q(b.lastAt||b.at))});return out.slice(-n)}
-async function clearAll(){if(!isGlobal())throw new Error('Nur globale Administratoren dürfen die Diagnose löschen.');await request('diagnostics-clear',{method:'POST',body:{action:'diagnostics-clear',environment:environment()}});remoteRecords=[];remoteMeta.total=0;remoteMeta.revision++;lastReadAt=Date.now();setLastSentSeq(localRecords().reduce(function(m,r){return Math.max(m,Number(r&&r.seq||0))},0));setStatus('Azure-Protokoll gelöscht');return true}
-function status(){return Object.assign({environment:environment(),deviceId:deviceId(),pending:localRecords().filter(function(r){return Number(r&&r.seq||0)>lastSentSeq()}).length},remoteMeta)}
-function diagnosticsViewOpen(){var s=store();try{return !!(s&&typeof s.currentView
+function recentRecords(limit){var n=Math.max(1,Math.min(1000,Number(limit)||250)),out=remoteRecords.slice(-n),seen=Object.create(null),u=user();out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().slice(-n).forEach(function(r){var id=eventId(r);if(seen[id])return;out.push(Object.assign({},r,{id:id,user:
 
 --- hit 3 pos=421558 nearest_function=request ---
-inear-gradient(135deg,#2563eb,#05b8ff)!important;color:#fff!important;font:inherit!important;font-weight:950!important;cursor:pointer!important}
-#index495PickupColliResult{display:block!important;min-height:44px!important;border:1px solid #dbeafe!important;border-radius:14px!important;background:#f8fbff!important;padding:11px 13px!important;font-weight:900!important;color:#475569!important}
-#index495PickupColliResult.ok{border-color:#86efac!important;background:#f0fdf4!important;color:#166534!important}
+495PickupColliResult.ok{border-color:#86efac!important;background:#f0fdf4!important;color:#166534!important}
 #index495PickupColliResult.bad{border-color:#fecaca!important;background:#fff1f2!important;color:#991b1b!important}
 .index491-colli-test{display:block;color:#64748b;font-size:11px;font-weight:800}
 @media(max-width:620px){#index491PickupColliSection .index495-colli-check{grid-template-columns:1fr!important}}
@@ -871,12 +737,10 @@ function confirmed(data){return !!(data&&(data.confirmedAt||data.pickupConfirmed
 function signatureAvailable(data){return !!(data&&(data.signatureAvailable||data.driverSignatureAvailable||data.driverSignatureUrl||data.pickupSignatureUrl||data.signatureUrl||valueDeep(data,['driverSignature','pickupDriverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])||Array.isArray(data.podFiles)&&data.podFiles.length))}
 function disabled(data){return !!(data&&(data.disabled||/disabled|cancelled|storniert/i.test(q(data.status))))}
 function status(text,kind){var n=document.getElementById('index209PickupStatus');if(!n)return;n.className='index209-pickup-status '+(kind||'info');n.textContent=text}
-function shell(){var old=document.getElementById('index209PickupApp');if(old)return old;var app=document.createElement('main');app.id='index209PickupApp';app.innerHTML='<section class="index209-pickup-card"><div class="index209-pickup-brand"><div class="index209-pickup-logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div><div id="index209PickupStatus" class="index209-pickup-status info">Sendungsdaten werden geladen …</div><div id="index209PickupDetails"></div><form id="index209PickupForm" hidden><section class="index225-pickup-section"><h2>Fahrer und Fahrzeug</h2><div class="index225-pickup-grid"><label>Name des Fahrers <span class="small">(optional)</span><input id="index209PickupDriver" autocomplete="name" autocapitalize="words" lang="de"></label><label>Kennzeichen <span class="small">(Pflicht)</span><input id="index209PickupPlate" autocomplete="off" inputmode="text" maxlength="40" required></label></div><label>Speditionsname <span class="small">(Pflicht)</span><input id="index209PickupCarrier" autocomplete="organization" maxlength="180" required></label><label id="index209PickupReturnLabel" hidden>Zurückgegebene Europaletten<input id="index209PickupReturn" type="number" min="0" step="1" value="0"></label></section><section id="index491PickupColliSection" class="index225-pickup-section" hidden><h2>Colli-Prüfung <span class="small">(Pflicht)</span></h2><div class="index209-pickup-box" id="index675PickupColliTotalBox"><span>Gesamtanzahl der Sendung</span><b id="index675PickupExpectedTotal">—</b></div><p class="index491-colli-test">Es gilt die komplette Colli-Gesamtmenge der Sendung, unabhängig von der Anzahl der Colli-Zeilen.</p><div class="index495-colli-check"><label>Gezählte Gesamt-Colli<input id="index495PickupColliInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off"></label><button id="index495PickupColliCheck" type="button">Gesamtmenge prüfen</button></div><div id="index495PickupColliResult" aria-live="polite">Gesamtmenge noch nicht geprüft.</div><span class="index491-colli-test">Die Gesamt-Colli-Prüfung muss vor der Abholung erfolgreich abgeschlossen sein.</span></section><section class="index225-pickup-section"><h2>Digitale Bestätigung</h2><label>Unterschrift des Fahrers<button id="index209PickupSignatureOpen" class="index209-signature-trigger" type="button"><span id="index209PickupSignaturePrompt">Zum Unterschreiben hier antippen</span><img id="index209PickupSignaturePreview" alt="Erfasste Fahrerunterschrift" hidden></button><span class="index209-signature-help">Die digitale Unterschrift, das Kennzeichen und der Speditionsname sind verpflichtend. Der Fahrername ist optional.</span><input id="index209PickupSignatureData" type="hidden" required></label><label>Persönlicher PIN des Verladers<input id="index209PickupPin" inputmode="numeric" autocomplete="one-time-code" maxlength="4
+function shell(){var old=document.getElementById('index209PickupApp');if(old)return old;var app=document.createElement('main');app.id='index209PickupApp';app.innerHTML='<section class="index209-pickup-card"><div class="index209-pickup-brand"><div class="index209-pickup-logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div><div id="index209PickupStatus" class="index209-pickup-status info">Sendungsdaten werden geladen …</div><div id="index209PickupDetails"></div><form id="index209PickupForm" hidden><section class="index225-pickup-section"><h2>Fahrer und Fahrzeug</h2><div class="index225-pickup-grid"><label>Name des Fahrers <span class="small">(optional)</span><input id="index209PickupDriver" autocomplete="name" autocapitalize="words" lang="de"></label><label>Kennzeichen <span class="small">(Pflicht)</span><input id="index209PickupPlate" autocomplete="off" inputmode="text" maxlength="40" required></label></div><label>Speditionsname <span class="small">(Pflicht)</span><input id="index209PickupCarrier" autocomplete="organization" maxlength="180" required></label><label id="index209PickupReturnLabel" hidden>Zurückgegebene Europaletten<input id="index209PickupReturn" type="number" min="0" step="1" value="0"></label></section><section id="index491PickupColliSection" class="index225-pickup-section" hidden><h2>Colli-Prüfung <span class="small">(Pflicht)</span></h2><div class="index209-pickup-box" id="index675PickupColliTotalBox"><span>Gesamtanzahl der Sendung</span><b id="index675PickupExpectedTotal">—</b></div><p class="index491-colli-test">Es gilt die komplette Colli-Gesamtmenge der Sendung, unabhängig von der Anzahl der Colli-Zeilen.</p><div class="index495-colli-check"><label>Gezählte Gesamt-Colli<input id="index495PickupColliInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off"></label><button id="index495Pickup
 
 --- hit 4 pos=421591 nearest_function=request ---
-b8ff)!important;color:#fff!important;font:inherit!important;font-weight:950!important;cursor:pointer!important}
-#index495PickupColliResult{display:block!important;min-height:44px!important;border:1px solid #dbeafe!important;border-radius:14px!important;background:#f8fbff!important;padding:11px 13px!important;font-weight:900!important;color:#475569!important}
-#index495PickupColliResult.ok{border-color:#86efac!important;background:#f0fdf4!important;color:#166534!important}
+lor:#86efac!important;background:#f0fdf4!important;color:#166534!important}
 #index495PickupColliResult.bad{border-color:#fecaca!important;background:#fff1f2!important;color:#991b1b!important}
 .index491-colli-test{display:block;color:#64748b;font-size:11px;font-weight:800}
 @media(max-width:620px){#index491PickupColliSection .index495-colli-check{grid-template-columns:1fr!important}}
@@ -897,15 +761,10 @@ function confirmed(data){return !!(data&&(data.confirmedAt||data.pickupConfirmed
 function signatureAvailable(data){return !!(data&&(data.signatureAvailable||data.driverSignatureAvailable||data.driverSignatureUrl||data.pickupSignatureUrl||data.signatureUrl||valueDeep(data,['driverSignature','pickupDriverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])||Array.isArray(data.podFiles)&&data.podFiles.length))}
 function disabled(data){return !!(data&&(data.disabled||/disabled|cancelled|storniert/i.test(q(data.status))))}
 function status(text,kind){var n=document.getElementById('index209PickupStatus');if(!n)return;n.className='index209-pickup-status '+(kind||'info');n.textContent=text}
-function shell(){var old=document.getElementById('index209PickupApp');if(old)return old;var app=document.createElement('main');app.id='index209PickupApp';app.innerHTML='<section class="index209-pickup-card"><div class="index209-pickup-brand"><div class="index209-pickup-logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div><div id="index209PickupStatus" class="index209-pickup-status info">Sendungsdaten werden geladen …</div><div id="index209PickupDetails"></div><form id="index209PickupForm" hidden><section class="index225-pickup-section"><h2>Fahrer und Fahrzeug</h2><div class="index225-pickup-grid"><label>Name des Fahrers <span class="small">(optional)</span><input id="index209PickupDriver" autocomplete="name" autocapitalize="words" lang="de"></label><label>Kennzeichen <span class="small">(Pflicht)</span><input id="index209PickupPlate" autocomplete="off" inputmode="text" maxlength="40" required></label></div><label>Speditionsname <span class="small">(Pflicht)</span><input id="index209PickupCarrier" autocomplete="organization" maxlength="180" required></label><label id="index209PickupReturnLabel" hidden>Zurückgegebene Europaletten<input id="index209PickupReturn" type="number" min="0" step="1" value="0"></label></section><section id="index491PickupColliSection" class="index225-pickup-section" hidden><h2>Colli-Prüfung <span class="small">(Pflicht)</span></h2><div class="index209-pickup-box" id="index675PickupColliTotalBox"><span>Gesamtanzahl der Sendung</span><b id="index675PickupExpectedTotal">—</b></div><p class="index491-colli-test">Es gilt die komplette Colli-Gesamtmenge der Sendung, unabhängig von der Anzahl der Colli-Zeilen.</p><div class="index495-colli-check"><label>Gezählte Gesamt-Colli<input id="index495PickupColliInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off"></label><button id="index495PickupColliCheck" type="button">Gesamtmenge prüfen</button></div><div id="index495PickupColliResult" aria-live="polite">Gesamtmenge noch nicht geprüft.</div><span class="index491-colli-test">Die Gesamt-Colli-Prüfung muss vor der Abholung erfolgreich abgeschlossen sein.</span></section><section class="index225-pickup-section"><h2>Digitale Bestätigung</h2><label>Unterschrift des Fahrers<button id="index209PickupSignatureOpen" class="index209-signature-trigger" type="button"><span id="index209PickupSignaturePrompt">Zum Unterschreiben hier antippen</span><img id="index209PickupSignaturePreview" alt="Erfasste Fahrerunterschrift" hidden></button><span class="index209-signature-help">Die digitale Unterschrift, das Kennzeichen und der Speditionsname sind verpflichtend. Der Fahrername ist optional.</span><input id="index209PickupSignatureData" type="hidden" required></label><label>Persönlicher PIN des Verladers<input id="index209PickupPin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></l
+function shell(){var old=document.getElementById('index209PickupApp');if(old)return old;var app=document.createElement('main');app.id='index209PickupApp';app.innerHTML='<section class="index209-pickup-card"><div class="index209-pickup-brand"><div class="index209-pickup-logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div><div id="index209PickupStatus" class="index209-pickup-status info">Sendungsdaten werden geladen …</div><div id="index209PickupDetails"></div><form id="index209PickupForm" hidden><section class="index225-pickup-section"><h2>Fahrer und Fahrzeug</h2><div class="index225-pickup-grid"><label>Name des Fahrers <span class="small">(optional)</span><input id="index209PickupDriver" autocomplete="name" autocapitalize="words" lang="de"></label><label>Kennzeichen <span class="small">(Pflicht)</span><input id="index209PickupPlate" autocomplete="off" inputmode="text" maxlength="40" required></label></div><label>Speditionsname <span class="small">(Pflicht)</span><input id="index209PickupCarrier" autocomplete="organization" maxlength="180" required></label><label id="index209PickupReturnLabel" hidden>Zurückgegebene Europaletten<input id="index209PickupReturn" type="number" min="0" step="1" value="0"></label></section><section id="index491PickupColliSection" class="index225-pickup-section" hidden><h2>Colli-Prüfung <span class="small">(Pflicht)</span></h2><div class="index209-pickup-box" id="index675PickupColliTotalBox"><span>Gesamtanzahl der Sendung</span><b id="index675PickupExpectedTotal">—</b></div><p class="index491-colli-test">Es gilt die komplette Colli-Gesamtmenge der Sendung, unabhängig von der Anzahl der Colli-Zeilen.</p><div class="index495-colli-check"><label>Gezählte Gesamt-Colli<input id="index495PickupColliInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off"></label><button id="index495PickupColliCheck" type="button">Gesamtm
 
 --- hit 5 pos=2195852 nearest_function=fetchWithTimeout ---
- in Azure gesichert werden. Der Kontowechsel wurde zum Schutz der Daten abgebrochen.');error.code='AZURE_SAVE_REQUIRED';throw error}
-  await accountSwitchDelay(40)
- }
- const error=new Error('Die Azure-Speicherung ist noch nicht abgeschlossen. Der Kontowechsel wurde zum Schutz der Daten abgebrochen.');error.code='AZURE_SAVE_TIMEOUT';throw error
-}
-async function endExportHubSessionForMicrosoftSwitch(){
+(){
  const token=text(runtime.authToken);resetClientSessionForMicrosoftSwitch();if(!token)return;
  try{const headers={'Content-Type':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,Authorization:'Bearer '+token};await native.fetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify({action:'logout',sessionToken:token}),credentials:'same-origin',cache:'no-store',keepalive:true})}catch(_){}
 }
@@ -1003,329 +862,9 @@ async function resilientFetch(url,options){
    if(attempt<maxAttempts)await new Promise(function(resolve){native.setTimeout(resolve,Math.min(1800,attempt*450))});
   }
  }
- const endpoint=apiEndpointLabel(url),timedOut=!!(lastError&&String(lastError.name||'').toLowerCase()==='aborterror');
- const err=new Error(timedOut?'Zeitüberschreitung beim Azure-API-Aufruf ('+endpoint+'). Die Function antwortet zu langsam oder befindet sich noch im Kaltstart.':'Azure-API nicht erreichbar ('+endpoint+'). Prüfe Verbindung, Sitzung und die veröffentlichte API.');
- err.code=timedOut?'API_TIMEOUT':'API_UNREACHABLE';err.cause=lastError;throw err;
-}
-async function jsonFetch(url,options){
- const opts=Object.assign({credentials:'same-origin',cache:'no-store'},options||{});
- opts.headers=Object.assign({},opts.headers||{});
- if(runtime.authToken&&/\/api\//i.test(String(url||''))){
-  const token=text(runtime.authToken);
-  opts.headers['X-ExportHUB-Token']=token;
-  opts.headers['X-ExportHUB-Session']=token;
-  if(!opts.headers.Authorization&&!opts.headers.authorization)opts.headers.Authorization='Bearer '+token;
- }
- const res=await resilientFetch(url,opts);
- const txt=await res.text();let data={};
- try{data=txt?JSON.parse(txt):{}}
- catch(_){
-  const cleanText=Stri
+ const endpoint=apiEndpointLabel(url),timedOut=!!(lastError&&String(lastError.name||'
 
---- hit 6 pos=2195886 nearest_function=fetchWithTimeout ---
-ntowechsel wurde zum Schutz der Daten abgebrochen.');error.code='AZURE_SAVE_REQUIRED';throw error}
-  await accountSwitchDelay(40)
- }
- const error=new Error('Die Azure-Speicherung ist noch nicht abgeschlossen. Der Kontowechsel wurde zum Schutz der Daten abgebrochen.');error.code='AZURE_SAVE_TIMEOUT';throw error
-}
-async function endExportHubSessionForMicrosoftSwitch(){
- const token=text(runtime.authToken);resetClientSessionForMicrosoftSwitch();if(!token)return;
- try{const headers={'Content-Type':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,Authorization:'Bearer '+token};await native.fetch(AUTH_API,{method:'POST',headers:headers,body:JSON.stringify({action:'logout',sessionToken:token}),credentials:'same-origin',cache:'no-store',keepalive:true})}catch(_){}
-}
-async function switchMicrosoftAccount(){
- if(runtime.msSwitchBusy)return false;runtime.msSwitchBusy=true;
- try{
-  await settleAzureBeforeMicrosoftSwitch();
-  const hint=await readMicrosoftLogoutHint();
-  await endExportHubSessionForMicrosoftSwitch();
-  markLogoutSignal();microsoftSwitchStore(MS_SWITCH_FLOW_KEY,String(Date.now()));if(hint)microsoftSwitchStore(MS_SWITCH_HINT_KEY,hint);
-  const back=cleanReturnUrl({msAccountSwitch:'provider'});
-  navigateMicrosoft(appAuthUrl('/.auth/logout',{post_logout_redirect_uri:back.href}));
- }catch(e){runtime.msSwitchBusy=false;status('Microsoft-Konto konnte nicht gewechselt werden: '+text(e&&e.message||e),'bad')}
- return false
-}
-function handleMicrosoftSwitchStage(){
- let u;try{u=new URL(window.location.href)}catch(_){return false}
- const changed=text(u.searchParams.get('msAccountChanged'));
- if(changed==='1'){
-  resetClientSessionForMicrosoftSwitch();clearMicrosoftSwitchState();markLogoutSignal();
-  try{u.searchParams.delete('msAccountChanged');history.replaceState(null,'',u.href)}catch(_){}
-  return false
- }
- const stage=text(u.searchParams.get(MS_SWITCH_PARAM));if(!stage)return false;
- resetClientSessionForMicrosoftSwitch();markLogoutSignal();microsoftSwitchStore(MS_SWITCH_FLOW_KEY,microsoftSwitchRead(MS_SWITCH_FLOW_KEY)||String(Date.now()));
- if(stage==='provider'){
-  const next=cleanReturnUrl({msAccountSwitch:'login'}).href,hint=microsoftSwitchRead(MS_SWITCH_HINT_KEY);
-  navigateMicrosoft(microsoftProviderLogoutUrl(next,hint));return true
- }
- if(stage==='login'){
-  const done=cleanReturnUrl({msAccountChanged:'1'});navigateMicrosoft(microsoftAccountLoginUrl(done));return true
- }
- clearMicrosoftSwitchState();return false
-}
-async function fetchWithTimeout(url,options,timeoutMs){
- const controller=typeof AbortController!=='undefined'?new AbortController():null;
- const timer=controller?native.setTimeout(function(){controller.abort()},Math.max(1000,Number(timeoutMs)||5000)):null;
- try{
-  return await native.fetch(url,Object.assign({},options||{},controller?{signal:controller.signal}:{}));
- }finally{if(timer)native.clearTimeout(timer)}
-}
-
-function addSafeLoadNote(){
- const panel=by('cleanLoadPanel'); if(!panel||by('cleanSafeLoadNote'))return;
- const n=document.createElement('div'); n.id='cleanSafeLoadNote'; n.className='clean-safe-note';
- n.textContent='ExportHUB wird stabil geladen. Hintergrundmodule starten erst nach der sichtbaren Bereitschaft.';
- panel.appendChild(n);
-}
-
-function setVersion(){
- try{const d=Object.getOwnPropertyDescriptor(document,'title');if(d&&d.configurable)delete document.title}catch(_){ }
- try{window.ExportHUBBuild.applyTitle();}catch(_){ }
- const title=document.querySelector('title');if(title)window.ExportHUBBuild.applyTitle();
- window.ExportHUBBuild.applyVersion();
- document.querySelectorAll('[id*=version i],[class*=version i],[data-exporthub-version-label]').forEach(function(e){
-  const value=text(e.textContent);
-  if(/(?:ExportHUB\s+Private\s+|Private\s+)?RC\d+/i.test(value))window.ExportHUBBuild.applyVersion();
- });
- const login=document.querySelector('.login-card');if(login&&!by('cleanVersionBadge')){const d=document.createElement('div');d.id='cleanVersionBadge';d.className='clean-version-badge';d.textContent='Aktuelle Version '+window.ExportHUBBuild.getBuild().version;d.setAttribute('aria-label',d.textContent);const heading=login.querySelector('h1');if(heading)heading.insertAdjacentElement('afterend',d);else login.insertBefore(d,login.firstChild);window.ExportHUBBuild.applyVersion()}
- try{ensureUserDisplay()}catch(_){ }
-}
-
-
-// Browser-Speicher bleibt unverändert; ExportHUB verwendet keine globalen Storage-Prototyp-Overrides.
-
-// Azure-Teamdaten werden ausschließlich über stateCall()/jsonFetch() verwaltet; window.fetch bleibt unverändert.
-
-// Browser-Timer, MutationObserver und requestAnimationFrame bleiben native Browser-APIs.
-
-function apiEndpointLabel(url){
- try{return new URL(String(url||''),location.href).pathname}catch(_){return String(url||'API')}
-}
-async function resilientFetch(url,options){
- if(location.protocol==='file:'){
-  const localError=new Error('ExportHUB wurde als lokale Datei geöffnet. Azure-Speicherung und Anmeldung funktionieren nur über die veröffentlichte Azure-Webadresse.');
-  localError.code='LOCAL_FILE_NO_API';throw localError;
- }
- const base=Object.assign({credentials:'same-origin',cache:'no-store'},options||{}),requestedTimeout=Number(base.timeoutMs),timeoutMs=Math.max(3000,requestedTimeout>0?requestedTimeout:30000),maxAttempts=Math.max(1,Math.min(4,Number(base.maxAttempts)||4)),externalSignal=base.signal||null;
- delete base.timeoutMs;delete base.maxAttempts;delete base.signal;
- let lastError=null;
- for(let attempt=1;attempt<=maxAttempts;attempt++){
-  const controller=typeof AbortController==='function'?new AbortController():null;
-  var externalAbort=null;
-  if(controller&&externalSignal){if(externalSignal.aborted){try{controller.abort()}catch(_){ }}else{externalAbort=function(){try{controller.abort()}catch(_){ }};try{externalSignal.addEventListener('abort',externalAbort,{once:true})}catch(_){ }}}
-  const timer=controller?native.setTimeout(function(){try{controller.abort()}catch(_){ }},timeoutMs):null;
-  const opts=Object.assign({},base);if(controller)opts.signal=controller.signal;else if(externalSignal)opts.signal=externalSignal;
-  try{
-   const res=await native.fetch(url,opts);
-   if(timer)native.clearTimeout(timer);if(externalAbort&&externalSignal)try{externalSignal.removeEventListener('abort',externalAbort)}catch(_){ }
-   return res;
-  }catch(e){
-   if(timer)native.clearTimeout(timer);if(externalAbort&&externalSignal)try{externalSignal.removeEventListener('abort',externalAbort)}catch(_){ }
-   lastError=e;
-   if(externalSignal&&externalSignal.aborted)break;
-   if(attempt<maxAttempts)await new Promise(function(resolve){native.setTimeout(resolve,Math.min(1800,attempt*450))});
-  }
- }
- const endpoint=apiEndpointLabel(url),timedOut=!!(lastError&&String(lastError.name||'').toLowerCase()==='aborterror');
- const err=new Error(timedOut?'Zeitüberschreitung beim Azure-API-Aufruf ('+endpoint+'). Die Function antwortet zu langsam oder befindet sich noch im Kaltstart.':'Azure-API nicht erreichbar ('+endpoint+'). Prüfe Verbindung, Sitzung und die veröffentlichte API.');
- err.code=timedOut?'API_TIMEOUT':'API_UNREACHABLE';err.cause=lastError;throw err;
-}
-async function jsonFetch(url,options){
- const opts=Object.assign({credentials:'same-origin',cache:'no-store'},options||{});
- opts.headers=Object.assign({},opts.headers||{});
- if(runtime.authToken&&/\/api\//i.test(String(url||''))){
-  const token=text(runtime.authToken);
-  opts.headers['X-ExportHUB-Token']=token;
-  opts.headers['X-ExportHUB-Session']=token;
-  if(!opts.headers.Authorization&&!opts.headers.authorization)opts.headers.Authorization='Bearer '+token;
- }
- const res=await resilientFetch(url,opts);
- const txt=await res.text();let data={};
- try{data=txt?JSON.parse(txt):{}}
- catch(_){
-  const cleanText=String(txt||'').replace(/\s+/g,' ').tr
-
-=== 'setTimeout' hits=272 ===
-
---- hit 1 pos=4316 nearest_function=persistSoon ---
-s.get(k)||''))});return u.pathname+(keep.length?'?'+keep.join('&'):'')}catch(_){return q(String(value||'').split('?')[0]).slice(0,300)}}
-function perfThreshold(url){url=low(url);if(/exporthub-state.*mode=meta|diagnostics-(?:append|read)/.test(url))return 8000;if(/exporthub-auth/.test(url))return 5000;if(/location-booking/.test(url))return 4000;if(/pickup-status/.test(url))return 3500;return 1500}
-function expectedProbe404(url,status){return Number(status)===404&&/\/api\/pickup-(?:status|pod)(?:$|\?)/i.test(String(url||''))}
-function serverPhaseDetails(res){var out={};try{var h=res&&res.headers;if(!h||typeof h.get!=='function')return out;[['serverMs','x-exporthub-server-ms'],['authMs','x-exporthub-auth-ms'],['teamMs','x-exporthub-team-ms'],['mergeMs','x-exporthub-merge-ms'],['uploadMs','x-exporthub-upload-ms'],['retryReadMs','x-exporthub-retry-read-ms']].forEach(function(pair){var v=h.get(pair[1]);if(v!==null&&v!==''){var n=Number(v);if(Number.isFinite(n))out[pair[0]]=n}});var cache=h.get('x-exporthub-team-cache');if(cache)out.teamCache=q(cache)}catch(_){}return out}
-/* exporthub-rc902-diagnostics-security */
-function cleanText(v){var text='';try{if(v instanceof Error)text=(v.name? v.name+': ':'')+(v.message||'')+(v.stack?' | '+v.stack:'');else if(typeof v==='object'&&v!==null)text=JSON.stringify(v,function(k,val){return /token|authorization|password|passwort|session|signature|base64|dataurl/i.test(k)?'[geschützt]':val});else text=String(v==null?'':v)}catch(_){text=String(v==null?'':v)}return q(text).replace(/(bearer\s+)[a-z0-9._~+\/-]+/ig,'$1[geschützt]').replace(/([?&](?:password|passwort|username|user|token|session|auth|code)=)[^&\s)]+/ig,'$1[geschützt]').replace(/((?:password|passwort|username|user)\s*[:=]\s*)[^\s,;|]+/ig,'$1[geschützt]').slice(0,1800)}
-function sanitizeDetails(d){if(!d||typeof d!=='object')return d==null?null:cleanText(d);var out={};Object.keys(d).slice(0,24).forEach(function(k){if(/token|authorization|password|passwort|session|signature|base64|dataurl|filedata|content/i.test(k)){out[k]='[geschützt]';return}var v=d[k];if(typeof v==='string')out[k]=cleanText(v).slice(0,500);else if(typeof v==='number'||typeof v==='boolean'||v==null)out[k]=v;else out[k]=cleanText(v).slice(0,500)});return out}
-function load(){var raw='';try{raw=localStorage.getItem(KEY)||''}catch(_){}if(!raw)try{raw=sessionStorage.getItem(KEY)||''}catch(_){}try{var a=JSON.parse(raw||'[]');if(Array.isArray(a)){records=a.slice(-MAX);records.forEach(function(x){seq=Math.max(seq,Number(x&&x.seq||0))})}}catch(_){} }
-function persistSoon(){if(persistTimer)return;persistTimer=setTimeout(function(){persistTimer=0;var raw=JSON.stringify(records.slice(-MAX));try{localStorage.setItem(KEY,raw)}catch(_){try{sessionStorage.setItem(KEY,raw)}catch(__){}}},4000)}
-function scheduleUi(){if(uiTimer)return;uiTimer=setTimeout(function(){uiTimer=0;try{var d=window.ExportHUBDiagnostics863;if(d&&typeof d.refreshLocal==='function')d.refreshLocal();else if(d&&typeof d.refresh==='function')d.refresh(false)}catch(_){}},700)}
-function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
-function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
-function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
-load();
-window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
-window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
-if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
-if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
-if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
-if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
-try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){
-
---- hit 2 pos=4545 nearest_function=scheduleUi ---
-d|read)/.test(url))return 8000;if(/exporthub-auth/.test(url))return 5000;if(/location-booking/.test(url))return 4000;if(/pickup-status/.test(url))return 3500;return 1500}
-function expectedProbe404(url,status){return Number(status)===404&&/\/api\/pickup-(?:status|pod)(?:$|\?)/i.test(String(url||''))}
-function serverPhaseDetails(res){var out={};try{var h=res&&res.headers;if(!h||typeof h.get!=='function')return out;[['serverMs','x-exporthub-server-ms'],['authMs','x-exporthub-auth-ms'],['teamMs','x-exporthub-team-ms'],['mergeMs','x-exporthub-merge-ms'],['uploadMs','x-exporthub-upload-ms'],['retryReadMs','x-exporthub-retry-read-ms']].forEach(function(pair){var v=h.get(pair[1]);if(v!==null&&v!==''){var n=Number(v);if(Number.isFinite(n))out[pair[0]]=n}});var cache=h.get('x-exporthub-team-cache');if(cache)out.teamCache=q(cache)}catch(_){}return out}
-/* exporthub-rc902-diagnostics-security */
-function cleanText(v){var text='';try{if(v instanceof Error)text=(v.name? v.name+': ':'')+(v.message||'')+(v.stack?' | '+v.stack:'');else if(typeof v==='object'&&v!==null)text=JSON.stringify(v,function(k,val){return /token|authorization|password|passwort|session|signature|base64|dataurl/i.test(k)?'[geschützt]':val});else text=String(v==null?'':v)}catch(_){text=String(v==null?'':v)}return q(text).replace(/(bearer\s+)[a-z0-9._~+\/-]+/ig,'$1[geschützt]').replace(/([?&](?:password|passwort|username|user|token|session|auth|code)=)[^&\s)]+/ig,'$1[geschützt]').replace(/((?:password|passwort|username|user)\s*[:=]\s*)[^\s,;|]+/ig,'$1[geschützt]').slice(0,1800)}
-function sanitizeDetails(d){if(!d||typeof d!=='object')return d==null?null:cleanText(d);var out={};Object.keys(d).slice(0,24).forEach(function(k){if(/token|authorization|password|passwort|session|signature|base64|dataurl|filedata|content/i.test(k)){out[k]='[geschützt]';return}var v=d[k];if(typeof v==='string')out[k]=cleanText(v).slice(0,500);else if(typeof v==='number'||typeof v==='boolean'||v==null)out[k]=v;else out[k]=cleanText(v).slice(0,500)});return out}
-function load(){var raw='';try{raw=localStorage.getItem(KEY)||''}catch(_){}if(!raw)try{raw=sessionStorage.getItem(KEY)||''}catch(_){}try{var a=JSON.parse(raw||'[]');if(Array.isArray(a)){records=a.slice(-MAX);records.forEach(function(x){seq=Math.max(seq,Number(x&&x.seq||0))})}}catch(_){} }
-function persistSoon(){if(persistTimer)return;persistTimer=setTimeout(function(){persistTimer=0;var raw=JSON.stringify(records.slice(-MAX));try{localStorage.setItem(KEY,raw)}catch(_){try{sessionStorage.setItem(KEY,raw)}catch(__){}}},4000)}
-function scheduleUi(){if(uiTimer)return;uiTimer=setTimeout(function(){uiTimer=0;try{var d=window.ExportHUBDiagnostics863;if(d&&typeof d.refreshLocal==='function')d.refreshLocal();else if(d&&typeof d.refresh==='function')d.refresh(false)}catch(_){}},700)}
-function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
-function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
-function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
-load();
-window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
-window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
-if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
-if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
-if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
-if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
-try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}
-try{if(window.PerformanceObserver){var po=new PerformanceObserver(function(list){list.getEntries().forEach(funct
-
---- hit 3 pos=12828 nearest_function=watchContent ---
-hub:rendered','exporthub:sync','exporthub:viewchange','exporthub:shipment-saved','exporthub:customer-avis-updated'].forEach(function(name){window.addEventListener(name,function(e){renderSignal(name,e)})});
-var renderTimer=0,pending={count:0,added:0,removed:0,areas:Object.create(null)};
-function areaName(node){if(!node||node.nodeType!==1)return currentView();var content=document.getElementById('content'),n=node;if(n.closest&&n.closest('#rc863Diagnostics'))return'DIAG_IGNORE';while(n&&n!==content&&n.parentElement!==content)n=n.parentElement;if(!n||n===content)return'Gesamtbereich '+(currentView()||'');var id=q(n.id),h=n.querySelector&&n.querySelector('h1,h2,h3,.rc543-kicker,.rc524-kicker'),label=q(h&&h.textContent);return label||id||q(n.className).split(' ').slice(0,2).join('.')||currentView()}
-function flushRender(){renderTimer=0;if(!pending.count)return;var areas=Object.keys(pending.areas).filter(function(x){return x&&x!=='DIAG_IGNORE'}),view=currentView(),cause=Date.now()-lastSignal.at<1000?lastSignal.name:'DOM-Änderung',detail={mutations:pending.count,added:pending.added,removed:pending.removed,cause:cause,areas:areas.slice(0,4)},label=areas.length===1?areas[0]:(areas.length?areas.slice(0,2).join(' / '):'Gesamtbereich '+view),mutationCount=pending.count;pending={count:0,added:0,removed:0,areas:Object.create(null)};if(!areas.length)return;if(mutationCount>=120)add('performance','warning','Großer Render-Vorgang: '+label,detail,view);if(mutationCount<15)return;var key=low(view+'|'+label),a=renderBurst[key]||(renderBurst[key]=[]),t=Date.now();a.push(t);while(a.length&&t-a[0]>3500)a.shift();if(a.length>=4){add('performance','warning','Häufiges Neu-Rendern erkannt: '+label,{rendersIn3_5s:a.length,view:view,cause:cause},view);a.length=0}}
-function watchContent(){var content=document.getElementById('content');if(!content||content.__ehDiag863Observed)return false;content.__ehDiag863Observed=true;var mo=new MutationObserver(function(list){var view=currentView();if(view==='diagnostics')return;var count=0,added=0,removed=0;for(var i=0;i<list.length;i++){var m=list[i];if(!m||m.type!=='childList')continue;var target=m.target&&m.target.nodeType===1?m.target:null;if(target&&target.closest&&(target.closest('#rc863Diagnostics')||target.closest('[data-rc871-diagnostics-view]')))continue;count++;added+=m.addedNodes?m.addedNodes.length:0;removed+=m.removedNodes?m.removedNodes.length:0}if(!count)return;pending.count+=count;pending.added+=added;pending.removed+=removed;pending.areas['Gesamtbereich '+(view||'unbekannt')]=1;if(renderTimer)clearTimeout(renderTimer);renderTimer=setTimeout(flushRender,320)});mo.observe(content,{childList:true,subtree:true});return true}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchContent,{once:true});else watchContent();
-window.addEventListener('exporthub:ready',watchContent);window.addEventListener('exporthub:rendered',function(){setTimeout(watchContent,0)});window.addEventListener('exporthub:viewchange',function(){setTimeout(watchContent,0)});
-window.__EXPORTHUB_DIAG863_STORE__={records:records,add:add,clear:function(){records.splice(0,records.length);persistSoon();scheduleUi()},safeUrl:safeUrl,currentView:currentView,max:MAX,uiQuietUntil:0,rawFetch:nativeFetch};
-})();
-</script>
-<script id="exporthub-rc864-diagnostics-cloud">
-(function(){
-'use strict';
-if(window.__EXPORTHUB_RC864_DIAGNOSTICS_CLOUD__)return;window.__EXPORTHUB_RC864_DIAGNOSTICS_CLOUD__=true;
-var endpoint='/api/exporthub-state',remoteRecords=[],remoteMeta={status:'Warte auf Anmeldung',lastSyncAt:'',lastError:'',revision:0,total:0},uploadTimer=0,refreshTimer=0,busyUpload=false,busyRead=false,lastReadAt=0,uploadFailures=0,uploadRetryAt=0;
-function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
-function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
-function store(){return window.__EXPORTHUB_DIAG863_STORE__||null}
-function rawFetch(){var s=store();return s&&typeof s.rawFetch==='function'?s.rawFetch:(typeof window.fetch==='function'?window.fetch.bind(window):null)}
-function environment(){return /-testservice\./i.test(location.hostname)?'testservice':'production'}
-function runtime(){return window.ExportHUBClean&&window.ExportHUBClean.runtime||{}}
-function token(){var rt=runtime();return q(rt.authToken||rt.sessionToken||window.__EXPORTHUB_AUTH_TOKEN__||'')}
-function user(){try{return (typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||runtime().user||window.currentUser||{}}catch(_){return window.currentUser||{}}}
-function isGlobal(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),p=Array.isArray(u.permissions)?u.permissions:[];return !!(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||/global.?admin|administrator|vollzugriff/.test(role)||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
-function deviceId(){var rt=runtime(),id=q(rt.deviceId);if(id)return id;var key='exporthub:diagnostics-device-id',saved='';try{saved=q(localStorage.getItem(key))}catch(_){}if(saved)return saved;try{var a=new Uint8Array(12);crypto.getRandomValues(a);saved='diag-'+Array.prototype.map.call(a,function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(_){saved='diag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}try{localStorage.setItem(key,saved)}catch(_){}return saved}
-function headers(){var t=token(),h={'Accept':'application/json','Content-Type':'application/json','Cache-Control':'no-cache','X-ExportHUB-Environment':environment()};if(t){h['X-ExportHUB-Token']=t;h['X-ExportHUB-Session']=t;h.Authorization='Bearer '+t}return h}
-function clientVersion(){return q(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version||'RC864')}
-function eventId(r){return deviceId()+'|'+String(Number(r&&r.seq||0))+'|'+q(r&&r.at||r&&r.lastAt)}
-function localRecords(){var s=store();return s&&Array.isArray(s.records)?s.records:[]}
-function lastSeqKey(){return'exporthub:rc864:diagnostics:last-seq:'+environment()+':'+deviceId()}
-function lastSentSeq(){try{return Number(sessionStorage.getItem(lastSeqKey())||0)||0}catch(_){return 0}}
-function setLastSentSeq(n){try{sessionStorage.setItem(lastSeqKey(),String(Number(n)||0))}catch(_){}}
-function notify(){try{window.dispatchEvent(new CustomEvent('exporthub:diagnostics-cloud-updated',{detail:{status:remoteMeta.status,total:remoteMeta.total}}))}catch(_){}}
-function setStatus(status,error){remoteMeta.status=status;remoteMeta.lastError=q(error||'');notify()}
-async function request(mode,opt){var f=rawFetch(),t=token();if(!f)throw new Error('Fetch ist nicht verfügbar.');if(!t)throw new Error('Keine angemeldete ExportHUB-Sitzung.');if(navigator.onLine===false){var offline=new Error('Offline');offline.code='OFFLINE';throw offline}opt=opt||{};var method=opt.method||'GET',url=endpoint+'?mode='+encodeURIComponent(mode)+'&environment='+encodeURIComponent(environment());if(opt.limit)url+='&limit='+encodeURIComponent(opt.limit);var controller=typeof AbortController==='function'?new AbortController():null,timer=controller?setTimeout(function(){try{controller.abort()}catch(_){}},45000):0,init={method:method,credentials:'same-origin',cache:'no-store',headers:headers()};if(controller)init.signal=controller.signal;if(opt.body)init.body=JSON.stringify(opt.body);var r,raw='';try{r=await f(url,init)}finally{if(timer)clearTimeout(timer)}try{raw=await r.text()}catch(_){}var data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={}}if(!r.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+r.status));e.status=r.status;e.code=q(data.code);throw e}return data}
-async function uploadPendi
-
---- hit 4 pos=13160 nearest_function=watchContent ---
-pe!==1)return currentView();var content=document.getElementById('content'),n=node;if(n.closest&&n.closest('#rc863Diagnostics'))return'DIAG_IGNORE';while(n&&n!==content&&n.parentElement!==content)n=n.parentElement;if(!n||n===content)return'Gesamtbereich '+(currentView()||'');var id=q(n.id),h=n.querySelector&&n.querySelector('h1,h2,h3,.rc543-kicker,.rc524-kicker'),label=q(h&&h.textContent);return label||id||q(n.className).split(' ').slice(0,2).join('.')||currentView()}
-function flushRender(){renderTimer=0;if(!pending.count)return;var areas=Object.keys(pending.areas).filter(function(x){return x&&x!=='DIAG_IGNORE'}),view=currentView(),cause=Date.now()-lastSignal.at<1000?lastSignal.name:'DOM-Änderung',detail={mutations:pending.count,added:pending.added,removed:pending.removed,cause:cause,areas:areas.slice(0,4)},label=areas.length===1?areas[0]:(areas.length?areas.slice(0,2).join(' / '):'Gesamtbereich '+view),mutationCount=pending.count;pending={count:0,added:0,removed:0,areas:Object.create(null)};if(!areas.length)return;if(mutationCount>=120)add('performance','warning','Großer Render-Vorgang: '+label,detail,view);if(mutationCount<15)return;var key=low(view+'|'+label),a=renderBurst[key]||(renderBurst[key]=[]),t=Date.now();a.push(t);while(a.length&&t-a[0]>3500)a.shift();if(a.length>=4){add('performance','warning','Häufiges Neu-Rendern erkannt: '+label,{rendersIn3_5s:a.length,view:view,cause:cause},view);a.length=0}}
-function watchContent(){var content=document.getElementById('content');if(!content||content.__ehDiag863Observed)return false;content.__ehDiag863Observed=true;var mo=new MutationObserver(function(list){var view=currentView();if(view==='diagnostics')return;var count=0,added=0,removed=0;for(var i=0;i<list.length;i++){var m=list[i];if(!m||m.type!=='childList')continue;var target=m.target&&m.target.nodeType===1?m.target:null;if(target&&target.closest&&(target.closest('#rc863Diagnostics')||target.closest('[data-rc871-diagnostics-view]')))continue;count++;added+=m.addedNodes?m.addedNodes.length:0;removed+=m.removedNodes?m.removedNodes.length:0}if(!count)return;pending.count+=count;pending.added+=added;pending.removed+=removed;pending.areas['Gesamtbereich '+(view||'unbekannt')]=1;if(renderTimer)clearTimeout(renderTimer);renderTimer=setTimeout(flushRender,320)});mo.observe(content,{childList:true,subtree:true});return true}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchContent,{once:true});else watchContent();
-window.addEventListener('exporthub:ready',watchContent);window.addEventListener('exporthub:rendered',function(){setTimeout(watchContent,0)});window.addEventListener('exporthub:viewchange',function(){setTimeout(watchContent,0)});
-window.__EXPORTHUB_DIAG863_STORE__={records:records,add:add,clear:function(){records.splice(0,records.length);persistSoon();scheduleUi()},safeUrl:safeUrl,currentView:currentView,max:MAX,uiQuietUntil:0,rawFetch:nativeFetch};
-})();
-</script>
-<script id="exporthub-rc864-diagnostics-cloud">
-(function(){
-'use strict';
-if(window.__EXPORTHUB_RC864_DIAGNOSTICS_CLOUD__)return;window.__EXPORTHUB_RC864_DIAGNOSTICS_CLOUD__=true;
-var endpoint='/api/exporthub-state',remoteRecords=[],remoteMeta={status:'Warte auf Anmeldung',lastSyncAt:'',lastError:'',revision:0,total:0},uploadTimer=0,refreshTimer=0,busyUpload=false,busyRead=false,lastReadAt=0,uploadFailures=0,uploadRetryAt=0;
-function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
-function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
-function store(){return window.__EXPORTHUB_DIAG863_STORE__||null}
-function rawFetch(){var s=store();return s&&typeof s.rawFetch==='function'?s.rawFetch:(typeof window.fetch==='function'?window.fetch.bind(window):null)}
-function environment(){return /-testservice\./i.test(location.hostname)?'testservice':'production'}
-function runtime(){return window.ExportHUBClean&&window.ExportHUBClean.runtime||{}}
-function token(){var rt=runtime();return q(rt.authToken||rt.sessionToken||window.__EXPORTHUB_AUTH_TOKEN__||'')}
-function user(){try{return (typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||runtime().user||window.currentUser||{}}catch(_){return window.currentUser||{}}}
-function isGlobal(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),p=Array.isArray(u.permissions)?u.permissions:[];return !!(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||/global.?admin|administrator|vollzugriff/.test(role)||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
-function deviceId(){var rt=runtime(),id=q(rt.deviceId);if(id)return id;var key='exporthub:diagnostics-device-id',saved='';try{saved=q(localStorage.getItem(key))}catch(_){}if(saved)return saved;try{var a=new Uint8Array(12);crypto.getRandomValues(a);saved='diag-'+Array.prototype.map.call(a,function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(_){saved='diag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}try{localStorage.setItem(key,saved)}catch(_){}return saved}
-function headers(){var t=token(),h={'Accept':'application/json','Content-Type':'application/json','Cache-Control':'no-cache','X-ExportHUB-Environment':environment()};if(t){h['X-ExportHUB-Token']=t;h['X-ExportHUB-Session']=t;h.Authorization='Bearer '+t}return h}
-function clientVersion(){return q(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version||'RC864')}
-function eventId(r){return deviceId()+'|'+String(Number(r&&r.seq||0))+'|'+q(r&&r.at||r&&r.lastAt)}
-function localRecords(){var s=store();return s&&Array.isArray(s.records)?s.records:[]}
-function lastSeqKey(){return'exporthub:rc864:diagnostics:last-seq:'+environment()+':'+deviceId()}
-function lastSentSeq(){try{return Number(sessionStorage.getItem(lastSeqKey())||0)||0}catch(_){return 0}}
-function setLastSentSeq(n){try{sessionStorage.setItem(lastSeqKey(),String(Number(n)||0))}catch(_){}}
-function notify(){try{window.dispatchEvent(new CustomEvent('exporthub:diagnostics-cloud-updated',{detail:{status:remoteMeta.status,total:remoteMeta.total}}))}catch(_){}}
-function setStatus(status,error){remoteMeta.status=status;remoteMeta.lastError=q(error||'');notify()}
-async function request(mode,opt){var f=rawFetch(),t=token();if(!f)throw new Error('Fetch ist nicht verfügbar.');if(!t)throw new Error('Keine angemeldete ExportHUB-Sitzung.');if(navigator.onLine===false){var offline=new Error('Offline');offline.code='OFFLINE';throw offline}opt=opt||{};var method=opt.method||'GET',url=endpoint+'?mode='+encodeURIComponent(mode)+'&environment='+encodeURIComponent(environment());if(opt.limit)url+='&limit='+encodeURIComponent(opt.limit);var controller=typeof AbortController==='function'?new AbortController():null,timer=controller?setTimeout(function(){try{controller.abort()}catch(_){}},45000):0,init={method:method,credentials:'same-origin',cache:'no-store',headers:headers()};if(controller)init.signal=controller.signal;if(opt.body)init.body=JSON.stringify(opt.body);var r,raw='';try{r=await f(url,init)}finally{if(timer)clearTimeout(timer)}try{raw=await r.text()}catch(_){}var data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={}}if(!r.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+r.status));e.status=r.status;e.code=q(data.code);throw e}return data}
-async function uploadPending(force){if(busyUpload)return false;var t=token();if(!t){setStatus('Warte auf Anmeldung');return false}if(!force&&(document.hidden||navigator.onLine===false||Date.now()<uploadRetryAt)){setStatus(navigator.onLine===false?'Diagnose lokal · offline':'Azure-Sync ausstehend',remoteMeta.lastError);return false}var rows=localRecords(),l
-
---- hit 5 pos=13247 nearest_function=watchContent ---
-closest&&n.closest('#rc863Diagnostics'))return'DIAG_IGNORE';while(n&&n!==content&&n.parentElement!==content)n=n.parentElement;if(!n||n===content)return'Gesamtbereich '+(currentView()||'');var id=q(n.id),h=n.querySelector&&n.querySelector('h1,h2,h3,.rc543-kicker,.rc524-kicker'),label=q(h&&h.textContent);return label||id||q(n.className).split(' ').slice(0,2).join('.')||currentView()}
-function flushRender(){renderTimer=0;if(!pending.count)return;var areas=Object.keys(pending.areas).filter(function(x){return x&&x!=='DIAG_IGNORE'}),view=currentView(),cause=Date.now()-lastSignal.at<1000?lastSignal.name:'DOM-Änderung',detail={mutations:pending.count,added:pending.added,removed:pending.removed,cause:cause,areas:areas.slice(0,4)},label=areas.length===1?areas[0]:(areas.length?areas.slice(0,2).join(' / '):'Gesamtbereich '+view),mutationCount=pending.count;pending={count:0,added:0,removed:0,areas:Object.create(null)};if(!areas.length)return;if(mutationCount>=120)add('performance','warning','Großer Render-Vorgang: '+label,detail,view);if(mutationCount<15)return;var key=low(view+'|'+label),a=renderBurst[key]||(renderBurst[key]=[]),t=Date.now();a.push(t);while(a.length&&t-a[0]>3500)a.shift();if(a.length>=4){add('performance','warning','Häufiges Neu-Rendern erkannt: '+label,{rendersIn3_5s:a.length,view:view,cause:cause},view);a.length=0}}
-function watchContent(){var content=document.getElementById('content');if(!content||content.__ehDiag863Observed)return false;content.__ehDiag863Observed=true;var mo=new MutationObserver(function(list){var view=currentView();if(view==='diagnostics')return;var count=0,added=0,removed=0;for(var i=0;i<list.length;i++){var m=list[i];if(!m||m.type!=='childList')continue;var target=m.target&&m.target.nodeType===1?m.target:null;if(target&&target.closest&&(target.closest('#rc863Diagnostics')||target.closest('[data-rc871-diagnostics-view]')))continue;count++;added+=m.addedNodes?m.addedNodes.length:0;removed+=m.removedNodes?m.removedNodes.length:0}if(!count)return;pending.count+=count;pending.added+=added;pending.removed+=removed;pending.areas['Gesamtbereich '+(view||'unbekannt')]=1;if(renderTimer)clearTimeout(renderTimer);renderTimer=setTimeout(flushRender,320)});mo.observe(content,{childList:true,subtree:true});return true}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watchContent,{once:true});else watchContent();
-window.addEventListener('exporthub:ready',watchContent);window.addEventListener('exporthub:rendered',function(){setTimeout(watchContent,0)});window.addEventListener('exporthub:viewchange',function(){setTimeout(watchContent,0)});
-window.__EXPORTHUB_DIAG863_STORE__={records:records,add:add,clear:function(){records.splice(0,records.length);persistSoon();scheduleUi()},safeUrl:safeUrl,currentView:currentView,max:MAX,uiQuietUntil:0,rawFetch:nativeFetch};
-})();
-</script>
-<script id="exporthub-rc864-diagnostics-cloud">
-(function(){
-'use strict';
-if(window.__EXPORTHUB_RC864_DIAGNOSTICS_CLOUD__)return;window.__EXPORTHUB_RC864_DIAGNOSTICS_CLOUD__=true;
-var endpoint='/api/exporthub-state',remoteRecords=[],remoteMeta={status:'Warte auf Anmeldung',lastSyncAt:'',lastError:'',revision:0,total:0},uploadTimer=0,refreshTimer=0,busyUpload=false,busyRead=false,lastReadAt=0,uploadFailures=0,uploadRetryAt=0;
-function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
-function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
-function store(){return window.__EXPORTHUB_DIAG863_STORE__||null}
-function rawFetch(){var s=store();return s&&typeof s.rawFetch==='function'?s.rawFetch:(typeof window.fetch==='function'?window.fetch.bind(window):null)}
-function environment(){return /-testservice\./i.test(location.hostname)?'testservice':'production'}
-function runtime(){return window.ExportHUBClean&&window.ExportHUBClean.runtime||{}}
-function token(){var rt=runtime();return q(rt.authToken||rt.sessionToken||window.__EXPORTHUB_AUTH_TOKEN__||'')}
-function user(){try{return (typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||runtime().user||window.currentUser||{}}catch(_){return window.currentUser||{}}}
-function isGlobal(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),p=Array.isArray(u.permissions)?u.permissions:[];return !!(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||/global.?admin|administrator|vollzugriff/.test(role)||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
-function deviceId(){var rt=runtime(),id=q(rt.deviceId);if(id)return id;var key='exporthub:diagnostics-device-id',saved='';try{saved=q(localStorage.getItem(key))}catch(_){}if(saved)return saved;try{var a=new Uint8Array(12);crypto.getRandomValues(a);saved='diag-'+Array.prototype.map.call(a,function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(_){saved='diag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}try{localStorage.setItem(key,saved)}catch(_){}return saved}
-function headers(){var t=token(),h={'Accept':'application/json','Content-Type':'application/json','Cache-Control':'no-cache','X-ExportHUB-Environment':environment()};if(t){h['X-ExportHUB-Token']=t;h['X-ExportHUB-Session']=t;h.Authorization='Bearer '+t}return h}
-function clientVersion(){return q(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version||'RC864')}
-function eventId(r){return deviceId()+'|'+String(Number(r&&r.seq||0))+'|'+q(r&&r.at||r&&r.lastAt)}
-function localRecords(){var s=store();return s&&Array.isArray(s.records)?s.records:[]}
-function lastSeqKey(){return'exporthub:rc864:diagnostics:last-seq:'+environment()+':'+deviceId()}
-function lastSentSeq(){try{return Number(sessionStorage.getItem(lastSeqKey())||0)||0}catch(_){return 0}}
-function setLastSentSeq(n){try{sessionStorage.setItem(lastSeqKey(),String(Number(n)||0))}catch(_){}}
-function notify(){try{window.dispatchEvent(new CustomEvent('exporthub:diagnostics-cloud-updated',{detail:{status:remoteMeta.status,total:remoteMeta.total}}))}catch(_){}}
-function setStatus(status,error){remoteMeta.status=status;remoteMeta.lastError=q(error||'');notify()}
-async function request(mode,opt){var f=rawFetch(),t=token();if(!f)throw new Error('Fetch ist nicht verfügbar.');if(!t)throw new Error('Keine angemeldete ExportHUB-Sitzung.');if(navigator.onLine===false){var offline=new Error('Offline');offline.code='OFFLINE';throw offline}opt=opt||{};var method=opt.method||'GET',url=endpoint+'?mode='+encodeURIComponent(mode)+'&environment='+encodeURIComponent(environment());if(opt.limit)url+='&limit='+encodeURIComponent(opt.limit);var controller=typeof AbortController==='function'?new AbortController():null,timer=controller?setTimeout(function(){try{controller.abort()}catch(_){}},45000):0,init={method:method,credentials:'same-origin',cache:'no-store',headers:headers()};if(controller)init.signal=controller.signal;if(opt.body)init.body=JSON.stringify(opt.body);var r,raw='';try{r=await f(url,init)}finally{if(timer)clearTimeout(timer)}try{raw=await r.text()}catch(_){}var data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={}}if(!r.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+r.status));e.status=r.status;e.code=q(data.code);throw e}return data}
-async function uploadPending(force){if(busyUpload)return false;var t=token();if(!t){setStatus('Warte auf Anmeldung');return false}if(!force&&(document.hidden||navigator.onLine===false||Date.now()<uploadRetryAt)){setStatus(navigator.onLine===false?'Diagnose lokal · offline':'Azure-Sync ausstehend',remoteMeta.lastError);return false}var rows=localRecords(),last=lastSentSeq(),pending=rows.filter(function(r){return Number(r&&r.seq||0)>last});if(
-
---- hit 6 pos=17456 nearest_function=request ---
-u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),p=Array.isArray(u.permissions)?u.permissions:[];return !!(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||/global.?admin|administrator|vollzugriff/.test(role)||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||name==='tobias.limberg')}
-function deviceId(){var rt=runtime(),id=q(rt.deviceId);if(id)return id;var key='exporthub:diagnostics-device-id',saved='';try{saved=q(localStorage.getItem(key))}catch(_){}if(saved)return saved;try{var a=new Uint8Array(12);crypto.getRandomValues(a);saved='diag-'+Array.prototype.map.call(a,function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(_){saved='diag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}try{localStorage.setItem(key,saved)}catch(_){}return saved}
-function headers(){var t=token(),h={'Accept':'application/json','Content-Type':'application/json','Cache-Control':'no-cache','X-ExportHUB-Environment':environment()};if(t){h['X-ExportHUB-Token']=t;h['X-ExportHUB-Session']=t;h.Authorization='Bearer '+t}return h}
-function clientVersion(){return q(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version||'RC864')}
-function eventId(r){return deviceId()+'|'+String(Number(r&&r.seq||0))+'|'+q(r&&r.at||r&&r.lastAt)}
-function localRecords(){var s=store();return s&&Array.isArray(s.records)?s.records:[]}
-function lastSeqKey(){return'exporthub:rc864:diagnostics:last-seq:'+environment()+':'+deviceId()}
-function lastSentSeq(){try{return Number(sessionStorage.getItem(lastSeqKey())||0)||0}catch(_){return 0}}
-function setLastSentSeq(n){try{sessionStorage.setItem(lastSeqKey(),String(Number(n)||0))}catch(_){}}
-function notify(){try{window.dispatchEvent(new CustomEvent('exporthub:diagnostics-cloud-updated',{detail:{status:remoteMeta.status,total:remoteMeta.total}}))}catch(_){}}
-function setStatus(status,error){remoteMeta.status=status;remoteMeta.lastError=q(error||'');notify()}
-async function request(mode,opt){var f=rawFetch(),t=token();if(!f)throw new Error('Fetch ist nicht verfügbar.');if(!t)throw new Error('Keine angemeldete ExportHUB-Sitzung.');if(navigator.onLine===false){var offline=new Error('Offline');offline.code='OFFLINE';throw offline}opt=opt||{};var method=opt.method||'GET',url=endpoint+'?mode='+encodeURIComponent(mode)+'&environment='+encodeURIComponent(environment());if(opt.limit)url+='&limit='+encodeURIComponent(opt.limit);var controller=typeof AbortController==='function'?new AbortController():null,timer=controller?setTimeout(function(){try{controller.abort()}catch(_){}},45000):0,init={method:method,credentials:'same-origin',cache:'no-store',headers:headers()};if(controller)init.signal=controller.signal;if(opt.body)init.body=JSON.stringify(opt.body);var r,raw='';try{r=await f(url,init)}finally{if(timer)clearTimeout(timer)}try{raw=await r.text()}catch(_){}var data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={}}if(!r.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+r.status));e.status=r.status;e.code=q(data.code);throw e}return data}
-async function uploadPending(force){if(busyUpload)return false;var t=token();if(!t){setStatus('Warte auf Anmeldung');return false}if(!force&&(document.hidden||navigator.onLine===false||Date.now()<uploadRetryAt)){setStatus(navigator.onLine===false?'Diagnose lokal · offline':'Azure-Sync ausstehend',remoteMeta.lastError);return false}var rows=localRecords(),last=lastSentSeq(),pending=rows.filter(function(r){return Number(r&&r.seq||0)>last});if(!pending.length){if(remoteMeta.status==='Warte auf Anmeldung')setStatus('Azure bereit');return false}var batch=pending.slice(0,50).map(function(r){return{id:eventId(r),seq:Number(r.seq||0),at:r.at,lastAt:r.lastAt,level:r.level,category:r.category,area:r.area,message:r.message,details:r.details,count:r.count}});busyUpload=true;try{setStatus('Synchronisiert Diagnose …');var data=await request('diagnostics-append',{method:'POST',body:{action:'diagnostics-append',environment:environment(),deviceId:deviceId(),clientVersion:clientVersion(),records:batch}});var maxSeq=Math.max.apply(null,batch.map(function(r){return Number(r.seq||0)}));setLastSentSeq(maxSeq);remoteMeta.lastSyncAt=new Date().toISOString();remoteMeta.revision=Number(data.revision||remoteMeta.revision||0);remoteMeta.total=Number(data.records||remoteMeta.total||0);uploadFailures=0;uploadRetryAt=0;setStatus('Azure synchronisiert');if(pending.length>batch.length)scheduleUpload(1200);return true}catch(e){uploadFailures=Math.min(5,uploadFailures+1);var wait=Math.min(300000,30000*Math.pow(2,uploadFailures-1));uploadRetryAt=Date.now()+wait;setStatus('Azure-Sync ausstehend',e&&e.message||e);if(!document.hidden&&navigator.onLine!==false)scheduleUpload(wait);return false}finally{busyUpload=false}}
-function scheduleUpload(delay){if(uploadTimer)clearTimeout(uploadTimer);if(document.hidden||navigator.onLine===false)return false;var wait=Math.max(500,Number(delay)||2200,uploadRetryAt>Date.now()?uploadRetryAt-Date.now():0);uploadTimer=setTimeout(function(){uploadTimer=0;uploadPending(false)},wait);return true}
-async function refresh(force){if(!isGlobal())return false;if(busyRead)return false;if(!token()){setStatus('Warte auf Anmeldung');return false}if(!force&&Date.now()-lastReadAt<12000)return false;busyRead=true;try{var data=await request('diagnostics-read',{limit:5000});remoteRecords=Array.isArray(data.records)?data.records:[];remoteMeta.lastSyncAt=new Date().toISOString();remoteMeta.revision=Number(data.revision||0);remoteMeta.total=Number(data.total||remoteRecords.length);remoteMeta.maxRecords=Number(data.maxRecords||5000);remoteMeta.retentionDays=Number(data.retentionDays||30);lastReadAt=Date.now();setStatus('Azure synchronisiert');return true}catch(e){setStatus('Azure lesen fehlgeschlagen',e&&e.message||e);return false}finally{busyRead=false}}
-function combinedRecords(){var out=remoteRecords.slice(),seen=Object.create(null);out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().forEach(function(r){var id=eventId(r);if(seen[id])return;var u=user();out.push(Object.assign({},r,{id:id,user:q(u.name||u.user||u.username)||'Dieses Gerät',deviceId:deviceId(),clientVersion:clientVersion(),environment:environment(),localPending:true}));seen[id]=1});out.sort(function(a,b){return Date.parse(q(a.lastAt||a.at)) - Date.parse(q(b.lastAt||b.at))});return out}
-function recentRecords(limit){var n=Math.max(1,Math.min(1000,Number(limit)||250)),out=remoteRecords.slice(-n),seen=Object.create(null),u=user();out.forEach(function(r){if(r&&r.id)seen[r.id]=1});localRecords().slice(-n).forEach(function(r){var id=eventId(r);if(seen[id])return;out.push(Object.assign({},r,{id:id,user:q(u.name||u.user||u.username)||'Dieses Gerät',deviceId:deviceId(),clientVersion:clientVersion(),environment:environment(),localPending:true}));seen[id]=1});out.sort(function(a,b){return Date.parse(q(a.lastAt||a.at)) - Date.parse(q(b.lastAt||b.at))});return out.slice(-n)}
-async function clearAll(){if(!isGlobal())throw new Error('Nur globale Administratoren dürfen die Diagnose löschen.');await request('diagnostics-clear',{method:'POST',body:{action:'diagnostics-clear',environment:environment()}});remoteRecords=[];remoteMeta.total=0;remoteMeta.revision++;lastReadAt=Date.now();setLastSentSeq(localRecords().reduce(function(m,r){return Math.max(m,Number(r&&r.seq||0))},0));setStatus('Azure-Protokoll gelöscht');return true}
-function status(){return Object.assign({environment:environment(),deviceId:deviceId(),pending:localRecords().filter(function(r){return Number(r&&r.seq||0)>lastSentSeq()}).length},remoteMeta)}
-function diagnosticsViewOpen(){var s=store();try{return !!(s&&typeof s.currentView==='function'&&s.currentView()==='diagno
-
-=== FUNCTION INVENTORY ===
+=== RELEVANT FUNCTION INVENTORY ===
 3967: load
 18002: uploadPending
 19712: scheduleUpload
