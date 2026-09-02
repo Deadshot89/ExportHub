@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rc961-startup-diagnose
@@ -19,5 +19,19 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: rc961-startup-teamdata-timeout
+          fetch-depth: 0
       - name: Extract startup and teamdata paths
         run: python .github/rc961_startup_diag.py
+      - name: Persist diagnosis
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/rc961-startup-diagnosis.txt
+          if git diff --cached --quiet; then
+            echo "Diagnosis unchanged."
+            exit 0
+          fi
+          git commit -m "RC961 diagnostic: capture startup teamdata path"
+          git push origin HEAD:rc961-startup-teamdata-timeout
