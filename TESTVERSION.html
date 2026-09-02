@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC960',cache:'960',loginReturn:'/TESTVERSION.html?v=960'});
+var BUILD=Object.freeze({version:'RC961',cache:'961',loginReturn:'/TESTVERSION.html?v=961'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -13855,13 +13855,14 @@ function verifyStateEnvironment(result,mode){
  runtime.dataEnvironment=got;runtime.stateBlob=blob;return result
 }
 async function stateCall(mode,payload,requestOptions){
- const token=text(runtime.authToken),body=Object.assign({action:mode,mode:mode,sessionToken:token,environment:DATA_ENVIRONMENT},payload||{}),candidates=[API].concat(STATE_API_CANDIDATES.filter(function(endpoint){return endpoint!==API})),errors=[];
+ const token=text(runtime.authToken),body=Object.assign({action:mode,mode:mode,sessionToken:token,environment:DATA_ENVIRONMENT},payload||{}),candidates=[API].concat(STATE_API_CANDIDATES.filter(function(endpoint){return endpoint!==API})),errors=[],rc961ReadBudget=mode==='read'?Math.max(1,Number(requestOptions&&requestOptions.timeoutMs||25000)):0,rc961ReadDeadline=rc961ReadBudget?Date.now()+rc961ReadBudget:0;
  for(let i=0;i<candidates.length;i++){
+  if(mode==='read'&&rc961ReadDeadline&&Date.now()>=rc961ReadDeadline)break;
   const endpoint=candidates[i],headers={'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Environment':DATA_ENVIRONMENT},attemptLimit=1;
   if(token){headers['X-ExportHUB-Token']=token;headers['X-ExportHUB-Session']=token;headers.Authorization='Bearer '+token}
   for(let attempt=1;attempt<=attemptLimit;attempt++){
    try{
-    const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=50000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=25000;if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
+    const opts=Object.assign({method:'POST',headers:headers,body:JSON.stringify(body)},requestOptions||{});opts.headers=Object.assign({},headers,(requestOptions&&requestOptions.headers)||{});if(mode==='save'&&!opts.timeoutMs)opts.timeoutMs=50000;if(mode==='save'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&!opts.timeoutMs)opts.timeoutMs=25000;if(mode==='read'&&rc961ReadDeadline){var rc961Remaining=Math.max(1,rc961ReadDeadline-Date.now());opts.timeoutMs=Math.max(1,Math.min(Number(opts.timeoutMs)||25000,rc961Remaining))}if(mode==='read'&&!opts.maxAttempts)opts.maxAttempts=1;if(mode==='read'&&i>0)progress(Math.min(16,8+i*2),'Azure-Teamdaten werden über einen alternativen API-Weg geladen …');
     const result=verifyStateEnvironment(await jsonFetch(endpoint+'?mode='+encodeURIComponent(mode)+(mode==='save'?'&ack=1':''),opts),mode);
     const MIN_STATE_API_VERSION=931,serverVersionText=text(result&&result.serverVersion),serverVersionMatch=serverVersionText.match(/^RC(\d+)$/i),serverVersionNumber=serverVersionMatch?Number(serverVersionMatch[1]||0):0;
     if((mode==='read'||mode==='meta'||mode==='save')&&serverVersionNumber<MIN_STATE_API_VERSION){const outdated=new Error('Die Azure-State-API des '+(DATA_ENVIRONMENT==='testservice'?'Testservice':'Produktionssystems')+' ist veraltet: '+(serverVersionText||'keine Versionskennung')+'. Benötigt wird mindestens RC'+MIN_STATE_API_VERSION+'. Bitte api/exporthub-state/index.js aus dieser Testversion veröffentlichen.');outdated.code='STATE_API_OUTDATED';outdated.status=409;outdated.serverVersion=serverVersionText||'';outdated.requiredVersion='RC'+MIN_STATE_API_VERSION;throw outdated}
