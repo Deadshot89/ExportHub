@@ -25,8 +25,9 @@ vm.createContext(sandbox);
 vm.runInContext(fnSource+'\nthis.pickupExpectedCollis=pickupExpectedCollis;',sandbox);
 const expected=sandbox.pickupExpectedCollis;
 
-assert.equal(expected({colliCount:2,rows:[{count:2},{count:3}]}),5,'row-level/legacy colliCount must not override full row total');
-assert.equal(expected({expectedColliCount:7,rows:[{count:2},{count:3}]}),7,'trusted explicit aggregate must override row total');
+assert.equal(expected({colliCount:2,rows:[{count:2},{count:3}]}),5,'legacy colliCount must not override full row total');
+assert.equal(expected({expectedColliCount:7,rows:[{count:2},{count:3}]}),5,'visible physical row total must override stale aggregate total');
+assert.equal(expected({expectedColliCount:7}),7,'trusted aggregate remains fallback when physical rows are absent');
 assert.equal(expected({colliCount:4}),4,'legacy colliCount must remain available when no better source exists');
-assert.equal(expected({colliCount:1,shipment:{rows:[{qty:2},{quantity:4}]}}),6,'nested row lists must be summed before legacy fallback');
+assert.equal(expected({colliCount:1,shipment:{rows:[{qty:2},{quantity:4}]}}),6,'nested row lists must be summed before aggregate and legacy fallbacks');
 console.log('RC960 pickup client runtime regression passed');
