@@ -54,13 +54,16 @@ jobs:
         run: python .github/rc960_release_exact.py
       - name: Existing baseline tests
         run: npm test
-      - name: Final RC960 verification
-        run: |
-          python .github/rc960_apply.py
-          python .github/rc960_regression.py
-          node .github/rc960_runtime.js
-          node .github/rc960_api_tests.js
-          git diff --check
+      - name: Final RC960 reapply check
+        run: python .github/rc960_apply.py
+      - name: Final RC960 regression check
+        run: python .github/rc960_regression.py
+      - name: Final RC960 pickup client check
+        run: node .github/rc960_runtime.js
+      - name: Final RC960 pickup server check
+        run: node .github/rc960_api_tests.js
+      - name: Final RC960 diff check
+        run: git diff --check
       - name: Commit verified RC960 changes
         if: success()
         run: |
