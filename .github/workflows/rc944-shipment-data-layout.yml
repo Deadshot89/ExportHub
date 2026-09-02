@@ -1,4 +1,4 @@
-name: RC944 Sichtbaren Sendungsdaten HTML-Ausschnitt präzisieren
+name: RC944 Aktiven nummerierten Sendungsdaten Override prüfen
 
 on:
   workflow_dispatch:
@@ -26,25 +26,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Kleinen Formularausschnitt extrahieren
+      - name: Aktive Layout-Overrides extrahieren
         shell: bash
         run: |
           python3 <<'PY'
           from pathlib import Path
           text=Path('TESTVERSION.html').read_text(encoding='utf-8')
           assert "version:'RC943',cache:'943',loginReturn:'/TESTVERSION.html?v=943'" in text, 'Basis ist nicht RC943'
-          needle='state.shipment.comments=this.value'
-          positions=[]; p=0
-          while True:
-              i=text.find(needle,p)
-              if i<0: break
-              positions.append(i); p=i+1
-          assert positions, 'Bemerkungs-Handler nicht gefunden'
-          anchor=positions[-1]
-          chunk=text[max(0,anchor-6000):min(len(text),anchor+5000)]
-          assert 'Bemerkung' in chunk, 'Bemerkungsfeld nicht im Ausschnitt'
-          Path('_rc944_active_snippet.txt').write_text('anchor='+str(anchor)+'\n---SNIPPET---\n'+chunk,encoding='utf-8')
-          print('anchor',anchor,'chars',len(chunk))
+          needles=['rc363FixedShipmentLayout','rc363-process-head','rc573ShipmentShell','rc573ShipmentStatus']
+          parts=[]
+          for needle in needles:
+              positions=[]; p=0
+              while True:
+                  i=text.find(needle,p)
+                  if i<0: break
+                  positions.append(i); p=i+1
+              if positions:
+                  anchor=positions[-1]
+                  chunk=text[max(0,anchor-7000):min(len(text),anchor+9000)]
+                  parts.append('\n=== '+needle+' @ '+str(anchor)+' ===\n'+chunk)
+          assert parts, 'Kein aktiver Layout-Override gefunden'
+          Path('_rc944_active_snippet.txt').write_text(''.join(parts),encoding='utf-8')
+          print('Overrides',len(parts))
           PY
 
       - name: Diagnose-Ausschnitt aktualisieren
@@ -53,5 +56,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add _rc944_active_snippet.txt
-          git commit -m "RC944 sichtbaren Sendungsdaten-HTML-Ausschnitt erfassen"
+          git commit -m "RC944 nummerierten Sendungsdaten-Override erfassen"
           git push origin HEAD:main
