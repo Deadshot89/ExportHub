@@ -35,7 +35,11 @@ assert.strictEqual(queued.length, 1, '10 Render-Anforderungen dürfen nur einen 
 assert.deepStrictEqual(executed, [], 'Vor dem Browser-Frame darf der gebündelte Render nicht vorzeitig laufen.');
 queued[0]();
 assert.deepStrictEqual(executed, [9], 'Im Browser-Frame muss nur der letzte gebündelte Render ausgeführt werden.');
-assert.deepStrictEqual(coordinator.stats(), { requests: 10, runs: 1, coalesced: 9, scheduled: false }, 'Koordinator-Statistik ist falsch.');
+const stats = coordinator.stats();
+assert.strictEqual(stats.requests, 10, 'Koordinator muss 10 Anforderungen zählen.');
+assert.strictEqual(stats.runs, 1, 'Koordinator darf nur einen echten Render ausführen.');
+assert.strictEqual(stats.coalesced, 9, 'Koordinator muss 9 doppelte Anforderungen bündeln.');
+assert.strictEqual(stats.scheduled, false, 'Nach dem Frame darf kein Render mehr ausstehen.');
 
 // Ein echter View-Wechsel darf nicht verzögert werden.
 assert.strictEqual(needsImmediate('dashboard', 'shipment', false, false), true, 'View-Wechsel muss sofort vollständig rendern.');
