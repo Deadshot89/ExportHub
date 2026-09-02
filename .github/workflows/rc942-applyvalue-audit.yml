@@ -1,0 +1,69 @@
+name: RC942 applyValue Rohdatenpfad Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc942-applyvalue-audit.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: RC941 applyValue und letzte Standort-Rohdatenpfade analysieren
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          text=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          assert "version:'RC941',cache:'941',loginReturn:'/TESTVERSION.html?v=941'" in text
+          print('=== RC942 APPLYVALUE AUDIT BASIS RC941 ===')
+
+          def contexts_for_function(name, radius=4500):
+              hits=[m.start() for m in re.finditer(r'function\s+'+re.escape(name)+r'\s*\(', text)]
+              print(f'\n## function {name}: {len(hits)} Treffer')
+              for n,i in enumerate(hits,1):
+                  print(f'--- {n} @ {i} ---')
+                  print(text[max(0,i-radius):min(len(text),i+radius)].replace('\r',''))
+
+          contexts_for_function('applyValue',6000)
+          contexts_for_function('shipmentScore',2500)
+
+          # Rohdaten-Location-Arrays, die noch ID-Ausdrücke ohne selected/destination enthalten.
+          print('\n## RAW LOCATION READERS WITHOUT FULL ALIASES')
+          rows=[]
+          for m in re.finditer(r'[^\n]{0,400}(?:locations|sites|standorte)[^\n]{0,700}', text):
+              s=m.group(0)
+              if ('locationId' in s or '.id' in s) and ('siteId' in s) and ('selectedLocationId' not in s or 'destinationId' not in s):
+                  if s not in rows: rows.append(s)
+          for i,s in enumerate(rows[:60],1): print(f'{i:02d}: {s}')
+          print('RAW_READER_INCOMPLETE_TOTAL=',len(rows))
+
+          # Event/assignment context around applyValue calls.
+          print('\n## applyValue CALLS')
+          for n,m in enumerate(re.finditer(r'applyValue\s*\(',text),1):
+              i=m.start()
+              print(f'--- call {n} @ {i} ---')
+              print(text[max(0,i-900):min(len(text),i+1500)].replace('\r',''))
+          PY
+      - name: Audit-Workflow entfernen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/rc942-applyvalue-audit.yml
+          git commit -m "RC942 temporären Audit-Workflow entfernen"
+          git push origin HEAD:main
