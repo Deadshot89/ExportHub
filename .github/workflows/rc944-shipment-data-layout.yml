@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Sendungsdaten-Markup diagnostizieren
+      - name: Aktiven Sendungsdaten-Block diagnostizieren
         shell: bash
         run: |
           python3 <<'PY'
@@ -34,22 +34,22 @@ jobs:
           text=Path('TESTVERSION.html').read_text(encoding='utf-8')
           assert "version:'RC943',cache:'943',loginReturn:'/TESTVERSION.html?v=943'" in text, 'Basis ist nicht RC943'
           needles=[
-              'Sendungsreferenz / Referenznummer',
-              'Warenbeschreibung für CMR Feld 9',
-              'Aktueller Sendungsstatus',
-              'AKTUELLER SENDUNGSSTATUS',
-              'Bemerkung'
+              'Sendungsdaten',
+              'rc363FixedShipmentLayout',
+              'rc363-process-head',
+              'rc573ShipmentShell',
+              'goodsDescription',
+              'state.shipment.comments=this.value',
+              'rc573ShipmentStatus'
           ]
           for needle in needles:
-              positions=[]
-              p=0
+              positions=[]; p=0
               while True:
                   i=text.find(needle,p)
                   if i<0: break
-                  positions.append(i)
-                  p=i+1
+                  positions.append(i); p=i+1
               print('\n===',needle,'Treffer',len(positions),'===')
-              for i in positions[:8]:
+              for i in positions[-12:]:
                   print('INDEX',i)
-                  print(repr(text[max(0,i-2200):i+4200]))
+                  print(repr(text[max(0,i-2600):i+5200]))
           PY
