@@ -17,36 +17,38 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: State Read Save Antwortpfade analysieren
+      - name: Frontend Read Sync Auslöser analysieren
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const s=fs.readFileSync('api/exporthub-state/index.js','utf8');
+          const s=fs.readFileSync('TESTVERSION.html','utf8');
+          const build=s.match(/var BUILD=Object\.freeze\(\{version:'(RC\d+)'/);
+          console.log('BUILD',build?build[1]:'unbekannt');
 
-          function contexts(label,needles,before=1800,after=5000,limit=12){
+          function context(label,token,before=1800,after=6500,limit=30){
             console.log('\n=== '+label+' ===');
-            let shown=0;
-            for(const needle of needles){
-              let pos=0;
-              while((pos=s.indexOf(needle,pos))>=0&&shown<limit){
-                shown++;
-                console.log('\n--- '+needle+' @ '+pos+' ---\n'+s.slice(Math.max(0,pos-before),Math.min(s.length,pos+after)));
-                pos+=needle.length;
-              }
+            let pos=0,count=0;
+            while((pos=s.indexOf(token,pos))>=0&&count<limit){
+              count++;
+              console.log('\n--- '+count+' @ '+pos+' ---\n'+s.slice(Math.max(0,pos-before),Math.min(s.length,pos+after)));
+              pos+=token.length;
             }
-            console.log('COUNT',shown);
+            console.log('COUNT',count);
           }
 
-          contexts('Mode READ',['mode===\'read\'','mode === \'read\'','case \'read\'','case "read"'],2200,8000,8);
-          contexts('Mode SAVE',['mode===\'save\'','mode === \'save\'','case \'save\'','case "save"'],2200,9000,8);
-          contexts('sanitizeForClient Aufrufe',['sanitizeForClient('],1400,4500,20);
-          contexts('Timing Headers',['timingHeaders('],1200,5000,20);
-          contexts('Server Ms',['serverMs'],1000,4500,20);
+          for(const token of ['mode=read','mode%3Dread','exporthub-state','readRemote','loadRemote','syncRemote','pullRemote','cloudRead','teamRead']) context(token,token,1400,5200,18);
 
-          console.log('\n=== JSON stringify / response calls ===');
+          console.log('\n=== Timer / Visibility / Focus Kontexte mit State-Sync ===');
           const lines=s.split('\n');
           lines.forEach((line,i)=>{
-            if(/JSON\.stringify|json\(|sanitizeForClient|timingHeaders/.test(line))console.log(String(i+1).padStart(5),line.trim().slice(0,1200));
+            if(/setInterval|setTimeout|visibilitychange|focus|online|BroadcastChannel/.test(line) && /sync|cloud|state|azure|remote|read|pull/i.test(line)){
+              console.log(String(i+1).padStart(5),line.trim().slice(0,2200));
+            }
+          });
+
+          console.log('\n=== fetch/POST Zeilen mit exporthub-state ===');
+          lines.forEach((line,i)=>{
+            if(/exporthub-state/.test(line))console.log(String(i+1).padStart(5),line.trim().slice(0,3000));
           });
           NODE
