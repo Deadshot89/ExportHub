@@ -162,10 +162,10 @@ function pickupColliNumber(value){
 }
 function pickupExpectedCollis(data){
  var explicitNames=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];
- for(var e=0;e<explicitNames.length;e++){var explicit=pickupColliNumber(valueDeep(data,[explicitNames[e]]));if(explicit>0)return explicit}
  var lists=[];function walk(x,d){if(!x||typeof x!=='object'||d>6)return;['rows','colli','collis','packages','packageRows','items'].forEach(function(k){if(Array.isArray(x[k]))lists.push(x[k])});Object.keys(x).forEach(function(k){var v=x[k];if(v&&typeof v==='object'&&!Array.isArray(v))walk(v,d+1)})}walk(data,0);
  var best=0;for(var i=0;i<lists.length;i++){var total=lists[i].reduce(function(sum,row){if(!row||typeof row!=='object')return sum;var count=pickupColliNumber(row.count||row.qty||row.quantity||row.anzahl||row.menge||row.colliCount);return sum+count},0);if(total>best)best=total}
  if(best>0)return best;
+ for(var e=0;e<explicitNames.length;e++){var explicit=pickupColliNumber(valueDeep(data,[explicitNames[e]]));if(explicit>0)return explicit}
  return pickupColliNumber(valueDeep(data,['pickupColliCount','enteredColliCount','colliCount']))
 }
 function resetColliCheck(){colliCountConfirmed=false;var input=document.getElementById('index495PickupColliInput'),result=document.getElementById('index495PickupColliResult');if(input){input.value='';input.removeAttribute('readonly')}if(result){result.className='';result.textContent='Gesamtmenge noch nicht geprüft.'}}

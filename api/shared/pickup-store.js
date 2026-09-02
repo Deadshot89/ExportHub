@@ -35,10 +35,6 @@ function physicalColliCount(value){
 }
 function expectedCollis(source){
   var src=source&&typeof source==='object'?source:{},trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'],lists=['rows','colli','collis','packages','packageRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],i,j;
-  for(i=0;i<trusted.length;i+=1){
-    var total=positiveColliCount(src[trusted[i]]);
-    if(total>0)return total;
-  }
   var best=0,seen=[],stack=[src];
   while(stack.length){
     var node=stack.pop();
@@ -63,6 +59,10 @@ function expectedCollis(source){
     });
   }
   if(best>0)return best;
+  for(i=0;i<trusted.length;i+=1){
+    var total=positiveColliCount(src[trusted[i]]);
+    if(total>0)return total;
+  }
   var legacy=['pickupColliCount','enteredColliCount','colliCount'];
   for(i=0;i<legacy.length;i+=1){
     var fallback=positiveColliCount(src[legacy[i]]);
