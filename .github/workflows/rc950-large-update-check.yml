@@ -8,6 +8,7 @@ on:
       - 'TESTVERSION.html'
       - '.github/rc950_audit.py'
       - '.github/rc950_regression.py'
+      - '.github/rc950_patch.py'
       - '.github/workflows/rc950-large-update-check.yml'
   workflow_dispatch:
 
@@ -21,7 +22,7 @@ concurrency:
 jobs:
   audit-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout RC950 branch
         uses: actions/checkout@v4
@@ -29,36 +30,44 @@ jobs:
           ref: rc950-large-update
           fetch-depth: 1
 
-      - name: Generate active-path audit
-        run: python3 .github/rc950_audit.py
-
-      - name: Verify RED or GREEN phase
+      - name: RED then apply bundled RC950 update when needed
         shell: bash
         run: |
           set -euo pipefail
           if grep -Fq "version:'RC950',cache:'950',loginReturn:'/TESTVERSION.html?v=950'" TESTVERSION.html; then
-            echo 'RC950 implementation detected: GREEN required.'
-            python3 .github/rc950_regression.py
-            npm test
+            echo 'RC950 implementation already present.'
           else
             echo 'Pre-implementation baseline detected: RED required.'
             if python3 .github/rc950_regression.py; then
               echo 'RC950 regression unexpectedly passed before implementation.'
               exit 1
             fi
-            echo 'Expected RED baseline confirmed.'
+            echo 'Expected RED baseline confirmed. Applying bundled RC950 patch.'
+            python3 .github/rc950_patch.py
           fi
 
-      - name: Commit audit output when changed
+      - name: Generate active-path audit after implementation
+        run: python3 .github/rc950_audit.py
+
+      - name: GREEN RC950 regression
+        run: python3 .github/rc950_regression.py
+
+      - name: Repository runtime tests
+        run: npm test
+
+      - name: Diff integrity
+        run: git diff --check
+
+      - name: Commit RC950 application and audit output when changed
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- docs/superpowers/rc950-audit.txt 2>/dev/null && git ls-files --error-unmatch docs/superpowers/rc950-audit.txt >/dev/null 2>&1; then
-            echo 'Audit output unchanged.'
+          if git diff --quiet -- TESTVERSION.html docs/superpowers/rc950-audit.txt; then
+            echo 'RC950 working tree already clean.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/superpowers/rc950-audit.txt
-          git commit -m 'chore: capture RC950 active path audit'
+          git add TESTVERSION.html docs/superpowers/rc950-audit.txt
+          git commit -m 'RC950 Großupdate Stabilität Performance Bedienung'
           git push origin HEAD:rc950-large-update
