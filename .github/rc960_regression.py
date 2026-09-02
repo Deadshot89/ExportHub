@@ -55,7 +55,8 @@ need('locationData' in country_fn and 'destinationCountry' in country_fn and 're
 
 # Pickup: trusted total -> row sum -> ambiguous legacy fallback.
 pickup_expected=function(pickup,'pickupExpectedCollis')
-need("'colliCount'" not in re.search(r"explicitNames=\[[^\]]*\]",pickup_expected).group(0) if re.search(r"explicitNames=\[[^\]]*\]",pickup_expected) else False,'Pickup-Client behandelt colliCount weiterhin als vertrauenswürdige Gesamtsumme')
+explicit=re.search(r"explicitNames=\[[^\]]*\]",pickup_expected)
+need("'colliCount'" not in explicit.group(0) if explicit else False,'Pickup-Client behandelt colliCount weiterhin als vertrauenswürdige Gesamtsumme')
 need(pickup_expected.find('if(best>0)return best')>=0 and pickup_expected.find("['pickupColliCount','enteredColliCount','colliCount']")>pickup_expected.find('if(best>0)return best'),'Pickup-Client summiert Colli-Zeilen nicht vor Legacy-Fallback')
 need('function expectedCollis' in store,'Zentrale serverseitige Colli-Gesamtermittlung fehlt')
 store_expected=function(store,'expectedCollis')
@@ -65,11 +66,12 @@ need('store.expectedCollis(r)' in confirm,'pickup-confirm-v2 verwendet nicht die
 need('sh.actualPickupDate=day' in store and "t.status='erledigt'" in store,'Abholdatum/Abholtag-Aufgabe wurden regressiert')
 need("sh.status='POD vorhanden'" in store and "sh.processStatus='POD vorhanden'" in store,'POD-Statuspfad wurde regressiert')
 
-# Release Center: both explicit PASS result and persisted confirmation state must count as confirmed.
-change_confirmed=function(html,'changeConfirmed')
-need('changeChecklistState' in change_confirmed and "status)==='passed'" in change_confirmed.replace(' ',''),'Release-Center zählt gespeicherte Bestätigungen nicht zuverlässig als bestätigt')
+# Release Center: explicit PASS and persisted legacy confirmation are both authoritative; scroll stays stable.
+change_result=function(html,'changeResult')
+need('changeResultState' in change_result and 'changeChecklistState' in change_result and "status:'passed'" in change_result,'Release-Center führt Bestanden- und Bestätigungszustand nicht zusammen')
 need('preserveReleaseScroll' in function(html,'toggleReleaseChange'),'Release-Center Scrollschutz fehlt')
 need('preserveReleaseScroll' in function(html,'setReleaseChangeStatus'),'Release-Center Status-Scrollschutz fehlt')
+need('changeConfirmed(item)' in function(html,'changeChecklistProgress'),'Release-Center zählt bestandene Änderungen nicht über den gemeinsamen Status')
 
 # Document print must visibly enter the existing operation/busy system rather than silently fail.
 viewer_print=function(html,'viewerPrint')
