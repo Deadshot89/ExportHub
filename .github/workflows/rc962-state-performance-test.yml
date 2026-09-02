@@ -1,0 +1,30 @@
+name: RC962 State Performance Test
+
+on:
+  push:
+    branches:
+      - rc962-state-performance
+    paths:
+      - 'api/exporthub-state/index.js'
+      - 'tests/rc962-state-performance.test.js'
+      - '.github/workflows/rc962-state-performance-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rc962_state_performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run RC962 regression test
+        run: node tests/rc962-state-performance.test.js
