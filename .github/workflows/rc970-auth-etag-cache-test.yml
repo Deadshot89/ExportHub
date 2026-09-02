@@ -83,3 +83,5 @@ jobs:
             console.log('RC970 auth etag cache regression OK');
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
+
+# final verification trigger
