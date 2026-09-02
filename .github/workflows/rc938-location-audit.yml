@@ -1,0 +1,87 @@
+name: RC938 Standort-Alias-Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc938-location-audit.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: RC937 Standortpfade untersuchen
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('TESTVERSION.html').read_text(encoding='utf-8')
+          if "version:'RC937',cache:'937',loginReturn:'/TESTVERSION.html?v=937'" not in text:
+              raise SystemExit('Audit-Basis ist nicht RC937.')
+
+          print('=== RC938 AUDIT BASIS RC937 ===')
+
+          def print_context(label, needle, radius=850):
+              hits=[]
+              start=0
+              while True:
+                  i=text.find(needle,start)
+                  if i<0: break
+                  hits.append(i); start=i+1
+              print(f'\n## {label}: {len(hits)} Treffer')
+              for n,i in enumerate(hits[:12],1):
+                  a=max(0,i-radius); b=min(len(text),i+len(needle)+radius)
+                  snippet=text[a:b].replace('\r','')
+                  print(f'--- Treffer {n} @ {i} ---')
+                  print(snippet)
+
+          for label,needle in [
+              ('locationList Definition','function locationList(c){'),
+              ('locations Definition','function locations(c){'),
+              ('findLocation Definition','function findLocation(c,'),
+              ('savedLocationId Definition','function savedLocationId(sh,list){'),
+              ('restoreSavedLocation Definition','function restoreSavedLocation('),
+              ('alte ID Leser locationId selected site ohne destination','sh.locationId||sh.selectedLocationId||sh.siteId)'),
+              ('alte ID Leser locationId site','sh.locationId||sh.siteId'),
+              ('Roh-Location-ID nur id/locationId/siteId','l.id||l.locationId||l.siteId'),
+              ('Normalisierung nur drei ID Aliase','{id:id,locationId:id,siteId:id'),
+              ('Standort Reset','sh.locationId=\'\''),
+              ('Empfängeradresse Zuweisung','sh.recipientAddress='),
+          ]:
+              print_context(label,needle)
+
+          # Kompakter strukturierter Bericht: q(...)-Leser, die locationId enthalten,
+          # aber destinationId nicht in demselben kurzen Ausdruck.
+          print('\n## Kandidaten: locationId-Ausdrücke ohne destinationId')
+          candidates=[]
+          for m in re.finditer(r'[^\n]{0,180}locationId[^\n]{0,260}', text):
+              s=m.group(0)
+              if 'destinationId' not in s and ('selectedLocationId' in s or 'siteId' in s):
+                  if s not in candidates: candidates.append(s)
+          for idx,s in enumerate(candidates[:40],1): print(f'{idx:02d}: {s}')
+          print('KANDIDATEN_GESAMT=',len(candidates))
+          PY
+
+      - name: Temporären Audit-Workflow entfernen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/rc938-location-audit.yml
+          git commit -m "RC938 temporären Audit-Workflow entfernen"
+          git push origin HEAD:main
