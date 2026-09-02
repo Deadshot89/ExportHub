@@ -45,17 +45,17 @@ jobs:
           marker="function resolveSessionFromAuth(token,authDoc){"
           assert marker in api
           cache_code="""function authWarmCacheKey(c){return String(c&&c.auth&&c.auth.name||AUTH_BLOB)}
-function rememberWarmAuth(c,value,etag){if(!c||!value||!etag)return false;AUTH_WARM_CACHE.set(authWarmCacheKey(c),{value:value,etag:String(etag),at:Date.now()});return true}
-function forgetWarmAuth(c){AUTH_WARM_CACHE.delete(authWarmCacheKey(c))}
-async function readAuthCached(c){
- const cached=AUTH_WARM_CACHE.get(authWarmCacheKey(c));
- if(cached&&cached.value&&cached.etag){
-  try{const props=await c.auth.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:cached.value,etag:etag,warmCache:true,cacheMode:'memory-etag'};forgetWarmAuth(c)}
-  catch(e){forgetWarmAuth(c);if(Number(e&&e.statusCode||0)!==404)throw e}
- }
- const fresh=await readJson(c.auth,emptyAuth(),true);fresh.cacheMode='full-read';rememberWarmAuth(c,fresh&&fresh.value,fresh&&fresh.etag);return fresh
-}
-"""
+          function rememberWarmAuth(c,value,etag){if(!c||!value||!etag)return false;AUTH_WARM_CACHE.set(authWarmCacheKey(c),{value:value,etag:String(etag),at:Date.now()});return true}
+          function forgetWarmAuth(c){AUTH_WARM_CACHE.delete(authWarmCacheKey(c))}
+          async function readAuthCached(c){
+           const cached=AUTH_WARM_CACHE.get(authWarmCacheKey(c));
+           if(cached&&cached.value&&cached.etag){
+            try{const props=await c.auth.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:cached.value,etag:etag,warmCache:true,cacheMode:'memory-etag'};forgetWarmAuth(c)}
+            catch(e){forgetWarmAuth(c);if(Number(e&&e.statusCode||0)!==404)throw e}
+           }
+           const fresh=await readJson(c.auth,emptyAuth(),true);fresh.cacheMode='full-read';rememberWarmAuth(c,fresh&&fresh.value,fresh&&fresh.etag);return fresh
+          }
+          """
           api=api.replace(marker,cache_code+marker,1)
 
           old_authonly="const authDoc=await readJson(c.auth,emptyAuth(),true),resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,username=text(session.username)||'Benutzer';"
