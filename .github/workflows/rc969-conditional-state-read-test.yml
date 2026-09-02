@@ -47,3 +47,5 @@ jobs:
 
           console.log('RC969 conditional read regression OK');
           NODE
+
+# final verification trigger
