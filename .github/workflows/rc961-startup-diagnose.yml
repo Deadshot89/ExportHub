@@ -1,0 +1,23 @@
+name: RC961 Startup Diagnose
+
+on:
+  push:
+    branches:
+      - rc961-startup-teamdata-timeout
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc961-startup-diagnose
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract startup and teamdata paths
+        run: python .github/rc961_startup_diag.py
