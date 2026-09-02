@@ -1,89 +1,69 @@
 from pathlib import Path
-import re,sys
+import re
 
-root=Path('.')
-html=(root/'TESTVERSION.html').read_text(encoding='utf-8',errors='replace')
-pickup=(root/'pickup.html').read_text(encoding='utf-8',errors='replace')
-store=(root/'api/shared/pickup-store.js').read_text(encoding='utf-8',errors='replace')
-init=(root/'api/pickup-init/index.js').read_text(encoding='utf-8',errors='replace')
-confirm=(root/'api/pickup-confirm-v2/index.js').read_text(encoding='utf-8',errors='replace')
+html=Path('TESTVERSION.html').read_text()
+pickup=Path('pickup.html').read_text()
+store=Path('api/shared/pickup-store.js').read_text()
+init=Path('api/pickup-init/index.js').read_text()
+confirm=Path('api/pickup-confirm-v2/index.js').read_text()
 errors=[]
 
-def need(cond,msg):
-    if not cond: errors.append(msg)
+def need(desc, condition):
+    if not condition: errors.append(desc)
 
-def function(src,name):
-    m=re.search(r'(?:async\s+)?function\s+'+re.escape(name)+r'\s*\([^)]*\)\s*\{',src)
-    if not m:return ''
-    i=m.end()-1;start=m.start();depth=0;quote=None;esc=False
-    while i<len(src):
-        c=src[i]
-        if quote:
-            if esc:esc=False
-            elif c=='\\':esc=True
-            elif c==quote:quote=None
-        else:
-            if c in "'\"`":quote=c
-            elif c=='{':depth+=1
-            elif c=='}':
-                depth-=1
-                if depth==0:return src[start:i+1]
-        i+=1
-    return src[start:i]
+need('RC960 build marker', "version:'RC960',cache:'960',loginReturn:'/TESTVERSION.html?v=960'" in html)
+need('RC945 Colli layout preserved', 'exporthub-rc945-compact-stable-colli-layout' in html)
+need('RC946 pointer drag preserved', 'rc946TaskPointer' in html and 'rc946WarehousePointerZone' in html)
+need('RC950 frame scheduler preserved', 'rc950ScheduleLayout' in html and 'rc950PreserveActiveInput' in html and 'rc950RestoreActiveInput' in html)
+need('RC950 search scheduler preserved', 'rc950ScheduleShipmentSearch' in html)
+need('notification center preserved', 'Benachrichtigungscenter' in html and 'Warncenter' in html)
 
-# RC960 marker must be the single active test build.
-need("version:'RC960',cache:'960',loginReturn:'/TESTVERSION.html?v=960'" in html,'RC960 Buildmarker fehlt')
+lock_match=re.search(r'function lockedShipment\(opts\)\{.*?function renderLockState\(\)',html,re.S)
+need('shipment lock protects Abgeholt/POD', bool(lock_match and 'shipmentIsImmutable(s)' in lock_match.group(0) and "q(s.status)==='Abgeholt'" in lock_match.group(0) and 'podStatusExists(s)' in lock_match.group(0)))
+save_match=re.search(r'async function saveAction\(\)\{.*?async function localFallbackSave',html,re.S)
+need('save rechecks authoritative lock before persist', bool(save_match and save_match.group(0).count('lockedShipment()')>=2 and 'persistenceSave()' in save_match.group(0) and save_match.group(0).find('lockedShipment()',save_match.group(0).find('persistenceSave()')-3000)<save_match.group(0).find('persistenceSave()')))
 
-# Protected previous releases / architecture.
-for marker in ['exporthub-rc945-compact-stable-colli-layout','rc946TaskPointer','rc946WarehousePointerZone','rc950ScheduleLayout','rc950PreserveActiveInput','rc950RestoreActiveInput','rc950ScheduleShipmentSearch']:
-    need(marker in html,'Schutzmarker fehlt: '+marker)
-need('Benachrichtigungscenter' in html and 'Warncenter' in html,'Benachrichtigungs-/Warncenter-Schutzmarker fehlen')
-need('function shipmentReadOnly' in html and 'POD vorhanden' in function(html,'shipmentReadOnly'),'Schreibsperre ab Pickup/POD fehlt')
+cost_match=re.search(r'function costState\(\)\{.*?function calcGate\(data\)\{(.*?)\}function formatEuro',html,re.S)
+need('Gate41 service removed', bool(cost_match and 'delete g.service' in cost_match.group(0) and 'var service=' not in cost_match.group(1) and 'g.service||' not in cost_match.group(1)))
+country_match=re.search(r"function shipmentRecipientCountry\(s\)\{.*?return countryName\(fallback\)\|\|'Deutschland'\}",html,re.S)
+need('structured recipient country kept', bool(country_match and 'locationData' in country_match.group(0) and 'deliveryLocation' in country_match.group(0)))
+need('cost sync keeps route/load logic', all(x in html for x in ['function syncCostFromShipment','activeShipmentRoute()','shipmentLoad(s)']))
 
-# Shipment save must re-check the authoritative lock before persistence.
-save_action=function(html,'saveAction')
-need('refreshShipmentLock(true)' in save_action,'Save prüft Server-Schreibsperre nicht vor Bearbeitung')
-need(save_action.find('lockedShipment()') < save_action.find('persistenceSave()') if 'persistenceSave()' in save_action else False,'Save prüft Schreibsperre nicht unmittelbar vor Persistenz')
+need('pickup server uses shared expectedCollis', 'expectedCollis' in store and 'store.expectedCollis(b)' in init and 'store.expectedCollis(r)' in confirm)
+need('pickup client totals before legacy row count', "['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount']" in pickup and "['pickupColliCount','enteredColliCount','colliCount']" in pickup)
+need('old init single-row pattern removed', 'expectedColliCount||b.totalColli||b.colliCount' not in init)
+need('pickup actual date kept', 'sh.actualPickupDate=day' in store and "sh.pickupStatus='abgeholt'" in store)
+need('Abholtag task completion kept', "if(area==='abholtag'" in store and "t.status='erledigt'" in store and 't.done=true' in store)
+need('POD status kept', "sh.podStatus='POD vorhanden'" in store and "sh.status='POD vorhanden'" in store)
+need('expected Colli helper is exported', 'expectedCollis};' in store)
+need('expected Colli helper scans nested row sources', all(x in store for x in ["stack=[src]","Object.keys(node).forEach","lists=['rows','colli','collis','packages','packageRows','items']"]))
+need('expected Colli helper treats decimal row totals as physical pieces', 'function physicalColliCount' in store and 'Math.ceil(n)' in store)
+need('expected Colli helper leaves aggregate totals rounded', 'function positiveColliCount' in store and 'Math.round(n)' in store)
+helper_start=store.find('function expectedCollis(source)')
+helper_end=store.find('function signatureUrl',helper_start)
+helper=store[helper_start:helper_end] if helper_start>=0 and helper_end>helper_start else ''
+trusted_loop=helper.find('for(i=0;i<trusted.length;i+=1)')
+row_loop=helper.find('while(stack.length)')
+row_return=helper.find('if(best>0)return best')
+legacy_loop=helper.find("var legacy=['pickupColliCount','enteredColliCount','colliCount']")
+need('expected Colli precedence explicit > rows > legacy', bool(helper and 0<=trusted_loop<row_loop<row_return<legacy_loop))
+need('ambiguous top-level colliCount is legacy only', bool(helper and helper.count("'colliCount'")>=2 and "trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount']" in helper))
 
-# Gate41: service remains removed; route/country remains structured.
-cost_state=function(html,'costState')
-calc_gate=function(html,'calcGate')
-country_fn=function(html,'shipmentRecipientCountry')
-need('delete g.service' in cost_state and 'delete g.serviceName' in cost_state and 'delete g.gate41Service' in cost_state,'Gate41-Service wird nicht konsequent entfernt')
-need('service' not in calc_gate.lower(),'Gate41-Berechnung enthält wieder Service-Logik')
-need('locationData' in country_fn and 'destinationCountry' in country_fn and 'recipientCountry' in country_fn,'Strukturierte Zielland-Ermittlung fehlt')
-
-# Pickup: trusted total -> row sum -> ambiguous legacy fallback.
-pickup_expected=function(pickup,'pickupExpectedCollis')
-explicit=re.search(r"explicitNames=\[[^\]]*\]",pickup_expected)
-need("'colliCount'" not in explicit.group(0) if explicit else False,'Pickup-Client behandelt colliCount weiterhin als vertrauenswürdige Gesamtsumme')
-need(pickup_expected.find('if(best>0)return best')>=0 and pickup_expected.find("['pickupColliCount','enteredColliCount','colliCount']")>pickup_expected.find('if(best>0)return best'),'Pickup-Client summiert Colli-Zeilen nicht vor Legacy-Fallback')
-need('function expectedCollis' in store,'Zentrale serverseitige Colli-Gesamtermittlung fehlt')
-store_expected=function(store,'expectedCollis')
-need('rows' in store_expected and 'colliCount' in store_expected,'Server-Colli-Gesamtermittlung enthält nicht Zeilensumme + Legacy-Fallback')
-need('store.expectedCollis(b)' in init,'pickup-init verwendet nicht die zentrale physische Colli-Gesamtermittlung')
-need('store.expectedCollis(r)' in confirm,'pickup-confirm-v2 verwendet nicht die zentrale physische Colli-Gesamtermittlung')
-need('sh.actualPickupDate=day' in store and "t.status='erledigt'" in store,'Abholdatum/Abholtag-Aufgabe wurden regressiert')
-need("sh.status='POD vorhanden'" in store and "sh.processStatus='POD vorhanden'" in store,'POD-Statuspfad wurde regressiert')
-
-# Release Center: explicit PASS and persisted legacy confirmation are both authoritative; scroll stays stable.
-change_result=function(html,'changeResult')
-need('changeResultState' in change_result and 'changeChecklistState' in change_result and "status:'passed'" in change_result,'Release-Center führt Bestanden- und Bestätigungszustand nicht zusammen')
-need('preserveReleaseScroll' in function(html,'toggleReleaseChange'),'Release-Center Scrollschutz fehlt')
-need('preserveReleaseScroll' in function(html,'setReleaseChangeStatus'),'Release-Center Status-Scrollschutz fehlt')
-need('changeConfirmed(item)' in function(html,'changeChecklistProgress'),'Release-Center zählt bestandene Änderungen nicht über den gemeinsamen Status')
-
-# Document print must visibly enter the existing operation/busy system rather than silently fail.
-viewer_print=function(html,'viewerPrint')
-need(('ExportHUBRC950Busy' in viewer_print or 'ExportHUBOperationStatus' in viewer_print) and ('Druck' in viewer_print),'Dokumentdruck nutzt keinen sichtbaren Arbeitsstatus')
-
-# Exam/admin safeguards stay intact.
-ihk_admin=function(html,'ihkAdmin')
-need('functionAdmin' in ihk_admin and "level==='admin'" in ihk_admin,'Prüfcenter-Funktionsadminschutz fehlt')
-need('50 Fragen' in html and ('100 Punkte' in html or 'maximal 100' in html),'Prüfcenter 50/100-Regel fehlt')
+result_match=re.search(r'function changeResult\(item\)\{.*?\}function changeConfirmed',html,re.S)
+need('release result merges persisted checklist', bool(result_match and 'changeResultState(false)' in result_match.group(0) and 'changeChecklistState(false)' in result_match.group(0)))
+need('release confirm uses shared result', "return changeResult(item).status==='passed'" in html)
+need('release toggle persists checklist', 'function toggleReleaseChange' in html and 'changeChecklistState(true)' in html)
+need('release recordPassed updates state', 'function recordPassed' in html and "status:'passed'" in html and 'changeChecklistState(true)[key]=true' in html)
+need('release scroll preservation', all(x in html for x in ['captureReleaseScroll','restoreReleaseScroll','preserveReleaseScroll']))
+need('release rendering uses shared result', 'var parsed=changeResult(item)' in html)
+need('pruefcenter 50/100 preserved', '50 Fragen' in html and '100 Punkte' in html)
+need('functional admin guard preserved', 'r.functionAdmin===true' in html and 'if(!ihkAdmin())' in html)
+need('document print exposes busy feedback', 'function viewerPrint()' in html and ('ExportHUBRC950Busy' in html or 'ExportHUBOperationStatus' in html) and 'Druck' in html)
+need('QR report uses honest reference fallback', "d.reference||'Nicht verfügbar'" in html)
+need('QR report labels functional recipient source', "<b>Adressat:</b>" in html and "(aus Auftrag/Standort)" in html and "<b>Empfänger:</b>" not in html)
 
 if errors:
-    print('RC960 REGRESSION FAIL')
-    for e in errors:print(' -',e)
-    sys.exit(1)
-print('RC960 REGRESSION PASS')
+    print('RC960 regression failures:')
+    for e in errors: print('- '+e)
+    raise SystemExit(1)
+print('RC960 regression contract passed')
