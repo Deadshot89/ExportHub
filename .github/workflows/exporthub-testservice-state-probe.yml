@@ -22,13 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Wait for live TESTSERVICE state API serverVersion RC931+
+      - uses: actions/checkout@v4
+      - name: Wait for live TESTSERVICE state API required serverVersion
         shell: bash
         env:
           TESTSERVICE_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
-          MIN_STATE_API_VERSION: RC931
         run: |
           set -euo pipefail
+
+          required="$(node <<'NODE'
+          const fs=require('fs');
+          let value='RC931';
+          try{
+            const marker=JSON.parse(fs.readFileSync('api/testservice-deploy-marker.json','utf8'));
+            if(/^RC\d+$/.test(String(marker.requiredStateApiVersion||''))) value=String(marker.requiredStateApiVersion);
+          }catch(_){}
+          process.stdout.write(value);
+          NODE
+          )"
+          echo "Geforderter State-API-Stand: $required"
 
           url="${TESTSERVICE_URL}/api/exporthub-state?mode=ping"
           headers="$(mktemp)"
@@ -60,9 +72,9 @@ jobs:
 
             if [[ "$http" == "200" && "$server_version" =~ ^RC[0-9]+$ ]]; then
               current="${server_version#RC}"
-              required="${MIN_STATE_API_VERSION#RC}"
-              if (( current >= required )); then
-                echo "OK: Live-State-API serverVersion=$server_version erfüllt Mindeststand $MIN_STATE_API_VERSION."
+              minimum="${required#RC}"
+              if (( current >= minimum )); then
+                echo "OK: Live-State-API serverVersion=$server_version erfüllt geforderten Stand $required."
                 echo '--- response body ---'
                 cat "$body"
                 echo
@@ -75,7 +87,7 @@ jobs:
             fi
           done
 
-          echo "FEHLER: Der TESTSERVICE liefert keine echte serverVersion ab $MIN_STATE_API_VERSION."
+          echo "FEHLER: Der TESTSERVICE liefert keine echte serverVersion ab $required."
           echo '--- letzte response headers ---'
           cat "$headers" || true
           echo '--- letzte response body ---'
