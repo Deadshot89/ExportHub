@@ -14,27 +14,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Analyse Avis and dashboard post-render paths
+      - name: Analyse exact Avis render function
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
           const s=fs.readFileSync('TESTVERSION.html','utf8');
-          function around(label,needle,before=2200,after=4200){
-            const i=s.indexOf(needle);
-            console.log(`\n### ${label} needle=${JSON.stringify(needle)} offset=${i}`);
-            if(i<0)return;
-            console.log(s.slice(Math.max(0,i-before),Math.min(s.length,i+after)).replace(/\s+/g,' '));
+          const start=s.indexOf('<script id="exporthub-rc706-customer-avis-internal">');
+          const end=s.indexOf('</script>',start);
+          if(start<0||end<0)throw new Error('Avis-Modul nicht gefunden');
+          const m=s.slice(start,end);
+          console.log('MODULE_START='+start+' MODULE_BYTES='+Buffer.byteLength(m));
+          const defs=[];let re=/function\s+([A-Za-z0-9_$]+)\s*\(/g,x;while((x=re.exec(m)))defs.push([x[1],x.index]);
+          console.log('FUNCTIONS='+defs.map(x=>x[0]+'@'+x[1]).join(','));
+          function show(name,before=1200,after=4200){
+            const hit=defs.find(x=>x[0]===name);console.log(`\n### ${name} ${hit?hit[1]:-1}`);if(!hit)return;
+            console.log(m.slice(Math.max(0,hit[1]-before),Math.min(m.length,hit[1]+after)).replace(/\s+/g,' '));
           }
-          function count(needle){let n=0,p=0;while((p=s.indexOf(needle,p))!==-1){n++;p+=needle.length}return n}
-          console.log('FILE_BYTES='+Buffer.byteLength(s));
-          console.log('AVIS_SCHEDULE_COUNT='+count('function schedule(){if(timer)return;avisRetry=0;'));
-          console.log('AVIS_RETRY_30_COUNT='+count('avisRetry<30'));
-          console.log('WORKSPACE_MARKER_COUNT='+count('exporthub-rc896-workspace-event-driven'));
-          around('AVIS_RETRY','function schedule(){if(timer)return;avisRetry=0;',5000,8000);
-          around('AVIS_INTACT','function avisIntact()',3500,5500);
-          around('AVIS_VISIBLE','function visibleShipmentView()',3500,5500);
-          around('AVIS_LASTSIG','lastSig=',3000,6500);
-          around('WORKSPACE','exporthub-rc896-workspace-event-driven',6000,9000);
-          around('DASHBOARD_LOCAL_CHANGE','dashboardLocalChangeUntil',3500,7000);
+          show('render',2500,7000);
+          show('avisHost',1600,3200);
+          show('panelHtml',1200,5000);
+          show('schedule',1800,3500);
+          console.log('\nLASTSIG_USES='+(m.match(/lastSig/g)||[]).length);
+          let p=0,n=0;while((p=m.indexOf('lastSig',p))!==-1){n++;console.log(`\n--- LASTSIG_${n} @${p} ---\n`+m.slice(Math.max(0,p-700),Math.min(m.length,p+1000)).replace(/\s+/g,' '));p+=7}
           NODE
