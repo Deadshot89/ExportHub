@@ -1,0 +1,56 @@
+name: RC962 Bump TESTVERSION
+
+on:
+  push:
+    branches:
+      - rc962-state-performance
+    paths:
+      - '.github/workflows/rc962-bump-testversion.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bump_rc962:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: rc962-state-performance
+          fetch-depth: 0
+
+      - name: Set visible TESTSERVICE version to RC962
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'TESTVERSION.html';
+          let source = fs.readFileSync(file, 'utf8');
+          const before = "var BUILD=Object.freeze({version:'RC961',cache:'961',loginReturn:'/TESTVERSION.html?v=961'});";
+          const after = "var BUILD=Object.freeze({version:'RC962',cache:'962',loginReturn:'/TESTVERSION.html?v=962'});";
+          const count = source.split(before).length - 1;
+          if (count !== 1) throw new Error(`RC962 BUILD-Bump erwartet exakt 1 RC961-Treffer, gefunden ${count}`);
+          source = source.replace(before, after);
+          if (!source.includes(after)) throw new Error('RC962 BUILD-Kennung wurde nicht gesetzt.');
+          fs.writeFileSync(file, source);
+          NODE
+
+          grep -F "version:'RC962',cache:'962',loginReturn:'/TESTVERSION.html?v=962'" TESTVERSION.html
+          git diff --check
+
+      - name: Commit RC962 version bump
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add TESTVERSION.html
+          if git diff --cached --quiet; then
+            echo 'Keine RC962 Versionsänderung erzeugt.'
+            exit 1
+          fi
+          git commit -m 'RC962 TESTSERVICE – Performance-Stand aktivieren'
+          git push origin HEAD:rc962-state-performance
