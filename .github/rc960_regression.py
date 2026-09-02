@@ -27,7 +27,6 @@ need('RC950 frame scheduler preserved', 'rc950ScheduleLayout' in html and 'rc950
 need('RC950 search scheduler preserved', 'rc950ScheduleShipmentSearch' in html)
 need('notification center preserved', 'Benachrichtigungscenter' in html and 'Warncenter' in html)
 
-# Current active shipment lock architecture.
 readonly=between(html,'function shipmentReadOnly(sh)','function lockedShipment()')
 locked=between(html,'function lockedShipment()','function lockEvidencePatch')
 need('shipment lock protects Abgeholt/POD', bool(
@@ -42,7 +41,6 @@ need('shipment lock protects Abgeholt/POD', bool(
     'shipmentReadOnly(local)' in locked
 ))
 
-# Save must remotely recheck at entry and again immediately before persistence.
 save=between(html,'async function saveAction()','function selectSaved()')
 persist_at=save.find('persistenceSave()')
 refresh_positions=[]
@@ -62,7 +60,6 @@ need('save rechecks authoritative lock before persist', bool(
     'Sendungssperre wird vor dem Speichern erneut geprüft' in save
 ))
 
-# Current shipping-cost architecture: Gate41 no longer has a service component.
 cost=between(html,'function costState()','function syncCostFromShipment()')
 sync=between(html,'function syncCostFromShipment()','function upsFuelDefault')
 calc_start=html.find('function calcGate()')
@@ -91,9 +88,9 @@ need('cost sync keeps route/load logic', bool(
     "setRouteData(u,'destinationCountry')" in sync
 ))
 
-# Pickup Colli total: explicit aggregate > physical row sum > ambiguous legacy value.
+# Pickup Colli contract: physical rows > trusted aggregate > ambiguous legacy fallback.
 need('pickup server uses shared expectedCollis', 'expectedCollis' in store and 'store.expectedCollis(b)' in init and 'store.expectedCollis(r)' in confirm)
-need('pickup client totals before legacy row count', "['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount']" in pickup and "['pickupColliCount','enteredColliCount','colliCount']" in pickup)
+need('pickup client keeps aggregate and legacy fallbacks', "['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount']" in pickup and "['pickupColliCount','enteredColliCount','colliCount']" in pickup)
 need('old init single-row pattern removed', 'expectedColliCount||b.totalColli||b.colliCount' not in init)
 need('pickup actual date kept', 'sh.actualPickupDate=day' in store and "sh.pickupStatus='abgeholt'" in store)
 need('Abholtag task completion kept', "String(t.area||'').toLowerCase()==='abholtag'" in store and "t.status='erledigt'" in store and 't.done=true' in store and 't.completedAt=record.confirmedAt||now()' in store)
@@ -103,14 +100,18 @@ need('expected Colli helper scans nested row sources', all(x in store for x in [
 need('expected Colli helper treats decimal row totals as physical pieces', 'function physicalColliCount' in store and 'Math.ceil(n)' in store)
 need('expected Colli helper leaves aggregate totals rounded', 'function positiveColliCount' in store and 'Math.round(n)' in store)
 helper=between(store,'function expectedCollis(source)','function signatureUrl')
-trusted_loop=helper.find('for(i=0;i<trusted.length;i+=1)')
 row_loop=helper.find('while(stack.length)')
 row_return=helper.find('if(best>0)return best')
+trusted_loop=helper.find('for(i=0;i<trusted.length;i+=1)')
 legacy_loop=helper.find("var legacy=['pickupColliCount','enteredColliCount','colliCount']")
-need('expected Colli precedence explicit > rows > legacy', bool(helper and 0<=trusted_loop<row_loop<row_return<legacy_loop))
+need('expected Colli precedence rows > aggregate > legacy', bool(helper and 0<=row_loop<row_return<trusted_loop<legacy_loop))
 need('ambiguous top-level colliCount is legacy only', bool(helper and "trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount']" in helper and "var legacy=['pickupColliCount','enteredColliCount','colliCount']" in helper))
+client=between(pickup,'function pickupExpectedCollis(data){','function resetColliCheck')
+need('pickup client precedence rows > aggregate > legacy', bool(client and 0<=client.find('var lists=[]')<client.find('if(best>0)return best')<client.find('for(var e=0;e<explicitNames.length;e++)')<client.find("['pickupColliCount','enteredColliCount','colliCount']")))
+need('pickup init preserves physical rows', 'const physicalRows=' in init and 'record.rows=physicalRows.map(row=>store.clone(row))' in init)
+need('pickup init version RC960', "registrationVersion='RC960'" in init and 'metadataVersion=15' in init and 'pickup-init RC960' in init)
+need('pickup confirm version RC960', "confirmationVersion='RC960'" in confirm and "version:'RC960'" in confirm and 'pickup-confirm-v2 RC960' in confirm)
 
-# Release Center: result state and legacy checklist are intentionally merged.
 result=between(html,'function changeResult(item)','function changeFailed(item)')
 need('release result merges persisted checklist', bool(result and 'changeResultState(false)' in result and 'changeChecklistState(false)' in result and "return{status:'passed',legacy:true}" in result))
 need('release confirm uses shared result', "function changeConfirmed(item){return q(changeResult(item).status)==='passed'}" in html)
