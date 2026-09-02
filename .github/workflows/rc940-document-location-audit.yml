@@ -1,0 +1,82 @@
+name: RC940 Dokument-Standort-Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rc940-document-location-audit.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: RC939 Dokument- und Rest-Fallbacks untersuchen
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          text=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          assert "version:'RC939',cache:'939',loginReturn:'/TESTVERSION.html?v=939'" in text
+          print('=== RC940 DOCUMENT AUDIT BASIS RC939 ===')
+
+          def ctx(label,needle,r=1400,limit=8):
+              hits=[]; p=0
+              while True:
+                  i=text.find(needle,p)
+                  if i<0: break
+                  hits.append(i); p=i+1
+              print(f'\n## {label}: {len(hits)}')
+              for n,i in enumerate(hits[:limit],1):
+                  print(f'--- {n} @ {i} ---')
+                  print(text[max(0,i-r):min(len(text),i+len(needle)+r)].replace('\r',''))
+
+          for label,needle in [
+            ('shipmentRecipientAddress','function shipmentRecipientAddress'),
+            ('escaped shipmentRecipientAddress','function shipmentRecipientAddress(s,c)'),
+            ('locId 3 aliases','l.id||l.locationId||l.siteId||l.code||l.number'),
+            ('shipmentScore 3 IDs','sh.locationId||sh.selectedLocationId||sh.siteId)||sh.locationData'),
+            ('current saved location UI 3 IDs','active.locationId||active.selectedLocationId||active.siteId||saved.locationId'),
+            ('confirmation fallback location synthesis','locations:sh.locationId?'),
+            ('raw customer location three alias object','{id:q(sh.locationId),locationId:q(sh.locationId),siteId:q(sh.locationId)'),
+            ('document HTML builders','Ladeliste'),
+            ('CMR builders','CMR'),
+          ]: ctx(label,needle)
+
+          print('\n## Restliche q()-ID-Leser mit shipment location IDs ohne destinationId')
+          rows=[]
+          for m in re.finditer(r'[^\n]{0,220}sh\.locationId[^\n]{0,360}',text):
+              s=m.group(0)
+              if ('selectedLocationId' in s or 'siteId' in s) and 'destinationId' not in s and s not in rows:
+                  rows.append(s)
+          for i,s in enumerate(rows[:50],1): print(f'{i:02d}: {s}')
+          print('READER3_TOTAL=',len(rows))
+
+          print('\n## Restliche location object ID-Leser ohne destinationId/selectedLocationId')
+          rows2=[]
+          for m in re.finditer(r'[^\n]{0,180}(?:l|loc|x)\.id\|\|(?:l|loc|x)\.locationId[^\n]{0,260}',text):
+              s=m.group(0)
+              if 'destinationId' not in s and 'selectedLocationId' not in s and s not in rows2:
+                  rows2.append(s)
+          for i,s in enumerate(rows2[:50],1): print(f'{i:02d}: {s}')
+          print('LOC_READER3_TOTAL=',len(rows2))
+          PY
+      - name: Audit-Workflow entfernen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/rc940-document-location-audit.yml
+          git commit -m "RC940 temporären Audit-Workflow entfernen"
+          git push origin HEAD:main
