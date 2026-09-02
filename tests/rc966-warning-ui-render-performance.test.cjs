@@ -6,7 +6,11 @@ const vm = require('vm');
 
 const source = fs.readFileSync('TESTVERSION.html', 'utf8');
 
-assert(/var BUILD=Object\.freeze\(\{version:'RC966',cache:'966',loginReturn:'\/TESTVERSION\.html\?v=966'\}\);/.test(source), 'RC966 Build-Kennung fehlt.');
+const build = source.match(/var BUILD=Object\.freeze\(\{version:'RC(\d+)',cache:'(\d+)',loginReturn:'\/TESTVERSION\.html\?v=(\d+)'\}\);/);
+assert(build, 'BUILD-Kennung fehlt.');
+assert(Number(build[1]) >= 966, 'RC966 oder neuer wird benötigt.');
+assert.strictEqual(build[2], build[1], 'BUILD cache muss zur RC-Version passen.');
+assert.strictEqual(build[3], build[1], 'BUILD loginReturn muss zur RC-Version passen.');
 assert(source.includes('/* exporthub-rc966-warning-ui-diff */'), 'RC966 Warncenter-Diff-Marker fehlt.');
 
 const helperMatch = source.match(/function rc966PatchHtml\(node,html\)\{[^\n]*\}/);
