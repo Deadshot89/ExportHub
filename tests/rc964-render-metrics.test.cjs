@@ -13,7 +13,11 @@ function oneLineFunction(name) {
   return vm.runInNewContext('(' + match[0] + ')', Object.create(null));
 }
 
-assert(/var BUILD=Object\.freeze\(\{version:'RC964',cache:'964',loginReturn:'\/TESTVERSION\.html\?v=964'\}\);/.test(source), 'RC964 Build-Kennung fehlt.');
+const buildMatch = source.match(/var BUILD=Object\.freeze\(\{version:'RC(\d+)',cache:'(\d+)',loginReturn:'\/TESTVERSION\.html\?v=(\d+)'\}\);/);
+assert(buildMatch, 'Build-Kennung fehlt.');
+assert(Number(buildMatch[1]) >= 964, 'RC964 oder höher wird erwartet.');
+assert.strictEqual(buildMatch[1], buildMatch[2], 'Build-Version und Cache-Version müssen identisch sein.');
+assert.strictEqual(buildMatch[1], buildMatch[3], 'Build-Version und Login-Return-Version müssen identisch sein.');
 assert(source.includes('/* exporthub-rc964-render-metrics */'), 'RC964 Render-Metriken fehlen.');
 assert(source.includes('window.__EXPORTHUB_RC964_RENDER_METRICS__'), 'Globale RC964 Messwert-Schnittstelle fehlt.');
 
