@@ -1,5 +1,6 @@
 name: RC946 Drag Regression Test
 
+# RC946 post-patch verification
 on:
   push:
     branches:
