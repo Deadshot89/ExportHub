@@ -1,0 +1,84 @@
+name: RC965 Avis Retry Performance Apply
+
+on:
+  push:
+    paths:
+      - '.github/workflows/rc965-avis-retry-performance-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: RED test bestätigen
+        shell: bash
+        run: |
+          set +e
+          node tests/rc965-avis-retry-performance.test.cjs
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo 'RC965-Test war vor dem Patch bereits grün; Abbruch zum Schutz vor Doppelpatch.'
+            exit 1
+          fi
+          echo 'RED bestätigt: RC964 enthält den alten Avis-Retry.'
+      - name: RC965 minimal patchen
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'TESTVERSION.html';
+          let s = fs.readFileSync(file, 'utf8');
+
+          const oldBuild = "var BUILD=Object.freeze({version:'RC964',cache:'964',loginReturn:'/TESTVERSION.html?v=964'});";
+          const newBuild = "var BUILD=Object.freeze({version:'RC965',cache:'965',loginReturn:'/TESTVERSION.html?v=965'});";
+          const oldSchedule = "function schedule(){if(timer)return;avisRetry=0;function attempt(){timer=0;var ok=render(),vv=visibleShipmentView();if(ok&&avisIntact()){avisRetry=0;return}if((vv==='shipment'||vv==='shipmentview')&&avisRetry<30){avisRetry++;timer=setTimeout(attempt,70+Math.min(430,avisRetry*30))}}timer=setTimeout(attempt,20)}";
+          const newSchedule = "/* exporthub-rc965-avis-retry-disabled */ function schedule(){return false}";
+
+          function count(text, needle) {
+            return text.split(needle).length - 1;
+          }
+
+          if (count(s, oldBuild) !== 1) throw new Error('RC964 Build-Kennung nicht exakt einmal gefunden.');
+          if (count(s, oldSchedule) !== 1) throw new Error('Alter Avis-Retry nicht exakt einmal gefunden.');
+
+          const avisStart = s.indexOf('<script id="exporthub-rc706-customer-avis-internal">');
+          const avisEnd = s.indexOf('</script>', avisStart);
+          if (avisStart < 0 || avisEnd < 0) throw new Error('Avis-Modul nicht gefunden.');
+          const avisBefore = s.slice(avisStart, avisEnd);
+          if (!avisBefore.includes('function render(){return false}')) throw new Error('Internes Avis-UI ist nicht wie erwartet deaktiviert.');
+          if (!avisBefore.includes('/* exporthub-rc896-avis-ui-disabled */')) throw new Error('RC896 Avis-UI-Sperre fehlt.');
+
+          s = s.replace(oldBuild, newBuild).replace(oldSchedule, newSchedule);
+          fs.writeFileSync(file, s);
+
+          const after = fs.readFileSync(file, 'utf8');
+          if (count(after, newBuild) !== 1) throw new Error('RC965 Build-Kennung wurde nicht sauber gesetzt.');
+          if (count(after, newSchedule) !== 1) throw new Error('RC965 Scheduler-Patch wurde nicht sauber gesetzt.');
+          if (after.includes('avisRetry<30')) throw new Error('30-facher Avis-Retry ist noch vorhanden.');
+          console.log('RC965 Minimalpatch geschrieben.');
+          NODE
+      - name: GREEN Regressionen
+        run: |
+          node tests/rc963-render-performance.test.cjs
+          node tests/rc964-render-metrics.test.cjs
+          node tests/rc965-avis-retry-performance.test.cjs
+          git diff --check
+      - name: Produktänderung committen
+        shell: bash
+        run: |
+          if git diff --quiet -- TESTVERSION.html; then
+            echo 'Keine Produktänderung vorhanden.'
+            exit 1
+          fi
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add TESTVERSION.html
+          git commit -m 'RC965: deaktivierten Lieferavis-Retry entfernen'
+          git push origin HEAD:main
