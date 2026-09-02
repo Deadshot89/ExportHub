@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Shipment Patchpfad gezielt analysieren
+      - name: refreshVisuals Implementierung analysieren
         shell: bash
         run: |
           node <<'NODE'
@@ -26,47 +26,20 @@ jobs:
           const build=s.match(/var BUILD=Object\.freeze\(\{version:'(RC\d+)'/);
           console.log('BUILD',build?build[1]:'unbekannt');
 
-          function show(name,max=16000){
-            const token='function '+name+'(';
-            const i=s.indexOf(token);
-            console.log('\n=== '+name+' @ '+i+' ===');
-            if(i<0)return;
-            let end=s.indexOf('\nfunction ',i+token.length);
-            const end2=s.indexOf('\n function ',i+token.length);
-            if(end<0||(end2>=0&&end2<end))end=end2;
-            if(end<0||end-i>max)end=Math.min(s.length,i+max);
-            const body=s.slice(i,end);
-            console.log('lenShown='+body.length+' innerHTML='+(body.match(/\.innerHTML\s*=/g)||[]).length+' textContent='+(body.match(/\.textContent\s*=/g)||[]).length+' querySelectorAll='+(body.match(/querySelectorAll\(/g)||[]).length+' stableRender='+(body.match(/stableRender\(/g)||[]).length);
-            console.log(body);
+          function context(label,token,before=1200,after=7000,limit=20){
+            console.log('\n=== '+label+' ===');
+            let pos=0,count=0;
+            while((pos=s.indexOf(token,pos))>=0&&count<limit){
+              count++;
+              const out=s.slice(Math.max(0,pos-before),Math.min(s.length,pos+after));
+              console.log('\n--- '+count+' @ '+pos+' ---\n'+out);
+              pos+=token.length;
+            }
+            console.log('COUNT',count);
           }
 
-          [
-            'mayPatchExistingShipment',
-            'refreshExistingShipment',
-            'shipmentIdentity',
-            'hydrateShipmentView',
-            'renderCanonicalView',
-            'postShipment',
-            'patchShipment',
-            'shipmentHostPosition',
-            'enhanceDeliveryNotes'
-          ].forEach(n=>show(n));
-
-          console.log('\n=== refreshExistingShipment Aufrufer-Kontexte ===');
-          let pos=0,count=0;
-          while((pos=s.indexOf('refreshExistingShipment()',pos))>=0&&count<20){
-            console.log('CALL '+(++count),s.slice(Math.max(0,pos-500),Math.min(s.length,pos+900)).replace(/\s+/g,' '));
-            pos+=10;
-          }
-
-          console.log('\n=== Shipment-Refresh Helferreferenzen ===');
-          const target=s.indexOf('function refreshExistingShipment(');
-          if(target>=0){
-            const body=s.slice(target,Math.min(s.length,target+22000));
-            const calls=[...body.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)].map(m=>m[1]);
-            const ignore=new Set(['if','for','while','switch','catch','function','return','typeof','String','Number','Boolean','Array','Object','Math','Date','Promise','setTimeout']);
-            const freq={};
-            for(const c of calls){if(!ignore.has(c))freq[c]=(freq[c]||0)+1;}
-            Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,50).forEach(x=>console.log(x[0],x[1]));
-          }
+          context('shipmentPatchApi','function shipmentPatchApi(',500,5000,10);
+          context('refreshVisuals symbol','refreshVisuals',1400,7000,20);
+          context('refreshVisuals property','refreshVisuals:',1400,9000,20);
+          context('refreshVisuals assignment','.refreshVisuals=',1400,9000,20);
           NODE
