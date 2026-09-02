@@ -14,59 +14,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Analyse render paths
+      - name: Analyse dashboard and shipment render paths
         shell: bash
         run: |
           node <<'NODE'
           const fs = require('fs');
           const s = fs.readFileSync('TESTVERSION.html','utf8');
-          const needles = [
-            'stableRender(',
-            'performStableRender(',
-            'render();',
-            'render()',
-            'renderDashboard(',
-            'renderShipment(',
-            'requestAnimationFrame(',
-            'setTimeout(()=>render',
-            'setTimeout(() => render'
-          ];
-          console.log('FILE_BYTES=' + Buffer.byteLength(s));
-          for (const needle of needles) {
-            let n=0, p=0;
-            while ((p=s.indexOf(needle,p)) !== -1) { n++; p += needle.length; }
-            console.log(`COUNT ${JSON.stringify(needle)} = ${n}`);
-          }
+          function indices(needle){const a=[];let p=0;while((p=s.indexOf(needle,p))!==-1){a.push(p);p+=needle.length}return a}
+          function clip(i,r=620){return s.slice(Math.max(0,i-r),Math.min(s.length,i+r)).replace(/\s+/g,' ')}
+          function show(label,needle,r=620){const a=indices(needle);console.log(`\n### ${label} ${JSON.stringify(needle)} COUNT=${a.length}`);a.slice(0,40).forEach((i,k)=>console.log(`\n--- ${label}_${k+1} OFFSET=${i} ---\n${clip(i,r)}`))}
 
-          function allIndices(needle){
-            const out=[]; let p=0;
-            while((p=s.indexOf(needle,p))!==-1){ out.push(p); p+=needle.length; }
-            return out;
-          }
-          function clip(i, radius=340){
-            return s.slice(Math.max(0,i-radius), Math.min(s.length,i+radius))
-              .replace(/\s+/g,' ')
-              .replace(/::/g,':');
-          }
-
-          const direct = allIndices('render()');
-          console.log('DIRECT_RENDER_OCCURRENCES=' + direct.length);
-          direct.slice(0,120).forEach((i,k)=>{
-            const c=clip(i);
-            console.log(`\n--- DIRECT_RENDER_${k+1} OFFSET=${i} ---\n${c}`);
-          });
-
-          const stable = allIndices('stableRender(');
-          console.log('\nSTABLE_RENDER_OCCURRENCES=' + stable.length);
-          stable.slice(0,120).forEach((i,k)=>{
-            console.log(`\n--- STABLE_RENDER_${k+1} OFFSET=${i} ---\n${clip(i)}`);
-          });
-
-          const perfMarker = s.indexOf('exporthub-rc963-render-coordinator');
-          console.log('\nRC963_MARKER_OFFSET=' + perfMarker);
-          if(perfMarker>=0) console.log(clip(perfMarker,1600));
-
-          const metricMarker = s.indexOf('renderMetrics');
-          console.log('\nRENDER_METRICS_FIRST_OFFSET=' + metricMarker);
-          if(metricMarker>=0) console.log(clip(metricMarker,1200));
+          console.log('FILE_BYTES='+Buffer.byteLength(s));
+          show('PERFORM_ASSIGN','performStableRender=',900);
+          show('WINDOW_RENDER_ASSIGN','window.render=',800);
+          show('WINDOW_RENDER_CALL','window.render()',600);
+          show('DASHBOARD','renderDashboard(',900);
+          show('DASHBOARD_REFRESH','refreshDashboardIfChanged(',900);
+          show('SHIPMENT_MODULE','ExportHUBShipmentView.render()',900);
+          show('SHIPMENT_GUARD','rc843EnsureView',1200);
+          show('RENDER_EVENT',"exporthub:rendered",900);
+          show('VIEWCHANGE_EVENT',"exporthub:viewchange",900);
+          show('SYNC_EVENT',"exporthub:sync",900);
+          show('TIMEOUT_RENDER','setTimeout(()=>render()',900);
+          show('TIMEOUT_WINDOW_RENDER',"setTimeout(function(){try{if(typeof window.render==='function')window.render()",900);
           NODE
