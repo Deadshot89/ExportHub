@@ -1,0 +1,22 @@
+name: RC971 Global Form Field Standard Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'TESTVERSION.html'
+      - 'test/rc971-global-form-field-standard.test.mjs'
+      - '.github/workflows/rc971-global-form-field-standard-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: RC971 Form Field Regression
+        run: node --test test/rc971-global-form-field-standard.test.mjs
