@@ -26,6 +26,11 @@ RC990_STYLE = r'''<style id="rc990-design-system">
     --rc990-action-gap: 8px;
     --rc990-info: #2563eb;
     --rc990-warning: #d97706;
+    --rc990-card-border: #c8ddf0;
+    --rc990-card-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+    --rc990-task-accent: #f97316;
+    --rc990-surface: #ffffff;
+    --rc990-surface-soft: #f7fbff;
   }
 
   /* Cards follow their content instead of stretching into artificial holes. */
@@ -62,6 +67,61 @@ RC990_STYLE = r'''<style id="rc990-design-system">
     padding: var(--rc990-card-pad) !important;
     border-radius: var(--rc990-radius) !important;
     box-sizing: border-box !important;
+  }
+
+  /* Stronger screen-card identity makes RC990 visible without touching documents. */
+  body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, #rc885Workspace .rc885-panel),
+  body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-kpi, .rc504-dashboard-item) {
+    background: var(--rc990-surface) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    box-shadow: var(--rc990-card-shadow) !important;
+    border-radius: var(--rc990-radius) !important;
+  }
+
+  /* RC990 task tile grid: only direct task-card parents become grids. */
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
+  body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--rc990-card-gap) !important;
+    align-items: start !important;
+  }
+
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)) > :not(.task):not(.rc205-planner-task),
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)) > :not(.task):not(.rc205-planner-task),
+  body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) > :not(.rc205-planner-task) {
+    grid-column: 1 / -1;
+  }
+
+  /* RC990 task card identity: compact, clearly bounded and fast to scan. */
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task),
+  body[data-exporthub-view="planning"] #content .rc205-planner-task {
+    position: relative;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    background: linear-gradient(180deg, var(--rc990-surface) 0%, var(--rc990-surface-soft) 100%) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    border-left: 5px solid var(--rc990-task-accent) !important;
+    box-shadow: var(--rc990-card-shadow) !important;
+    padding: 12px 14px !important;
+    border-radius: var(--rc990-radius) !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
+  }
+
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task) :is(.i218-task-name, .rc896-task-name),
+  body[data-exporthub-view="planning"] #content .rc205-planner-task :is(.i218-task-name, .rc896-task-name) {
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task) :is(.rc896-task-meta, .i218-task-links),
+  body[data-exporthub-view="planning"] #content .rc205-planner-task :is(.rc896-task-meta, .i218-task-links) {
+    gap: 6px !important;
+    flex-wrap: wrap !important;
   }
 
   :is(
@@ -168,6 +228,15 @@ RC990_STYLE = r'''<style id="rc990-design-system">
   #rc885WarningDrawer :is(.rc885-drawer-title, .rc889-title, [data-semantic="warning"]),
   #rc885WarningButton { color: #d97706 !important; }
 
+  @media (max-width: 1000px) {
+    /* RC990 task tile grid: two columns on medium screens. */
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+
   @media (max-width: 900px) {
     #index236NotificationCenter :is(.index236-statusbar, .index236-metrics, .index236-columns),
     body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-summary, .rc504-dashboard-list) {
@@ -185,6 +254,13 @@ RC990_STYLE = r'''<style id="rc990-design-system">
   }
 
   @media (max-width: 700px) {
+    /* RC990 task tile grid: one column on phones. */
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
     #index236NotificationCenter :is(.index236-statusbar, .index236-metrics, .index236-columns, .grid2, .grid3),
     body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-summary, .rc504-dashboard-list) {
       grid-template-columns: minmax(0, 1fr) !important;
