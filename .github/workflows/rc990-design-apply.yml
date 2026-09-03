@@ -1,0 +1,60 @@
+name: RC990 Design Apply
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - .github/rc990_design_apply.py
+      - .github/workflows/rc990-design-apply.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc990-design-apply
+  cancel-in-progress: false
+
+jobs:
+  apply-design:
+    if: github.ref == 'refs/heads/rc990-large-ux'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout isolated RC990 branch
+        uses: actions/checkout@v4
+        with:
+          ref: rc990-large-ux
+          fetch-depth: 0
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply canonical RC990 design layer
+        run: python .github/rc990_design_apply.py
+
+      - name: Verify RC990 design contract
+        run: node --test test/rc990-design-system.test.mjs
+
+      - name: Verify complete regression suite
+        run: npm test
+
+      - name: Commit isolated design result
+        shell: bash
+        run: |
+          if git diff --quiet -- TESTVERSION.html; then
+            echo "RC990 design already applied; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TESTVERSION.html
+          git commit -m "feat: add RC990 canonical design layer"
+          git push origin HEAD:rc990-large-ux
