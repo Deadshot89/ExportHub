@@ -1,0 +1,57 @@
+name: RC975 Promote Render Integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc975-render-integrity-promote.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: RC974 auf RC975 anheben
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('TESTVERSION.html')
+          s=p.read_text(encoding='utf-8')
+          old="var BUILD=Object.freeze({version:'RC974',cache:'974'"
+          new="var BUILD=Object.freeze({version:'RC975',cache:'975'"
+          if new in s:
+              print('RC975 ist bereits gesetzt.')
+          elif old in s:
+              s=s.replace(old,new,1)
+              p.write_text(s,encoding='utf-8')
+              print('BUILD auf RC975 angehoben.')
+          else:
+              raise SystemExit('Erwarteter RC974 BUILD-Block wurde nicht gefunden.')
+          PY
+
+      - name: Vollständige RC971-RC975 Regression
+        run: node --test test/rc971-global-form-field-standard.test.mjs test/rc972-field-exception-audit.test.mjs test/rc973-long-text-autogrow.test.mjs test/rc975-global-render-integrity.test.mjs
+
+      - name: RC975 committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- TESTVERSION.html; then
+            echo 'Keine Änderung zu committen.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add TESTVERSION.html
+          git commit -m 'RC975: globalen Render-Integritätsschutz aktivieren'
+          git push origin HEAD:main
