@@ -59,14 +59,11 @@ scheduler = '\n'.join([
 ])
 
 view = '\n'.join([
-    '===== canonical navigation controller =====',
-    '===== setViewState =====', function_block('function setViewState(view)', 9000),
-    '===== initHistory =====', function_block('function initHistory()', 9000),
-    '===== recordHistory =====', function_block('function recordHistory(view,source)', 12000),
-    '===== handlePopState =====', function_block('function handlePopState(event)', 12000),
     '===== active route =====', function_block('function route(view,source)', 26000),
-    '===== history.back contexts =====', contexts(r'(?:window\.)?history\.back\s*\(', 1700, 12),
-    '===== explicit back controls =====', contexts(r'(?:backBtn|btnBack|navBack|goBack|data-action=[\"\']back|>\s*Zurück\s*<|>\s*Zurueck\s*<)', 1500, 18),
+    '===== click listeners near navigation =====', contexts(r'addEventListener\s*\(\s*[\"\']click[\"\']', 2200, 24),
+    '===== delegated view controls =====', contexts(r'(?:data-view|data-nav|data-route|dataset\.view|dataset\.nav|closest\([^\n]{0,120}(?:data-view|data-nav|data-route))', 1900, 24),
+    '===== shipment back control contexts =====', contexts(r'data-rc776-back', 2400, 12),
+    '===== likely application back controls =====', contexts(r'(?:data-[\w-]*back|id=[\"\'][^\"\']*back[^\"\']*[\"\']|class=[\"\'][^\"\']*back[^\"\']*[\"\'])', 1700, 24),
 ])
 
 for path, text in [
