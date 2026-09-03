@@ -18,30 +18,34 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: rc990-production-release
-          fetch-depth: 4
-      - name: Print exact prepareProduction transform
+          fetch-depth: 5
+      - name: Compare browser-text and filesystem-text hashes
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
-          const fs=require('fs');
-          const source=fs.readFileSync('TESTVERSION.html','utf8');
-          function functionSource(name){
-            const re=new RegExp(`function\\s+${name}\\s*\\([^)]*\\)\\s*\\{`);
-            const m=re.exec(source); if(!m) throw new Error(name+' fehlt');
-            let i=m.index+m[0].length-1,depth=0,quote='',esc=false,regex=false,cls=false;
-            for(;i<source.length;i++){
-              const ch=source[i],prev=source[i-1];
-              if(quote){ if(esc)esc=false; else if(ch==='\\\\')esc=true; else if(ch===quote)quote=''; continue; }
-              if(regex){ if(esc)esc=false; else if(ch==='\\\\')esc=true; else if(ch==='[')cls=true; else if(ch===']')cls=false; else if(ch==='/'&&!cls)regex=false; continue; }
-              if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}
-              if(ch==='/' && prev!=='/' && prev!=='*'){
-                let j=i-1; while(j>=0&&/\s/.test(source[j]))j--; const p=source[j];
-                if(!p||'([=,:;!&|?{}\n'.includes(p)){regex=true;continue;}
-              }
-              if(ch==='{')depth++; else if(ch==='}'&&--depth===0){console.log(source.slice(m.index,i+1));return;}
-            }
-            throw new Error('unvollständig');
+          const fs=require('fs'),crypto=require('crypto');
+          const raw=fs.readFileSync('TESTVERSION.html');
+          const source=raw.toString('utf8');
+          console.log('RAW first bytes:',[...raw.subarray(0,8)]);
+          console.log('TEXT first codepoint:',source.codePointAt(0));
+          console.log('RAW SHA:',crypto.createHash('sha256').update(raw).digest('hex'));
+          function getFn(src,name){
+            const re=new RegExp(`function\\s+${name}\\s*\\([^)]*\\)\\s*\\{`);const m=re.exec(src);if(!m)throw new Error(name+' fehlt');
+            let i=m.index+m[0].length-1,d=0,q='',e=false;
+            for(;i<src.length;i++){const c=src[i];if(q){if(e)e=false;else if(c==='\\\\')e=true;else if(c===q)q='';continue;}if(c==='"'||c==="'"||c==='`'){q=c;continue;}if(c==='{')d++;else if(c==='}'&&--d===0)return src.slice(m.index,i+1);}throw new Error('unvollständig');
           }
-          functionSource('prepareProduction');
+          function transform(src){
+            const stripBlock=eval('('+getFn(src,'stripBlock')+')');
+            const build=src.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'(RC\d+)',cache:'([^']+)'/);if(!build)throw new Error('BUILD fehlt');const CACHE=build[2];
+            let html=src;
+            html=stripBlock(html,'script','rc561-testportal-mode');html=stripBlock(html,'style','rc561-testportal-identity-style');html=stripBlock(html,'script','rc561-testportal-runtime');
+            html=html.replace(/loginReturn:\s*['"]\/TESTVERSION\.html\?v=\d+['"]/i,"loginReturn:'/?v="+CACHE+"'");html=html.replace(/loginReturn:\s*['"]\/test\?v=\d+['"]/i,"loginReturn:'/?v="+CACHE+"'");
+            html=html.replace(/window\.__EXPORTHUB_RELEASE_CHANNEL__\s*=\s*['"]test['"];?/g,'');html=html.replace(/document\.documentElement\.setAttribute\(['"]data-exporthub-portal['"],['"]test['"]\);?/g,'');
+            return html;
+          }
+          for(const [name,src] of [['filesystem',source],['browser-like',source.replace(/^\uFEFF/,'')],['lf-browser-like',source.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n')]]){
+            const out=transform(src);console.log(name,'len',Buffer.byteLength(out),'sha',crypto.createHash('sha256').update(Buffer.from(out)).digest('hex'));
+          }
+          console.log('expected','f71ec67c3e97fab6a290f0ff98f13198b280e697aa5267802d0e6d9a5675f5c3');
           NODE
