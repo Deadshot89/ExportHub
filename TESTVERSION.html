@@ -13702,8 +13702,41 @@ window.addEventListener('scroll',function(){if(!rc990PendingReleasePosition||Dat
  function scheduleConfirmationSave(reason){if(releaseChecklistSaveTimer)clearTimeout(releaseChecklistSaveTimer);releaseChecklistSaveTimer=setTimeout(function(){releaseChecklistSaveTimer=0;var pos=rc990PendingReleasePosition;applyPendingConfirmations();save(reason||'Release-Center: Bestätigungen gespeichert');if(pos)rc990ArmReleasePosition(pos)},900);return true}
  function updateReleaseGateUi(){var root=document.getElementById('content');if(!root||!document.getElementById('rc562ReleaseStatus'))return false;var ok=tested(),match=onlineMatches(),allDone=allChecklistDone(),progress=checklistProgress(),changeProgress=changeChecklistProgress(),btns=root.querySelectorAll('button[onclick*="rc562MarkTested"],button[onclick*="rc562PrepareProduction"]');if(btns[0])btns[0].disabled=ok||!match||!allDone;if(btns[1])btns[1].disabled=!(ok&&match&&allDone);var e=document.getElementById('rc562ReleaseStatus');if(!e)return true;if(!match){e.textContent='STOPP: Online läuft '+testServiceVersion+' statt '+VERSION+'. Nicht testen oder freigeben.';e.className='rc562-release-status bad'}else if(!ok&&changeProgress.failed>0){e.textContent=changeProgress.failed+' Änderung(en) sind als „Nicht bestanden“ markiert. Reparaturreport abarbeiten und danach erneut als bestanden prüfen.';e.className='rc562-release-status bad'}else if(!ok&&changeProgress.remaining>0){e.textContent='Noch '+changeProgress.remaining+' von '+changeProgress.total+' nicht veröffentlichten Änderungen nicht als bestanden bestätigt. Erst danach kann „Test bestanden“ bestätigt werden.';e.className='rc562-release-status'}else if(!ok&&progress.remaining>0){e.textContent='Noch '+progress.remaining+' von '+progress.total+' Testpunkten der aktuellen RC offen. Erst danach kann „Test bestanden“ bestätigt werden.';e.className='rc562-release-status'}else if(!ok){e.textContent='Alle Bestätigungen vollständig. „Test bestanden“ kann jetzt gesetzt werden.';e.className='rc562-release-status ok'}return true}
  function recoverRc761Confirmations(){if(!productionChecked||!Number.isFinite(rcNumber(productionVersion)))return false;var m=meta(true);if(m.rc762RecoveredRc761Confirmations===true)return false;var list=rc990OpenChangeItems().filter(function(item){var n=releaseItemVersion(item);return Number.isFinite(n)&&n<=761}),state=changeChecklistState(true);list.forEach(function(item){var key=changeKey(item);state[key]=true;releaseChecklistPending[key]=true});m.rc762RecoveredRc761Confirmations=true;m.rc762RecoveredRc761ConfirmationsAt=new Date().toISOString();m.rc762RecoveredRc761ConfirmationsCount=list.length;if(list.length)scheduleConfirmationSave('Release-Center: bereits bestätigte RC761-Änderungen wiederhergestellt');return list.length>0}
- function toggleReleaseChange(key,checked){key=q(key);var pos=rc990CaptureReleasePosition(key);releaseChecklistPending[key]=!!checked;changeChecklistState(true)[key]=!!checked;scheduleConfirmationSave('Release-Center: offene Änderungen aktualisiert');preserveReleaseScroll(function(){refreshUnreleasedChangesCard();updateReleaseGateUi()});rc990ArmReleasePosition(pos);return false}
- function setReleaseChangeStatus(key,next){key=q(key);next=q(next);var item=changeItemByKey(key);if(!item)return false;var pos=rc990CaptureReleasePosition(key);if(next==='failed'){var existing=failureFor(item),reason=prompt('Warum ist diese Änderung nicht bestanden?\n\nBitte den Fehler so beschreiben, dass er später gezielt repariert werden kann.',existing&&existing.reason||'');if(reason===null){rc990PendingReleasePosition=null;return false}reason=q(reason);if(!reason){alert('Für „Nicht bestanden“ ist eine Fehlerbeschreibung erforderlich.');rc990PendingReleasePosition=null;return false}recordFailure(item,reason)}else if(next==='passed'){recordPassed(item)}else{recordOpen(item)}scheduleConfirmationSave('Release-Center: Prüfstatus der Änderung aktualisiert');preserveReleaseScroll(function(){refreshUnreleasedChangesCard();refreshFailureReportCard();updateReleaseGateUi()});rc990ArmReleasePosition(pos);return false}
+ function toggleReleaseChange(key,checked){
+ key=q(key);var pos=rc990CaptureReleasePosition(key);
+ try{
+  releaseChecklistPending[key]=!!checked;
+  changeChecklistState(true)[key]=!!checked;
+  scheduleConfirmationSave('Release-Center: offene Änderungen aktualisiert');
+  preserveReleaseScroll(function(){refreshUnreleasedChangesCard();updateReleaseGateUi()});
+  rc990ArmReleasePosition(pos);
+ }catch(error){
+  rc990RestoreReleasePosition(pos,true);
+  rc990ArmReleasePosition(pos);
+  return rc990FailOperation(0,(error&&error.message)||'Änderung konnte nicht aktualisiert werden',null,null)
+ }
+ return false
+}
+ function setReleaseChangeStatus(key,next){
+ key=q(key);next=q(next);var item=changeItemByKey(key);if(!item)return false;var pos=rc990CaptureReleasePosition(key);
+ try{
+  if(next==='failed'){
+   var existing=failureFor(item),reason=prompt('Warum ist diese Änderung nicht bestanden?\n\nBitte den Fehler so beschreiben, dass er später gezielt repariert werden kann.',existing&&existing.reason||'');
+   if(reason===null){rc990PendingReleasePosition=null;return false}
+   reason=q(reason);
+   if(!reason){alert('Für „Nicht bestanden“ ist eine Fehlerbeschreibung erforderlich.');rc990PendingReleasePosition=null;return false}
+   recordFailure(item,reason)
+  }else if(next==='passed')recordPassed(item);else recordOpen(item);
+  scheduleConfirmationSave('Release-Center: Prüfstatus der Änderung aktualisiert');
+  preserveReleaseScroll(function(){refreshUnreleasedChangesCard();refreshFailureReportCard();updateReleaseGateUi()});
+  rc990ArmReleasePosition(pos)
+ }catch(error){
+  rc990RestoreReleasePosition(pos,true);
+  rc990ArmReleasePosition(pos);
+  return rc990FailOperation(0,(error&&error.message)||'Prüfstatus konnte nicht aktualisiert werden',null,null)
+ }
+ return false
+}
  function checklistState(create){var m=meta(create===true),all=m&&m.testChecklist;if(all&&typeof all==='object'&&all[VERSION]&&typeof all[VERSION]==='object')return all[VERSION];if(create===true){m.testChecklist=all&&typeof all==='object'?all:{};m.testChecklist[VERSION]={};return m.testChecklist[VERSION]}return{}}
  function checklistConfirmed(index){var key=String(index);if(Object.prototype.hasOwnProperty.call(testChecklistPending,key))return testChecklistPending[key]===true;return checklistState()[index]===true}
  function checklistProgress(){var tests=releaseTests(),done=0;for(var i=0;i<tests.length;i++)if(checklistConfirmed(i))done++;return{total:tests.length,done:done,remaining:Math.max(0,tests.length-done)}}
@@ -24433,11 +24466,35 @@ function rc990RestoreUiState(snapshot,root){
  });
  return true
 }
+function rc990FailOperation(token,message,snapshot,root){
+ var text=String(message||'Vorgang nicht abgeschlossen');
+ try{
+  if(typeof operationFail==='function')operationFail(token,text);
+  else if(window.ExportHUBOperationStatus&&typeof window.ExportHUBOperationStatus.fail==='function')window.ExportHUBOperationStatus.fail(token,text);
+  else if(typeof loadingBarFail==='function')loadingBarFail(token,text);
+ }catch(reportError){try{console.error('RC990 Fehlerstatus',reportError)}catch(_){}}
+ if(snapshot){
+  var defer=window.requestAnimationFrame||function(cb){return window.setTimeout(cb,0)};
+  defer(function(){try{rc990RestoreUiState(snapshot,root)}catch(restoreError){try{console.error('RC990 UI-State Restore',restoreError)}catch(_){}}});
+ }
+ return false
+}
 function rc990ScheduleRender(reason,fn){
  rc990RenderReason=q(reason)||rc990RenderReason||'render';
  if(typeof fn==='function')rc990RenderTask=fn;
  if(rc990RenderFrame)return true;
- var run=function(){rc990RenderFrame=0;var task=rc990RenderTask;rc990RenderTask=null;try{if(typeof task==='function')task()}finally{rc990RenderReason=''}};
+ var root=document.getElementById('content'),snapshot=rc990CaptureUiState(root);
+ var run=function(){
+  rc990RenderFrame=0;
+  var task=rc990RenderTask;rc990RenderTask=null;
+  try{
+   if(typeof task==='function')task()
+  }catch(error){
+   rc990FailOperation(0,(error&&error.message)||'Ansicht konnte nicht aktualisiert werden',snapshot,root)
+  }finally{
+   rc990RenderReason=''
+  }
+ };
  if(typeof window.requestAnimationFrame==='function')rc990RenderFrame=window.requestAnimationFrame(run);
  else rc990RenderFrame=window.setTimeout(run,16);
  return true
