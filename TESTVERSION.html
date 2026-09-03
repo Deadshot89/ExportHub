@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC978',cache:'978',loginReturn:'/TESTVERSION.html?v=968'});
+var BUILD=Object.freeze({version:'RC979',cache:'979',loginReturn:'/TESTVERSION.html?v=968'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -15961,6 +15961,47 @@ window.ExportHUBDiagnostics863=Object.freeze({version:'RC882',refresh:function()
 </script>
 
 
+
+<style id="rc979-shipment-inner-density">
+#rc363BlockCustomer,
+#rc363BlockShipment,
+#rc363BlockColli,
+#rc363BlockDocuments{height:auto!important;min-height:0!important}
+
+#rc363BlockCustomer .rc363-process-body,
+#rc363BlockShipment .rc363-process-body,
+#rc363BlockDocuments .rc363-process-body{align-items:start!important;align-content:start!important;gap:6px 8px!important}
+
+#rc363BlockCustomer .rc363-process-body>*,
+#rc363BlockShipment .rc363-process-body>*,
+#rc363BlockDocuments .rc363-process-body>*{height:auto!important;min-height:0!important}
+
+#rc363BlockCustomer .rc363-process-body>:is(.okbox,.badbox,.notice,.infobox){min-height:0!important;margin:0!important;padding:8px 10px!important}
+
+#rc896ShipmentFieldGrid{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:8px 10px!important;align-items:start!important;align-content:start!important}
+#rc896ShipmentFieldGrid [data-rc896-field="reference"]{grid-column:span 4!important}
+#rc896ShipmentFieldGrid [data-rc896-field="pickup"]{grid-column:span 4!important}
+#rc896ShipmentFieldGrid [data-rc896-field="carrier"]{grid-column:span 4!important}
+#rc896ShipmentFieldGrid [data-rc896-field="description"]{grid-column:span 6!important}
+#rc896ShipmentFieldGrid [data-rc896-field="remark"]{grid-column:span 6!important}
+#rc363BlockShipment #rc896ShipmentFieldGrid textarea{min-height:64px!important;height:auto!important;max-height:none!important}
+
+#rc363BlockDocuments>.rc363-process-body[data-rc899-doc-abd="1"]{gap:8px!important;align-items:start!important;align-content:start!important}
+#rc363BlockDocuments .rc899-doc-main{display:grid!important;gap:6px!important;align-content:start!important;min-height:0!important}
+#rc363BlockDocuments .rc899-doc-main textarea{min-height:72px!important;height:auto!important;max-height:none!important}
+#rc363BlockDocuments #rc363BlockAbdDecision,
+#rc363BlockDocuments #rc363BlockAbdDecision .rc363-process-body,
+#rc363BlockDocuments #rc363BlockAbdDecision .rc543-area{height:auto!important;min-height:0!important}
+
+#rc363BlockColli #rc573ColliCard{height:auto!important;min-height:0!important}
+#rc363BlockColli #rc573ColliCard #rowsBox{gap:5px!important;align-content:start!important}
+#rc363BlockColli #rc573ColliCard .rc344-summary{margin-top:6px!important}
+
+@container rc978ShipmentLayout (max-width:760px){
+#rc896ShipmentFieldGrid{grid-template-columns:1fr!important}
+#rc896ShipmentFieldGrid [data-rc896-field]{grid-column:1/-1!important}
+}
+</style>
 </body>
 </html>
 <!-- RC559 + RC560 + RC561 stable patches -->
