@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC975',cache:'975',loginReturn:'/TESTVERSION.html?v=968'});
+var BUILD=Object.freeze({version:'RC976',cache:'976',loginReturn:'/TESTVERSION.html?v=968'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -13121,11 +13121,14 @@ function rc964CreateRenderMetrics(){var byView=Object.create(null);function row(
 var rc964RenderMetrics=rc964CreateRenderMetrics();window.__EXPORTHUB_RC964_RENDER_METRICS__={snapshot:function(view){return rc964RenderMetrics.snapshot(view)},snapshotAll:function(){return rc964RenderMetrics.snapshotAll()}};
 function rc964RunMeasured(context,args,v){var started=typeof performance!=='undefined'&&performance.now?performance.now():Date.now();try{return performStableRender.apply(context,args)}finally{var ended=typeof performance!=='undefined'&&performance.now?performance.now():Date.now();rc964RenderMetrics.run(v,Math.max(0,ended-started))}}
 function stableRender(){var context=this,args=arguments,v=currentView(),domMatches=viewDomMatches(v);rc964RenderMetrics.request(v);if(rc963NeedsImmediateRender(lastView,v,domMatches,navigationTransition)){rc963RenderCoordinator.cancel();return rc964RunMeasured(context,args,v)}return rc963RenderCoordinator.request(function(){rc964RunMeasured(context,args,v)})}
+/* exporthub-rc976-render-fallback-recovery */
+function rc976ClearRenderFallback(targetRoot){var host=targetRoot||root(),nodes=host&&host.querySelectorAll?host.querySelectorAll('[data-exporthub-render-fallback="1"]'):[],i;for(i=nodes.length-1;i>=0;i--){var n=nodes[i];if(n&&n.parentNode)n.parentNode.removeChild(n)}return nodes.length}
 function performStableRender(){
  if(busy){pendingRender=true;return false}
  busy=true;pendingRender=false;
  var started=performance.now?performance.now():Date.now(),v=currentView(),patchOnly=mayPatchExistingShipment(v,arguments),domChanged=true;
  try{
+  rc976ClearRenderFallback(root());
   restoreUsers();
   var navBefore=document.getElementById('nav')||document.querySelector('.nav');if((!navBefore||!navBefore.querySelector('button,a'))&&window.ExportHUBRC325&&typeof window.ExportHUBRC325.buildMenu==='function')try{window.ExportHUBRC325.buildMenu()}catch(e){console.error('Navigation konnte vor dem Rendern nicht aufgebaut werden',e)}
   if(patchOnly){refreshExistingShipment();setVersion();suppressedShipmentRenders++;lastRenderMs=Math.round((performance.now?performance.now():Date.now())-started);return false}
@@ -13162,7 +13165,7 @@ function performStableRender(){
   return false
  }catch(renderError){
   console.error('ExportHUB Renderfehler in '+v,renderError);
-  var fallbackRoot=root();if(fallbackRoot&&!fallbackRoot.childElementCount)fallbackRoot.innerHTML='<section class="card"><h2>ExportHUB</h2><p>Die Ansicht konnte nicht vollständig aufgebaut werden. Die Navigation bleibt verfügbar.</p></section>';
+  var fallbackRoot=root();if(fallbackRoot&&!fallbackRoot.childElementCount)fallbackRoot.innerHTML=`<section class="card" data-exporthub-render-fallback="1"><h2>ExportHUB</h2><p>Die Ansicht konnte nicht vollständig aufgebaut werden. Die Navigation bleibt verfügbar.</p></section>`;
   try{var navError=document.getElementById('nav')||document.querySelector('.nav');if((!navError||!navError.querySelector('button,a'))&&window.ExportHUBRC325&&typeof window.ExportHUBRC325.buildMenu==='function')window.ExportHUBRC325.buildMenu();patchNav();updateActiveNavigation(v)}catch(_){}
   return false
  }finally{
