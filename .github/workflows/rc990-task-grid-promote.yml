@@ -38,28 +38,31 @@ jobs:
       - name: Materialize canonical RC990 design into preview source
         run: python .github/rc990_design_apply.py
 
-      - name: Verify focused RC990 design contract and capture exact failure
+      - name: Verify focused RC990 design contract
+        run: node --test test/rc990-design-system.test.mjs
+
+      - name: Verify full regression suite and capture exact failure
         shell: bash
         run: |
           set +e
-          node --test test/rc990-design-system.test.mjs > .github/rc990_task_grid_test_result.txt 2>&1
+          npm test > .github/rc990_task_grid_regression_result.txt 2>&1
           status=$?
-          cat .github/rc990_task_grid_test_result.txt
+          tail -n 500 .github/rc990_task_grid_regression_result.txt
           if [ "$status" -ne 0 ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add .github/rc990_task_grid_test_result.txt
-            git commit -m "diag: materialize RC990 task-grid GREEN failure"
+            git add .github/rc990_task_grid_regression_result.txt
+            git commit -m "diag: materialize RC990 task-grid regression failure"
             git push origin HEAD:rc990-large-ux
             exit "$status"
           fi
-          rm -f .github/rc990_task_grid_test_result.txt
-
-      - name: Verify full regression suite
-        run: npm test
+          rm -f .github/rc990_task_grid_regression_result.txt
 
       - name: Remove one-time promotion helpers
-        run: git rm .github/rc990_task_grid_promote.py .github/workflows/rc990-task-grid-promote.yml
+        shell: bash
+        run: |
+          git rm .github/rc990_task_grid_promote.py .github/workflows/rc990-task-grid-promote.yml
+          git rm -f --ignore-unmatch .github/rc990_task_grid_test_result.txt .github/rc990_task_grid_regression_result.txt
 
       - name: Commit canonical result only
         shell: bash
