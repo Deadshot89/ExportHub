@@ -1,0 +1,72 @@
+name: RC993 Render Diagnostics
+
+on:
+  push:
+    branches:
+      - rc993-render-performance
+    paths:
+      - '.github/workflows/rc993-render-diagnostics.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect shipment render hot paths
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          s=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          print('bytes', len(s))
+          print('shipmentoverview occurrences', len(re.findall('shipmentoverview', s, re.I)))
+          print('exporthub:rendered occurrences', len(re.findall(r'exporthub:rendered', s, re.I)))
+          print('innerHTML assignments', len(re.findall(r'\.innerHTML\s*=', s)))
+          print('replaceChildren calls', len(re.findall(r'\.replaceChildren\s*\(', s)))
+
+          def nearest_function(idx):
+            start=max(0, idx-8000)
+            chunk=s[start:idx]
+            matches=list(re.finditer(r'function\s+([A-Za-z0-9_$]+)\s*\(', chunk))
+            return matches[-1].group(1) if matches else '(anonymous/other)'
+
+          seen=set()
+          print('\n=== shipment-adjacent DOM writes ===')
+          for pat in [r'\.innerHTML\s*=', r'\.replaceChildren\s*\(', r'\.insertAdjacentHTML\s*\(']:
+            for m in re.finditer(pat, s):
+              a=max(0,m.start()-2200); b=min(len(s),m.start()+2200)
+              window=s[a:b]
+              if not re.search(r'shipment|sendung|shipmentoverview|shipmentview', window, re.I):
+                continue
+              fn=nearest_function(m.start())
+              key=(fn,m.start())
+              if key in seen: continue
+              seen.add(key)
+              excerpt=' '.join(s[max(0,m.start()-650):min(len(s),m.start()+950)].split())
+              print(f'IDX={m.start()} FN={fn} OP={m.group(0)}')
+              print(excerpt[:1800])
+              print('---')
+
+          print('\n=== shipment-related named functions ===')
+          names=[]
+          for m in re.finditer(r'function\s+([A-Za-z0-9_$]+)\s*\(', s):
+            name=m.group(1)
+            if re.search(r'ship|send|render|overview|list', name, re.I):
+              names.append((m.start(),name))
+          for idx,name in names[:160]:
+            excerpt=' '.join(s[idx:min(len(s),idx+1200)].split())
+            print(f'IDX={idx} FN={name}: {excerpt[:1200]}')
+
+          print('\n=== rendered event handlers with shipment context ===')
+          for m in re.finditer(r'exporthub:rendered', s):
+            a=max(0,m.start()-1200); b=min(len(s),m.start()+1600)
+            window=s[a:b]
+            if re.search(r'shipment|sendung|render', window, re.I):
+              print('IDX',m.start(), 'FN', nearest_function(m.start()))
+              print(' '.join(window.split())[:2200])
+              print('---')
+          PY
