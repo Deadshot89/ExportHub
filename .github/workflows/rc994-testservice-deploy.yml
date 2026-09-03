@@ -1,0 +1,135 @@
+name: RC994 TESTSERVICE Deploy
+
+on:
+  push:
+    branches:
+      - rc994-drag-performance
+    paths:
+      - '.github/workflows/rc994-testservice-deploy.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: exporthub-testservice-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout RC994 branch
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Verify RC994 and full test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f TESTVERSION.html
+          test -f staticwebapp.testservice.config.json
+          test -d api
+          grep -q "var BUILD=Object.freeze({version:'RC994',cache:'994',loginReturn:'/TESTVERSION.html?v=994'});" TESTVERSION.html
+          node -e "const c=JSON.parse(require('fs').readFileSync('staticwebapp.testservice.config.json','utf8')); if(c?.platform?.apiRuntime!=='node:20') throw new Error('TESTSERVICE apiRuntime ist nicht node:20');"
+          node --test test/rc994-drag-performance.test.mjs
+          npm test
+
+      - name: Prepare isolated TESTSERVICE payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const crypto=require('crypto');
+          const version='RC994';
+          const required=[
+            'staticwebapp.config.json','location.html','pickup.html','pod-notfall.html',
+            '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
+            'api/package.json','api/exporthub-state/index.js','api/exporthub-state/function.json',
+            'api/exporthub-health/index.js','api/exporthub-health/function.json','api/shared/merge.js'
+          ];
+          const posix=rel=>rel.split(path.sep).join('/').replace(/^\.\//,'');
+          function walk(dir){const out=[];if(!fs.existsSync(dir))return out;for(const ent of fs.readdirSync(dir,{withFileTypes:true})){const full=path.join(dir,ent.name);if(ent.isDirectory())out.push(...walk(full));else if(ent.isFile())out.push(posix(full));}return out;}
+          function excluded(rel){const r=posix(rel);if(!r||r==='index.html'||r==='TESTVERSION.html'||r==='test-loader.html')return true;if(r==='staticwebapp.testservice.config.json'||r==='testservice-environment.json'||r==='release-assets.json')return true;if(r==='.github/workflows/exporthub-testservice.yml'||r==='.github/workflows/rc994-testservice-deploy.yml')return true;if(r.startsWith('.git/')||r.startsWith('releases/'))return true;if(/^RC\d+_/i.test(r))return true;if(/(^|\/)node_modules\//i.test(r))return true;return false;}
+          function productionScope(rel){const r=posix(rel);if(excluded(r))return false;if(r.startsWith('api/')||r.startsWith('infra/')||r.startsWith('assets/'))return true;if(r==='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml')return true;if(!r.includes('/')&&/\.(?:html|json|js|css|svg|png|jpe?g|gif|ico|webp|woff2?|txt)$/i.test(r))return true;return false;}
+          const paths=walk('.').filter(productionScope).sort();
+          for(const file of required){if(!paths.includes(file))throw new Error('Pflichtdatei fehlt im Produktions-Snapshot: '+file)}
+          const files=paths.map(file=>{const data=fs.readFileSync(file);return{path:file,encoding:'base64',size:data.length,sha256:crypto.createHash('sha256').update(data).digest('hex'),content:data.toString('base64')};});
+          fs.writeFileSync('release-assets.json',JSON.stringify({schema:'exporthub-release-assets-v1',version,gitSha:String(process.env.GITHUB_SHA||''),generatedAt:new Date().toISOString(),mode:'full-production-snapshot',files}));
+          console.log(`Release-Snapshot ${version}: ${files.length} Produktionsdateien.`);
+          NODE
+          cp TESTVERSION.html index.html
+          cp staticwebapp.testservice.config.json staticwebapp.config.json
+          cat > testservice-environment.json <<'EOF2'
+          {
+            "environment": "testservice",
+            "isolated": true,
+            "data": "TEST-DATEN",
+            "productionWritesAllowed": false,
+            "expectedVersion": "RC994"
+          }
+          EOF2
+
+      - name: Install and smoke-test TESTSERVICE API
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd api
+          node -e "const p=require('./package.json'); if(p?.dependencies?.['@azure/storage-blob']!=='12.27.0') throw new Error('@azure/storage-blob 12.27.0 fehlt');"
+          rm -rf node_modules
+          npm install --omit=dev --no-audit --no-fund
+          node -e "require('@azure/storage-blob'); require('./shared/user-policy'); require('./shared/auth-store'); const auth=require('./exporthub-auth/index.js'); if(typeof auth!=='function') throw new Error('exporthub-auth exportiert keine Azure-Function'); console.log('API smoke-test bestanden');"
+
+      - name: Deploy RC994 to named TESTSERVICE environment
+        id: deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: /
+          api_location: api
+          output_location: ""
+          skip_app_build: true
+          deployment_environment: testservice
+
+      - name: Verify live RC994 TESTSERVICE
+        shell: bash
+        env:
+          TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
+        run: |
+          set -euo pipefail
+          page="$(mktemp)"; body="$(mktemp)"; trap 'rm -f "$page" "$body"' EXIT
+          for attempt in $(seq 1 30); do
+            page_code="$(curl -sS -L --connect-timeout 5 --max-time 30 -o "$page" -w '%{http_code}' "$TEST_URL/TESTVERSION.html?verify=${GITHUB_SHA}-${attempt}" || true)"
+            version="$(grep -oE "var BUILD=Object\.freeze\(\{version:'RC[0-9]+'" "$page" | head -n1 | grep -oE 'RC[0-9]+' || true)"
+            probe_code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Accept: application/json' -o "$body" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?verify=${GITHUB_SHA}-${attempt}" || true)"
+            echo "Check $attempt/30: page=$page_code version=${version:-keine} probe=$probe_code"
+            if [[ "$page_code" == "200" && "$version" == "RC994" && "$probe_code" == "200" ]] && grep -q '"ok":true' "$body"; then
+              echo "RC994 TESTSERVICE live: $TEST_URL/test?v=994"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'RC994 TESTSERVICE Live-Prüfung fehlgeschlagen.'
+          cat "$body" || true
+          exit 1
+
+      - name: Remove temporary RC994 deploy workflow
+        if: success()
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/rc994-testservice-deploy.yml
+          git commit -m 'RC994: temporären TESTSERVICE-Deploy entfernen'
+          git push
