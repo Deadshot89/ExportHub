@@ -4,49 +4,75 @@ import re
 html = Path('TESTVERSION.html').read_text(encoding='utf-8')
 
 
-def collect(terms, radius=1300, max_hits=8):
-    out=[f'chars={len(html)}\n']
-    for term in terms:
-        matches=list(re.finditer(re.escape(term), html, re.I))
-        out.append(f'\n===== {term} :: {len(matches)} =====\n')
-        for i,m in enumerate(matches[:max_hits],1):
-            lo=max(0,m.start()-radius); hi=min(len(html),m.end()+radius)
-            out.append(f'--- hit {i} @{m.start()} ---\n{html[lo:hi].replace(chr(13), "")}\n')
+def function_block(signature: str, limit: int = 22000) -> str:
+    start = html.find(signature)
+    if start < 0:
+        return f'NOT FOUND: {signature}\n'
+    brace = html.find('{', start)
+    if brace < 0:
+        return f'NO BRACE: {signature}\n'
+    depth = 0
+    quote = None
+    escaped = False
+    i = brace
+    while i < len(html) and i - start < limit:
+        ch = html[i]
+        if quote:
+            if escaped:
+                escaped = False
+            elif ch == '\\':
+                escaped = True
+            elif ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch in ('\"', "'", '`'):
+            quote = ch
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return html[start:i + 1].replace('\r', '') + '\n'
+        i += 1
+    return html[start:min(len(html), start + limit)].replace('\r', '') + '\n...[block truncated]...\n'
+
+
+def contexts(pattern: str, radius: int = 1200, max_hits: int = 12) -> str:
+    out = []
+    matches = list(re.finditer(pattern, html, re.I | re.S))
+    out.append(f'PATTERN {pattern} :: {len(matches)} hit(s)\n')
+    for n, m in enumerate(matches[:max_hits], 1):
+        lo = max(0, m.start() - radius)
+        hi = min(len(html), m.end() + radius)
+        out.append(f'--- hit {n} @{m.start()} ---\n{html[lo:hi].replace(chr(13), "")}\n')
     return ''.join(out)
 
-focus = collect([
-    'rc950PreserveActiveInput','rc950RestoreActiveInput','document.activeElement',
-    'selectionStart','selectionEnd','setSelectionRange','scrollTop','window.scrollTo'
-], 1800, 5)
+focus = '\n'.join([
+    '===== rc950PreserveActiveInput =====', function_block('function rc950PreserveActiveInput(root)', 9000),
+    '===== rc950RestoreActiveInput =====', function_block('function rc950RestoreActiveInput(snapshot,root)', 9000),
+])
 
-scheduler = collect([
-    'rc950LayoutFrame','rc950ScheduleLayout','schedulePatch','deferFullPatch',
-    'requestAnimationFrame','cancelAnimationFrame','renderAll','renderDashboard'
-], 1800, 6)
+scheduler = '\n'.join([
+    '===== rc950ScheduleLayout =====', function_block('function rc950ScheduleLayout(reason)', 10000),
+    '===== RAF contexts =====', contexts(r'(?:requestAnimationFrame|cancelAnimationFrame)', 900, 10),
+])
 
-# Target the actual main-view functions/assignments instead of early diagnostics helpers.
-view_out=[f'chars={len(html)}\n']
-patterns=[
-    ('view functions', r'function\s+([A-Za-z_$][\w$]*(?:View|view|Navigate|navigate|Back|back|Route|route)[\w$]*)\s*\('),
-    ('view assignments', r'(?:\bstate|\bs|\bruntime|\bst)\.view\s*=|\bview\s*:\s*[A-Za-z_$]|data-exporthub-view'),
-    ('history api', r'history\.(?:pushState|replaceState|back)|addEventListener\s*\(\s*[\'\"]popstate'),
-    ('back handlers', r'(?:backBtn|btnBack|navBack|goBack|Zurück|zurück|back-button|data-action=[\'\"]back)'),
-]
-for label,pat in patterns:
-    matches=list(re.finditer(pat,html,re.I))
-    view_out.append(f'\n===== {label} :: {len(matches)} =====\n')
-    for i,m in enumerate(matches[:35],1):
-        lo=max(0,m.start()-1300); hi=min(len(html),m.end()+2300)
-        name=m.group(1) if m.lastindex else ''
-        view_out.append(f'--- hit {i} @{m.start()} {name} ---\n{html[lo:hi].replace(chr(13), "")}\n')
-view=''.join(view_out)
+view = '\n'.join([
+    '===== canonical navigation controller =====',
+    '===== setViewState =====', function_block('function setViewState(view)', 9000),
+    '===== initHistory =====', function_block('function initHistory()', 9000),
+    '===== recordHistory =====', function_block('function recordHistory(view,source)', 12000),
+    '===== handlePopState =====', function_block('function handlePopState(event)', 12000),
+    '===== active route =====', function_block('function route(view,source)', 26000),
+    '===== history.back contexts =====', contexts(r'(?:window\.)?history\.back\s*\(', 1700, 12),
+    '===== explicit back controls =====', contexts(r'(?:backBtn|btnBack|navBack|goBack|data-action=[\"\']back|>\s*Zurück\s*<|>\s*Zurueck\s*<)', 1500, 18),
+])
 
-for path,text in [
-    ('.github/rc990_render_focus_audit.txt',focus),
-    ('.github/rc990_render_scheduler_audit.txt',scheduler),
-    ('.github/rc990_render_view_audit.txt',view),
+for path, text in [
+    ('.github/rc990_render_focus_audit.txt', focus),
+    ('.github/rc990_render_scheduler_audit.txt', scheduler),
+    ('.github/rc990_render_view_audit.txt', view),
 ]:
-    if len(text)>110000:
-        text=text[:110000]+'\n...[truncated]...\n'
-    Path(path).write_text(text,encoding='utf-8')
+    Path(path).write_text(text, encoding='utf-8')
     print(path, len(text))
