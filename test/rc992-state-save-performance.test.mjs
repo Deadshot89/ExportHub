@@ -6,9 +6,8 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {mergeState}=require('../api/shared/merge.js');
 
-test('RC992: kanonischer Build und Release-Center-Punkt sind sichtbar',()=>{
+test('RC992: Release-Center-Punkt bleibt als historischer Bestandsschutz sichtbar',()=>{
   const html=fs.readFileSync('TESTVERSION.html','utf8');
-  assert.match(html,/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC992',cache:'992',loginReturn:'\/TESTVERSION\.html\?v=992'\}\)/);
   assert.match(html,/RC992 reduziert beim Azure-State-Speichern unnötige Tiefkopien unveränderter State-Bereiche und Datensätze\./);
 });
 
