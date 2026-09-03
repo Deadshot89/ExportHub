@@ -24,3 +24,5 @@ jobs:
         run: node --test test/rc993-render-performance.test.mjs
       - name: Full test suite
         run: npm test
+
+# GREEN verification trigger after materialization.
