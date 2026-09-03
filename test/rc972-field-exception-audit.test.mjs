@@ -44,7 +44,7 @@ test('RC972: kompakte Sonderaktionen bleiben lesbar und bedienbar',()=>{
 
 test('RC972: Testportal und Smartphone dürfen Felder nicht wieder verkleinern',()=>{
   const css=globalCss();
-  assert.match(css,/html\[data-exporthub-testportal="1"\][\s\S]*?:is\(input,select,textarea\)[\s\S]*?min-height\s*:\s*42px/i,'Testportal muss den 42px-Feldstandard behalten');
+  assert.match(css,/html\[data-exporthub-testportal="1"\]\s+#content\s+:is\(input:not\(\[type="checkbox"\]\)[\s\S]*?select,textarea\)\{[^}]*min-height\s*:\s*42px/i,'Testportal muss den 42px-Feldstandard behalten');
   assert.match(css,/@media\s*\(max-width:\s*720px\)[\s\S]*?#globalSearch[\s\S]*?font-size\s*:\s*16px/i,'mobile globale Suche muss 16px Schrift erhalten');
   assert.match(css,/@media\s*\(max-width:\s*720px\)[\s\S]*?\.topbar[\s\S]*?:is\(select,button\)[\s\S]*?min-height\s*:\s*40px/i,'mobile Topbar-Controls dürfen nicht schrumpfen');
 });
