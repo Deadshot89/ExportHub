@@ -1,0 +1,112 @@
+name: RC990 Final Cleanup and Safety Gate
+
+on:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - '.github/workflows/rc990-final-cleanup-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup_and_verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc990-large-ux
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Remove one-shot RC990 diagnostics and apply helpers
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -f --ignore-unmatch \
+            .github/rc990_build_probe.py \
+            .github/rc990_design_apply.py \
+            .github/rc990_design_audit_materialize.py \
+            .github/rc990_design_audit_result.txt \
+            .github/rc990_design_isolation_debug.py \
+            .github/rc990_release_apply.py \
+            .github/rc990_release_apply_v2.py \
+            .github/rc990_release_audit.py \
+            .github/rc990_release_focus.py \
+            .github/rc990_release_state_audit.py \
+            .github/rc990_render_nav_audit.py \
+            .github/rc990_style_context_debug.py \
+            .github/workflows/rc990-build-probe.yml \
+            .github/workflows/rc990-design-apply.yml \
+            .github/workflows/rc990-design-audit-materialize.yml \
+            .github/workflows/rc990-design-isolation-debug.yml \
+            .github/workflows/rc990-release-apply.yml \
+            .github/workflows/rc990-release-audit.yml \
+            .github/workflows/rc990-release-focus.yml \
+            .github/workflows/rc990-release-state-audit.yml \
+            .github/workflows/rc990-render-baseline.yml \
+            .github/workflows/rc990-render-nav-audit.yml \
+            .github/workflows/rc990-render-nav-materialize.yml \
+            .github/workflows/rc990-style-context-debug.yml
+
+      - name: Full regression and whitespace gate after cleanup
+        run: |
+          npm test
+          git diff --check
+
+      - name: Protected-path safety review against RC980
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=641c8b771cc19881a82bdf2dd10a790b19fe8b6e
+          echo '=== changed files ==='
+          git diff --name-only "$BASE"...HEAD
+          echo '=== protected standalone runtime files changed? ==='
+          protected="$(git diff --name-only "$BASE"...HEAD -- \
+            api/customer-avis \
+            'api/pickup-*' \
+            'api/pod-*' \
+            api/loader-pins-admin \
+            api/shared/pickup-store.js \
+            customer-avis.html pickup.html pod-notfall.html \
+            staticwebapp.config.json index.html || true)"
+          if [ -n "$protected" ]; then
+            echo 'Unexpected protected runtime path changes:'
+            echo "$protected"
+            exit 1
+          fi
+          echo 'Protected standalone runtime paths unchanged.'
+
+      - name: Structural insertion safety review
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff 641c8b771cc19881a82bdf2dd10a790b19fe8b6e...HEAD -- '*.py' '*.js' '*.mjs' | grep -E '^\+.*rfind\(["'"']</(head|body)>' >/tmp/rc990-rfind.txt; then
+            cat /tmp/rc990-rfind.txt
+            echo 'Unsafe naive structural insertion detected.'
+            exit 1
+          fi
+          echo 'No naive rfind structural insertion in RC990 diff.'
+
+      - name: Protected business-keyword diff evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff -U0 641c8b771cc19881a82bdf2dd10a790b19fe8b6e...HEAD -- TESTVERSION.html \
+            | grep -Ei '^[+-].*(qrToken|pickupPin|gate41|UPS|CMR|ABD|customer.?avis|statuskette)' \
+            | head -n 200 || true
+
+      - name: Commit cleaned candidate and remove this one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/rc990-final-cleanup-safety.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "RC990: finalen Kandidaten bereinigen"
+          git push origin HEAD:rc990-large-ux
