@@ -23,27 +23,27 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path=Path('TESTVERSION.html')
           text=path.read_text(encoding='utf-8')
 
-          old_planner="function plannerQueueReconcileRC907(){ clearTimeout(rc907PlannerReconcileTimer); rc907PlannerReconcileTimer=setTimeout(function(){rc907PlannerReconcileTimer=0;rc907PlannerMoveQuietUntil=0;render()},520) }"
           new_planner="""/* exporthub-rc994-planner-local-reconcile */ function plannerUpdateOverviewRC994(){var r=document.getElementById('index218Planner'),old=r&&r.querySelector('.i218-overview');if(!old)return false;var ws=selectedWeek(),tasks=openTasksForWeek(ws),box=document.createElement('div');box.innerHTML=weekOverview(tasks,ws);var fresh=box.firstElementChild;if(!fresh)return false;old.replaceWith(fresh);return true} function plannerUpdateStatusRC994(){var r=document.getElementById('index218Planner'),bar=r&&r.querySelector('.i218-statusbar');if(!bar)return false;var ws=selectedWeek(),tasks=openTasksForWeek(ws),moved=tasks.filter(function(t){return t.manualMoved||t.holidayAutoMoved}).length,conflicts=tasks.filter(function(t){var d=effectiveDate(t);return d&&!isWorkday(d)&&groupName(t)!=='ABD erstellen'&&groupName(t)!=='Anmelden'}).length,strongs=bar.querySelectorAll('.i218-status-item strong');if(strongs[0])strongs[0].textContent=String(tasks.length);if(strongs[1])strongs[1].textContent=String(moved);if(strongs[2])strongs[2].textContent=String(conflicts);return true} function plannerReconcileAfterMoveRC994(){var ws=selectedWeek();plannerUpdateOverviewRC994();plannerUpdateStatusRC994();lastSourceSignature=plannerSourceSignatureRC923(ws);return true} function plannerQueueReconcileRC907(){clearTimeout(rc907PlannerReconcileTimer);rc907PlannerReconcileTimer=setTimeout(function(){rc907PlannerReconcileTimer=0;rc907PlannerMoveQuietUntil=0;plannerReconcileAfterMoveRC994()},32)}"""
-          if text.count(old_planner)!=1:
-            raise SystemExit(f'plannerQueueReconcileRC907 match count={text.count(old_planner)}')
-          text=text.replace(old_planner,new_planner,1)
+          planner_pattern=re.compile(r"function\s+plannerQueueReconcileRC907\s*\(\s*\)\s*\{\s*clearTimeout\s*\(\s*rc907PlannerReconcileTimer\s*\)\s*;\s*rc907PlannerReconcileTimer\s*=\s*setTimeout\s*\(\s*function\s*\(\s*\)\s*\{\s*rc907PlannerReconcileTimer\s*=\s*0\s*;\s*rc907PlannerMoveQuietUntil\s*=\s*0\s*;\s*render\s*\(\s*\)\s*\}\s*,\s*520\s*\)\s*\}")
+          text,n=planner_pattern.subn(new_planner,text,count=1)
+          if n!=1:
+            raise SystemExit(f'plannerQueueReconcileRC907 regex match count={n}')
 
-          old_zone="function rc946WarehousePointerZone(e,root){var el=document.elementFromPoint(Number(e.clientX),Number(e.clientY)),zone=el&&el.closest?el.closest('[data-warehouse-drop-code]'):null;return zone&&root.contains(zone)?zone:null} function rc946WarehouseClearPointer(root){var p=dragPointer;if(p&&p.card){p.card.classList.remove('rc513-dragging');p.card.style.cursor='';p.card.style.userSelect=''}if(root&&root.querySelectorAll)root.querySelectorAll('.rc513-drop-target').forEach(function(x){x.classList.remove('rc513-drop-target')});dragPointer=null;dragKey='';stopWarehouseDragScroll()}"
           new_zone="function rc946WarehousePointerZone(e,root){var el=document.elementFromPoint(Number(e.clientX),Number(e.clientY)),zone=el&&el.closest?el.closest('[data-warehouse-drop-code]'):null;return zone&&root.contains(zone)?zone:null} /* exporthub-rc994-warehouse-drop-target-cache */ var warehouseDropTargetRC994=null; function warehouseSetDropTargetRC994(root,zone){zone=zone&&root&&root.contains(zone)?zone:null;if(warehouseDropTargetRC994===zone)return false;if(warehouseDropTargetRC994&&warehouseDropTargetRC994.classList)warehouseDropTargetRC994.classList.remove('rc513-drop-target');warehouseDropTargetRC994=zone;if(warehouseDropTargetRC994&&warehouseDropTargetRC994.classList)warehouseDropTargetRC994.classList.add('rc513-drop-target');return true} function rc946WarehouseClearPointer(root){var p=dragPointer;if(p&&p.card){p.card.classList.remove('rc513-dragging');p.card.style.cursor='';p.card.style.userSelect=''}warehouseSetDropTargetRC994(root,null);dragPointer=null;dragKey='';stopWarehouseDragScroll()}"
-          if text.count(old_zone)!=1:
-            raise SystemExit(f'warehouse clear block match count={text.count(old_zone)}')
-          text=text.replace(old_zone,new_zone,1)
+          zone_pattern=re.compile(r"function\s+rc946WarehousePointerZone\s*\(\s*e\s*,\s*root\s*\)\s*\{.*?return\s+zone&&root\.contains\(zone\)\?zone:null\s*\}\s*function\s+rc946WarehouseClearPointer\s*\(\s*root\s*\)\s*\{.*?root\.querySelectorAll\('\.rc513-drop-target'\)\.forEach\(function\(x\)\{x\.classList\.remove\('rc513-drop-target'\)\}\);dragPointer=null;dragKey='';stopWarehouseDragScroll\(\)\}",re.S)
+          text,n=zone_pattern.subn(new_zone,text,count=1)
+          if n!=1:
+            raise SystemExit(f'warehouse clear block regex match count={n}')
 
-          old_move="var zone=rc946WarehousePointerZone(e,root);root.querySelectorAll('.rc513-drop-target').forEach(function(x){if(x!==zone)x.classList.remove('rc513-drop-target')});if(zone)zone.classList.add('rc513-drop-target')"
-          new_move="var zone=rc946WarehousePointerZone(e,root);warehouseSetDropTargetRC994(root,zone)"
-          if text.count(old_move)!=1:
-            raise SystemExit(f'warehouse pointermove match count={text.count(old_move)}')
-          text=text.replace(old_move,new_move,1)
+          move_pattern=re.compile(r"var\s+zone\s*=\s*rc946WarehousePointerZone\(e,root\)\s*;\s*root\.querySelectorAll\('\.rc513-drop-target'\)\.forEach\(function\(x\)\{if\(x!==zone\)x\.classList\.remove\('rc513-drop-target'\)\}\)\s*;\s*if\(zone\)zone\.classList\.add\('rc513-drop-target'\)")
+          text,n=move_pattern.subn("var zone=rc946WarehousePointerZone(e,root);warehouseSetDropTargetRC994(root,zone)",text,count=1)
+          if n!=1:
+            raise SystemExit(f'warehouse pointermove regex match count={n}')
 
           path.write_text(text,encoding='utf-8')
           print('RC994 Drag-Performance-Fix angewendet.')
