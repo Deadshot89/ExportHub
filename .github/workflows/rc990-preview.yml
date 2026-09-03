@@ -8,6 +8,7 @@ on:
     paths:
       - 'TESTVERSION.html'
       - '.github/rc990_preview_prepare.py'
+      - '.github/rc990_preview_state_guard.py'
       - '.github/workflows/rc990-preview.yml'
       - 'api/exporthub-auth/**'
       - 'api/exporthub-auth-probe/**'
@@ -52,7 +53,10 @@ jobs:
       - name: Prepare isolated preview payload
         run: python .github/rc990_preview_prepare.py
 
-      - name: Validate preview API syntax
+      - name: Force preview API into isolated state namespace
+        run: python .github/rc990_preview_state_guard.py
+
+      - name: Validate preview API syntax and isolation
         shell: bash
         run: |
           set -euo pipefail
@@ -62,6 +66,13 @@ jobs:
           node --check rc990-preview-dist/api/exporthub-state/index.js
           node --check rc990-preview-dist/api/exporthub-health/index.js
           node -e "JSON.parse(require('fs').readFileSync('rc990-preview-dist/staticwebapp.config.json','utf8'));JSON.parse(require('fs').readFileSync('rc990-preview-dist/preview-environment.json','utf8'));"
+          grep -Fq "const TEST_TEAM_BLOB = 'rc990-preview/'" rc990-preview-dist/api/exporthub-state/index.js
+          grep -Fq "const AUTH_BLOB = 'rc990-preview/auth-sessions.json'" rc990-preview-dist/api/exporthub-state/index.js
+          grep -Fq "const TEST_DIAGNOSTICS_BLOB = 'rc990-preview/diagnostics/team-diagnostics.json'" rc990-preview-dist/api/exporthub-state/index.js
+          grep -Fq "return 'testservice';" rc990-preview-dist/api/exporthub-state/index.js
+          grep -Fq "const TEAM_BLOB = 'rc990-preview/'" rc990-preview-dist/api/shared/auth-store.js
+          grep -Fq "const AUTH_BLOB = 'rc990-preview/auth-sessions.json'" rc990-preview-dist/api/shared/auth-store.js
+          echo 'RC990 preview storage isolation checks passed.'
 
       - name: Deploy RC990 named preview environment
         id: deploy
@@ -81,7 +92,6 @@ jobs:
         shell: bash
         env:
           ACTION_URL: ${{ steps.deploy.outputs.static_web_app_url }}
-          SWA_BASE_HOST_PREFIX: wonderful-forest-0f315e310
         run: |
           set -euo pipefail
           if [[ -z "${ACTION_URL:-}" ]]; then
@@ -90,38 +100,26 @@ jobs:
           fi
 
           ACTION_URL="${ACTION_URL%/}"
-          NAMED_URL="$(python3 -c '
-          from urllib.parse import urlparse
-          import sys
-          raw=sys.argv[1].strip(); base=sys.argv[2].strip()
-          u=urlparse(raw)
-          if not u.scheme or not u.hostname: raise SystemExit("invalid Azure URL: "+raw)
-          host=u.hostname
-          if "." not in host: raise SystemExit("unexpected Azure host: "+host)
-          suffix=host.split(".",1)[1]
-          print(f"{u.scheme}://{base}-rc990-preview.{suffix}")
-          ' "$ACTION_URL" "$SWA_BASE_HOST_PREFIX")"
+          echo "Azure RC990 URL: $ACTION_URL"
 
-          CANDIDATES=("$NAMED_URL")
-          if [[ "$ACTION_URL" != "$NAMED_URL" ]]; then CANDIDATES+=("$ACTION_URL"); fi
-
-          echo "Azure action URL: $ACTION_URL"
-          echo "Named RC990 URL:   $NAMED_URL"
+          if [[ "$ACTION_URL" != *"-rc990preview."* && "$ACTION_URL" != *"-rc990-preview."* ]]; then
+            echo "Refusing unexpected Azure environment URL: $ACTION_URL"
+            exit 1
+          fi
 
           verified=""
           for attempt in $(seq 1 24); do
             echo "Preview check $attempt/24"
-            for base in "${CANDIDATES[@]}"; do
-              env_code="$(curl -sS --connect-timeout 5 --max-time 20 -o /tmp/rc990-env.json -w '%{http_code}' "$base/preview-environment.json?sha=${GITHUB_SHA}-${attempt}" || true)"
-              page_code="$(curl -sS --connect-timeout 5 --max-time 25 -o /tmp/rc990-page.html -w '%{http_code}' "$base/?sha=${GITHUB_SHA}-${attempt}" || true)"
-              env_ok="$(grep -c 'rc990-preview' /tmp/rc990-env.json 2>/dev/null || true)"
-              design_ok="$(grep -c 'rc990-design-system' /tmp/rc990-page.html 2>/dev/null || true)"
-              echo "$base | env=$env_code marker=$env_ok | page=$page_code design=$design_ok"
-              if [[ "$env_code" == "200" && "$page_code" == "200" && "$env_ok" -gt 0 && "$design_ok" -gt 0 ]]; then
-                verified="$base"
-                break 2
-              fi
-            done
+            env_code="$(curl -sS --connect-timeout 5 --max-time 20 -o /tmp/rc990-env.json -w '%{http_code}' "$ACTION_URL/preview-environment.json?sha=${GITHUB_SHA}-${attempt}" || true)"
+            page_code="$(curl -sS --connect-timeout 5 --max-time 25 -o /tmp/rc990-page.html -w '%{http_code}' "$ACTION_URL/?sha=${GITHUB_SHA}-${attempt}" || true)"
+            health_code="$(curl -sS --connect-timeout 5 --max-time 25 -o /tmp/rc990-health.json -w '%{http_code}' "$ACTION_URL/api/exporthub-health?sha=${GITHUB_SHA}-${attempt}" || true)"
+            env_ok="$(grep -c 'rc990-preview' /tmp/rc990-env.json 2>/dev/null || true)"
+            design_ok="$(grep -c 'rc990-design-system' /tmp/rc990-page.html 2>/dev/null || true)"
+            echo "$ACTION_URL | env=$env_code marker=$env_ok | page=$page_code design=$design_ok | health=$health_code"
+            if [[ "$env_code" == "200" && "$page_code" == "200" && "$health_code" == "200" && "$env_ok" -gt 0 && "$design_ok" -gt 0 ]]; then
+              verified="$ACTION_URL"
+              break
+            fi
             sleep 5
           done
 
@@ -132,7 +130,7 @@ jobs:
 
           echo "url=$verified" >> "$GITHUB_OUTPUT"
           echo "RC990_PREVIEW_URL=$verified"
-          echo "RC990 preview is live and contains the verified design layer."
+          echo "RC990 preview is live with verified design and isolated API payload."
 
       - name: Publish preview link in workflow summary
         env:
@@ -144,8 +142,9 @@ jobs:
             echo "**URL:** $PREVIEW_URL"
             echo
             echo '- Branch: `rc990-large-ux`'
-            echo '- Azure environment: `rc990-preview`'
+            echo '- Azure environment: `rc990preview` (Azure-normalized name)'
             echo '- Team/session/diagnostics writes: `rc990-preview/*` only'
+            echo '- State API is hardwired to the isolated preview namespace'
             echo '- Production deployment: unchanged'
             echo '- TESTSERVICE deployment: unchanged'
           } >> "$GITHUB_STEP_SUMMARY"
