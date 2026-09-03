@@ -24,3 +24,5 @@ jobs:
         run: node --test test/rc994-drag-performance.test.mjs
       - name: Full test suite
         run: npm test
+
+# Final GREEN verification after RC994 build materialization.
