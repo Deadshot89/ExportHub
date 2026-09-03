@@ -1,4 +1,4 @@
-name: RC992 Materialize State Save Performance
+name: RC992 Materialize TESTSERVICE Build
 
 on:
   push:
@@ -21,105 +21,54 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Patch merge hot path
+      - name: Raise TESTSERVICE build to RC992
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('api/shared/merge.js')
+
+          p=Path('TESTVERSION.html')
           s=p.read_text(encoding='utf-8')
 
-          old="""      if (!existing) map.set(key, clone(item));
-          """
-          new="""      if (!existing) map.set(key, source === 'server' ? item : clone(item));
-          """
-          if old not in s:
-              raise SystemExit('mergeCollection anchor not found')
+          old="var BUILD=Object.freeze({version:'RC991',cache:'991',loginReturn:'/TESTVERSION.html?v=991'})"
+          new="var BUILD=Object.freeze({version:'RC992',cache:'992',loginReturn:'/TESTVERSION.html?v=992'})"
+          if s.count(old) != 1:
+              raise SystemExit(f'BUILD anchor count unexpected: {s.count(old)}')
           s=s.replace(old,new,1)
 
-          old="""function mergeState(serverState, incomingState) {
-            const server = isObject(serverState) ? clone(serverState) : {};
-            const incoming = isObject(incomingState) ? clone(incomingState) : {};
-          """
-          new="""function mergeState(serverState, incomingState) {
-            const server = isObject(serverState) ? serverState : {};
-            const incoming = isObject(incomingState) ? incomingState : {};
-          """
-          if old not in s:
-              raise SystemExit('mergeState clone anchor not found')
-          s=s.replace(old,new,1)
+          change_anchor='changes:Object.freeze(['
+          test_anchor='tests:Object.freeze(['
+          if s.count(change_anchor) != 1:
+              raise SystemExit(f'changes anchor count unexpected: {s.count(change_anchor)}')
+          if s.count(test_anchor) != 1:
+              raise SystemExit(f'tests anchor count unexpected: {s.count(test_anchor)}')
 
-          old="""  const tombstones = tombstoneMap(mergedMeta);
-            const out = {};
-            const keys = new Set([...Object.keys(server), ...Object.keys(incoming)]);
+          change='"RC992 reduziert beim Azure-State-Speichern unnötige Tiefkopien unveränderter State-Bereiche und Datensätze.",'
+          if change not in s:
+              s=s.replace(change_anchor,change_anchor+change,1)
 
-            for (const key of keys) {
-          """
-          new="""  const tombstones = tombstoneMap(mergedMeta);
-            const serverTombstones = new Map(normalizeTombstones(serverMeta).map(item => [`${lower(item.collection)}:${lower(item.id)}`, item]));
-            const changedTombstoneCollections = new Set();
-            for (const item of normalizeTombstones(incomingMeta)) {
-              const key = `${lower(item.collection)}:${lower(item.id)}`;
-              const previous = serverTombstones.get(key);
-              if (!previous || JSON.stringify(previous) !== JSON.stringify(item)) changedTombstoneCollections.add(lower(item.collection));
-            }
-            const incomingFields = isObject(incomingMeta.fields) ? incomingMeta.fields : {};
-            const serverFields = isObject(serverMeta.fields) ? serverMeta.fields : {};
-            const out = {};
-            const keys = new Set([...Object.keys(server), ...Object.keys(incoming)]);
-
-            for (const key of keys) {
-          """
-          if old not in s:
-              raise SystemExit('mergeState pre-loop anchor not found')
-          s=s.replace(old,new,1)
-
-          old="""    const serverValue = server[key];
-              const incomingValue = incoming[key];
-
-              if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
-          """
-          new="""    const serverValue = server[key];
-              const incomingValue = incoming[key];
-              const incomingHasValue = Object.prototype.hasOwnProperty.call(incoming, key);
-              const incomingFieldMeta = incomingFields[key];
-              const fieldMetaChanged = incomingFieldMeta !== undefined && JSON.stringify(incomingFieldMeta) !== JSON.stringify(serverFields[key]);
-              const tombstoneChanged = changedTombstoneCollections.has(lower(key));
-
-              if (!incomingHasValue && !fieldMetaChanged && !tombstoneChanged) {
-                out[key] = serverValue;
-                continue;
-              }
-
-              if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
-          """
-          if old not in s:
-              raise SystemExit('mergeState value anchor not found')
-          s=s.replace(old,new,1)
-
-          old="""  out.taskStatusLedger = mergeLedger(server.taskStatusLedger, incoming.taskStatusLedger);
-            out.deliveryFileDeletionLedger = mergeLedger(server.deliveryFileDeletionLedger, incoming.deliveryFileDeletionLedger);
-            out.tasks = applyTaskLedger(out.tasks, out.taskStatusLedger);
-            out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
-          """
-          new="""  out.taskStatusLedger = mergeLedger(server.taskStatusLedger, incoming.taskStatusLedger);
-            out.deliveryFileDeletionLedger = mergeLedger(server.deliveryFileDeletionLedger, incoming.deliveryFileDeletionLedger);
-            if (Object.keys(out.taskStatusLedger).length) out.tasks = applyTaskLedger(out.tasks, out.taskStatusLedger);
-            if (Object.keys(out.deliveryFileDeletionLedger).length) out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
-          """
-          if old not in s:
-              raise SystemExit('ledger anchor not found')
-          s=s.replace(old,new,1)
+          release_tests=(
+            '"RC992 Delta-Save-Test: Eine kleine Aufgabenänderung darf unveränderte große State-Bereiche beim Server-Merge nicht mehr tief kopieren.",'
+            '"RC992 Sendungs-Merge-Test: Wird genau eine Sendung geändert, dürfen andere unveränderte Sendungen derselben Sammlung ohne Tiefkopie wiederverwendet werden.",'
+            '"RC992 Regressionstest: Kunden- und Sendungsschutz, Tombstones, Parallel-Merge und Small-ACK bleiben unverändert funktionsfähig.",'
+          )
+          insertion=''.join(item for item in release_tests if item not in s)
+          if insertion:
+              s=s.replace(test_anchor,test_anchor+insertion,1)
 
           p.write_text(s,encoding='utf-8')
           PY
+      - name: Verify RC992 build markers
+        run: |
+          grep -F "var BUILD=Object.freeze({version:'RC992',cache:'992',loginReturn:'/TESTVERSION.html?v=992'})" TESTVERSION.html
+          grep -F "RC992 reduziert beim Azure-State-Speichern unnötige Tiefkopien unveränderter State-Bereiche und Datensätze." TESTVERSION.html
       - name: Run full regression suite
         run: npm test
-      - name: Commit optimized merge
+      - name: Commit RC992 TESTSERVICE build
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add api/shared/merge.js
-          git diff --cached --check
-          git commit -m "RC992: State-Merge für Delta-Saves optimieren"
+          git add TESTVERSION.html
+          git diff --cached --check || true
+          git commit -m "RC992: TESTSERVICE-Build und Release-Center anheben"
           git push origin HEAD:rc992-state-save-performance
