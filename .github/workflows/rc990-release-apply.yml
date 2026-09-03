@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/rc990_release_apply.py'
       - '.github/rc990_release_apply_v2.py'
+      - 'test/rc990-release-center.test.mjs'
       - '.github/workflows/rc990-release-apply.yml'
   workflow_dispatch:
 
