@@ -1,8 +1,8 @@
-ExportHUB RC882
-Erstellt: 30.8.2026, 15:10:34
+ExportHUB RC990
+Erstellt: 3.9.2026, 21:49:47
 Quelle: geprüfter TESTSERVICE Produktions-Snapshot
-Git SHA: e620356f0bf3728da8cf49244386e7e3311300fe
-Snapshot erstellt: 2026-08-30T13:05:14.871Z
+Git SHA: cd5e1ceada201966dad68dbfb3492a434c351e8b
+Snapshot erstellt: 2026-09-03T19:33:22.113Z
 
 Dateien:
 - .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
@@ -46,6 +46,7 @@ Dateien:
 - api/pod-backup/index.js
 - api/production-version-check/function.json
 - api/production-version-check/index.js
+- api/rc963-deploy-marker.json
 - api/reference-files/function.json
 - api/reference-files/index.js
 - api/shared/auth-store.js
@@ -55,8 +56,10 @@ Dateien:
 - api/shared/merge.js
 - api/shared/pickup-store.js
 - api/shared/user-policy.js
+- api/testservice-deploy-marker.json
 - assets/css/app.css
 - assets/js/app.js
+- assets/rc971-global-form-field-standard.css
 - customer-avis.html
 - index.html
 - infra/production-loader.html
