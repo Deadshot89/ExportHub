@@ -191,12 +191,49 @@ window.rc770RecoverCustomers=async function(){var box=document.getElementById('r
 function renderPrivacy(){setViewState('privacy');var root=document.getElementById('content');if(!root)return false;root.className='content';root.innerHTML='<div class="page-head"><div><span class="pill green">DATENSCHUTZ AKTIV</span><h2>Datenschutz &amp; personenbezogene Daten</h2><p>Übersicht der in ExportHUB aktiven Schutzmaßnahmen und verbindlichen Regeln für Kontaktdaten.</p></div><span class="pill blue">'+version()+'</span></div><div class="metrics"><div class="metric kpi-green"><span>Protokolle</span><strong>maskiert</strong><small>E-Mail &amp; Telefon</small></div><div class="metric kpi-green"><span>Logout</span><strong>bereinigt</strong><small>DOM &amp; Fast-View</small></div><div class="metric kpi-green"><span>Browser</span><strong>geschützt</strong><small>no-referrer / noindex</small></div><div class="metric kpi-green"><span>Kontaktdaten</span><strong>minimiert</strong><small>nur geschäftlich nötig</small></div></div><div class="grid2"><section class="card"><h3>Welche personenbezogenen Daten können vorkommen?</h3><p>Name und Ansprechpartner, geschäftliche E-Mail-Adresse, geschäftliche Telefonnummer sowie kontaktbezogene Versand- und Empfängerangaben.</p><div class="notice"><b>Datenminimierung:</b> Nur Daten eintragen, die für Versand, Avisierung, Kundenkommunikation oder den dokumentierten Geschäftsprozess tatsächlich benötigt werden. Keine privaten Zusatzinformationen erfassen.</div></section><section class="card"><h3>Technische Schutzmaßnahmen</h3><ul class="rc524-release-list"><li>Zugriff auf Kunden- und Sendungsdaten erfolgt über Benutzerrechte.</li><li>E-Mail-Adressen und Telefonnummern werden in technischen Audit-/Fehlerprotokollen maskiert.</li><li>Beim Logout beziehungsweise Sitzungsende werden sichtbarer Inhalt und Fast-View-Zwischenspeicher geleert.</li><li>Kontaktfelder im Kundenordner sind nicht für Browser-Autofill vorgesehen.</li><li>ExportHUB verwendet no-referrer sowie noindex/nofollow/noarchive.</li><li>Kunden-Avis gibt ausschließlich die autorisierte einzelne Sendung frei.</li></ul></section></div><section class="card"><h3>Verantwortung im Arbeitsalltag</h3><p>Kontaktdaten dürfen ausschließlich für den vorgesehenen geschäftlichen Zweck verwendet werden. Falsche oder nicht mehr benötigte Kontaktdaten müssen im Kundenordner korrigiert beziehungsweise nach der betrieblich festgelegten Aufbewahrungsregel entfernt werden.</p><p class="muted">Rechtliche Aufbewahrungsfristen und die konkrete datenschutzrechtliche Verantwortlichkeit werden durch die betrieblichen Vorgaben beziehungsweise den Datenschutzverantwortlichen festgelegt.</p></section>';root.setAttribute('data-exporthub-rendered-view','privacy');updateActive();return false}
 function closeMobileMenu(){try{if(window.ExportHUBMobileMenu&&typeof window.ExportHUBMobileMenu.close==='function')return window.ExportHUBMobileMenu.close()}catch(_){}return false}
 var historyReady=false,historyApplying=false,historySeq=0;
+var rc990ViewHistory=[],rc990HistoryApplying=false,rc990ViewHistoryLimit=24;
+function rc990RememberView(view,source){
+ if(rc990HistoryApplying)return false;
+ view=canonical(view);
+ if(!view)return false;
+ if(source==='history'||source==='popstate'){
+  var existing=rc990ViewHistory.lastIndexOf(view);
+  if(existing>=0){rc990ViewHistory.splice(existing+1);return true}
+ }
+ var last=rc990ViewHistory[rc990ViewHistory.length-1];
+ if(last===view)return false;
+ rc990ViewHistory.push(view);
+ if(rc990ViewHistory.length>rc990ViewHistoryLimit)rc990ViewHistory.splice(0,rc990ViewHistory.length-rc990ViewHistoryLimit);
+ return true
+}
+function rc990BackView(fallbackView){
+ var now=current(),snapshot=rc990ViewHistory.slice();
+ if(rc990ViewHistory[rc990ViewHistory.length-1]===now)rc990ViewHistory.pop();
+ var target=rc990ViewHistory[rc990ViewHistory.length-1]||'';
+ if(target&&target!==now&&canRoute(target)){
+  rc990HistoryApplying=true;historyApplying=true;
+  try{route(target,'rc990-back')}finally{historyApplying=false;rc990HistoryApplying=false}
+  if(current()===target)return true;
+  rc990ViewHistory=snapshot.slice()
+ }
+ if(fallbackView){
+  var fallback=canonical(fallbackView);
+  if(fallback&&fallback!==now&&canRoute(fallback)){
+   rc990HistoryApplying=true;historyApplying=true;
+   try{route(fallback,'rc990-back')}finally{historyApplying=false;rc990HistoryApplying=false}
+   if(current()===fallback){rc990RememberView(fallback,'fallback');return true}
+  }
+ }
+ try{if(window.history&&typeof window.history.back==='function'){window.history.back();return true}}catch(_){}
+ return false
+}
+window.rc990BackView=rc990BackView;
 function historyEnabled(){return !window.__EXPORTHUB_PICKUP_MODE__&&!(document.documentElement&&document.documentElement.getAttribute('data-index209-pickup')==='1')}
 function historyView(){var hs=window.history&&window.history.state;if(hs&&hs.exporthub===true&&hs.view)return canonical(hs.view);var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime;return canonical(rt&&rt.restoredView||current())}
 function historyPayload(view,guard){return{exporthub:true,view:canonical(view),guard:guard===true,seq:++historySeq,version:version()}}
 function initHistory(){if(!historyEnabled()||historyReady)return false;var v=current(),hs=window.history&&window.history.state;try{if(!hs||hs.exporthub!==true){window.history.replaceState(historyPayload(v,true),'',window.location.href);window.history.pushState(historyPayload(v,false),'',window.location.href)}else{window.history.replaceState(Object.assign({},hs,{exporthub:true,view:canonical(hs.view||v),version:version()}),'',window.location.href)}historyReady=true;return true}catch(_){return false}}
 function rememberView(view){try{var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime;if(rt)rt.restoredView=canonical(view);if(typeof window.__EXPORTHUB_WRITE_TAB_SESSION__==='function')window.__EXPORTHUB_WRITE_TAB_SESSION__()}catch(_){}}
-function recordHistory(view,source){view=canonical(view);rememberView(view);if(!historyEnabled()||historyApplying||source==='history'||source==='popstate'||source==='boot'||source==='ready')return false;initHistory();var hs=window.history&&window.history.state;if(hs&&hs.exporthub===true&&canonical(hs.view)===view)return false;try{var now=Date.now(),rapid=lastHistoryWriteAt&&now-lastHistoryWriteAt<260;lastHistoryWriteAt=now;if(rapid)window.history.replaceState(historyPayload(view,false),'',window.location.href);else window.history.pushState(historyPayload(view,false),'',window.location.href);return true}catch(_){return false}}
+function recordHistory(view,source){view=canonical(view);rememberView(view);rc990RememberView(view,source);if(!historyEnabled()||historyApplying||source==='history'||source==='popstate'||source==='boot'||source==='ready'||source==='rc990-back')return false;initHistory();var hs=window.history&&window.history.state;if(hs&&hs.exporthub===true&&canonical(hs.view)===view)return false;try{var now=Date.now(),rapid=lastHistoryWriteAt&&now-lastHistoryWriteAt<260;lastHistoryWriteAt=now;if(rapid)window.history.replaceState(historyPayload(view,false),'',window.location.href);else window.history.pushState(historyPayload(view,false),'',window.location.href);return true}catch(_){return false}}
 function restoreHistoryView(){if(!historyEnabled())return false;initHistory();var v=historyView();rememberView(v);if(v!==current())return route(v,'history');return false}
 function handlePopState(event){if(!historyEnabled())return;var hs=event&&event.state;if(!hs||hs.exporthub!==true){try{window.history.pushState(historyPayload(current(),false),'',window.location.href)}catch(_){}return}historyApplying=true;try{var v=canonical(hs.view||'dashboard');route(v,'history');closeMobileMenu();try{window.scrollTo(0,0)}catch(_){}if(hs.guard===true)window.history.pushState(historyPayload(v,false),'',window.location.href)}finally{historyApplying=false}}
 function ensureRC626Controller(){
@@ -205,7 +242,7 @@ function ensureRC626Controller(){
  var code=String(holder.textContent||'');if(!code.trim())return false;
  try{var sc=document.createElement('script');sc.setAttribute('data-exporthub-lazy-runtime','rc626');sc.textContent=code+'\n//# sourceURL=exporthub-rc626-lazy-runtime.js';(document.head||document.documentElement).appendChild(sc);sc.remove();holder.setAttribute('data-exporthub-lazy-loaded','1');return !!(window.ExportHUBRC626&&typeof window.ExportHUBRC626.openShipping==='function')}catch(error){console.error('RC862 Funktionsmodul konnte nicht geladen werden',error);return false}
 }
-function route(view,source){view=canonical(view);window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;if(!canRoute(view)){if(source!=='history'&&source!=='popstate'&&source!=='boot'&&source!=='ready')alert('Dieser Bereich ist für deinen Benutzer nicht freigegeben.');return false}var now=Date.now();if(routeBusy||(view===lastRoute&&now-lastRouteAt<120)){duplicateRoutesBlocked++;return false}var previous=current();var cachedTarget=fastViewCache[view];if(cachedTarget&&canonical(cachedTarget.rendered||'')!==view)dropFastView(view);if(view!=='shipmentview'&&typeof window.__EXPORTHUB_RC843_RELEASE_SHIPMENT_VIEW__==='function'){try{window.__EXPORTHUB_RC843_RELEASE_SHIPMENT_VIEW__('route-'+view)}catch(_){}}routeBusy=true;lastRoute=view;lastRouteAt=now;routeCount++;try{
+function route(view,source){view=canonical(view);window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;if(!canRoute(view)){if(source!=='history'&&source!=='popstate'&&source!=='boot'&&source!=='ready')alert('Dieser Bereich ist für deinen Benutzer nicht freigegeben.');return false}var now=Date.now();if(routeBusy||(view===lastRoute&&now-lastRouteAt<120)){duplicateRoutesBlocked++;return false}var previous=current();if(previous!==view)rc990RememberView(previous,source==='history'||source==='popstate'?'history':'seed');var cachedTarget=fastViewCache[view];if(cachedTarget&&canonical(cachedTarget.rendered||'')!==view)dropFastView(view);if(view!=='shipmentview'&&typeof window.__EXPORTHUB_RC843_RELEASE_SHIPMENT_VIEW__==='function'){try{window.__EXPORTHUB_RC843_RELEASE_SHIPMENT_VIEW__('route-'+view)}catch(_){}}routeBusy=true;lastRoute=view;lastRouteAt=now;routeCount++;try{
  if(previous!==view)stashFastView(previous);
  if(previous!==view&&view!=='cmr'&&restoreFastView(view,previous)){return false}
  var core=window.ExportHUBRC524;
@@ -311,7 +348,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC980',cache:'980',loginReturn:'/TESTVERSION.html?v=968'});
+var BUILD=Object.freeze({version:'RC990',cache:'990',loginReturn:'/TESTVERSION.html?v=990'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -10132,17 +10169,374 @@ input,select,textarea{min-height:45px;padding:10px 12px!important;border:1px sol
 }
 </style>
 <!-- INDEX 294 RC294 LOGIN BADGE DISPLAY END -->
-<style id="exporthub-rc364-mobile-overflow-fix">
-@media(max-width:700px){
- body[data-exporthub-view="notifications"] .main{width:100vw!important;max-width:100vw!important;min-width:0!important;padding-left:7px!important;padding-right:7px!important;overflow-x:hidden!important}
- #content[data-view="notifications"],body[data-exporthub-view="notifications"] #content{display:block!important;width:calc(100vw - 14px)!important;max-width:calc(100vw - 14px)!important;min-width:0!important;margin:0!important;padding-left:12px!important;padding-right:12px!important;overflow-x:hidden!important;box-sizing:border-box!important}
- #content[data-view="notifications"]>* ,body[data-exporthub-view="notifications"] #content>*{display:block;position:relative;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important}
- #content[data-view="notifications"] .index236-statusbar,#content[data-view="notifications"] .index236-metrics,#content[data-view="notifications"] .index236-columns,#content[data-view="notifications"] .grid2,#content[data-view="notifications"] .grid3{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important}
- #content[data-view="notifications"] .card,#content[data-view="notifications"] .metric,#content[data-view="notifications"] .index236-statusbar>div{width:100%!important;max-width:100%!important;min-width:0!important}
- #content[data-view="notifications"] .page-head,body[data-exporthub-view="notifications"] #content .page-head{display:block!important}
- #content[data-view="notifications"] .page-head .actions,body[data-exporthub-view="notifications"] #content .page-head .actions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:12px 0 0!important}
- #content[data-view="notifications"] .page-head .actions button,body[data-exporthub-view="notifications"] #content .page-head .actions button{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important}
- #content[data-view="notifications"] *{min-width:0;max-width:100%;box-sizing:border-box;overflow-wrap:anywhere}
+<style id="rc990-design-system">
+/*
+ * RC990 canonical screen design system.
+ * Scope: Dashboard, Aufgaben/Planer, Lager, Benachrichtigungen and Warncenter.
+ * Document/print/CMR and Colli geometry remain outside this screen layer.
+ */
+@media screen {
+  :root {
+    --rc990-card-gap: 12px;
+    --rc990-card-pad: 14px;
+    --rc990-action-h: 40px;
+    --rc990-radius: 14px;
+    --rc990-title-size: 18px;
+    --rc990-muted-size: 12px;
+    --rc990-focus: #2563eb;
+    --rc990-action-gap: 8px;
+    --rc990-info: #2563eb;
+    --rc990-warning: #d97706;
+    --rc990-card-border: #c8ddf0;
+    --rc990-card-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+    --rc990-task-accent: #f97316;
+    --rc990-surface: #ffffff;
+    --rc990-surface-soft: #f7fbff;
+  }
+
+  /* Cards follow their content instead of stretching into artificial holes. */
+  #content > :is(section, .card, article, .rc524-page, .rc504-warehouse, #index218Planner):not(#loadListDoc):not(.rc390-paper),
+  body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, #rc885Workspace .rc885-panel),
+  body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse, .rc504-warehouse-kpi, .rc504-dashboard-item),
+  body[data-exporthub-view="tasks"] #content :is(.card, .task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),
+  body[data-exporthub-view="planning"] #content :is(#index218Planner, .rc205-planner-task),
+  #index236NotificationCenter :is(.card, .metric, .index236-item),
+  #rc885WarningDrawer :is(.rc885-drawer, .rc885-panel, .rc889-overview) {
+    align-self: start !important;
+    height: auto !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* One compact density for Dashboard, Lager, Task/Aufgabe and Planner surfaces. */
+  body[data-exporthub-view="dashboard"] #content :is(.rc205-dashboard-grid, .grid2, .grid3, .grid4, .metrics, .quick-grid),
+  body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-summary, .rc504-dashboard-list, .grid2, .grid3, .grid4),
+  body[data-exporthub-view="tasks"] #content :is(.grid2, .grid3, .grid4, .task-groups, .rc628-task-groups, .rc229-task-grid),
+  body[data-exporthub-view="planning"] #content :is(.grid2, .grid3, .grid4, .rc205-dashboard-grid),
+  #index236NotificationCenter :is(.index236-statusbar, .index236-metrics, .index236-columns, .grid2, .grid3),
+  #rc885WarningDrawer :is(.rc885-grid, .rc889-grid) {
+    gap: var(--rc990-card-gap) !important;
+    align-items: start !important;
+  }
+
+  body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, #rc885Workspace .rc885-panel),
+  body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-kpi, .rc504-dashboard-item),
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),
+  body[data-exporthub-view="planning"] #content .rc205-planner-task,
+  #index236NotificationCenter :is(.index236-item, .metric, .card, .index236-statusbar > div),
+  #rc885WarningDrawer :is(.rc885-panel, .rc889-overview) {
+    padding: var(--rc990-card-pad) !important;
+    border-radius: var(--rc990-radius) !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Stronger screen-card identity makes RC990 visible without touching documents. */
+  body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, #rc885Workspace .rc885-panel),
+  body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-kpi, .rc504-dashboard-item) {
+    background: var(--rc990-surface) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    box-shadow: var(--rc990-card-shadow) !important;
+    border-radius: var(--rc990-radius) !important;
+  }
+
+  /* RC990 task tile grid: current RC628 task lists and planner lists are compact responsive grids. */
+  #content .rc229-task-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--rc990-card-gap) !important;
+    align-items: start !important;
+  }
+  body[data-exporthub-view="tasks"] #content .rc229-task-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--rc990-card-gap) !important;
+    align-items: start !important;
+  }
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
+  body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--rc990-card-gap) !important;
+    align-items: start !important;
+  }
+
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)) > :not(.task):not(.rc205-planner-task),
+  body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)) > :not(.task):not(.rc205-planner-task),
+  body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) > :not(.rc205-planner-task) {
+    grid-column: 1 / -1;
+  }
+
+  /* Current tasks section shells: visible RC990 hierarchy without changing task logic. */
+  #content .rc229-day-section {
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f8fd 100%) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    border-radius: calc(var(--rc990-radius) + 2px) !important;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, .05) !important;
+    padding: 12px !important;
+  }
+  #content .rc229-task-group {
+    background: rgba(255,255,255,.72) !important;
+    border: 1px solid #d7e7f4 !important;
+    border-radius: var(--rc990-radius) !important;
+    overflow: hidden !important;
+  }
+  #content .rc229-task-group > :first-child {
+    background: #eef7fd !important;
+  }
+
+  /* RC990 task card identity: compact, clearly bounded and fast to scan. */
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),
+  body[data-exporthub-view="planning"] #content .rc205-planner-task {
+    position: relative;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    background: linear-gradient(180deg, var(--rc990-surface) 0%, var(--rc990-surface-soft) 100%) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    border-left: 5px solid var(--rc990-task-accent) !important;
+    box-shadow: var(--rc990-card-shadow) !important;
+    padding: 12px 14px !important;
+    border-radius: var(--rc990-radius) !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
+  }
+
+  #content .rc229-task-card.rc628-unified-task {
+    position: relative;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    background: linear-gradient(180deg, var(--rc990-surface) 0%, var(--rc990-surface-soft) 100%) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    border-left: 5px solid var(--rc990-task-accent) !important;
+    box-shadow: var(--rc990-card-shadow) !important;
+    padding: 12px 14px !important;
+    border-radius: var(--rc990-radius) !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
+  }
+
+  /* RC628 cards previously reserved too much vertical space; RC990 keeps all information but removes empty padding. */
+  #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer),
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer) {
+    min-height: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+    line-height: 1.25 !important;
+  }
+  #content .rc229-task-card.rc628-unified-task .rc628-task-customer,
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-customer {
+    font-size: 15px !important;
+  }
+  #content .rc229-task-card.rc628-unified-task .rc628-task-status,
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-status {
+    min-height: 0 !important;
+    gap: 5px !important;
+  }
+  #content .rc229-task-card.rc628-unified-task .rc628-task-status :is(.pill, span),
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-status :is(.pill, span) {
+    padding: 3px 8px !important;
+    font-size: 10px !important;
+  }
+
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task) :is(.i218-task-name, .rc896-task-name),
+  body[data-exporthub-view="planning"] #content .rc205-planner-task :is(.i218-task-name, .rc896-task-name) {
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task) :is(.rc896-task-meta, .i218-task-links),
+  body[data-exporthub-view="planning"] #content .rc205-planner-task :is(.rc896-task-meta, .i218-task-links) {
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+  }
+
+  :is(
+    body[data-exporthub-view="dashboard"] #content,
+    body[data-exporthub-view="warehouse"] #content,
+    body[data-exporthub-view="tasks"] #content,
+    body[data-exporthub-view="planning"] #content,
+    #index236NotificationCenter,
+    #rc885WarningDrawer
+  ) :is(h2, h3, .title, .page-title, .rc885-drawer-title) {
+    font-size: var(--rc990-title-size);
+  }
+
+  :is(
+    body[data-exporthub-view="dashboard"] #content,
+    body[data-exporthub-view="warehouse"] #content,
+    body[data-exporthub-view="tasks"] #content,
+    body[data-exporthub-view="planning"] #content,
+    #index236NotificationCenter,
+    #rc885WarningDrawer
+  ) :is(.muted, .sub, .rc885-sub) {
+    font-size: var(--rc990-muted-size);
+  }
+
+  /* Primary / secondary / danger keep existing theme colors but share reliable geometry. */
+  :is(
+    body[data-exporthub-view="dashboard"] #content,
+    body[data-exporthub-view="warehouse"] #content,
+    body[data-exporthub-view="tasks"] #content,
+    body[data-exporthub-view="planning"] #content,
+    #index236NotificationCenter,
+    #rc885WarningDrawer
+  ) :is(button, .btn, [role="button"], [data-action-role="primary"], [data-action-role="secondary"], [data-action-role="danger"]):not(#rc363BlockColli *) {
+    min-height: var(--rc990-action-h);
+    border-radius: calc(var(--rc990-radius) - 4px);
+    box-sizing: border-box;
+  }
+
+  :is(
+    body[data-exporthub-view="dashboard"] #content,
+    body[data-exporthub-view="warehouse"] #content,
+    body[data-exporthub-view="tasks"] #content,
+    body[data-exporthub-view="planning"] #content,
+    #index236NotificationCenter,
+    #rc885WarningDrawer
+  ) :is(.ghost, .soft, [data-action-role="secondary"], .danger, [data-action-role="danger"]) {
+    min-height: var(--rc990-action-h);
+  }
+
+  :is(
+    body[data-exporthub-view="dashboard"] #content,
+    body[data-exporthub-view="warehouse"] #content,
+    body[data-exporthub-view="tasks"] #content,
+    body[data-exporthub-view="planning"] #content,
+    #index236NotificationCenter,
+    #rc885WarningDrawer
+  ) :is(.actions, .rc504-warehouse-actions, .i218-task-actions, .rc896-task-planning, .page-head) {
+    gap: var(--rc990-action-gap) !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Visible keyboard focus, scoped away from the specialized Colli controls. */
+  :is(
+    body[data-exporthub-view="dashboard"] #content,
+    body[data-exporthub-view="warehouse"] #content,
+    body[data-exporthub-view="tasks"] #content,
+    body[data-exporthub-view="planning"] #content,
+    #index236NotificationCenter,
+    #rc885WarningDrawer
+  ) :is(button, a[href], [role="button"], input, select, textarea):not(#rc363BlockColli *):focus-visible {
+    outline: 2px solid var(--rc990-focus) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* RC946 pointer behavior remains authoritative: no new drag/card animation. */
+  body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, [draggable="true"]),
+  body[data-exporthub-view="warehouse"] #content :is(.rc504-dashboard-item, .rc504-warehouse [draggable="true"]),
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task, [draggable="true"]),
+  body[data-exporthub-view="planning"] #content :is(.rc205-planner-task, .i218-task-actions, .rc896-task-planning, [draggable="true"]) {
+    transition: none !important;
+  }
+
+  /* Benachrichtigungen / notification center = informational blue. */
+  #index236NotificationCenter {
+    --rc990-center-accent: var(--rc990-info);
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  #index236NotificationCenter :is(.index236-kicker, .index236-title, [data-semantic="info"]) {
+    color: #2563eb !important;
+  }
+  body[data-exporthub-view="notifications"] :is(.main, #content, #index236NotificationCenter),
+  body[data-exporthub-view="notifications"] #content > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Warncenter = amber and therefore visibly different from information events. */
+  #rc885WarningDrawer { --rc990-center-accent: var(--rc990-warning); }
+  #rc885WarningDrawer :is(.rc885-drawer-title, .rc889-title, [data-semantic="warning"]),
+  #rc885WarningButton { color: #d97706 !important; }
+
+  @media (max-width: 1000px) {
+    /* RC990 task tile grid: two columns on medium screens. */
+    #content .rc229-task-grid,
+    body[data-exporthub-view="tasks"] #content .rc229-task-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @media (max-width: 900px) {
+    #index236NotificationCenter :is(.index236-statusbar, .index236-metrics, .index236-columns),
+    body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-summary, .rc504-dashboard-list) {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    :is(
+      body[data-exporthub-view="dashboard"] #content,
+      body[data-exporthub-view="warehouse"] #content,
+      body[data-exporthub-view="tasks"] #content,
+      body[data-exporthub-view="planning"] #content,
+      #index236NotificationCenter
+    ) :is(.actions, .rc504-warehouse-actions, .i218-task-actions, .rc896-task-planning, .page-head) {
+      flex-wrap: wrap !important;
+    }
+  }
+
+  @media (max-width: 700px) {
+    /* RC990 task tile grid: one column on phones. */
+    #content .rc229-task-grid,
+    body[data-exporthub-view="tasks"] #content .rc229-task-grid {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
+    body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    #index236NotificationCenter :is(.index236-statusbar, .index236-metrics, .index236-columns, .grid2, .grid3),
+    body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-summary, .rc504-dashboard-list) {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+    :is(
+      body[data-exporthub-view="dashboard"] #content,
+      body[data-exporthub-view="warehouse"] #content,
+      body[data-exporthub-view="tasks"] #content,
+      body[data-exporthub-view="planning"] #content,
+      #index236NotificationCenter,
+      #rc885WarningDrawer
+    ) :is(.actions, .rc504-warehouse-actions, .i218-task-actions, .rc896-task-planning) > :is(button, .btn, [role="button"]) {
+      flex: 1 1 12rem;
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 420px) {
+    :root {
+      --rc990-card-gap: 10px;
+      --rc990-card-pad: 12px;
+    }
+    :is(
+      body[data-exporthub-view="dashboard"] #content,
+      body[data-exporthub-view="warehouse"] #content,
+      body[data-exporthub-view="tasks"] #content,
+      body[data-exporthub-view="planning"] #content,
+      #index236NotificationCenter,
+      #rc885WarningDrawer
+    ) :is(.actions, .rc504-warehouse-actions, .i218-task-actions, .rc896-task-planning) > :is(button, .btn, [role="button"]) {
+      flex-basis: 100%;
+    }
+  }
+}
+
+/* RC990 is screen-only; documents keep their existing print rules. */
+@media print {
+  :root { --rc990-screen-only: 0; }
 }
 </style>
 <style id="rc459-pod-overview-cleanup-style">
@@ -13260,7 +13654,7 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function tested(){var m=meta(false);return q(m.testedVersion)===VERSION&&!!m.testedAt}
  function save(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Release-Center gespeichert');else if(typeof window.save==='function')window.save()}catch(_){}}
  function status(text,kind){var e=document.getElementById('rc562ReleaseStatus');if(!e)return;e.textContent=text;e.className='rc562-release-status'+(kind?' '+kind:'')}
- function rerender(){var root=document.getElementById('content');if(!root)return;var scroller=document.scrollingElement||document.documentElement,pageX=window.scrollX||scroller&&scroller.scrollLeft||0,pageY=window.scrollY||scroller&&scroller.scrollTop||0,rootTop=root.scrollTop||0,rootLeft=root.scrollLeft||0;function restoreScroll(){try{if(scroller){scroller.scrollLeft=pageX;scroller.scrollTop=pageY}window.scrollTo(pageX,pageY);root.scrollLeft=rootLeft;root.scrollTop=rootTop}catch(_){}}root.innerHTML=renderHtml();restoreScroll();var raf=window.requestAnimationFrame||function(fn){return setTimeout(fn,16)};raf(function(){restoreScroll();Promise.resolve(refresh()).catch(function(error){console.error('Release-Center aktualisieren',error)}).finally(function(){restoreScroll();raf(restoreScroll);setTimeout(restoreScroll,80)})});return true}
+ function rerender(pos){var root=document.getElementById('content');if(!root)return;pos=pos||rc990PendingReleasePosition||rc990CaptureReleasePosition('');root.innerHTML=renderHtml();rc990ArmReleasePosition(pos);var raf=window.requestAnimationFrame||function(fn){return setTimeout(fn,16)};raf(function(){Promise.resolve(refresh()).catch(function(error){console.error('Release-Center aktualisieren',error)}).finally(function(){rc990ArmReleasePosition(pos)})});return true}
  function parseVersion(html){var h=String(html||''),m=h.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:\s*['"](RC\d+)['"]/i)||h.match(/version:\s*['"](RC\d+)['"]/i);return q(m&&m[1])||'unbekannt'}
  function versionMismatchError(sourceVersion){var e=new Error('Freigabe abgebrochen: '+TEST_URL+' liefert '+sourceVersion+' statt '+VERSION+'.');e.code='TEST_VERSION_MISMATCH';e.sourceVersion=q(sourceVersion);return e}
  function reloadDetectedTestVersion(sourceVersion){var v=q(sourceVersion);if(!/^RC\d+$/i.test(v))return false;var n=(v.match(/\d+/)||[])[0]||CACHE;location.href=TEST_URL+'?v='+encodeURIComponent(n)+'&reload='+Date.now();return false}
@@ -13271,12 +13665,13 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function releaseItemVersion(item){var m=q(item).match(/^RC\s*(\d+)\b/i);return m?Number(m[1]):NaN}
  function releaseTests(){var release=window.ExportHUBRelease||{};return releaseItemsForCurrentVersion(release.tests)}
  function unreleasedChanges(){var release=window.ExportHUBRelease||{},items=Array.isArray(release.changes)?release.changes:[],prod=rcNumber(productionVersion),current=rcNumber(VERSION);return items.filter(function(item){var n=releaseItemVersion(item);if(!Number.isFinite(n))return false;if(!Number.isFinite(current)||n>current)return false;if(!Number.isFinite(prod))return n===current;return n>prod})}
+function rc990OpenChangeItems(){return unreleasedChanges().slice()}
  function changeKey(item){var s=q(item),h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return'c'+(h>>>0).toString(36)}
  function changeChecklistState(create){var m=meta(create===true),all=m&&m.releaseChangeChecklist;if(all&&typeof all==='object')return all;if(create===true){m.releaseChangeChecklist={};return m.releaseChangeChecklist}return{}}
  function changeResultState(create){var m=meta(create===true),all=m&&m.releaseChangeResults;if(all&&typeof all==='object')return all;if(create===true){m.releaseChangeResults={};return m.releaseChangeResults}return{}}
  function failureReportState(create){var m=meta(create===true),all=m&&m.releaseFailureReport;if(Array.isArray(all))return all;if(create===true){m.releaseFailureReport=[];return m.releaseFailureReport}return[]}
- function changeItemByKey(key){key=q(key);return unreleasedChanges().find(function(item){return changeKey(item)===key})||null}
- function changeResult(item){var key=changeKey(item),result=changeResultState(false)[key];if(result&&typeof result==='object'&&/^(passed|failed|open)$/.test(q(result.status)))return result;if(changeChecklistState(false)[key]===true)return{status:'passed',legacy:true};return{status:'open'}}
+ function changeItemByKey(key){key=q(key);return rc990OpenChangeItems().find(function(item){return changeKey(item)===key})||null}
+ function changeResult(item){var key=changeKey(item),result=changeResultState(false)[key],status=q(result&&result.status),confirmed=releaseChecklistPending[key]===true||changeChecklistState(false)[key]===true;if(status==='failed')return result;if(status==='passed')return result;if(confirmed)return{status:'passed',legacy:true};if(status==='open')return result;return{status:'open'}}
  function changeFailed(item){return q(changeResult(item).status)==='failed'}
  function openFailureItems(){return failureReportState(false).filter(function(x){return x&&q(x.status)==='failed'&&!x.resolvedAt})}
  function failureFor(item){var key=changeKey(item),list=openFailureItems();for(var i=list.length-1;i>=0;i--)if(q(list[i].key)===key)return list[i];return null}
@@ -13286,21 +13681,62 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function recordPassed(item){var key=changeKey(item),now=new Date().toISOString(),by=uname(),results=changeResultState(true);results[key]={status:'passed',at:now,by:by,version:'RC'+releaseItemVersion(item),item:q(item)};changeChecklistState(true)[key]=true;releaseChecklistPending[key]=true;resolveFailure(key);return true}
  function recordOpen(item){var key=changeKey(item),results=changeResultState(true);results[key]={status:'open',at:new Date().toISOString(),by:uname(),version:'RC'+releaseItemVersion(item),item:q(item)};changeChecklistState(true)[key]=false;releaseChecklistPending[key]=false;invalidateReleaseTest();return true}
  function changeConfirmed(item){return q(changeResult(item).status)==='passed'}
- function changeChecklistProgress(){var list=unreleasedChanges(),done=0,failed=0;list.forEach(function(item){if(changeConfirmed(item))done++;else if(changeFailed(item))failed++});return{total:list.length,done:done,failed:failed,remaining:Math.max(0,list.length-done)}}
- function unreleasedGroups(){var list=unreleasedChanges(),map={},order=[];list.forEach(function(item){var n=releaseItemVersion(item),key='RC'+n;if(!map[key]){map[key]=[];order.push(key)}map[key].push(item)});order.sort(function(a,b){return rcNumber(b)-rcNumber(a)});return order.map(function(version){return{version:version,items:map[version]}})}
- function renderUnreleasedChangesInner(){var groups=unreleasedGroups(),p=changeChecklistProgress(),prod=q(productionVersion);if(!productionChecked&&prod==='wird geprüft')return '<span class="rc524-kicker">NOCH NICHT FREIGEGEBEN</span><h3>Änderungen seit Produktion werden ermittelt …</h3><p class="muted">Der aktuelle Produktionsstand wird geprüft.</p>';if(!groups.length)return '<span class="rc524-kicker">NOCH NICHT FREIGEGEBEN</span><h3>Keine offenen Änderungen</h3><div class="okbox">Produktion und aktive Testversion haben keinen offenen versionsbezogenen Änderungsstand.</div>';var range=(Number.isFinite(rcNumber(prod))?esc(prod):'Produktion')+' → '+esc(VERSION),body=groups.map(function(group){var rows=group.items.map(function(item){var key=changeKey(item),result=changeResult(item),state=q(result.status)||'open',failed=state==='failed',passed=state==='passed',failure=failed?failureFor(item):null,border=passed?'#86efac':failed?'#fca5a5':'#d6dfef',bg=passed?'#f0fdf4':failed?'#fff1f2':'#fff',pill=passed?'<span class="pill green">✓ Bestanden</span>':failed?'<span class="pill red">✕ Nicht bestanden</span>':'<span class="pill orange">Offen</span>',reason=failed?'<div class="badbox" style="margin-top:8px"><b>Fehlerbeschreibung:</b> '+esc(failure&&failure.reason||result.reason||'Keine Beschreibung')+(failure&&failure.failedBy?'<br><small>'+esc(failure.failedBy)+' · '+esc(fmtDate(failure.failedAt))+'</small>':'')+'</div>':'';return '<div style="padding:10px 12px;border:1px solid '+border+';border-radius:14px;background:'+bg+';margin-top:8px"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap"><span style="flex:1;min-width:220px">'+esc(item.replace(/^RC\s*\d+\s*/i,''))+'</span>'+pill+'</div>'+reason+'<div class="rc562-release-actions" style="margin-top:8px"><button type="button" class="ghost" '+(passed?'disabled':'')+' onclick="return rc562SetReleaseChangeStatus(&quot;'+key+'&quot;,&quot;passed&quot;)">✓ Bestanden</button><button type="button" class="ghost danger" '+(failed?'disabled':'')+' onclick="return rc562SetReleaseChangeStatus(&quot;'+key+'&quot;,&quot;failed&quot;)">✕ Nicht bestanden</button>'+(state!=='open'?'<button type="button" class="ghost" onclick="return rc562SetReleaseChangeStatus(&quot;'+key+'&quot;,&quot;open&quot;)">Auf offen setzen</button>':'')+'</div></div>'}).join('');return '<div style="margin-top:16px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px"><span class="pill blue">'+esc(group.version)+'</span><b>'+group.items.length+' Änderung'+(group.items.length===1?'':'en')+'</b></div>'+rows+'</div>'}).join('');return '<span class="rc524-kicker">NOCH NICHT FREIGEGEBEN</span><h3>'+range+'</h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px"><span class="pill orange">'+groups.length+' offene RC'+(groups.length===1?'':'s')+'</span><span class="pill blue">'+p.done+' von '+p.total+' Änderungen bestanden</span>'+(p.failed?'<span class="pill red">'+p.failed+' nicht bestanden</span>':'')+'<span class="pill '+(p.remaining===0?'green':'orange')+'">'+p.remaining+' noch nicht als bestanden bestätigt</span></div><p class="rc562-release-note">Jede Änderung seit der aktuell veröffentlichten Produktion muss einzeln als bestanden bestätigt werden. „Nicht bestanden“ verlangt eine Fehlerbeschreibung, erzeugt einen Reparaturreport und sperrt die Freigabe.</p>'+body}
+ function changeChecklistProgress(){var list=rc990OpenChangeItems(),done=0,failed=0;list.forEach(function(item){if(changeConfirmed(item))done++;else if(changeFailed(item))failed++});return{total:list.length,done:done,failed:failed,remaining:Math.max(0,list.length-done)}}
+ function unreleasedGroups(){var list=rc990OpenChangeItems(),map={},order=[];list.forEach(function(item){var n=releaseItemVersion(item),key='RC'+n;if(!map[key]){map[key]=[];order.push(key)}map[key].push(item)});order.sort(function(a,b){return rcNumber(b)-rcNumber(a)});return order.map(function(version){return{version:version,items:map[version]}})}
+ function renderUnreleasedChangesInner(){var groups=unreleasedGroups(),p=changeChecklistProgress(),prod=q(productionVersion);if(!productionChecked&&prod==='wird geprüft')return '<span class="rc524-kicker">NOCH NICHT FREIGEGEBEN</span><h3>Änderungen seit Produktion werden ermittelt …</h3><p class="muted">Der aktuelle Produktionsstand wird geprüft.</p>';if(!groups.length)return '<span class="rc524-kicker">NOCH NICHT FREIGEGEBEN</span><h3>Keine offenen Änderungen</h3><div class="okbox">Produktion und aktive Testversion haben keinen offenen versionsbezogenen Änderungsstand.</div>';var range=(Number.isFinite(rcNumber(prod))?esc(prod):'Produktion')+' → '+esc(VERSION),body=groups.map(function(group){var rows=group.items.map(function(item){var key=changeKey(item),result=changeResult(item),state=q(result.status)||'open',failed=state==='failed',passed=state==='passed',failure=failed?failureFor(item):null,border=passed?'#86efac':failed?'#fca5a5':'#d6dfef',bg=passed?'#f0fdf4':failed?'#fff1f2':'#fff',pill=passed?'<span class="pill green">✓ Bestanden</span>':failed?'<span class="pill red">✕ Nicht bestanden</span>':'<span class="pill orange">Offen</span>',reason=failed?'<div class="badbox" style="margin-top:8px"><b>Fehlerbeschreibung:</b> '+esc(failure&&failure.reason||result.reason||'Keine Beschreibung')+(failure&&failure.failedBy?'<br><small>'+esc(failure.failedBy)+' · '+esc(fmtDate(failure.failedAt))+'</small>':'')+'</div>':'';return '<div data-rc990-change-key="'+esc(key)+'" style="padding:10px 12px;border:1px solid '+border+';border-radius:14px;background:'+bg+';margin-top:8px"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap"><span style="flex:1;min-width:220px">'+esc(item.replace(/^RC\s*\d+\s*/i,''))+'</span>'+pill+'</div>'+reason+'<div class="rc562-release-actions" style="margin-top:8px"><button type="button" class="ghost" '+(passed?'disabled':'')+' onclick="return rc562SetReleaseChangeStatus(&quot;'+key+'&quot;,&quot;passed&quot;)">✓ Bestanden</button><button type="button" class="ghost danger" '+(failed?'disabled':'')+' onclick="return rc562SetReleaseChangeStatus(&quot;'+key+'&quot;,&quot;failed&quot;)">✕ Nicht bestanden</button>'+(state!=='open'?'<button type="button" class="ghost" onclick="return rc562SetReleaseChangeStatus(&quot;'+key+'&quot;,&quot;open&quot;)">Auf offen setzen</button>':'')+'</div></div>'}).join('');return '<div style="margin-top:16px"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px"><span class="pill blue">'+esc(group.version)+'</span><b>'+group.items.length+' Änderung'+(group.items.length===1?'':'en')+'</b></div>'+rows+'</div>'}).join('');return '<span class="rc524-kicker">NOCH NICHT FREIGEGEBEN</span><h3>'+range+'</h3><div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px"><span class="pill orange">'+groups.length+' offene RC'+(groups.length===1?'':'s')+'</span><span class="pill blue">'+p.done+' von '+p.total+' Änderungen bestanden</span>'+(p.failed?'<span class="pill red">'+p.failed+' nicht bestanden</span>':'')+'<span class="pill '+(p.remaining===0?'green':'orange')+'">'+p.remaining+' noch nicht als bestanden bestätigt</span></div><p class="rc562-release-note">Jede Änderung seit der aktuell veröffentlichten Produktion muss einzeln als bestanden bestätigt werden. „Nicht bestanden“ verlangt eine Fehlerbeschreibung, erzeugt einen Reparaturreport und sperrt die Freigabe.</p>'+body}
 
  function renderUnreleasedChangesCard(){return '<div class="card" id="rc747UnreleasedChanges">'+renderUnreleasedChangesInner()+'</div>'}
  function refreshUnreleasedChangesCard(){var el=document.getElementById('rc747UnreleasedChanges');if(el)el.innerHTML=renderUnreleasedChangesInner()}
  function captureReleaseScroll(){var root=document.getElementById('content'),scroller=document.scrollingElement||document.documentElement;return{root:root,scroller:scroller,pageX:window.scrollX||scroller&&scroller.scrollLeft||0,pageY:window.scrollY||scroller&&scroller.scrollTop||0,rootTop:root&&root.scrollTop||0,rootLeft:root&&root.scrollLeft||0}}
  function restoreReleaseScroll(pos){if(!pos)return;try{if(pos.scroller){pos.scroller.scrollLeft=pos.pageX;pos.scroller.scrollTop=pos.pageY}window.scrollTo(pos.pageX,pos.pageY);if(pos.root){pos.root.scrollLeft=pos.rootLeft;pos.root.scrollTop=pos.rootTop}}catch(_){}}
  function preserveReleaseScroll(fn){var pos=captureReleaseScroll();try{fn&&fn()}finally{restoreReleaseScroll(pos);var raf=window.requestAnimationFrame||function(cb){return setTimeout(cb,16)};raf(function(){restoreReleaseScroll(pos)});setTimeout(function(){restoreReleaseScroll(pos)},60)}return true}
+var rc990PendingReleasePosition=null,rc990ReleaseRestoreTimer=0,rc990ReleaseSuppressScrollUntil=0;
+function rc990ReleaseAnchor(key){key=q(key);if(!key)return null;var root=document.getElementById('rc747UnreleasedChanges')||document.getElementById('content');if(!root)return null;var nodes=root.querySelectorAll('[data-rc990-change-key]');for(var i=0;i<nodes.length;i++)if(q(nodes[i].getAttribute('data-rc990-change-key'))===key)return nodes[i];return null}
+function rc990CaptureReleasePosition(key){var pos=captureReleaseScroll(),anchor=rc990ReleaseAnchor(key);pos.key=q(key);pos.anchorTop=anchor&&anchor.getBoundingClientRect?anchor.getBoundingClientRect().top:null;pos.capturedAt=Date.now();rc990PendingReleasePosition=pos;return pos}
+function rc990RestoreReleasePosition(pos,keepPending){pos=pos||rc990PendingReleasePosition;if(!pos)return false;rc990ReleaseSuppressScrollUntil=Date.now()+140;restoreReleaseScroll(pos);var anchor=rc990ReleaseAnchor(pos.key);if(anchor&&Number.isFinite(Number(pos.anchorTop))&&anchor.getBoundingClientRect){var delta=anchor.getBoundingClientRect().top-Number(pos.anchorTop);if(Math.abs(delta)>1){rc990ReleaseSuppressScrollUntil=Date.now()+140;try{window.scrollBy(0,delta)}catch(_){}}}if(keepPending!==true&&rc990PendingReleasePosition===pos)rc990PendingReleasePosition=null;return true}
+function rc990ArmReleasePosition(pos){pos=pos||rc990PendingReleasePosition;if(!pos)return false;rc990PendingReleasePosition=pos;rc990RestoreReleasePosition(pos,true);var raf=window.requestAnimationFrame||function(cb){return setTimeout(cb,16)};raf(function(){raf(function(){if(rc990PendingReleasePosition===pos)rc990RestoreReleasePosition(pos,true)})});if(rc990ReleaseRestoreTimer)clearTimeout(rc990ReleaseRestoreTimer);rc990ReleaseRestoreTimer=setTimeout(function(){if(rc990PendingReleasePosition===pos)rc990RestoreReleasePosition(pos,false)},1700);return true}
+window.addEventListener('exporthub:rendered',function(){var pos=rc990PendingReleasePosition;if(!pos||Date.now()-Number(pos.capturedAt||0)>2600)return;var raf=window.requestAnimationFrame||function(cb){return setTimeout(cb,16)};raf(function(){raf(function(){if(rc990PendingReleasePosition===pos&&document.getElementById('rc562ReleaseStatus'))rc990RestoreReleasePosition(pos,false)})})});
+window.addEventListener('scroll',function(){if(!rc990PendingReleasePosition||Date.now()<=rc990ReleaseSuppressScrollUntil)return;rc990PendingReleasePosition=null;if(rc990ReleaseRestoreTimer){clearTimeout(rc990ReleaseRestoreTimer);rc990ReleaseRestoreTimer=0}},{passive:true});
+
  function applyPendingConfirmations(){var releaseState=changeChecklistState(true);Object.keys(releaseChecklistPending).forEach(function(key){releaseState[key]=releaseChecklistPending[key]===true});var testState=checklistState(true);Object.keys(testChecklistPending).forEach(function(key){testState[key]=testChecklistPending[key]===true});return true}
- function scheduleConfirmationSave(reason){if(releaseChecklistSaveTimer)clearTimeout(releaseChecklistSaveTimer);releaseChecklistSaveTimer=setTimeout(function(){releaseChecklistSaveTimer=0;applyPendingConfirmations();save(reason||'Release-Center: Bestätigungen gespeichert')},900);return true}
+ function scheduleConfirmationSave(reason){if(releaseChecklistSaveTimer)clearTimeout(releaseChecklistSaveTimer);releaseChecklistSaveTimer=setTimeout(function(){releaseChecklistSaveTimer=0;var pos=rc990PendingReleasePosition;applyPendingConfirmations();save(reason||'Release-Center: Bestätigungen gespeichert');if(pos)rc990ArmReleasePosition(pos)},900);return true}
  function updateReleaseGateUi(){var root=document.getElementById('content');if(!root||!document.getElementById('rc562ReleaseStatus'))return false;var ok=tested(),match=onlineMatches(),allDone=allChecklistDone(),progress=checklistProgress(),changeProgress=changeChecklistProgress(),btns=root.querySelectorAll('button[onclick*="rc562MarkTested"],button[onclick*="rc562PrepareProduction"]');if(btns[0])btns[0].disabled=ok||!match||!allDone;if(btns[1])btns[1].disabled=!(ok&&match&&allDone);var e=document.getElementById('rc562ReleaseStatus');if(!e)return true;if(!match){e.textContent='STOPP: Online läuft '+testServiceVersion+' statt '+VERSION+'. Nicht testen oder freigeben.';e.className='rc562-release-status bad'}else if(!ok&&changeProgress.failed>0){e.textContent=changeProgress.failed+' Änderung(en) sind als „Nicht bestanden“ markiert. Reparaturreport abarbeiten und danach erneut als bestanden prüfen.';e.className='rc562-release-status bad'}else if(!ok&&changeProgress.remaining>0){e.textContent='Noch '+changeProgress.remaining+' von '+changeProgress.total+' nicht veröffentlichten Änderungen nicht als bestanden bestätigt. Erst danach kann „Test bestanden“ bestätigt werden.';e.className='rc562-release-status'}else if(!ok&&progress.remaining>0){e.textContent='Noch '+progress.remaining+' von '+progress.total+' Testpunkten der aktuellen RC offen. Erst danach kann „Test bestanden“ bestätigt werden.';e.className='rc562-release-status'}else if(!ok){e.textContent='Alle Bestätigungen vollständig. „Test bestanden“ kann jetzt gesetzt werden.';e.className='rc562-release-status ok'}return true}
- function recoverRc761Confirmations(){if(!productionChecked||!Number.isFinite(rcNumber(productionVersion)))return false;var m=meta(true);if(m.rc762RecoveredRc761Confirmations===true)return false;var list=unreleasedChanges().filter(function(item){var n=releaseItemVersion(item);return Number.isFinite(n)&&n<=761}),state=changeChecklistState(true);list.forEach(function(item){var key=changeKey(item);state[key]=true;releaseChecklistPending[key]=true});m.rc762RecoveredRc761Confirmations=true;m.rc762RecoveredRc761ConfirmationsAt=new Date().toISOString();m.rc762RecoveredRc761ConfirmationsCount=list.length;if(list.length)scheduleConfirmationSave('Release-Center: bereits bestätigte RC761-Änderungen wiederhergestellt');return list.length>0}
- function toggleReleaseChange(key,checked){key=q(key);releaseChecklistPending[key]=!!checked;changeChecklistState(true)[key]=!!checked;scheduleConfirmationSave('Release-Center: offene Änderungen aktualisiert');preserveReleaseScroll(function(){refreshUnreleasedChangesCard();updateReleaseGateUi()});return false}
- function setReleaseChangeStatus(key,next){key=q(key);next=q(next);var item=changeItemByKey(key);if(!item)return false;if(next==='failed'){var existing=failureFor(item),reason=prompt('Warum ist diese Änderung nicht bestanden?\n\nBitte den Fehler so beschreiben, dass er später gezielt repariert werden kann.',existing&&existing.reason||'');if(reason===null)return false;reason=q(reason);if(!reason){alert('Für „Nicht bestanden“ ist eine Fehlerbeschreibung erforderlich.');return false}recordFailure(item,reason)}else if(next==='passed'){recordPassed(item)}else{recordOpen(item)}scheduleConfirmationSave('Release-Center: Prüfstatus der Änderung aktualisiert');preserveReleaseScroll(function(){refreshUnreleasedChangesCard();refreshFailureReportCard();updateReleaseGateUi()});return false}
+ function recoverRc761Confirmations(){if(!productionChecked||!Number.isFinite(rcNumber(productionVersion)))return false;var m=meta(true);if(m.rc762RecoveredRc761Confirmations===true)return false;var list=rc990OpenChangeItems().filter(function(item){var n=releaseItemVersion(item);return Number.isFinite(n)&&n<=761}),state=changeChecklistState(true);list.forEach(function(item){var key=changeKey(item);state[key]=true;releaseChecklistPending[key]=true});m.rc762RecoveredRc761Confirmations=true;m.rc762RecoveredRc761ConfirmationsAt=new Date().toISOString();m.rc762RecoveredRc761ConfirmationsCount=list.length;if(list.length)scheduleConfirmationSave('Release-Center: bereits bestätigte RC761-Änderungen wiederhergestellt');return list.length>0}
+ function toggleReleaseChange(key,checked){
+ key=q(key);var pos=rc990CaptureReleasePosition(key);
+ try{
+  releaseChecklistPending[key]=!!checked;
+  changeChecklistState(true)[key]=!!checked;
+  scheduleConfirmationSave('Release-Center: offene Änderungen aktualisiert');
+  preserveReleaseScroll(function(){refreshUnreleasedChangesCard();updateReleaseGateUi()});
+  rc990ArmReleasePosition(pos);
+ }catch(error){
+  rc990RestoreReleasePosition(pos,true);
+  rc990ArmReleasePosition(pos);
+  return rc990FailOperation(0,(error&&error.message)||'Änderung konnte nicht aktualisiert werden',null,null)
+ }
+ return false
+}
+ function setReleaseChangeStatus(key,next){
+ key=q(key);next=q(next);var item=changeItemByKey(key);if(!item)return false;var pos=rc990CaptureReleasePosition(key);
+ try{
+  if(next==='failed'){
+   var existing=failureFor(item),reason=prompt('Warum ist diese Änderung nicht bestanden?\n\nBitte den Fehler so beschreiben, dass er später gezielt repariert werden kann.',existing&&existing.reason||'');
+   if(reason===null){rc990PendingReleasePosition=null;return false}
+   reason=q(reason);
+   if(!reason){alert('Für „Nicht bestanden“ ist eine Fehlerbeschreibung erforderlich.');rc990PendingReleasePosition=null;return false}
+   recordFailure(item,reason)
+  }else if(next==='passed')recordPassed(item);else recordOpen(item);
+  scheduleConfirmationSave('Release-Center: Prüfstatus der Änderung aktualisiert');
+  preserveReleaseScroll(function(){refreshUnreleasedChangesCard();refreshFailureReportCard();updateReleaseGateUi()});
+  rc990ArmReleasePosition(pos)
+ }catch(error){
+  rc990RestoreReleasePosition(pos,true);
+  rc990ArmReleasePosition(pos);
+  return rc990FailOperation(0,(error&&error.message)||'Prüfstatus konnte nicht aktualisiert werden',null,null)
+ }
+ return false
+}
  function checklistState(create){var m=meta(create===true),all=m&&m.testChecklist;if(all&&typeof all==='object'&&all[VERSION]&&typeof all[VERSION]==='object')return all[VERSION];if(create===true){m.testChecklist=all&&typeof all==='object'?all:{};m.testChecklist[VERSION]={};return m.testChecklist[VERSION]}return{}}
  function checklistConfirmed(index){var key=String(index);if(Object.prototype.hasOwnProperty.call(testChecklistPending,key))return testChecklistPending[key]===true;return checklistState()[index]===true}
  function checklistProgress(){var tests=releaseTests(),done=0;for(var i=0;i<tests.length;i++)if(checklistConfirmed(i))done++;return{total:tests.length,done:done,remaining:Math.max(0,tests.length-done)}}
@@ -13316,9 +13752,9 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
  function downloadFailureReport(){var all=failureReportItems(),open=all.filter(function(x){return q(x.status)==='failed'&&!x.resolvedAt}),lines=['ExportHUB Reparaturreport','Erstellt: '+new Date().toLocaleString('de-DE'),'Aktive Testversion: '+VERSION,'Offene Fehler: '+open.length,''];if(!all.length)lines.push('Keine nicht bestandenen Änderungen erfasst.');all.forEach(function(x,i){lines.push((i+1)+'. '+(x.version||'RC')+' · '+(q(x.status)==='repaired'?'ERLEDIGT':'NICHT BESTANDEN'));lines.push('Änderung: '+q(x.change));lines.push('Fehler: '+q(x.reason));lines.push('Erfasst: '+fmtDate(x.failedAt)+' · '+q(x.failedBy));if(x.resolvedAt)lines.push('Repariert: '+fmtDate(x.resolvedAt)+' · '+q(x.resolvedBy));lines.push('')});var blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ExportHUB_Reparaturreport_'+VERSION+'_'+new Date().toISOString().slice(0,10)+'.txt';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},30000);return false}
  function releaseHistoryItems(){var m=meta(),items=[],seen={};if(Array.isArray(m.releaseHistory))items=m.releaseHistory.slice();if(q(productionVersion)&&productionVersion!=='nicht ermittelbar')items.unshift({version:productionVersion,label:'Aktuelle Produktion'});return items.filter(function(item){var key=q(item&&item.version)+'|'+q(item&&item.label)+'|'+q(item&&item.at);if(!q(item&&item.version)||seen[key])return false;seen[key]=true;return true}).slice(0,20)}
  function renderReleaseHistory(){var items=releaseHistoryItems();var body=items.length?'<ul class="rc524-release-list">'+items.map(function(item){var parts=[];if(item.label)parts.push(esc(item.label));if(item.at)parts.push(esc(fmtDate(item.at)));if(item.by)parts.push('von '+esc(item.by));if(item.fileCount)parts.push(esc(item.fileCount)+' Dateien');return '<li><b>'+esc(item.version)+'</b>'+(parts.length?' · '+parts.join(' · '):'')+'</li>'}).join('')+'</ul>':'<p class="muted">Noch keine freigegebenen oder vorbereiteten Versionen hinterlegt.</p>';return '<details class="card"><summary style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px"><span><b>Freigegebene / vorbereitete Versionen</b></span><span class="pill gray">einklappbar</span></summary><div style="margin-top:14px">'+body+'</div></details>'}
- function toggleChecklist(index,checked){var key=String(index);testChecklistPending[key]=!!checked;checklistState(true)[index]=!!checked;scheduleConfirmationSave('Release-Center: Testcheckliste aktualisiert');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});return false}
- function checkAllTests(){var tests=releaseTests(),state=checklistState(true);for(var i=0;i<tests.length;i++){state[i]=true;testChecklistPending[String(i)]=true}scheduleConfirmationSave('Release-Center: alle Testpunkte bestätigt');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});return false}
- function resetChecklist(){if(!confirm('Checkliste für '+VERSION+' wirklich zurücksetzen?'))return false;var m=meta(true);m.testChecklist=m.testChecklist&&typeof m.testChecklist==='object'?m.testChecklist:{};m.testChecklist[VERSION]={};testChecklistPending=Object.create(null);save('Release-Center: Checkliste zurückgesetzt');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});return false}
+ function toggleChecklist(index,checked){var pos=rc990CaptureReleasePosition(''),key=String(index);testChecklistPending[key]=!!checked;checklistState(true)[index]=!!checked;scheduleConfirmationSave('Release-Center: Testcheckliste aktualisiert');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});rc990ArmReleasePosition(pos);return false}
+ function checkAllTests(){var pos=rc990CaptureReleasePosition(''),tests=releaseTests(),state=checklistState(true);for(var i=0;i<tests.length;i++){state[i]=true;testChecklistPending[String(i)]=true}scheduleConfirmationSave('Release-Center: alle Testpunkte bestätigt');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});rc990ArmReleasePosition(pos);return false}
+ function resetChecklist(){if(!confirm('Checkliste für '+VERSION+' wirklich zurücksetzen?'))return false;var pos=rc990CaptureReleasePosition(''),m=meta(true);m.testChecklist=m.testChecklist&&typeof m.testChecklist==='object'?m.testChecklist:{};m.testChecklist[VERSION]={};testChecklistPending=Object.create(null);save('Release-Center: Checkliste zurückgesetzt');preserveReleaseScroll(function(){refreshChecklistCard();updateReleaseGateUi()});rc990ArmReleasePosition(pos);return false}
  async function fetchProduction(){
   productionVerified=false;productionChecked=false;
   try{delete window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__}catch(_){window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__=''}
@@ -13358,8 +13794,8 @@ window.ExportHUBLoginEnvironment=Object.freeze({isTestservice:isTest,isProductio
    renderReleaseHistory();
  }
  async function refresh(){if(!isGlobal())return false;var rc739Op=window.ExportHUBOperationStatus,rc739Token=rc739Op&&typeof rc739Op.start==='function'?rc739Op.start('Release-Center prüft Produktion und Testservice …'):0;try{await Promise.all([fetchProduction(),fetchTestService()]);recoverRc761Confirmations();preserveReleaseScroll(function(){refreshUnreleasedChangesCard();refreshChecklistCard();refreshFailureReportCard();updateReleaseGateUi()});}catch(rc739Error){if(rc739Token&&rc739Op&&typeof rc739Op.fail==='function')rc739Op.fail(rc739Token,'Online-Prüfung nicht abgeschlossen');throw rc739Error}if(rc739Token&&rc739Op&&typeof rc739Op.done==='function')rc739Op.done(rc739Token,'Produktion und Testservice geprüft');return true}
- function markTested(){if(!isGlobal())return false;applyPendingConfirmations();if(releaseChecklistSaveTimer){clearTimeout(releaseChecklistSaveTimer);releaseChecklistSaveTimer=0}if(!onlineMatches()){alert('Freigabe gesperrt: Der Testservice liefert '+testServiceVersion+' statt '+VERSION+'. Bitte zuerst den Testservice direkt neu laden und die Online-Version prüfen.');return false}if(!allChecklistDone()){var cp=changeChecklistProgress(),p=checklistProgress();if(cp.failed>0)alert('Es sind '+cp.failed+' Änderung(en) als „Nicht bestanden“ markiert. Bitte zuerst den Reparaturreport abarbeiten und die Änderungen erneut prüfen.');else if(cp.remaining>0)alert('Es sind noch '+cp.remaining+' von '+cp.total+' nicht veröffentlichten Änderungen nicht als bestanden bestätigt. Bitte jede offene Änderung im Release-Center prüfen.');else alert('Es sind noch '+p.remaining+' von '+p.total+' Testpunkten der aktuellen RC offen. Bitte zuerst die Test-Checkliste bestätigen.');return false}if(!confirm(VERSION+' wirklich als vollständig getestet markieren?'))return false;var m=meta(true),now=new Date().toISOString();m.testedVersion=VERSION;m.testedAt=now;m.testedBy=uname();m.productionPreparedVersion='';m.productionPreparedAt='';save('Release-Center: '+VERSION+' Test bestanden');rerender();return false}
- function resetTest(){if(!isGlobal())return false;if(!confirm('Teststatus für '+VERSION+' zurücksetzen?'))return false;var m=meta(true);m.testedVersion='';m.testedAt='';m.testedBy='';m.productionPreparedVersion='';m.productionPreparedAt='';save('Release-Center: Teststatus zurückgesetzt');rerender();return false}
+ function markTested(){if(!isGlobal())return false;applyPendingConfirmations();if(releaseChecklistSaveTimer){clearTimeout(releaseChecklistSaveTimer);releaseChecklistSaveTimer=0}if(!onlineMatches()){alert('Freigabe gesperrt: Der Testservice liefert '+testServiceVersion+' statt '+VERSION+'. Bitte zuerst den Testservice direkt neu laden und die Online-Version prüfen.');return false}if(!allChecklistDone()){var cp=changeChecklistProgress(),p=checklistProgress();if(cp.failed>0)alert('Es sind '+cp.failed+' Änderung(en) als „Nicht bestanden“ markiert. Bitte zuerst den Reparaturreport abarbeiten und die Änderungen erneut prüfen.');else if(cp.remaining>0)alert('Es sind noch '+cp.remaining+' von '+cp.total+' nicht veröffentlichten Änderungen nicht als bestanden bestätigt. Bitte jede offene Änderung im Release-Center prüfen.');else alert('Es sind noch '+p.remaining+' von '+p.total+' Testpunkten der aktuellen RC offen. Bitte zuerst die Test-Checkliste bestätigen.');return false}if(!confirm(VERSION+' wirklich als vollständig getestet markieren?'))return false;var m=meta(true),now=new Date().toISOString();m.testedVersion=VERSION;m.testedAt=now;m.testedBy=uname();m.productionPreparedVersion='';m.productionPreparedAt='';var pos=rc990CaptureReleasePosition('');save('Release-Center: '+VERSION+' Test bestanden');rerender(pos);return false}
+ function resetTest(){if(!isGlobal())return false;if(!confirm('Teststatus für '+VERSION+' zurücksetzen?'))return false;var m=meta(true);m.testedVersion='';m.testedAt='';m.testedBy='';m.productionPreparedVersion='';m.productionPreparedAt='';var pos=rc990CaptureReleasePosition('');save('Release-Center: Teststatus zurückgesetzt');rerender(pos);return false}
  function stripBlock(html,tag,id){var re=new RegExp('<'+tag+'\\b[^>]*id=["\\\']'+id+'["\\\'][^>]*>[\\s\\S]*?<\\/'+tag+'>','gi');return html.replace(re,'')}
  function downloadBlob(name,blob){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},30000)}
  function bytes(v){return v instanceof Uint8Array?v:new TextEncoder().encode(String(v==null?'':v))}
@@ -23991,10 +24427,91 @@ function mergeActiveRemote(){if(!isShipmentView()||isFreshDraft())return false;r
 function mergeRemote(saved){if(!saved||!isShipmentView())return false;var local=shipment(),remote=clone(saved),customerKeys={customerId:1,customerNo:1,customerNumber:1,customerAccount:1,kundennummer:1,customerName:1,customerDisplay:1,customerSearch:1,customer:1,customerData:1,selectedCustomer:1},remoteStamp=q(remote.customerSelectionUpdatedAt||remote.customerUpdatedAt),acceptRemoteCustomer=!editingCustomerLock||(remoteStamp&&(!editingCustomerLock.stamp||remoteStamp>editingCustomerLock.stamp));Object.keys(remote).forEach(function(k){if(k==='rows'||k==='colli'||k==='collis'||k==='packages')return;if(customerKeys[k]&&!acceptRemoteCustomer)return;local[k]=remote[k]});if(acceptRemoteCustomer&&remoteStamp){editingCustomerLock=customerIdentity(remote,state());editingCustomerLock.stamp=remoteStamp;editingCustomerLock.shipmentId=idOf(remote);editingCustomerLock.ref=refOf(remote)}else enforceEditingCustomerLock();var lockedRows=customerChangeColliLock&&colliLockMatches(local,customerChangeColliLock)?arr(customerChangeColliLock.rows):null,remoteRows=(lockedRows&&lockedRows.length?lockedRows:arr(remote.rows)).map(normalizeRow),box=rowBox(),nodes=rowNodes();if(!box)return false;while(nodes.length<remoteRows.length){box.appendChild(ownedRow(nodes.length,remoteRows[nodes.length]));nodes=rowNodes()}while(nodes.length>remoteRows.length){nodes[nodes.length-1].remove();nodes=rowNodes()}remoteRows.forEach(function(r,i){var node=nodes[i];if(!node)return;['type','count','weight','ldm','l','w','h'].forEach(function(k){var input=field(node,k);if(!input||document.activeElement===input)return;var value=k==='type'?q(r[k]):show(r[k]);if(String(input.value)!==String(value))input.value=value})});mirrorRows(remoteRows);enforceCustomerChangeColli();reindex();enforceEditingCustomerLock();updateSummary();updateQr();updateConfirmationButtons();return true}
 function registerOwners(){window.renderRow=function(r,i){return ownedRow(i,r).outerHTML};window.removeShipmentRow=removeRow;window.addShipmentRow=addRow;window.updateRow=function(i,k,v){return updateRow(i,k,v,null)};window.rc344UpdateRow=window.updateRow;window.rc456UpdateRow=window.updateRow;window.saveShipment=saveAction;window.rc434SaveShipment=saveAction;window.rc344SaveShipment=saveAction;window.rc268SaveShipment=saveAction}
 function ensureProcessCards(){if(!isShipmentView()){processRetryCount=0;if(processRetryTimer){clearTimeout(processRetryTimer);processRetryTimer=0}return false}var ready=!!document.getElementById('rc543MailArea')&&!!document.getElementById('rc543AbdDecision')&&!!document.getElementById('rc543PrintStatus');if(ready){processRetryCount=0;if(processRetryTimer){clearTimeout(processRetryTimer);processRetryTimer=0}return true}try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.postProcess==='function')window.ExportHUBRC543.postProcess()}catch(e){console.error('RC399 Prozessbereiche',e)}ready=!!document.getElementById('rc543MailArea')&&!!document.getElementById('rc543AbdDecision')&&!!document.getElementById('rc543PrintStatus');if(!ready&&processRetryCount<12&&!processRetryTimer){processRetryCount++;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;processRetryTimer=nt(function(){processRetryTimer=0;schedulePatch()},Math.min(600,80+processRetryCount*35))}return ready}
+/* RC990 RENDER FOCUS NAVIGATION CORE START */
+var rc990RenderFrame=0,rc990RenderReason='',rc990RenderTask=null;
+function rc990CaptureUiState(root){
+ var el=document.activeElement,snapshot={winX:Number(window.scrollX)||0,winY:Number(window.scrollY)||0,rootTop:root?Number(root.scrollTop)||0:0,rootLeft:root?Number(root.scrollLeft)||0:0,id:'',name:'',field:'',value:undefined,start:null,end:null,node:null};
+ if(!root||!el||!root.contains(el)||!/^(?:INPUT|TEXTAREA|SELECT)$/.test(String(el.tagName||'').toUpperCase()))return snapshot;
+ snapshot.node=el;
+ snapshot.id=q(el.id);
+ snapshot.name=q(el.getAttribute&&el.getAttribute('name'));
+ var holder=el.closest&&el.closest('[data-rc363-field]');
+ snapshot.field=q(holder&&holder.getAttribute('data-rc363-field'));
+ try{snapshot.value=el.value}catch(_){}
+ try{snapshot.start=el.selectionStart;snapshot.end=el.selectionEnd}catch(_){}
+ return snapshot
+}
+function rc990ResolveUiField(snapshot,root){
+ if(!snapshot||!root)return null;
+ var el=null;
+ if(snapshot.id){try{el=document.getElementById(snapshot.id)}catch(_){}}
+ if(el&&!root.contains(el))el=null;
+ if(!el&&snapshot.name){try{el=root.querySelector('[name="'+String(snapshot.name).replace(/"/g,'\\"')+'"]')}catch(_){}}
+ if(!el&&snapshot.field){try{var holder=root.querySelector('[data-rc363-field="'+String(snapshot.field).replace(/"/g,'\\"')+'"]');if(holder)el=holder.querySelector('input,textarea,select')}catch(_){}}
+ return el
+}
+function rc990RestoreUiState(snapshot,root){
+ if(!snapshot||!root)return false;
+ var defer=window.requestAnimationFrame||function(fn){return window.setTimeout(fn,0)};
+ defer(function(){
+  var el=rc990ResolveUiField(snapshot,root);
+  if(el){
+   var sameNode=!!(snapshot.node&&snapshot.node===el),activeNow=document.activeElement===el;
+   try{if(snapshot.value!==undefined&&'value' in el&&!sameNode&&!(activeNow&&el.value!==snapshot.value))el.value=snapshot.value}catch(_){}
+   try{el.focus({preventScroll:true})}catch(_){try{el.focus()}catch(__){}}
+   try{if(snapshot.start!=null&&typeof el.setSelectionRange==='function')el.setSelectionRange(snapshot.start,snapshot.end==null?snapshot.start:snapshot.end)}catch(_){}
+  }
+  try{root.scrollTop=Number(snapshot.rootTop)||0;root.scrollLeft=Number(snapshot.rootLeft)||0}catch(_){}
+  try{var x=Number(snapshot.winX)||0,y=Number(snapshot.winY)||0;if(Math.abs((Number(window.scrollX)||0)-x)>1||Math.abs((Number(window.scrollY)||0)-y)>1)window.scrollTo(x,y)}catch(_){}
+ });
+ return true
+}
+function rc990FailOperation(token,message,snapshot,root){
+ var text=String(message||'Vorgang nicht abgeschlossen');
+ try{
+  if(typeof operationFail==='function')operationFail(token,text);
+  else if(window.ExportHUBOperationStatus&&typeof window.ExportHUBOperationStatus.fail==='function')window.ExportHUBOperationStatus.fail(token,text);
+  else if(typeof loadingBarFail==='function')loadingBarFail(token,text);
+ }catch(reportError){try{console.error('RC990 Fehlerstatus',reportError)}catch(_){}}
+ if(snapshot){
+  var defer=window.requestAnimationFrame||function(cb){return window.setTimeout(cb,0)};
+  defer(function(){try{rc990RestoreUiState(snapshot,root)}catch(restoreError){try{console.error('RC990 UI-State Restore',restoreError)}catch(_){}}});
+ }
+ return false
+}
+function rc990ScheduleRender(reason,fn){
+ rc990RenderReason=q(reason)||rc990RenderReason||'render';
+ if(typeof fn==='function')rc990RenderTask=fn;
+ if(rc990RenderFrame)return true;
+ var root=document.getElementById('content'),snapshot=rc990CaptureUiState(root);
+ var run=function(){
+  rc990RenderFrame=0;
+  var task=rc990RenderTask;rc990RenderTask=null;
+  try{
+   if(typeof task==='function')task()
+  }catch(error){
+   rc990FailOperation(0,(error&&error.message)||'Ansicht konnte nicht aktualisiert werden',snapshot,root)
+  }finally{
+   rc990RenderReason=''
+  }
+ };
+ if(typeof window.requestAnimationFrame==='function')rc990RenderFrame=window.requestAnimationFrame(run);
+ else rc990RenderFrame=window.setTimeout(run,16);
+ return true
+}
+/* RC990 RENDER FOCUS NAVIGATION CORE END */
 var rc950LayoutFrame=0,rc950LayoutReason='';
 function rc950PreserveActiveInput(root){var snap={scrollTop:0,scrollLeft:0,winX:Number(window.scrollX)||0,winY:Number(window.scrollY)||0};if(!root)return snap;snap.scrollTop=Number(root.scrollTop)||0;snap.scrollLeft=Number(root.scrollLeft)||0;var el=document.activeElement;if(!el||!root.contains(el)||!/^(?:INPUT|TEXTAREA|SELECT)$/.test(String(el.tagName||'').toUpperCase()))return snap;snap.id=q(el.id);snap.name=q(el.getAttribute&&el.getAttribute('name'));snap.tag=String(el.tagName||'').toLowerCase();snap.type=q(el.getAttribute&&el.getAttribute('type'));var holder=el.closest&&el.closest('[data-rc363-field]');snap.field=q(holder&&holder.getAttribute('data-rc363-field'));try{snap.value=el.value}catch(_){}try{snap.start=el.selectionStart;snap.end=el.selectionEnd}catch(_){}return snap}
 function rc950RestoreActiveInput(snapshot,root){if(!snapshot||!root)return false;var el=null;if(snapshot.id){var byId=document.getElementById(snapshot.id);if(byId&&root.contains(byId))el=byId}if(!el&&snapshot.name){Array.prototype.some.call(root.querySelectorAll('[name]'),function(node){if(q(node.getAttribute('name'))===snapshot.name){el=node;return true}return false})}if(!el&&snapshot.field){Array.prototype.some.call(root.querySelectorAll('[data-rc363-field]'),function(holder){if(q(holder.getAttribute('data-rc363-field'))!==snapshot.field)return false;var candidates=holder.querySelectorAll('input,textarea,select');for(var i=0;i<candidates.length;i++){var node=candidates[i];if(!snapshot.tag||String(node.tagName||'').toLowerCase()===snapshot.tag){el=node;return true}}return false})}if(el){try{if(snapshot.value!==undefined&&'value' in el&&el.value!==snapshot.value)el.value=snapshot.value}catch(_){}try{el.focus({preventScroll:true})}catch(_){try{el.focus()}catch(__){}}try{if(snapshot.start!=null&&typeof el.setSelectionRange==='function')el.setSelectionRange(snapshot.start,snapshot.end==null?snapshot.start:snapshot.end)}catch(_){}}try{root.scrollTop=snapshot.scrollTop;root.scrollLeft=snapshot.scrollLeft}catch(_){}try{if(Math.abs((Number(window.scrollY)||0)-snapshot.winY)>1||Math.abs((Number(window.scrollX)||0)-snapshot.winX)>1)window.scrollTo(snapshot.winX,snapshot.winY)}catch(_){}return !!el}
-function rc950ScheduleLayout(reason){if(!isShipmentView())return false;rc950LayoutReason=q(reason)||rc950LayoutReason||'layout';if(rc950LayoutFrame){try{(window.cancelAnimationFrame||window.clearTimeout)(rc950LayoutFrame)}catch(_){}}var raf=window.requestAnimationFrame||function(fn){return window.setTimeout(fn,16)};rc950LayoutFrame=raf(function(){rc950LayoutFrame=0;var r=root(),snapshot=rc950PreserveActiveInput(r),layout=document.getElementById('rc363FixedShipmentLayout');try{if(layout||editLockActive())safePatchDuringEdit();else patch()}finally{rc950RestoreActiveInput(snapshot,r);rc950LayoutReason=''}});return true}
+function rc950ScheduleLayout(reason){
+ if(!isShipmentView())return false;
+ rc950LayoutReason=q(reason)||rc950LayoutReason||'layout';
+ return rc990ScheduleRender(rc950LayoutReason,function(){
+  var r=root(),snapshot=rc990CaptureUiState(r),layout=document.getElementById('rc363FixedShipmentLayout');
+  try{if(layout||editLockActive())safePatchDuringEdit();else patch()}
+  finally{rc990RestoreUiState(snapshot,r);rc950LayoutReason=''}
+ })
+}
 function safePatchDuringEdit(){enforceEditingCustomerLock();var block=document.getElementById('rc363BlockShipment'),body=block&&block.querySelector('.rc363-process-body');applyRC894ShipmentFieldGrid(body);ensureRC894LieferavisButton();updateSummary();updateQr();updateConfirmationButtons();return true}
 function deferFullPatch(delay){if(!isShipmentView())return false;fullPatchPending=false;return rc950ScheduleLayout('deferFullPatch')}
 function schedulePatch(){if(!isShipmentView())return false;var layout=document.getElementById('rc363FixedShipmentLayout');if(layout||editLockActive())return rc950ScheduleLayout('schedulePatch');if(patchTimer)return true;var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;patchTimer=nt(function(){patchTimer=0;patch()},16);return true}
@@ -25259,7 +25776,7 @@ var rowHtml=rs.length?'<div class="rc776-table-wrap"><table class="rc776-table">
 var podHtml=pod?'<div class="rc776-doc"><div><b>Unterschriebener POD / Abliefernachweis</b><small>Digitaler oder hochgeladener POD vorhanden</small></div><div class="toolbar"><button type="button" class="btn" data-id="'+esc(id)+'" data-rc628-official-pod-open="1">POD öffnen</button></div></div>':'<div class="rc776-empty">Noch kein echter POD vorhanden.</div>';
 var sourceView=low(s.shipmentViewReturnView),sourceLabel=sourceView==='shipmentsearch'?'Sendungsansicht':sourceView==='customerfolder'?'Kundenordner':sourceView==='notifications'?'Benachrichtigungen':'Sendungsübersicht';root.innerHTML='<div class="rc776-page" data-shipment="'+esc(id)+'"><nav class="rc784-view-context" aria-label="Sendungsnavigation"><button type="button" data-rc784-overview="1">'+esc(sourceLabel)+'</button><span class="rc784-view-context-sep">›</span><span class="rc784-view-context-current">Sendungsansicht · '+esc(ref)+'</span></nav><section class="rc776-hero"><div><span class="rc776-kicker">Sendungsansicht · nur lesen</span><h1>'+esc(ref)+'</h1><div class="toolbar"><span class="rc776-status">'+esc(st)+'</span><span class="rc776-readonly">Keine Bearbeitung</span></div></div><div class="rc776-hero-actions"><button type="button" class="ghost" data-rc776-back="1">← Zurück</button><button type="button" class="btn" data-rc776-documents="1">Ladeliste &amp; CMR</button>'+(pod?'<button type="button" class="ghost" data-id="'+esc(id)+'" data-rc628-official-pod-open="1">POD öffnen</button>':'')+'</div></section><div class="rc776-metrics"><div class="rc776-metric"><span>Status</span><strong>'+esc(st)+'</strong></div><div class="rc776-metric"><span>Colli</span><strong>'+esc(fmt(t.count,0))+'</strong></div><div class="rc776-metric"><span>Gesamtgewicht</span><strong>'+esc(fmt(t.weight,2))+' kg</strong></div><div class="rc776-metric"><span>Lademeter</span><strong>'+esc(fmt(t.ldm,3))+' LDM</strong></div></div><div class="rc776-grid"><section class="rc776-card"><h2>Kunde &amp; Empfänger</h2><div class="rc776-fields">'+field('Kunde',q(sh.customerName||c.name))+field('Kundennummer',q(sh.customerAccount||sh.customerNumber||c.account||c.customerNumber))+field('Empfängerland',q(sh.recipientCountry||sh.destinationCountry||location.country||c.country))+field('Standort',q(location.name||sh.locationName||sh.locationId))+field('Empfängeradresse',address,true)+'</div></section><section class="rc776-card"><h2>Transport &amp; Termine</h2><div class="rc776-fields">'+field('Geplante Abholung',fmtDate(sh.pickupDate||sh.plannedPickupDate))+field('Tatsächliche Abholung',fmtDate(actual))+field('Spedition',q(sh.carrier||sh.forwarder||c.carrier||c.speditionName))+field('Kennzeichen',q(sh.licensePlate||sh.plate||sh.kennzeichen||sh.customerAvisPickupPlate||sh.avisPickupPlate))+field('Verlader',q(sh.loader||sh.loadedBy||sh.verlader))+field('Incoterm',q(sh.incoterm))+'</div></section><section class="rc776-card"><h2>Sendungsinformationen</h2><div class="rc776-fields">'+field('Referenz',ref)+field('Erstellt von',typeof shipmentViewCreator==='function'?shipmentViewCreator(sh):q(sh.createdByName||sh.createdBy||'Nicht gespeichert (Altdaten)'))+field('Erstellt',fmtDate(sh.createdAt||sh.created))+field('Letzte Änderung',fmtDate(sh.updatedAt||sh._syncUpdatedAt||sh.modifiedAt))+field('Stauplan',stow)+field('Warenbeschreibung',q(sh.goodsDescription||sh.description),true)+field('Bemerkung',q(sh.comments||sh.notes||sh.remark),true)+field('Notiz',q(sh.overviewNote||sh.shipmentOverviewNote),true)+'</div></section><section class="rc776-card"><h2>Prozessstatus</h2><div class="rc776-fields">'+field('Sendungsstatus',st)+field('ABD',abd||'–')+field('Lieferavis',avis)+field('POD',pod?'Vorhanden':'Nicht vorhanden')+field('Abholung',actual?'Bestätigt':'Noch nicht bestätigt')+field('Abgeschlossen',sh.completed===true||sh.completionConfirmed===true||q(sh.completedAt)?'Ja':'Nein')+'</div></section></div><div id="rc845AvisReadHost" class="rc844-avis-host" data-rc845-avis-host="readonly" data-rc849-shipment-id="'+esc(id)+'" data-rc849-shipment-ref="'+esc(ref)+'"></div>'+(reminderHtml?'<section class="rc776-card rc820-reminder-card"><h2>Abholerinnerung</h2><p class="muted">Für diese überfällige Sendung kannst du direkt eine professionelle Erinnerung an Kunde oder Spedition öffnen. Nicht hinterlegte Empfänger sind deaktiviert.</p>'+reminderHtml+'</section>':'')+'<section class="rc776-card"><h2>Colli, Maße, Gewicht &amp; LDM</h2>'+rowHtml+'</section><div class="rc776-grid"><section class="rc776-card" id="rc786ReferenceFilesCard"><div class="rc786-doc-head"><div><h2 id="rc786ReferenceFilesTitle">📎 Dateien &amp; Dokumente</h2><small>Vorhandene Originaldateien · Ref-Ordner '+esc(ref)+'</small></div><div class="rc786-doc-head-actions"><button type="button" class="ghost" data-rc786-open-ref="1">Ref-Ordner öffnen</button><button type="button" class="ghost" data-rc776-documents="1">Ladeliste &amp; CMR</button></div></div><div id="rc786ReferenceFilesPanel"><div class="rc786-doc-loading">Vorhandene Dateien aus dem Ref-Ordner werden geladen …</div></div></section><section class="rc776-card"><h2>POD</h2>'+podHtml+'</section></div><section class="rc776-card"><h2>Statusverlauf</h2><p class="rc808-history-note">Nur tatsächliche Statuswechsel der Sendung. Technische RC543-Synchronisierungstexte werden nicht angezeigt.</p>'+historyHtml(sh)+'</section></div>';loadReferenceDocs(sh,fallback);try{if(window.ExportHUBCustomerAvis706&&typeof window.ExportHUBCustomerAvis706.render==='function')window.ExportHUBCustomerAvis706.render()}catch(e){console.error('RC845 Lieferavis in Sendungsansicht',e)}return false}
 function open(value,source){var sh=find(value);if(!sh){alert('Die gespeicherte Sendung wurde nicht gefunden.');return false}var s=state(),cur=low(s.view||(document.body?document.body.getAttribute('data-exporthub-view'):'')||'shipmentoverview');s.shipmentViewId=idOf(sh)||refOf(sh);if(cur!=='shipmentview'&&cur!=='documentviewer')s.shipmentViewReturnView=source&&source!=='shipmentview'?source:cur;rc843ArmViewGuard(sh,s.shipmentViewReturnView||source||cur);try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s)}catch(_){}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentview','shipment-view-open');s.view='shipmentview';return render()}
-function back(){var s=state(),target=low(s.shipmentViewReturnView)||'shipmentoverview';rc843ReleaseViewGuard('back');if(target==='shipmentview'||target==='documentviewer')target='shipmentsearch';if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route(target,'shipment-view-back');return false}
+function back(){var s=state(),target=low(s.shipmentViewReturnView)||'shipmentoverview';rc843ReleaseViewGuard('back');if(target==='shipmentview'||target==='documentviewer')target='shipmentsearch';if(typeof window.rc990BackView==='function'){window.rc990BackView(target);return false}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route(target,'shipment-view-back');return false}
 function overview(){var target=low(state().shipmentViewReturnView)||'shipmentoverview';rc843ReleaseViewGuard('overview');if(target==='shipmentview'||target==='documentviewer')target='shipmentsearch';if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route(target,'shipment-view-context-back');return false}
 function currentDocs(){return arr(window.__EXPORTHUB_RC776_VIEW_DOCS__)}
 function currentShipmentForDocs(){return window.__EXPORTHUB_RC776_VIEW_SHIPMENT__||find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId)}
@@ -25276,7 +25793,7 @@ function printDoc(index){var d=currentDocs()[Number(index)];if(!d||!isPrintable(
 function openReferenceFolder(){var sh=currentShipmentForDocs(),id=sh&&(idOf(sh)||refOf(sh));if(id&&typeof window.rc524OpenRef==='function')return window.rc524OpenRef(id);var ref=sh&&refOf(sh);if(ref){var url=referenceFolderUrl(ref);try{var a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.style.display='none';document.body.appendChild(a);a.click();a.remove()}catch(e){console.error('RC853 Ref-Ordner öffnen',e);alert('Der Ref-Ordner konnte nicht in einem neuen Tab geöffnet werden.')}return false}return false}
 function openDocuments(){var sh=currentShipmentForDocs(),id=sh&&(idOf(sh)||refOf(sh));rc843ReleaseViewGuard('documents');if(!id)return false;var s=state();s.documentShipmentId=id;try{sessionStorage.setItem('exporthub_document_return_v1',JSON.stringify({view:'shipmentview',shipmentId:id,reference:refOf(sh),at:Date.now()}))}catch(_){}if(typeof window.rc524OpenDocuments==='function')return window.rc524OpenDocuments(id);if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.openDocuments==='function')return window.ExportHUBIndex240.openDocuments(id);return false}
 function viewerPersist(){var v=viewerRead();return v&&v.persist?v.persist:v||null}
-function viewerBack(){var v=viewerPersist(),s=state();viewerClearUrl();if(v){s.shipmentViewId=q(v.shipmentId||v.reference);try{sessionStorage.removeItem('exporthub_document_viewer_v1')}catch(_){}viewerMemory=null}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentview','document-viewer-back');s.view='shipmentview';return render()}
+function viewerBack(){var v=viewerPersist(),s=state();viewerClearUrl();if(v){s.shipmentViewId=q(v.shipmentId||v.reference);try{sessionStorage.removeItem('exporthub_document_viewer_v1')}catch(_){}viewerMemory=null}if(typeof window.rc990BackView==='function'){window.rc990BackView('shipmentview');return false}if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')return window.ExportHUBRC325.route('shipmentview','document-viewer-back');s.view='shipmentview';return render()}
 function viewerCurrentDoc(){var v=viewerRead();if(!v)return null;return v.doc||v.persist&&v.persist.doc||v.persist||v}
 async function viewerLoad(){var seq=++viewerLoadSeq,v=viewerPersist(),d=viewerCurrentDoc(),stage=document.getElementById('rc786DocumentStage');if(!v||!d||!stage)return false;try{var blob=await fetchDocBlob(Object.assign({},d,{reference:v.reference}));if(seq!==viewerLoadSeq||low(state().view)!=='documentviewer')return false;if(blob){viewerClearUrl();viewerObjectUrl=URL.createObjectURL(blob);stage.innerHTML='<iframe id="rc786DocumentFrame" title="'+esc(v.name||'Dokument')+'"></iframe>';var frame=document.getElementById('rc786DocumentFrame');frame.onload=function(){if(v.autoPrint===true){v.autoPrint=false;try{sessionStorage.setItem('exporthub_document_viewer_v1',JSON.stringify(v))}catch(_){}setTimeout(function(){try{frame.contentWindow.focus();frame.contentWindow.print()}catch(e){console.warn('RC808 Drucken',e)}},180)}};frame.src=viewerObjectUrl;return false}if(d.url){stage.innerHTML='<iframe id="rc786DocumentFrame" src="'+esc(d.url)+'" title="'+esc(v.name||'Dokument')+'"></iframe>';return false}throw new Error('Für diese Datei ist kein vorhandener Dateiinhalt erreichbar.')}catch(e){if(seq!==viewerLoadSeq)return false;stage.innerHTML='<div class="rc786-viewer-error"><b>Datei konnte nicht geöffnet werden.</b><span>'+esc(q(e&&e.message||e))+'</span><button type="button" class="ghost" data-rc786-open-ref="1">Ref-Ordner öffnen</button></div>';return false}}
 function renderViewer(){var v=viewerPersist(),d=viewerCurrentDoc(),root=document.getElementById('content');if(!root)return false;root.className='content rc786-document-viewer';root.setAttribute('data-exporthub-rendered-view','documentviewer');if(!v){root.innerHTML='<div class="rc786-viewer-shell"><div class="rc786-viewer-error"><b>Kein Dokument ausgewählt.</b><button type="button" class="btn" data-rc786-viewer-back="1">Zurück zur Sendung</button></div></div>';return false}var origin=v.source==='referenceFolder'?'Originaldatei aus Ref-Ordner':'Gespeicherte Datei aus der Sendung',meta=[q(v.documentType)||docType(v.name,''),origin,v.createdAt?fmtDate(v.createdAt):'',fmtSize(v.size)].filter(Boolean).join(' · ');root.innerHTML='<div class="rc786-viewer-shell"><header class="rc786-viewer-head"><div><button type="button" class="rc786-viewer-back" data-rc786-viewer-back="1">← Zurück zur Sendung '+esc(v.reference||'')+'</button><h1>'+esc(v.name||'Dokument')+'</h1><div class="rc786-viewer-meta">'+esc(meta)+'</div></div><div class="rc786-viewer-actions"><button type="button" class="ghost" data-rc786-viewer-download="1">Download</button>'+(isPrintable(d)?'<button type="button" class="ghost" data-rc786-viewer-print="1">Drucken</button>':'')+'<button type="button" class="ghost" data-rc786-viewer-back="1">Schließen</button></div></header><main id="rc786DocumentStage" class="rc786-viewer-stage"><div class="rc786-doc-loading">Vorhandene Datei wird geladen – es wird keine neue PDF erzeugt …</div></main></div>';viewerLoad();return false}
