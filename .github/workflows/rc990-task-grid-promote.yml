@@ -1,0 +1,57 @@
+name: RC990 Task Grid Promote
+
+on:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - .github/rc990_task_grid_promote.py
+      - .github/workflows/rc990-task-grid-promote.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc990-task-grid-promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.ref == 'refs/heads/rc990-large-ux'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated RC990 branch
+        uses: actions/checkout@v4
+        with:
+          ref: rc990-large-ux
+          fetch-depth: 0
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Repair canonical RC990 selectors
+        run: python .github/rc990_task_grid_promote.py
+
+      - name: Materialize canonical RC990 design into preview source
+        run: python .github/rc990_design_apply.py
+
+      - name: Verify focused RC990 design contract
+        run: node --test test/rc990-design-system.test.mjs
+
+      - name: Verify full regression suite
+        run: npm test
+
+      - name: Remove one-time promotion helpers
+        run: git rm .github/rc990_task_grid_promote.py .github/workflows/rc990-task-grid-promote.yml
+
+      - name: Commit canonical result only
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/rc990_design_apply.py TESTVERSION.html
+          git commit -m "RC990: Aufgabenraster sichtbar und direkt wirksam machen"
+          git push origin HEAD:rc990-large-ux
