@@ -85,12 +85,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff 641c8b771cc19881a82bdf2dd10a790b19fe8b6e...HEAD -- '*.py' '*.js' '*.mjs' | grep -E '^\+.*rfind\(["'"']</(head|body)>' >/tmp/rc990-rfind.txt; then
-            cat /tmp/rc990-rfind.txt
-            echo 'Unsafe naive structural insertion detected.'
-            exit 1
-          fi
-          echo 'No naive rfind structural insertion in RC990 diff.'
+          python - <<'PY'
+          import subprocess, sys
+          base='641c8b771cc19881a82bdf2dd10a790b19fe8b6e'
+          diff=subprocess.check_output(['git','diff',f'{base}...HEAD','--','*.py','*.js','*.mjs'],text=True,errors='replace')
+          bad=[]
+          for line in diff.splitlines():
+              if not line.startswith('+') or line.startswith('+++'):
+                  continue
+              low=line.lower().replace(' ', '')
+              if "rfind('</head>')" in low or 'rfind("</head>")' in low or "rfind('</body>')" in low or 'rfind("</body>")' in low:
+                  bad.append(line)
+          if bad:
+              print('\n'.join(bad))
+              print('Unsafe naive structural insertion detected.')
+              sys.exit(1)
+          print('No naive rfind structural insertion in RC990 diff.')
+          PY
 
       - name: Protected business-keyword diff evidence
         shell: bash
