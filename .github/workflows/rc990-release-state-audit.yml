@@ -1,0 +1,20 @@
+name: RC990 Release State Audit
+
+on:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - '.github/rc990_release_state_audit.py'
+      - '.github/workflows/rc990-release-state-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python .github/rc990_release_state_audit.py
