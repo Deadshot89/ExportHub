@@ -1,0 +1,22 @@
+name: RC978 Shipment Fluid Layout
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'TESTVERSION.html'
+      - 'test/rc978-shipment-fluid-layout.test.mjs'
+      - '.github/workflows/rc978-shipment-fluid-layout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: RC971 bis RC978 komplette Regression
+        run: node --test test/rc971-global-form-field-standard.test.mjs test/rc972-field-exception-audit.test.mjs test/rc973-long-text-autogrow.test.mjs test/rc975-global-render-integrity.test.mjs test/rc976-render-fallback-recovery.test.mjs test/rc977-colli-typography.test.mjs test/rc978-shipment-fluid-layout.test.mjs
