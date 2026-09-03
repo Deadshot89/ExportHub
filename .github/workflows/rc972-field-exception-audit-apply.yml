@@ -85,3 +85,5 @@ jobs:
           git add TESTVERSION.html assets/rc971-global-form-field-standard.css
           git commit -m 'RC972: Sonder- und Toolbarfelder global vereinheitlichen'
           git push origin main
+
+# RC972 retry after corrected RED regression
