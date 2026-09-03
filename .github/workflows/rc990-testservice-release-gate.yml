@@ -6,6 +6,7 @@ on:
       - rc990-large-ux
     paths:
       - '.github/workflows/rc990-testservice-release-gate.yml'
+      - 'staticwebapp.testservice.config.json'
   workflow_dispatch:
 
 permissions:
