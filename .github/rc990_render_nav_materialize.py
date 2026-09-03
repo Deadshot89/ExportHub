@@ -7,9 +7,12 @@ out = []
 TERMS = [
     'rc950PreserveActiveInput',
     'rc950RestoreActiveInput',
+    'RC950',
     'requestAnimationFrame',
+    'cancelAnimationFrame',
     'document.activeElement',
     'selectionStart',
+    'selectionEnd',
     'setSelectionRange',
     'history.pushState',
     'history.replaceState',
@@ -17,6 +20,10 @@ TERMS = [
     'history.back',
     'currentView',
     'data-exporthub-view',
+    'showView',
+    'setView',
+    'goBack',
+    'backBtn',
     'renderAll',
     'renderDashboard',
     'BroadcastChannel',
@@ -27,9 +34,9 @@ out.append(f'chars={len(html)}\n')
 for term in TERMS:
     matches = list(re.finditer(re.escape(term), html, re.I))
     out.append(f'\n===== {term} :: {len(matches)} =====\n')
-    for i, m in enumerate(matches[:10], 1):
-        lo = max(0, m.start() - 650)
-        hi = min(len(html), m.end() + 950)
+    for i, m in enumerate(matches[:12], 1):
+        lo = max(0, m.start() - 850)
+        hi = min(len(html), m.end() + 1250)
         snippet = html[lo:hi].replace('\r', '')
         out.append(f'--- hit {i} @{m.start()} ---\n{snippet}\n')
 
@@ -39,7 +46,7 @@ patterns = [
     r'(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function|\([^)]*\)\s*=>)',
 ]
 seen = set()
-keywords = ('render','view','nav','focus','scroll','frame','batch','route','history','activeinput','restore','preserve')
+keywords = ('render','view','nav','focus','scroll','frame','batch','route','history','activeinput','restore','preserve','back')
 for pat in patterns:
     for m in re.finditer(pat, html):
         name = m.group(1)
@@ -50,7 +57,7 @@ for pat in patterns:
 
 # Keep the diagnostic easy to fetch through the connector.
 text = ''.join(out)
-if len(text) > 90000:
-    text = text[:90000] + '\n...[truncated by rc990 materializer]...\n'
+if len(text) > 120000:
+    text = text[:120000] + '\n...[truncated by rc990 materializer]...\n'
 Path('.github/rc990_render_nav_audit_result.txt').write_text(text, encoding='utf-8')
 print(f'wrote {len(text)} chars')
