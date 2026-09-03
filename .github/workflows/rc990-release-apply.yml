@@ -6,6 +6,7 @@ on:
       - rc990-large-ux
     paths:
       - '.github/rc990_release_apply.py'
+      - '.github/rc990_release_apply_v2.py'
       - '.github/workflows/rc990-release-apply.yml'
   workflow_dispatch:
 
@@ -23,7 +24,7 @@ jobs:
         with:
           node-version: '20'
       - name: Apply RC990 release-center patch
-        run: python .github/rc990_release_apply.py
+        run: python .github/rc990_release_apply_v2.py
       - name: Verify complete regression
         run: npm test
       - name: Verify whitespace
