@@ -41,6 +41,23 @@ test('RC990 Design: responsive Anwendungskarten und Aktionen brechen kontrollier
   assert.doesNotMatch(style,/width\s*:\s*100vw/i);
 });
 
+test('RC990 Design: Aufgaben verwenden ein echtes 3-2-1 Kachelraster',()=>{
+  assert.match(style,/RC990 task tile grid/i,'kanonischer Aufgabenraster-Marker fehlt');
+  assert.match(style,/grid-template-columns\s*:\s*repeat\(3\s*,\s*minmax\(0\s*,\s*1fr\)\)/i,'Desktop muss drei Aufgabenkacheln je Reihe erlauben');
+  assert.match(style,/@media\s*\(max-width:\s*(?:1100|1050|1000|900)px\)[\s\S]*?RC990 task tile grid[\s\S]*?grid-template-columns\s*:\s*repeat\(2\s*,\s*minmax\(0\s*,\s*1fr\)\)/i,'mittlere Breite muss auf zwei Kacheln wechseln');
+  assert.match(style,/@media\s*\(max-width:\s*(?:760|700|680|640)px\)[\s\S]*?RC990 task tile grid[\s\S]*?grid-template-columns\s*:\s*minmax\(0\s*,\s*1fr\)/i,'Smartphone muss auf eine Kachel wechseln');
+});
+
+test('RC990 Design: Aufgabenkacheln sind sichtbar als kompakte Karten gestaltet',()=>{
+  for(const token of ['--rc990-card-border','--rc990-card-shadow','--rc990-task-accent']){
+    assert.match(style,new RegExp(token.replaceAll('-','\\-')+'\\s*:'),`${token} fehlt`);
+  }
+  assert.match(style,/RC990 task card identity/i,'sichtbarer Aufgaben-Kartenstil fehlt');
+  assert.match(style,/border-left\s*:\s*(?:4|5|6)px\s+solid\s+var\(--rc990-task-accent\)/i);
+  assert.match(style,/box-shadow\s*:\s*var\(--rc990-card-shadow\)/i);
+  assert.match(style,/background\s*:/i);
+});
+
 test('RC990 Design: Warncenter und Benachrichtigungscenter bleiben getrennt und unterschiedlich markiert',()=>{
   assert.match(html,/Warncenter/i);
   assert.match(html,/Benachrichtigungscenter/i);
