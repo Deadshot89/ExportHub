@@ -1,0 +1,192 @@
+name: RC973 Long Text Auto-Grow Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc973-long-text-autogrow-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc973-long-text-autogrow-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: RC973 Langtext-Auto-Grow einbauen
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          path=Path('TESTVERSION.html')
+          text=path.read_text(encoding='utf-8')
+
+          if 'id="rc973-autogrow-long-text"' in text or 'id="exporthub-rc973-autogrow-long-text"' in text:
+              raise SystemExit('RC973 Auto-Grow ist bereits vorhanden; kein doppelter Block erlaubt.')
+
+          build_rx=re.compile(r"(var BUILD=Object\.freeze\(\{version:')RC(\d+)(',cache:')(\d+)(')")
+          m=build_rx.search(text)
+          if not m:
+              raise SystemExit('BUILD-Marker nicht gefunden.')
+          version=int(m.group(2)); cache=int(m.group(4))
+          if version != 972:
+              raise SystemExit(f'Erwartet wurde RC972 als Ausgangsstand, gefunden RC{version}.')
+          if cache < 972:
+              raise SystemExit(f'Unerwarteter Cache-Stand {cache}.')
+          text=build_rx.sub(r"\1RC973\g<3>973\5",text,count=1)
+
+          note_anchor=re.search(r"([\"']RC972 schließt den zweiten globalen Feld-Audit ab:)",text)
+          if note_anchor:
+              quote=note_anchor.group(1)[0]
+              notes=(
+                  f"{quote}RC973 hebt feste beziehungsweise gedeckelte Bildschirmhöhen ausschließlich für echte mehrzeilige Langtextfelder auf. Mailvorlagen, Kunden- und Prozesshinweise, Notizen sowie Beschreibungen wachsen und schrumpfen jetzt automatisch mit ihrem Inhalt; gespeicherte Inhalte werden beim Öffnen neu vermessen.{quote},\n     "
+                  f"{quote}RC973 lässt einzeilige Eingaben, Selects, Uploads, Colli-Felder sowie Druck-, CMR- und Signaturbereiche unverändert. Die Änderung passt ausschließlich die Darstellungshöhe an und schreibt keine Fachwerte oder Speicherzustände.{quote},\n     "
+              )
+              text=text[:note_anchor.start()]+notes+text[note_anchor.start():]
+          else:
+              print('WARNUNG: RC972 Release-Note-Anker nicht gefunden; Funktionspatch wird trotzdem eindeutig über RC973-Marker dokumentiert.')
+
+          style='''
+          <!-- RC973 LONG TEXT AUTO-GROW START -->
+          <style id="rc973-autogrow-long-text">
+          @layer rc973{
+            :is(#content,#login,[role="dialog"]) textarea[data-rc973-autogrow="1"]{
+              box-sizing:border-box!important;
+              height:auto!important;
+              max-height:none!important;
+              overflow-y:hidden!important;
+              white-space:pre-wrap!important;
+              overflow-wrap:anywhere!important;
+              line-height:1.45!important;
+              resize:none!important;
+            }
+          }
+          </style>
+          <!-- RC973 LONG TEXT AUTO-GROW STYLE END -->
+          '''.strip()
+
+          script='''
+          <script id="exporthub-rc973-autogrow-long-text">
+          (function(){
+            'use strict';
+            if(window.__EXPORTHUB_RC973_AUTOGROW_LONG_TEXT__)return;
+            window.__EXPORTHUB_RC973_AUTOGROW_LONG_TEXT__=true;
+
+            var scheduled=0;
+            var delayed=0;
+
+            function isEligible(el){
+              if(!el||el.tagName!=='TEXTAREA')return false;
+              if(el.matches&&el.matches('[data-rc973-fixed-height="1"]'))return false;
+              if(el.closest&&el.closest('#loadListDoc,.rc390-paper,.index209-signature-dialog'))return false;
+              return !!(el.closest&&el.closest('#content,#login,[role="dialog"]'));
+            }
+
+            function cssMinHeight(el){
+              var n=0;
+              try{n=parseFloat(window.getComputedStyle(el).minHeight)||0}catch(_){}
+              return Number.isFinite(n)?n:0;
+            }
+
+            function resizeTextarea(el){
+              if(!isEligible(el))return false;
+              el.setAttribute('data-rc973-autogrow','1');
+              el.style.setProperty('max-height','none','important');
+              el.style.setProperty('overflow-y','hidden','important');
+              el.style.setProperty('height','auto','important');
+              var target=Math.max(cssMinHeight(el),Number(el.scrollHeight||0));
+              if(target>0)el.style.setProperty('height',Math.ceil(target)+'px','important');
+              return true;
+            }
+
+            function scan(root){
+              var scope=root&&root.querySelectorAll?root:document;
+              if(root&&root.nodeType===1&&isEligible(root))resizeTextarea(root);
+              Array.prototype.forEach.call(scope.querySelectorAll('textarea'),resizeTextarea);
+            }
+
+            function runScheduled(){
+              scheduled=0;
+              scan(document);
+            }
+
+            function schedule(){
+              if(!scheduled)scheduled=requestAnimationFrame(runScheduled);
+              clearTimeout(delayed);
+              delayed=setTimeout(function(){delayed=0;scan(document)},60);
+            }
+
+            document.addEventListener('input',function(ev){
+              if(isEligible(ev.target))resizeTextarea(ev.target);
+            },true);
+            document.addEventListener('change',function(ev){
+              if(isEligible(ev.target))resizeTextarea(ev.target);
+            },true);
+
+            ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){
+              window.addEventListener(name,schedule);
+            });
+            window.addEventListener('resize',schedule,{passive:true});
+
+            var observer=new MutationObserver(function(records){
+              for(var i=0;i<records.length;i++){
+                var r=records[i];
+                if(r.type==='childList'&&(r.addedNodes&&r.addedNodes.length)){schedule();return}
+                if(r.type==='attributes'){schedule();return}
+              }
+            });
+            observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','open','aria-hidden']});
+
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});
+            else schedule();
+          })();
+          </script>
+          <!-- RC973 LONG TEXT AUTO-GROW END -->
+          '''.strip()
+
+          head_pos=text.lower().rfind('</head>')
+          body_pos=text.lower().rfind('</body>')
+          if head_pos<0 or body_pos<0:
+              raise SystemExit('HTML-Endmarker </head> / </body> fehlen.')
+          text=text[:head_pos]+style+'\n'+text[head_pos:]
+          body_pos=text.lower().rfind('</body>')
+          text=text[:body_pos]+script+'\n'+text[body_pos:]
+
+          if text.count('id="rc973-autogrow-long-text"')!=1:
+              raise SystemExit('RC973 Style wurde nicht genau einmal eingefügt.')
+          if text.count('id="exporthub-rc973-autogrow-long-text"')!=1:
+              raise SystemExit('RC973 Script wurde nicht genau einmal eingefügt.')
+          if ".value=" in script or ".value =" in script:
+              raise SystemExit('RC973 darf keine Feldwerte schreiben.')
+
+          path.write_text(text,encoding='utf-8')
+          print('RC973 Auto-Grow eingebaut.')
+          PY
+
+      - name: RC973 Regression vor Commit
+        run: node --test test/rc973-long-text-autogrow.test.mjs
+
+      - name: Änderungen committen
+        shell: bash
+        run: |
+          if git diff --quiet -- TESTVERSION.html; then
+            echo "Keine Änderung an TESTVERSION.html vorhanden."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TESTVERSION.html
+          git commit -m "RC973: Langtextfelder automatisch an Inhalt anpassen"
+          git push origin HEAD:main
