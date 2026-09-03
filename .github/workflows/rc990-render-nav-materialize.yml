@@ -21,18 +21,23 @@ jobs:
         with:
           ref: rc990-large-ux
           fetch-depth: 0
-      - name: Materialize concise render/navigation audit
+      - name: Materialize focused render/navigation audits
         run: python .github/rc990_render_nav_materialize.py
-      - name: Commit audit result
+      - name: Commit audit results
         shell: bash
         run: |
           set -euo pipefail
-          if git ls-files --error-unmatch .github/rc990_render_nav_audit_result.txt >/dev/null 2>&1 && git diff --quiet -- .github/rc990_render_nav_audit_result.txt; then
-            echo 'Audit result unchanged.'
-            exit 0
-          fi
+          files=(
+            .github/rc990_render_focus_audit.txt
+            .github/rc990_render_scheduler_audit.txt
+            .github/rc990_render_view_audit.txt
+          )
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/rc990_render_nav_audit_result.txt
-          git commit -m 'chore: record RC990 render navigation audit result'
+          git add "${files[@]}"
+          if git diff --cached --quiet; then
+            echo 'Audit results unchanged.'
+            exit 0
+          fi
+          git commit -m 'chore: record focused RC990 render navigation audits'
           git push origin HEAD:rc990-large-ux
