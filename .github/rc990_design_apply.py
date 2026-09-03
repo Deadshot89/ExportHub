@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from pathlib import Path
 import re
 
 PATH = Path("TESTVERSION.html")
 STYLE_ID = "rc990-design-system"
 LEGACY_STYLE_ID = "exporthub-rc364-mobile-overflow-fix"
+SCRIPT_RE = re.compile(r"<script\b[^>]*>([\s\S]*?)</script>", re.IGNORECASE)
 
 RC990_STYLE = r'''<style id="rc990-design-system">
 /*
@@ -224,43 +227,65 @@ RC990_STYLE = r'''<style id="rc990-design-system">
 </style>'''
 
 
-def replace_style(html: str, style_id: str, replacement: str | None) -> tuple[str, int]:
-    pattern = re.compile(
+def style_pattern(style_id: str) -> re.Pattern[str]:
+    return re.compile(
         rf'<style\s+id=["\']{re.escape(style_id)}["\'][^>]*>.*?</style>',
         re.IGNORECASE | re.DOTALL,
     )
-    if replacement is None:
-        return pattern.subn('', html)
-    return pattern.subn(replacement, html)
+
+
+def script_blocks(html: str) -> list[str]:
+    return [m.group(1) for m in SCRIPT_RE.finditer(html)]
 
 
 def main() -> None:
-    html = PATH.read_text(encoding="utf-8")
+    original = PATH.read_text(encoding="utf-8")
+    before_scripts = script_blocks(original)
+    html = original
 
-    # Replace the exact legacy 100vw notifications layer instead of stacking another override.
-    html, legacy_count = replace_style(html, LEGACY_STYLE_ID, None)
-    if legacy_count > 1:
-        raise SystemExit(f"Expected at most one {LEGACY_STYLE_ID}, found {legacy_count}")
+    rc990_matches = list(style_pattern(STYLE_ID).finditer(html))
+    legacy_matches = list(style_pattern(LEGACY_STYLE_ID).finditer(html))
+    if len(rc990_matches) > 1:
+        raise SystemExit(f"Expected at most one {STYLE_ID}, found {len(rc990_matches)}")
+    if len(legacy_matches) > 1:
+        raise SystemExit(f"Expected at most one {LEGACY_STYLE_ID}, found {len(legacy_matches)}")
 
-    html, existing_count = replace_style(html, STYLE_ID, RC990_STYLE)
-    if existing_count > 1:
-        raise SystemExit(f"Expected at most one {STYLE_ID}, found {existing_count}")
+    if rc990_matches:
+        html = style_pattern(STYLE_ID).sub(RC990_STYLE, html, count=1)
+        html = style_pattern(LEGACY_STYLE_ID).sub("", html)
+        mode = "updated existing RC990 style"
+    elif legacy_matches:
+        # Safe insertion point: replace the known standalone legacy style in-place.
+        # Never guess a closing </body> position because late scripts contain HTML strings.
+        html = style_pattern(LEGACY_STYLE_ID).sub(RC990_STYLE, html, count=1)
+        mode = "replaced standalone legacy style in-place"
+    else:
+        raise SystemExit(
+            "No safe RC990 insertion anchor found. Refusing to guess an HTML closing tag position."
+        )
 
-    if existing_count == 0:
-        body_close = html.lower().rfind("</body>")
-        if body_close < 0:
-            raise SystemExit("Could not find final </body> insertion point")
-        html = html[:body_close] + "\n\n" + RC990_STYLE + "\n" + html[body_close:]
-
-    if len(re.findall(r'<style\s+id=["\']rc990-design-system["\']', html, re.IGNORECASE)) != 1:
+    if len(style_pattern(STYLE_ID).findall(html)) != 1:
         raise SystemExit("RC990 design style must exist exactly once after apply")
-    if re.search(r'<style\s+id=["\']exporthub-rc364-mobile-overflow-fix["\']', html, re.IGNORECASE):
+    if style_pattern(LEGACY_STYLE_ID).search(html):
         raise SystemExit("Legacy RC364 viewport-width style is still active")
+
+    after_scripts = script_blocks(html)
+    if len(after_scripts) != len(before_scripts):
+        raise SystemExit(
+            f"RC990 apply changed script count: {len(before_scripts)} -> {len(after_scripts)}"
+        )
+    changed_scripts = [
+        index + 1
+        for index, (before, after) in enumerate(zip(before_scripts, after_scripts))
+        if before != after
+    ]
+    if changed_scripts:
+        raise SystemExit(f"RC990 apply modified script block(s): {changed_scripts}")
 
     PATH.write_text(html, encoding="utf-8")
     print(
-        "RC990 design applied: canonical style present once; "
-        f"legacy mobile style removed={legacy_count == 1}; existing RC990 replaced={existing_count == 1}"
+        "RC990 design applied safely: "
+        f"{mode}; scripts preserved byte-identically={len(before_scripts)}"
     )
 
 
