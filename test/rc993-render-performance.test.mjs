@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const html = fs.readFileSync('TESTVERSION.html', 'utf8');
+const releaseText = 'RC993 berechnet die gefilterte und sortierte Sendungsübersicht pro ruhigem Patch nur einmal und verwendet dieselbe Reihenfolge für Kartenverschiebungen und Sortierung.';
 
 function block(startPattern, endPattern, max = 9000) {
   const match = html.match(startPattern);
@@ -19,12 +20,17 @@ function countMatches(source, pattern) {
   return (source.match(pattern) || []).length;
 }
 
+test('RC993: kanonischer Build und Release-Center-Punkt sind sichtbar', () => {
+  assert.match(html, /var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC993',cache:'993',loginReturn:'\/TESTVERSION\.html\?v=993'\}\)/);
+  assert.ok(html.includes(releaseText), 'RC993 Release-Center-Punkt fehlt');
+});
+
 test('RC993: ruhiger Overview-Patch berechnet die gefilterte Sendungsliste nur einmal', () => {
   const src = block(/function\s+rc640PatchOverviewQuietly\s*\(/, /function\s+rc640ScheduleOverviewPatch\s*\(/, 7000);
   assert.ok(src, 'rc640PatchOverviewQuietly fehlt');
   assert.equal(countMatches(src, /overviewFiltered\s*\(/g), 1, 'overviewFiltered darf im ruhigen Patch nur einmal berechnet werden');
-  assert.match(src, /rc485PatchOverviewCards\s*\(\s*desired\s*\)/, 'vorberechnete Liste muss an den Karten-Patch weitergegeben werden');
-  assert.match(src, /overviewReorderExistingCards\s*\(\s*desired\s*\)/, 'vorberechnete Liste muss an die Sortierung weitergegeben werden');
+  assert.match(src, /rc485PatchOverviewCards\s*\(\s*desired\s*\)/, 'vorbereitete Liste muss an den Karten-Patch weitergegeben werden');
+  assert.match(src, /overviewReorderExistingCards\s*\(\s*desired\s*\)/, 'vorbereitete Liste muss an die Sortierung weitergegeben werden');
 });
 
 test('RC993: Karten-Patch teilt eine vorberechnete Reihenfolge mit allen verschobenen Karten', () => {
