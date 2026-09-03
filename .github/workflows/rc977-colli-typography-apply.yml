@@ -38,17 +38,17 @@ jobs:
           s = s.replace(old_build, new_build, 1)
 
           css = '''
-<style id="rc977-colli-typography">
-#rc363BlockColli #rc573ColliCard{--rc977-colli-font:12px}
-#rc363BlockColli #rc573ColliCard .rc363-colli-grid>[data-rc363-field]{font-size:var(--rc977-colli-font)!important;line-height:1.2!important}
-#rc363BlockColli #rc573ColliCard .rc363-colli-grid :is(input,select,button,.rc682-packaging-toggle){min-height:var(--rc971-control-h)!important;height:var(--rc971-control-h)!important;padding:7px 8px!important;font-size:var(--rc977-colli-font)!important;line-height:1.15!important}
-#rc363BlockColli #rc573ColliCard .rc682-packaging-toggle{font-size:var(--rc977-colli-font)!important;line-height:1.15!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
-#rc363BlockColli #rc573ColliCard [data-rc363-field="action"] button,#rc363BlockColli #rc573ColliCard [data-rc363-add-row]{font-size:var(--rc977-colli-font)!important}
-#rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox span{font-size:10px!important;line-height:1.15!important}
-#rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox strong{font-size:14px!important;line-height:1.1!important}
-#rc363BlockColli #rc573ColliCard :is(.notice,.badbox,.infobox){font-size:11px!important;line-height:1.3!important}
-</style>
-'''
+          <style id="rc977-colli-typography">
+          #rc363BlockColli #rc573ColliCard{--rc977-colli-font:12px}
+          #rc363BlockColli #rc573ColliCard .rc363-colli-grid>[data-rc363-field]{font-size:var(--rc977-colli-font)!important;line-height:1.2!important}
+          #rc363BlockColli #rc573ColliCard .rc363-colli-grid :is(input,select,button,.rc682-packaging-toggle){min-height:var(--rc971-control-h)!important;height:var(--rc971-control-h)!important;padding:7px 8px!important;font-size:var(--rc977-colli-font)!important;line-height:1.15!important}
+          #rc363BlockColli #rc573ColliCard .rc682-packaging-toggle{font-size:var(--rc977-colli-font)!important;line-height:1.15!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
+          #rc363BlockColli #rc573ColliCard [data-rc363-field="action"] button,#rc363BlockColli #rc573ColliCard [data-rc363-add-row]{font-size:var(--rc977-colli-font)!important}
+          #rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox span{font-size:10px!important;line-height:1.15!important}
+          #rc363BlockColli #rc573ColliCard .rc344-summary .summaryBox strong{font-size:14px!important;line-height:1.1!important}
+          #rc363BlockColli #rc573ColliCard :is(.notice,.badbox,.infobox){font-size:11px!important;line-height:1.3!important}
+          </style>
+          '''
 
           body_pos = s.find('<body')
           if body_pos < 0:
