@@ -24,6 +24,11 @@ function extractFunction(name){
   return '';
 }
 
+test('RC991: kanonischer Build ist RC991 und der Release-Center-Punkt ist sichtbar',()=>{
+  assert.match(html,/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC991',cache:'991',loginReturn:'\/TESTVERSION\.html\?v=991'\}\)/);
+  assert.match(html,/RC991 verhindert, dass ein älterer TESTSERVICE-Snapshot den geprüften Produktions-index oder den aktuellen Produktionsmarker überschreibt\./);
+});
+
 test('RC991: Snapshot darf autoritativen Produktionsmarker und index.html nicht überschreiben',()=>{
   const src=extractFunction('releaseFiles');
   assert.ok(src,'releaseFiles fehlt');
