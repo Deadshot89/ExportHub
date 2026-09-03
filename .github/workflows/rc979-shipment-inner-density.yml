@@ -1,0 +1,22 @@
+name: RC979 Shipment Inner Density
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'TESTVERSION.html'
+      - 'test/rc979-shipment-inner-density.test.mjs'
+      - '.github/workflows/rc979-shipment-inner-density.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: RC971 bis RC979 komplette Regression
+        run: node --test test/rc971-global-form-field-standard.test.mjs test/rc972-field-exception-audit.test.mjs test/rc973-long-text-autogrow.test.mjs test/rc975-global-render-integrity.test.mjs test/rc976-render-fallback-recovery.test.mjs test/rc977-colli-typography.test.mjs test/rc978-shipment-fluid-layout.test.mjs test/rc979-shipment-inner-density.test.mjs
