@@ -24,3 +24,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: RC971 bis RC976 komplette Render-Regression
         run: node --test test/rc971-global-form-field-standard.test.mjs test/rc972-field-exception-audit.test.mjs test/rc973-long-text-autogrow.test.mjs test/rc975-global-render-integrity.test.mjs test/rc976-render-fallback-recovery.test.mjs
+
+# RC976 post-promotion verification trigger
