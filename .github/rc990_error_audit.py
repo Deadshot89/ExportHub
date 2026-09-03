@@ -41,6 +41,8 @@ for signature in [
     'function rc990ScheduleRender(',
     'function toggleReleaseChange(',
     'function setReleaseChangeStatus(',
+    'function scheduleConfirmationSave(',
+    'function save(',
     'function operationFail(',
     'function loadingBarFail(',
 ]:
