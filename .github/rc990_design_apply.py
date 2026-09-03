@@ -37,7 +37,7 @@ RC990_STYLE = r'''<style id="rc990-design-system">
   #content > :is(section, .card, article, .rc524-page, .rc504-warehouse, #index218Planner):not(#loadListDoc):not(.rc390-paper),
   body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, #rc885Workspace .rc885-panel),
   body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse, .rc504-warehouse-kpi, .rc504-dashboard-item),
-  body[data-exporthub-view="tasks"] #content :is(.card, .task, .rc205-planner-task),
+  body[data-exporthub-view="tasks"] #content :is(.card, .task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),
   body[data-exporthub-view="planning"] #content :is(#index218Planner, .rc205-planner-task),
   #index236NotificationCenter :is(.card, .metric, .index236-item),
   #rc885WarningDrawer :is(.rc885-drawer, .rc885-panel, .rc889-overview) {
@@ -50,7 +50,7 @@ RC990_STYLE = r'''<style id="rc990-design-system">
   /* One compact density for Dashboard, Lager, Task/Aufgabe and Planner surfaces. */
   body[data-exporthub-view="dashboard"] #content :is(.rc205-dashboard-grid, .grid2, .grid3, .grid4, .metrics, .quick-grid),
   body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-summary, .rc504-dashboard-list, .grid2, .grid3, .grid4),
-  body[data-exporthub-view="tasks"] #content :is(.grid2, .grid3, .grid4, .task-groups, .rc628-task-groups),
+  body[data-exporthub-view="tasks"] #content :is(.grid2, .grid3, .grid4, .task-groups, .rc628-task-groups, .rc229-task-grid),
   body[data-exporthub-view="planning"] #content :is(.grid2, .grid3, .grid4, .rc205-dashboard-grid),
   #index236NotificationCenter :is(.index236-statusbar, .index236-metrics, .index236-columns, .grid2, .grid3),
   #rc885WarningDrawer :is(.rc885-grid, .rc889-grid) {
@@ -60,7 +60,7 @@ RC990_STYLE = r'''<style id="rc990-design-system">
 
   body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, #rc885Workspace .rc885-panel),
   body[data-exporthub-view="warehouse"] #content :is(.rc504-warehouse-kpi, .rc504-dashboard-item),
-  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task),
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),
   body[data-exporthub-view="planning"] #content .rc205-planner-task,
   #index236NotificationCenter :is(.index236-item, .metric, .card, .index236-statusbar > div),
   #rc885WarningDrawer :is(.rc885-panel, .rc889-overview) {
@@ -78,7 +78,13 @@ RC990_STYLE = r'''<style id="rc990-design-system">
     border-radius: var(--rc990-radius) !important;
   }
 
-  /* RC990 task tile grid: only direct task-card parents become grids. */
+  /* RC990 task tile grid: current RC628 task lists and planner lists are compact responsive grids. */
+  body[data-exporthub-view="tasks"] #content .rc229-task-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--rc990-card-gap) !important;
+    align-items: start !important;
+  }
   body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
   body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
   body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
@@ -95,7 +101,7 @@ RC990_STYLE = r'''<style id="rc990-design-system">
   }
 
   /* RC990 task card identity: compact, clearly bounded and fast to scan. */
-  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task),
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),
   body[data-exporthub-view="planning"] #content .rc205-planner-task {
     position: relative;
     width: auto !important;
@@ -110,6 +116,25 @@ RC990_STYLE = r'''<style id="rc990-design-system">
     border-radius: var(--rc990-radius) !important;
     box-sizing: border-box !important;
     overflow: hidden;
+  }
+
+  /* RC628 cards previously reserved too much vertical space; RC990 keeps all information but removes empty padding. */
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer) {
+    min-height: 0 !important;
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+    line-height: 1.25 !important;
+  }
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-customer {
+    font-size: 15px !important;
+  }
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-status {
+    min-height: 0 !important;
+    gap: 5px !important;
+  }
+  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-status :is(.pill, span) {
+    padding: 3px 8px !important;
+    font-size: 10px !important;
   }
 
   body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task) :is(.i218-task-name, .rc896-task-name),
@@ -199,7 +224,7 @@ RC990_STYLE = r'''<style id="rc990-design-system">
   /* RC946 pointer behavior remains authoritative: no new drag/card animation. */
   body[data-exporthub-view="dashboard"] #content :is(.rc205-widget, .rc504-dashboard-item, [draggable="true"]),
   body[data-exporthub-view="warehouse"] #content :is(.rc504-dashboard-item, .rc504-warehouse [draggable="true"]),
-  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, [draggable="true"]),
+  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task, [draggable="true"]),
   body[data-exporthub-view="planning"] #content :is(.rc205-planner-task, .i218-task-actions, .rc896-task-planning, [draggable="true"]) {
     transition: none !important;
   }
@@ -230,6 +255,9 @@ RC990_STYLE = r'''<style id="rc990-design-system">
 
   @media (max-width: 1000px) {
     /* RC990 task tile grid: two columns on medium screens. */
+    body[data-exporthub-view="tasks"] #content .rc229-task-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
     body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
     body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
     body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
@@ -255,6 +283,9 @@ RC990_STYLE = r'''<style id="rc990-design-system">
 
   @media (max-width: 700px) {
     /* RC990 task tile grid: one column on phones. */
+    body[data-exporthub-view="tasks"] #content .rc229-task-grid {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
     body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups):has(> :is(.task, .rc205-planner-task)),
     body[data-exporthub-view="tasks"] #content :is(.task-groups, .rc628-task-groups) :has(> :is(.task, .rc205-planner-task)),
     body[data-exporthub-view="planning"] #content #index218Planner :has(> .rc205-planner-task) {
@@ -331,8 +362,6 @@ def main() -> None:
         html = style_pattern(LEGACY_STYLE_ID).sub("", html)
         mode = "updated existing RC990 style"
     elif legacy_matches:
-        # Safe insertion point: replace the known standalone legacy style in-place.
-        # Never guess a closing </body> position because late scripts contain HTML strings.
         html = style_pattern(LEGACY_STYLE_ID).sub(RC990_STYLE, html, count=1)
         mode = "replaced standalone legacy style in-place"
     else:
