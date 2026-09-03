@@ -20,8 +20,7 @@ function countMatches(source, pattern) {
   return (source.match(pattern) || []).length;
 }
 
-test('RC993: kanonischer Build und Release-Center-Punkt sind sichtbar', () => {
-  assert.match(html, /var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC993',cache:'993',loginReturn:'\/TESTVERSION\.html\?v=993'\}\)/);
+test('RC993: Release-Center-Punkt bleibt als historischer Bestandsschutz sichtbar', () => {
   assert.ok(html.includes(releaseText), 'RC993 Release-Center-Punkt fehlt');
 });
 
