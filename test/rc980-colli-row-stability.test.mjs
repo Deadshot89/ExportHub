@@ -43,10 +43,12 @@ test('RC980: Desktop-Felder haben dauerhaft dieselben drei Reihen und Spaltenpos
 
 test('RC980: schmale Ansichten brechen kontrolliert um ohne Reihenbreiten abhängig von der Zeilenanzahl zu machen',()=>{
   const s=css();
-  const medium=s.match(/@container rc978ShipmentLayout \(max-width:760px\)\{([\s\S]*?)\}@container rc978ShipmentLayout \(max-width:520px\)/i)?.[1]||'';
+  const mediumStart=s.indexOf('@container rc978ShipmentLayout (max-width:760px){');
+  const narrowStart=s.indexOf('@container rc978ShipmentLayout (max-width:520px){',mediumStart+1);
+  const medium=mediumStart>=0&&narrowStart>mediumStart?s.slice(mediumStart,narrowStart):'';
   assert.ok(medium,'RC980-Regel für mittlere Inhaltsbreite fehlt');
   assert.match(medium,/\.rc363-colli-grid\{grid-template-columns:repeat\(6,minmax\(0,1fr\)\)!important;grid-template-rows:repeat\(4,max-content\)!important\}/,'Mittlere Breite muss kontrolliert auf 6 Spalten / 4 Reihen wechseln');
-  const narrow=s.match(/@container rc978ShipmentLayout \(max-width:520px\)\{([\s\S]*?)\}\s*$/i)?.[1]||'';
+  const narrow=narrowStart>=0?s.slice(narrowStart):'';
   assert.ok(narrow,'RC980-Regel für sehr schmale Inhaltsbreite fehlt');
   assert.match(narrow,/\.rc363-colli-grid\{grid-template-columns:1fr!important;grid-template-rows:none!important\}/,'Sehr schmale Breite muss sauber einspaltig werden');
   assert.match(narrow,/\.rc363-colli-grid>\[data-rc363-field\]\{grid-column:1!important;grid-row:auto!important\}/,'Alle Felder müssen in der Einspaltenansicht automatisch untereinander laufen');
