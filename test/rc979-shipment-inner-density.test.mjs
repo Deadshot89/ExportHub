@@ -40,6 +40,18 @@ test('RC979: Kunde, Sendungsdaten und Dokumente richten Inhalte oben statt küns
   assert.match(css, /#rc363BlockCustomer \.rc363-process-body>:is\(\.okbox,\.badbox,\.notice,\.infobox\)[^{]*\{[^}]*min-height:0!important/s, 'Kundenhinweise dürfen keine starre 72px Mindesthöhe mehr erzwingen');
 });
 
+test('RC979: Sendungsfelder nutzen ihre Breite sinnvoll und reduzieren unnötige Leerzeilen', () => {
+  const css = styleBlock();
+  assert.match(css, /#rc896ShipmentFieldGrid[^\{]*\{[^\}]*grid-template-columns:repeat\(12,minmax\(0,1fr\)\)!important/s, 'Sendungsraster soll 12 flexible Spalten nutzen');
+  for (const field of ['reference','pickup','carrier']) {
+    assert.match(css, new RegExp(`\\[data-rc896-field="${field}"\\][^\\{]*\\{[^\\}]*grid-column:span 4!important`, 's'), `${field} soll ein Drittel der Zeile nutzen`);
+  }
+  for (const field of ['description','remark']) {
+    assert.match(css, new RegExp(`\\[data-rc896-field="${field}"\\][^\\{]*\\{[^\\}]*grid-column:span 6!important`, 's'), `${field} soll eine halbe Zeile nutzen`);
+  }
+  assert.match(css, /@container rc978ShipmentLayout \(max-width:760px\)[\s\S]*?#rc896ShipmentFieldGrid\{grid-template-columns:1fr!important\}/, 'Schmale Ansichten müssen wieder einspaltig werden');
+});
+
 test('RC979: lange Textfelder starten kompakter und wachsen weiterhin automatisch', () => {
   const css = styleBlock();
   assert.match(css, /#rc363BlockShipment #rc896ShipmentFieldGrid textarea[^\{]*\{[^\}]*min-height:64px!important[^\}]*height:auto!important/s, 'Sendungs-Langtexte müssen kompakter starten');
