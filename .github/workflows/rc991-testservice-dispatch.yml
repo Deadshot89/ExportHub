@@ -1,0 +1,19 @@
+name: RC991 TESTSERVICE Dispatcher
+
+on:
+  push:
+    branches:
+      - rc991-testservice-dispatch
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch TESTSERVICE for RC991 branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run exporthub-testservice.yml --repo Deadshot89/ExportHub --ref rc991-release-marker-fix
