@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const html = fs.readFileSync('TESTVERSION.html', 'utf8');
+const releaseText = 'RC994 hält Verschiebungen im Aufgabenplaner und Lager im lokalen DOM-Hotpath: Der Planer vermeidet den nachgelagerten Vollrender und das Lager aktualisiert nur das tatsächlich geänderte Drop-Ziel.';
 
 function between(start, end, max = 16000) {
   const i = html.indexOf(start);
@@ -11,6 +12,11 @@ function between(start, end, max = 16000) {
   const j = end ? tail.indexOf(end) : -1;
   return j >= 0 ? tail.slice(0, j) : tail;
 }
+
+test('RC994: kanonischer Build und Release-Center-Punkt sind sichtbar', () => {
+  assert.match(html, /var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC994',cache:'994',loginReturn:'\/TESTVERSION\.html\?v=994'\}\)/);
+  assert.ok(html.includes(releaseText), 'RC994 Release-Center-Punkt fehlt');
+});
 
 test('RC994: Planner-Reconcile nach Drag verschiebt lokal und löst keinen Vollrender aus', () => {
   const src = between('function plannerQueueReconcileRC907()', 'function moveTask(', 5000);
