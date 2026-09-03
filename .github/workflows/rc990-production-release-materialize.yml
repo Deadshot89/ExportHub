@@ -18,52 +18,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: rc990-production-release
-          fetch-depth: 6
-      - name: Inspect exact stripBlock and transform sizes
+          fetch-depth: 7
+      - name: Locate all stripBlock implementations
         shell: bash
         run: |
           set -euo pipefail
           python3 <<'PY'
           from pathlib import Path
+          import re
           s=Path('TESTVERSION.html').read_text(encoding='utf-8')
-          start=s.find('function stripBlock')
-          print('stripBlock start',start)
-          print(s[start:start+3000])
+          hits=list(re.finditer(r'function\s+stripBlock\s*\(([^)]*)\)',s))
+          print('COUNT',len(hits))
+          for i,m in enumerate(hits,1):
+              print('---',i,'pos',m.start(),'args',m.group(1),'---')
+              print(s[m.start():m.start()+1200])
           PY
-          node <<'NODE'
-          const fs=require('fs'),crypto=require('crypto');
-          const source=fs.readFileSync('TESTVERSION.html','utf8');
-          function extractSimple(src,name){
-            const start=src.indexOf('function '+name);if(start<0)throw new Error(name+' fehlt');
-            let brace=src.indexOf('{',start),i=brace,depth=0,q='',esc=false,line=false,block=false,regex=false,cls=false;
-            for(;i<src.length;i++){
-              const c=src[i],n=src[i+1],p=src[i-1];
-              if(line){if(c==='\n')line=false;continue;}
-              if(block){if(c==='*'&&n==='/'){block=false;i++;}continue;}
-              if(q){if(esc)esc=false;else if(c==='\\')esc=true;else if(c===q)q='';continue;}
-              if(regex){if(esc)esc=false;else if(c==='\\')esc=true;else if(c==='[')cls=true;else if(c===']')cls=false;else if(c==='/'&&!cls)regex=false;continue;}
-              if(c==='/'&&n==='/'){line=true;i++;continue;}
-              if(c==='/'&&n==='*'){block=true;i++;continue;}
-              if(c==='"'||c==="'"||c==='`'){q=c;continue;}
-              if(c==='/' ){let j=i-1;while(j>=0&&/\s/.test(src[j]))j--;const prev=src[j];if(!prev||'([=,:;!&|?{};'.includes(prev)){regex=true;continue;}}
-              if(c==='{')depth++;else if(c==='}'&&--depth===0)return src.slice(start,i+1);
-            }
-            throw new Error('unvollständig '+name);
-          }
-          const stripSrc=extractSimple(source,'stripBlock');
-          console.log('EXTRACTED STRIPBLOCK:',stripSrc);
-          const stripBlock=eval('('+stripSrc+')');
-          const build=source.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'(RC\d+)',cache:'([^']+)'/);const CACHE=build[2];
-          const h=x=>crypto.createHash('sha256').update(Buffer.from(x)).digest('hex');
-          let html=source;
-          console.log('source',Buffer.byteLength(html),h(html));
-          for(const [tag,id] of [['script','rc561-testportal-mode'],['style','rc561-testportal-identity-style'],['script','rc561-testportal-runtime']]){
-            const before=Buffer.byteLength(html);html=stripBlock(html,tag,id);console.log(id,'delta',Buffer.byteLength(html)-before,'len',Buffer.byteLength(html),h(html));
-          }
-          let before=Buffer.byteLength(html);html=html.replace(/loginReturn:\s*['"]\/TESTVERSION\.html\?v=\d+['"]/i,"loginReturn:'/?v="+CACHE+"'");console.log('replace1 delta',Buffer.byteLength(html)-before,h(html));
-          before=Buffer.byteLength(html);html=html.replace(/loginReturn:\s*['"]\/test\?v=\d+['"]/i,"loginReturn:'/?v="+CACHE+"'");console.log('replace2 delta',Buffer.byteLength(html)-before,h(html));
-          before=Buffer.byteLength(html);html=html.replace(/window\.__EXPORTHUB_RELEASE_CHANNEL__\s*=\s*['"]test['"];?/g,'');console.log('channel delta',Buffer.byteLength(html)-before,h(html));
-          before=Buffer.byteLength(html);html=html.replace(/document\.documentElement\.setAttribute\(['"]data-exporthub-portal['"],['"]test['"]\);?/g,'');console.log('portal delta',Buffer.byteLength(html)-before,h(html));
-          console.log('FINAL',Buffer.byteLength(html),h(html));
-          console.log('EXPECTED 5445727 f71ec67c3e97fab6a290f0ff98f13198b280e697aa5267802d0e6d9a5675f5c3');
-          NODE
