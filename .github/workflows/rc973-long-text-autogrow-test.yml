@@ -1,0 +1,22 @@
+name: RC973 Long Text Auto-Grow Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'TESTVERSION.html'
+      - 'test/rc973-long-text-autogrow.test.mjs'
+      - '.github/workflows/rc973-long-text-autogrow-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: RC973 Long Text Auto-Grow Regression
+        run: node --test test/rc973-long-text-autogrow.test.mjs
