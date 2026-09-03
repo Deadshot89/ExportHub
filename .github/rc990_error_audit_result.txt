@@ -15,6 +15,12 @@ function toggleReleaseChange(key,checked){key=q(key);var pos=rc990CaptureRelease
 ===== function setReleaseChangeStatus( =====
 function setReleaseChangeStatus(key,next){key=q(key);next=q(next);var item=changeItemByKey(key);if(!item)return false;var pos=rc990CaptureReleasePosition(key);if(next==='failed'){var existing=failureFor(item),reason=prompt('Warum ist diese Änderung nicht bestanden?\n\nBitte den Fehler so beschreiben, dass er später gezielt repariert werden kann.',existing&&existing.reason||'');if(reason===null){rc990PendingReleasePosition=null;return false}reason=q(reason);if(!reason){alert('Für „Nicht bestanden“ ist eine Fehlerbeschreibung erforderlich.');rc990PendingReleasePosition=null;return false}recordFailure(item,reason)}else if(next==='passed'){recordPassed(item)}else{recordOpen(item)}scheduleConfirmationSave('Release-Center: Prüfstatus der Änderung aktualisiert');preserveReleaseScroll(function(){refreshUnreleasedChangesCard();refreshFailureReportCard();updateReleaseGateUi()});rc990ArmReleasePosition(pos);return false}
 
+===== function scheduleConfirmationSave( =====
+function scheduleConfirmationSave(reason){if(releaseChecklistSaveTimer)clearTimeout(releaseChecklistSaveTimer);releaseChecklistSaveTimer=setTimeout(function(){releaseChecklistSaveTimer=0;var pos=rc990PendingReleasePosition;applyPendingConfirmations();save(reason||'Release-Center: Bestätigungen gespeichert');if(pos)rc990ArmReleasePosition(pos)},900);return true}
+
+===== function save( =====
+function save(reason){try{if(window.ExportHUBClean&&window.ExportHUBClean.queueSave)window.ExportHUBClean.queueSave(reason||'RC524 Änderung');else if(typeof window.save==='function')window.save()}catch(e){console.error(e)}}
+
 ===== function operationFail( =====
 function operationFail(token,text){return operationFinish(token,text,true)}
 
