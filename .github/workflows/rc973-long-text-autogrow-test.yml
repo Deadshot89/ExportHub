@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'TESTVERSION.html'
+      - 'test/rc971-global-form-field-standard.test.mjs'
+      - 'test/rc972-field-exception-audit.test.mjs'
       - 'test/rc973-long-text-autogrow.test.mjs'
       - '.github/workflows/rc973-long-text-autogrow-test.yml'
   workflow_dispatch:
@@ -18,7 +20,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: RC973 Long Text Auto-Grow Regression
-        run: node --test test/rc973-long-text-autogrow.test.mjs
+      - name: RC971 bis RC973 vollständige Feldregression
+        run: node --test test/rc971-global-form-field-standard.test.mjs test/rc972-field-exception-audit.test.mjs test/rc973-long-text-autogrow.test.mjs
 
-# RC973 final verification trigger
+# RC973 full field-regression verification trigger
