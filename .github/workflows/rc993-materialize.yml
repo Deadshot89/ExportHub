@@ -1,0 +1,85 @@
+name: RC993 Materialize Render Fix
+
+on:
+  push:
+    branches:
+      - rc993-render-performance
+    paths:
+      - '.github/workflows/rc993-materialize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply RC993 overview hotpath fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('TESTVERSION.html')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              "function overviewReorderExistingCards(){var r=root();if(!r)return false;var desired=overviewFiltered(),rank=new Map();",
+              "function overviewReorderExistingCards(desired){var r=root();if(!r)return false;desired=Array.isArray(desired)?desired:overviewFiltered();var rank=new Map();"
+            ),
+            (
+              "function overviewPlaceChangedCard(card,sh){if(!card||!sh||overviewGroupBy()!=='status')return false;var key=overviewStatusKey(sh),group=overviewEnsureGroup(key),body=group&&group.querySelector(':scope>.rc543-overview-group-body');if(!body)return false;var moved=card.parentNode!==body;if(moved)body.appendChild(card);var desired=overviewFiltered().filter(function(x){return overviewStatusKey(x)===key}),id=shipmentId(sh),idx=desired.findIndex(function(x){return shipmentId(x)===id}),next=null;",
+              "function overviewDesiredSnapshot(desired){return Array.isArray(desired)?desired:overviewFiltered()} function overviewPlaceChangedCard(card,sh,desired){if(!card||!sh||overviewGroupBy()!=='status')return false;var key=overviewStatusKey(sh),group=overviewEnsureGroup(key),body=group&&group.querySelector(':scope>.rc543-overview-group-body');if(!body)return false;var moved=card.parentNode!==body;if(moved)body.appendChild(card);desired=(Array.isArray(desired)?desired:overviewFiltered()).filter(function(x){return overviewStatusKey(x)===key});var id=shipmentId(sh),idx=desired.findIndex(function(x){return shipmentId(x)===id}),next=null;"
+            ),
+            (
+              "window.rc485PatchOverviewCards=function(){var r=root();if(!r||currentView()!=='shipmentoverview')return false;var changed=0;",
+              "window.rc485PatchOverviewCards=function(desired){var r=root();if(!r||currentView()!=='shipmentoverview')return false;var changed=0;"
+            ),
+            (
+              "if(overviewGroupBy()==='status'&&(before!==after||parentKey!==after))overviewPlaceChangedCard(card,sh);changed++",
+              "if(overviewGroupBy()==='status'&&(before!==after||parentKey!==after)){if(!Array.isArray(desired))desired=overviewDesiredSnapshot(desired);overviewPlaceChangedCard(card,sh,desired)}changed++"
+            ),
+            (
+              "var r=root(),expected=overviewFiltered().map(function(sh){return shipmentId(sh)}).filter(Boolean),actual=Array.from(r.querySelectorAll('.rc524-shipment-card[data-shipment]')).map(function(card){return Q(card.getAttribute('data-shipment'))}).filter(Boolean),same=expected.length===actual.length&&expected.every(function(id){return actual.indexOf(id)>=0});",
+              "var r=root(),desired=overviewFiltered(),expected=desired.map(function(sh){return shipmentId(sh)}).filter(Boolean),actual=Array.from(r.querySelectorAll('.rc524-shipment-card[data-shipment]')).map(function(card){return Q(card.getAttribute('data-shipment'))}).filter(Boolean),same=expected.length===actual.length&&expected.every(function(id){return actual.indexOf(id)>=0});"
+            ),
+            (
+              "window.rc485PatchOverviewCards();overviewReorderExistingCards();patchOverviewGroupHeaders();return true",
+              "window.rc485PatchOverviewCards(desired);overviewReorderExistingCards(desired);patchOverviewGroupHeaders();return true"
+            ),
+          ]
+
+          for old, new in replacements:
+            count = text.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected exactly one match, got {count}: {old[:120]}')
+            text = text.replace(old, new, 1)
+
+          marker = '/* exporthub-rc993-overview-single-snapshot */'
+          needle = 'function overviewDesiredSnapshot(desired){'
+          if marker not in text:
+            text = text.replace(needle, marker + ' ' + needle, 1)
+
+          path.write_text(text, encoding='utf-8')
+          print('RC993 overview hotpath fix applied.')
+          PY
+      - name: RC993 targeted test
+        run: node --test test/rc993-render-performance.test.mjs
+      - name: Full test suite
+        run: npm test
+      - name: Commit RC993 fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add TESTVERSION.html
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'No RC993 code changes.'
+            exit 0
+          fi
+          git commit -m 'RC993: Sendungsübersicht pro Patch nur einmal berechnen'
+          git push
