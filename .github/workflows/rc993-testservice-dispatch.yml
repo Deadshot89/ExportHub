@@ -1,0 +1,29 @@
+name: RC993 TESTSERVICE Dispatch
+
+on:
+  push:
+    branches:
+      - rc993-render-performance
+    paths:
+      - '.github/workflows/rc993-testservice-dispatch.yml'
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch official TESTSERVICE workflow for RC993 branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run exporthub-testservice.yml --ref rc993-render-performance
+      - name: Remove temporary dispatcher
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/rc993-testservice-dispatch.yml
+          git commit -m 'RC993: temporären TESTSERVICE-Dispatcher entfernen'
+          git push
