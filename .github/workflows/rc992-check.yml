@@ -1,0 +1,21 @@
+name: RC992 State Save Performance Check
+
+on:
+  push:
+    branches:
+      - rc992-state-save-performance
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run ExportHUB regression tests
+        run: npm test
