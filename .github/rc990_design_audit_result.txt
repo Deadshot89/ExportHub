@@ -1,0 +1,665 @@
+===== Warncenter | hits=9 =====
+000316:  version:'RC885',
+000317:  date:'31.08.2026',
+000318:  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
+000319:  changes:Object.freeze([
+000320:     'RC973 hebt feste beziehungsweise gedeckelte Bildschirmhöhen ausschließlich für echte mehrzeilige Langtextfelder auf. Mailvorlagen, Kunden- und Prozesshinweise, Notizen sowie Beschreibungen wachsen und schrumpfen jetzt automatisch mit ihrem Inhalt; gespeicherte Inhalte werden beim Öffnen neu vermessen.',
+000321:      'RC973 lässt einzeilige Eingaben, Selects, Uploads, Colli-Felder sowie Druck-, CMR- und Signaturbereiche unverändert. Die Änderung passt ausschließlich die Darstellungshöhe an und schreibt keine Fachwerte oder Speicherzustände.',
+---
+000382:     "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
+000383:     "RC919 bestätigt den bestehenden Lager-Optimistic-Move: die Lagerkachel wird weiterhin vor dem Location-API-Warten lokal in die Ziellocation gesetzt; bei Serverfehler wird ausschließlich dieser lokale Schritt zurückgerollt.",
+000384:     "RC918 trennt Benachrichtigungscenter und Warncenter fachlich eindeutig: Benachrichtigungen erinnern nur noch an persönliche offene Aufgaben zu den festen Prüfzeiten 09:00, 12:00 und 15:00 Uhr; operative Sendungsabweichungen gehören ausschließlich in das Warncenter.",
+000385:     "RC918 entfernt überfällige Sendungen aus Benachrichtigungsseite, Browser-Hinweis und Benachrichtigungszähler. Die bestehenden Abholerinnerungs-Mails bleiben weiterhin direkt in Sendungsübersicht und Sendungsansicht verfügbar.",
+000386:     "RC918 entfernt Aufgaben aus dem Warncenter. Dort werden ausschließlich Sendungsprobleme nach POD fehlt, Dokumente und Abholung gruppiert; eine Sendung wird dabei nur einmal in der jeweils wichtigsten Handlungsgruppe gezählt und angezeigt.",
+000387:     "RC918 hält Erinnerungsverlauf und 09/12/15-Uhr-Status lokal pro Benutzer und Gerät. Die Trennung von Benachrichtigung und Warnung erzeugt keinen Azure-Save.",
+---
+000384:     "RC918 trennt Benachrichtigungscenter und Warncenter fachlich eindeutig: Benachrichtigungen erinnern nur noch an persönliche offene Aufgaben zu den festen Prüfzeiten 09:00, 12:00 und 15:00 Uhr; operative Sendungsabweichungen gehören ausschließlich in das Warncenter.",
+000385:     "RC918 entfernt überfällige Sendungen aus Benachrichtigungsseite, Browser-Hinweis und Benachrichtigungszähler. Die bestehenden Abholerinnerungs-Mails bleiben weiterhin direkt in Sendungsübersicht und Sendungsansicht verfügbar.",
+000386:     "RC918 entfernt Aufgaben aus dem Warncenter. Dort werden ausschließlich Sendungsprobleme nach POD fehlt, Dokumente und Abholung gruppiert; eine Sendung wird dabei nur einmal in der jeweils wichtigsten Handlungsgruppe gezählt und angezeigt.",
+000387:     "RC918 hält Erinnerungsverlauf und 09/12/15-Uhr-Status lokal pro Benutzer und Gerät. Die Trennung von Benachrichtigung und Warnung erzeugt keinen Azure-Save.",
+000388:     "RC917 vereinheitlicht die öffentliche QR-Abholung endgültig mit dem aktuellen Serverformat: Als Pickup-Token werden ausschließlich 48-stellige hexadezimale Tokens akzeptiert.",
+000389:     "RC917 blockiert beschädigte, alte Kurz- und fremde Base64URL-Tokens bereits im frühen Pickup-Router und in pickup.html. Solche Werte werden nicht mehr an pickup-status gesendet und können keine unnötigen HTTP-400-/Diagnoseereignisse auslösen.",
+---
+001146:    'RC918 Benachrichtigungen: Der Bereich zeigt nur persönliche offene Aufgaben, Prüfzeiten und Erinnerungsverlauf. Überfällige Sendungen erscheinen dort weder als Kennzahl noch als Liste.',
+001147:    'RC918 Browser-Erinnerung: Eine fällige 09/12/15-Uhr-Erinnerung nennt nur offene Aufgaben und erzeugt keinen zweiten Hinweis für Sendungswarnungen.',
+001148:    'RC918 Warncenter: Überfällige Aufgaben erscheinen dort nicht. POD-, Dokument- und Abholprobleme werden als Sendungswarnungen gruppiert.',
+001149:    'RC918 Warncenter-Deduplizierung: Erfüllt eine Sendung mehrere Warnregeln, erscheint und zählt sie nur einmal; Priorität ist POD fehlt vor Dokumente vor Abholung.',
+001150:   'RC882 Login-Stabilität: Nach erfolgreicher Anmeldung zwischen Dashboard, Aufgaben, Sendungen, Lager und Kunden wechseln. #login und seine Eingabefelder dürfen dabei nicht neu beschrieben, ein-/ausgeblendet oder erneut initialisiert werden.',
+001151:   'RC882 Dashboard Eingang: Dashboard anpassen öffnen, bei Lager · Eingang eine eigene Farbe wählen und Anpassung schließen. Nur die Dashboard-Kachel muss die gewählte Farbe behalten.',
+---
+001147:    'RC918 Browser-Erinnerung: Eine fällige 09/12/15-Uhr-Erinnerung nennt nur offene Aufgaben und erzeugt keinen zweiten Hinweis für Sendungswarnungen.',
+001148:    'RC918 Warncenter: Überfällige Aufgaben erscheinen dort nicht. POD-, Dokument- und Abholprobleme werden als Sendungswarnungen gruppiert.',
+001149:    'RC918 Warncenter-Deduplizierung: Erfüllt eine Sendung mehrere Warnregeln, erscheint und zählt sie nur einmal; Priorität ist POD fehlt vor Dokumente vor Abholung.',
+001150:   'RC882 Login-Stabilität: Nach erfolgreicher Anmeldung zwischen Dashboard, Aufgaben, Sendungen, Lager und Kunden wechseln. #login und seine Eingabefelder dürfen dabei nicht neu beschrieben, ein-/ausgeblendet oder erneut initialisiert werden.',
+001151:   'RC882 Dashboard Eingang: Dashboard anpassen öffnen, bei Lager · Eingang eine eigene Farbe wählen und Anpassung schließen. Nur die Dashboard-Kachel muss die gewählte Farbe behalten.',
+001152:   'RC882 Lager Eingang: Anschließend Lager & Locations öffnen. Eingang muss dort unabhängig von der persönlichen Dashboard-Farbe fest grün dargestellt werden; Location-Code 0 und Lagerfunktion bleiben unverändert.',
+---
+002187:                 document.body.appendChild(btn)
+002188:               }
+002189:               rc966PatchHtml(btn,'Warncenter <span class="rc885-warning-count">'+d.total+'</span>');
+002190: 
+002191:               var drawer=document.getElementById('rc885WarningDrawer');
+002192:               if(!drawer){
+---
+002235:                   '<div class="rc885-drawer-head">'+
+002236:                     '<div>'+
+002237:                       '<div class="rc885-drawer-title">Warncenter</div>'+
+002238:                       '<div class="rc885-sub">Operative Sendungswarnungen · Aufgaben-Erinnerungen stehen getrennt unter Benachrichtigungen</div>'+
+002239:                     '</div>'+
+002240:                     '<button type="button" class="rc885-close">Schließen</button>'+
+---
+021638: function shipmentCard(sh){var id=shipmentId(sh),ref=shipmentRef(sh)||id,d=shipmentPickup(sh),days=dayDiff(d,localISO());return '<article class="index236-item is-overdue"><div class="index236-item-head"><div><h3>'+esc(ref)+'</h3><p>'+esc(shipmentCustomer(sh)||'Ohne Kunde')+' · Abholung '+esc(fmtDate(d))+'</p></div><span class="pill red">'+days+' Tag'+(days===1?'':'e')+' überfällig</span></div><div class="index236-date-row"><input type="date" value="'+esc(addDays(localISO(),1))+'" data-index236-pickup-date="'+esc(id)+'"><button class="ghost" data-index236-action="set-pickup" data-id="'+esc(id)+'">Neues Abholdatum</button></div><div class="actions"><button class="btn" data-index236-action="open
+021639: function historyHtml(){var h=centerState().history.slice().reverse().slice(0,12);if(!h.length)return'<div class="index236-empty">Noch keine geplante Erinnerung protokolliert.</div>';return h.map(function(x){return'<div class="index236-history"><b>'+esc(new Date(x.at).toLocaleString('de-DE'))+'</b><span>'+esc(x.label||x.slot)+' · '+Number(x.tasks||0)+' Aufgaben · '+Number(x.shipments||0)+' Sendungen</span></div>'}).join('')}
+021640: function renderView(force){if(low(main().view)!=='notifications'&&low((document.body?document.body.getAttribute('data-exporthub-view'):''))!=='notifications')return false;var r=root();if(!r)return false;var tasks=openTasks(),late=overdueTasks(),next=nextCheck(new Date()),perm=permissionText();var html='<div id="index236NotificationCenter" class="index236-center"><div class="page-head"><div><span class="index236-kicker">PERSÖNLICHE ERINNERUNGEN</span><h2>Benachrichtigungen</h2><p>Hier erscheinen ausschließlich deine offenen Aufgaben. ExportHUB erinnert an Arbeitstagen um 09:00, 12:00 und 15:00 Uhr. Operative Probleme an Sendungen werden getrennt im Warncenter angezeigt.</p></div><div class="a
+021641: function openView(){removeHint();setViewRaw('notifications');renderView();return false}
+021642: function updateBadge(){var total=openTasks().length,b=document.getElementById('index236NotifyBadge');if(b){try{b.remove()}catch(_){b.style.display='none'}}var shown=total>99?'99+':String(total);document.querySelectorAll('.nav button,[data-view="notifications"]').forEach(function(x){if(low(x.getAttribute('data-view')||x.dataset&&x.dataset.view||x.textContent)==='notifications'||/benachrichtigungen/.test(low(x.textContent))){x.setAttribute('data-index236-notification-count',shown);x.title=total+' offene Aufgaben-Erinnerung'+(total===1?'':'en');x.classList.toggle('index236-has-alerts',total>0)}})}
+021643: function enableBrowser(){if(!('Notification' in window)){alert('Dieser Browser unterstützt keine Systembenachrichtigungen.');renderView();return false}Notification.requestPermission().then(function(p){if(p==='granted'){var n=new Notification('ExportHUB Benachrichtigungen aktiviert',{body:'Erinnerungen erscheinen um 09:00, 12:00 und 15:00 Uhr, solange ExportHUB geöffnet ist.',silent:true,tag:'exporthub-enabled'});setTimeout(function(){try{n.close()}catch(_){ }},3500)}renderView()});return false}
+---
+===== Benachrichtigungscenter | hits=1 =====
+000382:     "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
+000383:     "RC919 bestätigt den bestehenden Lager-Optimistic-Move: die Lagerkachel wird weiterhin vor dem Location-API-Warten lokal in die Ziellocation gesetzt; bei Serverfehler wird ausschließlich dieser lokale Schritt zurückgerollt.",
+000384:     "RC918 trennt Benachrichtigungscenter und Warncenter fachlich eindeutig: Benachrichtigungen erinnern nur noch an persönliche offene Aufgaben zu den festen Prüfzeiten 09:00, 12:00 und 15:00 Uhr; operative Sendungsabweichungen gehören ausschließlich in das Warncenter.",
+000385:     "RC918 entfernt überfällige Sendungen aus Benachrichtigungsseite, Browser-Hinweis und Benachrichtigungszähler. Die bestehenden Abholerinnerungs-Mails bleiben weiterhin direkt in Sendungsübersicht und Sendungsansicht verfügbar.",
+000386:     "RC918 entfernt Aufgaben aus dem Warncenter. Dort werden ausschließlich Sendungsprobleme nach POD fehlt, Dokumente und Abholung gruppiert; eine Sendung wird dabei nur einmal in der jeweils wichtigsten Handlungsgruppe gezählt und angezeigt.",
+000387:     "RC918 hält Erinnerungsverlauf und 09/12/15-Uhr-Status lokal pro Benutzer und Gerät. Die Trennung von Benachrichtigung und Warnung erzeugt keinen Azure-Save.",
+---
+===== notification | hits=59 =====
+000100:  {view:'planning',label:'Aufgaben Planer',right:'planning'},
+000101:  {view:'tasks',label:'Aufgaben',right:'tasks'},
+000102:  {view:'notifications',label:'Benachrichtigungen',right:'notifications'},
+000103:  {group:'Sendungen'},
+000104:  {view:'shipment',label:'Sendung erstellen',right:'shipment'},
+000105:  {view:'abd',label:'ABD erstellen',right:'abd'},
+---
+000151: function updateActive(){var nav=document.getElementById('nav'),v=current(),active=v,s=state(),source=canonical(s.shipmentViewReturnView||'');if(v==='shipmentview'||v==='documentviewer'){if(itemForView(source))active=source;else active='shipmentsearch'}if(!nav)return;nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){var on=b.getAttribute('data-index321-view')===active;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')})}
+000152: function menuValid(nav){if(!nav)return false;var views=ITEMS.filter(function(x){return x.view}).map(function(x){return x.view}),buttons=Array.prototype.slice.call(nav.querySelectorAll(':scope>button[data-index321-view]'));if(buttons.length!==views.length)return false;return buttons.every(function(b,i){return b.getAttribute('data-index321-view')===views[i]})&&nav.querySelectorAll(':scope>div[data-index308-group]').length===6}
+000153: function normalizeMenu(){var nav=document.getElementById('nav');if(!nav)return false;nav.setAttribute('data-index308-menu','1');nav.setAttribute('data-index321-menu','1');nav.setAttribute('data-index321-canonical',version());nav.lang='de';var buttons=Array.prototype.slice.call(nav.querySelectorAll('button')),groups=Array.prototype.slice.call(nav.querySelectorAll(':scope>div[data-index308-group]')),used=[],groupIndex=0,fragment=document.createDocumentFragment(),accentMap={dashboard:'#38bdf8',planning:'#a78bfa',tasks:'#22c55e',notifications:'#f59e0b',shipment:'#0ea5e9',abd:'#ef4444',shipmentoverview:'#2563eb',shipmentsearch:'#4f46e5',cmr:'#14b8a6',warehouse:'#f97316',customers:'#8b5cf6',custom
+000154: function buildMenu(){var nav=document.getElementById('nav');if(!nav)return false;if(!initialized||!menuValid(nav)){normalizeMenu();initialized=true}applyPermissions();updateActive();return menuValid(nav)}
+000155: function setViewState(view){var s=state(),target=canonical(view);s.view=target;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s);document.body.setAttribute('data-exporthub-view',target);document.body.setAttribute('data-current-view',target);if(target!=='diagnostics'){var root=document.getElementById('content');if(root){root.classList.remove('rc870-diagnostics-view','rc871-diagnostics-view');root.removeAttribute('data-rc870-diagnostics-view');root.removeAttribute('data-rc871-diagnostics-view')}}}catch(_){}return s}
+000156: var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;
+---
+000221:  if(view==='privacy')return renderPrivacy();
+000222:  if(view==='settings')return renderSettings();
+000223:  if(view==='notifications'&&window.ExportHUBIndex236&&typeof window.ExportHUBIndex236.open==='function'){setViewState(view);prepareDirectView(view);var outNotifications=window.ExportHUBIndex236.open();finishDirectView(view);return outNotifications}
+000224:  if((view==='shippingcosts'||view==='inspections'||view==='abd')&&!window.ExportHUBRC626&&!ensureRC626Controller()){console.error('ExportHUB: Versand/Prüfungen/ABD-Modul konnte nicht aktiviert werden.');return false}
+000225:  if(view==='shippingcosts'&&window.ExportHUBRC626&&typeof window.ExportHUBRC626.openShipping==='function'){setViewState(view);prepareDirectView(view);var outShipping=window.ExportHUBRC626.openShipping();finishDirectView(view);return outShipping}
+000226:  if(view==='inspections'&&window.ExportHUBRC626&&typeof window.ExportHUBRC626.openInspections==='function'){setViewState(view);prepareDirectView(view);var outInspections=window.ExportHUBRC626.openInspections();finishDirectView(view);return outInspections}
+---
+010135: <style id="exporthub-rc364-mobile-overflow-fix">
+010136: @media(max-width:700px){
+010137:  body[data-exporthub-view="notifications"] .main{width:100vw!important;max-width:100vw!important;min-width:0!important;padding-left:7px!important;padding-right:7px!important;overflow-x:hidden!important}
+010138:  #content[data-view="notifications"],body[data-exporthub-view="notifications"] #content{display:block!important;width:calc(100vw - 14px)!important;max-width:calc(100vw - 14px)!important;min-width:0!important;margin:0!important;padding-left:12px!important;padding-right:12px!important;overflow-x:hidden!important;box-sizing:border-box!important}
+010139:  #content[data-view="notifications"]>* ,body[data-exporthub-view="notifications"] #content>*{display:block;position:relative;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important}
+010140:  #content[data-view="notifications"] .index236-statusbar,#content[data-view="notifications"] .index236-metrics,#content[data-view="notifications"] .index236-columns,#content[data-view="notifications"] .grid2,#content[data-view="notifications"] .grid3{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important}
+---
+010136: @media(max-width:700px){
+010137:  body[data-exporthub-view="notifications"] .main{width:100vw!important;max-width:100vw!important;min-width:0!important;padding-left:7px!important;padding-right:7px!important;overflow-x:hidden!important}
+010138:  #content[data-view="notifications"],body[data-exporthub-view="notifications"] #content{display:block!important;width:calc(100vw - 14px)!important;max-width:calc(100vw - 14px)!important;min-width:0!important;margin:0!important;padding-left:12px!important;padding-right:12px!important;overflow-x:hidden!important;box-sizing:border-box!important}
+010139:  #content[data-view="notifications"]>* ,body[data-exporthub-view="notifications"] #content>*{display:block;position:relative;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important}
+010140:  #content[data-view="notifications"] .index236-statusbar,#content[data-view="notifications"] .index236-metrics,#content[data-view="notifications"] .index236-columns,#content[data-view="notifications"] .grid2,#content[data-view="notifications"] .grid3{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important}
+010141:  #content[data-view="notifications"] .card,#content[data-view="notifications"] .metric,#content[data-view="notifications"] .index236-statusbar>div{width:100%!important;max-width:100%!important;min-width:0!important}
+---
+010137:  body[data-exporthub-view="notifications"] .main{width:100vw!important;max-width:100vw!important;min-width:0!important;padding-left:7px!important;padding-right:7px!important;overflow-x:hidden!important}
+010138:  #content[data-view="notifications"],body[data-exporthub-view="notifications"] #content{display:block!important;width:calc(100vw - 14px)!important;max-width:calc(100vw - 14px)!important;min-width:0!important;margin:0!important;padding-left:12px!important;padding-right:12px!important;overflow-x:hidden!important;box-sizing:border-box!important}
+010139:  #content[data-view="notifications"]>* ,body[data-exporthub-view="notifications"] #content>*{display:block;position:relative;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important}
+010140:  #content[data-view="notifications"] .index236-statusbar,#content[data-view="notifications"] .index236-metrics,#content[data-view="notifications"] .index236-columns,#content[data-view="notifications"] .grid2,#content[data-view="notifications"] .grid3{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important}
+010141:  #content[data-view="notifications"] .card,#content[data-view="notifications"] .metric,#content[data-view="notifications"] .index236-statusbar>div{width:100%!important;max-width:100%!important;min-width:0!important}
+010142:  #content[data-view="notifications"] .page-head,body[data-exporthub-view="notifications"] #content .page-head{display:block!important}
+---
+010138:  #content[data-view="notifications"],body[data-exporthub-view="notifications"] #content{display:block!important;width:calc(100vw - 14px)!important;max-width:calc(100vw - 14px)!important;min-width:0!important;margin:0!important;padding-left:12px!important;padding-right:12px!important;overflow-x:hidden!important;box-sizing:border-box!important}
+010139:  #content[data-view="notifications"]>* ,body[data-exporthub-view="notifications"] #content>*{display:block;position:relative;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important}
+010140:  #content[data-view="notifications"] .index236-statusbar,#content[data-view="notifications"] .index236-metrics,#content[data-view="notifications"] .index236-columns,#content[data-view="notifications"] .grid2,#content[data-view="notifications"] .grid3{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important}
+010141:  #content[data-view="notifications"] .card,#content[data-view="notifications"] .metric,#content[data-view="notifications"] .index236-statusbar>div{width:100%!important;max-width:100%!important;min-width:0!important}
+010142:  #content[data-view="notifications"] .page-head,body[data-exporthub-view="notifications"] #content .page-head{display:block!important}
+010143:  #content[data-view="notifications"] .page-head .actions,body[data-exporthub-view="notifications"] #content .page-head .actions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:12px 0 0!important}
+---
+010139:  #content[data-view="notifications"]>* ,body[data-exporthub-view="notifications"] #content>*{display:block;position:relative;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box!important}
+010140:  #content[data-view="notifications"] .index236-statusbar,#content[data-view="notifications"] .index236-metrics,#content[data-view="notifications"] .index236-columns,#content[data-view="notifications"] .grid2,#content[data-view="notifications"] .grid3{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:calc(100vw - 38px)!important;max-width:calc(100vw - 38px)!important;min-width:0!important}
+010141:  #content[data-view="notifications"] .card,#content[data-view="notifications"] .metric,#content[data-view="notifications"] .index236-statusbar>div{width:100%!important;max-width:100%!important;min-width:0!important}
+010142:  #content[data-view="notifications"] .page-head,body[data-exporthub-view="notifications"] #content .page-head{display:block!important}
+010143:  #content[data-view="notifications"] .page-head .actions,body[data-exporthub-view="notifications"] #content .page-head .actions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:12px 0 0!important}
+010144:  #content[data-view="notifications"] .page-head .actions button,body[data-exporthub-view="notifications"] #content .page-head .actions button{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important}
+---
+===== dashboard | hits=233 =====
+000097: var ITEMS=[
+000098:  {group:'Arbeit'},
+000099:  {view:'dashboard',label:'Dashboard',right:'dashboard'},
+000100:  {view:'planning',label:'Aufgaben Planer',right:'planning'},
+000101:  {view:'tasks',label:'Aufgaben',right:'tasks'},
+000102:  {view:'notifications',label:'Benachrichtigungen',right:'notifications'},
+---
+000141: function user(){var r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},s=state();try{return (typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||r.user||window.currentUser||s.currentUser||s.user||{}}catch(_){return r.user||window.currentUser||s.currentUser||s.user||{}}}
+000142: function isAdmin(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),profile=low((document.querySelector('.profile')||{}).textContent);return !!(u.globalAdmin||u.isAdmin||u.admin||role.indexOf('admin')>=0||role.indexOf('vollzugriff')>=0||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||profile.indexOf('tobias')>=0)}
+000143: function canonical(v){v=low(v);if(!v||v==='start')return'dashboard';if(v==='calculator')return'shippingcosts';if(v==='quiz')return'inspections';if(v==='customers')return'customerfolder';return v}
+000144: function current(){return canonical(state().view||(document.body?document.body.getAttribute('data-exporthub-view'):'')||'dashboard')}
+000145: function itemForView(view){view=canonical(view);return ITEMS.find(function(item){return item.view===view})||null}
+000146: function rawRightAllowed(right){var u=user();if(!u||!q(u.user||u.username||u.login||u.name||u.displayName))return false;var storedRight=right==='warehouse'&&!(u.rights&&Object.prototype.hasOwnProperty.call(u.rights,'warehouse'))?'customers':right,r=u.rights&&u.rights[storedRight]||{},level=low(r.level||r.access||'');if(['view','edit','admin'].indexOf(level)>=0)return true;if(level==='none')return false;return !!(r.read||r.visible||r.edit||r.admin||r.functionAdmin)}
+---
+000142: function isAdmin(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),profile=low((document.querySelector('.profile')||{}).textContent);return !!(u.globalAdmin||u.isAdmin||u.admin||role.indexOf('admin')>=0||role.indexOf('vollzugriff')>=0||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||profile.indexOf('tobias')>=0)}
+000143: function canonical(v){v=low(v);if(!v||v==='start')return'dashboard';if(v==='calculator')return'shippingcosts';if(v==='quiz')return'inspections';if(v==='customers')return'customerfolder';return v}
+000144: function current(){return canonical(state().view||(document.body?document.body.getAttribute('data-exporthub-view'):'')||'dashboard')}
+000145: function itemForView(view){view=canonical(view);return ITEMS.find(function(item){return item.view===view})||null}
+000146: function rawRightAllowed(right){var u=user();if(!u||!q(u.user||u.username||u.login||u.name||u.displayName))return false;var storedRight=right==='warehouse'&&!(u.rights&&Object.prototype.hasOwnProperty.call(u.rights,'warehouse'))?'customers':right,r=u.rights&&u.rights[storedRight]||{},level=low(r.level||r.access||'');if(['view','edit','admin'].indexOf(level)>=0)return true;if(level==='none')return false;return !!(r.read||r.visible||r.edit||r.admin||r.functionAdmin)}
+000147: function allowed(item){if(item&&item.group)return true;if(!item)return false;if(item.view==='privacy'){var pu=user();return !!q(pu&&pu.user||pu&&pu.username||pu&&pu.login||pu&&pu.name||pu&&pu.displayName)}if(item.view==='release'||item.view==='diagnostics')return isAdmin();if(isAdmin())return true;var right=item.right||item.view;try{if(typeof window.canView==='function'&&typeof window.canRead==='function')return !!(window.canView(right)&&window.canRead(right)&&(right!=='rights'||typeof window.canManageRights!=='function'||window.canManageRights()))}catch(_){return false}return rawRightAllowed(right)}
+---
+000151: function updateActive(){var nav=document.getElementById('nav'),v=current(),active=v,s=state(),source=canonical(s.shipmentViewReturnView||'');if(v==='shipmentview'||v==='documentviewer'){if(itemForView(source))active=source;else active='shipmentsearch'}if(!nav)return;nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){var on=b.getAttribute('data-index321-view')===active;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')})}
+000152: function menuValid(nav){if(!nav)return false;var views=ITEMS.filter(function(x){return x.view}).map(function(x){return x.view}),buttons=Array.prototype.slice.call(nav.querySelectorAll(':scope>button[data-index321-view]'));if(buttons.length!==views.length)return false;return buttons.every(function(b,i){return b.getAttribute('data-index321-view')===views[i]})&&nav.querySelectorAll(':scope>div[data-index308-group]').length===6}
+000153: function normalizeMenu(){var nav=document.getElementById('nav');if(!nav)return false;nav.setAttribute('data-index308-menu','1');nav.setAttribute('data-index321-menu','1');nav.setAttribute('data-index321-canonical',version());nav.lang='de';var buttons=Array.prototype.slice.call(nav.querySelectorAll('button')),groups=Array.prototype.slice.call(nav.querySelectorAll(':scope>div[data-index308-group]')),used=[],groupIndex=0,fragment=document.createDocumentFragment(),accentMap={dashboard:'#38bdf8',planning:'#a78bfa',tasks:'#22c55e',notifications:'#f59e0b',shipment:'#0ea5e9',abd:'#ef4444',shipmentoverview:'#2563eb',shipmentsearch:'#4f46e5',cmr:'#14b8a6',warehouse:'#f97316',customers:'#8b5cf6',custom
+000154: function buildMenu(){var nav=document.getElementById('nav');if(!nav)return false;if(!initialized||!menuValid(nav)){normalizeMenu();initialized=true}applyPermissions();updateActive();return menuValid(nav)}
+000155: function setViewState(view){var s=state(),target=canonical(view);s.view=target;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s);document.body.setAttribute('data-exporthub-view',target);document.body.setAttribute('data-current-view',target);if(target!=='diagnostics'){var root=document.getElementById('content');if(root){root.classList.remove('rc870-diagnostics-view','rc871-diagnostics-view');root.removeAttribute('data-rc870-diagnostics-view');root.removeAttribute('data-rc871-diagnostics-view')}}}catch(_){}return s}
+000156: var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;
+---
+000199: function recordHistory(view,source){view=canonical(view);rememberView(view);if(!historyEnabled()||historyApplying||source==='history'||source==='popstate'||source==='boot'||source==='ready')return false;initHistory();var hs=window.history&&window.history.state;if(hs&&hs.exporthub===true&&canonical(hs.view)===view)return false;try{var now=Date.now(),rapid=lastHistoryWriteAt&&now-lastHistoryWriteAt<260;lastHistoryWriteAt=now;if(rapid)window.history.replaceState(historyPayload(view,false),'',window.location.href);else window.history.pushState(historyPayload(view,false),'',window.location.href);return true}catch(_){return false}}
+000200: function restoreHistoryView(){if(!historyEnabled())return false;initHistory();var v=historyView();rememberView(v);if(v!==current())return route(v,'history');return false}
+000201: function handlePopState(event){if(!historyEnabled())return;var hs=event&&event.state;if(!hs||hs.exporthub!==true){try{window.history.pushState(historyPayload(current(),false),'',window.location.href)}catch(_){}return}historyApplying=true;try{var v=canonical(hs.view||'dashboard');route(v,'history');closeMobileMenu();try{window.scrollTo(0,0)}catch(_){}if(hs.guard===true)window.history.pushState(historyPayload(v,false),'',window.location.href)}finally{historyApplying=false}}
+000202: function ensureRC626Controller(){
+000203:  if(window.ExportHUBRC626&&typeof window.ExportHUBRC626.openShipping==='function')return true;
+000204:  var holder=document.getElementById('rc626-shipping-inspections-abd-controller');if(!holder)return false;
+---
+000230:  return false
+000231: }finally{routeBusy=false;updateActive();if(current()===view){recordHistory(view,source);setTimeout(function(){try{if(typeof window.__EXPORTHUB_FINISH_NAV_LOADING__==='function')window.__EXPORTHUB_FINISH_NAV_LOADING__()}catch(_){}},120)}}}
+000232: function handleClick(e){var node=e.target&&e.target.closest&&e.target.closest('#nav button,[data-index321-route],[data-index321-action],.brand');if(!node)return;if(node.closest&&node.closest('.brand')){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();var brandOut=route('dashboard','brand');closeMobileMenu();return brandOut}var view=node.getAttribute('data-index321-view')||node.getAttribute('data-index321-route');if(view){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();var out=route(view,node.closest('#nav')?'menu':'route');closeMobileMenu();try{window.scrollTo(0,0)}catch(_){}return out}var action=node.getAttribute('data-index321-action');if(action==='pa
+000233: function refresh(){buildMenu();applyPermissions();updateActive()}
+000234: function boot(){try{if(window.ExportHUBBuild)window.ExportHUBBuild.applyVersion()}catch(_){}setViewState(current());refresh();initHistory()}
+000235: window.addEventListener('click',handleClick,true);
+---
+000369:   'RC923 beseitigt den doppelten Azure-Teamstand-Lesezugriff im Testservice: der Teststand wird nur noch bei tatsächlich fehlendem Blob initialisiert und pro normalem Lese-/Speicheraufruf nur einmal geladen.',
+000370:   'RC923 trennt Diagnose-Uploads vom vollständigen Teamstand, verlängert die Speicher-Abbruchgrenze für langsame Azure-Antworten und reduziert Diagnose- sowie Render-Stürme.',
+000371:   'RC923 reduziert Browserlast in Dashboard, Aufgaben-Planer, Sendungsübersicht und Lager durch stabile Signaturen, wiederverwendete ResizeObserver und aktivierte Offscreen-Virtualisierung.',
+000372:     "RC922 stabilisiert + Zeile im Colli-Bereich: Beim Hinzufügen bleibt die aktuelle Scrollposition erhalten und der Browser fokussiert den sichtbaren Verpackungsbutton statt des unsichtbaren nativen Select-Felds. Dadurch springt die Sendungsansicht beim Anlegen weiterer Colli-Zeilen nicht mehr unnötig.",
+000373:     "RC922 ändert weder Colli-Datenmodell noch Maße-, LDM-, Gewichts-, Verpackungs- oder Speicherlogik. Die neue Zeile wird weiterhin lokal angelegt und erst über die vorhandenen fachlichen Speicherwege dauerhaft übernommen.",
+000374:     "RC921 entfernt den veralteten festen Cache-Schlüssel v=554 von der POD-Notfallseite. Öffnen und Kopieren der Notfallseite verwenden jetzt automatisch die Cache-Version des aktuell geladenen ExportHUB-Builds.",
+---
+000375:     "RC921 stellt damit sicher, dass POD_Notfall_Start.html im verbundenen Notfallordner aus derselben aktuellen Version stammt wie die laufende Testversion und nicht aus einer alten Browser-/CDN-Zwischenspeicherung.",
+000376:     "RC921 ändert weder POD-PDF-Inhalte noch SharePoint-, Vault- oder Signaturdaten; korrigiert wird ausschließlich die Versionsbindung der Notfallseite.",
+000377:     "RC920 berechnet die Dashboard-Masonry-Höhe bei jeder Größenänderung aus der natürlichen aktuellen Kachelhöhe neu. Alte Grid-Row-Spans werden vor der Messung entfernt, damit geschrumpfte Kacheln keine leeren Flächen zurücklassen.",
+000378:     "RC920 beobachtet für die Masonry-Aktualisierung die tatsächlichen Kachelinhalte statt den durch das Raster künstlich gestreckten äußeren Grid-Eintrag. Dadurch entstehen bei Status-, Aufgaben- und Datenänderungen weniger unnötige Resize-Nachläufe.",
+000379:     "RC920 bestätigt die Smartphone-Darstellung von Dashboard und Sendung erstellen bei 320 bis 768 Pixel Breite ohne horizontalen Seitenüberstand; auf bis zu 760 Pixel bleiben Dashboard-Kacheln einspaltig und ohne Grid-Row-Zwang.",
+000380:     "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
+---
+===== Lager | hits=111 =====
+000107:  {view:'shipmentsearch',label:'Sendungsansicht',right:'shipmentoverview'},
+000108:  {view:'cmr',label:'Ladeliste & CMR',right:'cmr'},
+000109:  {view:'warehouse',label:'Lager',right:'warehouse'},
+000110:  {group:'Kunden & Logistik'},
+000111:  {view:'customerfolder',label:'Kundenordner',right:'customerfolder'},
+000112:  {view:'pallet',label:'Palettenkonto',right:'pallet'},
+---
+000348:     'RC929 verhindert den POD-Cloud-Abbruch allein wegen fehlendem EXPORTHUB_POD_DRIVE_USER: api/pod-backup verwendet dann dieselbe bereits projektweit festgelegte Standard-Zielablage; explizite App-Settings bleiben vorrangig.',
+000349:     'RC928 repariert den QR-Location-End-to-End-Pfad: Ein Scan darf den registrierten Location-Datensatz mit dem geheimen 48-stelligen Token laden, ohne eine interne ExportHUB-Anmeldung auf dem Fahrer-/Verladergerät zu benötigen.',
+000350:     'RC928 prüft jede öffentliche Location-Umbuchung wieder serverseitig mit dem persönlichen vierstelligen Verlader-PIN. Falsche PINs, nicht abholbereite oder bereits abgeholte Sendungen werden ohne Lageränderung abgewiesen.',
+000351:     'RC928 bindet die korrigierte api/location-booking/index.js zusätzlich als SHA-256-geprüften Produktions-Fallback ein, damit das Release-Center keinen älteren Location-API-Stand übernehmen kann.',
+000352:     'RC927 wartet vor Druck/PDF einer aktiven Sendung auf die serverseitige Registrierung des QR-Location-Datensatzes. Ein Deckblatt kann damit nicht mehr gedruckt werden, während der gelbe QR-Code zwar sichtbar, serverseitig aber noch nicht registriert ist.',
+000353:     'RC927 begrenzt diese QR-Location-Vorprüfung auf acht Sekunden und bricht die Ausgabe mit einem klaren Hinweis ab, statt einen nicht funktionsfähigen Location-QR auszugeben. Bereits abgeholte, abgeschlossene, archivierte oder stornierte Sendungen werden nicht erneut registriert.',
+---
+000369:   'RC923 beseitigt den doppelten Azure-Teamstand-Lesezugriff im Testservice: der Teststand wird nur noch bei tatsächlich fehlendem Blob initialisiert und pro normalem Lese-/Speicheraufruf nur einmal geladen.',
+000370:   'RC923 trennt Diagnose-Uploads vom vollständigen Teamstand, verlängert die Speicher-Abbruchgrenze für langsame Azure-Antworten und reduziert Diagnose- sowie Render-Stürme.',
+000371:   'RC923 reduziert Browserlast in Dashboard, Aufgaben-Planer, Sendungsübersicht und Lager durch stabile Signaturen, wiederverwendete ResizeObserver und aktivierte Offscreen-Virtualisierung.',
+000372:     "RC922 stabilisiert + Zeile im Colli-Bereich: Beim Hinzufügen bleibt die aktuelle Scrollposition erhalten und der Browser fokussiert den sichtbaren Verpackungsbutton statt des unsichtbaren nativen Select-Felds. Dadurch springt die Sendungsansicht beim Anlegen weiterer Colli-Zeilen nicht mehr unnötig.",
+000373:     "RC922 ändert weder Colli-Datenmodell noch Maße-, LDM-, Gewichts-, Verpackungs- oder Speicherlogik. Die neue Zeile wird weiterhin lokal angelegt und erst über die vorhandenen fachlichen Speicherwege dauerhaft übernommen.",
+000374:     "RC921 entfernt den veralteten festen Cache-Schlüssel v=554 von der POD-Notfallseite. Öffnen und Kopieren der Notfallseite verwenden jetzt automatisch die Cache-Version des aktuell geladenen ExportHUB-Builds.",
+---
+000381:     "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
+000382:     "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
+000383:     "RC919 bestätigt den bestehenden Lager-Optimistic-Move: die Lagerkachel wird weiterhin vor dem Location-API-Warten lokal in die Ziellocation gesetzt; bei Serverfehler wird ausschließlich dieser lokale Schritt zurückgerollt.",
+000384:     "RC918 trennt Benachrichtigungscenter und Warncenter fachlich eindeutig: Benachrichtigungen erinnern nur noch an persönliche offene Aufgaben zu den festen Prüfzeiten 09:00, 12:00 und 15:00 Uhr; operative Sendungsabweichungen gehören ausschließlich in das Warncenter.",
+000385:     "RC918 entfernt überfällige Sendungen aus Benachrichtigungsseite, Browser-Hinweis und Benachrichtigungszähler. Die bestehenden Abholerinnerungs-Mails bleiben weiterhin direkt in Sendungsübersicht und Sendungsansicht verfügbar.",
+000386:     "RC918 entfernt Aufgaben aus dem Warncenter. Dort werden ausschließlich Sendungsprobleme nach POD fehlt, Dokumente und Abholung gruppiert; eine Sendung wird dabei nur einmal in der jeweils wichtigsten Handlungsgruppe gezählt und angezeigt.",
+---
+000396:     "RC915 entfernt den veralteten RC892-Dashboard-Zwang. Persönliche Kachelbreiten und die gespeicherte Reihenfolge bleiben jetzt allein beim aktuellen RC205-Dashboard; Arbeitsfokus beziehungsweise andere Dashboard-Karten werden nicht mehr nachträglich umsortiert oder auf volle Breite gezwungen.",
+000397:     "RC915 entfernt die veraltete URL-Rücksetzung auf v=892. Die Testversion hält den sichtbaren Versionsparameter jetzt auf RC915 und fällt bei Render-, Sync- oder Navigationsereignissen nicht mehr auf einen alten Cache-Key zurück.",
+000398:     "RC915 lässt die aktuelle RC914-Masonry-Anordnung, Smartphone-Darstellung, Sendung-erstellen-Layout, Lager-Optimistic-Move und Aufgaben-Planer-Optimistic-Move unverändert bestehen.",
+000399:     "RC914 beseitigt die großen Leerflächen im Dashboard durch eine echte höhenabhängige Kachelanordnung. Kurze Kacheln rücken unabhängig von hohen Nachbarkacheln direkt nach oben.",
+000400:     "RC914 behält Dashboard-Kachelbreiten, Reihenfolge, Farben und Drag-and-drop bei; auf Smartphones bleibt die einspaltige Darstellung unverändert stabil.",
+000401:     "RC914 korrigiert Sendung erstellen zwischen Tablet- und schmaler Desktopbreite: Colli & Lademeter erhält nach dem Wechsel auf zwei Spalten eine eigene Rasterzeile und kann Sendungsdaten nicht mehr überlagern.",
+---
+000399:     "RC914 beseitigt die großen Leerflächen im Dashboard durch eine echte höhenabhängige Kachelanordnung. Kurze Kacheln rücken unabhängig von hohen Nachbarkacheln direkt nach oben.",
+000400:     "RC914 behält Dashboard-Kachelbreiten, Reihenfolge, Farben und Drag-and-drop bei; auf Smartphones bleibt die einspaltige Darstellung unverändert stabil.",
+000401:     "RC914 korrigiert Sendung erstellen zwischen Tablet- und schmaler Desktopbreite: Colli & Lademeter erhält nach dem Wechsel auf zwei Spalten eine eigene Rasterzeile und kann Sendungsdaten nicht mehr überlagern.",
+000402:     "RC884 gibt die Sendungsansicht bei echter Navigation zuverlässig frei; Aufgaben, Dashboard, Kunden und andere Bereiche bleiben nach dem Anklicken geöffnet.",
+000403:     "RC884 hält die bestehende Sendungssuche aktiv und verhindert, dass der Sendungsansicht-Guard die Suche verdrängt.",
+000404:     "RC884 entfernt KundenAvis/Lieferavis aus der internen Sendungserstellung und Sendungsansicht. Die separate KundenAvis-Seite bleibt unverändert.",
+---
+000408:     "RC883 entprellt die Status-/Sync-Aktualisierung der Sendungsübersicht. Mehrere unmittelbar aufeinanderfolgende Ereignisse werden zu einem stabilen Patch zusammengefasst, bevor ein möglicher Voll-Render geprüft wird.",
+000409:     "RC882 entkoppelt den Login-Bereich von normalen Seitenwechseln: die Umgebungs-/Loginanzeige wird nicht mehr bei jedem exporthub:rendered neu beschrieben, sondern nur beim ersten Laden, beim Abmelden oder beim sichtbaren Wiederaufruf der Loginseite. Navigation innerhalb der angemeldeten App verändert den Login-DOM nicht mehr.",
+000410:     "RC882 erlaubt für die Dashboard-Kachel Lager · Eingang die persönliche Kachelfarbe aus Dashboard anpassen. Ohne eigene Farbe bleibt die bisherige grüne Standarddarstellung erhalten.",
+000411:     "RC882 hält den Eingang innerhalb der eigentlichen Funktion Lager & Locations weiterhin fest grün; die persönliche Dashboard-Farbe beeinflusst weder Lageransicht, Location-Code, Drag-and-drop noch Lagerlogik.",
+000412:     "RC881 stellt die für Auth- und Azure-State-Funktionen notwendige Abhängigkeit @azure/storage-blob verbindlich in api/package.json wieder her. Der Testservice-Preflight bricht künftig mit einer klaren Meldung ab, falls diese Abhängigkeit fehlt oder überschrieben wurde.",
+000413:     "RC881 führt den API-Smoke-Test unter Node 20 aus und lässt Azure den API-Ordner anschließend regulär aus dem geprüften api/package.json bauen. Der bisherige nicht unterstützte skip_api_build-Parameter wird nicht mehr verwendet.",
+---
+000409:     "RC882 entkoppelt den Login-Bereich von normalen Seitenwechseln: die Umgebungs-/Loginanzeige wird nicht mehr bei jedem exporthub:rendered neu beschrieben, sondern nur beim ersten Laden, beim Abmelden oder beim sichtbaren Wiederaufruf der Loginseite. Navigation innerhalb der angemeldeten App verändert den Login-DOM nicht mehr.",
+000410:     "RC882 erlaubt für die Dashboard-Kachel Lager · Eingang die persönliche Kachelfarbe aus Dashboard anpassen. Ohne eigene Farbe bleibt die bisherige grüne Standarddarstellung erhalten.",
+000411:     "RC882 hält den Eingang innerhalb der eigentlichen Funktion Lager & Locations weiterhin fest grün; die persönliche Dashboard-Farbe beeinflusst weder Lageransicht, Location-Code, Drag-and-drop noch Lagerlogik.",
+000412:     "RC881 stellt die für Auth- und Azure-State-Funktionen notwendige Abhängigkeit @azure/storage-blob verbindlich in api/package.json wieder her. Der Testservice-Preflight bricht künftig mit einer klaren Meldung ab, falls diese Abhängigkeit fehlt oder überschrieben wurde.",
+000413:     "RC881 führt den API-Smoke-Test unter Node 20 aus und lässt Azure den API-Ordner anschließend regulär aus dem geprüften api/package.json bauen. Der bisherige nicht unterstützte skip_api_build-Parameter wird nicht mehr verwendet.",
+000414:     "RC881 hellt die Dashboard-Kachel Lager Eingang auf: helles Grün, dunkle Schrift und weiterhin eindeutige Abgrenzung zu belegten und leeren Lager-Locations. Lagerlogik, Zuordnung und Drag-and-drop bleiben unverändert.",
+---
+===== warehouse | hits=133 =====
+000107:  {view:'shipmentsearch',label:'Sendungsansicht',right:'shipmentoverview'},
+000108:  {view:'cmr',label:'Ladeliste & CMR',right:'cmr'},
+000109:  {view:'warehouse',label:'Lager',right:'warehouse'},
+000110:  {group:'Kunden & Logistik'},
+000111:  {view:'customerfolder',label:'Kundenordner',right:'customerfolder'},
+000112:  {view:'pallet',label:'Palettenkonto',right:'pallet'},
+---
+000144: function current(){return canonical(state().view||(document.body?document.body.getAttribute('data-exporthub-view'):'')||'dashboard')}
+000145: function itemForView(view){view=canonical(view);return ITEMS.find(function(item){return item.view===view})||null}
+000146: function rawRightAllowed(right){var u=user();if(!u||!q(u.user||u.username||u.login||u.name||u.displayName))return false;var storedRight=right==='warehouse'&&!(u.rights&&Object.prototype.hasOwnProperty.call(u.rights,'warehouse'))?'customers':right,r=u.rights&&u.rights[storedRight]||{},level=low(r.level||r.access||'');if(['view','edit','admin'].indexOf(level)>=0)return true;if(level==='none')return false;return !!(r.read||r.visible||r.edit||r.admin||r.functionAdmin)}
+000147: function allowed(item){if(item&&item.group)return true;if(!item)return false;if(item.view==='privacy'){var pu=user();return !!q(pu&&pu.user||pu&&pu.username||pu&&pu.login||pu&&pu.name||pu&&pu.displayName)}if(item.view==='release'||item.view==='diagnostics')return isAdmin();if(isAdmin())return true;var right=item.right||item.view;try{if(typeof window.canView==='function'&&typeof window.canRead==='function')return !!(window.canView(right)&&window.canRead(right)&&(right!=='rights'||typeof window.canManageRights!=='function'||window.canManageRights()))}catch(_){return false}return rawRightAllowed(right)}
+000148: function canRoute(view){view=canonical(view);if(view==='shipmentview'||view==='documentviewer'){var overview=itemForView('shipmentoverview');return overview?allowed(overview):false}var item=itemForView(view);return item?allowed(item):true}
+000149: function buttonFor(view){var nav=document.getElementById('nav');return nav&&nav.querySelector(':scope>button[data-index321-view="'+view+'"]')}
+---
+000151: function updateActive(){var nav=document.getElementById('nav'),v=current(),active=v,s=state(),source=canonical(s.shipmentViewReturnView||'');if(v==='shipmentview'||v==='documentviewer'){if(itemForView(source))active=source;else active='shipmentsearch'}if(!nav)return;nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){var on=b.getAttribute('data-index321-view')===active;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')})}
+000152: function menuValid(nav){if(!nav)return false;var views=ITEMS.filter(function(x){return x.view}).map(function(x){return x.view}),buttons=Array.prototype.slice.call(nav.querySelectorAll(':scope>button[data-index321-view]'));if(buttons.length!==views.length)return false;return buttons.every(function(b,i){return b.getAttribute('data-index321-view')===views[i]})&&nav.querySelectorAll(':scope>div[data-index308-group]').length===6}
+000153: function normalizeMenu(){var nav=document.getElementById('nav');if(!nav)return false;nav.setAttribute('data-index308-menu','1');nav.setAttribute('data-index321-menu','1');nav.setAttribute('data-index321-canonical',version());nav.lang='de';var buttons=Array.prototype.slice.call(nav.querySelectorAll('button')),groups=Array.prototype.slice.call(nav.querySelectorAll(':scope>div[data-index308-group]')),used=[],groupIndex=0,fragment=document.createDocumentFragment(),accentMap={dashboard:'#38bdf8',planning:'#a78bfa',tasks:'#22c55e',notifications:'#f59e0b',shipment:'#0ea5e9',abd:'#ef4444',shipmentoverview:'#2563eb',shipmentsearch:'#4f46e5',cmr:'#14b8a6',warehouse:'#f97316',customers:'#8b5cf6',custom
+000154: function buildMenu(){var nav=document.getElementById('nav');if(!nav)return false;if(!initialized||!menuValid(nav)){normalizeMenu();initialized=true}applyPermissions();updateActive();return menuValid(nav)}
+000155: function setViewState(view){var s=state(),target=canonical(view);s.view=target;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s);document.body.setAttribute('data-exporthub-view',target);document.body.setAttribute('data-current-view',target);if(target!=='diagnostics'){var root=document.getElementById('content');if(root){root.classList.remove('rc870-diagnostics-view','rc871-diagnostics-view');root.removeAttribute('data-rc870-diagnostics-view');root.removeAttribute('data-rc871-diagnostics-view')}}}catch(_){}return s}
+000156: var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;
+---
+000215:  if(view==='documentviewer'&&window.ExportHUBDocumentViewer&&typeof window.ExportHUBDocumentViewer.render==='function'){setViewState(view);return window.ExportHUBDocumentViewer.render()}
+000216:  if(view==='cmr')return openDocuments();
+000217:  if(view==='warehouse'&&window.ExportHUBWarehouse&&typeof window.ExportHUBWarehouse.render==='function'){setViewState(view);prepareDirectView(view);var outWarehouse=window.ExportHUBWarehouse.render(false);finishDirectView(view);return outWarehouse}
+000218:   if(view==='diagnostics'){var diag=window.ExportHUBDiagnostics871||window.ExportHUBDiagnostics870;if(diag&&typeof diag.render==='function'){setViewState(view);prepareDirectView(view);return diag.render()}}
+000219:  if(view==='release'&&window.ExportHUBReleaseCenter562&&typeof window.ExportHUBReleaseCenter562.renderHtml==='function'){setViewState(view);var outRelease=prepareDirectView(view);if(outRelease){outRelease.innerHTML=window.ExportHUBReleaseCenter562.renderHtml();finishDirectView(view);if(releaseRefreshTimer)clearTimeout(releaseRefreshTimer);var ntRelease=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;releaseRefreshTimer=ntRelease(function(){releaseRefreshTimer=0;if(current()!=='release')return;try{window.ExportHUBReleaseCenter562.refresh()}catch(error){console.error('Release-Center aktualisieren',error)}},900)}return false}
+000220:  if(view==='reports')return renderReports();
+---
+001430:     'RC751 Leerlauf: Dashboard oder Lager mindestens drei Minuten ohne Eingabe geöffnet lassen; es darf keine Azure-Teamstand-Speicherung starten.',
+001431:     'RC751 Lager-Sync: Eine unveränderte aktive Sendung darf bei wiederholten Hintergrund-Synchronisierungen keine neue Speicherung auslösen.',
+001432:     'RC751 Abgeholt: Eine bereits abgeholte Sendung mit warehouseCollectedAt darf nicht erneut an Location-Collect gesendet und nicht erneut gespeichert werden.',
+001433:     'RC751 Mailvorlagen: Sendung/Kundenbereich mehrfach öffnen ohne Eingabe; identische oder leere Mailvorlagen dürfen den Teamstand nicht verändern.',
+001434:     'RC750 Adminprüfung: Als Tobias anmelden und Benutzer & Rechte öffnen; Persönliche Verlader-PINs darf keinen roten Hinweis Nur globale Administratoren anzeigen.',
+001435:     'RC750 Serverliste: Vorhandene Verlader-PINs müssen nach dem Öffnen vollständig aus /api/loader-pins-admin geladen und angezeigt werden.',
+---
+010279: <style id="rc725-render-containment">
+010280: /* RC725: Große, außerhalb des Viewports liegende Bereiche verursachen keine unnötige Layout-/Paint-Arbeit. */
+010281: #content > :is(section,.card,article,.rc524-page,.rc504-warehouse,#index218Planner),
+010282: #content .rc573-card,
+010283: #content .rc543-overview-group{
+010284:   content-visibility:auto;
+---
+010286: }
+010287: @media print{
+010288:   #content > :is(section,.card,article,.rc524-page,.rc504-warehouse,#index218Planner),
+010289:   #content .rc573-card,#content .rc543-overview-group{
+010290:     content-visibility:visible!important;contain:none!important;
+010291:   }
+---
+012757: function userKey(u){return L(u&&(u.user||u.login||u.username||u.name))}
+012758: function isAdmin(u){u=u||CU();var key=userKey(u),display=L(u&&(u.displayName||u.name||u.user||u.username||u.login));return !!u&&(u.globalAdmin===true||u.isAdmin===true||u.admin===true||key==='tobias'||key==='t.limberg'||key==='tobias limberg'||display==='tobias'||display==='tobias limberg'||/admin|vollzugriff/i.test(Q(u.role||u.rolle))||A(u.permissions).indexOf('*')>=0)}
+012759: function rightFor(u,id){id=canonicalView(id||'dashboard');if(isAdmin(u))return {visible:true,read:true,edit:true,admin:true};if(!u)return {visible:false,read:false,edit:false,admin:false};if(id==='dashboard'||id==='start')return {visible:true,read:true,edit:false,admin:false};var rights=u.rights||{},hasExact=Object.prototype.hasOwnProperty.call(rights,id),legacy=id==='warehouse'?'customers':id==='shippingcosts'?'calculator':id==='inspections'?'quiz':id==='calculator'?'shippingcosts':id==='quiz'?'inspections':'',r=hasExact?(rights[id]||{}):(legacy&&rights[legacy]||{}),p=A(u.permissions),level=L(r.level||r.access||''),allow=p.indexOf(id)>=0||(!hasExact&&legacy&&p.indexOf(legacy)>=0);if(level==
+012760: function safeId(v){return Q(v).replace(/[^A-Za-z0-9_-]/g,'_')}
+012761: function findCustomer(idOrName){var k=L(idOrName);return A(S().customers).find(function(c){return [c.id,c.account,c.customerNumber,c.kundennummer,c.name].some(function(v){return L(v)===k})})||null}
+012762: function shipmentCustomer(sh){sh=sh||S().shipment||{};return findCustomer(sh.customerId||sh.customerAccount||sh.customerNumber||sh.customerName)||(sh.customer&&typeof sh.customer==='object'?sh.customer:null)||{}}
+---
+===== Aufgabe | hits=240 =====
+000098:  {group:'Arbeit'},
+000099:  {view:'dashboard',label:'Dashboard',right:'dashboard'},
+000100:  {view:'planning',label:'Aufgaben Planer',right:'planning'},
+000101:  {view:'tasks',label:'Aufgaben',right:'tasks'},
+000102:  {view:'notifications',label:'Benachrichtigungen',right:'notifications'},
+000103:  {group:'Sendungen'},
+---
+000099:  {view:'dashboard',label:'Dashboard',right:'dashboard'},
+000100:  {view:'planning',label:'Aufgaben Planer',right:'planning'},
+000101:  {view:'tasks',label:'Aufgaben',right:'tasks'},
+000102:  {view:'notifications',label:'Benachrichtigungen',right:'notifications'},
+000103:  {group:'Sendungen'},
+000104:  {view:'shipment',label:'Sendung erstellen',right:'shipment'},
+---
+000183: function openDocuments(){setViewState('cmr');prepareDirectView('cmr');try{if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.currentOrHub==='function'){var out=window.ExportHUBIndex240.currentOrHub();finishDirectView('cmr');return out}}catch(e){console.error('RC352 Ladeliste öffnen',e);alert('Ladeliste und CMR konnten nicht geöffnet werden: '+q(e&&e.message||e))}finishDirectView('cmr');return false}
+000184: function reportCard(view,title,detail,action){if(!canRoute(view))return'';return '<button type="button" '+(action?'data-index321-action="'+action+'"':'data-index321-route="'+view+'"')+'><b>'+title+'</b><br>'+detail+'</button>'}
+000185: function renderReports(){setViewState('reports');var root=document.getElementById('content');if(!root)return false;root.className='content';var cards=reportCard('shipmentoverview','Sendungsreport','Sendungen, Status und Referenzordner.')+reportCard('abd','ABD-Report','Gespeicherte ABD-Anfragen und Status.')+reportCard('tasks','Aufgabenreport','Offene und erledigte Aufgaben.')+reportCard('pallet','Palettenreport','Palettenkonto und Abgleich.','pallet-report')+reportCard('archive','Aktivitätsreport','Archiv und Audit-Protokoll.')+reportCard('cmr','Dokumentenreport','Ladelisten, CMR und Nachweise.');root.innerHTML='<div class="page-head"><div><h2>Reports</h2><p>Die vorhandenen Auswertungen werd
+000186: function settingsCard(view,title){return canRoute(view)?'<button type="button" data-index321-route="'+view+'"><b>'+title+'</b></button>':''}
+000187: function renderSettings(){setViewState('settings');var root=document.getElementById('content');if(!root)return false;root.className='content';var cards=settingsCard('rights','Benutzer &amp; Rechte')+settingsCard('update','Update ExportHUB')+settingsCard('release','Release-Center')+settingsCard('diagnostics','Fehlerdiagnose')+settingsCard('teamfile','Sammelmodus')+settingsCard('archive','Archiv')+settingsCard('privacy','Datenschutz')+'<button type="button" data-exporthub-ms-switch="1"><b>Microsoft-Konto wechseln</b></button>',preview=window.__EXPORTHUB_RC770_CUSTOMER_RECOVERY_PREVIEW__,rest=Number(preview&&preview.restorable||0),fill=Number(preview&&preview.fillable||0),known=!!(preview&&type
+000188: window.rc770PreviewCustomerRecovery=async function(){var box=document.getElementById('rc770CustomerRecoveryStatus'),btn=document.getElementById('rc770RecoverCustomersBtn'),api=window.ExportHUBSync;if(!isAdmin())return false;if(!api||typeof api.previewCustomerRecovery!=='function'){if(box){box.className='badbox';box.textContent='Kunden-Historienprüfung ist in dieser Testversion nicht verfügbar.'}return false}if(box){box.className='notice';box.textContent='Azure-Historie wird nur lesend geprüft …'}if(btn)btn.disabled=true;try{var r=await api.previewCustomerRecovery();var rest=Number(r.restorable||0),fill=Number(r.fillable||0),msg='Aktuell '+Number(r.currentCount||0)+' Kunden · '+Number(r.scann
+---
+000323:     'RC972 verhindert außerdem zu kleine Upload-, Karten-, Sendungs- und Verpackungsaktionen sowie erneutes Schrumpfen im Testportal und auf Smartphones. Kunden-Avis, Abholseite und Location wurden geprüft und benötigten keine Größenkorrektur.',
+000324:     'RC971 führt einen globalen Form-&-Field-Standard für ExportHUB ein: Text-, Zahl-, Datums-, Such-, E-Mail-, Passwort-, Select-, Textarea- und Uploadfelder erhalten einheitliche Höhen, Innenabstände, Schriftgrößen, Fokuszustände und Placeholder-Typografie.',
+000325:     'RC971 korrigiert zusätzlich die besonders kompakten Sonderbereiche Sendung/Colli, Dokumente & ABD, Mail, Aufgabenplaner und Stauplan. Druck-/CMR- und Signaturbereiche bleiben von der Bildschirm-Formularnorm ausgeschlossen; Fach- und Speicherlogik bleiben unverändert.',
+000326:     'RC943 entfernt in Sendung erstellen die sichtbaren Eingabefelder Geplantes Abholdatum und Spedition. Die vorhandenen Abhol-, Aufgaben-, QR-, Speditions- und Dokumentdatenpfade bleiben unverändert erhalten.',
+000327:     'RC942 beseitigt den letzten dreifachen Kundenstandort-Schreibpfad: Beim dauerhaften Speichern des Kundenordners werden Standort-IDs jetzt auch dort unter locationId, selectedLocationId, siteId und destinationId gemeinsam persistiert.',
+000328:     'RC941 vereinheitlicht Kundenstandort-Rohdaten und Länder-Fallbacks: Der Kundenordner speichert jede Standort-ID unter locationId, selectedLocationId, siteId und destinationId; Mail-/Versandland-Ermittlung erkennt historische Standorte auch über selectedLocationId/destinationId.',
+---
+000324:     'RC971 führt einen globalen Form-&-Field-Standard für ExportHUB ein: Text-, Zahl-, Datums-, Such-, E-Mail-, Passwort-, Select-, Textarea- und Uploadfelder erhalten einheitliche Höhen, Innenabstände, Schriftgrößen, Fokuszustände und Placeholder-Typografie.',
+000325:     'RC971 korrigiert zusätzlich die besonders kompakten Sonderbereiche Sendung/Colli, Dokumente & ABD, Mail, Aufgabenplaner und Stauplan. Druck-/CMR- und Signaturbereiche bleiben von der Bildschirm-Formularnorm ausgeschlossen; Fach- und Speicherlogik bleiben unverändert.',
+000326:     'RC943 entfernt in Sendung erstellen die sichtbaren Eingabefelder Geplantes Abholdatum und Spedition. Die vorhandenen Abhol-, Aufgaben-, QR-, Speditions- und Dokumentdatenpfade bleiben unverändert erhalten.',
+000327:     'RC942 beseitigt den letzten dreifachen Kundenstandort-Schreibpfad: Beim dauerhaften Speichern des Kundenordners werden Standort-IDs jetzt auch dort unter locationId, selectedLocationId, siteId und destinationId gemeinsam persistiert.',
+000328:     'RC941 vereinheitlicht Kundenstandort-Rohdaten und Länder-Fallbacks: Der Kundenordner speichert jede Standort-ID unter locationId, selectedLocationId, siteId und destinationId; Mail-/Versandland-Ermittlung erkennt historische Standorte auch über selectedLocationId/destinationId.',
+000329:     'RC940 korrigiert die letzten dokumentrelevanten Standort-Fallbacks: Ladeliste/CMR/PDF erkennen historische Standortdaten auch über selectedLocationId/destinationId; beim Wiederöffnen wird eine nur über destinationId gespeicherte Standortauswahl wieder angezeigt.',
+---
+000369:   'RC923 beseitigt den doppelten Azure-Teamstand-Lesezugriff im Testservice: der Teststand wird nur noch bei tatsächlich fehlendem Blob initialisiert und pro normalem Lese-/Speicheraufruf nur einmal geladen.',
+000370:   'RC923 trennt Diagnose-Uploads vom vollständigen Teamstand, verlängert die Speicher-Abbruchgrenze für langsame Azure-Antworten und reduziert Diagnose- sowie Render-Stürme.',
+000371:   'RC923 reduziert Browserlast in Dashboard, Aufgaben-Planer, Sendungsübersicht und Lager durch stabile Signaturen, wiederverwendete ResizeObserver und aktivierte Offscreen-Virtualisierung.',
+000372:     "RC922 stabilisiert + Zeile im Colli-Bereich: Beim Hinzufügen bleibt die aktuelle Scrollposition erhalten und der Browser fokussiert den sichtbaren Verpackungsbutton statt des unsichtbaren nativen Select-Felds. Dadurch springt die Sendungsansicht beim Anlegen weiterer Colli-Zeilen nicht mehr unnötig.",
+000373:     "RC922 ändert weder Colli-Datenmodell noch Maße-, LDM-, Gewichts-, Verpackungs- oder Speicherlogik. Die neue Zeile wird weiterhin lokal angelegt und erst über die vorhandenen fachlichen Speicherwege dauerhaft übernommen.",
+000374:     "RC921 entfernt den veralteten festen Cache-Schlüssel v=554 von der POD-Notfallseite. Öffnen und Kopieren der Notfallseite verwenden jetzt automatisch die Cache-Version des aktuell geladenen ExportHUB-Builds.",
+---
+000376:     "RC921 ändert weder POD-PDF-Inhalte noch SharePoint-, Vault- oder Signaturdaten; korrigiert wird ausschließlich die Versionsbindung der Notfallseite.",
+000377:     "RC920 berechnet die Dashboard-Masonry-Höhe bei jeder Größenänderung aus der natürlichen aktuellen Kachelhöhe neu. Alte Grid-Row-Spans werden vor der Messung entfernt, damit geschrumpfte Kacheln keine leeren Flächen zurücklassen.",
+000378:     "RC920 beobachtet für die Masonry-Aktualisierung die tatsächlichen Kachelinhalte statt den durch das Raster künstlich gestreckten äußeren Grid-Eintrag. Dadurch entstehen bei Status-, Aufgaben- und Datenänderungen weniger unnötige Resize-Nachläufe.",
+000379:     "RC920 bestätigt die Smartphone-Darstellung von Dashboard und Sendung erstellen bei 320 bis 768 Pixel Breite ohne horizontalen Seitenüberstand; auf bis zu 760 Pixel bleiben Dashboard-Kacheln einspaltig und ohne Grid-Row-Zwang.",
+000380:     "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
+000381:     "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
+---
+000378:     "RC920 beobachtet für die Masonry-Aktualisierung die tatsächlichen Kachelinhalte statt den durch das Raster künstlich gestreckten äußeren Grid-Eintrag. Dadurch entstehen bei Status-, Aufgaben- und Datenänderungen weniger unnötige Resize-Nachläufe.",
+000379:     "RC920 bestätigt die Smartphone-Darstellung von Dashboard und Sendung erstellen bei 320 bis 768 Pixel Breite ohne horizontalen Seitenüberstand; auf bis zu 760 Pixel bleiben Dashboard-Kacheln einspaltig und ohne Grid-Row-Zwang.",
+000380:     "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
+000381:     "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
+000382:     "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
+000383:     "RC919 bestätigt den bestehenden Lager-Optimistic-Move: die Lagerkachel wird weiterhin vor dem Location-API-Warten lokal in die Ziellocation gesetzt; bei Serverfehler wird ausschließlich dieser lokale Schritt zurückgerollt.",
+---
+===== task | hits=634 =====
+000037: if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&
+000038: try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&
+000039: try{if(window.PerformanceObserver){var po=new PerformanceObserver(function(list){list.getEntries().forEach(function(x){var ms=Math.round(Number(x.duration||0));if(ms>=500&&!(window.__EXPORTHUB_DIAG863_STORE__&&Date.now()<Number(window.__EXPORTHUB_DIAG863_STORE__.uiQuietUntil||0)))add('performance',ms>=1200?'error':'warning','Browser-Hänger / Long Task',{durationMs:ms,startMs:Math.round(Number(x.startTime||0))},currentView())})});po.observe({entryTypes:['longtask']})}}catch(_){}
+000040: function renderSignal(name,e){lastSignal={name:name,at:Date.now(),detail:sanitizeDetails(e&&e.detail)}}
+000041: ['exporthub:rendered','exporthub:sync','exporthub:viewchange','exporthub:shipment-saved','exporthub:customer-avis-updated'].forEach(function(name){window.addEventListener(name,function(e){renderSignal(name,e)})});
+000042: var renderTimer=0,pending={count:0,added:0,removed:0,areas:Object.create(null)};
+---
+000099:  {view:'dashboard',label:'Dashboard',right:'dashboard'},
+000100:  {view:'planning',label:'Aufgaben Planer',right:'planning'},
+000101:  {view:'tasks',label:'Aufgaben',right:'tasks'},
+000102:  {view:'notifications',label:'Benachrichtigungen',right:'notifications'},
+000103:  {group:'Sendungen'},
+000104:  {view:'shipment',label:'Sendung erstellen',right:'shipment'},
+---
+000151: function updateActive(){var nav=document.getElementById('nav'),v=current(),active=v,s=state(),source=canonical(s.shipmentViewReturnView||'');if(v==='shipmentview'||v==='documentviewer'){if(itemForView(source))active=source;else active='shipmentsearch'}if(!nav)return;nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){var on=b.getAttribute('data-index321-view')===active;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')})}
+000152: function menuValid(nav){if(!nav)return false;var views=ITEMS.filter(function(x){return x.view}).map(function(x){return x.view}),buttons=Array.prototype.slice.call(nav.querySelectorAll(':scope>button[data-index321-view]'));if(buttons.length!==views.length)return false;return buttons.every(function(b,i){return b.getAttribute('data-index321-view')===views[i]})&&nav.querySelectorAll(':scope>div[data-index308-group]').length===6}
+000153: function normalizeMenu(){var nav=document.getElementById('nav');if(!nav)return false;nav.setAttribute('data-index308-menu','1');nav.setAttribute('data-index321-menu','1');nav.setAttribute('data-index321-canonical',version());nav.lang='de';var buttons=Array.prototype.slice.call(nav.querySelectorAll('button')),groups=Array.prototype.slice.call(nav.querySelectorAll(':scope>div[data-index308-group]')),used=[],groupIndex=0,fragment=document.createDocumentFragment(),accentMap={dashboard:'#38bdf8',planning:'#a78bfa',tasks:'#22c55e',notifications:'#f59e0b',shipment:'#0ea5e9',abd:'#ef4444',shipmentoverview:'#2563eb',shipmentsearch:'#4f46e5',cmr:'#14b8a6',warehouse:'#f97316',customers:'#8b5cf6',custom
+000154: function buildMenu(){var nav=document.getElementById('nav');if(!nav)return false;if(!initialized||!menuValid(nav)){normalizeMenu();initialized=true}applyPermissions();updateActive();return menuValid(nav)}
+000155: function setViewState(view){var s=state(),target=canonical(view);s.view=target;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s);document.body.setAttribute('data-exporthub-view',target);document.body.setAttribute('data-current-view',target);if(target!=='diagnostics'){var root=document.getElementById('content');if(root){root.classList.remove('rc870-diagnostics-view','rc871-diagnostics-view');root.removeAttribute('data-rc870-diagnostics-view');root.removeAttribute('data-rc871-diagnostics-view')}}}catch(_){}return s}
+000156: var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;
+---
+000183: function openDocuments(){setViewState('cmr');prepareDirectView('cmr');try{if(window.ExportHUBIndex240&&typeof window.ExportHUBIndex240.currentOrHub==='function'){var out=window.ExportHUBIndex240.currentOrHub();finishDirectView('cmr');return out}}catch(e){console.error('RC352 Ladeliste öffnen',e);alert('Ladeliste und CMR konnten nicht geöffnet werden: '+q(e&&e.message||e))}finishDirectView('cmr');return false}
+000184: function reportCard(view,title,detail,action){if(!canRoute(view))return'';return '<button type="button" '+(action?'data-index321-action="'+action+'"':'data-index321-route="'+view+'"')+'><b>'+title+'</b><br>'+detail+'</button>'}
+000185: function renderReports(){setViewState('reports');var root=document.getElementById('content');if(!root)return false;root.className='content';var cards=reportCard('shipmentoverview','Sendungsreport','Sendungen, Status und Referenzordner.')+reportCard('abd','ABD-Report','Gespeicherte ABD-Anfragen und Status.')+reportCard('tasks','Aufgabenreport','Offene und erledigte Aufgaben.')+reportCard('pallet','Palettenreport','Palettenkonto und Abgleich.','pallet-report')+reportCard('archive','Aktivitätsreport','Archiv und Audit-Protokoll.')+reportCard('cmr','Dokumentenreport','Ladelisten, CMR und Nachweise.');root.innerHTML='<div class="page-head"><div><h2>Reports</h2><p>Die vorhandenen Auswertungen werd
+000186: function settingsCard(view,title){return canRoute(view)?'<button type="button" data-index321-route="'+view+'"><b>'+title+'</b></button>':''}
+000187: function renderSettings(){setViewState('settings');var root=document.getElementById('content');if(!root)return false;root.className='content';var cards=settingsCard('rights','Benutzer &amp; Rechte')+settingsCard('update','Update ExportHUB')+settingsCard('release','Release-Center')+settingsCard('diagnostics','Fehlerdiagnose')+settingsCard('teamfile','Sammelmodus')+settingsCard('archive','Archiv')+settingsCard('privacy','Datenschutz')+'<button type="button" data-exporthub-ms-switch="1"><b>Microsoft-Konto wechseln</b></button>',preview=window.__EXPORTHUB_RC770_CUSTOMER_RECOVERY_PREVIEW__,rest=Number(preview&&preview.restorable||0),fill=Number(preview&&preview.fillable||0),known=!!(preview&&type
+000188: window.rc770PreviewCustomerRecovery=async function(){var box=document.getElementById('rc770CustomerRecoveryStatus'),btn=document.getElementById('rc770RecoverCustomersBtn'),api=window.ExportHUBSync;if(!isAdmin())return false;if(!api||typeof api.previewCustomerRecovery!=='function'){if(box){box.className='badbox';box.textContent='Kunden-Historienprüfung ist in dieser Testversion nicht verfügbar.'}return false}if(box){box.className='notice';box.textContent='Azure-Historie wird nur lesend geprüft …'}if(btn)btn.disabled=true;try{var r=await api.previewCustomerRecovery();var rest=Number(r.restorable||0),fill=Number(r.fillable||0),msg='Aktuell '+Number(r.currentCount||0)+' Kunden · '+Number(r.scann
+---
+000459:     "RC869 begrenzt Location-Synchronisation bei einem nicht erreichbaren Endpunkt und verhindert dadurch erneute Request-Stürme. Ein 404 setzt eine fünfminütige API-Sperre; Registrieren und Einsammeln werden nicht mehr massenhaft parallel gestartet.",
+000460:     "RC869 trennt echte Fahrerunterschriften von allgemeinen POD-Dateien. Normale POD-Dateien gelten nicht mehr automatisch als digitale Fahrerunterschrift und lösen deshalb keinen falschen pickup-pod-Abruf aus.",
+000461:     "RC869 entfernt die drei nicht vorhandenen RC205-Exporte setTaskDate, planRecurringRange und recurringWeekdays. Der Startfehler setTaskDate is not defined ist damit beseitigt.",
+000462:     "RC869 stabilisiert die Fehlerdiagnose: Neue Ereignisse lösen nur noch eine lokale, verzögerte Anzeigeaktualisierung aus. Während Filter, Schaltflächen oder Liste bedient werden, wird das Panel nicht ersetzt; Auswahl, Fokus und Scrollposition bleiben erhalten.",
+000463:     "RC869 ignoriert DOM-Änderungen des eigenen Diagnosebereichs in der Render-Diagnose und trennt lokale Anzeigeaktualisierung von der manuellen Azure-Aktualisierung. Dadurch erzeugt die Diagnose keine eigene Neu-Render-Schleife mehr.",
+000464:     "RC868 verankert die Fehlerdiagnose im Testservice fest als eigenen sichtbaren Bereich direkt im oberen Teil des Release-Centers. Sie wird nicht mehr nur nachträglich an den Seiteninhalt angehängt und kann deshalb durch einen Release-Center-Neuaufbau nicht mehr verschwinden.",
+---
+000481:      "RC864 ergänzt jeden zentral gespeicherten Eintrag serverseitig um Benutzer, Gerät, Datenumgebung und Client-Version. Sicherheitswerte wie Tokens, Passwörter, Sitzungen, Signaturen und Datei-Inhalte werden nicht in der Diagnose gespeichert.",
+000482:      "RC864 puffert Diagnoseereignisse lokal, wenn Azure kurzfristig nicht erreichbar ist, und überträgt sie nach Wiederherstellung der Verbindung erneut. Der zentrale Speicher hält maximal 5.000 Ereignisse der letzten 30 Tage.",
+000483:      "RC863 ergänzt auf dem Dashboard ausschließlich für globale Administratoren eine zentrale Fehlerdiagnose. JavaScript-Fehler, unbehandelte Promise-Fehler, Console-Warnungen/-Fehler, fehlgeschlagene API-/Fetch-/XHR-Aufrufe, langsame Requests und Browser-Long-Tasks werden mit Zeit, Bereich und technischen Details protokolliert.",
+000484:      "RC863 überwacht Neu-Rendern im sichtbaren ExportHUB-Inhaltsbereich ereignisgesteuert. DOM-Neuaufbauten werden nach Bereich zusammengefasst; wiederholte Render-Bursts desselben Bereichs innerhalb weniger Sekunden werden als Leistungswarnung hervorgehoben.",
+000485:      "RC863 speichert das Diagnoseprotokoll ausschließlich lokal in der aktuellen Browser-Sitzung und niemals im Azure-Teamstand. Ein F5 behält das Sitzungsprotokoll; Global Admin kann es leeren oder als JSON herunterladen.",
+000486:      "RC863 schützt die Diagnose selbst vor Rückkopplungen: Änderungen innerhalb der Diagnosekarte werden nicht als ExportHUB-Neurender erfasst, Logs werden gebündelt aktualisiert und auf maximal 800 Einträge begrenzt.",
+---
+000555:     "RC847 ergänzt einen leichten Lieferavis-Wächter. Solange eine Sendung geöffnet ist, prüft er nur Host und Avis-Panel und stellt ausschließlich den Lieferavis wieder her, falls ein verzögerter Sync-/Layout-Render ihn entfernt hat; kein Seiten-Vollrender wird dadurch ausgelöst.",
+000556:     "RC846 stellt den vollständigen Aufgaben-Masterplan aus dem früher hochgeladenen Aufgabenplan wieder her. Die fünf festen Gruppen sind wieder Picken, ABD erstellen, Anmelden, Aufträge kontrollieren und Zusatzaufgaben; Montag bis Freitag bleiben die verbindliche Wochenstruktur.",
+000557:     "RC846 verwendet für Aufgaben und Aufgaben Planer dieselbe Quelle: state.tasks plus den geschützten Masterplan. Ist der Azure-/Team-Aufgabenbestand leer oder unvollständig, werden fehlende Masteraufgaben der aktuellen Woche wiederhergestellt, ohne manuelle oder sendungsbezogene Aufgaben zu löschen.",
+000558:     "RC846 führt eine einmalige Neuaktivierung des hochgeladenen Masterplans durch. Alte Tombstones aus den fehlerhaften RC836-RC845-Aufgabenmigrationen werden nur für die jetzt ausdrücklich wiederhergestellten Masteraufgaben zurückgesetzt; ab RC846 neu gelöschte Aufgabenserien bleiben dauerhaft gelöscht und werden nach F5 oder Sync nicht erneut angelegt.",
+000559:     'RC845 macht den Lieferavis renderstabil: Bearbeitungsansicht und schreibgeschützte Sendungsansicht besitzen getrennte feste Avis-Hosts. Ein späterer Layout-/Sync-Render kann den Avis nicht mehr aus der sichtbaren Sendung in eine andere Ansicht verschieben.',
+000560:     'RC845 bindet den Lieferavis direkt an den kanonischen Sendungsrenderer. Nach jedem Neuaufbau des Sendungsdaten-Blocks wird der Avis-Host erneut an der richtigen Position verankert und der bestehende Avis-Controller unmittelbar erneut gerendert; die Sichtbarkeit hängt nicht mehr nur von einem verzögerten MutationObserver ab.',
+---
+000567:     'RC843 schützt eine bewusst geöffnete schreibgeschützte Sendungsansicht vor verzögerten Render-/Sync-Rennen. Azure-Synchronisierung darf shipmentview, shipmentViewId und den bereits geöffneten Referenzkontext nicht mehr nach wenigen Sekunden durch eine andere Ansicht ersetzen.',
+000568:     'RC843 löst den lokalen Sendungsansicht-Schutz nur bei einer echten Benutzer-Navigation wie Zurück, Menüwechsel, Ladeliste/CMR oder Ref-Ordner auf. Ein reines exporthub:sync/exporthub:rendered darf die Sendung nicht schließen.',
+000569:     'RC842 stellt die Aufgabenansicht auf den verbindlichen gespeicherten Bestand um: Jede echte offene Aufgabe aus state.tasks wird angezeigt, unabhängig von Kalenderwoche, weekKey, Rückstand oder Serienkennung. Ein alter Wochenfilter darf offene Aufgaben nicht mehr unsichtbar machen.',
+000570:     'RC842 beendet die automatische Aufgabenmutation beim Laden. Das Öffnen von Aufgaben oder der Seitenstart erzeugt, verschiebt oder entfernt keine Wochenaufgaben mehr; insbesondere wird die fehlerhafte WK-Seed-Geister-Bereinigung aus RC836/RC838 abgeschaltet.',
+000571:     'RC842 beschränkt Löschschutz auf echte Aufgaben-Tombstones: Exakte Aufgaben-ID sowie bei ausdrücklich gelöschter Serie die gespeicherte Serien-ID. Semantische Ähnlichkeit oder fehlende alte Seed-Basis darf keine gültige offene Aufgabe löschen.',
+000572:     'RC842 entfernt den Sammelhinweis zu abgeholten Sendungen ohne POD aus der Aufgabenansicht. Fehlende PODs bleiben ein Sendungs-/POD-Thema und verdrängen keine Arbeitsaufgaben mehr.',
+---
+===== Arbeitsfokus | hits=3 =====
+000394:     "RC916 entfernt den alten globalen Lieferavis-Fallback aus der internen ExportHUB-Oberfläche. Kunden-/Lieferavis bleibt ausschließlich über die dafür vorgesehene Kunden-Avis-Funktion beziehungsweise öffentliche Avis-Seite erreichbar.",
+000395:     "RC916 beseitigt die veraltete Weiterleitung customer-avis.html?v=892. Dashboard-Masonry, persönliche Kachelbreiten und das aktuelle RC894/RC896-Sendungslayout bleiben alleinige Layout-Owner.",
+000396:     "RC915 entfernt den veralteten RC892-Dashboard-Zwang. Persönliche Kachelbreiten und die gespeicherte Reihenfolge bleiben jetzt allein beim aktuellen RC205-Dashboard; Arbeitsfokus beziehungsweise andere Dashboard-Karten werden nicht mehr nachträglich umsortiert oder auf volle Breite gezwungen.",
+000397:     "RC915 entfernt die veraltete URL-Rücksetzung auf v=892. Die Testversion hält den sichtbaren Versionsparameter jetzt auf RC915 und fällt bei Render-, Sync- oder Navigationsereignissen nicht mehr auf einen alten Cache-Key zurück.",
+000398:     "RC915 lässt die aktuelle RC914-Masonry-Anordnung, Smartphone-Darstellung, Sendung-erstellen-Layout, Lager-Optimistic-Move und Aufgaben-Planer-Optimistic-Move unverändert bestehen.",
+000399:     "RC914 beseitigt die großen Leerflächen im Dashboard durch eine echte höhenabhängige Kachelanordnung. Kurze Kacheln rücken unabhängig von hohen Nachbarkacheln direkt nach oben.",
+---
+002098:         '<div>'+
+002099:           '<div class="rc885-kicker">Persönlicher Arbeitsplatz</div>'+
+002100:           '<h2>Arbeitsfokus</h2>'+
+002101:           '<div class="rc885-sub">Nur Kennzahlen und Schnellzugriffe. Aufgaben und Sendungen werden darunter nur einmal im bestehenden Dashboard angezeigt.</div>'+
+002102:         '</div>'+
+002103:       '</div>'+
+---
+023231:   body #content .rc255-today-status:before{width:6px!important;height:6px!important}
+023232: 
+023233:   /* Arbeitsfokus */
+023234:   #rc885Workspace{margin:0 0 8px!important;border-radius:12px!important}
+023235:   #rc885Workspace .rc885-head{padding:10px 11px 8px!important;gap:6px!important}
+023236:   #rc885Workspace .rc885-kicker{font-size:8px!important;margin-bottom:2px!important}
+---
+===== kachel | hits=50 =====
+000375:     "RC921 stellt damit sicher, dass POD_Notfall_Start.html im verbundenen Notfallordner aus derselben aktuellen Version stammt wie die laufende Testversion und nicht aus einer alten Browser-/CDN-Zwischenspeicherung.",
+000376:     "RC921 ändert weder POD-PDF-Inhalte noch SharePoint-, Vault- oder Signaturdaten; korrigiert wird ausschließlich die Versionsbindung der Notfallseite.",
+000377:     "RC920 berechnet die Dashboard-Masonry-Höhe bei jeder Größenänderung aus der natürlichen aktuellen Kachelhöhe neu. Alte Grid-Row-Spans werden vor der Messung entfernt, damit geschrumpfte Kacheln keine leeren Flächen zurücklassen.",
+000378:     "RC920 beobachtet für die Masonry-Aktualisierung die tatsächlichen Kachelinhalte statt den durch das Raster künstlich gestreckten äußeren Grid-Eintrag. Dadurch entstehen bei Status-, Aufgaben- und Datenänderungen weniger unnötige Resize-Nachläufe.",
+000379:     "RC920 bestätigt die Smartphone-Darstellung von Dashboard und Sendung erstellen bei 320 bis 768 Pixel Breite ohne horizontalen Seitenüberstand; auf bis zu 760 Pixel bleiben Dashboard-Kacheln einspaltig und ohne Grid-Row-Zwang.",
+000380:     "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
+---
+000376:     "RC921 ändert weder POD-PDF-Inhalte noch SharePoint-, Vault- oder Signaturdaten; korrigiert wird ausschließlich die Versionsbindung der Notfallseite.",
+000377:     "RC920 berechnet die Dashboard-Masonry-Höhe bei jeder Größenänderung aus der natürlichen aktuellen Kachelhöhe neu. Alte Grid-Row-Spans werden vor der Messung entfernt, damit geschrumpfte Kacheln keine leeren Flächen zurücklassen.",
+000378:     "RC920 beobachtet für die Masonry-Aktualisierung die tatsächlichen Kachelinhalte statt den durch das Raster künstlich gestreckten äußeren Grid-Eintrag. Dadurch entstehen bei Status-, Aufgaben- und Datenänderungen weniger unnötige Resize-Nachläufe.",
+000379:     "RC920 bestätigt die Smartphone-Darstellung von Dashboard und Sendung erstellen bei 320 bis 768 Pixel Breite ohne horizontalen Seitenüberstand; auf bis zu 760 Pixel bleiben Dashboard-Kacheln einspaltig und ohne Grid-Row-Zwang.",
+000380:     "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
+000381:     "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
+---
+000377:     "RC920 berechnet die Dashboard-Masonry-Höhe bei jeder Größenänderung aus der natürlichen aktuellen Kachelhöhe neu. Alte Grid-Row-Spans werden vor der Messung entfernt, damit geschrumpfte Kacheln keine leeren Flächen zurücklassen.",
+000378:     "RC920 beobachtet für die Masonry-Aktualisierung die tatsächlichen Kachelinhalte statt den durch das Raster künstlich gestreckten äußeren Grid-Eintrag. Dadurch entstehen bei Status-, Aufgaben- und Datenänderungen weniger unnötige Resize-Nachläufe.",
+000379:     "RC920 bestätigt die Smartphone-Darstellung von Dashboard und Sendung erstellen bei 320 bis 768 Pixel Breite ohne horizontalen Seitenüberstand; auf bis zu 760 Pixel bleiben Dashboard-Kacheln einspaltig und ohne Grid-Row-Zwang.",
+000380:     "RC919 beschleunigt Drag-and-drop im Aufgaben Planer an der eigentlichen Ursache: derselbe Kalendertag existiert in mehreren Aufgabengruppen. Ein Drop verwendet jetzt direkt die tatsächlich getroffene Tagesfläche statt global die erste Tagesfläche mit demselben Datum zu suchen.",
+000381:     "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
+000382:     "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
+---
+000381:     "RC919 hält verschobene Aufgaben sofort in ihrer fachlichen Gruppe. Eine Anmeldung springt beim Verschieben nicht mehr kurz in Picken oder eine andere zuerst gerenderte Gruppe und muss nicht erst durch den verzögerten Planner-Neuabgleich an die richtige Stelle zurückkehren.",
+000382:     "RC919 reduziert beim Planer-Drop unnötige DOM-Suche: der exakte Drop-Container wird bis in die optimistische Verschiebung weitergereicht. Datumsänderung, Azure-Persistenz, Feiertagslogik und spätere Konsistenzprüfung bleiben unverändert.",
+000383:     "RC919 bestätigt den bestehenden Lager-Optimistic-Move: die Lagerkachel wird weiterhin vor dem Location-API-Warten lokal in die Ziellocation gesetzt; bei Serverfehler wird ausschließlich dieser lokale Schritt zurückgerollt.",
+000384:     "RC918 trennt Benachrichtigungscenter und Warncenter fachlich eindeutig: Benachrichtigungen erinnern nur noch an persönliche offene Aufgaben zu den festen Prüfzeiten 09:00, 12:00 und 15:00 Uhr; operative Sendungsabweichungen gehören ausschließlich in das Warncenter.",
+000385:     "RC918 entfernt überfällige Sendungen aus Benachrichtigungsseite, Browser-Hinweis und Benachrichtigungszähler. Die bestehenden Abholerinnerungs-Mails bleiben weiterhin direkt in Sendungsübersicht und Sendungsansicht verfügbar.",
+000386:     "RC918 entfernt Aufgaben aus dem Warncenter. Dort werden ausschließlich Sendungsprobleme nach POD fehlt, Dokumente und Abholung gruppiert; eine Sendung wird dabei nur einmal in der jeweils wichtigsten Handlungsgruppe gezählt und angezeigt.",
+---
+000393:     "RC916 entfernt den verbliebenen RC892-Laufzeitblock vollständig. Der alte Block darf Sendung erstellen nicht mehr mit einer zweiten Feldklassifizierung, Paint-Containment oder eigenen Render-Events nachbearbeiten.",
+000394:     "RC916 entfernt den alten globalen Lieferavis-Fallback aus der internen ExportHUB-Oberfläche. Kunden-/Lieferavis bleibt ausschließlich über die dafür vorgesehene Kunden-Avis-Funktion beziehungsweise öffentliche Avis-Seite erreichbar.",
+000395:     "RC916 beseitigt die veraltete Weiterleitung customer-avis.html?v=892. Dashboard-Masonry, persönliche Kachelbreiten und das aktuelle RC894/RC896-Sendungslayout bleiben alleinige Layout-Owner.",
+000396:     "RC915 entfernt den veralteten RC892-Dashboard-Zwang. Persönliche Kachelbreiten und die gespeicherte Reihenfolge bleiben jetzt allein beim aktuellen RC205-Dashboard; Arbeitsfokus beziehungsweise andere Dashboard-Karten werden nicht mehr nachträglich umsortiert oder auf volle Breite gezwungen.",
+000397:     "RC915 entfernt die veraltete URL-Rücksetzung auf v=892. Die Testversion hält den sichtbaren Versionsparameter jetzt auf RC915 und fällt bei Render-, Sync- oder Navigationsereignissen nicht mehr auf einen alten Cache-Key zurück.",
+000398:     "RC915 lässt die aktuelle RC914-Masonry-Anordnung, Smartphone-Darstellung, Sendung-erstellen-Layout, Lager-Optimistic-Move und Aufgaben-Planer-Optimistic-Move unverändert bestehen.",
+---
+000394:     "RC916 entfernt den alten globalen Lieferavis-Fallback aus der internen ExportHUB-Oberfläche. Kunden-/Lieferavis bleibt ausschließlich über die dafür vorgesehene Kunden-Avis-Funktion beziehungsweise öffentliche Avis-Seite erreichbar.",
+000395:     "RC916 beseitigt die veraltete Weiterleitung customer-avis.html?v=892. Dashboard-Masonry, persönliche Kachelbreiten und das aktuelle RC894/RC896-Sendungslayout bleiben alleinige Layout-Owner.",
+000396:     "RC915 entfernt den veralteten RC892-Dashboard-Zwang. Persönliche Kachelbreiten und die gespeicherte Reihenfolge bleiben jetzt allein beim aktuellen RC205-Dashboard; Arbeitsfokus beziehungsweise andere Dashboard-Karten werden nicht mehr nachträglich umsortiert oder auf volle Breite gezwungen.",
+000397:     "RC915 entfernt die veraltete URL-Rücksetzung auf v=892. Die Testversion hält den sichtbaren Versionsparameter jetzt auf RC915 und fällt bei Render-, Sync- oder Navigationsereignissen nicht mehr auf einen alten Cache-Key zurück.",
+000398:     "RC915 lässt die aktuelle RC914-Masonry-Anordnung, Smartphone-Darstellung, Sendung-erstellen-Layout, Lager-Optimistic-Move und Aufgaben-Planer-Optimistic-Move unverändert bestehen.",
+000399:     "RC914 beseitigt die großen Leerflächen im Dashboard durch eine echte höhenabhängige Kachelanordnung. Kurze Kacheln rücken unabhängig von hohen Nachbarkacheln direkt nach oben.",
+---
+000397:     "RC915 entfernt die veraltete URL-Rücksetzung auf v=892. Die Testversion hält den sichtbaren Versionsparameter jetzt auf RC915 und fällt bei Render-, Sync- oder Navigationsereignissen nicht mehr auf einen alten Cache-Key zurück.",
+000398:     "RC915 lässt die aktuelle RC914-Masonry-Anordnung, Smartphone-Darstellung, Sendung-erstellen-Layout, Lager-Optimistic-Move und Aufgaben-Planer-Optimistic-Move unverändert bestehen.",
+000399:     "RC914 beseitigt die großen Leerflächen im Dashboard durch eine echte höhenabhängige Kachelanordnung. Kurze Kacheln rücken unabhängig von hohen Nachbarkacheln direkt nach oben.",
+000400:     "RC914 behält Dashboard-Kachelbreiten, Reihenfolge, Farben und Drag-and-drop bei; auf Smartphones bleibt die einspaltige Darstellung unverändert stabil.",
+000401:     "RC914 korrigiert Sendung erstellen zwischen Tablet- und schmaler Desktopbreite: Colli & Lademeter erhält nach dem Wechsel auf zwei Spalten eine eigene Rasterzeile und kann Sendungsdaten nicht mehr überlagern.",
+000402:     "RC884 gibt die Sendungsansicht bei echter Navigation zuverlässig frei; Aufgaben, Dashboard, Kunden und andere Bereiche bleiben nach dem Anklicken geöffnet.",
+---
+000398:     "RC915 lässt die aktuelle RC914-Masonry-Anordnung, Smartphone-Darstellung, Sendung-erstellen-Layout, Lager-Optimistic-Move und Aufgaben-Planer-Optimistic-Move unverändert bestehen.",
+000399:     "RC914 beseitigt die großen Leerflächen im Dashboard durch eine echte höhenabhängige Kachelanordnung. Kurze Kacheln rücken unabhängig von hohen Nachbarkacheln direkt nach oben.",
+000400:     "RC914 behält Dashboard-Kachelbreiten, Reihenfolge, Farben und Drag-and-drop bei; auf Smartphones bleibt die einspaltige Darstellung unverändert stabil.",
+000401:     "RC914 korrigiert Sendung erstellen zwischen Tablet- und schmaler Desktopbreite: Colli & Lademeter erhält nach dem Wechsel auf zwei Spalten eine eigene Rasterzeile und kann Sendungsdaten nicht mehr überlagern.",
+000402:     "RC884 gibt die Sendungsansicht bei echter Navigation zuverlässig frei; Aufgaben, Dashboard, Kunden und andere Bereiche bleiben nach dem Anklicken geöffnet.",
+000403:     "RC884 hält die bestehende Sendungssuche aktiv und verhindert, dass der Sendungsansicht-Guard die Suche verdrängt.",
+---
+===== sidebar | hits=89 =====
+000672:      'RC806 lässt Testservice-, Pickup- und sonstige fachliche Routen unverändert. Die Änderung betrifft ausschließlich die kanonische Produktions-Root-URL und den bestehenden Produktions-Updatebutton.',
+000673:      'RC805 setzt eine verbindliche Helligkeitslogik für alle neun Designs durch: sieben helle Themes verwenden im gesamten Arbeitsbereich helle Karten, Tabellen, Felder und Iconflächen; Technical Teal und Boardroom Elite verwenden durchgehend abgestufte dunkle Arbeitsflächen statt schwarzer und weißer Extremkontraste.',
+000674:      'RC805 überarbeitet die linke Navigation für Lesbarkeit: Menüschrift und Gruppenüberschriften sind größer, stärker und explizit an die Sidebar-Vordergrundfarbe gebunden. Normal-, Hover- und Aktivzustand von Text und Icons besitzen in jedem Theme einen kontrollierten Kontrast.',
+000675:      'RC805 entfernt harte Hell-Dunkel-Sprünge innerhalb der hellen Designs. Operations Blue und Strategic Graphite verwenden keine fast schwarzen Tabellen- oder Iconflächen mehr auf hellen Karten; Tabellenkopf, Karten, Felder und Aktionsicons bleiben in derselben Helligkeitsfamilie.',
+000676:      'RC805 hellt die beiden dunklen Designs gezielt an: Technical Teal und Boardroom Elite behalten ihre dunkle Identität, verwenden aber besser abgestufte Seiten-, Karten-, Feld- und Tabellenflächen. Primärtext, Hilfetext, Navigation und Bedienelemente bleiben deutlich lesbar, ohne grelle weiße Inseln zu erzeugen.',
+000677:     'RC804 beseitigt die falsche Warnung bei manuellen Sendungs-Saves, wenn bereits ein Azure-Speichervorgang läuft. Ein bewusster Benutzer-Save wartet jetzt ausreichend auf den laufenden Vorgang, statt bereits nach sieben Sekunden fälschlich als unbestätigt abzubrechen.',
+---
+000692:     'RC800 schärft die neun Identitäten: Professional Standard = Navy/Cobalt, Operations Blue = technisches Stahlblau, Executive Minimal = monochromes Graphit, Glass Workspace = helles Eisglas, Technical Teal = dunkles Teal/Cyan, Warm Business = Sand/Terrakotta, Mint Professional = Mint/Waldgrün, Boardroom Elite = Navy/Gold und Strategic Graphite = Graphit/Orange.',
+000693:     'RC800 ist eine reine Designrevision auf Basis RC785. Fachlogik, Azure-Speicherpfade, Rechte, Navigation, Sendungsdaten, Dokumentlogik und bestehende Abläufe bleiben unverändert.',
+000694:     'RC785 baut alle neun Designs zu vollständigen Oberflächensystemen aus. Seitenhintergrund, Sidebar, Navigation, Topbar, Überschriften, Karten, KPI-Kacheln, Formulare, Buttons, Tabellen, Statusflächen, Dialogflächen, Diagrammcontainer, Mailbereich, Avis und die schreibgeschützte Sendungsansicht verwenden gemeinsam die aktive Designidentität.',
+000695:     'RC785 verbindet die ältere ExportHUB-CSS-Variablenbasis mit dem kanonischen Theme-System. Dadurch folgen auch ältere Bereiche und RC776/RC784-Komponenten den aktuellen Theme-Werten statt auf festen Blau-/Weißwerten stehen zu bleiben.',
+000696:     'RC785 entfernt die Testservice-Farbüberschreibung des kompletten Seitenhintergrunds und der Topbar. Der Testservice bleibt über seine bestehende Kennzeichnung und eine feste Warnmarkierung eindeutig von Produktion unterscheidbar, ohne die gewählte Designpalette zu verdecken.',
+000697:     'RC785 gibt jedem Design neben eigener Palette auch eigene Materialwirkung, Radien, Kontrastführung, Tabellen-/Buttonstil, Navigationswirkung und Schattencharakter. Layoutreihenfolge, Fachfunktionen, Rechte, Daten und Azure-Speicherlogik bleiben unverändert.',
+---
+001335:     'RC800 Semantikprüfung: Erfolg, Warnung, Fehler und Information müssen in allen neun Designs weiterhin eindeutig grün, amber, rot und blau/cyan erkennbar bleiben und dürfen nicht durch die jeweilige Theme-Akzentfarbe ersetzt werden.',
+001336:     'RC800 Designwechsel ohne Fachwirkung: Mehrfach zwischen allen neun Designs wechseln. Aktiver View, Formwerte, Sendungszustand und Azure-Teamstand müssen unverändert bleiben; Designwechsel darf keinen Speichervorgang auslösen.',
+001337:     'RC785 Volltheme: Alle neun Designs nacheinander auf Dashboard, Sendungsübersicht, Sendungsansicht, Aufgaben, Kundenordner und Einstellungen auswählen. Seitenhintergrund, Sidebar, Topbar, Karten, Tabellen, Buttons und Formulare müssen jeweils sichtbar gemeinsam wechseln; kein Bereich darf auf der alten Blau-/Weißbasis stehen bleiben.',
+001338:     'RC785 Testservice: Mehrere Designs wechseln. Der Testservice muss weiterhin eindeutig als TESTSERVICE markiert bleiben, darf aber Seitenhintergrund und Topbar nicht mehr auf eine für alle Themes identische Warm-Palette zwingen.',
+001339:     'RC785 Designwechsel ohne Datenwirkung: Während eines Theme-Wechsels dürfen weder queueSave noch flushSave, Render-Neuaufbau, Änderung von Formwerten oder Änderung des aktiven Views ausgelöst werden.',
+001340:     'RC784 Sendungsansicht Kontext: Eine gespeicherte Sendung über Sendung ansehen öffnen. Oberhalb der Detaildaten muss Sendungsübersicht → Sendungsansicht · REF sichtbar sein; Zurück muss wieder zur ursprünglichen Übersicht führen und darf keinen Azure-Save auslösen.',
+---
+002860: <style>
+002861: :root{--bg:#eef6fb;--surface:#fff;--surface2:#f7fbff;--text:#0f172a;--muted:#64748b;--line:#dbe4ef;--nav1:#051937;--nav2:#0b3b72;--blue:#2563eb;--cyan:#05b8ff;--green:#16a34a;--orange:#f97316;--red:#dc2626;--purple:#7e22ce;--yellow:#facc15;--shadow:0 18px 46px rgba(15,23,42,.10);--radius:22px}
+002862: *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),radial-gradient(circle at 92% 2%,rgba(37,99,235,.15),transparent 30%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}h1,h2,h3,h4{color:#08245d;margin-top:0}.muted{color:var(--muted)}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(680px,100%);background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:34px;padding:34px;box-shadow:var(--shadow);text-align:center}.logo{width:78px;height:78px;marg
+002863: 
+002864: .a4doc{background:#fff;color:#111;width:210mm;max-width:100%;min-height:297mm;margin:20px auto;padding:11mm;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 14px 36px rgba(15,23,42,.16);font-family:Arial,Helvetica,sans-serif}.a4doc h2,.a4doc h3{color:#111;margin:0 0 8px}.a4top{display:flex;justify-content:space-between;gap:14px;border-bottom:3px solid #1d4ed8;padding-bottom:8px;margin-bottom:10px;align-items:flex-start}.load-brand{display:flex;align-items:center;gap:10px}.load-logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);color:#fff;display:grid;place-items:center;font-size:22px;font-weight:900;box-shadow:0 8px 18px rgba(37,99,235,.
+002865: @media(max-width:1100px){.academy-layout{grid-template-columns:1fr}.a4doc{width:100%;min-height:auto;padding:14px}.doc-grid{grid-template-columns:1fr}}
+---
+002907: @media print{.a4doc{width:210mm;min-height:297mm;margin:0;box-shadow:none;border:none;border-radius:0;page-break-after:always;padding:9mm}.a4doc:last-child{page-break-after:auto}.cmr-page{padding:6mm}.cmr-grid{font-size:9.5px}.load-table{font-size:10px}.doc-box{font-size:11px}.previewDoc{border:none}}
+002908: 
+002909: @media(max-width:1100px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.grid2,.grid3,.grid4,.metrics,.quick-grid,.hero-kpis,.split,.miniGrid,.summaryGrid{grid-template-columns:1fr}.task{grid-template-columns:1fr}.topbar{flex-wrap:wrap}.main{padding:16px}.hero{padding:25px;min-height:auto}}
+002910: @media print{.sidebar,.topbar,.no-print,.toolbar,.actions,button{display:none!important}.app{display:block}.main{padding:0}.card,.metric,.printdoc,.previewDoc{box-shadow:none;border:1px solid #ccc}.print-only{display:block}body{background:#fff}.cmr-compact{font-size:11px}.cmr-compact td,.cmr-compact th{padding:4px!important}}
+002911: 
+002912: @media print{.cmr-template{width:210mm;min-height:297mm;margin:0;box-shadow:none;border:2px solid #000;page-break-after:always}.cmr-template .cmr-box{break-inside:avoid}.cmr-template .cmr-left{grid-template-rows:80px 80px 58px 58px 44px 168px 136px 38px 48px 60px}.cmr-template .cmr-right{grid-template-rows:90px 68px 160px 160px 136px}.cmr-template .cmr-content{font-size:10px}.cmr-template .cmr-cellval{font-size:9px}.cmr-template+.a4doc{page-break-before:always}}
+---
+002908: 
+002909: @media(max-width:1100px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.grid2,.grid3,.grid4,.metrics,.quick-grid,.hero-kpis,.split,.miniGrid,.summaryGrid{grid-template-columns:1fr}.task{grid-template-columns:1fr}.topbar{flex-wrap:wrap}.main{padding:16px}.hero{padding:25px;min-height:auto}}
+002910: @media print{.sidebar,.topbar,.no-print,.toolbar,.actions,button{display:none!important}.app{display:block}.main{padding:0}.card,.metric,.printdoc,.previewDoc{box-shadow:none;border:1px solid #ccc}.print-only{display:block}body{background:#fff}.cmr-compact{font-size:11px}.cmr-compact td,.cmr-compact th{padding:4px!important}}
+002911: 
+002912: @media print{.cmr-template{width:210mm;min-height:297mm;margin:0;box-shadow:none;border:2px solid #000;page-break-after:always}.cmr-template .cmr-box{break-inside:avoid}.cmr-template .cmr-left{grid-template-rows:80px 80px 58px 58px 44px 168px 136px 38px 48px 60px}.cmr-template .cmr-right{grid-template-rows:90px 68px 160px 160px 136px}.cmr-template .cmr-content{font-size:10px}.cmr-template .cmr-cellval{font-size:9px}.cmr-template+.a4doc{page-break-before:always}}
+002913: 
+---
+003535: }
+003536: @media print{
+003537:   body.print-labels .sidebar,
+003538:   body.print-labels .topbar,
+003539:   body.print-labels .no-print,
+003540:   body.print-labels #content > *:not(#labelSheetRC53){
+---
+003544:   body.print-labels .main{padding:0!important}
+003545:   body.print-labels #labelSheetRC53{display:grid!important;box-shadow:none!important;border:0!important;margin:0!important;width:210mm!important;min-height:297mm!important;page-break-after:auto!important}
+003546:   body.print-loadlist-only .sidebar,
+003547:   body.print-loadlist-only .topbar,
+003548:   body.print-loadlist-only .no-print,
+003549:   body.print-loadlist-only #cmrDoc,
+---
+===== topbar | hits=111 =====
+000320:     'RC973 hebt feste beziehungsweise gedeckelte Bildschirmhöhen ausschließlich für echte mehrzeilige Langtextfelder auf. Mailvorlagen, Kunden- und Prozesshinweise, Notizen sowie Beschreibungen wachsen und schrumpfen jetzt automatisch mit ihrem Inhalt; gespeicherte Inhalte werden beim Öffnen neu vermessen.',
+000321:      'RC973 lässt einzeilige Eingaben, Selects, Uploads, Colli-Felder sowie Druck-, CMR- und Signaturbereiche unverändert. Die Änderung passt ausschließlich die Darstellungshöhe an und schreibt keine Fachwerte oder Speicherzustände.',
+000322:      'RC972 schließt den zweiten globalen Feld-Audit ab: Topbar-Suche, Sprach- und Designauswahl sowie Toolbar-Aktionen verwenden nun auch außerhalb des Inhaltsbereichs den einheitlichen Bedienstandard.',
+000323:     'RC972 verhindert außerdem zu kleine Upload-, Karten-, Sendungs- und Verpackungsaktionen sowie erneutes Schrumpfen im Testportal und auf Smartphones. Kunden-Avis, Abholseite und Location wurden geprüft und benötigten keine Größenkorrektur.',
+000324:     'RC971 führt einen globalen Form-&-Field-Standard für ExportHUB ein: Text-, Zahl-, Datums-, Such-, E-Mail-, Passwort-, Select-, Textarea- und Uploadfelder erhalten einheitliche Höhen, Innenabstände, Schriftgrößen, Fokuszustände und Placeholder-Typografie.',
+000325:     'RC971 korrigiert zusätzlich die besonders kompakten Sonderbereiche Sendung/Colli, Dokumente & ABD, Mail, Aufgabenplaner und Stauplan. Druck-/CMR- und Signaturbereiche bleiben von der Bildschirm-Formularnorm ausgeschlossen; Fach- und Speicherlogik bleiben unverändert.',
+---
+000429:     "RC876 reduziert den TESTSERVICE-Start auf die notwendige Serverprüfung: Eine wiederhergestellte Global-Admin-Sitzung lädt direkt den serverseitig geschützten Teamstand und sendet nicht vorher noch eine zusätzliche Auth-Sitzungsprüfung. Bei transientem Ladefehler erfolgt kein automatischer zweiter Teamstand-Read; Wiederholen bleibt bewusst über denselben Login möglich.",
+000430:     "RC876 entfernt die vollständige Lager-/Location-Synchronisation vom Dashboard. Eine neu gespeicherte Sendung registriert gezielt nur ihre eigene Location-Metadatei; die komplette Synchronisation läuft ausschließlich im Lagerbereich. Automatische POD-Sicherung startet außerdem nur noch bei einer konkret vorhandenen Inline-Signatur oder echten Signatur-URL.",
+000431:     "RC875 repariert die Smartphone-Shell vollständig: App, Hauptbereich, Topbar und Dashboard verwenden auf kleinen Displays verbindlich die komplette Viewport-Breite. Desktop-Spaltenbreiten und Theme-Regeln können die mobile Darstellung nicht mehr überschreiben.",
+000432:     "RC875 ordnet die Smartphone-Kopfleiste neu: Menü-Taste bleibt kompakt, Suche und Testservice-Hinweis brechen sauber um und Design-/Aktionsfelder werden in bedienbaren mobilen Reihen dargestellt. Kein abgeschnittener Kopfbereich und kein ungenutzter rechter Seitenstreifen mehr.",
+000433:     "RC875 erzwingt für Dashboard-Kacheln und verschachtelte Kennzahlen mobile min-width/max-width-Regeln, verhindert horizontales Überlaufen und korrigiert die Testservice-Banderole für schmale Geräte. RC874-Aufgaben-, Feiertags- und Gruppierungslogik bleibt unverändert enthalten.",
+000434:     "RC874 gruppiert die Aufgabenansicht verbindlich nach Picken, ABD erstellen, Anmelden, Aufträge kontrollieren, Zusatzaufgaben und weiteren Aufgaben. Jede Gruppe kann einzeln ein- und ausgeklappt werden; zusätzlich stehen Alle Gruppen öffnen und Alle Gruppen schließen bereit. Der Klappzustand bleibt lokal auf dem Gerät erhalten und erzeugt keinen Azure-Save.",
+---
+000686:     'RC801 repariert die Login-Sichtbarkeit in Technical Teal und Boardroom Elite. Die Login-Karte, Überschriften, Hilfetexte, Felder, Buttons und Umgebungswahl verwenden jetzt dieselben kanonischen Theme-Flächen und Vordergrundfarben wie die restliche Oberfläche; helle Schrift kann dadurch nicht mehr auf einer weißen Altfläche verschwinden.',
+000687:     'RC801 bindet die Login-Oberfläche direkt in den bestehenden kanonischen Theme-Owner ein. Es wurde kein zusätzlicher Reparatur- oder Overlayblock angelegt; Fachlogik, Authentifizierung, Azure-Speicherung und Navigation bleiben unverändert.',
+000688:     'RC800 überarbeitet alle neun vorhandenen Design-Themen als vollständige, eigenständige visuelle Systeme. Farbpalette, Typografie-Kontrast, Flächen, Navigation, Topbar, Karten, Formulare, Tabellen, Statusflächen, Dokumentbereiche, Dialoge und Diagramme folgen jetzt pro Theme einer klaren gemeinsamen Designsprache.',
+000689:     'RC800 führt verbindliche Vordergrundfarben für helle, dunkle und akzentfarbene Flächen ein. Primärtext, Sekundärtext, Tabellenköpfe, Buttons, Links, Hinweise und Statusmeldungen bleiben dadurch auch in den dunklen Themes Technical Teal und Boardroom Elite sowie auf kräftigen Akzentflächen zuverlässig lesbar.',
+000690:     'RC800 überarbeitet die Icon-Sprache vollständig. Navigationsicons, Aktionsicons, Kundenkontext-Icons, Update-Icons sowie SVG-Icons in Buttons und Karten erhalten themeabhängige Vordergrund-, Hintergrund-, Rahmen-, Hover- und Aktivfarben statt einer universellen Blauwirkung.',
+000691:     'RC800 hält semantische Farben bewusst von der Theme-Akzentfarbe getrennt: Grün bleibt Erfolg, Amber Warnung, Rot Fehler/Gefahr und Blau beziehungsweise Cyan Information. Dadurch bleibt der Bedienstatus in jedem Theme sofort verständlich.',
+---
+000692:     'RC800 schärft die neun Identitäten: Professional Standard = Navy/Cobalt, Operations Blue = technisches Stahlblau, Executive Minimal = monochromes Graphit, Glass Workspace = helles Eisglas, Technical Teal = dunkles Teal/Cyan, Warm Business = Sand/Terrakotta, Mint Professional = Mint/Waldgrün, Boardroom Elite = Navy/Gold und Strategic Graphite = Graphit/Orange.',
+000693:     'RC800 ist eine reine Designrevision auf Basis RC785. Fachlogik, Azure-Speicherpfade, Rechte, Navigation, Sendungsdaten, Dokumentlogik und bestehende Abläufe bleiben unverändert.',
+000694:     'RC785 baut alle neun Designs zu vollständigen Oberflächensystemen aus. Seitenhintergrund, Sidebar, Navigation, Topbar, Überschriften, Karten, KPI-Kacheln, Formulare, Buttons, Tabellen, Statusflächen, Dialogflächen, Diagrammcontainer, Mailbereich, Avis und die schreibgeschützte Sendungsansicht verwenden gemeinsam die aktive Designidentität.',
+000695:     'RC785 verbindet die ältere ExportHUB-CSS-Variablenbasis mit dem kanonischen Theme-System. Dadurch folgen auch ältere Bereiche und RC776/RC784-Komponenten den aktuellen Theme-Werten statt auf festen Blau-/Weißwerten stehen zu bleiben.',
+000696:     'RC785 entfernt die Testservice-Farbüberschreibung des kompletten Seitenhintergrunds und der Topbar. Der Testservice bleibt über seine bestehende Kennzeichnung und eine feste Warnmarkierung eindeutig von Produktion unterscheidbar, ohne die gewählte Designpalette zu verdecken.',
+000697:     'RC785 gibt jedem Design neben eigener Palette auch eigene Materialwirkung, Radien, Kontrastführung, Tabellen-/Buttonstil, Navigationswirkung und Schattencharakter. Layoutreihenfolge, Fachfunktionen, Rechte, Daten und Azure-Speicherlogik bleiben unverändert.',
+---
+000694:     'RC785 baut alle neun Designs zu vollständigen Oberflächensystemen aus. Seitenhintergrund, Sidebar, Navigation, Topbar, Überschriften, Karten, KPI-Kacheln, Formulare, Buttons, Tabellen, Statusflächen, Dialogflächen, Diagrammcontainer, Mailbereich, Avis und die schreibgeschützte Sendungsansicht verwenden gemeinsam die aktive Designidentität.',
+000695:     'RC785 verbindet die ältere ExportHUB-CSS-Variablenbasis mit dem kanonischen Theme-System. Dadurch folgen auch ältere Bereiche und RC776/RC784-Komponenten den aktuellen Theme-Werten statt auf festen Blau-/Weißwerten stehen zu bleiben.',
+000696:     'RC785 entfernt die Testservice-Farbüberschreibung des kompletten Seitenhintergrunds und der Topbar. Der Testservice bleibt über seine bestehende Kennzeichnung und eine feste Warnmarkierung eindeutig von Produktion unterscheidbar, ohne die gewählte Designpalette zu verdecken.',
+000697:     'RC785 gibt jedem Design neben eigener Palette auch eigene Materialwirkung, Radien, Kontrastführung, Tabellen-/Buttonstil, Navigationswirkung und Schattencharakter. Layoutreihenfolge, Fachfunktionen, Rechte, Daten und Azure-Speicherlogik bleiben unverändert.',
+000698:     'RC784 kennzeichnet die geöffnete Nur-Lesen-Ansicht mit einer eigenen Kontextnavigation Sendungsübersicht → Sendungsansicht · Referenz. Dadurch ist jederzeit klar, dass kein zusätzlicher Hauptreiter geöffnet wurde und zu welcher Sendung die Detailansicht gehört.',
+000699:     'RC784 ersetzt den technischen Hinweis Dateiinhalt nicht im Datensatz in der Sendungsansicht. Erzeugte Dokumente ohne eingebettete Datei verweisen verständlich auf das bestehende Dokumentcenter; vorhandene echte Datei-Inhalte bleiben direkt mit Öffnen erreichbar.',
+---
+001122:   'Drucken und PDF werden bei fehlenden Sendungskerndaten blockiert statt eine leere Ladeliste zu erzeugen.',
+001123:   'Hauptseite und TESTVERSION verwenden denselben RC632-Recoverypfad; die fehlerhafte Pflicht zu einer einzigen vollständigen Snapshot-Version entfällt.',
+001124:   'Die bestehende mobile Shell wurde direkt korrigiert, sodass App, Hauptbereich, Topbar und Content bei Smartphone-Breite die verfügbare Breite vollständig nutzen.',
+001125:   'RC628 stellt beschädigte Sendungsinhalte ausschließlich aus einer ausreichend vollständigen historischen Azure-Version wieder her; keine synthetischen Test-/false-/Strich-Daten werden erzeugt.',
+001126:   'Vor jeder historischen Wiederherstellung erstellt die Azure-State-API ein unveränderliches Sicherheitsbackup des aktuellen Teamstands.',
+001127:   'Ein erkennbar beschädigter Sendungsbestand wird vor dem normalen Start wiederhergestellt und anschließend vollständig neu aus Azure geladen; bis dahin wird er nicht als neuer Soll-Stand gespeichert.',
+---
+001332:     'RC800 Theme-Matrix: Alle neun Designs auf Dashboard, Sendungsübersicht, Sendungsansicht, Aufgaben, Kundenordner, Dokumentcenter und Einstellungen prüfen. Text, Icons, Karten, Tabellen, Felder und Buttons müssen pro Theme konsistent und ohne fremde Altfarben dargestellt werden.',
+001333:     'RC800 Kontrastprüfung: In jedem Theme Primärtext, Hilfetext, Navigation, aktive Navigation, Tabellenkopf, Primärbutton, Ghost-/Soft-Button, Statusbadge und Dialog prüfen. Kein Text oder Icon darf auf seiner Fläche visuell verschwinden.',
+001334:     'RC800 Iconprüfung: Navigation, Topbar, Kartenaktionen, Kundenkontext, Dokumentaktionen und SVG-Symbole in normalem, Hover-, aktivem und deaktiviertem Zustand prüfen. Iconfarbe und Iconfläche müssen sichtbar zum gewählten Theme wechseln.',
+001335:     'RC800 Semantikprüfung: Erfolg, Warnung, Fehler und Information müssen in allen neun Designs weiterhin eindeutig grün, amber, rot und blau/cyan erkennbar bleiben und dürfen nicht durch die jeweilige Theme-Akzentfarbe ersetzt werden.',
+001336:     'RC800 Designwechsel ohne Fachwirkung: Mehrfach zwischen allen neun Designs wechseln. Aktiver View, Formwerte, Sendungszustand und Azure-Teamstand müssen unverändert bleiben; Designwechsel darf keinen Speichervorgang auslösen.',
+001337:     'RC785 Volltheme: Alle neun Designs nacheinander auf Dashboard, Sendungsübersicht, Sendungsansicht, Aufgaben, Kundenordner und Einstellungen auswählen. Seitenhintergrund, Sidebar, Topbar, Karten, Tabellen, Buttons und Formulare müssen jeweils sichtbar gemeinsam wechseln; kein Bereich darf auf der alten Blau-/Weißbasis stehen bleiben.',
+---
+001335:     'RC800 Semantikprüfung: Erfolg, Warnung, Fehler und Information müssen in allen neun Designs weiterhin eindeutig grün, amber, rot und blau/cyan erkennbar bleiben und dürfen nicht durch die jeweilige Theme-Akzentfarbe ersetzt werden.',
+001336:     'RC800 Designwechsel ohne Fachwirkung: Mehrfach zwischen allen neun Designs wechseln. Aktiver View, Formwerte, Sendungszustand und Azure-Teamstand müssen unverändert bleiben; Designwechsel darf keinen Speichervorgang auslösen.',
+001337:     'RC785 Volltheme: Alle neun Designs nacheinander auf Dashboard, Sendungsübersicht, Sendungsansicht, Aufgaben, Kundenordner und Einstellungen auswählen. Seitenhintergrund, Sidebar, Topbar, Karten, Tabellen, Buttons und Formulare müssen jeweils sichtbar gemeinsam wechseln; kein Bereich darf auf der alten Blau-/Weißbasis stehen bleiben.',
+001338:     'RC785 Testservice: Mehrere Designs wechseln. Der Testservice muss weiterhin eindeutig als TESTSERVICE markiert bleiben, darf aber Seitenhintergrund und Topbar nicht mehr auf eine für alle Themes identische Warm-Palette zwingen.',
+001339:     'RC785 Designwechsel ohne Datenwirkung: Während eines Theme-Wechsels dürfen weder queueSave noch flushSave, Render-Neuaufbau, Änderung von Formwerten oder Änderung des aktiven Views ausgelöst werden.',
+001340:     'RC784 Sendungsansicht Kontext: Eine gespeicherte Sendung über Sendung ansehen öffnen. Oberhalb der Detaildaten muss Sendungsübersicht → Sendungsansicht · REF sichtbar sein; Zurück muss wieder zur ursprünglichen Übersicht führen und darf keinen Azure-Save auslösen.',
+---
+===== UNIQUE IDS/CLASSES =====
+exporthub-rc885-clean-workspace-style
+rc885Workspace
+rc885WarningButton
+rc885WarningDrawer
+rc889WarningStyle
+rc628-unified-task-cards-css
+rc628-task-cards-compact-glow-css
+rc628-task-actions-filter-css
+rc628-task-planner-style
+rc524TaskEditorButton
+rc524TaskModal
+rc524TaskId
+rc524TaskTitle
+rc524TaskOwner
+rc524TaskArea
+rc524TaskDay
+rc524TaskTime
+rc524TaskPriority
+rc524TaskNote
+rc524TaskDone
+task-seed-bootstrap-v1
+rc97DashboardPanelMount
+index243-idempotent-task-seed-migration
+rc628-task-filters-overview-refresh-style
+rc628-task-filters-overview-refresh-script
+index205-dashboard-planner-style
+index205-dashboard-planner-controller
+rc907WorkspaceSlot
+rc205DashboardConfig
+task-
+index215-task-planner-style
+index216-task-planner-groups-style
+index218-task-planner-style
+index218-authoritative-task-planner
+index236-notification-style
+index236-notification-controller
+index236NotificationHint
+index236NotificationCenter
+rc504-warehouse-style
+rc504-warehouse-controller
+rc588-dashboard-warehouse-rights-final
+rc885-warning-count
+rc524-sop-warning
+rc524-sop-work
+rc871-diag-stat warn
+rc626-warning rc501-source
+rc205-dashboard-grid
+rc205-planner-task
+i218-task-name rc896-task-name
+rc896-task-meta
+i218-task-actions rc896-task-planning
+rc896-task-planning-label
+i218-task-links
+rc504-warehouse
+rc504-warehouse-head
+rc504-warehouse-actions
+rc504-warehouse-summary
+rc504-warehouse-kpi
+rc504-dashboard-item
+card rc205-widget rc504-dashboard-location rc504-dashboard-location-
+rc504-dashboard-list rc513-dashboard-location-list
+rc504-dashboard-empty
+===== CSS SELECTOR EXCERPTS =====
+,phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url}
