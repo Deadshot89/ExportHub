@@ -1,0 +1,48 @@
+name: RC990 Error Handling Apply
+
+on:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - '.github/rc990_error_apply.py'
+      - '.github/workflows/rc990-error-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc990-large-ux
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply RC990 error handling
+        run: python .github/rc990_error_apply.py
+      - name: Verify focused RC990 error and regression contracts
+        run: |
+          node --test \
+            test/rc990-error-handling.test.mjs \
+            test/rc990-release-center.test.mjs \
+            test/rc990-render-navigation.test.mjs \
+            test/rc975-global-render-integrity.test.mjs \
+            test/rc976-render-fallback-recovery.test.mjs
+      - name: Verify complete regression suite
+        run: npm test
+      - name: Remove one-time RC990 error helpers
+        run: |
+          git rm -f .github/rc990_error_apply.py .github/rc990_error_audit.py .github/rc990_error_audit_result.txt
+          git rm -f .github/workflows/rc990-error-apply.yml .github/workflows/rc990-error-audit.yml
+      - name: Commit verified RC990 error handling
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TESTVERSION.html
+          git commit -m "RC990: Render Netzwerk und Releasefehler sichtbar absichern"
+          git push origin HEAD:rc990-large-ux
