@@ -1,0 +1,24 @@
+name: RC990 Render Focus Navigation Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - .github/rc990_render_nav_audit.py
+      - .github/workflows/rc990-render-nav-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated RC990 branch
+        uses: actions/checkout@v4
+        with:
+          ref: rc990-large-ux
+      - name: Inspect existing render focus navigation mechanisms
+        run: python .github/rc990_render_nav_audit.py
