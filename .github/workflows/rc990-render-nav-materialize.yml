@@ -26,7 +26,8 @@ jobs:
       - name: Commit audit result
         shell: bash
         run: |
-          if git diff --quiet -- .github/rc990_render_nav_audit_result.txt; then
+          set -euo pipefail
+          if git ls-files --error-unmatch .github/rc990_render_nav_audit_result.txt >/dev/null 2>&1 && git diff --quiet -- .github/rc990_render_nav_audit_result.txt; then
             echo 'Audit result unchanged.'
             exit 0
           fi
