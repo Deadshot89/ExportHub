@@ -6,357 +6,357 @@ TAP version 13
 # Subtest: rejects unrelated partial payload
 ok 1 - rejects unrelated partial payload
   ---
-  duration_ms: 1.125762
+  duration_ms: 2.215651
   ...
 # Subtest: accepts legacy RC826 state+users backup with explicit source hint
 ok 2 - accepts legacy RC826 state+users backup with explicit source hint
   ---
-  duration_ms: 0.272647
+  duration_ms: 0.431635
   ...
 # Subtest: deduplicates shipment copies and document copies
 ok 3 - deduplicates shipment copies and document copies
   ---
-  duration_ms: 2.69243
+  duration_ms: 4.587154
   ...
 # Subtest: podCloudBackupWebUrl is treated as remote POD and blocks cutover
 ok 4 - podCloudBackupWebUrl is treated as remote POD and blocks cutover
   ---
-  duration_ms: 10.483186
+  duration_ms: 14.193408
   ...
 # Subtest: status preservation uses pickup/POD evidence and locks migrated shipment
 ok 5 - status preservation uses pickup/POD evidence and locks migrated shipment
   ---
-  duration_ms: 1.362435
+  duration_ms: 1.565801
   ...
 # Subtest: legacy cleartext password is never copied to normalized user
 ok 6 - legacy cleartext password is never copied to normalized user
   ---
-  duration_ms: 1.275625
+  duration_ms: 2.656364
   ...
 # Subtest: inline documents receive hashes
 ok 7 - inline documents receive hashes
   ---
-  duration_ms: 1.402224
+  duration_ms: 1.569808
   ...
 # Subtest: source hash is deterministic
 ok 8 - source hash is deterministic
   ---
-  duration_ms: 0.716851
+  duration_ms: 0.779664
   ...
 # Subtest: RC971: globaler Form-&-Field-Standard ist kanonisch und lesbar
 ok 9 - RC971: globaler Form-&-Field-Standard ist kanonisch und lesbar
   ---
-  duration_ms: 2.124383
+  duration_ms: 3.276801
   ...
 # Subtest: RC971: Druck-/CMR-/Signaturbereiche bleiben vom Formularstandard ausgenommen
 ok 10 - RC971: Druck-/CMR-/Signaturbereiche bleiben vom Formularstandard ausgenommen
   ---
-  duration_ms: 0.64309
+  duration_ms: 0.857429
   ...
 # Subtest: RC972: Topbar-, Such- und Toolbarfelder fallen nicht unter den globalen Feldstandard
 ok 11 - RC972: Topbar-, Such- und Toolbarfelder fallen nicht unter den globalen Feldstandard
   ---
-  duration_ms: 4.034535
+  duration_ms: 6.412166
   ...
 # Subtest: RC972: kompakte Sonderaktionen bleiben lesbar und bedienbar
 ok 12 - RC972: kompakte Sonderaktionen bleiben lesbar und bedienbar
   ---
-  duration_ms: 1.383506
+  duration_ms: 1.425298
   ...
 # Subtest: RC972: Testportal und Smartphone dürfen Felder nicht wieder verkleinern
 ok 13 - RC972: Testportal und Smartphone dürfen Felder nicht wieder verkleinern
   ---
-  duration_ms: 1.38569
+  duration_ms: 1.380865
   ...
 # Subtest: RC972: öffentliche Zusatzseiten haben bereits ausreichend große Formfelder
 ok 14 - RC972: öffentliche Zusatzseiten haben bereits ausreichend große Formfelder
   ---
-  duration_ms: 0.473827
+  duration_ms: 0.272008
   ...
 # Subtest: RC973: Langtextfelder besitzen einen isolierten Auto-Grow-Layer
 ok 15 - RC973: Langtextfelder besitzen einen isolierten Auto-Grow-Layer
   ---
-  duration_ms: 2.194027
+  duration_ms: 3.729755
   ...
 # Subtest: RC973: Höhe wächst und schrumpft aus scrollHeight und überschreibt alte !important-Fixhöhen
 ok 16 - RC973: Höhe wächst und schrumpft aus scrollHeight und überschreibt alte !important-Fixhöhen
   ---
-  duration_ms: 1.059333
+  duration_ms: 1.907748
   ...
 # Subtest: RC973: Druck/CMR/Signatur bleiben ausgeschlossen und Fachwerte werden nicht verändert
 ok 17 - RC973: Druck/CMR/Signatur bleiben ausgeschlossen und Fachwerte werden nicht verändert
   ---
-  duration_ms: 0.727757
+  duration_ms: 1.195349
   ...
 # Subtest: RC973: kurze Felder und Colli-Geometrie bleiben kompakt
 ok 18 - RC973: kurze Felder und Colli-Geometrie bleiben kompakt
   ---
-  duration_ms: 1.391608
+  duration_ms: 2.107751
   ...
 # Subtest: RC973: Auto-Grow-Blöcke dürfen den Stauplan-Druckstring nicht zerschneiden
 ok 19 - RC973: Auto-Grow-Blöcke dürfen den Stauplan-Druckstring nicht zerschneiden
   ---
-  duration_ms: 4.046634
+  duration_ms: 3.132882
   ...
 # Subtest: RC973: das umgebende Script der Stauplan-Druckfunktion bleibt syntaktisch vollständig
 ok 20 - RC973: das umgebende Script der Stauplan-Druckfunktion bleibt syntaktisch vollständig
   ---
-  duration_ms: 4.939968
+  duration_ms: 7.572602
   ...
 # Subtest: RC975: globaler Render-Integritätscheck ist aktiv
 ok 21 - RC975: globaler Render-Integritätscheck ist aktiv
   ---
-  duration_ms: 1.084269
+  duration_ms: 2.042338
   ...
 # Subtest: RC975: jeder klassische Inline-Scriptblock ist syntaktisch vollständig
 ok 22 - RC975: jeder klassische Inline-Scriptblock ist syntaktisch vollständig
   ---
-  duration_ms: 36.917674
+  duration_ms: 58.014287
   ...
 # Subtest: RC975: zentrale Funktionen liegen weiterhin innerhalb eines Scriptblocks
 ok 23 - RC975: zentrale Funktionen liegen weiterhin innerhalb eines Scriptblocks
   ---
-  duration_ms: 8.085144
+  duration_ms: 9.271173
   ...
 # Subtest: RC975: außerhalb von Scripts wird kein ExportHUB-JavaScript als Seitentext geleakt
 ok 24 - RC975: außerhalb von Scripts wird kein ExportHUB-JavaScript als Seitentext geleakt
   ---
-  duration_ms: 5.309529
+  duration_ms: 5.59831
   ...
 # Subtest: RC975: der Leck-Detektor erkennt den RC973-Fehlertyp in einer Kontrollprobe
 ok 25 - RC975: der Leck-Detektor erkennt den RC973-Fehlertyp in einer Kontrollprobe
   ---
-  duration_ms: 1.090168
+  duration_ms: 1.17438
   ...
 # Subtest: RC976: Build ist auf RC976 oder höher angehoben
 ok 26 - RC976: Build ist auf RC976 oder höher angehoben
   ---
-  duration_ms: 1.31906
+  duration_ms: 1.361629
   ...
 # Subtest: RC976: Render-Fallback besitzt eine eindeutige technische Markierung
 ok 27 - RC976: Render-Fallback besitzt eine eindeutige technische Markierung
   ---
-  duration_ms: 0.953945
+  duration_ms: 0.879059
   ...
 # Subtest: RC976: veralteter Render-Fallback wird gezielt entfernt
 ok 28 - RC976: veralteter Render-Fallback wird gezielt entfernt
   ---
-  duration_ms: 0.491474
+  duration_ms: 0.453615
   ...
 # Subtest: RC976: jeder neue Render-Versuch räumt zuerst einen alten Fallback auf
 ok 29 - RC976: jeder neue Render-Versuch räumt zuerst einen alten Fallback auf
   ---
-  duration_ms: 1.539449
+  duration_ms: 1.802341
   ...
 # Subtest: RC976: ein aktueller Renderfehler erzeugt den markierten Fallback erneut
 ok 30 - RC976: ein aktueller Renderfehler erzeugt den markierten Fallback erneut
   ---
-  duration_ms: 0.616691
+  duration_ms: 0.602383
   ...
 # Subtest: RC977: Build ist auf RC977 oder höher angehoben
 ok 31 - RC977: Build ist auf RC977 oder höher angehoben
   ---
-  duration_ms: 1.139892
+  duration_ms: 2.260175
   ...
 # Subtest: RC977: Colli-Typografie ist ausschließlich auf Colli & Lademeter begrenzt
 ok 32 - RC977: Colli-Typografie ist ausschließlich auf Colli & Lademeter begrenzt
   ---
-  duration_ms: 1.153733
+  duration_ms: 1.653303
   ...
 # Subtest: RC977: Beschriftungen und Eingabefelder verwenden einheitlich 12px
 ok 33 - RC977: Beschriftungen und Eingabefelder verwenden einheitlich 12px
   ---
-  duration_ms: 0.93122
+  duration_ms: 1.454862
   ...
 # Subtest: RC977: Verpackungstext bleibt lesbar und die Feldhöhe unverändert
 ok 34 - RC977: Verpackungstext bleibt lesbar und die Feldhöhe unverändert
   ---
-  duration_ms: 0.969598
+  duration_ms: 1.542437
   ...
 # Subtest: RC977: Summary und Hinweistexte werden kompakter ohne Fachwerte zu verändern
 ok 35 - RC977: Summary und Hinweistexte werden kompakter ohne Fachwerte zu verändern
   ---
-  duration_ms: 0.93126
+  duration_ms: 2.730996
   ...
 # Subtest: RC978: Build ist auf RC978 oder höher angehoben
 ok 36 - RC978: Build ist auf RC978 oder höher angehoben
   ---
-  duration_ms: 0.974676
+  duration_ms: 2.313083
   ...
 # Subtest: RC978: Sendungsraster reagiert auf die echte Inhaltsbreite statt auf die Fensterbreite
 ok 37 - RC978: Sendungsraster reagiert auf die echte Inhaltsbreite statt auf die Fensterbreite
   ---
-  duration_ms: 1.061395
+  duration_ms: 2.351074
   ...
 # Subtest: RC978: Desktop-Zeile schließt Kunde, Sendungsdaten und Colli ohne sichtbare Zwischenlöcher ab
 ok 38 - RC978: Desktop-Zeile schließt Kunde, Sendungsdaten und Colli ohne sichtbare Zwischenlöcher ab
   ---
-  duration_ms: 0.936478
+  duration_ms: 2.012924
   ...
 # Subtest: RC978: Bei mittlerer Inhaltsbreite wird Colli vollbreit unter Kunde und Sendungsdaten angeordnet
 ok 39 - RC978: Bei mittlerer Inhaltsbreite wird Colli vollbreit unter Kunde und Sendungsdaten angeordnet
   ---
-  duration_ms: 1.128415
+  duration_ms: 2.179244
   ...
 # Subtest: RC978: Bei schmaler Inhaltsbreite werden alle oberen Prozesskarten sauber einspaltig gestapelt
 ok 40 - RC978: Bei schmaler Inhaltsbreite werden alle oberen Prozesskarten sauber einspaltig gestapelt
   ---
-  duration_ms: 1.05153
+  duration_ms: 1.808042
   ...
 # Subtest: RC978: Stauplan, Mailbereich und Speichern-Ausgabe bleiben vom neuen Raster unberührt
 ok 41 - RC978: Stauplan, Mailbereich und Speichern-Ausgabe bleiben vom neuen Raster unberührt
   ---
-  duration_ms: 1.811295
+  duration_ms: 2.849554
   ...
 # Subtest: RC979: Build ist auf RC979 oder höher angehoben
 ok 42 - RC979: Build ist auf RC979 oder höher angehoben
   ---
-  duration_ms: 1.139932
+  duration_ms: 2.110065
   ...
 # Subtest: RC979: alte 100-Prozent-Innenhöhen werden nur in den vier freigegebenen Sendungsbereichen neutralisiert
 ok 43 - RC979: alte 100-Prozent-Innenhöhen werden nur in den vier freigegebenen Sendungsbereichen neutralisiert
   ---
-  duration_ms: 2.027568
+  duration_ms: 2.885671
   ...
 # Subtest: RC979: Kunde, Sendungsdaten und Dokumente richten Inhalte oben statt künstlich gestreckt aus
 ok 44 - RC979: Kunde, Sendungsdaten und Dokumente richten Inhalte oben statt künstlich gestreckt aus
   ---
-  duration_ms: 1.899477
+  duration_ms: 2.825248
   ...
 # Subtest: RC979: Sendungsfelder nutzen ihre Breite sinnvoll und reduzieren unnötige Leerzeilen
 ok 45 - RC979: Sendungsfelder nutzen ihre Breite sinnvoll und reduzieren unnötige Leerzeilen
   ---
-  duration_ms: 1.903673
+  duration_ms: 2.737004
   ...
 # Subtest: RC979: lange Textfelder starten kompakter und wachsen weiterhin automatisch
 ok 46 - RC979: lange Textfelder starten kompakter und wachsen weiterhin automatisch
   ---
-  duration_ms: 2.16258
+  duration_ms: 3.117123
   ...
 # Subtest: RC979: innere Abstände werden verdichtet ohne RC977-Colli-Typografie oder Feldhöhe anzutasten
 ok 47 - RC979: innere Abstände werden verdichtet ohne RC977-Colli-Typografie oder Feldhöhe anzutasten
   ---
-  duration_ms: 2.735946
+  duration_ms: 3.653524
   ...
 # Subtest: RC980: Build ist auf RC980 oder höher angehoben
 ok 48 - RC980: Build ist auf RC980 oder höher angehoben
   ---
-  duration_ms: 1.15151
+  duration_ms: 2.336727
   ...
 # Subtest: RC980: jede Colli-Zeile behält eine feste volle Breite und neue Zeilen wachsen nur nach unten
 ok 49 - RC980: jede Colli-Zeile behält eine feste volle Breite und neue Zeilen wachsen nur nach unten
   ---
-  duration_ms: 2.263861
+  duration_ms: 3.369755
   ...
 # Subtest: RC980: Desktop-Felder haben dauerhaft dieselben drei Reihen und Spaltenpositionen
 ok 50 - RC980: Desktop-Felder haben dauerhaft dieselben drei Reihen und Spaltenpositionen
   ---
-  duration_ms: 2.059055
+  duration_ms: 3.178818
   ...
 # Subtest: RC980: schmale Ansichten brechen kontrolliert um ohne Reihenbreiten abhängig von der Zeilenanzahl zu machen
 ok 51 - RC980: schmale Ansichten brechen kontrolliert um ohne Reihenbreiten abhängig von der Zeilenanzahl zu machen
   ---
-  duration_ms: 2.577564
+  duration_ms: 2.793669
   ...
 # Subtest: RC980: Typografie, Feldhöhe und Colli-Fachlogik bleiben unverändert
 ok 52 - RC980: Typografie, Feldhöhe und Colli-Fachlogik bleiben unverändert
   ---
-  duration_ms: 4.53996
+  duration_ms: 6.338791
   ...
 # Subtest: RC990 Design: kanonischer Design-Layer existiert genau einmal
 ok 53 - RC990 Design: kanonischer Design-Layer existiert genau einmal
   ---
-  duration_ms: 2.553383
+  duration_ms: 4.518806
   ...
 # Subtest: RC990 Design: kompakte gemeinsame Designvariablen sind definiert
 ok 54 - RC990 Design: kompakte gemeinsame Designvariablen sind definiert
   ---
-  duration_ms: 0.288751
+  duration_ms: 0.454458
   ...
 # Subtest: RC990 Design: Karten orientieren sich an Inhalt statt künstlich gestreckt zu werden
 ok 55 - RC990 Design: Karten orientieren sich an Inhalt statt künstlich gestreckt zu werden
   ---
-  duration_ms: 0.148452
+  duration_ms: 0.371433
   ...
 # Subtest: RC990 Design: Aktionen besitzen klare primäre sekundäre und destruktive Rollen
 ok 56 - RC990 Design: Aktionen besitzen klare primäre sekundäre und destruktive Rollen
   ---
-  duration_ms: 1.086363
+  duration_ms: 1.338586
   ...
 # Subtest: RC990 Design: Druck CMR Signatur und Colli-Ausnahme werden nicht global überschrieben
 ok 57 - RC990 Design: Druck CMR Signatur und Colli-Ausnahme werden nicht global überschrieben
   ---
-  duration_ms: 1.040714
+  duration_ms: 1.694921
   ...
 # Subtest: RC990 Design: responsive Anwendungskarten und Aktionen brechen kontrolliert um
 ok 58 - RC990 Design: responsive Anwendungskarten und Aktionen brechen kontrolliert um
   ---
-  duration_ms: 0.205697
+  duration_ms: 0.42882
   ...
 # Subtest: RC990 Design: Aufgaben verwenden ein echtes 3-2-1 Kachelraster
 ok 59 - RC990 Design: Aufgaben verwenden ein echtes 3-2-1 Kachelraster
   ---
-  duration_ms: 0.577573
+  duration_ms: 1.106915
   ...
 # Subtest: RC990 Design: aktuelle RC628 Aufgabenansicht wird vom Kachelraster wirklich getroffen
 ok 60 - RC990 Design: aktuelle RC628 Aufgabenansicht wird vom Kachelraster wirklich getroffen
   ---
-  duration_ms: 0.319086
+  duration_ms: 0.709243
   ...
 # Subtest: RC990 Design: aktive RC229-Aufgaben brauchen keinen nicht gesetzten Body-View-Marker
 ok 61 - RC990 Design: aktive RC229-Aufgaben brauchen keinen nicht gesetzten Body-View-Marker
   ---
-  duration_ms: 0.311265
+  duration_ms: 0.644652
   ...
 # Subtest: RC990 Design: Aufgabenkacheln sind sichtbar als kompakte Karten gestaltet
 ok 62 - RC990 Design: Aufgabenkacheln sind sichtbar als kompakte Karten gestaltet
   ---
-  duration_ms: 0.443322
+  duration_ms: 0.759005
   ...
 # Subtest: RC990 Design: Warncenter und Benachrichtigungscenter bleiben getrennt und unterschiedlich markiert
 ok 63 - RC990 Design: Warncenter und Benachrichtigungscenter bleiben getrennt und unterschiedlich markiert
   ---
-  duration_ms: 2.216661
+  duration_ms: 3.769349
   ...
 # Subtest: RC990 Design: Dashboard Lager Aufgaben nutzen gemeinsame Dichte ohne Drag-Animationen
 ok 64 - RC990 Design: Dashboard Lager Aufgaben nutzen gemeinsame Dichte ohne Drag-Animationen
   ---
-  duration_ms: 0.604783
+  duration_ms: 1.008991
   ...
 # Subtest: RC990: Build ist auf RC990 angehoben
 ok 65 - RC990: Build ist auf RC990 angehoben
   ---
-  duration_ms: 1.156798
+  duration_ms: 2.022191
   ...
 # Subtest: RC990: Release-Center besitzt stabilen Positions-Snapshot mit Änderungsanker
 ok 66 - RC990: Release-Center besitzt stabilen Positions-Snapshot mit Änderungsanker
   ---
-  duration_ms: 2.764499
+  duration_ms: 3.906706
   ...
 # Subtest: RC990: offene Änderungen haben genau eine kanonische Quelle für Liste und Zähler
 ok 67 - RC990: offene Änderungen haben genau eine kanonische Quelle für Liste und Zähler
   ---
-  duration_ms: 2.415737
+  duration_ms: 4.073055
   ...
 # Subtest: RC990: Einzelbestätigung erhält den Anker auch über spätere Render hinweg
 ok 68 - RC990: Einzelbestätigung erhält den Anker auch über spätere Render hinweg
   ---
-  duration_ms: 1.676965
+  duration_ms: 2.276946
   ...
 # Subtest: RC990: vollständiger Release-Center-Neuaufbau kann eine übergebene Position wiederherstellen
 ok 69 - RC990: vollständiger Release-Center-Neuaufbau kann eine übergebene Position wiederherstellen
   ---
-  duration_ms: 1.931234
+  duration_ms: 2.495864
   ...
 # Subtest: RC990: veröffentlichte Historie bleibt einklappbar und offene Änderungen bleiben getrennt
 ok 70 - RC990: veröffentlichte Historie bleibt einklappbar und offene Änderungen bleiben getrennt
   ---
-  duration_ms: 2.237121
+  duration_ms: 2.919795
   ...
 # Subtest: RC990: UI-State Snapshot und Restore sind vorhanden
 not ok 71 - RC990: UI-State Snapshot und Restore sind vorhanden
   ---
-  duration_ms: 4.534261
+  duration_ms: 6.178402
   location: '/home/runner/work/ExportHub/ExportHub/test/rc990-render-navigation.test.mjs:7:1'
   failureType: 'testCodeFailure'
   error: |-
@@ -28110,7 +28110,7 @@ not ok 71 - RC990: UI-State Snapshot und Restore sind vorhanden
 # Subtest: RC990: Navigation besitzt einen echten View-Verlauf
 not ok 72 - RC990: Navigation besitzt einen echten View-Verlauf
   ---
-  duration_ms: 1.924875
+  duration_ms: 2.473332
   location: '/home/runner/work/ExportHub/ExportHub/test/rc990-render-navigation.test.mjs:12:1'
   failureType: 'testCodeFailure'
   error: |-
@@ -55863,7 +55863,7 @@ not ok 72 - RC990: Navigation besitzt einen echten View-Verlauf
 # Subtest: RC990: Renderplanung dedupliziert denselben Grund pro Frame
 not ok 73 - RC990: Renderplanung dedupliziert denselben Grund pro Frame
   ---
-  duration_ms: 3.16742
+  duration_ms: 3.520636
   location: '/home/runner/work/ExportHub/ExportHub/test/rc990-render-navigation.test.mjs:18:1'
   failureType: 'testCodeFailure'
   error: |-
@@ -83621,4 +83621,4 @@ not ok 73 - RC990: Renderplanung dedupliziert denselben Grund pro Frame
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 502.886364
+# duration_ms 746.568829
