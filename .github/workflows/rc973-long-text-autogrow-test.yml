@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: RC971 bis RC973 vollständige Feldregression
+      - name: RC971 bis RC974 vollständige Feld- und Renderregression
         run: node --test test/rc971-global-form-field-standard.test.mjs test/rc972-field-exception-audit.test.mjs test/rc973-long-text-autogrow.test.mjs
 
-# RC973 full field-regression verification trigger
+# RC974 post-fix field/render verification trigger
