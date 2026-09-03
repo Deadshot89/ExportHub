@@ -13,7 +13,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch TESTSERVICE for RC991 branch
+      - name: Dispatch proven TESTSERVICE workflow for RC991 branch
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run exporthub-testservice.yml --repo Deadshot89/ExportHub --ref rc991-release-marker-fix
+        run: gh workflow run exporthub-testservice-final-artifact-fix.yml --repo Deadshot89/ExportHub --ref rc991-release-marker-fix
