@@ -54,3 +54,5 @@ jobs:
           git add TESTVERSION.html
           git commit -m "feat: add RC990 canonical design layer"
           git push origin HEAD:rc990-large-ux
+
+# RC990 approved task-grid/design refresh trigger 2026-09-03
