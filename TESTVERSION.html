@@ -348,12 +348,12 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC991',cache:'991',loginReturn:'/TESTVERSION.html?v=991'});
+var BUILD=Object.freeze({version:'RC992',cache:'992',loginReturn:'/TESTVERSION.html?v=992'});
 var RELEASE=Object.freeze({
  version:'RC991',
  date:'03.09.2026',
  title:'Release-Center Produktionspaket abgesichert',
- changes:Object.freeze([
+ changes:Object.freeze(["RC992 reduziert beim Azure-State-Speichern unnötige Tiefkopien unveränderter State-Bereiche und Datensätze.",
     'RC991 verhindert, dass ein älterer TESTSERVICE-Snapshot den geprüften Produktions-index oder den aktuellen Produktionsmarker überschreibt. Autoritative Release-Dateien werden erst nach Snapshot und Zusatzassets gesetzt.' ,
     'RC973 hebt feste beziehungsweise gedeckelte Bildschirmhöhen ausschließlich für echte mehrzeilige Langtextfelder auf. Mailvorlagen, Kunden- und Prozesshinweise, Notizen sowie Beschreibungen wachsen und schrumpfen jetzt automatisch mit ihrem Inhalt; gespeicherte Inhalte werden beim Öffnen neu vermessen.',
      'RC973 lässt einzeilige Eingaben, Selects, Uploads, Colli-Felder sowie Druck-, CMR- und Signaturbereiche unverändert. Die Änderung passt ausschließlich die Darstellungshöhe an und schreibt keine Fachwerte oder Speicherzustände.',
