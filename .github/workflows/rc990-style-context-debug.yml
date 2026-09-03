@@ -1,0 +1,23 @@
+name: RC990 Style Context Debug
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - .github/rc990_style_context_debug.py
+      - .github/workflows/rc990-style-context-debug.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc990-large-ux
+      - name: Inspect legacy style context
+        run: python .github/rc990_style_context_debug.py
