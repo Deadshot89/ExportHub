@@ -37,17 +37,6 @@ def function_block(signature: str, limit: int = 22000) -> str:
         i += 1
     return html[start:min(len(html), start + limit)].replace('\r', '') + '\n...[block truncated]...\n'
 
-
-def contexts(pattern: str, radius: int = 1200, max_hits: int = 12) -> str:
-    out = []
-    matches = list(re.finditer(pattern, html, re.I | re.S))
-    out.append(f'PATTERN {pattern} :: {len(matches)} hit(s)\n')
-    for n, m in enumerate(matches[:max_hits], 1):
-        lo = max(0, m.start() - radius)
-        hi = min(len(html), m.end() + radius)
-        out.append(f'--- hit {n} @{m.start()} ---\n{html[lo:hi].replace(chr(13), "")}\n')
-    return ''.join(out)
-
 focus = '\n'.join([
     '===== rc950PreserveActiveInput =====', function_block('function rc950PreserveActiveInput(root)', 9000),
     '===== rc950RestoreActiveInput =====', function_block('function rc950RestoreActiveInput(snapshot,root)', 9000),
@@ -55,15 +44,13 @@ focus = '\n'.join([
 
 scheduler = '\n'.join([
     '===== rc950ScheduleLayout =====', function_block('function rc950ScheduleLayout(reason)', 10000),
-    '===== RAF contexts =====', contexts(r'(?:requestAnimationFrame|cancelAnimationFrame)', 900, 10),
 ])
 
 view = '\n'.join([
     '===== active route =====', function_block('function route(view,source)', 26000),
-    '===== click listeners near navigation =====', contexts(r'addEventListener\s*\(\s*[\"\']click[\"\']', 2200, 24),
-    '===== delegated view controls =====', contexts(r'(?:data-view|data-nav|data-route|dataset\.view|dataset\.nav|closest\([^\n]{0,120}(?:data-view|data-nav|data-route))', 1900, 24),
-    '===== shipment back control contexts =====', contexts(r'data-rc776-back', 2400, 12),
-    '===== likely application back controls =====', contexts(r'(?:data-[\w-]*back|id=[\"\'][^\"\']*back[^\"\']*[\"\']|class=[\"\'][^\"\']*back[^\"\']*[\"\'])', 1700, 24),
+    '===== shipment back =====', function_block('function back()', 12000),
+    '===== shipment overview =====', function_block('function overview()', 12000),
+    '===== document viewer back =====', function_block('function viewerBack()', 12000),
 ])
 
 for path, text in [
