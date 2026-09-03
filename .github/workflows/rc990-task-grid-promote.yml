@@ -41,7 +41,7 @@ jobs:
       - name: Verify focused RC990 design contract
         run: node --test test/rc990-design-system.test.mjs
 
-      - name: Diagnose full regression process
+      - name: Diagnose full regression assertion
         shell: bash
         run: |
           set +e
@@ -56,15 +56,15 @@ jobs:
             echo "output_bytes=$bytes"
             echo "node=$(node --version)"
             echo "npm=$(npm --version)"
-            echo "--- tail ---"
-            tail -n 500 .github/rc990_task_grid_regression_result.txt
+            echo "--- failing-test-summary ---"
+            grep -E -n '^(# Subtest:|not ok|# fail |# pass |# tests |# suites )|failureType:|AssertionError|ERR_ASSERTION|error:' .github/rc990_task_grid_regression_result.txt | tail -n 160 || true
           } > .github/rc990_task_grid_regression_diag.txt
           cat .github/rc990_task_grid_regression_diag.txt
           if [ "$status" -ne 0 ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add .github/rc990_task_grid_regression_result.txt .github/rc990_task_grid_regression_diag.txt
-            git commit -m "diag: materialize RC990 regression exit status"
+            git add .github/rc990_task_grid_regression_diag.txt
+            git commit -m "diag: materialize RC990 failing regression assertion"
             git push origin HEAD:rc990-large-ux
             exit "$status"
           fi
