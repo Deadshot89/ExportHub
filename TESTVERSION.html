@@ -311,12 +311,14 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC971',cache:'971',loginReturn:'/TESTVERSION.html?v=968'});
+var BUILD=Object.freeze({version:'RC972',cache:'972',loginReturn:'/TESTVERSION.html?v=968'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
+    'RC972 schließt den zweiten globalen Feld-Audit ab: Topbar-Suche, Sprach- und Designauswahl sowie Toolbar-Aktionen verwenden nun auch außerhalb des Inhaltsbereichs den einheitlichen Bedienstandard.',
+    'RC972 verhindert außerdem zu kleine Upload-, Karten-, Sendungs- und Verpackungsaktionen sowie erneutes Schrumpfen im Testportal und auf Smartphones. Kunden-Avis, Abholseite und Location wurden geprüft und benötigten keine Größenkorrektur.',
     'RC971 führt einen globalen Form-&-Field-Standard für ExportHUB ein: Text-, Zahl-, Datums-, Such-, E-Mail-, Passwort-, Select-, Textarea- und Uploadfelder erhalten einheitliche Höhen, Innenabstände, Schriftgrößen, Fokuszustände und Placeholder-Typografie.',
     'RC971 korrigiert zusätzlich die besonders kompakten Sonderbereiche Sendung/Colli, Dokumente & ABD, Mail, Aufgabenplaner und Stauplan. Druck-/CMR- und Signaturbereiche bleiben von der Bildschirm-Formularnorm ausgeschlossen; Fach- und Speicherlogik bleiben unverändert.',
     'RC943 entfernt in Sendung erstellen die sichtbaren Eingabefelder Geplantes Abholdatum und Spedition. Die vorhandenen Abhol-, Aufgaben-, QR-, Speditions- und Dokumentdatenpfade bleiben unverändert erhalten.',
@@ -10326,6 +10328,20 @@ html[data-exporthub-testportal="1"] body::after{content:"";position:fixed;inset:
 #rc380StowPlan .rc713-toolbar label{font-size:var(--rc971-label-font)!important}
 #rc380StowPlan .rc713-toolbar select{min-height:40px!important;height:40px!important;font-size:13px!important}
 @media(max-width:720px){:root{--rc971-control-h:42px;--rc971-control-font:16px;--rc971-label-font:12px;--rc971-help-font:11px;--rc971-button-font:13px}:is(#content,#login,[role="dialog"]) textarea:not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){min-height:96px!important}#content :is(.field,.actions,.toolbar,.rc543-segments,.rc363-actions-buttons) :is(button,.btn,.ghost,.soft,.danger){min-height:40px!important;font-size:var(--rc971-button-font)!important}}
+:root{--rc972-toolbar-h:40px;--rc972-toolbar-font:13px}
+.topbar #globalSearch{min-height:var(--rc972-toolbar-h)!important;height:var(--rc972-toolbar-h)!important;padding:8px 10px!important;font-size:14px!important;border-radius:10px!important}
+.topbar #languageSelect{min-height:var(--rc972-toolbar-h)!important;height:var(--rc972-toolbar-h)!important;font-size:var(--rc972-toolbar-font)!important;padding:7px 9px!important}
+.topbar #ehThemeSelect{min-height:var(--rc972-toolbar-h)!important;height:var(--rc972-toolbar-h)!important;font-size:var(--rc972-toolbar-font)!important;padding:7px 9px!important}
+.topbar #ehThemeSwitch{min-height:var(--rc972-toolbar-h)!important;height:auto!important;padding:5px 8px!important}
+.topbar #ehThemeSwitch>span{font-size:11px!important;line-height:1.2!important}
+.topbar :is(button,.ghost,.btn){min-height:var(--rc972-toolbar-h)!important;padding:7px 9px!important;font-size:12px!important;line-height:1.2!important;border-radius:10px!important}
+html[data-exporthub-testportal="1"] #content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),select,textarea){min-height:42px!important;font-size:14px!important}
+html[data-exporthub-testportal="1"] #content textarea{height:auto!important;min-height:96px!important}
+#content .rc210-upload-actions :is(label,button){min-height:38px!important;padding:6px 8px!important;font-size:12px!important;line-height:1.2!important;border-radius:9px!important}
+#content .rc203-actions :is(button,.ghost,.rc203-delete){min-height:38px!important;padding:6px 8px!important;font-size:12px!important;line-height:1.2!important;border-radius:9px!important}
+#content .rc504-shift-btn{min-height:38px!important;padding:6px 8px!important;font-size:12px!important;line-height:1.2!important}
+#rc573ColliCard .rc682-packaging-option{min-height:38px!important;padding:7px 9px!important;font-size:12px!important;line-height:1.25!important}
+@media(max-width:720px){.topbar #globalSearch{min-height:42px!important;height:42px!important;font-size:16px!important}.topbar :is(select,button){min-height:40px!important;font-size:13px!important}.topbar #ehThemeSwitch{min-height:40px!important}.topbar #ehThemeSwitch>span{font-size:11px!important}html[data-exporthub-testportal="1"] #content :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){min-height:42px!important;font-size:16px!important}}
 }</style>
 </head>
 <body><div class="clean-load-panel hidden" id="cleanLoadPanel">
