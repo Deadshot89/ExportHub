@@ -1,0 +1,531 @@
+chars=5431348
+
+===== currentView :: 75 =====
+--- hit 1 @1072 ---
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="referrer" content="no-referrer"/>
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"/>
+<script id="exporthub-rc863-diagnostics-bootstrap">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC863_DIAGNOSTICS_BOOT__)return;
+window.__EXPORTHUB_RC863_DIAGNOSTICS_BOOT__=true;
+var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function now(){return new Date().toISOString()}
+function currentView(){try{var s=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||window.state||{};return q(s.view||document.body&&(document.body?document.body.getAttribute('data-exporthub-view'):'')||'start')}catch(_){return q(document.body&&(document.body?document.body.getAttribute('data-exporthub-view'):'')||'start')}}
+function safeUrl(value){try{var u=new URL(String(value||''),location.href),keep=[];['action','mode','full','ack','environment'].forEach(function(k){if(u.searchParams.has(k))keep.push(k+'='+encodeURIComponent(u.searchParams.get(k)||''))});return u.pathname+(keep.length?'?'+keep.join('&'):'')}catch(_){return q(String(value||'').split('?')[0]).slice(0,300)}}
+function perfThreshold(url){url=low(url);if(/exporthub-state.*mode=meta|diagnostics-(?:append|read)/.test(url))return 8000;if(/exporthub-auth/.test(url))return 5000;if(/location-booking/.test(url))return 4000;if(/pickup-status/.test(url))return 3500;return 1500}
+function expectedProbe404(url,status){return Number(status)===404&&/\/api\/pickup-(?:status|pod)(?:$|\?)/i.test(String(url||''))}
+function serverPhaseDetails(res){var out={};try{var h=res&&res.headers;if(!h||typeof h.get!=='function')return out;[['serverMs','x-exporthub-server-ms'],['authMs','x-exporthub-auth-ms'],['teamMs','x-exporthub-team-ms'],['mergeMs','x-exporthub-merge-ms'],['uploadMs','x-exporthub-upload-ms'],['retryReadMs','x-exporthub-retry-read-ms']].forEach(function(pair){var v=h.get(pair[1]);if(v!==null&&v!==''){var n=Number(v);if(Number.isFinite(n))out[pair[0]]=n}});var cache=h.get('x-exporthub-team-cache');if(cache)out.teamCache=q(cache)}catch(_){}return out}
+/* exporthub-rc902-diagnostics-security */
+function cleanText(v){var text='';try{if(v instanceof Error)text=(v.name? v.name+': ':'')+(v.message||'')+(v.stack?' | '+v.stack:'');else if(
+--- hit 2 @5035 ---
+t(k)?'[geschützt]':val});else text=String(v==null?'':v)}catch(_){text=String(v==null?'':v)}return q(text).replace(/(bearer\s+)[a-z0-9._~+\/-]+/ig,'$1[geschützt]').replace(/([?&](?:password|passwort|username|user|token|session|auth|code)=)[^&\s)]+/ig,'$1[geschützt]').replace(/((?:password|passwort|username|user)\s*[:=]\s*)[^\s,;|]+/ig,'$1[geschützt]').slice(0,1800)}
+function sanitizeDetails(d){if(!d||typeof d!=='object')return d==null?null:cleanText(d);var out={};Object.keys(d).slice(0,24).forEach(function(k){if(/token|authorization|password|passwort|session|signature|base64|dataurl|filedata|content/i.test(k)){out[k]='[geschützt]';return}var v=d[k];if(typeof v==='string')out[k]=cleanText(v).slice(0,500);else if(typeof v==='number'||typeof v==='boolean'||v==null)out[k]=v;else out[k]=cleanText(v).slice(0,500)});return out}
+function load(){var raw='';try{raw=localStorage.getItem(KEY)||''}catch(_){}if(!raw)try{raw=sessionStorage.getItem(KEY)||''}catch(_){}try{var a=JSON.parse(raw||'[]');if(Array.isArray(a)){records=a.slice(-MAX);records.forEach(function(x){seq=Math.max(seq,Number(x&&x.seq||0))})}}catch(_){} }
+function persistSoon(){if(persistTimer)return;persistTimer=setTimeout(function(){persistTimer=0;var raw=JSON.stringify(records.slice(-MAX));try{localStorage.setItem(KEY,raw)}catch(_){try{sessionStorage.setItem(KEY,raw)}catch(__){}}},4000)}
+function scheduleUi(){if(uiTimer)return;uiTimer=setTimeout(function(){uiTimer=0;try{var d=window.ExportHUBDiagnostics863;if(d&&typeof d.refreshLocal==='function')d.refreshLocal();else if(d&&typeof d.refresh==='function')d.refresh(false)}catch(_){}},700)}
+function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
+function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
+function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
+load();
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abg
+--- hit 3 @5994 ---
+h(_){}try{var a=JSON.parse(raw||'[]');if(Array.isArray(a)){records=a.slice(-MAX);records.forEach(function(x){seq=Math.max(seq,Number(x&&x.seq||0))})}}catch(_){} }
+function persistSoon(){if(persistTimer)return;persistTimer=setTimeout(function(){persistTimer=0;var raw=JSON.stringify(records.slice(-MAX));try{localStorage.setItem(KEY,raw)}catch(_){try{sessionStorage.setItem(KEY,raw)}catch(__){}}},4000)}
+function scheduleUi(){if(uiTimer)return;uiTimer=setTimeout(function(){uiTimer=0;try{var d=window.ExportHUBDiagnostics863;if(d&&typeof d.refreshLocal==='function')d.refreshLocal();else if(d&&typeof d.refresh==='function')d.refresh(false)}catch(_){}},700)}
+function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
+function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
+function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
+load();
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},functi
+--- hit 4 @6194 ---
+r)return;persistTimer=setTimeout(function(){persistTimer=0;var raw=JSON.stringify(records.slice(-MAX));try{localStorage.setItem(KEY,raw)}catch(_){try{sessionStorage.setItem(KEY,raw)}catch(__){}}},4000)}
+function scheduleUi(){if(uiTimer)return;uiTimer=setTimeout(function(){uiTimer=0;try{var d=window.ExportHUBDiagnostics863;if(d&&typeof d.refreshLocal==='function')d.refreshLocal();else if(d&&typeof d.refresh==='function')d.refresh(false)}catch(_){}},700)}
+function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
+function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
+function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
+load();
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cle
+--- hit 5 @6361 ---
+tItem(KEY,raw)}catch(__){}}},4000)}
+function scheduleUi(){if(uiTimer)return;uiTimer=setTimeout(function(){uiTimer=0;try{var d=window.ExportHUBDiagnostics863;if(d&&typeof d.refreshLocal==='function')d.refreshLocal();else if(d&&typeof d.refresh==='function')d.refresh(false)}catch(_){}},700)}
+function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
+function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
+function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
+load();
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send
+--- hit 6 @6478 ---
+ry{var d=window.ExportHUBDiagnostics863;if(d&&typeof d.refreshLocal==='function')d.refreshLocal();else if(d&&typeof d.refresh==='function')d.refresh(false)}catch(_){}},700)}
+function fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
+function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
+function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
+load();
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeU
+--- hit 7 @6653 ---
+unction fingerprint(x){return [x.level,x.category,x.area,x.message].join('|')}
+function add(category,level,message,details,area){message=cleanText(message)||'Unbekanntes Ereignis';var rec={seq:++seq,at:now(),lastAt:now(),level:level||'info',category:category||'system',area:q(area||currentView()||'unbekannt'),message:message,details:sanitizeDetails(details),count:1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
+function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
+load();
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0
+--- hit 8 @7018 ---
+1},prev=records[records.length-1];if(prev&&fingerprint(prev)===fingerprint(rec)&&Date.now()-Date.parse(prev.lastAt||prev.at)<DIAG_COALESCE_MS){prev.count=Number(prev.count||1)+1;prev.lastAt=rec.at;if(rec.details)prev.details=rec.details}else{records.push(rec);if(records.length>MAX)records.splice(0,records.length-MAX)}persistSoon();scheduleUi();try{window.dispatchEvent(new CustomEvent('exporthub:diagnostic',{detail:{category:rec.category,level:rec.level,area:rec.area}}))}catch(_){}return rec}
+function argsText(args){return Array.prototype.slice.call(args||[]).map(cleanText).filter(Boolean).join(' · ')}
+load();
+window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei
+--- hit 9 @7743 ---
+e){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}
+try{if(window.Perform
+--- hit 10 @7872 ---
+ag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+window.addEventListener('unhandledrejection',function(e){add('promise','error','Unbehandelte Promise-Ablehnung',{reason:cleanText(e&&e.reason)},currentView())});
+if(nativeConsole.error)console.error=function(){try{add('console','error',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.error.apply(null,arguments)};
+if(nativeConsole.warn)console.warn=function(){try{add('console','warning',argsText(arguments),null,currentView())}catch(_){}return nativeConsole.warn.apply(null,arguments)};
+if(nativeAlert)window.alert=function(message){try{var text=cleanText(message);if(/fehler|fehlgeschlagen|failed|konnte nicht|nicht (?:dauerhaft )?(?:gespeichert|geladen|geöffnet|gefunden|erreicht|bestätigt)|ungültig|abgelehnt|timeout|nicht erreichbar/i.test(text))add('ui','error',text,null,currentView())}catch(_){}return nativeAlert(message)};
+if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}
+try{if(window.PerformanceObserver){var po=new PerformanceObserver(function(list){list.getEntries().forEach(function(x){var ms=Math.round(Number(x.dura
+
+===== data-exporthub-view :: 142 =====
+--- hit 1 @1345 ---
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="referrer" content="no-referrer"/>
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"/>
+<script id="exporthub-rc863-diagnostics-bootstrap">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC863_DIAGNOSTICS_BOOT__)return;
+window.__EXPORTHUB_RC863_DIAGNOSTICS_BOOT__=true;
+var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function now(){return new Date().toISOString()}
+function currentView(){try{var s=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||window.state||{};return q(s.view||document.body&&(document.body?document.body.getAttribute('data-exporthub-view'):'')||'start')}catch(_){return q(document.body&&(document.body?document.body.getAttribute('data-exporthub-view'):'')||'start')}}
+function safeUrl(value){try{var u=new URL(String(value||''),location.href),keep=[];['action','mode','full','ack','environment'].forEach(function(k){if(u.searchParams.has(k))keep.push(k+'='+encodeURIComponent(u.searchParams.get(k)||''))});return u.pathname+(keep.length?'?'+keep.join('&'):'')}catch(_){return q(String(value||'').split('?')[0]).slice(0,300)}}
+function perfThreshold(url){url=low(url);if(/exporthub-state.*mode=meta|diagnostics-(?:append|read)/.test(url))return 8000;if(/exporthub-auth/.test(url))return 5000;if(/location-booking/.test(url))return 4000;if(/pickup-status/.test(url))return 3500;return 1500}
+function expectedProbe404(url,status){return Number(status)===404&&/\/api\/pickup-(?:status|pod)(?:$|\?)/i.test(String(url||''))}
+function serverPhaseDetails(res){var out={};try{var h=res&&res.headers;if(!h||typeof h.get!=='function')return out;[['serverMs','x-exporthub-server-ms'],['authMs','x-exporthub-auth-ms'],['teamMs','x-exporthub-team-ms'],['mergeMs','x-exporthub-merge-ms'],['uploadMs','x-exporthub-upload-ms'],['retryReadMs','x-exporthub-retry-read-ms']].forEach(function(pair){var v=h.get(pair[1]);if(v!==null&&v!==''){var n=Number(v);if(Number.isFinite(n))out[pair[0]]=n}});var cache=h.get('x-exporthub-team-cache');if(cache)out.teamCache=q(cache)}catch(_){}return out}
+/* exporthub-rc902-diagnostics-security */
+function cleanText(v){var text='';try{if(v instanceof Error)text=(v.name? v.name+': ':'')+(v.message||'')+(v.stack?' | '+v.stack:'');else if(typeof v==='object'&&v!==null)text=JSON.stringify(v,function(k,val){return /token|authorization|password|passwort|session|signature|base64|dataurl/i.test(k)?'[geschützt]':val});else text=String(v==null?'':v)}catch(_){text=String(v==null?'':v)}return q(text).replace(/(bearer\s+)[a-
+--- hit 2 @1457 ---
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="referrer" content="no-referrer"/>
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"/>
+<script id="exporthub-rc863-diagnostics-bootstrap">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC863_DIAGNOSTICS_BOOT__)return;
+window.__EXPORTHUB_RC863_DIAGNOSTICS_BOOT__=true;
+var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function now(){return new Date().toISOString()}
+function currentView(){try{var s=window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||window.state||{};return q(s.view||document.body&&(document.body?document.body.getAttribute('data-exporthub-view'):'')||'start')}catch(_){return q(document.body&&(document.body?document.body.getAttribute('data-exporthub-view'):'')||'start')}}
+function safeUrl(value){try{var u=new URL(String(value||''),location.href),keep=[];['action','mode','full','ack','environment'].forEach(function(k){if(u.searchParams.has(k))keep.push(k+'='+encodeURIComponent(u.searchParams.get(k)||''))});return u.pathname+(keep.length?'?'+keep.join('&'):'')}catch(_){return q(String(value||'').split('?')[0]).slice(0,300)}}
+function perfThreshold(url){url=low(url);if(/exporthub-state.*mode=meta|diagnostics-(?:append|read)/.test(url))return 8000;if(/exporthub-auth/.test(url))return 5000;if(/location-booking/.test(url))return 4000;if(/pickup-status/.test(url))return 3500;return 1500}
+function expectedProbe404(url,status){return Number(status)===404&&/\/api\/pickup-(?:status|pod)(?:$|\?)/i.test(String(url||''))}
+function serverPhaseDetails(res){var out={};try{var h=res&&res.headers;if(!h||typeof h.get!=='function')return out;[['serverMs','x-exporthub-server-ms'],['authMs','x-exporthub-auth-ms'],['teamMs','x-exporthub-team-ms'],['mergeMs','x-exporthub-merge-ms'],['uploadMs','x-exporthub-upload-ms'],['retryReadMs','x-exporthub-retry-read-ms']].forEach(function(pair){var v=h.get(pair[1]);if(v!==null&&v!==''){var n=Number(v);if(Number.isFinite(n))out[pair[0]]=n}});var cache=h.get('x-exporthub-team-cache');if(cache)out.teamCache=q(cache)}catch(_){}return out}
+/* exporthub-rc902-diagnostics-security */
+function cleanText(v){var text='';try{if(v instanceof Error)text=(v.name? v.name+': ':'')+(v.message||'')+(v.stack?' | '+v.stack:'');else if(typeof v==='object'&&v!==null)text=JSON.stringify(v,function(k,val){return /token|authorization|password|passwort|session|signature|base64|dataurl/i.test(k)?'[geschützt]':val});else text=String(v==null?'':v)}catch(_){text=String(v==null?'':v)}return q(text).replace(/(bearer\s+)[a-z0-9._~+\/-]+/ig,'$1[geschützt]').replace(/([?&](?:password|passwort|username|user|token|session|auth|code)=)[^&
+--- hit 3 @28110 ---
+(text){var a=operationApi();return a&&typeof a.start==='function'?a.start(text):0}
+function workStep(token,text){var a=operationApi();if(a&&typeof a.step==='function')a.step(token,text)}
+function workDone(token,text){var a=operationApi();if(a&&typeof a.done==='function')a.done(token,text)}
+function workFail(token,text){var a=operationApi();if(a&&typeof a.fail==='function')a.fail(token,text)}
+function version(){return q((window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version)||(window.ExportHUBBuild&&window.ExportHUBBuild.version)||document.documentElement.getAttribute('data-exporthub-version')||'ExportHUB')}
+function state(){try{return window.__EXPORTHUB_GET_STATE__?window.__EXPORTHUB_GET_STATE__():(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||(window.state||(window.state={}))}catch(_){return window.state||(window.state={})}}
+function user(){var r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},s=state();try{return (typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||r.user||window.currentUser||s.currentUser||s.user||{}}catch(_){return r.user||window.currentUser||s.currentUser||s.user||{}}}
+function isAdmin(){var u=user(),role=low(u.role||u.rolle||u.level||u.type),name=low(u.user||u.username||u.login||u.name||u.displayName),profile=low((document.querySelector('.profile')||{}).textContent);return !!(u.globalAdmin||u.isAdmin||u.admin||role.indexOf('admin')>=0||role.indexOf('vollzugriff')>=0||name==='tobias'||name==='t.limberg'||name==='tobias limberg'||profile.indexOf('tobias')>=0)}
+function canonical(v){v=low(v);if(!v||v==='start')return'dashboard';if(v==='calculator')return'shippingcosts';if(v==='quiz')return'inspections';if(v==='customers')return'customerfolder';return v}
+function current(){return canonical(state().view||(document.body?document.body.getAttribute('data-exporthub-view'):'')||'dashboard')}
+function itemForView(view){view=canonical(view);return ITEMS.find(function(item){return item.view===view})||null}
+function rawRightAllowed(right){var u=user();if(!u||!q(u.user||u.username||u.login||u.name||u.displayName))return false;var storedRight=right==='warehouse'&&!(u.rights&&Object.prototype.hasOwnProperty.call(u.rights,'warehouse'))?'customers':right,r=u.rights&&u.rights[storedRight]||{},level=low(r.level||r.access||'');if(['view','edit','admin'].indexOf(level)>=0)return true;if(level==='none')return false;return !!(r.read||r.visible||r.edit||r.admin||r.functionAdmin)}
+function allowed(item){if(item&&item.group)return true;if(!item)return false;if(item.view==='privacy'){var pu=user();return !!q(pu&&pu.user||pu&&pu.username||pu&&pu.login||pu&&pu.name||pu&&pu.displayName)}if(item.view==='release'||item.view==='diagnostics')return isAdmin();if(isAdmin())return true;var right=item.right||item.view;try{if(typeof window.canView==='function'&&typeof window.canRead==='function')return !!(window.canView(right)&&window.canRead(right)&&(right!=='rights'||typeof window.canManageRights!=='function'||window.canManageRights()))}catch(_){return false}return rawRightAllowed(right)}
+function canRoute(view){view=canonical(view);if(view==='shipmentview'||view==='documentviewer'){var overview=itemForView('shipmentoverview');return overview?allowed(overview):false}var item=itemForView(view);return item?allowed(item):true}
+function buttonFor(view){var nav=document.getElementById('nav');return nav&&nav.querySelector(':scope>button[data-index321-view="'+view+'"]')}
+function applyPermissions(){var nav=document.getElementById('nav');ITEMS.forEach(function(item){if(!item.view)return;var b=buttonFor(item.view);if(!b)return;var show=allowed(item);b.hidden=!show;b.style.display=show?'':'none';b.disabled=!show;b.setAttribute('aria-hidden',show?'false':'true')});if(nav){
+--- hit 4 @34837 ---
+t.createElement('button');b.innerHTML='<span class="index308-nav-icon" aria-hidden="true">'+(item.view==='warehouse'?'🏭':item.view==='privacy'?'🛡️':item.view==='shipmentsearch'?'⌕':'•')+'</span><span class="index308-nav-label"></span>'}used.push(b);b.type='button';b.setAttribute('data-index321-view',item.view);b.setAttribute('data-index308-view',item.view);b.setAttribute('data-index305-view',item.view);b.setAttribute('data-eh-view',item.view);b.setAttribute('data-view',item.view);b.setAttribute('data-menu-accent',accentMap[item.view]||'#38bdf8');b.style.setProperty('--menu-accent',accentMap[item.view]||'#38bdf8');b.setAttribute('title',item.label);b.setAttribute('aria-label',item.label);b.removeAttribute('data-index298-special-nav');b.removeAttribute('data-index298-nav-kind');var label=b.querySelector(':scope>.index308-nav-label');if(!label){label=document.createElement('span');label.className='index308-nav-label';b.appendChild(label)}label.textContent=item.label;var icon=b.querySelector(':scope>.index308-nav-icon'),svg=icon&&icon.querySelector('svg');if(icon){icon.setAttribute('data-menu-accent',accentMap[item.view]||'#38bdf8');icon.style.setProperty('--menu-accent',accentMap[item.view]||'#38bdf8')}if(svg){svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','2');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round')}fragment.appendChild(b)});nav.replaceChildren(fragment);return true}
+function buildMenu(){var nav=document.getElementById('nav');if(!nav)return false;if(!initialized||!menuValid(nav)){normalizeMenu();initialized=true}applyPermissions();updateActive();return menuValid(nav)}
+function setViewState(view){var s=state(),target=canonical(view);s.view=target;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s);document.body.setAttribute('data-exporthub-view',target);document.body.setAttribute('data-current-view',target);if(target!=='diagnostics'){var root=document.getElementById('content');if(root){root.classList.remove('rc870-diagnostics-view','rc871-diagnostics-view');root.removeAttribute('data-rc870-diagnostics-view');root.removeAttribute('data-rc871-diagnostics-view')}}}catch(_){}return s}
+var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;
+function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'}
+function fastShipmentKey(){var s=state(),sh=s.shipment||s.currentShipment||s.selectedShipment||{},id=q(sh.id||sh.shipmentId||sh._syncId||''),ref=q(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||'');return id+'|'+ref}
+function fastGeneration(){var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};return String(rt.revision||'')+'|'+String(rt.changeGeneration||0)+'|'+String(rt.lastSavedGeneration||0)}
+function dropFastView(view){view=canonical(view);delete fastViewCache[view];fastViewOrder=fastViewOrder.filter(function(v){return v!==view})}function clearFastViewCache(){fastViewOrder.slice().forEach(dropFastView);fastViewCache=Object.create(null);fastViewOrder=[];if(fastViewRestoreTimer){try{clearTimeout(fastViewRestoreTimer)}catch(_){}fastViewRestoreTimer=0}return true}window.__EXPORTHUB_CLEAR_FAST_VIEW_CACHE__=clearFastViewCache;
+/* exporthub-rc911-navigation-cache-integrity */
+function stashFastView(view){
+ view=canonical(view);if(!fastCacheable(view))return false;
+ var r=document.getElementById('content');if(!r||!r.childElementCount)return false;
+ var rendered=canonical(r.getAttribute('data-exporthub-rendered-view')||r.getAttribute('data-view')||'');
+ if(rendered!==view){dropFastView(view);return false}
+ var frag=document.createDocumentFragment();while(r.firstChild)frag.appendChild(r.firstChild);
+ dropFa
+--- hit 5 @355981 ---
+Kunden-Avis geändert',p=c.queueSave(why);if(p&&typeof p.then==='function')await p;var out=c.flushSave(why,{force:true,userInitiated:true});if(out&&typeof out.then==='function')out=await out;if(out!==true)throw new Error('Azure hat die Kunden-Avis-Änderung nicht dauerhaft bestätigt.');return true}}catch(e){console.error('Kunden-Avis speichern',e);throw e}throw new Error('Azure-Speicherfunktion für Kunden-Avis ist nicht verfügbar.')}
+function fmt(v){if(!v)return'–';try{var d=/^\d{4}-\d{2}-\d{2}$/.test(v)?new Date(v+'T12:00:00'):new Date(v);return isFinite(d)?d.toLocaleString('de-DE',{dateStyle:'short',timeStyle:String(v).indexOf('T')>=0?'short':undefined}):q(v)}catch(_){return q(v)}}
+function fmtLang(v,lang){if(!v)return'–';try{var d=/^\d{4}-\d{2}-\d{2}$/.test(v)?new Date(v+'T12:00:00'):new Date(v),locale=lang==='en'?'en-GB':'de-DE';return isFinite(d)?d.toLocaleString(locale,{dateStyle:'short',timeStyle:String(v).indexOf('T')>=0?'short':undefined}):q(v)}catch(_){return q(v)}}
+function responseText(sh,lang){lang=lang==='en'?'en':'de';var d=q(sh.customerAvisPickupDate||sh.avisPickupDate),a=q(sh.customerAvisPickupTimeFrom||sh.avisPickupTimeFrom),b=q(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo),plate=q(sh.customerAvisPickupPlate||sh.avisPickupPlate),number=q(sh.customerAvisShipmentNumber||sh.avisShipmentNumber),stamp=q(sh.customerAvisResponseAt||sh.avisResponseAt);if(!d)return lang==='en'?'No response from the recipient yet.':'Noch keine Rückmeldung vom Empfänger.';return fmtLang(d,lang)+(a||b?' · '+[a,b].filter(Boolean).join(' – ')+(lang==='en'?'':' Uhr'):'')+(number?' · '+(lang==='en'?'Shipment no. ':'Sendungsnr. ')+number:'')+(plate?' · '+(lang==='en'?'Licence plate ':'Kennzeichen ')+plate:'')+(stamp?' · '+(lang==='en'?'Received ':'Eingang ')+fmtLang(stamp,lang):'')}
+function viewState(){try{return q((roots()[0]||{}).view||(document.body?document.body.getAttribute('data-exporthub-view'):'')).toLowerCase()}catch(_){return''}}
+function nodeVisible(el){if(!el||!el.isConnected)return false;try{var cs=getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return false;var r=el.getBoundingClientRect();return !!(r.width||r.height||el.getClientRects().length)}catch(_){return true}}
+function visibleShipmentView(){var content=document.getElementById('content'),rendered=q(content&&content.getAttribute('data-exporthub-rendered-view')).toLowerCase(),readHost=document.getElementById('rc845AvisReadHost')||document.getElementById('rc844AvisHost'),editBlock=document.getElementById('rc363BlockShipment'),editHost=document.getElementById('rc845AvisEditHost');if(rendered==='shipmentview'||(content&&content.classList.contains('rc776-shipment-view')))return'shipmentview';if(rendered==='shipment')return'shipment';if(nodeVisible(editBlock)||nodeVisible(editHost))return'shipment';if(nodeVisible(readHost))return'shipmentview';var v=viewState();return v==='shipmentview'||v==='shipment'?v:''}
+function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':'AKTIV'):(en?'OFF':'AUS')}
+/* exporthub-rc885-clean-workspace-v4 */
+(function(){
+  'use strict';
+  if(!document.getElementById('exporthub-rc885-clean-workspace-style')){
+    var style=document.createElement('style');
+    style.id='exporthub-rc885-clean-workspace-style';
+    style.textContent=atob('I3JjODg1V29ya3NwYWNlewogICAgbWFyZ2luOjAgMCAxOHB4OwogICAgYm9yZGVyOjFweCBzb2xpZCAjZDllNGVlOwogICAgYm9yZGVyLXJhZGl1czoxOHB4OwogICAgYmFja2dyb3VuZDojZmZmOwogICAgYm94LXNoYWRvdzowIDhweCAyOHB4IHJnYmEoMTUsMjMsNDIsLjA2KTsKICAgIG92ZXJmbG93OmhpZGRlbjsKICB9CiAgI3JjODg1V29ya3NwYWNlIC5yYzg4NS1oZWFkewogICAgZGlzcGxheTpmbGV4OwogICAgYWxpZ24taXRlbXM6Y2VudGVyOwogICAganVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47CiAgICBnYXA6MTZweDsKICAgIHBhZGRpbmc6MThweCAyMHB4IDE0cHg7CiAgICBib3JkZXItYm90dG9tOjFweCBzb2xpZCAjZThlZWY0OwogIH0KICAjcm
+--- hit 6 @366857 ---
+vY2s7CiAgICBjb2xvcjojNjQ3NDhiOwogICAgZm9udC1zaXplOjEycHg7CiAgICBtYXJnaW4tdG9wOjNweDsKICB9CgogIEBtZWRpYSAobWF4LXdpZHRoOjkwMHB4KXsKICAgICNyYzg4NVdvcmtzcGFjZSAucmM4ODUtZ3JpZHtncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyfQogICAgI3JjODg1V29ya3NwYWNlIC5yYzg4NS1oZWFke2FsaWduLWl0ZW1zOmZsZXgtc3RhcnQ7ZmxleC1kaXJlY3Rpb246Y29sdW1ufQogICAgI3JjODg1V2FybmluZ0J1dHRvbnt0b3A6MTBweDtyaWdodDoxMHB4fQogIH0=');
+    (document.head||document.documentElement).appendChild(style);
+  }
+})();
+(function(){
+  'use strict';
+
+  if(window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__) return;
+  window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;
+
+  var focus = 'all';
+  var scheduled = 0;
+
+  function q(v){return String(v==null?'':v).trim()}
+  function low(v){return q(v).toLowerCase()}
+  function arr(v){return Array.isArray(v)?v:[]}
+  function esc(v){
+    return q(v).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+    })
+  }
+
+  function getState(){
+    try{
+      if(typeof window.state==='function'){
+        var s=window.state();
+        if(s&&typeof s==='object') return s
+      }
+    }catch(_){}
+    try{
+      if(window.STATE&&typeof window.STATE==='object') return window.STATE
+    }catch(_){}
+    return {}
+  }
+
+  function firstArray(candidates){
+    for(var i=0;i<candidates.length;i++){
+      if(Array.isArray(candidates[i])) return candidates[i]
+    }
+    return []
+  }
+
+  function shipments(){
+    var s=getState();
+    return firstArray([
+      s.shipments,
+      s.savedShipments,
+      s.shipmentList,
+      s.saved,
+      window.SHIPMENTS,
+      window.shipments
+    ])
+  }
+
+  function tasks(){
+    var s=getState();
+    return firstArray([
+      s.tasks,
+      s.taskList,
+      s.todos,
+      window.TASKS,
+      window.tasks
+    ])
+  }
+
+  function currentView(){
+    var s=getState();
+    return low(
+      s.view ||
+      (document.body?document.body.getAttribute('data-exporthub-view'):'') ||
+      (document.body?document.body.getAttribute('data-current-view'):'')
+    )
+  }
+
+  function isDashboard(){
+    var v=currentView();
+    if(v==='dashboard'||v==='home'||v==='start') return true;
+    var h=document.querySelector('main h1,main h2,#content h1,#content h2,.content h1,.content h2');
+    return !!(h && /dashboard|startseite|übersicht/i.test(q(h.textContent)))
+  }
+
+  function mainHost(){
+    return document.querySelector(
+      '#dashboardView,#dashboard,#mainContent,#content,main,.main-content,.content'
+    )
+  }
+
+  function routeTo(view){
+    try{
+      if(typeof window.route==='function'){
+        window.route(view,'rc885-workspace');
+        return true
+      }
+    }catch(_){}
+
+    var labels={
+      tasks:/^(meine\s+)?aufgaben$/i,
+      shipmentoverview:/sendungsübersicht|meine sendungen|sendungen/i
+    };
+    var rx=labels[view];
+    if(!rx) return false;
+
+    var nodes=Array.prototype.slice.call(
+      document.querySelectorAll('button,a,[role="button"]')
+    );
+    for(var i=0;i<nodes.length;i++){
+      if(rx.test(q(nodes[i].textContent))){
+        try{nodes[i].click();return true}catch(_){}
+      }
+    }
+    return false
+  }
+
+  function dateValue(obj){
+    var keys=['dueDate','due','date','plannedPickupDate','pickupDate','plannedDate','createdAt'];
+    for(var i=0;i<keys.length;i++){
+      var v=obj&&obj[keys[i]];
+      if(!v) continue;
+      var d=new Date(v);
+      if(!isNaN(d.getTime())) return d
+    }
+    return null
+  }
+
+  function dayKey(d){
+    if(!d) return '';
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+  }
+
+  function todayKey(){
+    return dayKey(new Date())
+  }
+
+  function isDone(v){
+    var s=low(
+      (v&&v.status) ||
+      (v&&v.state) ||
+      (v&&v.taskStatus)
+    );
+    return !!(
+      (v&&v.completed===true) ||
+      (v&&v.done===true) ||
+      /erledi
+--- hit 7 @389415 ---
+x7CiAgZGlzcGxheTppbmxpbmUtZmxleDsKICBhbGlnbi1pdGVtczpjZW50ZXI7CiAganVzdGlmeS1jb250ZW50OmNlbnRlcjsKICBtaW4td2lkdGg6MjRweDsKICBoZWlnaHQ6MjRweDsKICBib3JkZXItcmFkaXVzOjhweDsKICBtYXJnaW4tcmlnaHQ6OHB4OwogIGJhY2tncm91bmQ6I2VhZjJmZjsKICBjb2xvcjojMWQ0ZWQ4OwogIGZvbnQtc2l6ZToxMXB4OwogIGZvbnQtd2VpZ2h0OjkwMDsKICB2ZXJ0aWNhbC1hbGlnbjptaWRkbGU7Cn0KI3JjNTczU2hpcG1lbnRTaGVsbC5yYzg4OC1wcm9mZXNzaW9uYWwgLnJjODg4LXJlcXVpcmVkewogIGJveC1zaGFkb3c6MCAwIDAgMnB4IHJnYmEoMjE3LDExOSw2LC4xMCk7Cn0KI3JjNTczU2hpcG1lbnRTaGVsbC5yYzg4OC1wcm9mZXNzaW9uYWwgI3JjMzYzQmxvY2tBY3Rpb25zewogIHBvc2l0aW9uOnN0aWNreTsKICBib3R0b206OHB4OwogIHotaW5kZXg6MjU7CiAgYmFja2dyb3VuZDpyZ2JhKDI1NSwyNTUsMjU1LC45NikgIWltcG9ydGFudDsKICBiYWNrZHJvcC1maWx0ZXI6Ymx1cig3cHgpOwogIGJveC1zaGFkb3c6MCAtNHB4IDIwcHggcmdiYSgxNSwyMyw0MiwuMDgpICFpbXBvcnRhbnQ7Cn0KQG1lZGlhIChtYXgtd2lkdGg6OTAwcHgpewogICNyYzg4OFNoaXBtZW50SGVhZGVye3BhZGRpbmc6MTJweH0KICAjcmM4ODhTaGlwbWVudEhlYWRlciAucmM4ODgtcHJvZ3Jlc3N7bWF4LXdpZHRoOm5vbmV9CiAgI3JjODg4U2hpcG1lbnRIZWFkZXIgLnJjODg4LXN0ZXB7cGFkZGluZzo2cHggOHB4fQogICNyYzU3M1NoaXBtZW50U2hlbGwucmM4ODgtcHJvZmVzc2lvbmFsICNyYzM2M0Jsb2NrQWN0aW9uc3sKICAgIHBvc2l0aW9uOnN0YXRpYzsKICB9Cn0=';
+  var timer=0;
+
+  function q(v){return String(v==null?'':v).trim()}
+  function low(v){return q(v).toLowerCase()}
+
+  function ensureStyle(){
+    if(document.getElementById('rc888ShipmentCreateStyle')) return;
+    var s=document.createElement('style');
+    s.id='rc888ShipmentCreateStyle';
+    s.textContent=atob(css);
+    (document.head||document.documentElement).appendChild(s)
+  }
+
+  function stateObj(){
+    try{
+      if(typeof window.state==='function'){
+        var s=window.state();
+        if(s&&typeof s==='object') return s
+      }
+    }catch(_ ){}
+    return window.STATE&&typeof window.STATE==='object'?window.STATE:{}
+  }
+
+  function currentView(){
+    var s=stateObj();
+    return low(
+      s.view||
+      (document.body?document.body.getAttribute('data-exporthub-view'):'')||
+      (document.body?document.body.getAttribute('data-current-view'):'')
+    )
+  }
+
+  function shell(){
+    return document.getElementById('rc573ShipmentShell')||
+           document.getElementById('rc363FixedShipmentLayout')
+  }
+
+  function isCreate(){
+    var v=currentView();
+    if(/create|shipmentcreate|newshipment|sendung.*erstell/.test(v)) return true;
+    var sh=shell();
+    if(!sh) return false;
+    var h=sh.querySelector('h1,h2,h3');
+    return !!(h&&/sendung.*erstell/i.test(q(h.textContent)))
+  }
+
+  var steps=[
+    {id:'rc363BlockCustomer',n:'1',label:'Kunde & Empfänger'},
+    {id:'rc363BlockShipment',n:'2',label:'Sendungsdaten'},
+    {id:'rc573ColliCard',n:'3',label:'Colli & LDM'},
+    {id:'rc363BlockDocuments',n:'4',label:'Dokumente'},
+    {id:'rc363BlockStow',n:'5',label:'Stauplan'},
+    {id:'rc363BlockAbdDecision',n:'6',label:'ABD'},
+    {id:'rc363BlockMail',n:'7',label:'Mail'},
+    {id:'rc363BlockActions',n:'8',label:'Speichern & Ausgabe'}
+  ];
+
+  function hasValue(el){
+    if(!el) return false;
+    if(el.type==='checkbox'||el.type==='radio') return !!el.checked;
+    return !!q(el.value)
+  }
+
+  function blockReady(id){
+    var el=document.getElementById(id);
+    if(!el) return false;
+
+    if(id==='rc363BlockStow'||id==='rc363BlockActions') return true;
+
+    var fields=Array.prototype.slice.call(
+      el.querySelectorAll('input:not([type="hidden"]),select,textarea')
+    ).filter(function(x){return !x.disabled&&x.offsetParent!==null});
+
+    if(!fields.length) return true;
+
+    if(id==='rc573ColliCard'){
+      var selects=fields.filter(function(x){return x.tagName==='SELECT'});
+      var nums=fields.filter(function(x){return x.tagName==='INPUT'&&/number|text/.test(x.type)});
+      return selects.some(hasValue)&&nums.some(hasValue)
+    }
+
+    return fields.some(hasValue)
+  }
+
+  function decorateBlocks(){
+    steps.forEach(function(st){
+      var e
+--- hit 8 @750370 ---
+grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px;align-items:start}.rc348-card{background:#fff;border:1px solid var(--line,#dbe4ef);border-radius:22px;box-shadow:var(--shadow,0 18px 46px rgba(15,23,42,.10));padding:18px}.rc348-user-list{display:grid;gap:8px;max-height:520px;overflow:auto}.rc348-user-btn{text-align:left;border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;cursor:pointer}.rc348-user-btn.active{background:#eff6ff;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.rc348-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc348-badge.orange{background:#fffbeb;border-color:#fbbf24;color:#92400e}.rc348-badge.green{background:#f0fdf4;border-color:#86efac;color:#166534}.rc348-rights-table{width:100%;border-collapse:collapse}.rc348-rights-table th,.rc348-rights-table td{border:1px solid #dbe4ef;padding:8px;text-align:left;vertical-align:middle}.rc348-rights-table th{background:#eff6ff;color:#08245d}.rc348-rights-table input[type=checkbox]{width:19px;height:19px;accent-color:#2563eb}.rc348-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc348-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.rc348-template-list{display:grid;gap:8px;margin-top:10px}.rc348-template-row{border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.rc348-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.rc348-small{font-size:12px;color:#64748b;font-weight:800}.rc348-clean-hidden{display:none!important}
+@media(max-width:1100px){.rc348-rights-layout,.rc348-template-grid,.rc348-abd-grid{grid-template-columns:1fr}.rc348-grid2{grid-template-columns:1fr}}
+
+
+/* index.html style block 80 */
+
+body:not([data-exporthub-view="shipment"]) .rc314-process-confirm,
+body:not([data-exporthub-view="shipment"]) .rc314-process-warning,
+body:not([data-current-view="shipment"]) .rc314-process-confirm,
+body:not([data-current-view="shipment"]) .rc314-process-warning{
+  display:none!important;
+}
+body[data-exporthub-view="shipment"] #rc344CustomerInfo,
+body[data-current-view="shipment"] #rc344CustomerInfo,
+body[data-exporthub-view="shipment"] #rc344MailBox,
+body[data-current-view="shipment"] #rc344MailBox,
+body[data-exporthub-view="shipment"] #rc344AbdBox,
+body[data-current-view="shipment"] #rc344AbdBox{
+  display:block!important;
+  visibility:visible!important;
+}
+.rc350-hidden{display:none!important}
+
+
+/* index.html style block 81 */
+
+.rc351-abd-portal{border:1px solid #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px;margin:12px 0}
+.rc351-abd-portal h4{margin:0 0 8px;color:#08245d;font-size:16px}.rc351-abd-portal .toolbar{margin:8px 0 0}.rc351-abd-portal .small{display:block;margin-top:6px}
+.rc351-doc-page{width:100%;max-width:980px;margin:0 auto}.rc351-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.rc351-load{position:relative;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:18px auto!important;padding:9mm!important;box-sizing:border-box!important;overflow:hidden!important;page-break-after:always;break-after:page}
+.rc351-load:last-child{page-break-after:auto;break-after:auto}.rc351-load .a4top{margin:0 0 7px!important;padding:8px 10px!important}.rc351-load .doc-title{font-size:27px!important}.rc351-load .load-address-grid{margin:7px 0!important}.rc351-load .load-address-box{min-height:70px!important;padding:8px 10px!important}.rc351-load .doc-grid{gap:7px!important;margin:7px 0!important}.rc351-load .doc-box{padding:7px 9px!important;min-height:42px!important}.rc351-load .load-table{font-size:10.5px!important;margin-top
+--- hit 9 @750437 ---
+px;align-items:start}.rc348-card{background:#fff;border:1px solid var(--line,#dbe4ef);border-radius:22px;box-shadow:var(--shadow,0 18px 46px rgba(15,23,42,.10));padding:18px}.rc348-user-list{display:grid;gap:8px;max-height:520px;overflow:auto}.rc348-user-btn{text-align:left;border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;cursor:pointer}.rc348-user-btn.active{background:#eff6ff;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}.rc348-badge{display:inline-flex;border:1px solid #bfdbfe;background:#eff6ff;color:#08245d;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:900;margin:2px}.rc348-badge.orange{background:#fffbeb;border-color:#fbbf24;color:#92400e}.rc348-badge.green{background:#f0fdf4;border-color:#86efac;color:#166534}.rc348-rights-table{width:100%;border-collapse:collapse}.rc348-rights-table th,.rc348-rights-table td{border:1px solid #dbe4ef;padding:8px;text-align:left;vertical-align:middle}.rc348-rights-table th{background:#eff6ff;color:#08245d}.rc348-rights-table input[type=checkbox]{width:19px;height:19px;accent-color:#2563eb}.rc348-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rc348-template-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.rc348-template-list{display:grid;gap:8px;margin-top:10px}.rc348-template-row{border:1px solid #dbeafe;background:#f8fbff;border-radius:14px;padding:10px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.rc348-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.rc348-small{font-size:12px;color:#64748b;font-weight:800}.rc348-clean-hidden{display:none!important}
+@media(max-width:1100px){.rc348-rights-layout,.rc348-template-grid,.rc348-abd-grid{grid-template-columns:1fr}.rc348-grid2{grid-template-columns:1fr}}
+
+
+/* index.html style block 80 */
+
+body:not([data-exporthub-view="shipment"]) .rc314-process-confirm,
+body:not([data-exporthub-view="shipment"]) .rc314-process-warning,
+body:not([data-current-view="shipment"]) .rc314-process-confirm,
+body:not([data-current-view="shipment"]) .rc314-process-warning{
+  display:none!important;
+}
+body[data-exporthub-view="shipment"] #rc344CustomerInfo,
+body[data-current-view="shipment"] #rc344CustomerInfo,
+body[data-exporthub-view="shipment"] #rc344MailBox,
+body[data-current-view="shipment"] #rc344MailBox,
+body[data-exporthub-view="shipment"] #rc344AbdBox,
+body[data-current-view="shipment"] #rc344AbdBox{
+  display:block!important;
+  visibility:visible!important;
+}
+.rc350-hidden{display:none!important}
+
+
+/* index.html style block 81 */
+
+.rc351-abd-portal{border:1px solid #bfdbfe;background:#f8fbff;border-radius:16px;padding:12px;margin:12px
+...[truncated]...
