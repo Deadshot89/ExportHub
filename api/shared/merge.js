@@ -313,7 +313,7 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
       const shipmentCollection = name === 'shipments' || name === 'savedShipments';
       const key = shipmentCollection ? shipmentIdentityKey(item, index) : itemKey(item, keys, index);
       const existing = map.get(key);
-      if (!existing) map.set(key, clone(item));
+      if (!existing) map.set(key, source === 'server' ? item : clone(item));
       else if (name === 'shipments' || name === 'savedShipments') map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
       else if (name === 'customers') map.set(key, source === 'incoming' ? mergeCustomerProtected(existing, item) : mergeCustomerProtected(item, existing));
       else map.set(key, source === 'incoming' ? chooseNewer(existing, item, name) : chooseNewer(item, existing, name));
@@ -358,8 +358,8 @@ function mergePlainObject(serverValue, incomingValue) {
 }
 
 function mergeState(serverState, incomingState) {
-  const server = isObject(serverState) ? clone(serverState) : {};
-  const incoming = isObject(incomingState) ? clone(incomingState) : {};
+  const server = isObject(serverState) ? serverState : {};
+  const incoming = isObject(incomingState) ? incomingState : {};
   const serverMeta = isObject(server._teamSyncMeta) ? server._teamSyncMeta : {};
   const incomingMeta = isObject(incoming._teamSyncMeta) ? incoming._teamSyncMeta : {};
   const mergedMeta = {
@@ -370,6 +370,15 @@ function mergeState(serverState, incomingState) {
     ] })
   };
   const tombstones = tombstoneMap(mergedMeta);
+  const serverTombstones = new Map(normalizeTombstones(serverMeta).map(item => [`${lower(item.collection)}:${lower(item.id)}`, item]));
+  const changedTombstoneCollections = new Set();
+  for (const item of normalizeTombstones(incomingMeta)) {
+    const key = `${lower(item.collection)}:${lower(item.id)}`;
+    const previous = serverTombstones.get(key);
+    if (!previous || JSON.stringify(previous) !== JSON.stringify(item)) changedTombstoneCollections.add(lower(item.collection));
+  }
+  const incomingFields = isObject(incomingMeta.fields) ? incomingMeta.fields : {};
+  const serverFields = isObject(serverMeta.fields) ? serverMeta.fields : {};
   const out = {};
   const keys = new Set([...Object.keys(server), ...Object.keys(incoming)]);
 
@@ -377,6 +386,15 @@ function mergeState(serverState, incomingState) {
     if (key === '_teamSyncMeta' || isLocalOnlyKey(key)) continue;
     const serverValue = server[key];
     const incomingValue = incoming[key];
+    const incomingHasValue = Object.prototype.hasOwnProperty.call(incoming, key);
+    const incomingFieldMeta = incomingFields[key];
+    const fieldMetaChanged = incomingFieldMeta !== undefined && JSON.stringify(incomingFieldMeta) !== JSON.stringify(serverFields[key]);
+    const tombstoneChanged = changedTombstoneCollections.has(lower(key));
+
+    if (!incomingHasValue && !fieldMetaChanged && !tombstoneChanged) {
+      out[key] = serverValue;
+      continue;
+    }
 
     if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
       out[key] = mergeCollection(key, serverValue, incomingValue, tombstones);
@@ -394,8 +412,8 @@ function mergeState(serverState, incomingState) {
 
   out.taskStatusLedger = mergeLedger(server.taskStatusLedger, incoming.taskStatusLedger);
   out.deliveryFileDeletionLedger = mergeLedger(server.deliveryFileDeletionLedger, incoming.deliveryFileDeletionLedger);
-  out.tasks = applyTaskLedger(out.tasks, out.taskStatusLedger);
-  out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
+  if (Object.keys(out.taskStatusLedger).length) out.tasks = applyTaskLedger(out.tasks, out.taskStatusLedger);
+  if (Object.keys(out.deliveryFileDeletionLedger).length) out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
 
   out._teamSyncMeta = mergedMeta;
   return out;
