@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const html=fs.readFileSync('TESTVERSION.html','utf8');
-const build=Number((html.match(/version\s*:\s*['"]RC(\d+)['"]/)||[])[1]||0);
+const buildMatch=html.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC(\d+)'/);
+const build=Number((buildMatch||[])[1]||0);
 
 function count(re){return (html.match(re)||[]).length}
 
 test('RC990 Integration: integrierter Build ist RC990 oder höher',()=>{
+  assert.ok(buildMatch,'BUILD marker fehlt');
   assert.ok(build>=990,`Build ist RC${build||0}`);
 });
 
