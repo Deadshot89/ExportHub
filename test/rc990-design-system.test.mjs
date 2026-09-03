@@ -48,6 +48,12 @@ test('RC990 Design: Aufgaben verwenden ein echtes 3-2-1 Kachelraster',()=>{
   assert.match(style,/@media\s*\(max-width:\s*(?:760|700|680|640)px\)[\s\S]*?RC990 task tile grid[\s\S]*?grid-template-columns\s*:\s*minmax\(0\s*,\s*1fr\)/i,'Smartphone muss auf eine Kachel wechseln');
 });
 
+test('RC990 Design: aktuelle RC628 Aufgabenansicht wird vom Kachelraster wirklich getroffen',()=>{
+  assert.match(style,/body\[data-exporthub-view=["']tasks["']\][\s\S]{0,500}\.rc229-task-grid/i,'aktuelle Aufgaben-Gridklasse fehlt im RC990-Layer');
+  assert.match(style,/\.rc229-task-card\.rc628-unified-task/i,'aktuelle Aufgabenkartenklasse fehlt im RC990-Layer');
+  assert.match(style,/\.rc229-task-grid\s*\{[\s\S]{0,300}grid-template-columns\s*:\s*repeat\(3\s*,\s*minmax\(0\s*,\s*1fr\)\)/i,'RC628-Aufgabenraster ist Desktop noch nicht dreispaltig');
+});
+
 test('RC990 Design: Aufgabenkacheln sind sichtbar als kompakte Karten gestaltet',()=>{
   for(const token of ['--rc990-card-border','--rc990-card-shadow','--rc990-task-accent']){
     assert.match(style,new RegExp(token.replaceAll('-','\\-')+'\\s*:'),`${token} fehlt`);
