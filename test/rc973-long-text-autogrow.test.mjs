@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const html = fs.readFileSync('TESTVERSION.html','utf8');
 
@@ -54,4 +55,23 @@ test('RC973: kurze Felder und Colli-Geometrie bleiben kompakt',()=>{
   assert.match(html,/#rc363BlockColli\s+#rc573ColliCard\s+\.rc363-colli-grid\s+:is\(input,select,button,\.rc682-packaging-toggle\)[^{]*\{[^}]*height\s*:\s*var\(--rc971-control-h\)\s*!important/i,'Colli-Kurzfelder müssen ihre feste kompakte Höhe behalten');
   const css=block('style','rc973-autogrow-long-text');
   assert.doesNotMatch(css,/(^|[,\s]):?is\([^)]*input|input\[data-rc973-autogrow/i,'RC973 darf keine einzeiligen Inputs in Auto-Grow aufnehmen');
+});
+
+test('RC973: Auto-Grow-Blöcke dürfen den Stauplan-Druckstring nicht zerschneiden',()=>{
+  const start=html.indexOf('function printStow(){');
+  const end=html.indexOf('function normalizeActionButtons',start);
+  assert.ok(start>=0&&end>start,'Stauplan-Druckfunktion konnte nicht eindeutig gefunden werden');
+  const source=html.slice(start,end);
+  assert.doesNotMatch(source,/RC973 LONG TEXT AUTO-GROW|rc973-autogrow-long-text|exporthub-rc973-autogrow-long-text/i,'RC973 wurde mitten in printStow eingefügt und zerstört den JavaScript-/HTML-String');
+});
+
+test('RC973: das umgebende Script der Stauplan-Druckfunktion bleibt syntaktisch vollständig',()=>{
+  const point=html.indexOf('function printStow(){');
+  assert.ok(point>=0,'printStow fehlt');
+  const scriptOpen=html.lastIndexOf('<script',point);
+  const bodyStart=scriptOpen>=0?html.indexOf('>',scriptOpen)+1:-1;
+  const scriptClose=html.indexOf('</script>',point);
+  assert.ok(scriptOpen>=0&&bodyStart>scriptOpen&&scriptClose>point,'umgebender Scriptblock von printStow konnte nicht bestimmt werden');
+  const js=html.slice(bodyStart,scriptClose);
+  assert.doesNotThrow(()=>new vm.Script(js,{filename:'TESTVERSION-printStow.js'}),'printStow-Script ist syntaktisch beschädigt; dadurch wird JavaScript als Seitentext sichtbar');
 });
