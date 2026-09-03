@@ -25,4 +25,4 @@ jobs:
       - name: Full test suite
         run: npm test
 
-# GREEN verification trigger after materialization.
+# GREEN verification trigger after RC993 build materialization.
