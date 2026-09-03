@@ -1,506 +1,143 @@
 exit_status=1
 duration_seconds=1
-output_bytes=16724238
+output_bytes=16724236
 node=v20.20.2
 npm=10.8.2
---- tail ---
-    b2xpY3kiOiAibm8tcmVmZXJyZXIiLAogICAgICAgICJYLUNvbnRlbnQtVHlwZS1PcHRpb25zIjog
-    Im5vc25pZmYiLAogICAgICAgICJYLUZyYW1lLU9wdGlvbnMiOiAiREVOWSIsCiAgICAgICAgIkNy
-    b3NzLU9yaWdpbi1SZXNvdXJjZS1Qb2xpY3kiOiAic2FtZS1vcmlnaW4iLAogICAgICAgICJYLVJv
-    Ym90cy1UYWciOiAibm9pbmRleCwgbm9mb2xsb3csIG5vYXJjaGl2ZSIsCiAgICAgICAgIlBlcm1p
-    c3Npb25zLVBvbGljeSI6ICJjYW1lcmE9KCksIG1pY3JvcGhvbmU9KCksIGdlb2xvY2F0aW9uPSgp
-    LCBwYXltZW50PSgpLCB1c2I9KCkiLAogICAgICAgICJDb250ZW50LVNlY3VyaXR5LVBvbGljeSI6
-    ICJkZWZhdWx0LXNyYyAnbm9uZSc7IGNvbm5lY3Qtc3JjICdzZWxmJzsgc3R5bGUtc3JjICd1bnNh
-    ZmUtaW5saW5lJzsgc2NyaXB0LXNyYyAndW5zYWZlLWlubGluZSc7IGltZy1zcmMgZGF0YTogaHR0
-    cHM6OyBiYXNlLXVyaSAnbm9uZSc7IGZvcm0tYWN0aW9uICdzZWxmJzsgZnJhbWUtYW5jZXN0b3Jz
-    ICdub25lJzsgb2JqZWN0LXNyYyAnbm9uZSciLAogICAgICAgICJYLUV4cG9ydEhVQi1FbnZpcm9u
-    bWVudCI6ICJ0ZXN0IgogICAgICB9CiAgICB9LAogICAgewogICAgICAicm91dGUiOiAiL2N1c3Rv
-    bWVyLWF2aXMuaHRtbCIsCiAgICAgICJhbGxvd2VkUm9sZXMiOiBbCiAgICAgICAgImFub255bW91
-    cyIKICAgICAgXSwKICAgICAgImhlYWRlcnMiOiB7CiAgICAgICAgIkNhY2hlLUNvbnRyb2wiOiAi
-    bm8tc3RvcmUsIG5vLWNhY2hlLCBtdXN0LXJldmFsaWRhdGUiLAogICAgICAgICJQcmFnbWEiOiAi
-    bm8tY2FjaGUiLAogICAgICAgICJSZWZlcnJlci1Qb2xpY3kiOiAibm8tcmVmZXJyZXIiLAogICAg
-    ICAgICJYLUNvbnRlbnQtVHlwZS1PcHRpb25zIjogIm5vc25pZmYiLAogICAgICAgICJYLUZyYW1l
-    LU9wdGlvbnMiOiAiREVOWSIsCiAgICAgICAgIkNyb3NzLU9yaWdpbi1SZXNvdXJjZS1Qb2xpY3ki
-    OiAic2FtZS1vcmlnaW4iLAogICAgICAgICJYLVJvYm90cy1UYWciOiAibm9pbmRleCwgbm9mb2xs
-    b3csIG5vYXJjaGl2ZSIsCiAgICAgICAgIlBlcm1pc3Npb25zLVBvbGljeSI6ICJjYW1lcmE9KCks
-    IG1pY3JvcGhvbmU9KCksIGdlb2xvY2F0aW9uPSgpLCBwYXltZW50PSgpLCB1c2I9KCkiLAogICAg
-    ICAgICJDb250ZW50LVNlY3VyaXR5LVBvbGljeSI6ICJkZWZhdWx0LXNyYyAnbm9uZSc7IGNvbm5l
-    Y3Qtc3JjICdzZWxmJzsgc3R5bGUtc3JjICd1bnNhZmUtaW5saW5lJzsgc2NyaXB0LXNyYyAndW5z
-    YWZlLWlubGluZSc7IGltZy1zcmMgZGF0YTogaHR0cHM6OyBiYXNlLXVyaSAnbm9uZSc7IGZvcm0t
-    YWN0aW9uICdzZWxmJzsgZnJhbWUtYW5jZXN0b3JzICdub25lJzsgb2JqZWN0LXNyYyAnbm9uZSci
-    LAogICAgICAgICJYLUV4cG9ydEhVQi1FbnZpcm9ubWVudCI6ICJ0ZXN0IgogICAgICB9CiAgICB9
-    LAogICAgewogICAgICAicm91dGUiOiAiL2FwaS9jdXN0b21lci1hdmlzKiIsCiAgICAgICJhbGxv
-    d2VkUm9sZXMiOiBbCiAgICAgICAgImFub255bW91cyIKICAgICAgXSwKICAgICAgImhlYWRlcnMi
-    OiB7CiAgICAgICAgIkNhY2hlLUNvbnRyb2wiOiAibm8tc3RvcmUsIG5vLWNhY2hlLCBtdXN0LXJl
-    dmFsaWRhdGUiLAogICAgICAgICJQcmFnbWEiOiAibm8tY2FjaGUiLAogICAgICAgICJSZWZlcnJl
-    ci1Qb2xpY3kiOiAibm8tcmVmZXJyZXIiLAogICAgICAgICJYLUNvbnRlbnQtVHlwZS1PcHRpb25z
-    IjogIm5vc25pZmYiLAogICAgICAgICJYLUZyYW1lLU9wdGlvbnMiOiAiREVOWSIsCiAgICAgICAg
-    IkNyb3NzLU9yaWdpbi1SZXNvdXJjZS1Qb2xpY3kiOiAic2FtZS1vcmlnaW4iLAogICAgICAgICJY
-    LVJvYm90cy1UYWciOiAibm9pbmRleCwgbm9mb2xsb3csIG5vYXJjaGl2ZSIsCiAgICAgICAgIlgt
-    RXhwb3J0SFVCLUVudmlyb25tZW50IjogInRlc3QiCiAgICAgIH0KICAgIH0sCiAgICB7CiAgICAg
-    ICJyb3V0ZSI6ICIvYXBpLyoiLAogICAgICAiYWxsb3dlZFJvbGVzIjogWwogICAgICAgICJhbm9u
-    eW1vdXMiCiAgICAgIF0sCiAgICAgICJoZWFkZXJzIjogewogICAgICAgICJDYWNoZS1Db250cm9s
-    IjogIm5vLXN0b3JlIiwKICAgICAgICAiWC1FeHBvcnRIVUItRW52aXJvbm1lbnQiOiAidGVzdCIK
-    ICAgICAgfQogICAgfSwKICAgIHsKICAgICAgInJvdXRlIjogIi8uYXV0aC8qIiwKICAgICAgImFs
-    bG93ZWRSb2xlcyI6IFsKICAgICAgICAiYW5vbnltb3VzIgogICAgICBdCiAgICB9LAogICAgewog
-    ICAgICAicm91dGUiOiAiL2Fzc2V0cy8qIiwKICAgICAgImFsbG93ZWRSb2xlcyI6IFsKICAgICAg
-    ICAiYW5vbnltb3VzIgogICAgICBdLAogICAgICAiaGVhZGVycyI6IHsKICAgICAgICAiQ2FjaGUt
-    Q29udHJvbCI6ICJuby1zdG9yZSwgbm8tY2FjaGUsIG11c3QtcmV2YWxpZGF0ZSIKICAgICAgfQog
-    ICAgfQogIF0sCiAgIm5hdmlnYXRpb25GYWxsYmFjayI6IHsKICAgICJyZXdyaXRlIjogIi9pbmRl
-    eC5odG1sIiwKICAgICJleGNsdWRlIjogWwogICAgICAiL2FwaS8qIiwKICAgICAgIi8uYXV0aC8q
-    IiwKICAgICAgIi9waWNrdXAiLAogICAgICAiL3BpY2t1cC5odG1sIiwKICAgICAgIi9hc3NldHMv
-    KiIsCiAgICAgICIvdGVzdHNlcnZpY2UtZW52aXJvbm1lbnQuanNvbiIsCiAgICAgICIvKi57Y3Nz
-    LGpzLGpzb24scG5nLGpwZyxqcGVnLGdpZixzdmcsaWNvLHBkZix3ZWJwLHdvZmYsd29mZjJ9IiwK
-    ICAgICAgIi9sb2NhdGlvbiIsCiAgICAgICIvbG9jYXRpb24uaHRtbCIsCiAgICAgICIvY3VzdG9t
-    ZXItYXZpcyIsCiAgICAgICIvY3VzdG9tZXItYXZpcy5odG1sIgogICAgXQogIH0sCiAgInBsYXRm
-    b3JtIjogewogICAgImFwaVJ1bnRpbWUiOiAibm9kZToyMCIKICB9LAogICJ0cmFpbGluZ1NsYXNo
-    IjogIm5ldmVyIgp9Cg==
-    EXPORTHUB_TESTSERVICE_FILE_END -->
-    
-    <!-- EXPORTHUB_TESTSERVICE_FILE_BEGIN path=customer-avis.html encoding=base64 sha256=1692b4d903aa7474b80ef36f42225b1003f32f31e1db668c0be03769883d80e0
-    PCFkb2N0eXBlIGh0bWw+CjxodG1sIGxhbmc9ImRlIj4KPGhlYWQ+CjxtZXRhIGNoYXJzZXQ9InV0
-    Zi04Ij4KPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCxp
-    bml0aWFsLXNjYWxlPTEsdmlld3BvcnQtZml0PWNvdmVyIj4KPG1ldGEgbmFtZT0icmVmZXJyZXIi
-    IGNvbnRlbnQ9Im5vLXJlZmVycmVyIj4KPG1ldGEgbmFtZT0icm9ib3RzIiBjb250ZW50PSJub2lu
-    ZGV4LG5vZm9sbG93LG5vYXJjaGl2ZSxub3NuaXBwZXQsbm9pbWFnZWluZGV4Ij4KPG1ldGEgaHR0
-    cC1lcXVpdj0iQ2FjaGUtQ29udHJvbCIgY29udGVudD0ibm8tc3RvcmUsIG5vLWNhY2hlLCBtdXN0
-    LXJldmFsaWRhdGUiPgo8bWV0YSBodHRwLWVxdWl2PSJQcmFnbWEiIGNvbnRlbnQ9Im5vLWNhY2hl
-    Ij4KPHRpdGxlPkV4cG9ydEhVQiDCtyBLdW5kZW4tQXZpczwvdGl0bGU+CjxzdHlsZT4KKntib3gt
-    c2l6aW5nOmJvcmRlci1ib3h9OnJvb3R7LS1iZzojZjNmNmZhOy0tc3VyZmFjZTojZmZmOy0tc3Vy
-    ZmFjZTI6I2Y4ZmFmYzstLWxpbmU6I2Q4ZTJlYzstLWxpbmUyOiNjNWQyZGY7LS10ZXh0OiMxNzJi
-    M2E7LS10aXRsZTojMGMyNDM4Oy0tbXV0ZWQ6IzY0Nzc4OTstLXByaW1hcnk6IzBmNmNiZDstLXBy
-    aW1hcnkyOiMyMzg1Y2Y7LS1wcmltYXJ5U29mdDojZWFmM2ZiOy0tb2s6IzE2N2E1ODstLW9rU29m
-    dDojZThmN2YxOy0tYmFkOiNjMTNlM2U7LS1iYWRTb2Z0OiNmZmYwZjA7LS13YXJuOiM5YTYyMGU7
-    LS13YXJuU29mdDojZmZmNWUyOy0tZm9udDoiU2Vnb2UgVUkgVmFyaWFibGUgVGV4dCIsIkFwdG9z
-    IiwiU2Vnb2UgVUkiLHN5c3RlbS11aSwtYXBwbGUtc3lzdGVtLHNhbnMtc2VyaWZ9aHRtbCxib2R5
-    e21hcmdpbjowO21pbi1oZWlnaHQ6MTAwJTtiYWNrZ3JvdW5kOmxpbmVhci1ncmFkaWVudCgxNDVk
-    ZWcsI2Y1ZjdmYSwjZWFmMGY2KTtmb250LWZhbWlseTp2YXIoLS1mb250KTtjb2xvcjp2YXIoLS10
-    ZXh0KX1ib2R5e3BhZGRpbmc6MjJweH0ucG9ydGFse3dpZHRoOmNhbGMoMTAwdncgLSA0NHB4KTtt
-    YXgtd2lkdGg6MTE2MHB4O21pbi13aWR0aDowO21hcmdpbjoxLjV2aCBhdXRvO2Rpc3BsYXk6Z3Jp
-    ZDtncmlkLXRlbXBsYXRlLWNvbHVtbnM6bWlubWF4KDAsMWZyKTtnYXA6MTRweH0uYnJhbmR7ZGlz
-    cGxheTpmbGV4O2FsaWduLWl0ZW1zOmNlbnRlcjtnYXA6MTRweDtiYWNrZ3JvdW5kOnJnYmEoMjU1
-    LDI1NSwyNTUsLjk2KTtib3JkZXI6MXB4IHNvbGlkIHZhcigtLWxpbmUpO2JvcmRlci1yYWRpdXM6
-    MThweDtwYWRkaW5nOjE3cHggMTlweDtib3gtc2hhZG93OjAgMTRweCAzNHB4IHJnYmEoMTgsNDIs
-    NjQsLjA4KX0ubG9nb3t3aWR0aDo1MnB4O2hlaWdodDo1MnB4O2JvcmRlci1yYWRpdXM6MTNweDti
-    YWNrZ3JvdW5kOmxpbmVhci1ncmFkaWVudCgxNDVkZWcsdmFyKC0tcHJpbWFyeTIpLHZhcigtLXBy
-    aW1hcnkpKTtjb2xvcjojZmZmO2Rpc3BsYXk6Z3JpZDtwbGFjZS1pdGVtczpjZW50ZXI7Zm9udC13
-    ZWlnaHQ6ODAwO2ZvbnQtc2l6ZToxOHB4O2JveC1zaGFkb3c6MCA4cHggMThweCByZ2JhKDE1LDEw
-    OCwxODksLjIpfS5icmFuZCBoMXttYXJnaW46MDtjb2xvcjp2YXIoLS10aXRsZSk7Zm9udC1zaXpl
-    OjI1cHg7bGV0dGVyLXNwYWNpbmc6LS4wMjVlbX0uYnJhbmQgcHttYXJnaW46M3B4IDAgMDtjb2xv
-    cjp2YXIoLS1tdXRlZCk7Zm9udC1zaXplOjEycHg7Zm9udC13ZWlnaHQ6NjAwfS5zdGF0dXN7Ym9y
-    ZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lKTtib3JkZXItbGVmdDo0cHggc29saWQgdmFyKC0tcHJp
-    bWFyeSk7Ym9yZGVyLXJhZGl1czoxMXB4O3BhZGRpbmc6MTBweCAxMnB4O2JhY2tncm91bmQ6dmFy
-    KC0tcHJpbWFyeVNvZnQpO2ZvbnQtc2l6ZToxMnB4O2ZvbnQtd2VpZ2h0OjcwMH0uc3RhdHVzLm9r
-    e2JvcmRlci1sZWZ0LWNvbG9yOnZhcigtLW9rKTtiYWNrZ3JvdW5kOnZhcigtLW9rU29mdCk7Y29s
-    b3I6dmFyKC0tb2spfS5zdGF0dXMuYmFke2JvcmRlci1sZWZ0LWNvbG9yOnZhcigtLWJhZCk7YmFj
-    a2dyb3VuZDp2YXIoLS1iYWRTb2Z0KTtjb2xvcjp2YXIoLS1iYWQpfS5jYXJke21pbi13aWR0aDow
-    O2JhY2tncm91bmQ6dmFyKC0tc3VyZmFjZSk7Ym9yZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lKTti
-    b3JkZXItcmFkaXVzOjE2cHg7cGFkZGluZzoxN3B4O2JveC1zaGFkb3c6MCA3cHggMjBweCByZ2Jh
-    KDE4LDQyLDY0LC4wNTUpfS5jYXJkIGgye21hcmdpbjowIDAgMTJweDtjb2xvcjp2YXIoLS10aXRs
-    ZSk7Zm9udC1zaXplOjE5cHg7bGV0dGVyLXNwYWNpbmc6LS4wMTVlbX0uc3VtbWFyeXttaW4td2lk
-    dGg6MDtkaXNwbGF5OmdyaWQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOnJlcGVhdCg0LG1pbm1heCgw
-    LDFmcikpO2dhcDoxMHB4fS5zdW1tYXJ5PmRpdiwudG90YWxzPmRpdntwb3NpdGlvbjpyZWxhdGl2
-    ZTtvdmVyZmxvdzpoaWRkZW47YmFja2dyb3VuZDp2YXIoLS1zdXJmYWNlKTtib3JkZXI6MXB4IHNv
-    bGlkIHZhcigtLWxpbmUpO2JvcmRlci1yYWRpdXM6MTRweDtwYWRkaW5nOjEycHggMTNweDtib3gt
-    c2hhZG93OjAgNHB4IDEycHggcmdiYSgxOCw0Miw2NCwuMDQpfS5zdW1tYXJ5PmRpdjpiZWZvcmUs
-    LnRvdGFscz5kaXY6YmVmb3Jle2NvbnRlbnQ6IiI7cG9zaXRpb246YWJzb2x1dGU7bGVmdDowO3Rv
-    cDowO2JvdHRvbTowO3dpZHRoOjNweDtiYWNrZ3JvdW5kOnZhcigtLXByaW1hcnkpfS5zdW1tYXJ5
-    IHNwYW4sLnRvdGFscyBzcGFuLC5ncmlkIHNwYW57ZGlzcGxheTpibG9jaztjb2xvcjp2YXIoLS1t
-    dXRlZCk7Zm9udC1zaXplOjlweDtmb250LXdlaWdodDo4MDA7bGV0dGVyLXNwYWNpbmc6LjA3ZW07
-    dGV4dC10cmFuc2Zvcm06dXBwZXJjYXNlO21hcmdpbi1ib3R0b206NHB4fS5zdW1tYXJ5IGIsLnRv
-    dGFscyBie2ZvbnQtc2l6ZToxN3B4O2NvbG9yOnZhcigtLXRpdGxlKTtvdmVyZmxvdy13cmFwOmFu
-    eXdoZXJlfS5ncmlke21pbi13aWR0aDowO2Rpc3BsYXk6Z3JpZDtncmlkLXRlbXBsYXRlLWNvbHVt
-    bnM6cmVwZWF0KDIsbWlubWF4KDAsMWZyKSk7Z2FwOjEwcHh9LmdyaWQ+ZGl2e2JvcmRlcjoxcHgg
-    c29saWQgdmFyKC0tbGluZSk7Ym9yZGVyLXJhZGl1czoxMnB4O3BhZGRpbmc6MTFweDtiYWNrZ3Jv
-    dW5kOnZhcigtLXN1cmZhY2UyKX0uZ3JpZCBwe21hcmdpbjo1cHggMCAwO2NvbG9yOiM0ZjY1NzY7
-    d2hpdGUtc3BhY2U6cHJlLWxpbmU7Zm9udC1zaXplOjEycHh9LnRvdGFsc3ttaW4td2lkdGg6MDtk
-    aXNwbGF5OmdyaWQ7Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOnJlcGVhdCgzLG1pbm1heCgwLDFmcikp
-    O2dhcDoxMHB4O21hcmdpbjoxMnB4IDB9LnRhYmxlLXdyYXB7d2lkdGg6MTAwJTttYXgtd2lkdGg6
-    MTAwJTttaW4td2lkdGg6MDtvdmVyZmxvdzphdXRvOy13ZWJraXQtb3ZlcmZsb3ctc2Nyb2xsaW5n
-    OnRvdWNoO2JvcmRlcjoxcHggc29saWQgdmFyKC0tbGluZSk7Ym9yZGVyLXJhZGl1czoxMnB4O2Jh
-    Y2tncm91bmQ6I2ZmZn0udGFibGUtd3JhcCB0YWJsZXt3aWR0aDoxMDAlO2JvcmRlci1jb2xsYXBz
-    ZTpzZXBhcmF0ZTtib3JkZXItc3BhY2luZzowO21pbi13aWR0aDo3NjBweH0udGFibGUtd3JhcCB0
-    aCwudGFibGUtd3JhcCB0ZHt0ZXh0LWFsaWduOmxlZnQ7cGFkZGluZzo5cHggMTBweDtib3JkZXIt
-    Ym90dG9tOjFweCBzb2xpZCB2YXIoLS1saW5lKTtmb250LXNpemU6MTJweH0udGFibGUtd3JhcCB0
-    aHtiYWNrZ3JvdW5kOiNlZGYzZjg7Y29sb3I6IzQ2NWM2ZTtmb250LXNpemU6OXB4O2ZvbnQtd2Vp
-    Z2h0OjgwMDtsZXR0ZXItc3BhY2luZzouMDZlbTt0ZXh0LXRyYW5zZm9ybTp1cHBlcmNhc2V9LnRh
-    YmxlLXdyYXAgdHI6bGFzdC1jaGlsZCB0ZHtib3JkZXItYm90dG9tOjB9LnNlY3Rpb24taGVhZHtk
-    aXNwbGF5OmZsZXg7anVzdGlmeS1jb250ZW50OnNwYWNlLWJldHdlZW47Z2FwOjEycHg7YWxpZ24t
-    aXRlbXM6Y2VudGVyfS5zZWN0aW9uLWhlYWQgcHttYXJnaW46M3B4IDAgMDtjb2xvcjp2YXIoLS1t
-    dXRlZCk7Zm9udC1zaXplOjEycHh9LmRvY3N7ZGlzcGxheTpncmlkO2dhcDo3cHg7bWFyZ2luLXRv
-    cDoxMXB4fS5kb2N7ZGlzcGxheTpmbGV4O2p1c3RpZnktY29udGVudDpzcGFjZS1iZXR3ZWVuO2Fs
-    aWduLWl0ZW1zOmNlbnRlcjtnYXA6MTJweDt0ZXh0LWRlY29yYXRpb246bm9uZTtib3JkZXI6MXB4
-    IHNvbGlkIHZhcigtLWxpbmUpO2JhY2tncm91bmQ6dmFyKC0tc3VyZmFjZTIpO2JvcmRlci1yYWRp
-    dXM6MTFweDtwYWRkaW5nOjEwcHggMTFweDtjb2xvcjp2YXIoLS10ZXh0KTt0cmFuc2l0aW9uOmJv
-    cmRlci1jb2xvciAuMTNzIGVhc2UsYmFja2dyb3VuZCAuMTNzIGVhc2V9LmRvYzpob3Zlcntib3Jk
-    ZXItY29sb3I6IzllYzVlNTtiYWNrZ3JvdW5kOnZhcigtLXByaW1hcnlTb2Z0KX0uZG9jIHNwYW57
-    bWluLXdpZHRoOjB9LmRvYyBie2Rpc3BsYXk6YmxvY2s7b3ZlcmZsb3ctd3JhcDphbnl3aGVyZX0u
-    ZG9jIHNtYWxse2Rpc3BsYXk6YmxvY2s7Y29sb3I6dmFyKC0tbXV0ZWQpO21hcmdpbi10b3A6MnB4
-    fS5kb2Mgc3Ryb25ne3doaXRlLXNwYWNlOm5vd3JhcDtjb2xvcjp2YXIoLS1wcmltYXJ5KTtmb250
-    LXNpemU6MTFweH0uZW1wdHl7Ym9yZGVyOjFweCBkYXNoZWQgdmFyKC0tbGluZTIpO2JvcmRlci1y
-    YWRpdXM6MTFweDtwYWRkaW5nOjEycHg7Y29sb3I6dmFyKC0tbXV0ZWQpO2JhY2tncm91bmQ6dmFy
-    KC0tc3VyZmFjZTIpO2ZvbnQtc2l6ZToxMnB4fS5waWNrZWR7bWFyZ2luLXRvcDoxMnB4O2JvcmRl
-    cjoxcHggc29saWQgIzllZDhjMjtiYWNrZ3JvdW5kOnZhcigtLW9rU29mdCk7Y29sb3I6dmFyKC0t
-    b2spO2JvcmRlci1yYWRpdXM6MTFweDtwYWRkaW5nOjExcHg7Zm9udC13ZWlnaHQ6NzAwfS5wb2R7
-    ZGlzcGxheTpncmlkO2dhcDozcHg7Ym9yZGVyLXJhZGl1czoxMXB4O3BhZGRpbmc6MTFweH0ucG9k
-    Lm9re2JvcmRlcjoxcHggc29saWQgIzllZDhjMjtiYWNrZ3JvdW5kOnZhcigtLW9rU29mdCk7Y29s
-    b3I6dmFyKC0tb2spfS5wb2QucGVuZGluZ3tib3JkZXI6MXB4IHNvbGlkICNlZmQ0OWE7YmFja2dy
-    b3VuZDp2YXIoLS13YXJuU29mdCk7Y29sb3I6dmFyKC0td2Fybil9LnBvZCBzcGFue2ZvbnQtc2l6
-    ZToxMnB4fWJ1dHRvbnttaW4taGVpZ2h0OjQwcHg7Ym9yZGVyOjFweCBzb2xpZCAjMGI1ZmE3O2Jv
-    cmRlci1yYWRpdXM6MTBweDtiYWNrZ3JvdW5kOmxpbmVhci1ncmFkaWVudCgxODBkZWcsdmFyKC0t
-    cHJpbWFyeTIpLHZhcigtLXByaW1hcnkpKTtjb2xvcjojZmZmO3BhZGRpbmc6OHB4IDEzcHg7Zm9u
-    dDppbmhlcml0O2ZvbnQtc2l6ZToxMnB4O2ZvbnQtd2VpZ2h0OjcwMDtjdXJzb3I6cG9pbnRlcjti
-    b3gtc2hhZG93OjAgNHB4IDEwcHggcmdiYSgxNSwxMDgsMTg5LC4xNil9YnV0dG9uOmRpc2FibGVk
-    e29wYWNpdHk6LjU1O2N1cnNvcjp3YWl0O2JveC1zaGFkb3c6bm9uZX1mb3Jte2Rpc3BsYXk6Z3Jp
-    ZDtnYXA6MTBweDttYXJnaW4tdG9wOjEzcHh9bGFiZWx7ZGlzcGxheTpncmlkO2dhcDo1cHg7Zm9u
-    dC1zaXplOjExcHg7Zm9udC13ZWlnaHQ6NzAwO2NvbG9yOiMzNDRiNWR9aW5wdXQsdGV4dGFyZWF7
-    d2lkdGg6MTAwJTttaW4taGVpZ2h0OjQwcHg7Ym9yZGVyOjFweCBzb2xpZCB2YXIoLS1saW5lMik7
-    Ym9yZGVyLXJhZGl1czoxMHB4O3BhZGRpbmc6OXB4IDEwcHg7YmFja2dyb3VuZDojZmZmO2ZvbnQ6
-    aW5oZXJpdDtmb250LXNpemU6MTNweDtjb2xvcjp2YXIoLS10ZXh0KTtvdXRsaW5lOjB9aW5wdXQ6
-    Zm9jdXMsdGV4dGFyZWE6Zm9jdXN7Ym9yZGVyLWNvbG9yOiM0ZDliZDI7Ym94LXNoYWRvdzowIDAg
-    MCAzcHggcmdiYSg3NywxNTUsMjEwLC4xNil9dGV4dGFyZWF7bWluLWhlaWdodDo5MHB4O3Jlc2l6
-    ZTp2ZXJ0aWNhbH0uZm9ybS1ncmlke2Rpc3BsYXk6Z3JpZDtncmlkLXRlbXBsYXRlLWNvbHVtbnM6
-    cmVwZWF0KDMsbWlubWF4KDAsMWZyKSk7Z2FwOjlweH0uYWNjZXNze3dpZHRoOm1pbig2MjBweCwx
-    MDAlKTttYXJnaW46M3ZoIGF1dG99LmFjY2VzcyBoMnttYXJnaW46MCAwIDdweDtjb2xvcjp2YXIo
-    LS10aXRsZSl9LmFjY2VzcyBwe2NvbG9yOnZhcigtLW11dGVkKTtsaW5lLWhlaWdodDoxLjU7Zm9u
-    dC1zaXplOjEzcHh9LnNlY3VyaXR5e2Rpc3BsYXk6Z3JpZDtnYXA6N3B4O21hcmdpbjoxMnB4IDA7
-    cGFkZGluZzoxMXB4O2JvcmRlci1yYWRpdXM6MTFweDtib3JkZXI6MXB4IHNvbGlkICNiZGQ3ZWQ7
-    YmFja2dyb3VuZDp2YXIoLS1wcmltYXJ5U29mdCk7Y29sb3I6IzIzNGY3Njtmb250LXNpemU6MTFw
-    eDtmb250LXdlaWdodDo2NTB9LmV4cGlyZXN7Zm9udC1zaXplOjExcHg7Y29sb3I6dmFyKC0tbXV0
-    ZWQpO2ZvbnQtd2VpZ2h0OjY1MDtwYWRkaW5nOjAgM3B4fUBtZWRpYShtYXgtd2lkdGg6NzYwcHgp
-    e2JvZHl7cGFkZGluZzo4cHh9LnBvcnRhbHt3aWR0aDpjYWxjKDEwMHZ3IC0gMTZweCk7bWF4LXdp
-    ZHRoOmNhbGMoMTAwdncgLSAxNnB4KX0uc3VtbWFyeSwuZ3JpZCwudG90YWxzLC5mb3JtLWdyaWR7
-    Z3JpZC10ZW1wbGF0ZS1jb2x1bW5zOjFmcn0uc2VjdGlvbi1oZWFke2Rpc3BsYXk6Z3JpZH0ucG9y
-    dGFse21hcmdpbjowfS5icmFuZHtib3JkZXItcmFkaXVzOjE0cHg7cGFkZGluZzoxM3B4fS5icmFu
-    ZCBoMXtmb250LXNpemU6MjJweH0uY2FyZHtwYWRkaW5nOjEzcHg7Ym9yZGVyLXJhZGl1czoxM3B4
-    fS5kb2N7YWxpZ24taXRlbXM6ZmxleC1zdGFydH0uZG9jIHN0cm9uZ3t3aGl0ZS1zcGFjZTpub3Jt
-    YWw7dGV4dC1hbGlnbjpyaWdodH19Cjwvc3R5bGU+CjwvaGVhZD4KPGJvZHk+CjxtYWluIGNsYXNz
-    PSJwb3J0YWwiPgogIDxkaXYgY2xhc3M9ImJyYW5kIj48ZGl2IGNsYXNzPSJsb2dvIj5FSDwvZGl2
-    PjxkaXY+PGgxPkt1bmRlbi1BdmlzPC9oMT48cD5Fc3NlbnRyYSDCtyBzaWNoZXJlcyBBYmhvbGF2
-    aXMgJmFtcDsgU2VuZHVuZ3Nwb3J0YWw8L3A+PC9kaXY+PC9kaXY+CiAgPGRpdiBpZD0ic3RhdHVz
-    IiBjbGFzcz0ic3RhdHVzIGluZm8iPlNpY2hlcmVyIFp1Z2FuZyB3aXJkIHZvcmJlcmVpdGV0IOKA
-    pjwvZGl2PgogIDxkaXYgaWQ9ImNvbnRlbnQiPjwvZGl2Pgo8L21haW4+CjxzY3JpcHQ+CihmdW5j
-    dGlvbigpewondXNlIHN0cmljdCc7CnZhciB0b2tlbj0nJyxzZXNzaW9uPScnLHNlc3Npb25FeHBp
-    cmVzQXQ9JycsZGF0YUVudmlyb25tZW50PS8tdGVzdHNlcnZpY2VcLi9pLnRlc3QoU3RyaW5nKGxv
-    Y2F0aW9uLmhvc3RuYW1lfHwnJykpPyd0ZXN0c2VydmljZSc6J3Byb2R1Y3Rpb24nOwp0cnl7dmFy
-    IHU9bmV3IFVSTChsb2NhdGlvbi5ocmVmKTt0b2tlbj1TdHJpbmcodS5zZWFyY2hQYXJhbXMuZ2V0
-    KCd0b2tlbicpfHx1LnNlYXJjaFBhcmFtcy5nZXQoJ2F2aXMnKXx8JycpLnRyaW0oKX1jYXRjaChf
-    KXt0b2tlbj0nJ30KZnVuY3Rpb24gcSh2KXtyZXR1cm4gU3RyaW5nKHY9PW51bGw/Jyc6dikudHJp
-    bSgpfQpmdW5jdGlvbiBlc2Modil7cmV0dXJuIFN0cmluZyh2PT1udWxsPycnOnYpLnJlcGxhY2Uo
-    L1smPD4iJ10vZyxmdW5jdGlvbihjKXtyZXR1cm57JyYnOicmYW1wOycsJzwnOicmbHQ7JywnPic6
-    JyZndDsnLCciJzonJnF1b3Q7JywiJyI6JyYjMzk7J31bY119KX0KZnVuY3Rpb24gZm10RGF0ZSh2
-    KXtpZighdilyZXR1cm4n4oCTJzt0cnl7dmFyIGQ9L15cZHs0fS1cZHsyfS1cZHsyfSQvLnRlc3Qo
-    dik/bmV3IERhdGUodisnVDEyOjAwOjAwJyk6bmV3IERhdGUodik7aWYoIWlzRmluaXRlKGQpKXJl
-    dHVybiBxKHYpO3JldHVybiBkLnRvTG9jYWxlRGF0ZVN0cmluZygnZGUtREUnLHtkYXk6JzItZGln
-    aXQnLG1vbnRoOicyLWRpZ2l0Jyx5ZWFyOidudW1lcmljJ30pKyhTdHJpbmcodikuaW5kZXhPZign
-    VCcpPj0wPycgwrcgJytkLnRvTG9jYWxlVGltZVN0cmluZygnZGUtREUnLHtob3VyOicyLWRpZ2l0
-    JyxtaW51dGU6JzItZGlnaXQnfSk6JycpfWNhdGNoKF8pe3JldHVybiBxKHYpfX0KZnVuY3Rpb24g
-    Zm10TnVtKHYsZCl7dmFyIG49TnVtYmVyKHZ8fDApO3JldHVybiBOdW1iZXIuaXNGaW5pdGUobik/
-    bi50b0xvY2FsZVN0cmluZygnZGUtREUnLHttaW5pbXVtRnJhY3Rpb25EaWdpdHM6ZHx8MCxtYXhp
-    bXVtRnJhY3Rpb25EaWdpdHM6ZHx8MH0pOicwJ30KZnVuY3Rpb24gc2V0U3RhdHVzKHRleHQsa2lu
-    ZCl7dmFyIG49ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ3N0YXR1cycpO24uY2xhc3NOYW1lPSdz
-    dGF0dXMgJysoa2luZHx8J2luZm8nKTtuLnRleHRDb250ZW50PXRleHR9CmZ1bmN0aW9uIGFwaShw
-    YXRoLG9wdCl7b3B0PW9wdHx8e307dmFyIGN0bD1uZXcgQWJvcnRDb250cm9sbGVyKCksdGltZXI9
-    c2V0VGltZW91dChmdW5jdGlvbigpe2N0bC5hYm9ydCgpfSwyMDAwMCksaGVhZGVycz1PYmplY3Qu
-    YXNzaWduKHtBY2NlcHQ6J2FwcGxpY2F0aW9uL2pzb24nLCdDYWNoZS1Db250cm9sJzonbm8tY2Fj
-    aGUnLCdYLUV4cG9ydEhVQi1FbnZpcm9ubWVudCc6ZGF0YUVudmlyb25tZW50fSxvcHQuaGVhZGVy
-    c3x8e30pO2lmKHNlc3Npb24paGVhZGVyc1snWC1FeHBvcnRIVUItQXZpcy1TZXNzaW9uJ109c2Vz
-    c2lvbjtyZXR1cm4gZmV0Y2goJy9hcGkvY3VzdG9tZXItYXZpcycrcGF0aCxPYmplY3QuYXNzaWdu
-    KHt9LG9wdCx7Y2FjaGU6J25vLXN0b3JlJyxjcmVkZW50aWFsczonb21pdCcsaGVhZGVyczpoZWFk
-    ZXJzLHNpZ25hbDpjdGwuc2lnbmFsfSkpLnRoZW4oYXN5bmMgZnVuY3Rpb24ocil7Y2xlYXJUaW1l
-    b3V0KHRpbWVyKTt2YXIgY3Q9U3RyaW5nKHIuaGVhZGVycy5nZXQoJ2NvbnRlbnQtdHlwZScpfHwn
-    JykudG9Mb3dlckNhc2UoKSxkYXRhPWN0LmluZGV4T2YoJ2FwcGxpY2F0aW9uL2pzb24nKT49MD9h
-    d2FpdCByLmpzb24oKS5jYXRjaChmdW5jdGlvbigpe3JldHVybnt9fSk6e307aWYoIXIub2spe3Zh
-    ciBlPW5ldyBFcnJvcihxKGRhdGEubWVzc2FnZSl8fCgnSFRUUCAnK3Iuc3RhdHVzKSk7ZS5jb2Rl
-    PWRhdGEuY29kZTtlLnN0YXR1cz1yLnN0YXR1czt0aHJvdyBlfXJldHVybiBkYXRhfSkuY2F0Y2go
-    ZnVuY3Rpb24oZSl7Y2xlYXJUaW1lb3V0KHRpbWVyKTtpZihlJiZlLm5hbWU9PT0nQWJvcnRFcnJv
-    cicpe3ZhciB4PW5ldyBFcnJvcignRGVyIEt1bmRlbi1BdmlzLVNlcnZpY2UgYW50d29ydGV0IG1v
-    bWVudGFuIG5pY2h0LicpO3guY29kZT0nVElNRU9VVCc7dGhyb3cgeH10aHJvdyBlfSl9CmZ1bmN0
-    aW9uIHNob3dHYXRlKG1lc3NhZ2Upe3Nlc3Npb249Jyc7c2Vzc2lvbkV4cGlyZXNBdD0nJztzZXRT
-    dGF0dXMobWVzc2FnZXx8J0JpdHRlIGRpZSBTZW5kdW5nc3JlZmVyZW56IGJlc3TDpHRpZ2VuLics
-    J2luZm8nKTt2YXIgaG9zdD1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnY29udGVudCcpO2hvc3Qu
-    aW5uZXJIVE1MPSc8c2VjdGlvbiBjbGFzcz0iY2FyZCBhY2Nlc3MiPjxoMj5adWdyaWZmIGJlc3TD
-    pHRpZ2VuPC9oMj48cD7DnGJlciBkaWVzZXMgc2ljaGVyZSBQb3J0YWwga8O2bm5lbiBTaWUgamVk
-    ZXJ6ZWl0IGRpZSBha3R1ZWxsZW4gU2VuZHVuZ3NkYXRlbiB1bmQgTGllZmVyc2NoZWluZSB1bmQg
-    ZGVuIFBPRCBlaW5zZWhlbiBzb3dpZSBJaHJlbiBnZXBsYW50ZW4gQWJob2x0ZXJtaW4gbWl0dGVp
-    bGVuLiBCaXR0ZSBiZXN0w6R0aWdlbiBTaWUgenVlcnN0IGRpZSBTZW5kdW5nc3JlZmVyZW56Ljwv
-    cD48ZGl2IGNsYXNzPSJzZWN1cml0eSI+PHNwYW4+4pyTIFNpY2hlcmVyIHBlcnPDtm5saWNoZXIg
-    QXZpcy1MaW5rPC9zcGFuPjxzcGFuPuKckyBBdXRvbWF0aXNjaGVzIEVuZGUgMyBBcmJlaXRzdGFn
-    ZSBuYWNoIEFiaG9sdW5nPC9zcGFuPjxzcGFuPuKckyBLZWluZSBFeHBvcnRIVUItQW5tZWxkdW5n
-    IGVyZm9yZGVybGljaDwvc3Bhbj48L2Rpdj48Zm9ybSBpZD0iYWNjZXNzRm9ybSI+PGxhYmVsPlJl
-    ZmVyZW56bnVtbWVyPGlucHV0IG5hbWU9InJlZmVyZW5jZSIgYXV0b2NvbXBsZXRlPSJvZmYiIG1h
-    eGxlbmd0aD0iNDAiIHJlcXVpcmVkPjwvbGFiZWw+PGJ1dHRvbiB0eXBlPSJzdWJtaXQiPlNlbmR1
-    bmdzZGF0ZW4gw7ZmZm5lbjwvYnV0dG9uPjwvZm9ybT48L3NlY3Rpb24+Jztkb2N1bWVudC5nZXRF
-    bGVtZW50QnlJZCgnYWNjZXNzRm9ybScpLmFkZEV2ZW50TGlzdGVuZXIoJ3N1Ym1pdCcsYXV0aG9y
-    aXplKX0KZnVuY3Rpb24gYXV0aG9yaXplKGUpe2UucHJldmVudERlZmF1bHQoKTt2YXIgZj1lLmN1
-    cnJlbnRUYXJnZXQsYj1mLnF1ZXJ5U2VsZWN0b3IoJ2J1dHRvbicpLGZkPW5ldyBGb3JtRGF0YShm
-    KSxwYXlsb2FkPXthY3Rpb246J2F1dGhvcml6ZScsdG9rZW46dG9rZW4scmVmZXJlbmNlOnEoZmQu
-    Z2V0KCdyZWZlcmVuY2UnKSksZW52aXJvbm1lbnQ6ZGF0YUVudmlyb25tZW50fTtiLmRpc2FibGVk
-    PXRydWU7Yi50ZXh0Q29udGVudD0nV2lyZCBnZXByw7xmdCDigKYnO3NldFN0YXR1cygnUmVmZXJl
-    bnogd2lyZCBnZXByw7xmdCDigKYnLCdpbmZvJyk7YXBpKCcnLHttZXRob2Q6J1BPU1QnLGhlYWRl
-    cnM6eydDb250ZW50LVR5cGUnOidhcHBsaWNhdGlvbi9qc29uJ30sYm9keTpKU09OLnN0cmluZ2lm
-    eShwYXlsb2FkKX0pLnRoZW4oZnVuY3Rpb24oZGF0YSl7c2Vzc2lvbj1xKGRhdGEuc2Vzc2lvbik7
-    c2Vzc2lvbkV4cGlyZXNBdD1xKGRhdGEuc2Vzc2lvbkV4cGlyZXNBdCk7aWYoIXNlc3Npb24pdGhy
-    b3cgbmV3IEVycm9yKCdTaWNoZXJlIFNpdHp1bmcga29ubnRlIG5pY2h0IGVyc3RlbGx0IHdlcmRl
-    bi4nKTtyZW5kZXIoZGF0YSl9KS5jYXRjaChmdW5jdGlvbihlcnIpe2IuZGlzYWJsZWQ9ZmFsc2U7
-    Yi50ZXh0Q29udGVudD0nU2VuZHVuZ3NkYXRlbiDDtmZmbmVuJztzZXRTdGF0dXMocShlcnIubWVz
-    c2FnZSl8fCdadWdyaWZmIGtvbm50ZSBuaWNodCBiZXN0w6R0aWd0IHdlcmRlbi4nLCdiYWQnKX0p
-    fQpmdW5jdGlvbiByb3dzSHRtbChyb3dzKXtpZighcm93c3x8IXJvd3MubGVuZ3RoKXJldHVybic8
-    ZGl2IGNsYXNzPSJlbXB0eSI+S2VpbmUgQ29sbGktUG9zaXRpb25lbiBoaW50ZXJsZWd0LjwvZGl2
-    Pic7cmV0dXJuJzxkaXYgY2xhc3M9InRhYmxlLXdyYXAiPjx0YWJsZT48dGhlYWQ+PHRyPjx0aD5Q
-    b3MuPC90aD48dGg+VmVycGFja3VuZzwvdGg+PHRoPkFuemFobDwvdGg+PHRoPkdld2ljaHQ8L3Ro
-    Pjx0aD5MRE0gamUgQ29sbGk8L3RoPjx0aD5MIMOXIEIgw5cgSDwvdGg+PC90cj48L3RoZWFkPjx0
-    Ym9keT4nK3Jvd3MubWFwKGZ1bmN0aW9uKHIpe3JldHVybic8dHI+PHRkPicrZXNjKHIucG9zaXRp
-    b24pKyc8L3RkPjx0ZD48Yj4nK2VzYyhyLnR5cGV8fCfigJMnKSsnPC9iPjwvdGQ+PHRkPicrZXNj
-    KHIuY291bnQpKyc8L3RkPjx0ZD4nK2ZtdE51bShyLndlaWdodCwyKSsnIGtnPC90ZD48dGQ+Jytm
-    bXROdW0oci5sZG0sMikrJzwvdGQ+PHRkPicrZm10TnVtKHIubGVuZ3RoLDApKycgw5cgJytmbXRO
-    dW0oci53aWR0aCwwKSsnIMOXICcrZm10TnVtKHIuaGVpZ2h0LDApKycgY208L3RkPjwvdHI+J30p
-    LmpvaW4oJycpKyc8L3Rib2R5PjwvdGFibGU+PC9kaXY+J30KZnVuY3Rpb24gZmlsZVNpemUodil7
-    dmFyIG49TnVtYmVyKHZ8fDApO2lmKCEobj4wKSlyZXR1cm4nJztpZihuPj0xMDQ4NTc2KXJldHVy
-    bihuLzEwNDg1NzYpLnRvTG9jYWxlU3RyaW5nKCdkZS1ERScse21heGltdW1GcmFjdGlvbkRpZ2l0
-    czoxfSkrJyBNQic7aWYobj49MTAyNClyZXR1cm4gTWF0aC5yb3VuZChuLzEwMjQpLnRvTG9jYWxl
-    U3RyaW5nKCdkZS1ERScpKycgS0InO3JldHVybiBNYXRoLnJvdW5kKG4pLnRvTG9jYWxlU3RyaW5n
-    KCdkZS1ERScpKycgQid9CmZ1bmN0aW9uIGRvY0h0bWwoZCl7ZD1kfHx7fTt2YXIgdXJsPXEoZC5k
-    b3dubG9hZFVybCksbWV0YT1bcShkLmNhdGVnb3J5KSxmaWxlU2l6ZShkLnNpemUpXS5maWx0ZXIo
-    Qm9vbGVhbikuam9pbignIMK3ICcpLGlzUG9kPXEoZC5jYXRlZ29yeSkudG9VcHBlckNhc2UoKT09
-    PSdQT0QnO2lmKCF1cmwpcmV0dXJuJzxkaXYgY2xhc3M9ImRvYyI+PHNwYW4+PGI+Jytlc2MoZC5u
-    YW1lfHwnRG9rdW1lbnQnKSsnPC9iPjxzbWFsbD4nK2VzYyhtZXRhfHwnRG9rdW1lbnQnKSsnPC9z
-    bWFsbD48L3NwYW4+PHN0cm9uZz5OaWNodCB2ZXJmw7xnYmFyPC9zdHJvbmc+PC9kaXY+JztyZXR1
-    cm4nPGEgY2xhc3M9ImRvYyIgaHJlZj0iJytlc2ModXJsKSsnIiB0YXJnZXQ9Il9ibGFuayIgcmVs
-    PSJub29wZW5lciBub3JlZmVycmVyIj48c3Bhbj48Yj4nK2VzYyhkLm5hbWV8fCdEb2t1bWVudCcp
-    Kyc8L2I+PHNtYWxsPicrZXNjKG1ldGF8fCdEb2t1bWVudCcpKyc8L3NtYWxsPjwvc3Bhbj48c3Ry
-    b25nPicrKGlzUG9kPydQT0QgaGVydW50ZXJsYWRlbic6J8OWZmZuZW4gLyBoZXJ1bnRlcmxhZGVu
-    JykrJzwvc3Ryb25nPjwvYT4nfQpmdW5jdGlvbiBhcHBvaW50bWVudFRleHQoYSl7aWYoIWF8fCFh
-    LmRhdGUpcmV0dXJuJ05vY2gga2VpbmUgQWJob2x6ZWl0IGdlbWVsZGV0Lic7dmFyIHRpbWU9W3Eo
-    YS50aW1lRnJvbSkscShhLnRpbWVUbyldLmZpbHRlcihCb29sZWFuKS5qb2luKCcg4oCTICcpLHBh
-    cnRzPVtmbXREYXRlKGEuZGF0ZSkrKHRpbWU/JyDCtyAnK3RpbWUrJyBVaHInOicnKV07aWYocShh
-    LnNoaXBtZW50TnVtYmVyKSlwYXJ0cy5wdXNoKCdTZW5kdW5nc25yLiAnK3EoYS5zaGlwbWVudE51
-    bWJlcikpO2lmKHEoYS5wbGF0ZSkpcGFydHMucHVzaCgnS2VubnplaWNoZW4gJytxKGEucGxhdGUp
-    KTtpZihhLnN1Ym1pdHRlZEF0KXBhcnRzLnB1c2goJ2dlbWVsZGV0ICcrZm10RGF0ZShhLnN1Ym1p
-    dHRlZEF0KSk7cmV0dXJuIHBhcnRzLmpvaW4oJyDCtyAnKX0KZnVuY3Rpb24gcmVuZGVyKGRhdGEp
-    e2lmKGRhdGEuc2Vzc2lvbilzZXNzaW9uPXEoZGF0YS5zZXNzaW9uKTtpZihkYXRhLnNlc3Npb25F
-    eHBpcmVzQXQpc2Vzc2lvbkV4cGlyZXNBdD1xKGRhdGEuc2Vzc2lvbkV4cGlyZXNBdCk7dmFyIGhv
-    c3Q9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NvbnRlbnQnKSxhY3R1YWw9cShkYXRhLmFjdHVh
-    bFBpY2t1cEF0KSxwaWNrdXA9ZGF0YS5waWNrdXB8fHt9LGNhcnJpZXI9cShwaWNrdXAuY2Fycmll
-    cnx8ZGF0YS5waWNrdXBDYXJyaWVyTmFtZXx8ZGF0YS5jYXJyaWVyKSxwbGF0ZT1xKHBpY2t1cC5s
-    aWNlbnNlUGxhdGV8fGRhdGEucGlja3VwTGljZW5zZVBsYXRlfHwoZGF0YS5hcHBvaW50bWVudCYm
-    ZGF0YS5hcHBvaW50bWVudC5wbGF0ZSkpLGRyaXZlcj1xKHBpY2t1cC5kcml2ZXJOYW1lfHxkYXRh
-    LnBpY2t1cERyaXZlck5hbWV8fGRhdGEuZHJpdmVyTmFtZSk7aWYoZGF0YS5jbG9zZWQ9PT10cnVl
-    fHxhY3R1YWwpe3NldFN0YXR1cygnTGllZmVyYXZpcyBnZXNjaGxvc3NlbiDCtyBBYmhvbHVuZyBh
-    Ymdlc2NobG9zc2VuJywnb2snKTtob3N0LmlubmVySFRNTD0nPHNlY3Rpb24gY2xhc3M9ImNhcmQi
-    PjxoMj5MaWVmZXJhdmlzIGdlc2NobG9zc2VuPC9oMj48cD5EaWUgU2VuZHVuZyB3dXJkZSBhYmdl
-    aG9sdC4gQXVzIFNpY2hlcmhlaXRzZ3LDvG5kZW4gc2luZCBrZWluZSBTZW5kdW5nc2RldGFpbHMs
-    IERva3VtZW50ZSBvZGVyIMOEbmRlcnVuZ2VuIG1laHIgdmVyZsO8Z2Jhci48L3A+PGRpdiBjbGFz
-    cz0iZ3JpZCI+PGRpdj48c3Bhbj5BYmdlaG9sdCBhbTwvc3Bhbj48Yj4nK2VzYyhhY3R1YWw/Zm10
-    RGF0ZShhY3R1YWwpOifigJMnKSsnPC9iPjwvZGl2PjxkaXY+PHNwYW4+U3BlZGl0aW9uPC9zcGFu
-    PjxiPicrZXNjKGNhcnJpZXJ8fCfigJMnKSsnPC9iPjwvZGl2PjxkaXY+PHNwYW4+S2VubnplaWNo
-    ZW48L3NwYW4+PGI+Jytlc2MocGxhdGV8fCfigJMnKSsnPC9iPjwvZGl2PicrKGRyaXZlcj8nPGRp
-    dj48c3Bhbj5OYW1lIGRlcyBGYWhyZXJzPC9zcGFuPjxiPicrZXNjKGRyaXZlcikrJzwvYj48L2Rp
-    dj4nOicnKSsnPC9kaXY+PC9zZWN0aW9uPic7cmV0dXJufXNldFN0YXR1cygnQWt0dWVsbGVyIFN0
-    YXR1czogJytxKGRhdGEuc3RhdHVzfHwn4oCTJykrJyDCtyBhdXRvbWF0aXNjaCBha3R1YWxpc2ll
-    cnQnLCdvaycpO3ZhciBkb2NzPWRhdGEuZG9jdW1lbnRzfHxbXSxkZWxpdmVyeURvY3M9ZG9jcy5m
-    aWx0ZXIoZnVuY3Rpb24oZCl7cmV0dXJuIHEoZC5jYXRlZ29yeSkudG9Mb3dlckNhc2UoKT09PSds
-    aWVmZXJzY2hlaW4nfSkscG9kRG9jcz1kYXRhLnBvZCYmZGF0YS5wb2QuZG9jdW1lbnRzfHxbXSxh
-    PWRhdGEuYXBwb2ludG1lbnR8fHt9LGV4cGlyeT1xKGRhdGEuYXZpcyYmZGF0YS5hdmlzLmF1dG9F
-    eHBpcmVzT24pLGV4cGlyeUluZm89ZXhwaXJ5PygnQXV0b21hdGlzY2hlIERlYWt0aXZpZXJ1bmc6
-    ICcrZm10RGF0ZShleHBpcnkpKycgwrcgV29jaGVuZW5kZSB3aXJkIG5pY2h0IG1pdGdlcmVjaG5l
-    dCcpOignTmFjaCBkZXIgQWJob2x1bmcgd2lyZCBkZXIgTGllZmVyYXZpcyBnZXNjaGxvc3Nlbjsg
-    YW5zY2hsaWXDn2VuZCBzaW5kIG51ciBub2NoIGRpZSBBYmhvbGRhdGVuIHNpY2h0YmFyLicpO2hv
-    c3QuaW5uZXJIVE1MPSc8c2VjdGlvbiBjbGFzcz0ic3VtbWFyeSI+PGRpdj48c3Bhbj5SZWZlcmVu
-    ejwvc3Bhbj48Yj4nK2VzYyhkYXRhLnJlZmVyZW5jZXx8J+KAkycpKyc8L2I+PC9kaXY+PGRpdj48
-    c3Bhbj5TdGF0dXM8L3NwYW4+PGI+Jytlc2MoZGF0YS5zdGF0dXN8fCfigJMnKSsnPC9iPjwvZGl2
-    PjxkaXY+PHNwYW4+RW1wZsOkbmdlcjwvc3Bhbj48Yj4nK2VzYyhkYXRhLmN1c3RvbWVyTmFtZXx8
-    ZGF0YS5yZWNpcGllbnROYW1lfHwn4oCTJykrJzwvYj48L2Rpdj48ZGl2PjxzcGFuPlppZWxsYW5k
-    PC9zcGFuPjxiPicrZXNjKGRhdGEuY291bnRyeXx8J+KAkycpKyc8L2I+PC9kaXY+PC9zZWN0aW9u
-    PjxkaXYgY2xhc3M9ImV4cGlyZXMiPicrZXNjKGV4cGlyeUluZm8pKycgwrcgYXV0b21hdGlzY2hl
-    IEFrdHVhbGlzaWVydW5nIGFsbGUgMTUgU2VrdW5kZW4gwrcgRGF0ZW5zdGFuZCAnK2VzYyhmbXRE
-    YXRlKGRhdGEubGFzdFVwZGF0ZWRBdHx8bmV3IERhdGUoKS50b0lTT1N0cmluZygpKSkrJzwvZGl2
-    PjxzZWN0aW9uIGNsYXNzPSJjYXJkIj48aDI+U2VuZHVuZzwvaDI+PGRpdiBjbGFzcz0iZ3JpZCI+
-    PGRpdj48c3Bhbj5BYnNlbmRlcjwvc3Bhbj48Yj4nK2VzYyhkYXRhLnNlbmRlciYmZGF0YS5zZW5k
-    ZXIubmFtZXx8J+KAkycpKyc8L2I+PHA+Jytlc2MoZGF0YS5zZW5kZXImJmRhdGEuc2VuZGVyLmFk
-    ZHJlc3N8fCfigJMnKSsnPC9wPjwvZGl2PjxkaXY+PHNwYW4+RW1wZsOkbmdlciAvIExpZWZlcmFk
-    cmVzc2U8L3NwYW4+PGI+Jytlc2MoZGF0YS5yZWNpcGllbnROYW1lfHxkYXRhLmN1c3RvbWVyTmFt
-    ZXx8J+KAkycpKyc8L2I+PHA+Jytlc2MoZGF0YS5yZWNpcGllbnRBZGRyZXNzfHwn4oCTJykrJzwv
-    cD48L2Rpdj48ZGl2PjxzcGFuPkt1bmRlbmRhdGVuPC9zcGFuPjxiPicrZXNjKGRhdGEuY3VzdG9t
-    ZXJOYW1lfHwn4oCTJykrJzwvYj48cD4nK2VzYyhbZGF0YS5jdXN0b21lck51bWJlcj8oJ0t1bmRl
-    bm5yLiAnK2RhdGEuY3VzdG9tZXJOdW1iZXIpOicnLGRhdGEuY3VzdG9tZXJSZWZlcmVuY2U/KCdL
-    dW5kZW5yZWZlcmVueiAnK2RhdGEuY3VzdG9tZXJSZWZlcmVuY2UpOicnLGRhdGEuc2FsZXNPcmRl
-    cj8oJ1NhbGVzIE9yZGVyICcrZGF0YS5zYWxlc09yZGVyKTonJ10uZmlsdGVyKEJvb2xlYW4pLmpv
-    aW4oJyDCtyAnKXx8J+KAkycpKyc8L3A+PC9kaXY+PGRpdj48c3Bhbj5WZXJzYW5kZGF0ZW48L3Nw
-    YW4+PGI+Jytlc2MoZGF0YS5jYXJyaWVyfHwn4oCTJykrJzwvYj48cD4nK2VzYyhbZGF0YS5zaGlw
-    RGF0ZT8oJ1ZlcnNhbmRkYXR1bSAnK2ZtdERhdGUoZGF0YS5zaGlwRGF0ZSkpOicnLGRhdGEuaW5j
-    b3Rlcm0/KCdJbmNvdGVybSAnK2RhdGEuaW5jb3Rlcm0pOicnLGRhdGEuZ29vZHNEZXNjcmlwdGlv
-    bnx8JyddLmZpbHRlcihCb29sZWFuKS5qb2luKCcgwrcgJyl8fCfigJMnKSsnPC9wPjwvZGl2Pjwv
-    ZGl2PjxkaXYgY2xhc3M9InRvdGFscyI+PGRpdj48c3Bhbj5Db2xsaXM8L3NwYW4+PGI+JytmbXRO
-    dW0oZGF0YS50b3RhbHMmJmRhdGEudG90YWxzLmNvdW50LDApKyc8L2I+PC9kaXY+PGRpdj48c3Bh
-    bj5HZXNhbXRnZXdpY2h0PC9zcGFuPjxiPicrZm10TnVtKGRhdGEudG90YWxzJiZkYXRhLnRvdGFs
-    cy53ZWlnaHQsMikrJyBrZzwvYj48L2Rpdj48ZGl2PjxzcGFuPkxhZGVtZXRlcjwvc3Bhbj48Yj4n
-    K2ZtdE51bShkYXRhLnRvdGFscyYmZGF0YS50b3RhbHMubGRtLDIpKyc8L2I+PC9kaXY+PC9kaXY+
-    Jytyb3dzSHRtbChkYXRhLnJvd3MpKyc8L3NlY3Rpb24+PHNlY3Rpb24gY2xhc3M9ImNhcmQiPjxk
-    aXYgY2xhc3M9InNlY3Rpb24taGVhZCI+PGRpdj48aDI+TGllZmVyc2NoZWluZTwvaDI+PHA+RGll
-    IHp1IGRpZXNlciBTZW5kdW5nIGZyZWlnZWdlYmVuZW4gTGllZmVyc2NoZWluZSBrw7ZubmVuIFNp
-    ZSBoaWVyIGRpcmVrdCDDtmZmbmVuIG9kZXIgaGVydW50ZXJsYWRlbi48L3A+PC9kaXY+PC9kaXY+
-    PGRpdiBjbGFzcz0iZG9jcyI+JysoZGVsaXZlcnlEb2NzLmxlbmd0aD9kZWxpdmVyeURvY3MubWFw
-    KGRvY0h0bWwpLmpvaW4oJycpOic8ZGl2IGNsYXNzPSJlbXB0eSI+QWt0dWVsbCBpc3Qgbm9jaCBr
-    ZWluIExpZWZlcnNjaGVpbiB6dW0gRG93bmxvYWQgdmVyZsO8Z2Jhci48L2Rpdj4nKSsnPC9kaXY+
-    PC9zZWN0aW9uPjxzZWN0aW9uIGNsYXNzPSJjYXJkIj48aDI+QWJob2x1bmc8L2gyPjxkaXYgY2xh
-    c3M9ImdyaWQiPjxkaXY+PHNwYW4+R2VtZWxkZXRlciBBYmhvbHRlcm1pbjwvc3Bhbj48Yj4nK2Vz
-    YyhhcHBvaW50bWVudFRleHQoYSkpKyc8L2I+PC9kaXY+PGRpdj48c3Bhbj5UYXRzw6RjaGxpY2gg
-    YWJnZWhvbHQ8L3NwYW4+PGI+Tm9jaCBuaWNodCBhYmdlaG9sdDwvYj48L2Rpdj48L2Rpdj48Zm9y
-    bSBpZD0iYXZpc0Zvcm0iPjxoMz5BYmhvbHRlcm1pbiBtaXR0ZWlsZW48L2gzPjxkaXYgY2xhc3M9
-    ImZvcm0tZ3JpZCI+PGxhYmVsPkFiaG9sZGF0dW08aW5wdXQgbmFtZT0icGlja3VwRGF0ZSIgdHlw
-    ZT0iZGF0ZSIgcmVxdWlyZWQgdmFsdWU9IicrZXNjKGEuZGF0ZXx8JycpKyciPjwvbGFiZWw+PGxh
-    YmVsPlplaXQgdm9uPGlucHV0IG5hbWU9InRpbWVGcm9tIiB0eXBlPSJ0aW1lIiB2YWx1ZT0iJytl
-    c2MoYS50aW1lRnJvbXx8JycpKyciPjwvbGFiZWw+PGxhYmVsPlplaXQgYmlzPGlucHV0IG5hbWU9
-    InRpbWVUbyIgdHlwZT0idGltZSIgdmFsdWU9IicrZXNjKGEudGltZVRvfHwnJykrJyI+PC9sYWJl
-    bD48L2Rpdj48ZGl2IGNsYXNzPSJmb3JtLWdyaWQiPjxsYWJlbD5LZW5uemVpY2hlbiAob3B0aW9u
-    YWwpPGlucHV0IG5hbWU9InBsYXRlIiBtYXhsZW5ndGg9IjQwIiBhdXRvY29tcGxldGU9Im9mZiIg
-    dmFsdWU9IicrZXNjKGEucGxhdGV8fCcnKSsnIj48L2xhYmVsPjxsYWJlbD5TZW5kdW5nc251bW1l
-    cjxpbnB1dCBuYW1lPSJzaGlwbWVudE51bWJlciIgbWF4bGVuZ3RoPSIxMjAiIGF1dG9jb21wbGV0
-    ZT0ib2ZmIiByZXF1aXJlZCB2YWx1ZT0iJytlc2MoYS5zaGlwbWVudE51bWJlcnx8JycpKyciPjwv
-    bGFiZWw+PC9kaXY+PGxhYmVsPkhpbndlaXMgKG9wdGlvbmFsKTx0ZXh0YXJlYSBuYW1lPSJub3Rl
-    IiBtYXhsZW5ndGg9IjEwMDAiPicrZXNjKGEubm90ZXx8JycpKyc8L3RleHRhcmVhPjwvbGFiZWw+
-    PGJ1dHRvbiB0eXBlPSJzdWJtaXQiPkFiaG9sdGVybWluIHZlcmJpbmRsaWNoIMO8YmVybWl0dGVs
-    bjwvYnV0dG9uPjwvZm9ybT48L3NlY3Rpb24+PHNlY3Rpb24gY2xhc3M9ImNhcmQiPjxoMj5QT0Qg
-    LyBBYmxpZWZlcm5hY2h3ZWlzPC9oMj48ZGl2IGNsYXNzPSJwb2QgJysoZGF0YS5wb2QmJmRhdGEu
-    cG9kLmF2YWlsYWJsZT8nb2snOidwZW5kaW5nJykrJyI+PGI+Jytlc2MoZGF0YS5wb2QmJmRhdGEu
-    cG9kLnN0YXR1c3x8J05vY2ggbmljaHQgdm9yaGFuZGVuJykrJzwvYj48c3Bhbj4nKyhkYXRhLnBv
-    ZCYmZGF0YS5wb2QuYXZhaWxhYmxlPydEZXIgUE9EIGlzdCBkZXIgU2VuZHVuZyB6dWdlb3JkbmV0
-    IHVuZCBrYW5uIHVudGVuIGhlcnVudGVyZ2VsYWRlbiB3ZXJkZW4uJzonRGVyIFBPRCB3aXJkIG5h
-    Y2ggZGVyIHRhdHPDpGNobGljaGVuIEFiaG9sdW5nIGhpZXIgdmVyZsO8Z2Jhci4nKSsnPC9zcGFu
-    PjwvZGl2PicrKHBvZERvY3MubGVuZ3RoPyc8ZGl2IGNsYXNzPSJkb2NzIj4nK3BvZERvY3MubWFw
-    KGRvY0h0bWwpLmpvaW4oJycpKyc8L2Rpdj4nOihkYXRhLnBvZCYmZGF0YS5wb2QuYXZhaWxhYmxl
-    Pyc8ZGl2IGNsYXNzPSJlbXB0eSI+UE9EIHZvcmhhbmRlbiwgYWJlciBub2NoIGtlaW5lIGF1c2xp
-    ZWZlcmJhcmUgUE9ELURhdGVpIGdlc3BlaWNoZXJ0LjwvZGl2Pic6JycpKSsnPC9zZWN0aW9uPic7
-    dmFyIGY9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2F2aXNGb3JtJyk7aWYoZilmLmFkZEV2ZW50
-    TGlzdGVuZXIoJ3N1Ym1pdCcsc3VibWl0KX0KZnVuY3Rpb24gc3VibWl0KGUpe2UucHJldmVudERl
-    ZmF1bHQoKTt2YXIgZj1lLmN1cnJlbnRUYXJnZXQsYj1mLnF1ZXJ5U2VsZWN0b3IoJ2J1dHRvbicp
-    LGZkPW5ldyBGb3JtRGF0YShmKSxwYXlsb2FkPXthY3Rpb246J2FwcG9pbnRtZW50JyxwaWNrdXBE
-    YXRlOnEoZmQuZ2V0KCdwaWNrdXBEYXRlJykpLHRpbWVGcm9tOnEoZmQuZ2V0KCd0aW1lRnJvbScp
-    KSx0aW1lVG86cShmZC5nZXQoJ3RpbWVUbycpKSxwbGF0ZTpxKGZkLmdldCgncGxhdGUnKSksc2hp
-    cG1lbnROdW1iZXI6cShmZC5nZXQoJ3NoaXBtZW50TnVtYmVyJykpLG5vdGU6cShmZC5nZXQoJ25v
-    dGUnKSksZW52aXJvbm1lbnQ6ZGF0YUVudmlyb25tZW50fTtiLmRpc2FibGVkPXRydWU7Yi50ZXh0
-    Q29udGVudD0nV2lyZCBnZXNwZWljaGVydCDigKYnO2FwaSgnJyx7bWV0aG9kOidQT1NUJyxoZWFk
-    ZXJzOnsnQ29udGVudC1UeXBlJzonYXBwbGljYXRpb24vanNvbid9LGJvZHk6SlNPTi5zdHJpbmdp
-    ZnkocGF5bG9hZCl9KS50aGVuKHJlbmRlcikuY2F0Y2goZnVuY3Rpb24oZXJyKXtpZihlcnImJmVy
-    ci5zdGF0dXM9PT00MDEpcmV0dXJuIHNob3dHYXRlKCdEaWUgc2ljaGVyZSBTaXR6dW5nIGlzdCBh
-    YmdlbGF1ZmVuLiBCaXR0ZSBlcm5ldXQgYmVzdMOkdGlnZW4uJyk7Yi5kaXNhYmxlZD1mYWxzZTti
-    LnRleHRDb250ZW50PSdBYmhvbHRlcm1pbiB2ZXJiaW5kbGljaCDDvGJlcm1pdHRlbG4nO3NldFN0
-    YXR1cyhxKGVyci5tZXNzYWdlKXx8J0FiaG9sdGVybWluIGtvbm50ZSBuaWNodCBnZXNwZWljaGVy
-    dCB3ZXJkZW4uJywnYmFkJyl9KX0KZnVuY3Rpb24gcmVmcmVzaCgpe2lmKCFzZXNzaW9uKXJldHVy
-    bjthcGkoJz9fPScrRGF0ZS5ub3coKSkudGhlbihyZW5kZXIpLmNhdGNoKGZ1bmN0aW9uKGVycil7
-    aWYoZXJyJiZlcnIuc3RhdHVzPT09NDAxKXJldHVybiBzaG93R2F0ZSgnRGllIHNpY2hlcmUgU2l0
-    enVuZyBpc3QgYWJnZWxhdWZlbi4gQml0dGUgZXJuZXV0IGJlc3TDpHRpZ2VuLicpO2lmKGVyciYm
-    ZXJyLnN0YXR1cz09PTQxMCl7c2V0U3RhdHVzKHEoZXJyLm1lc3NhZ2UpfHwnRGllc2VyIEF2aXMt
-    TGluayBpc3QgbmljaHQgbWVociBnw7xsdGlnLicsJ2JhZCcpO2RvY3VtZW50LmdldEVsZW1lbnRC
-    eUlkKCdjb250ZW50JykuaW5uZXJIVE1MPSc8c2VjdGlvbiBjbGFzcz0iY2FyZCI+Qml0dGUgd2Vu
-    ZGVuIFNpZSBzaWNoIGFuIElocmVuIEFuc3ByZWNocGFydG5lciBiZWkgRXNzZW50cmEuPC9zZWN0
-    aW9uPid9fSl9CmZ1bmN0aW9uIGJvb3QoKXtpZighdG9rZW58fCEvXltBLVphLXowLTlfLV17MzIs
-    MTYwfSQvLnRlc3QodG9rZW4pKXtzZXRTdGF0dXMoJ0RpZXNlciBLdW5kZW4tQXZpcy1MaW5rIGlz
-    dCB1bmfDvGx0aWcuJywnYmFkJyk7ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoJ2NvbnRlbnQnKS5p
-    bm5lckhUTUw9JzxzZWN0aW9uIGNsYXNzPSJjYXJkIj5CaXR0ZSB3ZW5kZW4gU2llIHNpY2ggYW4g
-    SWhyZW4gQW5zcHJlY2hwYXJ0bmVyIGJlaSBFc3NlbnRyYS48L3NlY3Rpb24+JztyZXR1cm59c2hv
-    d0dhdGUoKTtzZXRJbnRlcnZhbChmdW5jdGlvbigpe2lmKCFkb2N1bWVudC5oaWRkZW4mJnNlc3Np
-    b24pcmVmcmVzaCgpfSwxNTAwMCk7d2luZG93LmFkZEV2ZW50TGlzdGVuZXIoJ2ZvY3VzJyxmdW5j
-    dGlvbigpe2lmKHNlc3Npb24pcmVmcmVzaCgpfSk7ZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcign
-    dmlzaWJpbGl0eWNoYW5nZScsZnVuY3Rpb24oKXtpZighZG9jdW1lbnQuaGlkZGVuJiZzZXNzaW9u
-    KXJlZnJlc2goKX0pfQppZihkb2N1bWVudC5yZWFkeVN0YXRlPT09J2xvYWRpbmcnKWRvY3VtZW50
-    LmFkZEV2ZW50TGlzdGVuZXIoJ0RPTUNvbnRlbnRMb2FkZWQnLGJvb3Qse29uY2U6dHJ1ZX0pO2Vs
-    c2UgYm9vdCgpOwp9KSgpOwo8L3NjcmlwdD4KPC9ib2R5Pgo8L2h0bWw+Cg==
-    EXPORTHUB_TESTSERVICE_FILE_END -->
-    
-    <style id="exporthub-canonical-mobile-shell-style">
-    /* RC524: funktionaler Besitzer der Smartphone-/Sidebar-Shell. Fachbereichs- und Theme-Design bleiben separat. */
-    #ehCollapseBtn,.eh-collapse-btn,#rc568MenuBtn,#rc568MenuBackdrop,#rc567MobileBackdrop{display:none!important}
-    @media (min-width:901px){
-      #ehMenuBtn{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-      body .sidebar{transform:none!important}
-    }
-    @media (max-width:900px){
-      html,body{width:100%!important;min-height:100%!important;overflow-x:hidden!important}
-      body{background:radial-gradient(circle at 12% 0,rgba(16,184,239,.12),transparent 34%),#eef5fb!important}
-      body .app:not(.hidden){display:block!important;width:100%!important;min-height:100dvh!important;background:transparent!important}
-      body .sidebar{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:min(320px,88vw)!important;height:100dvh!important;max-height:100dvh!important;transform:translateX(-105%)!important;transition:transform .2s ease!important;z-index:2201!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;background:linear-gradient(180deg,#061a3a,#0a3972)!important;box-shadow:18px 0 48px rgba(0,0,0,.30)!important;touch-action:pan-y!important;overscroll-behavior:contain!important;padding-bottom:max(12px,env(safe-area-inset-bottom))!important}
-      body.eh-sidebar-open .sidebar{transform:translateX(0)!important}
-      body .sidebar>.brand{flex:0 0 auto!important}
-      body .sidebar>#nav,body .sidebar>.nav{display:grid!important;flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;touch-action:pan-y!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding:0 2px calc(90px + env(safe-area-inset-bottom))!important;scrollbar-gutter:stable!important}
-      body .sidebar>.profile{flex:0 0 auto!important;margin-top:8px!important}
-      body #nav>[data-index308-group]:not([hidden]){position:relative!important;display:block!important;visibility:visible!important;flex:none!important}
-      body #nav>button[data-index321-view]:not([hidden]){position:relative!important;z-index:2202!important;display:flex!important;visibility:visible!important;pointer-events:auto!important;touch-action:manipulation!important;user-select:none!important;-webkit-user-select:none!important;min-height:52px!important;flex:none!important}
-      body #nav>button[data-index321-view][hidden],body #nav>button[data-index308-view][hidden],body #nav>button[data-index305-view][hidden],body #nav>[data-index308-group][hidden],body #nav>[data-index305-group][hidden]{display:none!important;visibility:hidden!important;pointer-events:none!important}
-      body #nav>button[data-index321-view]:active{transform:scale(.985)!important;background:rgba(255,255,255,.16)!important}
-      body .main{display:block!important;width:100%!important;min-width:0!important;min-height:100dvh!important;margin:0!important;padding:10px!important;background:transparent!important}
-      body .topbar{display:flex!important;position:sticky!important;top:6px!important;z-index:1000!important;width:100%!important;min-height:58px!important;margin:0 0 12px!important;padding:8px!important;border-radius:17px!important;background:rgba(255,255,255,.94)!important}
-      body .eh-menu-btn{display:inline-grid!important;visibility:visible!important;opacity:1!important;flex:0 0 42px!important}
-      body .search{order:10!important;flex:1 0 100%!important;width:100%!important}
-      body #content{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;min-height:calc(100dvh - 82px)!important}
-      body #content>*{max-width:100%!important}
-      body.eh-sidebar-open{overflow:hidden!important}
-      body.eh-sidebar-open::after{content:"";position:fixed;inset:0;background:rgba(2,12,27,.46);z-index:1100;pointer-events:none!important}
-      body:not(.eh-sidebar-open) #content input,body:not(.eh-sidebar-open) #content select,body:not(.eh-sidebar-open) #content textarea,body:not(.eh-sidebar-open) #content button,body:not(.eh-sidebar-open) #content a,body:not(.eh-sidebar-open) #content label{pointer-events:auto!important;touch-action:manipulation!important}
-      body:not(.eh-sidebar-open) #content input,body:not(.eh-sidebar-open) #content textarea{user-select:text!important;-webkit-user-select:text!important}
-      body:not(.eh-sidebar-open) .main,body:not(.eh-sidebar-open) #content{position:relative!important;z-index:auto!important}
-      body .grid2,body .grid3,body .grid4,body .metrics,body .split,body .folder-header,body .miniGrid,body .summaryGrid,body .rc147-week-grid,body .rc150-week-grid,body .rc138-week-grid,body .task-grid{grid-template-columns:minmax(0,1fr)!important;min-width:0!important}
-      body .card,body .metric{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important}body .table-wrap{min-width:0!important;max-width:100%!important;overflow-x:auto!important}
-      body #rc626Shipping{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow-x:hidden!important}
-      body #rc626Shipping .rc501-shipping-layout,body #rc626Shipping .rc501-form,body #rc626Shipping .rc501-field-group,body #rc626Shipping .rc501-route-grid,body #rc626Shipping .rc501-load-grid,body #rc626Shipping .rc501-cost-grid,body #rc626Shipping .rc501-result-card,body #rc626Shipping .rc501-result-lines,body #rc626Shipping .rc501-history{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
-      body #rc626Shipping .rc501-result-line{max-width:100%!important;min-width:0!important;box-sizing:border-box!important;flex-wrap:wrap!important}body #rc626Shipping .rc501-result-line>*{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important}
-      body #rc626Shipping .table-wrap,body #rc626Shipping .rc626-table-wrap,body #rc626Shipping .rc501-history .table-wrap{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
-    }
-    @media (max-width:560px){body .main{padding:7px!important}body .topbar{top:4px!important}body .page-head h1,body .page-head h2{font-size:25px!important}}
-    
-    /* RC875: mobile owner remains the single source of truth and is intentionally loaded after theme CSS. */
-    @media (max-width:900px){
-      html,body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important}
-      body #app.app:not(.hidden),body .app:not(.hidden),body[data-eh-theme] #app.app:not(.hidden),body[data-eh-theme][data-eh-theme] #app.app:not(.hidden),body[data-eh-theme] .app:not(.hidden){display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;grid-template-columns:none!important}
-      body .main,body[data-eh-theme] .main,body[data-eh-theme][data-eh-theme] .main{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:8px!important;overflow-x:hidden!important}
-      body #content,body[data-eh-theme] #content{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding-left:0!important;padding-right:0!important;overflow-x:hidden!important}
-      body #content>*,body[data-eh-theme] #content>*{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
-      body .sidebar,body[data-eh-theme] .sidebar,body[data-eh-theme][data-eh-theme] .sidebar{position:fixed!important;left:0!important;right:auto!important;top:0!important;bottom:0!important;width:min(320px,88vw)!important;max-width:88vw!important;height:100dvh!important;transform:translateX(-105%)!important;margin:0!important}
-      body.eh-sidebar-open .sidebar,body[data-eh-theme].eh-sidebar-open .sidebar,body.eh-sidebar-open[data-eh-theme] .sidebar{transform:translateX(0)!important}
-      body .topbar,body[data-eh-theme] .topbar,body[data-eh-theme][data-eh-theme] .topbar{display:grid!important;grid-template-columns:44px minmax(0,1fr)!important;align-items:start!important;gap:7px!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0 0 10px!important;padding:7px!important;border-radius:14px!important;overflow:visible!important}
-      body #ehMenuBtn,body .eh-menu-btn,body[data-eh-theme] #ehMenuBtn{display:inline-grid!important;grid-column:1!important;grid-row:1!important;place-items:center!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;margin:0!important;justify-self:start!important;align-self:start!important}
-      body .eh-topbar-main,body[data-eh-theme] .eh-topbar-main,body[data-eh-theme][data-eh-theme] .topbar .eh-topbar-main{grid-column:2!important;grid-row:1!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important;width:100%!important;max-width:100%!important;min-width:0!important}
-      body .eh-topbar-main .search,body[data-eh-theme] .eh-topbar-main .search{order:1!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:7px 9px!important}
-      body .eh-topbar-environment,body[data-eh-theme] .eh-topbar-environment{order:2!important;display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;text-align:left!important}
-      body .eh-testservice-ribbon,html[data-exporthub-testportal="1"] .eh-testservice-ribbon{display:flex!important;flex-wrap:wrap!important;justify-content:flex-start!important;gap:3px 7px!important;width:100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.2!important;padding:6px 8px!important;font-size:10px!important}
-      body .eh-testservice-ribbon small{white-space:normal!important;overflow-wrap:anywhere!important;font-size:9px!important}
-      body .eh-topbar-tools,body[data-eh-theme] .eh-topbar-tools,body[data-eh-theme][data-eh-theme] .topbar .eh-topbar-tools{grid-column:1/-1!important;grid-row:2!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important;width:100%!important;max-width:100%!important;min-width:0!important}
-      body .eh-topbar-options,body[data-eh-theme] .eh-topbar-options,body[data-eh-theme][data-eh-theme] .topbar .eh-topbar-options{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important;width:100%!important;min-width:0!important}
-      body .eh-topbar-options>*,body[data-eh-theme] .eh-topbar-options>*{width:100%!important;max-width:100%!important;min-width:0!important}
-      body .eh-topbar-actions,body[data-eh-theme] .eh-topbar-actions,body[data-eh-theme][data-eh-theme] .topbar .eh-topbar-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;width:100%!important;min-width:0!important;justify-content:stretch!important}
-      body .eh-topbar-actions button,body[data-eh-theme] .eh-topbar-actions button{width:100%!important;max-width:100%!important;min-width:0!important;white-space:normal!important;padding:7px 5px!important;font-size:11px!important}
-      body #content .rc205-dashboard-grid,body[data-eh-theme] #content .rc205-dashboard-grid,body[data-eh-theme][data-eh-theme] #content .rc205-dashboard-grid{grid-template-columns:minmax(0,1fr)!important;width:100%!important;max-width:100%!important;min-width:0!important;gap:8px!important}
-      body #content .rc205-layout-item,body[data-eh-theme] #content .rc205-layout-item,body[data-eh-theme][data-eh-theme] #content .rc205-layout-item{grid-column:1/-1!important;width:100%!important;max-width:100%!important;min-width:0!important}
-      body #content :is(.rc205-widget,.rc205-quick-card,.rc205-mini-metrics,.metrics,.summaryGrid,.grid2,.grid3,.grid4,.split),body[data-eh-theme] #content :is(.rc205-widget,.rc205-quick-card,.rc205-mini-metrics,.metrics,.summaryGrid,.grid2,.grid3,.grid4,.split){width:100%!important;max-width:100%!important;min-width:0!important}
-      body #content :is(.card,.metric,.rc205-widget,.rc205-quick-card),body[data-eh-theme] #content :is(.card,.metric,.rc205-widget,.rc205-quick-card){max-width:100%!important;min-width:0!important;overflow-wrap:anywhere!important}
-      #rc561TestPortalBadge{left:50%!important;right:auto!important;width:auto!important;max-width:calc(100vw - 18px)!important;white-space:normal!important;text-align:center!important;overflow-wrap:anywhere!important;line-height:1.15!important}
-    }
-    @media (max-width:560px){
-      body .eh-topbar-options,body[data-eh-theme] .eh-topbar-options{grid-template-columns:minmax(0,1fr)!important}
-      body #content :is(.rc205-mini-metrics,.metrics,.summaryGrid,.grid4,.rc205-quick-grid),body[data-eh-theme] #content :is(.rc205-mini-metrics,.metrics,.summaryGrid,.grid4,.rc205-quick-grid){grid-template-columns:minmax(0,1fr)!important}
-      body .eh-topbar-actions,body[data-eh-theme] .eh-topbar-actions{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
-      #rc561TestPortalBadge{font-size:9px!important;padding:5px 7px!important;letter-spacing:.025em!important}
-    }
-    
-    </style>
-    
-  operator: 'match'
-  stack: |-
-    TestContext.<anonymous> (file:///home/runner/work/ExportHub/ExportHub/test/rc990-render-navigation.test.mjs:19:10)
-    Test.runInAsyncScope (node:async_hooks:206:9)
-    Test.run (node:internal/test_runner/test:796:25)
-    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
-    Test.postRun (node:internal/test_runner/test:889:19)
-    Test.run (node:internal/test_runner/test:835:12)
-    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
-  ...
-1..73
-# tests 73
-# suites 0
-# pass 70
-# fail 3
-# cancelled 0
-# skipped 0
-# todo 0
-# duration_ms 746.568829
+--- failing-test-summary ---
+6:# Subtest: rejects unrelated partial payload
+11:# Subtest: accepts legacy RC826 state+users backup with explicit source hint
+16:# Subtest: deduplicates shipment copies and document copies
+21:# Subtest: podCloudBackupWebUrl is treated as remote POD and blocks cutover
+26:# Subtest: status preservation uses pickup/POD evidence and locks migrated shipment
+31:# Subtest: legacy cleartext password is never copied to normalized user
+36:# Subtest: inline documents receive hashes
+41:# Subtest: source hash is deterministic
+46:# Subtest: RC971: globaler Form-&-Field-Standard ist kanonisch und lesbar
+51:# Subtest: RC971: Druck-/CMR-/Signaturbereiche bleiben vom Formularstandard ausgenommen
+56:# Subtest: RC972: Topbar-, Such- und Toolbarfelder fallen nicht unter den globalen Feldstandard
+61:# Subtest: RC972: kompakte Sonderaktionen bleiben lesbar und bedienbar
+66:# Subtest: RC972: Testportal und Smartphone dürfen Felder nicht wieder verkleinern
+71:# Subtest: RC972: öffentliche Zusatzseiten haben bereits ausreichend große Formfelder
+76:# Subtest: RC973: Langtextfelder besitzen einen isolierten Auto-Grow-Layer
+81:# Subtest: RC973: Höhe wächst und schrumpft aus scrollHeight und überschreibt alte !important-Fixhöhen
+86:# Subtest: RC973: Druck/CMR/Signatur bleiben ausgeschlossen und Fachwerte werden nicht verändert
+91:# Subtest: RC973: kurze Felder und Colli-Geometrie bleiben kompakt
+96:# Subtest: RC973: Auto-Grow-Blöcke dürfen den Stauplan-Druckstring nicht zerschneiden
+101:# Subtest: RC973: das umgebende Script der Stauplan-Druckfunktion bleibt syntaktisch vollständig
+106:# Subtest: RC975: globaler Render-Integritätscheck ist aktiv
+111:# Subtest: RC975: jeder klassische Inline-Scriptblock ist syntaktisch vollständig
+116:# Subtest: RC975: zentrale Funktionen liegen weiterhin innerhalb eines Scriptblocks
+121:# Subtest: RC975: außerhalb von Scripts wird kein ExportHUB-JavaScript als Seitentext geleakt
+126:# Subtest: RC975: der Leck-Detektor erkennt den RC973-Fehlertyp in einer Kontrollprobe
+131:# Subtest: RC976: Build ist auf RC976 oder höher angehoben
+136:# Subtest: RC976: Render-Fallback besitzt eine eindeutige technische Markierung
+141:# Subtest: RC976: veralteter Render-Fallback wird gezielt entfernt
+146:# Subtest: RC976: jeder neue Render-Versuch räumt zuerst einen alten Fallback auf
+151:# Subtest: RC976: ein aktueller Renderfehler erzeugt den markierten Fallback erneut
+156:# Subtest: RC977: Build ist auf RC977 oder höher angehoben
+161:# Subtest: RC977: Colli-Typografie ist ausschließlich auf Colli & Lademeter begrenzt
+166:# Subtest: RC977: Beschriftungen und Eingabefelder verwenden einheitlich 12px
+171:# Subtest: RC977: Verpackungstext bleibt lesbar und die Feldhöhe unverändert
+176:# Subtest: RC977: Summary und Hinweistexte werden kompakter ohne Fachwerte zu verändern
+181:# Subtest: RC978: Build ist auf RC978 oder höher angehoben
+186:# Subtest: RC978: Sendungsraster reagiert auf die echte Inhaltsbreite statt auf die Fensterbreite
+191:# Subtest: RC978: Desktop-Zeile schließt Kunde, Sendungsdaten und Colli ohne sichtbare Zwischenlöcher ab
+196:# Subtest: RC978: Bei mittlerer Inhaltsbreite wird Colli vollbreit unter Kunde und Sendungsdaten angeordnet
+201:# Subtest: RC978: Bei schmaler Inhaltsbreite werden alle oberen Prozesskarten sauber einspaltig gestapelt
+206:# Subtest: RC978: Stauplan, Mailbereich und Speichern-Ausgabe bleiben vom neuen Raster unberührt
+211:# Subtest: RC979: Build ist auf RC979 oder höher angehoben
+216:# Subtest: RC979: alte 100-Prozent-Innenhöhen werden nur in den vier freigegebenen Sendungsbereichen neutralisiert
+221:# Subtest: RC979: Kunde, Sendungsdaten und Dokumente richten Inhalte oben statt künstlich gestreckt aus
+226:# Subtest: RC979: Sendungsfelder nutzen ihre Breite sinnvoll und reduzieren unnötige Leerzeilen
+231:# Subtest: RC979: lange Textfelder starten kompakter und wachsen weiterhin automatisch
+236:# Subtest: RC979: innere Abstände werden verdichtet ohne RC977-Colli-Typografie oder Feldhöhe anzutasten
+241:# Subtest: RC980: Build ist auf RC980 oder höher angehoben
+246:# Subtest: RC980: jede Colli-Zeile behält eine feste volle Breite und neue Zeilen wachsen nur nach unten
+251:# Subtest: RC980: Desktop-Felder haben dauerhaft dieselben drei Reihen und Spaltenpositionen
+256:# Subtest: RC980: schmale Ansichten brechen kontrolliert um ohne Reihenbreiten abhängig von der Zeilenanzahl zu machen
+261:# Subtest: RC980: Typografie, Feldhöhe und Colli-Fachlogik bleiben unverändert
+266:# Subtest: RC990 Design: kanonischer Design-Layer existiert genau einmal
+271:# Subtest: RC990 Design: kompakte gemeinsame Designvariablen sind definiert
+276:# Subtest: RC990 Design: Karten orientieren sich an Inhalt statt künstlich gestreckt zu werden
+281:# Subtest: RC990 Design: Aktionen besitzen klare primäre sekundäre und destruktive Rollen
+286:# Subtest: RC990 Design: Druck CMR Signatur und Colli-Ausnahme werden nicht global überschrieben
+291:# Subtest: RC990 Design: responsive Anwendungskarten und Aktionen brechen kontrolliert um
+296:# Subtest: RC990 Design: Aufgaben verwenden ein echtes 3-2-1 Kachelraster
+301:# Subtest: RC990 Design: aktuelle RC628 Aufgabenansicht wird vom Kachelraster wirklich getroffen
+306:# Subtest: RC990 Design: aktive RC229-Aufgaben brauchen keinen nicht gesetzten Body-View-Marker
+311:# Subtest: RC990 Design: Aufgabenkacheln sind sichtbar als kompakte Karten gestaltet
+316:# Subtest: RC990 Design: Warncenter und Benachrichtigungscenter bleiben getrennt und unterschiedlich markiert
+321:# Subtest: RC990 Design: Dashboard Lager Aufgaben nutzen gemeinsame Dichte ohne Drag-Animationen
+326:# Subtest: RC990: Build ist auf RC990 angehoben
+331:# Subtest: RC990: Release-Center besitzt stabilen Positions-Snapshot mit Änderungsanker
+336:# Subtest: RC990: offene Änderungen haben genau eine kanonische Quelle für Liste und Zähler
+341:# Subtest: RC990: Einzelbestätigung erhält den Anker auch über spätere Render hinweg
+346:# Subtest: RC990: vollständiger Release-Center-Neuaufbau kann eine übergebene Position wiederherstellen
+351:# Subtest: RC990: veröffentlichte Historie bleibt einklappbar und offene Änderungen bleiben getrennt
+356:# Subtest: RC990: UI-State Snapshot und Restore sind vorhanden
+357:not ok 71 - RC990: UI-State Snapshot und Restore sind vorhanden
+361:  failureType: 'testCodeFailure'
+362:  error: |-
+377:      "var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;\n" +
+396:      "window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);\n" +
+401:      "if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}\n" +
+402:      "try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}\n" +
+405:  code: 'ERR_ASSERTION'
+406:  name: 'AssertionError'
+421:    var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;
+440:    window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+445:    if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+446:    try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}
+14706:    async function parseLargeJson(textValue){if(!window.Worker)return JSON.parse(textValue);const code='self.onmessage=e=>{try{self.postMessage({ok:true,value:JSON.parse(e.data)})}catch(x){self.postMessage({ok:false,error:x.message})}}';const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{return await new Promise(function(resolve,reject){const w=new Worker(url);w.onmessage=function(e){w.terminate();e.data.ok?resolve(e.data.value):reject(new Error(e.data.error))};w.onerror=function(e){w.terminate();reject(new Error(e.message||'Worker-Fehler'))};w.postMessage(textValue)})}finally{URL.revokeObjectURL(url)}}
+14823:        errors.push({endpoint:endpoint,error:error});const code=error&&error.code,statusCode=Number(error&&error.status||0);
+14835:     const last=errors.length?errors[errors.length-1].error:null,checked=candidates.map(apiEndpointLabel).filter(function(value,index,array){return value&&array.indexOf(value)===index});
+22513:    async function printDocuments(mode){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(printBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}printBusy=true;var frame=null,opToken=docWorkStart((mode==='all'?'Gesamtausgabe':'Ladeliste')+' wird vorbereitet …');try{docWorkStep(opToken,'Sendungsdaten werden geprüft …');await ensureOutputReady(sh,'normal');docWorkStep(opToken,'Druckseiten werden geöffnet …');var source=document.createElement('div');source.innerHTML=documentHtml(sh);decorateDocument(sh,source,'normal');frame=documentWorkFrame('print');var doc=resetDocumentWorkFrame(frame,(mode==='all'?'Gesamtausgabe':'Ladeliste')+' '+(sref(sh)||sid(sh))),root=clonePages(mode||'all',doc,source);doc.body.appendChild(root);decorateDocument(sh,doc,'normal');await waitImages(root,1500);window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,'Druckdialog wird geöffnet');frame.contentWindow.focus();frame.contentWindow.print()}catch(e){console.error('RC679 Druck',e);window.__INDEX352_LAST_PRINT__={ok:false,mode:mode||'all',error:q(e&&e.message||e),owner:VERSION};docWorkFail(opToken,'Drucken konnte nicht gestartet werden');alert('Drucken konnte nicht gestartet werden.\n\n'+q(e&&e.message||e));if(frame&&frame===printFrameCache){try{frame.remove()}catch(_){}printFrameCache=null}}finally{printBusy=false}return false}
+22557:    async function downloadDocument(mode,button){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(pdfBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}pdfBusy=true;var old=q(button&&button.textContent),label=mode==='all'?'Gesamtausgabe':mode==='load1'?'Ladeliste 1':'Ladeliste 2',opToken=docWorkStart(label+' als PDF wird vorbereitet …');if(button){button.disabled=true;button.textContent=label+' wird erstellt …'}try{docWorkStep(opToken,'PDF-Dokumentseiten werden vorbereitet …');var out=await createPdf(mode||'all',sh);docWorkStep(opToken,'PDF wird zum Download bereitgestellt …');downloadBlob(out.blob,fileName(mode||'all',sh));window.__INDEX352_LAST_PDF__={ok:true,mode:mode||'all',pages:out.pages,bytes:out.blob.size,ref:sref(sh)||sid(sh),owner:VERSION};docWorkDone(opToken,label+' als PDF erstellt')}catch(e){console.error('RC352 PDF',e);var detail=q(e&&e.message||e);window.__INDEX352_LAST_PDF__={ok:false,mode:mode||'all',error:detail,owner:VERSION};docWorkFail(opToken,label+' konnte nicht erstellt werden');message(label+' konnte nicht erstellt werden: '+detail,'bad');alert(label+' konnte nicht heruntergeladen werden.\n\n'+detail)}finally{pdfBusy=false;if(button){button.disabled=false;button.textContent=old}}return false}
+22664:    window.ExportHUBPODCloudBackup=Object.freeze({version:VERSION,scan:scan,backup:buildAndBackup,backupBlob:backupBlob,performance:Object.freeze({automaticBatchLimit:automaticBatchLimit,userActivityGuardMs:2500,automaticFailurePauseMs:1800000}),status:function(sh){return{saved:saved(sh),status:q(sh&&sh.podCloudBackupStatus),savedAt:q(sh&&sh.podCloudBackupAt),fileName:q(sh&&sh.podCloudBackupFileName),webUrl:q(sh&&sh.podCloudBackupWebUrl),error:q(sh&&sh.podCloudBackupError)}}});
+25054:     if(from&&to&&from>to)return{error:'Das Von-Datum liegt nach dem Bis-Datum.',from:from,to:to,list:[],jobs:[]};
+28110:# Subtest: RC990: Navigation besitzt einen echten View-Verlauf
+28111:not ok 72 - RC990: Navigation besitzt einen echten View-Verlauf
+28115:  failureType: 'testCodeFailure'
+28116:  error: |-
+28131:      "var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;\n" +
+28150:      "window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);\n" +
+28155:      "if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}\n" +
+28156:      "try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}\n" +
+28159:  code: 'ERR_ASSERTION'
+28160:  name: 'AssertionError'
+28175:    var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;
+28194:    window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+28199:    if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+28200:    try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}
+42460:    async function parseLargeJson(textValue){if(!window.Worker)return JSON.parse(textValue);const code='self.onmessage=e=>{try{self.postMessage({ok:true,value:JSON.parse(e.data)})}catch(x){self.postMessage({ok:false,error:x.message})}}';const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{return await new Promise(function(resolve,reject){const w=new Worker(url);w.onmessage=function(e){w.terminate();e.data.ok?resolve(e.data.value):reject(new Error(e.data.error))};w.onerror=function(e){w.terminate();reject(new Error(e.message||'Worker-Fehler'))};w.postMessage(textValue)})}finally{URL.revokeObjectURL(url)}}
+42577:        errors.push({endpoint:endpoint,error:error});const code=error&&error.code,statusCode=Number(error&&error.status||0);
+42589:     const last=errors.length?errors[errors.length-1].error:null,checked=candidates.map(apiEndpointLabel).filter(function(value,index,array){return value&&array.indexOf(value)===index});
+50267:    async function printDocuments(mode){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(printBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}printBusy=true;var frame=null,opToken=docWorkStart((mode==='all'?'Gesamtausgabe':'Ladeliste')+' wird vorbereitet …');try{docWorkStep(opToken,'Sendungsdaten werden geprüft …');await ensureOutputReady(sh,'normal');docWorkStep(opToken,'Druckseiten werden geöffnet …');var source=document.createElement('div');source.innerHTML=documentHtml(sh);decorateDocument(sh,source,'normal');frame=documentWorkFrame('print');var doc=resetDocumentWorkFrame(frame,(mode==='all'?'Gesamtausgabe':'Ladeliste')+' '+(sref(sh)||sid(sh))),root=clonePages(mode||'all',doc,source);doc.body.appendChild(root);decorateDocument(sh,doc,'normal');await waitImages(root,1500);window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,'Druckdialog wird geöffnet');frame.contentWindow.focus();frame.contentWindow.print()}catch(e){console.error('RC679 Druck',e);window.__INDEX352_LAST_PRINT__={ok:false,mode:mode||'all',error:q(e&&e.message||e),owner:VERSION};docWorkFail(opToken,'Drucken konnte nicht gestartet werden');alert('Drucken konnte nicht gestartet werden.\n\n'+q(e&&e.message||e));if(frame&&frame===printFrameCache){try{frame.remove()}catch(_){}printFrameCache=null}}finally{printBusy=false}return false}
+50311:    async function downloadDocument(mode,button){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(pdfBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}pdfBusy=true;var old=q(button&&button.textContent),label=mode==='all'?'Gesamtausgabe':mode==='load1'?'Ladeliste 1':'Ladeliste 2',opToken=docWorkStart(label+' als PDF wird vorbereitet …');if(button){button.disabled=true;button.textContent=label+' wird erstellt …'}try{docWorkStep(opToken,'PDF-Dokumentseiten werden vorbereitet …');var out=await createPdf(mode||'all',sh);docWorkStep(opToken,'PDF wird zum Download bereitgestellt …');downloadBlob(out.blob,fileName(mode||'all',sh));window.__INDEX352_LAST_PDF__={ok:true,mode:mode||'all',pages:out.pages,bytes:out.blob.size,ref:sref(sh)||sid(sh),owner:VERSION};docWorkDone(opToken,label+' als PDF erstellt')}catch(e){console.error('RC352 PDF',e);var detail=q(e&&e.message||e);window.__INDEX352_LAST_PDF__={ok:false,mode:mode||'all',error:detail,owner:VERSION};docWorkFail(opToken,label+' konnte nicht erstellt werden');message(label+' konnte nicht erstellt werden: '+detail,'bad');alert(label+' konnte nicht heruntergeladen werden.\n\n'+detail)}finally{pdfBusy=false;if(button){button.disabled=false;button.textContent=old}}return false}
+50418:    window.ExportHUBPODCloudBackup=Object.freeze({version:VERSION,scan:scan,backup:buildAndBackup,backupBlob:backupBlob,performance:Object.freeze({automaticBatchLimit:automaticBatchLimit,userActivityGuardMs:2500,automaticFailurePauseMs:1800000}),status:function(sh){return{saved:saved(sh),status:q(sh&&sh.podCloudBackupStatus),savedAt:q(sh&&sh.podCloudBackupAt),fileName:q(sh&&sh.podCloudBackupFileName),webUrl:q(sh&&sh.podCloudBackupWebUrl),error:q(sh&&sh.podCloudBackupError)}}});
+52808:     if(from&&to&&from>to)return{error:'Das Von-Datum liegt nach dem Bis-Datum.',from:from,to:to,list:[],jobs:[]};
+55863:# Subtest: RC990: Renderplanung dedupliziert denselben Grund pro Frame
+55864:not ok 73 - RC990: Renderplanung dedupliziert denselben Grund pro Frame
+55868:  failureType: 'testCodeFailure'
+55869:  error: |-
+55884:      "var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;\n" +
+55903:      "window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);\n" +
+55908:      "if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}\n" +
+55909:      "try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}\n" +
+55912:  code: 'ERR_ASSERTION'
+55913:  name: 'AssertionError'
+55928:    var KEY='exporthub:rc864:diagnostics',MAX=180,DIAG_COALESCE_MS=5000,records=[],seq=0,persistTimer=0,uiTimer=0,lastSignal={name:'',at:0,detail:null},renderBurst=Object.create(null),nativeConsole={error:console.error&&console.error.bind(console),warn:console.warn&&console.warn.bind(console),info:console.info&&console.info.bind(console)},nativeAlert=typeof window.alert==='function'?window.alert.bind(window):null,nativeFetch=typeof window.fetch==='function'?window.fetch.bind(window):null;
+55947:    window.addEventListener('error',function(e){var target=e&&e.target;if(target&&target!==window&&target.tagName){add('resource','error','Ressource konnte nicht geladen werden: '+q(target.tagName),{url:safeUrl(target.src||target.href||''),tag:q(target.tagName)},currentView());return}add('javascript','error',e&&e.message||'JavaScript-Fehler',{file:safeUrl(e&&e.filename||''),line:Number(e&&e.lineno||0),column:Number(e&&e.colno||0),error:cleanText(e&&e.error)},currentView())},true);
+55952:    if(nativeFetch){window.fetch=function(input,init){var started=performance&&performance.now?performance.now():Date.now(),method=q(init&&init.method||input&&input.method||'GET').toUpperCase(),url=safeUrl(typeof input==='string'?input:input&&input.url||'');return nativeFetch(input,init).then(function(res){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started),phases=serverPhaseDetails(res),detail=Object.assign({status:res.status,durationMs:ms},phases);if(!res.ok&&!expectedProbe404(url,res.status))add('network','error','HTTP '+res.status+' bei '+method+' '+url,Object.assign({statusText:q(res.statusText),method:method,url:url},detail),currentView());else if(res.ok&&ms>=perfThreshold(url))add('performance','warning','Langsamer API-Aufruf: '+method+' '+url,detail,currentView());return res},function(err){var ms=Math.round((performance&&performance.now?performance.now():Date.now())-started);add('network','error','Netzwerkfehler bei '+method+' '+url,{method:method,url:url,durationMs:ms,error:cleanText(err)},currentView());throw err})}}
+55953:    try{if(window.XMLHttpRequest&&XMLHttpRequest.prototype){var xo=XMLHttpRequest.prototype.open,xs=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.open=function(method,url){this.__ehDiag863={method:q(method||'GET').toUpperCase(),url:safeUrl(url),started:0};return xo.apply(this,arguments)};XMLHttpRequest.prototype.send=function(){var self=this,d=self.__ehDiag863||(self.__ehDiag863={method:'GET',url:'',started:0});d.started=performance&&performance.now?performance.now():Date.now();function done(kind){if(d.done)return;d.done=true;var ms=Math.round((performance&&performance.now?performance.now():Date.now())-d.started),status=Number(self.status||0);if(kind!=='load'||status===0||(status>=400&&!expectedProbe404(d.url,status)))add('network','error','XHR '+(status||kind)+' bei '+d.method+' '+d.url,{method:d.method,url:d.url,status:status,durationMs:ms,event:kind},currentView());else if(status<400&&ms>=perfThreshold(d.url))add('performance','warning','Langsamer XHR-Aufruf: '+d.method+' '+d.url,{status:status,durationMs:ms},currentView())}self.addEventListener('load',function(){done('load')},{once:true});self.addEventListener('error',function(){done('error')},{once:true});self.addEventListener('timeout',function(){done('timeout')},{once:true});self.addEventListener('abort',function(){done('abort')},{once:true});return xs.apply(this,arguments)}}}catch(e){add('diagnostics','warning','XHR-Diagnose konnte nicht vollständig aktiviert werden',{error:cleanText(e)},'System')}
+70213:    async function parseLargeJson(textValue){if(!window.Worker)return JSON.parse(textValue);const code='self.onmessage=e=>{try{self.postMessage({ok:true,value:JSON.parse(e.data)})}catch(x){self.postMessage({ok:false,error:x.message})}}';const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));try{return await new Promise(function(resolve,reject){const w=new Worker(url);w.onmessage=function(e){w.terminate();e.data.ok?resolve(e.data.value):reject(new Error(e.data.error))};w.onerror=function(e){w.terminate();reject(new Error(e.message||'Worker-Fehler'))};w.postMessage(textValue)})}finally{URL.revokeObjectURL(url)}}
+70330:        errors.push({endpoint:endpoint,error:error});const code=error&&error.code,statusCode=Number(error&&error.status||0);
+70342:     const last=errors.length?errors[errors.length-1].error:null,checked=candidates.map(apiEndpointLabel).filter(function(value,index,array){return value&&array.indexOf(value)===index});
+78020:    async function printDocuments(mode){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(printBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}printBusy=true;var frame=null,opToken=docWorkStart((mode==='all'?'Gesamtausgabe':'Ladeliste')+' wird vorbereitet …');try{docWorkStep(opToken,'Sendungsdaten werden geprüft …');await ensureOutputReady(sh,'normal');docWorkStep(opToken,'Druckseiten werden geöffnet …');var source=document.createElement('div');source.innerHTML=documentHtml(sh);decorateDocument(sh,source,'normal');frame=documentWorkFrame('print');var doc=resetDocumentWorkFrame(frame,(mode==='all'?'Gesamtausgabe':'Ladeliste')+' '+(sref(sh)||sid(sh))),root=clonePages(mode||'all',doc,source);doc.body.appendChild(root);decorateDocument(sh,doc,'normal');await waitImages(root,1500);window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,'Druckdialog wird geöffnet');frame.contentWindow.focus();frame.contentWindow.print()}catch(e){console.error('RC679 Druck',e);window.__INDEX352_LAST_PRINT__={ok:false,mode:mode||'all',error:q(e&&e.message||e),owner:VERSION};docWorkFail(opToken,'Drucken konnte nicht gestartet werden');alert('Drucken konnte nicht gestartet werden.\n\n'+q(e&&e.message||e));if(frame&&frame===printFrameCache){try{frame.remove()}catch(_){}printFrameCache=null}}finally{printBusy=false}return false}
+78064:    async function downloadDocument(mode,button){if(mode==='load2'){alert('Ladeliste Seite 2 wurde entfernt. Bitte Ladeliste Seite 1 verwenden.');return false}if(pdfBusy)return false;var sh=currentSaved();if(!sh){alert('Bitte zuerst eine gespeicherte Sendung auswählen.');return false}pdfBusy=true;var old=q(button&&button.textContent),label=mode==='all'?'Gesamtausgabe':mode==='load1'?'Ladeliste 1':'Ladeliste 2',opToken=docWorkStart(label+' als PDF wird vorbereitet …');if(button){button.disabled=true;button.textContent=label+' wird erstellt …'}try{docWorkStep(opToken,'PDF-Dokumentseiten werden vorbereitet …');var out=await createPdf(mode||'all',sh);docWorkStep(opToken,'PDF wird zum Download bereitgestellt …');downloadBlob(out.blob,fileName(mode||'all',sh));window.__INDEX352_LAST_PDF__={ok:true,mode:mode||'all',pages:out.pages,bytes:out.blob.size,ref:sref(sh)||sid(sh),owner:VERSION};docWorkDone(opToken,label+' als PDF erstellt')}catch(e){console.error('RC352 PDF',e);var detail=q(e&&e.message||e);window.__INDEX352_LAST_PDF__={ok:false,mode:mode||'all',error:detail,owner:VERSION};docWorkFail(opToken,label+' konnte nicht erstellt werden');message(label+' konnte nicht erstellt werden: '+detail,'bad');alert(label+' konnte nicht heruntergeladen werden.\n\n'+detail)}finally{pdfBusy=false;if(button){button.disabled=false;button.textContent=old}}return false}
+78171:    window.ExportHUBPODCloudBackup=Object.freeze({version:VERSION,scan:scan,backup:buildAndBackup,backupBlob:backupBlob,performance:Object.freeze({automaticBatchLimit:automaticBatchLimit,userActivityGuardMs:2500,automaticFailurePauseMs:1800000}),status:function(sh){return{saved:saved(sh),status:q(sh&&sh.podCloudBackupStatus),savedAt:q(sh&&sh.podCloudBackupAt),fileName:q(sh&&sh.podCloudBackupFileName),webUrl:q(sh&&sh.podCloudBackupWebUrl),error:q(sh&&sh.podCloudBackupError)}}});
+80561:     if(from&&to&&from>to)return{error:'Das Von-Datum liegt nach dem Bis-Datum.',from:from,to:to,list:[],jobs:[]};
+83617:# tests 73
+83618:# suites 0
+83619:# pass 70
+83620:# fail 3
