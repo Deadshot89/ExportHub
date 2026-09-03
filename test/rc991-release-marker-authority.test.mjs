@@ -24,8 +24,12 @@ function extractFunction(name){
   return '';
 }
 
-test('RC991: kanonischer Build ist RC991 und der Release-Center-Punkt ist sichtbar',()=>{
-  assert.match(html,/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC991',cache:'991',loginReturn:'\/TESTVERSION\.html\?v=991'\}\)/);
+test('RC991+: Release-Marker-Fix bleibt ab RC991 im kanonischen Build aktiv',()=>{
+  const build=html.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC(\d+)',cache:'(\d+)',loginReturn:'\/TESTVERSION\.html\?v=(\d+)'\}\)/);
+  assert.ok(build,'kanonischer BUILD-Marker fehlt');
+  assert.ok(Number(build[1])>=991,`Build ist älter als RC991: RC${build[1]}`);
+  assert.equal(build[1],build[2],'BUILD-Version und Cache-Version weichen ab');
+  assert.equal(build[1],build[3],'BUILD-Version und Login-Return-Version weichen ab');
   assert.match(html,/RC991 verhindert, dass ein älterer TESTSERVICE-Snapshot den geprüften Produktions-index oder den aktuellen Produktionsmarker überschreibt\./);
 });
 
