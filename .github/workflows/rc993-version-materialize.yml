@@ -1,0 +1,55 @@
+name: RC993 Version Materialize
+
+on:
+  push:
+    branches:
+      - rc993-render-performance
+    paths:
+      - '.github/workflows/rc993-version-materialize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply RC993 build marker and Release Center entry
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path=Path('TESTVERSION.html')
+          text=path.read_text(encoding='utf-8')
+
+          old="var BUILD=Object.freeze({version:'RC992',cache:'992',loginReturn:'/TESTVERSION.html?v=992'});"
+          new="var BUILD=Object.freeze({version:'RC993',cache:'993',loginReturn:'/TESTVERSION.html?v=993'});"
+          if text.count(old)!=1:
+            raise SystemExit(f'Expected one RC992 BUILD marker, got {text.count(old)}')
+          text=text.replace(old,new,1)
+
+          old_change='changes:Object.freeze(["RC992 reduziert beim Azure-State-Speichern unnötige Tiefkopien unveränderter State-Bereiche und Datensätze.",'
+          new_change='changes:Object.freeze(["RC993 berechnet die gefilterte und sortierte Sendungsübersicht pro ruhigem Patch nur einmal und verwendet dieselbe Reihenfolge für Kartenverschiebungen und Sortierung.","RC992 reduziert beim Azure-State-Speichern unnötige Tiefkopien unveränderter State-Bereiche und Datensätze.",'
+          if text.count(old_change)!=1:
+            raise SystemExit(f'Expected one RC992 first release entry, got {text.count(old_change)}')
+          text=text.replace(old_change,new_change,1)
+
+          path.write_text(text,encoding='utf-8')
+          print('RC993 build marker and Release Center entry applied.')
+          PY
+      - name: RC993 targeted test
+        run: node --test test/rc993-render-performance.test.mjs
+      - name: Full test suite
+        run: npm test
+      - name: Commit RC993 version bump
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add TESTVERSION.html
+          git diff --cached --check
+          git commit -m 'RC993: TESTSERVICE-Build und Release-Center anheben'
+          git push
