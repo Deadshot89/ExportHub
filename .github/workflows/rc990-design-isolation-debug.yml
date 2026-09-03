@@ -1,0 +1,43 @@
+name: RC990 Design Isolation Debug
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc990-large-ux
+    paths:
+      - .github/rc990_design_isolation_debug.py
+      - .github/workflows/rc990-design-isolation-debug.yml
+
+permissions:
+  contents: read
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated RC990 branch
+        uses: actions/checkout@v4
+        with:
+          ref: rc990-large-ux
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prove RC990 apply does not alter scripts
+        run: python .github/rc990_design_isolation_debug.py
+
+      - name: Verify script integrity immediately after apply
+        run: node --test test/rc973-long-text-autogrow.test.mjs test/rc975-global-render-integrity.test.mjs
+
+      - name: Find tests that write or replace TESTVERSION
+        shell: bash
+        run: |
+          echo '--- write operations in test/ ---'
+          grep -RInE 'writeFile|writeFileSync|renameSync|copyFile|TESTVERSION\.html' test || true
+
+      - name: Run full suite serially
+        shell: bash
+        run: node --test --test-concurrency=1 test/*.test.mjs
