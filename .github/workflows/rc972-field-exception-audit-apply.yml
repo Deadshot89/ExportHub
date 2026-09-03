@@ -1,89 +1,14 @@
-name: RC972 Field Exception Audit Apply
+name: RC972 Field Exception Audit Apply - RETIRED
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/rc972-field-exception-audit-apply.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: RC972 Produktpatch anwenden
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
-
-          htmlp=Path('TESTVERSION.html')
-          cssp=Path('assets/rc971-global-form-field-standard.css')
-          html=htmlp.read_text(encoding='utf-8')
-          css=cssp.read_text(encoding='utf-8').rstrip()
-
-          assert "var BUILD=Object.freeze({version:'RC971',cache:'971'" in html, 'Erwarteter RC971 BUILD fehlt'
-          assert '--rc972-toolbar-h' not in css, 'RC972 bereits im zentralen Formularstandard vorhanden'
-          assert css.startswith('@layer rc971{'), 'Zentraler RC971-Formstandard ist nicht kanonisch'
-
-          lines=[
-            ':root{--rc972-toolbar-h:40px;--rc972-toolbar-font:13px}',
-            '.topbar #globalSearch{min-height:var(--rc972-toolbar-h)!important;height:var(--rc972-toolbar-h)!important;padding:8px 10px!important;font-size:14px!important;border-radius:10px!important}',
-            '.topbar #languageSelect{min-height:var(--rc972-toolbar-h)!important;height:var(--rc972-toolbar-h)!important;font-size:var(--rc972-toolbar-font)!important;padding:7px 9px!important}',
-            '.topbar #ehThemeSelect{min-height:var(--rc972-toolbar-h)!important;height:var(--rc972-toolbar-h)!important;font-size:var(--rc972-toolbar-font)!important;padding:7px 9px!important}',
-            '.topbar #ehThemeSwitch{min-height:var(--rc972-toolbar-h)!important;height:auto!important;padding:5px 8px!important}',
-            '.topbar #ehThemeSwitch>span{font-size:11px!important;line-height:1.2!important}',
-            '.topbar :is(button,.ghost,.btn){min-height:var(--rc972-toolbar-h)!important;padding:7px 9px!important;font-size:12px!important;line-height:1.2!important;border-radius:10px!important}',
-            'html[data-exporthub-testportal="1"] #content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),select,textarea){min-height:42px!important;font-size:14px!important}',
-            'html[data-exporthub-testportal="1"] #content textarea{height:auto!important;min-height:96px!important}',
-            '#content .rc210-upload-actions :is(label,button){min-height:38px!important;padding:6px 8px!important;font-size:12px!important;line-height:1.2!important;border-radius:9px!important}',
-            '#content .rc203-actions :is(button,.ghost,.rc203-delete){min-height:38px!important;padding:6px 8px!important;font-size:12px!important;line-height:1.2!important;border-radius:9px!important}',
-            '#content .rc504-shift-btn{min-height:38px!important;padding:6px 8px!important;font-size:12px!important;line-height:1.2!important}',
-            '#rc573ColliCard .rc682-packaging-option{min-height:38px!important;padding:7px 9px!important;font-size:12px!important;line-height:1.25!important}',
-            '@media(max-width:720px){.topbar #globalSearch{min-height:42px!important;height:42px!important;font-size:16px!important}.topbar :is(select,button){min-height:40px!important;font-size:13px!important}.topbar #ehThemeSwitch{min-height:40px!important}.topbar #ehThemeSwitch>span{font-size:11px!important}html[data-exporthub-testportal="1"] #content :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){min-height:42px!important;font-size:16px!important}}'
-          ]
-          addition='\n'.join(lines)
-
-          pos=css.rfind('}')
-          assert pos>0, 'Layer-Abschluss im zentralen Formularstandard fehlt'
-          css=css[:pos]+addition+'\n'+css[pos:]+'\n'
-          cssp.write_text(css,encoding='utf-8')
-
-          html=html.replace("var BUILD=Object.freeze({version:'RC971',cache:'971'","var BUILD=Object.freeze({version:'RC972',cache:'972'",1)
-          needle=' changes:Object.freeze([\n'
-          assert needle in html, 'Release-Changes-Block fehlt'
-          notes=("    'RC972 schließt den zweiten globalen Feld-Audit ab: Topbar-Suche, Sprach- und Designauswahl sowie Toolbar-Aktionen verwenden nun auch außerhalb des Inhaltsbereichs den einheitlichen Bedienstandard.',\n"
-                 "    'RC972 verhindert außerdem zu kleine Upload-, Karten-, Sendungs- und Verpackungsaktionen sowie erneutes Schrumpfen im Testportal und auf Smartphones. Kunden-Avis, Abholseite und Location wurden geprüft und benötigten keine Größenkorrektur.',\n")
-          html=html.replace(needle,needle+notes,1)
-
-          style='<style id="rc971-global-form-field-standard">'+css.strip()+'</style>'
-          pattern=r'<style id="rc971-global-form-field-standard">[\s\S]*?</style>'
-          html,n=re.subn(pattern,lambda m:style,html,count=1,flags=re.I)
-          assert n==1, f'Globaler Formstandard konnte nicht eindeutig ersetzt werden ({n})'
-          htmlp.write_text(html,encoding='utf-8')
-          PY
-
-          git diff --check
-          node --test test/rc971-global-form-field-standard.test.mjs
-          node --test test/rc972-field-exception-audit.test.mjs
-          npm test
-
-      - name: Commit RC972 Produktpatch
-        shell: bash
-        run: |
-          git config user.name 'Deadshot89'
-          git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add TESTVERSION.html assets/rc971-global-form-field-standard.css
-          git commit -m 'RC972: Sonder- und Toolbarfelder global vereinheitlichen'
-          git push origin main
-
-# RC972 retry after corrected RED regression
+      - name: RC972 Apply ist abgeschlossen
+        run: echo "RC972 ist bereits angewendet. Dieser Workflow ist stillgelegt und verändert keine Dateien."
