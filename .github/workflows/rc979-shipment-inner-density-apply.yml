@@ -1,0 +1,123 @@
+name: RC979 Apply Shipment Inner Density
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc979-shipment-inner-density-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: RC979 natürliche Innenhöhen und Feldbreiten einbauen
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re
+
+          path=Path('TESTVERSION.html')
+          text=path.read_text(encoding='utf-8')
+
+          text,count=re.subn(
+              r"var BUILD=Object\.freeze\(\{version:'RC978',cache:'978'",
+              "var BUILD=Object.freeze({version:'RC979',cache:'979'",
+              text,
+              count=1
+          )
+          if count != 1:
+              raise SystemExit(f'BUILD RC978 wurde nicht exakt einmal gefunden: {count}')
+
+          text=re.sub(r'\s*<style id="rc979-shipment-inner-density">[\s\S]*?</style>\s*','\n',text,count=1)
+
+          css='''
+<style id="rc979-shipment-inner-density">
+#rc363BlockCustomer,
+#rc363BlockShipment,
+#rc363BlockColli,
+#rc363BlockDocuments{height:auto!important;min-height:0!important}
+
+#rc363BlockCustomer .rc363-process-body,
+#rc363BlockShipment .rc363-process-body,
+#rc363BlockDocuments .rc363-process-body{align-items:start!important;align-content:start!important;gap:6px 8px!important}
+
+#rc363BlockCustomer .rc363-process-body>*,
+#rc363BlockShipment .rc363-process-body>*,
+#rc363BlockDocuments .rc363-process-body>*{height:auto!important;min-height:0!important}
+
+#rc363BlockCustomer .rc363-process-body>:is(.okbox,.badbox,.notice,.infobox){min-height:0!important;margin:0!important;padding:8px 10px!important}
+
+#rc896ShipmentFieldGrid{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:8px 10px!important;align-items:start!important;align-content:start!important}
+#rc896ShipmentFieldGrid [data-rc896-field="reference"]{grid-column:span 4!important}
+#rc896ShipmentFieldGrid [data-rc896-field="pickup"]{grid-column:span 4!important}
+#rc896ShipmentFieldGrid [data-rc896-field="carrier"]{grid-column:span 4!important}
+#rc896ShipmentFieldGrid [data-rc896-field="description"]{grid-column:span 6!important}
+#rc896ShipmentFieldGrid [data-rc896-field="remark"]{grid-column:span 6!important}
+#rc363BlockShipment #rc896ShipmentFieldGrid textarea{min-height:64px!important;height:auto!important;max-height:none!important}
+
+#rc363BlockDocuments>.rc363-process-body[data-rc899-doc-abd="1"]{gap:8px!important;align-items:start!important;align-content:start!important}
+#rc363BlockDocuments .rc899-doc-main{display:grid!important;gap:6px!important;align-content:start!important;min-height:0!important}
+#rc363BlockDocuments .rc899-doc-main textarea{min-height:72px!important;height:auto!important;max-height:none!important}
+#rc363BlockDocuments #rc363BlockAbdDecision,
+#rc363BlockDocuments #rc363BlockAbdDecision .rc363-process-body,
+#rc363BlockDocuments #rc363BlockAbdDecision .rc543-area{height:auto!important;min-height:0!important}
+
+#rc363BlockColli #rc573ColliCard{height:auto!important;min-height:0!important}
+#rc363BlockColli #rc573ColliCard #rowsBox{gap:5px!important;align-content:start!important}
+#rc363BlockColli #rc573ColliCard .rc344-summary{margin-top:6px!important}
+
+@container rc978ShipmentLayout (max-width:760px){
+#rc896ShipmentFieldGrid{grid-template-columns:1fr!important}
+#rc896ShipmentFieldGrid [data-rc896-field]{grid-column:1/-1!important}
+}
+</style>
+'''
+
+          class BodyEndFinder(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.body_end=None
+              def handle_endtag(self, tag):
+                  if tag.lower()=='body':
+                      self.body_end=self.getpos()
+
+          finder=BodyEndFinder()
+          finder.feed(text)
+          if not finder.body_end:
+              raise SystemExit('Echtes schließendes BODY-Tag nicht gefunden')
+
+          line,col=finder.body_end
+          starts=[0]
+          for m in re.finditer('\n',text):
+              starts.append(m.end())
+          if line-1 >= len(starts):
+              raise SystemExit('BODY-Position außerhalb des Dokuments')
+          offset=starts[line-1]+col
+          if text[offset:offset+7].lower()!='</body>':
+              raise SystemExit('Ermittelte BODY-Position zeigt nicht auf </body>')
+
+          text=text[:offset]+css+text[offset:]
+          path.write_text(text,encoding='utf-8')
+          print('RC979 Style strukturell vor dem echten </body> eingefügt.')
+          PY
+      - name: RC971 bis RC979 Regression
+        run: node --test test/rc971-global-form-field-standard.test.mjs test/rc972-field-exception-audit.test.mjs test/rc973-long-text-autogrow.test.mjs test/rc975-global-render-integrity.test.mjs test/rc976-render-fallback-recovery.test.mjs test/rc977-colli-typography.test.mjs test/rc978-shipment-fluid-layout.test.mjs test/rc979-shipment-inner-density.test.mjs
+      - name: RC979 committen
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TESTVERSION.html
+          git diff --cached --quiet && { echo 'Keine RC979 Änderung erzeugt.'; exit 1; }
+          git commit -m "RC979: Sendungsfelder und Innenhöhen kompakter ausrichten"
+          git push origin HEAD:main
