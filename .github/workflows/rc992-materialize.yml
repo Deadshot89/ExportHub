@@ -1,0 +1,123 @@
+name: RC992 Materialize State Save Performance
+
+on:
+  push:
+    branches:
+      - rc992-state-save-performance
+    paths:
+      - '.github/workflows/rc992-materialize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc992-state-save-performance
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Patch merge hot path
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('api/shared/merge.js')
+          s=p.read_text(encoding='utf-8')
+
+          old="""      if (!existing) map.set(key, clone(item));
+"""
+          new="""      if (!existing) map.set(key, source === 'server' ? item : clone(item));
+"""
+          if old not in s:
+              raise SystemExit('mergeCollection anchor not found')
+          s=s.replace(old,new,1)
+
+          old="""function mergeState(serverState, incomingState) {
+  const server = isObject(serverState) ? clone(serverState) : {};
+  const incoming = isObject(incomingState) ? clone(incomingState) : {};
+"""
+          new="""function mergeState(serverState, incomingState) {
+  const server = isObject(serverState) ? serverState : {};
+  const incoming = isObject(incomingState) ? incomingState : {};
+"""
+          if old not in s:
+              raise SystemExit('mergeState clone anchor not found')
+          s=s.replace(old,new,1)
+
+          old="""  const tombstones = tombstoneMap(mergedMeta);
+  const out = {};
+  const keys = new Set([...Object.keys(server), ...Object.keys(incoming)]);
+
+  for (const key of keys) {
+"""
+          new="""  const tombstones = tombstoneMap(mergedMeta);
+  const serverTombstones = new Map(normalizeTombstones(serverMeta).map(item => [`${lower(item.collection)}:${lower(item.id)}`, item]));
+  const changedTombstoneCollections = new Set();
+  for (const item of normalizeTombstones(incomingMeta)) {
+    const key = `${lower(item.collection)}:${lower(item.id)}`;
+    const previous = serverTombstones.get(key);
+    if (!previous || JSON.stringify(previous) !== JSON.stringify(item)) changedTombstoneCollections.add(lower(item.collection));
+  }
+  const incomingFields = isObject(incomingMeta.fields) ? incomingMeta.fields : {};
+  const serverFields = isObject(serverMeta.fields) ? serverMeta.fields : {};
+  const out = {};
+  const keys = new Set([...Object.keys(server), ...Object.keys(incoming)]);
+
+  for (const key of keys) {
+"""
+          if old not in s:
+              raise SystemExit('mergeState pre-loop anchor not found')
+          s=s.replace(old,new,1)
+
+          old="""    const serverValue = server[key];
+    const incomingValue = incoming[key];
+
+    if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
+"""
+          new="""    const serverValue = server[key];
+    const incomingValue = incoming[key];
+    const incomingHasValue = Object.prototype.hasOwnProperty.call(incoming, key);
+    const incomingFieldMeta = incomingFields[key];
+    const fieldMetaChanged = incomingFieldMeta !== undefined && JSON.stringify(incomingFieldMeta) !== JSON.stringify(serverFields[key]);
+    const tombstoneChanged = changedTombstoneCollections.has(lower(key));
+
+    if (!incomingHasValue && !fieldMetaChanged && !tombstoneChanged) {
+      out[key] = serverValue;
+      continue;
+    }
+
+    if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
+"""
+          if old not in s:
+              raise SystemExit('mergeState value anchor not found')
+          s=s.replace(old,new,1)
+
+          old="""  out.taskStatusLedger = mergeLedger(server.taskStatusLedger, incoming.taskStatusLedger);
+  out.deliveryFileDeletionLedger = mergeLedger(server.deliveryFileDeletionLedger, incoming.deliveryFileDeletionLedger);
+  out.tasks = applyTaskLedger(out.tasks, out.taskStatusLedger);
+  out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
+"""
+          new="""  out.taskStatusLedger = mergeLedger(server.taskStatusLedger, incoming.taskStatusLedger);
+  out.deliveryFileDeletionLedger = mergeLedger(server.deliveryFileDeletionLedger, incoming.deliveryFileDeletionLedger);
+  if (Object.keys(out.taskStatusLedger).length) out.tasks = applyTaskLedger(out.tasks, out.taskStatusLedger);
+  if (Object.keys(out.deliveryFileDeletionLedger).length) out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
+"""
+          if old not in s:
+              raise SystemExit('ledger anchor not found')
+          s=s.replace(old,new,1)
+
+          p.write_text(s,encoding='utf-8')
+      - name: Run full regression suite
+        run: npm test
+      - name: Commit optimized merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/shared/merge.js
+          git diff --cached --check
+          git commit -m "RC992: State-Merge für Delta-Saves optimieren"
+          git push origin HEAD:rc992-state-save-performance
