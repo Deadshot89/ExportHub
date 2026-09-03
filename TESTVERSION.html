@@ -311,7 +311,7 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC973',cache:'973',loginReturn:'/TESTVERSION.html?v=968'});
+var BUILD=Object.freeze({version:'RC974',cache:'974',loginReturn:'/TESTVERSION.html?v=968'});
 var RELEASE=Object.freeze({
  version:'RC885',
  date:'31.08.2026',
@@ -10345,8 +10345,100 @@ html[data-exporthub-testportal="1"] #content textarea{height:auto!important;min-
 #rc573ColliCard .rc682-packaging-option{min-height:38px!important;padding:7px 9px!important;font-size:12px!important;line-height:1.25!important}
 @media(max-width:720px){.topbar #globalSearch{min-height:42px!important;height:42px!important;font-size:16px!important}.topbar :is(select,button){min-height:40px!important;font-size:13px!important}.topbar #ehThemeSwitch{min-height:40px!important}.topbar #ehThemeSwitch>span{font-size:11px!important}html[data-exporthub-testportal="1"] #content :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){min-height:42px!important;font-size:16px!important}}
 }</style>
+<!-- RC973 LONG TEXT AUTO-GROW START -->
+<style id="rc973-autogrow-long-text">
+@layer rc973{
+  :is(#content,#login,[role="dialog"]) textarea[data-rc973-autogrow="1"]{
+    box-sizing:border-box!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow-y:hidden!important;
+    white-space:pre-wrap!important;
+    overflow-wrap:anywhere!important;
+    line-height:1.45!important;
+    resize:none!important;
+  }
+}
+</style>
+<!-- RC973 LONG TEXT AUTO-GROW STYLE END -->
 </head>
-<body><div class="clean-load-panel hidden" id="cleanLoadPanel">
+<body>
+<script id="exporthub-rc973-autogrow-long-text">
+(function(){
+  'use strict';
+  if(window.__EXPORTHUB_RC973_AUTOGROW_LONG_TEXT__)return;
+  window.__EXPORTHUB_RC973_AUTOGROW_LONG_TEXT__=true;
+
+  var scheduled=0;
+  var delayed=0;
+
+  function isEligible(el){
+    if(!el||el.tagName!=='TEXTAREA')return false;
+    if(el.matches&&el.matches('[data-rc973-fixed-height="1"]'))return false;
+    if(el.closest&&el.closest('#loadListDoc,.rc390-paper,.index209-signature-dialog'))return false;
+    return !!(el.closest&&el.closest('#content,#login,[role="dialog"]'));
+  }
+
+  function cssMinHeight(el){
+    var n=0;
+    try{n=parseFloat(window.getComputedStyle(el).minHeight)||0}catch(_){}
+    return Number.isFinite(n)?n:0;
+  }
+
+  function resizeTextarea(el){
+    if(!isEligible(el))return false;
+    el.setAttribute('data-rc973-autogrow','1');
+    el.style.setProperty('max-height','none','important');
+    el.style.setProperty('overflow-y','hidden','important');
+    el.style.setProperty('height','auto','important');
+    var target=Math.max(cssMinHeight(el),Number(el.scrollHeight||0));
+    if(target>0)el.style.setProperty('height',Math.ceil(target)+'px','important');
+    return true;
+  }
+
+  function scan(root){
+    var scope=root&&root.querySelectorAll?root:document;
+    if(root&&root.nodeType===1&&isEligible(root))resizeTextarea(root);
+    Array.prototype.forEach.call(scope.querySelectorAll('textarea'),resizeTextarea);
+  }
+
+  function runScheduled(){
+    scheduled=0;
+    scan(document);
+  }
+
+  function schedule(){
+    if(!scheduled)scheduled=requestAnimationFrame(runScheduled);
+    clearTimeout(delayed);
+    delayed=setTimeout(function(){delayed=0;scan(document)},60);
+  }
+
+  document.addEventListener('input',function(ev){
+    if(isEligible(ev.target))resizeTextarea(ev.target);
+  },true);
+  document.addEventListener('change',function(ev){
+    if(isEligible(ev.target))resizeTextarea(ev.target);
+  },true);
+
+  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){
+    window.addEventListener(name,schedule);
+  });
+  window.addEventListener('resize',schedule,{passive:true});
+
+  var observer=new MutationObserver(function(records){
+    for(var i=0;i<records.length;i++){
+      var r=records[i];
+      if(r.type==='childList'&&(r.addedNodes&&r.addedNodes.length)){schedule();return}
+      if(r.type==='attributes'){schedule();return}
+    }
+  });
+  observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','open','aria-hidden']});
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});
+  else schedule();
+})();
+</script>
+<!-- RC973 LONG TEXT AUTO-GROW END --><div class="clean-load-panel hidden" id="cleanLoadPanel">
 <div class="clean-load-card">
 <div aria-hidden="true" class="clean-spinner"></div>
 <h2 id="cleanLoadTitle">ExportHUB wird vorbereitet</h2>
@@ -23508,99 +23600,7 @@ function renderStowPlan(){
  }finally{rc707StowRendering=false}
 }
 
-function printStow(){var card=document.getElementById('rc380StowPlan');if(!card||!q(card.textContent)){alert('Es sind noch keine Colli-Daten für den Stauplan vorhanden.');return false}var html='<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Stauplan '+esc(refOf(shipment()))+'</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Segoe UI,Arial,sans-serif;margin:0;color:#0f172a}h1{font-size:20px;color:#08245d;margin:0 0 8px}.rc396-graphic-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px}.rc396-graphic-head b{display:block;font-size:18px;color:#08245d}.muted{font-size:10px;color:#64748b}.rc396-head-pills{display:flex;gap:6px;flex-wrap:wrap}.pill{font-size:9px;font-weight:900;padding:3px 7px;border-radius:999px;border:1px solid #cbd5e1}.pill.green{background:#dcfce7;color:#166534}.pill.red{background:#fee2e2;color:#991b1b}.pill.blue{background:#dbeafe;color:#1d4ed8}.pill.gray{background:#f1f5f9;color:#475569}.rc396-plan-shell{border:2px solid #fb923c;border-radius:16px;background:#fffaf5;padding:9px;display:grid;gap:7px}.rc396-orientation,.rc396-axis{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;font-size:8px;font-weight:950;text-transform:uppercase;color:#7c2d12}.rc396-front,.rc396-rear{border:1px solid #fdba74;border-radius:999px;background:#fff;padding:4px 7px;text-align:center}.rc396-mid{text-align:center;color:#9a3412}.rc396-legend{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.rc396-legend-item{display:flex;align-items:center;gap:5px;border:1px solid #fed7aa;border-radius:10px;background:#fff;padding:6px}.rc396-legend-mark{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;font-size:9px;font-weight:1000;color:#fff}.rc396-legend-mark.small{background:#0ea5e9}.rc396-legend-mark.high{background:#f97316}.rc396-legend-mark.form{background:#2563eb}.rc396-legend-mark.secure{background:#16a34a}.rc396-legend-item span{font-size:8px;font-weight:900;color:#7c2d12;line-height:1.1}.rc396-trailer{border:2px solid #fdba74;border-radius:16px;background:#fff;padding:8px}.rc396-deck-scroll{overflow:visible}.rc396-deck{display:flex;gap:5px;width:100%}.rc396-column{flex:1 1 0;min-width:0;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;padding:4px;display:grid;grid-template-rows:auto auto repeat(3,58px);gap:4px}.rc396-column-head{text-align:center;line-height:1.05;border-radius:8px;background:#fff;padding:4px;border:1px solid #ffedd5}.rc396-column-head b{display:block;font-size:9px;color:#7c2d12}.rc396-column-head small{display:block;font-size:7px;color:#9a3412;font-weight:800}.rc396-row-rule{display:grid;grid-template-columns:1fr 1fr;gap:3px}.rc396-rule-chip,.rc396-form-badge,.rc396-secure-badge{border-radius:999px;padding:2px 4px;text-align:center;font-size:6px;font-weight:1000;text-transform:uppercase}.rc396-rule-chip{background:#fff7ed;border:1px solid #fdba74;color:#9a3412}.rc396-slot{border:1px solid #fdba74;border-radius:10px;background:#e0f2fe;display:grid;grid-template-rows:auto auto 1fr auto auto;justify-items:center;gap:1px;padding:4px;min-width:0}.rc396-slot.pallet-high{background:#ffedd5}.rc396-slot.pallet-low{background:#dbeafe}.rc396-slot.box-small{background:#ecfeff}.rc396-slot.empty{border-style:dashed;border-color:#cbd5e1;background:#fff;color:#94a3b8;display:grid;place-items:center;grid-template-rows:auto auto}.rc396-slot.is-over,.rc396-column.is-over{border-color:#ef4444;background:#fee2e2}.rc396-step{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#08245d;color:#fff;font-size:8px;font-weight:1000}.rc396-slot.empty .rc396-step{background:#cbd5e1;color:#475569}.rc396-load-shape{display:grid;place-items:center;height:18px;width:100%}.rc396-pallet-shape{width:28px;height:12px;border-radius:3px;background:#a96832;box-shadow:0 3px 0 #7c4a22;position:relative}.rc396-pallet-shape:before,.rc396-pallet-shape:after{content:"";position:absolute;bottom:-3px;width:5px;height:3px;background:#7c4a22}.rc396-pallet-shape:before{left:5px}.rc396-pallet-shape:after{right:5px}.rc396-pallet-shape.high{height:18px;box-shadow:0 4px 0 #7c4a22}.rc396-box-shape{width:24px;height:14px;border:2px solid #0ea5e9;border-radius:3px;background:#cffafe;position:relative}.rc396-box-shape:after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:1px solid rgba(14,165,233,.35)}.rc396-slot-text{width:100%;text-align:center;font-size:7px;font-weight:950;line-height:1.05;color:#08245d;overflow:hidden;text-overflow:ellipsis}.rc396-slot-sub,.rc396-position{font-size:6px;font-weight:850;line-height:1.05;text-align:center}.rc396-position{color:#7c2d12;text-transform:uppercase}.rc396-form-badge{background:#dbeafe;color:#1d4ed8}.rc396-secure-badge{background:#dcfce7;color:#166534}.rc396-endnote{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.rc396-note{border:1px solid #fed7aa;border-radius:10px;background:#fff;padding:6px;font-size:8px;font-weight:900;color:#7c2d12;line-height:1.15}.rc396-note.center{text-align:center}.rc396-actions,button{display:none!important}</style><!-- RC973 LONG TEXT AUTO-GROW START -->
-<style id="rc973-autogrow-long-text">
-@layer rc973{
-  :is(#content,#login,[role="dialog"]) textarea[data-rc973-autogrow="1"]{
-    box-sizing:border-box!important;
-    height:auto!important;
-    max-height:none!important;
-    overflow-y:hidden!important;
-    white-space:pre-wrap!important;
-    overflow-wrap:anywhere!important;
-    line-height:1.45!important;
-    resize:none!important;
-  }
-}
-</style>
-<!-- RC973 LONG TEXT AUTO-GROW STYLE END -->
-</head><body><h1>Stauplan '+esc(refOf(shipment()))+'</h1>'+card.innerHTML+'<script id="exporthub-rc973-autogrow-long-text">
-(function(){
-  'use strict';
-  if(window.__EXPORTHUB_RC973_AUTOGROW_LONG_TEXT__)return;
-  window.__EXPORTHUB_RC973_AUTOGROW_LONG_TEXT__=true;
-
-  var scheduled=0;
-  var delayed=0;
-
-  function isEligible(el){
-    if(!el||el.tagName!=='TEXTAREA')return false;
-    if(el.matches&&el.matches('[data-rc973-fixed-height="1"]'))return false;
-    if(el.closest&&el.closest('#loadListDoc,.rc390-paper,.index209-signature-dialog'))return false;
-    return !!(el.closest&&el.closest('#content,#login,[role="dialog"]'));
-  }
-
-  function cssMinHeight(el){
-    var n=0;
-    try{n=parseFloat(window.getComputedStyle(el).minHeight)||0}catch(_){}
-    return Number.isFinite(n)?n:0;
-  }
-
-  function resizeTextarea(el){
-    if(!isEligible(el))return false;
-    el.setAttribute('data-rc973-autogrow','1');
-    el.style.setProperty('max-height','none','important');
-    el.style.setProperty('overflow-y','hidden','important');
-    el.style.setProperty('height','auto','important');
-    var target=Math.max(cssMinHeight(el),Number(el.scrollHeight||0));
-    if(target>0)el.style.setProperty('height',Math.ceil(target)+'px','important');
-    return true;
-  }
-
-  function scan(root){
-    var scope=root&&root.querySelectorAll?root:document;
-    if(root&&root.nodeType===1&&isEligible(root))resizeTextarea(root);
-    Array.prototype.forEach.call(scope.querySelectorAll('textarea'),resizeTextarea);
-  }
-
-  function runScheduled(){
-    scheduled=0;
-    scan(document);
-  }
-
-  function schedule(){
-    if(!scheduled)scheduled=requestAnimationFrame(runScheduled);
-    clearTimeout(delayed);
-    delayed=setTimeout(function(){delayed=0;scan(document)},60);
-  }
-
-  document.addEventListener('input',function(ev){
-    if(isEligible(ev.target))resizeTextarea(ev.target);
-  },true);
-  document.addEventListener('change',function(ev){
-    if(isEligible(ev.target))resizeTextarea(ev.target);
-  },true);
-
-  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){
-    window.addEventListener(name,schedule);
-  });
-  window.addEventListener('resize',schedule,{passive:true});
-
-  var observer=new MutationObserver(function(records){
-    for(var i=0;i<records.length;i++){
-      var r=records[i];
-      if(r.type==='childList'&&(r.addedNodes&&r.addedNodes.length)){schedule();return}
-      if(r.type==='attributes'){schedule();return}
-    }
-  });
-  observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','open','aria-hidden']});
-
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});
-  else schedule();
-})();
-</script>
-<!-- RC973 LONG TEXT AUTO-GROW END -->
-</body></html>'
+function printStow(){var card=document.getElementById('rc380StowPlan');if(!card||!q(card.textContent)){alert('Es sind noch keine Colli-Daten für den Stauplan vorhanden.');return false}var html='<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Stauplan '+esc(refOf(shipment()))+'</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:Segoe UI,Arial,sans-serif;margin:0;color:#0f172a}h1{font-size:20px;color:#08245d;margin:0 0 8px}.rc396-graphic-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px}.rc396-graphic-head b{display:block;font-size:18px;color:#08245d}.muted{font-size:10px;color:#64748b}.rc396-head-pills{display:flex;gap:6px;flex-wrap:wrap}.pill{font-size:9px;font-weight:900;padding:3px 7px;border-radius:999px;border:1px solid #cbd5e1}.pill.green{background:#dcfce7;color:#166534}.pill.red{background:#fee2e2;color:#991b1b}.pill.blue{background:#dbeafe;color:#1d4ed8}.pill.gray{background:#f1f5f9;color:#475569}.rc396-plan-shell{border:2px solid #fb923c;border-radius:16px;background:#fffaf5;padding:9px;display:grid;gap:7px}.rc396-orientation,.rc396-axis{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;font-size:8px;font-weight:950;text-transform:uppercase;color:#7c2d12}.rc396-front,.rc396-rear{border:1px solid #fdba74;border-radius:999px;background:#fff;padding:4px 7px;text-align:center}.rc396-mid{text-align:center;color:#9a3412}.rc396-legend{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.rc396-legend-item{display:flex;align-items:center;gap:5px;border:1px solid #fed7aa;border-radius:10px;background:#fff;padding:6px}.rc396-legend-mark{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;font-size:9px;font-weight:1000;color:#fff}.rc396-legend-mark.small{background:#0ea5e9}.rc396-legend-mark.high{background:#f97316}.rc396-legend-mark.form{background:#2563eb}.rc396-legend-mark.secure{background:#16a34a}.rc396-legend-item span{font-size:8px;font-weight:900;color:#7c2d12;line-height:1.1}.rc396-trailer{border:2px solid #fdba74;border-radius:16px;background:#fff;padding:8px}.rc396-deck-scroll{overflow:visible}.rc396-deck{display:flex;gap:5px;width:100%}.rc396-column{flex:1 1 0;min-width:0;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;padding:4px;display:grid;grid-template-rows:auto auto repeat(3,58px);gap:4px}.rc396-column-head{text-align:center;line-height:1.05;border-radius:8px;background:#fff;padding:4px;border:1px solid #ffedd5}.rc396-column-head b{display:block;font-size:9px;color:#7c2d12}.rc396-column-head small{display:block;font-size:7px;color:#9a3412;font-weight:800}.rc396-row-rule{display:grid;grid-template-columns:1fr 1fr;gap:3px}.rc396-rule-chip,.rc396-form-badge,.rc396-secure-badge{border-radius:999px;padding:2px 4px;text-align:center;font-size:6px;font-weight:1000;text-transform:uppercase}.rc396-rule-chip{background:#fff7ed;border:1px solid #fdba74;color:#9a3412}.rc396-slot{border:1px solid #fdba74;border-radius:10px;background:#e0f2fe;display:grid;grid-template-rows:auto auto 1fr auto auto;justify-items:center;gap:1px;padding:4px;min-width:0}.rc396-slot.pallet-high{background:#ffedd5}.rc396-slot.pallet-low{background:#dbeafe}.rc396-slot.box-small{background:#ecfeff}.rc396-slot.empty{border-style:dashed;border-color:#cbd5e1;background:#fff;color:#94a3b8;display:grid;place-items:center;grid-template-rows:auto auto}.rc396-slot.is-over,.rc396-column.is-over{border-color:#ef4444;background:#fee2e2}.rc396-step{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#08245d;color:#fff;font-size:8px;font-weight:1000}.rc396-slot.empty .rc396-step{background:#cbd5e1;color:#475569}.rc396-load-shape{display:grid;place-items:center;height:18px;width:100%}.rc396-pallet-shape{width:28px;height:12px;border-radius:3px;background:#a96832;box-shadow:0 3px 0 #7c4a22;position:relative}.rc396-pallet-shape:before,.rc396-pallet-shape:after{content:"";position:absolute;bottom:-3px;width:5px;height:3px;background:#7c4a22}.rc396-pallet-shape:before{left:5px}.rc396-pallet-shape:after{right:5px}.rc396-pallet-shape.high{height:18px;box-shadow:0 4px 0 #7c4a22}.rc396-box-shape{width:24px;height:14px;border:2px solid #0ea5e9;border-radius:3px;background:#cffafe;position:relative}.rc396-box-shape:after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:1px solid rgba(14,165,233,.35)}.rc396-slot-text{width:100%;text-align:center;font-size:7px;font-weight:950;line-height:1.05;color:#08245d;overflow:hidden;text-overflow:ellipsis}.rc396-slot-sub,.rc396-position{font-size:6px;font-weight:850;line-height:1.05;text-align:center}.rc396-position{color:#7c2d12;text-transform:uppercase}.rc396-form-badge{background:#dbeafe;color:#1d4ed8}.rc396-secure-badge{background:#dcfce7;color:#166534}.rc396-endnote{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.rc396-note{border:1px solid #fed7aa;border-radius:10px;background:#fff;padding:6px;font-size:8px;font-weight:900;color:#7c2d12;line-height:1.15}.rc396-note.center{text-align:center}.rc396-actions,button{display:none!important}</style></head><body><h1>Stauplan '+esc(refOf(shipment()))+'</h1>'+card.innerHTML+'</body></html>'
 
 
 ;var 
