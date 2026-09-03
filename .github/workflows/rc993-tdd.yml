@@ -1,0 +1,26 @@
+name: RC993 Render TDD
+
+on:
+  push:
+    branches:
+      - rc993-render-performance
+    paths:
+      - '.github/workflows/rc993-tdd.yml'
+      - 'test/rc993-render-performance.test.mjs'
+      - 'TESTVERSION.html'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC993 targeted render-performance test
+        run: node --test test/rc993-render-performance.test.mjs
+      - name: Full test suite
+        run: npm test
