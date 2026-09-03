@@ -9,10 +9,6 @@ replacements = [
 '''  /* RC990 task tile grid: current RC628 task lists and planner lists are compact responsive grids. */\n  #content .rc229-task-grid {\n    display: grid !important;\n    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;\n    gap: var(--rc990-card-gap) !important;\n    align-items: start !important;\n  }\n  body[data-exporthub-view="tasks"] #content .rc229-task-grid {\n    display: grid !important;\n    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;\n    gap: var(--rc990-card-gap) !important;\n    align-items: start !important;\n  }'''
     ),
     (
-'''  /* RC990 task card identity: compact, clearly bounded and fast to scan. */\n  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),''',
-'''  /* RC990 task card identity: compact, clearly bounded and fast to scan. */\n  #content .rc229-task-card.rc628-unified-task,\n  body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),'''
-    ),
-    (
 '''  /* RC628 cards previously reserved too much vertical space; RC990 keeps all information but removes empty padding. */\n  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer) {''',
 '''  /* RC628 cards previously reserved too much vertical space; RC990 keeps all information but removes empty padding. */\n  #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer),\n  body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer) {'''
     ),
@@ -47,6 +43,15 @@ if visible not in text:
     if text.count(anchor) != 1:
         raise SystemExit('Task-card identity anchor not unique')
     text = text.replace(anchor, visible + anchor, 1)
+
+# The active RC628 cards must not depend on a body view marker. Keep this rule
+# standalone so the contract and browser cascade both prove that directly.
+card_anchor = '''  /* RC628 cards previously reserved too much vertical space; RC990 keeps all information but removes empty padding. */'''
+direct_card = '''  #content .rc229-task-card.rc628-unified-task {\n    position: relative;\n    width: auto !important;\n    min-width: 0 !important;\n    max-width: none !important;\n    margin: 0 !important;\n    background: linear-gradient(180deg, var(--rc990-surface) 0%, var(--rc990-surface-soft) 100%) !important;\n    border: 1px solid var(--rc990-card-border) !important;\n    border-left: 5px solid var(--rc990-task-accent) !important;\n    box-shadow: var(--rc990-card-shadow) !important;\n    padding: 12px 14px !important;\n    border-radius: var(--rc990-radius) !important;\n    box-sizing: border-box !important;\n    overflow: hidden;\n  }\n\n'''
+if direct_card not in text:
+    if text.count(card_anchor) != 1:
+        raise SystemExit('RC628 compact-card anchor not unique')
+    text = text.replace(card_anchor, direct_card + card_anchor, 1)
 
 path.write_text(text, encoding='utf-8')
 print('RC990 canonical task-grid selectors promoted successfully')
