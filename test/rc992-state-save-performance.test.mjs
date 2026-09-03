@@ -37,3 +37,37 @@ test('RC992: kleine Delta-Änderung kopiert unveränderte große Sammlungen nich
   assert.equal(merged.tasks[0].done,true);
   assert.equal(merged.tasks[0].status,'erledigt');
 });
+
+test('RC992: geänderte Sendung kopiert andere unveränderte Sendungen derselben Sammlung nicht tief',()=>{
+  let deepReads=0;
+  const expensivePayload={};
+  Object.defineProperty(expensivePayload,'documentBody',{
+    enumerable:true,
+    get(){deepReads++;return 'x'.repeat(1024)}
+  });
+
+  const unchanged={
+    id:'S2',
+    ref:'DEF456',
+    updatedAt:'2026-09-03T10:00:00.000Z',
+    deliveryFiles:[{id:'D2',name:'POD.pdf',payload:expensivePayload}]
+  };
+  const server={
+    shipments:[
+      {id:'S1',ref:'ABC123',status:'Erstellt',updatedAt:'2026-09-03T10:00:00.000Z'},
+      unchanged
+    ],
+    _teamSyncMeta:{fields:{},tombstones:[]}
+  };
+  const incoming={
+    shipments:[{id:'S1',ref:'ABC123',status:'Bereit zur Abholung',updatedAt:'2026-09-03T11:00:00.000Z'}],
+    _teamSyncMeta:{fields:{},tombstones:[]}
+  };
+
+  const merged=mergeState(server,incoming);
+  const unchangedAfter=merged.shipments.find(item=>item.ref==='DEF456');
+
+  assert.equal(deepReads,0,'Nicht geänderte Sendung innerhalb der Sammlung wurde tief kopiert');
+  assert.strictEqual(unchangedAfter,unchanged,'Nicht geänderter Datensatz soll strukturell wiederverwendet werden');
+  assert.equal(merged.shipments.find(item=>item.ref==='ABC123').status,'Bereit zur Abholung');
+});
