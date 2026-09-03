@@ -1,0 +1,79 @@
+name: RC994 Drag Diagnostics
+
+on:
+  push:
+    branches:
+      - rc994-drag-performance
+    paths:
+      - '.github/workflows/rc994-drag-diagnostics.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect task and warehouse drag hotpaths
+        run: |
+          mkdir -p diagnostics
+          python3 - <<'PY' > diagnostics/rc994-drag-hotpaths.txt
+          from pathlib import Path
+          import re
+
+          s=Path('TESTVERSION.html').read_text(encoding='utf-8')
+          terms=re.compile(r'dragstart|dragend|dragover|drop|draggable|aufgaben|tasks|lager|warehouse',re.I)
+          callpat=re.compile(r'\b(?:render|requestRender|scheduleRender|save|saveState|persist|queueSave|flush)\s*\(',re.I)
+
+          def line(i): return s.count('\n',0,i)+1
+          def nearest_fn(i):
+            a=max(0,i-16000)
+            ms=list(re.finditer(r'(?:window\.)?([A-Za-z0-9_$]+)\s*=\s*function\s*\(|function\s+([A-Za-z0-9_$]+)\s*\(',s[a:i]))
+            if not ms:return '(unknown)'
+            m=ms[-1]
+            return m.group(1) or m.group(2) or '(unknown)'
+
+          print('=== Drag/drop handlers with render/save calls nearby ===')
+          seen=set()
+          for m in re.finditer(r'ondragstart|ondragend|ondragover|ondrop|addEventListener\(["\'](?:dragstart|dragend|dragover|drop)',s,re.I):
+            a=max(0,m.start()-4500); b=min(len(s),m.start()+7000)
+            w=s[a:b]
+            if not re.search(r'aufgaben|task|lager|warehouse|planner|kanban',w,re.I): continue
+            fn=nearest_fn(m.start())
+            key=(fn,line(m.start()))
+            if key in seen: continue
+            seen.add(key)
+            calls=sorted(set(x.group(0) for x in callpat.finditer(w)))
+            print(f'LINE={line(m.start())} FN={fn} HANDLER={m.group(0)} CALLS={calls}')
+            print(' '.join(w.split())[:5000])
+            print('---')
+
+          print('\n=== Named drag/drop functions ===')
+          for m in re.finditer(r'(?:window\.)?([A-Za-z0-9_$]*(?:drag|drop|move|reorder)[A-Za-z0-9_$]*)\s*=\s*function\s*\(|function\s+([A-Za-z0-9_$]*(?:drag|drop|move|reorder)[A-Za-z0-9_$]*)\s*\(',s,re.I):
+            name=m.group(1) or m.group(2)
+            a=m.start(); b=min(len(s),a+6500)
+            w=s[a:b]
+            if not re.search(r'aufgaben|task|lager|warehouse|planner|kanban',w,re.I): continue
+            calls=sorted(set(x.group(0) for x in callpat.finditer(w)))
+            print(f'LINE={line(a)} FN={name} CALLS={calls}')
+            print(' '.join(w.split())[:6000])
+            print('---')
+
+          print('\n=== render calls with drag context ===')
+          for m in callpat.finditer(s):
+            a=max(0,m.start()-3500); b=min(len(s),m.start()+3500)
+            w=s[a:b]
+            if re.search(r'drag|drop',w,re.I) and re.search(r'aufgaben|task|lager|warehouse|planner|kanban',w,re.I):
+              print(f'LINE={line(m.start())} FN={nearest_fn(m.start())} CALL={m.group(0)}')
+              print(' '.join(w.split())[:4200])
+              print('---')
+          PY
+          cat diagnostics/rc994-drag-hotpaths.txt
+      - name: Commit diagnostic report
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add diagnostics/rc994-drag-hotpaths.txt
+          git commit -m 'RC994: Drag-Hotpath-Diagnose sichern'
+          git push
