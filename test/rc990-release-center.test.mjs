@@ -33,9 +33,12 @@ test('RC990: Build ist auf RC990 angehoben',()=>{
 test('RC990: Release-Center besitzt stabilen Positions-Snapshot mit Änderungsanker',()=>{
   const capture=fn('rc990CaptureReleasePosition');
   const restore=fn('rc990RestoreReleasePosition');
+  const baseCapture=fn('captureReleaseScroll');
   assert.ok(capture,'rc990CaptureReleasePosition fehlt');
   assert.ok(restore,'rc990RestoreReleasePosition fehlt');
-  for(const token of ['pageY','rootTop','key','anchorTop'])assert.match(capture,new RegExp(token));
+  assert.match(capture,/captureReleaseScroll\s*\(/,'RC990 muss die bestehende Scroll-Snapshot-Schnittstelle verwenden');
+  for(const token of ['pageY','rootTop'])assert.match(baseCapture,new RegExp(token),`Basis-Snapshot enthält ${token} nicht`);
+  for(const token of ['key','anchorTop'])assert.match(capture,new RegExp(token),`RC990-Anker enthält ${token} nicht`);
   assert.match(html,/data-rc990-change-key/);
   assert.match(restore,/anchorTop|pageY/);
 });
