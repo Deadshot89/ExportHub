@@ -79,6 +79,12 @@ RC990_STYLE = r'''<style id="rc990-design-system">
   }
 
   /* RC990 task tile grid: current RC628 task lists and planner lists are compact responsive grids. */
+  #content .rc229-task-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: var(--rc990-card-gap) !important;
+    align-items: start !important;
+  }
   body[data-exporthub-view="tasks"] #content .rc229-task-grid {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -100,6 +106,24 @@ RC990_STYLE = r'''<style id="rc990-design-system">
     grid-column: 1 / -1;
   }
 
+  /* Current tasks section shells: visible RC990 hierarchy without changing task logic. */
+  #content .rc229-day-section {
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f8fd 100%) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    border-radius: calc(var(--rc990-radius) + 2px) !important;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, .05) !important;
+    padding: 12px !important;
+  }
+  #content .rc229-task-group {
+    background: rgba(255,255,255,.72) !important;
+    border: 1px solid #d7e7f4 !important;
+    border-radius: var(--rc990-radius) !important;
+    overflow: hidden !important;
+  }
+  #content .rc229-task-group > :first-child {
+    background: #eef7fd !important;
+  }
+
   /* RC990 task card identity: compact, clearly bounded and fast to scan. */
   body[data-exporthub-view="tasks"] #content :is(.task, .rc205-planner-task, .rc229-task-card.rc628-unified-task),
   body[data-exporthub-view="planning"] #content .rc205-planner-task {
@@ -118,20 +142,40 @@ RC990_STYLE = r'''<style id="rc990-design-system">
     overflow: hidden;
   }
 
+  #content .rc229-task-card.rc628-unified-task {
+    position: relative;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    background: linear-gradient(180deg, var(--rc990-surface) 0%, var(--rc990-surface-soft) 100%) !important;
+    border: 1px solid var(--rc990-card-border) !important;
+    border-left: 5px solid var(--rc990-task-accent) !important;
+    box-shadow: var(--rc990-card-shadow) !important;
+    padding: 12px 14px !important;
+    border-radius: var(--rc990-radius) !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
+  }
+
   /* RC628 cards previously reserved too much vertical space; RC990 keeps all information but removes empty padding. */
+  #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer),
   body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task :is(.rc628-task-ref, .rc628-task-customer) {
     min-height: 0 !important;
     padding: 8px 10px !important;
     border-radius: 10px !important;
     line-height: 1.25 !important;
   }
+  #content .rc229-task-card.rc628-unified-task .rc628-task-customer,
   body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-customer {
     font-size: 15px !important;
   }
+  #content .rc229-task-card.rc628-unified-task .rc628-task-status,
   body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-status {
     min-height: 0 !important;
     gap: 5px !important;
   }
+  #content .rc229-task-card.rc628-unified-task .rc628-task-status :is(.pill, span),
   body[data-exporthub-view="tasks"] #content .rc229-task-card.rc628-unified-task .rc628-task-status :is(.pill, span) {
     padding: 3px 8px !important;
     font-size: 10px !important;
@@ -255,6 +299,7 @@ RC990_STYLE = r'''<style id="rc990-design-system">
 
   @media (max-width: 1000px) {
     /* RC990 task tile grid: two columns on medium screens. */
+    #content .rc229-task-grid,
     body[data-exporthub-view="tasks"] #content .rc229-task-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
@@ -283,6 +328,7 @@ RC990_STYLE = r'''<style id="rc990-design-system">
 
   @media (max-width: 700px) {
     /* RC990 task tile grid: one column on phones. */
+    #content .rc229-task-grid,
     body[data-exporthub-view="tasks"] #content .rc229-task-grid {
       grid-template-columns: minmax(0, 1fr) !important;
     }
