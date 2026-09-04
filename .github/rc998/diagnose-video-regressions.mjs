@@ -1,47 +1,46 @@
 import fs from 'node:fs';
 
 const files=['TESTVERSION.html','index.html'];
-const probes=[
-  ['startup-timeouts',/14000|14\s|24000|24\s|AbortController|timeout|Teamdaten werden geladen|Azure-Teamdaten/gi],
-  ['startup-read-owner',/verifySessionForLoad|loadTeam|teamRead|readTeam|bootstrap-status|mode=meta|exporthub-state/gi],
-  ['shipment-cache-owner',/RC725|viewCache|cachedView|cacheView|restoreView|DocumentFragment|detach|heavy views|shipment.*cache|cache.*shipment/gi],
-  ['shipment-layout-owner',/RC978|rc978|ResizeObserver|container-type|container-name|offsetWidth|clientWidth|getBoundingClientRect|grid-template-columns/gi],
-  ['shipment-view-owner',/exporthub-rc776-shipment-view|index298-stable-navigation-shipment|rc373-shipment-controller|scheduleLayout|layout.*shipment|shipment.*layout/gi],
-  ['release-owner',/var RELEASE=Object\.freeze|ExportHUBBuild|renderUpdate|Update ExportHUB|production-update-indicator/gi],
+const groups=[
+  {name:'startup-exact', terms:['14000','24000','Teamdaten werden geladen','Azure-Teamdaten werden geladen','ExportHUB wird vorbereitet','readTeam()','readTeam(','verifySessionForLoad','RC877']},
+  {name:'cache-exact', terms:['RC725','viewCache','cachedView','restoreView','cacheView','DocumentFragment','detach','replaceChildren','appendChild','heavyViews','heavy views']},
+  {name:'layout-exact', terms:['RC978','ResizeObserver','container-type','container-name','clientWidth','offsetWidth','getBoundingClientRect','shipment-entry-layout','shipment-layout']},
+  {name:'release-exact', terms:["var RELEASE=Object.freeze","Release-Center Produktionspaket abgesichert",'Update ExportHUB']},
 ];
 
-function context(text,index,radius=1800){
-  const start=Math.max(0,index-radius),end=Math.min(text.length,index+radius);
-  return text.slice(start,end).replace(/\s+/g,' ');
+function squash(s){return s.replace(/\s+/g,' ');}
+function excerpt(text,pos,radius=6500){return squash(text.slice(Math.max(0,pos-radius),Math.min(text.length,pos+radius)));}
+function positions(text,term,max=12){
+  const out=[];let from=0;
+  while(out.length<max){
+    const p=text.indexOf(term,from);if(p<0)break;out.push(p);from=p+Math.max(1,term.length);
+  }
+  return out;
 }
 
 for(const file of files){
   const text=fs.readFileSync(file,'utf8');
   console.log(`\n===== ${file} bytes=${text.length} =====`);
-  for(const [name,re] of probes){
-    re.lastIndex=0;
-    const hits=[];
-    let m;
-    while((m=re.exec(text))){
-      hits.push({index:m.index,match:m[0]});
-      if(hits.length>=20) break;
-      if(m[0].length===0) re.lastIndex++;
+  for(const group of groups){
+    console.log(`\n######## ${group.name} ########`);
+    for(const term of group.terms){
+      const ps=positions(text,term);
+      console.log(`\n--- ${JSON.stringify(term)} positions: ${ps.join(', ')} ---`);
+      for(const p of ps.slice(0,6)) console.log(`@${p} ${excerpt(text,p)}`);
     }
-    console.log(`\n--- ${name}: ${hits.length} first hits ---`);
-    for(const h of hits.slice(0,12)) console.log(`@${h.index} [${h.match}] ${context(text,h.index)}`);
   }
 
-  const ids=['exporthub-rc776-shipment-view','index298-stable-navigation-shipment-style','exporthub-rc373-shipment-controller','exporthub-rc741-production-update-indicator','exporthub-canonical-build-source'];
-  for(const id of ids){
-    const pos=text.indexOf(`id="${id}"`)>=0?text.indexOf(`id="${id}"`):text.indexOf(`id='${id}'`);
-    console.log(`\n--- exact-id ${id} @${pos} ---`);
-    if(pos>=0) console.log(context(text,pos,5000));
-  }
-
-  for(const term of ['RC877','RC725','RC978']){
-    const positions=[];let from=0;
-    while((from=text.indexOf(term,from))>=0&&positions.length<8){positions.push(from);from+=term.length;}
-    console.log(`\n--- exact-term ${term}: ${positions.join(', ')} ---`);
-    positions.forEach(pos=>console.log(context(text,pos,2500)));
+  // Function-like owners around cache and startup markers.
+  const ownerRegexes=[
+    /function\s+[A-Za-z0-9_$]*(?:cache|Cache|restore|Restore|view|View)[A-Za-z0-9_$]*\s*\([^)]*\)\s*\{/g,
+    /(?:async\s+)?function\s+[A-Za-z0-9_$]*(?:team|Team|load|Load|boot|Boot|start|Start)[A-Za-z0-9_$]*\s*\([^)]*\)\s*\{/g,
+    /(?:const|let|var)\s+[A-Za-z0-9_$]*(?:cache|Cache|restore|Restore|team|Team|boot|Boot)[A-Za-z0-9_$]*\s*=\s*(?:async\s*)?\([^)]*\)\s*=>\s*\{/g,
+  ];
+  console.log('\n######## function owners ########');
+  for(const re of ownerRegexes){
+    let m,count=0;re.lastIndex=0;
+    while((m=re.exec(text))&&count<30){
+      console.log(`@${m.index} ${m[0]} ${excerpt(text,m.index,3500)}`);count++;
+    }
   }
 }
