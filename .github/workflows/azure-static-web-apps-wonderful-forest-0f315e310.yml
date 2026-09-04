@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     name: Deploy ExportHUB production
 
     steps:
@@ -31,14 +31,16 @@ jobs:
           lfs: false
           fetch-depth: 2
 
-      - name: Verify Release-Center production package
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Verify Release-Center trigger
         shell: bash
         run: |
           set -euo pipefail
-
           echo "Prüfe Produktionsfreigabe ..."
-
-          # Der Trigger darf nur von der Release-Center-Markierungsdatei kommen.
           changed="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" || true)"
           echo "$changed"
           echo "$changed" | grep -Fxq 'production-version.js' || {
@@ -46,39 +48,92 @@ jobs:
             exit 1
           }
 
-          # Verbindliche Produktionsdateien.
-          test -f index.html
           test -f production-version.js
+          marker_version="$(node -e "const s=require('fs').readFileSync('production-version.js','utf8');const m=s.match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__\\s*=\\s*['\\\"](RC\\d+)['\\\"]/);if(!m)process.exit(2);process.stdout.write(m[1]);")"
+          echo "Release-Center Marker: $marker_version"
+          if [[ "$marker_version" != "RC997" ]]; then
+            echo "FEHLER: Dieser geprüfte Produktionspfad ist ausschließlich für RC997 freigegeben."
+            exit 1
+          fi
+
+      - name: Build RC997 Release-Center production package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f index.html
           test -f staticwebapp.config.json
+          test -f .github/rc997/build-three-env.mjs
           test -f api/package.json
           test -f api/exporthub-state/index.js
           test -f api/exporthub-state/function.json
           test -f api/exporthub-health/index.js
           test -f api/exporthub-health/function.json
           test -f api/shared/merge.js
+          test -f pickup.html
+          test -f customer-avis.html
+          test -f location.html
+          test -f pod-notfall.html
 
+          node --check .github/rc997/build-three-env.mjs
           node --check api/exporthub-state/index.js
           node --check api/exporthub-health/index.js
           node --check api/shared/merge.js
           node -e "JSON.parse(require('fs').readFileSync('api/exporthub-state/function.json','utf8'));JSON.parse(require('fs').readFileSync('api/exporthub-health/function.json','utf8'));JSON.parse(require('fs').readFileSync('staticwebapp.config.json','utf8'));"
 
-          # Release-Center-Marker und die kanonische Build-Version müssen identisch sein.
+          node .github/rc997/build-three-env.mjs
+
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const artifact = '.rc997_production_app';
+          fs.rmSync(artifact, { recursive: true, force: true });
+          fs.mkdirSync(artifact, { recursive: true });
+
+          const allowedTopLevel = /\.(?:html|json|js|css|svg|png|jpe?g|gif|ico|webp|woff2?|txt)$/i;
+          for (const entry of fs.readdirSync('.', { withFileTypes: true })) {
+            if (!entry.isFile() || !allowedTopLevel.test(entry.name)) continue;
+            if (entry.name === 'index.html' || entry.name === 'TESTVERSION.html' || entry.name === 'demo.html') continue;
+            if (entry.name === 'staticwebapp.config.json' || entry.name === 'staticwebapp.testservice.config.json') continue;
+            fs.copyFileSync(entry.name, path.join(artifact, entry.name));
+          }
+
+          if (fs.existsSync('assets')) fs.cpSync('assets', path.join(artifact, 'assets'), { recursive: true });
+          if (fs.existsSync('dist-rc997/assets')) fs.cpSync('dist-rc997/assets', path.join(artifact, 'assets'), { recursive: true, force: true });
+
+          fs.copyFileSync('dist-rc997/index.html', path.join(artifact, 'index.html'));
+          for (const page of ['pickup.html','customer-avis.html','location.html','pod-notfall.html']) {
+            fs.copyFileSync(page, path.join(artifact, page));
+          }
+          fs.copyFileSync('staticwebapp.config.json', path.join(artifact, 'staticwebapp.config.json'));
+          NODE
+
+          test -s .rc997_production_app/index.html
+          test -s .rc997_production_app/pickup.html
+          test -s .rc997_production_app/customer-avis.html
+          test -s .rc997_production_app/location.html
+          test -s .rc997_production_app/pod-notfall.html
+          test -s .rc997_production_app/staticwebapp.config.json
+          test -s .rc997_production_app/production-version.js
+          test -s .rc997_production_app/assets/exporthub-environment-hub.js
+          test ! -d .rc997_production_app/api
+          grep -q 'ExportHUB RC997 environment=production-candidate' .rc997_production_app/index.html
+          grep -q 'exporthub-rc997-env-hub' .rc997_production_app/index.html
+          grep -q 'Abholung bestätigen' .rc997_production_app/pickup.html
+          grep -q 'Kunden-Avis' .rc997_production_app/customer-avis.html
+
           versions="$(python3 - <<'PY'
           import re
           from pathlib import Path
-
           marker = Path('production-version.js').read_text(encoding='utf-8', errors='ignore')
-          index = Path('index.html').read_text(encoding='utf-8', errors='ignore')
-
+          index = Path('.rc997_production_app/index.html').read_text(encoding='utf-8', errors='ignore')
           m_marker = re.search(r"__EXPORTHUB_PRODUCTION_VERSION_PROBE__\s*=\s*['\"](RC\d+)['\"]", marker)
           m_block = re.search(r'<script\s+id=["\']exporthub-canonical-build-source["\'][^>]*>(.*?)</script>', index, re.S | re.I)
           m_index = re.search(r"\bversion\s*:\s*['\"](RC\d+)['\"]", m_block.group(1) if m_block else '')
-
           if not m_marker:
               raise SystemExit('FEHLER: production-version.js enthält keine gültige RC-Version.')
           if not m_index:
-              raise SystemExit('FEHLER: index.html enthält keine kanonische ExportHUB-Build-Version.')
-
+              raise SystemExit('FEHLER: RC997 Produktionsartefakt enthält keine kanonische Build-Version.')
           print(m_marker.group(1), m_index.group(1))
           PY
           )"
@@ -86,14 +141,12 @@ jobs:
           marker_version="${versions%% *}"
           index_version="${versions##* }"
           echo "Release-Center Marker: $marker_version"
-          echo "index.html Build:       $index_version"
-
-          if [[ "$marker_version" != "$index_version" ]]; then
-            echo "FEHLER: Produktionsmarker und index.html gehören nicht zur selben RC-Version."
+          echo "RC997 Artefakt Build:   $index_version"
+          if [[ "$marker_version" != "RC997" || "$index_version" != "RC997" || "$marker_version" != "$index_version" ]]; then
+            echo "FEHLER: Release-Center-Marker und RC997 Produktionsartefakt sind nicht konsistent."
             exit 1
           fi
-
-          echo "OK: Release-Center Produktionspaket $index_version ist konsistent."
+          echo "OK: Release-Center Produktionspaket RC997 ist konsistent."
 
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@v1
@@ -101,32 +154,42 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: /
+          app_location: .rc997_production_app
           api_location: api
           output_location: ""
           skip_app_build: true
 
-      - name: Verify live production API
+      - name: Verify live RC997 production
         shell: bash
         run: |
           set -euo pipefail
           base="https://wonderful-forest-0f315e310.7.azurestaticapps.net"
-          health="$base/api/exporthub-health"
-          state="$base/api/exporthub-state"
+          root_file="$(mktemp)"
+          pickup_file="$(mktemp)"
+          avis_file="$(mktemp)"
+          health_file="$(mktemp)"
+          state_file="$(mktemp)"
+          trap 'rm -f "$root_file" "$pickup_file" "$avis_file" "$health_file" "$state_file"' EXIT
 
           for attempt in {1..18}; do
-            hcode=$(curl -sS -o /tmp/eh-health -w "%{http_code}" --max-time 15 "$health" || true)
-            scode=$(curl -sS -o /tmp/eh-state -w "%{http_code}" -X OPTIONS --max-time 15 "$state" || true)
-            echo "Live-Check $attempt/18: health=$hcode state-options=$scode"
-            if [[ "$hcode" == "200" && "$scode" == "204" ]]; then
-              echo "ExportHUB Produktion und State-API sind live."
+            root_code=$(curl -sS -L --max-redirs 5 -o "$root_file" -w "%{http_code}" --max-time 20 "$base/?rc997=$GITHUB_SHA-$attempt" || true)
+            pickup_code=$(curl -sS -L --max-redirs 5 -o "$pickup_file" -w "%{http_code}" --max-time 20 "$base/pickup.html?rc997=$GITHUB_SHA-$attempt" || true)
+            avis_code=$(curl -sS -L --max-redirs 5 -o "$avis_file" -w "%{http_code}" --max-time 20 "$base/customer-avis.html?rc997=$GITHUB_SHA-$attempt" || true)
+            hcode=$(curl -sS -o "$health_file" -w "%{http_code}" --max-time 15 "$base/api/exporthub-health" || true)
+            scode=$(curl -sS -o "$state_file" -w "%{http_code}" -X OPTIONS --max-time 15 "$base/api/exporthub-state" || true)
+            echo "Live-Check $attempt/18: root=$root_code pickup=$pickup_code avis=$avis_code health=$hcode state-options=$scode"
+            if [[ "$root_code" == "200" && "$pickup_code" == "200" && "$avis_code" == "200" && "$hcode" == "200" && "$scode" == "204" ]] \
+              && grep -q 'ExportHUB RC997 environment=production-candidate' "$root_file" \
+              && grep -q 'Abholung bestätigen' "$pickup_file" \
+              && grep -q 'Kunden-Avis' "$avis_file"; then
+              echo "ExportHUB RC997 Produktion, externe Seiten und State-API sind live."
               exit 0
             fi
             sleep 10
           done
 
-          echo "FEHLER: Produktions-API wurde nach dem Deploy nicht vollständig bestätigt."
-          echo "Health Antwort:"; cat /tmp/eh-health 2>/dev/null || true
+          echo "FEHLER: RC997 Produktion wurde nach dem Deploy nicht vollständig bestätigt."
+          echo "Health Antwort:"; cat "$health_file" 2>/dev/null || true
           echo
-          echo "State Antwort:"; cat /tmp/eh-state 2>/dev/null || true
+          echo "State Antwort:"; cat "$state_file" 2>/dev/null || true
           exit 1
