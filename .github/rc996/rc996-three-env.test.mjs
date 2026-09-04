@@ -9,7 +9,7 @@ const BUILD = '.github/rc996/build-three-env.mjs';
 const HUB = 'assets/exporthub-environment-hub.js';
 const DEMO = 'assets/exporthub-demo-bootstrap.js';
 const PROD_APPLY = '.github/rc996/apply-production.mjs';
-const WORKFLOW = '.github/workflows/exporthub-testservice.yml';
+const WORKFLOW = '.github/workflows/rc996-three-env.yml';
 
 test('RC996 besitzt einen reproduzierbaren Drei-Umgebungen-Build', () => {
   assert.equal(exists(BUILD), true, `${BUILD} fehlt`);
@@ -45,11 +45,13 @@ test('Demo isoliert Speicher und blockiert echte ExportHUB API-Aufrufe', () => {
   assert.match(src, /Warnung/);
 });
 
-test('TESTSERVICE Workflow führt RC996-Build aus und nimmt Demo/Assets mit', () => {
+test('RC996 Workflow baut und deployt TESTSERVICE plus Demo isoliert', () => {
   const src = read(WORKFLOW);
   assert.match(src, /build-three-env\.mjs/);
-  assert.match(src, /demo\.html/);
+  assert.match(src, /dist-rc996\/demo\.html/);
   assert.match(src, /assets\/exporthub-environment-hub\.js/);
+  assert.match(src, /deployment_environment:\s*testservice/);
+  assert.match(src, /github\.ref == 'refs\/heads\/main'/);
 });
 
 test('Produktionsanwendung bleibt ein separater Release-Center-Schritt', () => {
