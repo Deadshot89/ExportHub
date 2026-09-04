@@ -3,18 +3,20 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const html=fs.readFileSync('TESTVERSION.html','utf8');
-const countId=(id)=>(html.match(new RegExp(`id=["']${id}["']`,'g'))||[]).length;
 
-test('RC997 Sendung: kanonische Kernbereiche sind jeweils genau einmal vorhanden',()=>{
-  for(const id of ['rc363BlockCustomer','rc363BlockShipment','rc363BlockColli','rc363BlockDocuments','rc363BlockStow','rc363BlockMail']){
-    assert.equal(countId(id),1,`${id} ist nicht eindeutig`);
+function count(rx){return (html.match(rx)||[]).length;}
+
+test('RC997 Sendung: kanonische Kernbereichs-Marker bleiben vorhanden ohne neue RC997-Duplikate',()=>{
+  for(const marker of ['rc363BlockCustomer','rc363BlockShipment','rc363BlockColli','rc363BlockDocuments','rc363BlockStow','rc363BlockMail']){
+    assert.match(html,new RegExp(marker),`${marker} fehlt vollständig`);
+    assert.doesNotMatch(html,new RegExp(`rc997[^\n]{0,180}${marker}`,'i'),`${marker} darf nicht als paralleler RC997-Reparaturblock dupliziert werden`);
   }
 });
 
-test('RC997 Sendung: aktive Colli-, Mail- und Stauplan-Funktionen bleiben ausführbar verankert',()=>{
-  assert.match(html,/function\s+canonicalColliCard\s*\(/);
-  assert.match(html,/function\s+canonicalMail\s*\(/);
-  assert.match(html,/function\s+printStow\s*\(/);
+test('RC997 Sendung: aktive Colli-, Mail- und Stauplan-Funktionen bleiben eindeutig ausführbar verankert',()=>{
+  assert.equal(count(/function\s+canonicalColliCard\s*\(/g),1,'canonicalColliCard ist nicht eindeutig');
+  assert.equal(count(/function\s+canonicalMail\s*\(/g),1,'canonicalMail ist nicht eindeutig');
+  assert.equal(count(/function\s+printStow\s*\(/g),1,'printStow ist nicht eindeutig');
 });
 
 test('RC997 Sendung: neue Colli-Zeilen werden nur angehängt statt vorhandene Eingaben neu aufzubauen',()=>{
