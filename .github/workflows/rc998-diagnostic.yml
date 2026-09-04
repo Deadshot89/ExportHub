@@ -1,0 +1,51 @@
+name: RC998 Diagnose
+
+on:
+  push:
+    branches:
+      - rc998-video-hardening
+    paths:
+      - '.github/workflows/rc998-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+      - name: Extract RC998 owner snippets
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const src=fs.readFileSync('TESTVERSION.html','utf8');
+          const needles=[
+            'RC877','RC725','14000','24000','14e3','24e3','RELEASE','release:',
+            'viewCache','view-cache','cachedView','cacheView','restoreView','attachView','shipment'
+          ];
+          function printAround(needle){
+            let from=0,count=0;
+            while(count<8){
+              const i=src.indexOf(needle,from); if(i<0)break;
+              const a=Math.max(0,i-550),b=Math.min(src.length,i+needle.length+900);
+              console.log(`\n===== ${needle} @ ${i} =====\n${src.slice(a,b)}\n`);
+              from=i+needle.length; count++;
+            }
+            if(count===0)console.log(`\n===== ${needle}: no literal match =====`);
+          }
+          needles.forEach(printAround);
+          const releasePatterns=[
+            /var\s+RELEASE\s*=.{0,500}/g,
+            /const\s+RELEASE\s*=.{0,500}/g,
+            /RELEASE\s*=\s*Object\.freeze\(.{0,800}/g,
+            /version:'RC\d+',cache:'\d+'.{0,1000}/g
+          ];
+          for(const rx of releasePatterns){
+            const m=src.match(rx); console.log(`\n===== RX ${rx} =====\n${m?m.slice(0,8).join('\n---\n'):'no match'}`);
+          }
+          NODE
