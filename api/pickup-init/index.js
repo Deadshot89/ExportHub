@@ -1,20 +1,23 @@
 'use strict';
+const access=require('../shared/public-access-store');
 const store=require('../shared/pickup-store');
-const pins=require('../shared/loader-pin-store');
+const auth=require('../shared/auth-store');
+
 function text(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
-function count(v){const n=Math.round(Number(v));return Number.isFinite(n)&&n>0?n:0}
-function carrier(body,existing){return store.sanitizeText(body.carrierName||body.speditionName||body.carrier||body.spedition||(existing&&(existing.carrierName||existing.speditionName||existing.carrier||existing.spedition))||'',180)}
-function clearConfirmation(r){['confirmedAt','driverName','licensePlate','loaderName','loaderId','signatureBlobName','signatureType','signatureSize','signatureStoredAt','uploadKeyHash','uploadKeyExpiresAt'].forEach(k=>delete r[k]);r.status='open';r.failedAttempts=0;r.lockedUntil=null;r.returnedEuroPallets=0;r.enteredColliCount=0;r.colliCountConfirmed=false;r.colliConfirmed=false;r.pickupColliCountConfirmed=false;r.podType='';r.podFiles=[];return r}
+function rowsOf(src){for(const k of ['rows','colli','collis','packages','packageRows'])if(Array.isArray(src&&src[k])&&src[k].length)return src[k];return[]}
+function carrier(src){return store.sanitizeText(src.carrierName||src.speditionName||src.carrier||src.spedition||'',180)}
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=store.json(204,{}, {Allow:'POST, OPTIONS'});return}
  if(req.method!=='POST'){context.res=store.json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'},{Allow:'POST, OPTIONS'});return}
  try{
-  const b=store.body(req),token=text(b.token).toLowerCase();if(!store.validToken(token))throw store.err('INVALID_TOKEN','Ungültiger QR-Code.',400);
-  const expected=store.expectedCollis(b);if(!expected)throw store.err('COLLI_REQUIRED','Die Soll-Colli-Anzahl fehlt. Bitte die Sendung mit vollständigen Colli-Daten speichern.',400);const physicalRows=Array.isArray(b.rows)?b.rows:Array.isArray(b.colli)?b.colli:Array.isArray(b.collis)?b.collis:Array.isArray(b.packages)?b.packages:[];
-  const c=await store.clients(),blob=store.recordBlob(c.records,token);let current=await store.readJson(blob),existing=current.value||{},record=Object.assign({},existing),spedition=carrier(b,existing);
-  if((b.resetPickup===true||b.reactivate===true)&&existing){record=clearConfirmation(record)}
-  record.token=token;record.reference=text(b.reference||b.shipmentRef||existing.reference);record.shipmentId=text(b.shipmentId||existing.shipmentId);record.customer=text(b.customerName||b.customer||b.recipientCustomerName||existing.customer);record.recipient=text(b.recipient||b.recipientName||existing.recipient);record.address=text(b.recipientAddress||b.deliveryAddress||b.shipToAddress||b.address||existing.address);record.locationName=text(b.locationName||existing.locationName);record.palletOut=Math.max(0,Number(b.palletOut||b.euroPallets||existing.palletOut||0)||0);if(physicalRows.length)record.rows=physicalRows.map(row=>store.clone(row));record.expectedColliCount=expected;record.colliCount=expected;record.totalColli=expected;record.packageCount=expected;if(spedition){record.carrierName=spedition;record.speditionName=spedition;record.carrier=spedition;record.spedition=spedition}record.pinHash=store.hash(pins.bridgePin());record.disabled=Boolean(b.disabled===true||b.active===false);record.createdAt=existing.createdAt||store.now();record.updatedAt=store.now();record.expiresAt=existing.expiresAt||new Date(Date.now()+Math.max(1,Number(b.expiresDays||180))*86400000).toISOString();record.registrationVersion='RC960';record.metadataVersion=15;if(!record.status)record.status='open';
-  for(let attempt=0;attempt<4;attempt++){try{await store.writeJson(blob,record,current.etag);break}catch(e){if(!(e&&e.statusCode===412)||attempt===3)throw e;current=await store.readJson(blob);existing=current.value||{};record=Object.assign({},existing,record)}}
-  context.res=store.json(200,Object.assign({registered:true},store.publicRecord(record)));
- }catch(e){context.log&&context.log.error&&context.log.error('pickup-init RC960',e&&e.code,e&&e.message);context.res=store.json(e.status||500,{ok:false,code:e.code||'INIT_FAILED',message:e.message||'QR-Code konnte nicht registriert werden.'})}
+  const session=await auth.validateSession(req);if(!auth.hasAnyEditRight(session.user))throw auth.error('WRITE_FORBIDDEN','Für das Erstellen eines Abhol-QR-Codes fehlen Bearbeitungsrechte.',403);
+  const b=store.body(req),src=b.shipment&&typeof b.shipment==='object'?Object.assign({},b.shipment,b):b,reference=text(src.reference||src.ref||src.shipmentRef).toUpperCase(),shipmentId=text(src.shipmentId||src.id||reference),rows=rowsOf(src),expected=store.expectedCollis(Object.assign({},src,{rows}));
+  if(!shipmentId||!reference)throw store.err('SHIPMENT_REQUIRED','Sendung oder Referenz fehlt.',400);if(!expected)throw store.err('COLLI_REQUIRED','Die Soll-Colli-Anzahl fehlt. Bitte die Sendung mit vollständigen Colli-Daten speichern.',400);
+  const ttlDays=Math.min(30,Math.max(1,Number(b.expiresDays||src.expiresDays||14)||14));
+  const snapshot={shipmentId,reference,customer:text(src.customerName||src.customer||src.recipientCustomerName),recipient:text(src.recipient||src.recipientName),address:text(src.recipientAddress||src.deliveryAddress||src.shipToAddress||src.address),locationName:text(src.locationName),carrierName:carrier(src),palletOut:Math.max(0,Number(src.palletOut||src.euroPallets||0)||0),rows:store.clone(rows),expectedColliCount:expected,plannedPickupDate:text(src.pickdate||src.plannedPickupDate||src.pickupDate)};
+  const issued=await access.issue(req,'pickup',{subjectId:shipmentId,shipmentId,reference,snapshot,actor:session.user.name||session.user.user||'ExportHUB'},ttlDays*86400000,b);
+  const c=await store.clients(issued.environment),record={schemaVersion:2,registrationVersion:'RC995',metadataVersion:16,environment:issued.environment,accessKey:issued.tokenHash,shipmentId,reference,customer:snapshot.customer,recipient:snapshot.recipient,address:snapshot.address,locationName:snapshot.locationName,carrierName:snapshot.carrierName,speditionName:snapshot.carrierName,carrier:snapshot.carrierName,spedition:snapshot.carrierName,palletOut:snapshot.palletOut,rows:snapshot.rows,expectedColliCount:expected,colliCount:expected,totalColli:expected,packageCount:expected,status:'open',createdAt:store.now(),updatedAt:store.now(),expiresAt:issued.expiresAt,failedAttempts:0,lockedUntil:null,podFiles:[]};
+  await store.writeJson(store.recordBlob(c.records,issued.tokenHash,issued.environment),record,null);
+  context.res=store.json(200,Object.assign({ok:true,registered:true,token:issued.token,environment:issued.environment,oneTime:true,version:'RC995'},store.publicRecord(record,issued.token)));
+ }catch(e){context.log&&context.log.error&&context.log.error('pickup-init RC995',e&&e.code,e&&e.message);context.res=store.json(e.status||e.statusCode||500,{ok:false,code:e.code||'INIT_FAILED',message:e.message||'QR-Code konnte nicht registriert werden.'})}
 };

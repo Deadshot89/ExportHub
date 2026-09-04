@@ -39,6 +39,26 @@ function isObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
+
+const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','pickupToken','pickupQrToken','qrToken'];
+function stripPublicAccessSecrets(state) {
+  if (!isObject(state)) return state;
+  const out = clone(state) || {};
+  const strip = (shipment) => {
+    if (!isObject(shipment)) return shipment;
+    const next = clone(shipment) || {};
+    for (const key of PUBLIC_ACCESS_SECRET_KEYS) delete next[key];
+    return next;
+  };
+  ['shipments','savedShipments','shipmentArchive','archivedShipments'].forEach((key) => {
+    if (Array.isArray(out[key])) out[key] = out[key].map(strip);
+  });
+  ['shipment','currentShipment','selectedShipment'].forEach((key) => {
+    if (isObject(out[key])) out[key] = strip(out[key]);
+  });
+  return out;
+}
+
 function itemKey(item, fields, fallbackIndex) {
   if (!item || typeof item !== 'object') return `index:${fallbackIndex}`;
   for (const field of fields || []) {
@@ -416,7 +436,7 @@ function mergeState(serverState, incomingState) {
   if (Object.keys(out.deliveryFileDeletionLedger).length) out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
 
   out._teamSyncMeta = mergedMeta;
-  return out;
+  return stripPublicAccessSecrets(out);
 }
 
 function mergeUsers(serverUsers, incomingUsers, meta) {
@@ -432,7 +452,7 @@ function sanitizeState(state) {
   }
   if (!isObject(out._teamSyncMeta)) out._teamSyncMeta = { fields: {}, tombstones: [] };
   out._teamSyncMeta.tombstones = normalizeTombstones(out._teamSyncMeta);
-  return out;
+  return stripPublicAccessSecrets(out);
 }
 
 function pruneTombstones(state, maxAgeDays = 365) {
