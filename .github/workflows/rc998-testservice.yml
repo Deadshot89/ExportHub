@@ -1,0 +1,143 @@
+name: RC998 TESTSERVICE
+
+on:
+  push:
+    branches:
+      - rc998-video-hardening
+    paths:
+      - '.github/workflows/rc998-testservice.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc998-testservice-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify_and_deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: RC998 Regressionen
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          node --test .github/rc998/rc998-video-hardening.test.mjs
+          node .github/rc998/diagnose-video-regressions.mjs
+          grep -q "version:'RC998'" index.html
+          grep -q "version:'RC998'" TESTVERSION.html
+          grep -q 'RC997' production-version.js
+          if grep -q 'RC998' production-version.js; then
+            echo 'Produktionsmarker darf vor Freigabe nicht RC998 sein.' >&2
+            exit 1
+          fi
+
+      - name: RC998 TESTSERVICE Paket bauen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const out='.rc998_testservice_app';
+          fs.rmSync(out,{recursive:true,force:true});
+          fs.mkdirSync(out,{recursive:true});
+          const allowed=/\.(?:html|json|js|css|svg|png|jpe?g|gif|ico|webp|woff2?|txt)$/i;
+          for(const entry of fs.readdirSync('.',{withFileTypes:true})){
+            if(!entry.isFile()||!allowed.test(entry.name))continue;
+            if(['index.html','TESTVERSION.html','staticwebapp.config.json','staticwebapp.testservice.config.json'].includes(entry.name))continue;
+            fs.copyFileSync(entry.name,path.join(out,entry.name));
+          }
+          if(fs.existsSync('assets'))fs.cpSync('assets',path.join(out,'assets'),{recursive:true});
+          fs.copyFileSync('TESTVERSION.html',path.join(out,'index.html'));
+          fs.copyFileSync('TESTVERSION.html',path.join(out,'TESTVERSION.html'));
+          for(const page of ['pickup.html','customer-avis.html','location.html','pod-notfall.html']){
+            if(!fs.existsSync(page))throw new Error(`Pflichtseite fehlt: ${page}`);
+            fs.copyFileSync(page,path.join(out,page));
+          }
+          const config=fs.existsSync('staticwebapp.testservice.config.json')?'staticwebapp.testservice.config.json':'staticwebapp.config.json';
+          fs.copyFileSync(config,path.join(out,'staticwebapp.config.json'));
+          NODE
+          test -s .rc998_testservice_app/index.html
+          test -s .rc998_testservice_app/TESTVERSION.html
+          test -s .rc998_testservice_app/pickup.html
+          test -s .rc998_testservice_app/customer-avis.html
+          grep -q "version:'RC998'" .rc998_testservice_app/index.html
+          grep -q "version:'RC998'" .rc998_testservice_app/TESTVERSION.html
+
+      - name: API Runtime prüfen
+        working-directory: api
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules
+          npm install --omit=dev --no-audit --no-fund
+          node --check shared/public-access-store.js
+          node --check shared/pickup-store.js
+          node --check pickup-init/index.js
+          node --check pickup-status/index.js
+          node --check pickup-confirm-v2/index.js
+          node --check pickup-pod/index.js
+          node --check customer-avis/index.js
+
+      - name: Azure Static Web Apps CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global @azure/static-web-apps-cli@2.0.10
+          swa --version
+
+      - name: Deploy RC998 TESTSERVICE
+        shell: bash
+        env:
+          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+        run: |
+          set -euo pipefail
+          test -n "${SWA_CLI_DEPLOYMENT_TOKEN:-}"
+          swa deploy ./.rc998_testservice_app \
+            --api-location ./api \
+            --swa-config-location ./.rc998_testservice_app \
+            --api-language node \
+            --api-version 20 \
+            --env testservice
+
+      - name: RC998 live verifizieren
+        shell: bash
+        env:
+          TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
+        run: |
+          set -euo pipefail
+          root_file="$(mktemp)"; test_file="$(mktemp)"; pickup_file="$(mktemp)"; avis_file="$(mktemp)"; api_file="$(mktemp)"
+          trap 'rm -f "$root_file" "$test_file" "$pickup_file" "$avis_file" "$api_file"' EXIT
+          ready=0
+          for attempt in $(seq 1 30); do
+            root_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$root_file" -w '%{http_code}' "$TEST_URL/?rc998=$GITHUB_SHA-$attempt" || true)"
+            test_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$test_file" -w '%{http_code}' "$TEST_URL/TESTVERSION.html?rc998=$GITHUB_SHA-$attempt" || true)"
+            pickup_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$pickup_file" -w '%{http_code}' "$TEST_URL/pickup.html?rc998=$GITHUB_SHA-$attempt" || true)"
+            avis_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$avis_file" -w '%{http_code}' "$TEST_URL/customer-avis.html?rc998=$GITHUB_SHA-$attempt" || true)"
+            api_code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -o "$api_file" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc998=$GITHUB_SHA-$attempt" || true)"
+            echo "Versuch $attempt: root=$root_code test=$test_code pickup=$pickup_code avis=$avis_code api=$api_code"
+            if [[ "$root_code" == 200 && "$test_code" == 200 && "$pickup_code" == 200 && "$avis_code" == 200 && "$api_code" == 200 ]] \
+              && grep -q "version:'RC998'" "$root_file" \
+              && grep -q "version:'RC998'" "$test_file" \
+              && grep -q 'Abholung bestätigen' "$pickup_file" \
+              && grep -q 'Kunden-Avis' "$avis_file"; then
+              node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(d.ok!==true)process.exit(1)' "$api_file"
+              ready=1
+              break
+            fi
+            sleep 10
+          done
+          [[ "$ready" == 1 ]]
+          echo 'RC998 TESTSERVICE live verifiziert.'
