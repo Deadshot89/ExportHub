@@ -5,7 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
-import android.app.PrintManager;
+import android.print.PrintManager;
 import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
