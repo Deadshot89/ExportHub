@@ -58,13 +58,16 @@ test('Manifest fordert Android-13-Notification-Recht an und startet EnvironmentA
   assert.match(src,/\.BootReceiver/);
 });
 
-test('Android App-Version ist RC996 und bestehende Application ID bleibt upgradefähig',()=>{
+test('Android RC996+ behält Application ID und monotone Versionsnummer',()=>{
   const gradle=read('android-app/app/build.gradle.kts');
   assert.match(gradle,/applicationId\s*=\s*"de\.exporthub\.test"/);
-  assert.match(gradle,/versionCode\s*=\s*996/);
-  assert.match(gradle,/versionName\s*=\s*"1\.0-rc996"/);
+  const code=Number((gradle.match(/versionCode\s*=\s*(\d+)/)||[])[1]||0);
+  assert.ok(code>=996,`versionCode ${code} ist kleiner als 996`);
+  const name=Number((gradle.match(/versionName\s*=\s*"1\.0-rc(\d+)"/)||[])[1]||0);
+  assert.ok(name>=996,`versionName RC${name||0} ist kleiner als RC996`);
   const info=read('android-app/APP_BUILD_INFO.txt');
-  assert.match(info,/RC996/);
+  const infoRc=Number((info.match(/Release-Kandidat:\s*RC(\d+)/)||[])[1]||0);
+  assert.ok(infoRc>=996,`Buildinfo RC${infoRc||0} ist kleiner als RC996`);
   assert.match(info,/Produktion/);
   assert.match(info,/TESTSERVICE/);
   assert.match(info,/Demo/);
