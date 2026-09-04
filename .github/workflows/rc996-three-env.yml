@@ -12,7 +12,7 @@ on:
       - 'assets/exporthub-demo-bootstrap.js'
       - 'android-app/**'
       - '.github/workflows/rc996-three-env.yml'
-      - '.github/workflows/exporthub-testservice.yml'
+      - 'staticwebapp.testservice.config.json'
 
 permissions:
   contents: read
@@ -24,14 +24,58 @@ concurrency:
 jobs:
   contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+
+      - name: RC996 JavaScript Syntax
+        run: |
+          node --check .github/rc996/build-three-env.mjs
+          node --check .github/rc996/apply-production.mjs
+          node --check assets/exporthub-environment-hub.js
+          node --check assets/exporthub-demo-bootstrap.js
+
       - name: RC996 Drei-Umgebungen-Vertrag
         run: node --test .github/rc996/rc996-three-env.test.mjs
+
+      - name: RC996 Seiten erzeugen
+        run: node .github/rc996/build-three-env.mjs
+
+      - name: RC996 erzeugte Seiten prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist-rc996/index.html
+          test -s dist-rc996/TESTVERSION.html
+          test -s dist-rc996/demo.html
+          test -s dist-rc996/assets/exporthub-environment-hub.js
+          test -s dist-rc996/assets/exporthub-demo-bootstrap.js
+          grep -q 'ExportHUB RC996 environment=production-candidate' dist-rc996/index.html
+          grep -q 'ExportHUB RC996 environment=testservice' dist-rc996/TESTVERSION.html
+          grep -q 'ExportHUB RC996 environment=demo' dist-rc996/demo.html
+          grep -q 'exporthub-rc996-demo-bootstrap' dist-rc996/demo.html
+          grep -q 'exporthub-rc996-env-hub' dist-rc996/TESTVERSION.html
+          grep -q 'RC990' production-version.js
+          if grep -q 'RC996' production-version.js; then
+            echo 'FEHLER: Produktionsmarker wurde vor Release-Center-Freigabe verändert.'
+            exit 1
+          fi
+
+      - name: Bestehende Node Regressionen
+        run: npm test
+
+      - name: RC995 Sicherheitsvertrag
+        shell: bash
+        run: |
+          node --test .github/rc995/rc995-contract.test.mjs
+          node --test .github/rc995/rc995-flow.test.cjs
+
       - name: RC996 Android-Vertrag falls vorhanden
         shell: bash
         run: |
@@ -40,3 +84,131 @@ jobs:
           else
             echo 'Android-Vertrag noch nicht vorhanden.'
           fi
+
+  android_build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: contract
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Android 16 SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Gradle 9.5
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+      - name: Android Debug APK
+        working-directory: android-app
+        run: gradle :app:assembleDebug --stacktrace
+      - name: APK Artefakt
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExportHUB-RC996-Android
+          path: android-app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy_testservice:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: [contract, android_build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: RC996 TESTSERVICE und Demo erzeugen
+        run: |
+          set -euo pipefail
+          node .github/rc996/build-three-env.mjs
+          cp dist-rc996/TESTVERSION.html TESTVERSION.html
+          cp dist-rc996/TESTVERSION.html index.html
+          cp dist-rc996/demo.html demo.html
+          cp staticwebapp.testservice.config.json staticwebapp.config.json
+          test -s assets/exporthub-environment-hub.js
+          test -s assets/exporthub-demo-bootstrap.js
+          grep -q 'ExportHUB RC996 environment=testservice' index.html
+          grep -q 'ExportHUB RC996 environment=demo' demo.html
+
+      - name: API Runtime prüfen
+        working-directory: api
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules
+          npm install --omit=dev --no-audit --no-fund
+          node --check shared/public-access-store.js
+          node --check shared/pickup-store.js
+          node --check pickup-status/index.js
+          node --check pickup-confirm-v2/index.js
+          node --check pickup-pod/index.js
+          node --check customer-avis/index.js
+
+      - name: Deploy TESTSERVICE named environment
+        id: deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: /
+          api_location: api
+          output_location: ""
+          skip_app_build: true
+          deployment_environment: testservice
+
+      - name: Live TESTSERVICE, Testseite und Demo prüfen
+        shell: bash
+        env:
+          TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
+        run: |
+          set -euo pipefail
+          root_file="$(mktemp)"
+          test_file="$(mktemp)"
+          demo_file="$(mktemp)"
+          api_file="$(mktemp)"
+          trap 'rm -f "$root_file" "$test_file" "$demo_file" "$api_file"' EXIT
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            root_code="$(curl -sS --connect-timeout 5 --max-time 20 -o "$root_file" -w '%{http_code}' "$TEST_URL/?rc996=$GITHUB_SHA-$attempt" || true)"
+            test_code="$(curl -sS --connect-timeout 5 --max-time 20 -o "$test_file" -w '%{http_code}' "$TEST_URL/TESTVERSION.html?rc996=$GITHUB_SHA-$attempt" || true)"
+            demo_code="$(curl -sS --connect-timeout 5 --max-time 20 -o "$demo_file" -w '%{http_code}' "$TEST_URL/demo.html?rc996=$GITHUB_SHA-$attempt" || true)"
+            api_code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -o "$api_file" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc996=$GITHUB_SHA-$attempt" || true)"
+            echo "Versuch $attempt: root=$root_code test=$test_code demo=$demo_code api=$api_code"
+            if [[ "$root_code" == "200" && "$test_code" == "200" && "$demo_code" == "200" && "$api_code" == "200" ]] \
+              && grep -q 'ExportHUB RC996 environment=testservice' "$root_file" \
+              && grep -q 'ExportHUB RC996 environment=testservice' "$test_file" \
+              && grep -q 'ExportHUB RC996 environment=demo' "$demo_file" \
+              && grep -q 'exporthub-rc996-demo-bootstrap' "$demo_file"; then
+              node - "$api_file" <<'NODE'
+              const fs=require('fs');
+              const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+              if(d.ok!==true)throw new Error('Auth-Probe ok=true fehlt');
+              NODE
+              ready=1
+              break
+            fi
+            sleep 10
+          done
+          if [[ "$ready" != "1" ]]; then
+            echo 'RC996 TESTSERVICE/Demo wurde nicht vollständig bereit.'
+            exit 1
+          fi
+          echo 'RC996 TESTSERVICE, TESTVERSION und Demo live verifiziert.'
