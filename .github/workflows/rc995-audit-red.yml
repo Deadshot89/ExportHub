@@ -1,0 +1,41 @@
+name: RC995 Audit + RED
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc995-audit-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit_red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC995 active anchors audit
+        shell: bash
+        run: |
+          set -u
+          echo '=== BUILD ==='
+          grep -n -m 3 "var BUILD=Object.freeze" TESTVERSION.html || true
+          echo '=== PICKUP / QR anchors ==='
+          grep -n -E -m 80 "pickup-init|pickup-status|pickup-confirm-v2|pickup\.html|QR.?Code|qrToken|pickupToken" TESTVERSION.html || true
+          echo '=== AVIS anchors ==='
+          grep -n -E -m 100 "customer-avis|customerAvis|Kunden.?Avis|avisToken|Avis-Link" TESTVERSION.html || true
+          echo '=== PRINT / PDF anchors ==='
+          grep -n -E -m 120 "Ladeliste|window\.print|print\(|PDF|jsPDF|html2canvas|qrcode|QRCode" TESTVERSION.html || true
+          echo '=== PRODUCTION MARKER ==='
+          cat production-version.js
+      - name: RC995 RED contract must fail before implementation
+        shell: bash
+        run: |
+          node --test .github/rc995/rc995-contract.test.mjs
