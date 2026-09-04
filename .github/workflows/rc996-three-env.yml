@@ -257,11 +257,7 @@ jobs:
               && grep -q 'ExportHUB RC996 environment=testservice' "$test_file" \
               && grep -q 'ExportHUB RC996 environment=demo' "$demo_file" \
               && grep -q 'exporthub-rc996-demo-bootstrap' "$demo_file"; then
-              node - "$api_file" <<'NODE'
-              const fs=require('fs');
-              const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
-              if(d.ok!==true)throw new Error('Auth-Probe ok=true fehlt');
-              NODE
+              node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(d.ok!==true)throw new Error("Auth-Probe ok=true fehlt");' "$api_file"
               ready=1
               break
             fi
