@@ -10,12 +10,14 @@ on:
       - '.github/rc997/**'
       - '.github/rc996/**'
       - '.github/workflows/rc997-website-final.yml'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - 'TESTVERSION.html'
       - 'pickup.html'
       - 'customer-avis.html'
       - 'location.html'
       - 'pod-notfall.html'
       - 'staticwebapp.testservice.config.json'
+      - 'staticwebapp.config.json'
       - 'assets/**'
       - 'api/**'
       - 'android-app/**'
@@ -77,11 +79,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'RC990' production-version.js
-          if grep -q 'RC997' production-version.js; then
-            echo 'FEHLER: RC997 darf Produktion nicht freigeben.'
-            exit 1
-          fi
+          marker_version="$(node -e "const s=require('fs').readFileSync('production-version.js','utf8');const m=s.match(/PRODUCTION_VERSION_PROBE__\\s*=\\s*['\\\"](RC\\d+)['\\\"]/);if(!m)process.exit(2);process.stdout.write(m[1]);")"
+          case "$marker_version" in
+            RC990|RC997) ;;
+            *) echo "FEHLER: Für RC997 ist nur RC990 vor oder RC997 nach Release-Center-Freigabe zulässig, gefunden $marker_version"; exit 1 ;;
+          esac
+          echo "RC997 Produktionsguard: $marker_version"
 
       - name: RC997 Abschlussverträge
         run: node --test .github/rc997/*.test.mjs
@@ -103,11 +106,11 @@ jobs:
           grep -q 'ExportHUB RC997 environment=demo' dist-rc997/demo.html
           grep -q 'exporthub-rc997-demo-bootstrap' dist-rc997/demo.html
           grep -q 'exporthub-rc997-env-hub' dist-rc997/TESTVERSION.html
-          grep -q 'RC990' production-version.js
-          if grep -q 'RC997' production-version.js; then
-            echo 'FEHLER: Produktionsmarker wurde vor Release-Center-Freigabe verändert.'
-            exit 1
-          fi
+          marker_version="$(node -e "const s=require('fs').readFileSync('production-version.js','utf8');const m=s.match(/PRODUCTION_VERSION_PROBE__\\s*=\\s*['\\\"](RC\\d+)['\\\"]/);if(!m)process.exit(2);process.stdout.write(m[1]);")"
+          case "$marker_version" in
+            RC990|RC997) ;;
+            *) echo "FEHLER: Unerwarteter Produktionsmarker $marker_version"; exit 1 ;;
+          esac
 
   android_build:
     runs-on: ubuntu-latest
@@ -218,11 +221,11 @@ jobs:
           grep -q 'ExportHUB RC997 environment=demo' .rc997_testservice_app/demo.html
           grep -q 'Abholung bestätigen' .rc997_testservice_app/pickup.html
           grep -q 'Kunden-Avis' .rc997_testservice_app/customer-avis.html
-          grep -q 'RC990' production-version.js
-          if grep -q 'RC997' production-version.js; then
-            echo 'FEHLER: Produktion darf durch den TESTSERVICE-Deploy nicht freigegeben werden.'
-            exit 1
-          fi
+          marker_version="$(node -e "const s=require('fs').readFileSync('production-version.js','utf8');const m=s.match(/PRODUCTION_VERSION_PROBE__\\s*=\\s*['\\\"](RC\\d+)['\\\"]/);if(!m)process.exit(2);process.stdout.write(m[1]);")"
+          case "$marker_version" in
+            RC990|RC997) ;;
+            *) echo "FEHLER: TESTSERVICE sieht unerwarteten Produktionsmarker $marker_version"; exit 1 ;;
+          esac
 
       - name: API Runtime prüfen
         working-directory: api
