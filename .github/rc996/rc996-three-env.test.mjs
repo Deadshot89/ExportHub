@@ -40,7 +40,7 @@ test('Demo isoliert Speicher und blockiert echte ExportHUB API-Aufrufe', () => {
   assert.match(src, /\/api\//);
   assert.match(src, /Fake/);
   assert.match(src, /Kunde/);
-  assert.match(src, /Sendung/);
+  assert.match(src, /shipments/);
   assert.match(src, /Aufgabe/);
   assert.match(src, /Warnung/);
 });
