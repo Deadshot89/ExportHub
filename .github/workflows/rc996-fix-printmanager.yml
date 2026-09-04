@@ -1,0 +1,32 @@
+name: RC996 Fix PrintManager Import
+
+on:
+  push:
+    branches:
+      - rc996-three-env-android-do
+    paths:
+      - '.github/workflows/rc996-fix-printmanager.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix Android PrintManager import at source
+        run: |
+          FILE='android-app/app/src/main/java/de/exporthub/test/EnvironmentActivity.java'
+          grep -q 'import android.app.PrintManager;' "$FILE"
+          sed -i 's/import android\.app\.PrintManager;/import android.print.PrintManager;/' "$FILE"
+          grep -q 'import android.print.PrintManager;' "$FILE"
+      - name: Commit source fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add android-app/app/src/main/java/de/exporthub/test/EnvironmentActivity.java
+          git diff --cached --quiet && exit 0
+          git commit -m 'RC996: Android PrintManager Import korrigieren'
+          git push
