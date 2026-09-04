@@ -50,7 +50,13 @@ test('RC996 Workflow baut und deployt TESTSERVICE plus Demo isoliert', () => {
   assert.match(src, /build-three-env\.mjs/);
   assert.match(src, /dist-rc996\/demo\.html/);
   assert.match(src, /assets\/exporthub-environment-hub\.js/);
-  assert.match(src, /deployment_environment:\s*testservice/);
+  assert.match(src, /\.rc996_testservice_app/);
+  assert.match(src, /swa deploy \.\/\.rc996_testservice_app/);
+  assert.match(src, /--env testservice/);
+  assert.match(src, /--api-location \.\/api/);
+  assert.match(src, /test ! -d \.rc996_testservice_app\/api/);
+  assert.doesNotMatch(src, /deployment_environment:\s*testservice/);
+  assert.doesNotMatch(src, /uses:\s*Azure\/static-web-apps-deploy@v1/);
   assert.match(src, /github\.ref == 'refs\/heads\/main'/);
 });
 
