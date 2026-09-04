@@ -13,8 +13,10 @@ function between(start, end, max = 16000) {
   return j >= 0 ? tail.slice(0, j) : tail;
 }
 
-test('RC994: kanonischer Build und Release-Center-Punkt sind sichtbar', () => {
-  assert.match(html, /var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC994',cache:'994',loginReturn:'\/TESTVERSION\.html\?v=994'\}\)/);
+test('RC994: Funktionsvertrag bleibt auch in späteren TESTSERVICE-Builds aktiv', () => {
+  const build = html.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:'RC(\d+)'/);
+  assert.ok(build, 'kanonische BUILD-Version fehlt');
+  assert.ok(Number(build[1]) >= 994, `TESTSERVICE-Build RC${build[1]} liegt vor RC994`);
   assert.ok(html.includes(releaseText), 'RC994 Release-Center-Punkt fehlt');
 });
 
