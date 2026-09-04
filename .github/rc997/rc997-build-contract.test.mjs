@@ -18,10 +18,15 @@ test('RC997 Build: eigener reproduzierbarer Drei-Umgebungen-Build existiert',()=
   assert.match(src,/exporthub-rc997-demo-bootstrap/);
 });
 
-test('RC997 Build: Produktion bleibt ein separater RC990-Release-Center-Schritt',()=>{
+test('RC997 Build: Produktion bleibt ein separater Release-Center-Schritt',()=>{
   const marker=read('production-version.js');
-  assert.match(marker,/RC990/);
-  assert.doesNotMatch(marker,/RC997/);
+  const m=marker.match(/PRODUCTION_VERSION_PROBE__\s*=\s*['"]RC(\d+)['"]/);
+  assert.ok(m,'Produktionsmarker fehlt');
+  const version=Number(m[1]);
+  assert.ok(version===990||version===997,`Für RC997 ist nur RC990 vor oder RC997 nach Release-Center-Freigabe zulässig, gefunden RC${version}`);
+  const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
+  assert.match(workflow,/production-version\.js/);
+  assert.match(workflow,/Build RC997 Release-Center production package/);
 });
 
 test('RC997 Build: erzeugte TESTSERVICE- und Demo-Seiten tragen eindeutige RC997-Marker',()=>{
