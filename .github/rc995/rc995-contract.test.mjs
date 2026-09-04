@@ -13,10 +13,14 @@ const customerAvis = read('api/customer-avis/index.js');
 const merge = read('api/shared/merge.js');
 const testversion = read('TESTVERSION.html');
 
-// RC995 must never release production.
-test('production marker remains RC990', () => {
-  assert.match(production, /PRODUCTION_VERSION_PROBE__\s*=\s*['"]RC990['"]/);
-  assert.doesNotMatch(production, /RC995/);
+// RC995 selbst darf Produktion niemals freigeben. Spätere, separat geprüfte
+// Release-Center-Versionen dürfen den Produktionsmarker regulär weiterheben.
+test('production marker is never released as RC995 itself', () => {
+  const m = production.match(/PRODUCTION_VERSION_PROBE__\s*=\s*['"]RC(\d+)['"]/);
+  assert.ok(m, 'Produktionsmarker fehlt');
+  const version = Number(m[1]);
+  assert.ok(version >= 990, `Produktionsmarker RC${version} ist älter als RC990`);
+  assert.notEqual(version, 995, 'RC995 darf Produktion nicht selbst freigeben');
 });
 
 test('shared public-access store exists and stores only derived token identities', () => {
