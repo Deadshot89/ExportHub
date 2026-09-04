@@ -8,10 +8,13 @@ on:
       - main
     paths:
       - '.github/rc997/**'
+      - '.github/rc996/**'
       - '.github/workflows/rc997-website-final.yml'
       - 'TESTVERSION.html'
       - 'pickup.html'
       - 'customer-avis.html'
+      - 'location.html'
+      - 'pod-notfall.html'
       - 'staticwebapp.testservice.config.json'
       - 'assets/**'
       - 'api/**'
@@ -37,6 +40,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+
+      - name: RC997 und API Syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check .github/rc997/build-three-env.mjs
+          node --check assets/exporthub-environment-hub.js
+          node --check assets/exporthub-demo-bootstrap.js
+          node --check api/shared/merge.js
+          node --check api/scripts/verify-runtime-sources.cjs
+          node --check api/shared/public-access-store.js
+          node --check api/shared/pickup-store.js
+          node --check api/pickup-init/index.js
+          node --check api/pickup-status/index.js
+          node --check api/pickup-confirm-v2/index.js
+          node --check api/pickup-pod/index.js
+          node --check api/customer-avis/index.js
 
       - name: Bestehende Node Regressionen
         run: npm test
@@ -65,3 +85,232 @@ jobs:
 
       - name: RC997 Abschlussverträge
         run: node --test .github/rc997/*.test.mjs
+
+      - name: RC997 Seiten erzeugen
+        run: node .github/rc997/build-three-env.mjs
+
+      - name: RC997 erzeugte Seiten prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist-rc997/index.html
+          test -s dist-rc997/TESTVERSION.html
+          test -s dist-rc997/demo.html
+          test -s dist-rc997/assets/exporthub-environment-hub.js
+          test -s dist-rc997/assets/exporthub-demo-bootstrap.js
+          grep -q 'ExportHUB RC997 environment=production-candidate' dist-rc997/index.html
+          grep -q 'ExportHUB RC997 environment=testservice' dist-rc997/TESTVERSION.html
+          grep -q 'ExportHUB RC997 environment=demo' dist-rc997/demo.html
+          grep -q 'exporthub-rc997-demo-bootstrap' dist-rc997/demo.html
+          grep -q 'exporthub-rc997-env-hub' dist-rc997/TESTVERSION.html
+          grep -q 'RC990' production-version.js
+          if grep -q 'RC997' production-version.js; then
+            echo 'FEHLER: Produktionsmarker wurde vor Release-Center-Freigabe verändert.'
+            exit 1
+          fi
+
+  android_build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: contract
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Android 16 SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Gradle 9.5
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Android Debug APK
+        working-directory: android-app
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: APK Artefakt
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExportHUB-RC997-Android
+          path: android-app/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy_testservice:
+    if: github.ref == 'refs/heads/rc997-website-final' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: [contract, android_build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: RC997 TESTSERVICE und Demo erzeugen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc997/build-three-env.mjs
+
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const artifact = '.rc997_testservice_app';
+          fs.rmSync(artifact, { recursive: true, force: true });
+          fs.mkdirSync(artifact, { recursive: true });
+
+          const allowedTopLevel = /\.(?:html|json|js|css|svg|png|jpe?g|gif|ico|webp|woff2?|txt)$/i;
+          for (const entry of fs.readdirSync('.', { withFileTypes: true })) {
+            if (!entry.isFile() || !allowedTopLevel.test(entry.name)) continue;
+            if (entry.name === 'index.html' || entry.name === 'TESTVERSION.html' || entry.name === 'demo.html') continue;
+            if (entry.name === 'staticwebapp.config.json' || entry.name === 'staticwebapp.testservice.config.json') continue;
+            fs.copyFileSync(entry.name, path.join(artifact, entry.name));
+          }
+
+          if (fs.existsSync('assets')) {
+            fs.cpSync('assets', path.join(artifact, 'assets'), { recursive: true });
+          }
+          if (fs.existsSync('dist-rc997/assets')) {
+            fs.cpSync('dist-rc997/assets', path.join(artifact, 'assets'), { recursive: true, force: true });
+          }
+
+          fs.copyFileSync('dist-rc997/TESTVERSION.html', path.join(artifact, 'index.html'));
+          fs.copyFileSync('dist-rc997/TESTVERSION.html', path.join(artifact, 'TESTVERSION.html'));
+          fs.copyFileSync('dist-rc997/demo.html', path.join(artifact, 'demo.html'));
+          for (const page of ['pickup.html','customer-avis.html','location.html','pod-notfall.html']) {
+            if (!fs.existsSync(page)) throw new Error(`RC997 Pflichtseite fehlt: ${page}`);
+            fs.copyFileSync(page, path.join(artifact, page));
+          }
+          fs.copyFileSync('staticwebapp.testservice.config.json', path.join(artifact, 'staticwebapp.config.json'));
+          NODE
+
+          test -s .rc997_testservice_app/index.html
+          test -s .rc997_testservice_app/TESTVERSION.html
+          test -s .rc997_testservice_app/demo.html
+          test -s .rc997_testservice_app/pickup.html
+          test -s .rc997_testservice_app/customer-avis.html
+          test -s .rc997_testservice_app/location.html
+          test -s .rc997_testservice_app/pod-notfall.html
+          test -s .rc997_testservice_app/assets/exporthub-environment-hub.js
+          test -s .rc997_testservice_app/assets/exporthub-demo-bootstrap.js
+          test -s .rc997_testservice_app/staticwebapp.config.json
+          test ! -d .rc997_testservice_app/api
+          grep -q 'ExportHUB RC997 environment=testservice' .rc997_testservice_app/index.html
+          grep -q 'ExportHUB RC997 environment=testservice' .rc997_testservice_app/TESTVERSION.html
+          grep -q 'ExportHUB RC997 environment=demo' .rc997_testservice_app/demo.html
+          grep -q 'Abholung bestätigen' .rc997_testservice_app/pickup.html
+          grep -q 'Kunden-Avis' .rc997_testservice_app/customer-avis.html
+          grep -q 'RC990' production-version.js
+          if grep -q 'RC997' production-version.js; then
+            echo 'FEHLER: Produktion darf durch den TESTSERVICE-Deploy nicht freigegeben werden.'
+            exit 1
+          fi
+
+      - name: API Runtime prüfen
+        working-directory: api
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules
+          npm install --omit=dev --no-audit --no-fund
+          node --check shared/public-access-store.js
+          node --check shared/pickup-store.js
+          node --check loader-pin-store.js 2>/dev/null || true
+          node --check pickup-init/index.js
+          node --check pickup-status/index.js
+          node --check pickup-confirm-v2/index.js
+          node --check pickup-pod/index.js
+          node --check pod-backup/index.js
+          node --check customer-avis/index.js
+
+      - name: Azure Static Web Apps CLI installieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global @azure/static-web-apps-cli@2.0.10
+          swa --version
+          swa deploy --help > /tmp/swa-deploy-help.txt
+          grep -q -- '--env' /tmp/swa-deploy-help.txt
+          grep -q -- '--api-location' /tmp/swa-deploy-help.txt
+          grep -q -- '--swa-config-location' /tmp/swa-deploy-help.txt
+          grep -q -- '--api-language' /tmp/swa-deploy-help.txt
+          grep -q -- '--api-version' /tmp/swa-deploy-help.txt
+
+      - name: Deploy TESTSERVICE named environment
+        id: deploy
+        shell: bash
+        env:
+          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SWA_CLI_DEPLOYMENT_TOKEN:-}" ]]; then
+            echo 'Azure Static Web Apps Deployment Token fehlt.'
+            exit 1
+          fi
+
+          swa deploy ./.rc997_testservice_app \
+            --api-location ./api \
+            --swa-config-location ./.rc997_testservice_app \
+            --api-language node \
+            --api-version 20 \
+            --env testservice
+
+      - name: Live TESTSERVICE, Demo, Pickup und Avis prüfen
+        shell: bash
+        env:
+          TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
+        run: |
+          set -euo pipefail
+          root_file="$(mktemp)"
+          test_file="$(mktemp)"
+          demo_file="$(mktemp)"
+          pickup_file="$(mktemp)"
+          avis_file="$(mktemp)"
+          api_file="$(mktemp)"
+          trap 'rm -f "$root_file" "$test_file" "$demo_file" "$pickup_file" "$avis_file" "$api_file"' EXIT
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            root_code="$(curl -sS --connect-timeout 5 --max-time 20 -o "$root_file" -w '%{http_code}' "$TEST_URL/?rc997=$GITHUB_SHA-$attempt" || true)"
+            test_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$test_file" -w '%{http_code}' "$TEST_URL/TESTVERSION.html?rc997=$GITHUB_SHA-$attempt" || true)"
+            demo_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$demo_file" -w '%{http_code}' "$TEST_URL/demo.html?rc997=$GITHUB_SHA-$attempt" || true)"
+            pickup_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$pickup_file" -w '%{http_code}' "$TEST_URL/pickup.html?rc997=$GITHUB_SHA-$attempt" || true)"
+            avis_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$avis_file" -w '%{http_code}' "$TEST_URL/customer-avis.html?rc997=$GITHUB_SHA-$attempt" || true)"
+            api_code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -o "$api_file" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc997=$GITHUB_SHA-$attempt" || true)"
+            echo "Versuch $attempt: root=$root_code test=$test_code demo=$demo_code pickup=$pickup_code avis=$avis_code api=$api_code"
+            if [[ "$root_code" == "200" && "$test_code" == "200" && "$demo_code" == "200" && "$pickup_code" == "200" && "$avis_code" == "200" && "$api_code" == "200" ]] \
+              && grep -q 'ExportHUB RC997 environment=testservice' "$root_file" \
+              && grep -q 'ExportHUB RC997 environment=testservice' "$test_file" \
+              && grep -q 'ExportHUB RC997 environment=demo' "$demo_file" \
+              && grep -q 'exporthub-rc997-demo-bootstrap' "$demo_file" \
+              && grep -q 'Abholung bestätigen' "$pickup_file" \
+              && grep -q 'Kunden-Avis' "$avis_file"; then
+              node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(d.ok!==true)throw new Error("Auth-Probe ok=true fehlt");' "$api_file"
+              ready=1
+              break
+            fi
+            sleep 10
+          done
+          if [[ "$ready" != "1" ]]; then
+            echo 'RC997 TESTSERVICE/Demo/Pickup/Avis wurde nicht vollständig bereit.'
+            exit 1
+          fi
+          echo 'RC997 TESTSERVICE, TESTVERSION, Demo, Pickup, Avis und Auth live verifiziert.'
