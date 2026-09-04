@@ -1,0 +1,67 @@
+name: RC997 Website Finalisierung
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc997-website-final
+      - main
+    paths:
+      - '.github/rc997/**'
+      - '.github/workflows/rc997-website-final.yml'
+      - 'TESTVERSION.html'
+      - 'pickup.html'
+      - 'customer-avis.html'
+      - 'staticwebapp.testservice.config.json'
+      - 'assets/**'
+      - 'api/**'
+      - 'android-app/**'
+      - 'test/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc997-website-final-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: RC997 Abschlussverträge
+        run: node --test .github/rc997/rc997-ui-contract.test.mjs .github/rc997/rc997-shipment-contract.test.mjs .github/rc997/rc997-external-contract.test.mjs
+
+      - name: Bestehende Node Regressionen
+        run: npm test
+
+      - name: RC995 Sicherheitsvertrag
+        run: |
+          node --test .github/rc995/rc995-contract.test.mjs
+          node --test .github/rc995/rc995-flow.test.cjs
+
+      - name: RC996 Verträge
+        run: |
+          node --test .github/rc996/tasks-contract.test.mjs
+          node --test .github/rc996/state-merge-contract.test.mjs
+          node --test .github/rc996/rc996-three-env.test.mjs
+          node --test .github/rc996/android-contract.test.mjs
+
+      - name: Produktionsguard
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'RC990' production-version.js
+          if grep -q 'RC997' production-version.js; then
+            echo 'FEHLER: RC997 darf Produktion nicht freigeben.'
+            exit 1
+          fi
