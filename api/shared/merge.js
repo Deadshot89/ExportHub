@@ -41,20 +41,43 @@ function isObject(value) {
 
 
 const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','pickupToken','pickupQrToken','qrToken'];
+function stripShipmentPublicAccessSecrets(shipment) {
+  if (!isObject(shipment)) return shipment;
+  let next = shipment;
+  for (const key of PUBLIC_ACCESS_SECRET_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(shipment, key)) continue;
+    if (next === shipment) next = Object.assign({}, shipment);
+    delete next[key];
+  }
+  return next;
+}
+
 function stripPublicAccessSecrets(state) {
   if (!isObject(state)) return state;
-  const out = clone(state) || {};
-  const strip = (shipment) => {
-    if (!isObject(shipment)) return shipment;
-    const next = clone(shipment) || {};
-    for (const key of PUBLIC_ACCESS_SECRET_KEYS) delete next[key];
-    return next;
+  let out = state;
+  const assign = (key, value) => {
+    if (out === state) out = Object.assign({}, state);
+    out[key] = value;
   };
+
   ['shipments','savedShipments','shipmentArchive','archivedShipments'].forEach((key) => {
-    if (Array.isArray(out[key])) out[key] = out[key].map(strip);
+    const list = state[key];
+    if (!Array.isArray(list)) return;
+    let nextList = list;
+    for (let index = 0; index < list.length; index++) {
+      const stripped = stripShipmentPublicAccessSecrets(list[index]);
+      if (stripped === list[index]) continue;
+      if (nextList === list) nextList = list.slice();
+      nextList[index] = stripped;
+    }
+    if (nextList !== list) assign(key, nextList);
   });
+
   ['shipment','currentShipment','selectedShipment'].forEach((key) => {
-    if (isObject(out[key])) out[key] = strip(out[key]);
+    const shipment = state[key];
+    if (!isObject(shipment)) return;
+    const stripped = stripShipmentPublicAccessSecrets(shipment);
+    if (stripped !== shipment) assign(key, stripped);
   });
   return out;
 }
