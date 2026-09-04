@@ -29,6 +29,24 @@ test('RC996 State-Merge: unveränderte große Sendungssammlung bleibt strukturel
   assert.equal(merged.tasks[0].done,true);
 });
 
+test('RC996 Aufgaben: Status-Ledger darf verschiedene Aufgaben derselben Sendung und desselben Bereichs nicht koppeln',()=>{
+  const server={
+    ...meta(),
+    tasks:[
+      {id:'T-ABD',title:'ABD anfordern',area:'Versand',linkedShipmentRef:'ABC123',dueDate:'2026-09-04',status:'offen',done:false,updatedAt:'2026-09-04T08:00:00.000Z'},
+      {id:'T-POD',title:'POD hochladen',area:'Versand',linkedShipmentRef:'ABC123',dueDate:'2026-09-04',status:'offen',done:false,updatedAt:'2026-09-04T08:00:00.000Z'}
+    ],
+    taskStatusLedger:{
+      'ship:abc123|versand':{status:'erledigt',done:true,updatedAt:'2026-09-04T09:00:00.000Z',doneBy:'Tobias'}
+    }
+  };
+  const incoming={...meta()};
+
+  const merged=mergeState(server,incoming);
+  assert.equal(merged.tasks[0].done,false,'ABD anfordern darf nicht durch den Status einer anderen Versand-Aufgabe erledigt werden');
+  assert.equal(merged.tasks[1].done,false,'POD hochladen darf nicht durch einen unspezifischen Sendungs-/Bereichsschlüssel erledigt werden');
+});
+
 test('RC996 State-Merge: öffentliche Tokens werden Copy-on-write entfernt ohne Dokumente oder Geschwister tief zu kopieren',()=>{
   let deepReads=0;
   const payload={};
