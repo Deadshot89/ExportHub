@@ -17,8 +17,12 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: rc998-video-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  diagnose:
+  contract:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,5 +34,7 @@ jobs:
           node-version: '20.x'
       - name: Baseline Regressionen
         run: npm test
-      - name: RC998 Video-Diagnose
+      - name: RC998 RED/GREEN Vertrag
+        run: node --test .github/rc998/rc998-video-hardening.test.mjs
+      - name: RC998 Diagnose
         run: node .github/rc998/diagnose-video-regressions.mjs
