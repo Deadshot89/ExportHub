@@ -55,11 +55,12 @@
     },
     {
       "route": "/pickup",
-      "rewrite": "/TESTVERSION.html",
+      "rewrite": "/pickup.html",
       "allowedRoles": ["anonymous"],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
         "X-ExportHUB-Environment": "test"
       }
     },
@@ -71,8 +72,28 @@
         "Referrer-Policy": "no-referrer",
         "X-Content-Type-Options": "nosniff",
         "X-ExportHUB-Environment": "test"
-      },
-      "rewrite": "/TESTVERSION.html"
+      }
+    },
+    {
+      "route": "/customer-avis",
+      "rewrite": "/customer-avis.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
+      "route": "/customer-avis.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
     },
     {
       "route": "/location",
@@ -122,6 +143,8 @@
       "/.auth/*",
       "/pickup",
       "/pickup.html",
+      "/customer-avis",
+      "/customer-avis.html",
       "/assets/*",
       "/testservice-environment.json",
       "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
