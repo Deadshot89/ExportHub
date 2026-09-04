@@ -39,8 +39,9 @@ test('RC997 Workflow: Live-Gate prüft statische Seiten begrenzt und API ohne Re
   assert.match(src,/Kunden-Avis/);
 });
 
-test('RC997 Workflow: Produktionsguard bleibt RC990 und Branch ist ausdrücklich zugelassen',()=>{
+test('RC997 Workflow: Produktionsguard erlaubt nur Vorfreigabe RC990 oder freigegebenes RC997',()=>{
   assert.match(src,/rc997-website-final/);
-  assert.match(src,/grep -q 'RC990' production-version\.js/);
-  assert.match(src,/grep -q 'RC997' production-version\.js/);
+  assert.match(src,/RC990\|RC997/);
+  assert.match(src,/staticwebapp\.config\.json/);
+  assert.match(src,/azure-static-web-apps-wonderful-forest-0f315e310\.yml/);
 });
