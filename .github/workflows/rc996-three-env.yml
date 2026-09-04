@@ -44,6 +44,9 @@ jobs:
       - name: RC996 Drei-Umgebungen-Vertrag
         run: node --test .github/rc996/rc996-three-env.test.mjs
 
+      - name: RC996 Aufgaben- und Planer-Vertrag
+        run: node --test .github/rc996/tasks-contract.test.mjs
+
       - name: RC996 Seiten erzeugen
         run: node .github/rc996/build-three-env.mjs
 
