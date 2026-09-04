@@ -137,8 +137,16 @@ function taskLedgerKeys(task, index) {
   if (task) {
     add('id:', task.id);
     add('sync:', task._syncId);
-    add('ship:', `${text(task.linkedShipmentId || task.linkedShipmentRef)}|${text(task.area)}`);
-    add('biz:', [task.title || task.name, task.area, task.day, task.dueDate || task.date || task.targetDate, task.time, task.owner, task.linkedShipmentRef].join('|'));
+    add('biz:', [
+      task.title || task.name,
+      task.area,
+      task.day,
+      task.dueDate || task.date || task.targetDate,
+      task.time,
+      task.owner,
+      task.linkedShipmentId || task.linkedShipmentRef,
+      task.recurringSeriesId || task.weeklySeriesId || task.seriesId
+    ].join('|'));
   }
   if (!out.length) add('index:', index);
   return out;
