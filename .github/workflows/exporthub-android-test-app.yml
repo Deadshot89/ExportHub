@@ -1,17 +1,18 @@
-name: Build ExportHUB Android Test APK
+name: Build ExportHUB Android RC996 APK
 
 on:
   workflow_dispatch:
   push:
     paths:
       - 'android-app/**'
+      - '.github/rc996/android-contract.test.mjs'
       - '.github/workflows/exporthub-android-test-app.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: exporthub-android-test-build
+  group: exporthub-android-rc996-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,6 +23,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: RC996 Android-Vertrag
+        run: node --test .github/rc996/android-contract.test.mjs
 
       - name: Java 17
         uses: actions/setup-java@v4
@@ -51,14 +60,15 @@ jobs:
         working-directory: android-app
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-Test-RC876-v1.apk
-          sha256sum out/ExportHUB-Test-RC876-v1.apk > out/ExportHUB-Test-RC876-v1.sha256.txt
+          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC996-Android-debug.apk
+          sha256sum out/ExportHUB-RC996-Android-debug.apk > out/ExportHUB-RC996-Android-debug.sha256.txt
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ExportHUB-Test-RC876-Android
+          name: ExportHUB-RC996-Android
           path: android-app/out/*
           if-no-files-found: error
           retention-days: 30
