@@ -7,6 +7,7 @@ on:
       - '.github/rc995/rc995-flow.test.cjs'
       - '.github/rc995/rc995-contract.test.mjs'
       - '.github/workflows/rc995-flow.yml'
+      - 'api/package.json'
       - 'api/shared/public-access-store.js'
       - 'api/shared/pickup-store.js'
       - 'api/shared/loader-pin-store.js'
@@ -16,7 +17,6 @@ on:
       - 'api/pickup-pod/**'
       - 'api/pod-backup/**'
       - 'api/customer-avis/**'
-      - 'api/rc995-diagnostic/**'
       - 'TESTVERSION.html'
   workflow_dispatch:
 
@@ -49,33 +49,10 @@ jobs:
             api/pickup-confirm-v2/index.js \
             api/pickup-pod/index.js \
             api/pod-backup/index.js \
-            api/customer-avis/index.js \
-            api/rc995-diagnostic/index.js; do
+            api/customer-avis/index.js; do
             node --check "$js"
           done
           node --test .github/rc995/rc995-contract.test.mjs .github/rc995/rc995-flow.test.cjs
-
-      - name: RC995 TESTSERVICE Runtime-Diagnose
-        shell: bash
-        env:
-          BASE_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
-        run: |
-          set -euo pipefail
-          tmp="$(mktemp)"
-          trap 'rm -f "$tmp"' EXIT
-          code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Accept: application/json' -H 'X-ExportHUB-Environment: testservice' -o "$tmp" -w '%{http_code}' "$BASE_URL/api/rc995-diagnostic?verify=${GITHUB_SHA}")"
-          echo "RC995 diagnostic HTTP=$code"
-          cat "$tmp"
-          echo
-          test "$code" = "200"
-          node - "$tmp" <<'NODE'
-          const fs=require('fs');
-          const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
-          if(d.version!=='RC995') throw new Error('Diagnose ist nicht RC995');
-          console.log('DIAG modules=',JSON.stringify(d.modules));
-          console.log('DIAG settings=',JSON.stringify(d.settings));
-          console.log('DIAG checks=',JSON.stringify(d.checks));
-          NODE
 
       - name: TESTSERVICE RC995 live prüfen
         shell: bash
