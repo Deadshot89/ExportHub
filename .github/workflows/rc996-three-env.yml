@@ -12,6 +12,8 @@ on:
       - 'assets/exporthub-demo-bootstrap.js'
       - 'android-app/**'
       - 'api/shared/merge.js'
+      - 'api/package.json'
+      - 'api/scripts/**'
       - 'test/**'
       - '.github/workflows/rc996-three-env.yml'
       - 'staticwebapp.testservice.config.json'
@@ -43,6 +45,7 @@ jobs:
           node --check assets/exporthub-environment-hub.js
           node --check assets/exporthub-demo-bootstrap.js
           node --check api/shared/merge.js
+          node --check api/scripts/verify-runtime-sources.cjs
 
       - name: RC996 Drei-Umgebungen-Vertrag
         run: node --test .github/rc996/rc996-three-env.test.mjs
@@ -137,17 +140,52 @@ jobs:
           node-version: '20.x'
 
       - name: RC996 TESTSERVICE und Demo erzeugen
+        shell: bash
         run: |
           set -euo pipefail
           node .github/rc996/build-three-env.mjs
-          cp dist-rc996/TESTVERSION.html TESTVERSION.html
-          cp dist-rc996/TESTVERSION.html index.html
-          cp dist-rc996/demo.html demo.html
-          cp staticwebapp.testservice.config.json staticwebapp.config.json
-          test -s assets/exporthub-environment-hub.js
-          test -s assets/exporthub-demo-bootstrap.js
-          grep -q 'ExportHUB RC996 environment=testservice' index.html
-          grep -q 'ExportHUB RC996 environment=demo' demo.html
+
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const artifact = '.rc996_testservice_app';
+          fs.rmSync(artifact, { recursive: true, force: true });
+          fs.mkdirSync(artifact, { recursive: true });
+
+          const allowedTopLevel = /\.(?:html|json|js|css|svg|png|jpe?g|gif|ico|webp|woff2?|txt)$/i;
+          for (const entry of fs.readdirSync('.', { withFileTypes: true })) {
+            if (!entry.isFile() || !allowedTopLevel.test(entry.name)) continue;
+            if (entry.name === 'index.html' || entry.name === 'TESTVERSION.html' || entry.name === 'demo.html') continue;
+            if (entry.name === 'staticwebapp.config.json' || entry.name === 'staticwebapp.testservice.config.json') continue;
+            fs.copyFileSync(entry.name, path.join(artifact, entry.name));
+          }
+
+          if (fs.existsSync('assets')) {
+            fs.cpSync('assets', path.join(artifact, 'assets'), { recursive: true });
+          }
+
+          fs.copyFileSync('dist-rc996/TESTVERSION.html', path.join(artifact, 'index.html'));
+          fs.copyFileSync('dist-rc996/TESTVERSION.html', path.join(artifact, 'TESTVERSION.html'));
+          fs.copyFileSync('dist-rc996/demo.html', path.join(artifact, 'demo.html'));
+          fs.copyFileSync('staticwebapp.testservice.config.json', path.join(artifact, 'staticwebapp.config.json'));
+          NODE
+
+          test -s .rc996_testservice_app/index.html
+          test -s .rc996_testservice_app/TESTVERSION.html
+          test -s .rc996_testservice_app/demo.html
+          test -s .rc996_testservice_app/assets/exporthub-environment-hub.js
+          test -s .rc996_testservice_app/assets/exporthub-demo-bootstrap.js
+          test -s .rc996_testservice_app/staticwebapp.config.json
+          test ! -d .rc996_testservice_app/api
+          grep -q 'ExportHUB RC996 environment=testservice' .rc996_testservice_app/index.html
+          grep -q 'ExportHUB RC996 environment=testservice' .rc996_testservice_app/TESTVERSION.html
+          grep -q 'ExportHUB RC996 environment=demo' .rc996_testservice_app/demo.html
+          grep -q 'RC990' production-version.js
+          if grep -q 'RC996' production-version.js; then
+            echo 'FEHLER: Produktion darf durch den TESTSERVICE-Deploy nicht freigegeben werden.'
+            exit 1
+          fi
 
       - name: API Runtime prüfen
         working-directory: api
@@ -163,18 +201,37 @@ jobs:
           node --check pickup-pod/index.js
           node --check customer-avis/index.js
 
+      - name: Azure Static Web Apps CLI installieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global @azure/static-web-apps-cli@2.0.10
+          swa --version
+          swa deploy --help > /tmp/swa-deploy-help.txt
+          grep -q -- '--env' /tmp/swa-deploy-help.txt
+          grep -q -- '--api-location' /tmp/swa-deploy-help.txt
+          grep -q -- '--swa-config-location' /tmp/swa-deploy-help.txt
+          grep -q -- '--api-language' /tmp/swa-deploy-help.txt
+          grep -q -- '--api-version' /tmp/swa-deploy-help.txt
+
       - name: Deploy TESTSERVICE named environment
         id: deploy
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: /
-          api_location: api
-          output_location: ""
-          skip_app_build: true
-          deployment_environment: testservice
+        shell: bash
+        env:
+          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SWA_CLI_DEPLOYMENT_TOKEN:-}" ]]; then
+            echo 'Azure Static Web Apps Deployment Token fehlt.'
+            exit 1
+          fi
+
+          swa deploy ./.rc996_testservice_app \
+            --api-location ./api \
+            --swa-config-location ./.rc996_testservice_app \
+            --api-language node \
+            --api-version 20 \
+            --env testservice
 
       - name: Live TESTSERVICE, Testseite und Demo prüfen
         shell: bash
