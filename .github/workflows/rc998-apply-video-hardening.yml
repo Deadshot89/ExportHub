@@ -1,0 +1,57 @@
+name: RC998 Apply Video Hardening
+
+on:
+  push:
+    branches:
+      - rc998-video-hardening
+    paths:
+      - '.github/rc998/apply-request.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc998-apply-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: rc998-video-hardening
+          fetch-depth: 0
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC998 Patch anwenden
+        run: node .github/rc998/apply-video-hardening.mjs
+      - name: RC998 Vertrag prüfen
+        run: node --test .github/rc998/rc998-video-hardening.test.mjs
+      - name: Baseline Regressionen
+        run: npm test
+      - name: Produktionsmarker schützen
+        shell: bash
+        run: |
+          grep -q 'RC997' production-version.js
+          if grep -q 'RC998' production-version.js; then
+            echo 'production-version.js darf RC998 noch nicht enthalten.' >&2
+            exit 1
+          fi
+      - name: RC998 Patch committen
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          if git diff --cached --quiet; then
+            echo 'Keine RC998-Quelländerungen vorhanden.' >&2
+            exit 1
+          fi
+          git commit -m 'RC998: Video-Regressions beheben'
+          git push origin HEAD:rc998-video-hardening
