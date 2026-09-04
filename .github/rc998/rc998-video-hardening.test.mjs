@@ -1,3 +1,4 @@
+// RC998 GREEN verification trigger after patched source commit.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
