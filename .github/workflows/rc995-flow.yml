@@ -1,0 +1,77 @@
+name: RC995 Bedienfluss + Live-Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/rc995/rc995-flow.test.cjs'
+      - '.github/rc995/rc995-contract.test.mjs'
+      - '.github/workflows/rc995-flow.yml'
+      - 'api/shared/public-access-store.js'
+      - 'api/shared/pickup-store.js'
+      - 'api/shared/loader-pin-store.js'
+      - 'api/pickup-init/**'
+      - 'api/pickup-status/**'
+      - 'api/pickup-confirm-v2/**'
+      - 'api/pickup-pod/**'
+      - 'api/pod-backup/**'
+      - 'api/customer-avis/**'
+      - 'TESTVERSION.html'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rc995_flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: RC995 Vertrags- und Bedienflusstests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test .github/rc995/rc995-contract.test.mjs .github/rc995/rc995-flow.test.cjs
+
+      - name: TESTSERVICE RC995 live prüfen
+        shell: bash
+        env:
+          BASE_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+
+          page_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp" -w '%{http_code}' "$BASE_URL/TESTVERSION.html?rc995-flow=${GITHUB_SHA}")"
+          grep -q "version:'RC995'" "$tmp"
+          test "$page_code" = "200"
+          echo "OK: TESTSERVICE liefert RC995"
+
+          probe_json() {
+            local label="$1" method="$2" url="$3" data="${4:-}" expected="$5" code
+            : > "$tmp"
+            if [[ "$method" == "POST" ]]; then
+              code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-ExportHUB-Environment: testservice' -X POST --data "$data" -o "$tmp" -w '%{http_code}' "$url")"
+            else
+              code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -H 'X-ExportHUB-Environment: testservice' -o "$tmp" -w '%{http_code}' "$url")"
+            fi
+            echo "$label HTTP=$code $(cat "$tmp")"
+            test "$code" = "$expected"
+            node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if(d.ok!==false) process.exit(1);" "$tmp"
+          }
+
+          TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          probe_json 'pickup-status invalid token' GET "$BASE_URL/api/pickup-status?token=$TOKEN" '' 410
+          probe_json 'pickup-confirm-v2 invalid token' POST "$BASE_URL/api/pickup-confirm-v2" "{\"token\":\"$TOKEN\",\"environment\":\"testservice\",\"pin\":\"2468\"}" 410
+          probe_json 'pickup-pod invalid token' GET "$BASE_URL/api/pickup-pod?token=$TOKEN" '' 410
+          probe_json 'customer-avis ohne Session' GET "$BASE_URL/api/customer-avis" '' 401
+
+          echo 'RC995 Live-Endpunkte erreichbar und gegen unberechtigten Zugriff geschlossen.'
