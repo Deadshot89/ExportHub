@@ -248,8 +248,8 @@ jobs:
           ready=0
           for attempt in $(seq 1 30); do
             root_code="$(curl -sS --connect-timeout 5 --max-time 20 -o "$root_file" -w '%{http_code}' "$TEST_URL/?rc996=$GITHUB_SHA-$attempt" || true)"
-            test_code="$(curl -sS --connect-timeout 5 --max-time 20 -o "$test_file" -w '%{http_code}' "$TEST_URL/TESTVERSION.html?rc996=$GITHUB_SHA-$attempt" || true)"
-            demo_code="$(curl -sS --connect-timeout 5 --max-time 20 -o "$demo_file" -w '%{http_code}' "$TEST_URL/demo.html?rc996=$GITHUB_SHA-$attempt" || true)"
+            test_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$test_file" -w '%{http_code}' "$TEST_URL/TESTVERSION.html?rc996=$GITHUB_SHA-$attempt" || true)"
+            demo_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$demo_file" -w '%{http_code}' "$TEST_URL/demo.html?rc996=$GITHUB_SHA-$attempt" || true)"
             api_code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -o "$api_file" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc996=$GITHUB_SHA-$attempt" || true)"
             echo "Versuch $attempt: root=$root_code test=$test_code demo=$demo_code api=$api_code"
             if [[ "$root_code" == "200" && "$test_code" == "200" && "$demo_code" == "200" && "$api_code" == "200" ]] \
