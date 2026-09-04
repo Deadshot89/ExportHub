@@ -6,7 +6,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "postinstall": "node --check shared/public-access-store.js && node --check shared/pickup-store.js && node --check shared/loader-pin-store.js && node --check pickup-init/index.js && node --check pickup-status/index.js && node --check pickup-confirm-v2/index.js && node --check pickup-pod/index.js && node --check pod-backup/index.js && node --check customer-avis/index.js"
+    "postinstall": "node -e \"const fs=require('fs'),path=require('path');const candidates=[path.resolve('scripts/verify-runtime-sources.cjs'),path.resolve('..','scripts','verify-runtime-sources.cjs')];const script=candidates.find(fs.existsSync);if(!script)throw new Error('verify-runtime-sources.cjs nicht gefunden');require(script);\""
   },
   "dependencies": {
     "@azure/storage-blob": "12.27.0"
