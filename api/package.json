@@ -5,6 +5,9 @@
   "engines": {
     "node": "20.x"
   },
+  "scripts": {
+    "postinstall": "node --check shared/public-access-store.js && node --check shared/pickup-store.js && node --check shared/loader-pin-store.js && node --check pickup-init/index.js && node --check pickup-status/index.js && node --check pickup-confirm-v2/index.js && node --check pickup-pod/index.js && node --check pod-backup/index.js && node --check customer-avis/index.js"
+  },
   "dependencies": {
     "@azure/storage-blob": "12.27.0"
   }
