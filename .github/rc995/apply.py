@@ -148,10 +148,10 @@ def patch_client():
     </script>
     <!-- /exporthub-rc995-public-access -->
     """)
-    end=s.rfind('</body>')
-    if end<0:
-        raise SystemExit('Kein abschließendes body-Ende gefunden')
-    s=s[:end]+block+'\n'+s[end:]
+    anchor='<script id="exporthub-rc352-qr-pod-controller">'
+    if s.count(anchor)!=1:
+        raise SystemExit(f'RC995 sicherer Pickup-Controller-Anker nicht eindeutig: {s.count(anchor)}')
+    s=s.replace(anchor,block+'\n'+anchor,1)
     p.write_text(s,encoding='utf-8')
 
 
