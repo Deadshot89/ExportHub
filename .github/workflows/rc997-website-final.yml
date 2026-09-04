@@ -38,9 +38,6 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: RC997 Abschlussverträge
-        run: node --test .github/rc997/rc997-ui-contract.test.mjs .github/rc997/rc997-shipment-contract.test.mjs .github/rc997/rc997-external-contract.test.mjs
-
       - name: Bestehende Node Regressionen
         run: npm test
 
@@ -65,3 +62,6 @@ jobs:
             echo 'FEHLER: RC997 darf Produktion nicht freigeben.'
             exit 1
           fi
+
+      - name: RC997 Abschlussverträge
+        run: node --test .github/rc997/rc997-ui-contract.test.mjs .github/rc997/rc997-shipment-contract.test.mjs .github/rc997/rc997-external-contract.test.mjs
