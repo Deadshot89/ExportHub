@@ -40,6 +40,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          for js in \
+            api/shared/public-access-store.js \
+            api/shared/pickup-store.js \
+            api/shared/loader-pin-store.js \
+            api/pickup-init/index.js \
+            api/pickup-status/index.js \
+            api/pickup-confirm-v2/index.js \
+            api/pickup-pod/index.js \
+            api/pod-backup/index.js \
+            api/customer-avis/index.js \
+            api/rc995-diagnostic/index.js; do
+            node --check "$js"
+          done
           node --test .github/rc995/rc995-contract.test.mjs .github/rc995/rc995-flow.test.cjs
 
       - name: RC995 TESTSERVICE Runtime-Diagnose
@@ -50,7 +63,7 @@ jobs:
           set -euo pipefail
           tmp="$(mktemp)"
           trap 'rm -f "$tmp"' EXIT
-          code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Accept: application/json' -o "$tmp" -w '%{http_code}' "$BASE_URL/api/rc995-diagnostic?verify=${GITHUB_SHA}")"
+          code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Accept: application/json' -H 'X-ExportHUB-Environment: testservice' -o "$tmp" -w '%{http_code}' "$BASE_URL/api/rc995-diagnostic?verify=${GITHUB_SHA}")"
           echo "RC995 diagnostic HTTP=$code"
           cat "$tmp"
           echo
