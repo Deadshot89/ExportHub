@@ -154,7 +154,7 @@ function normalizeMenu(){var nav=document.getElementById('nav');if(!nav)return f
 function buildMenu(){var nav=document.getElementById('nav');if(!nav)return false;if(!initialized||!menuValid(nav)){normalizeMenu();initialized=true}applyPermissions();updateActive();return menuValid(nav)}
 function setViewState(view){var s=state(),target=canonical(view);s.view=target;try{if(typeof window.__EXPORTHUB_BIND_STATE__==='function')window.__EXPORTHUB_BIND_STATE__(s);document.body.setAttribute('data-exporthub-view',target);document.body.setAttribute('data-current-view',target);if(target!=='diagnostics'){var root=document.getElementById('content');if(root){root.classList.remove('rc870-diagnostics-view','rc871-diagnostics-view');root.removeAttribute('data-rc870-diagnostics-view');root.removeAttribute('data-rc871-diagnostics-view')}}}catch(_){}return s}
 var fastViewCache=Object.create(null),fastViewOrder=[],fastViewMax=2,fastViewRestoreTimer=0;
-function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'}
+function fastCacheable(view){view=canonical(view);return view==='shipmentoverview'||view==='cmr'}
 function fastShipmentKey(){var s=state(),sh=s.shipment||s.currentShipment||s.selectedShipment||{},id=q(sh.id||sh.shipmentId||sh._syncId||''),ref=q(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||'');return id+'|'+ref}
 function fastGeneration(){var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};return String(rt.revision||'')+'|'+String(rt.changeGeneration||0)+'|'+String(rt.lastSavedGeneration||0)}
 function dropFastView(view){view=canonical(view);delete fastViewCache[view];fastViewOrder=fastViewOrder.filter(function(v){return v!==view})}function clearFastViewCache(){fastViewOrder.slice().forEach(dropFastView);fastViewCache=Object.create(null);fastViewOrder=[];if(fastViewRestoreTimer){try{clearTimeout(fastViewRestoreTimer)}catch(_){}fastViewRestoreTimer=0}return true}window.__EXPORTHUB_CLEAR_FAST_VIEW_CACHE__=clearFastViewCache;
@@ -348,10 +348,10 @@ document.documentElement.setAttribute('data-index209-pickup','1');
 'use strict';
 if(window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__)return;
 window.__EXPORTHUB_CANONICAL_BUILD_SOURCE__=true;
-var BUILD=Object.freeze({version:'RC990',cache:'990',loginReturn:'/?v=990'});
+var BUILD=Object.freeze({version:'RC998',cache:'998',loginReturn:'/?v=998'});
 var RELEASE=Object.freeze({
- version:'RC885',
- date:'31.08.2026',
+ version:'RC998',
+ date:'04.09.2026',
  title:'Persönlicher Arbeitsplatz und Warncenter neu aufgebaut',
  changes:Object.freeze([
     'RC973 hebt feste beziehungsweise gedeckelte Bildschirmhöhen ausschließlich für echte mehrzeilige Langtextfelder auf. Mailvorlagen, Kunden- und Prozesshinweise, Notizen sowie Beschreibungen wachsen und schrumpfen jetzt automatisch mit ihrem Inhalt; gespeicherte Inhalte werden beim Öffnen neu vermessen.',
@@ -15023,13 +15023,13 @@ async function verifySessionForLoad(){
 function isTransientLoginLoadError(error){var code=String(error&&error.code||''),statusCode=Number(error&&error.status||0);return ['API_UNREACHABLE','API_TIMEOUT','STATE_API_UNREACHABLE','INVALID_SERVER_JSON','HTTP_408','HTTP_425','HTTP_429','HTTP_500','HTTP_502','HTTP_503','HTTP_504'].indexOf(code)>=0||[408,425,429,500,502,503,504].indexOf(statusCode)>=0}
 async function loadStateAfterLogin(){
  if(isTestServiceOrigin()){
-  try{return await loadState({timeoutMs:14000,maxAttempts:1})}
+  try{return await loadState({timeoutMs:6000,maxAttempts:1})}
   catch(firstError){
    if(!isTransientLoginLoadError(firstError))throw firstError;
    status('TESTSERVICE-Anmeldung bestätigt · Azure-Teamdaten antworten verzögert. Ein kontrollierter Wiederholungsversuch läuft …','');
    progress(12,'Azure-Teamdaten antworten verzögert · einmaliger Wiederholungsversuch …');
-   await new Promise(function(resolve){native.setTimeout(resolve,1200)});
-   return loadState({timeoutMs:24000,maxAttempts:1})
+   await new Promise(function(resolve){native.setTimeout(resolve,450)});
+   return loadState({timeoutMs:9000,maxAttempts:1})
   }
  }
  try{return await loadState({timeoutMs:25000,maxAttempts:1})}catch(firstError){if(isSessionError(firstError)&&await renewSessionOnce())return loadState({timeoutMs:25000,maxAttempts:1});throw firstError}
