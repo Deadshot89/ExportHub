@@ -60,6 +60,14 @@ test('RC996 Workflow baut und deployt TESTSERVICE plus Demo isoliert', () => {
   assert.match(src, /github\.ref == 'refs\/heads\/main'/);
 });
 
+test('RC996 Live-Vertrag folgt nur statischen Redirects begrenzt', () => {
+  const src = read(WORKFLOW);
+  assert.match(src, /test_code=.*curl -sS -L --max-redirs 5/);
+  assert.match(src, /demo_code=.*curl -sS -L --max-redirs 5/);
+  assert.match(src, /api_code=.*curl -sS --connect-timeout/);
+  assert.doesNotMatch(src, /api_code=.*curl -sS -L/);
+});
+
 test('Produktionsanwendung bleibt ein separater Release-Center-Schritt', () => {
   assert.equal(exists(PROD_APPLY), true, `${PROD_APPLY} fehlt`);
   const src = read(PROD_APPLY);
