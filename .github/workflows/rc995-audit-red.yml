@@ -1,4 +1,4 @@
-name: RC995 Audit + RED
+name: RC995 Apply + Verify
 
 on:
   push:
@@ -8,34 +8,241 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  audit_red:
+  apply_verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC995 active anchors audit
+
+      - name: Produktionsmarker vor Änderung absichern
         shell: bash
         run: |
-          set -u
-          echo '=== BUILD ==='
-          grep -n -m 3 "var BUILD=Object.freeze" TESTVERSION.html || true
-          echo '=== PICKUP / QR anchors ==='
-          grep -n -E -m 80 "pickup-init|pickup-status|pickup-confirm-v2|pickup\.html|QR.?Code|qrToken|pickupToken" TESTVERSION.html || true
-          echo '=== AVIS anchors ==='
-          grep -n -E -m 100 "customer-avis|customerAvis|Kunden.?Avis|avisToken|Avis-Link" TESTVERSION.html || true
-          echo '=== PRINT / PDF anchors ==='
-          grep -n -E -m 120 "Ladeliste|window\.print|print\(|PDF|jsPDF|html2canvas|qrcode|QRCode" TESTVERSION.html || true
-          echo '=== PRODUCTION MARKER ==='
-          cat production-version.js
-      - name: RC995 RED contract must fail before implementation
+          set -euo pipefail
+          grep -Eq "PRODUCTION_VERSION_PROBE__\s*=\s*['\"]RC990['\"]" production-version.js
+          ! grep -q "RC995" production-version.js
+
+      - name: RC995 Stage in aktive TESTSERVICE-Dateien übernehmen
         shell: bash
         run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import shutil
+
+          stage=Path('.github/rc995/stage/api')
+          target=Path('api')
+          if not stage.is_dir():
+              raise SystemExit('RC995 Stage-Verzeichnis fehlt')
+          files=[p for p in stage.rglob('*') if p.is_file()]
+          if not files:
+              raise SystemExit('RC995 Stage enthält keine API-Dateien')
+          for src in files:
+              rel=src.relative_to(stage)
+              dst=target/rel
+              dst.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copy2(src,dst)
+              print('promote',rel)
+          PY
+
+      - name: RC995 Public-Access Tokenformat und Team-State Sanitizer anwenden
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          access=Path('api/shared/public-access-store.js')
+          s=access.read_text(encoding='utf-8')
+          old="crypto.randomBytes(32).toString('base64url')"
+          new="crypto.randomBytes(24).toString('hex')"
+          if s.count(old)!=1:
+              raise SystemExit(f'Public-Access Tokenanker nicht eindeutig: {s.count(old)}')
+          s=s.replace(old,new,1)
+          access.write_text(s,encoding='utf-8')
+
+          p=Path('api/shared/merge.js')
+          s=p.read_text(encoding='utf-8')
+          if 'function stripPublicAccessSecrets(' not in s:
+              anchor="function isObject(value) {\n  return value && typeof value === 'object' && !Array.isArray(value);\n}\n"
+              if s.count(anchor)!=1:
+                  raise SystemExit('merge.js isObject-Anker fehlt oder ist nicht eindeutig')
+              block=anchor+"\nconst PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','pickupToken','pickupQrToken','qrToken'];\nfunction stripPublicAccessSecrets(state) {\n  if (!isObject(state)) return state;\n  const out = clone(state) || {};\n  const strip = (shipment) => {\n    if (!isObject(shipment)) return shipment;\n    const next = clone(shipment) || {};\n    for (const key of PUBLIC_ACCESS_SECRET_KEYS) delete next[key];\n    return next;\n  };\n  ['shipments','savedShipments','shipmentArchive','archivedShipments'].forEach((key) => {\n    if (Array.isArray(out[key])) out[key] = out[key].map(strip);\n  });\n  ['shipment','currentShipment','selectedShipment'].forEach((key) => {\n    if (isObject(out[key])) out[key] = strip(out[key]);\n  });\n  return out;\n}\n"
+              s=s.replace(anchor,block,1)
+          old="  out._teamSyncMeta = mergedMeta;\n  return out;\n}\n\nfunction mergeUsers"
+          new="  out._teamSyncMeta = mergedMeta;\n  return stripPublicAccessSecrets(out);\n}\n\nfunction mergeUsers"
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'return stripPublicAccessSecrets(out);' not in s:
+              raise SystemExit('mergeState Rückgabeanker fehlt')
+          old2="  out._teamSyncMeta.tombstones = normalizeTombstones(out._teamSyncMeta);\n  return out;\n}\n\nfunction pruneTombstones"
+          new2="  out._teamSyncMeta.tombstones = normalizeTombstones(out._teamSyncMeta);\n  return stripPublicAccessSecrets(out);\n}\n\nfunction pruneTombstones"
+          if old2 in s:
+              s=s.replace(old2,new2,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: RC995 Client, Print-QR und Avis sicher umstellen
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('TESTVERSION.html')
+          s=p.read_text(encoding='utf-8')
+
+          build_old="var BUILD=Object.freeze({version:'RC994',cache:'994',loginReturn:'/TESTVERSION.html?v=994'});"
+          build_new="var BUILD=Object.freeze({version:'RC995',cache:'995',loginReturn:'/TESTVERSION.html?v=995'});"
+          if s.count(build_old)!=1:
+              raise SystemExit(f'RC994 BUILD-Anker nicht eindeutig: {s.count(build_old)}')
+          s=s.replace(build_old,build_new,1)
+
+          # Der Server gibt ab RC995 den verbindlichen Pickup-Token zurück. Der Client übernimmt genau diesen.
+          done_anchor="function done(data,compat){var beforeDone=syncSnapshot(sh)"
+          done_new="function done(data,compat){var serverToken=q(data&&data.token);if(!/^[a-f0-9]{48}$/i.test(serverToken))throw new Error('RC995: Der Server hat keinen gültigen sicheren Pickup-Token geliefert.');token=serverToken;patchCopies(sh,{pickupToken:serverToken,pickupQrToken:serverToken});var beforeDone=syncSnapshot(sh)"
+          if s.count(done_anchor)!=1:
+              raise SystemExit(f'Pickup done-Anker nicht eindeutig: {s.count(done_anchor)}')
+          s=s.replace(done_anchor,done_new,1)
+
+          qr_old="return'<div class=\"index351-qr-box\" data-qr-token=\"'+token+'\">'+svg+'<span>QR-Abholung</span></div>'"
+          qr_new="return'<div class=\"index351-qr-box\" data-rc995-print-qr=\"pickup\">'+svg+'<span>QR-Abholung</span></div>'"
+          if s.count(qr_old)!=1:
+              raise SystemExit(f'Pickup QR-Markup-Anker nicht eindeutig: {s.count(qr_old)}')
+          s=s.replace(qr_old,qr_new,1)
+
+          # Kunden-Avis: Aktivierung/Deaktivierung läuft ab RC995 ausschließlich über die sichere API.
+          sec_old="SECURITY_VERSION=2"
+          if s.count(sec_old)<1:
+              raise SystemExit('Avis SECURITY_VERSION-Anker fehlt')
+          s=s.replace(sec_old,"SECURITY_VERSION=995",1)
+
+          enabled_old="function enabled(sh){var a=avisSnapshot(sh);return !!(a.active&&a.token&&a.securityVersion>=SECURITY_VERSION&&a.enabledAt&&!pickupStamp(a.source||sh)&&!expired(a.source||sh))}"
+          enabled_new="function enabled(sh){var a=avisSnapshot(sh);return !!(a.active&&a.securityVersion>=SECURITY_VERSION&&a.enabledAt&&!pickupStamp(a.source||sh)&&!expired(a.source||sh))}"
+          if s.count(enabled_old)!=1:
+              raise SystemExit(f'Avis enabled-Anker nicht eindeutig: {s.count(enabled_old)}')
+          s=s.replace(enabled_old,enabled_new,1)
+
+          render_toggle="function render(){return false}\nasync function toggle(on)"
+          helper="""function render(){return false}
+function rc995AvisHeaders(){var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},t=q(rt.authToken||'');if(!t)throw new Error('ExportHUB-Sitzung ist nicht mehr gültig.');return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'Authorization':'Bearer '+t,'X-ExportHUB-Environment':/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production'}}
+async function rc995AvisAction(action,sh){var payload={action:action,shipmentId:id(sh),reference:ref(sh),environment:/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production'},r=await fetch('/api/customer-avis',{method:'POST',credentials:'same-origin',cache:'no-store',headers:rc995AvisHeaders(),body:JSON.stringify(payload)}),data=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(data.message)||('HTTP '+r.status));return data}
+async function toggle(on)"""
+          if s.count(render_toggle)!=1:
+              raise SystemExit(f'Avis toggle-Anker nicht eindeutig: {s.count(render_toggle)}')
+          s=s.replace(render_toggle,helper,1)
+
+          pattern=r"async function toggle\(on\)\{.*?\}\nasync function autoDisableIfDue\(\)"
+          matches=list(re.finditer(pattern,s,re.S))
+          if len(matches)!=1:
+              raise SystemExit(f'Avis toggle-Funktion nicht eindeutig: {len(matches)}')
+          replacement="""async function toggle(on){var sh=current();if(!sh)return false;if(on&&pickupStamp(sh)){alert('Der Lieferavis ist nach der Abholung geschlossen und kann nicht erneut aktiviert werden.');return false}if(on&&!ref(sh)){alert('Die Sendung benötigt zuerst eine Referenznummer.');return false}try{var data=await rc995AvisAction(on?'issue':'disable',sh),stamp=new Date().toISOString(),values=on?{customerAvisEnabled:true,avisEnabled:true,customerAvisToken:q(data.token),avisToken:q(data.token),customerAvisSecurityVersion:995,avisSecurityVersion:995,customerAvisEnabledAt:stamp,avisEnabledAt:stamp,customerAvisExpiresAt:q(data.expiresAt),avisExpiresAt:q(data.expiresAt),customerAvisDisabledAt:'',avisDisabledAt:'',customerAvisResponseStatus:'offen',avisResponseStatus:'offen'}:{customerAvisEnabled:false,avisEnabled:false,customerAvisToken:'',avisToken:'',customerAvisSecurityVersion:0,avisSecurityVersion:0,customerAvisDisabledAt:stamp,avisDisabledAt:stamp};patchCopies(sh,values);lastSig='';render();window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{reference:ref(sh),enabled:on,version:'RC995'}}));try{if(window.ExportHUBMailStatus373&&typeof window.ExportHUBMailStatus373.patch==='function')window.ExportHUBMailStatus373.patch('Kunden-Avis RC995 geändert')}catch(_){}schedule();return false}catch(e){alert('Kunden-Avis konnte nicht geändert werden.\\n\\n'+q(e&&e.message||e));return false}}
+async function autoDisableIfDue()"""
+          s=s[:matches[0].start()]+replacement+s[matches[0].end():]
+
+          marker='<!-- exporthub-rc995-public-access -->'
+          if marker in s:
+              raise SystemExit('RC995 Clientblock ist bereits vorhanden')
+          block=r'''
+<!-- exporthub-rc995-public-access -->
+<style id="exporthub-rc995-print-qr">
+.index351-qr-box[data-rc995-print-qr="pickup"]{display:none!important}
+@media print{
+  .index351-qr-box[data-rc995-print-qr="pickup"]{display:none!important}
+  html:not([data-rc995-pdf="1"]) .index351-qr-box[data-rc995-print-qr="pickup"][data-rc995-print-first="1"]{display:flex!important;width:28mm!important;max-width:28mm!important;min-width:28mm!important;height:auto!important;flex-direction:column!important;gap:1.2mm!important;align-items:center!important;break-inside:avoid!important}
+  html:not([data-rc995-pdf="1"]) .index351-qr-box[data-rc995-print-qr="pickup"][data-rc995-print-first="1"] .rc569-qr-svg{width:26mm!important;height:26mm!important;max-width:26mm!important;max-height:26mm!important}
+  html:not([data-rc995-pdf="1"]) .index351-qr-box[data-rc995-print-qr="pickup"][data-rc995-print-first="1"] span{font-size:8pt!important;line-height:1.1!important}
+}
+</style>
+<script id="exporthub-rc995-public-access">
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC995_PUBLIC_ACCESS__)return;window.__EXPORTHUB_RC995_PUBLIC_ACCESS__=true;
+window.RC995_PDF_NO_QR=true;
+window.rc995PdfMode=false;
+window.RC995_CUSTOMER_CONFIRMATION_AVIS_ONLY=true;
+function pickupQrs(){return Array.prototype.slice.call(document.querySelectorAll('.index351-qr-box[data-rc995-print-qr="pickup"]'))}
+function clear(){pickupQrs().forEach(function(n){n.removeAttribute('data-rc995-print-first')})}
+function beforePrint(){clear();document.documentElement.removeAttribute('data-rc995-pdf');var list=pickupQrs();if(list.length)list[0].setAttribute('data-rc995-print-first','1')}
+function afterPrint(){clear()}
+window.addEventListener('beforeprint',beforePrint);
+window.addEventListener('afterprint',afterPrint);
+window.ExportHUBRC995=Object.freeze({version:'RC995',printOnlyPickupQr:true,pdfQr:false,customerConfirmation:'customer-avis-only',beforePrint:beforePrint,afterPrint:afterPrint});
+})();
+</script>
+<!-- /exporthub-rc995-public-access -->
+'''
+          close='</body>'
+          if s.count(close)!=1:
+              raise SystemExit(f'body-Ende nicht eindeutig: {s.count(close)}')
+          s=s.replace(close,block+'\n'+close,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: RC995 Vertrags- und Syntaxprüfung
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check api/shared/public-access-store.js
+          node --check api/shared/merge.js
+          node --check api/pickup-init/index.js
+          node --check api/pickup-status/index.js
+          node --check api/pickup-confirm-v2/index.js
+          node --check api/pickup-pod/index.js
+          node --check api/pod-backup/index.js
+          node --check api/customer-avis/index.js
           node --test .github/rc995/rc995-contract.test.mjs
+          grep -q "version:'RC995'" TESTVERSION.html
+          grep -q 'data-rc995-print-qr' TESTVERSION.html
+          grep -q 'RC995_CUSTOMER_CONFIRMATION_AVIS_ONLY' TESTVERSION.html
+          grep -q 'customerAvisToken' api/shared/merge.js
+          grep -Eq 'pickupToken|qrToken' api/shared/merge.js
+          grep -q 'delete next\[key\]' api/shared/merge.js
+          grep -Eq "PRODUCTION_VERSION_PROBE__\s*=\s*['\"]RC990['\"]" production-version.js
+          ! grep -q "RC995" production-version.js
+
+      - name: Bestehende Kernregressionen
+        shell: bash
+        run: |
+          set -euo pipefail
+          tests=()
+          for f in \
+            test/rc917-pickup-token-contract.test.mjs \
+            test/rc965-avis-retry-performance.test.mjs \
+            test/rc969-conditional-state-read.test.mjs \
+            test/rc970-auth-etag-cache.test.mjs \
+            test/rc975-global-render-integrity.test.mjs \
+            test/rc980-colli-row-stability.test.mjs \
+            test/rc990-check.test.mjs \
+            test/rc991-check.test.mjs \
+            test/rc992-check.test.mjs; do
+              [ -f "$f" ] && tests+=("$f")
+          done
+          if [ ${#tests[@]} -gt 0 ]; then node --test "${tests[@]}"; else echo 'Keine der optionalen Regressionstestdateien vorhanden.'; fi
+
+      - name: RC995 Änderungen committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add TESTVERSION.html api
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Keine RC995 Nutzdatei geändert.'
+            exit 0
+          fi
+          if git diff --cached --name-only | grep -qx 'production-version.js'; then
+            echo 'FEHLER: production-version.js darf RC995 nicht verändern.' >&2
+            exit 1
+          fi
+          git commit -m 'RC995: QR-Abholung und Kunden-Avis sicher aktivieren'
+          git push origin HEAD:main
