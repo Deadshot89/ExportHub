@@ -64,4 +64,4 @@ jobs:
           fi
 
       - name: RC997 Abschlussverträge
-        run: node --test .github/rc997/rc997-ui-contract.test.mjs .github/rc997/rc997-shipment-contract.test.mjs .github/rc997/rc997-external-contract.test.mjs
+        run: node --test .github/rc997/*.test.mjs
