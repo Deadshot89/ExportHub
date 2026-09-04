@@ -67,6 +67,9 @@ jobs:
             exit 1
           fi
 
+      - name: RC996 Android-Vertrag
+        run: node --test .github/rc996/android-contract.test.mjs
+
       - name: Bestehende Node Regressionen
         run: npm test
 
@@ -75,15 +78,6 @@ jobs:
         run: |
           node --test .github/rc995/rc995-contract.test.mjs
           node --test .github/rc995/rc995-flow.test.cjs
-
-      - name: RC996 Android-Vertrag falls vorhanden
-        shell: bash
-        run: |
-          if [[ -f .github/rc996/android-contract.test.mjs ]]; then
-            node --test .github/rc996/android-contract.test.mjs
-          else
-            echo 'Android-Vertrag noch nicht vorhanden.'
-          fi
 
   android_build:
     runs-on: ubuntu-latest
