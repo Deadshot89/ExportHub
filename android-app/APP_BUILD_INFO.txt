@@ -1,6 +1,6 @@
 ExportHUB Android
-App-Version: 1.0-rc996
-Release-Kandidat: RC996
+App-Version: 1.0-rc997
+Release-Kandidat: RC997
 Application ID Debug: de.exporthub.test.debug
 Application ID Release: de.exporthub.test
 
