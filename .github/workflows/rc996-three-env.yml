@@ -1,0 +1,42 @@
+name: RC996 Drei-Umgebungen und Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc996-three-env-android-do
+      - main
+    paths:
+      - '.github/rc996/**'
+      - 'assets/exporthub-environment-hub.js'
+      - 'assets/exporthub-demo-bootstrap.js'
+      - 'android-app/**'
+      - '.github/workflows/rc996-three-env.yml'
+      - '.github/workflows/exporthub-testservice.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc996-three-env-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC996 Drei-Umgebungen-Vertrag
+        run: node --test .github/rc996/rc996-three-env.test.mjs
+      - name: RC996 Android-Vertrag falls vorhanden
+        shell: bash
+        run: |
+          if [[ -f .github/rc996/android-contract.test.mjs ]]; then
+            node --test .github/rc996/android-contract.test.mjs
+          else
+            echo 'Android-Vertrag noch nicht vorhanden.'
+          fi
