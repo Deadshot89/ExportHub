@@ -88,8 +88,8 @@ for (const file of FILES) {
     'function fastShipmentKey(){',
     (block) => replaceOnce(
       block,
-      "return view==='shipment'||view==='shipmentoverview'||view==='cmr';",
-      "return view==='shipmentoverview'||view==='cmr';",
+      "return view==='shipment'||view==='shipmentoverview'||view==='cmr'",
+      "return view==='shipmentoverview'||view==='cmr'",
       `${file}: fastCacheable`
     ),
     `${file}: fastCacheable owner`
