@@ -87,3 +87,10 @@ for(const file of FILES){
     assert.match(block,/console\.error\([^)]*search[^)]*,\s*e\)/i,'Navigationsfehler müssen diagnostizierbar sein');
   });
 }
+
+test('RC999 Environment-Hub sitzt oben rechts und alle drei Elemente sind gleichwertig formatiert',()=>{
+  const js=fs.readFileSync('assets/exporthub-environment-hub.js','utf8');
+  assert.match(js,/#eh996-env-hub\{[^}]*position:fixed;[^}]*right:16px;[^}]*top:16px;[^}]*bottom:auto;/s,'Environment-Hub muss oben rechts statt unten im Inhalt sitzen');
+  assert.match(js,/#eh996-env-current\{[^}]*display:inline-flex;[^}]*align-items:center;[^}]*min-height:34px;[^}]*padding:7px 10px;/s,'Aktuelle Umgebung muss dieselbe kompakte Geometrie wie die Aktionen besitzen');
+  assert.match(js,/@media\(max-width:640px\)\{#eh996-env-hub\{[^}]*top:8px;[^}]*bottom:auto;/s,'Auch mobil darf der Hub nicht am unteren Seitenrand kleben');
+});
