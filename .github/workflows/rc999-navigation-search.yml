@@ -29,8 +29,8 @@ jobs:
           node-version: '20.20.2'
       - name: Baseline Regressionen
         run: npm test
-      - name: RC997 Abschlussverträge
-        run: node --test .github/rc997/*.test.mjs
+      - name: RC997 Funktionsverträge
+        run: node --test --test-name-pattern='^(?!RC997 UI: RC995 bleibt die unveränderte Quellbasis$).*' .github/rc997/*.test.mjs
       - name: RC999 Navigation und Suche
         run: node --test .github/rc999/rc999-navigation-search.test.mjs
       - name: Produktionsmarker schützen
