@@ -1,16 +1,25 @@
 import fs from 'node:fs';
 
+const needles=[
+  'initIndex321','index321','globalSearch','searchResults','searchInput','function add(type,title,sub,view,action)',
+  'selectedCustomerId=c.id','selectedShipmentId=sh.id','state.customers','state.shipments','state.tasks'
+];
+
 for (const file of ['index.html','TESTVERSION.html']) {
   const html=fs.readFileSync(file,'utf8');
-  const start=html.indexOf('(function initIndex321(){');
-  if(start<0) throw new Error(`${file}: initIndex321 fehlt`);
-  const end=html.indexOf('})();',start);
-  if(end<0) throw new Error(`${file}: initIndex321 Ende fehlt`);
-  const block=html.slice(start,end+5);
-  console.log(`\n===== ${file} initIndex321 (${block.length} Zeichen) =====`);
-  for (const needle of ['function add','state.customers','state.shipments','state.tasks','catch(e)']) {
-    const pos=block.indexOf(needle);
-    console.log(`\n--- ${needle} @ ${pos} ---`);
-    if(pos>=0) console.log(block.slice(Math.max(0,pos-500),Math.min(block.length,pos+2600)));
+  console.log(`\n===== ${file} (${html.length} Zeichen) =====`);
+  for (const needle of needles) {
+    let from=0,count=0,first=-1;
+    while(true){
+      const pos=html.indexOf(needle,from);
+      if(pos<0) break;
+      if(first<0) first=pos;
+      count++;
+      from=pos+needle.length;
+    }
+    console.log(`${needle}: count=${count}, first=${first}`);
+    if(first>=0){
+      console.log(html.slice(Math.max(0,first-700),Math.min(html.length,first+4200)));
+    }
   }
 }
