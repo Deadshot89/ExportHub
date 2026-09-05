@@ -19,41 +19,54 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.20.2'
-      - name: Inspect navigation and search owners
+      - name: Inspect canonical navigation and search owners
         run: |
           node <<'NODE'
           const fs=require('fs');
           const src=fs.readFileSync('TESTVERSION.html','utf8');
-          const needles=[
-            'data-index321-view=',
-            'index321',
-            'search',
-            'Search',
-            'suche',
-            'Suche',
-            'globalSearch',
-            'shipmentoverview',
-            'rc990RememberView',
-            'rc990BackView',
-            'rc990ScheduleRender',
-            "view==='shipment'",
-            "view==='shipmentoverview'"
-          ];
-          const maxPerNeedle=20;
-          for(const needle of needles){
+
+          function around(needle,before=1200,after=2600,max=20){
             let from=0,count=0;
             console.log(`\n### ${needle}`);
-            while(count<maxPerNeedle){
+            while(count<max){
               const i=src.indexOf(needle,from); if(i<0)break;
-              const a=Math.max(0,i-700),b=Math.min(src.length,i+needle.length+1400);
-              console.log(`\n--- @${i} ---\n${src.slice(a,b)}`);
+              console.log(`\n--- @${i} ---\n${src.slice(Math.max(0,i-before),Math.min(src.length,i+needle.length+after))}`);
               from=i+needle.length; count++;
             }
-            console.log(`\nCOUNT ${needle}: ${count}${count===maxPerNeedle?' (capped)':''}`);
+            console.log(`\nCOUNT ${needle}: ${count}${count===max?' (capped)':''}`);
           }
-          const fn=[...src.matchAll(/function\s+([A-Za-z0-9_$]*(?:search|Search|such|Such|view|View|route|Route|nav|Nav)[A-Za-z0-9_$]*)\s*\(/g)].map(m=>m[1]);
-          console.log('\n### RELATED FUNCTIONS\n'+[...new Set(fn)].sort().join('\n'));
-          const inputs=[...src.matchAll(/<input[^>]{0,500}>/gi)].map(m=>m[0]).filter(s=>/search|such/i.test(s));
-          console.log('\n### SEARCH INPUTS');
-          inputs.slice(0,30).forEach(x=>console.log(x));
+
+          [
+            'function initIndex321(){',
+            'function go(view){',
+            'function rc990RememberView(',
+            'function rc990BackView(',
+            'selectedCustomerId',
+            'selectedShipmentId',
+            'selectedTaskId',
+            'taskId',
+            'shipmentId',
+            'customerId',
+            'renderCustomers',
+            'renderCustomer',
+            'renderShipmentOverview',
+            'renderTasks',
+            'function renderTasks',
+            'function renderShipment',
+            'function renderCustomers'
+          ].forEach(n=>around(n));
+
+          console.log('\n### ASSIGNMENTS selectedCustomerId');
+          [...src.matchAll(/selectedCustomerId\s*=\s*[^;\n]+/g)].slice(0,80).forEach(m=>console.log(m[0]));
+          console.log('\n### ASSIGNMENTS selectedShipmentId');
+          [...src.matchAll(/selectedShipmentId\s*=\s*[^;\n]+/g)].slice(0,80).forEach(m=>console.log(m[0]));
+          console.log('\n### ASSIGNMENTS task-like selection');
+          [...src.matchAll(/(?:selectedTaskId|taskFocusId|focusedTaskId|activeTaskId)\s*=\s*[^;\n]+/g)].slice(0,80).forEach(m=>console.log(m[0]));
+
+          console.log('\n### STORE ID SHAPES');
+          for(const expr of [
+            /store\.customers[^\n]{0,220}/g,
+            /store\.shipments[^\n]{0,220}/g,
+            /store\.tasks[^\n]{0,220}/g
+          ]) [...src.matchAll(expr)].slice(0,80).forEach(m=>console.log(m[0]));
           NODE
