@@ -19,13 +19,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.20.2'
-      - name: Inspect canonical navigation and search owners
+      - name: Inspect canonical search fields
         run: |
           node <<'NODE'
           const fs=require('fs');
           const src=fs.readFileSync('TESTVERSION.html','utf8');
 
-          function around(needle,before=1200,after=2600,max=20){
+          function around(needle,before=900,after=1800,max=12){
             let from=0,count=0;
             console.log(`\n### ${needle}`);
             while(count<max){
@@ -38,35 +38,34 @@ jobs:
 
           [
             'function initIndex321(){',
-            'function go(view){',
-            'function rc990RememberView(',
-            'function rc990BackView(',
-            'selectedCustomerId',
-            'selectedShipmentId',
-            'selectedTaskId',
-            'taskId',
-            'shipmentId',
-            'customerId',
-            'renderCustomers',
-            'renderCustomer',
-            'renderShipmentOverview',
-            'renderTasks',
-            'function renderTasks',
-            'function renderShipment',
-            'function renderCustomers'
+            'Empfänger',
+            'Lieferadresse',
+            'Lieferort',
+            'Standort',
+            'customerAddress',
+            'recipient',
+            'consignee',
+            'shipTo',
+            'deliveryAddress',
+            'destination',
+            'locationName',
+            'siteName'
           ].forEach(n=>around(n));
 
-          console.log('\n### ASSIGNMENTS selectedCustomerId');
-          [...src.matchAll(/selectedCustomerId\s*=\s*[^;\n]+/g)].slice(0,80).forEach(m=>console.log(m[0]));
-          console.log('\n### ASSIGNMENTS selectedShipmentId');
-          [...src.matchAll(/selectedShipmentId\s*=\s*[^;\n]+/g)].slice(0,80).forEach(m=>console.log(m[0]));
-          console.log('\n### ASSIGNMENTS task-like selection');
-          [...src.matchAll(/(?:selectedTaskId|taskFocusId|focusedTaskId|activeTaskId)\s*=\s*[^;\n]+/g)].slice(0,80).forEach(m=>console.log(m[0]));
+          function props(varName){
+            const re=new RegExp('\\b'+varName+'\\.([A-Za-z_$][A-Za-z0-9_$]*)','g');
+            const names=[...src.matchAll(re)].map(m=>m[1]);
+            return [...new Set(names)].sort();
+          }
+          console.log('\n### CUSTOMER PROPERTIES (c.*)\n'+props('c').join('\n'));
+          console.log('\n### SHIPMENT PROPERTIES (sh.*)\n'+props('sh').join('\n'));
+          console.log('\n### TASK PROPERTIES (t.*)\n'+props('t').join('\n'));
 
-          console.log('\n### STORE ID SHAPES');
-          for(const expr of [
-            /store\.customers[^\n]{0,220}/g,
-            /store\.shipments[^\n]{0,220}/g,
-            /store\.tasks[^\n]{0,220}/g
-          ]) [...src.matchAll(expr)].slice(0,80).forEach(m=>console.log(m[0]));
+          const interesting=/recipient|empf|address|street|city|postal|zip|country|location|site|destination|consignee|ship|customer|account|reference|status|priority|due|carrier|contact|mail/i;
+          console.log('\n### INTERESTING SHIPMENT PROPERTIES');
+          props('sh').filter(x=>interesting.test(x)).forEach(x=>console.log(x));
+          console.log('\n### INTERESTING CUSTOMER PROPERTIES');
+          props('c').filter(x=>interesting.test(x)).forEach(x=>console.log(x));
+          console.log('\n### INTERESTING TASK PROPERTIES');
+          props('t').filter(x=>interesting.test(x)).forEach(x=>console.log(x));
           NODE
