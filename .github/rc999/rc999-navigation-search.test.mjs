@@ -88,9 +88,14 @@ for(const file of FILES){
   });
 }
 
-test('RC999 Environment-Hub sitzt oben rechts und alle drei Elemente sind gleichwertig formatiert',()=>{
+test('RC999 Environment-Hub ist in die Topbar integriert und überlagert keinen Seiteninhalt',()=>{
   const js=fs.readFileSync('assets/exporthub-environment-hub.js','utf8');
-  assert.match(js,/#eh996-env-hub\{[^}]*position:fixed;[^}]*right:16px;[^}]*top:16px;[^}]*bottom:auto;/s,'Environment-Hub muss oben rechts statt unten im Inhalt sitzen');
-  assert.match(js,/#eh996-env-current\{[^}]*display:inline-flex;[^}]*align-items:center;[^}]*min-height:34px;[^}]*padding:7px 10px;/s,'Aktuelle Umgebung muss dieselbe kompakte Geometrie wie die Aktionen besitzen');
-  assert.match(js,/@media\(max-width:640px\)\{#eh996-env-hub\{[^}]*top:8px;[^}]*bottom:auto;/s,'Auch mobil darf der Hub nicht am unteren Seitenrand kleben');
+  assert.match(js,/querySelector\(['"]\.topbar['"]\)|getElementById\(['"]ehTopbarEnvironment['"]\)/i,'Environment-Hub muss einen vorhandenen Topbar-Bereich als Mount-Ziel nutzen');
+  assert.match(js,/(?:mount|topbar|slot)\.appendChild\(hub\)|(?:mount|topbar|slot)\.append\(hub\)/i,'Environment-Hub muss in den Kopfbereich eingehängt werden');
+  assert.match(js,/#eh996-env-hub\{[^}]*position:relative;/s,'Environment-Hub braucht einen lokalen Positionskontext');
+  assert.doesNotMatch(js,/#eh996-env-hub\{[^}]*position:fixed;/s,'Environment-Hub darf nicht mehr über dem Seiteninhalt schweben');
+  assert.match(js,/#eh996-env-panel\{[^}]*position:absolute;/s,'Bereichsauswahl muss am Hub statt am Browserfenster verankert sein');
+  assert.doesNotMatch(js,/#eh996-env-panel\{[^}]*position:fixed;/s,'Bereichsauswahl darf nicht viewport-fixiert sein');
+  assert.match(js,/#eh996-env-switch\{[^}]*background:#2563eb;/s,'Bereich wechseln bleibt die primäre Aktion');
+  assert.match(js,/@media\(max-width:640px\)\{#eh996-env-hub\{[^}]*width:100%;/s,'Mobil muss der Hub den verfügbaren Kopfbereich sauber nutzen');
 });
