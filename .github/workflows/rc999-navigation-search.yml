@@ -29,6 +29,8 @@ jobs:
           node-version: '20.20.2'
       - name: Baseline Regressionen
         run: npm test
+      - name: Aktiven Suchindex diagnostizieren
+        run: node .github/rc999/diagnose-search-owner.mjs
       - name: RC999 Navigation und Suche
         run: node --test .github/rc999/rc999-navigation-search.test.mjs
       - name: RC997 nicht versionsgebundene Funktionsverträge
