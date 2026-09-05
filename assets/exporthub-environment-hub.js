@@ -36,17 +36,17 @@ function style(){
   if(document.getElementById('eh996-env-style'))return;
   const s=document.createElement('style');s.id='eh996-env-style';
   s.textContent=`
-#eh996-env-hub{position:fixed;right:16px;top:16px;bottom:auto;z-index:2147482500;display:flex;align-items:center;gap:4px;padding:4px;border:1px solid rgba(148,163,184,.42);border-radius:13px;background:rgba(255,255,255,.96);box-shadow:0 8px 24px rgba(15,23,42,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font:600 12px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;max-width:calc(100vw - 32px);box-sizing:border-box}
-#eh996-env-hub button,#eh996-env-hub a{touch-action:manipulation;min-height:34px;border:0;border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;box-sizing:border-box;transition:background .16s ease,box-shadow .16s ease,transform .16s ease}
+#eh996-env-hub{position:relative;z-index:40;justify-self:end;display:inline-flex;align-items:center;gap:4px;padding:3px;border:1px solid rgba(148,163,184,.32);border-radius:12px;background:rgba(248,250,252,.92);box-shadow:0 3px 12px rgba(15,23,42,.08);font:600 12px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;max-width:100%;box-sizing:border-box}
+#eh996-env-hub button,#eh996-env-hub a{touch-action:manipulation;min-height:32px;border:0;border-radius:9px;padding:6px 10px;font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;box-sizing:border-box;transition:background .16s ease,box-shadow .16s ease,transform .16s ease}
 #eh996-env-hub button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
-#eh996-env-current{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 10px;border-radius:9px;background:#f1f5f9;color:#334155;white-space:nowrap;box-sizing:border-box}
+#eh996-env-current{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:6px 9px;border-radius:9px;background:#eef2f7;color:#475569;white-space:nowrap;box-sizing:border-box;font-weight:700}
 #eh996-env-current::before{content:"";width:7px;height:7px;margin-right:7px;border-radius:999px;background:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.13);flex:0 0 auto}
-#eh996-env-switch{background:#2563eb;color:#fff;box-shadow:0 2px 7px rgba(37,99,235,.22)}
-#eh996-env-switch:hover{background:#1d4ed8;box-shadow:0 3px 10px rgba(37,99,235,.28)}
+#eh996-env-switch{background:#2563eb;color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.2)}
+#eh996-env-switch:hover{background:#1d4ed8;box-shadow:0 3px 9px rgba(37,99,235,.25)}
 #eh996-env-switch:active{transform:translateY(1px)}
-#eh996-app-open{background:#e2e8f0;color:#0f172a}
-#eh996-app-open:hover{background:#cbd5e1}
-#eh996-env-panel{position:fixed;right:16px;top:66px;bottom:auto;z-index:2147482501;display:none;min-width:220px;padding:8px;border:1px solid #dbe3ee;border-radius:14px;background:#fff;box-shadow:0 16px 45px rgba(15,23,42,.22);font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
+#eh996-app-open{background:#fff;color:#334155;border:1px solid #d9e1eb!important;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+#eh996-app-open:hover{background:#f8fafc;color:#0f172a}
+#eh996-env-panel{position:absolute;right:0;top:calc(100% + 8px);bottom:auto;z-index:60;display:none;min-width:220px;padding:8px;border:1px solid #dbe3ee;border-radius:14px;background:#fff;box-shadow:0 16px 45px rgba(15,23,42,.2);font:600 13px/1.2 system-ui,-apple-system,Segoe UI,sans-serif}
 #eh996-env-panel[data-open="1"]{display:grid;gap:6px}
 #eh996-env-panel button{touch-action:manipulation;width:100%;text-align:left;border:0;border-radius:10px;padding:11px 12px;background:#f1f5f9;color:#0f172a;cursor:pointer;font:inherit}
 #eh996-env-panel button:hover{background:#e2e8f0}
@@ -57,26 +57,34 @@ function style(){
 #eh996-app-dialog h3{margin:0 0 8px;font-size:18px}#eh996-app-dialog p{margin:0 0 14px;color:#475569}
 #eh996-app-dialog .eh996-grid{display:grid;grid-template-columns:1fr;gap:8px}
 #eh996-app-dialog button{touch-action:manipulation;border:0;border-radius:10px;padding:11px 12px;font:600 13px system-ui;cursor:pointer}
-@media(max-width:640px){#eh996-env-hub{left:auto;right:8px;top:8px;bottom:auto;gap:3px;padding:4px;max-width:calc(100vw - 16px)}#eh996-env-current{min-height:32px;padding:6px 8px;font-size:11px}#eh996-env-hub button,#eh996-env-hub a{min-height:32px;padding:6px 8px;font-size:11px}#eh996-env-panel{left:auto;right:8px;top:56px;bottom:auto;width:min(300px,calc(100vw - 16px));min-width:0;box-sizing:border-box}}
-@media(max-width:420px){#eh996-env-hub{gap:2px;padding:3px}#eh996-env-current{padding:5px 7px;font-size:10.5px}#eh996-env-current::before{width:6px;height:6px;margin-right:5px}#eh996-env-hub button,#eh996-env-hub a{padding:5px 7px;font-size:10.5px}}
+@media(max-width:640px){#eh996-env-hub{width:100%;justify-self:stretch;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px;padding:3px}#eh996-env-current{min-height:32px;padding:6px 8px;font-size:11px}#eh996-env-hub button,#eh996-env-hub a{min-height:32px;padding:6px 8px;font-size:11px}#eh996-env-panel{left:0;right:0;top:calc(100% + 7px);width:100%;min-width:0;box-sizing:border-box}}
+@media(max-width:420px){#eh996-env-hub{grid-template-columns:1fr 1fr;gap:4px}#eh996-env-current{grid-column:1/-1;justify-content:flex-start;padding:5px 8px;font-size:10.5px}#eh996-env-current::before{width:6px;height:6px;margin-right:5px}#eh996-env-hub button,#eh996-env-hub a{width:100%;padding:5px 7px;font-size:10.5px}}
 @media print{#eh996-env-hub,#eh996-env-panel,#eh996-app-dialog{display:none!important}}
 `;
   document.head.appendChild(s);
+}
+function resolveMount(){
+  const slot=document.getElementById('ehTopbarEnvironment')||document.querySelector('.eh-topbar-environment');
+  const topbar=document.querySelector('.topbar');
+  return topbar||slot||document.body;
 }
 function render(){
   if(!document.body||document.getElementById('eh996-env-hub'))return;
   style();
   const env=currentEnvironment(),current=TARGETS[env];
-  const hub=document.createElement('div');hub.id='eh996-env-hub';hub.setAttribute('data-exporthub-environment',env);
-  hub.innerHTML=`<span id="eh996-env-current">${esc(current.label)}</span><button id="eh996-env-switch" type="button" aria-expanded="false">Bereich wechseln</button><button id="eh996-app-open" type="button">ExportHUB App</button>`;
+  const hub=document.createElement('div');hub.id='eh996-env-hub';hub.setAttribute('data-exporthub-environment',env);hub.setAttribute('aria-label','ExportHUB Bereich und App');
+  hub.innerHTML=`<span id="eh996-env-current" title="Aktiver Bereich">${esc(current.label)}</span><button id="eh996-env-switch" type="button" aria-expanded="false" aria-controls="eh996-env-panel">Bereich wechseln</button><button id="eh996-app-open" type="button">ExportHUB App</button>`;
   const panel=document.createElement('div');panel.id='eh996-env-panel';panel.setAttribute('data-open','0');
   Object.values(TARGETS).forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t.label;b.dataset.env=t.key;if(t.key===env)b.setAttribute('aria-current','page');b.addEventListener('click',()=>go(t.key));panel.appendChild(b);});
+  hub.appendChild(panel);
   const dialog=document.createElement('dialog');dialog.id='eh996-app-dialog';dialog.innerHTML=`<div class="eh996-card"><h3>ExportHUB App</h3><p>Die Android-App arbeitet mit denselben drei getrennten Bereichen. In der App kannst du Produktion, TESTSERVICE oder Demo auswählen.</p><div class="eh996-grid"><button type="button" data-env="production">Produktion öffnen</button><button type="button" data-env="testservice">TESTSERVICE öffnen</button><button type="button" data-env="demo">Demo öffnen</button><button type="button" data-close="1">Schließen</button></div></div>`;
   dialog.querySelectorAll('[data-env]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.env)));
   dialog.querySelector('[data-close]').addEventListener('click',()=>dialog.close());
   hub.querySelector('#eh996-env-switch').addEventListener('click',()=>{const open=panel.getAttribute('data-open')==='1';panel.setAttribute('data-open',open?'0':'1');hub.querySelector('#eh996-env-switch').setAttribute('aria-expanded',open?'false':'true');});
   hub.querySelector('#eh996-app-open').addEventListener('click',appAction);
-  document.body.append(panel,hub,dialog);
+  const mount=resolveMount();
+  mount.appendChild(hub);
+  document.body.appendChild(dialog);
 }
 
 function textOf(selectors){for(const s of selectors){const el=document.querySelector(s);if(el&&String(el.textContent||'').trim())return String(el.textContent||'').trim();}return'';}
