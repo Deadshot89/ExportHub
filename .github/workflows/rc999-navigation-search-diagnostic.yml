@@ -1,0 +1,59 @@
+name: RC999 Navigation Search Diagnostic
+
+on:
+  push:
+    branches:
+      - rc999-navigation-search-final
+    paths:
+      - '.github/workflows/rc999-navigation-search-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+      - name: Inspect navigation and search owners
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const src=fs.readFileSync('TESTVERSION.html','utf8');
+          const needles=[
+            'data-index321-view=',
+            'index321',
+            'search',
+            'Search',
+            'suche',
+            'Suche',
+            'globalSearch',
+            'shipmentoverview',
+            'rc990RememberView',
+            'rc990BackView',
+            'rc990ScheduleRender',
+            "view==='shipment'",
+            "view==='shipmentoverview'"
+          ];
+          const maxPerNeedle=20;
+          for(const needle of needles){
+            let from=0,count=0;
+            console.log(`\n### ${needle}`);
+            while(count<maxPerNeedle){
+              const i=src.indexOf(needle,from); if(i<0)break;
+              const a=Math.max(0,i-700),b=Math.min(src.length,i+needle.length+1400);
+              console.log(`\n--- @${i} ---\n${src.slice(a,b)}`);
+              from=i+needle.length; count++;
+            }
+            console.log(`\nCOUNT ${needle}: ${count}${count===maxPerNeedle?' (capped)':''}`);
+          }
+          const fn=[...src.matchAll(/function\s+([A-Za-z0-9_$]*(?:search|Search|such|Such|view|View|route|Route|nav|Nav)[A-Za-z0-9_$]*)\s*\(/g)].map(m=>m[1]);
+          console.log('\n### RELATED FUNCTIONS\n'+[...new Set(fn)].sort().join('\n'));
+          const inputs=[...src.matchAll(/<input[^>]{0,500}>/gi)].map(m=>m[0]).filter(s=>/search|such/i.test(s));
+          console.log('\n### SEARCH INPUTS');
+          inputs.slice(0,30).forEach(x=>console.log(x));
+          NODE
