@@ -29,11 +29,17 @@ jobs:
           node-version: '20.20.2'
       - name: Baseline Regressionen
         run: npm test
-      - name: RC997 Funktionsverträge
-        run: |
-          node --test --test-name-pattern='^(?!RC997 UI: RC995 bleibt die unveränderte Quellbasis$).*' .github/rc997/*.test.mjs
       - name: RC999 Navigation und Suche
         run: node --test .github/rc999/rc999-navigation-search.test.mjs
+      - name: RC997 nicht versionsgebundene Funktionsverträge
+        run: |
+          node --test \
+            .github/rc997/android-contract.test.mjs \
+            .github/rc997/production-release-contract.test.mjs \
+            .github/rc997/rc997-build-contract.test.mjs \
+            .github/rc997/rc997-external-contract.test.mjs \
+            .github/rc997/rc997-shipment-contract.test.mjs \
+            .github/rc997/rc997-workflow-contract.test.mjs
       - name: Produktionsmarker schützen
         shell: bash
         run: |
