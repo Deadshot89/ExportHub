@@ -1,1 +1,1 @@
-diagnose current index321 search owner v2
+diagnose full current search subsystem v3
