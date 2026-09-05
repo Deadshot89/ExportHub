@@ -1,0 +1,23 @@
+name: RC999 Search Diagnose
+
+on:
+  push:
+    branches:
+      - rc999-navigation-search-final
+    paths:
+      - '.github/rc999/diagnose-request.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+      - name: Suchbesitzer diagnostizieren
+        run: node .github/rc999/diagnose-search-owner.mjs
