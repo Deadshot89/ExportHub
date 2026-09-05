@@ -1,0 +1,56 @@
+name: RC999 Navigation Search Apply
+
+on:
+  push:
+    branches:
+      - rc999-navigation-search-final
+    paths:
+      - '.github/rc999/apply-request.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc999-navigation-search-apply-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+      - name: RC999 Patch anwenden
+        run: node .github/rc999/apply-navigation-search.mjs
+      - name: Baseline Regressionen
+        run: npm test
+      - name: RC999 Navigation und Suche
+        run: node --test .github/rc999/rc999-navigation-search.test.mjs
+      - name: RC998 Bestandsschutz
+        run: node --test .github/rc998/rc998-video-hardening.test.mjs
+      - name: Produktionsmarker schützen
+        run: |
+          grep -q 'RC997' production-version.js
+          if grep -q 'RC999' production-version.js; then
+            echo 'production-version.js darf RC999 vor Freigabe nicht enthalten.' >&2
+            exit 1
+          fi
+      - name: Änderungen committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          if git diff --cached --quiet; then
+            echo 'Keine RC999 HTML-Änderungen zu committen.'
+            exit 0
+          fi
+          git commit -m 'RC999: globale Navigation und Suche vervollständigen'
+          git push origin HEAD:rc999-navigation-search-final
