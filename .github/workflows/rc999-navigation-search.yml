@@ -1,0 +1,44 @@
+name: RC999 Navigation Search
+
+on:
+  push:
+    branches:
+      - rc999-navigation-search-final
+    paths:
+      - '.github/rc999/**'
+      - '.github/workflows/rc999-navigation-search.yml'
+      - 'index.html'
+      - 'TESTVERSION.html'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc999-navigation-search-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+      - name: Baseline Regressionen
+        run: npm test
+      - name: RC997 Abschlussverträge
+        run: node --test .github/rc997/*.test.mjs
+      - name: RC999 Navigation und Suche
+        run: node --test .github/rc999/rc999-navigation-search.test.mjs
+      - name: Produktionsmarker schützen
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'RC997' production-version.js
+          if grep -q 'RC999' production-version.js; then
+            echo 'production-version.js darf RC999 vor Freigabe nicht enthalten.' >&2
+            exit 1
+          fi
