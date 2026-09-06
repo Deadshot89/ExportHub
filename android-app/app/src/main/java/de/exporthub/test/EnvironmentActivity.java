@@ -167,7 +167,7 @@ public class EnvironmentActivity extends Activity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setUserAgentString(settings.getUserAgentString() + " ExportHUB-Android/1.0 RC996");
+        settings.setUserAgentString(settings.getUserAgentString() + " ExportHUB-Android/1.0 RC997.1");
         settings.setSafeBrowsingEnabled(true);
 
         CookieManager cookies = CookieManager.getInstance();

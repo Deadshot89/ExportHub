@@ -13,6 +13,7 @@ import android.os.Build;
 public final class NotificationHelper {
     public static final String CHANNEL_TASKS = "exporthub_tasks";
     public static final String CHANNEL_WARNINGS = "exporthub_warnings";
+    public static final String CHANNEL_DIAGNOSTICS = "exporthub_diagnostics";
     private static final String PREFS = "exporthub_native_notifications";
 
     private NotificationHelper() {}
@@ -34,8 +35,15 @@ public final class NotificationHelper {
                 NotificationManager.IMPORTANCE_HIGH);
         warnings.setDescription("Operative ExportHUB Sendungswarnungen");
 
+        NotificationChannel diagnostics = new NotificationChannel(
+                CHANNEL_DIAGNOSTICS,
+                "ExportHUB Fehlerdiagnose",
+                NotificationManager.IMPORTANCE_HIGH);
+        diagnostics.setDescription("Technische ExportHUB Fehler und Diagnosewarnungen für globale Administratoren");
+
         manager.createNotificationChannel(tasks);
         manager.createNotificationChannel(warnings);
+        manager.createNotificationChannel(diagnostics);
     }
 
     public static boolean show(Context context,
@@ -52,8 +60,13 @@ public final class NotificationHelper {
         }
 
         String env = EnvironmentActivity.normalizeEnvironment(environment);
-        String normalizedChannel = "warning".equalsIgnoreCase(channel) ? "warning" : "notification";
-        String channelId = "warning".equals(normalizedChannel) ? CHANNEL_WARNINGS : CHANNEL_TASKS;
+        String normalizedChannel;
+        if ("warning".equalsIgnoreCase(channel)) normalizedChannel = "warning";
+        else if ("diagnostic".equalsIgnoreCase(channel)) normalizedChannel = "diagnostic";
+        else normalizedChannel = "notification";
+        String channelId = "warning".equals(normalizedChannel)
+                ? CHANNEL_WARNINGS
+                : ("diagnostic".equals(normalizedChannel) ? CHANNEL_DIAGNOSTICS : CHANNEL_TASKS);
         String safeKey = safe(key, "notice");
         String safeTitle = safe(title, "ExportHUB");
         String safeBody = safe(body, "ExportHUB hat einen neuen Hinweis.");

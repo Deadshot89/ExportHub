@@ -1,6 +1,6 @@
 {
   "name": "ExportHUB Android",
-  "appVersion": "1.0-rc997",
+  "appVersion": "1.0-rc997.1",
   "releaseCandidate": "RC997",
   "applicationId": {
     "debug": "de.exporthub.test.debug",
@@ -16,7 +16,9 @@
     "Ein-Tap-Smartphone-Menü mit Rebinding nach ExportHUB-Renders",
     "Datei-Upload, Download, Blob-Download, Druck und Android-Zurücknavigation",
     "Offline-/Verbindungsstatus",
-    "Native Android-Benachrichtigungskanäle für persönliche Aufgaben und Warncenter",
+    "Native Android-Benachrichtigungskanäle für persönliche Aufgaben, Warncenter und Fehlerdiagnose",
+    "Fehlerdiagnose-Benachrichtigungen nur für globale Administratoren, mit Dublettenschutz und zentraler Cloud-Prüfung im App-Betrieb",
+    "Tipp auf Diagnose-Benachrichtigung öffnet direkt den Fehlerdiagnose-Bereich der gewählten Umgebung",
     "Lokale Aufgaben-Erinnerungen um 09:00, 12:00 und 15:00 Uhr",
     "Fremde Hosts werden außerhalb des WebViews geöffnet",
     "Cleartext HTTP bleibt gesperrt"

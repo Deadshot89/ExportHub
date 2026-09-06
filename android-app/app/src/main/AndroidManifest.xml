@@ -28,10 +28,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-
         <receiver
             android:name=".ReminderReceiver"
             android:exported="false" />
