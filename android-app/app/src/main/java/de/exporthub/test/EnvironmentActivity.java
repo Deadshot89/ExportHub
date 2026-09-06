@@ -66,13 +66,13 @@ public class EnvironmentActivity extends Activity {
     private ValueCallback<Uri[]> filePathCallback;
     private ConnectivityManager connectivityManager;
     private NetworkCallback networkCallback;
-    private String selectedEnvironment = "testservice";
+    private String selectedEnvironment = "production";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         selectedEnvironment = normalizeEnvironment(
-                getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_ENV, "testservice"));
+                getSharedPreferences(PREFS, MODE_PRIVATE).getString(PREF_ENV, "production"));
         NotificationHelper.ensureChannels(this);
         buildUi();
         configureWebView();
@@ -95,7 +95,7 @@ public class EnvironmentActivity extends Activity {
         if (isEnvironment(requested)) {
             selectEnvironment(requested, route);
         } else {
-            chooseEnvironment();
+            selectEnvironment("production", route);
         }
     }
 

@@ -15240,7 +15240,7 @@ document.addEventListener('DOMContentLoaded',async function(){
  const app=by('app'),loginBox=by('login'),contentBox=by('content');
  if(restoredSession){document.body.classList.add('rc405-session-restoring');if(app)app.classList.remove('hidden');if(loginBox)loginBox.classList.add('hidden');if(contentBox&&!text(contentBox.textContent))contentBox.innerHTML='<section class="card" id="rc654LoadState"><h2>ExportHUB wird geladen …</h2><p>Gespeicherte Sitzung und Teamdaten werden wiederhergestellt.</p></section>';progress(8,'Sitzung und aktuelle Ansicht werden wiederhergestellt …')}
  else{document.body.classList.remove('rc405-session-restoring');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden')}
- updateMicrosoftUi();status(restoredSession?'Gespeicherte Sitzung wird wiederhergestellt …':(isTestServiceOrigin()?'TESTSERVICE · Zugangsdaten eingeben.':'Anmeldekonfiguration wird geprüft …'),'');
+ updateMicrosoftUi();status(restoredSession?'Gespeicherte Sitzung wird wiederhergestellt …':'','');
  if(explicitLogout){consumeLogoutSignal();showLoggedOutScreen();return}
  if(restoredSession){await finishAuthenticatedLogin();return}
  await checkBootstrapStatus();
