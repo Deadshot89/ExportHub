@@ -1,0 +1,87 @@
+name: RC1000 Clean Navigation Search
+
+on:
+  push:
+    branches:
+      - rc1000-clean-navigation-search
+    paths:
+      - '.github/workflows/rc1000-clean-navigation-search.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: rc1000-clean-navigation-search
+          fetch-depth: 0
+
+      - name: Node 20 bereitstellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Baseline Regressionen vor RC1000
+        run: npm test
+
+      - name: RC998 Schutzvertrag vor RC1000
+        run: node --test .github/rc998/rc998-video-hardening.test.mjs
+
+      - name: RED - RC1000 Vertrag muss vor Materialisierung fehlschlagen
+        shell: bash
+        run: |
+          set +e
+          node --test .github/rc1000/rc1000-navigation-search.test.mjs > rc1000-red.log 2>&1
+          status=$?
+          set -e
+          cat rc1000-red.log
+          if [ "$status" -eq 0 ]; then
+            echo "RC1000 RED-Phase ist unerwartet grün; Abbruch."
+            exit 1
+          fi
+          echo "RC1000 RED bestätigt."
+
+      - name: RC1000 Materialisierer Syntax prüfen
+        run: node --check .github/rc1000/apply-navigation-search.mjs
+
+      - name: RC1000 Navigation, Suche und Topbar anwenden
+        run: node .github/rc1000/apply-navigation-search.mjs
+
+      - name: GREEN - RC1000 Vertrag
+        run: node --test .github/rc1000/rc1000-navigation-search.test.mjs
+
+      - name: Baseline Regressionen nach RC1000
+        run: npm test
+
+      - name: RC998 Schutzvertrag nach RC1000
+        run: node --test .github/rc998/rc998-video-hardening.test.mjs
+
+      - name: Produktionsmarker schützen
+        shell: bash
+        run: |
+          grep -F "window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC997';" production-version.js
+          if grep -q 'RC1000' production-version.js; then
+            echo 'RC1000 darf production-version.js nicht verändern.'
+            exit 1
+          fi
+
+      - name: Diff prüfen und RC1000 materialisieren
+        shell: bash
+        run: |
+          git diff --check
+          git status --short
+          if git diff --quiet -- index.html TESTVERSION.html assets/exporthub-environment-hub.js; then
+            echo 'Keine RC1000-Codeänderung erzeugt.'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html assets/exporthub-environment-hub.js
+          git commit -m 'RC1000: Navigation, Suche und Environment-Hub sauber materialisieren'
+          git push origin HEAD:rc1000-clean-navigation-search
