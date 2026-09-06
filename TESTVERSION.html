@@ -14412,7 +14412,6 @@ async function testserviceLoginOnce(username,password,recoveryRequested){
 }
 async function checkBootstrapStatus(){
  if(isTestServiceOrigin()){
-  status('TESTSERVICE · Auth-Backend wird geprüft …','');
   try{
    const d=await jsonFetch(AUTH_API,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action:'bootstrap-status'}),timeoutMs:20000,maxAttempts:1});
    runtime.bootstrapStatus=d;runtime.authApiReachable=true;runtime.apiReachable=true;runtime.lastAuthApiSuccessAt=Date.now();
