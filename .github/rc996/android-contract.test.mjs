@@ -65,10 +65,10 @@ test('Android RC996+ behält Application ID und monotone Versionsnummer',()=>{
   assert.ok(code>=996,`versionCode ${code} ist kleiner als 996`);
   const name=Number((gradle.match(/versionName\s*=\s*"1\.0-rc(\d+)"/)||[])[1]||0);
   assert.ok(name>=996,`versionName RC${name||0} ist kleiner als RC996`);
-  const info=read('android-app/APP_BUILD_INFO.txt');
-  const infoRc=Number((info.match(/Release-Kandidat:\s*RC(\d+)/)||[])[1]||0);
+  const info=JSON.parse(read('android-app/app-build-info.json'));
+  const infoRc=Number(String(info.releaseCandidate||'').replace(/^RC/i,''))||0;
   assert.ok(infoRc>=996,`Buildinfo RC${infoRc||0} ist kleiner als RC996`);
-  assert.match(info,/Produktion/);
-  assert.match(info,/TESTSERVICE/);
-  assert.match(info,/Demo/);
+  assert.ok(info.environments&&info.environments.production,'Produktion fehlt in Buildinfo');
+  assert.ok(info.environments&&info.environments.testservice,'TESTSERVICE fehlt in Buildinfo');
+  assert.ok(info.environments&&info.environments.demo,'Demo fehlt in Buildinfo');
 });

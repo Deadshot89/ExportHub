@@ -36,10 +36,10 @@ test('Android App-Version ist RC997 und bestehende Application ID bleibt upgrade
   assert.match(gradle,/applicationId\s*=\s*"de\.exporthub\.test"/);
   assert.match(gradle,/versionCode\s*=\s*997/);
   assert.match(gradle,/versionName\s*=\s*"1\.0-rc997"/);
-  const info=read('android-app/APP_BUILD_INFO.txt');
-  assert.match(info,/App-Version:\s*1\.0-rc997/);
-  assert.match(info,/Release-Kandidat:\s*RC997/);
-  assert.match(info,/Produktion/);
-  assert.match(info,/TESTSERVICE/);
-  assert.match(info,/Demo/);
+  const info=JSON.parse(read('android-app/app-build-info.json'));
+  assert.equal(info.appVersion,'1.0-rc997');
+  assert.equal(info.releaseCandidate,'RC997');
+  assert.ok(info.environments&&info.environments.production,'Produktion fehlt in Buildinfo');
+  assert.ok(info.environments&&info.environments.testservice,'TESTSERVICE fehlt in Buildinfo');
+  assert.ok(info.environments&&info.environments.demo,'Demo fehlt in Buildinfo');
 });
