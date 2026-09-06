@@ -14173,7 +14173,7 @@ async function rejectTestserviceNonGlobal(user,token){
 function clone(v){try{return JSON.parse(JSON.stringify(v))}catch(_){return v}}
 function scheduleSaveSizeDiagnostics(payload,fullStateSnapshot,knownPayloadBytes){runtime.lastPayloadBytes=Number(knownPayloadBytes)>=0?Number(knownPayloadBytes):0;runtime.lastFullStateBytes=0;return true}
 function isObject(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
-function status(msg,kind){const e=by('cleanLoginStatus');if(!e)return;e.textContent=msg||'';e.className='clean-login-status '+(kind||'')}
+function status(msg,kind){const e=by('cleanLoginStatus');if(!e)return;const value=String(msg||'').trim();e.textContent=value;e.className='clean-login-status '+(kind||'');e.style.display=value?'':'none'}
 function progress(p,msg){const panel=by('cleanLoadPanel'),bar=by('cleanProgressBar'),lab=by('cleanProgressLabel'),txt=by('cleanLoadText');if(panel)panel.classList.remove('hidden');if(bar)bar.style.width=Math.max(0,Math.min(100,p))+'%';if(lab)lab.textContent=Math.round(p)+' %';if(txt&&msg)txt.textContent=msg}
 function hideProgress(){const p=by('cleanLoadPanel');if(p)p.classList.add('hidden')}
 let loginProgressTimer=null,loginProgressStartedAt=0;
@@ -14421,7 +14421,7 @@ async function checkBootstrapStatus(){
    if(!d||d.ok===false){status('TESTSERVICE-Anmeldung blockiert: Auth-Backend meldet keinen gültigen Status.','bad');setLoginEnabled(false);return d||{ok:false}}
    if(d.storageConfigured===false){status('TESTSERVICE-Anmeldung blockiert: Azure-Speicher ist für diese Umgebung nicht konfiguriert.','bad');setLoginEnabled(false);return d}
    if(d.storageReachable===false){status('TESTSERVICE-Anmeldung blockiert: Der Azure-Speicher ist für diese Umgebung nicht erreichbar.','bad');setLoginEnabled(false);return d}
-   setLoginEnabled(true);status('TESTSERVICE · Auth-Backend bereit · Nur Globaler Admin.','');return d
+   setLoginEnabled(true);status('','');return d
   }catch(e){
    runtime.authApiReachable=false;runtime.bootstrapStatus={ok:false,testService:true,code:e&&e.code||'AUTH_BACKEND_UNAVAILABLE'};
    setLoginEnabled(false);status('TESTSERVICE-Anmeldung blockiert: Auth-Backend nicht bereit'+(e&&e.message?' · '+e.message:'')+(e&&e.code?'\nFehlercode: '+e.code:''),'bad');return runtime.bootstrapStatus

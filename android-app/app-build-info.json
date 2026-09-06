@@ -1,0 +1,27 @@
+{
+  "name": "ExportHUB Android",
+  "appVersion": "1.0-rc997",
+  "releaseCandidate": "RC997",
+  "applicationId": {
+    "debug": "de.exporthub.test.debug",
+    "release": "de.exporthub.test"
+  },
+  "environments": {
+    "production": "https://wonderful-forest-0f315e310.7.azurestaticapps.net/",
+    "testservice": "https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/TESTVERSION.html",
+    "demo": "https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/demo.html"
+  },
+  "features": [
+    "Auswahl Produktion / TESTSERVICE / Demo beim App-Start",
+    "Ein-Tap-Smartphone-Menü mit Rebinding nach ExportHUB-Renders",
+    "Datei-Upload, Download, Blob-Download, Druck und Android-Zurücknavigation",
+    "Offline-/Verbindungsstatus",
+    "Native Android-Benachrichtigungskanäle für persönliche Aufgaben und Warncenter",
+    "Lokale Aufgaben-Erinnerungen um 09:00, 12:00 und 15:00 Uhr",
+    "Fremde Hosts werden außerhalb des WebViews geöffnet",
+    "Cleartext HTTP bleibt gesperrt"
+  ],
+  "build": {
+    "androidPrintPath": "android.print.PrintManager"
+  }
+}
