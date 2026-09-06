@@ -4,11 +4,34 @@ import fs from 'node:fs';
 
 const FILES=['index.html','TESTVERSION.html'];
 
+function findMatching(text,openPos,openChar,closeChar){
+  let depth=0,quote=null,escape=false;
+  for(let i=openPos;i<text.length;i++){
+    const ch=text[i];
+    if(quote){
+      if(escape){escape=false;continue;}
+      if(ch==='\\'){escape=true;continue;}
+      if(ch===quote) quote=null;
+      continue;
+    }
+    if(ch==='"'||ch==="'"||ch==='`'){quote=ch;continue;}
+    if(ch===openChar) depth++;
+    else if(ch===closeChar){depth--;if(depth===0)return i;}
+  }
+  throw new Error(`Kein passendes ${closeChar} für Position ${openPos}`);
+}
 function owner(text,start,end){
   const a=text.indexOf(start);
   assert.notEqual(a,-1,`${start} fehlt`);
-  const b=text.indexOf(end,a+start.length);
-  assert.notEqual(b,-1,`${end} fehlt`);
+  let b;
+  if(end===null){
+    const open=text.indexOf('{',a);
+    assert.notEqual(open,-1,`${start}: öffnende Klammer fehlt`);
+    b=findMatching(text,open,'{','}')+1;
+  }else{
+    b=text.indexOf(end,a+start.length);
+    assert.notEqual(b,-1,`${end} fehlt`);
+  }
   return text.slice(a,b);
 }
 
@@ -23,7 +46,7 @@ for(const file of FILES){
 
   test(`${file}: globale Suche besitzt separaten unsichtbaren Suchtext`,()=>{
     const html=fs.readFileSync(file,'utf8');
-    const block=owner(html,'(function initIndex321(){','})();');
+    const block=owner(html,'(function initIndex321(){',null);
     assert.match(block,/function searchText\(v\)/,'searchText-Helfer fehlt');
     assert.match(block,/function add\(type,title,sub,view,action,searchValues\)/,'add muss zusätzliche Suchwerte akzeptieren');
     assert.match(block,/hay:low\(\[title,sub,\.\.\.\(searchValues\|\|\[\]\)\]\.map\(searchText\)\.join\(' '\)\)/,'hay muss sichtbare und versteckte Suchwerte zusammenführen');
@@ -31,14 +54,14 @@ for(const file of FILES){
 
   test(`${file}: Kundensuche umfasst Adresse, Ort, Standort und Kontakt`,()=>{
     const html=fs.readFileSync(file,'utf8');
-    const block=owner(html,'(function initIndex321(){','})();');
+    const block=owner(html,'(function initIndex321(){',null);
     for(const token of ['c.accountNo','c.address','c.addressLine','c.city','c.zip','c.location','c.locations','c.contact','c.contactEmail','c.email1']) assert.ok(block.includes(token),`${token} fehlt`);
     assert.match(block,/selectedCustomerId=c\.id;\s*go\("customers"\)/);
   });
 
   test(`${file}: Sendungssuche umfasst Empfänger, Lieferort, Standort und Spedition`,()=>{
     const html=fs.readFileSync(file,'utf8');
-    const block=owner(html,'(function initIndex321(){','})();');
+    const block=owner(html,'(function initIndex321(){',null);
     const required=[
       'sh.customerAddress','sh.customerCity','sh.customerZip','sh.customerCountry',
       'sh.recipient','sh.recipientName','sh.recipientCity','sh.recipientZip','sh.recipientCountry',
@@ -54,18 +77,25 @@ for(const file of FILES){
 
   test(`${file}: Aufgabensuche umfasst Status, Priorität und Aufgabentyp`,()=>{
     const html=fs.readFileSync(file,'utf8');
-    const block=owner(html,'(function initIndex321(){','})();');
+    const block=owner(html,'(function initIndex321(){',null);
     for(const token of ['t.status','t.priority','t.type','t.kind']) assert.ok(block.includes(token),`${token} fehlt`);
     assert.match(block,/"tasks",\s*\(\)=>\{\s*go\("tasks"\);?\s*\}/);
   });
 
   test(`${file}: Suchnavigation verschluckt Fehler nicht lautlos`,()=>{
     const html=fs.readFileSync(file,'utf8');
-    const block=owner(html,'(function initIndex321(){','})();');
+    const block=owner(html,'(function initIndex321(){',null);
     assert.doesNotMatch(block,/catch\(e\)\{\}/);
     assert.match(block,/console\.error\([^)]*search[^)]*,\s*e\)/i);
   });
 }
+
+test('RC1000 Materialisierer bestimmt initIndex321 strukturell statt am ersten verschachtelten IIFE-Ende',()=>{
+  const source=fs.readFileSync('.github/rc1000/apply-navigation-search.mjs','utf8');
+  assert.match(source,/if\(end===null\)\{[\s\S]*findMatching\(text,open,'\{','\}'\)\+1/);
+  assert.match(source,/patchOwner\(html,'\(function initIndex321\(\)\{',null,/);
+  assert.doesNotMatch(source,/patchOwner\(html,'\(function initIndex321\(\)\{','\}\)\(\);'/);
+});
 
 test('RC1000 Environment-Hub sitzt im echten Topbar-Kontext statt über dem Seiteninhalt',()=>{
   const js=fs.readFileSync('assets/exporthub-environment-hub.js','utf8');
