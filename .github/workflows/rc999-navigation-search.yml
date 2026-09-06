@@ -1,15 +1,6 @@
 name: RC999 Navigation Search
 
 on:
-  push:
-    branches:
-      - rc999-navigation-search-final
-    paths:
-      - '.github/rc999/**'
-      - '.github/workflows/rc999-navigation-search.yml'
-      - 'assets/exporthub-environment-hub.js'
-      - 'index.html'
-      - 'TESTVERSION.html'
   workflow_dispatch:
 
 permissions:
@@ -32,6 +23,8 @@ jobs:
         run: npm test
       - name: Aktiven Suchindex diagnostizieren
         run: node .github/rc999/diagnose-search-owner.mjs
+      - name: RC999 Navigation und Suche anwenden
+        run: node .github/rc999/apply-navigation-search.mjs
       - name: RC999 Navigation und Suche
         run: node --test .github/rc999/rc999-navigation-search.test.mjs
       - name: RC997 nicht versionsgebundene Funktionsverträge
