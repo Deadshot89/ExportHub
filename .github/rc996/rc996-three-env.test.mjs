@@ -9,7 +9,11 @@ const BUILD = '.github/rc996/build-three-env.mjs';
 const HUB = 'assets/exporthub-environment-hub.js';
 const DEMO = 'assets/exporthub-demo-bootstrap.js';
 const PROD_APPLY = '.github/rc996/apply-production.mjs';
-const WORKFLOW = '.github/workflows/rc996-three-env.yml';
+const WORKFLOW_CANDIDATES = [
+  '.github/workflows/rc997-website-final.yml',
+  '.github/workflows/rc996-three-env.yml'
+];
+const WORKFLOW = WORKFLOW_CANDIDATES.find(exists);
 
 test('RC996 besitzt einen reproduzierbaren Drei-Umgebungen-Build', () => {
   assert.equal(exists(BUILD), true, `${BUILD} fehlt`);
@@ -45,22 +49,24 @@ test('Demo isoliert Speicher und blockiert echte ExportHUB API-Aufrufe', () => {
   assert.match(src, /Warnung/);
 });
 
-test('RC996 Workflow baut und deployt TESTSERVICE plus Demo isoliert', () => {
+test('Drei-Umgebungen-Workflow baut und deployt TESTSERVICE plus Demo isoliert', () => {
+  assert.ok(WORKFLOW, `Kein aktueller Drei-Umgebungen-Workflow gefunden: ${WORKFLOW_CANDIDATES.join(', ')}`);
   const src = read(WORKFLOW);
   assert.match(src, /build-three-env\.mjs/);
-  assert.match(src, /dist-rc996\/demo\.html/);
+  assert.match(src, /dist-rc(?:996|997)\/demo\.html/);
   assert.match(src, /assets\/exporthub-environment-hub\.js/);
-  assert.match(src, /\.rc996_testservice_app/);
-  assert.match(src, /swa deploy \.\/\.rc996_testservice_app/);
+  assert.match(src, /\.rc(?:996|997)_testservice_app/);
+  assert.match(src, /swa deploy \.\/\.rc(?:996|997)_testservice_app/);
   assert.match(src, /--env testservice/);
   assert.match(src, /--api-location \.\/api/);
-  assert.match(src, /test ! -d \.rc996_testservice_app\/api/);
+  assert.match(src, /test ! -d \.rc(?:996|997)_testservice_app\/api/);
   assert.doesNotMatch(src, /deployment_environment:\s*testservice/);
   assert.doesNotMatch(src, /uses:\s*Azure\/static-web-apps-deploy@v1/);
   assert.match(src, /github\.ref == 'refs\/heads\/main'/);
 });
 
-test('RC996 Live-Vertrag folgt nur statischen Redirects begrenzt', () => {
+test('Drei-Umgebungen-Live-Vertrag folgt nur statischen Redirects begrenzt', () => {
+  assert.ok(WORKFLOW, `Kein aktueller Drei-Umgebungen-Workflow gefunden: ${WORKFLOW_CANDIDATES.join(', ')}`);
   const src = read(WORKFLOW);
   assert.match(src, /test_code=.*curl -sS -L --max-redirs 5/);
   assert.match(src, /demo_code=.*curl -sS -L --max-redirs 5/);
