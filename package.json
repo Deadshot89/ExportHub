@@ -1,13 +1,11 @@
 {
   "name": "exporthub-professional",
-  "version": "0.2.0",
+  "version": "1.0.0-rc997",
   "private": true,
   "type": "module",
-  "description": "ExportHUB Professional - 0.2 migration-safe read-only tenant/user/customer/shipment foundation",
+  "description": "ExportHUB RC997 – aktueller Website-, API- und Android-Main-Stand",
   "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "analyze": "node migration/analyze-exporthub-backup.mjs",
-    "verify": "node migration/verify-migration-package.mjs"
+    "test": "node --test test/*.test.mjs"
   },
   "engines": {
     "node": ">=20"

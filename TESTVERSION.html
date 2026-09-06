@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<!-- EXPORTHUB-MANUAL-UPLOAD-TRIGGER-20260906-B -->
-<!-- EXPORTHUB-MAIN-FIX-2026-09-06-1820 RC997-CONTRACT-30-OF-30 SOURCE=RC995 CACHE=995 -->
 
 <html lang="de">
 <head>
@@ -15243,7 +15241,7 @@ document.addEventListener('DOMContentLoaded',async function(){
  const app=by('app'),loginBox=by('login'),contentBox=by('content');
  if(restoredSession){document.body.classList.add('rc405-session-restoring');if(app)app.classList.remove('hidden');if(loginBox)loginBox.classList.add('hidden');if(contentBox&&!text(contentBox.textContent))contentBox.innerHTML='<section class="card" id="rc654LoadState"><h2>ExportHUB wird geladen …</h2><p>Gespeicherte Sitzung und Teamdaten werden wiederhergestellt.</p></section>';progress(8,'Sitzung und aktuelle Ansicht werden wiederhergestellt …')}
  else{document.body.classList.remove('rc405-session-restoring');if(app)app.classList.add('hidden');if(loginBox)loginBox.classList.remove('hidden')}
- updateMicrosoftUi();status(restoredSession?'Gespeicherte Sitzung wird wiederhergestellt …':(isTestServiceOrigin()?'TESTSERVICE · Nur Globaler Admin · Zugangsdaten eingeben.':'Anmeldekonfiguration wird geprüft …'),'');
+ updateMicrosoftUi();status(restoredSession?'Gespeicherte Sitzung wird wiederhergestellt …':(isTestServiceOrigin()?'TESTSERVICE · Zugangsdaten eingeben.':'Anmeldekonfiguration wird geprüft …'),'');
  if(explicitLogout){consumeLogoutSignal();showLoggedOutScreen();return}
  if(restoredSession){await finishAuthenticatedLogin();return}
  await checkBootstrapStatus();
@@ -16387,7 +16385,7 @@ function renderStats(){var root=document.getElementById('rc871DiagSummary');if(!
 function eventHtml(x,i){var key=eventKey(x,i),count=Number(x.count||1),sub=[categoryLabel(x.category),count>1?'×'+count:'',x.localPending?'lokal':''].filter(Boolean).join(' · ');return '<details class="rc871-diag-event '+esc(x.level||'info')+'" data-rc871-diag-key="'+esc(key)+'"><summary><div class="rc871-diag-time">'+esc(fmtTime(x.lastAt||x.at))+'</div><div><span class="rc871-diag-level '+esc(x.level||'info')+'">'+esc(levelLabel(x.level))+'</span></div><div class="rc871-diag-area">'+esc(x.area||'–')+'</div><div class="rc871-diag-message-wrap"><span class="rc871-diag-message">'+esc(x.message||'–')+'</span><span class="rc871-diag-sub">'+esc(sub)+'</span></div></summary><div class="rc871-diag-details" data-rc871-diag-details="1">Details werden beim Öffnen geladen.</div></details>'}
 function renderList(){var list=document.getElementById('rc871DiagList'),meta=document.getElementById('rc871DiagMeta'),pager=document.getElementById('rc871DiagPager');if(!list||!meta||!pager)return;var rows=filtered().slice().reverse(),pages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));if(page>=pages)page=pages-1;if(page<0)page=0;var start=page*PAGE_SIZE,shown=rows.slice(start,start+PAGE_SIZE);list.innerHTML=shown.length?shown.map(eventHtml).join(''):'<div class="rc871-diag-empty">Keine passenden Diagnoseereignisse vorhanden.</div>';meta.textContent=rows.length+' Treffer · '+snapshot.length+' Ereignisse · '+PAGE_SIZE+' pro Seite';pager.innerHTML='<button type="button" class="ghost" data-rc871-diag-page="prev" '+(page<=0?'disabled':'')+'>← Zurück</button><span>Seite '+(page+1)+' / '+pages+'</span><button type="button" class="ghost" data-rc871-diag-page="next" '+(page>=pages-1?'disabled':'')+'>Weiter →</button>'}
 function refreshVisible(){renderStats();renderList();updateStatusOnly()}
-function render(){var root=document.getElementById('content');if(!root)return false;if(!isGlobal()){root.innerHTML='<div class="badbox">Die Fehlerdiagnose ist nur für globale Administratoren freigegeben.</div>';return false}root.className='content rc871-diagnostics-view';root.setAttribute('data-exporthub-rendered-view','diagnostics');root.setAttribute('data-rc871-diagnostics-view','1');root.innerHTML='<div class="rc871-diag-page" data-rc871-diagnostics-view="1"><div class="page-head rc871-diag-head"><div><span class="rc871-diag-kicker">GLOBAL ADMIN · '+(isTestservice()?'TESTSERVICE':'PRODUKTION')+'</span><h2>Fehlerdiagnose</h2><p>Statischer Diagnose-Snapshot. Neue Hintergrundereignisse verändern diese Ansicht nicht; neue Cloud-Daten werden ausschließlich über „Aktualisieren“ übernommen.</p></div><div id="rc871DiagStatus" class="rc871-diag-status">'+esc(statusText())+'</div></div><section class="card"><div id="rc871DiagSummary" class="rc871-diag-summary"></div></section><section class="card rc871-diag-controls"><div class="rc871-diag-toolbar"><label class="rc871-diag-field">Anzeige<select id="rc871DiagFilter"><option value="problems">Fehler + Warnungen</option><option value="errors">Nur Fehler</option><option value="warnings">Nur Warnungen</option><option value="network">Netzwerk/API</option><option value="performance">Leistung</option><option value="render">Neu-Render</option><option value="all">Alle Ereignisse</option></select></label><label class="rc871-diag-field">Suche<input id="rc871DiagSearch" type="search" autocomplete="off" placeholder="Meldung, Bereich oder Benutzer"></label><div class="rc871-diag-actions"><button type="button" class="btn" data-rc871-diag="refresh">Aktualisieren</button><button type="button" class="ghost" data-rc871-diag="export">JSON herunterladen</button><button type="button" class="ghost danger" data-rc871-diag="clear">Protokoll löschen</button></div></div><div class="rc871-diag-meta"><span id="rc871DiagMeta"></span><span>Keine automatische Listen- oder Cloud-Aktualisierung</span></div></section><section class="card"><div class="rc871-diag-table-head"><span>Zeit</span><span>Status</span><span>Bereich</span><span>Meldung</span></div><div id="rc871DiagList" class="rc871-diag-list"></div><div id="rc871DiagPager" class="rc871-diag-pager"></div></section></div>';var list=document.getElementById('rc871DiagList');if(list)list.innerHTML='<div class="rc871-diag-empty">Diagnosedaten werden vorbereitet …</div>';setTimeout(function(){if(currentView()!=='diagnostics')return;takeSnapshot();refreshVisible()},0);return false}
+function render(){var root=document.getElementById('content');if(!root)return false;if(!isGlobal()){root.innerHTML='<div class="badbox">Die Fehlerdiagnose ist nur für globale Administratoren freigegeben.</div>';return false}root.className='content rc871-diagnostics-view';root.setAttribute('data-exporthub-rendered-view','diagnostics');root.setAttribute('data-rc871-diagnostics-view','1');root.innerHTML='<div class="rc871-diag-page" data-rc871-diagnostics-view="1"><div class="page-head rc871-diag-head"><div><span class="rc871-diag-kicker">GLOBAL ADMIN · '+(isTestservice()?'TESTSERVICE':'PRODUKTION')+'</span><h2>Fehlerdiagnose</h2><p>Fehler, Warnungen und Leistungsprobleme aus dieser Umgebung. Mit „Aktualisieren“ lädst du den neuesten Stand aus der Cloud.</p></div><div id="rc871DiagStatus" class="rc871-diag-status">'+esc(statusText())+'</div></div><section class="card"><div id="rc871DiagSummary" class="rc871-diag-summary"></div></section><section class="card rc871-diag-controls"><div class="rc871-diag-toolbar"><label class="rc871-diag-field">Anzeige<select id="rc871DiagFilter"><option value="problems">Fehler + Warnungen</option><option value="errors">Nur Fehler</option><option value="warnings">Nur Warnungen</option><option value="network">Netzwerk/API</option><option value="performance">Leistung</option><option value="render">Neu-Render</option><option value="all">Alle Ereignisse</option></select></label><label class="rc871-diag-field">Suche<input id="rc871DiagSearch" type="search" autocomplete="off" placeholder="Meldung, Bereich oder Benutzer"></label><div class="rc871-diag-actions"><button type="button" class="btn" data-rc871-diag="refresh">Aktualisieren</button><button type="button" class="ghost" data-rc871-diag="export">JSON herunterladen</button><button type="button" class="ghost danger" data-rc871-diag="clear">Protokoll löschen</button></div></div><div class="rc871-diag-meta"><span id="rc871DiagMeta"></span><span>Aktualisierung nur auf Anforderung</span></div></section><section class="card"><div class="rc871-diag-table-head"><span>Zeit</span><span>Status</span><span>Bereich</span><span>Meldung</span></div><div id="rc871DiagList" class="rc871-diag-list"></div><div id="rc871DiagPager" class="rc871-diag-pager"></div></section></div>';var list=document.getElementById('rc871DiagList');if(list)list.innerHTML='<div class="rc871-diag-empty">Diagnosedaten werden vorbereitet …</div>';setTimeout(function(){if(currentView()!=='diagnostics')return;takeSnapshot();refreshVisible()},0);return false}
 function download(){var c=cloud(),data={exportedAt:new Date().toISOString(),version:q(window.EXPORTHUB_BUILD&&window.EXPORTHUB_BUILD.version||'RC882'),cloudStatus:c&&typeof c.status==='function'?c.status():{},records:sourceRecords(),renderMetrics:window.__EXPORTHUB_RC964_RENDER_METRICS__&&typeof window.__EXPORTHUB_RC964_RENDER_METRICS__.snapshotAll==='function'?window.__EXPORTHUB_RC964_RENDER_METRICS__.snapshotAll():{}},blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='ExportHUB_Fehlerdiagnose_'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},30000)}
 async function refresh(){if(loading)return false;loading=true;var btn=document.querySelector('[data-rc871-diag="refresh"]');if(btn){btn.disabled=true;btn.textContent='Aktualisiert …'}try{var c=cloud();if(c&&typeof c.refresh==='function')await c.refresh(true);takeSnapshot();refreshVisible();return true}finally{loading=false;if(btn){btn.disabled=false;btn.textContent='Aktualisieren'}updateStatusOnly()}}
 function loadDetails(details){var host=details&&details.querySelector('[data-rc871-diag-details]');if(!host||host.getAttribute('data-loaded')==='1')return;var x=byKey[q(details.getAttribute('data-rc871-diag-key'))]||{},d='';try{d=x.details?JSON.stringify(x.details,null,2):''}catch(_){d=q(x.details)}var who=q(x.user||'Dieses Gerät'),device=q(x.deviceId),deviceShort=device?device.slice(-10):'';host.innerHTML='<b>Benutzer:</b> '+esc(who)+(deviceShort?' · Gerät '+esc(deviceShort):'')+(x.clientVersion?' · '+esc(x.clientVersion):'')+(d?'<pre>'+esc(d)+'</pre>':'<p class="muted">Keine technischen Zusatzdetails vorhanden.</p>');host.setAttribute('data-loaded','1')}
@@ -28013,3 +28011,61 @@ window.ExportHUBRC1000SingleHTML=Object.freeze({version:'RC1000',search:search,o
 @media print{#ehTopbarEnvironment #eh996-env-hub{display:none!important}}
 </style>
 <!-- RC1000 TOPBAR POLISH END -->
+
+
+<!-- RC997 WEBSITE FINAL POLISH START -->
+<style id="rc997-final-website-polish" data-rc997-final="website">
+/* Finaler Website-Abschluss: konsistente, ruhige Oberfläche ohne neue Funktionslogik. */
+body .topbar,
+body[data-eh-theme] .topbar{
+  border-color:#dbe3ec!important;
+  background:rgba(255,255,255,.96)!important;
+  box-shadow:0 8px 22px rgba(15,23,42,.07)!important;
+}
+body .eh-topbar-main,
+body .eh-topbar-tools,
+body .eh-topbar-actions,
+body .eh-topbar-options{min-width:0!important}
+body #nav.nav>button{
+  min-height:42px!important;
+  border:1px solid transparent!important;
+  transition:background .15s ease,border-color .15s ease,box-shadow .15s ease!important;
+}
+body #nav.nav>button:hover{border-color:rgba(148,163,184,.32)!important}
+body #nav.nav>button:focus-visible,
+body .topbar button:focus-visible,
+body #content button:focus-visible{
+  outline:2px solid #60a5fa!important;
+  outline-offset:2px!important;
+}
+#content.rc871-diagnostics-view .page-head p{max-width:860px!important}
+.rc871-diag-controls{border-color:#dbe3ec!important;box-shadow:0 8px 24px rgba(15,23,42,.06)!important}
+.rc871-diag-actions button{white-space:nowrap!important}
+.rc871-diag-event{box-shadow:0 2px 7px rgba(15,23,42,.035)!important}
+#index236NotificationCenter .card{border-color:#dbe3ec!important;box-shadow:0 7px 20px rgba(15,23,42,.05)!important}
+#rc885WarningDrawer .rc885-drawer{border-color:#dbe3ec!important;box-shadow:0 20px 55px rgba(15,23,42,.22)!important}
+.clean-login-status:empty{display:none!important}
+@media(max-width:720px){
+  body .main,body[data-eh-theme] .main{padding:7px 7px 22px!important}
+  body .topbar,body[data-eh-theme] .topbar{top:4px!important;margin-bottom:9px!important;padding:6px!important;border-radius:12px!important}
+  body #nav.nav>button{min-height:44px!important;padding:10px!important}
+  #content.rc871-diagnostics-view{padding-bottom:24px!important}
+  .rc871-diag-controls{position:static!important}
+  .rc871-diag-toolbar{grid-template-columns:minmax(0,1fr)!important}
+  .rc871-diag-actions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;justify-content:stretch!important}
+  .rc871-diag-actions button{width:100%!important;min-height:42px!important}
+  .rc871-diag-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .rc871-diag-event summary{grid-template-columns:minmax(0,1fr) auto!important;gap:7px!important}
+  .rc871-diag-area,.rc871-diag-message-wrap{grid-column:1/-1!important}
+  #index236NotificationCenter .page-head .actions{width:100%!important}
+  #index236NotificationCenter .page-head .actions button{flex:1 1 100%!important}
+  #rc885WarningDrawer .rc885-drawer{width:min(96vw,620px)!important;max-height:92dvh!important}
+  /* data-rc997-final="website" */
+}
+@media(max-width:480px){
+  .rc871-diag-summary{grid-template-columns:minmax(0,1fr)!important}
+  .rc871-diag-status{width:100%!important;justify-content:flex-start!important}
+}
+@media print{#rc885WarningDrawer,#index236NotificationCenter .actions{display:none!important}}
+</style>
+<!-- RC997 WEBSITE FINAL POLISH END -->
