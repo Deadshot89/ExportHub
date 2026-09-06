@@ -9,7 +9,7 @@ function count(rx){return (html.match(rx)||[]).length;}
 test('RC997 Website-Abschluss: provisorische TESTSERVICE-Logintexte sind entfernt',()=>{
   assert.doesNotMatch(html,/TESTSERVICE\s*·\s*Auth-Backend bereit\s*·\s*Nur Globaler Admin\.?/i);
   assert.doesNotMatch(html,/TESTSERVICE\s*·\s*Nur Globaler Admin\s*·\s*Zugangsdaten eingeben\.?/i);
-  assert.match(html,/TESTSERVICE\s*·\s*Zugangsdaten eingeben\./i);
+  assert.doesNotMatch(html,/TESTSERVICE\s*·\s*Zugangsdaten eingeben\./i);
 });
 
 test('RC997 Website-Abschluss: finaler UI-Polish ist genau einmal vorhanden',()=>{
