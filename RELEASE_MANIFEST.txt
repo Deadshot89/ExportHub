@@ -1,72 +1,20 @@
-ExportHUB RC990
-Erstellt: 3.9.2026, 21:49:47
-Quelle: geprüfter TESTSERVICE Produktions-Snapshot
-Git SHA: cd5e1ceada201966dad68dbfb3492a434c351e8b
-Snapshot erstellt: 2026-09-03T19:33:22.113Z
+ExportHUB RC1000
+Erstellt: 06.09.2026
+Status: isolierter Kandidat
+Branch: rc1000-clean-navigation-search
+Basis: RC998 / 66fcb16e407d2f4af1f388b76374499fde548b2d
 
-Dateien:
-- .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
-- RELEASE_MANIFEST.txt
-- api/customer-avis/function.json
-- api/customer-avis/index.js
-- api/exporthub-auth-probe/function.json
-- api/exporthub-auth-probe/index.js
-- api/exporthub-auth/function.json
-- api/exporthub-auth/index.js
-- api/exporthub-health/function.json
-- api/exporthub-health/index.js
-- api/exporthub-release/function.json
-- api/exporthub-release/index.js
-- api/exporthub-state/function.json
-- api/exporthub-state/index.js
-- api/health/function.json
-- api/health/index.js
-- api/host.json
-- api/loader-pins-admin/function.json
-- api/loader-pins-admin/index.js
-- api/local.settings.example.json
-- api/location-booking/function.json
-- api/location-booking/index.js
-- api/package.json
-- api/pickup-confirm-v2/function.json
-- api/pickup-confirm-v2/index.js
-- api/pickup-confirm/function.json
-- api/pickup-confirm/index.js
-- api/pickup-disable/function.json
-- api/pickup-disable/index.js
-- api/pickup-health/function.json
-- api/pickup-health/index.js
-- api/pickup-init/function.json
-- api/pickup-init/index.js
-- api/pickup-pod/function.json
-- api/pickup-pod/index.js
-- api/pickup-status/function.json
-- api/pickup-status/index.js
-- api/pod-backup/function.json
-- api/pod-backup/index.js
-- api/production-version-check/function.json
-- api/production-version-check/index.js
-- api/rc963-deploy-marker.json
-- api/reference-files/function.json
-- api/reference-files/index.js
-- api/shared/auth-store.js
-- api/shared/blob-rest.js
-- api/shared/graph-drive.js
-- api/shared/loader-pin-store.js
-- api/shared/merge.js
-- api/shared/pickup-store.js
-- api/shared/user-policy.js
-- api/testservice-deploy-marker.json
-- assets/css/app.css
-- assets/js/app.js
-- assets/rc971-global-form-field-standard.css
-- customer-avis.html
-- index.html
-- infra/production-loader.html
-- infra/test-loader.html
-- location.html
-- package.json
-- pickup.html
-- pod-notfall.html
-- production-version.js
-- staticwebapp.config.json
+Sicherheitsregeln:
+- Produktion bleibt unverändert auf RC997.
+- Die fehlerhafte RC999-Navigation/Search-Kette wird nicht übernommen.
+- Kein alter RC999-Workflow wird erneut gestartet.
+- RC1000 wird auf diesem Branch separat korrigiert und geprüft.
+
+Ziel RC1000:
+- Navigation stabil und eindeutig.
+- Globale Suche stabil und nachvollziehbar.
+- Keine still geschluckten Navigationsfehler.
+- TESTSERVICE erst nach erfolgreicher Prüfung aktualisieren.
+- Produktion erst nach ausdrücklicher Freigabe ändern.
+
+Dieser Manifest-Commit kennzeichnet den eigenständigen RC1000-Kandidaten im Repository.
