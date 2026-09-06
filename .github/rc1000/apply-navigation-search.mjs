@@ -17,8 +17,15 @@ function replaceOnce(text,oldValue,newValue,label){
 function owner(text,start,end,label){
   const a=text.indexOf(start);
   if(a<0) throw new Error(`${label}: Startmarker fehlt`);
-  const b=text.indexOf(end,a+start.length);
-  if(b<0) throw new Error(`${label}: Endmarker fehlt`);
+  let b;
+  if(end===null){
+    const open=text.indexOf('{',a);
+    if(open<0) throw new Error(`${label}: öffnende Klammer fehlt`);
+    b=findMatching(text,open,'{','}')+1;
+  }else{
+    b=text.indexOf(end,a+start.length);
+    if(b<0) throw new Error(`${label}: Endmarker fehlt`);
+  }
   return {a,b,block:text.slice(a,b)};
 }
 function patchOwner(text,start,end,transform,label){
@@ -94,7 +101,7 @@ for(const file of FILES){
     return block.replace(versions[0][0],`version:'${VERSION}'`).replace(dates[0][0],`date:'${RELEASE_DATE}'`);
   },`${file}: RELEASE`);
 
-  html=patchOwner(html,'(function initIndex321(){','})();',(block)=>{
+  html=patchOwner(html,'(function initIndex321(){',null,(block)=>{
     let next=patchAddFunction(block,file);
     next=addSearchValues(next,'selectedCustomerId=c.id;go("customers")',[
       'c.accountNo','c.address','c.addressLine','c.city','c.zip','c.location','c.locations','c.contact','c.contactEmail','c.email1'
