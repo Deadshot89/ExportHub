@@ -18,7 +18,7 @@ test('RC997 Workflow: baut Android und deployt ausschließlich TESTSERVICE per S
 });
 
 test('RC997 Workflow: erzeugt APK-Artefakt und übernimmt externe Seiten in TESTSERVICE',()=>{
-  assert.match(src,/ExportHUB-RC997-Android/);
+  assert.match(src,/ExportHUB-RC997\.1-Android/);
   assert.match(src,/android-app\/app\/build\/outputs\/apk\/debug\/app-debug\.apk/);
   assert.match(src,/pickup\.html/);
   assert.match(src,/customer-avis\.html/);

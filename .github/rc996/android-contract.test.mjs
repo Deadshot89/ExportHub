@@ -63,7 +63,7 @@ test('Android RC996+ behält Application ID und monotone Versionsnummer',()=>{
   assert.match(gradle,/applicationId\s*=\s*"de\.exporthub\.test"/);
   const code=Number((gradle.match(/versionCode\s*=\s*(\d+)/)||[])[1]||0);
   assert.ok(code>=996,`versionCode ${code} ist kleiner als 996`);
-  const name=Number((gradle.match(/versionName\s*=\s*"1\.0-rc(\d+)"/)||[])[1]||0);
+  const name=Number((gradle.match(/versionName\s*=\s*"1\.0-rc(\d+)(?:\.\d+)?"/)||[])[1]||0);
   assert.ok(name>=996,`versionName RC${name||0} ist kleiner als RC996`);
   const info=JSON.parse(read('android-app/app-build-info.json'));
   const infoRc=Number(String(info.releaseCandidate||'').replace(/^RC/i,''))||0;

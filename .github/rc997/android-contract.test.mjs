@@ -34,10 +34,10 @@ test('Android RC997 behält Benachrichtigungen und 09-12-15 Erinnerungen',()=>{
 test('Android App-Version ist RC997 und bestehende Application ID bleibt upgradefähig',()=>{
   const gradle=read('android-app/app/build.gradle.kts');
   assert.match(gradle,/applicationId\s*=\s*"de\.exporthub\.test"/);
-  assert.match(gradle,/versionCode\s*=\s*997/);
-  assert.match(gradle,/versionName\s*=\s*"1\.0-rc997"/);
+  assert.match(gradle,/versionCode\s*=\s*998/);
+  assert.match(gradle,/versionName\s*=\s*"1\.0-rc997\.1"/);
   const info=JSON.parse(read('android-app/app-build-info.json'));
-  assert.equal(info.appVersion,'1.0-rc997');
+  assert.equal(info.appVersion,'1.0-rc997.1');
   assert.equal(info.releaseCandidate,'RC997');
   assert.ok(info.environments&&info.environments.production,'Produktion fehlt in Buildinfo');
   assert.ok(info.environments&&info.environments.testservice,'TESTSERVICE fehlt in Buildinfo');
