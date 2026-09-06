@@ -27929,3 +27929,87 @@ window.ExportHUBRC1000SingleHTML=Object.freeze({version:'RC1000',search:search,o
 })();
 </script>
 <!-- RC1000 SINGLE HTML PATCH END -->
+
+<!-- RC1000 TOPBAR POLISH START -->
+<style id="rc1000-topbar-polish-style">
+#ehTopbarEnvironment #eh996-env-hub{
+  position:relative!important;
+  inset:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  margin:0!important;
+  padding:0!important;
+  max-width:100%!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font:700 11px/1.15 system-ui,-apple-system,"Segoe UI",sans-serif!important;
+}
+#ehTopbarEnvironment #eh996-env-current{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:30px!important;
+  padding:5px 9px!important;
+  border:1px solid #fed7aa!important;
+  border-radius:999px!important;
+  background:#fff7ed!important;
+  color:#9a3412!important;
+  letter-spacing:.035em!important;
+  white-space:nowrap!important;
+}
+#ehTopbarEnvironment #eh996-env-switch,
+#ehTopbarEnvironment #eh996-app-open{
+  min-height:32px!important;
+  padding:6px 10px!important;
+  border:1px solid #d7e0ea!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#334155!important;
+  box-shadow:0 1px 2px rgba(15,23,42,.06)!important;
+  font:700 11px/1.15 system-ui,-apple-system,"Segoe UI",sans-serif!important;
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease!important;
+}
+#ehTopbarEnvironment #eh996-env-switch:hover,
+#ehTopbarEnvironment #eh996-app-open:hover{
+  border-color:#c5d0dd!important;
+  background:#f8fafc!important;
+  box-shadow:0 2px 5px rgba(15,23,42,.08)!important;
+}
+#ehTopbarEnvironment #eh996-env-switch:focus-visible,
+#ehTopbarEnvironment #eh996-app-open:focus-visible{
+  outline:2px solid #93c5fd!important;
+  outline-offset:2px!important;
+}
+#ehTopbarEnvironment #eh996-env-panel{
+  position:absolute!important;
+  right:0!important;
+  top:calc(100% + 7px)!important;
+  bottom:auto!important;
+  border:1px solid #d7e0ea!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  box-shadow:0 14px 34px rgba(15,23,42,.18)!important;
+}
+@media(max-width:720px){
+  #ehTopbarEnvironment #eh996-env-hub{
+    width:100%!important;
+    justify-content:flex-end!important;
+    flex-wrap:wrap!important;
+  }
+  #ehTopbarEnvironment #eh996-env-current{
+    min-height:28px!important;
+    padding:4px 8px!important;
+  }
+  #ehTopbarEnvironment #eh996-env-switch,
+  #ehTopbarEnvironment #eh996-app-open{
+    min-height:30px!important;
+    padding:5px 8px!important;
+    flex:0 1 auto!important;
+  }
+}
+@media print{#ehTopbarEnvironment #eh996-env-hub{display:none!important}}
+</style>
+<!-- RC1000 TOPBAR POLISH END -->
