@@ -76,6 +76,9 @@ test('Produktionsanwendung bleibt ein separater Release-Center-Schritt', () => {
   assert.match(src, /RC996/);
 
   const marker = read('production-version.js');
-  assert.match(marker, /RC990/);
+  const match = marker.match(/PRODUCTION_VERSION_PROBE__\s*=\s*['\"]RC(\d+)['\"]/);
+  assert.ok(match, 'production-version.js enthält keinen gültigen Produktionsmarker');
+  const version = Number(match[1]);
+  assert.ok(version === 990 || version === 997, `Für RC997 ist nur RC990 vor oder RC997 nach Release-Center-Freigabe zulässig, gefunden RC${version}`);
   assert.doesNotMatch(marker, /RC996/);
 });
