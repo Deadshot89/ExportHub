@@ -7,15 +7,22 @@ for (const file of ['index.html','TESTVERSION.html']) {
   test(`${file}: registrierte QR-Abholung wird gegen den Server geprüft und bei 410 neu registriert`,()=>{
     assert.match(s,/if\(sh\.pickupQrRegistered&&!force\)\{if\(!\/\^\[a-f0-9\]\{48\}\$\/i\.test\(token\)\)/);
     assert.match(s,/Number\(e&&e\.status\)===410/);
+    assert.match(s,/ACCESS_\(\?:INVALID\|NOT_FOUND\|REVOKED\|EXPIRED\|USED\)/);
     assert.match(s,/return register\(sh,true\)/);
   });
-  test(`${file}: Pickup-Status, Meta und identische Saves werden koalesziert`,()=>{
-    assert.match(s,/exporthub-rc1000-diagnostics-guard/);
-    assert.match(s,/pickupNegativeCacheMs:60000/);
-    assert.match(s,/metaCacheMs:2000/);
-    assert.match(s,/exactSaveDedupe:true/);
+  test(`${file}: Diagnose-Guard wird als externes Asset sicher im Dokumentkopf geladen`,()=>{
+    assert.match(s,/<title>ExportHUB Online<\/title>\s*<script defer src="assets\/rc1000-diagnostics-guard\.js\?v=RC1000"><\/script>/);
   });
 }
+
+test('Diagnose-Guard koalesziert Pickup-Status, Meta und identische Saves',()=>{
+  const s=fs.readFileSync('assets/rc1000-diagnostics-guard.js','utf8');
+  assert.match(s,/pickupNegativeCacheMs:60000/);
+  assert.match(s,/metaCacheMs:2000/);
+  assert.match(s,/exactSaveDedupe:true/);
+  assert.match(s,/inflight\.has\(k\)/);
+  assert.match(s,/negative\.set\(token,Date\.now\(\)\+60000\)/);
+});
 
 test('pickup.html akzeptiert ausschließlich kryptografische 48-Hex-Tokens',()=>{
   const s=fs.readFileSync('pickup.html','utf8');
