@@ -21,9 +21,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+      - name: Aufgaben-Gruppen materialisieren
+        run: node .github/rc1002/apply-task-groups.mjs
       - name: RC1002 Vertrag
         run: node --test test/rc1002-task-groups.test.mjs
       - name: Bestehende Aufgaben-Verträge
         run: node --test .github/rc996/tasks-contract.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
+      - name: Diff prüfen
+        run: git diff --check
+      - name: Stand committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html TESTVERSION.html; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          git commit -m 'RC1002: fünf fachliche Aufgaben-Gruppen aktivieren'
+          git push origin HEAD:rc1002-task-groups
