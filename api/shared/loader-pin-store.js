@@ -8,6 +8,7 @@ const BLOB_NAME = process.env.EXPORTHUB_LOADER_PIN_BLOB || 'server/loader-pins.j
 const RECORD_CONTAINER = process.env.EXPORTHUB_PICKUP_CONTAINER || 'exporthub-pickup';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const MAX_RETRIES = 6;
+function retryDelay(attempt) { return new Promise(resolve => setTimeout(resolve, Math.min(480, 35 * Math.pow(2, Math.max(0, attempt))))); }
 
 function text(v) { return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim(); }
 function now() { return new Date().toISOString(); }
@@ -120,7 +121,7 @@ async function mutate(fn) {
     doc = normalizeDoc(doc).doc;
     const next = await fn(clone(doc));
     next.schemaVersion = 1; next.updatedAt = now();
-    try { await writeJson(got.blob, next, current.etag); return next; } catch (e) { if (e && e.statusCode === 412 && attempt < MAX_RETRIES - 1) continue; throw e; }
+    try { await writeJson(got.blob, next, current.etag); return next; } catch (e) { if (e && e.statusCode === 412 && attempt < MAX_RETRIES - 1) { await retryDelay(attempt); continue; } throw e; }
   }
   throw error('PIN_CONFLICT', 'Die Verlader-PINs konnten wegen eines gleichzeitigen Zugriffs nicht gespeichert werden.', 409);
 }
