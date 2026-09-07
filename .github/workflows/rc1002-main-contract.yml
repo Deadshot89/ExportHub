@@ -14,11 +14,7 @@ on:
       - 'test/**'
       - '.github/rc1002/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
-      - '.github/workflows/rc1002-main-contract.yml'
-      - '.github/workflows/rc1002-release-sync.yml'
-      - '.github/workflows/rc1002-testservice-live.yml'
-      - '.github/workflows/exporthub-android-test-app.yml'
-      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
@@ -53,4 +49,10 @@ jobs:
           grep -q 'ExportHUB RC1002 environment=production-candidate' dist-rc1002/index.html
           grep -q 'ExportHUB RC1002 environment=testservice' dist-rc1002/TESTVERSION.html
           grep -q 'ExportHUB RC1002 environment=demo' dist-rc1002/demo.html
+          test ! -f .github/workflows/rc997-website-final.yml
+          test ! -f .github/workflows/rc1000-production-qr-fix.yml
+          test ! -f .github/workflows/rc1001-task-tiles-cleanup.yml
+          test ! -f .github/workflows/rc1002-release-sync.yml
+          test ! -f .github/workflows/rc1002-task-groups.yml
+          test ! -f .github/workflows/rc1002-testservice-live.yml
           git diff --check
