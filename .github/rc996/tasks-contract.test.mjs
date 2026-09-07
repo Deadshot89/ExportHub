@@ -30,7 +30,7 @@ test('RC996 Aufgaben: gleiche Aufgabennamen verschiedener Sendungen bleiben getr
 });
 
 test('RC996 Aufgaben: bereinigte Tagesfilter und Einzelgruppen bleiben bedienbar', () => {
-  const src = between('function tasks(){', 'function taskSortRC67', 30000);
+  const src = between('function tasks(){', 'function taskSortRC67', 150000);
   assert.doesNotMatch(src, />Alle anzeigen<\/button>/, 'Alle-anzeigen-Schalter soll nicht mehr sichtbar sein');
   assert.doesNotMatch(src, />Gruppen [^<]*<\/button>/, 'globale Gruppen-Schalter sollen nicht mehr sichtbar sein');
   assert.doesNotMatch(src, />Master-Aufgaben [^<]*<\/button>/, 'Master-Aufgaben-Prüfschalter soll nicht mehr sichtbar sein');
