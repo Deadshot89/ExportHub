@@ -1,6 +1,6 @@
 ExportHUB Android
-App-Version: 1.0-rc997
-Release-Kandidat: RC997
+App-Version: 1.0-rc1002
+Release-Kandidat: RC1002
 Application ID Debug: de.exporthub.test.debug
 Application ID Release: de.exporthub.test
 
@@ -14,7 +14,9 @@ Funktionen:
 - Ein-Tap-Smartphone-Menü mit Rebinding nach ExportHUB-Renders
 - Datei-Upload, Download, Blob-Download, Druck und Android-Zurücknavigation
 - Offline-/Verbindungsstatus
-- Native Android-Benachrichtigungskanäle für persönliche Aufgaben und Warncenter
+- Native Android-Benachrichtigungskanäle für persönliche Aufgaben, Warncenter und Fehlerdiagnose
+- Fehlerdiagnose-Benachrichtigungen nur für globale Administratoren, mit Dublettenschutz und zentraler Cloud-Prüfung im App-Betrieb
+- Tipp auf Diagnose-Benachrichtigung öffnet direkt den Fehlerdiagnose-Bereich der gewählten Umgebung
 - Lokale Aufgaben-Erinnerungen um 09:00, 12:00 und 15:00 Uhr
 - Fremde Hosts werden außerhalb des WebViews geöffnet
 - Cleartext HTTP bleibt gesperrt
