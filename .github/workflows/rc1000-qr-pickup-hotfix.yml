@@ -1,0 +1,88 @@
+name: RC1000 QR Pickup Hotfix
+
+on:
+  push:
+    branches:
+      - rc1000-qr-pickup-hotfix
+    paths:
+      - '.github/workflows/rc1000-qr-pickup-hotfix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: rc1000-qr-pickup-hotfix
+          fetch-depth: 0
+
+      - name: Node 20 bereitstellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Baseline Regressionen vor Hotfix
+        run: npm test
+
+      - name: RC995 Sicherheitsvertrag vor Hotfix
+        run: node --test .github/rc995/rc995-contract.test.mjs
+
+      - name: RED - QR-Abholung Regression reproduzieren
+        shell: bash
+        run: |
+          set +e
+          node --test .github/rc1000/rc1000-qr-pickup-hotfix.test.mjs > qr-red.log 2>&1
+          status=$?
+          set -e
+          cat qr-red.log
+          if [ "$status" -eq 0 ]; then
+            echo 'QR-Hotfix-Test ist vor Materialisierung unerwartet grün.'
+            exit 1
+          fi
+          echo 'RED bestätigt: Druck wartet aktuell nicht auf den serverseitigen Pickup-Token.'
+
+      - name: Hotfix-Syntax prüfen
+        run: node --check .github/rc1000/apply-qr-pickup-hotfix.mjs
+
+      - name: QR-Abholung reparieren
+        run: node .github/rc1000/apply-qr-pickup-hotfix.mjs
+
+      - name: GREEN - QR-Abholung Regressionstest
+        run: node --test .github/rc1000/rc1000-qr-pickup-hotfix.test.mjs
+
+      - name: RC995 Sicherheitsvertrag nach Hotfix
+        run: node --test .github/rc995/rc995-contract.test.mjs
+
+      - name: Baseline Regressionen nach Hotfix
+        run: npm test
+
+      - name: Produktionsmarker schützen
+        shell: bash
+        run: |
+          grep -F "window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC997';" production-version.js
+          if grep -q 'QR Pickup Hotfix' production-version.js; then
+            echo 'Hotfix darf production-version.js nicht verändern.'
+            exit 1
+          fi
+
+      - name: Diff prüfen und Hotfix materialisieren
+        shell: bash
+        run: |
+          git diff --check
+          git status --short
+          git diff --exit-code -- production-version.js
+          if git diff --quiet -- index.html TESTVERSION.html pickup.html; then
+            echo 'Keine QR-Hotfix-Codeänderung erzeugt.'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html pickup.html
+          git commit -m 'RC1000: QR-Abholung serverseitig vor Druck registrieren'
+          git push origin HEAD:rc1000-qr-pickup-hotfix
