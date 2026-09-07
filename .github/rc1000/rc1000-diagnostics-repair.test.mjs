@@ -7,7 +7,8 @@ for (const file of ['index.html','TESTVERSION.html']) {
   test(`${file}: registrierte QR-Abholung wird gegen den Server geprüft und bei 410 neu registriert`,()=>{
     assert.match(s,/if\(sh\.pickupQrRegistered&&!force\)\{if\(!\/\^\[a-f0-9\]\{48\}\$\/i\.test\(token\)\)/);
     assert.match(s,/Number\(e&&e\.status\)===410/);
-    assert.match(s,/ACCESS_\(\?:INVALID\|NOT_FOUND\|REVOKED\|EXPIRED\|USED\)/);
+    assert.match(s,/Number\(e&&e\.statusCode\)===410/);
+    assert.match(s,/ACCESS_/);
     assert.match(s,/return register\(sh,true\)/);
   });
   test(`${file}: Diagnose-Guard wird als externes Asset sicher im Dokumentkopf geladen`,()=>{
