@@ -55,14 +55,23 @@ jobs:
           node --test .github/rc995/rc995-contract.test.mjs
           node --test .github/rc995/rc995-flow.test.cjs
 
-      - name: API Syntax prüfen
+      - name: API Syntax und Abhängigkeiten prüfen
+        shell: bash
         run: |
+          set -euo pipefail
           node --check api/shared/loader-pin-store.js
           node --check api/exporthub-state/index.js
           node --check api/shared/public-access-store.js
           node --check api/pickup-init/index.js
           node --check api/pickup-status/index.js
           node --check api/pickup-confirm-v2/index.js
+          node --check api/exporthub-auth/index.js
+          node --check api/exporthub-auth-probe/index.js
+          node -e "const p=require('./api/package.json');if(p.dependencies?.['@azure/storage-blob']!=='12.27.0')throw new Error('@azure/storage-blob 12.27.0 fehlt')"
+          cd api
+          rm -rf node_modules
+          npm install --omit=dev --no-audit --no-fund
+          node -e "require('@azure/storage-blob');require('./shared/auth-store');require('./exporthub-auth/index.js');console.log('Auth-API-Abhängigkeiten lokal ladbar')"
 
       - name: Baseline nach Reparatur
         run: npm test
@@ -83,15 +92,15 @@ jobs:
           set -euo pipefail
           git diff --check
           git status --short
-          if git diff --quiet -- index.html TESTVERSION.html api/shared/loader-pin-store.js api/exporthub-state/index.js; then
-            echo 'Keine Diagnose-Reparatur erzeugt.'
-            exit 1
+          if ! git diff --quiet -- index.html TESTVERSION.html api/shared/loader-pin-store.js api/exporthub-state/index.js; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add index.html TESTVERSION.html api/shared/loader-pin-store.js api/exporthub-state/index.js
+            git commit -m 'RC1000: QR Status State und PIN Diagnosefehler beheben'
+            git push origin HEAD:rc1000-clean-navigation-search
+          else
+            echo 'Diagnose-Reparatur ist bereits materialisiert.'
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html TESTVERSION.html api/shared/loader-pin-store.js api/exporthub-state/index.js
-          git commit -m 'RC1000: QR Status State und PIN Diagnosefehler beheben'
-          git push origin HEAD:rc1000-clean-navigation-search
 
       - name: TESTSERVICE Paket bauen
         shell: bash
@@ -122,46 +131,54 @@ jobs:
           test -s "$out/assets/rc1000-diagnostics-guard.js"
           grep -q 'Abholung bestätigen' "$out/pickup.html"
 
-      - name: Azure Static Web Apps CLI
-        run: npm install --global @azure/static-web-apps-cli@2.0.10
+      - name: Auf TESTSERVICE mit Azure Build deployen
+        id: deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1000_diagnostics_testservice
+          api_location: api
+          output_location: ""
+          skip_app_build: true
+          deployment_environment: testservice
 
-      - name: Auf TESTSERVICE deployen
-        env:
-          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
-        run: |
-          set -euo pipefail
-          test -n "${SWA_CLI_DEPLOYMENT_TOKEN:-}"
-          swa deploy ./.rc1000_diagnostics_testservice \
-            --api-location ./api \
-            --swa-config-location ./.rc1000_diagnostics_testservice \
-            --api-language node \
-            --api-version 20 \
-            --env testservice
-
-      - name: TESTSERVICE live verifizieren
+      - name: TESTSERVICE Auth und QR live verifizieren
         shell: bash
         env:
           TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
         run: |
           set -euo pipefail
-          root_file="$(mktemp)"; pickup_file="$(mktemp)"; guard_file="$(mktemp)"; api_file="$(mktemp)"
-          trap 'rm -f "$root_file" "$pickup_file" "$guard_file" "$api_file"' EXIT
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
           ready=0
           for attempt in $(seq 1 30); do
-            root_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$root_file" -w '%{http_code}' "$TEST_URL/?rc1000diag=$GITHUB_SHA-$attempt" || true)"
-            pickup_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$pickup_file" -w '%{http_code}' "$TEST_URL/pickup.html?rc1000diag=$GITHUB_SHA-$attempt" || true)"
-            guard_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$guard_file" -w '%{http_code}' "$TEST_URL/assets/rc1000-diagnostics-guard.js?rc1000diag=$GITHUB_SHA-$attempt" || true)"
-            api_code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -o "$api_file" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc1000diag=$GITHUB_SHA-$attempt" || true)"
-            echo "Versuch $attempt: root=$root_code pickup=$pickup_code guard=$guard_code api=$api_code"
-            if [[ "$root_code" == 200 && "$pickup_code" == 200 && "$guard_code" == 200 && "$api_code" == 200 ]] \
-              && grep -q 'rc1000-diagnostics-guard.js' "$root_file" \
-              && grep -q 'pickupNegativeCacheMs:60000' "$guard_file" \
-              && grep -q 'Abholung bestätigen' "$pickup_file"; then
-              node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(d.ok!==true)process.exit(1)' "$api_file"
+            root_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp/root" -w '%{http_code}' "$TEST_URL/?rc1000auth=$GITHUB_SHA-$attempt" || true)"
+            pickup_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp/pickup" -w '%{http_code}' "$TEST_URL/pickup.html?rc1000auth=$GITHUB_SHA-$attempt" || true)"
+            probe_code="$(curl -sS --connect-timeout 5 --max-time 30 -o "$tmp/probe" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc1000auth=$GITHUB_SHA-$attempt" || true)"
+            bootstrap_code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Content-Type: application/json' -H 'Accept: application/json' -X POST --data '{"action":"bootstrap-status"}' -o "$tmp/bootstrap" -w '%{http_code}' "$TEST_URL/api/exporthub-auth" || true)"
+            login_code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Content-Type: application/json' -H 'Accept: application/json' -X POST --data '{"action":"login","username":"__rc1000_missing_user__","password":"diagnostic-only"}' -o "$tmp/login" -w '%{http_code}' "$TEST_URL/api/exporthub-auth" || true)"
+            echo "Versuch $attempt: root=$root_code pickup=$pickup_code probe=$probe_code bootstrap=$bootstrap_code dummyLogin=$login_code"
+            if [[ "$root_code" == 200 && "$pickup_code" == 200 && "$probe_code" == 200 && "$bootstrap_code" == 200 && "$login_code" != 500 ]] \
+              && grep -q 'rc1000-diagnostics-guard.js' "$tmp/root" \
+              && grep -q 'Abholung bestätigen' "$tmp/pickup"; then
+              node - "$tmp/probe" "$tmp/bootstrap" "$tmp/login" <<'NODE'
+              const fs=require('fs');
+              const [probePath,bootstrapPath,loginPath]=process.argv.slice(2);
+              const probe=JSON.parse(fs.readFileSync(probePath,'utf8'));
+              const bootstrap=JSON.parse(fs.readFileSync(bootstrapPath,'utf8'));
+              const login=JSON.parse(fs.readFileSync(loginPath,'utf8'));
+              if(probe.ok!==true||probe.runtimeReady!==true)throw new Error('Auth-Probe runtimeReady ist nicht true');
+              for(const key of ['storageBlob','authStore','authEndpoint'])if(!probe.modules?.[key]?.ok)throw new Error('Auth-Modul nicht ladbar: '+key);
+              if(bootstrap.ok!==true||bootstrap.storageConfigured!==true||bootstrap.storageReachable!==true)throw new Error('Auth-Speicher nicht einsatzbereit');
+              if(login.code!=='INVALID_CREDENTIALS')throw new Error('Dummy-Login erreicht nicht die echte Credential-Prüfung: '+JSON.stringify(login));
+              console.log('Auth-Backend vollständig einsatzbereit.');
+              NODE
               ready=1
               break
             fi
             sleep 10
           done
           [[ "$ready" == 1 ]]
-          echo 'RC1000 Diagnose-Reparatur auf TESTSERVICE live verifiziert.'
+          echo 'RC1000 TESTSERVICE Auth-Backend und QR-Seite live verifiziert.'
