@@ -1,0 +1,28 @@
+name: RC1000 Production QR Fix
+
+on:
+  push:
+    branches: [rc1000-production-qr-fix]
+    paths:
+      - '.github/workflows/rc1000-production-qr-fix.yml'
+      - '.github/rc1000/rc1000-production-pickup.test.mjs'
+      - 'api/shared/public-access-store.js'
+      - 'index.html'
+      - 'TESTVERSION.html'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1000-production-qr-fix
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
