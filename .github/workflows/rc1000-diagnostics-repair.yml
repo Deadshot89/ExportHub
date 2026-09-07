@@ -8,6 +8,7 @@ on:
       - '.github/workflows/rc1000-diagnostics-repair.yml'
       - '.github/rc1000/apply-diagnostics-repair.mjs'
       - '.github/rc1000/rc1000-diagnostics-repair.test.mjs'
+      - 'assets/rc1000-diagnostics-guard.js'
   workflow_dispatch:
 
 permissions:
@@ -40,6 +41,7 @@ jobs:
         run: |
           node --check .github/rc1000/apply-diagnostics-repair.mjs
           node --check .github/rc1000/rc1000-diagnostics-repair.test.mjs
+          node --check assets/rc1000-diagnostics-guard.js
 
       - name: Diagnose-Reparatur anwenden
         run: node .github/rc1000/apply-diagnostics-repair.mjs
@@ -116,7 +118,8 @@ jobs:
           const config=fs.existsSync('staticwebapp.testservice.config.json')?'staticwebapp.testservice.config.json':'staticwebapp.config.json';
           fs.copyFileSync(config,path.join(out,'staticwebapp.config.json'));
           NODE
-          grep -q 'exporthub-rc1000-diagnostics-guard' "$out/index.html"
+          grep -q 'rc1000-diagnostics-guard.js' "$out/index.html"
+          test -s "$out/assets/rc1000-diagnostics-guard.js"
           grep -q 'Abholung bestätigen' "$out/pickup.html"
 
       - name: Azure Static Web Apps CLI
@@ -141,16 +144,18 @@ jobs:
           TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
         run: |
           set -euo pipefail
-          root_file="$(mktemp)"; pickup_file="$(mktemp)"; api_file="$(mktemp)"
-          trap 'rm -f "$root_file" "$pickup_file" "$api_file"' EXIT
+          root_file="$(mktemp)"; pickup_file="$(mktemp)"; guard_file="$(mktemp)"; api_file="$(mktemp)"
+          trap 'rm -f "$root_file" "$pickup_file" "$guard_file" "$api_file"' EXIT
           ready=0
           for attempt in $(seq 1 30); do
             root_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$root_file" -w '%{http_code}' "$TEST_URL/?rc1000diag=$GITHUB_SHA-$attempt" || true)"
             pickup_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$pickup_file" -w '%{http_code}' "$TEST_URL/pickup.html?rc1000diag=$GITHUB_SHA-$attempt" || true)"
+            guard_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$guard_file" -w '%{http_code}' "$TEST_URL/assets/rc1000-diagnostics-guard.js?rc1000diag=$GITHUB_SHA-$attempt" || true)"
             api_code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -o "$api_file" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc1000diag=$GITHUB_SHA-$attempt" || true)"
-            echo "Versuch $attempt: root=$root_code pickup=$pickup_code api=$api_code"
-            if [[ "$root_code" == 200 && "$pickup_code" == 200 && "$api_code" == 200 ]] \
-              && grep -q 'exporthub-rc1000-diagnostics-guard' "$root_file" \
+            echo "Versuch $attempt: root=$root_code pickup=$pickup_code guard=$guard_code api=$api_code"
+            if [[ "$root_code" == 200 && "$pickup_code" == 200 && "$guard_code" == 200 && "$api_code" == 200 ]] \
+              && grep -q 'rc1000-diagnostics-guard.js' "$root_file" \
+              && grep -q 'pickupNegativeCacheMs:60000' "$guard_file" \
               && grep -q 'Abholung bestätigen' "$pickup_file"; then
               node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(d.ok!==true)process.exit(1)' "$api_file"
               ready=1
