@@ -1,0 +1,50 @@
+name: RC1000 Production QR Fix
+
+on:
+  push:
+    branches: [rc1000-production-qr-fix]
+    paths:
+      - '.github/workflows/rc1000-production-qr-fix.yml'
+      - '.github/rc1000/rc1000-production-pickup.test.mjs'
+      - '.github/rc1000/apply-production-pickup-fix.mjs'
+      - 'api/shared/public-access-store.js'
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'pickup.html'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1000-production-qr-fix
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: QR-Fix anwenden
+        run: node .github/rc1000/apply-production-pickup-fix.mjs
+      - name: QR-Regression
+        run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: Diff prüfen
+        run: git diff --check
+      - name: Reparierten Stand committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html TESTVERSION.html api/shared/public-access-store.js pickup.html; then
+            echo 'Fix bereits materialisiert.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html api/shared/public-access-store.js pickup.html
+          git commit -m 'RC1000: QR-Abholung Produktionspfad reparieren'
+          git push origin HEAD:rc1000-production-qr-fix
