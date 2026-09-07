@@ -22,7 +22,7 @@
 (function(){
 'use strict';
 var token='',session='',sessionExpiresAt='',dataEnvironment=/-testservice\./i.test(String(location.hostname||''))?'testservice':'production';
-try{var u=new URL(location.href);token=String(u.searchParams.get('token')||u.searchParams.get('avis')||'').trim()}catch(_){token=''}
+try{var u=new URL(location.href),requestedEnvironment=String(u.searchParams.get('environment')||'').trim().toLowerCase();token=String(u.searchParams.get('token')||u.searchParams.get('avis')||'').trim();if(requestedEnvironment==='testservice'||requestedEnvironment==='production')dataEnvironment=requestedEnvironment}catch(_){token=''}
 function q(v){return String(v==null?'':v).trim()}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmtDate(v){if(!v)return'–';try{var d=/^\d{4}-\d{2}-\d{2}$/.test(v)?new Date(v+'T12:00:00'):new Date(v);if(!isFinite(d))return q(v);return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})+(String(v).indexOf('T')>=0?' · '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'')}catch(_){return q(v)}}
