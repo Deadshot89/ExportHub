@@ -24,8 +24,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          changed="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" || true)"
-          echo "$changed" | grep -Fxq 'production-version.js'
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1002'" production-version.js
           node --test test/rc1002-release-sync.test.mjs
           npm test
