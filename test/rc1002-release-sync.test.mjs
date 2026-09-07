@@ -50,3 +50,14 @@ test('RC1002 Buildskript erzeugt drei Umgebungen aus demselben Stand',()=>{
   assert.match(src,/testservice/);
   assert.match(src,/demo/);
 });
+
+test('RC1002 ist der einzige aktive Releasepfad; RC997 Abschlussworkflow bleibt entfernt',()=>{
+  assert.equal(fs.existsSync('.github/workflows/rc997-website-final.yml'),false,'veralteter RC997 Abschlussworkflow ist wieder vorhanden');
+  assert.equal(fs.existsSync('.github/rc997/rc997-workflow-contract.test.mjs'),false,'veralteter RC997 Workflow-Vertrag ist wieder vorhanden');
+  for(const active of [
+    '.github/workflows/rc1002-release-sync.yml',
+    '.github/workflows/rc1002-testservice-live.yml',
+    '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
+    '.github/workflows/exporthub-android-test-app.yml'
+  ]) assert.equal(fs.existsSync(active),true,`aktiver RC1002 Releasepfad fehlt: ${active}`);
+});
