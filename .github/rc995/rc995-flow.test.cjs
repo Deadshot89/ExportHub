@@ -1,5 +1,5 @@
 'use strict';
-// RC998: gemeinsame Sendungsreferenz für Kunden-Avis aktiviert.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
@@ -530,7 +530,7 @@ test('RC995 Kunden-Avis: Einmal-Link -> Session -> Bestätigung nur dort -> nach
     const issued = bodyOf(ctx.res);
     assert.equal(issued.oneTime, true);
     assert.equal(issued.token, token);
-    assert.equal(issued.url, '/customer-avis.html?token=' + token);
+    assert.equal(issued.url, '/customer-avis.html?token=' + token + '&environment=testservice');
     let team = azure.readJson(teamBlob);
     assert.equal(team.state.shipments[0].customerAvisEnabled, true);
     assert.equal(team.state.shipments[0].customerAvisSecurityVersion, 995);
