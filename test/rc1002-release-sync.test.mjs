@@ -51,13 +51,23 @@ test('RC1002 Buildskript erzeugt drei Umgebungen aus demselben Stand',()=>{
   assert.match(src,/demo/);
 });
 
-test('RC1002 ist der einzige aktive Releasepfad; RC997 Abschlussworkflow bleibt entfernt',()=>{
-  assert.equal(fs.existsSync('.github/workflows/rc997-website-final.yml'),false,'veralteter RC997 Abschlussworkflow ist wieder vorhanden');
-  assert.equal(fs.existsSync('.github/rc997/rc997-workflow-contract.test.mjs'),false,'veralteter RC997 Workflow-Vertrag ist wieder vorhanden');
-  for(const active of [
-    '.github/workflows/rc1002-release-sync.yml',
-    '.github/workflows/rc1002-testservice-live.yml',
+test('RC1002 besitzt nur noch die vier dauerhaft aktiven Workflows',()=>{
+  const active=[
+    '.github/workflows/rc1002-main-contract.yml',
     '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
+    '.github/workflows/exporthub-testservice.yml',
     '.github/workflows/exporthub-android-test-app.yml'
-  ]) assert.equal(fs.existsSync(active),true,`aktiver RC1002 Releasepfad fehlt: ${active}`);
+  ];
+  for(const file of active) assert.equal(fs.existsSync(file),true,`aktiver RC1002 Workflow fehlt: ${file}`);
+
+  const obsolete=[
+    '.github/workflows/rc997-website-final.yml',
+    '.github/workflows/rc1000-production-qr-fix.yml',
+    '.github/workflows/rc1001-task-tiles-cleanup.yml',
+    '.github/workflows/rc1002-release-sync.yml',
+    '.github/workflows/rc1002-task-groups.yml',
+    '.github/workflows/rc1002-testservice-live.yml'
+  ];
+  for(const file of obsolete) assert.equal(fs.existsSync(file),false,`veralteter Workflow ist wieder vorhanden: ${file}`);
+  assert.equal(fs.existsSync('.github/rc997/rc997-workflow-contract.test.mjs'),false,'veralteter RC997 Workflow-Vertrag ist wieder vorhanden');
 });
