@@ -12,6 +12,8 @@ on:
       - 'assets/**'
       - 'android-app/**'
       - 'test/**'
+      - '.github/rc1000/**'
+      - '.github/rc1001/**'
       - '.github/rc1002/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/workflows/**'
@@ -36,6 +38,8 @@ jobs:
         run: node --test test/rc1002-release-sync.test.mjs
       - name: RC1002 Aufgaben-Vertrag
         run: node --test test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
+      - name: QR-Abholung Regression
+        run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
       - name: Diagnose- und Android-Regression
         run: node --test .github/rc997/diagnostic-notifications-contract.test.mjs
       - name: Gesamte Node-Regression
@@ -55,4 +59,8 @@ jobs:
           test ! -f .github/workflows/rc1002-release-sync.yml
           test ! -f .github/workflows/rc1002-task-groups.yml
           test ! -f .github/workflows/rc1002-testservice-live.yml
+          test ! -f .github/rc1000/apply-production-pickup-fix.mjs
+          test ! -f .github/rc1001/apply-task-tiles-cleanup.mjs
+          test ! -f .github/rc1002/apply-release-sync.mjs
+          test ! -f .github/rc1002/apply-task-groups.mjs
           git diff --check
