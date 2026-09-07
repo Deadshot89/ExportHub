@@ -1,0 +1,29 @@
+name: RC1001 Aufgaben-Kacheln aufraeumen
+
+on:
+  push:
+    branches: [rc1001-task-tiles-cleanup]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1001-task-tiles-cleanup.test.mjs'
+      - '.github/rc996/tasks-contract.test.mjs'
+      - '.github/workflows/rc1001-task-tiles-cleanup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1001-task-tiles-cleanup
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1001 RED/GREEN-Vertrag
+        run: node --test test/rc1001-task-tiles-cleanup.test.mjs
