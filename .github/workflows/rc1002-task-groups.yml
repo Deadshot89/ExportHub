@@ -26,7 +26,7 @@ jobs:
       - name: RC1002 Vertrag
         run: node --test test/rc1002-task-groups.test.mjs
       - name: Bestehende Aufgaben-Verträge
-        run: node --test .github/rc996/tasks-contract.test.mjs
+        run: node --test test/rc1001-task-tiles-cleanup.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
       - name: Diff prüfen
