@@ -567,7 +567,7 @@ test('RC995 Kunden-Avis: Einmal-Link -> Session -> Bestätigung nur dort -> nach
     assert.equal(team.state.shipments[0].customerConfirmed, true);
     assert.equal(team.state.shipments[0].customerConfirmedVia, 'customer-avis');
     assert.equal(team.state.shipments[0].plannedPickupDate, '2026-09-07');
-    assert.equal(team.state.shipments[0].customerAvisShipmentNumber, 'SP-995-001');
+    assert.equal(team.state.shipments[0].customerAvisShipmentNumber, 'ABC123');
 
     team.state.shipments[0].actualPickupAt = '2026-09-07T10:32:15.000Z';
     team.state.shipments[0].status = 'Abgeholt';
