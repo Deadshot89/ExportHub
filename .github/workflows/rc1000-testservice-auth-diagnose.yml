@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: TESTSERVICE Auth-Pfade prüfen
+      - name: TESTSERVICE Auth-Pfade verbindlich prüfen
         shell: bash
         env:
           TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
@@ -26,23 +26,20 @@ jobs:
           trap 'rm -rf "$tmp"' EXIT
 
           probe_code="$(curl -sS --connect-timeout 5 --max-time 30 -o "$tmp/probe.json" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?diag=$GITHUB_SHA" || true)"
-          echo "PROBE_HTTP=$probe_code"
-          node - "$tmp/probe.json" <<'NODE'
-          const fs=require('fs');
-          const p=process.argv[2];
-          let d={};try{d=JSON.parse(fs.readFileSync(p,'utf8'))}catch(e){console.log('PROBE_JSON_INVALID');process.exit(0)}
-          console.log(JSON.stringify({ok:d.ok,runtimeReady:d.runtimeReady,configuration:d.configuration,modules:Object.fromEntries(Object.entries(d.modules||{}).map(([k,v])=>[k,{ok:v&&v.ok,code:v&&v.code}]))},null,2));
-          NODE
-
           bootstrap_code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Content-Type: application/json' -H 'Accept: application/json' -X POST --data '{"action":"bootstrap-status"}' -o "$tmp/bootstrap.json" -w '%{http_code}' "$TEST_URL/api/exporthub-auth" || true)"
-          echo "BOOTSTRAP_HTTP=$bootstrap_code"
-          cat "$tmp/bootstrap.json" || true
-          echo
-
           login_code="$(curl -sS --connect-timeout 5 --max-time 30 -H 'Content-Type: application/json' -H 'Accept: application/json' -X POST --data '{"action":"login","username":"__rc1000_diagnostic_missing_user__","password":"diagnostic-only"}' -o "$tmp/login.json" -w '%{http_code}' "$TEST_URL/api/exporthub-auth" || true)"
-          echo "LOGIN_HTTP=$login_code"
-          cat "$tmp/login.json" || true
-          echo
+          pickup_code="$(curl -sS -L --connect-timeout 5 --max-time 20 -o "$tmp/pickup.html" -w '%{http_code}' "$TEST_URL/pickup.html?diag=$GITHUB_SHA" || true)"
 
-          # Diagnoseworkflow ist absichtlich read-only und schlägt nicht wegen des erwarteten Fehlers fehl.
-          exit 0
+          echo "PROBE_HTTP=$probe_code BOOTSTRAP_HTTP=$bootstrap_code LOGIN_HTTP=$login_code PICKUP_HTTP=$pickup_code"
+
+          test "$probe_code" = "200"
+          test "$bootstrap_code" = "200"
+          test "$login_code" != "500"
+          test "$pickup_code" = "200"
+          grep -q 'Abholung bestätigen' "$tmp/pickup.html"
+
+          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(d.ok!==true||d.runtimeReady!==true)throw new Error('runtimeReady ist nicht true');for(const k of ['storageBlob','authStore','authEndpoint'])if(!d.modules?.[k]?.ok)throw new Error(k+' nicht ladbar');console.log('Probe OK: runtimeReady=true')" "$tmp/probe.json"
+          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(d.ok!==true||d.storageConfigured!==true||d.storageReachable!==true)throw new Error('Auth-Speicher nicht bereit');console.log('Bootstrap OK: Speicher erreichbar')" "$tmp/bootstrap.json"
+          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(d.code!=='INVALID_CREDENTIALS')throw new Error('Dummy-Login erreicht Credential-Prüfung nicht: '+JSON.stringify(d));console.log('Loginpfad OK: Credential-Prüfung erreicht')" "$tmp/login.json"
+
+          echo 'TESTSERVICE Auth-Backend ist live einsatzbereit.'
