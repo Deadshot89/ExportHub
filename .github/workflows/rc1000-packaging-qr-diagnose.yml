@@ -1,16 +1,24 @@
-name: RC1000 Pickup Reissue RED
+name: RC1000 Pickup Reissue Verify
 
 on:
   push:
     branches: [rc1000-clean-navigation-search]
     paths:
       - '.github/workflows/rc1000-packaging-qr-diagnose.yml'
+      - '.github/rc1000/rc1000-pickup-reissue.test.cjs'
+      - 'api/shared/public-access-store.js'
+      - 'api/pickup-init/index.js'
+      - 'api/pickup-status/index.js'
+      - 'pickup.html'
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  red:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,4 +26,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - run: node --test .github/rc1000/rc1000-pickup-reissue.test.cjs
+      - name: Pickup-Neuausgabe Regression
+        run: node --test .github/rc1000/rc1000-pickup-reissue.test.cjs
+      - name: RC995 QR Verträge
+        run: |
+          node --test .github/rc995/rc995-contract.test.mjs
+          node --test .github/rc995/rc995-flow.test.cjs
+      - name: Gesamte Node-Regression
+        run: npm test
