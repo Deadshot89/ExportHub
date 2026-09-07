@@ -1,20 +1,16 @@
-name: RC1000 Packaging QR Diagnose
+name: RC1000 Pickup Reissue RED
 
 on:
   push:
-    branches:
-      - rc1000-clean-navigation-search
+    branches: [rc1000-clean-navigation-search]
     paths:
       - '.github/workflows/rc1000-packaging-qr-diagnose.yml'
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
-  diagnose:
+  red:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,28 +18,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: Verpackungs-Presets und QR-Ziel exakt auslesen
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs=require('fs');
-          const s=fs.readFileSync('TESTVERSION.html','utf8');
-          const clean=x=>String(x||'').replace(/\s+/g,' ').trim();
-          function contexts(rx,label,max=20,span=650){
-            let n=0;
-            for(const m of s.matchAll(rx)){
-              console.log(label+' '+(++n)+': '+clean(s.slice(Math.max(0,m.index-span),Math.min(s.length,m.index+span))));
-              if(n>=max)break;
-            }
-            if(!n)console.log(label+': KEIN TREFFER');
-          }
-          console.log('=== VERPACKUNGS-PRESETS ===');
-          contexts(/Plastic Palette/gi,'PLASTIC',8,900);
-          contexts(/Europalette|Euro Palette|EUR.?Palette/gi,'EURO',12,900);
-          contexts(/\bE\s*[-_]?[0-9]{1,3}\b/g,'ENUMMER',30,550);
-          contexts(/(?:Karton|Carton|Paket|Package)[^<\n]{0,120}(?:Länge|Breite|Höhe|length|width|height)/gi,'PAKET',20,700);
-          console.log('=== QR-ZIEL ===');
-          contexts(/function urlFor\(sh\)/g,'URLFOR',2,1300);
-          contexts(/function metadata\(sh/g,'METADATA',2,1300);
-          NODE
+      - run: node --test .github/rc1000/rc1000-pickup-reissue.test.cjs
