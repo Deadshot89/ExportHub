@@ -1,0 +1,29 @@
+name: RC1002 Release Sync
+on:
+  push:
+    branches: [rc1002-release-sync]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'production-version.js'
+      - 'android-app/**'
+      - '.github/rc1002/**'
+      - 'test/rc1002-release-sync.test.mjs'
+      - '.github/workflows/rc1002-release-sync.yml'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/exporthub-android-test-app.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1002-release-sync
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1002 Release-Vertrag
+        run: node --test test/rc1002-release-sync.test.mjs
