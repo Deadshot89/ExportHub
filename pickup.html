@@ -6,205 +6,281 @@
 <meta name="robots" content="noindex,nofollow">
 <title>ExportHUB · Abholung bestätigen</title>
 <style>
-
-html[data-index209-pickup="1"],html[data-index209-pickup="1"] body{margin:0!important;min-height:100%!important;background:#eef6fb!important}
-html[data-index209-pickup="1"] body>*:not(#index209PickupApp){display:none!important}
-#index209PickupApp{display:block!important;min-height:100vh;padding:18px;box-sizing:border-box;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),#eef6fb}
-.index209-pickup-card{width:min(680px,100%);margin:3vh auto;background:#fff;border:1px solid #bfdbfe;border-radius:26px;padding:24px;box-shadow:0 18px 46px rgba(15,23,42,.14);box-sizing:border-box}
-.index209-pickup-brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}.index209-pickup-logo{width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,#2563eb,#05b8ff);color:#fff;display:grid;place-items:center;font-weight:1000;font-size:20px}.index209-pickup-brand h1{font-size:25px;color:#08245d;margin:0}.index209-pickup-brand p{margin:4px 0 0;color:#64748b;font-weight:750}
-.index209-pickup-info{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.index209-pickup-box{border:1px solid #dbeafe;border-radius:16px;background:#f8fbff;padding:12px}.index209-pickup-box span{display:block;color:#64748b;font-size:11px;font-weight:900;text-transform:uppercase;margin-bottom:5px}.index209-pickup-box b{font-size:16px;overflow-wrap:anywhere}
-#index209PickupForm{display:grid;gap:12px;margin-top:16px}#index209PickupForm label{display:grid;gap:6px;font-weight:900;color:#334155}#index209PickupForm input,#index209PickupForm select{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:14px;padding:12px;font:inherit;font-weight:800;background:#fff}#index209PickupConfirm{border:0;border-radius:15px;padding:13px 16px;background:linear-gradient(135deg,#2563eb,#05b8ff);color:#fff;font:inherit;font-weight:1000;cursor:pointer}#index209PickupConfirm:disabled{opacity:.55;cursor:wait}
-.index209-signature-trigger{width:100%;min-height:92px;border:2px dashed #60a5fa;border-radius:16px;background:#eff6ff;color:#1e3a8a;display:grid;place-items:center;gap:6px;padding:10px;font:inherit;font-weight:1000;cursor:pointer}.index209-signature-trigger.has-signature{border-style:solid;background:#f0fdf4;border-color:#4ade80;color:#166534}.index209-signature-trigger img{display:block;max-width:100%;height:72px;object-fit:contain;background:#fff;border-radius:8px}.index209-signature-help{font-size:11px;color:#64748b;font-weight:800}
-#index209PickupSignatureModal[hidden]{display:none!important}#index209PickupSignatureModal{position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.72);padding:16px;display:grid;place-items:center}.index209-signature-dialog{width:min(1050px,100%);background:#fff;border-radius:24px;padding:18px;box-shadow:0 25px 80px rgba(0,0,0,.34)}.index209-signature-dialog h2{margin:0 0 5px;color:#08245d}.index209-signature-dialog p{margin:0 0 12px;color:#64748b;font-weight:750}.index209-signature-canvas-wrap{border:3px solid #2563eb;border-radius:18px;background:#fff;overflow:hidden}.index209-signature-canvas-wrap canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;cursor:crosshair;background:#fff}.index209-signature-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}.index209-signature-actions button{border-radius:14px;padding:11px 15px;font:inherit;font-weight:950;cursor:pointer}.index209-signature-clear,.index209-signature-cancel{border:1px solid #cbd5e1;background:#fff;color:#334155}.index209-signature-save{border:0;background:linear-gradient(135deg,#2563eb,#05b8ff);color:#fff}
-.index209-pickup-status{border-radius:15px;padding:12px;margin:12px 0;font-weight:850;line-height:1.45}.index209-pickup-status.info{border-left:5px solid #2563eb;background:#eff6ff}.index209-pickup-status.ok{border-left:5px solid #16a34a;background:#f0fdf4;color:#166534}.index209-pickup-status.bad{border-left:5px solid #dc2626;background:#fee2e2;color:#991b1b}
-@media(max-width:620px){#index209PickupApp{padding:10px}.index209-pickup-card{margin:0 auto;padding:18px;border-radius:20px}.index209-pickup-info{grid-template-columns:1fr}.index209-signature-dialog{padding:12px;border-radius:18px}.index209-signature-actions button{flex:1}}
-
-
-/* ---------- RC577: Menü-Kontrast + gezielte Design-Nachschärfung ---------- */
-body[data-eh-theme]{--pc-font:"Segoe UI",Arial,sans-serif!important;--pc-heading:"Segoe UI",Arial,sans-serif!important}
-body[data-eh-theme] .sidebar .brand strong,
-body[data-eh-theme] .sidebar .brand b,
-body[data-eh-theme] .sidebar .profile,
-body[data-eh-theme] .sidebar .profile b,
-body[data-eh-theme] .sidebar .profile strong,
-body[data-eh-theme] #nav>[data-index308-group],
-body[data-eh-theme] #nav>button[data-index321-view],
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-label,
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon{opacity:1!important;filter:none!important}
-body[data-eh-theme] #nav>[data-index308-group]{font-weight:800!important;letter-spacing:.11em!important}
-body[data-eh-theme] #nav>button[data-index321-view]{font-weight:700!important}
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-label{color:inherit!important}
-body[data-eh-theme] #nav>button[data-index321-view] .index308-nav-icon{background:color-mix(in srgb,var(--pc-surface) 78%,var(--pc-primary) 22%)!important;border:1px solid color-mix(in srgb,var(--pc-primary) 24%,var(--pc-line))!important}
-body[data-eh-theme] #nav>button[data-index321-view].active .index308-nav-icon,
-body[data-eh-theme] #nav>button[data-index321-view][aria-current="page"] .index308-nav-icon{background:color-mix(in srgb,var(--pc-nav-active) 80%,var(--pc-primary) 20%)!important}
-
-body[data-eh-theme="glass-workspace"]{
- --pc-page:radial-gradient(circle at 9% 0,rgba(164,208,231,.42),transparent 28%),radial-gradient(circle at 92% 3%,rgba(225,236,243,.68),transparent 31%),linear-gradient(145deg,#edf5f8,#deebf1 52%,#d8e6ed)!important;
- --pc-side:rgba(252,254,255,.76)!important;--pc-side-text:#173b50!important;--pc-side-muted:#567487!important;
- --pc-top:rgba(255,255,255,.82)!important;--pc-surface:rgba(255,255,255,.80)!important;--pc-surface-2:rgba(250,253,255,.72)!important;--pc-surface-3:rgba(232,240,246,.78)!important;
- --pc-field:rgba(255,255,255,.92)!important;--pc-line:rgba(107,145,167,.30)!important;--pc-primary:#2b7fa8!important;--pc-primary-2:#74adc2!important
-}
-body[data-eh-theme="glass-workspace"] .sidebar{background:rgba(255,255,255,.56)!important;border:1px solid rgba(255,255,255,.72)!important;backdrop-filter:blur(16px) saturate(112%)!important;box-shadow:0 18px 42px rgba(43,75,94,.12)!important}
-body[data-eh-theme="glass-workspace"] .topbar,
-body[data-eh-theme="glass-workspace"] #content :is(.card,.metric,.rc205-widget,.rc205-quick-card,.folder-section){backdrop-filter:blur(14px) saturate(110%)!important}
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view]{background:rgba(255,255,255,.34)!important;border:1px solid rgba(119,153,172,.26)!important;color:#173b50!important}
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view]:hover{background:rgba(255,255,255,.62)!important}
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view].active,
-body[data-eh-theme="glass-workspace"] #nav>button[data-index321-view][aria-current="page"]{background:rgba(221,239,247,.88)!important;border-color:rgba(66,126,158,.34)!important;color:#15425b!important;box-shadow:0 8px 18px rgba(43,127,168,.10)!important}
-
-body[data-eh-theme="neon-flow"]{
- --pc-page:radial-gradient(circle at 10% -5%,rgba(0,255,214,.17),transparent 28%),radial-gradient(circle at 92% 0,rgba(0,180,255,.16),transparent 30%),linear-gradient(155deg,#edf8fb,#deedf4 58%,#d9eaf3)!important;
- --pc-side:linear-gradient(180deg,#17384e 0%,#1d4860 62%,#275873 100%)!important;--pc-side-text:#eefbff!important;--pc-side-muted:#b8dce9!important;
- --pc-top:rgba(246,252,255,.93)!important;--pc-surface:#ffffff!important;--pc-surface-2:#f4fbfd!important;--pc-surface-3:#e9f5f9!important;--pc-field:#fff!important;--pc-line:#abd5e1!important;
- --pc-text:#204051!important;--pc-title:#0f425b!important;--pc-muted:#5f7f90!important;--pc-primary:#00c9c9!important;--pc-primary-2:#24a8ff!important;--pc-primary-soft:#ddfbfb!important;
- --pc-nav:rgba(255,255,255,.06)!important;--pc-nav-hover:rgba(255,255,255,.12)!important;--pc-nav-active:linear-gradient(135deg,rgba(0,201,201,.24),rgba(36,168,255,.28))!important;--pc-nav-active-text:#ffffff!important
-}
-body[data-eh-theme="neon-flow"] .sidebar{border-right:1px solid rgba(0,201,201,.34)!important;box-shadow:8px 0 28px rgba(25,84,110,.14)!important}
-body[data-eh-theme="neon-flow"] .sidebar .brand,
-body[data-eh-theme="neon-flow"] .sidebar .brand strong,
-body[data-eh-theme="neon-flow"] .sidebar .profile,
-body[data-eh-theme="neon-flow"] #nav>[data-index308-group],
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view]{color:#eefbff!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view]{background:rgba(255,255,255,.03)!important;border:1px solid rgba(146,223,237,.14)!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view]:hover{background:rgba(255,255,255,.08)!important;border-color:rgba(0,201,201,.30)!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view].active,
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view][aria-current="page"]{background:linear-gradient(135deg,rgba(0,201,201,.24),rgba(36,168,255,.24))!important;border-color:rgba(0,201,201,.38)!important;color:#ffffff!important;box-shadow:0 0 0 1px rgba(0,201,201,.16),0 0 18px rgba(0,201,201,.12)!important}
-body[data-eh-theme="neon-flow"] #nav>button[data-index321-view] .index308-nav-icon{background:rgba(255,255,255,.10)!important;border-color:rgba(139,229,239,.22)!important}
-
-
-
-html[data-index209-pickup="1"]{color-scheme:light}
-#index209PickupApp{padding:clamp(10px,3vw,28px)!important;display:grid!important;place-items:center!important}
-.index209-pickup-card{width:min(780px,100%)!important;margin:0 auto!important;padding:clamp(18px,4vw,34px)!important;border-radius:30px!important}
-.index209-pickup-brand{padding-bottom:18px;border-bottom:1px solid #dbeafe;margin-bottom:18px!important}
-.index209-pickup-brand h1{font-size:clamp(25px,5vw,34px)!important}
-.index209-pickup-info{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
-.index209-pickup-box{min-height:76px;display:flex;flex-direction:column;justify-content:center}
-.index225-pickup-section{border:1px solid #dbeafe;background:#f8fbff;border-radius:20px;padding:16px;display:grid;gap:13px}
-.index225-pickup-section h2{font-size:16px;margin:0;color:#08245d}
-.index225-pickup-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
-#index209PickupForm label{font-size:14px!important;gap:7px!important}
-#index209PickupForm input{min-height:52px!important;border:2px solid #cbd5e1!important;border-radius:15px!important;padding:13px 14px!important;font-size:17px!important;background:#fff!important}
-#index209PickupForm input:focus{outline:3px solid rgba(37,99,235,.16)!important;border-color:#2563eb!important}
-#index209PickupPlate{text-transform:uppercase;letter-spacing:.08em}
-.index225-input-help{display:block;color:#64748b;font-size:11px;font-weight:800;margin-top:-2px}
-.index209-signature-trigger{min-height:128px!important;background:#fff!important}
-.index209-signature-trigger img{height:96px!important}
-#index209PickupConfirm{min-height:44px!important;font-size:17px!important;box-shadow:0 12px 26px rgba(37,99,235,.22)}
-.index225-pickup-success{text-align:center;padding:26px 10px}.index225-pickup-success .icon{width:74px;height:74px;border-radius:50%;margin:0 auto 16px;background:#dcfce7;color:#166534;display:grid;place-items:center;font-size:38px;font-weight:1000}.index225-pickup-success h2{font-size:28px;margin:0 0 10px;color:#166534}.index225-pickup-success p{font-size:16px;line-height:1.5;color:#475569}.index225-close-note{margin-top:15px;border-radius:14px;background:#eff6ff;padding:12px;color:#1e3a8a;font-weight:900}
-#index491PickupColliSection .index495-colli-check{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important;align-items:end!important}
-#index491PickupColliSection #index495PickupColliInput{min-height:52px!important;font-size:20px!important;font-weight:950!important;text-align:center!important}
-#index491PickupColliSection #index495PickupColliCheck{min-height:52px!important;padding:10px 16px!important;border:0!important;border-radius:14px!important;background:linear-gradient(135deg,#2563eb,#05b8ff)!important;color:#fff!important;font:inherit!important;font-weight:950!important;cursor:pointer!important}
-#index495PickupColliResult{display:block!important;min-height:44px!important;border:1px solid #dbeafe!important;border-radius:14px!important;background:#f8fbff!important;padding:11px 13px!important;font-weight:900!important;color:#475569!important}
-#index495PickupColliResult.ok{border-color:#86efac!important;background:#f0fdf4!important;color:#166534!important}
-#index495PickupColliResult.bad{border-color:#fecaca!important;background:#fff1f2!important;color:#991b1b!important}
-.index491-colli-test{display:block;color:#64748b;font-size:11px;font-weight:800}
-@media(max-width:620px){#index491PickupColliSection .index495-colli-check{grid-template-columns:1fr!important}}
-@media(max-width:620px){.index225-pickup-grid,.index209-pickup-info{grid-template-columns:1fr!important}.index225-pickup-section{padding:13px}.index209-pickup-card{border-radius:22px!important}.index209-signature-trigger{min-height:110px!important}}
-
-
-.index998-pickup-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0 14px}.index998-pickup-mode{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.index998-pickup-mode label{display:grid;grid-template-columns:auto 1fr;column-gap:8px;align-items:start;border:1px solid #cbd5e1;border-radius:14px;padding:12px;background:#fff;cursor:pointer}.index998-pickup-mode label span{grid-column:2;color:#64748b;font-size:12px;font-weight:700;margin-top:4px}.index998-pickup-history{margin:14px 0;border:1px solid #dbeafe;border-radius:14px;padding:12px;background:#f8fbff}.index998-pickup-history h3{margin:0 0 8px}.index998-pickup-history>div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #e2e8f0}.index998-pickup-history>div:first-of-type{border-top:0}.index998-pickup-history span{color:#64748b;font-size:12px;text-align:right}#index998PickupReload{margin-top:16px;border:0;border-radius:12px;padding:12px 16px;background:#0b57d0;color:#fff;font:inherit;font-weight:900;cursor:pointer}@media(max-width:620px){.index998-pickup-totals,.index998-pickup-mode{grid-template-columns:1fr}.index998-pickup-history>div{display:block}.index998-pickup-history span{display:block;text-align:left;margin-top:4px}}
-
+:root{font-family:Segoe UI,Arial,sans-serif;color:#0f172a;background:#eef6fb}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 12% 0,rgba(5,184,255,.18),transparent 34%),#eef6fb}
+main{min-height:100vh;padding:18px;display:grid;place-items:center}
+.card{width:min(760px,100%);background:#fff;border:1px solid #bfdbfe;border-radius:26px;padding:24px;box-shadow:0 18px 46px rgba(15,23,42,.14)}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo{width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,#2563eb,#05b8ff);color:#fff;display:grid;place-items:center;font-weight:1000;font-size:20px}
+h1{font-size:27px;color:#08245d;margin:0}.brand p{margin:4px 0 0;color:#64748b;font-weight:750}
+.status{border-radius:15px;padding:12px;margin:12px 0;font-weight:850;line-height:1.45}
+.status.info{border-left:5px solid #2563eb;background:#eff6ff}
+.status.ok{border-left:5px solid #16a34a;background:#f0fdf4;color:#166534}
+.status.bad{border-left:5px solid #dc2626;background:#fee2e2;color:#991b1b}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.box{border:1px solid #dbeafe;border-radius:16px;background:#f8fbff;padding:12px}
+.box span{display:block;color:#64748b;font-size:11px;font-weight:900;text-transform:uppercase;margin-bottom:5px}
+.box b{font-size:16px;overflow-wrap:anywhere}
+form{display:grid;gap:12px;margin-top:16px}
+.section{border:1px solid #dbeafe;background:#f8fbff;border-radius:20px;padding:16px;display:grid;gap:13px}
+.section h2{font-size:16px;margin:0;color:#08245d}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+label{display:grid;gap:6px;font-weight:900;color:#334155}
+input{width:100%;border:1px solid #cbd5e1;border-radius:14px;padding:12px;font:inherit;font-weight:800}
+button{border:0;border-radius:15px;padding:13px 16px;background:linear-gradient(135deg,#2563eb,#05b8ff);color:#fff;font:inherit;font-weight:1000;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.signature{width:100%;min-height:110px;border:2px dashed #60a5fa;border-radius:16px;background:#eff6ff;color:#1e3a8a;display:grid;place-items:center;gap:6px;padding:10px}
+.signature.has{border-style:solid;background:#f0fdf4;border-color:#4ade80;color:#166534}
+.signature img{max-width:100%;height:84px;object-fit:contain;background:#fff;border-radius:8px}
+.help{font-size:11px;color:#64748b;font-weight:800}
+.modal[hidden]{display:none!important}.modal{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.72);padding:16px;display:grid;place-items:center}
+.dialog{width:min(1000px,100%);background:#fff;border-radius:24px;padding:18px}
+.canvas-wrap{border:3px solid #2563eb;border-radius:18px;background:#fff;overflow:hidden}
+canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;background:#fff}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.actions .secondary{background:#fff;color:#334155;border:1px solid #cbd5e1}
+.success{text-align:center;padding:26px 10px}.success .icon{width:74px;height:74px;border-radius:50%;margin:0 auto 16px;background:#dcfce7;color:#166534;display:grid;place-items:center;font-size:38px;font-weight:1000}.success h2{font-size:28px;margin:0 0 10px;color:#166534}
+@media(max-width:620px){main{padding:10px}.card{padding:18px;border-radius:20px}.info-grid,.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<main>
+<section class="card">
+<div class="brand"><div class="logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div>
+<div id="status" class="status info">Sendungsdaten werden geladen …</div>
+<div id="details"></div>
+
+<form id="form" hidden>
+<section class="section">
+<h2>Fahrer und Fahrzeug</h2>
+<div class="grid">
+<label>Name des Fahrers <span class="help">(optional)</span><input id="driver" autocomplete="name"></label>
+<label>Kennzeichen <span class="help">(Pflicht)</span><input id="plate" autocomplete="off" required></label>
+</div>
+<label>Speditionsname <span class="help">(Pflicht)</span><input id="carrier" autocomplete="organization" required></label>
+<label id="returnLabel" hidden>Zurückgegebene Europaletten<input id="returned" type="number" min="0" step="1" value="0"></label>
+</section>
+
+<section id="colliSection" class="section" hidden>
+<h2>Colli-Prüfung <span class="help">(Pflicht)</span></h2>
+<div class="box"><span>Gesamtanzahl der Sendung</span><b id="expectedColli">—</b></div>
+<label>Gezählte Gesamt-Colli<input id="colli" type="number" min="1" step="1" inputmode="numeric"></label>
+<button id="checkColli" type="button">Gesamtmenge prüfen</button>
+<div id="colliResult" class="help">Gesamtmenge noch nicht geprüft.</div>
+</section>
+
+<section class="section">
+<h2>Digitale Bestätigung</h2>
+<label>Unterschrift des Fahrers
+<button id="signatureOpen" class="signature" type="button">
+<span id="signaturePrompt">Zum Unterschreiben hier antippen</span>
+<img id="signaturePreview" alt="Erfasste Fahrerunterschrift" hidden>
+</button>
+<span class="help">Unterschrift, Kennzeichen und Speditionsname sind verpflichtend.</span>
+<input id="signatureData" type="hidden">
+</label>
+<label>Persönlicher PIN des Verladers<input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></label>
+</section>
+
+<button id="confirm" type="submit">Abholung und POD übertragen</button>
+</form>
+</section>
+</main>
+
+<div id="signatureModal" class="modal" hidden>
+<div class="dialog">
+<h2>Unterschrift des Fahrers</h2>
+<p>Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.</p>
+<div class="canvas-wrap"><canvas id="canvas" width="1000" height="360"></canvas></div>
+<div class="actions">
+<button id="clearSig" class="secondary" type="button">Löschen</button>
+<button id="cancelSig" class="secondary" type="button">Abbrechen</button>
+<button id="saveSig" type="button">Unterschrift übernehmen</button>
+</div>
+</div>
+</div>
+
 <script>
 (function(){
 'use strict';
-var current;try{current=new URL(window.location.href)}catch(_){return}
-function q(v){return String(v==null?'':v).trim()}
-function tokenFromUrl(u){var hash='';try{hash=decodeURIComponent(String(u.hash||'').replace(/^#/,''))}catch(_){hash=String(u.hash||'').replace(/^#/,'')}var hm=hash.match(/(?:^|[\/?&])pickup(?:=|\/)([A-Za-z0-9_-]{6,128})(?:$|[&\/?])/i)||hash.match(/^pickup=([A-Za-z0-9_-]{6,128})$/i),pm=String(u.pathname||'').match(/\/pickup(?:\.html)?\/([A-Za-z0-9_-]{6,128})\/?$/i),legacy=/^pickup$/i.test(q(u.searchParams.get('ehcmd'))),list=[u.searchParams.get('pickup'),u.searchParams.get('token'),legacy&&u.searchParams.get('ref'),pm&&pm[1],hm&&hm[1]];for(var i=0;i<list.length;i++)if(/^[A-Za-z0-9_-]{6,128}$/.test(q(list[i])))return q(list[i]);return''}
-var token=tokenFromUrl(current)||q(window.__EXPORTHUB_PICKUP_ROUTE_TOKEN__);if(!token)return;
-window.__EXPORTHUB_PICKUP_MODE__=true;window.__EXPORTHUB_PICKUP_CONFIRMATION_OWNER__='RC352';document.documentElement.setAttribute('data-index209-pickup','1');
-var signatureSaved='',canvas=null,ctx=null,drawing=false,drawn=false,submitting=false,expectedPickupCollis=0,collectedPickupCollis=0,remainingPickupCollis=0,colliCountConfirmed=false,currentCarrierName='';
-function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function request(path,opt){opt=opt||{};var timeout=Math.max(5000,Number(opt.timeout||30000)),controller=typeof AbortController==='function'?new AbortController():null,timer=null;delete opt.timeout;opt.credentials='same-origin';opt.cache='no-store';opt.headers=Object.assign({'Accept':'application/json','Content-Type':'application/json'},opt.headers||{});if(controller)opt.signal=controller.signal;if(controller)timer=setTimeout(function(){controller.abort()},timeout);return fetch('/api/'+String(path||'').replace(/^\//,''),opt).then(async function(r){var text='',body={};try{text=await r.text();body=text?JSON.parse(text):{}}catch(_){body={}}if(!r.ok){var e=new Error(body.message||body.error||('HTTP '+r.status));e.status=r.status;e.code=body.code||'';e.retryAfter=Math.max(0,Number(r.headers.get('retry-after')||body.retryAfter||body.retryAfterSeconds||0)||0);throw e}return body}).catch(function(error){if(error&&error.name==='AbortError'){var e=new Error('Der Server hat innerhalb der zulässigen Zeit nicht geantwortet.');e.code='REQUEST_TIMEOUT';e.timeout=true;throw e}throw error}).finally(function(){if(timer)clearTimeout(timer)})}
-function valueDeep(data,names){var seen=[];function walk(x,d){if(!x||typeof x!=='object'||d>7||seen.indexOf(x)>=0)return'';seen.push(x);for(var i=0;i<names.length;i++){var v=x[names[i]];if(v!==undefined&&v!==null&&q(v)!=='')return v}for(var k in x){if(Object.prototype.hasOwnProperty.call(x,k)&&x[k]&&typeof x[k]==='object'){var hit=walk(x[k],d+1);if(hit!==''&&hit!=null)return hit}}return''}return walk(data,0)}
-function confirmed(data){return !!(data&&(data.confirmedAt||data.pickupConfirmedAt||data.completedAt||data.pickedUpAt||data.used||data.confirmed||/confirmed|completed|abgeholt|used/i.test(q(data.status))))}
-function signatureAvailable(data){return !!(data&&(data.signatureAvailable||data.driverSignatureAvailable||data.driverSignatureUrl||data.pickupSignatureUrl||data.signatureUrl||valueDeep(data,['driverSignature','pickupDriverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])||Array.isArray(data.podFiles)&&data.podFiles.length))}
-function disabled(data){return !!(data&&(data.disabled||/disabled|cancelled|storniert/i.test(q(data.status))))}
-function status(text,kind){var n=document.getElementById('index209PickupStatus');if(!n)return;n.className='index209-pickup-status '+(kind||'info');n.textContent=text}
-function shell(){var old=document.getElementById('index209PickupApp');if(old)return old;var app=document.createElement('main');app.id='index209PickupApp';app.innerHTML='<section class="index209-pickup-card"><div class="index209-pickup-brand"><div class="index209-pickup-logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abholnachweis</p></div></div><div id="index209PickupStatus" class="index209-pickup-status info">Sendungsdaten werden geladen …</div><div id="index209PickupDetails"></div><form id="index209PickupForm" hidden><section class="index225-pickup-section"><h2>Fahrer und Fahrzeug</h2><div class="index225-pickup-grid"><label>Name des Fahrers <span class="small">(optional)</span><input id="index209PickupDriver" autocomplete="name" autocapitalize="words" lang="de"></label><label>Kennzeichen <span class="small">(Pflicht)</span><input id="index209PickupPlate" autocomplete="off" inputmode="text" maxlength="40" required></label></div><label>Speditionsname <span class="small">(Pflicht)</span><input id="index209PickupCarrier" autocomplete="organization" maxlength="180" required></label><label id="index209PickupReturnLabel" hidden>Zurückgegebene Europaletten<input id="index209PickupReturn" type="number" min="0" step="1" value="0"></label></section><section id="index491PickupColliSection" class="index225-pickup-section" hidden><h2>Abholmenge <span class="small">(Pflicht)</span></h2><div class="index998-pickup-totals"><div class="index209-pickup-box"><span>Gesamt</span><b id="index675PickupExpectedTotal">—</b></div><div class="index209-pickup-box"><span>Bereits abgeholt</span><b id="index998PickupCollected">—</b></div><div class="index209-pickup-box"><span>Verbleibend</span><b id="index998PickupRemaining">—</b></div></div><div class="index998-pickup-mode"><label><input type="radio" name="pickupMode" value="complete" checked> <b>Vollständige Abholung</b><span>Alle noch offenen Colli werden mit diesem LKW abgeholt.</span></label><label><input type="radio" name="pickupMode" value="partial"> <b>Teilabholung</b><span>Nur ein Teil wird abgeholt. Derselbe QR-Code bleibt für die Restmenge aktiv.</span></label></div><div class="index495-colli-check"><label>Colli auf diesem LKW<input id="index495PickupColliInput" type="number" min="1" step="1" inputmode="numeric" autocomplete="off"></label><button id="index495PickupColliCheck" type="button">Menge prüfen</button></div><div id="index495PickupColliResult" aria-live="polite">Menge noch nicht geprüft.</div></section><section class="index225-pickup-section"><h2>Digitale Bestätigung</h2><label>Unterschrift des Fahrers<button id="index209PickupSignatureOpen" class="index209-signature-trigger" type="button"><span id="index209PickupSignaturePrompt">Zum Unterschreiben hier antippen</span><img id="index209PickupSignaturePreview" alt="Erfasste Fahrerunterschrift" hidden></button><span class="index209-signature-help">Jede Teilabholung erhält einen eigenen Nachweis mit Fahrer, Kennzeichen, Verlader, Colli-Anzahl und Unterschrift.</span><input id="index209PickupSignatureData" type="hidden" required></label><label>Persönlicher PIN des Verladers<input id="index209PickupPin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></label></section><button id="index209PickupConfirm" type="submit">Abholung bestätigen</button></form></section><div id="index209PickupSignatureModal" hidden><div class="index209-signature-dialog" role="dialog" aria-modal="true" aria-labelledby="index209PickupSignatureTitle"><h2 id="index209PickupSignatureTitle">Unterschrift des Fahrers</h2><p>Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.</p><div class="index209-signature-canvas-wrap"><canvas id="index209PickupSignatureCanvas" width="1000" height="360"></canvas></div><div class="index209-signature-actions"><button id="index209PickupSignatureClear" class="index209-signature-clear" type="button">Löschen</button><button id="index209PickupSignatureCancel" class="index209-signature-cancel" type="button">Abbrechen</button><button id="index209PickupSignatureSave" class="index209-signature-save" type="button">Unterschrift übernehmen</button></div></div></div>';document.body.insertBefore(app,document.body.firstChild);bind();return app}
-function point(e){var r=canvas.getBoundingClientRect(),p=e.touches&&e.touches[0]||e.changedTouches&&e.changedTouches[0]||e;return{x:(p.clientX-r.left)*(canvas.width/r.width),y:(p.clientY-r.top)*(canvas.height/r.height)}}
-function clearSignature(){if(!ctx)return;ctx.save();ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.restore();drawn=false}
-function openSignature(){document.getElementById('index209PickupSignatureModal').hidden=false;document.body.style.overflow='hidden';clearSignature();if(signatureSaved){var img=new Image();img.onload=function(){ctx.drawImage(img,0,0,canvas.width,canvas.height);drawn=true};img.src=signatureSaved}}
-function closeSignature(){document.getElementById('index209PickupSignatureModal').hidden=true;document.body.style.overflow=''}
-function pickupMode(){var n=document.querySelector('input[name="pickupMode"]:checked');return n&&n.value==='partial'?'partial':'complete'}
-function syncPickupMode(){colliCountConfirmed=false;var input=document.getElementById('index495PickupColliInput'),result=document.getElementById('index495PickupColliResult'),mode=pickupMode();if(input){input.removeAttribute('readonly');input.max=String(Math.max(1,remainingPickupCollis||expectedPickupCollis||1));if(mode==='complete'&&remainingPickupCollis>0)input.value=String(remainingPickupCollis);else input.value=''}if(result){result.className='';result.textContent=mode==='partial'?'Bitte die Colli-Anzahl dieses LKW eingeben.':'Bitte die vollständige Restmenge prüfen.'}}
-function bind(){var form=document.getElementById('index209PickupForm'),driver=document.getElementById('index209PickupDriver'),plate=document.getElementById('index209PickupPlate'),carrier=document.getElementById('index209PickupCarrier'),pin=document.getElementById('index209PickupPin'),colliInput=document.getElementById('index495PickupColliInput'),colliButton=document.getElementById('index495PickupColliCheck');form.addEventListener('submit',submit);driver.addEventListener('input',function(){this.value=this.value.replace(/[^\p{L}\p{M} .’'\-]/gu,'')});if(plate)plate.addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[\r\n]/g,' ').slice(0,40)});if(carrier)carrier.addEventListener('input',function(){this.value=this.value.slice(0,180)});pin.addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4)});if(colliInput){colliInput.addEventListener('input',function(){colliCountConfirmed=false;this.removeAttribute('readonly');var r=document.getElementById('index495PickupColliResult');if(r){r.className='';r.textContent='Gesamtmenge noch nicht geprüft.'}});colliInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();checkPickupCollis()}})}if(colliButton)colliButton.addEventListener('click',checkPickupCollis);var pickupMode=document.getElementById('index998PickupMode');if(pickupMode)pickupMode.addEventListener('change',resetColliCheck);canvas=document.getElementById('index209PickupSignatureCanvas');ctx=canvas.getContext('2d',{alpha:false});ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#0f172a';clearSignature();function down(e){e.preventDefault();drawing=true;drawn=true;var p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)}function move(e){if(!drawing)return;e.preventDefault();var p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()}function up(e){if(!drawing)return;e.preventDefault();drawing=false;ctx.closePath()}canvas.addEventListener('pointerdown',down);canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);canvas.addEventListener('pointerleave',up);document.getElementById('index209PickupSignatureOpen').addEventListener('click',openSignature);document.getElementById('index209PickupSignatureClear').addEventListener('click',clearSignature);document.getElementById('index209PickupSignatureCancel').addEventListener('click',closeSignature);document.getElementById('index209PickupSignatureSave').addEventListener('click',function(){if(!drawn){status('Bitte zuerst im großen Feld unterschreiben.','bad');return}signatureSaved=(function(){var out=document.createElement('canvas'),w=700,h=252;out.width=w;out.height=h;var ox=out.getContext('2d',{alpha:false});ox.fillStyle='#fff';ox.fillRect(0,0,w,h);ox.drawImage(canvas,0,0,w,h);return out.toDataURL('image/jpeg',0.70)})();document.getElementById('index209PickupSignatureData').value=signatureSaved;var preview=document.getElementById('index209PickupSignaturePreview'),trigger=document.getElementById('index209PickupSignatureOpen');preview.src=signatureSaved;preview.hidden=false;document.getElementById('index209PickupSignaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';trigger.classList.add('has-signature');closeSignature();status('Unterschrift erfasst. Bitte den persönlichen Verlader-PIN eingeben.','info')})}
-function pickupText(value){
- if(value==null)return'';
- if(typeof value==='string'||typeof value==='number')return q(value);
- if(typeof value!=='object')return'';
- var composed=[value.company,value.street||value.strasse,value.houseNumber||value.hausnummer,[value.zip||value.postalCode||value.plz,value.city||value.ort].filter(Boolean).join(' '),value.country||value.land].filter(Boolean).join('\n');
- return q(value.formatted||value.formattedAddress||value.fullAddress||value.addressText||composed||value.displayName||value.customerName||value.companyName||value.name)
-}
-function pickupCustomer(data){
- var generic=/^(hauptadresse|standardadresse|main address|default address)$/i,value=valueDeep(data,['customerName','customer','recipientCustomerName','consigneeName','shipToCustomerName','deliveryCustomerName','accountName','companyName','kundeName','kundenname']),result=pickupText(value);
- if(generic.test(result))result='';
- if(!result&&data&&data.customer&&typeof data.customer==='object')result=pickupText(data.customer.customerName||data.customer.companyName||data.customer.name);
- if(!result&&data&&data.shipment&&typeof data.shipment==='object')result=pickupText(data.shipment.customerName||data.shipment.customerNameText||(typeof data.shipment.customer==='string'?data.shipment.customer:''));
- if(!result){var direct=pickupText(data&&data.customer);if(!generic.test(direct))result=direct}
- if(!result){var recipient=pickupText(data&&data.recipient);if(!generic.test(recipient))result=recipient}
- return result
-}
-function pickupAddress(data){
- var customer=pickupCustomer(data),value=valueDeep(data,['recipientAddress','deliveryAddress','shipToAddress','consigneeAddress','destinationAddress','formattedAddress','fullAddress','addressText','customerAddress','shippingAddress','deliveryLocationAddress','recipientLocationAddress']),result=pickupText(value),street=q(valueDeep(data,['street','strasse','streetName','addressLine1','line1'])),house=q(valueDeep(data,['houseNumber','hausnummer','streetNumber'])),zip=q(valueDeep(data,['zip','postalCode','plz'])),city=q(valueDeep(data,['city','ort','town'])),country=q(valueDeep(data,['country','land','countryName']));
- if(!result&&data&&data.locationData)result=pickupText(data.locationData);
- if(!result&&data&&data.siteData)result=pickupText(data.siteData);
- if(!result&&data&&data.address&&typeof data.address==='object')result=pickupText(data.address);
- if(!result&&(street||zip||city))result=[q([street,house].filter(Boolean).join(' ')),q([zip,city].filter(Boolean).join(' ')),country].filter(Boolean).join('\n');
- if(result&&customer){var escaped=customer.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');result=result.replace(new RegExp('^\\s*'+escaped+'(?:\\s*[,·|\\-]?\\s*|\\r?\\n)+','i'),'').trim()}
- return result
-}
-function pickupColliNumber(value){
- if(value==null||value==='')return 0;
- if(typeof value==='number')return Number.isFinite(value)&&value>0?Math.max(0,Math.round(value)):0;
- var raw=q(value).replace(/\s+/g,'');if(!raw)return 0;
- var cleaned=raw.replace(/[^0-9,.-]/g,'');if(!cleaned)return 0;
- if(cleaned.indexOf(',')>=0&&cleaned.indexOf('.')>=0){if(cleaned.lastIndexOf(',')>cleaned.lastIndexOf('.'))cleaned=cleaned.replace(/\./g,'').replace(',','.');else cleaned=cleaned.replace(/,/g,'')}else if(cleaned.indexOf(',')>=0)cleaned=cleaned.replace(',','.');
- var n=Number(cleaned);return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n)):0
-}
-function pickupExpectedCollis(data){
- var explicitNames=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];
- var lists=[];function walk(x,d){if(!x||typeof x!=='object'||d>6)return;['rows','colli','collis','packages','packageRows','items'].forEach(function(k){if(Array.isArray(x[k]))lists.push(x[k])});Object.keys(x).forEach(function(k){var v=x[k];if(v&&typeof v==='object'&&!Array.isArray(v))walk(v,d+1)})}walk(data,0);
- var best=0;for(var i=0;i<lists.length;i++){var total=lists[i].reduce(function(sum,row){if(!row||typeof row!=='object')return sum;var count=pickupColliNumber(row.count||row.qty||row.quantity||row.anzahl||row.menge||row.colliCount);return sum+count},0);if(total>best)best=total}
- if(best>0)return best;
- for(var e=0;e<explicitNames.length;e++){var explicit=pickupColliNumber(valueDeep(data,[explicitNames[e]]));if(explicit>0)return explicit}
- return pickupColliNumber(valueDeep(data,['pickupColliCount','enteredColliCount','colliCount']))
-}
-function resetColliCheck(){colliCountConfirmed=false;var input=document.getElementById('index495PickupColliInput'),result=document.getElementById('index495PickupColliResult');if(input){input.value='';input.removeAttribute('readonly');input.max=String(Math.max(1,remainingPickupCollis||expectedPickupCollis||1))}if(result){result.className='';result.textContent='Menge noch nicht geprüft.'}}
-function checkPickupCollis(){var input=document.getElementById('index495PickupColliInput'),result=document.getElementById('index495PickupColliResult'),value=Math.max(0,Math.round(Number(input&&input.value||0))),mode=pickupMode(),remaining=Math.max(0,remainingPickupCollis||expectedPickupCollis);colliCountConfirmed=false;if(!value){if(result){result.className='bad';result.textContent='Bitte die Colli-Anzahl dieses LKW eingeben.'}if(input)input.focus();return false}if(!(expectedPickupCollis>0)||!(remaining>0)){if(result){result.className='bad';result.textContent='Die offene Colli-Menge konnte nicht geladen werden.'}return false}if(value>remaining){if(result){result.className='bad';result.textContent='Es sind nur noch '+remaining+' Colli offen.'}if(input)input.focus();return false}if(mode==='complete'&&value!==remaining){if(result){result.className='bad';result.textContent='Für eine vollständige Abholung müssen alle '+remaining+' verbleibenden Colli bestätigt werden.'}if(input)input.focus();return false}colliCountConfirmed=true;if(result){result.className='ok';result.textContent='✓ '+value+' Colli für diese Abholung bestätigt.'+(value===remaining?' Die Sendung ist danach vollständig abgeholt.':' Danach verbleiben '+(remaining-value)+' Colli.')}if(input)input.setAttribute('readonly','readonly');return true}
-function show(data){
- var details=document.getElementById('index209PickupDetails'),form=document.getElementById('index209PickupForm'),ref=q(data.reference||data.ref||data.shipmentRef)||'—',customer=pickupCustomer(data)||'—',address=pickupAddress(data),locationLabel=q(valueDeep(data,['locationName','siteName','standortName','addressName'])),carrier=q(valueDeep(data,['carrierName','speditionName','carrier','spedition'])),pallets=Math.max(0,Number(data.palletOut||data.euroPallets||0)||0),collis=pickupExpectedCollis(data),history=Array.isArray(data.pickupHistory)?data.pickupHistory:[],addressText='';
- addressText=address;if(!addressText&&locationLabel&&!/^(hauptadresse|standardadresse|main address|default address)$/i.test(locationLabel))addressText=locationLabel;
- collectedPickupCollis=Math.max(0,Math.round(Number(data.pickupCollectedColliCount||data.collectedPickupCollis||0)||0));remainingPickupCollis=Math.max(0,Math.round(Number(data.pickupRemainingColliCount!=null?data.pickupRemainingColliCount:(data.remainingPickupCollis!=null?data.remainingPickupCollis:Math.max(0,collis-collectedPickupCollis)))||0));
- var historyHtml=history.length?'<div class="index998-pickup-history"><h3>Abholhistorie</h3>'+history.map(function(x){return'<div><b>Abholung '+esc(x.sequence||'')+': '+esc(x.colliCount||0)+' Colli</b><span>'+esc(x.confirmedAt?new Date(x.confirmedAt).toLocaleString('de-DE'):'')+(x.licensePlate?' · '+esc(x.licensePlate):'')+(x.carrierName?' · '+esc(x.carrierName):'')+'</span></div>'}).join('')+'</div>':'';
- details.innerHTML='<div class="index209-pickup-info"><div class="index209-pickup-box"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="index209-pickup-box"><span>Kunde</span><b>'+esc(customer)+'</b></div><div class="index209-pickup-box"><span>Adresse</span><b style="white-space:pre-line">'+esc(addressText||'—')+'</b></div></div>'+(pallets?'<div class="index209-pickup-box"><span>Europaletten Ausgang</span><b>'+pallets+'</b></div>':'')+historyHtml;
- currentCarrierName=carrier;var carrierInput=document.getElementById('index209PickupCarrier');if(carrierInput)carrierInput.value=carrier;expectedPickupCollis=collis;resetColliCheck();var totalNode=document.getElementById('index675PickupExpectedTotal'),collectedNode=document.getElementById('index998PickupCollected'),remainingNode=document.getElementById('index998PickupRemaining');if(totalNode)totalNode.textContent=collis>0?(collis+' Colli'):'—';if(collectedNode)collectedNode.textContent=collectedPickupCollis+' Colli';if(remainingNode)remainingNode.textContent=remainingPickupCollis+' Colli';var colliSection=document.getElementById('index491PickupColliSection');if(colliSection)colliSection.hidden=collis<=0;
- if(disabled(data)){form.hidden=true;status('Dieser QR-Code ist gesperrt oder die Sendung wurde storniert.','bad');return}
- if(confirmed(data)&&signatureAvailable(data)){form.hidden=true;status('Die Sendung wurde vollständig abgeholt. Insgesamt '+collis+' von '+collis+' Colli bestätigt.','ok');return}
- form.hidden=false;form.dataset.pallets=String(pallets);document.getElementById('index209PickupReturnLabel').hidden=pallets<=0;syncPickupMode();
- if(collectedPickupCollis>0)status('Teilweise abgeholt · '+collectedPickupCollis+' von '+collis+' Colli · '+remainingPickupCollis+' verbleibend. Derselbe QR-Code bleibt aktiv.','info');else status((carrier?'':'Bitte zuerst den Speditionsnamen eintragen. ')+'Bitte Abholart, Colli-Menge, Fahrerunterschrift und persönlichen Verlader-PIN erfassen.','info')
-}
-function load(){request('pickup-status?token='+encodeURIComponent(token),{method:'GET'}).then(show).catch(function(e){status(e.status===404?'Dieser QR-Code ist nicht registriert oder nicht mehr gültig.':'Sendungsdaten konnten nicht geladen werden: '+q(e.message||e),'bad')})}
-function verifySignatureImage(){return fetch('/api/pickup-pod?token='+encodeURIComponent(token)+'&signature=1&verify='+Date.now(),{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'image/jpeg,image/png,image/webp'}}).then(function(r){var ct=String(r.headers.get('content-type')||'').toLowerCase();if(!r.ok)throw new Error('HTTP '+r.status);if(!/^image\/(?:jpeg|png|webp)/.test(ct))throw new Error('Der Server liefert keine digitale Unterschrift.');return r.blob()}).then(function(b){if(!b||b.size<100)throw new Error('Die gespeicherte digitale Unterschrift ist leer.');return true})}
-function verify(response){var attempts=0,maxAttempts=15,targetCollected=Math.max(0,Math.round(Number(response&& (response.pickupCollectedColliCount||response.collectedPickupCollis)||0)));function poll(){attempts++;return request('pickup-status?token='+encodeURIComponent(token)+'&verify='+Date.now(),{method:'GET',timeout:12000}).then(function(data){var merged=Object.assign({},response||{},data||{}),visibleCollected=Math.max(0,Math.round(Number(merged.pickupCollectedColliCount||merged.collectedPickupCollis||0))),recorded=confirmed(merged)||/partial|teilweise/i.test(q(merged.status))||(targetCollected>0&&visibleCollected>=targetCollected);if(!recorded){if(attempts<maxAttempts)return new Promise(function(resolve){setTimeout(resolve,2000)}).then(poll);var e=new Error('Der Server hat diese Abholung noch nicht zurückgemeldet. Bitte nicht erneut bestätigen.');e.code='CONFIRM_NOT_VISIBLE';throw e}var inline=q(valueDeep(merged,['driverSignature','pickupDriverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature'])),url=q(valueDeep(merged,['driverSignatureUrl','pickupDriverSignatureUrl','pickupSignatureUrl','signatureUrl']));if(/^data:image\/(?:jpeg|png|webp);base64,/i.test(inline)||url)return merged;return verifySignatureImage().then(function(){merged.signatureAvailable=true;merged.driverSignatureUrl='/api/pickup-pod?token='+encodeURIComponent(token)+'&signature=1';return merged})}).catch(function(err){if((err.timeout||err.code==='REQUEST_TIMEOUT')&&attempts<maxAttempts)return new Promise(function(resolve){setTimeout(resolve,2000)}).then(poll);throw err})}return poll()}
-function success(data){submitting=false;var card=document.querySelector('.index209-pickup-card');if(!card)return;var loader=esc(data.loaderName||data.loadedBy||data.loader||data.verlader||''),complete=data.complete===true||confirmed(data),collected=Math.max(0,Math.round(Number(data.pickupCollectedColliCount||data.collectedPickupCollis||0))),remaining=Math.max(0,Math.round(Number(data.pickupRemainingColliCount!=null?data.pickupRemainingColliCount:data.remainingPickupCollis||0)));if(!complete){card.innerHTML='<div class="index225-pickup-success"><div class="icon">✓</div><h2>Teilabholung erfolgreich bestätigt</h2><p>Diese Abholung wurde mit eigenem Nachweis gespeichert.<br><b>'+collected+' Colli abgeholt · '+remaining+' Colli verbleibend</b>'+(loader?'<br>Verladen durch: '+loader:'')+'</p><div class="index225-close-note">Der QR-Code bleibt für die nächste Teilabholung aktiv.</div><button type="button" id="index998PickupReload">Nächste Abholung erfassen</button></div>';document.getElementById('index998PickupReload').addEventListener('click',function(){location.reload()});return}card.innerHTML='<div class="index225-pickup-success"><div class="icon">✓</div><h2>Abholung vollständig bestätigt</h2><p>Alle Colli wurden abgeholt. Die digitale Unterschrift wurde gespeichert und der POD der Sendung zugeordnet.'+(loader?'<br><b>Verladen durch: '+loader+'</b>':'')+'</p><div class="index225-close-note">Die Bestätigung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';setTimeout(function(){try{if(window.opener&&!window.opener.closed)window.close()}catch(_){}},1500)}
-function submit(e){
- e.preventDefault();
- var pin=q(document.getElementById('index209PickupPin').value),driver=q(document.getElementById('index209PickupDriver').value),plate=q(document.getElementById('index209PickupPlate').value),carrier=q(document.getElementById('index209PickupCarrier').value||currentCarrierName),signature=q(document.getElementById('index209PickupSignatureData').value||signatureSaved),returned=Math.max(0,Math.round(Number(document.getElementById('index209PickupReturn').value||0))),colliInput=document.getElementById('index495PickupColliInput'),colliRaw=q(colliInput&&colliInput.value),enteredCollis=Math.max(0,Math.round(Number(colliRaw||0))),mode=pickupMode(),button=document.getElementById('index209PickupConfirm');
- if(!plate){status('Bitte das Kennzeichen eingeben.','bad');document.getElementById('index209PickupPlate').focus();return false}if(!carrier){status('Bitte den Speditionsnamen eingeben.','bad');document.getElementById('index209PickupCarrier').focus();return false}
- if(expectedPickupCollis>0){if(!colliRaw){status('Bitte die Colli-Anzahl dieses LKW eingeben.','bad');if(colliInput)colliInput.focus();return false}if(!checkPickupCollis()){status('Die eingegebene Abholmenge ist nicht zulässig.','bad');return false}enteredCollis=Math.max(0,Math.round(Number(colliInput&&colliInput.value||0)))}
- if(!/^\d{4}$/.test(pin)){status('Der persönliche Verlader-PIN muss genau vier Ziffern enthalten.','bad');return false}if(!/^data:image\/jpeg;base64,/i.test(signature)){status('Bitte die Unterschrift des Fahrers erfassen.','bad');return false}if(submitting)return false;
- var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,pickupMode:mode,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:signature,returnedEuroPallets:returned,enteredColliCount:enteredCollis,colliCount:enteredCollis,expectedColliCount:expectedPickupCollis,colliConfirmed:true,colliCountConfirmed:true};
- submitting=true;button.disabled=true;status((mode==='partial'?'Teilabholung':'Abholung')+' wird mit digitalem Nachweis übertragen …','info');
- request('pickup-confirm-v2',{method:'POST',body:JSON.stringify(body),timeout:45000}).then(verify).then(function(data){if(!(data&&data.complete===true))return data;return request('location-booking?action=collect',{method:'POST',body:JSON.stringify({token:token,pin:pin,loaderPin:pin}),timeout:12000}).catch(function(){return{}}).then(function(){return data})}).then(function(data){submitting=false;success(Object.assign({},body,data||{}))}).catch(function(err){submitting=false;var message=q(err&&err.message||err),tooMany=err.status===429||/zu viele|too many|rate limit/i.test(message);button.disabled=false;if(tooMany){status('Der Server lehnt die Bestätigung momentan ab. Bitte kurz warten und erneut versuchen.','bad');return}if(['COLLI_MISMATCH','COLLI_EXCEEDS_REMAINING','COLLI_REQUIRED','COLLI_EXPECTED_MISSING'].indexOf(err.code)>=0){colliCountConfirmed=false;if(colliInput){colliInput.removeAttribute('readonly');colliInput.focus()}var result=document.getElementById('index495PickupColliResult');if(result){result.className='bad';result.textContent=message||'Die Colli-Anzahl wurde vom Server nicht akzeptiert.'}status(message||'Die Colli-Anzahl wurde nicht akzeptiert.','bad');return}if(err.code==='CARRIER_REQUIRED'){status('Bitte den Speditionsnamen eingeben.','bad');return}if(err.timeout||err.code==='REQUEST_TIMEOUT'||err.code==='CONFIRM_NOT_VISIBLE'){status('Die Übertragung wurde noch nicht bestätigt. Bitte den Status prüfen und nicht doppelt bestätigen.','bad');setTimeout(load,3000);return}status(err.status===401||err.status===403?('Verlader-PIN wurde vom Server nicht akzeptiert'+(message?': '+message:'.')):'Abholung konnte nicht bestätigt werden: '+message,'bad')});return false
-}
-function boot(){document.title='ExportHUB · Abholung bestätigen';shell();load()}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
 
+function q(v){return String(v==null?'':v).trim()}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function deep(data,names){
+  var seen=[];
+  function walk(x,d){
+    if(!x||typeof x!=='object'||d>7||seen.indexOf(x)>=0)return'';
+    seen.push(x);
+    for(var i=0;i<names.length;i++){
+      var v=x[names[i]];
+      if(v!==undefined&&v!==null&&q(v)!=='')return v;
+    }
+    for(var k in x){
+      if(Object.prototype.hasOwnProperty.call(x,k)&&x[k]&&typeof x[k]==='object'){
+        var hit=walk(x[k],d+1); if(hit!==''&&hit!=null)return hit;
+      }
+    }
+    return'';
+  }
+  return walk(data,0);
+}
+
+var u=new URL(location.href);
+var hash='';
+try{hash=decodeURIComponent(String(u.hash||'').replace(/^#/,''))}catch(_){hash=String(u.hash||'').replace(/^#/,'')}
+var hm=hash.match(/(?:^|[\/?&])pickup(?:=|\/)([a-f0-9]{48})(?:$|[&\/?])/i)||hash.match(/^pickup=([a-f0-9]{48})$/i);
+var pm=String(u.pathname||'').match(/\/pickup(?:\.html)?\/([a-f0-9]{48})\/?$/i);
+var candidates=[u.searchParams.get('pickup'),u.searchParams.get('token'),pm&&pm[1],hm&&hm[1]];
+var token='';
+for(var i=0;i<candidates.length;i++){var t=q(candidates[i]);if(/^[a-f0-9]{48}$/i.test(t)){token=t;break}}
+
+var env=q(u.searchParams.get('environment'));
+if(env!=='production'&&env!=='testservice'){
+  env=/-testservice\./i.test(String(location.hostname||''))?'testservice':'production';
+}
+
+var statusEl=document.getElementById('status');
+var details=document.getElementById('details');
+var form=document.getElementById('form');
+var expected=0, colliOk=false, signatureSaved='', submitting=false;
+var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d',{alpha:false}),drawing=false,drawn=false;
+
+function status(text,kind){statusEl.className='status '+(kind||'info');statusEl.textContent=text}
+
+if(!token){
+  status('Dieser QR-Code ist veraltet oder ungültig. Bitte in ExportHUB für die Sendung einen neuen QR-Code erzeugen und die Ladeliste neu drucken.','bad');
+  form.hidden=true;
+  return;
+}
+
+function request(path,opt){
+  opt=opt||{};
+  var timeout=Math.max(5000,Number(opt.timeout||30000));
+  var controller=typeof AbortController==='function'?new AbortController():null,timer=null;
+  delete opt.timeout;
+  opt.credentials='same-origin';
+  opt.cache='no-store';
+  opt.headers=Object.assign({
+    'Accept':'application/json',
+    'Content-Type':'application/json',
+    'X-ExportHUB-Environment':env
+  },opt.headers||{});
+  if(controller){opt.signal=controller.signal;timer=setTimeout(function(){controller.abort()},timeout)}
+  return fetch('/api/'+String(path||'').replace(/^\//,''),opt).then(async function(r){
+    var text='',body={};
+    try{text=await r.text();body=text?JSON.parse(text):{}}catch(_){body={}}
+    if(!r.ok){
+      var e=new Error(body.message||body.error||('HTTP '+r.status));
+      e.status=r.status;e.code=body.code||'';throw e;
+    }
+    return body;
+  }).catch(function(e){
+    if(e&&e.name==='AbortError'){var x=new Error('Der Server hat nicht rechtzeitig geantwortet.');x.code='REQUEST_TIMEOUT';x.timeout=true;throw x}
+    throw e;
+  }).finally(function(){if(timer)clearTimeout(timer)});
+}
+
+function confirmed(data){return !!(data&&(data.confirmedAt||data.pickupConfirmedAt||data.completedAt||data.pickedUpAt||data.used||data.confirmed||/confirmed|completed|abgeholt|used/i.test(q(data.status))))}
+
+function colliNumber(v){
+  var n=Number(String(v==null?'':v).replace(',','.').replace(/[^0-9.-]/g,''));
+  return Number.isFinite(n)&&n>0?Math.round(n):0;
+}
+function expectedCollis(data){
+  var explicit=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];
+  for(var i=0;i<explicit.length;i++){var n=colliNumber(deep(data,[explicit[i]]));if(n>0)return n}
+  return colliNumber(deep(data,['pickupColliCount','enteredColliCount','colliCount']));
+}
+
+function show(data){
+  if(confirmed(data)){status('Diese Abholung wurde bereits bestätigt.','ok');form.hidden=true;return}
+  var ref=q(data.reference||data.ref||data.shipmentRef)||'—';
+  var customer=q(deep(data,['customerName','recipientCustomerName','consigneeName','companyName','kundenname']))||'—';
+  var address=q(deep(data,['recipientAddress','deliveryAddress','shipToAddress','consigneeAddress','formattedAddress','fullAddress','addressText']));
+  var carrier=q(deep(data,['carrierName','speditionName','carrier','spedition']));
+  expected=expectedCollis(data);
+  details.innerHTML='<div class="info-grid"><div class="box"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="box"><span>Kunde</span><b>'+esc(customer)+'</b></div>'+(address?'<div class="box" style="grid-column:1/-1"><span>Lieferadresse</span><b>'+esc(address)+'</b></div>':'')+'</div>';
+  if(carrier)document.getElementById('carrier').value=carrier;
+  if(expected>0){
+    document.getElementById('colliSection').hidden=false;
+    document.getElementById('expectedColli').textContent=String(expected);
+  }else document.getElementById('colliSection').hidden=true;
+  form.hidden=false;
+  status('Sendungsdaten geladen. Bitte Abholung vollständig bestätigen.','info');
+}
+
+function load(){
+  request('pickup-status?token='+encodeURIComponent(token),{method:'GET'})
+    .then(show)
+    .catch(function(e){
+      if(e.status===410||e.code==='ACCESS_INVALID'){
+        status('Dieser QR-Code ist ungültig oder nicht mehr aktiv. Bitte in ExportHUB einen neuen QR-Code erzeugen und die Ladeliste neu drucken.','bad');
+      }else{
+        status('Sendungsdaten konnten nicht geladen werden: '+q(e.message||e),'bad');
+      }
+      form.hidden=true;
+    });
+}
+
+function checkColli(){
+  if(!(expected>0)){colliOk=true;return true}
+  var input=document.getElementById('colli'),n=colliNumber(input.value),out=document.getElementById('colliResult');
+  if(n===expected){colliOk=true;out.textContent='✓ Gesamt-Colli-Anzahl stimmt: '+expected+'.';out.style.color='#166534';input.readOnly=true;return true}
+  colliOk=false;out.textContent='Gesamtmenge stimmt nicht. Erwartet werden '+expected+' Colli.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
+}
+document.getElementById('checkColli').addEventListener('click',checkColli);
+document.getElementById('colli').addEventListener('input',function(){colliOk=false;this.readOnly=false;document.getElementById('colliResult').textContent='Gesamtmenge noch nicht geprüft.'});
+
+ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#0f172a';
+function clearSig(){ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);drawn=false}
+clearSig();
+function point(e){var r=canvas.getBoundingClientRect(),p=e;return{x:(p.clientX-r.left)*(canvas.width/r.width),y:(p.clientY-r.top)*(canvas.height/r.height)}}
+canvas.addEventListener('pointerdown',function(e){e.preventDefault();drawing=true;drawn=true;var p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)});
+canvas.addEventListener('pointermove',function(e){if(!drawing)return;e.preventDefault();var p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()});
+['pointerup','pointercancel','pointerleave'].forEach(function(n){canvas.addEventListener(n,function(e){if(!drawing)return;e.preventDefault();drawing=false;ctx.closePath()})});
+document.getElementById('signatureOpen').addEventListener('click',function(){document.getElementById('signatureModal').hidden=false;document.body.style.overflow='hidden';clearSig()});
+document.getElementById('cancelSig').addEventListener('click',function(){document.getElementById('signatureModal').hidden=true;document.body.style.overflow=''});
+document.getElementById('clearSig').addEventListener('click',clearSig);
+document.getElementById('saveSig').addEventListener('click',function(){
+  if(!drawn){status('Bitte zuerst unterschreiben.','bad');return}
+  var out=document.createElement('canvas');out.width=700;out.height=252;var ox=out.getContext('2d',{alpha:false});ox.fillStyle='#fff';ox.fillRect(0,0,out.width,out.height);ox.drawImage(canvas,0,0,out.width,out.height);
+  signatureSaved=out.toDataURL('image/jpeg',0.70);
+  document.getElementById('signatureData').value=signatureSaved;
+  var img=document.getElementById('signaturePreview');img.src=signatureSaved;img.hidden=false;
+  document.getElementById('signaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';
+  document.getElementById('signatureOpen').classList.add('has');
+  document.getElementById('signatureModal').hidden=true;document.body.style.overflow='';
+  status('Unterschrift erfasst. Bitte Verlader-PIN eingeben.','info');
+});
+
+document.getElementById('pin').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4)});
+document.getElementById('plate').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[\r\n]/g,' ').slice(0,40)});
+
+form.addEventListener('submit',function(e){
+  e.preventDefault();
+  var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=document.getElementById('confirm');
+  if(!plate){status('Bitte das Kennzeichen eingeben.','bad');return}
+  if(!carrier){status('Bitte den Speditionsnamen eingeben.','bad');return}
+  if(expected>0&&!checkColli()){status('Die eingegebene Gesamt-Colli-Anzahl stimmt nicht.','bad');return}
+  if(!/^\d{4}$/.test(pin)){status('Der persönliche Verlader-PIN muss genau vier Ziffern enthalten.','bad');return}
+  if(!/^data:image\/jpeg;base64,/i.test(sig)){status('Bitte die Unterschrift des Fahrers erfassen.','bad');return}
+  if(submitting)return;
+  submitting=true;btn.disabled=true;status('Abholung und POD werden übertragen …','info');
+  var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:sig,returnedEuroPallets:returned,enteredColliCount:entered,colliCount:entered,expectedColliCount:expected,colliConfirmed:expected>0?colliOk:true,colliCountConfirmed:expected>0?colliOk:true,environment:env};
+  request('pickup-confirm-v2',{method:'POST',body:JSON.stringify(body),timeout:45000}).then(function(data){
+    submitting=false;
+    var card=document.querySelector('.card');
+    card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>Die digitale Unterschrift wurde gespeichert und der POD der Sendung zugeordnet.</p><div class="status ok">Die Bestätigung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';
+  }).catch(function(err){
+    submitting=false;btn.disabled=false;
+    if(err.code==='COLLI_MISMATCH'||err.code==='COLLI_REQUIRED'||err.code==='COLLI_EXPECTED_MISSING'){colliOk=false;status('Die Gesamt-Colli-Anzahl wurde vom Server nicht akzeptiert. Bitte erneut zählen.','bad');return}
+    status((err.status===401||err.status===403?'Verlader-PIN wurde vom Server nicht akzeptiert: ':'Abholung konnte nicht bestätigt werden: ')+q(err.message||err),'bad');
+  });
+});
+
+load();
+})();
 </script>
 </body>
 </html>
