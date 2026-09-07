@@ -27,7 +27,7 @@ def patch_public_access():
     old="crypto.randomBytes(32).toString('base64url')"
     if s.count(old)!=1:
         raise SystemExit(f'Public-Access Tokenanker nicht eindeutig: {s.count(old)}')
-    s=s.replace(old,"crypto.randomBytes(24).toString('hex')",1)
+    s=s.replace(old,"((payload&&/^[a-f0-9]{48}$/i.test(text(payload.token))?text(payload.token).toLowerCase():crypto.randomBytes(24).toString('hex')))",1)
     p.write_text(s,encoding='utf-8')
 
 

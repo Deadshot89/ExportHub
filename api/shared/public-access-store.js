@@ -67,7 +67,7 @@ async function issue(req,kind,meta={},ttlMs,payload){
   kind=normalizeKind(kind); const env=environment(req,payload||meta),subjectId=text(meta.subjectId||meta.shipmentId||meta.reference); if(!subjectId)throw error('SUBJECT_REQUIRED','Sendungs-ID für öffentlichen Zugriff fehlt.',400);
   const c=await container(),idx=c.getBlockBlobClient(subjectName(env,kind,subjectId)),old=await readJson(idx,null);
   if(old.value&&old.value.tokenHash)await revokeByHash(env,kind,old.value.tokenHash,'reissued',meta.actor||'ExportHUB');
-  const token=crypto.randomBytes(24).toString('hex'),tokenHash=hashToken(token,env,kind),createdAt=now(),ttl=Math.max(60*1000,Number(ttlMs)|| (kind==='pickup'?DEFAULT_PICKUP_TTL_MS:DEFAULT_AVIS_TTL_MS)),expiresAt=new Date(Date.now()+ttl).toISOString();
+  const requestedToken=text(payload&&payload.token||meta&&meta.token||'').toLowerCase(),token=/^[a-f0-9]{48}$/.test(requestedToken)?requestedToken:crypto.randomBytes(24).toString('hex'),tokenHash=hashToken(token,env,kind),createdAt=now(),ttl=Math.max(60*1000,Number(ttlMs)|| (kind==='pickup'?DEFAULT_PICKUP_TTL_MS:DEFAULT_AVIS_TTL_MS)),expiresAt=new Date(Date.now()+ttl).toISOString();
   const record={schemaVersion:1,kind,environment:env,tokenHash,subjectId,shipmentId:text(meta.shipmentId||subjectId),reference:text(meta.reference).toUpperCase(),snapshot:clone(meta.snapshot||{}),createdAt,updatedAt:createdAt,expiresAt,usedAt:null,revokedAt:null,failedAttempts:0,lockedUntil:null,issuedBy:text(meta.actor||'ExportHUB').slice(0,120)};
   await writeJson(c.getBlockBlobClient(recordName(env,kind,tokenHash)),record,null);
   const index={schemaVersion:1,kind,environment:env,subjectId,tokenHash,active:true,issuedAt:createdAt,expiresAt};
