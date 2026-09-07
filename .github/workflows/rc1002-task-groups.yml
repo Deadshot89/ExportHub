@@ -1,0 +1,29 @@
+name: RC1002 Aufgaben-Gruppen
+on:
+  push:
+    branches: [rc1002-task-groups]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1002-task-groups.test.mjs'
+      - '.github/rc1002/apply-task-groups.mjs'
+      - '.github/workflows/rc1002-task-groups.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1002-task-groups
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1002 Vertrag
+        run: node --test test/rc1002-task-groups.test.mjs
+      - name: Bestehende Aufgaben-Verträge
+        run: node --test .github/rc996/tasks-contract.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
