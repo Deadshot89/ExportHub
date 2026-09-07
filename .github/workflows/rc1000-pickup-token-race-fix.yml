@@ -1,0 +1,85 @@
+name: RC1000 Pickup Token Race Fix
+
+on:
+  push:
+    branches:
+      - rc1000-clean-navigation-search
+    paths:
+      - '.github/workflows/rc1000-pickup-token-race-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: rc1000-clean-navigation-search
+          fetch-depth: 0
+
+      - name: Node 20 bereitstellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Baseline vor QR-Fix
+        run: npm test
+
+      - name: RED - QR-Token-Rennen reproduzieren
+        shell: bash
+        run: |
+          set +e
+          node --test .github/rc1000/rc1000-pickup-token-race.test.mjs > rc1000-pickup-red.log 2>&1
+          status=$?
+          set -e
+          cat rc1000-pickup-red.log
+          if [ "$status" -eq 0 ]; then
+            echo 'RED-Test ist unerwartet grün; Abbruch.'
+            exit 1
+          fi
+          echo 'RED bestätigt: lokal erzeugter QR kann vor Server-Registrierung freigegeben werden.'
+
+      - name: Fix anwenden
+        run: node .github/rc1000/apply-pickup-token-race-fix.mjs
+
+      - name: GREEN - QR-Token-Rennen geschlossen
+        run: node --test .github/rc1000/rc1000-pickup-token-race.test.mjs
+
+      - name: RC995 Public-Access Vertrag
+        run: node --test .github/rc995/rc995-contract.test.mjs
+
+      - name: RC995 Pickup Flow
+        run: node --test .github/rc995/rc995-flow.test.cjs
+
+      - name: Baseline nach QR-Fix
+        run: npm test
+
+      - name: Produktionsmarker schützen
+        shell: bash
+        run: |
+          grep -F "window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC997';" production-version.js
+          if git diff -- production-version.js | grep -q .; then
+            echo 'Produktionsmarker wurde verändert.'
+            exit 1
+          fi
+
+      - name: Diff prüfen und Fix materialisieren
+        shell: bash
+        run: |
+          git diff --check
+          git status --short
+          git diff --exit-code -- pickup.html || true
+          if git diff --quiet -- index.html TESTVERSION.html api/shared/public-access-store.js .github/rc995/apply.py; then
+            echo 'Keine QR-Codeänderung erzeugt.'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html api/shared/public-access-store.js .github/rc995/apply.py
+          git commit -m 'RC1000: QR-Abholung erst nach Server-Registrierung freigeben'
+          git push origin HEAD:rc1000-clean-navigation-search
