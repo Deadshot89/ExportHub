@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import Module from 'node:module';
+import Module,{createRequire} from 'node:module';
 import path from 'node:path';
 import {Readable} from 'node:stream';
 
+const require=createRequire(import.meta.url);
 const read=p=>fs.readFileSync(p,'utf8');
 
 for(const file of ['index.html','TESTVERSION.html']){
