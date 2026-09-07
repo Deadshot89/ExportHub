@@ -22,31 +22,34 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: Verpackungsmaße und QR-Erzeugung auslesen
+      - name: Verpackungsmaße und QR-Erzeugung kompakt auslesen
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs=require('fs');
-          const files=['TESTVERSION.html','index.html'];
-          for(const file of files){
-            const s=fs.readFileSync(file,'utf8');
-            console.log('\n===== '+file+' VERPACKUNGS-KONTEXTE =====');
-            const rx=/(?:packaging|verpackung|Europalette|palette|length|width|height|länge|breite|höhe)/ig;
-            let m,count=0;
-            while((m=rx.exec(s))&&count<180){
-              const a=Math.max(0,m.index-260),b=Math.min(s.length,m.index+520);
-              const ctx=s.slice(a,b).replace(/\s+/g,' ');
-              if(/(?:length|width|height|länge|breite|höhe|Europalette|packaging)/i.test(ctx)){
-                console.log('CTX '+(++count)+': '+ctx);
-              }
-            }
-            console.log('\n===== '+file+' QR-KONTEXTE =====');
-            for(const needle of ['pickup.html','pickup-init','pickupQrRegistered','pickupQrToken','pickupToken']){
-              let pos=-1,n=0;
-              while((pos=s.indexOf(needle,pos+1))>=0&&n<30){
-                console.log(needle+' '+(++n)+': '+s.slice(Math.max(0,pos-450),Math.min(s.length,pos+950)).replace(/\s+/g,' '));
-              }
+          const s=fs.readFileSync('TESTVERSION.html','utf8');
+          const one=x=>String(x||'').replace(/\s+/g,' ').trim();
+          const unique=new Set();
+          const emit=(tag,text)=>{const v=one(text);if(v&&!unique.has(v)){unique.add(v);console.log(tag+' '+v)}};
+
+          console.log('=== VERPACKUNGSMASSE ===');
+          // Nur Kontexte ausgeben, in denen mehrere Maß-Begriffe bzw. typische Dimensionsfelder gemeinsam vorkommen.
+          const anchors=[...s.matchAll(/(?:verpack|packaging|package|palette|europalette|length|width|height|länge|breite|höhe|\bldm\b)/ig)];
+          for(const m of anchors){
+            const ctx=s.slice(Math.max(0,m.index-420),Math.min(s.length,m.index+760));
+            const score=['length','width','height','länge','breite','höhe'].filter(k=>new RegExp(k,'i').test(ctx)).length;
+            const nums=(ctx.match(/\b\d+(?:[.,]\d+)?\b/g)||[]).length;
+            if(score>=2&&nums>=2) emit('DIM:',ctx);
+            if(unique.size>=45) break;
+          }
+
+          console.log('=== QR FUNKTIONEN ===');
+          for(const needle of ['pickup-init','pickup.html','pickupQrRegistered','pickupQrToken','pickupQrCreatedAt']){
+            let pos=-1,n=0;
+            while((pos=s.indexOf(needle,pos+1))>=0&&n<8){
+              emit('QR-'+needle+':',s.slice(Math.max(0,pos-700),Math.min(s.length,pos+1500)));
+              n++;
             }
           }
           NODE
