@@ -21,7 +21,19 @@ function patchAccess(file){
   fs.writeFileSync(file,s,'utf8');
 }
 
+function patchPickupFields(file){
+  let s=fs.readFileSync(file,'utf8');
+  const old="input{width:100%;border:1px solid #cbd5e1;border-radius:14px;padding:12px;font:inherit;font-weight:800}";
+  const fixed=old+"\n#index209PickupForm input{min-height:52px;font-size:17px}";
+  if(!/#index209PickupForm input\{[^}]*min-height:52px[^}]*font-size:17px/i.test(s)){
+    if(!s.includes(old))throw new Error(file+': Feldgrößen-Anker fehlt');
+    s=s.replace(old,fixed);
+  }
+  fs.writeFileSync(file,s,'utf8');
+}
+
 patchHtml('index.html');
 patchHtml('TESTVERSION.html');
 patchAccess('api/shared/public-access-store.js');
+patchPickupFields('pickup.html');
 console.log('RC1000 Produktions-QR Fix angewendet');
