@@ -1,0 +1,56 @@
+name: RC1002 Main Contract
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'production-version.js'
+      - 'api/**'
+      - 'assets/**'
+      - 'android-app/**'
+      - 'test/**'
+      - '.github/rc1002/**'
+      - '.github/rc997/diagnostic-notifications-contract.test.mjs'
+      - '.github/workflows/rc1002-main-contract.yml'
+      - '.github/workflows/rc1002-release-sync.yml'
+      - '.github/workflows/rc1002-testservice-live.yml'
+      - '.github/workflows/exporthub-android-test-app.yml'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1002-main-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1002 Release-Vertrag
+        run: node --test test/rc1002-release-sync.test.mjs
+      - name: RC1002 Aufgaben-Vertrag
+        run: node --test test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
+      - name: Diagnose- und Android-Regression
+        run: node --test .github/rc997/diagnostic-notifications-contract.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: Drei-Umgebungen-Build
+        run: node .github/rc1002/build-three-env.mjs
+      - name: RC1002 Build-Ergebnis prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'ExportHUB RC1002 environment=production-candidate' dist-rc1002/index.html
+          grep -q 'ExportHUB RC1002 environment=testservice' dist-rc1002/TESTVERSION.html
+          grep -q 'ExportHUB RC1002 environment=demo' dist-rc1002/demo.html
+          git diff --check
