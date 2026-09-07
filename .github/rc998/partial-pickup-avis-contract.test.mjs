@@ -66,3 +66,11 @@ test('Jede Teilabholung speichert einen getrennten Signaturnachweis',()=>{
   assert.match(pickupConfirm,/signatureBlobName:signatureMeta\.signatureBlobName/);
   assert.match(pickupConfirm,/sequence:/);
 });
+
+
+test('Lieferavis-Link trägt seine Umgebung und die öffentliche Seite übernimmt sie',()=>{
+  assert.match(avisApi,/customer-avis\.html\?token=.*environment/);
+  assert.match(avisApi,/encodeURIComponent\(env\)/);
+  assert.match(avisHtml,/searchParams\.get\(['"]environment['"]\)/);
+  assert.match(avisHtml,/environment=testservice|dataEnvironment/);
+});
