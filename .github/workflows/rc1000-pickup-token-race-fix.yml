@@ -1,5 +1,4 @@
-name: RC1000 Pickup Token Race Fix
-# Trigger 2: reproduzierbarer QR-Token-Race-Fix
+name: RC1000 QR Pickup TESTSERVICE
 
 on:
   push:
@@ -10,12 +9,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: rc1000-pickup-testservice-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  fix-and-verify:
+  verify_and_deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
+
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
@@ -26,61 +30,123 @@ jobs:
       - name: Node 20 bereitstellen
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.x'
 
-      - name: Baseline vor QR-Fix
-        run: npm test
-
-      - name: RED - QR-Token-Rennen reproduzieren
+      - name: QR-Fix verifizieren
         shell: bash
         run: |
-          set +e
-          node --test .github/rc1000/rc1000-pickup-token-race.test.mjs > rc1000-pickup-red.log 2>&1
-          status=$?
-          set -e
-          cat rc1000-pickup-red.log
-          if [ "$status" -eq 0 ]; then
-            echo 'RED-Test ist unerwartet grün; Abbruch.'
-            exit 1
-          fi
-          echo 'RED bestätigt: lokal erzeugter QR kann vor Server-Registrierung freigegeben werden.'
-
-      - name: Fix anwenden
-        run: node .github/rc1000/apply-pickup-token-race-fix.mjs
-
-      - name: GREEN - QR-Token-Rennen geschlossen
-        run: node --test .github/rc1000/rc1000-pickup-token-race.test.mjs
-
-      - name: RC995 Public-Access Vertrag
-        run: node --test .github/rc995/rc995-contract.test.mjs
-
-      - name: RC995 Pickup Flow
-        run: node --test .github/rc995/rc995-flow.test.cjs
-
-      - name: Baseline nach QR-Fix
-        run: npm test
+          set -euo pipefail
+          node --test .github/rc1000/rc1000-pickup-token-race.test.mjs
+          node --test .github/rc995/rc995-contract.test.mjs
+          node --test .github/rc995/rc995-flow.test.cjs
+          npm test
 
       - name: Produktionsmarker schützen
         shell: bash
         run: |
+          set -euo pipefail
           grep -F "window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC997';" production-version.js
-          if git diff -- production-version.js | grep -q .; then
-            echo 'Produktionsmarker wurde verändert.'
+          if grep -q 'RC1000' production-version.js; then
+            echo 'Produktion darf durch diesen Workflow nicht verändert werden.'
             exit 1
           fi
 
-      - name: Diff prüfen und Fix materialisieren
+      - name: RC1000 TESTSERVICE Paket bauen
         shell: bash
         run: |
-          git diff --check
-          git status --short
-          git diff --exit-code -- pickup.html || true
-          if git diff --quiet -- index.html TESTVERSION.html api/shared/public-access-store.js .github/rc995/apply.py; then
-            echo 'Keine QR-Codeänderung erzeugt.'
-            exit 1
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html TESTVERSION.html api/shared/public-access-store.js .github/rc995/apply.py
-          git commit -m 'RC1000: QR-Abholung erst nach Server-Registrierung freigeben'
-          git push origin HEAD:rc1000-clean-navigation-search
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const out='.rc1000_testservice_app';
+          fs.rmSync(out,{recursive:true,force:true});
+          fs.mkdirSync(out,{recursive:true});
+          const allowed=/\.(?:html|json|js|css|svg|png|jpe?g|gif|ico|webp|woff2?|txt)$/i;
+          for(const entry of fs.readdirSync('.',{withFileTypes:true})){
+            if(!entry.isFile()||!allowed.test(entry.name))continue;
+            if(['index.html','TESTVERSION.html','staticwebapp.config.json','staticwebapp.testservice.config.json'].includes(entry.name))continue;
+            fs.copyFileSync(entry.name,path.join(out,entry.name));
+          }
+          if(fs.existsSync('assets'))fs.cpSync('assets',path.join(out,'assets'),{recursive:true});
+          fs.copyFileSync('TESTVERSION.html',path.join(out,'index.html'));
+          fs.copyFileSync('TESTVERSION.html',path.join(out,'TESTVERSION.html'));
+          for(const page of ['pickup.html','customer-avis.html','location.html','pod-notfall.html']){
+            if(!fs.existsSync(page))throw new Error(`Pflichtseite fehlt: ${page}`);
+            fs.copyFileSync(page,path.join(out,page));
+          }
+          const config=fs.existsSync('staticwebapp.testservice.config.json')
+            ?'staticwebapp.testservice.config.json'
+            :'staticwebapp.config.json';
+          fs.copyFileSync(config,path.join(out,'staticwebapp.config.json'));
+          NODE
+
+          test -s .rc1000_testservice_app/index.html
+          test -s .rc1000_testservice_app/pickup.html
+          grep -q 'Abholung bestätigen' .rc1000_testservice_app/pickup.html
+
+      - name: API Runtime prüfen
+        working-directory: api
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf node_modules
+          npm install --omit=dev --no-audit --no-fund
+          node --check shared/public-access-store.js
+          node --check shared/pickup-store.js
+          node --check pickup-init/index.js
+          node --check pickup-status/index.js
+          node --check pickup-confirm-v2/index.js
+          node --check pickup-pod/index.js
+
+      - name: Azure Static Web Apps CLI installieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global @azure/static-web-apps-cli@2.0.10
+          swa --version
+
+      - name: RC1000 auf TESTSERVICE deployen
+        shell: bash
+        env:
+          SWA_CLI_DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+        run: |
+          set -euo pipefail
+          test -n "${SWA_CLI_DEPLOYMENT_TOKEN:-}"
+          swa deploy ./.rc1000_testservice_app \
+            --api-location ./api \
+            --swa-config-location ./.rc1000_testservice_app \
+            --api-language node \
+            --api-version 20 \
+            --env testservice
+
+      - name: TESTSERVICE live prüfen
+        shell: bash
+        env:
+          TEST_URL: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net
+        run: |
+          set -euo pipefail
+          root_file="$(mktemp)"
+          pickup_file="$(mktemp)"
+          api_file="$(mktemp)"
+          trap 'rm -f "$root_file" "$pickup_file" "$api_file"' EXIT
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            root_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$root_file" -w '%{http_code}' "$TEST_URL/?rc1000=$GITHUB_SHA-$attempt" || true)"
+            pickup_code="$(curl -sS -L --max-redirs 5 --connect-timeout 5 --max-time 20 -o "$pickup_file" -w '%{http_code}' "$TEST_URL/pickup.html?rc1000=$GITHUB_SHA-$attempt" || true)"
+            api_code="$(curl -sS --connect-timeout 5 --max-time 20 -H 'Accept: application/json' -o "$api_file" -w '%{http_code}' "$TEST_URL/api/exporthub-auth-probe?rc1000=$GITHUB_SHA-$attempt" || true)"
+
+            echo "Versuch $attempt: root=$root_code pickup=$pickup_code api=$api_code"
+
+            if [[ "$root_code" == 200 && "$pickup_code" == 200 && "$api_code" == 200 ]] \
+              && grep -q 'Abholung bestätigen' "$pickup_file"; then
+              node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(d.ok!==true)process.exit(1)' "$api_file"
+              ready=1
+              break
+            fi
+
+            sleep 10
+          done
+
+          [[ "$ready" == 1 ]]
+          echo 'RC1000 TESTSERVICE live verifiziert.'
