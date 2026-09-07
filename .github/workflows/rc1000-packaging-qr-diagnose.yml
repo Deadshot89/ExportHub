@@ -1,0 +1,52 @@
+name: RC1000 Packaging QR Diagnose
+
+on:
+  push:
+    branches:
+      - rc1000-clean-navigation-search
+    paths:
+      - '.github/workflows/rc1000-packaging-qr-diagnose.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1000-clean-navigation-search
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: Verpackungsmaße und QR-Erzeugung auslesen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const files=['TESTVERSION.html','index.html'];
+          for(const file of files){
+            const s=fs.readFileSync(file,'utf8');
+            console.log('\n===== '+file+' VERPACKUNGS-KONTEXTE =====');
+            const rx=/(?:packaging|verpackung|Europalette|palette|length|width|height|länge|breite|höhe)/ig;
+            let m,count=0;
+            while((m=rx.exec(s))&&count<180){
+              const a=Math.max(0,m.index-260),b=Math.min(s.length,m.index+520);
+              const ctx=s.slice(a,b).replace(/\s+/g,' ');
+              if(/(?:length|width|height|länge|breite|höhe|Europalette|packaging)/i.test(ctx)){
+                console.log('CTX '+(++count)+': '+ctx);
+              }
+            }
+            console.log('\n===== '+file+' QR-KONTEXTE =====');
+            for(const needle of ['pickup.html','pickup-init','pickupQrRegistered','pickupQrToken','pickupToken']){
+              let pos=-1,n=0;
+              while((pos=s.indexOf(needle,pos+1))>=0&&n<30){
+                console.log(needle+' '+(++n)+': '+s.slice(Math.max(0,pos-450),Math.min(s.length,pos+950)).replace(/\s+/g,' '));
+              }
+            }
+          }
+          NODE
