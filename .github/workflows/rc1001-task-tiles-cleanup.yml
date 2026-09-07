@@ -41,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           if git diff --quiet -- index.html TESTVERSION.html; then
-            echo 'Aufgaben-Kacheln bereits materialisiert.'
+            echo 'Aufgaben-Kacheln bereits materialisiert und frisch geprüft.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
