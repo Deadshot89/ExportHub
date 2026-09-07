@@ -1,5 +1,5 @@
 'use strict';
-
+// RC998: gemeinsame Sendungsreferenz für Kunden-Avis aktiviert.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
