@@ -29,16 +29,23 @@ test('RC996 Aufgaben: gleiche Aufgabennamen verschiedener Sendungen bleiben getr
   assert.match(src, /\[week,date\|\|day,group,title,owner,customer,account,ref,series,time\]/, 'Dedupe darf verschiedene Sendungen nicht nur wegen gleichem Titel zusammenlegen');
 });
 
-test('RC996 Aufgaben: Gruppen und Tagesfilter bleiben bedienbar', () => {
-  assert.match(html, /Gruppen\\u00f6ffnen|Gruppen öffnen/, 'Schalter Gruppen öffnen fehlt');
-  assert.match(html, /Gruppen schlie\\u00dfen|Gruppen schließen/, 'Schalter Gruppen schließen fehlt');
-  assert.match(html, /Alle Tage/);
-  assert.match(html, /Heute/);
-  assert.match(html, /Montag/);
-  assert.match(html, /Dienstag/);
-  assert.match(html, /Mittwoch/);
-  assert.match(html, /Donnerstag/);
-  assert.match(html, /Freitag/);
+test('RC996 Aufgaben: bereinigte Tagesfilter und Einzelgruppen bleiben bedienbar', () => {
+  const src = between('function tasks(){', 'function taskSortRC67', 30000);
+  assert.doesNotMatch(src, />Alle anzeigen<\/button>/, 'Alle-anzeigen-Schalter soll nicht mehr sichtbar sein');
+  assert.doesNotMatch(src, />Gruppen [^<]*<\/button>/, 'globale Gruppen-Schalter sollen nicht mehr sichtbar sein');
+  assert.doesNotMatch(src, />Master-Aufgaben [^<]*<\/button>/, 'Master-Aufgaben-Prüfschalter soll nicht mehr sichtbar sein');
+  const days=(src.match(/let days=\[([^\]]+)\]/)||[])[1]||'';
+  assert.doesNotMatch(days, /Alle Tage/);
+  assert.doesNotMatch(days, /\\u00dcberf\\u00e4llig|Überfällig/);
+  assert.doesNotMatch(days, /Ohne Tag/);
+  assert.match(days, /Heute/);
+  assert.match(days, /R\\u00fcckstand|Rückstand/);
+  assert.match(days, /Montag/);
+  assert.match(days, /Dienstag/);
+  assert.match(days, /Mittwoch/);
+  assert.match(days, /Donnerstag/);
+  assert.match(days, /Freitag/);
+  assert.match(html, /task-area-details/, 'einzelne Aufgabengruppen müssen weiterhin auf- und zuklappbar bleiben');
 });
 
 test('RC996 Aufgaben: sichtbares 3-2-1 Kachelraster bleibt erhalten', () => {
