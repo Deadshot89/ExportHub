@@ -60,3 +60,15 @@ test('Android-App bleibt auf demselben RC1013-Releasestand',()=>{
   assert.equal(info.appVersion,'1.0-rc1013');
   assert.equal(info.releaseCandidate,'RC1013');
 });
+
+test('Aktuelle RC1013-Freigaben erzwingen nicht mehr den historischen RC995-Einmal-Avis',()=>{
+  for(const file of [
+    '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
+    '.github/workflows/rc1002-main-contract.yml',
+    '.github/workflows/exporthub-testservice.yml'
+  ]){
+    const flow=read(file);
+    assert.doesNotMatch(flow,/\.github\/rc995\/rc995-flow\.test\.cjs/,`${file}: veralteter RC995-Einmal-Avis darf den aktuellen Release nicht sperren`);
+    assert.match(flow,/test\/rc1011-core-open-issues\.test\.mjs/,`${file}: aktueller wiederverwendbarer Lieferavis-Vertrag muss geprüft werden`);
+  }
+});
