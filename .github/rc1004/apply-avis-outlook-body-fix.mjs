@@ -14,13 +14,15 @@ for (const file of files) {
   if (second >= 0) throw new Error(`${file}: launchMail ist nicht eindeutig`);
 
   const oldBlock = before.slice(start,end);
-  if (!/full\.length\s*<=\s*1800/.test(oldBlock)) {
-    if (/return mailAnchor\(mailtoUrl\(data,true\)\)/.test(oldBlock)) {
+  const hasLongTextFallback = /full\.length\s*<=\s*1800/.test(oldBlock) || /mailtoUrl\(data,false\)/.test(oldBlock);
+  if (!hasLongTextFallback) {
+    if (/mailtoUrl\(data,true\)/.test(oldBlock)) {
       console.log(`${file}: bereits korrigiert`);
       continue;
     }
-    throw new Error(`${file}: erwarteter 1800-Zeichen-Fallback fehlt; keine Blindänderung`);
+    throw new Error(`${file}: weder alter Fallback noch vollständige Outlook-Übergabe gefunden; keine Blindänderung`);
   }
+  if (!/full\.length\s*<=\s*1800/.test(oldBlock)) throw new Error(`${file}: 1800-Zeichen-Fallback unvollständig`);
   if (!/mailtoUrl\(data,false\)/.test(oldBlock)) throw new Error(`${file}: erwarteter Kurz-Mail-Fallback fehlt`);
 
   const after = before.slice(0,start) + replacement + before.slice(end);
