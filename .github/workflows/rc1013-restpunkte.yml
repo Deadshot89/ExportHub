@@ -16,3 +16,7 @@ jobs:
           node-version: 24
       - name: RC1013 Restpunkte-Vertrag
         run: node --test test/rc1013-restpunkte.test.mjs
+      - name: RC1013 gemeinsamer Releasevertrag
+        run: node --test test/rc1013-three-env-sync.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
