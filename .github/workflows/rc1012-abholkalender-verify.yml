@@ -21,5 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: RC1012 RED Kalenderabschluss
+      - name: RC1012 Kalenderabschluss
         run: node --test test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs
+      - name: RC1012 RED Drei-Umgebungen-Releasevertrag
+        run: node --test test/rc1012-three-env-sync.test.mjs
