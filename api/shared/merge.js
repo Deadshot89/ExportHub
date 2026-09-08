@@ -9,6 +9,7 @@ const COLLECTION_KEYS = {
   vacations: ['id', '_syncId'],
   ideas: ['id', '_syncId'],
   customSops: ['id', 'name', '_syncId'],
+  isoSops: ['id', 'number', '_syncId'],
   users: ['id', 'user', 'login', 'username', 'name']
 };
 

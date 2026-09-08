@@ -1,0 +1,48 @@
+name: RC1007 Release Verify
+
+on:
+  push:
+    branches: [rc1007-main-integration]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1007 Einzelverträge prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test test/rc1007-*.test.mjs
+      - name: Gesamte Node-Regression prüfen
+        run: npm test
+      - name: RC1007 Syntax prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check assets/sop/rc1007-sop-model.js
+          node --check assets/sop/rc1007-sop-catalog.js
+          node --check assets/sop/rc1007-sop-ui.js
+          node --check api/shared/merge.js
+          node --check .github/rc1007/build-three-env.mjs
+      - name: Drei Umgebungen gemeinsam bauen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1007/build-three-env.mjs
+          grep -q 'ExportHUB RC1007 environment=production-candidate' dist-rc1007/index.html
+          grep -q 'ExportHUB RC1007 environment=testservice' dist-rc1007/TESTVERSION.html
+          grep -q 'ExportHUB RC1007 environment=demo' dist-rc1007/demo.html
+          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/index.html
+          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/TESTVERSION.html
+          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1007'" production-version.js
