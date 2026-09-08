@@ -15,6 +15,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,3 +27,24 @@ jobs:
         run: node --test test/rc1011-three-env-sync.test.mjs
       - name: RC1004 Kalender-Regression
         run: node --test test/rc1004-company-context.test.mjs test/rc1004-fixed-pickup-store.test.mjs test/rc1004-fixed-pickups-api.test.mjs test/rc1004-abholkalender-model.test.mjs test/rc1004-abholkalender-ui.test.mjs
+      - name: Android Release-Regression
+        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: RC1011 Drei-Umgebungen-Build
+        run: node .github/rc1011/build-three-env.mjs
+      - name: RC1011 Build und Diff prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'ExportHUB RC1011 environment=production-candidate' dist-rc1011/index.html
+          grep -q 'ExportHUB RC1011 environment=testservice' dist-rc1011/TESTVERSION.html
+          grep -q 'ExportHUB RC1011 environment=demo' dist-rc1011/demo.html
+          grep -q "version:'RC1011'" dist-rc1011/index.html
+          grep -q "version:'RC1011'" dist-rc1011/TESTVERSION.html
+          grep -q "version:'RC1011'" dist-rc1011/demo.html
+          grep -q 'assets/abholkalender.js' dist-rc1011/index.html
+          grep -q 'assets/abholkalender.js' dist-rc1011/TESTVERSION.html
+          grep -q 'assets/abholkalender.js' dist-rc1011/demo.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1011/index.html
+          git diff --check
