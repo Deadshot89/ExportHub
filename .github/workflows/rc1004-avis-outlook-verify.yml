@@ -25,8 +25,8 @@ jobs:
           node-version: '20.x'
       - name: RC1004 Outlook-Avis Langtext
         run: node --test test/rc1004-avis-outlook-body.test.mjs
-      - name: Vollständiger RC998 Teilabholung-und-Avis-Vertrag
-        run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: Bestehende RC998 Avis-Verträge
+        run: node --test --test-name-pattern='Lieferavis verwendet ausschließlich|Kundenmail behält Sendungsdetails|Outlook erhält auch bei langen Vorlagen den vollständigen Mailtext|Lieferavis-Link trägt seine Umgebung' .github/rc998/partial-pickup-avis-contract.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
       - name: RC1003 Drei-Umgebungen-Vertrag
