@@ -43,8 +43,12 @@ function isGlobalAdmin(user){
 function resolveCompanyContext(req, user){
   const allowed = values(user);
   const wanted = requested(req);
-  if (wanted && allowed.length && !allowed.includes(wanted) && !isGlobalAdmin(user)) {
+  const admin = isGlobalAdmin(user);
+  if (!admin && wanted && allowed.length && !allowed.includes(wanted)) {
     throw error('COMPANY_FORBIDDEN', 'Kein Zugriff auf diese Firma.', 403);
+  }
+  if (!admin && wanted && !allowed.length && wanted !== 'legacy-default') {
+    throw error('COMPANY_FORBIDDEN', 'Für dieses Benutzerkonto ist keine andere Firma freigegeben.', 403);
   }
   const companyKey = wanted || allowed[0] || 'legacy-default';
   return { companyKey, requestedCompanyKey: wanted, allowedCompanyKeys: allowed };
