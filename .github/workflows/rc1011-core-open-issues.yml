@@ -17,7 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Aktuelle Rechte- und Palettenpfade diagnostizieren
+        run: node .github/rc1011/diagnose.mjs
       - name: RC1011 Kernfehler-Vertrag
         run: node --test test/rc1011-core-open-issues.test.mjs
       - name: QR- und Lieferavis-Bestandsschutz
+        if: always()
         run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
