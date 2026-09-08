@@ -69,6 +69,14 @@ test('FIX-Modell akzeptiert Montag bis Freitag und verbietet Uhrzeitfelder', () 
   assert.throws(() => store.validateInput({ siteLabel: 'Teststandort', weekday: 2, pickupStart: '10:00' }, { partial: false }), e => e.code === 'TIME_FIELDS_NOT_ALLOWED');
 });
 
+test('Produktionshost darf keine Testservice-Umgebung anfordern', () => {
+  const store = loadStore(makeMemoryBlobRest());
+  assert.throws(
+    () => store.resolveEnvironment({ headers: { origin: 'https://example.azurestaticapps.net', 'x-exporthub-environment': 'testservice' } }, {}),
+    e => e && e.code === 'ENVIRONMENT_MISMATCH' && e.statusCode === 409
+  );
+});
+
 test('Produktions- und Testservice-FIX-Daten sind getrennt', async () => {
   const memory = makeMemoryBlobRest();
   const store = loadStore(memory);
