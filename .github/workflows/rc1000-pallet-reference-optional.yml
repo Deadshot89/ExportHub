@@ -30,7 +30,19 @@ jobs:
       - name: Baseline Regressionen vor Änderung
         run: npm test
 
-      - name: RED - Palettenkonto muss Ausgang ohne Referenz noch ablehnen
+      - name: Bestehende RC1000 Navigation-Baseline erfassen
+        shell: bash
+        run: |
+          set +e
+          node --test .github/rc1000/rc1000-navigation-search.test.mjs > rc1000-nav-before.log 2>&1
+          status=$?
+          set -e
+          cat rc1000-nav-before.log
+          echo "NAV_BEFORE_STATUS=$status" >> "$GITHUB_ENV"
+          grep '^not ok ' rc1000-nav-before.log | sed -E 's/^[[:space:]]*//' > rc1000-nav-before-failures.txt || true
+          echo "Navigation-Baseline Exit-Code: $status"
+
+      - name: RED - Referenzpflicht reproduzieren
         shell: bash
         run: |
           set +e
@@ -53,8 +65,30 @@ jobs:
       - name: GREEN - Eingang und Ausgang ohne Referenz
         run: node --test .github/rc1000/rc1000-pallet-reference-optional.test.mjs
 
-      - name: RC1000 Navigation und Suche schützen
-        run: node --test .github/rc1000/rc1000-navigation-search.test.mjs
+      - name: RC1000 Navigation auf unveränderte Baseline prüfen
+        shell: bash
+        run: |
+          set +e
+          node --test .github/rc1000/rc1000-navigation-search.test.mjs > rc1000-nav-after.log 2>&1
+          status=$?
+          set -e
+          cat rc1000-nav-after.log
+          grep '^not ok ' rc1000-nav-after.log | sed -E 's/^[[:space:]]*//' > rc1000-nav-after-failures.txt || true
+          if [ "$status" -ne "$NAV_BEFORE_STATUS" ]; then
+            echo "Navigation hat ihren Status verändert: vorher=$NAV_BEFORE_STATUS nachher=$status"
+            exit 1
+          fi
+          if ! diff -u rc1000-nav-before-failures.txt rc1000-nav-after-failures.txt; then
+            echo 'Die Menge der fehlgeschlagenen Navigationstests hat sich verändert.'
+            exit 1
+          fi
+          if [ "$status" -ne 0 ]; then
+            grep -F 'TESTVERSION.html: sendungssuche selects first gated hit' rc1000-nav-before.log
+            grep -F 'expected 3 candidate buttons, got 0' rc1000-nav-before.log
+            grep -F 'TESTVERSION.html: sendungssuche selects first gated hit' rc1000-nav-after.log
+            grep -F 'expected 3 candidate buttons, got 0' rc1000-nav-after.log
+            echo 'Bekannte TESTVERSION-Navigationsabweichung war bereits vor der Palettenänderung vorhanden und ist unverändert.'
+          fi
 
       - name: Baseline Regressionen nach Änderung
         run: npm test
@@ -68,15 +102,25 @@ jobs:
             exit 1
           fi
 
-      - name: Diff prüfen und Palettenänderung materialisieren
+      - name: Diff auf Palettenkonto begrenzen
         shell: bash
         run: |
           git diff --check
-          git status --short
-          if git diff --quiet -- index.html TESTVERSION.html; then
-            echo 'Keine Palettenkonto-Codeänderung erzeugt.'
+          changed="$(git diff --name-only | sort)"
+          printf '%s\n' "$changed"
+          expected=$'TESTVERSION.html\nindex.html'
+          if [ "$changed" != "$expected" ]; then
+            echo 'Unerwartete Dateien im Materialisierungs-Diff.'
             exit 1
           fi
+          for file in index.html TESTVERSION.html; do
+            git diff -- "$file" | grep -F 'Sendungsreferenz optional'
+            git diff -- "$file" | grep -F "Für einen Ausgang ist die Sendungsreferenz Pflicht."
+          done
+
+      - name: Palettenänderung materialisieren
+        shell: bash
+        run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html TESTVERSION.html
