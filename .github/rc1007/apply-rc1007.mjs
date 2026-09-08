@@ -50,7 +50,28 @@ patchFile('assets/sop/rc1007-sop-ui.js',(src)=>{
   }
   out=out.replace('root.ExportHubIsoSopUi=Object.freeze({mount,renderOverview,renderDocument,renderProcessGraphic,printDocument});','root.ExportHubIsoSopUi=Object.freeze({mount,renderOverview,renderDocument,renderProcessGraphic,printDocument,applyWorkflowAction});');
   if(!out.includes('applyWorkflowAction});')) throw new Error('RC1007: Workflow-Aktion wurde nicht exportiert');
+
+  if(!out.includes('function handleImageError(event){')){
+    const anchor='function renderVisual(visual,index){\n';
+    if(!out.includes(anchor)) throw new Error('RC1007: renderVisual-Anker im SOP-UI nicht gefunden');
+    const helper=`function handleImageError(event){\n  const img=event&&event.target;\n  if(!img||!img.matches||!img.matches('.rc1007-sop-visual img')) return;\n  const figure=img.closest?img.closest('.rc1007-sop-visual'):null;\n  const captionNode=figure&&figure.querySelector?figure.querySelector('figcaption'):null;\n  const caption=text(captionNode&&captionNode.textContent)||text(img.alt)||'SOP-Bild';\n  if(!root.document||typeof root.document.createElement!=='function') return;\n  const box=root.document.createElement('div');\n  box.className='rc1007-sop-placeholder-box rc1007-sop-image-error';\n  box.setAttribute('role','status');\n  box.innerHTML='<strong>Bild konnte nicht geladen werden</strong><span>'+esc(caption)+'</span>';\n  if(typeof img.replaceWith==='function') img.replaceWith(box);\n  else if(img.parentNode) img.parentNode.replaceChild(box,img);\n}\n`;
+    out=out.replace(anchor,helper+anchor);
+  }
+  if(!out.includes("host.addEventListener('error',handleImageError,true);")){
+    const anchor="  host.addEventListener('click',onClick);\n";
+    if(!out.includes(anchor)) throw new Error('RC1007: click-Listener-Anker im SOP-UI nicht gefunden');
+    out=out.replace(anchor,anchor+"  host.addEventListener('error',handleImageError,true);\n");
+  }
+  const oldDestroy="destroy(){host.removeEventListener('click',onClick);host.removeEventListener('input',onFilter);host.removeEventListener('change',onFilter);}";
+  const newDestroy="destroy(){host.removeEventListener('click',onClick);host.removeEventListener('error',handleImageError,true);host.removeEventListener('input',onFilter);host.removeEventListener('change',onFilter);}";
+  if(out.includes(oldDestroy)) out=out.replace(oldDestroy,newDestroy);
+  if(!out.includes("removeEventListener('error',handleImageError,true)")) throw new Error('RC1007: Bildfehler-Listener wird beim Destroy nicht entfernt');
   return out;
+});
+
+patchFile('assets/sop/rc1007-sop.css',(src)=>{
+  if(/@media\s+print/.test(src)) return src;
+  return src+`\n@media print{.rc1007-sop-overview{display:none!important}.rc1007-sop-document{max-width:none;padding:0;color:#000}.rc1007-sop-doc-actions{display:none!important}.rc1007-sop-document-head,.rc1007-sop-meta,.rc1007-sop-section,.rc1007-sop-visual,.rc1007-sop-steps>li{break-inside:avoid;page-break-inside:avoid}.rc1007-sop-section{box-shadow:none;border-color:#bbb;margin:12px 0;padding:12px}.rc1007-sop-process{overflow:visible}.rc1007-sop-process svg{min-width:0}.rc1007-sop-visual img{max-height:220mm;object-fit:contain}}\n`;
 });
 
 const sopAssets=`\n<!-- ExportHUB RC1007 ISO-SOP-Handbuch -->\n<link rel="stylesheet" href="assets/sop/rc1007-sop.css">\n<script src="assets/sop/rc1007-sop-model.js"></script>\n<script src="assets/sop/rc1007-sop-catalog.js"></script>\n<script src="assets/sop/rc1007-sop-ui.js"></script>\n`;
