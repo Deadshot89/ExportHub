@@ -1,8 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 await import('../assets/abholkalender.js');
 const calendar = globalThis.ExportHubPickupCalendar;
+
+function canonicalRuntimeScripts(file){
+  const html=fs.readFileSync(file,'utf8');
+  const marker=html.indexOf('window.__EXPORTHUB_CANONICAL_MODULE_MANIFEST__=');
+  assert.ok(marker>=0,`${file}: Canonical-Manifest fehlt`);
+  const open=html.lastIndexOf('<script',marker);
+  const bodyStart=html.indexOf('>',open)+1;
+  const close=html.indexOf('</script',marker);
+  assert.ok(open>=0&&bodyStart>open&&close>marker,`${file}: Canonical-Manifest-Scriptblock unvollstaendig`);
+
+  const window={};
+  vm.runInNewContext(html.slice(bodyStart,close),{window},{timeout:2000,filename:`${file}:manifest`});
+  const manifest=window.__EXPORTHUB_CANONICAL_MODULE_MANIFEST__;
+  assert.ok(Array.isArray(manifest)&&manifest.length,`${file}: Canonical-Manifest ist leer`);
+
+  const scripts=[];
+  for(const entry of manifest){
+    let captured=[];
+    const runtimeWindow={ExportHUBClean:{runScripts(items){captured=items;return null}}};
+    vm.runInNewContext(entry.code,{window:runtimeWindow},{timeout:2000,filename:`${file}:${entry.src||'canonical'}`});
+    for(const item of captured||[]){
+      assert.equal(typeof item.code,'string',`${file}: Canonical-Laufzeitcode fehlt`);
+      assert.doesNotThrow(()=>new vm.Script(item.code,{filename:`${file}:runtime-${item.id}.js`}),`${file}: Canonical-Laufzeitcode ${item.id} ist syntaktisch defekt`);
+      scripts.push(item.code);
+    }
+  }
+  return scripts;
+}
 
 test('UI-Vertrag enthält Heute, FIX, SENDUNG und Montag bis Freitag', () => {
   const js = fs.readFileSync('assets/abholkalender.js','utf8');
@@ -46,3 +75,17 @@ test('Kalender-CSS bleibt auf Feature-Klassen begrenzt und ist responsiv', () =>
   assert.match(css,/@media\(max-width:640px\)/);
   assert.doesNotMatch(css,/(^|\})\s*(body|button|\.card|nav)\s*\{/m);
 });
+
+for(const file of ['index.html','TESTVERSION.html']){
+  test(`${file}: Abholkalender ist in Hauptseite, Navigation und Laufzeit eingebunden`,()=>{
+    const html=fs.readFileSync(file,'utf8');
+    assert.match(html,/abholkalender\.css/,`${file}: Kalender-CSS fehlt`);
+    assert.match(html,/abholkalender\.js/,`${file}: Kalender-JavaScript fehlt`);
+    assert.match(html,/pickupcalendar/,`${file}: Modul/Route pickupcalendar fehlt`);
+    assert.match(html,/Abholkalender/,`${file}: sichtbare Bezeichnung Abholkalender fehlt`);
+    assert.equal((html.match(/id=["']pickupCalendarRoot["']/g)||[]).length,1,`${file}: pickupCalendarRoot muss genau einmal vorkommen`);
+    assert.match(html,/ExportHubPickupCalendar\.mount\s*\(/,`${file}: Kalender wird beim Öffnen nicht montiert`);
+    assert.match(html,/ExportHubPickupCalendar\.setShipments\s*\(/,`${file}: bestehende Sendungscollection wird nicht nachgeführt`);
+    canonicalRuntimeScripts(file);
+  });
+}
