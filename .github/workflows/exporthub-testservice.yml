@@ -1,6 +1,6 @@
 name: ExportHUB TESTSERVICE Einzel-Deploy
 
-# Standard ist ab RC1012 der gemeinsame Drei-Umgebungen-Deploy über
+# Standard ist ab RC1013 der gemeinsame Drei-Umgebungen-Deploy über
 # azure-static-web-apps-wonderful-forest-0f315e310.yml.
 # Ein einzelner TESTSERVICE-Deploy ist nur bei ausdrücklich genehmigter
 # Abweichung von Produktion und Demo möglich.
@@ -37,41 +37,45 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: RC1012 TESTSERVICE-Ausnahmevertrag prüfen
+      - name: RC1013 TESTSERVICE-Ausnahmevertrag prüfen
         run: |
           set -euo pipefail
-          node --test test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs
-          node --test .github/rc998/partial-pickup-avis-contract.test.mjs
+          node --test test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1006-gate41-route.test.mjs
+          node --test .github/rc995/rc995-flow.test.cjs .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
-          node .github/rc1012/build-three-env.mjs
-          grep -q 'ExportHUB RC1012 environment=testservice' dist-rc1012/TESTVERSION.html
-          grep -q 'ExportHUB RC1012 environment=demo' dist-rc1012/demo.html
-          grep -q "version:'RC1012'" dist-rc1012/TESTVERSION.html
-          grep -q "version:'RC1012'" dist-rc1012/demo.html
-          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1012/TESTVERSION.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1012/TESTVERSION.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1012/TESTVERSION.html
+          node .github/rc1013/build-three-env.mjs
+          grep -q 'ExportHUB RC1013 environment=testservice' dist-rc1013/TESTVERSION.html
+          grep -q 'ExportHUB RC1013 environment=demo' dist-rc1013/demo.html
+          grep -q "version:'RC1013'" dist-rc1013/TESTVERSION.html
+          grep -q "version:'RC1013'" dist-rc1013/demo.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1013/TESTVERSION.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1013/TESTVERSION.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1013/TESTVERSION.html
+          grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1013/TESTVERSION.html
+          grep -q 'assets/rc1013-gate41-ui.js?v=1013' dist-rc1013/TESTVERSION.html
       - name: TESTSERVICE-Paket vorbereiten
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .rc1012_testservice_app
-          mkdir -p .rc1012_testservice_app
-          cp pickup.html customer-avis.html location.html pod-notfall.html production-version.js .rc1012_testservice_app/
-          cp -R assets .rc1012_testservice_app/assets
-          cp staticwebapp.testservice.config.json .rc1012_testservice_app/staticwebapp.config.json
-          cp dist-rc1012/TESTVERSION.html .rc1012_testservice_app/index.html
-          cp dist-rc1012/TESTVERSION.html .rc1012_testservice_app/TESTVERSION.html
-          cp dist-rc1012/demo.html .rc1012_testservice_app/demo.html
-          cp dist-rc1012/assets/exporthub-environment-hub.js .rc1012_testservice_app/assets/exporthub-environment-hub.js
-          cp dist-rc1012/assets/exporthub-demo-bootstrap.js .rc1012_testservice_app/assets/exporthub-demo-bootstrap.js
+          rm -rf .rc1013_testservice_app
+          mkdir -p .rc1013_testservice_app
+          cp pickup.html customer-avis.html location.html pod-notfall.html production-version.js .rc1013_testservice_app/
+          cp -R assets .rc1013_testservice_app/assets
+          cp staticwebapp.testservice.config.json .rc1013_testservice_app/staticwebapp.config.json
+          cp dist-rc1013/TESTVERSION.html .rc1013_testservice_app/index.html
+          cp dist-rc1013/TESTVERSION.html .rc1013_testservice_app/TESTVERSION.html
+          cp dist-rc1013/demo.html .rc1013_testservice_app/demo.html
+          cp dist-rc1013/assets/exporthub-environment-hub.js .rc1013_testservice_app/assets/exporthub-environment-hub.js
+          cp dist-rc1013/assets/exporthub-demo-bootstrap.js .rc1013_testservice_app/assets/exporthub-demo-bootstrap.js
+          cp dist-rc1013/assets/rc1013-diagnostics.js .rc1013_testservice_app/assets/rc1013-diagnostics.js
+          cp dist-rc1013/assets/rc1013-gate41-ui.js .rc1013_testservice_app/assets/rc1013-gate41-ui.js
       - name: Deploy TESTSERVICE explicit only
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1012_testservice_app
+          app_location: .rc1013_testservice_app
           api_location: api
           output_location: ''
           skip_app_build: true
