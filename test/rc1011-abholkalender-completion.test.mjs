@@ -60,3 +60,12 @@ test('RC1011: SENDUNG-Karte bietet direkten Öffnen-Weg über stabile Identität
   assert.match(js,/Sendung öffnen/);
   assert.match(js,/onOpenShipment/);
 });
+
+test('RC1011: Kalender nutzt die echte ExportHUB-openShipment-Runtime', () => {
+  const js = fs.readFileSync('assets/abholkalender.js','utf8');
+  assert.match(js,/root\.openShipment/);
+  for (const file of ['index.html','TESTVERSION.html']) {
+    const html = fs.readFileSync(file,'utf8');
+    assert.match(html,/function\s+openShipment\s*\(/,`${file} stellt openShipment nicht bereit`);
+  }
+});
