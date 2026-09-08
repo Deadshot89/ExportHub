@@ -2,13 +2,13 @@
 
 ## Ziel
 
-Der bestehende Bereich **SOP** in ExportHUB wird vollständig auf ein neues, einheitliches und auditierbares SOP-System umgestellt. Die bisherigen sichtbaren SOP-Einträge werden aus dem aktiven SOP-Verzeichnis entfernt und durch 33 neue, eindeutig nummerierte SOPs ersetzt. Jede SOP ist ein eigenständiges gelenktes Dokument mit Version, Status, Freigabeinformationen, Verantwortlichkeiten, Schritt-für-Schritt-Ablauf, Nachweisen, Querverweisen und visuellen Hilfen.
+Der bestehende Bereich **SOP** in ExportHUB wird vollständig auf ein neues, einheitliches und auditierbares SOP-System umgestellt. Die bisherigen sichtbaren SOP-Einträge werden aus dem aktiven SOP-Verzeichnis entfernt und durch 36 neue, eindeutig nummerierte SOPs ersetzt. Jede SOP ist ein eigenständiges gelenktes Dokument mit Version, Status, Freigabeinformationen, Verantwortlichkeiten, Schritt-für-Schritt-Ablauf, Nachweisen, Querverweisen und visuellen Hilfen.
 
 Produktion wird nicht direkt verändert. Die Umsetzung erfolgt zunächst ausschließlich auf einem separaten Release-Zweig und wird erst nach vollständiger Prüfung freigegeben.
 
 ## Geltungsbereich
 
-Die neue SOP-Struktur umfasst vier Hauptbereiche:
+Die neue SOP-Struktur umfasst fünf Hauptbereiche:
 
 1. Qualitätsmanagement
 2. System / ExportHUB
@@ -267,12 +267,12 @@ Das System muss mindestens nachvollziehbar halten:
 
 ## Datenmigration / Altbestand
 
-Der Umbau darf keine alten SOP-Inhalte unkontrolliert mit den neuen 33 SOPs vermischen.
+Der Umbau darf keine alten SOP-Inhalte unkontrolliert mit den neuen 36 SOPs vermischen.
 
 Regel:
 
 - bisherige aktive SOP-Liste aus der neuen Benutzeransicht entfernen
-- neue 33 SOPs mit eindeutigen IDs und Nummern anlegen
+- neue 36 SOPs mit eindeutigen IDs und Nummern anlegen
 - bereits freigegebene Altstände nicht als neue freigegebene ISO-SOPs ausgeben
 - falls Altinhalte historisch erhalten werden müssen, separat archivieren
 
@@ -291,7 +291,7 @@ Regel:
 Die Umsetzung gilt erst als abgeschlossen, wenn mindestens folgende Punkte automatisiert oder reproduzierbar geprüft sind:
 
 1. Alte SOP-Einträge erscheinen nicht mehr in der aktiven SOP-Übersicht.
-2. Genau die 33 neuen SOPs sind im neuen Verzeichnis vorhanden.
+2. Genau die 36 neuen SOPs sind im neuen Verzeichnis vorhanden.
 3. Jede SOP besitzt eine eindeutige Nummer.
 4. Jede SOP öffnet als eigenständiges Dokument.
 5. Dokumentenkopf und Pflichtabschnitte werden angezeigt.
@@ -315,4 +315,4 @@ Die Umsetzung gilt erst als abgeschlossen, wenn mindestens folgende Punkte autom
 
 ## Freigabekriterium
 
-Der neue SOP-Bereich kann erst veröffentlicht werden, wenn die neue 33-SOP-Struktur vollständig vorhanden ist, alle Pflichtfelder technisch abgesichert sind, die wichtigsten operativen SOPs mindestens mit klar definierten Bildstellen versehen sind und die vorhandenen Regressionstests vollständig grün sind.
+Der neue SOP-Bereich kann erst veröffentlicht werden, wenn die neue 36-SOP-Struktur vollständig vorhanden ist, alle Pflichtfelder technisch abgesichert sind, die wichtigsten operativen SOPs mindestens mit klar definierten Bildstellen versehen sind und die vorhandenen Regressionstests vollständig grün sind.

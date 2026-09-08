@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Den bestehenden SOP-Bereich in ExportHUB durch ein neues, auditierbares System mit genau 33 gelenkten ISO-SOPs, Versionierung, Freigabelogik, Bildern/Prozessgrafiken, Suche, Filterung, Druckansicht und nachvollziehbarer Historie ersetzen.
+**Goal:** Den bestehenden SOP-Bereich in ExportHUB durch ein neues, auditierbares System mit genau 36 gelenkten ISO-SOPs, Versionierung, Freigabelogik, Bildern/Prozessgrafiken, Suche, Filterung, Druckansicht und nachvollziehbarer Historie ersetzen.
 
 **Architecture:** Die neuen SOPs werden in einer eigenen, vom Altbestand getrennten Sammlung `isoSops` geführt. Ein neues, modular eingebundenes SOP-Frontend rendert Übersicht, Einzelansicht, Versionen, Prozessgrafiken und Bildhinweise; `index.html` und `TESTVERSION.html` erhalten nur die Integration. Bestehende `customSops` werden nicht gelöscht, aber im neuen aktiven SOP-Bereich nicht mehr angezeigt.
 
@@ -14,7 +14,7 @@
 
 - Aktiver Entwicklungszweig: `rc1007-iso-sop-handbook`.
 - `main` und Produktion werden während der Umsetzung nicht direkt verändert.
-- Aktive SOP-Übersicht enthält ausschließlich die 33 neuen SOPs.
+- Aktive SOP-Übersicht enthält ausschließlich die 36 neuen SOPs.
 - Bestehende `customSops` bleiben als Altbestand erhalten, werden aber nicht in die neue aktive Liste gemischt.
 - Jede SOP hat eine eindeutige Nummer, Version, Status, Verantwortlichkeiten, Pflichtabschnitte und Historie.
 - Freigegebene Versionen werden nicht direkt überschrieben; Änderungen erzeugen eine neue Entwurfsfassung.
@@ -32,7 +32,7 @@
 
 **Interfaces:**
 - Consumes: vorhandene Dateien `api/shared/merge.js`, `index.html`, `TESTVERSION.html`.
-- Produces: verbindliche Assertions für 33 SOPs, neue Assets, getrennte Persistenz und Altbestandsausschluss.
+- Produces: verbindliche Assertions für 36 SOPs, neue Assets, getrennte Persistenz und Altbestandsausschluss.
 
 - [ ] **Step 1: Failing contract test schreiben**
 
@@ -43,11 +43,11 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
-test('RC1007 besitzt genau 33 neue ISO-SOPs',()=>{
+test('RC1007 besitzt genau 36 neue ISO-SOPs',()=>{
   const src=read('assets/sop/rc1007-sop-catalog.js');
   const numbers=[...src.matchAll(/number:\s*['"](SOP-(?:QM|SYS|LOG|WH|ORG)-\d{3})['"]/g)].map(m=>m[1]);
-  assert.equal(numbers.length,33);
-  assert.equal(new Set(numbers).size,33);
+  assert.equal(numbers.length,36);
+  assert.equal(new Set(numbers).size,36);
 });
 
 test('RC1007 trennt neue ISO-SOPs vom alten customSops-Bestand',()=>{
@@ -157,14 +157,14 @@ git commit -m "RC1007: gelenktes ISO-SOP-Datenmodell ergänzen"
 
 ---
 
-### Task 3: 33 SOPs als neuen Katalog mit vollständiger Pflichtstruktur anlegen
+### Task 3: 36 SOPs als neuen Katalog mit vollständiger Pflichtstruktur anlegen
 
 **Files:**
 - Create: `assets/sop/rc1007-sop-catalog.js`
 - Test: `test/rc1007-sop-catalog.test.mjs`
 
 **Interfaces:**
-- Produces: `globalThis.ExportHubIsoSopCatalog` mit genau 33 Dokumentdefinitionen.
+- Produces: `globalThis.ExportHubIsoSopCatalog` mit genau 36 Dokumentdefinitionen.
 - Jede Definition enthält `id`, `number`, `title`, `area`, `keywords`, `processFlow`, `version`, `status`, `validFrom`, `createdBy`, `reviewedBy`, `approvedBy`, `processOwner`, `affectedAreas`, `nextReview`, `changeReason`, `sections`, `visuals`, `references`, `history`.
 
 - [ ] **Step 1: Katalogtest schreiben**
@@ -196,7 +196,7 @@ Run: `node --test test/rc1007-sop-catalog.test.mjs`
 
 Expected: FAIL, weil der Katalog noch fehlt.
 
-- [ ] **Step 3: Katalog mit genau diesen 33 Nummern anlegen**
+- [ ] **Step 3: Katalog mit genau diesen 36 Nummern anlegen**
 
 ```text
 SOP-QM-001 bis SOP-QM-005
@@ -214,7 +214,7 @@ Die Inhalte werden einfach, sachlich und detailliert geschrieben. Jeder operativ
 
 - [ ] **Step 5: Ausgangsstatus setzen**
 
-Alle 33 Dokumente starten als Version `1.0` mit Status `Entwurf`, solange keine formelle fachliche Einzel-Freigabe vorliegt. Dadurch werden sie im Admin-SOP-Bereich sichtbar, aber nicht fälschlich als bereits freigegebene ISO-Dokumente ausgegeben.
+Alle 36 Dokumente starten als Version `1.0` mit Status `Entwurf`, solange keine formelle fachliche Einzel-Freigabe vorliegt. Dadurch werden sie im Admin-SOP-Bereich sichtbar, aber nicht fälschlich als bereits freigegebene ISO-Dokumente ausgegeben.
 
 - [ ] **Step 6: Katalogtests GREEN ausführen**
 
@@ -226,7 +226,7 @@ Expected: PASS.
 
 ```bash
 git add assets/sop/rc1007-sop-catalog.js test/rc1007-sop-catalog.test.mjs
-git commit -m "RC1007: 33 neue ISO-SOP-Dokumente anlegen"
+git commit -m "RC1007: 36 neue ISO-SOP-Dokumente anlegen"
 ```
 
 ---
@@ -422,7 +422,7 @@ Beim Modul `sop` wird ausschließlich `ExportHubIsoSopUi.mount(...)` verwendet. 
 
 - [ ] **Step 3: Seed-Persistenz anbinden**
 
-Wenn `state.isoSops` leer ist, erzeugt `seedState` die 33 neuen Dokumente. Bestehende `isoSops` werden nicht bei jedem Start überschrieben.
+Wenn `state.isoSops` leer ist, erzeugt `seedState` die 36 neuen Dokumente. Bestehende `isoSops` werden nicht bei jedem Start überschrieben.
 
 - [ ] **Step 4: Contract-Test GREEN ausführen**
 
@@ -524,7 +524,7 @@ Expected: keine Syntaxfehler.
 Manuell/reproduzierbar bestätigen:
 
 ```text
-Genau 33 neue SOPs sichtbar.
+Genau 36 neue SOPs sichtbar.
 Alte SOPs nicht mehr in aktiver Übersicht.
 Alle fünf Kategorien vorhanden.
 Jede SOP öffnet separat.
