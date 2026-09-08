@@ -7,11 +7,15 @@ on:
       - rc1010-sop-fertigstellung
     paths:
       - 'assets/sop/**'
+      - 'android-app/**'
       - 'production-version.js'
       - '.github/rc1010/**'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/exporthub-testservice.yml'
+      - '.github/workflows/exporthub-android-test-app.yml'
       - '.github/workflows/rc1002-main-contract.yml'
+      - 'test/rc1003-android-native-direct-open.test.mjs'
+      - 'test/rc1003-three-env-sync.test.mjs'
       - 'test/rc1009-three-env-sync.test.mjs'
       - 'test/rc1010-sop-release-readiness.test.mjs'
       - 'test/rc1010-three-env-sync.test.mjs'
