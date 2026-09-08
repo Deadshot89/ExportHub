@@ -1,0 +1,31 @@
+name: RC1002 Location Auth Hardening
+
+on:
+  push:
+    branches: [rc1002-location-auth-hardening]
+    paths:
+      - 'api/location-booking/index.js'
+      - 'test/rc1002-location-auth-hardening.test.mjs'
+      - '.github/workflows/rc1002-location-auth-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: Location-Auth-Vertrag
+        run: node --test test/rc1002-location-auth-hardening.test.mjs
+      - name: QR-Abholung Regression
+        run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: Diff prüfen
+        run: git diff --check
