@@ -102,6 +102,16 @@ jobs:
 
             const locationList = await req('/api/location-booking?action=list');
             noServerError(locationList, 'location-booking list security');
+            let listInfo={status:locationList.status,contentType:String(locationList.headers.get('content-type')||'')};
+            try{
+              const body=jsonOf(locationList);
+              listInfo.keys=Object.keys(body).sort();
+              listInfo.ok=body.ok;
+              listInfo.code=body.code||'';
+              listInfo.version=body.version||'';
+              listInfo.records=Array.isArray(body.records)?body.records.length:undefined;
+            }catch(_){ listInfo.bodyType='non-json'; }
+            console.log('DIAG Location-Liste:',JSON.stringify(listInfo));
             assert.equal(locationList.status, 401, 'Location-Liste darf ohne ExportHUB-Sitzung nicht lesbar sein');
             console.log('OK: Location-Daten sind ohne Sitzung nicht auflistbar.');
 
