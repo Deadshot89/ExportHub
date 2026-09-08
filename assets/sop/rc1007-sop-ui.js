@@ -56,6 +56,20 @@ function renderProcessGraphic(doc){
   }).join('');
   return `<div class="rc1007-sop-process" role="img" aria-label="Prozessübersicht ${esc(doc&&doc.number)}"><svg viewBox="0 0 ${width} 112" xmlns="http://www.w3.org/2000/svg">${nodes}</svg></div>`;
 }
+function handleImageError(event){
+  const img=event&&event.target;
+  if(!img||!img.matches||!img.matches('.rc1007-sop-visual img')) return;
+  const figure=img.closest?img.closest('.rc1007-sop-visual'):null;
+  const captionNode=figure&&figure.querySelector?figure.querySelector('figcaption'):null;
+  const caption=text(captionNode&&captionNode.textContent)||text(img.alt)||'SOP-Bild';
+  if(!root.document||typeof root.document.createElement!=='function') return;
+  const box=root.document.createElement('div');
+  box.className='rc1007-sop-placeholder-box rc1007-sop-image-error';
+  box.setAttribute('role','status');
+  box.innerHTML='<strong>Bild konnte nicht geladen werden</strong><span>'+esc(caption)+'</span>';
+  if(typeof img.replaceWith==='function') img.replaceWith(box);
+  else if(img.parentNode) img.parentNode.replaceChild(box,img);
+}
 function renderVisual(visual,index){
   if(!visual||visual.type==='process') return '';
   const caption=esc(visual.caption||'Bildhinweis');
@@ -167,10 +181,11 @@ function mount(target,options={}){
     paint();
   }
   host.addEventListener('click',onClick);
+  host.addEventListener('error',handleImageError,true);
   host.addEventListener('input',onFilter);
   host.addEventListener('change',onFilter);
   paint();
-  return {state,refresh(next={}){if(next.documents)state.documents=next.documents;if(next.rights)state.rights=next.rights;paint();},open(number){state.activeNumber=text(number);paint();},destroy(){host.removeEventListener('click',onClick);host.removeEventListener('input',onFilter);host.removeEventListener('change',onFilter);}};
+  return {state,refresh(next={}){if(next.documents)state.documents=next.documents;if(next.rights)state.rights=next.rights;paint();},open(number){state.activeNumber=text(number);paint();},destroy(){host.removeEventListener('click',onClick);host.removeEventListener('error',handleImageError,true);host.removeEventListener('input',onFilter);host.removeEventListener('change',onFilter);}};
 }
 
 root.ExportHubIsoSopUi=Object.freeze({mount,renderOverview,renderDocument,renderProcessGraphic,printDocument,applyWorkflowAction});
