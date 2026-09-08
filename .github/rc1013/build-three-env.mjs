@@ -71,6 +71,24 @@ function applyQrServerToken(html){
   return out;
 }
 
+function enhanceEnvironmentHub(src){
+  const replacement=`function diagnosticPayload(record,count=1){
+  const rec=record||{};
+  const formatter=window.ExportHUBRC1013Diagnostics;
+  const d=formatter&&typeof formatter.describe==='function'?formatter.describe(rec):null;
+  const area=String(rec.area||'System').replace(/\\s+/g,' ').trim().slice(0,80);
+  const message=String(rec.message||'Technischer ExportHUB-Hinweis').replace(/\\s+/g,' ').trim().slice(0,260);
+  const id=String(rec.id||\`diag:\${Number(rec.seq||0)}:\${String(rec.category||'diagnostics')}:\${area}\`);
+  const prefix=count>1?count+' neue Diagnoseereignisse.\\n':'';
+  const body=d?prefix+'Fehlercode: '+d.code+'\\nBenutzer: '+d.user+(d.userId&&d.userId!=='—'?' · '+d.userId:'')+'\\nFirma: '+d.company+'\\nBedeutung: '+d.meaning+'\\nTechnische Meldung: '+d.technicalMessage:prefix+area+': '+message;
+  return {channel:'diagnostic',key:id,title:'ExportHUB Fehlerdiagnose',body,route:'diagnostics'};
+}
+`;
+  const rx=/function diagnosticPayload\(record,count=1\)\{[\s\S]*?\n\}\n(?=function notifyDiagnostic)/;
+  if(!rx.test(src))throw new Error('Diagnose-Push-Pfad im Environment-Hub nicht gefunden.');
+  return src.replace(rx,replacement);
+}
+
 function injectCalendarMenu(html){
   if(html.includes("view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'"))return html;
   const stateAt=html.indexOf('function state(){');
@@ -99,9 +117,10 @@ function prepare(html,env,isDemo=false){
 const production=prepare(read('index.html'),'production');
 const testservice=prepare(read('TESTVERSION.html'),'testservice');
 const demo=prepare(read('TESTVERSION.html'),'demo',true);
+const environmentHub=enhanceEnvironmentHub(read('assets/exporthub-environment-hub.js'));
 fs.rmSync(OUT,{recursive:true,force:true});fs.mkdirSync(OUT,{recursive:true});
 write('index.html',production);write('TESTVERSION.html',testservice);write('demo.html',demo);
-copy('assets/exporthub-environment-hub.js');write('assets/exporthub-demo-bootstrap.js',demoAsset());copy('assets/sop/rc1010-sop-release.js');
+write('assets/exporthub-environment-hub.js',environmentHub);write('assets/exporthub-demo-bootstrap.js',demoAsset());copy('assets/sop/rc1010-sop-release.js');
 copy('assets/abholkalender.js');copy('assets/abholkalender.css');copy('assets/rc1012-abholkalender-runtime.js');copy('assets/rc1013-diagnostics.js');copy('assets/rc1013-gate41-ui.js');
 write('rc1013-manifest.json',JSON.stringify({schema:'exporthub-rc1013-three-env-v1',version:VERSION,generatedAt:new Date().toISOString(),releaseEnvironments:RELEASE_ENVIRONMENTS,sopRelease:'assets/sop/rc1010-sop-release.js',calendar:{core:'assets/abholkalender.js',style:'assets/abholkalender.css',runtime:'assets/rc1012-abholkalender-runtime.js'},fixes:{gate41:'Deutschland-Fallback und sichtbarer Preisstatus',pickup:'Server-Token wird nach QR-Registrierung synchronisiert',diagnostics:'strukturierte Fehlercodes und Erklärungen',android:'native Direktansicht'},environments:{production:{file:'index.html',sha256:sha(production)},testservice:{file:'TESTVERSION.html',sha256:sha(testservice)},demo:{file:'demo.html',sha256:sha(demo)}}},null,2)+'\n');
 console.log('RC1013 build ready: Gate41, QR-Abholung, Handy-Benachrichtigungen und Fehlerdiagnose in Produktion, TESTSERVICE und Demo');
