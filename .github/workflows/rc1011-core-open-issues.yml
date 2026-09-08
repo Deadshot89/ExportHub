@@ -1,0 +1,52 @@
+name: RC1011 Kernfehler prüfen
+
+on:
+  push:
+    branches:
+      - rc1011-core-open-issues
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: RC1011 Korrekturen anwenden
+        run: node .github/rc1011/apply-fixes.mjs
+      - name: RC1011 Kernfehler- und Projektisolations-Vertrag
+        run: node --test test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs
+      - name: RC1011 Drei-Umgebungen- und Android-Vertrag
+        run: node --test test/rc1011-three-env-sync.test.mjs
+      - name: QR- und Lieferavis-Bestandsschutz
+        run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: Vollständige Regression
+        run: npm test
+      - name: RC1011 Drei-Umgebungen-Build prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1011/build-three-env.mjs
+          grep -q 'ExportHUB RC1011 environment=production-candidate' dist-rc1011/index.html
+          grep -q 'ExportHUB RC1011 environment=testservice' dist-rc1011/TESTVERSION.html
+          grep -q 'ExportHUB RC1011 environment=demo' dist-rc1011/demo.html
+          grep -q "version:'RC1011'" dist-rc1011/index.html
+          grep -q "version:'RC1011'" dist-rc1011/TESTVERSION.html
+          grep -q "version:'RC1011'" dist-rc1011/demo.html
+      - name: RC1011 Änderungen auf Feature-Zweig sichern
+        if: success()
+        run: |
+          if git diff --quiet -- index.html TESTVERSION.html api/shared/public-access-store.js api/customer-avis/index.js; then
+            echo "Keine erzeugten Änderungen."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html TESTVERSION.html api/shared/public-access-store.js api/customer-avis/index.js
+          git commit -m "RC1011: Kernfehler korrigieren"
+          git push

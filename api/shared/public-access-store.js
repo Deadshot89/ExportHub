@@ -70,7 +70,7 @@ async function issue(req,kind,meta={},ttlMs,payload){
   const requestedToken=text(payload&&payload.token||meta&&meta.token||'').toLowerCase();
   let token=/^[a-f0-9]{48}$/.test(requestedToken)?requestedToken:crypto.randomBytes(24).toString('hex'),tokenHash=hashToken(token,env,kind);
   if(old.value&&old.value.tokenHash===tokenHash){token=crypto.randomBytes(24).toString('hex');tokenHash=hashToken(token,env,kind)}
-  const createdAt=now(),ttl=Math.max(60*1000,Number(ttlMs)|| (kind==='pickup'?DEFAULT_PICKUP_TTL_MS:DEFAULT_AVIS_TTL_MS)),expiresAt=new Date(Date.now()+ttl).toISOString();
+  const createdAt=now(),indefinite=ttlMs===null,ttl=indefinite?null:Math.max(60*1000,Number(ttlMs)|| (kind==='pickup'?DEFAULT_PICKUP_TTL_MS:DEFAULT_AVIS_TTL_MS)),expiresAt=indefinite?null:new Date(Date.now()+ttl).toISOString();
   const record={schemaVersion:1,kind,environment:env,tokenHash,subjectId,shipmentId:text(meta.shipmentId||subjectId),reference:text(meta.reference).toUpperCase(),snapshot:clone(meta.snapshot||{}),createdAt,updatedAt:createdAt,expiresAt,usedAt:null,revokedAt:null,failedAttempts:0,lockedUntil:null,issuedBy:text(meta.actor||'ExportHUB').slice(0,120)};
   await writeJson(c.getBlockBlobClient(recordName(env,kind,tokenHash)),record,null);
   const index={schemaVersion:1,kind,environment:env,subjectId,tokenHash,active:true,issuedAt:createdAt,expiresAt};
@@ -80,7 +80,7 @@ async function issue(req,kind,meta={},ttlMs,payload){
 function assertUsable(record,{allowUsed=false}={}){
   if(!record)throw error('ACCESS_INVALID','Dieser öffentliche Link ist ungültig oder nicht mehr aktiv.',410);
   if(record.revokedAt)throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
-  if(record.expiresAt&&Date.now()>=Date.parse(record.expiresAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
+  if(record.kind!=='avis'&&record.expiresAt&&Date.now()>=Date.parse(record.expiresAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
   if(record.lockedUntil&&Date.now()<Date.parse(record.lockedUntil))throw error('ACCESS_LOCKED','Zu viele falsche Eingaben. Der Zugriff ist vorübergehend gesperrt.',429);
   if(record.usedAt&&!allowUsed)throw error('ACCESS_USED','Dieser Einmal-Link wurde bereits verwendet.',410);
   return record;

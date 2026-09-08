@@ -4,28 +4,33 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
-test('RC1010 ist der gemeinsame autoritative Versionsmarker',()=>{
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1010'/);
-});
-
-test('RC1010 Build lädt den SOP-Freigabe-Layer in Produktion TESTSERVICE und Demo',()=>{
+test('RC1010 bleibt als historische Drei-Umgebungen-Baseline reproduzierbar',()=>{
   const build=read('.github/rc1010/build-three-env.mjs');
-  for(const term of ["VERSION='RC1010'","environment=production-candidate","environment=testservice","environment=demo","dist-rc1010","rc1010-sop-release.js"]) assert.match(build,new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.match(build,/VERSION='RC1010'/);
+  assert.match(build,/dist-rc1010/);
+  assert.match(build,/environment=production-candidate/);
+  assert.match(build,/environment=testservice/);
+  assert.match(build,/environment=demo/);
+  assert.match(build,/rc1010-sop-release\.js/);
 });
 
-test('gemeinsamer Deploy veröffentlicht RC1010 auf allen drei Umgebungen und prüft den SOP-Layer live',()=>{
+test('autoritativer Produktionsmarker darf nach RC1010 nicht zurückfallen',()=>{
+  const source=read('production-version.js');
+  const match=source.match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC(\d+)'/);
+  assert.ok(match,'Produktionsmarker fehlt');
+  assert.ok(Number(match[1])>=1010,`Produktionsmarker RC${match[1]} liegt hinter RC1010`);
+});
+
+test('aktueller Standard-Deploy hält Produktion TESTSERVICE und Demo weiterhin gemeinsam',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/ExportHUB RC1010 Drei-Umgebungen Deploy/);
+  assert.match(flow,/Drei-Umgebungen Deploy/);
   assert.match(flow,/Deploy ExportHUB production/);
   assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
-  assert.match(flow,/Live RC1010 Produktion TESTSERVICE und Demo prüfen/);
-  assert.match(flow,/node \.github\/rc1010\/build-three-env\.mjs/);
-  assert.match(flow,/rc1010-sop-release\.js/);
+  assert.match(flow,/Produktion TESTSERVICE und Demo/);
 });
 
-test('TESTSERVICE Einzeldeploy bleibt auch unter RC1010 nur als genehmigte Ausnahme möglich',()=>{
+test('TESTSERVICE Einzeldeploy bleibt nach RC1010 nur als genehmigte Ausnahme möglich',()=>{
   const flow=read('.github/workflows/exporthub-testservice.yml');
   assert.match(flow,/ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION/);
   assert.match(flow,/Produktion, TESTSERVICE und Demo müssen denselben Versionsstand haben/);
-  assert.match(flow,/RC1010/);
 });
