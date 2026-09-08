@@ -99,7 +99,8 @@ test('Fehlerdiagnose klassifiziert Fehler verständlich und zeigt Benutzer, Firm
 });
 
 test('Fehlerdiagnose-Push enthält Fehlercode, Benutzer und verständliche Bedeutung',()=>{
-  const hub=fs.readFileSync(path.join(ROOT,'assets/exporthub-environment-hub.js'),'utf8');
+  build();
+  const hub=fs.readFileSync(path.join(ROOT,'dist-rc1013/assets/exporthub-environment-hub.js'),'utf8');
   assert.match(hub,/ExportHUBRC1013Diagnostics/);
   assert.match(hub,/Fehlercode:/);
   assert.match(hub,/Benutzer:/);
