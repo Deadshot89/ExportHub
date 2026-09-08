@@ -3,7 +3,7 @@
   if (!window || window.__EXPORTHUB_RC1012_PICKUPCALENDAR_RUNTIME__) return;
   window.__EXPORTHUB_RC1012_PICKUPCALENDAR_RUNTIME__ = true;
 
-  function state(){
+  function getState(){
     try {
       if (typeof window.__EXPORTHUB_GET_STATE__ === 'function') return window.__EXPORTHUB_GET_STATE__() || {};
     } catch (_) {}
@@ -21,8 +21,8 @@
   }
 
   function shipments(){
-    const current = state();
-    return Array.isArray(current.shipments) ? current.shipments : [];
+    const state = getState();
+    return Array.isArray(state.shipments) ? state.shipments : [];
   }
 
   function openShipment(shipment){
