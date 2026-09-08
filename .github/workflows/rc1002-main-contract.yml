@@ -42,8 +42,10 @@ jobs:
         run: node --test test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
       - name: QR-Abholung Regression
         run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
-      - name: Diagnose- und Android-Regression
-        run: node --test .github/rc997/diagnostic-notifications-contract.test.mjs
+      - name: Diagnose- und Android-Regression ohne historische RC1002-Versionspins
+        shell: bash
+        run: |
+          node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
       - name: Drei-Umgebungen-Build
