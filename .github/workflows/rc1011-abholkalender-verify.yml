@@ -21,19 +21,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Kanonischen View-Renderer diagnostizieren
+      - name: State- und Legacy-Renderer diagnostizieren
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
           for(const file of ['index.html','TESTVERSION.html']){
             const html=fs.readFileSync(file,'utf8');
-            console.log(`=== ${file} CANONICAL VIEW ===`);
-            for(const term of ['function canonical(','function canRoute(','function renderCanonicalView(','function stableSetView(','function setViewState(','function applyPermissions(']){
+            console.log(`=== ${file} STATE + RENDER ===`);
+            for(const term of ['function legacyView(','function S(','function state(','function stableRender(','function viewDomMatches(']){
               const at=html.indexOf(term);
               if(at<0){console.log(`MISSING ${term}`);continue;}
-              const snippet=html.slice(Math.max(0,at-500),Math.min(html.length,at+5000)).replace(/\s+/g,' ');
-              console.log(`TERM ${term} @${at}: ${snippet}`);
+              console.log(`TERM ${term} @${at}: ${html.slice(Math.max(0,at-700),Math.min(html.length,at+7000)).replace(/\s+/g,' ')}`);
+            }
+            for(const term of ['__EXPORTHUB_BIND_STATE__','__EXPORTHUB_GET_STATE__','window.STATE','window.state','window.appState','shipments:']){
+              const at=html.indexOf(term);
+              console.log(`GLOBAL ${term}: ${at}`);
+              if(at>=0) console.log(html.slice(Math.max(0,at-500),Math.min(html.length,at+1800)).replace(/\s+/g,' '));
             }
           }
           NODE
