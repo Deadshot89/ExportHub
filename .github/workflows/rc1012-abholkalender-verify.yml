@@ -15,13 +15,43 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: RC1012 Kalenderabschluss
+      - name: RC1012 Kalender-Abschlussvertrag
         run: node --test test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs
-      - name: RC1012 RED Drei-Umgebungen-Releasevertrag
+      - name: RC1012 Drei-Umgebungen-Releasevertrag
         run: node --test test/rc1012-three-env-sync.test.mjs
+      - name: RC1004 Kalender-Regression
+        run: node --test test/rc1004-company-context.test.mjs test/rc1004-fixed-pickup-store.test.mjs test/rc1004-fixed-pickups-api.test.mjs test/rc1004-abholkalender-model.test.mjs test/rc1004-abholkalender-ui.test.mjs
+      - name: RC1011 Kern- und SOP-Bestandsschutz
+        run: node --test test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs
+      - name: Android Release-Regression
+        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
+      - name: QR- und Lieferavis-Regression
+        run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: RC1012 Drei-Umgebungen-Build
+        run: node .github/rc1012/build-three-env.mjs
+      - name: RC1012 Build und Diff prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          check(){ local label="$1" pattern="$2" file="$3"; if grep -q "$pattern" "$file"; then echo "OK: $label"; else echo "FEHLT: $label ($pattern in $file)"; exit 1; fi; }
+          check 'Produktion Umgebung' 'ExportHUB RC1012 environment=production-candidate' dist-rc1012/index.html
+          check 'TESTSERVICE Umgebung' 'ExportHUB RC1012 environment=testservice' dist-rc1012/TESTVERSION.html
+          check 'Demo Umgebung' 'ExportHUB RC1012 environment=demo' dist-rc1012/demo.html
+          check 'Produktion Version' "version:'RC1012'" dist-rc1012/index.html
+          check 'TESTSERVICE Version' "version:'RC1012'" dist-rc1012/TESTVERSION.html
+          check 'Demo Version' "version:'RC1012'" dist-rc1012/demo.html
+          check 'Kalender CSS' 'assets/abholkalender.css?v=1012' dist-rc1012/index.html
+          check 'Kalender JS' 'assets/abholkalender.js?v=1012' dist-rc1012/index.html
+          check 'Kalender Runtime' 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1012/index.html
+          check 'Kalender Menü' "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1012/index.html
+          check 'SOP Freigabelayer' 'assets/sop/rc1010-sop-release.js' dist-rc1012/index.html
+          check 'Gemeinsamer Versionsmarker' "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1012'" production-version.js
+          git diff --check

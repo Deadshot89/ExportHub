@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read = (p) => fs.readFileSync(p, 'utf8');
+function currentRc(){
+  const match=read('production-version.js').match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC(\d+)'/);
+  assert.ok(match,'Autoritativer Produktions-RC fehlt');
+  return Number(match[1]);
+}
 
 test('RC1003: historische Drei-Umgebungen-Baseline bleibt nachvollziehbar', () => {
   assert.equal(fs.existsSync('.github/rc1003/build-three-env.mjs'), true, 'RC1003 Drei-Umgebungen-Build fehlt');
@@ -14,9 +19,9 @@ test('RC1003: historische Drei-Umgebungen-Baseline bleibt nachvollziehbar', () =
   assert.match(build, /write\('demo\.html'/);
 });
 
-test('RC1011: Android-App folgt dem aktuellen gemeinsamen Release', () => {
+test('Android-App folgt dem aktuellen gemeinsamen Release', () => {
+  const rc=currentRc();
   const gradle = read('android-app/app/build.gradle.kts');
-  assert.match(gradle, /versionCode\s*=\s*1011/);
-  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1011"/);
-  assert.match(read('production-version.js'), /RC1011/);
+  assert.match(gradle,new RegExp(`versionCode\\s*=\\s*${rc}`));
+  assert.match(gradle,new RegExp(`versionName\\s*=\\s*"1\\.0-rc${rc}"`));
 });

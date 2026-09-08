@@ -3,57 +3,48 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
+function currentRc(){
+  const match=read('production-version.js').match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC(\d+)'/);
+  assert.ok(match,'Autoritativer Produktions-RC fehlt');
+  return Number(match[1]);
+}
 
-test('RC1011 ist der gemeinsame autoritative Versionsmarker',()=>{
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1011'/);
-});
-
-test('RC1011 baut Produktion TESTSERVICE und Demo aus demselben Quellstand',()=>{
+test('RC1011 bleibt als historische Drei-Umgebungen-Baseline reproduzierbar',()=>{
   const build=read('.github/rc1011/build-three-env.mjs');
-  for(const term of ["VERSION='RC1011'","environment=production-candidate","environment=testservice","environment=demo","dist-rc1011"]) {
-    assert.match(build,new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
-  }
-  assert.match(build,/read\('index\.html'\)/);
-  assert.match(build,/read\('TESTVERSION\.html'\)/);
+  assert.match(build,/VERSION='RC1011'/);
+  assert.match(build,/dist-rc1011/);
+  assert.match(build,/environment=production-candidate/);
+  assert.match(build,/environment=testservice/);
+  assert.match(build,/environment=demo/);
 });
 
-test('Standarddeploy veröffentlicht RC1011 gemeinsam und prüft alle drei Umgebungen live',()=>{
+test('aktueller gemeinsamer Versionsmarker darf nicht auf RC1011 zurückfallen',()=>{
+  assert.ok(currentRc()>1011);
+});
+
+test('aktueller Standarddeploy darf RC1011 nicht mehr als Freigabestand festschreiben',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/ExportHUB RC1011 Drei-Umgebungen Deploy/);
-  assert.match(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
+  assert.doesNotMatch(flow,/ExportHUB RC1011 Drei-Umgebungen Deploy/);
+  assert.doesNotMatch(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
   assert.match(flow,/Deploy ExportHUB production/);
   assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
-  assert.match(flow,/Live RC1011 Produktion TESTSERVICE und Demo prüfen/);
-  assert.match(flow,/test\/rc1011-core-open-issues\.test\.mjs/);
-  assert.match(flow,/test\/rc1011-three-env-sync\.test\.mjs/);
-  assert.match(flow,/dist-rc1011\/index\.html/);
-  assert.match(flow,/dist-rc1011\/TESTVERSION\.html/);
-  assert.match(flow,/dist-rc1011\/demo\.html/);
 });
 
-test('Main-Contract prüft ebenfalls den RC1011-Stand statt den alten RC1010-Deploy',()=>{
+test('Main-Contract folgt dem aktuellen Release statt RC1011',()=>{
   const flow=read('.github/workflows/rc1002-main-contract.yml');
-  assert.match(flow,/RC1011 Main Contract/);
-  assert.match(flow,/test\/rc1011-core-open-issues\.test\.mjs/);
-  assert.match(flow,/test\/rc1011-three-env-sync\.test\.mjs/);
-  assert.match(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
-  assert.match(flow,/dist-rc1011\/index\.html/);
-  assert.match(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1011'/);
+  assert.doesNotMatch(flow,/name: RC1011 Main Contract/);
+  assert.doesNotMatch(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
 });
 
-test('TESTSERVICE Einzeldeploy bleibt unter RC1011 ausschließlich genehmigte Ausnahme',()=>{
+test('TESTSERVICE Einzeldeploy bleibt weiterhin nur als genehmigte Ausnahme möglich',()=>{
   const flow=read('.github/workflows/exporthub-testservice.yml');
   assert.match(flow,/ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION/);
   assert.match(flow,/Produktion, TESTSERVICE und Demo müssen denselben Versionsstand haben/);
-  assert.match(flow,/RC1011/);
-  assert.match(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
 });
 
-test('Android-App bleibt auf demselben RC1011-Releasestand',()=>{
+test('Android-App folgt einem neueren gemeinsamen Release als RC1011',()=>{
+  const rc=currentRc();
   const gradle=read('android-app/app/build.gradle.kts');
-  const flow=read('.github/workflows/exporthub-android-test-app.yml');
-  assert.match(gradle,/versionCode\s*=\s*1011/);
-  assert.match(gradle,/versionName\s*=\s*"1\.0-rc1011"/);
-  assert.match(flow,/Build ExportHUB Android RC1011 APK/);
-  assert.match(flow,/ExportHUB-RC1011-Android/);
+  assert.match(gradle,new RegExp(`versionCode\\s*=\\s*${rc}`));
+  assert.match(gradle,new RegExp(`versionName\\s*=\\s*"1\\.0-rc${rc}"`));
 });
