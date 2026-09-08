@@ -1,0 +1,84 @@
+name: RC1000 Palettenkonto Referenz optional
+
+on:
+  push:
+    branches:
+      - rc1000-clean-navigation-search
+    paths:
+      - '.github/workflows/rc1000-pallet-reference-optional.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: rc1000-clean-navigation-search
+          fetch-depth: 0
+
+      - name: Node 20 bereitstellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Baseline Regressionen vor Änderung
+        run: npm test
+
+      - name: RED - Palettenkonto muss Ausgang ohne Referenz noch ablehnen
+        shell: bash
+        run: |
+          set +e
+          node --test .github/rc1000/rc1000-pallet-reference-optional.test.mjs > rc1000-pallet-red.log 2>&1
+          status=$?
+          set -e
+          cat rc1000-pallet-red.log
+          if [ "$status" -eq 0 ]; then
+            echo 'RED-Phase ist unerwartet grün; Abbruch ohne Materialisierung.'
+            exit 1
+          fi
+          echo 'RED bestätigt: die alte Ausgang-Referenzpflicht ist reproduziert.'
+
+      - name: Materialisierer Syntax prüfen
+        run: node --check .github/rc1000/apply-pallet-reference-optional.mjs
+
+      - name: Referenzpflicht im Palettenkonto entfernen
+        run: node .github/rc1000/apply-pallet-reference-optional.mjs
+
+      - name: GREEN - Eingang und Ausgang ohne Referenz
+        run: node --test .github/rc1000/rc1000-pallet-reference-optional.test.mjs
+
+      - name: RC1000 Navigation und Suche schützen
+        run: node --test .github/rc1000/rc1000-navigation-search.test.mjs
+
+      - name: Baseline Regressionen nach Änderung
+        run: npm test
+
+      - name: Produktionsmarker schützen
+        shell: bash
+        run: |
+          grep -F "window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC997';" production-version.js
+          if grep -q 'RC1000' production-version.js; then
+            echo 'RC1000 darf production-version.js nicht verändern.'
+            exit 1
+          fi
+
+      - name: Diff prüfen und Palettenänderung materialisieren
+        shell: bash
+        run: |
+          git diff --check
+          git status --short
+          if git diff --quiet -- index.html TESTVERSION.html; then
+            echo 'Keine Palettenkonto-Codeänderung erzeugt.'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          git commit -m 'RC1000: Palettenbuchungen ohne Referenz erlauben'
+          git push origin HEAD:rc1000-clean-navigation-search
