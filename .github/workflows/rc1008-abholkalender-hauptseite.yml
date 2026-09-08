@@ -17,5 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: RC1008 Hauptseitenanker inspizieren
+        run: node scripts/rc1008-inspect-hauptseite.mjs
       - name: RC1008 Abholkalender Hauptseiten-Vertrag
         run: node --test test/rc1004-abholkalender-ui.test.mjs
