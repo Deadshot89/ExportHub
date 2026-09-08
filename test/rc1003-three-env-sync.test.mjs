@@ -14,8 +14,9 @@ test('RC1003: historische Drei-Umgebungen-Baseline bleibt nachvollziehbar', () =
   assert.match(build, /write\('demo\.html'/);
 });
 
-test('RC1003: Android-Baseline bleibt auf RC1003 nachvollziehbar', () => {
+test('RC1009: Android-App folgt dem aktuellen gemeinsamen Release', () => {
   const gradle = read('android-app/app/build.gradle.kts');
-  assert.match(gradle, /versionCode\s*=\s*1003/);
-  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1003"/);
+  assert.match(gradle, /versionCode\s*=\s*1009/);
+  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1009"/);
+  assert.match(read('production-version.js'), /RC1009/);
 });
