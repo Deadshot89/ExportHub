@@ -39,15 +39,16 @@ Ein fixer Datensatz enthält mindestens:
 - Firmen-/Mandantenbezug
 - Standort- oder Kundenbezeichnung
 - Wochentag: Montag, Dienstag, Mittwoch, Donnerstag oder Freitag
+- Wiederholung: wöchentlich, solange der Eintrag aktiv ist
 - optionaler Hinweis
 - Aktivstatus
 - Erstellungs- und Änderungszeitpunkt
 
-Es gibt bewusst **kein Feld für Uhrzeit oder Zeitfenster**.
+Es gibt bewusst **kein Feld für Uhrzeit oder Zeitfenster**. Weitere Wiederholungsintervalle wie zweiwöchentlich oder monatlich gehören nicht zum ersten Umfang.
 
 Mehrere fixe Abholungen dürfen am selben Wochentag existieren. Derselbe Standort darf auch an mehreren Wochentagen vorkommen.
 
-Fixe Abholungen werden nicht hart gelöscht. Im ersten Umfang werden sie deaktiviert und können später wieder aktiviert werden. Dadurch bleiben Änderungen nachvollziehbar und versehentliche Datenverluste werden vermieden.
+Fixe Abholungen werden nicht hart gelöscht. Im ersten Umfang werden sie deaktiviert und können später wieder aktiviert werden. Deaktivierte Einträge erscheinen nicht in der normalen Heute- oder Wochenansicht, bleiben aber in der Admin-Verwaltung sichtbar. Dadurch bleiben Änderungen nachvollziehbar und versehentliche Datenverluste werden vermieden.
 
 ### Datenquelle B – Angemeldete Sendungen
 
@@ -208,6 +209,7 @@ Nicht Teil dieses Designs sind:
 
 - Uhrzeiten oder Zeitfenster
 - Samstag und Sonntag als Kalendertage
+- andere Wiederholungsintervalle als wöchentlich
 - automatische Umwandlung FIX ↔ SENDUNG
 - automatische Zuordnung eines FIX-Termins zu einer Sendung
 - neue Kundenstammdaten außerhalb der ausdrücklich freigegebenen Gruppe
@@ -220,16 +222,18 @@ Die Implementierung wird testgetrieben aufgebaut. Mindestens folgende Verträge 
 
 1. Der Kalender zeigt nur Montag bis Freitag.
 2. Für fixe Abholungen existieren keine Uhrzeit- oder Zeitfensterfelder.
-3. Heute-Ansicht und Wochenansicht trennen FIX und SENDUNG eindeutig.
-4. Mitarbeiter können fixe Abholungen lesen, aber nicht verändern.
-5. Admins können fixe Abholungen anlegen, ändern, deaktivieren und reaktivieren.
-6. Firmen- und Umgebungsisolation verhindert fremde Schreib- und Lesezugriffe.
-7. Eine konkrete Sendung wird niemals durch Kalenderlogik in einen FIX-Datensatz umgewandelt.
-8. Ein FIX-Datensatz erzeugt niemals automatisch eine Sendung.
-9. Teilabholungen bleiben mit korrekter Restmenge offen.
-10. Erst Restmenge `0` führt zur vollständigen Abholung.
-11. Fehler einer Datenquelle dürfen die andere Datenquelle nicht unbrauchbar machen.
-12. Bestehende Aufgaben-, QR-Abholungs-, Pickup-, Diagnose- und Build-Regressionen bleiben grün.
+3. Aktive fixe Abholungen wiederholen sich wöchentlich am gespeicherten Wochentag.
+4. Deaktivierte fixe Abholungen verschwinden aus Heute- und Wochenansicht, bleiben aber administrativ verfügbar.
+5. Heute-Ansicht und Wochenansicht trennen FIX und SENDUNG eindeutig.
+6. Mitarbeiter können fixe Abholungen lesen, aber nicht verändern.
+7. Admins können fixe Abholungen anlegen, ändern, deaktivieren und reaktivieren.
+8. Firmen- und Umgebungsisolation verhindert fremde Schreib- und Lesezugriffe.
+9. Eine konkrete Sendung wird niemals durch Kalenderlogik in einen FIX-Datensatz umgewandelt.
+10. Ein FIX-Datensatz erzeugt niemals automatisch eine Sendung.
+11. Teilabholungen bleiben mit korrekter Restmenge offen.
+12. Erst Restmenge `0` führt zur vollständigen Abholung.
+13. Fehler einer Datenquelle dürfen die andere Datenquelle nicht unbrauchbar machen.
+14. Bestehende Aufgaben-, QR-Abholungs-, Pickup-, Diagnose- und Build-Regressionen bleiben grün.
 
 ## Rollout-Regel
 
