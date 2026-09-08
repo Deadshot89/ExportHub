@@ -23,6 +23,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: SOP-Integrationsanker prüfen
+        shell: bash
+        run: |
+          if [ -f .github/rc1007/inspect-sop.mjs ]; then
+            node .github/rc1007/inspect-sop.mjs
+          fi
       - name: RC1007 Patch anwenden
         run: node .github/rc1007/apply-rc1007.mjs
       - name: Vorhandene RC1007 Teiltests ausführen
