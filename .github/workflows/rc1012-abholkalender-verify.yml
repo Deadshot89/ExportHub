@@ -1,0 +1,36 @@
+name: RC1012 Abholkalender Verify
+
+on:
+  push:
+    branches:
+      - rc1012-abholkalender-completion
+    paths:
+      - 'assets/abholkalender.js'
+      - 'assets/abholkalender.css'
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1012-abholkalender-completion.test.mjs'
+      - '.github/workflows/rc1012-abholkalender-verify.yml'
+  pull_request:
+    paths:
+      - 'assets/abholkalender.js'
+      - 'assets/abholkalender.css'
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1012-abholkalender-completion.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: RC1012 Abholkalender Vertrag
+        run: node --test test/rc1012-abholkalender-completion.test.mjs
+      - name: Bestehende Regression
+        run: npm test
