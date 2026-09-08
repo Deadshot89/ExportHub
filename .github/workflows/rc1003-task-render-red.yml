@@ -24,51 +24,36 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: Betroffenen Inline-Scriptblock diagnostizieren
+      - name: RC874-Helfer vor RC1002 extrahieren
         shell: bash
         run: |
+          set -euo pipefail
+          git show 9e0817070134434ef997a0f0d04b04f5de3eb3cb:TESTVERSION.html > rc1003-before-rc1002.html
           node <<'NODE'
           const fs=require('fs');
-          const vm=require('vm');
-          const html=fs.readFileSync('TESTVERSION.html','utf8');
-          const marker=html.indexOf('function taskGroupNameRC874(t){');
-          if(marker<0)throw new Error('taskGroupNameRC874 fehlt');
-          const open=html.lastIndexOf('<script',marker);
-          const bodyStart=html.indexOf('>',open)+1;
-          const close=html.indexOf('</script',marker);
-          if(open<0||bodyStart<=open||close<=marker)throw new Error('Scriptblock-Grenzen fehlen');
-          const src=html.slice(bodyStart,close);
-          const info=[];
-          info.push(`scriptOpen=${open} bodyStart=${bodyStart} close=${close} length=${src.length} markerInScript=${marker-bodyStart}`);
-          const patterns=[
-            ['backslash-newline',/\\\r?\n/g],
-            ['literal-backslash-n',/\\n/g],
-            ['double-backslash-n',/\\\\n/g]
-          ];
-          for(const [name,rx] of patterns){
-            const matches=[...src.matchAll(rx)];
-            info.push(`${name} count=${matches.length}`);
-            matches.slice(0,80).forEach((m,i)=>{
-              const p=m.index||0;
-              info.push(`${name}[${i}] @${p} ${JSON.stringify(src.slice(Math.max(0,p-90),p+130))}`);
-            });
+          const old=fs.readFileSync('rc1003-before-rc1002.html','utf8');
+          const start=old.indexOf('function taskGroupNameRC874(t){');
+          const end=old.indexOf('function taskGroupOpenRC874',start);
+          if(start<0||end<=start)throw new Error('historischer RC874-Block nicht gefunden');
+          const block=old.slice(start,end);
+          fs.writeFileSync('rc1003-old-rc874-block.txt',block);
+          for(const name of ['taskDisplayKeyRC874','taskDedupeScoreRC874','dedupeVisibleTasksRC874','taskGroupStateRC874','TASK_GROUP_STORE_RC874']){
+            console.log(`${name}=${block.includes(name)}`);
           }
-          try{new vm.Script(src,{filename:'TESTVERSION-affected-inline.js'});info.push('compile=OK')}
-          catch(e){info.push(`compile=FAIL ${e.stack||e}`)}
-          fs.writeFileSync('rc1003-script-diagnostic.txt',info.join('\n')+'\n');
-          fs.writeFileSync('rc1003-affected-inline.js',src);
-          console.log(info.join('\n'));
+          console.log(block);
           NODE
-      - name: Diagnose-Artefakt hochladen
+      - name: Historischen Block hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: rc1003-script-diagnostic
-          path: |
-            rc1003-script-diagnostic.txt
-            rc1003-affected-inline.js
+          name: rc1003-old-rc874-block
+          path: rc1003-old-rc874-block.txt
           retention-days: 1
-      - name: Aufgaben-Gruppenblock kompilieren
-        run: node --test test/rc1003-task-render-syntax.test.mjs
+      - name: Aktuellen Aufgabenvertrag prüfen
+        run: |
+          node --test .github/rc996/tasks-contract.test.mjs
+          node --test test/rc1003-task-render-syntax.test.mjs
