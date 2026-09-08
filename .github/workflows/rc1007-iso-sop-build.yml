@@ -28,14 +28,9 @@ jobs:
       - name: Vorhandene RC1007 Teiltests ausführen
         shell: bash
         run: |
-          for file in \
-            test/rc1007-sop-model.test.mjs \
-            test/rc1007-sop-catalog.test.mjs \
-            test/rc1007-sop-visuals.test.mjs \
-            test/rc1007-sop-ui.test.mjs; do
-            if [ -f "$file" ]; then
-              node --test "$file"
-            fi
+          mapfile -t files < <(find test -maxdepth 1 -name 'rc1007-sop-*.test.mjs' | sort)
+          for file in "${files[@]}"; do
+            node --test "$file"
           done
       - name: Bestehende Regression ohne noch roten RC1007 Gesamtvertrag
         shell: bash
