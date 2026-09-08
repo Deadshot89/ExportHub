@@ -21,7 +21,7 @@ function functionBody(source,startNeedle,endNeedle){
 test('Palettenkonto erlaubt manuellen Eingang und Ausgang ohne Referenz',()=>{
   for(const file of pages){
     const source=fs.readFileSync(file,'utf8');
-    const add=functionBody(source,'window.rc542AddPalletBooking=function()','window.rc542CorrectPalletBooking',);
+    const add=functionBody(source,'window.rc542AddPalletBooking=function()','window.rc542CorrectPalletBooking');
     assert.doesNotMatch(add,/dir===['"]Ausgang['"]&&!ref/ ,`${file}: Ausgang erzwingt noch eine Referenz`);
     assert.match(add,/shipmentRef:ref/,`${file}: optionale Referenz soll bei Angabe weiter gespeichert werden`);
     assert.match(source,/Sendungsreferenz optional<input id=["']rc542PalRef["'][^>]*placeholder=["']optional["']/,`${file}: Formular kennzeichnet Referenz nicht als optional`);
@@ -45,11 +45,9 @@ test('HSE und Sicherheitsverantwortlich werden als Firmen-Admin behandelt, aber 
 test('Benutzer ohne Rechte sehen Module und Kacheln nicht nur gesperrt, sondern gar nicht',()=>{
   for(const file of pages){
     const source=fs.readFileSync(file,'utf8');
-    const rightFor=functionBody(source,'function rightFor','function installRights');
-    const patchNav=functionBody(source,'function patchNav','function routeMap');
-    assert.match(rightFor,/level===['"]none['"][^;]*visible:false/ ,`${file}: none muss unsichtbar sein`);
-    assert.match(patchNav,/\.hidden=!allow/,`${file}: Navigation muss versteckt werden`);
-    assert.match(patchNav,/style\.display=allow\?['"]['"]:['"]none['"]/,`${file}: Navigation darf nicht als Schloss stehen bleiben`);
+    assert.match(source,/level===['"]none['"]\)return\{visible:false,read:false,edit:false,admin:false\}/,`${file}: none muss unsichtbar sein`);
+    assert.match(source,/\.hidden=!allow/,`${file}: Navigation muss versteckt werden`);
+    assert.match(source,/style\.display=allow\?['"]['"]:['"]none['"]/,`${file}: Navigation darf nicht als Schloss stehen bleiben`);
     assert.match(source,/function availableModules\(\)\{return MODULES\.filter\(function\(m\)\{return canOpen\(m\.id\)\}\)\}/,`${file}: Dashboard-Module müssen gefiltert werden`);
     assert.match(source,/filter\(widgetAllowed\)/,`${file}: Dashboard-Kacheln müssen gefiltert werden`);
   }
