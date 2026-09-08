@@ -33,3 +33,5 @@ jobs:
         run: node --test test/rc1003-three-env-sync.test.mjs
       - name: Drei-Umgebungen-Build
         run: node .github/rc1003/build-three-env.mjs
+      - name: Diff prüfen
+        run: git diff --check
