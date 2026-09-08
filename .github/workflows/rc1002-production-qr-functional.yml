@@ -1,0 +1,125 @@
+name: RC1002 Production QR Functional Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1002-production-qr-functional.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1002-production-qr-functional
+  cancel-in-progress: false
+
+jobs:
+  production-qr-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: QR-Regression im aktuellen Main-Stand
+        run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Beide QR-Pfade read-only auf Produktion prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const crypto = require('node:crypto');
+          const base = 'https://wonderful-forest-0f315e310.7.azurestaticapps.net';
+          const token = crypto.randomBytes(24).toString('hex');
+
+          async function req(path, options={}) {
+            const url = base + path;
+            const response = await fetch(url, Object.assign({redirect:'follow', headers:{Accept:'application/json,text/html;q=0.9,*/*;q=0.8'}}, options));
+            const text = await response.text();
+            return {url, status:response.status, headers:response.headers, text};
+          }
+          function jsonOf(result) {
+            try { return JSON.parse(result.text || '{}'); }
+            catch (e) { throw new Error(`Keine JSON-Antwort von ${result.url}: ${result.text.slice(0,240)}`); }
+          }
+          function noServerError(result, label) {
+            assert.ok(result.status < 500, `${label}: Serverfehler HTTP ${result.status}: ${result.text.slice(0,300)}`);
+          }
+
+          (async()=>{
+            const root = await req('/?rc1002-qr-functional=' + Date.now());
+            assert.equal(root.status, 200, 'Produktion Root muss HTTP 200 liefern');
+            assert.match(root.text, /ExportHUB RC1002 environment=production-candidate/);
+            assert.match(root.text, /version:'RC1002'/);
+            assert.match(root.text, /RC569QrSvg/);
+            assert.match(root.text, /QR-Location/);
+            assert.match(root.text, /QR-Abholung/);
+            assert.match(root.text, /searchParams\.set\('pickup',token\)/);
+            assert.match(root.text, /new URL\('\/location\.html',location\.origin\)/);
+            console.log('OK: Produktionsseite RC1002 liefert beide QR-Generatorpfade.');
+
+            const pickupRoute = await req('/?pickup=' + token + '&v=1002');
+            assert.equal(pickupRoute.status, 200, 'QR-Abholung Zielseite muss HTTP 200 liefern');
+            assert.match(pickupRoute.text, /pickup-status\?token=/);
+            console.log('OK: QR-Abholung Zielroute ist live erreichbar.');
+
+            const pickupCompat = await req('/pickup.html?token=' + token);
+            assert.equal(pickupCompat.status, 200, 'pickup.html muss HTTP 200 liefern');
+            assert.match(pickupCompat.text, /pickup-status\?token=/);
+            assert.match(pickupCompat.text, /Abholung bestätigen/);
+            console.log('OK: Standalone-Pickup-Kompatibilitätsseite ist live erreichbar.');
+
+            const locationPage = await req('/location.html?location=' + token);
+            assert.equal(locationPage.status, 200, 'QR-Location Zielseite muss HTTP 200 liefern');
+            assert.match(locationPage.text, /\/api\/location-booking\?action=/);
+            assert.match(locationPage.text, /Location-QR-Code/);
+            console.log('OK: QR-Location Zielseite ist live erreichbar.');
+
+            const pickupStatus = await req('/api/pickup-status?token=' + token);
+            noServerError(pickupStatus, 'pickup-status');
+            assert.equal(pickupStatus.status, 410, `Unbekannter aber formal gültiger Pickup-Token muss 410 liefern, erhalten ${pickupStatus.status}`);
+            const pickupBody = jsonOf(pickupStatus);
+            assert.equal(pickupBody.ok, false);
+            assert.equal(pickupBody.code, 'ACCESS_INVALID');
+            console.log('OK: Pickup-API antwortet live korrekt und ohne Serverfehler.');
+
+            const locationStatus = await req('/api/location-booking?action=get&token=' + token);
+            noServerError(locationStatus, 'location-booking get');
+            assert.equal(locationStatus.status, 404, `Unbekannter Location-Token muss 404 liefern, erhalten ${locationStatus.status}`);
+            const locationBody = jsonOf(locationStatus);
+            assert.equal(locationBody.ok, false);
+            assert.equal(locationBody.code, 'NOT_FOUND');
+            console.log('OK: Location-API antwortet live korrekt und ohne Serverfehler.');
+
+            const locationMalformed = await req('/api/location-booking?action=get&token=abc');
+            noServerError(locationMalformed, 'location-booking malformed');
+            assert.equal(locationMalformed.status, 400);
+            assert.equal(jsonOf(locationMalformed).code, 'INVALID_TOKEN');
+            console.log('OK: Location-API verwirft fehlerhafte QR-Tokens kontrolliert.');
+
+            const locationList = await req('/api/location-booking?action=list');
+            noServerError(locationList, 'location-booking list security');
+            assert.equal(locationList.status, 401, 'Location-Liste darf ohne ExportHUB-Sitzung nicht lesbar sein');
+            console.log('OK: Location-Daten sind ohne Sitzung nicht auflistbar.');
+
+            const pickupInit = await req('/api/pickup-init', {
+              method:'POST',
+              headers:{'Content-Type':'application/json','Accept':'application/json'},
+              body:JSON.stringify({shipmentId:'QR-FUNCTIONAL-READONLY',reference:'QRTEST',rows:[{count:1}]})
+            });
+            noServerError(pickupInit, 'pickup-init security');
+            assert.ok([401,403].includes(pickupInit.status), `pickup-init muss ohne Sitzung 401/403 liefern, erhalten ${pickupInit.status}`);
+            console.log('OK: QR-Erzeugung kann ohne berechtigte Sitzung keine Produktionsdaten anlegen.');
+
+            const pickupOptions = await req('/api/pickup-status', {method:'OPTIONS'});
+            assert.equal(pickupOptions.status, 204);
+            const locationOptions = await req('/api/location-booking', {method:'OPTIONS'});
+            assert.equal(locationOptions.status, 204);
+            console.log('OK: QR-API-Endpunkte beantworten OPTIONS korrekt.');
+
+            console.log('ERGEBNIS: Read-only Produktions-Funktionstest für QR-Abholung und QR-Location vollständig erfolgreich.');
+          })().catch(err=>{ console.error(err.stack || err); process.exit(1); });
+          NODE
