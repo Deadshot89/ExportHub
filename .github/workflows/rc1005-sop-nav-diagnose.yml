@@ -14,37 +14,26 @@ jobs:
         with:
           ref: rc1005-hide-sop-nav
           fetch-depth: 0
-      - name: Kleine SOP-Navigationsdiagnose erzeugen
-        shell: bash
+      - name: Exakte SOP-Navigation finden
         run: |
-          set -euo pipefail
           mkdir -p .github/rc1005
           node - <<'NODE'
-          const fs=require('fs');
-          const out=[];
+          const fs=require('fs'),out=[];
+          const pats=[/data-view\s*=\s*["']sop["']/ig,/setView\s*\(\s*["']sop["']/ig,/(?:view|id|key|module)\s*[:=]\s*["']sop["']/ig,/<(?:button|a)\b[^>]{0,800}>[^<]{0,100}SOP[^<]{0,100}<\/(?:button|a)>/ig];
           for(const file of ['index.html','TESTVERSION.html']){
-            const text=fs.readFileSync(file,'utf8');
-            out.push('--- '+file+' ---');
-            const re=/sop/ig;
-            let m,count=0;
-            while((m=re.exec(text))&&count<20){
-              const a=Math.max(0,m.index-320),b=Math.min(text.length,m.index+360);
-              const frag=text.slice(a,b).replace(/\r?\n/g,'\\n');
-              if(/data-view|setView|onclick|<button|<a\b|nav-item|sidebar|module/i.test(frag)){
-                out.push('MATCH '+(++count)+': '+frag);
-              }
-            }
+            const text=fs.readFileSync(file,'utf8'); out.push('--- '+file+' ---');
+            const seen=new Set(); let n=0;
+            for(const p of pats){ let m; while((m=p.exec(text))&&n<30){ const a=Math.max(0,m.index-250),b=Math.min(text.length,m.index+m[0].length+350); const s=text.slice(a,b).replace(/\r?\n/g,'\\n'); if(!seen.has(s)){seen.add(s);out.push('MATCH '+(++n)+': '+s);} } }
+            out.push('COUNT '+n);
           }
-          fs.writeFileSync('.github/rc1005/sop-nav-small.txt',out.join('\n'));
+          fs.writeFileSync('.github/rc1005/sop-nav-exact.txt',out.join('\n'));
           NODE
-          cat .github/rc1005/sop-nav-small.txt
+          cat .github/rc1005/sop-nav-exact.txt
       - name: Diagnose committen
-        shell: bash
         run: |
-          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/rc1005/sop-nav-small.txt
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: RC1005 SOP-Navigationsfundstellen verkleinern'
+          git add .github/rc1005/sop-nav-exact.txt
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore: RC1005 exakte SOP-Navigation sichern'
           git push origin HEAD:rc1005-hide-sop-nav
