@@ -37,14 +37,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'ExportHUB RC1011 environment=production-candidate' dist-rc1011/index.html
-          grep -q 'ExportHUB RC1011 environment=testservice' dist-rc1011/TESTVERSION.html
-          grep -q 'ExportHUB RC1011 environment=demo' dist-rc1011/demo.html
-          grep -q "version:'RC1011'" dist-rc1011/index.html
-          grep -q "version:'RC1011'" dist-rc1011/TESTVERSION.html
-          grep -q "version:'RC1011'" dist-rc1011/demo.html
-          grep -q 'assets/abholkalender.js' dist-rc1011/index.html
-          grep -q 'assets/abholkalender.js' dist-rc1011/TESTVERSION.html
-          grep -q 'assets/abholkalender.js' dist-rc1011/demo.html
-          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1011/index.html
+          check(){
+            local label="$1" pattern="$2" file="$3"
+            if grep -q "$pattern" "$file"; then
+              echo "OK: $label"
+            else
+              echo "FEHLT: $label ($pattern in $file)"
+              exit 1
+            fi
+          }
+          check 'Produktion Umgebung' 'ExportHUB RC1011 environment=production-candidate' dist-rc1011/index.html
+          check 'TESTSERVICE Umgebung' 'ExportHUB RC1011 environment=testservice' dist-rc1011/TESTVERSION.html
+          check 'Demo Umgebung' 'ExportHUB RC1011 environment=demo' dist-rc1011/demo.html
+          check 'Produktion Version' "version:'RC1011'" dist-rc1011/index.html
+          check 'TESTSERVICE Version' "version:'RC1011'" dist-rc1011/TESTVERSION.html
+          check 'Demo Version' "version:'RC1011'" dist-rc1011/demo.html
+          check 'Produktion Kalenderbindung' 'assets/abholkalender.js' dist-rc1011/index.html
+          check 'TESTSERVICE Kalenderbindung' 'assets/abholkalender.js' dist-rc1011/TESTVERSION.html
+          check 'Demo Kalenderbindung' 'assets/abholkalender.js' dist-rc1011/demo.html
+          check 'SOP Freigabelayer' 'assets/sop/rc1010-sop-release.js' dist-rc1011/index.html
           git diff --check
