@@ -1,0 +1,55 @@
+name: RC1003 Branch Verify
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc1003-task-render-fix-pickup-prep
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/**'
+      - '.github/rc996/tasks-contract.test.mjs'
+      - '.github/rc1000/**'
+      - '.github/rc1002/**'
+      - '.github/rc997/diagnostic-notifications-contract.test.mjs'
+      - '.github/workflows/rc1003-branch-verify.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1003-branch-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1003 Aufgaben-Laufzeitvertrag
+        run: node --test test/rc1003-task-render-syntax.test.mjs .github/rc996/tasks-contract.test.mjs
+      - name: Bestehende RC1002-Vertraege
+        run: |
+          node --test test/rc1002-release-sync.test.mjs
+          node --test test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
+      - name: QR-Abholung Regression
+        run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Diagnose- und Android-Regression
+        run: node --test .github/rc997/diagnostic-notifications-contract.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: Drei-Umgebungen-Build
+        run: node .github/rc1002/build-three-env.mjs
+      - name: Build und Diff pruefen
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'ExportHUB RC1002 environment=production-candidate' dist-rc1002/index.html
+          grep -q 'ExportHUB RC1002 environment=testservice' dist-rc1002/TESTVERSION.html
+          grep -q 'ExportHUB RC1002 environment=demo' dist-rc1002/demo.html
+          git diff --check
