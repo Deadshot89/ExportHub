@@ -1,0 +1,42 @@
+name: RC1005 E3 Korrektur anwenden
+
+on:
+  push:
+    branches:
+      - rc1005-e3-verpackungsmasse
+    paths:
+      - 'scripts/rc1005-fix-e3-packaging-precedence.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1005-e3-verpackungsmasse
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: E3-Vorrang korrigieren
+        run: node scripts/rc1005-fix-e3-packaging-precedence.mjs
+      - name: RC1005 Regressionen prüfen
+        run: |
+          node --test test/rc1005-e3-packaging-dimensions.test.mjs
+          node --test test/rc1005-e3-packaging-precedence.test.mjs
+          node --test test/rc980-colli-row-stability.test.mjs
+      - name: Änderung prüfen und committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code --quiet && { echo 'Keine Änderung erzeugt'; exit 1; }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          git commit -m 'RC1005: E3-Maße gegen gespeicherte Altwerte absichern'
+          git push origin HEAD:rc1005-e3-verpackungsmasse
