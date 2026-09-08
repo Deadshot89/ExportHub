@@ -57,11 +57,15 @@ function applyGate41Fallback(html){
 
 function applyQrServerToken(html){
   let out=html;
+  const strictError="throw new Error('Der QR-Server hat keinen gültigen sicheren Pickup-Token geliefert.');";
+  const direct=/if\(!\/\^\[a-f0-9\]\{48\}\$\/i\.test\(serverToken\)\)throw new Error\('RC995: Der Server hat keinen gültigen sicheren Pickup-Token geliefert\.'\);/g;
+  out=out.replace(direct,`if(!validToken(serverToken))${strictError}`);
   const done='function done(data,compat){var beforeDone=syncSnapshot(sh),existingRegisteredAt=';
   if(!out.includes('serverToken=q(data&&data.token)')){
     if(!out.includes(done))throw new Error('QR done()-Pfad nicht gefunden.');
-    out=out.replace(done,"function done(data,compat){var serverToken=q(data&&data.token);if(!validToken(serverToken))serverToken=token;var beforeDone=syncSnapshot(sh),existingRegisteredAt=");
+    out=out.replace(done,`function done(data,compat){var serverToken=q(data&&data.token);if(!validToken(serverToken))${strictError}var beforeDone=syncSnapshot(sh),existingRegisteredAt=`);
   }
+  if(!out.includes('validToken(serverToken)'))throw new Error('QR Server-Token wird nicht mit validToken geprüft.');
   const base='var basePatch={pickupQrRegistered:true';
   const patched='var basePatch={pickupToken:serverToken,pickupQrToken:serverToken,qrPickupToken:serverToken,qrToken:serverToken,pickupQrRegistered:true';
   if(!out.includes(patched)){
@@ -80,7 +84,7 @@ function enhanceEnvironmentHub(src){
   const message=String(rec.message||'Technischer ExportHUB-Hinweis').replace(/\\s+/g,' ').trim().slice(0,260);
   const id=String(rec.id||\`diag:\${Number(rec.seq||0)}:\${String(rec.category||'diagnostics')}:\${area}\`);
   const prefix=count>1?count+' neue Diagnoseereignisse.\\n':'';
-  const body=d?prefix+'Fehlercode: '+d.code+'\\nBenutzer: '+d.user+(d.userId&&d.userId!=='—'?' · '+d.userId:'')+'\\nFirma: '+d.company+'\\nBedeutung: '+d.meaning+'\\nTechnische Meldung: '+d.technicalMessage:prefix+area+': '+message;
+  const body=d?prefix+'Fehlercode: '+d.code+'\\nBenutzer: '+d.user+(d.userId&&d.userId!=='—'?' · '+d.userId:'')+'\\nFirma: '+d.company+'\\nBedeutung: '+d.meaning+'\\nWahrscheinliche Ursache: '+d.cause+'\\nNächster Schritt: '+d.nextStep+'\\nTechnische Meldung: '+d.technicalMessage:prefix+area+': '+message;
   return {channel:'diagnostic',key:id,title:'ExportHUB Fehlerdiagnose',body,route:'diagnostics'};
 }
 `;
