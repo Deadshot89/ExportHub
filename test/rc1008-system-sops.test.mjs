@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 await import('../assets/sop/rc1007-sop-catalog.js');
 const catalog=globalThis.ExportHubIsoSopCatalog;
 
@@ -46,4 +47,9 @@ test('jede SOP besitzt ein selbst erzeugtes ExportHUB-Systembild statt Bildplatz
 test('Systembereiche decken die bekannten ExportHUB-Funktionscluster ab',()=>{
   const required=['System-Grundlagen','Benutzer, Firmen und Rechte','Kunden und Standorte','Sendungen','Versandkosten und Transport','Dokumente und Ausgabe','ABD und Mail','QR, POD und Kunden-Avis','Palettenkonto','Aufgaben, Planer und Abholkalender','SOP und Academy','Archiv, Diagnose, Release und App'];
   assert.deepEqual(catalog.areas,required);
+});
+
+test('RC1008 ist der aktuelle gemeinsame Versionsmarker',()=>{
+  assert.match(fs.readFileSync('production-version.js','utf8'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1008'/);
+  assert.ok(fs.existsSync('.github/rc1008/build-three-env.mjs'));
 });
