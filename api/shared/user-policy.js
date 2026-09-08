@@ -20,36 +20,22 @@ function isAdmin(user) {
   ));
 }
 
-function isCompanyAdmin(user) {
-  const role = lower(user && (user.role || user.rolle));
-  return Boolean(user && (
-    user.companyAdmin === true ||
-    /company[\s/_-]*(?:admin|administrator)/.test(role) ||
-    /firmen[\s/_-]*(?:admin|administrator)/.test(role) ||
-    /(?:^|[\s/_-])hse(?:$|[\s/_-])/.test(role) ||
-    /sicherheits[\s/_-]*verantwortlich/.test(role)
-  ));
-}
-
-function defaultRights(admin, companyAdmin = false) {
+function defaultRights(admin) {
   const result = {};
   for (const id of MODULES) {
-    const baseAllow = id === 'start' || id === 'dashboard' || id === 'pickupcalendar';
-    const level = admin ? 'admin' : (companyAdmin ? (id === 'update' ? 'none' : 'admin') : (baseAllow ? 'view' : 'none'));
-    const allow = level !== 'none';
+    const allow = admin || id === 'start' || id === 'dashboard' || id === 'pickupcalendar';
     result[id] = {
-      level,
+      level: admin ? 'admin' : (allow ? 'view' : 'none'),
       visible: allow,
       read: allow,
-      edit: level === 'edit' || level === 'admin',
-      admin: level === 'admin',
-      functionAdmin: level === 'admin'
+      edit: admin,
+      admin: admin,
+      functionAdmin: admin
     };
   }
-  const companyManager = admin || companyAdmin;
   result.rights = {
-    level: companyManager ? 'admin' : 'none', visible: companyManager, read: companyManager,
-    edit: companyManager, admin: companyManager, functionAdmin: companyManager
+    level: admin ? 'admin' : 'none', visible: !!admin, read: !!admin,
+    edit: !!admin, admin: !!admin, functionAdmin: !!admin
   };
   return result;
 }
@@ -63,13 +49,13 @@ function normalizeLevel(old, fallback) {
   return fallback;
 }
 
-function normalizeRights(value, admin, companyAdmin = false) {
+function normalizeRights(value, admin) {
   const source = value && typeof value === 'object' ? value : {};
   const result = {};
   for (const id of MODULES) {
     const old = source[id] && typeof source[id] === 'object' ? source[id] : {};
-    const fallback = admin ? 'admin' : (companyAdmin ? (id === 'update' ? 'none' : 'admin') : ((id === 'start' || id === 'dashboard' || id === 'pickupcalendar') ? 'view' : 'none'));
-    const level = admin ? 'admin' : (companyAdmin ? fallback : normalizeLevel(old, fallback));
+    const fallback = admin ? 'admin' : ((id === 'start' || id === 'dashboard' || id === 'pickupcalendar') ? 'view' : 'none');
+    const level = admin ? 'admin' : normalizeLevel(old, fallback);
     result[id] = {
       level,
       visible: level !== 'none',
@@ -86,17 +72,15 @@ function normalizeUser(user, index) {
   const source = user && typeof user === 'object' ? clone(user) : {};
   const login = text(source.user || source.login || source.username || source.name) || `Benutzer${index + 1}`;
   const admin = isAdmin(source);
-  const companyAdmin = !admin && isCompanyAdmin(source);
   source.id = text(source.id || source._syncId) || `USER-${login.replace(/[^A-Za-z0-9_-]/g, '-')}`;
   source.user = login;
   source.login = login;
   source.username = login;
   source.name = text(source.name) || login;
   source.globalAdmin = admin;
-  source.companyAdmin = companyAdmin;
-  source.role = admin ? 'Globaler Administrator' : (text(source.role) || (companyAdmin ? 'Firmen-Admin' : 'Benutzer'));
+  source.role = admin ? 'Globaler Administrator' : (text(source.role) || 'Benutzer');
   source.permissions = admin ? ['*'] : (Array.isArray(source.permissions) ? source.permissions.filter((x) => x !== '*') : []);
-  source.rights = normalizeRights(source.rights, admin, companyAdmin);
+  source.rights = normalizeRights(source.rights, admin);
   source.active = source.active !== false && source.disabled !== true && source.status !== 'Deaktiviert';
   source.disabled = !source.active;
   source.authVersion = Number(source.authVersion || 0);
@@ -138,7 +122,6 @@ function publicUser(user, adminView = false) {
     name: u.name,
     role: u.role,
     globalAdmin: u.globalAdmin === true,
-    companyAdmin: u.companyAdmin === true,
     permissions: clone(u.permissions || []),
     rights: clone(u.rights || {}),
     active: u.active !== false,
@@ -183,7 +166,6 @@ module.exports = {
   normalizeRights,
   dedupeUsers,
   isAdmin,
-  isCompanyAdmin,
   countAdmins,
   defaultRights,
   publicUser

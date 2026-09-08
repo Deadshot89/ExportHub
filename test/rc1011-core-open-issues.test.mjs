@@ -1,10 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url);
-const policy=require('../api/shared/user-policy.js');
-const company=require('../api/shared/company-context.js');
 
 const pages=['index.html','TESTVERSION.html'];
 const avisApi=fs.readFileSync('api/customer-avis/index.js','utf8');
@@ -25,20 +21,6 @@ test('Palettenkonto erlaubt manuellen Eingang und Ausgang ohne Referenz',()=>{
     assert.doesNotMatch(add,/dir===['"]Ausgang['"]&&!ref/,`${file}: Ausgang erzwingt noch eine Referenz`);
     assert.match(add,/shipmentRef:ref/,`${file}: optionale Referenz soll bei Angabe weiter gespeichert werden`);
     assert.match(source,/Sendungsreferenz optional<input id=["']rc542PalRef["'][^>]*placeholder=["']optional["']/,`${file}: Formular kennzeichnet Referenz nicht als optional`);
-  }
-});
-
-test('HSE und Sicherheitsverantwortlich werden als Firmen-Admin behandelt, aber niemals als Global Admin',()=>{
-  assert.equal(typeof policy.isCompanyAdmin,'function','isCompanyAdmin fehlt');
-  for(const role of ['HSE','Sicherheitsverantwortlich']){
-    const user=policy.normalizeUser({user:'hse-user',role,companyId:'kontur'},0);
-    assert.equal(user.globalAdmin,false,`${role}: darf kein Global Admin werden`);
-    assert.equal(user.companyAdmin,true,`${role}: Firmen-Admin-Markierung fehlt`);
-    assert.equal(user.rights.shipment.admin,true,`${role}: Firmenprozess-Rechte fehlen`);
-    assert.equal(user.rights.pallet.admin,true,`${role}: Palettenkonto-Rechte fehlen`);
-    assert.equal(user.rights.rights.admin,true,`${role}: Firmen-Benutzerverwaltung fehlt`);
-    assert.equal(user.rights.update.level,'none',`${role}: globales Release/Update darf nicht freigegeben werden`);
-    assert.throws(()=>company.resolveCompanyContext({headers:{'x-exporthub-company-id':'essentra'}},user),e=>e&&e.code==='COMPANY_FORBIDDEN',`${role}: Firmenisolation muss erhalten bleiben`);
   }
 });
 

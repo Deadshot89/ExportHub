@@ -19,8 +19,8 @@ jobs:
           node-version: '24'
       - name: RC1011 Korrekturen anwenden
         run: node .github/rc1011/apply-fixes.mjs
-      - name: RC1011 Kernfehler-Vertrag
-        run: node --test test/rc1011-core-open-issues.test.mjs
+      - name: RC1011 Kernfehler- und Projektisolations-Vertrag
+        run: node --test test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs
       - name: RC1011 Drei-Umgebungen- und Android-Vertrag
         run: node --test test/rc1011-three-env-sync.test.mjs
       - name: QR- und Lieferavis-Bestandsschutz
@@ -41,12 +41,12 @@ jobs:
       - name: RC1011 Änderungen auf Feature-Zweig sichern
         if: success()
         run: |
-          if git diff --quiet -- index.html TESTVERSION.html api/shared/user-policy.js api/shared/public-access-store.js api/customer-avis/index.js test/rc1011-core-open-issues.test.mjs; then
+          if git diff --quiet -- index.html TESTVERSION.html api/shared/public-access-store.js api/customer-avis/index.js; then
             echo "Keine erzeugten Änderungen."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html TESTVERSION.html api/shared/user-policy.js api/shared/public-access-store.js api/customer-avis/index.js test/rc1011-core-open-issues.test.mjs
+          git add index.html TESTVERSION.html api/shared/public-access-store.js api/customer-avis/index.js
           git commit -m "RC1011: Kernfehler korrigieren"
           git push

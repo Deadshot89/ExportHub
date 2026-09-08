@@ -10,9 +10,7 @@ const needles=[
   'function availableModules()',
   'filter(widgetAllowed)',
   'function widgetAllowed',
-  'function canOpen',
-  'Sicherheitsverantwortlich',
-  'company_admin'
+  'function canOpen'
 ];
 for(const file of files){
   const src=fs.readFileSync(file,'utf8');
