@@ -1,50 +1,53 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
-function read(file){return fs.readFileSync(file,'utf8')}
+function canonicalRuntimeScripts(file){
+  const html=fs.readFileSync(file,'utf8');
+  const marker=html.indexOf('window.__EXPORTHUB_CANONICAL_MODULE_MANIFEST__=');
+  assert.ok(marker>=0,`${file}: Canonical-Manifest fehlt`);
+  const open=html.lastIndexOf('<script',marker);
+  const bodyStart=html.indexOf('>',open)+1;
+  const close=html.indexOf('</script',marker);
+  assert.ok(open>=0&&bodyStart>open&&close>marker,`${file}: Canonical-Manifest-Scriptblock unvollstaendig`);
 
-function functionBlock(file,name,nextName){
-  const html=read(file);
-  const marker=`function ${name}`;
-  const start=html.indexOf(marker);
-  assert.ok(start>=0,`${file}: ${name} fehlt`);
-  let end=-1;
-  if(nextName)end=html.indexOf(`function ${nextName}`,start+marker.length);
-  if(end<=start)end=html.indexOf('function ',start+marker.length);
-  assert.ok(end>start,`${file}: Ende von ${name} fehlt`);
-  return html.slice(start,end);
-}
+  const window={};
+  vm.runInNewContext(html.slice(bodyStart,close),{window},{timeout:2000,filename:`${file}:manifest`});
+  const manifest=window.__EXPORTHUB_CANONICAL_MODULE_MANIFEST__;
+  assert.ok(Array.isArray(manifest)&&manifest.length,`${file}: Canonical-Manifest ist leer`);
 
-function assertCompiles(file,name,nextName){
-  const src=functionBlock(file,name,nextName);
-  assert.doesNotThrow(
-    ()=>new Function(`"use strict";\n${src}\nreturn ${name};`),
-    `${file}: ${name} enthaelt ungueltige JavaScript-Syntax`
-  );
-}
-
-function assertInsideScript(file,name){
-  const html=read(file);
-  const start=html.indexOf(`function ${name}`);
-  assert.ok(start>=0,`${file}: ${name} fehlt`);
-  const open=html.lastIndexOf('<script',start);
-  const close=html.lastIndexOf('</script',start);
-  assert.ok(open>close,`${file}: ${name} liegt ausserhalb eines Scriptblocks`);
-  assert.ok(html.indexOf('</script',start)>start,`${file}: Scriptblock nach ${name} wird nicht geschlossen`);
+  const scripts=[];
+  for(const entry of manifest){
+    let captured=[];
+    const runtimeWindow={ExportHUBClean:{runScripts(items){captured=items;return null}}};
+    vm.runInNewContext(entry.code,{window:runtimeWindow},{timeout:2000,filename:`${file}:${entry.src||'canonical'}`});
+    for(const item of captured||[]){
+      assert.equal(typeof item.code,'string',`${file}: Canonical-Laufzeitcode fehlt`);
+      assert.doesNotThrow(()=>new vm.Script(item.code,{filename:`${file}:runtime-${item.id}.js`}),`${file}: Canonical-Laufzeitcode ${item.id} ist syntaktisch defekt`);
+      scripts.push(item.code);
+    }
+  }
+  return scripts;
 }
 
 for(const file of ['TESTVERSION.html','index.html']){
-  test(`RC1003 ${file}: Aufgaben-Gruppenblock ist gueltiges JavaScript`,()=>{
-    assertCompiles(file,'taskGroupNameRC874','taskGroupOpenRC874');
-  });
+  test(`RC1003 ${file}: Aufgaben-Laufzeitmodul ist vollstaendig`,()=>{
+    const scripts=canonicalRuntimeScripts(file);
+    const src=scripts.find(code=>code.includes('function tasks(){'));
+    assert.ok(src,`${file}: aktives Aufgaben-Laufzeitmodul fehlt`);
 
-  test(`RC1003 ${file}: Aufgaben-Reihenfolge ist gueltiges JavaScript`,()=>{
-    assertCompiles(file,'areaOrderRC67');
-  });
-
-  test(`RC1003 ${file}: Aufgabenfunktionen liegen in einem Scriptblock`,()=>{
-    assertInsideScript(file,'taskGroupNameRC874');
-    assertInsideScript(file,'areaOrderRC67');
+    for(const name of [
+      'taskManualDistinctRC874',
+      'taskDisplayKeyRC874',
+      'taskDedupeScoreRC874',
+      'dedupeVisibleTasksRC874',
+      'taskGroupStateRC874'
+    ]){
+      assert.match(src,new RegExp(`function\\s+${name}\\s*\\(`),`${file}: ${name} fehlt im aktiven Aufgabenmodul`);
+    }
+    assert.match(src,/const\s+TASK_GROUP_STORE_RC874\s*=/,`${file}: TASK_GROUP_STORE_RC874 fehlt im aktiven Aufgabenmodul`);
+    assert.match(src,/dedupeVisibleTasksRC874\(rawOpen\)/,`${file}: Aufgaben-Renderpfad verwendet das Dedupe nicht mehr`);
+    assert.match(src,/taskGroupStateRC874\(\)/,`${file}: Gruppenstatus wird nicht mehr gelesen`);
   });
 }
