@@ -14,24 +14,37 @@ jobs:
         with:
           ref: rc1005-hide-sop-nav
           fetch-depth: 0
-      - name: SOP Navigation Fundstellen sichern
+      - name: Kleine SOP-Navigationsdiagnose erzeugen
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .github/rc1005
-          {
-            echo '--- index.html ---'
-            grep -ni -C 4 'sop' index.html || true
-            echo '--- TESTVERSION.html ---'
-            grep -ni -C 4 'sop' TESTVERSION.html || true
-          } > .github/rc1005/sop-nav-snippets.txt
-          cat .github/rc1005/sop-nav-snippets.txt
+          node - <<'NODE'
+          const fs=require('fs');
+          const out=[];
+          for(const file of ['index.html','TESTVERSION.html']){
+            const text=fs.readFileSync(file,'utf8');
+            out.push('--- '+file+' ---');
+            const re=/sop/ig;
+            let m,count=0;
+            while((m=re.exec(text))&&count<20){
+              const a=Math.max(0,m.index-320),b=Math.min(text.length,m.index+360);
+              const frag=text.slice(a,b).replace(/\r?\n/g,'\\n');
+              if(/data-view|setView|onclick|<button|<a\b|nav-item|sidebar|module/i.test(frag)){
+                out.push('MATCH '+(++count)+': '+frag);
+              }
+            }
+          }
+          fs.writeFileSync('.github/rc1005/sop-nav-small.txt',out.join('\n'));
+          NODE
+          cat .github/rc1005/sop-nav-small.txt
       - name: Diagnose committen
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/rc1005/sop-nav-snippets.txt
-          git commit -m 'chore: RC1005 SOP-Navigation Fundstellen sichern'
+          git add .github/rc1005/sop-nav-small.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: RC1005 SOP-Navigationsfundstellen verkleinern'
           git push origin HEAD:rc1005-hide-sop-nav
