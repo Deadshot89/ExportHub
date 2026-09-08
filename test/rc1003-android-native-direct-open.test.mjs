@@ -4,8 +4,13 @@ import fs from 'node:fs';
 
 const read = (p) => fs.readFileSync(p, 'utf8');
 const BASE = 'android-app/app/src/main/java/de/exporthub/test/';
+function currentRc(){
+  const match=read('production-version.js').match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC(\d+)'/);
+  assert.ok(match,'Autoritativer Produktions-RC fehlt');
+  return Number(match[1]);
+}
 
-test('RC1010: Diagnose-Benachrichtigung öffnet native Detailansicht statt WebView', () => {
+test('Diagnose-Benachrichtigung öffnet native Detailansicht statt WebView', () => {
   assert.equal(fs.existsSync(BASE + 'NotificationDetailActivity.java'), true, 'NotificationDetailActivity.java fehlt');
   const helper = read(BASE + 'NotificationHelper.java');
   const detail = read(BASE + 'NotificationDetailActivity.java');
@@ -23,7 +28,7 @@ test('RC1010: Diagnose-Benachrichtigung öffnet native Detailansicht statt WebVi
   assert.match(detail, /EnvironmentActivity/);
 });
 
-test('RC1010: normale ExportHUB-Navigation bleibt geschützt und getrennt', () => {
+test('normale ExportHUB-Navigation bleibt geschützt und getrennt', () => {
   const helper = read(BASE + 'NotificationHelper.java');
   const detail = read(BASE + 'NotificationDetailActivity.java');
   assert.match(helper, /NotificationDetailActivity\.class/);
@@ -33,13 +38,13 @@ test('RC1010: normale ExportHUB-Navigation bleibt geschützt und getrennt', () =
   assert.doesNotMatch(detail, /CookieManager|addJavascriptInterface|loadUrl/);
 });
 
-test('RC1011: App ist als installierbares Update auf demselben Release wie Produktion versioniert', () => {
+test('App ist als installierbares Update exakt auf demselben Release wie Produktion versioniert', () => {
+  const rc=currentRc();
   const gradle = read('android-app/app/build.gradle.kts');
-  assert.match(gradle, /versionCode\s*=\s*1011/);
-  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1011"/);
+  assert.match(gradle,new RegExp(`versionCode\\s*=\\s*${rc}`));
+  assert.match(gradle,new RegExp(`versionName\\s*=\\s*"1\\.0-rc${rc}"`));
   const info = JSON.parse(read('android-app/app-build-info.json'));
-  assert.equal(info.appVersion, '1.0-rc1011');
-  assert.equal(info.releaseCandidate, 'RC1011');
-  assert.match(read('android-app/APP_BUILD_INFO.txt'), /App-Version:\s*1\.0-rc1011/);
-  assert.match(read('production-version.js'), /RC1011/);
+  assert.equal(info.appVersion, `1.0-rc${rc}`);
+  assert.equal(info.releaseCandidate, `RC${rc}`);
+  assert.match(read('android-app/APP_BUILD_INFO.txt'),new RegExp(`App-Version:\\s*1\\.0-rc${rc}`));
 });
