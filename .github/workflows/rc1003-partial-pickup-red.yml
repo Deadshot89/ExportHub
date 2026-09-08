@@ -1,0 +1,27 @@
+name: RC1003 Partial Pickup RED
+
+on:
+  push:
+    branches: [rc1003-partial-pickup-ui]
+    paths:
+      - '.github/workflows/rc1003-partial-pickup-red.yml'
+      - 'pickup.html'
+      - '.github/rc998/partial-pickup-avis-contract.test.mjs'
+      - 'api/pickup-confirm-v2/index.js'
+      - 'api/pickup-status/index.js'
+      - 'api/shared/pickup-store.js'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: Teilabholung-Vertrag
+        run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
