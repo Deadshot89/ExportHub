@@ -45,7 +45,7 @@ test('HSE und Sicherheitsverantwortlich werden als Firmen-Admin behandelt, aber 
 test('Benutzer ohne Rechte sehen Module und Kacheln nicht nur gesperrt, sondern gar nicht',()=>{
   for(const file of pages){
     const source=fs.readFileSync(file,'utf8');
-    assert.match(source,/level===['"]none['"]\)return\{visible:false,read:false,edit:false,admin:false\}/,`${file}: none muss unsichtbar sein`);
+    assert.match(source,/level===['"]none['"]\)return\s*\{visible:false,read:false,edit:false,admin:false\}/,`${file}: none muss unsichtbar sein`);
     assert.match(source,/\.hidden=!allow/,`${file}: Navigation muss versteckt werden`);
     assert.match(source,/style\.display=allow\?['"]['"]:['"]none['"]/,`${file}: Navigation darf nicht als Schloss stehen bleiben`);
     assert.match(source,/function availableModules\(\)\{return MODULES\.filter\(function\(m\)\{return canOpen\(m\.id\)\}\)\}/,`${file}: Dashboard-Module müssen gefiltert werden`);
@@ -60,7 +60,8 @@ test('Aktiver Kunden-Avis-Link bleibt wiederverwendbar bis zur Deaktivierung',()
   assert.match(avisApi,/oneTime:false/,'API muss den Link als wiederverwendbar melden');
   assert.match(avisApi,/singleUse:false/,'Portalstatus darf keinen Einmal-Link melden');
   assert.match(avisApi,/access\.issue\([^;]*,null,payload\)/s,'Avis-Ausstellung muss ohne feste Link-Laufzeit erfolgen');
-  assert.match(accessStore,/ttlMs===null[^;]*expiresAt=null/s,'Public-Access-Store muss ausdrücklich unbefristete Avis-Links unterstützen');
+  assert.match(accessStore,/indefinite=ttlMs===null/,'Public-Access-Store muss ausdrücklich unbefristete Avis-Links unterstützen');
+  assert.match(accessStore,/expiresAt=indefinite\?null:/,'Unbefristete Avis-Links dürfen kein Ablaufdatum erhalten');
   assert.match(accessStore,/record\.kind!==['"]avis['"][^;]*record\.expiresAt/s,'Bestehende aktive Avis-Links dürfen nicht an alter TTL scheitern');
 });
 
