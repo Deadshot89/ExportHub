@@ -1,4 +1,4 @@
-name: RC1002 Main Contract
+name: RC1003 Main Contract
 
 on:
   workflow_dispatch:
@@ -7,6 +7,7 @@ on:
     paths:
       - 'index.html'
       - 'TESTVERSION.html'
+      - 'demo.html'
       - 'production-version.js'
       - 'api/**'
       - 'assets/**'
@@ -15,6 +16,7 @@ on:
       - '.github/rc1000/**'
       - '.github/rc1001/**'
       - '.github/rc1002/**'
+      - '.github/rc1003/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/workflows/**'
 
@@ -22,7 +24,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: rc1002-main-contract-${{ github.ref }}
+  group: rc1003-main-contract-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,9 +36,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC1002 Release-Vertrag
-        run: node --test test/rc1002-release-sync.test.mjs
-      - name: RC1002 Aufgaben-Vertrag
+      - name: RC1003 Release-Vertrag
+        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
+      - name: Aufgaben-Verträge
         run: node --test test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
       - name: QR-Abholung Regression
         run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
@@ -45,22 +47,13 @@ jobs:
       - name: Gesamte Node-Regression
         run: npm test
       - name: Drei-Umgebungen-Build
-        run: node .github/rc1002/build-three-env.mjs
-      - name: RC1002 Build-Ergebnis prüfen
+        run: node .github/rc1003/build-three-env.mjs
+      - name: RC1003 Build-Ergebnis prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'ExportHUB RC1002 environment=production-candidate' dist-rc1002/index.html
-          grep -q 'ExportHUB RC1002 environment=testservice' dist-rc1002/TESTVERSION.html
-          grep -q 'ExportHUB RC1002 environment=demo' dist-rc1002/demo.html
-          test ! -f .github/workflows/rc997-website-final.yml
-          test ! -f .github/workflows/rc1000-production-qr-fix.yml
-          test ! -f .github/workflows/rc1001-task-tiles-cleanup.yml
-          test ! -f .github/workflows/rc1002-release-sync.yml
-          test ! -f .github/workflows/rc1002-task-groups.yml
-          test ! -f .github/workflows/rc1002-testservice-live.yml
-          test ! -f .github/rc1000/apply-production-pickup-fix.mjs
-          test ! -f .github/rc1001/apply-task-tiles-cleanup.mjs
-          test ! -f .github/rc1002/apply-release-sync.mjs
-          test ! -f .github/rc1002/apply-task-groups.mjs
+          grep -q 'ExportHUB RC1003 environment=production-candidate' dist-rc1003/index.html
+          grep -q 'ExportHUB RC1003 environment=testservice' dist-rc1003/TESTVERSION.html
+          grep -q 'ExportHUB RC1003 environment=demo' dist-rc1003/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1003'" production-version.js
           git diff --check
