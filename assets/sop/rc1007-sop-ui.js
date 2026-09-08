@@ -101,7 +101,7 @@ function renderReferences(references){
   if(!refs.length) return '<p class="rc1007-sop-muted">Keine internen Querverweise.</p>';
   return `<div class="rc1007-sop-reference-list">${refs.map(ref=>{
     const value=typeof ref==='string'?ref:(ref.number||ref.label||'');
-    return /^SOP-(QM|SYS|LOG|WH|ORG)-\d{3}$/.test(value)?`<button type="button" class="rc1007-sop-link" data-sop-ref="${esc(value)}">${esc(value)}</button>`:`<span>${esc(value)}</span>`;
+    return /^SOP-EH-\d{3}$/.test(value)?`<button type="button" class="rc1007-sop-link" data-sop-ref="${esc(value)}">${esc(value)}</button>`:`<span>${esc(value)}</span>`;
   }).join('')}</div>`;
 }
 function renderHistory(doc,sections){
@@ -137,7 +137,7 @@ function renderOverview(options={}){
     return `<section class="rc1007-sop-group"><div class="rc1007-sop-group-head"><h2>${esc(area)}</h2><span>${items.length} SOP${items.length===1?'':'s'}</span></div><div class="rc1007-sop-grid">${items.map(doc=>`<article class="rc1007-sop-card"><div class="rc1007-sop-card-top"><span class="rc1007-sop-number">${esc(doc.number)}</span><span class="rc1007-sop-status" data-status="${esc(statusOf(doc))}">${esc(statusOf(doc))}</span></div><h3>${esc(doc.title)}</h3><dl><div><dt>Version</dt><dd>${esc(versionOf(doc))}</dd></div><div><dt>Gültig ab</dt><dd>${esc(text(value(doc,'validFrom'))||'—')}</dd></div><div><dt>Nächste Prüfung</dt><dd>${esc(text(doc.nextReview)||'—')}</dd></div></dl><button type="button" data-sop-open="${esc(doc.number)}">Öffnen</button></article>`).join('')}</div></section>`;
   }).join('');
   const empty=!docs.length?`<div class="rc1007-sop-empty">${r.edit||r.admin?'Keine SOPs entsprechen den aktuellen Filtern.':'Keine freigegebenen SOPs verfügbar.'}</div>`:'';
-  return `<div class="rc1007-sop-overview"><header class="rc1007-sop-hero"><div><p class="rc1007-sop-eyebrow">ISO 9001 · gelenkte Dokumente</p><h1>SOP-Handbuch</h1><p>Aktuelle Arbeitsanweisungen, Prozessverantwortung, Versionen und Nachweise zentral verwalten.</p></div><div class="rc1007-sop-count"><strong>${docs.length}</strong><span>angezeigte SOPs</span></div></header><div class="rc1007-sop-filters"><label>SOP suchen<input type="search" data-sop-filter="query" value="${esc(filters.query||filters.q||'')}" placeholder="Nummer, Titel oder Stichwort"></label><label>Bereich<select data-sop-filter="area"><option value="">Alle Bereiche</option>${areaOptions}</select></label><label>Status<select data-sop-filter="status"><option value="">Alle Status</option>${statusOptions}</select></label></div>${empty}${groups}</div>`;
+  return `<div class="rc1007-sop-overview"><header class="rc1007-sop-hero"><div><p class="rc1007-sop-eyebrow">ExportHUB · gelenkte System-SOPs</p><h1>SOP-Handbuch</h1><p>Ausschließlich ExportHUB-Systemprozesse mit Versionen, Prüfschritten, Systemgrafiken und eindeutigen Verweisen auf externe SOPs.</p></div><div class="rc1007-sop-count"><strong>${docs.length}</strong><span>angezeigte SOPs</span></div></header><div class="rc1007-sop-filters"><label>SOP suchen<input type="search" data-sop-filter="query" value="${esc(filters.query||filters.q||'')}" placeholder="Nummer, Titel oder Stichwort"></label><label>Bereich<select data-sop-filter="area"><option value="">Alle Bereiche</option>${areaOptions}</select></label><label>Status<select data-sop-filter="status"><option value="">Alle Status</option>${statusOptions}</select></label></div>${empty}${groups}</div>`;
 }
 function applyWorkflowAction(document,action,options={}){
   const model=root.ExportHubIsoSopModel;
