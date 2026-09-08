@@ -11,7 +11,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,11 +20,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+      - name: RC1007 Fix auf aktuellen Branch anwenden
+        run: node scripts/rc1007-apply-lieferavis-valid-link.mjs
       - name: RC1007 Lieferavis-Link Regression
         run: node --test test/rc1007-lieferavis-valid-link.test.mjs
       - name: Bestehende Avis-Verträge
         run: node --test .github/rc995/rc995-contract.test.mjs .github/rc998/partial-pickup-avis-contract.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
+      - name: Drei-Umgebungen-Build prüfen
+        run: node .github/rc1005/build-three-env.mjs
+      - name: RC1007 Marker in Builds prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "customerAvisPublicUrl" dist-rc1005/index.html
+          grep -Fq "customerAvisPublicUrl" dist-rc1005/TESTVERSION.html
+          grep -Fq "customer-avis.html?token=" dist-rc1005/index.html
+          grep -Fq "environment=" dist-rc1005/index.html
       - name: Diff prüfen
         run: git diff --check
+      - name: Geprüften RC1007 Produktfix committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html TESTVERSION.html api/shared/merge.js; then
+            echo "Produktfix bereits committed."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html api/shared/merge.js
+          git commit -m 'RC1007: Lieferavis verwendet gültige Server-URL'
+          git push origin HEAD:rc1007-lieferavis-valid-link
