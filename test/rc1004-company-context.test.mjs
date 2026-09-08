@@ -7,20 +7,27 @@ const ctx = require('../api/shared/company-context.js');
 const policy = require('../api/shared/user-policy.js');
 
 test('Firmenkontext nutzt die am Benutzer gebundene Firma', () => {
-  const out = ctx.resolveCompanyContext({ headers: {} }, { companyId: 'ESSENTRA' });
+  const out = ctx.resolveCompanyContext({ headers: {} }, { companyId: 'ESSENTRA', role: 'Benutzer' });
   assert.equal(out.companyKey, 'essentra');
 });
 
 test('Benutzer darf keine andere Firma per Header auswählen', () => {
   assert.throws(
-    () => ctx.resolveCompanyContext({ headers: { 'x-exporthub-company-id': 'KONTUR' } }, { companyId: 'ESSENTRA' }),
+    () => ctx.resolveCompanyContext({ headers: { 'x-exporthub-company-id': 'KONTUR' } }, { companyId: 'ESSENTRA', role: 'Benutzer' }),
     e => e && e.code === 'COMPANY_FORBIDDEN' && e.statusCode === 403
   );
 });
 
 test('Legacy-Benutzer ohne Firmenfeld bleiben im isolierten Legacy-Kontext', () => {
-  const out = ctx.resolveCompanyContext({ headers: {} }, { id: 'USER-1' });
+  const out = ctx.resolveCompanyContext({ headers: {} }, { id: 'USER-1', role: 'Benutzer' });
   assert.equal(out.companyKey, 'legacy-default');
+});
+
+test('Legacy-Benutzer ohne Firmenfeld kann keine Firma per Header erfinden', () => {
+  assert.throws(
+    () => ctx.resolveCompanyContext({ headers: { 'x-exporthub-company-id': 'ESSENTRA' } }, { id: 'USER-1', role: 'Benutzer' }),
+    e => e && e.code === 'COMPANY_FORBIDDEN' && e.statusCode === 403
+  );
 });
 
 test('pickupcalendar ist für Mitarbeiter lesbar und für Admins administrierbar', () => {
