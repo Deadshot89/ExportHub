@@ -1,4 +1,4 @@
-name: RC1005 Main Contract
+name: RC1007 Main Contract
 
 on:
   workflow_dispatch:
@@ -18,6 +18,7 @@ on:
       - '.github/rc1002/**'
       - '.github/rc1003/**'
       - '.github/rc1005/**'
+      - '.github/rc1007/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/workflows/**'
 
@@ -25,7 +26,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: rc1005-main-contract-${{ github.ref }}
+  group: rc1007-main-contract-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,8 +38,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC1005 Release-Vertrag
-        run: node --test test/rc1005-three-env-sync.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
+      - name: RC1007 Release-Vertrag
+        run: node --test test/rc1007-three-env-sync.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
       - name: RC1003 Android-Regression
         run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
       - name: Aufgaben-Verträge
@@ -52,16 +53,19 @@ jobs:
       - name: Gesamte Node-Regression
         run: npm test
       - name: Drei-Umgebungen-Build
-        run: node .github/rc1005/build-three-env.mjs
-      - name: RC1005 Build-Ergebnis prüfen
+        run: node .github/rc1007/build-three-env.mjs
+      - name: RC1007 Build-Ergebnis prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'ExportHUB RC1005 environment=production-candidate' dist-rc1005/index.html
-          grep -q 'ExportHUB RC1005 environment=testservice' dist-rc1005/TESTVERSION.html
-          grep -q 'ExportHUB RC1005 environment=demo' dist-rc1005/demo.html
-          grep -q "version:'RC1005'" dist-rc1005/index.html
-          grep -q "version:'RC1005'" dist-rc1005/TESTVERSION.html
-          grep -q "version:'RC1005'" dist-rc1005/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1005'" production-version.js
+          grep -q 'ExportHUB RC1007 environment=production-candidate' dist-rc1007/index.html
+          grep -q 'ExportHUB RC1007 environment=testservice' dist-rc1007/TESTVERSION.html
+          grep -q 'ExportHUB RC1007 environment=demo' dist-rc1007/demo.html
+          grep -q "version:'RC1007'" dist-rc1007/index.html
+          grep -q "version:'RC1007'" dist-rc1007/TESTVERSION.html
+          grep -q "version:'RC1007'" dist-rc1007/demo.html
+          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/index.html
+          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/TESTVERSION.html
+          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1007'" production-version.js
           git diff --check
