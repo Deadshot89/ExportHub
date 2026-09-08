@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const read = (p) => fs.readFileSync(p, 'utf8');
 const BASE = 'android-app/app/src/main/java/de/exporthub/test/';
 
-test('RC1009: Diagnose-Benachrichtigung öffnet native Detailansicht statt WebView', () => {
+test('RC1010: Diagnose-Benachrichtigung öffnet native Detailansicht statt WebView', () => {
   assert.equal(fs.existsSync(BASE + 'NotificationDetailActivity.java'), true, 'NotificationDetailActivity.java fehlt');
   const helper = read(BASE + 'NotificationHelper.java');
   const detail = read(BASE + 'NotificationDetailActivity.java');
@@ -23,7 +23,7 @@ test('RC1009: Diagnose-Benachrichtigung öffnet native Detailansicht statt WebVi
   assert.match(detail, /EnvironmentActivity/);
 });
 
-test('RC1009: normale ExportHUB-Navigation bleibt geschützt und getrennt', () => {
+test('RC1010: normale ExportHUB-Navigation bleibt geschützt und getrennt', () => {
   const helper = read(BASE + 'NotificationHelper.java');
   const detail = read(BASE + 'NotificationDetailActivity.java');
   assert.match(helper, /NotificationDetailActivity\.class/);
@@ -33,13 +33,13 @@ test('RC1009: normale ExportHUB-Navigation bleibt geschützt und getrennt', () =
   assert.doesNotMatch(detail, /CookieManager|addJavascriptInterface|loadUrl/);
 });
 
-test('RC1009: App ist als installierbares Update auf demselben Release wie Produktion versioniert', () => {
+test('RC1010: App ist als installierbares Update auf demselben Release wie Produktion versioniert', () => {
   const gradle = read('android-app/app/build.gradle.kts');
-  assert.match(gradle, /versionCode\s*=\s*1009/);
-  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1009"/);
+  assert.match(gradle, /versionCode\s*=\s*1010/);
+  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1010"/);
   const info = JSON.parse(read('android-app/app-build-info.json'));
-  assert.equal(info.appVersion, '1.0-rc1009');
-  assert.equal(info.releaseCandidate, 'RC1009');
-  assert.match(read('android-app/APP_BUILD_INFO.txt'), /App-Version:\s*1\.0-rc1009/);
-  assert.match(read('production-version.js'), /RC1009/);
+  assert.equal(info.appVersion, '1.0-rc1010');
+  assert.equal(info.releaseCandidate, 'RC1010');
+  assert.match(read('android-app/APP_BUILD_INFO.txt'), /App-Version:\s*1\.0-rc1010/);
+  assert.match(read('production-version.js'), /RC1010/);
 });
