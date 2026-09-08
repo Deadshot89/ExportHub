@@ -18,3 +18,10 @@ patchFile('api/shared/merge.js',(src)=>{
   if(!src.includes(anchor)) throw new Error('RC1007: customSops-Anker in merge.js nicht gefunden');
   return src.replace(anchor,anchor+"  isoSops: ['id', 'number', '_syncId'],\n");
 });
+
+for(const path of [
+  'docs/superpowers/specs/2026-09-08-iso-sop-handbook-design.md',
+  'docs/superpowers/plans/2026-09-08-iso-sop-handbook.md'
+]){
+  patchFile(path,(src)=>src.replace(/\b33\b/g,'36').replace('vier Hauptbereiche','fünf Hauptbereiche'));
+}
