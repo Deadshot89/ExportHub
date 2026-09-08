@@ -5,15 +5,33 @@ on:
     paths:
       - '.github/workflows/rc1005-sop-nav-diagnose.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: SOP Navigation Fundstellen anzeigen
+        with:
+          ref: rc1005-hide-sop-nav
+          fetch-depth: 0
+      - name: SOP Navigation Fundstellen sichern
+        shell: bash
         run: |
-          echo '--- index.html ---'
-          grep -ni -C 4 'sop' index.html || true
-          echo '--- TESTVERSION.html ---'
-          grep -ni -C 4 'sop' TESTVERSION.html || true
+          set -euo pipefail
+          mkdir -p .github/rc1005
+          {
+            echo '--- index.html ---'
+            grep -ni -C 4 'sop' index.html || true
+            echo '--- TESTVERSION.html ---'
+            grep -ni -C 4 'sop' TESTVERSION.html || true
+          } > .github/rc1005/sop-nav-snippets.txt
+          cat .github/rc1005/sop-nav-snippets.txt
+      - name: Diagnose committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/rc1005/sop-nav-snippets.txt
+          git commit -m 'chore: RC1005 SOP-Navigation Fundstellen sichern'
+          git push origin HEAD:rc1005-hide-sop-nav
