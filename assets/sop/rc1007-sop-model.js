@@ -11,27 +11,34 @@
   function clone(value){
     return value===undefined?undefined:JSON.parse(JSON.stringify(value));
   }
-
   function text(value){
     return String(value==null?'':value).trim();
   }
-
   function nowIso(){
     return new Date().toISOString();
   }
-
   function versionsOf(document){
     return Array.isArray(document&&document.versions)?document.versions:[];
   }
-
   function findVersion(document,version){
     const wanted=text(version);
     return versionsOf(document).find(item=>text(item&&item.version)===wanted)||null;
   }
-
   function currentVersionRecord(document){
     const current=text(document&&document.currentVersion);
     return findVersion(document,current)||versionsOf(document).slice().reverse().find(Boolean)||null;
+  }
+  function addAudit(document,action,version,actor,reason,at){
+    const source=document;
+    source.auditTrail=Array.isArray(source.auditTrail)?source.auditTrail.map(clone):[];
+    source.auditTrail.push({
+      action:text(action),
+      version:text(version),
+      actor:text(actor),
+      at:at||nowIso(),
+      reason:text(reason)
+    });
+    return source;
   }
 
   function validateRelease(input){
@@ -43,10 +50,22 @@
     if(!text(source.version)) errors.push('Version fehlt');
     if(!text(source.approvedBy)) errors.push('Freigabeverantwortlicher fehlt');
     const visuals=Array.isArray(source.visuals)?source.visuals:[];
-    if(visuals.some(v=>v&&v.required===true&&v.type==='placeholder')){
-      warnings.push('Pflicht-Bildplatzhalter offen');
-    }
+    if(visuals.some(v=>v&&v.required===true&&v.type==='placeholder')) warnings.push('Pflicht-Bildplatzhalter offen');
     return {ok:errors.length===0,errors,warnings};
+  }
+
+  function completeness(document,version){
+    const target=findVersion(document,version)||currentVersionRecord(document)||document||{};
+    const visuals=Array.isArray(target.visuals)?target.visuals:(Array.isArray(document&&document.visuals)?document.visuals:[]);
+    const release=validateRelease({
+      number:document&&document.number,
+      title:target.title||(document&&document.title),
+      version:target.version||(document&&document.version),
+      approvedBy:target.approvedBy||(document&&document.approvedBy)||'Vollständigkeitsprüfung',
+      visuals
+    });
+    const openPlaceholders=visuals.filter(v=>v&&v.required===true&&v.type==='placeholder').length;
+    return {complete:release.ok&&openPlaceholders===0,errors:release.errors,warnings:release.warnings,openPlaceholders};
   }
 
   function seedState(state,documents){
@@ -58,6 +77,7 @@
       if(!number||byNumber.has(number)) continue;
       const seeded=clone(source);
       if(!Array.isArray(seeded.versions)){
+        const createdAt=seeded.createdAt||nowIso();
         seeded.versions=[{
           version:text(seeded.version)||'1.0',
           status:text(seeded.status)||STATUS.DRAFT,
@@ -65,9 +85,19 @@
           content:clone(seeded.sections||{}),
           visuals:clone(seeded.visuals||[]),
           createdBy:text(seeded.createdBy),
-          createdAt:seeded.createdAt||nowIso(),
+          createdAt,
           changeReason:text(seeded.changeReason)||'Ersterstellung'
         }];
+        seeded.auditTrail=[{
+          action:'Erstellt',
+          version:text(seeded.version)||'1.0',
+          actor:text(seeded.createdBy),
+          at:createdAt,
+          reason:text(seeded.changeReason)||'Ersterstellung'
+        }];
+      }else if(!Array.isArray(seeded.auditTrail)){
+        const base=currentVersionRecord(seeded)||seeded.versions[0]||{};
+        seeded.auditTrail=[{action:'Erstellt',version:text(base.version),actor:text(base.createdBy),at:base.createdAt||nowIso(),reason:text(base.changeReason)||'Ersterstellung'}];
       }
       seeded.currentVersion=text(seeded.currentVersion)||text(seeded.version)||'1.0';
       byNumber.set(number,seeded);
@@ -100,13 +130,14 @@
     source.versions.push(draft);
     source.draftVersion=version;
     source.updatedAt=draft.createdAt;
+    addAudit(source,'Neue Fassung erstellt',version,opts.actor,opts.reason,draft.createdAt);
     return source;
   }
 
   function submitForReview(document,options){
     const source=clone(document&&typeof document==='object'?document:{});
     const opts=options&&typeof options==='object'?options:{};
-    const version=text(opts.version||source.draftVersion);
+    const version=text(opts.version||source.draftVersion||source.currentVersion);
     const target=findVersion(source,version);
     if(!target) throw new Error('Version nicht gefunden');
     if(target.status!==STATUS.DRAFT) throw new Error('Nur Entwürfe können zur Prüfung eingereicht werden');
@@ -114,13 +145,14 @@
     target.submittedBy=text(opts.actor);
     target.submittedAt=nowIso();
     source.updatedAt=target.submittedAt;
+    addAudit(source,'Zur Prüfung eingereicht',version,opts.actor,opts.reason,target.submittedAt);
     return source;
   }
 
   function approveVersion(document,options){
     const source=clone(document&&typeof document==='object'?document:{});
     const opts=options&&typeof options==='object'?options:{};
-    const version=text(opts.version);
+    const version=text(opts.version||source.draftVersion||source.currentVersion);
     const target=findVersion(source,version);
     if(!target) throw new Error('Version nicht gefunden');
     if(target.status!==STATUS.REVIEW) throw new Error('Nur geprüfte Fassungen können freigegeben werden');
@@ -129,13 +161,7 @@
     target.approvedBy=text(opts.actor);
     target.approvedAt=nowIso();
     target.validFrom=text(opts.validFrom)||target.approvedAt.slice(0,10);
-    const release=validateRelease({
-      number:source.number,
-      title:target.title||source.title,
-      version:target.version,
-      approvedBy:target.approvedBy,
-      visuals:target.visuals||source.visuals
-    });
+    const release=validateRelease({number:source.number,title:target.title||source.title,version:target.version,approvedBy:target.approvedBy,visuals:target.visuals||source.visuals});
     if(!release.ok) throw new Error(release.errors.join('; '));
     for(const item of versionsOf(source)){
       if(item!==target&&item.status===STATUS.APPROVED){
@@ -154,6 +180,7 @@
     source.reviewedBy=target.reviewedBy;
     source.approvedBy=target.approvedBy;
     source.updatedAt=target.approvedAt;
+    addAudit(source,'Freigegeben',version,opts.actor,opts.reason,target.approvedAt);
     return source;
   }
 
@@ -166,10 +193,9 @@
     target.archivedBy=text(opts.actor);
     target.archivedAt=nowIso();
     target.archiveReason=text(opts.reason);
-    if(text(source.currentVersion)===text(target.version)){
-      source.status=STATUS.ARCHIVED;
-    }
+    if(text(source.currentVersion)===text(target.version)) source.status=STATUS.ARCHIVED;
     source.updatedAt=target.archivedAt;
+    addAudit(source,'Archiviert',target.version,opts.actor,opts.reason,target.archivedAt);
     return source;
   }
 
@@ -188,9 +214,7 @@
       if(area&&text(doc&&doc.area)!==area) return false;
       if(status&&documentStatus(doc)!==status) return false;
       if(!query) return true;
-      const haystack=[doc&&doc.number,doc&&doc.title,doc&&doc.area]
-        .concat(Array.isArray(doc&&doc.keywords)?doc.keywords:[])
-        .map(text).join(' ').toLowerCase();
+      const haystack=[doc&&doc.number,doc&&doc.title,doc&&doc.area].concat(Array.isArray(doc&&doc.keywords)?doc.keywords:[]).map(text).join(' ').toLowerCase();
       return haystack.includes(query);
     });
   }
@@ -203,6 +227,7 @@
     approveVersion,
     archiveVersion,
     validateRelease,
+    completeness,
     filterDocuments,
     currentVersionRecord
   });
