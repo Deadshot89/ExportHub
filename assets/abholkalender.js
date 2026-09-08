@@ -53,6 +53,14 @@
       complete: expected > 0 && remaining === 0
     };
   }
+  function shipmentIdentity(shipment){
+    const sh = shipment && typeof shipment === 'object' ? shipment : {};
+    for (const key of ['id','shipmentId','reference','ref','shipmentRef','referenceNumber','referenceNo']) {
+      const value = String(sh[key] == null ? '' : sh[key]).trim();
+      if (value) return value;
+    }
+    return '';
+  }
   function mondayOfWeek(date){
     const out = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
     const weekday = out.getDay();
@@ -60,40 +68,59 @@
     out.setDate(out.getDate() + offset);
     return out;
   }
+  function shiftedWeekMonday(todayDate, weekOffset){
+    const monday = mondayOfWeek(todayDate);
+    monday.setDate(monday.getDate() + Math.trunc(number(weekOffset)) * 7);
+    return monday;
+  }
+  function itemsForDate(fixedPickups, shipments, date){
+    const weekday = date.getDay();
+    const dateKey = dateKeyLocal(date);
+    return {
+      fixed: weekday >= 1 && weekday <= 5 ? fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday) : [],
+      shipments: shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey)
+    };
+  }
   function buildCalendarModel(input){
     const options = input && typeof input === 'object' ? input : {};
     const todayDate = options.today instanceof Date && !Number.isNaN(options.today.getTime()) ? options.today : new Date();
     const fixedPickups = Array.isArray(options.fixedPickups) ? options.fixedPickups : [];
     const shipments = Array.isArray(options.shipments) ? options.shipments : [];
-    const monday = mondayOfWeek(todayDate);
+    const weekOffset = Math.trunc(number(options.weekOffset));
+    const monday = shiftedWeekMonday(todayDate,weekOffset);
     const days = [];
 
     for (let weekday = 1; weekday <= 5; weekday += 1) {
       const date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + weekday - 1, 12, 0, 0, 0);
       const dateKey = dateKeyLocal(date);
+      const source = itemsForDate(fixedPickups,shipments,date);
       days.push({
         weekday,
         label: weekdayLabel(weekday),
         date,
         dateKey,
-        fixed: fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday),
-        shipments: shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey)
+        fixed: source.fixed,
+        shipments: source.shipments
       });
     }
 
     const jsWeekday = todayDate.getDay();
     const regular = jsWeekday >= 1 && jsWeekday <= 5;
-    const todayDay = regular ? days.find(day => day.weekday === jsWeekday) : null;
+    const todaySource = regular ? itemsForDate(fixedPickups,shipments,todayDate) : {fixed:[],shipments:[]};
+    const weekEnd = days.length ? days[days.length-1].date : monday;
     return {
+      weekOffset,
+      weekStart: monday,
+      weekEnd,
       days,
-      today: todayDay ? {
+      today: regular ? {
         regular: true,
-        weekday: todayDay.weekday,
-        label: todayDay.label,
-        date: todayDay.date,
-        dateKey: todayDay.dateKey,
-        fixed: todayDay.fixed,
-        shipments: todayDay.shipments
+        weekday: jsWeekday,
+        label: weekdayLabel(jsWeekday),
+        date: todayDate,
+        dateKey: dateKeyLocal(todayDate),
+        fixed: todaySource.fixed,
+        shipments: todaySource.shipments
       } : {
         regular: false,
         weekday: null,
@@ -110,6 +137,7 @@
     return {
       fixedPickups: [],
       shipments: [],
+      weekOffset: 0,
       canEdit: false,
       fixedLoading: false,
       shipmentLoading: false,
@@ -129,6 +157,11 @@
     try { return new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(date); }
     catch (_) { return `${pad(date.getDate())}.${pad(date.getMonth()+1)}.${date.getFullYear()}`; }
   }
+  function formatWeekLabel(model){
+    if (!model || !(model.weekStart instanceof Date) || !(model.weekEnd instanceof Date)) return '';
+    const start = `${pad(model.weekStart.getDate())}.${pad(model.weekStart.getMonth()+1)}.`;
+    return `${start} – ${formatDate(model.weekEnd)}`;
+  }
   function shipmentRef(shipment){ return String(shipment && (shipment.reference || shipment.ref || shipment.shipmentRef || shipment.id) || 'Ohne Referenz'); }
   function shipmentCustomer(shipment){ return String(shipment && (shipment.customer || shipment.customerName || shipment.recipient || shipment.locationName) || 'Ohne Kunde'); }
   function shipmentCarrier(shipment){ return String(shipment && (shipment.carrierName || shipment.speditionName || shipment.carrier || shipment.spedition) || 'Spedition offen'); }
@@ -138,6 +171,26 @@
     if (collis.partial) return 'Teilweise abgeholt';
     return String(shipment && (shipment.pickupStatus || shipment.status) || 'Angemeldet');
   }
+  function triggerOpenShipment(shipment, options){
+    const sh = shipment && typeof shipment === 'object' ? shipment : null;
+    if (!sh || !shipmentIdentity(sh)) return false;
+    const opts = options && typeof options === 'object' ? options : {};
+    if (typeof opts.onOpenShipment === 'function') {
+      opts.onOpenShipment(sh);
+      return true;
+    }
+    const candidates = root ? [root.__EXPORTHUB_OPEN_SHIPMENT__,root.openShipment,root.openShipmentById,root.editShipment] : [];
+    for (const fn of candidates) {
+      if (typeof fn !== 'function') continue;
+      fn(sh);
+      return true;
+    }
+    if (root && typeof root.dispatchEvent === 'function' && typeof root.CustomEvent === 'function') {
+      root.dispatchEvent(new root.CustomEvent('exporthub:open-shipment',{detail:{shipment:sh,shipmentId:shipmentIdentity(sh)}}));
+      return true;
+    }
+    return false;
+  }
   function renderFixCard(item, manage){
     const note = item && item.note ? `<div class="pickup-item-note">${esc(item.note)}</div>` : '';
     const inactive = item && item.active === false ? ' <span class="pickup-muted">Inaktiv</span>' : '';
@@ -146,8 +199,10 @@
   }
   function renderShipmentCard(shipment){
     const collis = shipmentColliState(shipment);
+    const key = shipmentIdentity(shipment);
     const colli = collis.expected > 0 ? `<div class="pickup-colli"><span>Gesamt: <strong>${collis.expected}</strong></span><span>Bereits abgeholt: <strong>${collis.collected}</strong></span><span>Noch offen: <strong>${collis.remaining}</strong></span></div>` : '';
-    return `<article class="pickup-item pickup-item-shipment"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">SENDUNG</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span>${esc(shipmentCustomer(shipment))}</span><span>${esc(shipmentCarrier(shipment))}</span><span class="pickup-status">${esc(shipmentStatus(shipment))}</span></div>${colli}</article>`;
+    const open = key ? `<div class="pickup-item-actions"><button type="button" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(key)}">Sendung öffnen</button></div>` : '';
+    return `<article class="pickup-item pickup-item-shipment"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">SENDUNG</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span>${esc(shipmentCustomer(shipment))}</span><span>${esc(shipmentCarrier(shipment))}</span><span class="pickup-status">${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
   }
   function renderSection(title, items, renderer, emptyText){
     return `<section class="pickup-source"><h4>${esc(title)}</h4>${items.length ? items.map(renderer).join('') : `<div class="pickup-empty">${esc(emptyText)}</div>`}</section>`;
@@ -161,6 +216,9 @@
   function renderDay(day){
     return `<section class="pickup-day"><header><span>${esc(day.label)}</span><small>${formatDate(day.date)}</small></header>${renderSection('FIX',day.fixed,item=>renderFixCard(item,false),'Keine')}${renderSection('SENDUNG',day.shipments,renderShipmentCard,'Keine')}</section>`;
   }
+  function renderWeekToolbar(model){
+    return `<div class="pickup-week-toolbar"><div><span class="pickup-eyebrow">Wochenansicht</span><h3 class="pickup-week-label">${esc(formatWeekLabel(model))}</h3></div><div class="pickup-week-actions"><button type="button" data-pickup-action="week-prev">← Vorherige Woche</button><button type="button" data-pickup-action="week-current"${model.weekOffset===0?' aria-current="true"':''}>Aktuelle Woche</button><button type="button" data-pickup-action="week-next">Nächste Woche →</button></div></div>`;
+  }
   function renderForm(state){
     if (!state.canEdit) return '';
     const edit = state.editingFix;
@@ -172,9 +230,9 @@
   }
   function render(rootElement, state, today){
     if (!rootElement || !state) return;
-    const model = buildCalendarModel({today:today || new Date(),fixedPickups:state.fixedPickups,shipments:state.shipments});
+    const model = buildCalendarModel({today:today || new Date(),weekOffset:state.weekOffset,fixedPickups:state.fixedPickups,shipments:state.shipments});
     const loading = state.fixedLoading || state.shipmentLoading;
-    rootElement.innerHTML = `<div class="pickup-calendar"><div class="pickup-calendar-head"><div><span class="pickup-eyebrow">ExportHUB</span><h2>Abholkalender</h2><p>Fixe Abholungen und angemeldete Sendungen bleiben getrennt und werden gemeinsam übersichtlich dargestellt.</p></div>${loading?'<span class="pickup-loading">Wird aktualisiert …</span>':''}</div>${state.fixedError?`<div class="pickup-error">FIX: ${esc(state.fixedError)}</div>`:''}${state.shipmentError?`<div class="pickup-error">SENDUNG: ${esc(state.shipmentError)}</div>`:''}${renderToday(model)}<div class="pickup-week">${model.days.map(renderDay).join('')}</div>${renderForm(state)}</div>`;
+    rootElement.innerHTML = `<div class="pickup-calendar"><div class="pickup-calendar-head"><div><span class="pickup-eyebrow">ExportHUB</span><h2>Abholkalender</h2><p>Fixe Abholungen und angemeldete Sendungen bleiben getrennt und werden gemeinsam übersichtlich dargestellt.</p></div>${loading?'<span class="pickup-loading">Wird aktualisiert …</span>':''}</div>${state.fixedError?`<div class="pickup-error">FIX: ${esc(state.fixedError)}</div>`:''}${state.shipmentError?`<div class="pickup-error">SENDUNG: ${esc(state.shipmentError)}</div>`:''}${renderToday(model)}${renderWeekToolbar(model)}<div class="pickup-week">${model.days.map(renderDay).join('')}</div>${renderForm(state)}</div>`;
   }
   function environmentOf(options){
     const env = String(options && options.environment || 'production').toLowerCase();
@@ -231,6 +289,12 @@
     }
   }
   function findFix(id){ return mountedState && mountedState.fixedPickups.find(item=>String(item && item.id)===String(id)) || null; }
+  function findShipment(key){ return mountedState && mountedState.shipments.find(item=>shipmentIdentity(item)===String(key || '')) || null; }
+  function setWeekOffset(offset){
+    if (!mountedState || !mountedRoot) return;
+    mountedState.weekOffset = Math.trunc(number(offset));
+    render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
+  }
   function bindEvents(){
     if (!mountedRoot || eventsBound || typeof mountedRoot.addEventListener !== 'function') return;
     eventsBound = true;
@@ -239,6 +303,14 @@
       if (!button || !mountedState) return;
       const action = button.getAttribute('data-pickup-action');
       const id = button.getAttribute('data-pickup-id');
+      if (action === 'week-prev') { setWeekOffset(mountedState.weekOffset-1); return; }
+      if (action === 'week-current') { setWeekOffset(0); return; }
+      if (action === 'week-next') { setWeekOffset(mountedState.weekOffset+1); return; }
+      if (action === 'open-shipment') {
+        const shipment = findShipment(button.getAttribute('data-pickup-shipment-key'));
+        if (shipment) triggerOpenShipment(shipment,mountedOptions);
+        return;
+      }
       if (action === 'new') mountedState.editingFix = {id:'',siteLabel:'',weekday:1,note:'',active:true};
       if (action === 'cancel') { mountedState.editingFix = null; mountedState.saveError = null; }
       if (action === 'edit') {
@@ -271,13 +343,14 @@
   function mount(rootElement, options){
     if (!rootElement) return null;
     mountedRoot = rootElement;
-    mountedOptions = Object.assign({environment:'production',companyId:'',shipments:[],today:null},options || {});
+    mountedOptions = Object.assign({environment:'production',companyId:'',shipments:[],today:null,onOpenShipment:null},options || {});
     mountedState = createViewState();
     mountedState.shipments = Array.isArray(mountedOptions.shipments) ? mountedOptions.shipments : [];
+    mountedState.weekOffset = Math.trunc(number(mountedOptions.weekOffset));
     bindEvents();
     render(mountedRoot,mountedState,mountedOptions.today);
     loadFixedPickups();
-    return { state: mountedState, refresh: loadFixedPickups, setShipments };
+    return { state: mountedState, refresh: loadFixedPickups, setShipments, setWeekOffset };
   }
   function setShipments(shipments, errorMessage){
     if (!mountedState || !mountedRoot) return;
@@ -296,6 +369,8 @@
     buildCalendarModel,
     shipmentPickupDate,
     shipmentColliState,
+    shipmentIdentity,
+    triggerOpenShipment,
     weekdayLabel,
     dateKeyLocal,
     createViewState,
@@ -303,6 +378,7 @@
     mount,
     setShipments,
     setShipmentLoading,
+    setWeekOffset,
     loadFixedPickups
   };
 
