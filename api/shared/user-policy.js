@@ -2,7 +2,7 @@
 const MODULES = [
   'start','dashboard','tasks','vacation','planning','shipment','abd','shipmentoverview',
   'cmr','documents','pallet','customers','customerfolder','calculator','customs','sop',
-  'academy','ideas','notifications','reports','update','rights','teamfile','archive','settings'
+  'academy','ideas','notifications','reports','update','rights','teamfile','archive','settings','pickupcalendar'
 ];
 
 function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
@@ -23,7 +23,7 @@ function isAdmin(user) {
 function defaultRights(admin) {
   const result = {};
   for (const id of MODULES) {
-    const allow = admin || id === 'start' || id === 'dashboard';
+    const allow = admin || id === 'start' || id === 'dashboard' || id === 'pickupcalendar';
     result[id] = {
       level: admin ? 'admin' : (allow ? 'view' : 'none'),
       visible: allow,
@@ -54,7 +54,7 @@ function normalizeRights(value, admin) {
   const result = {};
   for (const id of MODULES) {
     const old = source[id] && typeof source[id] === 'object' ? source[id] : {};
-    const fallback = admin ? 'admin' : ((id === 'start' || id === 'dashboard') ? 'view' : 'none');
+    const fallback = admin ? 'admin' : ((id === 'start' || id === 'dashboard' || id === 'pickupcalendar') ? 'view' : 'none');
     const level = admin ? 'admin' : normalizeLevel(old, fallback);
     result[id] = {
       level,
