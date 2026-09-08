@@ -4,6 +4,12 @@ const htmlFiles=['index.html','TESTVERSION.html'];
 const oldLink="function link(sh){var t=token(sh);return t?location.origin+'/customer-avis?token='+encodeURIComponent(t):''}";
 const newLink="function link(sh){var raw=q(sh&&(sh.customerAvisPublicUrl||sh.avisPublicUrl)),env=/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production';if(raw){try{return new URL(raw,location.origin).href}catch(_){}}var t=token(sh);return t?location.origin+'/customer-avis.html?token='+encodeURIComponent(t)+'&environment='+encodeURIComponent(env):''}";
 
+function replaceOnce(source,pattern,replacement,label,file){
+  const matches=source.match(pattern)||[];
+  if(matches.length!==1)throw new Error(`${file}: ${label} nicht eindeutig (${matches.length})`);
+  return source.replace(pattern,replacement);
+}
+
 function patchHtml(file){
   let html=fs.readFileSync(file,'utf8');
   if(!html.includes(newLink)){
@@ -17,20 +23,24 @@ function patchHtml(file){
   if(toggleStart<0||toggleEnd<=toggleStart)throw new Error(`${file}: Avis-toggle nicht gefunden`);
   let toggle=html.slice(toggleStart,toggleEnd);
 
-  const issuedOld="customerAvisToken:q(data.token),avisToken:q(data.token),customerAvisSecurityVersion:995";
-  const issuedNew="customerAvisToken:q(data.token),avisToken:q(data.token),customerAvisPublicUrl:q(data.url),avisPublicUrl:q(data.url),customerAvisSecurityVersion:995";
-  if(!toggle.includes(issuedNew)){
-    const count=toggle.split(issuedOld).length-1;
-    if(count!==1)throw new Error(`${file}: Server-URL-Anker im Avis-toggle nicht eindeutig (${count})`);
-    toggle=toggle.replace(issuedOld,issuedNew);
+  if(!/customerAvisPublicUrl:q\(data\.url\)/.test(toggle)){
+    toggle=replaceOnce(
+      toggle,
+      /customerAvisToken:q\(data\.token\),avisToken:q\(data\.token\),/g,
+      "customerAvisToken:q(data.token),avisToken:q(data.token),customerAvisPublicUrl:q(data.url),avisPublicUrl:q(data.url),",
+      'Server-URL-Anker im Avis-toggle',
+      file
+    );
   }
 
-  const disabledOld="customerAvisToken:'',avisToken:'',customerAvisSecurityVersion:0";
-  const disabledNew="customerAvisToken:'',avisToken:'',customerAvisPublicUrl:'',avisPublicUrl:'',customerAvisSecurityVersion:0";
-  if(!toggle.includes(disabledNew)){
-    const count=toggle.split(disabledOld).length-1;
-    if(count!==1)throw new Error(`${file}: Disable-Anker im Avis-toggle nicht eindeutig (${count})`);
-    toggle=toggle.replace(disabledOld,disabledNew);
+  if(!/customerAvisPublicUrl:'',avisPublicUrl:''/.test(toggle)){
+    toggle=replaceOnce(
+      toggle,
+      /customerAvisToken:'',avisToken:'',/g,
+      "customerAvisToken:'',avisToken:'',customerAvisPublicUrl:'',avisPublicUrl:'',",
+      'Disable-Anker im Avis-toggle',
+      file
+    );
   }
 
   html=html.slice(0,toggleStart)+toggle+html.slice(toggleEnd);
