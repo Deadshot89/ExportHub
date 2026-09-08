@@ -1,0 +1,26 @@
+name: RC1011 Abholkalender Verify
+
+on:
+  push:
+    branches:
+      - rc1011-abholkalender-completion
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1011 Abschlussvertrag
+        run: node --test test/rc1011-abholkalender-completion.test.mjs
+      - name: RC1004 Kalender-Regression
+        run: node --test test/rc1004-company-context.test.mjs test/rc1004-fixed-pickup-store.test.mjs test/rc1004-fixed-pickups-api.test.mjs test/rc1004-abholkalender-model.test.mjs test/rc1004-abholkalender-ui.test.mjs
