@@ -21,24 +21,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: State- und Legacy-Renderer diagnostizieren
+      - name: Kanonische Menüstruktur diagnostizieren
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
           for(const file of ['index.html','TESTVERSION.html']){
             const html=fs.readFileSync(file,'utf8');
-            console.log(`=== ${file} STATE + RENDER ===`);
-            for(const term of ['function legacyView(','function S(','function state(','function stableRender(','function viewDomMatches(']){
-              const at=html.indexOf(term);
-              if(at<0){console.log(`MISSING ${term}`);continue;}
-              console.log(`TERM ${term} @${at}: ${html.slice(Math.max(0,at-700),Math.min(html.length,at+7000)).replace(/\s+/g,' ')}`);
-            }
-            for(const term of ['__EXPORTHUB_BIND_STATE__','__EXPORTHUB_GET_STATE__','window.STATE','window.state','window.appState','shipments:']){
-              const at=html.indexOf(term);
-              console.log(`GLOBAL ${term}: ${at}`);
-              if(at>=0) console.log(html.slice(Math.max(0,at-500),Math.min(html.length,at+1800)).replace(/\s+/g,' '));
-            }
+            console.log(`=== ${file} ITEMS ===`);
+            const stateAt=html.indexOf('function state(){');
+            const at=html.lastIndexOf('var ITEMS=',stateAt);
+            console.log('ITEMS_AT',at,'STATE_AT',stateAt);
+            if(at>=0) console.log(html.slice(at,Math.min(html.length,at+9000)).replace(/\s+/g,' '));
           }
           NODE
       - name: RC1011 Kalender-Abschlussvertrag
