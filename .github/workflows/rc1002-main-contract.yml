@@ -1,4 +1,4 @@
-name: RC1010 Main Contract
+name: RC1011 Main Contract
 
 on:
   workflow_dispatch:
@@ -22,6 +22,7 @@ on:
       - '.github/rc1008/**'
       - '.github/rc1009/**'
       - '.github/rc1010/**'
+      - '.github/rc1011/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/workflows/**'
 
@@ -29,7 +30,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: rc1010-main-contract-${{ github.ref }}
+  group: rc1011-main-contract-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -41,10 +42,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC1010 Release-Vertrag
-        run: node --test test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
-      - name: RC1003 Android-Regression
+      - name: RC1011 Release-Vertrag
+        run: node --test test/rc1011-abholkalender-completion.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
+      - name: RC1011 Android-Regression
         run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
+      - name: Kalender-Regression
+        run: node --test test/rc1004-company-context.test.mjs test/rc1004-fixed-pickup-store.test.mjs test/rc1004-fixed-pickups-api.test.mjs test/rc1004-abholkalender-model.test.mjs test/rc1004-abholkalender-ui.test.mjs
       - name: Aufgaben-Verträge
         run: node --test test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
       - name: QR-Abholung Regression
@@ -56,22 +59,21 @@ jobs:
       - name: Gesamte Node-Regression
         run: npm test
       - name: Drei-Umgebungen-Build
-        run: node .github/rc1010/build-three-env.mjs
-      - name: RC1010 Build-Ergebnis prüfen
+        run: node .github/rc1011/build-three-env.mjs
+      - name: RC1011 Build-Ergebnis prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'ExportHUB RC1010 environment=production-candidate' dist-rc1010/index.html
-          grep -q 'ExportHUB RC1010 environment=testservice' dist-rc1010/TESTVERSION.html
-          grep -q 'ExportHUB RC1010 environment=demo' dist-rc1010/demo.html
-          grep -q "version:'RC1010'" dist-rc1010/index.html
-          grep -q "version:'RC1010'" dist-rc1010/TESTVERSION.html
-          grep -q "version:'RC1010'" dist-rc1010/demo.html
-          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1010/index.html
-          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1010/TESTVERSION.html
-          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1010/demo.html
-          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/index.html
-          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/TESTVERSION.html
-          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1010'" production-version.js
+          grep -q 'ExportHUB RC1011 environment=production-candidate' dist-rc1011/index.html
+          grep -q 'ExportHUB RC1011 environment=testservice' dist-rc1011/TESTVERSION.html
+          grep -q 'ExportHUB RC1011 environment=demo' dist-rc1011/demo.html
+          grep -q "version:'RC1011'" dist-rc1011/index.html
+          grep -q "version:'RC1011'" dist-rc1011/TESTVERSION.html
+          grep -q "version:'RC1011'" dist-rc1011/demo.html
+          grep -q 'assets/abholkalender.js' dist-rc1011/index.html
+          grep -q 'assets/abholkalender.js' dist-rc1011/TESTVERSION.html
+          grep -q 'assets/abholkalender.js' dist-rc1011/demo.html
+          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1011/index.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1011/index.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1011'" production-version.js
           git diff --check
