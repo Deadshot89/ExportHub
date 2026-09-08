@@ -27,30 +27,48 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: Aufgaben-Gruppenblock Diagnose
+      - name: Betroffenen Inline-Scriptblock diagnostizieren
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const lines=[];
-          for(const file of ['TESTVERSION.html','index.html']){
-            const html=fs.readFileSync(file,'utf8');
-            const start=html.indexOf('function taskGroupNameRC874(t){');
-            const end=html.indexOf('function taskGroupOpenRC874',start);
-            const src=html.slice(start,end>start?end:start+2500);
-            lines.push(`--- ${file} start=${start} end=${end} ---`);
-            lines.push(JSON.stringify(src.slice(0,2200)));
-            try{new Function(`"use strict";\n${src}\nreturn taskGroupNameRC874;`);lines.push('compile=OK')}
-            catch(e){lines.push(`compile=FAIL ${e.name}: ${e.message}`)}
+          const vm=require('vm');
+          const html=fs.readFileSync('TESTVERSION.html','utf8');
+          const marker=html.indexOf('function taskGroupNameRC874(t){');
+          if(marker<0)throw new Error('taskGroupNameRC874 fehlt');
+          const open=html.lastIndexOf('<script',marker);
+          const bodyStart=html.indexOf('>',open)+1;
+          const close=html.indexOf('</script',marker);
+          if(open<0||bodyStart<=open||close<=marker)throw new Error('Scriptblock-Grenzen fehlen');
+          const src=html.slice(bodyStart,close);
+          const info=[];
+          info.push(`scriptOpen=${open} bodyStart=${bodyStart} close=${close} length=${src.length} markerInScript=${marker-bodyStart}`);
+          const patterns=[
+            ['backslash-newline',/\\\r?\n/g],
+            ['literal-backslash-n',/\\n/g],
+            ['double-backslash-n',/\\\\n/g]
+          ];
+          for(const [name,rx] of patterns){
+            const matches=[...src.matchAll(rx)];
+            info.push(`${name} count=${matches.length}`);
+            matches.slice(0,80).forEach((m,i)=>{
+              const p=m.index||0;
+              info.push(`${name}[${i}] @${p} ${JSON.stringify(src.slice(Math.max(0,p-90),p+130))}`);
+            });
           }
-          fs.writeFileSync('rc1003-diagnostic.txt',lines.join('\n')+'\n');
-          console.log(lines.join('\n'));
+          try{new vm.Script(src,{filename:'TESTVERSION-affected-inline.js'});info.push('compile=OK')}
+          catch(e){info.push(`compile=FAIL ${e.stack||e}`)}
+          fs.writeFileSync('rc1003-script-diagnostic.txt',info.join('\n')+'\n');
+          fs.writeFileSync('rc1003-affected-inline.js',src);
+          console.log(info.join('\n'));
           NODE
       - name: Diagnose-Artefakt hochladen
         uses: actions/upload-artifact@v4
         with:
-          name: rc1003-task-render-diagnostic
-          path: rc1003-diagnostic.txt
+          name: rc1003-script-diagnostic
+          path: |
+            rc1003-script-diagnostic.txt
+            rc1003-affected-inline.js
           retention-days: 1
       - name: Aufgaben-Gruppenblock kompilieren
         run: node --test test/rc1003-task-render-syntax.test.mjs
