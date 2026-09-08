@@ -125,6 +125,18 @@ function renderOverview(options={}){
   const empty=!docs.length?`<div class="rc1007-sop-empty">${r.edit||r.admin?'Keine SOPs entsprechen den aktuellen Filtern.':'Keine freigegebenen SOPs verfügbar.'}</div>`:'';
   return `<div class="rc1007-sop-overview"><header class="rc1007-sop-hero"><div><p class="rc1007-sop-eyebrow">ISO 9001 · gelenkte Dokumente</p><h1>SOP-Handbuch</h1><p>Aktuelle Arbeitsanweisungen, Prozessverantwortung, Versionen und Nachweise zentral verwalten.</p></div><div class="rc1007-sop-count"><strong>${docs.length}</strong><span>angezeigte SOPs</span></div></header><div class="rc1007-sop-filters"><label>SOP suchen<input type="search" data-sop-filter="query" value="${esc(filters.query||filters.q||'')}" placeholder="Nummer, Titel oder Stichwort"></label><label>Bereich<select data-sop-filter="area"><option value="">Alle Bereiche</option>${areaOptions}</select></label><label>Status<select data-sop-filter="status"><option value="">Alle Status</option>${statusOptions}</select></label></div>${empty}${groups}</div>`;
 }
+function applyWorkflowAction(document,action,options={}){
+  const model=root.ExportHubIsoSopModel;
+  if(!model) throw new Error('ISO-SOP-Modell nicht geladen');
+  switch(String(action||'').toLowerCase()){
+    case 'draft':
+    case 'new-version': return model.createDraftVersion(document,options);
+    case 'review': return model.submitForReview(document,options);
+    case 'approve': return model.approveVersion(document,options);
+    case 'archive': return model.archiveVersion(document,options);
+    default: throw new Error('Unbekannte SOP-Workflow-Aktion');
+  }
+}
 function printDocument(){
   if(root&&typeof root.print==='function') root.print();
 }
@@ -161,5 +173,5 @@ function mount(target,options={}){
   return {state,refresh(next={}){if(next.documents)state.documents=next.documents;if(next.rights)state.rights=next.rights;paint();},open(number){state.activeNumber=text(number);paint();},destroy(){host.removeEventListener('click',onClick);host.removeEventListener('input',onFilter);host.removeEventListener('change',onFilter);}};
 }
 
-root.ExportHubIsoSopUi=Object.freeze({mount,renderOverview,renderDocument,renderProcessGraphic,printDocument});
+root.ExportHubIsoSopUi=Object.freeze({mount,renderOverview,renderDocument,renderProcessGraphic,printDocument,applyWorkflowAction});
 })(typeof globalThis!=='undefined'?globalThis:this);
