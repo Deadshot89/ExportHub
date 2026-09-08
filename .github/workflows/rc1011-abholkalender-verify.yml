@@ -20,6 +20,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Bestehende Sendungsnavigation diagnostizieren
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          for(const file of ['index.html','TESTVERSION.html']){
+            const html=fs.readFileSync(file,'utf8');
+            const names=new Set();
+            for(const re of [/function\s+([A-Za-z0-9_$]*shipment[A-Za-z0-9_$]*)\s*\(/gi,/([A-Za-z0-9_$]*shipment[A-Za-z0-9_$]*)\s*=\s*function\s*\(/gi]){
+              for(const m of html.matchAll(re)) names.add(m[1]);
+            }
+            console.log(`--- ${file} shipment functions ---`);
+            console.log([...names].sort().join('\n'));
+            const at=html.indexOf('ExportHubPickupCalendar.mount');
+            console.log(`--- ${file} calendar bridge ---`);
+            console.log(at>=0?html.slice(Math.max(0,at-1800),at+2600):'BRIDGE_NOT_FOUND');
+          }
+          NODE
       - name: RC1011 Abschlussvertrag
         run: node --test test/rc1011-abholkalender-completion.test.mjs
       - name: RC1004 Kalender-Regression
