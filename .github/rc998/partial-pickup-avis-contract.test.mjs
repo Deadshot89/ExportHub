@@ -45,6 +45,10 @@ test('QR-Abholung unterstützt Teilabholung und Restmenge',()=>{
   assert.match(pickupHtml,/Vollständige Abholung/);
   assert.match(pickupHtml,/remainingPickupCollis/);
   assert.match(pickupHtml,/collectedPickupCollis/);
+  assert.match(pickupHtml,/data-mode=["']partial["']/);
+  assert.match(pickupHtml,/data-mode=["']complete["']/);
+  assert.match(pickupHtml,/pickupMode:mode/);
+  assert.match(pickupHtml,/remainingBefore/);
   assert.match(pickupConfirm,/pickupHistory/);
   assert.match(pickupConfirm,/remainingAfter/);
   assert.match(pickupConfirm,/complete/);
