@@ -14,9 +14,12 @@ test('RC1003: historische Drei-Umgebungen-Baseline bleibt nachvollziehbar', () =
   assert.match(build, /write\('demo\.html'/);
 });
 
-test('RC1010: Android-App folgt dem aktuellen gemeinsamen Release', () => {
+test('RC1010+: Android-App bleibt an den gemeinsamen Release gekoppelt', () => {
   const gradle = read('android-app/app/build.gradle.kts');
-  assert.match(gradle, /versionCode\s*=\s*1010/);
-  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1010"/);
-  assert.match(read('production-version.js'), /RC1010/);
+  const code = Number((gradle.match(/versionCode\s*=\s*(\d+)/)||[])[1]);
+  const name = (gradle.match(/versionName\s*=\s*"1\.0-rc(\d+)"/)||[])[1];
+  const marker = (read('production-version.js').match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC(\d+)'/)||[])[1];
+  assert.ok(code >= 1010, 'Android versionCode darf nicht hinter RC1010 zurückfallen');
+  assert.equal(String(code), String(name), 'versionCode und versionName müssen denselben RC tragen');
+  assert.equal(String(code), String(marker), 'Android und gemeinsamer Produktionsmarker müssen denselben RC tragen');
 });
