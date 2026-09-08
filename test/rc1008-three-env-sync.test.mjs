@@ -4,27 +4,27 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
-test('RC1008 ist der gemeinsame autoritative Versionsmarker',()=>{
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1008'/);
-});
-
-test('RC1008 Build erzeugt Produktion TESTSERVICE und Demo aus demselben Release',()=>{
+test('historischer RC1008 Drei-Umgebungen-Build bleibt als reproduzierbare Baseline erhalten',()=>{
+  assert.ok(fs.existsSync('.github/rc1008/build-three-env.mjs'),'RC1008 Drei-Umgebungen-Build fehlt');
   const build=read('.github/rc1008/build-three-env.mjs');
-  for(const term of ["VERSION='RC1008'","environment=production-candidate","environment=testservice","environment=demo","dist-rc1008"]) assert.match(build,new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.match(build,/const VERSION='RC1008'/);
+  assert.match(build,/environment=production-candidate/);
+  assert.match(build,/environment=testservice/);
+  assert.match(build,/environment=demo/);
 });
 
-test('gemeinsamer Deploy veröffentlicht alle drei Umgebungen und prüft sie live',()=>{
-  const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/ExportHUB RC1008 Drei-Umgebungen Deploy/);
-  assert.match(flow,/Deploy ExportHUB production/);
-  assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
-  assert.match(flow,/Live RC1008 Produktion TESTSERVICE und Demo prüfen/);
-  assert.match(flow,/node \.github\/rc1008\/build-three-env\.mjs/);
+test('aktueller Standard-Deploy darf RC1008 nicht mehr als Freigabestand festschreiben',()=>{
+  const marker=read('production-version.js');
+  assert.doesNotMatch(marker,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1008'/);
+  const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
+  assert.match(workflow,/Deploy ExportHUB production/);
+  assert.match(workflow,/Deploy ExportHUB TESTSERVICE/);
+  assert.match(workflow,/demo\.html/);
 });
 
-test('TESTSERVICE Einzeldeploy bleibt nur als ausdrücklich genehmigte Ausnahme möglich',()=>{
-  const flow=read('.github/workflows/exporthub-testservice.yml');
-  assert.match(flow,/ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION/);
-  assert.match(flow,/Produktion, TESTSERVICE und Demo müssen denselben Versionsstand haben/);
-  assert.match(flow,/RC1008/);
+test('Einzel-TESTSERVICE-Deploy bleibt weiterhin nur als explizite Ausnahme möglich',()=>{
+  const workflow=read('.github/workflows/exporthub-testservice.yml');
+  assert.match(workflow,/confirm_divergence/);
+  assert.match(workflow,/ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION/);
+  assert.match(workflow,/Abweichender Einzel-Deploy ist gesperrt/);
 });

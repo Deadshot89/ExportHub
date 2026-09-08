@@ -1,0 +1,32 @@
+name: RC1009 SOP Auswahl und Darstellung
+
+on:
+  push:
+    branches:
+      - rc1009-sop-selection-ui
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1009 SOP-Auswahl und Darstellung
+        run: node --test test/rc1009-sop-selection-ui.test.mjs test/rc1009-three-env-sync.test.mjs
+      - name: Bestehende Node-Regression
+        run: npm test
+      - name: RC1009 Drei-Umgebungen-Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1009/build-three-env.mjs
+          grep -q 'ExportHUB RC1009 environment=production-candidate' dist-rc1009/index.html
+          grep -q 'ExportHUB RC1009 environment=testservice' dist-rc1009/TESTVERSION.html
+          grep -q 'ExportHUB RC1009 environment=demo' dist-rc1009/demo.html
+          grep -q "version:'RC1009'" dist-rc1009/index.html
+          grep -q "version:'RC1009'" dist-rc1009/TESTVERSION.html
+          grep -q "version:'RC1009'" dist-rc1009/demo.html
+          git diff --check
