@@ -1,4 +1,4 @@
-name: RC1007 Release Verify
+name: RC1007 Historical Release Verify
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC1007 Einzelverträge prüfen
+      - name: RC1007 historische Einzelverträge prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -34,7 +34,7 @@ jobs:
           node --check assets/sop/rc1007-sop-ui.js
           node --check api/shared/merge.js
           node --check .github/rc1007/build-three-env.mjs
-      - name: Drei Umgebungen gemeinsam bauen
+      - name: Historischen RC1007 Drei-Umgebungen-Build reproduzieren
         shell: bash
         run: |
           set -euo pipefail
@@ -45,4 +45,12 @@ jobs:
           grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/index.html
           grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/TESTVERSION.html
           grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1007/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1007'" production-version.js
+      - name: Aktuellen Release vor Rückstufung schützen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1007'" production-version.js; then
+            echo 'Fehler: aktueller Produktionsmarker darf nicht auf RC1007 zurückfallen.'
+            exit 1
+          fi
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1010'" production-version.js

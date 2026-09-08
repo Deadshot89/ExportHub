@@ -1,6 +1,6 @@
 name: ExportHUB TESTSERVICE Einzel-Deploy
 
-# Standard ist ab RC1009 der gemeinsame Drei-Umgebungen-Deploy über
+# Standard ist ab RC1010 der gemeinsame Drei-Umgebungen-Deploy über
 # azure-static-web-apps-wonderful-forest-0f315e310.yml.
 # Ein einzelner TESTSERVICE-Deploy ist nur bei ausdrücklich genehmigter
 # Abweichung von Produktion und Demo möglich.
@@ -37,37 +37,39 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC1009 TESTSERVICE-Ausnahmevertrag prüfen
+      - name: RC1010 TESTSERVICE-Ausnahmevertrag prüfen
         run: |
           set -euo pipefail
-          node --test test/rc1009-sop-selection-ui.test.mjs test/rc1009-three-env-sync.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs
+          node --test test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs
           npm test
-          node .github/rc1009/build-three-env.mjs
-          grep -q 'ExportHUB RC1009 environment=testservice' dist-rc1009/TESTVERSION.html
-          grep -q 'ExportHUB RC1009 environment=demo' dist-rc1009/demo.html
-          grep -q "version:'RC1009'" dist-rc1009/TESTVERSION.html
-          grep -q "version:'RC1009'" dist-rc1009/demo.html
+          node .github/rc1010/build-three-env.mjs
+          grep -q 'ExportHUB RC1010 environment=testservice' dist-rc1010/TESTVERSION.html
+          grep -q 'ExportHUB RC1010 environment=demo' dist-rc1010/demo.html
+          grep -q "version:'RC1010'" dist-rc1010/TESTVERSION.html
+          grep -q "version:'RC1010'" dist-rc1010/demo.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/TESTVERSION.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/demo.html
       - name: TESTSERVICE-Paket vorbereiten
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .rc1009_testservice_app
-          mkdir -p .rc1009_testservice_app
-          cp pickup.html customer-avis.html location.html pod-notfall.html production-version.js .rc1009_testservice_app/
-          cp -R assets .rc1009_testservice_app/assets
-          cp staticwebapp.testservice.config.json .rc1009_testservice_app/staticwebapp.config.json
-          cp dist-rc1009/TESTVERSION.html .rc1009_testservice_app/index.html
-          cp dist-rc1009/TESTVERSION.html .rc1009_testservice_app/TESTVERSION.html
-          cp dist-rc1009/demo.html .rc1009_testservice_app/demo.html
-          cp dist-rc1009/assets/exporthub-environment-hub.js .rc1009_testservice_app/assets/exporthub-environment-hub.js
-          cp dist-rc1009/assets/exporthub-demo-bootstrap.js .rc1009_testservice_app/assets/exporthub-demo-bootstrap.js
+          rm -rf .rc1010_testservice_app
+          mkdir -p .rc1010_testservice_app
+          cp pickup.html customer-avis.html location.html pod-notfall.html production-version.js .rc1010_testservice_app/
+          cp -R assets .rc1010_testservice_app/assets
+          cp staticwebapp.testservice.config.json .rc1010_testservice_app/staticwebapp.config.json
+          cp dist-rc1010/TESTVERSION.html .rc1010_testservice_app/index.html
+          cp dist-rc1010/TESTVERSION.html .rc1010_testservice_app/TESTVERSION.html
+          cp dist-rc1010/demo.html .rc1010_testservice_app/demo.html
+          cp dist-rc1010/assets/exporthub-environment-hub.js .rc1010_testservice_app/assets/exporthub-environment-hub.js
+          cp dist-rc1010/assets/exporthub-demo-bootstrap.js .rc1010_testservice_app/assets/exporthub-demo-bootstrap.js
       - name: Deploy TESTSERVICE explicit only
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1009_testservice_app
+          app_location: .rc1010_testservice_app
           api_location: api
           output_location: ''
           skip_app_build: true

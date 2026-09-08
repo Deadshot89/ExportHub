@@ -1,0 +1,54 @@
+name: RC1010 SOP Freigabereife
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc1010-sop-fertigstellung
+    paths:
+      - 'assets/sop/**'
+      - 'android-app/**'
+      - 'production-version.js'
+      - '.github/rc1010/**'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/exporthub-testservice.yml'
+      - '.github/workflows/exporthub-android-test-app.yml'
+      - '.github/workflows/rc1002-main-contract.yml'
+      - 'test/rc1003-android-native-direct-open.test.mjs'
+      - 'test/rc1003-three-env-sync.test.mjs'
+      - 'test/rc1009-three-env-sync.test.mjs'
+      - 'test/rc1010-sop-release-readiness.test.mjs'
+      - 'test/rc1010-three-env-sync.test.mjs'
+      - '.github/workflows/rc1010-sop-release-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1010 SOP-Freigabereife und Drei-Umgebungen-Vertrag prüfen
+        run: node --test test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: RC1010 Drei-Umgebungen-Build prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1010/build-three-env.mjs
+          grep -q 'ExportHUB RC1010 environment=production-candidate' dist-rc1010/index.html
+          grep -q 'ExportHUB RC1010 environment=testservice' dist-rc1010/TESTVERSION.html
+          grep -q 'ExportHUB RC1010 environment=demo' dist-rc1010/demo.html
+          grep -q "version:'RC1010'" dist-rc1010/index.html
+          grep -q "version:'RC1010'" dist-rc1010/TESTVERSION.html
+          grep -q "version:'RC1010'" dist-rc1010/demo.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/index.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/TESTVERSION.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1010/demo.html
+          git diff --check
