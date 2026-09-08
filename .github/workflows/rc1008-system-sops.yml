@@ -1,0 +1,28 @@
+name: RC1008 ExportHUB System SOPs
+
+on:
+  push:
+    branches: [rc1008-system-sops]
+    paths:
+      - 'assets/sop/**'
+      - 'test/rc1008-system-sops.test.mjs'
+      - '.github/rc1008/**'
+      - '.github/workflows/rc1008-system-sops.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1008-system-sops
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1008 System-SOP Vertrag
+        run: node --test test/rc1008-system-sops.test.mjs
+      - name: Bestehende Node-Regression
+        run: npm test
