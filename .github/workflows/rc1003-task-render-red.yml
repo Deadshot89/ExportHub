@@ -32,14 +32,25 @@ jobs:
         run: |
           node <<'NODE'
           const fs=require('fs');
+          const lines=[];
           for(const file of ['TESTVERSION.html','index.html']){
             const html=fs.readFileSync(file,'utf8');
             const start=html.indexOf('function taskGroupNameRC874(t){');
             const end=html.indexOf('function taskGroupOpenRC874',start);
             const src=html.slice(start,end>start?end:start+2500);
-            console.log(`--- ${file} start=${start} end=${end} ---`);
-            console.log(JSON.stringify(src.slice(0,1800)));
+            lines.push(`--- ${file} start=${start} end=${end} ---`);
+            lines.push(JSON.stringify(src.slice(0,2200)));
+            try{new Function(`"use strict";\n${src}\nreturn taskGroupNameRC874;`);lines.push('compile=OK')}
+            catch(e){lines.push(`compile=FAIL ${e.name}: ${e.message}`)}
           }
+          fs.writeFileSync('rc1003-diagnostic.txt',lines.join('\n')+'\n');
+          console.log(lines.join('\n'));
           NODE
+      - name: Diagnose-Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1003-task-render-diagnostic
+          path: rc1003-diagnostic.txt
+          retention-days: 1
       - name: Aufgaben-Gruppenblock kompilieren
         run: node --test test/rc1003-task-render-syntax.test.mjs
