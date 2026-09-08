@@ -4,11 +4,11 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
-test('RC1007 besitzt genau 33 neue ISO-SOPs',()=>{
+test('RC1007 besitzt genau 36 neue ISO-SOPs',()=>{
   const src=read('assets/sop/rc1007-sop-catalog.js');
   const numbers=[...src.matchAll(/number:\s*['"](SOP-(?:QM|SYS|LOG|WH|ORG)-\d{3})['"]/g)].map(m=>m[1]);
-  assert.equal(numbers.length,33);
-  assert.equal(new Set(numbers).size,33);
+  assert.equal(numbers.length,36);
+  assert.equal(new Set(numbers).size,36);
 });
 
 test('RC1007 trennt neue ISO-SOPs vom alten customSops-Bestand',()=>{
