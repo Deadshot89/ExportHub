@@ -12,6 +12,7 @@ on:
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/exporthub-testservice.yml'
       - '.github/workflows/rc1002-main-contract.yml'
+      - 'test/rc1009-three-env-sync.test.mjs'
       - 'test/rc1010-sop-release-readiness.test.mjs'
       - 'test/rc1010-three-env-sync.test.mjs'
       - '.github/workflows/rc1010-sop-release-readiness.yml'
