@@ -1,0 +1,25 @@
+name: RC1010 SOP Freigabereife
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc1010-sop-fertigstellung
+    paths:
+      - 'assets/sop/**'
+      - 'test/rc1010-sop-release-readiness.test.mjs'
+      - '.github/workflows/rc1010-sop-release-readiness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1010 SOP-Freigabereife prüfen
+        run: node --test test/rc1010-sop-release-readiness.test.mjs
