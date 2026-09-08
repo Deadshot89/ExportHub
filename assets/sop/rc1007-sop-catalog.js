@@ -5,6 +5,23 @@ const CREATED='2026-09-08';
 const EXTERNAL='Die weitere Durchführung erfolgt gemäß SOP XXXX.';
 
 function list(value){return Array.isArray(value)?value:(value?[value]:[]);}
+function buildVisuals(input,sections){
+  const process={type:'process',stepId:'process-flow',caption:`Prozessübersicht – ${input.number}: ${input.title}`,required:true};
+  if(input.number==='SOP-LOG-011'){
+    return [
+      process,
+      {type:'placeholder',stepId:'step-1',caption:'Bild noch zu erstellen: ExportHUB – Ladeliste mit QR-Code der aktuellen Sendung.',required:true},
+      {type:'placeholder',stepId:'step-2',caption:'Bild noch zu erstellen: ExportHUB – Abholseite mit Referenz und Empfängerprüfung.',required:true},
+      {type:'placeholder',stepId:'step-4',caption:'Bild noch zu erstellen: ExportHUB – Eingabefeld für den Verlade-PIN.',required:true},
+      {type:'placeholder',stepId:'step-5',caption:'Bild noch zu erstellen: ExportHUB – Soll-/Ist-Colli prüfen und bestätigen.',required:true},
+      {type:'placeholder',stepId:'step-8',caption:'Bild noch zu erstellen: ExportHUB – Abschluss der Abholung mit Status und Zeitstempel.',required:true}
+    ];
+  }
+  return [
+    process,
+    {type:'placeholder',stepId:'step-1',caption:`Bild noch zu erstellen: ${input.number} – ${input.title} – erster wesentlicher Arbeitsschritt.`,required:false}
+  ];
+}
 function define(input){
   const sections={
     purpose:input.purpose,
@@ -40,7 +57,7 @@ function define(input){
     nextReview:'',
     changeReason:'Ersterstellung',
     sections,
-    visuals:[{type:'placeholder',stepId:'step-1',caption:`Bild noch zu erstellen: ${input.number} – erster wesentlicher Prozessschritt.`,required:false}],
+    visuals:buildVisuals(input,sections),
     references:list(input.references),
     history:sections.changeHistory
   });
