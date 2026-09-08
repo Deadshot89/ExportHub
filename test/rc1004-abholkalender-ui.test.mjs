@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const calendar = require('../assets/abholkalender.js');
+await import('../assets/abholkalender.js');
+const calendar = globalThis.ExportHubPickupCalendar;
 
 test('UI-Vertrag enthält Heute, FIX, SENDUNG und Montag bis Freitag', () => {
   const js = fs.readFileSync('assets/abholkalender.js','utf8');
