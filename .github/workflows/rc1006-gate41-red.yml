@@ -1,0 +1,26 @@
+name: RC1006 Gate41 RED
+
+on:
+  push:
+    branches:
+      - rc1006-gate41-shipping-costs
+    paths:
+      - 'test/rc1006-gate41-route.test.mjs'
+      - '.github/workflows/rc1006-gate41-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1006-gate41-shipping-costs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Gate41 Standort-Regression reproduzieren
+        run: node --test test/rc1006-gate41-route.test.mjs
