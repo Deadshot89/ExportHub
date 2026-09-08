@@ -6,7 +6,9 @@ on:
     paths:
       - 'android-app/**'
       - 'test/rc1003-android-native-direct-open.test.mjs'
+      - 'test/rc1002-release-sync.test.mjs'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
+      - '.github/rc997/android-contract.test.mjs'
       - '.github/workflows/rc1003-android-notification-direct-open.yml'
 permissions:
   contents: read
@@ -24,8 +26,13 @@ jobs:
           node-version: '20.x'
       - name: RC1003 Direktzugriff Vertrag
         run: node --test test/rc1003-android-native-direct-open.test.mjs
-      - name: RC997 Diagnose Regression
-        run: node --test .github/rc997/diagnostic-notifications-contract.test.mjs .github/rc997/android-contract.test.mjs
+      - name: RC1002 Baseline Vertrag
+        run: node --test test/rc1002-release-sync.test.mjs
+      - name: RC997 Diagnose Regression ohne historische Versions-Pins
+        shell: bash
+        run: |
+          node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
+          node --test --test-name-pattern='gemeinsame Drei-Umgebungen-Hülle|Benachrichtigungen und 09-12-15' .github/rc997/android-contract.test.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
