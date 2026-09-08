@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
+await import('../assets/sop/rc1010-sop-release.js');
 await import('../assets/sop/rc1007-sop-ui.js');
 
 const model=globalThis.ExportHubIsoSopModel;
@@ -19,6 +20,8 @@ function legacySystemDraft(doc){
     nextReview:'',
     currentVersion:'1.0',
     draftVersion:'1.0',
+    createdBy:'ExportHUB – RC1008 SOP-Ersterstellung',
+    changeReason:'RC1008 – Umstellung auf reine ExportHUB-Systemprozesse',
     versions:[{
       version:'1.0',
       status:'Entwurf',
@@ -34,6 +37,7 @@ function legacySystemDraft(doc){
 }
 
 test('RC1010 liefert alle 75 System-SOPs als freigegebene gelenkte Arbeitsanweisungen aus',()=>{
+  assert.equal(catalog.version,'RC1010');
   assert.equal(catalog.documents.length,75);
   for(const doc of catalog.documents){
     assert.equal(doc.status,'Freigegeben',`${doc.number}: nicht freigegeben`);
@@ -42,6 +46,7 @@ test('RC1010 liefert alle 75 System-SOPs als freigegebene gelenkte Arbeitsanweis
     assert.ok(String(doc.reviewedBy||'').trim(),`${doc.number}: Prüfer fehlt`);
     assert.ok(String(doc.approvedBy||'').trim(),`${doc.number}: Freigeber fehlt`);
     assert.match(String(doc.nextReview||''),/^\d{4}-\d{2}-\d{2}$/,`${doc.number}: nächste Prüfung fehlt`);
+    assert.equal(model.currentVersionRecord(doc).status,'Freigegeben',`${doc.number}: aktuelle Fassung nicht freigegeben`);
   }
 });
 
@@ -54,13 +59,15 @@ test('normaler Lesebenutzer kann den vollständigen freigegebenen 75er-Katalog a
 
 test('RC1008-Systementwürfe werden auf die freigegebene RC1010-Basis migriert',()=>{
   const canonical=catalog.documents[0];
-  const migrated=model.reconcileCatalog([legacySystemDraft(canonical)],[canonical])[0];
+  const stored=[legacySystemDraft(canonical)];
+  const migrated=model.reconcileCatalog(stored,[canonical])[0];
   const current=model.currentVersionRecord(migrated);
   assert.equal(migrated.status,'Freigegeben');
   assert.equal(migrated.currentVersion,'1.0');
   assert.equal(migrated.draftVersion,'');
   assert.equal(current.status,'Freigegeben');
   assert.ok(String(current.approvedBy||'').trim());
+  assert.equal(stored[0].status,'Freigegeben');
 });
 
 test('echte spätere Benutzerfassungen bleiben bei der Katalogmigration erhalten',()=>{
