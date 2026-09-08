@@ -31,6 +31,16 @@ test('Standarddeploy veröffentlicht RC1011 gemeinsam und prüft alle drei Umgeb
   assert.match(flow,/dist-rc1011\/demo\.html/);
 });
 
+test('Main-Contract prüft ebenfalls den RC1011-Stand statt den alten RC1010-Deploy',()=>{
+  const flow=read('.github/workflows/rc1002-main-contract.yml');
+  assert.match(flow,/RC1011 Main Contract/);
+  assert.match(flow,/test\/rc1011-core-open-issues\.test\.mjs/);
+  assert.match(flow,/test\/rc1011-three-env-sync\.test\.mjs/);
+  assert.match(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
+  assert.match(flow,/dist-rc1011\/index\.html/);
+  assert.match(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1011'/);
+});
+
 test('TESTSERVICE Einzeldeploy bleibt unter RC1011 ausschließlich genehmigte Ausnahme',()=>{
   const flow=read('.github/workflows/exporthub-testservice.yml');
   assert.match(flow,/ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION/);
