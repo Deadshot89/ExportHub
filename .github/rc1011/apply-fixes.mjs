@@ -3,7 +3,7 @@ import fs from 'node:fs';
 function countOf(source,needle){return source.split(needle).length-1}
 function replaceExact(file,from,to){
   let src=fs.readFileSync(file,'utf8');
-  if(src.includes(to)&&!src.includes(from)){console.log(file+': bereits angewendet');return false}
+  if(src.includes(to)){console.log(file+': bereits angewendet');return false}
   const count=countOf(src,from);
   if(count!==1)throw new Error(`${file}: erwartete genau 1 Fundstelle, gefunden ${count}: ${from.slice(0,120)}`);
   src=src.replace(from,to);
@@ -13,8 +13,8 @@ function replaceExact(file,from,to){
 }
 function replaceEvery(file,from,to,expected){
   let src=fs.readFileSync(file,'utf8');
+  if(src.includes(to)&&countOf(src,from)===0){console.log(file+': bereits angewendet');return false}
   const count=countOf(src,from);
-  if(count===0&&src.includes(to)){console.log(file+': bereits angewendet');return false}
   if(count!==expected)throw new Error(`${file}: erwartete ${expected} Fundstellen, gefunden ${count}: ${from.slice(0,120)}`);
   src=src.split(from).join(to);
   fs.writeFileSync(file,src);
@@ -37,7 +37,8 @@ replaceExact(policy,
   `\nfunction isCompanyAdmin(user) {\n  const role = lower(user && (user.role || user.rolle));\n  return Boolean(user && (\n    user.companyAdmin === true ||\n    /company[\\s/_-]*(?:admin|administrator)/.test(role) ||\n    /firmen[\\s/_-]*(?:admin|administrator)/.test(role) ||\n    /(?:^|[\\s/_-])hse(?:$|[\\s/_-])/.test(role) ||\n    /sicherheits[\\s/_-]*verantwortlich/.test(role)\n  ));\n}\n\nfunction defaultRights(admin, companyAdmin = false) {`);
 replaceExact(policy,
 `    const allow = admin || id === 'start' || id === 'dashboard' || id === 'pickupcalendar';\n    result[id] = {\n      level: admin ? 'admin' : (allow ? 'view' : 'none'),\n      visible: allow,\n      read: allow,\n      edit: admin,\n      admin: admin,\n      functionAdmin: admin\n    };`,
-`    const baseAllow = id === 'start' || id === 'dashboard' || id === 'pickupcalendar';\n    const level = admin ? 'admin' : (companyAdmin ? (id === 'update' ? 'none' : 'admin') : (baseAllow ? 'view' : 'none'));\n    const allow = level !== 'none';\n    result[id] = {\n      level,\n      visible: allow,\n      read: allow,\n      edit: level === 'edit' || level === 'admin',\n      admin: level === 'admin',\n      functionAdmin: level === 'admin'\n    };`);
+`    const baseAllow = id === 'start' || id === 'dashboard' || id === 'pickupcalendar';\n    const level = admin ? 'admin' : (companyAdmin ? (id === 'update' ? 'none' : 'admin') : (baseAllow ? 'view' : 'none'));\n    const allow = level !== 'none';\n    result[id] = {\n      level,\n      visible: allow,\n      read: allow,
+      edit: level === 'edit' || level === 'admin',\n      admin: level === 'admin',\n      functionAdmin: level === 'admin'\n    };`);
 replaceExact(policy,
 `  result.rights = {\n    level: admin ? 'admin' : 'none', visible: !!admin, read: !!admin,\n    edit: !!admin, admin: !!admin, functionAdmin: !!admin\n  };`,
 `  const companyManager = admin || companyAdmin;\n  result.rights = {\n    level: companyManager ? 'admin' : 'none', visible: companyManager, read: companyManager,\n    edit: companyManager, admin: companyManager, functionAdmin: companyManager\n  };`);
