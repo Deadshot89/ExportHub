@@ -38,3 +38,12 @@ test('TESTSERVICE Einzeldeploy bleibt unter RC1011 ausschließlich genehmigte Au
   assert.match(flow,/RC1011/);
   assert.match(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
 });
+
+test('Android-App bleibt auf demselben RC1011-Releasestand',()=>{
+  const gradle=read('android-app/app/build.gradle.kts');
+  const flow=read('.github/workflows/exporthub-android-test-app.yml');
+  assert.match(gradle,/versionCode\s*=\s*1011/);
+  assert.match(gradle,/versionName\s*=\s*"1\.0-rc1011"/);
+  assert.match(flow,/Build ExportHUB Android RC1011 APK/);
+  assert.match(flow,/ExportHUB-RC1011-Android/);
+});
