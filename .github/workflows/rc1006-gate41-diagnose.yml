@@ -1,0 +1,26 @@
+name: RC1006 Gate41 Diagnose
+
+on:
+  push:
+    branches:
+      - rc1006-gate41-shipping-costs
+    paths:
+      - 'scripts/rc1006-diagnose-gate41.mjs'
+      - '.github/workflows/rc1006-gate41-diagnose.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1006-gate41-shipping-costs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Aktuellen Gate41 Codepfad ausgeben
+        run: node scripts/rc1006-diagnose-gate41.mjs
