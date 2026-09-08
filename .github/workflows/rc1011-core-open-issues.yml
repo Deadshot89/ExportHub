@@ -1,0 +1,23 @@
+name: RC1011 Kernfehler prüfen
+
+on:
+  push:
+    branches:
+      - rc1011-core-open-issues
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: RC1011 Kernfehler-Vertrag
+        run: node --test test/rc1011-core-open-issues.test.mjs
+      - name: QR- und Lieferavis-Bestandsschutz
+        run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
