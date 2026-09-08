@@ -1,4 +1,4 @@
-name: RC1005 E3 Verpackungsmasse Verify
+name: RC1005 Release Verify
 
 on:
   push:
@@ -9,24 +9,34 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: rc1005-release-verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: RC1005 E3 Maße RED/GREEN
-        run: node --test test/rc1005-e3-packaging-dimensions.test.mjs
-      - name: RC1005 E3 Vorrang vor Altwerten
-        run: node --test test/rc1005-e3-packaging-precedence.test.mjs
-      - name: RC1005 E3 Übernahmelogik Diagnose
-        run: node --test test/rc1005-e3-transfer-diagnose.test.mjs
-      - name: Bestehende Colli-Regressionen
+          node-version: '20.x'
+      - name: RC1005 E3 und Drei-Umgebungen-Vertrag
+        run: node --test test/rc1005-three-env-sync.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: RC1005 Drei-Umgebungen-Build
+        run: node .github/rc1005/build-three-env.mjs
+      - name: RC1005 Build verifizieren
         shell: bash
         run: |
           set -euo pipefail
-          for f in test/rc980-colli-row-stability.test.mjs test/rc981-colli-single-delete.test.mjs; do
-            if [ -f "$f" ]; then node --test "$f"; fi
-          done
+          grep -q 'ExportHUB RC1005 environment=production-candidate' dist-rc1005/index.html
+          grep -q 'ExportHUB RC1005 environment=testservice' dist-rc1005/TESTVERSION.html
+          grep -q 'ExportHUB RC1005 environment=demo' dist-rc1005/demo.html
+          grep -q "version:'RC1005'" dist-rc1005/index.html
+          grep -q "version:'RC1005'" dist-rc1005/TESTVERSION.html
+          grep -q "version:'RC1005'" dist-rc1005/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1005'" production-version.js
+          git diff --check
