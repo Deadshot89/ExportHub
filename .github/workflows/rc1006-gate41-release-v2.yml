@@ -1,0 +1,53 @@
+name: RC1006 Gate41 Release auf aktuellem main
+
+on:
+  push:
+    branches:
+      - rc1006-gate41-release-v2
+    paths:
+      - 'scripts/rc1006-apply-gate41-release-v2.mjs'
+      - '.github/workflows/rc1006-gate41-release-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1006-gate41-release-v2
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: Gate41 Minimalfix auf aktuellen main anwenden
+        run: node scripts/rc1006-apply-gate41-release-v2.mjs
+      - name: RC1006 Gate41 Regressionstest
+        run: node --test test/rc1006-gate41-route.test.mjs
+      - name: Gesamte Node Regression prüfen
+        run: npm test
+      - name: RC1005 Drei-Umgebungen-Build mit Gate41 Fix prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1005/build-three-env.mjs
+          grep -Fq "gateCountry=autoCountry||'Deutschland'" dist-rc1005/index.html
+          grep -Fq "gateCountry=autoCountry||'Deutschland'" dist-rc1005/TESTVERSION.html
+          grep -Fq "gateCountry=autoCountry||'Deutschland'" dist-rc1005/demo.html
+          grep -Fq "if((load.rows.length||load.pallets>0)&&!g.manualLoad){" dist-rc1005/index.html
+          grep -Fq "if((load.rows.length||load.pallets>0)&&!g.manualLoad){" dist-rc1005/TESTVERSION.html
+      - name: Nur geprüften Produktfix committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git rm scripts/rc1006-apply-gate41-release-v2.mjs .github/workflows/rc1006-gate41-release-v2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          git commit -m 'RC1006: Gate41 Versandkosten auf aktuellem main beheben'
+          git push origin HEAD:rc1006-gate41-release-v2
