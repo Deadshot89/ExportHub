@@ -41,7 +41,7 @@ function isObject(value) {
 }
 
 
-const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','pickupToken','pickupQrToken','qrToken'];
+const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','customerAvisPublicUrl','avisPublicUrl','pickupToken','pickupQrToken','qrToken'];
 function stripShipmentPublicAccessSecrets(shipment) {
   if (!isObject(shipment)) return shipment;
   let next = shipment;
