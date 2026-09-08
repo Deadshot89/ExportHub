@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const calendar = require('../assets/abholkalender.js');
+await import('../assets/abholkalender.js');
+const calendar = globalThis.ExportHubPickupCalendar;
 
 test('Wochenmodell enthält genau Montag bis Freitag', () => {
   const model = calendar.buildCalendarModel({today:new Date(2026,8,8,12),fixedPickups:[],shipments:[]});
