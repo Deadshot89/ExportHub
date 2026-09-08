@@ -13,7 +13,9 @@ import android.widget.TextView;
 
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public final class NotificationDetailActivity extends Activity {
     public static final String EXTRA_NOTIFICATION_TITLE = "exporthub_notification_title";
@@ -34,7 +36,7 @@ public final class NotificationDetailActivity extends Activity {
         route = safe(source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_ROUTE), "notifications");
         String channel = safe(source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_CHANNEL), "notification");
         String title = safe(source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_TITLE), defaultTitle(channel));
-        String body = safe(source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_BODY), "ExportHUB hat einen neuen Hinweis.");
+        String body = safeLong(source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_BODY), "ExportHUB hat einen neuen Hinweis.");
 
         setTitle(defaultTitle(channel));
         setContentView(buildContent(channel, title, body));
@@ -53,8 +55,7 @@ public final class NotificationDetailActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        TextView app = text("ExportHUB", 15f, 0xFF0F766E, true);
-        root.addView(app);
+        root.addView(text("ExportHUB", 15f, 0xFF0F766E, true));
 
         TextView heading = text(defaultTitle(channel), 25f, 0xFF0F172A, true);
         LinearLayout.LayoutParams headingParams = wrap();
@@ -76,12 +77,16 @@ public final class NotificationDetailActivity extends Activity {
         titleParams.topMargin = dp(28);
         root.addView(titleView, titleParams);
 
-        TextView bodyView = text(body, 17f, 0xFF334155, false);
-        bodyView.setLineSpacing(0f, 1.18f);
-        bodyView.setTextIsSelectable(true);
-        LinearLayout.LayoutParams bodyParams = wrap();
-        bodyParams.topMargin = dp(12);
-        root.addView(bodyView, bodyParams);
+        if ("diagnostic".equalsIgnoreCase(channel)) {
+            renderDiagnostic(root, parseDiagnosticBody(body), body);
+        } else {
+            TextView bodyView = text(body, 17f, 0xFF334155, false);
+            bodyView.setLineSpacing(0f, 1.18f);
+            bodyView.setTextIsSelectable(true);
+            LinearLayout.LayoutParams bodyParams = wrap();
+            bodyParams.topMargin = dp(12);
+            root.addView(bodyView, bodyParams);
+        }
 
         TextView privacy = text(
                 "Diese Ansicht zeigt nur den Inhalt dieser Handy-Benachrichtigung. Der geschützte ExportHUB-Arbeitsbereich wird dadurch nicht freigegeben.",
@@ -111,6 +116,71 @@ public final class NotificationDetailActivity extends Activity {
         root.addView(close, closeParams);
 
         return scroll;
+    }
+
+    private void renderDiagnostic(LinearLayout root, Map<String, String> fields, String fallbackBody) {
+        String[] order = new String[]{
+                "Fehlercode", "Benutzer", "Firma", "Bedeutung",
+                "Wahrscheinliche Ursache", "Nächster Schritt", "Technische Meldung"
+        };
+        boolean rendered = false;
+        for (String label : order) {
+            String value = fields.get(label);
+            if (value == null || value.trim().isEmpty()) continue;
+            addDiagnosticSection(root, label, value, "Fehlercode".equals(label));
+            rendered = true;
+        }
+        if (!rendered) addDiagnosticSection(root, "Technische Meldung", fallbackBody, false);
+    }
+
+    private void addDiagnosticSection(LinearLayout root, String label, String value, boolean code) {
+        TextView labelView = text(label, 12f, 0xFF64748B, true);
+        LinearLayout.LayoutParams labelParams = wrap();
+        labelParams.topMargin = dp(18);
+        root.addView(labelView, labelParams);
+
+        TextView valueView = text(value, code ? 18f : 16f, code ? 0xFF991B1B : 0xFF334155, code);
+        valueView.setTextIsSelectable(true);
+        valueView.setLineSpacing(0f, 1.15f);
+        LinearLayout.LayoutParams valueParams = wrap();
+        valueParams.topMargin = dp(4);
+        root.addView(valueView, valueParams);
+    }
+
+    private static Map<String, String> parseDiagnosticBody(String body) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        if (body == null) return fields;
+        String[] lines = body.split("\\r?\\n");
+        String currentLabel = null;
+        for (String raw : lines) {
+            String line = raw == null ? "" : raw.trim();
+            if (line.isEmpty()) continue;
+            int colon = line.indexOf(':');
+            if (colon > 0) {
+                String label = line.substring(0, colon).trim();
+                String value = line.substring(colon + 1).trim();
+                if (isDiagnosticLabel(label)) {
+                    fields.put(label, value);
+                    currentLabel = label;
+                    continue;
+                }
+            }
+            if (currentLabel != null) {
+                String previous = fields.get(currentLabel);
+                fields.put(currentLabel, (previous == null || previous.isEmpty()) ? line : previous + " " + line);
+            }
+        }
+        return fields;
+    }
+
+    private static boolean isDiagnosticLabel(String label) {
+        return "Fehlercode".equals(label)
+                || "Benutzer".equals(label)
+                || "Firma".equals(label)
+                || "Bedeutung".equals(label)
+                || "Wahrscheinliche Ursache".equals(label)
+                || "Nächster Schritt".equals(label)
+                || "Technische Meldung".equals(label);
     }
 
     private void openExportHub() {
@@ -168,5 +238,11 @@ public final class NotificationDetailActivity extends Activity {
         String cleaned = value == null ? "" : value.trim();
         if (cleaned.isEmpty()) return fallback;
         return cleaned.length() > 800 ? cleaned.substring(0, 800) : cleaned;
+    }
+
+    private static String safeLong(String value, String fallback) {
+        String cleaned = value == null ? "" : value.trim();
+        if (cleaned.isEmpty()) return fallback;
+        return cleaned.length() > 6000 ? cleaned.substring(0, 6000) : cleaned;
     }
 }

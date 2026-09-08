@@ -1,4 +1,4 @@
-name: RC1012 Main Contract
+name: RC1013 Main Contract
 
 on:
   workflow_dispatch:
@@ -24,14 +24,17 @@ on:
       - '.github/rc1010/**'
       - '.github/rc1011/**'
       - '.github/rc1012/**'
+      - '.github/rc1013/**'
+      - '.github/rc995/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
+      - '.github/rc998/**'
       - '.github/workflows/**'
 
 permissions:
   contents: read
 
 concurrency:
-  group: rc1012-main-contract-${{ github.ref }}
+  group: rc1013-main-contract-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -43,16 +46,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: RC1012 Release-Vertrag
-        run: node --test test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
-      - name: QR- und Lieferavis-Regression
-        run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: RC1013 Release-Vertrag
+        run: node --test test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1006-gate41-route.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
+      - name: QR- und Lieferavis-End-to-End-Regression
+        shell: bash
+        run: |
+          node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
       - name: Android-Regression
         run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
       - name: Aufgaben-Verträge
         run: node --test test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
-      - name: QR-Abholung Regression
-        run: node --test .github/rc1000/rc1000-production-pickup.test.mjs
       - name: Diagnose- und Android-Regression
         shell: bash
         run: |
@@ -60,21 +64,22 @@ jobs:
       - name: Gesamte Node-Regression
         run: npm test
       - name: Drei-Umgebungen-Build
-        run: node .github/rc1012/build-three-env.mjs
-      - name: RC1012 Build-Ergebnis prüfen
+        run: node .github/rc1013/build-three-env.mjs
+      - name: RC1013 Build-Ergebnis prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'ExportHUB RC1012 environment=production-candidate' dist-rc1012/index.html
-          grep -q 'ExportHUB RC1012 environment=testservice' dist-rc1012/TESTVERSION.html
-          grep -q 'ExportHUB RC1012 environment=demo' dist-rc1012/demo.html
-          grep -q "version:'RC1012'" dist-rc1012/index.html
-          grep -q "version:'RC1012'" dist-rc1012/TESTVERSION.html
-          grep -q "version:'RC1012'" dist-rc1012/demo.html
-          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1012/index.html
-          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1012/index.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1012/index.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1012/index.html
-          grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1012/index.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1012'" production-version.js
+          grep -q 'ExportHUB RC1013 environment=production-candidate' dist-rc1013/index.html
+          grep -q 'ExportHUB RC1013 environment=testservice' dist-rc1013/TESTVERSION.html
+          grep -q 'ExportHUB RC1013 environment=demo' dist-rc1013/demo.html
+          grep -q "version:'RC1013'" dist-rc1013/index.html
+          grep -q "version:'RC1013'" dist-rc1013/TESTVERSION.html
+          grep -q "version:'RC1013'" dist-rc1013/demo.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1013/index.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1013/index.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1013/index.html
+          grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1013/index.html
+          grep -q 'assets/rc1013-gate41-ui.js?v=1013' dist-rc1013/index.html
+          grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1013/index.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1013'" production-version.js
           git diff --check

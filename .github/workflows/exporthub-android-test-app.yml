@@ -1,20 +1,27 @@
-name: Build ExportHUB Android RC1012 APK
+name: Build ExportHUB Android RC1013 APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, rc1012-abholkalender-final]
+    branches: [main, rc1013-restpunkte-gate41-qr-notifications]
     paths:
       - 'android-app/**'
       - 'test/rc1003-android-native-direct-open.test.mjs'
       - 'test/rc1003-three-env-sync.test.mjs'
       - 'test/rc1011-three-env-sync.test.mjs'
       - 'test/rc1012-three-env-sync.test.mjs'
+      - 'test/rc1013-restpunkte.test.mjs'
+      - 'test/rc1013-three-env-sync.test.mjs'
+      - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - 'production-version.js'
+      - '.github/workflows/rc1013-restpunkte.yml'
+      - '.github/workflows/rc1002-main-contract.yml'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/exporthub-testservice.yml'
       - '.github/workflows/exporthub-android-test-app.yml'
 permissions:
   contents: read
 concurrency:
-  group: exporthub-android-rc1012-build-${{ github.ref }}
+  group: exporthub-android-rc1013-build-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -25,8 +32,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: RC1012 Release-Vertrag
-        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1012-three-env-sync.test.mjs
+      - name: RC1013 Release-Vertrag
+        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs
+      - name: Diagnose-Benachrichtigungen Regression
+        shell: bash
+        run: node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -49,11 +59,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1012-Android-debug.apk
-          sha256sum out/ExportHUB-RC1012-Android-debug.apk > out/ExportHUB-RC1012-Android-debug.sha256.txt
+          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1013-Android-debug.apk
+          sha256sum out/ExportHUB-RC1013-Android-debug.apk > out/ExportHUB-RC1013-Android-debug.sha256.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: ExportHUB-RC1012-Android
+          name: ExportHUB-RC1013-Android
           path: android-app/out/*
           if-no-files-found: error
           retention-days: 30
