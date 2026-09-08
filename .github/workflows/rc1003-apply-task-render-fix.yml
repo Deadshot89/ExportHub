@@ -29,17 +29,47 @@ jobs:
           node-version: '20.x'
       - name: RC1003 Aufgaben-Fix anwenden
         run: node .github/rc1003/fix-task-render.mjs
-      - name: Gezielte Regressionen
+      - name: Gezielte Regressionen mit Diagnose
+        id: tests
+        shell: bash
         run: |
-          node --test test/rc1003-task-render-syntax.test.mjs
-          node --test test/rc1002-task-groups.test.mjs
-          node --test test/rc975-global-render-integrity.test.mjs
+          set +e
+          : > rc1003-regression.txt
+          node --test test/rc1003-task-render-syntax.test.mjs >> rc1003-regression.txt 2>&1
+          s1=$?
+          node --test test/rc1002-task-groups.test.mjs >> rc1003-regression.txt 2>&1
+          s2=$?
+          node --test test/rc975-global-render-integrity.test.mjs >> rc1003-regression.txt 2>&1
+          s3=$?
+          node <<'NODE' >> rc1003-regression.txt 2>&1
+          const fs=require('fs');
+          for(const file of ['TESTVERSION.html','index.html']){
+            const html=fs.readFileSync(file,'utf8');
+            for(const name of ['taskGroupNameRC874','areaOrderRC67']){
+              const pos=html.indexOf(`function ${name}`);
+              const open=html.lastIndexOf('<script',pos);
+              const close=html.lastIndexOf('</script',pos);
+              console.log(`${file} ${name}: pos=${pos} lastScriptOpen=${open} lastScriptClose=${close} insideScript=${open>close}`);
+              console.log(JSON.stringify(html.slice(Math.max(0,pos-180),pos+350)));
+            }
+          }
+          NODE
+          echo "statuses rc1003=$s1 rc1002=$s2 rc975=$s3" >> rc1003-regression.txt
+          cat rc1003-regression.txt
+          if [[ $s1 -ne 0 || $s2 -ne 0 || $s3 -ne 0 ]]; then exit 1; fi
+      - name: Regressionsdiagnose hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1003-regression-diagnostic
+          path: rc1003-regression.txt
+          retention-days: 1
       - name: Nur die beiden Website-Dateien committen
+        if: success()
         shell: bash
         run: |
           set -euo pipefail
           git diff --check
-          git diff --exit-code -- .github/rc1003/fix-task-render.mjs .github/workflows/rc1003-apply-task-render-fix.yml test/rc1003-task-render-syntax.test.mjs || true
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html TESTVERSION.html
