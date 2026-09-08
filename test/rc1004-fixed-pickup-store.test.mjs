@@ -4,6 +4,13 @@ import Module from 'node:module';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
+const OLD_STORAGE = process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+process.env.EXPORTHUB_STORAGE_CONNECTION_STRING = 'rc1004-memory-store';
+test.after(() => {
+  if (OLD_STORAGE === undefined) delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING = OLD_STORAGE;
+});
+
 function makeMemoryBlobRest() {
   const blobs = new Map();
   let serial = 1;
