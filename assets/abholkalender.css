@@ -1,0 +1,37 @@
+.pickup-calendar{display:grid;gap:20px}
+.pickup-calendar-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.pickup-calendar-head h2,.pickup-section-title h3{margin:0}
+.pickup-calendar-head p{margin:6px 0 0;max-width:760px}
+.pickup-eyebrow{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.66}
+.pickup-loading,.pickup-count{font-size:13px;opacity:.7}
+.pickup-today,.pickup-admin{border:1px solid var(--border,#d9dee8);border-radius:18px;padding:18px;background:var(--surface,#fff)}
+.pickup-section-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+.pickup-today-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pickup-week{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.pickup-day{min-width:0;border:1px solid var(--border,#d9dee8);border-radius:16px;padding:12px;background:var(--surface,#fff)}
+.pickup-day>header{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding-bottom:10px;border-bottom:1px solid var(--border,#e5e7eb)}
+.pickup-source{display:grid;gap:8px;margin-top:12px}
+.pickup-source h4{margin:0;font-size:12px;letter-spacing:.04em;opacity:.66}
+.pickup-item{border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:10px;background:var(--surface-soft,#f8fafc)}
+.pickup-item-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pickup-item-grid{display:grid;gap:4px;margin-top:8px;font-size:13px}
+.pickup-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:800;letter-spacing:.04em}
+.pickup-badge-fix{background:rgba(245,158,11,.16);color:#9a5b00}
+.pickup-badge-shipment{background:rgba(37,99,235,.13);color:#1d4ed8}
+.pickup-colli{display:grid;gap:3px;margin-top:8px;font-size:12px}
+.pickup-status{font-weight:700}
+.pickup-item-note{margin-top:7px;font-size:13px;line-height:1.4}
+.pickup-empty,.pickup-muted,.pickup-admin-hint,.pickup-weekend-note{font-size:13px;opacity:.7}
+.pickup-error{border:1px solid rgba(185,28,28,.25);border-radius:12px;padding:10px 12px;background:rgba(254,226,226,.5);color:#991b1b}
+.pickup-form{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin:14px 0}
+.pickup-form label{display:grid;gap:6px;font-size:13px;font-weight:700}
+.pickup-form input,.pickup-form select,.pickup-form textarea{width:100%;box-sizing:border-box}
+.pickup-form-wide{grid-column:1/-1}
+.pickup-check{display:flex!important;grid-column:1/-1;align-items:center!important;grid-template-columns:auto 1fr!important}
+.pickup-check input{width:auto}
+.pickup-form-actions,.pickup-item-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pickup-form-actions{grid-column:1/-1}
+.pickup-primary{font-weight:700}
+.pickup-admin-list{display:grid;gap:8px;margin-top:14px}
+@media(max-width:1000px){.pickup-week{grid-template-columns:repeat(2,minmax(0,1fr))}.pickup-today-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.pickup-week{grid-template-columns:1fr}.pickup-calendar-head,.pickup-section-title{align-items:flex-start;flex-direction:column}.pickup-form{grid-template-columns:1fr}.pickup-form-wide,.pickup-check,.pickup-form-actions{grid-column:1}}

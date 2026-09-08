@@ -1,0 +1,32 @@
+name: RC1004 Abholkalender Verify
+
+on:
+  push:
+    branches:
+      - rc1004-abholkalender-design
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1004 Firmenkontext
+        run: node --test test/rc1004-company-context.test.mjs
+      - name: RC1004 weitere Tests falls vorhanden
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            test/rc1004-fixed-pickup-store.test.mjs \
+            test/rc1004-fixed-pickups-api.test.mjs \
+            test/rc1004-abholkalender-model.test.mjs \
+            test/rc1004-abholkalender-ui.test.mjs; do
+            if [ -f "$f" ]; then node --test "$f"; fi
+          done
