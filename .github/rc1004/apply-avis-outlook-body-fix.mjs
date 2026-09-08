@@ -17,7 +17,7 @@ for (const file of files) {
   const hasLongTextFallback = /full\.length\s*<=\s*1800/.test(oldBlock) || /mailtoUrl\(data,false\)/.test(oldBlock);
   if (!hasLongTextFallback) {
     if (/mailtoUrl\(data,true\)/.test(oldBlock)) {
-      console.log(`${file}: bereits korrigiert`);
+      console.log(`${file}: Outlook-Langtext bereits korrigiert`);
       continue;
     }
     throw new Error(`${file}: weder alter Fallback noch vollständige Outlook-Übergabe gefunden; keine Blindänderung`);
@@ -28,4 +28,26 @@ for (const file of files) {
   const after = before.slice(0,start) + replacement + before.slice(end);
   fs.writeFileSync(file,after);
   console.log(`${file}: Outlook-Avis übergibt den vollständigen Mailtext`);
+}
+
+for (const file of files) {
+  const before = fs.readFileSync(file,'utf8');
+  const marker = 'function injectMailBody(sh,target,body,langOverride)';
+  const start = before.indexOf(marker);
+  const end = before.indexOf('function click(e)',start);
+  if (start < 0 || end <= start) throw new Error(`${file}: injectMailBody/click Block nicht gefunden`);
+
+  const block = before.slice(start,end);
+  const desired = "if(target!=='customer'||!enabled(sh))return clean;clean=stripShipmentDetails(clean);";
+  if (block.includes(desired)) {
+    console.log(`${file}: aktives Kunden-AVIS ersetzt Sendungsdetails bereits`);
+    continue;
+  }
+
+  const old = "if(target!=='customer'||!enabled(sh))return clean;var u=link(sh),reference=ref(sh);";
+  if (!block.includes(old)) throw new Error(`${file}: erwarteter AVIS-Mailblock fehlt; keine Blindänderung`);
+  const patchedBlock = block.replace(old, desired + 'var u=link(sh),reference=ref(sh);');
+  const after = before.slice(0,start) + patchedBlock + before.slice(end);
+  fs.writeFileSync(file,after);
+  console.log(`${file}: aktives Kunden-AVIS ersetzt jetzt die Sendungsdetails`);
 }
