@@ -8,6 +8,7 @@ const VERSION='RC1007';
 const CACHE='1007';
 const HUB_SRC='/assets/exporthub-environment-hub.js?v=1007';
 const DEMO_SRC='/assets/exporthub-demo-bootstrap.js?v=1007';
+const RELEASE_ENVIRONMENTS=['environment=production-candidate','environment=testservice','environment=demo'];
 
 const read=rel=>fs.readFileSync(path.join(ROOT,rel),'utf8');
 function write(rel,content){const file=path.join(OUT,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content);}
@@ -50,5 +51,5 @@ const demo=marker(injectBeforeHeadClose(injectAfterHeadOpen(setVersion(read('TES
 fs.rmSync(OUT,{recursive:true,force:true});fs.mkdirSync(OUT,{recursive:true});
 write('index.html',production);write('TESTVERSION.html',testservice);write('demo.html',demo);
 copy('assets/exporthub-environment-hub.js');write('assets/exporthub-demo-bootstrap.js',demoAsset());
-write('rc1007-manifest.json',JSON.stringify({schema:'exporthub-rc1007-three-env-v1',version:VERSION,generatedAt:new Date().toISOString(),environments:{production:{file:'index.html',sha256:sha(production)},testservice:{file:'TESTVERSION.html',sha256:sha(testservice)},demo:{file:'demo.html',sha256:sha(demo)}}},null,2)+'\n');
+write('rc1007-manifest.json',JSON.stringify({schema:'exporthub-rc1007-three-env-v1',version:VERSION,generatedAt:new Date().toISOString(),releaseEnvironments:RELEASE_ENVIRONMENTS,environments:{production:{file:'index.html',sha256:sha(production)},testservice:{file:'TESTVERSION.html',sha256:sha(testservice)},demo:{file:'demo.html',sha256:sha(demo)}}},null,2)+'\n');
 console.log('RC1007 build ready: Produktion, TESTSERVICE und Demo');
