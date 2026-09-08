@@ -6,6 +6,8 @@ on:
     paths:
       - 'assets/sop/**'
       - 'test/rc1008-system-sops.test.mjs'
+      - 'test/rc1007-sop-*.test.mjs'
+      - 'test/rc1007-iso-sop-contract.test.mjs'
       - '.github/rc1008/**'
       - '.github/workflows/rc1008-system-sops.yml'
 
@@ -22,6 +24,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: RC1008 Systembilder und UI-Anpassungen anwenden
+        run: node .github/rc1008/apply-system-images.mjs
+      - name: Erzeugte RC1008 Änderungen committen
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Keine Patch-Änderungen offen."
+          else
+            git config user.name "ExportHUB RC1008 Bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add assets/sop
+            git commit -m "RC1008: SOP-Systembilder und Systemdarstellung anwenden"
+            git push origin HEAD:rc1008-system-sops
+          fi
       - name: RC1008 System-SOP Vertrag
         run: node --test test/rc1008-system-sops.test.mjs
       - name: Bestehende Node-Regression
