@@ -1,18 +1,19 @@
-name: Build ExportHUB Android RC1010 APK
+name: Build ExportHUB Android RC1011 APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, rc1010-sop-fertigstellung]
+    branches: [main, rc1011-core-open-issues]
     paths:
       - 'android-app/**'
       - 'test/rc1003-android-native-direct-open.test.mjs'
       - 'test/rc1003-three-env-sync.test.mjs'
+      - 'test/rc1011-three-env-sync.test.mjs'
       - 'production-version.js'
       - '.github/workflows/exporthub-android-test-app.yml'
 permissions:
   contents: read
 concurrency:
-  group: exporthub-android-rc1010-build-${{ github.ref }}
+  group: exporthub-android-rc1011-build-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -22,9 +23,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-      - name: RC1010 Release-Vertrag
-        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
+          node-version: '24'
+      - name: RC1011 Release-Vertrag
+        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs test/rc1011-three-env-sync.test.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -47,11 +48,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1010-Android-debug.apk
-          sha256sum out/ExportHUB-RC1010-Android-debug.apk > out/ExportHUB-RC1010-Android-debug.sha256.txt
+          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1011-Android-debug.apk
+          sha256sum out/ExportHUB-RC1011-Android-debug.apk > out/ExportHUB-RC1011-Android-debug.sha256.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: ExportHUB-RC1010-Android
+          name: ExportHUB-RC1011-Android
           path: android-app/out/*
           if-no-files-found: error
           retention-days: 30

@@ -21,10 +21,23 @@ jobs:
         run: node .github/rc1011/apply-fixes.mjs
       - name: RC1011 Kernfehler-Vertrag
         run: node --test test/rc1011-core-open-issues.test.mjs
+      - name: RC1011 Drei-Umgebungen- und Android-Vertrag
+        run: node --test test/rc1011-three-env-sync.test.mjs
       - name: QR- und Lieferavis-Bestandsschutz
         run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
       - name: Vollständige Regression
         run: npm test
+      - name: RC1011 Drei-Umgebungen-Build prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1011/build-three-env.mjs
+          grep -q 'ExportHUB RC1011 environment=production-candidate' dist-rc1011/index.html
+          grep -q 'ExportHUB RC1011 environment=testservice' dist-rc1011/TESTVERSION.html
+          grep -q 'ExportHUB RC1011 environment=demo' dist-rc1011/demo.html
+          grep -q "version:'RC1011'" dist-rc1011/index.html
+          grep -q "version:'RC1011'" dist-rc1011/TESTVERSION.html
+          grep -q "version:'RC1011'" dist-rc1011/demo.html
       - name: RC1011 Änderungen auf Feature-Zweig sichern
         if: success()
         run: |

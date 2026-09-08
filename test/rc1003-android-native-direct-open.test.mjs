@@ -33,13 +33,13 @@ test('RC1010: normale ExportHUB-Navigation bleibt geschützt und getrennt', () =
   assert.doesNotMatch(detail, /CookieManager|addJavascriptInterface|loadUrl/);
 });
 
-test('RC1010: App ist als installierbares Update auf demselben Release wie Produktion versioniert', () => {
+test('RC1011: App ist als installierbares Update auf demselben Release wie Produktion versioniert', () => {
   const gradle = read('android-app/app/build.gradle.kts');
-  assert.match(gradle, /versionCode\s*=\s*1010/);
-  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1010"/);
+  assert.match(gradle, /versionCode\s*=\s*1011/);
+  assert.match(gradle, /versionName\s*=\s*"1\.0-rc1011"/);
   const info = JSON.parse(read('android-app/app-build-info.json'));
-  assert.equal(info.appVersion, '1.0-rc1010');
-  assert.equal(info.releaseCandidate, 'RC1010');
-  assert.match(read('android-app/APP_BUILD_INFO.txt'), /App-Version:\s*1\.0-rc1010/);
-  assert.match(read('production-version.js'), /RC1010/);
+  assert.equal(info.appVersion, '1.0-rc1011');
+  assert.equal(info.releaseCandidate, 'RC1011');
+  assert.match(read('android-app/APP_BUILD_INFO.txt'), /App-Version:\s*1\.0-rc1011/);
+  assert.match(read('production-version.js'), /RC1011/);
 });
