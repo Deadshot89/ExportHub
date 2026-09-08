@@ -19,6 +19,8 @@ jobs:
           node-version: '20'
       - name: RC1005 E3 Maße RED/GREEN
         run: node --test test/rc1005-e3-packaging-dimensions.test.mjs
+      - name: RC1005 E3 Übernahmelogik Diagnose
+        run: node --test test/rc1005-e3-transfer-diagnose.test.mjs
       - name: Bestehende Colli-Regressionen
         shell: bash
         run: |
