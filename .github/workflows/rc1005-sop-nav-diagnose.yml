@@ -1,0 +1,19 @@
+name: RC1005 SOP Nav Diagnose
+on:
+  push:
+    branches: [rc1005-hide-sop-nav]
+    paths:
+      - '.github/workflows/rc1005-sop-nav-diagnose.yml'
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SOP Navigation Fundstellen anzeigen
+        run: |
+          echo '--- index.html ---'
+          grep -ni -C 4 'sop' index.html || true
+          echo '--- TESTVERSION.html ---'
+          grep -ni -C 4 'sop' TESTVERSION.html || true
