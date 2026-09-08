@@ -21,23 +21,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Bestehendes Seitenrouting diagnostizieren
+      - name: Kanonischen View-Renderer diagnostizieren
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
           for(const file of ['index.html','TESTVERSION.html']){
             const html=fs.readFileSync(file,'utf8');
-            console.log(`=== ${file} ROUTING ===`);
-            for(const term of ['Aufgaben','SOP','Dashboard','data-view','data-page','data-nav','showView','setView','navigate','renderPage']){
+            console.log(`=== ${file} CANONICAL VIEW ===`);
+            for(const term of ['function canonical(','function canRoute(','function renderCanonicalView(','function stableSetView(','function setViewState(','function applyPermissions(']){
               const at=html.indexOf(term);
-              if(at<0) continue;
-              const snippet=html.slice(Math.max(0,at-500),Math.min(html.length,at+900)).replace(/\s+/g,' ');
+              if(at<0){console.log(`MISSING ${term}`);continue;}
+              const snippet=html.slice(Math.max(0,at-500),Math.min(html.length,at+5000)).replace(/\s+/g,' ');
               console.log(`TERM ${term} @${at}: ${snippet}`);
             }
-            const fn=[];
-            for(const m of html.matchAll(/function\s+([A-Za-z_$][\w$]*(?:View|Page|Nav|Route|Section)[A-Za-z0-9_$]*)\s*\([^)]*\)/g)) fn.push(m[1]);
-            console.log('FUNCTIONS:',[...new Set(fn)].slice(0,100).join(','));
           }
           NODE
       - name: RC1011 Kalender-Abschlussvertrag
