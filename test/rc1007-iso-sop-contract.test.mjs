@@ -4,21 +4,23 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
-test('RC1007 besitzt genau 36 neue ISO-SOPs',()=>{
-  const src=read('assets/sop/rc1007-sop-catalog.js');
-  const numbers=[...src.matchAll(/number:\s*['"](SOP-(?:QM|SYS|LOG|WH|ORG)-\d{3})['"]/g)].map(m=>m[1]);
-  assert.equal(numbers.length,36);
-  assert.equal(new Set(numbers).size,36);
+test('SOP-Katalog ist auf RC1008 und reine ExportHUB-System-SOPs umgestellt',async()=>{
+  await import('../assets/sop/rc1007-sop-catalog.js');
+  const catalog=globalThis.ExportHubIsoSopCatalog;
+  assert.equal(catalog.version,'RC1008');
+  assert.equal(catalog.systemOnly,true);
+  assert.equal(catalog.documents.length,75);
+  assert.ok(catalog.documents.every(doc=>/^SOP-EH-\d{3}$/.test(doc.number)));
 });
 
-test('RC1007 trennt neue ISO-SOPs vom alten customSops-Bestand',()=>{
+test('ISO-SOPs bleiben vom alten customSops-Bestand getrennt',()=>{
   const merge=read('api/shared/merge.js');
   assert.match(merge,/isoSops:\s*\['id',\s*'number'/);
   const ui=read('assets/sop/rc1007-sop-ui.js');
   assert.doesNotMatch(ui,/customSops\b/);
 });
 
-test('RC1007 ist in Produktion und TESTVERSION eingebunden',()=>{
+test('SOP-Modul ist in Produktion und TESTVERSION eingebunden',()=>{
   for(const file of ['index.html','TESTVERSION.html']){
     const src=read(file);
     assert.match(src,/assets\/sop\/rc1007-sop-catalog\.js/);
