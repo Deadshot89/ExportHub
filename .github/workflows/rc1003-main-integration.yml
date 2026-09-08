@@ -7,11 +7,11 @@ on:
       - 'android-app/**'
       - 'production-version.js'
       - '.github/rc1003/**'
-      - 'test/rc1003-android-native-direct-open.test.mjs'
-      - 'test/rc1003-three-env-sync.test.mjs'
+      - 'test/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc997/android-contract.test.mjs'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/exporthub-android-test-app.yml'
       - '.github/workflows/rc1003-main-integration.yml'
 permissions:
   contents: read
@@ -31,13 +31,15 @@ jobs:
         run: node --test test/rc1003-android-native-direct-open.test.mjs
       - name: RC1003 Drei-Umgebungen-Gleichstand
         run: node --test test/rc1003-three-env-sync.test.mjs
-      - name: RC1002 Website- und Produktionsbaseline
-        run: node --test --test-name-pattern='Website, TESTSERVICE|Produktionsworkflow|Buildskript' test/rc1002-release-sync.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
       - name: RC997 Diagnose Regression ohne historische Versions-Pins
         shell: bash
         run: |
           node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
           node --test --test-name-pattern='gemeinsame Drei-Umgebungen-Hülle|Benachrichtigungen und 09-12-15' .github/rc997/android-contract.test.mjs
+      - name: RC1003 Drei-Umgebungen-Build ausführen
+        run: node .github/rc1003/build-three-env.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
