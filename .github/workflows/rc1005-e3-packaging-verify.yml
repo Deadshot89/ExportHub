@@ -1,0 +1,28 @@
+name: RC1005 E3 Verpackungsmasse Verify
+
+on:
+  push:
+    branches:
+      - rc1005-e3-verpackungsmasse
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1005 E3 Maße RED/GREEN
+        run: node --test test/rc1005-e3-packaging-dimensions.test.mjs
+      - name: Bestehende Colli-Regressionen
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in test/rc980-colli-row-stability.test.mjs test/rc981-colli-single-delete.test.mjs; do
+            if [ -f "$f" ]; then node --test "$f"; fi
+          done
