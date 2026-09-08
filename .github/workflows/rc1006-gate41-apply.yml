@@ -1,0 +1,44 @@
+name: RC1006 Gate41 Korrektur anwenden
+
+on:
+  push:
+    branches:
+      - rc1006-gate41-shipping-costs
+    paths:
+      - 'scripts/rc1006-fix-gate41-route.mjs'
+      - '.github/workflows/rc1006-gate41-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1006-gate41-shipping-costs
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Gate41 Standortquelle korrigieren
+        run: node scripts/rc1006-fix-gate41-route.mjs
+      - name: RC1006 Gate41 Regressionen prüfen
+        run: |
+          node --test test/rc1006-gate41-route.test.mjs
+          node --test test/rc1005-e3-packaging-dimensions.test.mjs
+          node --test test/rc1005-e3-packaging-precedence.test.mjs
+          node --test test/rc980-colli-row-stability.test.mjs
+      - name: Änderung prüfen und committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code --quiet && { echo 'Keine Änderung erzeugt'; exit 1; }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          git commit -m 'RC1006: Gate41 Versandkosten an aktuelle Standortdaten anbinden'
+          git push origin HEAD:rc1006-gate41-shipping-costs
