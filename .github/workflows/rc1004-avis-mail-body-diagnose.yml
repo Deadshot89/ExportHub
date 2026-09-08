@@ -1,0 +1,24 @@
+name: RC1004 Avis Mail Body Diagnose
+on:
+  push:
+    branches: [rc1004-avis-outlook-body-fix]
+    paths:
+      - '.github/workflows/rc1004-avis-mail-body-diagnose.yml'
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: injectMailBody anzeigen
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const file of ['index.html','TESTVERSION.html']){
+            const html=fs.readFileSync(file,'utf8');
+            const start=html.indexOf('function injectMailBody(sh,target,body,langOverride)');
+            const end=html.indexOf('function click(e)',start);
+            console.log('\n--- '+file+' ---\n'+html.slice(start,end));
+          }
+          NODE
