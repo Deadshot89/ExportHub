@@ -39,3 +39,16 @@ patchFile('assets/sop/rc1007-sop-catalog.js',(src)=>{
   if(!out.includes('visuals:buildVisuals(input,sections)')) throw new Error('RC1007: Visual-Builder wurde nicht in den SOP-Katalog eingebunden');
   return out;
 });
+
+patchFile('assets/sop/rc1007-sop-ui.js',(src)=>{
+  let out=src;
+  if(!out.includes('function applyWorkflowAction(document,action,options={}){')){
+    const anchor='function printDocument(){\n';
+    if(!out.includes(anchor)) throw new Error('RC1007: printDocument-Anker im SOP-UI nicht gefunden');
+    const helper=`function applyWorkflowAction(document,action,options={}){\n  const model=root.ExportHubIsoSopModel;\n  if(!model) throw new Error('ISO-SOP-Modell nicht geladen');\n  switch(String(action||'').toLowerCase()){\n    case 'draft':\n    case 'new-version': return model.createDraftVersion(document,options);\n    case 'review': return model.submitForReview(document,options);\n    case 'approve': return model.approveVersion(document,options);\n    case 'archive': return model.archiveVersion(document,options);\n    default: throw new Error('Unbekannte SOP-Workflow-Aktion');\n  }\n}\n`;
+    out=out.replace(anchor,helper+anchor);
+  }
+  out=out.replace('root.ExportHubIsoSopUi=Object.freeze({mount,renderOverview,renderDocument,renderProcessGraphic,printDocument});','root.ExportHubIsoSopUi=Object.freeze({mount,renderOverview,renderDocument,renderProcessGraphic,printDocument,applyWorkflowAction});');
+  if(!out.includes('applyWorkflowAction});')) throw new Error('RC1007: Workflow-Aktion wurde nicht exportiert');
+  return out;
+});
