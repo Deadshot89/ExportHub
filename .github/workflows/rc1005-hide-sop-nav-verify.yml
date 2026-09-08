@@ -1,0 +1,27 @@
+name: RC1005 Hide SOP Nav Verify
+on:
+  push:
+    branches: [rc1005-hide-sop-nav]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1005-hide-sop-nav.test.mjs'
+      - 'api/shared/user-policy.js'
+      - 'api/shared/merge.js'
+      - '.github/workflows/rc1005-hide-sop-nav-verify.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rc1005-hide-sop-nav-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1005 SOP-Navigation
+        run: node --test test/rc1005-hide-sop-nav.test.mjs
