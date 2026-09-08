@@ -1,0 +1,48 @@
+name: RC1003 Aufgaben Fix anwenden
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - rc1003-task-render-fix-pickup-prep
+    paths:
+      - '.github/rc1003/fix-task-render.mjs'
+      - '.github/workflows/rc1003-apply-task-render-fix.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc1003-task-render-apply-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1003-task-render-fix-pickup-prep
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1003 Aufgaben-Fix anwenden
+        run: node .github/rc1003/fix-task-render.mjs
+      - name: Gezielte Regressionen
+        run: |
+          node --test test/rc1003-task-render-syntax.test.mjs
+          node --test test/rc1002-task-groups.test.mjs
+          node --test test/rc975-global-render-integrity.test.mjs
+      - name: Nur die beiden Website-Dateien committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- .github/rc1003/fix-task-render.mjs .github/workflows/rc1003-apply-task-render-fix.yml test/rc1003-task-render-syntax.test.mjs || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html TESTVERSION.html
+          git diff --cached --quiet && { echo 'Keine HTML-Aenderung erzeugt'; exit 1; }
+          git commit -m 'RC1003: Aufgabenansicht JavaScript reparieren'
+          git push origin HEAD:rc1003-task-render-fix-pickup-prep
