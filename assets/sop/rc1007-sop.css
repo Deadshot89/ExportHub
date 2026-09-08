@@ -3,3 +3,5 @@
 @media print{.rc1007-sop-overview{display:none!important}.rc1007-sop-document{max-width:none;padding:0;color:#000}.rc1007-sop-doc-actions{display:none!important}.rc1007-sop-document-head,.rc1007-sop-meta,.rc1007-sop-section,.rc1007-sop-visual,.rc1007-sop-steps>li{break-inside:avoid;page-break-inside:avoid}.rc1007-sop-section{box-shadow:none;border-color:#bbb;margin:12px 0;padding:12px}.rc1007-sop-process{overflow:visible}.rc1007-sop-process svg{min-width:0}.rc1007-sop-visual img{max-height:220mm;object-fit:contain}}
 
 .rc1007-sop-visual img[src^="data:image/svg+xml"]{width:100%;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.06)}
+
+.rc1007-sop-visual img[src^="data:image/svg+xml"]{width:100%;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.06)}
