@@ -21,6 +21,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Bestehendes Seitenrouting diagnostizieren
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          for(const file of ['index.html','TESTVERSION.html']){
+            const html=fs.readFileSync(file,'utf8');
+            console.log(`=== ${file} ROUTING ===`);
+            for(const term of ['Aufgaben','SOP','Dashboard','data-view','data-page','data-nav','showView','setView','navigate','renderPage']){
+              const at=html.indexOf(term);
+              if(at<0) continue;
+              const snippet=html.slice(Math.max(0,at-500),Math.min(html.length,at+900)).replace(/\s+/g,' ');
+              console.log(`TERM ${term} @${at}: ${snippet}`);
+            }
+            const fn=[];
+            for(const m of html.matchAll(/function\s+([A-Za-z_$][\w$]*(?:View|Page|Nav|Route|Section)[A-Za-z0-9_$]*)\s*\([^)]*\)/g)) fn.push(m[1]);
+            console.log('FUNCTIONS:',[...new Set(fn)].slice(0,100).join(','));
+          }
+          NODE
       - name: RC1011 Kalender-Abschlussvertrag
         run: node --test test/rc1011-abholkalender-completion.test.mjs
       - name: RC1011 Drei-Umgebungen-Releasevertrag
@@ -37,15 +56,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          check(){
-            local label="$1" pattern="$2" file="$3"
-            if grep -q "$pattern" "$file"; then
-              echo "OK: $label"
-            else
-              echo "FEHLT: $label ($pattern in $file)"
-              exit 1
-            fi
-          }
+          check(){ local label="$1" pattern="$2" file="$3"; if grep -q "$pattern" "$file"; then echo "OK: $label"; else echo "FEHLT: $label ($pattern in $file)"; exit 1; fi; }
           check 'Produktion Umgebung' 'ExportHUB RC1011 environment=production-candidate' dist-rc1011/index.html
           check 'TESTSERVICE Umgebung' 'ExportHUB RC1011 environment=testservice' dist-rc1011/TESTVERSION.html
           check 'Demo Umgebung' 'ExportHUB RC1011 environment=demo' dist-rc1011/demo.html
