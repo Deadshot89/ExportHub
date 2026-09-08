@@ -1,1 +1,1 @@
-RC1005 E3 packaging verification trigger
+RC1005 E3 committed-state verification trigger
