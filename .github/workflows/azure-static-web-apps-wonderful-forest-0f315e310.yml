@@ -1,4 +1,4 @@
-name: ExportHUB RC1012 Drei-Umgebungen Deploy
+name: ExportHUB RC1013 Drei-Umgebungen Deploy
 on:
   workflow_dispatch:
   push:
@@ -17,7 +17,9 @@ on:
       - 'android-app/**'
       - 'staticwebapp.config.json'
       - 'staticwebapp.testservice.config.json'
+      - '.github/rc1013/**'
       - '.github/rc1012/**'
+      - 'test/rc1013-*.test.mjs'
       - 'test/rc1012-*.test.mjs'
       - 'test/rc1011-*.test.mjs'
       - 'test/rc1010-*.test.mjs'
@@ -29,7 +31,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: exporthub-rc1012-three-env-${{ github.ref }}
+  group: exporthub-rc1013-three-env-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   build_and_deploy_job:
@@ -42,58 +44,65 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: RC1012 Freigabevertrag prüfen
+      - name: RC1013 Freigabevertrag prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1012'" production-version.js
-          node --test test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs
-          node --test .github/rc998/partial-pickup-avis-contract.test.mjs
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1013'" production-version.js
+          node --test test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1006-gate41-route.test.mjs
+          node --test .github/rc995/rc995-flow.test.cjs .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
-      - name: RC1012 Produktion TESTSERVICE und Demo gemeinsam bauen
+      - name: RC1013 Produktion TESTSERVICE und Demo gemeinsam bauen
         shell: bash
         run: |
           set -euo pipefail
-          node .github/rc1012/build-three-env.mjs
-          grep -q 'ExportHUB RC1012 environment=production-candidate' dist-rc1012/index.html
-          grep -q 'ExportHUB RC1012 environment=testservice' dist-rc1012/TESTVERSION.html
-          grep -q 'ExportHUB RC1012 environment=demo' dist-rc1012/demo.html
-          grep -q "version:'RC1012'" dist-rc1012/index.html
-          grep -q "version:'RC1012'" dist-rc1012/TESTVERSION.html
-          grep -q "version:'RC1012'" dist-rc1012/demo.html
-          grep -q 'assets/sop/rc1007-sop-catalog.js' dist-rc1012/index.html
-          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1012/index.html
-          grep -q 'assets/abholkalender.css?v=1012' dist-rc1012/index.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1012/index.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1012/index.html
-          grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1012/index.html
+          node .github/rc1013/build-three-env.mjs
+          grep -q 'ExportHUB RC1013 environment=production-candidate' dist-rc1013/index.html
+          grep -q 'ExportHUB RC1013 environment=testservice' dist-rc1013/TESTVERSION.html
+          grep -q 'ExportHUB RC1013 environment=demo' dist-rc1013/demo.html
+          grep -q "version:'RC1013'" dist-rc1013/index.html
+          grep -q "version:'RC1013'" dist-rc1013/TESTVERSION.html
+          grep -q "version:'RC1013'" dist-rc1013/demo.html
+          grep -q 'assets/sop/rc1010-sop-release.js' dist-rc1013/index.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1013/index.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1013/index.html
+          grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1013/index.html
+          grep -q 'assets/rc1013-gate41-ui.js?v=1013' dist-rc1013/index.html
+          grep -q 'serverToken=q(data&&data.token)' dist-rc1013/index.html
+          grep -q 'serverToken=q(data&&data.token)' dist-rc1013/TESTVERSION.html
+          grep -q "setRouteData(g,'country','Deutschland')" dist-rc1013/index.html
+          grep -q "setRouteData(g,'country','Deutschland')" dist-rc1013/TESTVERSION.html
       - name: Gemeinsame Deploy-Pakete vorbereiten
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .rc1012_production_app .rc1012_testservice_app
-          mkdir -p .rc1012_production_app .rc1012_testservice_app
-          for dir in .rc1012_production_app .rc1012_testservice_app; do
+          rm -rf .rc1013_production_app .rc1013_testservice_app
+          mkdir -p .rc1013_production_app .rc1013_testservice_app
+          for dir in .rc1013_production_app .rc1013_testservice_app; do
             cp pickup.html customer-avis.html location.html pod-notfall.html production-version.js "$dir/"
             cp -R assets "$dir/assets"
           done
-          cp staticwebapp.config.json .rc1012_production_app/staticwebapp.config.json
-          cp dist-rc1012/index.html .rc1012_production_app/index.html
-          cp dist-rc1012/assets/exporthub-environment-hub.js .rc1012_production_app/assets/exporthub-environment-hub.js
-          cp dist-rc1012/assets/exporthub-demo-bootstrap.js .rc1012_production_app/assets/exporthub-demo-bootstrap.js
-          cp staticwebapp.testservice.config.json .rc1012_testservice_app/staticwebapp.config.json
-          cp dist-rc1012/TESTVERSION.html .rc1012_testservice_app/index.html
-          cp dist-rc1012/TESTVERSION.html .rc1012_testservice_app/TESTVERSION.html
-          cp dist-rc1012/demo.html .rc1012_testservice_app/demo.html
-          cp dist-rc1012/assets/exporthub-environment-hub.js .rc1012_testservice_app/assets/exporthub-environment-hub.js
-          cp dist-rc1012/assets/exporthub-demo-bootstrap.js .rc1012_testservice_app/assets/exporthub-demo-bootstrap.js
+          cp staticwebapp.config.json .rc1013_production_app/staticwebapp.config.json
+          cp dist-rc1013/index.html .rc1013_production_app/index.html
+          cp dist-rc1013/assets/exporthub-environment-hub.js .rc1013_production_app/assets/exporthub-environment-hub.js
+          cp dist-rc1013/assets/exporthub-demo-bootstrap.js .rc1013_production_app/assets/exporthub-demo-bootstrap.js
+          cp dist-rc1013/assets/rc1013-diagnostics.js .rc1013_production_app/assets/rc1013-diagnostics.js
+          cp dist-rc1013/assets/rc1013-gate41-ui.js .rc1013_production_app/assets/rc1013-gate41-ui.js
+          cp staticwebapp.testservice.config.json .rc1013_testservice_app/staticwebapp.config.json
+          cp dist-rc1013/TESTVERSION.html .rc1013_testservice_app/index.html
+          cp dist-rc1013/TESTVERSION.html .rc1013_testservice_app/TESTVERSION.html
+          cp dist-rc1013/demo.html .rc1013_testservice_app/demo.html
+          cp dist-rc1013/assets/exporthub-environment-hub.js .rc1013_testservice_app/assets/exporthub-environment-hub.js
+          cp dist-rc1013/assets/exporthub-demo-bootstrap.js .rc1013_testservice_app/assets/exporthub-demo-bootstrap.js
+          cp dist-rc1013/assets/rc1013-diagnostics.js .rc1013_testservice_app/assets/rc1013-diagnostics.js
+          cp dist-rc1013/assets/rc1013-gate41-ui.js .rc1013_testservice_app/assets/rc1013-gate41-ui.js
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1012_production_app
+          app_location: .rc1013_production_app
           api_location: api
           output_location: ''
           skip_app_build: true
@@ -103,44 +112,57 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1012_testservice_app
+          app_location: .rc1013_testservice_app
           api_location: api
           output_location: ''
           skip_app_build: true
           deployment_environment: testservice
-      - name: Live RC1012 Produktion TESTSERVICE und Demo prüfen
+      - name: Live RC1013 Produktion TESTSERVICE und Demo prüfen
         shell: bash
         run: |
           set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
           testservice='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net'
-          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp)
-          trap 'rm -f "$p" "$t" "$d" "$ph" "$th"' EXIT
+          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pd" "$td" "$pg" "$tg"' EXIT
           for attempt in {1..24}; do
-            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1012=$GITHUB_SHA-$attempt" || true)
-            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1012=$GITHUB_SHA-$attempt" || true)
-            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1012=$GITHUB_SHA-$attempt" || true)
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1013=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1013=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1013=$GITHUB_SHA-$attempt" || true)
             phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/api/exporthub-health" || true)
             thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/api/exporthub-health" || true)
-            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' ]] \
-              && grep -q 'ExportHUB RC1012 environment=production-candidate' "$p" \
-              && grep -q 'ExportHUB RC1012 environment=testservice' "$t" \
-              && grep -q 'ExportHUB RC1012 environment=demo' "$d" \
-              && grep -q "version:'RC1012'" "$p" \
-              && grep -q "version:'RC1012'" "$t" \
-              && grep -q "version:'RC1012'" "$d" \
+            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1013=$GITHUB_SHA-$attempt" || true)
+            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1013=$GITHUB_SHA-$attempt" || true)
+            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1013=$GITHUB_SHA-$attempt" || true)
+            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1013=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' ]] \
+              && grep -q 'ExportHUB RC1013 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1013 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1013 environment=demo' "$d" \
+              && grep -q "version:'RC1013'" "$p" \
+              && grep -q "version:'RC1013'" "$t" \
+              && grep -q "version:'RC1013'" "$d" \
               && grep -q 'assets/sop/rc1010-sop-release.js' "$p" \
               && grep -q 'assets/abholkalender.js?v=1012' "$p" \
               && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$p" \
-              && grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" "$p" \
-              && grep -q 'assets/abholkalender.js?v=1012' "$t" \
-              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$t" \
-              && grep -q 'assets/abholkalender.js?v=1012' "$d" \
-              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$d"; then
-              echo 'RC1012 Produktion, TESTSERVICE und Demo live auf gemeinsamem Stand mit Abholkalender bestätigt.'
+              && grep -q 'assets/rc1013-diagnostics.js?v=1013' "$p" \
+              && grep -q 'assets/rc1013-gate41-ui.js?v=1013' "$p" \
+              && grep -q 'serverToken=q(data&&data.token)' "$p" \
+              && grep -q "setRouteData(g,'country','Deutschland')" "$p" \
+              && grep -q 'assets/rc1013-diagnostics.js?v=1013' "$t" \
+              && grep -q 'assets/rc1013-gate41-ui.js?v=1013' "$t" \
+              && grep -q 'serverToken=q(data&&data.token)' "$t" \
+              && grep -q "setRouteData(g,'country','Deutschland')" "$t" \
+              && grep -q 'assets/rc1013-diagnostics.js?v=1013' "$d" \
+              && grep -q 'assets/rc1013-gate41-ui.js?v=1013' "$d" \
+              && grep -q 'EH-PICKUP-410' "$pd" \
+              && grep -q 'EH-PICKUP-410' "$td" \
+              && grep -q 'Gate41-Preis berechnet' "$pg" \
+              && grep -q 'Gate41-Preis berechnet' "$tg"; then
+              echo 'RC1013 Produktion, TESTSERVICE und Demo live auf gemeinsamem Stand mit Gate41, QR-Abholung, Handy-Benachrichtigungen und strukturierter Fehlerdiagnose bestätigt.'
               exit 0
             fi
             sleep 10
           done
-          echo 'RC1012 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
+          echo 'RC1013 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
           exit 1
