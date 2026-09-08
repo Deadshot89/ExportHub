@@ -4,6 +4,8 @@ import fs from 'node:fs';
 await import('../assets/abholkalender.js');
 const calendar = globalThis.ExportHubPickupCalendar;
 
+function occurrences(text, needle){ return text.split(needle).length - 1; }
+
 test('UI-Vertrag enthält Heute, FIX, SENDUNG und Montag bis Freitag', () => {
   const js = fs.readFileSync('assets/abholkalender.js','utf8');
   assert.match(js,/Heute/);
@@ -45,4 +47,33 @@ test('Kalender-CSS bleibt auf Feature-Klassen begrenzt und ist responsiv', () =>
   assert.match(css,/@media\(max-width:1000px\)/);
   assert.match(css,/@media\(max-width:640px\)/);
   assert.doesNotMatch(css,/(^|\})\s*(body|button|\.card|nav)\s*\{/m);
+});
+
+test('Produktions- und Testseite laden Kalenderassets jeweils exakt einmal', () => {
+  for (const file of ['index.html','TESTVERSION.html']) {
+    const html = fs.readFileSync(file,'utf8');
+    assert.equal(occurrences(html,'assets/abholkalender.css'),1,`${file}: CSS exakt einmal`);
+    assert.equal(occurrences(html,'assets/abholkalender.js'),1,`${file}: JS exakt einmal`);
+  }
+});
+
+test('Navigation und Router führen Abholkalender als eigenes Modul', () => {
+  for (const file of ['index.html','TESTVERSION.html']) {
+    const html = fs.readFileSync(file,'utf8');
+    assert.match(html,/view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'/,`${file}: Navigation`);
+    assert.match(html,/view==='pickupcalendar'.*ExportHubPickupCalendar/s,`${file}: Router`);
+    assert.equal(occurrences(html,'id="rc1004PickupCalendar"'),1,`${file}: Kalender-Root exakt einmal`);
+  }
+});
+
+test('Kalender übernimmt vorhandene In-Memory-Sendungen statt einen zweiten Sendungsabruf anzulegen', () => {
+  for (const file of ['index.html','TESTVERSION.html']) {
+    const html = fs.readFileSync(file,'utf8');
+    const marker = html.indexOf("view==='pickupcalendar'");
+    assert.ok(marker >= 0,`${file}: Routermarker fehlt`);
+    const section = html.slice(marker,marker+1800);
+    assert.match(section,/Array\.isArray\(S\(\)\.shipments\)/,`${file}: bestehende Sendungen werden verwendet`);
+    assert.match(section,/ExportHubPickupCalendar\.mount/,`${file}: Kalender wird montiert`);
+    assert.doesNotMatch(section,/fetch\([^)]*exporthub-state/i,`${file}: kein zusätzlicher Sendungs-State-Fetch`);
+  }
 });
