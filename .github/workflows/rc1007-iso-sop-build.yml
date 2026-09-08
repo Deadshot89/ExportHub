@@ -1,0 +1,42 @@
+name: RC1007 ISO SOP Build
+
+on:
+  push:
+    branches:
+      - rc1007-iso-sop-handbook
+    paths:
+      - '.github/rc1007/**'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: rc1007-iso-sop-handbook
+      - name: Node 20 bereitstellen
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1007 Patch anwenden
+        run: node .github/rc1007/apply-rc1007.mjs
+      - name: RC1007 Tests ausführen
+        run: node --test test/rc1007*.test.mjs
+      - name: Vollständige Regression ausführen
+        run: npm test
+      - name: Änderungen committen
+        run: |
+          if git diff --quiet; then
+            echo "Keine erzeugten Änderungen."
+            exit 0
+          fi
+          git config user.name "ExportHUB RC1007 Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add api/shared/merge.js index.html TESTVERSION.html assets/sop test/rc1007*.test.mjs
+          git commit -m "RC1007: SOP-Bausteine aus geprüftem Patch anwenden"
+          git push origin HEAD:rc1007-iso-sop-handbook
