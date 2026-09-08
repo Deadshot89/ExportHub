@@ -1,0 +1,30 @@
+name: RC1007 Lieferavis Link Verify
+on:
+  push:
+    branches: [rc1007-lieferavis-valid-link]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: rc1007-lieferavis-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc1007-lieferavis-valid-link
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1007 Lieferavis-Link Regression
+        run: node --test test/rc1007-lieferavis-valid-link.test.mjs
+      - name: Bestehende Avis-Verträge
+        run: node --test .github/rc995/rc995-contract.test.mjs .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: Diff prüfen
+        run: git diff --check
