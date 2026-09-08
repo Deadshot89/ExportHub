@@ -1,0 +1,20 @@
+name: RC1009 SOP Auswahl und Darstellung
+
+on:
+  push:
+    branches:
+      - rc1009-sop-selection-ui
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1009 SOP-Auswahl und Darstellung
+        run: node --test test/rc1009-sop-selection-ui.test.mjs
+      - name: Bestehende Node-Regression
+        run: npm test
