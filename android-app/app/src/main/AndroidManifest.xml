@@ -18,6 +18,11 @@
         android:usesCleartextTraffic="false">
 
         <activity
+            android:name=".NotificationDetailActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
             android:name=".EnvironmentActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:exported="true"
