@@ -10,9 +10,7 @@ on:
       - 'test/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc997/android-contract.test.mjs'
-      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
-      - '.github/workflows/exporthub-android-test-app.yml'
-      - '.github/workflows/rc1003-main-integration.yml'
+      - '.github/workflows/**'
 permissions:
   contents: read
 concurrency:
