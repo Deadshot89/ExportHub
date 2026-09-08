@@ -1,0 +1,37 @@
+name: RC1004 Outlook Avis Verify
+on:
+  push:
+    branches: [rc1004-avis-outlook-body-fix]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/**'
+      - '.github/rc998/**'
+      - '.github/rc1003/**'
+      - '.github/workflows/rc1004-avis-outlook-verify.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rc1004-avis-outlook-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - name: RC1004 Outlook-Avis Langtext
+        run: node --test test/rc1004-avis-outlook-body.test.mjs
+      - name: RC998 Avis-Verträge
+        run: node --test --test-name-pattern='Lieferavis verwendet ausschließlich|Kundenmail ersetzt bei aktivem Lieferavis die Sendungsdetails|Outlook erhält auch bei langen Vorlagen den vollständigen Mailtext|Lieferavis-Link trägt seine Umgebung' .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: RC1003 Drei-Umgebungen-Vertrag
+        run: node --test test/rc1003-three-env-sync.test.mjs
+      - name: Drei-Umgebungen-Build
+        run: node .github/rc1003/build-three-env.mjs
+      - name: Diff prüfen
+        run: git diff --check

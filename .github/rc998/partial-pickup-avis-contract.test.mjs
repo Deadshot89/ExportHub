@@ -5,6 +5,7 @@ import fs from 'node:fs';
 // RC1003: dieser Vertrag prueft die bedienbare Teilabholung gegen den echten QR-Dialog.
 const root=process.cwd();
 const html=fs.readFileSync('TESTVERSION.html','utf8');
+const productionHtml=fs.readFileSync('index.html','utf8');
 const avisHtml=fs.readFileSync('customer-avis.html','utf8');
 const avisApi=fs.readFileSync('api/customer-avis/index.js','utf8');
 const pickupHtml=fs.readFileSync('pickup.html','utf8');
@@ -21,14 +22,16 @@ test('Lieferavis verwendet ausschließlich die ExportHUB-Sendungsreferenz',()=>{
   assert.match(avisApi,/const v=validateAppointment\(payload\),stamp=now\(\),reference=sref\(target\)/);
 });
 
-test('Kundenmail behält Sendungsdetails und ergänzt den Lieferavis',()=>{
-  const start=html.indexOf('function injectMailBody(sh,target,body,langOverride)');
-  const end=html.indexOf('function click(e)',start);
-  const fn=html.slice(start,end);
-  assert.ok(start>0&&end>start,'injectMailBody fehlt');
-  assert.doesNotMatch(fn,/stripShipmentDetails\(clean\)/);
-  assert.match(fn,/Lieferavis-Link bleibt bis drei Arbeitstage nach der tatsächlichen Abholung gültig/);
-  assert.match(fn,/Samstage und Sonntage gelten dabei nicht als Arbeitstage/);
+test('Kundenmail ersetzt bei aktivem Lieferavis die Sendungsdetails',()=>{
+  for(const [name,source] of [['Produktion',productionHtml],['TESTVERSION',html]]){
+    const start=source.indexOf('function injectMailBody(sh,target,body,langOverride)');
+    const end=source.indexOf('function click(e)',start);
+    const fn=source.slice(start,end);
+    assert.ok(start>0&&end>start,`${name}: injectMailBody fehlt`);
+    assert.match(fn,/if\(target!==['"]customer['"]\|\|!enabled\(sh\)\)return clean;clean=stripShipmentDetails\(clean\)/,`${name}: Sendungsdetails müssen nur bei aktivem Kunden-AVIS entfernt werden`);
+    assert.match(fn,/Lieferavis-Link bleibt bis drei Arbeitstage nach der tatsächlichen Abholung gültig|Der Link wird drei Arbeitstage nach der tatsächlichen Abholung automatisch deaktiviert/,`${name}: AVIS-Hinweis fehlt`);
+    assert.match(fn,/Samstage und Sonntage gelten dabei nicht als Arbeitstage|Samstag und Sonntag zählen nicht mit/,`${name}: Wochenend-Hinweis fehlt`);
+  }
 });
 
 test('Outlook erhält auch bei langen Vorlagen den vollständigen Mailtext',()=>{
