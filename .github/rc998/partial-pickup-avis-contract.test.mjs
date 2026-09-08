@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+// RC1003: dieser Vertrag prueft die bedienbare Teilabholung gegen den echten QR-Dialog.
 const root=process.cwd();
 const html=fs.readFileSync('TESTVERSION.html','utf8');
 const avisHtml=fs.readFileSync('customer-avis.html','utf8');
