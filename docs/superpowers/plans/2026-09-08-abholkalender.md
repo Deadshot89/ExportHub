@@ -4,9 +4,9 @@
 
 **Goal:** ExportHUB erhält eine Montag-bis-Freitag-Abholübersicht mit getrennten, wiederkehrenden FIX-Stammdaten und konkreten SENDUNG-Einträgen inklusive Heute-Ansicht, Teilabholungs-Restmengen und serverseitig abgesicherter Admin-Verwaltung.
 
-**Architecture:** Fixe Abholungen werden in einem eigenen, umgebungs- und firmenbezogenen Blob-Store gespeichert; reale Sendungen bleiben ausschließlich Projektion des bestehenden ExportHUB-Sendungs-/Pickup-Zustands. Eine kleine eigenständige Frontend-Einheit baut aus beiden Quellen ein gemeinsames Ansichtsmodell, rendert Heute + Montag bis Freitag und behandelt Ladefehler beider Quellen unabhängig. Es gibt keine automatische Verknüpfung oder Umwandlung zwischen FIX und SENDUNG.
+**Architecture:** Fixe Abholungen werden in einem eigenen, umgebungs- und firmenbezogenen Blob-Dokument gespeichert; reale Sendungen bleiben ausschließlich eine Projektion des bestehenden ExportHUB-Sendungs-/Pickup-Zustands. Eine fokussierte Frontend-Einheit baut aus beiden Quellen ein gemeinsames Ansichtsmodell, rendert Heute + Montag bis Freitag und behandelt Ladefehler beider Quellen unabhängig. Es gibt keine automatische Verknüpfung oder Umwandlung zwischen FIX und SENDUNG.
 
-**Tech Stack:** Azure Static Web Apps, Node.js CommonJS Azure Functions, Azure Blob Storage über `api/shared/blob-rest.js`, bestehende ExportHUB-Sitzungs-/Rechteprüfung, browserseitiges Vanilla JavaScript/CSS, Node `node:test` + `assert`.
+**Tech Stack:** Azure Static Web Apps, Node.js CommonJS Azure Functions, bestehender Azure-Blob-REST-Client `api/shared/blob-rest.js`, bestehende ExportHUB-Sitzungs-/Rechteprüfung, browserseitiges Vanilla JavaScript/CSS, Node `node:test` + `assert`.
 
 **Spec:** `docs/superpowers/specs/2026-09-08-abholkalender-design.md`
 
@@ -22,9 +22,10 @@
 - Normale Mitarbeiter dürfen fixe Abholungen lesen, aber nicht verändern.
 - Nur administrative Benutzer dürfen FIX-Einträge anlegen, ändern, deaktivieren oder reaktivieren.
 - Schreibrechte werden serverseitig geprüft.
-- Produktions- und Testservice-Daten werden getrennt gespeichert.
+- Produktions- und Testservice-Daten werden getrennt gespeichert; Host/Origin und angeforderte Umgebung dürfen sich nicht widersprechen.
 - Firmen-/Mandantenbezug wird bei jedem FIX-Lese- und Schreibzugriff serverseitig aufgelöst und geprüft.
-- Keine realen Kunden oder Standorte werden im Code hart codiert; insbesondere werden keine zusätzlichen Kunden automatisch angelegt.
+- Ein nicht-administrativer Legacy-Benutzer ohne Firmenmetadaten darf niemals durch einen selbst gesetzten Header in einen beliebigen Firmenkontext wechseln.
+- Keine realen Kunden oder Standorte werden im Runtime-Code hart codiert; insbesondere werden keine zusätzlichen Kunden automatisch angelegt.
 - Produktion wird in diesem Plan nicht direkt verändert oder deployed.
 
 ---
@@ -33,23 +34,23 @@
 
 **Neu**
 - `api/shared/company-context.js` — löst den aktuellen Firmen-/Mandantenkontext aus authentifiziertem Benutzer + Request auf und verhindert Cross-Company-Zugriffe.
-- `api/shared/fixed-pickup-store.js` — validiert FIX-Datensätze und persistiert sie umgebungs-/mandantengetrennt mit ETag-Retry.
-- `api/fixed-pickups/index.js` — GET/POST/PATCH-API, Authentifizierung, Rollenprüfung, Fehlerantworten.
+- `api/shared/fixed-pickup-store.js` — validiert FIX-Datensätze, löst die Datenumgebung sicher auf und persistiert umgebungs-/mandantengetrennt mit ETag-Retry.
+- `api/fixed-pickups/index.js` — GET/POST/PATCH-API, Authentifizierung, Rollenprüfung und Fehlerantworten.
 - `api/fixed-pickups/function.json` — HTTP-Trigger für `fixed-pickups`.
-- `assets/abholkalender.js` — reine Kalenderprojektion plus Browser-Controller/Renderer; keine Persistenzlogik.
+- `assets/abholkalender.js` — reine Kalenderprojektion plus Browser-Controller/Renderer; keine serverseitige Persistenzlogik.
 - `assets/abholkalender.css` — ausschließlich Layout/Statusdarstellung der Heute-/Wochen-/Adminansicht.
-- `test/rc1004-company-context.test.mjs` — Mandantenauflösung und Fremdzugriffsschutz.
-- `test/rc1004-fixed-pickup-store.test.mjs` — Datenmodell, Validierung, Umgebungs-/Tenant-Isolation, Soft-Deaktivierung.
-- `test/rc1004-fixed-pickups-api.test.mjs` — GET für Mitarbeiter, Admin-Schreibzugriffe, Fehlercodes.
-- `test/rc1004-abholkalender-model.test.mjs` — Montag–Freitag-Projektion, Heute, SENDUNG-Restmengen, keine automatische Verknüpfung.
-- `test/rc1004-abholkalender-ui.test.mjs` — HTML-/Asset-Vertrag, Navigation, FIX/SENDUNG-Trennung, Fehlerisolation.
+- `test/rc1004-company-context.test.mjs` — Mandantenauflösung, Legacy-Fallback und Fremdzugriffsschutz.
+- `test/rc1004-fixed-pickup-store.test.mjs` — Datenmodell, keine Uhrzeitfelder, Umgebungs-/Tenant-Isolation und Soft-Deaktivierung.
+- `test/rc1004-fixed-pickups-api.test.mjs` — Mitarbeiter-GET, Admin-Schreibzugriffe, Firmen- und Umgebungsfehler.
+- `test/rc1004-abholkalender-model.test.mjs` — Montag–Freitag-Projektion, Heute, SENDUNG-Restmengen und keine automatische Verknüpfung.
+- `test/rc1004-abholkalender-ui.test.mjs` — Asset-/HTML-Vertrag, Navigation, FIX/SENDUNG-Trennung und Fehlerisolation.
 
 **Ändern**
 - `api/shared/user-policy.js` — Modulrecht `pickupcalendar`; normale Benutzer erhalten standardmäßig Leserecht, Admins Adminrecht.
 - `index.html` — Abholkalender in Navigation/Page-Routing aufnehmen und `assets/abholkalender.css/js` laden.
-- `TESTVERSION.html` — identische Laufzeitintegration wie Produktion-Kandidat, Testservice-Umgebung beibehalten.
-- `RELEASE_MANIFEST.txt` — neue API-, Asset- und Testdateien in den Release-Vertrag aufnehmen.
-- `.github/workflows/rc1002-main-contract.yml` — RC1004-Tests nur dann ergänzen, wenn der Workflow als zukünftiger Main-Vertrag genutzt wird; der Branch selbst wird nicht deployed.
+- `TESTVERSION.html` — identische Laufzeitintegration wie Produktionskandidat, aber bestehende Testservice-Umgebung beibehalten.
+- `RELEASE_MANIFEST.txt` — neue Runtime-Dateien in den Release-Vertrag aufnehmen.
+- `.github/workflows/rc1002-main-contract.yml` — RC1004-Tests in den zukünftigen Main-Verifikationsvertrag aufnehmen; keine Deploy- oder Branch-Trigger für RC1004 hinzufügen.
 
 ---
 
@@ -62,7 +63,7 @@
 
 **Interfaces:**
 - Consumes: authentifizierter `user` aus `auth-store.validateSession(req)` und Azure-Function-`req`.
-- Produces: `resolveCompanyContext(req, user) -> { companyKey, requestedCompanyKey, allowedCompanyKeys }`, `canWritePickupCalendar(user) -> boolean` über bestehende Adminlogik; Modulrecht `pickupcalendar` ist für normale aktive Benutzer mindestens `view` und für Admins `admin`.
+- Produces: `resolveCompanyContext(req, user) -> { companyKey, requestedCompanyKey, allowedCompanyKeys }`; Modulrecht `pickupcalendar` ist für normale aktive Benutzer mindestens `view` und für Admins `admin`.
 
 - [ ] **Step 1: Write the failing company-context and rights tests**
 
@@ -82,14 +83,27 @@ test('Firmenkontext nutzt die am Benutzer gebundene Firma', () => {
 
 test('Benutzer darf keine andere Firma per Header auswählen', () => {
   assert.throws(
-    () => ctx.resolveCompanyContext({ headers: { 'x-exporthub-company-id': 'KONTUR' } }, { companyId: 'ESSENTRA' }),
+    () => ctx.resolveCompanyContext(
+      { headers: { 'x-exporthub-company-id': 'KONTUR' } },
+      { companyId: 'ESSENTRA', role: 'Benutzer' }
+    ),
     e => e && e.code === 'COMPANY_FORBIDDEN' && e.statusCode === 403
   );
 });
 
-test('Legacy-Benutzer ohne Firmenfeld bleiben im isolierten Legacy-Kontext', () => {
-  const out = ctx.resolveCompanyContext({ headers: {} }, { id: 'USER-1' });
+test('Legacy-Benutzer ohne Firmenfeld bleiben im Legacy-Kontext', () => {
+  const out = ctx.resolveCompanyContext({ headers: {} }, { id: 'USER-1', role: 'Benutzer' });
   assert.equal(out.companyKey, 'legacy-default');
+});
+
+test('Legacy-Benutzer ohne Firmenfeld kann keine Firma per Header erfinden', () => {
+  assert.throws(
+    () => ctx.resolveCompanyContext(
+      { headers: { 'x-exporthub-company-id': 'ESSENTRA' } },
+      { id: 'USER-1', role: 'Benutzer' }
+    ),
+    e => e && e.code === 'COMPANY_FORBIDDEN' && e.statusCode === 403
+  );
 });
 
 test('pickupcalendar ist für Mitarbeiter lesbar und für Admins administrierbar', () => {
@@ -123,7 +137,9 @@ function key(v){
     .slice(0, 80);
 }
 function error(code, message, statusCode){
-  const e = new Error(message); e.code = code; e.status = statusCode; e.statusCode = statusCode; return e;
+  const e = new Error(message);
+  e.code = code; e.status = statusCode; e.statusCode = statusCode;
+  return e;
 }
 function values(user){
   const raw = [user && user.companyId, user && user.companyKey, user && user.tenantId, user && user.tenant];
@@ -142,30 +158,42 @@ function requested(req){
 }
 function isGlobalAdmin(user){
   const role = text(user && (user.role || user.rolle)).toLowerCase();
-  return user && (user.globalAdmin === true || role === 'admin' || /global.?admin|administrator|vollzugriff/.test(role) || (Array.isArray(user.permissions) && user.permissions.includes('*')));
+  return Boolean(user && (
+    user.globalAdmin === true ||
+    role === 'admin' ||
+    /global.?admin|administrator|vollzugriff/.test(role) ||
+    (Array.isArray(user.permissions) && user.permissions.includes('*'))
+  ));
 }
 function resolveCompanyContext(req, user){
-  const allowed = values(user), wanted = requested(req);
-  if (wanted && allowed.length && !allowed.includes(wanted) && !isGlobalAdmin(user)) throw error('COMPANY_FORBIDDEN','Kein Zugriff auf diese Firma.',403);
-  const companyKey = wanted || allowed[0] || 'legacy-default';
+  const allowed = values(user), wanted = requested(req), admin = isGlobalAdmin(user);
+  if (!admin && wanted && allowed.length && !allowed.includes(wanted)) {
+    throw error('COMPANY_FORBIDDEN','Kein Zugriff auf diese Firma.',403);
+  }
+  if (!admin && wanted && !allowed.length && wanted !== 'legacy-default') {
+    throw error('COMPANY_FORBIDDEN','Für dieses Benutzerkonto ist keine andere Firma freigegeben.',403);
+  }
+  const companyKey = admin
+    ? (wanted || allowed[0] || 'legacy-default')
+    : (wanted || allowed[0] || 'legacy-default');
   return { companyKey, requestedCompanyKey: wanted, allowedCompanyKeys: allowed };
 }
 module.exports = { text, key, values, requested, resolveCompanyContext, isGlobalAdmin };
 ```
 
-In `api/shared/user-policy.js` add `pickupcalendar` to `MODULES`, and make the non-admin fallback for `start`, `dashboard` **and** `pickupcalendar` equal to `view`. Keep all existing rights behavior unchanged for other modules.
+In `api/shared/user-policy.js` add `pickupcalendar` to `MODULES`. In **beiden** Fallback-Stellen (`defaultRights` und `normalizeRights`) gilt für Nicht-Admins: `start`, `dashboard` und `pickupcalendar` => `view`; alle anderen bisherigen Standardrechte bleiben unverändert.
 
 - [ ] **Step 4: Run the focused test and verify GREEN**
 
 Run: `node --test test/rc1004-company-context.test.mjs`
 
-Expected: PASS, 4 tests, 0 failures.
+Expected: PASS, 5 tests, 0 failures.
 
-- [ ] **Step 5: Run existing auth/user regression**
+- [ ] **Step 5: Run existing user/right regressions**
 
-Run: `npm test -- --test-name-pattern="auth|user|rights|permission"`
+Run: `npm test`
 
-Expected: no new failures. If the repository's `npm test` script does not forward the filter, run `npm test` and require exit code 0.
+Expected: exit code 0 and no new auth/right failures.
 
 - [ ] **Step 6: Commit**
 
@@ -176,16 +204,16 @@ git commit -m "feat: Abholkalender Firmenkontext und Leserecht"
 
 ---
 
-### Task 2: Eigenständiger FIX-Stammdaten-Store
+### Task 2: Eigenständiger FIX-Stammdaten-Store und sichere Umgebungsauflösung
 
 **Files:**
 - Create: `api/shared/fixed-pickup-store.js`
 - Test: `test/rc1004-fixed-pickup-store.test.mjs`
 
 **Interfaces:**
-- Consumes: `environment` (`production` oder `testservice`), `companyKey`, und validierte FIX-Nutzdaten.
+- Consumes: Azure-Function-Request für Umgebungsauflösung, `companyKey`, validierte FIX-Nutzdaten.
 - Produces:
-  - `normalizeEnvironment(value) -> 'production'|'testservice'`
+  - `resolveEnvironment(req, payload) -> 'production'|'testservice'`
   - `validateInput(payload, { partial }) -> sanitized payload`
   - `list(environment, companyKey, { includeInactive }) -> item[]`
   - `create(environment, companyKey, payload, actor) -> item`
@@ -194,37 +222,44 @@ git commit -m "feat: Abholkalender Firmenkontext und Leserecht"
 
 - [ ] **Step 1: Write failing store tests**
 
-The test must mock `../shared/blob-rest` with an in-memory container and verify these behaviors:
+Use an in-memory mock for `./blob-rest`. Required tests:
 
 ```js
 test('FIX-Modell akzeptiert Montag bis Freitag und keine Uhrzeiten', () => {
-  assert.equal(store.validateInput({ siteLabel: 'Teststandort', weekday: 1, note: '' }, { partial: false }).weekday, 1);
-  assert.throws(() => store.validateInput({ siteLabel: 'Teststandort', weekday: 6 }, { partial: false }), /Montag bis Freitag/);
-  assert.throws(() => store.validateInput({ siteLabel: 'Teststandort', weekday: 2, time: '10:00' }, { partial: false }), e => e.code === 'TIME_FIELDS_NOT_ALLOWED');
-  assert.throws(() => store.validateInput({ siteLabel: 'Teststandort', weekday: 2, pickupStart: '10:00' }, { partial: false }), e => e.code === 'TIME_FIELDS_NOT_ALLOWED');
+  assert.equal(store.validateInput({ siteLabel:'Teststandort', weekday:1, note:'' }, {partial:false}).weekday,1);
+  assert.throws(() => store.validateInput({siteLabel:'Teststandort',weekday:6},{partial:false}), /Montag bis Freitag/);
+  assert.throws(() => store.validateInput({siteLabel:'Teststandort',weekday:2,time:'10:00'},{partial:false}), e => e.code === 'TIME_FIELDS_NOT_ALLOWED');
+  assert.throws(() => store.validateInput({siteLabel:'Teststandort',weekday:2,pickupStart:'10:00'},{partial:false}), e => e.code === 'TIME_FIELDS_NOT_ALLOWED');
 });
 
-test('Produktions- und Testservice-FIX-Daten sind getrennt', async () => {
-  await store.create('production', 'firma-a', { siteLabel: 'Produktion', weekday: 1 }, 'Admin');
-  await store.create('testservice', 'firma-a', { siteLabel: 'Testservice', weekday: 1 }, 'Admin');
-  assert.deepEqual((await store.list('production','firma-a',{})).map(x=>x.siteLabel), ['Produktion']);
-  assert.deepEqual((await store.list('testservice','firma-a',{})).map(x=>x.siteLabel), ['Testservice']);
+test('Produktionshost darf keine Testservice-Umgebung anfordern', () => {
+  assert.throws(
+    () => store.resolveEnvironment({headers:{origin:'https://example.azurestaticapps.net','x-exporthub-environment':'testservice'}},{}),
+    e => e.code === 'ENVIRONMENT_MISMATCH' && e.statusCode === 409
+  );
+});
+
+test('Testservice- und Produktionsdaten benutzen getrennte Blob-Pfade', async () => {
+  await store.create('production','firma-a',{siteLabel:'Produktion',weekday:1},'Admin');
+  await store.create('testservice','firma-a',{siteLabel:'Testservice',weekday:1},'Admin');
+  assert.deepEqual((await store.list('production','firma-a',{})).map(x=>x.siteLabel),['Produktion']);
+  assert.deepEqual((await store.list('testservice','firma-a',{})).map(x=>x.siteLabel),['Testservice']);
 });
 
 test('Firmen erhalten getrennte FIX-Dokumente', async () => {
-  await store.create('testservice', 'firma-a', { siteLabel: 'A', weekday: 2 }, 'Admin');
-  await store.create('testservice', 'firma-b', { siteLabel: 'B', weekday: 2 }, 'Admin');
-  assert.deepEqual((await store.list('testservice','firma-a',{})).map(x=>x.siteLabel), ['A']);
-  assert.deepEqual((await store.list('testservice','firma-b',{})).map(x=>x.siteLabel), ['B']);
+  await store.create('testservice','firma-a',{siteLabel:'A',weekday:2},'Admin');
+  await store.create('testservice','firma-b',{siteLabel:'B',weekday:2},'Admin');
+  assert.deepEqual((await store.list('testservice','firma-a',{})).map(x=>x.siteLabel),['A']);
+  assert.deepEqual((await store.list('testservice','firma-b',{})).map(x=>x.siteLabel),['B']);
 });
 
 test('Deaktivieren ist soft und reaktivierbar', async () => {
   const created = await store.create('testservice','firma-a',{siteLabel:'A',weekday:3},'Admin');
   await store.update('testservice','firma-a',created.id,{active:false},'Admin');
-  assert.equal((await store.list('testservice','firma-a',{})).length, 0);
-  assert.equal((await store.list('testservice','firma-a',{includeInactive:true}))[0].active, false);
+  assert.equal((await store.list('testservice','firma-a',{})).length,0);
+  assert.equal((await store.list('testservice','firma-a',{includeInactive:true}))[0].active,false);
   const active = await store.update('testservice','firma-a',created.id,{active:true},'Admin');
-  assert.equal(active.active, true);
+  assert.equal(active.active,true);
 });
 ```
 
@@ -234,42 +269,61 @@ Run: `node --test test/rc1004-fixed-pickup-store.test.mjs`
 
 Expected: FAIL because `fixed-pickup-store.js` does not exist.
 
-- [ ] **Step 3: Implement the store with an isolated blob per environment/company**
+- [ ] **Step 3: Implement environment resolution matching the current ExportHUB state rules**
 
-Use `createBlobServiceClient` from `api/shared/blob-rest.js`, the same storage connection string family already used by ExportHUB, and these exact document rules:
+Use the current storage configuration family from `api/exporthub-state/index.js`:
 
 ```js
-const crypto = require('crypto');
-const { createBlobServiceClient } = require('./blob-rest');
-const TIME_KEYS = ['time','startTime','endTime','pickupStart','pickupEnd','timeWindow','plannedPickupStart','plannedPickupEnd'];
-const CONTAINERS = { production: 'state', testservice: 'exporthub-testservice' };
-
-function blobName(companyKey){
-  const digest = crypto.createHash('sha256').update(String(companyKey)).digest('hex').slice(0,24);
-  return `fixed-pickups/${digest}.json`;
-}
-function emptyDocument(environment, companyKey){
-  return { schemaVersion: 1, environment, companyKey, revision: 0, updatedAt: null, items: [] };
+const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
+const FIX_PREFIX = String(process.env.EXPORTHUB_FIXED_PICKUPS_PREFIX || 'fixed-pickups').replace(/^\/+|\/+$/g,'');
+function connectionString(){
+  return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING ||
+    process.env.EXPORTHUB_STORAGE_CONNECTION ||
+    process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || '';
 }
 ```
 
-`validateInput` rules:
-- reject any present `TIME_KEYS` value with code `TIME_FIELDS_NOT_ALLOWED`, status 400;
-- `siteLabel`: trimmed, required on create, max 180 chars;
-- `weekday`: integer `1..5`, required on create;
+`resolveEnvironment(req,payload)` mirrors the safe behavior from `api/exporthub-state/index.js`:
+- accepted explicit values: only `production`, `testservice`;
+- testservice origin/host + explicit `production` => `ENVIRONMENT_MISMATCH`/409;
+- production Azure Static Web Apps origin/host + explicit `testservice` => `ENVIRONMENT_MISMATCH`/409;
+- invalid explicit value => `ENVIRONMENT_INVALID`/400;
+- otherwise infer testservice from `-testservice.` evidence, else production.
+
+- [ ] **Step 4: Implement isolated blob naming, validation, ETag mutation and soft state**
+
+The same Azure container is used, but environment and tenant are encoded in the **blob path**, avoiding a duplicate application-state store:
+
+```js
+function tenantDigest(companyKey){
+  return crypto.createHash('sha256').update(String(companyKey)).digest('hex').slice(0,24);
+}
+function blobName(environment, companyKey){
+  const prefix = environment === 'testservice' ? `testservice/${FIX_PREFIX}` : FIX_PREFIX;
+  return `${prefix}/${tenantDigest(companyKey)}.json`;
+}
+function emptyDocument(environment, companyKey){
+  return {schemaVersion:1,environment,companyKey,revision:0,updatedAt:null,items:[]};
+}
+```
+
+`validateInput` exact rules:
+- reject any present value for `time`, `startTime`, `endTime`, `pickupStart`, `pickupEnd`, `timeWindow`, `plannedPickupStart`, `plannedPickupEnd` with `TIME_FIELDS_NOT_ALLOWED`/400;
+- `siteLabel`: trimmed, create-required, 1–180 chars;
+- `weekday`: integer 1–5, create-required;
 - `note`: optional, max 500 chars;
-- `active`: boolean only when present;
-- never accept `id`, `companyKey`, `environment`, `createdAt`, `updatedAt` from the caller as authoritative values.
+- `active`: boolean when present;
+- caller cannot overwrite `id`, `companyKey`, `environment`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`.
 
-`create` generates `FIX-<24 hex>` with `crypto.randomBytes(12).toString('hex')`, sets `active:true`, actor fields, timestamps and writes with ETag protection. `update` mutates only `siteLabel`, `weekday`, `note`, `active`, keeps `createdAt`, sets `updatedAt`/`updatedBy`, and returns `FIX_NOT_FOUND`/404 when the id is absent. Implement max 4 retries on HTTP 412.
+`create` generates `FIX-${crypto.randomBytes(12).toString('hex')}`, sets `active:true`, timestamps and actor fields. `update` changes only `siteLabel`, `weekday`, `note`, `active`; there is no hard delete. Mutation retries up to 4 times on HTTP 412 and otherwise preserves the Azure error. Missing id => `FIX_NOT_FOUND`/404.
 
-- [ ] **Step 4: Run the store test and verify GREEN**
+- [ ] **Step 5: Run store tests and verify GREEN**
 
 Run: `node --test test/rc1004-fixed-pickup-store.test.mjs`
 
-Expected: PASS, 4 tests, 0 failures.
+Expected: PASS, 5 tests, 0 failures.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add api/shared/fixed-pickup-store.js test/rc1004-fixed-pickup-store.test.mjs
@@ -286,38 +340,38 @@ git commit -m "feat: fixe Abholungen isoliert speichern"
 - Test: `test/rc1004-fixed-pickups-api.test.mjs`
 
 **Interfaces:**
-- Consumes: `auth-store.validateSession(req)`, `company-context.resolveCompanyContext(req,user)`, `fixed-pickup-store`.
-- Produces HTTP API:
-  - `GET /api/fixed-pickups` -> `{ ok:true, items:[...], canEdit:boolean, environment, companyKey }`
-  - `GET /api/fixed-pickups?includeInactive=1` -> inactive items only when caller is admin.
-  - `POST /api/fixed-pickups` -> 201 `{ ok:true, item }`.
-  - `PATCH /api/fixed-pickups` with `{ id, ...patch }` -> 200 `{ ok:true, item }`.
-  - `OPTIONS` -> 204.
-  - `DELETE` and unsupported methods -> 405.
+- Consumes: `auth-store.validateSession(req)`, `company-context.resolveCompanyContext(req,user)`, `fixed-pickup-store.resolveEnvironment/list/create/update`.
+- Produces:
+  - `GET /api/fixed-pickups` -> 200 `{ok:true,items,canEdit,environment,companyKey}`
+  - `GET /api/fixed-pickups?includeInactive=1` -> inactive records only for admins
+  - `POST /api/fixed-pickups` -> 201 `{ok:true,item}`
+  - `PATCH /api/fixed-pickups` -> 200 `{ok:true,item}`
+  - `OPTIONS` -> 204
+  - unsupported method -> 405.
 
-- [ ] **Step 1: Write failing API tests using `Module._load` mocks**
+- [ ] **Step 1: Write failing API tests with the repository's `Module._load` mocking pattern**
 
-Use the existing `.github/rc995/rc995-flow.test.cjs` pattern to mock auth/context/store. Required assertions:
+Use the helper pattern from `.github/rc995/rc995-flow.test.cjs` and test these exact behaviors:
 
 ```js
 test('Mitarbeiter kann aktive fixe Abholungen lesen', async () => {
-  auth.validateSession = async () => ({ user:{ id:'U1', role:'Benutzer', companyId:'A' } });
+  auth.validateSession = async () => ({user:{id:'U1',role:'Benutzer',companyId:'A'}});
   const ctx = context();
-  await handler(ctx,{ method:'GET', headers:{'x-exporthub-environment':'testservice'}, query:{} });
+  await handler(ctx,{method:'GET',headers:{'x-exporthub-environment':'testservice'},query:{}});
   assert.equal(ctx.res.status,200);
   assert.equal(bodyOf(ctx.res).canEdit,false);
 });
 
 test('Mitarbeiter kann FIX-Daten nicht schreiben', async () => {
-  auth.validateSession = async () => ({ user:{ id:'U1', role:'Benutzer', companyId:'A' } });
+  auth.validateSession = async () => ({user:{id:'U1',role:'Benutzer',companyId:'A'}});
   const ctx = context();
-  await handler(ctx,{ method:'POST', headers:{}, body:{siteLabel:'A',weekday:1} });
+  await handler(ctx,{method:'POST',headers:{},body:{siteLabel:'A',weekday:1}});
   assert.equal(ctx.res.status,403);
   assert.equal(bodyOf(ctx.res).code,'ADMIN_REQUIRED');
 });
 
 test('Admin kann anlegen und deaktivieren', async () => {
-  auth.validateSession = async () => ({ user:{ id:'A1', name:'Admin', role:'admin', globalAdmin:true, companyId:'A' } });
+  auth.validateSession = async () => ({user:{id:'A1',name:'Admin',role:'admin',globalAdmin:true,companyId:'A'}});
   const created = context();
   await handler(created,{method:'POST',headers:{'x-exporthub-environment':'testservice'},body:{siteLabel:'A',weekday:1}});
   assert.equal(created.res.status,201);
@@ -328,11 +382,19 @@ test('Admin kann anlegen und deaktivieren', async () => {
 });
 
 test('Fremdfirma wird vor Store-Zugriff abgewiesen', async () => {
-  auth.validateSession = async () => ({ user:{ id:'U1', role:'Benutzer', companyId:'A' } });
+  auth.validateSession = async () => ({user:{id:'U1',role:'Benutzer',companyId:'A'}});
   const ctx = context();
   await handler(ctx,{method:'GET',headers:{'x-exporthub-company-id':'B'},query:{}});
   assert.equal(ctx.res.status,403);
   assert.equal(bodyOf(ctx.res).code,'COMPANY_FORBIDDEN');
+});
+
+test('Umgebungs-Mismatch wird als 409 zurückgegeben', async () => {
+  auth.validateSession = async () => ({user:{id:'U1',role:'Benutzer',companyId:'A'}});
+  const ctx = context();
+  await handler(ctx,{method:'GET',headers:{origin:'https://example.azurestaticapps.net','x-exporthub-environment':'testservice'},query:{}});
+  assert.equal(ctx.res.status,409);
+  assert.equal(bodyOf(ctx.res).code,'ENVIRONMENT_MISMATCH');
 });
 ```
 
@@ -352,44 +414,57 @@ const auth = require('../shared/auth-store');
 const companies = require('../shared/company-context');
 const store = require('../shared/fixed-pickup-store');
 
-function environment(req){
-  const h=req&&req.headers||{}, q=req&&req.query||{}, b=req&&req.body||{};
-  const raw=String(h['x-exporthub-environment']||h['X-ExportHUB-Environment']||q.environment||b.environment||'production').toLowerCase();
-  return store.normalizeEnvironment(raw);
-}
-module.exports = async function(context, req){
-  if (req.method === 'OPTIONS') { context.res = auth.json(204,{}); return; }
+module.exports = async function(context,req){
+  const method = String(req && req.method || 'GET').toUpperCase();
+  if (method === 'OPTIONS') { context.res = auth.json(204,{}); return; }
   try {
-    const method = String(req.method||'GET').toUpperCase();
     if (!['GET','POST','PATCH'].includes(method)) throw auth.error('METHOD_NOT_ALLOWED','Methode nicht erlaubt.',405);
     const session = await auth.validateSession(req);
-    const company = companies.resolveCompanyContext(req, session.user);
-    const env = environment(req);
+    const company = companies.resolveCompanyContext(req,session.user);
+    const payload = auth.body(req);
+    const environment = store.resolveEnvironment(req,payload);
     const admin = auth.isAdmin(session.user);
+
     if (method === 'GET') {
-      const includeInactive = admin && String(req.query&&req.query.includeInactive||'') === '1';
-      const items = await store.list(env, company.companyKey, { includeInactive });
-      context.res = auth.json(200,{ok:true,items,canEdit:admin,environment:env,companyKey:company.companyKey}); return;
+      const includeInactive = admin && String(req.query && req.query.includeInactive || '') === '1';
+      const items = await store.list(environment,company.companyKey,{includeInactive});
+      context.res = auth.json(200,{ok:true,items,canEdit:admin,environment,companyKey:company.companyKey});
+      return;
     }
+
     if (!admin) throw auth.error('ADMIN_REQUIRED','Nur Administratoren dürfen fixe Abholungen ändern.',403);
-    const b = auth.body(req);
+    const actor = session.user.name || session.user.user || 'Admin';
     if (method === 'POST') {
-      const item = await store.create(env,company.companyKey,b,session.user.name||session.user.user||'Admin');
-      context.res = auth.json(201,{ok:true,item}); return;
+      const item = await store.create(environment,company.companyKey,payload,actor);
+      context.res = auth.json(201,{ok:true,item});
+      return;
     }
-    const id = String(b.id||'').trim();
+    const id = String(payload.id || '').trim();
     if (!id) throw auth.error('FIX_ID_REQUIRED','FIX-ID fehlt.',400);
-    const item = await store.update(env,company.companyKey,id,b,session.user.name||session.user.user||'Admin');
+    const item = await store.update(environment,company.companyKey,id,payload,actor);
     context.res = auth.json(200,{ok:true,item});
   } catch(e) {
-    context.res = auth.json(e.status||e.statusCode||500,{ok:false,code:e.code||'FIXED_PICKUPS_FAILED',message:e.message||'Fixe Abholungen konnten nicht verarbeitet werden.'});
+    context.res = auth.json(e.status || e.statusCode || 500,{
+      ok:false,
+      code:e.code || 'FIXED_PICKUPS_FAILED',
+      message:e.message || 'Fixe Abholungen konnten nicht verarbeitet werden.'
+    });
   }
 };
 ```
 
-`api/fixed-pickups/function.json` must declare anonymous Azure Function auth (because ExportHUB enforces its own session) and only `get`, `post`, `patch`, `options` on route `fixed-pickups`.
+`api/fixed-pickups/function.json`:
 
-- [ ] **Step 4: Run API + company/store tests and verify GREEN**
+```json
+{
+  "bindings": [
+    {"authLevel":"anonymous","type":"httpTrigger","direction":"in","name":"req","methods":["get","post","patch","options"],"route":"fixed-pickups"},
+    {"type":"http","direction":"out","name":"res"}
+  ]
+}
+```
+
+- [ ] **Step 4: Run API + context/store tests and verify GREEN**
 
 Run: `node --test test/rc1004-company-context.test.mjs test/rc1004-fixed-pickup-store.test.mjs test/rc1004-fixed-pickups-api.test.mjs`
 
@@ -411,23 +486,34 @@ git commit -m "feat: fixe Abholungen per API verwalten"
 - Test: `test/rc1004-abholkalender-model.test.mjs`
 
 **Interfaces:**
-- Consumes: `fixedPickups[]`, `shipments[]`, `today: Date`.
-- Produces browser-/testbare Funktionen unter `globalThis.ExportHubPickupCalendar` und CommonJS export when available:
+- Consumes: `{today:Date,fixedPickups:Array,shipments:Array}`.
+- Produces browser- und testbare Funktionen via CommonJS **und** `globalThis.ExportHubPickupCalendar`:
   - `buildCalendarModel({today,fixedPickups,shipments})`
   - `shipmentPickupDate(shipment)`
   - `shipmentColliState(shipment)`
-  - `weekdayLabel(1..5)`
-  - `dateKeyLocal(date)`
+  - `weekdayLabel(weekday)`
+  - `dateKeyLocal(date)`.
 
 - [ ] **Step 1: Write failing projection tests**
 
 ```js
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const require = createRequire(import.meta.url);
 const calendar = require('../assets/abholkalender.js');
 
 test('Wochenmodell enthält genau Montag bis Freitag', () => {
-  const model = calendar.buildCalendarModel({ today:new Date(2026,8,8,12), fixedPickups:[], shipments:[] });
-  assert.deepEqual(model.days.map(d=>d.label), ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag']);
+  const model = calendar.buildCalendarModel({today:new Date(2026,8,8,12),fixedPickups:[],shipments:[]});
+  assert.deepEqual(model.days.map(d=>d.label),['Montag','Dienstag','Mittwoch','Donnerstag','Freitag']);
   assert.equal(model.days.length,5);
+});
+
+test('Heute enthält nur den aktuellen regulären Kalendertag', () => {
+  const model = calendar.buildCalendarModel({today:new Date(2026,8,8,12),fixedPickups:[{id:'F1',siteLabel:'A',weekday:2,active:true}],shipments:[]});
+  assert.equal(model.today.regular,true);
+  assert.equal(model.today.weekday,2);
+  assert.equal(model.today.fixed.length,1);
 });
 
 test('FIX wiederholt sich per Wochentag und bleibt von SENDUNG getrennt', () => {
@@ -439,16 +525,17 @@ test('FIX wiederholt sich per Wochentag und bleibt von SENDUNG getrennt', () => 
   const tue = model.days.find(d=>d.weekday===2);
   assert.equal(tue.fixed.length,1);
   assert.equal(tue.shipments.length,1);
-  assert.notEqual(tue.fixed[0],tue.shipments[0]);
+  assert.equal(tue.fixed[0].id,'F1');
+  assert.equal(tue.shipments[0].reference,'ABC123');
 });
 
 test('Teilabholung zeigt Gesamt, abgeholt und offen', () => {
-  const state = calendar.shipmentColliState({ expectedColliCount:10, collectedPickupCollis:4, remainingPickupCollis:6, status:'partial' });
+  const state = calendar.shipmentColliState({expectedColliCount:10,collectedPickupCollis:4,remainingPickupCollis:6,status:'partial'});
   assert.deepEqual(state,{expected:10,collected:4,remaining:6,partial:true,complete:false});
 });
 
 test('Sendung ohne geplanten Abholtag wird nicht künstlich eingeordnet', () => {
-  const model = calendar.buildCalendarModel({today:new Date(2026,8,8,12),fixedPickups:[],shipments:[{reference:'NO-DATE'}]});
+  const model = calendar.buildCalendarModel({today:new Date(2026,8,8,12),fixedPickups:[],shipments:[{reference:'NO-DATE',actualPickupDate:'2026-09-08'}]});
   assert.equal(model.days.flatMap(d=>d.shipments).length,0);
 });
 ```
@@ -459,26 +546,35 @@ Run: `node --test test/rc1004-abholkalender-model.test.mjs`
 
 Expected: FAIL because `assets/abholkalender.js` does not exist.
 
-- [ ] **Step 3: Implement minimal pure model**
+- [ ] **Step 3: Implement the minimal pure model**
 
-Use numeric weekdays `1..5`. `shipmentPickupDate` may read only planning fields `plannedPickupDate`, `pickupDate`, `pickdate`; it must not assign a shipment from `actualPickupDate` when no planned day exists. `shipmentColliState` uses, in order:
+Use numeric weekdays `1..5`. `shipmentPickupDate` reads only planning fields in this order: `plannedPickupDate`, `pickupDate`, `pickdate`. It must **not** use `actualPickupDate` as Ersatzplanung.
+
+`shipmentColliState`:
 
 ```js
 const expected = positive(sh.expectedColliCount || sh.totalCollis || sh.totalColli || sh.colliCount);
 const collected = nonNegative(sh.collectedPickupCollis ?? sh.pickupCollectedColliCount ?? 0);
-const remaining = sh.remainingPickupCollis != null || sh.pickupRemainingColliCount != null
-  ? nonNegative(sh.remainingPickupCollis ?? sh.pickupRemainingColliCount)
-  : Math.max(0, expected - collected);
-return { expected, collected, remaining, partial: collected > 0 && remaining > 0, complete: expected > 0 && remaining === 0 };
+const explicitRemaining = sh.remainingPickupCollis ?? sh.pickupRemainingColliCount;
+const remaining = explicitRemaining != null ? nonNegative(explicitRemaining) : Math.max(0,expected-collected);
+return {
+  expected,
+  collected,
+  remaining,
+  partial: collected > 0 && remaining > 0,
+  complete: expected > 0 && remaining === 0
+};
 ```
 
-Week computation must use local calendar dates, find the Monday containing `today`, and create exactly five day objects. Active FIX records are placed solely by their numeric weekday. SENDUNG entries are placed solely by their planned pickup date. Never compare FIX `siteLabel` with shipment customer/recipient.
+Week computation uses local calendar dates, finds the Monday containing `today`, and creates exactly five day objects. Active FIX records are placed solely by numeric weekday. SENDUNG entries are placed solely by planned pickup date. Do not compare `siteLabel`, customer, recipient or address for matching.
+
+For Saturday/Sunday, `model.today` is `{regular:false,weekday:null,fixed:[],shipments:[]}` while `model.days` still describes the Monday–Friday week.
 
 - [ ] **Step 4: Run model test and verify GREEN**
 
 Run: `node --test test/rc1004-abholkalender-model.test.mjs`
 
-Expected: PASS, 4 tests, 0 failures.
+Expected: PASS, 5 tests, 0 failures.
 
 - [ ] **Step 5: Commit**
 
@@ -489,7 +585,7 @@ git commit -m "feat: Abholkalender Wochenmodell erstellen"
 
 ---
 
-### Task 5: Heute-/Wochenansicht und unabhängige Fehlerzustände
+### Task 5: Heute-/Wochenansicht, Admin-Verwaltung und unabhängige Fehlerzustände
 
 **Files:**
 - Modify: `assets/abholkalender.js`
@@ -497,19 +593,25 @@ git commit -m "feat: Abholkalender Wochenmodell erstellen"
 - Test: `test/rc1004-abholkalender-ui.test.mjs`
 
 **Interfaces:**
-- Consumes: DOM root, vorhandene `shipments` aus ExportHUB state, FIX-API über `fetch`.
+- Consumes: DOM root, vorhandene `shipments`, environment/company context und FIX-API.
 - Produces:
-  - `mount(root, options)`
-  - `render(root, viewState)`
-  - `loadFixedPickups(options)`
+  - `createViewState()`
+  - `mount(root,options)`
+  - `render(root,viewState)`
   - `setShipments(shipments)`
-  - Admin dialog handlers only when API response `canEdit:true`.
+  - `loadFixedPickups()`
+  - Admin form only when API `canEdit:true`.
 
 - [ ] **Step 1: Add failing UI contract tests**
 
-The test reads `assets/abholkalender.js` and `assets/abholkalender.css` as text and, where possible, uses exported render helpers with a minimal fake root. Required contract assertions:
-
 ```js
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const require = createRequire(import.meta.url);
+const calendar = require('../assets/abholkalender.js');
+
 test('UI enthält Heute, FIX, SENDUNG und Montag bis Freitag', () => {
   const js = fs.readFileSync('assets/abholkalender.js','utf8');
   assert.match(js,/Heute/);
@@ -527,8 +629,10 @@ test('UI führt keine Uhrzeitfelder für fixe Abholungen ein', () => {
 
 test('FIX- und SENDUNG-Ladefehler werden getrennt gehalten', () => {
   const state = calendar.createViewState();
+  state.fixedPickups = [{id:'F1'}];
+  state.shipments = [{reference:'S1'}];
   state.fixedError = 'FIX konnte nicht geladen werden';
-  state.shipmentError = null;
+  assert.equal(state.shipments.length,1);
   assert.equal(state.fixedError,'FIX konnte nicht geladen werden');
   assert.equal(state.shipmentError,null);
 });
@@ -538,11 +642,42 @@ test('FIX- und SENDUNG-Ladefehler werden getrennt gehalten', () => {
 
 Run: `node --test test/rc1004-abholkalender-ui.test.mjs`
 
-Expected: FAIL because renderer, view state, CSS, and required copy are not yet present.
+Expected: FAIL because renderer/view state/CSS/admin UI are not present.
 
-- [ ] **Step 3: Implement renderer and fetch/controller layer**
+- [ ] **Step 3: Implement controller state and independent source loading**
 
-`assets/abholkalender.js` must render this stable structure inside its supplied root:
+`createViewState()` returns:
+
+```js
+{
+  fixedPickups: [],
+  shipments: [],
+  canEdit: false,
+  fixedLoading: false,
+  shipmentLoading: false,
+  fixedError: null,
+  shipmentError: null,
+  editingFix: null,
+  saveError: null
+}
+```
+
+For `environment==='demo'`, do not call the FIX write API; use `fixedPickups:[]`, `canEdit:false`. For production/testservice, `loadFixedPickups()` calls `/api/fixed-pickups` with `credentials:'same-origin'` and stable headers:
+
+```js
+{
+  'Accept':'application/json',
+  'Content-Type':'application/json',
+  'X-ExportHUB-Environment': environment,
+  'X-ExportHUB-Company-Id': companyId || ''
+}
+```
+
+A FIX request failure sets only `fixedError`; it never clears `shipments`. `setShipments()` updates only shipment state and `shipmentError`; it never clears `fixedPickups`.
+
+- [ ] **Step 4: Implement renderer**
+
+Stable root structure:
 
 ```html
 <section class="pickup-today" data-pickup-calendar-today>
@@ -553,25 +688,32 @@ Expected: FAIL because renderer, view state, CSS, and required copy are not yet 
 <section class="pickup-week" data-pickup-calendar-week></section>
 ```
 
-Each of the five generated day cards contains two subsections with badges `FIX` and `SENDUNG`. FIX cards show `siteLabel` and optional `note`; SENDUNG cards show reference, customer/recipient, carrier if available, status, expected collis and for partial pickups `Bereits abgeholt: N` plus `Noch offen: N`.
+Each of five day cards contains two source sections:
+- Badge `FIX`, `siteLabel`, optional `note`.
+- Badge `SENDUNG`, reference, customer/recipient, optional carrier, status, Gesamt-Colli; for partial pickup additionally `Bereits abgeholt: N` and `Noch offen: N`.
 
-`createViewState()` must return separate fields:
+If today is Saturday/Sunday, the Heute section says `Heute ist kein regulärer Abholkalendertag.` without adding weekend day cards.
 
-```js
-{
-  fixedPickups: [], shipments: [], canEdit: false,
-  fixedLoading: false, shipmentLoading: false,
-  fixedError: null, shipmentError: null
-}
+- [ ] **Step 5: Implement admin dialog without time controls**
+
+When `canEdit:true`, show `Fixe Abholungen verwalten`. Form fields are exactly:
+
+```html
+<input name="siteLabel" required maxlength="180">
+<select name="weekday" required>
+  <option value="1">Montag</option>
+  <option value="2">Dienstag</option>
+  <option value="3">Mittwoch</option>
+  <option value="4">Donnerstag</option>
+  <option value="5">Freitag</option>
+</select>
+<textarea name="note" maxlength="500"></textarea>
+<label><input name="active" type="checkbox"> Aktiv</label>
 ```
 
-A failure of `/api/fixed-pickups` sets only `fixedError`; it must not clear `shipments`. A shipment-source error sets only `shipmentError`; it must not clear `fixedPickups`.
+Create uses POST. Edit/deactivate/reactivate uses PATCH. Do not optimistically change list state before a 2xx response. On failure, keep all entered form values, set `saveError`, and keep dialog open. Non-admin users never receive edit/deactivate controls in rendered HTML.
 
-When `canEdit:true`, show `Fixe Abholungen verwalten`. The admin form contains only `siteLabel`, `weekday` select (Montag–Freitag), `note`, `active`; no time input. POST creates, PATCH edits/deactivates/reactivates. On failed save, keep the dialog/form values and show the server message; never render an optimistic success state before a successful response.
-
-- [ ] **Step 4: Add CSS focused only on this feature**
-
-`assets/abholkalender.css` must define responsive five-column desktop layout and stacked mobile cards using feature-prefixed classes only, for example:
+- [ ] **Step 6: Add feature-scoped responsive CSS**
 
 ```css
 .pickup-calendar{display:grid;gap:16px}
@@ -585,13 +727,13 @@ When `canEdit:true`, show `Fixe Abholungen verwalten`. The admin form contains o
 
 Do not restyle global buttons, cards, body, navigation or unrelated ExportHUB components.
 
-- [ ] **Step 5: Run model + UI tests and verify GREEN**
+- [ ] **Step 7: Run model + UI tests and verify GREEN**
 
 Run: `node --test test/rc1004-abholkalender-model.test.mjs test/rc1004-abholkalender-ui.test.mjs`
 
 Expected: PASS, 0 failures.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add assets/abholkalender.js assets/abholkalender.css test/rc1004-abholkalender-model.test.mjs test/rc1004-abholkalender-ui.test.mjs
@@ -608,12 +750,10 @@ git commit -m "feat: Abholkalender Heute und Woche darstellen"
 - Modify: `test/rc1004-abholkalender-ui.test.mjs`
 
 **Interfaces:**
-- Consumes: bestehendes ExportHUB Routing/Navigation und den bereits geladenen Sendungs-/Team-State.
-- Produces: Seite/Route `pickupcalendar`; beim Öffnen wird `ExportHubPickupCalendar.mount(...)` einmal initialisiert und bei State-Änderungen mit aktuellen Sendungen aktualisiert.
+- Consumes: bestehendes ExportHUB Routing/Navigation, aktuelle Umgebung/Firma und die bereits geladene Sendungscollection.
+- Produces: Seite/Route `pickupcalendar`; beim Öffnen wird `ExportHubPickupCalendar.mount(...)` einmal initialisiert, danach werden State-Aktualisierungen über `setShipments(...)` weitergereicht.
 
-- [ ] **Step 1: Extend the UI test with failing production/test parity contracts**
-
-Add assertions that both HTML files:
+- [ ] **Step 1: Extend UI test with failing production/test parity contracts**
 
 ```js
 for (const file of ['index.html','TESTVERSION.html']) {
@@ -622,10 +762,11 @@ for (const file of ['index.html','TESTVERSION.html']) {
   assert.match(html,/abholkalender\.js/);
   assert.match(html,/pickupcalendar/);
   assert.match(html,/Abholkalender/);
+  assert.equal((html.match(/id=["']pickupCalendarRoot["']/g)||[]).length,1);
 }
 ```
 
-Also compile/extract the relevant runtime scripts using the same approach as `test/rc1003-task-render-syntax.test.mjs` so syntax regressions in the large HTML runtime fail before deployment.
+Also reuse the script extraction/`new Function(...)` compile approach from `test/rc1003-task-render-syntax.test.mjs` so a broken runtime script in either large HTML file fails before deployment.
 
 - [ ] **Step 2: Run UI contract and verify RED**
 
@@ -635,41 +776,35 @@ Expected: FAIL because the new assets/page are not yet referenced by both HTML f
 
 - [ ] **Step 3: Integrate assets and route without restructuring the monolith**
 
-In both `index.html` and `TESTVERSION.html`:
+In **both** `index.html` and `TESTVERSION.html`:
 
 1. Load `/assets/abholkalender.css` in `<head>`.
-2. Load `/assets/abholkalender.js` once with the other runtime assets.
-3. Add a navigation/module entry with stable id `pickupcalendar` and visible label `Abholkalender`.
-4. Add a page root exactly once:
+2. Load `/assets/abholkalender.js` once with other runtime assets.
+3. Add navigation/module id `pickupcalendar` with visible label `Abholkalender` using the same navigation markup/pattern as neighboring module entries.
+4. Add root exactly once:
 
 ```html
 <div id="pickupCalendarRoot" class="pickup-calendar" data-page="pickupcalendar"></div>
 ```
 
-5. In the existing page/routing switch, when `pickupcalendar` becomes active, pass the already-loaded application shipment collection to the calendar controller. Do not fetch or duplicate the whole team state only for this page. The adapter must select the existing in-memory collection that currently feeds Sendungsübersicht/Aufgaben and call:
+5. In the existing page/routing switch, when `pickupcalendar` becomes active, use the same in-memory shipment collection that currently feeds Sendungsübersicht/Aufgaben. Do **not** perform a second full team-state request only for the calendar.
+6. Initial bridge call:
 
 ```js
-ExportHubPickupCalendar.mount(document.getElementById('pickupCalendarRoot'), {
+ExportHubPickupCalendar.mount(document.getElementById('pickupCalendarRoot'),{
   environment: currentEnvironment,
   companyId: currentCompanyId,
   shipments: currentShipments
 });
 ```
 
-On later state refreshes call `ExportHubPickupCalendar.setShipments(currentShipments)` rather than remounting.
-
-6. The FIX request must send the existing ExportHUB session automatically (`credentials:'same-origin'`) and the environment/company headers used by the current runtime:
+7. On later state refreshes:
 
 ```js
-headers: {
-  'Accept':'application/json',
-  'Content-Type':'application/json',
-  'X-ExportHUB-Environment': environment,
-  'X-ExportHUB-Company-Id': companyId || ''
-}
+ExportHubPickupCalendar.setShipments(currentShipments);
 ```
 
-If the existing runtime exposes the company under a differently named variable, adapt only the bridge assignment; the HTTP header and server contract above remain stable.
+If the current runtime variable names differ, map the **existing** environment/company/shipment values at this bridge only. Do not create a duplicate shipment store or calendar copy of the team state.
 
 - [ ] **Step 4: Verify navigation/runtime tests**
 
@@ -686,20 +821,20 @@ git commit -m "feat: Abholkalender in ExportHUB einbinden"
 
 ---
 
-### Task 7: Release-Vertrag und keine hart codierten Kundendaten
+### Task 7: Release-Vertrag und Schutz vor hart codierten Stammdaten
 
 **Files:**
 - Modify: `RELEASE_MANIFEST.txt`
 - Modify: `test/rc1004-abholkalender-ui.test.mjs`
-- Modify: `.github/workflows/rc1002-main-contract.yml` only to add RC1004 test commands to the future main verification contract; do not add a deployment trigger.
+- Modify: `.github/workflows/rc1002-main-contract.yml`
 
 **Interfaces:**
-- Consumes: all RC1004 files from Tasks 1–6.
-- Produces: release/build knows the files; CI verifies the feature and forbids real seed data/time fields.
+- Consumes: complete RC1004 runtime from Tasks 1–6.
+- Produces: Release-Manifest + zukünftiger Main-Vertrag kennen RC1004; keine Deployment-Änderung.
 
 - [ ] **Step 1: Add failing release assertions**
 
-Add a test that checks `RELEASE_MANIFEST.txt` contains these paths:
+`test/rc1004-abholkalender-ui.test.mjs` checks `RELEASE_MANIFEST.txt` for:
 
 ```text
 api/fixed-pickups/function.json
@@ -710,26 +845,26 @@ assets/abholkalender.css
 assets/abholkalender.js
 ```
 
-Add a source scan over `api/shared/fixed-pickup-store.js`, `api/fixed-pickups/index.js`, `assets/abholkalender.js` asserting it does not contain real seed-list declarations and does not contain the explicitly excluded names `BSH`, `TOYOTA`, `REHAU`, `Siemens`. Do not assert absence of `O Hare`/`BMP` from documentation; only runtime/source code must be seed-free.
+Add a runtime source scan over `api/shared/fixed-pickup-store.js`, `api/fixed-pickups/index.js`, `assets/abholkalender.js` asserting that the explicitly excluded customer names `BSH`, `TOYOTA`, `REHAU`, `Siemens` are absent. Also assert that no array/object named `seed`, `initialCustomers`, `fixedCustomers` or `defaultPickups` is introduced in those runtime files.
 
 - [ ] **Step 2: Run release/UI test and verify RED**
 
 Run: `node --test test/rc1004-abholkalender-ui.test.mjs`
 
-Expected: FAIL because release manifest/workflow are not yet updated.
+Expected: FAIL because release manifest/main verification contract are not yet updated.
 
-- [ ] **Step 3: Update release manifest and verification workflow**
+- [ ] **Step 3: Update release manifest and future main verification contract**
 
-Append the six runtime paths above to `RELEASE_MANIFEST.txt` using the repository's existing alphabetical/grouping convention.
+Add the six runtime paths above to `RELEASE_MANIFEST.txt` using the repository's current grouping/order.
 
-In `.github/workflows/rc1002-main-contract.yml`, add a verification step before `Gesamte Node-Regression`:
+In `.github/workflows/rc1002-main-contract.yml`, add before `Gesamte Node-Regression`:
 
 ```yaml
       - name: RC1004 Abholkalender-Vertrag
         run: node --test test/rc1004-company-context.test.mjs test/rc1004-fixed-pickup-store.test.mjs test/rc1004-fixed-pickups-api.test.mjs test/rc1004-abholkalender-model.test.mjs test/rc1004-abholkalender-ui.test.mjs
 ```
 
-Do not change its branch trigger to the RC1004 branch and do not add Azure deployment steps.
+Do not change its current `main` trigger, do not add the RC1004 branch as trigger, and do not add Azure deployment steps.
 
 - [ ] **Step 4: Run focused RC1004 suite and verify GREEN**
 
@@ -749,15 +884,13 @@ git commit -m "test: RC1004 Abholkalender Releasevertrag"
 ### Task 8: Vollständige Regression, Build und Review-Gate
 
 **Files:**
-- No feature files added in this task unless verification exposes a defect; any defect fix must start with a reproducing failing test in the owning RC1004 test file.
+- No planned feature-file additions in this task. If verification exposes a defect, change only the owning RC1004 test + smallest production file after reproducing RED.
 
 **Interfaces:**
-- Consumes: complete RC1004 branch state.
-- Produces: evidence that RC1004 does not regress tasks, QR/partial pickup, diagnostics, rights or three-environment build.
+- Consumes: complete RC1004 branch.
+- Produces: fresh verification evidence for RC1004, tasks, QR/partial pickup, diagnostics, rights and three-environment build.
 
-- [ ] **Step 1: Run the complete RC1004 focused suite**
-
-Run:
+- [ ] **Step 1: Run complete focused RC1004 suite**
 
 ```bash
 node --test \
@@ -772,8 +905,6 @@ Expected: PASS, 0 failures.
 
 - [ ] **Step 2: Run protected existing regressions**
 
-Run:
-
 ```bash
 node --test test/rc1003-task-render-syntax.test.mjs
 node --test test/rc1002-release-sync.test.mjs test/rc1002-task-groups.test.mjs test/rc1001-task-tiles-cleanup.test.mjs
@@ -787,8 +918,6 @@ Expected: every command exits 0 with no test failures.
 
 - [ ] **Step 3: Run three-environment build and diff checks**
 
-Run:
-
 ```bash
 node .github/rc1002/build-three-env.mjs
 git diff --check
@@ -797,11 +926,9 @@ test -f dist-rc1002/TESTVERSION.html
 test -f dist-rc1002/demo.html
 ```
 
-Expected: exit 0. The demo build must not fail because FIX persistence is unavailable; its calendar may render read-only/empty but must not write production or testservice FIX data.
+Expected: exit 0. Demo must not write production/testservice FIX data; its calendar is read-only/empty unless the existing demo bootstrap deliberately supplies synthetic local display data.
 
-- [ ] **Step 4: Inspect branch diff against its RC1003 base**
-
-Run:
+- [ ] **Step 4: Inspect branch diff against approved RC1003 base**
 
 ```bash
 git diff --stat 42f96e9d84801b6e47aaa192195aff3710d26f59...HEAD
@@ -818,29 +945,38 @@ git diff 42f96e9d84801b6e47aaa192195aff3710d26f59...HEAD -- \
   test/rc1004-*.test.mjs
 ```
 
-Expected: only RC1004-related changes plus the already-approved design/plan documentation; no production-version bump and no deployment-only workflow.
+Expected: only RC1004-related runtime/tests/docs plus no `production-version.js` bump and no production deployment workflow change.
 
 - [ ] **Step 5: Request code review before merge/release**
 
 Use `superpowers:requesting-code-review`. Review specifically:
-- tenant isolation and admin authorization;
+- tenant isolation and Legacy fallback;
+- host/environment mismatch protection;
+- admin-only writes;
 - no time fields;
 - no hard-coded customer seeds;
 - FIX/SENDUNG separation;
 - partial pickup/rest quantity handling;
 - independent source error states;
-- index/TESTVERSION runtime parity.
+- `index.html`/`TESTVERSION.html` runtime parity.
 
-- [ ] **Step 6: Commit verification-only adjustments if necessary**
+- [ ] **Step 6: Fix a verification finding only through a fresh RED/GREEN cycle**
 
-If verification required a code change, first add/confirm its failing regression test, then commit only after the focused + full verification is green:
+For any finding:
+1. add the smallest reproducing test to the owning RC1004 test file;
+2. run it and observe expected RED;
+3. make the smallest production change;
+4. rerun focused test and complete verification;
+5. commit exact files.
+
+Example commit command after a verified fix:
 
 ```bash
-git add <exact files changed by the verified fix>
+git add test/rc1004-abholkalender-ui.test.mjs assets/abholkalender.js
 git commit -m "fix: RC1004 Verifikationsfund beheben"
 ```
 
-If no defect was found, make no empty commit.
+If no defect is found, make no empty commit.
 
 - [ ] **Step 7: Stop before production**
 
