@@ -11,6 +11,7 @@ on:
       - 'test/rc1012-three-env-sync.test.mjs'
       - 'test/rc1013-restpunkte.test.mjs'
       - 'test/rc1013-three-env-sync.test.mjs'
+      - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - 'production-version.js'
       - '.github/workflows/exporthub-android-test-app.yml'
 permissions:
@@ -29,6 +30,9 @@ jobs:
           node-version: '24'
       - name: RC1013 Release-Vertrag
         run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs
+      - name: Diagnose-Benachrichtigungen Regression
+        shell: bash
+        run: node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
