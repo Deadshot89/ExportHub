@@ -18,9 +18,10 @@ function patchHtml(file){
     html=html.replace(oldLink,newLink);
   }
 
-  const toggleStart=html.indexOf('async function toggle(on)');
+  const avisLinkStart=html.indexOf(newLink);
+  const toggleStart=html.indexOf('async function toggle(on)',avisLinkStart);
   const toggleEnd=html.indexOf('async function autoDisableIfDue()',toggleStart);
-  if(toggleStart<0||toggleEnd<=toggleStart)throw new Error(`${file}: Avis-toggle nicht gefunden`);
+  if(avisLinkStart<0||toggleStart<0||toggleEnd<=toggleStart)throw new Error(`${file}: Avis-toggle nicht gefunden`);
   let toggle=html.slice(toggleStart,toggleEnd);
 
   if(!/customerAvisPublicUrl:q\(data\.url\)/.test(toggle)){
