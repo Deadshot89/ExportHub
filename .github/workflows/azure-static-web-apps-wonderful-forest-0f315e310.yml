@@ -1,18 +1,33 @@
-name: ExportHUB PRODUCTION Deploy
+name: ExportHUB RC1003 Drei-Umgebungen Deploy
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'demo.html'
       - 'production-version.js'
+      - 'pickup.html'
+      - 'customer-avis.html'
+      - 'location.html'
+      - 'pod-notfall.html'
+      - 'assets/**'
+      - 'api/**'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
+      - '.github/rc1003/**'
+      - 'test/rc1003-*.test.mjs'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
 permissions:
   contents: read
 concurrency:
-  group: exporthub-production-${{ github.ref }}
+  group: exporthub-rc1003-three-env-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,50 +35,90 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC1002 Produktionsfreigabe prüfen
+      - name: RC1003 Freigabevertrag prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1002'" production-version.js
-          node --test test/rc1002-release-sync.test.mjs
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1003'" production-version.js
+          node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
           npm test
-      - name: RC1002 Produktionspaket bauen
+      - name: RC1003 Produktion TESTSERVICE und Demo gemeinsam bauen
         shell: bash
         run: |
           set -euo pipefail
-          node .github/rc1002/build-three-env.mjs
-          rm -rf .rc1002_production_app
-          mkdir -p .rc1002_production_app
-          cp dist-rc1002/index.html .rc1002_production_app/index.html
-          cp pickup.html customer-avis.html location.html pod-notfall.html production-version.js staticwebapp.config.json .rc1002_production_app/
-          cp -R assets .rc1002_production_app/assets
-          grep -q 'ExportHUB RC1002 environment=production-candidate' .rc1002_production_app/index.html
-          grep -q "version:'RC1002'" .rc1002_production_app/index.html
-          test ! -d .rc1002_production_app/api
+          node .github/rc1003/build-three-env.mjs
+          grep -q 'ExportHUB RC1003 environment=production-candidate' dist-rc1003/index.html
+          grep -q 'ExportHUB RC1003 environment=testservice' dist-rc1003/TESTVERSION.html
+          grep -q 'ExportHUB RC1003 environment=demo' dist-rc1003/demo.html
+          grep -q "version:'RC1003'" dist-rc1003/index.html
+          grep -q "version:'RC1003'" dist-rc1003/TESTVERSION.html
+          grep -q "version:'RC1003'" dist-rc1003/demo.html
+      - name: Gemeinsame Deploy-Pakete vorbereiten
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .rc1003_production_app .rc1003_testservice_app
+          mkdir -p .rc1003_production_app .rc1003_testservice_app
+
+          for dir in .rc1003_production_app .rc1003_testservice_app; do
+            cp pickup.html customer-avis.html location.html pod-notfall.html production-version.js "$dir/"
+            cp -R assets "$dir/assets"
+          done
+
+          cp staticwebapp.config.json .rc1003_production_app/staticwebapp.config.json
+          cp dist-rc1003/index.html .rc1003_production_app/index.html
+          cp dist-rc1003/assets/exporthub-environment-hub.js .rc1003_production_app/assets/exporthub-environment-hub.js
+          cp dist-rc1003/assets/exporthub-demo-bootstrap.js .rc1003_production_app/assets/exporthub-demo-bootstrap.js
+
+          cp staticwebapp.testservice.config.json .rc1003_testservice_app/staticwebapp.config.json
+          cp dist-rc1003/TESTVERSION.html .rc1003_testservice_app/index.html
+          cp dist-rc1003/TESTVERSION.html .rc1003_testservice_app/TESTVERSION.html
+          cp dist-rc1003/demo.html .rc1003_testservice_app/demo.html
+          cp dist-rc1003/assets/exporthub-environment-hub.js .rc1003_testservice_app/assets/exporthub-environment-hub.js
+          cp dist-rc1003/assets/exporthub-demo-bootstrap.js .rc1003_testservice_app/assets/exporthub-demo-bootstrap.js
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1002_production_app
+          app_location: .rc1003_production_app
           api_location: api
           output_location: ''
           skip_app_build: true
-      - name: Live RC1002 Produktion prüfen
+      - name: Deploy ExportHUB TESTSERVICE
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1003_testservice_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice
+      - name: Live RC1003 Produktion TESTSERVICE und Demo prüfen
         shell: bash
         run: |
           set -euo pipefail
-          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          root=$(mktemp); health=$(mktemp); trap 'rm -f "$root" "$health"' EXIT
-          for attempt in {1..18}; do
-            r=$(curl -sS -L -o "$root" -w '%{http_code}' --max-time 20 "$base/?rc1002=$GITHUB_SHA-$attempt" || true)
-            h=$(curl -sS -o "$health" -w '%{http_code}' --max-time 20 "$base/api/exporthub-health" || true)
-            if [[ "$r" == '200' && "$h" == '200' ]] && grep -q 'ExportHUB RC1002 environment=production-candidate' "$root"; then
-              echo 'RC1002 Produktion live bestätigt.'
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d" "$ph" "$th"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1003=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1003=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1003=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/api/exporthub-health" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/api/exporthub-health" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' ]] \
+              && grep -q 'ExportHUB RC1003 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1003 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1003 environment=demo' "$d"; then
+              echo 'RC1003 Produktion, TESTSERVICE und Demo live auf gemeinsamem Stand bestätigt.'
               exit 0
             fi
             sleep 10
           done
-          echo 'RC1002 Produktion nicht bestätigt.'
+          echo 'RC1003 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
           exit 1

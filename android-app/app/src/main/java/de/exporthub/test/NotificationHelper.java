@@ -70,6 +70,7 @@ public final class NotificationHelper {
         String safeKey = safe(key, "notice");
         String safeTitle = safe(title, "ExportHUB");
         String safeBody = safe(body, "ExportHUB hat einen neuen Hinweis.");
+        String safeRoute = safe(route, normalizedChannel);
         String signature = safeKey + "|" + safeBody;
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -77,10 +78,13 @@ public final class NotificationHelper {
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = new Intent(context, EnvironmentActivity.class);
+        Intent intent = new Intent(context, NotificationDetailActivity.class);
         intent.setAction("de.exporthub.OPEN_NOTIFICATION." + env + "." + normalizedChannel + "." + safeKey);
         intent.putExtra(EnvironmentActivity.EXTRA_ENVIRONMENT, env);
-        intent.putExtra(EnvironmentActivity.EXTRA_ROUTE, safe(route, normalizedChannel));
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_TITLE, safeTitle);
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_BODY, safeBody);
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_CHANNEL, normalizedChannel);
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_ROUTE, safeRoute);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         int requestCode = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());

@@ -1,20 +1,23 @@
-name: Build ExportHUB Android RC1003 APK
+name: RC1003 Main Integration
 on:
   workflow_dispatch:
   push:
-    branches: [main, rc1003-main-integration]
+    branches: [rc1003-main-integration]
     paths:
       - 'android-app/**'
-      - 'test/rc1003-android-native-direct-open.test.mjs'
-      - 'test/rc1003-three-env-sync.test.mjs'
-      - '.github/workflows/exporthub-android-test-app.yml'
+      - 'production-version.js'
+      - '.github/rc1003/**'
+      - 'test/**'
+      - '.github/rc997/diagnostic-notifications-contract.test.mjs'
+      - '.github/rc997/android-contract.test.mjs'
+      - '.github/workflows/**'
 permissions:
   contents: read
 concurrency:
-  group: exporthub-android-rc1003-build-${{ github.ref }}
+  group: rc1003-main-integration-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
+  test-build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -22,8 +25,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-      - name: RC1003 Release-Vertrag
-        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
+      - name: RC1003 Direktzugriff Vertrag
+        run: node --test test/rc1003-android-native-direct-open.test.mjs
+      - name: RC1003 Drei-Umgebungen-Gleichstand
+        run: node --test test/rc1003-three-env-sync.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: RC997 Diagnose Regression ohne historische Versions-Pins
+        shell: bash
+        run: |
+          node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
+          node --test --test-name-pattern='gemeinsame Drei-Umgebungen-Hülle|Benachrichtigungen und 09-12-15' .github/rc997/android-contract.test.mjs
+      - name: RC1003 Drei-Umgebungen-Build ausführen
+        run: node .github/rc1003/build-three-env.mjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -37,10 +51,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
-      - name: Build debug APK
+      - name: Android Debug Build
         working-directory: android-app
         run: gradle :app:assembleDebug --stacktrace
-      - name: Prepare APK
+      - name: APK vorbereiten
         working-directory: android-app
         shell: bash
         run: |
@@ -50,7 +64,7 @@ jobs:
           sha256sum out/ExportHUB-RC1003-Android-debug.apk > out/ExportHUB-RC1003-Android-debug.sha256.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: ExportHUB-RC1003-Android
+          name: ExportHUB-RC1003-Android-Integration
           path: android-app/out/*
           if-no-files-found: error
           retention-days: 30
