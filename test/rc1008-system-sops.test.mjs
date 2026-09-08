@@ -49,7 +49,9 @@ test('Systembereiche decken die bekannten ExportHUB-Funktionscluster ab',()=>{
   assert.deepEqual(catalog.areas,required);
 });
 
-test('RC1008 ist der aktuelle gemeinsame Versionsmarker',()=>{
-  assert.match(fs.readFileSync('production-version.js','utf8'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1008'/);
+test('RC1008 bleibt als historische System-SOP- und Drei-Umgebungen-Baseline erhalten',()=>{
+  const marker=fs.readFileSync('production-version.js','utf8');
+  assert.doesNotMatch(marker,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1008'/);
+  assert.match(marker,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC\d+'/);
   assert.ok(fs.existsSync('.github/rc1008/build-three-env.mjs'));
 });
