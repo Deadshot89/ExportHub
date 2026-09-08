@@ -49,7 +49,10 @@ jobs:
       - name: RC1013 Release-Vertrag
         run: node --test test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1006-gate41-route.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
       - name: QR- und Lieferavis-End-to-End-Regression
-        run: node --test .github/rc995/rc995-flow.test.cjs .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+        shell: bash
+        run: |
+          node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
       - name: Android-Regression
         run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
       - name: Aufgaben-Verträge
