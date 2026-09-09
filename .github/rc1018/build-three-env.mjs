@@ -1,0 +1,51 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+
+const ROOT=process.cwd();
+const SRC=path.join(ROOT,'dist-rc1016');
+const OUT=path.join(ROOT,'dist-rc1018');
+const VERSION='RC1018';
+const CACHE='1018';
+const MAIL_TAG='<script id="exporthub-rc1018-mail-language-standard" defer src="/assets/rc1018-mail-language-standard.js?v=1018"></script>';
+
+function read(rel){return fs.readFileSync(path.join(ROOT,rel),'utf8')}
+function write(rel,content){const file=path.join(OUT,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content)}
+function injectBeforeHeadClose(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const idx=html.search(/<\/head\s*>/i);if(idx<0)throw new Error(`${id}: </head> fehlt`);return html.slice(0,idx)+tag+'\n'+html.slice(idx)}
+function setVersion(html){
+  let out=html.replace(/ExportHUB RC1016 environment=/g,'ExportHUB RC1018 environment=');
+  out=out.replace(/version:'RC1016'/g,"version:'RC1018'");
+  out=out.replace(/cache:'1016'/g,"cache:'1018'");
+  out=out.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1016(['"])/g,'$1RC1018$2');
+  return out
+}
+
+execFileSync(process.execPath,['.github/rc1016/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
+fs.rmSync(OUT,{recursive:true,force:true});
+fs.cpSync(SRC,OUT,{recursive:true});
+
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  let html=fs.readFileSync(path.join(OUT,file),'utf8');
+  html=setVersion(html);
+  html=injectBeforeHeadClose(html,MAIL_TAG,'exporthub-rc1018-mail-language-standard');
+  write(file,html);
+}
+
+for(const asset of ['assets/rc1018-mail-language-standard.js','assets/rc1018-public-language.js'])write(asset,read(asset));
+for(const page of ['customer-avis.html','pickup.html','location.html','pod-notfall.html'])if(fs.existsSync(path.join(ROOT,page)))write(page,read(page));
+
+let probe=read('production-version.js').replace(/RC1016/g,'RC1018').replace(/1016/g,'1018');
+if(!probe.includes("__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'"))probe="window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018';\n// RC1018 gemeinsamer Mail- und Sprachstandard für Produktion, TESTSERVICE und Demo\n";
+write('production-version.js',probe);
+
+const manifest={
+  schema:'exporthub-rc1018-three-env-v1',
+  version:VERSION,
+  cache:CACHE,
+  sourceRelease:'RC1016',
+  mail:{runtime:'assets/rc1018-mail-language-standard.js',targets:['customer','carrier'],languages:['de','en'],exclusiveModes:['details','avis']},
+  publicLanguage:{runtime:'assets/rc1018-public-language.js',pages:['customer-avis.html','pickup.html','location.html'],languages:['de','en']},
+  environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
+};
+write('rc1018-manifest.json',JSON.stringify(manifest,null,2)+'\n');
+console.log('RC1018 build ready: Mailvorlagen, Lieferavis/Sendungsdetails und DE/EN in Produktion, TESTSERVICE und Demo.');
