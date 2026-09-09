@@ -24,9 +24,13 @@ test('Sitzungsprüfung für Diagnose-Hotpaths liest Auth und Team parallel und c
   assert.match(source,/let clientsPromise = null/);
   assert.match(source,/Promise\.all\(\[/);
   assert.match(source,/auth\.readJson\(c\.auth[\s\S]*auth\.readJson\(c\.team/s);
-  for(const path of ['api/pickup-init/index.js','api/fixed-pickups/index.js','api/location-booking/index.js','api/customer-avis/index.js']){
+  assert.match(source,/supportsFastPath/,'Die schnelle Auth-Schicht muss bei alten API-Mocks auf die zentrale Sitzungsprüfung zurückfallen können.');
+  for(const path of ['api/pickup-init/index.js','api/fixed-pickups/index.js','api/customer-avis/index.js']){
     assert.match(read(path),/shared\/fast-auth-store/,`${path} muss die parallele Sitzungsprüfung verwenden.`);
   }
+  const location=read('api/location-booking/index.js');
+  assert.match(location,/shared\/auth-store/,'Location behält den etablierten direkten Sicherheitsvertrag.');
+  assert.match(location,/action===['"]list['"][\s\S]{0,350}await auth\.validateSession\(req\)/,'Location-Liste muss direkt zentral validiert werden.');
 });
 
 test('ExportHUB-State Blob-Client wiederholt transiente Azure-Fehler standardmäßig einmal',()=>{
