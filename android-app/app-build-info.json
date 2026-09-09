@@ -1,7 +1,7 @@
 {
   "name": "ExportHUB Android",
-  "appVersion": "1.0-rc1013",
-  "releaseCandidate": "RC1013",
+  "appVersion": "1.0-rc1014",
+  "releaseCandidate": "RC1014",
   "applicationId": {
     "debug": "de.exporthub.test.debug",
     "release": "de.exporthub.test"
@@ -21,7 +21,8 @@
     "Handy-Benachrichtigungen und Fehlerdiagnosen öffnen zuerst eine native Detailansicht ohne Website-Login",
     "Strukturierte Fehlerdiagnose mit Fehlercode, Benutzer, Firma, Bedeutung, Ursache, nächstem Schritt und technischer Meldung",
     "Der geschützte ExportHUB-Arbeitsbereich wird erst über 'In ExportHUB öffnen' aufgerufen",
-    "Lokale Aufgaben-Erinnerungen um 09:00, 12:00 und 15:00 Uhr",
+    "Persönliche Aufgaben-Erinnerungen um 09:00, 12:00 und 15:00 Uhr mit konkreter Aufgabe und Direktansicht",
+    "Datensparsamer lokaler Aufgaben-Snapshot mit Benutzer-, Firmen- und Umgebungsbezug",
     "Fremde Hosts werden außerhalb des WebViews geöffnet",
     "Cleartext HTTP bleibt gesperrt"
   ],
