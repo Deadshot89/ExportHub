@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - rc1013-restpunkte-gate41-qr-notifications
+      - rc1014-diagnose-integration
   workflow_dispatch:
 
 jobs:
@@ -15,8 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: RC1013 Restpunkte-Vertrag
-        run: node --test test/rc1013-restpunkte.test.mjs
+      - name: RC1013 und RC1014 Diagnose-Vertrag
+        run: node --test test/rc1013-restpunkte.test.mjs test/rc1014-diagnostics-integration.test.mjs test/rc1014-reusable-public-links.test.mjs
       - name: RC1013 gemeinsamer Releasevertrag
         run: node --test test/rc1013-three-env-sync.test.mjs
       - name: Gate41 Regression
@@ -24,7 +25,8 @@ jobs:
       - name: QR Abholung und Lieferavis End-to-End
         shell: bash
         run: |
-          node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test test/rc1013-pickup-readonly-flow.test.mjs
+          node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
       - name: Android Direktöffnen und Diagnose Regression
         shell: bash
@@ -41,6 +43,7 @@ jobs:
           grep -q 'ExportHUB RC1013 environment=production-candidate' dist-rc1013/index.html
           grep -q 'ExportHUB RC1013 environment=testservice' dist-rc1013/TESTVERSION.html
           grep -q 'ExportHUB RC1013 environment=demo' dist-rc1013/demo.html
+          grep -q 'assets/sop/rc1013-sop-stability.js?v=1013' dist-rc1013/index.html
           grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1013/index.html
           grep -q 'assets/rc1013-gate41-ui.js?v=1013' dist-rc1013/index.html
           grep -q 'serverToken=q(data&&data.token)' dist-rc1013/index.html
