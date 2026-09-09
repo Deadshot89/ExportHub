@@ -110,6 +110,9 @@ async function assertCalendar(page){
   const body=await page.locator('body').innerText();
   assert(body.includes('Abholkalender'),'Abholkalender-Ansicht wurde nicht aufgebaut.');
   assert(!/Samstag|Sonntag/.test(body),'Abholkalender zeigt unerwartet reguläre Wochenendtage.');
+  const fixed=page.locator('.pickup-item-fix');
+  assert(await fixed.count()>0,'Abholkalender zeigt keine sichtbaren FIX-Abholungen.');
+  assert(body.includes('Fake Fix'),'Demo-Abholkalender lädt seine lokalen FIX-Daten nicht.');
 }
 
 const browser=await chromium.launch({headless:true});
