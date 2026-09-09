@@ -23,7 +23,7 @@ function between(source,start,end){
 
 test('RC1015: Lieferavis kann aus einer noch nicht manuell gespeicherten Sendung aktiviert werden',()=>{
   const out=fs.readFileSync(FLOW,'utf8');
-  const ref=between(out,'function rc1015DraftReference','async function persist');
+  const ref=between(out,'function referenceInput','async function persist');
   assert.match(ref,/sendungsreferenz\|referenznummer/i,'Die sichtbare Referenz aus dem Formular wird nicht übernommen.');
   const persist=between(out,'async function rc1015PersistBeforeAvis','async function rc1015Toggle');
   assert.match(persist,/await persist\(['"]Sendung vor Lieferavis automatisch gespeichert['"]\)/,'Der Lieferavis wartet nicht auf die bestätigte Azure-Speicherung.');
