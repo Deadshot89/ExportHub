@@ -21,6 +21,18 @@ test('RC1016 baut Produktion TESTSERVICE und Demo auf demselben Versionsstand',(
   }
 });
 
+test('RC1016 liefert die vollständige SOP-Laufzeit selbständig mit aus',()=>{
+  build();
+  for(const file of [
+    'assets/sop/rc1007-sop.css',
+    'assets/sop/rc1007-sop-model.js',
+    'assets/sop/rc1007-sop-catalog.js',
+    'assets/sop/rc1007-sop-ui.js',
+    'assets/sop/rc1010-sop-release.js',
+    'assets/sop/rc1016-sop-consolidation.js'
+  ])assert.ok(fs.existsSync(`dist-rc1016/${file}`),`${file} fehlt im RC1016-Ausgabepaket`);
+});
+
 test('RC1016 isoliert nur die Demo als demo-Datenumgebung',()=>{
   build();
   const production=read('dist-rc1016/index.html');
