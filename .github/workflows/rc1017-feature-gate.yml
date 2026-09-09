@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Task-3 integration anchors
+        run: node .github/rc1017/inspect-task3.cjs
       - name: RC1017 targeted tests
         shell: bash
         run: |
