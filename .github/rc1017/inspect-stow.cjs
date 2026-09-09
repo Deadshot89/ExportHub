@@ -16,3 +16,4 @@ for(const name of names){
   const end=next>start?Math.min(next,start+16000):Math.min(html.length,start+16000);
   console.log('\n===== '+name+' =====\n'+html.slice(start,end));
 }
+// RC1017 retry marker: keep this helper deterministic while re-running the same RED contract.
