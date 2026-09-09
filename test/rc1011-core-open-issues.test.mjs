@@ -39,8 +39,9 @@ test('Benutzer ohne Rechte sehen Module und Kacheln nicht nur gesperrt, sondern 
 
 test('Aktive Abhol- und Kunden-Avis-Links bleiben wiederverwendbar',()=>{
   assert.match(pickupInit,/oneTime:false/,'Neu erzeugte Abhol-QR-Codes dürfen nicht mehr als Einmal-Link gekennzeichnet sein');
-  assert.match(pickupStatus,/allowUsed:true/,'Eine bereits bestätigte Abholseite muss erneut geladen werden können');
   assert.match(pickupStatus,/oneTime:false/,'Abholstatus darf keinen Einmal-Link mehr melden');
+  assert.match(accessStore,/reusableKind=record\.kind===['"]pickup['"]\|\|record\.kind===['"]avis['"]/,'Public-Access muss Abholung und Avis als wiederverwendbar behandeln');
+  assert.match(accessStore,/record\.usedAt&&!allowUsed&&!reusableKind/,'usedAt darf wiederverwendbare Links nicht ungültig machen');
 
   const authorize=functionBody(avisApi,"if(req.method==='POST'&&action==='authorize')","const session=sessionFromRequest");
   assert.match(authorize,/allowUsed:true/,'Avis-Link muss erneut auflösbar bleiben');
@@ -57,7 +58,7 @@ test('QR-Teilabholung bleibt offen; nach Abschluss bleibt die Seite lesbar',()=>
   assert.match(pickupConfirm,/remainingAfter/);
   assert.match(pickupConfirm,/if\(complete\)await access\.consume/);
   assert.match(pickupConfirm,/if\(!complete(?:&&[^)]*)?\).*access\.clearFailures/);
-  assert.match(pickupStatus,/allowUsed:true/,'Auch nach dem Abschluss muss der bereits verwendete QR-Link den Status laden können');
+  assert.match(accessStore,/record\.usedAt&&!allowUsed&&!reusableKind/,'Abgeschlossene QR-Links müssen weiterhin lesbar bleiben');
   assert.match(pickupStore,/Teilweise abgeholt/);
   assert.match(pickupStore,/pickupRemainingColliCount/);
   assert.match(pickupStore,/pickupCollectedColliCount/);
