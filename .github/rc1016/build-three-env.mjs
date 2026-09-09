@@ -1,12 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {createRequire} from 'node:module';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1013');
 const OUT=path.join(ROOT,'dist-rc1016');
 const VERSION='RC1016';
 const CACHE='1016';
+const require=createRequire(import.meta.url);
+const {patchTask3Html}=require('../rc1017/task3-html.cjs');
 
 function read(rel){return fs.readFileSync(path.join(ROOT,rel),'utf8');}
 function writeOut(rel,content){const file=path.join(OUT,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content);}
@@ -95,6 +98,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   html=patchTaskSource(html);
   html=patchShipmentOverviewSource(html);
   html=patchWarningCenterStateSource(html);
+  html=patchTask3Html(html);
   writeOut(file,html);
 }
 
@@ -102,7 +106,7 @@ for(const asset of [
   'assets/rc1016-mobile-navigation.css','assets/rc1016-mobile-navigation.js',
   'assets/rc1014-task-lifecycle.js','assets/rc1014-task-runtime.js','assets/rc1014-task-ui.css',
   'assets/rc1014-shipment-overview.js','assets/rc1014-shipment-overview.css','assets/rc1014-demo-bridge.js',
-  'assets/rc1016-demo-task-seed.js'
+  'assets/rc1016-demo-task-seed.js','assets/rc1017-multi-truck.js'
 ])writeOut(asset,read(asset));
 const sopSource=path.join(ROOT,'assets/sop');
 if(fs.existsSync(sopSource))fs.cpSync(sopSource,path.join(OUT,'assets/sop'),{recursive:true});
