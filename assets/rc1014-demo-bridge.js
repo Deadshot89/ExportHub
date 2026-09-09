@@ -38,7 +38,21 @@ const previousFetch=window.fetch.bind(window);
 window.fetch=async function(input,init){
   const raw=typeof input==='string'?input:(input&&input.url)||'';
   let url;try{url=new URL(raw,location.href);}catch(_){return previousFetch(input,init);}
-  if(url.pathname.toLowerCase()!=='/api/fixed-pickups')return previousFetch(input,init);
+  const pathname=url.pathname.toLowerCase();
+
+  if(pathname==='/api/exporthub-state'){
+    const response=await previousFetch(input,init);
+    try{
+      const data=await response.clone().json();
+      if(data&&typeof data==='object'){
+        data.serverVersion='RC1014';
+        return json(data,response.status);
+      }
+    }catch(_){ }
+    return response;
+  }
+
+  if(pathname!=='/api/fixed-pickups')return previousFetch(input,init);
 
   const method=String(init&&init.method||'GET').toUpperCase();
   const payload=body(init);
