@@ -114,7 +114,7 @@ const manifest={
   shipmentOverview:{runtime:'assets/rc1014-shipment-overview.js',style:'assets/rc1014-shipment-overview.css',fields:['createdAt','totalColli','colliCount']},
   mobileNavigation:{runtime:'assets/rc1016-mobile-navigation.js',style:'assets/rc1016-mobile-navigation.css',persistentMenuButtonMaxWidth:640},
   sop:{catalog:'assets/sop/rc1016-sop-consolidation.js',activeWorkflows:24,legacyDocuments:75,screenshotDirectory:'assets/sop/screenshots'},
-  retainedFixes:{lieferavis:'assets/rc1015-lieferavis-mail-flow.js',calendar:'assets/abholkalender.js',diagnostics:'assets/rc1013-diagnostics.js',gate41:'assets/rc1013-gate41-ui.js'},
+  retainedFixes:{lieferavis:'assets/rc1015-lieferavis-mail-flow.js',calendar:'assets/abholkalender.js',diagnostics:'assets/rc1013-diagnostics.js',gate41:'assets/rc1013-gate41-ui.js',multiTruck:'assets/rc1017-multi-truck.js'},
   demo:{bridge:'assets/rc1014-demo-bridge.js',taskSeed:'assets/rc1016-demo-task-seed.js',sessionRestore:true,dataEnvironment:'demo',fixedPickups:'fake-local'},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
