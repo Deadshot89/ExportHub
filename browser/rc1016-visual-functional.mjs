@@ -18,7 +18,7 @@ async function navigationDiagnostics(page){
     const rect=el=>{const r=el.getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height),right:Math.round(r.right),bottom:Math.round(r.bottom)};};
     const describe=el=>({tag:el.tagName,text:String(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim().slice(0,180),title:el.getAttribute('title'),ariaLabel:el.getAttribute('aria-label'),ariaHidden:el.getAttribute('aria-hidden'),ariaExpanded:el.getAttribute('aria-expanded'),className:String(el.className||''),id:el.id||'',dataset:Object.fromEntries(Object.entries(el.dataset||{})),display:getComputedStyle(el).display,visibility:getComputedStyle(el).visibility,opacity:getComputedStyle(el).opacity,rect:rect(el)});
     const nav=[...document.querySelectorAll('button,a,[role="button"]')].filter(el=>{const hay=`${el.innerText||''} ${el.getAttribute('title')||''} ${el.getAttribute('aria-label')||''} ${el.className||''} ${el.id||''}`;return /Aufgaben|Sendungsübersicht|Abholkalender|menü|menu|navigation|nav|sidebar/i.test(hay);}).slice(0,80).map(describe);
-    return {innerWidth,innerHeight,scrollX,scrollY,bodyView:document.body?.getAttribute('data-exporthub-view')||'',bodyClass:document.body?.className||'',mobileMenuApi:!!window.ExportHUBMobileMenu,nav};
+    return {innerWidth,innerHeight,scrollX,scrollY,bodyView:document.body?.getAttribute('data-exporthub-view')||'',bodyClass:document.body?.className||'',mobileMenuApi:!!window.ExportHUBMobileMenu,rc1016MobileNavigation:!!window.ExportHUBRC1016MobileNavigation,nav};
   });
 }
 function intersects(box,viewport){return !!box&&!!viewport&&box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;}
@@ -36,14 +36,17 @@ async function directViewCandidate(page,view){
   return null;
 }
 async function openResponsiveMenu(page){
-  const button=page.locator('#ehMenuBtn').first();
-  if(!await button.count()||!await button.isVisible().catch(()=>false))return false;
-  const box=await button.boundingBox().catch(()=>null);
-  if(!intersects(box,page.viewportSize()))return false;
-  await button.click({timeout:5000});
-  await page.waitForFunction(()=>document.body?.classList.contains('eh-sidebar-open')||(window.ExportHUBMobileMenu&&typeof window.ExportHUBMobileMenu.isOpen==='function'&&window.ExportHUBMobileMenu.isOpen()),null,{timeout:3000}).catch(()=>{});
-  await pause(180);
-  return true;
+  for(const selector of ['#rc1016MobileMenuBtn','#ehMenuBtn']){
+    const button=page.locator(selector).first();
+    if(!await button.count()||!await button.isVisible().catch(()=>false))continue;
+    const box=await button.boundingBox().catch(()=>null);
+    if(!intersects(box,page.viewportSize()))continue;
+    await button.click({timeout:5000});
+    await page.waitForFunction(()=>document.body?.classList.contains('eh-sidebar-open')||(window.ExportHUBMobileMenu&&typeof window.ExportHUBMobileMenu.isOpen==='function'&&window.ExportHUBMobileMenu.isOpen()),null,{timeout:3000}).catch(()=>{});
+    await pause(180);
+    return true;
+  }
+  return false;
 }
 async function clickView(page,view,viewportName){
   let item=await directViewCandidate(page,view);
@@ -116,6 +119,7 @@ try{
     page.on('console',msg=>{if(msg.type()!=='error')return;const text=msg.text();if(/favicon\.ico/i.test(text)||/Failed to load resource:/i.test(text))return;runtimeErrors.push(`console: ${text}`);});
     await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:30000});
     await waitReady(page);
+    if(vp.name==='smartphone')await page.waitForSelector('#rc1016MobileMenuBtn',{state:'visible',timeout:5000});
     const viewportReport={name:vp.name,width:vp.width,height:vp.height,views:[]};
     for(const view of views){
       await clickView(page,view,vp.name);
