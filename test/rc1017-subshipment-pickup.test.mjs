@@ -12,6 +12,7 @@ function err(code,message,status=400){const e=new Error(message||code);e.code=co
 function bodyOf(res){return JSON.parse(String(res&&res.body||'{}'))}
 function clone(v){return v==null?v:JSON.parse(JSON.stringify(v))}
 function loadWithMocks(relativeFile,mocks){const absolute=path.resolve(ROOT,relativeFile),original=Module._load;Module._load=function(request,parent,isMain){if(Object.prototype.hasOwnProperty.call(mocks,request))return mocks[request];return original.call(this,request,parent,isMain)};delete require.cache[require.resolve(absolute)];try{return require(absolute)}finally{Module._load=original}}
+function pickupStore(){return loadWithMocks('api/shared/pickup-store.js',{'@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){throw new Error('storage darf in diesem Test nicht benutzt werden')}}}})}
 
 function shipment(){return{
   id:'S1',ref:'ABC123',customerName:'Beispielkunde',
@@ -21,6 +22,8 @@ function shipment(){return{
     {subShipmentId:'S1-TRUCK-2',sequence:2,total:2,label:'Sendung 2 von 2',rows:[{id:'r2',type:'Euro Palette',count:1,weight:200,ldm:.4}]}
   ]
 }}
+function operationalShipment(){const sh=shipment();sh.status='Erstellt';sh.processStatus='Erstellt';sh.multiTruckLocked=false;sh.subShipments=sh.subShipments.map(x=>Object.assign({},x,{status:'open',locked:false,pickupHistory:[],podFiles:[],signatureBlobName:''}));return sh}
+function completedRecord(subShipmentId,count,iso,signature){return{shipmentId:'S1',reference:'ABC123',subShipmentId,expectedColliCount:count,rows:[{count}],status:'confirmed',complete:true,pickupHistory:[{id:'pickup-1',sequence:1,type:'complete',confirmedAt:iso,colliCount:count,collectedAfter:count,remainingAfter:0,complete:true,driverName:'Fahrer',licensePlate:'VIE-123',loaderName:'Verlader',signatureBlobName:signature}],collectedPickupCollis:count,pickupCollectedColliCount:count,remainingPickupCollis:0,pickupRemainingColliCount:0,confirmedAt:iso,lastPartialPickupAt:iso,podFiles:[],signatureBlobName:signature,signatureStoredAt:iso,updatedAt:iso}}
 
 function initFixture(){
   const issues=[],writes=[];
@@ -89,11 +92,61 @@ test('RC1017 Pickup: Ein-LKW-/Legacy-Aufruf ohne subShipmentId bleibt unverände
 });
 
 test('RC1017 Pickup: publicRecord gibt Teilsendungsmetadaten ohne neuen Statuspfad aus',()=>{
-  const store=loadWithMocks('api/shared/pickup-store.js',{'@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){throw new Error('storage darf in diesem Test nicht benutzt werden')}}}});
+  const store=pickupStore();
   const out=store.publicRecord({shipmentId:'S1',reference:'ABC123',subShipmentId:'S1-TRUCK-2',subShipmentSequence:2,subShipmentTotal:2,subShipmentLabel:'Sendung 2 von 2',rows:[{id:'r2',count:1}],expectedColliCount:1,status:'open',podFiles:[]},'x'.repeat(48));
   assert.equal(out.subShipmentId,'S1-TRUCK-2');
   assert.equal(out.subShipmentSequence,2);
   assert.equal(out.subShipmentTotal,2);
   assert.equal(out.subShipmentLabel,'Sendung 2 von 2');
   assert.equal(out.expectedColliCount,1);
+});
+
+test('RC1017 Pickup: testbarer Teilsendungs-Statusadapter ist vorhanden',()=>{
+  const store=pickupStore();
+  assert.equal(typeof store.applyPickupRecordToShipment,'function');
+  assert.equal(typeof store.aggregateShipmentFromSubs,'function');
+});
+
+test('RC1017 Pickup: LKW 1 Abschluss verändert LKW 2 nicht und Hauptsendung bleibt teilabgeholt',()=>{
+  const store=pickupStore(),sh=operationalShipment();
+  const out=store.applyPickupRecordToShipment(sh,completedRecord('S1-TRUCK-1',2,'2026-09-09T13:00:00Z','sig-1.png'));
+  assert.equal(out.subShipments[0].status,'confirmed');
+  assert.equal(out.subShipments[0].locked,true);
+  assert.equal(out.subShipments[0].pickupCollectedColliCount,2);
+  assert.equal(out.subShipments[0].pickupRemainingColliCount,0);
+  assert.equal(out.subShipments[1].status,'open');
+  assert.equal(out.subShipments[1].locked,false);
+  assert.equal(out.multiTruckLocked,true);
+  assert.equal(out.status,'Teilweise abgeholt');
+  assert.equal(out.processStatus,'Teilweise abgeholt');
+  assert.notEqual(out.podStatus,'POD vorhanden');
+});
+
+test('RC1017 Pickup: erst der letzte vollständig abgeholte LKW setzt Hauptsendung auf Abgeholt',()=>{
+  const store=pickupStore(),sh=operationalShipment();
+  store.applyPickupRecordToShipment(sh,completedRecord('S1-TRUCK-1',2,'2026-09-09T13:00:00Z','sig-1.png'));
+  const out=store.applyPickupRecordToShipment(sh,completedRecord('S1-TRUCK-2',1,'2026-09-09T14:00:00Z','sig-2.png'));
+  assert.equal(out.subShipments.every(x=>x.status==='confirmed'),true);
+  assert.equal(out.subShipments.every(x=>x.locked===true),true);
+  assert.equal(out.status,'Abgeholt');
+  assert.equal(out.processStatus,'Abgeholt');
+  assert.equal(out.podStatus,'POD vorhanden');
+});
+
+test('RC1017 Pickup: POD-Hauptstatus wartet auf Nachweis jedes LKW',()=>{
+  const store=pickupStore(),sh=operationalShipment();
+  const first=completedRecord('S1-TRUCK-1',2,'2026-09-09T13:00:00Z','sig-1.png');
+  const second=completedRecord('S1-TRUCK-2',1,'2026-09-09T14:00:00Z','');
+  store.applyPickupRecordToShipment(sh,first);
+  const out=store.applyPickupRecordToShipment(sh,second);
+  assert.equal(out.status,'Abgeholt');
+  assert.notEqual(out.podStatus,'POD vorhanden');
+  out.subShipments[1].podFiles=[{id:'pod-2'}];
+  store.aggregateShipmentFromSubs(out);
+  assert.equal(out.podStatus,'POD vorhanden');
+});
+
+test('RC1017 Pickup: unbekannte Teilsendung wird auch beim Team-State-Update abgewiesen',()=>{
+  const store=pickupStore(),sh=operationalShipment();
+  assert.throws(()=>store.applyPickupRecordToShipment(sh,completedRecord('S1-TRUCK-99',1,'2026-09-09T13:00:00Z','sig-x.png')),e=>e&&e.code==='SUBSHIPMENT_NOT_FOUND'&&e.status===409);
 });
