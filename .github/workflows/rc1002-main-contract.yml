@@ -27,6 +27,7 @@ on:
       - '.github/rc1011/**'
       - '.github/rc1012/**'
       - '.github/rc1013/**'
+      - '.github/rc1017/**'
       - '.github/rc995/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc998/**'
@@ -64,6 +65,8 @@ jobs:
         shell: bash
         run: |
           node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
+      - name: RC1017 Mehr-LKW Releasevertrag
+        run: node --test test/rc1017-three-env-release.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
@@ -83,6 +86,10 @@ jobs:
           grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1013/index.html
           grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1013/index.html
           grep -q 'assets/rc1013-gate41-ui.js?v=1013' dist-rc1013/index.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/index.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/demo.html
+          test -s dist-rc1013/assets/rc1017-multi-truck.js
           grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1013/index.html
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'" production-version.js
           git diff --check
