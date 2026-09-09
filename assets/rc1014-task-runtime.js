@@ -3,6 +3,9 @@
 
   const q=v=>String(v==null?'':v).trim();
   const arr=v=>Array.isArray(v)?v:[];
+  let lastTasks=[];
+  let lastContext={};
+  let enhanceTimer=0;
 
   function api(){
     const value=root.ExportHUBRC1014Tasks;
@@ -27,12 +30,34 @@
     const normalized=arr(raw).map(task=>lifecycle.normalizeTask(task,normalizedContext));
     const result=lifecycle.reconcile(normalized,ctx.state||{},normalizedContext);
     if(result.changed&&typeof ctx.persist==='function')ctx.persist(result.tasks);
+    lastTasks=result.tasks;
+    lastContext={...normalizedContext,state:ctx.state||{}};
+    scheduleEnhance();
     return result.tasks;
   }
 
-  function openTask(task){
-    const t=api().normalizeTask(task||{});
-    const target=q(t.sourceId||t.sourceRef);
+  function sameScope(task,ctx={}){
+    const t=api().normalizeTask(task||{},ctx);
+    const company=q(ctx.companyId),environment=q(ctx.environment);
+    if(company&&t.companyId&&t.companyId!==company)return false;
+    if(environment&&t.environment&&t.environment!==environment)return false;
+    return true;
+  }
+
+  function reportOpenBlocked(task){
+    try{
+      if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function'){
+        root.ExportHUBClean.operationStatus('Aufgabe kann in diesem Firmen- oder Umgebungskontext nicht geöffnet werden.','bad');
+      }
+    }catch(_){ }
+    try{if(root.console&&typeof root.console.warn==='function')root.console.warn('RC1014 Aufgabenöffnung blockiert',task&&task.id);}catch(_){ }
+  }
+
+  function openTask(task,ctx={}){
+    const t=api().normalizeTask(task||{},ctx);
+    if(!sameScope(t,ctx)){reportOpenBlocked(t);return false;}
+    const type=q(t.sourceType).toLowerCase();
+    const target=type==='shipment'?q(t.sourceId||t.sourceRef):q(t.sourceRef||t.sourceId);
     if(!target)return false;
     if(typeof root.openShipment==='function'){
       root.openShipment(target);
@@ -41,17 +66,92 @@
     return false;
   }
 
+  function dueLabel(bucket,dueAt){
+    if(bucket==='overdue')return 'Überfällig';
+    if(bucket==='today')return 'Heute';
+    if(bucket==='future')return q(dueAt)||'Zukünftig';
+    return 'Ohne Termin';
+  }
+
   function taskCardMeta(task,ctx={}){
     const lifecycle=api();
     const t=lifecycle.normalizeTask(task||{},ctx);
+    const bucket=lifecycle.dueBucket(t,ctx.now);
     return {
       priority:t.priority,
-      dueBucket:lifecycle.dueBucket(t,ctx.now),
+      dueBucket:bucket,
       dueAt:t.dueAt,
-      assignee:t.effectiveAssignee||t.originalAssignee,
+      dueLabel:dueLabel(bucket,t.dueAt),
+      assignee:t.effectiveAssignee||t.originalAssignee||'Nicht zugewiesen',
       sourceRef:t.sourceRef,
       group:t.group
     };
+  }
+
+  function cardTask(card,tasks){
+    if(!card)return null;
+    const dataset=card.dataset||{};
+    const ids=[dataset.taskId,dataset.id,dataset.task,dataset.sourceId].map(q).filter(Boolean);
+    let hit=arr(tasks).find(t=>ids.includes(q(t.id))||ids.includes(q(t.sourceId)));
+    if(hit)return hit;
+    const text=q(card.textContent);
+    hit=arr(tasks).find(t=>q(t.sourceRef)&&text.includes(q(t.sourceRef)));
+    if(hit)return hit;
+    return arr(tasks).find(t=>q(t.title)&&text.includes(q(t.title)))||null;
+  }
+
+  function createSpan(doc,className,attribute,value,text){
+    const el=doc.createElement('span');
+    el.className=className;
+    el.setAttribute(attribute,value);
+    el.textContent=text;
+    return el;
+  }
+
+  function enhanceTaskCards(tasks=lastTasks,ctx=lastContext){
+    const doc=root.document;
+    if(!doc||typeof doc.querySelectorAll!=='function')return 0;
+    const cards=Array.from(doc.querySelectorAll('.rc229-task-card.rc628-unified-task'));
+    let enhanced=0;
+    cards.forEach(card=>{
+      const task=cardTask(card,tasks);
+      if(!task||!sameScope(task,ctx))return;
+      const meta=taskCardMeta(task,ctx);
+      let row=card.querySelector&&card.querySelector('.rc1014-task-meta');
+      if(!row){
+        row=doc.createElement('div');
+        row.className='rc1014-task-meta';
+        if(typeof card.appendChild==='function')card.appendChild(row);
+      }
+      row.textContent='';
+      row.appendChild(createSpan(doc,'rc1014-priority','data-rc1014-priority',meta.priority,`Priorität ${meta.priority}`));
+      row.appendChild(createSpan(doc,'rc1014-due','data-rc1014-due',meta.dueBucket,`Fällig: ${meta.dueLabel}`));
+      row.appendChild(createSpan(doc,'rc1014-assignee','data-rc1014-assignee',meta.assignee,`Verantwortlich: ${meta.assignee}`));
+
+      let button=card.querySelector&&card.querySelector('[data-rc1014-open-task]');
+      if(!button){
+        button=doc.createElement('button');
+        button.type='button';
+        button.className='btn primary rc1014-open-task';
+        button.setAttribute('data-rc1014-open-task','1');
+        button.textContent='Öffnen';
+        button.addEventListener('click',event=>{
+          if(event&&typeof event.preventDefault==='function')event.preventDefault();
+          openTask(task,ctx);
+        });
+        if(typeof card.appendChild==='function')card.appendChild(button);
+      }
+      card.setAttribute&&card.setAttribute('data-rc1014-enhanced','1');
+      enhanced++;
+    });
+    return enhanced;
+  }
+
+  function scheduleEnhance(){
+    if(!root.document)return;
+    if(enhanceTimer&&typeof root.clearTimeout==='function')root.clearTimeout(enhanceTimer);
+    const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>fn());
+    enhanceTimer=schedule(()=>{enhanceTimer=0;enhanceTaskCards();},0);
   }
 
   function syncAndroidSnapshot(tasks,ctx={}){
@@ -60,10 +160,15 @@
     return false;
   }
 
+  if(root.addEventListener){
+    ['exporthub:rendered','exporthub:viewchange','exporthub:tasks-updated'].forEach(name=>root.addEventListener(name,scheduleEnhance));
+  }
+
   root.ExportHUBRC1014TaskRuntime=Object.freeze({
     prepareTasks,
     openTask,
     taskCardMeta,
+    enhanceTaskCards,
     syncAndroidSnapshot
   });
 })(globalThis);
