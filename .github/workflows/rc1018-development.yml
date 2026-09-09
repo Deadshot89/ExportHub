@@ -39,6 +39,8 @@ jobs:
         run: node .github/rc1018/apply-public-language.mjs
       - name: Lieferavis-Wortlaut strikt trennen
         run: node .github/rc1018/fix-mail-wording.mjs
+      - name: Aktuellen gemeinsamen Deployvertrag auf RC1018 integrieren
+        run: node .github/rc1018/apply-standard-deploy.mjs
       - name: RC1018 Mail- und Sprachvertrag
         run: node --test test/rc1018-mail-language-standard.test.mjs
       - name: RC1018 Produktionsdeploy-Vertrag
@@ -64,15 +66,15 @@ jobs:
           test -s dist-rc1018/assets/rc1018-public-language.js
       - name: Diff prüfen
         run: git diff --check
-      - name: RC1018 öffentliche Sprachbindungen versionieren
+      - name: RC1018 Integrationsänderungen versionieren
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          if ! git diff --quiet -- customer-avis.html pickup.html location.html; then
+          if ! git diff --quiet -- customer-avis.html pickup.html location.html .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add customer-avis.html pickup.html location.html
-            git commit -m 'build: RC1018 öffentliche DE EN Bindungen [skip ci]'
+            git add customer-avis.html pickup.html location.html .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+            git commit -m 'build: RC1018 Mail Sprache und Standarddeploy integrieren [skip ci]'
             git push origin HEAD:rc1018-mail-language-integration
           fi
