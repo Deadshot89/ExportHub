@@ -25,8 +25,12 @@ jobs:
           node-version: '24'
       - name: Inspect active stow anchors
         run: node .github/rc1017/inspect-stow.cjs
-      - name: Apply pending RC1017 patch
-        run: node .github/rc1017/apply-pending.cjs
+      - name: Apply RC1017 pending patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1017/apply-pending.cjs
+          node .github/rc1017/apply-task4.cjs
       - name: Commit pending RC1017 patch
         shell: bash
         run: |
@@ -37,8 +41,8 @@ jobs:
           fi
           git config user.name 'Deadshot89'
           git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add index.html .github/rc1013/build-three-env.mjs assets/abholkalender.js assets/abholkalender.css
-          git commit -m 'RC1017: Mehr-LKW in Stauplan und Sendungspersistenz integrieren'
+          git add index.html .github/rc1013/build-three-env.mjs assets/abholkalender.js assets/abholkalender.css api/shared/merge.js
+          git commit -m 'RC1017: Teilsendungsstatus gegen stale Sync schützen'
           git push origin HEAD:rc1017-multi-truck-subshipments
       - name: RC1017 targeted tests
         shell: bash
@@ -50,5 +54,7 @@ jobs:
           done
       - name: Calendar regression
         run: node --test test/rc1012-abholkalender-runtime-integration.test.mjs
+      - name: Avis persistence regression
+        run: node --test test/rc1016-lieferavis-persistence.test.mjs
       - name: Full regression
         run: npm test
