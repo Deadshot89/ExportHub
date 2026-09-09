@@ -112,7 +112,7 @@
   function enhanceTaskCards(tasks=lastTasks,ctx=lastContext){
     const doc=root.document;
     if(!doc||typeof doc.querySelectorAll!=='function')return 0;
-    const cards=Array.from(doc.querySelectorAll('.rc229-task-card.rc628-unified-task'));
+    const cards=Array.from(doc.querySelectorAll('.rc229-task-card.rc628-unified-task, .task-card'));
     let enhanced=0;
     cards.forEach(card=>{
       const task=cardTask(card,tasks);
