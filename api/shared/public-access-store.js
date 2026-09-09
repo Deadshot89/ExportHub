@@ -82,7 +82,8 @@ function assertUsable(record,{allowUsed=false}={}){
   if(record.revokedAt)throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
   if(record.kind!=='avis'&&record.expiresAt&&Date.now()>=Date.parse(record.expiresAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
   if(record.lockedUntil&&Date.now()<Date.parse(record.lockedUntil))throw error('ACCESS_LOCKED','Zu viele falsche Eingaben. Der Zugriff ist vorübergehend gesperrt.',429);
-  if(record.usedAt&&!allowUsed)throw error('ACCESS_USED','Dieser Einmal-Link wurde bereits verwendet.',410);
+  const reusableKind=record.kind==='pickup'||record.kind==='avis';
+  if(record.usedAt&&!allowUsed&&!reusableKind)throw error('ACCESS_USED','Dieser Einmal-Link wurde bereits verwendet.',410);
   return record;
 }
 async function resolve(req,kind,token,options={},payload){
