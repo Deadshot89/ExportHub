@@ -5,6 +5,8 @@ on:
     branches: [rc1014-tasks-final]
     paths:
       - 'assets/rc1014-**'
+      - 'api/shared/fixed-pickup-store.js'
+      - 'api/shared/rc1014-fixed-pickup-seed.js'
       - 'test/rc1014-**'
       - 'browser/rc1014-**'
       - 'playwright.config.mjs'
@@ -40,6 +42,8 @@ jobs:
         run: node --test test/rc1014-task-android.test.mjs
       - name: RC1014 Sendungsübersicht Erfassungsdatum und Colli
         run: node --test test/rc1014-shipment-overview-meta.test.mjs
+      - name: RC1014 fixe Essentra-Abholtage
+        run: node --test test/rc1014-fixed-pickup-seed.test.mjs
       - name: RC1014 Release-Synchronisierung
         run: node --test test/rc1014-release-sync.test.mjs
       - name: QR- und Lieferavis-End-to-End-Regression
