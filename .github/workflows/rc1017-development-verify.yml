@@ -37,8 +37,8 @@ jobs:
           fi
           git config user.name 'Deadshot89'
           git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add assets/abholkalender.js assets/abholkalender.css
-          git commit -m 'RC1017: Abholkalender farblich unterscheiden'
+          git add index.html .github/rc1013/build-three-env.mjs assets/abholkalender.js assets/abholkalender.css
+          git commit -m 'RC1017: Mehr-LKW in Stauplan und Sendungspersistenz integrieren'
           git push origin HEAD:rc1017-multi-truck-subshipments
       - name: RC1017 targeted tests
         shell: bash
