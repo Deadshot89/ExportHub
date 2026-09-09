@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
@@ -58,4 +60,16 @@ test('RC1018: SOP-Bildlayer wird im gemeinsamen Drei-Umgebungen-Build geladen',(
   assert.match(build,/rc1018-sop-system-images\.js/);
   assert.match(build,/exporthub-rc1018-sop-system-images/);
   assert.match(build,/assets\/sop\/rc1018-sop-system-images\.js/);
+});
+
+test('RC1018: alle neun SOP-Systembilder werden real in Produktion TESTSERVICE und Demo ausgeliefert',()=>{
+  execFileSync(process.execPath,['.github/rc1018/build-three-env.mjs'],{cwd:process.cwd(),stdio:'pipe'});
+  const out=path.join(process.cwd(),'dist-rc1018');
+  for(const htmlFile of ['index.html','TESTVERSION.html','demo.html']){
+    const html=fs.readFileSync(path.join(out,htmlFile),'utf8');
+    assert.match(html,/id=["']exporthub-rc1018-sop-system-images["']/i,`${htmlFile}: SOP-Bildlayer fehlt`);
+  }
+  for(const file of Object.values(expected))assert.ok(fs.existsSync(path.join(out,'assets/sop/screenshots',file)),`dist-rc1018: ${file} fehlt`);
+  const manifest=JSON.parse(fs.readFileSync(path.join(out,'rc1018-manifest.json'),'utf8'));
+  assert.equal(manifest.sop?.systemImages,'assets/sop/rc1018-sop-system-images.js');
 });
