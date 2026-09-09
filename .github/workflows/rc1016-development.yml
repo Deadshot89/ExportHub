@@ -21,6 +21,7 @@ on:
       - 'android-app/**'
       - '.github/rc1014/**'
       - '.github/rc1016/**'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/rc1016-development.yml'
   workflow_dispatch:
 
