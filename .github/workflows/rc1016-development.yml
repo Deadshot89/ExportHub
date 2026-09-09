@@ -1,0 +1,116 @@
+name: RC1016 Kalender Aufgaben SOP Entwicklung
+
+on:
+  push:
+    branches: [rc1016-calendar-sop]
+    paths:
+      - 'assets/rc1014-**'
+      - 'assets/sop/**'
+      - 'api/shared/fixed-pickup-store.js'
+      - 'api/shared/rc1014-fixed-pickup-seed.js'
+      - 'test/rc1014-**'
+      - 'test/rc1015-**'
+      - 'test/rc1016-**'
+      - 'browser/rc1016-**'
+      - 'playwright.config.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'android-app/**'
+      - '.github/rc1014/**'
+      - '.github/rc1016/**'
+      - '.github/workflows/rc1016-development.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1016-development-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Aufgaben-Lifecycle
+        run: node --test test/rc1014-task-lifecycle.test.mjs
+      - name: Aufgaben-Runtime-Integration
+        run: node --test test/rc1014-task-runtime-integration.test.mjs
+      - name: Aufgaben-Design und beide Kartenrenderer
+        run: node --test test/rc1014-task-design.test.mjs
+      - name: Android Aufgaben-Erinnerungen
+        run: node --test test/rc1014-task-android.test.mjs
+      - name: Sendungsübersicht Erfassungsdatum und Colli
+        run: node --test test/rc1014-shipment-overview-meta.test.mjs
+      - name: Feste Essentra-Abholtage
+        run: node --test test/rc1014-fixed-pickup-seed.test.mjs
+      - name: Demo-Datenumgebung
+        run: node --test test/rc1014-demo-environment.test.mjs
+      - name: Demo-Session und Abholkalender
+        run: node --test test/rc1014-demo-session-calendar.test.mjs
+      - name: RC1016 Drei-Umgebungen-Synchronisierung
+        run: node --test test/rc1016-release-sync.test.mjs
+      - name: RC1015 Lieferavis Regression
+        run: node --test test/rc1015-lieferavis-mail-flow.test.mjs
+      - name: QR- und Lieferavis-End-to-End-Regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
+      - name: Finaler Drei-Umgebungen-Build und Diff-Prüfung
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1016/build-three-env.mjs
+          grep -q 'ExportHUB RC1016 environment=production-candidate' dist-rc1016/index.html
+          grep -q 'ExportHUB RC1016 environment=testservice' dist-rc1016/TESTVERSION.html
+          grep -q 'ExportHUB RC1016 environment=demo' dist-rc1016/demo.html
+          grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1016/index.html
+          grep -q 'assets/rc1014-shipment-overview.js?v=1016' dist-rc1016/index.html
+          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1015' dist-rc1016/index.html
+          git diff --check
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: RC1016 Drei-Umgebungen-Build
+        run: node .github/rc1016/build-three-env.mjs
+      - name: Chromium installieren
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Demo-Server starten und echten Browser-Test ausführen
+        shell: bash
+        env:
+          RC1016_BROWSER_URL: http://127.0.0.1:4173/demo.html
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory dist-rc1016 >/tmp/rc1016-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/demo.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node browser/rc1016-visual-functional.mjs
+      - name: Browser-Screenshots und Bericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RC1016-Browser-Systembilder
+          path: artifacts/rc1016-browser
+          if-no-files-found: warn
+          retention-days: 30
