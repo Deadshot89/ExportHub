@@ -93,10 +93,10 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
 for(const asset of [
   'assets/rc1014-task-lifecycle.js','assets/rc1014-task-runtime.js','assets/rc1014-task-ui.css',
   'assets/rc1014-shipment-overview.js','assets/rc1014-shipment-overview.css','assets/rc1014-demo-bridge.js',
-  'assets/rc1016-demo-task-seed.js','assets/sop/rc1016-sop-consolidation.js'
+  'assets/rc1016-demo-task-seed.js'
 ])writeOut(asset,read(asset));
-const screenshotSource=path.join(ROOT,'assets/sop/screenshots');
-if(fs.existsSync(screenshotSource))fs.cpSync(screenshotSource,path.join(OUT,'assets/sop/screenshots'),{recursive:true});
+const sopSource=path.join(ROOT,'assets/sop');
+if(fs.existsSync(sopSource))fs.cpSync(sopSource,path.join(OUT,'assets/sop'),{recursive:true});
 writeOut('production-version.js',read('production-version.js'));
 
 const manifest={
@@ -109,4 +109,4 @@ const manifest={
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 writeOut('rc1016-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1016 build ready: Aufgaben, Abholkalender, Sendungsmetadaten, SOP 2.0 und Versionsmarker auf RC1015 in Produktion, TESTSERVICE und Demo');
+console.log('RC1016 build ready: Aufgaben, Abholkalender, Sendungsmetadaten, SOP 2.0 und Versionsmarker RC1016 auf RC1015-Basis in Produktion, TESTSERVICE und Demo');
