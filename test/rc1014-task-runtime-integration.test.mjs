@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
 
 function build(){
@@ -15,6 +16,14 @@ function taskBlock(html){
   const end=html.indexOf('function taskSortRC67',start);
   assert.ok(end>start,'Ende des aktiven Aufgabenblocks fehlt');
   return html.slice(start,end);
+}
+
+function loadRuntime(){
+  const context={};
+  context.globalThis=context;
+  vm.runInNewContext(read('assets/rc1014-task-lifecycle.js'),context,{filename:'lifecycle.js'});
+  vm.runInNewContext(read('assets/rc1014-task-runtime.js'),context,{filename:'runtime.js'});
+  return context.ExportHUBRC1014TaskRuntime;
 }
 
 test('RC1014 Build bindet Lifecycle und Runtime in Produktion TESTSERVICE und Demo ein',()=>{
@@ -47,4 +56,19 @@ test('RC1014 Runtime normalisiert über den Lifecycle-Kern ohne Fachgruppen umzu
   for(const group of ['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs']){
     assert.doesNotMatch(runtime,new RegExp(`replace[^\n]{0,100}${group}`,'i'));
   }
+});
+
+test('RC1014 Runtime persistiert Reconcile nur bei echter Änderung über übergebenen Callback',()=>{
+  const runtime=loadRuntime();
+  const raw=[{id:'pod-1',group:'Fehlende POD',sourceType:'pod',sourceId:'S1',companyId:'essentra',environment:'production',status:'open'}];
+  const state={shipments:[{id:'S1',status:'Abgeholt',totalColli:1,collectedColli:1,podFiles:[{name:'pod.pdf'}]}]};
+  const writes=[];
+  const first=runtime.prepareTasks(raw,{companyId:'essentra',environment:'production',now:'2026-09-09T10:00:00+02:00',state,persist:tasks=>writes.push(tasks)});
+  assert.equal(first[0].status,'done');
+  assert.equal(writes.length,1);
+  assert.equal(writes[0][0].completedBy,'system:pod');
+  const secondWrites=[];
+  const second=runtime.prepareTasks(first,{companyId:'essentra',environment:'production',now:'2026-09-09T10:00:00+02:00',state,persist:tasks=>secondWrites.push(tasks)});
+  assert.equal(second[0].status,'done');
+  assert.equal(secondWrites.length,0,'stabiler Reconcile darf keinen Save-Loop erzeugen');
 });
