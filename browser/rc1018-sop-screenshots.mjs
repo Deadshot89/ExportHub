@@ -55,21 +55,11 @@ async function fullShot(page,file){
 }
 async function targetShot(page,labels,file){
   const {item,label}=await targetLocator(page,labels);
-  await item.scrollIntoViewIfNeeded();
-  await pause(180);
-  const rect=await item.evaluate(el=>{
-    const r=el.getBoundingClientRect();
-    return{x:r.left+scrollX,y:r.top+scrollY,width:r.width,height:r.height};
-  });
-  const pageSize=await page.evaluate(()=>({width:Math.max(document.documentElement.scrollWidth,document.body?.scrollWidth||0),height:Math.max(document.documentElement.scrollHeight,document.body?.scrollHeight||0)}));
-  const width=Math.min(1120,pageSize.width);
-  const height=Math.min(620,pageSize.height);
-  const centerX=rect.x+Math.max(1,rect.width)/2;
-  const centerY=rect.y+Math.max(1,rect.height)/2;
-  const x=Math.max(0,Math.min(pageSize.width-width,centerX-width/2));
-  const y=Math.max(0,Math.min(pageSize.height-height,centerY-height/2));
-  await page.screenshot({path:path.join(OUT,file),clip:{x,y,width,height}});
-  assert(fs.statSync(path.join(OUT,file)).size>10000,`${file}: Zielaufnahme ${label} ist leer oder unplausibel klein`);
+  await item.evaluate(el=>el.scrollIntoView({block:'center',inline:'center',behavior:'instant'}));
+  await pause(220);
+  const box=await item.boundingBox();
+  assert(box&&box.width>0&&box.height>0,`${file}: Ziel ${label} ist nach dem Zentrieren nicht sichtbar`);
+  await viewportShot(page,file);
 }
 async function shipmentShots(page){
   await clickAny(page,['Sendung erstellen','Neue Sendung','Sendung anlegen']);
@@ -84,7 +74,7 @@ async function shipmentShots(page){
 
   const avis=page.locator('#rc897LieferavisPanel').first();
   if(await avis.count()&&await avis.isVisible().catch(()=>false)){
-    await avis.scrollIntoViewIfNeeded();await pause(180);
+    await avis.evaluate(el=>el.scrollIntoView({block:'center',inline:'center',behavior:'instant'}));await pause(180);
     const box=await avis.boundingBox();
     if(box&&box.width>200&&box.height>80){
       await avis.screenshot({path:path.join(OUT,'rc1018-lieferavis.png')});
@@ -100,7 +90,7 @@ async function viewShot(page,labels,file,requiredText){
 }
 
 const browser=await chromium.launch({headless:true});
-const context=await browser.newContext({viewport:{width:1440,height:1000},deviceScaleFactor:1});
+const context=await browser.newContext({viewport:{width:1440,height:760},deviceScaleFactor:1});
 const page=await context.newPage();
 const errors=[];
 page.on('pageerror',e=>errors.push(`pageerror: ${e.message}`));
