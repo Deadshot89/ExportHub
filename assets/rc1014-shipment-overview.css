@@ -1,0 +1,36 @@
+body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:10px;
+  min-width:0;
+  font-size:12px;
+  line-height:1.35;
+}
+
+body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-meta > span{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  max-width:100%;
+  padding:4px 8px;
+  border:1px solid var(--rc990-card-border,#dbe4ee);
+  border-radius:999px;
+  background:#fff;
+  color:#334155;
+  overflow-wrap:anywhere;
+}
+
+body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-colli{
+  font-weight:700;
+}
+
+@media (max-width:700px){
+  body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-meta{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  }
+  body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-meta > span{
+    border-radius:10px;
+  }
+}
