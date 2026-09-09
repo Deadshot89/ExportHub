@@ -20,7 +20,22 @@ const views=[
 function assert(condition,message){if(!condition)throw new Error(message);}
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
-async function clickView(page,view){
+async function navigationDiagnostics(page){
+  return page.evaluate(()=>{
+    const visible=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;};
+    const controls=[...document.querySelectorAll('button,a,[role="button"],[data-view],[data-route]')]
+      .filter(visible)
+      .slice(0,80)
+      .map(el=>({tag:el.tagName,text:(el.textContent||'').replace(/\s+/g,' ').trim().slice(0,120),dataView:el.getAttribute('data-view'),dataRoute:el.getAttribute('data-route')}));
+    return {
+      bodyView:document.body?.getAttribute('data-exporthub-view')||'',
+      bodyText:(document.body?.innerText||'').replace(/\s+/g,' ').trim().slice(0,2500),
+      controls
+    };
+  });
+}
+
+async function clickView(page,view,viewportName){
   const candidates=[
     page.getByRole('button',{name:view.label,exact:true}),
     page.getByRole('link',{name:view.label,exact:true}),
@@ -40,7 +55,12 @@ async function clickView(page,view){
     }
     if(clicked)break;
   }
-  if(!clicked)throw new Error(`Navigationseintrag fehlt oder ist nicht klickbar: ${view.label}`);
+  if(!clicked){
+    const diagnostic=await navigationDiagnostics(page);
+    const screenshot=path.join(OUT,`${viewportName}-navigation-failure.png`);
+    await page.screenshot({path:screenshot,fullPage:true});
+    throw new Error(`Navigationseintrag fehlt oder ist nicht klickbar: ${view.label}\nBrowserzustand: ${JSON.stringify(diagnostic)}`);
+  }
   await page.waitForFunction(expected=>document.body?.getAttribute('data-exporthub-view')===expected,view.expected,{timeout:10000});
   await pause(250);
 }
@@ -112,7 +132,7 @@ try{
 
     const viewportReport={name:vp.name,width:vp.width,height:vp.height,views:[]};
     for(const view of views){
-      await clickView(page,view);
+      await clickView(page,view,vp.name);
       if(view.name==='tasks')await assertTasks(page);
       if(view.name==='shipmentoverview')await assertShipmentOverview(page);
       if(view.name==='pickupcalendar')await assertCalendar(page);
