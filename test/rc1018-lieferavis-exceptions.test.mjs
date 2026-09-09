@@ -5,9 +5,10 @@ import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
 
-function load(shipment){
+function load(shipment,options={}){
   const alerts=[];
   const toggles=[];
+  const persists=[];
   const input={
     id:'shipmentReference',name:'reference',value:'ABC123',
     closest(){return{textContent:'Sendungsreferenz'}}
@@ -24,13 +25,23 @@ function load(shipment){
     async toggle(on){toggles.push(on);return true},
     injectMailBody(_sh,_target,body){return body}
   };
+  const state={shipments:options.initiallySaved===false?[]:[shipment]};
   const window={
     document,
     ExportHUBCustomerAvis706:base,
-    ExportHUBClean:{state:{shipments:[shipment]}},
+    ExportHUBClean:{state},
     addEventListener(){},
     console
   };
+  if(options.initiallySaved===false){
+    window.ExportHUBRC565={
+      async persistShipment(){
+        persists.push('persist');
+        state.shipments=[shipment];
+        return true;
+      }
+    };
+  }
   const context=vm.createContext({
     window,document,console,
     alert:message=>alerts.push(String(message)),
@@ -38,7 +49,7 @@ function load(shipment){
     setTimeout:fn=>fn()
   });
   vm.runInContext(source,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
-  return{api:window.ExportHUBCustomerAvis706,alerts,toggles};
+  return{api:window.ExportHUBCustomerAvis706,alerts,toggles,persists};
 }
 
 const bmpVariants=[
@@ -60,6 +71,15 @@ test('RC1018: BMP kann Lieferavis nicht aktivieren und erhält verständlichen I
   const shipment={reference:'ABC123',customerName:'BMP'};
   const {api,alerts,toggles}=load(shipment);
   assert.equal(await api.toggle(true),false);
+  assert.deepEqual(toggles,[]);
+  assert.match(alerts.join('\n'),/Kunden-IT.*blockiert|IT.*blockiert/i);
+});
+
+test('RC1018: neue noch ungespeicherte BMP-Sendung wird nach dem Pflichtspeichern vor Link-Erzeugung gestoppt',async()=>{
+  const shipment={reference:'ABC123',customerName:'BMP'};
+  const {api,alerts,toggles,persists}=load(shipment,{initiallySaved:false});
+  assert.equal(await api.toggle(true),false);
+  assert.deepEqual(persists,['persist']);
   assert.deepEqual(toggles,[]);
   assert.match(alerts.join('\n'),/Kunden-IT.*blockiert|IT.*blockiert/i);
 });
