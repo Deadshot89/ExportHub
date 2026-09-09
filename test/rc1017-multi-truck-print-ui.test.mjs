@@ -11,6 +11,7 @@ test('RC1017: Mehr-LKW-UI zeigt getrennte operative Aktionen je Teilsendung',()=
   has(/Sendung\s+['"`]?\+?\s*sequence|Sendung \$\{sequence\} von \$\{total\}/,'Sendung-X-von-Y-Kennzeichnung fehlt');
   has(/rc1017-print-subshipment/,'Ladelisten-Aktion je LKW fehlt');
   has(/rc1017-qr-subshipment/,'QR-Aktion je LKW fehlt');
+  has(/rc1017-stow-subshipment/,'Stauplan-Aktion je LKW fehlt');
   has(/LKW erforderlich/,'sichtbare Mehr-LKW-Zusammenfassung fehlt');
 });
 
@@ -34,6 +35,11 @@ test('RC1017: QR je Teilsendung verwendet Pickup-Init und persistiert keinen Raw
   has(/rc1017SubShipmentQrRuntime/,'flüchtiger QR-Runtime-Speicher fehlt');
   assert.doesNotMatch(html,/sub\.pickupToken\s*=/,'Raw-Token darf nicht in der Teilsendung persistiert werden');
   assert.doesNotMatch(html,/sub\.pickupQrToken\s*=/,'Raw-QR-Token darf nicht in der Teilsendung persistiert werden');
+});
+
+test('RC1017: Stauplan je Teilsendung nutzt dieselbe kanonische buildStowPlan-Geometrie',()=>{
+  has(/function\s+rc1017PrintSubShipmentStow\s*\(/,'Teilsendungs-Stauplandruck fehlt');
+  has(/buildStowPlan\s*\(\s*rows\s*,\s*currentStowVehicle\s*\(\s*\)\s*\)/,'Teilstauplan nutzt nicht die kanonische Geometrie');
 });
 
 test('RC1017: Hauptsendung bleibt eine Übersichtskarte und zeigt nur Teilsendungsfortschritt',()=>{
