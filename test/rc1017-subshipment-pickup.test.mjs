@@ -11,6 +11,7 @@ const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 function json(status,body,headers={}){return{status,headers,body:JSON.stringify(body)}}
 function err(code,message,status=400){const e=new Error(message||code);e.code=code;e.status=status;e.statusCode=status;return e}
 function bodyOf(res){return JSON.parse(String(res&&res.body||'{}'))}
+function clone(v){return v==null?v:JSON.parse(JSON.stringify(v))}
 function loadWithMocks(relativeFile,mocks){const absolute=path.resolve(ROOT,relativeFile),original=Module._load;Module._load=function(request,parent,isMain){if(Object.prototype.hasOwnProperty.call(mocks,request))return mocks[request];return original.call(this,request,parent,isMain)};delete require.cache[require.resolve(absolute)];try{return require(absolute)}finally{Module._load=original}}
 
 function fixture(){
@@ -70,4 +71,55 @@ test('RC1017: publicRecord veröffentlicht Teilsendungsmetadaten ohne Raw-Token-
   assert.match(src,/subShipmentSequence\s*:\s*Number\(r\.subShipmentSequence/);
   assert.match(src,/subShipmentTotal\s*:\s*Number\(r\.subShipmentTotal/);
   assert.match(src,/subShipmentLabel\s*:\s*r\.subShipmentLabel\s*\|\|\s*''/);
+});
+
+function teamFixture(){
+  let document={schemaVersion:3,revision:7,state:{shipments:[{id:'S1',shipmentId:'S1',ref:'ABC123',reference:'ABC123',status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung',subShipments:[
+    {subShipmentId:'S1-TRUCK-1',sequence:1,total:2,label:'Sendung 1 von 2',status:'open',locked:false,rows:[{id:'r1',count:2}]},
+    {subShipmentId:'S1-TRUCK-2',sequence:2,total:2,label:'Sendung 2 von 2',status:'open',locked:false,rows:[{id:'r1',count:1}]}
+  ]}],tasks:[]},users:[]};
+  let etag='"etag-1"',revision=1;
+  const blob={
+    async download(){const raw=Buffer.from(JSON.stringify(document));return{readableStreamBody:(async function*(){yield raw})(),etag,contentType:'application/json'}},
+    async upload(raw){document=JSON.parse(String(raw));revision++;etag='"etag-'+revision+'"';return{etag}},
+    async uploadData(){return{etag}}
+  };
+  const container={async createIfNotExists(){return{}},getBlockBlobClient(){return blob}};
+  const service={getContainerClient(){return container}};
+  const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+  const store=loadWithMocks('api/shared/pickup-store.js',{'@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){return service}}}});
+  return{store,getDocument(){return clone(document)},restore(){if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous}};
+}
+
+function completedSubPickup(subShipmentId,sequence,count,confirmedAt){
+  return{environment:'production',shipmentId:'S1',reference:'ABC123',subShipmentId,subShipmentSequence:sequence,subShipmentTotal:2,subShipmentLabel:`Sendung ${sequence} von 2`,rows:[{id:'r1',count}],expectedColliCount:count,status:'confirmed',complete:true,confirmedAt,lastPartialPickupAt:confirmedAt,collectedPickupCollis:count,pickupCollectedColliCount:count,remainingPickupCollis:0,pickupRemainingColliCount:0,carrierName:'Carrier',pickupHistory:[{id:'pickup-1',sequence:1,type:'complete',confirmedAt,colliCount:count,collectedAfter:count,remainingAfter:0,complete:true,driverName:'Fahrer',licensePlate:'KK-AA 1',loaderName:'Verlader',loaderId:'L1',carrierName:'Carrier',signatureBlobName:`sig-${sequence}.png`}],signatureBlobName:`sig-${sequence}.png`,podFiles:[]};
+}
+
+test('RC1017: erster LKW schließt nur seine Teilsendung und nicht die Hauptsendung ab',async()=>{
+  const f=teamFixture();
+  try{
+    await f.store.updateTeam(completedSubPickup('S1-TRUCK-1',1,2,'2026-09-09T17:35:00.000Z'),[],'');
+    const sh=f.getDocument().state.shipments[0];
+    assert.equal(sh.subShipments[0].status,'confirmed');
+    assert.equal(sh.subShipments[0].locked,true);
+    assert.equal(sh.subShipments[0].pickupHistory.length,1);
+    assert.equal(sh.subShipments[1].status,'open');
+    assert.equal(sh.multiTruckLocked,true);
+    assert.equal(sh.status,'Teilweise abgeholt');
+    assert.notEqual(sh.status,'Abgeholt');
+  }finally{f.restore()}
+});
+
+test('RC1017: Hauptsendung wird erst nach Bestätigung aller LKW als abgeholt aggregiert',async()=>{
+  const f=teamFixture();
+  try{
+    await f.store.updateTeam(completedSubPickup('S1-TRUCK-1',1,2,'2026-09-09T17:35:00.000Z'),[],'');
+    await f.store.updateTeam(completedSubPickup('S1-TRUCK-2',2,1,'2026-09-09T17:40:00.000Z'),[],'');
+    const sh=f.getDocument().state.shipments[0];
+    assert.equal(sh.subShipments.every(x=>x.status==='confirmed'),true);
+    assert.equal(sh.subShipments.every(x=>x.locked===true),true);
+    assert.equal(sh.status,'Abgeholt');
+    assert.equal(sh.processStatus,'Abgeholt');
+  }finally{f.restore()}
 });
