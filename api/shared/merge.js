@@ -60,7 +60,7 @@ function isObject(value) {
 }
 
 
-const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','customerAvisPublicUrl','avisPublicUrl','pickupToken','pickupQrToken','qrToken'];
+const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','customerAvisPublicUrl','avisPublicUrl','pickupToken','pickupQrToken','qrToken','publicPickupToken','publicAccessToken','pickupAccessToken','pickupQrRawToken'];
 function stripShipmentPublicAccessSecrets(shipment) {
   if (!isObject(shipment)) return shipment;
   let next = shipment;
