@@ -33,6 +33,7 @@
     lastTasks=result.tasks;
     lastContext={...normalizedContext,state:ctx.state||{}};
     scheduleEnhance();
+    syncAndroidSnapshot(result.tasks,lastContext);
     return result.tasks;
   }
 
@@ -156,8 +157,31 @@
 
   function syncAndroidSnapshot(tasks,ctx={}){
     const bridge=root.ExportHUBAndroid;
-    if(!bridge||typeof bridge.syncTaskSnapshot!=='function')return false;
-    return false;
+    if(!bridge||typeof bridge.notify!=='function')return false;
+    const lifecycle=api();
+    const userId=q(ctx.currentUserId||currentUserId(ctx));
+    const environment=q(ctx.environment);
+    if(!userId||!environment)return false;
+    const candidates=lifecycle.reminderCandidates(tasks,{...ctx,currentUserId:userId,environment});
+    const safeTasks=candidates.map(task=>{
+      const t=lifecycle.normalizeTask(task,ctx);
+      const bucket=lifecycle.dueBucket(t,ctx.now);
+      return {
+        id:q(t.id),
+        title:q(t.title),
+        sourceRef:q(t.sourceRef),
+        priority:q(t.priority),
+        dueAt:q(t.dueAt),
+        dueBucket:bucket,
+        group:q(t.group),
+        effectiveAssignee:q(t.effectiveAssignee),
+        environment:q(t.environment||environment),
+        route:'tasks'
+      };
+    });
+    const payload=JSON.stringify({schema:'rc1014-task-snapshot-v1',environment,userId,generatedAt:new Date().toISOString(),tasks:safeTasks});
+    bridge.notify('task_snapshot',`task_snapshot:${environment}:${userId}`,'RC1014 Aufgaben-Snapshot',payload,'tasks');
+    return true;
   }
 
   if(root.addEventListener){
