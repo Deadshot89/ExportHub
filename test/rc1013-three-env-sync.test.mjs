@@ -61,15 +61,19 @@ test('Android-App bleibt auf demselben RC1013-Releasestand',()=>{
   assert.equal(info.releaseCandidate,'RC1013');
 });
 
-test('Aktuelle RC1013-Freigaben prüfen aus RC995 nur noch gültige Pickup-Sicherheit und nicht den alten Einmal-Avis',()=>{
+test('Aktuelle RC1013-Freigaben prüfen den Nur-Lesen-Pickup und behalten nur die gültige historische PIN-Sicherheit',()=>{
   for(const file of [
     '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
     '.github/workflows/rc1002-main-contract.yml',
     '.github/workflows/exporthub-testservice.yml'
   ]){
     const flow=read(file);
-    assert.doesNotMatch(flow,/node --test \.github\/rc995\/rc995-flow\.test\.cjs/,`${file}: kompletter historischer RC995-Flow darf den aktuellen wiederverwendbaren Avis nicht sperren`);
-    assert.match(flow,/--test-name-pattern='RC995 Pickup-Bedienfluss\|RC995 Pickup-PIN' \.github\/rc995\/rc995-flow\.test\.cjs/,`${file}: gültige RC995 Pickup- und PIN-Sicherheit muss weiter geprüft werden`);
+    assert.doesNotMatch(flow,/node --test \.github\/rc995\/rc995-flow\.test\.cjs/,`${file}: kompletter historischer RC995-Flow darf den abgeschlossenen RC1013-Nur-Lesen-Status nicht mehr als Fehler werten`);
+    assert.match(flow,/node --test test\/rc1013-pickup-readonly-flow\.test\.mjs/,`${file}: aktueller RC1013 Pickup-Nur-Lesen-Vertrag muss geprüft werden`);
+    assert.match(flow,/--test-name-pattern='RC995 Pickup-PIN' \.github\/rc995\/rc995-flow\.test\.cjs/,`${file}: historische PIN-Sperrsicherheit muss weiter geprüft werden`);
+    assert.doesNotMatch(flow,/RC995 Pickup-Bedienfluss\|RC995 Pickup-PIN/,`${file}: veralteter RC995-Abschlussstatus darf nicht mehr Teil der aktuellen Freigabe sein`);
+    assert.match(flow,/\.github\/rc998\/partial-pickup-avis-contract\.test\.mjs/,`${file}: Teilabholung und Lieferavis müssen weiter geprüft werden`);
+    assert.match(flow,/\.github\/rc1000\/rc1000-production-pickup\.test\.mjs/,`${file}: Produktions-Pickup-Vertrag muss weiter geprüft werden`);
     assert.match(flow,/test\/rc1011-core-open-issues\.test\.mjs/,`${file}: aktueller wiederverwendbarer Lieferavis-Vertrag muss geprüft werden`);
   }
 });
