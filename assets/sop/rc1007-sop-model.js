@@ -10,6 +10,11 @@
   function findVersion(document,version){const wanted=text(version);return versionsOf(document).find(item=>text(item&&item.version)===wanted)||null;}
   function currentVersionRecord(document){const current=text(document&&document.currentVersion);return findVersion(document,current)||versionsOf(document).slice().reverse().find(Boolean)||null;}
   function addAudit(document,action,version,actor,reason,at){document.auditTrail=Array.isArray(document.auditTrail)?document.auditTrail.map(clone):[];document.auditTrail.push({action:text(action),version:text(version),actor:text(actor),at:at||nowIso(),reason:text(reason)});return document;}
+  function compareVersion(a,b){
+    const pa=text(a).split(/[^0-9]+/).filter(Boolean).map(Number),pb=text(b).split(/[^0-9]+/).filter(Boolean).map(Number),len=Math.max(pa.length,pb.length);
+    for(let i=0;i<len;i++){const av=pa[i]||0,bv=pb[i]||0;if(av!==bv)return av>bv?1:-1;}
+    return text(a).localeCompare(text(b));
+  }
 
   function seedDocument(source){
     const seeded=clone(source&&typeof source==='object'?source:{});
@@ -66,18 +71,31 @@
       const base=seedDocument(source);
       const existing=storedByNumber.get(text(base.number));
       if(!existing) return base;
+      const existingVersions=Array.isArray(existing.versions)?clone(existing.versions):[];
+      const canonicalVersions=Array.isArray(base.versions)?clone(base.versions):[];
+      const known=new Set(existingVersions.map(item=>text(item&&item.version)));
+      for(const version of canonicalVersions){if(!known.has(text(version&&version.version))){existingVersions.push(version);known.add(text(version&&version.version));}}
+      const existingCurrent=text(existing.currentVersion)||text(existing.version);
+      const canonicalCurrent=text(base.currentVersion)||text(base.version);
+      const canonicalIsNewer=!!canonicalCurrent&&(!existingCurrent||compareVersion(canonicalCurrent,existingCurrent)>0);
       const merged=Object.assign({},base,{
-        versions:Array.isArray(existing.versions)?clone(existing.versions):base.versions,
+        versions:existingVersions.length?existingVersions:base.versions,
         auditTrail:Array.isArray(existing.auditTrail)?clone(existing.auditTrail):base.auditTrail,
-        currentVersion:text(existing.currentVersion)||base.currentVersion,
-        draftVersion:text(existing.draftVersion),
-        version:text(existing.version)||base.version,
-        status:text(existing.status)||base.status,
-        validFrom:text(existing.validFrom)||base.validFrom,
-        reviewedBy:text(existing.reviewedBy)||base.reviewedBy,
-        approvedBy:text(existing.approvedBy)||base.approvedBy,
-        updatedAt:text(existing.updatedAt)||base.updatedAt
+        currentVersion:canonicalIsNewer?canonicalCurrent:(existingCurrent||base.currentVersion),
+        draftVersion:canonicalIsNewer&&compareVersion(text(existing.draftVersion),canonicalCurrent)<=0?'':text(existing.draftVersion),
+        version:canonicalIsNewer?text(base.version):(text(existing.version)||base.version),
+        status:canonicalIsNewer?text(base.status):(text(existing.status)||base.status),
+        validFrom:canonicalIsNewer?text(base.validFrom):(text(existing.validFrom)||base.validFrom),
+        reviewedBy:canonicalIsNewer?text(base.reviewedBy):(text(existing.reviewedBy)||base.reviewedBy),
+        approvedBy:canonicalIsNewer?text(base.approvedBy):(text(existing.approvedBy)||base.approvedBy),
+        updatedAt:canonicalIsNewer?text(base.updatedAt):(text(existing.updatedAt)||base.updatedAt)
       });
+      if(canonicalIsNewer){
+        const audit=Array.isArray(merged.auditTrail)?merged.auditTrail:[];
+        const marker=`Kanonische Fassung ${canonicalCurrent} übernommen`;
+        if(!audit.some(item=>text(item&&item.action)===marker))audit.push({action:marker,version:canonicalCurrent,actor:text(base.approvedBy||base.createdBy||'ExportHUB'),at:text(base.updatedAt)||nowIso(),reason:text(base.changeReason)||'Neuere freigegebene Katalogfassung'});
+        merged.auditTrail=audit;
+      }
       return merged;
     });
   }
