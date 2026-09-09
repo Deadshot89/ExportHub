@@ -34,10 +34,11 @@ jobs:
             echo 'Abweichender Einzel-Deploy ist gesperrt. Produktion, TESTSERVICE und Demo müssen denselben Versionsstand haben.'
             exit 1
           fi
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: RC1018 TESTSERVICE-Ausnahmevertrag prüfen
         shell: bash
         run: |
