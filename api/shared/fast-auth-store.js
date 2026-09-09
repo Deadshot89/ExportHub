@@ -1,6 +1,6 @@
 'use strict';
 
-const auth = require('./auth-store');
+const auth = require('../shared/auth-store');
 let clientsPromise = null;
 
 async function clients(){
