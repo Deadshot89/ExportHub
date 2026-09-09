@@ -26,6 +26,12 @@ function injectBeforeHeadClose(html,tag,id){
   if(idx<0)throw new Error(`${id}: Kein </head> gefunden.`);
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
+function injectDemoBridge(html){
+  if(html.includes('id="exporthub-rc1014-demo-bridge"'))return html;
+  const rx=/(<script\s+id=["']exporthub-rc1013-demo-bootstrap["'][^>]*><\/script>)/i;
+  if(!rx.test(html))throw new Error('RC1014 Demo-Bridge: RC1013 Demo-Bootstrap nicht gefunden.');
+  return html.replace(rx,`$1\n<script id="exporthub-rc1014-demo-bridge" src="/assets/rc1014-demo-bridge.js?v=1014"></script>`);
+}
 function setRc1014Version(html){
   let out=html.replace(/ExportHUB RC1013 environment=/g,'ExportHUB RC1014 environment=');
   out=out.replace(/var BUILD=Object\.freeze\(\{version:'RC1013',cache:'1013',loginReturn:'([^']*)'\}\);/,(_m,ret)=>{
@@ -66,6 +72,7 @@ fs.cpSync(SRC,OUT,{recursive:true});
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   let html=fs.readFileSync(path.join(OUT,file),'utf8');
   html=setRc1014Version(html);
+  if(file==='demo.html')html=injectDemoBridge(html);
   html=rc1014Assets(html);
   html=patchTaskSource(html);
   html=patchShipmentOverviewSource(html);
@@ -77,7 +84,8 @@ for(const asset of [
   'assets/rc1014-task-runtime.js',
   'assets/rc1014-task-ui.css',
   'assets/rc1014-shipment-overview.js',
-  'assets/rc1014-shipment-overview.css'
+  'assets/rc1014-shipment-overview.css',
+  'assets/rc1014-demo-bridge.js'
 ]){
   writeOut(asset,read(asset));
 }
@@ -88,7 +96,8 @@ const manifest={
   sourceRelease:'RC1013',
   tasks:{lifecycle:'assets/rc1014-task-lifecycle.js',runtime:'assets/rc1014-task-runtime.js',style:'assets/rc1014-task-ui.css'},
   shipmentOverview:{runtime:'assets/rc1014-shipment-overview.js',style:'assets/rc1014-shipment-overview.css',fields:['createdAt','totalColli','colliCount']},
+  demo:{bridge:'assets/rc1014-demo-bridge.js',sessionRestore:true,fixedPickups:'fake-local'},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 writeOut('rc1014-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1014 build ready: Aufgaben-Lifecycle, Runtime, Design sowie Erfassungsdatum und Colli in der Sendungsübersicht');
+console.log('RC1014 build ready: Aufgaben-Lifecycle, Runtime, Design, Sendungsmetadaten und Demo-Kalenderprüfung');
