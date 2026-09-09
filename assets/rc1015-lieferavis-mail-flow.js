@@ -84,6 +84,11 @@ async function rc1015Toggle(on){
  }
  try{
   if(on)await rc1015PersistBeforeAvis();
+  if(on&&rc1018AvisException(currentShipmentForAvis())){
+   alert(RC1018_AVIS_BLOCK_MESSAGE);
+   refreshUi();
+   return false
+  }
   return await base.toggle(on)
  }catch(e){
   console.error('RC1015 Lieferavis automatisch speichern',e);
