@@ -1,8 +1,8 @@
-name: Build ExportHUB Android RC1016 APK
+name: Build ExportHUB Android RC1018 APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, rc1016-calendar-sop]
+    branches: [main]
     paths:
       - 'android-app/**'
       - 'test/rc1003-android-native-direct-open.test.mjs'
@@ -12,9 +12,12 @@ on:
       - 'test/rc1013-restpunkte.test.mjs'
       - 'test/rc1013-three-env-sync.test.mjs'
       - 'test/rc1016-release-sync.test.mjs'
+      - 'test/rc1018-mail-language-standard.test.mjs'
+      - 'test/rc1018-production-deploy.test.mjs'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - 'production-version.js'
       - '.github/rc1016/**'
+      - '.github/rc1018/**'
       - '.github/workflows/rc1002-main-contract.yml'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/exporthub-testservice.yml'
@@ -22,7 +25,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: exporthub-android-rc1016-build-${{ github.ref }}
+  group: exporthub-android-rc1018-build-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -33,10 +36,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: RC1016 Release-Vertrag
+      - name: RC1018 Release-Vertrag
         shell: bash
         run: |
           set -euo pipefail
+          grep -q 'versionCode = 1018' android-app/app/build.gradle.kts
+          grep -q 'versionName = "1.0-rc1018"' android-app/app/build.gradle.kts
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'" production-version.js
           for test_file in \
             test/rc1003-android-native-direct-open.test.mjs \
             test/rc1003-three-env-sync.test.mjs \
@@ -44,7 +50,9 @@ jobs:
             test/rc1012-three-env-sync.test.mjs \
             test/rc1013-restpunkte.test.mjs \
             test/rc1013-three-env-sync.test.mjs \
-            test/rc1016-release-sync.test.mjs
+            test/rc1016-release-sync.test.mjs \
+            test/rc1018-mail-language-standard.test.mjs \
+            test/rc1018-production-deploy.test.mjs
           do
             node --test "$test_file"
           done
@@ -73,11 +81,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1016-Android-debug.apk
-          sha256sum out/ExportHUB-RC1016-Android-debug.apk > out/ExportHUB-RC1016-Android-debug.sha256.txt
+          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1018-Android-debug.apk
+          sha256sum out/ExportHUB-RC1018-Android-debug.apk > out/ExportHUB-RC1018-Android-debug.sha256.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: ExportHUB-RC1016-Android
+          name: ExportHUB-RC1018-Android
           path: android-app/out/*
           if-no-files-found: error
           retention-days: 30
