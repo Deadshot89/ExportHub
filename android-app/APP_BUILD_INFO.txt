@@ -1,6 +1,6 @@
 ExportHUB Android
-App-Version: 1.0-rc1016
-Release-Kandidat: RC1016
+App-Version: 1.0-rc1018
+Release-Kandidat: RC1018
 Application ID Debug: de.exporthub.test.debug
 Application ID Release: de.exporthub.test
 

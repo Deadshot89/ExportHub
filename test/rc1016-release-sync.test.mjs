@@ -4,6 +4,11 @@ import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 
 const read=path=>fs.readFileSync(path,'utf8');
+function currentRc(path='production-version.js'){
+  const match=read(path).match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC(\d+)'/);
+  assert.ok(match,`${path}: autoritativer Produktionsmarker fehlt`);
+  return Number(match[1]);
+}
 
 function build(){
   execFileSync(process.execPath,['.github/rc1016/build-three-env.mjs'],{stdio:'pipe'});
@@ -74,11 +79,11 @@ test('RC1016 Manifest dokumentiert RC1015 als erhaltene Releasebasis',()=>{
   assert.deepEqual(manifest.environments,{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'});
 });
 
-test('RC1016 ist der autoritative sichtbare Versionsmarker und wird mit ausgeliefert',()=>{
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'/);
+test('RC1016 bleibt als historische sichtbare Releasebasis reproduzierbar',()=>{
+  assert.ok(currentRc()>=1016,`Aktueller Produktionsmarker RC${currentRc()} darf nicht hinter RC1016 zurückfallen`);
   build();
-  assert.match(read('dist-rc1016/production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'/);
+  assert.equal(currentRc('dist-rc1016/production-version.js'),currentRc(),'Historischer RC1016-Build übernimmt den aktuellen autoritativen Release-Marker');
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
-    assert.match(read(`dist-rc1016/${file}`),/version:'RC1016'/,`${file}: sichtbarer Build-Status ist nicht RC1016`);
+    assert.match(read(`dist-rc1016/${file}`),/version:'RC1016'/,`${file}: historische RC1016-Buildbasis ist nicht reproduzierbar`);
   }
 });
