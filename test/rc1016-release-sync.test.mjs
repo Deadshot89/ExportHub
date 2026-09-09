@@ -23,14 +23,21 @@ test('RC1016 baut Produktion TESTSERVICE und Demo auf demselben Versionsstand',(
 
 test('RC1016 hält den Smartphone-Menüknopf auch nach vertikalem Scrollen erreichbar',()=>{
   const css=read('assets/rc1016-mobile-navigation.css');
+  const js=read('assets/rc1016-mobile-navigation.js');
   assert.match(css,/@media\s*\(max-width:\s*640px\)/);
-  assert.match(css,/#ehMenuBtn[\s\S]*position:\s*fixed\s*!important/);
-  assert.match(css,/#ehMenuBtn[\s\S]*z-index:/);
+  assert.match(css,/#rc1016MobileMenuBtn\s*\{[^}]*position:\s*fixed\s*!important/);
+  assert.match(css,/#rc1016MobileMenuBtn\s*\{[^}]*z-index:/);
+  assert.match(js,/const ID='rc1016MobileMenuBtn'/);
+  assert.match(js,/ExportHUBMobileMenu/);
+  assert.match(js,/doc\.body\.appendChild\(button\)/);
   build();
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
-    assert.match(read(`dist-rc1016/${file}`),/assets\/rc1016-mobile-navigation\.css\?v=1016/,`${file}: Smartphone-Menüfix fehlt`);
+    const html=read(`dist-rc1016/${file}`);
+    assert.match(html,/assets\/rc1016-mobile-navigation\.css\?v=1016/,`${file}: Smartphone-Menü-CSS fehlt`);
+    assert.match(html,/assets\/rc1016-mobile-navigation\.js\?v=1016/,`${file}: Smartphone-Menü-JS fehlt`);
   }
   assert.ok(fs.existsSync('dist-rc1016/assets/rc1016-mobile-navigation.css'),'Smartphone-Menü-CSS fehlt im Ausgabepaket');
+  assert.ok(fs.existsSync('dist-rc1016/assets/rc1016-mobile-navigation.js'),'Smartphone-Menü-JS fehlt im Ausgabepaket');
 });
 
 test('RC1016 liefert die vollständige SOP-Laufzeit selbständig mit aus',()=>{
