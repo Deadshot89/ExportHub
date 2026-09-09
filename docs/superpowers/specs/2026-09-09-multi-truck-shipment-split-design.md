@@ -15,7 +15,7 @@ ExportHUB muss eine Sendung automatisch in mehrere LKW-Ladeeinheiten aufteilen, 
 
 ## Kapazitätsprofil
 
-Die automatische Teilung wird nicht an eine fest im Code verankerte LKW-Größe gekoppelt. ExportHUB erhält ein zentrales LKW-Kapazitätsprofil.
+Die automatische Teilung wird nicht an eine unveränderliche LKW-Größe gekoppelt. ExportHUB erhält ein zentrales LKW-Kapazitätsprofil.
 
 Ein Profil enthält mindestens:
 
@@ -24,9 +24,13 @@ Ein Profil enthält mindestens:
 - `maxLdm`
 - `maxWeightKg`
 - `active`
-- optional spätere Maße oder weitere Restriktionen
 
-Für den ersten Standard wird ein aktives Profil `Standard-LKW` vorgesehen. Seine konkreten betrieblichen Grenzwerte werden als Konfigurationswerte behandelt und dürfen später durch einen Funktionsadmin geändert werden, ohne die Teilungslogik umzubauen.
+Der erste Standard ist `Standard-LKW` mit folgenden Startwerten:
+
+- `maxLdm = 13.6`
+- `maxWeightKg = 24000`
+
+Diese Werte sind Konfigurationswerte und dürfen später durch einen berechtigten Funktionsadmin geändert werden, ohne die Teilungslogik umzubauen.
 
 Die Kapazitätsentscheidung erfolgt immer über beide Grenzen:
 
@@ -63,6 +67,8 @@ Ablauf:
 5. Nach Abschluss Summen und Vollständigkeit prüfen.
 6. Teil-LKW durchnummerieren: 1 bis N.
 
+Die Berechnungsfunktion liefert auch bei einer Sendung innerhalb der Kapazität genau eine Ladeeinheit zurück. Bei neu gespeicherten oder erneut bearbeiteten freigegebenen Sendungen kann diese Struktur persistiert werden. Bestehende Alt-Sendungen ohne `multiTruck` werden bis zur nächsten erlaubten Bearbeitung als virtuelle Ein-LKW-Sendung behandelt und bleiben vollständig rückwärtskompatibel.
+
 Wenn eine einzelne physische Einheit alleine größer als die zulässige LKW-Kapazität ist, darf ExportHUB keine scheinbar gültige automatische Aufteilung erzeugen. Die Sendung erhält stattdessen einen klaren Fehlerstatus `Manuelle Ladeplanung erforderlich` mit Angabe des betroffenen Colli und der überschrittenen Grenze.
 
 ## Neuaufteilung bei Änderungen
@@ -84,11 +90,12 @@ Die Hauptsendung bleibt im bestehenden `shipments`-Bestand und behält ihre bish
 
 Neu vorgesehen:
 
-- `multiTruck.enabled`: Boolean
+- `multiTruck.enabled`: `true`, wenn mehr als eine Ladeeinheit erforderlich ist; sonst `false`
 - `multiTruck.profileId`: verwendetes Kapazitätsprofil
 - `multiTruck.splitVersion`: Versionsnummer der Aufteilung
 - `multiTruck.calculatedAt`: Zeitpunkt der letzten Berechnung
-- `multiTruck.loadUnits`: Array der Teil-LKW
+- `multiTruck.manualAdjusted`: Kennzeichen einer bewusst manuell veränderten Zuordnung
+- `multiTruck.loadUnits`: Array der Ladeeinheiten
 
 Jede Ladeeinheit enthält mindestens:
 
@@ -143,7 +150,9 @@ Der QR-Code für LKW 1 darf ausschließlich LKW 1 öffnen. Die Abholseite zeigt:
 
 Eine erfolgreiche Abholung von LKW 1 darf den Status von LKW 2..N nicht verändern.
 
-Ein QR-Code bleibt an seine stabile `loadUnit.id` gebunden. Eine Neuaufteilung vor Abholung muss veraltete QR-Zugänge sicher invalidieren und neue QR-Zugänge für die neue Split-Version erzeugen, damit ein alter Ausdruck nicht auf eine falsche Colli-Zuordnung verweisen kann.
+Ein QR-Code bleibt an seine stabile `loadUnit.id` gebunden. Eine Neuaufteilung vor Abholung muss veraltete QR-Zugänge sicher invalidieren und neue QR-Zugänge für die neue `splitVersion` erzeugen, damit ein alter Ausdruck nicht auf eine falsche Colli-Zuordnung verweisen kann.
+
+Bei einer Ein-LKW-Sendung darf der bestehende QR-Ablauf weiterverwendet werden, solange er intern eindeutig auf die einzige Ladeeinheit zeigt. Dadurch bleibt der bisherige Ein-LKW-Prozess optisch und funktional kompatibel.
 
 ## Ladelisten und Gesamtdruck
 
@@ -210,7 +219,7 @@ Im Bereich `Colli / LDM` erscheint nach jeder relevanten Änderung eine kompakte
 
 Bei einem LKW:
 
-`1 LKW · 9,8 LDM / Profilgrenze · 8.420 kg / Profilgrenze`
+`1 LKW · 9,8 / 13,6 LDM · 8.420 / 24.000 kg`
 
 Bei mehreren LKW:
 
@@ -229,6 +238,8 @@ Beim Öffnen der Hauptsendung sind die Teil-LKW vollständig einsehbar.
 Die automatische Aufteilung ist der Standard. Vor der ersten Abholung darf ein berechtigter Benutzer Colli zwischen noch offenen LKW verschieben, sofern danach beide Kapazitätsgrenzen eingehalten werden.
 
 Eine manuelle Änderung setzt `multiTruck.manualAdjusted = true`. Anschließend darf eine normale UI-Aktualisierung die manuelle Zuordnung nicht still überschreiben. Eine bewusste Aktion `Automatisch neu verteilen` darf die manuelle Zuordnung zurücksetzen und den Split neu berechnen.
+
+Werden nach einer manuellen Zuordnung kapazitätsrelevante Colli-Daten verändert, setzt ExportHUB den Zustand `Manuelle Aufteilung prüfen`. Die Sendung darf dann nicht auf `Bereit zur Abholung` gesetzt werden, bis entweder die manuelle Verteilung vollständig validiert oder bewusst `Automatisch neu verteilen` ausgeführt wurde.
 
 Nach Abholung eines Teil-LKW sind dessen Zuordnungen gesperrt.
 
@@ -267,6 +278,7 @@ ExportHUB muss verständlich blockieren statt Daten still falsch aufzuteilen, we
 - Colli-Daten keine belastbare LDM-/Gewichtsberechnung zulassen
 - eine Neuaufteilung abgeholte Teil-LKW verändern würde
 - ein gespeicherter Split unvollständig oder widersprüchlich ist
+- eine manuell angepasste Aufteilung nach Colli-Änderungen noch nicht erneut validiert wurde
 
 Bei einem fehlerhaften Split bleibt die Hauptsendung erhalten und bearbeitbar, solange ihre normale Statussperre dies erlaubt.
 
@@ -282,7 +294,7 @@ Die 6-stellige Referenzprüfung, Kundenlogik, ABD-Regeln, bestehende Statuskette
 
 Die Umsetzung muss mindestens folgende Fälle automatisiert absichern:
 
-1. Sendung innerhalb der Kapazität -> exakt eine Ladeeinheit.
+1. Sendung innerhalb der Kapazität -> Berechnungsfunktion liefert exakt eine Ladeeinheit.
 2. Überschreitung LDM -> zwei Ladeeinheiten.
 3. Überschreitung Gewicht -> zwei Ladeeinheiten.
 4. Drei oder mehr LKW werden korrekt erzeugt.
@@ -301,11 +313,12 @@ Die Umsetzung muss mindestens folgende Fälle automatisiert absichern:
 17. Alte QR-Tokens werden nach Neuaufteilung ungültig.
 18. Abgeholte Ladeeinheit wird durch spätere Änderung nicht verändert.
 19. Manuelle Zuordnung bleibt erhalten, bis bewusst automatisch neu verteilt wird.
-20. Bestehende Ein-LKW-Sendungen bleiben ohne Datenmigration nutzbar.
-21. Merge eines älteren Clients löscht keine Teil-LKW, Pickup- oder POD-Daten.
-22. ABD-Sperre blockiert weiterhin alle Teil-LKW.
-23. Gesamtdruck enthält je LKW genau den vorgesehenen QR- und Ladelistenblock.
-24. Bestehende RC997-Sendungs-, Druck- und QR-Verträge bleiben grün.
+20. Colli-Änderung nach manueller Zuordnung erzwingt erneute Prüfung vor Versandfreigabe.
+21. Bestehende Ein-LKW-Sendungen bleiben ohne Datenmigration nutzbar.
+22. Merge eines älteren Clients löscht keine Teil-LKW, Pickup- oder POD-Daten.
+23. ABD-Sperre blockiert weiterhin alle Teil-LKW.
+24. Gesamtdruck enthält je LKW genau den vorgesehenen QR- und Ladelistenblock.
+25. Bestehende RC997-Sendungs-, Druck- und QR-Verträge bleiben grün.
 
 ## Abnahmekriterien
 
