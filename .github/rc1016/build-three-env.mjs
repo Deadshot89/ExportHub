@@ -32,7 +32,7 @@ function injectDemoBridge(html){
   if(html.includes('id="exporthub-rc1016-demo-bridge"'))return html;
   const rx=/(<script\s+id=["']exporthub-rc1013-demo-bootstrap["'][^>]*><\/script>)/i;
   if(!rx.test(html))throw new Error('RC1016 Demo-Bridge: RC1013 Demo-Bootstrap nicht gefunden.');
-  return html.replace(rx,`$1\n<script id="exporthub-rc1016-demo-bridge" src="/assets/rc1014-demo-bridge.js?v=1016"></script>`);
+  return html.replace(rx,`$1\n<script id="exporthub-rc1016-demo-bridge" src="/assets/rc1014-demo-bridge.js?v=1016"></script>\n<script id="exporthub-rc1016-demo-task-seed" src="/assets/rc1016-demo-task-seed.js?v=1016"></script>`);
 }
 function patchDemoDataEnvironment(html){
   const search="const DATA_ENVIRONMENT=/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production';";
@@ -94,7 +94,8 @@ for(const asset of [
   'assets/rc1014-task-ui.css',
   'assets/rc1014-shipment-overview.js',
   'assets/rc1014-shipment-overview.css',
-  'assets/rc1014-demo-bridge.js'
+  'assets/rc1014-demo-bridge.js',
+  'assets/rc1016-demo-task-seed.js'
 ]){
   writeOut(asset,read(asset));
 }
@@ -107,7 +108,7 @@ const manifest={
   tasks:{lifecycle:'assets/rc1014-task-lifecycle.js',runtime:'assets/rc1014-task-runtime.js',style:'assets/rc1014-task-ui.css'},
   shipmentOverview:{runtime:'assets/rc1014-shipment-overview.js',style:'assets/rc1014-shipment-overview.css',fields:['createdAt','totalColli','colliCount']},
   retainedFixes:{lieferavis:'assets/rc1015-lieferavis-mail-flow.js',calendar:'assets/abholkalender.js',diagnostics:'assets/rc1013-diagnostics.js',gate41:'assets/rc1013-gate41-ui.js'},
-  demo:{bridge:'assets/rc1014-demo-bridge.js',sessionRestore:true,dataEnvironment:'demo',fixedPickups:'fake-local'},
+  demo:{bridge:'assets/rc1014-demo-bridge.js',taskSeed:'assets/rc1016-demo-task-seed.js',sessionRestore:true,dataEnvironment:'demo',fixedPickups:'fake-local'},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 writeOut('rc1016-manifest.json',JSON.stringify(manifest,null,2)+'\n');
