@@ -1,6 +1,6 @@
 'use strict';
 const { BlobServiceClient } = require('@azure/storage-blob');
-const auth = require('../shared/fast-auth-store');
+const auth = require('../shared/auth-store');
 let pins=null; try{pins=require('../shared/loader-pin-store')}catch(_){}
 const CONTAINER=process.env.EXPORTHUB_LOCATION_CONTAINER||'exporthub-location';
 const BLOB=process.env.EXPORTHUB_LOCATION_BLOB||'warehouse-locations.json';
