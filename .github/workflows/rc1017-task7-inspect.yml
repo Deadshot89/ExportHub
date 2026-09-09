@@ -1,0 +1,25 @@
+name: RC1017 Task 7 Inspect
+
+on:
+  push:
+    branches:
+      - feature/multi-truck-shipment-split
+    paths:
+      - '.github/rc1017/inspect-task7-small.cjs'
+      - '.github/workflows/rc1017-task7-inspect.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Task-7 Anker
+        run: node .github/rc1017/inspect-task7-small.cjs
