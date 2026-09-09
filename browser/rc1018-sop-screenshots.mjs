@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import {chromium} from 'playwright';
 
 const BASE=process.env.RC1018_BROWSER_URL||'http://127.0.0.1:4173/demo.html';
@@ -36,11 +37,11 @@ async function clickAny(page,labels){
   }
   throw new Error(`Navigation nicht gefunden: ${labels.join(' / ')}`);
 }
-async function scrollToAny(page,labels){
+async function targetLocator(page,labels){
   for(const label of labels){
-    const locator=page.getByText(label,{exact:false});
-    const item=await visible(locator);if(!item)continue;
-    await item.scrollIntoViewIfNeeded();await pause(200);return label;
+    for(const locator of [page.getByText(label,{exact:true}),page.getByRole('heading',{name:label,exact:true}),page.getByRole('button',{name:label,exact:true}),page.getByText(label,{exact:false})]){
+      const item=await visible(locator);if(item)return{item,label};
+    }
   }
   throw new Error(`Zielbereich nicht gefunden: ${labels.join(' / ')}`);
 }
@@ -52,28 +53,44 @@ async function fullShot(page,file){
   await page.screenshot({path:path.join(OUT,file),fullPage:true});
   assert(fs.statSync(path.join(OUT,file)).size>10000,`${file}: Screenshot ist leer oder unplausibel klein`);
 }
+async function targetShot(page,labels,file){
+  const {item,label}=await targetLocator(page,labels);
+  await item.scrollIntoViewIfNeeded();
+  await pause(180);
+  const rect=await item.evaluate(el=>{
+    const r=el.getBoundingClientRect();
+    return{x:r.left+scrollX,y:r.top+scrollY,width:r.width,height:r.height};
+  });
+  const pageSize=await page.evaluate(()=>({width:Math.max(document.documentElement.scrollWidth,document.body?.scrollWidth||0),height:Math.max(document.documentElement.scrollHeight,document.body?.scrollHeight||0)}));
+  const width=Math.min(1120,pageSize.width);
+  const height=Math.min(620,pageSize.height);
+  const centerX=rect.x+Math.max(1,rect.width)/2;
+  const centerY=rect.y+Math.max(1,rect.height)/2;
+  const x=Math.max(0,Math.min(pageSize.width-width,centerX-width/2));
+  const y=Math.max(0,Math.min(pageSize.height-height,centerY-height/2));
+  await page.screenshot({path:path.join(OUT,file),clip:{x,y,width,height}});
+  assert(fs.statSync(path.join(OUT,file)).size>10000,`${file}: Zielaufnahme ${label} ist leer oder unplausibel klein`);
+}
 async function shipmentShots(page){
   await clickAny(page,['Sendung erstellen','Neue Sendung','Sendung anlegen']);
   await page.waitForFunction(()=>/Kunde|Empfänger/i.test(document.body?.innerText||'')&&/Colli|Lademeter/i.test(document.body?.innerText||''),null,{timeout:10000});
   await page.evaluate(()=>scrollTo(0,0));await pause(150);
   await viewportShot(page,'rc1018-shipment-create.png');
 
-  await scrollToAny(page,['Stauplan']);
-  await viewportShot(page,'rc1018-stowplan.png');
-
-  await scrollToAny(page,['Dokumente','CMR']);
-  await viewportShot(page,'rc1018-documents-cmr.png');
-
-  await scrollToAny(page,['ABD','Ausfuhrbegleitdokument']);
-  await viewportShot(page,'rc1018-abd.png');
-
-  await scrollToAny(page,['QR-Abholung','Abholung','QR-Code']);
-  await viewportShot(page,'rc1018-qr-pickup.png');
+  await targetShot(page,['Stauplan'],'rc1018-stowplan.png');
+  await targetShot(page,['Dokumente','CMR'],'rc1018-documents-cmr.png');
+  await targetShot(page,['ABD','Ausfuhrbegleitdokument'],'rc1018-abd.png');
+  await targetShot(page,['QR-Abholung','Abholung','QR-Code'],'rc1018-qr-pickup.png');
 
   const avis=page.locator('#rc897LieferavisPanel').first();
-  if(await avis.count()&&await avis.isVisible().catch(()=>false)){await avis.scrollIntoViewIfNeeded();await pause(180)}
-  else await scrollToAny(page,['Lieferavis','Kundenavis']);
-  await viewportShot(page,'rc1018-lieferavis.png');
+  if(await avis.count()&&await avis.isVisible().catch(()=>false)){
+    await avis.scrollIntoViewIfNeeded();await pause(180);
+    const box=await avis.boundingBox();
+    if(box&&box.width>200&&box.height>80){
+      await avis.screenshot({path:path.join(OUT,'rc1018-lieferavis.png')});
+      assert(fs.statSync(path.join(OUT,'rc1018-lieferavis.png')).size>10000,'rc1018-lieferavis.png: Lieferavis-Panel ist unplausibel klein');
+    }else await targetShot(page,['Lieferavis','Kundenavis'],'rc1018-lieferavis.png');
+  } else await targetShot(page,['Lieferavis','Kundenavis'],'rc1018-lieferavis.png');
 }
 async function viewShot(page,labels,file,requiredText){
   await clickAny(page,labels);
@@ -96,10 +113,12 @@ try{
   await viewShot(page,['Fehlerdiagnose','Diagnose'],'rc1018-diagnostics.png','Diagnose');
   await viewShot(page,['Release Center','Release-Center'],'rc1018-release-center.png','Release');
   assert(errors.length===0,errors.join(' | '));
-  const files=fs.readdirSync(OUT).filter(f=>f.endsWith('.png'));
+  const files=fs.readdirSync(OUT).filter(f=>f.endsWith('.png')).sort();
   assert(files.length===9,`Erwartet 9 SOP-Screenshots, gefunden ${files.length}`);
-  fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify({base:BASE,generatedAt:new Date().toISOString(),files,errors},null,2)+'\n');
-  console.log(`RC1018 SOP-Systembilder erfolgreich: ${files.length} echte Demo-Screenshots.`);
+  const hashes=files.map(file=>crypto.createHash('sha256').update(fs.readFileSync(path.join(OUT,file))).digest('hex'));
+  assert(new Set(hashes).size===9,`Erwartet 9 eigenständige SOP-Screenshots, gefunden ${new Set(hashes).size} unterschiedliche Bildinhalte`);
+  fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify({base:BASE,generatedAt:new Date().toISOString(),files,hashes,errors},null,2)+'\n');
+  console.log(`RC1018 SOP-Systembilder erfolgreich: ${files.length} echte, eigenständige Demo-Screenshots.`);
 } finally {
   await context.close();
   await browser.close();
