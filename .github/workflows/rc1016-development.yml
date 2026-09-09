@@ -6,6 +6,7 @@ on:
     paths:
       - 'assets/rc1014-**'
       - 'assets/rc1016-**'
+      - 'assets/abholkalender.*'
       - 'assets/sop/**'
       - 'api/shared/fixed-pickup-store.js'
       - 'api/shared/rc1014-fixed-pickup-seed.js'
