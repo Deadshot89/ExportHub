@@ -1,26 +1,33 @@
 'use strict';
 
-const SEED_VERSION = 1;
+const SEED_VERSION = 2;
 const ESSENTRA_COMPANY_KEY = 'essentra';
-const ALTERNATIVE_NOTE = 'Alternativtermin: O’Hare fährt Donnerstag oder Freitag, nicht an beiden Tagen.';
+const SYSTEM_ACTOR = 'System RC1014';
 
 const ESSENTRA_DEFAULTS = Object.freeze([
   { id:'FIX-RC1014-ESSENTRA-FR-MO', siteLabel:'Frankreich', weekday:1, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-ES-DI', siteLabel:'Spanien', weekday:2, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-ES-FR', siteLabel:'Spanien', weekday:5, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-BMP-MI', siteLabel:'BMP', weekday:3, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-IT-MI', siteLabel:'Italien', weekday:3, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-IT-FR', siteLabel:'Italien', weekday:5, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-AIR-ASIA-DO', siteLabel:'Luftfracht China / Indien / Australien / Singapore / Shenzhen-HK / Thailand', weekday:4, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-PL-FR', siteLabel:'Polen', weekday:5, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-SE-FR', siteLabel:'Schweden', weekday:5, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-UK-MO', siteLabel:'UK', weekday:1, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-UK-DI', siteLabel:'UK', weekday:2, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-UK-MI', siteLabel:'UK', weekday:3, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-UK-DO', siteLabel:'UK', weekday:4, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-UK-FR', siteLabel:'UK', weekday:5, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-OHARE-DO', siteLabel:'O’Hare', weekday:4, note:ALTERNATIVE_NOTE },
-  { id:'FIX-RC1014-ESSENTRA-OHARE-FR', siteLabel:'O’Hare', weekday:5, note:ALTERNATIVE_NOTE }
+  { id:'FIX-RC1014-ESSENTRA-IT-MO', siteLabel:'Italien', weekday:1, note:'' },
+  { id:'FIX-RC1014-ESSENTRA-NEFF-MO', siteLabel:'Neff', weekday:1, note:'' },
+  { id:'FIX-RC1014-ESSENTRA-OHARE-MO', siteLabel:'O’Hare', weekday:1, note:'' },
+  { id:'FIX-RC1014-ESSENTRA-FAURECIA-DI', siteLabel:'Faurecia', weekday:2, note:'' },
+  { id:'FIX-RC1014-ESSENTRA-BMP-MI', siteLabel:'BMP', weekday:3, note:'' }
+]);
+
+const OBSOLETE_V1_IDS = new Set([
+  'FIX-RC1014-ESSENTRA-ES-DI',
+  'FIX-RC1014-ESSENTRA-ES-FR',
+  'FIX-RC1014-ESSENTRA-IT-MI',
+  'FIX-RC1014-ESSENTRA-IT-FR',
+  'FIX-RC1014-ESSENTRA-AIR-ASIA-DO',
+  'FIX-RC1014-ESSENTRA-PL-FR',
+  'FIX-RC1014-ESSENTRA-SE-FR',
+  'FIX-RC1014-ESSENTRA-UK-MO',
+  'FIX-RC1014-ESSENTRA-UK-DI',
+  'FIX-RC1014-ESSENTRA-UK-MI',
+  'FIX-RC1014-ESSENTRA-UK-DO',
+  'FIX-RC1014-ESSENTRA-UK-FR',
+  'FIX-RC1014-ESSENTRA-OHARE-DO',
+  'FIX-RC1014-ESSENTRA-OHARE-FR'
 ]);
 
 function text(value){ return String(value == null ? '' : value).trim(); }
@@ -31,19 +38,34 @@ function defaultsForCompany(companyKey){
   if (text(companyKey).toLowerCase() !== ESSENTRA_COMPANY_KEY) return [];
   return ESSENTRA_DEFAULTS.map(item => ({...item, active:true}));
 }
+function isUntouchedObsoleteV1(item){
+  const id = text(item && item.id);
+  if (!OBSOLETE_V1_IDS.has(id)) return false;
+  const createdBy = text(item && item.createdBy);
+  const updatedBy = text(item && item.updatedBy);
+  return createdBy === SYSTEM_ACTOR && (!updatedBy || updatedBy === SYSTEM_ACTOR);
+}
 function mergeMissing(existing, companyKey, stamp){
-  const list = Array.isArray(existing) ? existing.slice() : [];
-  const seen = new Set(list.map(key));
+  let list = Array.isArray(existing) ? existing.slice() : [];
+  if (text(companyKey).toLowerCase() !== ESSENTRA_COMPANY_KEY) return list;
+
+  // RC1014 Seed v1 enthielt einen nicht final freigegebenen Zwischenstand.
+  // Nur unberührte Systemeinträge daraus werden entfernt. Admin-Änderungen bleiben erhalten.
+  list = list.filter(item => !isUntouchedObsoleteV1(item));
+
+  const seenKeys = new Set(list.map(key));
+  const seenIds = new Set(list.map(item => text(item && item.id)).filter(Boolean));
   for (const item of defaultsForCompany(companyKey)) {
-    if (seen.has(key(item))) continue;
+    if (seenIds.has(item.id) || seenKeys.has(key(item))) continue;
     list.push({
       ...item,
       createdAt: stamp,
-      createdBy: 'System RC1014',
+      createdBy: SYSTEM_ACTOR,
       updatedAt: stamp,
-      updatedBy: 'System RC1014'
+      updatedBy: SYSTEM_ACTOR
     });
-    seen.add(key(item));
+    seenIds.add(item.id);
+    seenKeys.add(key(item));
   }
   return list;
 }
@@ -52,6 +74,7 @@ module.exports = {
   SEED_VERSION,
   ESSENTRA_COMPANY_KEY,
   ESSENTRA_DEFAULTS,
+  OBSOLETE_V1_IDS,
   defaultsForCompany,
   mergeMissing
 };
