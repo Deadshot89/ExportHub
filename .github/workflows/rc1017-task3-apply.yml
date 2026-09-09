@@ -6,6 +6,7 @@ on:
       - feature/multi-truck-shipment-split
     paths:
       - '.github/workflows/rc1017-task3-apply.yml'
+      - '.github/rc1017/apply-task3.cjs'
   workflow_dispatch:
 
 permissions:
