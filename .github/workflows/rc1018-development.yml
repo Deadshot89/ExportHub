@@ -5,7 +5,7 @@ on:
     branches: [rc1018-mail-language-standard]
     paths:
       - 'test/rc1018-*.test.mjs'
-      - 'test/rc1016-release-sync.test.mjs'
+      - 'test/rc1016-*.test.mjs'
       - 'assets/rc1018-*.js'
       - '.github/rc1018/**'
       - 'android-app/**'
