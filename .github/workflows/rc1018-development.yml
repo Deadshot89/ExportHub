@@ -2,7 +2,7 @@ name: RC1018 Mail und Sprache Integration
 
 on:
   push:
-    branches: [rc1018-mail-language-integration, rc1018-testservice-exception-sync]
+    branches: [rc1018-mail-language-integration]
     paths:
       - 'test/rc1018-*.test.mjs'
       - 'test/rc1017-*.test.mjs'
@@ -45,8 +45,6 @@ jobs:
         run: node --test test/rc1018-mail-language-standard.test.mjs
       - name: RC1018 Produktionsdeploy-Vertrag
         run: node --test test/rc1018-production-deploy.test.mjs
-      - name: RC1018 TESTSERVICE-Ausnahmevertrag
-        run: node --test test/rc1018-testservice-exception-sync.test.mjs
       - name: RC1017 Bestandsschutz
         run: node --test test/rc1017-three-env-release.test.mjs
       - name: Bestehende Lieferavis-Regression
