@@ -40,3 +40,37 @@ jobs:
         run: node --test test/rc1014-task-android.test.mjs
       - name: RC1014 Sendungsübersicht Erfassungsdatum und Colli
         run: node --test test/rc1014-shipment-overview-meta.test.mjs
+
+  browser-design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: RC1014 Drei-Umgebungen-Build
+        run: node .github/rc1014/build-three-env.mjs
+      - name: Chromium installieren
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Demo-Server starten und echten Browser-Test ausführen
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory dist-rc1014 >/tmp/rc1014-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/demo.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node browser/rc1014-visual-functional.mjs
+      - name: Browser-Screenshots und Bericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RC1014-Browser-Design-Test
+          path: artifacts/rc1014-browser
+          if-no-files-found: warn
+          retention-days: 30
