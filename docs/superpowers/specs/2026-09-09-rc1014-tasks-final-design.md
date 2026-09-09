@@ -2,7 +2,7 @@
 
 **Status:** vom Nutzer am 09.09.2026 fachlich freigegeben  
 **Basis:** RC1013 / `525592b9c0982b7ab0e52698783f8b3720f310ed`  
-**Ziel:** Das vorhandene ExportHUB-Aufgabenmodul vollständig produktionsreif machen, ohne ein zweites Aufgaben-, Rechte- oder Persistenzsystem einzuführen.
+**Ziel:** Das vorhandene ExportHUB-Aufgabenmodul vollständig produktionsreif machen und den Release zusätzlich durch einen echten Browser-Funktions- und Designtest absichern, ohne ein zweites Aufgaben-, Rechte- oder Persistenzsystem einzuführen.
 
 ## 1. Ausgangslage
 
@@ -25,6 +25,7 @@ Die bestehende Laufzeit enthält bereits Deduplizierung, Gruppenstatus und die a
 - Firmen-, Umgebungs- und Rechteisolation gelten auch für Aufgaben uneingeschränkt.
 - Produktion, TESTSERVICE, Demo und Android bleiben auf demselben Release.
 - Bestehende RC1001/RC1002/RC1003-Aufgabenverträge bleiben als Regression erhalten.
+- Der bereits grüne CSS-/DOM-Designvertrag wird um einen echten Browser-Visualtest ergänzt; reine Quelltextprüfung gilt nicht mehr als alleiniger Designnachweis.
 
 ## 3. Einheitliches Aufgabenmodell
 
@@ -65,7 +66,7 @@ Dadurch dürfen zwei unterschiedliche Aufgaben derselben Sendung nicht denselben
 
 ### 5.1 Offene Sendungen
 
-Die bestehende fachliche Erkennung offener Sendungen bleibt maßgeblich. RC1014 ergänzt lediglich Lifecycle-Metadaten und direkte Vorgangsöffnung. Wenn die Sendung fachlich abgeschlossen, archiviert oder storniert ist, wird die zugehörige offene Aufgabe automatisch erledigt bzw. bei Storno beendet.
+Die bestehende fachliche Erkennung offener Sendungen bleibt maßgeblich. RC1014 ergänzt Lifecycle-Metadaten und direkte Vorgangsöffnung. Wenn die Sendung fachlich abgeschlossen oder archiviert ist, wird die zugehörige offene Aufgabe automatisch erledigt. Bei Storno erhält sie den Status `cancelled` und wird nicht als erledigte operative Arbeit gezählt.
 
 ### 5.2 Fehlende POD
 
@@ -73,7 +74,7 @@ Sobald eine Sendung als abgeholt gilt und noch kein POD vorhanden ist, besteht e
 
 ### 5.3 Kunde angemeldet
 
-Die vorhandene fachliche Erkennung dieser Gruppe bleibt erhalten. RC1014 ergänzt eindeutige Vorgangsidentität, Fälligkeit, Priorität, Zuständigkeit und direkte Öffnung. Die Aufgabe wird ausschließlich durch die bereits fachlich definierte Folgeaktion erledigt; sie wird nicht manuell durch bloßes Öffnen der Karte abgeschlossen.
+Die vorhandene fachliche Erkennung und Abschlussbedingung dieser Gruppe bleiben autoritativ und werden vor Änderung als Regressionstest eingefroren. RC1014 ergänzt nur eindeutige Vorgangsidentität, Fälligkeit, Priorität, Zuständigkeit und direkte Öffnung. Bloßes Öffnen einer Karte darf die Aufgabe niemals erledigen.
 
 ### 5.4 Picks
 
@@ -94,7 +95,7 @@ Darstellung und Sortierung:
 - Innerhalb derselben Priorität zuerst überfällig, dann heute, dann zukünftig.
 - Innerhalb derselben Fälligkeit nach fachlich stabiler Referenz bzw. Erstellzeit sortieren.
 
-Die Priorität darf nicht nur dekorativ sein; sie bestimmt die Aufgabenreihenfolge und die Erinnerungsauswahl.
+Die Priorität bestimmt nicht nur die Darstellung, sondern auch Reihenfolge und Erinnerungsauswahl.
 
 ## 7. Fälligkeit
 
@@ -105,6 +106,7 @@ Die Oberfläche unterscheidet mindestens:
 - **Überfällig**
 - **Heute**
 - **Zukünftig**
+- **Ohne Termin**
 
 Fehlt für eine bestehende Altaufgabe ein belastbarer Termin, bleibt sie offen und wird als **Ohne Termin** gekennzeichnet; sie darf nicht automatisch auf heute gesetzt werden.
 
@@ -206,7 +208,41 @@ Ein Aufgabenfehler enthält mindestens:
 
 Die RC1013-Fehlerdiagnose bleibt hierfür die zentrale Diagnosequelle; RC1014 baut kein eigenes Fehlerprotokoll.
 
-## 15. Tests
+## 15. Echter Browser-Funktions- und Designtest
+
+Zusätzlich zur bestehenden Node-/CSS-/DOM-Regression wird RC1014 mit einem echten Headless-Browser getestet. Bevorzugt wird Chromium/Playwright im GitHub-Workflow; falls im Repository bereits ein gleichwertiger Browser-Runner vorhanden ist, wird dieser wiederverwendet.
+
+Mindestens folgende Viewports werden geprüft:
+
+- Desktop: 1440 × 900
+- Tablet/kleiner Desktop: 1024 × 768
+- Smartphone: 390 × 844
+
+Für die wichtigsten ExportHUB-Ansichten werden Browser-Screenshots als Workflow-Artefakt erzeugt, mindestens für:
+
+- Dashboard
+- Sendungsübersicht
+- Sendung erstellen/bearbeiten mit Beispielinhalt
+- Aufgaben
+- Abholkalender
+- SOP
+- Fehlerdiagnose, soweit der Testbenutzer die erforderliche Rolle besitzt
+
+Die Browserprüfung kontrolliert zusätzlich maschinell:
+
+- kein horizontales Seiten-Overflow,
+- keine abgeschnittene Hauptüberschrift,
+- keine überlagerte Topbar/Navigation,
+- keine außerhalb des Viewports liegenden Hauptaktionen,
+- Aufgabenraster 3/2/1 passend zum Viewport,
+- keine Überlappung von Prioritäts-/Fälligkeitsbadges und Text,
+- ausreichende Touch-/Buttonfläche auf Smartphone,
+- sichtbare Fokuszustände der Hauptaktionen,
+- keine JavaScript-Console-Errors beim Öffnen der geprüften Ansichten.
+
+Die erzeugten Screenshots werden vor Release zusätzlich visuell geprüft. Ein grüner CSS-Quelltexttest allein reicht nicht mehr als Designfreigabe.
+
+## 16. Tests
 
 Die Umsetzung erfolgt strikt RED → GREEN.
 
@@ -224,12 +260,15 @@ Mindestens folgende neue RC1014-Verträge werden vor Produktivcode als fehlgesch
 10. 09:00/12:00/15:00 bleiben die einzigen regulären Aufgaben-Erinnerungsslots.
 11. Aufgabenkarte öffnet über den bestehenden ExportHUB-Pfad den richtigen Vorgang.
 12. Desktop/Mittel/Smartphone erfüllen das 3-2-1-Raster und zeigen neue Pflichtinformationen ohne horizontales Überlaufen.
-13. Bestehende RC1001/RC1002/RC1003-Aufgabenverträge bleiben grün.
-14. Vollständige Node-Regression bleibt grün.
-15. Drei-Umgebungen-Build erzeugt denselben RC1014-Stand für Produktion, TESTSERVICE und Demo.
-16. Android-App trägt denselben RC1014-Release und ihre Aufgabenbenachrichtigungen bleiben direkt öffnungsfähig.
+13. Browser-Smoke-Test öffnet die wichtigsten Ansichten ohne Console-Error.
+14. Browser-Layouttest meldet Overflow, Überlagerungen und abgeschnittene Hauptaktionen als Fehler.
+15. Screenshot-Artefakte werden für Desktop, Tablet und Smartphone erzeugt.
+16. Bestehende RC1001/RC1002/RC1003-Aufgabenverträge bleiben grün.
+17. Vollständige Node-Regression bleibt grün.
+18. Drei-Umgebungen-Build erzeugt denselben RC1014-Stand für Produktion, TESTSERVICE und Demo.
+19. Android-App trägt denselben RC1014-Release und ihre Aufgabenbenachrichtigungen bleiben direkt öffnungsfähig.
 
-## 16. Release und Verifikation
+## 17. Release und Verifikation
 
 RC1014 wird auf einem isolierten Branch umgesetzt und erst nach vollständiger Prüfung nach `main` gemergt.
 
@@ -241,18 +280,20 @@ Freigabereihenfolge:
 4. bestehende Aufgabenregression grün,
 5. vollständige Node-Regression grün,
 6. Design-/Render-/Rechte-/Mandantentests grün,
-7. Drei-Umgebungen-Build grün,
-8. Android-Build grün,
-9. Code-Review ohne kritischen oder wichtigen offenen Befund,
-10. Merge nach `main`,
-11. frischer Main-Contract,
-12. gemeinsamer Deploy von Produktion und TESTSERVICE mit Demo im gemeinsamen Build,
-13. Live-Verifikation aller drei Umgebungen auf exakt RC1014,
-14. frischer Android-Artefaktbuild vom finalen Main-SHA.
+7. Browser-Funktions- und Layouttest in allen drei Viewports grün,
+8. Screenshot-Artefakte erzeugt und visuell ohne Release-Blocker geprüft,
+9. Drei-Umgebungen-Build grün,
+10. Android-Build grün,
+11. Code-Review ohne kritischen oder wichtigen offenen Befund,
+12. Merge nach `main`,
+13. frischer Main-Contract,
+14. gemeinsamer Deploy von Produktion und TESTSERVICE mit Demo im gemeinsamen Build,
+15. Live-Verifikation aller drei Umgebungen auf exakt RC1014,
+16. frischer Android-Artefaktbuild vom finalen Main-SHA.
 
-Erst nach Punkt 14 gilt RC1014 als abgeschlossen.
+Erst nach Punkt 16 gilt RC1014 als abgeschlossen.
 
-## 17. Nicht im RC1014-Scope
+## 18. Nicht im RC1014-Scope
 
 - Keine neuen Aufgabengruppen außerhalb der fünf bestehenden Gruppen.
 - Kein separates Projektmanagement-/Kanban-System.
