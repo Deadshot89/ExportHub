@@ -15,7 +15,7 @@ function loadWithMocks(relativeFile,mocks){const absolute=path.resolve(ROOT,rela
 
 function fixture(){
   const issued=[];const written=[];
-  const access={async issue(_req,kind,payload,_ttl){assert.equal(kind,'pickup');issued.push(payload);const n=issued.length;return{token:String(n).repeat(48),tokenHash:String(n).repeat(64),environment:'testservice',expiresAt:'2026-09-20T00:00:00.000Z'}};
+  const access={async issue(_req,kind,payload,_ttl){assert.equal(kind,'pickup');issued.push(payload);const n=issued.length;return{token:String(n).repeat(48),tokenHash:String(n).repeat(64),environment:'testservice',expiresAt:'2026-09-20T00:00:00.000Z'}}};
   const auth={async validateSession(){return{user:{name:'Tester'}}},hasAnyEditRight(){return true},error:err};
   const store={
     json,err,body(req){return req&&req.body&&typeof req.body==='object'?req.body:{}},sanitizeText(v,max=180){return String(v||'').trim().slice(0,max)},
