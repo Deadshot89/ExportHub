@@ -42,6 +42,24 @@ jobs:
         run: node --test test/rc1014-shipment-overview-meta.test.mjs
       - name: RC1014 Release-Synchronisierung
         run: node --test test/rc1014-release-sync.test.mjs
+      - name: QR- und Lieferavis-End-to-End-Regression
+        shell: bash
+        run: |
+          node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
+      - name: Finaler Drei-Umgebungen-Build und Diff-Prüfung
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1014/build-three-env.mjs
+          grep -q 'ExportHUB RC1014 environment=production-candidate' dist-rc1014/index.html
+          grep -q 'ExportHUB RC1014 environment=testservice' dist-rc1014/TESTVERSION.html
+          grep -q 'ExportHUB RC1014 environment=demo' dist-rc1014/demo.html
+          grep -q 'assets/rc1014-task-runtime.js?v=1014' dist-rc1014/index.html
+          grep -q 'assets/rc1014-shipment-overview.js?v=1014' dist-rc1014/index.html
+          git diff --check
 
   browser-design:
     runs-on: ubuntu-latest
