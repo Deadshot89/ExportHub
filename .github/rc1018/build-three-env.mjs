@@ -8,11 +8,18 @@ const OUT=path.join(ROOT,'dist-rc1018');
 const VERSION='RC1018';
 const CACHE='1018';
 const MAIL_TAG='<script id="exporthub-rc1018-mail-language-standard" defer src="/assets/rc1018-mail-language-standard.js?v=1018"></script>';
+const SOP_IMAGES_TAG='<script id="exporthub-rc1018-sop-system-images" defer src="/assets/sop/rc1018-sop-system-images.js?v=1018"></script>';
 const SHIPMENT_CONTROLLER_ID='exporthub-rc373-shipment-controller';
 
 function read(rel){return fs.readFileSync(path.join(ROOT,rel),'utf8')}
 function write(rel,content){const file=path.join(OUT,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content)}
 function injectBeforeHeadClose(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const idx=html.search(/<\/head\s*>/i);if(idx<0)throw new Error(`${id}: </head> fehlt`);return html.slice(0,idx)+tag+'\n'+html.slice(idx)}
+function injectSopImages(html){
+  if(html.includes('id="exporthub-rc1018-sop-system-images"'))return html;
+  const rx=/(<script\s+id=["']exporthub-rc1016-sop-consolidation["'][^>]*><\/script>)/i;
+  if(!rx.test(html))throw new Error('RC1018 SOP-Systembilder: RC1016 Konsolidierung nicht gefunden.');
+  return html.replace(rx,`$1\n${SOP_IMAGES_TAG}`);
+}
 function setVersion(html){
   let out=html.replace(/ExportHUB RC1016 environment=/g,'ExportHUB RC1018 environment=');
   out=out.replace(/version:'RC1016'/g,"version:'RC1018'");
@@ -48,6 +55,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   let html=fs.readFileSync(path.join(OUT,file),'utf8');
   if(file!=='index.html')html=replaceScriptBlock(html,SHIPMENT_CONTROLLER_ID,canonicalShipmentController);
   html=setVersion(html);
+  html=injectSopImages(html);
   html=injectBeforeHeadClose(html,MAIL_TAG,'exporthub-rc1018-mail-language-standard');
   write(file,html);
 }
@@ -66,9 +74,10 @@ const manifest={
   sourceRelease:'RC1016',
   retainedReleaseAssets:{multiTruck:'assets/rc1017-multi-truck.js'},
   synchronizedRuntime:{shipmentController:SHIPMENT_CONTROLLER_ID,multiTruck:true},
+  sop:{systemImages:'assets/sop/rc1018-sop-system-images.js',screenshotDirectory:'assets/sop/screenshots'},
   mail:{runtime:'assets/rc1018-mail-language-standard.js',targets:['customer','carrier'],languages:['de','en'],exclusiveModes:['details','avis']},
   publicLanguage:{runtime:'assets/rc1018-public-language.js',pages:['customer-avis.html','pickup.html','location.html'],languages:['de','en']},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 write('rc1018-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1018 build ready: RC1017 Mehr-LKW-Sendungscontroller synchronisiert; Mailvorlagen, Lieferavis/Sendungsdetails und DE/EN in Produktion, TESTSERVICE und Demo.');
+console.log('RC1018 build ready: RC1017 Mehr-LKW-Sendungscontroller synchronisiert; Mailvorlagen, Lieferavis/Sendungsdetails, SOP-Systembilder und DE/EN in Produktion, TESTSERVICE und Demo.');
