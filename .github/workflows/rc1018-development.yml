@@ -1,0 +1,41 @@
+name: RC1018 Mail und Sprache Entwicklung
+
+on:
+  push:
+    branches: [rc1018-mail-language-standard]
+    paths:
+      - 'test/rc1018-*.test.mjs'
+      - 'assets/rc1018-*.js'
+      - '.github/rc1018/**'
+      - 'customer-avis.html'
+      - 'pickup.html'
+      - 'location.html'
+      - 'production-version.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1018-mail-language-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: RC1018 Mail- und Sprachvertrag
+        run: node --test test/rc1018-mail-language-standard.test.mjs
+      - name: Bestehende Lieferavis-Regression
+        run: node --test test/rc1015-lieferavis-mail-flow.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
+      - name: Drei Umgebungen bauen
+        run: node .github/rc1018/build-three-env.mjs
+      - name: Diff prüfen
+        run: git diff --check
