@@ -1,0 +1,49 @@
+name: RC1017 Apply
+
+on:
+  push:
+    branches:
+      - feature/multi-truck-shipment-split
+    paths:
+      - '.github/rc1017/apply.mjs'
+      - '.github/workflows/rc1017-apply.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/multi-truck-shipment-split
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install API dependencies
+        run: npm --prefix api install --ignore-scripts
+      - name: Apply RC1017 source patch
+        run: node .github/rc1017/apply.mjs
+      - name: RC1017 contract tests
+        run: node --test test/rc1017-*.test.mjs
+      - name: Build current shared environments
+        run: node .github/rc1013/build-three-env.mjs
+      - name: Existing regression suite
+        run: npm test
+      - name: Commit verified patch
+        run: |
+          if git diff --quiet; then
+            echo "No source patch needed"
+            exit 0
+          fi
+          git config user.name "ExportHUB RC1017"
+          git config user.email "actions@users.noreply.github.com"
+          git add api assets pickup.html .github/rc1013/build-three-env.mjs production-version.js 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No tracked source changes to commit"
+            exit 0
+          fi
+          git commit -m "feat: RC1017 geprüften Mehr-LKW Quellpatch anwenden"
+          git push origin HEAD:feature/multi-truck-shipment-split
