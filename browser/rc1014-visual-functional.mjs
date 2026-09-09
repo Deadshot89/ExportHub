@@ -19,6 +19,7 @@ const views=[
 
 function assert(condition,message){if(!condition)throw new Error(message);}
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function apiPath(raw){try{const u=new URL(raw);return u.pathname;}catch(_){return String(raw||'').split('?')[0];}}
 
 async function navigationDiagnostics(page){
   return page.evaluate(()=>{
@@ -33,6 +34,45 @@ async function navigationDiagnostics(page){
       controls
     };
   });
+}
+
+async function startupDiagnostics(page,networkEvents,runtimeErrors){
+  const browser=await page.evaluate(()=>{
+    let sync=null,state=null;
+    try{sync=window.ExportHUBSync&&typeof window.ExportHUBSync.diagnostics==='function'?window.ExportHUBSync.diagnostics():null;}catch(_){ }
+    try{const s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;state=s?{view:String(s.view||''),shipments:Array.isArray(s.shipments)?s.shipments.length:null,tasks:Array.isArray(s.tasks)?s.tasks.length:null,customers:Array.isArray(s.customers)?s.customers.length:null}:null;}catch(_){ }
+    let cleanRuntime=null;
+    try{const r=window.ExportHUBClean&&window.ExportHUBClean.runtime;cleanRuntime=r?{loaded:!!r.loaded,loading:!!r.loading,ready:!!r.ready,sessionRestored:!!r.sessionRestored,currentModuleId:Number(r.currentModuleId||0),revision:Number(r.revision||0),dataEnvironment:String(r.dataEnvironment||''),stateGets:Number(r.network&&r.network.stateGets||0),moduleTimes:Array.isArray(r.moduleTimes)?r.moduleTimes.length:null,skipped:Array.isArray(r.skipped)?r.skipped.length:null}:null;}catch(_){ }
+    const statusSelectors=['#cleanStatus','#loginStatus','#status','#cleanLoadPanel','#rc654LoadState','#cleanProgressText'];
+    const statuses=statusSelectors.map(selector=>{const el=document.querySelector(selector);return el?{selector,text:(el.textContent||'').replace(/\s+/g,' ').trim().slice(0,500),hidden:el.classList.contains('hidden')}:null;}).filter(Boolean);
+    return {
+      ready:window.__EXPORTHUB_READY__||null,
+      cleanRuntime,
+      sync,
+      state,
+      manifestLength:Array.isArray(window.__EXPORTHUB_CANONICAL_MODULE_MANIFEST__)?window.__EXPORTHUB_CANONICAL_MODULE_MANIFEST__.length:null,
+      demoMode:window.__EXPORTHUB_DEMO_MODE__===true,
+      demoBridge:window.__EXPORTHUB_RC1014_DEMO_BRIDGE__===true,
+      statuses
+    };
+  });
+  return {browser,networkEvents:networkEvents.slice(-80),runtimeErrors:runtimeErrors.slice(-40),navigation:await navigationDiagnostics(page)};
+}
+
+async function waitForNavigationReady(page,viewportName,networkEvents,runtimeErrors){
+  try{
+    await page.waitForFunction(()=>{
+      const visible=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;};
+      return window.__EXPORTHUB_READY__?.ready===true&&[...document.querySelectorAll('button,a,[role="button"],[data-view],[data-route]')]
+        .some(el=>visible(el)&&(el.textContent||'').replace(/\s+/g,' ').trim()==='Aufgaben');
+    },null,{timeout:15000});
+  }catch(error){
+    const diagnostic=await startupDiagnostics(page,networkEvents,runtimeErrors);
+    const screenshot=path.join(OUT,`${viewportName}-startup-failure.png`);
+    await page.screenshot({path:screenshot,fullPage:true});
+    fs.writeFileSync(path.join(OUT,`${viewportName}-startup-diagnostic.json`),JSON.stringify(diagnostic,null,2)+'\n');
+    throw new Error(`ExportHUB Demo wird nicht navigationsbereit: ${viewportName}\nStartdiagnose: ${JSON.stringify(diagnostic)}`);
+  }
 }
 
 async function clickView(page,view,viewportName){
@@ -97,7 +137,7 @@ async function assertTasks(page){
 }
 
 async function assertShipmentOverview(page){
-  await page.waitForFunction(()=>document.querySelectorAll('[data-rc1014-shipment-meta]').length>=3,{timeout:10000});
+  await page.waitForFunction(()=>document.querySelectorAll('[data-rc1014-shipment-meta]').length>=3,null,{timeout:10000});
   const rows=page.locator('[data-rc1014-shipment-meta]');
   assert(await rows.count()>=3,'Sendungsübersicht zeigt nicht für jede Demo-Sendung RC1014-Metadaten.');
   const body=await page.locator('body').innerText();
@@ -122,6 +162,7 @@ try{
     const context=await browser.newContext({viewport:{width:vp.width,height:vp.height},deviceScaleFactor:1});
     const page=await context.newPage();
     const runtimeErrors=[];
+    const networkEvents=[];
     page.on('pageerror',error=>runtimeErrors.push(`pageerror: ${error.message}`));
     page.on('console',msg=>{
       if(msg.type()!=='error')return;
@@ -129,13 +170,11 @@ try{
       if(/favicon\.ico/i.test(text))return;
       runtimeErrors.push(`console: ${text}`);
     });
+    page.on('request',req=>{const path=apiPath(req.url());if(path.includes('/api/'))networkEvents.push({type:'request',method:req.method(),path});});
+    page.on('response',res=>{const path=apiPath(res.url());if(path.includes('/api/'))networkEvents.push({type:'response',status:res.status(),path});});
     await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:30000});
-    await page.waitForFunction(()=>document.body&&document.body.innerText.length>100,{timeout:15000});
-    await page.waitForFunction(()=>{
-      const visible=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;};
-      return [...document.querySelectorAll('button,a,[role="button"],[data-view],[data-route]')]
-        .some(el=>visible(el)&&(el.textContent||'').replace(/\s+/g,' ').trim()==='Aufgaben');
-    },{timeout:15000});
+    await page.waitForFunction(()=>document.body&&document.body.innerText.length>100,null,{timeout:15000});
+    await waitForNavigationReady(page,vp.name,networkEvents,runtimeErrors);
     await pause(250);
 
     const viewportReport={name:vp.name,width:vp.width,height:vp.height,views:[]};
