@@ -1,7 +1,7 @@
 'use strict';
 const access=require('../shared/public-access-store');
 const store=require('../shared/pickup-store');
-const auth=require('../shared/auth-store');
+const auth=require('../shared/fast-auth-store');
 
 function text(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function rowsOf(src){for(const k of ['rows','colli','collis','packages','packageRows'])if(Array.isArray(src&&src[k])&&src[k].length)return src[k];return[]}
