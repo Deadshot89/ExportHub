@@ -32,5 +32,7 @@ jobs:
         run: npm --prefix api install --ignore-scripts
       - name: RC1017 tests
         run: node --test test/rc1017-*.test.mjs
+      - name: Build current shared environments for baseline tests
+        run: node .github/rc1013/build-three-env.mjs
       - name: Existing regression suite
         run: npm test
