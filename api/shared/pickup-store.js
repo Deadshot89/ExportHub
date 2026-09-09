@@ -50,6 +50,14 @@ async function readJson(blob,fallback=null){try{const r=await readBuffer(blob);r
 async function writeJson(blob,value,etag){const raw=JSON.stringify(value),conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'};return blob.upload(raw,Buffer.byteLength(raw),{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8',blobCacheControl:'no-store'},conditions})}
 function recordBlob(records,accessKey,environment='production'){return records.getBlockBlobClient(recordPath(environment,accessKey))}
 async function getRecord(accessKey,environment='production'){const c=await clients(environment),blob=recordBlob(c.records,accessKey,c.environment),r=await readJson(blob,null);if(!r.value)throw err('PICKUP_NOT_FOUND','Pickup-Vorgang wurde nicht gefunden.',410);return{clients:c,blob,record:r.value,etag:r.etag}}
+async function assertActiveLoadUnit(record){
+ const r=record&&typeof record==='object'?record:{};
+ const loadUnitId=String(r.loadUnitId||'').trim();if(!loadUnitId)return null;
+ const c=await clients(r.environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),d=await readJson(blob,null),doc=d.value||{},state=doc.state||{},shipments=Array.isArray(state.shipments)?state.shipments:[];
+ const sid=String(r.shipmentId||'').trim(),ref=String(r.reference||'').trim().toUpperCase(),shipment=shipments.find(x=>(sid&&String(x&&x.id||x&&x.shipmentId||'').trim()===sid)||(ref&&String(x&&x.ref||x&&x.reference||'').trim().toUpperCase()===ref));
+ if(!shipment)throw err('PICKUP_SHIPMENT_NOT_FOUND','Die Sendung zu diesem LKW-QR-Code ist nicht mehr verfügbar.',410);
+ return multiTruckPickup.resolveLoadUnit(shipment,loadUnitId,r.splitVersion);
+}
 async function mutateRecord(accessKey,environment,fn){for(let i=0;i<MAX_RETRIES;i++){const got=await getRecord(accessKey,environment),next=await fn(clone(got.record),got.clients);try{await writeJson(got.blob,next,got.etag);return next}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}}throw err('CONFLICT','Datensatz konnte wegen eines Konflikts nicht gespeichert werden.',409)}
 function expired(r){return!!(r&&r.expiresAt&&Date.now()>Date.parse(r.expiresAt))}
 function realPodFiles(record){return(Array.isArray(record&&record.podFiles)?record.podFiles:[]).filter(f=>String(f&&f.kind||'').toLowerCase()!=='scan-confirmation')}
@@ -71,4 +79,4 @@ async function updateTeam(record,podsToAdd=[],rawToken=''){
  }
 }
 
-module.exports={RECORD_CONTAINER,POD_CONTAINER,TEAM_CONTAINER,TEAM_BLOB_BASE,TEST_TEAM_BLOB,clients,connectionString,hash,safeEqualHex,validToken,validAccessKey,normalizeEnvironment,json,body,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,safeName,parseSignature,saveDriverSignature,signatureUrl,realPodFiles,first,sanitizeText,expectedCollis,pickupHistory,pickupCollectedColliCount,pickupRemainingColliCount,pickupComplete,teamBlobName,podPrefix};
+module.exports={RECORD_CONTAINER,POD_CONTAINER,TEAM_CONTAINER,TEAM_BLOB_BASE,TEST_TEAM_BLOB,clients,connectionString,hash,safeEqualHex,validToken,validAccessKey,normalizeEnvironment,json,body,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,assertActiveLoadUnit,mutateRecord,expired,publicRecord,updateTeam,safeName,parseSignature,saveDriverSignature,signatureUrl,realPodFiles,first,sanitizeText,expectedCollis,pickupHistory,pickupCollectedColliCount,pickupRemainingColliCount,pickupComplete,teamBlobName,podPrefix};
