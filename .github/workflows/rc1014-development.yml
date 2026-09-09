@@ -40,6 +40,8 @@ jobs:
         run: node --test test/rc1014-task-android.test.mjs
       - name: RC1014 Sendungsübersicht Erfassungsdatum und Colli
         run: node --test test/rc1014-shipment-overview-meta.test.mjs
+      - name: RC1014 Release-Synchronisierung
+        run: node --test test/rc1014-release-sync.test.mjs
 
   browser-design:
     runs-on: ubuntu-latest
