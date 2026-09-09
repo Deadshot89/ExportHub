@@ -42,3 +42,12 @@ test('RC1016 Manifest dokumentiert RC1015 als erhaltene Releasebasis',()=>{
   assert.equal(manifest.retainedFixes.lieferavis,'assets/rc1015-lieferavis-mail-flow.js');
   assert.deepEqual(manifest.environments,{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'});
 });
+
+test('RC1016 ist der autoritative sichtbare Versionsmarker und wird mit ausgeliefert',()=>{
+  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'/);
+  build();
+  assert.match(read('dist-rc1016/production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'/);
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    assert.match(read(`dist-rc1016/${file}`),/version:'RC1016'/,`${file}: sichtbarer Build-Status ist nicht RC1016`);
+  }
+});
