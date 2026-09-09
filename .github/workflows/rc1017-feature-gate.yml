@@ -1,0 +1,43 @@
+name: RC1017 Feature Gate
+
+on:
+  push:
+    branches:
+      - feature/multi-truck-shipment-split
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1017-feature-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: RC1017 targeted tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in test/rc1017-*.test.mjs; do
+            [ -f "$file" ] || continue
+            node --test "$file"
+          done
+      - name: Full deterministic regression
+        run: node --test --test-concurrency=1 test/*.test.mjs
+      - name: Current RC1016 three-environment build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1016/build-three-env.mjs
+          grep -q 'ExportHUB RC1016 environment=production-candidate' dist-rc1016/index.html
+          grep -q 'ExportHUB RC1016 environment=testservice' dist-rc1016/TESTVERSION.html
+          grep -q 'ExportHUB RC1016 environment=demo' dist-rc1016/demo.html
+          git diff --check
