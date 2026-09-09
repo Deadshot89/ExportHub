@@ -25,6 +25,25 @@
     return Array.isArray(state.shipments) ? state.shipments : [];
   }
 
+  function companyId(){
+    const state = getState();
+    const user = state && state.currentUser && typeof state.currentUser === 'object' ? state.currentUser : {};
+    const candidates = [
+      state && state.companyId,
+      state && state.currentCompanyId,
+      state && state.activeCompanyId,
+      state && state.companyKey,
+      user.companyId,
+      user.companyKey,
+      window.__EXPORTHUB_COMPANY_ID__
+    ];
+    for (const candidate of candidates) {
+      const value = String(candidate == null ? '' : candidate).trim();
+      if (value) return value;
+    }
+    return '';
+  }
+
   function openShipment(shipment){
     if (typeof window.openShipment === 'function') return window.openShipment(shipment);
     if (typeof window.__EXPORTHUB_OPEN_SHIPMENT__ === 'function') return window.__EXPORTHUB_OPEN_SHIPMENT__(shipment);
@@ -52,6 +71,7 @@
     }
     window.ExportHubPickupCalendar.mount(root,{
       environment: environment(),
+      companyId: companyId(),
       shipments: shipments(),
       onOpenShipment: openShipment
     });

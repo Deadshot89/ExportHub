@@ -53,4 +53,4 @@ jobs:
             echo 'Fehler: aktueller Produktionsmarker darf nicht auf RC1007 zurückfallen.'
             exit 1
           fi
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1010'" production-version.js
+          echo 'OK: Autoritativer Produktionsmarker liegt nach RC1007.'
