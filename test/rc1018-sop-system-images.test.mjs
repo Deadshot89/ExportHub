@@ -6,6 +6,7 @@ await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
 await import('../assets/sop/rc1010-sop-release.js');
 await import('../assets/sop/rc1016-sop-consolidation.js');
+await import('../assets/sop/rc1018-sop-system-images.js');
 
 const catalog=globalThis.ExportHubIsoSopCatalog;
 const expected={
@@ -21,6 +22,7 @@ const expected={
 };
 
 test('RC1018: neun zusätzliche Kern-SOPs besitzen echte Demo-Systembilder',()=>{
+  assert.equal(catalog.sopImageRelease,'RC1018');
   for(const [number,file] of Object.entries(expected)){
     const doc=catalog.get(number);
     assert.ok(doc,`${number} fehlt`);
@@ -39,4 +41,11 @@ test('RC1018: SOP-Systembilder werden aus der echten Demo-Oberfläche erzeugt un
   assert.match(source,/demo\.html/);
   for(const file of Object.values(expected))assert.match(source,new RegExp(file.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
   assert.doesNotMatch(source,/data:image\/svg\+xml/i);
+});
+
+test('RC1018: SOP-Bildlayer wird im gemeinsamen Drei-Umgebungen-Build geladen',()=>{
+  const build=fs.readFileSync('.github/rc1018/build-three-env.mjs','utf8');
+  assert.match(build,/rc1018-sop-system-images\.js/);
+  assert.match(build,/exporthub-rc1018-sop-system-images/);
+  assert.match(build,/assets\/sop\/rc1018-sop-system-images\.js/);
 });
