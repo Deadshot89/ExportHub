@@ -4,6 +4,22 @@ import path from 'node:path';
 const file=path.join(process.cwd(),'.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
 let flow=fs.readFileSync(file,'utf8');
 
+const integratedRequired=[
+  'name: ExportHUB RC1018 Drei-Umgebungen Deploy',
+  '.github/rc1017/**','test/rc1017-*.test.mjs','test/rc1017-three-env-release.test.mjs','assets/rc1017-multi-truck.js',
+  '.github/rc1018/**','test/rc1018-*.test.mjs','test/rc1018-mail-language-standard.test.mjs','test/rc1018-production-deploy.test.mjs',
+  'node .github/rc1018/build-three-env.mjs','dist-rc1018/index.html','dist-rc1018/TESTVERSION.html','dist-rc1018/demo.html',
+  'assets/rc1018-mail-language-standard.js?v=1018','assets/rc1018-public-language.js',
+  'Live RC1018 Produktion TESTSERVICE und Demo prüfen','Live RC1018 Mail und Sprache prüfen'
+];
+if(flow.includes('name: ExportHUB RC1018 Drei-Umgebungen Deploy')){
+  for(const required of integratedRequired){
+    if(!flow.includes(required))throw new Error(`RC1018 Deploy-Integration unvollständig: ${required}`);
+  }
+  console.log('RC1018 Standarddeploy ist bereits vollständig integriert.');
+  process.exit(0);
+}
+
 function replaceOnce(before,after,label){
   if(!flow.includes(before))throw new Error(`RC1018 Deploy-Integration: ${label} nicht gefunden`);
   flow=flow.replace(before,after);
