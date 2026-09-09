@@ -5,12 +5,15 @@ on:
     branches: [rc1018-mail-language-standard]
     paths:
       - 'test/rc1018-*.test.mjs'
+      - 'test/rc1016-release-sync.test.mjs'
       - 'assets/rc1018-*.js'
       - '.github/rc1018/**'
+      - 'android-app/**'
       - 'customer-avis.html'
       - 'pickup.html'
       - 'location.html'
       - 'production-version.js'
+      - '.github/workflows/rc1018-development.yml'
   workflow_dispatch:
 
 permissions:
