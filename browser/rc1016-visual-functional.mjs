@@ -50,10 +50,32 @@ async function assertTasks(page){
   const text=await group.innerText();
   for(const expected of ['Priorität','Fällig:','Verantwortlich:'])assert(text.includes(expected),`Aufgaben-Metadatum fehlt: ${expected}`);
 }
-async function assertShipmentOverview(page){
+async function shipmentOverviewDiagnostics(page){
+  return page.evaluate(()=>{
+    const state=(()=>{try{return typeof window.__EXPORTHUB_GET_STATE__==='function'?(window.__EXPORTHUB_GET_STATE__()||{}):((window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||window.state||{});}catch(_){return{};}})();
+    const shipmentSummary=(Array.isArray(state.shipments)?state.shipments:[]).slice(0,12).map(sh=>({id:sh&&sh.id,ref:sh&&sh.ref,reference:sh&&sh.reference,status:sh&&sh.status,customerName:sh&&sh.customerName,rows:Array.isArray(sh&&sh.rows)?sh.rows.length:null}));
+    const cards=[...document.querySelectorAll('[data-rc1014-shipment-enhanced="1"]')].slice(0,20).map(card=>({
+      tag:card.tagName,
+      className:String(card.className||''),
+      dataset:Object.fromEntries(Object.entries(card.dataset||{})),
+      text:String(card.innerText||card.textContent||'').replace(/\s+/g,' ').trim().slice(0,900),
+      html:String(card.outerHTML||'').slice(0,3500)
+    }));
+    const meta=[...document.querySelectorAll('[data-rc1014-shipment-meta]')].slice(0,20).map(node=>({text:String(node.innerText||node.textContent||'').replace(/\s+/g,' ').trim(),parentText:String(node.parentElement?.innerText||'').replace(/\s+/g,' ').trim().slice(0,900)}));
+    return {view:document.body?.getAttribute('data-exporthub-view')||'',bodyText:String(document.body?.innerText||'').replace(/\s+/g,' ').trim().slice(0,8000),stateShipments:shipmentSummary,cards,meta};
+  });
+}
+async function assertShipmentOverview(page,viewportName){
   await page.waitForFunction(()=>document.querySelectorAll('[data-rc1014-shipment-meta]').length>=3,null,{timeout:10000});
   const body=await page.locator('body').innerText();
-  for(const expected of ['DEMO01','DEMO02','DEMO03','Erfasst:','Colli: 2','Colli: 6','Colli: 4'])assert(body.includes(expected),`Sendungsübersicht fehlt: ${expected}`);
+  const expectedValues=['DEMO01','DEMO02','DEMO03','Erfasst:','Colli: 2','Colli: 6','Colli: 4'];
+  const missing=expectedValues.filter(expected=>!body.includes(expected));
+  if(missing.length){
+    const diagnostic=await shipmentOverviewDiagnostics(page);
+    fs.writeFileSync(path.join(OUT,`${viewportName}-shipmentoverview-diagnostic.json`),JSON.stringify(diagnostic,null,2)+'\n');
+    await page.screenshot({path:path.join(OUT,`${viewportName}-shipmentoverview-failure.png`),fullPage:true});
+    throw new Error(`Sendungsübersicht fehlt: ${missing.join(', ')}. Diagnose wurde gesichert.`);
+  }
 }
 async function assertCalendar(page){
   const body=await page.locator('body').innerText();
@@ -78,7 +100,7 @@ try{
     for(const view of views){
       await clickView(page,view);
       if(view.name==='tasks')await assertTasks(page);
-      if(view.name==='shipmentoverview')await assertShipmentOverview(page);
+      if(view.name==='shipmentoverview')await assertShipmentOverview(page,vp.name);
       if(view.name==='pickupcalendar')await assertCalendar(page);
       await assertNoOverflow(page,`${vp.name}/${view.name}`);
       const screenshot=path.join(OUT,`${vp.name}-${view.name}.png`);
