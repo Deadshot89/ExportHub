@@ -34,17 +34,3 @@ jobs:
         run: node --test test/rc1014-task-lifecycle.test.mjs
       - name: RC1014 Runtime-Integration
         run: node --test test/rc1014-task-runtime-integration.test.mjs
-      - name: Diagnose bestehenden Aufgaben-Speicherpfad
-        if: always()
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs=require('fs');
-          const h=fs.readFileSync('TESTVERSION.html','utf8');
-          const s=h.indexOf('function tasks(){');
-          const e=h.indexOf('function taskSortRC67',s);
-          const block=h.slice(s,e);
-          const rx=/.{0,140}(?:save|persist|state\.tasks|tasks\s*=).{0,220}/gi;
-          const hits=block.match(rx)||[];
-          console.log(hits.slice(0,40).join('\n---\n'));
-          NODE
