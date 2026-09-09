@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
@@ -32,6 +33,15 @@ test('RC1018: neun zusätzliche Kern-SOPs besitzen echte Demo-Systembilder',()=>
     assert.doesNotMatch(String(image.src),/^data:/i);
     assert.ok(fs.existsSync(`assets/sop/screenshots/${file}`),`${file}: PNG fehlt im Repository`);
   }
+});
+
+test('RC1018: jede der neun SOP-Aufnahmen zeigt einen eigenständigen Systemausschnitt',()=>{
+  const hashes=[];
+  for(const file of Object.values(expected)){
+    const data=fs.readFileSync(`assets/sop/screenshots/${file}`);
+    hashes.push(crypto.createHash('sha256').update(data).digest('hex'));
+  }
+  assert.equal(new Set(hashes).size,hashes.length,'mindestens zwei SOP-Bilder sind identisch und zeigen keinen eigenständigen Bereich');
 });
 
 test('RC1018: SOP-Systembilder werden aus der echten Demo-Oberfläche erzeugt und nicht künstlich gebaut',()=>{
