@@ -6,15 +6,21 @@ function replaceOnce(source,search,replacement,label){
   if(count!==1)throw new Error(label+': erwartet 1 Treffer, gefunden '+count);
   return source.replace(search,replacement);
 }
+function injectDocumentHead(source,tag,label){
+  const bodyAt=source.search(/<body\b/i);
+  if(bodyAt<0)throw new Error(label+': kein echtes <body> gefunden');
+  const headAt=source.lastIndexOf('</head>',bodyAt);
+  if(headAt<0)throw new Error(label+': kein echtes </head> vor <body> gefunden');
+  return source.slice(0,headAt)+tag+'\n'+source.slice(headAt);
+}
 
 const htmlPath='index.html';
 let html=fs.readFileSync(htmlPath,'utf8');
 
 if(!html.includes('id="exporthub-rc1017-multi-truck"')){
-  html=replaceOnce(
+  html=injectDocumentHead(
     html,
-    '</head>',
-    '<script id="exporthub-rc1017-multi-truck" defer src="/assets/rc1017-multi-truck.js?v=1017"></script>\n</head>',
+    '<script id="exporthub-rc1017-multi-truck" defer src="/assets/rc1017-multi-truck.js?v=1017"></script>',
     'RC1017 Modell-Asset im Hauptfrontend'
   );
 }
