@@ -20,7 +20,9 @@
 .pickup-item-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pickup-item-grid{display:grid;gap:4px;margin-top:8px;font-size:13px}
 .pickup-badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:10px;font-weight:800;letter-spacing:.04em}
-.pickup-badge-fix{background:rgba(245,158,11,.16);color:#9a5b00}
+.pickup-item-fix{background:rgba(34,197,94,.10);border-color:rgba(22,163,74,.28)}
+.pickup-item-shipment{background:rgba(37,99,235,.09);border-color:rgba(37,99,235,.26)}
+.pickup-badge-fix{background:rgba(34,197,94,.16);color:#166534}
 .pickup-badge-shipment{background:rgba(37,99,235,.13);color:#1d4ed8}
 .pickup-colli{display:grid;gap:3px;margin-top:8px;font-size:12px}
 .pickup-status{font-weight:700}

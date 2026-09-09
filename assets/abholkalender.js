@@ -163,7 +163,7 @@
     return `${start} – ${formatDate(model.weekEnd)}`;
   }
   function shipmentRef(shipment){ return String(shipment && (shipment.reference || shipment.ref || shipment.shipmentRef || shipment.id) || 'Ohne Referenz'); }
-  function shipmentCustomer(shipment){ return String(shipment && (shipment.customer || shipment.customerName || shipment.recipient || shipment.locationName) || 'Ohne Kunde'); }
+  function shipmentCustomer(shipment){ return String(shipment && (shipment.customerName || shipment.customer || shipment.recipientCustomerName || shipment.recipient || shipment.locationName) || 'Ohne Kunde'); }
   function shipmentCarrier(shipment){ return String(shipment && (shipment.carrierName || shipment.speditionName || shipment.carrier || shipment.spedition) || 'Spedition offen'); }
   function shipmentStatus(shipment){
     const collis = shipmentColliState(shipment);
@@ -202,7 +202,8 @@
     const key = shipmentIdentity(shipment);
     const colli = collis.expected > 0 ? `<div class="pickup-colli"><span>Gesamt: <strong>${collis.expected}</strong></span><span>Bereits abgeholt: <strong>${collis.collected}</strong></span><span>Noch offen: <strong>${collis.remaining}</strong></span></div>` : '';
     const open = key ? `<div class="pickup-item-actions"><button type="button" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(key)}">Sendung öffnen</button></div>` : '';
-    return `<article class="pickup-item pickup-item-shipment"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">SENDUNG</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span>${esc(shipmentCustomer(shipment))}</span><span>${esc(shipmentCarrier(shipment))}</span><span class="pickup-status">${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
+    const customer = shipmentCustomer(shipment);
+    return `<article class="pickup-item pickup-item-shipment"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">SENDUNG</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span>Kunde: <strong>${esc(customer)}</strong></span><span>${esc(shipmentCarrier(shipment))}</span><span class="pickup-status">${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
   }
   function renderSection(title, items, renderer, emptyText){
     return `<section class="pickup-source"><h4>${esc(title)}</h4>${items.length ? items.map(renderer).join('') : `<div class="pickup-empty">${esc(emptyText)}</div>`}</section>`;
