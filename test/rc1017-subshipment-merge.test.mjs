@@ -37,3 +37,27 @@ test('RC1017: nicht-operative Teilsendungsplanung darf bei neuerem Client weiter
   assert.equal(out.multiTruckLocked,false);
   assert.equal(out.subShipments.length,3);
 });
+
+test('RC1017: Raw Public-Access-Tokens werden auch aus Teilsendungen vor dem Teamspeicher entfernt',()=>{
+  const dirty={
+    shipments:[shipment({
+      pickupToken:'TOP-SECRET',
+      subShipments:[{
+        subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open',
+        pickupToken:'CHILD-PICKUP',pickupQrToken:'CHILD-QR',qrToken:'CHILD-RAW',
+        customerAvisToken:'CHILD-AVIS',avisToken:'CHILD-AVIS-2',
+        customerAvisPublicUrl:'https://example.invalid/avis?token=secret',
+        avisPublicUrl:'https://example.invalid/avis2?token=secret',
+        pickupHistory:[],podFiles:[]
+      }]
+    })]
+  };
+  const out=merge.sanitizeState(dirty);
+  const parent=out.shipments[0],child=parent.subShipments[0];
+  assert.equal(parent.pickupToken,undefined);
+  for(const key of ['pickupToken','pickupQrToken','qrToken','customerAvisToken','avisToken','customerAvisPublicUrl','avisPublicUrl']){
+    assert.equal(child[key],undefined,`${key} darf nicht in subShipments persistieren`);
+  }
+  assert.equal(child.subShipmentId,'S1-TRUCK-1');
+  assert.equal(child.status,'open');
+});
