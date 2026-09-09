@@ -60,3 +60,13 @@ test('RC1017 Pickup: bestehende API-Pfade sind explizit an loadUnitId und splitV
   assert.match(store,/multi-truck-pickup/);
   assert.match(store,/applyPickupRecordToShipment/);
 });
+
+test('RC1017 Pickup: Status und Bestätigung prüfen den QR gegen die aktuell aktive Split-Version',()=>{
+  const status=fs.readFileSync('api/pickup-status/index.js','utf8');
+  const confirm=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
+  const store=fs.readFileSync('api/shared/pickup-store.js','utf8');
+  assert.match(store,/async function assertActiveLoadUnit/);
+  assert.match(store,/PICKUP_SPLIT_OUTDATED|resolveLoadUnit/);
+  assert.match(status,/assertActiveLoadUnit\(record\)/);
+  assert.match(confirm,/assertActiveLoadUnit\(current\)/);
+});
