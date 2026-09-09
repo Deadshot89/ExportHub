@@ -35,6 +35,7 @@ test('RC1014 Colli-Anzahl fällt auf physische Colli-Zeilen zurück',()=>{
   assert.equal(api.shipmentColliCount({colli:[{quantity:2},{count:3},{type:'Paket'}]}),6);
   assert.equal(api.shipmentColliCount({collis:[1,2,3]}),6);
   assert.equal(api.shipmentColliCount({packagingRows:[{qty:2},{amount:1}]}),3);
+  assert.equal(api.shipmentColliCount({rows:[{count:2},{qty:4}]}),6,'Altbestand/Demo führt Colli in rows');
   assert.equal(api.shipmentColliCount({}),0);
 });
 
