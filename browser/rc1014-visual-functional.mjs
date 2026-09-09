@@ -131,7 +131,12 @@ try{
     });
     await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:30000});
     await page.waitForFunction(()=>document.body&&document.body.innerText.length>100,{timeout:15000});
-    await pause(600);
+    await page.waitForFunction(()=>{
+      const visible=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0;};
+      return [...document.querySelectorAll('button,a,[role="button"],[data-view],[data-route]')]
+        .some(el=>visible(el)&&(el.textContent||'').replace(/\s+/g,' ').trim()==='Aufgaben');
+    },{timeout:15000});
+    await pause(250);
 
     const viewportReport={name:vp.name,width:vp.width,height:vp.height,views:[]};
     for(const view of views){
