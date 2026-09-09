@@ -252,13 +252,6 @@
   }
   async function loadFixedPickups(){
     if (!mountedState || !mountedOptions || !mountedRoot) return;
-    if (environmentOf(mountedOptions) === 'demo') {
-      mountedState.fixedPickups = [];
-      mountedState.canEdit = false;
-      mountedState.fixedError = null;
-      render(mountedRoot,mountedState,mountedOptions.today);
-      return;
-    }
     mountedState.fixedLoading = true;
     mountedState.fixedError = null;
     render(mountedRoot,mountedState,mountedOptions.today);
