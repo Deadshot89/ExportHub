@@ -24,7 +24,8 @@ jobs:
       - name: QR Abholung und Lieferavis End-to-End
         shell: bash
         run: |
-          node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test test/rc1013-pickup-readonly-flow.test.mjs
+          node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
       - name: Android Direktöffnen und Diagnose Regression
         shell: bash
