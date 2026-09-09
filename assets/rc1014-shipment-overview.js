@@ -35,7 +35,7 @@
     if(total)return total;
     const count=positiveNumber(sh.colliCount);
     if(count)return count;
-    const rows=[sh.colli,sh.collis,sh.packages,sh.packagingRows].find(Array.isArray)||[];
+    const rows=[sh.colli,sh.collis,sh.packages,sh.packagingRows,sh.rows].find(Array.isArray)||[];
     if(!rows.length)return 0;
     return rows.reduce((sum,row)=>sum+rowQuantity(row),0);
   }
