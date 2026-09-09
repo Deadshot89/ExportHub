@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 
 const bootstrap=fs.readFileSync('assets/exporthub-demo-bootstrap.js','utf8');
 const bridge=fs.readFileSync('assets/rc1014-demo-bridge.js','utf8');
+const calendar=fs.readFileSync('assets/abholkalender.js','utf8');
 const browser=fs.readFileSync('browser/rc1016-visual-functional.mjs','utf8');
 
 test('Demo legt über die frühe RC1016-Brücke die echte ExportHUB-Tab-Session an',()=>{
@@ -21,13 +22,15 @@ test('Demo legt über die frühe RC1016-Brücke die echte ExportHUB-Tab-Session 
   assert.ok(bridgePos>bootstrapPos,'RC1016 Demo-Brücke muss direkt nach dem Demo-Bootstrap und vor dem App-Start geladen werden');
 });
 
-test('Demo beantwortet fixed-pickups lokal und lässt echten Pickup-Außenwirkungsblock unangetastet',()=>{
+test('Demo beantwortet fixed-pickups lokal und der Kalender lädt diese Daten auch wirklich',()=>{
   assert.match(bridge,/\/api\/fixed-pickups/);
   assert.match(bridge,/Fake Fix Nord/);
   assert.match(bridge,/Fake Fix Export/);
   assert.match(bridge,/Fake Fix Benelux/);
   assert.match(bridge,/weekday\s*:\s*[1-5]/);
   assert.match(bridge,/items,canEdit:true,environment:'demo'/);
+  assert.match(calendar,/fetch\('\/api\/fixed-pickups\?includeInactive=1'/);
+  assert.doesNotMatch(calendar,/environmentOf\(mountedOptions\)\s*===\s*'demo'[\s\S]{0,220}fixedPickups\s*=\s*\[\]/,'Demo darf FIX-Daten nicht vor dem API-Aufruf leeren');
   assert.match(bootstrap,/pickup\|customer-avis\|pod-backup\|mail\|email\|outlook\|send/);
 });
 
