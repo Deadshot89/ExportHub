@@ -1,0 +1,64 @@
+name: RC1017 Task 4 Apply
+
+on:
+  push:
+    branches:
+      - feature/multi-truck-shipment-split
+    paths:
+      - '.github/rc1017/apply-task4.cjs'
+      - '.github/workflows/rc1017-task4-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc1017-task4-apply-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/multi-truck-shipment-split
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Task 4 patch anwenden
+        run: node .github/rc1017/apply-task4.cjs
+      - name: Task 4 targeted tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test test/rc1017-subshipment-merge.test.mjs
+          node --test test/rc1016-lieferavis-persistence.test.mjs
+      - name: Vollständige deterministische Regression
+        run: node --test --test-concurrency=1 test/*.test.mjs
+      - name: Drei-Umgebungen-Build unverändert reproduzierbar
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1016/build-three-env.mjs
+          grep -q 'ExportHUB RC1016 environment=production-candidate' dist-rc1016/index.html
+          grep -q 'ExportHUB RC1016 environment=testservice' dist-rc1016/TESTVERSION.html
+          grep -q 'ExportHUB RC1016 environment=demo' dist-rc1016/demo.html
+          grep -q 'rc1017-multi-truck.js' dist-rc1016/index.html
+          grep -q 'rc1017-multi-truck.js' dist-rc1016/TESTVERSION.html
+          grep -q 'rc1017-multi-truck.js' dist-rc1016/demo.html
+          git diff --check
+      - name: Nur geprüften Merge-Patch committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add api/shared/merge.js
+          if git diff --cached --quiet; then
+            echo 'Keine Task-4-Änderung zu committen.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'RC1017: Teilsendungsstatus gegen stale Sync schützen'
+          git push origin HEAD:feature/multi-truck-shipment-split
