@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-// RC1003: dieser Vertrag prueft die bedienbare Teilabholung gegen den echten QR-Dialog.
 const root=process.cwd();
 const html=fs.readFileSync('TESTVERSION.html','utf8');
 const productionHtml=fs.readFileSync('index.html','utf8');
@@ -56,7 +55,8 @@ test('QR-Abholung unterstützt Teilabholung und Restmenge',()=>{
   assert.match(pickupConfirm,/pickupHistory/);
   assert.match(pickupConfirm,/remainingAfter/);
   assert.match(pickupConfirm,/complete/);
-  assert.match(pickupStatus,/allowUsed:false/);
+  assert.match(pickupStatus,/allowUsed:true/);
+  assert.match(pickupStatus,/readOnly:complete/);
   assert.match(pickupStore,/pickupRemainingColliCount/);
   assert.match(pickupStore,/pickupCollectedColliCount/);
 });
@@ -74,7 +74,6 @@ test('Jede Teilabholung speichert einen getrennten Signaturnachweis',()=>{
   assert.match(pickupConfirm,/signatureBlobName:signatureMeta\.signatureBlobName/);
   assert.match(pickupConfirm,/sequence:/);
 });
-
 
 test('Lieferavis-Link trägt seine Umgebung und die öffentliche Seite übernimmt sie',()=>{
   assert.match(avisApi,/customer-avis\.html\?token=.*environment/);
