@@ -24,6 +24,7 @@ function supportsFastPath(){
     typeof auth.usernameOf === 'function' &&
     typeof auth.isActive === 'function';
 }
+function isSource(candidate){ return candidate === auth; }
 
 async function validateSession(req, options = {}){
   if (!supportsFastPath()) return auth.validateSession(req, options);
@@ -47,4 +48,4 @@ async function validateSession(req, options = {}){
   return { token, session, user, team, source: resolved.source, authDoc, teamDoc };
 }
 
-module.exports = Object.assign({}, auth, { clients, validateSession });
+module.exports = Object.assign({}, auth, { clients, validateSession, isSource });
