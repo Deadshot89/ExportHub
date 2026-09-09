@@ -79,7 +79,7 @@ public final class NotificationHelper {
         prefs.edit().putString(dedupeKey, signature).apply();
 
         Intent intent = new Intent(context, NotificationDetailActivity.class);
-        intent.setAction("de.exporthub.OPEN_NOTIFICATION." + env + "." + normalizedChannel + "." + safeKey);
+        intent.setAction("de.exporthub.OPEN_NOTIFICATION.NATIVE_DETAIL_V2." + env + "." + normalizedChannel + "." + safeKey);
         intent.putExtra(EnvironmentActivity.EXTRA_ENVIRONMENT, env);
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_TITLE, safeTitle);
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_BODY, safeBody);
@@ -87,12 +87,13 @@ public final class NotificationHelper {
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_ROUTE, safeRoute);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
-        int requestCode = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());
+        int notificationId = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());
+        int pendingIntentRequestCode = Math.abs(("native-detail-v2:" + env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
-                requestCode,
+                pendingIntentRequestCode,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         int smallIcon = context.getApplicationInfo().icon;
         android.app.Notification notification = new android.app.Notification.Builder(context, channelId)
@@ -106,7 +107,7 @@ public final class NotificationHelper {
 
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager == null) return false;
-        manager.notify(requestCode, notification);
+        manager.notify(notificationId, notification);
         return true;
     }
 
