@@ -15,6 +15,8 @@ public final class NotificationHelper {
     public static final String CHANNEL_WARNINGS = "exporthub_warnings";
     public static final String CHANNEL_DIAGNOSTICS = "exporthub_diagnostics";
     private static final String PREFS = "exporthub_native_notifications";
+    private static final String TASK_SNAPSHOT_PREFIX = "task_snapshot_";
+    private static final int MAX_TASK_SNAPSHOT = 128 * 1024;
 
     private NotificationHelper() {}
 
@@ -46,6 +48,23 @@ public final class NotificationHelper {
         manager.createNotificationChannel(diagnostics);
     }
 
+    public static boolean storeTaskSnapshot(Context context, String environment, String payload) {
+        if (context == null) return false;
+        String env = EnvironmentActivity.normalizeEnvironment(environment);
+        String value = payload == null ? "" : payload.trim();
+        if (value.length() > MAX_TASK_SNAPSHOT) return false;
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putString(TASK_SNAPSHOT_PREFIX + env, value).apply();
+        return true;
+    }
+
+    public static String readTaskSnapshot(Context context, String environment) {
+        if (context == null) return "";
+        String env = EnvironmentActivity.normalizeEnvironment(environment);
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(TASK_SNAPSHOT_PREFIX + env, "");
+    }
+
     public static boolean show(Context context,
                                String environment,
                                String channel,
@@ -53,13 +72,17 @@ public final class NotificationHelper {
                                String title,
                                String body,
                                String route) {
+        String env = EnvironmentActivity.normalizeEnvironment(environment);
+        if ("task_snapshot".equalsIgnoreCase(channel)) {
+            return storeTaskSnapshot(context, env, body);
+        }
+
         ensureChannels(context);
         if (Build.VERSION.SDK_INT >= 33
                 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             return false;
         }
 
-        String env = EnvironmentActivity.normalizeEnvironment(environment);
         String normalizedChannel;
         if ("warning".equalsIgnoreCase(channel)) normalizedChannel = "warning";
         else if ("diagnostic".equalsIgnoreCase(channel)) normalizedChannel = "diagnostic";

@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { createBlobServiceClient } = require('./blob-rest');
+const rc1014Seed = require('./rc1014-fixed-pickup-seed');
 
 const CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const FIX_PREFIX = String(process.env.EXPORTHUB_FIXED_PICKUPS_PREFIX || 'fixed-pickups').replace(/^\/+|\/+$/g, '');
@@ -77,6 +78,7 @@ function blobName(environment, companyKey){
 function emptyDocument(environment, companyKey){
   return {
     schemaVersion: 1,
+    seedVersion: 0,
     environment: normalizeEnvironment(environment),
     companyKey: normalizeCompanyKey(companyKey),
     revision: 0,
@@ -171,6 +173,7 @@ function publicItem(item){
 function normalizeDocument(doc, environment, companyKey){
   const base = emptyDocument(environment, companyKey);
   const source = doc && typeof doc === 'object' ? doc : {};
+  base.seedVersion = Math.max(0, Number(source.seedVersion || 0) || 0);
   base.revision = Math.max(0, Number(source.revision || 0) || 0);
   base.updatedAt = source.updatedAt || null;
   base.items = Array.isArray(source.items) ? source.items.filter(Boolean).map(clone) : [];
@@ -181,6 +184,28 @@ async function readDocument(environment, companyKey){
   const fallback = emptyDocument(environment, companyKey);
   const res = await readJson(blob, fallback);
   return { blob, document: normalizeDocument(res.value, environment, companyKey), etag: res.etag };
+}
+async function ensureRc1014Seed(environment, companyKey){
+  const company = normalizeCompanyKey(companyKey);
+  if (company !== rc1014Seed.ESSENTRA_COMPANY_KEY) return false;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
+    const current = await readDocument(environment, company);
+    if (Number(current.document.seedVersion || 0) >= rc1014Seed.SEED_VERSION) return false;
+    const next = clone(current.document);
+    const stamp = now();
+    next.items = rc1014Seed.mergeMissing(next.items, company, stamp);
+    next.seedVersion = rc1014Seed.SEED_VERSION;
+    next.revision = Number(next.revision || 0) + 1;
+    next.updatedAt = stamp;
+    try {
+      await writeJson(current.blob, next, current.etag);
+      return true;
+    } catch (e) {
+      if (Number(e && (e.statusCode || e.status)) === 412 && attempt < MAX_RETRIES - 1) continue;
+      throw e;
+    }
+  }
+  throw error('SEED_CONCURRENT_UPDATE', 'Fixe Essentra-Abholungen konnten wegen paralleler Änderungen nicht initialisiert werden.', 409);
 }
 async function mutate(environment, companyKey, fn){
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
@@ -200,6 +225,7 @@ async function mutate(environment, companyKey, fn){
   throw error('CONCURRENT_UPDATE', 'FIX-Abholungen konnten wegen paralleler Änderungen nicht gespeichert werden.', 409);
 }
 async function list(environment, companyKey, options = {}){
+  await ensureRc1014Seed(environment, companyKey);
   const current = await readDocument(environment, companyKey);
   const includeInactive = options.includeInactive === true;
   return current.document.items
@@ -246,6 +272,7 @@ module.exports = {
   blobName,
   validateInput,
   publicItem,
+  ensureRc1014Seed,
   list,
   create,
   update
