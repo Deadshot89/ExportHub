@@ -26,6 +26,12 @@ test('RC1014 Aufgaben-Design zeigt Priorität Fälligkeit Verantwortlichen und �
   assert.match(runtime,/data-rc1014-open-task|dataset\.rc1014OpenTask/);
 });
 
+test('RC1014 Karten-Enhancer unterstützt den tatsächlich aktiven task-card Renderer',()=>{
+  const runtime=read('assets/rc1014-task-runtime.js');
+  assert.match(runtime,/\.task-card/,'RC1014 muss neben RC229 auch die aktive task-card Klasse erkennen.');
+  assert.match(runtime,/data-rc1014-enhanced/,'aktive Karten müssen nach der Erweiterung eindeutig markiert werden.');
+});
+
 test('RC1014 Aufgaben-CSS bleibt auf Aufgaben begrenzt und responsive',()=>{
   const css=read('assets/rc1014-task-ui.css');
   assert.match(css,/\.rc1014-task-meta/);
