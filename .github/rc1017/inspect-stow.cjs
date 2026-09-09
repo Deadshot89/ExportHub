@@ -6,7 +6,7 @@ for(const m of html.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_$]*(?:stow|Sto
   if(!names.includes(m[1])) names.push(m[1]);
 }
 console.log('RC1017_FUNCTIONS='+names.join(','));
-const wantedNames=new Set(['activateQr','updateQr','printStow','renderStowPlan','rc1017SyncSubShipments','renderRc1017SubShipments','persistShipment','saveAction']);
+const wantedNames=new Set(['activateQr','updateQr','printStow','renderStowPlan','rc1017SyncSubShipments','renderRc1017SubShipments','persistShipment','saveAction','shipmentCard','loadHtml','createPdf','decorateDocument','downloadDocument']);
 for(const name of names){
   if(!wantedNames.has(name)&&!/loading|loadlist|ladeliste|gesamt|document|pdf/i.test(name)) continue;
   let start=html.indexOf('function '+name+'(');
