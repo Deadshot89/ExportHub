@@ -24,7 +24,10 @@
       now:ctx.now,
       absences:arr(ctx.absences||(ctx.state&&ctx.state.absences))
     };
-    return arr(raw).map(task=>lifecycle.normalizeTask(task,normalizedContext));
+    const normalized=arr(raw).map(task=>lifecycle.normalizeTask(task,normalizedContext));
+    const result=lifecycle.reconcile(normalized,ctx.state||{},normalizedContext);
+    if(result.changed&&typeof ctx.persist==='function')ctx.persist(result.tasks);
+    return result.tasks;
   }
 
   function openTask(task){
