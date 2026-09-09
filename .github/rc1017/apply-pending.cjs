@@ -17,6 +17,14 @@ function insertBeforeOnce(path,anchor,insertion,marker){
   fs.writeFileSync(path,src.replace(anchor,insertion+'\n'+anchor));
   return true;
 }
+function insertAfterOnce(path,anchor,insertion,marker){
+  const src=fs.readFileSync(path,'utf8');
+  if(marker&&src.includes(marker)) return false;
+  const count=src.split(anchor).length-1;
+  if(count!==1) throw new Error(`${path}: expected exactly one insertion anchor, found ${count}`);
+  fs.writeFileSync(path,src.replace(anchor,anchor+'\n'+insertion));
+  return true;
+}
 
 let changed=false;
 changed=replaceOnce(
@@ -73,10 +81,12 @@ function rc1017SyncSubShipments(target){
  if(target.subShipments.length)model.validatePartition(shipmentId,rows,target.subShipments);
  renderRc1017SubShipments(result);
  return result
-}`;
-changed=insertBeforeOnce('index.html','function stowRows(){',multiTruckRuntime,'function rc1017SyncSubShipments(')||changed;
+}
+`;
+const activeStowRows="function stowRows(){return arr(shipment().rows).map(normalizeRow).filter(function(r){return q(r.type)>''&&num(r.count)>0})}";
+changed=insertBeforeOnce('index.html',activeStowRows,multiTruckRuntime,'function rc1017SyncSubShipments(')||changed;
 changed=replaceOnce('index.html',"if(!q(saved.status))saved.status='Entwurf';","rc1017SyncSubShipments(saved);if(!q(saved.status))saved.status='Entwurf';")||changed;
-changed=insertBeforeOnce('index.html','</head>','<script id="exporthub-rc1017-multi-truck" defer src="/assets/rc1017-multi-truck.js?v=1017"></script>','id="exporthub-rc1017-multi-truck"')||changed;
+changed=insertAfterOnce('index.html','<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"/>','<script id="exporthub-rc1017-multi-truck" defer src="/assets/rc1017-multi-truck.js?v=1017"></script>','id="exporthub-rc1017-multi-truck"')||changed;
 
 changed=replaceOnce('.github/rc1013/build-three-env.mjs',"const LIEFERAVIS_SRC='/assets/rc1015-lieferavis-mail-flow.js?v=1015';","const LIEFERAVIS_SRC='/assets/rc1015-lieferavis-mail-flow.js?v=1015';\nconst MULTI_TRUCK_SRC='/assets/rc1017-multi-truck.js?v=1017';")||changed;
 changed=insertBeforeOnce('.github/rc1013/build-three-env.mjs','function diagnosticTags(){',"function multiTruckTag(){return `<script id=\"exporthub-rc1017-multi-truck\" defer src=\"${MULTI_TRUCK_SRC}\"><\\/script>`;}",'function multiTruckTag(){')||changed;
