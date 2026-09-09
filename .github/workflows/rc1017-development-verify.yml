@@ -1,0 +1,35 @@
+name: RC1017 Development Verify
+
+on:
+  push:
+    branches: [rc1017-multi-truck-subshipments]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1017-development-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install
+        run: npm ci
+      - name: RC1017 targeted tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in test/rc1017-*.test.mjs; do
+            [ -f "$file" ] || continue
+            node --test "$file"
+          done
+      - name: Full regression
+        run: npm test
