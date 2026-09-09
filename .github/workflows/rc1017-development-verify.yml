@@ -36,7 +36,6 @@ jobs:
           node .github/rc1017/fix-task7-script.cjs
           node .github/rc1017/apply-task7.cjs
           node .github/rc1017/apply-task8.cjs
-          node .github/rc1017/apply-calendar-completion.cjs
       - name: Commit pending RC1017 patch
         shell: bash
         run: |
