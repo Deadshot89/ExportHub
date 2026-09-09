@@ -44,6 +44,7 @@ jobs:
           node --test test/rc1013-pickup-readonly-flow.test.mjs
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+          node --test test/rc1017-three-env-release.test.mjs
           npm test
           node .github/rc1013/build-three-env.mjs
           grep -q 'ExportHUB RC1013 environment=testservice' dist-rc1013/TESTVERSION.html
@@ -55,6 +56,9 @@ jobs:
           grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1013/TESTVERSION.html
           grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1013/TESTVERSION.html
           grep -q 'assets/rc1013-gate41-ui.js?v=1013' dist-rc1013/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/demo.html
+          test -s dist-rc1013/assets/rc1017-multi-truck.js
       - name: TESTSERVICE-Paket vorbereiten
         shell: bash
         run: |
@@ -71,6 +75,7 @@ jobs:
           cp dist-rc1013/assets/exporthub-demo-bootstrap.js .rc1013_testservice_app/assets/exporthub-demo-bootstrap.js
           cp dist-rc1013/assets/rc1013-diagnostics.js .rc1013_testservice_app/assets/rc1013-diagnostics.js
           cp dist-rc1013/assets/rc1013-gate41-ui.js .rc1013_testservice_app/assets/rc1013-gate41-ui.js
+          test -s .rc1013_testservice_app/assets/rc1017-multi-truck.js
       - name: Deploy TESTSERVICE explicit only
         uses: Azure/static-web-apps-deploy@v1
         with:
