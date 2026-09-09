@@ -38,3 +38,5 @@ jobs:
         run: node --test test/rc1014-task-design.test.mjs
       - name: RC1014 Android Aufgaben-Erinnerungen
         run: node --test test/rc1014-task-android.test.mjs
+      - name: RC1014 Sendungsübersicht Erfassungsdatum und Colli
+        run: node --test test/rc1014-shipment-overview-meta.test.mjs
