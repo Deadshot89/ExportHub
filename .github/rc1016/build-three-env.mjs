@@ -58,6 +58,7 @@ function rc1016Assets(html){
     '<link id="exporthub-rc1016-mobile-navigation-css" rel="stylesheet" href="/assets/rc1016-mobile-navigation.css?v=1016">',
     '<link id="exporthub-rc1016-task-css" rel="stylesheet" href="/assets/rc1014-task-ui.css?v=1016">',
     '<link id="exporthub-rc1016-shipment-overview-css" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1016">',
+    '<script id="exporthub-rc1016-mobile-navigation" defer src="/assets/rc1016-mobile-navigation.js?v=1016"></script>',
     '<script id="exporthub-rc1016-task-lifecycle" defer src="/assets/rc1014-task-lifecycle.js?v=1016"></script>',
     '<script id="exporthub-rc1016-task-runtime" defer src="/assets/rc1014-task-runtime.js?v=1016"></script>',
     '<script id="exporthub-rc1016-shipment-overview" defer src="/assets/rc1014-shipment-overview.js?v=1016"></script>'
@@ -92,7 +93,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
 }
 
 for(const asset of [
-  'assets/rc1016-mobile-navigation.css',
+  'assets/rc1016-mobile-navigation.css','assets/rc1016-mobile-navigation.js',
   'assets/rc1014-task-lifecycle.js','assets/rc1014-task-runtime.js','assets/rc1014-task-ui.css',
   'assets/rc1014-shipment-overview.js','assets/rc1014-shipment-overview.css','assets/rc1014-demo-bridge.js',
   'assets/rc1016-demo-task-seed.js'
@@ -105,7 +106,7 @@ const manifest={
   schema:'exporthub-rc1016-three-env-v1',version:VERSION,sourceRelease:'RC1015',baseBuilder:'RC1013 mit integrierten RC1015-Fixes',productionVersionProbe:'production-version.js',
   tasks:{lifecycle:'assets/rc1014-task-lifecycle.js',runtime:'assets/rc1014-task-runtime.js',style:'assets/rc1014-task-ui.css'},
   shipmentOverview:{runtime:'assets/rc1014-shipment-overview.js',style:'assets/rc1014-shipment-overview.css',fields:['createdAt','totalColli','colliCount']},
-  mobileNavigation:{style:'assets/rc1016-mobile-navigation.css',persistentMenuButtonMaxWidth:640},
+  mobileNavigation:{runtime:'assets/rc1016-mobile-navigation.js',style:'assets/rc1016-mobile-navigation.css',persistentMenuButtonMaxWidth:640},
   sop:{catalog:'assets/sop/rc1016-sop-consolidation.js',activeWorkflows:24,legacyDocuments:75,screenshotDirectory:'assets/sop/screenshots'},
   retainedFixes:{lieferavis:'assets/rc1015-lieferavis-mail-flow.js',calendar:'assets/abholkalender.js',diagnostics:'assets/rc1013-diagnostics.js',gate41:'assets/rc1013-gate41-ui.js'},
   demo:{bridge:'assets/rc1014-demo-bridge.js',taskSeed:'assets/rc1016-demo-task-seed.js',sessionRestore:true,dataEnvironment:'demo',fixedPickups:'fake-local'},
