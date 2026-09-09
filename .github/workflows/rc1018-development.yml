@@ -31,6 +31,8 @@ jobs:
           node-version: '24'
       - name: Öffentliche DE/EN-Sprachruntime einbinden
         run: node .github/rc1018/apply-public-language.mjs
+      - name: Lieferavis-Wortlaut strikt trennen
+        run: node .github/rc1018/fix-mail-wording.mjs
       - name: RC1018 Mail- und Sprachvertrag
         run: node --test test/rc1018-mail-language-standard.test.mjs
       - name: Bestehende Lieferavis-Regression
@@ -41,15 +43,15 @@ jobs:
         run: node .github/rc1018/build-three-env.mjs
       - name: Diff prüfen
         run: git diff --check
-      - name: Öffentliche Sprachbindung versionieren
+      - name: RC1018 Runtime-Bindungen versionieren
         if: success()
         shell: bash
         run: |
           set -euo pipefail
-          if ! git diff --quiet -- customer-avis.html pickup.html location.html; then
+          if ! git diff --quiet -- assets/rc1018-mail-language-standard.js customer-avis.html pickup.html location.html; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add customer-avis.html pickup.html location.html
-            git commit -m 'build: RC1018 öffentliche DE EN Sprachbindung [skip ci]'
+            git add assets/rc1018-mail-language-standard.js customer-avis.html pickup.html location.html
+            git commit -m 'build: RC1018 Mail und DE EN Bindungen [skip ci]'
             git push origin HEAD:rc1018-mail-language-standard
           fi
