@@ -5,6 +5,8 @@ import fs from 'node:fs';
 const pages=['index.html','TESTVERSION.html'];
 const avisApi=fs.readFileSync('api/customer-avis/index.js','utf8');
 const accessStore=fs.readFileSync('api/shared/public-access-store.js','utf8');
+const pickupInit=fs.readFileSync('api/pickup-init/index.js','utf8');
+const pickupStatus=fs.readFileSync('api/pickup-status/index.js','utf8');
 const pickupConfirm=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
 const pickupStore=fs.readFileSync('api/shared/pickup-store.js','utf8');
 
@@ -35,22 +37,28 @@ test('Benutzer ohne Rechte sehen Module und Kacheln nicht nur gesperrt, sondern 
   }
 });
 
-test('Aktiver Kunden-Avis-Link bleibt wiederverwendbar bis zur Deaktivierung',()=>{
+test('Aktive Abhol- und Kunden-Avis-Links bleiben wiederverwendbar',()=>{
+  assert.match(pickupInit,/oneTime:false/,'Neu erzeugte Abhol-QR-Codes dürfen nicht mehr als Einmal-Link gekennzeichnet sein');
+  assert.match(pickupStatus,/oneTime:false/,'Abholstatus darf keinen Einmal-Link mehr melden');
+  assert.match(accessStore,/reusableKind=record\.kind===['"]pickup['"]\|\|record\.kind===['"]avis['"]/,'Public-Access muss Abholung und Avis als wiederverwendbar behandeln');
+  assert.match(accessStore,/record\.usedAt&&!allowUsed&&!reusableKind/,'usedAt darf wiederverwendbare Links nicht ungültig machen');
+
   const authorize=functionBody(avisApi,"if(req.method==='POST'&&action==='authorize')","const session=sessionFromRequest");
   assert.match(authorize,/allowUsed:true/,'Avis-Link muss erneut auflösbar bleiben');
   assert.doesNotMatch(authorize,/access\.consume\(/,'Avis-Link darf beim Öffnen nicht verbraucht werden');
-  assert.match(avisApi,/oneTime:false/,'API muss den Link als wiederverwendbar melden');
-  assert.match(avisApi,/singleUse:false/,'Portalstatus darf keinen Einmal-Link melden');
+  assert.match(avisApi,/oneTime:false/,'API muss den Avis-Link als wiederverwendbar melden');
+  assert.match(avisApi,/singleUse:false/,'Portalstatus darf keinen Avis-Einmal-Link melden');
   assert.match(avisApi,/access\.issue\([^;]*,null,payload\)/s,'Avis-Ausstellung muss ohne feste Link-Laufzeit erfolgen');
   assert.match(accessStore,/indefinite=ttlMs===null/,'Public-Access-Store muss ausdrücklich unbefristete Avis-Links unterstützen');
   assert.match(accessStore,/expiresAt=indefinite\?null:/,'Unbefristete Avis-Links dürfen kein Ablaufdatum erhalten');
   assert.match(accessStore,/record\.kind!==['"]avis['"][^;]*record\.expiresAt/s,'Bestehende aktive Avis-Links dürfen nicht an alter TTL scheitern');
 });
 
-test('QR-Teilabholung bleibt offen und verbraucht den Token erst beim vollständigen Abschluss',()=>{
+test('QR-Teilabholung bleibt offen; nach Abschluss bleibt die Seite lesbar',()=>{
   assert.match(pickupConfirm,/remainingAfter/);
   assert.match(pickupConfirm,/if\(complete\)await access\.consume/);
   assert.match(pickupConfirm,/if\(!complete(?:&&[^)]*)?\).*access\.clearFailures/);
+  assert.match(accessStore,/record\.usedAt&&!allowUsed&&!reusableKind/,'Abgeschlossene QR-Links müssen weiterhin lesbar bleiben');
   assert.match(pickupStore,/Teilweise abgeholt/);
   assert.match(pickupStore,/pickupRemainingColliCount/);
   assert.match(pickupStore,/pickupCollectedColliCount/);
