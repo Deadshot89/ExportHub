@@ -18,6 +18,15 @@ test('RC1017: 20 Paletten werden ohne Verlust deterministisch auf mehrere LKW ve
   assert.equal(sum.ldm,16);
 });
 
+test('RC1017: Gewichtsgrenze allein erzeugt einen weiteren LKW',()=>{
+  const rows=[{id:'r1',type:'Maschine',count:2,weight:30000,ldm:4}];
+  const loads=splitIntoLoadUnits(rows,profile,{shipmentId:'s1',ref:'ABC123',splitVersion:1});
+  assert.equal(loads.length,2);
+  assert.equal(loads[0].totalWeightKg,15000);
+  assert.equal(loads[1].totalWeightKg,15000);
+  assert.equal(summarizeLoadUnits(loads).weightKg,30000);
+});
+
 test('RC1017: einzelne übergroße Einheit blockiert automatische Planung',()=>{
   assert.throws(()=>splitIntoLoadUnits([{id:'r1',type:'Maschine',count:1,weight:25000,ldm:5}],profile,{shipmentId:'s1',ref:'ABC123',splitVersion:1}),/Manuelle Ladeplanung erforderlich/);
 });
