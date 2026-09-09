@@ -37,7 +37,7 @@ function taskAssets(html){
 }
 function patchTaskSource(html){
   const search='const rawOpen=(state.tasks||[])';
-  const replacement="const rawOpen=window.ExportHUBRC1014TaskRuntime.prepareTasks((state.tasks||[]),{companyId:(state.companyId||state.currentCompanyId||window.__EXPORTHUB_COMPANY_ID__||''),environment:(window.__EXPORTHUB_FORCED_ENVIRONMENT__||''),currentUser:(typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null),state:state})";
+  const replacement="const rawOpen=window.ExportHUBRC1014TaskRuntime.prepareTasks((state.tasks||[]),{companyId:(state.companyId||state.currentCompanyId||window.__EXPORTHUB_COMPANY_ID__||''),environment:(window.__EXPORTHUB_FORCED_ENVIRONMENT__||''),currentUser:(typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null),state:state,persist:function(nextTasks){state.tasks=nextTasks;if(typeof save==='function')save('RC1014 Aufgabenstatus aktualisiert');else if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('RC1014 Aufgabenstatus aktualisiert')}})";
   return replaceExactlyOnce(html,search,replacement,'RC1014 Aufgabenquelle');
 }
 
