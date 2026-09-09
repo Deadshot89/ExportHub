@@ -73,6 +73,11 @@ function patchTaskSource(html){
 function patchShipmentOverviewSource(html){
   return replaceRegexExactlyOnce(html,/function\s+overviewFiltered\s*\(([^)]*)\)\s*\{/,(_m,args)=>`function overviewFiltered(${args}){window.ExportHUBRC1014ShipmentOverview.remember(state.shipments||[]);`,'RC1016 Sendungsübersicht-Datenquelle');
 }
+function patchWarningCenterStateSource(html){
+  const search="  function getState(){\n    try{\n      if(typeof window.state==='function'){\n        var s=window.state();\n        if(s&&typeof s==='object') return s\n      }\n    }catch(_){}\n    try{\n      if(window.STATE&&typeof window.STATE==='object') return window.STATE\n    }catch(_){}\n    return {}\n  }";
+  const replacement="  function getState(){\n    try{\n      if(typeof window.__EXPORTHUB_GET_STATE__==='function'){\n        var current=window.__EXPORTHUB_GET_STATE__();\n        if(current&&typeof current==='object') return current\n      }\n    }catch(_){}\n    try{\n      if(window.state&&typeof window.state==='object') return window.state;\n      if(typeof window.state==='function'){\n        var s=window.state();\n        if(s&&typeof s==='object') return s\n      }\n    }catch(_){}\n    try{\n      if(window.__EXPORTHUB_STATE__&&typeof window.__EXPORTHUB_STATE__==='object') return window.__EXPORTHUB_STATE__;\n      if(window.STATE&&typeof window.STATE==='object') return window.STATE\n    }catch(_){}\n    return {}\n  }";
+  return replaceExactlyOnce(html,search,replacement,'RC1016 Warncenter-Datenquelle');
+}
 
 execFileSync(process.execPath,['.github/rc1013/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
 fs.rmSync(OUT,{recursive:true,force:true});
@@ -89,6 +94,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   html=rc1016Assets(html);
   html=patchTaskSource(html);
   html=patchShipmentOverviewSource(html);
+  html=patchWarningCenterStateSource(html);
   writeOut(file,html);
 }
 
