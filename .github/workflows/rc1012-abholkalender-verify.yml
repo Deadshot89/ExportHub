@@ -53,5 +53,9 @@ jobs:
           check 'Kalender Runtime' 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1012/index.html
           check 'Kalender Menü' "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1012/index.html
           check 'SOP Freigabelayer' 'assets/sop/rc1010-sop-release.js' dist-rc1012/index.html
-          check 'Gemeinsamer Versionsmarker' "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1012'" production-version.js
+          if grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1012'" production-version.js; then
+            echo 'FEHLER: Autoritativer Produktionsmarker ist auf die historische RC1012-Baseline zurückgefallen.'
+            exit 1
+          fi
+          echo 'OK: Autoritativer Produktionsmarker liegt nach RC1012.'
           git diff --check
