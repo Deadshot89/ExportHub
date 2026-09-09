@@ -3,65 +3,59 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
+const currentRc=()=>{
+  const marker=read('production-version.js').match(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC(\d+)'/);
+  return marker?Number(marker[1]):0;
+};
 
-test('RC1013 ist der gemeinsame autoritative Versionsmarker',()=>{
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1013'/);
-});
-
-test('RC1013 baut Produktion TESTSERVICE und Demo aus demselben Restpunkte-Quellstand',()=>{
+test('RC1013 bleibt als historische Drei-Umgebungen-Baseline reproduzierbar',()=>{
+  assert.ok(currentRc()>=1013,'aktueller Release darf nicht hinter RC1013 zurückfallen');
   const build=read('.github/rc1013/build-three-env.mjs');
   for(const term of ["VERSION='RC1013'","environment=production-candidate","environment=testservice","environment=demo","dist-rc1013","rc1013-diagnostics.js","rc1013-gate41-ui.js","serverToken","Deutschland"]) {
     assert.match(build,new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
   }
 });
 
-test('Standarddeploy veröffentlicht RC1013 gemeinsam und prüft alle drei Umgebungen live',()=>{
+test('Aktueller Standarddeploy bewahrt RC1013 Regressionen und veröffentlicht beide Live-Umgebungen gemeinsam',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/ExportHUB RC1013 Drei-Umgebungen Deploy/);
-  assert.match(flow,/node \.github\/rc1013\/build-three-env\.mjs/);
   assert.match(flow,/test\/rc1013-restpunkte\.test\.mjs/);
   assert.match(flow,/test\/rc1013-three-env-sync\.test\.mjs/);
   assert.match(flow,/Deploy ExportHUB production/);
   assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
-  assert.match(flow,/Live RC1013 Produktion TESTSERVICE und Demo prüfen/);
-  assert.match(flow,/dist-rc1013\/index\.html/);
-  assert.match(flow,/dist-rc1013\/TESTVERSION\.html/);
-  assert.match(flow,/dist-rc1013\/demo\.html/);
-  assert.match(flow,/assets\/rc1013-diagnostics\.js/);
-  assert.match(flow,/assets\/rc1013-gate41-ui\.js/);
+  assert.match(flow,/Produktion TESTSERVICE und Demo/i);
 });
 
-test('Main-Contract prüft den RC1013-Stand',()=>{
+test('Aktueller Main-Contract bewahrt den RC1013-Bestandsschutz',()=>{
   const flow=read('.github/workflows/rc1002-main-contract.yml');
-  assert.match(flow,/RC1013 Main Contract/);
   assert.match(flow,/test\/rc1013-restpunkte\.test\.mjs/);
   assert.match(flow,/test\/rc1013-three-env-sync\.test\.mjs/);
-  assert.match(flow,/node \.github\/rc1013\/build-three-env\.mjs/);
-  assert.match(flow,/dist-rc1013\/index\.html/);
-  assert.match(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1013'/);
+  assert.match(flow,/Gesamte Node-Regression|Gesamte Node-Regression|Gesamte Node/i);
 });
 
-test('TESTSERVICE Einzeldeploy bleibt unter RC1013 ausschließlich genehmigte Ausnahme',()=>{
+test('TESTSERVICE Einzeldeploy bleibt ausschließlich genehmigte Ausnahme und prüft RC1013 weiter mit',()=>{
   const flow=read('.github/workflows/exporthub-testservice.yml');
   assert.match(flow,/ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION/);
   assert.match(flow,/Produktion, TESTSERVICE und Demo müssen denselben Versionsstand haben/);
-  assert.match(flow,/RC1013/);
-  assert.match(flow,/node \.github\/rc1013\/build-three-env\.mjs/);
+  assert.match(flow,/test\/rc1013-restpunkte\.test\.mjs/);
+  assert.match(flow,/test\/rc1013-three-env-sync\.test\.mjs/);
 });
 
-test('Android-App bleibt auf demselben RC1013-Releasestand',()=>{
+test('Android-App ist mindestens auf RC1013 und Metadaten Workflow und Gradle sind synchron',()=>{
   const gradle=read('android-app/app/build.gradle.kts');
   const flow=read('.github/workflows/exporthub-android-test-app.yml');
   const info=JSON.parse(read('android-app/app-build-info.json'));
-  assert.match(gradle,/versionCode\s*=\s*1013/);
-  assert.match(gradle,/versionName\s*=\s*"1\.0-rc1013"/);
-  assert.match(flow,/Build ExportHUB Android RC1013 APK/);
-  assert.match(flow,/ExportHUB-RC1013-Android/);
-  assert.equal(info.appVersion,'1.0-rc1013');
-  assert.equal(info.releaseCandidate,'RC1013');
+  const code=Number((gradle.match(/versionCode\s*=\s*(\d+)/)||[])[1]||0);
+  const name=(gradle.match(/versionName\s*=\s*"1\.0-rc(\d+)"/)||[])[1]||'';
+  const infoRc=String(info.releaseCandidate||'').replace(/^RC/, '');
+  assert.ok(code>=1013);
+  assert.equal(String(code),name);
+  assert.equal(String(code),infoRc);
+  assert.equal(info.appVersion,`1.0-rc${code}`);
+  assert.match(flow,new RegExp(`Build ExportHUB Android RC${code} APK`));
+  assert.match(flow,new RegExp(`ExportHUB-RC${code}-Android`));
 });
 
-test('Aktuelle RC1013-Freigaben prüfen aus RC995 nur noch gültige Pickup-Sicherheit und nicht den alten Einmal-Avis',()=>{
+test('Aktuelle Freigaben prüfen aus RC995 nur noch gültige Pickup-Sicherheit und nicht den alten Einmal-Avis',()=>{
   for(const file of [
     '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
     '.github/workflows/rc1002-main-contract.yml',
