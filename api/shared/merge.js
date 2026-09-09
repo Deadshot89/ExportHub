@@ -13,6 +13,25 @@ const COLLECTION_KEYS = {
   users: ['id', 'user', 'login', 'username', 'name']
 };
 
+
+const RC1016_SHIPMENT_COLLECTIONS = new Set([
+  'shipments', 'savedShipments', 'salesSharedShipments', 'sharedShipments',
+  'shipmentArchive', 'archivedShipments', 'archive'
+]);
+
+const RC1016_AVIS_FIELDS = [
+  'customerAvisPickupDate','avisPickupDate',
+  'customerAvisPickupTimeFrom','avisPickupTimeFrom',
+  'customerAvisPickupTimeTo','avisPickupTimeTo',
+  'customerAvisPickupPlate','avisPickupPlate',
+  'customerAvisShipmentNumber','avisShipmentNumber',
+  'customerAvisPickupNote','avisPickupNote',
+  'customerAvisResponseAt','avisResponseAt',
+  'customerAvisResponseReference','avisResponseReference',
+  'customerAvisResponseStatus','avisResponseStatus',
+  'customerConfirmed','customerConfirmedAt','customerConfirmedVia',
+  'plannedPickupDate','pickupDate'
+];
 const LOCAL_ONLY_KEYS = new Set([
   'view', 'q', 'taskSearch', 'taskFilter', 'taskDay', 'shipmentOverviewSearch',
   'shipmentOverviewStatus', 'selectedCustomerId', 'shipment', 'activeShipmentId',
@@ -300,6 +319,32 @@ function shipmentStatusRank(value) {
   return 0;
 }
 
+
+function rc1016AvisTimestamp(value) {
+  const candidates = [
+    value && value.customerAvisResponseAt,
+    value && value.avisResponseAt,
+    value && value.customerConfirmedAt
+  ];
+  let latest = 0;
+  for (const candidate of candidates) {
+    const time = Date.parse(candidate || '');
+    if (Number.isFinite(time) && time > latest) latest = time;
+  }
+  return latest;
+}
+
+function rc1016ProtectAvis(out, serverItem, incomingItem) {
+  const serverAvisTs = rc1016AvisTimestamp(serverItem);
+  const incomingAvisTs = rc1016AvisTimestamp(incomingItem);
+  if (serverAvisTs === incomingAvisTs) return out;
+  const source = serverAvisTs > incomingAvisTs ? serverItem : incomingItem;
+  if (!source || Math.max(serverAvisTs, incomingAvisTs) <= 0) return out;
+  for (const key of RC1016_AVIS_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) out[key] = clone(source[key]);
+  }
+  return out;
+}
 function mergeShipmentProtected(serverItem, incomingItem) {
   if (!isObject(serverItem)) return clone(incomingItem);
   if (!isObject(incomingItem)) return clone(serverItem);
@@ -322,6 +367,10 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     else if (a.length && !b.length) out[key] = clone(a);
     else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
   });
+
+  // RC1016: customer Avis responses are server-persisted business data.
+  // A later save from a stale browser may not roll them back.
+  rc1016ProtectAvis(out, serverItem, incomingItem);
 
   // Status may only follow the newer persisted record; no rank-based auto-promotion here.
   const newerStatus = newer.status || newer.processStatus;
@@ -362,11 +411,11 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
   const ingest = (list, source) => {
     (Array.isArray(list) ? list : []).forEach((item, index) => {
       if (!item || typeof item !== 'object') return;
-      const shipmentCollection = name === 'shipments' || name === 'savedShipments';
+      const shipmentCollection = RC1016_SHIPMENT_COLLECTIONS.has(name);
       const key = shipmentCollection ? shipmentIdentityKey(item, index) : itemKey(item, keys, index);
       const existing = map.get(key);
       if (!existing) map.set(key, source === 'server' ? item : clone(item));
-      else if (name === 'shipments' || name === 'savedShipments') map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
+      else if (RC1016_SHIPMENT_COLLECTIONS.has(name)) map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
       else if (name === 'customers') map.set(key, source === 'incoming' ? mergeCustomerProtected(existing, item) : mergeCustomerProtected(item, existing));
       else map.set(key, source === 'incoming' ? chooseNewer(existing, item, name) : chooseNewer(item, existing, name));
     });
