@@ -36,3 +36,5 @@ jobs:
         run: node --test test/rc1014-task-runtime-integration.test.mjs
       - name: RC1014 Aufgaben-Design und Direktöffnung
         run: node --test test/rc1014-task-design.test.mjs
+      - name: RC1014 Android Aufgaben-Erinnerungen
+        run: node --test test/rc1014-task-android.test.mjs
