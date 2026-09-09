@@ -34,7 +34,20 @@ jobs:
         with:
           node-version: '24'
       - name: RC1016 Release-Vertrag
-        run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1016-release-sync.test.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in \
+            test/rc1003-android-native-direct-open.test.mjs \
+            test/rc1003-three-env-sync.test.mjs \
+            test/rc1011-three-env-sync.test.mjs \
+            test/rc1012-three-env-sync.test.mjs \
+            test/rc1013-restpunkte.test.mjs \
+            test/rc1013-three-env-sync.test.mjs \
+            test/rc1016-release-sync.test.mjs
+          do
+            node --test "$test_file"
+          done
       - name: Diagnose-Benachrichtigungen Regression
         shell: bash
         run: node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
