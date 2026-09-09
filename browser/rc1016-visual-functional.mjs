@@ -127,9 +127,41 @@ async function assertNoOverflow(page,viewportName,viewName){
   assert(result.visible.length===0,`${viewportName}/${viewName}: sichtbare Elemente außerhalb des Viewports: ${JSON.stringify(result.visible.slice(0,5))}`);
 }
 
-async function assertTasks(page){
+async function taskDiagnostics(page){
+  return page.evaluate(()=>{
+    const q=v=>String(v==null?'':v);
+    let state={};
+    try{state=typeof window.__EXPORTHUB_GET_STATE__==='function'?(window.__EXPORTHUB_GET_STATE__()||{}):((window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state)||window.state||{});}catch(_){ }
+    const tasks=Array.isArray(state.tasks)?state.tasks:[];
+    const fn=name=>{try{return typeof window[name]==='function'?String(window[name]).slice(0,5000):'';}catch(_){return'';}};
+    const prepared=(()=>{try{return window.ExportHUBRC1014TaskRuntime&&typeof window.ExportHUBRC1014TaskRuntime.prepareTasks==='function'?window.ExportHUBRC1014TaskRuntime.prepareTasks(tasks,{companyId:state.companyId||state.currentCompanyId||'',environment:window.__EXPORTHUB_FORCED_ENVIRONMENT__||'',currentUser:typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null,state}):[];}catch(error){return [{diagnosticError:q(error&&error.message)}];}})();
+    return {
+      view:q(state.view),
+      forcedEnvironment:q(window.__EXPORTHUB_FORCED_ENVIRONMENT__),
+      currentUser:(()=>{try{return typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null;}catch(_){return null;}})(),
+      rawTasks:tasks,
+      preparedTasks:prepared,
+      taskNodes:[...document.querySelectorAll('[class*="task"],[data-task-id],[data-task]')].slice(0,80).map(el=>({tag:el.tagName,className:q(el.className),text:q(el.textContent).replace(/\s+/g,' ').trim().slice(0,220)})),
+      filterFunctions:{
+        taskVisibleInCurrentWeek:fn('taskVisibleInCurrentWeek'),
+        taskLinkedTestShipmentRC818:fn('taskLinkedTestShipmentRC818'),
+        taskMeaningfulRC818:fn('taskMeaningfulRC818'),
+        taskGroupOpenRC874:fn('taskGroupOpenRC874'),
+        renderTasks:fn('renderTasks')
+      }
+    };
+  });
+}
+
+async function assertTasks(page,viewportName){
   const cards=page.locator('.rc229-task-card.rc628-unified-task, .task-card');
-  assert(await cards.count()>0,'Aufgabenansicht enthält keine Aufgabenkarten.');
+  const count=await cards.count();
+  if(count<=0){
+    const diagnostic=await taskDiagnostics(page);
+    fs.writeFileSync(path.join(OUT,`${viewportName}-tasks-diagnostic.json`),JSON.stringify(diagnostic,null,2)+'\n');
+    await page.screenshot({path:path.join(OUT,`${viewportName}-tasks-failure.png`),fullPage:true});
+    throw new Error(`Aufgabenansicht enthält keine Aufgabenkarten. Diagnose: ${JSON.stringify(diagnostic)}`);
+  }
   const enhanced=page.locator('[data-rc1014-enhanced="1"] [data-rc1014-open-task]');
   assert(await enhanced.count()>0,'RC1016 Öffnen-Aktion fehlt in Aufgabenkarten.');
   const text=await page.locator('body').innerText();
@@ -180,7 +212,7 @@ try{
     const viewportReport={name:vp.name,width:vp.width,height:vp.height,views:[]};
     for(const view of views){
       await clickView(page,view,vp.name);
-      if(view.name==='tasks')await assertTasks(page);
+      if(view.name==='tasks')await assertTasks(page,vp.name);
       if(view.name==='shipmentoverview')await assertShipmentOverview(page);
       if(view.name==='pickupcalendar')await assertCalendar(page);
       await assertNoOverflow(page,vp.name,view.name);
