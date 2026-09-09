@@ -1,0 +1,63 @@
+.rc229-task-card.rc628-unified-task{
+  min-width:0;
+}
+
+.rc1014-task-meta{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+  margin-top:10px;
+  min-width:0;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.rc1014-task-meta > span{
+  display:inline-flex;
+  align-items:center;
+  max-width:100%;
+  min-height:26px;
+  padding:4px 8px;
+  border:1px solid var(--rc990-card-border,#dbe4ee);
+  border-radius:999px;
+  background:#fff;
+  color:#334155;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+
+.rc1014-priority[data-rc1014-priority="P0"],
+.rc1014-priority[data-rc1014-priority="P1"]{
+  font-weight:700;
+  border-width:2px;
+}
+
+.rc1014-due[data-rc1014-due="overdue"]{
+  font-weight:700;
+}
+
+.rc1014-open-task{
+  margin-top:10px;
+  min-height:var(--rc990-action-h,40px);
+  max-width:100%;
+}
+
+@media (max-width:1000px){
+  .rc1014-task-meta{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .rc1014-task-meta > span{
+    border-radius:10px;
+  }
+}
+
+@media (max-width:700px){
+  .rc1014-task-meta{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .rc1014-open-task{
+    width:100%;
+  }
+}
