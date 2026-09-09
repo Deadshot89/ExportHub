@@ -54,12 +54,12 @@ jobs:
         run: |
           set -euo pipefail
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'" production-version.js
-          node --test test/rc1016-production-deploy.test.mjs test/rc1016-release-sync.test.mjs test/rc1016-sop-consolidation.test.mjs test/rc1016-demo-tasks.test.mjs
-          node --test test/rc1014-task-lifecycle.test.mjs test/rc1014-task-runtime-integration.test.mjs test/rc1014-task-design.test.mjs test/rc1014-shipment-overview-meta.test.mjs test/rc1014-fixed-pickup-seed.test.mjs test/rc1014-demo-environment.test.mjs test/rc1014-demo-session-calendar.test.mjs
-          node --test test/rc1015-lieferavis-mail-flow.test.mjs test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs
+          node --test --test-concurrency=1 test/rc1016-production-deploy.test.mjs test/rc1016-release-sync.test.mjs test/rc1016-sop-consolidation.test.mjs test/rc1016-demo-tasks.test.mjs
+          node --test --test-concurrency=1 test/rc1014-task-lifecycle.test.mjs test/rc1014-task-runtime-integration.test.mjs test/rc1014-task-design.test.mjs test/rc1014-shipment-overview-meta.test.mjs test/rc1014-fixed-pickup-seed.test.mjs test/rc1014-demo-environment.test.mjs test/rc1014-demo-session-calendar.test.mjs
+          node --test --test-concurrency=1 test/rc1015-lieferavis-mail-flow.test.mjs test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs
           node --test test/rc1013-pickup-readonly-flow.test.mjs
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
-          node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+          node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
       - name: RC1016 Produktion TESTSERVICE und Demo gemeinsam bauen
         shell: bash
