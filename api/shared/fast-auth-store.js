@@ -13,7 +13,20 @@ async function clients(){
   return clientsPromise;
 }
 
+function supportsFastPath(){
+  return typeof auth.bearer === 'function' &&
+    typeof auth.clients === 'function' &&
+    typeof auth.readJson === 'function' &&
+    typeof auth.emptyAuth === 'function' &&
+    typeof auth.emptyTeam === 'function' &&
+    typeof auth.resolveSession === 'function' &&
+    typeof auth.applyUserPolicy === 'function' &&
+    typeof auth.usernameOf === 'function' &&
+    typeof auth.isActive === 'function';
+}
+
 async function validateSession(req, options = {}){
+  if (!supportsFastPath()) return auth.validateSession(req, options);
   const token = auth.bearer(req);
   if (!token) throw auth.error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
   const c = await clients();
