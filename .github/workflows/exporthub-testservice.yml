@@ -47,7 +47,10 @@ jobs:
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs test/rc1018-testservice-exception-sync.test.mjs
           node --test test/rc1017-three-env-release.test.mjs
-          node --test --test-concurrency=1 test/rc1015-lieferavis-mail-flow.test.mjs
+          node --test --test-concurrency=1 test/rc1015-lieferavis-mail-flow.test.mjs test/rc1011-core-open-issues.test.mjs
+          node --test test/rc1013-pickup-readonly-flow.test.mjs
+          node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
           node .github/rc1018/build-three-env.mjs
           grep -q 'ExportHUB RC1018 environment=testservice' dist-rc1018/TESTVERSION.html
