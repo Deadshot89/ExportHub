@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Inspect active stow anchors
+        run: node .github/rc1017/inspect-stow.cjs
       - name: Apply pending RC1017 patch
         run: node .github/rc1017/apply-pending.cjs
       - name: Commit pending RC1017 patch
