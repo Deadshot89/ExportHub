@@ -20,7 +20,7 @@ try{
     deviceId:'demo-browser',
     view:'dashboard',
     savedAt:Date.now(),
-    version:'RC1014'
+    version:'RC1016'
   }));
 }catch(_){ }
 
@@ -45,7 +45,7 @@ window.fetch=async function(input,init){
     try{
       const data=await response.clone().json();
       if(data&&typeof data==='object'){
-        data.serverVersion='RC1014';
+        data.serverVersion='RC1016';
         return json(data,response.status);
       }
     }catch(_){ }
