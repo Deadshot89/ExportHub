@@ -30,7 +30,7 @@
     const units=[];
     normalizeRows(rows).forEach(function(row){
       const perWeight=row.count?number(row.weight)/row.count:0;
-      const perLdm=row.count?number(row.ldm)/row.count:0;
+      const perLdm=number(row.ldm);
       for(let index=0;index<row.count;index+=1){
         units.push({
           sourceRowId:row.id,
@@ -57,7 +57,7 @@
           id:key,
           count:0,
           weight:0,
-          ldm:0,
+          ldm:round6(source.ldm||source.loadingMeters||unit.ldm||0),
           unitIds:[]
         });
         grouped.set(key,row);
@@ -66,7 +66,6 @@
       const row=grouped.get(key);
       row.count+=1;
       row.weight=round6(row.weight+number(unit.weight));
-      row.ldm=round6(row.ldm+number(unit.ldm));
       row.unitIds.push(unit.unitId);
     });
     return order.map(function(key){ return grouped.get(key); });
@@ -186,7 +185,7 @@
         rows:partRows,
         totalColli:partRows.reduce(function(sum,row){return sum+positiveInt(row.count);},0),
         totalWeight:round6(partRows.reduce(function(sum,row){return sum+number(row.weight);},0)),
-        totalLdm:round6(partRows.reduce(function(sum,row){return sum+number(row.ldm);},0)),
+        totalLdm:round6(partRows.reduce(function(sum,row){return sum+(positiveInt(row.count)*number(row.ldm));},0)),
         status:'open',
         locked:false,
         pickupHistory:[],
