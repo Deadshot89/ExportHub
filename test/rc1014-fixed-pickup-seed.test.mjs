@@ -37,42 +37,57 @@ function makeMemoryBlobRest(){
 
 function loadStore(memory){
   const target=require.resolve('../api/shared/fixed-pickup-store.js');
+  const seedTarget=require.resolve('../api/shared/rc1014-fixed-pickup-seed.js');
   const original=Module._load;
   Module._load=function(request,parent,isMain){ if(request==='./blob-rest') return memory; return original.call(this,request,parent,isMain); };
-  delete require.cache[target];
+  delete require.cache[target]; delete require.cache[seedTarget];
   try{return require(target);} finally{Module._load=original;}
 }
 
 const expected = [
   ['Frankreich',1],
-  ['Spanien',2],['Spanien',5],
-  ['BMP',3],
-  ['Italien',3],['Italien',5],
-  ['Luftfracht China / Indien / Australien / Singapore / Shenzhen-HK / Thailand',4],
-  ['Polen',5],['Schweden',5],
-  ['UK',1],['UK',2],['UK',3],['UK',4],['UK',5],
-  ['O’Hare',4],['O’Hare',5]
+  ['Italien',1],
+  ['Neff',1],
+  ['O’Hare',1],
+  ['Faurecia',2],
+  ['BMP',3]
 ];
 function canonical(list){ return list.map(([label,day])=>`${label}|${day}`).sort(); }
 
-test('Essentra erhält die freigegebene FIX-Abholliste automatisch', async()=>{
+test('Essentra erhält exakt die freigegebenen sechs FIX-Abholtage', async()=>{
   const store=loadStore(makeMemoryBlobRest());
   const items=await store.list('production','ESSENTRA',{includeInactive:true});
-  assert.equal(items.length,16);
+  assert.equal(items.length,6);
   assert.deepEqual(canonical(items.map(x=>[x.siteLabel,x.weekday])),canonical(expected));
-  assert.match(items.find(x=>x.siteLabel==='O’Hare'&&x.weekday===4)?.note||'',/alternativ|oder/i);
-  assert.match(items.find(x=>x.siteLabel==='O’Hare'&&x.weekday===5)?.note||'',/alternativ|oder/i);
+  assert.equal(items.find(x=>x.siteLabel==='O’Hare')?.weekday,1);
+  assert.equal(items.find(x=>x.siteLabel==='BMP')?.weekday,3);
+  assert.equal(items.some(x=>/Spanien|UK|Luftfracht|Polen|Schweden/.test(x.siteLabel)),false);
 });
 
 test('Essentra-Seed ist idempotent und bleibt administrativ editierbar', async()=>{
   const memory=makeMemoryBlobRest(); const store=loadStore(memory);
   const first=await store.list('production','essentra',{includeInactive:true});
   const second=await store.list('production','essentra',{includeInactive:true});
-  assert.equal(first.length,16); assert.equal(second.length,16);
+  assert.equal(first.length,6); assert.equal(second.length,6);
   const france=first.find(x=>x.siteLabel==='Frankreich');
   await store.update('production','essentra',france.id,{active:false},'Admin');
   assert.equal((await store.list('production','essentra',{})).some(x=>x.id===france.id),false);
   assert.equal((await store.list('production','essentra',{includeInactive:true})).filter(x=>x.id===france.id).length,1);
+});
+
+test('Seed-Version 1 wird auf die korrigierte Liste migriert', async()=>{
+  const memory=makeMemoryBlobRest(); const store=loadStore(memory);
+  const blob=store.blobName('production','essentra');
+  const oldItems=[
+    {id:'FIX-RC1014-ESSENTRA-FR-MO',siteLabel:'Frankreich',weekday:1,note:'',active:true,createdBy:'System RC1014',updatedBy:'System RC1014'},
+    {id:'FIX-RC1014-ESSENTRA-ES-DI',siteLabel:'Spanien',weekday:2,note:'',active:true,createdBy:'System RC1014',updatedBy:'System RC1014'},
+    {id:'FIX-RC1014-ESSENTRA-OHARE-DO',siteLabel:'O’Hare',weekday:4,note:'',active:true,createdBy:'System RC1014',updatedBy:'System RC1014'},
+    {id:'FIX-RC1014-ESSENTRA-OHARE-FR',siteLabel:'O’Hare',weekday:5,note:'',active:true,createdBy:'System RC1014',updatedBy:'System RC1014'}
+  ];
+  const doc={schemaVersion:1,seedVersion:1,environment:'production',companyKey:'essentra',revision:1,updatedAt:null,items:oldItems};
+  memory.blobs.set(`exporthub-data/${blob}`,{data:Buffer.from(JSON.stringify(doc)),etag:'\"old\"'});
+  const items=await store.list('production','essentra',{includeInactive:true});
+  assert.deepEqual(canonical(items.map(x=>[x.siteLabel,x.weekday])),canonical(expected));
 });
 
 test('Andere Firmen werden nicht mit Essentra-Abholungen befüllt', async()=>{
@@ -84,5 +99,5 @@ test('Produktions- und Testservice-Seeds bleiben getrennt', async()=>{
   const memory=makeMemoryBlobRest(); const store=loadStore(memory);
   const prod=await store.list('production','essentra',{includeInactive:true});
   const testItems=await store.list('testservice','essentra',{includeInactive:true});
-  assert.equal(prod.length,16); assert.equal(testItems.length,16); assert.equal(memory.blobs.size,2);
+  assert.equal(prod.length,6); assert.equal(testItems.length,6); assert.equal(memory.blobs.size,2);
 });
