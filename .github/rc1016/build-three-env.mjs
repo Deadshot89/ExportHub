@@ -34,6 +34,12 @@ function injectDemoBridge(html){
   if(!rx.test(html))throw new Error('RC1016 Demo-Bridge: RC1013 Demo-Bootstrap nicht gefunden.');
   return html.replace(rx,`$1\n<script id="exporthub-rc1016-demo-bridge" src="/assets/rc1014-demo-bridge.js?v=1016"></script>\n<script id="exporthub-rc1016-demo-task-seed" src="/assets/rc1016-demo-task-seed.js?v=1016"></script>`);
 }
+function injectSopConsolidation(html){
+  if(html.includes('id="exporthub-rc1016-sop-consolidation"'))return html;
+  const rx=/(<script[^>]+src=["'][^"']*\/assets\/sop\/rc1010-sop-release\.js\?v=1010["'][^>]*><\/script>)/i;
+  if(!rx.test(html))throw new Error('RC1016 SOP: RC1010 Freigabebasis nicht gefunden.');
+  return html.replace(rx,`$1\n<script id="exporthub-rc1016-sop-consolidation" defer src="/assets/sop/rc1016-sop-consolidation.js?v=1016"></script>`);
+}
 function patchDemoDataEnvironment(html){
   const search="const DATA_ENVIRONMENT=/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production';";
   return replaceExactlyOnce(html,search,"const DATA_ENVIRONMENT='demo';",'RC1016 Demo-Datenumgebung');
@@ -63,12 +69,7 @@ function patchTaskSource(html){
   return replaceExactlyOnce(html,search,replacement,'RC1016 Aufgabenquelle');
 }
 function patchShipmentOverviewSource(html){
-  return replaceRegexExactlyOnce(
-    html,
-    /function\s+overviewFiltered\s*\(([^)]*)\)\s*\{/,
-    (_m,args)=>`function overviewFiltered(${args}){window.ExportHUBRC1014ShipmentOverview.remember(state.shipments||[]);`,
-    'RC1016 Sendungsübersicht-Datenquelle'
-  );
+  return replaceRegexExactlyOnce(html,/function\s+overviewFiltered\s*\(([^)]*)\)\s*\{/,(_m,args)=>`function overviewFiltered(${args}){window.ExportHUBRC1014ShipmentOverview.remember(state.shipments||[]);`,'RC1016 Sendungsübersicht-Datenquelle');
 }
 
 execFileSync(process.execPath,['.github/rc1013/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
@@ -78,6 +79,7 @@ fs.cpSync(SRC,OUT,{recursive:true});
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   let html=fs.readFileSync(path.join(OUT,file),'utf8');
   html=setRc1016Version(html);
+  html=injectSopConsolidation(html);
   if(file==='demo.html'){
     html=patchDemoDataEnvironment(html);
     html=injectDemoBridge(html);
@@ -89,29 +91,22 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
 }
 
 for(const asset of [
-  'assets/rc1014-task-lifecycle.js',
-  'assets/rc1014-task-runtime.js',
-  'assets/rc1014-task-ui.css',
-  'assets/rc1014-shipment-overview.js',
-  'assets/rc1014-shipment-overview.css',
-  'assets/rc1014-demo-bridge.js',
-  'assets/rc1016-demo-task-seed.js'
-]){
-  writeOut(asset,read(asset));
-}
+  'assets/rc1014-task-lifecycle.js','assets/rc1014-task-runtime.js','assets/rc1014-task-ui.css',
+  'assets/rc1014-shipment-overview.js','assets/rc1014-shipment-overview.css','assets/rc1014-demo-bridge.js',
+  'assets/rc1016-demo-task-seed.js','assets/sop/rc1016-sop-consolidation.js'
+])writeOut(asset,read(asset));
+const screenshotSource=path.join(ROOT,'assets/sop/screenshots');
+if(fs.existsSync(screenshotSource))fs.cpSync(screenshotSource,path.join(OUT,'assets/sop/screenshots'),{recursive:true});
 writeOut('production-version.js',read('production-version.js'));
 
 const manifest={
-  schema:'exporthub-rc1016-three-env-v1',
-  version:VERSION,
-  sourceRelease:'RC1015',
-  baseBuilder:'RC1013 mit integrierten RC1015-Fixes',
-  productionVersionProbe:'production-version.js',
+  schema:'exporthub-rc1016-three-env-v1',version:VERSION,sourceRelease:'RC1015',baseBuilder:'RC1013 mit integrierten RC1015-Fixes',productionVersionProbe:'production-version.js',
   tasks:{lifecycle:'assets/rc1014-task-lifecycle.js',runtime:'assets/rc1014-task-runtime.js',style:'assets/rc1014-task-ui.css'},
   shipmentOverview:{runtime:'assets/rc1014-shipment-overview.js',style:'assets/rc1014-shipment-overview.css',fields:['createdAt','totalColli','colliCount']},
+  sop:{catalog:'assets/sop/rc1016-sop-consolidation.js',activeWorkflows:24,legacyDocuments:75,screenshotDirectory:'assets/sop/screenshots'},
   retainedFixes:{lieferavis:'assets/rc1015-lieferavis-mail-flow.js',calendar:'assets/abholkalender.js',diagnostics:'assets/rc1013-diagnostics.js',gate41:'assets/rc1013-gate41-ui.js'},
   demo:{bridge:'assets/rc1014-demo-bridge.js',taskSeed:'assets/rc1016-demo-task-seed.js',sessionRestore:true,dataEnvironment:'demo',fixedPickups:'fake-local'},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 writeOut('rc1016-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1016 build ready: Aufgaben, Abholkalender, Sendungsmetadaten und Versionsmarker auf RC1015 in Produktion, TESTSERVICE und Demo');
+console.log('RC1016 build ready: Aufgaben, Abholkalender, Sendungsmetadaten, SOP 2.0 und Versionsmarker auf RC1015 in Produktion, TESTSERVICE und Demo');
