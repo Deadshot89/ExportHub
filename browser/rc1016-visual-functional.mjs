@@ -13,13 +13,44 @@ function assert(condition,message){if(!condition)throw new Error(message);}
 async function waitReady(page){
   await page.waitForFunction(()=>window.__EXPORTHUB_READY__?.ready===true&&document.body?.innerText.includes('Aufgaben'),null,{timeout:15000});
 }
-async function clickView(page,view){
+async function navigationDiagnostics(page){
+  return page.evaluate(()=>{
+    const rect=el=>{const r=el.getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.width),height:Math.round(r.height),right:Math.round(r.right),bottom:Math.round(r.bottom)};};
+    const describe=el=>({
+      tag:el.tagName,
+      text:String(el.innerText||el.textContent||'').replace(/\s+/g,' ').trim().slice(0,180),
+      title:el.getAttribute('title'),ariaLabel:el.getAttribute('aria-label'),ariaHidden:el.getAttribute('aria-hidden'),
+      className:String(el.className||''),id:el.id||'',dataset:Object.fromEntries(Object.entries(el.dataset||{})),
+      display:getComputedStyle(el).display,visibility:getComputedStyle(el).visibility,opacity:getComputedStyle(el).opacity,
+      rect:rect(el)
+    });
+    const nav=[...document.querySelectorAll('button,a,[role="button"]')].filter(el=>{
+      const hay=`${el.innerText||''} ${el.getAttribute('title')||''} ${el.getAttribute('aria-label')||''} ${el.className||''} ${el.id||''}`;
+      return /Aufgaben|Sendungsübersicht|Abholkalender|menü|menu|navigation|nav|sidebar/i.test(hay);
+    }).slice(0,80).map(describe);
+    return {innerWidth,innerHeight,scrollX,scrollY,bodyView:document.body?.getAttribute('data-exporthub-view')||'',nav};
+  });
+}
+async function clickView(page,view,viewportName){
   const candidates=[page.getByRole('button',{name:view.label,exact:true}),page.getByRole('link',{name:view.label,exact:true}),page.getByText(view.label,{exact:true})];
   for(const locator of candidates){
     const count=await locator.count();
-    for(let i=count-1;i>=0;i--){const item=locator.nth(i);if(await item.isVisible().catch(()=>false)){await item.click();await page.waitForFunction(expected=>document.body?.getAttribute('data-exporthub-view')===expected,view.expected,{timeout:10000});await pause(250);return;}}
+    for(let i=count-1;i>=0;i--){
+      const item=locator.nth(i);
+      if(!await item.isVisible().catch(()=>false))continue;
+      const box=await item.boundingBox().catch(()=>null);
+      const viewport=page.viewportSize();
+      if(!box||!viewport||box.x+box.width<=0||box.y+box.height<=0||box.x>=viewport.width||box.y>=viewport.height)continue;
+      await item.click({timeout:5000});
+      await page.waitForFunction(expected=>document.body?.getAttribute('data-exporthub-view')===expected,view.expected,{timeout:10000});
+      await pause(250);
+      return;
+    }
   }
-  throw new Error(`Navigationseintrag fehlt: ${view.label}`);
+  const diagnostic=await navigationDiagnostics(page);
+  fs.writeFileSync(path.join(OUT,`${viewportName}-navigation-diagnostic.json`),JSON.stringify(diagnostic,null,2)+'\n');
+  await page.screenshot({path:path.join(OUT,`${viewportName}-navigation-failure.png`),fullPage:true});
+  throw new Error(`Navigationseintrag ${view.label} ist in ${viewportName} nicht direkt bedienbar. Diagnose wurde gesichert.`);
 }
 async function assertNoOverflow(page,label){
   const result=await page.evaluate(()=>({viewport:innerWidth,scroll:Math.max(document.documentElement.scrollWidth,document.body?.scrollWidth||0)}));
@@ -92,7 +123,7 @@ try{
     await waitReady(page);
     const viewportReport={name:vp.name,width:vp.width,height:vp.height,views:[]};
     for(const view of views){
-      await clickView(page,view);
+      await clickView(page,view,vp.name);
       if(view.name==='tasks')await assertTasks(page);
       if(view.name==='shipmentoverview')await assertShipmentOverview(page);
       if(view.name==='pickupcalendar')await assertCalendar(page);
