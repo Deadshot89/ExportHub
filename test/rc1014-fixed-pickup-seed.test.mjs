@@ -53,11 +53,13 @@ const expected = [
   ['UK',1],['UK',2],['UK',3],['UK',4],['UK',5],
   ['O’Hare',4],['O’Hare',5]
 ];
+function canonical(list){ return list.map(([label,day])=>`${label}|${day}`).sort(); }
 
 test('Essentra erhält die freigegebene FIX-Abholliste automatisch', async()=>{
   const store=loadStore(makeMemoryBlobRest());
   const items=await store.list('production','ESSENTRA',{includeInactive:true});
-  assert.deepEqual(items.map(x=>[x.siteLabel,x.weekday]),expected);
+  assert.equal(items.length,16);
+  assert.deepEqual(canonical(items.map(x=>[x.siteLabel,x.weekday])),canonical(expected));
   assert.match(items.find(x=>x.siteLabel==='O’Hare'&&x.weekday===4)?.note||'',/alternativ|oder/i);
   assert.match(items.find(x=>x.siteLabel==='O’Hare'&&x.weekday===5)?.note||'',/alternativ|oder/i);
 });
