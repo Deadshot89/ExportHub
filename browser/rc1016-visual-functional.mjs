@@ -73,7 +73,21 @@ try{
     const page=await context.newPage();
     const runtimeErrors=[];
     page.on('pageerror',error=>runtimeErrors.push(`pageerror: ${error.message}`));
-    page.on('console',msg=>{if(msg.type()==='error'&&!/favicon\.ico/i.test(msg.text()))runtimeErrors.push(`console: ${msg.text()}`);});
+    page.on('response',response=>{
+      const status=response.status();
+      const url=response.url();
+      if(status>=400&&!/favicon\.ico(?:$|\?)/i.test(url))runtimeErrors.push(`http ${status}: ${url}`);
+    });
+    page.on('requestfailed',request=>{
+      const url=request.url();
+      if(!/favicon\.ico(?:$|\?)/i.test(url))runtimeErrors.push(`requestfailed: ${url} :: ${request.failure()?.errorText||'unbekannt'}`);
+    });
+    page.on('console',msg=>{
+      if(msg.type()!=='error')return;
+      const text=msg.text();
+      if(/favicon\.ico/i.test(text)||/Failed to load resource:/i.test(text))return;
+      runtimeErrors.push(`console: ${text}`);
+    });
     await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:30000});
     await waitReady(page);
     const viewportReport={name:vp.name,width:vp.width,height:vp.height,views:[]};
