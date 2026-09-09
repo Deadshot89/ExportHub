@@ -35,6 +35,7 @@ jobs:
           node .github/rc1017/apply-task6.cjs
           node .github/rc1017/fix-task7-script.cjs
           node .github/rc1017/apply-task7.cjs
+          node .github/rc1017/apply-task8.cjs
       - name: Commit pending RC1017 patch
         shell: bash
         run: |
@@ -45,8 +46,8 @@ jobs:
           fi
           git config user.name 'Deadshot89'
           git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add index.html .github/rc1013/build-three-env.mjs assets/abholkalender.js assets/abholkalender.css api/shared/merge.js api/pickup-init/index.js api/shared/pickup-store.js .github/rc1017/apply-task7.cjs
-          git commit -m 'RC1017: eigene Ladelisten QR und Stauplaene je LKW'
+          git add index.html .github/rc1013/build-three-env.mjs .github/rc1016/build-three-env.mjs .github/workflows/rc1002-main-contract.yml .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/workflows/exporthub-testservice.yml assets/abholkalender.js assets/abholkalender.css api/shared/merge.js api/pickup-init/index.js api/shared/pickup-store.js .github/rc1017/apply-task7.cjs .github/rc1017/apply-task8.cjs
+          git commit -m 'RC1017: Drei-Umgebungen-Releasevertrag absichern'
           git push origin HEAD:rc1017-multi-truck-subshipments
       - name: RC1017 targeted tests
         shell: bash
@@ -64,3 +65,14 @@ jobs:
         run: node --test test/rc1016-lieferavis-persistence.test.mjs
       - name: Full regression
         run: npm test
+      - name: RC1017 Drei-Umgebungen-Build verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1016/build-three-env.mjs
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1016/index.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1016/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1016/demo.html
+          test -s dist-rc1016/assets/rc1017-multi-truck.js
+          grep -q 'ExportHubMultiTruck' dist-rc1016/assets/rc1017-multi-truck.js
+          git diff --check
