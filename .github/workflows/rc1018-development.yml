@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rc1018-mail-language-${{ github.ref }}
@@ -29,6 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Öffentliche DE/EN-Sprachruntime einbinden
+        run: node .github/rc1018/apply-public-language.mjs
       - name: RC1018 Mail- und Sprachvertrag
         run: node --test test/rc1018-mail-language-standard.test.mjs
       - name: Bestehende Lieferavis-Regression
@@ -39,3 +41,15 @@ jobs:
         run: node .github/rc1018/build-three-env.mjs
       - name: Diff prüfen
         run: git diff --check
+      - name: Öffentliche Sprachbindung versionieren
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- customer-avis.html pickup.html location.html; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add customer-avis.html pickup.html location.html
+            git commit -m 'build: RC1018 öffentliche DE EN Sprachbindung [skip ci]'
+            git push origin HEAD:rc1018-mail-language-standard
+          fi
