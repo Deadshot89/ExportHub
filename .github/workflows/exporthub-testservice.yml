@@ -41,7 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           node --test test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1006-gate41-route.test.mjs
-          node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test test/rc1013-pickup-readonly-flow.test.mjs
+          node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
           node .github/rc1013/build-three-env.mjs
