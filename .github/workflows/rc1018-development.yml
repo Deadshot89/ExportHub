@@ -1,0 +1,78 @@
+name: RC1018 Mail und Sprache Integration
+
+on:
+  push:
+    branches: [rc1018-mail-language-integration]
+    paths:
+      - 'test/rc1018-*.test.mjs'
+      - 'test/rc1017-*.test.mjs'
+      - 'test/rc1016-*.test.mjs'
+      - 'assets/rc1018-*.js'
+      - '.github/rc1018/**'
+      - 'android-app/**'
+      - 'customer-avis.html'
+      - 'pickup.html'
+      - 'location.html'
+      - 'production-version.js'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/exporthub-testservice.yml'
+      - '.github/workflows/rc1018-development.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc1018-mail-language-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Öffentliche DE/EN-Sprachruntime einbinden
+        run: node .github/rc1018/apply-public-language.mjs
+      - name: Lieferavis-Wortlaut strikt trennen
+        run: node .github/rc1018/fix-mail-wording.mjs
+      - name: RC1018 Mail- und Sprachvertrag
+        run: node --test test/rc1018-mail-language-standard.test.mjs
+      - name: RC1018 Produktionsdeploy-Vertrag
+        run: node --test test/rc1018-production-deploy.test.mjs
+      - name: RC1017 Bestandsschutz
+        run: node --test test/rc1017-three-env-release.test.mjs
+      - name: Bestehende Lieferavis-Regression
+        run: node --test test/rc1015-lieferavis-mail-flow.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
+      - name: Drei Umgebungen bauen
+        run: node .github/rc1018/build-three-env.mjs
+      - name: RC1017 im RC1018 Build erhalten
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1017-multi-truck.js?v=1017' "dist-rc1018/$file"
+            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1018/$file"
+          done
+          test -s dist-rc1018/assets/rc1017-multi-truck.js
+          test -s dist-rc1018/assets/rc1018-mail-language-standard.js
+          test -s dist-rc1018/assets/rc1018-public-language.js
+      - name: Diff prüfen
+        run: git diff --check
+      - name: RC1018 öffentliche Sprachbindungen versionieren
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- customer-avis.html pickup.html location.html; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add customer-avis.html pickup.html location.html
+            git commit -m 'build: RC1018 öffentliche DE EN Bindungen [skip ci]'
+            git push origin HEAD:rc1018-mail-language-integration
+          fi
