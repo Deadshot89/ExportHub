@@ -26,7 +26,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rc1016-development-${{ github.ref }}
@@ -123,24 +123,16 @@ jobs:
             sleep 1
           done
           node browser/rc1016-visual-functional.mjs
-      - name: Echte SOP-Systembilder aus geprüftem Browserlauf versionieren
-        if: success()
+      - name: Versionierte SOP-Systembilder und frische Browseraufnahmen prüfen
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p assets/sop/screenshots
-          cp artifacts/rc1016-browser/desktop-tasks.png assets/sop/screenshots/rc1016-tasks.png
-          cp artifacts/rc1016-browser/desktop-shipmentoverview.png assets/sop/screenshots/rc1016-shipmentoverview.png
-          cp artifacts/rc1016-browser/desktop-pickupcalendar.png assets/sop/screenshots/rc1016-pickupcalendar.png
-          git add assets/sop/screenshots/rc1016-tasks.png assets/sop/screenshots/rc1016-shipmentoverview.png assets/sop/screenshots/rc1016-pickupcalendar.png
-          if git diff --cached --quiet; then
-            echo 'RC1016 SOP-Systembilder sind bereits aktuell.'
-          else
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'docs: RC1016 echte SOP-Systembilder aus Chromium aktualisieren'
-            git push origin HEAD:rc1016-calendar-sop
-          fi
+          test -s assets/sop/screenshots/rc1016-tasks.png
+          test -s assets/sop/screenshots/rc1016-shipmentoverview.png
+          test -s assets/sop/screenshots/rc1016-pickupcalendar.png
+          test -s artifacts/rc1016-browser/desktop-tasks.png
+          test -s artifacts/rc1016-browser/desktop-shipmentoverview.png
+          test -s artifacts/rc1016-browser/desktop-pickupcalendar.png
       - name: Browser-Screenshots und Bericht hochladen
         if: always()
         uses: actions/upload-artifact@v4
