@@ -94,25 +94,16 @@ function rc1017ProtectSubShipments(out, serverItem, incomingItem) {
 changed=replaceOnce('function mergeShipmentProtected(serverItem, incomingItem) {',helpers+'function mergeShipmentProtected(serverItem, incomingItem) {')||changed;
 changed=replaceOnce('  rc1016ProtectAvis(out, serverItem, incomingItem);\n\n  // Status may only follow the newer persisted record; no rank-based auto-promotion here.','  rc1016ProtectAvis(out, serverItem, incomingItem);\n  rc1017ProtectSubShipments(out, serverItem, incomingItem);\n\n  // Status may only follow the newer persisted record; no rank-based auto-promotion here.')||changed;
 changed=replaceOnce('  timestamp,\n  mergeCollection,','  timestamp,\n  mergeShipmentProtected,\n  rc1017ProtectSubShipments,\n  mergeCollection,')||changed;
-const oldSecretStrip=`function stripShipmentPublicAccessSecrets(shipment) {
-  if (!isObject(shipment)) return shipment;
-  let next = shipment;
-  for (const key of PUBLIC_ACCESS_SECRET_KEYS) {
-    if (!Object.prototype.hasOwnProperty.call(shipment, key)) continue;
-    if (next === shipment) next = Object.assign({}, shipment);
-    delete next[key];
-  }
-  return next;
-}`;
-const newSecretStrip=`function stripShipmentPublicAccessSecrets(shipment) {
-  if (!isObject(shipment)) return shipment;
-  let next = shipment;
-  for (const key of PUBLIC_ACCESS_SECRET_KEYS) {
-    if (!Object.prototype.hasOwnProperty.call(shipment, key)) continue;
-    if (next === shipment) next = Object.assign({}, shipment);
-    delete next[key];
-  }
-  const subShipments = shipment.subShipments;
+
+const oldSecretKeys="const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','customerAvisPublicUrl','avisPublicUrl','pickupToken','pickupQrToken','qrToken'];";
+const newSecretKeys="const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','customerAvisPublicUrl','avisPublicUrl','pickupToken','pickupQrToken','qrToken','publicPickupToken','publicAccessToken','pickupAccessToken','pickupQrRawToken'];";
+changed=replaceOnce(oldSecretKeys,newSecretKeys)||changed;
+
+const stripReturnAnchor=`  return next;
+}
+
+function stripPublicAccessSecrets(state) {`;
+const recursiveStrip=`  const subShipments = shipment.subShipments;
   if (Array.isArray(subShipments)) {
     let nextSubShipments = subShipments;
     for (let index = 0; index < subShipments.length; index++) {
@@ -127,7 +118,10 @@ const newSecretStrip=`function stripShipmentPublicAccessSecrets(shipment) {
     }
   }
   return next;
-}`;
-changed=replaceOnce(oldSecretStrip,newSecretStrip)||changed;
+}
+
+function stripPublicAccessSecrets(state) {`;
+if(!src.includes('next.subShipments = nextSubShipments;')) changed=replaceOnce(stripReturnAnchor,recursiveStrip)||changed;
+
 if(changed) fs.writeFileSync(path,src);
 console.log(changed?'RC1017 task4 patch applied':'RC1017 task4 patch already applied');
