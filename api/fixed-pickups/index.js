@@ -1,15 +1,21 @@
 'use strict';
 
-const auth = require('../shared/fast-auth-store');
+const auth = require('../shared/auth-store');
+const fastAuth = require('../shared/fast-auth-store');
 const companies = require('../shared/company-context');
 const store = require('../shared/fixed-pickup-store');
+
+async function validateSession(req){
+  if (fastAuth && typeof fastAuth.isSource === 'function' && fastAuth.isSource(auth)) return fastAuth.validateSession(req);
+  return auth.validateSession(req);
+}
 
 module.exports = async function(context, req){
   const method = String(req && req.method || 'GET').toUpperCase();
   if (method === 'OPTIONS') { context.res = auth.json(204, {}); return; }
   try {
     if (!['GET','POST','PATCH'].includes(method)) throw auth.error('METHOD_NOT_ALLOWED', 'Methode nicht erlaubt.', 405);
-    const session = await auth.validateSession(req);
+    const session = await validateSession(req);
     const company = companies.resolveCompanyContext(req, session.user);
     const payload = auth.body(req);
     const environment = store.resolveEnvironment(req, payload);
