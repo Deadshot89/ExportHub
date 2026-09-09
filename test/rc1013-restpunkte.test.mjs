@@ -116,3 +116,12 @@ test('Android Diagnose-Detail stellt strukturierte Fehlerdaten statt nur Fließt
   assert.match(detail,/parseDiagnosticBody/);
   assert.doesNotMatch(detail,/WebView/);
 });
+
+test('Fehleranalyse steht am Seitenende und ist kompakter',()=>{
+  const source=fs.readFileSync(path.join(ROOT,'assets/rc1013-diagnostics.js'),'utf8');
+  assert.match(source,/rootEl\.appendChild\(host\)/,'Die detaillierte Fehleranalyse muss unterhalb der vorhandenen Diagnose stehen.');
+  assert.doesNotMatch(source,/rootEl\.insertBefore\(host,rootEl\.firstChild\|\|null\)/,'Die detaillierte Fehleranalyse darf nicht mehr oben eingesetzt werden.');
+  assert.match(source,/#rc1013-diagnostics-enhanced\{margin:10px 0 14px;padding:12px/,'Der Analyseblock soll kompakter sein.');
+  assert.match(source,/\.rc1013-diag-card\{[^}]*padding:11px/s,'Die einzelnen Diagnosekarten sollen kleiner sein.');
+  assert.match(source,/\.rc1013-details\{[^}]*font-size:11px/s,'Technische Detaildaten sollen kleiner dargestellt werden.');
+});
