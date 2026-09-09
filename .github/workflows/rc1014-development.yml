@@ -44,6 +44,8 @@ jobs:
         run: node --test test/rc1014-shipment-overview-meta.test.mjs
       - name: RC1014 fixe Essentra-Abholtage
         run: node --test test/rc1014-fixed-pickup-seed.test.mjs
+      - name: RC1014 Demo-Datenumgebung
+        run: node --test test/rc1014-demo-environment.test.mjs
       - name: RC1014 Release-Synchronisierung
         run: node --test test/rc1014-release-sync.test.mjs
       - name: QR- und Lieferavis-End-to-End-Regression
