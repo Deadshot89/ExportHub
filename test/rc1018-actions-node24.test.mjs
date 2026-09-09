@@ -6,6 +6,7 @@ const activeWorkflows = [
   '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
   '.github/workflows/rc1002-main-contract.yml',
   '.github/workflows/exporthub-android-test-app.yml',
+  '.github/workflows/exporthub-testservice.yml',
   '.github/workflows/rc1007-release-verify.yml',
   '.github/workflows/rc1012-abholkalender-verify.yml'
 ];
