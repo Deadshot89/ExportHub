@@ -46,10 +46,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: RC1013 historische Release-Regression
         run: node --test --test-concurrency=1 test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1006-gate41-route.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
       - name: QR- und Lieferavis-End-to-End-Regression
