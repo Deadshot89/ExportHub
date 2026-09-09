@@ -5,6 +5,7 @@
   const PRIORITY_RANK=Object.freeze({P0:0,P1:1,P2:2,P3:3,P4:4});
   const DUE_RANK=Object.freeze({overdue:0,today:1,future:2,none:3});
   const q=v=>String(v==null?'':v).trim();
+  const low=v=>q(v).toLowerCase();
   const arr=v=>Array.isArray(v)?v:[];
 
   function dayKey(value){
@@ -182,8 +183,112 @@
       .sort((a,b)=>compareTasks(a,b,ctx.now));
   }
 
-  function reconcile(tasks){
-    return {tasks:arr(tasks).map(t=>normalizeTask(t)),changed:false};
+  function sameScope(task,ctx){
+    const company=q(ctx&&ctx.companyId),environment=q(ctx&&ctx.environment);
+    const taskCompany=q(task&&task.companyId),taskEnvironment=q(task&&task.environment);
+    if(company&&taskCompany&&company!==taskCompany)return false;
+    if(environment&&taskEnvironment&&environment!==taskEnvironment)return false;
+    return true;
+  }
+
+  function idOf(item){return q(item&&(item.id||item.shipmentId||item.pickId||item.sourceId));}
+  function refOf(item){return q(item&&(item.ref||item.reference||item.shipmentRef||item.sourceRef));}
+  function findShipment(task,domain){
+    const sourceId=q(task.sourceId),sourceRef=q(task.sourceRef);
+    return arr(domain&&domain.shipments).find(s=>
+      (sourceId&&(idOf(s)===sourceId||refOf(s)===sourceId))||
+      (sourceRef&&(refOf(s)===sourceRef||idOf(s)===sourceRef))
+    )||null;
+  }
+  function findPick(task,domain){
+    const sourceId=q(task.sourceId);
+    return arr(domain&&domain.picks).find(p=>sourceId&&(idOf(p)===sourceId||q(p&&p.reference)===sourceId))||null;
+  }
+  function statusText(item){return low(item&&(item.status||item.state||item.pickupStatus));}
+  function fileCount(value){
+    if(Array.isArray(value))return value.length;
+    if(value&&typeof value==='object')return 1;
+    return q(value)?1:0;
+  }
+  function hasPod(shipment){
+    if(!shipment)return false;
+    if(fileCount(shipment.podFiles)||fileCount(shipment.pods)||fileCount(shipment.pod)||fileCount(shipment.podFile)||q(shipment.podUrl))return true;
+    return /pod vorhanden|pod received|pod complete/.test(statusText(shipment));
+  }
+  function hasAbd(shipment){
+    if(!shipment)return false;
+    return !!(fileCount(shipment.abdFiles)||fileCount(shipment.abds)||fileCount(shipment.abd)||fileCount(shipment.abdFile)||q(shipment.abdRef||shipment.abdReference));
+  }
+  function fullyCollected(shipment){
+    if(!shipment)return false;
+    const total=Number(shipment.totalColli??shipment.totalPackages??shipment.colliTotal??0);
+    const collected=Number(shipment.collectedColli??shipment.pickedColli??shipment.collectedPackages??0);
+    if(Number.isFinite(total)&&total>0&&Number.isFinite(collected))return collected>=total;
+    const status=statusText(shipment);
+    if(/teilweise|partial/.test(status))return false;
+    return /abgeholt|picked up|collected|pod vorhanden|abgeschlossen|archiviert/.test(status);
+  }
+  function pickCompleted(pick){
+    if(!pick)return false;
+    if(pick.completed===true||pick.done===true||pick.picked===true)return true;
+    return /done|complete|completed|picked|erledigt|abgeschlossen/.test(statusText(pick));
+  }
+  function shipmentCompleted(shipment){return /abgeschlossen|archiviert|completed|closed/.test(statusText(shipment));}
+  function shipmentCancelled(shipment){return /storniert|cancelled|canceled/.test(statusText(shipment));}
+  function markDone(task,by,ctx){
+    if(task.status==='done')return task;
+    return {...task,status:'done',completedAt:q(ctx&&ctx.now)||new Date().toISOString(),completedBy:by,updatedAt:q(ctx&&ctx.now)||task.updatedAt};
+  }
+  function markCancelled(task,ctx){
+    if(task.status==='cancelled')return task;
+    return {...task,status:'cancelled',completedAt:q(ctx&&ctx.now)||new Date().toISOString(),completedBy:'system:cancel',updatedAt:q(ctx&&ctx.now)||task.updatedAt};
+  }
+  function lifecycleFingerprint(task){
+    const t=task||{};
+    return [q(t.status),q(t.completedAt),q(t.completedBy),q(t.effectiveAssignee),q(t.substitutionReason),q(t.occurrenceKey),q(t.id)].join('|');
+  }
+
+  function reconcile(tasks,domain={},ctx={}){
+    const input=arr(tasks);
+    let changed=false;
+    const out=input.map(original=>{
+      if(!sameScope(original,ctx))return {...original};
+      let task=normalizeTask(original,ctx);
+      const before=lifecycleFingerprint(task);
+      task=resolveAssignee(task,ctx);
+      if(task.status==='open'){
+        if(task.group==='Fehlende POD'){
+          const shipment=findShipment(task,domain);
+          if(shipment&&fullyCollected(shipment)&&hasPod(shipment))task=markDone(task,'system:pod',ctx);
+        }else if(task.group==='Offene ABDs'){
+          const shipment=findShipment(task,domain);
+          if(shipment&&shipment.abdRequired===false)task=markCancelled(task,ctx);
+          else if(shipment&&hasAbd(shipment))task=markDone(task,'system:abd',ctx);
+        }else if(task.group==='Picks'){
+          const pick=findPick(task,domain);
+          if(pickCompleted(pick))task=markDone(task,'system:pick',ctx);
+        }else if(task.group==='Offene Sendungen'){
+          const shipment=findShipment(task,domain);
+          if(shipmentCancelled(shipment))task=markCancelled(task,ctx);
+          else if(shipmentCompleted(shipment))task=markDone(task,'system:shipment',ctx);
+        }
+      }
+      if(lifecycleFingerprint(task)!==before)changed=true;
+      return task;
+    });
+
+    const keys=new Set(out.map(identityKey));
+    const generated=[];
+    for(const task of out){
+      if(task.status!=='done'||!q(task.recurrence))continue;
+      const next=nextOccurrence(task,ctx.now);
+      const key=identityKey(next);
+      if(keys.has(key))continue;
+      keys.add(key);
+      generated.push(next);
+    }
+    if(generated.length){out.push(...generated);changed=true;}
+    return {tasks:out,changed};
   }
 
   root.ExportHUBRC1014Tasks=Object.freeze({
