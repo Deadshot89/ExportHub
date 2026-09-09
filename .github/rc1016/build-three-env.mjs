@@ -99,12 +99,14 @@ for(const asset of [
 ]){
   writeOut(asset,read(asset));
 }
+writeOut('production-version.js',read('production-version.js'));
 
 const manifest={
   schema:'exporthub-rc1016-three-env-v1',
   version:VERSION,
   sourceRelease:'RC1015',
   baseBuilder:'RC1013 mit integrierten RC1015-Fixes',
+  productionVersionProbe:'production-version.js',
   tasks:{lifecycle:'assets/rc1014-task-lifecycle.js',runtime:'assets/rc1014-task-runtime.js',style:'assets/rc1014-task-ui.css'},
   shipmentOverview:{runtime:'assets/rc1014-shipment-overview.js',style:'assets/rc1014-shipment-overview.css',fields:['createdAt','totalColli','colliCount']},
   retainedFixes:{lieferavis:'assets/rc1015-lieferavis-mail-flow.js',calendar:'assets/abholkalender.js',diagnostics:'assets/rc1013-diagnostics.js',gate41:'assets/rc1013-gate41-ui.js'},
@@ -112,4 +114,4 @@ const manifest={
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 writeOut('rc1016-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1016 build ready: Aufgaben, Abholkalender und Sendungsmetadaten auf RC1015 in Produktion, TESTSERVICE und Demo');
+console.log('RC1016 build ready: Aufgaben, Abholkalender, Sendungsmetadaten und Versionsmarker auf RC1015 in Produktion, TESTSERVICE und Demo');
