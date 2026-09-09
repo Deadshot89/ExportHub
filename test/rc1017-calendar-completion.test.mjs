@@ -5,7 +5,8 @@ import vm from 'node:vm';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const calendar = require('../assets/abholkalender.js');
+await import('../assets/abholkalender.js');
+const calendar = globalThis.ExportHubPickupCalendar;
 const seed = require('../api/shared/rc1014-fixed-pickup-seed.js');
 
 function renderShipment(shipment){
