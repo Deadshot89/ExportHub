@@ -2,10 +2,9 @@
 const fs=require('fs');
 const path='api/shared/pickup-store.js';
 let src=fs.readFileSync(path,'utf8');
-if(src.includes('function rc1017UpdateSubShipmentTeam(')){
-  console.log('RC1017 task6 already applied');
-  process.exit(0);
-}
+let changed=false;
+
+if(!src.includes('function rc1017UpdateSubShipmentTeam(')){
 const helper=`
 function rc1017SafePickupHistory(history){return(Array.isArray(history)?history:[]).map(x=>({id:x.id||('pickup-'+(x.sequence||'')),sequence:Number(x.sequence||0)||0,type:x.type||(x.complete?'complete':'partial'),confirmedAt:x.confirmedAt||'',colliCount:Math.max(0,Math.round(Number(x.colliCount)||0)),collectedAfter:Math.max(0,Math.round(Number(x.collectedAfter)||0)),remainingAfter:Math.max(0,Math.round(Number(x.remainingAfter)||0)),complete:x.complete===true,driverName:x.driverName||'',licensePlate:x.licensePlate||'',loaderName:x.loaderName||'',loaderId:x.loaderId||'',carrierName:x.carrierName||'',returnedEuroPallets:Math.max(0,Math.round(Number(x.returnedEuroPallets)||0)),signatureStored:!!x.signatureBlobName,signatureBlobName:x.signatureBlobName||'',signatureStoredAt:x.signatureStoredAt||''}))}
 function rc1017SubPicked(sub){return['confirmed','pod','completed','abgeholt','pod vorhanden','abgeschlossen'].includes(String(sub&&sub.status||'').trim().toLowerCase())}
@@ -21,5 +20,16 @@ const old="  if(sh){const iso=String(last&&last.confirmedAt||record.confirmedAt|
 const next="  if(sh&&record.subShipmentId){const iso=String(last&&last.confirmedAt||record.confirmedAt||record.lastPartialPickupAt||now());rc1017UpdateSubShipmentTeam(sh,record,history,complete,collected,remaining,iso)}\n  if(sh&&!record.subShipmentId){const iso=String(last&&last.confirmedAt||record.confirmedAt||record.lastPartialPickupAt||now()),carrier=sanitizeText(first(record,['carrierName','speditionName','carrier','spedition']),180);";
 if(!src.includes(old))throw new Error('updateTeam shipment branch anchor not found');
 src=src.replace(old,next);
-fs.writeFileSync(path,src);
-console.log('RC1017 task6 applied');
+changed=true;
+}
+
+const oldTaskCompletion="  if(complete){for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){t.status='erledigt';t.done=true;t.doneAt=record.confirmedAt||now();t.completedAt=t.doneAt;t._syncUpdatedAt=t.doneAt;t._syncDeviceId='qr-pickup'}}}";
+const newTaskCompletion="  const rc1017AllRequiredPickupsComplete=!record.subShipmentId||!!(sh&&Array.isArray(sh.subShipments)&&sh.subShipments.length>1&&sh.subShipments.every(rc1017SubPicked));\n  if(complete&&rc1017AllRequiredPickupsComplete){for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){t.status='erledigt';t.done=true;t.doneAt=record.confirmedAt||now();t.completedAt=t.doneAt;t._syncUpdatedAt=t.doneAt;t._syncDeviceId='qr-pickup'}}}";
+if(!src.includes(newTaskCompletion)){
+  if(!src.includes(oldTaskCompletion))throw new Error('RC1017 Abholtag task completion anchor not found');
+  src=src.replace(oldTaskCompletion,newTaskCompletion);
+  changed=true;
+}
+
+if(changed)fs.writeFileSync(path,src);
+console.log(changed?'RC1017 task6 applied':'RC1017 task6 already applied');
