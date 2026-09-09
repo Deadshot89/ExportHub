@@ -15,7 +15,7 @@ test('RC1014 Demo-Kern verwendet die isolierte Datenumgebung demo',()=>{
 test('RC1014 Demo-State meldet eine gültige API-Version',()=>{
   const bridge=read('dist-rc1014/assets/rc1014-demo-bridge.js');
   assert.match(bridge,/\/api\/exporthub-state/,'RC1014 Demo-Bridge muss den Fake-State vervollständigen.');
-  assert.match(bridge,/serverVersion:'RC1014'/,'Demo-State muss die aktuelle API-Versionskennung liefern.');
+  assert.match(bridge,/serverVersion\s*(?:=|:)\s*['"]RC1014['"]/,'Demo-State muss die aktuelle API-Versionskennung liefern.');
 });
 
 test('RC1014 Demo-Fix ändert Produktion und TESTSERVICE nicht auf demo',()=>{
