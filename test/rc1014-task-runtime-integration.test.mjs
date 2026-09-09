@@ -34,6 +34,8 @@ test('RC1014 Build bindet Lifecycle und Runtime in Produktion TESTSERVICE und De
     assert.match(html,/assets\/rc1014-task-runtime\.js\?v=1014/);
     const block=taskBlock(html);
     assert.match(block,/const rawOpen=window\.ExportHUBRC1014TaskRuntime\.prepareTasks\(\(state\.tasks\|\|\[\]\),\{/);
+    assert.match(block,/persist:function\(nextTasks\)\{state\.tasks=nextTasks;/,'bestehender state.tasks-Pfad muss der Persistenzcallback bleiben');
+    assert.match(block,/save\('RC1014 Aufgabenstatus aktualisiert'\)/,'bestehender save(reason)-Pfad muss verwendet werden');
     assert.match(block,/dedupeVisibleTasksRC874\(rawOpen\)/,'bestehendes RC874-Dedupe muss erhalten bleiben');
   }
 });
