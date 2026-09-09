@@ -25,6 +25,8 @@ test('RC1017: Ladeliste der Teilsendung nutzt vorhandene PDF-Erzeugung mit tempo
   has(/createPdf\s*\(\s*['"]load1['"]/,'bestehender createPdf-Ladelistenpfad wird nicht wiederverwendet');
   has(/Hauptreferenz/,'Hauptreferenz fehlt auf der Teilladeliste');
   has(/subShipmentLabel/,'Teilsendungsbezeichnung fehlt im Dokumentkontext');
+  has(/rc1017KeepQrInPdf\s*=\s*true/,'Teilsendungsdruck markiert seinen QR nicht als PDF-erlaubt');
+  has(/rc1017KeepQrInPdf[^\n]{0,180}stripQrForPdf/s,'normaler QR-Strip wird für Teilsendungs-PDF nicht gezielt umgangen');
 });
 
 test('RC1017: QR je Teilsendung verwendet Pickup-Init und persistiert keinen Raw-Token in subShipments',()=>{
