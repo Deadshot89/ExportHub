@@ -12,11 +12,13 @@ function replaceOnce(from,to,label){
  src=src.slice(0,at)+to+src.slice(at+from.length);
 }
 
-replaceOnce(
- "const {BlobServiceClient}=require('@azure/storage-blob');\n",
- "const {BlobServiceClient}=require('@azure/storage-blob');\nconst multiTruckPickup=require('./multi-truck-pickup');\n",
- 'multi-truck-pickup require'
-);
+if(!src.includes("const multiTruckPickup=require('./multi-truck-pickup');")){
+ replaceOnce(
+  "const {BlobServiceClient}=require('@azure/storage-blob');\n",
+  "const {BlobServiceClient}=require('@azure/storage-blob');\nconst multiTruckPickup=require('./multi-truck-pickup');\n",
+  'multi-truck-pickup require'
+ );
+}
 
 replaceOnce(
  "shipmentId:r.shipmentId||'',palletOut:",
