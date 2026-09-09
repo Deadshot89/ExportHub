@@ -32,6 +32,10 @@ function injectDemoBridge(html){
   if(!rx.test(html))throw new Error('RC1014 Demo-Bridge: RC1013 Demo-Bootstrap nicht gefunden.');
   return html.replace(rx,`$1\n<script id="exporthub-rc1014-demo-bridge" src="/assets/rc1014-demo-bridge.js?v=1014"></script>`);
 }
+function patchDemoDataEnvironment(html){
+  const search="const DATA_ENVIRONMENT=/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production';";
+  return replaceExactlyOnce(html,search,"const DATA_ENVIRONMENT='demo';",'RC1014 Demo-Datenumgebung');
+}
 function setRc1014Version(html){
   let out=html.replace(/ExportHUB RC1013 environment=/g,'ExportHUB RC1014 environment=');
   out=out.replace(/var BUILD=Object\.freeze\(\{version:'RC1013',cache:'1013',loginReturn:'([^']*)'\}\);/,(_m,ret)=>{
@@ -72,7 +76,10 @@ fs.cpSync(SRC,OUT,{recursive:true});
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   let html=fs.readFileSync(path.join(OUT,file),'utf8');
   html=setRc1014Version(html);
-  if(file==='demo.html')html=injectDemoBridge(html);
+  if(file==='demo.html'){
+    html=patchDemoDataEnvironment(html);
+    html=injectDemoBridge(html);
+  }
   html=rc1014Assets(html);
   html=patchTaskSource(html);
   html=patchShipmentOverviewSource(html);
@@ -96,7 +103,7 @@ const manifest={
   sourceRelease:'RC1013',
   tasks:{lifecycle:'assets/rc1014-task-lifecycle.js',runtime:'assets/rc1014-task-runtime.js',style:'assets/rc1014-task-ui.css'},
   shipmentOverview:{runtime:'assets/rc1014-shipment-overview.js',style:'assets/rc1014-shipment-overview.css',fields:['createdAt','totalColli','colliCount']},
-  demo:{bridge:'assets/rc1014-demo-bridge.js',sessionRestore:true,fixedPickups:'fake-local'},
+  demo:{bridge:'assets/rc1014-demo-bridge.js',sessionRestore:true,dataEnvironment:'demo',fixedPickups:'fake-local'},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 writeOut('rc1014-manifest.json',JSON.stringify(manifest,null,2)+'\n');
