@@ -69,6 +69,20 @@ function stripShipmentPublicAccessSecrets(shipment) {
     if (next === shipment) next = Object.assign({}, shipment);
     delete next[key];
   }
+  const subShipments = shipment.subShipments;
+  if (Array.isArray(subShipments)) {
+    let nextSubShipments = subShipments;
+    for (let index = 0; index < subShipments.length; index++) {
+      const stripped = stripShipmentPublicAccessSecrets(subShipments[index]);
+      if (stripped === subShipments[index]) continue;
+      if (nextSubShipments === subShipments) nextSubShipments = subShipments.slice();
+      nextSubShipments[index] = stripped;
+    }
+    if (nextSubShipments !== subShipments) {
+      if (next === shipment) next = Object.assign({}, shipment);
+      next.subShipments = nextSubShipments;
+    }
+  }
   return next;
 }
 
