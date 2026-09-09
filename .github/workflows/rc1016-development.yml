@@ -5,6 +5,7 @@ on:
     branches: [rc1016-calendar-sop]
     paths:
       - 'assets/rc1014-**'
+      - 'assets/rc1016-**'
       - 'assets/sop/**'
       - 'api/shared/fixed-pickup-store.js'
       - 'api/shared/rc1014-fixed-pickup-seed.js'
@@ -31,7 +32,7 @@ concurrency:
 jobs:
   contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -53,6 +54,8 @@ jobs:
         run: node --test test/rc1014-demo-environment.test.mjs
       - name: Demo-Session und Abholkalender
         run: node --test test/rc1014-demo-session-calendar.test.mjs
+      - name: Demo-Aufgaben auf aktuellem Lifecycle
+        run: node --test test/rc1016-demo-tasks.test.mjs
       - name: RC1016 Drei-Umgebungen-Synchronisierung
         run: node --test test/rc1016-release-sync.test.mjs
       - name: RC1015 Lieferavis Regression
@@ -63,8 +66,11 @@ jobs:
           set -euo pipefail
           node --test --test-name-pattern='RC995 Pickup-Bedienfluss|RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
-      - name: Vollständige Node-Regression
-        run: npm test
+      - name: Vollständige Node-Regression deterministisch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 test/*.test.mjs
       - name: Finaler Drei-Umgebungen-Build und Diff-Prüfung
         shell: bash
         run: |
@@ -76,6 +82,7 @@ jobs:
           grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1016/index.html
           grep -q 'assets/rc1014-shipment-overview.js?v=1016' dist-rc1016/index.html
           grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1015' dist-rc1016/index.html
+          grep -q 'assets/rc1016-demo-task-seed.js?v=1016' dist-rc1016/demo.html
           git diff --check
 
   browser:
