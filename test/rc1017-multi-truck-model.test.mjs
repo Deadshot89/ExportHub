@@ -22,7 +22,7 @@ test('RC1017: Ein-LKW-Sendung erzeugt keine operative Teilsendungsebene',()=>{
 test('RC1017: Überkapazität verteilt ganze physische Einheiten ohne Verlust',()=>{
   const m=loadModel();
   const fitRows=rows=>({fits:rows.reduce((n,r)=>n+Number(r.count||0),0)<=2});
-  const result=m.planSubShipments({shipmentId:'ABC123',rows:[{id:'r1',count:3,weight:300,ldm:.6,type:'Palette'}],fitRows});
+  const result=m.planSubShipments({shipmentId:'ABC123',rows:[{id:'r1',count:3,weight:300,ldm:.2,type:'Palette'}],fitRows});
   assert.equal(result.requiredTruckCount,2);
   assert.deepEqual(plain(result.subShipments.map(x=>x.totalColli)),[2,1]);
   assert.equal(result.subShipments.flatMap(x=>x.rows).reduce((n,r)=>n+r.count,0),3);
