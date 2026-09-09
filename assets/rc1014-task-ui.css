@@ -37,6 +37,10 @@
   font-weight:700;
 }
 
+.rc1014-assignee{
+  font-weight:600;
+}
+
 .rc1014-open-task{
   margin-top:10px;
   min-height:var(--rc990-action-h,40px);
