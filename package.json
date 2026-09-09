@@ -5,7 +5,7 @@
   "type": "module",
   "description": "ExportHUB RC997 – aktueller Website-, API- und Android-Main-Stand",
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test --test-concurrency=1 test/*.test.mjs"
   },
   "engines": {
     "node": ">=20"
