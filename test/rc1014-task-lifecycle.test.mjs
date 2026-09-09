@@ -99,3 +99,63 @@ test('RC1014 dedupliziert Reminder pro Aufgabe Tag Slot Umgebung und Benutzer',(
   const candidates=api.reminderCandidates([p4,other,p1],ctx);
   assert.deepEqual(candidates.map(t=>t.id),['task-1','task-2']);
 });
+
+test('RC1014 Reconcile erledigt POD exakt nach vollständiger Abholung und gültigem POD',()=>{
+  const api=loadApi();
+  const ctx={companyId:'essentra',environment:'production',now:'2026-09-09T10:00:00+02:00'};
+  const task=api.normalizeTask({id:'pod-1',group:'Fehlende POD',sourceType:'pod',sourceId:'S1',sourceRef:'ABC123',status:'open'},ctx);
+  const result=api.reconcile([task],{
+    shipments:[{id:'S1',ref:'ABC123',status:'Abgeholt',podFiles:[{name:'pod.pdf'}],totalColli:2,collectedColli:2}]
+  },ctx);
+  assert.equal(result.tasks[0].status,'done');
+  assert.equal(result.tasks[0].completedBy,'system:pod');
+  assert.equal(result.tasks[0].completedAt,ctx.now);
+  assert.equal(result.changed,true);
+});
+
+test('RC1014 Reconcile lässt POD bei Teilabholung offen',()=>{
+  const api=loadApi();
+  const ctx={companyId:'essentra',environment:'production',now:'2026-09-09T10:00:00+02:00'};
+  const task=api.normalizeTask({id:'pod-partial',group:'Fehlende POD',sourceType:'pod',sourceId:'S1',status:'open'},ctx);
+  const result=api.reconcile([task],{
+    shipments:[{id:'S1',status:'Teilweise abgeholt',podFiles:[{name:'teil.pdf'}],totalColli:3,collectedColli:1}]
+  },ctx);
+  assert.equal(result.tasks[0].status,'open');
+});
+
+test('RC1014 Reconcile erledigt ABD und nur den konkreten Pick',()=>{
+  const api=loadApi();
+  const ctx={companyId:'essentra',environment:'production',now:'2026-09-09T10:00:00+02:00'};
+  const tasks=[
+    api.normalizeTask({id:'abd-1',group:'Offene ABDs',sourceType:'abd',sourceId:'S1',sourceRef:'ABC123',status:'open'},ctx),
+    api.normalizeTask({id:'pick-1',group:'Picks',sourceType:'pick',sourceId:'PICK-1',sourceRef:'ABC123',status:'open'},ctx),
+    api.normalizeTask({id:'pick-2',group:'Picks',sourceType:'pick',sourceId:'PICK-2',sourceRef:'ABC123',status:'open'},ctx)
+  ];
+  const result=api.reconcile(tasks,{
+    shipments:[{id:'S1',ref:'ABC123',abdRequired:true,abdFiles:[{name:'abd.pdf'}]}],
+    picks:[{id:'PICK-1',shipmentRef:'ABC123',status:'completed'},{id:'PICK-2',shipmentRef:'ABC123',status:'open'}]
+  },ctx);
+  assert.equal(result.tasks.find(t=>t.id==='abd-1').status,'done');
+  assert.equal(result.tasks.find(t=>t.id==='abd-1').completedBy,'system:abd');
+  assert.equal(result.tasks.find(t=>t.id==='pick-1').status,'done');
+  assert.equal(result.tasks.find(t=>t.id==='pick-1').completedBy,'system:pick');
+  assert.equal(result.tasks.find(t=>t.id==='pick-2').status,'open');
+});
+
+test('RC1014 Reconcile schließt Sendungen, storniert Storno und erzeugt Wiederholung nur einmal',()=>{
+  const api=loadApi();
+  const ctx={companyId:'essentra',environment:'production',now:'2026-09-09T16:00:00+02:00'};
+  const tasks=[
+    api.normalizeTask({id:'ship-done',group:'Offene Sendungen',sourceType:'shipment',sourceId:'S1',status:'open'},ctx),
+    api.normalizeTask({id:'ship-cancel',group:'Offene Sendungen',sourceType:'shipment',sourceId:'S2',status:'open'},ctx),
+    api.normalizeTask({id:'weekly',group:'Picks',sourceType:'pick',sourceId:'P9',status:'done',recurrence:'weekly',occurrenceKey:'2026-W37'},ctx)
+  ];
+  const domain={shipments:[{id:'S1',status:'Abgeschlossen'},{id:'S2',status:'Storniert'}],picks:[]};
+  const first=api.reconcile(tasks,domain,ctx);
+  assert.equal(first.tasks.find(t=>t.id==='ship-done').status,'done');
+  assert.equal(first.tasks.find(t=>t.id==='ship-cancel').status,'cancelled');
+  const generated=first.tasks.filter(t=>t.id.startsWith('weekly:next:'));
+  assert.equal(generated.length,1);
+  const second=api.reconcile(first.tasks,domain,ctx);
+  assert.equal(second.tasks.filter(t=>t.id.startsWith('weekly:next:')).length,1);
+});
