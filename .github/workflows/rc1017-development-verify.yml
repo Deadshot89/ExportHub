@@ -31,6 +31,7 @@ jobs:
           set -euo pipefail
           node .github/rc1017/apply-pending.cjs
           node .github/rc1017/apply-task4.cjs
+          node .github/rc1017/apply-task5.cjs
       - name: Commit pending RC1017 patch
         shell: bash
         run: |
@@ -41,8 +42,8 @@ jobs:
           fi
           git config user.name 'Deadshot89'
           git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add index.html .github/rc1013/build-three-env.mjs assets/abholkalender.js assets/abholkalender.css api/shared/merge.js
-          git commit -m 'RC1017: Teilsendungsstatus gegen stale Sync schützen'
+          git add index.html .github/rc1013/build-three-env.mjs assets/abholkalender.js assets/abholkalender.css api/shared/merge.js api/pickup-init/index.js api/shared/pickup-store.js
+          git commit -m 'RC1017: eigene QR-Kontexte pro LKW-Teilsendung'
           git push origin HEAD:rc1017-multi-truck-subshipments
       - name: RC1017 targeted tests
         shell: bash
@@ -52,6 +53,8 @@ jobs:
             [ -f "$file" ] || continue
             node --test "$file"
           done
+      - name: Pickup readonly regression
+        run: node --test test/rc1013-pickup-readonly-flow.test.mjs
       - name: Calendar regression
         run: node --test test/rc1012-abholkalender-runtime-integration.test.mjs
       - name: Avis persistence regression
