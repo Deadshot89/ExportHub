@@ -27,11 +27,14 @@ function insertAfterOnce(path,anchor,insertion,marker){
 }
 
 let changed=false;
-changed=replaceOnce(
-  'assets/abholkalender.js',
-  "  function shipmentCustomer(shipment){ return String(shipment && (shipment.customer || shipment.customerName || shipment.recipient || shipment.locationName) || 'Ohne Kunde'); }",
-  "  function shipmentCustomer(shipment){ return String(shipment && (shipment.customerName || shipment.customer || shipment.recipientCustomerName || shipment.recipient || shipment.locationName) || 'Ohne Kunde'); }"
-)||changed;
+const calendarSource=fs.readFileSync('assets/abholkalender.js','utf8');
+if(!calendarSource.includes('function calendarScalarText(value)')){
+  changed=replaceOnce(
+    'assets/abholkalender.js',
+    "  function shipmentCustomer(shipment){ return String(shipment && (shipment.customer || shipment.customerName || shipment.recipient || shipment.locationName) || 'Ohne Kunde'); }",
+    "  function shipmentCustomer(shipment){ return String(shipment && (shipment.customerName || shipment.customer || shipment.recipientCustomerName || shipment.recipient || shipment.locationName) || 'Ohne Kunde'); }"
+  )||changed;
+}
 
 changed=replaceOnce(
   'assets/abholkalender.js',
