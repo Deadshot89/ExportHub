@@ -119,7 +119,7 @@ function rc1015AvisMailVariant(clean,u,reference,lang){
 function rc1015InjectMailBody(sh,target,body,langOverride){
  if(!base)return String(body==null?'':body);
  if(target==='customer'&&rc1018AvisException(sh))return stripAvisBlocks(body);
- if(target!=='customer'||!rc1018Enabled(sh))return typeof base.injectMailBody==='function'?base.injectMailBody(sh,target,body,langOverride):String(body==null?'':body);
+ if(target!=='customer'||!base.enabled(sh))return typeof base.injectMailBody==='function'?base.injectMailBody(sh,target,body,langOverride):String(body==null?'':body);
  var clean=stripAvisBlocks(body),u=q(base.link&&base.link(sh)),reference=q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId)),lang=q(langOverride).toLowerCase()==='en'?'en':'de';
  if(!u)return clean;
  return rc1015AvisMailVariant(clean,u,reference,lang)
