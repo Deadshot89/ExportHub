@@ -6,6 +6,11 @@ const html=fs.readFileSync('index.html','utf8');
 const build=fs.readFileSync('.github/rc1016/build-three-env.mjs','utf8');
 
 function count(haystack,needle){return haystack.split(needle).length-1;}
+function functionSlice(name,max=30000){
+  const start=html.indexOf('function '+name+'(');
+  assert.notEqual(start,-1,name+' fehlt');
+  return html.slice(start,start+max);
+}
 
 test('RC1017: Mehr-LKW-Modell wird vom aktuellen Drei-Umgebungen-Build ausgeliefert',()=>{
   assert.match(build,/rc1017-multi-truck\.js/);
@@ -18,13 +23,15 @@ test('RC1017: Browserintegration nutzt ausschließlich den bestehenden buildStow
   assert.equal(count(html,'function rc1017FitRows('),1);
 });
 
-test('RC1017: Teilsendungen werden vor Persistenz in der Hauptsendung synchronisiert und validiert',()=>{
+test('RC1017: Teilsendungen werden am finalen Saved-Objekt vor dem State-Write synchronisiert und validiert',()=>{
   assert.match(html,/function\s+rc1017SyncSubShipments\s*\(/);
   assert.match(html,/requiredTruckCount/);
   assert.match(html,/subShipments/);
   assert.match(html,/multiTruckLocked/);
   assert.match(html,/validatePartition/);
-  assert.match(html,/persistShipment[\s\S]{0,5000}rc1017SyncSubShipments|rc1017SyncSubShipments[\s\S]{0,5000}persistShipment/);
+  const persist=functionSlice('persistShipment');
+  assert.match(persist,/rc1017SyncSubShipments\(saved\)/);
+  assert.match(persist,/rc1017SyncSubShipments\(saved\)[\s\S]{0,2500}s\.shipments/);
 });
 
 test('RC1017: operative Teilsendungsaktivität sperrt automatische Neuverteilung',()=>{
