@@ -6,6 +6,7 @@ on:
       - feature/multi-truck-shipment-split
     paths:
       - '.github/rc1017/apply.mjs'
+      - '.github/rc1017/apply-*.mjs'
       - '.github/workflows/rc1017-apply.yml'
 
 permissions:
@@ -24,8 +25,13 @@ jobs:
           node-version: '20'
       - name: Install API dependencies
         run: npm --prefix api install --ignore-scripts
-      - name: Apply RC1017 source patch
-        run: node .github/rc1017/apply.mjs
+      - name: Apply RC1017 source patches
+        run: |
+          node .github/rc1017/apply.mjs
+          for patch in .github/rc1017/apply-*.mjs; do
+            [ -f "$patch" ] || continue
+            node "$patch"
+          done
       - name: RC1017 contract tests
         run: node --test test/rc1017-*.test.mjs
       - name: Build current shared environments
