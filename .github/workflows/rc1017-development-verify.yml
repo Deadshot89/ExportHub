@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rc1017-development-${{ github.ref }}
@@ -18,9 +18,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Apply pending RC1017 patch
+        run: node .github/rc1017/apply-pending.cjs
+      - name: Commit pending RC1017 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No pending production patch.'
+            exit 0
+          fi
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add assets/abholkalender.js assets/abholkalender.css
+          git commit -m 'RC1017: Abholkalender farblich unterscheiden'
+          git push origin HEAD:rc1017-multi-truck-subshipments
       - name: RC1017 targeted tests
         shell: bash
         run: |
@@ -29,5 +46,7 @@ jobs:
             [ -f "$file" ] || continue
             node --test "$file"
           done
+      - name: Calendar regression
+        run: node --test test/rc1012-abholkalender-runtime-integration.test.mjs
       - name: Full regression
         run: npm test
