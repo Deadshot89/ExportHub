@@ -23,7 +23,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -36,6 +36,18 @@ jobs:
         run: node --test test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs
       - name: Shell-Cache darf keinen alten Palettenkonto-Code halten
         run: node --test test/rc1018-shell-cache-pallet-release.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
+      - name: Drei Umgebungen gemeinsam bauen und prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1018/build-three-env.mjs
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'Sendungsreferenz optional<input id="rc542PalRef" placeholder="optional">' "dist-rc1018/$file"
+            ! grep -q "if(dir==='Ausgang'&&!ref)return alert('Für einen Ausgang ist die Sendungsreferenz Pflicht.');" "dist-rc1018/$file"
+          done
+          git diff --check
       - name: Chromium installieren
         run: |
           npm install --no-save playwright@1.55.0
@@ -43,7 +55,6 @@ jobs:
       - name: Palettenkonto Eingang und Ausgang ohne Referenz im Browser
         shell: bash
         run: |
-          node .github/rc1018/build-three-env.mjs
           python3 -m http.server 4173 --directory dist-rc1018 >/tmp/rc1018-pallet-server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
