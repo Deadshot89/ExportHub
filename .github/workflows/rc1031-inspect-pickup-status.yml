@@ -15,20 +15,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Hauptclient und Quellen nach pickup-status durchsuchen
+      - name: QR-Synchronisation und Resetpfad untersuchen
         run: |
           node - <<'NODE'
-          const fs=require('fs'),path=require('path');
-          function scan(file){
-            const s=fs.readFileSync(file,'utf8');let at=0,n=0;
-            while((at=s.indexOf('pickup-status',at))>=0){
-              n++;console.log('\n### '+file+' Treffer '+n+' @ '+at+' ###');
-              console.log(s.slice(Math.max(0,at-900),Math.min(s.length,at+1300)).replace(/\n/g,' '));
-              at+=13;
-            }
-          }
-          scan('TESTVERSION.html');
-          for(const dir of ['assets','.github']){
-            const walk=d=>fs.readdirSync(d,{withFileTypes:true}).forEach(e=>{const p=path.join(d,e.name);if(e.isDirectory())walk(p);else if(/\.(?:js|mjs|cjs|html|py|yml)$/.test(e.name)){const s=fs.readFileSync(p,'utf8');if(s.includes('pickup-status'))scan(p)}});walk(dir);
+          const fs=require('fs');const s=fs.readFileSync('TESTVERSION.html','utf8');
+          for(const needle of ['serverMissUntil','function tokensFor(','function resetPickupServer(','function syncOne(','function syncAll(']){
+            let at=0,n=0;while((at=s.indexOf(needle,at))>=0){n++;console.log('\n### '+needle+' '+n+' @ '+at+' ###');console.log(s.slice(Math.max(0,at-1400),Math.min(s.length,at+3600)).replace(/\n/g,' '));at+=needle.length}
           }
           NODE
