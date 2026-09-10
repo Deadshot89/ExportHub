@@ -15,8 +15,31 @@ function replaceBetween(source,startMarker,endMarker,replacement,label){
   return source.slice(0,start)+replacement+source.slice(end);
 }
 
+function patchCalendarRightsEditor(html){
+  const open='<script data-inline-source="assets/rc544-auth.js">';
+  const start=html.indexOf(open);
+  const end=start<0?-1:html.indexOf('</script>',start+open.length);
+  if(start<0||end<=start)throw new Error('RC1019 Kalenderfreigabe: aktiver RC544-Rechteeditor nicht gefunden.');
+  let block=html.slice(start,end+'</script>'.length);
+  const labelOld="archive:'Archiv',settings:'Einstellungen'};";
+  const labelNew="archive:'Archiv',settings:'Einstellungen',pickupcalendar:'Abholkalender'};";
+  if(!block.includes("pickupcalendar:'Abholkalender'")){
+    if(block.split(labelOld).length-1!==1)throw new Error('RC1019 Kalenderfreigabe: LABELS-Anker im RC544-Rechteeditor nicht eindeutig.');
+    block=block.replace(labelOld,labelNew);
+  }
+  const orderOld="'reports','update','teamfile','archive','settings'];";
+  const orderNew="'reports','update','teamfile','archive','settings','pickupcalendar'];";
+  if(!block.includes("'settings','pickupcalendar']")){
+    if(block.split(orderOld).length-1!==1)throw new Error('RC1019 Kalenderfreigabe: VALID_RIGHTS_ORDER-Anker im RC544-Rechteeditor nicht eindeutig.');
+    block=block.replace(orderOld,orderNew);
+  }
+  if(!block.includes("pickupcalendar:'Abholkalender'")||!block.includes("'settings','pickupcalendar']"))throw new Error('RC1019 Kalenderfreigabe: Abholkalender wurde im RC544-Rechteeditor nicht aktiviert.');
+  return html.slice(0,start)+block+html.slice(end+'</script>'.length);
+}
+
 export function patchCriticalShipmentFlow(html){
   let out=replaceBetween(html,'function locations(c){var all=[]','function findLocation(c,v)',RC565_LOCATIONS,'RC565 Standortliste');
   out=replaceBetween(out,'function locationList(c){var map={},out=[];','function savedLocationId(sh,list)',INDEX289_LOCATION_LIST,'Index289 Standortliste');
+  out=patchCalendarRightsEditor(out);
   return out;
 }

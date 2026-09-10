@@ -10,6 +10,14 @@ async function validateSession(req){
   return auth.validateSession(req);
 }
 
+function canEditPickupCalendar(user){
+  if (auth.isAdmin(user)) return true;
+  const right = user && user.rights && user.rights.pickupcalendar;
+  if (!right || typeof right !== 'object') return false;
+  const level = String(right.level || right.access || '').trim().toLowerCase();
+  return right.edit === true || right.admin === true || right.functionAdmin === true || level === 'edit' || level === 'admin';
+}
+
 module.exports = async function(context, req){
   const method = String(req && req.method || 'GET').toUpperCase();
   if (method === 'OPTIONS') { context.res = auth.json(204, {}); return; }
@@ -19,14 +27,14 @@ module.exports = async function(context, req){
     const company = companies.resolveCompanyContext(req, session.user);
     const payload = auth.body(req);
     const environment = store.resolveEnvironment(req, payload);
-    const admin = auth.isAdmin(session.user);
+    const canEdit = canEditPickupCalendar(session.user);
     if (method === 'GET') {
-      const includeInactive = admin && String(req && req.query && req.query.includeInactive || '') === '1';
+      const includeInactive = canEdit && String(req && req.query && req.query.includeInactive || '') === '1';
       const items = await store.list(environment, company.companyKey, { includeInactive });
-      context.res = auth.json(200, {ok:true,items,canEdit:admin,environment,companyKey:company.companyKey});
+      context.res = auth.json(200, {ok:true,items,canEdit,environment,companyKey:company.companyKey});
       return;
     }
-    if (!admin) throw auth.error('ADMIN_REQUIRED', 'Nur Administratoren dürfen fixe Abholungen ändern.', 403);
+    if (!canEdit) throw auth.error('ADMIN_REQUIRED', 'Für fixe Abholungen wird das Kalenderrecht Bearbeiten oder Funktions-Admin benötigt.', 403);
     const actor = session.user.name || session.user.user || session.user.login || 'Admin';
     if (method === 'POST') { const item = await store.create(environment, company.companyKey, payload, actor); context.res = auth.json(201, {ok:true,item}); return; }
     const id = String(payload.id || '').trim();
