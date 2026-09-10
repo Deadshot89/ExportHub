@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {patchCriticalShipmentFlow} from './patch-calendar-shipment.mjs';
+import {patchCalendarUserPermissions} from './patch-calendar-user-permissions.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1016');
@@ -96,6 +97,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   html=bridgeMultiTruckSaveRuntime(html);
   if(file!=='index.html')html=replaceScriptBlock(html,SHIPMENT_CONTROLLER_ID,canonicalShipmentController);
   html=patchCriticalShipmentFlow(html);
+  html=patchCalendarUserPermissions(html);
   html=setVersion(html);
   html=injectSopImages(html);
   html=injectBeforeHeadClose(html,MAIL_TAG,'exporthub-rc1018-mail-language-standard');
@@ -116,11 +118,11 @@ const manifest={
   cache:CACHE,
   sourceRelease:'RC1016',
   retainedReleaseAssets:{multiTruck:'assets/rc1017-multi-truck.js'},
-  synchronizedRuntime:{shipmentController:SHIPMENT_CONTROLLER_ID,multiTruck:true,multiTruckSaveBridge:true,mainAddressWithLocations:true},
+  synchronizedRuntime:{shipmentController:SHIPMENT_CONTROLLER_ID,multiTruck:true,multiTruckSaveBridge:true,mainAddressWithLocations:true,calendarUserPermissions:true},
   sop:{systemImages:'assets/sop/rc1018-sop-system-images.js',screenshotDirectory:'assets/sop/screenshots'},
   mail:{runtime:'assets/rc1018-mail-language-standard.js',targets:['customer','carrier'],languages:['de','en'],exclusiveModes:['details','avis']},
   publicLanguage:{runtime:'assets/rc1018-public-language.js',pages:['customer-avis.html','pickup.html','location.html'],languages:['de','en']},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 write('rc1018-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1018 build ready: Mehr-LKW-Speicherbrücke, Hauptadresse plus Zusatzstandorte, Lieferavis-Draft, Mailvorlagen, SOP-Systembilder und DE/EN in Produktion, TESTSERVICE und Demo.');
+console.log('RC1018 build ready: Mehr-LKW-Speicherbrücke, Hauptadresse plus Zusatzstandorte, Kalender-Benutzerrechte, Lieferavis-Draft, Mailvorlagen, SOP-Systembilder und DE/EN in Produktion, TESTSERVICE und Demo.');
