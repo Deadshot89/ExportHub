@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const runtimeSource = fs.readFileSync('assets/rc1012-abholkalender-runtime.js','utf8');
+const rc1013BuilderSource = fs.readFileSync('.github/rc1013/build-three-env.mjs','utf8');
 
 function loadRuntime(){
   const opened=[];
@@ -61,4 +62,9 @@ test('RC1030: Kalender öffnet über die echte kanonische ExportHUB-Sendungsansi
   assert.equal(typeof mountOptions.onOpenShipment,'function');
   mountOptions.onOpenShipment({id:'S-2',reference:'DEF456'});
   assert.deepEqual(opened,[['DEF456','pickupcalendar']]);
+});
+
+test('RC1030: aktiver Drei-Umgebungen-Build erzwingt eine frische Kalender-Runtime',()=>{
+  assert.match(rc1013BuilderSource,/rc1012-abholkalender-runtime\.js\?v=1030/);
+  assert.doesNotMatch(rc1013BuilderSource,/rc1012-abholkalender-runtime\.js\?v=1012/);
 });
