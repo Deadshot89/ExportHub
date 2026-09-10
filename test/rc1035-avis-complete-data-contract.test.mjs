@@ -37,11 +37,16 @@ test('closed Avis stays read-only but keeps shipment documents and POD readable'
   assert.doesNotMatch(closedBranch[1], /avisForm/);
 });
 
-test('Avis API keeps documents in the read-only payload after actual pickup', () => {
+test('Avis API keeps released documents and POD in the read-only payload after actual pickup', () => {
   const actualBranch = avisApi.match(/if\(actual\)return\{([^;]+)\};/);
   assert.ok(actualBranch, 'actual-pickup payload must exist');
   assert.match(actualBranch[1], /documents:docs/);
   assert.match(actualBranch[1], /pod:\{[^}]*documents:podDocs/);
+});
+
+test('released Avis attachments remain downloadable after pickup while appointment changes stay blocked', () => {
+  assert.doesNotMatch(avisApi, /if\(dateTimeOf\(sh\)&&doc\.category!==['"]POD['"]\)throw error\(['"]AVIS_CLOSED['"]/);
+  assert.match(avisApi, /if\(dateTimeOf\(target\)\)throw error\(['"]AVIS_CLOSED['"]/);
 });
 
 test('Avis API derives public data from the current persisted shipment and keeps appointment persistence', () => {
