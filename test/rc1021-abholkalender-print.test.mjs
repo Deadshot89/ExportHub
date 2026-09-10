@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const jsSource = fs.readFileSync('assets/abholkalender.js','utf8');
+const runtimeSource = fs.readFileSync('assets/rc1012-abholkalender-runtime.js','utf8');
 const sandbox = { module:{exports:{}}, exports:{}, globalThis:{} };
 vm.runInNewContext(jsSource,sandbox,{filename:'assets/abholkalender.js'});
 const calendar = sandbox.module.exports;
@@ -32,14 +33,15 @@ test('Druckansicht enthält exakt Montag bis Freitag und nur kompakte Abholdaten
   assert.match(html,/Anzahl:\s*7/);
 });
 
-test('Druck öffnet ein eigenständiges Druckdokument statt die ExportHUB-Webseite zu drucken', () => {
-  assert.match(jsSource,/root\.open\(/);
-  assert.match(jsSource,/document\.write\(/);
-  assert.match(jsSource,/<!doctype html>/i);
-  assert.doesNotMatch(jsSource,/body\.classList\.add\(['"]pickup-print-active['"]\)/);
+test('Druck wird in ein eigenständiges Dokument umgeleitet statt die ExportHUB-Webseite zu drucken', () => {
+  assert.match(runtimeSource,/nativePrint/);
+  assert.match(runtimeSource,/pickup-print-active/);
+  assert.match(runtimeSource,/document\.createElement\(['"]iframe['"]\)/);
+  assert.match(runtimeSource,/contentWindow\.print\(/);
+  assert.match(runtimeSource,/<!doctype html>/i);
 });
 
 test('Eigenständiges Druckdokument definiert A4 quer und fünf Wochentage', () => {
-  assert.match(jsSource,/@page\s*\{[^}]*size:\s*A4\s+landscape/i);
-  assert.match(jsSource,/grid-template-columns:\s*repeat\(5/i);
+  assert.match(runtimeSource,/@page\s*\{[^}]*size:\s*A4\s+landscape/i);
+  assert.match(runtimeSource,/grid-template-columns:\s*repeat\(5/i);
 });
