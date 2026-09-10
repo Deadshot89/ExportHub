@@ -22,7 +22,7 @@ test('RC1016 baut Produktion TESTSERVICE und Demo auf demselben Versionsstand',(
     assert.match(html,/assets\/rc1014-task-lifecycle\.js\?v=1016/);
     assert.match(html,/assets\/rc1014-task-runtime\.js\?v=1016/);
     assert.match(html,/assets\/rc1014-shipment-overview\.js\?v=1016/);
-    assert.match(html,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1015/,'RC1015 Lieferavis-Fix muss erhalten bleiben');
+    assert.match(html,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1021/,'RC1015 Lieferavis-Fix muss mit aktuellem Cache-Key erhalten bleiben');
   }
 });
 
