@@ -39,7 +39,7 @@ module.exports = async function(context, req){
       context.res = auth.json(200, {ok:true,items,canEdit:access.canEdit,calendarAccess:access.level,environment,companyKey:company.companyKey});
       return;
     }
-    if (!access.canEdit) throw auth.error('CALENDAR_EDIT_REQUIRED', 'Für fixe Abholungen ist das Recht Abholkalender – Bearbeiten oder Admin erforderlich.', 403);
+    if (!access.canEdit) throw auth.error('ADMIN_REQUIRED', 'Für fixe Abholungen ist das Recht Abholkalender – Bearbeiten oder Admin erforderlich.', 403);
     const actor = session.user.name || session.user.user || session.user.login || 'Benutzer';
     if (method === 'POST') { const item = await store.create(environment, company.companyKey, payload, actor); context.res = auth.json(201, {ok:true,item}); return; }
     const id = String(payload.id || '').trim();
