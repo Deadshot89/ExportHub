@@ -117,7 +117,7 @@ async function shipmentShots(page){
   await targetShot(page,['Dokumente','CMR'],'rc1018-documents-cmr.png');
   await targetShot(page,['ABD','Ausfuhrbegleitdokument'],'rc1018-abd.png');
   await targetShot(page,['QR-Abholung','Abholung','QR-Code'],'rc1018-qr-pickup.png');
-  await targetShot(page,['Mail','E-Mail','Kundenmail','Spedition'],'rc1018-mail.png');
+  await elementShot(page,'#rc543MailArea','rc1018-mail.png');
 
   const avis=page.locator('#rc897LieferavisPanel').first();
   if(await avis.count()&&await avis.isVisible().catch(()=>false)){
