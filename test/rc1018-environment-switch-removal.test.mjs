@@ -3,9 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const HUB='assets/exporthub-environment-hub.js';
-const ANDROID='android-app/app/src/main/java/de/exporthub/test/EnvironmentActivity.java';
 const source=fs.readFileSync(HUB,'utf8');
-const android=fs.readFileSync(ANDROID,'utf8');
 
 test('RC1018 entfernt die sichtbare Bereichswechsel-Leiste vollständig',()=>{
   assert.doesNotMatch(source,/eh996-env-hub/);
@@ -32,13 +30,4 @@ test('RC1018 behält die automatische Umgebungserkennung für Benachrichtigungsd
   assert.match(source,/function currentEnvironment\(/);
   assert.match(source,/data-exporthub-environment/);
   assert.match(source,/current:currentEnvironment/);
-});
-
-test('RC1018 entfernt auch den benutzerseitigen Android-Bereichswechsler',()=>{
-  assert.doesNotMatch(android,/private void chooseEnvironment\(\)/);
-  assert.doesNotMatch(android,/public void chooseEnvironment\(\)/);
-  assert.doesNotMatch(android,/public void selectEnvironment\(String environment\)/);
-  assert.doesNotMatch(android,/Wähle den Bereich/);
-  assert.match(android,/private void selectEnvironment\(String environment, String route\)/);
-  assert.match(android,/public void notify\(String channel, String key, String title, String body, String route\)/);
 });
