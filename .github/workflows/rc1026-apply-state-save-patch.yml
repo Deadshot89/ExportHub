@@ -6,6 +6,7 @@ on:
       - rc1026-state-save-payload-performance
     paths:
       - scripts/rc1026-apply-state-save-patch.mjs
+      - test/rc1026-state-save-payload-performance.test.mjs
       - .github/workflows/rc1026-apply-state-save-patch.yml
 
 permissions:
