@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const file=path.join(process.cwd(),'assets/rc1018-mail-language-standard.js');
+const ROOT=process.cwd();
+const file=path.join(ROOT,'assets/rc1018-mail-language-standard.js');
 let source=fs.readFileSync(file,'utf8');
 const replacements=[
   ['A separate confirmation of the shipment details by email is not required.','A separate confirmation by email is not required.'],
@@ -13,4 +14,19 @@ for(const [before,after] of replacements){
   if(source.includes(before))source=source.replaceAll(before,after);
 }
 fs.writeFileSync(file,source);
-console.log('RC1018 Lieferavis-Wortlaut strikt von Sendungsdetails getrennt.');
+
+const RC1027_ID='exporthub-rc1027-lieferavis-immediate';
+const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavis-immediate.js?v=1027"></script>';
+function injectRc1027(rel){
+  const target=path.join(ROOT,rel);
+  if(!fs.existsSync(target))return false;
+  let html=fs.readFileSync(target,'utf8');
+  if(html.includes('id="'+RC1027_ID+'"')||html.includes("id='"+RC1027_ID+"'"))return false;
+  const close=html.search(/<\/head\s*>/i);
+  if(close<0)throw new Error(rel+': </head> für RC1027 Lieferavis-Layer fehlt.');
+  html=html.slice(0,close)+RC1027_TAG+'\n'+html.slice(close);
+  fs.writeFileSync(target,html);
+  return true;
+}
+for(const page of ['index.html','TESTVERSION.html','demo.html'])injectRc1027(page);
+console.log('RC1027 Lieferavis: exklusive externe Mailvorlage und sofortige Linkerzeugung für den Drei-Umgebungen-Build aktiviert.');
