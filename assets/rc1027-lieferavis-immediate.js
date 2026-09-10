@@ -70,8 +70,9 @@ function ensureReference(sh){
 }
 function eligible(sh){return !!(sh&&customerName(sh)&&selectedLocation(sh)&&!exception(sh)&&!manualDisabled(sh)&&!closed(sh))}
 async function ensureCustomerAvis(reason){
- var sh=shipment();if(!eligible(sh))return false;
+ var sh=shipment();if(!sh)return false;
  if(avisUrl(sh))return true;
+ if(!eligible(sh))return false;
  var ref=ensureReference(sh);if(!ref||!previous||typeof previous.toggle!=='function')return false;
  if(earlyPending)return earlyPending;
  earlyPending=(async function(){
