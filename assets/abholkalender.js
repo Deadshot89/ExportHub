@@ -241,8 +241,48 @@
   function renderDay(day){
     return `<section class="pickup-day"><header><span>${esc(day.label)}</span><small>${formatDate(day.date)}</small></header>${renderSection('FIX',day.fixed,item=>renderFixCard(item,false),'Keine')}${renderSection('SENDUNG',day.shipments,renderShipmentCard,'Keine')}</section>`;
   }
+  function renderPrintFixed(item){
+    return `<div class="pickup-print-entry"><strong>${esc(item && item.siteLabel)}</strong></div>`;
+  }
+  function renderPrintShipment(shipment){
+    const collis = shipmentColliState(shipment);
+    const ref = shipmentRef(shipment);
+    return `<div class="pickup-print-entry pickup-print-entry-confirmed"><strong>${esc(shipmentCustomer(shipment))}</strong><small>Ref: ${esc(ref)} · Anzahl: ${collis.expected}</small></div>`;
+  }
+  function renderPrintDay(day){
+    const entries = [];
+    for (const item of day.fixed || []) entries.push(renderPrintFixed(item));
+    for (const shipment of day.shipments || []) entries.push(renderPrintShipment(shipment));
+    return `<section class="pickup-print-day"><h3>${esc(day.label)}</h3><div class="pickup-print-date">${formatDate(day.date)}</div><div class="pickup-print-entries">${entries.length ? entries.join('') : '<span class="pickup-print-empty">—</span>'}</div></section>`;
+  }
+  function renderPrintWeek(model){
+    const safeModel = model && Array.isArray(model.days) ? model : {days:[],weekStart:null,weekEnd:null};
+    return `<section class="pickup-print-sheet"><header class="pickup-print-head"><div><h1>Abholplan</h1><p>Wochenübersicht</p></div><div class="pickup-print-meta"><span>Woche</span><strong>${esc(formatWeekLabel(safeModel))}</strong></div></header><div class="pickup-print-week">${safeModel.days.map(renderPrintDay).join('')}</div></section>`;
+  }
+  function printCurrentWeek(){
+    if (!mountedState || !root || !root.document || !root.document.body || typeof root.print !== 'function') return false;
+    const model = buildCalendarModel({today:mountedOptions && mountedOptions.today || new Date(),weekOffset:mountedState.weekOffset,fixedPickups:mountedState.fixedPickups,shipments:mountedState.shipments});
+    const doc = root.document;
+    const body = doc.body;
+    const previous = body.querySelector('.pickup-print-portal');
+    if (previous) previous.remove();
+    const portal = doc.createElement('div');
+    portal.className = 'pickup-print-portal';
+    portal.innerHTML = renderPrintWeek(model);
+    body.appendChild(portal);
+    body.classList.add('pickup-print-active');
+    const cleanup = () => {
+      body.classList.remove('pickup-print-active');
+      if (portal.parentNode) portal.parentNode.removeChild(portal);
+      if (root.removeEventListener) root.removeEventListener('afterprint',cleanup);
+    };
+    if (root.addEventListener) root.addEventListener('afterprint',cleanup,{once:true});
+    root.print();
+    if (root.setTimeout) root.setTimeout(cleanup,1000);
+    return true;
+  }
   function renderWeekToolbar(model){
-    return `<div class="pickup-week-toolbar"><div><span class="pickup-eyebrow">Wochenansicht</span><h3 class="pickup-week-label">${esc(formatWeekLabel(model))}</h3></div><div class="pickup-week-actions"><button type="button" data-pickup-action="week-prev">← Vorherige Woche</button><button type="button" data-pickup-action="week-current"${model.weekOffset===0?' aria-current="true"':''}>Aktuelle Woche</button><button type="button" data-pickup-action="week-next">Nächste Woche →</button></div></div>`;
+    return `<div class="pickup-week-toolbar"><div><span class="pickup-eyebrow">Wochenansicht</span><h3 class="pickup-week-label">${esc(formatWeekLabel(model))}</h3></div><div class="pickup-week-actions"><button type="button" data-pickup-action="week-prev">← Vorherige Woche</button><button type="button" data-pickup-action="week-current"${model.weekOffset===0?' aria-current="true"':''}>Aktuelle Woche</button><button type="button" data-pickup-action="week-next">Nächste Woche →</button><button type="button" class="pickup-primary" data-pickup-action="print-week">Wochenplan drucken</button></div></div>`;
   }
   function renderForm(state){
     if (!state.canEdit) return '';
@@ -324,6 +364,7 @@
       if (action === 'week-prev') { setWeekOffset(mountedState.weekOffset-1); return; }
       if (action === 'week-current') { setWeekOffset(0); return; }
       if (action === 'week-next') { setWeekOffset(mountedState.weekOffset+1); return; }
+      if (action === 'print-week') { printCurrentWeek(); return; }
       if (action === 'open-shipment') {
         const shipment = findShipment(button.getAttribute('data-pickup-shipment-key'));
         if (shipment) triggerOpenShipment(shipment,mountedOptions);
@@ -368,7 +409,7 @@
     bindEvents();
     render(mountedRoot,mountedState,mountedOptions.today);
     loadFixedPickups();
-    return { state: mountedState, refresh: loadFixedPickups, setShipments, setWeekOffset };
+    return { state: mountedState, refresh: loadFixedPickups, setShipments, setWeekOffset, printWeek: printCurrentWeek };
   }
   function setShipments(shipments, errorMessage){
     if (!mountedState || !mountedRoot) return;
@@ -392,6 +433,8 @@
     weekdayLabel,
     dateKeyLocal,
     createViewState,
+    renderPrintWeek,
+    printCurrentWeek,
     render,
     mount,
     setShipments,
