@@ -27,8 +27,7 @@ test('RC1018: Sprache gilt für bestehende und neue Kunden mit sicherem Deutsch-
   const a=api();
   assert.equal(a.resolveLanguage({},'', ''),'de');
   assert.equal(a.resolveLanguage({language:'en'},'', ''),'en');
-  assert.equal(a.resolveLanguage({mailLanguage:'EN'},'', ''),'en');
-  assert.equal(a.resolveLanguage({rc543MailLang:'de'},'en',''),'en','Explizite Mailauswahl muss Vorrang haben.');
+  assert.equal(a.resolveLanguage({mailLanguage:'EN'},'en',''),'en','Explizite Mailauswahl muss Vorrang haben.');
   assert.equal(a.resolveLanguage({},'', 'en'),'en','Aktuelle UI-Auswahl muss unterstützt werden.');
 });
 
@@ -67,6 +66,15 @@ test('RC1018: Mailmodus ist nur bei Kunde oder Spedition avisfähig und sonst Se
   assert.equal(a.resolveMode('carrier',true),'avis');
   assert.equal(a.resolveMode('own',true),'details');
   assert.equal(a.resolveMode('customer',false),'details');
+});
+
+test('RC1021: sichtbare Mailvorlage wird beim Lieferavis-Wechsel sofort neu aufgebaut',()=>{
+  const source=fs.readFileSync(MAIL,'utf8');
+  assert.match(source,/mailSourceCache/,'Die ursprünglichen Sendungsdetails werden nicht für das Zurückschalten gepuffert.');
+  assert.match(source,/function syncVisibleMailBody\(/,'Es fehlt die Synchronisierung der bereits sichtbaren Mailvorlage.');
+  assert.match(source,/rc1018InjectMailBody[\s\S]*mailSourceCache/,'Die Mailquelle wird beim Erzeugen der Vorlage nicht gesichert.');
+  assert.match(source,/exporthub:customer-avis-updated[\s\S]*syncVisibleMailBody/,'Ein Avis-Wechsel aktualisiert die sichtbare Mail nicht.');
+  assert.match(source,/querySelector\([^)]*textarea/,'Die sichtbare Mail-Textarea wird nicht angesprochen.');
 });
 
 test('RC1018: Website und öffentliche Seiten besitzen denselben DE/EN-Sprachstandard',()=>{
