@@ -3,6 +3,77 @@
   if (!window || window.__EXPORTHUB_RC1012_PICKUPCALENDAR_RUNTIME__) return;
   window.__EXPORTHUB_RC1012_PICKUPCALENDAR_RUNTIME__ = true;
 
+  const nativePrint = typeof window.print === 'function' ? window.print.bind(window) : null;
+
+  function installPickupPrintIsolation(){
+    if (!nativePrint || !window.document || window.__EXPORTHUB_PICKUP_PRINT_ISOLATION__) return;
+    window.__EXPORTHUB_PICKUP_PRINT_ISOLATION__ = true;
+    window.print = function(){
+      const doc = window.document;
+      const body = doc.body;
+      const portal = body && body.querySelector && body.querySelector('.pickup-print-portal');
+      if (!body || !portal || !body.classList || !body.classList.contains('pickup-print-active')) return nativePrint();
+
+      const frame = doc.createElement('iframe');
+      frame.setAttribute('aria-hidden','true');
+      frame.style.position = 'fixed';
+      frame.style.right = '0';
+      frame.style.bottom = '0';
+      frame.style.width = '1px';
+      frame.style.height = '1px';
+      frame.style.border = '0';
+      frame.style.opacity = '0';
+      body.appendChild(frame);
+
+      const printWindow = frame.contentWindow;
+      const printDocument = frame.contentDocument || (printWindow && printWindow.document);
+      if (!printWindow || !printDocument) {
+        if (frame.parentNode) frame.parentNode.removeChild(frame);
+        return nativePrint();
+      }
+
+      const printHtml = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Abholplan</title><style>
+@page{size:A4 landscape;margin:8mm}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+.pickup-print-sheet{display:grid;grid-template-rows:auto 1fr;gap:5mm;width:100%;height:190mm;overflow:hidden}
+.pickup-print-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid #555;padding:0 0 3mm}
+.pickup-print-head h1{margin:0;font-size:22pt;line-height:1;font-weight:800}
+.pickup-print-head p{margin:1.5mm 0 0;font-size:10pt}
+.pickup-print-meta{display:grid;grid-template-columns:auto auto;gap:1mm 3mm;align-items:center;font-size:9pt}
+.pickup-print-meta span{font-weight:400}.pickup-print-meta strong{font-weight:700}
+.pickup-print-week{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid #666;min-height:0}
+.pickup-print-day{display:block;min-width:0;border-right:1px solid #888;padding:0 3mm 3mm;overflow:hidden}
+.pickup-print-day:last-child{border-right:0}
+.pickup-print-day h3{display:block;margin:0 -3mm;padding:2.5mm 2mm;text-align:center;font-size:11pt;border-bottom:1px solid #999;background:#f2f2f2}
+.pickup-print-date{display:block;text-align:center;font-size:7.5pt;color:#555;padding:1.5mm 0 2mm}
+.pickup-print-entries{display:grid;gap:2.4mm}
+.pickup-print-entry{display:block;padding:0 0 2mm;border-bottom:1px solid #ddd;line-height:1.2;break-inside:avoid}
+.pickup-print-entry:last-child{border-bottom:0}
+.pickup-print-entry strong{display:block;font-size:9.5pt;overflow-wrap:anywhere}
+.pickup-print-entry small{display:block;margin-top:.7mm;font-size:7.5pt;color:#222;overflow-wrap:anywhere}
+.pickup-print-empty{display:block;text-align:center;color:#777;font-size:10pt;padding-top:4mm}
+</style></head><body>${portal.innerHTML}</body></html>`;
+
+      printDocument.open();
+      printDocument.write(printHtml);
+      printDocument.close();
+
+      let cleaned = false;
+      const cleanup = function(){
+        if (cleaned) return;
+        cleaned = true;
+        if (frame.parentNode) frame.parentNode.removeChild(frame);
+      };
+      if (printWindow.addEventListener) printWindow.addEventListener('afterprint',cleanup,{once:true});
+      if (printWindow.focus) printWindow.focus();
+      printWindow.print();
+      if (window.setTimeout) window.setTimeout(cleanup,1500);
+    };
+  }
+
+  installPickupPrintIsolation();
+
   function getState(){
     try {
       if (typeof window.__EXPORTHUB_GET_STATE__ === 'function') return window.__EXPORTHUB_GET_STATE__() || {};
