@@ -1,0 +1,30 @@
+name: RC1018 FIX-Abholungen und Palettenkonto
+
+on:
+  push:
+    branches: [rc1018-fixed-pickups-pallet-account-final]
+    paths:
+      - 'test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs'
+      - 'api/shared/rc1014-fixed-pickup-seed.js'
+      - 'api/shared/fixed-pickup-store.js'
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - '.github/rc1018/**'
+      - '.github/workflows/rc1018-fixed-pickups-pallet-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Reale Kalender- und Paletten-Runtime-Lücken
+        run: node --test test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs
