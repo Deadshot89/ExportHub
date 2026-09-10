@@ -52,24 +52,35 @@ const expected = [
   ['Gaggenau',1],
   ['Barcelona',1],
   ['Madrid',1],
+  ['UK',1],
   ['Faurecia',2],
   ['Adolf Würth',2],
   ['Gorenje Slovenien',2],
+  ['UK',2],
   ['BMP',3],
   ['BSH Hausgeräte',3],
   ['Contitech',3],
+  ['UK',3],
   ['Adolf Würth',4],
   ['Madrid',4],
   ['Barcelona',4],
   ['Polen',4],
-  ['Schweden',5]
+  ['UK',4],
+  ['China',4],
+  ['Indien',4],
+  ['Australien',4],
+  ['Singapur',4],
+  ['Shenzhen HK',4],
+  ['Thailand',4],
+  ['Schweden',5],
+  ['UK',5]
 ];
 function canonical(list){ return list.map(([label,day])=>`${label}|${day}`).sort(); }
 
 test('Essentra erhält die freigegebenen FIX-Abholtage ohne NEFF', async()=>{
   const store=loadStore(makeMemoryBlobRest());
   const items=await store.list('production','ESSENTRA',{includeInactive:true});
-  assert.equal(items.length,18);
+  assert.equal(items.length,29);
   assert.deepEqual(canonical(items.map(x=>[x.siteLabel,x.weekday])),canonical(expected));
   assert.equal(items.some(x=>/NEFF/i.test(x.siteLabel)),false);
   assert.equal(items.find(x=>x.siteLabel==='O’Hare')?.weekday,1);
@@ -80,7 +91,7 @@ test('Essentra-Seed ist idempotent und bleibt administrativ editierbar', async()
   const memory=makeMemoryBlobRest(); const store=loadStore(memory);
   const first=await store.list('production','essentra',{includeInactive:true});
   const second=await store.list('production','essentra',{includeInactive:true});
-  assert.equal(first.length,18); assert.equal(second.length,18);
+  assert.equal(first.length,29); assert.equal(second.length,29);
   const france=first.find(x=>x.siteLabel==='Frankreich');
   await store.update('production','essentra',france.id,{active:false},'Admin');
   assert.equal((await store.list('production','essentra',{})).some(x=>x.id===france.id),false);
@@ -110,5 +121,5 @@ test('Produktions- und Testservice-Seeds bleiben getrennt', async()=>{
   const memory=makeMemoryBlobRest(); const store=loadStore(memory);
   const prod=await store.list('production','essentra',{includeInactive:true});
   const testItems=await store.list('testservice','essentra',{includeInactive:true});
-  assert.equal(prod.length,18); assert.equal(testItems.length,18); assert.equal(memory.blobs.size,2);
+  assert.equal(prod.length,29); assert.equal(testItems.length,29); assert.equal(memory.blobs.size,2);
 });
