@@ -12,6 +12,8 @@ function normalize(data){
  var t=data&&data.timing;
  if(!t||typeof t!=='object')return null;
  return{
+  authMs:num(t.authMs),
+  teamBlobMs:num(t.teamBlobMs),
   teamReadMs:num(t.teamReadMs),
   flagWriteMs:num(t.flagWriteMs),
   tokenIssueMs:num(t.tokenIssueMs),
@@ -57,7 +59,7 @@ function diagnosticsVisible(){
 }
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function bottleneck(t){
- var rows=[['Team-State lesen',num(t.teamReadMs)],['Team-State speichern',num(t.flagWriteMs)],['Token erzeugen',num(t.tokenIssueMs)]];
+ var rows=[['Authentifizierung',num(t.authMs)],['Team-Speicher vorbereiten',num(t.teamBlobMs)],['Team-State lesen',num(t.teamReadMs)],['Team-State speichern',num(t.flagWriteMs)],['Token erzeugen',num(t.tokenIssueMs)]];
  rows.sort(function(a,b){return b[1]-a[1]});
  return rows[0]
 }
@@ -68,7 +70,7 @@ function render(){
  var host=document.getElementById('rc1037-lieferavis-timing');
  if(!host){host=document.createElement('section');host.id='rc1037-lieferavis-timing';root().appendChild(host)}
  var slow=bottleneck(t),ref=t.reference||'—';
- host.innerHTML='<div style="margin-top:10px;padding:12px;border:1px solid #cbd5e1;border-radius:12px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>Lieferavis Server-Timing</strong><span>Referenz '+esc(ref)+'</span></div><div style="display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin-top:10px"><div><b>Team-State lesen</b><br>'+num(t.teamReadMs)+' ms</div><div><b>Team-State speichern</b><br>'+num(t.flagWriteMs)+' ms</div><div><b>Token erzeugen</b><br>'+num(t.tokenIssueMs)+' ms</div><div><b>Gesamtzeit</b><br>'+num(t.totalMs)+' ms</div></div><div style="margin-top:10px"><b>Langsamster gemessener Schritt:</b> '+esc(slow[0])+' ('+slow[1]+' ms)</div><div style="margin-top:4px;font-size:12px;color:#64748b">Messung '+esc(t.capturedAt||'')+' · '+esc(t.version||'RC1036')+'</div></div>';
+ host.innerHTML='<div style="margin-top:10px;padding:12px;border:1px solid #cbd5e1;border-radius:12px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>Lieferavis Server-Timing</strong><span>Referenz '+esc(ref)+'</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:10px"><div><b>Authentifizierung</b><br>'+num(t.authMs)+' ms</div><div><b>Team-Speicher vorbereiten</b><br>'+num(t.teamBlobMs)+' ms</div><div><b>Team-State lesen</b><br>'+num(t.teamReadMs)+' ms</div><div><b>Team-State speichern</b><br>'+num(t.flagWriteMs)+' ms</div><div><b>Token erzeugen</b><br>'+num(t.tokenIssueMs)+' ms</div><div><b>Gesamtzeit</b><br>'+num(t.totalMs)+' ms</div></div><div style="margin-top:10px"><b>Langsamster gemessener Schritt:</b> '+esc(slow[0])+' ('+slow[1]+' ms)</div><div style="margin-top:4px;font-size:12px;color:#64748b">Messung '+esc(t.capturedAt||'')+' · '+esc(t.version||'RC1036')+'</div></div>';
  return true
 }
 var timer=0;
