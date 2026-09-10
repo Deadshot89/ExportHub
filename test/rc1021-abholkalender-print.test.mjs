@@ -36,8 +36,8 @@ test('Druckansicht enthält exakt Montag bis Freitag und nur kompakte Abholdaten
 test('Druck wird in ein eigenständiges Dokument umgeleitet statt die ExportHUB-Webseite zu drucken', () => {
   assert.match(runtimeSource,/nativePrint/);
   assert.match(runtimeSource,/pickup-print-active/);
-  assert.match(runtimeSource,/document\.createElement\(['"]iframe['"]\)/);
-  assert.match(runtimeSource,/contentWindow\.print\(/);
+  assert.match(runtimeSource,/createElement\(['"]iframe['"]\)/);
+  assert.match(runtimeSource,/printWindow\.print\(/);
   assert.match(runtimeSource,/<!doctype html>/i);
 });
 
