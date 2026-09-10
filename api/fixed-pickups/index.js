@@ -34,7 +34,7 @@ module.exports = async function(context, req){
       context.res = auth.json(200, {ok:true,items,canEdit,environment,companyKey:company.companyKey});
       return;
     }
-    if (!canEdit) throw auth.error('CALENDAR_EDIT_REQUIRED', 'Für fixe Abholungen wird das Kalenderrecht Bearbeiten oder Funktions-Admin benötigt.', 403);
+    if (!canEdit) throw auth.error('ADMIN_REQUIRED', 'Für fixe Abholungen wird das Kalenderrecht Bearbeiten oder Funktions-Admin benötigt.', 403);
     const actor = session.user.name || session.user.user || session.user.login || 'Admin';
     if (method === 'POST') { const item = await store.create(environment, company.companyKey, payload, actor); context.res = auth.json(201, {ok:true,item}); return; }
     const id = String(payload.id || '').trim();
