@@ -88,12 +88,13 @@ test('RC1018 Kalender: bereits initialisierter aber leerer Essentra-FIX-Speicher
   const memory=makeMemoryBlobRest();
   const store=loadFixedStore(memory);
   const blob=store.blobName('production','essentra');
-  const doc={schemaVersion:1,seedVersion:2,environment:'production',companyKey:'essentra',revision:7,updatedAt:'2026-09-09T12:00:00.000Z',items:[]};
+  const doc={schemaVersion:1,seedVersion:4,environment:'production',companyKey:'essentra',revision:7,updatedAt:'2026-09-09T12:00:00.000Z',items:[]};
   memory.blobs.set(`exporthub-data/${blob}`,{data:Buffer.from(JSON.stringify(doc)),etag:'\"old\"'});
   const items=await store.list('production','essentra',{includeInactive:true});
   assert.deepEqual(items.map(x=>`${x.siteLabel}|${x.weekday}`).sort(),[
-    'BMP|3','Faurecia|2','Frankreich|1','Italien|1','Neff|1','O’Hare|1'
+    'BMP|3','Faurecia|2','Frankreich|1','Italien|1','O’Hare|1'
   ].sort());
+  assert.equal(items.some(x=>/NEFF/i.test(x.siteLabel)),false);
 });
 
 test('RC1018 Standorte: RC565 führt Hauptadresse und zusätzliche gespeicherte Standorte gleichzeitig',()=>{
