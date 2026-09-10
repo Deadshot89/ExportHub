@@ -1,14 +1,14 @@
 'use strict';
 
-const SEED_VERSION = 4;
+const SEED_VERSION = 5;
 const ESSENTRA_COMPANY_KEY = 'essentra';
 const LEGACY_ESSENTRA_COMPANY_KEY = 'legacy-default';
 const SYSTEM_ACTOR = 'System RC1014';
+const REMOVED_NEFF_ID = 'FIX-RC1014-ESSENTRA-NEFF-MO';
 
 const ESSENTRA_DEFAULTS = Object.freeze([
   { id:'FIX-RC1014-ESSENTRA-FR-MO', siteLabel:'Frankreich', weekday:1, note:'' },
   { id:'FIX-RC1014-ESSENTRA-IT-MO', siteLabel:'Italien', weekday:1, note:'' },
-  { id:'FIX-RC1014-ESSENTRA-NEFF-MO', siteLabel:'Neff', weekday:1, note:'' },
   { id:'FIX-RC1014-ESSENTRA-OHARE-MO', siteLabel:'O’Hare', weekday:1, note:'' },
   { id:'FIX-RC1014-ESSENTRA-FAURECIA-DI', siteLabel:'Faurecia', weekday:2, note:'' },
   { id:'FIX-RC1014-ESSENTRA-BMP-MI', siteLabel:'BMP', weekday:3, note:'' }
@@ -37,10 +37,13 @@ function isUntouchedObsoleteV1(item){
   const createdBy = text(item && item.createdBy), updatedBy = text(item && item.updatedBy);
   return createdBy === SYSTEM_ACTOR && (!updatedBy || updatedBy === SYSTEM_ACTOR);
 }
+function isRemovedNeff(item){
+  return text(item && item.id) === REMOVED_NEFF_ID || text(item && item.siteLabel).toLowerCase() === 'neff';
+}
 function mergeMissing(existing, companyKey, stamp){
   let list = Array.isArray(existing) ? existing.slice() : [];
   if (!isEssentraCompanyKey(companyKey)) return list;
-  list = list.filter(item => !isUntouchedObsoleteV1(item));
+  list = list.filter(item => !isRemovedNeff(item) && !isUntouchedObsoleteV1(item));
   const seenKeys = new Set(list.map(key));
   const seenIds = new Set(list.map(item => text(item && item.id)).filter(Boolean));
   for (const item of defaultsForCompany(companyKey)) {
@@ -51,4 +54,4 @@ function mergeMissing(existing, companyKey, stamp){
   return list;
 }
 
-module.exports = {SEED_VERSION,ESSENTRA_COMPANY_KEY,LEGACY_ESSENTRA_COMPANY_KEY,ESSENTRA_DEFAULTS,OBSOLETE_V1_IDS,isEssentraCompanyKey,defaultsForCompany,mergeMissing};
+module.exports = {SEED_VERSION,ESSENTRA_COMPANY_KEY,LEGACY_ESSENTRA_COMPANY_KEY,ESSENTRA_DEFAULTS,OBSOLETE_V1_IDS,REMOVED_NEFF_ID,isEssentraCompanyKey,defaultsForCompany,mergeMissing};
