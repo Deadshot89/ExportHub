@@ -53,6 +53,18 @@ async function openView(page,module,labels,requiredText){
     }
     await openMenu(page);
   }
+  const opened=await page.evaluate(mod=>{
+    try{
+      if(typeof window.setView!=='function')return false;
+      if(typeof window.canView==='function'&&!window.canView(mod))return false;
+      window.setView(mod);
+      return true;
+    }catch(_){return false;}
+  },module);
+  if(opened){
+    await pause(500);
+    if(!requiredText||new RegExp(requiredText,'i').test(await page.locator('body').innerText()))return module;
+  }
   await clickAny(page,labels);
   if(requiredText)await page.waitForFunction(pattern=>new RegExp(pattern,'i').test(document.body?.innerText||''),requiredText,{timeout:10000});
   return module;
@@ -81,6 +93,14 @@ async function targetShot(page,labels,file){
   assert(box&&box.width>0&&box.height>0,`${file}: Ziel ${label} ist nach dem Zentrieren nicht sichtbar`);
   await viewportShot(page,file);
 }
+async function elementShot(page,selector,file){
+  const item=await visible(page.locator(selector));
+  assert(item,`${file}: Systembereich ${selector} ist nicht sichtbar`);
+  await item.evaluate(el=>el.scrollIntoView({block:'center',inline:'center',behavior:'instant'}));
+  await pause(220);
+  await item.screenshot({path:path.join(OUT,file)});
+  assert(fs.statSync(path.join(OUT,file)).size>10000,`${file}: Systembereich ${selector} ist leer oder unplausibel klein`);
+}
 async function viewShot(page,module,labels,file,requiredText){
   await openView(page,module,labels,requiredText);
   await page.evaluate(()=>scrollTo(0,0));await pause(180);
@@ -93,6 +113,7 @@ async function shipmentShots(page){
   await viewportShot(page,'rc1018-shipment-create.png');
 
   await targetShot(page,['Stauplan'],'rc1018-stowplan.png');
+  await elementShot(page,'#rc363BlockDocuments','rc1018-document-upload.png');
   await targetShot(page,['Dokumente','CMR'],'rc1018-documents-cmr.png');
   await targetShot(page,['ABD','Ausfuhrbegleitdokument'],'rc1018-abd.png');
   await targetShot(page,['QR-Abholung','Abholung','QR-Code'],'rc1018-qr-pickup.png');
@@ -109,7 +130,7 @@ async function shipmentShots(page){
   } else await targetShot(page,['Lieferavis','Kundenavis'],'rc1018-lieferavis.png');
 }
 async function rightsShots(page){
-  await openView(page,'rights',['Rechte','Benutzer & Rechte','Benutzer','Berechtigungen'],'Benutzer|Rechte|Rollen');
+  await openView(page,'rights',['Benutzer & Rechte','Rechte','Benutzer','Berechtigungen'],'Benutzer|Rechte|Rollen');
   await targetShot(page,['Benutzer','Benutzerverwaltung','Benutzer suchen'],'rc1018-users.png');
   await targetShot(page,['Rollen','Rechte','Berechtigungen'],'rc1018-rights.png');
 }
@@ -119,7 +140,7 @@ async function podShot(page){
     await targetShot(page,['POD hochladen','Fehlende POD','POD'],'rc1018-pod.png');
     return;
   }catch(_){
-    await openView(page,'shipmentoverview',['Sendungen','Sendungsübersicht','Übersicht Sendungen'],'Sendung|POD');
+    await openView(page,'shipmentoverview',['Sendungsübersicht','Sendungen','Übersicht Sendungen'],'Sendung|POD');
     await targetShot(page,['POD hochladen','POD','Proof of Delivery'],'rc1018-pod.png');
   }
 }
@@ -138,18 +159,17 @@ try{
   await targetShot(page,['ExportHUB','Demo','Firma','Konto'],'rc1018-start-company-session.png');
   await viewShot(page,'dashboard',['Dashboard'],'rc1018-dashboard-navigation.png','Dashboard');
   await rightsShots(page);
-  await viewShot(page,'customers',['Kunden','Kunden & Standorte','Kundenverwaltung'],'rc1018-customers.png','Kunden');
-  await viewShot(page,'calculator',['Versandkosten','Versandrechner','UPS-Rechner','Rechner'],'rc1018-shipping-route.png','Versand|Gate41|UPS|Route');
-  await viewShot(page,'documents',['Dokumente','Dokumentenverwaltung'],'rc1018-document-upload.png','Dokument');
+  await viewShot(page,'customerfolder',['Kundenordner'],'rc1018-customers.png','Kunden|Dokument');
+  await viewShot(page,'shippingcosts',['Versandkosten'],'rc1018-shipping-route.png','Versand|Gate41|UPS|Route');
 
   await shipmentShots(page);
   await podShot(page);
   await viewShot(page,'pallet',['Palettenkonto'],'rc1018-pallet-account.png','Paletten');
-  await viewShot(page,'sop',['SOP','SOP-Handbuch','SOP Handbuch'],'rc1018-sop-handbook.png','SOP');
-  await viewShot(page,'academy',['Academy','Prüfungen'],'rc1018-academy.png','Academy|Prüfung');
-  await viewShot(page,'archive',['Archiv','Historie','Protokolle'],'rc1018-archive-audit.png','Archiv|Historie|Protokoll');
+  await viewShot(page,'sop',['SOP & Portale','SOP','SOP-Handbuch'],'rc1018-sop-handbook.png','SOP');
+  await viewShot(page,'academy',['Academy'],'rc1018-academy.png','Academy|Prüfung');
+  await viewShot(page,'archive',['Archiv'],'rc1018-archive-audit.png','Archiv|Historie|Protokoll');
   await viewShot(page,'diagnostics',['Fehlerdiagnose','Diagnose'],'rc1018-diagnostics.png','Diagnose');
-  await viewShot(page,'update',['Release Center','Release-Center'],'rc1018-release-center.png','Release');
+  await viewShot(page,'release',['Release-Center','Release Center'],'rc1018-release-center.png','Release');
 
   assert(errors.length===0,errors.join(' | '));
   const files=fs.readdirSync(OUT).filter(f=>f.endsWith('.png')).sort();
