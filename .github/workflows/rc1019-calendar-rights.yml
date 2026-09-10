@@ -1,0 +1,32 @@
+name: RC1019 Kalenderrechte
+
+on:
+  push:
+    branches: [rc1019-calendar-user-permissions]
+    paths:
+      - '.github/rc1019/**'
+      - '.github/workflows/rc1019-calendar-rights.yml'
+      - 'api/shared/user-policy.js'
+      - 'api/fixed-pickups/index.js'
+      - 'assets/rc1012-abholkalender-runtime.js'
+      - 'assets/abholkalender.js'
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1019-*.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Rechtepfad diagnostizieren
+        run: node .github/rc1019/diagnose-calendar-rights.mjs
