@@ -1,0 +1,17 @@
+name: RC1032 RED
+on:
+  push:
+    branches:
+      - rc1032-stow-print-avis-fast
+permissions:
+  contents: read
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: RC1032 Zieltests
+        run: node --test test/rc1032-stow-print-avis-fast.test.mjs
