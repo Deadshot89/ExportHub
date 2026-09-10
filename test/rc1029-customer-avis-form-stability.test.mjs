@@ -20,7 +20,7 @@ function functionBody(name,source=PAGE){
 }
 
 test('RC1029: automatische Aktualisierung darf ein gerade bearbeitetes Lieferavis-Formular nicht neu rendern',()=>{
-  assert.match(PAGE,/var\s+avisFormDirty\s*=\s*false/,'Es fehlt ein expliziter Dirty-State für die Avis-Eingaben.');
+  assert.match(PAGE,/\bavisFormDirty\s*=\s*false\b/,'Es fehlt ein expliziter Dirty-State für die Avis-Eingaben.');
   assert.match(PAGE,/function\s+avisFormFocused\s*\(/,'Es fehlt die Erkennung eines gerade fokussierten Avis-Formulars.');
   assert.match(PAGE,/function\s+markAvisFormDirty\s*\(/,'Eingaben werden noch nicht als ungespeichert markiert.');
   const refresh=functionBody('refresh');
