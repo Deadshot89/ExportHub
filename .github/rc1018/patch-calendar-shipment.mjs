@@ -37,9 +37,27 @@ function patchCalendarRightsEditor(html){
   return html.slice(0,start)+block+html.slice(end+'</script>'.length);
 }
 
+function patchShipmentCreateMenu(html){
+  const open='<script id="index321-single-navigation-controller">';
+  const start=html.indexOf(open);
+  const end=start<0?-1:html.indexOf('</script>',start+open.length);
+  if(start<0||end<=start)throw new Error('RC1034 Sendung erstellen: kanonischer Navigationscontroller nicht gefunden.');
+  let block=html.slice(start,end+'</script>'.length);
+  const oldRoute="function route(view,source){view=canonical(view);window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;";
+  const freshRoute="function route(view,source){view=canonical(view);if(view==='shipment'&&source==='menu'){var shipmentApi=window.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function')return shipmentApi.startNewShipment()}window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;";
+  if(!block.includes(freshRoute)){
+    const count=block.split(oldRoute).length-1;
+    if(count!==1)throw new Error(`RC1034 Sendung erstellen: Routenanker ${count}x gefunden.`);
+    block=block.replace(oldRoute,freshRoute);
+  }
+  if(!block.includes("view==='shipment'&&source==='menu'")||!block.includes('shipmentApi.startNewShipment()'))throw new Error('RC1034 Sendung erstellen: Fresh-Draft-Menüweg wurde nicht aktiviert.');
+  return html.slice(0,start)+block+html.slice(end+'</script>'.length);
+}
+
 export function patchCriticalShipmentFlow(html){
   let out=replaceBetween(html,'function locations(c){var all=[]','function findLocation(c,v)',RC565_LOCATIONS,'RC565 Standortliste');
   out=replaceBetween(out,'function locationList(c){var map={},out=[];','function savedLocationId(sh,list)',INDEX289_LOCATION_LIST,'Index289 Standortliste');
   out=patchCalendarRightsEditor(out);
+  out=patchShipmentCreateMenu(out);
   return out;
 }
