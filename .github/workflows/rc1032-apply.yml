@@ -1,0 +1,34 @@
+name: RC1032 Apply
+on:
+  push:
+    branches:
+      - rc1032-stow-print-avis-fast
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1032-stow-print-avis-fast
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: RC1032 Patch anwenden
+        run: node .github/rc1032/apply.cjs
+      - name: RC1032 Zieltests
+        run: node --test test/rc1032-stow-print-avis-fast.test.mjs
+      - name: Gesamte Node-Regression
+        run: node --test
+      - name: Diff prüfen
+        run: git diff --check
+      - name: Geprüften RC1032 Patch committen
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add TESTVERSION.html assets/rc1015-lieferavis-mail-flow.js .github/rc1013/build-three-env.mjs .github/rc1018/apply-standard-deploy.mjs .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml test/rc1024-lieferavis-load-order.test.mjs
+          git commit -m 'RC1032: Stauplan-Grafik drucken und Avis-Link schneller ausstellen'
+          git push origin HEAD:rc1032-stow-print-avis-fast
