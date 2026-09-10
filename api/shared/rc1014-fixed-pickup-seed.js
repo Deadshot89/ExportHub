@@ -1,6 +1,6 @@
 'use strict';
 
-const SEED_VERSION = 3;
+const SEED_VERSION = 4;
 const ESSENTRA_COMPANY_KEY = 'essentra';
 const SYSTEM_ACTOR = 'System RC1014';
 
