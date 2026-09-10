@@ -64,7 +64,7 @@ test('Essentra FIX-Speicher heilt sich auch bei aktueller seedVersion und leerer
   const blob = store.blobName('production','essentra');
   const doc = {
     schemaVersion:1,
-    seedVersion:3,
+    seedVersion:4,
     environment:'production',
     companyKey:'essentra',
     revision:8,
@@ -76,6 +76,7 @@ test('Essentra FIX-Speicher heilt sich auch bei aktueller seedVersion und leerer
   const items = await store.list('production','essentra',{includeInactive:true});
 
   assert.deepEqual(items.map(x=>`${x.siteLabel}|${x.weekday}`).sort(),[
-    'BMP|3','Faurecia|2','Frankreich|1','Italien|1','Neff|1','O’Hare|1'
+    'BMP|3','Faurecia|2','Frankreich|1','Italien|1','O’Hare|1'
   ].sort());
+  assert.equal(items.some(x=>/NEFF/i.test(x.siteLabel)),false);
 });
