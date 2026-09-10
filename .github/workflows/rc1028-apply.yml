@@ -1,0 +1,36 @@
+name: RC1028 Apply Overview Performance
+on:
+  push:
+    branches:
+      - rc1028-overview-reorder-performance
+    paths:
+      - scripts/rc1028-apply-overview-reorder-performance.mjs
+      - test/rc1028-overview-reorder-performance.test.mjs
+      - .github/workflows/rc1028-apply.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: RC1028 Patch anwenden
+        run: node scripts/rc1028-apply-overview-reorder-performance.mjs
+      - name: RC1028 Zielvertrag prüfen
+        run: node --test test/rc1028-overview-reorder-performance.test.mjs
+      - name: Gesamte Node-Regression prüfen
+        run: npm test
+      - name: Geprüften Overview-Patch committen
+        run: |
+          if git diff --quiet -- TESTVERSION.html; then
+            echo "Keine Änderung erforderlich."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TESTVERSION.html
+          git commit -m "RC1028: unnötige Overview-DOM-Reorders vermeiden"
+          git push origin HEAD:rc1028-overview-reorder-performance
