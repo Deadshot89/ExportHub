@@ -58,13 +58,19 @@ function loadFixedStore(memory){
   finally { Module._load = original; }
 }
 
+const expectedFixes=[
+  'Adolf Würth|2','Adolf Würth|4','BMP|3','BSH Hausgeräte|3','Barcelona|1','Barcelona|4',
+  'Contitech|3','Esysco|1','Faurecia|2','Frankreich|1','Gaggenau|1','Gorenje Slovenien|2',
+  'Italien|1','Madrid|1','Madrid|4','O’Hare|1','Polen|4','Schweden|5'
+].sort();
+
 test('Essentra FIX-Speicher heilt sich auch bei aktueller seedVersion und leerer Liste selbst', async () => {
   const memory = makeMemoryBlobRest();
   const store = loadFixedStore(memory);
   const blob = store.blobName('production','essentra');
   const doc = {
     schemaVersion:1,
-    seedVersion:4,
+    seedVersion:5,
     environment:'production',
     companyKey:'essentra',
     revision:8,
@@ -75,8 +81,6 @@ test('Essentra FIX-Speicher heilt sich auch bei aktueller seedVersion und leerer
 
   const items = await store.list('production','essentra',{includeInactive:true});
 
-  assert.deepEqual(items.map(x=>`${x.siteLabel}|${x.weekday}`).sort(),[
-    'BMP|3','Faurecia|2','Frankreich|1','Italien|1','O’Hare|1'
-  ].sort());
+  assert.deepEqual(items.map(x=>`${x.siteLabel}|${x.weekday}`).sort(),expectedFixes);
   assert.equal(items.some(x=>/NEFF/i.test(x.siteLabel)),false);
 });
