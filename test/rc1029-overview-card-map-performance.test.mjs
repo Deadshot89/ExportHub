@@ -13,9 +13,9 @@ function block(start,end,max=9000){
 
 test('RC1029: ruhiger Overview-Patch scannt Karten einmal und reicht eine Map weiter',()=>{
   const quiet=block('function rc640PatchOverviewQuietly(','function rc640ScheduleOverviewPatch(');
-  assert.match(quiet,/var\s+cards\s*=\s*Array\.from\(r\.querySelectorAll\('\.rc524-shipment-card\[data-shipment\]'\)\)/,'DOM-Karten müssen einmal erfasst werden');
-  assert.match(quiet,/var\s+cardMap\s*=\s*new Map\(\)/,'Kartenmap fehlt');
-  assert.match(quiet,/cards\.forEach\(function\(card\)\{cardMap\.set\(/,'Kartenmap muss aus demselben DOM-Scan entstehen');
+  assert.match(quiet,/cards=Array\.from\(r\.querySelectorAll\('\.rc524-shipment-card\[data-shipment\]'\)\)/,'DOM-Karten müssen einmal erfasst werden');
+  assert.match(quiet,/cardMap=new Map\(\)/,'Kartenmap fehlt');
+  assert.match(quiet,/cards\.forEach\(function\(card\)[\s\S]{0,250}cardMap\.set\(/,'Kartenmap muss aus demselben DOM-Scan entstehen');
   assert.match(quiet,/window\.rc485PatchOverviewCards\(desired,cardMap\)/,'Kartenmap muss an den Karten-Patch weitergegeben werden');
   assert.match(quiet,/expected\.every\(function\(id\)\{return cardMap\.has\(id\)\}\)/,'Bestandsvergleich muss dieselbe Map statt indexOf verwenden');
 });
