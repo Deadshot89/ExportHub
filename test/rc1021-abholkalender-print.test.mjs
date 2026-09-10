@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 
+// RC1021 RED-Vertrag: Druck erfolgt aus dem bestehenden Abholkalender.
 const require = createRequire(import.meta.url);
 const calendar = require('../assets/abholkalender.js');
 
