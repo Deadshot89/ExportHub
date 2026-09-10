@@ -55,7 +55,7 @@ test('Benutzer mit Abholkalender-view kann lesen, aber nicht verwalten',async()=
   const get=context();await handler(get,{method:'GET',query:{includeInactive:'1'},headers:{}});
   assert.equal(get.res.status,200);assert.equal(bodyOf(get.res).canEdit,false);assert.equal(bodyOf(get.res).items.length,0);
   const post=context();await handler(post,{method:'POST',body:{siteLabel:'Neff',weekday:1},headers:{}});
-  assert.equal(post.res.status,403);assert.equal(bodyOf(post.res).code,'CALENDAR_EDIT_REQUIRED');
+  assert.equal(post.res.status,403);assert.equal(bodyOf(post.res).code,'ADMIN_REQUIRED');
 });
 
 test('RC1018 Build stellt Abholkalender im Rechteeditor bereit und berücksichtigt ihn als Modulrecht',()=>{
