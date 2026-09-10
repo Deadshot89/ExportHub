@@ -13,4 +13,4 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - name: Lieferavis und Mail Regressionstests
-        run: node --test --test-concurrency=1 test/rc1018-lieferavis-exceptions.test.mjs test/rc1018-mail-language-standard.test.mjs
+        run: node --test --test-concurrency=1 test/rc1018-lieferavis-exceptions.test.mjs test/rc1018-mail-language-standard.test.mjs test/rc1021-lieferavis-mail-event.test.mjs
