@@ -1,0 +1,17 @@
+name: RC1029 Overview Card Map RED
+on:
+  push:
+    branches:
+      - rc1029-overview-card-map-performance
+permissions:
+  contents: read
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: RC1029 Zielvertrag
+        run: node --test test/rc1029-overview-card-map-performance.test.mjs
