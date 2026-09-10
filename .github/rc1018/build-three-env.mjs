@@ -11,6 +11,17 @@ const MAIL_TAG='<script id="exporthub-rc1018-mail-language-standard" defer src="
 const SOP_IMAGES_TAG='<script id="exporthub-rc1018-sop-system-images" defer src="/assets/sop/rc1018-sop-system-images.js?v=1018"></script>';
 const SHIPMENT_CONTROLLER_ID='exporthub-rc373-shipment-controller';
 
+const RC565_LOCATIONS=`function locations(c){var all=[];
+ function addressOf(l,fallbackCountry){if(!l)return'';if(typeof l==='string'||typeof l==='number')return q(l);l=l&&typeof l==='object'?l:{};var street=q(l.street||l.strasse||l.streetName||l.addressLine1),zip=q(l.zip||l.postalCode||l.postcode||l.plz),city=q(l.city||l.ort||l.town||l.place),country=q(l.country||l.land||l.countryName||fallbackCountry),direct=typeof l.address==='string'?q(l.address):'';return direct||q(l.formattedAddress||l.fullAddress||l.addressText||l.deliveryAddress||l.recipientAddress||l.shipToAddress)||[street,[zip,city].filter(Boolean).join(' '),country].filter(Boolean).join('\\n')}
+ [c&&c.locations,c&&c.sites,c&&c.standorte,c&&c.deliveryLocations,c&&c.shippingLocations,c&&c.addresses,c&&c.deliveryAddresses,c&&c.shipToLocations,c&&c.shipToAddresses,c&&c.recipientAddresses,c&&c.customerLocations].forEach(function(x){a(x).forEach(function(l){all.push(l)})});
+ var mainAddress=addressOf(c,''),mainCountry=q(c&&(c.country||c.land));
+ if(mainAddress&&!all.some(function(l){return n(addressOf(l,mainCountry))===n(mainAddress)})){all.unshift({id:'MAIN-'+(cacc(c)||cid(c)||'CUSTOMER'),name:'Hauptadresse',address:mainAddress,country:mainCountry,_derivedMain:true})}
+ var seen={};return all.map(function(l,i){if(typeof l==='string'||typeof l==='number')l={address:q(l),name:'Adresse '+(i+1)};else l=l&&typeof l==='object'?l:{};var id=q(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number)||('LOC-'+(cacc(c)||cid(c)||'C')+'-'+(i+1));var name=q(l.name||l.locationName||l.siteName||l.standort||l.city||l.ort);var street=q(l.street||l.strasse||l.streetName||l.addressLine1),zip=q(l.zip||l.postalCode||l.postcode||l.plz),city=q(l.city||l.ort||l.town||l.place),country=q(l.country||l.land||l.countryName||c.country||c.land),address=addressOf(l,country);return Object.assign({},l,{id:id,locationId:id,selectedLocationId:id,siteId:id,destinationId:id,name:name,address:address,street:street,zip:zip,city:city,country:country,contact:q(l.contact||l.contactPerson||l.ansprechpartner),email:q(l.email||l.mail),times:q(l.times||l.openingTimes||l.zeiten),hints:q(l.hints||l.note||l.notes||l.hinweise)})}).filter(function(l){var k=n(q(l.id)||((q(l.name)||'')+'|'+(q(l.address)||'')));if(!k||seen[k])return false;seen[k]=1;return true})}
+`;
+
+const INDEX289_LOCATION_LIST=`function locationList(c){var map={},out=[];[].concat(arr(c&&c.locations),arr(c&&c.sites),arr(c&&c.standorte),arr(c&&c.deliveryLocations),arr(c&&c.shippingLocations),arr(c&&c.addresses),arr(c&&c.deliveryAddresses),arr(c&&c.shipToLocations),arr(c&&c.shipToAddresses),arr(c&&c.recipientAddresses),arr(c&&c.customerLocations)).forEach(function(l,i){if(typeof l==='string'||typeof l==='number')l={address:q(l),name:'Adresse '+(i+1)};if(!obj(l))return;var address=rawAddress(l),explicit=q(l.id||l.locationId||l.selectedLocationId||l.siteId||l.destinationId||l.code||l.number),name=q(l.name||l.locationName||l.siteName||l.standort||l.city||l.ort),key=explicit||low(name+'|'+address);if(!key||map[key])return;map[key]=1;var id=explicit||('ADDR-'+(cid(c)||'CUSTOMER')+'-'+(out.length+1)),x=Object.assign({},l,{id:id,locationId:id,selectedLocationId:id,siteId:id,destinationId:id});x.name=name||('Adresse '+(out.length+1));x.address=address;out.push(x)});if(c){var main=rawAddress(c);if(main&&!out.some(function(l){return low(rawAddress(l))===low(main)})){var id='MAIN-'+(cid(c)||'CUSTOMER');out.unshift({id:id,locationId:id,selectedLocationId:id,siteId:id,destinationId:id,name:q(c.locationName||c.siteName)||'Hauptadresse',address:main,country:q(c.country||c.land),land:q(c.country||c.land),_derivedMain:true})}}return out}
+`;
+
 function read(rel){return fs.readFileSync(path.join(ROOT,rel),'utf8')}
 function write(rel,content){const file=path.join(OUT,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content)}
 function injectBeforeHeadClose(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const idx=html.search(/<\/head\s*>/i);if(idx<0)throw new Error(`${id}: </head> fehlt`);return html.slice(0,idx)+tag+'\n'+html.slice(idx)}
@@ -40,6 +51,16 @@ function replaceScriptBlock(html,id,canonicalBlock){
   const current=scriptBlock(html,id);
   return html.replace(current,canonicalBlock)
 }
+function replaceBetween(source,startMarker,endMarker,replacement,label){
+  const start=source.indexOf(startMarker),end=source.indexOf(endMarker,start+startMarker.length);
+  if(start<0||end<=start)throw new Error(`RC1018 ${label}: aktive Funktion nicht eindeutig gefunden.`);
+  return source.slice(0,start)+replacement+source.slice(end)
+}
+function patchCriticalShipmentFlow(html){
+  let out=replaceBetween(html,'function locations(c){var all=[]','function findLocation(c,v)',RC565_LOCATIONS,'RC565 Standortliste');
+  out=replaceBetween(out,'function locationList(c){var map={},out=[];','function savedLocationId(sh,list)',INDEX289_LOCATION_LIST,'Index289 Standortliste');
+  return out
+}
 
 execFileSync(process.execPath,['.github/rc1016/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
 fs.rmSync(OUT,{recursive:true,force:true});
@@ -54,6 +75,7 @@ for(const marker of ['function rc1017FitRows(','function rc1017SyncSubShipments(
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   let html=fs.readFileSync(path.join(OUT,file),'utf8');
   if(file!=='index.html')html=replaceScriptBlock(html,SHIPMENT_CONTROLLER_ID,canonicalShipmentController);
+  html=patchCriticalShipmentFlow(html);
   html=setVersion(html);
   html=injectSopImages(html);
   html=injectBeforeHeadClose(html,MAIL_TAG,'exporthub-rc1018-mail-language-standard');
@@ -73,11 +95,11 @@ const manifest={
   cache:CACHE,
   sourceRelease:'RC1016',
   retainedReleaseAssets:{multiTruck:'assets/rc1017-multi-truck.js'},
-  synchronizedRuntime:{shipmentController:SHIPMENT_CONTROLLER_ID,multiTruck:true},
+  synchronizedRuntime:{shipmentController:SHIPMENT_CONTROLLER_ID,multiTruck:true,mainAddressWithLocations:true},
   sop:{systemImages:'assets/sop/rc1018-sop-system-images.js',screenshotDirectory:'assets/sop/screenshots'},
   mail:{runtime:'assets/rc1018-mail-language-standard.js',targets:['customer','carrier'],languages:['de','en'],exclusiveModes:['details','avis']},
   publicLanguage:{runtime:'assets/rc1018-public-language.js',pages:['customer-avis.html','pickup.html','location.html'],languages:['de','en']},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 write('rc1018-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1018 build ready: RC1017 Mehr-LKW-Sendungscontroller synchronisiert; Mailvorlagen, Lieferavis/Sendungsdetails, SOP-Systembilder und DE/EN in Produktion, TESTSERVICE und Demo.');
+console.log('RC1018 build ready: RC1017 Mehr-LKW-Sendungscontroller synchronisiert; Hauptadresse plus Standorte, Mailvorlagen, Lieferavis/Sendungsdetails, SOP-Systembilder und DE/EN in Produktion, TESTSERVICE und Demo.');
