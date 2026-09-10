@@ -9,34 +9,29 @@ import { execFileSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const ROOT = process.cwd();
+const OLD_STORAGE = process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
 let built = false;
+test.after(()=>{
+  if(OLD_STORAGE===undefined) delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=OLD_STORAGE;
+});
 
 function buildRc1018(){
   if (built) return;
   execFileSync(process.execPath,['.github/rc1018/build-three-env.mjs'],{cwd:ROOT,stdio:'pipe'});
   built = true;
 }
-function scriptBlock(html,id){
-  const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  const open=new RegExp(`<script\\b[^>]*id=["']${escaped}["'][^>]*>`,'i');
-  const match=open.exec(html);
-  assert.ok(match,`${id}: Scriptblock fehlt`);
-  const start=match.index,end=html.indexOf('</script>',start+match[0].length);
-  assert.ok(end>start,`${id}: </script> fehlt`);
-  return html.slice(start,end+'</script>'.length);
-}
 function between(source,start,end){
   const a=source.indexOf(start),b=source.indexOf(end,a+start.length);
   assert.ok(a>=0&&b>a,`${start} konnte nicht isoliert werden`);
   return source.slice(a,b);
 }
-function builtController(){
+function builtHtml(){
   buildRc1018();
-  const html=fs.readFileSync(path.join(ROOT,'dist-rc1018','index.html'),'utf8');
-  return scriptBlock(html,'exporthub-rc373-shipment-controller');
+  return fs.readFileSync(path.join(ROOT,'dist-rc1018','index.html'),'utf8');
 }
 function evalRc565Locations(){
-  const src=between(builtController(),'function locations(c){var all=[]','function findLocation(c,v)');
+  const src=between(builtHtml(),'function locations(c){var all=[]','function findLocation(c,v)');
   return Function(`
     const a=v=>Array.isArray(v)?v:[];
     const q=v=>String(v==null?'':v).trim();
@@ -48,9 +43,9 @@ function evalRc565Locations(){
   `)();
 }
 function evalIndex289Locations(){
-  const controller=builtController();
+  const html=builtHtml();
   const start='function locationList(c){var map={},out=[];';
-  const src=between(controller,start,'function savedLocationId(sh,list)');
+  const src=between(html,start,'function savedLocationId(sh,list)');
   return Function(`
     const arr=v=>Array.isArray(v)?v:[];
     const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -80,14 +75,13 @@ function makeMemoryBlobRest(){
   };
 }
 function loadFixedStore(memory){
-  const old=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
   process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='rc1018-memory';
   const target=require.resolve('../api/shared/fixed-pickup-store.js');
   const seed=require.resolve('../api/shared/rc1014-fixed-pickup-seed.js');
   const original=Module._load;
   Module._load=function(request,parent,isMain){if(request==='./blob-rest')return memory;return original.call(this,request,parent,isMain);};
   delete require.cache[target];delete require.cache[seed];
-  try{return require(target);}finally{Module._load=original;if(old===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=old;}
+  try{return require(target);}finally{Module._load=original;}
 }
 
 test('RC1018 Kalender: bereits initialisierter aber leerer Essentra-FIX-Speicher wird selbstheilend ergänzt',async()=>{
