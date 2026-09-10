@@ -32,6 +32,7 @@ function load(shipment,options={}){
     ExportHUBCustomerAvis706:base,
     ExportHUBClean:{state},
     addEventListener(){},
+    dispatchEvent(){return true},
     console
   };
   if(options.initiallySaved===false){
@@ -44,7 +45,8 @@ function load(shipment,options={}){
     };
   }
   const context=vm.createContext({
-    window,document,console,
+    window,document,console,URL,Date,
+    Event:function(){},CustomEvent:function(){},
     alert:message=>alerts.push(String(message)),
     requestAnimationFrame:fn=>fn(),
     setTimeout:fn=>fn()
@@ -103,10 +105,12 @@ function loadAuto(shipment){
       if(!listeners.has(name))listeners.set(name,[]);
       listeners.get(name).push(fn);
     },
+    dispatchEvent(){return true},
     console
   };
   const context=vm.createContext({
-    window,document,console,
+    window,document,console,URL,Date,
+    Event:function(){},CustomEvent:function(){},
     alert:message=>alerts.push(String(message)),
     requestAnimationFrame:fn=>fn(),
     setTimeout:fn=>fn()
@@ -150,18 +154,19 @@ test('RC1018: neue noch ungespeicherte BMP-Sendung wird nach dem Pflichtspeicher
   assert.match(alerts.join('\n'),/Kunden-IT.*blockiert|IT.*blockiert/i);
 });
 
-test('RC1018: BMP-Kundenmail enthält keinen Lieferavis-Link, normale Kunden bleiben unverändert',()=>{
+test('RC1024: BMP-Kundenmail bleibt ohne Lieferavis und normale Kunden erhalten den geschützten Systemblock',()=>{
   const bmp={reference:'ABC123',customerName:'BMP'};
   const bmpApi=load(bmp).api;
   const bmpMail=bmpApi.injectMailBody(bmp,'customer','Guten Tag\n\nIhre Sendungsdetails.','de');
-  assert.doesNotMatch(bmpMail,/avis\.example|LIEFERAVIS – LIVE-ZUGANG/i);
+  assert.doesNotMatch(bmpMail,/avis\.example|LIEFERAVIS/i);
   assert.match(bmpMail,/Ihre Sendungsdetails/);
 
   const normal={reference:'ABC123',customerName:'Normaler Kunde'};
   const normalApi=load(normal).api;
   const normalMail=normalApi.injectMailBody(normal,'customer','Guten Tag\n\nIhre Sendungsdetails.','de');
   assert.match(normalMail,/https:\/\/avis\.example\/customer/);
-  assert.match(normalMail,/LIEFERAVIS – LIVE-ZUGANG/);
+  assert.match(normalMail,/LIEFERAVIS/);
+  assert.match(normalMail,/digitales Lieferavis/i);
 });
 
 test('RC1018: sichtbarer Hinweistext für gesperrte Avis-Kunden ist im Flow vorhanden',()=>{
@@ -201,9 +206,11 @@ test('Lieferavis: bestehende Kunden-Ausnahme BMP bleibt trotz Default-Aktivierun
   assert.equal(toggles.length,0);
 });
 
-test('Lieferavis: RC1015 darf sich nicht als RC1018 ausgeben, damit die neue Mailruntime wirklich installiert wird',()=>{
-  assert.doesNotMatch(source,/__rc1018\s*:\s*true/);
+test('RC1024: Lieferavis-Flow schützt seine Mailvorlagen vor der abgelehnten Vollformatierung',()=>{
   assert.match(source,/__rc1015\s*:\s*true/);
+  assert.match(source,/__rc1018\s*:\s*true/);
+  assert.match(source,/__base1018\s*:\s*base/);
+  assert.match(source,/mailSourceCache/);
 });
 
 test('Lieferavis: neuer Cache-Key wird in allen drei Umgebungen gebaut',()=>{
