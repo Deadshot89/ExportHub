@@ -11,6 +11,7 @@ function build(){
   execFileSync(process.execPath,['.github/rc1018/build-three-env.mjs'],{stdio:'pipe'});
 }
 function read(file){return fs.readFileSync(file,'utf8');}
+function countOf(source,needle){return source.split(needle).length-1;}
 function functionBody(source,startNeedle,endNeedle){
   const start=source.indexOf(startNeedle),end=source.indexOf(endNeedle,start+startNeedle.length);
   assert.ok(start>=0&&end>start,`${startNeedle} konnte nicht im RC1018-Build isoliert werden`);
@@ -28,6 +29,8 @@ test('Palettenkonto: der ausgelieferte RC1018-Build verlangt weder für Eingang 
   build();
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const source=read(`dist-rc1018/${file}`);
+    assert.equal(countOf(source,'window.rc542AddPalletBooking=function()'),1,`${file}: mehrere Paletten-Buchungsfunktionen überschreiben sich`);
+    assert.equal(countOf(source,'id="rc542PalRef"'),1,`${file}: mehrere Paletten-Referenzfelder sind gleichzeitig im Build vorhanden`);
     const add=functionBody(source,'window.rc542AddPalletBooking=function()','window.rc542CorrectPalletBooking');
     assert.doesNotMatch(add,/!\s*ref/,`${file}: Buchungsfunktion enthält weiterhin eine Pflichtprüfung auf Referenz`);
     assert.doesNotMatch(add,/referenz[^;\n]{0,120}(?:pflicht|erforderlich|required)/i,`${file}: Buchungsfunktion meldet Referenz weiterhin als Pflicht`);
