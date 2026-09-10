@@ -5,6 +5,7 @@ on:
     branches: [rc1018-sop-image-coverage-complete]
     paths:
       - 'browser/rc1018-sop-screenshots.mjs'
+      - 'browser/rc1018-sop-nav-diagnostic.mjs'
       - 'assets/sop/rc1018-sop-system-images.js'
       - 'test/rc1018-sop-image-coverage-complete.test.mjs'
       - '.github/workflows/rc1018-sop-image-coverage-capture.yml'
@@ -46,6 +47,7 @@ jobs:
             if curl -fsS http://127.0.0.1:4173/demo.html >/dev/null; then break; fi
             sleep 1
           done
+          node browser/rc1018-sop-nav-diagnostic.mjs
           node browser/rc1018-sop-screenshots.mjs
       - name: Fehlende zwölf Systembilder übernehmen und prüfen
         shell: bash
