@@ -2,6 +2,7 @@
 
 const SEED_VERSION = 4;
 const ESSENTRA_COMPANY_KEY = 'essentra';
+const LEGACY_ESSENTRA_COMPANY_KEY = 'legacy-default';
 const SYSTEM_ACTOR = 'System RC1014';
 
 const ESSENTRA_DEFAULTS = Object.freeze([
@@ -22,8 +23,12 @@ const OBSOLETE_V1_IDS = new Set([
 
 function text(value){ return String(value == null ? '' : value).trim(); }
 function key(item){ return `${text(item && item.siteLabel).toLocaleLowerCase('de-DE')}|${Number(item && item.weekday || 0)}`; }
+function isEssentraCompanyKey(companyKey){
+  const company = text(companyKey).toLowerCase();
+  return company === ESSENTRA_COMPANY_KEY || company === LEGACY_ESSENTRA_COMPANY_KEY;
+}
 function defaultsForCompany(companyKey){
-  if (text(companyKey).toLowerCase() !== ESSENTRA_COMPANY_KEY) return [];
+  if (!isEssentraCompanyKey(companyKey)) return [];
   return ESSENTRA_DEFAULTS.map(item => ({...item, active:true}));
 }
 function isUntouchedObsoleteV1(item){
@@ -34,7 +39,7 @@ function isUntouchedObsoleteV1(item){
 }
 function mergeMissing(existing, companyKey, stamp){
   let list = Array.isArray(existing) ? existing.slice() : [];
-  if (text(companyKey).toLowerCase() !== ESSENTRA_COMPANY_KEY) return list;
+  if (!isEssentraCompanyKey(companyKey)) return list;
   list = list.filter(item => !isUntouchedObsoleteV1(item));
   const seenKeys = new Set(list.map(key));
   const seenIds = new Set(list.map(item => text(item && item.id)).filter(Boolean));
@@ -46,4 +51,4 @@ function mergeMissing(existing, companyKey, stamp){
   return list;
 }
 
-module.exports = {SEED_VERSION,ESSENTRA_COMPANY_KEY,ESSENTRA_DEFAULTS,OBSOLETE_V1_IDS,defaultsForCompany,mergeMissing};
+module.exports = {SEED_VERSION,ESSENTRA_COMPANY_KEY,LEGACY_ESSENTRA_COMPANY_KEY,ESSENTRA_DEFAULTS,OBSOLETE_V1_IDS,isEssentraCompanyKey,defaultsForCompany,mergeMissing};
