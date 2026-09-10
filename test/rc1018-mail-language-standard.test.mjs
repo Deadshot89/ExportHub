@@ -73,7 +73,8 @@ test('RC1021: sichtbare Mailvorlage wird beim Lieferavis-Wechsel sofort neu aufg
   assert.match(source,/mailSourceCache/,'Die ursprünglichen Sendungsdetails werden nicht für das Zurückschalten gepuffert.');
   assert.match(source,/function syncVisibleMailBody\(/,'Es fehlt die Synchronisierung der bereits sichtbaren Mailvorlage.');
   assert.match(source,/rc1018InjectMailBody[\s\S]*mailSourceCache/,'Die Mailquelle wird beim Erzeugen der Vorlage nicht gesichert.');
-  assert.match(source,/exporthub:customer-avis-updated[\s\S]*syncVisibleMailBody/,'Ein Avis-Wechsel aktualisiert die sichtbare Mail nicht.');
+  assert.match(source,/exporthub:customer-avis-updated[\s\S]*syncVisibleAfterRefresh/,'Ein Avis-Wechsel stößt die sichtbare Mailaktualisierung nicht an.');
+  assert.match(source,/function syncVisibleAfterRefresh\([^)]*\)[\s\S]*syncVisibleMailBody/,'Der Avis-Refresh erreicht die sichtbare Mail-Textarea nicht.');
   assert.match(source,/querySelector\([^)]*textarea/,'Die sichtbare Mail-Textarea wird nicht angesprochen.');
 });
 
