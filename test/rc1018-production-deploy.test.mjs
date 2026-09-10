@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const workflow='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const standardDeploy='.github/rc1018/apply-standard-deploy.mjs';
 
 test('RC1018 ist der aktuelle gemeinsame Standarddeploy für Produktion TESTSERVICE und Demo',()=>{
   const flow=read(workflow);
@@ -25,6 +26,13 @@ test('RC1018 Standarddeploy prüft den neuen Mail- und Sprachvertrag vor Veröff
   assert.match(flow,/npm test/);
   assert.match(flow,/assets\/rc1018-mail-language-standard\.js\?v=1018/);
   assert.match(flow,/assets\/rc1018-public-language\.js\?v=1018/);
+});
+
+test('RC1021 Lieferavis-Cache-Key ist im Build und Live-Deployvertrag durchgängig',()=>{
+  const flow=read(workflow),generator=read(standardDeploy);
+  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1021/,'Produktionsdeploy prüft noch den alten Lieferavis-Cache-Key.');
+  assert.doesNotMatch(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1015/,'Produktionsdeploy darf den alten Lieferavis-Cache-Key nicht mehr erzwingen.');
+  assert.match(generator,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1021/,'Standard-Deploy-Generator kennt den neuen Lieferavis-Cache-Key nicht.');
 });
 
 test('RC1018 Deploypakete enthalten öffentliche DE EN Seiten und beide neuen Laufzeitressourcen',()=>{
