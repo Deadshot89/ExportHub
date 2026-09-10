@@ -57,7 +57,7 @@ function patchCustomerAvisForm(html){
   out=replaceOne(out,statusAnchor,statusAnchor+"\nfunction avisFormFocused(){var f=document.getElementById('avisForm'),active=document.activeElement;return!!(f&&active&&typeof f.contains==='function'&&f.contains(active))}\nfunction markAvisFormDirty(){avisFormDirty=true}",'Formularschutz');
   out=replaceOne(out,
     "var f=document.getElementById('avisForm');if(f)f.addEventListener('submit',submit)}",
-    "var f=document.getElementById('avisForm');if(f){f.addEventListener('submit',submit);f.addEventListener('input',markAvisFormDirty,true);f.addEventListener('change',markAvisFormDirty,true)}}",
+    "var f=document.getElementById('avisForm');if(f){f.addEventListener('submit',submit);f.addEventListener('focusin',markAvisFormDirty,true);f.addEventListener('input',markAvisFormDirty,true);f.addEventListener('change',markAvisFormDirty,true)}}",
     'Dirty-Listener');
   out=replaceOne(out,
     "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(render)",
