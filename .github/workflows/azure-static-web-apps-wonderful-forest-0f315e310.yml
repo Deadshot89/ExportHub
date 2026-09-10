@@ -87,7 +87,7 @@ jobs:
           grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1018/demo.html
           grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1018/index.html
           grep -q 'assets/rc1014-shipment-overview.js?v=1016' dist-rc1018/index.html
-          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1015' dist-rc1018/index.html
+          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1018/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1018/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1018/TESTVERSION.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1018/demo.html
@@ -217,7 +217,7 @@ jobs:
               && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$d" \
               && grep -q 'assets/rc1014-task-runtime.js?v=1016' "$p" \
               && grep -q 'assets/rc1014-shipment-overview.js?v=1016' "$p" \
-              && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1015' "$p" \
+              && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' "$p" \
               && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$p" \
               && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$t" \
               && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$d" \

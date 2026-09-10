@@ -39,7 +39,7 @@ test('RC1016 Bestandsschutz prüft die damaligen Funktionen und Sicherheitsregre
   assert.match(flow,/assets\/rc1016-mobile-navigation\.js\?v=1016/);
   assert.match(flow,/assets\/rc1014-task-runtime\.js\?v=1016/);
   assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1016/);
-  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1015/);
+  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1021/);
 });
 
 test('RC1016 Laufzeitressourcen bleiben in der aktuellen Drei-Umgebungen-Liveprüfung geschützt',()=>{
