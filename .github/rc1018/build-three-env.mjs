@@ -60,8 +60,8 @@ function patchCustomerAvisForm(html){
     "var f=document.getElementById('avisForm');if(f){f.addEventListener('submit',submit);f.addEventListener('input',markAvisFormDirty,true);f.addEventListener('change',markAvisFormDirty,true)}}",
     'Dirty-Listener');
   out=replaceOne(out,
-    "api('/appointment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(render)",
-    "api('/appointment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(data){avisFormDirty=false;render(data)})",
+    "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(render)",
+    "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(data){avisFormDirty=false;render(data)})",
     'Submit-Erfolg');
   out=replaceOne(out,
     "function refresh(){if(!session)return;api('?_='+Date.now()).then(render).catch(function(err){",
