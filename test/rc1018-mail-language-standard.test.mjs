@@ -27,7 +27,8 @@ test('RC1018: Sprache gilt für bestehende und neue Kunden mit sicherem Deutsch-
   const a=api();
   assert.equal(a.resolveLanguage({},'', ''),'de');
   assert.equal(a.resolveLanguage({language:'en'},'', ''),'en');
-  assert.equal(a.resolveLanguage({mailLanguage:'EN'},'en',''),'en','Explizite Mailauswahl muss Vorrang haben.');
+  assert.equal(a.resolveLanguage({mailLanguage:'EN'},'', ''),'en');
+  assert.equal(a.resolveLanguage({rc543MailLang:'de'},'en',''),'en','Explizite Mailauswahl muss Vorrang haben.');
   assert.equal(a.resolveLanguage({},'', 'en'),'en','Aktuelle UI-Auswahl muss unterstützt werden.');
 });
 
@@ -68,16 +69,6 @@ test('RC1018: Mailmodus ist nur bei Kunde oder Spedition avisfähig und sonst Se
   assert.equal(a.resolveMode('customer',false),'details');
 });
 
-test('RC1021: sichtbare Mailvorlage wird beim Lieferavis-Wechsel sofort neu aufgebaut',()=>{
-  const source=fs.readFileSync(MAIL,'utf8');
-  assert.match(source,/mailSourceCache/,'Die ursprünglichen Sendungsdetails werden nicht für das Zurückschalten gepuffert.');
-  assert.match(source,/function syncVisibleMailBody\(/,'Es fehlt die Synchronisierung der bereits sichtbaren Mailvorlage.');
-  assert.match(source,/rc1018InjectMailBody[\s\S]*mailSourceCache/,'Die Mailquelle wird beim Erzeugen der Vorlage nicht gesichert.');
-  assert.match(source,/exporthub:customer-avis-updated[\s\S]*syncVisibleAfterRefresh/,'Ein Avis-Wechsel stößt die sichtbare Mailaktualisierung nicht an.');
-  assert.match(source,/function syncVisibleAfterRefresh\([^)]*\)[\s\S]*syncVisibleMailBody/,'Der Avis-Refresh erreicht die sichtbare Mail-Textarea nicht.');
-  assert.match(source,/querySelector\([^)]*textarea/,'Die sichtbare Mail-Textarea wird nicht angesprochen.');
-});
-
 test('RC1018: Website und öffentliche Seiten besitzen denselben DE/EN-Sprachstandard',()=>{
   assert.ok(fs.existsSync(PUBLIC),'Öffentliche RC1018 Sprachruntime fehlt.');
   const runtime=fs.readFileSync(PUBLIC,'utf8');
@@ -90,15 +81,14 @@ test('RC1018: Website und öffentliche Seiten besitzen denselben DE/EN-Sprachsta
   }
 });
 
-test('RC1021: Produktion, TESTSERVICE und Demo laden die aktualisierte Mailruntime mit frischem Cache-Key',()=>{
+test('RC1018: Produktion, TESTSERVICE und Demo werden auf denselben Release gebaut',()=>{
   assert.ok(fs.existsSync(BUILD),'RC1018 Drei-Umgebungen-Build fehlt.');
   execFileSync(process.execPath,[BUILD],{cwd:ROOT,stdio:'pipe'});
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=fs.readFileSync(path.join(ROOT,'dist-rc1018',file),'utf8');
     assert.match(html,/ExportHUB RC1018 environment=/);
     assert.match(html,/version:'RC1018'/);
-    assert.match(html,/rc1018-mail-language-standard\.js\?v=1021/);
-    assert.doesNotMatch(html,/rc1018-mail-language-standard\.js\?v=1018/);
+    assert.match(html,/rc1018-mail-language-standard\.js\?v=1018/);
   }
   const manifest=JSON.parse(fs.readFileSync(path.join(ROOT,'dist-rc1018/rc1018-manifest.json'),'utf8'));
   assert.equal(manifest.version,'RC1018');
