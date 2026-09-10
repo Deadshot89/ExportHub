@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const FLOW=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
+const FIX=fs.readFileSync('assets/rc1027-lieferavis-immediate.js','utf8');
 
 function load(shipment,{reference='',link='https://example.test/customer-avis.html?token=abc'}={}){
   const windowListeners=new Map();
@@ -12,11 +13,11 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
   const persists=[];
   const referenceInput={
     id:'shipmentReference',name:'reference',value:reference,
-    closest(){return{textContent:'Sendungsreferenz'}},matches(){return true}
+    closest(){return{textContent:'Sendungsreferenz'}},matches(){return true},getAttribute(){return''}
   };
   const customerInput={
     id:'customerName',name:'customer',value:shipment.customerName||'',
-    closest(){return{textContent:'Kunde'}},matches(){return true}
+    closest(){return{textContent:'Kunde'}},matches(){return true},getAttribute(){return''}
   };
   const panel={
     attrs:{'data-active':'0'},
@@ -57,6 +58,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
   const context=vm.createContext({
     window,document,console,URL,Date,Math,
     crypto:{getRandomValues(arr){for(let i=0;i<arr.length;i++)arr[i]=i+7;return arr}},
+    Uint8Array,
     alert(){},
     requestAnimationFrame(fn){fn();return 1},
     setTimeout(fn){fn();return 1},
@@ -64,6 +66,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
     CustomEvent:function CustomEvent(type,opt){this.type=type;this.detail=opt&&opt.detail}
   });
   vm.runInContext(FLOW,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
+  vm.runInContext(FIX,context,{filename:'assets/rc1027-lieferavis-immediate.js'});
   async function fireDocument(name,target=customerInput){for(const fn of documentListeners.get(name)||[])await fn({type:name,target})}
   return{api:window.ExportHUBCustomerAvis706,rc:window.ExportHUBRC1027Lieferavis,shipment,state,referenceInput,customerInput,toggles,persists,fireDocument};
 }
@@ -134,8 +137,10 @@ test('RC1027: sobald ein Kunde gesetzt ist wird Referenz, Minimalentwurf und Avi
 });
 
 test('RC1027: Kundenauswahl stößt die frühe Avis-Erzeugung automatisch an',async()=>{
-  const shipment={customerName:'Heizmann AG Hydraulik',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
+  const shipment={customerName:'',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
   const env=load(shipment,{reference:''});
+  shipment.customerName='Heizmann AG Hydraulik';
+  env.customerInput.value=shipment.customerName;
   await env.fireDocument('change',env.customerInput);
   await Promise.resolve();
   await Promise.resolve();
