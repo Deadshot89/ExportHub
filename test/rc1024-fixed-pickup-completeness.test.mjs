@@ -34,3 +34,21 @@ test('bestehende aktuelle FIX-Abholungen bleiben erhalten und NEFF bleibt entfer
   }
   assert.equal([...actual].some(value => /^Neff\|/i.test(value)), false);
 });
+
+test('UK wird täglich und die Luftsendungen werden donnerstags als FIX-Abholung geführt', () => {
+  const actual = new Set(seed.defaultsForCompany('ESSENTRA').map(key));
+  const required = [
+    'UK|1',
+    'UK|2',
+    'UK|3',
+    'UK|4',
+    'UK|5',
+    'China|4',
+    'Indien|4',
+    'Australien|4',
+    'Singapur|4',
+    'Shenzhen HK|4',
+    'Thailand|4'
+  ];
+  for (const expected of required) assert.equal(actual.has(expected), true, `Fehlende FIX-Abholung: ${expected}`);
+});
