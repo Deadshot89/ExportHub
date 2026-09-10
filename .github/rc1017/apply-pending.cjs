@@ -85,10 +85,13 @@ function rc1017SyncSubShipments(target){
  renderRc1017SubShipments(result);
  return result
 }
+window.rc1017SyncSubShipments=rc1017SyncSubShipments;
 `;
 const activeStowRows="function stowRows(){return arr(shipment().rows).map(normalizeRow).filter(function(r){return q(r.type)>''&&num(r.count)>0})}";
 changed=insertBeforeOnce('index.html',activeStowRows,multiTruckRuntime,'function rc1017SyncSubShipments(')||changed;
-changed=replaceOnce('index.html',"if(!q(saved.status))saved.status='Entwurf';","rc1017SyncSubShipments(saved);if(!q(saved.status))saved.status='Entwurf';")||changed;
+changed=insertBeforeOnce('index.html',activeStowRows,'window.rc1017SyncSubShipments=rc1017SyncSubShipments;','window.rc1017SyncSubShipments=rc1017SyncSubShipments;')||changed;
+changed=replaceOnce('index.html',"if(!q(saved.status))saved.status='Entwurf';","if(typeof window.rc1017SyncSubShipments!=='function')throw new Error('RC1017 Mehr-LKW-Synchronisierung ist nicht verfügbar.');window.rc1017SyncSubShipments(saved);if(!q(saved.status))saved.status='Entwurf';")||changed;
+changed=replaceOnce('index.html','rc1017SyncSubShipments(saved);if(!q(saved.status))saved.status=\'Entwurf\';',"if(typeof window.rc1017SyncSubShipments!=='function')throw new Error('RC1017 Mehr-LKW-Synchronisierung ist nicht verfügbar.');window.rc1017SyncSubShipments(saved);if(!q(saved.status))saved.status='Entwurf';")||changed;
 changed=insertAfterOnce('index.html','<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"/>','<script id="exporthub-rc1017-multi-truck" defer src="/assets/rc1017-multi-truck.js?v=1017"></script>','id="exporthub-rc1017-multi-truck"')||changed;
 
 changed=replaceOnce('.github/rc1013/build-three-env.mjs',"const LIEFERAVIS_SRC='/assets/rc1015-lieferavis-mail-flow.js?v=1015';","const LIEFERAVIS_SRC='/assets/rc1015-lieferavis-mail-flow.js?v=1015';\nconst MULTI_TRUCK_SRC='/assets/rc1017-multi-truck.js?v=1017';")||changed;
