@@ -113,10 +113,7 @@ function loadAuto(shipment){
   });
   vm.runInContext(source,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
   async function fire(name){
-    for(const fn of listeners.get(name)||[])fn({type:name});
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    for(const fn of listeners.get(name)||[])await fn({type:name});
   }
   return{api:window.ExportHUBCustomerAvis706,alerts,toggles,persists,fire,shipment};
 }
