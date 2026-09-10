@@ -5,9 +5,12 @@ on:
     branches: [rc1018-fixed-pickups-pallet-account-final]
     paths:
       - 'test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs'
+      - 'test/rc1018-shell-cache-pallet-release.test.mjs'
       - 'browser/rc1018-pallet-no-reference.mjs'
       - 'api/shared/rc1014-fixed-pickup-seed.js'
       - 'api/shared/fixed-pickup-store.js'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
       - 'index.html'
       - 'TESTVERSION.html'
       - '.github/rc1018/**'
@@ -31,6 +34,8 @@ jobs:
         run: node .github/rc1018/diagnose-pallet-reference.mjs
       - name: Reale Kalender- und Paletten-Runtime-Lücken
         run: node --test test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs
+      - name: Shell-Cache darf keinen alten Palettenkonto-Code halten
+        run: node --test test/rc1018-shell-cache-pallet-release.test.mjs
       - name: Chromium installieren
         run: |
           npm install --no-save playwright@1.55.0
