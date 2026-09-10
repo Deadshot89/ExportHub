@@ -72,13 +72,12 @@ test('Kalender-Runtime gibt den aktiven Firmenkontext an die FIX-API-Komponente 
   assert.equal(user.calls[0].options.companyId,'ESSENTRA');
 });
 
-test('Essentra FIX-Startbestand enthält die freigegebenen Abholkunden an den richtigen Wochentagen', () => {
+test('Essentra FIX-Startbestand enthält die freigegebenen Abholkunden ohne NEFF', () => {
   assert.deepEqual(
     seed.defaultsForCompany('ESSENTRA').map(({siteLabel,weekday})=>({siteLabel,weekday})),
     [
       {siteLabel:'Frankreich',weekday:1},
       {siteLabel:'Italien',weekday:1},
-      {siteLabel:'Neff',weekday:1},
       {siteLabel:'O’Hare',weekday:1},
       {siteLabel:'Faurecia',weekday:2},
       {siteLabel:'BMP',weekday:3}
