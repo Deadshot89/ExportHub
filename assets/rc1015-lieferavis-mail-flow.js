@@ -34,7 +34,7 @@ function currentState(){
 }
 function currentShipmentForAvis(){
  var state=currentState(),ref=rc1015DraftReference(),lists=[state.shipments,state.savedShipments,state.salesSharedShipments,state.sharedShipments],candidates=[];
- [state.currentShipment,state.shipment].forEach(function(item){if(item&&typeof item==='object')candidates.push(item)});
+ [state.currentShipment,state.shipment,state.selectedShipment].forEach(function(item){if(item&&typeof item==='object')candidates.push(item)});
  lists.forEach(function(list){if(Array.isArray(list))list.forEach(function(item){if(item&&typeof item==='object')candidates.push(item)})});
  if(ref){for(var i=0;i<candidates.length;i++){if(shipmentReference(candidates[i])===ref)return candidates[i]}}
  return candidates.length===1?candidates[0]:null
@@ -49,9 +49,18 @@ function referenceInput(){
   return /sendungsreferenz|referenznummer/i.test((input.id||'')+' '+(input.name||'')+' '+(label&&label.textContent||''));
  })||null
 }
+function canonicalDraftReference(){
+ var state=currentState(),candidates=[state.shipment,state.currentShipment,state.selectedShipment];
+ for(var i=0;i<candidates.length;i++){
+  var value=shipmentReference(candidates[i]).replace(/[^A-Z0-9]/g,'').slice(0,6);
+  if(/^[A-Z0-9]{6}$/.test(value))return value
+ }
+ return''
+}
 function rc1015DraftReference(){
  var input=referenceInput(),value=q(input&&input.value).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
- return /^[A-Z0-9]{6}$/.test(value)?value:''
+ if(/^[A-Z0-9]{6}$/.test(value))return value;
+ return canonicalDraftReference()
 }
 async function persist(reason){
  var core=window.ExportHUBRC565;
