@@ -18,7 +18,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -27,3 +27,22 @@ jobs:
           package-manager-cache: false
       - name: Kritische RC1018 Regression
         run: node --test test/rc1018-calendar-shipment-critical-fixes.test.mjs
+      - name: Kalender Bestandsschutz
+        run: node --test test/rc1014-fixed-pickup-seed.test.mjs test/rc1017-calendar-completion.test.mjs
+      - name: Lieferavis Bestandsschutz
+        run: node --test test/rc1015-lieferavis-mail-flow.test.mjs test/rc1016-lieferavis-persistence.test.mjs test/rc1018-lieferavis-exceptions.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
+      - name: Drei Umgebungen bauen
+        run: node .github/rc1018/build-three-env.mjs
+      - name: Fix in allen drei Ausgaben prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q "MAIN-" "dist-rc1018/$file"
+            grep -q "Hauptadresse" "dist-rc1018/$file"
+            grep -q "function canonicalDraftReference" "dist-rc1018/assets/rc1015-lieferavis-mail-flow.js"
+          done
+      - name: Diff prüfen
+        run: git diff --check
