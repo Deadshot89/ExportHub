@@ -56,13 +56,13 @@ test('RC1015: Kundenmail wechselt eindeutig zwischen Sendungsdetails und Liefera
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   test(`${file}: lädt denselben RC1015 Lieferavis-Mailfluss`,()=>{
     const out=html(file);
-    assert.match(out,/rc1015-lieferavis-mail-flow\.js\?v=1015/);
+    assert.match(out,/rc1015-lieferavis-mail-flow\.js\?v=1021/);
   });
 }
 
 test('RC1015 Lieferavis-Korrektur wird über den gemeinsamen Drei-Umgebungen-Build ausgerollt',()=>{
   const source=fs.readFileSync(BUILD,'utf8');
-  assert.match(source,/LIEFERAVIS_SRC=['"]\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1015['"]/);
+  assert.match(source,/LIEFERAVIS_SRC=['"]\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1021['"]/);
   assert.match(source,/copy\(['"]assets\/rc1015-lieferavis-mail-flow\.js['"]\)/);
   assert.match(source,/lieferavis:/,'Der gemeinsame Manifest-Eintrag für die Korrektur fehlt.');
 });

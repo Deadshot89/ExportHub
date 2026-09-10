@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
+const rc1013Build=fs.readFileSync('.github/rc1013/build-three-env.mjs','utf8');
 
 function load(shipment,options={}){
   const alerts=[];
@@ -50,6 +51,71 @@ function load(shipment,options={}){
   });
   vm.runInContext(source,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
   return{api:window.ExportHUBCustomerAvis706,alerts,toggles,persists};
+}
+
+function loadAuto(shipment){
+  const alerts=[];
+  const toggles=[];
+  const persists=[];
+  const listeners=new Map();
+  const input={
+    id:'shipmentReference',name:'reference',value:shipment.reference||'ABC123',
+    closest(){return{textContent:'Sendungsreferenz'}},
+    matches(){return true}
+  };
+  const document={
+    readyState:'complete',
+    querySelectorAll(selector){return selector==='#content input'?[input]:[]},
+    getElementById(){return null},
+    addEventListener(){}
+  };
+  const base={
+    enabled(sh){return !!(sh&&sh.customerAvisEnabled)},
+    link(){return 'https://avis.example/customer'},
+    async toggle(on){
+      toggles.push(on);
+      if(on){
+        shipment.customerAvisEnabled=true;
+        shipment.avisEnabled=true;
+        shipment.customerAvisSecurityVersion=995;
+        shipment.avisSecurityVersion=995;
+        shipment.customerAvisEnabledAt='2026-09-10T08:00:00.000Z';
+        shipment.avisEnabledAt='2026-09-10T08:00:00.000Z';
+        shipment.customerAvisDisabledAt='';
+        shipment.avisDisabledAt='';
+      }else{
+        shipment.customerAvisEnabled=false;
+        shipment.avisEnabled=false;
+        shipment.customerAvisDisabledAt='2026-09-10T08:05:00.000Z';
+        shipment.avisDisabledAt='2026-09-10T08:05:00.000Z';
+      }
+      return false;
+    },
+    injectMailBody(_sh,_target,body){return body}
+  };
+  const state={shipments:[shipment],currentShipment:shipment};
+  const window={
+    document,
+    ExportHUBCustomerAvis706:base,
+    ExportHUBClean:{state},
+    ExportHUBRC565:{async persistShipment(){persists.push('persist');return true}},
+    addEventListener(name,fn){
+      if(!listeners.has(name))listeners.set(name,[]);
+      listeners.get(name).push(fn);
+    },
+    console
+  };
+  const context=vm.createContext({
+    window,document,console,
+    alert:message=>alerts.push(String(message)),
+    requestAnimationFrame:fn=>fn(),
+    setTimeout:fn=>fn()
+  });
+  vm.runInContext(source,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
+  async function fire(name){
+    for(const fn of listeners.get(name)||[])await fn({type:name});
+  }
+  return{api:window.ExportHUBCustomerAvis706,alerts,toggles,persists,fire,shipment};
 }
 
 const bmpVariants=[
@@ -101,4 +167,45 @@ test('RC1018: BMP-Kundenmail enthält keinen Lieferavis-Link, normale Kunden ble
 test('RC1018: sichtbarer Hinweistext für gesperrte Avis-Kunden ist im Flow vorhanden',()=>{
   assert.match(source,/Lieferavis für diesen Kunden nicht verfügbar/i);
   assert.match(source,/Kunden-IT blockiert den Zugriff/i);
+});
+
+test('Lieferavis: normale gespeicherte Sendung wird standardmäßig automatisch aktiviert',async()=>{
+  const shipment={reference:'ABC123',customerName:'Normaler Kunde',customerAvisEnabled:false,avisEnabled:false,status:'Entwurf'};
+  const {api,fire,toggles,persists}=loadAuto(shipment);
+  assert.equal(typeof api.autoEnable,'function','Der Lieferavis-Flow muss die Default-Aktivierung bereitstellen.');
+  await fire('exporthub:shipment-saved');
+  assert.equal(toggles.length,1);
+  assert.equal(toggles[0],true);
+  assert.equal(persists.length,1);
+  assert.equal(persists[0],'persist');
+  assert.equal(shipment.customerAvisEnabled,true);
+});
+
+test('Lieferavis: manuelle Deaktivierung bleibt für dieselbe Sendung erhalten',async()=>{
+  const shipment={reference:'ABC123',customerName:'Normaler Kunde',customerAvisEnabled:true,avisEnabled:true,status:'Entwurf'};
+  const {api,fire,toggles}=loadAuto(shipment);
+  await api.toggle(false);
+  assert.equal(toggles.length,1);
+  assert.equal(toggles[0],false);
+  await fire('exporthub:shipment-saved');
+  await fire('exporthub:rendered');
+  assert.equal(toggles.length,1,'Eine bewusst deaktivierte Sendung darf nicht automatisch wieder aktiviert werden.');
+  assert.equal(toggles[0],false);
+  assert.equal(shipment.customerAvisEnabled,false);
+});
+
+test('Lieferavis: bestehende Kunden-Ausnahme BMP bleibt trotz Default-Aktivierung gesperrt',async()=>{
+  const shipment={reference:'ABC123',customerName:'BMP',customerAvisEnabled:false,avisEnabled:false,status:'Entwurf'};
+  const {fire,toggles}=loadAuto(shipment);
+  await fire('exporthub:shipment-saved');
+  assert.equal(toggles.length,0);
+});
+
+test('Lieferavis: RC1015 darf sich nicht als RC1018 ausgeben, damit die neue Mailruntime wirklich installiert wird',()=>{
+  assert.doesNotMatch(source,/__rc1018\s*:\s*true/);
+  assert.match(source,/__rc1015\s*:\s*true/);
+});
+
+test('Lieferavis: neuer Cache-Key wird in allen drei Umgebungen gebaut',()=>{
+  assert.match(rc1013Build,/rc1015-lieferavis-mail-flow\.js\?v=1021/);
 });
