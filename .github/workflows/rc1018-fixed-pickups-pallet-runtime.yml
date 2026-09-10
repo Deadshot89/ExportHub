@@ -5,6 +5,7 @@ on:
     branches: [rc1018-fixed-pickups-pallet-account-final]
     paths:
       - 'test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs'
+      - 'browser/rc1018-pallet-no-reference.mjs'
       - 'api/shared/rc1014-fixed-pickup-seed.js'
       - 'api/shared/fixed-pickup-store.js'
       - 'index.html'
@@ -19,7 +20,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -30,3 +31,16 @@ jobs:
         run: node .github/rc1018/diagnose-pallet-reference.mjs
       - name: Reale Kalender- und Paletten-Runtime-Lücken
         run: node --test test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs
+      - name: Chromium installieren
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Palettenkonto Eingang und Ausgang ohne Referenz im Browser
+        shell: bash
+        run: |
+          node .github/rc1018/build-three-env.mjs
+          python3 -m http.server 4173 --directory dist-rc1018 >/tmp/rc1018-pallet-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/demo.html >/dev/null && break; sleep 1; done
+          node browser/rc1018-pallet-no-reference.mjs
