@@ -122,8 +122,8 @@ test('RC1027: eigene Mail bleibt vollständig unverändert',()=>{
   assert.equal(api.injectMailBody(shipment,'own',expandedDetails,'de'),expandedDetails);
 });
 
-test('RC1027: sobald ein Kunde gesetzt ist wird Referenz, Minimalentwurf und Avis-Link automatisch erzeugt',async()=>{
-  const shipment={customerName:'Heizmann AG Hydraulik',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
+test('RC1027: sobald Kunde und Standort gesetzt sind wird Referenz, Minimalentwurf und Avis-Link automatisch erzeugt',async()=>{
+  const shipment={customerName:'Heizmann AG Hydraulik',selectedLocationId:'MAIN-C1',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
   const env=load(shipment,{reference:''});
   assert.ok(env.rc&&typeof env.rc.ensureCustomerAvis==='function','Frühe Kunden-Avis-Aktivierung fehlt.');
   const active=await env.rc.ensureCustomerAvis('customer-selected');
@@ -136,14 +136,14 @@ test('RC1027: sobald ein Kunde gesetzt ist wird Referenz, Minimalentwurf und Avi
   assert.match(env.api.link(shipment),/customer-avis\.html/);
 });
 
-test('RC1027: Kundenauswahl stößt die frühe Avis-Erzeugung automatisch an',async()=>{
-  const shipment={customerName:'',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
+test('RC1027: Kundenauswahl mit bereits gesetztem Standort stößt die frühe Avis-Erzeugung automatisch an',async()=>{
+  const shipment={customerName:'',selectedLocationId:'MAIN-C1',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
   const env=load(shipment,{reference:''});
   shipment.customerName='Heizmann AG Hydraulik';
   env.customerInput.value=shipment.customerName;
   await env.fireDocument('change',env.customerInput);
   await Promise.resolve();
   await Promise.resolve();
-  assert.equal(env.toggles.length,1,'Nach der Kundenauswahl muss der Avis ohne manuellen Speicherschritt ausgestellt werden.');
+  assert.equal(env.toggles.length,1,'Nach vollständiger Kunden- und Standortzuordnung muss der Avis ohne manuellen Speicherschritt ausgestellt werden.');
   assert.equal(shipment.customerAvisToken,'server-token');
 });
