@@ -45,7 +45,11 @@ function loadStore(memory){
   try{return require(target);} finally{Module._load=original;}
 }
 
-const expected=['BMP|3','Faurecia|2','Frankreich|1','Italien|1','O’Hare|1'].sort();
+const expected=[
+  'Adolf Würth|2','Adolf Würth|4','BMP|3','BSH Hausgeräte|3','Barcelona|1','Barcelona|4',
+  'Contitech|3','Esysco|1','Faurecia|2','Frankreich|1','Gaggenau|1','Gorenje Slovenien|2',
+  'Italien|1','Madrid|1','Madrid|4','O’Hare|1','Polen|4','Schweden|5'
+].sort();
 
 test('Legacy-Firmenkontext der bestehenden ExportHUB-Installation erhält die Essentra-FIX-Abholungen ohne NEFF', async()=>{
   const store=loadStore(makeMemoryBlobRest());

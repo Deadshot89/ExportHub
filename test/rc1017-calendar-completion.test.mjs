@@ -79,8 +79,21 @@ test('Essentra FIX-Startbestand enthält die freigegebenen Abholkunden ohne NEFF
       {siteLabel:'Frankreich',weekday:1},
       {siteLabel:'Italien',weekday:1},
       {siteLabel:'O’Hare',weekday:1},
+      {siteLabel:'Esysco',weekday:1},
+      {siteLabel:'Gaggenau',weekday:1},
+      {siteLabel:'Barcelona',weekday:1},
+      {siteLabel:'Madrid',weekday:1},
       {siteLabel:'Faurecia',weekday:2},
-      {siteLabel:'BMP',weekday:3}
+      {siteLabel:'Adolf Würth',weekday:2},
+      {siteLabel:'Gorenje Slovenien',weekday:2},
+      {siteLabel:'BMP',weekday:3},
+      {siteLabel:'BSH Hausgeräte',weekday:3},
+      {siteLabel:'Contitech',weekday:3},
+      {siteLabel:'Adolf Würth',weekday:4},
+      {siteLabel:'Madrid',weekday:4},
+      {siteLabel:'Barcelona',weekday:4},
+      {siteLabel:'Polen',weekday:4},
+      {siteLabel:'Schweden',weekday:5}
     ]
   );
 });

@@ -84,6 +84,12 @@ function loadFixedStore(memory){
   try{return require(target);}finally{Module._load=original;}
 }
 
+const expectedFixes=[
+  'Adolf Würth|2','Adolf Würth|4','BMP|3','BSH Hausgeräte|3','Barcelona|1','Barcelona|4',
+  'Contitech|3','Esysco|1','Faurecia|2','Frankreich|1','Gaggenau|1','Gorenje Slovenien|2',
+  'Italien|1','Madrid|1','Madrid|4','O’Hare|1','Polen|4','Schweden|5'
+].sort();
+
 test('RC1018 Kalender: bereits initialisierter aber leerer Essentra-FIX-Speicher wird selbstheilend ergänzt',async()=>{
   const memory=makeMemoryBlobRest();
   const store=loadFixedStore(memory);
@@ -91,9 +97,7 @@ test('RC1018 Kalender: bereits initialisierter aber leerer Essentra-FIX-Speicher
   const doc={schemaVersion:1,seedVersion:4,environment:'production',companyKey:'essentra',revision:7,updatedAt:'2026-09-09T12:00:00.000Z',items:[]};
   memory.blobs.set(`exporthub-data/${blob}`,{data:Buffer.from(JSON.stringify(doc)),etag:'\"old\"'});
   const items=await store.list('production','essentra',{includeInactive:true});
-  assert.deepEqual(items.map(x=>`${x.siteLabel}|${x.weekday}`).sort(),[
-    'BMP|3','Faurecia|2','Frankreich|1','Italien|1','O’Hare|1'
-  ].sort());
+  assert.deepEqual(items.map(x=>`${x.siteLabel}|${x.weekday}`).sort(),expectedFixes);
   assert.equal(items.some(x=>/NEFF/i.test(x.siteLabel)),false);
 });
 
