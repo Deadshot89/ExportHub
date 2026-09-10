@@ -9,6 +9,7 @@ on:
       - '.github/workflows/rc1019-calendar-rights.yml'
       - 'api/shared/user-policy.js'
       - 'api/shared/rc1014-fixed-pickup-seed.js'
+      - 'api/shared/fixed-pickup-store.js'
       - 'api/fixed-pickups/index.js'
       - 'assets/rc1012-abholkalender-runtime.js'
       - 'assets/abholkalender.js'
@@ -16,6 +17,9 @@ on:
       - 'staticwebapp.testservice.config.json'
       - 'index.html'
       - 'TESTVERSION.html'
+      - 'browser/rc1018-pallet-no-reference.mjs'
+      - 'test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs'
+      - 'test/rc1018-shell-cache-pallet-release.test.mjs'
       - 'test/rc1019-*.test.mjs'
   workflow_dispatch:
 
@@ -25,14 +29,39 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: Kalenderfreigabe RED-/GREEN-Vertrag
+      - name: Kalenderfreigabe Rechtevertrag
         run: node --test test/rc1019-calendar-user-permissions.test.mjs
-      - name: Rechtepfad diagnostizieren
-        run: node .github/rc1019/diagnose-calendar-rights.mjs
+      - name: Frühere Kalender-, Paletten- und Cache-Verträge
+        run: node --test --test-concurrency=1 test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs test/rc1018-shell-cache-pallet-release.test.mjs
+      - name: Vollständige Node-Regression
+        run: npm test
+      - name: Produktion TESTSERVICE und Demo gemeinsam bauen und Rechte prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1018/build-three-env.mjs
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q "{id:'pickupcalendar',l:'Abholkalender'}" "dist-rc1018/$file"
+            grep -q "'tasks','pickupcalendar','settings'" "dist-rc1018/$file"
+            grep -q 'ExportHUB RC1018 environment=' "dist-rc1018/$file"
+          done
+      - name: Chromium installieren
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Palettenkonto Eingang und Ausgang ohne Referenz im Browser
+        shell: bash
+        run: |
+          node .github/rc1018/build-three-env.mjs
+          python3 -m http.server 4173 --directory dist-rc1018 >/tmp/rc1019-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/demo.html >/dev/null && break; sleep 1; done
+          node browser/rc1018-pallet-no-reference.mjs
