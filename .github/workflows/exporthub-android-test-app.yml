@@ -84,7 +84,7 @@ jobs:
           mkdir -p out
           cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1018-Android-debug.apk
           sha256sum out/ExportHUB-RC1018-Android-debug.apk > out/ExportHUB-RC1018-Android-debug.sha256.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: ExportHUB-RC1018-Android
           path: android-app/out/*
