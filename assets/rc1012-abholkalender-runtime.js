@@ -129,6 +129,10 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
   function openShipment(shipment){
     const target = shipmentTarget(shipment);
     if (!target) return false;
+    if (window.ExportHUBShipmentView && typeof window.ExportHUBShipmentView.open === 'function') {
+      window.ExportHUBShipmentView.open(target,'pickupcalendar');
+      return true;
+    }
     if (typeof window.openShipment === 'function') return window.openShipment(target);
     if (typeof window.__EXPORTHUB_OPEN_SHIPMENT__ === 'function') return window.__EXPORTHUB_OPEN_SHIPMENT__(target);
     return false;

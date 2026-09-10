@@ -12,7 +12,7 @@ const SOP_RELEASE_SRC='/assets/sop/rc1010-sop-release.js?v=1010';
 const SOP_STABILITY_SRC='/assets/sop/rc1013-sop-stability.js?v=1013';
 const CALENDAR_CSS='/assets/abholkalender.css?v=1012';
 const CALENDAR_JS='/assets/abholkalender.js?v=1012';
-const CALENDAR_RUNTIME='/assets/rc1012-abholkalender-runtime.js?v=1012';
+const CALENDAR_RUNTIME='/assets/rc1012-abholkalender-runtime.js?v=1012&rc=1030';
 const DIAGNOSTICS_SRC='/assets/rc1013-diagnostics.js?v=1013';
 const GATE41_UI_SRC='/assets/rc1013-gate41-ui.js?v=1013';
 const LIEFERAVIS_SRC='/assets/rc1015-lieferavis-mail-flow.js?v=1021';
