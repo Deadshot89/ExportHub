@@ -1,16 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
+import vm from 'node:vm';
 
-const require = createRequire(import.meta.url);
-const calendar = require('../assets/abholkalender.js');
+// RC1021: Das Browser-Asset wird für den Modelltest in einer CommonJS-Sandbox ausgewertet.
+const jsSource = fs.readFileSync('assets/abholkalender.js','utf8');
+const sandbox = { module:{exports:{}}, exports:{}, globalThis:{} };
+vm.runInNewContext(jsSource,sandbox,{filename:'assets/abholkalender.js'});
+const calendar = sandbox.module.exports;
 
 test('Abholkalender bietet einen Wochenplan-Druck direkt aus der Seite an', () => {
-  const js = fs.readFileSync('assets/abholkalender.js','utf8');
-  assert.match(js,/data-pickup-action="print-week"/);
-  assert.match(js,/Wochenplan drucken/);
-  assert.match(js,/\.print\(\)/);
+  assert.match(jsSource,/data-pickup-action="print-week"/);
+  assert.match(jsSource,/Wochenplan drucken/);
+  assert.match(jsSource,/\.print\(\)/);
 });
 
 test('Druckansicht enthält exakt Montag bis Freitag und nur kompakte Abholdaten', () => {
