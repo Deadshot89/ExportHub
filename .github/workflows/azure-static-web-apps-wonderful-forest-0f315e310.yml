@@ -97,7 +97,7 @@ jobs:
           test -s dist-rc1018/assets/abholkalender.js
           test -s dist-rc1018/assets/rc1012-abholkalender-runtime.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "$file" 2>/dev/null || grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1018/$file"
+            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1018/$file"
           done
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/customer-avis.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/pickup.html
