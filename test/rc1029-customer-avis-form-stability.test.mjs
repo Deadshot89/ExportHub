@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
 
-const PAGE=fs.readFileSync('customer-avis.html','utf8');
+execFileSync(process.execPath,['.github/rc1018/build-three-env.mjs'],{stdio:'ignore'});
+const PAGE=fs.readFileSync('dist-rc1018/customer-avis.html','utf8');
 const API=fs.readFileSync('api/customer-avis/index.js','utf8');
 
 function functionBody(name,source=PAGE){
