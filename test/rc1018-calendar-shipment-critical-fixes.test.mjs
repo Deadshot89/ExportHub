@@ -85,9 +85,10 @@ function loadFixedStore(memory){
 }
 
 const expectedFixes=[
-  'Adolf Würth|2','Adolf Würth|4','BMP|3','BSH Hausgeräte|3','Barcelona|1','Barcelona|4',
-  'Contitech|3','Esysco|1','Faurecia|2','Frankreich|1','Gaggenau|1','Gorenje Slovenien|2',
-  'Italien|1','Madrid|1','Madrid|4','O’Hare|1','Polen|4','Schweden|5'
+  'Adolf Würth|2','Adolf Würth|4','Australien|4','BMP|3','BSH Hausgeräte|3','Barcelona|1','Barcelona|4',
+  'China|4','Contitech|3','Esysco|1','Faurecia|2','Frankreich|1','Gaggenau|1','Gorenje Slovenien|2',
+  'Indien|4','Italien|1','Madrid|1','Madrid|4','O’Hare|1','Polen|4','Schweden|5','Shenzhen HK|4',
+  'Singapur|4','Thailand|4','UK|1','UK|2','UK|3','UK|4','UK|5'
 ].sort();
 
 test('RC1018 Kalender: bereits initialisierter aber leerer Essentra-FIX-Speicher wird selbstheilend ergänzt',async()=>{
