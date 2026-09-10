@@ -3,19 +3,21 @@ import path from 'node:path';
 
 const file=path.join(process.cwd(),'.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
 let flow=fs.readFileSync(file,'utf8');
+flow=flow.replaceAll('assets/rc1015-lieferavis-mail-flow.js?v=1015','assets/rc1015-lieferavis-mail-flow.js?v=1021');
 
 const integratedRequired=[
   'name: ExportHUB RC1018 Drei-Umgebungen Deploy',
   '.github/rc1017/**','test/rc1017-*.test.mjs','test/rc1017-three-env-release.test.mjs','assets/rc1017-multi-truck.js',
   '.github/rc1018/**','test/rc1018-*.test.mjs','test/rc1018-mail-language-standard.test.mjs','test/rc1018-production-deploy.test.mjs',
   'node .github/rc1018/build-three-env.mjs','dist-rc1018/index.html','dist-rc1018/TESTVERSION.html','dist-rc1018/demo.html',
-  'assets/rc1018-mail-language-standard.js?v=1018','assets/rc1018-public-language.js',
+  'assets/rc1015-lieferavis-mail-flow.js?v=1021','assets/rc1018-mail-language-standard.js?v=1018','assets/rc1018-public-language.js',
   'Live RC1018 Produktion TESTSERVICE und Demo prüfen','Live RC1018 Mail und Sprache prüfen'
 ];
 if(flow.includes('name: ExportHUB RC1018 Drei-Umgebungen Deploy')){
   for(const required of integratedRequired){
     if(!flow.includes(required))throw new Error(`RC1018 Deploy-Integration unvollständig: ${required}`);
   }
+  fs.writeFileSync(file,flow);
   console.log('RC1018 Standarddeploy ist bereits vollständig integriert.');
   process.exit(0);
 }
@@ -45,7 +47,7 @@ replaceOnce("          grep -q 'ExportHUB RC1016 environment=testservice' dist-r
 replaceOnce("          grep -q 'ExportHUB RC1016 environment=demo' dist-rc1018/demo.html","          grep -q 'ExportHUB RC1018 environment=demo' dist-rc1018/demo.html",'Demomarker');
 flow=flow.replaceAll("version:'RC1016'","version:'RC1018'");
 flow=flow.replaceAll("__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'","__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'");
-addAfter("          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1015' dist-rc1018/index.html\n",
+addAfter("          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1018/index.html\n",
 "          for file in index.html TESTVERSION.html demo.html; do\n            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' \"dist-rc1018/$file\"\n          done\n          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/customer-avis.html\n          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/pickup.html\n          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/location.html\n          test -s dist-rc1018/assets/rc1018-mail-language-standard.js\n          test -s dist-rc1018/assets/rc1018-public-language.js\n",'RC1018 Buildprüfungen');
 replaceOnce('      - name: Gemeinsame RC1016 Deploy-Pakete vorbereiten','      - name: Gemeinsame RC1018 Deploy-Pakete vorbereiten','Paketschritt');
 flow=flow.replaceAll('.rc1016_production_app','.rc1018_production_app');
@@ -68,7 +70,7 @@ if(!flow.includes('Live RC1018 Mail und Sprache prüfen')){
 for(const required of [
   '.github/rc1017/**','test/rc1017-*.test.mjs','test/rc1017-three-env-release.test.mjs','assets/rc1017-multi-truck.js',
   'assets/rc1016-mobile-navigation.js?v=1016','assets/rc1014-task-runtime.js?v=1016','assets/rc1014-shipment-overview.js?v=1016',
-  'test/rc1015-lieferavis-mail-flow.test.mjs','assets/rc1013-diagnostics.js','assets/rc1013-gate41-ui.js',
+  'test/rc1015-lieferavis-mail-flow.test.mjs','assets/rc1015-lieferavis-mail-flow.js?v=1021','assets/rc1013-diagnostics.js','assets/rc1013-gate41-ui.js',
   'test/rc1018-mail-language-standard.test.mjs','test/rc1018-production-deploy.test.mjs','assets/rc1018-mail-language-standard.js?v=1018','assets/rc1018-public-language.js'
 ]){
   if(!flow.includes(required))throw new Error(`RC1018 Deploy-Integration verlor Bestand: ${required}`);
