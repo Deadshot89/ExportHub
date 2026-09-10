@@ -44,9 +44,22 @@
     return '';
   }
 
+  function shipmentTarget(shipment){
+    if (shipment == null) return '';
+    if (typeof shipment !== 'object') return String(shipment).trim();
+    const candidates = [shipment.reference,shipment.ref,shipment.shipmentRef,shipment.referenceNumber,shipment.referenceNo,shipment.id,shipment.shipmentId];
+    for (const candidate of candidates) {
+      const value = String(candidate == null ? '' : candidate).trim();
+      if (value) return value;
+    }
+    return '';
+  }
+
   function openShipment(shipment){
-    if (typeof window.openShipment === 'function') return window.openShipment(shipment);
-    if (typeof window.__EXPORTHUB_OPEN_SHIPMENT__ === 'function') return window.__EXPORTHUB_OPEN_SHIPMENT__(shipment);
+    const target = shipmentTarget(shipment);
+    if (!target) return false;
+    if (typeof window.openShipment === 'function') return window.openShipment(target);
+    if (typeof window.__EXPORTHUB_OPEN_SHIPMENT__ === 'function') return window.__EXPORTHUB_OPEN_SHIPMENT__(target);
     return false;
   }
 
