@@ -27,7 +27,9 @@ test('RC1029: automatische Aktualisierung darf ein gerade bearbeitetes Lieferavi
   assert.match(refresh,/avisFormDirty/,'15-Sekunden-/Fokus-Refresh ignoriert ungespeicherte Eingaben.');
   assert.match(refresh,/avisFormFocused\(\)/,'Refresh ignoriert den nativen Datums-/Zeitpicker-Fokus noch nicht.');
   const render=functionBody('render');
-  assert.match(render,/markAvisFormDirty/,'Das gerenderte Formular markiert Änderungen noch nicht als lokal offen.');
+  assert.match(render,/addEventListener\('focusin',markAvisFormDirty,true\)/,'Datum und Zeit müssen bereits beim Öffnen des nativen Pickers gegen Refresh geschützt werden.');
+  assert.match(render,/addEventListener\('input',markAvisFormDirty,true\)/,'Eingaben werden nicht als lokal offen markiert.');
+  assert.match(render,/addEventListener\('change',markAvisFormDirty,true\)/,'Änderungen werden nicht als lokal offen markiert.');
   const submit=functionBody('submit');
   assert.match(submit,/avisFormDirty\s*=\s*false[\s\S]*render\(/,'Nach erfolgreichem Speichern muss erst der Dirty-State beendet und dann der Serverstand gerendert werden.');
 });
