@@ -2,6 +2,21 @@
   "$schema": "https://json.schemastore.org/staticwebapp.config.json",
   "routes": [
     {
+      "route": "/",
+      "allowedRoles": ["anonymous"],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      },
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/index.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
       "route": "/pickup",
       "rewrite": "/pickup.html",
       "allowedRoles": ["anonymous"],
