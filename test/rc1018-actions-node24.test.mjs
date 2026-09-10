@@ -8,7 +8,8 @@ const activeWorkflows = [
   '.github/workflows/exporthub-android-test-app.yml',
   '.github/workflows/exporthub-testservice.yml',
   '.github/workflows/rc1007-release-verify.yml',
-  '.github/workflows/rc1012-abholkalender-verify.yml'
+  '.github/workflows/rc1012-abholkalender-verify.yml',
+  '.github/workflows/rc1018-development.yml'
 ];
 
 for (const file of activeWorkflows) {
