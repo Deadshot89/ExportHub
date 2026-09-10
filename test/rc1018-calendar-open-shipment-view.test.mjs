@@ -65,6 +65,6 @@ test('RC1030: Kalender öffnet über die echte kanonische ExportHUB-Sendungsansi
 });
 
 test('RC1030: aktiver Drei-Umgebungen-Build erzwingt eine frische Kalender-Runtime',()=>{
-  assert.match(rc1013BuilderSource,/rc1012-abholkalender-runtime\.js\?v=1030/);
-  assert.doesNotMatch(rc1013BuilderSource,/rc1012-abholkalender-runtime\.js\?v=1012/);
+  assert.match(rc1013BuilderSource,/rc1012-abholkalender-runtime\.js\?v=1012&rc=1030/);
+  assert.doesNotMatch(rc1013BuilderSource,/CALENDAR_RUNTIME='\/assets\/rc1012-abholkalender-runtime\.js\?v=1012';/);
 });
