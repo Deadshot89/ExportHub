@@ -26,12 +26,17 @@ function assertMultiTruckRuntime(source,file){
   ]) assert.ok(source.includes(marker),`${file}: Mehr-LKW-Laufzeitmarker fehlt: ${marker}`);
 }
 
-function shipmentController(source){
-  const open=source.match(/<script\b[^>]*id=["']exporthub-rc373-shipment-controller["'][^>]*>/i);
-  assert.ok(open,'kanonischer Sendungscontroller fehlt');
+function scriptById(source,id){
+  const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const open=new RegExp(`<script\\b[^>]*id=["']${escaped}["'][^>]*>`,'i').exec(source);
+  assert.ok(open,`${id}: Scriptblock fehlt`);
   const start=open.index,end=source.indexOf('</script>',start+open[0].length);
-  assert.ok(end>start,'Sendungscontroller ist nicht geschlossen');
+  assert.ok(end>start,`${id}: Scriptblock ist nicht geschlossen`);
   return source.slice(start,end+'</script>'.length);
+}
+
+function shipmentController(source){
+  return scriptById(source,'exporthub-rc373-shipment-controller');
 }
 
 test('RC1018 baut die vollständige Mehr-LKW-Browserruntime identisch in Produktion TESTSERVICE und Demo',()=>{
@@ -43,6 +48,16 @@ test('RC1018 baut die vollständige Mehr-LKW-Browserruntime identisch in Produkt
     const source=html(file);
     assertMultiTruckRuntime(source,file);
     assert.equal(shipmentController(source),canonical,`${file}: Sendungscontroller weicht von Produktion ab`);
+  }
+});
+
+test('RC1018 stellt die Mehr-LKW-Synchronisierung dem RC565-Speichercontroller über die Script-Grenze bereit',()=>{
+  buildRc1018();
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const source=html(file),controller=shipmentController(source),saveRuntime=scriptById(source,'rc565-end-to-end-function-core');
+    assert.match(controller,/window\.rc1017SyncSubShipments\s*=\s*rc1017SyncSubShipments\s*;/,`${file}: RC373 exportiert rc1017SyncSubShipments nicht global`);
+    assert.match(saveRuntime,/window\.rc1017SyncSubShipments\(saved\);/,`${file}: RC565 ruft die Mehr-LKW-Synchronisierung nicht über window auf`);
+    assert.doesNotMatch(saveRuntime,/(^|[^.\w])rc1017SyncSubShipments\(saved\);/,`${file}: RC565 enthält weiterhin den nicht sichtbaren privaten Funktionsaufruf`);
   }
 });
 

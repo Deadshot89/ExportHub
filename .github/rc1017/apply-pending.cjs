@@ -25,6 +25,22 @@ function insertAfterOnce(path,anchor,insertion,marker){
   fs.writeFileSync(path,src.replace(anchor,anchor+'\n'+insertion));
   return true;
 }
+function patchShipmentSaveBridge(path){
+  const src=fs.readFileSync(path,'utf8');
+  const status="if(!q(saved.status))saved.status='Entwurf';";
+  const unsafe='rc1017SyncSubShipments(saved);';
+  const safe="if(typeof window.rc1017SyncSubShipments!=='function')throw new Error('RC1017 Mehr-LKW-Synchronisierung ist nicht verfügbar.');window.rc1017SyncSubShipments(saved);";
+  if(src.includes(safe)) return false;
+  const unsafeWithStatus=unsafe+status;
+  if(src.includes(unsafeWithStatus)){
+    fs.writeFileSync(path,src.replace(unsafeWithStatus,safe+status));
+    return true;
+  }
+  const count=src.split(status).length-1;
+  if(count!==1) throw new Error(`${path}: expected one shipment status anchor, found ${count}`);
+  fs.writeFileSync(path,src.replace(status,safe+status));
+  return true;
+}
 
 let changed=false;
 const calendarSource=fs.readFileSync('assets/abholkalender.js','utf8');
@@ -85,10 +101,12 @@ function rc1017SyncSubShipments(target){
  renderRc1017SubShipments(result);
  return result
 }
+window.rc1017SyncSubShipments=rc1017SyncSubShipments;
 `;
 const activeStowRows="function stowRows(){return arr(shipment().rows).map(normalizeRow).filter(function(r){return q(r.type)>''&&num(r.count)>0})}";
 changed=insertBeforeOnce('index.html',activeStowRows,multiTruckRuntime,'function rc1017SyncSubShipments(')||changed;
-changed=replaceOnce('index.html',"if(!q(saved.status))saved.status='Entwurf';","rc1017SyncSubShipments(saved);if(!q(saved.status))saved.status='Entwurf';")||changed;
+changed=insertBeforeOnce('index.html',activeStowRows,'window.rc1017SyncSubShipments=rc1017SyncSubShipments;','window.rc1017SyncSubShipments=rc1017SyncSubShipments;')||changed;
+changed=patchShipmentSaveBridge('index.html')||changed;
 changed=insertAfterOnce('index.html','<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"/>','<script id="exporthub-rc1017-multi-truck" defer src="/assets/rc1017-multi-truck.js?v=1017"></script>','id="exporthub-rc1017-multi-truck"')||changed;
 
 changed=replaceOnce('.github/rc1013/build-three-env.mjs',"const LIEFERAVIS_SRC='/assets/rc1015-lieferavis-mail-flow.js?v=1015';","const LIEFERAVIS_SRC='/assets/rc1015-lieferavis-mail-flow.js?v=1015';\nconst MULTI_TRUCK_SRC='/assets/rc1017-multi-truck.js?v=1017';")||changed;
