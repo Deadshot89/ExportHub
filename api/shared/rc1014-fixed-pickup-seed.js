@@ -1,6 +1,6 @@
 'use strict';
 
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 const ESSENTRA_COMPANY_KEY = 'essentra';
 const SYSTEM_ACTOR = 'System RC1014';
 
@@ -51,6 +51,7 @@ function mergeMissing(existing, companyKey, stamp){
 
   // RC1014 Seed v1 enthielt einen nicht final freigegebenen Zwischenstand.
   // Nur unberührte Systemeinträge daraus werden entfernt. Admin-Änderungen bleiben erhalten.
+  // Seed v3 führt denselben Abgleich auch für bereits als v2 markierte, aber unvollständige Bestände erneut aus.
   list = list.filter(item => !isUntouchedObsoleteV1(item));
 
   const seenKeys = new Set(list.map(key));
