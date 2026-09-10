@@ -13,7 +13,7 @@ function block(startMarker,endMarker){
 }
 
 test('RC1026: Team-Blob speichert Benutzer nicht doppelt in state.users',()=>{
-  const save=block('async function saveMerged(','async function metadataOnly(');
+  const save=block('async function saveMerged(','/* RC614:');
   assert.match(save,/delete merged\.users/,'eingehende state.users müssen vor dem Speichern entfernt werden');
   assert.doesNotMatch(save,/merged\.users\s*=/,'state.users darf nicht erneut in den Team-Blob geschrieben werden');
 
