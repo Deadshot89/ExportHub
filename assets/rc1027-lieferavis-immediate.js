@@ -34,7 +34,8 @@ function closed(sh){
  return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|storniert|picked up|pod available|completed|archived|cancelled)$/i.test(q(sh.status||sh.shipmentStatus))
 }
 function exception(sh){try{return previous&&typeof previous.avisException==='function'?previous.avisException(sh):null}catch(_){return null}}
-function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';var env=typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production';return'exporthub:avis-url:'+env+':'+ref}
+function environmentName(){return typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production'}
+function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';return'exporthub:avis-url:'+environmentName()+':'+ref}
 function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return avisLinkCache[key];try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){avisLinkCache[key]=stored;return stored}}}catch(_){}return''}
 function rememberAvisUrl(sh,url){url=q(url);var key=avisCacheKey(sh);if(!key||!url)return url;if(!/customer-avis(?:\.html)?[?/#]/i.test(url))return url;avisLinkCache[key]=url;try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem(key,url)}catch(_){}return url}
 function forgetAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return false;delete avisLinkCache[key];try{if(typeof sessionStorage!=='undefined')sessionStorage.removeItem(key)}catch(_){}return true}
@@ -68,24 +69,56 @@ function ensureReference(sh){
  if(input&&input.value!==ref)input.value=ref;
  return ref
 }
+function shipmentId(sh){return q(sh&&(sh.id||sh.shipmentId||sh.uuid||sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber))||explicitReference(sh)}
+function safeScalar(v,max){if(v==null||typeof v==='object'||typeof v==='boolean')return'';return q(v).replace(/[\r\n\t]+/g,' ').slice(0,max||500)}
+function avisDraftSnapshot(sh){
+ sh=sh&&typeof sh==='object'?sh:{};
+ var out={id:shipmentId(sh),shipmentId:shipmentId(sh),ref:explicitReference(sh),reference:explicitReference(sh),customerName:customerName(sh),selectedLocationId:selectedLocation(sh)};
+ var fields=['customerNumber','customerAccount','customerNo','customerReference','customerRef','orderReference','purchaseOrder','poNumber','salesOrder','salesOrderNumber','orderNumber','recipientName','destinationName','recipientAddress','deliveryAddress','destinationAddress','recipientCountry','country','locationId','siteId','destinationId','deliveryLocationId','shipToLocationId','recipientLocationId','senderName','senderAddress','shipDate','shippingDate','shipmentDate','dispatchDate','incoterm','incoterms','carrier','carrierName','spedition','goodsDescription','description','warenbeschreibung','status','shipmentStatus'];
+ for(var i=0;i<fields.length;i++){var key=fields[i],value=safeScalar(sh[key],key==='recipientAddress'||key==='deliveryAddress'||key==='destinationAddress'||key==='senderAddress'?1000:300);if(value)out[key]=value}
+ return out
+}
+function fastAvisHeaders(){
+ var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{},token=q(rt.authToken||'');
+ if(!token)throw new Error('ExportHUB-Sitzung ist nicht mehr gültig.');
+ return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':environmentName()}
+}
+function patchIssuedAvis(sh,data){
+ var stamp=new Date().toISOString(),token=q(data&&data.token),expiresAt=q(data&&data.expiresAt),url=q(data&&data.url),values={customerAvisEnabled:true,avisEnabled:true,customerAvisSecurityVersion:1013,avisSecurityVersion:1013,customerAvisEnabledAt:stamp,avisEnabledAt:stamp,customerAvisDisabledAt:'',avisDisabledAt:'',customerAvisResponseStatus:'offen',avisResponseStatus:'offen'};
+ if(token){values.customerAvisToken=token;values.avisToken=token}
+ if(expiresAt){values.customerAvisExpiresAt=expiresAt;values.avisExpiresAt=expiresAt}
+ Object.assign(sh,values);
+ var ref=explicitReference(sh),s=state(),lists=[s.shipments,s.savedShipments,s.salesSharedShipments,s.sharedShipments];
+ for(var i=0;i<lists.length;i++){var list=lists[i];if(!Array.isArray(list))continue;for(var j=0;j<list.length;j++){var item=list[j];if(item&&item!==sh&&explicitReference(item)===ref)Object.assign(item,values)}}
+ if(url){try{url=new URL(url,typeof location!=='undefined'?location.href:'https://exporthub.invalid/').toString()}catch(_){}rememberAvisUrl(sh,url)}
+ try{window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{enabled:true,reference:ref,version:'RC1033'}}))}catch(_){}
+ return !!avisUrl(sh)
+}
+async function issueDraftAvis(sh){
+ if(typeof fetch!=='function')return previous&&typeof previous.toggle==='function'?previous.toggle(true):false;
+ var ref=explicitReference(sh),payload={action:'issue',shipmentId:shipmentId(sh)||ref,reference:ref,environment:environmentName(),shipmentSnapshot:avisDraftSnapshot(sh)};
+ var r=await fetch('/api/customer-avis',{method:'POST',credentials:'same-origin',cache:'no-store',headers:fastAvisHeaders(),body:JSON.stringify(payload)}),data=await r.json().catch(function(){return{}});
+ if(!r.ok)throw new Error(q(data&&data.message)||('HTTP '+r.status));
+ return patchIssuedAvis(sh,data)
+}
 function eligible(sh){return !!(sh&&customerName(sh)&&selectedLocation(sh)&&!exception(sh)&&!manualDisabled(sh)&&!closed(sh))}
 async function ensureCustomerAvis(reason){
  var sh=shipment();if(!sh)return false;
  if(avisUrl(sh))return true;
  if(!eligible(sh))return false;
- var ref=ensureReference(sh);if(!ref||!previous||typeof previous.toggle!=='function')return false;
+ var ref=ensureReference(sh);if(!ref||!previous)return false;
  if(earlyPending)return earlyPending;
  earlyPending=(async function(){
   try{
    var current=shipment()||sh;
    if(!eligible(current))return false;
    if(avisUrl(current))return true;
-   await previous.toggle(true);
+   await issueDraftAvis(current);
    current=shipment()||current;
    var active=!!avisUrl(current);
-   if(active){syncVisibleMail();try{window.dispatchEvent(new CustomEvent('exporthub:rc1027-avis-ready',{detail:{reference:explicitReference(current)}}))}catch(_){}}
+   if(active){syncVisibleMail();try{window.dispatchEvent(new CustomEvent('exporthub:rc1027-avis-ready',{detail:{reference:explicitReference(current),version:'RC1033'}}))}catch(_){}}
    return active
-  }catch(e){console.error('RC1032 Lieferavis erst nach vollständiger Kundenzuordnung',reason||'',e);return false}
+  }catch(e){console.error('RC1033 Lieferavis Fast-Path',reason||'',e);return false}
   finally{earlyPending=null}
  })();
  return earlyPending
@@ -137,7 +170,7 @@ function install(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;if(!current)return false;
  if(current.__rc1027===true){wrapper=current;return true}
  previous=current;
- wrapper=Object.freeze(Object.assign({},current,{version:'RC1032',link:avisUrl,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__base1027:current}));
+ wrapper=Object.freeze(Object.assign({},current,{version:'RC1033',link:avisUrl,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__rc1033:true,__base1027:current}));
  window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;
  return true
 }
@@ -150,6 +183,6 @@ if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();return scheduleEnsure(name)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1032',ensureCustomerAvis:ensureCustomerAvis,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
+var api=Object.freeze({version:'RC1033',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
 window.ExportHUBRC1027Lieferavis=api;
 })();
