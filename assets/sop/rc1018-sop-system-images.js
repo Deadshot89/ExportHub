@@ -28,14 +28,75 @@ const imageByNumber=Object.freeze({
   'SOP-EH-112':{file:'rc1018-diagnostics.png',caption:'ExportHUB Demo – Fehlerdiagnose'},
   'SOP-EH-114':{file:'rc1018-release-center.png',caption:'ExportHUB Demo – Release Center'}
 });
+
+const extraImagesByNumber=Object.freeze({
+  'SOP-EH-020':Object.freeze([
+    {file:'rc1018-customers-masterdata-detail.png',stepId:'step-2',caption:'ExportHUB Demo – Kundenauswahl, Stammdaten und Standortdaten'},
+    {file:'rc1018-customers-mailcontacts-detail.png',stepId:'step-3',caption:'ExportHUB Demo – Kundenkontakte, Pflicht-CC und Mailprofile'}
+  ]),
+  'SOP-EH-040':Object.freeze([
+    {file:'rc1018-shipping-route-inputs-detail.png',stepId:'step-2',caption:'ExportHUB Demo – Route und Sendungsdaten für die Versandkostenberechnung'},
+    {file:'rc1018-shipping-result-detail.png',stepId:'step-3',caption:'ExportHUB Demo – berechnete Versandkosten und Tarifergebnis'}
+  ]),
+  'SOP-EH-080':Object.freeze([
+    {file:'rc1018-pallet-booking-detail.png',stepId:'step-2',caption:'ExportHUB Demo – manueller Paletteneingang und Palettenausgang'},
+    {file:'rc1018-pallet-reconciliation-detail.png',stepId:'step-3',caption:'ExportHUB Demo – Palettenbestand, Buchungen und Ausgleich'}
+  ]),
+  'SOP-EH-100':Object.freeze([
+    {file:'rc1018-sop-controlled-document-detail.png',stepId:'step-2',caption:'ExportHUB Demo – gelenkte SOP-Fassung mit Arbeitsablauf und Freigabestatus'},
+    {file:'rc1018-sop-editor-detail.png',stepId:'step-3',caption:'ExportHUB Demo – SOP-Erstellung, Bearbeitung und Dokumentsteuerung'}
+  ]),
+  'SOP-EH-105':Object.freeze([
+    {file:'rc1018-academy-overview-detail.png',stepId:'step-2',caption:'ExportHUB Demo – Academy-Übersicht und verfügbare Prüfungen'},
+    {file:'rc1018-academy-test-detail.png',stepId:'step-3',caption:'ExportHUB Demo – Prüfungsfrage und Wissensprüfung'}
+  ]),
+  'SOP-EH-114':Object.freeze([
+    {file:'rc1018-release-status-detail.png',stepId:'step-2',caption:'ExportHUB Demo – Release-Status und gemeinsamer Umgebungsstand'},
+    {file:'rc1018-release-checklist-detail.png',stepId:'step-3',caption:'ExportHUB Demo – Release-Prüfung, Checkliste und Freigabekontrolle'}
+  ])
+});
+
 const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
+const text=value=>String(value==null?'':value).trim();
+const screenshotVisual=image=>({
+  type:'screenshot',
+  stepId:text(image.stepId)||'step-1',
+  caption:text(image.caption),
+  required:true,
+  src:`/assets/sop/screenshots/${image.file}`
+});
+function appendUniqueVisuals(existing,additions){
+  const out=Array.isArray(existing)?existing.map(clone):[];
+  const seen=new Set(out.filter(Boolean).map(v=>`${text(v.type)}|${text(v.src)}|${text(v.stepId)}`));
+  for(const visual of additions){
+    const item=clone(visual);
+    const key=`${text(item.type)}|${text(item.src)}|${text(item.stepId)}`;
+    if(seen.has(key))continue;
+    seen.add(key);out.push(item);
+  }
+  return out;
+}
+
 const documents=Object.freeze(catalog.documents.map(doc=>{
-  const image=imageByNumber[doc.number];
-  if(!image)return doc;
-  const visuals=Array.isArray(doc.visuals)?doc.visuals.map(clone):[];
-  const src=`/assets/sop/screenshots/${image.file}`;
-  if(!visuals.some(v=>v&&v.type==='screenshot'&&v.src===src))visuals.push({type:'screenshot',stepId:'step-1',caption:image.caption,required:true,src});
-  return Object.freeze(Object.assign({},doc,{visuals:Object.freeze(visuals)}));
+  const additions=[];
+  const primary=imageByNumber[doc.number];
+  if(primary)additions.push(screenshotVisual(Object.assign({stepId:'step-1'},primary)));
+  for(const image of extraImagesByNumber[doc.number]||[])additions.push(screenshotVisual(image));
+  if(!additions.length)return doc;
+
+  const visuals=appendUniqueVisuals(doc.visuals,additions);
+  const currentVersion=text(doc.currentVersion||doc.version);
+  const versions=Array.isArray(doc.versions)?doc.versions.map(version=>{
+    const copy=clone(version);
+    if(text(copy&&copy.version)!==currentVersion)return copy;
+    copy.visuals=appendUniqueVisuals(copy.visuals,additions);
+    return Object.freeze(copy);
+  }):[];
+
+  return Object.freeze(Object.assign({},doc,{
+    visuals:Object.freeze(visuals),
+    versions:Object.freeze(versions)
+  }));
 }));
 const byNumber={};
 for(const doc of documents){
