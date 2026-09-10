@@ -14,4 +14,4 @@ jobs:
         with:
           node-version: '22'
       - name: RC1031 Diagnose-Zieltests
-        run: node --test test/rc1031-diagnostics-lieferavis-storage.test.mjs
+        run: node --test test/rc1031-diagnostics-lieferavis-storage.test.mjs test/rc1031-pickup-status-410-backoff.test.mjs
