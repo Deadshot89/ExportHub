@@ -23,6 +23,8 @@ test('RC1018 Standarddeploy prüft den neuen Mail- und Sprachvertrag vor Veröff
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
   assert.match(flow,/test\/rc1015-lieferavis-mail-flow\.test\.mjs/);
   assert.match(flow,/npm test/);
+  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1021/);
+  assert.doesNotMatch(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1015/);
   assert.match(flow,/assets\/rc1018-mail-language-standard\.js\?v=1018/);
   assert.match(flow,/assets\/rc1018-public-language\.js\?v=1018/);
 });
