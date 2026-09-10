@@ -12,6 +12,7 @@ const LOCK_MS = 10 * 60 * 1000;
 const DEFAULT_PICKUP_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const DEFAULT_AVIS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SESSION_MS = 30 * 60 * 1000;
+let containerReadyPromise=null;
 
 function text(v){ return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g,' ').trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -39,7 +40,7 @@ function safeEqual(a,b){ try{const aa=Buffer.from(String(a||''),'utf8'),bb=Buffe
 function tokenValid(token){ return /^[A-Za-z0-9_-]{40,160}$/.test(text(token)); }
 function json(status,payload,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','Pragma':'no-cache','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow, noarchive'},headers),body:JSON.stringify(payload)}; }
 
-async function container(){ const cs=connectionString(); if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503); const c=BlobServiceClient.fromConnectionString(cs).getContainerClient(CONTAINER); await c.createIfNotExists(); return c; }
+async function container(){ if(containerReadyPromise)return containerReadyPromise; const cs=connectionString(); if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503); containerReadyPromise=(async()=>{const c=BlobServiceClient.fromConnectionString(cs).getContainerClient(CONTAINER);await c.createIfNotExists();return c})().catch(e=>{containerReadyPromise=null;throw e}); return containerReadyPromise; }
 async function readBuffer(blob){ const r=await blob.download(0),chunks=[]; for await(const chunk of r.readableStreamBody)chunks.push(Buffer.from(chunk)); return {buffer:Buffer.concat(chunks),etag:r.etag||null}; }
 async function readJson(blob,fallback=null){ try{const r=await readBuffer(blob);return{value:r.buffer.length?JSON.parse(r.buffer.toString('utf8')):clone(fallback),etag:r.etag}}catch(e){if(e&&e.statusCode===404)return{value:clone(fallback),etag:null};throw e} }
 async function writeJson(blob,value,etag){ const raw=JSON.stringify(value),conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'}; return blob.upload(raw,Buffer.byteLength(raw),{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8',blobCacheControl:'no-store'},conditions}); }
@@ -74,7 +75,7 @@ async function issue(req,kind,meta={},ttlMs,payload){
   const record={schemaVersion:1,kind,environment:env,tokenHash,subjectId,shipmentId:text(meta.shipmentId||subjectId),reference:text(meta.reference).toUpperCase(),snapshot:clone(meta.snapshot||{}),createdAt,updatedAt:createdAt,expiresAt,usedAt:null,revokedAt:null,failedAttempts:0,lockedUntil:null,issuedBy:text(meta.actor||'ExportHUB').slice(0,120)};
   await writeJson(c.getBlockBlobClient(recordName(env,kind,tokenHash)),record,null);
   const index={schemaVersion:1,kind,environment:env,subjectId,tokenHash,active:true,issuedAt:createdAt,expiresAt};
-  const current=await readJson(idx,null); try{await writeJson(idx,index,current.etag)}catch(e){if(e&&e.statusCode===412){const retry=await readJson(idx,null);await writeJson(idx,index,retry.etag)}else throw e}
+  try{await writeJson(idx,index,old.etag)}catch(e){if(e&&e.statusCode===412){const retry=await readJson(idx,null);await writeJson(idx,index,retry.etag)}else throw e}
   return {token,tokenHash,environment:env,kind,subjectId,expiresAt,record};
 }
 function assertUsable(record,{allowUsed=false}={}){

@@ -3,7 +3,7 @@
 if(window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__)return;
 window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
-var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false;
+var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
 function explicitReference(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo)).toUpperCase()}
 function state(){
@@ -33,7 +33,11 @@ function closed(sh){
  return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|storniert|picked up|pod available|completed|archived|cancelled)$/i.test(q(sh.status||sh.shipmentStatus))
 }
 function exception(sh){try{return previous&&typeof previous.avisException==='function'?previous.avisException(sh):null}catch(_){return null}}
-function avisUrl(sh){try{return q(previous&&typeof previous.link==='function'&&previous.link(sh))}catch(_){return''}}
+function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';var env=typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production';return'exporthub:avis-url:'+env+':'+ref}
+function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return avisLinkCache[key];try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){avisLinkCache[key]=stored;return stored}}}catch(_){}return''}
+function rememberAvisUrl(sh,url){url=q(url);var key=avisCacheKey(sh);if(!key||!url)return url;if(!/customer-avis(?:\.html)?[?/#]/i.test(url))return url;avisLinkCache[key]=url;try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem(key,url)}catch(_){}return url}
+function forgetAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return false;delete avisLinkCache[key];try{if(typeof sessionStorage!=='undefined')sessionStorage.removeItem(key)}catch(_){}return true}
+function avisUrl(sh){if(manualDisabled(sh)){forgetAvisUrl(sh);return''}var live='';try{live=q(previous&&typeof previous.link==='function'&&previous.link(sh))}catch(_){}return live?rememberAvisUrl(sh,live):cachedAvisUrl(sh)}
 function referenceInput(){
  if(typeof document==='undefined')return null;
  return Array.from(document.querySelectorAll('#content input')).find(function(input){
@@ -127,7 +131,7 @@ function install(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;if(!current)return false;
  if(current.__rc1027===true){wrapper=current;return true}
  previous=current;
- wrapper=Object.freeze(Object.assign({},current,{version:'RC1027',injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__base1027:current}));
+ wrapper=Object.freeze(Object.assign({},current,{version:'RC1031',link:avisUrl,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__base1027:current}));
  window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;
  return true
 }
@@ -141,6 +145,6 @@ if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();return scheduleEnsure(name)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1027',ensureCustomerAvis:ensureCustomerAvis,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
+var api=Object.freeze({version:'RC1031',ensureCustomerAvis:ensureCustomerAvis,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
 window.ExportHUBRC1027Lieferavis=api;
 })();
