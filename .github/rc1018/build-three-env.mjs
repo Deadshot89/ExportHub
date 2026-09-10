@@ -60,8 +60,8 @@ function patchCustomerAvisForm(html){
     "var f=document.getElementById('avisForm');if(f){f.addEventListener('submit',submit);f.addEventListener('input',markAvisFormDirty,true);f.addEventListener('change',markAvisFormDirty,true)}}",
     'Dirty-Listener');
   out=replaceOne(out,
-    ").then(render).catch(function(err){if(err&&err.status===401)return showGate('Die sichere Sitzung ist abgelaufen. Bitte erneut bestätigen.');",
-    ").then(function(data){avisFormDirty=false;render(data)}).catch(function(err){if(err&&err.status===401)return showGate('Die sichere Sitzung ist abgelaufen. Bitte erneut bestätigen.');",
+    "api('/appointment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(render)",
+    "api('/appointment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(data){avisFormDirty=false;render(data)})",
     'Submit-Erfolg');
   out=replaceOne(out,
     "function refresh(){if(!session)return;api('?_='+Date.now()).then(render).catch(function(err){",
