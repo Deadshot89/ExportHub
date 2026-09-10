@@ -23,7 +23,7 @@ test('RC1032: Stauplan-Druck verwendet ausschließlich die aktuelle rc717-Ladegr
 
 test('RC1032: bereits gespeicherte Sendungen erzeugen den Lieferavis-Link ohne erneuten vollständigen Vorab-Save',()=>{
   const source=between(avis,'async function rc1015Toggle(on){','async function rc1021AutoEnable');
-  assert.match(source,/if\s*\(\s*on\s*&&\s*!rc1021Persisted\(sh\)\s*\)\s*await\s+rc1015PersistBeforeAvis\(\)/,'Nur noch nicht persistierte Sendungen dürfen vor der Avis-Ausstellung vollständig gespeichert werden.');
+  assert.match(source,/if\s*\(\s*!rc1021Persisted\(sh\)\s*\)\s*await\s+rc1015PersistBeforeAvis\(\)/,'Nur noch nicht persistierte Sendungen dürfen vor der Avis-Ausstellung vollständig gespeichert werden.');
   assert.doesNotMatch(source,/if\s*\(\s*on\s*\)\s*\{\s*rc1024ClearDraftDisabled\(sh\);\s*await\s+rc1015PersistBeforeAvis\(\)/,'Gespeicherte Sendungen dürfen nicht mehr pauschal vor jedem Avis-Token erneut gespeichert werden.');
 });
 
