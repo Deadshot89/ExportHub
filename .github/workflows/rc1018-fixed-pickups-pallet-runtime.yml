@@ -26,5 +26,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Paletten-Referenzpfade diagnostizieren
+        run: node .github/rc1018/diagnose-pallet-reference.mjs
       - name: Reale Kalender- und Paletten-Runtime-Lücken
         run: node --test test/rc1018-fixed-pickups-pallet-runtime-gap.test.mjs
