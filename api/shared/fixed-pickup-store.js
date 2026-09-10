@@ -187,7 +187,7 @@ async function readDocument(environment, companyKey){
 }
 async function ensureRc1014Seed(environment, companyKey){
   const company = normalizeCompanyKey(companyKey);
-  if (company !== rc1014Seed.ESSENTRA_COMPANY_KEY) return false;
+  if (!rc1014Seed.isEssentraCompanyKey(company)) return false;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
     const current = await readDocument(environment, company);
     if (Number(current.document.seedVersion || 0) >= rc1014Seed.SEED_VERSION) return false;
