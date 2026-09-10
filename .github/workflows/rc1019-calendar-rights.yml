@@ -5,11 +5,15 @@ on:
     branches: [rc1019-calendar-user-permissions]
     paths:
       - '.github/rc1019/**'
+      - '.github/rc1018/**'
       - '.github/workflows/rc1019-calendar-rights.yml'
       - 'api/shared/user-policy.js'
+      - 'api/shared/rc1014-fixed-pickup-seed.js'
       - 'api/fixed-pickups/index.js'
       - 'assets/rc1012-abholkalender-runtime.js'
       - 'assets/abholkalender.js'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
       - 'index.html'
       - 'TESTVERSION.html'
       - 'test/rc1019-*.test.mjs'
@@ -19,14 +23,16 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Kalenderfreigabe RED-/GREEN-Vertrag
+        run: node --test test/rc1019-calendar-user-permissions.test.mjs
       - name: Rechtepfad diagnostizieren
         run: node .github/rc1019/diagnose-calendar-rights.mjs
