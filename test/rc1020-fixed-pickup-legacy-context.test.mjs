@@ -45,12 +45,13 @@ function loadStore(memory){
   try{return require(target);} finally{Module._load=original;}
 }
 
-const expected=['BMP|3','Faurecia|2','Frankreich|1','Italien|1','Neff|1','O’Hare|1'].sort();
+const expected=['BMP|3','Faurecia|2','Frankreich|1','Italien|1','O’Hare|1'].sort();
 
-test('Legacy-Firmenkontext der bestehenden ExportHUB-Installation erhält die Essentra-FIX-Abholungen', async()=>{
+test('Legacy-Firmenkontext der bestehenden ExportHUB-Installation erhält die Essentra-FIX-Abholungen ohne NEFF', async()=>{
   const store=loadStore(makeMemoryBlobRest());
   const items=await store.list('production','legacy-default',{includeInactive:true});
   assert.deepEqual(items.map(x=>`${x.siteLabel}|${x.weekday}`).sort(), expected);
+  assert.equal(items.some(x=>/NEFF/i.test(x.siteLabel)),false);
 });
 
 test('Andere explizite Firmen bleiben weiterhin ohne Essentra-Seed', async()=>{
