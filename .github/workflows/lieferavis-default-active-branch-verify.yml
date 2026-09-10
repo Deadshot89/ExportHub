@@ -1,0 +1,16 @@
+name: Lieferavis Default Active Branch Verify
+on:
+  push:
+    branches:
+      - fix/lieferavis-default-active
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Lieferavis Regressionstest
+        run: node --test --test-concurrency=1 test/rc1018-lieferavis-exceptions.test.mjs
