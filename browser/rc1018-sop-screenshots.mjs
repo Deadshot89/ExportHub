@@ -6,6 +6,7 @@ import {chromium} from 'playwright';
 const BASE=process.env.RC1018_BROWSER_URL||'http://127.0.0.1:4173/demo.html';
 const OUT=path.resolve('artifacts/rc1018-sop-screenshots');
 fs.mkdirSync(OUT,{recursive:true});
+for(const file of fs.readdirSync(OUT))if(file.endsWith('.png'))fs.rmSync(path.join(OUT,file));
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function assert(ok,message){if(!ok)throw new Error(message)}
 
@@ -26,20 +27,51 @@ async function openMenu(page){
   return false;
 }
 async function clickAny(page,labels){
-  for(let pass=0;pass<2;pass++){
+  for(let pass=0;pass<3;pass++){
     for(const label of labels){
       for(const locator of [page.getByRole('button',{name:label,exact:true}),page.getByRole('link',{name:label,exact:true}),page.getByText(label,{exact:true})]){
         const item=await visible(locator);if(!item)continue;
-        await item.click({timeout:5000});await pause(400);return label;
+        await item.click({timeout:5000});await pause(450);return label;
       }
     }
     await openMenu(page);
   }
   throw new Error(`Navigation nicht gefunden: ${labels.join(' / ')}`);
 }
+async function openView(page,module,labels,requiredText){
+  const selectors=[
+    `button[data-view="${module}"]`,`a[data-view="${module}"]`,`[role="button"][data-view="${module}"]`,
+    `button[data-target="${module}"]`,`a[data-target="${module}"]`,`[role="button"][data-target="${module}"]`,
+    `button[data-nav="${module}"]`,`a[data-nav="${module}"]`,`[role="button"][data-nav="${module}"]`
+  ];
+  for(let pass=0;pass<2;pass++){
+    for(const selector of selectors){
+      const item=await visible(page.locator(selector));
+      if(!item)continue;
+      await item.click({timeout:5000}).catch(()=>{});await pause(450);
+      if(!requiredText||new RegExp(requiredText,'i').test(await page.locator('body').innerText()))return module;
+    }
+    await openMenu(page);
+  }
+  const opened=await page.evaluate(mod=>{
+    try{
+      if(typeof window.setView!=='function')return false;
+      if(typeof window.canView==='function'&&!window.canView(mod))return false;
+      window.setView(mod);
+      return true;
+    }catch(_){return false;}
+  },module);
+  if(opened){
+    await pause(500);
+    if(!requiredText||new RegExp(requiredText,'i').test(await page.locator('body').innerText()))return module;
+  }
+  await clickAny(page,labels);
+  if(requiredText)await page.waitForFunction(pattern=>new RegExp(pattern,'i').test(document.body?.innerText||''),requiredText,{timeout:10000});
+  return module;
+}
 async function targetLocator(page,labels){
   for(const label of labels){
-    for(const locator of [page.getByText(label,{exact:true}),page.getByRole('heading',{name:label,exact:true}),page.getByRole('button',{name:label,exact:true}),page.getByText(label,{exact:false})]){
+    for(const locator of [page.getByRole('heading',{name:label,exact:true}),page.getByRole('button',{name:label,exact:true}),page.getByText(label,{exact:true}),page.getByText(label,{exact:false})]){
       const item=await visible(locator);if(item)return{item,label};
     }
   }
@@ -61,16 +93,31 @@ async function targetShot(page,labels,file){
   assert(box&&box.width>0&&box.height>0,`${file}: Ziel ${label} ist nach dem Zentrieren nicht sichtbar`);
   await viewportShot(page,file);
 }
+async function elementShot(page,selector,file){
+  const item=await visible(page.locator(selector));
+  assert(item,`${file}: Systembereich ${selector} ist nicht sichtbar`);
+  await item.evaluate(el=>el.scrollIntoView({block:'center',inline:'center',behavior:'instant'}));
+  await pause(220);
+  await item.screenshot({path:path.join(OUT,file)});
+  assert(fs.statSync(path.join(OUT,file)).size>10000,`${file}: Systembereich ${selector} ist leer oder unplausibel klein`);
+}
+async function viewShot(page,module,labels,file,requiredText){
+  await openView(page,module,labels,requiredText);
+  await page.evaluate(()=>scrollTo(0,0));await pause(180);
+  await fullShot(page,file);
+}
 async function shipmentShots(page){
-  await clickAny(page,['Sendung erstellen','Neue Sendung','Sendung anlegen']);
+  await openView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],'Kunde|Empfänger');
   await page.waitForFunction(()=>/Kunde|Empfänger/i.test(document.body?.innerText||'')&&/Colli|Lademeter/i.test(document.body?.innerText||''),null,{timeout:10000});
   await page.evaluate(()=>scrollTo(0,0));await pause(150);
   await viewportShot(page,'rc1018-shipment-create.png');
 
   await targetShot(page,['Stauplan'],'rc1018-stowplan.png');
+  await elementShot(page,'#rc363BlockDocuments','rc1018-document-upload.png');
   await targetShot(page,['Dokumente','CMR'],'rc1018-documents-cmr.png');
   await targetShot(page,['ABD','Ausfuhrbegleitdokument'],'rc1018-abd.png');
   await targetShot(page,['QR-Abholung','Abholung','QR-Code'],'rc1018-qr-pickup.png');
+  await elementShot(page,'#rc543MailArea','rc1018-mail.png');
 
   const avis=page.locator('#rc897LieferavisPanel').first();
   if(await avis.count()&&await avis.isVisible().catch(()=>false)){
@@ -82,11 +129,20 @@ async function shipmentShots(page){
     }else await targetShot(page,['Lieferavis','Kundenavis'],'rc1018-lieferavis.png');
   } else await targetShot(page,['Lieferavis','Kundenavis'],'rc1018-lieferavis.png');
 }
-async function viewShot(page,labels,file,requiredText){
-  await clickAny(page,labels);
-  if(requiredText)await page.waitForFunction(text=>(document.body?.innerText||'').toLowerCase().includes(String(text).toLowerCase()),requiredText,{timeout:10000});
-  await page.evaluate(()=>scrollTo(0,0));await pause(180);
-  await fullShot(page,file);
+async function rightsShots(page){
+  await openView(page,'rights',['Benutzer & Rechte','Rechte','Benutzer','Berechtigungen'],'Benutzer|Rechte|Rollen');
+  await targetShot(page,['Benutzer','Benutzerverwaltung','Benutzer suchen'],'rc1018-users.png');
+  await targetShot(page,['Rollen','Rechte','Berechtigungen'],'rc1018-rights.png');
+}
+async function podShot(page){
+  try{
+    await openView(page,'tasks',['Aufgaben'],'Aufgaben|POD');
+    await targetShot(page,['POD hochladen','Fehlende POD','POD'],'rc1018-pod.png');
+    return;
+  }catch(_){
+    await openView(page,'shipmentoverview',['Sendungsübersicht','Sendungen','Übersicht Sendungen'],'Sendung|POD');
+    await targetShot(page,['POD hochladen','POD','Proof of Delivery'],'rc1018-pod.png');
+  }
 }
 
 const browser=await chromium.launch({headless:true});
@@ -98,15 +154,28 @@ page.on('requestfailed',r=>{if(!/favicon\.ico/i.test(r.url()))errors.push(`reque
 try{
   await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:30000});
   await waitReady(page);
+
+  await page.evaluate(()=>scrollTo(0,0));
+  await targetShot(page,['ExportHUB','Demo','Firma','Konto'],'rc1018-start-company-session.png');
+  await viewShot(page,'dashboard',['Dashboard'],'rc1018-dashboard-navigation.png','Dashboard');
+  await rightsShots(page);
+  await viewShot(page,'customerfolder',['Kundenordner'],'rc1018-customers.png','Kunden|Dokument');
+  await viewShot(page,'shippingcosts',['Versandkosten'],'rc1018-shipping-route.png','Versand|Gate41|UPS|Route');
+
   await shipmentShots(page);
-  await viewShot(page,['Palettenkonto'],'rc1018-pallet-account.png','Paletten');
-  await viewShot(page,['Fehlerdiagnose','Diagnose'],'rc1018-diagnostics.png','Diagnose');
-  await viewShot(page,['Release Center','Release-Center'],'rc1018-release-center.png','Release');
+  await podShot(page);
+  await viewShot(page,'pallet',['Palettenkonto'],'rc1018-pallet-account.png','Paletten');
+  await viewShot(page,'sop',['SOP & Portale','SOP','SOP-Handbuch'],'rc1018-sop-handbook.png','SOP');
+  await viewShot(page,'academy',['Academy'],'rc1018-academy.png','Academy|Prüfung');
+  await viewShot(page,'archive',['Archiv'],'rc1018-archive-audit.png','Archiv|Historie|Protokoll');
+  await viewShot(page,'diagnostics',['Fehlerdiagnose','Diagnose'],'rc1018-diagnostics.png','Diagnose');
+  await viewShot(page,'release',['Release-Center','Release Center'],'rc1018-release-center.png','Release');
+
   assert(errors.length===0,errors.join(' | '));
   const files=fs.readdirSync(OUT).filter(f=>f.endsWith('.png')).sort();
-  assert(files.length===9,`Erwartet 9 SOP-Screenshots, gefunden ${files.length}`);
+  assert(files.length===21,`Erwartet 21 RC1018-SOP-Screenshots, gefunden ${files.length}`);
   const hashes=files.map(file=>crypto.createHash('sha256').update(fs.readFileSync(path.join(OUT,file))).digest('hex'));
-  assert(new Set(hashes).size===9,`Erwartet 9 eigenständige SOP-Screenshots, gefunden ${new Set(hashes).size} unterschiedliche Bildinhalte`);
+  assert(new Set(hashes).size===21,`Erwartet 21 eigenständige RC1018-SOP-Screenshots, gefunden ${new Set(hashes).size} unterschiedliche Bildinhalte`);
   fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify({base:BASE,generatedAt:new Date().toISOString(),files,hashes,errors},null,2)+'\n');
   console.log(`RC1018 SOP-Systembilder erfolgreich: ${files.length} echte, eigenständige Demo-Screenshots.`);
 } finally {
