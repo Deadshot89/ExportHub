@@ -1,0 +1,21 @@
+name: RC1038 Multi-Truck Model Verify
+
+on:
+  push:
+    branches:
+      - rc1038-multi-truck-model
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: RC1038 model contract
+        run: node --test test/rc1038-multi-truck-model.test.mjs
