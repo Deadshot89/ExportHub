@@ -42,6 +42,33 @@ function replaceScriptBlock(html,id,canonicalBlock){
   const current=scriptBlock(html,id);
   return html.replace(current,canonicalBlock)
 }
+function replaceOne(source,before,after,label){
+  const count=source.split(before).length-1;
+  if(count!==1)throw new Error(`RC1029 Kunden-Avis ${label}: Anker ${count}x gefunden`);
+  return source.replace(before,after)
+}
+function patchCustomerAvisForm(html){
+  let out=html;
+  out=replaceOne(out,
+    "var token='',session='',sessionExpiresAt='',dataEnvironment=/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production';",
+    "var token='',session='',sessionExpiresAt='',avisFormDirty=false,dataEnvironment=/-testservice\\./i.test(String(location.hostname||''))?'testservice':'production';",
+    'Dirty-State');
+  const statusAnchor="function setStatus(text,kind){var n=document.getElementById('status');n.className='status '+(kind||'info');n.textContent=text}";
+  out=replaceOne(out,statusAnchor,statusAnchor+"\nfunction avisFormFocused(){var f=document.getElementById('avisForm'),active=document.activeElement;return!!(f&&active&&typeof f.contains==='function'&&f.contains(active))}\nfunction markAvisFormDirty(){avisFormDirty=true}",'Formularschutz');
+  out=replaceOne(out,
+    "var f=document.getElementById('avisForm');if(f)f.addEventListener('submit',submit)}",
+    "var f=document.getElementById('avisForm');if(f){f.addEventListener('submit',submit);f.addEventListener('focusin',markAvisFormDirty,true);f.addEventListener('input',markAvisFormDirty,true);f.addEventListener('change',markAvisFormDirty,true)}}",
+    'Dirty-Listener');
+  out=replaceOne(out,
+    "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(render)",
+    "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(data){avisFormDirty=false;render(data)})",
+    'Submit-Erfolg');
+  out=replaceOne(out,
+    "function refresh(){if(!session)return;api('?_='+Date.now()).then(render).catch(function(err){",
+    "function refresh(){if(!session||avisFormDirty||avisFormFocused())return;api('?_='+Date.now()).then(render).catch(function(err){",
+    'Auto-Refresh');
+  return out
+}
 function bridgeMultiTruckSaveRuntime(html){
   let out=html;
   const exportMarker='window.rc1017SyncSubShipments=rc1017SyncSubShipments;';
@@ -104,7 +131,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
 }
 
 for(const asset of ['assets/rc1018-mail-language-standard.js','assets/rc1018-public-language.js'])write(asset,read(asset));
-for(const page of ['customer-avis.html','pickup.html','location.html','pod-notfall.html'])if(fs.existsSync(path.join(ROOT,page)))write(page,read(page));
+for(const page of ['customer-avis.html','pickup.html','location.html','pod-notfall.html'])if(fs.existsSync(path.join(ROOT,page))){let content=read(page);if(page==='customer-avis.html')content=patchCustomerAvisForm(content);write(page,content)}
 
 let probe=read('production-version.js').replace(/RC1016/g,'RC1018').replace(/1016/g,'1018');
 if(!probe.includes("__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'"))probe="window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018';\n// RC1018 gemeinsamer Mail- und Sprachstandard für Produktion, TESTSERVICE und Demo\n";
@@ -123,4 +150,4 @@ const manifest={
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 write('rc1018-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1018 build ready: Mehr-LKW-Speicherbrücke, Hauptadresse plus Zusatzstandorte, Lieferavis-Draft, Mailvorlagen, SOP-Systembilder und DE/EN in Produktion, TESTSERVICE und Demo.');
+console.log('RC1018 build ready: Mehr-LKW-Speicherbrücke, Hauptadresse plus Zusatzstandorte, Lieferavis-Draft, Mailvorlagen, SOP-Systembilder, stabiler Kunden-Avis und DE/EN in Produktion, TESTSERVICE und Demo.');
