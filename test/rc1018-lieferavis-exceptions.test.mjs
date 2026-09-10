@@ -177,8 +177,10 @@ test('Lieferavis: normale gespeicherte Sendung wird standardmäßig automatisch 
   const {api,fire,toggles,persists}=loadAuto(shipment);
   assert.equal(typeof api.autoEnable,'function','Der Lieferavis-Flow muss die Default-Aktivierung bereitstellen.');
   await fire('exporthub:shipment-saved');
-  assert.deepEqual(toggles,[true]);
-  assert.deepEqual(persists,['persist']);
+  assert.equal(toggles.length,1);
+  assert.equal(toggles[0],true);
+  assert.equal(persists.length,1);
+  assert.equal(persists[0],'persist');
   assert.equal(shipment.customerAvisEnabled,true);
 });
 
@@ -186,10 +188,12 @@ test('Lieferavis: manuelle Deaktivierung bleibt für dieselbe Sendung erhalten',
   const shipment={reference:'ABC123',customerName:'Normaler Kunde',customerAvisEnabled:true,avisEnabled:true,status:'Entwurf'};
   const {api,fire,toggles}=loadAuto(shipment);
   await api.toggle(false);
-  assert.deepEqual(toggles,[false]);
+  assert.equal(toggles.length,1);
+  assert.equal(toggles[0],false);
   await fire('exporthub:shipment-saved');
   await fire('exporthub:rendered');
-  assert.deepEqual(toggles,[false],'Eine bewusst deaktivierte Sendung darf nicht automatisch wieder aktiviert werden.');
+  assert.equal(toggles.length,1,'Eine bewusst deaktivierte Sendung darf nicht automatisch wieder aktiviert werden.');
+  assert.equal(toggles[0],false);
   assert.equal(shipment.customerAvisEnabled,false);
 });
 
@@ -197,7 +201,7 @@ test('Lieferavis: bestehende Kunden-Ausnahme BMP bleibt trotz Default-Aktivierun
   const shipment={reference:'ABC123',customerName:'BMP',customerAvisEnabled:false,avisEnabled:false,status:'Entwurf'};
   const {fire,toggles}=loadAuto(shipment);
   await fire('exporthub:shipment-saved');
-  assert.deepEqual(toggles,[]);
+  assert.equal(toggles.length,0);
 });
 
 test('Lieferavis: RC1015 darf sich nicht als RC1018 ausgeben, damit die neue Mailruntime wirklich installiert wird',()=>{
