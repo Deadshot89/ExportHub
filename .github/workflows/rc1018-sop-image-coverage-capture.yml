@@ -1,5 +1,6 @@
 name: RC1018 SOP Bildabdeckung erfassen
 
+# Finaler Aufnahmevertrag nach Synchronisierung mit dem aktuellen main.
 on:
   push:
     branches: [rc1018-sop-image-coverage-complete]
