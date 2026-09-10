@@ -224,7 +224,7 @@ function install(){
 function boot(){if(!install())setTimeout(install,80);refreshUi()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 var RC1021_AUTO_EVENTS=Object.freeze({'exporthub:ready':1,'exporthub:rendered':1,'exporthub:viewchange':1,'exporthub:sync':1,'exporthub:shipment-saved':1});
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){window.addEventListener(name,function(){install();refreshUi();if(RC1021_AUTO_EVENTS[name])Promise.resolve(rc1021AutoEnable(name)).catch(function(e){console.error('RC1021 Lieferavis Auto-Event',name,e)})})});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){window.addEventListener(name,function(){install();refreshUi();if(RC1021_AUTO_EVENTS[name])return Promise.resolve(rc1021AutoEnable(name)).catch(function(e){console.error('RC1021 Lieferavis Auto-Event',name,e);return false});return false})});
 document.addEventListener('input',function(e){var input=e.target;if(input&&input.matches&&input.matches('#content input'))refreshUi()},true);
 document.addEventListener('change',function(){refreshUi()},true);
 })();
