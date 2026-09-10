@@ -16,7 +16,7 @@ for(const [before,after] of replacements){
 fs.writeFileSync(file,source);
 
 const RC1027_ID='exporthub-rc1027-lieferavis-immediate';
-const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavis-immediate.js?v=1027"></script>';
+const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavis-immediate.js?v=1031"></script>';
 function injectRc1027(rel){
   const target=path.join(ROOT,rel);
   if(!fs.existsSync(target))return false;

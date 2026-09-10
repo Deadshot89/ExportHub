@@ -20,7 +20,7 @@ test('RC1027: Release-Vorbereitung injiziert den neuen Avis-Layer mit frischem C
     for(const page of ['index.html','TESTVERSION.html','demo.html']){
       const html=fs.readFileSync(path.join(tmp,page),'utf8');
       assert.match(html,/id="exporthub-rc1027-lieferavis-immediate"/);
-      assert.match(html,/assets\/rc1027-lieferavis-immediate\.js\?v=1027/);
+      assert.match(html,/assets\/rc1027-lieferavis-immediate\.js\?v=1031/);
       assert.equal((html.match(/exporthub-rc1027-lieferavis-immediate/g)||[]).length,1,'RC1027 darf pro Oberfläche nur einmal geladen werden.');
     }
   }finally{fs.rmSync(tmp,{recursive:true,force:true})}
