@@ -1,0 +1,36 @@
+name: RC1029 Apply Overview Card Map
+on:
+  push:
+    branches:
+      - rc1029-overview-card-map-performance
+    paths:
+      - scripts/rc1029-apply-overview-card-map-performance.mjs
+      - test/rc1029-overview-card-map-performance.test.mjs
+      - .github/workflows/rc1029-apply.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: RC1029 Patch anwenden
+        run: node scripts/rc1029-apply-overview-card-map-performance.mjs
+      - name: RC1029 Zielvertrag prüfen
+        run: node --test test/rc1029-overview-card-map-performance.test.mjs
+      - name: Gesamte Node-Regression prüfen
+        run: npm test
+      - name: Geprüften Kartenmap-Patch committen
+        run: |
+          if git diff --quiet -- TESTVERSION.html; then
+            echo "Keine Änderung erforderlich."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add TESTVERSION.html
+          git commit -m "RC1029: Overview-Kartenmap im ruhigen Patch wiederverwenden"
+          git push origin HEAD:rc1029-overview-card-map-performance
