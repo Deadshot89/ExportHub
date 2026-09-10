@@ -1,0 +1,29 @@
+name: RC1018 Kalender und Sendung Fix
+
+on:
+  push:
+    branches: [rc1018-calendar-shipment-fixes-final]
+    paths:
+      - 'test/rc1018-calendar-shipment-critical-fixes.test.mjs'
+      - 'api/shared/rc1014-fixed-pickup-seed.js'
+      - 'api/shared/fixed-pickup-store.js'
+      - 'assets/rc1015-lieferavis-mail-flow.js'
+      - '.github/rc1018/build-three-env.mjs'
+      - '.github/workflows/rc1018-calendar-shipment-fixes.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Kritische RC1018 Regression
+        run: node --test test/rc1018-calendar-shipment-critical-fixes.test.mjs
