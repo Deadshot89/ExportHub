@@ -107,6 +107,13 @@ async function rc1015PersistBeforeAvis(){
  await persist('Sendung vor Lieferavis automatisch gespeichert');
  return true
 }
+function rc1021NotifyAvisUpdated(on,sh){
+ if(!window||typeof window.dispatchEvent!=='function')return false;
+ var detail={enabled:!!on,reference:shipmentReference(sh||currentShipmentForAvis())};
+ try{window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:detail}));return true}catch(_){}
+ try{window.dispatchEvent(new Event('exporthub:customer-avis-updated'));return true}catch(_){}
+ return false
+}
 async function rc1015Toggle(on){
  if(!base||typeof base.toggle!=='function')return false;
  if(on&&rc1018AvisException(currentShipmentForAvis())){
@@ -124,7 +131,10 @@ async function rc1015Toggle(on){
    refreshUi();
    return false
   }
-  return await base.toggle(on)
+  var result=await base.toggle(on);
+  rc1021NotifyAvisUpdated(on,currentShipmentForAvis());
+  refreshUi();
+  return result
  }catch(e){
   console.error('RC1015 Lieferavis automatisch speichern',e);
   alert('Der Lieferavis konnte nicht aktiviert werden. Die Sendung wurde vorher nicht sicher gespeichert.\n\n'+q(e&&e.message||e));
@@ -143,6 +153,7 @@ async function rc1021AutoEnable(reason){
   if(!rc1021ShouldAutoEnable(sh))return rc1018Enabled(sh);
   await base.toggle(true);
   sh=currentShipmentForAvis()||sh;
+  rc1021NotifyAvisUpdated(true,sh);
   var active=rc1018Enabled(sh);
   refreshUi();
   return active
