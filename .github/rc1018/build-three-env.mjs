@@ -55,11 +55,19 @@ function bridgeMultiTruckSaveRuntime(html){
 
   const unsafeCall='rc1017SyncSubShipments(saved);';
   const safeCall="if(typeof window.rc1017SyncSubShipments!=='function')throw new Error('RC1018 Mehr-LKW-Synchronisierung ist nicht verfügbar.');window.rc1017SyncSubShipments(saved);";
+  const statusAnchor="if(!q(saved.status))saved.status='Entwurf';";
   let saveRuntime=scriptBlock(out,SAVE_RUNTIME_ID);
   if(!saveRuntime.includes('window.rc1017SyncSubShipments(saved);')){
-    const count=saveRuntime.split(unsafeCall).length-1;
-    if(count!==1)throw new Error(`RC1018 Mehr-LKW-Brücke: unsicherer RC565-Aufruf ${count}x gefunden`);
-    saveRuntime=saveRuntime.replace(unsafeCall,safeCall);
+    const unsafeCount=saveRuntime.split(unsafeCall).length-1;
+    if(unsafeCount===1){
+      saveRuntime=saveRuntime.replace(unsafeCall,safeCall);
+    }else if(unsafeCount===0){
+      const statusCount=saveRuntime.split(statusAnchor).length-1;
+      if(statusCount!==1)throw new Error(`RC1018 Mehr-LKW-Brücke: RC565 Statusanker ${statusCount}x gefunden`);
+      saveRuntime=saveRuntime.replace(statusAnchor,safeCall+statusAnchor);
+    }else{
+      throw new Error(`RC1018 Mehr-LKW-Brücke: unsicherer RC565-Aufruf ${unsafeCount}x gefunden`);
+    }
     out=replaceScriptBlock(out,SAVE_RUNTIME_ID,saveRuntime);
   }
   return out
