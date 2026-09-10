@@ -3,7 +3,7 @@
 if(window.__EXPORTHUB_RC1018_MAIL_LANGUAGE_STANDARD__)return;
 window.__EXPORTHUB_RC1018_MAIL_LANGUAGE_STANDARD__=true;
 
-var VERSION='RC1018',base=null,wrapper=null,originalText=new WeakMap(),observer=null;
+var VERSION='RC1021',base=null,wrapper=null,originalText=new WeakMap(),observer=null,mailSourceCache=new Map(),syncingVisibleMail=false;
 function q(v){return String(v==null?'':v).trim()}
 function normalizedLanguage(v){v=q(v).toLowerCase();if(/^en(?:[-_]|$)/.test(v)||v==='english'||v==='englisch')return'en';if(/^de(?:[-_]|$)/.test(v)||v==='german'||v==='deutsch')return'de';return''}
 function storedLanguage(){try{return normalizedLanguage(localStorage.getItem('exporthub.language'))}catch(_){return''}}
@@ -14,6 +14,20 @@ function resolveLanguage(sh,override,uiValue){
 }
 function resolveMode(target,avisEnabled){target=q(target).toLowerCase();return avisEnabled&&(target==='customer'||target==='carrier')?'avis':'details'}
 function referenceOf(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId))}
+function currentState(){
+ try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
+ return window.ExportHUBClean&&window.ExportHUBClean.state||window.appState||{}
+}
+function activeShipment(){
+ try{if(typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function'){var active=window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__();if(active&&typeof active==='object')return active}}catch(_){}
+ var state=currentState(),direct=[state.currentShipment,state.shipment,state.selectedShipment];
+ for(var i=0;i<direct.length;i++)if(direct[i]&&typeof direct[i]==='object')return direct[i];
+ var lists=[state.shipments,state.savedShipments,state.salesSharedShipments,state.sharedShipments],only=null,count=0;
+ for(var l=0;l<lists.length;l++){var list=lists[l];if(!Array.isArray(list))continue;for(var j=0;j<list.length;j++){if(list[j]&&typeof list[j]==='object'){only=list[j];count++;if(count>1)return null}}}
+ return count===1?only:null
+}
+function mailCacheKey(sh,target,lang){var ref=referenceOf(sh);return ref?ref+'|'+q(target).toLowerCase()+'|'+(normalizedLanguage(lang)||'de'):''}
+function isAvisBody(text){return /(?:^|\n)\s*(?:LIEFERAVIS|COLLECTION NOTICE|CUSTOMER COLLECTION NOTICE|KUNDEN-AVIS)(?:\s*[–/-].*)?/i.test(String(text||''))}
 function normalizeText(text){return String(text==null?'':text).replace(/\r\n/g,'\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim()}
 function stripAvisBlocks(text){
  text=normalizeText(text);
@@ -116,19 +130,45 @@ function observeTranslations(){
 }
 function mailModeLabel(target,avis,lang){var mode=resolveMode(target,avis);if(lang==='en'){if(mode==='avis')return target==='carrier'?'Carrier collection notice':'Customer collection notice';return target==='carrier'?'Carrier shipment details':target==='customer'?'Customer shipment details':'Email'}if(mode==='avis')return target==='carrier'?'Spedition · Lieferavis':'Kunde · Lieferavis';return target==='carrier'?'Spedition · Sendungsdetails':target==='customer'?'Kunde · Sendungsdetails':'Mail'}
 function patchMailUi(){
- if(typeof document==='undefined')return false;var area=document.getElementById('rc543MailArea');if(!area)return false;var active=area.querySelector('[data-rc543-target].active'),target=q(active&&active.getAttribute('data-rc543-target'))||'customer',lang=resolveLanguage({},'',(document.getElementById('rc543MailLang')||{}).value),standard=document.getElementById('rc543MailStandard'),avis=false;
- try{var sh=typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function'?window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__():null;avis=!!(wrapper&&sh&&wrapper.enabled&&wrapper.enabled(sh))}catch(_){}
- if(!avis&&target!=='own'){var panel=document.getElementById('rc897LieferavisPanel');avis=!!(panel&&panel.getAttribute('data-active')==='1')}
+ if(typeof document==='undefined')return false;var area=document.getElementById('rc543MailArea');if(!area)return false;var active=area.querySelector('[data-rc543-target].active'),target=q(active&&active.getAttribute('data-rc543-target'))||'customer',lang=resolveLanguage({},'',(document.getElementById('rc543MailLang')||{}).value),standard=document.getElementById('rc543MailStandard'),avis=false,sh=activeShipment(),resolved=false;
+ try{if(wrapper&&sh&&wrapper.enabled){avis=!!wrapper.enabled(sh);resolved=true}}catch(_){}
+ if(!resolved&&target!=='own'){var panel=document.getElementById('rc897LieferavisPanel');avis=!!(panel&&panel.getAttribute('data-active')==='1')}
  if(standard){standard.value=mailModeLabel(target,avis,lang)+' · '+(lang==='en'?'English':'Deutsch');standard.setAttribute('data-rc1018-mail-mode',resolveMode(target,avis))}
  return true
 }
 function rc1018InjectMailBody(sh,target,body,langOverride){
  target=q(target).toLowerCase()||'customer';var uiLang=typeof document!=='undefined'?q((document.getElementById('rc543MailLang')||{}).value):'',lang=resolveLanguage(sh,langOverride,uiLang),avis=false;
  try{avis=!!(base&&base.enabled&&base.enabled(sh))}catch(_){}
- var mode=resolveMode(target,avis),source=String(body==null?'':body),url=q(base&&base.link&&base.link(sh)),reference=referenceOf(sh);
+ var mode=resolveMode(target,avis),source=String(body==null?'':body),url=q(base&&base.link&&base.link(sh)),reference=referenceOf(sh),cacheKey=mailCacheKey(sh,target,lang);
+ if(cacheKey&&!isAvisBody(source)&&q(source))mailSourceCache.set(cacheKey,source);
  if(mode==='avis'&&url)return composeMail({target:target,lang:lang,body:source,avisEnabled:true,url:url,reference:reference});
  var clean=source;try{if(base&&typeof base.injectMailBody==='function')clean=base.injectMailBody(sh,target,source,lang)}catch(_){}
+ if(cacheKey&&!isAvisBody(clean)&&q(clean))mailSourceCache.set(cacheKey,clean);
  return composeMail({target:target,lang:lang,body:clean,avisEnabled:false,url:url,reference:reference})
+}
+function syncVisibleMailBody(avisOverride){
+ if(syncingVisibleMail||typeof document==='undefined')return false;
+ var area=document.getElementById('rc543MailArea');if(!area)return false;
+ var bodyEl=area.querySelector('textarea');if(!bodyEl)return false;
+ var active=area.querySelector('[data-rc543-target].active'),target=q(active&&active.getAttribute('data-rc543-target'))||'customer';if(target==='own')return false;
+ var sh=activeShipment();if(!sh)return false;
+ var lang=resolveLanguage(sh,'',(document.getElementById('rc543MailLang')||{}).value),key=mailCacheKey(sh,target,lang);if(!key)return false;
+ var current=String(bodyEl.value==null?'':bodyEl.value),source=mailSourceCache.get(key)||'';
+ if(!source&&!isAvisBody(current)&&q(current)){source=current;mailSourceCache.set(key,current)}
+ if(!source)return false;
+ var avis=typeof avisOverride==='boolean'?avisOverride:false,resolved=typeof avisOverride==='boolean';
+ if(!resolved){try{if(wrapper&&wrapper.enabled){avis=!!wrapper.enabled(sh);resolved=true}}catch(_){}}
+ if(!resolved){var panel=document.getElementById('rc897LieferavisPanel');avis=!!(panel&&panel.getAttribute('data-active')==='1')}
+ var url=q(base&&base.link&&base.link(sh)),next=composeMail({target:target,lang:lang,body:source,avisEnabled:avis,url:url,reference:referenceOf(sh)});
+ if(!q(next)||next===current)return false;
+ syncingVisibleMail=true;
+ try{
+  bodyEl.value=next;
+  if(bodyEl.setAttribute)bodyEl.setAttribute('data-rc1018-mail-mode',resolveMode(target,avis));
+  try{bodyEl.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}
+  try{bodyEl.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}
+ }finally{syncingVisibleMail=false}
+ return true
 }
 function installMailWrapper(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;if(!current)return false;
@@ -136,12 +176,18 @@ function installMailWrapper(){
  base=current;wrapper=Object.freeze(Object.assign({},current,{version:VERSION,injectMailBody:rc1018InjectMailBody,__rc1018:true,__base1018:current}));window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;patchMailUi();return true
 }
 function refresh(){if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){installMailWrapper();patchMailUi()});else{installMailWrapper();patchMailUi()}}
+function syncVisibleAfterRefresh(avisOverride){
+ installMailWrapper();patchMailUi();
+ if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){syncVisibleMailBody(avisOverride);patchMailUi()});else{syncVisibleMailBody(avisOverride);patchMailUi()}
+}
 function boot(){ensureLanguageSwitch();observeTranslations();installMailWrapper();refresh()}
 
-window.ExportHUBRC1018MailLanguage=Object.freeze({version:VERSION,resolveLanguage:resolveLanguage,resolveMode:resolveMode,stripAvisBlocks:stripAvisBlocks,stripShipmentDetails:stripShipmentDetails,buildDetailsBody:buildDetailsBody,buildAvisBody:buildAvisBody,localizedAvisUrl:localizedAvisUrl,composeMail:composeMail,setSiteLanguage:setSiteLanguage,translations:translations});
+window.ExportHUBRC1018MailLanguage=Object.freeze({version:VERSION,resolveLanguage:resolveLanguage,resolveMode:resolveMode,stripAvisBlocks:stripAvisBlocks,stripShipmentDetails:stripShipmentDetails,buildDetailsBody:buildDetailsBody,buildAvisBody:buildAvisBody,localizedAvisUrl:localizedAvisUrl,composeMail:composeMail,syncVisibleMailBody:syncVisibleMailBody,setSiteLanguage:setSiteLanguage,translations:translations});
 if(typeof document!=='undefined'){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
- ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){window.addEventListener(name,refresh)});
- document.addEventListener('change',function(e){if(e.target&&e.target.id==='rc543MailLang'){var lang=resolveLanguage({},e.target.value,'');setSiteLanguage(lang)}refresh()},true)
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved'].forEach(function(name){window.addEventListener(name,refresh)});
+ window.addEventListener('exporthub:customer-avis-updated',function(e){var enabled=e&&e.detail&&typeof e.detail.enabled==='boolean'?e.detail.enabled:undefined;syncVisibleAfterRefresh(enabled)});
+ window.addEventListener('exporthub:mail-language-changed',function(){syncVisibleAfterRefresh()});
+ document.addEventListener('change',function(e){if(e.target&&e.target.id==='rc543MailLang'){var lang=resolveLanguage({},e.target.value,'');setSiteLanguage(lang);syncVisibleAfterRefresh()}else refresh()},true)
 }
 })();
