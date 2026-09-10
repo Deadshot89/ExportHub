@@ -1,4 +1,4 @@
-name: RC1031 Pickup Status Inspect
+name: RC1031 State Render Inspect
 on:
   push:
     branches:
@@ -15,11 +15,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: QR-Synchronisation und Resetpfad untersuchen
+      - name: State-Save, Pickup-Init und Overview-Render untersuchen
         run: |
           node - <<'NODE'
           const fs=require('fs');const s=fs.readFileSync('TESTVERSION.html','utf8');
-          for(const needle of ['serverMissUntil','function tokensFor(','function resetPickupServer(','function syncOne(','function syncAll(']){
-            let at=0,n=0;while((at=s.indexOf(needle,at))>=0){n++;console.log('\n### '+needle+' '+n+' @ '+at+' ###');console.log(s.slice(Math.max(0,at-1400),Math.min(s.length,at+3600)).replace(/\n/g,' '));at+=needle.length}
-          }
+          const needles=['exporthub-state?mode=save','mode=save&ack=1','__EXPORTHUB_SAVE_STATE__','function save(','renderOverview(true)','function rc640PatchOverviewQuietly(','function overviewReorderExistingCards(','pickup-init'];
+          for(const needle of needles){let at=0,n=0;while((at=s.indexOf(needle,at))>=0){n++;if(n>12)break;console.log('\n### '+needle+' '+n+' @ '+at+' ###');console.log(s.slice(Math.max(0,at-1800),Math.min(s.length,at+4200)).replace(/\n/g,' '));at+=needle.length}}
           NODE
