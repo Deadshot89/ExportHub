@@ -32,11 +32,11 @@ test('RC1029: automatische Aktualisierung darf ein gerade bearbeitetes Lieferavi
 
 test('RC1029: Spedition bleibt im öffentlichen Lieferavis reine Anzeige und ist serverseitig nicht änderbar',()=>{
   const render=functionBody('render');
-  const formStart=render.indexOf('<form id=\\"avisForm\\">');
+  const formStart=render.indexOf('<form id="avisForm">');
   assert.ok(formStart>=0,'Avis-Formular fehlt.');
   const formEnd=render.indexOf('</form>',formStart);
   const form=render.slice(formStart,formEnd);
-  assert.doesNotMatch(form,/name=\\"(?:carrier|spedition|carrierName|speditionName)\\"/i,'Öffentliches Avis darf kein editierbares Speditionsfeld anbieten.');
+  assert.doesNotMatch(form,/name="(?:carrier|spedition|carrierName|speditionName)"/i,'Öffentliches Avis darf kein editierbares Speditionsfeld anbieten.');
   const validate=functionBody('validateAppointment',API);
   const apply=functionBody('applyAppointment',API);
   assert.doesNotMatch(validate+apply,/payload\.(?:carrier|spedition)|\b(?:carrierName|speditionName)\s*:/i,'Avis-API darf die Spedition nicht aus externen Formulardaten übernehmen.');
