@@ -90,14 +90,15 @@ test('RC1018: Website und öffentliche Seiten besitzen denselben DE/EN-Sprachsta
   }
 });
 
-test('RC1018: Produktion, TESTSERVICE und Demo werden auf denselben Release gebaut',()=>{
+test('RC1021: Produktion, TESTSERVICE und Demo laden die aktualisierte Mailruntime mit frischem Cache-Key',()=>{
   assert.ok(fs.existsSync(BUILD),'RC1018 Drei-Umgebungen-Build fehlt.');
   execFileSync(process.execPath,[BUILD],{cwd:ROOT,stdio:'pipe'});
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=fs.readFileSync(path.join(ROOT,'dist-rc1018',file),'utf8');
     assert.match(html,/ExportHUB RC1018 environment=/);
     assert.match(html,/version:'RC1018'/);
-    assert.match(html,/rc1018-mail-language-standard\.js\?v=1018/);
+    assert.match(html,/rc1018-mail-language-standard\.js\?v=1021/);
+    assert.doesNotMatch(html,/rc1018-mail-language-standard\.js\?v=1018/);
   }
   const manifest=JSON.parse(fs.readFileSync(path.join(ROOT,'dist-rc1018/rc1018-manifest.json'),'utf8'));
   assert.equal(manifest.version,'RC1018');
