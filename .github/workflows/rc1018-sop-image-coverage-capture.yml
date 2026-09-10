@@ -1,0 +1,103 @@
+name: RC1018 SOP Bildabdeckung erfassen
+
+on:
+  push:
+    branches: [rc1018-sop-image-coverage-complete]
+    paths:
+      - 'browser/rc1018-sop-screenshots.mjs'
+      - 'assets/sop/rc1018-sop-system-images.js'
+      - 'test/rc1018-sop-image-coverage-complete.test.mjs'
+      - '.github/workflows/rc1018-sop-image-coverage-capture.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc1018-sop-image-coverage-capture
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1018 Demo bauen
+        run: node .github/rc1018/build-three-env.mjs
+      - name: Chromium bereitstellen
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Echte Demo-Systembilder aufnehmen
+        shell: bash
+        env:
+          RC1018_BROWSER_URL: http://127.0.0.1:4173/demo.html
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory dist-rc1018 >/tmp/rc1018-sop-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/demo.html >/dev/null; then break; fi
+            sleep 1
+          done
+          node browser/rc1018-sop-screenshots.mjs
+      - name: Fehlende zwölf Systembilder übernehmen und prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            rc1018-start-company-session.png \
+            rc1018-dashboard-navigation.png \
+            rc1018-users.png \
+            rc1018-rights.png \
+            rc1018-customers.png \
+            rc1018-shipping-route.png \
+            rc1018-document-upload.png \
+            rc1018-mail.png \
+            rc1018-pod.png \
+            rc1018-sop-handbook.png \
+            rc1018-academy.png \
+            rc1018-archive-audit.png; do
+            cp "artifacts/rc1018-sop-screenshots/$file" "assets/sop/screenshots/$file"
+          done
+          node --test test/rc1018-sop-system-images.test.mjs test/rc1018-sop-image-coverage-complete.test.mjs
+          git diff --check
+      - name: Neue Systembilder versionieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add \
+            assets/sop/screenshots/rc1018-start-company-session.png \
+            assets/sop/screenshots/rc1018-dashboard-navigation.png \
+            assets/sop/screenshots/rc1018-users.png \
+            assets/sop/screenshots/rc1018-rights.png \
+            assets/sop/screenshots/rc1018-customers.png \
+            assets/sop/screenshots/rc1018-shipping-route.png \
+            assets/sop/screenshots/rc1018-document-upload.png \
+            assets/sop/screenshots/rc1018-mail.png \
+            assets/sop/screenshots/rc1018-pod.png \
+            assets/sop/screenshots/rc1018-sop-handbook.png \
+            assets/sop/screenshots/rc1018-academy.png \
+            assets/sop/screenshots/rc1018-archive-audit.png
+          if git diff --cached --quiet; then
+            echo 'Neue SOP-Systembilder bereits aktuell.'
+            exit 0
+          fi
+          git commit -m 'chore: zwölf weitere echte RC1018 SOP-Systembilder erfassen'
+          git push origin HEAD:rc1018-sop-image-coverage-complete
+      - name: Browserbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RC1018-SOP-Bildabdeckung
+          path: artifacts/rc1018-sop-screenshots
+          if-no-files-found: warn
+          retention-days: 30
