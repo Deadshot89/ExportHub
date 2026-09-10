@@ -28,14 +28,14 @@ test('RC993: ruhiger Overview-Patch berechnet die gefilterte Sendungsliste nur e
   const src = block(/function\s+rc640PatchOverviewQuietly\s*\(/, /function\s+rc640ScheduleOverviewPatch\s*\(/, 7000);
   assert.ok(src, 'rc640PatchOverviewQuietly fehlt');
   assert.equal(countMatches(src, /overviewFiltered\s*\(/g), 1, 'overviewFiltered darf im ruhigen Patch nur einmal berechnet werden');
-  assert.match(src, /rc485PatchOverviewCards\s*\(\s*desired\s*\)/, 'vorbereitete Liste muss an den Karten-Patch weitergegeben werden');
+  assert.match(src, /rc485PatchOverviewCards\s*\(\s*desired\s*(?:,\s*cardMap\s*)?\)/, 'vorbereitete Liste muss an den Karten-Patch weitergegeben werden');
   assert.match(src, /overviewReorderExistingCards\s*\(\s*desired\s*\)/, 'vorbereitete Liste muss an die Sortierung weitergegeben werden');
 });
 
 test('RC993: Karten-Patch teilt eine vorberechnete Reihenfolge mit allen verschobenen Karten', () => {
   const src = block(/window\.rc485PatchOverviewCards\s*=\s*function\s*\(/, /var\s+rc640OverviewPatchTimer\s*=/, 9000);
   assert.ok(src, 'rc485PatchOverviewCards fehlt');
-  assert.match(src, /function\s*\(\s*desired\s*\)/, 'Karten-Patch muss die vorberechnete Liste annehmen');
+  assert.match(src, /function\s*\(\s*desired\s*(?:,\s*cardMap\s*)?\)/, 'Karten-Patch muss die vorberechnete Liste annehmen');
   assert.match(src, /overviewPlaceChangedCard\s*\(\s*card\s*,\s*sh\s*,\s*desired\s*\)/, 'verschobene Karten müssen dieselbe Liste verwenden');
   assert.doesNotMatch(src, /overviewFiltered\s*\(/, 'Karten-Patch darf die vollständige Liste nicht pro verschobener Karte neu berechnen');
 });
