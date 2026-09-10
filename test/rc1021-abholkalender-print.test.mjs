@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-// RC1021: Das Browser-Asset wird für den Modelltest in einer CommonJS-Sandbox ausgewertet.
 const jsSource = fs.readFileSync('assets/abholkalender.js','utf8');
 const sandbox = { module:{exports:{}}, exports:{}, globalThis:{} };
 vm.runInNewContext(jsSource,sandbox,{filename:'assets/abholkalender.js'});
@@ -12,7 +11,6 @@ const calendar = sandbox.module.exports;
 test('Abholkalender bietet einen Wochenplan-Druck direkt aus der Seite an', () => {
   assert.match(jsSource,/data-pickup-action="print-week"/);
   assert.match(jsSource,/Wochenplan drucken/);
-  assert.match(jsSource,/\.print\(\)/);
 });
 
 test('Druckansicht enthält exakt Montag bis Freitag und nur kompakte Abholdaten', () => {
@@ -34,11 +32,14 @@ test('Druckansicht enthält exakt Montag bis Freitag und nur kompakte Abholdaten
   assert.match(html,/Anzahl:\s*7/);
 });
 
-test('Druck-CSS erzwingt eine einzelne A4-Seite im Querformat und blendet Weboberfläche aus', () => {
-  const css = fs.readFileSync('assets/abholkalender.css','utf8');
-  assert.match(css,/@page\s*\{[^}]*size:\s*A4\s+landscape/i);
-  assert.match(css,/@media\s+print/i);
-  assert.match(css,/\.pickup-print-sheet/);
-  assert.match(css,/visibility:\s*hidden|display:\s*none/i);
-  assert.match(css,/grid-template-columns:\s*repeat\(5/i);
+test('Druck öffnet ein eigenständiges Druckdokument statt die ExportHUB-Webseite zu drucken', () => {
+  assert.match(jsSource,/root\.open\(/);
+  assert.match(jsSource,/document\.write\(/);
+  assert.match(jsSource,/<!doctype html>/i);
+  assert.doesNotMatch(jsSource,/body\.classList\.add\(['"]pickup-print-active['"]\)/);
+});
+
+test('Eigenständiges Druckdokument definiert A4 quer und fünf Wochentage', () => {
+  assert.match(jsSource,/@page\s*\{[^}]*size:\s*A4\s+landscape/i);
+  assert.match(jsSource,/grid-template-columns:\s*repeat\(5/i);
 });
