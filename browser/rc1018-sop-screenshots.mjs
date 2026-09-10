@@ -134,7 +134,8 @@ try{
   await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:30000});
   await waitReady(page);
 
-  await viewShot(page,'start',['Start','Startseite','Home'],'rc1018-start-company-session.png','ExportHUB');
+  await page.evaluate(()=>scrollTo(0,0));
+  await targetShot(page,['ExportHUB','Demo','Firma','Konto'],'rc1018-start-company-session.png');
   await viewShot(page,'dashboard',['Dashboard'],'rc1018-dashboard-navigation.png','Dashboard');
   await rightsShots(page);
   await viewShot(page,'customers',['Kunden','Kunden & Standorte','Kundenverwaltung'],'rc1018-customers.png','Kunden');
