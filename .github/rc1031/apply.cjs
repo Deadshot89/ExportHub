@@ -63,7 +63,9 @@ function replaceOnce(source,before,after,label){
 
 {
  const path='test/rc1027-lieferavis-release.test.mjs';let s=read(path);
- s=replaceOnce(s,/assets\/rc1027-lieferavis-immediate\\.js\\?v=1027/.source,/assets\/rc1027-lieferavis-immediate\\.js\\?v=1031/.source,'historical cache key expectation');
+ const matches=(s.match(/v=1027/g)||[]).length;
+ if(matches!==1)throw new Error('RC1031 historischer Cache-Key-Anker nicht eindeutig: '+matches);
+ s=s.replace('v=1027','v=1031');
  write(path,s);
 }
 
