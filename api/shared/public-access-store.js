@@ -38,6 +38,8 @@ function subjectHash(subjectId,environmentName,kind){ return crypto.createHmac('
 function sessionSecret(environmentName,kind){ return crypto.createHmac('sha256',accessSecret(environmentName,kind)).update('session').digest(); }
 function safeEqual(a,b){ try{const aa=Buffer.from(String(a||''),'utf8'),bb=Buffer.from(String(b||''),'utf8');return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb)}catch(_){return false} }
 function tokenValid(token){ return /^[A-Za-z0-9_-]{40,160}$/.test(text(token)); }
+function tokenHashValid(value){ return /^[a-f0-9]{64}$/i.test(text(value)); }
+function subjectTokenHashes(index){ const out=[]; const add=v=>{v=text(v).toLowerCase();if(tokenHashValid(v)&&!out.includes(v))out.push(v)}; if(index&&Array.isArray(index.tokenHashes))index.tokenHashes.forEach(add); if(index&&index.tokenHash)add(index.tokenHash); return out; }
 function json(status,payload,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','Pragma':'no-cache','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow, noarchive'},headers),body:JSON.stringify(payload)}; }
 
 async function container(){ if(containerReadyPromise)return containerReadyPromise; const cs=connectionString(); if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503); containerReadyPromise=(async()=>{const c=BlobServiceClient.fromConnectionString(cs).getContainerClient(CONTAINER);await c.createIfNotExists();return c})().catch(e=>{containerReadyPromise=null;throw e}); return containerReadyPromise; }
@@ -59,28 +61,36 @@ async function revokeByHash(environmentName,kind,tokenHash,reason,actor){
   try{return await mutateRecord(environmentName,kind,tokenHash,r=>{if(!r.revokedAt){r.revokedAt=now();r.revokedReason=text(reason||'reissued').slice(0,160);r.revokedBy=text(actor||'ExportHUB').slice(0,120);r.updatedAt=now()}return r})}catch(e){if(e&&e.code==='ACCESS_NOT_FOUND')return null;throw e}
 }
 async function revokeSubject(req,kind,subjectId,reason='disabled',actor='ExportHUB',payload){
-  const env=environment(req,payload),c=await container(),idx=c.getBlockBlobClient(subjectName(env,kind,subjectId)),d=await readJson(idx,null);
-  if(d.value&&d.value.tokenHash)await revokeByHash(env,kind,d.value.tokenHash,reason,actor);
-  if(d.value){d.value.active=false;d.value.revokedAt=now();d.value.reason=text(reason);try{await writeJson(idx,d.value,d.etag)}catch(e){if(!(e&&e.statusCode===412))throw e}}
-  return {ok:true,environment:env};
+  const env=environment(req,payload),c=await container(),idx=c.getBlockBlobClient(subjectName(env,kind,subjectId)),d=await readJson(idx,null),hashes=subjectTokenHashes(d.value);
+  for(const tokenHash of hashes)await revokeByHash(env,kind,tokenHash,reason,actor);
+  if(d.value){d.value.active=false;d.value.revokedAt=now();d.value.reason=text(reason);d.value.updatedAt=now();try{await writeJson(idx,d.value,d.etag)}catch(e){if(!(e&&e.statusCode===412))throw e}}
+  return {ok:true,environment:env,revokedTokens:hashes.length};
 }
 async function issue(req,kind,meta={},ttlMs,payload){
   kind=normalizeKind(kind); const env=environment(req,payload||meta),subjectId=text(meta.subjectId||meta.shipmentId||meta.reference); if(!subjectId)throw error('SUBJECT_REQUIRED','Sendungs-ID für öffentlichen Zugriff fehlt.',400);
-  const c=await container(),idx=c.getBlockBlobClient(subjectName(env,kind,subjectId)),old=await readJson(idx,null);
-  if(old.value&&old.value.tokenHash)await revokeByHash(env,kind,old.value.tokenHash,'reissued',meta.actor||'ExportHUB');
+  const c=await container(),idx=c.getBlockBlobClient(subjectName(env,kind,subjectId)),old=await readJson(idx,null),oldHashes=subjectTokenHashes(old.value);
   const requestedToken=text(payload&&payload.token||meta&&meta.token||'').toLowerCase();
   let token=/^[a-f0-9]{48}$/.test(requestedToken)?requestedToken:crypto.randomBytes(24).toString('hex'),tokenHash=hashToken(token,env,kind);
-  if(old.value&&old.value.tokenHash===tokenHash){token=crypto.randomBytes(24).toString('hex');tokenHash=hashToken(token,env,kind)}
+  const existingHash=oldHashes.includes(tokenHash);
+  if(existingHash){
+    const existing=await readRecord(env,kind,tokenHash);
+    if(existing.record&&!existing.record.revokedAt){
+      const resourceKey=tokenHashValid(existing.record.resourceKey)?existing.record.resourceKey:tokenHash;
+      return {token,tokenHash,resourceKey,environment:env,kind,subjectId,expiresAt:existing.record.expiresAt||null,record:existing.record,reused:true};
+    }
+  }
   const createdAt=now(),indefinite=ttlMs===null,ttl=indefinite?null:Math.max(60*1000,Number(ttlMs)|| (kind==='pickup'?DEFAULT_PICKUP_TTL_MS:DEFAULT_AVIS_TTL_MS)),expiresAt=indefinite?null:new Date(Date.now()+ttl).toISOString();
-  const record={schemaVersion:1,kind,environment:env,tokenHash,subjectId,shipmentId:text(meta.shipmentId||subjectId),reference:text(meta.reference).toUpperCase(),snapshot:clone(meta.snapshot||{}),createdAt,updatedAt:createdAt,expiresAt,usedAt:null,revokedAt:null,failedAttempts:0,lockedUntil:null,issuedBy:text(meta.actor||'ExportHUB').slice(0,120)};
+  const resourceKey=tokenHashValid(old.value&&old.value.resourceKey)?text(old.value.resourceKey).toLowerCase():(tokenHashValid(old.value&&old.value.tokenHash)?text(old.value.tokenHash).toLowerCase():tokenHash);
+  const record={schemaVersion:2,kind,environment:env,tokenHash,resourceKey,subjectId,shipmentId:text(meta.shipmentId||subjectId),reference:text(meta.reference).toUpperCase(),snapshot:clone(meta.snapshot||{}),createdAt,updatedAt:createdAt,expiresAt,usedAt:null,revokedAt:null,failedAttempts:0,lockedUntil:null,issuedBy:text(meta.actor||'ExportHUB').slice(0,120)};
   await writeJson(c.getBlockBlobClient(recordName(env,kind,tokenHash)),record,null);
-  const index={schemaVersion:1,kind,environment:env,subjectId,tokenHash,active:true,issuedAt:createdAt,expiresAt};
-  try{await writeJson(idx,index,old.etag)}catch(e){if(e&&e.statusCode===412){const retry=await readJson(idx,null);await writeJson(idx,index,retry.etag)}else throw e}
-  return {token,tokenHash,environment:env,kind,subjectId,expiresAt,record};
+  const tokenHashes=oldHashes.concat(tokenHash).filter((v,i,a)=>a.indexOf(v)===i);
+  const index={schemaVersion:2,kind,environment:env,subjectId,tokenHash,resourceKey,tokenHashes,active:true,issuedAt:createdAt,expiresAt,updatedAt:createdAt};
+  try{await writeJson(idx,index,old.etag)}catch(e){if(e&&e.statusCode===412){const retry=await readJson(idx,null),retryHashes=subjectTokenHashes(retry.value).concat(tokenHash).filter((v,i,a)=>a.indexOf(v)===i),retryResource=tokenHashValid(retry.value&&retry.value.resourceKey)?text(retry.value.resourceKey).toLowerCase():(tokenHashValid(retry.value&&retry.value.tokenHash)?text(retry.value.tokenHash).toLowerCase():resourceKey);await writeJson(idx,Object.assign({},index,{resourceKey:retryResource,tokenHashes:retryHashes}),retry.etag)}else throw e}
+  return {token,tokenHash,resourceKey,environment:env,kind,subjectId,expiresAt,record,reused:false};
 }
-function assertUsable(record,{allowUsed=false}={}){
+function assertUsable(record,{allowUsed=false,allowLegacyReissued=false}={}){
   if(!record)throw error('ACCESS_INVALID','Dieser öffentliche Link ist ungültig oder nicht mehr aktiv.',410);
-  if(record.revokedAt)throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
+  if(record.revokedAt&&!(allowLegacyReissued&&lower(record.revokedReason)==='reissued'))throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
   if(record.kind!=='avis'&&record.expiresAt&&Date.now()>=Date.parse(record.expiresAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
   if(record.lockedUntil&&Date.now()<Date.parse(record.lockedUntil))throw error('ACCESS_LOCKED','Zu viele falsche Eingaben. Der Zugriff ist vorübergehend gesperrt.',429);
   const reusableKind=record.kind==='pickup'||record.kind==='avis';
@@ -91,7 +101,16 @@ async function resolve(req,kind,token,options={},payload){
   kind=normalizeKind(kind); token=text(token); if(!tokenValid(token))throw error('ACCESS_INVALID','Dieser öffentliche Link ist ungültig.',410);
   const env=environment(req,payload),tokenHash=hashToken(token,env,kind),got=await readRecord(env,kind,tokenHash); if(!got.record)throw error('ACCESS_INVALID','Dieser öffentliche Link ist ungültig oder nicht mehr aktiv.',410);
   if(got.record.environment!==env||got.record.kind!==kind)throw error('ENVIRONMENT_MISMATCH','Dieser Link gehört zu einer anderen ExportHUB-Umgebung.',410);
-  assertUsable(got.record,options); return Object.assign(got,{environment:env,kind,tokenHash});
+  const legacyReissued=!!(got.record.revokedAt&&lower(got.record.revokedReason)==='reissued');
+  let resourceKey=tokenHashValid(got.record.resourceKey)?text(got.record.resourceKey).toLowerCase():tokenHash;
+  if(legacyReissued){
+    const idx=got.container.getBlockBlobClient(subjectName(env,kind,got.record.subjectId)),subject=await readJson(idx,null);
+    if(subject.value&&subject.value.active===false)throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
+    const linked=subject.value&&(subject.value.resourceKey||subject.value.tokenHash);
+    if(tokenHashValid(linked))resourceKey=text(linked).toLowerCase();
+  }
+  assertUsable(got.record,Object.assign({},options,{allowLegacyReissued:legacyReissued}));
+  return Object.assign(got,{environment:env,kind,tokenHash,resourceKey,legacyReissued});
 }
 async function registerFailure(environmentName,kind,tokenHash,reason){
   return mutateRecord(environmentName,kind,tokenHash,r=>{const n=Math.max(0,Number(r.failedAttempts)||0)+1;r.failedAttempts=n;r.lastFailureAt=now();r.lastFailureReason=text(reason).slice(0,80);if(n>=MAX_FAILED_ATTEMPTS)r.lockedUntil=new Date(Date.now()+LOCK_MS).toISOString();r.updatedAt=now();return r});
