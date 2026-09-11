@@ -6,8 +6,8 @@ Application ID Release: de.exporthub.test
 
 Umgebungen:
 - Produktion: https://wonderful-forest-0f315e310.7.azurestaticapps.net/
-- TESTSERVICE: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/TESTVERSION.html
-- Demo: https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/demo.html
+- TESTSERVICE: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/TESTVERSION.html
+- Demo: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/demo.html
 
 Funktionen:
 - Auswahl Produktion / TESTSERVICE / Demo beim App-Start
