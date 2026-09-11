@@ -35,7 +35,7 @@ test('RC1031: Public-Access-Store initialisiert Azure-Container einmal und liest
     const issued=await access.issue(req,'avis',{subjectId:'SHIP-1031',shipmentId:'SHIP-1031',reference:'ABC123'},null,{environment:'production'});
     assert.equal(subjectReads,1,'Issue darf denselben Subject-Index nicht zweimal lesen.');
     await access.resolve(req,'avis',issued.token,{allowUsed:true},{environment:'production'});
-    assert.equal(containerCreates,1,'Der Container darf innerhalb einer warmen Function-Instanz nicht pro Zugriff erneut createIfNotExists ausführen.');
+    assert.equal(containerCreates,0,'RC1051: Der vorab bereitgestellte Public-Access-Container darf im Hotpath keinen createIfNotExists-Control-Plane-Aufruf mehr ausführen.');
   }finally{
     if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage;
     if(oldSecret===undefined)delete process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET;else process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET=oldSecret;
