@@ -1,4 +1,4 @@
-name: RC1043 Main Contract
+name: RC1044 Main Contract
 
 on:
   workflow_dispatch:
@@ -30,6 +30,7 @@ on:
       - '.github/rc1017/**'
       - '.github/rc1018/**'
       - '.github/rc1043/**'
+      - '.github/rc1044/**'
       - '.github/rc995/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc998/**'
@@ -39,7 +40,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: rc1043-main-contract-${{ github.ref }}
+  group: rc1044-main-contract-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -76,7 +77,7 @@ jobs:
         run: npm test
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
         run: node .github/rc1013/build-three-env.mjs
-      - name: RC1013 Baseline und RC1043 Produktionsmarker prüfen
+      - name: RC1013 Baseline und RC1044 Produktionsmarker prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -96,5 +97,5 @@ jobs:
           grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/demo.html
           test -s dist-rc1013/assets/rc1017-multi-truck.js
           grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1013/index.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1043'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1044'" production-version.js
           git diff --check

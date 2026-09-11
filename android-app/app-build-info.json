@@ -1,7 +1,7 @@
 {
   "name": "ExportHUB Android",
-  "appVersion": "1.0-rc1043",
-  "releaseCandidate": "RC1043",
+  "appVersion": "1.0-rc1044",
+  "releaseCandidate": "RC1044",
   "applicationId": {
     "debug": "de.exporthub.test.debug",
     "release": "de.exporthub.test"

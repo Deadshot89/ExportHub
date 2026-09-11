@@ -127,6 +127,12 @@ const bmpVariants=[
   {reference:'ABC123',customer:{name:'BMP'}},
   {reference:'ABC123',recipientName:'BMP'}
 ];
+const boellhofVariants=[
+  {reference:'ABC123',customerName:'Böllhof'},
+  {reference:'ABC123',customerName:'Böllhof GmbH'},
+  {reference:'ABC123',customer:{name:'Böllhoff'}},
+  {reference:'ABC123',recipientName:'Boellhof'}
+];
 
 test('RC1018: BMP wird unabhängig vom Kundenfeld als Lieferavis-Ausnahme erkannt',()=>{
   for(const shipment of bmpVariants){
@@ -135,6 +141,22 @@ test('RC1018: BMP wird unabhängig vom Kundenfeld als Lieferavis-Ausnahme erkann
   }
   const normal={reference:'ABC123',customerName:'Normaler Kunde'};
   assert.equal(load(normal).api.enabled(normal),true);
+});
+
+test('RC1044: Böllhof wird inklusive üblicher Namensvarianten als Lieferavis-Ausnahme erkannt',()=>{
+  for(const shipment of boellhofVariants){
+    const {api}=load(shipment);
+    assert.equal(api.enabled(shipment),false,JSON.stringify(shipment));
+  }
+});
+
+test('RC1044: Böllhof kann Lieferavis nicht aktivieren und erhält keinen falschen IT-Hinweis',async()=>{
+  const shipment={reference:'ABC123',customerName:'Böllhof'};
+  const {api,alerts,toggles}=load(shipment);
+  assert.equal(await api.toggle(true),false);
+  assert.deepEqual(toggles,[]);
+  assert.match(alerts.join('\n'),/Lieferavis für diesen Kunden nicht verfügbar/i);
+  assert.doesNotMatch(alerts.join('\n'),/Kunden-IT blockiert/i);
 });
 
 test('RC1018: BMP kann Lieferavis nicht aktivieren und erhält verständlichen IT-Hinweis',async()=>{
@@ -201,6 +223,13 @@ test('Lieferavis: manuelle Deaktivierung bleibt für dieselbe Sendung erhalten',
 
 test('Lieferavis: bestehende Kunden-Ausnahme BMP bleibt trotz Default-Aktivierung gesperrt',async()=>{
   const shipment={reference:'ABC123',customerName:'BMP',customerAvisEnabled:false,avisEnabled:false,status:'Entwurf'};
+  const {fire,toggles}=loadAuto(shipment);
+  await fire('exporthub:shipment-saved');
+  assert.equal(toggles.length,0);
+});
+
+test('RC1044: Böllhof bleibt trotz automatischer Default-Aktivierung gesperrt',async()=>{
+  const shipment={reference:'ABC123',customerName:'Böllhof',customerAvisEnabled:false,avisEnabled:false,status:'Entwurf'};
   const {fire,toggles}=loadAuto(shipment);
   await fire('exporthub:shipment-saved');
   assert.equal(toggles.length,0);
