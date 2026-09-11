@@ -25,10 +25,11 @@ test('RC1033: Fast-Path sendet nur einen kleinen Avis-Entwurf', () => {
   assert.doesNotMatch(CLIENT, /shipmentSnapshot\s*:\s*sh\b/, 'Die komplette Sendung darf nicht als Fast-Path-Payload gesendet werden');
 });
 
-test('RC1033: API materialisiert eine noch ungespeicherte Sendung im selben Issue-Aufruf', () => {
+test('RC1033/RC1052: API übernimmt einen noch ungespeicherten Sendungsentwurf ohne Vollspeicher-Write', () => {
   assert.match(API, /function sanitizeDraftSnapshot\(/, 'API muss Client-Entwürfe serverseitig whitelisten');
-  assert.match(API, /function ensureDraftShipment\(/, 'API muss fehlende Draft-Sendungen minimal anlegen können');
+  assert.match(API, /function ensureDraftShipment\(/, 'API muss den sicheren Snapshot später beim ersten Kunden-Write materialisieren können');
   const issue = bodyOf(API, "if(req.method==='POST'&&(action==='issue'||action==='disable'))", "if(req.method==='POST'&&action==='authorize')");
   assert.match(issue, /payload\.shipmentSnapshot/, 'Issue-Pfad muss den Avis-Entwurf berücksichtigen');
-  assert.match(issue, /ensureDraftShipment\(/, 'Issue-Pfad muss den Draft vor SHIPMENT_NOT_FOUND materialisieren');
+  assert.match(issue, /sanitizeDraftSnapshot\(payload\.shipmentSnapshot/, 'Issue-Pfad muss den Draft als kleinen sicheren Snapshot übernehmen');
+  assert.doesNotMatch(issue, /ensureDraftShipment\(state,subjectId,reference,payload\.shipmentSnapshot\)/, 'RC1052 darf den kompletten Team-State bei der Link-Erstellung nicht mehr schreiben');
 });
