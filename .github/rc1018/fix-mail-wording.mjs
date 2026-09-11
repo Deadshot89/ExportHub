@@ -47,7 +47,7 @@ const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavi
 const RC1037_ID='exporthub-rc1037-lieferavis-timing-diagnostics';
 const RC1037_TAG='<script id="'+RC1037_ID+'" defer src="/assets/rc1037-lieferavis-timing-diagnostics.js?v=1038"></script>';
 const RC1049_ID='exporthub-rc1049-abd-avis-policy';
-const RC1049_TAG='<script id="'+RC1049_ID+'" defer src="/assets/rc1049-abd-avis-policy.js?v=1049"></script>';
+const RC1049_TAG='<script id="'+RC1049_ID+'" defer src="/assets/rc1049-abd-avis-policy.js?v=1050"></script>';
 function injectScript(rel,id,tag){const target=path.join(ROOT,rel);if(!fs.existsSync(target))return false;let html=fs.readFileSync(target,'utf8');const existing=new RegExp('<script\\b(?=[^>]*\\bid=["\\\']'+id+'["\\\'])[^>]*>\\s*<\\/script>','i');if(existing.test(html)){const next=html.replace(existing,tag);if(next===html)return false;fs.writeFileSync(target,next,'utf8');return true}const close=html.search(/<\/head\s*>/i);if(close<0)throw new Error(rel+': </head> für ExportHUB-Laufzeitlayer fehlt.');html=html.slice(0,close)+tag+'\n'+html.slice(close);fs.writeFileSync(target,html,'utf8');return true}
 for(const page of ['index.html','TESTVERSION.html','demo.html']){injectScript(page,RC1027_ID,RC1027_TAG);injectScript(page,RC1037_ID,RC1037_TAG);injectScript(page,RC1049_ID,RC1049_TAG)}
 injectScript('customer-avis.html',RC1049_ID,RC1049_TAG);
