@@ -19,5 +19,5 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: RC1059 Dokument-Blob-Store Regression
-        run: node --test test/rc1059-document-blob-store.test.mjs
+      - name: RC1059 Regressionen
+        run: node --test test/rc1059-*.test.mjs
