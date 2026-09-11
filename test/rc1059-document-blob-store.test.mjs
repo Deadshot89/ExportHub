@@ -84,7 +84,7 @@ test('RC1059: State-Save externalisiert nur eingehenden State vor saveMerged',()
   assert.match(source,/document-blob-store/);
   assert.match(source,/externalizeDocumentCollections/);
   assert.match(source,/documentContainer/);
-  const normalizePos=source.indexOf('normalizeIncoming(payload)');
+  const normalizePos=source.indexOf('const normalized=normalizeIncoming(payload)');
   const externalizePos=source.indexOf('externalizeDocumentCollections',normalizePos);
   const savePos=source.indexOf('saveMerged(',normalizePos);
   assert.ok(normalizePos>=0&&externalizePos>normalizePos&&savePos>externalizePos,'Externalisierung muss zwischen normalizeIncoming und saveMerged liegen');
