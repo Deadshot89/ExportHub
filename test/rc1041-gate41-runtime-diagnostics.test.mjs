@@ -37,6 +37,9 @@ test('RC1041: aktueller Drei-Umgebungen-Build sperrt automatische und manuelle G
   assert.match(build,/function patchGate41NationalOnly\(html\)/);
   assert.match(build,/gateRate\(pallets,kg\)\*pallets:0/,'automatische Auslandstarife dürfen nicht berechnet werden');
   assert.match(build,/manualBase=national\?num\(g\.internationalBase\):0/,'manuelle Auslandspreise dürfen nicht verwendet werden');
+  assert.match(build,/Nicht verfügbar/,'Ausland darf nicht mehr als nutzbarer Gate41-Bereich erscheinen');
+  assert.match(build,/Paletten – Gate41 Deutschland/,'Gate41 muss sichtbar als Deutschland-Funktion gekennzeichnet sein');
+  assert.match(build,/nur für nationalen Versand innerhalb Deutschlands freigegeben/,'Speicher- und UI-Hinweis für Ausland fehlt');
   assert.match(build,/html=patchGate41NationalOnly\(html\)/,'National-Only-Patch muss auf alle drei Umgebungen angewendet werden');
 });
 
