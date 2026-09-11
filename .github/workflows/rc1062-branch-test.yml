@@ -12,7 +12,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
@@ -25,3 +25,9 @@ jobs:
         run: node .github/rc1018/fix-mail-wording.mjs
       - name: RC1062 Regression
         run: node --test test/rc1062-avis-appointment-single-state-read.test.mjs
+      - name: Lieferavis und QR Bestandsschutz
+        run: node --test test/rc1053-lieferavis-issue-no-team-read.test.mjs test/rc1036-lieferavis-server-timing.test.mjs .github/rc995/rc995-flow.test.cjs
+      - name: RC1060 und RC1059 Bestandsschutz
+        run: node --test test/rc1060-legacy-document-migration.test.mjs test/rc1060-document-migration-endpoint.test.mjs test/rc1060-release-contract.test.mjs test/rc1059-state-diagnostics.test.mjs
+      - name: Vollständige Node-Test-Suite
+        run: npm test
