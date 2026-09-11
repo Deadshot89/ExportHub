@@ -1,10 +1,6 @@
 name: RC1056 Apply Pickup Task
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/rc1056-apply-pickup-task.yml'
   workflow_dispatch:
 
 permissions:
@@ -22,35 +18,13 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - name: RC1056 Abholtag-Lifecycle ergänzen
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('assets/rc1014-task-lifecycle.js')
-          s=p.read_text(encoding='utf-8')
-          old="""        }else if(task.group==='Picks'){
-          const pick=findPick(task,domain);
-          if(pickCompleted(pick))task=markDone(task,'system:pick',ctx);
-        }else if(task.group==='Offene Sendungen'){"""
-          new="""        }else if(task.group==='Picks'){
-          const pick=findPick(task,domain);
-          if(pickCompleted(pick))task=markDone(task,'system:pick',ctx);
-        }else if(task.group==='Kunde angemeldet'){
-          const shipment=findShipment(task,domain);
-          if(shipmentCancelled(shipment))task=markCancelled(task,ctx);
-          else if(shipment&&fullyCollected(shipment))task=markDone(task,'system:pickup',ctx);
-        }else if(task.group==='Offene Sendungen'){"""
-          if old not in s:
-              raise SystemExit('RC1056 Zielstelle nicht gefunden')
-          p.write_text(s.replace(old,new,1),encoding='utf-8')
-          PY
+        run: node .github/rc1056/apply-pickup-task.mjs
       - name: RC1056 gezielte Regression
         run: |
           node --test test/rc1055-task-status-canonicalization.test.mjs
           node --test test/rc1056-task-pickup-reconcile.test.mjs
           node --test test/rc1014-task-lifecycle.test.mjs
       - name: Änderung committen
-        shell: bash
         run: |
           if git diff --quiet -- assets/rc1014-task-lifecycle.js; then
             echo 'Keine Änderung erforderlich.'
