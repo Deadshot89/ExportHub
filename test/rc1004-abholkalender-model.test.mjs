@@ -45,6 +45,23 @@ test('Sendung ohne geplanten Abholtag wird nicht künstlich eingeordnet', () => 
   assert.equal(model.days.flatMap(d=>d.shipments).length,0);
 });
 
+test('abgeholte Sendungen verschwinden aus Heute- und Wochenansicht, Teilabholungen bleiben sichtbar', () => {
+  const model = calendar.buildCalendarModel({
+    today:new Date(2026,8,11,12),
+    fixedPickups:[],
+    shipments:[
+      {id:'DONE-STATUS',reference:'DONE01',plannedPickupDate:'2026-09-11',status:'abgeholt',expectedColliCount:1,collectedPickupCollis:0,remainingPickupCollis:1},
+      {id:'DONE-STAMP',reference:'DONE02',plannedPickupDate:'2026-09-11',status:'Erstellt',pickedUpAt:'2026-09-11T09:00:00.000Z'},
+      {id:'PARTIAL',reference:'PART01',plannedPickupDate:'2026-09-11',status:'Teilweise abgeholt',expectedColliCount:10,collectedPickupCollis:4,remainingPickupCollis:6},
+      {id:'OPEN',reference:'OPEN01',plannedPickupDate:'2026-09-11',status:'Angemeldet',expectedColliCount:1,collectedPickupCollis:0,remainingPickupCollis:1}
+    ]
+  });
+  assert.deepEqual(model.today.shipments.map(s=>s.id),['PARTIAL','OPEN']);
+  assert.deepEqual(model.days.find(d=>d.dateKey==='2026-09-11').shipments.map(s=>s.id),['PARTIAL','OPEN']);
+  assert.equal(calendar.shipmentIsCompleted({status:'abgeholt'}),true);
+  assert.equal(calendar.shipmentIsCompleted({expectedColliCount:10,collectedPickupCollis:4,remainingPickupCollis:6,status:'Teilweise abgeholt'}),false);
+});
+
 test('Wochenende erzeugt keine Samstag- oder Sonntagsspalte', () => {
   const model = calendar.buildCalendarModel({today:new Date(2026,8,12,12),fixedPickups:[],shipments:[]});
   assert.equal(model.today.regular,false);
