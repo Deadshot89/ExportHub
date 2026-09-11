@@ -6,7 +6,11 @@ on:
     paths:
       - '.github/workflows/rc1050-storage-probe.yml'
       - 'api/shared/blob-rest.js'
+      - 'api/shared/auth-store.js'
+      - 'api/shared/public-access-store.js'
+      - 'api/customer-avis/index.js'
       - 'test/rc1050-storage-timeout-regression.test.mjs'
+      - 'test/rc1051-storage-hotpath-container.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -24,6 +28,8 @@ jobs:
           package-manager-cache: false
       - name: RC1050 Storage-Timeout Regression
         run: node --test test/rc1050-storage-timeout-regression.test.mjs
+      - name: RC1051 Storage-Hotpath Regression
+        run: node --test test/rc1051-storage-hotpath-container.test.mjs
       - name: ExportHUB Azure API Diagnose
         shell: bash
         run: |
