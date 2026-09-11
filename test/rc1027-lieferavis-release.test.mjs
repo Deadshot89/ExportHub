@@ -30,9 +30,9 @@ test('RC1027/RC1033: Release-Vorbereitung injiziert oder aktualisiert den Avis-L
 
 test('RC1027: Standarddeploy führt Release-Vorbereitung vor dem gemeinsamen Drei-Umgebungen-Build aus',()=>{
   const patchAt=WORKFLOW.indexOf('node .github/rc1018/fix-mail-wording.mjs');
-  const buildAt=WORKFLOW.indexOf('node .github/rc1047/build-three-env.mjs');
+  const buildAt=WORKFLOW.indexOf('node .github/rc1048/build-three-env.mjs');
   assert.ok(patchAt>=0&&buildAt>patchAt,'RC1027-Injektion muss vor dem aktuellen gemeinsamen Build stattfinden.');
-  assert.match(fs.readFileSync(path.join(ROOT,'.github/rc1047/build-three-env.mjs'),'utf8'),/\.github\/rc1046\/build-three-env\.mjs/,'RC1047 muss den geprüften RC1046-Vorgänger verwenden.');
+  assert.match(fs.readFileSync(path.join(ROOT,'.github/rc1048/build-three-env.mjs'),'utf8'),/\.github\/rc1047\/build-three-env\.mjs/,'RC1048 muss den geprüften RC1047-Vorgänger verwenden.');
   assert.match(WORKFLOW,/cp -R assets "\$dir\/assets"/,'Das neue RC1027-Asset muss in beide Deploypakete übernommen werden.');
 });
 

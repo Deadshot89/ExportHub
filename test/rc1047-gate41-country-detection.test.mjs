@@ -58,10 +58,11 @@ test('RC1047: alle drei Oberflächen zeigen denselben Release',()=>{
   }
 });
 
-test('RC1047: Website Android und Paketmetadaten sind versionsgleich',()=>{
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1047'/);
-  assert.match(read('android-app/app/build.gradle.kts'),/versionCode\s*=\s*1047/);
-  assert.match(read('android-app/app/build.gradle.kts'),/versionName\s*=\s*"1\.0-rc1047"/);
-  assert.equal(JSON.parse(read('android-app/app-build-info.json')).releaseCandidate,'RC1047');
-  assert.equal(JSON.parse(read('package.json')).version,'1.0.0-rc1047');
+test('RC1047 bleibt als historischer Länderfix reproduzierbar',()=>{
+  for(const [file,env] of [['index.html','production-candidate'],['TESTVERSION.html','testservice'],['demo.html','demo']]){
+    const html=read('dist-rc1047/'+file);
+    assert.match(html,new RegExp('ExportHUB RC1047 environment='+env));
+    assert.match(html,/version:'RC1047'/);
+  }
+  assert.match(read('dist-rc1047/production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1047'/);
 });
