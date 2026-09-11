@@ -40,11 +40,13 @@ test('RC1061: jeder UI-Migrationslauf sendet exakt ein 5er-Batch in die aktuelle
   assert.equal(calls[0].options.headers.Authorization,'Bearer TOKEN');
 });
 
-test('RC1061: Release-Vorbereitung hält die Admin-Steuerung an der finalen Build-Grenze',()=>{
+test('RC1061: Release-Vorbereitung hält die Admin-Steuerung ausschließlich an der finalen Build-Grenze',()=>{
   const prep=fs.readFileSync(new URL('../.github/rc1049/fix-mail-abd-gate.mjs',import.meta.url),'utf8');
   assert.match(prep,/\.github\/rc1048\/build-three-env\.mjs/);
   assert.match(prep,/exporthub-rc1061-document-migration-admin/);
   assert.match(prep,/assets\/rc1061-document-migration-admin\.js/);
   assert.match(prep,/for\(const file of \['index\.html','TESTVERSION\.html'\]\)/);
   assert.match(prep,/for\(const file of \['index\.html','TESTVERSION\.html','demo\.html'\]\)patchHtml\(file\)/);
+  assert.doesNotMatch(prep,/function injectAdminMigration\(/);
+  assert.doesNotMatch(prep,/migrationInjected/);
 });
