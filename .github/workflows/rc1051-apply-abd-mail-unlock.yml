@@ -1,0 +1,39 @@
+name: RC1051 Apply ABD Mail Unlock
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1051-apply-abd-mail-unlock.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: ABD-Mail-Sperre aus vorbereitetem Release entfernen
+        run: node .github/rc1049/fix-mail-abd-gate.mjs
+      - name: Fachliche Regression
+        run: |
+          node --test test/rc1048-mail-abd-pending.test.mjs
+          node --test test/rc1049-abd-avis-policy.test.mjs
+      - name: Vorbereitete Seiten committen
+        shell: bash
+        run: |
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add index.html TESTVERSION.html demo.html
+          if git diff --cached --quiet; then
+            echo 'Keine Änderungen nötig.'
+            exit 0
+          fi
+          git commit -m 'RC1051: Mailanmeldung bei ausstehendem ABD im Release entsperren'
+          git push origin HEAD:main
