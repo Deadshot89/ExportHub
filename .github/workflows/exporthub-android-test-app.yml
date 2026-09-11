@@ -1,4 +1,4 @@
-name: Build ExportHUB Android RC1045 APK
+name: Build ExportHUB Android RC1046 APK
 on:
   workflow_dispatch:
   push:
@@ -20,6 +20,7 @@ on:
       - '.github/rc1018/**'
       - '.github/rc1043/**'
       - '.github/rc1045/**'
+      - '.github/rc1046/**'
       - '.github/workflows/rc1002-main-contract.yml'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/exporthub-testservice.yml'
@@ -27,7 +28,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: exporthub-android-rc1045-build-${{ github.ref }}
+  group: exporthub-android-rc1046-build-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -39,13 +40,13 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: RC1045 Release-Vertrag
+      - name: RC1046 Release-Vertrag
         shell: bash
         run: |
           set -euo pipefail
           grep -q 'versionCode = 1045' android-app/app/build.gradle.kts
-          grep -q 'versionName = "1.0-rc1045"' android-app/app/build.gradle.kts
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1045'" production-version.js
+          grep -q 'versionName = "1.0-rc1046"' android-app/app/build.gradle.kts
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1046'" production-version.js
           for test_file in \
             test/rc1003-android-native-direct-open.test.mjs \
             test/rc1003-three-env-sync.test.mjs \
@@ -84,11 +85,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1045-Android-debug.apk
-          sha256sum out/ExportHUB-RC1045-Android-debug.apk > out/ExportHUB-RC1045-Android-debug.sha256.txt
+          cp app/build/outputs/apk/debug/app-debug.apk out/ExportHUB-RC1046-Android-debug.apk
+          sha256sum out/ExportHUB-RC1046-Android-debug.apk > out/ExportHUB-RC1046-Android-debug.sha256.txt
       - uses: actions/upload-artifact@v7.0.1
         with:
-          name: ExportHUB-RC1045-Android
+          name: ExportHUB-RC1046-Android
           path: android-app/out/*
           if-no-files-found: error
           retention-days: 30
