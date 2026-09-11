@@ -26,15 +26,18 @@ test('RC1041: Gate41 Deutschland berechnet den Grundtarif zur Laufzeit korrekt',
   assert.equal(gateRate(num,5,801),0);
 });
 
-test('RC1041: fehlender internationaler Tarif wird landesspezifisch statt als generischer Nullpreis erklärt',()=>{
-  assert.match(ui,/function diagnosticMessage\(/,'reine Gate41-Diagnosefunktion fehlt');
-  assert.match(ui,/Kein internationaler Gate41-Tarif für/,'landesspezifische internationale Tarifmeldung fehlt');
-  assert.match(ui,/Grundfracht manuell eintragen/,'Handlungsweg für fehlenden Auslandstarif fehlt');
+test('RC1041: Gate41 ist in der Oberfläche ausdrücklich nur für Deutschland freigegeben',()=>{
+  assert.match(ui,/nur für nationalen Versand innerhalb Deutschlands freigegeben/);
+  assert.match(ui,/nationalOnly:true/);
+  assert.match(ui,/save\.disabled=!national/,'Speichern muss für Ausland gesperrt sein');
+  assert.doesNotMatch(ui,/gate41\.com\/frachtkalkulator/,'kein externer Auslandskalkulator im National-Only-Modus');
 });
 
-test('RC1041: bei fehlendem Auslandstarif ist der offizielle Gate41-Frachtkalkulator direkt erreichbar',()=>{
-  assert.match(ui,/https:\/\/gate41\.com\/frachtkalkulator\//,'offizieller Gate41-Frachtkalkulator fehlt');
-  assert.match(ui,/Gate41-Frachtkalkulator öffnen/,'sichtbare Aktion zum offiziellen Kalkulator fehlt');
+test('RC1041: aktueller Drei-Umgebungen-Build sperrt automatische und manuelle Gate41-Auslandspreise',()=>{
+  assert.match(build,/function patchGate41NationalOnly\(html\)/);
+  assert.match(build,/gateRate\(pallets,kg\)\*pallets:0/,'automatische Auslandstarife dürfen nicht berechnet werden');
+  assert.match(build,/manualBase=national\?num\(g\.internationalBase\):0/,'manuelle Auslandspreise dürfen nicht verwendet werden');
+  assert.match(build,/html=patchGate41NationalOnly\(html\)/,'National-Only-Patch muss auf alle drei Umgebungen angewendet werden');
 });
 
 test('RC1041: aktueller Drei-Umgebungen-Build lädt die Gate41-Diagnose cache-frisch',()=>{
