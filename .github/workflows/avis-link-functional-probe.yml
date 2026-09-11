@@ -6,6 +6,7 @@ on:
       - avis-functional-test-20260911
     paths:
       - 'test/avis-link-functional-probe.test.mjs'
+      - 'test/avis-full-flow-performance-probe.test.mjs'
       - '.github/workflows/avis-link-functional-probe.yml'
   workflow_dispatch:
 
@@ -15,7 +16,9 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    env:
+      NODE_OPTIONS: --max-old-space-size=2048
     steps:
       - uses: actions/checkout@v5
         with:
@@ -26,5 +29,18 @@ jobs:
           package-manager-cache: false
       - name: Aktiven ExportHUB-Release vorbereiten
         run: node .github/rc1018/fix-mail-wording.mjs
+      - name: Live-State-Health Produktion und TESTSERVICE messen
+        shell: bash
+        run: |
+          set -euo pipefail
+          for base in \
+            'https://wonderful-forest-0f315e310.7.azurestaticapps.net' \
+            'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'; do
+            echo "AVIS_LIVE_HEALTH_BEGIN $base"
+            curl --fail --silent --show-error --max-time 30 "$base/api/exporthub-state?mode=health" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const v=JSON.parse(s);const d=v.diagnostics||v.health||v;console.log(JSON.stringify({base:process.argv[1],teamStateBytes:d.teamStateBytes,teamReadMs:d.teamReadMs,totalMs:d.totalMs,documentEntries:d.documentEntries,inlinePayloadCount:d.inlinePayloadCount,blobDocumentEntries:d.blobDocumentEntries}))})" "$base"
+            echo "AVIS_LIVE_HEALTH_END $base"
+          done
       - name: 20 Testsendungen und Avis-Link messen
         run: node --test test/avis-link-functional-probe.test.mjs
+      - name: Vollständigen Avis-Ablauf gegen 130-MB-State messen
+        run: node --test test/avis-full-flow-performance-probe.test.mjs
