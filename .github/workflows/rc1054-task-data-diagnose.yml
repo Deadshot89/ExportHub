@@ -1,0 +1,45 @@
+name: RC1054 Task Data Diagnose
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1054-task-data-diagnose.yml'
+      - '.github/rc996/tasks-contract.test.mjs'
+      - 'assets/rc1014-task-lifecycle.js'
+      - 'assets/rc1014-task-runtime.js'
+      - '.github/rc1016/build-three-env.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC996 Aufgaben Planner Altvertrag prüfen
+        run: node --test .github/rc996/tasks-contract.test.mjs
+      - name: Aufgaben und Planner Datenquellen ausgeben
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const html=fs.readFileSync('TESTVERSION.html','utf8');
+          function show(marker,limit=3500){
+            const i=html.indexOf(marker);
+            console.log('\n===== '+marker+' @ '+i+' =====');
+            if(i>=0) console.log(html.slice(i,i+limit));
+          }
+          show('const rawOpen=',4500);
+          show('function openTasksForWeek',5000);
+          show('function logicalTaskKeyRC896',3500);
+          console.log('\nprepareTasks calls:',(html.match(/ExportHUBRC1014TaskRuntime\.prepareTasks/g)||[]).length);
+          console.log('direct state.tasks refs:',(html.match(/state\.tasks/g)||[]).length);
+          NODE
