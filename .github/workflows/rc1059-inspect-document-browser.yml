@@ -1,0 +1,26 @@
+name: RC1059 Inspect Document Browser
+
+on:
+  push:
+    branches:
+      - rc1059-document-blob-storage
+    paths:
+      - '.github/rc1059/inspect-document-browser.cjs'
+      - '.github/workflows/rc1059-inspect-document-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Browser-Dokumentpfad ausgeben
+        run: node .github/rc1059/inspect-document-browser.cjs
