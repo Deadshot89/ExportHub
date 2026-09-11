@@ -1,10 +1,10 @@
 name: ExportHUB TESTSERVICE Einzel-Deploy
 
-# Standard ist der gemeinsame RC1018-Drei-Umgebungen-Deploy über
+# Standard ist der gemeinsame RC1041-Drei-Umgebungen-Deploy über
 # azure-static-web-apps-wonderful-forest-0f315e310.yml.
 # Ein einzelner TESTSERVICE-Deploy ist nur bei ausdrücklich genehmigter
 # Abweichung von Produktion und Demo möglich. Auch dann wird der aktuelle
-# RC1018-Buildvertrag verwendet und kein historischer Release zurückgespielt.
+# RC1041-Sichtversion auf der stabilen RC1018-Buildbasis verwendet und kein historischer Release zurückgespielt.
 on:
   workflow_dispatch:
     inputs:
@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: RC1018 TESTSERVICE-Ausnahmevertrag prüfen
+      - name: RC1041 TESTSERVICE-Ausnahmevertrag prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -54,11 +54,12 @@ jobs:
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
           node .github/rc1018/build-three-env.mjs
-          grep -q 'ExportHUB RC1018 environment=testservice' dist-rc1018/TESTVERSION.html
-          grep -q 'ExportHUB RC1018 environment=demo' dist-rc1018/demo.html
-          grep -q "version:'RC1018'" dist-rc1018/TESTVERSION.html
-          grep -q "version:'RC1018'" dist-rc1018/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'" dist-rc1018/production-version.js
+          node .github/rc1041/apply-release-version.mjs
+          grep -q 'ExportHUB RC1041 environment=testservice' dist-rc1018/TESTVERSION.html
+          grep -q 'ExportHUB RC1041 environment=demo' dist-rc1018/demo.html
+          grep -q "version:'RC1041'" dist-rc1018/TESTVERSION.html
+          grep -q "version:'RC1041'" dist-rc1018/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1041'" dist-rc1018/production-version.js
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1018/TESTVERSION.html
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1018/demo.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/customer-avis.html
