@@ -37,3 +37,8 @@ test('RC1049: Mail und öffentliche Avis-Seite erhalten den ABD-Hinweis und Term
   assert.match(page,/rc1049-abd-avis-policy\.js\?v=1049/);
   assert.match(main,/rc1049-abd-avis-policy\.js\?v=1049/);
 });
+
+test('RC1049: ABD-Avis-Runtime ist syntaktisch ausführbar',()=>{
+  const asset='assets/rc1049-abd-avis-policy.js';
+  assert.doesNotThrow(()=>execFileSync(process.execPath,['--check',asset],{cwd:ROOT,stdio:'pipe'}));
+});
