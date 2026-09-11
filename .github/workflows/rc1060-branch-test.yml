@@ -1,0 +1,33 @@
+name: RC1060 Branch Test
+
+on:
+  push:
+    branches:
+      - rc1060-legacy-document-migration
+    paths:
+      - 'api/shared/document-blob-store.js'
+      - 'api/exporthub-document-migrate/**'
+      - 'api/exporthub-state/index.js'
+      - 'api/exporthub-health/index.js'
+      - 'test/rc1060-*.test.mjs'
+      - '.github/workflows/rc1060-branch-test.yml'
+      - '.github/workflows/rc1050-storage-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1060-legacy-document-migration
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1060 Regressionen
+        run: node --test test/rc1060-*.test.mjs

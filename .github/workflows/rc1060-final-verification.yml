@@ -1,0 +1,55 @@
+name: RC1060 Final Verification
+
+on:
+  push:
+    branches:
+      - rc1060-legacy-document-migration
+    paths:
+      - '.github/workflows/rc1060-final-verification.yml'
+      - 'test/rc1059-state-diagnostics.test.mjs'
+      - 'test/rc1060-*.test.mjs'
+      - 'api/exporthub-document-migrate/**'
+      - 'api/shared/document-blob-store.js'
+      - 'api/exporthub-health/index.js'
+      - '.github/workflows/rc1050-storage-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1060-legacy-document-migration
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1060 Dokumentmigration Regression
+        run: node --test test/rc1060-legacy-document-migration.test.mjs test/rc1060-document-migration-endpoint.test.mjs test/rc1060-release-contract.test.mjs
+      - name: RC1059 Rückwärtskompatibilität
+        run: node --test test/rc1059-document-blob-store.test.mjs test/rc1059-document-container.test.mjs test/rc1059-document-download.test.mjs test/rc1059-document-dual-read.test.mjs test/rc1059-state-diagnostics.test.mjs
+      - name: QR- und Lieferavis-End-to-End-Regression
+        shell: bash
+        run: |
+          node --test test/rc1013-pickup-readonly-flow.test.mjs
+          node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
+        run: node .github/rc1013/build-three-env.mjs
+      - name: Release-Basis prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'ExportHUB RC1013 environment=production-candidate' dist-rc1013/index.html
+          grep -q 'ExportHUB RC1013 environment=testservice' dist-rc1013/TESTVERSION.html
+          grep -q 'ExportHUB RC1013 environment=demo' dist-rc1013/demo.html
+          grep -q "version:'RC1013'" dist-rc1013/index.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" production-version.js
+          git diff --check

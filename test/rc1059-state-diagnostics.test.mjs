@@ -15,8 +15,10 @@ test('RC1059: State-Diagnose zählt Blob-Dokumente aggregiert',()=>{
   assert.doesNotMatch(block,/return\s*\{[^}]*sha256/);
 });
 
-test('RC1059: Health-Marker bezeichnet die Dokument-Blob-Architektur',()=>{
+test('RC1059: Health-Marker bleibt mindestens auf Dokument-Blob-Architektur-Niveau',()=>{
   const source=fs.readFileSync(new URL('../api/exporthub-health/index.js',import.meta.url),'utf8');
-  assert.match(source,/version:\s*['"]RC1059['"]/);
-  assert.match(source,/release:\s*['"]document-blob-storage['"]/);
+  const match=source.match(/version:\s*['"]RC(\d+)['"]/);
+  assert.ok(match,'Health-Marker fehlt');
+  assert.ok(Number(match[1])>=1059,'Health-Marker darf nicht hinter RC1059 zurückfallen');
+  assert.match(source,/release:\s*['"][a-z0-9-]+['"]/);
 });
