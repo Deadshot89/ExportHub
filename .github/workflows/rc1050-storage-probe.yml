@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/rc1050-storage-probe.yml'
+      - 'api/shared/blob-rest.js'
+      - 'test/rc1050-storage-timeout-regression.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -15,6 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1050 Storage-Timeout Regression
+        run: node --test test/rc1050-storage-timeout-regression.test.mjs
       - name: ExportHUB Azure API Diagnose
         shell: bash
         run: |
