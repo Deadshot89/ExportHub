@@ -30,7 +30,9 @@ jobs:
         run: |
           git config user.name 'Deadshot89'
           git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add index.html TESTVERSION.html demo.html
+          for page in index.html TESTVERSION.html demo.html; do
+            if [ -f "$page" ]; then git add "$page"; fi
+          done
           if git diff --cached --quiet; then
             echo 'Keine Änderungen nötig.'
             exit 0
