@@ -7,12 +7,12 @@ const workflow='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e3
 
 test('RC1018 bleibt technische Buildbasis des aktuellen RC1041-Drei-Umgebungen-Deploys',()=>{
   const flow=read(workflow);
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'/);
+  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1041'/);
   assert.match(flow,/ExportHUB RC1041 Drei-Umgebungen Deploy/);
   assert.match(flow,/node \.github\/rc1018\/build-three-env\.mjs/);
-  assert.match(flow,/dist-rc1018\/index\.html/);
-  assert.match(flow,/dist-rc1018\/TESTVERSION\.html/);
-  assert.match(flow,/dist-rc1018\/demo\.html/);
+  assert.match(flow,/dist-rc1041\/index\.html/);
+  assert.match(flow,/dist-rc1041\/TESTVERSION\.html/);
+  assert.match(flow,/dist-rc1041\/demo\.html/);
   assert.match(flow,/Deploy ExportHUB production/);
   assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
 });
