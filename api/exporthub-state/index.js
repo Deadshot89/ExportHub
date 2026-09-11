@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
+const { externalizeDocumentCollections, DOCUMENT_CONTAINER } = require('../shared/document-blob-store');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -98,7 +99,7 @@ async function clients(req,payload){
  let service; try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die ExportHUB-Speicherverbindung ist ungültig: '+(e&&e.message||'Konfigurationsfehler'),503)}
  const container=service.getContainerClient(TEAM_CONTAINER),environment=requestedEnvironment(req,payload),teamBlobName=teamBlobForEnvironment(environment);
  const diagnosticsBlobName=diagnosticsBlobForEnvironment(environment);
- return {container,environment,teamBlobName,diagnosticsBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),productionTeam:container.getBlockBlobClient(TEAM_BLOB_BASE),auth:container.getBlockBlobClient(AUTH_BLOB)};
+ return {container,documentContainer:service.getContainerClient(DOCUMENT_CONTAINER),environment,teamBlobName,diagnosticsBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),productionTeam:container.getBlockBlobClient(TEAM_BLOB_BASE),auth:container.getBlockBlobClient(AUTH_BLOB)};
 }
 function parseStoredJson(raw,name){
  const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim();
@@ -976,7 +977,8 @@ module.exports=async function(context,req){
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
-   const saveStarted=Date.now(),saved=await saveMerged(blob,normalizeIncoming(payload),current.user,current.team,current.teamEtag,current.session),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;
+   const normalized=normalizeIncoming(payload),documentExternalizeStarted=Date.now(),externalized=await externalizeDocumentCollections(normalized.state,{environment:c.environment,container:c.documentContainer});normalized.state=externalized.state;
+   const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const phase=saved&&saved.__timing||{},serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),authCache:text(current.timing&&current.timing.authCache||'unknown')||'unknown',teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',mergeMs:Number(phase.mergeMs||0),uploadMs:Number(phase.uploadMs||0),retryReadMs:Number(phase.retryReadMs||0),uploadBytes:Number(phase.uploadBytes||0),conflictCount:Number(phase.conflictCount||0),saveMs};
    const full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
