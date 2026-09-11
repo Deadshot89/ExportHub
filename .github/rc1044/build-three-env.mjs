@@ -8,9 +8,31 @@ const OUT=path.join(ROOT,'dist-rc1044');
 const VERSION='RC1044';
 const NUMBER='1044';
 
+function replaceOne(source,before,after,label){
+  const count=source.split(before).length-1;
+  if(count!==1)throw new Error(`RC1044 POD-Hotfix ${label}: Anker ${count}x gefunden`);
+  return source.replace(before,after);
+}
+
+function patchPodUploadPersistence(html,file){
+  const oldFlush="async function flushDocumentUpload(reason){var clean=window.ExportHUBClean;if(!clean||typeof clean.queueSave!=='function')return false;await Promise.resolve(clean.queueSave(reason));var target=clean.runtime?Number(clean.runtime.changeGeneration||0):0,deadline=Date.now()+35000,ok=false;while(Date.now()<deadline&&!ok){while(clean.runtime&&clean.runtime.saving&&Date.now()<deadline)await new Promise(function(resolve){(clean.native&&clean.native.setTimeout||window.setTimeout)(resolve,100)});if(clean.runtime&&target>0&&Number(clean.runtime.lastSavedGeneration||0)>=target){ok=true;break}if(typeof clean.flushSave==='function')ok=await Promise.resolve(clean.flushSave(reason,{force:true}));if(!ok)await new Promise(function(resolve){(clean.native&&clean.native.setTimeout||window.setTimeout)(resolve,250)})}if(!ok&&clean.runtime&&target>0&&Number(clean.runtime.lastSavedGeneration||0)>=target)ok=true;return ok}";
+  const newFlush="async function flushDocumentUpload(reason){var clean=window.ExportHUBClean;if(!clean||typeof clean.queueSave!=='function')return false;await Promise.resolve(clean.queueSave(reason));var target=clean.runtime?Number(clean.runtime.changeGeneration||0):0,deadline=Date.now()+80000,ok=false;while(Date.now()<deadline&&!ok){while(clean.runtime&&clean.runtime.saving&&Date.now()<deadline)await new Promise(function(resolve){(clean.native&&clean.native.setTimeout||window.setTimeout)(resolve,100)});if(clean.runtime&&target>0&&Number(clean.runtime.lastSavedGeneration||0)>=target){ok=true;break}if(typeof clean.flushSave==='function')ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:true}));if(!ok)await new Promise(function(resolve){(clean.native&&clean.native.setTimeout||window.setTimeout)(resolve,250)})}if(!ok&&clean.runtime&&target>0&&Number(clean.runtime.lastSavedGeneration||0)>=target)ok=true;return ok}";
+  let out=replaceOne(html,oldFlush,newFlush,file+' Speicherbestätigung');
+
+  const oldReason="var reason=(kind==='pod'?'POD':'ABD')+' als PDF dauerhaft gespeichert',ok=await flushDocumentUpload(reason);";
+  const newReason="var reason=kind==='pod'?'POD-Sicherung nach manuellem Upload synchronisiert':'ABD als PDF dauerhaft gespeichert',ok=await flushDocumentUpload(reason);";
+  out=replaceOne(out,oldReason,newReason,file+' POD-Sperrausnahme');
+
+  if(!out.includes("deadline=Date.now()+80000"))throw new Error(file+': verlängerte POD-Azure-Bestätigung fehlt');
+  if(!out.includes("flushSave(reason,{force:true,userInitiated:true})"))throw new Error(file+': benutzerinitiierte POD-Speicherung fehlt');
+  if(!out.includes("POD-Sicherung nach manuellem Upload synchronisiert"))throw new Error(file+': POD-Sperrausnahme fehlt');
+  return out;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  html=patchPodUploadPersistence(html,file);
   html=html.replace(/ExportHUB RC1018 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1018',cache:'1018',loginReturn:'([^']*)'\}\);/,
@@ -45,4 +67,4 @@ fs.writeFileSync(path.join(OUT,'rc1044-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
-console.log('RC1044 build ready: aktueller main auf stabiler RC1018-Buildbasis, Produktion/TESTSERVICE/Demo synchronisiert.');
+console.log('RC1044 build ready: POD-Azure-Bestätigung nach Abholung gehärtet, Produktion/TESTSERVICE/Demo synchronisiert.');
