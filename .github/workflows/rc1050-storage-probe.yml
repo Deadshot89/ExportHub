@@ -1,16 +1,9 @@
 name: RC1050 Storage Probe
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/rc1050-storage-probe.yml'
-      - 'api/shared/blob-rest.js'
-      - 'api/shared/auth-store.js'
-      - 'api/shared/public-access-store.js'
-      - 'api/customer-avis/index.js'
-      - 'test/rc1050-storage-timeout-regression.test.mjs'
-      - 'test/rc1051-storage-hotpath-container.test.mjs'
+  workflow_run:
+    workflows: ['ExportHUB RC1048 Drei-Umgebungen Deploy']
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -18,10 +11,13 @@ permissions:
 
 jobs:
   probe:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
@@ -30,23 +26,37 @@ jobs:
         run: node --test test/rc1050-storage-timeout-regression.test.mjs
       - name: RC1051 Storage-Hotpath Regression
         run: node --test test/rc1051-storage-hotpath-container.test.mjs
+      - name: RC1052 Lieferavis Fast-Path Regression
+        run: node --test test/rc1052-lieferavis-fast-disable.test.mjs
       - name: ExportHUB Azure API Diagnose
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
           testservice='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net'
+
+          check_json() {
+            local label="$1"
+            local url="$2"
+            local predicate="$3"
+            local body code
+            body=$(mktemp)
+            code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url")
+            echo "===== $label ====="
+            cat "$body"
+            echo
+            if [[ "$code" != '200' ]]; then
+              echo "HTTP $code für $url" >&2
+              rm -f "$body"
+              return 1
+            fi
+            node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!($predicate)){console.error('Live-Prüfung fehlgeschlagen:',v);process.exit(1)}" "$body"
+            rm -f "$body"
+          }
+
           for base in "$prod" "$testservice"; do
-            echo "===== $base /api/exporthub-health ====="
-            curl -sS -i --max-time 20 "$base/api/exporthub-health" || true
-            echo
-            echo "===== $base /api/exporthub-auth-probe ====="
-            curl -sS -i --max-time 20 "$base/api/exporthub-auth-probe" || true
-            echo
-            echo "===== $base /api/exporthub-state?mode=ping ====="
-            curl -sS -i --max-time 20 "$base/api/exporthub-state?mode=ping" || true
-            echo
-            echo "===== $base /api/exporthub-state?mode=health ====="
-            curl -sS -i --max-time 20 "$base/api/exporthub-state?mode=health" || true
-            echo
+            check_json "$base /api/exporthub-health" "$base/api/exporthub-health" "v.ok===true"
+            check_json "$base /api/exporthub-auth-probe" "$base/api/exporthub-auth-probe" "v.ok===true&&v.runtimeReady===true"
+            check_json "$base /api/exporthub-state?mode=ping" "$base/api/exporthub-state?mode=ping" "v.ok===true&&v.routeReachable===true"
+            check_json "$base /api/exporthub-state?mode=health" "$base/api/exporthub-state?mode=health" "v.ok===true&&v.storageReachable===true&&v.teamStateReadable===true"
           done
