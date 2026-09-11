@@ -108,9 +108,10 @@ function parseStoredJson(raw,name){
 async function readJson(blob,fallback,repairAuth=false){
  try{
   const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));
-  try{const v=parseStoredJson(Buffer.concat(chunks).toString('utf8'),blob&&blob.name);return {value:v==null?clone(fallback):v,etag:r.etag||null}}
-  catch(e){e.etag=r.etag||null;if(repairAuth)return {value:clone(fallback),etag:r.etag||null,repairedInvalidJson:true};throw e}
- }catch(e){if(e&&e.statusCode===404)return {value:clone(fallback),etag:null};throw e}
+  const rawBuffer=Buffer.concat(chunks);
+  try{const v=parseStoredJson(rawBuffer.toString('utf8'),blob&&blob.name);return {value:v==null?clone(fallback):v,etag:r.etag||null,bytes:rawBuffer.length}}
+  catch(e){e.etag=r.etag||null;if(repairAuth)return {value:clone(fallback),etag:r.etag||null,repairedInvalidJson:true,bytes:rawBuffer.length};throw e}
+ }catch(e){if(e&&e.statusCode===404)return {value:clone(fallback),etag:null,bytes:0};throw e}
 }
 async function uploadJson(blob,value,etag){
  const raw=JSON.stringify(value),bytes=Buffer.byteLength(raw),conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'},base={blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions};
@@ -900,9 +901,9 @@ module.exports=async function(context,req){
   if(mode==='ping'){const environment=requestedEnvironment(req,payload);context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,serverVersion:API_VERSION,routeReachable:true,storageChecked:false,environment,blob:teamBlobForEnvironment(environment),time:now()});return}
   if(mode==='health'){
    const c=await clients(req,payload),authStarted=Date.now();
-   let authReadable=true;try{await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
+   let authReadable=true,authCheck=null;try{authCheck=await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
    await ensureEnvironmentTeam(c);const authReadMs=Date.now()-authStarted,teamStarted=Date.now(),teamCheck=await readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery),teamReadMs=Date.now()-teamStarted;
-   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
+   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authBlobBytes:Number(authCheck.bytes||0),teamStateBytes:Number(teamCheck.bytes||0),authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
   }
   const clientsStarted=Date.now(),c=await clients(req,payload),clientsMs=Date.now()-clientsStarted;
   if(mode==='diagnostics-append'){
