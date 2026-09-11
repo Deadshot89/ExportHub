@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/rc1059/apply-release-final.cjs'
       - '.github/workflows/rc1059-apply-release-final.yml'
+      - 'api/exporthub-health/index.js'
   workflow_dispatch:
 
 permissions:
