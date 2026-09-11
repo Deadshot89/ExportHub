@@ -14,6 +14,10 @@ test('RC1027/RC1033: Release-Vorbereitung injiziert oder aktualisiert den Avis-L
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'exporthub-rc1027-'));
   try{
     fs.mkdirSync(path.join(tmp,'assets'),{recursive:true});
+    fs.mkdirSync(path.join(tmp,'api/exporthub-state'),{recursive:true});
+    fs.mkdirSync(path.join(tmp,'api/customer-avis'),{recursive:true});
+    fs.copyFileSync(path.join(ROOT,'api/exporthub-state/index.js'),path.join(tmp,'api/exporthub-state/index.js'));
+    fs.copyFileSync(path.join(ROOT,'api/customer-avis/index.js'),path.join(tmp,'api/customer-avis/index.js'));
     fs.writeFileSync(path.join(tmp,'assets/rc1018-mail-language-standard.js'),'Eine zusätzliche Bestätigung der Sendungsdetails per E-Mail ist nicht erforderlich.');
     fs.writeFileSync(path.join(tmp,'index.html'),'<html><head><script id="exporthub-rc1027-lieferavis-immediate" defer src="/assets/rc1027-lieferavis-immediate.js?v=1031"></script></head><body></body></html>');
     for(const page of ['TESTVERSION.html','demo.html'])fs.writeFileSync(path.join(tmp,page),'<html><head></head><body></body></html>');
