@@ -124,6 +124,7 @@ async function externalizeDocumentCollections(state,options={}){
      const stored=await storeInlineDocument(file,options);files[i]=stored;stats.externalized++;stats.inlineBytes+=parsed.buffer.length;
     }
    }
+  }
  }
  return{state:out,stats};
 }
