@@ -51,7 +51,7 @@ public class EnvironmentActivity extends Activity {
     public static final String EXTRA_ROUTE = "exporthub_route";
 
     private static final String PROD_HOST = "wonderful-forest-0f315e310.7.azurestaticapps.net";
-    private static final String TEST_HOST = "wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net";
+    private static final String TEST_HOST = "ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net";
     private static final String PROD_URL = "https://" + PROD_HOST + "/";
     private static final String TEST_URL = "https://" + TEST_HOST + "/TESTVERSION.html";
     private static final String DEMO_URL = "https://" + TEST_HOST + "/demo.html";
