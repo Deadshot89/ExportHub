@@ -5,6 +5,7 @@ import path from 'node:path';
 import {Readable} from 'node:stream';
 
 const require=createRequire(import.meta.url);
+process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='rc1059-test-connection';
 
 function loadEndpoint({buffer=Buffer.from('PDF'),contentType='application/pdf'}={}){
   const target=path.resolve('api/exporthub-document/index.js');
