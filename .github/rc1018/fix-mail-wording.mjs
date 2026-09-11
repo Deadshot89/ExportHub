@@ -27,6 +27,17 @@ replaceRequired('api/exporthub-state/index.js',
 
 const apiFile=path.join(ROOT,'api/customer-avis/index.js');
 let api=fs.readFileSync(apiFile,'utf8');
+
+// RC1053: Bei normaler Link-Erstellung ist der bereits serverseitig whitelistbare Draft-Snapshot ausreichend.
+// Dadurch wird der mehrere Sekunden teure Team-State-Read nur noch benötigt, wenn wirklich Serverzustand
+// gebraucht wird (Disable, fehlender Snapshot oder bewusst manuell deaktivierter Avis).
+if(!api.includes("const fastSnapshotIssue=action==='issue'")){
+ const before="const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),canReuseAuthTeam=env==='production'&&internal&&internal.teamDoc&&obj(internal.teamDoc.value)&&text(auth.TEAM_CONTAINER)===TEAM_CONTAINER&&text(auth.TEAM_BLOB)===TEAM_BLOB_BASE,readStarted=Date.now(),d=canReuseAuthTeam?internal.teamDoc:await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;\n   const timing={authMs,teamBlobMs,teamReadMs:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};\n   const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref);let target=findShipment(state,subjectId,reference),draftOnly=false;\n   if(!target&&payload.shipmentSnapshot){target=sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference);draftOnly=true}";
+ const after="const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref),safeSnapshot=payload.shipmentSnapshot?sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference):null,fastSnapshotIssue=action==='issue'&&!!safeSnapshot&&!avisManuallyDisabled(payload.shipmentSnapshot),canReuseAuthTeam=!fastSnapshotIssue&&env==='production'&&internal&&internal.teamDoc&&obj(internal.teamDoc.value)&&text(auth.TEAM_CONTAINER)===TEAM_CONTAINER&&text(auth.TEAM_BLOB)===TEAM_BLOB_BASE,readStarted=Date.now(),d=fastSnapshotIssue?{value:{state:{}},etag:null}:(canReuseAuthTeam?internal.teamDoc:await readTeam(blob)),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;\n   const timing={authMs,teamBlobMs,teamReadMs:fastSnapshotIssue?0:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};\n   let target=fastSnapshotIssue?safeSnapshot:findShipment(state,subjectId,reference),draftOnly=fastSnapshotIssue;\n   if(!target&&safeSnapshot){target=safeSnapshot;draftOnly=true}";
+ if(!api.includes(before))throw new Error('RC1053 Avis Fast-Issue: erwarteter Issue-Anker fehlt.');
+ api=api.replace(before,after);
+}
+
 if(!api.includes('function abdPolicy(state,sh)')){
  const marker="function validateTime(v){return!v||/^([01]\\d|2[0-3]):[0-5]\\d$/.test(v)}";
  if(!api.includes(marker))throw new Error('RC1049 Avis API: validateTime-Anker fehlt.');
@@ -39,8 +50,8 @@ if(!api.includes('function abdPolicy(state,sh)')){
  api=api.replace('response=publicShipment(sh,sessionInfo.session);','response=publicShipment(sh,sessionInfo.session,state);');
  api=api.replace('context.res=json(200,publicShipment(sh,session));','context.res=json(200,publicShipment(sh,session,state));');
  if(!api.includes('ABD_PICKUP_TOO_EARLY')||!api.includes('abd:abdPolicy(state,sh)'))throw new Error('RC1049 Avis API Patch unvollständig.');
- fs.writeFileSync(apiFile,api,'utf8');
 }
+fs.writeFileSync(apiFile,api,'utf8');
 
 const RC1027_ID='exporthub-rc1027-lieferavis-immediate';
 const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavis-immediate.js?v=1052"></script>';
@@ -52,4 +63,4 @@ function injectScript(rel,id,tag){const target=path.join(ROOT,rel);if(!fs.exists
 for(const page of ['index.html','TESTVERSION.html','demo.html']){injectScript(page,RC1027_ID,RC1027_TAG);injectScript(page,RC1037_ID,RC1037_TAG);injectScript(page,RC1049_ID,RC1049_TAG)}
 injectScript('customer-avis.html',RC1049_ID,RC1049_TAG);
 await import('../rc1049/fix-mail-abd-gate.mjs');
-console.log('RC1049: Azure-State-Fallback sowie ABD-Lieferavis/Abholgrenze aktiviert.');
+console.log('RC1053: Azure-State-Fallback, ABD-Regeln und schneller Avis-Snapshot-Pfad aktiviert.');
