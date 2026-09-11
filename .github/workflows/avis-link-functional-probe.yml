@@ -1,0 +1,28 @@
+name: Lieferavis Link Funktionsprobe
+
+on:
+  push:
+    branches:
+      - avis-functional-test-20260911
+    paths:
+      - 'test/avis-link-functional-probe.test.mjs'
+      - '.github/workflows/avis-link-functional-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: avis-functional-test-20260911
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: 20 Testsendungen und Avis-Link messen
+        run: node --test test/avis-link-functional-probe.test.mjs
