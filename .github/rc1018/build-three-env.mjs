@@ -22,6 +22,19 @@ function injectSopImages(html){
   if(!rx.test(html))throw new Error('RC1018 SOP-Systembilder: RC1016 Konsolidierung nicht gefunden.');
   return html.replace(rx,`$1\n${SOP_IMAGES_TAG}`);
 }
+function patchGate41NationalOnly(html){
+  let out=html;
+  const baseBefore="var base=national?gateRate(pallets,kg)*pallets:lookupInternationalPrice(g),source=national?'Gate41-Grundtarif':'Internationaler Gate41-Tarif';";
+  const baseAfter="var base=national?gateRate(pallets,kg)*pallets:0,source=national?'Gate41-Grundtarif':'Gate41 nur national';";
+  if(out.includes(baseBefore))out=out.replace(baseBefore,baseAfter);
+  const calcBefore="var baseInfo=gateConfiguredBase(g,pallets,kg,national),manualBase=num(g.internationalBase),base=baseInfo.automatic?baseInfo.base:manualBase,dieselPct=gateDieselPct(dieselPrice)";
+  const calcAfter="var baseInfo=gateConfiguredBase(g,pallets,kg,national),manualBase=national?num(g.internationalBase):0,base=national?(baseInfo.automatic?baseInfo.base:manualBase):0,dieselPct=gateDieselPct(dieselPrice)";
+  if(out.includes(calcBefore))out=out.replace(calcBefore,calcAfter);
+  if(!out.includes("source=national?'Gate41-Grundtarif':'Gate41 nur national'"))throw new Error('RC1041 Gate41 National-Only: Grundtarif-Pfad nicht gefunden.');
+  if(!out.includes("manualBase=national?num(g.internationalBase):0"))throw new Error('RC1041 Gate41 National-Only: manueller Auslandspreis ist nicht gesperrt.');
+  return out
+}
+
 function setVersion(html){
   let out=html.replace(/ExportHUB RC1016 environment=/g,'ExportHUB RC1018 environment=');
   out=out.replace(/version:'RC1016'/g,"version:'RC1018'");
@@ -125,6 +138,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   if(file!=='index.html')html=replaceScriptBlock(html,SHIPMENT_CONTROLLER_ID,canonicalShipmentController);
   html=patchCriticalShipmentFlow(html);
   html=setVersion(html);
+  html=patchGate41NationalOnly(html);
   html=injectSopImages(html);
   html=injectBeforeHeadClose(html,MAIL_TAG,'exporthub-rc1018-mail-language-standard');
   assertMultiTruckSaveBridge(html,file);
