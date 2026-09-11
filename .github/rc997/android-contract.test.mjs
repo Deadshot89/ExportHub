@@ -9,7 +9,7 @@ const ACT=BASE+'EnvironmentActivity.java';
 test('Android RC997 behält gemeinsame Drei-Umgebungen-Hülle und Ein-Tap-Menü',()=>{
   const src=read(ACT);
   assert.match(src,/wonderful-forest-0f315e310\.7\.azurestaticapps\.net/);
-  assert.match(src,/wonderful-forest-0f315e310-testservice\.centralus\.7\.azurestaticapps\.net/);
+  assert.match(src,/ashy-grass-065b7b803-testservice\.westeurope\.6\.azurestaticapps\.net/);
   assert.match(src,/TESTVERSION\.html/);
   assert.match(src,/demo\.html/);
   assert.match(src,/ehMenuBtn/);
