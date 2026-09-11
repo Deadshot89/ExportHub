@@ -1,0 +1,41 @@
+name: RC1057 Apply State Size
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1057-apply-state-size.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1057 Größenmessung anwenden
+        run: node .github/rc1057/apply-state-size.mjs
+      - name: RC1057 gezielte Regression
+        run: |
+          node --test test/rc1057-team-state-size-health.test.mjs
+          node --test test/rc1050-storage-timeout-regression.test.mjs
+          node --test test/rc1051-storage-hotpath-container.test.mjs
+      - name: Änderung committen
+        run: |
+          if git diff --quiet -- api/exporthub-state/index.js; then
+            echo 'Keine Änderung erforderlich.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api/exporthub-state/index.js
+          git commit -m 'RC1057: Team-State-Größe im Health messen'
+          git push origin HEAD:main
