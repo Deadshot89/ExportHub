@@ -1,0 +1,23 @@
+name: RC1059 Branch Test
+
+on:
+  push:
+    branches:
+      - rc1059-document-blob-storage
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1059 Dokument-Blob-Store Regression
+        run: node --test test/rc1059-document-blob-store.test.mjs
