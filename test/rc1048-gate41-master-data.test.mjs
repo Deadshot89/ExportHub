@@ -80,3 +80,10 @@ test('RC1048: bestehende Gate41-Preisregression 230,45 + 6,91 + 40 = 277,36 blei
   const calcEnd=html.indexOf('\nfunction setLiveValue(',calcStart);
   assert.match(html.slice(calcStart,calcEnd),/total=base\+diesel\+toll\+additional/);
 });
+
+test('RC1049: Release-Test-Fix bildet die von der Release-Vorbereitung benötigten APIs im Temp-Verzeichnis ab',()=>{
+  const releaseTest=read('test/rc1027-lieferavis-release.test.mjs');
+  assert.match(releaseTest,/api\/exporthub-state\/index\.js/);
+  assert.match(releaseTest,/api\/customer-avis\/index\.js/);
+  assert.match(releaseTest,/copyFileSync/);
+});
