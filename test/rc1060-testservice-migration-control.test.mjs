@@ -15,6 +15,6 @@ test('RC1060 Bestandsschutz: temporäre TESTSERVICE-Steuerung ist nach RC1061 ni
 test('RC1060 Bestandsschutz: RC1061 verwendet weiterhin die aktive ExportHUB-Sitzung für die geschützte Migration',()=>{
   assert.match(adminSource,/authToken/);
   assert.match(adminSource,/X-ExportHUB-Token/);
-  assert.match(adminSource,/Authorization:'Bearer '/);
+  assert.match(adminSource,/'Authorization':'Bearer '/);
   assert.match(adminSource,/environmentName\(\)/);
 });
