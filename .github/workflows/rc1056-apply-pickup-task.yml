@@ -1,6 +1,10 @@
 name: RC1056 Apply Pickup Task
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1056-apply-pickup-task.yml'
   workflow_dispatch:
 
 permissions:
