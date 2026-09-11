@@ -17,7 +17,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
         with:
@@ -28,3 +28,23 @@ jobs:
           package-manager-cache: false
       - name: RC1061 Regression
         run: node --test test/rc1061-document-migration-admin-ui.test.mjs
+      - name: RC1060 Dokumentmigration Regression
+        run: node --test test/rc1060-legacy-document-migration.test.mjs test/rc1060-document-migration-endpoint.test.mjs test/rc1060-release-contract.test.mjs
+      - name: RC1059 Dokument-Blob-Storage Regression
+        run: node --test test/rc1059-document-blob-store.test.mjs test/rc1059-document-container.test.mjs test/rc1059-document-download.test.mjs test/rc1059-document-dual-read.test.mjs test/rc1059-state-diagnostics.test.mjs
+      - name: QR- und Lieferavis-End-to-End-Regression
+        shell: bash
+        run: |
+          node --test test/rc1013-pickup-readonly-flow.test.mjs
+          node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+      - name: Gesamte Node-Regression
+        run: npm test
+      - name: Historischen Drei-Umgebungen-Build reproduzieren
+        run: |
+          node .github/rc1018/fix-mail-wording.mjs
+          node .github/rc1048/build-three-env.mjs
+          grep -q 'assets/rc1061-document-migration-admin.js?v=1061' dist-rc1048/index.html
+          grep -q 'assets/rc1061-document-migration-admin.js?v=1061' dist-rc1048/TESTVERSION.html
+          if grep -q 'assets/rc1061-document-migration-admin.js?v=1061' dist-rc1048/demo.html; then exit 1; fi
+          git diff --check
