@@ -22,8 +22,9 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - name: RC1056 Abholtag-Lifecycle ergänzen
-        shell: python {0}
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
           p=Path('assets/rc1014-task-lifecycle.js')
           s=p.read_text(encoding='utf-8')
@@ -42,6 +43,7 @@ jobs:
           if old not in s:
               raise SystemExit('RC1056 Zielstelle nicht gefunden')
           p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
       - name: RC1056 gezielte Regression
         run: |
           node --test test/rc1055-task-status-canonicalization.test.mjs
