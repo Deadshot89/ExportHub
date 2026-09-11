@@ -1,0 +1,45 @@
+name: RC1059 Apply Legacy Save Guard
+
+on:
+  push:
+    branches:
+      - rc1059-document-blob-storage
+    paths:
+      - '.github/rc1059/apply-legacy-save-guard.cjs'
+      - '.github/workflows/rc1059-apply-legacy-save-guard.yml'
+      - 'api/shared/document-blob-store.js'
+      - 'test/rc1059-document-blob-store.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1059-document-blob-storage
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1059 Legacy-Save-Schutz anwenden
+        run: node .github/rc1059/apply-legacy-save-guard.cjs
+      - name: RC1059 Regressionen
+        run: node --test test/rc1059-*.test.mjs
+      - name: Änderung committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- api/exporthub-state/index.js; then
+            echo 'Keine Änderung notwendig.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api/exporthub-state/index.js
+          git commit -m 'RC1059: Altbestände beim normalen Save nicht migrieren'
+          git push origin HEAD:rc1059-document-blob-storage
