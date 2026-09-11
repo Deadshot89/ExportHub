@@ -24,6 +24,7 @@ module.exports = async function(context, req) {
     ok: true,
     service: 'exporthub-health',
     version: 'RC1051',
+    release: 'storage-hotpath',
     runtime: process.version,
     time: new Date().toISOString()
   });
