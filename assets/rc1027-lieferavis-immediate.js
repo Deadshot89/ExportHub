@@ -123,6 +123,23 @@ async function ensureCustomerAvis(reason){
  })();
  return earlyPending
 }
+async function coordinatedToggle(on){
+ var sh=shipment();if(!sh)return false;
+ if(on){
+  if(manualDisabled(sh))return previous&&typeof previous.toggle==='function'?previous.toggle(true):false;
+  return ensureCustomerAvis('manual-toggle')
+ }
+ if(earlyPending){try{await earlyPending}catch(_){}}
+ var current=shipment()||sh;
+ if(!current)return false;
+ if(previous&&typeof previous.toggle==='function'){
+  var result=await previous.toggle(false);
+  current=shipment()||current;
+  if(manualDisabled(current))forgetAvisUrl(current);
+  return result
+ }
+ return false
+}
 function localizedUrl(url,lang){
  url=q(url);if(!url)return'';
  try{var u=new URL(url,typeof location!=='undefined'?location.href:'https://exporthub.invalid/');u.searchParams.set('lang',lang==='en'?'en':'de');return u.toString()}catch(_){return url+(url.indexOf('?')>=0?'&':'?')+'lang='+(lang==='en'?'en':'de')}
@@ -170,7 +187,7 @@ function install(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;if(!current)return false;
  if(current.__rc1027===true){wrapper=current;return true}
  previous=current;
- wrapper=Object.freeze(Object.assign({},current,{version:'RC1033',link:avisUrl,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__rc1033:true,__base1027:current}));
+ wrapper=Object.freeze(Object.assign({},current,{version:'RC1033',link:avisUrl,toggle:coordinatedToggle,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__rc1033:true,__rc1052:true,__base1027:current}));
  window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;
  return true
 }
@@ -183,6 +200,6 @@ if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();return scheduleEnsure(name)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1033',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
+var api=Object.freeze({version:'RC1033',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
 window.ExportHUBRC1027Lieferavis=api;
 })();
