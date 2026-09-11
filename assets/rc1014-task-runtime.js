@@ -20,9 +20,20 @@
     return q((ctx&&ctx.currentUserId)||u.id||u.userId||u.username||u.login||u.name);
   }
 
+  function taskContext(ctx={}){
+    return {companyId:q(ctx.companyId),environment:q(ctx.environment),currentUserId:currentUserId(ctx),now:ctx.now,absences:arr(ctx.absences||(ctx.state&&ctx.state.absences))};
+  }
+
+  function currentTasks(raw,ctx={}){
+    const lifecycle=api();
+    const normalizedContext=taskContext(ctx);
+    const normalized=arr(raw).map(task=>lifecycle.normalizeTask(task,normalizedContext));
+    return lifecycle.reconcile(normalized,ctx.state||{},normalizedContext).tasks;
+  }
+
   function prepareTasks(raw,ctx={}){
     const lifecycle=api();
-    const normalizedContext={companyId:q(ctx.companyId),environment:q(ctx.environment),currentUserId:currentUserId(ctx),now:ctx.now,absences:arr(ctx.absences||(ctx.state&&ctx.state.absences))};
+    const normalizedContext=taskContext(ctx);
     const normalized=arr(raw).map(task=>lifecycle.normalizeTask(task,normalizedContext));
     const result=lifecycle.reconcile(normalized,ctx.state||{},normalizedContext);
     if(result.changed&&typeof ctx.persist==='function')ctx.persist(result.tasks);
@@ -162,5 +173,5 @@
   }
   installLazyCardObserver();
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({prepareTasks,openTask,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot});
 })(globalThis);
