@@ -180,7 +180,7 @@ jobs:
       - name: Deploy ExportHUB TESTSERVICE
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           app_location: .rc1048_testservice_app
@@ -193,7 +193,7 @@ jobs:
         run: |
           set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          testservice='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
           p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
           trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
           for attempt in {1..24}; do
@@ -281,7 +281,7 @@ jobs:
         run: |
           set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          testservice='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
           for attempt in {1..24}; do
             ok=1
             for url in \
