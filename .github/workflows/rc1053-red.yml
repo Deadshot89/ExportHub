@@ -16,4 +16,5 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - run: node .github/rc1018/fix-mail-wording.mjs
       - run: node --test test/rc1053-lieferavis-issue-no-team-read.test.mjs
