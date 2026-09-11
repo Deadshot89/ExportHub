@@ -94,6 +94,24 @@ function patchIssuedAvis(sh,data){
  try{window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{enabled:true,reference:ref,version:'RC1033'}}))}catch(_){}
  return !!avisUrl(sh)
 }
+function patchDisabledAvis(sh){
+ var stamp=new Date().toISOString(),values={customerAvisEnabled:false,avisEnabled:false,customerAvisToken:'',avisToken:'',customerAvisSecurityVersion:0,avisSecurityVersion:0,customerAvisDisabledAt:stamp,avisDisabledAt:stamp};
+ Object.assign(sh,values);
+ var ref=explicitReference(sh),s=state(),lists=[s.shipments,s.savedShipments,s.salesSharedShipments,s.sharedShipments];
+ for(var i=0;i<lists.length;i++){var list=lists[i];if(!Array.isArray(list))continue;for(var j=0;j<list.length;j++){var item=list[j];if(item&&item!==sh&&explicitReference(item)===ref)Object.assign(item,values)}}
+ forgetAvisUrl(sh);
+ try{window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{enabled:false,reference:ref,version:'RC1052'}}))}catch(_){}
+ return true
+}
+async function disableDraftAvis(sh){
+ if(typeof fetch!=='function')return previous&&typeof previous.toggle==='function'?previous.toggle(false):patchDisabledAvis(sh);
+ var ref=explicitReference(sh);
+ if(!/^[A-Z0-9]{6}$/.test(ref))return patchDisabledAvis(sh);
+ var payload={action:'disable',shipmentId:shipmentId(sh)||ref,reference:ref,environment:environmentName(),shipmentSnapshot:avisDraftSnapshot(sh)};
+ var r=await fetch('/api/customer-avis',{method:'POST',credentials:'same-origin',cache:'no-store',headers:fastAvisHeaders(),body:JSON.stringify(payload)}),data=await r.json().catch(function(){return{}});
+ if(!r.ok)throw new Error(q(data&&data.message)||('HTTP '+r.status));
+ return patchDisabledAvis(sh)
+}
 async function issueDraftAvis(sh){
  if(typeof fetch!=='function')return previous&&typeof previous.toggle==='function'?previous.toggle(true):false;
  var ref=explicitReference(sh),payload={action:'issue',shipmentId:shipmentId(sh)||ref,reference:ref,environment:environmentName(),shipmentSnapshot:avisDraftSnapshot(sh)};
@@ -126,19 +144,14 @@ async function ensureCustomerAvis(reason){
 async function coordinatedToggle(on){
  var sh=shipment();if(!sh)return false;
  if(on){
-  if(manualDisabled(sh))return previous&&typeof previous.toggle==='function'?previous.toggle(true):false;
-  return ensureCustomerAvis('manual-toggle')
+  if(!manualDisabled(sh))return ensureCustomerAvis('manual-toggle');
+  if(!ensureReference(sh))return false;
+  try{return await issueDraftAvis(sh)}catch(e){console.error('RC1052 Lieferavis reaktivieren',e);try{alert('Kunden-Avis konnte nicht aktiviert werden.\n\n'+q(e&&e.message||e))}catch(_){}return false}
  }
  if(earlyPending){try{await earlyPending}catch(_){}}
  var current=shipment()||sh;
  if(!current)return false;
- if(previous&&typeof previous.toggle==='function'){
-  var result=await previous.toggle(false);
-  current=shipment()||current;
-  if(manualDisabled(current))forgetAvisUrl(current);
-  return result
- }
- return false
+ try{return await disableDraftAvis(current)}catch(e){console.error('RC1052 Lieferavis deaktivieren',e);try{alert('Kunden-Avis konnte nicht deaktiviert werden.\n\n'+q(e&&e.message||e))}catch(_){}return false}
 }
 function localizedUrl(url,lang){
  url=q(url);if(!url)return'';
@@ -200,6 +213,6 @@ if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();return scheduleEnsure(name)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1033',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
+var api=Object.freeze({version:'RC1033',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
 window.ExportHUBRC1027Lieferavis=api;
 })();
