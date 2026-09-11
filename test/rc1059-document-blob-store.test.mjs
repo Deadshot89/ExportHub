@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -76,4 +77,16 @@ test('RC1059: bekannte Dokumentlisten werden rekursiv externalisiert, URLs bleib
   assert.equal(result.state.abdRequests[0].abdFiles[0].storage,'blob');
   assert.equal(result.stats.externalized,3);
   assert.equal(container.uploads.length,3);
+});
+
+test('RC1059: State-Save externalisiert nur eingehenden State vor saveMerged',()=>{
+  const source=fs.readFileSync(new URL('../api/exporthub-state/index.js',import.meta.url),'utf8');
+  assert.match(source,/document-blob-store/);
+  assert.match(source,/externalizeDocumentCollections/);
+  assert.match(source,/documentContainer/);
+  const normalizePos=source.indexOf('normalizeIncoming(payload)');
+  const externalizePos=source.indexOf('externalizeDocumentCollections',normalizePos);
+  const savePos=source.indexOf('saveMerged(',normalizePos);
+  assert.ok(normalizePos>=0&&externalizePos>normalizePos&&savePos>externalizePos,'Externalisierung muss zwischen normalizeIncoming und saveMerged liegen');
+  assert.doesNotMatch(source,/externalizeDocumentCollections\(current\.team/);
 });
