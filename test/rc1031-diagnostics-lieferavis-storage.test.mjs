@@ -42,32 +42,56 @@ test('RC1031: Public-Access-Store initialisiert Azure-Container einmal und liest
   }
 });
 
-test('RC1031: customer-avis issue verwendet den ersten Team-Read weiter und startet Token-Issue parallel zur Flag-Speicherung',async()=>{
+test('RC1052: customer-avis issue erzeugt den Link ohne grossen Team-State-Write',async()=>{
   const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
-  let teamReads=0,uploadStarted=false,issueStarted=false,releaseUpload;
-  const uploadGate=new Promise(resolve=>{releaseUpload=resolve});
-  const team={schemaVersion:3,revision:12,state:{shipments:[{id:'SHIP-1031',reference:'ABC123',customerName:'Testkunde',customerAvisEnabled:false,avisEnabled:false,status:'Entwurf'}]}};
-  const blob={name:'team-state.json',async download(){teamReads++;return{readableStreamBody:Readable.from([Buffer.from(JSON.stringify(team))]),etag:'\"team-1\"'}},async upload(){uploadStarted=true;await uploadGate;return{etag:'\"team-2\"'}}};
+  let teamReads=0,teamWrites=0,issueStarted=false;
+  const team={schemaVersion:3,revision:12,state:{shipments:[{id:'SHIP-1031',reference:'ABC123',customerName:'Testkunde',selectedLocationId:'LOC-1',customerAvisEnabled:false,avisEnabled:false,status:'Entwurf'}]}};
+  const blob={name:'team-state.json',async download(){teamReads++;return{readableStreamBody:Readable.from([Buffer.from(JSON.stringify(team))]),etag:'"team-1"'}},async upload(){teamWrites++;return{etag:'"team-2"'}}};
   const container={async createIfNotExists(){},getBlockBlobClient(){return blob}};
   const azure={BlobServiceClient:{fromConnectionString(){return{getContainerClient(){return container}}}}};
   const access={
     body(req){return req.body||{}},
     json(status,body,headers={}){return{status,headers,body:JSON.stringify(body)}},
     environment(){return'production'},
-    async issue(){issueStarted=true;return{token:'a'.repeat(48),expiresAt:null}}
+    async issue(_req,_kind,meta){issueStarted=true;assert.equal(meta.reference,'ABC123');assert.equal(meta.snapshot.customerName,'Testkunde');return{token:'a'.repeat(48),expiresAt:null}}
   };
   const auth={async validateSession(){return{user:{name:'Tester',rights:{shipment:{edit:true}}}}},hasAnyEditRight(){return true},error(code,message,status){const e=new Error(message);e.code=code;e.status=status;return e}};
   try{
     const handler=loadCommonJs('api/customer-avis/index.js',{'@azure/storage-blob':azure,'../shared/public-access-store':access,'../shared/fast-auth-store':auth});
     const context={log:{error(){}},res:null};
-    const pending=handler(context,{method:'POST',headers:{},body:{action:'issue',shipmentId:'SHIP-1031',reference:'ABC123',environment:'production'}});
-    for(let i=0;i<6&&!uploadStarted;i++)await new Promise(resolve=>setImmediate(resolve));
-    assert.equal(uploadStarted,true,'Team-Flag-Speicherung muss gestartet sein.');
-    assert.equal(teamReads,1,'Der bereits gelesene Teamstand muss für den ersten Flag-Write wiederverwendet werden.');
-    assert.equal(issueStarted,true,'Sicherer Token und Team-Flags müssen parallel statt seriell erzeugt werden.');
-    releaseUpload();await pending;
+    await handler(context,{method:'POST',headers:{},body:{action:'issue',shipmentId:'SHIP-1031',reference:'ABC123',environment:'production'}});
     assert.equal(context.res.status,200);
-    const body=JSON.parse(context.res.body);assert.match(body.url,/customer-avis\.html\?token=/);
+    assert.equal(issueStarted,true,'Sicherer Avis-Token muss ausgestellt werden.');
+    assert.equal(teamReads,1,'Der Team-State darf nur zum Auffinden der Sendung gelesen werden.');
+    assert.equal(teamWrites,0,'Die normale Link-Erstellung darf den grossen Team-State nicht mehr neu hochladen.');
+    const response=JSON.parse(context.res.body);
+    assert.equal(response.timing.flagWriteMs,0);
+    assert.match(response.url,/customer-avis\.html\?token=/);
+  }finally{if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage}
+});
+
+test('RC1052: ungespeicherter Avis-Entwurf wird als kleiner Snapshot ausgegeben statt Team-State zu schreiben',async()=>{
+  const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+  let teamWrites=0,capturedSnapshot=null;
+  const team={schemaVersion:3,revision:12,state:{shipments:[]}};
+  const blob={async download(){return{readableStreamBody:Readable.from([Buffer.from(JSON.stringify(team))]),etag:'"team-1"'}},async upload(){teamWrites++;return{etag:'"team-2"'}}};
+  const azure={BlobServiceClient:{fromConnectionString(){return{getContainerClient(){return{getBlockBlobClient(){return blob}}}}}}};
+  const access={
+    body(req){return req.body||{}},
+    json(status,body,headers={}){return{status,headers,body:JSON.stringify(body)}},
+    environment(){return'production'},
+    async issue(_req,_kind,meta){capturedSnapshot=meta.snapshot;return{token:'b'.repeat(48),expiresAt:null}}
+  };
+  const auth={async validateSession(){return{user:{name:'Tester',rights:{shipment:{edit:true}}}}},hasAnyEditRight(){return true},error(code,message,status){const e=new Error(message);e.code=code;e.status=status;return e}};
+  try{
+    const handler=loadCommonJs('api/customer-avis/index.js',{'@azure/storage-blob':azure,'../shared/public-access-store':access,'../shared/fast-auth-store':auth});
+    const context={log:{error(){}},res:null};
+    await handler(context,{method:'POST',headers:{},body:{action:'issue',shipmentId:'DRAFT-1',reference:'ABC123',environment:'production',shipmentSnapshot:{id:'DRAFT-1',reference:'ABC123',customerName:'Testkunde',selectedLocationId:'LOC-1',status:'Entwurf'}}});
+    assert.equal(context.res.status,200);
+    assert.equal(teamWrites,0);
+    assert.equal(capturedSnapshot.customerName,'Testkunde');
+    assert.equal(capturedSnapshot.selectedLocationId,'LOC-1');
+    assert.equal(capturedSnapshot.reference,'ABC123');
   }finally{if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage}
 });
 

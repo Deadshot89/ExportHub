@@ -41,6 +41,20 @@
 .pickup-primary{font-weight:700}
 .pickup-admin-list{display:grid;gap:8px;margin-top:14px}
 .pickup-print-portal{display:none}
+/* RC1052: kompaktere Kalenderkarten ohne Informationsverlust */
+.pickup-calendar{gap:16px}
+.pickup-today{padding:14px}
+.pickup-section-title{margin-bottom:10px}
+.pickup-today-grid{gap:12px}
+.pickup-source{gap:6px;margin-top:9px}
+.pickup-source h4{font-size:11px}
+.pickup-item{padding:7px 8px;border-radius:10px}
+.pickup-item-head{gap:6px;font-size:12px;line-height:1.2}
+.pickup-item-grid{gap:2px;margin-top:5px;font-size:12px;line-height:1.25}
+.pickup-badge{padding:2px 6px;font-size:9px}
+.pickup-colli{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:5px;font-size:11px;line-height:1.2}
+.pickup-item-actions{margin-top:6px}
+.pickup-item-actions button{min-height:28px!important;height:auto!important;padding:4px 8px!important;font-size:11px!important;line-height:1.15!important}
 @media(max-width:1000px){.pickup-week{grid-template-columns:repeat(2,minmax(0,1fr))}.pickup-today-grid{grid-template-columns:1fr}}
 @media(max-width:640px){.pickup-week{grid-template-columns:1fr}.pickup-calendar-head,.pickup-section-title,.pickup-week-toolbar{align-items:flex-start;flex-direction:column}.pickup-week-actions{width:100%;justify-content:flex-start}.pickup-form{grid-template-columns:1fr}.pickup-form-wide,.pickup-check,.pickup-form-actions{grid-column:1}}
 @page{size:A4 landscape;margin:8mm}

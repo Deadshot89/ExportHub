@@ -53,6 +53,14 @@
       complete: expected > 0 && remaining === 0
     };
   }
+  function shipmentIsCompleted(shipment){
+    const sh = shipment && typeof shipment === 'object' ? shipment : {};
+    const collis = shipmentColliState(sh);
+    if (collis.complete) return true;
+    if (String(sh.pickedUpAt || sh.pickupConfirmedAt || sh.qrPickupConfirmedAt || sh.pickupCompletedAt || sh.actualPickupAt || sh.actualPickupDate || sh.collectedAt || sh.podServerVerifiedAt || '').trim()) return true;
+    const status = String(sh.pickupStatus || sh.shipmentStatus || sh.processStatus || sh.status || '').trim().toLocaleLowerCase('de-DE');
+    return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|storniert|picked up|pod available|completed|archived|cancelled)$/.test(status);
+  }
   function shipmentIdentity(shipment){
     const sh = shipment && typeof shipment === 'object' ? shipment : {};
     for (const key of ['id','shipmentId','reference','ref','shipmentRef','referenceNumber','referenceNo']) {
@@ -78,7 +86,7 @@
     const dateKey = dateKeyLocal(date);
     return {
       fixed: weekday >= 1 && weekday <= 5 ? fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday) : [],
-      shipments: shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey)
+      shipments: shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey && !shipmentIsCompleted(shipment))
     };
   }
   function buildCalendarModel(input){
@@ -428,6 +436,7 @@
     buildCalendarModel,
     shipmentPickupDate,
     shipmentColliState,
+    shipmentIsCompleted,
     shipmentIdentity,
     triggerOpenShipment,
     weekdayLabel,
