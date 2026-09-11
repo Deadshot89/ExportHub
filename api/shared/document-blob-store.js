@@ -4,7 +4,7 @@ const crypto=require('crypto');
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
 const DOCUMENT_FIELDS=['deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments','lieferscheine'];
 const ROOT_COLLECTIONS=['shipments','savedShipments','abdRequests'];
-const INLINE_FIELDS=['data','payload','content','base64'];
+const INLINE_FIELDS=['data','dataUrl','payload','content','base64'];
 
 function clone(v){return v==null?v:JSON.parse(JSON.stringify(v))}
 function normalizeEnvironment(value){return String(value||'').trim().toLowerCase()==='testservice'?'testservice':'production'}
