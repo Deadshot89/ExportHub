@@ -5,10 +5,10 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
 const workflow='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
 
-test('RC1018 ist der aktuelle gemeinsame Standarddeploy für Produktion TESTSERVICE und Demo',()=>{
+test('RC1018 bleibt technische Buildbasis des aktuellen RC1041-Drei-Umgebungen-Deploys',()=>{
   const flow=read(workflow);
   assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'/);
-  assert.match(flow,/ExportHUB RC1018 Drei-Umgebungen Deploy/);
+  assert.match(flow,/ExportHUB RC1041 Drei-Umgebungen Deploy/);
   assert.match(flow,/node \.github\/rc1018\/build-three-env\.mjs/);
   assert.match(flow,/dist-rc1018\/index\.html/);
   assert.match(flow,/dist-rc1018\/TESTVERSION\.html/);
@@ -40,13 +40,14 @@ test('RC1018 Deploypakete enthalten öffentliche DE EN Seiten und beide neuen La
   assert.match(flow,/\.rc1018_testservice_app/);
 });
 
-test('RC1018 Liveprüfung bestätigt Mail- und Sprachruntime in allen drei Oberflächen',()=>{
+test('RC1041 Liveprüfung bestätigt aktuelle Sichtversion bei unveränderten RC1018-Runtimes',()=>{
   const flow=read(workflow);
-  assert.match(flow,/Live RC1018 Produktion TESTSERVICE und Demo prüfen/);
-  assert.match(flow,/ExportHUB RC1018 environment=production-candidate/);
-  assert.match(flow,/ExportHUB RC1018 environment=testservice/);
-  assert.match(flow,/ExportHUB RC1018 environment=demo/);
-  assert.match(flow,/version:'RC1018'/);
+  assert.match(flow,/Live RC1041 Produktion TESTSERVICE und Demo prüfen/);
+  assert.match(flow,/ExportHUB RC1041 environment=production-candidate/);
+  assert.match(flow,/ExportHUB RC1041 environment=testservice/);
+  assert.match(flow,/ExportHUB RC1041 environment=demo/);
+  assert.match(flow,/version:'RC1041'/);
   assert.match(flow,/rc1018-mail-language-standard\.js\?v=1018/);
   assert.match(flow,/rc1018-public-language\.js/);
+  assert.match(flow,/\.github\/rc1041\/apply-release-version\.mjs/);
 });
