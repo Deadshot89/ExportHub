@@ -5,6 +5,7 @@ const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-do
 const DOCUMENT_FIELDS=['deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments','lieferscheine'];
 const ROOT_COLLECTIONS=['shipments','savedShipments','abdRequests'];
 const INLINE_FIELDS=['data','dataUrl','payload','content','base64'];
+const CONTAINER_READY=new WeakMap();
 
 function clone(v){return v==null?v:JSON.parse(JSON.stringify(v))}
 function text(v){return String(v==null?'':v).trim()}
@@ -57,19 +58,31 @@ function createDocumentContainer(){
  const {BlobServiceClient}=require('@azure/storage-blob');
  return BlobServiceClient.fromConnectionString(cs).getContainerClient(DOCUMENT_CONTAINER);
 }
+async function ensureDocumentContainer(container){
+ if(!container||typeof container.createIfNotExists!=='function')return false;
+ let ready=CONTAINER_READY.get(container);
+ if(!ready){
+  ready=Promise.resolve().then(()=>container.createIfNotExists()).catch(e=>{CONTAINER_READY.delete(container);throw e});
+  CONTAINER_READY.set(container,ready);
+ }
+ await ready;return true;
+}
 async function uploadIdempotent(blob,buffer,mimeType,metadata){
  const options={blobHTTPHeaders:{blobContentType:mimeType,blobCacheControl:'private, no-store'},metadata,conditions:{ifNoneMatch:'*'}};
  try{
   if(typeof blob.uploadData==='function')return await blob.uploadData(buffer,options);
   return await blob.upload(buffer,buffer.length,options);
  }catch(e){
-  if(Number(e&&e.statusCode||e&&e.status||0)===409||Number(e&&e.status||0)===412||/BlobAlreadyExists|ConditionNotMet/i.test(String(e&&e.code||'')))return{alreadyExists:true};
+  const status=Number(e&&e.statusCode||e&&e.status||0);
+  if(status===409||status===412||/BlobAlreadyExists|ConditionNotMet/i.test(String(e&&e.code||'')))return{alreadyExists:true};
   throw e;
  }
 }
 async function storeInlineDocument(file,options={}){
  const parsed=extractInlinePayload(file);if(!parsed)return clone(file);
- const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer(),hash=crypto.createHash('sha256').update(parsed.buffer).digest('hex'),blobName=`rc1059/${environment}/${hash.slice(0,2)}/${hash}`,blob=container.getBlockBlobClient(blobName);
+ const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer();
+ await ensureDocumentContainer(container);
+ const hash=crypto.createHash('sha256').update(parsed.buffer).digest('hex'),blobName=`rc1059/${environment}/${hash.slice(0,2)}/${hash}`,blob=container.getBlockBlobClient(blobName);
  await uploadIdempotent(blob,parsed.buffer,parsed.mimeType,{sha256:hash,environment,kind:'exporthub-document'});
  return Object.assign(stripInlineFields(file),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
 }
@@ -94,4 +107,4 @@ async function externalizeDocumentCollections(state,options={}){
  return{state:out,stats};
 }
 
-module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,storeInlineDocument,externalizeDocumentCollections,createDocumentContainer};
+module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,storeInlineDocument,externalizeDocumentCollections,createDocumentContainer,ensureDocumentContainer};
