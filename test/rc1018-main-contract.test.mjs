@@ -11,7 +11,7 @@ test('RC1018 Main-Contract folgt dem aktuellen gemeinsamen Release', () => {
   assert.match(flow,/RC1018 Mail- und Sprachvertrag/);
   assert.match(flow,/test\/rc1018-mail-language-standard\.test\.mjs/);
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
-  assert.match(flow,/RC1013 Baseline und RC1018 Produktionsmarker prüfen/);
-  assert.match(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'/);
+  assert.match(flow,/RC1013 Baseline und RC1041 Produktionsmarker prüfen/);
+  assert.match(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1041'/);
   assert.doesNotMatch(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1016'/);
 });
