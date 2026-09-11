@@ -51,6 +51,15 @@
     return 'shipment';
   }
 
+  function canonicalTaskStatus(value){
+    const raw=q(value);
+    const status=low(raw);
+    if(!status||status==='open'||status==='offen')return 'open';
+    if(status==='done'||status==='erledigt')return 'done';
+    if(status==='cancelled'||status==='canceled'||status==='storniert')return 'cancelled';
+    return raw;
+  }
+
   function normalizeTask(input,ctx={}){
     const t={...(input||{})};
     const sourceRef=q(t.sourceRef||t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref);
@@ -69,7 +78,7 @@
       sourceRef,
       group,
       title:q(t.title),
-      status:q(t.status||'open')||'open',
+      status:canonicalTaskStatus(t.status),
       dueAt:q(t.dueAt||t.dueDate||t.date),
       priority,
       originalAssignee,
