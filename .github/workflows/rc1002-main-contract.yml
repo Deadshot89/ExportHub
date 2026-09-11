@@ -1,4 +1,4 @@
-name: RC1018 Main Contract
+name: RC1043 Main Contract
 
 on:
   workflow_dispatch:
@@ -29,6 +29,7 @@ on:
       - '.github/rc1013/**'
       - '.github/rc1017/**'
       - '.github/rc1018/**'
+      - '.github/rc1043/**'
       - '.github/rc995/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc998/**'
@@ -38,7 +39,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: rc1018-main-contract-${{ github.ref }}
+  group: rc1043-main-contract-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -69,13 +70,13 @@ jobs:
           node --test --test-name-pattern='Fehlerdiagnose besitzt|Website-App-Brücke|Tipp auf Diagnose-Benachrichtigung|veraltete MainActivity' .github/rc997/diagnostic-notifications-contract.test.mjs
       - name: RC1017 Mehr-LKW Releasevertrag
         run: node --test test/rc1017-three-env-release.test.mjs
-      - name: RC1018 Mail- und Sprachvertrag
+      - name: RC1018 Mail- und Sprachbasis
         run: node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
         run: node .github/rc1013/build-three-env.mjs
-      - name: RC1013 Baseline und RC1018 Produktionsmarker prüfen
+      - name: RC1013 Baseline und RC1043 Produktionsmarker prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -95,5 +96,5 @@ jobs:
           grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/demo.html
           test -s dist-rc1013/assets/rc1017-multi-truck.js
           grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1013/index.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1043'" production-version.js
           git diff --check
