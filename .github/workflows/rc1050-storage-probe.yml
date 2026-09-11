@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          testservice='https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
           sample_blob='rc1059/production/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
           check_json() {
