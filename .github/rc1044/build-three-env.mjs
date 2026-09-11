@@ -29,10 +29,50 @@ function patchPodUploadPersistence(html,file){
   return out;
 }
 
+function patchDashboardOpenShipments(html,file){
+  let out=html;
+
+  const oldWorkspaceList="function shipmentOpenList(){\n    return shipments().filter(function(s){return s && !isDone(s)})\n  }";
+  const newWorkspaceList="function shipmentOpenList(){\n    return shipments().filter(function(s){return s && !isDone(s)})\n  }\n\n  function workspaceShipmentPickedUp(s){var st=low([s&&s.status,s&&s.state,s&&s.processStatus,s&&s.freigabe,s&&s.pickupStatus,s&&s.podStatus].join(' '));if(/teilabhol|partial/.test(st))return false;return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupDate||s.pickedUpAtDate||s.pickedUpAt||s.pickupAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden/.test(st)}\n\n  function shipmentDashboardOpenList(){return shipmentOpenList().filter(function(s){return !workspaceShipmentPickedUp(s)})}";
+  out=replaceOne(out,oldWorkspaceList,newWorkspaceList,file+' Dashboard-Arbeitsplatz Abholstatus');
+
+  out=replaceOne(out,
+    "function shipmentRows(){\n    var list=shipmentOpenList();",
+    "function shipmentRows(){\n    var list=shipmentDashboardOpenList();",
+    file+' Dashboard-Sendungsliste'
+  );
+  out=replaceOne(out,
+    "var total=isTask?taskOpenList().length:shipmentOpenList().length;",
+    "var total=isTask?taskOpenList().length:shipmentDashboardOpenList().length;",
+    file+' Dashboard-Sendungszaehler'
+  );
+  out=replaceOne(out,
+    "var openTasks=taskOpenList(),openShipments=shipmentOpenList();",
+    "var openTasks=taskOpenList(),openShipments=shipmentDashboardOpenList();",
+    file+' Dashboard-Arbeitsfokus'
+  );
+
+  const oldDone="function shipmentDone(s){return isDone(s&&(s.status||s.freigabe||s.state))}";
+  const newDone="function dashboardShipmentPickedUp(s){var st=low([s&&s.status,s&&s.freigabe,s&&s.state,s&&s.processStatus,s&&s.pickupStatus,s&&s.podStatus].join(' '));if(/teilabhol|partial/.test(st))return false;return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupDate||s.pickedUpAtDate||s.pickedUpAt||s.pickupAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden/.test(st)}\nfunction shipmentDone(s){return isDone(s&&(s.status||s.freigabe||s.state))||dashboardShipmentPickedUp(s)}";
+  out=replaceOne(out,oldDone,newDone,file+' Kern-Dashboard Abholstatus');
+
+  out=replaceOne(out,
+    "metric('Offene Sendungen',open.length,'kpi-orange','nicht abgeschlossen')",
+    "metric('Offene Sendungen',open.length,'kpi-orange','noch nicht abgeholt')",
+    file+' Dashboard-Kacheltext'
+  );
+
+  if(!out.includes('function shipmentDashboardOpenList()'))throw new Error(file+': Dashboard-Filter fuer nicht abgeholte Sendungen fehlt');
+  if(!out.includes('function dashboardShipmentPickedUp(s)'))throw new Error(file+': Kern-Dashboard erkennt Abholung nicht');
+  if(!out.includes("metric('Offene Sendungen',open.length,'kpi-orange','noch nicht abgeholt')"))throw new Error(file+': Dashboard-Kacheltext wurde nicht angepasst');
+  return out;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchPodUploadPersistence(html,file);
+  html=patchDashboardOpenShipments(html,file);
   html=html.replace(/ExportHUB RC1018 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1018',cache:'1018',loginReturn:'([^']*)'\}\);/,
@@ -67,4 +107,4 @@ fs.writeFileSync(path.join(OUT,'rc1044-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
-console.log('RC1044 build ready: POD-Azure-Bestätigung nach Abholung gehärtet, Produktion/TESTSERVICE/Demo synchronisiert.');
+console.log('RC1044 build ready: POD-Speicherung und Dashboard-Filter für nicht abgeholte Sendungen gehärtet, Produktion/TESTSERVICE/Demo synchronisiert.');
