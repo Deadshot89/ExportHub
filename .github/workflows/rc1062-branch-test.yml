@@ -1,0 +1,27 @@
+name: RC1062 Branch Test
+
+on:
+  push:
+    branches:
+      - rc1062-avis-single-state-read
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1062-avis-single-state-read
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Aktiven ExportHUB-Release vorbereiten
+        run: node .github/rc1018/fix-mail-wording.mjs
+      - name: RC1062 Regression
+        run: node --test test/rc1062-avis-appointment-single-state-read.test.mjs
