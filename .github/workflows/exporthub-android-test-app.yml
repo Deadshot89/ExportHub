@@ -12,11 +12,12 @@ on:
       - 'test/rc1013-restpunkte.test.mjs'
       - 'test/rc1013-three-env-sync.test.mjs'
       - 'test/rc1016-release-sync.test.mjs'
-      - 'test/rc1041-mail-language-standard.test.mjs'
-      - 'test/rc1041-production-deploy.test.mjs'
+      - 'test/rc1018-mail-language-standard.test.mjs'
+      - 'test/rc1018-production-deploy.test.mjs'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - 'production-version.js'
       - '.github/rc1016/**'
+      - '.github/rc1018/**'
       - '.github/rc1041/**'
       - '.github/workflows/rc1002-main-contract.yml'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
@@ -52,8 +53,8 @@ jobs:
             test/rc1013-restpunkte.test.mjs \
             test/rc1013-three-env-sync.test.mjs \
             test/rc1016-release-sync.test.mjs \
-            test/rc1041-mail-language-standard.test.mjs \
-            test/rc1041-production-deploy.test.mjs
+            test/rc1018-mail-language-standard.test.mjs \
+            test/rc1018-production-deploy.test.mjs
           do
             node --test "$test_file"
           done
