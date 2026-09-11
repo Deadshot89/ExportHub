@@ -11,6 +11,10 @@ function patchPage(rel){
   if(!fs.existsSync(target))return false;
   let html=fs.readFileSync(target,'utf8');
   const before=html;
+  const hadMailArea=html.includes('function mailAreaHtml(){');
+
+  // Kleine historische Release-Fixtures besitzen keinen echten Mailbereich.
+  if(!hadMailArea&&!html.includes(OLD_WARNING))return false;
 
   // ABD bleibt ein Versand-/Abholstatus, darf die Anmeldung per Mail aber nicht mehr blockieren.
   html=html.replaceAll("if(!m.abdOk)reason.push('ABD noch nicht abgeschlossen');",'');
@@ -19,12 +23,14 @@ function patchPage(rel){
   html=html.replaceAll(OLD_WARNING,NEW_WARNING);
 
   if(html.includes(OLD_WARNING))throw new Error(rel+': alte ABD-Mail-Sperrmeldung ist noch vorhanden.');
-  const start=html.indexOf('function mailAreaHtml(){');
-  const end=start>=0?html.indexOf('function refreshMailAreaFields(',start):-1;
-  if(start<0||end<=start)throw new Error(rel+': Mailbereich konnte nicht eindeutig gefunden werden.');
-  const mailArea=html.slice(start,end);
-  if(/!m\.abdOk\s*\|\|\s*!m\.to/.test(mailArea)||/!opened\s*\|\|\s*!m\.abdOk/.test(mailArea))throw new Error(rel+': ABD sperrt den Mailbereich weiterhin.');
-  if(!mailArea.includes(NEW_WARNING))throw new Error(rel+': nicht blockierender ABD-Hinweis fehlt.');
+  if(hadMailArea){
+    const start=html.indexOf('function mailAreaHtml(){');
+    const end=start>=0?html.indexOf('function refreshMailAreaFields(',start):-1;
+    if(start<0||end<=start)throw new Error(rel+': Mailbereich konnte nicht eindeutig gefunden werden.');
+    const mailArea=html.slice(start,end);
+    if(/!m\.abdOk\s*\|\|\s*!m\.to/.test(mailArea)||/!opened\s*\|\|\s*!m\.abdOk/.test(mailArea))throw new Error(rel+': ABD sperrt den Mailbereich weiterhin.');
+    if(!mailArea.includes(NEW_WARNING))throw new Error(rel+': nicht blockierender ABD-Hinweis fehlt.');
+  }
 
   if(html!==before)fs.writeFileSync(target,html,'utf8');
   return html!==before;
