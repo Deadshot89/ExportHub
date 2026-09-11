@@ -13,7 +13,7 @@ test('RC1037 speichert Lieferavis-Serverzeiten clientseitig und stellt sie der D
   const build=read('.github/rc1018/fix-mail-wording.mjs');
 
   assert.match(src,/data\.timing/,'Die RC1036-Timingdaten müssen aus der API-Antwort übernommen werden.');
-  for(const key of ['teamReadMs','flagWriteMs','tokenIssueMs','totalMs'])assert.match(src,new RegExp(key),key+' muss übernommen werden.');
+  for(const key of ['authMs','teamBlobMs','teamReadMs','flagWriteMs','tokenIssueMs','totalMs'])assert.match(src,new RegExp(key),key+' muss übernommen werden.');
   assert.match(src,/sessionStorage/,'Der letzte Messwert muss lokal für die laufende Sitzung verfügbar bleiben.');
   assert.match(src,/exporthub:lieferavis-timing/,'Neue Lieferavis-Timings müssen als Diagnoseereignis gemeldet werden.');
   assert.match(src,/Team-State lesen/,'Die Diagnose muss den Team-Read verständlich beschriften.');
@@ -22,6 +22,6 @@ test('RC1037 speichert Lieferavis-Serverzeiten clientseitig und stellt sie der D
   assert.match(src,/Gesamtzeit/,'Die Diagnose muss die Gesamtzeit sichtbar machen.');
   assert.match(src,/isGlobalAdmin/,'Die Timing-Karte bleibt auf die bestehende Global-Admin-Diagnose begrenzt.');
 
-  assert.match(build,/rc1037-lieferavis-timing-diagnostics\.js\?v=1037/,'Der gemeinsame Build muss RC1037 mit frischem Cache-Key laden.');
+  assert.match(build,/rc1037-lieferavis-timing-diagnostics\.js\?v=1038/,'Der gemeinsame Build muss die aktuelle Lieferavis-Timingdiagnose mit frischem Cache-Key laden.');
   assert.match(build,/\['index\.html','TESTVERSION\.html','demo\.html'\]/,'Produktion, TESTSERVICE und Demo müssen gemeinsam injiziert werden.');
 });

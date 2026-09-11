@@ -37,13 +37,13 @@ test('RC1036: Lieferavis-Issue liefert getrennte Serverlaufzeiten fuer Azure-Eng
     const response=JSON.parse(context.res.body);
     assert.equal(response.version,'RC1036');
     assert.ok(response.timing&&typeof response.timing==='object','Issue-Antwort muss Timingdaten enthalten.');
-    for(const key of ['teamReadMs','flagWriteMs','tokenIssueMs','totalMs']){
+    for(const key of ['authMs','teamBlobMs','teamReadMs','flagWriteMs','tokenIssueMs','totalMs']){
       assert.equal(typeof response.timing[key],'number',`${key} muss numerisch sein.`);
       assert.ok(response.timing[key]>=0,`${key} darf nicht negativ sein.`);
     }
     assert.ok(response.timing.totalMs>=response.timing.teamReadMs,'Gesamtzeit muss mindestens den Team-Read enthalten.');
     const serverTiming=String(context.res.headers&&context.res.headers['Server-Timing']||'');
-    for(const metric of ['team-read','flag-write','token-issue','total'])assert.match(serverTiming,new RegExp(`${metric};dur=\\d`),`Server-Timing muss ${metric} enthalten.`);
+    for(const metric of ['auth','team-blob','team-read','flag-write','token-issue','total'])assert.match(serverTiming,new RegExp(`${metric};dur=\\d`),`Server-Timing muss ${metric} enthalten.`);
   }finally{
     if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage;
   }

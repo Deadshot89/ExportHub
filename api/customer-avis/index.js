@@ -17,7 +17,7 @@ function obj(v){return!!v&&typeof v==='object'&&!Array.isArray(v)}
 function num(v){const n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
 function now(){return new Date().toISOString()}
 function elapsed(start){return Math.max(0,Date.now()-start)}
-function timingHeaders(timing){return{'Server-Timing':['team-read;dur='+timing.teamReadMs,'flag-write;dur='+timing.flagWriteMs,'token-issue;dur='+timing.tokenIssueMs,'total;dur='+timing.totalMs].join(', ')}}
+function timingHeaders(timing){return{'Server-Timing':['auth;dur='+timing.authMs,'team-blob;dur='+timing.teamBlobMs,'team-read;dur='+timing.teamReadMs,'flag-write;dur='+timing.flagWriteMs,'token-issue;dur='+timing.tokenIssueMs,'total;dur='+timing.totalMs].join(', ')}}
 function error(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e}
 function json(status,body,headers={}){return access.json(status,body,headers)}
 function body(req){return access.body(req)}
@@ -94,9 +94,9 @@ module.exports=async function(context,req){
  try{
   const requestStarted=Date.now(),payload=body(req),action=lower(payload.action);
   if(req.method==='POST'&&(action==='issue'||action==='disable')){
-   const internal=await auth.validateSession(req);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
-   const env=access.environment(req,payload),blob=await teamBlob(env),readStarted=Date.now(),d=await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;
-   const timing={teamReadMs:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};
+   const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
+   const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),readStarted=Date.now(),d=await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;
+   const timing={authMs,teamBlobMs,teamReadMs:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};
    const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref);let target=findShipment(state,subjectId,reference);
    if(!target&&action==='issue'&&payload.shipmentSnapshot)target=ensureDraftShipment(state,subjectId,reference,payload.shipmentSnapshot);
    if(!target)throw error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);

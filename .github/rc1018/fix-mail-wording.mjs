@@ -18,7 +18,7 @@ fs.writeFileSync(file,source);
 const RC1027_ID='exporthub-rc1027-lieferavis-immediate';
 const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavis-immediate.js?v=1033"></script>';
 const RC1037_ID='exporthub-rc1037-lieferavis-timing-diagnostics';
-const RC1037_TAG='<script id="'+RC1037_ID+'" defer src="/assets/rc1037-lieferavis-timing-diagnostics.js?v=1037"></script>';
+const RC1037_TAG='<script id="'+RC1037_ID+'" defer src="/assets/rc1037-lieferavis-timing-diagnostics.js?v=1038"></script>';
 function injectScript(rel,id,tag){
   const target=path.join(ROOT,rel);
   if(!fs.existsSync(target))return false;
@@ -40,4 +40,4 @@ for(const page of ['index.html','TESTVERSION.html','demo.html']){
   injectScript(page,RC1027_ID,RC1027_TAG);
   injectScript(page,RC1037_ID,RC1037_TAG);
 }
-console.log('RC1037 Lieferavis: Fast-Path plus Server-Timing-Diagnose mit frischen Cache-Keys für Produktion, TESTSERVICE und Demo aktiviert.');
+console.log('RC1038 Lieferavis: vollständige Server-Timing-Diagnose mit frischem Cache-Key für Produktion, TESTSERVICE und Demo aktiviert.');
