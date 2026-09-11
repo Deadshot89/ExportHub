@@ -68,11 +68,38 @@ function patchDashboardOpenShipments(html,file){
   return out;
 }
 
+function patchDashboardDueTasks(html,file){
+  let out=html;
+
+  const oldTaskOpenList="function taskOpenList(){\n    var seen=new Map();\n    tasks().filter(function(t){return t && !isDone(t)}).forEach(function(t,index){\n      var key=low([itemTitle(t,''),t.owner||t.assignee||'Alle',t.day||t.originalDay||'',t.area||t.category||t.section||'',customer(t),t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref||'',t.time||''].join('|'));\n      if(!key)key='task:'+q(t.id||t.taskId||index);\n      if(!seen.has(key))seen.set(key,t)\n    });\n    return Array.from(seen.values())\n  }";
+  const newTaskOpenList="function workspaceCurrentUser(){try{var s=getState(),r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};return (typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||r.user||window.currentUser||s.currentUser||s.user||{}}catch(_){return{}}}\n\n  function workspaceTaskOwner(t){return q(t&&(t.eowner||t.owner||t.assignee||t.responsible||t.zustaendig||''))}\n\n  function workspaceTaskForUser(t){var own=low(workspaceTaskOwner(t)),u=workspaceCurrentUser(),name=low(u.name||u.user||u.login||u.username||''),login=low(u.user||u.login||u.username||'');return !own||own==='alle'||own==='all'||(name&&(own.indexOf(name)>=0||name.indexOf(own)>=0))||(login&&own.indexOf(login)>=0)}\n\n  function workspaceIsoWeek(d){var x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);var y=x.getUTCFullYear(),ys=new Date(Date.UTC(y,0,1)),w=Math.ceil((((x-ys)/86400000)+1)/7);return y+'-W'+String(w).padStart(2,'0')}\n\n  function workspaceTaskBacklog(t){return !!(t&&(t.isBacklog||t.backlog||low(t.day)==='rückstand'||low(t.area)==='rückstand'))}\n\n  function workspaceTaskDate(t){var keys=['dueDate','due','date','plannedDate','targetDate','deadline'];for(var i=0;i<keys.length;i++){var v=t&&t[keys[i]];if(!v)continue;var d=new Date(v);if(!isNaN(d.getTime()))return d}return null}\n\n  function workspaceTaskVisible(t){if(!t)return false;if(workspaceTaskBacklog(t))return true;var now=new Date(),current=workspaceIsoWeek(now),explicit=q(t.weekKey||t.createdForWeek||'');if(explicit&&explicit!==current)return false;var source=q(t.sourceWeekStart||'').slice(0,10);if(/^\\d{4}-\\d{2}-\\d{2}$/.test(source)){var sd=new Date(source+'T12:00:00');if(!isNaN(sd)&&workspaceIsoWeek(sd)!==current)return false}var recurring=!!(t.recurring===true||t.repeat===true||t.isRecurring===true||t.recurringSeriesId||t.weeklySeriesId||t.recurringTemplateId||t.masterTaskRC848||t.masterTaskRC846);if(recurring&&!explicit&&!source){var rd=workspaceTaskDate(t);if(rd&&workspaceIsoWeek(rd)!==current)return false}return true}\n\n  function taskOpenList(){\n    var seen=new Map();\n    tasks().filter(function(t){return t && !isDone(t) && workspaceTaskForUser(t) && workspaceTaskVisible(t)}).forEach(function(t,index){\n      var key=low([itemTitle(t,''),t.owner||t.assignee||'Alle',t.day||t.originalDay||'',t.area||t.category||t.section||'',customer(t),t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref||'',t.time||''].join('|'));\n      if(!key)key='task:'+q(t.id||t.taskId||index);\n      if(!seen.has(key))seen.set(key,t)\n    });\n    return Array.from(seen.values())\n  }";
+  out=replaceOne(out,oldTaskOpenList,newTaskOpenList,file+' Dashboard Aufgaben Benutzer und Woche');
+
+  const oldDue="function dueTask(t){\n    var d=dateValue(t);\n    if(!d) return false;\n    return dayKey(d)<=todayKey()\n  }";
+  const newDue="function dueTask(t){\n    if(workspaceTaskBacklog(t))return true;\n    var d=workspaceTaskDate(t);\n    if(d)return dayKey(d)<=todayKey();\n    var order={montag:1,dienstag:2,mittwoch:3,donnerstag:4,freitag:5,samstag:6,sonntag:7},day=low(t&&(t.day||t.originalDay||'')),today=order[low(['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][new Date().getDay()])]||99,idx=order[day]||99;\n    return idx<=today&&today<=5\n  }";
+  out=replaceOne(out,oldDue,newDue,file+' Dashboard echte Faelligkeit');
+
+  const oldDashboardUser="function taskForUser(t){var owner=low(taskOwner(t)),u=low(userName());return !owner||owner==='alle'||owner==='all'||owner.indexOf(u)>=0||u.indexOf(owner)>=0}";
+  const newDashboardUser="function taskForUser(t){var owner=low(taskOwner(t)),u=currentUser(),name=low(u.name||u.user||u.login||u.username||''),login=low(u.user||u.login||u.username||'');return !owner||owner==='alle'||owner==='all'||(name&&(owner.indexOf(name)>=0||name.indexOf(owner)>=0))||(login&&owner.indexOf(login)>=0)}";
+  out=replaceOne(out,oldDashboardUser,newDashboardUser,file+' Kern-Dashboard Aufgaben Benutzer');
+
+  const oldRender="var r=root();if(!r)return false;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks).filter(taskMeaningfulDashboardRC818).filter(function(t){return !dashboardTaskIsTestRC818(t)}),owned=tasks.filter(taskForUser);if(owned.length)tasks=owned;";
+  const newRender="var r=root();if(!r)return false;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks).filter(taskMeaningfulDashboardRC818).filter(function(t){return !dashboardTaskIsTestRC818(t)}).filter(taskForUser);";
+  out=replaceOne(out,oldRender,newRender,file+' Kern-Dashboard kein Fallback auf fremde Aufgaben');
+
+  if(!out.includes("function workspaceTaskDate(t){var keys=['dueDate','due','date','plannedDate','targetDate','deadline']"))throw new Error(file+': Dashboard nutzt kein echtes Aufgabendatum');
+  if(out.includes("workspaceTaskDate(t){var keys=['dueDate','due','date','plannedDate','targetDate','deadline','createdAt']"))throw new Error(file+': createdAt darf keine Fälligkeit erzeugen');
+  if(!out.includes('workspaceTaskForUser(t) && workspaceTaskVisible(t)'))throw new Error(file+': persönlicher Aufgabenfilter fehlt');
+  if(!out.includes('.filter(taskForUser);'))throw new Error(file+': Kern-Dashboard fällt noch auf fremde Aufgaben zurück');
+  return out;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchPodUploadPersistence(html,file);
   html=patchDashboardOpenShipments(html,file);
+  html=patchDashboardDueTasks(html,file);
   html=html.replace(/ExportHUB RC1018 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1018',cache:'1018',loginReturn:'([^']*)'\}\);/,
@@ -107,4 +134,4 @@ fs.writeFileSync(path.join(OUT,'rc1044-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
-console.log('RC1044 build ready: POD-Speicherung und Dashboard-Filter für nicht abgeholte Sendungen gehärtet, Produktion/TESTSERVICE/Demo synchronisiert.');
+console.log('RC1044 build ready: POD, offene Sendungen und fällige Dashboard-Aufgaben fachlich gehärtet, Produktion/TESTSERVICE/Demo synchronisiert.');
