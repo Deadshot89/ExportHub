@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import Module,{createRequire} from 'node:module';
 import path from 'node:path';
 import {Readable} from 'node:stream';
@@ -73,4 +74,9 @@ test('RC1059: Produktion darf keinen TESTSERVICE-Blob abrufen',async()=>{
   const res=await invoke(endpoint,{blob:`rc1059/testservice/aa/${hash}`,host:'wonderful-forest-0f315e310.7.azurestaticapps.net'});
   assert.equal(res.status,409);
   assert.equal(JSON.parse(res.body).code,'ENVIRONMENT_MISMATCH');
+});
+
+test('RC1059: REST-Blob-Client übernimmt den echten Content-Type aus Azure',()=>{
+  const source=fs.readFileSync(new URL('../api/shared/blob-rest.js',import.meta.url),'utf8');
+  assert.match(source,/contentType\s*:\s*res\.headers\.get\(['"]content-type['"]\)/);
 });
