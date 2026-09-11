@@ -23,8 +23,8 @@ module.exports = async function(context, req) {
   context.res = json(200, {
     ok: true,
     service: 'exporthub-health',
-    version: 'RC1057',
-    release: 'state-size-health-diagnostics',
+    version: 'RC1058',
+    release: 'state-structure-diagnostics',
     runtime: process.version,
     time: new Date().toISOString()
   });
