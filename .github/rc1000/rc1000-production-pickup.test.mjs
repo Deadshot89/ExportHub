@@ -46,16 +46,21 @@ function loadAccess(azure){
 }
 function req(){return{headers:{host:'wonderful-forest-0f315e310.azurestaticapps.net'}}}
 
-test('erneutes QR-Erzeugen liefert einen neuen aktiven Token und widerruft den alten',async()=>{
+test('erneutes QR-Erzeugen hält bereits ausgegebene QR-Codes aktiv und teilt den Pickup-Datensatz',async()=>{
   process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
-  process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET='rc1000-production-test-secret';
-  const access=loadAccess(makeAzureMemory()),firstToken='a'.repeat(48);
+  process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET='rc1045-production-test-secret';
+  const access=loadAccess(makeAzureMemory()),firstToken='a'.repeat(48),secondToken='b'.repeat(48);
   const first=await access.issue(req(),'pickup',{subjectId:'SHIP-1',shipmentId:'SHIP-1',reference:'ABC123'},86400000,{token:firstToken});
+  const second=await access.issue(req(),'pickup',{subjectId:'SHIP-1',shipmentId:'SHIP-1',reference:'ABC123'},86400000,{token:secondToken});
   assert.equal(first.token,firstToken);
-  const second=await access.issue(req(),'pickup',{subjectId:'SHIP-1',shipmentId:'SHIP-1',reference:'ABC123'},86400000,{token:firstToken});
-  assert.match(second.token,/^[a-f0-9]{48}$/);
-  assert.notEqual(second.token,firstToken);
+  assert.equal(second.token,secondToken);
+  assert.notEqual(second.tokenHash,first.tokenHash);
+  assert.equal(second.resourceKey,first.tokenHash,'neuer QR muss denselben Pickup-Datensatz verwenden');
+  const oldStillLive=await access.resolve(req(),'pickup',firstToken);
+  const newStillLive=await access.resolve(req(),'pickup',secondToken);
+  assert.equal(oldStillLive.resourceKey,first.tokenHash);
+  assert.equal(newStillLive.resourceKey,first.tokenHash);
+  await access.revokeSubject(req(),'pickup','SHIP-1','disabled','RC1045-Test');
   await assert.rejects(()=>access.resolve(req(),'pickup',firstToken),e=>e&&e.status===410);
-  const live=await access.resolve(req(),'pickup',second.token);
-  assert.equal(live.record.subjectId,'SHIP-1');
+  await assert.rejects(()=>access.resolve(req(),'pickup',secondToken),e=>e&&e.status===410);
 });

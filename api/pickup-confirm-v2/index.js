@@ -13,13 +13,13 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=json(204,{});return}if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
  let resolved=null;
  try{
-  const b=store.body(req),token=String(b.token||'').trim();resolved=await access.resolve(req,'pickup',token,{allowUsed:false},b);
+  const b=store.body(req),token=String(b.token||'').trim();resolved=await access.resolve(req,'pickup',token,{allowUsed:false},b);const accessKey=resolved.resourceKey||resolved.tokenHash;
   const personalPin=pins.text(b.pin||b.loaderPin||b.personalLoaderPin);if(!pins.validPin(personalPin)){await access.registerFailure(resolved.environment,'pickup',resolved.tokenHash,'pin-format');throw pins.error('INVALID_PIN','Bitte die vierstellige persönliche Verlader-PIN eingeben.',400)}
   const loader=await pins.findByPin(personalPin);if(!loader){const failed=await access.registerFailure(resolved.environment,'pickup',resolved.tokenHash,'pin');if(failed.lockedUntil)throw access.error('ACCESS_LOCKED','Zu viele falsche PIN-Eingaben. Der QR-Code ist vorübergehend gesperrt.',429);throw pins.error('INVALID_PIN','Verlader-PIN ist nicht korrekt oder deaktiviert.',401)}
-  const got=await store.getRecord(resolved.tokenHash,resolved.environment),current=got.record||{},providedRef=String(b.reference||b.shipmentRef||'').trim().toUpperCase();if(providedRef&&providedRef!==String(current.reference||'').trim().toUpperCase()){await access.registerFailure(resolved.environment,'pickup',resolved.tokenHash,'reference');throw store.err('REFERENCE_MISMATCH','Referenz stimmt nicht mit der Sendung überein.',403)}
+  const got=await store.getRecord(accessKey,resolved.environment),current=got.record||{},providedRef=String(b.reference||b.shipmentRef||'').trim().toUpperCase();if(providedRef&&providedRef!==String(current.reference||'').trim().toUpperCase()){await access.registerFailure(resolved.environment,'pickup',resolved.tokenHash,'reference');throw store.err('REFERENCE_MISMATCH','Referenz stimmt nicht mit der Sendung überein.',403)}
   const signature=store.first(b,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']);if(!signature)throw store.err('SIGNATURE_REQUIRED','Die digitale Unterschrift ist Pflicht.',400);
   let uploadKey='';
-  const rec=await store.mutateRecord(resolved.tokenHash,resolved.environment,async function(r,clients){
+  const rec=await store.mutateRecord(accessKey,resolved.environment,async function(r,clients){
    if(store.expired(r)&&!completeOf(r))throw store.err('EXPIRED','QR-Code ist abgelaufen.',410);if(completeOf(r)||r.status==='confirmed')throw store.err('ALREADY_CONFIRMED','Diese Sendung wurde bereits vollständig abgeholt.',410);
    const spedition=store.sanitizeText(store.first(b,['carrierName','speditionName','carrier','spedition'])||store.first(r,['carrierName','speditionName','carrier','spedition']),180);if(!spedition)throw store.err('CARRIER_REQUIRED','Speditionsname fehlt. Die Abholung darf nicht abgeschlossen werden.',409);
    const plate=store.sanitizeText(store.first(b,['licensePlate','vehicleLicensePlate','kennzeichen','plate']),80);if(!plate)throw store.err('LICENSE_PLATE_REQUIRED','Kennzeichen fehlt. Die Abholung darf nicht abgeschlossen werden.',409);

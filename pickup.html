@@ -134,13 +134,16 @@ function deep(data,names){
 }
 
 var u=new URL(location.href);
-var hash='';
-try{hash=decodeURIComponent(String(u.hash||'').replace(/^#/,''))}catch(_){hash=String(u.hash||'').replace(/^#/,'')}
-var hm=hash.match(/(?:^|[\/?&])pickup(?:=|\/)([a-f0-9]{48})(?:$|[&\/?])/i)||hash.match(/^pickup=([a-f0-9]{48})$/i);
-var pm=String(u.pathname||'').match(/\/pickup(?:\.html)?\/([a-f0-9]{48})\/?$/i);
-var candidates=[u.searchParams.get('pickup'),u.searchParams.get('token'),pm&&pm[1],hm&&hm[1]];
+var hash='';try{hash=decodeURIComponent(String(u.hash||'').replace(/^#/,''))}catch(_){hash=String(u.hash||'').replace(/^#/,'')}
+function currentTokenLike(v){return /^[a-f0-9]{48}$/i.test(q(v))}
+function legacyTokenLike(v){return /^[A-Za-z0-9_-]{6,160}$/.test(q(v))}
+function tokenLike(v){return currentTokenLike(v)||legacyTokenLike(v)}
+var hm=hash.match(/(?:^|[\\/?&])pickup(?:=|\\/)([A-Za-z0-9_-]{6,160})(?:$|[&\\/?])/i)||hash.match(/^pickup=([A-Za-z0-9_-]{6,160})$/i);
+var pm=String(u.pathname||'').match(/\\/pickup(?:\\.html)?\\/([A-Za-z0-9_-]{6,160})\\/?$/i);
+var legacy=/^pickup$/i.test(q(u.searchParams.get('ehcmd')));
+var candidates=[u.searchParams.get('pickup'),u.searchParams.get('token'),u.searchParams.get('qr'),legacy&&u.searchParams.get('ref'),pm&&pm[1],hm&&hm[1],window.__EXPORTHUB_PICKUP_ROUTE_TOKEN__];
 var token='';
-for(var i=0;i<candidates.length;i++){var t=q(candidates[i]);if(/^[a-f0-9]{48}$/i.test(t)){token=t;break}}
+for(var i=0;i<candidates.length;i++){var t=q(candidates[i]);if(tokenLike(t)){token=t;break}}
 
 var env=q(u.searchParams.get('environment'));
 if(env!=='production'&&env!=='testservice'){
@@ -156,7 +159,7 @@ var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d',{alpha:f
 function status(text,kind){statusEl.className='status '+(kind||'info');statusEl.textContent=text}
 
 if(!token){
-  status('Dieser QR-Code ist veraltet oder ungültig. Bitte in ExportHUB für die Sendung einen neuen QR-Code erzeugen und die Ladeliste neu drucken.','bad');
+  status('Dieser QR-Code konnte nicht gelesen werden. Bitte den bereits ausgegebenen QR-Code nicht ersetzen und den Versand kontaktieren.','bad');
   form.hidden=true;
   return;
 }
@@ -228,7 +231,7 @@ function load(){
     .then(show)
     .catch(function(e){
       if(e.status===410||e.code==='ACCESS_INVALID'){
-        status('Dieser QR-Code ist ungültig oder nicht mehr aktiv. Bitte in ExportHUB einen neuen QR-Code erzeugen und die Ladeliste neu drucken.','bad');
+        status('Dieser QR-Code konnte serverseitig nicht aufgelöst werden. Bitte den vorhandenen QR-Code nicht ersetzen und den Versand kontaktieren.','bad');
       }else{
         status('Sendungsdaten konnten nicht geladen werden: '+q(e.message||e),'bad');
       }
