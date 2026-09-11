@@ -8,6 +8,7 @@ on:
       - 'assets/rc1061-document-migration-admin.js'
       - 'assets/rc1059-document-blob.js'
       - 'test/rc1061-document-migration-admin-ui.test.mjs'
+      - 'test/rc1060-testservice-migration-control.test.mjs'
       - '.github/rc1049/fix-mail-abd-gate.mjs'
       - '.github/workflows/rc1061-branch-test.yml'
   workflow_dispatch:
