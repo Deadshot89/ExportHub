@@ -29,6 +29,7 @@ on:
       - '.github/rc1013/**'
       - '.github/rc1017/**'
       - '.github/rc1018/**'
+      - '.github/rc1041/**'
       - '.github/rc995/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc998/**'
@@ -75,7 +76,7 @@ jobs:
         run: npm test
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
         run: node .github/rc1013/build-three-env.mjs
-      - name: RC1013 Baseline und RC1018 Produktionsmarker prüfen
+      - name: RC1013 Baseline und RC1041 Produktionsmarker prüfen
         shell: bash
         run: |
           set -euo pipefail
