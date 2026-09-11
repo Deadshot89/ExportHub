@@ -24,14 +24,48 @@ function injectSopImages(html){
 }
 function patchGate41NationalOnly(html){
   let out=html;
-  const baseBefore="var base=national?gateRate(pallets,kg)*pallets:lookupInternationalPrice(g),source=national?'Gate41-Grundtarif':'Internationaler Gate41-Tarif';";
-  const baseAfter="var base=national?gateRate(pallets,kg)*pallets:0,source=national?'Gate41-Grundtarif':'Gate41 nur national';";
-  if(out.includes(baseBefore))out=out.replace(baseBefore,baseAfter);
-  const calcBefore="var baseInfo=gateConfiguredBase(g,pallets,kg,national),manualBase=num(g.internationalBase),base=baseInfo.automatic?baseInfo.base:manualBase,dieselPct=gateDieselPct(dieselPrice)";
-  const calcAfter="var baseInfo=gateConfiguredBase(g,pallets,kg,national),manualBase=national?num(g.internationalBase):0,base=national?(baseInfo.automatic?baseInfo.base:manualBase):0,dieselPct=gateDieselPct(dieselPrice)";
-  if(out.includes(calcBefore))out=out.replace(calcBefore,calcAfter);
-  if(!out.includes("source=national?'Gate41-Grundtarif':'Gate41 nur national'"))throw new Error('RC1041 Gate41 National-Only: Grundtarif-Pfad nicht gefunden.');
-  if(!out.includes("manualBase=national?num(g.internationalBase):0"))throw new Error('RC1041 Gate41 National-Only: manueller Auslandspreis ist nicht gesperrt.');
+  const replacements=[
+    [
+      "var base=national?gateRate(pallets,kg)*pallets:lookupInternationalPrice(g),source=national?'Gate41-Grundtarif':'Internationaler Gate41-Tarif';",
+      "var base=national?gateRate(pallets,kg)*pallets:0,source=national?'Gate41-Grundtarif':'Gate41 nur national';"
+    ],
+    [
+      "var baseInfo=gateConfiguredBase(g,pallets,kg,national),manualBase=num(g.internationalBase),base=baseInfo.automatic?baseInfo.base:manualBase,dieselPct=gateDieselPct(dieselPrice)",
+      "var baseInfo=gateConfiguredBase(g,pallets,kg,national),manualBase=national?num(g.internationalBase):0,base=national?(baseInfo.automatic?baseInfo.base:manualBase):0,dieselPct=gateDieselPct(dieselPrice)"
+    ],
+    [
+      "scopeLabel=hasCountry?(national?'Deutschland':'International'):'',",
+      "scopeLabel=hasCountry?(national?'Deutschland':'Nicht verfügbar'):'',"
+    ],
+    [
+      "if(kind==='gate'&&!result.valid){alert(result.scope==='national'?'Für Palettenanzahl/Gewicht ist kein Gate41-Grundtarif hinterlegt.':'Für dieses Zielland ist keine internationale Gate41-Grundfracht hinterlegt.');return false}",
+      "if(kind==='gate'&&!result.valid){alert(result.scope==='national'?'Für Palettenanzahl/Gewicht ist kein Gate41-Grundtarif hinterlegt.':'Gate41 ist derzeit nur für nationalen Versand innerhalb Deutschlands freigegeben.');return false}"
+    ],
+    [
+      "Route, Verpackung, Palettenanzahl und Gewicht werden gemeinsam für die Preisanfrage geführt.",
+      "Gate41 ist derzeit nur für nationalen Versand innerhalb Deutschlands freigegeben. Route, Palettenanzahl und Gewicht werden aus der Sendung übernommen oder manuell erfasst."
+    ],
+    [
+      "Kein passender Gate41-Tarif hinterlegt · manuelle Eingabe möglich",
+      "Kein passender Deutschland-Grundtarif hinterlegt · manuelle Eingabe möglich"
+    ],
+    [
+      "Pakete über UPS und Paletten über Gate41. Route und Sendungsdaten können automatisch aus der geöffneten Sendung übernommen werden.",
+      "Pakete über UPS und nationale Palettensendungen innerhalb Deutschlands über Gate41. Route und Sendungsdaten können automatisch aus der geöffneten Sendung übernommen werden."
+    ]
+  ];
+  for(const [before,after] of replacements){
+    if(out.includes(before))out=out.replace(before,after);
+  }
+  out=out.replaceAll("Paletten – Gate41","Paletten – Gate41 Deutschland");
+  const required=[
+    "source=national?'Gate41-Grundtarif':'Gate41 nur national'",
+    "manualBase=national?num(g.internationalBase):0",
+    "scopeLabel=hasCountry?(national?'Deutschland':'Nicht verfügbar')",
+    "Gate41 ist derzeit nur für nationalen Versand innerhalb Deutschlands freigegeben.",
+    "Paletten – Gate41 Deutschland"
+  ];
+  for(const marker of required)if(!out.includes(marker))throw new Error('RC1041 Gate41 National-Only fehlt: '+marker);
   return out
 }
 
