@@ -22,8 +22,8 @@ test('RC1044 Teilabholungen bleiben im Dashboard offen',()=>{
   assert.match(src,/teilabhol\|partial/);
 });
 
-test('RC1044 Warncenter behält eigene offene Arbeitsmenge für fehlende PODs',()=>{
-  assert.match(src,/function warningData\(\)[\s\S]*?var ss=shipmentOpenList\(\)/);
+test('RC1044 Dashboard-Patch ändert den POD-Warncenter-Filter nicht auf DashboardOpen',()=>{
+  assert.doesNotMatch(src,/var ss=shipmentDashboardOpenList\(\)/);
 });
 
 test('RC1044 Dashboard-Fix wird auf Produktion TESTSERVICE und Demo gebaut',()=>{
