@@ -1,0 +1,30 @@
+name: RC1061 Branch Test
+
+on:
+  push:
+    branches:
+      - rc1061-document-migration-admin-ui
+    paths:
+      - 'assets/rc1061-document-migration-admin.js'
+      - 'test/rc1061-document-migration-admin-ui.test.mjs'
+      - 'index.html'
+      - '.github/workflows/rc1061-branch-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1061-document-migration-admin-ui
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1061 Regression
+        run: node --test test/rc1061-document-migration-admin-ui.test.mjs
