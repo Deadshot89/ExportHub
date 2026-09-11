@@ -17,21 +17,27 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: RC996 Aufgaben Planner Altvertrag prüfen
-        run: node --test .github/rc996/tasks-contract.test.mjs
-      - name: Aufgaben und Planner Datenquellen ausgeben
+      - name: Aktuellen Drei-Umgebungen-Build vorbereiten
+        run: |
+          node .github/rc1018/fix-mail-wording.mjs
+          node .github/rc1048/build-three-env.mjs
+      - name: Ausgelieferten Aufgaben und Planner Datenpfad prüfen
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const html=fs.readFileSync('TESTVERSION.html','utf8');
+          const candidates=['dist-rc1048/TESTVERSION.html','dist-rc1047/TESTVERSION.html','TESTVERSION.html'];
+          const file=candidates.find(fs.existsSync);
+          if(!file) throw new Error('Kein gebautes TESTVERSION.html gefunden');
+          const html=fs.readFileSync(file,'utf8');
+          console.log('DATEI:',file);
           function show(marker,limit=3500){
             const i=html.indexOf(marker);
             console.log('\n===== '+marker+' @ '+i+' =====');
@@ -42,4 +48,21 @@ jobs:
           show('function logicalTaskKeyRC896',3500);
           console.log('\nprepareTasks calls:',(html.match(/ExportHUBRC1014TaskRuntime\.prepareTasks/g)||[]).length);
           console.log('direct state.tasks refs:',(html.match(/state\.tasks/g)||[]).length);
+          console.log('direct st().tasks refs:',(html.match(/st\(\)\.tasks/g)||[]).length);
+          NODE
+      - name: RC1054 gemeinsamer Datenbestand muss Aufgaben und Planner versorgen
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const candidates=['dist-rc1048/TESTVERSION.html','dist-rc1047/TESTVERSION.html'];
+          const file=candidates.find(fs.existsSync);
+          if(!file) throw new Error('Release-Build fehlt');
+          const html=fs.readFileSync(file,'utf8');
+          const taskStart=html.indexOf('const rawOpen=');
+          const plannerStart=html.indexOf('function openTasksForWeek');
+          if(taskStart<0||plannerStart<0) throw new Error('Aufgaben- oder Planner-Block fehlt');
+          const task=html.slice(taskStart,taskStart+2500);
+          const planner=html.slice(plannerStart,plannerStart+2500);
+          if(!/ExportHUBRC1014TaskRuntime\.prepareTasks/.test(task)) throw new Error('RED: Aufgabenansicht nutzt nicht den kanonischen Task-Runtime-Bestand');
+          if(!/ExportHUBRC1014TaskRuntime\.(?:prepareTasks|visibleTasks|currentTasks)/.test(planner)) throw new Error('RED: Aufgaben Planner liest weiterhin einen separaten alten Task-Bestand');
           NODE
