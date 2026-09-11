@@ -67,8 +67,12 @@
   });
   box.appendChild(title);box.appendChild(status);box.appendChild(btn);w.document.body.appendChild(box);
  }
- if(w.document&&w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',function(){setTimeout(install,800)});
- else setTimeout(install,800);
- var tries=0,timer=w.setInterval(function(){tries++;install();if(w.document&&w.document.getElementById('rc1060MigrationControl')||tries>60)w.clearInterval(timer)},1000);
+ if(w.document){
+  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',function(){if(typeof w.setTimeout==='function')w.setTimeout(install,800);else install()});
+  else if(typeof w.setTimeout==='function')w.setTimeout(install,800);else install();
+  if(typeof w.setInterval==='function'){
+   var tries=0,timer=w.setInterval(function(){tries++;install();if(w.document.getElementById('rc1060MigrationControl')||tries>60)w.clearInterval(timer)},1000);
+  }
+ }
  w.ExportHUBDocumentMigration1060={install:install,remove:remove};
 })(window);
