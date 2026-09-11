@@ -7,7 +7,7 @@ on:
     paths:
       - 'assets/rc1061-document-migration-admin.js'
       - 'test/rc1061-document-migration-admin-ui.test.mjs'
-      - 'index.html'
+      - '.github/rc1049/fix-mail-abd-gate.mjs'
       - '.github/workflows/rc1061-branch-test.yml'
   workflow_dispatch:
 
