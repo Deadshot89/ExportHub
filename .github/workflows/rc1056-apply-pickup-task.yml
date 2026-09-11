@@ -22,7 +22,7 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - name: RC1056 Abholtag-Lifecycle ergänzen
-        shell: python
+        shell: python {0}
         run: |
           from pathlib import Path
           p=Path('assets/rc1014-task-lifecycle.js')
