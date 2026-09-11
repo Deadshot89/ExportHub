@@ -78,6 +78,28 @@ async function uploadIdempotent(blob,buffer,mimeType,metadata){
   throw e;
  }
 }
+async function readBlobBuffer(blob){
+ if(typeof blob.downloadToBuffer==='function')return Buffer.from(await blob.downloadToBuffer());
+ if(typeof blob.download==='function'){
+  const response=await blob.download(0);
+  if(response&&response.readableStreamBody){
+   const chunks=[];
+   for await(const chunk of response.readableStreamBody)chunks.push(Buffer.from(chunk));
+   return Buffer.concat(chunks);
+  }
+ }
+ const e=new Error('Blob-Verifikation wird vom Client nicht unterstützt.');e.code='BLOB_VERIFY_UNSUPPORTED';throw e;
+}
+async function verifiedStoreInlineDocument(file,options={}){
+ const parsed=extractInlinePayload(file);if(!parsed)return clone(file);
+ const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer();
+ await ensureDocumentContainer(container);
+ const hash=crypto.createHash('sha256').update(parsed.buffer).digest('hex'),blobName=`rc1059/${environment}/${hash.slice(0,2)}/${hash}`,blob=container.getBlockBlobClient(blobName);
+ await uploadIdempotent(blob,parsed.buffer,parsed.mimeType,{sha256:hash,environment,kind:'exporthub-document'});
+ const verified=await readBlobBuffer(blob),verifiedHash=crypto.createHash('sha256').update(verified).digest('hex');
+ if(verified.length!==parsed.buffer.length||verifiedHash!==hash){const e=new Error('Blob-Verifikation fehlgeschlagen.');e.code='BLOB_VERIFY_FAILED';throw e}
+ return Object.assign(stripInlineFields(file),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
+}
 async function storeInlineDocument(file,options={}){
  const parsed=extractInlinePayload(file);if(!parsed)return clone(file);
  const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer();
@@ -102,9 +124,38 @@ async function externalizeDocumentCollections(state,options={}){
      const stored=await storeInlineDocument(file,options);files[i]=stored;stats.externalized++;stats.inlineBytes+=parsed.buffer.length;
     }
    }
-  }
  }
  return{state:out,stats};
 }
+async function migrateLegacyDocuments(state,options={}){
+ const out=clone(state)||{},limit=Math.max(1,Math.min(10,Number(options.limit)||5));
+ let found=0,migrated=0,skipped=0,failed=0,bytesMoved=0,attempted=0;
+ const inlineEntries=[];
+ for(const root of ROOT_COLLECTIONS){
+  const rows=Array.isArray(out[root])?out[root]:[];
+  for(let ri=0;ri<rows.length;ri++){
+   const row=rows[ri];if(!row||typeof row!=='object')continue;
+   for(const field of DOCUMENT_FIELDS){
+    const files=Array.isArray(row[field])?row[field]:[];
+    for(let fi=0;fi<files.length;fi++){
+     const file=files[fi];
+     if(file&&file.storage==='blob'&&file.blobName){skipped++;continue}
+     const parsed=extractInlinePayload(file);
+     if(parsed){found++;inlineEntries.push({files,fi,file,bytes:parsed.buffer.length});}
+    }
+   }
+  }
+ }
+ for(const entry of inlineEntries){
+  if(attempted>=limit)break;
+  attempted++;
+  try{
+   const stored=await verifiedStoreInlineDocument(entry.file,options);
+   entry.files[entry.fi]=stored;migrated++;bytesMoved+=entry.bytes;
+  }catch(_){failed++;}
+ }
+ const remaining=found-migrated;
+ return{state:out,found,migrated,skipped,failed,remaining,bytesMoved,done:remaining===0};
+}
 
-module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,storeInlineDocument,externalizeDocumentCollections,createDocumentContainer,ensureDocumentContainer};
+module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer};
