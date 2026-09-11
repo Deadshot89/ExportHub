@@ -8,8 +8,8 @@
   },
   "environments": {
     "production": "https://wonderful-forest-0f315e310.7.azurestaticapps.net/",
-    "testservice": "https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/TESTVERSION.html",
-    "demo": "https://wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net/demo.html"
+    "testservice": "https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/TESTVERSION.html",
+    "demo": "https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/demo.html"
   },
   "features": [
     "Auswahl Produktion / TESTSERVICE / Demo beim App-Start",

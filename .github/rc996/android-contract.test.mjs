@@ -15,7 +15,7 @@ test('Android RC996 besitzt eine gemeinsame EnvironmentActivity mit exakt drei E
   assert.equal(exists(ACT),true,`${ACT} fehlt`);
   const src=read(ACT);
   assert.match(src,/wonderful-forest-0f315e310\.7\.azurestaticapps\.net/);
-  assert.match(src,/wonderful-forest-0f315e310-testservice\.centralus\.7\.azurestaticapps\.net/);
+  assert.match(src,/ashy-grass-065b7b803-testservice\.westeurope\.6\.azurestaticapps\.net/);
   assert.match(src,/TESTVERSION\.html/);
   assert.match(src,/demo\.html/);
   assert.match(src,/Produktion/);
