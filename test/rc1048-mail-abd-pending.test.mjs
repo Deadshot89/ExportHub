@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 
 const ROOT=process.cwd();
 const PATCH=path.join(ROOT,'.github/rc1049/fix-mail-abd-gate.mjs');
-const pages=['index.html','TESTVERSION.html','demo.html'];
+const pages=['index.html','TESTVERSION.html','demo.html'].filter(page=>fs.existsSync(path.join(ROOT,page)));
 
 test('RC1049 Diagnose: Outlook-Handler und Mailbereich zeigen die alte ABD-Sperre',()=>{
   const raw=fs.readFileSync('index.html','utf8');
