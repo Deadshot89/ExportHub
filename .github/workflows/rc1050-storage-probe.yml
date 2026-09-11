@@ -31,4 +31,7 @@ jobs:
             echo "===== $base /api/exporthub-state?mode=ping ====="
             curl -sS -i --max-time 20 "$base/api/exporthub-state?mode=ping" || true
             echo
+            echo "===== $base /api/exporthub-state?mode=health ====="
+            curl -sS -i --max-time 20 "$base/api/exporthub-state?mode=health" || true
+            echo
           done
