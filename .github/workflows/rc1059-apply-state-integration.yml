@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/rc1059/apply-state-integration.cjs'
       - '.github/workflows/rc1059-apply-state-integration.yml'
+      - 'test/rc1059-document-blob-store.test.mjs'
   workflow_dispatch:
 
 permissions:
