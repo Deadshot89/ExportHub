@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const html=fs.readFileSync('index.html','utf8');
 const ui=fs.readFileSync('assets/rc1013-gate41-ui.js','utf8');
+const build=fs.readFileSync('.github/rc1018/build-three-env.mjs','utf8');
 
 function extractFunctionBody(source,name,nextName){
   const rx=new RegExp('function\\s+'+name+'\\([^)]*\\)\\{([\\s\\S]*?)\\}\\s*function\\s+'+nextName+'\\(');
@@ -34,4 +35,8 @@ test('RC1041: fehlender internationaler Tarif wird landesspezifisch statt als ge
 test('RC1041: bei fehlendem Auslandstarif ist der offizielle Gate41-Frachtkalkulator direkt erreichbar',()=>{
   assert.match(ui,/https:\/\/gate41\.com\/frachtkalkulator\//,'offizieller Gate41-Frachtkalkulator fehlt');
   assert.match(ui,/Gate41-Frachtkalkulator öffnen/,'sichtbare Aktion zum offiziellen Kalkulator fehlt');
+});
+
+test('RC1041: aktueller Drei-Umgebungen-Build lädt die Gate41-Diagnose cache-frisch',()=>{
+  assert.match(build,/rc1013-gate41-ui\.js\?v=1041/,'Gate41-Asset wird im aktuellen Build nicht mit RC1041 neu geladen');
 });
