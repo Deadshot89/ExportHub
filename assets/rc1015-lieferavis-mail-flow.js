@@ -5,7 +5,8 @@ window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__=true;
 
 var base=null,wrapper=null,autoEnablePending=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false;
 var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff','böllhof':'Kein Lieferavis für diesen Kunden','böllhoff':'Kein Lieferavis für diesen Kunden',boellhof:'Kein Lieferavis für diesen Kunden',boellhoff:'Kein Lieferavis für diesen Kunden'});
-var RC1018_AVIS_BLOCK_MESSAGE='Lieferavis für diesen Kunden nicht verfügbar – Kunden-IT blockiert den Zugriff.';
+var RC1018_AVIS_BLOCK_MESSAGE='Lieferavis für diesen Kunden nicht verfügbar.';
+function rc1018AvisBlockMessage(blocked){return blocked&&blocked.key==='bmp'?RC1018_AVIS_BLOCK_MESSAGE+' Kunden-IT blockiert den Zugriff.':RC1018_AVIS_BLOCK_MESSAGE}
 function q(v){return String(v==null?'':v).trim()}
 function scalarName(v){
  if(v==null||typeof v==='object'||typeof v==='boolean')return'';
@@ -133,7 +134,7 @@ async function rc1015Toggle(on){
  if(!base||typeof base.toggle!=='function')return false;
  var sh=currentShipmentForAvis();
  if(on&&rc1018AvisException(sh)){
-  alert(RC1018_AVIS_BLOCK_MESSAGE);
+  alert(rc1018AvisBlockMessage(rc1018AvisException(sh)));
   return false
  }
  if(!on&&!rc1024ServerEnabled(sh)){
@@ -150,7 +151,7 @@ async function rc1015Toggle(on){
  try{
   if(on){rc1024ClearDraftDisabled(sh);await rc1015PersistBeforeAvis()}
   if(on&&rc1018AvisException(currentShipmentForAvis())){
-   alert(RC1018_AVIS_BLOCK_MESSAGE);
+   alert(rc1018AvisBlockMessage(rc1018AvisException(currentShipmentForAvis())));
    refreshUi();
    return false
   }
@@ -249,7 +250,7 @@ function rc1015UpdateLieferavisButton(){
  btn.textContent=active?'Deaktivieren':'Aktivieren';
  btn.disabled=active?false:(!!blocked||!wrapper||!rc1015DraftReference());
  var help=panel.querySelectorAll('.rc897-avis-help'),last=help&&help.length?help[help.length-1]:null;
- if(last)last.textContent=blocked?RC1018_AVIS_BLOCK_MESSAGE:(active?'Lieferavis ist für diese Sendung standardmäßig aktiv. Der Link wird beim ersten sicheren Speichern erstellt. Bei Bedarf können Sie den Lieferavis deaktivieren.':'Lieferavis ist für diese Sendung deaktiviert.');
+ if(last)last.textContent=blocked?rc1018AvisBlockMessage(blocked):(active?'Lieferavis ist für diese Sendung standardmäßig aktiv. Der Link wird beim ersten sicheren Speichern erstellt. Bei Bedarf können Sie den Lieferavis deaktivieren.':'Lieferavis ist für diese Sendung deaktiviert.');
  return true
 }
 function mailModeLabel(type,sh,lang){
