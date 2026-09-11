@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1041'" production-version.js
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs test/rc1018-testservice-exception-sync.test.mjs
@@ -53,37 +53,36 @@ jobs:
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
-          node .github/rc1018/build-three-env.mjs
-          node .github/rc1041/apply-release-version.mjs
-          grep -q 'ExportHUB RC1041 environment=testservice' dist-rc1018/TESTVERSION.html
-          grep -q 'ExportHUB RC1041 environment=demo' dist-rc1018/demo.html
-          grep -q "version:'RC1041'" dist-rc1018/TESTVERSION.html
-          grep -q "version:'RC1041'" dist-rc1018/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1041'" dist-rc1018/production-version.js
-          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1018/TESTVERSION.html
-          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1018/demo.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/customer-avis.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/pickup.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/location.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1018/TESTVERSION.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1018/demo.html
-          test -s dist-rc1018/assets/rc1018-mail-language-standard.js
-          test -s dist-rc1018/assets/rc1018-public-language.js
-          test -s dist-rc1018/assets/rc1017-multi-truck.js
+          node .github/rc1041/build-three-env.mjs
+          grep -q 'ExportHUB RC1041 environment=testservice' dist-rc1041/TESTVERSION.html
+          grep -q 'ExportHUB RC1041 environment=demo' dist-rc1041/demo.html
+          grep -q "version:'RC1041'" dist-rc1041/TESTVERSION.html
+          grep -q "version:'RC1041'" dist-rc1041/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1041'" dist-rc1041/production-version.js
+          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1041/TESTVERSION.html
+          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1041/demo.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1041/customer-avis.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1041/pickup.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1041/location.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1041/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1041/demo.html
+          test -s dist-rc1041/assets/rc1018-mail-language-standard.js
+          test -s dist-rc1041/assets/rc1018-public-language.js
+          test -s dist-rc1041/assets/rc1017-multi-truck.js
       - name: TESTSERVICE-Paket vorbereiten
         shell: bash
         run: |
           set -euo pipefail
           rm -rf .rc1018_testservice_app
           mkdir -p .rc1018_testservice_app
-          cp dist-rc1018/pickup.html dist-rc1018/customer-avis.html dist-rc1018/location.html dist-rc1018/pod-notfall.html .rc1018_testservice_app/
-          cp dist-rc1018/production-version.js .rc1018_testservice_app/production-version.js
+          cp dist-rc1041/pickup.html dist-rc1041/customer-avis.html dist-rc1041/location.html dist-rc1041/pod-notfall.html .rc1018_testservice_app/
+          cp dist-rc1041/production-version.js .rc1018_testservice_app/production-version.js
           cp -R assets .rc1018_testservice_app/assets
-          cp -R dist-rc1018/assets/. .rc1018_testservice_app/assets/
+          cp -R dist-rc1041/assets/. .rc1018_testservice_app/assets/
           cp staticwebapp.testservice.config.json .rc1018_testservice_app/staticwebapp.config.json
-          cp dist-rc1018/TESTVERSION.html .rc1018_testservice_app/index.html
-          cp dist-rc1018/TESTVERSION.html .rc1018_testservice_app/TESTVERSION.html
-          cp dist-rc1018/demo.html .rc1018_testservice_app/demo.html
+          cp dist-rc1041/TESTVERSION.html .rc1018_testservice_app/index.html
+          cp dist-rc1041/TESTVERSION.html .rc1018_testservice_app/TESTVERSION.html
+          cp dist-rc1041/demo.html .rc1018_testservice_app/demo.html
           test -s .rc1018_testservice_app/assets/rc1017-multi-truck.js
           test -s .rc1018_testservice_app/assets/rc1018-mail-language-standard.js
           test -s .rc1018_testservice_app/assets/rc1018-public-language.js
