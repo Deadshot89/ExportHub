@@ -53,6 +53,17 @@ test('RC1059: Inline-Dokument wird hashbasiert im TESTSERVICE abgelegt und im St
   assert.equal(container.uploads[0].buffer.toString(),'ABC');
 });
 
+test('RC1059: doppelte data/dataUrl-Payload wird vollständig aus dem State entfernt',async()=>{
+  const mod=require('../api/shared/document-blob-store.js');
+  const container=fakeContainer();
+  const dataUrl='data:application/pdf;base64,QUJD';
+  const out=await mod.storeInlineDocument({id:'D2',name:'LS2.pdf',data:dataUrl,dataUrl},{environment:'production',container});
+  assert.equal(out.storage,'blob');
+  assert.equal(out.data,undefined);
+  assert.equal(out.dataUrl,undefined);
+  assert.equal(container.uploads.length,1);
+});
+
 test('RC1059: Fehlgeschlagener Blob-Upload erzeugt keine tote Referenz',async()=>{
   const mod=require('../api/shared/document-blob-store.js');
   const container=fakeContainer({failUpload:true});
