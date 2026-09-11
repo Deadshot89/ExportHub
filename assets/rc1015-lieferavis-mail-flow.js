@@ -4,7 +4,7 @@ if(window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__)return;
 window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__=true;
 
 var base=null,wrapper=null,autoEnablePending=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false;
-var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff'});
+var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff','böllhof':'Kein Lieferavis für diesen Kunden','böllhoff':'Kein Lieferavis für diesen Kunden',boellhof:'Kein Lieferavis für diesen Kunden',boellhoff:'Kein Lieferavis für diesen Kunden'});
 var RC1018_AVIS_BLOCK_MESSAGE='Lieferavis für diesen Kunden nicht verfügbar – Kunden-IT blockiert den Zugriff.';
 function q(v){return String(v==null?'':v).trim()}
 function scalarName(v){
@@ -24,8 +24,9 @@ function shipmentCustomerName(sh){
  return scalarName(sh.customer)||objectName(sh.customer)||scalarName(sh.recipient)||objectName(sh.recipient)||''
 }
 function rc1018AvisException(sh){
- var name=shipmentCustomerName(sh),key=name.toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
- return Object.prototype.hasOwnProperty.call(RC1018_AVIS_EXCEPTIONS,key)?{customer:name,key:key,reason:RC1018_AVIS_EXCEPTIONS[key]}:null
+ var name=shipmentCustomerName(sh),key=name.toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim(),matchKey='';
+ for(var candidate in RC1018_AVIS_EXCEPTIONS)if(Object.prototype.hasOwnProperty.call(RC1018_AVIS_EXCEPTIONS,candidate)&&(key===candidate||key.indexOf(candidate+' ')===0)){matchKey=candidate;break}
+ return matchKey?{customer:name,key:matchKey,reason:RC1018_AVIS_EXCEPTIONS[matchKey]}:null
 }
 function shipmentReference(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo||sh.id||sh.shipmentId)).toUpperCase()}
 function currentState(){
