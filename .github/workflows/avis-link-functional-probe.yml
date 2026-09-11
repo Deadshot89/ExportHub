@@ -24,5 +24,7 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Aktiven ExportHUB-Release vorbereiten
+        run: node .github/rc1018/fix-mail-wording.mjs
       - name: 20 Testsendungen und Avis-Link messen
         run: node --test test/avis-link-functional-probe.test.mjs
