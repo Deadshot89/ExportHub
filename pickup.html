@@ -135,7 +135,9 @@ function deep(data,names){
 
 var u=new URL(location.href);
 var hash='';try{hash=decodeURIComponent(String(u.hash||'').replace(/^#/,''))}catch(_){hash=String(u.hash||'').replace(/^#/,'')}
-function tokenLike(v){return /^[A-Za-z0-9_-]{6,160}$/.test(q(v))}
+function currentTokenLike(v){return /^[a-f0-9]{48}$/i.test(q(v))}
+function legacyTokenLike(v){return /^[A-Za-z0-9_-]{6,160}$/.test(q(v))}
+function tokenLike(v){return currentTokenLike(v)||legacyTokenLike(v)}
 var hm=hash.match(/(?:^|[\\/?&])pickup(?:=|\\/)([A-Za-z0-9_-]{6,160})(?:$|[&\\/?])/i)||hash.match(/^pickup=([A-Za-z0-9_-]{6,160})$/i);
 var pm=String(u.pathname||'').match(/\\/pickup(?:\\.html)?\\/([A-Za-z0-9_-]{6,160})\\/?$/i);
 var legacy=/^pickup$/i.test(q(u.searchParams.get('ehcmd')));
