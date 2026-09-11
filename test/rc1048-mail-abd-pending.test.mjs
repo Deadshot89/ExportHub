@@ -1,17 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 
-for (const file of ['index.html','TESTVERSION.html']) {
-  test(`${file}: fehlendes ABD darf die Mail nicht sperren`, () => {
-    const html = fs.readFileSync(file,'utf8');
-    const phrase='Mail gesperrt: ABD noch nicht abgeschlossen.';
-    const i=html.indexOf(phrase);
-    if(i>=0){
-      const fnStart=Math.max(html.lastIndexOf('function rc543',i),html.lastIndexOf('function mail',i),i-5000);
-      const from=Math.max(0,fnStart>=0?fnStart:i-5000),to=Math.min(html.length,i+2200);
-      console.error(`RC1049_MAIL_ABD_FULL_CONTEXT ${file}:\n${html.slice(from,to)}`);
+const ROOT=process.cwd();
+const PATCH=path.join(ROOT,'.github/rc1049/fix-mail-abd-gate.mjs');
+const pages=['index.html','TESTVERSION.html','demo.html'];
+
+test('RC1049: fehlendes ABD ist im Mailbereich nur Hinweis und keine Sperre',()=>{
+  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'exporthub-rc1049-mail-'));
+  try{
+    for(const page of pages)fs.copyFileSync(path.join(ROOT,page),path.join(tmp,page));
+    execFileSync(process.execPath,[PATCH],{cwd:tmp,stdio:'pipe'});
+    for(const page of pages){
+      const html=fs.readFileSync(path.join(tmp,page),'utf8');
+      const start=html.indexOf('function mailAreaHtml(){');
+      const end=html.indexOf('function refreshMailAreaFields(',start);
+      assert.ok(start>=0&&end>start,page+': Mailbereich fehlt');
+      const mailArea=html.slice(start,end);
+      assert.doesNotMatch(mailArea,/Mail gesperrt: ABD noch nicht abgeschlossen\./);
+      assert.doesNotMatch(mailArea,/if\(!m\.abdOk\)reason\.push\('ABD noch nicht abgeschlossen'\)/);
+      assert.doesNotMatch(mailArea,/!m\.abdOk\s*\|\|\s*!m\.to/);
+      assert.doesNotMatch(mailArea,/!opened\s*\|\|\s*!m\.abdOk/);
+      assert.match(mailArea,/ABD noch nicht vorhanden\. Die Mail kann mit Lieferavis versendet werden\./);
+      assert.match(mailArea,/!m\.to\|\|!m\.templateOk/,'Empfänger und Mailvorlage bleiben echte Mail-Sperren');
     }
-    assert.equal(i,-1,`${file}: alter ABD-Mailblock ist noch aktiv`);
-  });
-}
+  }finally{fs.rmSync(tmp,{recursive:true,force:true})}
+});
