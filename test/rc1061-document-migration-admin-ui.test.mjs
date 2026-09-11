@@ -41,7 +41,7 @@ test('RC1061: jeder UI-Migrationslauf sendet exakt ein 5er-Batch in die aktuelle
 });
 
 test('RC1061: Standard-Deploy lädt die Admin-Steuerung in Produktion und TESTSERVICE',()=>{
-  const deploy=fs.readFileSync(new URL('../.github/rc1018/fix-mail-wording.mjs',import.meta.url),'utf8');
+  const deploy=fs.readFileSync(new URL('../.github/rc1049/fix-mail-abd-gate.mjs',import.meta.url),'utf8');
   assert.match(deploy,/exporthub-rc1061-document-migration-admin/);
   assert.match(deploy,/assets\/rc1061-document-migration-admin\.js/);
   assert.match(deploy,/\['index\.html','TESTVERSION\.html'\]/);
