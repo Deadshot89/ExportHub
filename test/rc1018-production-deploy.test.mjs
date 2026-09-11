@@ -5,8 +5,8 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
 const workflow='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
 
-test('RC1046 ist der aktuelle gemeinsame Standarddeploy auf der geprüften RC1046/RC1044/RC1018-Buildkette',()=>{
-  const flow=read(workflow),wrapper=read('.github/rc1046/build-three-env.mjs'),previous=read('.github/rc1046/build-three-env.mjs'),base=read('.github/rc1044/build-three-env.mjs');
+test('RC1046 ist der aktuelle gemeinsame Standarddeploy auf der geprüften RC1045/RC1044/RC1018-Buildkette',()=>{
+  const flow=read(workflow),wrapper=read('.github/rc1046/build-three-env.mjs'),previous=read('.github/rc1045/build-three-env.mjs'),base=read('.github/rc1044/build-three-env.mjs');
   assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1046'/);
   assert.match(flow,/name:\s*ExportHUB RC1046 Drei-Umgebungen Deploy/);
   assert.match(flow,/node \.github\/rc1046\/build-three-env\.mjs/);
