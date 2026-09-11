@@ -75,10 +75,70 @@ function patchGate41Autofill(html,file){
   return out;
 }
 
+function patchDashboardDueTasks(html,file){
+  let out=html;
+
+  const oldTaskOpen=`function taskOpenList(){
+    var seen=new Map();
+    tasks().filter(function(t){return t && !isDone(t)}).forEach(function(t,index){
+      var key=low([itemTitle(t,''),t.owner||t.assignee||'Alle',t.day||t.originalDay||'',t.area||t.category||t.section||'',customer(t),t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref||'',t.time||''].join('|'));
+      if(!key)key='task:'+q(t.id||t.taskId||index);
+      if(!seen.has(key))seen.set(key,t)
+    });
+    return Array.from(seen.values())
+  }`;
+
+  const newTaskOpen=`function workspaceCurrentUserName(){try{var u=window.__EXPORTHUB_GET_CURRENT_USER__?window.__EXPORTHUB_GET_CURRENT_USER__():(window.currentUser||{});return q(u&&(u.name||u.user||u.login||u.username))}catch(_){return''}}
+  function workspaceTaskOwner(t){return q(t&&(t.eowner||t.owner||t.assignee||t.responsible||t.zustaendig||''))}
+  function workspaceTaskForCurrentUser(t){var owner=low(workspaceTaskOwner(t)),u=low(workspaceCurrentUserName());if(!owner||owner==='alle'||owner==='all')return true;if(!u)return false;return owner.indexOf(u)>=0||u.indexOf(owner)>=0}
+  function workspaceTaskBacklog(t){return !!(t&&(t.isBacklog||t.backlog||low(t.day)==='rückstand'||low(t.day)==='ruckstand'||low(t.area)==='rückstand'||low(t.area)==='ruckstand'))}
+  function workspaceIsoWeekKey(value){var d=value instanceof Date?new Date(value.getTime()):new Date(value);if(isNaN(d.getTime()))return'';var x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);var y=x.getUTCFullYear(),start=new Date(Date.UTC(y,0,1)),week=Math.ceil((((x-start)/86400000)+1)/7);return y+'-W'+String(week).padStart(2,'0')}
+  function workspaceTaskCurrentWeekVisible(t){if(!t||workspaceTaskBacklog(t))return true;try{if(typeof window.taskVisibleInCurrentWeek==='function'&&typeof window.taskWeekKey==='function')return !!window.taskVisibleInCurrentWeek(t,window.taskWeekKey())}catch(_){}var current=workspaceIsoWeekKey(new Date()),explicit=q(t.weekKey||t.createdForWeek),source=q(t.sourceWeekStart).slice(0,10);if(explicit&&explicit!==current)return false;if(/^\\d{4}-\\d{2}-\\d{2}$/.test(source)&&workspaceIsoWeekKey(new Date(source+'T12:00:00'))!==current)return false;return true}
+  function taskOpenList(){
+    var seen=new Map();
+    tasks().filter(function(t){return t && !isDone(t) && workspaceTaskForCurrentUser(t) && workspaceTaskCurrentWeekVisible(t)}).forEach(function(t,index){
+      var key=low([itemTitle(t,''),t.owner||t.assignee||'Alle',t.day||t.originalDay||'',t.area||t.category||t.section||'',customer(t),t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref||'',t.time||''].join('|'));
+      if(!key)key='task:'+q(t.id||t.taskId||index);
+      if(!seen.has(key))seen.set(key,t)
+    });
+    return Array.from(seen.values())
+  }`;
+  out=replaceOne(out,oldTaskOpen,newTaskOpen,file+' persönliche offene Aufgaben');
+
+  const oldDue=`function dueTask(t){
+    var d=dateValue(t);
+    if(!d) return false;
+    return dayKey(d)<=todayKey()
+  }`;
+  const newDue=`function workspaceTaskDueDate(t){var keys=['dueDate','due','date','plannedDate','targetDate'];for(var i=0;i<keys.length;i++){var v=q(t&&t[keys[i]]);if(!v)continue;var m=v.match(/^(\\d{4}-\\d{2}-\\d{2})/),d=m?new Date(m[1]+'T12:00:00'):new Date(v);if(!isNaN(d.getTime()))return d}return null}
+  function workspaceWeekdayIndex(v){var n=low(v),map={montag:1,monday:1,dienstag:2,tuesday:2,mittwoch:3,wednesday:3,donnerstag:4,thursday:4,freitag:5,friday:5,samstag:6,saturday:6,sonntag:7,sunday:7};return map[n]||0}
+  function dueTask(t){
+    if(!t||isDone(t))return false;
+    if(workspaceTaskBacklog(t))return true;
+    var d=workspaceTaskDueDate(t);
+    if(d)return dayKey(d)<=todayKey();
+    var ti=workspaceWeekdayIndex(t.day||t.originalDay),ci=(new Date().getDay()||7);
+    return ti>0&&ci<=5&&ti<=ci
+  }`;
+  out=replaceOne(out,oldDue,newDue,file+' Fälligkeit ohne Erstellungsdatum');
+
+  const oldRender="var r=root();if(!r)return false;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks).filter(taskMeaningfulDashboardRC818).filter(function(t){return !dashboardTaskIsTestRC818(t)}),owned=tasks.filter(taskForUser);if(owned.length)tasks=owned;";
+  const newRender="var r=root();if(!r)return false;var s=state(),p=prefs(),modules=availableModules(),tasks=arr(s.tasks).filter(taskMeaningfulDashboardRC818).filter(function(t){return !dashboardTaskIsTestRC818(t)}).filter(taskForUser);";
+  out=replaceOne(out,oldRender,newRender,file+' Meine-Aufgaben ohne Fremdnutzer-Fallback');
+
+  if(!out.includes("var keys=['dueDate','due','date','plannedDate','targetDate']"))throw new Error(file+': Fälligkeitslogik verwendet nicht die fachlichen Aufgabendaten');
+  if(out.includes("var keys=['dueDate','due','date','plannedPickupDate','pickupDate','plannedDate','createdAt'];")&&!out.includes('workspaceTaskDueDate'))throw new Error(file+': Dashboard-Aufgaben nutzen weiterhin createdAt als Fälligkeit');
+  if(!out.includes('workspaceTaskForCurrentUser(t)'))throw new Error(file+': persönlicher Aufgabenfilter fehlt');
+  if(!out.includes('.filter(taskForUser);'))throw new Error(file+': zentrale Meine-Aufgaben-Kachel filtert nicht strikt auf Benutzer');
+  if(out.includes('owned=tasks.filter(taskForUser);if(owned.length)tasks=owned;'))throw new Error(file+': Fremdnutzer-Fallback ist weiterhin aktiv');
+  return out;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchGate41Autofill(html,file);
+  html=patchDashboardDueTasks(html,file);
   html=html.replace(/ExportHUB RC1045 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1045',cache:'1045',loginReturn:'([^']*)'\}\);/,
@@ -118,4 +178,4 @@ fs.writeFileSync(path.join(OUT,'rc1046-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
-console.log('RC1046 build ready: Gate41 übernimmt und zeigt vollständige Sendungsdaten; Laufzeit nutzt vorhandene Sendungs-, Kunden- oder Tarifquelle.');
+console.log('RC1046 build ready: Gate41 vollständig sowie Dashboard mit korrekten persönlichen fälligen Aufgaben und nicht abgeholten Sendungen.');
