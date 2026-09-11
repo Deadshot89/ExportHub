@@ -5,12 +5,13 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
 const workflow='.github/workflows/exporthub-testservice.yml';
 
-test('RC1018 TESTSERVICE-Ausnahmeweg baut den aktuellen RC1018-Stand statt RC1013',()=>{
+test('RC1041 TESTSERVICE-Ausnahmeweg nutzt RC1018-Buildbasis mit aktueller Sichtversion',()=>{
   const flow=read(workflow);
-  assert.match(flow,/RC1018 TESTSERVICE-Ausnahmevertrag prüfen/);
+  assert.match(flow,/RC1041 TESTSERVICE-Ausnahmevertrag prüfen/);
   assert.match(flow,/test\/rc1018-mail-language-standard\.test\.mjs/);
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
   assert.match(flow,/node \.github\/rc1018\/build-three-env\.mjs/);
+  assert.match(flow,/node \.github\/rc1041\/apply-release-version\.mjs/);
   assert.match(flow,/dist-rc1018\/TESTVERSION\.html/);
   assert.match(flow,/dist-rc1018\/demo\.html/);
   assert.match(flow,/\.rc1018_testservice_app/);
