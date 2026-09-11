@@ -5,7 +5,7 @@ const { Readable } = require('stream');
 
 const STORAGE_API_VERSION = '2023-11-03';
 const TRANSIENT = new Set([408,425,429,500,502,503,504]);
-const STORAGE_TIMEOUT_MS = Math.max(5000, Math.min(15000, Number(process.env.EXPORTHUB_STORAGE_TIMEOUT_MS || 9000)));
+const STORAGE_TIMEOUT_MS = Math.max(5000, Math.min(30000, Number(process.env.EXPORTHUB_STORAGE_TIMEOUT_MS || 20000)));
 const STORAGE_ATTEMPTS = Math.max(1, Math.min(2, Number(process.env.EXPORTHUB_STORAGE_ATTEMPTS || 2)));
 
 function text(v){ return String(v == null ? '' : v).trim(); }
