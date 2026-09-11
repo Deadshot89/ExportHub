@@ -61,7 +61,7 @@ test('RC1059: ungültige Blobpfade werden abgewiesen',async()=>{
 
 test('RC1059: TESTSERVICE-Dokument wird binär über geschützten Endpoint geliefert',async()=>{
   const endpoint=loadEndpoint({buffer:Buffer.from('%PDF-test'),contentType:'application/pdf'});
-  const res=await invoke(endpoint,{blob:`rc1059/testservice/aa/${hash}`,host:'wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net'});
+  const res=await invoke(endpoint,{blob:`rc1059/testservice/aa/${hash}`,host:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'});
   assert.equal(res.status,200);
   assert.equal(res.headers['Content-Type'],'application/pdf');
   assert.equal(res.headers['Cache-Control'],'private, no-store');
