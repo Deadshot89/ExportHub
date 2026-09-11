@@ -34,8 +34,8 @@ test('RC1049: Mail und öffentliche Avis-Seite erhalten den ABD-Hinweis und Term
   assert.match(asset,/expectedAvailableDate/);
   assert.match(asset,/minPickupTime:'10:00'/);
   assert.match(asset,/b\.shipmentSnapshot\.abdRequestedAt/);
-  assert.match(page,/rc1049-abd-avis-policy\.js\?v=1049/);
-  assert.match(main,/rc1049-abd-avis-policy\.js\?v=1049/);
+  assert.match(page,/rc1049-abd-avis-policy\.js\?v=1050/);
+  assert.match(main,/rc1049-abd-avis-policy\.js\?v=1050/);
 });
 
 test('RC1049: ABD-Avis-Runtime ist syntaktisch ausführbar',()=>{
