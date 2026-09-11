@@ -130,7 +130,7 @@ function usableTeamDocument(value){return !!(value&&typeof value==='object'&&!Ar
 function stateSizeDiagnostics(state){
  const root=isObj(state)?state:{},documentFields=new Set(['podFiles','abdFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments']);
  const sectionBytes=Object.entries(root).map(([key,value])=>{let bytes=0;try{bytes=Buffer.byteLength(JSON.stringify(value))}catch(_){}return {key,bytes,items:Array.isArray(value)?value.length:(isObj(value)?Object.keys(value).length:0)}}).sort((a,b)=>b.bytes-a.bytes).slice(0,20);
- const documentFieldCounts={},seen=new WeakSet();let documentPayloadBytes=0,inlinePayloadCount=0,documentEntries=0;
+ const documentFieldCounts={},seen=new WeakSet();let documentPayloadBytes=0,inlinePayloadCount=0,documentEntries=0,blobDocumentEntries=0;
  const scanFile=(value,depth=0,keyHint='')=>{
   if(value==null||depth>10)return;
   if(typeof value==='string'){
@@ -147,13 +147,13 @@ function stateSizeDiagnostics(state){
   if(Array.isArray(value)){value.forEach(v=>walk(v,depth+1));return}
   Object.entries(value).forEach(([key,val])=>{
    if(documentFields.has(key)&&Array.isArray(val)){
-    documentFieldCounts[key]=(documentFieldCounts[key]||0)+val.length;documentEntries+=val.length;val.forEach(v=>scanFile(v,0,key));return;
+    documentFieldCounts[key]=(documentFieldCounts[key]||0)+val.length;documentEntries+=val.length;val.forEach(v=>{if(isObj(v)&&v.storage==='blob'&&text(v.blobName))blobDocumentEntries++;scanFile(v,0,key)});return;
    }
    walk(val,depth+1);
   });
  };
  walk(root);
- return {sectionBytes,documentEntries,documentPayloadBytes,inlinePayloadCount,documentFieldCounts};
+ return {sectionBytes,documentEntries,blobDocumentEntries,documentPayloadBytes,inlinePayloadCount,documentFieldCounts};
 }
 async function latestValidTeamFallback(container,teamBlobName,recoveryPrefix,allowDiscovery){
  let history=[];try{history=await listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery)}catch(_){history=[]}
