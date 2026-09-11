@@ -20,6 +20,9 @@ function patchHtml(file){
     }
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1044(['"])/g,`$1${VERSION}$2`);
+  if(!html.includes('function shipmentDashboardOpenList()'))throw new Error(`${file}: RC1045 Dashboard-Filter für nicht abgeholte Sendungen fehlt`);
+  if(!html.includes('function dashboardShipmentPickedUp(s)'))throw new Error(`${file}: RC1045 Kern-Dashboard erkennt Abholung nicht`);
+  if(!html.includes("metric('Offene Sendungen',open.length,'kpi-orange','noch nicht abgeholt')"))throw new Error(`${file}: RC1045 Dashboard-Kachel ist fachlich nicht auf Abholung begrenzt`);
   if(!html.includes(`version:'${VERSION}'`))throw new Error(`${file}: BUILD ${VERSION} fehlt`);
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(`${file}: Environment ${VERSION} fehlt`);
   fs.writeFileSync(target,html);
@@ -49,4 +52,4 @@ fs.writeFileSync(path.join(OUT,'rc1045-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
-console.log('RC1045 build ready: dauerhafter QR-Bestandsschutz, Produktion/TESTSERVICE/Demo synchronisiert.');
+console.log('RC1045 build ready: QR-Bestandsschutz und Dashboard nur mit nicht abgeholten Sendungen, Produktion/TESTSERVICE/Demo synchronisiert.');
