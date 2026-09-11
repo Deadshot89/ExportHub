@@ -113,7 +113,9 @@ jobs:
           test -s dist-rc1018/assets/sop/screenshots/rc1016-shipmentoverview.png
           test -s dist-rc1018/assets/sop/screenshots/rc1016-pickupcalendar.png
           grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1018/index.html
-          grep -q 'assets/rc1013-gate41-ui.js?v=1013' dist-rc1018/index.html
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1018/$file"
+          done
           grep -q 'serverToken=q(data&&data.token)' dist-rc1018/index.html
           grep -q "setRouteData(g,'country','Deutschland')" dist-rc1018/index.html
       - name: Gemeinsame RC1018 Deploy-Pakete vorbereiten
@@ -235,8 +237,8 @@ jobs:
               && grep -q 'rc1016MobileMenuBtn' "$tm" \
               && grep -q 'EH-PICKUP-410' "$pd" \
               && grep -q 'EH-PICKUP-410' "$td" \
-              && grep -q 'Gate41-Preis berechnet' "$pg" \
-              && grep -q 'Gate41-Preis berechnet' "$tg" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$pg" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$tg" \
               && grep -q 'ExportHubMultiTruck' "$pr" \
               && grep -q 'ExportHubMultiTruck' "$tr" \
               && grep -q 'calendarScalarText' "$pcal" \
