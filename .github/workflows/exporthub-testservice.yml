@@ -1,10 +1,10 @@
 name: ExportHUB TESTSERVICE Einzel-Deploy
 
-# Standard ist der gemeinsame RC1047-Drei-Umgebungen-Deploy über
+# Standard ist der gemeinsame RC1048-Drei-Umgebungen-Deploy über
 # azure-static-web-apps-wonderful-forest-0f315e310.yml.
 # Ein einzelner TESTSERVICE-Deploy ist nur bei ausdrücklich genehmigter
 # Abweichung von Produktion und Demo möglich. Auch dann wird der aktuelle
-# RC1047-Release auf der stabilen RC1018-Buildbasis verwendet und kein historischer Release zurückgespielt.
+# RC1048-Release auf der stabilen RC1018-Buildbasis verwendet und kein historischer Release zurückgespielt.
 on:
   workflow_dispatch:
     inputs:
@@ -39,11 +39,11 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: RC1047 TESTSERVICE-Ausnahmevertrag prüfen
+      - name: RC1048 TESTSERVICE-Ausnahmevertrag prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1047'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" production-version.js
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs test/rc1018-testservice-exception-sync.test.mjs
@@ -53,46 +53,46 @@ jobs:
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
-          node .github/rc1047/build-three-env.mjs
-          grep -q 'ExportHUB RC1047 environment=testservice' dist-rc1047/TESTVERSION.html
-          grep -q 'ExportHUB RC1047 environment=demo' dist-rc1047/demo.html
-          grep -q "version:'RC1047'" dist-rc1047/TESTVERSION.html
-          grep -q "version:'RC1047'" dist-rc1047/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1047'" dist-rc1047/production-version.js
-          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1047/TESTVERSION.html
-          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1047/demo.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1047/customer-avis.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1047/pickup.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1047/location.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1047/TESTVERSION.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1047/demo.html
-          test -s dist-rc1047/assets/rc1018-mail-language-standard.js
-          test -s dist-rc1047/assets/rc1018-public-language.js
-          test -s dist-rc1047/assets/rc1017-multi-truck.js
+          node .github/rc1048/build-three-env.mjs
+          grep -q 'ExportHUB RC1048 environment=testservice' dist-rc1048/TESTVERSION.html
+          grep -q 'ExportHUB RC1048 environment=demo' dist-rc1048/demo.html
+          grep -q "version:'RC1048'" dist-rc1048/TESTVERSION.html
+          grep -q "version:'RC1048'" dist-rc1048/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" dist-rc1048/production-version.js
+          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1048/TESTVERSION.html
+          grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1048/demo.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1048/customer-avis.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1048/pickup.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1048/location.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1048/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1048/demo.html
+          test -s dist-rc1048/assets/rc1018-mail-language-standard.js
+          test -s dist-rc1048/assets/rc1018-public-language.js
+          test -s dist-rc1048/assets/rc1017-multi-truck.js
       - name: TESTSERVICE-Paket vorbereiten
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .rc1047_testservice_app
-          mkdir -p .rc1047_testservice_app
-          cp dist-rc1047/pickup.html dist-rc1047/customer-avis.html dist-rc1047/location.html dist-rc1047/pod-notfall.html .rc1047_testservice_app/
-          cp dist-rc1047/production-version.js .rc1047_testservice_app/production-version.js
-          cp -R assets .rc1047_testservice_app/assets
-          cp -R dist-rc1047/assets/. .rc1047_testservice_app/assets/
-          cp staticwebapp.testservice.config.json .rc1047_testservice_app/staticwebapp.config.json
-          cp dist-rc1047/TESTVERSION.html .rc1047_testservice_app/index.html
-          cp dist-rc1047/TESTVERSION.html .rc1047_testservice_app/TESTVERSION.html
-          cp dist-rc1047/demo.html .rc1047_testservice_app/demo.html
-          test -s .rc1047_testservice_app/assets/rc1017-multi-truck.js
-          test -s .rc1047_testservice_app/assets/rc1018-mail-language-standard.js
-          test -s .rc1047_testservice_app/assets/rc1018-public-language.js
+          rm -rf .rc1048_testservice_app
+          mkdir -p .rc1048_testservice_app
+          cp dist-rc1048/pickup.html dist-rc1048/customer-avis.html dist-rc1048/location.html dist-rc1048/pod-notfall.html .rc1048_testservice_app/
+          cp dist-rc1048/production-version.js .rc1048_testservice_app/production-version.js
+          cp -R assets .rc1048_testservice_app/assets
+          cp -R dist-rc1048/assets/. .rc1048_testservice_app/assets/
+          cp staticwebapp.testservice.config.json .rc1048_testservice_app/staticwebapp.config.json
+          cp dist-rc1048/TESTVERSION.html .rc1048_testservice_app/index.html
+          cp dist-rc1048/TESTVERSION.html .rc1048_testservice_app/TESTVERSION.html
+          cp dist-rc1048/demo.html .rc1048_testservice_app/demo.html
+          test -s .rc1048_testservice_app/assets/rc1017-multi-truck.js
+          test -s .rc1048_testservice_app/assets/rc1018-mail-language-standard.js
+          test -s .rc1048_testservice_app/assets/rc1018-public-language.js
       - name: Deploy TESTSERVICE explicit only
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1047_testservice_app
+          app_location: .rc1048_testservice_app
           api_location: api
           output_location: ''
           skip_app_build: true
