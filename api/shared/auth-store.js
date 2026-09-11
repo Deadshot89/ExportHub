@@ -50,7 +50,6 @@ async function clients() {
   if (!cs) throw error('STORAGE_NOT_CONFIGURED', 'Azure-Speicher ist nicht konfiguriert.', 503);
   const service = BlobServiceClient.fromConnectionString(cs);
   const container = service.getContainerClient(TEAM_CONTAINER);
-  await container.createIfNotExists();
   return {
     team: container.getBlockBlobClient(TEAM_BLOB),
     auth: container.getBlockBlobClient(AUTH_BLOB)
