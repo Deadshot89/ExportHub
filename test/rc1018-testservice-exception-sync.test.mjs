@@ -12,10 +12,11 @@ test('RC1041 TESTSERVICE-Ausnahmeweg nutzt RC1018-Buildbasis mit aktueller Sicht
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
   assert.match(flow,/node \.github\/rc1018\/build-three-env\.mjs/);
   assert.match(flow,/node \.github\/rc1041\/apply-release-version\.mjs/);
-  assert.match(flow,/dist-rc1018\/TESTVERSION\.html/);
-  assert.match(flow,/dist-rc1018\/demo\.html/);
+  assert.match(flow,/dist-rc1041\/TESTVERSION\.html/);
+  assert.match(flow,/dist-rc1041\/demo\.html/);
   assert.match(flow,/\.rc1018_testservice_app/);
   assert.doesNotMatch(flow,/dist-rc1013\//);
+  assert.match(read('.github/rc1041/build-three-env.mjs'),/\.github\/rc1018\/build-three-env\.mjs/);
   assert.doesNotMatch(flow,/\.rc1013_testservice_app/);
 });
 
