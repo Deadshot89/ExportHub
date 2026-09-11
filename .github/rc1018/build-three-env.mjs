@@ -26,6 +26,7 @@ function setVersion(html){
   let out=html.replace(/ExportHUB RC1016 environment=/g,'ExportHUB RC1018 environment=');
   out=out.replace(/version:'RC1016'/g,"version:'RC1018'");
   out=out.replace(/cache:'1016'/g,"cache:'1018'");
+  out=out.replace(/assets\\/rc1013-gate41-ui\\.js\\?v=\\d+/g,'assets/rc1013-gate41-ui.js?v=1041');
   out=out.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1016(['"])/g,'$1RC1018$2');
   return out
 }
