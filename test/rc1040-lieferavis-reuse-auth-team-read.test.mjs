@@ -52,24 +52,24 @@ function fixture(environment){
   };
 }
 
-test('RC1040: production issue reuses the authenticated team document instead of downloading team-state twice',async()=>{
+test('RC1040/RC1052: production issue reuses the authenticated team document and avoids a Team-State upload',async()=>{
   const fx=fixture('production');
   try{
     const context={log:{error(){}},res:null};
     await fx.handler(context,{method:'POST',headers:{},body:{action:'issue',shipmentId:'SHIP-1039',reference:'ABC123',environment:'production'}});
     assert.equal(context.res.status,200);
     assert.equal(fx.reads(),0,'Der bereits in fast-auth gelesene production team-state darf im Lieferavis nicht erneut heruntergeladen werden.');
-    assert.equal(fx.uploads(),1,'Die Avis-Flags müssen weiterhin mit dem ETag des Auth-Team-Reads gespeichert werden.');
+    assert.equal(fx.uploads(),0,'RC1052: Die reine Link-Erstellung darf den großen Team-State nicht mehr neu hochladen.');
   }finally{fx.restore()}
 });
 
-test('RC1040: testservice keeps its separate team-state read and must not reuse the production auth document',async()=>{
+test('RC1040/RC1052: testservice keeps its separate team-state read but also avoids the Link-Write',async()=>{
   const fx=fixture('testservice');
   try{
     const context={log:{error(){}},res:null};
     await fx.handler(context,{method:'POST',headers:{},body:{action:'issue',shipmentId:'SHIP-1039',reference:'ABC123',environment:'testservice'}});
     assert.equal(context.res.status,200);
     assert.equal(fx.reads(),1,'TESTSERVICE nutzt einen getrennten Team-State und muss ihn weiterhin selbst lesen.');
-    assert.equal(fx.uploads(),1);
+    assert.equal(fx.uploads(),0,'Auch im TESTSERVICE darf die reine Link-Erstellung keinen Team-State-Upload auslösen.');
   }finally{fx.restore()}
 });
