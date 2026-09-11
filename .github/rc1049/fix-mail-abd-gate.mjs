@@ -36,25 +36,6 @@ function patchPage(rel){
   return html!==before;
 }
 
-function injectAdminMigration(rel){
-  const target=path.join(ROOT,rel);
-  if(!fs.existsSync(target))return false;
-  let html=fs.readFileSync(target,'utf8');
-  const id='exporthub-rc1061-document-migration-admin';
-  const tag='<script id="'+id+'" defer src="/assets/rc1061-document-migration-admin.js?v=1061"></script>';
-  const existing=new RegExp('<script\\b(?=[^>]*\\bid=["\\\']'+id+'["\\\'])[^>]*>\\s*<\\/script>','i');
-  if(existing.test(html)){
-    const next=html.replace(existing,tag);
-    if(next!==html)fs.writeFileSync(target,next,'utf8');
-    return next!==html;
-  }
-  const close=html.search(/<\/head\s*>/i);
-  if(close<0)throw new Error(rel+': </head> für RC1061 Admin-Migration fehlt.');
-  html=html.slice(0,close)+tag+'\n'+html.slice(close);
-  fs.writeFileSync(target,html,'utf8');
-  return true;
-}
-
 function patchFinalBuild(){
   const target=path.join(ROOT,'.github/rc1048/build-three-env.mjs');
   if(!fs.existsSync(target))return false;
@@ -70,8 +51,6 @@ function patchFinalBuild(){
 
 let changed=0;
 for(const page of PAGES)if(patchPage(page))changed++;
-let migrationInjected=0;
-for(const page of ['index.html','TESTVERSION.html'])if(injectAdminMigration(page))migrationInjected++;
 const finalBuildPatched=patchFinalBuild();
 console.log('RC1049: ABD ist im Mailbereich nur noch Hinweis; Mailversand bleibt bei fehlendem ABD möglich. Geänderte Seiten: '+changed+'.');
-console.log('RC1061: Admin-Dokumentmigration in Produktion/TESTSERVICE eingebunden. Geänderte Seiten: '+migrationInjected+'. Finaler Build gepatcht: '+finalBuildPatched+'.');
+console.log('RC1061: Admin-Dokumentmigration wird ausschließlich an der finalen RC1048-Build-Grenze für Produktion und TESTSERVICE eingebunden. Finaler Build gepatcht: '+finalBuildPatched+'.');
