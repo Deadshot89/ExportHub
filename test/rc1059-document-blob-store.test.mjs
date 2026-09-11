@@ -90,7 +90,37 @@ test('RC1059: bekannte Dokumentlisten werden rekursiv externalisiert, URLs bleib
   assert.equal(container.uploads.length,3);
 });
 
-test('RC1059: State-Save externalisiert nur eingehenden State vor saveMerged',()=>{
+test('RC1059: vorhandene Legacy-Datei wird bei normalem Save nicht still migriert, neue Datei schon',async()=>{
+  const mod=require('../api/shared/document-blob-store.js');
+  const container=fakeContainer();
+  const old='data:application/pdf;base64,T0xE';
+  const fresh='data:application/pdf;base64,TkVX';
+  const currentState={shipments:[{id:'S1',deliveryFiles:[{id:'OLD-1',name:'Alt.pdf',data:old}]}]};
+  const incoming={shipments:[{id:'S1',deliveryFiles:[{id:'OLD-1',name:'Alt.pdf',data:old},{id:'NEW-1',name:'Neu.pdf',data:fresh}]}]};
+  const result=await mod.externalizeDocumentCollections(incoming,{environment:'production',container,currentState});
+  assert.equal(result.state.shipments[0].deliveryFiles[0].data,old);
+  assert.equal(result.state.shipments[0].deliveryFiles[0].storage,undefined);
+  assert.equal(result.state.shipments[0].deliveryFiles[1].storage,'blob');
+  assert.equal(result.stats.externalized,1);
+  assert.equal(result.stats.legacySkipped,1);
+  assert.equal(container.uploads.length,1);
+});
+
+test('RC1059: bereits serverseitig ausgelagerte Datei gewinnt gegen stale Inline-Kopie des Browsers',async()=>{
+  const mod=require('../api/shared/document-blob-store.js');
+  const container=fakeContainer();
+  const hash='c'.repeat(64),old='data:application/pdf;base64,T0xE';
+  const blobFile={id:'D1',name:'LS.pdf',storage:'blob',blobName:`rc1059/production/cc/${hash}`,sha256:hash,size:3,mimeType:'application/pdf'};
+  const currentState={shipments:[{id:'S1',deliveryFiles:[blobFile]}]};
+  const incoming={shipments:[{id:'S1',deliveryFiles:[{id:'D1',name:'LS.pdf',data:old}]}]};
+  const result=await mod.externalizeDocumentCollections(incoming,{environment:'production',container,currentState});
+  assert.equal(result.state.shipments[0].deliveryFiles[0].storage,'blob');
+  assert.equal(result.state.shipments[0].deliveryFiles[0].blobName,blobFile.blobName);
+  assert.equal(result.state.shipments[0].deliveryFiles[0].data,undefined);
+  assert.equal(container.uploads.length,0);
+});
+
+test('RC1059: State-Save externalisiert nur eingehenden State vor saveMerged und kennt aktuellen Server-State',()=>{
   const source=fs.readFileSync(new URL('../api/exporthub-state/index.js',import.meta.url),'utf8');
   assert.match(source,/document-blob-store/);
   assert.match(source,/externalizeDocumentCollections/);
@@ -99,5 +129,6 @@ test('RC1059: State-Save externalisiert nur eingehenden State vor saveMerged',()
   const externalizePos=source.indexOf('externalizeDocumentCollections',normalizePos);
   const savePos=source.indexOf('saveMerged(',normalizePos);
   assert.ok(normalizePos>=0&&externalizePos>normalizePos&&savePos>externalizePos,'Externalisierung muss zwischen normalizeIncoming und saveMerged liegen');
+  assert.match(source.slice(externalizePos,savePos),/currentState\s*:\s*current\.team&&current\.team\.state/);
   assert.doesNotMatch(source,/externalizeDocumentCollections\(current\.team/);
 });
