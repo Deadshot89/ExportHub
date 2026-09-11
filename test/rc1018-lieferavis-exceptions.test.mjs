@@ -150,6 +150,15 @@ test('RC1044: Böllhof wird inklusive üblicher Namensvarianten als Lieferavis-A
   }
 });
 
+test('RC1044: Böllhof kann Lieferavis nicht aktivieren und erhält keinen falschen IT-Hinweis',async()=>{
+  const shipment={reference:'ABC123',customerName:'Böllhof'};
+  const {api,alerts,toggles}=load(shipment);
+  assert.equal(await api.toggle(true),false);
+  assert.deepEqual(toggles,[]);
+  assert.match(alerts.join('\n'),/Lieferavis für diesen Kunden nicht verfügbar/i);
+  assert.doesNotMatch(alerts.join('\n'),/Kunden-IT blockiert/i);
+});
+
 test('RC1018: BMP kann Lieferavis nicht aktivieren und erhält verständlichen IT-Hinweis',async()=>{
   const shipment={reference:'ABC123',customerName:'BMP'};
   const {api,alerts,toggles}=load(shipment);
