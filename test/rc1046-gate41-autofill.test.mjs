@@ -42,15 +42,11 @@ test('RC1046: Gate41-Laufzeit übernimmt vorhandene Sendungs-, Kunden- und Tarif
   assert.match(fn,/return''/,'Ohne Quelle darf keine Laufzeit erfunden werden');
 });
 
-test('RC1046: Produktion TESTSERVICE Demo Android und Paketmetadaten sind versionsgleich',()=>{
+test('RC1046 bleibt als historischer Gate41-Autofill-Release reproduzierbar',()=>{
   for(const [file,environment] of [['index.html','production-candidate'],['TESTVERSION.html','testservice'],['demo.html','demo']]){
     const html=read('dist-rc1046/'+file);
     assert.match(html,new RegExp('ExportHUB RC1046 environment='+environment));
     assert.match(html,/version:'RC1046'/);
   }
-  assert.match(read('production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1046'/);
-  assert.match(read('android-app/app/build.gradle.kts'),/versionCode\s*=\s*1046/);
-  assert.match(read('android-app/app/build.gradle.kts'),/versionName\s*=\s*"1\.0-rc1046"/);
-  assert.equal(JSON.parse(read('android-app/app-build-info.json')).releaseCandidate,'RC1046');
-  assert.equal(JSON.parse(read('package.json')).version,'1.0.0-rc1046');
+  assert.match(read('dist-rc1046/production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1046'/);
 });
