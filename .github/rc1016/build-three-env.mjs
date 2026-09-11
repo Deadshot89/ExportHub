@@ -70,6 +70,11 @@ function patchTaskSource(html){
   const replacement="const rawOpen=window.ExportHUBRC1014TaskRuntime.prepareTasks((state.tasks||[]),{companyId:(state.companyId||state.currentCompanyId||window.__EXPORTHUB_COMPANY_ID__||''),environment:(window.__EXPORTHUB_FORCED_ENVIRONMENT__||''),currentUser:(typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null),state:state,persist:function(nextTasks){state.tasks=nextTasks;if(typeof save==='function')save('RC1016 Aufgabenstatus aktualisiert');else if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('RC1016 Aufgabenstatus aktualisiert')}})";
   return replaceExactlyOnce(html,search,replacement,'RC1016 Aufgabenquelle');
 }
+function patchTaskPlannerSource(html){
+  const search="(st().tasks||[]).forEach(function(t){if(!t||done(t)||!q(t.title||t.name)||isTest(t))return;";
+  const replacement="window.ExportHUBRC1014TaskRuntime.currentTasks((st().tasks||[]),{companyId:(st().companyId||st().currentCompanyId||window.__EXPORTHUB_COMPANY_ID__||''),environment:(window.__EXPORTHUB_FORCED_ENVIRONMENT__||''),currentUser:(typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null),state:st()}).forEach(function(t){if(!t||done(t)||!q(t.title||t.name)||isTest(t))return;";
+  return replaceExactlyOnce(html,search,replacement,'RC1054 Aufgaben-Planner Datenquelle');
+}
 function patchShipmentOverviewSource(html){
   return replaceRegexExactlyOnce(html,/function\s+overviewFiltered\s*\(([^)]*)\)\s*\{/,(_m,args)=>`function overviewFiltered(${args}){window.ExportHUBRC1014ShipmentOverview.remember(state.shipments||[]);`,'RC1016 Sendungsübersicht-Datenquelle');
 }
@@ -93,6 +98,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   }
   html=rc1016Assets(html);
   html=patchTaskSource(html);
+  html=patchTaskPlannerSource(html);
   html=patchShipmentOverviewSource(html);
   html=patchWarningCenterStateSource(html);
   writeOut(file,html);
