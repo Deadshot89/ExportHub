@@ -6,6 +6,12 @@ on:
       - rc1060-legacy-document-migration
     paths:
       - '.github/workflows/rc1060-final-verification.yml'
+      - 'test/rc1059-state-diagnostics.test.mjs'
+      - 'test/rc1060-*.test.mjs'
+      - 'api/exporthub-document-migrate/**'
+      - 'api/shared/document-blob-store.js'
+      - 'api/exporthub-health/index.js'
+      - '.github/workflows/rc1050-storage-probe.yml'
   workflow_dispatch:
 
 permissions:
