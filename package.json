@@ -1,9 +1,9 @@
 {
   "name": "exporthub-professional",
-  "version": "1.0.0-rc1018",
+  "version": "1.0.0-rc1041",
   "private": true,
   "type": "module",
-  "description": "ExportHUB RC1018 – Website-, API- und Android-Projekt",
+  "description": "ExportHUB RC1041 – Website-, API- und Android-Projekt",
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs"
   },
