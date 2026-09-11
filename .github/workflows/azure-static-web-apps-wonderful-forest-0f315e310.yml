@@ -1,4 +1,4 @@
-name: ExportHUB RC1018 Drei-Umgebungen Deploy
+name: ExportHUB RC1043 Drei-Umgebungen Deploy
 on:
   workflow_dispatch:
   push:
@@ -20,11 +20,13 @@ on:
       - '.github/rc1016/**'
       - '.github/rc1017/**'
       - '.github/rc1018/**'
+      - '.github/rc1043/**'
       - '.github/rc1014/**'
       - '.github/rc1013/**'
       - '.github/rc1012/**'
       - 'test/rc1017-*.test.mjs'
       - 'test/rc1018-*.test.mjs'
+      - 'test/rc1043-*.test.mjs'
       - 'test/rc1016-*.test.mjs'
       - 'test/rc1015-*.test.mjs'
       - 'test/rc1014-*.test.mjs'
@@ -40,7 +42,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: exporthub-rc1018-three-env-${{ github.ref }}
+  group: exporthub-rc1043-three-env-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   build_and_deploy_job:
@@ -54,11 +56,11 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: RC1018 Freigabevertrag prüfen
+      - name: RC1043 Freigabevertrag prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1043'" production-version.js
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
@@ -70,93 +72,93 @@ jobs:
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
-      - name: RC1018 Produktion TESTSERVICE und Demo gemeinsam bauen
+      - name: RC1043 Produktion TESTSERVICE und Demo gemeinsam bauen
         shell: bash
         run: |
           set -euo pipefail
-          node .github/rc1018/build-three-env.mjs
-          grep -q 'ExportHUB RC1018 environment=production-candidate' dist-rc1018/index.html
-          grep -q 'ExportHUB RC1018 environment=testservice' dist-rc1018/TESTVERSION.html
-          grep -q 'ExportHUB RC1018 environment=demo' dist-rc1018/demo.html
-          grep -q "version:'RC1018'" dist-rc1018/index.html
-          grep -q "version:'RC1018'" dist-rc1018/TESTVERSION.html
-          grep -q "version:'RC1018'" dist-rc1018/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'" dist-rc1018/production-version.js
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1018/index.html
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1018/TESTVERSION.html
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1018/demo.html
-          grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1018/index.html
-          grep -q 'assets/rc1014-shipment-overview.js?v=1016' dist-rc1018/index.html
-          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1018/index.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1018/index.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1018/TESTVERSION.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1018/demo.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1018/index.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1018/TESTVERSION.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1018/demo.html
-          test -s dist-rc1018/assets/abholkalender.js
-          test -s dist-rc1018/assets/rc1012-abholkalender-runtime.js
+          node .github/rc1043/build-three-env.mjs
+          grep -q 'ExportHUB RC1043 environment=production-candidate' dist-rc1043/index.html
+          grep -q 'ExportHUB RC1043 environment=testservice' dist-rc1043/TESTVERSION.html
+          grep -q 'ExportHUB RC1043 environment=demo' dist-rc1043/demo.html
+          grep -q "version:'RC1043'" dist-rc1043/index.html
+          grep -q "version:'RC1043'" dist-rc1043/TESTVERSION.html
+          grep -q "version:'RC1043'" dist-rc1043/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1043'" dist-rc1043/production-version.js
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1043/index.html
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1043/TESTVERSION.html
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1043/demo.html
+          grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1043/index.html
+          grep -q 'assets/rc1014-shipment-overview.js?v=1016' dist-rc1043/index.html
+          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1043/index.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1043/index.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1043/TESTVERSION.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1043/demo.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1043/index.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1043/TESTVERSION.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1043/demo.html
+          test -s dist-rc1043/assets/abholkalender.js
+          test -s dist-rc1043/assets/rc1012-abholkalender-runtime.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1018/$file"
+            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1043/$file"
           done
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/customer-avis.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/pickup.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1018/location.html
-          test -s dist-rc1018/assets/rc1018-mail-language-standard.js
-          test -s dist-rc1018/assets/rc1018-public-language.js
-          grep -q 'assets/rc1016-demo-task-seed.js?v=1016' dist-rc1018/demo.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1018/index.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1018/TESTVERSION.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1018/demo.html
-          test -s dist-rc1018/assets/rc1017-multi-truck.js
-          test -s dist-rc1018/assets/sop/screenshots/rc1016-tasks.png
-          test -s dist-rc1018/assets/sop/screenshots/rc1016-shipmentoverview.png
-          test -s dist-rc1018/assets/sop/screenshots/rc1016-pickupcalendar.png
-          grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1018/index.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1043/customer-avis.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1043/pickup.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1043/location.html
+          test -s dist-rc1043/assets/rc1018-mail-language-standard.js
+          test -s dist-rc1043/assets/rc1018-public-language.js
+          grep -q 'assets/rc1016-demo-task-seed.js?v=1016' dist-rc1043/demo.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1043/index.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1043/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1043/demo.html
+          test -s dist-rc1043/assets/rc1017-multi-truck.js
+          test -s dist-rc1043/assets/sop/screenshots/rc1016-tasks.png
+          test -s dist-rc1043/assets/sop/screenshots/rc1016-shipmentoverview.png
+          test -s dist-rc1043/assets/sop/screenshots/rc1016-pickupcalendar.png
+          grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1043/index.html
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1018/$file"
+            grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1043/$file"
           done
-          grep -q 'serverToken=q(data&&data.token)' dist-rc1018/index.html
-          grep -q "setRouteData(g,'country','Deutschland')" dist-rc1018/index.html
-      - name: Gemeinsame RC1018 Deploy-Pakete vorbereiten
+          grep -q 'serverToken=q(data&&data.token)' dist-rc1043/index.html
+          grep -q "setRouteData(g,'country','Deutschland')" dist-rc1043/index.html
+      - name: Gemeinsame RC1043 Deploy-Pakete vorbereiten
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .rc1018_production_app .rc1018_testservice_app
-          mkdir -p .rc1018_production_app .rc1018_testservice_app
-          for dir in .rc1018_production_app .rc1018_testservice_app; do
-            cp dist-rc1018/pickup.html dist-rc1018/customer-avis.html dist-rc1018/location.html dist-rc1018/pod-notfall.html "$dir/"
-            cp dist-rc1018/production-version.js "$dir/production-version.js"
+          rm -rf .rc1043_production_app .rc1043_testservice_app
+          mkdir -p .rc1043_production_app .rc1043_testservice_app
+          for dir in .rc1043_production_app .rc1043_testservice_app; do
+            cp dist-rc1043/pickup.html dist-rc1043/customer-avis.html dist-rc1043/location.html dist-rc1043/pod-notfall.html "$dir/"
+            cp dist-rc1043/production-version.js "$dir/production-version.js"
             cp -R assets "$dir/assets"
-            cp -R dist-rc1018/assets/. "$dir/assets/"
+            cp -R dist-rc1043/assets/. "$dir/assets/"
           done
-          cp staticwebapp.config.json .rc1018_production_app/staticwebapp.config.json
-          cp dist-rc1018/index.html .rc1018_production_app/index.html
-          cp staticwebapp.testservice.config.json .rc1018_testservice_app/staticwebapp.config.json
-          cp dist-rc1018/TESTVERSION.html .rc1018_testservice_app/index.html
-          cp dist-rc1018/TESTVERSION.html .rc1018_testservice_app/TESTVERSION.html
-          cp dist-rc1018/demo.html .rc1018_testservice_app/demo.html
-          test -s .rc1018_production_app/assets/rc1016-mobile-navigation.js
-          test -s .rc1018_testservice_app/assets/rc1016-mobile-navigation.js
-          test -s .rc1018_production_app/assets/rc1017-multi-truck.js
-          test -s .rc1018_testservice_app/assets/rc1017-multi-truck.js
-          test -s .rc1018_production_app/assets/rc1018-mail-language-standard.js
-          test -s .rc1018_testservice_app/assets/rc1018-mail-language-standard.js
-          test -s .rc1018_production_app/assets/rc1018-public-language.js
-          test -s .rc1018_testservice_app/assets/rc1018-public-language.js
-          test -s .rc1018_production_app/assets/abholkalender.js
-          test -s .rc1018_testservice_app/assets/abholkalender.js
-          test -s .rc1018_production_app/assets/rc1012-abholkalender-runtime.js
-          test -s .rc1018_testservice_app/assets/rc1012-abholkalender-runtime.js
-          test -s .rc1018_production_app/assets/sop/screenshots/rc1016-tasks.png
-          test -s .rc1018_testservice_app/assets/sop/screenshots/rc1016-pickupcalendar.png
+          cp staticwebapp.config.json .rc1043_production_app/staticwebapp.config.json
+          cp dist-rc1043/index.html .rc1043_production_app/index.html
+          cp staticwebapp.testservice.config.json .rc1043_testservice_app/staticwebapp.config.json
+          cp dist-rc1043/TESTVERSION.html .rc1043_testservice_app/index.html
+          cp dist-rc1043/TESTVERSION.html .rc1043_testservice_app/TESTVERSION.html
+          cp dist-rc1043/demo.html .rc1043_testservice_app/demo.html
+          test -s .rc1043_production_app/assets/rc1016-mobile-navigation.js
+          test -s .rc1043_testservice_app/assets/rc1016-mobile-navigation.js
+          test -s .rc1043_production_app/assets/rc1017-multi-truck.js
+          test -s .rc1043_testservice_app/assets/rc1017-multi-truck.js
+          test -s .rc1043_production_app/assets/rc1018-mail-language-standard.js
+          test -s .rc1043_testservice_app/assets/rc1018-mail-language-standard.js
+          test -s .rc1043_production_app/assets/rc1018-public-language.js
+          test -s .rc1043_testservice_app/assets/rc1018-public-language.js
+          test -s .rc1043_production_app/assets/abholkalender.js
+          test -s .rc1043_testservice_app/assets/abholkalender.js
+          test -s .rc1043_production_app/assets/rc1012-abholkalender-runtime.js
+          test -s .rc1043_testservice_app/assets/rc1012-abholkalender-runtime.js
+          test -s .rc1043_production_app/assets/sop/screenshots/rc1016-tasks.png
+          test -s .rc1043_testservice_app/assets/sop/screenshots/rc1016-pickupcalendar.png
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1018_production_app
+          app_location: .rc1043_production_app
           api_location: api
           output_location: ''
           skip_app_build: true
@@ -166,12 +168,12 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1018_testservice_app
+          app_location: .rc1043_testservice_app
           api_location: api
           output_location: ''
           skip_app_build: true
           deployment_environment: testservice
-      - name: Live RC1018 Produktion TESTSERVICE und Demo prüfen
+      - name: Live RC1043 Produktion TESTSERVICE und Demo prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -180,34 +182,34 @@ jobs:
           p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
           trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
           for attempt in {1..24}; do
-            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1018=$GITHUB_SHA-$attempt" || true)
-            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1018=$GITHUB_SHA-$attempt" || true)
-            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1018=$GITHUB_SHA-$attempt" || true)
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1043=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1043=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1043=$GITHUB_SHA-$attempt" || true)
             phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/api/exporthub-health" || true)
             thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/api/exporthub-health" || true)
-            pmc=$(curl -sS -o "$pm" -w '%{http_code}' --max-time 20 "$prod/assets/rc1016-mobile-navigation.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1018=$GITHUB_SHA-$attempt" || true)
-            tsc=$(curl -sS -o "$ts" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-tasks.png?rc1018=$GITHUB_SHA-$attempt" || true)
-            pkc=$(curl -sS -o "$pk" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1018=$GITHUB_SHA-$attempt" || true)
-            tkc=$(curl -sS -o "$tk" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1018=$GITHUB_SHA-$attempt" || true)
-            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1018=$GITHUB_SHA-$attempt" || true)
+            pmc=$(curl -sS -o "$pm" -w '%{http_code}' --max-time 20 "$prod/assets/rc1016-mobile-navigation.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1043=$GITHUB_SHA-$attempt" || true)
+            tsc=$(curl -sS -o "$ts" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-tasks.png?rc1043=$GITHUB_SHA-$attempt" || true)
+            pkc=$(curl -sS -o "$pk" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1043=$GITHUB_SHA-$attempt" || true)
+            tkc=$(curl -sS -o "$tk" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1043=$GITHUB_SHA-$attempt" || true)
+            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1043=$GITHUB_SHA-$attempt" || true)
             prc=$(curl -sS -o "$pr" -w '%{http_code}' --max-time 20 "$prod/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
             trc=$(curl -sS -o "$tr" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
-            pcalc=$(curl -sS -o "$pcal" -w '%{http_code}' --max-time 20 "$prod/assets/abholkalender.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1018=$GITHUB_SHA-$attempt" || true)
-            truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1018=$GITHUB_SHA-$attempt" || true)
+            pcalc=$(curl -sS -o "$pcal" -w '%{http_code}' --max-time 20 "$prod/assets/abholkalender.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1043=$GITHUB_SHA-$attempt" || true)
+            truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1043=$GITHUB_SHA-$attempt" || true)
             if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
-              && grep -q 'ExportHUB RC1018 environment=production-candidate' "$p" \
-              && grep -q 'ExportHUB RC1018 environment=testservice' "$t" \
-              && grep -q 'ExportHUB RC1018 environment=demo' "$d" \
-              && grep -q "version:'RC1018'" "$p" \
-              && grep -q "version:'RC1018'" "$t" \
-              && grep -q "version:'RC1018'" "$d" \
+              && grep -q 'ExportHUB RC1043 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1043 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1043 environment=demo' "$d" \
+              && grep -q "version:'RC1043'" "$p" \
+              && grep -q "version:'RC1043'" "$t" \
+              && grep -q "version:'RC1043'" "$d" \
               && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$p" \
               && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$t" \
               && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$d" \
@@ -245,15 +247,15 @@ jobs:
               && grep -q 'calendarScalarText' "$tcal" \
               && grep -q 'companyId' "$pruntime" \
               && grep -q 'companyId' "$truntime"; then
-              echo 'RC1018 Produktion, TESTSERVICE und Demo live auf demselben geprüften Stand bestätigt.'
+              echo 'RC1043 Produktion, TESTSERVICE und Demo live auf demselben geprüften Stand bestätigt.'
               exit 0
             fi
             sleep 10
           done
-          echo 'RC1018 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
+          echo 'RC1043 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
           exit 1
 
-      - name: Live RC1018 Mail und Sprache prüfen
+      - name: Live RC1043 Mail und Sprache prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -262,10 +264,10 @@ jobs:
           for attempt in {1..24}; do
             ok=1
             for url in \
-              "$prod/assets/rc1018-mail-language-standard.js?rc1018=$GITHUB_SHA-$attempt" \
-              "$testservice/assets/rc1018-mail-language-standard.js?rc1018=$GITHUB_SHA-$attempt" \
-              "$prod/assets/rc1018-public-language.js?rc1018=$GITHUB_SHA-$attempt" \
-              "$testservice/assets/rc1018-public-language.js?rc1018=$GITHUB_SHA-$attempt"; do
+              "$prod/assets/rc1018-mail-language-standard.js?rc1043=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-mail-language-standard.js?rc1043=$GITHUB_SHA-$attempt" \
+              "$prod/assets/rc1018-public-language.js?rc1043=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-public-language.js?rc1043=$GITHUB_SHA-$attempt"; do
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
               [[ "$code" == '200' ]] || ok=0
@@ -273,9 +275,9 @@ jobs:
               rm -f "$body"
             done
             for url in \
-              "$prod/?rc1018=$GITHUB_SHA-$attempt" \
-              "$testservice/TESTVERSION.html?rc1018=$GITHUB_SHA-$attempt" \
-              "$testservice/demo.html?rc1018=$GITHUB_SHA-$attempt"; do
+              "$prod/?rc1043=$GITHUB_SHA-$attempt" \
+              "$testservice/TESTVERSION.html?rc1043=$GITHUB_SHA-$attempt" \
+              "$testservice/demo.html?rc1043=$GITHUB_SHA-$attempt"; do
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
               [[ "$code" == '200' ]] && grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "$body" || ok=0
@@ -283,12 +285,12 @@ jobs:
             done
             for base in "$prod" "$testservice"; do
               body=$(mktemp)
-              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1018=$GITHUB_SHA-$attempt" || true)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1043=$GITHUB_SHA-$attempt" || true)
               [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1018' "$body" || ok=0
               rm -f "$body"
             done
-            if [[ "$ok" == '1' ]]; then echo 'RC1018 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
+            if [[ "$ok" == '1' ]]; then echo 'RC1043 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
             sleep 10
           done
-          echo 'RC1018 Mail- und Sprachruntime live nicht bestätigt.'
+          echo 'RC1043 Mail- und Sprachruntime live nicht bestätigt.'
           exit 1
