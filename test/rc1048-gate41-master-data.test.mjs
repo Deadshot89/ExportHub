@@ -66,7 +66,8 @@ test('RC1048: Gate41-Zone wird nicht mehr aus Start-PLZ geraten',()=>{
   assert.ok(start>=0&&end>start,'configuredZoneInfo fehlt');
   const fn=html.slice(start,end);
   assert.doesNotMatch(fn,/source:'Start-PLZ'/);
-  assert.doesNotMatch(fn,/originPostal/);
+  assert.doesNotMatch(fn,/originZone/);
+  assert.doesNotMatch(fn,/charAt\(0\)/);
   assert.match(fn,/source:'manuell'/);
   assert.match(fn,/deutsche Zonentabelle/);
 });
