@@ -95,5 +95,5 @@ jobs:
           grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/demo.html
           test -s dist-rc1013/assets/rc1017-multi-truck.js
           grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1013/index.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1018'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1041'" production-version.js
           git diff --check
