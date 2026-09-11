@@ -130,10 +130,11 @@ async function externalizeDocumentCollections(state,options={}){
 }
 async function migrateLegacyDocuments(state,options={}){
  const out=clone(state)||{},limit=Math.max(1,Math.min(10,Number(options.limit)||5));
+ const target=out&&out.state&&typeof out.state==='object'&&!Array.isArray(out.state)?out.state:out;
  let found=0,migrated=0,skipped=0,failed=0,bytesMoved=0,attempted=0;
  const inlineEntries=[];
  for(const root of ROOT_COLLECTIONS){
-  const rows=Array.isArray(out[root])?out[root]:[];
+  const rows=Array.isArray(target[root])?target[root]:[];
   for(let ri=0;ri<rows.length;ri++){
    const row=rows[ri];if(!row||typeof row!=='object')continue;
    for(const field of DOCUMENT_FIELDS){

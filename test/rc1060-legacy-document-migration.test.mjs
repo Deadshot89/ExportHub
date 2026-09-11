@@ -78,3 +78,21 @@ test('RC1060: Verifikations-/Uploadfehler lässt Legacy-Payload bytegenau besteh
   assert.equal(result.bytesMoved,0);
   assert.deepEqual(result.state.shipments[0].podFiles[0],original);
 });
+
+test('RC1060: verschachtelter Team-State wird migriert und Benutzer-Metadaten bleiben erhalten', async()=>{
+  const wrapped={
+    schemaVersion:3,
+    users:[{id:'U1',name:'Admin'}],
+    state:{shipments:[{id:'S3',podFiles:[{id:'p1',name:'pod.pdf',dataUrl:dataUrl('WRAPPED')}] }]}
+  };
+  const container=mockContainer();
+  const result=await store.migrateLegacyDocuments(wrapped,{environment:'testservice',limit:5,container});
+  assert.equal(result.found,1);
+  assert.equal(result.migrated,1);
+  assert.equal(result.remaining,0);
+  assert.equal(result.done,true);
+  assert.deepEqual(result.state.users,wrapped.users);
+  assert.equal(result.state.state.shipments[0].podFiles[0].storage,'blob');
+  assert.equal(result.state.state.shipments[0].podFiles[0].dataUrl,undefined);
+});
+
