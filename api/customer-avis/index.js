@@ -114,7 +114,7 @@ module.exports=async function(context,req){
    const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
    const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref),snapshot=sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference),syncStarted=Date.now();
    const result=await access.updateSubjectSnapshot(req,'avis',subjectId,snapshot,internal.user.name||internal.user.user||'ExportHUB',payload);
-   const timing={authMs,draftSyncMs:elapsed(syncStarted),teamReadMs:0,teamWriteMs:0,totalMs:elapsed(requestStarted)};
+   const timing={authMs,teamBlobMs:0,teamReadMs:0,flagWriteMs:0,tokenIssueMs:0,draftSyncMs:elapsed(syncStarted),teamWriteMs:0,totalMs:elapsed(requestStarted)};
    context.res=json(200,{ok:true,synced:true,shipmentId:subjectId,reference:snapshot.reference,updated:Number(result&&result.updated||0),timing,version:'RC1069'},timingHeaders(timing));return
   }
   if(req.method==='POST'&&(action==='issue'||action==='disable')){
