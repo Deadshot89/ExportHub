@@ -1,9 +1,9 @@
 {
   "name": "exporthub-professional",
-  "version": "1.0.0-rc1065",
+  "version": "1.0.0-rc1048",
   "private": true,
   "type": "module",
-  "description": "ExportHUB RC1065 – Chat-Closeout-Patch auf dem RC1048 Drei-Umgebungen-Releasevertrag",
+  "description": "ExportHUB RC1048 – Website-, API- und Android-Projekt",
   "scripts": {
     "test": "node --test --test-concurrency=1 test/*.test.mjs"
   },
