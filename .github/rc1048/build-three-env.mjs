@@ -107,6 +107,37 @@ function patchEmbeddedPrintScriptClosers(html,file){
   if(patched===0)return html;
   return out;
 }
+function finalRepairPrintStowPayloads(html,file){
+  const payloads=[];
+  const rx=/(function printStow\(\)\{[\s\S]*?\+card\.innerHTML\+')([\s\S]*?)(<\/body><\/html>';\s*var w=window\.open\(\s*['"]about:blank['"])/g;
+  let out=html.replace(rx,function(full,prefix,payload,suffix){
+    if(!/[<](?:script|style|link|section|div)\b/i.test(payload))return full;
+    const clean=String(payload||'').trim();
+    if(clean)payloads.push(clean);
+    return prefix+suffix
+  });
+
+  if(payloads.length){
+    const unique=Array.from(new Set(payloads));
+    const bodyClose=out.toLowerCase().lastIndexOf('</body>');
+    if(bodyClose<0)throw new Error(file+': echter äußerer </body>-Anker fehlt');
+    out=out.slice(0,bodyClose)+'\n'+unique.join('\n')+'\n'+out.slice(bodyClose);
+  }
+
+  const customerStyleRx=/<style\b[^>]*id=["']exporthub-rc373-customer-areas-style["'][^>]*>[\s\S]*?<\/style\s*>/gi;
+  const styles=out.match(customerStyleRx)||[];
+  if(styles.length){
+    const canonical=styles[0];
+    out=out.replace(customerStyleRx,'');
+    const headOpen=/<head\b[^>]*>/i.exec(out);
+    if(!headOpen)throw new Error(file+': echter äußerer <head>-Anker fehlt');
+    const pos=headOpen.index+headOpen[0].length;
+    out=out.slice(0,pos)+'\n'+canonical+'\n'+out.slice(pos);
+  }
+
+  return out;
+}
+
 function patchGateMaster(html,file){
   let out=html;
 
@@ -166,6 +197,7 @@ function patchHtml(file){
     }
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1047(['"])/g,`$1${VERSION}$2`);
+  html=finalRepairPrintStowPayloads(html,file);
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   fs.writeFileSync(target,html);
