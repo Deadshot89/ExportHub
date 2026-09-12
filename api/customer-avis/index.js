@@ -38,6 +38,21 @@ function findCopies(state,subjectId,reference){return shipmentCopies(state).filt
 function stamp(sh){const n=Date.parse(text(sh&&(sh._syncUpdatedAt||sh.updatedAt||sh.modifiedAt||sh.createdAt)));return Number.isFinite(n)?n:0}
 function findShipment(state,subjectId,reference){return findCopies(state,subjectId,reference).sort((a,b)=>stamp(b)-stamp(a))[0]||null}
 function safeDraftText(v,max=300){if(v==null||typeof v==='object'||typeof v==='boolean')return'';return text(v).replace(/[\r\n\t]+/g,' ').slice(0,max)}
+function sanitizeDraftRows(raw){
+ const source=[raw&&raw.rows,raw&&raw.colli,raw&&raw.collis,raw&&raw.packages,raw&&raw.packagingRows].find(Array.isArray)||[];
+ return source.slice(0,100).map((r,i)=>{
+  r=obj(r)?r:{};
+  const type=safeDraftText(r.type||r.packaging||r.verpackung||r.name,120);
+  const count=Math.max(0,Math.min(9999,Math.round(num(r.count||r.qty||r.quantity||r.anzahl))));
+  const weight=Math.max(0,Math.min(100000,num(r.weight||r.gewicht)));
+  const ldm=Math.max(0,Math.min(1000,num(r.ldm||r.loadingMeter)));
+  const length=Math.max(0,Math.min(5000,num(r.l||r.length)));
+  const width=Math.max(0,Math.min(5000,num(r.w||r.width)));
+  const height=Math.max(0,Math.min(5000,num(r.h||r.height)));
+  return{position:i+1,type,count,weight,ldm,length,width,height}
+ }).filter(r=>r.type||r.count||r.weight||r.ldm||r.length||r.width||r.height)
+}
+
 function sanitizeDraftSnapshot(raw,subjectId,reference){
  raw=obj(raw)?raw:{};
  const ref=upper(reference||raw.reference||raw.ref).replace(/[^A-Z0-9]/g,'').slice(0,6);
@@ -46,6 +61,7 @@ function sanitizeDraftSnapshot(raw,subjectId,reference){
  const limits={recipientAddress:1000,deliveryAddress:1000,destinationAddress:1000,senderAddress:1000,goodsDescription:1000,description:1000,warenbeschreibung:1000};
  const fields=['customerName','customerNumber','customerAccount','customerNo','customerReference','customerRef','orderReference','purchaseOrder','poNumber','salesOrder','salesOrderNumber','orderNumber','recipientName','destinationName','recipientAddress','deliveryAddress','destinationAddress','recipientCountry','country','selectedLocationId','locationId','siteId','destinationId','deliveryLocationId','shipToLocationId','recipientLocationId','senderName','senderAddress','shipDate','shippingDate','shipmentDate','dispatchDate','incoterm','incoterms','carrier','carrierName','spedition','goodsDescription','description','warenbeschreibung','status','shipmentStatus'];
  for(const key of fields){const value=safeDraftText(raw[key],limits[key]||300);if(value)out[key]=value}
+ const rows=sanitizeDraftRows(raw);if(rows.length)out.rows=rows;
  out.status=safeDraftText(raw.status||raw.shipmentStatus,80)||'Entwurf';
  return out
 }
@@ -94,6 +110,13 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY','X-Content-Type-Options':'nosniff'},body:''};return}
  try{
   const requestStarted=Date.now(),payload=body(req),action=lower(payload.action);
+  if(req.method==='POST'&&action==='draft-sync'){
+   const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
+   const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref),snapshot=sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference),syncStarted=Date.now();
+   const result=await access.updateSubjectSnapshot(req,'avis',subjectId,snapshot,internal.user.name||internal.user.user||'ExportHUB',payload);
+   const timing={authMs,draftSyncMs:elapsed(syncStarted),teamReadMs:0,teamWriteMs:0,totalMs:elapsed(requestStarted)};
+   context.res=json(200,{ok:true,synced:true,shipmentId:subjectId,reference:snapshot.reference,updated:Number(result&&result.updated||0),timing,version:'RC1069'},timingHeaders(timing));return
+  }
   if(req.method==='POST'&&(action==='issue'||action==='disable')){
    const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
    const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),canReuseAuthTeam=env==='production'&&internal&&internal.teamDoc&&obj(internal.teamDoc.value)&&text(auth.TEAM_CONTAINER)===TEAM_CONTAINER&&text(auth.TEAM_BLOB)===TEAM_BLOB_BASE,readStarted=Date.now(),d=canReuseAuthTeam?internal.teamDoc:await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;
