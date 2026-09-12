@@ -28,7 +28,7 @@ function setVersion(html){
   out=out.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC\d+(['"])/g,`$1${VERSION}$2`);
   return out;
 }
-function injectBeforeHeadClose(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const idx=html.search(/<\/head\s*>/i);if(idx<0)throw new Error('Kein </head> gefunden.');return html.slice(0,idx)+tag+'\n'+html.slice(idx);}
+function injectBeforeHeadClose(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const body=html.search(/<body\b/i),idx=(body>=0?html.slice(0,body):html).search(/<\/head\s*>/i);if(idx<0)throw new Error('Kein </head> gefunden.');return html.slice(0,idx)+tag+'\n'+html.slice(idx);}
 function injectAfterHeadOpen(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const m=html.match(/<head(?:\s[^>]*)?>/i);if(!m||m.index==null)throw new Error('Kein <head> gefunden.');const idx=m.index+m[0].length;return html.slice(0,idx)+'\n'+tag+'\n'+html.slice(idx);}
 function envTag(env){return `<script id="exporthub-rc1013-env-config">window.__EXPORTHUB_FORCED_ENVIRONMENT__=${JSON.stringify(env)};<\/script>\n<script id="exporthub-rc1013-env-hub" defer src="${HUB_SRC}"><\/script>`;}
 function demoTag(){return `<script id="exporthub-rc1013-demo-bootstrap" src="${DEMO_SRC}"><\/script>`;}
