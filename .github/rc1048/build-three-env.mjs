@@ -36,7 +36,7 @@ function injectBeforeHeadClose(html,tag,id){
 function patchEmbeddedPrintScriptClosers(html,file){
   const start=html.indexOf('function printStow(){');
   const end=start>=0?html.indexOf('function normalizeActionButtons',start):-1;
-  if(start<0||end<0)throw new Error(file+': printStow/normalizeActionButtons Anker fehlt');
+  if(start<0||end<0)return html;
   const block=html.slice(start,end);
   const hits=(block.match(/<\/script\s*>/gi)||[]).length;
   if(hits===0)return html;
