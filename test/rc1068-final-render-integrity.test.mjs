@@ -49,3 +49,29 @@ for(const file of files){
    assert.deepEqual(fail,[],fail.join('\n---\n'));
  });
 }
+
+
+test('RC1068 Diagnose: printStow-Blöcke sind im finalen Build zwischen allen Umgebungen identisch',()=>{
+  function blocks(html){
+    const out=[];let cursor=0;
+    while(true){
+      const a=html.indexOf('function printStow(){',cursor);if(a<0)break;
+      const b=html.indexOf('function normalizeActionButtons',a);if(b<0){out.push({start:a,end:-1,content:html.slice(a,a+12000)});break}
+      out.push({start:a,end:b,content:html.slice(a,b)});cursor=b+30;
+    }
+    return out;
+  }
+  const prod=blocks(read('dist-rc1048/index.html'));
+  assert.ok(prod.length>0,'Produktion enthält keinen printStow-Block');
+  for(const file of ['TESTVERSION.html','demo.html']){
+    const other=blocks(read('dist-rc1048/'+file));
+    assert.equal(other.length,prod.length,file+': printStow-Anzahl abweichend');
+    other.forEach((row,i)=>{
+      if(row.content!==prod[i].content){
+        let p=0,min=Math.min(row.content.length,prod[i].content.length);
+        while(p<min&&row.content[p]===prod[i].content[p])p++;
+        assert.fail(file+' printStow #'+(i+1)+' weicht ab Position '+p+'; prodLen='+prod[i].content.length+' otherLen='+row.content.length+'\nPROD='+JSON.stringify(prod[i].content.slice(Math.max(0,p-200),p+900))+'\nOTHER='+JSON.stringify(row.content.slice(Math.max(0,p-200),p+1400)));
+      }
+    });
+  }
+});
