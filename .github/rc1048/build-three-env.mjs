@@ -140,6 +140,66 @@ function finalRepairPrintStowPayloads(html,file){
   return out;
 }
 
+function printStowBlocks(html){
+  const blocks=[],startMarker='function printStow(){',endMarker='function normalizeActionButtons';
+  let cursor=0;
+  while(true){
+    const start=html.indexOf(startMarker,cursor);
+    if(start<0)break;
+    const end=html.indexOf(endMarker,start+startMarker.length);
+    if(end<0)break;
+    blocks.push({start:start,end:end,content:html.slice(start,end)});
+    cursor=end+endMarker.length;
+  }
+  return blocks;
+}
+
+function syncPrintStowFromProduction(html,file,canonicalBlocks){
+  if(!Array.isArray(canonicalBlocks)||!canonicalBlocks.length)return html;
+  const variants=printStowBlocks(html);
+  if(!variants.length)return html;
+  if(variants.length!==canonicalBlocks.length)throw new Error(file+': printStow-Anzahl '+variants.length+' statt Produktion '+canonicalBlocks.length);
+
+  let out=html;
+  const moved=[];
+
+  for(let i=variants.length-1;i>=0;i--){
+    const variant=variants[i].content,canonical=canonicalBlocks[i].content;
+    if(variant===canonical)continue;
+
+    let prefix=0;
+    const min=Math.min(variant.length,canonical.length);
+    while(prefix<min&&variant.charCodeAt(prefix)===canonical.charCodeAt(prefix))prefix++;
+
+    let suffix=0;
+    while(
+      suffix<variant.length-prefix&&
+      suffix<canonical.length-prefix&&
+      variant.charCodeAt(variant.length-1-suffix)===canonical.charCodeAt(canonical.length-1-suffix)
+    )suffix++;
+
+    if(prefix+suffix===canonical.length&&variant.length>canonical.length){
+      const extra=variant.slice(prefix,variant.length-suffix).trim();
+      if(extra&&/[<](?:script|style|link|section|div)\b/i.test(extra))moved.unshift(extra);
+    }else if(/[<](?:script|style|link|section|div)\b/i.test(variant)){
+      const extraTags=[];
+      const tagRx=/<(?:style|script)\b[^>]*>[\s\S]*?<\/(?:style|script)\s*>|<link\b[^>]*>/gi;
+      let m;while((m=tagRx.exec(variant)))if(!canonical.includes(m[0]))extraTags.push(m[0]);
+      if(extraTags.length)moved.unshift(...extraTags);
+    }
+
+    out=out.slice(0,variants[i].start)+canonical+out.slice(variants[i].end);
+  }
+
+  if(moved.length){
+    const unique=Array.from(new Set(moved.filter(Boolean)));
+    const bodyClose=out.toLowerCase().lastIndexOf('</body>');
+    if(bodyClose<0)throw new Error(file+': äußerer </body>-Anker für synchronisierte Seitenblöcke fehlt');
+    out=out.slice(0,bodyClose)+'\n'+unique.join('\n')+'\n'+out.slice(bodyClose);
+  }
+  return out;
+}
+
 function patchGateMaster(html,file){
   let out=html;
 
@@ -178,9 +238,10 @@ function saveGateMaster(){if(!gateMasterAdmin()){alert('Keine Admin-Berechtigung
   return out;
 }
 
-function patchHtml(file){
+function patchHtml(file,canonicalPrintStow){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  if(canonicalPrintStow)html=syncPrintStowFromProduction(html,file,canonicalPrintStow);
   html=repairPrintStowInjectedPageBlocks(html,file);
   html=patchEmbeddedPrintScriptClosers(html,file);
   html=patchGateMaster(html,file);
@@ -208,7 +269,11 @@ function patchHtml(file){
 execFileSync(process.execPath,['.github/rc1047/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
 fs.rmSync(OUT,{recursive:true,force:true});
 fs.cpSync(SRC,OUT,{recursive:true});
-for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
+patchHtml('index.html');
+const canonicalPrintStow=printStowBlocks(fs.readFileSync(path.join(OUT,'index.html'),'utf8'));
+if(!canonicalPrintStow.length)throw new Error('Produktion enthält keinen kanonischen printStow-Block');
+patchHtml('TESTVERSION.html',canonicalPrintStow);
+patchHtml('demo.html',canonicalPrintStow);
 
 const rc1065AssetSource=path.join(ROOT,'assets/rc1065-registration-cc.js');
 const rc1065AssetTarget=path.join(OUT,'assets/rc1065-registration-cc.js');
