@@ -238,8 +238,8 @@ jobs:
             tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1048=$GITHUB_SHA-$attempt" || true)
             pccc=$(curl -sS -o "$pcc" -w '%{http_code}' --max-time 20 "$prod/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
             tccc=$(curl -sS -o "$tcc" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
-            pmac=$(curl -sS -o "$pma" -w '%{http_code}' --max-time 20 "$prod/assets/rc1061-document-migration-admin.js?rc1066=$GITHUB_SHA-$attempt" || true)
-            tmac=$(curl -sS -o "$tma" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1061-document-migration-admin.js?rc1066=$GITHUB_SHA-$attempt" || true)
+            pmac=$(curl -sS -o "$pma" -w '%{http_code}' --max-time 20 "$prod/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
+            tmac=$(curl -sS -o "$tma" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
             precc=$(curl -sS -o "$prec" -w '%{http_code}' --max-time 20 "$prod/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
             trecc=$(curl -sS -o "$trec" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
             pperfc=$(curl -sS -o "$pperf" -w '%{http_code}' --max-time 20 "$prod/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
@@ -285,12 +285,14 @@ jobs:
               && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$tcc" \
               && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$p" \
               && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$t" \
-              && grep -q 'RC1069: Die einmalige Migration bleibt als API/Recovery-Funktion erhalten' "$pma" \
-              && grep -q 'RC1069: Die einmalige Migration bleibt als API/Recovery-Funktion erhalten' "$tma" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$pma" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$tma" \
               && grep -q 'async function runAll' "$pma" \
               && grep -q 'async function runAll' "$tma" \
-              && ! grep -q 'Alle verbleibenden migrieren' "$pma" \
-              && ! grep -q 'Alle verbleibenden migrieren' "$tma" \
+              && grep -q 'inlinePayloadCount' "$pma" \
+              && grep -q 'inlinePayloadCount' "$tma" \
+              && grep -q 'Alle verbleibenden migrieren' "$pma" \
+              && grep -q 'Alle verbleibenden migrieren' "$tma" \
               && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$p" \
               && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$t" \
               && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$prec" \
