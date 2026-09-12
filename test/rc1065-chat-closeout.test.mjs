@@ -136,6 +136,36 @@ test('RC1065: Pflicht-CC Runtime nutzt die persistente Settings-Konfiguration un
   assert.equal(normal.required,false);
 });
 
+test('RC1065: Pflicht-CC Settings speichern bestätigt in Azure und rollen bei Fehler zurück',async()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  const appState={settings:{}};
+  const calls=[];
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>appState,
+    ExportHUBClean:{
+      async queueSave(reason){calls.push(['queue',reason]);return true},
+      async flushSave(reason,options){calls.push(['flush',reason,options]);return true}
+    },
+    dispatchEvent(){return true}
+  };
+  const context={window,URLSearchParams,console,CustomEvent:function(name,init){this.type=name;this.detail=init&&init.detail}};
+  vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
+  const api=window.ExportHUBRC1065RegistrationCC;
+  const next=[{name:'Sevastian Marcu',email:'sevastian@example.com'},{name:'Daniel Ollmann',email:'daniel@example.com'}];
+  assert.equal(await api.persistCcSettings(next),true);
+  assert.equal(appState.settings.registrationMandatoryCc,next);
+  assert.equal(calls.length,2);
+  assert.equal(calls[0][0],'queue');
+  assert.equal(calls[1][0],'flush');
+  assert.equal(calls[1][2].force,true);
+  assert.equal(calls[1][2].userInitiated,true);
+
+  const previous=appState.settings.registrationMandatoryCc;
+  window.ExportHUBClean.flushSave=async()=>false;
+  await assert.rejects(()=>api.persistCcSettings([{name:'Sevastian Marcu',email:'changed@example.com'}]),/nicht bestätigt/);
+  assert.equal(appState.settings.registrationMandatoryCc,previous,'bei fehlender Azure-Bestätigung muss der vorherige CC-Stand erhalten bleiben');
+});
+
 test('RC1065: Global Admin kann beide Pflicht-CC-Adressen in Einstellungen dauerhaft pflegen',()=>{
   const source=read('assets/rc1065-registration-cc.js');
   assert.match(source,/rc1065RegistrationCcSettings/);
