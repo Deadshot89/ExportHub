@@ -54,7 +54,7 @@ if(!api.includes('function abdPolicy(state,sh)')){
 fs.writeFileSync(apiFile,api,'utf8');
 
 const RC1027_ID='exporthub-rc1027-lieferavis-immediate';
-const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavis-immediate.js?v=1052"></script>';
+const RC1027_TAG='<script id="'+RC1027_ID+'" defer src="/assets/rc1027-lieferavis-immediate.js?v=1069"></script>';
 const RC1037_ID='exporthub-rc1037-lieferavis-timing-diagnostics';
 const RC1037_TAG='<script id="'+RC1037_ID+'" defer src="/assets/rc1037-lieferavis-timing-diagnostics.js?v=1038"></script>';
 const RC1049_ID='exporthub-rc1049-abd-avis-policy';
