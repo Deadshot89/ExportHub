@@ -147,15 +147,33 @@ function shipmentControllerBlock(html,file){
   const open='<script id="exporthub-rc373-shipment-controller">';
   const start=html.indexOf(open);
   if(start<0)throw new Error(file+': RC373 Shipment-Controller Start fehlt');
-  const boundary='<style id="exporthub-rc373-customer-areas-style">';
-  const end=html.indexOf(boundary,start+open.length);
-  if(end<0)throw new Error(file+': RC373 Shipment-Controller Folgeanker fehlt');
+  const tail='window.ExportHUBShipment375=api;';
+  const tailAt=html.indexOf(tail,start+open.length);
+  if(tailAt<0)throw new Error(file+': RC373 Shipment-Controller Endmarker fehlt');
+  const close=html.indexOf('</script>',tailAt+tail.length);
+  if(close<0)throw new Error(file+': RC373 Shipment-Controller echtes Ende fehlt');
+  const end=close+'</script>'.length;
   return{start:start,end:end,content:html.slice(start,end)};
 }
 function syncShipmentControllerFromProduction(html,file,canonicalController){
   if(!canonicalController||!canonicalController.content)return html;
   const current=shipmentControllerBlock(html,file);
-  return html.slice(0,current.start)+canonicalController.content+html.slice(current.end);
+  if(current.content===canonicalController.content)return html;
+
+  const outside=html.slice(0,current.start)+html.slice(current.end),extras=[];
+  const rx=/<(?:style|script)\b[^>]*\bid=["']([^"']+)["'][^>]*>[\s\S]*?<\/(?:style|script)\s*>/gi;
+  let m;
+  while((m=rx.exec(current.content))){
+    const id=String(m[1]||'').trim(),block=m[0];
+    if(!id||id==='exporthub-rc373-shipment-controller')continue;
+    if(/rc1059-document-blob\.js/i.test(block))continue;
+    if(canonicalController.content.includes('id="'+id+'"')||canonicalController.content.includes("id='"+id+"'"))continue;
+    if(outside.includes('id="'+id+'"')||outside.includes("id='"+id+"'"))continue;
+    extras.push(block);
+  }
+  const unique=Array.from(new Set(extras));
+  const replacement=canonicalController.content+(unique.length?'\n'+unique.join('\n'):'');
+  return html.slice(0,current.start)+replacement+html.slice(current.end);
 }
 
 function printStowBlocks(html){
