@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ExportHUB Speicheroptimierung</title>
+<style>
+:root{font-family:Segoe UI,Arial,sans-serif;color:#17324a;background:#eef8fc}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(180deg,#eefaff,#f8fbfd);padding:28px}
+main{max-width:920px;margin:0 auto}.card{background:#fff;border:1px solid #d8e5ee;border-radius:18px;box-shadow:0 12px 38px rgba(15,55,80,.08);padding:24px}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.05em;color:#64748b;text-transform:uppercase}h1{margin:5px 0 8px;font-size:28px}p{color:#5b7083}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:20px 0}.metric{border:1px solid #dce6ee;border-radius:12px;padding:12px}.metric span{display:block;font-size:12px;color:#64748b}.metric b{font-size:21px}
+.bar{height:12px;background:#e2e8f0;border-radius:999px;overflow:hidden}.fill{height:100%;width:0;background:#0f172a;transition:width .2s}
+.status{margin:14px 0;padding:12px 14px;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:700}.status.ok{background:#ecfdf5;color:#166534}.status.bad{background:#fef2f2;color:#991b1b}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button{border:0;border-radius:10px;padding:11px 15px;font:inherit;font-weight:800;cursor:pointer}.primary{background:#0f172a;color:#fff}.secondary{background:#fff;color:#334155;border:1px solid #cbd5e1}button:disabled{opacity:.5;cursor:not-allowed}
+.small{font-size:12px;color:#64748b;margin-top:8px}@media(max-width:720px){body{padding:14px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body><main><section class="card">
+<div class="eyebrow">ExportHUB · sichere Wartung</div><h1>Dokumentspeicher wird optimiert</h1>
+<p>Der normale ExportHUB-Teamstand wird auf dieser Seite bewusst nicht geladen. Alte eingebettete Dokumente werden in sicheren 5er-Paketen in den Blob-Speicher verschoben. Danach startet ExportHUB mit dem verkleinerten Datenbestand neu.</p>
+<div id="status" class="status">Sitzung und Speicherstatus werden geprüft …</div>
+<div class="bar"><div id="fill" class="fill"></div></div><div id="progressText" class="small">0 %</div>
+<div class="grid"><div class="metric"><span>Gefunden</span><b id="found">–</b></div><div class="metric"><span>Migriert</span><b id="migrated">0</b></div><div class="metric"><span>Verbleibend</span><b id="remaining">–</b></div><div class="metric"><span>Pakete</span><b id="batches">0</b></div></div>
+<div class="actions"><button id="retry" class="primary" type="button" hidden>Migration erneut starten</button><button id="stop" class="secondary" type="button" hidden>Nach aktuellem Paket stoppen</button><button id="back" class="secondary" type="button">Zurück zu ExportHUB</button></div>
+<div id="detail" class="small"></div>
+</section></main>
+<script>
+(function(){'use strict';
+var KEY='exporthub_rc301_tab_session',BATCH=5,running=false,stopRequested=false,totalFound=0,totalMigrated=0,batches=0,environment=/-testservice\./i.test(location.hostname)?'testservice':'production';
+function q(v){return String(v==null?'':v).trim()}
+function session(){try{var raw=sessionStorage.getItem(KEY);if(raw){var x=JSON.parse(raw);if(x&&x.token)return x}}catch(_){}try{for(var i=0;i<sessionStorage.length;i++){var k=sessionStorage.key(i),r=sessionStorage.getItem(k);if(!r||r.charAt(0)!=='{')continue;var x=JSON.parse(r);if(x&&x.token&&x.user)return x}}catch(_){}return null}
+function headers(){var s=session();if(!s||!s.token)throw new Error('Keine gültige ExportHUB-Sitzung gefunden. Bitte zur Anwendung zurückkehren und erneut anmelden.');return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':s.token,'X-ExportHUB-Session':s.token,'Authorization':'Bearer '+s.token,'X-ExportHUB-Environment':environment}}
+function setStatus(t,k){var e=document.getElementById('status');e.textContent=t;e.className='status'+(k?' '+k:'')}
+function render(remaining){remaining=Math.max(0,Number(remaining||0));var done=Math.max(0,totalFound-remaining),pct=totalFound?Math.round(done/totalFound*100):(remaining===0?100:0);document.getElementById('found').textContent=totalFound;document.getElementById('migrated').textContent=totalMigrated;document.getElementById('remaining').textContent=remaining;document.getElementById('batches').textContent=batches;document.getElementById('fill').style.width=Math.min(100,pct)+'%';document.getElementById('progressText').textContent=done+' / '+totalFound+' · '+pct+' %'}
+async function health(){var r=await fetch('/api/exporthub-state?mode=health',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','Cache-Control':'no-cache'}}),d=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(d.message)||('Health HTTP '+r.status));return d}
+async function batch(){var r=await fetch('/api/exporthub-document-migrate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers(),body:JSON.stringify({environment:environment,limit:BATCH})}),d=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(d.message)||('Migration HTTP '+r.status));return d}
+async function run(){
+ if(running)return;running=true;stopRequested=false;document.getElementById('retry').hidden=true;document.getElementById('stop').hidden=false;document.getElementById('stop').disabled=false;
+ try{
+  var h=await health(),remaining=Number(h&&h.stateDiagnostics&&h.stateDiagnostics.inlinePayloadCount||0);totalFound=remaining;totalMigrated=0;batches=0;render(remaining);
+  if(!remaining){setStatus('Keine eingebetteten Alt-Dokumente mehr vorhanden. ExportHUB wird neu gestartet.','ok');return finish()}
+  setStatus('Migration läuft automatisch in sicheren 5er-Paketen …');
+  var previous=remaining;
+  for(var guard=0;guard<1000&&remaining>0;guard++){
+   if(stopRequested){setStatus('Migration nach dem letzten sicheren Paket angehalten. '+remaining+' Dokumente verbleiben.');break}
+   var r=await batch();batches++;var m=Number(r.migrated||0),failed=Number(r.failed||0);remaining=Number(r.remaining||0);totalMigrated+=m;render(remaining);document.getElementById('detail').textContent='Paket '+batches+' abgeschlossen · '+totalMigrated+' migriert · '+remaining+' verbleiben.';
+   if(failed>0)throw new Error('Mindestens ein Dokument konnte nicht migriert werden. Die Automatik wurde sicher angehalten.');
+   if(remaining===0||r.done===true){setStatus('Migration abgeschlossen. Der verkleinerte ExportHUB-Teamstand wird jetzt neu geladen.','ok');return finish()}
+   if(m<=0||remaining>=previous)throw new Error('Die Migration macht keinen Fortschritt und wurde sicher angehalten.');
+   previous=remaining;await new Promise(function(resolve){setTimeout(resolve,150)})
+  }
+ }catch(e){setStatus('Migration angehalten: '+q(e&&e.message),'bad');document.getElementById('retry').hidden=false}
+ finally{running=false;document.getElementById('stop').hidden=true}
+}
+function finish(){document.getElementById('fill').style.width='100%';document.getElementById('progressText').textContent='100 %';setTimeout(function(){location.replace('/?_rc1067='+Date.now())},1400)}
+document.getElementById('retry').onclick=run;document.getElementById('stop').onclick=function(){stopRequested=true;this.disabled=true;setStatus('Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …')};document.getElementById('back').onclick=function(){location.href='/'};
+run();
+})();
+</script></body></html>
