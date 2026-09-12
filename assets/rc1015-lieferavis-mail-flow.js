@@ -250,7 +250,7 @@ function rc1015UpdateLieferavisButton(){
  btn.textContent=active?'Deaktivieren':'Aktivieren';
  btn.disabled=active?false:(!!blocked||!wrapper||!rc1015DraftReference());
  var help=panel.querySelectorAll('.rc897-avis-help'),last=help&&help.length?help[help.length-1]:null;
- if(last)last.textContent=blocked?rc1018AvisBlockMessage(blocked):(active?'Lieferavis ist für diese Sendung standardmäßig aktiv. Der Link wird beim ersten sicheren Speichern erstellt. Bei Bedarf können Sie den Lieferavis deaktivieren.':'Lieferavis ist für diese Sendung deaktiviert.');
+ if(last)last.textContent=blocked?rc1018AvisBlockMessage(blocked):(active?'Lieferavis ist für diese Sendung standardmäßig aktiv. Der Link wird sofort aus dem aktuellen Entwurf erstellt und während der Eingabe aktualisiert. Bei Bedarf können Sie den Lieferavis deaktivieren.':'Lieferavis ist für diese Sendung deaktiviert.');
  return true
 }
 function mailModeLabel(type,sh,lang){
