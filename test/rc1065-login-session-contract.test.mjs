@@ -33,7 +33,7 @@ test('RC1065 Loginvertrag: Logout ist eine explizite Auth-Aktion und nicht an Se
 });
 
 test('RC1065 Loginvertrag: TESTSERVICE-Loader sendet dieselbe Session an Release-API und verhindert Doppel-Login durch fehlende Header nicht',()=>{
-  const headers=loader.match(/function headers\(\)\{([\s\S]*?)\}async function api/);
+  const headers=loader.match(/function headers\(\)\{([\s\S]*?)\}\s*async function api/);
   assert.ok(headers,'Header-Bridge fehlt');
   assert.match(headers[1],/tabSession\(\)/);
   assert.match(headers[1],/if\(s&&s\.token\)/);
