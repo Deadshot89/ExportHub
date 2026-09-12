@@ -142,6 +142,22 @@ function finalRepairPrintStowPayloads(html,file){
   return out;
 }
 
+
+function shipmentControllerBlock(html,file){
+  const open='<script id="exporthub-rc373-shipment-controller">';
+  const start=html.indexOf(open);
+  if(start<0)throw new Error(file+': RC373 Shipment-Controller Start fehlt');
+  const boundary='<style id="exporthub-rc373-customer-areas-style">';
+  const end=html.indexOf(boundary,start+open.length);
+  if(end<0)throw new Error(file+': RC373 Shipment-Controller Folgeanker fehlt');
+  return{start:start,end:end,content:html.slice(start,end)};
+}
+function syncShipmentControllerFromProduction(html,file,canonicalController){
+  if(!canonicalController||!canonicalController.content)return html;
+  const current=shipmentControllerBlock(html,file);
+  return html.slice(0,current.start)+canonicalController.content+html.slice(current.end);
+}
+
 function printStowBlocks(html){
   const blocks=[],startMarker='function printStow(){',endMarker='function normalizeActionButtons';
   let cursor=0;
@@ -240,9 +256,10 @@ function saveGateMaster(){if(!gateMasterAdmin()){alert('Keine Admin-Berechtigung
   return out;
 }
 
-function patchHtml(file,canonicalPrintStow){
+function patchHtml(file,canonicalPrintStow,canonicalController){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  if(canonicalController)html=syncShipmentControllerFromProduction(html,file,canonicalController);
   if(canonicalPrintStow)html=syncPrintStowFromProduction(html,file,canonicalPrintStow);
   html=repairPrintStowInjectedPageBlocks(html,file);
   html=patchEmbeddedPrintScriptClosers(html,file);
@@ -272,10 +289,13 @@ execFileSync(process.execPath,['.github/rc1047/build-three-env.mjs'],{cwd:ROOT,s
 fs.rmSync(OUT,{recursive:true,force:true});
 fs.cpSync(SRC,OUT,{recursive:true});
 patchHtml('index.html');
-const canonicalPrintStow=printStowBlocks(fs.readFileSync(path.join(OUT,'index.html'),'utf8'));
+const canonicalProductionHtml=fs.readFileSync(path.join(OUT,'index.html'),'utf8');
+const canonicalController=shipmentControllerBlock(canonicalProductionHtml,'index.html');
+const canonicalPrintStow=printStowBlocks(canonicalProductionHtml);
 if(!canonicalPrintStow.length)throw new Error('Produktion enthält keinen kanonischen printStow-Block');
-patchHtml('TESTVERSION.html',canonicalPrintStow);
-patchHtml('demo.html',canonicalPrintStow);
+if(!canonicalController.content.includes('function printStow(){'))throw new Error('Produktion: RC373 Shipment-Controller enthält printStow nicht');
+patchHtml('TESTVERSION.html',canonicalPrintStow,canonicalController);
+patchHtml('demo.html',canonicalPrintStow,canonicalController);
 
 const rc1065AssetSource=path.join(ROOT,'assets/rc1065-registration-cc.js');
 const rc1065AssetTarget=path.join(OUT,'assets/rc1065-registration-cc.js');
