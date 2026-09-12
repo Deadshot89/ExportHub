@@ -24,7 +24,7 @@ function replaceRegexExactlyOnce(html,regex,replacer,label){
 }
 function injectBeforeHeadClose(html,tag,id){
   if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;
-  const idx=html.search(/<\/head\s*>/i);
+  const body=html.search(/<body\b/i),idx=(body>=0?html.slice(0,body):html).search(/<\/head\s*>/i);
   if(idx<0)throw new Error(`${id}: Kein </head> gefunden.`);
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
