@@ -66,9 +66,9 @@ function ensureCard(){
   var button=box.querySelector('#rc1061MigrationRun'),stop=box.querySelector('#rc1061MigrationStop'),status=box.querySelector('#rc1061MigrationStatus'),metrics=box.querySelector('#rc1061MigrationMetrics'),progress=box.querySelector('#rc1061MigrationProgress'),progressText=box.querySelector('#rc1061MigrationProgressText');
   var totals={found:0,migrated:0,failed:0,remaining:0,bytesMoved:0,batches:0},running=false,stopRequested=false;
   function render(){
-    var total=Math.max(0,Number(totals.found||0)),done=Math.max(0,Math.min(total,Number(totals.migrated||0))),pct=total?Math.min(100,Math.round(done/total*100)):(totals.remaining===0?100:0);
-    metrics.innerHTML=metric('Gefunden',totals.found)+metric('Migriert',totals.migrated)+metric('Fehlgeschlagen',totals.failed)+metric('Verbleibend',totals.remaining)+metric('Verschoben',bytes(totals.bytesMoved));
-    progress.style.width=pct+'%';progressText.textContent=done+' / '+total+' · '+pct+' %';
+    var total=Math.max(0,Number(totals.found||0)),remaining=Math.max(0,Number(totals.remaining||0)),resolved=Math.max(0,Math.min(total,total-remaining)),pct=total?Math.min(100,Math.round(resolved/total*100)):(remaining===0?100:0);
+    metrics.innerHTML=metric('Gefunden',totals.found)+metric('Erledigt',resolved)+metric('Neu migriert',totals.migrated)+metric('Fehlgeschlagen',totals.failed)+metric('Verbleibend',totals.remaining)+metric('Verschoben',bytes(totals.bytesMoved));
+    progress.style.width=pct+'%';progressText.textContent=resolved+' / '+total+' · '+pct+' %';
     button.disabled=running||(totals.remaining===0&&totals.found>0);button.style.opacity=button.disabled?'.55':'1';
     stop.style.display=running?'inline-block':'none';
     button.textContent=totals.remaining===0&&totals.found>0?'Migration abgeschlossen':'Alle verbleibenden migrieren'
@@ -89,7 +89,13 @@ function ensureCard(){
         }
       });
       if(result.stopped){status.textContent='Migration angehalten. '+totals.remaining+' Dokumente verbleiben.'}
-      else{totals.remaining=0;status.textContent='Migration abgeschlossen. Alle '+totals.migrated+' Dokumente wurden in den Blob-Speicher übertragen.'}
+      else{
+        totals.remaining=0;
+        var resolved=Math.max(0,Number(totals.found||0));
+        status.textContent=totals.migrated>0
+          ?'Migration abgeschlossen. '+resolved+' Alt-Dokumente sind erledigt; '+totals.migrated+' wurden in diesem Lauf neu in den Blob-Speicher übertragen.'
+          :(resolved>0?'Migration abgeschlossen. Die '+resolved+' zuvor gemeldeten Alt-Dokumente waren beim Lauf bereits ausgelagert; es musste nichts mehr übertragen werden.':'Migration abgeschlossen. Keine Inline-Dokumente mehr vorhanden.')
+      }
     }catch(e){
       var result=e&&e.result||{};if(Number(result.remaining)>=0)totals.remaining=Number(result.remaining||0);if(Number(result.migrated)>=0)totals.migrated=Number(result.migrated||totals.migrated);if(Number(result.failed)>=0)totals.failed=Number(result.failed||totals.failed);if(Number(result.bytesMoved)>=0)totals.bytesMoved=Number(result.bytesMoved||totals.bytesMoved);
       status.textContent=e&&e.code==='DOCUMENT_MIGRATION_BATCH_FAILED'?'Automatik sicher gestoppt: Mindestens ein Dokument konnte nicht migriert werden. Bereits erfolgreiche Dokumente bleiben gespeichert. Bitte erneut versuchen oder den Fehler prüfen.':'Migration sicher angehalten: '+q(e&&e.message)
