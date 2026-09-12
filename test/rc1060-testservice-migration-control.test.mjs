@@ -9,7 +9,8 @@ test('RC1060 Bestandsschutz: temporäre TESTSERVICE-Steuerung ist nach RC1061 ni
   assert.doesNotMatch(blobSource,/rc1060MigrationControl/);
   assert.doesNotMatch(blobSource,/ExportHUBDocumentMigration1060/);
   assert.match(adminSource,/exporthub-document-migrate/);
-  assert.match(adminSource,/limit:5/);
+  assert.match(adminSource,/var BATCH_SIZE=5/);
+  assert.match(adminSource,/limit:BATCH_SIZE/);
 });
 
 test('RC1060 Bestandsschutz: RC1061 verwendet weiterhin die aktive ExportHUB-Sitzung für die geschützte Migration',()=>{
