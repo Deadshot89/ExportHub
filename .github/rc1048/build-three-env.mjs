@@ -34,31 +34,42 @@ function injectBeforeHeadClose(html,tag,id){
 }
 
 function repairPrintStowInjectedPageBlocks(html,file){
-  const fn=html.indexOf('function printStow(){');
-  if(fn<0)return html;
+  let out=html,cursor=0,repairs=0;
   const anchor="'+card.innerHTML+'";
-  const start=html.indexOf(anchor,fn);
-  if(start<0)return html;
-  const payloadStart=start+anchor.length;
-  const boundary=html.indexOf('function normalizeActionButtons',payloadStart);
-  if(boundary<0)return html;
-  const beforeBoundary=html.slice(payloadStart,boundary);
-  const relativeEnd=beforeBoundary.lastIndexOf("</body></html>'");
-  if(relativeEnd<0)return html;
-  const end=payloadStart+relativeEnd;
-  const afterPrint=html.slice(end,boundary);
-  if(!/window\.open\(\s*['"]about:blank['"]/.test(afterPrint))return html;
-  const payload=html.slice(payloadStart,end);
-  if(!/[<](?:script|style|link|section|div)\b/i.test(payload))return html;
-  let out=html.slice(0,payloadStart)+html.slice(end);
-  const newBoundary=Math.max(0,boundary-(end-payloadStart));
-  const lowerOut=out.toLowerCase();
-  const bodyClose=lowerOut.indexOf('</body>',newBoundary);
-  if(bodyClose>=0)out=out.slice(0,bodyClose)+'\n'+payload.trim()+'\n'+out.slice(bodyClose);
-  else out=out+'\n'+payload.trim()+'\n';
+
+  while(true){
+    const fn=out.indexOf('function printStow(){',cursor);
+    if(fn<0)break;
+    const start=out.indexOf(anchor,fn);
+    if(start<0){cursor=fn+'function printStow(){'.length;continue}
+    const payloadStart=start+anchor.length;
+    const boundary=out.indexOf('function normalizeActionButtons',payloadStart);
+    if(boundary<0){cursor=payloadStart;continue}
+
+    const beforeBoundary=out.slice(payloadStart,boundary);
+    const relativeEnd=beforeBoundary.lastIndexOf("</body></html>'");
+    if(relativeEnd<0){cursor=payloadStart;continue}
+    const end=payloadStart+relativeEnd;
+    const afterPrint=out.slice(end,boundary);
+    if(!/window\.open\(\s*['"]about:blank['"]/.test(afterPrint)){cursor=boundary;continue}
+
+    const payload=out.slice(payloadStart,end);
+    if(!/[<](?:script|style|link|section|div)\b/i.test(payload)){cursor=boundary;continue}
+
+    out=out.slice(0,payloadStart)+out.slice(end);
+    const shiftedBoundary=Math.max(0,boundary-(end-payloadStart));
+    const lower=out.toLowerCase();
+    const bodyClose=lower.indexOf('</body>',shiftedBoundary);
+    const cleanPayload=payload.trim();
+    if(bodyClose>=0)out=out.slice(0,bodyClose)+'\n'+cleanPayload+'\n'+out.slice(bodyClose);
+    else out=out+'\n'+cleanPayload+'\n';
+
+    repairs++;
+    cursor=payloadStart;
+  }
+
   return out;
 }
-
 function patchEmbeddedPrintScriptClosers(html,file){
   let out=html,cursor=0,movedStyle='',patched=0;
   const misplacedStyleRx=/<style\b[^>]*id=["']exporthub-rc373-customer-areas-style["'][^>]*>[\s\S]*?<\/style\s*>/i;
