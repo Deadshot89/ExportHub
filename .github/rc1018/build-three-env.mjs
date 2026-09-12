@@ -15,7 +15,7 @@ const SAVE_RUNTIME_ID='rc565-end-to-end-function-core';
 
 function read(rel){return fs.readFileSync(path.join(ROOT,rel),'utf8')}
 function write(rel,content){const file=path.join(OUT,rel);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,content)}
-function injectBeforeHeadClose(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const idx=html.search(/<\/head\s*>/i);if(idx<0)throw new Error(`${id}: </head> fehlt`);return html.slice(0,idx)+tag+'\n'+html.slice(idx)}
+function injectBeforeHeadClose(html,tag,id){if(html.includes(`id="${id}"`)||html.includes(`id='${id}'`))return html;const body=html.search(/<body\b/i),idx=(body>=0?html.slice(0,body):html).search(/<\/head\s*>/i);if(idx<0)throw new Error(`${id}: </head> fehlt`);return html.slice(0,idx)+tag+'\n'+html.slice(idx)}
 function injectSopImages(html){
   if(html.includes('id="exporthub-rc1018-sop-system-images"'))return html;
   const rx=/(<script\s+id=["']exporthub-rc1016-sop-consolidation["'][^>]*><\/script>)/i;
@@ -76,11 +76,26 @@ function setVersion(html){
   return out
 }
 function scriptBlock(html,id){
+  const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\function scriptBlock(html,id){
   const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const open=new RegExp(`<script\\b[^>]*id=["']${escaped}["'][^>]*>`,'i');
   const match=open.exec(html);
   if(!match)throw new Error(`${id}: Scriptblock fehlt`);
   const start=match.index,end=html.indexOf('</script>',start+match[0].length);
+  if(end<0)throw new Error(`${id}: </script> fehlt`);
+  return html.slice(start,end+'</script>'.length)
+}');
+  const open=new RegExp(`<script\\b[^>]*id=["']${escaped}["'][^>]*>`,'i');
+  const match=open.exec(html);
+  if(!match)throw new Error(`${id}: Scriptblock fehlt`);
+  const start=match.index;
+  let searchFrom=start+match[0].length;
+  if(id===SHIPMENT_CONTROLLER_ID){
+    const stable=html.indexOf('function normalizeActionButtons',searchFrom);
+    if(stable<0)throw new Error(`${id}: stabiler Controller-Endanker fehlt`);
+    searchFrom=stable;
+  }
+  const end=html.indexOf('</script>',searchFrom);
   if(end<0)throw new Error(`${id}: </script> fehlt`);
   return html.slice(start,end+'</script>'.length)
 }
