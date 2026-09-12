@@ -33,6 +33,25 @@ function injectBeforeHeadClose(html,tag,id){
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
 
+function repairPrintStowInjectedPageBlocks(html,file){
+  const fn=html.indexOf('function printStow(){');
+  if(fn<0)return html;
+  const anchor="'+card.innerHTML+'";
+  const start=html.indexOf(anchor,fn);
+  if(start<0)return html;
+  const payloadStart=start+anchor.length;
+  const endMarker="</body></html>';var w=window.open";
+  const end=html.indexOf(endMarker,payloadStart);
+  if(end<0)return html;
+  const payload=html.slice(payloadStart,end);
+  if(!/[<](?:script|style|link|section|div)\b/i.test(payload))return html;
+  let out=html.slice(0,payloadStart)+html.slice(end);
+  const bodyClose=out.toLowerCase().lastIndexOf('</body>');
+  if(bodyClose<0)throw new Error(file+': echtes </body> für Stauplan-Reparatur fehlt');
+  out=out.slice(0,bodyClose)+'\n'+payload.trim()+'\n'+out.slice(bodyClose);
+  return out;
+}
+
 function patchEmbeddedPrintScriptClosers(html,file){
   const start=html.indexOf('function printStow(){');
   const end=start>=0?html.indexOf('function normalizeActionButtons',start):-1;
@@ -88,6 +107,7 @@ function saveGateMaster(){if(!gateMasterAdmin()){alert('Keine Admin-Berechtigung
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  html=repairPrintStowInjectedPageBlocks(html,file);
   html=patchEmbeddedPrintScriptClosers(html,file);
   html=patchGateMaster(html,file);
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
