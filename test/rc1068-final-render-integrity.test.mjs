@@ -14,7 +14,7 @@ function classicScripts(source){
     const attrs=m[1]||'';if(/\bsrc\s*=/.test(attrs))continue;
     const tm=attrs.match(/\btype\s*=\s*['"]([^'"]+)['"]/i),type=tm?tm[1].trim().toLowerCase():'';
     if(type&&!['text/javascript','application/javascript','text/ecmascript','application/ecmascript'].includes(type))continue;
-    out.push({code:m[2],index:m.index});
+    out.push({code:m[2],index:m.index,attrs:attrs,openTag:m[0].slice(0,m[0].indexOf('>')+1)});
   }
   return out;
 }
@@ -46,7 +46,7 @@ for(const file of files){
  });
  test('RC1068 final render: '+file+' alle klassischen Inline-Scripts sind syntaktisch gültig',()=>{
    const html=fs.readFileSync('dist-rc1048/'+file,'utf8'),fail=[];
-   classicScripts(html).forEach((s,i)=>{try{new vm.Script(s.code,{filename:file+'.inline-'+(i+1)})}catch(e){const p=s.code.indexOf('rc1059-document-blob.js?v=RC1059');const hp=html.indexOf('rc1059-document-blob.js?v=RC1059',s.index);const raw=p>=0?JSON.stringify(s.code.slice(Math.max(0,p-120),Math.min(s.code.length,p+700))):'';const rawHtml=hp>=0?JSON.stringify(html.slice(Math.max(0,hp-160),Math.min(html.length,hp+1200))):'';const card=hp>=0?html.lastIndexOf("'+card.innerHTML+'",hp):-1;const win=hp>=0?html.indexOf('var w=window.open',hp):-1;const close=win>=0?html.lastIndexOf("</body></html>'",win):-1;const tail=win>=0?JSON.stringify(html.slice(Math.max(0,close-800),Math.min(html.length,win+800))):'';fail.push('#'+(i+1)+' @'+s.index+' '+String(e&&e.stack||e&&e.message||e).split('\n').slice(0,8).join('\n')+(raw?'\nRAW='+raw:'')+(rawHtml?'\nRAWHTML='+rawHtml:'')+'\nPOS card='+card+' hp='+hp+' close='+close+' win='+win+(tail?'\nTAIL='+tail:''))}});
+   classicScripts(html).forEach((s,i)=>{try{new vm.Script(s.code,{filename:file+'.inline-'+(i+1)})}catch(e){const p=s.code.indexOf('rc1059-document-blob.js?v=RC1059');const hp=html.indexOf('rc1059-document-blob.js?v=RC1059',s.index);const raw=p>=0?JSON.stringify(s.code.slice(Math.max(0,p-120),Math.min(s.code.length,p+700))):'';const rawHtml=hp>=0?JSON.stringify(html.slice(Math.max(0,hp-160),Math.min(html.length,hp+1200))):'';const card=hp>=0?html.lastIndexOf("'+card.innerHTML+'",hp):-1;const win=hp>=0?html.indexOf('var w=window.open',hp):-1;const close=win>=0?html.lastIndexOf("</body></html>'",win):-1;const tail=win>=0?JSON.stringify(html.slice(Math.max(0,close-800),Math.min(html.length,win+800))):'';fail.push('#'+(i+1)+' @'+s.index+' OPEN='+JSON.stringify(s.openTag)+' '+String(e&&e.stack||e&&e.message||e).split('\n').slice(0,8).join('\n')+(raw?'\nRAW='+raw:'')+(rawHtml?'\nRAWHTML='+rawHtml:'')+'\nPOS card='+card+' hp='+hp+' close='+close+' win='+win+(tail?'\nTAIL='+tail:''))}});
    assert.deepEqual(fail,[],fail.join('\n---\n'));
  });
 }
@@ -75,4 +75,18 @@ test('RC1068 Diagnose: printStow-Blöcke sind im finalen Build zwischen allen Um
       }
     });
   }
+});
+
+
+test('RC1068 Diagnose: aktiver Stauplan-Scriptblock hat zwischen den Umgebungen einen stabilen Öffnungstag',()=>{
+  const rows={};
+  for(const file of files){
+    const html=read('dist-rc1048/'+file),scripts=classicScripts(html);
+    const hit=scripts.findIndex(s=>s.code.includes('function printStow(){'));
+    assert.ok(hit>=0,file+': printStow-Script fehlt');
+    rows[file]={index:hit+1,openTag:scripts[hit].openTag,start:scripts[hit].index};
+  }
+  assert.equal(rows['TESTVERSION.html'].index,rows['index.html'].index,'TESTVERSION Script-Ordinal weicht von Produktion ab');
+  assert.equal(rows['demo.html'].index,rows['index.html'].index,'Demo Script-Ordinal weicht von Produktion ab');
+  assert.fail('RC1068 SCRIPT DIAG '+JSON.stringify(rows));
 });
