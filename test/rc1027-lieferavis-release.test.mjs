@@ -10,7 +10,7 @@ const PATCH=path.join(ROOT,'.github/rc1018/fix-mail-wording.mjs');
 const WORKFLOW=fs.readFileSync(path.join(ROOT,'.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'),'utf8');
 const ASSET=fs.readFileSync(path.join(ROOT,'assets/rc1027-lieferavis-immediate.js'),'utf8');
 
-test('RC1027/RC1052: Release-Vorbereitung injiziert oder aktualisiert den Avis-Layer mit frischem Cache-Key',()=>{
+test('RC1027/RC1069: Release-Vorbereitung injiziert oder aktualisiert den Avis-Layer mit frischem Cache-Key',()=>{
   const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'exporthub-rc1027-'));
   try{
     fs.mkdirSync(path.join(tmp,'assets'),{recursive:true});
@@ -25,7 +25,7 @@ test('RC1027/RC1052: Release-Vorbereitung injiziert oder aktualisiert den Avis-L
     for(const page of ['index.html','TESTVERSION.html','demo.html']){
       const html=fs.readFileSync(path.join(tmp,page),'utf8');
       assert.match(html,/id="exporthub-rc1027-lieferavis-immediate"/);
-      assert.match(html,/assets\/rc1027-lieferavis-immediate\.js\?v=1052/);
+      assert.match(html,/assets\/rc1027-lieferavis-immediate\.js\?v=1069/);
       assert.doesNotMatch(html,/assets\/rc1027-lieferavis-immediate\.js\?v=1031/,'Alter Cache-Key darf nach der Release-Vorbereitung nicht bestehen bleiben.');
       assert.equal((html.match(/exporthub-rc1027-lieferavis-immediate/g)||[]).length,1,'RC1027 darf pro Oberfläche nur einmal geladen werden.');
     }
