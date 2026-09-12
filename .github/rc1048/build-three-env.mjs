@@ -41,6 +41,7 @@ function patchEmbeddedPrintScriptClosers(html,file){
   const hits=(block.match(/<\/script\s*>/gi)||[]).length;
   if(hits===0)return html;
   const fixed=block
+    .replace(/(<script\b[^>]*rc1059-document-blob\.js[^>]*>)[\r\n\t ]*<\/script\s*>/gi,'$1<\\/script>')
     .replace(/<\/script\s*>/gi,'<\\/script>')
     .replace(/<\\\/script>[\r\n]+/gi,'<\\/script>');
   return html.slice(0,start)+fixed+html.slice(end);
