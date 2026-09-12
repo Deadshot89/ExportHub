@@ -4,14 +4,18 @@
     {
       "route": "/",
       "rewrite": "/index.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate"
       }
     },
     {
       "route": "/index.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store, no-cache, must-revalidate"
       }
@@ -19,7 +23,9 @@
     {
       "route": "/pickup",
       "rewrite": "/pickup.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -28,7 +34,9 @@
     },
     {
       "route": "/pickup.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -38,7 +46,9 @@
     {
       "route": "/customer-avis",
       "rewrite": "/customer-avis.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -47,7 +57,9 @@
     },
     {
       "route": "/customer-avis.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -57,7 +69,9 @@
     {
       "route": "/location",
       "rewrite": "/location.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -66,7 +80,9 @@
     },
     {
       "route": "/location.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -76,7 +92,9 @@
     {
       "route": "/pod-notfall",
       "rewrite": "/pod-notfall.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -85,7 +103,9 @@
     },
     {
       "route": "/pod-notfall.html",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
@@ -93,8 +113,31 @@
       }
     },
     {
+      "route": "/migration-recovery",
+      "rewrite": "/migration-recovery.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
+      "route": "/migration-recovery.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-Content-Type-Options": "nosniff"
+      }
+    },
+    {
       "route": "/api/*",
-      "allowedRoles": ["anonymous"],
+      "allowedRoles": [
+        "anonymous"
+      ],
       "headers": {
         "Cache-Control": "no-store"
       }
@@ -114,7 +157,9 @@
       "/location.html",
       "/pod-notfall",
       "/pod-notfall.html",
-      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}"
+      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
+      "/migration-recovery",
+      "/migration-recovery.html"
     ]
   },
   "globalHeaders": {
