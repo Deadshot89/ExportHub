@@ -4,7 +4,7 @@
 const crypto = require('crypto');
 const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
-const { externalizeDocumentCollections, DOCUMENT_CONTAINER } = require('../shared/document-blob-store');
+const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -128,32 +128,34 @@ function emptyTeam(){return {schemaVersion:3,revision:0,updatedAt:null,updatedBy
 function emptyAuth(){return {schemaVersion:1,updatedAt:null,sessions:[]}}
 function usableTeamDocument(value){return !!(value&&typeof value==='object'&&!Array.isArray(value)&&value.state&&typeof value.state==='object'&&!Array.isArray(value.state)&&Array.isArray(value.users))}
 function stateSizeDiagnostics(state){
- const root=isObj(state)?state:{},documentFields=new Set(['podFiles','abdFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments']);
+ const root=isObj(state)?state:{},documentFields=new Set(DOCUMENT_FIELDS);
  const sectionBytes=Object.entries(root).map(([key,value])=>{let bytes=0;try{bytes=Buffer.byteLength(JSON.stringify(value))}catch(_){}return {key,bytes,items:Array.isArray(value)?value.length:(isObj(value)?Object.keys(value).length:0)}}).sort((a,b)=>b.bytes-a.bytes).slice(0,20);
- const documentFieldCounts={},seen=new WeakSet();let documentPayloadBytes=0,inlinePayloadCount=0,documentEntries=0,blobDocumentEntries=0;
- const scanFile=(value,depth=0,keyHint='')=>{
-  if(value==null||depth>10)return;
-  if(typeof value==='string'){
-   const s=value,k=lower(keyHint),isData=/^data:[^,]*;base64,/i.test(s),isPayloadKey=/^(data|payload|content|base64|filedata|body)$/i.test(k);
-   if(isData||(isPayloadKey&&s.length>1024)){documentPayloadBytes+=Buffer.byteLength(s);inlinePayloadCount++}
-   return;
-  }
-  if(typeof value!=='object')return;if(seen.has(value))return;seen.add(value);
-  if(Array.isArray(value)){value.forEach(v=>scanFile(v,depth+1,keyHint));return}
-  Object.entries(value).forEach(([k,v])=>scanFile(v,depth+1,k));
- };
+ const documentFieldCounts={},seen=new WeakSet();let documentEntries=0,blobDocumentEntries=0;
  const walk=(value,depth=0)=>{
   if(value==null||depth>12||typeof value!=='object')return;
   if(Array.isArray(value)){value.forEach(v=>walk(v,depth+1));return}
   Object.entries(value).forEach(([key,val])=>{
    if(documentFields.has(key)&&Array.isArray(val)){
-    documentFieldCounts[key]=(documentFieldCounts[key]||0)+val.length;documentEntries+=val.length;val.forEach(v=>{if(isObj(v)&&v.storage==='blob'&&text(v.blobName))blobDocumentEntries++;scanFile(v,0,key)});return;
+    documentFieldCounts[key]=(documentFieldCounts[key]||0)+val.length;documentEntries+=val.length;
+    val.forEach(v=>{if(isObj(v)&&v.storage==='blob'&&text(v.blobName))blobDocumentEntries++});
+    return;
    }
-   walk(val,depth+1);
+   if(!seen.has(value))walk(val,depth+1);
   });
+  try{seen.add(value)}catch(_){}
  };
  walk(root);
- return {sectionBytes,documentEntries,blobDocumentEntries,documentPayloadBytes,inlinePayloadCount,documentFieldCounts};
+ const inventory=legacyDocumentInventory(root);
+ return {
+  sectionBytes,
+  documentEntries,
+  blobDocumentEntries,
+  documentPayloadBytes:inventory.inlineBytes,
+  inlinePayloadCount:inventory.found,
+  inlinePayloadCandidateCount:inventory.candidateCount,
+  inlinePayloadCandidateBytes:inventory.candidateBytes,
+  documentFieldCounts
+ };
 }
 async function latestValidTeamFallback(container,teamBlobName,recoveryPrefix,allowDiscovery){
  let history=[];try{history=await listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery)}catch(_){history=[]}
