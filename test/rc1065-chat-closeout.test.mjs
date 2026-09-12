@@ -106,20 +106,18 @@ test('RC1065: mobile Navigation und Navigation ohne F5-Logout bleiben enthalten'
 });
 
 
-test('RC1065: Pflicht-CC Runtime ergänzt beide Empfänger, erhält bestehende CCs und blockiert bei fehlendem Stammdatensatz',()=>{
+test('RC1065: Pflicht-CC Runtime nutzt die persistente Settings-Konfiguration und blockiert bei unvollständiger Pflege',()=>{
   const source=read('assets/rc1065-registration-cc.js');
-  const window={
-    __EXPORTHUB_GET_STATE__:()=>({
-      users:[
-        {displayName:'Sevastian Marcu',mail:'sevastian@example.com'},
-        {name:'Daniel Ollmann',email:'daniel@example.com'}
-      ]
-    })
-  };
+  const appState={settings:{registrationMandatoryCc:[
+    {name:'Sevastian Marcu',email:'sevastian@example.com'},
+    {name:'Daniel Ollmann',email:'daniel@example.com'}
+  ]}};
+  const window={__EXPORTHUB_GET_STATE__:()=>appState};
   const context={window,URLSearchParams,console};
   vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
   const api=window.ExportHUBRC1065RegistrationCC;
   assert.ok(api,'CC-Runtime API fehlt');
+
   const prepared=api.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123&cc=existing@example.com&body=Bitte%20abholen');
   assert.equal(prepared.ok,true);
   assert.equal(prepared.required,true);
@@ -128,7 +126,7 @@ test('RC1065: Pflicht-CC Runtime ergänzt beide Empfänger, erhält bestehende C
   assert.match(decoded,/sevastian@example\.com/);
   assert.match(decoded,/daniel@example\.com/);
 
-  window.__EXPORTHUB_GET_STATE__=()=>({users:[{name:'Sevastian Marcu',email:'sevastian@example.com'}]});
+  appState.settings.registrationMandatoryCc=[{name:'Sevastian Marcu',email:'sevastian@example.com'}];
   const blocked=api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123');
   assert.equal(blocked.ok,false);
   assert.deepEqual(Array.from(blocked.missing),['Daniel Ollmann']);
@@ -136,4 +134,17 @@ test('RC1065: Pflicht-CC Runtime ergänzt beide Empfänger, erhält bestehende C
   const normal=api.prepare('mailto:test@example.com?subject=Hallo');
   assert.equal(normal.ok,true);
   assert.equal(normal.required,false);
+});
+
+test('RC1065: Global Admin kann beide Pflicht-CC-Adressen in Einstellungen dauerhaft pflegen',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  assert.match(source,/rc1065RegistrationCcSettings/);
+  assert.match(source,/Pflicht-CC speichern/);
+  assert.match(source,/Sevastian Marcu/);
+  assert.match(source,/Daniel Ollmann/);
+  assert.match(source,/settings\.registrationMandatoryCc=next/);
+  assert.match(source,/queueSave\('Pflicht-CC Anmeldung gespeichert'\)/);
+  assert.match(source,/flushSave\('Pflicht-CC Anmeldung gespeichert',\{force:true,userInitiated:true\}\)/);
+  assert.match(source,/if\(!globalAdmin\(\)\|\|!settingsVisible\(\)\)/);
+  assert.match(source,/@media\(max-width:720px\)/);
 });
