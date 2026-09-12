@@ -64,3 +64,16 @@ test('RC1067: finaler RC1048-Build liefert Recovery nur für Produktion und TEST
   assert.match(builder,/if\(file!==['"]demo\.html['"]\)/);
   assert.match(builder,/startupRecovery:/);
 });
+
+
+test('RC1067: Recovery ist in Produktion und TESTSERVICE explizit geroutet und vom SPA-Fallback ausgenommen',()=>{
+  for(const file of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
+    const cfg=JSON.parse(fs.readFileSync(file,'utf8'));
+    for(const route of ['/migration-recovery','/migration-recovery.html']){
+      assert.ok(cfg.routes.some(r=>r.route===route),file+': '+route+' fehlt als explizite Route');
+      assert.ok(cfg.navigationFallback.exclude.includes(route),file+': '+route+' fehlt im Navigation-Fallback-Ausschluss');
+    }
+    const html=cfg.routes.find(r=>r.route==='/migration-recovery.html');
+    assert.match(String(html&&html.headers&&html.headers['Cache-Control']||''),/no-store/);
+  }
+});
