@@ -21,14 +21,17 @@ function loadCommonJs(relative,mocks){
   try{return require(absolute)}finally{Module._load=original}
 }
 
-test('RC1069: abgeschlossene Dokumentmigration wird in der normalen ExportHUB-Oberfläche nicht mehr gerendert',()=>{
+test('RC1073: abgeschlossene Dokumentmigration bleibt unsichtbar, echter Restbestand rendert die Admin-Karte bedarfsgesteuert',()=>{
   const start=MIGRATION.indexOf('function ensureCard(){'),end=MIGRATION.indexOf('window.ExportHUBRC1061DocumentMigrationAdmin=',start);
   assert.ok(start>=0&&end>start);
   const block=MIGRATION.slice(start,end);
-  assert.match(block,/rc1061DocumentMigrationAdmin/);
-  assert.match(block,/removeChild\(old\)/);
-  assert.match(block,/return false/);
-  assert.doesNotMatch(block,/createElement\(['"]section['"]\)|MutationObserver|exporthub:ready/);
+  assert.match(block,/inlinePayloadCount/);
+  assert.match(block,/if\(remaining<=0\)\{removeCard\(\);return false\}/);
+  assert.match(block,/createElement\(['"]section['"]\)/);
+  assert.match(block,/Alle verbleibenden migrieren/);
+  assert.match(block,/runAll\(/);
+  assert.match(block,/setTimeout\(removeCard,1800\)/);
+  assert.doesNotMatch(block,/MutationObserver/);
   assert.match(MIGRATION,/runAll:runAll/,'Recovery-/Migrations-API muss für Notfälle erhalten bleiben');
 });
 
