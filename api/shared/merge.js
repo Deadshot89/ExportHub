@@ -440,6 +440,30 @@ function rc1017ProtectSubShipments(out, serverItem, incomingItem) {
   return out;
 }
 
+function mergeShipmentHistory(a,b){
+  const map=new Map();
+  const ingest=(list)=>{
+    for(const raw of (Array.isArray(list)?list:[])){
+      if(!raw||typeof raw!=='object')continue;
+      const item=clone(raw);
+      const actor=item.actor&&typeof item.actor==='object'?item.actor:{};
+      const key=text(item.id)||[
+        text(item.at||item.createdAt||item.timestamp),
+        text(item.type||item.action),
+        text(item.label||item.action),
+        text(actor.name||item.actorName||item.user||item.by)
+      ].join('|').toLowerCase();
+      if(!key)continue;
+      const current=map.get(key);
+      if(!current||Date.parse(item.at||item.createdAt||0)>=Date.parse(current.at||current.createdAt||0))map.set(key,item);
+    }
+  };
+  ingest(a);ingest(b);
+  return Array.from(map.values())
+    .sort((x,y)=>Date.parse(x&&x.at||x&&x.createdAt||0)-Date.parse(y&&y.at||y&&y.createdAt||0))
+    .slice(-1000);
+}
+
 function mergeShipmentProtected(serverItem, incomingItem) {
   if (!isObject(serverItem)) return clone(incomingItem);
   if (!isObject(incomingItem)) return clone(serverItem);
@@ -455,10 +479,11 @@ function mergeShipmentProtected(serverItem, incomingItem) {
   }
 
   // Rows/documents are additive-protective. Empty arrays can never wipe existing content.
-  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory'].forEach((key) => {
+  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory'].forEach((key) => {
     const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
     const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
-    if (!a.length && b.length) out[key] = clone(b);
+    if (key === 'shipmentHistory') out[key] = mergeShipmentHistory(a,b);
+    else if (!a.length && b.length) out[key] = clone(b);
     else if (a.length && !b.length) out[key] = clone(a);
     else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
   });
