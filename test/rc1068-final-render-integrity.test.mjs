@@ -45,7 +45,7 @@ for(const file of files){
  });
  test('RC1068 final render: '+file+' alle klassischen Inline-Scripts sind syntaktisch gültig',()=>{
    const html=fs.readFileSync('dist-rc1048/'+file,'utf8'),fail=[];
-   classicScripts(html).forEach((s,i)=>{try{new vm.Script(s.code,{filename:file+'.inline-'+(i+1)})}catch(e){fail.push('#'+(i+1)+' @'+s.index+' '+e.message)}});
-   assert.deepEqual(fail,[],fail.join('\n'));
+   classicScripts(html).forEach((s,i)=>{try{new vm.Script(s.code,{filename:file+'.inline-'+(i+1)})}catch(e){fail.push('#'+(i+1)+' @'+s.index+' '+String(e&&e.stack||e&&e.message||e).split('\n').slice(0,8).join('\n'))}});
+   assert.deepEqual(fail,[],fail.join('\n---\n'));
  });
 }
