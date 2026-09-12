@@ -37,6 +37,45 @@ function extractInlinePayload(file){
  }
  return null;
 }
+
+function inlineCandidateStats(file){
+ if(!file||typeof file!=='object'||Array.isArray(file)||file.storage==='blob')return{count:0,bytes:0};
+ let count=0,bytes=0;
+ for(const key of INLINE_FIELDS){
+  const value=file[key];
+  if(typeof value!=='string'||!value.trim())continue;
+  const raw=value.trim(),isData=/^data:/i.test(raw),isPayloadField=/^(data|payload|content|base64)$/i.test(key);
+  if(isData||(isPayloadField&&raw.length>1024)){count++;bytes+=Buffer.byteLength(raw)}
+ }
+ return{count,bytes};
+}
+function legacyDocumentInventory(state){
+ const source=state&&typeof state==='object'?state:{};
+ const target=source&&source.state&&typeof source.state==='object'&&!Array.isArray(source.state)?source.state:source;
+ const entries=[];let found=0,skipped=0,inlineBytes=0,candidateCount=0,candidateBytes=0;
+ for(const root of ROOT_COLLECTIONS){
+  const rows=Array.isArray(target[root])?target[root]:[];
+  for(let ri=0;ri<rows.length;ri++){
+   const row=rows[ri];if(!row||typeof row!=='object')continue;
+   for(const field of DOCUMENT_FIELDS){
+    const files=Array.isArray(row[field])?row[field]:[];
+    for(let fi=0;fi<files.length;fi++){
+     const file=files[fi];
+     if(file&&file.storage==='blob'&&file.blobName){skipped++;continue}
+     const parsed=extractInlinePayload(file);
+     if(parsed){
+      found++;inlineBytes+=parsed.buffer.length;
+      entries.push({root,rowIndex:ri,field,fileIndex:fi,files,fi,file,bytes:parsed.buffer.length});
+      continue;
+     }
+     const candidate=inlineCandidateStats(file);
+     candidateCount+=candidate.count;candidateBytes+=candidate.bytes;
+    }
+   }
+  }
+ }
+ return{entries,found,skipped,inlineBytes,candidateCount,candidateBytes};
+}
 function stripInlineFields(file){const out=clone(file)||{};for(const key of INLINE_FIELDS)delete out[key];return out}
 function rowIdentity(row,index){return text(row&&(row.id||row.shipmentId||row.ref||row.reference||row.referenceNumber||row.abdRequestId))||('idx-'+index)}
 function fileIdentity(file,index){return text(file&&(file.id||file.fileId||file.remoteId||file.documentId))||[text(file&&(file.name||file.fileName||file.filename)),text(file&&file.size),text(file&&(file.uploadedAt||file.addedAt||file.createdAt)),index].join('|')}
@@ -130,25 +169,9 @@ async function externalizeDocumentCollections(state,options={}){
 }
 async function migrateLegacyDocuments(state,options={}){
  const out=clone(state)||{},limit=Math.max(1,Math.min(10,Number(options.limit)||5));
- const target=out&&out.state&&typeof out.state==='object'&&!Array.isArray(out.state)?out.state:out;
- let found=0,migrated=0,skipped=0,failed=0,bytesMoved=0,attempted=0;
- const inlineEntries=[];
- for(const root of ROOT_COLLECTIONS){
-  const rows=Array.isArray(target[root])?target[root]:[];
-  for(let ri=0;ri<rows.length;ri++){
-   const row=rows[ri];if(!row||typeof row!=='object')continue;
-   for(const field of DOCUMENT_FIELDS){
-    const files=Array.isArray(row[field])?row[field]:[];
-    for(let fi=0;fi<files.length;fi++){
-     const file=files[fi];
-     if(file&&file.storage==='blob'&&file.blobName){skipped++;continue}
-     const parsed=extractInlinePayload(file);
-     if(parsed){found++;inlineEntries.push({files,fi,file,bytes:parsed.buffer.length});}
-    }
-   }
-  }
- }
- for(const entry of inlineEntries){
+ const inventory=legacyDocumentInventory(out);
+ let migrated=0,failed=0,bytesMoved=0,attempted=0;
+ for(const entry of inventory.entries){
   if(attempted>=limit)break;
   attempted++;
   try{
@@ -156,8 +179,8 @@ async function migrateLegacyDocuments(state,options={}){
    entry.files[entry.fi]=stored;migrated++;bytesMoved+=entry.bytes;
   }catch(_){failed++;}
  }
- const remaining=found-migrated;
- return{state:out,found,migrated,skipped,failed,remaining,bytesMoved,done:remaining===0};
+ const remaining=inventory.found-migrated;
+ return{state:out,found:inventory.found,migrated,skipped:inventory.skipped,failed,remaining,bytesMoved,done:remaining===0};
 }
 
-module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer};
+module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,inlineCandidateStats,legacyDocumentInventory,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer};
