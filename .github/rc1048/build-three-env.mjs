@@ -40,7 +40,9 @@ function patchEmbeddedPrintScriptClosers(html,file){
   const block=html.slice(start,end);
   const hits=(block.match(/<\/script\s*>/gi)||[]).length;
   if(hits===0)return html;
-  const fixed=block.replace(/<\/script\s*>/gi,'<\\/script>');
+  const fixed=block
+    .replace(/<\/script\s*>/gi,'<\\/script>')
+    .replace(/<\\\/script>[\r\n]+/gi,'<\\/script>');
   return html.slice(0,start)+fixed+html.slice(end);
 }
 
