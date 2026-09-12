@@ -33,6 +33,17 @@ function injectBeforeHeadClose(html,tag,id){
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
 
+function patchEmbeddedPrintScriptClosers(html,file){
+  const start=html.indexOf('function printStow(){');
+  const end=start>=0?html.indexOf('function normalizeActionButtons',start):-1;
+  if(start<0||end<0)throw new Error(file+': printStow/normalizeActionButtons Anker fehlt');
+  const block=html.slice(start,end);
+  const hits=(block.match(/<\/script\s*>/gi)||[]).length;
+  if(hits===0)return html;
+  const fixed=block.replace(/<\/script\s*>/gi,'<\\/script>');
+  return html.slice(0,start)+fixed+html.slice(end);
+}
+
 function patchGateMaster(html,file){
   let out=html;
 
@@ -74,6 +85,7 @@ function saveGateMaster(){if(!gateMasterAdmin()){alert('Keine Admin-Berechtigung
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  html=patchEmbeddedPrintScriptClosers(html,file);
   html=patchGateMaster(html,file);
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   if(file!=='demo.html'){
