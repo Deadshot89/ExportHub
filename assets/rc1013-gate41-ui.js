@@ -27,8 +27,16 @@ function ensure(){
 }
 function applyNationalScope(national){
   var base=document.getElementById('rc501GateBase'),save=document.querySelector('#rc626Shipping [data-rc501-action="save"][data-kind="gate"]');
-  if(base){base.disabled=!national;if(!national)base.value='0.00';}
+  if(base){base.disabled=!national;if(!national)base.value='';}
   if(save)save.disabled=!national;
+}
+function markUnavailable(result){
+  if(result&&result.ok)return false;
+  var total=document.getElementById('rc501GateTotal');
+  if(total&&q(total.textContent)!=='nicht berechenbar')total.textContent='nicht berechenbar';
+  var base=document.getElementById('rc501GateBase');
+  if(base&&!(num(base.value)>0)&&base.value!=='')base.value='';
+  return true;
 }
 function update(){
   var host=ensure();if(!host)return false;
@@ -44,6 +52,7 @@ function update(){
   };
   var result=diagnosticMessage(data);
   applyNationalScope(result.national);
+  markUnavailable(result);
   host.textContent=result.message;
   host.style.background=result.ok?'#f0fdf4':'#fff7ed';host.style.borderColor=result.ok?'#86efac':'#fdba74';host.style.color=result.ok?'#166534':'#9a3412';return result.ok;
 }
