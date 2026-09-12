@@ -17,7 +17,7 @@ test('RC1072: gemeinsame Inventur zählt nur wirklich migrierbare Inline-Dokumen
       id:'S1',
       deliveryFiles:[
         {id:'valid',name:'valid.pdf',dataUrl:dataUrl('VALID')},
-        {id:'text',name:'note.txt',content:'X'.repeat(5000)},
+        {id:'text',name:'note.html',mimeType:'text/html',content:'<html>'+('x'.repeat(5000))+'</html>'},
         {id:'blob',name:'done.pdf',storage:'blob',blobName:'rc1059/production/aa/done'}
       ]
     }],
