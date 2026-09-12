@@ -11,6 +11,8 @@ on:
       - 'production-version.js'
       - 'package.json'
       - 'package-lock.json'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
       - 'api/**'
       - 'assets/**'
       - 'android-app/**'
