@@ -58,5 +58,94 @@ if(w.document&&w.document.addEventListener)w.document.addEventListener('click',f
 },true);
 var nativeOpen=typeof w.open==='function'?w.open.bind(w):null;
 if(nativeOpen)w.open=function(url,target,features){var p=prepare(url);if(!p.ok){block(p);return null}return nativeOpen(p.url,target,features)};
-w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1065',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare});
+
+function currentUser(){
+ try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')return w.__EXPORTHUB_GET_CURRENT_USER__()||{}}catch(_){}
+ try{if(w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.user)return w.ExportHUBClean.runtime.user}catch(_){}
+ var s=state();return s.currentUser||s.user||{}
+}
+function globalAdmin(){
+ var u=currentUser()||{},role=norm(u.role||u.rolle||u.level||u.type),perms=Array.isArray(u.permissions)?u.permissions:[];
+ return u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||perms.indexOf('*')>=0||/global admin|globaler administrator|globaler admin|administrator|vollzugriff/.test(role)
+}
+function viewName(){
+ var s=state(),v=q(s.view||s.currentView||s.activeView||s.page||'');
+ if(v)return norm(v);
+ try{
+  var active=w.document&&w.document.querySelector&&w.document.querySelector('[data-view].active,[data-view][aria-current="page"]');
+  if(active)return norm(active.getAttribute('data-view')||active.textContent)
+ }catch(_){}
+ return''
+}
+function settingsVisible(){var v=viewName();return v==='settings'||v==='einstellungen'||/\bsettings\b|\beinstellungen\b/.test(v)}
+function configuredEmail(name){
+ var key=norm(name),row=configured().find(function(x){return norm(x.name)===key});
+ return row&&row.email||''
+}
+function ccSettingsStatus(node,text,kind){
+ if(!node)return;
+ node.textContent=text||'';
+ node.setAttribute('data-kind',kind||'info')
+}
+async function persistCcSettings(next){
+ var s=state();s.settings=s.settings&&typeof s.settings==='object'?s.settings:{};
+ var previous=s.settings.registrationMandatoryCc;
+ s.settings.registrationMandatoryCc=next;
+ try{
+  var clean=w.ExportHUBClean;
+  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Die Azure-Speicherung ist noch nicht verfügbar.');
+  await clean.queueSave('Pflicht-CC Anmeldung gespeichert');
+  var ok=await clean.flushSave('Pflicht-CC Anmeldung gespeichert',{force:true,userInitiated:true});
+  if(ok!==true)throw new Error('Die Azure-Speicherung wurde nicht bestätigt.');
+  try{w.dispatchEvent(new CustomEvent('exporthub:registration-cc-updated',{detail:{required:REQUIRED.slice()}}))}catch(_){}
+  return true
+ }catch(e){
+  if(previous===undefined)delete s.settings.registrationMandatoryCc;else s.settings.registrationMandatoryCc=previous;
+  throw e
+ }
+}
+function ensureCcStyle(){
+ if(!w.document||w.document.getElementById('rc1065RegistrationCcStyle'))return;
+ var style=w.document.createElement('style');style.id='rc1065RegistrationCcStyle';
+ style.textContent='.rc1065-cc-settings{margin-top:16px}.rc1065-cc-settings .rc1065-cc-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}.rc1065-cc-settings label{display:grid;gap:6px;font-weight:700}.rc1065-cc-settings input{min-height:42px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px}.rc1065-cc-settings .rc1065-cc-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}.rc1065-cc-settings [data-kind="error"]{color:#b91c1c}.rc1065-cc-settings [data-kind="ok"]{color:#166534}@media(max-width:720px){.rc1065-cc-settings .rc1065-cc-grid{grid-template-columns:1fr}}';
+ (w.document.head||w.document.documentElement).appendChild(style)
+}
+function installSettings(){
+ if(!w.document||!w.document.body)return false;
+ var old=w.document.getElementById('rc1065RegistrationCcSettings');
+ if(!globalAdmin()||!settingsVisible()){if(old&&old.parentNode)old.parentNode.removeChild(old);return false}
+ if(old)return true;
+ var host=w.document.getElementById('content')||w.document.querySelector('main')||w.document.body;
+ if(!host)return false;
+ ensureCcStyle();
+ var box=w.document.createElement('section');box.id='rc1065RegistrationCcSettings';box.className='card rc1065-cc-settings';
+ box.innerHTML='<div><span class="pill blue">ANMELDUNG</span><h3>Pflicht-CC</h3><p>Diese beiden Empfänger werden bei jeder Sendungsanmeldung automatisch in CC gesetzt. Ohne vollständig gepflegte Adressen wird die Anmeldung nicht geöffnet.</p></div><div class="rc1065-cc-grid"><label>Sevastian Marcu<input type="email" autocomplete="off" data-rc1065-cc="sevastian" placeholder="E-Mail-Adresse"></label><label>Daniel Ollmann<input type="email" autocomplete="off" data-rc1065-cc="daniel" placeholder="E-Mail-Adresse"></label></div><div class="rc1065-cc-actions"><button type="button" class="btn" data-rc1065-cc-save>Pflicht-CC speichern</button><span data-rc1065-cc-status></span></div>';
+ host.appendChild(box);
+ var sev=box.querySelector('[data-rc1065-cc="sevastian"]'),dan=box.querySelector('[data-rc1065-cc="daniel"]'),status=box.querySelector('[data-rc1065-cc-status]'),save=box.querySelector('[data-rc1065-cc-save]');
+ if(sev)sev.value=configuredEmail(REQUIRED[0]);
+ if(dan)dan.value=configuredEmail(REQUIRED[1]);
+ ccSettingsStatus(status,(sev&&sev.value&&dan&&dan.value)?'Beide Pflicht-CC-Adressen sind gepflegt.':'Bitte beide Pflicht-CC-Adressen pflegen.','info');
+ if(save)save.addEventListener('click',async function(){
+  var a=mail(sev&&sev.value),b=mail(dan&&dan.value);
+  if(!a||!b){ccSettingsStatus(status,'Bitte für Sevastian Marcu und Daniel Ollmann jeweils eine gültige E-Mail-Adresse eintragen.','error');return}
+  save.disabled=true;ccSettingsStatus(status,'Wird dauerhaft gespeichert …','info');
+  try{
+   await persistCcSettings([{name:REQUIRED[0],email:a},{name:REQUIRED[1],email:b}]);
+   if(sev)sev.value=a;if(dan)dan.value=b;
+   ccSettingsStatus(status,'Pflicht-CC wurde dauerhaft gespeichert.','ok')
+  }catch(e){ccSettingsStatus(status,'Speichern fehlgeschlagen: '+q(e&&e.message||e),'error')}
+  finally{save.disabled=false}
+ });
+ return true
+}
+function scheduleSettings(){try{if(typeof w.setTimeout==='function')w.setTimeout(installSettings,0);else installSettings()}catch(_){}}
+if(w.addEventListener){
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){w.addEventListener(name,scheduleSettings)});
+ w.addEventListener('click',scheduleSettings,true)
+}
+if(w.document){
+ if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',scheduleSettings,{once:true});else scheduleSettings()
+}
+
+w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1065',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings});
 })(window);
