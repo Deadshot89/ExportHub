@@ -115,6 +115,11 @@ jobs:
           grep -q 'assets/rc1067-startup-recovery.js?v=1067' dist-rc1048/TESTVERSION.html
           if grep -q 'assets/rc1067-startup-recovery.js' dist-rc1048/demo.html; then exit 1; fi
           test -s dist-rc1048/assets/rc1067-startup-recovery.js
+          test -s dist-rc1048/assets/rc1069-performance.js
+          grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' dist-rc1048/assets/rc1069-performance.js
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/index.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/TESTVERSION.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/demo.html
           test -s dist-rc1048/migration-recovery.html
           grep -q 'Dokumentspeicher wird optimiert' dist-rc1048/migration-recovery.html
           grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1048/index.html
@@ -182,6 +187,10 @@ jobs:
           test -s .rc1048_testservice_app/assets/rc1061-document-migration-admin.js
           test -s .rc1048_production_app/assets/rc1067-startup-recovery.js
           test -s .rc1048_testservice_app/assets/rc1067-startup-recovery.js
+          test -s .rc1048_production_app/assets/rc1069-performance.js
+          test -s .rc1048_testservice_app/assets/rc1069-performance.js
+          test -s .rc1048_production_app/assets/rc1027-lieferavis-immediate.js
+          test -s .rc1048_testservice_app/assets/rc1027-lieferavis-immediate.js
           test -s .rc1048_production_app/migration-recovery.html
           test -s .rc1048_testservice_app/migration-recovery.html
           test -s .rc1048_production_app/assets/abholkalender.js
@@ -217,8 +226,8 @@ jobs:
           set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
           testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
-          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); pcc=$(mktemp); tcc=$(mktemp); pma=$(mktemp); tma=$(mktemp); prec=$(mktemp); trec=$(mktemp); precp=$(mktemp); trecp=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
-          trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$pcc" "$tcc" "$pma" "$tma" "$prec" "$trec" "$precp" "$trecp" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
+          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); pcc=$(mktemp); tcc=$(mktemp); pma=$(mktemp); tma=$(mktemp); prec=$(mktemp); trec=$(mktemp); pperf=$(mktemp); tperf=$(mktemp); pavis=$(mktemp); tavis=$(mktemp); precp=$(mktemp); trecp=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$pcc" "$tcc" "$pma" "$tma" "$prec" "$trec" "$pperf" "$tperf" "$pavis" "$tavis" "$precp" "$trecp" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
           for attempt in {1..24}; do
             pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1048=$GITHUB_SHA-$attempt" || true)
             tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1048=$GITHUB_SHA-$attempt" || true)
@@ -233,6 +242,10 @@ jobs:
             tmac=$(curl -sS -o "$tma" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1061-document-migration-admin.js?rc1066=$GITHUB_SHA-$attempt" || true)
             precc=$(curl -sS -o "$prec" -w '%{http_code}' --max-time 20 "$prod/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
             trecc=$(curl -sS -o "$trec" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
+            pperfc=$(curl -sS -o "$pperf" -w '%{http_code}' --max-time 20 "$prod/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tperfc=$(curl -sS -o "$tperf" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            pavisc=$(curl -sS -o "$pavis" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tavisc=$(curl -sS -o "$tavis" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
             precpc=$(curl -sS -L -o "$precp" -w '%{http_code}' --max-time 20 "$prod/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
             trecpc=$(curl -sS -L -o "$trecp" -w '%{http_code}' --max-time 20 "$testservice/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
             psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1048=$GITHUB_SHA-$attempt" || true)
@@ -249,7 +262,7 @@ jobs:
             tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1048=$GITHUB_SHA-$attempt" || true)
             pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1048=$GITHUB_SHA-$attempt" || true)
             truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$pccc" == '200' && "$tccc" == '200' && "$pmac" == '200' && "$tmac" == '200' && "$precc" == '200' && "$trecc" == '200' && "$precpc" == '200' && "$trecpc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
+            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$pccc" == '200' && "$tccc" == '200' && "$pmac" == '200' && "$tmac" == '200' && "$precc" == '200' && "$trecc" == '200' && "$pperfc" == '200' && "$tperfc" == '200' && "$pavisc" == '200' && "$tavisc" == '200' && "$precpc" == '200' && "$trecpc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
               && grep -q 'ExportHUB RC1048 environment=production-candidate' "$p" \
               && grep -q 'ExportHUB RC1048 environment=testservice' "$t" \
               && grep -q 'ExportHUB RC1048 environment=demo' "$d" \
@@ -280,6 +293,13 @@ jobs:
               && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$t" \
               && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$prec" \
               && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$trec" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$pperf" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
+              && grep -q "version:'RC1069'" "$pavis" \
+              && grep -q "version:'RC1069'" "$tavis" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$d" \
               && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
               && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
               && grep -q 'assets/abholkalender.js?v=1012' "$p" \
@@ -322,7 +342,7 @@ jobs:
             sleep 10
           done
           echo 'RC1048 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
-          echo "HTTP: prod=$pc test=$tc demo=$dc prodHealth=$phc testHealth=$thc prodMobile=$pmc testMobile=$tmc prodCC=$pccc testCC=$tccc prodMigration=$pmac testMigration=$tmac prodRecovery=$precc testRecovery=$trecc prodRecoveryPage=$precpc testRecoveryPage=$trecpc"
+          echo "HTTP: prod=$pc test=$tc demo=$dc prodHealth=$phc testHealth=$thc prodMobile=$pmc testMobile=$tmc prodCC=$pccc testCC=$tccc prodMigration=$pmac testMigration=$tmac prodRecovery=$precc testRecovery=$trecc prodPerf=$pperfc testPerf=$tperfc prodAvis=$pavisc testAvis=$tavisc prodRecoveryPage=$precpc testRecoveryPage=$trecpc"
           diagnose_marker() {
             local label="$1" file="$2" marker="$3"
             if ! grep -Fq "$marker" "$file"; then echo "FEHLT: $label :: $marker"; fi
