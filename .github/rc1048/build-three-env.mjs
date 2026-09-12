@@ -9,6 +9,10 @@ const VERSION='RC1048';
 const NUMBER='1048';
 const RC1065_CC_ID='exporthub-rc1065-registration-cc';
 const RC1065_CC_TAG='<script id="'+RC1065_CC_ID+'" defer src="/assets/rc1065-registration-cc.js?v=1065"></script>';
+const RC1061_MIGRATION_ID='exporthub-rc1061-document-migration-admin';
+const RC1061_MIGRATION_TAG='<script id="'+RC1061_MIGRATION_ID+'" defer src="/assets/rc1061-document-migration-admin.js?v=1066"></script>';
+const RC1063_ABD_BLOB_ID='exporthub-rc1063-abd-blob-viewer-compat';
+const RC1063_ABD_BLOB_TAG='<script id="'+RC1063_ABD_BLOB_ID+'" defer src="/assets/rc1063-abd-blob-viewer-compat.js?v=1063"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -70,6 +74,10 @@ function patchHtml(file){
   let html=fs.readFileSync(target,'utf8');
   html=patchGateMaster(html,file);
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
+  if(file!=='demo.html'){
+    html=injectBeforeHeadClose(html,RC1061_MIGRATION_TAG,RC1061_MIGRATION_ID);
+    html=injectBeforeHeadClose(html,RC1063_ABD_BLOB_TAG,RC1063_ABD_BLOB_ID);
+  }
   html=html.replace(/ExportHUB RC1047 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1047',cache:'1047',loginReturn:'([^']*)'\}\);/,
@@ -95,6 +103,13 @@ if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime 
 fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
 fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
+for(const rel of ['assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js']){
+  const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
+  if(!fs.existsSync(src))throw new Error(rel+' fehlt für den finalen RC1048-Build');
+  fs.mkdirSync(path.dirname(dst),{recursive:true});
+  fs.copyFileSync(src,dst);
+}
+
 const probeFile=path.join(OUT,'production-version.js');
 let probe=fs.readFileSync(probeFile,'utf8');
 probe=probe.replace(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1047'/g,`__EXPORTHUB_PRODUCTION_VERSION_PROBE__='${VERSION}'`);
@@ -116,7 +131,9 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     noGuessedZoneFromOriginPostal:true
   },
   retainedPatches:{
-    registrationMandatoryCc:{runtime:'assets/rc1065-registration-cc.js',version:'RC1065',required:['Sevastian Marcu','Daniel Ollmann']}
+    registrationMandatoryCc:{runtime:'assets/rc1065-registration-cc.js',version:'RC1065',required:['Sevastian Marcu','Daniel Ollmann']},
+    documentMigration:{runtime:'assets/rc1061-document-migration-admin.js',version:'RC1066',batchSize:5,mode:'automatic-sequential-batches'},
+    abdBlobViewerCompat:{runtime:'assets/rc1063-abd-blob-viewer-compat.js',version:'RC1063'}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
