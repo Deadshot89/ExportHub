@@ -34,38 +34,40 @@ function injectBeforeHeadClose(html,tag,id){
 }
 
 function repairPrintStowInjectedPageBlocks(html,file){
-  let out=html,cursor=0,repairs=0;
+  let out=html,cursor=0;
   const anchor="'+card.innerHTML+'";
+  const moved=[];
 
   while(true){
     const fn=out.indexOf('function printStow(){',cursor);
     if(fn<0)break;
-    const start=out.indexOf(anchor,fn);
-    if(start<0){cursor=fn+'function printStow(){'.length;continue}
-    const payloadStart=start+anchor.length;
-    const boundary=out.indexOf('function normalizeActionButtons',payloadStart);
-    if(boundary<0){cursor=payloadStart;continue}
 
-    const beforeBoundary=out.slice(payloadStart,boundary);
-    const relativeEnd=beforeBoundary.lastIndexOf("</body></html>'");
-    if(relativeEnd<0){cursor=payloadStart;continue}
-    const end=payloadStart+relativeEnd;
-    const afterPrint=out.slice(end,boundary);
-    if(!/window\.open\(\s*['"]about:blank['"]/.test(afterPrint)){cursor=boundary;continue}
+    const a=out.indexOf(anchor,fn);
+    if(a<0){cursor=fn+'function printStow(){'.length;continue}
+    const payloadStart=a+anchor.length;
 
-    const payload=out.slice(payloadStart,end);
-    if(!/[<](?:script|style|link|section|div)\b/i.test(payload)){cursor=boundary;continue}
+    const win=out.indexOf('var w=window.open',payloadStart);
+    if(win<0){cursor=payloadStart;continue}
 
-    out=out.slice(0,payloadStart)+out.slice(end);
-    const shiftedBoundary=Math.max(0,boundary-(end-payloadStart));
-    const lower=out.toLowerCase();
-    const bodyClose=lower.indexOf('</body>',shiftedBoundary);
-    const cleanPayload=payload.trim();
-    if(bodyClose>=0)out=out.slice(0,bodyClose)+'\n'+cleanPayload+'\n'+out.slice(bodyClose);
-    else out=out+'\n'+cleanPayload+'\n';
+    const close=out.lastIndexOf("</body></html>'",win);
+    if(close<payloadStart){cursor=win;continue}
 
-    repairs++;
-    cursor=payloadStart;
+    const payload=out.slice(payloadStart,close);
+    if(/[<](?:script|style|link|section|div)\b/i.test(payload)){
+      const clean=payload.trim();
+      if(clean)moved.push(clean);
+      out=out.slice(0,payloadStart)+out.slice(close);
+      cursor=payloadStart;
+    }else{
+      cursor=win;
+    }
+  }
+
+  if(moved.length){
+    const unique=Array.from(new Set(moved));
+    const bodyClose=out.toLowerCase().lastIndexOf('</body>');
+    if(bodyClose<0)throw new Error(file+': echter äußerer </body>-Anker fehlt');
+    out=out.slice(0,bodyClose)+'\n'+unique.join('\n')+'\n'+out.slice(bodyClose);
   }
 
   return out;
