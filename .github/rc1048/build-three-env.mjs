@@ -60,33 +60,42 @@ function repairPrintStowInjectedPageBlocks(html,file){
 }
 
 function patchEmbeddedPrintScriptClosers(html,file){
-  const start=html.indexOf('function printStow(){');
-  const end=start>=0?html.indexOf('function normalizeActionButtons',start):-1;
-  if(start<0||end<0)return html;
-  let block=html.slice(start,end);
-
+  let out=html,cursor=0,movedStyle='',patched=0;
   const misplacedStyleRx=/<style\b[^>]*id=["']exporthub-rc373-customer-areas-style["'][^>]*>[\s\S]*?<\/style\s*>/i;
-  const misplaced=misplacedStyleRx.exec(block);
-  let movedStyle='';
-  if(misplaced){
-    movedStyle=misplaced[0];
-    block=block.replace(misplacedStyleRx,'');
+
+  while(true){
+    const start=out.indexOf('function printStow(){',cursor);
+    if(start<0)break;
+    const end=out.indexOf('function normalizeActionButtons',start);
+    if(end<0){cursor=start+'function printStow(){'.length;continue}
+
+    let block=out.slice(start,end);
+    const misplaced=misplacedStyleRx.exec(block);
+    if(misplaced){
+      if(!movedStyle)movedStyle=misplaced[0];
+      block=block.replace(misplacedStyleRx,'');
+    }
+
+    block=block
+      .replace(/(<script\b[^>]*rc1059-document-blob\.js[^>]*>)[\r\n\t ]*<\/script\s*>/gi,'$1<\\/script>')
+      .replace(/<\/script\s*>/gi,'<\\/script>')
+      .replace(/<\\\/script>[\r\n]+/gi,'<\\/script>');
+
+    out=out.slice(0,start)+block+out.slice(end);
+    cursor=start+block.length;
+    patched++;
   }
 
-  block=block
-    .replace(/(<script\b[^>]*rc1059-document-blob\.js[^>]*>)[\r\n\t ]*<\/script\s*>/gi,'$1<\\/script>')
-    .replace(/<\/script\s*>/gi,'<\\/script>')
-    .replace(/<\\\/script>[\r\n]+/gi,'<\\/script>');
-
-  let out=html.slice(0,start)+block+html.slice(end);
-  if(movedStyle&&!out.includes('id="exporthub-rc373-customer-areas-style"')&&!out.includes("id='exporthub-rc373-customer-areas-style'")){
+  if(movedStyle){
+    out=out.replace(/<style\b[^>]*id=["']exporthub-rc373-customer-areas-style["'][^>]*>[\s\S]*?<\/style\s*>/gi,'');
     const headClose=out.search(/<\/head\s*>/i);
     if(headClose<0)throw new Error(file+': echter </head>-Anker für Kundenbereich-Style fehlt');
     out=out.slice(0,headClose)+movedStyle+'\n'+out.slice(headClose);
   }
+
+  if(patched===0)return html;
   return out;
 }
-
 function patchGateMaster(html,file){
   let out=html;
 
