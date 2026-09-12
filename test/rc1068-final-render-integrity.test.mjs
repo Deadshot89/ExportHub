@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
 
 const files=['index.html','TESTVERSION.html','demo.html'];
+const read=p=>fs.readFileSync(p,'utf8');
 before(()=>execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{stdio:'pipe'}));
 
 function classicScripts(source){
