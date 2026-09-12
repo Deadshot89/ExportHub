@@ -40,9 +40,14 @@ function repairPrintStowInjectedPageBlocks(html,file){
   const start=html.indexOf(anchor,fn);
   if(start<0)return html;
   const payloadStart=start+anchor.length;
-  const endMarker="</body></html>';var w=window.open";
-  const end=html.indexOf(endMarker,payloadStart);
-  if(end<0)return html;
+  const boundary=html.indexOf('function normalizeActionButtons',payloadStart);
+  if(boundary<0)return html;
+  const beforeBoundary=html.slice(payloadStart,boundary);
+  const relativeEnd=beforeBoundary.lastIndexOf("</body></html>'");
+  if(relativeEnd<0)return html;
+  const end=payloadStart+relativeEnd;
+  const afterPrint=html.slice(end,boundary);
+  if(!/window\.open\(\s*['"]about:blank['"]/.test(afterPrint))return html;
   const payload=html.slice(payloadStart,end);
   if(!/[<](?:script|style|link|section|div)\b/i.test(payload))return html;
   let out=html.slice(0,payloadStart)+html.slice(end);
