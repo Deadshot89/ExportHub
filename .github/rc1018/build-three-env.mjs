@@ -76,15 +76,7 @@ function setVersion(html){
   return out
 }
 function scriptBlock(html,id){
-  const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\function scriptBlock(html,id){
   const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  const open=new RegExp(`<script\\b[^>]*id=["']${escaped}["'][^>]*>`,'i');
-  const match=open.exec(html);
-  if(!match)throw new Error(`${id}: Scriptblock fehlt`);
-  const start=match.index,end=html.indexOf('</script>',start+match[0].length);
-  if(end<0)throw new Error(`${id}: </script> fehlt`);
-  return html.slice(start,end+'</script>'.length)
-}');
   const open=new RegExp(`<script\\b[^>]*id=["']${escaped}["'][^>]*>`,'i');
   const match=open.exec(html);
   if(!match)throw new Error(`${id}: Scriptblock fehlt`);
