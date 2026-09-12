@@ -20,7 +20,7 @@ main{max-width:920px;margin:0 auto}.card{background:#fff;border:1px solid #d8e5e
 <p>Der normale ExportHUB-Teamstand wird auf dieser Seite bewusst nicht geladen. Alte eingebettete Dokumente werden in sicheren 5er-Paketen in den Blob-Speicher verschoben. Danach startet ExportHUB mit dem verkleinerten Datenbestand neu.</p>
 <div id="status" class="status">Sitzung und Speicherstatus werden geprüft …</div>
 <div class="bar"><div id="fill" class="fill"></div></div><div id="progressText" class="small">0 %</div>
-<div class="grid"><div class="metric"><span>Gefunden</span><b id="found">–</b></div><div class="metric"><span>Migriert</span><b id="migrated">0</b></div><div class="metric"><span>Verbleibend</span><b id="remaining">–</b></div><div class="metric"><span>Pakete</span><b id="batches">0</b></div></div>
+<div class="grid"><div class="metric"><span>Gefunden</span><b id="found">–</b></div><div class="metric"><span>Erledigt</span><b id="migrated">0</b></div><div class="metric"><span>Verbleibend</span><b id="remaining">–</b></div><div class="metric"><span>Pakete</span><b id="batches">0</b></div></div>
 <div class="actions"><button id="retry" class="primary" type="button" hidden>Migration erneut starten</button><button id="stop" class="secondary" type="button" hidden>Nach aktuellem Paket stoppen</button><button id="back" class="secondary" type="button">Zurück zu ExportHUB</button></div>
 <div id="detail" class="small"></div>
 </section></main>
@@ -31,7 +31,7 @@ function q(v){return String(v==null?'':v).trim()}
 function session(){try{var raw=sessionStorage.getItem(KEY);if(raw){var x=JSON.parse(raw);if(x&&x.token)return x}}catch(_){}try{for(var i=0;i<sessionStorage.length;i++){var k=sessionStorage.key(i),r=sessionStorage.getItem(k);if(!r||r.charAt(0)!=='{')continue;var x=JSON.parse(r);if(x&&x.token&&x.user)return x}}catch(_){}return null}
 function headers(){var s=session();if(!s||!s.token)throw new Error('Keine gültige ExportHUB-Sitzung gefunden. Bitte zur Anwendung zurückkehren und erneut anmelden.');return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':s.token,'X-ExportHUB-Session':s.token,'Authorization':'Bearer '+s.token,'X-ExportHUB-Environment':environment}}
 function setStatus(t,k){var e=document.getElementById('status');e.textContent=t;e.className='status'+(k?' '+k:'')}
-function render(remaining){remaining=Math.max(0,Number(remaining||0));var done=Math.max(0,totalFound-remaining),pct=totalFound?Math.round(done/totalFound*100):(remaining===0?100:0);document.getElementById('found').textContent=totalFound;document.getElementById('migrated').textContent=totalMigrated;document.getElementById('remaining').textContent=remaining;document.getElementById('batches').textContent=batches;document.getElementById('fill').style.width=Math.min(100,pct)+'%';document.getElementById('progressText').textContent=done+' / '+totalFound+' · '+pct+' %'}
+function render(remaining){remaining=Math.max(0,Number(remaining||0));var done=Math.max(0,totalFound-remaining),pct=totalFound?Math.round(done/totalFound*100):(remaining===0?100:0);document.getElementById('found').textContent=totalFound;document.getElementById('migrated').textContent=done;document.getElementById('remaining').textContent=remaining;document.getElementById('batches').textContent=batches;document.getElementById('fill').style.width=Math.min(100,pct)+'%';document.getElementById('progressText').textContent=done+' / '+totalFound+' · '+pct+' %'}
 async function health(){var r=await fetch('/api/exporthub-state?mode=health',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','Cache-Control':'no-cache'}}),d=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(d.message)||('Health HTTP '+r.status));return d}
 async function batch(){var r=await fetch('/api/exporthub-document-migrate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers(),body:JSON.stringify({environment:environment,limit:BATCH})}),d=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(d.message)||('Migration HTTP '+r.status));return d}
 async function run(){
@@ -43,9 +43,9 @@ async function run(){
   var previous=remaining;
   for(var guard=0;guard<1000&&remaining>0;guard++){
    if(stopRequested){setStatus('Migration nach dem letzten sicheren Paket angehalten. '+remaining+' Dokumente verbleiben.');break}
-   var r=await batch();batches++;var m=Number(r.migrated||0),failed=Number(r.failed||0);remaining=Number(r.remaining||0);totalMigrated+=m;render(remaining);document.getElementById('detail').textContent='Paket '+batches+' abgeschlossen · '+totalMigrated+' migriert · '+remaining+' verbleiben.';
+   var r=await batch();batches++;var m=Number(r.migrated||0),failed=Number(r.failed||0);remaining=Number(r.remaining||0);totalMigrated+=m;render(remaining);document.getElementById('detail').textContent='Paket '+batches+' abgeschlossen · '+Math.max(0,totalFound-remaining)+' erledigt · '+totalMigrated+' in diesem Lauf neu migriert · '+remaining+' verbleiben.';
    if(failed>0)throw new Error('Mindestens ein Dokument konnte nicht migriert werden. Die Automatik wurde sicher angehalten.');
-   if(remaining===0||r.done===true){setStatus('Migration abgeschlossen. Der verkleinerte ExportHUB-Teamstand wird jetzt neu geladen.','ok');return finish()}
+   if(remaining===0||r.done===true){setStatus(totalMigrated>0?'Migration abgeschlossen. '+Math.max(0,totalFound-remaining)+' Alt-Dokumente sind erledigt; '+totalMigrated+' wurden in diesem Lauf neu übertragen. ExportHUB wird neu geladen.':'Migration abgeschlossen. Die zuvor gemeldeten Alt-Dokumente waren bereits ausgelagert. ExportHUB wird neu geladen.','ok');return finish()}
    if(m<=0||remaining>=previous)throw new Error('Die Migration macht keinen Fortschritt und wurde sicher angehalten.');
    previous=remaining;await new Promise(function(resolve){setTimeout(resolve,150)})
   }
