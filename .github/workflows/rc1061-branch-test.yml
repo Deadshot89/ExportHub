@@ -46,8 +46,8 @@ jobs:
         run: |
           node .github/rc1018/fix-mail-wording.mjs
           node .github/rc1048/build-three-env.mjs
-          for file in index.html TESTVERSION.html demo.html; do count=$(grep -F -c 'assets/rc1061-document-migration-admin.js?v=1061' "dist-rc1048/$file" || true); echo "RC1061_ASSET_COUNT $file=$count"; done
-          grep -F -q 'assets/rc1061-document-migration-admin.js?v=1061' dist-rc1048/index.html
-          grep -F -q 'assets/rc1061-document-migration-admin.js?v=1061' dist-rc1048/TESTVERSION.html
-          if grep -F -q 'assets/rc1061-document-migration-admin.js?v=1061' dist-rc1048/demo.html; then exit 1; fi
+          for file in index.html TESTVERSION.html demo.html; do count=$(grep -F -c 'assets/rc1061-document-migration-admin.js?v=1066' "dist-rc1048/$file" || true); echo "RC1061_ASSET_COUNT $file=$count"; done
+          grep -F -q 'assets/rc1061-document-migration-admin.js?v=1066' dist-rc1048/index.html
+          grep -F -q 'assets/rc1061-document-migration-admin.js?v=1066' dist-rc1048/TESTVERSION.html
+          if grep -F -q 'assets/rc1061-document-migration-admin.js?v=1066' dist-rc1048/demo.html; then exit 1; fi
           git diff --check
