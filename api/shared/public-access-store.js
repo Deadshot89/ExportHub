@@ -57,6 +57,26 @@ async function mutateRecord(environmentName,kind,tokenHash,fn){
   }
   throw error('ACCESS_CONFLICT','Zugriff konnte wegen eines gleichzeitigen Vorgangs nicht gespeichert werden.',409);
 }
+async function updateSubjectSnapshot(req,kind,subjectId,snapshot,actor='ExportHUB',payload){
+  kind=normalizeKind(kind);subjectId=text(subjectId);if(!subjectId)throw error('SUBJECT_REQUIRED','Sendungs-ID für öffentlichen Zugriff fehlt.',400);
+  const env=environment(req,payload),c=await container(),idx=c.getBlockBlobClient(subjectName(env,kind,subjectId)),d=await readJson(idx,null),hashes=subjectTokenHashes(d.value);
+  let updated=0;
+  for(const tokenHash of hashes){
+    try{
+      let touched=false;
+      await mutateRecord(env,kind,tokenHash,r=>{
+        const legacyReissued=!!(r.revokedAt&&lower(r.revokedReason)==='reissued');
+        if(r.revokedAt&&!legacyReissued)return r;
+        r.snapshot=clone(snapshot||{});
+        if(snapshot&&snapshot.reference)r.reference=text(snapshot.reference).toUpperCase();
+        if(snapshot&&(snapshot.shipmentId||snapshot.id))r.shipmentId=text(snapshot.shipmentId||snapshot.id);
+        r.updatedAt=now();r.snapshotUpdatedAt=r.updatedAt;r.updatedBy=text(actor||'ExportHUB').slice(0,120);touched=true;return r
+      });
+      if(touched)updated++;
+    }catch(e){if(!(e&&e.code==='ACCESS_NOT_FOUND'))throw e}
+  }
+  return{ok:true,environment:env,kind,subjectId,updated,found:hashes.length};
+}
 async function revokeByHash(environmentName,kind,tokenHash,reason,actor){
   try{return await mutateRecord(environmentName,kind,tokenHash,r=>{if(!r.revokedAt){r.revokedAt=now();r.revokedReason=text(reason||'reissued').slice(0,160);r.revokedBy=text(actor||'ExportHUB').slice(0,120);r.updatedAt=now()}return r})}catch(e){if(e&&e.code==='ACCESS_NOT_FOUND')return null;throw e}
 }
@@ -131,4 +151,4 @@ function verifySession(session,expectedKind){
 }
 async function resolveSession(session,expectedKind){ const p=verifySession(session,expectedKind),got=await getByHash(p.environment,p.kind,p.th,{allowUsed:true}); if(got.record.subjectId!==p.subjectId)throw error('SESSION_INVALID','Öffentliche Sitzung ist ungültig.',401); return {payload:p,record:got.record,environment:p.environment,tokenHash:p.th}; }
 
-module.exports={CONTAINER,ROOT,MAX_FAILED_ATTEMPTS,LOCK_MS,SESSION_MS,text,lower,now,clone,error,body,json,environment,normalizeEnvironment,normalizeKind,hashToken,tokenValid,issue,resolve,consume,revokeSubject,registerFailure,clearFailures,getByHash,issueSession,verifySession,resolveSession,assertUsable};
+module.exports={CONTAINER,ROOT,MAX_FAILED_ATTEMPTS,LOCK_MS,SESSION_MS,text,lower,now,clone,error,body,json,environment,normalizeEnvironment,normalizeKind,hashToken,tokenValid,issue,resolve,consume,revokeSubject,updateSubjectSnapshot,registerFailure,clearFailures,getByHash,issueSession,verifySession,resolveSession,assertUsable};
