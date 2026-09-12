@@ -246,8 +246,15 @@ function patchRc1069Performance(html,file){
   const viewsOld="function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'}";
   const viewsNew="function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'||view==='customers'||view==='customerfolder'}";
   if(out.includes(viewsOld))out=out.replace(viewsOld,viewsNew);
+
+  const restoreOld="try{if(runtime.sessionRestored&&!isTestServiceOrigin())await verifySessionForLoad();await loadStateAfterLogin();runtime.sessionRefreshAttempted=false;await loadCanonicalModules()}";
+  const restoreNew="try{await loadStateAfterLogin();runtime.sessionRefreshAttempted=false;await loadCanonicalModules()}";
+  if(out.includes(restoreOld))out=out.replace(restoreOld,restoreNew);
+
   if(!out.includes("fastViewMax=5"))throw new Error(file+': RC1069 Fast-View Cachegröße fehlt');
   if(!out.includes("view==='customerfolder'"))throw new Error(file+': RC1069 Kundenordner-Fastcache fehlt');
+  if(out.includes(restoreOld))throw new Error(file+': RC1070 redundanter Session-Check vor State-Read noch vorhanden');
+  if(!out.includes(restoreNew))throw new Error(file+': RC1070 direkter State-Read beim Session-Restore fehlt');
   return out;
 }
 
