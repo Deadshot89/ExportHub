@@ -86,7 +86,7 @@ test('RC1065: Avis-Ausnahmen und Pflicht-CC bleiben verbindlich',()=>{
   const cc=read('assets/rc1065-registration-cc.js');
   const fixer=read('.github/rc1018/fix-mail-wording.mjs');
   assert.match(avis,/bmp:'Kunden-IT blockiert den Zugriff'/);
-  assert.match(avis,/böllhof:'Kein Lieferavis für diesen Kunden'/);
+  assert.match(avis,/'böllhof':'Kein Lieferavis für diesen Kunden'/);
   assert.match(cc,/Sevastian Marcu/);
   assert.match(cc,/Daniel Ollmann/);
   assert.match(cc,/Pflicht-CC konnte nicht aus den ExportHUB-Benutzerdaten aufgelöst werden/);
@@ -96,6 +96,6 @@ test('RC1065: Avis-Ausnahmen und Pflicht-CC bleiben verbindlich',()=>{
 test('RC1065: mobile Navigation und Navigation ohne F5-Logout bleiben enthalten',()=>{
   const mobile=read('assets/rc1016-mobile-navigation.js');
   const cfg=read('staticwebapp.config.json');
-  assert.match(mobile,/__EXPORTHUB_RC1016_MOBILE_NAVIGATION__/);
+  assert.match(mobile,/ExportHUBRC1016MobileNavigation/);
   assert.match(cfg,/navigationFallback/);
 });
