@@ -285,10 +285,12 @@ jobs:
               && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$tcc" \
               && grep -q 'assets/rc1061-document-migration-admin.js?v=1066' "$p" \
               && grep -q 'assets/rc1061-document-migration-admin.js?v=1066' "$t" \
-              && grep -q 'Alle verbleibenden migrieren' "$pma" \
-              && grep -q 'Alle verbleibenden migrieren' "$tma" \
+              && grep -q 'RC1069: Die einmalige Migration bleibt als API/Recovery-Funktion erhalten' "$pma" \
+              && grep -q 'RC1069: Die einmalige Migration bleibt als API/Recovery-Funktion erhalten' "$tma" \
               && grep -q 'async function runAll' "$pma" \
               && grep -q 'async function runAll' "$tma" \
+              && ! grep -q 'Alle verbleibenden migrieren' "$pma" \
+              && ! grep -q 'Alle verbleibenden migrieren' "$tma" \
               && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$p" \
               && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$t" \
               && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$prec" \
