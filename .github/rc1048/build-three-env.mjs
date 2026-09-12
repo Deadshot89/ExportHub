@@ -356,7 +356,8 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     registrationMandatoryCc:{runtime:'assets/rc1065-registration-cc.js',version:'RC1065',required:['Sevastian Marcu','Daniel Ollmann']},
     documentMigration:{runtime:'assets/rc1061-document-migration-admin.js',version:'RC1066',batchSize:5,mode:'automatic-sequential-batches'},
     abdBlobViewerCompat:{runtime:'assets/rc1063-abd-blob-viewer-compat.js',version:'RC1063'},
-    startupRecovery:{runtime:'assets/rc1067-startup-recovery.js',page:'migration-recovery.html',version:'RC1067',trigger:'stalled admin startup with inline legacy documents'}
+    startupRecovery:{runtime:'assets/rc1067-startup-recovery.js',page:'migration-recovery.html',version:'RC1067',trigger:'stalled admin startup with inline legacy documents'},
+    finalRenderIntegrity:{version:'RC1068',shipmentController:'canonical production sync',inlineScriptSyntaxChecked:true,visibleCodeLeakChecked:true}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
