@@ -322,6 +322,37 @@ jobs:
             sleep 10
           done
           echo 'RC1048 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
+          echo "HTTP: prod=$pc test=$tc demo=$dc prodHealth=$phc testHealth=$thc prodMobile=$pmc testMobile=$tmc prodCC=$pccc testCC=$tccc prodMigration=$pmac testMigration=$tmac prodRecovery=$precc testRecovery=$trecc prodRecoveryPage=$precpc testRecoveryPage=$trecpc"
+          diagnose_marker() {
+            local label="$1" file="$2" marker="$3"
+            if ! grep -Fq "$marker" "$file"; then echo "FEHLT: $label :: $marker"; fi
+          }
+          diagnose_marker 'Produktion' "$p" 'ExportHUB RC1048 environment=production-candidate'
+          diagnose_marker 'TESTSERVICE' "$t" 'ExportHUB RC1048 environment=testservice'
+          diagnose_marker 'Demo' "$d" 'ExportHUB RC1048 environment=demo'
+          diagnose_marker 'Produktion' "$p" 'function addressCountryCode(v)'
+          diagnose_marker 'TESTSERVICE' "$t" 'function addressCountryCode(v)'
+          diagnose_marker 'Demo' "$d" 'function addressCountryCode(v)'
+          diagnose_marker 'Produktion' "$p" 'id="rc1048GateMaster"'
+          diagnose_marker 'TESTSERVICE' "$t" 'id="rc1048GateMaster"'
+          diagnose_marker 'Demo' "$d" 'id="rc1048GateMaster"'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1061-document-migration-admin.js?v=1066'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1061-document-migration-admin.js?v=1066'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'Produktion' "$p" 'function rc1017SyncSubShipments('
+          diagnose_marker 'TESTSERVICE' "$t" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Demo' "$d" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Produktion' "$p" 'rc1017-qr-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-qr-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-qr-subshipment'
+          diagnose_marker 'Produktion' "$p" 'rc1017-print-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'assets/rc1016-demo-task-seed.js?v=1016'
+          diagnose_marker 'Produktion RC1068' "$p" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'TESTSERVICE RC1068' "$t" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'Demo RC1068' "$d" 'id="exporthub-rc373-shipment-controller"'
           exit 1
 
       - name: Live RC1048 Mail und Sprache prüfen
