@@ -12,6 +12,7 @@ on:
       - 'customer-avis.html'
       - 'location.html'
       - 'pod-notfall.html'
+      - 'migration-recovery.html'
       - 'assets/**'
       - 'api/**'
       - 'android-app/**'
