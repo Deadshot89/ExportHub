@@ -377,6 +377,33 @@ jobs:
           diagnose_marker 'Demo RC1068' "$d" 'id="exporthub-rc373-shipment-controller"'
           exit 1
 
+      - name: Live RC1071 Sendungshistorie prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); ph=$(mktemp); th=$(mktemp)
+          trap 'rm -f "$p" "$t" "$ph" "$th"' EXIT
+          for attempt in {1..18}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1071=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1071=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$phc" == '200' && "$thc" == '200' ]] \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1071' "$p" \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1071' "$t" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$ph" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$th" \
+              && grep -q 'Mail als versendet bestätigen' "$ph"; then
+              echo 'RC1071 Sendungshistorie live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1071 Sendungshistorie wurde live nicht vollständig bestätigt.' >&2
+          exit 1
+
       - name: Live RC1048 Mail und Sprache prüfen
         shell: bash
         run: |
