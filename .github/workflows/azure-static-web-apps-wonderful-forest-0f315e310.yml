@@ -51,7 +51,7 @@ permissions:
   contents: read
 concurrency:
   group: exporthub-rc1048-three-env-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
