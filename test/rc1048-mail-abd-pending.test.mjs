@@ -34,3 +34,12 @@ test('RC1049: fehlendes ABD ist nach Patch im Mailbereich nur Hinweis und keine 
     for(const page of pages)assertMailUnlocked(fs.readFileSync(path.join(tmp,page),'utf8'),page);
   }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
+
+test('RC1064: finaler RC1048-Build enthält in Produktion und TESTSERVICE keine ABD-Mail-Sperre',()=>{
+  execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{cwd:ROOT,stdio:'pipe'});
+  for(const page of ['index.html','TESTVERSION.html']){
+    const built=path.join(ROOT,'dist-rc1048',page);
+    assert.ok(fs.existsSync(built),page+': finale Builddatei fehlt');
+    assertMailUnlocked(fs.readFileSync(built,'utf8'),'dist-rc1048/'+page);
+  }
+});
