@@ -93,6 +93,8 @@ function patchEmbeddedPrintScriptClosers(html,file){
       .replace(/(<script\b[^>]*rc1059-document-blob\.js[^>]*>)[\r\n\t ]*<\/script\s*>/gi,'$1<\\/script>')
       .replace(/<\/script\s*>/gi,'<\\/script>')
       .replace(/<\\\/script>[\r\n]+/gi,'<\\/script>');
+    const loader='<script src="assets/rc1059-document-blob.js?v=RC1059"><\\/script>';
+    while(block.includes(loader+loader))block=block.replace(loader+loader,loader);
 
     out=out.slice(0,start)+block+out.slice(end);
     cursor=start+block.length;
