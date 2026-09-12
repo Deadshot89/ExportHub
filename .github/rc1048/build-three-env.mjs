@@ -28,7 +28,7 @@ function replaceOne(source,before,after,label){
 }
 function injectBeforeHeadClose(html,tag,id){
   if(html.includes('id="'+id+'"')||html.includes("id='"+id+"'"))return html;
-  const idx=html.search(/<\/head\s*>/i);
+  const body=html.search(/<body\b/i),idx=(body>=0?html.slice(0,body):html).search(/<\/head\s*>/i);
   if(idx<0)throw new Error(id+': </head> fehlt');
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
@@ -101,7 +101,7 @@ function patchEmbeddedPrintScriptClosers(html,file){
 
   if(movedStyle){
     out=out.replace(/<style\b[^>]*id=["']exporthub-rc373-customer-areas-style["'][^>]*>[\s\S]*?<\/style\s*>/gi,'');
-    const headClose=out.search(/<\/head\s*>/i);
+    const outerBody=out.search(/<body\b/i),headClose=(outerBody>=0?out.slice(0,outerBody):out).search(/<\/head\s*>/i);
     if(headClose<0)throw new Error(file+': echter </head>-Anker für Kundenbereich-Style fehlt');
     out=out.slice(0,headClose)+movedStyle+'\n'+out.slice(headClose);
   }
