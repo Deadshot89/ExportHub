@@ -59,7 +59,7 @@ function append(sh,input,opt){
 function actionOnce(key,ms){var t=Date.now(),last=Number(LAST_ACTIONS[key]||0);if(t-last<(ms||1500))return false;LAST_ACTIONS[key]=t;return true}
 function statusOf(sh){return q(sh&&(sh.status||sh.processStatus||sh.shipmentStatus||sh.pickupStatus))}
 function countFiles(sh,key){return arr(sh&&sh[key]).length}
-function snapshot(sh){return{status:statusOf(sh),abd:countFiles(sh,'abdFiles'),pod:countFiles(sh,'podFiles'),delivery:countFiles(sh,'deliveryFiles')+countFiles(sh,'deliveryNotesFiles'),avis:!!(sh&&(sh.customerAvisEnabled||sh.avisEnabled)),picked:q(sh&&(sh.pickedUpAt||sh.pickupConfirmedAt||sh.actualPickupAt||sh.collectedAt||''))}}
+function snapshot(sh){return{status:statusOf(sh),abd:countFiles(sh,'abdFiles'),pod:countFiles(sh,'podFiles'),delivery:countFiles(sh,'deliveryFiles')+countFiles(sh,'deliveryNotesFiles'),avis:!!(sh&&(sh.customerAvisEnabled||sh.avisEnabled)),pickupDate:q(sh&&(sh.pickupDate||sh.plannedPickupDate||sh.collectionDate)),pickupTime:q(sh&&(sh.pickupTime||sh.timeFrom||sh.pickupTimeFrom||sh.collectionTime)),picked:q(sh&&(sh.pickedUpAt||sh.pickupConfirmedAt||sh.actualPickupAt||sh.collectedAt||''))}}
 function latestPickupActor(sh){
  var candidates=[];
  arr(sh&&sh.pickupHistory).forEach(function(x){candidates.push(x)});
@@ -74,9 +74,10 @@ function monitor(){
  if(next.abd>prev.abd)append(sh,{type:'abd',label:'ABD-Dokument hinzugefügt',actor:actorFrom(currentUser()),details:{documents:next.abd}});
  if(next.pod>prev.pod)append(sh,{type:'pod',label:'POD hinzugefügt',actor:latestPickupActor(sh),details:{documents:next.pod}});
  if(!prev.avis&&next.avis)append(sh,{type:'avis',label:'Lieferavis aktiviert',actor:actorFrom(currentUser())});
+ if((prev.pickupDate!==next.pickupDate||prev.pickupTime!==next.pickupTime)&&next.pickupDate)append(sh,{type:'pickup-plan',label:'Abholung geplant/gebucht',actor:actorFrom(currentUser()),details:{date:next.pickupDate,time:next.pickupTime}});
  if(!prev.picked&&next.picked)append(sh,{type:'pickup',label:'Abholung bestätigt',at:next.picked,actor:latestPickupActor(sh),details:{status:next.status}});
 }
-function existingSaved(sh){var key=identity(sh);if(!key)return false;return collections().some(function(list){return list.some(function(x){return x!==sh&&identity(x)===key)})}
+function existingSaved(sh){var key=identity(sh);if(!key)return false;return collections().some(function(list){return list.some(function(x){return x&&identity(x)===key})})}
 function hookPersist(){
  var core=w.ExportHUBRC565;if(!core||typeof core.persistShipment!=='function'||core.persistShipment.__rc1071)return false;
  var original=core.persistShipment;
@@ -138,8 +139,11 @@ function click(ev){
  if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(l)){
    var to=/^mailto:/i.test(href)?mailRecipient(href):'';if(actionOnce('mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'mail',label:'E-Mail vorbereitet/geöffnet',actor:actorFrom(currentUser()),details:{to:to}});return
  }
+ if(/\babd\b/.test(l)&&/anfordern|anfrage|request/.test(l)){
+   if(actionOnce('abd-request|'+identity(sh),2500))append(sh,{type:'abd',label:'ABD angefordert',actor:actorFrom(currentUser()),details:{reference:ref(sh)}});return
+ }
  if(/druck|print|cmr|ladeliste|stauplan|gesamtausgabe|pdf/.test(l)){
-   var doc=documentLabel(text);if(actionOnce('print|'+identity(sh)+'|'+doc,1800))append(sh,{type:'print',label:doc+' zum Drucken/Erzeugen geöffnet',actor:actorFrom(currentUser()),details:{document:doc}});return
+   var doc=documentLabel(text);if(actionOnce('print|'+identity(sh)+'|'+doc,1800))append(sh,{type:'print',label:doc+' – Druck/PDF gestartet',actor:actorFrom(currentUser()),details:{document:doc}});return
  }
  if(/speichern/.test(l)&&!/einstellung|vorlage|stammdaten/.test(l)){
    if(actionOnce('save|'+identity(sh),2500))append(sh,{type:'saved',label:'Sendung manuell gespeichert',actor:actorFrom(currentUser()),details:{status:statusOf(sh)}});return
