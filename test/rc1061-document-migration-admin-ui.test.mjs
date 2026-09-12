@@ -63,19 +63,24 @@ test('RC1066: Automatik verhindert Endlosschleifen wenn ein Batch trotz Restbest
   assert.ok(error);assert.equal(error.code,'DOCUMENT_MIGRATION_STALLED');assert.equal(error.result.remaining,3);assert.equal(calls.length,1);
 });
 
-test('RC1069: abgeschlossene Dokumentmigration bleibt als sichere API erhalten, aber verschwindet aus der normalen Admin-Oberfläche',()=>{
+test('RC1073: Migrationskarte bleibt bei 0 verborgen und erscheint nur bei echtem Restbestand',()=>{
   const source=fs.readFileSync(new URL('../assets/rc1061-document-migration-admin.js',import.meta.url),'utf8');
   assert.match(source,/function ensureCard\(\)/);
-  assert.match(source,/removeChild\(old\)/);
-  assert.doesNotMatch(source,/Alle verbleibenden migrieren|Nach aktuellem Paket stoppen|rc1061MigrationProgress/);
+  assert.match(source,/inlinePayloadCount/);
+  assert.match(source,/if\(remaining<=0\)\{removeCard\(\);return false\}/);
+  assert.match(source,/Alle verbleibenden migrieren/);
+  assert.match(source,/Nach aktuellem Paket stoppen/);
+  assert.match(source,/runAll\(/);
+  assert.match(source,/setTimeout\(removeCard,1800\)/);
   assert.match(source,/runAll:runAll/);
   assert.match(source,/batchSize:BATCH_SIZE/);
+  assert.doesNotMatch(source,/MutationObserver/);
 });
 
 test('RC1061: Release-Vorbereitung hält die Admin-Steuerung ausschließlich an der finalen Build-Grenze',()=>{
   const prep=fs.readFileSync(new URL('../.github/rc1049/fix-mail-abd-gate.mjs',import.meta.url),'utf8');
   assert.match(prep,/\.github\/rc1048\/build-three-env\.mjs/);assert.match(prep,/exporthub-rc1061-document-migration-admin/);
-  assert.match(prep,/assets\/rc1061-document-migration-admin\.js\?v=1066/);assert.match(prep,/for\(const file of \['index\.html','TESTVERSION\.html'\]\)/);
+  assert.match(prep,/assets\/rc1061-document-migration-admin\.js\?v=1073/);assert.match(prep,/for\(const file of \['index\.html','TESTVERSION\.html'\]\)/);
   assert.doesNotMatch(prep,/function injectAdminMigration\(/);assert.doesNotMatch(prep,/migrationInjected/);
 });
 
