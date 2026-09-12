@@ -7,6 +7,8 @@ const SRC=path.join(ROOT,'dist-rc1047');
 const OUT=path.join(ROOT,'dist-rc1048');
 const VERSION='RC1048';
 const NUMBER='1048';
+const RC1065_CC_ID='exporthub-rc1065-registration-cc';
+const RC1065_CC_TAG='<script id="'+RC1065_CC_ID+'" defer src="/assets/rc1065-registration-cc.js?v=1065"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -17,6 +19,12 @@ function replaceOne(source,before,after,label){
   const count=source.split(before).length-1;
   if(count!==1)throw new Error(label+': Anker '+count+'x gefunden');
   return source.replace(before,after);
+}
+function injectBeforeHeadClose(html,tag,id){
+  if(html.includes('id="'+id+'"')||html.includes("id='"+id+"'"))return html;
+  const idx=html.search(/<\/head\s*>/i);
+  if(idx<0)throw new Error(id+': </head> fehlt');
+  return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
 
 function patchGateMaster(html,file){
@@ -61,6 +69,7 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchGateMaster(html,file);
+  html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=html.replace(/ExportHUB RC1047 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1047',cache:'1047',loginReturn:'([^']*)'\}\);/,
@@ -79,6 +88,12 @@ execFileSync(process.execPath,['.github/rc1047/build-three-env.mjs'],{cwd:ROOT,s
 fs.rmSync(OUT,{recursive:true,force:true});
 fs.cpSync(SRC,OUT,{recursive:true});
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
+
+const rc1065AssetSource=path.join(ROOT,'assets/rc1065-registration-cc.js');
+const rc1065AssetTarget=path.join(OUT,'assets/rc1065-registration-cc.js');
+if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime fehlt');
+fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
+fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
 const probeFile=path.join(OUT,'production-version.js');
 let probe=fs.readFileSync(probeFile,'utf8');
@@ -99,6 +114,9 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     gate41TransitSource:'maintained DE transit value',
     gate41DieselSource:'maintained tariff diesel price',
     noGuessedZoneFromOriginPostal:true
+  },
+  retainedPatches:{
+    registrationMandatoryCc:{runtime:'assets/rc1065-registration-cc.js',version:'RC1065',required:['Sevastian Marcu','Daniel Ollmann']}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
