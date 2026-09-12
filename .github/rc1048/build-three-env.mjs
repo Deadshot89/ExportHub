@@ -51,9 +51,11 @@ function repairPrintStowInjectedPageBlocks(html,file){
   const payload=html.slice(payloadStart,end);
   if(!/[<](?:script|style|link|section|div)\b/i.test(payload))return html;
   let out=html.slice(0,payloadStart)+html.slice(end);
-  const bodyClose=out.toLowerCase().lastIndexOf('</body>');
-  if(bodyClose<0)throw new Error(file+': echtes </body> für Stauplan-Reparatur fehlt');
-  out=out.slice(0,bodyClose)+'\n'+payload.trim()+'\n'+out.slice(bodyClose);
+  const newBoundary=Math.max(0,boundary-(end-payloadStart));
+  const lowerOut=out.toLowerCase();
+  const bodyClose=lowerOut.indexOf('</body>',newBoundary);
+  if(bodyClose>=0)out=out.slice(0,bodyClose)+'\n'+payload.trim()+'\n'+out.slice(bodyClose);
+  else out=out+'\n'+payload.trim()+'\n';
   return out;
 }
 
