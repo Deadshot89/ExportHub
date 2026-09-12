@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
@@ -98,4 +99,37 @@ test('RC1065: mobile Navigation und Navigation ohne F5-Logout bleiben enthalten'
   const cfg=read('staticwebapp.config.json');
   assert.match(mobile,/ExportHUBRC1016MobileNavigation/);
   assert.match(cfg,/navigationFallback/);
+});
+
+
+test('RC1065: Pflicht-CC Runtime ergänzt beide Empfänger, erhält bestehende CCs und blockiert bei fehlendem Stammdatensatz',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>({
+      users:[
+        {displayName:'Sevastian Marcu',mail:'sevastian@example.com'},
+        {name:'Daniel Ollmann',email:'daniel@example.com'}
+      ]
+    })
+  };
+  const context={window,URLSearchParams,console};
+  vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
+  const api=window.ExportHUBRC1065RegistrationCC;
+  assert.ok(api,'CC-Runtime API fehlt');
+  const prepared=api.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123&cc=existing@example.com&body=Bitte%20abholen');
+  assert.equal(prepared.ok,true);
+  assert.equal(prepared.required,true);
+  const decoded=decodeURIComponent(prepared.url);
+  assert.match(decoded,/existing@example\.com/);
+  assert.match(decoded,/sevastian@example\.com/);
+  assert.match(decoded,/daniel@example\.com/);
+
+  window.__EXPORTHUB_GET_STATE__=()=>({users:[{name:'Sevastian Marcu',email:'sevastian@example.com'}]});
+  const blocked=api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123');
+  assert.equal(blocked.ok,false);
+  assert.deepEqual(Array.from(blocked.missing),['Daniel Ollmann']);
+
+  const normal=api.prepare('mailto:test@example.com?subject=Hallo');
+  assert.equal(normal.ok,true);
+  assert.equal(normal.required,false);
 });
