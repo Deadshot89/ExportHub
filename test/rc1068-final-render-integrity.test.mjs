@@ -78,15 +78,12 @@ test('RC1068 Diagnose: printStow-Blöcke sind im finalen Build zwischen allen Um
 });
 
 
-test('RC1068 Diagnose: aktiver Stauplan-Scriptblock hat zwischen den Umgebungen einen stabilen Öffnungstag',()=>{
-  const rows={};
+test('RC1068 final render: RC373 Shipment-Controller ist in allen Umgebungen eindeutig vorhanden',()=>{
   for(const file of files){
     const html=read('dist-rc1048/'+file),scripts=classicScripts(html);
-    const hit=scripts.findIndex(s=>s.code.includes('function printStow(){'));
-    assert.ok(hit>=0,file+': printStow-Script fehlt');
-    rows[file]={index:hit+1,openTag:scripts[hit].openTag,start:scripts[hit].index};
+    const hits=scripts.filter(x=>x.openTag==='<script id="exporthub-rc373-shipment-controller">');
+    assert.equal(hits.length,1,file+': RC373 Shipment-Controller muss genau einmal als klassischer Scriptblock vorliegen');
+    assert.match(hits[0].code,/function\s+printStow\s*\(/,file+': printStow fehlt im RC373 Shipment-Controller');
+    assert.match(hits[0].code,/function\s+normalizeActionButtons\s*\(/,file+': normalizeActionButtons fehlt im RC373 Shipment-Controller');
   }
-  assert.equal(rows['TESTVERSION.html'].index,rows['index.html'].index,'TESTVERSION Script-Ordinal weicht von Produktion ab');
-  assert.equal(rows['demo.html'].index,rows['index.html'].index,'Demo Script-Ordinal weicht von Produktion ab');
-  assert.fail('RC1068 SCRIPT DIAG '+JSON.stringify(rows));
 });
