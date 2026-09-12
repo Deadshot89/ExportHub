@@ -133,6 +133,7 @@ function stateSizeDiagnostics(state){
  const documentFieldCounts={},seen=new WeakSet();let documentEntries=0,blobDocumentEntries=0;
  const walk=(value,depth=0)=>{
   if(value==null||depth>12||typeof value!=='object')return;
+  if(seen.has(value))return;seen.add(value);
   if(Array.isArray(value)){value.forEach(v=>walk(v,depth+1));return}
   Object.entries(value).forEach(([key,val])=>{
    if(documentFields.has(key)&&Array.isArray(val)){
@@ -140,9 +141,8 @@ function stateSizeDiagnostics(state){
     val.forEach(v=>{if(isObj(v)&&v.storage==='blob'&&text(v.blobName))blobDocumentEntries++});
     return;
    }
-   if(!seen.has(value))walk(val,depth+1);
+   walk(val,depth+1);
   });
-  try{seen.add(value)}catch(_){}
  };
  walk(root);
  const inventory=legacyDocumentInventory(root);
