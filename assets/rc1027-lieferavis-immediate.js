@@ -129,7 +129,11 @@ async function issueDraftAvis(sh){
 function shipmentViewActive(){
  var s=state(),view=q(s.view||s.currentView||'').toLowerCase();
  if(view==='shipment'||view==='shipmentview')return true;
- try{return !!(document&&document.querySelector&&document.querySelector('#rc573ShipmentShell,#rc363FixedShipmentLayout,[data-exporthub-rendered-view="shipment"]'))}catch(_){return false}
+ if(view&&view!=='shipment'&&view!=='shipmentview')return false;
+ try{
+  if(document&&document.querySelector&&document.querySelector('#rc573ShipmentShell,#rc363FixedShipmentLayout,[data-exporthub-rendered-view="shipment"]'))return true;
+  return !!(shipment()&&referenceInput())
+ }catch(_){return false}
 }
 function eligible(sh){return !!(sh&&shipmentViewActive()&&!exception(sh)&&!manualDisabled(sh)&&!closed(sh))}
 function draftSignature(sh){try{return JSON.stringify(avisDraftSnapshot(sh))}catch(_){return''}}
