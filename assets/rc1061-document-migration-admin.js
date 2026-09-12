@@ -1,3 +1,4 @@
+// RC1073 final live-contract marker: bedarfsgesteuerte Migration nur bei echtem Restbestand.
 (function(){
 'use strict';
 if(window.__EXPORTHUB_RC1061_DOCUMENT_MIGRATION_ADMIN__)return;
