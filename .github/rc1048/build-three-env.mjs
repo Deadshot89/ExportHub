@@ -63,14 +63,28 @@ function patchEmbeddedPrintScriptClosers(html,file){
   const start=html.indexOf('function printStow(){');
   const end=start>=0?html.indexOf('function normalizeActionButtons',start):-1;
   if(start<0||end<0)return html;
-  const block=html.slice(start,end);
-  const hits=(block.match(/<\/script\s*>/gi)||[]).length;
-  if(hits===0)return html;
-  const fixed=block
+  let block=html.slice(start,end);
+
+  const misplacedStyleRx=/<style\b[^>]*id=["']exporthub-rc373-customer-areas-style["'][^>]*>[\s\S]*?<\/style\s*>/i;
+  const misplaced=misplacedStyleRx.exec(block);
+  let movedStyle='';
+  if(misplaced){
+    movedStyle=misplaced[0];
+    block=block.replace(misplacedStyleRx,'');
+  }
+
+  block=block
     .replace(/(<script\b[^>]*rc1059-document-blob\.js[^>]*>)[\r\n\t ]*<\/script\s*>/gi,'$1<\\/script>')
     .replace(/<\/script\s*>/gi,'<\\/script>')
     .replace(/<\\\/script>[\r\n]+/gi,'<\\/script>');
-  return html.slice(0,start)+fixed+html.slice(end);
+
+  let out=html.slice(0,start)+block+html.slice(end);
+  if(movedStyle&&!out.includes('id="exporthub-rc373-customer-areas-style"')&&!out.includes("id='exporthub-rc373-customer-areas-style'")){
+    const headClose=out.search(/<\/head\s*>/i);
+    if(headClose<0)throw new Error(file+': echter </head>-Anker für Kundenbereich-Style fehlt');
+    out=out.slice(0,headClose)+movedStyle+'\n'+out.slice(headClose);
+  }
+  return out;
 }
 
 function patchGateMaster(html,file){
