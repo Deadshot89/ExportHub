@@ -63,13 +63,13 @@ test('RC1066: Automatik verhindert Endlosschleifen wenn ein Batch trotz Restbest
   assert.ok(error);assert.equal(error.code,'DOCUMENT_MIGRATION_STALLED');assert.equal(error.result.remaining,3);assert.equal(calls.length,1);
 });
 
-test('RC1066: Admin-Kachel bietet Ein-Klick-Migration Fortschritt und kontrolliertes Stoppen',()=>{
+test('RC1069: abgeschlossene Dokumentmigration bleibt als sichere API erhalten, aber verschwindet aus der normalen Admin-Oberfläche',()=>{
   const source=fs.readFileSync(new URL('../assets/rc1061-document-migration-admin.js',import.meta.url),'utf8');
-  assert.match(source,/Alle verbleibenden migrieren/);
-  assert.match(source,/Nach aktuellem Paket stoppen/);
-  assert.match(source,/rc1061MigrationProgress/);
-  assert.match(source,/Paket ['"]?\+?totals\.batches|Paket \+totals\.batches/);
-  assert.doesNotMatch(source,/Nächste 5 migrieren/);
+  assert.match(source,/function ensureCard\(\)/);
+  assert.match(source,/removeChild\(old\)/);
+  assert.doesNotMatch(source,/Alle verbleibenden migrieren|Nach aktuellem Paket stoppen|rc1061MigrationProgress/);
+  assert.match(source,/runAll:runAll/);
+  assert.match(source,/batchSize:BATCH_SIZE/);
 });
 
 test('RC1061: Release-Vorbereitung hält die Admin-Steuerung ausschließlich an der finalen Build-Grenze',()=>{
@@ -79,7 +79,7 @@ test('RC1061: Release-Vorbereitung hält die Admin-Steuerung ausschließlich an 
   assert.doesNotMatch(prep,/function injectAdminMigration\(/);assert.doesNotMatch(prep,/migrationInjected/);
 });
 
-test('RC1061: die temporäre RC1060-TESTSERVICE-Box wird vollständig durch die Admin-Kachel ersetzt',()=>{
+test('RC1069: die temporäre RC1060-TESTSERVICE-Box bleibt aus der normalen Oberfläche entfernt',()=>{
   const legacy=fs.readFileSync(new URL('../assets/rc1059-document-blob.js',import.meta.url),'utf8');
   assert.doesNotMatch(legacy,/rc1060MigrationControl/);
   assert.doesNotMatch(legacy,/ExportHUBDocumentMigration1060/);
