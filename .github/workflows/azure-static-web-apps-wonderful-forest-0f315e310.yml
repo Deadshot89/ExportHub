@@ -107,8 +107,8 @@ jobs:
           grep -q 'assets/rc1065-registration-cc.js?v=1065' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1065-registration-cc.js?v=1065' dist-rc1048/demo.html
           test -s dist-rc1048/assets/rc1065-registration-cc.js
-          grep -q 'assets/rc1061-document-migration-admin.js?v=1066' dist-rc1048/index.html
-          grep -q 'assets/rc1061-document-migration-admin.js?v=1066' dist-rc1048/TESTVERSION.html
+          grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1048/index.html
+          grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1048/TESTVERSION.html
           if grep -q 'assets/rc1061-document-migration-admin.js' dist-rc1048/demo.html; then exit 1; fi
           test -s dist-rc1048/assets/rc1061-document-migration-admin.js
           grep -q 'assets/rc1067-startup-recovery.js?v=1067' dist-rc1048/index.html
@@ -283,8 +283,8 @@ jobs:
               && grep -q 'assets/rc1065-registration-cc.js?v=1065' "$d" \
               && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$pcc" \
               && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$tcc" \
-              && grep -q 'assets/rc1061-document-migration-admin.js?v=1066' "$p" \
-              && grep -q 'assets/rc1061-document-migration-admin.js?v=1066' "$t" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$p" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$t" \
               && grep -q 'RC1069: Die einmalige Migration bleibt als API/Recovery-Funktion erhalten' "$pma" \
               && grep -q 'RC1069: Die einmalige Migration bleibt als API/Recovery-Funktion erhalten' "$tma" \
               && grep -q 'async function runAll' "$pma" \
@@ -358,8 +358,8 @@ jobs:
           diagnose_marker 'Produktion' "$p" 'id="rc1048GateMaster"'
           diagnose_marker 'TESTSERVICE' "$t" 'id="rc1048GateMaster"'
           diagnose_marker 'Demo' "$d" 'id="rc1048GateMaster"'
-          diagnose_marker 'Produktion' "$p" 'assets/rc1061-document-migration-admin.js?v=1066'
-          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1061-document-migration-admin.js?v=1066'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1061-document-migration-admin.js?v=1073'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1061-document-migration-admin.js?v=1073'
           diagnose_marker 'Produktion' "$p" 'assets/rc1067-startup-recovery.js?v=1067'
           diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1067-startup-recovery.js?v=1067'
           diagnose_marker 'Produktion' "$p" 'function rc1017SyncSubShipments('
