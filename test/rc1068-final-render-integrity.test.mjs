@@ -28,11 +28,12 @@ function outside(source){
 }
 function controller(html,file){
   const open='<script id="exporthub-rc373-shipment-controller">';
-  const boundary='<style id="exporthub-rc373-customer-areas-style">';
-  const a=html.indexOf(open),b=a>=0?html.indexOf(boundary,a+open.length):-1;
+  const tail='window.ExportHUBShipment375=api;';
+  const a=html.indexOf(open),t=a>=0?html.indexOf(tail,a+open.length):-1,c=t>=0?html.indexOf('</script>',t+tail.length):-1;
   assert.ok(a>=0,file+': RC373 Shipment-Controller fehlt');
-  assert.ok(b>a,file+': RC373 Folgeanker fehlt');
-  return html.slice(a,b);
+  assert.ok(t>a,file+': RC373 Endmarker fehlt');
+  assert.ok(c>t,file+': RC373 echtes Ende fehlt');
+  return html.slice(a,c+'</script>'.length);
 }
 
 const forbidden=[
