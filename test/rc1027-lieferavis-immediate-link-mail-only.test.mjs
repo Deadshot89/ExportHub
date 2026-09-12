@@ -11,6 +11,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
   const documentListeners=new Map();
   const toggles=[];
   const persists=[];
+  const apiCalls=[];
   const referenceInput={
     id:'shipmentReference',name:'reference',value:reference,
     closest(){return{textContent:'Sendungsreferenz'}},matches(){return true},getAttribute(){return''}
@@ -49,7 +50,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
   const window={
     document,
     ExportHUBCustomerAvis706:base,
-    ExportHUBClean:{state},
+    ExportHUBClean:{state,runtime:{authToken:'TOKEN'}},
     ExportHUBRC565:{async persistShipment(){persists.push('persist');if(!state.shipments.includes(shipment))state.shipments.push(shipment);return true}},
     addEventListener(name,fn){if(!windowListeners.has(name))windowListeners.set(name,[]);windowListeners.get(name).push(fn)},
     dispatchEvent(){return true},
@@ -63,12 +64,13 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
     requestAnimationFrame(fn){fn();return 1},
     setTimeout(fn){fn();return 1},
     Event:function Event(type){this.type=type},
-    CustomEvent:function CustomEvent(type,opt){this.type=type;this.detail=opt&&opt.detail}
+    CustomEvent:function CustomEvent(type,opt){this.type=type;this.detail=opt&&opt.detail},
+    fetch:async(_url,opt)=>{var payload=JSON.parse(opt&&opt.body||'{}');apiCalls.push(payload);if(payload.action==='draft-sync')return{ok:true,status:200,json:async()=>({ok:true,updated:1})};return{ok:true,status:200,json:async()=>({ok:true,token:'server-token',shipmentId:payload.shipmentId||payload.reference,url:link,expiresAt:null})}}
   });
   vm.runInContext(FLOW,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
   vm.runInContext(FIX,context,{filename:'assets/rc1027-lieferavis-immediate.js'});
   async function fireDocument(name,target=customerInput){for(const fn of documentListeners.get(name)||[])await fn({type:name,target})}
-  return{api:window.ExportHUBCustomerAvis706,rc:window.ExportHUBRC1027Lieferavis,shipment,state,referenceInput,customerInput,toggles,persists,fireDocument};
+  return{api:window.ExportHUBCustomerAvis706,rc:window.ExportHUBRC1027Lieferavis,shipment,state,referenceInput,customerInput,toggles,persists,apiCalls,fireDocument};
 }
 
 const expandedDetails=`Sehr geehrte Damen und Herren,
@@ -122,7 +124,7 @@ test('RC1027: eigene Mail bleibt vollständig unverändert',()=>{
   assert.equal(api.injectMailBody(shipment,'own',expandedDetails,'de'),expandedDetails);
 });
 
-test('RC1027: sobald Kunde und Standort gesetzt sind wird Referenz, Minimalentwurf und Avis-Link automatisch erzeugt',async()=>{
+test('RC1069: der Sendungsentwurf erhält Referenz und Avis-Link sofort ohne normalen Speicherschritt',async()=>{
   const shipment={customerName:'Heizmann AG Hydraulik',selectedLocationId:'MAIN-C1',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
   const env=load(shipment,{reference:''});
   assert.ok(env.rc&&typeof env.rc.ensureCustomerAvis==='function','Frühe Kunden-Avis-Aktivierung fehlt.');
@@ -130,20 +132,24 @@ test('RC1027: sobald Kunde und Standort gesetzt sind wird Referenz, Minimalentwu
   assert.equal(active,true);
   assert.match(String(shipment.reference||shipment.ref||''),/^[A-Z0-9]{6}$/);
   assert.equal(env.referenceInput.value,String(shipment.reference||shipment.ref));
-  assert.deepEqual(env.persists,['persist']);
-  assert.deepEqual(env.toggles,[true]);
+  assert.deepEqual(env.persists,[],'Avis-Draft darf keinen normalen Sendungsspeicher auslösen.');
+  assert.deepEqual(env.toggles,[],'RC1069 nutzt den direkten Avis-API-Pfad statt den alten Toggle-Save-Pfad.');
+  assert.equal(env.apiCalls.filter(x=>x.action==='issue').length,1);
   assert.equal(shipment.customerAvisToken,'server-token');
   assert.match(env.api.link(shipment),/customer-avis\.html/);
 });
 
-test('RC1027: Kundenauswahl mit bereits gesetztem Standort stößt die frühe Avis-Erzeugung automatisch an',async()=>{
+test('RC1069: Kundeneingaben aktualisieren einen bereits sofort ausgestellten Avis-Draft ohne erneute Speicherung',async()=>{
   const shipment={customerName:'',selectedLocationId:'MAIN-C1',status:'Entwurf',customerAvisEnabled:false,avisEnabled:false};
   const env=load(shipment,{reference:''});
+  await env.rc.ensureCustomerAvis('initial-draft');
+  assert.equal(shipment.customerAvisToken,'server-token');
+  assert.deepEqual(env.persists,[]);
   shipment.customerName='Heizmann AG Hydraulik';
   env.customerInput.value=shipment.customerName;
   await env.fireDocument('change',env.customerInput);
-  await Promise.resolve();
-  await Promise.resolve();
-  assert.equal(env.toggles.length,1,'Nach vollständiger Kunden- und Standortzuordnung muss der Avis ohne manuellen Speicherschritt ausgestellt werden.');
-  assert.equal(shipment.customerAvisToken,'server-token');
+  await Promise.resolve();await Promise.resolve();await Promise.resolve();
+  await env.rc.syncDraftAvis(shipment,'test-customer-change');
+  assert.ok(env.apiCalls.some(x=>x.action==='draft-sync'&&x.shipmentSnapshot&&x.shipmentSnapshot.customerName==='Heizmann AG Hydraulik'),'Kundenänderung muss in den öffentlichen Avis-Draft synchronisiert werden.');
+  assert.deepEqual(env.persists,[]);
 });
