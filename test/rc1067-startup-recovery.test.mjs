@@ -33,6 +33,8 @@ test('RC1067: Start-Recovery erkennt nur wiederhergestellte globale Admin-Sitzun
   assert.equal(normal.admin(normal.session()),false);
   const functionAdmin=loadApi({token:'TOKEN',user:{name:'User',role:'Funktionsadministrator'}});
   assert.equal(functionAdmin.admin(functionAdmin.session()),false);
+  const legacyFlag=loadApi({token:'TOKEN',user:{name:'User',role:'Benutzer',isAdmin:true,admin:true}});
+  assert.equal(legacyFlag.admin(legacyFlag.session()),false);
 });
 
 test('RC1067: Recovery prüft ausschließlich den kleinen Health-Pfad bevor der große Team-State geladen werden muss',()=>{
