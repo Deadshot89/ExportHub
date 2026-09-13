@@ -25,7 +25,7 @@ test('RC1076: PIN-Admin gewährt keine Rechte über einen fest codierten Benutze
   assert.match(admin,/user\.permissions\.includes\('\*'\)/);
   assert.match(admin,/globaler administrator/);
   assert.match(admin,/Nur globale Administratoren dürfen Verlader-PINs verwalten/);
-  assert.match(admin,/version: 'RC1076'/);
+  assert.match(admin,/version: 'RC1087'/);
 });
 
 test('RC1076: Admin-Oberfläche kann leeren PIN-Bestand sicher initialisieren',()=>{
