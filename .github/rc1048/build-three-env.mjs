@@ -23,6 +23,8 @@ const RC1074_LOGIN_ID='exporthub-rc1074-login-clean';
 const RC1074_LOGIN_TAG='<script id="'+RC1074_LOGIN_ID+'" defer src="/assets/rc1074-login-clean.js?v=1074"></script>';
 const RC1075_LOADER_PIN_ID='exporthub-rc1075-loader-pin-admin';
 const RC1075_LOADER_PIN_TAG='<script id="'+RC1075_LOADER_PIN_ID+'" defer src="/assets/rc1075-loader-pin-admin.js?v=1075"></script>';
+const RC1077_CUSTOMER_LABELS_ID='exporthub-rc1077-customer-labels';
+const RC1077_CUSTOMER_LABELS_TAG='<script id="'+RC1077_CUSTOMER_LABELS_ID+'" defer src="/assets/rc1077-customer-labels.js?v=1077"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -373,7 +375,7 @@ if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime 
 fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
 fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
-for(const rel of ['assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js']){
+for(const rel of ['assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js']){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error(rel+' fehlt für den finalen RC1048-Build');
   fs.mkdirSync(path.dirname(dst),{recursive:true});
@@ -413,7 +415,8 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
     shipmentHistory:{version:'RC1071',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',mailSemantics:'opened-versus-confirmed-sent'},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
-    loaderPinAdmin:{version:'RC1075',runtime:'assets/rc1075-loader-pin-admin.js',globalAdminOnly:true,api:'/api/loader-pins-admin',demo:false}
+    loaderPinAdmin:{version:'RC1075',runtime:'assets/rc1075-loader-pin-admin.js',globalAdminOnly:true,api:'/api/loader-pins-admin',demo:false},
+    customerLabels:{version:'RC1077',runtime:'assets/rc1077-customer-labels.js',views:['customers','customerfolder'],firmaLabel:'Standorte',headingsUnclipped:true}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
