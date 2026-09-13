@@ -497,6 +497,13 @@ jobs:
               grep -q '/api/loader-pins-admin' "$body" || ok=0
               rm -f "$body"
             done
+            for base in "$prod" "$testservice"; do
+              apiBody=$(mktemp)
+              apiCode=$(curl -sS -o "$apiBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"list"}' "$base/api/loader-pins-admin?rc1076=$GITHUB_SHA-$attempt" || true)
+              [[ "$apiCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$apiBody" || ok=0
+              rm -f "$apiBody"
+            done
             p=$(mktemp); t=$(mktemp)
             pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1075=$GITHUB_SHA-$attempt" || true)
             tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1075=$GITHUB_SHA-$attempt" || true)
