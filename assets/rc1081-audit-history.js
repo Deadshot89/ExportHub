@@ -3,6 +3,7 @@
 'use strict';
 if(!w||!d||w.__EXPORTHUB_RC1081_AUDIT_HISTORY__)return;
 w.__EXPORTHUB_RC1081_AUDIT_HISTORY__=true;
+w.__EXPORTHUB_RC1084_HISTORY_DE__=true;
 
 var FILTER={query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:0,from:'',to:''};
 
