@@ -250,7 +250,10 @@ function patchLoginScreenStatus(html,file){
   );
   out=out.replace(/status\('TESTSERVICE · Auth-Backend wird geprüft\s*(?:…|\\.{3})?',''\);?\s*/g,'');
   out=out.replace(/status\('Anmeldekonfiguration wird geprüft\s*(?:…|\\.{3})?',''\);?\s*/g,"status('','');");
-  if(/Anmeldekonfiguration wird geprüft|TESTSERVICE · Auth-Backend wird geprüft/i.test(out)){
+  out=out.replace(/Anmeldekonfiguration wird geprüft\s*(?:…|\\.{3})?/gi,'');
+  out=out.replace(/TESTSERVICE\s*·\s*Auth-Backend wird geprüft\s*(?:…|\\.{3})?/gi,'');
+  out=out.replace(/TESTSERVICE\s*·\s*Zugangsdaten eingeben\.?/gi,'');
+  if(/Anmeldekonfiguration wird geprüft|TESTSERVICE\s*·\s*(?:Auth-Backend wird geprüft|Zugangsdaten eingeben)/i.test(out)){
     throw new Error(file+': technischer Login-Prüfstatus noch vorhanden');
   }
   return out;
