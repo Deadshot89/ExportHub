@@ -69,3 +69,11 @@ test('RC1081: Namensänderung durch Administrator wird getrennt von Rechteänder
   assert.match(authApi,/displayName: afterName/);
   assert.match(runtime,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'Anzeigename durch Administrator geändert'/);
 });
+
+
+test('RC1081: zentrale History liest alle Sendungssammlungen und dedupliziert erst auf Ereignisebene',()=>{
+  for(const key of ['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments']){
+    assert.match(runtime,new RegExp(key));
+  }
+  assert.match(runtime,/pushUnique\(map,shipmentEvent\(sh,e\)\)/);
+});
