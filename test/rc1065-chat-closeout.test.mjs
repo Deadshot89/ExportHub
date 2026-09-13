@@ -184,5 +184,6 @@ test('RC1087: Pflicht-CC Adminprüfung verwechselt Funktionsadministratoren nich
   const source=read('assets/rc1065-registration-cc.js');
   assert.match(source,/roles=\['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'\]/);
   assert.match(source,/roles\.indexOf\(role\)>=0/);
+  assert.doesNotMatch(source,/u\.isAdmin===true|u\.admin===true/);
   assert.doesNotMatch(source,/vollzugriff\/\.test\(role\)/);
 });
