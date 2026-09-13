@@ -122,6 +122,11 @@ jobs:
           if grep -q 'assets/rc1075-loader-pin-admin.js' dist-rc1048/demo.html; then exit 1; fi
           test -s dist-rc1048/assets/rc1075-loader-pin-admin.js
           grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' dist-rc1048/assets/rc1075-loader-pin-admin.js
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1077-customer-labels.js?v=1077' "dist-rc1048/$file"
+          done
+          test -s dist-rc1048/assets/rc1077-customer-labels.js
+          grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' dist-rc1048/assets/rc1077-customer-labels.js
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/index.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/demo.html
@@ -194,6 +199,8 @@ jobs:
           test -s .rc1048_testservice_app/assets/rc1067-startup-recovery.js
           test -s .rc1048_production_app/assets/rc1069-performance.js
           test -s .rc1048_testservice_app/assets/rc1069-performance.js
+          test -s .rc1048_production_app/assets/rc1077-customer-labels.js
+          test -s .rc1048_testservice_app/assets/rc1077-customer-labels.js
           test -s .rc1048_production_app/assets/rc1075-loader-pin-admin.js
           test -s .rc1048_testservice_app/assets/rc1075-loader-pin-admin.js
           test -s .rc1048_production_app/assets/rc1027-lieferavis-immediate.js
@@ -518,4 +525,37 @@ jobs:
             sleep 5
           done
           echo 'RC1075 Verlader-PIN Admin-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1077 Kundenübersicht prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1077=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1077-customer-labels.js?rc1077=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1077-customer-labels.js?v=1077' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' "$asset" || ok=0
+              grep -q "el.textContent='Standorte'" "$asset" || ok=0
+              grep -q 'overflow:visible!important' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1077=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1077-customer-labels.js?v=1077' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1077 Kundenübersicht ist live in Produktion, TESTSERVICE und Demo bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1077 Kundenübersicht-Liveprüfung nicht bestätigt.' >&2
           exit 1
