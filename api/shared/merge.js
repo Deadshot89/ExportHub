@@ -674,6 +674,8 @@ module.exports = {
   itemKey,
   timestamp,
   mergeShipmentProtected,
+  mergeCustomerProtected,
+  mergeShipmentHistory,
   rc1017ProtectSubShipments,
   mergeCollection,
   mergeState,
