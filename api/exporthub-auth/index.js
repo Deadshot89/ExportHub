@@ -434,8 +434,8 @@ async function updateProfile(req, payload) {
     user.name = nextName;
     user.displayName = nextName;
     user.updatedAt = auth.now();
-    user.updatedBy = nextName;
-    auth.addAudit(team, 'PROFILE_DISPLAY_NAME_UPDATED', nextName, {
+    user.updatedBy = previousName || user.user;
+    auth.addAudit(team, 'PROFILE_DISPLAY_NAME_UPDATED', previousName || user.user, {
       userId: user.id,
       username: user.user,
       previousName,
