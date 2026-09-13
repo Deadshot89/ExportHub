@@ -336,6 +336,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=injectBeforeHeadClose(html,RC1071_HISTORY_TAG,RC1071_HISTORY_ID);
   html=injectBeforeHeadClose(html,RC1074_LOGIN_TAG,RC1074_LOGIN_ID);
   if(file!=='demo.html')html=injectBeforeHeadClose(html,RC1075_LOADER_PIN_TAG,RC1075_LOADER_PIN_ID);
+  html=injectBeforeHeadClose(html,RC1077_CUSTOMER_LABELS_TAG,RC1077_CUSTOMER_LABELS_ID);
   if(file!=='demo.html'){
     html=injectBeforeHeadClose(html,RC1061_MIGRATION_TAG,RC1061_MIGRATION_ID);
     html=injectBeforeHeadClose(html,RC1063_ABD_BLOB_TAG,RC1063_ABD_BLOB_ID);
