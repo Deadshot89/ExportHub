@@ -75,7 +75,8 @@ function isRemovedNeff(item){
 function mergeMissing(existing, companyKey, stamp){
   let list = Array.isArray(existing) ? existing.slice() : [];
   if (!isEssentraCompanyKey(companyKey)) return list;
-  list = list.filter(item => !isRemovedNeff(item) && !isUntouchedObsoleteV1(item) && !isUntouchedNonCanonicalSystemSeed(item));
+  // RC1078: nicht kanonische, unberührte System-Seeds werden vollständig entfernt; manuelle Einträge bleiben erhalten.
+  list = list.filter(item => !isRemovedNeff(item) && !isUntouchedNonCanonicalSystemSeed(item));
   const seenKeys = new Set(list.map(key));
   const seenIds = new Set(list.map(item => text(item && item.id)).filter(Boolean));
   for (const item of defaultsForCompany(companyKey)) {
