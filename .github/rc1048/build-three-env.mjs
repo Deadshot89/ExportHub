@@ -30,7 +30,7 @@ const RC1079_PROFILE_TAG='<script id="'+RC1079_PROFILE_ID+'" defer src="/assets/
 const RC1080_CUSTOMER_HISTORY_ID='exporthub-rc1080-customer-history';
 const RC1080_CUSTOMER_HISTORY_TAG='<script id="'+RC1080_CUSTOMER_HISTORY_ID+'" defer src="/assets/rc1080-customer-history.js?v=1080"></script>';
 const RC1081_AUDIT_HISTORY_ID='exporthub-rc1081-audit-history';
-const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1082"></script>';
+const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1084"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -333,13 +333,14 @@ function patchHistoryNavigation(html,file){
   const start=out.indexOf(open),end=start<0?-1:out.indexOf('</script>',start+open.length);
   if(start<0||end<=start)throw new Error(file+': kanonischer Navigationscontroller für RC1082 fehlt');
   let block=out.slice(start,end+'</script>'.length);
+  block=block.replace(/\{view:['"]history['"],label:['"]History['"],right:['"]history['"]\}/g,"{view:'history',label:'Historie',right:'history'}");
   if(!/view:['"]history['"]/.test(block)){
     const stateAt=block.indexOf('function state(){');
     const itemsAt=stateAt>=0?block.lastIndexOf('var ITEMS=',stateAt):block.indexOf('var ITEMS=');
     if(itemsAt<0)throw new Error(file+': ITEMS-Navigation für RC1082 fehlt');
     const arrayStart=block.indexOf('[',itemsAt),arrayEnd=block.indexOf('];',arrayStart);
     if(arrayStart<0||arrayEnd<0)throw new Error(file+': ITEMS-Navigation für RC1082 unvollständig');
-    const item="{view:'history',label:'History',right:'history'}";
+    const item="{view:'history',label:'Historie',right:'history'}";
     let list=block.slice(arrayStart,arrayEnd);
     const archiveAt=list.indexOf("view:'archive'");
     if(archiveAt>=0){
@@ -364,8 +365,9 @@ function patchHistoryNavigation(html,file){
   const rs=out.indexOf(rightsOpen),re=rs<0?-1:out.indexOf('</script>',rs+rightsOpen.length);
   if(rs>=0&&re>rs){
     let rb=out.slice(rs,re+'</script>'.length);
-    if(!/history:['"]History['"]/.test(rb)){
-      rb=rb.replace(/archive:'Archiv',settings:'Einstellungen'/,"archive:'Archiv',history:'History',settings:'Einstellungen'");
+    rb=rb.replace(/history:['"]History['"]/g,"history:'Historie'");
+    if(!/history:['"]Historie['"]/.test(rb)){
+      rb=rb.replace(/archive:'Archiv',settings:'Einstellungen'/,"archive:'Archiv',history:'Historie',settings:'Einstellungen'");
     }
     if(!/['"]history['"]/.test(rb.slice(rb.indexOf('VALID_RIGHTS_ORDER'),rb.indexOf('VALID_RIGHTS_ORDER')+1200))){
       rb=rb.replace("'reports','update','teamfile','archive','settings','pickupcalendar']","'reports','update','teamfile','archive','history','settings','pickupcalendar']");
@@ -373,7 +375,7 @@ function patchHistoryNavigation(html,file){
     }
     out=out.slice(0,rs)+rb+out.slice(re+'</script>'.length);
   }
-  if(!/view:['"]history['"],label:['"]History['"],right:['"]history['"]/.test(out))throw new Error(file+': History-Reiter wurde nicht eingebunden');
+  if(!/view:['"]history['"],label:['"]Historie['"],right:['"]history['"]/.test(out))throw new Error(file+': Historie-Reiter wurde nicht eingebunden');
   if(!out.includes("view==='history'&&window.ExportHUBRC1081AuditHistory"))throw new Error(file+': History-Direktroute fehlt');
   return out;
 }
@@ -482,7 +484,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     customerLabels:{version:'RC1077',runtime:'assets/rc1077-customer-labels.js',views:['customers','customerfolder'],firmaLabel:'Standorte',headingsUnclipped:true},
     profileSettings:{version:'RC1079',runtime:'assets/rc1079-profile-settings.js',selfServiceDisplayName:true,usernameImmutable:true},
     customerHistory:{version:'RC1080',runtime:'assets/rc1080-customer-history.js',field:'customerHistory',merge:'additive-by-event-id',events:['customer-created','customer-updated']},
-    auditHistory:{version:'RC1082',runtime:'assets/rc1081-audit-history.js',view:'history',sources:['auditLog','shipmentHistory','customerHistory'],filters:['query','type','subtype','actor','entity','days','from','to'],retentionDays:365},
+    auditHistory:{version:'RC1084',runtime:'assets/rc1081-audit-history.js',view:'history',label:'Historie',sources:['auditLog','shipmentHistory','shipmentDerived','customerHistory'],filters:['query','type','subtype','actor','entity','days','from','to'],defaultPeriod:'all',language:'de',retentionDays:365},
     diagnosticsAutofix:{version:'RC1083',runtime:'assets/rc1013-diagnostics.js',api:'/api/diagnostic-autofix',workflow:'.github/workflows/diagnostic-autofix.yml',provider:'OpenAI Codex',statusFlow:['queued','running','testing','deploying','fixed','failed']}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}

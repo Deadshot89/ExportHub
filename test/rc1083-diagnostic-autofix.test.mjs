@@ -13,8 +13,8 @@ const policy=fs.readFileSync('api/shared/user-policy.js','utf8');
 test('RC1082: History ist ein eigenes Rechte- und Navigationsmodul',()=>{
   assert.match(policy,/'archive','history','settings'/);
   assert.match(build,/function patchHistoryNavigation\(html,file\)/);
-  assert.match(build,/view:'history',label:'History',right:'history'/);
-  assert.match(build,/history:'History'/);
+  assert.match(build,/view:'history',label:'Historie',right:'history'/);
+  assert.match(build,/history:'Historie'/);
 });
 
 test('RC1083: Fehlerdiagnose bietet Filter und direkten ChatGPT-Autofix',()=>{
