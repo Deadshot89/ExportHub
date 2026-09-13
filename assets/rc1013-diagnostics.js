@@ -217,8 +217,9 @@
   function install(win){
     if(!win||!win.document||win.__EXPORTHUB_RC1013_DIAGNOSTICS__)return;win.__EXPORTHUB_RC1013_DIAGNOSTICS__=true;style(win);
     var timer=0,schedule=function(delay){clearTimeout(timer);timer=setTimeout(function(){refresh(win);},delay||120);};
-    ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:diagnostic'].forEach(function(n){win.addEventListener(n,function(){schedule(120);});});
+    ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:diagnostic','exporthub:diagnostic-autofix'].forEach(function(n){win.addEventListener(n,function(){schedule(120);});});
     if(win.MutationObserver){var mo=new win.MutationObserver(function(){if(diagnosticsVisible(win))schedule(180);});mo.observe(win.document.documentElement,{childList:true,subtree:true});}
+    win.setInterval(function(){if(diagnosticsVisible(win)&&!win.document.hidden)refresh(win)},10000);
     schedule(300);
   }
   return Object.freeze({version:'RC1083',describe:describe,codeOf:codeOf,refresh:refresh,install:install,requestAutofix:requestAutofix,filterRows:filterRows,statusInfo:statusInfo});
