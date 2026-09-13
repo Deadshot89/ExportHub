@@ -30,7 +30,7 @@ const RC1079_PROFILE_TAG='<script id="'+RC1079_PROFILE_ID+'" defer src="/assets/
 const RC1080_CUSTOMER_HISTORY_ID='exporthub-rc1080-customer-history';
 const RC1080_CUSTOMER_HISTORY_TAG='<script id="'+RC1080_CUSTOMER_HISTORY_ID+'" defer src="/assets/rc1080-customer-history.js?v=1080"></script>';
 const RC1081_AUDIT_HISTORY_ID='exporthub-rc1081-audit-history';
-const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1084"></script>';
+const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1086"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -484,7 +484,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     customerLabels:{version:'RC1077',runtime:'assets/rc1077-customer-labels.js',views:['customers','customerfolder'],firmaLabel:'Standorte',headingsUnclipped:true},
     profileSettings:{version:'RC1079',runtime:'assets/rc1079-profile-settings.js',selfServiceDisplayName:true,usernameImmutable:true},
     customerHistory:{version:'RC1080',runtime:'assets/rc1080-customer-history.js',field:'customerHistory',merge:'additive-by-event-id',events:['customer-created','customer-updated']},
-    auditHistory:{version:'RC1084',runtime:'assets/rc1081-audit-history.js',view:'history',label:'Historie',sources:['auditLog','shipmentHistory','shipmentDerived','customerHistory'],filters:['query','type','subtype','actor','entity','days','from','to'],defaultPeriod:'all',language:'de',retentionDays:365},
+    auditHistory:{version:'RC1086',runtime:'assets/rc1081-audit-history.js',view:'history',label:'Historie',sources:['auditLog','shipmentHistory','shipmentDerived','customerHistory','taskDerived','palletAccount'],filters:['query','type','subtype','actor','entity','days','from','to'],defaultPeriod:'all',language:'de',retentionDays:365},
     diagnosticsAutofix:{version:'RC1085',runtime:'assets/rc1013-diagnostics.js',api:'/api/diagnostic-autofix',workflow:'.github/workflows/diagnostic-autofix.yml',provider:'OpenAI Codex',enabledByDefault:false,noExternalAiRequestsWhenDisabled:true,statusFlow:['queued','running','testing','deploying','fixed','failed']}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}

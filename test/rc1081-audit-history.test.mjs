@@ -34,32 +34,34 @@ test('RC1081: administrativ beendete Sitzungen werden protokolliert',()=>{
   assert.match(block,/current\.user\.name/);
 });
 
-test('RC1084: zentrale Historie führt Audit, Sendungen und Kunden vollständig zusammen',()=>{
+test('RC1086: zentrale Historie führt Sendungen, Kunden, Aufgaben, Palettenkonto und Audit zusammen',()=>{
   assert.match(runtime,/<h3>Historie<\/h3>/);
   assert.match(runtime,/arr\(s\.auditLog\)/);
   assert.match(runtime,/ExportHUBShipmentHistory1071/);
   assert.match(runtime,/shipmentHistory/);
   assert.match(runtime,/customerHistory/);
+  assert.match(runtime,/arr\(s\.tasks\)/);
+  assert.match(runtime,/arr\(s\.palletAccount\)/);
   assert.match(runtime,/Alle Benutzer/);
   assert.match(runtime,/Alle Aktionen/);
   assert.match(runtime,/Alle Objekte/);
   assert.match(runtime,/Gesamter Bestand/);
-  assert.match(runtime,/Benutzer, Referenz, Kunde, Aktion oder Detail/);
+  assert.match(runtime,/Benutzer, Referenz, Kunde, Aufgabe, Aktion oder Detail/);
   assert.match(runtime,/Alle protokollierten Aktionen/);
   assert.match(runtime,/data-rc1084-history-table/);
 });
 
-test('RC1084: Historie ist eine eigene Ansicht und nicht mehr an Archiv gebunden',()=>{
+test('RC1086: Historie ist eine eigene Ansicht und nicht mehr an Archiv gebunden',()=>{
   assert.match(runtime,/function historyView\(\)/);
   assert.match(runtime,/v==='history'/);
   assert.match(runtime,/if\(!historyView\(\)\)\{if\(old\)old\.remove\(\);return false\}/);
   assert.doesNotMatch(runtime,/function archiveView\(\)/);
 });
 
-test('RC1084: finaler Build lädt Historie als eigenen Reiter in Produktion TESTSERVICE und Demo',()=>{
+test('RC1086: finaler Build lädt Historie als eigenen Reiter in Produktion TESTSERVICE und Demo',()=>{
   assert.match(build,/RC1081_AUDIT_HISTORY_TAG/);
-  assert.match(build,/assets\/rc1081-audit-history\.js\?v=1084/);
-  assert.match(build,/auditHistory:\{version:'RC1084'/);
+  assert.match(build,/assets\/rc1081-audit-history\.js\?v=1086/);
+  assert.match(build,/auditHistory:\{version:'RC1086'/);
   assert.match(build,/view:'history'/);
   assert.match(build,/view:'history',label:'Historie',right:'history'/);
   assert.match(build,/patchHistoryNavigation\(html,file\)/);
@@ -84,7 +86,7 @@ test('RC1081: Namensänderung durch Administrator wird getrennt von Rechteänder
 });
 
 
-test('RC1084: zentrale Historie liest alle Sendungssammlungen inklusive abgeleiteter Ereignisse',()=>{
+test('RC1086: zentrale Historie liest alle Sendungssammlungen inklusive abgeleiteter Ereignisse',()=>{
   for(const key of ['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments']){
     assert.match(runtime,new RegExp(key));
   }
@@ -94,7 +96,7 @@ test('RC1084: zentrale Historie liest alle Sendungssammlungen inklusive abgeleit
 });
 
 
-test('RC1084: Filterung nach Zeitraum, Bereich, Aktion, Benutzer und Objekt ist vollständig',()=>{
+test('RC1086: Filterung nach Zeitraum, Bereich, Aktion, Benutzer und Objekt ist vollständig',()=>{
   for(const marker of [
     "FILTER.type!=='all'",
     "FILTER.subtype!=='all'",
@@ -108,7 +110,7 @@ test('RC1084: Filterung nach Zeitraum, Bereich, Aktion, Benutzer und Objekt ist 
 });
 
 
-test('RC1084: sichtbaren Aktionsnamen sind deutsch und technische Subtypen bleiben intern',()=>{
+test('RC1086: sichtbaren Aktionsnamen sind deutsch und technische Subtypen bleiben intern',()=>{
   for(const marker of [
     "created:'Sendung erstellt'",
     "'mail-sent':'E-Mail-Versand bestätigt'",
@@ -123,18 +125,56 @@ test('RC1084: sichtbaren Aktionsnamen sind deutsch und technische Subtypen bleib
   assert.match(runtime,/FILTER=\{query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:0/);
 });
 
-test('RC1084: alle verfügbaren Aktionen werden ohne interne Scroll-Begrenzung als Tabelle gelistet',()=>{
+test('RC1086: alle verfügbaren Aktionen werden ohne interne Scroll-Begrenzung als Tabelle gelistet',()=>{
   assert.match(runtime,/data-rc1084-history-table/);
   assert.doesNotMatch(runtime,/max-height:620px/);
   assert.match(runtime,/events\.length\+' Aktionen im verfügbaren Datenbestand/);
 });
 
 
-test('RC1084: sichtbaren Historienansichten sind vollständig deutsch',()=>{
+test('RC1086: sichtbaren Historienansichten sind vollständig deutsch',()=>{
   assert.match(shipmentHistory,/>HISTORIE<\/span>/);
   assert.match(customerHistory,/>HISTORIE<\/span>/);
   assert.doesNotMatch(shipmentHistory,/>HISTORY<\/span>/);
   assert.doesNotMatch(customerHistory,/>HISTORY<\/span>/);
   assert.match(profile,/Historie-Einträge/);
   assert.doesNotMatch(profile,/History-Einträge/);
+});
+
+
+test('RC1086: Aufgaben werden aus belastbaren Erstellungs- und Abschlussdaten abgeleitet',()=>{
+  assert.match(runtime,/function taskEvents\(t\)/);
+  assert.match(runtime,/'task-created':'Aufgabe erstellt'/);
+  assert.match(runtime,/'task-completed':'Aufgabe erledigt'/);
+  assert.match(runtime,/'task-cancelled':'Aufgabe storniert'/);
+  assert.match(runtime,/completedAt\|\|t\.doneAt\|\|t\.closedAt/);
+  assert.match(runtime,/completedBy\|\|t\.doneBy\|\|t\.closedBy/);
+  assert.match(runtime,/System · POD/);
+  assert.match(runtime,/System · Abholung/);
+});
+
+test('RC1086: Palettenkonto wird nur bei gespeichertem Datum oder Zeitpunkt in der Historie geführt',()=>{
+  assert.match(runtime,/function palletEvents\(p,index\)/);
+  assert.match(runtime,/p\.at\|\|p\.createdAt\|\|p\.bookedAt\|\|p\.bookingAt\|\|p\.timestamp\|\|p\.date/);
+  assert.match(runtime,/if\(!at\)return\[\]/);
+  assert.match(runtime,/'pallet-in':'Paletteneingang gebucht'/);
+  assert.match(runtime,/'pallet-out':'Palettenausgang gebucht'/);
+  assert.match(runtime,/'pallet-exchange':'Palettentausch gebucht'/);
+  assert.match(runtime,/palletType/);
+  assert.match(runtime,/shipmentRef\|\|p\.reference\|\|p\.ref/);
+});
+
+test('RC1086: Aufgaben und Palettenkonto sind eigene filterbare Historienbereiche',()=>{
+  assert.match(runtime,/task:'Aufgaben'/);
+  assert.match(runtime,/pallet:'Palettenkonto'/);
+  assert.match(runtime,/\['task','Aufgaben'\]/);
+  assert.match(runtime,/\['pallet','Palettenkonto'\]/);
+  assert.match(build,/'taskDerived','palletAccount'/);
+  assert.match(runtime,/countType\(events,'task'\)/);
+  assert.match(runtime,/countType\(events,'pallet'\)/);
+});
+
+test('RC1086: reine Datumswerte werden ohne erfundene Uhrzeit angezeigt',()=>{
+  assert.match(runtime,/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$/);
+  assert.match(runtime,/dateStyle:'short'/);
 });
