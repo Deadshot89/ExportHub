@@ -32,7 +32,7 @@ test('RC1081: administrativ beendete Sitzungen werden protokolliert',()=>{
 });
 
 test('RC1084: zentrale Historie führt Audit, Sendungen und Kunden vollständig zusammen',()=>{
-  assert.match(runtime,/<h3>Historie<\\/h3>/);
+  assert.match(runtime,/<h3>Historie<\/h3>/);
   assert.match(runtime,/arr\(s\.auditLog\)/);
   assert.match(runtime,/ExportHUBShipmentHistory1071/);
   assert.match(runtime,/shipmentHistory/);

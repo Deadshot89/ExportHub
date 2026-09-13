@@ -97,8 +97,8 @@ test('RC1083: Autofix-Auftrag und Ergebnis erscheinen in der zentralen History',
   assert.match(api,/DIAGNOSTIC_AUTOFIX_REQUESTED/);
   assert.match(api,/DIAGNOSTIC_AUTOFIX_FIXED/);
   assert.match(api,/DIAGNOSTIC_AUTOFIX_FAILED/);
-  assert.match(history,/Fehler an ChatGPT \/ Codex zur Behebung übergeben/);
-  assert.match(history,/Fehler durch ChatGPT \/ Codex behoben/);
+  assert.match(history,/Fehler zur automatischen Behebung übergeben/);
+  assert.match(history,/Fehler automatisch behoben/);
 });
 
 test('RC1083: GitHub OIDC statt dauerhaftem Callback-Secret schützt den Rückkanal',()=>{
