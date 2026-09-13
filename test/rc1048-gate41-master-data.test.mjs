@@ -87,3 +87,18 @@ test('RC1049: Release-Test-Fix bildet die von der Release-Vorbereitung benötigt
   assert.match(releaseTest,/api\/customer-avis\/index\.js/);
   assert.match(releaseTest,/copyFileSync/);
 });
+
+
+test('RC1087: Gate41-Stammdatenrechte hängen nur an Rollen und Funktionsrechten, nie am Benutzernamen',()=>{
+  const build=read('.github/rc1048/build-three-env.mjs');
+  const start=build.indexOf('function gateMasterAdmin(){');
+  const end=build.indexOf('\\nfunction gateMasterTariffs(){',start);
+  assert.ok(start>=0&&end>start,'gateMasterAdmin fehlt');
+  const fn=build.slice(start,end);
+  assert.doesNotMatch(fn,/tobias|t\\.limberg/i);
+  assert.match(fn,/u\\.isGlobalAdmin===true/);
+  assert.match(fn,/arr\\(u\\.permissions\\)\\.indexOf\\('\*'\\)>=0/);
+  assert.match(fn,/roles\\.indexOf\\(role\\)>=0/);
+  assert.match(fn,/r\\.functionAdmin===true/);
+  assert.doesNotMatch(fn,/global\.\?admin\|vollzugriff\|administrator/);
+});
