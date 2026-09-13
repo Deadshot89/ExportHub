@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          codex exec             --sandbox workspace-write             --ask-for-approval never             --ephemeral             --ignore-user-config             --ignore-rules             --output-last-message .exporthub-autofix/final.txt             "$(cat .exporthub-autofix/prompt.txt)"
+          codex --ask-for-approval never exec             --sandbox workspace-write             --ephemeral             --ignore-user-config             --ignore-rules             --output-last-message .exporthub-autofix/final.txt             "$(cat .exporthub-autofix/prompt.txt)"
           test -s .exporthub-autofix/final.txt
           cat .exporthub-autofix/final.txt
           if grep -q '^BLOCKED:' .exporthub-autofix/final.txt; then
@@ -152,6 +152,7 @@ jobs:
         run: |
           set -euo pipefail
           diagnostic_id=$(cat .exporthub-autofix/diagnostic-id.txt)
+          cp .exporthub-autofix/final.txt /tmp/exporthub-autofix-final.txt
           if git diff --quiet && git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -216,7 +217,8 @@ jobs:
         run: |
           set -euo pipefail
           base="${{ steps.claim.outputs.base }}"
-          final="FIXED: $(head -c 2800 .exporthub-autofix/final.txt 2>/dev/null || echo 'Codex-Korrektur erfolgreich getestet und live deployed.')"
+          final=$(head -c 2800 /tmp/exporthub-autofix-final.txt 2>/dev/null || echo 'FIXED: Codex-Korrektur erfolgreich getestet und live deployed.')
+          if ! grep -Eq '^(FIXED|ALREADY_FIXED):' <<<"$final"; then final="FIXED: $final"; fi
           curl -fsS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg m "$final" --arg c "${{ steps.commit.outputs.sha }}" --arg u "${{ steps.deploy.outputs.run_url }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"fixed",message:$m,commit:$c,runUrl:$u}')" >/dev/null
 
       - name: Fehlgeschlagenen Autofix in ExportHUB zurückmelden
@@ -229,7 +231,9 @@ jobs:
             [[ "$TARGET_ENV" == "testservice" ]] && base="$TEST_URL" || base="$PROD_URL"
           fi
           msg="Automatische Behebung fehlgeschlagen. GitHub-Lauf: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          if [[ -f .exporthub-autofix/final.txt ]]; then
+          if [[ -f /tmp/exporthub-autofix-final.txt ]]; then
+            msg="$msg · $(head -c 2500 /tmp/exporthub-autofix-final.txt)"
+          elif [[ -f .exporthub-autofix/final.txt ]]; then
             msg="$msg · $(head -c 2500 .exporthub-autofix/final.txt)"
           fi
           curl -sS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg m "$msg" --arg c "${{ steps.commit.outputs.sha }}" --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"failed",message:$m,commit:$c,runUrl:$u}')" >/dev/null || true
