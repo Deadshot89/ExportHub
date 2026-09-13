@@ -7,6 +7,7 @@ const require=createRequire(import.meta.url);
 const merge=require('../api/shared/merge.js');
 const runtime=fs.readFileSync('assets/rc1080-customer-history.js','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
+const stateApi=fs.readFileSync('api/exporthub-state/index.js','utf8');
 
 test('RC1080: Kundenhistorie protokolliert Anlage und Änderung mit Benutzer',()=>{
   assert.match(runtime,/type:'customer-created'/);
@@ -17,11 +18,10 @@ test('RC1080: Kundenhistorie protokolliert Anlage und Änderung mit Benutzer',()
   assert.match(runtime,/fields:fields\.join/);
 });
 
-test('RC1080: Kundenhistorie wird vor dem Speichern ergänzt und nicht bei bloßer Ansicht erfunden',()=>{
-  assert.match(runtime,/var wrapped=async function\(reason,opt\)\{try\{prepare\(reason,opt\)/);
-  assert.match(runtime,/if\(!shouldAudit\(reason,opt\)\)return 0/);
-  assert.match(runtime,/customerView\(\)/);
-  assert.match(runtime,/BASELINES/);
+test('RC1080: Client erzeugt keine Kundenhistorie selbst, sondern zeigt den serverseitig bestätigten Stand',()=>{
+  assert.match(runtime,/var wrapped=async function\(\)\{return await original\.apply\(this,arguments\)\}/);
+  assert.match(runtime,/Kundenhistorie/);
+  assert.match(runtime,/customerHistory/);
 });
 
 test('RC1080: parallele Kundenänderungen behalten beide Historienereignisse',()=>{
@@ -39,4 +39,13 @@ test('RC1080: finaler Build lädt Kundenhistorie in allen Umgebungen',()=>{
   assert.match(build,/RC1080_CUSTOMER_HISTORY_TAG/);
   assert.match(build,/assets\/rc1080-customer-history\.js\?v=1080/);
   assert.match(build,/customerHistory:\{version:'RC1080'/);
+});
+
+
+test('RC1080: Kundenanlage und Kundenänderung werden serverseitig mit dem angemeldeten Benutzer protokolliert',()=>{
+  assert.match(stateApi,/function rc1080AuditCustomerChanges\(/);
+  assert.match(stateApi,/customer-created','Kunde angelegt'/);
+  assert.match(stateApi,/customer-updated','Kunde geändert'/);
+  assert.match(stateApi,/actor:\{name:who,id:whoId,role:/);
+  assert.match(stateApi,/rc1080AuditCustomerChanges\(current\.state\|\|\{\},merged,writeUser,incoming\.state\|\|\{\}\)/);
 });
