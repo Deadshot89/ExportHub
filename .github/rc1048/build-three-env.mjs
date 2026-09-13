@@ -346,6 +346,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1047(['"])/g,`$1${VERSION}$2`);
   html=finalRepairPrintStowPayloads(html,file);
+  html=patchLoginScreenStatus(html,file);
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   fs.writeFileSync(target,html);
