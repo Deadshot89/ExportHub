@@ -4,14 +4,14 @@
 if(!w||!d||w.__EXPORTHUB_RC1081_AUDIT_HISTORY__)return;
 w.__EXPORTHUB_RC1081_AUDIT_HISTORY__=true;
 
-var FILTER={query:'',type:'all',actor:'all',days:365};
+var FILTER={query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:365,from:'',to:''};
 
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.page||'')}
-function archiveView(){var v=view();return v==='archive'||v==='archiv'||/archive|archiv/.test(v)}
+function historyView(){var v=view();return v==='history'||v==='historie'}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(v){var x=new Date(v);if(!Number.isFinite(x.getTime()))return q(v)||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(x)}
 function identity(sh){return q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber)).toUpperCase()}
@@ -96,13 +96,19 @@ function detailText(e){
 }
 function actorList(events){return Array.from(new Set(events.map(function(e){return actorName(e)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')})}
 function filterEvents(events){
- var cutoff=Date.now()-Math.max(1,Number(FILTER.days||365))*86400000,needle=low(FILTER.query);
+ var days=Number(FILTER.days||0),cutoff=days>0?Date.now()-days*86400000:0,needle=low(FILTER.query),
+     from=FILTER.from?Date.parse(FILTER.from+'T00:00:00'):0,to=FILTER.to?Date.parse(FILTER.to+'T23:59:59.999'):0;
  return events.filter(function(e){
-  var ts=Date.parse(e.at||'');if(Number.isFinite(ts)&&ts<cutoff)return false;
+  var ts=Date.parse(e.at||'');
+  if(cutoff&&Number.isFinite(ts)&&ts<cutoff)return false;
+  if(from&&Number.isFinite(ts)&&ts<from)return false;
+  if(to&&Number.isFinite(ts)&&ts>to)return false;
   if(FILTER.type!=='all'&&e.type!==FILTER.type)return false;
+  if(FILTER.subtype!=='all'&&q(e.subtype)!==FILTER.subtype)return false;
   if(FILTER.actor!=='all'&&actorName(e)!==FILTER.actor)return false;
+  if(FILTER.entity!=='all'&&q(e.entity)!==FILTER.entity)return false;
   if(!needle)return true;
-  return low([e.label,e.entity,e.entityId,actorName(e),e.subtype,detailText(e)].join(' ')).indexOf(needle)>=0
+  return low([e.label,e.entity,e.entityId,actorName(e),e.subtype,detailText(e),fmt(e.at)].join(' ')).indexOf(needle)>=0
  })
 }
 function typeLabel(type){return({shipment:'Sendungen',customer:'Kunden',audit:'System / Benutzer'})[type]||type}
@@ -110,7 +116,7 @@ function typeIcon(type){return({shipment:'S',customer:'K',audit:'A'})[type]||'�
 function ensureStyle(){
  if(d.getElementById('rc1081AuditHistoryStyle'))return;
  var s=d.createElement('style');s.id='rc1081AuditHistoryStyle';
- s.textContent='.rc1081-audit{margin-top:16px}.rc1081-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.rc1081-filters{display:grid;grid-template-columns:minmax(200px,1.4fr) minmax(150px,.7fr) minmax(170px,.8fr) minmax(120px,.5fr);gap:8px;margin:12px 0}.rc1081-filters input,.rc1081-filters select{min-height:40px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}.rc1081-list{display:grid;gap:8px;max-height:620px;overflow:auto;padding-right:4px}.rc1081-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;padding:10px 12px;border:1px solid #dbe4ec;border-radius:10px;background:#fff;align-items:start}.rc1081-icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef6ff;font-weight:800}.rc1081-label{font-weight:750}.rc1081-meta,.rc1081-detail{font-size:12px;color:#64748b;margin-top:2px}.rc1081-entity{font-size:12px;font-weight:700;color:#334155;white-space:nowrap}.rc1081-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b}.rc1081-stats{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:760px){.rc1081-filters{grid-template-columns:1fr 1fr}.rc1081-row{grid-template-columns:30px 1fr}.rc1081-entity{grid-column:2;white-space:normal}}@media(max-width:520px){.rc1081-filters{grid-template-columns:1fr}}';
+ s.textContent='.rc1081-audit{margin-top:16px}.rc1081-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.rc1081-filters{display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(4,minmax(140px,.7fr)) minmax(130px,.6fr) minmax(135px,.55fr) minmax(135px,.55fr);gap:8px;margin:12px 0}.rc1081-filters label{display:grid;gap:3px;font-size:11px;font-weight:700;color:#475569}.rc1081-filters input,.rc1081-filters select{min-height:40px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}.rc1081-list{display:grid;gap:8px;max-height:620px;overflow:auto;padding-right:4px}.rc1081-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;padding:10px 12px;border:1px solid #dbe4ec;border-radius:10px;background:#fff;align-items:start}.rc1081-icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef6ff;font-weight:800}.rc1081-label{font-weight:750}.rc1081-meta,.rc1081-detail{font-size:12px;color:#64748b;margin-top:2px}.rc1081-entity{font-size:12px;font-weight:700;color:#334155;white-space:nowrap}.rc1081-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b}.rc1081-stats{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:1100px){.rc1081-filters{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.rc1081-filters{grid-template-columns:1fr 1fr}.rc1081-row{grid-template-columns:30px 1fr}.rc1081-entity{grid-column:2;white-space:normal}}@media(max-width:520px){.rc1081-filters{grid-template-columns:1fr}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function csvCell(v){var x=String(v==null?'':v);return '"'+x.replace(/"/g,'""')+'"'}
@@ -128,24 +134,33 @@ function printHistory(){
 }
 function render(){
  var old=d.getElementById('rc1081AuditHistory');
- if(!archiveView()){if(old)old.remove();return false}
+ if(!historyView()){if(old)old.remove();return false}
  var host=d.getElementById('content')||d.querySelector('main')||d.body;if(!host)return false;
  if(!old){old=d.createElement('section');old.id='rc1081AuditHistory';old.className='card rc1081-audit';host.appendChild(old)}
- var events=allEvents(),actors=actorList(events),filtered=filterEvents(events);
+ var events=allEvents(),actors=actorList(events),filtered=filterEvents(events),
+     subtypes=Array.from(new Set(events.map(function(e){return q(e.subtype)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')}),
+     entities=Array.from(new Set(events.map(function(e){return q(e.entity)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')});
  var typeOptions=[['all','Alle Bereiche'],['shipment','Sendungen'],['customer','Kunden'],['audit','System / Benutzer']].map(function(x){return'<option value="'+x[0]+'"'+(FILTER.type===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('');
+ var subtypeOptions='<option value="all">Alle Aktionen</option>'+subtypes.map(function(a){return'<option value="'+esc(a)+'"'+(FILTER.subtype===a?' selected':'')+'>'+esc(a)+'</option>'}).join('');
  var actorOptions='<option value="all">Alle Benutzer</option>'+actors.map(function(a){return'<option value="'+esc(a)+'"'+(FILTER.actor===a?' selected':'')+'>'+esc(a)+'</option>'}).join('');
+ var entityOptions='<option value="all">Alle Objekte</option>'+entities.map(function(a){return'<option value="'+esc(a)+'"'+(FILTER.entity===a?' selected':'')+'>'+esc(a)+'</option>'}).join('');
  var rows=filtered.length?filtered.map(function(e){
   var det=detailText(e);
   return'<div class="rc1081-row"><div class="rc1081-icon">'+esc(typeIcon(e.type))+'</div><div><div class="rc1081-label">'+esc(e.label)+'</div><div class="rc1081-meta">'+esc(fmt(e.at))+' · '+esc(actorName(e))+' · '+esc(typeLabel(e.type))+'</div>'+(det?'<div class="rc1081-detail">'+esc(det)+'</div>':'')+'</div><div class="rc1081-entity">'+esc(e.entity)+(e.entityId?' · '+esc(e.entityId):'')+'</div></div>'
  }).join(''):'<div class="rc1081-empty">Keine History-Einträge für die gewählten Filter gefunden.</div>';
- old.innerHTML='<div class="rc1081-head"><div><span class="pill blue">HISTORY</span><h3>Zentrale Aktivitäts- und Audit-History</h3><div class="muted">Sendungen, Kunden sowie Benutzer- und Systemaktionen an einer Stelle.</div></div><div class="rc1081-stats"><span class="pill gray">'+filtered.length+' angezeigt</span><span class="pill gray">'+events.length+' gesamt</span><button type="button" class="btn ghost" data-rc1081-csv>CSV exportieren</button><button type="button" class="btn" data-rc1081-print>Drucken</button></div></div><div class="rc1081-filters"><input data-rc1081-q placeholder="Suche nach Benutzer, Referenz, Kunde, Aktion …" value="'+esc(FILTER.query)+'"><select data-rc1081-type>'+typeOptions+'</select><select data-rc1081-actor>'+actorOptions+'</select><select data-rc1081-days><option value="30"'+(FILTER.days===30?' selected':'')+'>30 Tage</option><option value="90"'+(FILTER.days===90?' selected':'')+'>90 Tage</option><option value="180"'+(FILTER.days===180?' selected':'')+'>180 Tage</option><option value="365"'+(FILTER.days===365?' selected':'')+'>12 Monate</option></select></div><div class="rc1081-list">'+rows+'</div>';
+ old.innerHTML='<div class="rc1081-head"><div><span class="pill blue">HISTORY</span><h3>History</h3><div class="muted">Alle nachvollziehbaren Aktionen aus Sendungen, Kunden, Benutzern und System zentral filtern.</div></div><div class="rc1081-stats"><span class="pill gray">'+filtered.length+' angezeigt</span><span class="pill gray">'+events.length+' gesamt</span><button type="button" class="btn ghost" data-rc1081-reset>Filter zurücksetzen</button><button type="button" class="btn ghost" data-rc1081-csv>CSV exportieren</button><button type="button" class="btn" data-rc1081-print>Drucken</button></div></div><div class="rc1081-filters"><input data-rc1081-q placeholder="Suche nach Benutzer, Referenz, Kunde, Aktion, Detail …" value="'+esc(FILTER.query)+'"><select data-rc1081-type>'+typeOptions+'</select><select data-rc1081-subtype>'+subtypeOptions+'</select><select data-rc1081-actor>'+actorOptions+'</select><select data-rc1081-entity>'+entityOptions+'</select><select data-rc1081-days><option value="0"'+(FILTER.days===0?' selected':'')+'>Gesamter Bestand</option><option value="7"'+(FILTER.days===7?' selected':'')+'>7 Tage</option><option value="30"'+(FILTER.days===30?' selected':'')+'>30 Tage</option><option value="90"'+(FILTER.days===90?' selected':'')+'>90 Tage</option><option value="180"'+(FILTER.days===180?' selected':'')+'>180 Tage</option><option value="365"'+(FILTER.days===365?' selected':'')+'>12 Monate</option></select><label>Von<input type="date" data-rc1081-from value="'+esc(FILTER.from)+'"></label><label>Bis<input type="date" data-rc1081-to value="'+esc(FILTER.to)+'"></label></div><div class="rc1081-list">'+rows+'</div>';
  ensureStyle();
- var qf=old.querySelector('[data-rc1081-q]'),tf=old.querySelector('[data-rc1081-type]'),af=old.querySelector('[data-rc1081-actor]'),df=old.querySelector('[data-rc1081-days]');
+ var qf=old.querySelector('[data-rc1081-q]'),tf=old.querySelector('[data-rc1081-type]'),sf=old.querySelector('[data-rc1081-subtype]'),af=old.querySelector('[data-rc1081-actor]'),ef=old.querySelector('[data-rc1081-entity]'),df=old.querySelector('[data-rc1081-days]'),ff=old.querySelector('[data-rc1081-from]'),tof=old.querySelector('[data-rc1081-to]');
  if(qf)qf.addEventListener('input',function(){FILTER.query=this.value;render()});
  if(tf)tf.addEventListener('change',function(){FILTER.type=this.value;render()});
+ if(sf)sf.addEventListener('change',function(){FILTER.subtype=this.value;render()});
  if(af)af.addEventListener('change',function(){FILTER.actor=this.value;render()});
- if(df)df.addEventListener('change',function(){FILTER.days=Number(this.value)||365;render()});
- var csv=old.querySelector('[data-rc1081-csv]'),pr=old.querySelector('[data-rc1081-print]');
+ if(ef)ef.addEventListener('change',function(){FILTER.entity=this.value;render()});
+ if(df)df.addEventListener('change',function(){FILTER.days=Number(this.value)||0;render()});
+ if(ff)ff.addEventListener('change',function(){FILTER.from=this.value;render()});
+ if(tof)tof.addEventListener('change',function(){FILTER.to=this.value;render()});
+ var reset=old.querySelector('[data-rc1081-reset]'),csv=old.querySelector('[data-rc1081-csv]'),pr=old.querySelector('[data-rc1081-print]');
+ if(reset)reset.addEventListener('click',function(){FILTER={query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:365,from:'',to:''};render()});
  if(csv)csv.addEventListener('click',exportCsv);
  if(pr)pr.addEventListener('click',printHistory);
  return true
@@ -153,5 +168,5 @@ function render(){
 function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1081 Audit-History',e)}catch(_){}}},0)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1081',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory});
+w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1082',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory,historyView:historyView});
 })(window,document);
