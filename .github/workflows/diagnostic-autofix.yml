@@ -1,0 +1,235 @@
+name: ExportHUB Diagnose Autofix
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: Autofix-Auftrag
+        required: true
+        type: string
+      environment:
+        description: ExportHUB-Umgebung
+        required: true
+        type: choice
+        options:
+          - production
+          - testservice
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: exporthub-diagnostic-autofix-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  diagnose_fix_test_deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AUTOFIX_SECRET: ${{ secrets.EXPORTHUB_AUTOFIX_CALLBACK_SECRET }}
+      GH_TOKEN: ${{ github.token }}
+      JOB_ID: ${{ inputs.job_id }}
+      TARGET_ENV: ${{ inputs.environment }}
+      PROD_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+      TEST_URL: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Autofix-Voraussetzungen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$JOB_ID"
+          test "$TARGET_ENV" = "production" -o "$TARGET_ENV" = "testservice"
+          if [[ -z "${AUTOFIX_SECRET:-}" ]]; then
+            echo "EXPORTHUB_AUTOFIX_CALLBACK_SECRET fehlt als Repository-Secret." >&2
+            exit 1
+          fi
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "OPENAI_API_KEY fehlt als Repository-Secret." >&2
+            exit 1
+          fi
+
+      - name: Diagnose-Prompt und Anhang abrufen
+        id: claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .exporthub-autofix
+          base="$PROD_URL"
+          [[ "$TARGET_ENV" == "testservice" ]] && base="$TEST_URL"
+          code=$(curl -sS -o .exporthub-autofix/claim.json -w '%{http_code}'             -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" '{action:"claim",jobId:$j,environment:$e}')")
+          if [[ "$code" != "200" ]]; then
+            cat .exporthub-autofix/claim.json >&2 || true
+            exit 1
+          fi
+          jq -e '.ok == true and .prompt and .attachment and .diagnosticId' .exporthub-autofix/claim.json >/dev/null
+          jq -r '.prompt' .exporthub-autofix/claim.json > .exporthub-autofix/prompt.txt
+          jq '.attachment' .exporthub-autofix/claim.json > .exporthub-autofix/diagnostic-attachment.json
+          jq -r '.diagnosticId' .exporthub-autofix/claim.json > .exporthub-autofix/diagnostic-id.txt
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Diagnose als in Bearbeitung markieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ steps.claim.outputs.base }}"
+          curl -fsS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"running",message:"ChatGPT / Codex analysiert den Diagnose-Anhang und den aktuellen Repository-Stand.",runUrl:$u}')" >/dev/null
+
+      - name: OpenAI Codex installieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @openai/codex
+          codex --version
+
+      - name: ChatGPT Codex analysiert und behebt den Fehler
+        id: codex
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex exec             --sandbox workspace-write             --ask-for-approval never             --ephemeral             --ignore-user-config             --ignore-rules             --output-last-message .exporthub-autofix/final.txt             "$(cat .exporthub-autofix/prompt.txt)"
+          test -s .exporthub-autofix/final.txt
+          cat .exporthub-autofix/final.txt
+          if grep -q '^BLOCKED:' .exporthub-autofix/final.txt; then
+            echo "Codex hat die automatische Behebung aus Sicherheitsgründen blockiert." >&2
+            exit 2
+          fi
+
+      - name: Änderungen gegen Schutzregeln prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          if git diff --name-only -- .github/workflows/diagnostic-autofix.yml | grep -q .; then
+            echo "Autofix darf seinen eigenen Workflow nicht verändern." >&2
+            exit 1
+          fi
+          if git diff --name-only | grep -E '(^|/)(\.env|local\.settings|secrets?\.|credentials?\.)' >/dev/null; then
+            echo "Autofix darf keine Secret-/Credential-Dateien verändern." >&2
+            exit 1
+          fi
+          changed=$(git diff --name-only | wc -l | tr -d ' ')
+          deleted=$(git diff --diff-filter=D --name-only | wc -l | tr -d ' ')
+          if (( changed > 50 )); then
+            echo "Autofix hat zu viele Dateien verändert: $changed" >&2
+            exit 1
+          fi
+          if (( deleted > 10 )); then
+            echo "Autofix würde zu viele Dateien löschen: $deleted" >&2
+            exit 1
+          fi
+
+      - name: Diagnose als Testphase markieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ steps.claim.outputs.base }}"
+          msg=$(head -c 3000 .exporthub-autofix/final.txt)
+          curl -fsS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg m "$msg" '{action:"workflow-status",jobId:$j,environment:$e,status:"testing",message:$m}')" >/dev/null
+
+      - name: Vollständige Regression ausführen
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+
+      - name: Autofix committen und nach main übernehmen
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          diagnostic_id=$(cat .exporthub-autofix/diagnostic-id.txt)
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          rm -rf .exporthub-autofix
+          git config user.name "ExportHUB ChatGPT Autofix"
+          git config user.email "exporthub-autofix@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(autofix): $diagnostic_id · $JOB_ID"
+          sha=$(git rev-parse HEAD)
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Ohne Codeänderung als bereits behoben bestätigen
+        if: steps.commit.outputs.changed == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ steps.claim.outputs.base }}"
+          final=$(cat .exporthub-autofix/final.txt 2>/dev/null || echo "ALREADY_FIXED: Aktueller Repository-Stand besteht die Regression.")
+          curl -fsS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg m "$final" --arg c "${{ steps.commit.outputs.sha }}" --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"fixed",message:$m,commit:$c,runUrl:$u}')" >/dev/null
+
+      - name: Produktions-/TESTSERVICE-Deploy abwarten
+        if: steps.commit.outputs.changed == 'true'
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ steps.claim.outputs.base }}"
+          sha="${{ steps.commit.outputs.sha }}"
+          curl -fsS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg c "$sha" '{action:"workflow-status",jobId:$j,environment:$e,status:"deploying",message:"Korrektur wurde nach main übernommen. Live-Deployment und Smoke-Checks laufen.",commit:$c}')" >/dev/null
+
+          run_id=""
+          run_url=""
+          for i in {1..180}; do
+            row=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$sha&per_page=30"               --jq '.workflow_runs[] | select(.name=="ExportHUB RC1048 Drei-Umgebungen Deploy") | [.id,.status,(.conclusion//""),.html_url] | @tsv' | head -n1 || true)
+            if [[ -n "$row" ]]; then
+              run_id=$(cut -f1 <<<"$row")
+              status=$(cut -f2 <<<"$row")
+              conclusion=$(cut -f3 <<<"$row")
+              run_url=$(cut -f4 <<<"$row")
+              echo "Deploy $run_id: $status / $conclusion"
+              if [[ "$status" == "completed" ]]; then
+                if [[ "$conclusion" == "success" ]]; then
+                  echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
+                  exit 0
+                fi
+                echo "Live-Deployment fehlgeschlagen: $run_url" >&2
+                exit 1
+              fi
+            fi
+            sleep 10
+          done
+          echo "Kein erfolgreich abgeschlossener Live-Deploy innerhalb des Zeitlimits." >&2
+          exit 1
+
+      - name: Fehler nach erfolgreichem Live-Deploy als behoben markieren
+        if: steps.commit.outputs.changed == 'true' && success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ steps.claim.outputs.base }}"
+          final="FIXED: $(head -c 2800 .exporthub-autofix/final.txt 2>/dev/null || echo 'Codex-Korrektur erfolgreich getestet und live deployed.')"
+          curl -fsS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg m "$final" --arg c "${{ steps.commit.outputs.sha }}" --arg u "${{ steps.deploy.outputs.run_url }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"fixed",message:$m,commit:$c,runUrl:$u}')" >/dev/null
+
+      - name: Fehlgeschlagenen Autofix in ExportHUB zurückmelden
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          base="${{ steps.claim.outputs.base }}"
+          if [[ -z "$base" ]]; then
+            [[ "$TARGET_ENV" == "testservice" ]] && base="$TEST_URL" || base="$PROD_URL"
+          fi
+          msg="Automatische Behebung fehlgeschlagen. GitHub-Lauf: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [[ -f .exporthub-autofix/final.txt ]]; then
+            msg="$msg · $(head -c 2500 .exporthub-autofix/final.txt)"
+          fi
+          curl -sS -X POST "$base/api/diagnostic-autofix"             -H 'Content-Type: application/json'             -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET"             --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg m "$msg" --arg c "${{ steps.commit.outputs.sha }}" --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"failed",message:$m,commit:$c,runUrl:$u}')" >/dev/null || true
