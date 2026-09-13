@@ -78,3 +78,13 @@ test('RC1083: erneut auftretende Fehler werden nach früherer Behebung wieder ge
   assert.match(stateApi,/Fehler ist nach der letzten Behebung erneut aufgetreten/);
   assert.match(stateApi,/merged\.resolvedAt=null/);
 });
+
+
+test('RC1083: Autofix-Auftrag und Ergebnis erscheinen in der zentralen History',()=>{
+  const history=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
+  assert.match(api,/DIAGNOSTIC_AUTOFIX_REQUESTED/);
+  assert.match(api,/DIAGNOSTIC_AUTOFIX_FIXED/);
+  assert.match(api,/DIAGNOSTIC_AUTOFIX_FAILED/);
+  assert.match(history,/Fehler an ChatGPT \/ Codex zur Behebung übergeben/);
+  assert.match(history,/Fehler durch ChatGPT \/ Codex behoben/);
+});
