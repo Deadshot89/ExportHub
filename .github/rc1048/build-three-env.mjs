@@ -349,6 +349,13 @@ function patchHistoryNavigation(html,file){
     }else list+=','+item;
     block=block.slice(0,arrayStart)+list+block.slice(arrayEnd);
   }
+  const historyRoute=" if(view==='history'&&window.ExportHUBRC1081AuditHistory&&typeof window.ExportHUBRC1081AuditHistory.render==='function'){setViewState(view);prepareDirectView(view);var historyRoot=document.getElementById('content');if(historyRoot)historyRoot.innerHTML='';var historyOut=window.ExportHUBRC1081AuditHistory.render();finishDirectView(view);return historyOut}";
+  if(!block.includes(historyRoute)){
+    const routeAnchor=" if(view==='diagnostics'){var diag=window.ExportHUBDiagnostics871||window.ExportHUBDiagnostics870;";
+    const pos=block.indexOf(routeAnchor);
+    if(pos<0)throw new Error(file+': History-Direktroute konnte nicht vor Fehlerdiagnose eingefügt werden');
+    block=block.slice(0,pos)+historyRoute+'\n'+block.slice(pos);
+  }
   out=out.slice(0,start)+block+out.slice(end+'</script>'.length);
 
   const rightsOpen='<script data-inline-source="assets/rc544-auth.js">';
@@ -365,6 +372,7 @@ function patchHistoryNavigation(html,file){
     out=out.slice(0,rs)+rb+out.slice(re+'</script>'.length);
   }
   if(!/view:['"]history['"],label:['"]History['"],right:['"]history['"]/.test(out))throw new Error(file+': History-Reiter wurde nicht eingebunden');
+  if(!out.includes("view==='history'&&window.ExportHUBRC1081AuditHistory"))throw new Error(file+': History-Direktroute fehlt');
   return out;
 }
 
