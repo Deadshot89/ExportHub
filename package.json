@@ -5,7 +5,7 @@
   "type": "module",
   "description": "ExportHUB RC1048 – Website-, API- und Android-Projekt",
   "scripts": {
-    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+    "test": "node --test --test-concurrency=1 test/*.test.mjs tests/*.test.cjs"
   },
   "engines": {
     "node": ">=20"
