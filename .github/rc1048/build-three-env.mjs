@@ -327,6 +327,47 @@ function saveGateMaster(){if(!gateMasterAdmin()){alert('Keine Admin-Berechtigung
   return out;
 }
 
+function patchHistoryNavigation(html,file){
+  let out=html;
+  const open='<script id="index321-single-navigation-controller">';
+  const start=out.indexOf(open),end=start<0?-1:out.indexOf('</script>',start+open.length);
+  if(start<0||end<=start)throw new Error(file+': kanonischer Navigationscontroller für RC1082 fehlt');
+  let block=out.slice(start,end+'</script>'.length);
+  if(!/view:['"]history['"]/.test(block)){
+    const stateAt=block.indexOf('function state(){');
+    const itemsAt=stateAt>=0?block.lastIndexOf('var ITEMS=',stateAt):block.indexOf('var ITEMS=');
+    if(itemsAt<0)throw new Error(file+': ITEMS-Navigation für RC1082 fehlt');
+    const arrayStart=block.indexOf('[',itemsAt),arrayEnd=block.indexOf('];',arrayStart);
+    if(arrayStart<0||arrayEnd<0)throw new Error(file+': ITEMS-Navigation für RC1082 unvollständig');
+    const item="{view:'history',label:'History',right:'history'}";
+    let list=block.slice(arrayStart,arrayEnd);
+    const archiveAt=list.indexOf("view:'archive'");
+    if(archiveAt>=0){
+      const objectStart=list.lastIndexOf('{',archiveAt);
+      if(objectStart>=0)list=list.slice(0,objectStart)+item+','+list.slice(objectStart);
+      else list+=','+item;
+    }else list+=','+item;
+    block=block.slice(0,arrayStart)+list+block.slice(arrayEnd);
+  }
+  out=out.slice(0,start)+block+out.slice(end+'</script>'.length);
+
+  const rightsOpen='<script data-inline-source="assets/rc544-auth.js">';
+  const rs=out.indexOf(rightsOpen),re=rs<0?-1:out.indexOf('</script>',rs+rightsOpen.length);
+  if(rs>=0&&re>rs){
+    let rb=out.slice(rs,re+'</script>'.length);
+    if(!/history:['"]History['"]/.test(rb)){
+      rb=rb.replace(/archive:'Archiv',settings:'Einstellungen'/,"archive:'Archiv',history:'History',settings:'Einstellungen'");
+    }
+    if(!/['"]history['"]/.test(rb.slice(rb.indexOf('VALID_RIGHTS_ORDER'),rb.indexOf('VALID_RIGHTS_ORDER')+1200))){
+      rb=rb.replace("'reports','update','teamfile','archive','settings','pickupcalendar']","'reports','update','teamfile','archive','history','settings','pickupcalendar']");
+      rb=rb.replace("'reports','update','teamfile','archive','settings']","'reports','update','teamfile','archive','history','settings']");
+    }
+    out=out.slice(0,rs)+rb+out.slice(re+'</script>'.length);
+  }
+  if(!/view:['"]history['"],label:['"]History['"],right:['"]history['"]/.test(out))throw new Error(file+': History-Reiter wurde nicht eingebunden');
+  return out;
+}
+
 function patchHtml(file,canonicalPrintStow,canonicalController){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -337,6 +378,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchGateMaster(html,file);
   html=patchRc1069Performance(html,file);
   html=patchLoginScreenStatus(html,file);
+  html=patchHistoryNavigation(html,file);
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=injectBeforeHeadClose(html,RC1069_PERF_TAG,RC1069_PERF_ID);
   html=injectBeforeHeadClose(html,RC1071_HISTORY_TAG,RC1071_HISTORY_ID);
