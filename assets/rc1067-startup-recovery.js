@@ -9,7 +9,7 @@ function session(){
  try{for(var i=0;w.sessionStorage&&i<w.sessionStorage.length;i++){var k=w.sessionStorage.key(i),r=w.sessionStorage.getItem(k);if(!r||r.charAt(0)!=='{')continue;var v=JSON.parse(r);if(v&&v.token&&v.user)return v}}catch(_){}
  return null
 }
-function admin(s){var u=s&&s.user||{},role=low(u.role||u.rolle||u.level||u.type),p=Array.isArray(u.permissions)?u.permissions:[],roles=['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'];return !!s&&!!s.token&&(u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||p.indexOf('*')>=0||roles.indexOf(role)>=0)}
+function admin(s){var u=s&&s.user||{},role=low(u.role||u.rolle||u.level||u.type),p=Array.isArray(u.permissions)?u.permissions:[],roles=['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'];return !!s&&!!s.token&&(u.globalAdmin===true||u.isGlobalAdmin===true||p.indexOf('*')>=0||roles.indexOf(role)>=0)}
 function loading(){
  try{
   var host=w.document&&w.document.getElementById('content'),txt=q(host&&host.textContent||w.document&&w.document.body&&w.document.body.textContent||'');
