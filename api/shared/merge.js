@@ -313,6 +313,7 @@ function mergeCustomerProtected(serverItem, incomingItem) {
     else if (!a.length && b.length) out[key] = clone(b);
     else if (a.length && b.length) out[key] = clone(incomingTs >= serverTs ? b : a);
   });
+  out.customerHistory = mergeShipmentHistory(serverItem.customerHistory, incomingItem.customerHistory);
   return out;
 }
 
