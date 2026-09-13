@@ -15,8 +15,9 @@ function currentUser(){
  var s=state();return s.currentUser||s.user||{}
 }
 function globalAdmin(){
- var u=currentUser()||{},role=norm(u.role||u.rolle||u.level||u.type),perms=Array.isArray(u.permissions)?u.permissions:[];
- return u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||perms.indexOf('*')>=0||/global admin|globaler administrator|globaler admin|administrator|vollzugriff/.test(role)
+ var u=currentUser()||{},role=norm(u.role||u.rolle||u.level||u.type),perms=Array.isArray(u.permissions)?u.permissions:[],
+     roles=['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'];
+ return u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||perms.indexOf('*')>=0||roles.indexOf(role)>=0
 }
 function viewName(){
  var s=state(),v=q(s.view||s.currentView||s.activeView||s.page||'');
