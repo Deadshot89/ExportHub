@@ -51,3 +51,13 @@ test('RC1081: finaler Build lädt zentrale Audit-History in Produktion TESTSERVI
   assert.match(build,/assets\/rc1081-audit-history\.js\?v=1081/);
   assert.match(build,/auditHistory:\{version:'RC1081'/);
 });
+
+
+test('RC1081: zentrale History kann gedruckt und als CSV exportiert werden',()=>{
+  assert.match(runtime,/CSV exportieren/);
+  assert.match(runtime,/Drucken/);
+  assert.match(runtime,/function exportCsv\(/);
+  assert.match(runtime,/text\/csv;charset=utf-8/);
+  assert.match(runtime,/function printHistory\(/);
+  assert.match(runtime,/@page\{size:A4 landscape/);
+});
