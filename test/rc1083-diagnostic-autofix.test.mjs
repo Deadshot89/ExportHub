@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const diagnostics=fs.readFileSync('assets/rc1013-diagnostics.js','utf8');
 const api=fs.readFileSync('api/diagnostic-autofix/index.js','utf8');
+const functionConfig=JSON.parse(fs.readFileSync('api/diagnostic-autofix/function.json','utf8'));
 const workflow=fs.readFileSync('.github/workflows/diagnostic-autofix.yml','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 const policy=fs.readFileSync('api/shared/user-policy.js','utf8');
@@ -25,6 +26,16 @@ test('RC1083: Fehlerdiagnose bietet Filter und direkten ChatGPT-Autofix',()=>{
   assert.match(diagnostics,/setInterval\(function\(\)\{if\(diagnosticsVisible\(win\)/);
   assert.match(diagnostics,/resolvedAt/);
   assert.match(diagnostics,/ChatGPT arbeitet/);
+});
+
+test('RC1083: Diagnose-Autofix ist als Azure HTTP Function registriert',()=>{
+  const trigger=functionConfig.bindings.find(binding=>binding&&binding.type==='httpTrigger');
+  const output=functionConfig.bindings.find(binding=>binding&&binding.type==='http');
+  assert.ok(trigger,'HTTP-Trigger fehlt');
+  assert.equal(trigger.authLevel,'anonymous');
+  assert.equal(trigger.route,'diagnostic-autofix');
+  assert.deepEqual(trigger.methods,['post','options']);
+  assert.ok(output,'HTTP-Output-Binding fehlt');
 });
 
 test('RC1083: Browser erhält niemals OpenAI- oder GitHub-Secrets',()=>{
