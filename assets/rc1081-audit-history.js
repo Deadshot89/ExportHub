@@ -108,7 +108,8 @@ function filterEvents(events){
   if(FILTER.actor!=='all'&&actorName(e)!==FILTER.actor)return false;
   if(FILTER.entity!=='all'&&q(e.entity)!==FILTER.entity)return false;
   if(!needle)return true;
-  return low([e.label,e.entity,e.entityId,actorName(e),e.subtype,detailText(e),fmt(e.at)].join(' ')).indexOf(needle)>=0
+  var rawDetails='';try{rawDetails=JSON.stringify(e.details||{})}catch(_){}
+  return low([e.label,e.entity,e.entityId,actorName(e),e.actor&&e.actor.role,e.subtype,e.source,detailText(e),rawDetails,fmt(e.at)].join(' ')).indexOf(needle)>=0
  })
 }
 function typeLabel(type){return({shipment:'Sendungen',customer:'Kunden',audit:'System / Benutzer'})[type]||type}
