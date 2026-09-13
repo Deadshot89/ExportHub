@@ -136,7 +136,12 @@ function render(){
  var old=d.getElementById('rc1081AuditHistory');
  if(!historyView()){if(old)old.remove();return false}
  var host=d.getElementById('content')||d.querySelector('main')||d.body;if(!host)return false;
- if(!old){old=d.createElement('section');old.id='rc1081AuditHistory';old.className='card rc1081-audit';host.appendChild(old)}
+ if(!old){
+   host.innerHTML='';
+   host.classList.add('rc1082-history-view');
+   host.setAttribute('data-exporthub-rendered-view','history');
+   old=d.createElement('section');old.id='rc1081AuditHistory';old.className='card rc1081-audit';host.appendChild(old)
+ }
  var events=allEvents(),actors=actorList(events),filtered=filterEvents(events),
      subtypes=Array.from(new Set(events.map(function(e){return q(e.subtype)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')}),
      entities=Array.from(new Set(events.map(function(e){return q(e.entity)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')});
