@@ -178,3 +178,11 @@ test('RC1065: Global Admin kann beide Pflicht-CC-Adressen in Einstellungen dauer
   assert.match(source,/if\(!globalAdmin\(\)\|\|!settingsVisible\(\)\)/);
   assert.match(source,/@media\(max-width:720px\)/);
 });
+
+
+test('RC1087: Pflicht-CC Adminprüfung verwechselt Funktionsadministratoren nicht mit globalen Admins',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  assert.match(source,/roles=\['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'\]/);
+  assert.match(source,/roles\.indexOf\(role\)>=0/);
+  assert.doesNotMatch(source,/vollzugriff\/\.test\(role\)/);
+});
