@@ -37,7 +37,10 @@ var AUDIT_LABELS={
  SESSIONS_TERMINATED:'Sitzung(en) durch Administrator beendet',
  INITIAL_ADMIN_BOOTSTRAPPED:'Admin-Zugang eingerichtet',
  INITIAL_ADMIN_RECOVERED:'Admin-Zugang wiederhergestellt',
- ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD:'Admin-Konto entsperrt'
+ ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD:'Admin-Konto entsperrt',
+ DIAGNOSTIC_AUTOFIX_REQUESTED:'Fehler an ChatGPT / Codex zur Behebung übergeben',
+ DIAGNOSTIC_AUTOFIX_FIXED:'Fehler durch ChatGPT / Codex behoben',
+ DIAGNOSTIC_AUTOFIX_FAILED:'Automatische Fehlerbehebung fehlgeschlagen'
 };
 
 function auditEvent(e){
