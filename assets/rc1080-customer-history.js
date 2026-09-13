@@ -52,10 +52,9 @@ function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.
 function customerView(){var v=view();return v==='customers'||v==='customerfolder'||v==='customer'||v==='kunden'||v==='kundenordner'}
 function customers(){return arr(state().customers)}
 function currentCustomer(){
- var s=state(),direct=s.currentCustomer||s.selectedCustomer||null;if(direct&&obj(direct))return direct;
- var key=q(s.currentCustomerId||s.selectedCustomerId||s.customerFolderId||s.customerFolderOpenId);
- if(!key)return null;
- return customers().find(function(c){return c&&(q(c.id||c.customerId)===key||q(c.account||c.customerNumber)===key)})||null
+ var s=state(),direct=s.currentCustomer||s.selectedCustomer||null,key=q(s.currentCustomerId||s.selectedCustomerId||s.customerFolderId||s.customerFolderOpenId||(direct&&id(direct)));
+ if(!key)return direct&&obj(direct)?direct:null;
+ return customers().find(function(c){return c&&(id(c)===q(key).toLocaleUpperCase('de-DE')||q(c.id||c.customerId)===q(key)||q(c.account||c.customerNumber)===q(key))})||(direct&&obj(direct)?direct:null)
 }
 function baselineAll(){
  customers().forEach(function(c){var k=id(c);if(k)BASELINES[k]={fingerprint:fingerprint(c),snapshot:JSON.parse(JSON.stringify(c))}});
