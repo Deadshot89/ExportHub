@@ -415,11 +415,29 @@ async function logout(req) {
   const token = auth.bearer(req);
   if (!token) return { ok: true };
   const hash = require('crypto').createHash('sha256').update(token).digest('hex');
+  let loggedOutSession = null;
   await auth.mutateAuth((document) => {
     const session = document.sessions.find((s) => auth.safeEqualText(s.tokenHash, hash));
-    if (session) { session.revokedAt = auth.now(); session.revokedReason = 'Abmeldung'; }
+    if (session) {
+      loggedOutSession = { userId: auth.text(session.userId), username: auth.text(session.username), displayName: auth.text(session.displayName), deviceId: auth.text(session.deviceId) };
+      session.revokedAt = auth.now();
+      session.revokedReason = 'Abmeldung';
+    }
     return true;
   });
+  if (loggedOutSession) {
+    try {
+      await auth.mutateTeam((team) => {
+        const user = (team.users || []).find((candidate) => auth.text(candidate.id) === loggedOutSession.userId || auth.usernameOf(candidate) === auth.lower(loggedOutSession.username));
+        auth.addAudit(team, 'LOGOUT', auth.text(user && user.name) || loggedOutSession.displayName || loggedOutSession.username || 'Benutzer', {
+          userId: loggedOutSession.userId,
+          username: loggedOutSession.username,
+          deviceId: loggedOutSession.deviceId
+        });
+        return true;
+      });
+    } catch (_) {}
+  }
   return { ok: true };
 }
 
@@ -582,6 +600,12 @@ async function adminTerminateSessions(req, payload) {
     }
     return count;
   });
+  if (result.result > 0) {
+    await auth.mutateTeam((team) => {
+      auth.addAudit(team, 'SESSIONS_TERMINATED', current.user.name || current.user.user, { userId, sessionId, terminated: result.result });
+      return true;
+    });
+  }
   return { ok: true, terminated: result.result };
 }
 
