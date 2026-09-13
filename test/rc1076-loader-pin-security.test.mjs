@@ -22,6 +22,8 @@ test('RC1076: optionale Serverkonfiguration bleibt als expliziter Bootstrap erha
 test('RC1076: PIN-Admin gewährt keine Rechte über einen fest codierten Benutzernamen',()=>{
   assert.doesNotMatch(admin,/tobias(?:\.limberg)?|t\.limberg/i);
   assert.match(admin,/user\.globalAdmin === true/);
+  assert.match(admin,/user\.isGlobalAdmin === true/);
+  assert.doesNotMatch(admin,/user\.isAdmin === true|user\.admin === true/);
   assert.match(admin,/user\.permissions\.includes\('\*'\)/);
   assert.match(admin,/globaler administrator/);
   assert.match(admin,/Nur globale Administratoren dürfen Verlader-PINs verwalten/);
