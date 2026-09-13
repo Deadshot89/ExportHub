@@ -107,7 +107,7 @@ function allEvents(sh){
  return Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)})
 }
 function formatDate(v){var d=new Date(v);if(!Number.isFinite(d.getTime()))return q(v)||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(d)}
-function icon(type){return({created:'＋',saved:'✓',status:'↔',mail:'✉','mail-sent':'✓',print:'⎙',avis:'A',abd:'D',pickup:'⇢',pod:'P',document:'D'})[type]||'•'}
+function icon(type){return({created:'＋',saved:'✓',status:'↔',mail:'✉','mail-sent':'✓',print:'⎙',avis:'A',abd:'D',pickup:'⇢',pod:'P',document:'D',registration:'R','work-start':'▶'})[type]||'•'}
 function detailsText(e){var d=e.details||{},parts=[];if(d.document)parts.push(d.document);if(d.to)parts.push('An: '+d.to);if(d.from&&d.to)parts.push(d.from+' → '+d.to);if(d.driver)parts.push('Fahrer: '+d.driver);if(d.licensePlate)parts.push('Kennzeichen: '+d.licensePlate);if(Number.isFinite(Number(d.colli)))parts.push('Colli: '+d.colli);return parts.join(' · ')}
 function viewName(){var s=state();return low(s.view||s.currentView||s.activeView||'')}
 function shipmentView(){var v=viewName();if(v)return v==='shipment'||v==='sendung'||/shipment|sendung/.test(v);try{return !!(document.querySelector('#rc380StowPlan,#rc543MailArea'))}catch(_){return false}}
@@ -137,11 +137,17 @@ function click(ev){
  }
  var href=q(el.getAttribute&&el.getAttribute('href'));
  if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(l)){
-   var to=/^mailto:/i.test(href)?mailRecipient(href):'';if(actionOnce('mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'mail',label:'E-Mail vorbereitet/geöffnet',actor:actorFrom(currentUser()),details:{to:to}});return
+   var to=/^mailto:/i.test(href)?mailRecipient(href):'';
+   if(/anmeld|registrier|versandbestät/i.test(l)&&actionOnce('registration-mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'registration',label:'Versandanmeldung per E-Mail gestartet',actor:actorFrom(currentUser()),details:{to:to,reference:ref(sh)}});
+   if(actionOnce('mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'mail',label:'E-Mail vorbereitet/geöffnet',actor:actorFrom(currentUser()),details:{to:to}});return
  }
  if(/\babd\b/.test(l)&&/anfordern|anfrage|request/.test(l)){
    if(actionOnce('abd-request|'+identity(sh),2500))append(sh,{type:'abd',label:'ABD angefordert',actor:actorFrom(currentUser()),details:{reference:ref(sh)}});return
  }
+ if(/anmeld|registrier|versandbestät/.test(l)&&!/login|anmeldung erforderlich/.test(l)){
+   if(actionOnce('registration|'+identity(sh),2500))append(sh,{type:'registration',label:'Versandanmeldung gestartet',actor:actorFrom(currentUser()),details:{reference:ref(sh),action:q(el.textContent)}});return
+ }
+
  if(/druck|print|cmr|ladeliste|stauplan|gesamtausgabe|pdf/.test(l)){
    var doc=documentLabel(text);if(actionOnce('print|'+identity(sh)+'|'+doc,1800))append(sh,{type:'print',label:doc+' – Druck/PDF gestartet',actor:actorFrom(currentUser()),details:{document:doc}});return
  }
@@ -151,7 +157,15 @@ function click(ev){
 }
 function fileChange(ev){var input=ev.target;if(!input||String(input.type||'').toLowerCase()!=='file'||!input.files||!input.files.length)return;var sh=currentShipment();if(!sh)return;var ctx=low((input.id||'')+' '+(input.name||'')+' '+(input.closest&&input.closest('label,.field,.card')&&input.closest('label,.field,.card').textContent||'')),kind=/pod/.test(ctx)?'POD':/abd/.test(ctx)?'ABD':/liefer|delivery/.test(ctx)?'Lieferschein':'Dokument';append(sh,{type:kind==='POD'?'pod':kind==='ABD'?'abd':'document',label:kind+' zum Upload ausgewählt',actor:actorFrom(currentUser()),details:{files:Array.from(input.files).map(function(f){return q(f.name)}).join(', ')}})}
 function avisUpdated(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},enabled=d.enabled!==false;append(sh,{type:'avis',label:enabled?'Lieferavis erstellt/aktiviert':'Lieferavis deaktiviert',actor:actorFrom(currentUser()),details:{reference:q(d.reference)||ref(sh)}})}
-function schedule(){setTimeout(function(){try{hookPersist();monitor();ensureMailConfirm();render()}catch(e){try{console.warn('RC1071 History',e)}catch(_){}}},0)}
+function markWorkStarted(){
+ var sh=currentShipment();if(!sh||!shipmentView())return false;
+ var actor=actorFrom(currentUser()),events=history(sh),cutoff=Date.now()-4*60*60*1000;
+ var recent=events.some(function(e){return e.type==='work-start'&&e.actor&&q(e.actor.id||e.actor.name)===q(actor.id||actor.name)&&(Date.parse(e.at||0)||0)>=cutoff});
+ if(recent)return false;
+ append(sh,{type:'work-start',label:'Arbeit an Sendung gestartet',actor:actor,details:{reference:ref(sh)}});
+ return true
+}
+function schedule(){setTimeout(function(){try{hookPersist();monitor();markWorkStarted();ensureMailConfirm();render()}catch(e){try{console.warn('RC1071 History',e)}catch(_){}}},0)}
 if(w.document){
  document.addEventListener('click',click,true);document.addEventListener('change',fileChange,true);
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
@@ -160,5 +174,5 @@ if(w.document){
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1071',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1080',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted});
 })(window);
