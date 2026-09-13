@@ -130,11 +130,14 @@ jobs:
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1079-profile-settings.js?v=1079' "dist-rc1048/$file"
             grep -q 'assets/rc1080-customer-history.js?v=1080' "dist-rc1048/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1081' "dist-rc1048/$file"
           done
           test -s dist-rc1048/assets/rc1079-profile-settings.js
           test -s dist-rc1048/assets/rc1080-customer-history.js
           grep -q '__EXPORTHUB_RC1079_PROFILE_SETTINGS__' dist-rc1048/assets/rc1079-profile-settings.js
           grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' dist-rc1048/assets/rc1080-customer-history.js
+          test -s dist-rc1048/assets/rc1081-audit-history.js
+          grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' dist-rc1048/assets/rc1081-audit-history.js
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/index.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/demo.html
@@ -213,6 +216,8 @@ jobs:
           test -s .rc1048_testservice_app/assets/rc1079-profile-settings.js
           test -s .rc1048_production_app/assets/rc1080-customer-history.js
           test -s .rc1048_testservice_app/assets/rc1080-customer-history.js
+          test -s .rc1048_production_app/assets/rc1081-audit-history.js
+          test -s .rc1048_testservice_app/assets/rc1081-audit-history.js
           test -s .rc1048_production_app/assets/rc1075-loader-pin-admin.js
           test -s .rc1048_testservice_app/assets/rc1075-loader-pin-admin.js
           test -s .rc1048_production_app/assets/rc1027-lieferavis-immediate.js
@@ -609,4 +614,34 @@ jobs:
             sleep 5
           done
           echo 'RC1079/RC1080 Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1081 zentrale Audit-History prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1081=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1081=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1081' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
+              grep -q 'Zentrale Aktivitäts- und Audit-History' "$asset" || ok=0
+              grep -q 'shipmentHistory' "$asset" || ok=0
+              grep -q 'customerHistory' "$asset" || ok=0
+              grep -q 'auditLog' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1081 zentrale Audit-History live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1081 zentrale Audit-History live nicht bestätigt.' >&2
           exit 1
