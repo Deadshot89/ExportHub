@@ -50,6 +50,7 @@ test('RC1083: Browser erhält niemals OpenAI- oder GitHub-Secrets',()=>{
 test('RC1083: Autofix-Anforderung ist Global-Admin-geschützt und Diagnoseanhang wird bereinigt',()=>{
   assert.match(api,/async function validateGlobalAdmin/);
   assert.match(api,/GLOBAL_ADMIN_REQUIRED/);
+  assert.doesNotMatch(api,/user\.isAdmin===true/);
   assert.match(api,/callbackAuthorized/);
   assert.match(api,/secretKey\(k\)/);
   assert.match(api,/\[geschützt\]/);
