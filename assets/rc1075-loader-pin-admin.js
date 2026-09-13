@@ -60,10 +60,11 @@ async function call(action,payload){
 }
 function validPin(v){return /^\d{4}$/.test(q(v))}
 function status(node,message,kind){if(!node)return;node.textContent=message||'';node.setAttribute('data-kind',kind||'info')}
+function mutationStatus(box,data,successMessage){var node=box&&box.querySelector('[data-rc1075-status]');if(data&&data.auditStored===false){status(node,'Änderung wurde gespeichert, aber der Historieneintrag konnte nicht gespeichert werden. Bitte Fehlerdiagnose prüfen.','warning');return false}status(node,successMessage,'ok');return true}
 function ensureStyle(){
  if(!w.document||w.document.getElementById('rc1075LoaderPinAdminStyle'))return;
  var style=w.document.createElement('style');style.id='rc1075LoaderPinAdminStyle';
- style.textContent='.rc1075-pin-admin{margin-top:16px}.rc1075-pin-admin .rc1075-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.rc1075-pin-admin .rc1075-new{display:grid;grid-template-columns:minmax(180px,1fr) 140px auto;gap:10px;align-items:end;margin:14px 0}.rc1075-pin-admin label{display:grid;gap:5px;font-weight:700}.rc1075-pin-admin input{min-height:42px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px}.rc1075-pin-admin .rc1075-list{display:grid;gap:8px}.rc1075-pin-admin .rc1075-row{display:grid;grid-template-columns:minmax(180px,1fr) 140px auto auto auto;gap:8px;align-items:center;padding:10px;border:1px solid #dbe7f1;border-radius:12px;background:#f8fafc}.rc1075-pin-admin .rc1075-row[data-inactive="true"]{opacity:.68}.rc1075-pin-admin .rc1075-pin-wrap{display:flex;gap:6px}.rc1075-pin-admin .rc1075-pin-wrap input{min-width:0;width:100%}.rc1075-pin-admin .rc1075-mini{min-height:42px;padding:8px 10px}.rc1075-pin-admin .rc1075-empty{padding:12px;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b}.rc1075-pin-admin [data-kind="error"]{color:#b91c1c}.rc1075-pin-admin [data-kind="ok"]{color:#166534}.rc1075-pin-admin [data-kind="info"]{color:#475569}.rc1075-pin-admin .rc1075-note{font-size:12px;color:#64748b;margin-top:8px}@media(max-width:900px){.rc1075-pin-admin .rc1075-row{grid-template-columns:1fr 130px auto}.rc1075-pin-admin .rc1075-row .rc1075-active{grid-column:1/2}.rc1075-pin-admin .rc1075-row .rc1075-delete{grid-column:3/4}.rc1075-pin-admin .rc1075-new{grid-template-columns:1fr 130px}}@media(max-width:620px){.rc1075-pin-admin .rc1075-new,.rc1075-pin-admin .rc1075-row{grid-template-columns:1fr}.rc1075-pin-admin .rc1075-row .rc1075-active,.rc1075-pin-admin .rc1075-row .rc1075-delete{grid-column:auto}}';
+ style.textContent='.rc1075-pin-admin{margin-top:16px}.rc1075-pin-admin .rc1075-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.rc1075-pin-admin .rc1075-new{display:grid;grid-template-columns:minmax(180px,1fr) 140px auto;gap:10px;align-items:end;margin:14px 0}.rc1075-pin-admin label{display:grid;gap:5px;font-weight:700}.rc1075-pin-admin input{min-height:42px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px}.rc1075-pin-admin .rc1075-list{display:grid;gap:8px}.rc1075-pin-admin .rc1075-row{display:grid;grid-template-columns:minmax(180px,1fr) 140px auto auto auto;gap:8px;align-items:center;padding:10px;border:1px solid #dbe7f1;border-radius:12px;background:#f8fafc}.rc1075-pin-admin .rc1075-row[data-inactive="true"]{opacity:.68}.rc1075-pin-admin .rc1075-pin-wrap{display:flex;gap:6px}.rc1075-pin-admin .rc1075-pin-wrap input{min-width:0;width:100%}.rc1075-pin-admin .rc1075-mini{min-height:42px;padding:8px 10px}.rc1075-pin-admin .rc1075-empty{padding:12px;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b}.rc1075-pin-admin [data-kind="error"]{color:#b91c1c}.rc1075-pin-admin [data-kind="warning"]{color:#92400e}.rc1075-pin-admin [data-kind="ok"]{color:#166534}.rc1075-pin-admin [data-kind="info"]{color:#475569}.rc1075-pin-admin .rc1075-note{font-size:12px;color:#64748b;margin-top:8px}@media(max-width:900px){.rc1075-pin-admin .rc1075-row{grid-template-columns:1fr 130px auto}.rc1075-pin-admin .rc1075-row .rc1075-active{grid-column:1/2}.rc1075-pin-admin .rc1075-row .rc1075-delete{grid-column:3/4}.rc1075-pin-admin .rc1075-new{grid-template-columns:1fr 130px}}@media(max-width:620px){.rc1075-pin-admin .rc1075-new,.rc1075-pin-admin .rc1075-row{grid-template-columns:1fr}.rc1075-pin-admin .rc1075-row .rc1075-active,.rc1075-pin-admin .rc1075-row .rc1075-delete{grid-column:auto}}';
  (w.document.head||w.document.documentElement).appendChild(style)
 }
 function makeButton(label,cls){var b=w.document.createElement('button');b.type='button';b.className=cls||'btn';b.textContent=label;return b}
@@ -89,18 +90,18 @@ function renderRows(box,pins){
    if(!q(name.value)){status(box.querySelector('[data-rc1075-status]'),'Bitte einen Verlader-Namen eingeben.','error');return}
    if(!validPin(pin.input.value)){status(box.querySelector('[data-rc1075-status]'),'Die Verlader-PIN muss genau vier Ziffern enthalten.','error');return}
    save.disabled=true;del.disabled=true;status(box.querySelector('[data-rc1075-status]'),'Verlader-PIN wird gespeichert …','info');
-   try{var data=await call('update',{id:q(row.id),name:q(name.value),pin:q(pin.input.value),active:active.checked});renderRows(box,data.pins);status(box.querySelector('[data-rc1075-status]'),'Verlader-PIN wurde dauerhaft gespeichert.','ok')}
+   try{var data=await call('update',{id:q(row.id),name:q(name.value),pin:q(pin.input.value),active:active.checked});renderRows(box,data.pins);mutationStatus(box,data,'Verlader-PIN wurde dauerhaft gespeichert.')}
    catch(e){status(box.querySelector('[data-rc1075-status]'),'Speichern fehlgeschlagen: '+q(e&&e.message||e),'error');save.disabled=false;del.disabled=false}
   });
   active.addEventListener('change',async function(){
    active.disabled=true;status(box.querySelector('[data-rc1075-status]'),'Status wird gespeichert …','info');
-   try{var data=await call('toggle',{id:q(row.id),active:active.checked});renderRows(box,data.pins);status(box.querySelector('[data-rc1075-status]'),'Status wurde gespeichert.','ok')}
+   try{var data=await call('toggle',{id:q(row.id),active:active.checked});renderRows(box,data.pins);mutationStatus(box,data,'Status wurde gespeichert.')}
    catch(e){active.checked=!active.checked;active.disabled=false;status(box.querySelector('[data-rc1075-status]'),'Status konnte nicht gespeichert werden: '+q(e&&e.message||e),'error')}
   });
   del.addEventListener('click',async function(){
    if(!w.confirm('Verlader-PIN für '+q(row.name)+' wirklich löschen?'))return;
    save.disabled=true;del.disabled=true;status(box.querySelector('[data-rc1075-status]'),'Verlader-PIN wird gelöscht …','info');
-   try{var data=await call('delete',{id:q(row.id)});renderRows(box,data.pins);status(box.querySelector('[data-rc1075-status]'),'Verlader-PIN wurde gelöscht.','ok')}
+   try{var data=await call('delete',{id:q(row.id)});renderRows(box,data.pins);mutationStatus(box,data,'Verlader-PIN wurde gelöscht.')}
    catch(e){status(box.querySelector('[data-rc1075-status]'),'Löschen fehlgeschlagen: '+q(e&&e.message||e),'error');save.disabled=false;del.disabled=false}
   });
   item.appendChild(name);item.appendChild(pin.wrap);item.appendChild(activeLabel);item.appendChild(save);item.appendChild(del);list.appendChild(item)
@@ -129,7 +130,7 @@ function installSettings(){
   if(!q(name&&name.value)){status(box.querySelector('[data-rc1075-status]'),'Bitte einen Verlader-Namen eingeben.','error');return}
   if(!validPin(pin&&pin.value)){status(box.querySelector('[data-rc1075-status]'),'Die neue Verlader-PIN muss genau vier Ziffern enthalten.','error');return}
   add.disabled=true;status(box.querySelector('[data-rc1075-status]'),'Neue Verlader-PIN wird angelegt …','info');
-  try{var data=await call('create',{name:q(name.value),pin:q(pin.value),active:true});name.value='';pin.value='';renderRows(box,data.pins);status(box.querySelector('[data-rc1075-status]'),'Neue Verlader-PIN wurde dauerhaft angelegt.','ok')}
+  try{var data=await call('create',{name:q(name.value),pin:q(pin.value),active:true});name.value='';pin.value='';renderRows(box,data.pins);mutationStatus(box,data,'Neue Verlader-PIN wurde dauerhaft angelegt.')}
   catch(e){status(box.querySelector('[data-rc1075-status]'),'Anlegen fehlgeschlagen: '+q(e&&e.message||e),'error')}
   finally{add.disabled=false}
  });
