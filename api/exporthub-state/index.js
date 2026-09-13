@@ -274,13 +274,70 @@ async function metadataOnly(blob){
 }
 function normalizeIncoming(payload){const state=sanitizeState(payload.state||{});delete state.users;return {clientVersion:text(payload.clientVersion),baseRevision:Number(payload.baseRevision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId||payload.clientMutationId),reason:text(payload.reason||'save'),state}}
 function validateWriteUserAgainstTeam(team,user,session){const users=Array.isArray(team&&team.users)?team.users:[],fresh=users.find(u=>text(u.id)===text(user&&user.id)||usernameOf(u)===usernameOf(user));if(!fresh||!isActive(fresh))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);if(session&&Number(session.authVersion||0)!==Number(fresh.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);if((session&&session.mustChange||fresh.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);if(!hasAnyEditRight(fresh))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);return fresh}
+function rc1080CustomerKey(c){
+ if(!c||typeof c!=='object')return'';
+ return lower(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||c.name||c.customerName);
+}
+function rc1080CustomerAuditValue(value,key){
+ if(key&&/customerHistory|history|updatedAt|updatedBy|createdAt|createdBy|_sync|lastSaved|lastModified/i.test(key))return undefined;
+ if(Array.isArray(value))return value.map(v=>rc1080CustomerAuditValue(v,''));
+ if(value&&typeof value==='object'){const out={};Object.keys(value).sort().forEach(k=>{const v=rc1080CustomerAuditValue(value[k],k);if(v!==undefined)out[k]=v});return out}
+ if(typeof value==='string')return value.trim();
+ if(typeof value==='function')return undefined;
+ return value;
+}
+function rc1080CustomerFingerprint(c){try{return JSON.stringify(rc1080CustomerAuditValue(c,''))}catch(_){return''}}
+function rc1080CustomerFields(before,after){
+ const fields=[
+  ['name','Name'],['customerName','Kundenname'],['account','Kundennummer'],['customerNumber','Kundennummer'],['kundennummer','Kundennummer'],
+  ['address','Adresse'],['country','Land'],['land','Land'],['email','E-Mail'],['customerEmail','Kunden-E-Mail'],['carrierEmail','Spedition-E-Mail'],
+  ['salesMail','Sales-E-Mail'],['salesEmail','Sales-E-Mail'],['cc','CC'],['portalName','Portal'],['portalUrl','Portal'],['processNotes','Hinweise'],
+  ['locations','Standorte'],['sites','Standorte'],['standorte','Standorte'],['deliveryLocations','Standorte'],['shipToLocations','Standorte'],['mailTemplates','Mailvorlagen']
+ ],out=[];
+ for(const [key,label] of fields){
+  if(JSON.stringify(rc1080CustomerAuditValue(before&&before[key],key))!==JSON.stringify(rc1080CustomerAuditValue(after&&after[key],key))&&!out.includes(label))out.push(label);
+ }
+ return out;
+}
+function rc1080CustomerEvent(type,label,customer,actor,fields){
+ const stamp=now(),who=text(actor&&actor.name||actor&&actor.user)||'Unbekannt',whoId=text(actor&&actor.id||actor&&actor.user);
+ return{
+  id:'CH-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),
+  at:stamp,type,label,
+  actor:{name:who,id:whoId,role:text(actor&&actor.role||actor&&actor.rolle)},
+  details:{customer:text(customer&&customer.name||customer&&customer.customerName),account:text(customer&&customer.account||customer&&customer.customerNumber||customer&&customer.kundennummer),fields:(fields||[]).join(', ')},
+  source:'server',version:'RC1080'
+ }
+}
+function rc1080AppendCustomerEvent(customer,event){
+ customer.customerHistory=Array.isArray(customer.customerHistory)?customer.customerHistory.slice():[];
+ const duplicate=customer.customerHistory.some(e=>e&&e.type===event.type&&e.actor&&text(e.actor.id||e.actor.name)===text(event.actor.id||event.actor.name)&&Math.abs(Date.parse(e.at||0)-Date.parse(event.at||0))<1500);
+ if(!duplicate)customer.customerHistory.push(event);
+ customer.customerHistory=customer.customerHistory.slice(-500);
+}
+function rc1080AuditCustomerChanges(beforeState,mergedState,actor,incomingState){
+ if(!incomingState||!Object.prototype.hasOwnProperty.call(incomingState,'customers'))return mergedState;
+ const before=Array.isArray(beforeState&&beforeState.customers)?beforeState.customers:[],after=Array.isArray(mergedState&&mergedState.customers)?mergedState.customers:[];
+ const map=new Map();before.forEach(c=>{const k=rc1080CustomerKey(c);if(k)map.set(k,c)});
+ after.forEach(c=>{
+  const k=rc1080CustomerKey(c);if(!k)return;
+  const old=map.get(k);
+  if(!old){rc1080AppendCustomerEvent(c,rc1080CustomerEvent('customer-created','Kunde angelegt',c,actor,[]));return}
+  if(rc1080CustomerFingerprint(old)!==rc1080CustomerFingerprint(c)){
+    const fields=rc1080CustomerFields(old,c);
+    rc1080AppendCustomerEvent(c,rc1080CustomerEvent('customer-updated','Kunde geändert',c,actor,fields));
+  }
+ });
+ return mergedState;
+}
+
 async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
  let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0;
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
   const current=d.value||emptyTeam(),writeUser=validateWriteUserAgainstTeam(current,user,session),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
   if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
-  const mergeStarted=Date.now(),merged=pruneTombstones(mergeState(current.state||{},incoming.state||{}));delete merged.users;mergeMs+=Date.now()-mergeStarted;
+  const mergeStarted=Date.now(),merged=pruneTombstones(mergeState(current.state||{},incoming.state||{}));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});mergeMs+=Date.now()-mergeStarted;
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(writeUser.name||writeUser.user),updatedByUserId:text(writeUser.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
   next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
   try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1){conflictCount++;continue;}if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den Teamstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
