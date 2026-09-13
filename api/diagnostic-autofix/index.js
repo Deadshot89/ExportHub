@@ -82,6 +82,23 @@ function callbackAuthorized(req){
  return configured&&received&&safeEqual(configured,received);
 }
 function diagBlob(env){ return service().getContainerClient(TEAM_CONTAINER).getBlockBlobClient(env==='testservice'?DIAG_TEST_BLOB:DIAG_PROD_BLOB); }
+function teamBlob(env){
+ const name=env==='testservice'?(process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+TEAM_BLOB.replace(/^\/+/,''))):TEAM_BLOB;
+ return service().getContainerClient(TEAM_CONTAINER).getBlockBlobClient(name);
+}
+async function appendAudit(env,type,actor,details){
+ const blob=teamBlob(env);
+ for(let attempt=0;attempt<MAX_RETRIES;attempt++){
+  const d=await readJson(blob,{schemaVersion:3,revision:0,state:{}},false),doc=d.value&&typeof d.value==='object'?d.value:{schemaVersion:3,revision:0,state:{}};
+  doc.state=doc.state&&typeof doc.state==='object'?doc.state:{};
+  const rows=Array.isArray(doc.state.auditLog)?doc.state.auditLog.slice():[],cutoff=Date.now()-365*86400000,clean=sanitize(details||{});
+  doc.state.auditLog=rows.filter(e=>{const ts=Date.parse(e&&e.at||'');return !Number.isFinite(ts)||ts>=cutoff}).slice(-4999);
+  doc.state.auditLog.push({id:'AUD-'+Date.now().toString(36)+'-'+crypto.randomBytes(3).toString('hex'),type,actor:text(actor)||'System',at:now(),details:clean});
+  doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy=text(actor)||'System';
+  try{await uploadJson(blob,doc,d.etag);return true}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;throw e}
+ }
+ return false;
+}
 function secretKey(k){return /token|authorization|password|passwort|session|signature|base64|dataurl|filedata|cookie|secret|connection|string/i.test(String(k||''))}
 function sanitize(value,depth=0){
  if(depth>8)return '[gekürzt]';
@@ -149,6 +166,7 @@ async function requestAutofix(req,payload,env){
   await mutateRecord(env,id,current=>{const af=Object.assign({},current.autofix||{},{status:'failed',failedAt:now(),lastMessage:e.message});return Object.assign({},current,{autofix:af})});
   throw e;
  }
+ try{await appendAudit(env,'DIAGNOSTIC_AUTOFIX_REQUESTED',text(admin.name||admin.user),{diagnosticId:id,jobId,environment:env})}catch(_){}
  return {ok:true,jobId,diagnosticId:id,status:'queued',environment:env,record:sanitize(record)};
 }
 async function claim(payload,env){
@@ -171,6 +189,9 @@ async function workflowStatus(payload,env){
   if(status==='failed'||status==='reverted')af.failedAt=now();
   return Object.assign({},current,{autofix:af});
  });
+ if(status==='fixed'||status==='failed'||status==='reverted'){
+  try{await appendAudit(env,status==='fixed'?'DIAGNOSTIC_AUTOFIX_FIXED':'DIAGNOSTIC_AUTOFIX_FAILED',status==='fixed'?'ChatGPT / Codex Autofix':'ExportHUB Autofix',{diagnosticId:id,jobId,status,commit,runUrl,message})}catch(_){}
+ }
  return {ok:true,jobId,diagnosticId:id,status,record:sanitize(record)};
 }
 
