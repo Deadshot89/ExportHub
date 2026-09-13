@@ -23,6 +23,19 @@ test('RC1075: PIN-Verwaltung wird nur globalen Administratoren in Einstellungen 
   assert.match(api,/Nur globale Administratoren dürfen Verlader-PINs verwalten/);
 });
 
+test('RC1076: Funktionsadministrator wird nicht fälschlich als Global Admin erkannt',()=>{
+  let current={role:'Funktionsadministrator',globalAdmin:false,permissions:[]};
+  const window={__EXPORTHUB_GET_CURRENT_USER__:()=>current};
+  const sandbox={window,console,URLSearchParams};
+  window.window=window;
+  vm.runInNewContext(runtime,sandbox,{filename:'rc1075-loader-pin-admin.js'});
+  const client=window.ExportHUBRC1075LoaderPins;
+  assert.equal(client.globalAdmin(),false);
+  current={role:'Globaler Administrator',globalAdmin:true,permissions:['*']};
+  assert.equal(client.globalAdmin(),true);
+});
+
+
 test('RC1075: PINs sind vierstellig und standardmäßig verdeckt',()=>{
   const sandbox={window:{},console,URLSearchParams};
   sandbox.window.window=sandbox.window;
