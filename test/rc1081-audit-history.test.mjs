@@ -61,3 +61,11 @@ test('RC1081: zentrale History kann gedruckt und als CSV exportiert werden',()=>
   assert.match(runtime,/function printHistory\(/);
   assert.match(runtime,/@page\{size:A4 landscape/);
 });
+
+
+test('RC1081: Namensänderung durch Administrator wird getrennt von Rechteänderungen protokolliert',()=>{
+  assert.match(authApi,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN/);
+  assert.match(authApi,/previousName: beforeName/);
+  assert.match(authApi,/displayName: afterName/);
+  assert.match(runtime,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'Anzeigename durch Administrator geändert'/);
+});
