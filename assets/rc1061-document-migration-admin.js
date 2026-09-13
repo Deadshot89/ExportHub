@@ -8,8 +8,8 @@ var BATCH_SIZE=5;
 function q(v){return String(v==null?'':v).trim()}
 function lower(v){return q(v).toLowerCase()}
 function isAdmin(user){
-  var role=lower(user&&(user.role||user.rolle));
-  return !!(user&&(user.globalAdmin===true||role==='admin'||/global.?admin|administrator|vollzugriff/i.test(role)||(Array.isArray(user.permissions)&&user.permissions.indexOf('*')>=0)));
+  var role=lower(user&&(user.role||user.rolle)),roles=['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'];
+  return !!(user&&(user.globalAdmin===true||user.isGlobalAdmin===true||user.isAdmin===true||user.admin===true||roles.indexOf(role)>=0||(Array.isArray(user.permissions)&&user.permissions.indexOf('*')>=0)));
 }
 function environmentName(){return typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production'}
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return window.ExportHUBClean&&window.ExportHUBClean.state||window.appState||{}}
