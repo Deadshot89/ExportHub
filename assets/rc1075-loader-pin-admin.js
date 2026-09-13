@@ -17,7 +17,7 @@ function currentUser(){
 function globalAdmin(){
  var u=currentUser()||{},role=norm(u.role||u.rolle||u.level||u.type),perms=Array.isArray(u.permissions)?u.permissions:[],
      roles=['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'];
- return u.globalAdmin===true||u.isGlobalAdmin===true||u.isAdmin===true||u.admin===true||perms.indexOf('*')>=0||roles.indexOf(role)>=0
+ return u.globalAdmin===true||u.isGlobalAdmin===true||perms.indexOf('*')>=0||roles.indexOf(role)>=0
 }
 function viewName(){
  var s=state(),v=q(s.view||s.currentView||s.activeView||s.page||'');
