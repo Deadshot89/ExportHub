@@ -38,3 +38,20 @@ test('pickupcalendar ist für Mitarbeiter lesbar und für Admins administrierbar
   assert.equal(admin.rights.pickupcalendar.level, 'admin');
   assert.equal(admin.rights.pickupcalendar.edit, true);
 });
+
+
+test('RC1087: Funktionsadministrator wird serverseitig nicht zum globalen Administrator hochgestuft', () => {
+  const functionAdmin = { user: 'Funktion', role: 'Funktionsadministrator', companyId: 'ESSENTRA', permissions: [] };
+  assert.equal(policy.isAdmin(functionAdmin), false);
+  assert.equal(ctx.isGlobalAdmin(functionAdmin), false);
+
+  const normalized = policy.normalizeUser(functionAdmin, 0);
+  assert.equal(normalized.globalAdmin, false);
+  assert.equal(normalized.role, 'Funktionsadministrator');
+  assert.notDeepEqual(normalized.permissions, ['*']);
+
+  assert.throws(
+    () => ctx.resolveCompanyContext({ headers: { 'x-exporthub-company-id': 'KONTUR' } }, functionAdmin),
+    e => e && e.code === 'COMPANY_FORBIDDEN' && e.statusCode === 403
+  );
+});
