@@ -2,7 +2,7 @@
 const MODULES = [
   'start','dashboard','tasks','vacation','planning','shipment','abd','shipmentoverview',
   'cmr','documents','pallet','customers','customerfolder','calculator','customs','sop',
-  'academy','ideas','notifications','reports','update','rights','teamfile','archive','settings','pickupcalendar'
+  'academy','ideas','notifications','reports','update','rights','teamfile','archive','history','settings','pickupcalendar'
 ];
 
 function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
