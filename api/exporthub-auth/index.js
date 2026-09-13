@@ -423,6 +423,36 @@ async function logout(req) {
   return { ok: true };
 }
 
+async function updateProfile(req, payload) {
+  const current = await auth.validateSession(req);
+  const nextName = auth.text(payload.name || payload.displayName).replace(/\s+/g, ' ').slice(0, 80);
+  if (!nextName) throw auth.error('DISPLAY_NAME_REQUIRED', 'Der Anzeigename darf nicht leer sein.', 400);
+  const previousName = auth.text(current.user.name || current.user.user);
+  const changed = await auth.mutateTeam((team) => {
+    const user = findByIdOrName(team.users, current.user.id || current.user.user);
+    if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
+    user.name = nextName;
+    user.displayName = nextName;
+    user.updatedAt = auth.now();
+    user.updatedBy = nextName;
+    auth.addAudit(team, 'PROFILE_DISPLAY_NAME_UPDATED', nextName, {
+      userId: user.id,
+      username: user.user,
+      previousName,
+      displayName: nextName
+    });
+    return { userId: user.id };
+  });
+  const user = changed.team.users.find((u) => auth.text(u.id) === auth.text(changed.result.userId));
+  await auth.mutateAuth((document) => {
+    for (const session of document.sessions || []) {
+      if (auth.text(session.userId) === auth.text(user.id)) session.displayName = nextName;
+    }
+    return true;
+  });
+  return { ok: true, user: auth.publicUser(user, false) };
+}
+
 async function adminList(req) {
   const current = await auth.validateSession(req);
   requireGlobalAdmin(current);
@@ -581,6 +611,7 @@ module.exports = async function (context, req) {
       const current = await auth.validateSession(req, { allowPasswordChange: true });
       result = { ok: true, mustChange: current.user.mustChange === true || current.session.mustChange === true, user: auth.publicUser(current.user, false) };
     }
+    else if (action === 'update-profile') result = await updateProfile(req, payload);
     else if (action === 'admin-list') result = await adminList(req);
     else if (action === 'admin-create-user') result = await adminCreate(req, payload);
     else if (action === 'admin-update-user') result = await adminUpdate(req, payload);
