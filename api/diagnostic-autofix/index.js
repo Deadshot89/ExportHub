@@ -11,6 +11,7 @@ const DIAG_PROD_BLOB = process.env.EXPORTHUB_DIAGNOSTICS_BLOB || 'diagnostics/te
 const DIAG_TEST_BLOB = process.env.EXPORTHUB_TEST_DIAGNOSTICS_BLOB || 'testservice/diagnostics/team-diagnostics.json';
 const REPO = process.env.EXPORTHUB_GITHUB_AUTOFIX_REPO || 'Deadshot89/ExportHub';
 const WORKFLOW = process.env.EXPORTHUB_GITHUB_AUTOFIX_WORKFLOW || 'diagnostic-autofix.yml';
+const PREFLIGHT_WORKFLOW = process.env.EXPORTHUB_AUTOFIX_PREFLIGHT_WORKFLOW || 'rc1083-autofix-preflight.yml';
 const MAX_RETRIES = 6;
 
 function text(v){ return String(v == null ? '' : v).trim(); }
@@ -204,7 +205,22 @@ module.exports=async function(context,req){
   if(action==='request')result=await requestAutofix(req,payload,env);
   else if(action==='claim'){if(!callbackAuthorized(req))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await claim(payload,env)}
   else if(action==='workflow-status'){if(!callbackAuthorized(req))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await workflowStatus(payload,env)}
-  else if(action==='configuration'){await validateGlobalAdmin(req,payload,env);result={ok:true,configured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)&&text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET)),github:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),callback:Boolean(text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET)),repo:REPO,workflow:WORKFLOW,environment:env}}
+  else if(action==='configuration'){
+   await validateGlobalAdmin(req,payload,env);
+   const githubToken=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN),callbackSecret=text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET);
+   let preflight={checked:false,status:'unknown',conclusion:'',runUrl:'',updatedAt:'',message:''};
+   if(githubToken){
+    try{
+     const probe=await httpsJson('GET','https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(PREFLIGHT_WORKFLOW)+'/runs?branch=main&per_page=1',{'Authorization':'Bearer '+githubToken,'X-GitHub-Api-Version':'2022-11-28'});
+     const parsed=JSON.parse(probe.body||'{}'),run=Array.isArray(parsed.workflow_runs)&&parsed.workflow_runs.length?parsed.workflow_runs[0]:null;
+     preflight=run?{checked:true,status:text(run.status),conclusion:text(run.conclusion),runUrl:text(run.html_url),updatedAt:text(run.updated_at),message:text(run.conclusion)==='success'?'GitHub/OpenAI-Vorflug erfolgreich.':'GitHub/OpenAI-Vorflug ist noch nicht erfolgreich.'}:{checked:true,status:'missing',conclusion:'',runUrl:'',updatedAt:'',message:'Noch kein Autofix-Vorflug vorhanden.'};
+    }catch(e){
+     preflight={checked:true,status:'unavailable',conclusion:'',runUrl:'',updatedAt:'',message:'Autofix-Vorflug konnte über GitHub nicht gelesen werden.'};
+    }
+   }
+   const serverConfigured=Boolean(githubToken&&callbackSecret),preflightOk=preflight.conclusion==='success';
+   result={ok:true,configured:Boolean(serverConfigured&&preflightOk),serverConfigured,github:Boolean(githubToken),callback:Boolean(callbackSecret),preflight,repo:REPO,workflow:WORKFLOW,preflightWorkflow:PREFLIGHT_WORKFLOW,environment:env}
+  }
   else throw error('AUTOFIX_ACTION_INVALID','Unbekannte Autofix-Aktion.',400);
   context.res=json(200,result);
  }catch(e){
