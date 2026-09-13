@@ -1,0 +1,193 @@
+'use strict';
+
+const crypto = require('crypto');
+const https = require('https');
+const { BlobServiceClient } = require('@azure/storage-blob');
+
+const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
+const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
+const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
+const DIAG_PROD_BLOB = process.env.EXPORTHUB_DIAGNOSTICS_BLOB || 'diagnostics/team-diagnostics.json';
+const DIAG_TEST_BLOB = process.env.EXPORTHUB_TEST_DIAGNOSTICS_BLOB || 'testservice/diagnostics/team-diagnostics.json';
+const REPO = process.env.EXPORTHUB_GITHUB_AUTOFIX_REPO || 'Deadshot89/ExportHub';
+const WORKFLOW = process.env.EXPORTHUB_GITHUB_AUTOFIX_WORKFLOW || 'diagnostic-autofix.yml';
+const MAX_RETRIES = 6;
+
+function text(v){ return String(v == null ? '' : v).trim(); }
+function lower(v){ return text(v).toLowerCase(); }
+function now(){ return new Date().toISOString(); }
+function json(status, body){ return {status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)}; }
+function error(code,message,status=400){ const e=new Error(message); e.code=code; e.status=status; return e; }
+function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
+function header(req,name){ const h=req&&req.headers||{}; return h[name.toLowerCase()]||h[name]||''; }
+function bearer(req,payload){ const direct=text(header(req,'x-exporthub-token')||header(req,'x-exporthub-session')||payload.sessionToken); if(direct)return direct; return text(String(header(req,'authorization')||'').replace(/^Bearer\s+/i,'')); }
+function connectionString(){ return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''; }
+function environmentOf(req,payload){
+ const raw=lower(payload&&payload.environment||header(req,'x-exporthub-environment'));
+ const origin=lower(header(req,'origin')||header(req,'referer')||header(req,'x-forwarded-host')||header(req,'host'));
+ const inferred=/-testservice\./.test(origin)?'testservice':'production';
+ if(raw&&raw!=='production'&&raw!=='testservice')throw error('ENVIRONMENT_INVALID','Unbekannte ExportHUB-Umgebung.',400);
+ if(raw&&raw!==inferred&&/azurestaticapps\.net/.test(origin))throw error('ENVIRONMENT_MISMATCH','Die angeforderte Diagnoseumgebung passt nicht zur Website.',409);
+ return raw||inferred;
+}
+function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
+function isActive(user){ return Boolean(user&&user.active!==false&&user.disabled!==true&&lower(user.status)!=='deaktiviert'); }
+function isAdmin(user){
+ if(!user)return false;
+ if(user.globalAdmin===true||user.isGlobalAdmin===true||user.isAdmin===true)return true;
+ if(Array.isArray(user.permissions)&&user.permissions.includes('*'))return true;
+ return ['globaler administrator','globaler admin','global admin','administrator','admin','vollzugriff'].includes(lower(user.role||user.rolle));
+}
+function safeEqual(a,b){ const aa=Buffer.from(String(a||''),'utf8'),bb=Buffer.from(String(b||''),'utf8'); return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb); }
+function tokenHash(value){ return crypto.createHash('sha256').update(String(value||'')).digest('hex'); }
+function signingSecret(){ const source=text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET||process.env.EXPORTHUB_SESSION_SECRET)||connectionString(); if(!source)throw error('AUTH_SIGNING_NOT_CONFIGURED','Sitzungssignatur ist nicht konfiguriert.',503); return crypto.createHash('sha256').update('ExportHUB/session/v1|'+source).digest(); }
+function verifySigned(value){
+ const parts=text(value).split('.'); if(parts.length!==3||parts[0]!=='ehs1')return null;
+ const expected=crypto.createHmac('sha256',signingSecret()).update(parts[1]).digest('base64url'); if(!safeEqual(expected,parts[2]))return null;
+ let p;try{p=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))}catch(_){return null}
+ if(!p||p.purpose!=='exporthub-session'||Number(p.v||0)!==1||!p.uid||!p.sid||Number(p.exp||0)<=Date.now())return null;
+ return p;
+}
+function parseJson(raw){ const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim(); if(!cleaned)return null; let v=JSON.parse(cleaned); if(typeof v==='string'&&/^[\[{]/.test(v.trim()))v=JSON.parse(v.trim()); return v; }
+async function readJson(blob,fallback,repair){
+ try{
+  const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));
+  try{const v=parseJson(Buffer.concat(chunks).toString('utf8'));return {value:v==null?fallback:v,etag:r.etag||null}}catch(e){if(repair)return {value:fallback,etag:r.etag||null};throw e}
+ }catch(e){if(e&&e.statusCode===404)return {value:fallback,etag:null};throw e}
+}
+async function uploadJson(blob,value,etag){
+ const raw=JSON.stringify(value);
+ return blob.upload(raw,Buffer.byteLength(raw),{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:etag?{ifMatch:etag}:{ifNoneMatch:'*'}});
+}
+function service(){
+ const cs=connectionString();if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503);
+ return BlobServiceClient.fromConnectionString(cs);
+}
+async function validateGlobalAdmin(req,payload,env){
+ const t=bearer(req,payload);if(!t)throw error('AUTH_REQUIRED','ExportHUB-Admin-Anmeldung erforderlich.',401);
+ const container=service().getContainerClient(TEAM_CONTAINER),teamName=env==='testservice'?(process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+TEAM_BLOB.replace(/^\/+/,''))):TEAM_BLOB;
+ const [authRead,teamRead]=await Promise.all([readJson(container.getBlockBlobClient(AUTH_BLOB),{sessions:[]},true),readJson(container.getBlockBlobClient(teamName),{users:[]},false)]);
+ const sessions=Array.isArray(authRead.value&&authRead.value.sessions)?authRead.value.sessions:[],digest=tokenHash(t);
+ let session=sessions.find(s=>safeEqual(s&&s.tokenHash,digest));
+ if(!session){const signed=verifySigned(t);if(signed)session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}
+ if(!session||session.revokedAt||(session.expiresAt&&Date.parse(session.expiresAt)<=Date.now()))throw error('SESSION_INVALID','Die ExportHUB-Sitzung ist nicht mehr gültig.',401);
+ const users=Array.isArray(teamRead.value&&teamRead.value.users)?teamRead.value.users:[],user=users.find(u=>text(u&&u.id)===text(session.userId)||usernameOf(u)===lower(session.username));
+ if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist nicht aktiv.',403);
+ if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die ExportHUB-Sitzung wurde beendet.',401);
+ if(!isAdmin(user))throw error('GLOBAL_ADMIN_REQUIRED','Die automatische Fehlerbehebung ist nur für globale Administratoren verfügbar.',403);
+ return user;
+}
+function callbackAuthorized(req){
+ const configured=text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET),received=text(header(req,'x-exporthub-autofix-secret'));
+ return configured&&received&&safeEqual(configured,received);
+}
+function diagBlob(env){ return service().getContainerClient(TEAM_CONTAINER).getBlockBlobClient(env==='testservice'?DIAG_TEST_BLOB:DIAG_PROD_BLOB); }
+function secretKey(k){return /token|authorization|password|passwort|session|signature|base64|dataurl|filedata|cookie|secret|connection|string/i.test(String(k||''))}
+function sanitize(value,depth=0){
+ if(depth>8)return '[gekürzt]';
+ if(Array.isArray(value))return value.slice(0,100).map(v=>sanitize(v,depth+1));
+ if(value&&typeof value==='object'){const out={};Object.keys(value).slice(0,120).forEach(k=>{out[k]=secretKey(k)?'[geschützt]':sanitize(value[k],depth+1)});return out}
+ if(typeof value==='string')return value.slice(0,8000);
+ if(value==null||typeof value==='number'||typeof value==='boolean')return value;
+ return String(value).slice(0,1000);
+}
+async function mutateRecord(env,id,fn){
+ const blob=diagBlob(env);
+ for(let attempt=0;attempt<MAX_RETRIES;attempt++){
+  const d=await readJson(blob,{schemaVersion:1,revision:0,records:[]},false),doc=d.value&&typeof d.value==='object'?d.value:{schemaVersion:1,revision:0,records:[]},rows=Array.isArray(doc.records)?doc.records.slice():[];
+  const pos=rows.findIndex(r=>text(r&&r.id)===text(id));if(pos<0)throw error('DIAGNOSTIC_NOT_FOUND','Der Diagnoseeintrag wurde nicht gefunden.',404);
+  const current=Object.assign({},rows[pos]),nextRecord=fn(current)||current;rows[pos]=nextRecord;
+  const next=Object.assign({},doc,{schemaVersion:1,revision:Number(doc.revision||0)+1,updatedAt:now(),records:rows});
+  try{await uploadJson(blob,next,d.etag);return nextRecord}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;throw e}
+ }
+ throw error('DIAGNOSTIC_CONCURRENT_UPDATE','Der Diagnoseeintrag wurde gleichzeitig geändert.',409);
+}
+async function findJob(env,jobId){
+ const d=await readJson(diagBlob(env),{records:[]},false),rows=Array.isArray(d.value&&d.value.records)?d.value.records:[];
+ const record=rows.find(r=>r&&r.autofix&&text(r.autofix.jobId)===text(jobId));
+ if(!record)throw error('AUTOFIX_JOB_NOT_FOUND','Autofix-Auftrag wurde nicht gefunden.',404);
+ return record;
+}
+function jobIdFor(record){return 'AF-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(3).toString('hex').toUpperCase()+'-'+text(record&&record.id).replace(/[^A-Za-z0-9_-]/g,'').slice(-12)}
+function httpsJson(method,url,headers,payload){
+ return new Promise((resolve,reject)=>{
+  const u=new URL(url),raw=payload===undefined?'':JSON.stringify(payload),req=https.request({method,hostname:u.hostname,path:u.pathname+u.search,headers:Object.assign({'User-Agent':'ExportHUB-Autofix','Accept':'application/vnd.github+json'},headers||{},raw?{'Content-Type':'application/json','Content-Length':Buffer.byteLength(raw)}:{})},res=>{
+   const chunks=[];res.on('data',c=>chunks.push(Buffer.from(c)));res.on('end',()=>{const body=Buffer.concat(chunks).toString('utf8');if(res.statusCode>=200&&res.statusCode<300)return resolve({status:res.statusCode,body});const e=error('GITHUB_DISPATCH_FAILED','GitHub-Autofix konnte nicht gestartet werden (HTTP '+res.statusCode+').',502);e.response=body;reject(e)})});
+  req.on('error',reject);if(raw)req.write(raw);req.end();
+ })
+}
+async function dispatch(jobId,env){
+ const token=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);if(!token)throw error('AUTOFIX_GITHUB_NOT_CONFIGURED','GitHub-Autofix-Token ist serverseitig noch nicht eingerichtet.',503);
+ if(!text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET))throw error('AUTOFIX_CALLBACK_NOT_CONFIGURED','Autofix-Rückkanal ist serverseitig noch nicht eingerichtet.',503);
+ const url='https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WORKFLOW)+'/dispatches';
+ await httpsJson('POST',url,{'Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28'},{ref:'main',inputs:{job_id:jobId,environment:env}});
+}
+function promptFor(record,jobId,env){
+ return [
+  'Du arbeitest autonom im Repository Deadshot89/ExportHub an genau einem gemeldeten ExportHUB-Fehler.',
+  'Lies zuerst die Datei .exporthub-autofix/diagnostic-attachment.json vollständig. Sie ist der Anhang zu diesem Auftrag.',
+  'Autofix-Auftrag: '+jobId+' · Umgebung: '+env+' · Diagnose-ID: '+text(record.id),
+  'Analysiere den aktuellen Repository-Stand und die Diagnose. Reproduziere den Fehler soweit möglich, finde die konkrete Ursache und implementiere die kleinste belastbare Korrektur.',
+  'Erhalte bestehende Daten und Funktionen. Bereits ausgegebene QR-Codes und öffentliche Links müssen rückwärtskompatibel bleiben. Keine produktiven Daten löschen oder zurücksetzen.',
+  'Keine Secrets ausgeben oder in Dateien schreiben. Die Datei .github/workflows/diagnostic-autofix.yml darfst du nicht verändern.',
+  'Führe npm test sowie relevante zielgerichtete Tests aus. Behebe durch deine Änderung verursachte Testfehler.',
+  'Committe und pushe NICHT selbst; das übernimmt der Workflow nach erfolgreicher Prüfung.',
+  'Wenn der Fehler sicher behoben ist, beginne deine Abschlussmeldung mit FIXED:. Wenn die Diagnose bereits durch den aktuellen Stand behoben ist, beginne mit ALREADY_FIXED:. Wenn eine sichere automatische Korrektur nicht möglich ist, beginne mit BLOCKED: und nenne präzise den Grund.'
+ ].join('\n');
+}
+async function requestAutofix(req,payload,env){
+ const admin=await validateGlobalAdmin(req,payload,env),id=text(payload.diagnosticId||payload.id);if(!id)throw error('DIAGNOSTIC_ID_REQUIRED','Diagnose-ID fehlt.',400);
+ let jobId='';
+ const record=await mutateRecord(env,id,current=>{
+  const existing=current.autofix&&typeof current.autofix==='object'?current.autofix:{};
+  if(['queued','claimed','running','testing','deploying'].includes(lower(existing.status)))throw error('AUTOFIX_ALREADY_RUNNING','Für diesen Fehler läuft bereits eine automatische Behebung.',409);
+  jobId=jobIdFor(current);
+  return Object.assign({},current,{autofix:{jobId,status:'queued',requestedAt:now(),requestedBy:text(admin.name||admin.user),requestedByUserId:text(admin.id),attempt:Number(existing.attempt||0)+1,lastMessage:''},resolvedAt:null,resolvedBy:null});
+ });
+ try{await dispatch(jobId,env)}
+ catch(e){
+  await mutateRecord(env,id,current=>{const af=Object.assign({},current.autofix||{},{status:'failed',failedAt:now(),lastMessage:e.message});return Object.assign({},current,{autofix:af})});
+  throw e;
+ }
+ return {ok:true,jobId,diagnosticId:id,status:'queued',environment:env,record:sanitize(record)};
+}
+async function claim(payload,env){
+ const jobId=text(payload.jobId);if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','Autofix-Auftrags-ID fehlt.',400);
+ const found=await findJob(env,jobId),id=text(found.id);
+ const record=await mutateRecord(env,id,current=>Object.assign({},current,{autofix:Object.assign({},current.autofix||{},{status:'claimed',claimedAt:now(),lastMessage:'Diagnose an Codex übergeben.'})}));
+ return {ok:true,jobId,diagnosticId:id,environment:env,prompt:promptFor(record,jobId,env),attachment:sanitize(record),filename:'diagnostic-'+id.replace(/[^A-Za-z0-9_.-]/g,'-')+'.json'};
+}
+async function workflowStatus(payload,env){
+ const jobId=text(payload.jobId),status=lower(payload.status),message=text(payload.message).slice(0,4000),commit=text(payload.commit).slice(0,80),runUrl=text(payload.runUrl).slice(0,500);
+ if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','Autofix-Auftrags-ID fehlt.',400);
+ const allowed=['running','testing','deploying','fixed','failed','reverted'];if(!allowed.includes(status))throw error('AUTOFIX_STATUS_INVALID','Unbekannter Autofix-Status.',400);
+ const found=await findJob(env,jobId),id=text(found.id);
+ const record=await mutateRecord(env,id,current=>{
+  const af=Object.assign({},current.autofix||{},{status,lastMessage:message,commit,runUrl,updatedAt:now()});
+  if(status==='running')af.startedAt=af.startedAt||now();
+  if(status==='testing')af.testingAt=now();
+  if(status==='deploying')af.deployingAt=now();
+  if(status==='fixed'){af.completedAt=now();return Object.assign({},current,{autofix:af,resolvedAt:now(),resolvedBy:'ChatGPT / Codex Autofix',resolutionMessage:message})}
+  if(status==='failed'||status==='reverted')af.failedAt=now();
+  return Object.assign({},current,{autofix:af});
+ });
+ return {ok:true,jobId,diagnosticId:id,status,record:sanitize(record)};
+}
+
+module.exports=async function(context,req){
+ if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'POST, OPTIONS'},body:''};return}
+ if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
+ try{
+  const payload=body(req),env=environmentOf(req,payload),action=lower(payload.action||'status');
+  let result;
+  if(action==='request')result=await requestAutofix(req,payload,env);
+  else if(action==='claim'){if(!callbackAuthorized(req))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await claim(payload,env)}
+  else if(action==='workflow-status'){if(!callbackAuthorized(req))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await workflowStatus(payload,env)}
+  else if(action==='configuration'){await validateGlobalAdmin(req,payload,env);result={ok:true,configured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)&&text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET)),github:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),callback:Boolean(text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET)),repo:REPO,workflow:WORKFLOW,environment:env}}
+  else throw error('AUTOFIX_ACTION_INVALID','Unbekannte Autofix-Aktion.',400);
+  context.res=json(200,result);
+ }catch(e){
+  context.log&&context.log.error&&context.log.error('diagnostic-autofix',e&&e.code,e&&e.message);
+  context.res=json(Number(e.status||e.statusCode||500),{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Automatische Fehlerbehebung fehlgeschlagen.'});
+ }
+};
