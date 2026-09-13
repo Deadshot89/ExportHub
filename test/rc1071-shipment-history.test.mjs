@@ -101,3 +101,14 @@ test('RC1071: finaler RC1048-Build lädt History in Produktion TESTSERVICE und D
   assert.match(builder,/assets\/rc1071-shipment-history\.js/);
   assert.match(builder,/shipmentHistory:\{version:'RC1071'/);
 });
+
+
+test('RC1080: Arbeitsstart und Versandanmeldung werden mit Benutzer in der Sendungshistorie erfasst',()=>{
+  assert.match(source,/type:'work-start'/);
+  assert.match(source,/Arbeit an Sendung gestartet/);
+  assert.match(source,/Versandanmeldung gestartet/);
+  assert.match(source,/Versandanmeldung per E-Mail gestartet/);
+  assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
+  assert.match(source,/type:'print'/);
+  assert.match(source,/type:'mail-sent'/);
+});
