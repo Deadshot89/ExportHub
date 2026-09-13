@@ -1,0 +1,140 @@
+// ExportHUB RC1081 – zentrale Aktivitäts- und Audit-History im Archiv.
+(function(w,d){
+'use strict';
+if(!w||!d||w.__EXPORTHUB_RC1081_AUDIT_HISTORY__)return;
+w.__EXPORTHUB_RC1081_AUDIT_HISTORY__=true;
+
+var FILTER={query:'',type:'all',actor:'all',days:365};
+
+function q(v){return String(v==null?'':v).trim()}
+function low(v){return q(v).toLocaleLowerCase('de-DE')}
+function arr(v){return Array.isArray(v)?v:[]}
+function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
+function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.page||'')}
+function archiveView(){var v=view();return v==='archive'||v==='archiv'||/archive|archiv/.test(v)}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function fmt(v){var x=new Date(v);if(!Number.isFinite(x.getTime()))return q(v)||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(x)}
+function identity(sh){return q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber)).toUpperCase()}
+function shipmentRef(sh){return q(sh&&(sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber||sh.id))}
+function customerId(c){return q(c&&(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||c.name||c.customerName)).toUpperCase()}
+function customerName(c){return q(c&&(c.name||c.customerName||c.companyName||c.account||c.customerNumber))||'Kunde'}
+function actorName(e){return q(e&&e.actor&&e.actor.name||e&&e.actor||e&&e.by||e&&e.user)||'System'}
+function eventKey(e){return q(e&&e.id)||[q(e&&e.at),q(e&&e.type),q(e&&e.label),actorName(e),q(e&&e.entityId)].join('|').toLowerCase()}
+function pushUnique(map,e){if(!e||!q(e.at))return;var k=eventKey(e);if(!k)return;if(!map.has(k))map.set(k,e)}
+
+var AUDIT_LABELS={
+ LOGIN_SUCCESS:'Anmeldung erfolgreich',
+ LOGOUT:'Abmeldung',
+ PROFILE_DISPLAY_NAME_UPDATED:'Anzeigename geändert',
+ USER_CREATED:'Benutzer angelegt',
+ USER_RIGHTS_UPDATED:'Benutzerrechte geändert',
+ USER_ACTIVATED:'Benutzer aktiviert',
+ USER_DEACTIVATED:'Benutzer deaktiviert',
+ PASSWORD_RESET:'Passwort zurückgesetzt',
+ PASSWORD_CHANGED:'Passwort geändert',
+ ACCOUNT_UNLOCKED:'Benutzerkonto entsperrt',
+ SESSIONS_TERMINATED:'Sitzung(en) durch Administrator beendet',
+ INITIAL_ADMIN_BOOTSTRAPPED:'Admin-Zugang eingerichtet',
+ INITIAL_ADMIN_RECOVERED:'Admin-Zugang wiederhergestellt',
+ ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD:'Admin-Konto entsperrt'
+};
+
+function auditEvent(e){
+ var details=e&&e.details||{},label=AUDIT_LABELS[q(e&&e.type)]||q(e&&e.type).replace(/_/g,' ')||'Audit-Ereignis';
+ var entity='System',entityId=q(details.userId||details.username);
+ if(entityId)entity='Benutzer';
+ return{
+   id:q(e&&e.id),at:q(e&&e.at),type:'audit',subtype:q(e&&e.type),label:label,
+   actor:{name:actorName(e)},entity:entity,entityId:entityId,details:details,source:'audit'
+ }
+}
+function shipmentEvent(sh,e){
+ var ref=shipmentRef(sh)||identity(sh)||'Sendung';
+ return{
+  id:q(e&&e.id),at:q(e&&e.at),type:'shipment',subtype:q(e&&e.type),label:q(e&&e.label)||'Sendungsereignis',
+  actor:e&&e.actor||{name:actorName(e)},entity:'Sendung',entityId:ref,details:e&&e.details||{},source:'shipment'
+ }
+}
+function customerEvent(c,e){
+ return{
+  id:q(e&&e.id),at:q(e&&e.at),type:'customer',subtype:q(e&&e.type),label:q(e&&e.label)||'Kundenereignis',
+  actor:e&&e.actor||{name:actorName(e)},entity:'Kunde',entityId:q(c&&c.account||c&&c.customerNumber||c&&c.kundennummer)||customerName(c),details:e&&e.details||{},source:'customer'
+ }
+}
+function allShipments(){
+ var s=state(),list=[],seen={};
+ ['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments'].forEach(function(k){
+  arr(s[k]).forEach(function(sh){var id=identity(sh)||('ROW-'+list.length);if(!seen[id]){seen[id]=1;list.push(sh)}})
+ });
+ return list
+}
+function allEvents(){
+ var s=state(),map=new Map();
+ arr(s.auditLog).forEach(function(e){pushUnique(map,auditEvent(e))});
+ allShipments().forEach(function(sh){arr(sh&&sh.shipmentHistory).forEach(function(e){pushUnique(map,shipmentEvent(sh,e))})});
+ arr(s.customers).forEach(function(c){arr(c&&c.customerHistory).forEach(function(e){pushUnique(map,customerEvent(c,e))})});
+ return Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)})
+}
+function detailText(e){
+ var x=e&&e.details||{},parts=[];
+ if(x.username)parts.push('Benutzer: '+q(x.username));
+ if(x.previousName||x.displayName)parts.push((x.previousName?q(x.previousName)+' → ':'')+q(x.displayName));
+ if(x.document)parts.push(q(x.document));
+ if(x.to)parts.push('An: '+q(x.to));
+ if(x.from&&x.to)parts.push(q(x.from)+' → '+q(x.to));
+ if(x.fields)parts.push('Geändert: '+q(x.fields));
+ if(x.status)parts.push('Status: '+q(x.status));
+ if(x.from&&x.to&&!x.document)parts.push(q(x.from)+' → '+q(x.to));
+ if(x.reference)parts.push('Ref: '+q(x.reference));
+ if(x.date)parts.push('Datum: '+q(x.date)+(x.time?' '+q(x.time):''));
+ if(x.driver)parts.push('Fahrer: '+q(x.driver));
+ if(x.licensePlate)parts.push('Kennzeichen: '+q(x.licensePlate));
+ if(Number.isFinite(Number(x.colli)))parts.push('Colli: '+Number(x.colli));
+ if(Number.isFinite(Number(x.terminated))&&Number(x.terminated)>0)parts.push('Beendet: '+Number(x.terminated));
+ return Array.from(new Set(parts.filter(Boolean))).join(' · ')
+}
+function actorList(events){return Array.from(new Set(events.map(function(e){return actorName(e)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')})}
+function filterEvents(events){
+ var cutoff=Date.now()-Math.max(1,Number(FILTER.days||365))*86400000,needle=low(FILTER.query);
+ return events.filter(function(e){
+  var ts=Date.parse(e.at||'');if(Number.isFinite(ts)&&ts<cutoff)return false;
+  if(FILTER.type!=='all'&&e.type!==FILTER.type)return false;
+  if(FILTER.actor!=='all'&&actorName(e)!==FILTER.actor)return false;
+  if(!needle)return true;
+  return low([e.label,e.entity,e.entityId,actorName(e),e.subtype,detailText(e)].join(' ')).indexOf(needle)>=0
+ })
+}
+function typeLabel(type){return({shipment:'Sendungen',customer:'Kunden',audit:'System / Benutzer'})[type]||type}
+function typeIcon(type){return({shipment:'S',customer:'K',audit:'A'})[type]||'•'}
+function ensureStyle(){
+ if(d.getElementById('rc1081AuditHistoryStyle'))return;
+ var s=d.createElement('style');s.id='rc1081AuditHistoryStyle';
+ s.textContent='.rc1081-audit{margin-top:16px}.rc1081-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.rc1081-filters{display:grid;grid-template-columns:minmax(200px,1.4fr) minmax(150px,.7fr) minmax(170px,.8fr) minmax(120px,.5fr);gap:8px;margin:12px 0}.rc1081-filters input,.rc1081-filters select{min-height:40px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}.rc1081-list{display:grid;gap:8px;max-height:620px;overflow:auto;padding-right:4px}.rc1081-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;padding:10px 12px;border:1px solid #dbe4ec;border-radius:10px;background:#fff;align-items:start}.rc1081-icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef6ff;font-weight:800}.rc1081-label{font-weight:750}.rc1081-meta,.rc1081-detail{font-size:12px;color:#64748b;margin-top:2px}.rc1081-entity{font-size:12px;font-weight:700;color:#334155;white-space:nowrap}.rc1081-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b}.rc1081-stats{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:760px){.rc1081-filters{grid-template-columns:1fr 1fr}.rc1081-row{grid-template-columns:30px 1fr}.rc1081-entity{grid-column:2;white-space:normal}}@media(max-width:520px){.rc1081-filters{grid-template-columns:1fr}}';
+ (d.head||d.documentElement).appendChild(s)
+}
+function render(){
+ var old=d.getElementById('rc1081AuditHistory');
+ if(!archiveView()){if(old)old.remove();return false}
+ var host=d.getElementById('content')||d.querySelector('main')||d.body;if(!host)return false;
+ if(!old){old=d.createElement('section');old.id='rc1081AuditHistory';old.className='card rc1081-audit';host.appendChild(old)}
+ var events=allEvents(),actors=actorList(events),filtered=filterEvents(events);
+ var typeOptions=[['all','Alle Bereiche'],['shipment','Sendungen'],['customer','Kunden'],['audit','System / Benutzer']].map(function(x){return'<option value="'+x[0]+'"'+(FILTER.type===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('');
+ var actorOptions='<option value="all">Alle Benutzer</option>'+actors.map(function(a){return'<option value="'+esc(a)+'"'+(FILTER.actor===a?' selected':'')+'>'+esc(a)+'</option>'}).join('');
+ var rows=filtered.length?filtered.map(function(e){
+  var det=detailText(e);
+  return'<div class="rc1081-row"><div class="rc1081-icon">'+esc(typeIcon(e.type))+'</div><div><div class="rc1081-label">'+esc(e.label)+'</div><div class="rc1081-meta">'+esc(fmt(e.at))+' · '+esc(actorName(e))+' · '+esc(typeLabel(e.type))+'</div>'+(det?'<div class="rc1081-detail">'+esc(det)+'</div>':'')+'</div><div class="rc1081-entity">'+esc(e.entity)+(e.entityId?' · '+esc(e.entityId):'')+'</div></div>'
+ }).join(''):'<div class="rc1081-empty">Keine History-Einträge für die gewählten Filter gefunden.</div>';
+ old.innerHTML='<div class="rc1081-head"><div><span class="pill blue">HISTORY</span><h3>Zentrale Aktivitäts- und Audit-History</h3><div class="muted">Sendungen, Kunden sowie Benutzer- und Systemaktionen an einer Stelle.</div></div><div class="rc1081-stats"><span class="pill gray">'+filtered.length+' angezeigt</span><span class="pill gray">'+events.length+' gesamt</span></div></div><div class="rc1081-filters"><input data-rc1081-q placeholder="Suche nach Benutzer, Referenz, Kunde, Aktion …" value="'+esc(FILTER.query)+'"><select data-rc1081-type>'+typeOptions+'</select><select data-rc1081-actor>'+actorOptions+'</select><select data-rc1081-days><option value="30"'+(FILTER.days===30?' selected':'')+'>30 Tage</option><option value="90"'+(FILTER.days===90?' selected':'')+'>90 Tage</option><option value="180"'+(FILTER.days===180?' selected':'')+'>180 Tage</option><option value="365"'+(FILTER.days===365?' selected':'')+'>12 Monate</option></select></div><div class="rc1081-list">'+rows+'</div>';
+ ensureStyle();
+ var qf=old.querySelector('[data-rc1081-q]'),tf=old.querySelector('[data-rc1081-type]'),af=old.querySelector('[data-rc1081-actor]'),df=old.querySelector('[data-rc1081-days]');
+ if(qf)qf.addEventListener('input',function(){FILTER.query=this.value;render()});
+ if(tf)tf.addEventListener('change',function(){FILTER.type=this.value;render()});
+ if(af)af.addEventListener('change',function(){FILTER.actor=this.value;render()});
+ if(df)df.addEventListener('change',function(){FILTER.days=Number(this.value)||365;render()});
+ return true
+}
+function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1081 Audit-History',e)}catch(_){}}},0)}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1081',events:allEvents,render:render,filter:filterEvents});
+})(window,document);
