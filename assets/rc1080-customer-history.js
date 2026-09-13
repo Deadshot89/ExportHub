@@ -83,7 +83,7 @@ function wrapSave(){
  var clean=w.ExportHUBClean;if(!clean||typeof clean.flushSave!=='function')return false;
  if(clean.flushSave.__rc1080CustomerHistory){WRAPPED=true;return true}
  var original=clean.flushSave;
- var wrapped=async function(reason,opt){try{prepare(reason,opt)}catch(e){try{console.warn('RC1080 Kundenhistorie',e)}catch(_){}}return await original.apply(this,arguments)};
+ var wrapped=async function(){return await original.apply(this,arguments)};
  wrapped.__rc1080CustomerHistory=true;wrapped.__original=original;clean.flushSave=wrapped;WRAPPED=true;return true
 }
 function formatDate(v){var x=new Date(v);if(!Number.isFinite(x.getTime()))return q(v)||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(x)}
