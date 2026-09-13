@@ -31,6 +31,8 @@ test('RC1076: Funktionsadministrator wird nicht fälschlich als Global Admin erk
   vm.runInNewContext(runtime,sandbox,{filename:'rc1075-loader-pin-admin.js'});
   const client=window.ExportHUBRC1075LoaderPins;
   assert.equal(client.globalAdmin(),false);
+  current={role:'Benutzer',isAdmin:true,admin:true,globalAdmin:false,permissions:[]};
+  assert.equal(client.globalAdmin(),false);
   current={role:'Globaler Administrator',globalAdmin:true,permissions:['*']};
   assert.equal(client.globalAdmin(),true);
 });
