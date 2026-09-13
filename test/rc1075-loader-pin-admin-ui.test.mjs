@@ -68,3 +68,12 @@ test('RC1087: Verlader-PIN Änderungen werden serverseitig auditiert ohne PIN-We
   assert.doesNotMatch(block,/payload\.pin|\bpin\s*:/);
   assert.match(api,/X-ExportHUB-Loader-Pin-Audit/);
 });
+
+
+test('RC1087: fehlgeschlagenes Historien-Audit wird nach PIN-Änderungen sichtbar gemeldet',()=>{
+  assert.match(runtime,/function mutationStatus\(box,data,successMessage\)/);
+  assert.match(runtime,/data\.auditStored===false/);
+  assert.match(runtime,/Historieneintrag konnte nicht gespeichert werden/);
+  assert.match(runtime,/Fehlerdiagnose prüfen/);
+  assert.match(runtime,/data-kind="warning"/);
+});
