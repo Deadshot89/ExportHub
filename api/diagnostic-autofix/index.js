@@ -82,7 +82,7 @@ async function validateGlobalAdmin(req,payload,env){
  if(!isAdmin(user))throw error('GLOBAL_ADMIN_REQUIRED','Die automatische Fehlerbehebung ist nur für globale Administratoren verfügbar.',403);
  return user;
 }
-async function githubOidcAuthorized(req,workflowFile){
+async function githubOidcAuthorized(req,workflowFile,allowedEvents){
  const token=text(header(req,'x-exporthub-github-oidc'));if(!token)return false;
  try{
   const parts=token.split('.');if(parts.length!==3)return false;
@@ -91,7 +91,8 @@ async function githubOidcAuthorized(req,workflowFile){
   const nowSec=Math.floor(Date.now()/1000),aud=Array.isArray(claims.aud)?claims.aud:[claims.aud];
   const expectedWorkflow=REPO+'/.github/workflows/'+workflowFile+'@refs/heads/main';
   if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
-  if(claims.repository!==REPO||claims.ref!=='refs/heads/main'||claims.event_name!=='workflow_dispatch')return false;
+  const events=Array.isArray(allowedEvents)&&allowedEvents.length?allowedEvents:['workflow_dispatch'];
+  if(claims.repository!==REPO||claims.ref!=='refs/heads/main'||!events.includes(claims.event_name))return false;
   if(claims.workflow_ref!==expectedWorkflow)return false;
   if(!Number(claims.exp)||Number(claims.exp)<=nowSec-30)return false;
   if(Number(claims.nbf||0)>nowSec+60||Number(claims.iat||0)>nowSec+60||Number(claims.iat||0)<nowSec-900)return false;
@@ -104,10 +105,10 @@ async function githubOidcAuthorized(req,workflowFile){
   return crypto.verify('RSA-SHA256',Buffer.from(parts[0]+'.'+parts[1]),key,signature);
  }catch(_){return false}
 }
-async function callbackAuthorized(req,workflowFile){
+async function callbackAuthorized(req,workflowFile,allowedEvents){
  const configured=text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET),received=text(header(req,'x-exporthub-autofix-secret'));
  if(configured&&received&&safeEqual(configured,received))return true;
- return githubOidcAuthorized(req,workflowFile||WORKFLOW);
+ return githubOidcAuthorized(req,workflowFile||WORKFLOW,allowedEvents);
 }
 function diagBlob(env){ return service().getContainerClient(TEAM_CONTAINER).getBlockBlobClient(env==='testservice'?DIAG_TEST_BLOB:DIAG_PROD_BLOB); }
 function teamBlob(env){
@@ -233,7 +234,7 @@ module.exports=async function(context,req){
   else if(action==='claim'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await claim(payload,env)}
   else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await workflowStatus(payload,env)}
   else if(action==='preflight'){
-   if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Vorflug nicht autorisiert.',401);
+   if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW,['push','workflow_dispatch'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Vorflug nicht autorisiert.',401);
    result={ok:true,githubDispatchConfigured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),callbackMode:'github-oidc',repo:REPO,workflow:WORKFLOW,environment:env}
   }
   else if(action==='configuration'){

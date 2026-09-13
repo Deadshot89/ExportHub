@@ -116,3 +116,9 @@ test('RC1083: GitHub OIDC statt dauerhaftem Callback-Secret schützt den Rückka
   assert.match(preflight,/githubDispatchConfigured/);
   assert.doesNotMatch(preflight,/EXPORTHUB_AUTOFIX_CALLBACK_SECRET/);
 });
+
+test('RC1083: Preflight darf zusätzlich Push-OIDC verwenden, echter Autofix bleibt workflow_dispatch',()=>{
+  assert.match(api,/callbackAuthorized\(req,PREFLIGHT_WORKFLOW,\['push','workflow_dispatch'\]\)/);
+  assert.match(api,/callbackAuthorized\(req,WORKFLOW\)/);
+  assert.match(api,/events\.includes\(claims\.event_name\)/);
+});
