@@ -26,6 +26,7 @@ var AUDIT_LABELS={
  LOGIN_SUCCESS:'Anmeldung erfolgreich',
  LOGOUT:'Abmeldung',
  PROFILE_DISPLAY_NAME_UPDATED:'Anzeigename geändert',
+ USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'Anzeigename durch Administrator geändert',
  USER_CREATED:'Benutzer angelegt',
  USER_RIGHTS_UPDATED:'Benutzerrechte geändert',
  USER_ACTIVATED:'Benutzer aktiviert',
