@@ -112,6 +112,19 @@ function ensureStyle(){
  s.textContent='.rc1081-audit{margin-top:16px}.rc1081-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.rc1081-filters{display:grid;grid-template-columns:minmax(200px,1.4fr) minmax(150px,.7fr) minmax(170px,.8fr) minmax(120px,.5fr);gap:8px;margin:12px 0}.rc1081-filters input,.rc1081-filters select{min-height:40px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff}.rc1081-list{display:grid;gap:8px;max-height:620px;overflow:auto;padding-right:4px}.rc1081-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;padding:10px 12px;border:1px solid #dbe4ec;border-radius:10px;background:#fff;align-items:start}.rc1081-icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef6ff;font-weight:800}.rc1081-label{font-weight:750}.rc1081-meta,.rc1081-detail{font-size:12px;color:#64748b;margin-top:2px}.rc1081-entity{font-size:12px;font-weight:700;color:#334155;white-space:nowrap}.rc1081-empty{padding:18px;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b}.rc1081-stats{display:flex;gap:6px;flex-wrap:wrap}@media(max-width:760px){.rc1081-filters{grid-template-columns:1fr 1fr}.rc1081-row{grid-template-columns:30px 1fr}.rc1081-entity{grid-column:2;white-space:normal}}@media(max-width:520px){.rc1081-filters{grid-template-columns:1fr}}';
  (d.head||d.documentElement).appendChild(s)
 }
+function csvCell(v){var x=String(v==null?'':v);return '"'+x.replace(/"/g,'""')+'"'}
+function currentFiltered(){return filterEvents(allEvents())}
+function exportCsv(){
+ var rows=[['Datum/Uhrzeit','Bereich','Aktion','Benutzer','Objekt','Referenz/Konto','Details']];
+ currentFiltered().forEach(function(e){rows.push([fmt(e.at),typeLabel(e.type),e.label,actorName(e),e.entity,e.entityId||'',detailText(e)])});
+ var csv='\ufeff'+rows.map(function(r){return r.map(csvCell).join(';')}).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=d.createElement('a');
+ a.href=url;a.download='ExportHUB_History_'+new Date().toISOString().slice(0,10)+'.csv';d.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1000)
+}
+function printHistory(){
+ var rows=currentFiltered(),body=rows.map(function(e){return'<tr><td>'+esc(fmt(e.at))+'</td><td>'+esc(typeLabel(e.type))+'</td><td><b>'+esc(e.label)+'</b>'+(detailText(e)?'<br><small>'+esc(detailText(e))+'</small>':'')+'</td><td>'+esc(actorName(e))+'</td><td>'+esc(e.entity)+(e.entityId?' · '+esc(e.entityId):'')+'</td></tr>'}).join('');
+ var html='<!doctype html><html lang="de"><head><meta charset="utf-8"><title>ExportHUB History</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Segoe UI,Arial,sans-serif;color:#0f172a}h1{margin:0 0 4px}.meta{margin:0 0 12px;color:#475569}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:6px;text-align:left;vertical-align:top;font-size:10px}th{background:#e2e8f0}small{color:#475569}</style></head><body><h1>ExportHUB · Aktivitäts- und Audit-History</h1><p class="meta">'+rows.length+' Einträge · erstellt '+esc(fmt(new Date().toISOString()))+'</p><table><thead><tr><th>Datum/Uhrzeit</th><th>Bereich</th><th>Aktion</th><th>Benutzer</th><th>Objekt</th></tr></thead><tbody>'+body+'</tbody></table></body></html>',pw=w.open('about:blank','_blank','width=1200,height=820');
+ if(!pw)return false;pw.opener=null;pw.document.open();pw.document.write(html);pw.document.close();var run=function(){try{pw.focus();pw.print()}catch(_){}};if(pw.document.readyState==='complete')setTimeout(run,200);else pw.addEventListener('load',function(){setTimeout(run,150)},{once:true});return true
+}
 function render(){
  var old=d.getElementById('rc1081AuditHistory');
  if(!archiveView()){if(old)old.remove();return false}
@@ -124,17 +137,20 @@ function render(){
   var det=detailText(e);
   return'<div class="rc1081-row"><div class="rc1081-icon">'+esc(typeIcon(e.type))+'</div><div><div class="rc1081-label">'+esc(e.label)+'</div><div class="rc1081-meta">'+esc(fmt(e.at))+' · '+esc(actorName(e))+' · '+esc(typeLabel(e.type))+'</div>'+(det?'<div class="rc1081-detail">'+esc(det)+'</div>':'')+'</div><div class="rc1081-entity">'+esc(e.entity)+(e.entityId?' · '+esc(e.entityId):'')+'</div></div>'
  }).join(''):'<div class="rc1081-empty">Keine History-Einträge für die gewählten Filter gefunden.</div>';
- old.innerHTML='<div class="rc1081-head"><div><span class="pill blue">HISTORY</span><h3>Zentrale Aktivitäts- und Audit-History</h3><div class="muted">Sendungen, Kunden sowie Benutzer- und Systemaktionen an einer Stelle.</div></div><div class="rc1081-stats"><span class="pill gray">'+filtered.length+' angezeigt</span><span class="pill gray">'+events.length+' gesamt</span></div></div><div class="rc1081-filters"><input data-rc1081-q placeholder="Suche nach Benutzer, Referenz, Kunde, Aktion …" value="'+esc(FILTER.query)+'"><select data-rc1081-type>'+typeOptions+'</select><select data-rc1081-actor>'+actorOptions+'</select><select data-rc1081-days><option value="30"'+(FILTER.days===30?' selected':'')+'>30 Tage</option><option value="90"'+(FILTER.days===90?' selected':'')+'>90 Tage</option><option value="180"'+(FILTER.days===180?' selected':'')+'>180 Tage</option><option value="365"'+(FILTER.days===365?' selected':'')+'>12 Monate</option></select></div><div class="rc1081-list">'+rows+'</div>';
+ old.innerHTML='<div class="rc1081-head"><div><span class="pill blue">HISTORY</span><h3>Zentrale Aktivitäts- und Audit-History</h3><div class="muted">Sendungen, Kunden sowie Benutzer- und Systemaktionen an einer Stelle.</div></div><div class="rc1081-stats"><span class="pill gray">'+filtered.length+' angezeigt</span><span class="pill gray">'+events.length+' gesamt</span><button type="button" class="btn ghost" data-rc1081-csv>CSV exportieren</button><button type="button" class="btn" data-rc1081-print>Drucken</button></div></div><div class="rc1081-filters"><input data-rc1081-q placeholder="Suche nach Benutzer, Referenz, Kunde, Aktion …" value="'+esc(FILTER.query)+'"><select data-rc1081-type>'+typeOptions+'</select><select data-rc1081-actor>'+actorOptions+'</select><select data-rc1081-days><option value="30"'+(FILTER.days===30?' selected':'')+'>30 Tage</option><option value="90"'+(FILTER.days===90?' selected':'')+'>90 Tage</option><option value="180"'+(FILTER.days===180?' selected':'')+'>180 Tage</option><option value="365"'+(FILTER.days===365?' selected':'')+'>12 Monate</option></select></div><div class="rc1081-list">'+rows+'</div>';
  ensureStyle();
  var qf=old.querySelector('[data-rc1081-q]'),tf=old.querySelector('[data-rc1081-type]'),af=old.querySelector('[data-rc1081-actor]'),df=old.querySelector('[data-rc1081-days]');
  if(qf)qf.addEventListener('input',function(){FILTER.query=this.value;render()});
  if(tf)tf.addEventListener('change',function(){FILTER.type=this.value;render()});
  if(af)af.addEventListener('change',function(){FILTER.actor=this.value;render()});
  if(df)df.addEventListener('change',function(){FILTER.days=Number(this.value)||365;render()});
+ var csv=old.querySelector('[data-rc1081-csv]'),pr=old.querySelector('[data-rc1081-print]');
+ if(csv)csv.addEventListener('click',exportCsv);
+ if(pr)pr.addEventListener('click',printHistory);
  return true
 }
 function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1081 Audit-History',e)}catch(_){}}},0)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1081',events:allEvents,render:render,filter:filterEvents});
+w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1081',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory});
 })(window,document);
