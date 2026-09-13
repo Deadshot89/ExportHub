@@ -130,7 +130,8 @@ jobs:
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1079-profile-settings.js?v=1079' "dist-rc1048/$file"
             grep -q 'assets/rc1080-customer-history.js?v=1080' "dist-rc1048/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1081' "dist-rc1048/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1082' "dist-rc1048/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1082' "dist-rc1048/$file"
           done
           test -s dist-rc1048/assets/rc1079-profile-settings.js
           test -s dist-rc1048/assets/rc1080-customer-history.js
@@ -138,6 +139,10 @@ jobs:
           grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' dist-rc1048/assets/rc1080-customer-history.js
           test -s dist-rc1048/assets/rc1081-audit-history.js
           grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' dist-rc1048/assets/rc1081-audit-history.js
+          grep -q 'Mit ChatGPT beheben' dist-rc1048/assets/rc1013-diagnostics.js
+          grep -q '/api/diagnostic-autofix' dist-rc1048/assets/rc1013-diagnostics.js
+          grep -q "view:'history',label:'History',right:'history'" dist-rc1048/index.html
+          grep -q "view:'history',label:'History',right:'history'" dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/index.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/demo.html
@@ -170,7 +175,7 @@ jobs:
           test -s dist-rc1048/assets/sop/screenshots/rc1016-tasks.png
           test -s dist-rc1048/assets/sop/screenshots/rc1016-shipmentoverview.png
           test -s dist-rc1048/assets/sop/screenshots/rc1016-pickupcalendar.png
-          grep -q 'assets/rc1013-diagnostics.js?v=1013' dist-rc1048/index.html
+          grep -q 'assets/rc1013-diagnostics.js?v=1083' dist-rc1048/index.html
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1048/$file"
           done
@@ -616,7 +621,7 @@ jobs:
           echo 'RC1079/RC1080 Liveprüfung nicht bestätigt.' >&2
           exit 1
 
-      - name: Live RC1081 zentrale Audit-History prüfen
+      - name: Live RC1082 History-Reiter prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -626,22 +631,53 @@ jobs:
             ok=1
             for base in "$prod" "$testservice"; do
               page=$(mktemp); asset=$(mktemp)
-              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1081=$GITHUB_SHA-$attempt" || true)
-              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1081=$GITHUB_SHA-$attempt" || true)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1082=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1082=$GITHUB_SHA-$attempt" || true)
               [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
-              grep -q 'assets/rc1081-audit-history.js?v=1081' "$page" || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1082' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
-              grep -q 'Zentrale Aktivitäts- und Audit-History' "$asset" || ok=0
+              grep -q '<h3>History</h3>' "$asset" || ok=0
               grep -q 'shipmentHistory' "$asset" || ok=0
               grep -q 'customerHistory' "$asset" || ok=0
               grep -q 'auditLog' "$asset" || ok=0
               rm -f "$page" "$asset"
             done
             if [[ "$ok" == '1' ]]; then
-              echo 'RC1081 zentrale Audit-History live bestätigt.'
+              echo 'RC1082 History-Reiter live bestätigt.'
               exit 0
             fi
             sleep 5
           done
-          echo 'RC1081 zentrale Audit-History live nicht bestätigt.' >&2
+          echo 'RC1082 History-Reiter live nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1083 Diagnose-Autofix prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp); api=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1083=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1013-diagnostics.js?rc1083=$GITHUB_SHA-$attempt" || true)
+              apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              [[ "$apiCode" == '401' ]] || ok=0
+              grep -q 'assets/rc1013-diagnostics.js?v=1083' "$page" || ok=0
+              grep -q 'Mit ChatGPT beheben' "$asset" || ok=0
+              grep -q '/api/diagnostic-autofix' "$asset" || ok=0
+              grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || ok=0
+              grep -q 'AUTH_REQUIRED' "$api" || ok=0
+              rm -f "$page" "$asset" "$api"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1083 Diagnose-Autofix ist live und gegen anonymen Zugriff geschützt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1083 Diagnose-Autofix-Liveprüfung nicht bestätigt.' >&2
           exit 1
