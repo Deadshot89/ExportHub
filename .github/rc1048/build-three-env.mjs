@@ -349,6 +349,8 @@ function patchHistoryNavigation(html,file){
     }else list+=','+item;
     block=block.slice(0,arrayStart)+list+block.slice(arrayEnd);
   }
+  block=block.replace("teamfile:'#8b5cf6',archive:'#64748b'","teamfile:'#8b5cf6',history:'#0ea5e9',archive:'#64748b'");
+  block=block.replace("item.view==='warehouse'?'🏭':item.view==='privacy'?'🛡️':item.view==='shipmentsearch'?'⌕':'•'","item.view==='history'?'↺':item.view==='warehouse'?'🏭':item.view==='privacy'?'🛡️':item.view==='shipmentsearch'?'⌕':'•'");
   const historyRoute=" if(view==='history'&&window.ExportHUBRC1081AuditHistory&&typeof window.ExportHUBRC1081AuditHistory.render==='function'){setViewState(view);prepareDirectView(view);var historyRoot=document.getElementById('content');if(historyRoot)historyRoot.innerHTML='';var historyOut=window.ExportHUBRC1081AuditHistory.render();finishDirectView(view);return historyOut}";
   if(!block.includes(historyRoute)){
     const routeAnchor=" if(view==='diagnostics'){var diag=window.ExportHUBDiagnostics871||window.ExportHUBDiagnostics870;";
