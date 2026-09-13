@@ -14,6 +14,7 @@ function isStatusNode(el){
   return /status|message|notice|alert|hint/.test(id+' '+cls)||el.hasAttribute('role')&&q(el.getAttribute('role')).toLowerCase()==='status'||el.hasAttribute('aria-live')
 }
 function hideNode(el){
+  if(el.getAttribute('data-rc1074-login-progress-hidden')==='true'&&el.hidden&&el.style.display==='none')return;
   el.hidden=true;
   el.style.display='none';
   el.setAttribute('data-rc1074-login-progress-hidden','true');
