@@ -104,7 +104,7 @@ jobs:
           fetch-depth: 2
       - uses: actions/setup-node@v5
         with:
-          node-version: '24'
+          node-version: '20'
           package-manager-cache: false
       - name: RC1048 Freigabevertrag prüfen
         shell: bash
