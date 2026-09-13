@@ -32,7 +32,7 @@ jobs:
             grep -q 'Mit ChatGPT beheben' "$asset" && chatgptMarker=1
             grep -q '/api/diagnostic-autofix' "$asset" && endpointMarker=1
             grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" && titleMarker=1
-            grep -q 'AUTH_REQUIRED' "$api" && authMarker=1
+            grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" && authMarker=1
             echo "BASE=$base page=$pc asset=$ac api=$apiCode pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
             printf 'API_BODY='
             head -c 1000 "$api" | tr '\n' ' ' || true
