@@ -6,6 +6,7 @@ w.__EXPORTHUB_RC1081_AUDIT_HISTORY__=true;
 w.__EXPORTHUB_RC1084_HISTORY_DE__=true;
 w.__EXPORTHUB_RC1086_HISTORY_COMPLETE__=true;
 w.__EXPORTHUB_RC1087_ADMIN_AUDIT__=true;
+w.__EXPORTHUB_RC1087_RELEASE__=true;
 
 var FILTER={query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:0,from:'',to:''};
 
