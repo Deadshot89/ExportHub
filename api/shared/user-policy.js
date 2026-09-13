@@ -10,12 +10,14 @@ function text(value) { return String(value == null ? '' : value).trim(); }
 function lower(value) { return text(value).toLowerCase(); }
 function userName(user) { return lower(user && (user.user || user.login || user.username || user.name)); }
 
+const GLOBAL_ADMIN_ROLES = new Set(['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff']);
+
 function isAdmin(user) {
   const role = lower(user && (user.role || user.rolle));
-  const globalRole = role === 'admin' || /global.?admin|administrator|vollzugriff/i.test(role);
   return Boolean(user && (
     user.globalAdmin === true ||
-    globalRole ||
+    user.isGlobalAdmin === true ||
+    GLOBAL_ADMIN_ROLES.has(role) ||
     (Array.isArray(user.permissions) && user.permissions.includes('*'))
   ));
 }
