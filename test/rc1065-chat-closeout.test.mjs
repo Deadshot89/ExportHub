@@ -71,7 +71,7 @@ test('RC1065: Wochenplan bleibt A4 Mo-Fr und NEFF wird erneut aus Live-Daten ent
   assert.match(js,/const WEEKDAYS = Object\.freeze\(\{1:'Montag',2:'Dienstag',3:'Mittwoch',4:'Donnerstag',5:'Freitag'\}\)/);
   assert.match(js,/Ref: \$\{esc\(ref\)\} · Anzahl: \$\{collis\.expected\}/);
   assert.match(runtime,/@page\{size:A4 landscape/);
-  assert.match(seed,/const SEED_VERSION = 8;/);
+  assert.match(seed,/const SEED_VERSION = 9;/);
   assert.match(seed,/isRemovedNeff/);
 });
 
