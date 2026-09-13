@@ -445,3 +445,31 @@ jobs:
           done
           echo 'RC1048 Mail- und Sprachruntime live nicht bestätigt.'
           exit 1
+
+      - name: Live RC1074 Login ohne technische Prüfhinweise prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for url in               "$prod/?rc1074=$GITHUB_SHA-$attempt"               "$testservice/TESTVERSION.html?rc1074=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q 'assets/rc1074-login-clean.js?v=1074' "$body" || ok=0
+              if grep -Eqi 'Anmeldekonfiguration wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Auth-Backend wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Zugangsdaten eingeben' "$body"; then
+                echo "RC1074: technischer Login-Hinweis ist live noch vorhanden: $url" >&2
+                ok=0
+              fi
+              rm -f "$body"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1074 Login ist live in Produktion und TESTSERVICE ohne technische Prüfhinweise bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1074 Login-Liveprüfung nicht bestätigt.' >&2
+          exit 1
