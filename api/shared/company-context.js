@@ -31,12 +31,13 @@ function requested(req){
   const b = req && req.body || {};
   return key(h['x-exporthub-company-id'] || h['X-ExportHUB-Company-Id'] || q.companyId || b.companyId);
 }
+const GLOBAL_ADMIN_ROLES = new Set(['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff']);
 function isGlobalAdmin(user){
   const role = text(user && (user.role || user.rolle)).toLowerCase();
   return Boolean(user && (
     user.globalAdmin === true ||
-    role === 'admin' ||
-    /global.?admin|administrator|vollzugriff/.test(role) ||
+    user.isGlobalAdmin === true ||
+    GLOBAL_ADMIN_ROLES.has(role) ||
     (Array.isArray(user.permissions) && user.permissions.includes('*'))
   ));
 }
