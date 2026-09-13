@@ -28,7 +28,7 @@ function loadRuntime({responses}={}){
 test('RC1061: Dokumentmigration wird nur globalen Admins angeboten',()=>{
   const {api}=loadRuntime();
   assert.equal(api.isAdmin({role:'admin'}),true);assert.equal(api.isAdmin({globalAdmin:true}),true);
-  assert.equal(api.isAdmin({role:'Benutzer'}),false);assert.equal(api.isAdmin({rights:{settings:{admin:true}}}),false);
+  assert.equal(api.isAdmin({role:'Benutzer'}),false);assert.equal(api.isAdmin({role:'Funktionsadministrator'}),false);assert.equal(api.isAdmin({role:'Globaler Administrator'}),true);assert.equal(api.isAdmin({rights:{settings:{admin:true}}}),false);
 });
 
 test('RC1066: jeder interne Migrationsaufruf bleibt exakt ein sicherer 5er-Batch in der aktuellen Umgebung',async()=>{
