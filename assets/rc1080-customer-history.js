@@ -101,7 +101,7 @@ function render(){
  if(!old){old=d.createElement('section');old.id='rc1080CustomerHistory';old.className='card rc1080-customer-history';host.appendChild(old)}
  var events=arr(c.customerHistory).slice().sort(function(a,b){return Date.parse(b&&b.at||0)-Date.parse(a&&a.at||0)});
  var rows=events.length?events.map(function(e){var det=detail(e);return'<div class="rc1080-customer-history-row"><strong>'+esc(e.label||'Kundenänderung')+'</strong><div class="rc1080-customer-history-meta">'+esc(formatDate(e.at))+' · '+esc(e.actor&&e.actor.name||'Unbekannt')+(e.actor&&e.actor.role?' · '+esc(e.actor.role):'')+'</div>'+(det?'<div class="rc1080-customer-history-detail">'+esc(det)+'</div>':'')+'</div>'}).join(''):'<div class="muted">Für diesen Kunden sind noch keine protokollierten Änderungen vorhanden.</div>';
- old.innerHTML='<div class="rc1080-customer-history-head"><div><span class="pill blue">HISTORY</span><h3>Kundenhistorie</h3><div class="muted">'+esc(name(c))+'</div></div><span class="pill gray">'+events.length+' Ereignisse</span></div><div class="rc1080-customer-history-list">'+rows+'</div>';
+ old.innerHTML='<div class="rc1080-customer-history-head"><div><span class="pill blue">HISTORIE</span><h3>Kundenhistorie</h3><div class="muted">'+esc(name(c))+'</div></div><span class="pill gray">'+events.length+' Ereignisse</span></div><div class="rc1080-customer-history-list">'+rows+'</div>';
  ensureStyle();return true
 }
 function schedule(){

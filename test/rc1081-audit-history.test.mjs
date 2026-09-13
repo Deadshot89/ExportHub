@@ -6,6 +6,9 @@ const authStore=fs.readFileSync('api/shared/auth-store.js','utf8');
 const authApi=fs.readFileSync('api/exporthub-auth/index.js','utf8');
 const runtime=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
+const shipmentHistory=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
+const customerHistory=fs.readFileSync('assets/rc1080-customer-history.js','utf8');
+const profile=fs.readFileSync('assets/rc1079-profile-settings.js','utf8');
 
 test('RC1081: Audit-Protokoll hält 12 Monate und begrenzt die Größe',()=>{
   assert.match(authStore,/365 \* 86400000/);
@@ -124,4 +127,14 @@ test('RC1084: alle verfügbaren Aktionen werden ohne interne Scroll-Begrenzung a
   assert.match(runtime,/data-rc1084-history-table/);
   assert.doesNotMatch(runtime,/max-height:620px/);
   assert.match(runtime,/events\.length\+' Aktionen im verfügbaren Datenbestand/);
+});
+
+
+test('RC1084: sichtbaren Historienansichten sind vollständig deutsch',()=>{
+  assert.match(shipmentHistory,/>HISTORIE<\/span>/);
+  assert.match(customerHistory,/>HISTORIE<\/span>/);
+  assert.doesNotMatch(shipmentHistory,/>HISTORY<\/span>/);
+  assert.doesNotMatch(customerHistory,/>HISTORY<\/span>/);
+  assert.match(profile,/Historie-Einträge/);
+  assert.doesNotMatch(profile,/History-Einträge/);
 });
