@@ -32,6 +32,7 @@ on:
       - 'test/rc1017-*.test.mjs'
       - 'test/rc1018-*.test.mjs'
       - 'test/**'
+      - 'tests/**'
       - 'test/rc1043-*.test.mjs'
       - 'test/rc1045-*.test.mjs'
       - 'test/rc1046-*.test.mjs'
