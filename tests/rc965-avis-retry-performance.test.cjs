@@ -28,7 +28,7 @@ for (const required of [
   'function autoExpiresOn(',
   'window.ExportHUBCustomerAvis706=api',
   'window.ExportHUBCustomerAvis705=api',
-  'SECURITY_VERSION=2'
+  'SECURITY_VERSION=995'
 ]) {
   assert(avis.includes(required), 'Kunden-Avis-Funktion verloren: ' + required);
 }
