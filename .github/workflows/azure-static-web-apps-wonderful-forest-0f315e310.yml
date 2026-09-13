@@ -130,8 +130,8 @@ jobs:
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1079-profile-settings.js?v=1079' "dist-rc1048/$file"
             grep -q 'assets/rc1080-customer-history.js?v=1080' "dist-rc1048/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1086' "dist-rc1048/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1086' "dist-rc1048/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1048/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1048/$file"
           done
           test -s dist-rc1048/assets/rc1079-profile-settings.js
           test -s dist-rc1048/assets/rc1080-customer-history.js
@@ -512,7 +512,7 @@ jobs:
           echo 'RC1074 Login-Liveprüfung nicht bestätigt.' >&2
           exit 1
 
-      - name: Live RC1075 Verlader-PIN Admin prüfen
+      - name: Live RC1087 Verlader-PIN Audit prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -533,6 +533,11 @@ jobs:
               apiCode=$(curl -sS -o "$apiBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"list"}' "$base/api/loader-pins-admin?rc1076=$GITHUB_SHA-$attempt" || true)
               [[ "$apiCode" == '401' ]] || ok=0
               grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$apiBody" || ok=0
+              headers=$(mktemp)
+              optionsCode=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' --max-time 20 -X OPTIONS "$base/api/loader-pins-admin" || true)
+              [[ "$optionsCode" == '204' ]] || ok=0
+              grep -qi 'X-ExportHUB-Loader-Pin-Audit: RC1087' "$headers" || ok=0
+              rm -f "$headers"
               rm -f "$apiBody"
             done
             p=$(mktemp); t=$(mktemp)
@@ -543,12 +548,12 @@ jobs:
             grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$t" || ok=0
             rm -f "$p" "$t"
             if [[ "$ok" == '1' ]]; then
-              echo 'RC1075 Verlader-PIN Admin ist live in Produktion und TESTSERVICE bestätigt.'
+              echo 'RC1087 Verlader-PIN Audit ist live in Produktion und TESTSERVICE bestätigt.'
               exit 0
             fi
             sleep 5
           done
-          echo 'RC1075 Verlader-PIN Admin-Liveprüfung nicht bestätigt.' >&2
+          echo 'RC1087 Verlader-PIN Audit-Liveprüfung nicht bestätigt.' >&2
           exit 1
 
       - name: Live RC1077 Kundenübersicht prüfen
@@ -621,7 +626,7 @@ jobs:
           echo 'RC1079/RC1080 Liveprüfung nicht bestätigt.' >&2
           exit 1
 
-      - name: Live RC1086 Historie vollständig prüfen
+      - name: Live RC1087 Historie vollständig prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -631,12 +636,14 @@ jobs:
             ok=1
             for base in "$prod" "$testservice"; do
               page=$(mktemp); asset=$(mktemp)
-              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1086=$GITHUB_SHA-$attempt" || true)
-              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1086=$GITHUB_SHA-$attempt" || true)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1087=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1087=$GITHUB_SHA-$attempt" || true)
               [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
-              grep -q 'assets/rc1081-audit-history.js?v=1086' "$page" || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1087' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
               grep -q '__EXPORTHUB_RC1086_HISTORY_COMPLETE__' "$asset" || ok=0
+              grep -q '__EXPORTHUB_RC1087_ADMIN_AUDIT__' "$asset" || ok=0
+              grep -q 'LOADER_PIN_CREATED' "$asset" || ok=0
               grep -q '<h3>Historie</h3>' "$asset" || ok=0
               grep -q 'ExportHUBShipmentHistory1071' "$asset" || ok=0
               grep -q 'customerHistory' "$asset" || ok=0
@@ -646,12 +653,12 @@ jobs:
               rm -f "$page" "$asset"
             done
             if [[ "$ok" == '1' ]]; then
-              echo 'RC1086 Historie inklusive Aufgaben und Palettenkonto live bestätigt.'
+              echo 'RC1087 Historie inklusive Aufgaben, Palettenkonto und Admin-Audit live bestätigt.'
               exit 0
             fi
             sleep 5
           done
-          echo 'RC1086 Historie-Liveprüfung nicht bestätigt.' >&2
+          echo 'RC1087 Historie-Liveprüfung nicht bestätigt.' >&2
           exit 1
 
       - name: Live RC1083 Diagnose-Autofix prüfen

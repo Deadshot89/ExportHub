@@ -55,3 +55,16 @@ test('RC1075: finaler Release bindet Admin-UI nur in Produktion und TESTSERVICE 
   assert.match(build,/if\(file!==\'demo\.html\'\)html=injectBeforeHeadClose\(html,RC1075_LOADER_PIN_TAG/);
   assert.match(build,/assets\/rc1075-loader-pin-admin\.js/);
 });
+
+
+test('RC1087: Verlader-PIN Änderungen werden serverseitig auditiert ohne PIN-Wert',()=>{
+  for(const marker of ['LOADER_PIN_CREATED','LOADER_PIN_UPDATED','LOADER_PIN_STATUS_CHANGED','LOADER_PIN_DELETED']) assert.match(api,new RegExp(marker));
+  assert.match(api,/auditStore\.addAudit/);
+  assert.match(api,/loaderId:/);
+  assert.match(api,/loaderName:/);
+  const start=api.indexOf('async function auditPinChange');
+  const end=api.indexOf('module.exports',start);
+  const block=api.slice(start,end);
+  assert.doesNotMatch(block,/payload\.pin|\bpin\s*:/);
+  assert.match(api,/X-ExportHUB-Loader-Pin-Audit/);
+});

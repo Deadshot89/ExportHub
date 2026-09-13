@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const pins = require('../shared/loader-pin-store');
+const auditStore = require('../shared/auth-store');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -89,11 +90,42 @@ async function validateGlobalAdmin(req, payload) {
   return user;
 }
 
+const PIN_AUDIT_TYPES = Object.freeze({
+  create: 'LOADER_PIN_CREATED',
+  update: 'LOADER_PIN_UPDATED',
+  toggle: 'LOADER_PIN_STATUS_CHANGED',
+  delete: 'LOADER_PIN_DELETED'
+});
+function adminName(user) { return text(user && (user.name || user.displayName || user.user || user.username)) || 'Administrator'; }
+function targetRow(action, before, after, payload) {
+  const id = text(payload && payload.id);
+  if (action === 'create') {
+    const prior = new Set((before || []).map(x => text(x && x.id)));
+    return (after || []).find(x => !prior.has(text(x && x.id))) || (after || []).find(x => text(x && x.name) === text(payload && payload.name)) || {};
+  }
+  if (action === 'delete') return (before || []).find(x => text(x && x.id) === id) || { id, name: text(payload && payload.name) };
+  return (after || []).find(x => text(x && x.id) === id) || (before || []).find(x => text(x && x.id) === id) || { id, name: text(payload && payload.name) };
+}
+async function auditPinChange(action, admin, row) {
+  const type = PIN_AUDIT_TYPES[action];
+  if (!type) return true;
+  await auditStore.mutateTeam(team => {
+    auditStore.addAudit(team, type, adminName(admin), {
+      loaderId: text(row && row.id),
+      loaderName: text(row && row.name),
+      active: row && typeof row.active === 'boolean' ? row.active : undefined
+    });
+    return true;
+  });
+  return true;
+}
+
 module.exports = async function (context, req) {
-  if (req.method === 'OPTIONS') { context.res = { status: 204, headers: { 'Cache-Control': 'no-store', 'Allow': 'POST, OPTIONS' }, body: '' }; return; }
+  if (req.method === 'OPTIONS') { context.res = { status: 204, headers: { 'Cache-Control': 'no-store', 'Allow': 'POST, OPTIONS', 'X-ExportHUB-Loader-Pin-Audit': 'RC1087' }, body: '' }; return; }
   if (req.method !== 'POST') { context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: 'Nur POST ist erlaubt.' }); return; }
   try {
     const payload = body(req), admin = await validateGlobalAdmin(req, payload), action = text(payload.action || 'list').toLowerCase();
+    const before = PIN_AUDIT_TYPES[action] ? await pins.list() : [];
     let list;
     if (action === 'list') list = await pins.list();
     else if (action === 'create') list = await pins.create(payload);
@@ -101,7 +133,17 @@ module.exports = async function (context, req) {
     else if (action === 'toggle') list = await pins.toggle(payload);
     else if (action === 'delete') list = await pins.remove(payload);
     else throw pins.error('INVALID_ACTION', 'Unbekannte PIN-Aktion.', 400);
-    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, admin: text(admin.name || admin.user || admin.username), version: 'RC1076' });
+
+    let auditStored = true;
+    if (PIN_AUDIT_TYPES[action]) {
+      const row = targetRow(action, before, list, payload);
+      try { await auditPinChange(action, admin, row); }
+      catch (auditError) {
+        auditStored = false;
+        context.log && context.log.error && context.log.error('loader-pin-audit', auditError && auditError.code, auditError && auditError.message);
+      }
+    }
+    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), version: 'RC1087' });
   } catch (e) {
     context.log && context.log.error && context.log.error('loader-pins-admin', e && e.code, e && e.message);
     context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'Verlader-PINs konnten nicht verwaltet werden.' });

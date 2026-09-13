@@ -1,10 +1,11 @@
-// ExportHUB RC1086 – zentrale, vollständig deutsche Aktivitäts-Historie inklusive Aufgaben und Palettenkonto.
+// ExportHUB RC1087 – zentrale Historie inklusive sicherheitsrelevanter Admin-Aktionen.
 (function(w,d){
 'use strict';
 if(!w||!d||w.__EXPORTHUB_RC1081_AUDIT_HISTORY__)return;
 w.__EXPORTHUB_RC1081_AUDIT_HISTORY__=true;
 w.__EXPORTHUB_RC1084_HISTORY_DE__=true;
 w.__EXPORTHUB_RC1086_HISTORY_COMPLETE__=true;
+w.__EXPORTHUB_RC1087_ADMIN_AUDIT__=true;
 
 var FILTER={query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:0,from:'',to:''};
 
@@ -42,7 +43,11 @@ var AUDIT_LABELS={
  ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD:'Admin-Konto entsperrt',
  DIAGNOSTIC_AUTOFIX_REQUESTED:'Fehler zur automatischen Behebung übergeben',
  DIAGNOSTIC_AUTOFIX_FIXED:'Fehler automatisch behoben',
- DIAGNOSTIC_AUTOFIX_FAILED:'Automatische Fehlerbehebung fehlgeschlagen'
+ DIAGNOSTIC_AUTOFIX_FAILED:'Automatische Fehlerbehebung fehlgeschlagen',
+ LOADER_PIN_CREATED:'Verlader-PIN angelegt',
+ LOADER_PIN_UPDATED:'Verlader-PIN geändert',
+ LOADER_PIN_STATUS_CHANGED:'Verlader-PIN Status geändert',
+ LOADER_PIN_DELETED:'Verlader-PIN gelöscht'
 };
 var SHIPMENT_LABELS={
  created:'Sendung erstellt',
@@ -99,7 +104,8 @@ function actionKey(e){return q(e&&e.type)+'|'+q(e&&e.subtype)}
 
 function auditEvent(e){
  var details=e&&e.details||{},subtype=q(e&&e.type),entity='System',entityId=q(details.userId||details.username);
- if(entityId)entity='Benutzer';
+ if(/^LOADER_PIN_/.test(subtype)){entity='Verlader-PIN';entityId=q(details.loaderName||details.loaderId)||'PIN-Verwaltung'}
+ else if(entityId)entity='Benutzer';
  return{id:q(e&&e.id),at:q(e&&e.at),type:'audit',subtype:subtype,label:AUDIT_LABELS[subtype]||'Systemaktion',actor:{name:actorName(e)},entity:entity,entityId:entityId,details:details,source:'audit'}
 }
 function shipmentEvent(sh,e){
@@ -174,6 +180,8 @@ function allEvents(){
 function detailText(e){
  var x=e&&e.details||{},parts=[];
  if(x.username)parts.push('Benutzer: '+q(x.username));
+ if(x.loaderName)parts.push('Verlader: '+q(x.loaderName));
+ if(x.loaderId)parts.push('Verlader-ID: '+q(x.loaderId));
  if(x.previousName||x.displayName)parts.push('Name: '+(x.previousName?q(x.previousName)+' → ':'')+q(x.displayName));
  if(x.customer)parts.push('Kunde: '+q(x.customer));
  if(x.account)parts.push('Kundennummer: '+q(x.account));
@@ -203,6 +211,7 @@ function detailText(e){
  if(x.diagnosticId)parts.push('Fehler-ID: '+q(x.diagnosticId));
  if(Number.isFinite(Number(x.failedAttempts)))parts.push('Fehlversuche: '+Number(x.failedAttempts));
  if(typeof x.globalAdmin==='boolean')parts.push('Globaler Admin: '+(x.globalAdmin?'Ja':'Nein'));
+ if(typeof x.active==='boolean')parts.push('Aktiv: '+(x.active?'Ja':'Nein'));
  if(Number.isFinite(Number(x.terminated))&&Number(x.terminated)>0)parts.push('Beendete Sitzungen: '+Number(x.terminated));
  return Array.from(new Set(parts.filter(Boolean))).join(' · ')
 }
@@ -278,8 +287,8 @@ function render(){
  if(pr)pr.addEventListener('click',printHistory);
  return true
 }
-function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1086 Historie',e)}catch(_){}}},0)}
+function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1087 Historie',e)}catch(_){}}},0)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1086',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory,historyView:historyView,actionLabel:actionLabel});
+w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1087',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory,historyView:historyView,actionLabel:actionLabel});
 })(window,document);
