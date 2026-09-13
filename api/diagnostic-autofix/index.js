@@ -18,6 +18,8 @@ const OIDC_JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/j
 const OIDC_AUDIENCE = 'exporthub-diagnostic-autofix';
 let oidcJwksCache = {expiresAt:0,keys:[]};
 
+function autofixEnabled(){ return /^(1|true|yes|on)$/i.test(text(process.env.EXPORTHUB_AUTOFIX_ENABLED)); }
+
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
 function now(){ return new Date().toISOString(); }
@@ -164,7 +166,6 @@ function httpsJson(method,url,headers,payload){
 }
 async function dispatch(jobId,env){
  const token=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);if(!token)throw error('AUTOFIX_GITHUB_NOT_CONFIGURED','GitHub-Autofix-Token ist serverseitig noch nicht eingerichtet.',503);
- if(!text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET))throw error('AUTOFIX_CALLBACK_NOT_CONFIGURED','Autofix-Rückkanal ist serverseitig noch nicht eingerichtet.',503);
  const url='https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WORKFLOW)+'/dispatches';
  await httpsJson('POST',url,{'Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28'},{ref:'main',inputs:{job_id:jobId,environment:env}});
 }
@@ -182,7 +183,9 @@ function promptFor(record,jobId,env){
  ].join('\n');
 }
 async function requestAutofix(req,payload,env){
- const admin=await validateGlobalAdmin(req,payload,env),id=text(payload.diagnosticId||payload.id);if(!id)throw error('DIAGNOSTIC_ID_REQUIRED','Diagnose-ID fehlt.',400);
+ const admin=await validateGlobalAdmin(req,payload,env);
+ if(!autofixEnabled())throw error('AUTOFIX_DISABLED','Automatische Fehlerbehebung ist derzeit bewusst deaktiviert. Es wird kein externer KI-Auftrag gestartet.',409);
+ const id=text(payload.diagnosticId||payload.id);if(!id)throw error('DIAGNOSTIC_ID_REQUIRED','Diagnose-ID fehlt.',400);
  let jobId='';
  const record=await mutateRecord(env,id,current=>{
   const existing=current.autofix&&typeof current.autofix==='object'?current.autofix:{};
@@ -235,13 +238,13 @@ module.exports=async function(context,req){
   else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await workflowStatus(payload,env)}
   else if(action==='preflight'){
    if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW,['push','workflow_dispatch'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Vorflug nicht autorisiert.',401);
-   result={ok:true,githubDispatchConfigured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),callbackMode:'github-oidc',repo:REPO,workflow:WORKFLOW,environment:env}
+   result={ok:true,githubDispatchConfigured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),autofixEnabled:autofixEnabled(),callbackMode:'github-oidc',repo:REPO,workflow:WORKFLOW,environment:env}
   }
   else if(action==='configuration'){
    await validateGlobalAdmin(req,payload,env);
-   const githubToken=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);
-   let preflight={checked:false,status:'unknown',conclusion:'',runUrl:'',updatedAt:'',message:''};
-   if(githubToken){
+   const enabled=autofixEnabled(),githubToken=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);
+   let preflight=enabled?{checked:false,status:'unknown',conclusion:'',runUrl:'',updatedAt:'',message:''}:{checked:false,status:'disabled',conclusion:'',runUrl:'',updatedAt:'',message:'Automatische Fehlerbehebung ist derzeit deaktiviert.'};
+   if(githubToken&&enabled){
     try{
      const probe=await httpsJson('GET','https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(PREFLIGHT_WORKFLOW)+'/runs?branch=main&per_page=1',{'Authorization':'Bearer '+githubToken,'X-GitHub-Api-Version':'2022-11-28'});
      const parsed=JSON.parse(probe.body||'{}'),run=Array.isArray(parsed.workflow_runs)&&parsed.workflow_runs.length?parsed.workflow_runs[0]:null;
@@ -251,7 +254,7 @@ module.exports=async function(context,req){
     }
    }
    const serverConfigured=Boolean(githubToken),preflightOk=preflight.conclusion==='success';
-   result={ok:true,configured:Boolean(serverConfigured&&preflightOk),serverConfigured,github:Boolean(githubToken),callback:true,callbackMode:'github-oidc',preflight,repo:REPO,workflow:WORKFLOW,preflightWorkflow:PREFLIGHT_WORKFLOW,environment:env}
+   result={ok:true,enabled,configured:Boolean(enabled&&serverConfigured&&preflightOk),serverConfigured,github:Boolean(githubToken),callback:true,callbackMode:'github-oidc',noExternalAiRequests:!enabled,preflight,repo:REPO,workflow:WORKFLOW,preflightWorkflow:PREFLIGHT_WORKFLOW,environment:env}
   }
   else throw error('AUTOFIX_ACTION_INVALID','Unbekannte Autofix-Aktion.',400);
   context.res=json(200,result);

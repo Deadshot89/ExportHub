@@ -391,7 +391,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchRc1069Performance(html,file);
   html=patchLoginScreenStatus(html,file);
   html=patchHistoryNavigation(html,file);
-  html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1083');
+  html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1085');
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=injectBeforeHeadClose(html,RC1069_PERF_TAG,RC1069_PERF_ID);
   html=injectBeforeHeadClose(html,RC1071_HISTORY_TAG,RC1071_HISTORY_ID);
@@ -485,7 +485,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     profileSettings:{version:'RC1079',runtime:'assets/rc1079-profile-settings.js',selfServiceDisplayName:true,usernameImmutable:true},
     customerHistory:{version:'RC1080',runtime:'assets/rc1080-customer-history.js',field:'customerHistory',merge:'additive-by-event-id',events:['customer-created','customer-updated']},
     auditHistory:{version:'RC1084',runtime:'assets/rc1081-audit-history.js',view:'history',label:'Historie',sources:['auditLog','shipmentHistory','shipmentDerived','customerHistory'],filters:['query','type','subtype','actor','entity','days','from','to'],defaultPeriod:'all',language:'de',retentionDays:365},
-    diagnosticsAutofix:{version:'RC1083',runtime:'assets/rc1013-diagnostics.js',api:'/api/diagnostic-autofix',workflow:'.github/workflows/diagnostic-autofix.yml',provider:'OpenAI Codex',statusFlow:['queued','running','testing','deploying','fixed','failed']}
+    diagnosticsAutofix:{version:'RC1085',runtime:'assets/rc1013-diagnostics.js',api:'/api/diagnostic-autofix',workflow:'.github/workflows/diagnostic-autofix.yml',provider:'OpenAI Codex',enabledByDefault:false,noExternalAiRequestsWhenDisabled:true,statusFlow:['queued','running','testing','deploying','fixed','failed']}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');

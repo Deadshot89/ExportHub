@@ -1,4 +1,4 @@
-name: RC1083 Autofix Preflight
+name: RC1085 Autofix Preflight
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
           umask 077
           printf '%s' "$token" > "$RUNNER_TEMP/exporthub-autofix-preflight.jwt"
 
-      - name: ExportHUB OIDC und GitHub-Dispatch vollständig prüfen
+      - name: ExportHUB OIDC, Dispatch und Aktivierungsstatus prüfen
         shell: bash
         run: |
           set -u
@@ -40,6 +40,7 @@ jobs:
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
           testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
           failed=0
+          disabled=0
           for entry in "production|$prod" "testservice|$testservice"; do
             envName="${entry%%|*}"
             base="${entry#*|}"
@@ -51,11 +52,18 @@ jobs:
               --data "$(jq -nc --arg e "$envName" '{action:"preflight",environment:$e}')" || true)
             if [[ "$code" == '200' ]] && jq -e '.ok == true and .callbackMode == "github-oidc"' "$body" >/dev/null; then
               dispatch=$(jq -r '.githubDispatchConfigured // false' "$body")
+              enabled=$(jq -r '.autofixEnabled // false' "$body")
               if [[ "$dispatch" == 'true' ]]; then
                 echo "OK: ExportHUB $envName akzeptiert GitHub OIDC und besitzt die GitHub-Dispatch-Konfiguration."
               else
-                echo "FEHLT: ExportHUB $envName akzeptiert GitHub OIDC, aber EXPORTHUB_GITHUB_AUTOFIX_TOKEN ist serverseitig nicht konfiguriert." >&2
+                echo "FEHLT: ExportHUB $envName besitzt noch keine GitHub-Dispatch-Konfiguration." >&2
                 failed=1
+              fi
+              if [[ "$enabled" == 'true' ]]; then
+                echo "INFO: Automatische Fehlerbehebung ist in $envName aktiviert."
+              else
+                echo "OK: Automatische Fehlerbehebung ist in $envName bewusst deaktiviert; kein externer KI-Auftrag wird gestartet."
+                disabled=$((disabled+1))
               fi
             else
               echo "FEHLER: ExportHUB $envName OIDC-Vorflug HTTP $code" >&2
@@ -65,15 +73,29 @@ jobs:
             fi
             rm -f "$body"
           done
+          if [[ "$disabled" == '2' ]]; then
+            echo 'AUTOFIX_DISABLED=1' >> "$GITHUB_ENV"
+          elif [[ "$disabled" == '0' ]]; then
+            echo 'AUTOFIX_DISABLED=0' >> "$GITHUB_ENV"
+          else
+            echo 'FEHLER: Produktion und TESTSERVICE haben einen unterschiedlichen Autofix-Aktivierungsstatus.' >&2
+            echo 'AUTOFIX_DISABLED=0' >> "$GITHUB_ENV"
+            failed=1
+          fi
           echo "SERVER_PREFLIGHT_FAILED=$failed" >> "$GITHUB_ENV"
 
-      - name: OpenAI-Key vollständig prüfen
+      - name: OpenAI nur bei aktivierter automatischer Behebung prüfen
         shell: bash
         run: |
           set -u
           failed=0
+          if [[ "${AUTOFIX_DISABLED:-0}" == '1' ]]; then
+            echo 'OK: Automatische Fehlerbehebung ist bewusst deaktiviert. Es wird kein OpenAI-Aufruf ausgeführt und kein API-Key benötigt.'
+            echo 'OPENAI_PREFLIGHT_FAILED=0' >> "$GITHUB_ENV"
+            exit 0
+          fi
           if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            echo 'FEHLT: OPENAI_API_KEY ist als GitHub Repository-Secret nicht konfiguriert.' >&2
+            echo 'FEHLT: Für die aktivierte automatische Behebung ist noch kein OpenAI-API-Key konfiguriert.' >&2
             failed=1
           else
             body=$(mktemp)
@@ -82,7 +104,7 @@ jobs:
               -H 'Accept: application/json' \
               https://api.openai.com/v1/models || true)
             if [[ "$code" == '200' ]]; then
-              echo 'OK: OPENAI_API_KEY ist für einen read-only API-Aufruf gültig.'
+              echo 'OK: OpenAI-API-Key ist für einen read-only API-Aufruf gültig.'
             else
               echo "FEHLER: OpenAI-Key konnte nicht validiert werden (HTTP $code)." >&2
               head -c 400 "$body" | tr '\n' ' ' >&2 || true
@@ -100,10 +122,14 @@ jobs:
           server="${SERVER_PREFLIGHT_FAILED:-1}"
           openai="${OPENAI_PREFLIGHT_FAILED:-1}"
           if [[ "$server" == '0' && "$openai" == '0' ]]; then
-            echo 'RC1083 Autofix ist vollständig bereit: GitHub OIDC, Dispatch und OpenAI sind bestätigt.'
+            if [[ "${AUTOFIX_DISABLED:-0}" == '1' ]]; then
+              echo 'RC1085 sicher: Autofix ist bewusst deaktiviert; OIDC und Dispatch sind vorbereitet, es findet keine OpenAI-API-Nutzung statt.'
+            else
+              echo 'RC1085 Autofix ist vollständig bereit: GitHub OIDC, Dispatch und OpenAI sind bestätigt.'
+            fi
             exit 0
           fi
-          echo "RC1083 Autofix ist noch nicht vollständig bereit: server=$server openai=$openai" >&2
+          echo "RC1085 Autofix-Vorflug fehlgeschlagen: server=$server openai=$openai" >&2
           exit 1
 
       - name: OIDC-Datei entfernen

@@ -17,9 +17,11 @@ test('RC1082: History ist ein eigenes Rechte- und Navigationsmodul',()=>{
   assert.match(build,/history:'Historie'/);
 });
 
-test('RC1083: Fehlerdiagnose bietet Filter und direkten ChatGPT-Autofix',()=>{
+test('RC1085: Fehlerdiagnose bietet Filter und zeigt die bewusst deaktivierte automatische Behebung klar an',()=>{
   assert.match(diagnostics,/Fehlerdiagnose & automatische Behebung/);
   assert.match(diagnostics,/Mit ChatGPT beheben/);
+  assert.match(diagnostics,/Automatische Fehlerbehebung deaktiviert/);
+  assert.match(diagnostics,/Es werden keine externen KI-Aufträge gestartet/);
   assert.match(diagnostics,/data-rc1083-level/);
   assert.match(diagnostics,/data-rc1083-status/);
   assert.match(diagnostics,/data-rc1083-area/);
@@ -76,11 +78,13 @@ test('RC1083: Autofix schützt Workflow Secrets und große unkontrollierte Ände
   assert.match(workflow,/--sandbox workspace-write/);
 });
 
-test('RC1083: finaler Build überschreibt die historische Diagnose-Runtime mit aktuellem RC1083-Stand',()=>{
+test('RC1085: finaler Build überschreibt die historische Diagnose-Runtime mit kostenneutralem RC1085-Stand',()=>{
   assert.match(build,/assets\\\/rc1013-diagnostics\\\.js\\\?v=1013/);
-  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1083/);
+  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1085/);
   assert.match(build,/'assets\/rc1013-diagnostics\.js','assets\/rc1061-document-migration-admin\.js'/);
-  assert.match(build,/diagnosticsAutofix:\{version:'RC1083'/);
+  assert.match(build,/diagnosticsAutofix:\{version:'RC1085'/);
+  assert.match(build,/enabledByDefault:false/);
+  assert.match(build,/noExternalAiRequestsWhenDisabled:true/);
 });
 
 
@@ -121,4 +125,28 @@ test('RC1083: Preflight darf zusätzlich Push-OIDC verwenden, echter Autofix ble
   assert.match(api,/callbackAuthorized\(req,PREFLIGHT_WORKFLOW,\['push','workflow_dispatch'\]\)/);
   assert.match(api,/callbackAuthorized\(req,WORKFLOW\)/);
   assert.match(api,/events\.includes\(claims\.event_name\)/);
+});
+
+
+test('RC1085: Autofix benötigt eine ausdrückliche serverseitige Aktivierung und ist standardmäßig aus',()=>{
+  assert.match(api,/function autofixEnabled\(\)/);
+  assert.match(api,/EXPORTHUB_AUTOFIX_ENABLED/);
+  assert.match(api,/AUTOFIX_DISABLED/);
+  assert.match(api,/noExternalAiRequests:!enabled/);
+  assert.match(api,/configured:Boolean\(enabled&&serverConfigured&&preflightOk\)/);
+});
+
+test('RC1085: GitHub-OIDC-Dispatch benötigt kein altes dauerhaftes Callback-Secret mehr',()=>{
+  const start=api.indexOf('async function dispatch(');
+  const end=api.indexOf('function promptFor(',start);
+  const block=api.slice(start,end);
+  assert.match(block,/EXPORTHUB_GITHUB_AUTOFIX_TOKEN/);
+  assert.doesNotMatch(block,/EXPORTHUB_AUTOFIX_CALLBACK_SECRET|AUTOFIX_CALLBACK_NOT_CONFIGURED/);
+});
+
+test('RC1085: deaktivierter Autofix führt im Vorflug keinen OpenAI-Aufruf aus',()=>{
+  assert.match(preflight,/AUTOFIX_DISABLED=1/);
+  assert.match(preflight,/kein OpenAI-Aufruf ausgeführt/);
+  assert.match(preflight,/autofixEnabled/);
+  assert.match(preflight,/RC1085 sicher: Autofix ist bewusst deaktiviert/);
 });

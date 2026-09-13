@@ -175,7 +175,7 @@ jobs:
           test -s dist-rc1048/assets/sop/screenshots/rc1016-tasks.png
           test -s dist-rc1048/assets/sop/screenshots/rc1016-shipmentoverview.png
           test -s dist-rc1048/assets/sop/screenshots/rc1016-pickupcalendar.png
-          grep -q 'assets/rc1013-diagnostics.js?v=1083' dist-rc1048/index.html
+          grep -q 'assets/rc1013-diagnostics.js?v=1085' dist-rc1048/index.html
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1048/$file"
           done
@@ -666,7 +666,7 @@ jobs:
               apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083=$GITHUB_SHA-$attempt" || true)
 
               pageMarker=1; chatgptMarker=1; endpointMarker=1; titleMarker=1; authMarker=1
-              grep -q 'assets/rc1013-diagnostics.js?v=1083' "$page" || pageMarker=0
+              grep -q 'assets/rc1013-diagnostics.js?v=1085' "$page" || pageMarker=0
               grep -q 'Mit ChatGPT beheben' "$asset" || chatgptMarker=0
               grep -q '/api/diagnostic-autofix' "$asset" || endpointMarker=0
               grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || titleMarker=0
