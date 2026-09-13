@@ -22,7 +22,7 @@ function usernameOf(user) { return lower(user && (user.user || user.login || use
 function isActive(user) { return Boolean(user && user.active !== false && user.disabled !== true && lower(user.status) !== 'deaktiviert'); }
 function isGlobalAdmin(user) {
   if (!user) return false;
-  if (user.globalAdmin === true || user.isGlobalAdmin === true || user.isAdmin === true || user.admin === true) return true;
+  if (user.globalAdmin === true || user.isGlobalAdmin === true) return true;
   if (Array.isArray(user.permissions) && user.permissions.includes('*')) return true;
   const role = lower(user.role || user.rolle);
   return ['globaler administrator','globaler admin','global admin','administrator','admin','vollzugriff'].includes(role);
