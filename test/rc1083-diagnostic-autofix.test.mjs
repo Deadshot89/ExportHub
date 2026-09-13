@@ -70,3 +70,11 @@ test('RC1083: finaler Build überschreibt die historische Diagnose-Runtime mit a
   assert.match(build,/'assets\/rc1013-diagnostics\.js','assets\/rc1061-document-migration-admin\.js'/);
   assert.match(build,/diagnosticsAutofix:\{version:'RC1083'/);
 });
+
+
+test('RC1083: erneut auftretende Fehler werden nach früherer Behebung wieder geöffnet',()=>{
+  const stateApi=fs.readFileSync('api/exporthub-state/index.js','utf8');
+  assert.match(stateApi,/status:'reopened'/);
+  assert.match(stateApi,/Fehler ist nach der letzten Behebung erneut aufgetreten/);
+  assert.match(stateApi,/merged\.resolvedAt=null/);
+});
