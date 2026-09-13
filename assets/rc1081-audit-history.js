@@ -63,9 +63,9 @@ function customerEvent(c,e){
  }
 }
 function allShipments(){
- var s=state(),list=[],seen={};
+ var s=state(),list=[];
  ['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments'].forEach(function(k){
-  arr(s[k]).forEach(function(sh){var id=identity(sh)||('ROW-'+list.length);if(!seen[id]){seen[id]=1;list.push(sh)}})
+  arr(s[k]).forEach(function(sh){if(sh&&typeof sh==='object')list.push(sh)})
  });
  return list
 }
