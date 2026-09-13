@@ -41,7 +41,7 @@ function usernameOf(user){ return lower(user&&(user.user||user.login||user.usern
 function isActive(user){ return Boolean(user&&user.active!==false&&user.disabled!==true&&lower(user.status)!=='deaktiviert'); }
 function isAdmin(user){
  if(!user)return false;
- if(user.globalAdmin===true||user.isGlobalAdmin===true||user.isAdmin===true)return true;
+ if(user.globalAdmin===true||user.isGlobalAdmin===true)return true;
  if(Array.isArray(user.permissions)&&user.permissions.includes('*'))return true;
  return ['globaler administrator','globaler admin','global admin','administrator','admin','vollzugriff'].includes(lower(user.role||user.rolle));
 }
