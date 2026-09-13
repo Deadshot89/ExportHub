@@ -101,5 +101,5 @@ test('RC1087: Gate41-Stammdatenrechte hängen nur an Rollen und Funktionsrechten
   assert.match(fn,/arr\\(u\\.permissions\\)\\.indexOf\\('\*'\\)>=0/);
   assert.match(fn,/roles\\.indexOf\\(role\\)>=0/);
   assert.match(fn,/r\\.functionAdmin===true/);
-  assert.doesNotMatch(fn,/global\.\?admin\|vollzugriff\|administrator/);
+  assert.match(fn,/roles=\['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'\]/);
 });
