@@ -9,13 +9,13 @@ const runtime=fs.readFileSync('assets/rc1080-customer-history.js','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 const stateApi=fs.readFileSync('api/exporthub-state/index.js','utf8');
 
-test('RC1080: Kundenhistorie protokolliert Anlage und Änderung mit Benutzer',()=>{
-  assert.match(runtime,/type:'customer-created'/);
-  assert.match(runtime,/label:'Kunde angelegt'/);
-  assert.match(runtime,/type:'customer-updated'/);
-  assert.match(runtime,/label:'Kunde geändert'/);
-  assert.match(runtime,/actor:a/);
-  assert.match(runtime,/fields:fields\.join/);
+test('RC1080: Kundenhistorie zeigt Anlage und Änderungen mit Benutzer an',()=>{
+  assert.match(runtime,/Kundenhistorie/);
+  assert.match(runtime,/e\.actor&&e\.actor\.name/);
+  assert.match(runtime,/e\.actor&&e\.actor\.role/);
+  assert.match(runtime,/Geändert:/);
+  assert.match(stateApi,/customer-created','Kunde angelegt'/);
+  assert.match(stateApi,/customer-updated','Kunde geändert'/);
 });
 
 test('RC1080: Client erzeugt keine Kundenhistorie selbst, sondern zeigt den serverseitig bestätigten Stand',()=>{
