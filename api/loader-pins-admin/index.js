@@ -23,8 +23,6 @@ function isGlobalAdmin(user) {
   if (!user) return false;
   if (user.globalAdmin === true || user.isGlobalAdmin === true || user.isAdmin === true || user.admin === true) return true;
   if (Array.isArray(user.permissions) && user.permissions.includes('*')) return true;
-  const key = usernameOf(user);
-  if (['tobias','t.limberg','tobias limberg','tobias.limberg'].includes(key)) return true;
   const role = lower(user.role || user.rolle);
   return ['globaler administrator','globaler admin','global admin','administrator','admin','vollzugriff'].includes(role);
 }
@@ -103,7 +101,7 @@ module.exports = async function (context, req) {
     else if (action === 'toggle') list = await pins.toggle(payload);
     else if (action === 'delete') list = await pins.remove(payload);
     else throw pins.error('INVALID_ACTION', 'Unbekannte PIN-Aktion.', 400);
-    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, admin: text(admin.name || admin.user || admin.username), version: 'RC750' });
+    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, admin: text(admin.name || admin.user || admin.username), version: 'RC1076' });
   } catch (e) {
     context.log && context.log.error && context.log.error('loader-pins-admin', e && e.code, e && e.message);
     context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'Verlader-PINs konnten nicht verwaltet werden.' });
