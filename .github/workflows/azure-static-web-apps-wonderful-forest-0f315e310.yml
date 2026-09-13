@@ -596,6 +596,11 @@ jobs:
               grep -q 'Kunde angelegt' "$customer" || ok=0
               grep -q 'Kunde geändert' "$customer" || ok=0
               rm -f "$page" "$profile" "$customer"
+              authBody=$(mktemp)
+              authCode=$(curl -sS -o "$authBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"update-profile","name":"Unzulässig"}' "$base/api/exporthub-auth?rc1080=$GITHUB_SHA-$attempt" || true)
+              [[ "$authCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$authBody" || ok=0
+              rm -f "$authBody"
             done
             if [[ "$ok" == '1' ]]; then
               echo 'RC1079 Profil und RC1080 Kundenhistorie live bestätigt.'
