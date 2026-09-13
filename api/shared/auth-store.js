@@ -186,6 +186,11 @@ function addAudit(team, type, actor, details = {}) {
   team.state.auditLog = Array.isArray(team.state.auditLog) ? team.state.auditLog : [];
   const clean = clone(details || {});
   for (const key of Object.keys(clean)) if (/pass|secret|token|hash|salt/i.test(key)) delete clean[key];
+  const cutoff = Date.now() - (365 * 86400000);
+  team.state.auditLog = team.state.auditLog.filter((entry) => {
+    const ts = Date.parse(entry && entry.at || '');
+    return !Number.isFinite(ts) || ts >= cutoff;
+  }).slice(-4999);
   team.state.auditLog.push({ id: randomId('AUD'), type, actor: text(actor) || 'System', at: now(), details: clean });
 }
 async function mutateTeam(mutator) {
