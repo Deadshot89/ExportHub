@@ -520,16 +520,27 @@ async function adminUpdate(req, payload) {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     const beforeAdmin = auth.isAdmin(user);
+    const beforeName = auth.text(user.name || user.user);
+    const beforeRights = JSON.stringify(user.rights || {});
     const nextAdmin = payload.globalAdmin === undefined ? beforeAdmin : payload.globalAdmin === true;
     if (beforeAdmin && !nextAdmin && activeAdminCount(team.users) <= 1) throw auth.error('LAST_ADMIN_PROTECTED', 'Der letzte globale Administrator kann nicht herabgestuft werden.', 409);
     if (payload.name !== undefined) user.name = auth.text(payload.name) || user.user;
+    user.displayName = auth.text(user.name || user.user);
     user.globalAdmin = nextAdmin;
     user.role = nextAdmin ? 'Globaler Administrator' : 'Benutzer';
     user.permissions = nextAdmin ? ['*'] : [];
     user.rights = auth.normalizeRights(payload.rights || user.rights || {}, nextAdmin);
     user.updatedAt = auth.now();
     user.updatedBy = current.user.name || current.user.user;
-    auth.addAudit(team, 'USER_RIGHTS_UPDATED', current.user.name || current.user.user, { userId: user.id, username: user.user, globalAdmin: nextAdmin });
+    const afterName = auth.text(user.name || user.user);
+    if (beforeName !== afterName) {
+      auth.addAudit(team, 'USER_DISPLAY_NAME_UPDATED_BY_ADMIN', current.user.name || current.user.user, {
+        userId: user.id, username: user.user, previousName: beforeName, displayName: afterName
+      });
+    }
+    if (beforeAdmin !== nextAdmin || beforeRights !== JSON.stringify(user.rights || {})) {
+      auth.addAudit(team, 'USER_RIGHTS_UPDATED', current.user.name || current.user.user, { userId: user.id, username: user.user, globalAdmin: nextAdmin });
+    }
     return { userId: user.id };
   });
   const user = result.team.users.find((u) => auth.text(u.id) === auth.text(result.result.userId));
