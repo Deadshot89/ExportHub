@@ -6,6 +6,7 @@ const diagnostics=fs.readFileSync('assets/rc1013-diagnostics.js','utf8');
 const api=fs.readFileSync('api/diagnostic-autofix/index.js','utf8');
 const functionConfig=JSON.parse(fs.readFileSync('api/diagnostic-autofix/function.json','utf8'));
 const workflow=fs.readFileSync('.github/workflows/diagnostic-autofix.yml','utf8');
+const preflight=fs.readFileSync('.github/workflows/rc1083-autofix-preflight.yml','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 const policy=fs.readFileSync('api/shared/user-policy.js','utf8');
 
@@ -98,4 +99,20 @@ test('RC1083: Autofix-Auftrag und Ergebnis erscheinen in der zentralen History',
   assert.match(api,/DIAGNOSTIC_AUTOFIX_FAILED/);
   assert.match(history,/Fehler an ChatGPT \/ Codex zur Behebung übergeben/);
   assert.match(history,/Fehler durch ChatGPT \/ Codex behoben/);
+});
+
+test('RC1083: GitHub OIDC statt dauerhaftem Callback-Secret schützt den Rückkanal',()=>{
+  assert.match(api,/async function githubOidcAuthorized/);
+  assert.match(api,/token\.actions\.githubusercontent\.com/);
+  assert.match(api,/OIDC_AUDIENCE = 'exporthub-diagnostic-autofix'/);
+  assert.match(api,/claims\.repository!==REPO/);
+  assert.match(api,/claims\.workflow_ref!==expectedWorkflow/);
+  assert.match(api,/action==='preflight'/);
+  assert.match(workflow,/id-token: write/);
+  assert.match(workflow,/X-ExportHUB-GitHub-OIDC/);
+  assert.doesNotMatch(workflow,/secrets\.EXPORTHUB_AUTOFIX_CALLBACK_SECRET/);
+  assert.match(preflight,/id-token: write/);
+  assert.match(preflight,/X-ExportHUB-GitHub-OIDC/);
+  assert.match(preflight,/githubDispatchConfigured/);
+  assert.doesNotMatch(preflight,/EXPORTHUB_AUTOFIX_CALLBACK_SECRET/);
 });

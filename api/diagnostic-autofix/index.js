@@ -13,6 +13,10 @@ const REPO = process.env.EXPORTHUB_GITHUB_AUTOFIX_REPO || 'Deadshot89/ExportHub'
 const WORKFLOW = process.env.EXPORTHUB_GITHUB_AUTOFIX_WORKFLOW || 'diagnostic-autofix.yml';
 const PREFLIGHT_WORKFLOW = process.env.EXPORTHUB_AUTOFIX_PREFLIGHT_WORKFLOW || 'rc1083-autofix-preflight.yml';
 const MAX_RETRIES = 6;
+const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
+const OIDC_JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/jwks';
+const OIDC_AUDIENCE = 'exporthub-diagnostic-autofix';
+let oidcJwksCache = {expiresAt:0,keys:[]};
 
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
@@ -78,9 +82,32 @@ async function validateGlobalAdmin(req,payload,env){
  if(!isAdmin(user))throw error('GLOBAL_ADMIN_REQUIRED','Die automatische Fehlerbehebung ist nur für globale Administratoren verfügbar.',403);
  return user;
 }
-function callbackAuthorized(req){
+async function githubOidcAuthorized(req,workflowFile){
+ const token=text(header(req,'x-exporthub-github-oidc'));if(!token)return false;
+ try{
+  const parts=token.split('.');if(parts.length!==3)return false;
+  const jose=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8')),claims=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));
+  if(jose.alg!=='RS256'||!text(jose.kid))return false;
+  const nowSec=Math.floor(Date.now()/1000),aud=Array.isArray(claims.aud)?claims.aud:[claims.aud];
+  const expectedWorkflow=REPO+'/.github/workflows/'+workflowFile+'@refs/heads/main';
+  if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
+  if(claims.repository!==REPO||claims.ref!=='refs/heads/main'||claims.event_name!=='workflow_dispatch')return false;
+  if(claims.workflow_ref!==expectedWorkflow)return false;
+  if(!Number(claims.exp)||Number(claims.exp)<=nowSec-30)return false;
+  if(Number(claims.nbf||0)>nowSec+60||Number(claims.iat||0)>nowSec+60||Number(claims.iat||0)<nowSec-900)return false;
+  if(!oidcJwksCache.keys.length||oidcJwksCache.expiresAt<Date.now()){
+   const res=await httpsJson('GET',OIDC_JWKS_URL,{'Accept':'application/json'}),parsed=JSON.parse(res.body||'{}');
+   oidcJwksCache={expiresAt:Date.now()+10*60*1000,keys:Array.isArray(parsed.keys)?parsed.keys:[]};
+  }
+  const jwk=oidcJwksCache.keys.find(k=>k&&k.kid===jose.kid&&k.kty==='RSA');if(!jwk)return false;
+  const key=crypto.createPublicKey({key:jwk,format:'jwk'}),signature=Buffer.from(parts[2],'base64url');
+  return crypto.verify('RSA-SHA256',Buffer.from(parts[0]+'.'+parts[1]),key,signature);
+ }catch(_){return false}
+}
+async function callbackAuthorized(req,workflowFile){
  const configured=text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET),received=text(header(req,'x-exporthub-autofix-secret'));
- return configured&&received&&safeEqual(configured,received);
+ if(configured&&received&&safeEqual(configured,received))return true;
+ return githubOidcAuthorized(req,workflowFile||WORKFLOW);
 }
 function diagBlob(env){ return service().getContainerClient(TEAM_CONTAINER).getBlockBlobClient(env==='testservice'?DIAG_TEST_BLOB:DIAG_PROD_BLOB); }
 function teamBlob(env){
@@ -203,11 +230,15 @@ module.exports=async function(context,req){
   const payload=body(req),env=environmentOf(req,payload),action=lower(payload.action||'status');
   let result;
   if(action==='request')result=await requestAutofix(req,payload,env);
-  else if(action==='claim'){if(!callbackAuthorized(req))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await claim(payload,env)}
-  else if(action==='workflow-status'){if(!callbackAuthorized(req))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await workflowStatus(payload,env)}
+  else if(action==='claim'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await claim(payload,env)}
+  else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await workflowStatus(payload,env)}
+  else if(action==='preflight'){
+   if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Vorflug nicht autorisiert.',401);
+   result={ok:true,githubDispatchConfigured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),callbackMode:'github-oidc',repo:REPO,workflow:WORKFLOW,environment:env}
+  }
   else if(action==='configuration'){
    await validateGlobalAdmin(req,payload,env);
-   const githubToken=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN),callbackSecret=text(process.env.EXPORTHUB_AUTOFIX_CALLBACK_SECRET);
+   const githubToken=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);
    let preflight={checked:false,status:'unknown',conclusion:'',runUrl:'',updatedAt:'',message:''};
    if(githubToken){
     try{
@@ -218,8 +249,8 @@ module.exports=async function(context,req){
      preflight={checked:true,status:'unavailable',conclusion:'',runUrl:'',updatedAt:'',message:'Autofix-Vorflug konnte über GitHub nicht gelesen werden.'};
     }
    }
-   const serverConfigured=Boolean(githubToken&&callbackSecret),preflightOk=preflight.conclusion==='success';
-   result={ok:true,configured:Boolean(serverConfigured&&preflightOk),serverConfigured,github:Boolean(githubToken),callback:Boolean(callbackSecret),preflight,repo:REPO,workflow:WORKFLOW,preflightWorkflow:PREFLIGHT_WORKFLOW,environment:env}
+   const serverConfigured=Boolean(githubToken),preflightOk=preflight.conclusion==='success';
+   result={ok:true,configured:Boolean(serverConfigured&&preflightOk),serverConfigured,github:Boolean(githubToken),callback:true,callbackMode:'github-oidc',preflight,repo:REPO,workflow:WORKFLOW,preflightWorkflow:PREFLIGHT_WORKFLOW,environment:env}
   }
   else throw error('AUTOFIX_ACTION_INVALID','Unbekannte Autofix-Aktion.',400);
   context.res=json(200,result);

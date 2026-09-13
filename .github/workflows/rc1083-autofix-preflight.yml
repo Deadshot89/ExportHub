@@ -5,10 +5,13 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/rc1083-autofix-preflight.yml'
+      - '.github/workflows/diagnostic-autofix.yml'
+      - 'api/diagnostic-autofix/**'
   workflow_dispatch:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   preflight:
@@ -16,19 +19,51 @@ jobs:
     timeout-minutes: 5
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      AUTOFIX_SECRET: ${{ secrets.EXPORTHUB_AUTOFIX_CALLBACK_SECRET }}
+
     steps:
-      - name: GitHub-Secrets vorhanden
+      - name: Kurzlebige GitHub-OIDC-Identität abrufen
+        id: oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+          response=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=exporthub-diagnostic-autofix")
+          token=$(printf '%s' "$response" | jq -r '.value // empty')
+          test -n "$token" || { echo 'GitHub-OIDC-Token konnte nicht erstellt werden.' >&2; exit 1; }
+          echo "::add-mask::$token"
+          umask 077
+          printf '%s' "$token" > "$RUNNER_TEMP/exporthub-autofix-preflight.jwt"
+
+      - name: ExportHUB OIDC und GitHub-Dispatch prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          oidc=$(cat "$RUNNER_TEMP/exporthub-autofix-preflight.jwt")
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for entry in "production|$prod" "testservice|$testservice"; do
+            envName="${entry%%|*}"
+            base="${entry#*|}"
+            body=$(mktemp)
+            code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 \
+              -X POST "$base/api/diagnostic-autofix" \
+              -H 'Content-Type: application/json' \
+              -H "X-ExportHUB-GitHub-OIDC: $oidc" \
+              --data "$(jq -nc --arg e "$envName" '{action:"preflight",environment:$e}')" || true)
+            if [[ "$code" != '200' ]] || ! jq -e '.ok == true and .githubDispatchConfigured == true and .callbackMode == "github-oidc"' "$body" >/dev/null; then
+              echo "ExportHUB-Autofix-Vorflug fehlgeschlagen: $envName HTTP $code" >&2
+              head -c 500 "$body" | tr '\n' ' ' >&2 || true
+              echo >&2
+              exit 1
+            fi
+            echo "ExportHUB $envName akzeptiert GitHub OIDC und besitzt eine Dispatch-Konfiguration."
+            rm -f "$body"
+          done
+
+      - name: OpenAI-Key vorhanden und read-only gültig
         shell: bash
         run: |
           set -euo pipefail
           test -n "${OPENAI_API_KEY:-}" || { echo 'OPENAI_API_KEY fehlt.' >&2; exit 1; }
-          test -n "${AUTOFIX_SECRET:-}" || { echo 'EXPORTHUB_AUTOFIX_CALLBACK_SECRET fehlt.' >&2; exit 1; }
-
-      - name: OpenAI-Key read-only validieren
-        shell: bash
-        run: |
-          set -euo pipefail
           body=$(mktemp)
           code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -42,27 +77,7 @@ jobs:
           fi
           echo 'OPENAI_API_KEY ist für einen read-only API-Aufruf gültig.'
 
-      - name: ExportHUB Callback-Rückkanal validieren
+      - name: OIDC-Datei entfernen
+        if: always()
         shell: bash
-        run: |
-          set -euo pipefail
-          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
-          for entry in "production|$prod" "testservice|$testservice"; do
-            envName="${entry%%|*}"
-            base="${entry#*|}"
-            body=$(mktemp)
-            code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 \
-              -X POST "$base/api/diagnostic-autofix" \
-              -H 'Content-Type: application/json' \
-              -H "X-ExportHUB-Autofix-Secret: $AUTOFIX_SECRET" \
-              --data "$(jq -nc --arg e "$envName" '{action:"claim",jobId:"RC1083-PREFLIGHT-NONEXISTENT",environment:$e}')" || true)
-            if [[ "$code" != '404' ]] || ! grep -q 'AUTOFIX_JOB_NOT_FOUND' "$body"; then
-              echo "Callback-Vorflug fehlgeschlagen: $envName HTTP $code" >&2
-              head -c 500 "$body" | tr '\n' ' ' >&2 || true
-              echo >&2
-              exit 1
-            fi
-            echo "Callback-Rückkanal $envName ist authentifiziert und erreicht den Diagnosespeicher."
-            rm -f "$body"
-          done
+        run: rm -f "$RUNNER_TEMP/exporthub-autofix-preflight.jwt"
