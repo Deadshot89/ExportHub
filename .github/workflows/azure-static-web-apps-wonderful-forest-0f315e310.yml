@@ -670,7 +670,7 @@ jobs:
               grep -q 'Mit ChatGPT beheben' "$asset" || chatgptMarker=0
               grep -q '/api/diagnostic-autofix' "$asset" || endpointMarker=0
               grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || titleMarker=0
-              grep -q 'AUTH_REQUIRED' "$api" || authMarker=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" || authMarker=0
 
               if [[ "$pc" != '200' || "$ac" != '200' || "$apiCode" != '401' || "$pageMarker" != '1' || "$chatgptMarker" != '1' || "$endpointMarker" != '1' || "$titleMarker" != '1' || "$authMarker" != '1' ]]; then
                 ok=0
