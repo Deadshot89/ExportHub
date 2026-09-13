@@ -1,6 +1,6 @@
 'use strict';
 
-const SEED_VERSION = 8;
+const SEED_VERSION = 9;
 const ESSENTRA_COMPANY_KEY = 'essentra';
 const LEGACY_ESSENTRA_COMPANY_KEY = 'legacy-default';
 const SYSTEM_ACTOR = 'System RC1014';
@@ -55,11 +55,19 @@ function defaultsForCompany(companyKey){
   if (!isEssentraCompanyKey(companyKey)) return [];
   return ESSENTRA_DEFAULTS.map(item => ({...item, active:true}));
 }
+function isUntouchedSystemSeed(item){
+  const id = text(item && item.id);
+  const createdBy = text(item && item.createdBy), updatedBy = text(item && item.updatedBy);
+  return /^FIX-RC\d+-ESSENTRA-/i.test(id) && createdBy === SYSTEM_ACTOR && (!updatedBy || updatedBy === SYSTEM_ACTOR);
+}
 function isUntouchedObsoleteV1(item){
   const id = text(item && item.id);
-  if (!OBSOLETE_V1_IDS.has(id)) return false;
-  const createdBy = text(item && item.createdBy), updatedBy = text(item && item.updatedBy);
-  return createdBy === SYSTEM_ACTOR && (!updatedBy || updatedBy === SYSTEM_ACTOR);
+  return OBSOLETE_V1_IDS.has(id) && isUntouchedSystemSeed(item);
+}
+function isUntouchedNonCanonicalSystemSeed(item){
+  if (!isUntouchedSystemSeed(item)) return false;
+  const id = text(item && item.id);
+  return !ESSENTRA_DEFAULTS.some(def => def.id === id);
 }
 function isRemovedNeff(item){
   return text(item && item.id) === REMOVED_NEFF_ID || text(item && item.siteLabel).toLowerCase() === 'neff';
@@ -67,7 +75,7 @@ function isRemovedNeff(item){
 function mergeMissing(existing, companyKey, stamp){
   let list = Array.isArray(existing) ? existing.slice() : [];
   if (!isEssentraCompanyKey(companyKey)) return list;
-  list = list.filter(item => !isRemovedNeff(item) && !isUntouchedObsoleteV1(item));
+  list = list.filter(item => !isRemovedNeff(item) && !isUntouchedObsoleteV1(item) && !isUntouchedNonCanonicalSystemSeed(item));
   const seenKeys = new Set(list.map(key));
   const seenIds = new Set(list.map(item => text(item && item.id)).filter(Boolean));
   for (const item of defaultsForCompany(companyKey)) {
@@ -78,4 +86,4 @@ function mergeMissing(existing, companyKey, stamp){
   return list;
 }
 
-module.exports = {SEED_VERSION,ESSENTRA_COMPANY_KEY,LEGACY_ESSENTRA_COMPANY_KEY,ESSENTRA_DEFAULTS,OBSOLETE_V1_IDS,REMOVED_NEFF_ID,isEssentraCompanyKey,defaultsForCompany,mergeMissing};
+module.exports = {SEED_VERSION,ESSENTRA_COMPANY_KEY,LEGACY_ESSENTRA_COMPANY_KEY,ESSENTRA_DEFAULTS,OBSOLETE_V1_IDS,REMOVED_NEFF_ID,isEssentraCompanyKey,defaultsForCompany,isUntouchedSystemSeed,isUntouchedNonCanonicalSystemSeed,mergeMissing};
