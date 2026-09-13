@@ -117,6 +117,11 @@ jobs:
           test -s dist-rc1048/assets/rc1067-startup-recovery.js
           test -s dist-rc1048/assets/rc1069-performance.js
           grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' dist-rc1048/assets/rc1069-performance.js
+          grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' dist-rc1048/index.html
+          grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' dist-rc1048/TESTVERSION.html
+          if grep -q 'assets/rc1075-loader-pin-admin.js' dist-rc1048/demo.html; then exit 1; fi
+          test -s dist-rc1048/assets/rc1075-loader-pin-admin.js
+          grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' dist-rc1048/assets/rc1075-loader-pin-admin.js
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/index.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/demo.html
@@ -189,6 +194,8 @@ jobs:
           test -s .rc1048_testservice_app/assets/rc1067-startup-recovery.js
           test -s .rc1048_production_app/assets/rc1069-performance.js
           test -s .rc1048_testservice_app/assets/rc1069-performance.js
+          test -s .rc1048_production_app/assets/rc1075-loader-pin-admin.js
+          test -s .rc1048_testservice_app/assets/rc1075-loader-pin-admin.js
           test -s .rc1048_production_app/assets/rc1027-lieferavis-immediate.js
           test -s .rc1048_testservice_app/assets/rc1027-lieferavis-immediate.js
           test -s .rc1048_production_app/migration-recovery.html
@@ -472,4 +479,36 @@ jobs:
             sleep 5
           done
           echo 'RC1074 Login-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1075 Verlader-PIN Admin prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/assets/rc1075-loader-pin-admin.js?rc1075=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' "$body" || ok=0
+              grep -q '/api/loader-pins-admin' "$body" || ok=0
+              rm -f "$body"
+            done
+            p=$(mktemp); t=$(mktemp)
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1075=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1075=$GITHUB_SHA-$attempt" || true)
+            [[ "$pc" == '200' && "$tc" == '200' ]] || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$p" || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$t" || ok=0
+            rm -f "$p" "$t"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1075 Verlader-PIN Admin ist live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1075 Verlader-PIN Admin-Liveprüfung nicht bestätigt.' >&2
           exit 1
