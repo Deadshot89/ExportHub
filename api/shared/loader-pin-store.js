@@ -40,13 +40,7 @@ function envDefaults() {
       }
     } catch (_) {}
   }
-  if (rows.length) return rows;
-  return [
-    { pin: '4466', name: 'Daniel Ollmann', active: true },
-    { pin: '2050', name: 'Tobias', active: true },
-    { pin: '2258', name: 'Amer', active: true },
-    { pin: '7530', name: 'Franjo', active: true }
-  ];
+  return rows;
 }
 
 function makeRecord(item, index) {
@@ -199,7 +193,7 @@ function bridgePin() {
       else if (parsed && typeof parsed === 'object') { const pin = Object.keys(parsed).find(validPin); if (pin) return pin; }
     } catch (_) {}
   }
-  return '4466';
+  return '';
 }
 
 async function patchPickupIdentity(token, loader) {
