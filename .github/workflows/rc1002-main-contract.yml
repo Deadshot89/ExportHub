@@ -59,6 +59,10 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
+      - name: RC1088 Security Gate
+        run: npm run test:security
+      - name: RC1088 Accessibility & Responsive Gate
+        run: npm run test:accessibility
       - name: RC1013 historische Release-Regression
         run: node --test --test-concurrency=1 test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1012-abholkalender-completion.test.mjs test/rc1012-abholkalender-runtime-integration.test.mjs test/rc1012-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs test/rc1011-three-env-sync.test.mjs test/rc1010-sop-release-readiness.test.mjs test/rc1010-three-env-sync.test.mjs test/rc1009-sop-selection-ui.test.mjs test/rc1008-system-sops.test.mjs test/rc1007-iso-sop-contract.test.mjs test/rc1007-sop-model.test.mjs test/rc1007-sop-catalog.test.mjs test/rc1007-sop-visuals.test.mjs test/rc1007-sop-ui.test.mjs test/rc1007-sop-workflow.test.mjs test/rc1007-sop-print-mobile.test.mjs test/rc1006-gate41-route.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs
       - name: QR- und Lieferavis-End-to-End-Regression

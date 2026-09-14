@@ -1,5 +1,7 @@
 'use strict';
 
+const { isAdmin: isGlobalAdmin } = require('./user-policy');
+
 function text(v){ return String(v == null ? '' : v).trim(); }
 function key(v){
   return text(v).toLowerCase().normalize('NFKD')
@@ -30,16 +32,6 @@ function requested(req){
   const q = req && req.query || {};
   const b = req && req.body || {};
   return key(h['x-exporthub-company-id'] || h['X-ExportHUB-Company-Id'] || q.companyId || b.companyId);
-}
-const GLOBAL_ADMIN_ROLES = new Set(['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff']);
-function isGlobalAdmin(user){
-  const role = text(user && (user.role || user.rolle)).toLowerCase();
-  return Boolean(user && (
-    user.globalAdmin === true ||
-    user.isGlobalAdmin === true ||
-    GLOBAL_ADMIN_ROLES.has(role) ||
-    (Array.isArray(user.permissions) && user.permissions.includes('*'))
-  ));
 }
 function resolveCompanyContext(req, user){
   const allowed = values(user);

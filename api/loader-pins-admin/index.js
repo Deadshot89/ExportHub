@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const pins = require('../shared/loader-pin-store');
 const auditStore = require('../shared/auth-store');
+const { isAdmin } = require('../shared/user-policy');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -20,13 +21,6 @@ function token(req, payload) { const auth = String(header(req, 'authorization') 
 function connectionString() { return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''; }
 function usernameOf(user) { return lower(user && (user.user || user.login || user.username || user.name || user.displayName)); }
 function isActive(user) { return Boolean(user && user.active !== false && user.disabled !== true && lower(user.status) !== 'deaktiviert'); }
-function isGlobalAdmin(user) {
-  if (!user) return false;
-  if (user.globalAdmin === true || user.isGlobalAdmin === true) return true;
-  if (Array.isArray(user.permissions) && user.permissions.includes('*')) return true;
-  const role = lower(user.role || user.rolle);
-  return ['globaler administrator','globaler admin','global admin','administrator','admin','vollzugriff'].includes(role);
-}
 function safeEqualText(a, b) { const aa = Buffer.from(String(a || ''), 'utf8'), bb = Buffer.from(String(b || ''), 'utf8'); return aa.length === bb.length && aa.length > 0 && crypto.timingSafeEqual(aa, bb); }
 function tokenHash(value) { return crypto.createHash('sha256').update(String(value || '')).digest('hex'); }
 function signingSecret() {
@@ -86,7 +80,7 @@ async function validateGlobalAdmin(req, payload) {
   if (!user || !isActive(user)) throw pins.error('ACCOUNT_DISABLED', 'Das ExportHUB-Benutzerkonto ist nicht aktiv.', 403);
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw pins.error('SESSION_REVOKED', 'Die ExportHUB-Sitzung wurde beendet. Bitte erneut anmelden.', 401);
   if ((session.mustChange || user.mustChange) === true) throw pins.error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
-  if (!isGlobalAdmin(user)) throw pins.error('GLOBAL_ADMIN_REQUIRED', 'Nur globale Administratoren dürfen Verlader-PINs verwalten.', 403);
+  if (!isAdmin(user)) throw pins.error('GLOBAL_ADMIN_REQUIRED', 'Nur globale Administratoren dürfen Verlader-PINs verwalten.', 403);
   return user;
 }
 

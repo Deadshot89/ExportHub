@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
+const { isAdmin } = require('../shared/user-policy');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -50,13 +51,6 @@ function diagnosticsBlobForEnvironment(env){return env==='testservice'?TEST_DIAG
 function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_STORAGE_CONNECTION_STRING'; if(process.env.EXPORTHUB_STORAGE_CONNECTION)return 'EXPORTHUB_STORAGE_CONNECTION'; if(process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING)return 'EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING'; return ''; }
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
 function isActive(user){ return Boolean(user && user.active!==false && user.disabled!==true && lower(user.status)!=='deaktiviert'); }
-function isAdmin(user){
- if(!user)return false;
- if(user.globalAdmin===true||user.isGlobalAdmin===true)return true;
- if(Array.isArray(user.permissions)&&user.permissions.includes('*'))return true;
- const role=lower(user.role||user.rolle);
- return ['globaler administrator','globaler admin','administrator','admin','vollzugriff'].includes(role);
-}
 function hasAnyEditRight(user){
  if(isAdmin(user))return true;
  return Object.values(user&&user.rights||{}).some(r=>r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'));

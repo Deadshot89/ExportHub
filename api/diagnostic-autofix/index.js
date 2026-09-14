@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const https = require('https');
 const { BlobServiceClient } = require('@azure/storage-blob');
+const { isAdmin } = require('../shared/user-policy');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -39,12 +40,6 @@ function environmentOf(req,payload){
 }
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
 function isActive(user){ return Boolean(user&&user.active!==false&&user.disabled!==true&&lower(user.status)!=='deaktiviert'); }
-function isAdmin(user){
- if(!user)return false;
- if(user.globalAdmin===true||user.isGlobalAdmin===true)return true;
- if(Array.isArray(user.permissions)&&user.permissions.includes('*'))return true;
- return ['globaler administrator','globaler admin','global admin','administrator','admin','vollzugriff'].includes(lower(user.role||user.rolle));
-}
 function safeEqual(a,b){ const aa=Buffer.from(String(a||''),'utf8'),bb=Buffer.from(String(b||''),'utf8'); return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb); }
 function tokenHash(value){ return crypto.createHash('sha256').update(String(value||'')).digest('hex'); }
 function signingSecret(){ const source=text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET||process.env.EXPORTHUB_SESSION_SECRET)||connectionString(); if(!source)throw error('AUTH_SIGNING_NOT_CONFIGURED','Sitzungssignatur ist nicht konfiguriert.',503); return crypto.createHash('sha256').update('ExportHUB/session/v1|'+source).digest(); }

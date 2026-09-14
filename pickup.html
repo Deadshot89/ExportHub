@@ -43,6 +43,7 @@ canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;backgro
 .actions .secondary{background:#fff;color:#334155;border:1px solid #cbd5e1}
 .pickup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pickup-actions .partial{background:#fff;color:#1d4ed8;border:2px solid #60a5fa}.pickup-actions button{min-height:52px}
 .success{text-align:center;padding:26px 10px}.success .icon{width:74px;height:74px;border-radius:50%;margin:0 auto 16px;background:#dcfce7;color:#166534;display:grid;place-items:center;font-size:38px;font-weight:1000}.success h2{font-size:28px;margin:0 0 10px;color:#166534}
+button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offset:3px}
 @media(max-width:620px){main{padding:10px}.card{padding:18px;border-radius:20px}.info-grid,.grid{grid-template-columns:1fr}}
 </style>
 <script id="exporthub-rc1018-public-language" defer src="/assets/rc1018-public-language.js?v=1018"></script>
@@ -51,7 +52,7 @@ canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;backgro
 <main>
 <section class="card">
 <div class="brand"><div class="logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div>
-<div id="status" class="status info">Sendungsdaten werden geladen …</div>
+<div id="status" class="status info" role="status" aria-live="polite" aria-atomic="true">Sendungsdaten werden geladen …</div>
 <div id="details"></div>
 
 <form id="form" hidden>
@@ -95,9 +96,9 @@ canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;backgro
 </section>
 </main>
 
-<div id="signatureModal" class="modal" hidden>
+<div id="signatureModal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="signatureDialogTitle">
 <div class="dialog">
-<h2>Unterschrift des Fahrers</h2>
+<h2 id="signatureDialogTitle">Unterschrift des Fahrers</h2>
 <p>Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.</p>
 <div class="canvas-wrap"><canvas id="canvas" width="1000" height="360"></canvas></div>
 <div class="actions">
