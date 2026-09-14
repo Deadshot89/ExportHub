@@ -16,22 +16,52 @@ function fn(name){
   }
   return'';
 }
-function compact(v){return String(v||'').replace(/\s+/g,' ').trim()}
 
-test('RC1098 Audit: Microsoft-Kontowechsel besitzt vollständigen aktiven Ablauf',()=>{
+test('RC1098: Einstellungen bieten Microsoft-Konto wechseln an',()=>{
+  assert.match(html,/data-exporthub-ms-switch="1"/);
   assert.match(html,/Microsoft-Konto wechseln/);
-  assert.match(html,/data-exporthub-ms-switch/);
-  for(const name of [
-    'resetClientSessionForMicrosoftSwitch',
-    'microsoftProviderLogoutUrl',
-    'microsoftAccountLoginUrl',
-    'settleAzureBeforeMicrosoftSwitch',
-    'endExportHubSessionForMicrosoftSwitch',
-    'switchMicrosoftAccount',
-    'handleMicrosoftSwitchStage'
-  ]){
-    const body=fn(name);
-    assert.ok(body,name+' fehlt');
-    console.log('RC1098_FN_'+name.toUpperCase()+'='+compact(body));
-  }
+});
+
+test('RC1098: vor Kontowechsel werden ungespeicherte Azure-Änderungen gesichert',()=>{
+  const src=fn('settleAzureBeforeMicrosoftSwitch');
+  assert.ok(src);
+  assert.match(src,/flushSave\('Vor Microsoft-Kontowechsel'/);
+  assert.match(src,/AZURE_SAVE_REQUIRED/);
+  assert.match(src,/AZURE_SAVE_TIMEOUT/);
+});
+
+test('RC1098: Kontowechsel beendet die ExportHUB-Sitzung und lokalen Sitzungszustand',()=>{
+  const end=fn('endExportHubSessionForMicrosoftSwitch');
+  const reset=fn('resetClientSessionForMicrosoftSwitch');
+  assert.match(end,/action:'logout'/);
+  assert.match(end,/resetClientSessionForMicrosoftSwitch\(\)/);
+  assert.match(reset,/runtime\.authToken=''/);
+  assert.match(reset,/runtime\.user=null/);
+  assert.match(reset,/runtime\.state=null/);
+  assert.match(reset,/clearTabSession\(\)/);
+});
+
+test('RC1098: Microsoft-Provider wird mit logout_hint abgemeldet',()=>{
+  const src=fn('microsoftProviderLogoutUrl');
+  assert.match(src,/login\.microsoftonline\.com\/common\/oauth2\/v2\.0\/logout/);
+  assert.match(src,/post_logout_redirect_uri/);
+  assert.match(src,/logout_hint/);
+});
+
+test('RC1098: neuer Microsoft-Login erzwingt Kontoauswahl',()=>{
+  const src=fn('microsoftAccountLoginUrl');
+  assert.match(src,/prompt:'select_account'/);
+  assert.match(src,/max_age:'0'/);
+  assert.match(src,/post_login_redirect_uri/);
+});
+
+test('RC1098: kompletter Kontowechsel läuft über Provider-Logout und neue Kontoauswahl',()=>{
+  const start=fn('switchMicrosoftAccount');
+  const stage=fn('handleMicrosoftSwitchStage');
+  assert.match(start,/settleAzureBeforeMicrosoftSwitch\(\)/);
+  assert.match(start,/endExportHubSessionForMicrosoftSwitch\(\)/);
+  assert.match(stage,/stage==='provider'/);
+  assert.match(stage,/microsoftProviderLogoutUrl/);
+  assert.match(stage,/stage==='login'/);
+  assert.match(stage,/microsoftAccountLoginUrl/);
 });
