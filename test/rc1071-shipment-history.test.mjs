@@ -99,9 +99,9 @@ test('RC1071: Timeline wird direkt in der Sendungsansicht dargestellt und mobil 
 
 test('RC1071: finaler RC1048-Build lädt History in Produktion TESTSERVICE und Demo',()=>{
   assert.match(builder,/RC1071_HISTORY_TAG/);
-  assert.match(builder,/rc1071-shipment-history\.js\?v=1094/);
+  assert.match(builder,/rc1071-shipment-history\.js\?v=1095/);
   assert.match(builder,/assets\/rc1071-shipment-history\.js/);
-  assert.match(builder,/shipmentHistory:\{version:'RC1094'/);
+  assert.match(builder,/shipmentHistory:\{version:'RC1095'/);
 });
 
 
