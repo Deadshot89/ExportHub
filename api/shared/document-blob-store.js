@@ -85,6 +85,24 @@ function existingDocumentMap(state){
  for(const root of ROOT_COLLECTIONS){const rows=Array.isArray(src[root])?src[root]:[];rows.forEach((row,ri)=>{const rid=rowIdentity(row,ri);for(const field of DOCUMENT_FIELDS){const files=Array.isArray(row&&row[field])?row[field]:[];files.forEach((file,fi)=>map.set([root,rid,field,fileIdentity(file,fi)].join('::'),clone(file)))}})}
  return map;
 }
+function incomingDocumentScan(state){
+ const src=state&&typeof state==='object'?state:{};let scanned=0,hasInlineFields=false;
+ for(const root of ROOT_COLLECTIONS){
+  const rows=Array.isArray(src[root])?src[root]:[];
+  for(const row of rows){
+   if(!row||typeof row!=='object')continue;
+   for(const field of DOCUMENT_FIELDS){
+    const files=Array.isArray(row[field])?row[field]:[];
+    for(const file of files){
+     scanned++;
+     if(!file||typeof file!=='object'||Array.isArray(file)||file.storage==='blob')continue;
+     if(INLINE_FIELDS.some(key=>typeof file[key]==='string'&&file[key].trim())){hasInlineFields=true;return{scanned,hasInlineFields}}
+    }
+   }
+  }
+ }
+ return{scanned,hasInlineFields};
+}
 function blobMetadataFromExisting(existing,incoming){
  const out=Object.assign({},clone(existing)||{},stripInlineFields(incoming)||{});
  ['storage','blobName','sha256','size','mimeType'].forEach(k=>{if(existing&&existing[k]!==undefined)out[k]=existing[k]});
@@ -148,7 +166,9 @@ async function storeInlineDocument(file,options={}){
  return Object.assign(stripInlineFields(file),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
 }
 async function externalizeDocumentCollections(state,options={}){
- const out=clone(state)||{},existing=existingDocumentMap(options.currentState),stats={externalized:0,inlineBytes:0,scanned:0,legacySkipped:0,blobReused:0};
+ const scan=incomingDocumentScan(state),out=clone(state)||{},stats={externalized:0,inlineBytes:0,scanned:scan.scanned,legacySkipped:0,blobReused:0,fastPath:!scan.hasInlineFields};
+ if(!scan.hasInlineFields)return{state:out,stats};
+ const existing=existingDocumentMap(options.currentState);stats.scanned=0;
  for(const root of ROOT_COLLECTIONS){
   const rows=Array.isArray(out[root])?out[root]:[];
   for(let ri=0;ri<rows.length;ri++){
