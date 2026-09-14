@@ -144,9 +144,9 @@ jobs:
           grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/index.html
           grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/demo.html
-          grep -q 'assets/rc1065-registration-cc.js?v=1091' dist-rc1048/index.html
-          grep -q 'assets/rc1065-registration-cc.js?v=1091' dist-rc1048/TESTVERSION.html
-          grep -q 'assets/rc1065-registration-cc.js?v=1091' dist-rc1048/demo.html
+          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1048/index.html
+          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1048/TESTVERSION.html
+          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1048/demo.html
           test -s dist-rc1048/assets/rc1065-registration-cc.js
           grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1048/index.html
           grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1048/TESTVERSION.html
@@ -360,9 +360,9 @@ jobs:
               && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$p" \
               && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$t" \
               && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$d" \
-              && grep -q 'assets/rc1065-registration-cc.js?v=1091' "$p" \
-              && grep -q 'assets/rc1065-registration-cc.js?v=1091' "$t" \
-              && grep -q 'assets/rc1065-registration-cc.js?v=1091' "$d" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$p" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$t" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$d" \
               && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$pcc" \
               && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$tcc" \
               && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$p" \
