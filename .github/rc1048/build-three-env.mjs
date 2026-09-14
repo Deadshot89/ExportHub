@@ -18,7 +18,7 @@ const RC1067_STARTUP_TAG='<script id="'+RC1067_STARTUP_ID+'" defer src="/assets/
 const RC1069_PERF_ID='exporthub-rc1069-performance';
 const RC1069_PERF_TAG='<script id="'+RC1069_PERF_ID+'" defer src="/assets/rc1069-performance.js?v=1069"></script>';
 const RC1071_HISTORY_ID='exporthub-rc1071-shipment-history';
-const RC1071_HISTORY_TAG='<script id="'+RC1071_HISTORY_ID+'" defer src="/assets/rc1071-shipment-history.js?v=1094"></script>';
+const RC1071_HISTORY_TAG='<script id="'+RC1071_HISTORY_ID+'" defer src="/assets/rc1071-shipment-history.js?v=1095"></script>';
 const RC1074_LOGIN_ID='exporthub-rc1074-login-clean';
 const RC1074_LOGIN_TAG='<script id="'+RC1074_LOGIN_ID+'" defer src="/assets/rc1074-login-clean.js?v=1074"></script>';
 const RC1075_LOADER_PIN_ID='exporthub-rc1075-loader-pin-admin';
@@ -532,7 +532,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
     customerMailContacts:{version:'RC1092',runtime:'assets/rc1092-customer-mail-contacts.js',actions:['Person speichern','Zur Mail hinzufügen'],separateLibraryAndMailAssignment:true,persistImmediately:true},
     loadingListPalletAccount:{version:'RC1095',document:'Ladeliste',onlyEuroPallets:true,label:'Palettenkonto',showsExpectedOutbound:true,cacheIncludesEuroPalletCount:true},
-    shipmentHistory:{version:'RC1094',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
+    shipmentHistory:{version:'RC1095',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
     loaderPinAdmin:{version:'RC1087',runtime:'assets/rc1075-loader-pin-admin.js',globalAdminOnly:true,api:'/api/loader-pins-admin',auditActions:['create','update','toggle','delete'],auditContainsPin:false,demo:false},
     customerLabels:{version:'RC1077',runtime:'assets/rc1077-customer-labels.js',views:['customers','customerfolder'],firmaLabel:'Standorte',headingsUnclipped:true},
