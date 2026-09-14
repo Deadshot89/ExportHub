@@ -14,7 +14,7 @@ const avisApi = fs.readFileSync(new URL('../api/customer-avis/index.js', import.
 test('customer Avis renders all released shipment attachments and POD support', () => {
   assert.match(avisPage, /function\s+docHtml\s*\(/);
   assert.match(avisPage, /downloadUrl/);
-  assert.match(avisPage, /POD herunterladen/);
+  assert.match(avisPage, /Abliefernachweis herunterladen|POD herunterladen/);
   assert.match(avisPage, /Öffnen \/ herunterladen/);
   assert.match(avisPage, /Dokumente\s*&\s*Anhänge|Dokumente und Anhänge/);
 });
