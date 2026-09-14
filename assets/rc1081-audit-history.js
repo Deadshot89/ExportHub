@@ -101,7 +101,7 @@ function actionTitle(e){
  return mapped
 }
 function subtypeTechnical(e){return q(e&&e.subtype).replace(/[-_]+/g,' ')}
-function actionKey(e){return q(e&&e.type)+'|'+q(e&&e.subtype)}
+function actionKey(e){return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+low(actionTitle(e))}
 
 function auditEvent(e){
  var details=e&&e.details||{},subtype=q(e&&e.type),entity='System',entityId=q(details.userId||details.username);
@@ -195,6 +195,7 @@ function detailText(e){
  if(Number.isFinite(Number(x.count)))parts.push('Anzahl: '+Number(x.count));
  if(x.document)parts.push('Dokument: '+q(x.document));
  if(x.files)parts.push('Dateien: '+q(x.files));
+ if(x.mailType)parts.push('Mail: '+q(x.mailType));
  if(x.subject)parts.push('Betreff: '+q(x.subject));
  if(x.from&&x.to)parts.push('Änderung: '+q(x.from)+' → '+q(x.to));
  else if(x.to)parts.push('Empfänger: '+q(x.to));
@@ -219,7 +220,7 @@ function detailText(e){
 function actorList(events){return Array.from(new Set(events.map(function(e){return actorName(e)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')})}
 function actionList(events){
  var map=new Map();
- events.forEach(function(e){var k=actionKey(e);if(!map.has(k))map.set(k,{key:k,label:actionLabel(e),area:typeLabel(e.type)})});
+ events.forEach(function(e){var k=actionKey(e);if(!map.has(k))map.set(k,{key:k,label:actionTitle(e),area:typeLabel(e.type)})});
  return Array.from(map.values()).sort(function(a,b){var x=a.label.localeCompare(b.label,'de');return x||a.area.localeCompare(b.area,'de')})
 }
 function filterEvents(events){
