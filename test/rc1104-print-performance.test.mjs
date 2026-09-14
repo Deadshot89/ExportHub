@@ -8,7 +8,14 @@ test('RC1104: nach dem Speichern wird die Lager-/QR-Ausgabe für den Druck früh
   assert.match(source,/printPrewarmByKey/,'laufende Druck-Vorbereitung muss pro Sendung geteilt werden');
   assert.match(source,/function prewarmPrintOutput\(/,'Druck-Prewarm-Funktion fehlt');
   assert.match(source,/exporthub:shipment-saved/,'Prewarm muss direkt nach erfolgreichem Sendungsspeichern starten');
-  assert.match(source,/ExportHUBWarehouse\.register/,'bestehende sichere Location-Registrierung muss verwendet werden');
+  assert.match(source,/(?:w\.)?ExportHUBWarehouse/,'bestehende sichere Location-Registrierung muss verwendet werden');
+  assert.match(source,/warehouse\.register\(sh,false\)/,'Prewarm muss exakt den bestehenden Warehouse-Registerpfad verwenden');
+});
+
+test('RC1104: Dokumentcenter wärmt Druck und PDF bereits beim Öffnen vor',()=>{
+  assert.match(source,/exporthub:documents-opening/,'Dokumentcenter-Prewarm fehlt');
+  assert.match(source,/download-all/,'Gesamt-PDF muss auf laufenden Prewarm warten können');
+  assert.match(source,/download-load1/,'Ladelisten-PDF muss auf laufenden Prewarm warten können');
 });
 
 test('RC1104: Druck wartet auf eine bereits laufende Vorwärmung statt eine zweite Registrierung zu starten',()=>{
