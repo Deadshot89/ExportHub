@@ -33,6 +33,8 @@ const RC1081_AUDIT_HISTORY_ID='exporthub-rc1081-audit-history';
 const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1087"></script>';
 const RC1092_CONTACTS_ID='exporthub-rc1092-customer-mail-contacts';
 const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/assets/rc1092-customer-mail-contacts.js?v=1092"></script>';
+const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
+const RC1096_PACKAGING_TAG='<script id="'+RC1096_PACKAGING_ID+'" defer src="/assets/rc1096-packaging-groups.js?v=1096"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -51,6 +53,18 @@ function injectBeforeHeadClose(html,tag,id){
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
 
+function patchPackagingGroups(html,file){
+  const start=html.indexOf('function packagingList(){');
+  const end=start>=0?html.indexOf('}function applyPackaging',start):-1;
+  if(start<0||end<0)throw new Error(file+': packagingList/applyPackaging fehlt für RC1096');
+  let block=html.slice(start,end+1);
+  if(!/name:['"]Umschlag['"]/.test(block)){
+    const before=block;
+    block=block.replace(/sources\.push\(PACK\);/,"sources.push([{name:'Umschlag',l:0,w:0,h:0,ldm:0}]);sources.push(PACK);");
+    if(block===before)throw new Error(file+': RC1096 Umschlag-Anker fehlt');
+  }
+  return html.slice(0,start)+block+html.slice(end+1);
+}
 function repairPrintStowInjectedPageBlocks(html,file){
   let out=html,cursor=0;
   const anchor="'+card.innerHTML+'";
@@ -440,6 +454,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchHistoryNavigation(html,file);
   html=patchLoadingListPalletAccount(html,file);
   html=patchShipmentOverviewInlineMeta(html,file);
+  html=patchPackagingGroups(html,file);
   html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1091');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1085');
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
@@ -452,6 +467,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=injectBeforeHeadClose(html,RC1080_CUSTOMER_HISTORY_TAG,RC1080_CUSTOMER_HISTORY_ID);
   html=injectBeforeHeadClose(html,RC1081_AUDIT_HISTORY_TAG,RC1081_AUDIT_HISTORY_ID);
   html=injectBeforeHeadClose(html,RC1092_CONTACTS_TAG,RC1092_CONTACTS_ID);
+  html=injectBeforeHeadClose(html,RC1096_PACKAGING_TAG,RC1096_PACKAGING_ID);
   if(file!=='demo.html'){
     html=injectBeforeHeadClose(html,RC1061_MIGRATION_TAG,RC1061_MIGRATION_ID);
     html=injectBeforeHeadClose(html,RC1063_ABD_BLOB_TAG,RC1063_ABD_BLOB_ID);
@@ -491,7 +507,7 @@ if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime 
 fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
 fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
-for(const rel of ['assets/rc1092-customer-mail-contacts.js','assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
+for(const rel of ['assets/rc1092-customer-mail-contacts.js','assets/rc1096-packaging-groups.js','assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error(rel+' fehlt für den finalen RC1048-Build');
   fs.mkdirSync(path.dirname(dst),{recursive:true});
@@ -531,6 +547,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
     shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
     customerMailContacts:{version:'RC1092',runtime:'assets/rc1092-customer-mail-contacts.js',actions:['Person speichern','Zur Mail hinzufügen'],separateLibraryAndMailAssignment:true,persistImmediately:true},
+    packagingMenu:{version:'RC1096',runtime:'assets/rc1096-packaging-groups.js',columns:['Pakete','Paletten','Sonstiges'],packageCodes:'E0-E6',addsEnvelope:true,responsive:true},
     loadingListPalletAccount:{version:'RC1095',document:'Ladeliste',onlyEuroPallets:true,label:'Palettenkonto',showsExpectedOutbound:true,cacheIncludesEuroPalletCount:true},
     shipmentHistory:{version:'RC1095',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
