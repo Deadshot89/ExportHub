@@ -67,7 +67,6 @@ test('RC1087: finaler Build lädt Historie als eigenen Reiter in Produktion TEST
   assert.match(build,/patchHistoryNavigation\(html,file\)/);
 });
 
-
 test('RC1081: zentrale History kann gedruckt und als CSV exportiert werden',()=>{
   assert.match(runtime,/CSV exportieren/);
   assert.match(runtime,/Drucken/);
@@ -77,14 +76,12 @@ test('RC1081: zentrale History kann gedruckt und als CSV exportiert werden',()=>
   assert.match(runtime,/@page\{size:A4 landscape/);
 });
 
-
 test('RC1081: Namensänderung durch Administrator wird getrennt von Rechteänderungen protokolliert',()=>{
   assert.match(authApi,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN/);
   assert.match(authApi,/previousName: beforeName/);
   assert.match(authApi,/displayName: afterName/);
   assert.match(runtime,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'Anzeigename durch Administrator geändert'/);
 });
-
 
 test('RC1087: zentrale Historie liest alle Sendungssammlungen inklusive abgeleiteter Ereignisse',()=>{
   for(const key of ['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments']){
@@ -94,7 +91,6 @@ test('RC1087: zentrale Historie liest alle Sendungssammlungen inklusive abgeleit
   assert.match(runtime,/ExportHUBShipmentHistory1071/);
   assert.match(runtime,/pushUnique\(map,shipmentEvent\(sh,e\)\)/);
 });
-
 
 test('RC1087: Filterung nach Zeitraum, Bereich, Aktion, Benutzer und Objekt ist vollständig',()=>{
   for(const marker of [
@@ -109,7 +105,6 @@ test('RC1087: Filterung nach Zeitraum, Bereich, Aktion, Benutzer und Objekt ist 
   assert.match(runtime,/data-rc1081-reset/);
 });
 
-
 test('RC1087: sichtbaren Aktionsnamen sind deutsch und technische Subtypen bleiben intern',()=>{
   for(const marker of [
     "created:'Sendung erstellt'",
@@ -121,7 +116,7 @@ test('RC1087: sichtbaren Aktionsnamen sind deutsch und technische Subtypen bleib
     "DIAGNOSTIC_AUTOFIX_FIXED:'Fehler automatisch behoben'"
   ]) assert.ok(runtime.includes(marker),marker+' fehlt');
   assert.match(runtime,/function actionLabel\(e\)/);
-  assert.match(runtime,/actionLabel\(e\),area:typeLabel\(e\.type\)/);
+  assert.match(runtime,/actionTitle\(e\),area:typeLabel\(e\.type\)/);
   assert.match(runtime,/FILTER=\{query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:0/);
 });
 
@@ -131,7 +126,6 @@ test('RC1087: alle verfügbaren Aktionen werden ohne interne Scroll-Begrenzung a
   assert.match(runtime,/events\.length\+' Aktionen im verfügbaren Datenbestand/);
 });
 
-
 test('RC1087: sichtbaren Historienansichten sind vollständig deutsch',()=>{
   assert.match(shipmentHistory,/>HISTORIE<\/span>/);
   assert.match(customerHistory,/>HISTORIE<\/span>/);
@@ -140,7 +134,6 @@ test('RC1087: sichtbaren Historienansichten sind vollständig deutsch',()=>{
   assert.match(profile,/Historie-Einträge/);
   assert.doesNotMatch(profile,/History-Einträge/);
 });
-
 
 test('RC1087: Aufgaben werden aus belastbaren Erstellungs- und Abschlussdaten abgeleitet',()=>{
   assert.match(runtime,/function taskEvents\(t\)/);
@@ -178,7 +171,6 @@ test('RC1087: reine Datumswerte werden ohne erfundene Uhrzeit angezeigt',()=>{
   assert.match(runtime,/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$/);
   assert.match(runtime,/dateStyle:'short'/);
 });
-
 
 test('RC1087: Verlader-PIN Verwaltungsaktionen erscheinen deutsch in der Historie',()=>{
   for(const marker of [
