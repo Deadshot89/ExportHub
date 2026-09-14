@@ -116,7 +116,7 @@ test('RC1080: Arbeitsstart und Versandanmeldung werden mit Benutzer in der Sendu
 });
 
 
-test('RC1094: Druckhistorie erkennt ABD und weitere Versanddokumente eindeutig',()=>{
+test('RC1095: Druckhistorie erkennt ABD und weitere Versanddokumente eindeutig',()=>{
   const sh={id:'S1',ref:'ABC123'};
   const {api}=runtime(sh);
   assert.equal(api.documentLabel('ABD drucken'),'ABD');
@@ -128,7 +128,7 @@ test('RC1094: Druckhistorie erkennt ABD und weitere Versanddokumente eindeutig',
   assert.equal(api.documentLabel('L2 drucken'),'L2');
 });
 
-test('RC1094: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Lieferavis',()=>{
+test('RC1095: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Lieferavis',()=>{
   const sh={id:'S1',ref:'ABC123'};
   const {api}=runtime(sh);
   assert.equal(api.mailTypeFrom('ABD Anfrage per E-Mail'),'ABD-Anfrage');
@@ -141,4 +141,10 @@ test('RC1094: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Liefe
   assert.match(source,/als bestätigt markieren\|als bestaetigt markieren/);
   assert.match(source,/recordMailSent\(sh,contextText\)/);
   assert.match(source,/Dokument: /);
+});
+
+
+test('RC1095: POD-Upload wird dem aktuell angemeldeten Benutzer zugeordnet',()=>{
+  assert.match(source,/if\(next\.pod>prev\.pod\)append\(sh,\{type:'pod',label:'POD hinzugefügt',actor:actorFrom\(currentUser\(\)\)/);
+  assert.doesNotMatch(source,/label:'POD hinzugefügt',actor:latestPickupActor\(sh\)/);
 });
