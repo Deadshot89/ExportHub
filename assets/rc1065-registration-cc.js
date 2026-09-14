@@ -56,13 +56,26 @@ function isRegistration(url){
  var decoded=raw;try{decoded=decodeURIComponent(raw.replace(/\+/g,' '))}catch(_){}
  return /anmeld|abhol|lieferavis|collection\s+notice|pickup|sendung|shipment/i.test(decoded)
 }
+function decodeQueryValue(v){try{return decodeURIComponent(q(v).replace(/\\+/g,' '))}catch(_){return q(v)}}
+function mergeRequiredCc(raw,requiredAddresses){
+ var qm=raw.indexOf('?'),base=qm>=0?raw.slice(0,qm):raw,query=qm>=0?raw.slice(qm+1):'',parts=query?query.split('&'):[],ccIndex=-1,existing=[];
+ for(var i=0;i<parts.length;i++){
+  var eq=parts[i].indexOf('='),key=decodeQueryValue(eq>=0?parts[i].slice(0,eq):parts[i]).toLowerCase();
+  if(key!=='cc')continue;
+  ccIndex=i;
+  var value=decodeQueryValue(eq>=0?parts[i].slice(eq+1):'');
+  value.split(/[;,]/).map(mail).filter(Boolean).forEach(function(e){if(!existing.some(function(x){return x.toLowerCase()===e.toLowerCase()}))existing.push(e)});
+  break
+ }
+ (requiredAddresses||[]).forEach(function(e){e=mail(e);if(e&&!existing.some(function(x){return x.toLowerCase()===e.toLowerCase()}))existing.push(e)});
+ var ccPart='cc='+encodeURIComponent(existing.join(';'));
+ if(ccIndex>=0)parts[ccIndex]=ccPart;else parts.push(ccPart);
+ return base+'?'+parts.join('&')
+}
 function prepare(url){
  var raw=q(url);if(!isRegistration(raw))return{ok:true,url:raw,required:false,missing:[]};
  var r=resolve();if(!r.ok)return{ok:false,url:raw,required:true,missing:r.missing};
- var parts=raw.split('?'),params=new URLSearchParams(parts.slice(1).join('?')),existing=q(params.get('cc')).split(/[;,]/).map(mail).filter(Boolean);
- r.addresses.forEach(function(x){if(!existing.some(function(y){return y.toLowerCase()===x.toLowerCase()}))existing.push(x)});
- params.set('cc',existing.join(';'));
- return{ok:true,url:parts[0]+'?'+params.toString(),required:true,missing:[]}
+ return{ok:true,url:mergeRequiredCc(raw,r.addresses),required:true,missing:[]}
 }
 function block(p){
  var names=(p&&p.missing||[]).join(', '),msg='Anmeldung nicht geöffnet: Pflicht-CC konnte nicht aufgelöst werden'+(names?': '+names:'')+'. Bitte ExportHUB neu laden. Falls der Fehler erneut auftritt, die Pflicht-CC-Konfiguration prüfen.';
@@ -165,5 +178,5 @@ if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',scheduleSettings,{once:true});else scheduleSettings()
 }
 
-w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1091',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings});
+w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1093',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings});
 })(window);
