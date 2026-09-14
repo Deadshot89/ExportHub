@@ -71,7 +71,9 @@ test('RC1071: Mail geöffnet und tatsächlich versendet bleiben zwei verschieden
   assert.match(source,/E-Mail vorbereitet\/geöffnet/);
   assert.match(source,/Mail als versendet bestätigen/);
   assert.match(source,/Bestätigen, dass die E-Mail tatsächlich versendet wurde/);
-  assert.match(source,/type:'mail-sent',label:'E-Mail-Versand bestätigt'/);
+  assert.match(source,/type:'mail-sent'/);
+  assert.match(source,/ABD-E-Mail-Versand bestätigt/);
+  assert.match(source,/details:\{reference:ref\(sh\),to:q\(mailMeta\.to\),subject:q\(mailMeta\.subject\),mailType:mailKind\}/);
 });
 
 test('RC1071: Ersteller, Druck, Status, ABD, POD und Avis sind als History-Ereignisse vorgesehen',()=>{
@@ -85,7 +87,7 @@ test('RC1071: Ersteller, Druck, Status, ABD, POD und Avis sind als History-Ereig
     "type:'pickup'"
   ]) assert.ok(source.includes(marker),marker+' fehlt');
   assert.match(source,/sh\.createdBy=a\.name/);
-  assert.match(source,/documentLabel\(text\)/);
+  assert.match(source,/documentLabel\(contextText\)/);
 });
 
 test('RC1071: Timeline wird direkt in der Sendungsansicht dargestellt und mobil lesbar',()=>{
@@ -97,9 +99,9 @@ test('RC1071: Timeline wird direkt in der Sendungsansicht dargestellt und mobil 
 
 test('RC1071: finaler RC1048-Build lädt History in Produktion TESTSERVICE und Demo',()=>{
   assert.match(builder,/RC1071_HISTORY_TAG/);
-  assert.match(builder,/rc1071-shipment-history\.js\?v=1080/);
+  assert.match(builder,/rc1071-shipment-history\.js\?v=1094/);
   assert.match(builder,/assets\/rc1071-shipment-history\.js/);
-  assert.match(builder,/shipmentHistory:\{version:'RC1080'/);
+  assert.match(builder,/shipmentHistory:\{version:'RC1094'/);
 });
 
 
@@ -111,4 +113,30 @@ test('RC1080: Arbeitsstart und Versandanmeldung werden mit Benutzer in der Sendu
   assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
   assert.match(source,/type:'print'/);
   assert.match(source,/type:'mail-sent'/);
+});
+
+
+test('RC1094: Druckhistorie erkennt ABD und weitere Versanddokumente eindeutig',()=>{
+  const sh={id:'S1',ref:'ABC123'};
+  const {api}=runtime(sh);
+  assert.equal(api.documentLabel('ABD drucken'),'ABD');
+  assert.equal(api.documentLabel('Ausfuhrbegleitdokument PDF'),'ABD');
+  assert.equal(api.documentLabel('CMR drucken'),'CMR');
+  assert.equal(api.documentLabel('Lieferschein drucken'),'Lieferschein');
+  assert.equal(api.documentLabel('Deckblatt PDF'),'Deckblatt');
+  assert.equal(api.documentLabel('L1 QR drucken'),'L1 QR');
+  assert.equal(api.documentLabel('L2 drucken'),'L2');
+});
+
+test('RC1094: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Lieferavis',()=>{
+  const sh={id:'S1',ref:'ABC123'};
+  const {api}=runtime(sh);
+  assert.equal(api.mailTypeFrom('ABD Anfrage per E-Mail'),'ABD-Anfrage');
+  assert.equal(api.mailTypeFrom('Versandanmeldung per Mail'),'Versandanmeldung');
+  assert.equal(api.mailTypeFrom('Lieferavis Abholung'),'Lieferavis');
+  assert.equal(api.mailTypeFrom('E-Mail öffnen'),'E-Mail');
+  assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
+  assert.match(source,/ABD-Anfrage per E-Mail gestartet/);
+  assert.match(source,/mailType:mailKind/);
+  assert.match(source,/Dokument: /);
 });
