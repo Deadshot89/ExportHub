@@ -35,14 +35,14 @@ test('RC1107: Produktion leert Aufgaben und Statusledger genau einmal mit Tombst
   const {api,state,calls}=runtime('production',true);
   assert.equal(await api.resetProductionTasksOnce(),true);
   assert.equal(state.tasks.length,0);
-  assert.deepEqual(state.taskStatusLedger,{});
+  assert.equal(Object.keys(state.taskStatusLedger).length,0);
   assert.ok(state.rc1107TaskResetAt);
   const taskTombstones=state._teamSyncMeta.tombstones.filter(t=>t.collection==='tasks');
-  assert.deepEqual(taskTombstones.map(t=>t.id).sort(),['TASK-1','TASK-2']);
+  assert.equal(JSON.stringify(taskTombstones.map(t=>t.id).sort()),JSON.stringify(['TASK-1','TASK-2']));
   assert.equal(state._teamSyncMeta.tombstones.filter(t=>t.collection==='customers').length,1);
-  assert.deepEqual(calls.map(c=>c[0]),['queue','flush']);
+  assert.equal(JSON.stringify(calls.map(c=>c[0])),JSON.stringify(['queue','flush']));
   assert.equal(await api.resetProductionTasksOnce(),false);
-  assert.deepEqual(calls.map(c=>c[0]),['queue','flush']);
+  assert.equal(JSON.stringify(calls.map(c=>c[0])),JSON.stringify(['queue','flush']));
 });
 
 test('RC1107: TESTSERVICE wird niemals zurückgesetzt',async()=>{
@@ -57,7 +57,7 @@ test('RC1107: fehlgeschlagene Azure-Bestätigung stellt lokalen Aufgabenbestand 
   const {api,state}=runtime('production',false);
   await assert.rejects(()=>api.resetProductionTasksOnce(),/Azure/);
   assert.equal(state.tasks.length,2);
-  assert.deepEqual(state.taskStatusLedger,{'id:task-1':{status:'erledigt'}});
+  assert.equal(JSON.stringify(state.taskStatusLedger),JSON.stringify({'id:task-1':{status:'erledigt'}}));
   assert.equal(state.rc1107TaskResetAt,undefined);
   assert.equal(state._teamSyncMeta.tombstones.filter(t=>t.collection==='tasks').length,0);
 });
