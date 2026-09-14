@@ -138,5 +138,7 @@ test('RC1094: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Liefe
   assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
   assert.match(source,/ABD-Anfrage per E-Mail gestartet/);
   assert.match(source,/mailType:mailKind/);
+  assert.match(source,/als bestätigt markieren\|als bestaetigt markieren/);
+  assert.match(source,/recordMailSent\(sh,contextText\)/);
   assert.match(source,/Dokument: /);
 });
