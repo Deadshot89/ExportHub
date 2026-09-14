@@ -64,7 +64,7 @@ function installPickup410Guard(){
 function cleanupSyncedDiagnostics(){
  var cloud=w.ExportHUBDiagnosticsCloud864,store=w.__EXPORTHUB_DIAG863_STORE__;if(!cloud||typeof cloud.status!=='function'||!store||!Array.isArray(store.records)||typeof store.clear!=='function')return false;
  var status={};try{status=cloud.status()||{}}catch(_){return false}
- if(Number(status.pending)!==0||!/Azure synchronisiert/i.test(clean(status.status)))return false;
+ var fullySynced=Number(status.pending)===0&&/Azure synchronisiert/i.test(clean(status.status));if(!fullySynced)return false;
  if(!store.records.length)return false;
  store.clear();diagnosticsCleared++;return true
 }
@@ -101,13 +101,8 @@ function installSearch(){
  input.__rc1069SearchInstalled=true;searchInstalls++;
  return true
 }
-function install(){
- installSearch();installPickup410Guard();scheduleDiagnosticsCleanup();
- return true
-}
-function schedule(){
- var set=nativeSetTimeout();set(install,0);set(install,180);set(install,600)
-}
+function install(){installSearch();installPickup410Guard();scheduleDiagnosticsCleanup();return true}
+function schedule(){var set=nativeSetTimeout();set(install,0);set(install,180);set(install,600)}
 if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
  w.document.addEventListener('click',waitForPrintPrewarm,true);
