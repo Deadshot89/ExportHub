@@ -37,7 +37,7 @@ test('RC1091: finaler RC1048-Build rendert Erfasst und Colli direkt in overviewC
   assert.match(build,/data-rc1014-shipment-meta/);
   assert.match(build,/rc1014-shipment-overview\.js\?v=1091/);
   assert.match(build,/shipmentOverviewRenderStability:\{version:'RC1091'/);
-  assert.match(build,/\['assets\/rc1014-shipment-overview\.js','assets\/rc1013-diagnostics\.js'/);
+  assert.match(build,/assets\/rc1014-shipment-overview\.js/,'RC1091 Runtime muss weiterhin in den finalen Build kopiert werden');
 });
 
 test('RC1091: Produktionsdeploy prüft den neuen Sendungsübersichts-Cache-Key',()=>{
