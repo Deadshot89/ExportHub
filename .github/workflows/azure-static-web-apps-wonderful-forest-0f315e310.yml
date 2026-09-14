@@ -743,6 +743,43 @@ jobs:
           exit 1
 
 
+      - name: Live RC1096 Verpackungsgruppen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1096=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1096-packaging-groups.js?rc1096=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1096-packaging-groups.js?v=1096' "$page" || ok=0
+              grep -q "name:'Umschlag'" "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1096_PACKAGING_GROUPS__' "$asset" || ok=0
+              grep -q "Pakete" "$asset" || ok=0
+              grep -q "Paletten" "$asset" || ok=0
+              grep -q "Sonstiges" "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1096=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1096-packaging-groups.js?v=1096' "$demo" || ok=0
+            grep -q "name:'Umschlag'" "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1096 Verpackung: Pakete, Paletten, Sonstiges und Umschlag live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1096 Verpackungsgruppen-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+
       - name: Live RC1095 Palettenkonto auf Ladeliste prüfen
         shell: bash
         run: |
