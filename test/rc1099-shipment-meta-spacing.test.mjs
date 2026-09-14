@@ -28,3 +28,10 @@ test('RC1099: Reparatur wird bei jedem Sendungsrender eingeplant',()=>{
   assert.match(source,/repairCreatorMetaSpacing\(\)/);
   assert.match(source,/creatorMetaText/);
 });
+
+test('RC1099: Layout-Fallback wird je Metadaten-Element separat entschieden',()=>{
+  assert.match(source,/var localChanged=false/);
+  assert.match(source,/localChanged=true/);
+  assert.match(source,/if\(!localChanged&&el\.childNodes/);
+  assert.doesNotMatch(source,/if\(!changed&&el\.childNodes/);
+});
