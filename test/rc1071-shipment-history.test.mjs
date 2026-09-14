@@ -67,12 +67,14 @@ test('RC1071: vorhandene QR-Abholung erscheint mit Verlader/Fahrer in der Sendun
   assert.equal(pickup.details.licensePlate,'KK-AA 1');
 });
 
-test('RC1071: Mail geöffnet und tatsächlich versendet bleiben zwei verschiedene Ereignisse',()=>{
-  assert.match(source,/E-Mail vorbereitet\/geöffnet/);
-  assert.match(source,/Mail als versendet bestätigen/);
-  assert.match(source,/Bestätigen, dass die E-Mail tatsächlich versendet wurde/);
+test('RC1100: Mailöffnung erfasst Versand automatisch ohne manuelle Bestätigung',()=>{
+  assert.doesNotMatch(source,/function ensureMailConfirm/);
+  assert.doesNotMatch(source,/data-rc1071-mail-sent/);
+  assert.doesNotMatch(source,/w\.confirm/);
   assert.match(source,/type:'mail-sent'/);
   assert.match(source,/ABD-E-Mail-Versand bestätigt/);
+  assert.match(source,/mail-sent-open/);
+  assert.match(source,/recordMailSent\(sh,contextText\)/);
   assert.match(source,/details:\{reference:ref\(sh\),to:q\(mailMeta\.to\),subject:q\(mailMeta\.subject\),mailType:mailKind\}/);
 });
 
@@ -138,7 +140,7 @@ test('RC1095: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Liefe
   assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
   assert.match(source,/ABD-Anfrage per E-Mail gestartet/);
   assert.match(source,/mailType:mailKind/);
-  assert.match(source,/als bestätigt markieren\|als bestaetigt markieren/);
+  assert.doesNotMatch(source,/function ensureMailConfirm/);
   assert.match(source,/recordMailSent\(sh,contextText\)/);
   assert.match(source,/Dokument: /);
 });

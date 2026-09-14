@@ -65,9 +65,9 @@ test('RC1097: neuer History-Eintrag darf ältere Ereignisse anderer Sendungskopi
 });
 
 test('RC1097: archivierte Kopie kann fehlende History zur aktiven Sendung ergänzen',()=>{
-  const current={id:'S1',ref:'JXR4Y',shipmentHistory:[event('H-WORK','2026-09-14T11:03:45Z','work-start','Arbeit an Sendung gestartet')]};
-  const saved={id:'S1',ref:'JXR4Y',shipmentHistory:[]};
-  const archived={id:'S1',ref:'JXR4Y',shipmentHistory:[event('H-PICKUP','2026-09-12T12:00:00Z','pickup','Abholung bestätigt','Lager')]};
+  const current={id:'S1',ref:'JXR4XY',shipmentHistory:[event('H-WORK','2026-09-14T11:03:45Z','work-start','Arbeit an Sendung gestartet')]};
+  const saved={id:'S1',ref:'JXR4XY',shipmentHistory:[]};
+  const archived={id:'S1',ref:'JXR4XY',shipmentHistory:[event('H-PICKUP','2026-09-12T12:00:00Z','pickup','Abholung bestätigt','Lager')]};
   const {api}=runtime(current,saved,[archived]);
 
   assert.deepEqual(ids(api.events(current)),['H-PICKUP','H-WORK']);
