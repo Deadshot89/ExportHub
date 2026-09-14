@@ -72,7 +72,7 @@ function monitor(){
  var next=snapshot(sh),prev=SNAPSHOTS[key];SNAPSHOTS[key]=next;if(!prev)return;
  if(prev.status!==next.status&&next.status)append(sh,{type:'status',label:'Status geändert: '+next.status,actor:actorFrom(currentUser()),details:{from:prev.status,to:next.status}});
  if(next.abd>prev.abd)append(sh,{type:'abd',label:'ABD-Dokument hinzugefügt',actor:actorFrom(currentUser()),details:{documents:next.abd}});
- if(next.pod>prev.pod)append(sh,{type:'pod',label:'POD hinzugefügt',actor:latestPickupActor(sh),details:{documents:next.pod}});
+ if(next.pod>prev.pod)append(sh,{type:'pod',label:'POD hinzugefügt',actor:actorFrom(currentUser()),details:{documents:next.pod,reference:ref(sh)}});
  if(!prev.avis&&next.avis)append(sh,{type:'avis',label:'Lieferavis aktiviert',actor:actorFrom(currentUser())});
  if((prev.pickupDate!==next.pickupDate||prev.pickupTime!==next.pickupTime)&&next.pickupDate)append(sh,{type:'pickup-plan',label:'Abholung geplant/gebucht',actor:actorFrom(currentUser()),details:{date:next.pickupDate,time:next.pickupTime}});
  if(!prev.picked&&next.picked)append(sh,{type:'pickup',label:'Abholung bestätigt',at:next.picked,actor:latestPickupActor(sh),details:{status:next.status}});
@@ -183,5 +183,5 @@ if(w.document){
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1094',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,mailTypeFrom:mailTypeFrom});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1095',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,mailTypeFrom:mailTypeFrom});
 })(window);
