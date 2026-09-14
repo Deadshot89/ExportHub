@@ -131,13 +131,16 @@ function ensureMailConfirm(){
  var b=document.createElement('button');b.type='button';b.className='ghost';b.setAttribute('data-rc1071-mail-sent','1');b.textContent='Mail als versendet bestätigen';b.title='Erst anklicken, nachdem die E-Mail tatsächlich versendet wurde.';
  var toolbar=area.querySelector('.toolbar,.actions,.button-row')||area;toolbar.appendChild(b);return true
 }
+function recordMailSent(sh,contextText){var mailMeta=LAST_MAIL_META[identity(sh)]||{},mailKind=q(mailMeta.mailType)||mailTypeFrom(contextText)||'E-Mail',sentLabel=mailKind==='ABD-Anfrage'?'ABD-E-Mail-Versand bestätigt':'E-Mail-Versand bestätigt';return append(sh,{type:'mail-sent',label:sentLabel,actor:actorFrom(currentUser()),details:{reference:ref(sh),to:q(mailMeta.to),subject:q(mailMeta.subject),mailType:mailKind}})}
 function click(ev){
  var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;var sh=currentShipment();if(!sh)return;
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),contextText=elementContext(el,text),l=low(contextText);
  if(el.matches&&el.matches('[data-rc1071-mail-sent]')){
    ev.preventDefault();if(w.confirm&&!w.confirm('Bestätigen, dass die E-Mail tatsächlich versendet wurde?'))return;
-   var mailMeta=LAST_MAIL_META[identity(sh)]||{},mailKind=q(mailMeta.mailType)||'E-Mail',sentLabel=mailKind==='ABD-Anfrage'?'ABD-E-Mail-Versand bestätigt':'E-Mail-Versand bestätigt';
-   append(sh,{type:'mail-sent',label:sentLabel,actor:actorFrom(currentUser()),details:{reference:ref(sh),to:q(mailMeta.to),subject:q(mailMeta.subject),mailType:mailKind}});return
+   recordMailSent(sh,contextText);return
+ }
+ if(/als bestätigt markieren|als bestaetigt markieren|mail.*versendet.*bestätig|mail.*versendet.*bestaetig|versand.*bestätig|versand.*bestaetig/.test(l)){
+   if(actionOnce('mail-sent-native|'+identity(sh),1800))recordMailSent(sh,contextText);return
  }
  var href=q(el.getAttribute&&el.getAttribute('href'));
  if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(l)){
