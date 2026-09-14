@@ -4,28 +4,39 @@ import fs from 'node:fs';
 
 const html=fs.readFileSync('TESTVERSION.html','utf8');
 
-function compact(s){return String(s||'').replace(/\s+/g,' ').trim()}
-function around(needle,limit=8){
-  const low=html.toLocaleLowerCase('de-DE'),n=String(needle).toLocaleLowerCase('de-DE'),out=[];
-  let from=0;
-  while(out.length<limit){
-    const i=low.indexOf(n,from);if(i<0)break;
-    out.push(compact(html.slice(Math.max(0,i-650),Math.min(html.length,i+1650))));
-    from=i+n.length;
-  }
-  return out;
-}
+test('RC1097: Academy bietet die drei verbindlichen Berufsbereiche',()=>{
+  assert.match(html,/Fachkraft für Lagerlogistik/);
+  assert.match(html,/Industriekaufmann\/-frau/);
+  assert.match(html,/Groß- & Einzelhandel/);
+  assert.match(html,/ihkProfessionTabsHtml/);
+  assert.match(html,/industriekaufmann/);
+  assert.match(html,/handel/);
+});
 
-test('RC1097 Audit: aktive Academy-Funktionen und Prüfungsmarker lokalisieren',()=>{
-  assert.match(html,/academy/i,'Academy fehlt im aktiven TESTVERSION-Code');
-  const fnNames=[];
-  for(const m of html.matchAll(/function\s+([A-Za-z0-9_$]*(?:academy|quiz|exam|pruef|pruf)[A-Za-z0-9_$]*)\s*\(/gi)){
-    if(!fnNames.includes(m[1]))fnNames.push(m[1]);
-  }
-  console.log('RC1097_ACADEMY_FUNCTIONS='+fnNames.slice(0,80).join(','));
-  for(const needle of ['academy','quiz','prüfung','50','100','nachbesprechung','datenschutz','beruf']){
-    const rows=around(needle,needle==='academy'?5:3);
-    console.log('RC1097_'+needle.toUpperCase().replace(/[^A-Z0-9]+/g,'_')+'_COUNT='+rows.length);
-    rows.forEach((row,i)=>console.log('RC1097_'+needle.toUpperCase().replace(/[^A-Z0-9]+/g,'_')+'_'+(i+1)+'='+row));
-  }
+test('RC1097: Prüfungen bleiben bei 50 Fragen und 100 Punkten',()=>{
+  assert.match(html,/Fragen je Prüfung<\/span><strong>50<\/strong>/);
+  assert.match(html,/Punkte<\/span><strong>100<\/strong>/);
+  assert.match(html,/Prüfungszeit<\/span><strong>60 Min\.<\/strong>/);
+  assert.match(html,/50-Fragen-Prüfung|50 Fragen/);
+  assert.match(html,/exakt 100 Gesamtpunkte|100 Gesamtpunkte|100 Punkte/);
+});
+
+test('RC1097: Nachbesprechung und persönliche Ergebnisgrenzen bleiben erhalten',()=>{
+  assert.match(html,/>Nachbesprechung<\/button>/);
+  assert.match(html,/eigene falschen Antworten|eigenen falschen Antworten/);
+  assert.match(html,/gewählter Antwort|gewählte Antwort/);
+  assert.match(html,/richtiger Antwort|richtige Antwort/);
+  assert.match(html,/Begründung/);
+});
+
+test('RC1097: Prüfungsverwaltung und Admin-Auswertung bleiben auf Funktionsadmin Prüfungen oder Global Admin begrenzt',()=>{
+  assert.match(html,/Funktionsadmin Prüfungen \/ Global Admin/);
+  assert.match(html,/Admin-Auswertung und Prüfungen verwalten/);
+  assert.match(html,/Auswertung ist nur für den Funktionsadmin Prüfungen sichtbar/);
+});
+
+test('RC1097: Datenschutz bleibt als eigener geschützter Bereich sichtbar',()=>{
+  assert.match(html,/label:'Datenschutz',right:'privacy'/);
+  assert.match(html,/Datenschutz &amp; personenbezogene Daten/);
+  assert.match(html,/Datenminimierung/);
 });
