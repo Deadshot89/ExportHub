@@ -6,6 +6,7 @@ w.__EXPORTHUB_RC1065_REGISTRATION_CC__=true;
 
 var REQUIRED=Object.freeze(['Sevastian Marcu','Daniel Ollmann']);
 var DEFAULTS=Object.freeze({'sevastian marcu':'SevastianMarcu@essentra.com','daniel ollmann':'DanielOllmann@essentra.com'});
+var REQUIRED_DEFAULTS=Object.freeze(REQUIRED.map(function(name){return{name:name,email:DEFAULTS[norm(name)]}}));
 
 function q(v){return String(v==null?'':v).trim()}
 function norm(v){return q(v).toLocaleLowerCase('de-DE').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
@@ -45,7 +46,7 @@ function matchesRequired(x,required){
 function resolve(){
  var cfg=configured(),rows=candidates(),addresses=[],missing=[];
  REQUIRED.forEach(function(required){
-  var found=cfg.find(function(x){return matchesRequired(x,required)})||rows.find(function(x){return matchesRequired(x,required)}),e=found&&emailOf(found)||mail(DEFAULTS[norm(required)])||'';
+  var fallback=mail(DEFAULTS[norm(required)])||'',found=cfg.find(function(x){return matchesRequired(x,required)})||rows.find(function(x){return matchesRequired(x,required)}),e=found&&emailOf(found)||fallback;
   if(e)addresses.push(e);else missing.push(required)
  });
  return{ok:missing.length===0,addresses:Array.from(new Set(addresses.map(function(x){return x.toLowerCase()}))),missing:missing}
@@ -64,7 +65,7 @@ function prepare(url){
  return{ok:true,url:parts[0]+'?'+params.toString(),required:true,missing:[]}
 }
 function block(p){
- var names=(p&&p.missing||[]).join(', '),msg='Anmeldung nicht geöffnet: Pflicht-CC konnte nicht aus den ExportHUB-Benutzerdaten aufgelöst werden'+(names?': '+names:'')+'. Bitte die E-Mail-Adresse im Benutzerstamm pflegen.';
+ var names=(p&&p.missing||[]).join(', '),msg='Anmeldung nicht geöffnet: Pflicht-CC konnte nicht aufgelöst werden'+(names?': '+names:'')+'. Bitte ExportHUB neu laden. Falls der Fehler erneut auftritt, die Pflicht-CC-Konfiguration prüfen.';
  try{w.alert(msg)}catch(_){}
  return false
 }
@@ -164,5 +165,5 @@ if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',scheduleSettings,{once:true});else scheduleSettings()
 }
 
-w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1065',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings});
+w.ExportHUBRC1065RegistrationCC=Object.freeze({version:'RC1091',required:REQUIRED.slice(),resolve:resolve,isRegistration:isRegistration,prepare:prepare,installSettings:installSettings,persistCcSettings:persistCcSettings});
 })(window);
