@@ -31,6 +31,7 @@ function runtime(current,saved,archived=[]){
 function event(id,at,type,label,actor='Tobias'){
   return{id,at,type,label,actor:{name:actor}};
 }
+function ids(rows){return Array.from(rows,x=>x.id).sort()}
 
 test('RC1097: Sendungsansicht vereinigt History aller Kopien derselben Sendung',()=>{
   const current={id:'S1',ref:'JXR4XY',shipmentHistory:[
@@ -43,8 +44,7 @@ test('RC1097: Sendungsansicht vereinigt History aller Kopien derselben Sendung',
   ]};
   const {api}=runtime(current,saved);
 
-  const ids=api.events(current).map(x=>x.id).sort();
-  assert.deepEqual(ids,['H-CREATED','H-MAIL','H-PRINT','H-WORK']);
+  assert.deepEqual(ids(api.events(current)),['H-CREATED','H-MAIL','H-PRINT','H-WORK']);
 });
 
 test('RC1097: neuer History-Eintrag darf ältere Ereignisse anderer Sendungskopien nicht überschreiben',()=>{
@@ -60,16 +60,15 @@ test('RC1097: neuer History-Eintrag darf ältere Ereignisse anderer Sendungskopi
   api.append(current,event('H-POD','2026-09-14T11:10:00Z','pod','POD hinzugefügt'),{persist:false});
 
   const expected=['H-ABD','H-CREATED','H-POD','H-WORK'];
-  assert.deepEqual(current.shipmentHistory.map(x=>x.id).sort(),expected);
-  assert.deepEqual(saved.shipmentHistory.map(x=>x.id).sort(),expected);
+  assert.deepEqual(ids(current.shipmentHistory),expected);
+  assert.deepEqual(ids(saved.shipmentHistory),expected);
 });
 
 test('RC1097: archivierte Kopie kann fehlende History zur aktiven Sendung ergänzen',()=>{
-  const current={id:'S1',ref:'JXR4XY',shipmentHistory:[event('H-WORK','2026-09-14T11:03:45Z','work-start','Arbeit an Sendung gestartet')]};
-  const saved={id:'S1',ref:'JXR4XY',shipmentHistory:[]};
-  const archived={id:'S1',ref:'JXR4XY',shipmentHistory:[event('H-PICKUP','2026-09-12T12:00:00Z','pickup','Abholung bestätigt','Lager')]};
+  const current={id:'S1',ref:'JXR4Y',shipmentHistory:[event('H-WORK','2026-09-14T11:03:45Z','work-start','Arbeit an Sendung gestartet')]};
+  const saved={id:'S1',ref:'JXR4Y',shipmentHistory:[]};
+  const archived={id:'S1',ref:'JXR4Y',shipmentHistory:[event('H-PICKUP','2026-09-12T12:00:00Z','pickup','Abholung bestätigt','Lager')]};
   const {api}=runtime(current,saved,[archived]);
 
-  const ids=api.events(current).map(x=>x.id).sort();
-  assert.deepEqual(ids,['H-PICKUP','H-WORK']);
+  assert.deepEqual(ids(api.events(current)),['H-PICKUP','H-WORK']);
 });
