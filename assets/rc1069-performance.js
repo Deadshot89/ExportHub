@@ -11,7 +11,7 @@ function nativeSetTimeout(){try{return w.ExportHUBClean&&w.ExportHUBClean.native
 function nativeClearTimeout(){try{return w.ExportHUBClean&&w.ExportHUBClean.native&&w.ExportHUBClean.native.clearTimeout||w.clearTimeout}catch(_){return w.clearTimeout}}
 function state(){try{return typeof w.__EXPORTHUB_GET_STATE__==='function'?w.__EXPORTHUB_GET_STATE__():(w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.state)||w.state||{}}catch(_){return w.state||{}}}
 function shipmentKey(sh){return clean(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId)).toUpperCase()}
-function currentPrintShipment(){var s=state(),direct=s&&s.shipment;if(direct&&shipmentKey(direct))return direct;var id=clean(s&&(s.documentShipmentId||s.currentShipmentId||s.selectedShipmentId||s.activeShipmentId)).toUpperCase(),lists=[s&&s.savedShipments,s&&s.shipments];for(var i=0;i<lists.length;i++){var rows=Array.isArray(lists[i])?lists[i]:[];for(var j=0;j<rows.length;j++){var sh=rows[j],key=shipmentKey(sh);if(key&&(key===id||clean(sh&&(sh.id||sh.shipmentId)).toUpperCase()===id))return sh}}return null}
+function currentPrintShipment(){var s=state(),selected=clean(s&&(s.documentShipmentId||s.currentShipmentId||s.selectedShipmentId||s.activeShipmentId)).toUpperCase(),lists=[s&&s.savedShipments,s&&s.shipments];if(selected){for(var i=0;i<lists.length;i++){var rows=Array.isArray(lists[i])?lists[i]:[];for(var j=0;j<rows.length;j++){var sh=rows[j],key=shipmentKey(sh);if(key&&(key===selected||clean(sh&&(sh.id||sh.shipmentId)).toUpperCase()===selected))return sh}}}var direct=s&&s.shipment;return direct&&shipmentKey(direct)?direct:null}
 function prewarmPrintOutput(sh){
  var key=shipmentKey(sh);if(!key)return Promise.resolve(false);
  if(printPrewarmByKey[key])return printPrewarmByKey[key];
@@ -22,14 +22,14 @@ function prewarmPrintOutput(sh){
  pending.finally(function(){if(printPrewarmByKey[key]===pending)delete printPrewarmByKey[key]});
  return pending
 }
-function isPrintButton(button){if(!button)return false;if(button.matches&&button.matches('[data-index352-action="print-all"]'))return true;return /Gesamtausgabe\s*drucken|Gesamtdruck/i.test(clean(button.textContent))}
+function isPrintButton(button){if(!button)return false;if(button.matches&&button.matches('[data-index352-action="print-all"],[data-index352-action="download-all"],[data-index352-action="download-load1"]'))return true;return /Gesamtausgabe\s*drucken|Gesamtdruck|Gesamtausgabe.*PDF|Ladeliste\s*1.*PDF/i.test(clean(button.textContent))}
 function waitForPrintPrewarm(e){
  var button=e&&e.target&&e.target.closest&&e.target.closest('button,a');if(!isPrintButton(button))return false;
  if(button.__rc1104PrintResume){button.__rc1104PrintResume=false;return false}
  var sh=currentPrintShipment(),key=shipmentKey(sh),pending=key&&printPrewarmByKey[key];if(!pending)return false;
  if(e.preventDefault)e.preventDefault();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
- var oldDisabled=!!button.disabled,oldText=button.textContent;button.disabled=true;button.textContent='Druck wird vorbereitet …';printPrewarmWaited++;
- Promise.resolve(pending).catch(function(){return false}).then(function(){button.disabled=oldDisabled;button.textContent=oldText;button.__rc1104PrintResume=true;nativeSetTimeout()(function(){try{button.click()}catch(err){button.__rc1104PrintResume=false;try{console.error('RC1104 Druck fortsetzen',err)}catch(_){}}},0)});
+ var oldDisabled=!!button.disabled,oldText=button.textContent;button.disabled=true;button.textContent='Ausgabe wird vorbereitet …';printPrewarmWaited++;
+ Promise.resolve(pending).catch(function(){return false}).then(function(){button.disabled=oldDisabled;button.textContent=oldText;button.__rc1104PrintResume=true;nativeSetTimeout()(function(){try{button.click()}catch(err){button.__rc1104PrintResume=false;try{console.error('RC1104 Ausgabe fortsetzen',err)}catch(_){}}},0)});
  return true
 }
 function flushSearch(input){
@@ -74,7 +74,7 @@ if(w.document){
 }
 if(w.addEventListener){
  ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync'].forEach(function(name){w.addEventListener(name,install)});
- w.addEventListener('exporthub:shipment-saved',function(e){var d=e&&e.detail||{},sh=d.shipment||currentPrintShipment();if(sh)prewarmPrintOutput(sh)});
+ ['exporthub:shipment-saved','exporthub:documents-opening'].forEach(function(name){w.addEventListener(name,function(e){var d=e&&e.detail||{},sh=d.shipment||currentPrintShipment();if(sh)prewarmPrintOutput(sh)})});
 }
 w.ExportHUBRC1069Performance=Object.freeze({version:'RC1069',printOptimizationVersion:'RC1104',searchDelayMs:SEARCH_DELAY,install:install,flushSearch:flushSearch,prewarmPrintOutput:prewarmPrintOutput,waitForPrintPrewarm:waitForPrintPrewarm,stats:function(){return{searchInstalls:searchInstalls,pendingSearch:!!searchTimer,lastSearchValue:lastSearchValue,printPrewarmStarted:printPrewarmStarted,printPrewarmWaited:printPrewarmWaited,pendingPrintPrewarm:Object.keys(printPrewarmByKey).length}}});
 })(window);
