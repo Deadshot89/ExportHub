@@ -475,8 +475,8 @@ jobs:
             phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
             thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
             if [[ "$pc" == '200' && "$tc" == '200' && "$phc" == '200' && "$thc" == '200' ]] \
-              && grep -q 'assets/rc1071-shipment-history.js?v=1094' "$p" \
-              && grep -q 'assets/rc1071-shipment-history.js?v=1094' "$t" \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$p" \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$t" \
               && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$ph" \
               && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$th" \
               && grep -q 'Mail als versendet bestätigen' "$ph" \
