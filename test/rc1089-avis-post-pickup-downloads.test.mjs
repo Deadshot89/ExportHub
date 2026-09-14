@@ -37,3 +37,13 @@ test('RC1089: öffentliche Avis-Seite erklärt Downloads und Abliefernachweis ei
   assert.match(page,/Verfügbar bis einschließlich:/);
   assert.doesNotMatch(page,/3 Arbeitstage|Wochenende wird nicht mitgerechnet|POD herunterladen/);
 });
+
+
+test('RC1090: Kundenname und Colli-Anzahl bleiben nach Abholung sichtbar',()=>{
+  const actual=api.match(/if\(actual\)return\{([^;]+)\};/);
+  assert.ok(actual,'Abgeholt-Payload fehlt');
+  assert.match(actual[1],/customerName:text\(sh\.customerName\|\|\(sh\.customer&&sh\.customer\.name\)\)/);
+  assert.match(actual[1],/totals:\{count:totals\.count\}/);
+  assert.match(page,/<span>Kunde<\/span><b>'\+esc\(data\.customerName\|\|'–'\)/);
+  assert.match(page,/<span>Collis<\/span><b>'\+fmtNum\(data\.totals&&data\.totals\.count,0\)/);
+});
