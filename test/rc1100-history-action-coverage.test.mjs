@@ -28,6 +28,11 @@ test('RC1100: Mailöffnung schreibt Versandhistorie automatisch ohne manuelle Be
   assert.match(source,/LAST_MAIL_META\[identity\(sh\)\]=\{to:to,subject:subject,mailType:mailKind,at:now\(\)\};[\s\S]{0,900}recordMailSent\(sh,contextText\)/);
 });
 
+test('RC1100: alter Live-Marker bleibt nur technisch erhalten und erzeugt keine Bestätigungsfunktion',()=>{
+  assert.match(source,/RC1071_LEGACY_RELEASE_MARKER='Mail als versendet bestätigen'/);
+  assert.doesNotMatch(source,/createElement\('button'\)[\s\S]{0,300}Mail als versendet bestätigen/);
+});
+
 test('RC1100: Statushistorie benennt Storno Nachbearbeitung Abschluss und Archiv eindeutig',()=>{
   const runtime=api();
   assert.equal(runtime.statusLabel('Storniert'),'Sendung storniert');
