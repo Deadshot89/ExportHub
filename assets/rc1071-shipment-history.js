@@ -19,10 +19,10 @@ function ref(sh){return q(sh&&((sh.reference||sh.referenceNumber||sh.ref||sh.sen
 function currentShipment(){
  var s=state(),direct=s.currentShipment||s.shipment||s.activeShipment||null;if(direct&&obj(direct))return direct;
  var id=q(s.currentShipmentId||s.selectedShipmentId||s.shipmentId),r=q(s.currentShipmentRef||s.selectedShipmentRef||s.reference);
- var all=[].concat(arr(s.shipments),arr(s.savedShipments),arr(s.salesSharedShipments),arr(s.sharedShipments));
+ var all=[].concat(arr(s.shipments),arr(s.savedShipments),arr(s.shipmentArchive),arr(s.archivedShipments),arr(s.salesSharedShipments),arr(s.sharedShipments));
  return all.find(function(x){return x&&((id&&q(x.id||x.shipmentId)===id)||(r&&ref(x)===r))})||null
 }
-function collections(){var s=state();return['shipments','savedShipments','salesSharedShipments','sharedShipments'].map(function(k){return s[k]}).filter(Array.isArray)}
+function collections(){var s=state();return['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments'].map(function(k){return s[k]}).filter(Array.isArray)}
 function copiesOf(sh){var key=identity(sh);if(!key)return sh?[sh]:[];var out=[];collections().forEach(function(list){list.forEach(function(x){if(x&&identity(x)===key&&!out.includes(x))out.push(x)})});if(sh&&!out.includes(sh))out.push(sh);return out}
 function safeDetails(input){
  var d=obj(input)?input:{},out={};
@@ -34,8 +34,13 @@ function safeDetails(input){
  return out
 }
 function eventId(type,at,actor,label){return'H-'+String(at||'').replace(/[^0-9]/g,'').slice(0,17)+'-'+low(type).replace(/[^a-z0-9]+/g,'-').slice(0,24)+'-'+low(actor||label).replace(/[^a-z0-9]+/g,'-').slice(0,24)+'-'+Math.random().toString(36).slice(2,7)}
-function normalizeEvent(e){e=obj(e)?e:{};var at=q(e.at||e.createdAt||e.timestamp)||now(),actor=obj(e.actor)?e.actor:actorFrom({name:e.actorName||e.user||e.by});return{id:q(e.id)||eventId(e.type,at,actor.name,e.label),at:at,type:q(e.type)||'event',label:q(e.label||e.action)||'Ereignis',actor:{name:q(actor.name)||'Unbekannt',id:q(actor.id),role:q(actor.role)},source:q(e.source)||'exporthub',details:safeDetails(e.details),version:'RC1071'}}
+function normalizeEvent(e){e=obj(e)?e:{};var at=q(e.at||e.createdAt||e.timestamp)||now(),actor=obj(e.actor)?e.actor:actorFrom({name:e.actorName||e.user||e.by});return{id:q(e.id)||eventId(e.type,at,actor.name,e.label),at:at,type:q(e.type)||'event',label:q(e.label||e.action)||'Ereignis',actor:{name:q(actor.name)||'Unbekannt',id:q(actor.id),role:q(actor.role)},source:q(e.source)||'exporthub',details:safeDetails(e.details),version:'RC1097'}}
 function history(sh){return arr(sh&&sh.shipmentHistory).map(normalizeEvent)}
+function mergedHistory(sh){
+ var map=new Map();
+ copiesOf(sh).forEach(function(copy){arr(copy&&copy.shipmentHistory).forEach(function(raw){var e=normalizeEvent(raw),key=q(raw&&raw.id)||[q(e.at),q(e.type),q(e.label),q(e.actor&&e.actor.name)].join('|');if(!map.has(key))map.set(key,e)})});
+ return Array.from(map.values()).sort(function(a,b){return Date.parse(a.at||0)-Date.parse(b.at||0)})
+}
 function setHistory(sh,list){var clean=list.slice(-MAX_EVENTS);copiesOf(sh).forEach(function(x){x.shipmentHistory=clean.map(function(e){return Object.assign({},e,{actor:Object.assign({},e.actor),details:Object.assign({},e.details)})})})}
 function duplicate(list,event){
  return list.some(function(e){return e.id===event.id||(
@@ -50,7 +55,7 @@ function schedulePersist(reason){
  FLUSH_TIMER=setTimeout(function(){FLUSH_TIMER=0;try{if(typeof clean.flushSave==='function')Promise.resolve(clean.flushSave(reason||'Sendungshistorie aktualisiert',{force:true,userInitiated:true})).catch(function(){})}catch(_){}},700)
 }
 function append(sh,input,opt){
- if(!sh)return null;opt=opt||{};var e=normalizeEvent(input),list=history(sh);if(duplicate(list,e))return null;
+ if(!sh)return null;opt=opt||{};var e=normalizeEvent(input),list=mergedHistory(sh);if(duplicate(list,e))return null;
  list.push(e);list.sort(function(a,b){return Date.parse(a.at||0)-Date.parse(b.at||0)});setHistory(sh,list);
  if(opt.persist!==false)schedulePersist('History: '+e.label);
  render();
@@ -82,7 +87,7 @@ function hookPersist(){
  var core=w.ExportHUBRC565;if(!core||typeof core.persistShipment!=='function'||core.persistShipment.__rc1071)return false;
  var original=core.persistShipment;
  var wrapped=async function(){
-   var sh=currentShipment(),isNew=sh&&!existingSaved(sh)&&!history(sh).some(function(e){return e.type==='created'});
+   var sh=currentShipment(),isNew=sh&&!existingSaved(sh)&&!mergedHistory(sh).some(function(e){return e.type==='created'});
    if(isNew){
      var a=actorFrom(currentUser()),stamp=q(sh.createdAt)||now();if(!sh.createdAt)sh.createdAt=stamp;if(!q(sh.createdBy))sh.createdBy=a.name;
      append(sh,{type:'created',label:'Sendung erstellt',at:stamp,actor:a,details:{reference:ref(sh)}},{persist:false})
@@ -103,7 +108,8 @@ function derived(sh){
  return out
 }
 function allEvents(sh){
- var map=new Map();history(sh).concat(derived(sh)).forEach(function(e){var key=e.id||[e.at,e.type,e.label,e.actor&&e.actor.name].join('|');if(!map.has(key))map.set(key,e)});
+ var map=new Map(),add=function(e){var key=q(e&&e.id)||[q(e&&e.at),q(e&&e.type),q(e&&e.label),q(e&&e.actor&&e.actor.name)].join('|');if(!map.has(key))map.set(key,e)};
+ mergedHistory(sh).forEach(add);copiesOf(sh).forEach(function(copy){derived(copy).forEach(add)});
  return Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)})
 }
 function formatDate(v){var d=new Date(v);if(!Number.isFinite(d.getTime()))return q(v)||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(d)}
@@ -168,7 +174,7 @@ function fileChange(ev){var input=ev.target;if(!input||String(input.type||'').to
 function avisUpdated(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},enabled=d.enabled!==false;append(sh,{type:'avis',label:enabled?'Lieferavis erstellt/aktiviert':'Lieferavis deaktiviert',actor:actorFrom(currentUser()),details:{reference:q(d.reference)||ref(sh)}})}
 function markWorkStarted(){
  var sh=currentShipment();if(!sh||!shipmentView())return false;
- var actor=actorFrom(currentUser()),events=history(sh),cutoff=Date.now()-4*60*60*1000;
+ var actor=actorFrom(currentUser()),events=mergedHistory(sh),cutoff=Date.now()-4*60*60*1000;
  var recent=events.some(function(e){return e.type==='work-start'&&e.actor&&q(e.actor.id||e.actor.name)===q(actor.id||actor.name)&&(Date.parse(e.at||0)||0)>=cutoff});
  if(recent)return false;
  append(sh,{type:'work-start',label:'Arbeit an Sendung gestartet',actor:actor,details:{reference:ref(sh)}});
@@ -183,5 +189,5 @@ if(w.document){
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1095',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,mailTypeFrom:mailTypeFrom});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1097',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,mailTypeFrom:mailTypeFrom});
 })(window);
