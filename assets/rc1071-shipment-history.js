@@ -3,7 +3,7 @@
 if(!w||w.__EXPORTHUB_RC1071_SHIPMENT_HISTORY__)return;
 w.__EXPORTHUB_RC1071_SHIPMENT_HISTORY__=true;
 
-var MAX_EVENTS=1000,FLUSH_TIMER=0,LAST_ACTIONS=Object.create(null),SNAPSHOTS=Object.create(null),LAST_MAIL_META=Object.create(null);
+var MAX_EVENTS=1000,FLUSH_TIMER=0,LAST_ACTIONS=Object.create(null),SNAPSHOTS=Object.create(null),LAST_MAIL_META=Object.create(null),RC1071_LEGACY_RELEASE_MARKER='Mail als versendet bestätigen';
 
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
