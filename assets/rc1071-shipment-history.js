@@ -158,7 +158,7 @@ function click(ev){
  }
 
  if(/druck|print|cmr|ladeliste|stauplan|gesamtausgabe|pdf/.test(l)){
-   var doc=documentLabel(contextText);if(actionOnce('print|'+identity(sh)+'|'+doc,1800))append(sh,{type:'print',label:doc+' – Druck/PDF gestartet',actor:actorFrom(currentUser()),details:{document:doc,reference:ref(sh)}});return
+   var doc=documentLabel(text);if(doc==='Dokument'||doc==='PDF')doc=documentLabel(contextText);if(actionOnce('print|'+identity(sh)+'|'+doc,1800))append(sh,{type:'print',label:doc+' – Druck/PDF gestartet',actor:actorFrom(currentUser()),details:{document:doc,reference:ref(sh)}});return
  }
  if(/speichern/.test(l)&&!/einstellung|vorlage|stammdaten/.test(l)){
    if(actionOnce('save|'+identity(sh),2500))append(sh,{type:'saved',label:'Sendung manuell gespeichert',actor:actorFrom(currentUser()),details:{status:statusOf(sh)}});return
