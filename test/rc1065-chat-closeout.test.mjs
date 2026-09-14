@@ -93,10 +93,10 @@ test('RC1065: Avis-Ausnahmen und Pflicht-CC bleiben verbindlich',()=>{
   assert.match(cc,/Daniel Ollmann/);
   assert.match(cc,/SevastianMarcu@essentra\.com/);
   assert.match(cc,/DanielOllmann@essentra\.com/);
-  assert.match(cc,/Pflicht-CC konnte nicht aus den ExportHUB-Benutzerdaten aufgelöst werden/);
-  assert.match(fixer,/rc1065-registration-cc\.js\?v=1089/);
+  assert.match(cc,/Pflicht-CC konnte nicht aufgelöst werden/);
+  assert.match(fixer,/rc1065-registration-cc\.js\?v=1091/);
   assert.match(finalBuilder,/RC1065_CC_TAG/);
-  assert.match(finalBuilder,/rc1065-registration-cc\.js\?v=1089/);
+  assert.match(finalBuilder,/rc1065-registration-cc\.js\?v=1091/);
   assert.match(finalBuilder,/fs\.copyFileSync\(rc1065AssetSource,rc1065AssetTarget\)/);
 });
 
@@ -236,4 +236,31 @@ test('RC1087: Pflicht-CC Adminprüfung verwechselt Funktionsadministratoren nich
   assert.match(source,/roles\.indexOf\(role\)>=0/);
   assert.doesNotMatch(source,/u\.isAdmin===true|u\.admin===true/);
   assert.doesNotMatch(source,/vollzugriff\/\.test\(role\)/);
+});
+
+
+test('RC1091: Pflicht-CC Asset wird mit neuer Cache-Version ausgeliefert',()=>{
+  const fixer=read('.github/rc1018/fix-mail-wording.mjs');
+  const finalBuilder=read('.github/rc1048/build-three-env.mjs');
+  const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
+  const runtime=read('assets/rc1065-registration-cc.js');
+  for(const src of [fixer,finalBuilder,workflow])assert.match(src,/rc1065-registration-cc\.js\?v=1091/);
+  assert.doesNotMatch(fixer,/rc1065-registration-cc\.js\?v=1089/);
+  assert.doesNotMatch(finalBuilder,/rc1065-registration-cc\.js\?v=1089/);
+  assert.doesNotMatch(workflow,/rc1065-registration-cc\.js\?v=1089/);
+  assert.match(runtime,/version:'RC1091'/);
+});
+
+test('RC1091: bestätigte Pflicht-CC-Fallbacks machen die Anmeldung unabhängig vom Benutzerstamm',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  const appState={users:[],settings:{}};
+  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const context={window,URLSearchParams,console};
+  vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
+  const prepared=window.ExportHUBRC1065RegistrationCC.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
+  assert.equal(prepared.ok,true);
+  assert.deepEqual(Array.from(prepared.missing),[]);
+  const decoded=decodeURIComponent(prepared.url).toLowerCase();
+  assert.match(decoded,/sevastianmarcu@essentra\.com/);
+  assert.match(decoded,/danielollmann@essentra\.com/);
 });

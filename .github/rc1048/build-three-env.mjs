@@ -8,7 +8,7 @@ const OUT=path.join(ROOT,'dist-rc1048');
 const VERSION='RC1048';
 const NUMBER='1048';
 const RC1065_CC_ID='exporthub-rc1065-registration-cc';
-const RC1065_CC_TAG='<script id="'+RC1065_CC_ID+'" defer src="/assets/rc1065-registration-cc.js?v=1089"></script>';
+const RC1065_CC_TAG='<script id="'+RC1065_CC_ID+'" defer src="/assets/rc1065-registration-cc.js?v=1091"></script>';
 const RC1061_MIGRATION_ID='exporthub-rc1061-document-migration-admin';
 const RC1061_MIGRATION_TAG='<script id="'+RC1061_MIGRATION_ID+'" defer src="/assets/rc1061-document-migration-admin.js?v=1073"></script>';
 const RC1063_ABD_BLOB_ID='exporthub-rc1063-abd-blob-viewer-compat';
