@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
@@ -43,4 +44,16 @@ test('RC1091: Produktionsdeploy prüft den neuen Sendungsübersichts-Cache-Key',
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
   assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1091/);
   assert.doesNotMatch(flow,/dist-rc1048\/index\.html[^\n]*rc1014-shipment-overview\.js\?v=1016/);
+});
+
+
+test('RC1091: finaler Drei-Umgebungen-Build erzeugt die stabilisierte Übersicht ohne Generatorfehler',()=>{
+  execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{stdio:'pipe'});
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=read('dist-rc1048/'+file);
+    assert.match(html,/assets\/rc1014-shipment-overview\.js\?v=1091/,file+': RC1091 Cache-Key fehlt');
+    assert.match(html,/var rc1091OverviewApi=window\.ExportHUBRC1014ShipmentOverview/,file+': direkte Overview-Metadaten fehlen');
+    assert.match(html,/\+rc1091MetaHtml\+/,file+': Metadaten werden nicht direkt in die Karte gerendert');
+  }
+  assert.match(read('dist-rc1048/assets/rc1014-shipment-overview.js'),/__EXPORTHUB_RC1091_SHIPMENT_OVERVIEW_STABLE__/);
 });

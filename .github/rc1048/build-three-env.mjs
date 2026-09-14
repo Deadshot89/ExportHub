@@ -392,7 +392,7 @@ function patchShipmentOverviewInlineMeta(html,file){
     const anchor='</span></div><div class="rc524-action-grid">';
     const count=block.split(anchor).length-1;
     if(count!==1)throw new Error(file+': Overview-Meta-Anker '+count+'x gefunden');
-    block=block.replace(anchor,'</span></div>'+rc1091MetaHtml+'<div class="rc524-action-grid">');
+    block=block.replace(anchor,"</span></div>'+rc1091MetaHtml+'<div class=\"rc524-action-grid\">");
   }
   return html.slice(0,start)+block+html.slice(end);
 }
