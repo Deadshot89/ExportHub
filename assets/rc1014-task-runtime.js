@@ -8,6 +8,8 @@
   let lastContext={};
   let enhanceTimer=0;
   let lazyCardObserver=null;
+  let taskResetTimer=0;
+  let taskResetInFlight=false;
 
   function api(){
     const value=root.ExportHUBRC1014Tasks;
@@ -167,11 +169,83 @@
     return true;
   }
 
+  function environmentName(){
+    const forced=q(root.__EXPORTHUB_FORCED_ENVIRONMENT__).toLowerCase();
+    if(forced==='production'||forced==='testservice'||forced==='demo')return forced;
+    const location=root.location||{},host=q(location.hostname).toLowerCase(),path=q(location.pathname).toLowerCase();
+    if(path.includes('demo.html'))return 'demo';
+    return /-testservice\./.test(host)?'testservice':'production';
+  }
+
+  function sharedState(){
+    try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||null;}catch(_){ }
+    return root.ExportHUBClean&&root.ExportHUBClean.state||root.appState||null;
+  }
+
+  function cloneJson(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
+
+  async function resetProductionTasksOnce(){
+    if(environmentName()!=='production'||taskResetInFlight)return false;
+    const state=sharedState(),clean=root.ExportHUBClean;
+    if(!state||state.rc1107TaskResetAt)return false;
+    if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')return false;
+    taskResetInFlight=true;
+    const previous={tasks:cloneJson(state.tasks),taskStatusLedger:cloneJson(state.taskStatusLedger),marker:state.rc1107TaskResetAt,tombstones:cloneJson(state._teamSyncMeta&&state._teamSyncMeta.tombstones)};
+    const at=new Date().toISOString(),tasks=arr(state.tasks);
+    try{
+      if(!state._teamSyncMeta||typeof state._teamSyncMeta!=='object'||Array.isArray(state._teamSyncMeta))state._teamSyncMeta={fields:{},tombstones:[]};
+      if(!Array.isArray(state._teamSyncMeta.tombstones))state._teamSyncMeta.tombstones=[];
+      const existing=new Set(state._teamSyncMeta.tombstones.map(t=>`${q(t&&t.collection).toLowerCase()}:${q(t&&t.id).toLowerCase()}`));
+      tasks.forEach((task,index)=>{
+        const id=q(task&&task.id)||`index:${index}`;
+        const key=`tasks:${id.toLowerCase()}`;
+        if(existing.has(key))return;
+        state._teamSyncMeta.tombstones.push({collection:'tasks',id,deletedAt:at,deletedBy:'system:RC1107',explicitUserAction:true});
+        existing.add(key);
+      });
+      state.tasks=[];
+      state.taskStatusLedger={};
+      state.rc1107TaskResetAt=at;
+      await Promise.resolve(clean.queueSave('RC1107 Aufgabenbestand zurückgesetzt'));
+      const ok=await Promise.resolve(clean.flushSave('RC1107 Aufgabenbestand zurückgesetzt'));
+      if(ok===false)throw new Error('Azure hat den Aufgaben-Reset nicht bestätigt.');
+      lastTasks=[];
+      try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1107 reset'}}));}catch(_){ }
+      return true;
+    }catch(error){
+      state.tasks=previous.tasks;
+      state.taskStatusLedger=previous.taskStatusLedger;
+      if(previous.marker===undefined)delete state.rc1107TaskResetAt;else state.rc1107TaskResetAt=previous.marker;
+      if(!state._teamSyncMeta||typeof state._teamSyncMeta!=='object')state._teamSyncMeta={fields:{},tombstones:[]};
+      state._teamSyncMeta.tombstones=previous.tombstones||[];
+      throw error;
+    }finally{taskResetInFlight=false;}
+  }
+
+  function scheduleProductionTaskReset(){
+    if(environmentName()!=='production')return false;
+    if(taskResetTimer&&typeof root.clearTimeout==='function')root.clearTimeout(taskResetTimer);
+    const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>fn());
+    taskResetTimer=schedule(async()=>{
+      taskResetTimer=0;
+      try{
+        const done=await resetProductionTasksOnce();
+        const state=sharedState();
+        if(!done&&state&&!state.rc1107TaskResetAt)scheduleProductionTaskReset();
+      }catch(error){
+        try{if(root.console&&typeof root.console.error==='function')root.console.error('RC1107 Aufgabenreset fehlgeschlagen',error);}catch(_){ }
+        scheduleProductionTaskReset();
+      }
+    },1000);
+    return true;
+  }
+
   if(root.addEventListener){
     ['exporthub:rendered','exporthub:viewchange','exporthub:tasks-updated'].forEach(name=>root.addEventListener(name,scheduleEnhance));
     root.addEventListener('DOMContentLoaded',installLazyCardObserver,{once:true});
   }
   installLazyCardObserver();
+  scheduleProductionTaskReset();
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce});
 })(globalThis);
