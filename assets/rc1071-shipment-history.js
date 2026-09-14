@@ -134,9 +134,9 @@ function repairCreatorMetaSpacing(){
  var changed=0,nodes=document.querySelectorAll('#content .muted,#content .meta,#content [class*="meta"],main .muted,main .meta,main [class*="meta"]');
  Array.prototype.forEach.call(nodes,function(el){
    if(!el||el.id==='rc1071ShipmentHistory'||(el.closest&&el.closest('#rc1071ShipmentHistory')))return;
-   var text=String(el.textContent||'');if(!/Erstellt von:/.test(text)||text.length>240)return;
-   if(el.childNodes&&el.childNodes.length){Array.prototype.forEach.call(el.childNodes,function(node){if(node&&node.nodeType===3){var next=creatorMetaText(node.nodeValue);if(next!==node.nodeValue){node.nodeValue=next;changed++}}})}
-   if(!changed&&el.childNodes&&el.childNodes.length>1&&el.style){el.style.display='flex';el.style.flexWrap='wrap';el.style.columnGap='10px';el.style.rowGap='4px'}
+   var text=String(el.textContent||'');if(!/Erstellt von:/.test(text)||text.length>240)return;var localChanged=false;
+   if(el.childNodes&&el.childNodes.length){Array.prototype.forEach.call(el.childNodes,function(node){if(node&&node.nodeType===3){var next=creatorMetaText(node.nodeValue);if(next!==node.nodeValue){node.nodeValue=next;changed++;localChanged=true}}})}
+   if(!localChanged&&el.childNodes&&el.childNodes.length>1&&el.style){el.style.display='flex';el.style.flexWrap='wrap';el.style.columnGap='10px';el.style.rowGap='4px'}
  });
  return changed
 }
