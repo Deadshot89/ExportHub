@@ -22,9 +22,9 @@ test('RC1100: Mailversand wird je Mailtyp eindeutig benannt',()=>{
 });
 
 test('RC1100: Mailöffnung schreibt Versandhistorie automatisch ohne manuelle Bestätigung',()=>{
-  assert.doesNotMatch(source,/Mail als versendet bestätigen/);
-  assert.doesNotMatch(source,/Bestätigen, dass die E-Mail tatsächlich versendet wurde/);
+  assert.doesNotMatch(source,/function ensureMailConfirm/);
   assert.doesNotMatch(source,/data-rc1071-mail-sent/);
+  assert.doesNotMatch(source,/w\.confirm/);
   assert.match(source,/LAST_MAIL_META\[identity\(sh\)\]=\{to:to,subject:subject,mailType:mailKind,at:now\(\)\};[\s\S]{0,900}recordMailSent\(sh,contextText\)/);
 });
 
