@@ -2,6 +2,7 @@
 
 const auth = require('../shared/auth-store');
 let clientsPromise = null;
+let sessionDocumentsPromise = null;
 
 async function clients(){
   if (!clientsPromise) {
@@ -11,6 +12,18 @@ async function clients(){
     });
   }
   return clientsPromise;
+}
+
+function readSessionDocuments(c){
+  if (!sessionDocumentsPromise) {
+    sessionDocumentsPromise = Promise.all([
+      auth.readJson(c.auth, auth.emptyAuth()),
+      auth.readJson(c.team, auth.emptyTeam())
+    ]).then(([authDoc, teamDoc]) => ({ authDoc, teamDoc })).finally(() => {
+      sessionDocumentsPromise = null;
+    });
+  }
+  return sessionDocumentsPromise;
 }
 
 function supportsFastPath(){
@@ -31,10 +44,7 @@ async function validateSession(req, options = {}){
   const token = auth.bearer(req);
   if (!token) throw auth.error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
   const c = await clients();
-  const [authDoc, teamDoc] = await Promise.all([
-    auth.readJson(c.auth, auth.emptyAuth()),
-    auth.readJson(c.team, auth.emptyTeam())
-  ]);
+  const { authDoc, teamDoc } = await readSessionDocuments(c);
   const resolved = auth.resolveSession(token, authDoc.value || auth.emptyAuth());
   const session = resolved.session;
   if (!session) throw auth.error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
