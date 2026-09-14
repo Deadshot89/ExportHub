@@ -380,6 +380,23 @@ function patchHistoryNavigation(html,file){
   return out;
 }
 
+function patchShipmentOverviewInlineMeta(html,file){
+  const start=html.indexOf('function overviewCardHtml(sh){');
+  const end=start>=0?html.indexOf('function overviewGroupedCardsHtml',start):-1;
+  if(start<0||end<0)throw new Error(file+': overviewCardHtml fehlt');
+  let block=html.slice(start,end);
+  if(!block.includes('rc1091MetaHtml')){
+    const prolog=`function overviewCardHtml(sh){
+ var rc1091OverviewApi=window.ExportHUBRC1014ShipmentOverview,rc1091Meta=rc1091OverviewApi&&typeof rc1091OverviewApi.shipmentMeta==='function'?rc1091OverviewApi.shipmentMeta(sh):null,rc1091MetaHtml=rc1091Meta?'<div class="rc1014-shipment-meta" data-rc1014-shipment-meta="1"><span class="rc1014-shipment-created">'+E(rc1091Meta.createdLabel)+'</span><span class="rc1014-shipment-colli">'+E(rc1091Meta.colliLabel)+'</span></div>':'';`;
+    block=block.replace('function overviewCardHtml(sh){',prolog);
+    const anchor='</span></div><div class="rc524-action-grid">';
+    const count=block.split(anchor).length-1;
+    if(count!==1)throw new Error(file+': Overview-Meta-Anker '+count+'x gefunden');
+    block=block.replace(anchor,'</span></div>'+rc1091MetaHtml+'<div class="rc524-action-grid">');
+  }
+  return html.slice(0,start)+block+html.slice(end);
+}
+
 function patchHtml(file,canonicalPrintStow,canonicalController){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -391,6 +408,8 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchRc1069Performance(html,file);
   html=patchLoginScreenStatus(html,file);
   html=patchHistoryNavigation(html,file);
+  html=patchShipmentOverviewInlineMeta(html,file);
+  html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1091');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1085');
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=injectBeforeHeadClose(html,RC1069_PERF_TAG,RC1069_PERF_ID);
@@ -440,7 +459,7 @@ if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime 
 fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
 fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
-for(const rel of ['assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
+for(const rel of ['assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error(rel+' fehlt für den finalen RC1048-Build');
   fs.mkdirSync(path.dirname(dst),{recursive:true});
@@ -478,6 +497,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     startupRecovery:{runtime:'assets/rc1067-startup-recovery.js',page:'migration-recovery.html',version:'RC1067',trigger:'stalled admin startup with inline legacy documents'},
     finalRenderIntegrity:{version:'RC1068',shipmentController:'canonical production sync',inlineScriptSyntaxChecked:true,visibleCodeLeakChecked:true},
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
+    shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
     shipmentHistory:{version:'RC1080',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
     loaderPinAdmin:{version:'RC1087',runtime:'assets/rc1075-loader-pin-admin.js',globalAdminOnly:true,api:'/api/loader-pins-admin',auditActions:['create','update','toggle','delete'],auditContainsPin:false,demo:false},

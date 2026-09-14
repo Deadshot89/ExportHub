@@ -5,6 +5,9 @@
   const arr=v=>Array.isArray(v)?v:[];
   let remembered=[];
   let timer=0;
+  let lastRememberSignature='';
+  let lastMutationAt=0;
+  root.__EXPORTHUB_RC1091_SHIPMENT_OVERVIEW_STABLE__=true;
 
   function positiveNumber(value){
     const n=Number(value);
@@ -99,7 +102,7 @@
   function enhanceShipmentOverview(shipments=remembered){
     const doc=root.document;
     if(!doc||typeof doc.querySelectorAll!=='function'||!inShipmentOverview(doc))return 0;
-    const selectors='.rc485-overview-card,.rc229-shipment-card,.shipment-card,.overview-card,[data-shipment-id],[data-shipment-ref],[data-ref],[data-reference],.card';
+    const selectors='.rc524-shipment-card,.rc485-overview-card,.rc229-shipment-card,.shipment-card,.overview-card,[data-shipment-id],[data-shipment-ref],[data-ref],[data-reference]';
     const cards=Array.from(doc.querySelectorAll(selectors));
     let enhanced=0;
     cards.forEach(card=>{
@@ -110,11 +113,12 @@
       if(row){
         const created=row.querySelector&&row.querySelector('.rc1014-shipment-created');
         const colli=row.querySelector&&row.querySelector('.rc1014-shipment-colli');
-        if(created)created.textContent=meta.createdLabel;
-        if(colli)colli.textContent=meta.colliLabel;
+        if(created&&created.textContent!==meta.createdLabel){created.textContent=meta.createdLabel;lastMutationAt=Date.now()}
+        if(colli&&colli.textContent!==meta.colliLabel){colli.textContent=meta.colliLabel;lastMutationAt=Date.now()}
       }else if(typeof card.appendChild==='function'){
         row=createMeta(doc,meta);
         card.appendChild(row);
+        lastMutationAt=Date.now();
       }
       if(row){
         card.setAttribute&&card.setAttribute('data-rc1014-shipment-enhanced','1');
@@ -125,20 +129,32 @@
   }
 
   function scheduleEnhance(){
-    if(!root.document)return;
-    if(timer&&typeof root.clearTimeout==='function')root.clearTimeout(timer);
-    const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>fn());
+    if(!root.document||timer)return false;
+    const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>{fn();return 1});
     timer=schedule(()=>{timer=0;enhanceShipmentOverview();},0);
+    return true;
+  }
+
+  function signatureOf(shipments){
+    return arr(shipments).map(sh=>{const meta=shipmentMeta(sh);return [shipmentId(sh),shipmentReference(sh),meta.createdLabel,meta.colliLabel].join('|')}).join('||');
   }
 
   function remember(shipments){
     remembered=arr(shipments).slice();
-    scheduleEnhance();
+    const sig=signatureOf(remembered),changed=sig!==lastRememberSignature;
+    lastRememberSignature=sig;
+    if(changed||Date.now()-lastMutationAt>750)scheduleEnhance();
     return remembered.length;
   }
 
+  function onRendered(){
+    if(Date.now()-lastMutationAt<750)return false;
+    return scheduleEnhance();
+  }
+
   if(root.addEventListener){
-    ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-updated','exporthub:overview-updated'].forEach(name=>root.addEventListener(name,scheduleEnhance));
+    root.addEventListener('exporthub:rendered',onRendered);
+    ['exporthub:viewchange','exporthub:shipment-updated','exporthub:overview-updated'].forEach(name=>root.addEventListener(name,scheduleEnhance));
   }
 
   root.ExportHUBRC1014ShipmentOverview=Object.freeze({
