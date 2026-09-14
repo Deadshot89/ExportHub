@@ -479,17 +479,20 @@ jobs:
               && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$t" \
               && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$ph" \
               && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$th" \
-              && grep -q 'Mail als versendet bestätigen' "$ph" \
+              && grep -q 'mail-sent-open|' "$ph" \
+              && grep -q 'mail-sent-open|' "$th" \
+              && grep -q 'recordMailSent' "$ph" \
+              && grep -q 'recordMailSent' "$th" \
               && grep -q 'ABD-E-Mail-Versand bestätigt' "$ph" \
               && grep -q "return'ABD'" "$ph" \
               && grep -q 'Arbeit an Sendung gestartet' "$ph" \
               && grep -q 'Versandanmeldung gestartet' "$ph"; then
-              echo 'RC1080 Sendungshistorie live in Produktion und TESTSERVICE bestätigt.'
+              echo 'RC1106 Sendungshistorie live in Produktion und TESTSERVICE bestätigt.'
               exit 0
             fi
             sleep 5
           done
-          echo 'RC1080 Sendungshistorie wurde live nicht vollständig bestätigt.' >&2
+          echo 'RC1106 Sendungshistorie wurde live nicht vollständig bestätigt.' >&2
           exit 1
 
       - name: Live RC1048 Mail und Sprache prüfen
@@ -833,7 +836,8 @@ jobs:
                 ok=0
                 echo "RC1083 Versuch $attempt · $base · page=$pc asset=$ac api=$apiCode · pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
                 printf 'RC1083 API-Antwort: '
-                head -c 600 "$api" | tr '\n' ' ' || true
+                head -c 600 "$api" | tr '\
+' ' ' || true
                 echo
               fi
               rm -f "$page" "$asset" "$api"
