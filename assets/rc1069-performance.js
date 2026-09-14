@@ -5,6 +5,7 @@ w.__EXPORTHUB_RC1069_PERFORMANCE__=true;
 
 var SEARCH_DELAY=140,searchTimer=0,lastSearchValue='',searchInstalls=0;
 var printPrewarmByKey=Object.create(null),printPrewarmStarted=0,printPrewarmWaited=0;
+var deadPickupUntil=Object.create(null),PICKUP_MISS_MS=10*60*1000,pickup410Blocked=0,pickup410Observed=0,diagnosticsCleared=0,diagnosticsCleanupTimer=0;
 function q(v){return String(v==null?'':v)}
 function clean(v){return q(v).replace(/\s+/g,' ').trim()}
 function nativeSetTimeout(){try{return w.ExportHUBClean&&w.ExportHUBClean.native&&w.ExportHUBClean.native.setTimeout||w.setTimeout}catch(_){return w.setTimeout}}
@@ -31,6 +32,45 @@ function waitForPrintPrewarm(e){
  var oldDisabled=!!button.disabled,oldText=button.textContent;button.disabled=true;button.textContent='Ausgabe wird vorbereitet …';printPrewarmWaited++;
  Promise.resolve(pending).catch(function(){return false}).then(function(){button.disabled=oldDisabled;button.textContent=oldText;button.__rc1104PrintResume=true;nativeSetTimeout()(function(){try{button.click()}catch(err){button.__rc1104PrintResume=false;try{console.error('RC1104 Ausgabe fortsetzen',err)}catch(_){}}},0)});
  return true
+}
+function pickupStatusToken(input){
+ var raw='';try{raw=typeof input==='string'?input:(input&&input.url)||''}catch(_){}if(!raw||!/\/api\/pickup-status(?:[?#]|$)/i.test(raw))return'';
+ try{var u=new URL(raw,w.location&&w.location.href||'http://localhost/');return clean(u.searchParams.get('token')||'')}catch(_){var m=raw.match(/[?&]token=([^&#]+)/i);try{return m?decodeURIComponent(m[1]):''}catch(__){return m?m[1]:''}}
+}
+function scrubExpectedPickup410(){
+ var store=w.__EXPORTHUB_DIAG863_STORE__,rows=store&&Array.isArray(store.records)?store.records:null;if(!rows||!rows.length)return 0;
+ var removed=0,cutoff=Date.now()-5000;
+ for(var i=rows.length-1;i>=0;i--){var rec=rows[i],at=Date.parse(rec&&(rec.lastAt||rec.at)||'')||0,msg=clean(rec&&rec.message);if(at&&at<cutoff)break;if(/HTTP 410.*\/api\/pickup-status|\/api\/pickup-status.*410/i.test(msg)){rows.splice(i,1);removed++}}
+ return removed
+}
+function syntheticPickup410(){
+ var body=JSON.stringify({ok:false,code:'ACCESS_INVALID',message:'Dieser öffentliche Link ist ungültig oder nicht mehr aktiv.'});
+ if(typeof w.Response==='function')return new w.Response(body,{status:410,statusText:'Gone',headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});
+ return {ok:false,status:410,statusText:'Gone',headers:{get:function(){return null}},text:function(){return Promise.resolve(body)},json:function(){return Promise.resolve(JSON.parse(body))}}
+}
+function installPickup410Guard(){
+ if(typeof w.fetch!=='function'||w.fetch.__rc1108Pickup410Guard)return false;
+ var previous=w.fetch.bind(w);
+ function guardedFetch(input,init){
+  var token=pickupStatusToken(input),now=Date.now();
+  if(token&&Number(deadPickupUntil[token]||0)>now){pickup410Blocked++;return Promise.resolve(syntheticPickup410())}
+  return previous(input,init).then(function(res){
+   if(token&&Number(res&&res.status)===410){deadPickupUntil[token]=Date.now()+PICKUP_MISS_MS;pickup410Observed++;scrubExpectedPickup410()}
+   return res
+  })
+ }
+ guardedFetch.__rc1108Pickup410Guard=true;guardedFetch.__rc1108PreviousFetch=previous;w.fetch=guardedFetch;return true
+}
+function cleanupSyncedDiagnostics(){
+ var cloud=w.ExportHUBDiagnosticsCloud864,store=w.__EXPORTHUB_DIAG863_STORE__;if(!cloud||typeof cloud.status!=='function'||!store||!Array.isArray(store.records)||typeof store.clear!=='function')return false;
+ var status={};try{status=cloud.status()||{}}catch(_){return false}
+ var fullySynced=Number(status.pending)===0&&/Azure synchronisiert/i.test(clean(status.status));if(!fullySynced)return false;
+ if(!store.records.length)return false;
+ store.clear();diagnosticsCleared++;return true
+}
+function scheduleDiagnosticsCleanup(){
+ if(diagnosticsCleanupTimer){try{nativeClearTimeout()(diagnosticsCleanupTimer)}catch(_){}diagnosticsCleanupTimer=0}
+ diagnosticsCleanupTimer=nativeSetTimeout()(function(){diagnosticsCleanupTimer=0;cleanupSyncedDiagnostics()},250);return true
 }
 function flushSearch(input){
  if(searchTimer){try{nativeClearTimeout()(searchTimer)}catch(_){}searchTimer=0}
@@ -61,20 +101,16 @@ function installSearch(){
  input.__rc1069SearchInstalled=true;searchInstalls++;
  return true
 }
-function install(){
- installSearch();
- return true
-}
-function schedule(){
- var set=nativeSetTimeout();set(install,0);set(install,180);set(install,600)
-}
+function install(){installSearch();installPickup410Guard();scheduleDiagnosticsCleanup();return true}
+function schedule(){var set=nativeSetTimeout();set(install,0);set(install,180);set(install,600)}
 if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
  w.document.addEventListener('click',waitForPrintPrewarm,true);
 }
 if(w.addEventListener){
  ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync'].forEach(function(name){w.addEventListener(name,install)});
+ w.addEventListener('exporthub:diagnostics-cloud-updated',scheduleDiagnosticsCleanup);
  ['exporthub:shipment-saved','exporthub:documents-opening'].forEach(function(name){w.addEventListener(name,function(e){var d=e&&e.detail||{},sh=d.shipment||currentPrintShipment();if(sh)prewarmPrintOutput(sh)})});
 }
-w.ExportHUBRC1069Performance=Object.freeze({version:'RC1069',printOptimizationVersion:'RC1104',searchDelayMs:SEARCH_DELAY,install:install,flushSearch:flushSearch,prewarmPrintOutput:prewarmPrintOutput,waitForPrintPrewarm:waitForPrintPrewarm,stats:function(){return{searchInstalls:searchInstalls,pendingSearch:!!searchTimer,lastSearchValue:lastSearchValue,printPrewarmStarted:printPrewarmStarted,printPrewarmWaited:printPrewarmWaited,pendingPrintPrewarm:Object.keys(printPrewarmByKey).length}}});
+w.ExportHUBRC1069Performance=Object.freeze({version:'RC1069',printOptimizationVersion:'RC1104',diagnosticOptimizationVersion:'RC1108',searchDelayMs:SEARCH_DELAY,install:install,flushSearch:flushSearch,prewarmPrintOutput:prewarmPrintOutput,waitForPrintPrewarm:waitForPrintPrewarm,installPickup410Guard:installPickup410Guard,cleanupSyncedDiagnostics:cleanupSyncedDiagnostics,stats:function(){return{searchInstalls:searchInstalls,pendingSearch:!!searchTimer,lastSearchValue:lastSearchValue,printPrewarmStarted:printPrewarmStarted,printPrewarmWaited:printPrewarmWaited,pendingPrintPrewarm:Object.keys(printPrewarmByKey).length,pickup410Observed:pickup410Observed,pickup410Blocked:pickup410Blocked,deadPickupTokens:Object.keys(deadPickupUntil).filter(function(k){return Number(deadPickupUntil[k]||0)>Date.now()}).length,diagnosticsCleared:diagnosticsCleared}}});
 })(window);
