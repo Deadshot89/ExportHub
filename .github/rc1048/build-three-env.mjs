@@ -31,6 +31,8 @@ const RC1080_CUSTOMER_HISTORY_ID='exporthub-rc1080-customer-history';
 const RC1080_CUSTOMER_HISTORY_TAG='<script id="'+RC1080_CUSTOMER_HISTORY_ID+'" defer src="/assets/rc1080-customer-history.js?v=1080"></script>';
 const RC1081_AUDIT_HISTORY_ID='exporthub-rc1081-audit-history';
 const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1087"></script>';
+const RC1092_CONTACTS_ID='exporthub-rc1092-customer-mail-contacts';
+const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/assets/rc1092-customer-mail-contacts.js?v=1092"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -420,6 +422,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=injectBeforeHeadClose(html,RC1079_PROFILE_TAG,RC1079_PROFILE_ID);
   html=injectBeforeHeadClose(html,RC1080_CUSTOMER_HISTORY_TAG,RC1080_CUSTOMER_HISTORY_ID);
   html=injectBeforeHeadClose(html,RC1081_AUDIT_HISTORY_TAG,RC1081_AUDIT_HISTORY_ID);
+  html=injectBeforeHeadClose(html,RC1092_CONTACTS_TAG,RC1092_CONTACTS_ID);
   if(file!=='demo.html'){
     html=injectBeforeHeadClose(html,RC1061_MIGRATION_TAG,RC1061_MIGRATION_ID);
     html=injectBeforeHeadClose(html,RC1063_ABD_BLOB_TAG,RC1063_ABD_BLOB_ID);
@@ -459,7 +462,7 @@ if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime 
 fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
 fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
-for(const rel of ['assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
+for(const rel of ['assets/rc1092-customer-mail-contacts.js','assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error(rel+' fehlt für den finalen RC1048-Build');
   fs.mkdirSync(path.dirname(dst),{recursive:true});
@@ -498,6 +501,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     finalRenderIntegrity:{version:'RC1068',shipmentController:'canonical production sync',inlineScriptSyntaxChecked:true,visibleCodeLeakChecked:true},
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
     shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
+    customerMailContacts:{version:'RC1092',runtime:'assets/rc1092-customer-mail-contacts.js',actions:['Person speichern','Zur Mail hinzufügen'],separateLibraryAndMailAssignment:true,persistImmediately:true},
     shipmentHistory:{version:'RC1080',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
     loaderPinAdmin:{version:'RC1087',runtime:'assets/rc1075-loader-pin-admin.js',globalAdminOnly:true,api:'/api/loader-pins-admin',auditActions:['create','update','toggle','delete'],auditContainsPin:false,demo:false},

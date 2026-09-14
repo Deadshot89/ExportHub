@@ -191,6 +191,11 @@ jobs:
           grep -q 'Dokumentspeicher wird optimiert' dist-rc1048/migration-recovery.html
           grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1048/index.html
           grep -q 'assets/rc1014-shipment-overview.js?v=1091' dist-rc1048/index.html
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "dist-rc1048/$file"
+          done
+          test -s dist-rc1048/assets/rc1092-customer-mail-contacts.js
+          grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' dist-rc1048/assets/rc1092-customer-mail-contacts.js
           grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1048/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1048/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1048/TESTVERSION.html
@@ -700,6 +705,39 @@ jobs:
             sleep 5
           done
           echo 'RC1087 Historie-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1092 Kundenkontakte prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1092=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1092-customer-mail-contacts.js?rc1092=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
+              grep -q 'Person speichern' "$asset" || ok=0
+              grep -q 'Zur Mail hinzufügen' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1092=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1092 Kundenkontakte: Person speichern und Zur Mail hinzufügen live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1092 Kundenkontakte-Liveprüfung nicht bestätigt.' >&2
           exit 1
 
       - name: Live RC1083 Diagnose-Autofix prüfen
