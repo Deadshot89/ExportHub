@@ -91,7 +91,8 @@
   }
   function buildCalendarModel(input){
     const options = input && typeof input === 'object' ? input : {};
-    const todayDate = options.today instanceof Date && !Number.isNaN(options.today.getTime()) ? options.today : new Date();
+    const suppliedToday = options.today && typeof options.today.getTime === 'function' && Number.isFinite(options.today.getTime()) ? options.today.getTime() : NaN;
+    const todayDate = Number.isFinite(suppliedToday) ? new Date(suppliedToday) : new Date();
     const fixedPickups = Array.isArray(options.fixedPickups) ? options.fixedPickups : [];
     const shipments = Array.isArray(options.shipments) ? options.shipments : [];
     const weekOffset = Math.trunc(number(options.weekOffset));
