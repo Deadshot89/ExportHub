@@ -156,29 +156,17 @@ function mailRecipient(href){try{return decodeURIComponent(String(href||'').repl
 function mailSubject(href){try{var raw=String(href||''),query=raw.indexOf('?')>=0?raw.slice(raw.indexOf('?')+1):'',parts=query.split('&');for(var i=0;i<parts.length;i++){var p=parts[i].split('='),k=decodeURIComponent(p.shift()||'').toLowerCase();if(k==='subject')return decodeURIComponent(p.join('=').replace(/\+/g,' '))}}catch(_){}return''}
 function mailTypeFrom(text){var l=low(text);if(/\babd\b|ausfuhrbegleit/.test(l))return'ABD-Anfrage';if(/anmeld|registrier|versandbestät/.test(l))return'Versandanmeldung';if(/lieferavis|abholung|collection notice/.test(l))return'Lieferavis';return'E-Mail'}
 function elementContext(el,text){var out=q(text);try{var box=el&&el.closest&&el.closest('[data-document],[data-doc-type],section,fieldset,.card,.panel,.field');if(box&&box!==el)out+=' '+q(box.getAttribute&&box.getAttribute('data-document'))+' '+q(box.getAttribute&&box.getAttribute('data-doc-type'))+' '+q(box.getAttribute&&box.getAttribute('aria-label'))+' '+q(box.textContent)}catch(_){}return out}
-function ensureMailConfirm(){
- var area=document.getElementById('rc543MailArea');if(!area||area.querySelector('[data-rc1071-mail-sent]'))return false;
- var b=document.createElement('button');b.type='button';b.className='ghost';b.setAttribute('data-rc1071-mail-sent','1');b.textContent='Mail als versendet bestätigen';b.title='Erst anklicken, nachdem die E-Mail tatsächlich versendet wurde.';
- var toolbar=area.querySelector('.toolbar,.actions,.button-row')||area;toolbar.appendChild(b);return true
-}
 function recordMailSent(sh,contextText){var mailMeta=LAST_MAIL_META[identity(sh)]||{},mailKind=q(mailMeta.mailType)||mailTypeFrom(contextText)||'E-Mail',sentLabel=mailSentLabel(mailKind);return append(sh,{type:'mail-sent',label:sentLabel,actor:actorFrom(currentUser()),details:{reference:ref(sh),to:q(mailMeta.to),subject:q(mailMeta.subject),mailType:mailKind}})}
 function click(ev){
  var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;var sh=currentShipment();if(!sh)return;
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),contextText=elementContext(el,text),l=low(contextText);
- if(el.matches&&el.matches('[data-rc1071-mail-sent]')){
-   ev.preventDefault();if(w.confirm&&!w.confirm('Bestätigen, dass die E-Mail tatsächlich versendet wurde?'))return;
-   recordMailSent(sh,contextText);return
- }
- if(/als bestätigt markieren|als bestaetigt markieren|mail.*versendet.*bestätig|mail.*versendet.*bestaetig|versand.*bestätig|versand.*bestaetig/.test(l)){
-   if(actionOnce('mail-sent-native|'+identity(sh),1800))recordMailSent(sh,contextText);return
- }
  var href=q(el.getAttribute&&el.getAttribute('href'));
  if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(l)){
    var to=/^mailto:/i.test(href)?mailRecipient(href):'',subject=/^mailto:/i.test(href)?mailSubject(href):'',mailKind=mailTypeFrom(contextText+' '+subject);
    LAST_MAIL_META[identity(sh)]={to:to,subject:subject,mailType:mailKind,at:now()};
    if(mailKind==='ABD-Anfrage'&&actionOnce('abd-mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'abd',label:'ABD-Anfrage per E-Mail gestartet',actor:actorFrom(currentUser()),details:{to:to,subject:subject,mailType:mailKind,reference:ref(sh)}});
    if(/anmeld|registrier|versandbestät/i.test(l)&&actionOnce('registration-mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'registration',label:'Versandanmeldung per E-Mail gestartet',actor:actorFrom(currentUser()),details:{to:to,subject:subject,mailType:mailKind,reference:ref(sh)}});
-   if(actionOnce('mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'mail',label:mailKind==='ABD-Anfrage'?'ABD-E-Mail vorbereitet/geöffnet':'E-Mail vorbereitet/geöffnet',actor:actorFrom(currentUser()),details:{to:to,subject:subject,mailType:mailKind}});return
+   if(actionOnce('mail-sent-open|'+identity(sh)+'|'+mailKind+'|'+to,2500))recordMailSent(sh,contextText);return
  }
  if(/\babd\b/.test(l)&&/anfordern|anfrage|request/.test(l)){
    if(actionOnce('abd-request|'+identity(sh),2500))append(sh,{type:'abd',label:'ABD angefordert',actor:actorFrom(currentUser()),details:{reference:ref(sh)}});return
@@ -203,7 +191,7 @@ function markWorkStarted(){
  append(sh,{type:'work-start',label:'Arbeit an Sendung gestartet',actor:actor,details:{reference:ref(sh)}});
  return true
 }
-function schedule(){setTimeout(function(){try{hookPersist();monitor();markWorkStarted();ensureMailConfirm();repairCreatorMetaSpacing();render()}catch(e){try{console.warn('RC1071 History',e)}catch(_){}}},0)}
+function schedule(){setTimeout(function(){try{hookPersist();monitor();markWorkStarted();repairCreatorMetaSpacing();render()}catch(e){try{console.warn('RC1071 History',e)}catch(_){}}},0)}
 if(w.document){
  document.addEventListener('click',click,true);document.addEventListener('change',fileChange,true);
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
