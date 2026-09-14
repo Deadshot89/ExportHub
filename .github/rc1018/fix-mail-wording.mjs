@@ -64,5 +64,27 @@ const RC1065_CC_TAG='<script id="'+RC1065_CC_ID+'" defer src="/assets/rc1065-reg
 function injectScript(rel,id,tag){const target=path.join(ROOT,rel);if(!fs.existsSync(target))return false;let html=fs.readFileSync(target,'utf8');const existing=new RegExp('<script\\b(?=[^>]*\\bid=["\\\']'+id+'["\\\'])[^>]*>\\s*<\\/script>','i');if(existing.test(html)){const next=html.replace(existing,tag);if(next===html)return false;fs.writeFileSync(target,next,'utf8');return true}const body=html.search(/<body\b/i),close=(body>=0?html.slice(0,body):html).search(/<\/head\s*>/i);if(close<0)throw new Error(rel+': </head> für ExportHUB-Laufzeitlayer fehlt.');html=html.slice(0,close)+tag+'\n'+html.slice(close);fs.writeFileSync(target,html,'utf8');return true}
 for(const page of ['index.html','TESTVERSION.html','demo.html']){injectScript(page,RC1027_ID,RC1027_TAG);injectScript(page,RC1037_ID,RC1037_TAG);injectScript(page,RC1049_ID,RC1049_TAG);injectScript(page,RC1065_CC_ID,RC1065_CC_TAG)}
 injectScript('customer-avis.html',RC1049_ID,RC1049_TAG);
+
+function patchRc1089AvisCalendarDays(rel){
+ const target=path.join(ROOT,rel);if(!fs.existsSync(target))return false;
+ let html=fs.readFileSync(target,'utf8'),changed=false;
+ const replacements=[
+  ["function autoExpiresOn(sh){var picked=dateKey(pickupStamp(sh));return picked?addBusinessDays(picked,3):''}","function addCalendarDays(key,count){var d=keyDate(key),days=Math.max(0,Number(count)||0);if(!d)return'';d.setUTCDate(d.getUTCDate()+days);return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}\\nfunction autoExpiresOn(sh){var picked=dateKey(pickupStamp(sh));return picked?addCalendarDays(picked,3):''}"],
+  ["function expired(sh){var until=autoExpiresOn(sh);return !!(configured(sh)&&until&&berlinDateKey(new Date())>=until)}","function expired(sh){var until=autoExpiresOn(sh);return !!(configured(sh)&&until&&berlinDateKey(new Date())>until)}"],
+  ["customerAvisAutoDisabledReason:'3 Arbeitstage nach tatsächlicher Abholung',avisAutoDisabledReason:'3 business days after actual collection'","customerAvisAutoDisabledReason:'3 Tage nach tatsächlicher Abholung',avisAutoDisabledReason:'3 calendar days after actual collection'"],
+  ["persist('Kunden-Avis automatisch nach 3 Arbeitstagen deaktiviert')","persist('Kunden-Avis automatisch nach 3 Tagen deaktiviert')"],
+  ["IMPORTANT: This link is automatically deactivated three business days after the actual collection. Saturday and Sunday are not counted. Essentra can disable it earlier.","IMPORTANT: This link remains available through the third calendar day after the actual collection and is then automatically deactivated. Essentra can disable it earlier."],
+  ["WICHTIG: Der Link wird drei Arbeitstage nach der tatsächlichen Abholung automatisch deaktiviert. Samstag und Sonntag zählen nicht mit. Essentra kann ihn vorher deaktivieren.","WICHTIG: Der Lieferavis-Link bleibt bis einschließlich drei Kalendertage nach der tatsächlichen Abholung verfügbar und wird anschließend automatisch deaktiviert. Essentra kann ihn vorher deaktivieren."],
+  ["Note: The delivery notice link remains valid until three business days after the actual collection and is then automatically deactivated. Saturdays and Sundays are not counted as business days. Essentra can deactivate the link earlier at any time.","Note: The delivery notice link remains available through the third calendar day after the actual collection and is then automatically deactivated. Essentra can deactivate the link earlier at any time."],
+  ["Hinweis: Der Lieferavis-Link bleibt bis drei Arbeitstage nach der tatsächlichen Abholung gültig und wird anschließend automatisch deaktiviert. Samstage und Sonntage gelten dabei nicht als Arbeitstage. Essentra kann den Link jederzeit vorzeitig deaktivieren.","Hinweis: Der Lieferavis-Link bleibt bis einschließlich drei Kalendertage nach der tatsächlichen Abholung verfügbar und wird anschließend automatisch deaktiviert. Essentra kann den Link jederzeit vorzeitig deaktivieren."]
+ ];
+ for(const [before,after] of replacements){if(html.includes(before)){html=html.replaceAll(before,after);changed=true}}
+ const start=html.indexOf('<script id="exporthub-rc706-customer-avis-internal">'),end=html.indexOf('</script>',start),avis=start>=0&&end>start?html.slice(start,end):'';
+ if(avis&&!avis.includes('addCalendarDays(picked,3)'))throw new Error(rel+': RC1089 Kalenderablauf fehlt.');
+ if(avis&&avis.includes('addBusinessDays(picked,3)'))throw new Error(rel+': alte Arbeitstage-Ablauflogik ist noch aktiv.');
+ if(changed)fs.writeFileSync(target,html,'utf8');
+ return changed
+}
+for(const page of ['index.html','TESTVERSION.html','demo.html'])patchRc1089AvisCalendarDays(page);
 await import('../rc1049/fix-mail-abd-gate.mjs');
 console.log('RC1053: Azure-State-Fallback, ABD-Regeln und schneller Avis-Snapshot-Pfad aktiviert.');
