@@ -91,10 +91,12 @@ test('RC1065: Avis-Ausnahmen und Pflicht-CC bleiben verbindlich',()=>{
   assert.match(avis,/'böllhof':'Kein Lieferavis für diesen Kunden'/);
   assert.match(cc,/Sevastian Marcu/);
   assert.match(cc,/Daniel Ollmann/);
+  assert.match(cc,/SevastianMarcu@essentra\.com/);
+  assert.match(cc,/DanielOllmann@essentra\.com/);
   assert.match(cc,/Pflicht-CC konnte nicht aus den ExportHUB-Benutzerdaten aufgelöst werden/);
-  assert.match(fixer,/rc1065-registration-cc\.js\?v=1065/);
+  assert.match(fixer,/rc1065-registration-cc\.js\?v=1089/);
   assert.match(finalBuilder,/RC1065_CC_TAG/);
-  assert.match(finalBuilder,/rc1065-registration-cc\.js\?v=1065/);
+  assert.match(finalBuilder,/rc1065-registration-cc\.js\?v=1089/);
   assert.match(finalBuilder,/fs\.copyFileSync\(rc1065AssetSource,rc1065AssetTarget\)/);
 });
 
@@ -127,9 +129,10 @@ test('RC1065: Pflicht-CC Runtime nutzt die persistente Settings-Konfiguration un
   assert.match(decoded,/daniel@example\.com/);
 
   appState.settings.registrationMandatoryCc=[{name:'Sevastian Marcu',email:'sevastian@example.com'}];
-  const blocked=api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123');
-  assert.equal(blocked.ok,false);
-  assert.deepEqual(Array.from(blocked.missing),['Daniel Ollmann']);
+  const withFallback=api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123');
+  assert.equal(withFallback.ok,true);
+  assert.deepEqual(Array.from(withFallback.missing),[]);
+  assert.match(decodeURIComponent(withFallback.url).toLowerCase(),/danielollmann@essentra\.com/);
 
   const normal=api.prepare('mailto:test@example.com?subject=Hallo');
   assert.equal(normal.ok,true);
@@ -148,6 +151,21 @@ test('RC1089: Pflicht-CC erkennt Benutzer auch bei Kurzname oder abweichendem Lo
   const prepared=window.ExportHUBRC1065RegistrationCC.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
   assert.equal(prepared.ok,true);
   assert.equal(prepared.required,true);
+  const decoded=decodeURIComponent(prepared.url).toLowerCase();
+  assert.match(decoded,/sevastianmarcu@essentra\.com/);
+  assert.match(decoded,/danielollmann@essentra\.com/);
+});
+
+test('RC1089: bestätigte Pflicht-CC-Adressen funktionieren auch ohne Benutzerstamm oder gespeicherte CC-Einstellungen',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  const appState={settings:{}};
+  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const context={window,URLSearchParams,console};
+  vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
+  const prepared=window.ExportHUBRC1065RegistrationCC.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
+  assert.equal(prepared.ok,true);
+  assert.equal(prepared.required,true);
+  assert.deepEqual(Array.from(prepared.missing),[]);
   const decoded=decodeURIComponent(prepared.url).toLowerCase();
   assert.match(decoded,/sevastianmarcu@essentra\.com/);
   assert.match(decoded,/danielollmann@essentra\.com/);

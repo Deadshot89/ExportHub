@@ -5,6 +5,7 @@ if(!w||w.__EXPORTHUB_RC1065_REGISTRATION_CC__)return;
 w.__EXPORTHUB_RC1065_REGISTRATION_CC__=true;
 
 var REQUIRED=Object.freeze(['Sevastian Marcu','Daniel Ollmann']);
+var DEFAULTS=Object.freeze({'sevastian marcu':'SevastianMarcu@essentra.com','daniel ollmann':'DanielOllmann@essentra.com'});
 
 function q(v){return String(v==null?'':v).trim()}
 function norm(v){return q(v).toLocaleLowerCase('de-DE').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
@@ -44,7 +45,7 @@ function matchesRequired(x,required){
 function resolve(){
  var cfg=configured(),rows=candidates(),addresses=[],missing=[];
  REQUIRED.forEach(function(required){
-  var found=cfg.find(function(x){return matchesRequired(x,required)})||rows.find(function(x){return matchesRequired(x,required)}),e=found&&emailOf(found)||'';
+  var found=cfg.find(function(x){return matchesRequired(x,required)})||rows.find(function(x){return matchesRequired(x,required)}),e=found&&emailOf(found)||mail(DEFAULTS[norm(required)])||'';
   if(e)addresses.push(e);else missing.push(required)
  });
  return{ok:missing.length===0,addresses:Array.from(new Set(addresses.map(function(x){return x.toLowerCase()}))),missing:missing}
@@ -95,8 +96,8 @@ function viewName(){
 }
 function settingsVisible(){var v=viewName();return v==='settings'||v==='einstellungen'||/\bsettings\b|\beinstellungen\b/.test(v)}
 function configuredEmail(name){
- var key=norm(name),row=configured().find(function(x){return norm(x.name)===key});
- return row&&row.email||''
+ var key=norm(name),row=configured().find(function(x){return matchesRequired(x,name)}),user=candidates().find(function(x){return matchesRequired(x,name)});
+ return row&&emailOf(row)||user&&emailOf(user)||mail(DEFAULTS[key])||''
 }
 function ccSettingsStatus(node,text,kind){
  if(!node)return;
