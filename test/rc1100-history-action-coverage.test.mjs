@@ -13,12 +13,19 @@ function api(){
   return window.ExportHUBShipmentHistory1071;
 }
 
-test('RC1100: bestätigter Mailversand wird je Mailtyp eindeutig benannt',()=>{
+test('RC1100: Mailversand wird je Mailtyp eindeutig benannt',()=>{
   const runtime=api();
   assert.equal(runtime.mailSentLabel('ABD-Anfrage'),'ABD-E-Mail-Versand bestätigt');
   assert.equal(runtime.mailSentLabel('Versandanmeldung'),'Versandanmeldung versendet');
   assert.equal(runtime.mailSentLabel('Lieferavis'),'Lieferavis versendet');
   assert.equal(runtime.mailSentLabel('E-Mail'),'E-Mail-Versand bestätigt');
+});
+
+test('RC1100: Mailöffnung schreibt Versandhistorie automatisch ohne manuelle Bestätigung',()=>{
+  assert.doesNotMatch(source,/Mail als versendet bestätigen/);
+  assert.doesNotMatch(source,/Bestätigen, dass die E-Mail tatsächlich versendet wurde/);
+  assert.doesNotMatch(source,/data-rc1071-mail-sent/);
+  assert.match(source,/LAST_MAIL_META\[identity\(sh\)\]=\{to:to,subject:subject,mailType:mailKind,at:now\(\)\};[\s\S]{0,900}recordMailSent\(sh,contextText\)/);
 });
 
 test('RC1100: Statushistorie benennt Storno Nachbearbeitung Abschluss und Archiv eindeutig',()=>{
