@@ -145,6 +145,13 @@ test('RC1095: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Liefe
 
 
 test('RC1095: POD-Upload wird dem aktuell angemeldeten Benutzer zugeordnet',()=>{
-  assert.match(source,/if\(next\.pod>prev\.pod\)append\(sh,\{type:'pod',label:'POD hinzugefügt',actor:actorFrom\(currentUser\(\)\)/);
-  assert.doesNotMatch(source,/label:'POD hinzugefügt',actor:latestPickupActor\(sh\)/);
+  const sh={id:'S1',ref:'ABC123',podFiles:[]};
+  const {api}=runtime(sh);
+  api.monitor();
+  sh.podFiles=[{name:'POD.pdf'}];
+  api.monitor();
+  const row=(sh.shipmentHistory||[]).find(x=>x.type==='pod'&&x.label==='POD hinzugefügt');
+  assert.ok(row);
+  assert.equal(row.actor.name,'Tobias');
+  assert.notEqual(row.actor.name,'QR-Abholung');
 });
