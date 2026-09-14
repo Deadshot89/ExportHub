@@ -239,7 +239,7 @@ test('RC1087: Pflicht-CC Adminprüfung verwechselt Funktionsadministratoren nich
 });
 
 
-test('RC1091: Pflicht-CC Asset wird mit neuer Cache-Version ausgeliefert',()=>{
+test('RC1093: Pflicht-CC Asset wird mit neuer Cache-Version ausgeliefert',()=>{
   const fixer=read('.github/rc1018/fix-mail-wording.mjs');
   const finalBuilder=read('.github/rc1048/build-three-env.mjs');
   const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
@@ -248,7 +248,7 @@ test('RC1091: Pflicht-CC Asset wird mit neuer Cache-Version ausgeliefert',()=>{
   assert.doesNotMatch(fixer,/rc1065-registration-cc\.js\?v=1089/);
   assert.doesNotMatch(finalBuilder,/rc1065-registration-cc\.js\?v=1089/);
   assert.doesNotMatch(workflow,/rc1065-registration-cc\.js\?v=1089/);
-  assert.match(runtime,/version:'RC1091'/);
+  assert.match(runtime,/version:'RC1093'/);
 });
 
 test('RC1091: bestätigte Pflicht-CC-Fallbacks machen die Anmeldung unabhängig vom Benutzerstamm',()=>{
