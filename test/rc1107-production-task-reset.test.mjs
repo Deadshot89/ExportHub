@@ -61,3 +61,10 @@ test('RC1107: fehlgeschlagene Azure-Bestätigung stellt lokalen Aufgabenbestand 
   assert.equal(state.rc1107TaskResetAt,undefined);
   assert.equal(state._teamSyncMeta.tombstones.filter(t=>t.collection==='tasks').length,0);
 });
+
+test('RC1107: Aufgabenreset-Runtime wird nicht aus altem Browsercache geladen',()=>{
+  const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+  const route=(config.routes||[]).find(item=>item.route==='/assets/rc1014-task-runtime.js');
+  assert.ok(route,'Task-Runtime braucht für den einmaligen Produktionsreset einen expliziten Assetvertrag');
+  assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i);
+});
