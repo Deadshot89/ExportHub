@@ -19,6 +19,13 @@ test('RC1104: Druck wartet auf eine bereits laufende Vorwärmung statt eine zwei
   assert.match(source,/__rc1104PrintResume/,'erneut ausgelöster Original-Druck braucht einen Rekursionsschutz');
 });
 
+test('RC1104: Performance-Runtime wird nicht aus einem veralteten Browsercache geladen',()=>{
+  const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+  const route=config.routes.find(x=>x.route==='/assets/rc1069-performance.js');
+  assert.ok(route,'No-Cache-Route für RC1069/RC1104 fehlt');
+  assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store|no-cache/i);
+});
+
 test('RC1104: keine neue API und keine kostenpflichtige Abhängigkeit wird eingeführt',()=>{
   assert.doesNotMatch(source,/openai|chatgpt|api\.openai\.com/i);
   assert.doesNotMatch(source,/fetch\s*\([^)]*location-booking/i,'RC1104 darf die Lager-API nicht duplizieren');
