@@ -19,16 +19,32 @@ function configured(){
  return out
 }
 function candidates(){
- var s=state(),lists=[s.users,s.userAccounts,s.accounts,s.members,s.employees,s.staff,s.people,s.directoryUsers],out=[];
+ var s=state(),nested=[s.state,s.team,s.data],runtime=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},lists=[s.users,s.userAccounts,s.accounts,s.members,s.employees,s.staff,s.people,s.directoryUsers,runtime.users,runtime.userAccounts],out=[];
+ nested.forEach(function(root){if(root&&typeof root==='object')lists.push(root.users,root.userAccounts,root.accounts,root.members)});
  lists.forEach(function(list){if(Array.isArray(list))list.forEach(function(x){if(x&&typeof x==='object')out.push(x)})});
  return out
 }
-function nameOf(x){return q(x&&(x.name||x.displayName||x.fullName||([x.firstName,x.lastName].filter(Boolean).join(' '))||x.userName||x.username))}
-function emailOf(x){return mail(x&&(x.email||x.mail||x.emailAddress||x.userPrincipalName||x.upn||x.login))}
+function nameOf(x){return q(x&&(x.name||x.displayName||x.fullName||([x.firstName,x.lastName].filter(Boolean).join(' '))||x.userName||x.username||x.user||x.login))}
+function emailOf(x){
+ if(!x||typeof x!=='object')return'';
+ var direct=mail(x.email||x.mail||x.emailAddress||x.userPrincipalName||x.upn||x.workEmail||x.businessEmail||x.primaryEmail||x.login);
+ if(direct)return direct;
+ var nested=[x.contact,x.profile,x.directory,x.account];for(var i=0;i<nested.length;i++){var e=mail(nested[i]&&(nested[i].email||nested[i].mail||nested[i].emailAddress||nested[i].userPrincipalName||nested[i].upn));if(e)return e}
+ var list=Array.isArray(x.emails)?x.emails:[];for(var j=0;j<list.length;j++){var item=list[j],e2=mail(typeof item==='string'?item:(item&&item.address||item&&item.email));if(e2)return e2}
+ return''
+}
+function compact(v){return norm(v).replace(/\s+/g,'')}
+function emailLocal(v){var e=emailOf(v);return e?compact(e.split('@')[0]):''}
+function requiredAliases(required){var parts=norm(required).split(/\s+/).filter(Boolean),full=parts.join(''),first=parts[0]||'',last=parts[parts.length-1]||'',out=[full];if(first&&last){out.push(first.charAt(0)+last,last+first.charAt(0))}return out}
+function matchesRequired(x,required){
+ if(!x)return false;var key=norm(required),aliases=requiredAliases(required),names=[nameOf(x),x.user,x.login,x.username,x.userName,x.displayName,x.fullName];
+ for(var i=0;i<names.length;i++){var n=norm(names[i]);if(n&&n===key)return true;var c=compact(names[i]);if(c&&aliases.indexOf(c)>=0)return true}
+ var local=emailLocal(x);return !!(local&&aliases.indexOf(local)>=0)
+}
 function resolve(){
  var cfg=configured(),rows=candidates(),addresses=[],missing=[];
  REQUIRED.forEach(function(required){
-  var key=norm(required),found=cfg.find(function(x){return norm(x.name)===key})||rows.find(function(x){return norm(nameOf(x))===key}),e=found&&emailOf(found)||'';
+  var found=cfg.find(function(x){return matchesRequired(x,required)})||rows.find(function(x){return matchesRequired(x,required)}),e=found&&emailOf(found)||'';
   if(e)addresses.push(e);else missing.push(required)
  });
  return{ok:missing.length===0,addresses:Array.from(new Set(addresses.map(function(x){return x.toLowerCase()}))),missing:missing}

@@ -136,6 +136,38 @@ test('RC1065: Pflicht-CC Runtime nutzt die persistente Settings-Konfiguration un
   assert.equal(normal.required,false);
 });
 
+test('RC1089: Pflicht-CC erkennt Benutzer auch bei Kurzname oder abweichendem Login über die echte E-Mail',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  const appState={users:[
+    {name:'Sevastian',email:'SevastianMarcu@essentra.com'},
+    {name:'Daniel',user:'D.Ollmann',email:'DanielOllmann@essentra.com'}
+  ]};
+  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const context={window,URLSearchParams,console};
+  vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
+  const prepared=window.ExportHUBRC1065RegistrationCC.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
+  assert.equal(prepared.ok,true);
+  assert.equal(prepared.required,true);
+  const decoded=decodeURIComponent(prepared.url).toLowerCase();
+  assert.match(decoded,/sevastianmarcu@essentra\.com/);
+  assert.match(decoded,/danielollmann@essentra\.com/);
+});
+
+test('RC1089: Pflicht-CC durchsucht auch verschachtelte Benutzerlisten und Profil-E-Mailfelder',()=>{
+  const source=read('assets/rc1065-registration-cc.js');
+  const appState={state:{users:[
+    {displayName:'Sevastian Marcu',profile:{email:'sevastian.marcu@example.com'}},
+    {displayName:'Daniel Ollmann',contact:{emailAddress:'daniel.ollmann@example.com'}}
+  ]}};
+  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const context={window,URLSearchParams,console};
+  vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
+  const resolved=window.ExportHUBRC1065RegistrationCC.resolve();
+  assert.equal(resolved.ok,true);
+  assert.deepEqual(Array.from(resolved.missing),[]);
+  assert.deepEqual(Array.from(resolved.addresses).sort(),['daniel.ollmann@example.com','sevastian.marcu@example.com']);
+});
+
 test('RC1065: Pflicht-CC Settings speichern bestätigt in Azure und rollen bei Fehler zurück',async()=>{
   const source=read('assets/rc1065-registration-cc.js');
   const appState={settings:{}};
