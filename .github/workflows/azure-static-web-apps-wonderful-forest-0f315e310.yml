@@ -836,8 +836,7 @@ jobs:
                 ok=0
                 echo "RC1083 Versuch $attempt · $base · page=$pc asset=$ac api=$apiCode · pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
                 printf 'RC1083 API-Antwort: '
-                head -c 600 "$api" | tr '\
-' ' ' || true
+                head -c 600 "$api" | tr '\n' ' ' || true
                 echo
               fi
               rm -f "$page" "$asset" "$api"
