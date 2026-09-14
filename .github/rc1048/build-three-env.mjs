@@ -382,6 +382,34 @@ function patchHistoryNavigation(html,file){
   return out;
 }
 
+
+function patchLoadingListPalletAccount(html,file){
+  if(html.includes('function rc1095LoadPalletHtml('))return html;
+  const start=html.indexOf('function loadHtml(sh,withQr){');
+  const end=start<0?-1:html.indexOf('function documentCacheKey',start);
+  if(start<0||end<0)throw new Error(file+': Ladelisten-Renderer für RC1095 fehlt');
+  let block=html.slice(start,end);
+  const head='<div class="rc390-head">';
+  const headCount=block.split(head).length-1;
+  if(headCount!==1)throw new Error(file+': RC1095 Ladelisten-Kopf '+headCount+'x gefunden');
+  block=block.replace(head,"'+rc1095LoadPalletHtml(sh,rs)+'"+head);
+  const helper=[
+    "function rc1095LoadPalletCount(sh,rs){var direct=Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0));if(direct>0)return direct;return(Array.isArray(rs)?rs:[]).reduce(function(total,row){var kind=String(row&&(row.type||row.packaging||row.verpackung||row.packageType||row.packagingType)||'');if(!/euro.*pal|eur.*pal/i.test(kind))return total;var raw=row&&(row.count!=null?row.count:(row.quantity!=null?row.quantity:(row.qty!=null?row.qty:(row.amount!=null?row.amount:row.number))));return total+Math.max(0,Math.round(Number(raw)||0))},0)}",
+    "function rc1095LoadPalletHtml(sh,rs){var count=rc1095LoadPalletCount(sh,rs);if(!(count>0))return'';return '<div class=rc1095-pallet-account style=display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px;padding:8px;background:#f8fafc;color:#0f172a;border-radius:9px><b>Palettenkonto</b><span>Ausgang: '+count+' Europalette'+(count===1?'':'n')+'</span></div>'}"
+  ].join('\n');
+  let out=html.slice(0,start)+helper+'\n'+block+html.slice(end);
+  const cacheStart=out.indexOf('function documentCacheKey',start+helper.length);
+  const cacheEnd=cacheStart<0?-1:out.indexOf('function ',cacheStart+'function documentCacheKey'.length);
+  if(cacheStart<0||cacheEnd<0)throw new Error(file+': Dokumentcache für RC1095 fehlt');
+  let cache=out.slice(cacheStart,cacheEnd);
+  const cacheAnchor='String(totals(sh).ldm)]';
+  if(!cache.includes(cacheAnchor))throw new Error(file+': RC1095 Dokumentcache-Anker fehlt');
+  cache=cache.replace(cacheAnchor,"String(totals(sh).ldm),String(rc1095LoadPalletCount(sh,rows(sh)))]");
+  out=out.slice(0,cacheStart)+cache+out.slice(cacheEnd);
+  if(!out.includes('rc1095-pallet-account')||!out.includes('String(rc1095LoadPalletCount(sh,rows(sh)))'))throw new Error(file+': RC1095 Palettenkonto-Druckpatch unvollständig');
+  return out;
+}
+
 function patchShipmentOverviewInlineMeta(html,file){
   const start=html.indexOf('function overviewCardHtml(sh){');
   const end=start>=0?html.indexOf('function overviewGroupedCardsHtml',start):-1;
@@ -410,6 +438,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchRc1069Performance(html,file);
   html=patchLoginScreenStatus(html,file);
   html=patchHistoryNavigation(html,file);
+  html=patchLoadingListPalletAccount(html,file);
   html=patchShipmentOverviewInlineMeta(html,file);
   html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1091');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1085');
@@ -502,6 +531,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
     shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
     customerMailContacts:{version:'RC1092',runtime:'assets/rc1092-customer-mail-contacts.js',actions:['Person speichern','Zur Mail hinzufügen'],separateLibraryAndMailAssignment:true,persistImmediately:true},
+    loadingListPalletAccount:{version:'RC1095',document:'Ladeliste',onlyEuroPallets:true,label:'Palettenkonto',showsExpectedOutbound:true,cacheIncludesEuroPalletCount:true},
     shipmentHistory:{version:'RC1094',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
     loaderPinAdmin:{version:'RC1087',runtime:'assets/rc1075-loader-pin-admin.js',globalAdminOnly:true,api:'/api/loader-pins-admin',auditActions:['create','update','toggle','delete'],auditContainsPin:false,demo:false},

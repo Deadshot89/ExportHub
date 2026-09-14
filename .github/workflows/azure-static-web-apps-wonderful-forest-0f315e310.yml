@@ -742,6 +742,35 @@ jobs:
           echo 'RC1092 Kundenkontakte-Liveprüfung nicht bestätigt.' >&2
           exit 1
 
+
+      - name: Live RC1095 Palettenkonto auf Ladeliste prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1095=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' ]] || ok=0
+              grep -q 'function rc1095LoadPalletHtml' "$page" || ok=0
+              grep -q 'rc1095-pallet-account' "$page" || ok=0
+              grep -q 'Palettenkonto' "$page" || ok=0
+              grep -q 'Ausgang:' "$page" || ok=0
+              grep -q 'rc1095LoadPalletCount(sh,rows(sh))' "$page" || ok=0
+              rm -f "$page"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1095 Palettenkonto auf Ladeliste live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1095 Palettenkonto-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
       - name: Live RC1083 Diagnose-Autofix prüfen
         shell: bash
         run: |
