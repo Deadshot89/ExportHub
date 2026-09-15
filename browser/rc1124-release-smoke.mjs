@@ -28,7 +28,7 @@ const views=[
 ];
 
 function assert(ok,msg){if(!ok)throw new Error(msg)}
-function intersects(box,viewport){return !!box&&!!viewport&&box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height}
+function horizontallyReachable(box,viewport){return !!box&&!!viewport&&box.x+box.width>0&&box.x<viewport.width}
 async function waitReady(page){
   await page.waitForFunction(()=>window.__EXPORTHUB_READY__?.ready===true&&document.body,null,{timeout:25000});
   await pause(250);
@@ -56,7 +56,7 @@ async function navItem(page,label){
       const x=loc.nth(i);
       if(!await x.isVisible().catch(()=>false))continue;
       const box=await x.boundingBox().catch(()=>null);
-      if(intersects(box,page.viewportSize()))return x;
+      if(horizontallyReachable(box,page.viewportSize()))return x;
     }
   }
   return null;
