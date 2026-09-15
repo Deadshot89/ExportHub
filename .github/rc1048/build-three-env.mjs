@@ -30,7 +30,7 @@ const RC1079_PROFILE_TAG='<script id="'+RC1079_PROFILE_ID+'" defer src="/assets/
 const RC1080_CUSTOMER_HISTORY_ID='exporthub-rc1080-customer-history';
 const RC1080_CUSTOMER_HISTORY_TAG='<script id="'+RC1080_CUSTOMER_HISTORY_ID+'" defer src="/assets/rc1080-customer-history.js?v=1080"></script>';
 const RC1081_AUDIT_HISTORY_ID='exporthub-rc1081-audit-history';
-const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1087"></script>';
+const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1118"></script>';
 const RC1092_CONTACTS_ID='exporthub-rc1092-customer-mail-contacts';
 const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/assets/rc1092-customer-mail-contacts.js?v=1092"></script>';
 const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
