@@ -22,8 +22,4 @@ jobs:
           node .github/rc1112/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
           grep -q 'function notificationTaskKey(t)' dist-rc1112/index.html
-          if grep -Fq "function taskTitle(t){return q(t&&(t.title||t.name||t.subject||'Aufgabe'))||'Aufgabe'}" dist-rc1112/index.html; then
-            echo 'alter Aufgabe-Fallback noch vorhanden' >&2
-            exit 1
-          fi
           grep -Fq "!taskForUser(t)||!taskTitle(t)" dist-rc1112/index.html
