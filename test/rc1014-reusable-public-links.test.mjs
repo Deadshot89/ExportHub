@@ -29,22 +29,34 @@ function request(environment='testservice'){
   return{headers:{'x-exporthub-environment':environment,host:'exporthub-testservice.azurestaticapps.net'}};
 }
 
-test('RC1014: Abhol- und Avis-Link bleiben auch nach usedAt erneut auflösbar',async()=>{
+test('RC1117: Pickup bleibt wiederverwendbar, Legacy-Avis kompatibel und neue Avis-Links einmalig',async()=>{
   const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
   const oldSecret=process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET;
   process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
-  process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET='rc1014-reusable-public-links-test-secret';
+  process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET='rc1117-public-links-test-secret';
   const access=loadAccess(makeAzureMemory()),req=request();
 
   try{
-    for(const kind of ['pickup','avis']){
-      const subjectId=kind==='pickup'?'PICKUP-1014':'AVIS-1014';
-      const issued=await access.issue(req,kind,{subjectId,shipmentId:subjectId,reference:'ABC123'},kind==='avis'?null:3600000,{environment:'testservice'});
-      await access.consume('testservice',kind,issued.tokenHash,{reason:'rc1014-regression'});
-      const reopened=await access.resolve(req,kind,issued.token,{allowUsed:false},{environment:'testservice'});
-      assert.equal(reopened.record.subjectId,subjectId);
-      assert.ok(reopened.record.usedAt,`${kind}: usedAt bleibt als Auditspur erhalten`);
-    }
+    const pickup=await access.issue(req,'pickup',{subjectId:'PICKUP-1117',shipmentId:'PICKUP-1117',reference:'ABC123'},3600000,{environment:'testservice'});
+    await access.consume('testservice','pickup',pickup.tokenHash,{reason:'rc1117-regression'});
+    const pickupReopened=await access.resolve(req,'pickup',pickup.token,{allowUsed:false},{environment:'testservice'});
+    assert.ok(pickupReopened.record.usedAt,'Pickup usedAt bleibt reine Auditspur');
+
+    const legacy=await access.issue(req,'avis',{subjectId:'AVIS-LEGACY',shipmentId:'AVIS-LEGACY',reference:'LEG123'},null,{environment:'testservice'});
+    assert.equal(legacy.record.singleUse,false);
+    await access.consume('testservice','avis',legacy.tokenHash,{reason:'legacy-compat'});
+    const legacyReopened=await access.resolve(req,'avis',legacy.token,{allowUsed:false},{environment:'testservice'});
+    assert.ok(legacyReopened.record.usedAt,'bereits ausgegebene Avis-Links ohne singleUse bleiben kompatibel');
+
+    const once=await access.issue(req,'avis',{subjectId:'AVIS-ONCE',shipmentId:'AVIS-ONCE',reference:'ONE123',singleUse:true},null,{environment:'testservice'});
+    assert.equal(once.record.singleUse,true);
+    await access.consume('testservice','avis',once.tokenHash,{reason:'avis-authorized'});
+    await assert.rejects(
+      ()=>access.resolve(req,'avis',once.token,{allowUsed:false},{environment:'testservice'}),
+      e=>e&&e.code==='ACCESS_USED'
+    );
+    const sessionRead=await access.getByHash('testservice','avis',once.tokenHash,{allowUsed:true});
+    assert.ok(sessionRead.record.usedAt,'signierte Avis-Sitzungen dürfen den verbrauchten Datensatz weiter lesen');
   }finally{
     if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage;
     if(oldSecret===undefined)delete process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET;else process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET=oldSecret;
