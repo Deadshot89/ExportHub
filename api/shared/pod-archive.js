@@ -243,7 +243,7 @@ async function ensureAutomaticPod(accessKey, environment, options) {
   environment = store.normalizeEnvironment(environment);
   let got = await store.getRecord(accessKey, environment);
   let record = got.record || {};
-  const complete = typeof store.pickupComplete === 'function' ? store.pickupComplete(record) : !!record.confirmedAt;
+  const complete = (typeof store.pickupComplete === 'function' && store.pickupComplete(record)) || record.status === 'confirmed' || !!record.confirmedAt;
   if (!complete || !record.confirmedAt) throw store.err('PICKUP_NOT_CONFIRMED', 'Die Abholung ist noch nicht vollstaendig bestaetigt.', 409);
   if (!record.signatureBlobName) throw store.err('SIGNATURE_NOT_FOUND', 'Fahrerunterschrift fuer den POD fehlt.', 409);
 
