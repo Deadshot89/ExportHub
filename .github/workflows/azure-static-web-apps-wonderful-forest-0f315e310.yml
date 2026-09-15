@@ -128,6 +128,7 @@ jobs:
         run: |
           set -euo pipefail
           node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
           grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
           grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
           grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
