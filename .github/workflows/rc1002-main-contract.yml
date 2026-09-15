@@ -37,6 +37,7 @@ on:
       - '.github/rc1046/**'
       - '.github/rc1047/**'
       - '.github/rc1048/**'
+      - '.github/rc1112/**'
       - '.github/rc995/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc998/**'
