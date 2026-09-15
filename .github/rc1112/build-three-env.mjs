@@ -34,6 +34,11 @@ function patchHtml(file){
 execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
 fs.rmSync(OUT,{recursive:true,force:true});
 fs.cpSync(SRC,OUT,{recursive:true});
+const rc1113StowSrc=path.join(ROOT,'assets','rc1113-stowplan-persist.js');
+const rc1113StowOut=path.join(OUT,'assets','rc1113-stowplan-persist.js');
+if(!fs.existsSync(rc1113StowSrc))throw new Error('RC1113 Stauplan-Runtime fehlt');
+fs.mkdirSync(path.dirname(rc1113StowOut),{recursive:true});
+fs.copyFileSync(rc1113StowSrc,rc1113StowOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 
 const probeFile=path.join(OUT,'production-version.js');
