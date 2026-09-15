@@ -57,6 +57,9 @@ function verify(p){
       throw new Error(file+': rc1059 Loader ist im Stauplan nicht als <\\/script> escaped');
     }
   }
+  if(html.includes("function taskTitle(t){return q(t&&(t.title||t.name||t.subject||'Aufgabe'))||'Aufgabe'}"))throw new Error(file+': alter Benachrichtigungs-Fallback Aufgabe noch aktiv');
+  if(!html.includes('function notificationTaskKey(t)'))throw new Error(file+': RC1123 Benachrichtigungs-Deduplizierung fehlt');
+  if(!html.includes("!taskForUser(t)||!taskTitle(t)"))throw new Error(file+': RC1123 filtert inhaltslose Aufgaben nicht');
   const codeLike=outside.match(/(?:^|\n)\s*(?:function\s+[A-Za-z_$][\w$]*\s*\(|var\s+[A-Za-z_$][\w$]*\s*=|window\.[A-Za-z_$][\w$]*\s*=|\/\*\s*exporthub-)/m);
   if(codeLike)throw new Error(file+': generischer sichtbarer Code-Leak: '+codeLike[0].slice(0,160));
   console.log(file+': vollständiger finaler HTML-/Script-Vertrag OK');
