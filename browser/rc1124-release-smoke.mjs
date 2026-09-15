@@ -132,7 +132,7 @@ try{
     const page=await context.newPage();
     const runtime=[];
     page.on('pageerror',e=>runtime.push('pageerror: '+e.message));
-    page.on('console',m=>{if(m.type()==='error'&&!/favicon\.ico|Failed to load resource/i.test(m.text()))runtime.push('console: '+m.text())});
+    page.on('console',m=>{const t=m.text();if(m.type()==='error'&&!/favicon\.ico|Failed to load resource|Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert/i.test(t))runtime.push('console: '+t)});
     page.on('response',r=>{if(r.status()>=400&&!/favicon\.ico/i.test(r.url()))runtime.push('http '+r.status()+': '+r.url())});
     page.on('requestfailed',r=>{
       const reason=r.failure()?.errorText||'';
