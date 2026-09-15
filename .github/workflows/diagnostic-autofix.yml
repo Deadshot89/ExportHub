@@ -197,7 +197,7 @@ jobs:
           run_id=""
           run_url=""
           for i in {1..180}; do
-            row=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$sha&per_page=30"               --jq '.workflow_runs[] | select(.name=="ExportHUB RC1048 Drei-Umgebungen Deploy") | [.id,.status,(.conclusion//""),.html_url] | @tsv' | head -n1 || true)
+            row=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$sha&per_page=30"               --jq '.workflow_runs[] | select(.name=="ExportHUB RC1112 Drei-Umgebungen Deploy") | [.id,.status,(.conclusion//""),.html_url] | @tsv' | head -n1 || true)
             if [[ -n "$row" ]]; then
               run_id=$(cut -f1 <<<"$row")
               status=$(cut -f2 <<<"$row")
