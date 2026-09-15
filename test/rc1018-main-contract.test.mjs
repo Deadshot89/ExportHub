@@ -5,8 +5,8 @@ import fs from 'node:fs';
 const workflow='.github/workflows/rc1002-main-contract.yml';
 const flow=fs.readFileSync(workflow,'utf8');
 
-test('RC1048 Main-Contract schützt aktuellen Release und historische Release-Basis',()=>{
-  assert.match(flow,/name: RC1048 Main Contract/);
+test('RC1112 Main-Contract schützt aktuellen Release und historische Release-Basis',()=>{
+  assert.match(flow,/name: RC1112 Main Contract/);
   assert.match(flow,/\.github\/rc1018\/\*\*/);
   assert.match(flow,/\.github\/rc1043\/\*\*/);
   assert.match(flow,/\.github\/rc1044\/\*\*/);
@@ -17,6 +17,6 @@ test('RC1048 Main-Contract schützt aktuellen Release und historische Release-Ba
   assert.match(flow,/RC1018 Mail- und Sprachbasis/);
   assert.match(flow,/test\/rc1018-mail-language-standard\.test\.mjs/);
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
-  assert.match(flow,/RC1013 Baseline und RC1048 Produktionsmarker prüfen/);
-  assert.match(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'/);
+  assert.match(flow,/RC1013 Baseline und RC1112 Produktionsmarker prüfen/);
+  assert.match(flow,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'/);
 });
