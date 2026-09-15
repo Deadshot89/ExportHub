@@ -9,6 +9,7 @@ on:
       - 'assets/rc1014-task-lifecycle.js'
       - 'assets/rc1014-task-runtime.js'
       - '.github/rc1016/build-three-env.mjs'
+      - '.github/rc1112/build-three-env.mjs'
   workflow_dispatch:
 
 permissions:
@@ -27,13 +28,13 @@ jobs:
       - name: Aktuellen Drei-Umgebungen-Build vorbereiten
         run: |
           node .github/rc1018/fix-mail-wording.mjs
-          node .github/rc1048/build-three-env.mjs
+          node .github/rc1112/build-three-env.mjs
       - name: Ausgelieferten Aufgaben und Planner Datenpfad prüfen
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const candidates=['dist-rc1048/TESTVERSION.html','dist-rc1047/TESTVERSION.html','TESTVERSION.html'];
+          const candidates=['dist-rc1112/TESTVERSION.html','dist-rc1048/TESTVERSION.html','TESTVERSION.html'];
           const file=candidates.find(fs.existsSync);
           if(!file) throw new Error('Kein gebautes TESTVERSION.html gefunden');
           const html=fs.readFileSync(file,'utf8');
@@ -54,7 +55,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs=require('fs');
-          const candidates=['dist-rc1048/TESTVERSION.html','dist-rc1047/TESTVERSION.html'];
+          const candidates=['dist-rc1112/TESTVERSION.html','dist-rc1048/TESTVERSION.html'];
           const file=candidates.find(fs.existsSync);
           if(!file) throw new Error('Release-Build fehlt');
           const html=fs.readFileSync(file,'utf8');
