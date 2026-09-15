@@ -209,6 +209,13 @@ jobs:
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1112/$file"
           done
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1113-stowplan-persist.js?v=1113' "dist-rc1112/$file"
+          done
+          test -s dist-rc1112/assets/rc1113-stowplan-persist.js
+          grep -q '__EXPORTHUB_RC1113_STOWPLAN_PERSIST__' dist-rc1112/assets/rc1113-stowplan-persist.js
+          grep -q 'Ladeanweisung' dist-rc1112/assets/rc1113-stowplan-persist.js
+          grep -q 'stowPlanSnapshot' dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/customer-avis.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/pickup.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/location.html
@@ -252,6 +259,8 @@ jobs:
           test -s .rc1112_testservice_app/assets/rc1017-multi-truck.js
           test -s .rc1112_production_app/assets/rc1018-mail-language-standard.js
           test -s .rc1112_testservice_app/assets/rc1018-mail-language-standard.js
+          test -s .rc1112_production_app/assets/rc1113-stowplan-persist.js
+          test -s .rc1112_testservice_app/assets/rc1113-stowplan-persist.js
           test -s .rc1112_production_app/assets/rc1018-public-language.js
           test -s .rc1112_testservice_app/assets/rc1018-public-language.js
           test -s .rc1112_production_app/assets/rc1065-registration-cc.js
