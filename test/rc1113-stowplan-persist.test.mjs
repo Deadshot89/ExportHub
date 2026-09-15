@@ -76,4 +76,5 @@ test('RC1113: RC1112-Builder lädt die Stauplan-Erweiterung in Produktion, TESTS
   assert.match(source,/rc1113-stowplan-persist\.js\?v=1113/);
   assert.match(source,/RC1113 Stauplan-Erweiterung fehlt/);
   assert.match(source,/stowPlanInstructionsAndPersistence:'RC1113'/);
+  assert.match(source,/fs\.copyFileSync\(rc1113StowSrc,rc1113StowOut\)/,'RC1113 Runtime muss in dist-rc1112/assets kopiert werden.');
 });
