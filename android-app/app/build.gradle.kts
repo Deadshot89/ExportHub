@@ -10,8 +10,8 @@ android {
         applicationId = "de.exporthub.test"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1048
-        versionName = "1.0-rc1048"
+        versionCode = 1112
+        versionName = "1.0-rc1112"
     }
 
     buildFeatures {

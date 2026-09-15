@@ -1,4 +1,4 @@
-name: RC1048 Main Contract
+name: RC1112 Main Contract
 
 on:
   workflow_dispatch:
@@ -37,6 +37,7 @@ on:
       - '.github/rc1046/**'
       - '.github/rc1047/**'
       - '.github/rc1048/**'
+      - '.github/rc1112/**'
       - '.github/rc995/**'
       - '.github/rc997/diagnostic-notifications-contract.test.mjs'
       - '.github/rc998/**'
@@ -87,7 +88,7 @@ jobs:
         run: npm test
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
         run: node .github/rc1013/build-three-env.mjs
-      - name: RC1013 Baseline und RC1048 Produktionsmarker prüfen
+      - name: RC1013 Baseline und RC1112 Produktionsmarker prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -107,5 +108,5 @@ jobs:
           grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1013/demo.html
           test -s dist-rc1013/assets/rc1017-multi-truck.js
           grep -q "view:'pickupcalendar',label:'Abholkalender',right:'pickupcalendar'" dist-rc1013/index.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
           git diff --check

@@ -5,24 +5,25 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
 const workflow='.github/workflows/exporthub-testservice.yml';
 
-test('RC1048 TESTSERVICE-Ausnahmeweg nutzt denselben aktuellen Release auf der RC1047/RC1046/RC1045/RC1044/RC1018-Buildkette',()=>{
-  const flow=read(workflow),wrapper=read('.github/rc1048/build-three-env.mjs'),r1047=read('.github/rc1047/build-three-env.mjs'),r1046=read('.github/rc1046/build-three-env.mjs'),r1045=read('.github/rc1045/build-three-env.mjs'),r1044=read('.github/rc1044/build-three-env.mjs');
-  assert.match(flow,/RC1048 TESTSERVICE-Ausnahmevertrag prüfen/);
+test('RC1112 TESTSERVICE-Ausnahmeweg nutzt denselben aktuellen sichtbaren Release auf der historischen RC1048-Buildkette',()=>{
+  const flow=read(workflow),wrapper=read('.github/rc1112/build-three-env.mjs'),r1048=read('.github/rc1048/build-three-env.mjs'),r1047=read('.github/rc1047/build-three-env.mjs'),r1046=read('.github/rc1046/build-three-env.mjs'),r1045=read('.github/rc1045/build-three-env.mjs'),r1044=read('.github/rc1044/build-three-env.mjs');
+  assert.match(flow,/RC1112 TESTSERVICE-Ausnahmevertrag prüfen/);
   assert.match(flow,/test\/rc1018-mail-language-standard\.test\.mjs/);
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
-  assert.match(flow,/node \.github\/rc1048\/build-three-env\.mjs/);
-  assert.match(wrapper,/\.github\/rc1047\/build-three-env\.mjs/);
+  assert.match(flow,/node \.github\/rc1112\/build-three-env\.mjs/);
+  assert.match(wrapper,/\.github\/rc1048\/build-three-env\.mjs/);
+  assert.match(r1048,/\.github\/rc1047\/build-three-env\.mjs/);
   assert.match(r1047,/\.github\/rc1046\/build-three-env\.mjs/);
   assert.match(r1046,/\.github\/rc1045\/build-three-env\.mjs/);
   assert.match(r1045,/\.github\/rc1044\/build-three-env\.mjs/);
   assert.match(r1044,/\.github\/rc1018\/build-three-env\.mjs/);
-  assert.match(flow,/dist-rc1048\/TESTVERSION\.html/);
-  assert.match(flow,/dist-rc1048\/demo\.html/);
-  assert.match(flow,/\.rc1048_testservice_app/);
+  assert.match(flow,/dist-rc1112\/TESTVERSION\.html/);
+  assert.match(flow,/dist-rc1112\/demo\.html/);
+  assert.match(flow,/\.rc1112_testservice_app/);
   assert.doesNotMatch(flow,/dist-rc1013\//);
 });
 
-test('RC1048 TESTSERVICE-Ausnahmeweg bleibt nur nach ausdrücklicher Abweichungsfreigabe nutzbar',()=>{
+test('RC1112 TESTSERVICE-Ausnahmeweg bleibt nur nach ausdrücklicher Abweichungsfreigabe nutzbar',()=>{
   const flow=read(workflow);
   assert.match(flow,/workflow_dispatch/);
   assert.match(flow,/confirm_divergence/);
