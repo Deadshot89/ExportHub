@@ -216,6 +216,12 @@ jobs:
           grep -q '__EXPORTHUB_RC1113_STOWPLAN_PERSIST__' dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q 'Ladeanweisung' dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q 'stowPlanSnapshot' dist-rc1112/assets/rc1113-stowplan-persist.js
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1114-shipping-neutral.js?v=1114' "dist-rc1112/$file"
+          done
+          test -s dist-rc1112/assets/rc1114-shipping-neutral.js
+          grep -q '__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__' dist-rc1112/assets/rc1114-shipping-neutral.js
+          grep -q 'Paletten / Maut' dist-rc1112/assets/rc1114-shipping-neutral.js
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/customer-avis.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/pickup.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/location.html
