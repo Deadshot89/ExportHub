@@ -1,0 +1,90 @@
+import {test,expect} from '@playwright/test';
+import {
+  appEntry,
+  waitReady,
+  openExportHubView,
+  assertNoSourceLeak,
+  assertNoHorizontalOverflow,
+  attachRuntimeGuards,
+  assertRuntimeClean
+} from '../helpers/exporthub-browser.mjs';
+
+const coreViews=[
+  ['dashboard',['Dashboard'],/Dashboard/i],
+  ['tasks',['Aufgaben'],/Aufgaben|POD/i],
+  ['notifications',['Benachrichtigungen','Benachrichtigungscenter'],/Benachrichtig|Offene Aufgaben/i],
+  ['pickupcalendar',['Abholkalender'],/Abholkalender|Abholung/i],
+  ['shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Kunde|Empfänger/i],
+  ['shipmentoverview',['Sendungsübersicht','Sendungen'],/Sendungsübersicht|Sendungen/i],
+  ['customerfolder',['Kundenordner'],/Kundenordner|Kunden/i],
+  ['pallet',['Palettenkonto'],/Palettenkonto|Paletten/i],
+  ['shippingcosts',['Versandkosten'],/Versandkosten|UPS|Maut|Route/i],
+  ['sop',['SOP & Portale','SOP','SOP-Handbuch'],/SOP|Portale/i],
+  ['academy',['Academy'],/Academy|Unterweisung/i]
+];
+
+const wideViews=[
+  ['shipmentview',['Sendungsansicht','Sendung ansehen'],/Sendung|Dokument/i],
+  ['documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i],
+  ['warehouse',['Lager'],/Lager|Goods|Loc/i],
+  ['customs',['Zollwissen','Zoll'],/Zoll|ABD|Ausfuhr/i],
+  ['exams',['Prüfungen'],/Prüfung|Fragen/i]
+];
+
+async function assertView(page){
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+}
+
+test('RC1124 P0: Hauptnavigation öffnet auf jedem Viewport die richtige Ansicht',async({page},testInfo)=>{
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await assertView(page);
+
+  const views=[...coreViews];
+  if(['laptop','desktop'].includes(testInfo.project.name))views.push(...wideViews);
+
+  for(const [module,labels,required] of views){
+    await openExportHubView(page,module,labels,required);
+    await assertView(page);
+  }
+  await assertRuntimeClean(runtime,testInfo);
+});
+
+test('RC1124 P0: Sendung erstellen bleibt Erfassungsmaske und wird nicht zur Historie',async({page},testInfo)=>{
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Kunde|Empfänger/i);
+
+  await expect(page.locator('#rc363BlockDocuments')).toBeVisible();
+  await expect(page.locator('#rc543MailArea')).toBeVisible();
+  await expect(page.locator('#content')).toContainText(/Colli|Lademeter/i);
+  await expect(page.locator('#content')).not.toContainText(/^\s*Historie\s*$/i);
+  await assertView(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
+test('RC1124 P0: Browser Zurück/Vor und F5 behalten die fachliche View',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','History-Smoke läuft einmal auf dem Laptop-Profil.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  await openExportHubView(page,'dashboard',['Dashboard'],/Dashboard/i);
+  await openExportHubView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Colli|Lademeter/i);
+  await openExportHubView(page,'tasks',['Aufgaben'],/Aufgaben|POD/i);
+
+  await page.goBack({timeout:10_000}).catch(()=>null);
+  await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Colli|Lademeter/i);
+  await assertView(page);
+
+  await page.goForward({timeout:10_000}).catch(()=>null);
+  await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Aufgaben|POD/i);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Aufgaben|POD/i);
+  await assertView(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
