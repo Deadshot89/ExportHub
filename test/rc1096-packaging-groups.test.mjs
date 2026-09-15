@@ -9,16 +9,20 @@ test('RC1096: Verpackungsauswahl wird in drei feste Gruppen gegliedert',()=>{
   assert.match(runtime,/\['packages','pallets','other'\]/);
   assert.match(runtime,/cat==='packages'\?'Pakete':cat==='pallets'\?'Paletten':'Sonstiges'/);
   assert.match(runtime,/rc1096-packaging-grid/);
-  assert.match(runtime,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(runtime,/@media\(max-width:720px\)/);
 });
 
-test('RC1096: Verpackungsoptionen bleiben lesbar und werden nicht durch altes Grid zerlegt',()=>{
-  assert.match(runtime,/display:block!important/);
+test('RC1110: native RC682-Verpackungsspalten werden niemals erneut verschachtelt',()=>{
+  assert.match(runtime,/closest\('\.rc682-packaging-columns'\)/);
+  assert.match(runtime,/closest\('\.rc682-packaging-column'\)/);
+  assert.match(runtime,/#rc573ColliCard \.rc682-packaging-columns/);
+  assert.match(runtime,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)!important/);
+  assert.doesNotMatch(runtime,/min-width:720px!important/);
+});
+
+test('RC1096: Verpackungsoptionen bleiben lesbar',()=>{
   assert.match(runtime,/white-space:normal!important/);
-  assert.match(runtime,/overflow-wrap:break-word!important/);
-  assert.match(runtime,/min-width:0!important/);
-  assert.match(runtime,/grid-template-columns:none!important/);
+  assert.match(runtime,/word-break:normal!important/);
 });
 
 test('RC1096: E-Nummern gehören zu Pakete und Paletten werden separat erkannt',()=>{
@@ -33,11 +37,11 @@ test('RC1096: Umschlag ist eine echte native Verpackungsoption im finalen Build'
   assert.match(builder,/sources\.push\(\[\{name:'Umschlag'/);
 });
 
-test('RC1096: Runtime wird in Produktion TESTSERVICE und Demo ausgeliefert',()=>{
+test('RC1110: Runtime wird cache-sicher in Produktion TESTSERVICE und Demo ausgeliefert',()=>{
   assert.match(builder,/RC1096_PACKAGING_TAG/);
-  assert.match(builder,/rc1096-packaging-groups\.js\?v=1096/);
+  assert.match(builder,/rc1096-packaging-groups\.js\?v=1110/);
   assert.match(builder,/'assets\/rc1096-packaging-groups\.js'/);
-  assert.match(builder,/packagingMenu:\{version:'RC1096'/);
+  assert.match(builder,/packagingMenu:\{version:'RC1110'/);
   assert.match(builder,/columns:\['Pakete','Paletten','Sonstiges'\]/);
   assert.match(builder,/addsEnvelope:true/);
 });
