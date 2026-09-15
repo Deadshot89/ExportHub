@@ -5,9 +5,9 @@ import fs from 'node:fs';
 const read=p=>fs.readFileSync(p,'utf8');
 const workflow='.github/workflows/exporthub-testservice.yml';
 
-test('RC1048 TESTSERVICE-Ausnahmeweg nutzt denselben aktuellen Release auf der RC1047/RC1046/RC1045/RC1044/RC1018-Buildkette',()=>{
+test('RC1112 TESTSERVICE-Ausnahmeweg nutzt denselben aktuellen sichtbaren Release auf der historischen RC1048-Buildkette',()=>{
   const flow=read(workflow),wrapper=read('.github/rc1048/build-three-env.mjs'),r1047=read('.github/rc1047/build-three-env.mjs'),r1046=read('.github/rc1046/build-three-env.mjs'),r1045=read('.github/rc1045/build-three-env.mjs'),r1044=read('.github/rc1044/build-three-env.mjs');
-  assert.match(flow,/RC1048 TESTSERVICE-Ausnahmevertrag prüfen/);
+  assert.match(flow,/RC1112 TESTSERVICE-Ausnahmevertrag prüfen/);
   assert.match(flow,/test\/rc1018-mail-language-standard\.test\.mjs/);
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
   assert.match(flow,/node \.github\/rc1048\/build-three-env\.mjs/);
@@ -22,7 +22,7 @@ test('RC1048 TESTSERVICE-Ausnahmeweg nutzt denselben aktuellen Release auf der R
   assert.doesNotMatch(flow,/dist-rc1013\//);
 });
 
-test('RC1048 TESTSERVICE-Ausnahmeweg bleibt nur nach ausdrücklicher Abweichungsfreigabe nutzbar',()=>{
+test('RC1112 TESTSERVICE-Ausnahmeweg bleibt nur nach ausdrücklicher Abweichungsfreigabe nutzbar',()=>{
   const flow=read(workflow);
   assert.match(flow,/workflow_dispatch/);
   assert.match(flow,/confirm_divergence/);
