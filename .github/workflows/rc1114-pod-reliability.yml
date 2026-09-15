@@ -1,0 +1,57 @@
+name: RC1114 POD Reliability Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'api/**'
+      - 'pickup.html'
+      - 'RELEASE_MANIFEST.txt'
+      - 'test/rc1114-pod-reliability.test.mjs'
+      - '.github/rc1114/**'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/workflows/rc1114-pod-reliability.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1114 Vertrags-Regression
+        run: node --test test/rc1114-pod-reliability.test.mjs
+
+      - name: API-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund
+
+      - name: API-Runtime Syntax
+        run: node api/scripts/verify-runtime-sources.cjs
+
+      - name: Echten POD-PDF erzeugen
+        run: node --test .github/rc1114/pod-runtime.test.cjs
+
+      - name: Aktuelles Drei-Umgebungen-Paket bauen
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: RC1114 Deploy-Inhalt prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist-rc1112/api/shared/pod-archive.js
+          test -f dist-rc1112/api/shared/graph-drive.js
+          test -f dist-rc1112/api/pod-backup/index.js
+          test -f dist-rc1112/api/pickup-confirm-v2/index.js
+          grep -q '"pdf-lib": "1.17.1"' dist-rc1112/api/package.json
+          grep -q 'timeout:90000' dist-rc1112/pickup.html
+          grep -q "podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry'" .github/rc1112/build-three-env.mjs
+          git diff --check
