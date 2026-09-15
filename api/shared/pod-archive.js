@@ -1,7 +1,6 @@
 'use strict';
 
 const crypto = require('crypto');
-const { PDFDocument, StandardFonts } = require('pdf-lib');
 const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
 
@@ -48,6 +47,7 @@ function formatDate(value) {
   }
 }
 async function createPodPdf(record, signatureBuffer, signatureType) {
+  const { PDFDocument, StandardFonts } = require('pdf-lib');
   const pdf = await PDFDocument.create();
   const normal = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
