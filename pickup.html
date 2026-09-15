@@ -290,11 +290,11 @@ form.addEventListener('submit',function(e){
   if(submitting)return;
   submitting=true;document.getElementById('confirmPartial').disabled=true;document.getElementById('confirm').disabled=true;status(mode==='partial'?'Teilabholung wird übertragen …':'Abholung und POD werden übertragen …','info');
   var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:sig,returnedEuroPallets:returned,enteredColliCount:entered,colliCount:entered,expectedColliCount:expected,colliConfirmed:expected>0?colliOk:true,colliCountConfirmed:expected>0?colliOk:true,pickupMode:mode,environment:env};
-  request('pickup-confirm-v2',{method:'POST',body:JSON.stringify(body),timeout:45000}).then(function(data){
+  request('pickup-confirm-v2',{method:'POST',body:JSON.stringify(body),timeout:90000}).then(function(data){
     submitting=false;
     var card=document.querySelector('.card');
     if(data&&data.partial){var rest=Math.max(0,Math.round(Number(data.remainingAfter)||0));card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Teilabholung gespeichert</h2><p>Die Teilabholung und die Fahrerunterschrift wurden gespeichert.</p><div class="status ok">Noch offen: '+rest+' Colli. Der QR-Code bleibt für die nächste Abholung aktiv.</div></div>';return}
-    card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>Die digitale Unterschrift wurde gespeichert und der POD der Sendung zugeordnet.</p><div class="status ok">Die vollständige Abholung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';
+    var podText=data&&data.podAzureSaved?(data.podDriveSaved?'POD wurde sicher in ExportHUB und in der Archivablage gespeichert.':'POD wurde sicher in ExportHUB gespeichert. Die zusätzliche Archivkopie ist noch offen.'):'Abholung und Fahrerunterschrift wurden gespeichert. Der Archivstatus konnte nicht bestätigt werden.';card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>'+esc(podText)+'</p><div class="status ok">Die vollständige Abholung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';
   }).catch(function(err){
     submitting=false;document.getElementById('confirmPartial').disabled=false;document.getElementById('confirm').disabled=false;
     if(err.code==='COLLI_MISMATCH'||err.code==='COLLI_REQUIRED'||err.code==='COLLI_EXPECTED_MISSING'||err.code==='COLLI_EXCEEDS_REMAINING'){colliOk=false;status('Die Colli-Anzahl wurde vom Server nicht akzeptiert. Bitte offene Restmenge prüfen.','bad');return}
