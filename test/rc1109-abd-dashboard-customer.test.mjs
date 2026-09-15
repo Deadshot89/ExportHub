@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const runtime=fs.readFileSync('assets/rc1109-abd-dashboard-customer.js','utf8');
-const builder=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
+const loader=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
 const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
 
 test('RC1109: ABD-Anfragen werden aus Request, Sendung oder Kundenstamm mit Kunde angereichert',()=>{
@@ -11,7 +11,7 @@ test('RC1109: ABD-Anfragen werden aus Request, Sendung oder Kundenstamm mit Kund
   assert.match(runtime,/customerNumber/);
   assert.match(runtime,/customerId/);
   assert.match(runtime,/linkedShipmentId|linkedShipmentRef/);
-  assert.match(runtime,/state\.customers/);
+  assert.match(runtime,/s&&s\.customers/);
 });
 
 test('RC1109: Dashboard-Karten zeigen den aufgelösten Kunden an',()=>{
@@ -26,12 +26,13 @@ test('RC1109: fehlende Kundendaten werden nur über den bestehenden Save-Pfad pe
   assert.doesNotMatch(runtime,/fetch\s*\(\s*['\"]\/api\/exporthub-state/);
 });
 
-test('RC1109: Runtime wird in allen drei Umgebungen gebaut und cachefrei ausgeliefert',()=>{
-  assert.match(builder,/RC1109_ABD_CUSTOMER_TAG/);
-  assert.match(builder,/rc1109-abd-dashboard-customer\.js/);
-  const route=config.routes.find(r=>r.route==='/assets/rc1109-abd-dashboard-customer.js');
-  assert.ok(route,'cachefreie RC1109-Route fehlt');
-  assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i);
+test('RC1109: Runtime wird aus bereits vorhandenem Drei-Umgebungen-Asset geladen und cachefrei ausgeliefert',()=>{
+  assert.match(loader,/rc1109-abd-dashboard-customer\.js\?v=1109/);
+  for(const path of ['/assets/rc1074-login-clean.js','/assets/rc1109-abd-dashboard-customer.js']){
+    const route=config.routes.find(r=>r.route===path);
+    assert.ok(route,'cachefreie Route fehlt: '+path);
+    assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i);
+  }
 });
 
 test('RC1109: QR-Bestandsschutz und kostenfreie Umsetzung bleiben unangetastet',()=>{
