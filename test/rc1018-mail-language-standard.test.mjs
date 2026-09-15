@@ -69,6 +69,26 @@ test('RC1018: Mailmodus ist nur bei Kunde oder Spedition avisfähig und sonst Se
   assert.equal(a.resolveMode('customer',false),'details');
 });
 
+
+test('RC1112: jede eigene Mail erhält bei aktivem Avis nur einen kompakten Avis-Link',()=>{
+  const a=api();
+  for(const [lang,body,label] of [['de',deBody,'Lieferavis:'],['en',enBody,'Collection notice:']]){
+    const out=a.composeMail({target:'own',lang,body,avisEnabled:true,url:'https://example.test/customer-avis.html?t=abc',reference:'ABC123'});
+    assert.match(out,new RegExp(label.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\test('RC1018: Mailmodus ist nur bei Kunde oder Spedition avisfähig und sonst Sendungsdetails',()=>{
+  const a=api();
+  assert.equal(a.resolveMode('customer',true),'avis');
+  assert.equal(a.resolveMode('carrier',true),'avis');
+  assert.equal(a.resolveMode('own',true),'details');
+  assert.equal(a.resolveMode('customer',false),'details');
+});
+')));
+    assert.match(out,/https:\/\/example\.test\/customer-avis\.html\?t=abc&lang=(?:de|en)/);
+    assert.equal((out.match(/customer-avis\.html/g)||[]).length,1,'Avis-Link darf in eigener Mail nicht doppelt vorkommen.');
+    assert.doesNotMatch(out,/Erforderliche Angaben|Required information|drei Arbeitstage|three business days/i,'Eigene Mail soll keinen langen Avis-Erklärungstext enthalten.');
+    assert.match(out,/SENDUNGSDETAILS|SHIPMENT DETAILS/i,'Eigene Mail behält die normalen Sendungsdetails.');
+  }
+});
+
 test('RC1018: Mail-Sprache und Programmsprache sind strikt getrennt',()=>{
   const runtime=fs.readFileSync(MAIL,'utf8');
   assert.doesNotMatch(runtime,/rc543MailLang[^\n]{0,220}setSiteLanguage/,'Mail-Sprachwechsel darf die Website nicht mehr umschalten.');
