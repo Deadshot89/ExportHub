@@ -24,10 +24,14 @@ function patchHtml(file){
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113')){
     html=html.replace(/<\/body>/i,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>\n</body>');
   }
+  if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114')){
+    html=html.replace(/<\/body>/i,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>\n</body>');
+  }
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
+  if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
   fs.writeFileSync(target,html);
 }
 
@@ -49,6 +53,10 @@ const rc1113StowOut=path.join(OUT,'assets','rc1113-stowplan-persist.js');
 if(!fs.existsSync(rc1113StowSrc))throw new Error('RC1113 Stauplan-Runtime fehlt');
 fs.mkdirSync(path.dirname(rc1113StowOut),{recursive:true});
 fs.copyFileSync(rc1113StowSrc,rc1113StowOut);
+const rc1114ShippingSrc=path.join(ROOT,'assets','rc1114-shipping-neutral.js');
+const rc1114ShippingOut=path.join(OUT,'assets','rc1114-shipping-neutral.js');
+if(!fs.existsSync(rc1114ShippingSrc))throw new Error('RC1114 Versandkosten-Runtime fehlt');
+fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 
 const probeFile=path.join(OUT,'production-version.js');
@@ -69,6 +77,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     androidBuildSetup:'runner-sdkmanager',
     loginAbdAssetCache:'1112',
     stowPlanInstructionsAndPersistence:'RC1113',
+    shippingProviderNeutralUi:'RC1114',
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry'
   },
   compatibility:{
