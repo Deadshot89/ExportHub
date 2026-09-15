@@ -38,6 +38,7 @@ jobs:
           rm -rf .rc1124_browser_app
           mkdir -p .rc1124_browser_app/assets
           cp dist-rc1112/demo.html .rc1124_browser_app/demo.html
+          cp dist-rc1112/demo.html .rc1124_browser_app/index.html
           cp -R assets/. .rc1124_browser_app/assets/
           cp -R dist-rc1112/assets/. .rc1124_browser_app/assets/
           test -s .rc1124_browser_app/assets/rc1027-lieferavis-immediate.js
