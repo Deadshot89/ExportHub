@@ -34,6 +34,8 @@ on:
       - 'test/rc1017-*.test.mjs'
       - 'test/rc1018-*.test.mjs'
       - 'test/**'
+      - 'e2e/**'
+      - 'playwright.config.mjs'
       - 'tests/**'
       - 'test/rc1043-*.test.mjs'
       - 'test/rc1045-*.test.mjs'
@@ -99,7 +101,7 @@ concurrency:
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v5
         with:
@@ -299,16 +301,35 @@ jobs:
           test -s .rc1112_testservice_app/assets/rc1012-abholkalender-runtime.js
           test -s .rc1112_production_app/assets/sop/screenshots/rc1016-tasks.png
           test -s .rc1112_testservice_app/assets/sop/screenshots/rc1016-pickupcalendar.png
-      - name: Deploy ExportHUB production
-        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+      - name: RC1124 Playwright installieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: RC1124 Lokales Browser-Gate
+        shell: bash
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: |
+          set -euo pipefail
+          node --test test/rc1124-browser-release-gate.test.mjs
+          npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+
+      - name: RC1124 Lokale Browser-Artefakte
+        if: failure()
+        uses: actions/upload-artifact@v7
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: .rc1112_production_app
-          api_location: api
-          output_location: ''
-          skip_app_build: true
+          name: rc1124-local-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Deploy ExportHUB TESTSERVICE
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
@@ -320,6 +341,47 @@ jobs:
           output_location: ''
           skip_app_build: true
           deployment_environment: testservice
+      - name: RC1124 TESTSERVICE Browser Gate
+        shell: bash
+        env:
+          EXPORTHUB_E2E_LIVE: '1'
+          EXPORTHUB_E2E_BASE_URL: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: |
+          set -euo pipefail
+          ready=0
+          for attempt in {1..24}; do
+            if curl -fsS -L --max-time 20 "https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/demo.html?rc1124=${GITHUB_SHA}-${attempt}" >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          [ "$ready" = "1" ] || { echo 'TESTSERVICE ist nach Deploy nicht erreichbar.' >&2; exit 1; }
+          npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+
+      - name: RC1124 TESTSERVICE Browser-Artefakte
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1124-testservice-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Deploy ExportHUB production
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1112_production_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
       - name: Live RC1122 HTML-Integrität prüfen
         shell: bash
         run: |
@@ -342,6 +404,28 @@ jobs:
             fi
             sleep 5
           done
+      - name: RC1124 Produktion Read-only Browser Smoke
+        shell: bash
+        env:
+          EXPORTHUB_E2E_LIVE: '1'
+          EXPORTHUB_E2E_BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: |
+          set -euo pipefail
+          npx playwright test e2e/specs/public-smoke.spec.mjs --project=laptop
+
+      - name: RC1124 Produktion Browser-Artefakte
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1124-production-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+
       - name: Live RC1112 Produktion TESTSERVICE und Demo prüfen
         shell: bash
         run: |

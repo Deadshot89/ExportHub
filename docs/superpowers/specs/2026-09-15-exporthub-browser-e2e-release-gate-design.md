@@ -1,7 +1,7 @@
 # ExportHUB Browser-E2E- und Release-Gate-Design
 
 Datum: 2026-09-15  
-Status: zur Freigabe  
+Status: freigegeben am 2026-09-15  
 Zielrelease: nächster konsolidierter Release nach RC1123
 
 ## 1. Ziel
