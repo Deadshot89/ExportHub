@@ -228,7 +228,7 @@ jobs:
           done
           grep -q 'serverToken=q(data&&data.token)' dist-rc1112/index.html
           grep -q "setRouteData(g,'country','Deutschland')" dist-rc1112/index.html
-      - name: Gemeinsame RC1048 Deploy-Pakete vorbereiten
+      - name: Gemeinsame RC1112 Deploy-Pakete vorbereiten
         shell: bash
         run: |
           set -euo pipefail
