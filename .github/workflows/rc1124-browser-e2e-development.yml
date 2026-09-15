@@ -6,7 +6,7 @@ on:
     paths:
       - 'e2e/**'
       - 'playwright.config.mjs'
-      - 'test/rc1124-browser-release-gate.test.mjs'
+      - 'test/rc1124-*.test.mjs'
       - '.github/workflows/rc1124-browser-e2e-development.yml'
       - '.github/rc1112/**'
       - 'index.html'
@@ -30,6 +30,8 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
+      - name: Pickup inline syntax RED/GREEN
+        run: node --test test/rc1124-pickup-script-syntax.test.mjs
       - name: Build RC1112 candidate
         run: node .github/rc1112/build-three-env.mjs
       - name: Install pinned Playwright
