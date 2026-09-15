@@ -28,4 +28,5 @@ test('RC1111: Änderung bleibt auf das Deckblatt begrenzt',()=>{
   assert.doesNotMatch(block,/\.rc352-sign/);
   assert.match(source,/otherDocumentsUnchanged:true/);
   assert.match(source,/qrDocumentsUnchanged:true/);
+  assert.match(source,/rc352-cover \\.rc352-qr-slot\{background:#fff!important/,'QR-Weißraum muss trotz farbigem Deckblatt weiß bleiben');
 });
