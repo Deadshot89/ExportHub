@@ -76,6 +76,7 @@ function patchDeckblattContrast(html,file){
   });
   out=out.replace(/(\.rc352-cover-ref span\{[^}]*?)color:#08245d/g,'$1color:#fff');
   out=out.replace(/(\.rc352-cover-ref strong\{)/g,'$1color:#fff!important;');
+  out=out.replace(/\.rc352-qr-slot\.empty img\{display:none!important\}/g,'.rc352-cover .rc352-qr-slot{background:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}\\n.rc352-qr-slot.empty img{display:none!important}');
   if(!coverCount)throw new Error(file+': RC1111 Deckblatt-Grundfläche nicht gefunden');
   if(!refCount)throw new Error(file+': RC1111 Referenzfeld nicht gefunden');
   return out;
