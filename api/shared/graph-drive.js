@@ -91,7 +91,7 @@ async function accessToken(force) {
     'Content-Type': 'application/x-www-form-urlencoded',
     'Content-Length': Buffer.byteLength(form),
     'Accept': 'application/json'
-  }, Buffer.from(form, 'utf8'), 15000);
+  }, Buffer.from(form, 'utf8'), 8000);
   const token = text(result.body && result.body.access_token);
   if (!token) throw Object.assign(new Error('Microsoft Graph hat kein Zugriffstoken geliefert.'), { code: 'GRAPH_TOKEN_MISSING', statusCode: 502 });
   tokenCache = { token, expiresAt: Date.now() + Math.max(300, Number(result.body && result.body.expires_in || 3600)) * 1000 };
@@ -122,7 +122,7 @@ async function uploadPdf(buffer, fileName) {
         'Content-Type': 'application/pdf',
         'Content-Length': buffer.length,
         'Accept': 'application/json'
-      }, buffer, 20000);
+      }, buffer, 8000);
       const item = result.body || {};
       return {
         id: text(item.id),
