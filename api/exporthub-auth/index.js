@@ -443,28 +443,37 @@ async function logout(req) {
 
 async function updateProfile(req, payload) {
   const current = await auth.validateSession(req);
-  const nextName = auth.text(payload.name || payload.displayName).replace(/\s+/g, ' ').slice(0, 80);
+  const nextName = auth.text(payload.name || payload.displayName || current.user.name || current.user.user).replace(/\s+/g, ' ').slice(0, 80);
   if (!nextName) throw auth.error('DISPLAY_NAME_REQUIRED', 'Der Anzeigename darf nicht leer sein.', 400);
   const previousName = auth.text(current.user.name || current.user.user);
+  const previousLanguage = auth.lower(current.user.language || 'de') === 'en' ? 'en' : 'de';
+  const requestedLanguage = auth.lower(payload.language || payload.uiLanguage || previousLanguage);
+  const nextLanguage = requestedLanguage === 'en' ? 'en' : 'de';
   const changed = await auth.mutateTeam((team) => {
     const user = findByIdOrName(team.users, current.user.id || current.user.user);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     user.name = nextName;
     user.displayName = nextName;
+    user.language = nextLanguage;
     user.updatedAt = auth.now();
     user.updatedBy = previousName || user.user;
     auth.addAudit(team, 'PROFILE_DISPLAY_NAME_UPDATED', previousName || user.user, {
       userId: user.id,
       username: user.user,
       previousName,
-      displayName: nextName
+      displayName: nextName,
+      previousLanguage,
+      language: nextLanguage
     });
     return { userId: user.id };
   });
   const user = changed.team.users.find((u) => auth.text(u.id) === auth.text(changed.result.userId));
   await auth.mutateAuth((document) => {
     for (const session of document.sessions || []) {
-      if (auth.text(session.userId) === auth.text(user.id)) session.displayName = nextName;
+      if (auth.text(session.userId) === auth.text(user.id)) {
+        session.displayName = nextName;
+        session.language = nextLanguage;
+      }
     }
     return true;
   });
