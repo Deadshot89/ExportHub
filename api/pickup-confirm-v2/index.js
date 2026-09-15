@@ -3,7 +3,6 @@ const crypto=require('crypto');
 const access=require('../shared/public-access-store');
 const pins=require('../shared/loader-pin-store');
 const store=require('../shared/pickup-store');
-const podArchive=require('../shared/pod-archive');
 function count(v){const n=Math.round(Number(v));return Number.isFinite(n)&&n>0?n:0}
 function json(status,body){return store.json(status,body,{'Cache-Control':'no-store, no-cache, must-revalidate'})}
 function historyOf(r){return typeof store.pickupHistory==='function'?store.pickupHistory(r):(Array.isArray(r&&r.pickupHistory)?r.pickupHistory:[])}
@@ -36,8 +35,9 @@ module.exports=async function(context,req){
   if(complete)await access.consume(resolved.environment,'pickup',resolved.tokenHash,{reason:'pickup-confirmed',fields:{confirmedAt:rec.confirmedAt,loaderId:loader.id}});if(!complete)await access.clearFailures(resolved.environment,'pickup',resolved.tokenHash);
   try{await store.updateTeam(rec,[],'')}catch(e){context.log&&context.log.error&&context.log.error('RC1114 team state update failed',e&&e.code,e&&e.message)}
 
-  let archiveResult=null,archiveFailure='';
+  let archiveResult=null,archiveFailure='',podArchive=null;
   if(complete){
+   podArchive=require('../shared/pod-archive');
    try{
     archiveResult=await podArchive.ensureAutomaticPod(accessKey,resolved.environment,{copyToDrive:true});
     if(archiveResult&&archiveResult.record)rec=archiveResult.record;
@@ -55,7 +55,7 @@ module.exports=async function(context,req){
    }
   }
 
-  const backup=rec&&rec.podBackup||{},autoPod=podArchive.automaticPod(rec);
+  const backup=rec&&rec.podBackup||{},autoPod=podArchive&&typeof podArchive.automaticPod==='function'?podArchive.automaticPod(rec):null;
   context.res=json(200,Object.assign(store.publicRecord(rec,token),{
    ok:true,
    pickedUp:complete,
