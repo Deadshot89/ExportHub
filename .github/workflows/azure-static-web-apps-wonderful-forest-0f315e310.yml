@@ -27,6 +27,7 @@ on:
       - '.github/rc1047/**'
       - '.github/rc1048/**'
       - '.github/rc1112/**'
+      - '.github/rc1121/**'
       - '.github/rc1014/**'
       - '.github/rc1013/**'
       - '.github/rc1012/**'
@@ -319,6 +320,28 @@ jobs:
           output_location: ''
           skip_app_build: true
           deployment_environment: testservice
+      - name: Live RC1122 HTML-Integrität prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1122=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/?rc1122=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1122=$GITHUB_SHA-$attempt" || true)
+            if [ "$pc" = "200" ] && [ "$tc" = "200" ] && [ "$dc" = "200" ] && grep -q "version:'RC1112'" "$p" && grep -q "version:'RC1112'" "$t"; then
+              node .github/rc1121/verify-final-html.mjs "$p" "$t" "$d"
+              break
+            fi
+            if [ "$attempt" = "24" ]; then
+              echo "RC1122 Live-HTML konnte nicht verifiziert werden: prod=$pc test=$tc demo=$dc" >&2
+              exit 1
+            fi
+            sleep 5
+          done
       - name: Live RC1112 Produktion TESTSERVICE und Demo prüfen
         shell: bash
         run: |
