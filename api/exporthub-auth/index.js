@@ -487,9 +487,9 @@ async function adminList(req) {
   const teamDoc = await auth.readJson(c.team, auth.emptyTeam());
   const team = auth.applyUserPolicy(teamDoc.value || auth.emptyTeam());
   const authDoc = await auth.readJson(c.auth, auth.emptyAuth());
-  const sessions = (authDoc.value && Array.isArray(authDoc.value.sessions) ? authDoc.value.sessions : []).filter((s) => !s.revokedAt && Date.parse(s.expiresAt || '') > Date.now());
+  const sessions = (authDoc.value && Array.isArray(authDoc.value.sessions) ? authDoc.value.sessions : []).filter((s) => auth.sessionIsActive(s));
   const users = auth.publicUsers(team.users, true).map((u) => Object.assign(u, { activeSessions: sessions.filter((s) => auth.text(s.userId) === auth.text(u.id)).length }));
-  return { ok: true, users, modules: MODULES, sessions: sessions.map((s) => ({ id: s.id, userId: s.userId, username: s.username, displayName: s.displayName, deviceId: s.deviceId, createdAt: s.createdAt, expiresAt: s.expiresAt })) };
+  return { ok: true, users, modules: MODULES, sessionPolicy: { maxHours: auth.SESSION_MAX_HOURS, idleMinutes: auth.SESSION_IDLE_MINUTES }, sessions: sessions.map((s) => ({ id: s.id, userId: s.userId, username: s.username, displayName: s.displayName, deviceId: s.deviceId, createdAt: s.createdAt, lastSeenAt: s.lastSeenAt || s.createdAt, idleExpiresAt: new Date(auth.sessionIdleExpiresAt(s)).toISOString(), expiresAt: s.expiresAt })) };
 }
 
 async function adminCreate(req, payload) {
