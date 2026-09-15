@@ -1,0 +1,67 @@
+name: RC1121 Visible Source Leak Diagnose
+on:
+  push:
+    branches:
+      - debug-rc1121-visible-source-leak
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build final deploy HTML
+        run: node .github/rc1112/build-three-env.mjs
+      - name: Diagnose browser-visible source leak
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          p=Path('dist-rc1112/index.html')
+          s=p.read_text(encoding='utf-8')
+          markers=['RC824_SOP_DETAILS','window.rc524OpenTaskEditor','SOP-Handbuch konnte nicht geladen werden','index321-single-navigation-controller']
+          print('SIZE',len(s))
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.stack=[]
+                  self.hits=[]
+              def handle_starttag(self,tag,attrs):
+                  self.stack.append(tag.lower())
+              def handle_endtag(self,tag):
+                  tag=tag.lower()
+                  for i in range(len(self.stack)-1,-1,-1):
+                      if self.stack[i]==tag:
+                          self.stack=self.stack[:i]
+                          break
+              def handle_data(self,data):
+                  for m in markers:
+                      if m in data:
+                          self.hits.append((m,list(self.stack),self.getpos(),data[:300]))
+          parser=P()
+          parser.feed(s)
+          print('PARSER_HITS',parser.hits)
+          for m in markers:
+              i=s.find(m)
+              print('\nMARKER',m,'AT',i)
+              if i<0: continue
+              opens=[x.start() for x in re.finditer(r'<script\b',s[:i],re.I)]
+              closes=[x.start() for x in re.finditer(r'</script\s*>',s[:i],re.I)]
+              print('PREV_OPEN',opens[-1] if opens else -1,'PREV_CLOSE',closes[-1] if closes else -1)
+              pc=closes[-1] if closes else 0
+              print('CONTEXT_AFTER_PREV_CLOSE')
+              print(s[max(0,pc-700):min(len(s),pc+2600)])
+          # print suspicious script closers in the long legacy application range
+          pos=s.find('RC824_SOP_DETAILS')
+          if pos>=0:
+              left=max(0,pos-250000)
+              closers=[m.start() for m in re.finditer(r'</script\s*>',s[left:pos],re.I)]
+              print('CLOSERS_NEAR_RC824',[left+x for x in closers[-12:]])
+          PY
