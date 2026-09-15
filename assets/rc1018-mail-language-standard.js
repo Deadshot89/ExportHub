@@ -6,7 +6,8 @@ window.__EXPORTHUB_RC1018_MAIL_LANGUAGE_STANDARD__=true;
 var VERSION='RC1018',base=null,wrapper=null,originalText=new WeakMap(),observer=null;
 function q(v){return String(v==null?'':v).trim()}
 function normalizedLanguage(v){v=q(v).toLowerCase();if(/^en(?:[-_]|$)/.test(v)||v==='english'||v==='englisch')return'en';if(/^de(?:[-_]|$)/.test(v)||v==='german'||v==='deutsch')return'de';return''}
-function storedLanguage(){try{return normalizedLanguage(localStorage.getItem('exporthub.language'))}catch(_){return''}}
+function profileLanguage(){try{var u=typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.user;var fromUser=normalizedLanguage(u&&(u.language||u.uiLanguage||u.locale));if(fromUser)return fromUser}catch(_){}try{var nativeSelect=document.getElementById('languageSelect'),fromSelect=normalizedLanguage(nativeSelect&&nativeSelect.value);if(fromSelect)return fromSelect}catch(_){}return'de'}
+function storedLanguage(){return profileLanguage()}
 function resolveLanguage(sh,override,uiValue){
  var values=[override,uiValue,sh&&(sh.rc1018MailLang||sh.rc543MailLang||sh.rc542MailLang||sh.rc524MailLang||sh.mailLanguage||sh.customerLanguage||sh.language||sh.locale),storedLanguage()];
  for(var i=0;i<values.length;i++){var lang=normalizedLanguage(values[i]);if(lang)return lang}
@@ -95,22 +96,25 @@ function translateTextNode(node,lang){
 function translateElement(root,lang){
  if(typeof document==='undefined'||!root)return;var walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(node){var p=node.parentElement;if(!p||/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/i.test(p.tagName)||p.closest('[data-rc1018-no-translate]'))return NodeFilter.FILTER_REJECT;return NodeFilter.FILTER_ACCEPT}});var nodes=[],n;while((n=walker.nextNode()))nodes.push(n);nodes.forEach(function(node){translateTextNode(node,lang)});document.documentElement.lang=lang
 }
-function currentSiteLanguage(){var select=typeof document!=='undefined'&&document.getElementById('exporthub-site-language');return resolveLanguage({},'',select&&select.value)}
+function currentSiteLanguage(){return profileLanguage()}
 function setSiteLanguage(lang){
- lang=normalizedLanguage(lang)||'de';try{localStorage.setItem('exporthub.language',lang)}catch(_){}
+ lang=normalizedLanguage(lang)||'de';
  if(typeof document!=='undefined'){
-  var select=document.getElementById('exporthub-site-language');if(select&&select.value!==lang)select.value=lang;
-  translateElement(document.body,lang);
+  var nativeSelect=document.getElementById('languageSelect');if(nativeSelect&&nativeSelect.value!==lang)nativeSelect.value=lang;
+  try{if(typeof window.rc455SetLanguage==='function')window.rc455SetLanguage(lang);else if(typeof window.setLanguage==='function')window.setLanguage(lang);else document.documentElement.lang=lang}catch(_){document.documentElement.lang=lang}
   try{window.dispatchEvent(new CustomEvent('exporthub:site-language-changed',{detail:{language:lang}}))}catch(_){try{window.dispatchEvent(new Event('exporthub:site-language-changed'))}catch(__){}}
  }
  return lang
 }
 function ensureLanguageSwitch(){
- if(typeof document==='undefined'||document.getElementById('exporthub-site-language-wrap'))return;
- var wrap=document.createElement('label');wrap.id='exporthub-site-language-wrap';wrap.setAttribute('data-rc1018-no-translate','1');wrap.style.cssText='display:inline-flex;align-items:center;gap:6px;font:600 12px/1.2 Segoe UI,Aptos,sans-serif;color:inherit;z-index:2147483000';
- var text=document.createElement('span');text.textContent='DE / EN';var select=document.createElement('select');select.id='exporthub-site-language';select.setAttribute('aria-label','Language / Sprache');select.style.cssText='min-height:32px;border:1px solid rgba(127,145,165,.45);border-radius:8px;padding:4px 8px;background:var(--surface,#fff);color:inherit;font:inherit';select.innerHTML='<option value="de">Deutsch</option><option value="en">English</option>';select.value=storedLanguage()||'de';select.addEventListener('change',function(){setSiteLanguage(select.value)});wrap.appendChild(text);wrap.appendChild(select);
- var host=document.querySelector('.topbar,.app-topbar,.header-actions,.top-actions,header')||document.body;if(host===document.body){wrap.style.position='fixed';wrap.style.right='12px';wrap.style.bottom='12px';wrap.style.padding='7px 9px';wrap.style.background='rgba(255,255,255,.94)';wrap.style.border='1px solid rgba(127,145,165,.35)';wrap.style.borderRadius='10px';wrap.style.boxShadow='0 6px 20px rgba(0,0,0,.12)'}host.appendChild(wrap);setSiteLanguage(select.value)
+ if(typeof document==='undefined')return false;
+ var duplicate=document.getElementById('exporthub-site-language-wrap');if(duplicate)duplicate.remove();
+ var stray=document.getElementById('rc1018-public-language');if(stray&&document.getElementById('app'))stray.remove();
+ var nativeSelect=document.getElementById('languageSelect');
+ if(nativeSelect){nativeSelect.setAttribute('data-rc1018-language-owner','native');nativeSelect.setAttribute('title',profileLanguage()==='en'?'Language':'Sprache');return true}
+ return false
 }
+function syncProfileSiteLanguage(){var lang=profileLanguage();ensureLanguageSwitch();setSiteLanguage(lang);return lang}
 function observeTranslations(){
  if(typeof MutationObserver==='undefined'||typeof document==='undefined'||observer)return;observer=new MutationObserver(function(records){var lang=currentSiteLanguage();records.forEach(function(r){Array.from(r.addedNodes||[]).forEach(function(n){if(n.nodeType===1)translateElement(n,lang);else if(n.nodeType===3)translateTextNode(n,lang)})})});observer.observe(document.body,{childList:true,subtree:true})
 }
@@ -135,13 +139,13 @@ function installMailWrapper(){
  if(current.__rc1018===true){wrapper=current;base=current.__base1018||base;patchMailUi();return true}
  base=current;wrapper=Object.freeze(Object.assign({},current,{version:VERSION,injectMailBody:rc1018InjectMailBody,__rc1018:true,__base1018:current}));window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;patchMailUi();return true
 }
-function refresh(){if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){installMailWrapper();patchMailUi()});else{installMailWrapper();patchMailUi()}}
-function boot(){ensureLanguageSwitch();observeTranslations();installMailWrapper();refresh()}
+function refresh(){if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();patchMailUi()});else{ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();patchMailUi()}}
+function boot(){ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();refresh()}
 
-window.ExportHUBRC1018MailLanguage=Object.freeze({version:VERSION,resolveLanguage:resolveLanguage,resolveMode:resolveMode,stripAvisBlocks:stripAvisBlocks,stripShipmentDetails:stripShipmentDetails,buildDetailsBody:buildDetailsBody,buildAvisBody:buildAvisBody,localizedAvisUrl:localizedAvisUrl,composeMail:composeMail,setSiteLanguage:setSiteLanguage,translations:translations});
+window.ExportHUBRC1018MailLanguage=Object.freeze({version:'RC1100',resolveLanguage:resolveLanguage,resolveMode:resolveMode,stripAvisBlocks:stripAvisBlocks,stripShipmentDetails:stripShipmentDetails,buildDetailsBody:buildDetailsBody,buildAvisBody:buildAvisBody,localizedAvisUrl:localizedAvisUrl,composeMail:composeMail,setSiteLanguage:setSiteLanguage,profileLanguage:profileLanguage,translations:translations});
 if(typeof document!=='undefined'){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){window.addEventListener(name,refresh)});
- document.addEventListener('change',function(e){if(e.target&&e.target.id==='rc543MailLang'){var lang=resolveLanguage({},e.target.value,'');setSiteLanguage(lang)}refresh()},true)
+ document.addEventListener('change',function(e){if(e.target&&e.target.id==='rc543MailLang'){patchMailUi();return}refresh()},true)
 }
 })();
