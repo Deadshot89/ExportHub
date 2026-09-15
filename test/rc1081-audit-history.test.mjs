@@ -51,11 +51,19 @@ test('RC1087: zentrale Historie führt Sendungen, Kunden, Aufgaben, Palettenkont
   assert.match(runtime,/data-rc1084-history-table/);
 });
 
-test('RC1087: Historie ist eine eigene Ansicht und nicht mehr an Archiv gebunden',()=>{
+test('RC1087: Historie ist eine eigene Ansicht und räumt ihren Seitenzustand beim Verlassen auf',()=>{
   assert.match(runtime,/function historyView\(\)/);
   assert.match(runtime,/v==='history'/);
-  assert.match(runtime,/if\(!historyView\(\)\)\{if\(old\)old\.remove\(\);return false\}/);
+  assert.match(runtime,/function clearHistoryShell\(\)/);
+  assert.match(runtime,/classList\.remove\('rc1082-history-view'\)/);
+  assert.match(runtime,/if\(!historyView\(\)\)\{if\(old\)old\.remove\(\);clearHistoryShell\(\);return false\}/);
   assert.doesNotMatch(runtime,/function archiveView\(\)/);
+});
+
+test('RC1118: Historie darf eine bereits gerenderte Fachansicht niemals leeren',()=>{
+  assert.match(runtime,/data-exporthub-rendered-view/);
+  assert.match(runtime,/rendered&&rendered!=='history'/);
+  assert.match(runtime,/if\(rendered&&rendered!=='history'\)return false/);
 });
 
 test('RC1087: finaler Build lädt Historie als eigenen Reiter in Produktion TESTSERVICE und Demo',()=>{
