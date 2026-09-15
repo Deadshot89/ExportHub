@@ -31,6 +31,18 @@ jobs:
         run: |
           node .github/rc1112/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
+      - name: Browser-Paket wie Azure-Deploy vorbereiten
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .rc1124_browser_app
+          mkdir -p .rc1124_browser_app/assets
+          cp dist-rc1112/demo.html .rc1124_browser_app/demo.html
+          cp -R assets/. .rc1124_browser_app/assets/
+          cp -R dist-rc1112/assets/. .rc1124_browser_app/assets/
+          test -s .rc1124_browser_app/assets/rc1027-lieferavis-immediate.js
+          test -s .rc1124_browser_app/assets/rc1037-lieferavis-timing-diagnostics.js
+          test -s .rc1124_browser_app/assets/rc1049-abd-avis-policy.js
       - name: Chromium installieren
         run: |
           npm install --no-save playwright@1.55.0
@@ -41,7 +53,7 @@ jobs:
           EXPORTHUB_BROWSER_URL: http://127.0.0.1:4173/demo.html
         run: |
           set -euo pipefail
-          python3 -m http.server 4173 --directory dist-rc1112 >/tmp/rc1124-http.log 2>&1 &
+          python3 -m http.server 4173 --directory .rc1124_browser_app >/tmp/rc1124-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           for i in {1..30}; do
