@@ -26,6 +26,7 @@ on:
       - '.github/rc1046/**'
       - '.github/rc1047/**'
       - '.github/rc1048/**'
+      - '.github/rc1112/**'
       - '.github/rc1014/**'
       - '.github/rc1013/**'
       - '.github/rc1012/**'
@@ -92,7 +93,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: exporthub-rc1048-three-env-${{ github.ref }}
+  group: exporthub-rc1112-three-env-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build_and_deploy_job:
@@ -126,168 +127,168 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node .github/rc1048/build-three-env.mjs
-          grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1048/index.html
-          grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1048/TESTVERSION.html
-          grep -q 'ExportHUB RC1112 environment=demo' dist-rc1048/demo.html
-          grep -q "version:'RC1112'" dist-rc1048/index.html
-          grep -q "version:'RC1112'" dist-rc1048/TESTVERSION.html
-          grep -q "version:'RC1112'" dist-rc1048/demo.html
-          grep -q 'function addressCountryCode(v)' dist-rc1048/index.html
-          grep -q 'function addressCountryCode(v)' dist-rc1048/TESTVERSION.html
-          grep -q 'function addressCountryCode(v)' dist-rc1048/demo.html
-          grep -q 'id="rc1048GateMaster"' dist-rc1048/index.html
-          grep -q 'function saveGateMaster()' dist-rc1048/index.html
-          grep -q 'id="rc1048GateMaster"' dist-rc1048/TESTVERSION.html
-          grep -q 'id="rc1048GateMaster"' dist-rc1048/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1048/production-version.js
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/index.html
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/TESTVERSION.html
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/demo.html
-          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1048/index.html
-          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1048/TESTVERSION.html
-          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1048/demo.html
-          test -s dist-rc1048/assets/rc1065-registration-cc.js
-          grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1048/index.html
-          grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1048/TESTVERSION.html
-          if grep -q 'assets/rc1061-document-migration-admin.js' dist-rc1048/demo.html; then exit 1; fi
-          test -s dist-rc1048/assets/rc1061-document-migration-admin.js
-          grep -q 'assets/rc1067-startup-recovery.js?v=1067' dist-rc1048/index.html
-          grep -q 'assets/rc1067-startup-recovery.js?v=1067' dist-rc1048/TESTVERSION.html
-          if grep -q 'assets/rc1067-startup-recovery.js' dist-rc1048/demo.html; then exit 1; fi
-          test -s dist-rc1048/assets/rc1067-startup-recovery.js
-          test -s dist-rc1048/assets/rc1069-performance.js
-          grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' dist-rc1048/assets/rc1069-performance.js
-          grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' dist-rc1048/index.html
-          grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' dist-rc1048/TESTVERSION.html
-          if grep -q 'assets/rc1075-loader-pin-admin.js' dist-rc1048/demo.html; then exit 1; fi
-          test -s dist-rc1048/assets/rc1075-loader-pin-admin.js
-          grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' dist-rc1048/assets/rc1075-loader-pin-admin.js
+          node .github/rc1112/build-three-env.mjs
+          grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
+          grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
+          grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
+          grep -q "version:'RC1112'" dist-rc1112/index.html
+          grep -q "version:'RC1112'" dist-rc1112/TESTVERSION.html
+          grep -q "version:'RC1112'" dist-rc1112/demo.html
+          grep -q 'function addressCountryCode(v)' dist-rc1112/index.html
+          grep -q 'function addressCountryCode(v)' dist-rc1112/TESTVERSION.html
+          grep -q 'function addressCountryCode(v)' dist-rc1112/demo.html
+          grep -q 'id="rc1048GateMaster"' dist-rc1112/index.html
+          grep -q 'function saveGateMaster()' dist-rc1112/index.html
+          grep -q 'id="rc1048GateMaster"' dist-rc1112/TESTVERSION.html
+          grep -q 'id="rc1048GateMaster"' dist-rc1112/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1112/production-version.js
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1112/index.html
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1112/demo.html
+          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1112/index.html
+          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1112/demo.html
+          test -s dist-rc1112/assets/rc1065-registration-cc.js
+          grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1112/index.html
+          grep -q 'assets/rc1061-document-migration-admin.js?v=1073' dist-rc1112/TESTVERSION.html
+          if grep -q 'assets/rc1061-document-migration-admin.js' dist-rc1112/demo.html; then exit 1; fi
+          test -s dist-rc1112/assets/rc1061-document-migration-admin.js
+          grep -q 'assets/rc1067-startup-recovery.js?v=1067' dist-rc1112/index.html
+          grep -q 'assets/rc1067-startup-recovery.js?v=1067' dist-rc1112/TESTVERSION.html
+          if grep -q 'assets/rc1067-startup-recovery.js' dist-rc1112/demo.html; then exit 1; fi
+          test -s dist-rc1112/assets/rc1067-startup-recovery.js
+          test -s dist-rc1112/assets/rc1069-performance.js
+          grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' dist-rc1112/assets/rc1069-performance.js
+          grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' dist-rc1112/index.html
+          grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' dist-rc1112/TESTVERSION.html
+          if grep -q 'assets/rc1075-loader-pin-admin.js' dist-rc1112/demo.html; then exit 1; fi
+          test -s dist-rc1112/assets/rc1075-loader-pin-admin.js
+          grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' dist-rc1112/assets/rc1075-loader-pin-admin.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1077-customer-labels.js?v=1077' "dist-rc1048/$file"
+            grep -q 'assets/rc1077-customer-labels.js?v=1077' "dist-rc1112/$file"
           done
-          test -s dist-rc1048/assets/rc1077-customer-labels.js
-          grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' dist-rc1048/assets/rc1077-customer-labels.js
+          test -s dist-rc1112/assets/rc1077-customer-labels.js
+          grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' dist-rc1112/assets/rc1077-customer-labels.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1079-profile-settings.js?v=1079' "dist-rc1048/$file"
-            grep -q 'assets/rc1080-customer-history.js?v=1080' "dist-rc1048/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1048/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1048/$file"
+            grep -q 'assets/rc1079-profile-settings.js?v=1079' "dist-rc1112/$file"
+            grep -q 'assets/rc1080-customer-history.js?v=1080' "dist-rc1112/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1112/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1112/$file"
           done
-          test -s dist-rc1048/assets/rc1079-profile-settings.js
-          test -s dist-rc1048/assets/rc1080-customer-history.js
-          grep -q '__EXPORTHUB_RC1079_PROFILE_SETTINGS__' dist-rc1048/assets/rc1079-profile-settings.js
-          grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' dist-rc1048/assets/rc1080-customer-history.js
-          test -s dist-rc1048/assets/rc1081-audit-history.js
-          grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' dist-rc1048/assets/rc1081-audit-history.js
-          grep -q 'Mit ChatGPT beheben' dist-rc1048/assets/rc1013-diagnostics.js
-          grep -q '/api/diagnostic-autofix' dist-rc1048/assets/rc1013-diagnostics.js
-          grep -q "view:'history',label:'Historie',right:'history'" dist-rc1048/index.html
-          grep -q "view:'history',label:'Historie',right:'history'" dist-rc1048/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/index.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1048/demo.html
-          test -s dist-rc1048/migration-recovery.html
-          grep -q 'Dokumentspeicher wird optimiert' dist-rc1048/migration-recovery.html
-          grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1048/index.html
-          grep -q 'assets/rc1014-shipment-overview.js?v=1091' dist-rc1048/index.html
+          test -s dist-rc1112/assets/rc1079-profile-settings.js
+          test -s dist-rc1112/assets/rc1080-customer-history.js
+          grep -q '__EXPORTHUB_RC1079_PROFILE_SETTINGS__' dist-rc1112/assets/rc1079-profile-settings.js
+          grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' dist-rc1112/assets/rc1080-customer-history.js
+          test -s dist-rc1112/assets/rc1081-audit-history.js
+          grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' dist-rc1112/assets/rc1081-audit-history.js
+          grep -q 'Mit ChatGPT beheben' dist-rc1112/assets/rc1013-diagnostics.js
+          grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
+          grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
+          grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/index.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/demo.html
+          test -s dist-rc1112/migration-recovery.html
+          grep -q 'Dokumentspeicher wird optimiert' dist-rc1112/migration-recovery.html
+          grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1112/index.html
+          grep -q 'assets/rc1014-shipment-overview.js?v=1091' dist-rc1112/index.html
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "dist-rc1048/$file"
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "dist-rc1112/$file"
           done
-          test -s dist-rc1048/assets/rc1092-customer-mail-contacts.js
-          grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' dist-rc1048/assets/rc1092-customer-mail-contacts.js
-          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1048/index.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1048/index.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1048/TESTVERSION.html
-          grep -q 'assets/abholkalender.js?v=1012' dist-rc1048/demo.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1048/index.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1048/TESTVERSION.html
-          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1048/demo.html
-          test -s dist-rc1048/assets/abholkalender.js
-          test -s dist-rc1048/assets/rc1012-abholkalender-runtime.js
+          test -s dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1112/index.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/index.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/demo.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1112/index.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' dist-rc1112/demo.html
+          test -s dist-rc1112/assets/abholkalender.js
+          test -s dist-rc1112/assets/rc1012-abholkalender-runtime.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1048/$file"
+            grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "dist-rc1112/$file"
           done
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1048/customer-avis.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1048/pickup.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1048/location.html
-          test -s dist-rc1048/assets/rc1018-mail-language-standard.js
-          test -s dist-rc1048/assets/rc1018-public-language.js
-          grep -q 'assets/rc1016-demo-task-seed.js?v=1016' dist-rc1048/demo.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1048/index.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1048/TESTVERSION.html
-          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1048/demo.html
-          test -s dist-rc1048/assets/rc1017-multi-truck.js
-          test -s dist-rc1048/assets/sop/screenshots/rc1016-tasks.png
-          test -s dist-rc1048/assets/sop/screenshots/rc1016-shipmentoverview.png
-          test -s dist-rc1048/assets/sop/screenshots/rc1016-pickupcalendar.png
-          grep -q 'assets/rc1013-diagnostics.js?v=1085' dist-rc1048/index.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/customer-avis.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/pickup.html
+          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/location.html
+          test -s dist-rc1112/assets/rc1018-mail-language-standard.js
+          test -s dist-rc1112/assets/rc1018-public-language.js
+          grep -q 'assets/rc1016-demo-task-seed.js?v=1016' dist-rc1112/demo.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1112/index.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1112/demo.html
+          test -s dist-rc1112/assets/rc1017-multi-truck.js
+          test -s dist-rc1112/assets/sop/screenshots/rc1016-tasks.png
+          test -s dist-rc1112/assets/sop/screenshots/rc1016-shipmentoverview.png
+          test -s dist-rc1112/assets/sop/screenshots/rc1016-pickupcalendar.png
+          grep -q 'assets/rc1013-diagnostics.js?v=1085' dist-rc1112/index.html
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1048/$file"
+            grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1112/$file"
           done
-          grep -q 'serverToken=q(data&&data.token)' dist-rc1048/index.html
-          grep -q "setRouteData(g,'country','Deutschland')" dist-rc1048/index.html
+          grep -q 'serverToken=q(data&&data.token)' dist-rc1112/index.html
+          grep -q "setRouteData(g,'country','Deutschland')" dist-rc1112/index.html
       - name: Gemeinsame RC1048 Deploy-Pakete vorbereiten
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .rc1048_production_app .rc1048_testservice_app
-          mkdir -p .rc1048_production_app .rc1048_testservice_app
-          for dir in .rc1048_production_app .rc1048_testservice_app; do
-            cp dist-rc1048/pickup.html dist-rc1048/customer-avis.html dist-rc1048/location.html dist-rc1048/pod-notfall.html dist-rc1048/migration-recovery.html "$dir/"
-            cp dist-rc1048/production-version.js "$dir/production-version.js"
+          rm -rf .rc1112_production_app .rc1112_testservice_app
+          mkdir -p .rc1112_production_app .rc1112_testservice_app
+          for dir in .rc1112_production_app .rc1112_testservice_app; do
+            cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html "$dir/"
+            cp dist-rc1112/production-version.js "$dir/production-version.js"
             cp -R assets "$dir/assets"
-            cp -R dist-rc1048/assets/. "$dir/assets/"
+            cp -R dist-rc1112/assets/. "$dir/assets/"
           done
-          cp staticwebapp.config.json .rc1048_production_app/staticwebapp.config.json
-          cp dist-rc1048/index.html .rc1048_production_app/index.html
-          cp staticwebapp.testservice.config.json .rc1048_testservice_app/staticwebapp.config.json
-          cp dist-rc1048/TESTVERSION.html .rc1048_testservice_app/index.html
-          cp dist-rc1048/TESTVERSION.html .rc1048_testservice_app/TESTVERSION.html
-          cp dist-rc1048/demo.html .rc1048_testservice_app/demo.html
-          test -s .rc1048_production_app/assets/rc1016-mobile-navigation.js
-          test -s .rc1048_testservice_app/assets/rc1016-mobile-navigation.js
-          test -s .rc1048_production_app/assets/rc1017-multi-truck.js
-          test -s .rc1048_testservice_app/assets/rc1017-multi-truck.js
-          test -s .rc1048_production_app/assets/rc1018-mail-language-standard.js
-          test -s .rc1048_testservice_app/assets/rc1018-mail-language-standard.js
-          test -s .rc1048_production_app/assets/rc1018-public-language.js
-          test -s .rc1048_testservice_app/assets/rc1018-public-language.js
-          test -s .rc1048_production_app/assets/rc1065-registration-cc.js
-          test -s .rc1048_testservice_app/assets/rc1065-registration-cc.js
-          test -s .rc1048_production_app/assets/rc1061-document-migration-admin.js
-          test -s .rc1048_testservice_app/assets/rc1061-document-migration-admin.js
-          test -s .rc1048_production_app/assets/rc1067-startup-recovery.js
-          test -s .rc1048_testservice_app/assets/rc1067-startup-recovery.js
-          test -s .rc1048_production_app/assets/rc1069-performance.js
-          test -s .rc1048_testservice_app/assets/rc1069-performance.js
-          test -s .rc1048_production_app/assets/rc1077-customer-labels.js
-          test -s .rc1048_testservice_app/assets/rc1077-customer-labels.js
-          test -s .rc1048_production_app/assets/rc1079-profile-settings.js
-          test -s .rc1048_testservice_app/assets/rc1079-profile-settings.js
-          test -s .rc1048_production_app/assets/rc1080-customer-history.js
-          test -s .rc1048_testservice_app/assets/rc1080-customer-history.js
-          test -s .rc1048_production_app/assets/rc1081-audit-history.js
-          test -s .rc1048_testservice_app/assets/rc1081-audit-history.js
-          test -s .rc1048_production_app/assets/rc1075-loader-pin-admin.js
-          test -s .rc1048_testservice_app/assets/rc1075-loader-pin-admin.js
-          test -s .rc1048_production_app/assets/rc1027-lieferavis-immediate.js
-          test -s .rc1048_testservice_app/assets/rc1027-lieferavis-immediate.js
-          test -s .rc1048_production_app/migration-recovery.html
-          test -s .rc1048_testservice_app/migration-recovery.html
-          test -s .rc1048_production_app/assets/abholkalender.js
-          test -s .rc1048_testservice_app/assets/abholkalender.js
-          test -s .rc1048_production_app/assets/rc1012-abholkalender-runtime.js
-          test -s .rc1048_testservice_app/assets/rc1012-abholkalender-runtime.js
-          test -s .rc1048_production_app/assets/sop/screenshots/rc1016-tasks.png
-          test -s .rc1048_testservice_app/assets/sop/screenshots/rc1016-pickupcalendar.png
+          cp staticwebapp.config.json .rc1112_production_app/staticwebapp.config.json
+          cp dist-rc1112/index.html .rc1112_production_app/index.html
+          cp staticwebapp.testservice.config.json .rc1112_testservice_app/staticwebapp.config.json
+          cp dist-rc1112/TESTVERSION.html .rc1112_testservice_app/index.html
+          cp dist-rc1112/TESTVERSION.html .rc1112_testservice_app/TESTVERSION.html
+          cp dist-rc1112/demo.html .rc1112_testservice_app/demo.html
+          test -s .rc1112_production_app/assets/rc1016-mobile-navigation.js
+          test -s .rc1112_testservice_app/assets/rc1016-mobile-navigation.js
+          test -s .rc1112_production_app/assets/rc1017-multi-truck.js
+          test -s .rc1112_testservice_app/assets/rc1017-multi-truck.js
+          test -s .rc1112_production_app/assets/rc1018-mail-language-standard.js
+          test -s .rc1112_testservice_app/assets/rc1018-mail-language-standard.js
+          test -s .rc1112_production_app/assets/rc1018-public-language.js
+          test -s .rc1112_testservice_app/assets/rc1018-public-language.js
+          test -s .rc1112_production_app/assets/rc1065-registration-cc.js
+          test -s .rc1112_testservice_app/assets/rc1065-registration-cc.js
+          test -s .rc1112_production_app/assets/rc1061-document-migration-admin.js
+          test -s .rc1112_testservice_app/assets/rc1061-document-migration-admin.js
+          test -s .rc1112_production_app/assets/rc1067-startup-recovery.js
+          test -s .rc1112_testservice_app/assets/rc1067-startup-recovery.js
+          test -s .rc1112_production_app/assets/rc1069-performance.js
+          test -s .rc1112_testservice_app/assets/rc1069-performance.js
+          test -s .rc1112_production_app/assets/rc1077-customer-labels.js
+          test -s .rc1112_testservice_app/assets/rc1077-customer-labels.js
+          test -s .rc1112_production_app/assets/rc1079-profile-settings.js
+          test -s .rc1112_testservice_app/assets/rc1079-profile-settings.js
+          test -s .rc1112_production_app/assets/rc1080-customer-history.js
+          test -s .rc1112_testservice_app/assets/rc1080-customer-history.js
+          test -s .rc1112_production_app/assets/rc1081-audit-history.js
+          test -s .rc1112_testservice_app/assets/rc1081-audit-history.js
+          test -s .rc1112_production_app/assets/rc1075-loader-pin-admin.js
+          test -s .rc1112_testservice_app/assets/rc1075-loader-pin-admin.js
+          test -s .rc1112_production_app/assets/rc1027-lieferavis-immediate.js
+          test -s .rc1112_testservice_app/assets/rc1027-lieferavis-immediate.js
+          test -s .rc1112_production_app/migration-recovery.html
+          test -s .rc1112_testservice_app/migration-recovery.html
+          test -s .rc1112_production_app/assets/abholkalender.js
+          test -s .rc1112_testservice_app/assets/abholkalender.js
+          test -s .rc1112_production_app/assets/rc1012-abholkalender-runtime.js
+          test -s .rc1112_testservice_app/assets/rc1012-abholkalender-runtime.js
+          test -s .rc1112_production_app/assets/sop/screenshots/rc1016-tasks.png
+          test -s .rc1112_testservice_app/assets/sop/screenshots/rc1016-pickupcalendar.png
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1048_production_app
+          app_location: .rc1112_production_app
           api_location: api
           output_location: ''
           skip_app_build: true
@@ -297,7 +298,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1048_testservice_app
+          app_location: .rc1112_testservice_app
           api_location: api
           output_location: ''
           skip_app_build: true
@@ -311,13 +312,13 @@ jobs:
           p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); pcc=$(mktemp); tcc=$(mktemp); pma=$(mktemp); tma=$(mktemp); prec=$(mktemp); trec=$(mktemp); pperf=$(mktemp); tperf=$(mktemp); pavis=$(mktemp); tavis=$(mktemp); precp=$(mktemp); trecp=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
           trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$pcc" "$tcc" "$pma" "$tma" "$prec" "$trec" "$pperf" "$tperf" "$pavis" "$tavis" "$precp" "$trecp" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
           for attempt in {1..24}; do
-            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1048=$GITHUB_SHA-$attempt" || true)
-            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1048=$GITHUB_SHA-$attempt" || true)
-            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1048=$GITHUB_SHA-$attempt" || true)
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1112=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt" || true)
             phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/api/exporthub-health" || true)
             thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/api/exporthub-health" || true)
-            pmc=$(curl -sS -o "$pm" -w '%{http_code}' --max-time 20 "$prod/assets/rc1016-mobile-navigation.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1048=$GITHUB_SHA-$attempt" || true)
+            pmc=$(curl -sS -o "$pm" -w '%{http_code}' --max-time 20 "$prod/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
             pccc=$(curl -sS -o "$pcc" -w '%{http_code}' --max-time 20 "$prod/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
             tccc=$(curl -sS -o "$tcc" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
             pmac=$(curl -sS -o "$pma" -w '%{http_code}' --max-time 20 "$prod/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
@@ -330,20 +331,20 @@ jobs:
             tavisc=$(curl -sS -o "$tavis" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
             precpc=$(curl -sS -L -o "$precp" -w '%{http_code}' --max-time 20 "$prod/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
             trecpc=$(curl -sS -L -o "$trecp" -w '%{http_code}' --max-time 20 "$testservice/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
-            psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1048=$GITHUB_SHA-$attempt" || true)
-            tsc=$(curl -sS -o "$ts" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-tasks.png?rc1048=$GITHUB_SHA-$attempt" || true)
-            pkc=$(curl -sS -o "$pk" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1048=$GITHUB_SHA-$attempt" || true)
-            tkc=$(curl -sS -o "$tk" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1048=$GITHUB_SHA-$attempt" || true)
-            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1048=$GITHUB_SHA-$attempt" || true)
+            psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tsc=$(curl -sS -o "$ts" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pkc=$(curl -sS -o "$pk" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tkc=$(curl -sS -o "$tk" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
             prc=$(curl -sS -o "$pr" -w '%{http_code}' --max-time 20 "$prod/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
             trc=$(curl -sS -o "$tr" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
-            pcalc=$(curl -sS -o "$pcal" -w '%{http_code}' --max-time 20 "$prod/assets/abholkalender.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1048=$GITHUB_SHA-$attempt" || true)
-            truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1048=$GITHUB_SHA-$attempt" || true)
+            pcalc=$(curl -sS -o "$pcal" -w '%{http_code}' --max-time 20 "$prod/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
             if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$pccc" == '200' && "$tccc" == '200' && "$pmac" == '200' && "$tmac" == '200' && "$precc" == '200' && "$trecc" == '200' && "$pperfc" == '200' && "$tperfc" == '200' && "$pavisc" == '200' && "$tavisc" == '200' && "$precpc" == '200' && "$trecpc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
               && grep -q 'ExportHUB RC1112 environment=production-candidate' "$p" \
               && grep -q 'ExportHUB RC1112 environment=testservice' "$t" \
@@ -504,10 +505,10 @@ jobs:
           for attempt in {1..24}; do
             ok=1
             for url in \
-              "$prod/assets/rc1018-mail-language-standard.js?rc1048=$GITHUB_SHA-$attempt" \
-              "$testservice/assets/rc1018-mail-language-standard.js?rc1048=$GITHUB_SHA-$attempt" \
-              "$prod/assets/rc1018-public-language.js?rc1048=$GITHUB_SHA-$attempt" \
-              "$testservice/assets/rc1018-public-language.js?rc1048=$GITHUB_SHA-$attempt"; do
+              "$prod/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$prod/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt"; do
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
               [[ "$code" == '200' ]] || ok=0
@@ -515,9 +516,9 @@ jobs:
               rm -f "$body"
             done
             for url in \
-              "$prod/?rc1048=$GITHUB_SHA-$attempt" \
-              "$testservice/TESTVERSION.html?rc1048=$GITHUB_SHA-$attempt" \
-              "$testservice/demo.html?rc1048=$GITHUB_SHA-$attempt"; do
+              "$prod/?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt"; do
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
               [[ "$code" == '200' ]] && grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "$body" || ok=0
@@ -525,7 +526,7 @@ jobs:
             done
             for base in "$prod" "$testservice"; do
               body=$(mktemp)
-              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1048=$GITHUB_SHA-$attempt" || true)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1112=$GITHUB_SHA-$attempt" || true)
               [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1018' "$body" || ok=0
               rm -f "$body"
             done
