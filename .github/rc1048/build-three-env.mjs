@@ -34,7 +34,7 @@ const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer s
 const RC1092_CONTACTS_ID='exporthub-rc1092-customer-mail-contacts';
 const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/assets/rc1092-customer-mail-contacts.js?v=1092"></script>';
 const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
-const RC1096_PACKAGING_TAG='<script id="'+RC1096_PACKAGING_ID+'" defer src="/assets/rc1096-packaging-groups.js?v=1096"></script>';
+const RC1096_PACKAGING_TAG='<script id="'+RC1096_PACKAGING_ID+'" defer src="/assets/rc1096-packaging-groups.js?v=1110"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -547,7 +547,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
     shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
     customerMailContacts:{version:'RC1092',runtime:'assets/rc1092-customer-mail-contacts.js',actions:['Person speichern','Zur Mail hinzufügen'],separateLibraryAndMailAssignment:true,persistImmediately:true},
-    packagingMenu:{version:'RC1096',runtime:'assets/rc1096-packaging-groups.js',columns:['Pakete','Paletten','Sonstiges'],packageCodes:'E0-E6',addsEnvelope:true,responsive:true},
+    packagingMenu:{version:'RC1110',runtime:'assets/rc1096-packaging-groups.js',columns:['Pakete','Paletten','Sonstiges'],packageCodes:'E0-E6',addsEnvelope:true,responsive:true,nativeRc682Guard:true},
     loadingListPalletAccount:{version:'RC1095',document:'Ladeliste',onlyEuroPallets:true,label:'Palettenkonto',showsExpectedOutbound:true,cacheIncludesEuroPalletCount:true},
     shipmentHistory:{version:'RC1095',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
