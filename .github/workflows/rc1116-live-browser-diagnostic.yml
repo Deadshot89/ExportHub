@@ -18,6 +18,19 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
+      - name: Inspect live HTML around parser break
+        run: |
+          curl -fsSL https://wonderful-forest-0f315e310.7.azurestaticapps.net/ -o live-production.html
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('live-production.html').read_text(encoding='utf-8',errors='replace')
+          marker='RC824_SOP_DETAILS'
+          i=s.find(marker)
+          print('MARKER_INDEX',i)
+          print('LIVE_CONTEXT_START')
+          print(s[max(0,i-6500):i+1200])
+          print('LIVE_CONTEXT_END')
+          PY
       - name: Diagnose production startup
         run: |
           cat > diag-live.mjs <<'EOF'
