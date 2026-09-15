@@ -2,52 +2,29 @@
 'use strict';
 if(w.__EXPORTHUB_RC1074_LOGIN_CLEAN__)return;
 w.__EXPORTHUB_RC1074_LOGIN_CLEAN__=true;
-
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
-function isTechnicalLoginProgress(v){
-  var t=q(v);
-  return /^(?:Anmeldekonfiguration wird geprüft|TESTSERVICE\s*·\s*(?:Auth-Backend wird geprüft|Zugangsdaten eingeben))(?:\s*(?:…|\.{3}|\.))?$/i.test(t)
-}
-function isStatusNode(el){
-  if(!el||el.nodeType!==1)return false;
-  var id=q(el.id).toLowerCase(),cls=q(el.className).toLowerCase();
-  return /status|message|notice|alert|hint/.test(id+' '+cls)||el.hasAttribute('role')&&q(el.getAttribute('role')).toLowerCase()==='status'||el.hasAttribute('aria-live')
-}
-function hideNode(el){
-  if(el.getAttribute('data-rc1074-login-progress-hidden')==='true'&&el.hidden&&el.style.display==='none')return;
-  el.hidden=true;
-  el.style.display='none';
-  el.setAttribute('data-rc1074-login-progress-hidden','true');
-}
-function showNode(el){
-  if(el.getAttribute('data-rc1074-login-progress-hidden')!=='true')return;
-  el.hidden=false;
-  el.style.removeProperty('display');
-  el.removeAttribute('data-rc1074-login-progress-hidden');
-}
-function cleanLoginStatus(){
-  var login=d.getElementById('login');
-  if(!login)return;
-  var nodes=login.querySelectorAll('*');
-  for(var i=0;i<nodes.length;i++){
-    var el=nodes[i],t=q(el.textContent);
-    if(isTechnicalLoginProgress(t)){el.textContent='';hideNode(el);continue}
-    if(isStatusNode(el)&&!t){hideNode(el);continue}
-    if(t&&!isTechnicalLoginProgress(t))showNode(el);
-  }
-}
-function loadRc1109(){
-  if(d.getElementById('exporthub-rc1109-abd-dashboard-customer'))return;
-  var s=d.createElement('script');s.id='exporthub-rc1109-abd-dashboard-customer';s.defer=true;s.src='/assets/rc1109-abd-dashboard-customer.js?v=1109';
-  (d.head||d.documentElement).appendChild(s);
-}
-function install(){
-  cleanLoginStatus();
-  loadRc1109();
-  if(!d.documentElement||w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__)return;
-  w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__=new MutationObserver(cleanLoginStatus);
-  w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__.observe(d.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','hidden','style']});
-}
+function isTechnicalLoginProgress(v){var t=q(v);return /^(?:Anmeldekonfiguration wird geprüft|TESTSERVICE\s*·\s*(?:Auth-Backend wird geprüft|Zugangsdaten eingeben))(?:\s*(?:…|\.{3}|\.))?$/i.test(t)}
+function isStatusNode(el){if(!el||el.nodeType!==1)return false;var id=q(el.id).toLowerCase(),cls=q(el.className).toLowerCase();return /status|message|notice|alert|hint/.test(id+' '+cls)||el.hasAttribute('role')&&q(el.getAttribute('role')).toLowerCase()==='status'||el.hasAttribute('aria-live')}
+function hideNode(el){if(el.getAttribute('data-rc1074-login-progress-hidden')==='true'&&el.hidden&&el.style.display==='none')return;el.hidden=true;el.style.display='none';el.setAttribute('data-rc1074-login-progress-hidden','true')}
+function showNode(el){if(el.getAttribute('data-rc1074-login-progress-hidden')!=='true')return;el.hidden=false;el.style.removeProperty('display');el.removeAttribute('data-rc1074-login-progress-hidden')}
+function cleanLoginStatus(){var login=d.getElementById('login');if(!login)return;var nodes=login.querySelectorAll('*');for(var i=0;i<nodes.length;i++){var el=nodes[i],t=q(el.textContent);if(isTechnicalLoginProgress(t)){el.textContent='';hideNode(el);continue}if(isStatusNode(el)&&!t){hideNode(el);continue}if(t&&!isTechnicalLoginProgress(t))showNode(el)}}
+
+/* RC1109: ABD-Anfragen behalten und zeigen ihren Kunden. */
+var rc1109SaveBusy=false,rc1109SaveTimer=0,rc1109RenderTimer=0;
+function rc1109Arr(v){return Array.isArray(v)?v:[]}
+function rc1109State(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||null}catch(_){ }return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||null}
+function rc1109Same(a,b){return !!q(a)&&q(a).toLowerCase()===q(b).toLowerCase()}
+function rc1109Ref(v){return q(v&&(v.ref||v.reference||v.shipmentRef||v.linkedShipmentRef||v.sourceRef))}
+function rc1109Shipment(s,a){var id=q(a&&(a.linkedShipmentId||a.shipmentId||a.sourceId)),ref=rc1109Ref(a),all=rc1109Arr(s&&s.shipments).concat(rc1109Arr(s&&s.savedShipments),rc1109Arr(s&&s.archive));return all.find(function(sh){return sh&&((id&&rc1109Same(sh.id,id))||(ref&&rc1109Same(rc1109Ref(sh),ref)))})||null}
+function rc1109CustomerMaster(s,p){return rc1109Arr(s&&s.customers).find(function(c){return c&&(rc1109Same(c.id,p.customerId)||rc1109Same(c.account||c.customerNumber,p.customerNumber)||rc1109Same(c.name||c.customerName,p.customerName))})||null}
+function rc1109ResolveCustomer(s,a){var sh=rc1109Shipment(s,a)||{},p={customerId:q(a&&a.customerId||sh.customerId||sh.linkedCustomerId),customerNumber:q(a&&a.customerNumber||a&&a.customerAccount||sh.customerNumber||sh.customerAccount),customerName:q(a&&a.customerName||a&&a.customer||sh.customerName||sh.customer)},c=rc1109CustomerMaster(s,p)||{};return{customerId:p.customerId||q(c.id),customerNumber:p.customerNumber||q(c.account||c.customerNumber),customerName:p.customerName||q(c.name||c.customerName)}}
+function rc1109EnrichRequests(s){s=s||rc1109State();var changed=false,requests=rc1109Arr(s&&s.abdRequests);requests.forEach(function(a){if(!a||typeof a!=='object')return;var c=rc1109ResolveCustomer(s,a);if(!q(a.customerName)&&c.customerName){a.customerName=c.customerName;changed=true}if(!q(a.customerNumber)&&c.customerNumber){a.customerNumber=c.customerNumber;changed=true}if(!q(a.customerId)&&c.customerId){a.customerId=c.customerId;changed=true}});return{changed:changed,requests:requests}}
+async function rc1109Persist(){var s=rc1109State(),r=rc1109EnrichRequests(s),clean=w.ExportHUBClean;if(!r.changed||rc1109SaveBusy||!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')return r.changed;rc1109SaveBusy=true;try{await Promise.resolve(clean.queueSave('RC1109 ABD-Kundendaten ergänzt'));await Promise.resolve(clean.flushSave('RC1109 ABD-Kundendaten ergänzt'));return true}catch(e){try{w.console&&w.console.warn&&w.console.warn('RC1109 ABD-Kundendaten konnten noch nicht gespeichert werden',e)}catch(_){ }return false}finally{rc1109SaveBusy=false}}
+function rc1109RequestForCard(s,card){var text=q(card&&card.textContent),data=card&&card.dataset||{},keys=[data.sourceRef,data.ref,data.reference,data.taskId,data.sourceId].map(q).filter(Boolean);return rc1109Arr(s&&s.abdRequests).find(function(a){var ref=rc1109Ref(a),id=q(a&&a.id);return keys.some(function(k){return rc1109Same(k,ref)||rc1109Same(k,id)})||(ref&&text.indexOf(ref)>=0)})||null}
+function rc1109EnhanceDashboard(){var s=rc1109State();if(!s||!d||typeof d.querySelectorAll!=='function')return 0;rc1109EnrichRequests(s);var count=0,cards=Array.from(d.querySelectorAll('.rc229-task-card.rc628-unified-task, .task-card, [data-task-id], [data-source-ref]'));cards.forEach(function(card){if(!/\bABD\b/i.test(q(card&&card.textContent)))return;var a=rc1109RequestForCard(s,card);if(!a)return;var c=rc1109ResolveCustomer(s,a),name=q(c.customerName);if(!name)return;var el=card.querySelector&&card.querySelector('[data-rc1109-abd-customer]');if(!el){el=d.createElement('div');el.setAttribute('data-rc1109-abd-customer','1');el.className='rc1109-abd-customer';if(typeof card.appendChild==='function')card.appendChild(el)}el.textContent='Kunde: '+name+(c.customerNumber?' · '+c.customerNumber:'');count++});return count}
+function rc1109Schedule(){if(rc1109RenderTimer&&w.clearTimeout)w.clearTimeout(rc1109RenderTimer);rc1109RenderTimer=w.setTimeout(function(){rc1109RenderTimer=0;rc1109EnhanceDashboard()},0);if(rc1109SaveTimer&&w.clearTimeout)w.clearTimeout(rc1109SaveTimer);rc1109SaveTimer=w.setTimeout(function(){rc1109SaveTimer=0;rc1109Persist()},250)}
+function install(){cleanLoginStatus();rc1109Schedule();if(!d.documentElement||w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__)return;w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__=new MutationObserver(function(){cleanLoginStatus();rc1109Schedule()});w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__.observe(d.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','hidden','style']})}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',install,{once:true});else install();
-w.addEventListener('exporthub:ready',cleanLoginStatus);
+w.addEventListener('exporthub:ready',cleanLoginStatus);['exporthub:rendered','exporthub:viewchange','exporthub:tasks-updated'].forEach(function(n){w.addEventListener(n,rc1109Schedule)});
+w.ExportHUBRC1109AbdDashboardCustomer=Object.freeze({resolveCustomer:rc1109ResolveCustomer,enrichRequests:rc1109EnrichRequests,enhanceDashboard:rc1109EnhanceDashboard,persistEnrichment:rc1109Persist});
 })(window,document);
