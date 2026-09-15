@@ -79,6 +79,7 @@ async function clickCandidate(page,module,labels){
 
 export async function openExportHubView(page,module,labels,requiredText){
   for(let pass=0;pass<3;pass++){
+    await openMenu(page);
     const clicked=await clickCandidate(page,module,labels);
     if(clicked){
       await pause(350);
