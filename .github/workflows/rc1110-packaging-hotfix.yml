@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/rc1110-packaging-hotfix.yml'
+      - 'assets/rc1096-packaging-groups.js'
+      - '.github/rc1048/build-three-env.mjs'
+      - 'test/rc1096-packaging-groups.test.mjs'
 permissions:
   contents: read
 concurrency:
