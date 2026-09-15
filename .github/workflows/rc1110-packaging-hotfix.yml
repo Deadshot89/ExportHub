@@ -1,0 +1,119 @@
+name: RC1110 Packaging Hotfix Deploy
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1110-packaging-hotfix.yml'
+permissions:
+  contents: read
+concurrency:
+  group: exporthub-rc1110-packaging-hotfix
+  cancel-in-progress: true
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1110 targeted regression
+        run: node --test test/rc1096-packaging-groups.test.mjs
+
+      - name: Build canonical three environments
+        run: node .github/rc1048/build-three-env.mjs
+
+      - name: Verify built packaging hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1096-packaging-groups.js?v=1110' "dist-rc1048/$file"
+          done
+          grep -Fq "closest('.rc682-packaging-columns')" dist-rc1048/assets/rc1096-packaging-groups.js
+          grep -Fq "closest('.rc682-packaging-column')" dist-rc1048/assets/rc1096-packaging-groups.js
+          grep -Fq '#rc573ColliCard .rc682-packaging-columns' dist-rc1048/assets/rc1096-packaging-groups.js
+          grep -Fq 'grid-template-columns:repeat(3,minmax(0,1fr))!important' dist-rc1048/assets/rc1096-packaging-groups.js
+          if grep -Fq 'min-width:720px!important' dist-rc1048/assets/rc1096-packaging-groups.js; then exit 1; fi
+
+      - name: Prepare production and TESTSERVICE
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .rc1110_production .rc1110_testservice
+          mkdir -p .rc1110_production .rc1110_testservice
+          for dir in .rc1110_production .rc1110_testservice; do
+            cp dist-rc1048/pickup.html dist-rc1048/customer-avis.html dist-rc1048/location.html dist-rc1048/pod-notfall.html dist-rc1048/migration-recovery.html "$dir/"
+            cp dist-rc1048/production-version.js "$dir/production-version.js"
+            cp -R assets "$dir/assets"
+            cp -R dist-rc1048/assets/. "$dir/assets/"
+          done
+          cp staticwebapp.config.json .rc1110_production/staticwebapp.config.json
+          cp dist-rc1048/index.html .rc1110_production/index.html
+          cp staticwebapp.testservice.config.json .rc1110_testservice/staticwebapp.config.json
+          cp dist-rc1048/TESTVERSION.html .rc1110_testservice/index.html
+          cp dist-rc1048/TESTVERSION.html .rc1110_testservice/TESTVERSION.html
+          cp dist-rc1048/demo.html .rc1110_testservice/demo.html
+
+      - name: Deploy production
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1110_production
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+
+      - name: Deploy TESTSERVICE
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1110_testservice
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice
+
+      - name: Verify RC1110 live
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..24}; do
+            ok=1
+            for page in "$prod/" "$testservice/TESTVERSION.html"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$page?rc1110=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q 'assets/rc1096-packaging-groups.js?v=1110' "$body" || ok=0
+              rm -f "$body"
+            done
+            for base in "$prod" "$testservice"; do
+              asset=$(mktemp)
+              code=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1096-packaging-groups.js?rc1110=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -Fq "closest('.rc682-packaging-columns')" "$asset" || ok=0
+              grep -Fq "closest('.rc682-packaging-column')" "$asset" || ok=0
+              grep -Fq '#rc573ColliCard .rc682-packaging-columns' "$asset" || ok=0
+              grep -Fq 'grid-template-columns:repeat(3,minmax(0,1fr))!important' "$asset" || ok=0
+              if grep -Fq 'min-width:720px!important' "$asset"; then ok=0; fi
+              rm -f "$asset"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1110 packaging hotfix live in production and TESTSERVICE.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1110 live verification failed.' >&2
+          exit 1
