@@ -100,9 +100,12 @@ function currentSiteLanguage(){return profileLanguage()}
 function setSiteLanguage(lang){
  lang=normalizedLanguage(lang)||'de';
  if(typeof document!=='undefined'){
-  var nativeSelect=document.getElementById('languageSelect');if(nativeSelect&&nativeSelect.value!==lang)nativeSelect.value=lang;
-  try{if(typeof window.rc455SetLanguage==='function')window.rc455SetLanguage(lang);else if(typeof window.setLanguage==='function')window.setLanguage(lang);else document.documentElement.lang=lang}catch(_){document.documentElement.lang=lang}
-  try{window.dispatchEvent(new CustomEvent('exporthub:site-language-changed',{detail:{language:lang}}))}catch(_){try{window.dispatchEvent(new Event('exporthub:site-language-changed'))}catch(__){}}
+  var nativeSelect=document.getElementById('languageSelect'),current='';
+  try{current=normalizedLanguage(window.__rc455I18nTest&&typeof window.__rc455I18nTest.language==='function'?window.__rc455I18nTest.language():(nativeSelect&&nativeSelect.value))}catch(_){current=normalizedLanguage(nativeSelect&&nativeSelect.value)}
+  if(nativeSelect&&nativeSelect.value!==lang)nativeSelect.value=lang;
+  if(current!==lang){try{if(typeof window.rc455SetLanguage==='function')window.rc455SetLanguage(lang);else if(typeof window.setLanguage==='function')window.setLanguage(lang);else document.documentElement.lang=lang}catch(_){document.documentElement.lang=lang}
+   try{window.dispatchEvent(new CustomEvent('exporthub:site-language-changed',{detail:{language:lang}}))}catch(_){try{window.dispatchEvent(new Event('exporthub:site-language-changed'))}catch(__){}}
+  }else document.documentElement.lang=lang
  }
  return lang
 }
