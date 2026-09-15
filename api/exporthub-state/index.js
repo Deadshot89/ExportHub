@@ -1177,3 +1177,4 @@ module.exports=async function(context,req){
   context.res=json(e&&(e.status||e.statusCode)?Number(e.status||e.statusCode):500,{ok:false,code:e&&e.code?e.code:'SERVER_ERROR',message:e&&e.message?e.message:'Unbekannter Speicherfehler.'});
  }
 };
+module.exports.__rc1115Test=Object.freeze({backupRestoreSelfTest,isoAuditStatus,isoEvidenceBlobName});
