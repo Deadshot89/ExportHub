@@ -16,6 +16,8 @@ function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.page||'')}
 function historyView(){var v=view();return v==='history'||v==='historie'}
+function historyHost(){return d.getElementById('content')||d.querySelector('main')||null}
+function clearHistoryShell(){var host=historyHost();if(!host)return;host.classList.remove('rc1082-history-view');if(low(host.getAttribute('data-exporthub-rendered-view')||'')==='history')host.removeAttribute('data-exporthub-rendered-view')}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(v){var raw=q(v);if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){var p=raw.split('-').map(Number);return new Intl.DateTimeFormat('de-DE',{dateStyle:'short'}).format(new Date(p[0],p[1]-1,p[2]))}var x=new Date(v);if(!Number.isFinite(x.getTime()))return raw||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(x)}
 function identity(sh){return q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber)).toUpperCase()}
@@ -262,9 +264,9 @@ function printHistory(){
 }
 function render(){
  var old=d.getElementById('rc1081AuditHistory');
- if(!historyView()){if(old)old.remove();return false}
- var host=d.getElementById('content')||d.querySelector('main')||d.body;if(!host)return false;
- if(!old){host.innerHTML='';host.classList.add('rc1082-history-view');host.setAttribute('data-exporthub-rendered-view','history');old=d.createElement('section');old.id='rc1081AuditHistory';old.className='card rc1084-history';host.appendChild(old)}
+ if(!historyView()){if(old)old.remove();clearHistoryShell();return false}
+ var host=historyHost()||d.body;if(!host)return false;
+ if(!old){var rendered=low(host.getAttribute('data-exporthub-rendered-view')||host.getAttribute('data-view')||'');if(rendered&&rendered!=='history')return false;host.innerHTML='';host.classList.add('rc1082-history-view');host.setAttribute('data-exporthub-rendered-view','history');old=d.createElement('section');old.id='rc1081AuditHistory';old.className='card rc1084-history';host.appendChild(old)}
  var events=allEvents(),actors=actorList(events),actions=actionList(events),filtered=filterEvents(events),
      entities=Array.from(new Set(events.map(function(e){return q(e.entity)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')});
  var typeOptions=[['all','Alle Bereiche'],['shipment','Sendungen'],['customer','Kunden'],['task','Aufgaben'],['pallet','Palettenkonto'],['audit','Benutzer & System']].map(function(x){return'<option value="'+x[0]+'"'+(FILTER.type===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('');
