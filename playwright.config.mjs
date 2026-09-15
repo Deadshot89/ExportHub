@@ -2,6 +2,7 @@ import {defineConfig} from '@playwright/test';
 
 const live=process.env.EXPORTHUB_E2E_LIVE==='1';
 const baseURL=process.env.EXPORTHUB_E2E_URL||'http://127.0.0.1:4173/demo.html';
+const appDir=process.env.EXPORTHUB_E2E_APP_DIR||'dist-rc1112';
 
 export default defineConfig({
   testDir:'./e2e/specs',
@@ -30,7 +31,7 @@ export default defineConfig({
     {name:'desktop',use:{viewport:{width:1920,height:1080}}}
   ],
   webServer:live?undefined:{
-    command:'python3 -m http.server 4173 --directory dist-rc1112',
+    command:'python3 -m http.server 4173 --directory '+appDir,
     url:'http://127.0.0.1:4173/demo.html',
     reuseExistingServer:false,
     timeout:30000
