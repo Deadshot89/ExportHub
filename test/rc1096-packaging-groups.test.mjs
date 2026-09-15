@@ -13,6 +13,14 @@ test('RC1096: Verpackungsauswahl wird in drei feste Gruppen gegliedert',()=>{
   assert.match(runtime,/@media\(max-width:720px\)/);
 });
 
+test('RC1096: Verpackungsoptionen bleiben lesbar und werden nicht durch altes Grid zerlegt',()=>{
+  assert.match(runtime,/display:block!important/);
+  assert.match(runtime,/white-space:normal!important/);
+  assert.match(runtime,/overflow-wrap:break-word!important/);
+  assert.match(runtime,/min-width:0!important/);
+  assert.match(runtime,/grid-template-columns:none!important/);
+});
+
 test('RC1096: E-Nummern gehören zu Pakete und Paletten werden separat erkannt',()=>{
   assert.match(runtime,/\^e\\s\*\\d\+/i);
   assert.match(runtime,/karton\|kartons\|paket\|pakete\|box\|boxes\|carton\|cartons/);
