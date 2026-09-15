@@ -14,3 +14,13 @@ test('RC1112: Paketversion bleibt mit der sichtbaren Release-Version synchron',(
   const pkg=JSON.parse(read('package.json'));
   assert.equal(pkg.version,'1.0.0-rc1112');
 });
+
+
+test('RC1112: eigener Drei-Umgebungen-Build bleibt auf der geprüften RC1048-Basis',()=>{
+  const build=read('.github/rc1112/build-three-env.mjs');
+  assert.match(build,/const VERSION='RC1112'/);
+  assert.match(build,/dist-rc1112/);
+  assert.match(build,/\.github\/rc1048\/build-three-env\.mjs/);
+  assert.match(build,/dist-rc1048/);
+  assert.match(build,/rc1074-login-clean\.js\?v=1112/);
+});
