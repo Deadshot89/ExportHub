@@ -42,7 +42,15 @@ jobs:
               if "window.open('about:blank'" in block:
                   print('ABOUTBLANK_SCRIPT_BLOCK',m.start(),m.end(),'rc1059 unsafe?', '<script src="assets/rc1059-document-blob.js?v=RC1059"></script>' in block,'safe?', '<script src="assets/rc1059-document-blob.js?v=RC1059"><\\/script>' in block)
           # show the exact neighborhood of the second print payload
-          i=s.find("window.open('about:blank'",4750000)
-          print('SECOND_ABOUT',i)
-          if i>=0: print(s[max(0,i-1600):i+2200])
+          positions=[m.start() for m in re.finditer(re.escape("window.open('about:blank'"),s)]
+          print('ABOUT_POSITIONS',positions)
+          for n,i in enumerate(positions,1):
+              opens=[m.start() for m in re.finditer(r'<script\\b',s[:i],re.I)]
+              closes=[m.start() for m in re.finditer(r'</script\\s*>',s[:i],re.I)]
+              po=opens[-1] if opens else -1; pc=closes[-1] if closes else -1
+              print('ABOUT',n,'AT',i,'PREV_OPEN',po,'PREV_CLOSE',pc,'INSIDE',po>pc)
+              print('---CONTEXT',n,'---')
+              print(s[max(0,i-2800):i+3600])
+              print('---PREV_CLOSE_CONTEXT',n,'---')
+              print(s[max(0,pc-1800):min(len(s),pc+2400)] if pc>=0 else '')
           PY
