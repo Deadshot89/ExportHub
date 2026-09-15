@@ -68,7 +68,7 @@ test('RC1118: Historie darf eine bereits gerenderte Fachansicht niemals leeren',
 
 test('RC1087: finaler Build lädt Historie als eigenen Reiter in Produktion TESTSERVICE und Demo',()=>{
   assert.match(build,/RC1081_AUDIT_HISTORY_TAG/);
-  assert.match(build,/assets\/rc1081-audit-history\.js\?v=1087/);
+  assert.match(build,/assets\/rc1081-audit-history\.js\?v=1118/);
   assert.match(build,/auditHistory:\{version:'RC1087'/);
   assert.match(build,/view:'history'/);
   assert.match(build,/view:'history',label:'Historie',right:'history'/);
