@@ -2,6 +2,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const authPolicy = require('../shared/auth-store');
 const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
@@ -228,15 +229,17 @@ async function readAuthCached(c){
 }
 function resolveSessionFromAuth(token,authDoc){
  const sessions=Array.isArray(authDoc&&authDoc.value&&authDoc.value.sessions)?authDoc.value.sessions:[],hash=tokenHash(token);let session=sessions.find(s=>safeEqualText(s.tokenHash,hash)),source='blob';
- if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}}
+ if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),lastSeenAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}}
  if(!session)throw error('SESSION_INVALID','Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.',401);
  if(session.revokedAt)throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
- if(Date.parse(session.expiresAt||'')<=Date.now())throw error('SESSION_INVALID','Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.',401);
+ const validationNow=Date.now();
+ if(!authPolicy.sessionIsActive(session,validationNow)){const idleExpired=authPolicy.sessionIdleExpiresAt(session)>0&&authPolicy.sessionIdleExpiresAt(session)<=validationNow;throw error(idleExpired?'SESSION_IDLE_TIMEOUT':'SESSION_INVALID',idleExpired?'Die Sitzung wurde wegen Inaktivität beendet. Bitte erneut anmelden.':'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.',401)}
  return {session,source}
 }
 async function validateSessionAuthOnly(req,payload,c){
  const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
  const authDoc=await readAuthCached(c),resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,username=text(session.username)||'Benutzer';
+ await authPolicy.touchSessionActivity(token,session,resolved.source);
  return {token,session,sessionSource:resolved.source,user:{id:text(session.userId),name:username,user:username,username}}
 }
 async function validateSession(req,payload,c){
@@ -251,6 +254,7 @@ async function validateSession(req,payload,c){
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);
  if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
  if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);
+ await authPolicy.touchSessionActivity(token,session,source);
  return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true,timing:{authMs,authCache,teamMs,validationMs:Date.now()-validationStarted,teamCache:teamDoc.cacheMode||'unknown'}};
 }
 function clientStateForRead(state){
