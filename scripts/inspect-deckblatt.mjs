@@ -1,19 +1,30 @@
 import fs from 'node:fs';
 
 const html=fs.readFileSync('index.html','utf8');
-const needles=['Deckblatt','DECKBLATT','Gesamtdruck','Gesamtausgabe','printAll','print-all','window.open','about:blank'];
 console.log('FILE_LENGTH',html.length);
-for(const needle of needles){
+const rx=/Deckblatt/gi;
+let m,i=0;
+while((m=rx.exec(html))){
+  i++;
+  const idx=m.index;
+  const fnAt=html.lastIndexOf('function ',idx);
+  const fn=fnAt>=0&&idx-fnAt<20000?html.slice(fnAt,Math.min(html.length,fnAt+180)).replace(/\s+/g,' '):'';
+  const ctx=html.slice(Math.max(0,idx-700),Math.min(html.length,idx+1100)).replace(/\r?\n/g,'\\n');
+  console.log('DECK_OCCURRENCE',i,'INDEX',idx,'NEAR_FUNCTION',fn);
+  console.log(ctx);
+}
+for(const needle of ['deck','cover','front','title>','printAll','rc363PrintAll','Gesamtdruck','Gesamtausgabe']){
+  const lower=html.toLowerCase(),n=needle.toLowerCase();
   let from=0,count=0;
   while(true){
-    const idx=html.indexOf(needle,from);
+    const idx=lower.indexOf(n,from);
     if(idx<0)break;
     count++;
-    const start=Math.max(0,idx-1800),end=Math.min(html.length,idx+2600);
-    console.log('\n=== '+needle+' #'+count+' @ '+idx+' ===\n');
-    console.log(html.slice(start,end));
-    from=idx+needle.length;
-    if(count>=20)break;
+    if(count<=12){
+      const ctx=html.slice(Math.max(0,idx-420),Math.min(html.length,idx+760)).replace(/\r?\n/g,'\\n');
+      console.log('HIT',needle,count,'INDEX',idx,ctx);
+    }
+    from=idx+n.length;
   }
-  console.log('\nCOUNT '+needle+' '+count);
+  console.log('COUNT',needle,count);
 }
