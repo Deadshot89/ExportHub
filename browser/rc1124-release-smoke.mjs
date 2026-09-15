@@ -28,6 +28,7 @@ const views=[
 ];
 
 function assert(ok,msg){if(!ok)throw new Error(msg)}
+function intersects(box,viewport){return !!box&&!!viewport&&box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height}
 async function waitReady(page){
   await page.waitForFunction(()=>window.__EXPORTHUB_READY__?.ready===true&&document.body,null,{timeout:25000});
   await pause(250);
@@ -50,7 +51,13 @@ async function navItem(page,label){
     page.getByRole('link',{name:label,exact:true}),
     page.getByText(label,{exact:true})
   ]){
-    const x=await visible(loc);if(x)return x;
+    const n=await loc.count();
+    for(let i=n-1;i>=0;i--){
+      const x=loc.nth(i);
+      if(!await x.isVisible().catch(()=>false))continue;
+      const box=await x.boundingBox().catch(()=>null);
+      if(intersects(box,page.viewportSize()))return x;
+    }
   }
   return null;
 }
