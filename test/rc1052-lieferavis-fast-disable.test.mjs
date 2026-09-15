@@ -30,7 +30,8 @@ function harness(){
     async revokeSubject(){revoked++;return{ok:true}},
     async resolve(){return{environment:'production',tokenHash:'hash',record:{subjectId:'DRAFT-1052',shipmentId:'DRAFT-1052',reference:'ABC123',snapshot}}},
     async clearFailures(){return{subjectId:'DRAFT-1052',shipmentId:'DRAFT-1052',reference:'ABC123',snapshot}},
-    issueSession(){return{session:'session-1052',expiresAt:'2026-09-12T12:00:00.000Z'}}
+    async consume(){return{kind:'avis',environment:'production',tokenHash:'hash',subjectId:'DRAFT-1052',shipmentId:'DRAFT-1052',reference:'ABC123',snapshot,usedAt:new Date().toISOString()}},
+    issueSession(){return{session:'session-1052',expiresAt:'2026-10-12T12:00:00.000Z'}}
   };
   const auth={async validateSession(){return{user:{name:'Tester',rights:{shipment:{edit:true}}}}},hasAnyEditRight(){return true},error(code,message,status){const e=new Error(message);e.code=code;e.status=status;return e}};
   const handler=loadCommonJs('api/customer-avis/index.js',{'@azure/storage-blob':azure,'../shared/public-access-store':access,'../shared/fast-auth-store':auth});

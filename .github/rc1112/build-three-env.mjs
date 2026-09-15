@@ -30,12 +30,16 @@ function patchHtml(file){
   if(!html.includes('assets/rc1115-iso-audit.js?v=1115')){
     html=html.replace(/<\/body>/i,'<script id="exporthub-rc1115-iso-audit" defer src="/assets/rc1115-iso-audit.js?v=1115"></script>\n</body>');
   }
+  if(!html.includes('assets/rc1117-country-completion.js?v=1117')){
+    html=html.replace(/<\/body>/i,'<script id="exporthub-rc1117-country-completion" defer src="/assets/rc1117-country-completion.js?v=1117"></script>\n</body>');
+  }
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
   if(!html.includes('assets/rc1115-iso-audit.js?v=1115'))throw new Error(file+': RC1115 ISO-/Audit-Runtime fehlt');
+  if(!html.includes('assets/rc1117-country-completion.js?v=1117'))throw new Error(file+': RC1117 Länder-Vervollständigung fehlt');
   fs.writeFileSync(target,html);
 }
 
@@ -65,6 +69,10 @@ const rc1115IsoSrc=path.join(ROOT,'assets','rc1115-iso-audit.js');
 const rc1115IsoOut=path.join(OUT,'assets','rc1115-iso-audit.js');
 if(!fs.existsSync(rc1115IsoSrc))throw new Error('RC1115 ISO-/Audit-Runtime fehlt');
 fs.copyFileSync(rc1115IsoSrc,rc1115IsoOut);
+const rc1117CountrySrc=path.join(ROOT,'assets','rc1117-country-completion.js');
+const rc1117CountryOut=path.join(OUT,'assets','rc1117-country-completion.js');
+if(!fs.existsSync(rc1117CountrySrc))throw new Error('RC1117 Länder-Vervollständigung fehlt');
+fs.copyFileSync(rc1117CountrySrc,rc1117CountryOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 
 const probeFile=path.join(OUT,'production-version.js');
@@ -87,7 +95,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     stowPlanInstructionsAndPersistence:'RC1113',
     shippingProviderNeutralUi:'RC1114',
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
-    isoSecurityP0:'RC1115 session policy + API contract + backup restore evidence + audit view'
+    isoSecurityP0:'RC1115 session policy + API contract + backup restore evidence + audit view',
+    finalCloseout:'RC1117 one-time avis + country completion + BSH fixed time'
   },
   compatibility:{
     qr:'stable-existing-links',

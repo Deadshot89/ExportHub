@@ -102,6 +102,15 @@
       }
     },
     {
+      "route": "/assets/rc1117-country-completion.js",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
       "route": "/pickup",
       "rewrite": "/pickup.html",
       "allowedRoles": [
