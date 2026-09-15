@@ -17,6 +17,8 @@ jobs:
           package-manager-cache: false
       - name: Build final deploy HTML
         run: node .github/rc1112/build-three-env.mjs
+      - name: Verify final HTML guard
+        run: node .github/rc1121/verify-final-html.mjs
       - name: Diagnose browser-visible source leak
         shell: bash
         run: |
