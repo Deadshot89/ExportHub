@@ -53,6 +53,34 @@ function injectBeforeHeadClose(html,tag,id){
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
 
+function patchDeckblattContrast(html,file){
+  let coverCount=0,refCount=0;
+  let out=html.replace(/\.rc352-cover\{([^}]*)\}/g,function(full,body){
+    if(!/background:#fff(?:;|$)/.test(body))return full;
+    coverCount++;
+    let next=body
+      .replace('background:#fff','background:linear-gradient(180deg,#dbeafe 0,#dbeafe 52mm,#eef6ff 52mm,#eef6ff 100%)')
+      .replace('box-sizing:border-box!important;','box-sizing:border-box!important;border:4mm solid #08245d!important;')
+      .replace('border-radius:14px','border-radius:0')
+      .replace('box-shadow:0 18px 42px rgba(15,23,42,.12)','box-shadow:inset 0 0 0 1.2mm #60a5fa')
+      .replace('padding:12mm','padding:8mm');
+    return '.rc352-cover{'+next+';-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
+  });
+  out=out.replace(/\.rc352-cover-ref\{([^}]*)\}/g,function(full,body){
+    if(!/background:#eff8ff(?:;|$)/.test(body))return full;
+    refCount++;
+    let next=body
+      .replace('background:#eff8ff','background:#08245d')
+      .replace('border:2px solid #60a5fa','border:3px solid #60a5fa');
+    return '.rc352-cover-ref{'+next+';color:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
+  });
+  out=out.replace(/(\.rc352-cover-ref span\{[^}]*?)color:#08245d/g,'$1color:#fff');
+  out=out.replace(/(\.rc352-cover-ref strong\{)/g,'$1color:#fff!important;');
+  if(!coverCount)throw new Error(file+': RC1111 Deckblatt-Grundfläche nicht gefunden');
+  if(!refCount)throw new Error(file+': RC1111 Referenzfeld nicht gefunden');
+  return out;
+}
+
 function patchPackagingGroups(html,file){
   const start=html.indexOf('function packagingList(){');
   const end=start>=0?html.indexOf('}function applyPackaging',start):-1;
@@ -455,6 +483,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchLoadingListPalletAccount(html,file);
   html=patchShipmentOverviewInlineMeta(html,file);
   html=patchPackagingGroups(html,file);
+  html=patchDeckblattContrast(html,file);
   html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1091');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1085');
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
@@ -548,6 +577,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
     customerMailContacts:{version:'RC1092',runtime:'assets/rc1092-customer-mail-contacts.js',actions:['Person speichern','Zur Mail hinzufügen'],separateLibraryAndMailAssignment:true,persistImmediately:true},
     packagingMenu:{version:'RC1110',runtime:'assets/rc1096-packaging-groups.js',columns:['Pakete','Paletten','Sonstiges'],packageCodes:'E0-E6',addsEnvelope:true,responsive:true,nativeRc682Guard:true},
+    deckblattContrast:{version:'RC1111',document:'Deckblatt',paletteVisibility:true,background:'#eef6ff',headerBand:'#dbeafe',border:'#08245d',referenceField:'#08245d',qrDocumentsUnchanged:true,otherDocumentsUnchanged:true},
     loadingListPalletAccount:{version:'RC1095',document:'Ladeliste',onlyEuroPallets:true,label:'Palettenkonto',showsExpectedOutbound:true,cacheIncludesEuroPalletCount:true},
     shipmentHistory:{version:'RC1095',runtime:'assets/rc1071-shipment-history.js',field:'shipmentHistory',merge:'additive-by-event-id',events:['work-start','print','registration','mail','mail-sent','abd','avis','pickup','pod','status']},
     loginScreenClean:{version:'RC1074',runtime:'assets/rc1074-login-clean.js',technicalProgressHidden:true,errorsRemainVisible:true},
