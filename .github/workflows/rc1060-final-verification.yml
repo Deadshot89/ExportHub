@@ -51,5 +51,5 @@ jobs:
           grep -q 'ExportHUB RC1013 environment=testservice' dist-rc1013/TESTVERSION.html
           grep -q 'ExportHUB RC1013 environment=demo' dist-rc1013/demo.html
           grep -q "version:'RC1013'" dist-rc1013/index.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
           git diff --check
