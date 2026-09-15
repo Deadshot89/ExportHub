@@ -3,13 +3,22 @@ import path from 'node:path';
 
 const ROOT=process.cwd();
 const OUT=path.join(ROOT,'dist-rc1112');
-const FILES=['index.html','TESTVERSION.html','demo.html'];
+const ARGS=process.argv.slice(2);
+const FILES=ARGS.length?ARGS.map(p=>path.resolve(ROOT,p)):[
+  path.join(OUT,'index.html'),
+  path.join(OUT,'TESTVERSION.html'),
+  path.join(OUT,'demo.html')
+];
 const LEAKS=[
   /RC824_SOP_DETAILS/,
   /window\.rc524OpenTaskEditor/,
   /function\s+rc824SopList\s*\(/,
   /var\s+rightsModules\s*=/,
-  /window\.rc524PalletReport\s*=/
+  /window\.rc524PalletReport\s*=/,
+  /window\.open\(['"]about:blank['"]/,
+  /function\s+normalizeActionButtons\s*\(/,
+  /function\s+activateQr\s*\(/,
+  /\/\*\s*exporthub-rc898-dashboard-only-compact-shipment-inline-avis\s*\*\//
 ];
 function outsideExecutableBlocks(source){
   return source
@@ -17,23 +26,39 @@ function outsideExecutableBlocks(source){
     .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi,' ')
     .replace(/<!--[\s\S]*?-->/g,' ');
 }
-function verify(file){
-  const p=path.join(OUT,file),html=fs.readFileSync(p,'utf8'),outside=outsideExecutableBlocks(html);
-  for(const rx of LEAKS){if(rx.test(outside))throw new Error(file+': sichtbarer JavaScript-Code außerhalb <script>: '+rx);}
-  const body=html.toLowerCase().lastIndexOf('</body>');
-  if(body<0)throw new Error(file+': echtes </body> fehlt');
+function count(source,needle){
+  return source.split(needle).length-1;
+}
+function verify(p){
+  const file=path.basename(p),html=fs.readFileSync(p,'utf8'),outside=outsideExecutableBlocks(html);
+  for(const rx of LEAKS){
+    if(rx.test(outside))throw new Error(file+': sichtbarer JavaScript-Code außerhalb <script>: '+rx);
+  }
+  const headOpen=/<head\b[^>]*>/i.exec(html);
+  if(!headOpen)throw new Error(file+': <head> fehlt');
+  const headClose=html.toLowerCase().indexOf('</head>',headOpen.index+headOpen[0].length);
+  if(headClose<0)throw new Error(file+': </head> fehlt');
   for(const id of ['exporthub-rc1113-stowplan-persist','exporthub-rc1114-shipping-neutral']){
-    const at=html.lastIndexOf('id="'+id+'"');
-    if(at<0)throw new Error(file+': '+id+' fehlt');
-    if(at>body)throw new Error(file+': '+id+' steht hinter </body>');
-    if(body-at>2500)throw new Error(file+': '+id+' wurde nicht am echten Seitenende eingefügt');
+    const needle='id="'+id+'"',n=count(html,needle);
+    if(n!==1)throw new Error(file+': '+id+' muss exakt 1x vorkommen, gefunden '+n);
+    const at=html.indexOf(needle);
+    if(at<headOpen.index||at>headClose)throw new Error(file+': '+id+' steht nicht im echten <head>');
   }
-  const pallet=html.indexOf('Palettenreport');
-  const sop=html.indexOf('RC824_SOP_DETAILS');
-  if(pallet>=0&&sop>pallet){
-    const middle=html.slice(pallet,sop);
-    if(/exporthub-rc1113-stowplan-persist|exporthub-rc1114-shipping-neutral/.test(middle))throw new Error(file+': Runtime-Script steckt im Palettenreport-String');
+  const stow=html.indexOf('function printStow(){');
+  const stowEnd=stow>=0?html.indexOf('function normalizeActionButtons',stow):-1;
+  if(stow>=0&&stowEnd>stow){
+    const block=html.slice(stow,stowEnd);
+    if(/exporthub-rc1113-stowplan-persist|exporthub-rc1114-shipping-neutral/.test(block)){
+      throw new Error(file+': RC1113/RC1114 Runtime steckt im Stauplan-Druckstring');
+    }
+    const unsafe=(block.match(/<\/script\s*>/gi)||[]).length;
+    if(unsafe)throw new Error(file+': Stauplan-Druckblock enthält '+unsafe+' echtes </script>');
+    if(block.includes('rc1059-document-blob.js')&&!/<\\\/script>/.test(block)){
+      throw new Error(file+': rc1059 Loader ist im Stauplan nicht als <\\/script> escaped');
+    }
   }
-  console.log(file+': finaler HTML-/Script-Vertrag OK');
+  const codeLike=outside.match(/(?:^|\n)\s*(?:function\s+[A-Za-z_$][\w$]*\s*\(|var\s+[A-Za-z_$][\w$]*\s*=|window\.[A-Za-z_$][\w$]*\s*=|\/\*\s*exporthub-)/m);
+  if(codeLike)throw new Error(file+': generischer sichtbarer Code-Leak: '+codeLike[0].slice(0,160));
+  console.log(file+': vollständiger finaler HTML-/Script-Vertrag OK');
 }
 for(const file of FILES)verify(file);
