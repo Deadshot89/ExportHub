@@ -101,3 +101,25 @@ test('RC1115: Beispielkonfiguration dokumentiert sichere Sitzungsgrenzen',()=>{
   assert.equal(cfg.EXPORTHUB_SESSION_TOUCH_MINUTES,'5');
   assert.equal(Object.prototype.hasOwnProperty.call(cfg,'EXPORTHUB_SESSION_DAYS'),false);
 });
+
+test('RC1115: öffentliche Diagnose liefert Konfigurationsdetails nur nach Admin-Session',()=>{
+  const probe=read('api/exporthub-auth-probe/index.js');
+  assert.match(probe,/hasExplicitSession\(req\)/);
+  assert.match(probe,/validateSession\(req/);
+  assert.match(probe,/isAdmin\(current\.user\)/);
+  assert.match(probe,/result\.adminDiagnostics=true/);
+});
+
+test('RC1115: Passwort- und Browser-Sicherheitsbasis ist gehärtet',()=>{
+  const auth=read('api/shared/auth-store.js');
+  assert.match(auth,/value\.length < 10/);
+  const prod=JSON.parse(read('staticwebapp.config.json')).globalHeaders||{};
+  const testservice=JSON.parse(read('staticwebapp.testservice.config.json')).globalHeaders||{};
+  for(const headers of [prod,testservice]){
+    assert.equal(headers['X-Frame-Options'],'DENY');
+    assert.match(headers['Content-Security-Policy']||'',/frame-ancestors 'none'/);
+    assert.match(headers['Content-Security-Policy']||'',/object-src 'none'/);
+    assert.equal(headers['X-Content-Type-Options'],'nosniff');
+    assert.match(headers['Permissions-Policy']||'',/camera=\(\)/);
+  }
+});
