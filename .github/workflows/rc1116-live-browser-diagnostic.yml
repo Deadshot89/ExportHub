@@ -1,0 +1,54 @@
+name: RC1116 Live Browser Diagnose
+
+on:
+  push:
+    branches:
+      - diag-live-startup-rc1116
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Diagnose production startup
+        run: |
+          cat > /tmp/diag.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const url='https://wonderful-forest-0f315e310.7.azurestaticapps.net/';
+          const browser=await chromium.launch({headless:true});
+          const context=await browser.newContext();
+          const page=await context.newPage();
+          const events=[];
+          page.on('console',m=>events.push({type:'console:'+m.type(),text:m.text()}));
+          page.on('pageerror',e=>events.push({type:'pageerror',text:e.stack||e.message}));
+          page.on('requestfailed',r=>events.push({type:'requestfailed',text:r.url()+' :: '+(r.failure()?.errorText||'')}));
+          page.on('response',r=>{if(r.status()>=400)events.push({type:'http:'+r.status(),text:r.url()})});
+          let navError='';
+          try{await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000})}catch(e){navError=e.stack||e.message}
+          await page.waitForTimeout(5000);
+          const info=await page.evaluate(()=>({
+            title:document.title,
+            readyState:document.readyState,
+            bodyText:(document.body?.innerText||'').slice(0,3000),
+            loginHidden:document.getElementById('login')?.classList.contains('hidden')??null,
+            appHidden:document.getElementById('app')?.classList.contains('hidden')??null,
+            loginExists:!!document.getElementById('login'),
+            appExists:!!document.getElementById('app'),
+            cleanStatus:document.getElementById('cleanLoginStatus')?.textContent||'',
+            htmlClass:document.documentElement.className
+          }));
+          console.log('NAV_ERROR',navError);
+          console.log('INFO',JSON.stringify(info,null,2));
+          console.log('EVENTS',JSON.stringify(events,null,2));
+          await browser.close();
+          if(navError||events.some(e=>e.type==='pageerror'))process.exitCode=2;
+          EOF
+          node /tmp/diag.mjs
