@@ -133,7 +133,12 @@ try{
     const runtime=[];
     page.on('pageerror',e=>runtime.push('pageerror: '+e.message));
     page.on('console',m=>{if(m.type()==='error'&&!/favicon\.ico|Failed to load resource/i.test(m.text()))runtime.push('console: '+m.text())});
-    page.on('requestfailed',r=>{if(!/favicon\.ico/i.test(r.url()))runtime.push('requestfailed: '+r.url()+' '+(r.failure()?.errorText||''))});
+    page.on('response',r=>{if(r.status()>=400&&!/favicon\.ico/i.test(r.url()))runtime.push('http '+r.status()+': '+r.url())});
+    page.on('requestfailed',r=>{
+      const reason=r.failure()?.errorText||'';
+      if(/favicon\.ico/i.test(r.url())||/ERR_ABORTED/i.test(reason))return;
+      runtime.push('requestfailed: '+r.url()+' '+reason);
+    });
     await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:35000});
     await waitReady(page);
     if(vp.name==='smartphone')await page.waitForSelector('#rc1016MobileMenuBtn',{state:'visible',timeout:7000});
