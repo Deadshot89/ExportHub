@@ -20,7 +20,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Diagnose production startup
         run: |
-          cat > /tmp/diag.mjs <<'EOF'
+          cat > diag-live.mjs <<'EOF'
           import { chromium } from 'playwright';
           const url='https://wonderful-forest-0f315e310.7.azurestaticapps.net/';
           const browser=await chromium.launch({headless:true});
@@ -51,4 +51,4 @@ jobs:
           await browser.close();
           if(navError||events.some(e=>e.type==='pageerror'))process.exitCode=2;
           EOF
-          node /tmp/diag.mjs
+          node diag-live.mjs
