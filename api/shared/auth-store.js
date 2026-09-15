@@ -352,6 +352,27 @@ function bearer(req) {
   const match = String(value).match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : '';
 }
+async function touchSessionActivity(token, session, source) {
+  if (source !== 'blob' || !session || !token) return false;
+  const lastSeen = Date.parse(session.lastSeenAt || session.createdAt || '');
+  if (Number.isFinite(lastSeen) && Date.now() - lastSeen < SESSION_TOUCH_MINUTES * 60000) return false;
+  const touchedAt = now();
+  try {
+    const changed = await mutateAuth((document) => {
+      const target = (document.sessions || []).find((item) => text(item.id) === text(session.id) && safeEqualText(item.tokenHash, tokenHash(token)));
+      if (!target) return false;
+      target.lastSeenAt = touchedAt;
+      return true;
+    });
+    if (changed && changed.result) {
+      session.lastSeenAt = touchedAt;
+      return true;
+    }
+  } catch (_) {
+    // Activity bookkeeping must not interrupt an otherwise valid business request.
+  }
+  return false;
+}
 async function createSession(user, deviceId, mustChange) {
   const session = {
     id: randomId('SES'),
@@ -391,20 +412,7 @@ async function validateSession(req, options = {}) {
   if (!user || !isActive(user)) throw error('ACCOUNT_DISABLED', 'Das Benutzerkonto ist deaktiviert.', 403);
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
   if ((session.mustChange || user.mustChange) && !options.allowPasswordChange) throw error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
-  const lastSeen = Date.parse(session.lastSeenAt || session.createdAt || '');
-  if (resolved.source === 'blob' && (!Number.isFinite(lastSeen) || validationNow - lastSeen >= SESSION_TOUCH_MINUTES * 60000)) {
-    const touchedAt = now();
-    try {
-      await mutateAuth((document) => {
-        const target = (document.sessions || []).find((item) => text(item.id) === text(session.id) && safeEqualText(item.tokenHash, tokenHash(token)));
-        if (target) target.lastSeenAt = touchedAt;
-        return Boolean(target);
-      });
-      session.lastSeenAt = touchedAt;
-    } catch (_) {
-      // A failed activity touch must not interrupt a valid business transaction.
-    }
-  }
+  await touchSessionActivity(token, session, resolved.source);
   return { token, session, user, team, teamEtag: teamDoc.etag };
 }
 function hasAnyEditRight(user) {
@@ -441,6 +449,6 @@ module.exports = {
   sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
   passwordPolicy, passwordWasUsed, setPassword, generatedPassword, addAudit,
-  mutateTeam, mutateAuth, bearer, cookieToken, sessionCookie, createSession, validateSession, hasAnyEditRight,
+  mutateTeam, mutateAuth, bearer, cookieToken, sessionCookie, touchSessionActivity, createSession, validateSession, hasAnyEditRight,
   adminCount, findUser, sanitizeDocumentForClient, revokeUserSessions, safeEqualText
 };
