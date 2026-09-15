@@ -79,6 +79,7 @@ function normalizeUser(user, index) {
   source.login = login;
   source.username = login;
   source.name = text(source.name) || login;
+  source.language = /^en(?:[-_]|$)/i.test(text(source.language || source.uiLanguage || source.locale)) ? 'en' : 'de';
   source.globalAdmin = admin;
   source.role = admin ? 'Globaler Administrator' : (text(source.role) || 'Benutzer');
   source.permissions = admin ? ['*'] : (Array.isArray(source.permissions) ? source.permissions.filter((x) => x !== '*') : []);
@@ -122,6 +123,7 @@ function publicUser(user, adminView = false) {
     login: u.login,
     username: u.username,
     name: u.name,
+    language: u.language || 'de',
     role: u.role,
     globalAdmin: u.globalAdmin === true,
     permissions: clone(u.permissions || []),
