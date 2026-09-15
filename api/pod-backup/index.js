@@ -1,17 +1,111 @@
 'use strict';
-const https=require('https');
-const crypto=require('crypto');
-const accessStore=require('../shared/public-access-store');
-const store=require('../shared/pickup-store');
-function text(v){return String(v==null?'':v).replace(/[\u0000-\u001f\u007f]/g,' ').trim()}
-function json(status,body){return store.json(status,body)}
-function request(url,opt,body){return new Promise((resolve,reject)=>{const u=new URL(url),r=https.request({method:opt.method||'GET',hostname:u.hostname,path:u.pathname+u.search,headers:opt.headers||{}},res=>{const chunks=[];res.on('data',c=>chunks.push(Buffer.from(c)));res.on('end',()=>resolve({status:res.statusCode||500,headers:res.headers,body:Buffer.concat(chunks)}))});r.on('error',reject);r.setTimeout(60000,()=>r.destroy(new Error('GRAPH_TIMEOUT')));if(body)r.write(body);r.end()})}
-async function graphToken(){const tenant=text(process.env.EXPORTHUB_GRAPH_TENANT_ID),client=text(process.env.EXPORTHUB_GRAPH_CLIENT_ID),secret=text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);if(!tenant||!client||!secret)throw store.err('GRAPH_NOT_CONFIGURED','Microsoft-Graph-Zugangsdaten für die POD-Sicherung sind nicht vollständig konfiguriert.',503);const form=new URLSearchParams({client_id:client,client_secret:secret,scope:'https://graph.microsoft.com/.default',grant_type:'client_credentials'}).toString(),r=await request('https://login.microsoftonline.com/'+encodeURIComponent(tenant)+'/oauth2/v2.0/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(form)}},Buffer.from(form));let d={};try{d=JSON.parse(r.body.toString('utf8'))}catch(_){}if(r.status<200||r.status>=300||!d.access_token)throw store.err('GRAPH_AUTH_FAILED',d.error_description||d.error||('Microsoft-Graph-Anmeldung HTTP '+r.status),502);return d.access_token}
-function safeName(v){return(text(v)||'POD.pdf').replace(/[\\/:*?"<>|#%]/g,'_').replace(/\s+/g,' ').slice(0,150)}
-function encodedPath(folder,name){return String(folder||'').split('/').filter(Boolean).map(encodeURIComponent).concat([encodeURIComponent(name)]).join('/')}
-module.exports=async function(context,req){
- if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return}if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
- try{const b=req.body&&typeof req.body==='object'?req.body:{},rawToken=text(b.token),resolved=await accessStore.resolve(req,'pickup',rawToken,{allowUsed:true},b),got=await store.getRecord(resolved.tokenHash,resolved.environment),rec=got.record||{};if(!rec.confirmedAt)throw store.err('PICKUP_NOT_CONFIRMED','Die Abholung ist serverseitig noch nicht bestätigt.',409);if(!rec.signatureBlobName)throw store.err('SIGNATURE_NOT_FOUND','Es ist keine echte Fahrerunterschrift für die POD-Sicherung gespeichert.',409);const reference=text(b.reference).toUpperCase();if(reference&&text(rec.reference).toUpperCase()&&reference!==text(rec.reference).toUpperCase())throw store.err('REFERENCE_MISMATCH','Referenz stimmt nicht mit dem bestätigten Abholdatensatz überein.',409);const raw=String(b.pdfBase64||'').replace(/\s+/g,'');if(!raw)throw store.err('PDF_REQUIRED','POD-PDF fehlt.',400);let pdf;try{pdf=Buffer.from(raw,'base64')}catch(_){throw store.err('PDF_INVALID','POD-PDF ist ungültig.',400)}if(pdf.length<1000||pdf.slice(0,5).toString('ascii')!=='%PDF-')throw store.err('PDF_INVALID','Nur ein vollständiges PDF kann gesichert werden.',400);if(pdf.length>20*1024*1024)throw store.err('PDF_TOO_LARGE','POD-PDF ist größer als 20 MB.',413);
-  const driveUser=text(process.env.EXPORTHUB_POD_DRIVE_USER)||'tobiaslimberg@essentra.com',folder=text(process.env.EXPORTHUB_POD_FOLDER||'003 Export/ExportHub/Abliefernachweise'),fileName=safeName(b.fileName||('POD_'+(reference||text(rec.reference)||'Sendung')+'_Ladeliste_mit_Unterschrift.pdf')),graphAccess=await graphToken(),url='https://graph.microsoft.com/v1.0/users/'+encodeURIComponent(driveUser)+'/drive/root:/'+encodedPath(folder,fileName)+':/content',r=await request(url,{method:'PUT',headers:{Authorization:'Bearer '+graphAccess,'Content-Type':'application/pdf','Content-Length':pdf.length}},pdf);let d={};try{d=JSON.parse(r.body.toString('utf8'))}catch(_){}if(r.status<200||r.status>=300)throw store.err('GRAPH_UPLOAD_FAILED',d&&d.error&&(d.error.message||d.error.code)||('Microsoft-Graph-Dateiupload HTTP '+r.status),502);context.res=json(200,{ok:true,saved:true,savedAt:new Date().toISOString(),fileName:d.name||fileName,webUrl:d.webUrl||'',driveItemId:d.id||'',hash:crypto.createHash('sha256').update(pdf).digest('hex'),version:'RC995'})
- }catch(e){context.log&&context.log.error&&context.log.error('pod-backup RC995',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'POD-Sicherung ist fehlgeschlagen.'})}
+
+const crypto = require('crypto');
+const accessStore = require('../shared/public-access-store');
+const store = require('../shared/pickup-store');
+const podArchive = require('../shared/pod-archive');
+const graphDrive = require('../shared/graph-drive');
+
+function text(v) {
+  return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
+}
+function json(status, body) {
+  return store.json(status, body);
+}
+function decodePdf(value) {
+  const raw = String(value || '').replace(/\s+/g, '');
+  if (!raw) return null;
+  let pdf;
+  try { pdf = Buffer.from(raw, 'base64'); } catch (_) { throw store.err('PDF_INVALID', 'POD-PDF ist ungültig.', 400); }
+  if (pdf.length < 1000 || pdf.slice(0, 5).toString('ascii') !== '%PDF-') throw store.err('PDF_INVALID', 'Nur ein vollständiges PDF kann gesichert werden.', 400);
+  if (pdf.length > 20 * 1024 * 1024) throw store.err('PDF_TOO_LARGE', 'POD-PDF ist größer als 20 MB.', 413);
+  return pdf;
+}
+
+module.exports = async function(context, req) {
+  if (req.method === 'OPTIONS') {
+    context.res = { status: 204, headers: { Allow: 'POST, OPTIONS', 'Cache-Control': 'no-store' }, body: '' };
+    return;
+  }
+  if (req.method !== 'POST') {
+    context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: 'Nur POST ist erlaubt.' });
+    return;
+  }
+
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const rawToken = text(body.token);
+    const resolved = await accessStore.resolve(req, 'pickup', rawToken, { allowUsed: true }, body);
+    const accessKey = resolved.resourceKey || resolved.tokenHash;
+    let got = await store.getRecord(accessKey, resolved.environment);
+    let record = got.record || {};
+
+    const complete = typeof store.pickupComplete === 'function' ? store.pickupComplete(record) : !!record.confirmedAt;
+    if (!complete || !record.confirmedAt) throw store.err('PICKUP_NOT_CONFIRMED', 'Die Abholung ist serverseitig noch nicht bestätigt.', 409);
+    if (!record.signatureBlobName) throw store.err('SIGNATURE_NOT_FOUND', 'Es ist keine echte Fahrerunterschrift für die POD-Sicherung gespeichert.', 409);
+
+    const reference = text(body.reference).toUpperCase();
+    if (reference && text(record.reference).toUpperCase() && reference !== text(record.reference).toUpperCase()) {
+      throw store.err('REFERENCE_MISMATCH', 'Referenz stimmt nicht mit dem bestätigten Abholdatensatz überein.', 409);
+    }
+
+    const suppliedPdf = decodePdf(body.pdfBase64);
+    let result;
+    if (suppliedPdf) {
+      const fileName = graphDrive.safeFileName(body.fileName || podArchive.fileNameFor(record));
+      const drive = await graphDrive.uploadPdf(suppliedPdf, fileName);
+      const hash = crypto.createHash('sha256').update(suppliedPdf).digest('hex');
+      record = await store.mutateRecord(accessKey, resolved.environment, function(next) {
+        next.podBackup = Object.assign({}, next.podBackup || {}, {
+          status: 'saved',
+          driveSaved: true,
+          driveSavedAt: store.now(),
+          lastAttemptAt: store.now(),
+          attempts: Math.max(0, Number(next.podBackup && next.podBackup.attempts) || 0) + 1,
+          driveItemId: drive.id || '',
+          webUrl: drive.webUrl || '',
+          fileName: drive.name || fileName,
+          hash,
+          lastError: ''
+        });
+        next.updatedAt = store.now();
+        return next;
+      });
+      result = { backup: record.podBackup || {}, driveSaved: true, file: { name: drive.name || fileName, hash } };
+    } else {
+      const existing = podArchive.automaticPod(record);
+      result = existing
+        ? await podArchive.retryDriveBackup(accessKey, resolved.environment)
+        : await podArchive.ensureAutomaticPod(accessKey, resolved.environment, { copyToDrive: true });
+      record = result.record || record;
+    }
+
+    try { await store.updateTeam(record, [], rawToken); } catch (error) {
+      context.log && context.log.error && context.log.error('RC1114 POD team state update failed', error && error.code, error && error.message);
+    }
+
+    const backup = record.podBackup || result.backup || {};
+    context.res = json(200, {
+      ok: true,
+      saved: backup.status === 'saved',
+      azureSaved: backup.azureSaved === true,
+      driveSaved: backup.driveSaved === true,
+      status: backup.status || 'unknown',
+      savedAt: backup.driveSavedAt || backup.azureSavedAt || store.now(),
+      fileName: backup.fileName || result.file && result.file.name || podArchive.fileNameFor(record),
+      webUrl: backup.webUrl || '',
+      driveItemId: backup.driveItemId || '',
+      hash: backup.hash || result.file && result.file.hash || '',
+      attempts: Math.max(0, Number(backup.attempts) || 0),
+      lastError: backup.lastError || '',
+      version: 'RC1114'
+    });
+  } catch (error) {
+    context.log && context.log.error && context.log.error('pod-backup RC1114', error && error.code, error && error.message);
+    context.res = json(error.status || error.statusCode || 500, {
+      ok: false,
+      code: error.code || 'SERVER_ERROR',
+      message: error.message || 'POD-Sicherung ist fehlgeschlagen.'
+    });
+  }
 };
