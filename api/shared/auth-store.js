@@ -148,7 +148,7 @@ function credentialOf(user) {
 }
 function passwordPolicy(password) {
   const value = String(password || '');
-  if (value.length < 6) return 'Das Passwort muss mindestens 6 Zeichen lang sein.';
+  if (value.length < 10) return 'Das Passwort muss mindestens 10 Zeichen lang sein.';
   if (!/[A-ZÄÖÜ]/.test(value)) return 'Das Passwort muss mindestens einen Großbuchstaben enthalten.';
   if (!/[a-zäöüß]/.test(value)) return 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten.';
   if (!/\d/.test(value)) return 'Das Passwort muss mindestens eine Zahl enthalten.';
