@@ -38,16 +38,18 @@ jobs:
           node --test --test-name-pattern='gemeinsame Drei-Umgebungen-Hülle|Benachrichtigungen und 09-12-15' .github/rc997/android-contract.test.mjs
       - name: RC1003 Drei-Umgebungen-Build ausführen
         run: node .github/rc1003/build-three-env.mjs
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
       - name: Install Android 16 SDK
         shell: bash
         run: |
-          command -v sdkmanager
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager_bin"
+          yes | "$sdkmanager_bin" --licenses >/dev/null || true
+          "$sdkmanager_bin" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
