@@ -10,6 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build branch and verify final HTML
+        run: |
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
       - name: Fetch live production HTML
         shell: bash
         run: |
