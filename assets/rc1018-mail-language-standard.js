@@ -77,8 +77,18 @@ function buildAvisBody(body,url,reference,target,lang){
  var accessLabel=lang==='en'?'Collection notice':'Lieferavis',refLabel=lang==='en'?'Reference':'Referenz',validity=lang==='en'?'The link can be opened again and is automatically deactivated three business days after the actual pickup. Saturday and Sunday are not counted as business days.':'Der Link kann erneut geöffnet werden und wird drei Arbeitstage nach der tatsächlichen Abholung automatisch deaktiviert. Samstag und Sonntag zählen dabei nicht als Arbeitstage.',questions=lang==='en'?'Please contact us if you have any questions.':'Bei Rückfragen stehen wir Ihnen gerne zur Verfügung.';
  return[parts.greeting,line,title,intro,request,accessLabel+':\n'+u,refLabel+': '+q(reference),followup,validity,questions,line,parts.closing].filter(Boolean).join('\n\n')
 }
+function stripCompactAvisLink(text){
+ text=normalizeText(text);
+ text=text.replace(/(?:^|\n)(?:Lieferavis|Collection notice):[ \t]*(?:\n[ \t]*)?https?:\/\/[^\s]+(?=\n|$)/gi,'');
+ return normalizeText(text)
+}
+function buildOwnAvisBody(body,url,lang){
+ lang=normalizedLanguage(lang)||'de';var clean=stripCompactAvisLink(body),details=buildDetailsBody(clean,'own',lang),parts=mailEnvelope(details,lang),u=localizedAvisUrl(url,lang),label=lang==='en'?'Collection notice':'Lieferavis';
+ return[parts.greeting,parts.content,label+': '+u,parts.closing].filter(Boolean).join('\n\n')
+}
 function composeMail(opt){
  opt=opt||{};var target=q(opt.target).toLowerCase()||'customer',lang=normalizedLanguage(opt.lang)||'de',mode=resolveMode(target,!!opt.avisEnabled);
+ if(target==='own'&&opt.avisEnabled&&q(opt.url))return buildOwnAvisBody(opt.body,opt.url,lang);
  if(mode==='avis'&&q(opt.url))return buildAvisBody(opt.body,opt.url,opt.reference,target,lang);
  return buildDetailsBody(opt.body,target,lang)
 }
@@ -135,7 +145,7 @@ function rc1018InjectMailBody(sh,target,body,langOverride){
  var mode=resolveMode(target,avis),source=String(body==null?'':body),url=q(base&&base.link&&base.link(sh)),reference=referenceOf(sh);
  if(mode==='avis'&&url)return composeMail({target:target,lang:lang,body:source,avisEnabled:true,url:url,reference:reference});
  var clean=source;try{if(base&&typeof base.injectMailBody==='function')clean=base.injectMailBody(sh,target,source,lang)}catch(_){}
- return composeMail({target:target,lang:lang,body:clean,avisEnabled:false,url:url,reference:reference})
+ return composeMail({target:target,lang:lang,body:clean,avisEnabled:target==='own'&&avis,url:url,reference:reference})
 }
 function installMailWrapper(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;if(!current)return false;
@@ -145,7 +155,7 @@ function installMailWrapper(){
 function refresh(){if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();patchMailUi()});else{ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();patchMailUi()}}
 function boot(){ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();refresh()}
 
-window.ExportHUBRC1018MailLanguage=Object.freeze({version:'RC1100',resolveLanguage:resolveLanguage,resolveMode:resolveMode,stripAvisBlocks:stripAvisBlocks,stripShipmentDetails:stripShipmentDetails,buildDetailsBody:buildDetailsBody,buildAvisBody:buildAvisBody,localizedAvisUrl:localizedAvisUrl,composeMail:composeMail,setSiteLanguage:setSiteLanguage,profileLanguage:profileLanguage,translations:translations});
+window.ExportHUBRC1018MailLanguage=Object.freeze({version:'RC1112',resolveLanguage:resolveLanguage,resolveMode:resolveMode,stripAvisBlocks:stripAvisBlocks,stripShipmentDetails:stripShipmentDetails,stripCompactAvisLink:stripCompactAvisLink,buildDetailsBody:buildDetailsBody,buildAvisBody:buildAvisBody,buildOwnAvisBody:buildOwnAvisBody,localizedAvisUrl:localizedAvisUrl,composeMail:composeMail,setSiteLanguage:setSiteLanguage,profileLanguage:profileLanguage,translations:translations});
 if(typeof document!=='undefined'){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){window.addEventListener(name,refresh)});
