@@ -11,6 +11,9 @@ function text(value) {
 function safeFilePart(value) {
   return (text(value) || 'Sendung').replace(/[\\/:*?"<>|#%]/g, '_').replace(/\s+/g, '_').slice(0, 90);
 }
+function pdfText(value) {
+  return text(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\xFF]/g, '?');
+}
 function automaticPod(record) {
   return (Array.isArray(record && record.podFiles) ? record.podFiles : []).find(file => String(file && file.kind || '').toLowerCase() === 'automatic-pod') || null;
 }
@@ -22,7 +25,7 @@ function fileNameFor(record) {
   return 'POD_' + ref + suffix + '_Abliefernachweis.pdf';
 }
 function wrap(value, max) {
-  const words = text(value).split(' ').filter(Boolean);
+  const words = pdfText(value).split(' ').filter(Boolean);
   const lines = [];
   let current = '';
   for (const word of words) {
