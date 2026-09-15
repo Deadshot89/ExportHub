@@ -15,10 +15,11 @@ const APPROVED=[
 ].sort((a,b)=>a.localeCompare(b,'de'));
 
 test('RC1078: freigegebener Essentra-FIX-Bestand ist exakt und ohne zusätzliche Systemeinträge',()=>{
-  assert.equal(seed.SEED_VERSION,9);
+  assert.equal(seed.SEED_VERSION,10);
   const actual=seed.defaultsForCompany('ESSENTRA').map(key).sort((a,b)=>a.localeCompare(b,'de'));
   assert.deepEqual(actual,APPROVED);
   assert.equal(actual.some(x=>/^NEFF\|/i.test(x)),false);
+  assert.equal(seed.defaultsForCompany('ESSENTRA').find(x=>x.siteLabel==='BSH Hausgeräte'&&x.weekday===3).note,'Fixzeit 13:00');
 });
 
 test('RC1078: unberührte falsche alte System-FIX-Einträge werden beim Seed-Upgrade entfernt',()=>{
