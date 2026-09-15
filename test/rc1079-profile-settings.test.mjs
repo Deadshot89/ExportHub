@@ -25,13 +25,23 @@ test('RC1079: Benutzername bleibt unverändert und Anzeigename ist begrenzt',()=
   assert.match(block,/DISPLAY_NAME_REQUIRED/);
 });
 
-test('RC1079: Einstellungen zeigen Benutzername read-only und Anzeigename editierbar',()=>{
+test('RC1079: Einstellungen zeigen Benutzername, Anzeigename und persönliche Programmsprache',()=>{
   assert.match(runtime,/Mein Profil/);
   assert.match(runtime,/Benutzername<input data-rc1079-user readonly/);
   assert.match(runtime,/Anzeigename<input data-rc1079-name maxlength="80"/);
-  assert.match(runtime,/Anzeigename speichern/);
+  assert.match(runtime,/Programmsprache<select data-rc1079-language/);
+  assert.match(runtime,/Profil speichern/);
+  assert.match(runtime,/language:language/);
   assert.match(runtime,/action:'update-profile'/);
   assert.match(runtime,/exporthub:user-profile-updated/);
+});
+
+test('RC1079: Sprache wird im Benutzerprofil gespeichert und Deutsch ist der sichere Standard',()=>{
+  const block=auth.slice(auth.indexOf('async function updateProfile'),auth.indexOf('async function adminList'));
+  assert.match(block,/user\.language = nextLanguage/);
+  assert.match(block,/requestedLanguage === 'en' \? 'en' : 'de'/);
+  assert.match(runtime,/applyProfileLanguage/);
+  assert.match(runtime,/rc455SetLanguage/);
 });
 
 test('RC1079: finaler Build lädt die Profilfunktion in allen Umgebungen',()=>{
