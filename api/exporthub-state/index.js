@@ -979,6 +979,126 @@ async function clearDiagnostics(blob,user){
 }
 
 
+function sha256Json(value){return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')}
+function isoEvidenceBlobName(c){return (cleanScalar(c&&c.recoveryPrefix)||'recovery-backups/')+'iso-evidence/last-backup-restore-test.json'}
+async function readIsoRestoreEvidence(c){
+ try{
+  const d=await readJson(c.container.getBlockBlobClient(isoEvidenceBlobName(c)),null,false);
+  return d&&d.value&&typeof d.value==='object'?d.value:null
+ }catch(e){if(e&&e.statusCode===404)return null;return null}
+}
+async function isoAuditStatus(c,current){
+ const team=current&&current.team||emptyTeam(),state=team.state&&typeof team.state==='object'?team.state:{};
+ const [authRead,diag,history,lastRestoreTest]=await Promise.all([
+  readJson(c.auth,emptyAuth(),true),
+  readDiagnostics(c.diagnostics,DIAGNOSTICS_MAX_RECORDS),
+  listHistory(c.container,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery).catch(()=>[]),
+  readIsoRestoreEvidence(c)
+ ]);
+ const users=Array.isArray(team.users)?team.users:[],sessions=Array.isArray(authRead.value&&authRead.value.sessions)?authRead.value.sessions:[],activeSessions=sessions.filter(x=>authPolicy.sessionIsActive(x));
+ const shipments=bestShipmentSet(state),confirmed=shipments.filter(sh=>/abgeholt|confirmed|picked/i.test(lower(sh&&sh.status))||cleanScalar(sh&&sh.confirmedAt));
+ const podSaved=confirmed.filter(sh=>sh&&sh.podBackup&&sh.podBackup.azureSaved===true).length,podDrive=confirmed.filter(sh=>sh&&sh.podBackup&&sh.podBackup.driveSaved===true).length,podOpen=confirmed.filter(sh=>!(sh&&sh.podBackup&&sh.podBackup.azureSaved===true)).length;
+ const diagnosticsRows=Array.isArray(diag.records)?diag.records:[],openErrors=diagnosticsRows.filter(x=>!x.resolvedAt&&lower(x.level)==='error').length,openWarnings=diagnosticsRows.filter(x=>!x.resolvedAt&&lower(x.level)==='warning').length;
+ const auditLog=Array.isArray(state.auditLog)?state.auditLog:[],recoveryBackups=history.filter(x=>x&&x.isBackup&&cleanScalar(x.blobName).startsWith(c.recoveryPrefix)),versionSources=history.filter(x=>x&&(x.versionId||x.snapshot));
+ const activeUsers=users.filter(isActive),admins=activeUsers.filter(isAdmin);
+ return {
+  ok:true,
+  mode:'iso-audit',
+  version:'RC1115',
+  generatedAt:now(),
+  environment:c.environment,
+  summary:{
+   security:openErrors===0&&admins.length>0?'ok':'attention',
+   backup:history.length>0?'ok':'attention',
+   audit:auditLog.length>0?'ok':'attention',
+   pod:podOpen===0?'ok':'attention'
+  },
+  identity:{
+   users:users.length,
+   activeUsers:activeUsers.length,
+   inactiveUsers:users.length-activeUsers.length,
+   globalAdmins:admins.length,
+   activeSessions:activeSessions.length,
+   sessionPolicy:{maxHours:authPolicy.SESSION_MAX_HOURS,idleMinutes:authPolicy.SESSION_IDLE_MINUTES,touchMinutes:authPolicy.SESSION_TOUCH_MINUTES},
+   passwordPolicy:{minimumLength:10,upper:true,lower:true,number:true,reuseBlocked:true}
+  },
+  accessControl:{
+   apiFunctionsClassified:22,
+   apiContract:'RC1115',
+   publicBusinessEndpoints:'token/PIN protected',
+   adminEndpoints:'server-session + role protected'
+  },
+  backup:{
+   sources:history.length,
+   azureVersionSources:versionSources.length,
+   recoveryBackups:recoveryBackups.length,
+   latestSource:history[0]&&{blobName:history[0].blobName||c.teamBlobName,lastModified:history[0].lastModified||null,versioned:!!(history[0].versionId||history[0].snapshot),backup:history[0].isBackup===true}||null,
+   restoreReady:history.length>0,
+   lastRestoreTest:lastRestoreTest||null,
+   lastBusinessRecovery:team.recoveryAudit||null
+  },
+  diagnostics:{
+   total:diag.total||diagnosticsRows.length,
+   openErrors,
+   openWarnings,
+   retentionDays:diag.retentionDays||30,
+   updatedAt:diag.updatedAt||null
+  },
+  audit:{
+   entries:auditLog.length,
+   retentionDays:365,
+   lastAt:auditLog.length?auditLog[auditLog.length-1].at||null:null
+  },
+  pod:{
+   confirmedShipments:confirmed.length,
+   azureSaved:podSaved,
+   driveSaved:podDrive,
+   primaryBackupOpen:podOpen
+  },
+  release:{
+   apiVersion:API_VERSION,
+   clientVersion:cleanScalar(team.clientVersion),
+   revision:Number(team.revision||0),
+   updatedAt:team.updatedAt||null,
+   updatedBy:cleanScalar(team.updatedBy)
+  },
+  browserSecurity:{
+   xFrameOptions:'DENY',
+   contentSecurityPolicy:"frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+   xContentTypeOptions:'nosniff',
+   permissionsPolicy:'camera=(), microphone=(), geolocation=()'
+  }
+ }
+}
+async function backupRestoreSelfTest(c,current,user){
+ const team=clone(current&&current.team||emptyTeam()),startedAt=now(),sourceHash=sha256Json(team),backupBlob=await safetyBackup(c.container,team,'iso-backup-restore-selftest',c.recoveryPrefix);
+ const restoredRead=await readJson(c.container.getBlockBlobClient(backupBlob),emptyTeam(),false),restored=restoredRead.value||emptyTeam(),restoredHash=sha256Json(restored);
+ const valid=usableTeamDocument(restored)&&sourceHash===restoredHash&&Number(restored.revision||0)===Number(team.revision||0);
+ if(!valid)throw error('ISO_RESTORE_SELFTEST_FAILED','Backup wurde geschrieben, konnte aber nicht identisch als gültiger Teamstand zurückgelesen werden.',500);
+ const evidence={
+  schema:'exporthub-iso-backup-restore-evidence-v1',
+  version:'RC1115',
+  ok:true,
+  testedAt:now(),
+  startedAt,
+  environment:c.environment,
+  testedBy:text(user&&user.name||user&&user.user)||'Administrator',
+  backupBlob,
+  sourceRevision:Number(team.revision||0),
+  restoredRevision:Number(restored.revision||0),
+  sourceHash,
+  restoredHash,
+  users:Array.isArray(restored.users)?restored.users.length:0,
+  stateCollections:restored.state&&typeof restored.state==='object'?Object.keys(restored.state).length:0,
+  productionStateChanged:false,
+  method:'Safety backup -> Azure readback -> parse -> SHA-256 identity verification'
+ };
+ const raw=JSON.stringify(evidence),evidenceBlob=c.container.getBlockBlobClient(isoEvidenceBlobName(c));
+ await evidenceBlob.upload(raw,Buffer.byteLength(raw),{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'}});
+ return evidence
+}
+
+
 module.exports=async function(context,req){
  const requestStarted=Date.now();
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS'},body:''};return}
@@ -1000,6 +1120,15 @@ module.exports=async function(context,req){
    await validateSessionAuthOnly(req,payload,c);context.res=json(200,Object.assign({ok:true,metaOnly:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName},await metadataOnly(c.team)));return
   }
   const current=await validateSession(req,payload,c),blob=c.team;
+  if(mode==='iso-audit'){
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die ISO-/Audit-Übersicht ist nur für globale Administratoren verfügbar.',403);
+   context.res=json(200,await isoAuditStatus(c,current));return
+  }
+  if(mode==='iso-backup-restore-test'){
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Der Backup-/Restore-Selbsttest muss per POST gestartet werden.',405);
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Der Backup-/Restore-Selbsttest ist nur für globale Administratoren verfügbar.',403);
+   context.res=json(200,await backupRestoreSelfTest(c,current,current.user));return
+  }
   if(mode==='diagnostics-read'){
    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die zentrale Fehlerdiagnose ist nur für globale Administratoren verfügbar.',403);
    const result=await readDiagnostics(c.diagnostics,req.query&&req.query.limit||payload.limit);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
