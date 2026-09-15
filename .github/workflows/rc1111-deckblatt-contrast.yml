@@ -44,6 +44,7 @@ jobs:
             grep -Fq 'border:4mm solid #08245d!important' "dist-rc1048/$file"
             grep -Fq 'background:#08245d' "dist-rc1048/$file"
             grep -Fq 'print-color-adjust:exact!important' "dist-rc1048/$file"
+            grep -Fq '.rc352-cover .rc352-qr-slot{background:#fff!important' "dist-rc1048/$file"
           done
 
       - name: Prepare production and TESTSERVICE
@@ -107,6 +108,7 @@ jobs:
               grep -Fq 'linear-gradient(180deg,#dbeafe 0,#dbeafe 52mm,#eef6ff 52mm,#eef6ff 100%)' "$body" || ok=0
               grep -Fq 'border:4mm solid #08245d!important' "$body" || ok=0
               grep -Fq 'print-color-adjust:exact!important' "$body" || ok=0
+              grep -Fq '.rc352-cover .rc352-qr-slot{background:#fff!important' "$body" || ok=0
               rm -f "$body"
             done
             if [[ "$ok" == '1' ]]; then
