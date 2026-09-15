@@ -19,6 +19,11 @@ function injectDeferredRuntimeInHead(html,tag,id){
 }
 
 function patchNotificationTasks(html,file){
+  const moduleStart='<script id="index236-notification-controller">';
+  const moduleEnd='<!-- INDEX 236 NOTIFICATION CENTER END -->';
+  const a=html.indexOf(moduleStart),b=a>=0?html.indexOf(moduleEnd,a+moduleStart.length):-1;
+  if(a<0||b<0)throw new Error(file+': RC1123 Benachrichtigungsmodul fehlt');
+  let block=html.slice(a,b);
   const oldTitle="function taskTitle(t){return q(t&&(t.title||t.name||t.subject||'Aufgabe'))||'Aufgabe'}";
   const newTitle="function taskTitle(t){var vals=t?[t.title,t.name,t.subject,t.taskTitle,t.taskName,t.label,t.description,t.text,t.action,t.note,t.comment,t.notes]:[];for(var i=0;i<vals.length;i++){var v=q(vals[i]);if(!v||/^(?:aufgabe|task)$/i.test(v))continue;return v.length>160?v.slice(0,157)+'…':v}return''}";
   const oldId="function taskId(t){return q(t&&(t.id||t.taskId||t.uuid||t.title))}";
@@ -26,12 +31,12 @@ function patchNotificationTasks(html,file){
   const oldOpen="function openTasks(){return arr(main().tasks).filter(function(t){return t&&!isDone(t)&&!taskIsTemplate(t)&&taskForUser(t)})}";
   const newOpen="function notificationTaskKey(t){var id=q(t&&(t.id||t.taskId||t.uuid));if(id)return'id:'+low(id);return'sem:'+low([taskTitle(t),taskOwner(t),taskDate(t),taskRef(t),q(t&&(t.time||'')),q(t&&(t.area||t.category||t.type||''))].join('|'))}\nfunction openTasks(){var seen={};return arr(main().tasks).filter(function(t){if(!t||isDone(t)||taskIsTemplate(t)||!taskForUser(t)||!taskTitle(t))return false;var key=notificationTaskKey(t);if(!key||seen[key])return false;seen[key]=1;return true})}";
   for(const [before,after,label] of [[oldTitle,newTitle,'taskTitle'],[oldId,newId,'taskId'],[oldOpen,newOpen,'openTasks']]){
-    const n=html.split(before).length-1;
-    if(n!==1)throw new Error(file+': RC1123 '+label+' Anker '+n+'x gefunden');
-    html=html.replace(before,after);
+    const n=block.split(before).length-1;
+    if(n!==1)throw new Error(file+': RC1123 '+label+' im Benachrichtigungsmodul '+n+'x gefunden');
+    block=block.replace(before,after);
   }
-  if(!html.includes('function notificationTaskKey(t)'))throw new Error(file+': RC1123 Aufgabenfilter fehlt');
-  return html;
+  if(!block.includes('function notificationTaskKey(t)'))throw new Error(file+': RC1123 Aufgabenfilter fehlt');
+  return html.slice(0,a)+block+html.slice(b);
 }
 
 function patchHtml(file){
