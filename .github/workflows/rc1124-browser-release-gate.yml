@@ -1,0 +1,59 @@
+name: RC1124 Browser Release Gate
+on:
+  push:
+    branches: [qa-rc1124-browser-release]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'demo.html'
+      - 'assets/**'
+      - 'browser/rc1124-release-smoke.mjs'
+      - '.github/rc1112/**'
+      - '.github/rc1121/**'
+      - '.github/workflows/rc1124-browser-release-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rc1124-browser-release-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Finalen RC1112-Build erzeugen
+        run: |
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+      - name: Chromium installieren
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Echten Browser-Release-Test ausführen
+        shell: bash
+        env:
+          EXPORTHUB_BROWSER_URL: http://127.0.0.1:4173/demo.html
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory dist-rc1112 >/tmp/rc1124-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/demo.html >/dev/null && break
+            sleep 1
+          done
+          node browser/rc1124-release-smoke.mjs
+      - name: Browser-Artefakte hochladen
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: RC1124-Browser-Release
+          path: artifacts/rc1124-browser-release
+          if-no-files-found: warn
+          retention-days: 30
