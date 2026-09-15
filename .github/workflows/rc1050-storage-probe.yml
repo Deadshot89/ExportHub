@@ -2,7 +2,7 @@ name: RC1050 Storage Probe
 
 on:
   workflow_run:
-    workflows: ['ExportHUB RC1048 Drei-Umgebungen Deploy']
+    workflows: ['ExportHUB RC1112 Drei-Umgebungen Deploy']
     types: [completed]
   workflow_dispatch:
 
