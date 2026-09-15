@@ -58,7 +58,7 @@ test('RC1124: TESTSERVICE Browser-Gate liegt zwingend vor Produktion',()=>{
   assert.match(workflow,/npx playwright install --with-deps chromium/);
   assert.match(workflow,/RC1124 Lokales Browser-Gate/);
   assert.match(workflow,/Live RC1122 HTML-Integrität prüfen/);
-  assert.match(workflow,/actions\/upload-artifact@v4/);
+  assert.match(workflow,/actions\/upload-artifact@v7/);
   assert.match(workflow,/retention-days:\s*14/);
 });
 
