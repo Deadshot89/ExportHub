@@ -1,0 +1,67 @@
+name: RC1115 ISO Security Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'api/**'
+      - 'assets/rc1115-iso-audit.js'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
+      - 'RELEASE_MANIFEST.txt'
+      - 'test/rc1115-*.test.mjs'
+      - '.github/rc1115/**'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/workflows/rc1115-iso-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1115 Security-Verträge
+        run: node --test --test-concurrency=1 test/rc1115-security-contract.test.mjs test/rc1115-iso-audit.test.mjs
+
+      - name: API-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund
+
+      - name: API-Runtime Syntax prüfen
+        run: node api/scripts/verify-runtime-sources.cjs
+
+      - name: Session-Policy Laufzeittest
+        run: node --test .github/rc1115/session-policy.test.cjs
+
+      - name: Backup-Restore Laufzeittest
+        run: node --test .github/rc1115/backup-restore.test.cjs
+
+      - name: Gesamte Node-Regression
+        run: npm test
+
+      - name: Drei-Umgebungen-Paket bauen
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: RC1115 Release-Inhalt prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'assets/rc1115-iso-audit.js?v=1115' "dist-rc1112/$file"
+          done
+          test -s dist-rc1112/assets/rc1115-iso-audit.js
+          grep -q '__EXPORTHUB_RC1115_ISO_AUDIT__' dist-rc1112/assets/rc1115-iso-audit.js
+          grep -q "mode==='iso-audit'" dist-rc1112/api/exporthub-state/index.js
+          grep -q 'SESSION_IDLE_MINUTES' dist-rc1112/api/shared/auth-store.js
+          grep -q '"X-Frame-Options": "DENY"' staticwebapp.config.json
+          grep -q '"X-Frame-Options": "DENY"' staticwebapp.testservice.config.json
+          git diff --check
