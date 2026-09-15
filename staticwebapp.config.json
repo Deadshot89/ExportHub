@@ -8,7 +8,6 @@
     {"route":"/assets/rc1014-task-runtime.js","allowedRoles":["anonymous"],"headers":{"Cache-Control":"no-store, no-cache, must-revalidate"}},
     {"route":"/assets/rc1065-registration-cc.js","allowedRoles":["anonymous"],"headers":{"Cache-Control":"no-store, no-cache, must-revalidate"}},
     {"route":"/assets/rc1074-login-clean.js","allowedRoles":["anonymous"],"headers":{"Cache-Control":"no-store, no-cache, must-revalidate"}},
-    {"route":"/assets/rc1109-abd-dashboard-customer.js","allowedRoles":["anonymous"],"headers":{"Cache-Control":"no-store, no-cache, must-revalidate"}},
     {"route":"/pickup","rewrite":"/pickup.html","allowedRoles":["anonymous"],"headers":{"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"}},
     {"route":"/pickup.html","allowedRoles":["anonymous"],"headers":{"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"}},
     {"route":"/customer-avis","rewrite":"/customer-avis.html","allowedRoles":["anonymous"],"headers":{"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"}},
