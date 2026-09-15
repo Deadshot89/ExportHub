@@ -8,6 +8,13 @@ const OUT=path.join(ROOT,'dist-rc1112');
 const VERSION='RC1112';
 const NUMBER='1112';
 
+function injectBeforeOuterBodyClose(html,tag,id){
+  if(id&&(html.includes('id="'+id+'"')||html.includes("id='"+id+"'")))return html;
+  const lower=html.toLowerCase(),idx=lower.lastIndexOf('</body>');
+  if(idx<0)throw new Error((id||'Script')+': äußerer </body>-Anker fehlt');
+  return html.slice(0,idx)+tag+'\n'+html.slice(idx);
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -21,12 +28,8 @@ function patchHtml(file){
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=1074/g,'assets/rc1074-login-clean.js?v=1112');
-  if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113')){
-    html=html.replace(/<\/body>/i,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>\n</body>');
-  }
-  if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114')){
-    html=html.replace(/<\/body>/i,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>\n</body>');
-  }
+  html=injectBeforeOuterBodyClose(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
+  html=injectBeforeOuterBodyClose(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
