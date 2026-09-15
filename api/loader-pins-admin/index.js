@@ -70,17 +70,19 @@ async function validateGlobalAdmin(req, payload) {
   let session = sessions.find(s => safeEqualText(s && s.tokenHash, digest));
   if (!session) {
     const signed = verifySignedSessionToken(t);
-    if (signed) session = { id: text(signed.sid), userId: text(signed.uid), username: text(signed.username), expiresAt: new Date(Number(signed.exp)).toISOString(), authVersion: Number(signed.authVersion || 0), mustChange: signed.mustChange === true, signedFallback: true };
+    if (signed) session = { id: text(signed.sid), userId: text(signed.uid), username: text(signed.username), createdAt: new Date(Number(signed.iat || Date.now())).toISOString(), lastSeenAt: new Date(Number(signed.iat || Date.now())).toISOString(), expiresAt: new Date(Number(signed.exp)).toISOString(), authVersion: Number(signed.authVersion || 0), mustChange: signed.mustChange === true, signedFallback: true };
   }
   if (!session) throw pins.error('SESSION_INVALID', 'Die ExportHUB-Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
   if (session.revokedAt) throw pins.error('SESSION_REVOKED', 'Die ExportHUB-Sitzung wurde beendet. Bitte erneut anmelden.', 401);
-  if (session.expiresAt && Date.parse(session.expiresAt) <= Date.now()) throw pins.error('SESSION_INVALID', 'Die ExportHUB-Sitzung ist abgelaufen. Bitte erneut anmelden.', 401);
+  const validationNow = Date.now();
+  if (!auditStore.sessionIsActive(session, validationNow)) { const idleExpired = auditStore.sessionIdleExpiresAt(session) > 0 && auditStore.sessionIdleExpiresAt(session) <= validationNow; throw pins.error(idleExpired ? 'SESSION_IDLE_TIMEOUT' : 'SESSION_INVALID', idleExpired ? 'Die ExportHUB-Sitzung wurde wegen Inaktivität beendet. Bitte erneut anmelden.' : 'Die ExportHUB-Sitzung ist abgelaufen. Bitte erneut anmelden.', 401); }
   const users = Array.isArray(teamDoc && teamDoc.users) ? teamDoc.users : [];
   const user = users.find(u => text(u && u.id) === text(session.userId) || usernameOf(u) === lower(session.username));
   if (!user || !isActive(user)) throw pins.error('ACCOUNT_DISABLED', 'Das ExportHUB-Benutzerkonto ist nicht aktiv.', 403);
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw pins.error('SESSION_REVOKED', 'Die ExportHUB-Sitzung wurde beendet. Bitte erneut anmelden.', 401);
   if ((session.mustChange || user.mustChange) === true) throw pins.error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
   if (!isAdmin(user)) throw pins.error('GLOBAL_ADMIN_REQUIRED', 'Nur globale Administratoren dürfen Verlader-PINs verwalten.', 403);
+  await auditStore.touchSessionActivity(t, session, session.signedFallback ? 'signed' : 'blob');
   return user;
 }
 

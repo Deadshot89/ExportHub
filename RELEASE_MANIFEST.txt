@@ -71,3 +71,8 @@ Dateien:
 - pod-notfall.html
 - production-version.js
 - staticwebapp.config.json
+- api/shared/fast-auth-store.js
+- assets/rc1115-iso-audit.js
+- test/rc1115-security-contract.test.mjs
+- .github/rc1115/session-policy.test.cjs
+- docs/RC1115-ISO-SECURITY-CONTROLS.md
