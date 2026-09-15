@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs test/rc1018-testservice-exception-sync.test.mjs
@@ -54,11 +54,11 @@ jobs:
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
           node .github/rc1048/build-three-env.mjs
-          grep -q 'ExportHUB RC1048 environment=testservice' dist-rc1048/TESTVERSION.html
-          grep -q 'ExportHUB RC1048 environment=demo' dist-rc1048/demo.html
-          grep -q "version:'RC1048'" dist-rc1048/TESTVERSION.html
-          grep -q "version:'RC1048'" dist-rc1048/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" dist-rc1048/production-version.js
+          grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1048/TESTVERSION.html
+          grep -q 'ExportHUB RC1112 environment=demo' dist-rc1048/demo.html
+          grep -q "version:'RC1112'" dist-rc1048/TESTVERSION.html
+          grep -q "version:'RC1112'" dist-rc1048/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1048/production-version.js
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1048/demo.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1048/customer-avis.html
