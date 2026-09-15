@@ -1,0 +1,29 @@
+name: RC1123 Notification Task Titles Test
+on:
+  push:
+    branches:
+      - debug-rc1121-visible-source-leak
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build and verify notification tasks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+          grep -q 'function notificationTaskKey(t)' dist-rc1112/index.html
+          if grep -Fq "function taskTitle(t){return q(t&&(t.title||t.name||t.subject||'Aufgabe'))||'Aufgabe'}" dist-rc1112/index.html; then
+            echo 'alter Aufgabe-Fallback noch vorhanden' >&2
+            exit 1
+          fi
+          grep -Fq "!taskForUser(t)||!taskTitle(t)" dist-rc1112/index.html
