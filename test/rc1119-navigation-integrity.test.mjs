@@ -7,10 +7,11 @@ const history=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 
 test('RC1119: Sendung erstellen setzt shipment vor dem Fresh-Draft-Start aktiv',()=>{
-  const statePos=patch.indexOf('setViewState(view);var shipmentApi');
-  const startPos=patch.indexOf('shipmentApi.startNewShipment()');
-  assert.ok(statePos>=0,'shipment-State wird vor Fresh Draft nicht gesetzt');
-  assert.ok(startPos>statePos,'Fresh Draft startet vor dem shipment-State');
+  assert.match(
+    patch,
+    /const freshRoute="function route\(view,source\)\{view=canonical\(view\);if\(view==='shipment'&&source==='menu'\)\{[\s\S]{0,300}setViewState\(view\);[\s\S]{0,300}shipmentApi\.startNewShipment\(\)/,
+    'Fresh-Draft-Route muss den shipment-State vor startNewShipment setzen.'
+  );
 });
 
 test('RC1119: Historie darf andere Fachansichten nicht überschreiben',()=>{
