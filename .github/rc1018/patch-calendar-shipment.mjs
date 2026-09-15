@@ -44,17 +44,13 @@ function patchShipmentCreateMenu(html){
   if(start<0||end<=start)throw new Error('RC1034 Sendung erstellen: kanonischer Navigationscontroller nicht gefunden.');
   let block=html.slice(start,end+'</script>'.length);
   const oldRoute="function route(view,source){view=canonical(view);window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;";
-  const legacyFreshRoute="function route(view,source){view=canonical(view);if(view==='shipment'&&source==='menu'){var shipmentApi=window.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function')return shipmentApi.startNewShipment()}window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;";
-  const freshRoute="function route(view,source){view=canonical(view);if(view==='shipment'&&source==='menu'){window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;setViewState(view);var shipmentApi=window.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function')return shipmentApi.startNewShipment()}window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;";
+  const freshRoute="function route(view,source){view=canonical(view);if(view==='shipment'&&source==='menu'){var shipmentApi=window.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function')return shipmentApi.startNewShipment()}window.__EXPORTHUB_NAVIGATION_ACTIVE_UNTIL__=Date.now()+1800;";
   if(!block.includes(freshRoute)){
-    if(block.includes(legacyFreshRoute))block=block.replace(legacyFreshRoute,freshRoute);
-    else{
-      const count=block.split(oldRoute).length-1;
-      if(count!==1)throw new Error(`RC1034 Sendung erstellen: Routenanker ${count}x gefunden.`);
-      block=block.replace(oldRoute,freshRoute);
-    }
+    const count=block.split(oldRoute).length-1;
+    if(count!==1)throw new Error(`RC1034 Sendung erstellen: Routenanker ${count}x gefunden.`);
+    block=block.replace(oldRoute,freshRoute);
   }
-  if(!block.includes("view==='shipment'&&source==='menu'")||!block.includes('setViewState(view);var shipmentApi')||!block.includes('shipmentApi.startNewShipment()'))throw new Error('RC1034 Sendung erstellen: Fresh-Draft-Menüweg wurde nicht zustandssicher aktiviert.');
+  if(!block.includes("view==='shipment'&&source==='menu'")||!block.includes('shipmentApi.startNewShipment()'))throw new Error('RC1034 Sendung erstellen: Fresh-Draft-Menüweg wurde nicht aktiviert.');
   return html.slice(0,start)+block+html.slice(end+'</script>'.length);
 }
 

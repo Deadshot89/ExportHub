@@ -210,13 +210,5 @@
   "platform": {
     "apiRuntime": "node:20"
   },
-  "trailingSlash": "never",
-  "globalHeaders": {
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "X-Frame-Options": "DENY",
-    "Content-Security-Policy": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
-    "X-Permitted-Cross-Domain-Policies": "none"
-  }
+  "trailingSlash": "never"
 }

@@ -11,7 +11,7 @@ function block(source,startMarker,endMarker){
   return source.slice(start,end>start?end:source.length);
 }
 
-test('RC1117 öffentliche Links: Pickup bleibt wiederverwendbar und Avis wird einmalig',()=>{
+test('RC1014 Wiederverwendbarkeit der öffentlichen Links bleibt vollständig erhalten',()=>{
   const pickupStatus=read('api/pickup-status/index.js');
   const pickupInit=read('api/pickup-init/index.js');
   const rc1014=read('test/rc1014-reusable-public-links.test.mjs');
@@ -19,7 +19,7 @@ test('RC1117 öffentliche Links: Pickup bleibt wiederverwendbar und Avis wird ei
   assert.match(pickupStatus,/version:'RC1014'/);
   assert.match(pickupInit,/oneTime:false/);
   assert.match(pickupInit,/version:'RC1014'/);
-  assert.match(rc1014,/Pickup bleibt wiederverwendbar, Legacy-Avis kompatibel und neue Avis-Links einmalig/);
+  assert.match(rc1014,/Abhol- und Avis-Link bleiben auch nach usedAt erneut auflösbar/);
 });
 
 test('Diagnose-Hotpaths lesen Auth und Team parallel und behalten zentrale Sicherheitslogik',()=>{

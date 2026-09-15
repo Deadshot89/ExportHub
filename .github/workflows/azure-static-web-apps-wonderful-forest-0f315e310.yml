@@ -172,8 +172,8 @@ jobs:
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1079-profile-settings.js?v=1079' "dist-rc1112/$file"
             grep -q 'assets/rc1080-customer-history.js?v=1080' "dist-rc1112/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1118' "dist-rc1112/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1118' "dist-rc1112/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1112/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1087' "dist-rc1112/$file"
           done
           test -s dist-rc1112/assets/rc1079-profile-settings.js
           test -s dist-rc1112/assets/rc1080-customer-history.js
@@ -222,15 +222,6 @@ jobs:
           test -s dist-rc1112/assets/rc1114-shipping-neutral.js
           grep -q '__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__' dist-rc1112/assets/rc1114-shipping-neutral.js
           grep -q 'Paletten / Maut' dist-rc1112/assets/rc1114-shipping-neutral.js
-          for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1117-country-completion.js?v=1117' "dist-rc1112/$file"
-          done
-          test -s dist-rc1112/assets/rc1117-country-completion.js
-          grep -q '__EXPORTHUB_RC1117_COUNTRY_COMPLETION__' dist-rc1112/assets/rc1117-country-completion.js
-          grep -q 'Einmaliger persönlicher Avis-Link' dist-rc1112/customer-avis.html
-          grep -q 'function loadStoredSession' dist-rc1112/customer-avis.html
-          grep -q 'singleUse:true' dist-rc1112/api/customer-avis/index.js
-          grep -q 'rawLinkConsumed=true' dist-rc1112/api/customer-avis/index.js
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/customer-avis.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/pickup.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/location.html
@@ -276,10 +267,6 @@ jobs:
           test -s .rc1112_testservice_app/assets/rc1018-mail-language-standard.js
           test -s .rc1112_production_app/assets/rc1113-stowplan-persist.js
           test -s .rc1112_testservice_app/assets/rc1113-stowplan-persist.js
-          test -s .rc1112_production_app/assets/rc1117-country-completion.js
-          test -s .rc1112_testservice_app/assets/rc1117-country-completion.js
-          grep -q 'Einmaliger persönlicher Avis-Link' .rc1112_production_app/customer-avis.html
-          grep -q 'Einmaliger persönlicher Avis-Link' .rc1112_testservice_app/customer-avis.html
           test -s .rc1112_production_app/assets/rc1018-public-language.js
           test -s .rc1112_testservice_app/assets/rc1018-public-language.js
           test -s .rc1112_production_app/assets/rc1065-registration-cc.js
@@ -719,7 +706,7 @@ jobs:
               pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1087=$GITHUB_SHA-$attempt" || true)
               ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1087=$GITHUB_SHA-$attempt" || true)
               [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
-              grep -q 'assets/rc1081-audit-history.js?v=1118' "$page" || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1087' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
               grep -q '__EXPORTHUB_RC1086_HISTORY_COMPLETE__' "$asset" || ok=0
               grep -q '__EXPORTHUB_RC1087_ADMIN_AUDIT__' "$asset" || ok=0
@@ -839,35 +826,6 @@ jobs:
             sleep 5
           done
           echo 'RC1095 Palettenkonto-Liveprüfung nicht bestätigt.' >&2
-          exit 1
-
-      - name: Live RC1117 Abschluss ohne automatischen ChatGPT-Autofix prüfen
-        shell: bash
-        run: |
-          set -euo pipefail
-          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
-          for attempt in {1..18}; do
-            ok=1
-            for base in "$prod" "$testservice"; do
-              page=$(mktemp); avis=$(mktemp); country=$(mktemp)
-              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1117=$GITHUB_SHA-$attempt" || true)
-              ac=$(curl -sS -L -o "$avis" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?rc1117=$GITHUB_SHA-$attempt" || true)
-              cc=$(curl -sS -L -o "$country" -w '%{http_code}' --max-time 20 "$base/assets/rc1117-country-completion.js?rc1117=$GITHUB_SHA-$attempt" || true)
-              [[ "$pc" == '200' && "$ac" == '200' && "$cc" == '200' ]] || ok=0
-              grep -q 'assets/rc1117-country-completion.js?v=1117' "$page" || ok=0
-              grep -q 'Einmaliger persönlicher Avis-Link' "$avis" || ok=0
-              grep -q 'function loadStoredSession' "$avis" || ok=0
-              grep -q '__EXPORTHUB_RC1117_COUNTRY_COMPLETION__' "$country" || ok=0
-              rm -f "$page" "$avis" "$country"
-            done
-            if [[ "$ok" == '1' ]]; then
-              echo 'RC1117 Abschluss ist live in Produktion und TESTSERVICE bestätigt.'
-              exit 0
-            fi
-            sleep 5
-          done
-          echo 'RC1117 Abschluss-Liveprüfung nicht bestätigt.' >&2
           exit 1
 
       - name: Live RC1083 Diagnose-Autofix prüfen

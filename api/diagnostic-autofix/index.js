@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const https = require('https');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { isAdmin } = require('../shared/user-policy');
-const authPolicy = require('../shared/auth-store');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -72,13 +71,12 @@ async function validateGlobalAdmin(req,payload,env){
  const [authRead,teamRead]=await Promise.all([readJson(container.getBlockBlobClient(AUTH_BLOB),{sessions:[]},true),readJson(container.getBlockBlobClient(teamName),{users:[]},false)]);
  const sessions=Array.isArray(authRead.value&&authRead.value.sessions)?authRead.value.sessions:[],digest=tokenHash(t);
  let session=sessions.find(s=>safeEqual(s&&s.tokenHash,digest));
- if(!session){const signed=verifySigned(t);if(signed)session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),lastSeenAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}
- if(!session)throw error('SESSION_INVALID','Die ExportHUB-Sitzung ist nicht mehr gültig.',401);if(session.revokedAt)throw error('SESSION_REVOKED','Die ExportHUB-Sitzung wurde beendet.',401);const validationNow=Date.now();if(!authPolicy.sessionIsActive(session,validationNow)){const idleExpired=authPolicy.sessionIdleExpiresAt(session)>0&&authPolicy.sessionIdleExpiresAt(session)<=validationNow;throw error(idleExpired?'SESSION_IDLE_TIMEOUT':'SESSION_INVALID',idleExpired?'Die ExportHUB-Sitzung wurde wegen Inaktivität beendet.':'Die ExportHUB-Sitzung ist nicht mehr gültig.',401)}
+ if(!session){const signed=verifySigned(t);if(signed)session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}
+ if(!session||session.revokedAt||(session.expiresAt&&Date.parse(session.expiresAt)<=Date.now()))throw error('SESSION_INVALID','Die ExportHUB-Sitzung ist nicht mehr gültig.',401);
  const users=Array.isArray(teamRead.value&&teamRead.value.users)?teamRead.value.users:[],user=users.find(u=>text(u&&u.id)===text(session.userId)||usernameOf(u)===lower(session.username));
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist nicht aktiv.',403);
  if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die ExportHUB-Sitzung wurde beendet.',401);
  if(!isAdmin(user))throw error('GLOBAL_ADMIN_REQUIRED','Die automatische Fehlerbehebung ist nur für globale Administratoren verfügbar.',403);
- await authPolicy.touchSessionActivity(t,session,session.signedFallback?'signed':'blob');
  return user;
 }
 async function githubOidcAuthorized(req,workflowFile,allowedEvents){

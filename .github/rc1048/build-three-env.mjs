@@ -30,7 +30,7 @@ const RC1079_PROFILE_TAG='<script id="'+RC1079_PROFILE_ID+'" defer src="/assets/
 const RC1080_CUSTOMER_HISTORY_ID='exporthub-rc1080-customer-history';
 const RC1080_CUSTOMER_HISTORY_TAG='<script id="'+RC1080_CUSTOMER_HISTORY_ID+'" defer src="/assets/rc1080-customer-history.js?v=1080"></script>';
 const RC1081_AUDIT_HISTORY_ID='exporthub-rc1081-audit-history';
-const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1118"></script>';
+const RC1081_AUDIT_HISTORY_TAG='<script id="'+RC1081_AUDIT_HISTORY_ID+'" defer src="/assets/rc1081-audit-history.js?v=1087"></script>';
 const RC1092_CONTACTS_ID='exporthub-rc1092-customer-mail-contacts';
 const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/assets/rc1092-customer-mail-contacts.js?v=1092"></script>';
 const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
@@ -323,9 +323,6 @@ function patchRc1069Performance(html,file){
   const viewsNew="function fastCacheable(view){view=canonical(view);return view==='shipment'||view==='shipmentoverview'||view==='cmr'||view==='customers'||view==='customerfolder'}";
   if(out.includes(viewsOld))out=out.replace(viewsOld,viewsNew);
 
-  const idleSessionOld="function isSessionError(error){return ['SESSION_INVALID','SESSION_REVOKED','AUTH_REQUIRED'].indexOf(error&&error.code)>=0}";
-  const idleSessionNew="function isSessionError(error){return ['SESSION_INVALID','SESSION_REVOKED','SESSION_IDLE_TIMEOUT','AUTH_REQUIRED'].indexOf(error&&error.code)>=0}";
-  if(out.includes(idleSessionOld))out=out.replace(idleSessionOld,idleSessionNew);
   const restoreOld="try{if(runtime.sessionRestored&&!isTestServiceOrigin())await verifySessionForLoad();await loadStateAfterLogin();runtime.sessionRefreshAttempted=false;await loadCanonicalModules()}";
   const restoreNew="try{await loadStateAfterLogin();runtime.sessionRefreshAttempted=false;await loadCanonicalModules()}";
   if(out.includes(restoreOld))out=out.replace(restoreOld,restoreNew);
@@ -334,7 +331,6 @@ function patchRc1069Performance(html,file){
   if(!out.includes("view==='customerfolder'"))throw new Error(file+': RC1069 Kundenordner-Fastcache fehlt');
   if(out.includes(restoreOld))throw new Error(file+': RC1070 redundanter Session-Check vor State-Read noch vorhanden');
   if(!out.includes(restoreNew))throw new Error(file+': RC1070 direkter State-Read beim Session-Restore fehlt');
-  if(!out.includes("'SESSION_INVALID','SESSION_REVOKED','SESSION_IDLE_TIMEOUT','AUTH_REQUIRED'"))throw new Error(file+': RC1116 SESSION_IDLE_TIMEOUT wird beim Start nicht als abgelaufene Sitzung behandelt');
   return out;
 }
 

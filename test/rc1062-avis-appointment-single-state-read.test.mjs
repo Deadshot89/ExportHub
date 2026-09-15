@@ -32,8 +32,7 @@ test('RC1062: Abholtermin speichert mit genau einem Team-State-Read',async()=>{
       async issue(_req,type,record){assert.equal(type,'avis');issuedRecord=record;return{token:'a'.repeat(48),expiresAt:null,record}},
       async resolve(_req,type,token){assert.equal(type,'avis');assert.equal(token,'a'.repeat(48));return{environment:'testservice',record:issuedRecord,tokenHash:'hash'}},
       async clearFailures(_env,_type,_hash){return{environment:'testservice',record:issuedRecord,tokenHash:'hash'}},
-      async consume(){return Object.assign({kind:'avis',environment:'testservice',tokenHash:'hash'},issuedRecord,{usedAt:new Date().toISOString()})},
-      issueSession(info){sessionRecord=info&&info.record||info;return{session:'session-rc1062',expiresAt:'2026-10-12T12:00:00.000Z'}},
+      issueSession(info){sessionRecord=info.record;return{session:'session-rc1062',expiresAt:'2026-09-12T12:00:00.000Z'}},
       async resolveSession(session,type){assert.equal(session,'session-rc1062');assert.equal(type,'avis');return{environment:'testservice',record:sessionRecord}},
       async registerFailure(){return{failedAttempts:1,lockedUntil:null}},
       async revokeSubject(){return{ok:true}}

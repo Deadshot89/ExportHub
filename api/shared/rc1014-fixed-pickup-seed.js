@@ -1,6 +1,6 @@
 'use strict';
 
-const SEED_VERSION = 10;
+const SEED_VERSION = 9;
 const ESSENTRA_COMPANY_KEY = 'essentra';
 const LEGACY_ESSENTRA_COMPANY_KEY = 'legacy-default';
 const SYSTEM_ACTOR = 'System RC1014';
@@ -20,7 +20,7 @@ const ESSENTRA_DEFAULTS = Object.freeze([
   { id:'FIX-RC1024-ESSENTRA-GORENJE-DI', siteLabel:'Gorenje Slovenien', weekday:2, note:'' },
   { id:'FIX-RC1025-ESSENTRA-UK-DI', siteLabel:'UK', weekday:2, note:'' },
   { id:'FIX-RC1014-ESSENTRA-BMP-MI', siteLabel:'BMP', weekday:3, note:'' },
-  { id:'FIX-RC1024-ESSENTRA-BSH-MI', siteLabel:'BSH Hausgeräte', weekday:3, note:'Fixzeit 13:00' },
+  { id:'FIX-RC1024-ESSENTRA-BSH-MI', siteLabel:'BSH Hausgeräte', weekday:3, note:'' },
   { id:'FIX-RC1024-ESSENTRA-CONTITECH-MI', siteLabel:'Contitech', weekday:3, note:'' },
   { id:'FIX-RC1025-ESSENTRA-UK-MI', siteLabel:'UK', weekday:3, note:'' },
   { id:'FIX-RC1024-ESSENTRA-WUERTH-DO', siteLabel:'Adolf Würth', weekday:4, note:'' },
@@ -77,18 +77,6 @@ function mergeMissing(existing, companyKey, stamp){
   if (!isEssentraCompanyKey(companyKey)) return list;
   // RC1078: nicht kanonische, unberührte System-Seeds werden vollständig entfernt; manuelle Einträge bleiben erhalten.
   list = list.filter(item => !isRemovedNeff(item) && !isUntouchedNonCanonicalSystemSeed(item));
-  // RC1117: geänderte kanonische Systemvorgaben werden nur auf unberührte System-Seeds übernommen.
-  list = list.map(item => {
-    const canonical = ESSENTRA_DEFAULTS.find(def => def.id === text(item && item.id));
-    if (!canonical || !isUntouchedSystemSeed(item)) return item;
-    const next = {...item};
-    let changed = false;
-    for (const field of ['siteLabel','weekday','note']) {
-      if (next[field] !== canonical[field]) { next[field] = canonical[field]; changed = true; }
-    }
-    if (changed) { next.updatedAt = stamp; next.updatedBy = SYSTEM_ACTOR; }
-    return next;
-  });
   const seenKeys = new Set(list.map(key));
   const seenIds = new Set(list.map(item => text(item && item.id)).filter(Boolean));
   for (const item of defaultsForCompany(companyKey)) {

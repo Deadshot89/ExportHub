@@ -93,24 +93,6 @@
       }
     },
     {
-      "route": "/assets/rc1115-iso-audit.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
-    },
-    {
-      "route": "/assets/rc1117-country-completion.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
-    },
-    {
       "route": "/pickup",
       "rewrite": "/pickup.html",
       "allowedRoles": [
@@ -255,10 +237,7 @@
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "X-Frame-Options": "DENY",
-    "Content-Security-Policy": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
-    "X-Permitted-Cross-Domain-Policies": "none"
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
   },
   "platform": {
     "apiRuntime": "node:20"

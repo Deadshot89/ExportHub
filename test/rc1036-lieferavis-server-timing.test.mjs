@@ -35,7 +35,7 @@ test('RC1036: Lieferavis-Issue liefert getrennte Serverlaufzeiten fuer Azure-Eng
     await handler(context,{method:'POST',headers:{},body:{action:'issue',shipmentId:'SHIP-1036',reference:'ABC123',environment:'production'}});
     assert.equal(context.res.status,200);
     const response=JSON.parse(context.res.body);
-    assert.equal(response.version,'RC1117');
+    assert.equal(response.version,'RC1036');
     assert.ok(response.timing&&typeof response.timing==='object','Issue-Antwort muss Timingdaten enthalten.');
     for(const key of ['authMs','teamBlobMs','teamReadMs','flagWriteMs','tokenIssueMs','totalMs']){
       assert.equal(typeof response.timing[key],'number',`${key} muss numerisch sein.`);

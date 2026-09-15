@@ -34,11 +34,6 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
       /view==='shipment'&&source==='menu'[\s\S]{0,500}ExportHUBShipment420[\s\S]{0,250}startNewShipment/,
       `${file}: Menüroute shipment muss vor Cache-/Normalrouting startNewShipment verwenden.`
     );
-    assert.match(
-      nav,
-      /view==='shipment'&&source==='menu'[\s\S]{0,350}setViewState\(view\)[\s\S]{0,350}startNewShipment/,
-      `${file}: Vor startNewShipment muss der aktive View zwingend auf shipment gesetzt werden.`
-    );
     assert.match(nav,/function route\(view,source\)/,'Kanonische Route darf nicht durch einen Parallelrouter ersetzt werden.');
   });
 }

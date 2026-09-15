@@ -9,9 +9,7 @@ const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_ST
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
 const PBKDF2_ITERATIONS = Math.max(120000, Number(process.env.EXPORTHUB_PBKDF2_ITERATIONS || 210000));
-const SESSION_MAX_HOURS = Math.min(24, Math.max(1, Number(process.env.EXPORTHUB_SESSION_MAX_HOURS || 12)));
-const SESSION_IDLE_MINUTES = Math.min(240, Math.max(5, Number(process.env.EXPORTHUB_SESSION_IDLE_MINUTES || 30)));
-const SESSION_TOUCH_MINUTES = Math.min(Math.max(1, Number(process.env.EXPORTHUB_SESSION_TOUCH_MINUTES || 5)), Math.max(1, SESSION_IDLE_MINUTES - 1));
+const SESSION_DAYS = Math.max(1, Number(process.env.EXPORTHUB_SESSION_DAYS || 365));
 
 function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
 function text(value) { return String(value == null ? '' : value).trim(); }
@@ -102,26 +100,6 @@ function emptyTeam() {
   return { schemaVersion: 3, revision: 0, updatedAt: null, updatedBy: null, state: {}, users: [] };
 }
 function emptyAuth() { return { schemaVersion: 1, updatedAt: null, sessions: [] }; }
-function sessionAbsoluteExpiresAt(session) {
-  const created = Date.parse(session && session.createdAt || '');
-  if (!Number.isFinite(created)) return 0;
-  return created + SESSION_MAX_HOURS * 3600000;
-}
-function sessionIdleExpiresAt(session) {
-  const seen = Date.parse(session && (session.lastSeenAt || session.createdAt) || '');
-  if (!Number.isFinite(seen)) return 0;
-  return seen + SESSION_IDLE_MINUTES * 60000;
-}
-function sessionIsActive(session, at = Date.now()) {
-  if (!session || session.revokedAt) return false;
-  const expires = Date.parse(session.expiresAt || '');
-  if (!Number.isFinite(expires) || expires <= at) return false;
-  const absolute = sessionAbsoluteExpiresAt(session);
-  if (!absolute || absolute <= at) return false;
-  const idle = sessionIdleExpiresAt(session);
-  if (!idle || idle <= at) return false;
-  return true;
-}
 function safeEqualText(a, b) {
   const aa = Buffer.from(String(a || ''), 'utf8');
   const bb = Buffer.from(String(b || ''), 'utf8');
@@ -148,7 +126,7 @@ function credentialOf(user) {
 }
 function passwordPolicy(password) {
   const value = String(password || '');
-  if (value.length < 10) return 'Das Passwort muss mindestens 10 Zeichen lang sein.';
+  if (value.length < 6) return 'Das Passwort muss mindestens 6 Zeichen lang sein.';
   if (!/[A-ZÄÖÜ]/.test(value)) return 'Das Passwort muss mindestens einen Großbuchstaben enthalten.';
   if (!/[a-zäöüß]/.test(value)) return 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten.';
   if (!/\d/.test(value)) return 'Das Passwort muss mindestens eine Zahl enthalten.';
@@ -240,7 +218,7 @@ async function mutateAuth(mutator) {
     const auth = d.value || emptyAuth();
     auth.sessions = Array.isArray(auth.sessions) ? auth.sessions : [];
     const cutoff = Date.now();
-    auth.sessions = auth.sessions.filter((s) => sessionIsActive(s, cutoff));
+    auth.sessions = auth.sessions.filter((s) => !s.revokedAt && Date.parse(s.expiresAt || '') > cutoff);
     const result = await mutator(auth);
     auth.updatedAt = now();
     try {
@@ -278,7 +256,7 @@ function createSignedSessionToken(session) {
     mustChange: Boolean(session && session.mustChange),
     deviceId: text(session && session.deviceId).slice(0, 120),
     iat: Date.parse(session && session.createdAt || '') || Date.now(),
-    exp: Date.parse(session && session.expiresAt || '') || (Date.now() + SESSION_MAX_HOURS * 3600000),
+    exp: Date.parse(session && session.expiresAt || '') || (Date.now() + SESSION_DAYS * 86400000),
     nonce: crypto.randomBytes(12).toString('base64url')
   };
   const encoded = encodeSessionPart(payload);
@@ -313,7 +291,6 @@ function resolveSession(token, authDocument) {
       displayName: text(signed.username),
       deviceId: text(signed.deviceId),
       createdAt: new Date(Number(signed.iat || Date.now())).toISOString(),
-      lastSeenAt: new Date(Number(signed.iat || Date.now())).toISOString(),
       expiresAt: new Date(Number(signed.exp)).toISOString(),
       authVersion: Number(signed.authVersion || 0),
       mustChange: signed.mustChange === true,
@@ -352,27 +329,6 @@ function bearer(req) {
   const match = String(value).match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : '';
 }
-async function touchSessionActivity(token, session, source) {
-  if (source !== 'blob' || !session || !token) return false;
-  const lastSeen = Date.parse(session.lastSeenAt || session.createdAt || '');
-  if (Number.isFinite(lastSeen) && Date.now() - lastSeen < SESSION_TOUCH_MINUTES * 60000) return false;
-  const touchedAt = now();
-  try {
-    const changed = await mutateAuth((document) => {
-      const target = (document.sessions || []).find((item) => text(item.id) === text(session.id) && safeEqualText(item.tokenHash, tokenHash(token)));
-      if (!target) return false;
-      target.lastSeenAt = touchedAt;
-      return true;
-    });
-    if (changed && changed.result) {
-      session.lastSeenAt = touchedAt;
-      return true;
-    }
-  } catch (_) {
-    // Activity bookkeeping must not interrupt an otherwise valid business request.
-  }
-  return false;
-}
 async function createSession(user, deviceId, mustChange) {
   const session = {
     id: randomId('SES'),
@@ -382,8 +338,7 @@ async function createSession(user, deviceId, mustChange) {
     displayName: text(user.name || user.user),
     deviceId: text(deviceId).slice(0, 120),
     createdAt: now(),
-    lastSeenAt: now(),
-    expiresAt: new Date(Date.now() + SESSION_MAX_HOURS * 3600000).toISOString(),
+    expiresAt: new Date(Date.now() + SESSION_DAYS * 86400000).toISOString(),
     authVersion: Number(user.authVersion || 0),
     mustChange: mustChange === true
   };
@@ -401,18 +356,13 @@ async function validateSession(req, options = {}) {
   const session = resolved.session;
   if (!session) throw error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
   if (session.revokedAt) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
-  const validationNow = Date.now();
-  if (!sessionIsActive(session, validationNow)) {
-    const idleExpired = sessionIdleExpiresAt(session) > 0 && sessionIdleExpiresAt(session) <= validationNow;
-    throw error(idleExpired ? 'SESSION_IDLE_TIMEOUT' : 'SESSION_INVALID', idleExpired ? 'Die Sitzung wurde wegen Inaktivität beendet. Bitte erneut anmelden.' : 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
-  }
+  if (Date.parse(session.expiresAt || '') <= Date.now()) throw error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
   const teamDoc = await readJson(c.team, emptyTeam());
   const team = applyUserPolicy(teamDoc.value || emptyTeam());
   const user = (team.users || []).find((u) => text(u.id) === text(session.userId) || usernameOf(u) === lower(session.username));
   if (!user || !isActive(user)) throw error('ACCOUNT_DISABLED', 'Das Benutzerkonto ist deaktiviert.', 403);
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
   if ((session.mustChange || user.mustChange) && !options.allowPasswordChange) throw error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
-  await touchSessionActivity(token, session, resolved.source);
   return { token, session, user, team, teamEtag: teamDoc.etag };
 }
 function hasAnyEditRight(user) {
@@ -443,12 +393,12 @@ async function revokeUserSessions(userId, reason, exceptSessionId) {
 }
 
 module.exports = {
-  TEAM_CONTAINER, TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS, SESSION_MAX_HOURS, SESSION_IDLE_MINUTES, SESSION_TOUCH_MINUTES,
+  TEAM_CONTAINER, TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
   clone, text, lower, now, json, error, body, clients, parseStoredJson, readJson, writeJson,
-  emptyTeam, emptyAuth, sessionAbsoluteExpiresAt, sessionIdleExpiresAt, sessionIsActive, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
+  emptyTeam, emptyAuth, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
   sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
   passwordPolicy, passwordWasUsed, setPassword, generatedPassword, addAudit,
-  mutateTeam, mutateAuth, bearer, cookieToken, sessionCookie, touchSessionActivity, createSession, validateSession, hasAnyEditRight,
+  mutateTeam, mutateAuth, bearer, cookieToken, sessionCookie, createSession, validateSession, hasAnyEditRight,
   adminCount, findUser, sanitizeDocumentForClient, revokeUserSessions, safeEqualText
 };

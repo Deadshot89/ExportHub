@@ -10,20 +10,12 @@ const runtimeSources = [
   'shared/loader-pin-store.js',
   'shared/graph-drive.js',
   'shared/pod-archive.js',
-  'shared/auth-store.js',
-  'shared/fast-auth-store.js',
   'pickup-init/index.js',
   'pickup-status/index.js',
   'pickup-confirm-v2/index.js',
   'pickup-pod/index.js',
   'pod-backup/index.js',
   'customer-avis/index.js',
-  'exporthub-auth/index.js',
-  'exporthub-auth-probe/index.js',
-  'exporthub-state/index.js',
-  'diagnostic-autofix/index.js',
-  'loader-pins-admin/index.js',
-  'reference-files/index.js',
 ];
 
 for (const relativePath of runtimeSources) {

@@ -37,21 +37,21 @@ test('Benutzer ohne Rechte sehen Module und Kacheln nicht nur gesperrt, sondern 
   }
 });
 
-test('Abhol-QR bleibt wiederverwendbar; neue Avis-Links sind einmalig bei Legacy-Kompatibilität',()=>{
-  assert.match(pickupInit,/oneTime:false/,'Neu erzeugte Abhol-QR-Codes bleiben wiederverwendbar');
-  assert.match(pickupStatus,/oneTime:false/,'Abholstatus bleibt kein Einmal-Link');
-  assert.match(accessStore,/reusableKind=record\.kind===['"]pickup['"]\|\|\(record\.kind===['"]avis['"]&&record\.singleUse!==true\)/,'Pickup und alte Avis-Links müssen kompatibel bleiben');
-  assert.match(accessStore,/singleUse:meta\.singleUse===true/,'Neue Zugriffe müssen den Einmal-Status im Datensatz speichern');
+test('Aktive Abhol- und Kunden-Avis-Links bleiben wiederverwendbar',()=>{
+  assert.match(pickupInit,/oneTime:false/,'Neu erzeugte Abhol-QR-Codes dürfen nicht mehr als Einmal-Link gekennzeichnet sein');
+  assert.match(pickupStatus,/oneTime:false/,'Abholstatus darf keinen Einmal-Link mehr melden');
+  assert.match(accessStore,/reusableKind=record\.kind===['"]pickup['"]\|\|record\.kind===['"]avis['"]/,'Public-Access muss Abholung und Avis als wiederverwendbar behandeln');
+  assert.match(accessStore,/record\.usedAt&&!allowUsed&&!reusableKind/,'usedAt darf wiederverwendbare Links nicht ungültig machen');
 
   const authorize=functionBody(avisApi,"if(req.method==='POST'&&action==='authorize')","const session=sessionFromRequest");
-  assert.match(authorize,/allowUsed:false/,'Neuer Avis-Rohlink darf nach Verbrauch nicht erneut auflösbar sein');
-  assert.match(authorize,/access\.consume\(/,'Avis-Link muss nach korrekter Referenzprüfung verbraucht werden');
-  assert.match(authorize,/rawLinkConsumed=true/,'API muss den Verbrauch zurückmelden');
-  assert.match(avisApi,/oneTime:true/,'API muss neue Avis-Links als Einmal-Link melden');
-  assert.match(avisApi,/singleUse:true/,'Portalstatus muss den Einmal-Link ausweisen');
-  assert.match(avisApi,/singleUse:true\},null,payload\)/,'Avis-Ausstellung muss neue Tokens explizit als singleUse markieren');
-  assert.match(accessStore,/indefinite=ttlMs===null/,'Avis-Link darf bis zur ersten Aktivierung ohne starre TTL bestehen');
-  assert.match(accessStore,/record\.kind!==['"]avis['"][^;]*record\.expiresAt/s,'Legacy-Avis bleibt von alter TTL befreit');
+  assert.match(authorize,/allowUsed:true/,'Avis-Link muss erneut auflösbar bleiben');
+  assert.doesNotMatch(authorize,/access\.consume\(/,'Avis-Link darf beim Öffnen nicht verbraucht werden');
+  assert.match(avisApi,/oneTime:false/,'API muss den Avis-Link als wiederverwendbar melden');
+  assert.match(avisApi,/singleUse:false/,'Portalstatus darf keinen Avis-Einmal-Link melden');
+  assert.match(avisApi,/access\.issue\([^;]*,null,payload\)/s,'Avis-Ausstellung muss ohne feste Link-Laufzeit erfolgen');
+  assert.match(accessStore,/indefinite=ttlMs===null/,'Public-Access-Store muss ausdrücklich unbefristete Avis-Links unterstützen');
+  assert.match(accessStore,/expiresAt=indefinite\?null:/,'Unbefristete Avis-Links dürfen kein Ablaufdatum erhalten');
+  assert.match(accessStore,/record\.kind!==['"]avis['"][^;]*record\.expiresAt/s,'Bestehende aktive Avis-Links dürfen nicht an alter TTL scheitern');
 });
 
 test('QR-Teilabholung bleibt offen; nach Abschluss bleibt die Seite lesbar',()=>{

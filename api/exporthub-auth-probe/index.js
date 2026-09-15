@@ -16,13 +16,6 @@ function checkModule(name, loader) {
     };
   }
 }
-function header(req,name){
-  const h=req&&req.headers||{};
-  return h[name.toLowerCase()]||h[name]||'';
-}
-function hasExplicitSession(req){
-  return Boolean(header(req,'x-exporthub-token')||header(req,'x-exporthub-session')||/(?:^|;\s*)eh_session=/.test(String(header(req,'cookie')||'')));
-}
 
 module.exports = async function (context, req) {
   if (req && req.method === 'OPTIONS') {
@@ -30,52 +23,38 @@ module.exports = async function (context, req) {
     return;
   }
 
-  let authImpl=null;
-  try { authImpl=require('../shared/auth-store'); } catch (_) {}
-
   const userPolicy = checkModule('user-policy', () => require('../shared/user-policy'));
   const storageBlob = checkModule('@azure/storage-blob', () => require('@azure/storage-blob'));
   const authStore = checkModule('auth-store', () => require('../shared/auth-store'));
   const authEndpoint = checkModule('exporthub-auth', () => require('../exporthub-auth/index.js'));
-  const runtimeReady = Boolean(userPolicy.ok && storageBlob.ok && authStore.ok && authEndpoint.ok);
 
   const result = {
-    ok: runtimeReady,
-    version: 'RC1115',
-    service: 'exporthub-auth',
-    runtimeReady
+    ok: true,
+    version: 'RC880',
+    runtime: {
+      node: process.version,
+      platform: process.platform,
+      arch: process.arch
+    },
+    configuration: {
+      storageConfigured: Boolean(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage),
+      initialAdminConfigured: Boolean(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD),
+      signingSecretConfigured: Boolean(process.env.EXPORTHUB_AUTH_SIGNING_SECRET || process.env.EXPORTHUB_SESSION_SECRET)
+    },
+    modules: {
+      userPolicy,
+      storageBlob,
+      authStore,
+      authEndpoint
+    }
   };
 
-  if (hasExplicitSession(req) && authImpl) {
-    try {
-      const current=await authImpl.validateSession(req,{allowPasswordChange:true});
-      if (authImpl.isAdmin(current.user)) {
-        result.adminDiagnostics=true;
-        result.runtime={
-          node:process.version,
-          platform:process.platform,
-          arch:process.arch
-        };
-        result.configuration={
-          storageConfigured:Boolean(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage),
-          initialAdminConfigured:Boolean(process.env.EXPORTHUB_INITIAL_ADMIN_PASSWORD),
-          signingSecretConfigured:Boolean(process.env.EXPORTHUB_AUTH_SIGNING_SECRET||process.env.EXPORTHUB_SESSION_SECRET),
-          sessionMaxHours:authImpl.SESSION_MAX_HOURS,
-          sessionIdleMinutes:authImpl.SESSION_IDLE_MINUTES
-        };
-        result.modules={userPolicy,storageBlob,authStore,authEndpoint};
-      }
-    } catch (_) {
-      // Der öffentliche Probe liefert absichtlich keine Auth- oder Konfigurationsdetails.
-    }
-  }
-
+  result.runtimeReady = Boolean(userPolicy.ok && storageBlob.ok && authStore.ok && authEndpoint.ok);
   context.res = {
-    status: runtimeReady ? 200 : 503,
+    status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'X-Content-Type-Options': 'nosniff'
+      'Cache-Control': 'no-store'
     },
     body: JSON.stringify(result)
   };

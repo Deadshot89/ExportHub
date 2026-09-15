@@ -101,7 +101,7 @@ async function issue(req,kind,meta={},ttlMs,payload){
   }
   const createdAt=now(),indefinite=ttlMs===null,ttl=indefinite?null:Math.max(60*1000,Number(ttlMs)|| (kind==='pickup'?DEFAULT_PICKUP_TTL_MS:DEFAULT_AVIS_TTL_MS)),expiresAt=indefinite?null:new Date(Date.now()+ttl).toISOString();
   const resourceKey=tokenHashValid(old.value&&old.value.resourceKey)?text(old.value.resourceKey).toLowerCase():(tokenHashValid(old.value&&old.value.tokenHash)?text(old.value.tokenHash).toLowerCase():tokenHash);
-  const record={schemaVersion:2,kind,environment:env,tokenHash,resourceKey,subjectId,shipmentId:text(meta.shipmentId||subjectId),reference:text(meta.reference).toUpperCase(),snapshot:clone(meta.snapshot||{}),singleUse:meta.singleUse===true,createdAt,updatedAt:createdAt,expiresAt,usedAt:null,revokedAt:null,failedAttempts:0,lockedUntil:null,issuedBy:text(meta.actor||'ExportHUB').slice(0,120)};
+  const record={schemaVersion:2,kind,environment:env,tokenHash,resourceKey,subjectId,shipmentId:text(meta.shipmentId||subjectId),reference:text(meta.reference).toUpperCase(),snapshot:clone(meta.snapshot||{}),createdAt,updatedAt:createdAt,expiresAt,usedAt:null,revokedAt:null,failedAttempts:0,lockedUntil:null,issuedBy:text(meta.actor||'ExportHUB').slice(0,120)};
   await writeJson(c.getBlockBlobClient(recordName(env,kind,tokenHash)),record,null);
   const tokenHashes=oldHashes.concat(tokenHash).filter((v,i,a)=>a.indexOf(v)===i);
   const index={schemaVersion:2,kind,environment:env,subjectId,tokenHash,resourceKey,tokenHashes,active:true,issuedAt:createdAt,expiresAt,updatedAt:createdAt};
@@ -113,7 +113,7 @@ function assertUsable(record,{allowUsed=false,allowLegacyReissued=false}={}){
   if(record.revokedAt&&!(allowLegacyReissued&&lower(record.revokedReason)==='reissued'))throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
   if(record.kind!=='avis'&&record.expiresAt&&Date.now()>=Date.parse(record.expiresAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
   if(record.lockedUntil&&Date.now()<Date.parse(record.lockedUntil))throw error('ACCESS_LOCKED','Zu viele falsche Eingaben. Der Zugriff ist vorübergehend gesperrt.',429);
-  const reusableKind=record.kind==='pickup'||(record.kind==='avis'&&record.singleUse!==true);
+  const reusableKind=record.kind==='pickup'||record.kind==='avis';
   if(record.usedAt&&!allowUsed&&!reusableKind)throw error('ACCESS_USED','Dieser Einmal-Link wurde bereits verwendet.',410);
   return record;
 }
