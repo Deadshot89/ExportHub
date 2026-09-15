@@ -20,3 +20,4 @@ const next=lines.map(line=>{
 if(changed!==2)throw new Error('Erwartet exakt zwei Pickup-Routen-Regex-Korrekturen, gefunden '+changed);
 fs.writeFileSync(file,next);
 console.log('Pickup-Routen-Regex korrigiert: '+changed+' Zeilen.');
+// RC1124 trigger
