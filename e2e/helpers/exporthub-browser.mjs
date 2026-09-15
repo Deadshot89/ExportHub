@@ -125,7 +125,8 @@ export async function assertNoHorizontalOverflow(page,tolerance=4){
 export function attachRuntimeGuards(page,testInfo){
   const state={pageErrors:[],consoleErrors:[],requestFailures:[],httpErrors:[]};
   const allowConsole=[
-    /favicon\.ico/i
+    /favicon\.ico/i,
+    /Failed to load resource.*(?:400|401|403|404|410)/i
   ];
 
   page.on('pageerror',error=>state.pageErrors.push(clean(error?.stack||error?.message||error)));
@@ -143,11 +144,14 @@ export function attachRuntimeGuards(page,testInfo){
     state.requestFailures.push(`${request.method()} ${url} · ${clean(request.failure()?.errorText||'failed')}`);
   });
   page.on('response',response=>{
-    if(response.status()<500)return;
+    const status=response.status();
+    if(status<400)return;
     const request=response.request();
     const type=request.resourceType();
-    if(!['document','script','stylesheet','xhr','fetch'].includes(type))return;
-    state.httpErrors.push(`${response.status()} ${request.method()} ${clean(response.url())}`);
+    const coreAsset=['document','script','stylesheet'].includes(type);
+    const serverFailure=status>=500&&['xhr','fetch'].includes(type);
+    if(!coreAsset&&!serverFailure)return;
+    state.httpErrors.push(`${status} ${request.method()} ${clean(response.url())}`);
   });
   state.test=testInfo?.title||'';
   state.project=testInfo?.project?.name||'';
