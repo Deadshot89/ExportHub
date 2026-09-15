@@ -8,11 +8,11 @@ import {execFileSync} from 'node:child_process';
 const ROOT=process.cwd();
 const read=p=>fs.readFileSync(path.join(ROOT,p),'utf8');
 
-test('RC1048: Gate41-Stammdaten werden in allen drei Umgebungen eingebaut',()=>{
+test('RC1048-Buildpfad: Gate41-Stammdaten werden im sichtbaren RC1112-Release in allen drei Umgebungen eingebaut',()=>{
   execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{cwd:ROOT,stdio:'pipe'});
   for(const [file,env] of [['index.html','production-candidate'],['TESTVERSION.html','testservice'],['demo.html','demo']]){
     const html=read('dist-rc1048/'+file);
-    assert.match(html,new RegExp('ExportHUB RC1048 environment='+env));
+    assert.match(html,new RegExp('ExportHUB RC1112 environment='+env));
     assert.match(html,/id="rc1048GateMaster"/);
     assert.match(html,/Gate41-Stammdaten Deutschland/);
     assert.match(html,/function saveGateMaster\(\)/);
