@@ -139,8 +139,8 @@ var hash='';try{hash=decodeURIComponent(String(u.hash||'').replace(/^#/,''))}cat
 function currentTokenLike(v){return /^[a-f0-9]{48}$/i.test(q(v))}
 function legacyTokenLike(v){return /^[A-Za-z0-9_-]{6,160}$/.test(q(v))}
 function tokenLike(v){return currentTokenLike(v)||legacyTokenLike(v)}
-var hm=hash.match(/(?:^|[\\/?&])pickup(?:=|\\/)([A-Za-z0-9_-]{6,160})(?:$|[&\\/?])/i)||hash.match(/^pickup=([A-Za-z0-9_-]{6,160})$/i);
-var pm=String(u.pathname||'').match(/\\/pickup(?:\\.html)?\\/([A-Za-z0-9_-]{6,160})\\/?$/i);
+var hm=hash.match(/(?:^|[\/?&])pickup(?:=|\/)([A-Za-z0-9_-]{6,160})(?:$|[&\/?])/i)||hash.match(/^pickup=([A-Za-z0-9_-]{6,160})$/i);
+var pm=String(u.pathname||'').match(/\/pickup(?:\.html)?\/([A-Za-z0-9_-]{6,160})\/?$/i);
 var legacy=/^pickup$/i.test(q(u.searchParams.get('ehcmd')));
 var candidates=[u.searchParams.get('pickup'),u.searchParams.get('token'),u.searchParams.get('qr'),legacy&&u.searchParams.get('ref'),pm&&pm[1],hm&&hm[1],window.__EXPORTHUB_PICKUP_ROUTE_TOKEN__];
 var token='';

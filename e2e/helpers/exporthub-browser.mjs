@@ -14,11 +14,16 @@ function clean(value){
     .replace(/(authorization\s*[:=]\s*bearer\s+)[^\s]+/gi,'$1[REDACTED]');
 }
 
-async function visible(locator){
+async function visible(page,locator){
   const count=await locator.count();
+  const viewport=page.viewportSize();
   for(let i=count-1;i>=0;i--){
     const item=locator.nth(i);
-    if(await item.isVisible().catch(()=>false))return item;
+    if(!(await item.isVisible().catch(()=>false)))continue;
+    const box=await item.boundingBox().catch(()=>null);
+    if(!box||!viewport)return item;
+    const intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
+    if(intersects)return item;
   }
   return null;
 }
@@ -63,7 +68,7 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
 
   for(let pass=0;pass<3;pass++){
     for(const selector of selectors){
-      const item=await visible(page.locator(selector));
+      const item=await visible(page,page.locator(selector));
       if(!item)continue;
       await item.click({timeout:7000});
       await pause(300);
@@ -78,7 +83,7 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
         page.getByText(label,{exact:true})
       ];
       for(const locator of candidates){
-        const item=await visible(locator);
+        const item=await visible(page,locator);
         if(!item)continue;
         await item.click({timeout:7000});
         await pause(300);

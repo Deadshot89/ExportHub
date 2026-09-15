@@ -70,6 +70,17 @@ const currentApi=path.join(ROOT,'api'),builtApi=path.join(OUT,'api');
 if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt');
 fs.mkdirSync(builtApi,{recursive:true});
 fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
+for(const rel of [
+  'assets/rc1027-lieferavis-immediate.js',
+  'assets/rc1037-lieferavis-timing-diagnostics.js',
+  'assets/rc1049-abd-avis-policy.js'
+]){
+  const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
+  if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
+  fs.mkdirSync(path.dirname(dst),{recursive:true});
+  fs.copyFileSync(src,dst);
+  if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
+}
 for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','pickup-confirm-v2/index.js','pod-backup/index.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }

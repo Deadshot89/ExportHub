@@ -38,8 +38,12 @@ test('RC1124 P0: Benachrichtigungen enthalten keine leeren Ghost-Aufgaben und ZÃ
   const centerText=await center.innerText();
   const bodyText=await page.locator('body').innerText();
   const countMarker=page.locator('[data-index236-notification-count], #index236NotificationCount, .index236-notification-count').first();
-  const markerText=await countMarker.innerText().catch(()=>countMarker.getAttribute('data-count')).catch(()=>'');
-  const metric=numberFrom(markerText)??numberFrom(centerText)??numberFrom(bodyText);
+  const dataCount=await countMarker.getAttribute('data-index236-notification-count').catch(()=>null);
+  const fallbackCount=await countMarker.getAttribute('data-count').catch(()=>null);
+  const markerText=await countMarker.innerText().catch(()=>'');
+  const metric=/^\d+$/.test(String(dataCount||''))?Number(dataCount):
+    /^\d+$/.test(String(fallbackCount||''))?Number(fallbackCount):
+    numberFrom(markerText)??numberFrom(centerText)??numberFrom(bodyText);
   expect(metric,'Metrik "Offene Aufgaben" fehlt').not.toBeNull();
   expect(cardCount,'Gerenderte Aufgabenmenge weicht vom ZÃ¤hler ab').toBe(metric);
 

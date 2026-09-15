@@ -192,6 +192,9 @@ jobs:
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/index.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/TESTVERSION.html
           grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/demo.html
+          test -s dist-rc1112/assets/rc1027-lieferavis-immediate.js
+          test -s dist-rc1112/assets/rc1037-lieferavis-timing-diagnostics.js
+          test -s dist-rc1112/assets/rc1049-abd-avis-policy.js
           test -s dist-rc1112/migration-recovery.html
           grep -q 'Dokumentspeicher wird optimiert' dist-rc1112/migration-recovery.html
           grep -q 'assets/rc1014-task-runtime.js?v=1016' dist-rc1112/index.html
@@ -309,6 +312,7 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: RC1124 Lokales Browser-Gate
+        id: rc1124_local_browser_gate
         shell: bash
         env:
           EXPORTHUB_E2E_STATIC: '1'
@@ -320,7 +324,7 @@ jobs:
           npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
 
       - name: RC1124 Lokale Browser-Artefakte
-        if: failure()
+        if: ${{ failure() && steps.rc1124_local_browser_gate.outcome == 'failure' }}
         uses: actions/upload-artifact@v7
         with:
           name: rc1124-local-browser-${{ github.sha }}
@@ -342,6 +346,7 @@ jobs:
           skip_app_build: true
           deployment_environment: testservice
       - name: RC1124 TESTSERVICE Browser Gate
+        id: rc1124_testservice_browser_gate
         shell: bash
         env:
           EXPORTHUB_E2E_LIVE: '1'
@@ -362,7 +367,7 @@ jobs:
           npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
 
       - name: RC1124 TESTSERVICE Browser-Artefakte
-        if: failure()
+        if: ${{ failure() && steps.rc1124_testservice_browser_gate.outcome == 'failure' }}
         uses: actions/upload-artifact@v7
         with:
           name: rc1124-testservice-browser-${{ github.sha }}
@@ -405,6 +410,7 @@ jobs:
             sleep 5
           done
       - name: RC1124 Produktion Read-only Browser Smoke
+        id: rc1124_production_browser_smoke
         shell: bash
         env:
           EXPORTHUB_E2E_LIVE: '1'
@@ -415,7 +421,7 @@ jobs:
           npx playwright test e2e/specs/public-smoke.spec.mjs --project=laptop
 
       - name: RC1124 Produktion Browser-Artefakte
-        if: failure()
+        if: ${{ failure() && steps.rc1124_production_browser_smoke.outcome == 'failure' }}
         uses: actions/upload-artifact@v7
         with:
           name: rc1124-production-browser-${{ github.sha }}
