@@ -11,6 +11,13 @@
     "EXPORTHUB_AUTH_BLOB": "auth-sessions.json",
     "EXPORTHUB_PBKDF2_ITERATIONS": "210000",
     "EXPORTHUB_SESSION_DAYS": "365",
-    "EXPORTHUB_AUTH_SIGNING_SECRET": "<optional-separates-zufaelliges-servergeheimnis; ohne-eintrag-wird-die-storage-verbindung-abgeleitet>"
+    "EXPORTHUB_AUTH_SIGNING_SECRET": "<optional-separates-zufaelliges-servergeheimnis; ohne-eintrag-wird-die-storage-verbindung-abgeleitet>",
+    "EXPORTHUB_POD_CONTAINER": "exporthub-pod",
+    "EXPORTHUB_PICKUP_CONTAINER": "exporthub-pickup",
+    "EXPORTHUB_GRAPH_TENANT_ID": "<Microsoft-Entra-Tenant-ID>",
+    "EXPORTHUB_GRAPH_CLIENT_ID": "<App-Registrierung-Client-ID>",
+    "EXPORTHUB_GRAPH_CLIENT_SECRET": "<nur-in-Azure-App-Settings-speichern>",
+    "EXPORTHUB_POD_DRIVE_USER": "<Zielkonto-fuer-POD-Archiv>",
+    "EXPORTHUB_POD_FOLDER": "003 Export/ExportHub/Abliefernachweise"
   }
 }

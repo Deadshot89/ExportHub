@@ -38,6 +38,16 @@ function patchHtml(file){
 execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
 fs.rmSync(OUT,{recursive:true,force:true});
 fs.cpSync(SRC,OUT,{recursive:true});
+const currentApi=path.join(ROOT,'api'),builtApi=path.join(OUT,'api');
+if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt');
+fs.mkdirSync(builtApi,{recursive:true});
+fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
+for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','pickup-confirm-v2/index.js','pod-backup/index.js','package.json']){
+  if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
+}
+const rc1114PickupSource=path.join(ROOT,'pickup.html');
+if(!fs.existsSync(rc1114PickupSource))throw new Error('RC1114 pickup.html fehlt');
+fs.copyFileSync(rc1114PickupSource,path.join(OUT,'pickup.html'));
 const rc1113StowSrc=path.join(ROOT,'assets','rc1113-stowplan-persist.js');
 const rc1113StowOut=path.join(OUT,'assets','rc1113-stowplan-persist.js');
 if(!fs.existsSync(rc1113StowSrc))throw new Error('RC1113 Stauplan-Runtime fehlt');
@@ -67,7 +77,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     androidBuildSetup:'runner-sdkmanager',
     loginAbdAssetCache:'1112',
     stowPlanInstructionsAndPersistence:'RC1113',
-    shippingProviderNeutralUi:'RC1114'
+    shippingProviderNeutralUi:'RC1114',
+    podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry'
   },
   compatibility:{
     qr:'stable-existing-links',

@@ -8,6 +8,8 @@ const runtimeSources = [
   'shared/public-access-store.js',
   'shared/pickup-store.js',
   'shared/loader-pin-store.js',
+  'shared/graph-drive.js',
+  'shared/pod-archive.js',
   'pickup-init/index.js',
   'pickup-status/index.js',
   'pickup-confirm-v2/index.js',

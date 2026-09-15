@@ -55,6 +55,7 @@ Dateien:
 - api/shared/loader-pin-store.js
 - api/shared/merge.js
 - api/shared/pickup-store.js
+- api/shared/pod-archive.js
 - api/shared/user-policy.js
 - api/testservice-deploy-marker.json
 - assets/css/app.css

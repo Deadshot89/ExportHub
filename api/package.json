@@ -9,6 +9,7 @@
     "postinstall": "node -e \"const fs=require('fs'),path=require('path');const candidates=[path.resolve('scripts/verify-runtime-sources.cjs'),path.resolve('..','scripts','verify-runtime-sources.cjs')];const script=candidates.find(fs.existsSync);if(!script)throw new Error('verify-runtime-sources.cjs nicht gefunden');require(script);\""
   },
   "dependencies": {
-    "@azure/storage-blob": "12.27.0"
+    "@azure/storage-blob": "12.27.0",
+    "pdf-lib": "1.17.1"
   }
 }
