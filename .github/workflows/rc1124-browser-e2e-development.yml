@@ -10,6 +10,7 @@ on:
       - '.github/workflows/rc1124-browser-e2e-development.yml'
       - '.github/rc1112/**'
       - 'index.html'
+      - 'pickup.html'
       - 'assets/**'
   workflow_dispatch:
 
@@ -34,6 +35,8 @@ jobs:
         run: node --test test/rc1124-pickup-script-syntax.test.mjs
       - name: Build RC1112 candidate
         run: node .github/rc1112/build-three-env.mjs
+      - name: Prepare deploy-equivalent browser candidate
+        run: node .github/rc1124/prepare-browser-app.mjs
       - name: Install pinned Playwright
         run: |
           npm install --no-save @playwright/test@1.55.0
@@ -41,6 +44,7 @@ jobs:
       - name: Run RC1124 browser checks
         env:
           EXPORTHUB_E2E_URL: http://127.0.0.1:4173/demo.html
+          EXPORTHUB_E2E_APP_DIR: .rc1124_browser_app
           EXPORTHUB_PUBLIC_BASE: http://127.0.0.1:4173
         run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
       - name: Upload RC1124 browser artifacts
