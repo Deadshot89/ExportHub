@@ -69,6 +69,13 @@ test('RC1018: Mailmodus ist nur bei Kunde oder Spedition avisfähig und sonst Se
   assert.equal(a.resolveMode('customer',false),'details');
 });
 
+test('RC1018: Mail-Sprache und Programmsprache sind strikt getrennt',()=>{
+  const runtime=fs.readFileSync(MAIL,'utf8');
+  assert.doesNotMatch(runtime,/rc543MailLang[^\n]{0,220}setSiteLanguage/,'Mail-Sprachwechsel darf die Website nicht mehr umschalten.');
+  assert.match(runtime,/document\.getElementById\('languageSelect'\)/,'Die vorhandene ExportHUB-Sprachauswahl muss der einzige UI-Schalter sein.');
+  assert.match(runtime,/exporthub-site-language-wrap[^\n]{0,120}remove\(\)/,'Ein alter zusätzlicher RC1018-Schalter muss entfernt werden.');
+});
+
 test('RC1018: Website und öffentliche Seiten besitzen denselben DE/EN-Sprachstandard',()=>{
   assert.ok(fs.existsSync(PUBLIC),'Öffentliche RC1018 Sprachruntime fehlt.');
   const runtime=fs.readFileSync(PUBLIC,'utf8');
