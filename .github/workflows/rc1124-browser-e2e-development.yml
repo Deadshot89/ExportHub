@@ -1,0 +1,51 @@
+name: RC1124 Browser E2E Development
+
+on:
+  push:
+    branches: [rc1124-browser-e2e-gate]
+    paths:
+      - 'e2e/**'
+      - 'playwright.config.mjs'
+      - 'test/rc1124-browser-release-gate.test.mjs'
+      - '.github/workflows/rc1124-browser-e2e-development.yml'
+      - '.github/rc1112/**'
+      - 'index.html'
+      - 'assets/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1124-browser-e2e-development-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build RC1112 candidate
+        run: node .github/rc1112/build-three-env.mjs
+      - name: Install pinned Playwright
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Run RC1124 browser checks
+        env:
+          EXPORTHUB_E2E_URL: http://127.0.0.1:4173/demo.html
+          EXPORTHUB_PUBLIC_BASE: http://127.0.0.1:4173
+        run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+      - name: Upload RC1124 browser artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: RC1124-Browser-E2E-${{ github.run_id }}
+          path: artifacts/rc1124-playwright
+          if-no-files-found: warn
+          retention-days: 14
