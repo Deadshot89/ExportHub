@@ -42,6 +42,9 @@ test('RC1124: Browser-Helfer schützen Navigation, Quellcode-Leaks, Overflow und
   assert.match(helper,/pageerror/);
   assert.match(helper,/console/);
   assert.match(helper,/requestfailed/);
+  assert.match(helper,/boundingBox/);
+  assert.match(helper,/viewportSize/);
+  assert.match(helper,/intersects/);
 });
 
 test('RC1124: TESTSERVICE Browser-Gate liegt zwingend vor Produktion',()=>{
@@ -70,4 +73,30 @@ test('RC1124: Produktion führt nur read-only Browser-Smokes aus',()=>{
   const block=workflow.slice(smoke,workflow.indexOf('\n      - name:',smoke+10)>0?workflow.indexOf('\n      - name:',smoke+10):undefined);
   assert.match(block,/public-smoke\.spec\.mjs/);
   assert.doesNotMatch(block,/navigation\.spec\.mjs|notifications\.spec\.mjs/);
+});
+
+
+test('RC1124: aktuelle Lieferavis-Runtimes werden wirklich in RC1112 ausgeliefert',()=>{
+  const build=read('.github/rc1112/build-three-env.mjs');
+  const workflow=read(workflowPath);
+  for(const rel of [
+    'assets/rc1027-lieferavis-immediate.js',
+    'assets/rc1037-lieferavis-timing-diagnostics.js',
+    'assets/rc1049-abd-avis-policy.js'
+  ]){
+    assert.ok(build.includes(rel),'RC1112 Build kopiert nicht: '+rel);
+    assert.ok(workflow.includes('test -s dist-rc1112/'+rel),'Deploy-Vertrag prüft nicht: '+rel);
+  }
+});
+
+test('RC1124: QR-Abholung enthält syntaktisch gültige Inline-Skripte',()=>{
+  const pickup=read('pickup.html');
+  const tagRx=new RegExp('<script\\b([^>]*)>([\\s\\S]*?)<\\/script>','gi');
+  const scripts=[...pickup.matchAll(tagRx)].filter(m=>!(/\\bsrc\\s*=/.test(m[1])));
+  assert.ok(scripts.length>0,'pickup.html enthält kein Inline-Skript');
+  for(const [index,match] of scripts.entries()){
+    assert.doesNotThrow(()=>new Function(match[2]),'pickup.html Inline-Skript '+index+' ist syntaktisch ungültig');
+  }
+  assert.ok(pickup.includes("pickup(?:=|\\/)([A-Za-z0-9_-]{6,160})"),'Legacy-QR-Hashroute fehlt');
+  assert.ok(pickup.includes("/pickup(?:\\.html)?\\/([A-Za-z0-9_-]{6,160})"),'Legacy-QR-Pfadroute fehlt');
 });
