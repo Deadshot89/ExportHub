@@ -72,16 +72,9 @@ test('RC1018: Mailmodus ist nur bei Kunde oder Spedition avisfähig und sonst Se
 
 test('RC1112: jede eigene Mail erhält bei aktivem Avis nur einen kompakten Avis-Link',()=>{
   const a=api();
-  for(const [lang,body,label] of [['de',deBody,'Lieferavis:'],['en',enBody,'Collection notice:']]){
+  for(const [lang,body] of [['de',deBody],['en',enBody]]){
     const out=a.composeMail({target:'own',lang,body,avisEnabled:true,url:'https://example.test/customer-avis.html?t=abc',reference:'ABC123'});
-    assert.match(out,new RegExp(label.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\test('RC1018: Mailmodus ist nur bei Kunde oder Spedition avisfähig und sonst Sendungsdetails',()=>{
-  const a=api();
-  assert.equal(a.resolveMode('customer',true),'avis');
-  assert.equal(a.resolveMode('carrier',true),'avis');
-  assert.equal(a.resolveMode('own',true),'details');
-  assert.equal(a.resolveMode('customer',false),'details');
-});
-')));
+    if(lang==='de')assert.match(out,/Lieferavis:/);else assert.match(out,/Collection notice:/);
     assert.match(out,/https:\/\/example\.test\/customer-avis\.html\?t=abc&lang=(?:de|en)/);
     assert.equal((out.match(/customer-avis\.html/g)||[]).length,1,'Avis-Link darf in eigener Mail nicht doppelt vorkommen.');
     assert.doesNotMatch(out,/Erforderliche Angaben|Required information|drei Arbeitstage|three business days/i,'Eigene Mail soll keinen langen Avis-Erklärungstext enthalten.');
