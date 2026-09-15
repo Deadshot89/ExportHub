@@ -1,4 +1,4 @@
-name: ExportHUB RC1048 Drei-Umgebungen Deploy
+name: ExportHUB RC1112 Drei-Umgebungen Deploy
 on:
   workflow_dispatch:
   push:
@@ -106,11 +106,11 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1048 Freigabevertrag prüfen
+      - name: RC1112 Freigabevertrag prüfen
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
@@ -122,17 +122,17 @@ jobs:
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
           npm test
-      - name: RC1048 Produktion TESTSERVICE und Demo gemeinsam bauen
+      - name: RC1112 Produktion TESTSERVICE und Demo gemeinsam bauen
         shell: bash
         run: |
           set -euo pipefail
           node .github/rc1048/build-three-env.mjs
-          grep -q 'ExportHUB RC1048 environment=production-candidate' dist-rc1048/index.html
-          grep -q 'ExportHUB RC1048 environment=testservice' dist-rc1048/TESTVERSION.html
-          grep -q 'ExportHUB RC1048 environment=demo' dist-rc1048/demo.html
-          grep -q "version:'RC1048'" dist-rc1048/index.html
-          grep -q "version:'RC1048'" dist-rc1048/TESTVERSION.html
-          grep -q "version:'RC1048'" dist-rc1048/demo.html
+          grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1048/index.html
+          grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1048/TESTVERSION.html
+          grep -q 'ExportHUB RC1112 environment=demo' dist-rc1048/demo.html
+          grep -q "version:'RC1112'" dist-rc1048/index.html
+          grep -q "version:'RC1112'" dist-rc1048/TESTVERSION.html
+          grep -q "version:'RC1112'" dist-rc1048/demo.html
           grep -q 'function addressCountryCode(v)' dist-rc1048/index.html
           grep -q 'function addressCountryCode(v)' dist-rc1048/TESTVERSION.html
           grep -q 'function addressCountryCode(v)' dist-rc1048/demo.html
@@ -140,7 +140,7 @@ jobs:
           grep -q 'function saveGateMaster()' dist-rc1048/index.html
           grep -q 'id="rc1048GateMaster"' dist-rc1048/TESTVERSION.html
           grep -q 'id="rc1048GateMaster"' dist-rc1048/demo.html
-          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1048'" dist-rc1048/production-version.js
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1048/production-version.js
           grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/index.html
           grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/TESTVERSION.html
           grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1048/demo.html
@@ -302,7 +302,7 @@ jobs:
           output_location: ''
           skip_app_build: true
           deployment_environment: testservice
-      - name: Live RC1048 Produktion TESTSERVICE und Demo prüfen
+      - name: Live RC1112 Produktion TESTSERVICE und Demo prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -345,12 +345,12 @@ jobs:
             pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1048=$GITHUB_SHA-$attempt" || true)
             truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1048=$GITHUB_SHA-$attempt" || true)
             if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$pccc" == '200' && "$tccc" == '200' && "$pmac" == '200' && "$tmac" == '200' && "$precc" == '200' && "$trecc" == '200' && "$pperfc" == '200' && "$tperfc" == '200' && "$pavisc" == '200' && "$tavisc" == '200' && "$precpc" == '200' && "$trecpc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
-              && grep -q 'ExportHUB RC1048 environment=production-candidate' "$p" \
-              && grep -q 'ExportHUB RC1048 environment=testservice' "$t" \
-              && grep -q 'ExportHUB RC1048 environment=demo' "$d" \
-              && grep -q "version:'RC1048'" "$p" \
-              && grep -q "version:'RC1048'" "$t" \
-              && grep -q "version:'RC1048'" "$d" \
+              && grep -q 'ExportHUB RC1112 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1112 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1112 environment=demo' "$d" \
+              && grep -q "version:'RC1112'" "$p" \
+              && grep -q "version:'RC1112'" "$t" \
+              && grep -q "version:'RC1112'" "$d" \
               && grep -q 'function addressCountryCode(v)' "$p" \
               && grep -q 'function addressCountryCode(v)' "$t" \
               && grep -q 'function addressCountryCode(v)' "$d" \
@@ -433,9 +433,9 @@ jobs:
             local label="$1" file="$2" marker="$3"
             if ! grep -Fq "$marker" "$file"; then echo "FEHLT: $label :: $marker"; fi
           }
-          diagnose_marker 'Produktion' "$p" 'ExportHUB RC1048 environment=production-candidate'
-          diagnose_marker 'TESTSERVICE' "$t" 'ExportHUB RC1048 environment=testservice'
-          diagnose_marker 'Demo' "$d" 'ExportHUB RC1048 environment=demo'
+          diagnose_marker 'Produktion' "$p" 'ExportHUB RC1112 environment=production-candidate'
+          diagnose_marker 'TESTSERVICE' "$t" 'ExportHUB RC1112 environment=testservice'
+          diagnose_marker 'Demo' "$d" 'ExportHUB RC1112 environment=demo'
           diagnose_marker 'Produktion' "$p" 'function addressCountryCode(v)'
           diagnose_marker 'TESTSERVICE' "$t" 'function addressCountryCode(v)'
           diagnose_marker 'Demo' "$d" 'function addressCountryCode(v)'
@@ -547,7 +547,7 @@ jobs:
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
               [[ "$code" == '200' ]] || ok=0
-              grep -q 'assets/rc1074-login-clean.js?v=1074' "$body" || ok=0
+              grep -q 'assets/rc1074-login-clean.js?v=1112' "$body" || ok=0
               if grep -Eqi 'Anmeldekonfiguration wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Auth-Backend wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Zugangsdaten eingeben' "$body"; then
                 echo "RC1074: technischer Login-Hinweis ist live noch vorhanden: $url" >&2
                 ok=0
