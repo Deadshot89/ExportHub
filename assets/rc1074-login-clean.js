@@ -36,8 +36,14 @@ function cleanLoginStatus(){
     if(t&&!isTechnicalLoginProgress(t))showNode(el);
   }
 }
+function loadRc1109(){
+  if(d.getElementById('exporthub-rc1109-abd-dashboard-customer'))return;
+  var s=d.createElement('script');s.id='exporthub-rc1109-abd-dashboard-customer';s.defer=true;s.src='/assets/rc1109-abd-dashboard-customer.js?v=1109';
+  (d.head||d.documentElement).appendChild(s);
+}
 function install(){
   cleanLoginStatus();
+  loadRc1109();
   if(!d.documentElement||w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__)return;
   w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__=new MutationObserver(cleanLoginStatus);
   w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__.observe(d.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','hidden','style']});
