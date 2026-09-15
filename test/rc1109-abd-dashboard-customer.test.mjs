@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const runtime=fs.readFileSync('assets/rc1109-abd-dashboard-customer.js','utf8');
-const loader=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
+const runtime=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
 const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
 
 test('RC1109: ABD-Anfragen werden aus Request, Sendung oder Kundenstamm mit Kunde angereichert',()=>{
@@ -17,7 +16,8 @@ test('RC1109: ABD-Anfragen werden aus Request, Sendung oder Kundenstamm mit Kund
 test('RC1109: Dashboard-Karten zeigen den aufgelösten Kunden an',()=>{
   assert.match(runtime,/data-rc1109-abd-customer/);
   assert.match(runtime,/Kunde:/);
-  assert.match(runtime,/MutationObserver|exporthub:rendered/);
+  assert.match(runtime,/MutationObserver/);
+  assert.match(runtime,/exporthub:rendered/);
 });
 
 test('RC1109: fehlende Kundendaten werden nur über den bestehenden Save-Pfad persistiert',()=>{
@@ -26,13 +26,10 @@ test('RC1109: fehlende Kundendaten werden nur über den bestehenden Save-Pfad pe
   assert.doesNotMatch(runtime,/fetch\s*\(\s*['\"]\/api\/exporthub-state/);
 });
 
-test('RC1109: Runtime wird aus bereits vorhandenem Drei-Umgebungen-Asset geladen und cachefrei ausgeliefert',()=>{
-  assert.match(loader,/rc1109-abd-dashboard-customer\.js\?v=1109/);
-  for(const path of ['/assets/rc1074-login-clean.js','/assets/rc1109-abd-dashboard-customer.js']){
-    const route=config.routes.find(r=>r.route===path);
-    assert.ok(route,'cachefreie Route fehlt: '+path);
-    assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i);
-  }
+test('RC1109: bereits in allen drei Umgebungen geladene Runtime wird cachefrei ausgeliefert',()=>{
+  const route=config.routes.find(r=>r.route==='/assets/rc1074-login-clean.js');
+  assert.ok(route,'cachefreie RC1074/RC1109-Route fehlt');
+  assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i);
 });
 
 test('RC1109: QR-Bestandsschutz und kostenfreie Umsetzung bleiben unangetastet',()=>{
