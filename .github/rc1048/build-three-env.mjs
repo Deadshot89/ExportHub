@@ -5,8 +5,8 @@ import {execFileSync} from 'node:child_process';
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1047');
 const OUT=path.join(ROOT,'dist-rc1048');
-const VERSION='RC1112';
-const NUMBER='1112';
+const VERSION='RC1048';
+const NUMBER='1048';
 const RC1065_CC_ID='exporthub-rc1065-registration-cc';
 const RC1065_CC_TAG='<script id="'+RC1065_CC_ID+'" defer src="/assets/rc1065-registration-cc.js?v=1093"></script>';
 const RC1061_MIGRATION_ID='exporthub-rc1061-document-migration-admin';
@@ -20,7 +20,7 @@ const RC1069_PERF_TAG='<script id="'+RC1069_PERF_ID+'" defer src="/assets/rc1069
 const RC1071_HISTORY_ID='exporthub-rc1071-shipment-history';
 const RC1071_HISTORY_TAG='<script id="'+RC1071_HISTORY_ID+'" defer src="/assets/rc1071-shipment-history.js?v=1095"></script>';
 const RC1074_LOGIN_ID='exporthub-rc1074-login-clean';
-const RC1074_LOGIN_TAG='<script id="'+RC1074_LOGIN_ID+'" defer src="/assets/rc1074-login-clean.js?v=1112"></script>';
+const RC1074_LOGIN_TAG='<script id="'+RC1074_LOGIN_ID+'" defer src="/assets/rc1074-login-clean.js?v=1074"></script>';
 const RC1075_LOADER_PIN_ID='exporthub-rc1075-loader-pin-admin';
 const RC1075_LOADER_PIN_TAG='<script id="'+RC1075_LOADER_PIN_ID+'" defer src="/assets/rc1075-loader-pin-admin.js?v=1075"></script>';
 const RC1077_CUSTOMER_LABELS_ID='exporthub-rc1077-customer-labels';
@@ -551,7 +551,7 @@ fs.copyFileSync(recoverySource,recoveryTarget);
 const probeFile=path.join(OUT,'production-version.js');
 let probe=fs.readFileSync(probeFile,'utf8');
 probe=probe.replace(/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1047'/g,`__EXPORTHUB_PRODUCTION_VERSION_PROBE__='${VERSION}'`);
-if(!probe.includes(`__EXPORTHUB_PRODUCTION_VERSION_PROBE__='${VERSION}'`))throw new Error('RC1112 Produktionsmarker fehlt');
+if(!probe.includes(`__EXPORTHUB_PRODUCTION_VERSION_PROBE__='${VERSION}'`))throw new Error('RC1048 Produktionsmarker fehlt');
 fs.writeFileSync(probeFile,probe);
 
 const previousManifest=JSON.parse(fs.readFileSync(path.join(SRC,'rc1047-manifest.json'),'utf8'));
@@ -592,4 +592,4 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
-console.log('RC1112 visible release ready on RC1048 build path: Gate41-Stammdaten für Laufzeit, PLZ-Zone, Maut und Diesel; keine geratenen Zonen mehr.');
+console.log('RC1048 build ready: Gate41-Stammdaten für Laufzeit, PLZ-Zone, Maut und Diesel; keine geratenen Zonen mehr.');
