@@ -14,15 +14,23 @@ function clean(value){
     .replace(/(authorization\s*[:=]\s*bearer\s+)[^\s]+/gi,'$1[REDACTED]');
 }
 
-async function visible(page,locator){
-  const count=await locator.count();
+async function visible(page,locator,options={}){
+  const count=await locator.count().catch(()=>0);
   const viewport=page.viewportSize();
+  const allowScroll=options.scrollIntoView===true;
   for(let i=count-1;i>=0;i--){
     const item=locator.nth(i);
     if(!(await item.isVisible().catch(()=>false)))continue;
-    const box=await item.boundingBox().catch(()=>null);
+    let box=await item.boundingBox().catch(()=>null);
     if(!box||!viewport)return item;
-    const intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
+    let intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
+    if(intersects)return item;
+    if(!allowScroll)continue;
+    await item.scrollIntoViewIfNeeded().catch(()=>{});
+    await pause(60);
+    box=await item.boundingBox().catch(()=>null);
+    if(!box)return null;
+    intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
     if(intersects)return item;
   }
   return null;
@@ -30,12 +38,11 @@ async function visible(page,locator){
 
 async function openMenu(page){
   for(const selector of ['#rc1016MobileMenuBtn','#ehMenuBtn']){
-    const button=page.locator(selector).first();
-    if(await button.count()&&await button.isVisible().catch(()=>false)){
-      await button.click({timeout:5000}).catch(()=>{});
-      await pause(150);
-      return true;
-    }
+    const button=await visible(page,page.locator(selector));
+    if(!button)continue;
+    await button.click({timeout:5000}).catch(()=>{});
+    await pause(150);
+    return true;
   }
   return false;
 }
@@ -66,9 +73,12 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
     `button[data-nav="${module}"]`,`a[data-nav="${module}"]`,`[role="button"][data-nav="${module}"]`
   ];
 
+  let menuOpened=false;
   for(let pass=0;pass<3;pass++){
+    const viewport=page.viewportSize();
+    const allowScroll=Boolean(menuOpened||(viewport&&viewport.width>=768));
     for(const selector of selectors){
-      const item=await visible(page,page.locator(selector));
+      const item=await visible(page,page.locator(selector),{scrollIntoView:allowScroll});
       if(!item)continue;
       await item.click({timeout:7000});
       await pause(300);
@@ -83,7 +93,7 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
         page.getByText(label,{exact:true})
       ];
       for(const locator of candidates){
-        const item=await visible(page,locator);
+        const item=await visible(page,locator,{scrollIntoView:allowScroll});
         if(!item)continue;
         await item.click({timeout:7000});
         await pause(300);
@@ -91,7 +101,7 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
         return module;
       }
     }
-    await openMenu(page);
+    menuOpened=(await openMenu(page))||menuOpened;
   }
 
   if(options.allowProgrammaticFallback===true){
@@ -141,6 +151,7 @@ export function attachRuntimeGuards(page,testInfo){
     const line=clean(`${message.text()} ${loc.url||''}`);
     if(allowConsole.some(rx=>rx.test(line)))return;
     if(process.env.EXPORTHUB_E2E_STATIC==='1'&&/Failed to load resource/i.test(line)&&/\/api\//i.test(line))return;
+    if(process.env.EXPORTHUB_E2E_STATIC==='1'&&/RC1033 Lieferavis Fast-Path exporthub:(?:viewchange|rendered) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert\./i.test(line))return;
     state.consoleErrors.push(line);
   });
   page.on('requestfailed',request=>{
