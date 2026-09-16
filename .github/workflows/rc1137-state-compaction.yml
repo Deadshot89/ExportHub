@@ -67,14 +67,14 @@ jobs:
           fi
 
           health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
-          printf '%s\n' "$health" | node -e "
+          printf '%s\n' "$health" | RC1137_BEFORE="$before" node -e "
             let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
               const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0);
               if(!v.ok||!v.teamStateReadable||bytes<=0)process.exit(6);
               console.log('TESTSERVICE teamStateBytes='+bytes);
               const before=Number(process.env.RC1137_BEFORE||0);
               if(before>0&&bytes>=before)process.exit(7);
-            })" RC1137_BEFORE="$before"
+            })"
 
   production:
     name: PRODUCTION State kompaktieren
@@ -127,7 +127,7 @@ jobs:
           fi
 
           health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
-          RC1137_BEFORE="$before" printf '%s\n' "$health" | node -e "
+          printf '%s\n' "$health" | RC1137_BEFORE="$before" node -e "
             let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
               const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0);
               if(!v.ok||!v.teamStateReadable||bytes<=0)process.exit(6);
