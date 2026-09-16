@@ -3,6 +3,7 @@
 const crypto=require('crypto');
 const https=require('https');
 const {createBlobServiceClient}=require('../shared/blob-rest');
+const {DOCUMENT_CONTAINER,migrateLegacyDocuments,legacyDocumentInventory}=require('../shared/document-blob-store');
 const {previewCompaction,buildAppliedDocument}=require('../shared/state-maintenance');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
@@ -49,7 +50,8 @@ async function readJson(blob){
 }
 async function uploadTeam(blob,value,etag){
  const raw=JSON.stringify(value),bytes=Buffer.byteLength(raw);
- const result=await blob.upload(raw,bytes,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifMatch:etag},metadata:{schema:String(value.schemaVersion||3),revision:String(value.revision||0),clientversion:'RC1137-state-compaction',updatedepoch:String(Date.parse(value.updatedAt||'')||Date.now())}});
+ const clientVersion=text(value&&value.clientVersion)||'RC1137-state-compaction';
+ const result=await blob.upload(raw,bytes,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifMatch:etag},metadata:{schema:String(value.schemaVersion||3),revision:String(value.revision||0),clientversion:clientVersion.replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80),updatedepoch:String(Date.parse(value.updatedAt||'')||Date.now())}});
  return{etag:result&&result.etag||null,bytes};
 }
 function httpsJson(url){
@@ -81,14 +83,53 @@ async function githubOidcAuthorized(req){
   return crypto.verify('RSA-SHA256',Buffer.from(parts[0]+'.'+parts[1]),key,Buffer.from(parts[2],'base64url'));
  }catch(_){return false}
 }
-async function createVerifiedBackup(container,env,current){
- const stamp=now().replace(/[:.]/g,'-'),name=recoveryPrefix(env)+'team-state-before-RC1137-compaction-'+stamp+'.json';
+async function createVerifiedBackup(container,env,current,options={}){
+ const marker=text(options.marker)||'RC1137-compaction';
+ const purpose=text(options.purpose)||'rc1137-state-compaction-backup';
+ const stamp=now().replace(/[:.]/g,'-'),name=recoveryPrefix(env)+'team-state-before-'+marker+'-'+stamp+'.json';
  const raw=JSON.stringify(current),bytes=Buffer.byteLength(raw),hash=crypto.createHash('sha256').update(raw).digest('hex');
  const blob=container.getBlockBlobClient(name);
- const uploaded=await blob.upload(raw,bytes,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifNoneMatch:'*'},metadata:{purpose:'rc1137-state-compaction-backup',sha256:hash}});
+ const uploaded=await blob.upload(raw,bytes,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifNoneMatch:'*'},metadata:{purpose,sha256:hash}});
  const properties=await blob.getProperties(),storedHash=text(properties&&properties.metadata&&properties.metadata.sha256);
- if(!uploaded||!uploaded.etag||!properties||!properties.etag||storedHash!==hash)throw error('BACKUP_VERIFY_FAILED','Das RC1137-Sicherungsbackup konnte nicht verifiziert werden.',500);
+ if(!uploaded||!uploaded.etag||!properties||!properties.etag||storedHash!==hash)throw error('BACKUP_VERIFY_FAILED','Das Sicherungsbackup konnte nicht verifiziert werden.',500);
  return{name,bytes,sha256:hash};
+}
+async function migrateTestserviceDocuments(container,blob,currentRead){
+ const current=currentRead.value;
+ const initial=legacyDocumentInventory(current);
+ if(initial.found===0){
+  return{ok:true,migrated:false,noChange:true,environment:'testservice',found:0,migratedCount:0,remaining:0,bytesMoved:0,batches:0,beforeBytes:currentRead.bytes,afterBytes:currentRead.bytes,backupVerified:false};
+ }
+ const backup=await createVerifiedBackup(container,'testservice',current,{marker:'RC1138-document-migration',purpose:'rc1138-document-migration-backup'});
+ const documentContainer=service().getContainerClient(DOCUMENT_CONTAINER);
+ let working=current,totalMigrated=0,totalBytesMoved=0,batches=0;
+ while(true){
+  const before=legacyDocumentInventory(working);
+  if(before.found===0)break;
+  if(batches>=20)throw error('MIGRATION_BATCH_LIMIT','RC1138 hat das sichere Batch-Limit erreicht und den Team-State nicht verändert.',409);
+  const result=await migrateLegacyDocuments(working,{environment:'testservice',limit:10,container:documentContainer});
+  if(Number(result.migrated||0)<=0&&Number(result.remaining||0)>0)throw error('MIGRATION_NO_PROGRESS','RC1138 konnte die verbliebenen Inline-Dokumente nicht verifiziert in Blob Storage übernehmen. Der Team-State wurde nicht verändert.',409);
+  working=result.state;
+  totalMigrated+=Number(result.migrated||0);
+  totalBytesMoved+=Number(result.bytesMoved||0);
+  batches++;
+ }
+ const finalInventory=legacyDocumentInventory(working);
+ if(finalInventory.found!==0)throw error('MIGRATION_INCOMPLETE','RC1138 hat nicht alle Inline-Dokumente migriert. Der Team-State wurde nicht verändert.',409);
+ const at=now();
+ working.schemaVersion=Math.max(3,Number(working&&working.schemaVersion||3));
+ working.revision=Number(current&&current.revision||0)+1;
+ working.updatedAt=at;
+ working.updatedBy='RC1138 GitHub Workflow';
+ working.updatedByUserId=null;
+ working.updatedByDevice='github-actions';
+ working.clientVersion='RC1138-document-migration';
+ working.documentMigrationAudit={version:'RC1138',at,actor:'RC1138 GitHub Workflow',environment:'testservice',backupBlob:backup.name,found:initial.found,migrated:totalMigrated,bytesMoved:totalBytesMoved,batches};
+ let uploaded;
+ const currentEtag=currentRead.etag;
+ try{uploaded=await uploadTeam(blob,working,currentEtag)}
+ catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der TESTSERVICE-Team-State wurde während der Dokumentmigration geändert. RC1138 hat den State-Write sicher abgebrochen.',409);throw e}
+ return{ok:true,migrated:true,environment:'testservice',found:initial.found,migratedCount:totalMigrated,remaining:0,bytesMoved:totalBytesMoved,batches,beforeBytes:currentRead.bytes,afterBytes:uploaded.bytes,backupBlob:backup.name,backupBytes:backup.bytes,backupVerified:true};
 }
 
 module.exports=async function(context,req){
@@ -97,9 +138,14 @@ module.exports=async function(context,req){
   if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
   if(!await githubOidcAuthorized(req))throw error('GLOBAL_ADMIN_OR_WORKFLOW_REQUIRED','RC1137 darf nur durch den signierten GitHub-Wartungsworkflow ausgeführt werden.',403);
   const payload=body(req),action=lower(payload.action),environment=environmentOf(req,payload);
-  if(action!=='preview'&&action!=='apply')throw error('ACTION_INVALID','Erlaubt sind preview und apply.',400);
+  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents')throw error('ACTION_INVALID','Erlaubt sind preview, apply und migrate-testservice-documents.',400);
+  if(action==='migrate-testservice-documents'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Die RC1138-Dokumentmigration ist ausschließlich im TESTSERVICE freigegeben.',403);
   const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(teamBlobName(environment));
   const currentRead=await readJson(blob),current=currentRead.value;
+  if(action==='migrate-testservice-documents'){
+   context.res=json(200,await migrateTestserviceDocuments(container,blob,currentRead));
+   return;
+  }
   const preview=previewCompaction(current);
   if(action==='preview'){
    context.res=json(200,{ok:true,preview:true,environment,revision:Number(current&&current.revision||0),changed:preview.changed,beforeBytes:preview.beforeBytes,afterBytes:preview.afterBytes,savedBytes:preview.savedBytes,savedPercent:preview.beforeBytes?Number((preview.savedBytes/preview.beforeBytes*100).toFixed(2)):0});
@@ -119,7 +165,7 @@ module.exports=async function(context,req){
    return;
   }
  }catch(e){
-  try{context.log&&context.log.error&&context.log.error('RC1137 state maintenance error',e&&e.code,e&&e.message)}catch(_){}
-  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'RC1137 Wartung fehlgeschlagen.'});
+  try{context.log&&context.log.error&&context.log.error('RC1137/RC1138 state maintenance error',e&&e.code,e&&e.message)}catch(_){}
+  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'ExportHUB Wartung fehlgeschlagen.'});
  }
 };
