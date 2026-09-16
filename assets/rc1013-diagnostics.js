@@ -170,9 +170,17 @@
   }
   function currentView(win){try{var s=typeof win.__EXPORTHUB_GET_STATE__==='function'?win.__EXPORTHUB_GET_STATE__():(win.state||{});return low(s&&s.view);}catch(_){return'';}}
   function diagnosticsVisible(win){
-    if(currentView(win)==='diagnostics')return true;
-    if(win.document.querySelector('[data-view="diagnostics"].active,[data-view="diagnostics"][aria-current="page"],[data-eh-view="diagnostics"].active'))return true;
-    return Array.prototype.some.call(win.document.querySelectorAll('h1,h2,h3'),function(h){return /fehlerdiagnose/i.test(text(h.textContent));});
+    var view=currentView(win);
+    if(view)return view==='diagnostics';
+    return !!win.document.querySelector('[data-view="diagnostics"].active,[data-view="diagnostics"][aria-current="page"],[data-eh-view="diagnostics"].active');
+  }
+  function removeDiagnosticsHost(win){
+    if(!win||!win.document)return false;
+    var host=win.document.getElementById('rc1013-diagnostics-enhanced');
+    if(!host)return false;
+    if(typeof host.remove==='function')host.remove();
+    else if(host.parentElement)host.parentElement.removeChild(host);
+    return true;
   }
   function style(win){
     if(win.document.getElementById('rc1013-diagnostics-style'))return;
@@ -194,7 +202,8 @@
     return '<article class="rc1013-diag-card '+esc(d.level)+' '+esc(st.key)+'"><div class="rc1013-diag-top"><div><strong>'+esc(d.area)+'</strong><div>'+esc(d.category)+' · '+esc(d.level.toUpperCase())+'</div></div><div><span class="rc1083-status '+esc(st.key)+'">'+esc(st.label)+'</span> <span class="rc1013-code">'+esc(d.code)+'</span></div></div><div class="rc1013-meta"><div><b>Benutzer</b>'+esc(d.user)+' · '+esc(d.userId)+'</div><div><b>Firma</b>'+esc(d.company)+'</div><div><b>Umgebung / Version</b>'+esc(d.environment)+' · '+esc(d.clientVersion)+'</div><div><b>Zeitpunkt</b>'+esc(d.time)+'</div></div><div class="rc1013-block"><b>Bedeutung</b>'+esc(d.meaning)+'</div><div class="rc1013-block"><b>Wahrscheinliche Ursache</b>'+esc(d.cause)+'</div><div class="rc1013-block"><b>Nächster Schritt</b>'+esc(d.nextStep)+'</div><div class="rc1013-block rc1013-tech"><b>Technische Meldung</b>'+esc(d.technicalMessage)+'</div>'+details+resolution+'<div class="rc1083-actions">'+action+run+'</div></article>';
   }
   async function refresh(win){
-    if(!win||!win.document||!diagnosticsVisible(win))return false;
+    if(!win||!win.document)return false;
+    if(!diagnosticsVisible(win)){removeDiagnosticsHost(win);return false;}
     var cloud=win.ExportHUBDiagnosticsCloud864;if(!cloud||typeof cloud.isGlobalAdmin!=='function'||!cloud.isGlobalAdmin())return false;
     try{if(typeof cloud.refresh==='function')await cloud.refresh(true);}catch(_){ }
     var rows=[];try{rows=typeof cloud.recentRecords==='function'?(cloud.recentRecords(500)||[]):[];}catch(_){rows=[];}
@@ -219,9 +228,10 @@
   function install(win){
     if(!win||!win.document||win.__EXPORTHUB_RC1013_DIAGNOSTICS__)return;win.__EXPORTHUB_RC1013_DIAGNOSTICS__=true;style(win);
     var timer=0,schedule=function(delay){clearTimeout(timer);timer=setTimeout(function(){refresh(win);},delay||120);};
-    ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:diagnostic','exporthub:diagnostic-autofix'].forEach(function(n){win.addEventListener(n,function(){schedule(120);});});
-    if(win.MutationObserver){var mo=new win.MutationObserver(function(){if(diagnosticsVisible(win))schedule(180);});mo.observe(win.document.documentElement,{childList:true,subtree:true});}
-    win.setInterval(function(){if(diagnosticsVisible(win)&&!win.document.hidden)refresh(win)},10000);
+    ['exporthub:ready','exporthub:rendered','exporthub:diagnostic','exporthub:diagnostic-autofix'].forEach(function(n){win.addEventListener(n,function(){schedule(120);});});
+    win.addEventListener('exporthub:viewchange',function(){schedule(0);});
+    if(win.MutationObserver){var mo=new win.MutationObserver(function(){if(diagnosticsVisible(win)||win.document.getElementById('rc1013-diagnostics-enhanced'))schedule(180);});mo.observe(win.document.documentElement,{childList:true,subtree:true});}
+    win.setInterval(function(){if(!win.document.hidden&&(diagnosticsVisible(win)||win.document.getElementById('rc1013-diagnostics-enhanced')))refresh(win)},10000);
     schedule(300);
   }
   return Object.freeze({version:'RC1085',describe:describe,codeOf:codeOf,refresh:refresh,install:install,requestAutofix:requestAutofix,filterRows:filterRows,statusInfo:statusInfo});
