@@ -9,7 +9,6 @@ const {MODULES,normalizeUser,publicUser}=require('../shared/user-policy');
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
 const TEST_TEAM_BLOB=process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+String(TEAM_BLOB).replace(/^\/+/,'')); 
-const TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 const REPO='Deadshot89/ExportHub';
 const WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310.yml';
 const OIDC_ISSUER='https://token.actions.githubusercontent.com';
@@ -32,10 +31,10 @@ function safeRunId(v){
  if(!/^E2E-[A-Za-z0-9._-]{3,100}$/.test(raw))throw error('RUN_ID_INVALID','Ungültige E2E-Run-ID.',400);
  return raw;
 }
-function requestHost(req){return lower(header(req,'x-forwarded-host')||header(req,'x-original-host')||header(req,'host')).split(':')[0]}
 function requireTestservice(req,payload){
- const host=requestHost(req),environment=lower(payload&&payload.environment||header(req,'x-exporthub-environment'));
- if(host!==TESTSERVICE_HOST||environment!=='testservice')throw error('TESTSERVICE_ONLY','RC1139 darf ausschließlich im ExportHUB TESTSERVICE ausgeführt werden.',403);
+ const headerEnvironment=lower(header(req,'x-exporthub-environment'));
+ const payloadEnvironment=lower(payload&&payload.environment);
+ if(headerEnvironment!=='testservice'||payloadEnvironment!=='testservice')throw error('TESTSERVICE_ONLY','RC1139 darf ausschließlich gegen die ExportHUB-Testservice-Datenumgebung ausgeführt werden.',403);
  return 'testservice';
 }
 function service(){
