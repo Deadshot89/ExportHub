@@ -76,14 +76,16 @@ async function deleteCustomer(c){
  if(!key)throw new Error('Der Kunde besitzt keine eindeutige Kennung und kann nicht sicher gelöscht werden.');
  var idx=list.findIndex(function(x){return x===c||low(customerKey(x))===low(key)});
  if(idx<0)throw new Error('Der ausgewählte Kunde wurde im aktuellen Kundenstamm nicht gefunden.');
- var removed=list[idx],beforeCustomers=list.slice(),beforeMeta=clone(s._teamSyncMeta),beforeSelection=selectionSnapshot(s),now=new Date().toISOString();
+ var removed=list[idx],beforeCustomers=list.slice(),beforeMeta=clone(s._teamSyncMeta),beforeAudit=clone(arr(s.auditLog)),beforeSelection=selectionSnapshot(s),now=new Date().toISOString(),actor=currentUser()||{},actorName=q(actor.name||actor.user||actor.username)||'Unbekannt';
  working=true;
  try{
   s.customers=list.filter(function(_x,i){return i!==idx});
   s._teamSyncMeta=obj(s._teamSyncMeta)?s._teamSyncMeta:{};
   s._teamSyncMeta.fields=obj(s._teamSyncMeta.fields)?s._teamSyncMeta.fields:{};
   s._teamSyncMeta.tombstones=arr(s._teamSyncMeta.tombstones).filter(function(t){return !(low(t&&t.collection)==='customers'&&low(t&&t.id)===low(key))});
-  s._teamSyncMeta.tombstones.push({collection:'customers',id:key,deletedAt:now,deletedBy:q((currentUser()||{}).name||(currentUser()||{}).user),explicitUserAction:true,reason:'duplicate-or-invalid-customer'});
+  s._teamSyncMeta.tombstones.push({collection:'customers',id:key,deletedAt:now,deletedBy:actorName,explicitUserAction:true,reason:'duplicate-or-invalid-customer'});
+  s.auditLog=arr(s.auditLog).slice(-4999);
+  s.auditLog.push({id:'AUD-CUSTOMER-DELETE-'+Date.now().toString(36)+'-'+low(key).replace(/[^a-z0-9]+/g,'-').slice(0,40),type:'CUSTOMER_DELETED',actor:actorName,at:now,details:{customer:customerLabel(removed),account:customerAccount(removed),customerId:q(removed.id||removed.customerId),reason:'Doppelter oder falsch angelegter Kundenstammsatz',linkedShipments:linkedShipmentCount(removed)}});
   clearSelection(s,removed);
   await persist('Kunde gelöscht: '+customerLabel(removed)+(customerAccount(removed)?' · '+customerAccount(removed):''));
   try{w.dispatchEvent(new CustomEvent('exporthub:customer-deleted',{detail:{id:key,name:customerLabel(removed),account:customerAccount(removed),deletedAt:now}}))}catch(_){}
@@ -92,6 +94,7 @@ async function deleteCustomer(c){
   return true
  }catch(e){
   s.customers=beforeCustomers;
+  s.auditLog=beforeAudit;
   if(beforeMeta===undefined)delete s._teamSyncMeta;else s._teamSyncMeta=beforeMeta;
   restoreSelection(s,beforeSelection);
   throw e
