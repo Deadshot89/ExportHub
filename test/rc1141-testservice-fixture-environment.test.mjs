@@ -9,7 +9,8 @@ test('RC1141: E2E-Fixture hängt nicht von unzuverlässigen Azure-Proxy-Hosthead
   const source=fs.readFileSync(API,'utf8');
   assert.doesNotMatch(source,/function requestHost\(/,'öffentlicher Host darf nicht mehr Sicherheitsanker sein');
   assert.doesNotMatch(source,/TESTSERVICE_HOST/,'statischer Testservice-Host darf nicht mehr benötigt werden');
-  assert.match(source,/environment\s*!==\s*['"]testservice['"]/,'explizite Testservice-Umgebung muss weiterhin Pflicht sein');
+  assert.match(source,/headerEnvironment\s*!==\s*['"]testservice['"]/,'TESTSERVICE-Header muss Pflicht sein');
+  assert.match(source,/payloadEnvironment\s*!==\s*['"]testservice['"]/,'TESTSERVICE-Payload muss Pflicht sein');
   assert.match(source,/TESTSERVICE_ONLY/,'fail-closed Testservice-Sperre muss erhalten bleiben');
 });
 
@@ -28,5 +29,5 @@ test('RC1141: OIDC bleibt zwingend und Workflow fordert explizit testservice an'
   assert.match(api,/E2E_FIXTURE_FORBIDDEN/,'OIDC-Fehler muss fail-closed bleiben');
   const gate=workflow.slice(workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate'),workflow.indexOf('- name: Deploy ExportHUB production'));
   assert.match(gate,/x-exporthub-environment: testservice/,'Workflow muss Testservice-Umgebung mitsenden');
-  assert.match(gate,/\"environment\":\"testservice\"/,'Payload muss Testservice-Umgebung binden');
+  assert.match(gate,/-d[^\n]*environment[^\n]*testservice/,'Payload muss Testservice-Umgebung binden');
 });
