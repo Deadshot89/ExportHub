@@ -62,8 +62,8 @@ test('RC1128: Kunden-Avis-API speichert erst nach sauberem Defender-Ergebnis end
   const api=read('api/customer-avis/index.js');
   assert.doesNotThrow(()=>new Function('require','module','exports',api));
   assert.match(api,/AVIS_QUARANTINE_CONTAINER/);
-  assert.match(api,/action==='upload-document'/);
-  assert.match(api,/action==='document-upload-status'/);
+  assert.match(api,/postAction==='upload-document'/);
+  assert.match(api,/postAction==='document-upload-status'/);
   assert.match(api,/pdfSecurity\.validatePdfUpload/);
   assert.match(api,/qBlob\.getTags\(\)/);
   assert.match(api,/scan\.status==='clean'/);
