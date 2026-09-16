@@ -88,3 +88,20 @@ test('RC1124 P0: Browser Zurück/Vor und F5 behalten die fachliche View',async({
   await assertView(page);
   await assertRuntimeClean(runtime,testInfo);
 });
+
+
+test('RC1125 P0: Benutzerverwaltung zeigt keine Fehlerdiagnose',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Benutzer-/Diagnose-Isolation läuft einmal auf dem Laptop-Profil.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  await openExportHubView(page,'diagnostics',['Fehlerdiagnose','Diagnose'],/Diagnose|Fehler/i,{allowProgrammaticFallback:true});
+  await openExportHubView(page,'rights',['Benutzer & Rechte','Benutzer','Rechte','Berechtigungen'],/Benutzer|Rechte|Rollen/i,{allowProgrammaticFallback:true});
+
+  await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
+  await expect(page.locator('#content')).not.toContainText(/Fehlerdiagnose\s*&\s*automatische Behebung/i);
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
