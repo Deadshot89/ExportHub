@@ -26,7 +26,7 @@ test('RC1085: Fehlerdiagnose bietet Filter und zeigt die bewusst deaktivierte au
   assert.match(diagnostics,/data-rc1083-status/);
   assert.match(diagnostics,/data-rc1083-area/);
   assert.match(diagnostics,/\/api\/diagnostic-autofix/);
-  assert.match(diagnostics,/setInterval\(function\(\)\{if\(diagnosticsVisible\(win\)/);
+  assert.match(diagnostics,/setInterval\(function\(\)\{if\(!win\.document\.hidden&&\(diagnosticsVisible\(win\)\|\|win\.document\.getElementById\('rc1013-diagnostics-enhanced'\)\)\)refresh\(win\)/);
   assert.match(diagnostics,/resolvedAt/);
   assert.match(diagnostics,/ChatGPT arbeitet/);
 });
