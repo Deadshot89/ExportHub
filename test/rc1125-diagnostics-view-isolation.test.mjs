@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createRequire} from 'node:module';
-
-const require=createRequire(import.meta.url);
-const diagnostics=require('../assets/rc1013-diagnostics.js');
+import vm from 'node:vm';
 
 const runtime=fs.readFileSync('assets/rc1013-diagnostics.js','utf8');
+const context={module:{exports:{}},exports:{},console};
+vm.runInNewContext(runtime,context,{filename:'assets/rc1013-diagnostics.js'});
+const diagnostics=context.module.exports;
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
