@@ -79,7 +79,7 @@ function scanResultFromTags(tags){
   const raw=tagValue(tags,DEFENDER_RESULT_TAG),time=tagValue(tags,DEFENDER_TIME_TAG),v=lower(raw);
   if(v==='no threats found')return{status:'clean',result:raw,scanTime:time};
   if(v==='malicious')return{status:'malicious',result:raw,scanTime:time};
-  if(v==='not scanned')return{status:'not-scanned',result:raw,scanTime:time};
+  if(v==='not scanned'||v.startsWith('not scanned'))return{status:'not-scanned',result:raw,scanTime:time};
   if(v==='error'||v.startsWith('error')||v.includes('scan timed out'))return{status:'error',result:raw,scanTime:time};
   return{status:'pending',result:raw,scanTime:time};
 }
