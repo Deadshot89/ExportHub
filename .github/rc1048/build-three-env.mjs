@@ -460,7 +460,7 @@ function patchShipmentOverviewInlineMeta(html,file){
   let block=html.slice(start,end);
   if(!block.includes('rc1091MetaHtml')){
     const prolog=`function overviewCardHtml(sh){
- var rc1091OverviewApi=window.ExportHUBRC1014ShipmentOverview,rc1091Meta=rc1091OverviewApi&&typeof rc1091OverviewApi.shipmentMeta==='function'?rc1091OverviewApi.shipmentMeta(sh):null,rc1091MetaHtml=rc1091Meta?'<div class="rc1014-shipment-meta" data-rc1014-shipment-meta="1"><span class="rc1014-shipment-created">'+E(rc1091Meta.createdLabel)+'</span><span class="rc1014-shipment-colli">'+E(rc1091Meta.colliLabel)+'</span></div>':'';`;
+ var rc1091OverviewApi=window.ExportHUBRC1014ShipmentOverview,rc1091Meta=rc1091OverviewApi&&typeof rc1091OverviewApi.shipmentMeta==='function'?rc1091OverviewApi.shipmentMeta(sh):null,rc1127PickupHtml=rc1091Meta&&rc1091Meta.customerPickupLabel?'<span class="rc1014-shipment-customer-pickup" data-rc1127-customer-pickup="1">'+E(rc1091Meta.customerPickupLabel)+'</span>':'',rc1091MetaHtml=rc1091Meta?'<div class="rc1014-shipment-meta" data-rc1014-shipment-meta="1"><span class="rc1014-shipment-created">'+E(rc1091Meta.createdLabel)+'</span><span class="rc1014-shipment-colli">'+E(rc1091Meta.colliLabel)+'</span>'+rc1127PickupHtml+'</div>':'';`;
     block=block.replace('function overviewCardHtml(sh){',prolog);
     const anchor='</span></div><div class="rc524-action-grid">';
     const count=block.split(anchor).length-1;
@@ -485,7 +485,8 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchShipmentOverviewInlineMeta(html,file);
   html=patchPackagingGroups(html,file);
   html=patchDeckblattContrast(html,file);
-  html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1091');
+  html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1127');
+  html=html.replace(/assets\/rc1014-shipment-overview\.css\?v=1016/g,'assets/rc1014-shipment-overview.css?v=1127');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1085');
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=injectBeforeHeadClose(html,RC1069_PERF_TAG,RC1069_PERF_ID);
@@ -575,7 +576,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     startupRecovery:{runtime:'assets/rc1067-startup-recovery.js',page:'migration-recovery.html',version:'RC1067',trigger:'stalled admin startup with inline legacy documents'},
     finalRenderIntegrity:{version:'RC1068',shipmentController:'canonical production sync',inlineScriptSyntaxChecked:true,visibleCodeLeakChecked:true},
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
-    shipmentOverviewRenderStability:{version:'RC1091',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750},
+    shipmentOverviewRenderStability:{version:'RC1127',runtime:'assets/rc1014-shipment-overview.js',inlineMeta:true,idempotentDomPatch:true,renderFeedbackSuppressionMs:750,customerPickupDateFromAvis:true,customerPickupFields:['customerAvisPickupDate','avisPickupDate']},
     customerMailContacts:{version:'RC1092',runtime:'assets/rc1092-customer-mail-contacts.js',actions:['Person speichern','Zur Mail hinzufügen'],separateLibraryAndMailAssignment:true,persistImmediately:true},
     packagingMenu:{version:'RC1110',runtime:'assets/rc1096-packaging-groups.js',columns:['Pakete','Paletten','Sonstiges'],packageCodes:'E0-E6',addsEnvelope:true,responsive:true,nativeRc682Guard:true},
     deckblattContrast:{version:'RC1111',document:'Deckblatt',paletteVisibility:true,background:'#eef6ff',headerBand:'#dbeafe',border:'#08245d',referenceField:'#08245d',qrDocumentsUnchanged:true,otherDocumentsUnchanged:true},

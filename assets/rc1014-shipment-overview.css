@@ -25,6 +25,13 @@ body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-colli{
   font-weight:700;
 }
 
+body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-customer-pickup{
+  border-color:#86efac;
+  background:#ecfdf5;
+  color:#166534;
+  font-weight:800;
+}
+
 @media (max-width:700px){
   body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-meta{
     display:grid;
@@ -32,5 +39,8 @@ body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-colli{
   }
   body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-meta > span{
     border-radius:10px;
+  }
+  body[data-exporthub-view="shipmentoverview"] .rc1014-shipment-customer-pickup{
+    grid-column:1 / -1;
   }
 }

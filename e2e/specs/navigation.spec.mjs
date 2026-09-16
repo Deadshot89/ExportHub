@@ -141,3 +141,35 @@ test('RC1126 P0: Kundenordner bietet sichere Kundenlöschung für Admins',async(
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(runtime,testInfo);
 });
+
+
+test('RC1127 P0: Sendungsübersicht zeigt vom Kunden erfasstes Abholdatum in der Kachel',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Kunden-Abholtermin wird einmal auf dem Laptop-Profil geprüft.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const seeded=await page.evaluate(()=>{
+    const s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
+    const sh=s&&Array.isArray(s.shipments)&&s.shipments[0];
+    if(!sh)return false;
+    sh.customerAvisPickupDate='2026-09-18';
+    sh.avisPickupDate='2026-09-18';
+    sh.customerAvisPickupTimeFrom='10:00';
+    sh.avisPickupTimeFrom='10:00';
+    sh.customerAvisPickupTimeTo='12:00';
+    sh.avisPickupTimeTo='12:00';
+    sh.customerConfirmed=true;
+    sh.customerConfirmedVia='customer-avis';
+    return true;
+  });
+  expect(seeded).toBe(true);
+
+  await openExportHubView(page,'shipmentoverview',['Sendungsübersicht','Sendungen'],/Sendungsübersicht|Sendungen/i,{allowProgrammaticFallback:true});
+  const pickup=page.locator('[data-rc1127-customer-pickup]').first();
+  await expect(pickup).toBeVisible({timeout:10_000});
+  await expect(pickup).toHaveText('Kunden-Abholung: 18.09.2026 · 10:00–12:00');
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
