@@ -21,9 +21,9 @@ test('RC1138: Dokumentmigration ist hart auf TESTSERVICE begrenzt und Produktion
 
 test('RC1138: vor der ersten State-Aenderung wird ein verifiziertes Backup erstellt',()=>{
   const source=fs.readFileSync(API,'utf8');
-  const actionPos=source.indexOf("migrate-testservice-documents");
-  assert.ok(actionPos>=0,'Migration-Aktion fehlt');
-  const block=source.slice(actionPos);
+  const functionPos=source.indexOf('async function migrateTestserviceDocuments');
+  assert.ok(functionPos>=0,'Migration-Funktion fehlt');
+  const block=source.slice(functionPos);
   const backupPos=block.indexOf('createVerifiedBackup');
   const uploadPos=block.indexOf('uploadTeam');
   assert.ok(backupPos>=0,'Backup-Aufruf fehlt');
@@ -34,8 +34,9 @@ test('RC1138: vor der ersten State-Aenderung wird ein verifiziertes Backup erste
 
 test('RC1138: Migration arbeitet in kleinen verifizierten Batches mit ETag-Konfliktschutz',()=>{
   const source=fs.readFileSync(API,'utf8');
-  const actionPos=source.indexOf("migrate-testservice-documents");
-  const block=source.slice(actionPos);
+  const functionPos=source.indexOf('async function migrateTestserviceDocuments');
+  assert.ok(functionPos>=0,'Migration-Funktion fehlt');
+  const block=source.slice(functionPos);
   assert.match(block,/limit\s*:\s*10/,'Batchlimit 10 fehlt');
   assert.match(block,/migrateLegacyDocuments\(/,'Migration wird nicht ausgeführt');
   assert.match(block,/currentEtag|etag/,'ETag-Fortschreibung fehlt');
