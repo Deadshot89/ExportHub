@@ -28,8 +28,9 @@ jobs:
             ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1013-diagnostics.js?rc1083-probe=$GITHUB_SHA" || true)
             apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083-probe=$GITHUB_SHA" || true)
             pageMarker=0; chatgptMarker=0; endpointMarker=0; titleMarker=0; authMarker=0
-            grep -q 'assets/rc1013-diagnostics.js?v=1085' "$page" && pageMarker=1
+            grep -q 'assets/rc1013-diagnostics.js?v=1125' "$page" && pageMarker=1
             grep -q 'Mit ChatGPT beheben' "$asset" && chatgptMarker=1
+            grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" && titleMarker=1
             grep -q '/api/diagnostic-autofix' "$asset" && endpointMarker=1
             grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" && titleMarker=1
             grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" && authMarker=1
