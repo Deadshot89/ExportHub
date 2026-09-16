@@ -46,6 +46,7 @@ test('RC1128: Defender-Tags werden ausschließlich mit No threats found freigege
   assert.deepEqual(security.scanResultFromTags({'Malware scanning scan result':'No threats found','Malware scanning scan time':'2026-09-16T10:00:00Z'}),{status:'clean',result:'No threats found',scanTime:'2026-09-16T10:00:00Z'});
   assert.equal(security.scanResultFromTags({'Malware scanning scan result':'Malicious'}).status,'malicious');
   assert.equal(security.scanResultFromTags({'Malware scanning scan result':'Not scanned'}).status,'not-scanned');
+  assert.equal(security.scanResultFromTags({'Malware scanning scan result':'Not scanned: unsupported'}).status,'not-scanned');
   assert.equal(security.scanResultFromTags({'Malware scanning scan result':'Error'}).status,'error');
   assert.equal(security.scanResultFromTags({}).status,'pending');
 });
@@ -97,6 +98,7 @@ test('RC1128: finaler RC1018-Build behält Uploadfunktion und Formularschutz ohn
   assert.match(page,/customerPdfUpload/);
   assert.match(page,/document-upload-status/);
   assert.match(page,/avisFormDirty=false/,'bestehender RC1029 Formularschutz muss erhalten bleiben');
+  assert.match(page,/customerUploadInteraction/,'Dateiauswahl muss gegen automatischen Refresh geschützt bleiben');
   const scripts=[...page.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].filter(m=>!/\bsrc\s*=/.test(m[1]));
   assert.ok(scripts.length>0);
   scripts.forEach((m,i)=>assert.doesNotThrow(()=>new Function(m[2]),'Inline-Skript '+i+' ist syntaktisch ungültig'));
