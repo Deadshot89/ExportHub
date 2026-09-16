@@ -18,6 +18,21 @@ function injectDeferredRuntimeInHead(html,tag,id){
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
 
+function patchDemoTestPortalIsolation(html,file){
+  if(file!=='demo.html')return html;
+  const originAnchor="namedTest=/-testservice\\./i.test(h);";
+  const runtimeAnchor=" if(!window.__EXPORTHUB_TEST_PORTAL__)return;";
+  const routeAnchor="function anchorTestRoute(){try{if(window.__EXPORTHUB_PICKUP_MODE__||!isTestPath())return;";
+  for(const [needle,label] of [[originAnchor,'Testservice-Origin'],[runtimeAnchor,'Testportal-Runtime'],[routeAnchor,'Testportal-Routenanker']]){
+    const count=html.split(needle).length-1;
+    if(count!==1)throw new Error(file+': RC1131 '+label+' '+count+'x gefunden');
+  }
+  html=html.replace(originAnchor,"namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;");
+  html=html.replace(runtimeAnchor," if(window.__EXPORTHUB_DEMO_MODE__===true)return;\\n if(!window.__EXPORTHUB_TEST_PORTAL__)return;");
+  html=html.replace(routeAnchor,"function anchorTestRoute(){try{if(window.__EXPORTHUB_DEMO_MODE__===true||window.__EXPORTHUB_PICKUP_MODE__||!isTestPath())return;");
+  return html;
+}
+
 function patchNotificationTasks(html,file){
   const moduleStart='<script id="index236-notification-controller">';
   const moduleEnd='<!-- INDEX 236 NOTIFICATION CENTER END -->';
@@ -42,6 +57,7 @@ function patchNotificationTasks(html,file){
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  html=patchDemoTestPortalIsolation(html,file);
   html=patchNotificationTasks(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
@@ -66,6 +82,11 @@ function patchHtml(file){
   if(!html.includes('assets/rc1126-customer-delete.js?v=1126'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
+  if(file==='demo.html'){
+    if(!html.includes("namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;"))throw new Error(file+': RC1131 Demo/Testservice-Origin nicht getrennt');
+    if(!html.includes('if(window.__EXPORTHUB_DEMO_MODE__===true)return;'))throw new Error(file+': RC1131 Testportal-Runtime ist in Demo noch aktiv');
+    if(!html.includes('window.__EXPORTHUB_DEMO_MODE__===true||window.__EXPORTHUB_PICKUP_MODE__'))throw new Error(file+': RC1131 Demo-Routenanker fehlt');
+  }
   fs.writeFileSync(target,html);
 }
 
