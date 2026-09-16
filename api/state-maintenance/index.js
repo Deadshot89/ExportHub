@@ -105,16 +105,19 @@ module.exports=async function(context,req){
    context.res=json(200,{ok:true,preview:true,environment,revision:Number(current&&current.revision||0),changed:preview.changed,beforeBytes:preview.beforeBytes,afterBytes:preview.afterBytes,savedBytes:preview.savedBytes,savedPercent:preview.beforeBytes?Number((preview.savedBytes/preview.beforeBytes*100).toFixed(2)):0});
    return;
   }
-  if(!preview.changed){
-   context.res=json(200,{ok:true,applied:false,noChange:true,environment,revision:Number(current&&current.revision||0),beforeBytes:preview.beforeBytes,afterBytes:preview.afterBytes,savedBytes:0});
+  if(action==='apply'){
+   if(!preview.changed){
+    context.res=json(200,{ok:true,applied:false,noChange:true,environment,revision:Number(current&&current.revision||0),beforeBytes:preview.beforeBytes,afterBytes:preview.afterBytes,savedBytes:0});
+    return;
+   }
+   const backup=await createVerifiedBackup(container,environment,current);
+   const next=buildAppliedDocument(current,preview,{backupBlob:backup.name,actor:'RC1137 GitHub Workflow',at:now()});
+   let uploaded;
+   try{uploaded=await uploadTeam(blob,next,currentRead.etag)}
+   catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Team-State wurde während der Wartung geändert. RC1137 hat den produktiven Write sicher abgebrochen.',409);throw e}
+   context.res=json(200,{ok:true,applied:true,environment,revision:Number(next.revision||0),beforeBytes:preview.beforeBytes,previewAfterBytes:preview.afterBytes,afterBytes:uploaded.bytes,savedBytes:Math.max(0,preview.beforeBytes-uploaded.bytes),backupBlob:backup.name,backupBytes:backup.bytes,backupVerified:true});
    return;
   }
-  const backup=await createVerifiedBackup(container,environment,current);
-  const next=buildAppliedDocument(current,preview,{backupBlob:backup.name,actor:'RC1137 GitHub Workflow',at:now()});
-  let uploaded;
-  try{uploaded=await uploadTeam(blob,next,currentRead.etag)}
-  catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Team-State wurde während der Wartung geändert. RC1137 hat den produktiven Write sicher abgebrochen.',409);throw e}
-  context.res=json(200,{ok:true,applied:true,environment,revision:Number(next.revision||0),beforeBytes:preview.beforeBytes,previewAfterBytes:preview.afterBytes,afterBytes:uploaded.bytes,savedBytes:Math.max(0,preview.beforeBytes-uploaded.bytes),backupBlob:backup.name,backupBytes:backup.bytes,backupVerified:true});
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1137 state maintenance error',e&&e.code,e&&e.message)}catch(_){}
   context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'RC1137 Wartung fehlgeschlagen.'});
