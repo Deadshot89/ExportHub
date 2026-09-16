@@ -38,7 +38,7 @@ test('RC1139: Prepare erstellt nicht-admin Testbenutzer mit Bearbeitungsrechten 
   assert.match(source,/ifMatch|etag/,'ETag-Schutz fehlt');
 });
 
-test('RC1139: Cleanup entfernt ausschließlich Datensätze des eigenen E2E-Runs',()=>{
+test('RC1139: Cleanup entfernt ausschließlich markierte Datensätze des eigenen E2E-Runs aus State-Arrays',()=>{
   const source=fs.readFileSync(API,'utf8');
   assert.match(source,/_e2eRunId/,'Run-Markierung fehlt');
   assert.match(source,/runId/,'Run-ID fehlt');
