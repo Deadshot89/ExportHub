@@ -131,6 +131,14 @@ function assertCustomerUploadQuota(sh){
 }
 function safeUploadEntry(entry){return{id:text(entry.id),name:pdfSecurity.safeFileName(entry.name),size:Number(entry.size||0)||0,status:text(entry.status)||'scanning',documentType:text(entry.documentType),uploadedAt:text(entry.uploadedAt)||now(),completedAt:text(entry.completedAt),message:text(entry.message).slice(0,320),scanResult:text(entry.scanResult).slice(0,120),scanTime:text(entry.scanTime).slice(0,80),contentCode:text(entry.contentCode).slice(0,80),contentMatched:arr(entry.contentMatched).map(x=>text(x).slice(0,80)).slice(0,8),provider:'Microsoft Defender for Storage'}}
 function updateQueueOnShipment(sh,entry){const queue=customerUploadQueue(sh).filter(x=>obj(x)&&text(x.id)!==text(entry.id));queue.push(safeUploadEntry(entry));sh.customerAvisDocumentUploads=queue.slice(-20)}
+function addCustomerUploadNotification(state,sh,file,entry){
+ if(!obj(state)||!obj(sh)||!obj(file)||!text(file.sha256))return null;
+ const id='avis-upload-'+text(file.sha256),list=arr(state.notifications).slice(),existing=list.find(x=>obj(x)&&text(x.id)===id);
+ if(existing)return existing;
+ const reference=sref(sh),customer=text(sh.customerName||(sh.customer&&sh.customer.name))||'Kunde',documentName=fileName(file,'Kunden-Dokument.pdf'),createdAt=text(entry&&entry.completedAt)||text(file.uploadedAt)||now();
+ const notice={id,type:'customer-avis-document',source:'customer-avis-upload',title:'Neues AVIS-Dokument',message:customer+' hat '+documentName+' für Sendung '+reference+' hochgeladen.',createdAt,read:false,route:'notifications',shipmentId:sid(sh),shipmentRef:reference,customerName:customer,documentId:text(file.id),documentName,documentSha256:text(file.sha256),documentBlobName:text(file.blobName),documentMimeType:text(file.mimeType||file.type)||'application/pdf'};
+ list.push(notice);state.notifications=list.slice(-200);return notice
+}
 async function readBlobBytes(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
 function blobExistsConflict(e){const status=Number(e&&e.statusCode||e&&e.status||0);return status===409||status===412||/BlobAlreadyExists|ConditionNotMet/i.test(String(e&&e.code||''))}
 async function uploadQuarantinePdf(sessionInfo,session,validated){
@@ -166,7 +174,8 @@ async function updateCustomerUploadOutcome(teamBlob,sessionInfo,session,entry,fi
    }
    sh.updatedAt=now();sh._syncUpdatedAt=sh.updatedAt
   });
-  team.state=state;team.revision=Number(team.revision||0)+1;team.updatedAt=now();team.updatedBy=file?'Kunden-Avis Dokument gespeichert':'Kunden-Avis Dokument blockiert';team.updatedByUserId='customer-avis';team.clientVersion='RC1129';
+  if(file)addCustomerUploadNotification(state,copies[0],file,entry);
+  team.state=state;team.revision=Number(team.revision||0)+1;team.updatedAt=now();team.updatedBy=file?'Kunden-Avis Dokument gespeichert':'Kunden-Avis Dokument blockiert';team.updatedByUserId='customer-avis';team.clientVersion='RC1133';
   try{await writeTeam(teamBlob,team,d.etag);return publicShipment(findShipment(state,sessionInfo.record.subjectId,sessionInfo.record.reference),session,state)}catch(e){if(isConflict(e)&&i<MAX_RETRIES-1){await wait(80+i*100);continue}throw e}
  }
  throw error('STATE_CONFLICT','PDF-Prüfergebnis konnte nicht gespeichert werden.',409)
