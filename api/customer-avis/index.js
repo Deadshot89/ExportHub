@@ -12,6 +12,7 @@ const MAX_RETRIES=8;
 const AVIS_QUARANTINE_CONTAINER=process.env.EXPORTHUB_AVIS_QUARANTINE_CONTAINER||'exporthub-avis-quarantine';
 const MAX_CUSTOMER_PDF_FILES=10;
 const MAX_PENDING_PDF_FILES=3;
+const MAX_UPLOADS_PER_HOUR=8;
 let teamContainer=null;
 let teamContainerReadyPromise=null;
 let documentContainer=null;
@@ -121,9 +122,10 @@ function customerUploadFile(sh,id){return customerUploadAttachments(sh).find(f=>
 function customerUploadQueueEntry(sh,id){return customerUploadQueue(sh).find(x=>obj(x)&&text(x.id)===text(id))||null}
 function publicCustomerUploads(sh){return customerUploadQueue(sh).slice(-20).map(x=>({id:text(x.id),name:text(x.name),size:Number(x.size||0)||0,status:text(x.status)||'scanning',uploadedAt:text(x.uploadedAt),completedAt:text(x.completedAt),message:text(x.message),scanResult:text(x.scanResult),scanTime:text(x.scanTime)}))}
 function assertCustomerUploadQuota(sh){
- const saved=customerUploadAttachments(sh).length,pending=customerUploadQueue(sh).filter(x=>text(x&&x.status)==='scanning').length;
+ const queue=customerUploadQueue(sh),saved=customerUploadAttachments(sh).length,pending=queue.filter(x=>text(x&&x.status)==='scanning').length,cutoff=Date.now()-60*60*1000,recent=queue.filter(x=>{const t=Date.parse(text(x&&x.uploadedAt));return Number.isFinite(t)&&t>=cutoff}).length;
  if(saved>=MAX_CUSTOMER_PDF_FILES)throw error('CUSTOMER_PDF_LIMIT','Für diese Sendung wurden bereits '+MAX_CUSTOMER_PDF_FILES+' Kundendokumente gespeichert.',409);
- if(pending>=MAX_PENDING_PDF_FILES)throw error('CUSTOMER_PDF_PENDING_LIMIT','Es werden bereits '+MAX_PENDING_PDF_FILES+' PDF-Dateien geprüft. Bitte warten Sie den Abschluss der Prüfung ab.',429)
+ if(pending>=MAX_PENDING_PDF_FILES)throw error('CUSTOMER_PDF_PENDING_LIMIT','Es werden bereits '+MAX_PENDING_PDF_FILES+' PDF-Dateien geprüft. Bitte warten Sie den Abschluss der Prüfung ab.',429);
+ if(recent>=MAX_UPLOADS_PER_HOUR)throw error('CUSTOMER_PDF_RATE_LIMIT','Zu viele PDF-Uploads in kurzer Zeit. Bitte versuchen Sie es später erneut.',429)
 }
 function safeUploadEntry(entry){return{id:text(entry.id),name:pdfSecurity.safeFileName(entry.name),size:Number(entry.size||0)||0,status:text(entry.status)||'scanning',uploadedAt:text(entry.uploadedAt)||now(),completedAt:text(entry.completedAt),message:text(entry.message).slice(0,240),scanResult:text(entry.scanResult).slice(0,120),scanTime:text(entry.scanTime).slice(0,80),provider:'Microsoft Defender for Storage'}}
 function updateQueueOnShipment(sh,entry){const queue=customerUploadQueue(sh).filter(x=>obj(x)&&text(x.id)!==text(entry.id));queue.push(safeUploadEntry(entry));sh.customerAvisDocumentUploads=queue.slice(-20)}
