@@ -28,7 +28,7 @@ function patchDemoTestPortalIsolation(html,file){
     if(count!==1)throw new Error(file+': RC1131 '+label+' '+count+'x gefunden');
   }
   html=html.replace(originAnchor,"namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;");
-  html=html.replace(runtimeAnchor," if(window.__EXPORTHUB_DEMO_MODE__===true)return;\\n if(!window.__EXPORTHUB_TEST_PORTAL__)return;");
+  html=html.replace(runtimeAnchor," if(window.__EXPORTHUB_DEMO_MODE__===true)return;\n if(!window.__EXPORTHUB_TEST_PORTAL__)return;");
   html=html.replace(routeAnchor,"function anchorTestRoute(){try{if(window.__EXPORTHUB_DEMO_MODE__===true||window.__EXPORTHUB_PICKUP_MODE__||!isTestPath())return;");
   return html;
 }
