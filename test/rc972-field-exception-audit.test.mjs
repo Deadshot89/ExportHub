@@ -50,7 +50,7 @@ test('RC972: Testportal und Smartphone dürfen Felder nicht wieder verkleinern',
 });
 
 test('RC972: öffentliche Zusatzseiten haben bereits ausreichend große Formfelder',()=>{
-  assert.match(avis,/input,textarea\{[^}]*min-height:40px[^}]*font-size:13px/i,'Kunden-Avis-Felder müssen mindestens 40px / 13px bleiben');
+  assert.match(avis,/input,textarea,select\{[^}]*min-height:40px[^}]*font-size:13px/i,'Kunden-Avis-Felder einschließlich Dokumentart-Auswahl müssen mindestens 40px / 13px bleiben');
   assert.match(pickup,/#index209PickupForm input\{[^}]*min-height:52px[^}]*font-size:17px/i,'Abholseite muss ihre großen Eingabefelder behalten');
   assert.match(location,/\.pin input\{[^}]*font-size:24px/i,'Location-PIN-Feld muss groß und gut lesbar bleiben');
 });

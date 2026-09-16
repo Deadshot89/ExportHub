@@ -40,9 +40,10 @@ jobs:
         run: |
           set -euo pipefail
           for file in index.html TESTVERSION.html demo.html; do
-            grep -Fq 'linear-gradient(180deg,#dbeafe 0,#dbeafe 52mm,#eef6ff 52mm,#eef6ff 100%)' "dist-rc1048/$file"
-            grep -Fq 'border:4mm solid #08245d!important' "dist-rc1048/$file"
+            grep -Fq 'linear-gradient(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%)' "dist-rc1048/$file"
+            grep -Fq 'border:8mm solid #08245d!important' "dist-rc1048/$file"
             grep -Fq 'background:#08245d' "dist-rc1048/$file"
+            grep -Fq 'box-shadow:inset 0 0 0 2mm #1d4ed8' "dist-rc1048/$file"
             grep -Fq 'print-color-adjust:exact!important' "dist-rc1048/$file"
             grep -Fq '.rc352-cover .rc352-qr-slot{background:#fff!important' "dist-rc1048/$file"
           done

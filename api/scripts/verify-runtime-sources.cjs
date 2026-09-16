@@ -10,6 +10,8 @@ const runtimeSources = [
   'shared/loader-pin-store.js',
   'shared/graph-drive.js',
   'shared/pod-archive.js',
+  'shared/customer-avis-pdf-security.js',
+  'shared/customer-avis-document-content.js',
   'pickup-init/index.js',
   'pickup-status/index.js',
   'pickup-confirm-v2/index.js',

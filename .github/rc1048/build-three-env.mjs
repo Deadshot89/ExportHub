@@ -59,10 +59,10 @@ function patchDeckblattContrast(html,file){
     if(!/background:#fff(?:;|$)/.test(body))return full;
     coverCount++;
     let next=body
-      .replace('background:#fff','background:linear-gradient(180deg,#dbeafe 0,#dbeafe 52mm,#eef6ff 52mm,#eef6ff 100%)')
-      .replace('box-sizing:border-box!important;','box-sizing:border-box!important;border:4mm solid #08245d!important;')
+      .replace('background:#fff','background:linear-gradient(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%)')
+      .replace('box-sizing:border-box!important;','box-sizing:border-box!important;border:8mm solid #08245d!important;')
       .replace('border-radius:14px','border-radius:0')
-      .replace('box-shadow:0 18px 42px rgba(15,23,42,.12)','box-shadow:inset 0 0 0 1.2mm #60a5fa')
+      .replace('box-shadow:0 18px 42px rgba(15,23,42,.12)','box-shadow:inset 0 0 0 2mm #1d4ed8')
       .replace('padding:12mm','padding:8mm');
     return '.rc352-cover{'+next+';-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
   });
