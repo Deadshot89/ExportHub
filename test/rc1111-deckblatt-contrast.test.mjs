@@ -7,8 +7,9 @@ const source=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 test('RC1111: Deckblatt erhält gezielten Paletten-Kontrast',()=>{
   assert.match(source,/function patchDeckblattContrast\(html,file\)/);
   assert.match(source,/\.rc352-cover/);
-  assert.match(source,/linear-gradient\(180deg,#dbeafe 0,#dbeafe 52mm,#eef6ff 52mm,#eef6ff 100%\)/);
-  assert.match(source,/border:4mm solid #08245d!important/);
+  assert.match(source,/linear-gradient\(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%\)/);
+  assert.match(source,/border:8mm solid #08245d!important/);
+  assert.match(source,/box-shadow:inset 0 0 0 2mm #1d4ed8/);
   assert.match(source,/print-color-adjust:exact!important/);
 });
 
