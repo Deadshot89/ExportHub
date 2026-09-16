@@ -63,8 +63,8 @@ function validatePdfUpload(file){
   const hash=crypto.createHash('sha256').update(buffer).digest('hex');
   return{name,buffer,size:buffer.length,mimeType:'application/pdf',sha256:hash};
 }
-function sessionHash(session){return crypto.createHash('sha256').update(text(session)).digest('hex').slice(0,24)}
-function quarantinePrefix(environment,session){return 'rc1128/'+normalizeEnvironment(environment)+'/'+sessionHash(session)+'/'}
+function scopeHash(scope){return crypto.createHash('sha256').update(text(scope)).digest('hex').slice(0,24)}
+function quarantinePrefix(environment,scope){return 'rc1128/'+normalizeEnvironment(environment)+'/'+scopeHash(scope)+'/' }
 function quarantineBlobName(environment,session,sha256){if(!/^[a-f0-9]{64}$/.test(text(sha256)))throw err('UPLOAD_ID_INVALID','Upload-ID ist ungültig.',400);return quarantinePrefix(environment,session)+sha256+'.pdf'}
 function finalBlobName(environment,sha256){if(!/^[a-f0-9]{64}$/.test(text(sha256)))throw err('UPLOAD_ID_INVALID','Upload-ID ist ungültig.',400);const env=normalizeEnvironment(environment);return 'rc1059/'+env+'/'+sha256.slice(0,2)+'/'+sha256}
 function encodeNameMetadata(name){return Buffer.from(safeFileName(name),'utf8').toString('base64url').slice(0,512)}
@@ -94,7 +94,7 @@ module.exports={
   strictBase64,
   assertPdfStructure,
   validatePdfUpload,
-  sessionHash,
+  scopeHash,
   quarantinePrefix,
   quarantineBlobName,
   finalBlobName,
