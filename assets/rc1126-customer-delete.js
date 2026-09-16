@@ -28,9 +28,9 @@ function currentUser(){
  var s=state();return w.currentUser||s.currentUser||s.activeUser||null
 }
 function canDelete(){
- var u=currentUser()||{},role=low(u.role||u.rolle),rights=u.rights||{},r=rights.customers||rights.customerfolder||{},level=low(r.level||r.access);
+ var u=currentUser()||{},role=low(u.role||u.rolle),rights=u.rights||{},a=rights.customers||{},b=rights.customerfolder||{},la=low(a.level||a.access),lb=low(b.level||b.access);
  if(u.globalAdmin===true||u.isGlobalAdmin===true||arr(u.permissions).indexOf('*')>=0||/^(global admin|global administrator|globaler administrator|globaler admin|administrator|admin|vollzugriff)$/.test(role))return true;
- return r.admin===true||r.functionAdmin===true||level==='admin'
+ return a.admin===true||a.functionAdmin===true||la==='admin'||b.admin===true||b.functionAdmin===true||lb==='admin'
 }
 function shipmentCustomerMatches(sh,c){
  if(!sh||!c)return false;
