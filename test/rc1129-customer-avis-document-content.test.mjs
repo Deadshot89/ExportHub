@@ -74,5 +74,7 @@ test('RC1129: API deklariert pdf-parse als Textanalyse-Runtime',()=>{
   const api=fs.readFileSync('api/customer-avis/index.js','utf8');
   assert.match(api,/customer-avis-document-content/);
   assert.match(api,/validateShipmentDocument/);
-  assert.match(api,/PDF_CONTENT_VALID/);
+  assert.match(api,/businessValidation/);
+  const content=fs.readFileSync('api/shared/customer-avis-document-content.js','utf8');
+  assert.match(content,/PDF_CONTENT_VALID/);
 });
