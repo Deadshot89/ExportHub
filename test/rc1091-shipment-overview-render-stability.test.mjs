@@ -39,7 +39,7 @@ test('RC1127: Kunden-Abholdatum kommt ausschließlich aus der Lieferavis-Antwort
   assert.equal(avis.customerPickupDate,'18.09.2026');
   assert.equal(avis.customerPickupLabel,'Kunden-Abholung: 18.09.2026 · 10:00–12:00');
   const internalOnly=api.shipmentMeta({id:'DEF456',plannedPickupDate:'2026-09-19',pickupDate:'2026-09-19'});
-  assert.equal(internalOnly.customerPickupLabel,'','Internes/plantes Abholdatum darf nicht als Kundenantwort erscheinen');
+  assert.equal(internalOnly.customerPickupLabel,'','Internes/geplantes Abholdatum darf nicht als Kundenantwort erscheinen');
   const compat=api.shipmentMeta({id:'GHI789',avisPickupDate:'2026-09-20'});
   assert.equal(compat.customerPickupLabel,'Kunden-Abholung: 20.09.2026');
 });
@@ -52,19 +52,23 @@ test('RC1091: Overview-Enhancer ist auf echte Sendungskarten begrenzt und unterd
   assert.match(source,/if\(!root\.document\|\|timer\)return false/);
 });
 
-test('RC1091: finaler RC1048-Build rendert Erfasst und Colli direkt in overviewCardHtml und bustet den Asset-Cache',()=>{
+test('RC1127: finaler RC1048-Build rendert Kunden-Abholtermin direkt in overviewCardHtml und bustet JS/CSS-Cache',()=>{
   const build=read('.github/rc1048/build-three-env.mjs');
   assert.match(build,/function patchShipmentOverviewInlineMeta\(/);
   assert.match(build,/rc1091MetaHtml/);
-  assert.match(build,/data-rc1014-shipment-meta/);
-  assert.match(build,/rc1014-shipment-overview\.js\?v=1091/);
-  assert.match(build,/shipmentOverviewRenderStability:\{version:'RC1091'/);
-  assert.match(build,/assets\/rc1014-shipment-overview\.js/,'RC1091 Runtime muss weiterhin in den finalen Build kopiert werden');
+  assert.match(build,/rc1127PickupHtml/);
+  assert.match(build,/data-rc1127-customer-pickup/);
+  assert.match(build,/rc1014-shipment-overview\.js\?v=1127/);
+  assert.match(build,/rc1014-shipment-overview\.css\?v=1127/);
+  assert.match(build,/shipmentOverviewRenderStability:\{version:'RC1127'/);
+  assert.match(build,/customerPickupDateFromAvis:true/);
+  assert.match(build,/assets\/rc1014-shipment-overview\.js/,'RC1127 Runtime muss weiterhin in den finalen Build kopiert werden');
 });
 
-test('RC1091: Produktionsdeploy prüft den neuen Sendungsübersichts-Cache-Key',()=>{
+test('RC1127: Produktionsdeploy prüft die neuen Sendungsübersichts-Cache-Keys',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1091/);
+  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1127/);
+  assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1127/);
   assert.doesNotMatch(flow,/dist-rc1048\/index\.html[^\n]*rc1014-shipment-overview\.js\?v=1016/);
 });
 
