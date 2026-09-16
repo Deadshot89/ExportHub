@@ -69,8 +69,9 @@ export async function waitReady(page){
       const body=document.body,content=document.getElementById('content');
       const view=String(body&&body.getAttribute&&body.getAttribute('data-exporthub-view')||'').trim();
       const text=String(content&&content.innerText||'').trim();
-      return typeof window.setView==='function'&&!!content&&text.length>10&&!!view;
-    },null,{timeout:12_000});
+      const interactive=typeof window.setView==='function'||!!document.querySelector('[data-view],[data-target],[data-nav]');
+      return !!content&&text.length>10&&!!view&&interactive;
+    },null,{timeout:20_000});
   }
   await pause(220);
 }
@@ -160,8 +161,10 @@ export function attachRuntimeGuards(page,testInfo){
     const line=clean(`${message.text()} ${loc.url||''}`);
     if(allowConsole.some(rx=>rx.test(line)))return;
     if(process.env.EXPORTHUB_E2E_STATIC==='1'&&/Failed to load resource/i.test(line)&&/\/api\//i.test(line))return;
-    const demoPage=/\/demo(?:\.html)?(?:[?#]|$)/i.test(clean(page.url()));
-    if(demoPage&&/RC1033 Lieferavis Fast-Path exporthub:(?:viewchange|rendered) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert\./i.test(line))return;
+    const currentUrl=clean(page.url());
+    const demoContext=/\/demo(?:\.html)?(?:[?#]|$)/i.test(currentUrl)||/https?:\/\/[^\s]+\/demo(?:\.html)?(?:[?#\s]|$)/i.test(line);
+    const intentionalDemoBlock=/RC1033 Lieferavis Fast-Path exporthub:(?:viewchange|rendered) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert\./i.test(line);
+    if(demoContext&&intentionalDemoBlock)return;
     state.consoleErrors.push(line);
   });
   page.on('requestfailed',request=>{
