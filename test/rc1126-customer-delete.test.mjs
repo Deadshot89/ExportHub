@@ -11,7 +11,8 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
 test('RC1126: Kundenlöschung ist nur für Kunden-Admins sichtbar und zweistufig bestätigt',()=>{
   assert.match(runtime,/function canDelete\(\)/);
-  assert.match(runtime,/rights\.customers\|\|\{\}/);\n  assert.match(runtime,/rights\.customerfolder\|\|\{\}/);
+  assert.match(runtime,/rights\.customers\|\|\{\}/);
+  assert.match(runtime,/rights\.customerfolder\|\|\{\}/);
   assert.match(runtime,/functionAdmin/);
   assert.match(runtime,/Kunde löschen/);
   assert.match(runtime,/Endgültig löschen/);
