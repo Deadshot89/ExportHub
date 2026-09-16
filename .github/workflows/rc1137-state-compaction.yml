@@ -1,0 +1,141 @@
+name: RC1137 State Compaction
+
+on:
+  workflow_run:
+    workflows:
+      - ExportHUB RC1112 Drei-Umgebungen Deploy
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: rc1137-state-compaction
+  cancel-in-progress: false
+
+jobs:
+  testservice:
+    name: TESTSERVICE State kompaktieren
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: TESTSERVICE Vorschau, Backup, Apply und Live-Größe
+        shell: bash
+        env:
+          BASE_URL: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
+          TARGET_ENV: testservice
+        run: |
+          set -euo pipefail
+          set +x
+
+          oidc_token="$(
+            curl -fsSL               -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"               "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-state-compaction"             | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+
+          call_maintenance() {
+            local action="$1"
+            curl -fsSL               -H "Content-Type: application/json"               -H "x-exporthub-github-oidc: $oidc_token"               -H "x-exporthub-environment: $TARGET_ENV"               -d "{\"action\":\"$action\",\"environment\":\"$TARGET_ENV\"}"               "$BASE_URL/api/state-maintenance"
+          }
+
+          preview="$(call_maintenance preview)"
+          printf '%s\n' "$preview" | node -e "
+            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s);
+              if(!v.ok||!v.preview)process.exit(2);
+              if(!(Number(v.beforeBytes)>0)&&!(Number(v.afterBytes)>0))process.exit(3);
+              console.log('TESTSERVICE preview',JSON.stringify({changed:v.changed,beforeBytes:v.beforeBytes,afterBytes:v.afterBytes,savedBytes:v.savedBytes,savedPercent:v.savedPercent}));
+            })"
+
+          changed="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).changed?'1':'0'))")"
+          before="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(String(JSON.parse(s).beforeBytes||0)))")"
+
+          verify_before="0"
+          if [ "$changed" = "1" ]; then
+            verify_before="$before"
+            applied="$(call_maintenance apply)"
+            printf '%s\n' "$applied" | node -e "
+              let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+                const v=JSON.parse(s);
+                if(!v.ok||!v.applied||v.backupVerified!==true||!v.backupBlob)process.exit(4);
+                if(!(Number(v.afterBytes)<Number(v.beforeBytes)))process.exit(5);
+                console.log('TESTSERVICE apply',JSON.stringify({beforeBytes:v.beforeBytes,afterBytes:v.afterBytes,savedBytes:v.savedBytes,backupBlob:v.backupBlob,backupVerified:v.backupVerified}));
+              })"
+          else
+            echo "TESTSERVICE: keine weitere RC1137-Kompaktierung erforderlich."
+          fi
+
+          health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
+          printf '%s\n' "$health" | RC1137_BEFORE="$verify_before" node -e "
+            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0);
+              if(!v.ok||!v.teamStateReadable||bytes<=0)process.exit(6);
+              console.log('TESTSERVICE teamStateBytes='+bytes);
+              const before=Number(process.env.RC1137_BEFORE||0);
+              if(before>0&&bytes>=before)process.exit(7);
+            })"
+
+  production:
+    name: PRODUCTION State kompaktieren
+    needs:
+      - testservice
+    if: ${{ needs.testservice.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: PRODUCTION Vorschau, Backup, Apply und Live-Größe
+        shell: bash
+        env:
+          BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          TARGET_ENV: production
+        run: |
+          set -euo pipefail
+          set +x
+
+          oidc_token="$(
+            curl -fsSL               -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"               "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-state-compaction"             | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+
+          call_maintenance() {
+            local action="$1"
+            curl -fsSL               -H "Content-Type: application/json"               -H "x-exporthub-github-oidc: $oidc_token"               -H "x-exporthub-environment: $TARGET_ENV"               -d "{\"action\":\"$action\",\"environment\":\"$TARGET_ENV\"}"               "$BASE_URL/api/state-maintenance"
+          }
+
+          preview="$(call_maintenance preview)"
+          printf '%s\n' "$preview" | node -e "
+            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s);
+              if(!v.ok||!v.preview)process.exit(2);
+              if(!(Number(v.beforeBytes)>0)&&!(Number(v.afterBytes)>0))process.exit(3);
+              console.log('PRODUCTION preview',JSON.stringify({changed:v.changed,beforeBytes:v.beforeBytes,afterBytes:v.afterBytes,savedBytes:v.savedBytes,savedPercent:v.savedPercent}));
+            })"
+
+          changed="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).changed?'1':'0'))")"
+          before="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(String(JSON.parse(s).beforeBytes||0)))")"
+
+          verify_before="0"
+          if [ "$changed" = "1" ]; then
+            verify_before="$before"
+            applied="$(call_maintenance apply)"
+            printf '%s\n' "$applied" | node -e "
+              let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+                const v=JSON.parse(s);
+                if(!v.ok||!v.applied||v.backupVerified!==true||!v.backupBlob)process.exit(4);
+                if(!(Number(v.afterBytes)<Number(v.beforeBytes)))process.exit(5);
+                console.log('PRODUCTION apply',JSON.stringify({beforeBytes:v.beforeBytes,afterBytes:v.afterBytes,savedBytes:v.savedBytes,backupBlob:v.backupBlob,backupVerified:v.backupVerified}));
+              })"
+          else
+            echo "PRODUCTION: keine weitere RC1137-Kompaktierung erforderlich."
+          fi
+
+          health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
+          printf '%s\n' "$health" | RC1137_BEFORE="$verify_before" node -e "
+            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0);
+              if(!v.ok||!v.teamStateReadable||bytes<=0)process.exit(6);
+              console.log('PRODUCTION teamStateBytes='+bytes);
+              const before=Number(process.env.RC1137_BEFORE||0);
+              if(before>0&&bytes>=before)process.exit(7);
+            })"
