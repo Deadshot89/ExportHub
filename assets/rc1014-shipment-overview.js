@@ -25,6 +25,32 @@
     return `${day}.${month}.${date.getFullYear()}`;
   }
 
+  function formatPickupDate(value){
+    const raw=q(value);
+    if(!raw)return '';
+    const ymd=raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+    if(ymd)return `${ymd[3]}.${ymd[2]}.${ymd[1]}`;
+    const date=new Date(raw);
+    if(Number.isNaN(date.getTime()))return raw;
+    const day=String(date.getDate()).padStart(2,'0');
+    const month=String(date.getMonth()+1).padStart(2,'0');
+    return `${day}.${month}.${date.getFullYear()}`;
+  }
+
+  function customerPickupMeta(shipment){
+    const sh=shipment||{};
+    const rawDate=q(sh.customerAvisPickupDate||sh.avisPickupDate);
+    if(!rawDate)return {date:'',timeFrom:'',timeTo:'',label:''};
+    const date=formatPickupDate(rawDate);
+    const timeFrom=q(sh.customerAvisPickupTimeFrom||sh.avisPickupTimeFrom);
+    const timeTo=q(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo);
+    let window='';
+    if(timeFrom&&timeTo)window=timeFrom+'–'+timeTo;
+    else if(timeFrom)window='ab '+timeFrom;
+    else if(timeTo)window='bis '+timeTo;
+    return {date,timeFrom,timeTo,label:'Kunden-Abholung: '+date+(window?' · '+window:'')};
+  }
+
   function rowQuantity(row){
     if(typeof row==='number')return positiveNumber(row);
     const item=row||{};
@@ -46,11 +72,16 @@
   function shipmentMeta(shipment){
     const created=shipmentCreatedDate(shipment);
     const colli=shipmentColliCount(shipment);
+    const customerPickup=customerPickupMeta(shipment);
     return {
       created,
       colli,
+      customerPickupDate:customerPickup.date,
+      customerPickupTimeFrom:customerPickup.timeFrom,
+      customerPickupTimeTo:customerPickup.timeTo,
       createdLabel:`Erfasst: ${created}`,
-      colliLabel:`Colli: ${colli}`
+      colliLabel:`Colli: ${colli}`,
+      customerPickupLabel:customerPickup.label
     };
   }
 
@@ -96,6 +127,13 @@
     colli.textContent=meta.colliLabel;
     row.appendChild(created);
     row.appendChild(colli);
+    if(meta.customerPickupLabel){
+      const pickup=doc.createElement('span');
+      pickup.className='rc1014-shipment-customer-pickup';
+      pickup.setAttribute('data-rc1127-customer-pickup','1');
+      pickup.textContent=meta.customerPickupLabel;
+      row.appendChild(pickup);
+    }
     return row;
   }
 
@@ -113,8 +151,19 @@
       if(row){
         const created=row.querySelector&&row.querySelector('.rc1014-shipment-created');
         const colli=row.querySelector&&row.querySelector('.rc1014-shipment-colli');
+        let pickup=row.querySelector&&row.querySelector('.rc1014-shipment-customer-pickup');
         if(created&&created.textContent!==meta.createdLabel){created.textContent=meta.createdLabel;lastMutationAt=Date.now()}
         if(colli&&colli.textContent!==meta.colliLabel){colli.textContent=meta.colliLabel;lastMutationAt=Date.now()}
+        if(meta.customerPickupLabel){
+          if(!pickup&&typeof doc.createElement==='function'){
+            pickup=doc.createElement('span');
+            pickup.className='rc1014-shipment-customer-pickup';
+            pickup.setAttribute('data-rc1127-customer-pickup','1');
+            row.appendChild(pickup);
+            lastMutationAt=Date.now()
+          }
+          if(pickup&&pickup.textContent!==meta.customerPickupLabel){pickup.textContent=meta.customerPickupLabel;lastMutationAt=Date.now()}
+        }else if(pickup&&typeof pickup.remove==='function'){pickup.remove();lastMutationAt=Date.now()}
       }else if(typeof card.appendChild==='function'){
         row=createMeta(doc,meta);
         card.appendChild(row);
@@ -136,7 +185,7 @@
   }
 
   function signatureOf(shipments){
-    return arr(shipments).map(sh=>{const meta=shipmentMeta(sh);return [shipmentId(sh),shipmentReference(sh),meta.createdLabel,meta.colliLabel].join('|')}).join('||');
+    return arr(shipments).map(sh=>{const meta=shipmentMeta(sh);return [shipmentId(sh),shipmentReference(sh),meta.createdLabel,meta.colliLabel,meta.customerPickupLabel].join('|')}).join('||');
   }
 
   function remember(shipments){
@@ -160,6 +209,8 @@
   root.ExportHUBRC1014ShipmentOverview=Object.freeze({
     shipmentCreatedDate,
     shipmentColliCount,
+    formatPickupDate,
+    customerPickupMeta,
     shipmentMeta,
     remember,
     enhanceShipmentOverview
