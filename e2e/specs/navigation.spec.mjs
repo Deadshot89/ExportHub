@@ -111,3 +111,33 @@ test('RC1125 P0: Benutzerverwaltung zeigt keine Fehlerdiagnose',async({page},tes
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(runtime,testInfo);
 });
+
+
+test('RC1126 P0: Kundenordner bietet sichere Kundenlöschung für Admins',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Kundenlöschung wird einmal auf dem Laptop-Profil geprüft.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'customerfolder',['Kundenordner'],/Kundenordner|Kunden/i,{allowProgrammaticFallback:true});
+
+  const selected=await page.evaluate(()=>{
+    const s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
+    const c=s&&Array.isArray(s.customers)&&s.customers[0];
+    if(!s||!c)return false;
+    const id=String(c.id||c.account||c.customerNumber||c.name||'').trim();
+    s.selectedCustomerId=id;s.currentCustomerId=id;s.customerFolderId=id;
+    if(typeof window.setView==='function')window.setView('customerfolder');
+    try{window.dispatchEvent(new CustomEvent('exporthub:rendered'))}catch(_){}
+    return true;
+  });
+  expect(selected).toBe(true);
+
+  const deleteButton=page.getByRole('button',{name:'Kunde löschen',exact:true}).last();
+  await expect(deleteButton).toBeVisible({timeout:10_000});
+  await deleteButton.click();
+  await expect(page.getByText('Diesen Kundenstammsatz wirklich löschen?',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Endgültig löschen',exact:true})).toBeVisible();
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
