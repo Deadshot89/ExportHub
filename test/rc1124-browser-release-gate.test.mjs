@@ -52,9 +52,12 @@ test('RC1124: Browser-Helfer schützen Navigation, Quellcode-Leaks, Overflow und
   assert.match(helper,/EXPORTHUB_E2E_LIVE==='1'/);
   assert.match(helper,/markerReady/);
   assert.match(helper,/typeof window\.setView==='function'/);
+  assert.match(helper,/document\.querySelector\('\[data-view\],\[data-target\],\[data-nav\]'\)/);
+  assert.match(helper,/timeout:20_000/);
   assert.match(helper,/data-exporthub-view/);
-  assert.match(helper,/demoPage/);
-  assert.ok(helper.includes("const demoPage=/\\/demo(?:\\.html)?(?:[?#]|$)/i.test(clean(page.url()));"),'Demo-Seitenerkennung fehlt');
+  assert.match(helper,/demoContext/);
+  assert.match(helper,/intentionalDemoBlock/);
+  assert.match(helper,/https\?:\\\/\\\/\[\^\\s\]\+\\\/demo/);
   assert.match(helper,/RC1033 Lieferavis Fast-Path exporthub:\(\?:viewchange\|rendered\) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert/);
 });
 
