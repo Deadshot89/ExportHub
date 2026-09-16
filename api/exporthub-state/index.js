@@ -151,6 +151,23 @@ function stateSizeDiagnostics(state){
   documentFieldCounts
  };
 }
+function collectionFieldSizeDiagnostics(state){
+ const root=isObj(state)?state:{},collections=['shipments','savedShipments','abdRequests'],out={};
+ for(const name of collections){
+  const list=Array.isArray(root[name])?root[name]:[],fields=new Map();
+  for(const item of list){
+   if(!item||typeof item!=='object'||Array.isArray(item))continue;
+   for(const [key,value] of Object.entries(item)){
+    if(key==='_syncFields'||key==='_syncUpdatedAt')continue;
+    let bytes=0;try{bytes=Buffer.byteLength(JSON.stringify(value))}catch(_){}
+    const row=fields.get(key)||{key,bytes:0,items:0};
+    row.bytes+=bytes;row.items++;fields.set(key,row);
+   }
+  }
+  out[name]=Array.from(fields.values()).sort((a,b)=>b.bytes-a.bytes).slice(0,30);
+ }
+ return out;
+}
 async function latestValidTeamFallback(container,teamBlobName,recoveryPrefix,allowDiscovery){
  let history=[];try{history=await listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery)}catch(_){history=[]}
  for(let i=0;i<history.length&&i<500;i++){
@@ -985,7 +1002,7 @@ module.exports=async function(context,req){
    const c=await clients(req,payload),authStarted=Date.now();
    let authReadable=true,authCheck=null;try{authCheck=await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
    await ensureEnvironmentTeam(c);const authReadMs=Date.now()-authStarted,teamStarted=Date.now(),teamCheck=await readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery),teamReadMs=Date.now()-teamStarted;
-   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authBlobBytes:Number(authCheck.bytes||0),teamStateBytes:Number(teamCheck.bytes||0),stateDiagnostics:stateSizeDiagnostics(teamCheck.value&&teamCheck.value.state),authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
+   context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authBlobBytes:Number(authCheck.bytes||0),teamStateBytes:Number(teamCheck.bytes||0),stateDiagnostics:stateSizeDiagnostics(teamCheck.value&&teamCheck.value.state),collectionFieldBytes:collectionFieldSizeDiagnostics(teamCheck.value&&teamCheck.value.state),authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
   }
   const clientsStarted=Date.now(),c=await clients(req,payload),clientsMs=Date.now()-clientsStarted;
   if(mode==='diagnostics-append'){
