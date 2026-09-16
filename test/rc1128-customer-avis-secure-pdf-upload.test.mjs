@@ -83,13 +83,13 @@ test('RC1128: Lieferavis zeigt PDF-Upload, Sicherheitsregeln und Status an',()=>
   assert.match(page,/id="customerPdfUpload"/);
   assert.match(page,/accept="\.pdf,application\/pdf"/);
   assert.match(page,/PDF prüfen & hochladen/);
-  assert.match(page,/Virenprüfung läuft/);
+  assert.match(page,/Virenprüfung \/ Fachprüfung läuft/);
   assert.match(page,/Microsoft Defender for Storage/);
   assert.match(page,/document-upload-status/);
   assert.match(page,/upload-document/);
   assert.match(page,/max\. 10 MB/);
-  assert.match(page,/isoliert in Quarantäne/);
-  assert.match(page,/public-language\.js\?v=1128/);
+  assert.match(page,/Schadsoftware geprüft/);
+  assert.match(page,/public-language\.js\?v=1129/);
 });
 
 test('RC1128: finaler RC1018-Build behält Uploadfunktion und Formularschutz ohne Syntaxfehler',()=>{
@@ -106,7 +106,7 @@ test('RC1128: finaler RC1018-Build behält Uploadfunktion und Formularschutz ohn
 
 test('RC1128: öffentliche Sprachumschaltung kennt die neuen Sicherheitsbegriffe',()=>{
   const lang=read('assets/rc1018-public-language.js');
-  for(const term of ['PDF-Dokumente hochladen','Upload PDF documents','Virenprüfung läuft','Malware scan in progress','Endgültige Speicherung erst nach erfolgreicher Virenprüfung']){
+  for(const term of ['PDF-Dokumente hochladen','Upload PDF documents','Virenprüfung / Fachprüfung läuft','Malware / content check in progress','Speicherung nur nach bestandener Viren- und Fachprüfung']){
     assert.ok(lang.includes(term),term+' fehlt in der DE/EN-Sprachbasis');
   }
 });
