@@ -226,7 +226,7 @@
     return true;
   }
   function install(win){
-    if(!win||!win.document||win.__EXPORTHUB_RC1013_DIAGNOSTICS__)return;win.__EXPORTHUB_RC1013_DIAGNOSTICS__=true;style(win);
+    if(!win||!win.document||win.__EXPORTHUB_RC1013_DIAGNOSTICS__)return;win.__EXPORTHUB_RC1013_DIAGNOSTICS__=true;win.__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__=true;style(win);
     var timer=0,schedule=function(delay){clearTimeout(timer);timer=setTimeout(function(){refresh(win);},delay||120);};
     ['exporthub:ready','exporthub:rendered','exporthub:diagnostic','exporthub:diagnostic-autofix'].forEach(function(n){win.addEventListener(n,function(){schedule(120);});});
     win.addEventListener('exporthub:viewchange',function(){schedule(0);});
