@@ -116,6 +116,7 @@ function avisExpiresOn(sh){const picked=berlinDateKey(dateTimeOf(sh));return pic
 function avisExpired(sh){const until=avisExpiresOn(sh),today=berlinDateKey(new Date());return!!(until&&today&&today>until)}
 function assertAvisWindow(sh){if(avisExpired(sh))throw error('AVIS_EXPIRED','Der Lieferavis ist drei Tage nach der Abholung abgelaufen.',410);return avisExpiresOn(sh)}
 async function readDocumentBlob(blobName,environment){if(!blobNameOf({storage:'blob',blobName})||!blobName.startsWith('rc1059/'+environment+'/'))throw error('DOCUMENT_BLOB_INVALID','Die Dokumentreferenz ist ungültig.',400);const container=await ensureDocumentContainerReady(),blob=container.getBlockBlobClient(blobName);try{const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return{bytes:Buffer.concat(chunks),mime:text(r.contentType)||'application/octet-stream'}}catch(e){if(Number(e&&e.statusCode||e&&e.status)===404)throw error('DOCUMENT_NOT_FOUND','Das Dokument ist nicht mehr verfügbar.',404);throw e}}
+function customerUploadScope(sessionInfo){const r=sessionInfo&&sessionInfo.record||{};return text(r.subjectId)+'|'+upper(r.reference)}
 function customerUploadQueue(sh){return arr(sh&&sh.customerAvisDocumentUploads)}
 function customerUploadAttachments(sh){return arr(sh&&sh.attachments).filter(f=>obj(f)&&f.source==='customer-avis-upload'&&/^[a-f0-9]{64}$/.test(text(f.sha256)))}
 function customerUploadFile(sh,id){return customerUploadAttachments(sh).find(f=>text(f.sha256)===text(id))||null}
@@ -132,7 +133,7 @@ function updateQueueOnShipment(sh,entry){const queue=customerUploadQueue(sh).fil
 async function readBlobBytes(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
 function blobExistsConflict(e){const status=Number(e&&e.statusCode||e&&e.status||0);return status===409||status===412||/BlobAlreadyExists|ConditionNotMet/i.test(String(e&&e.code||''))}
 async function uploadQuarantinePdf(sessionInfo,session,validated){
- const container=await ensureQuarantineContainerReady(),name=pdfSecurity.quarantineBlobName(sessionInfo.environment,session,validated.sha256),blob=container.getBlockBlobClient(name),uploadedAt=now();
+ const container=await ensureQuarantineContainerReady(),name=pdfSecurity.quarantineBlobName(sessionInfo.environment,customerUploadScope(sessionInfo),validated.sha256),blob=container.getBlockBlobClient(name),uploadedAt=now();
  try{
   const options={blobHTTPHeaders:{blobContentType:'application/pdf',blobCacheControl:'private, no-store'},metadata:{kind:'customer-avis-pdf-quarantine',environment:sessionInfo.environment,sha256:validated.sha256,name64:pdfSecurity.encodeNameMetadata(validated.name),uploadedat:uploadedAt},conditions:{ifNoneMatch:'*'}};
   if(typeof blob.uploadData==='function')await blob.uploadData(validated.buffer,options);else await blob.upload(validated.buffer,validated.buffer.length,options)
@@ -193,7 +194,7 @@ async function customerPdfScanStatus(teamBlob,sessionInfo,session,sh,uploadId){
  if(!/^[a-f0-9]{64}$/.test(uploadId))throw error('UPLOAD_ID_INVALID','Upload-ID ist ungültig.',400);
  const saved=customerUploadFile(sh,uploadId);if(saved)return{ok:true,status:'saved',upload:{id:uploadId,name:fileName(saved,'Kunden-Dokument.pdf'),size:Number(saved.size||0)||0,status:'saved'},shipment:publicShipment(sh,session)};
  const queueEntry=customerUploadQueueEntry(sh,uploadId);if(queueEntry&&text(queueEntry.status)==='blocked')return{ok:false,status:'blocked',code:'PDF_SCAN_BLOCKED',message:text(queueEntry.message)||'Die Datei wurde nicht gespeichert.',upload:queueEntry,shipment:publicShipment(sh,session)};
- const container=await ensureQuarantineContainerReady(),qName=pdfSecurity.quarantineBlobName(sessionInfo.environment,session,uploadId),qBlob=container.getBlockBlobClient(qName);
+ const container=await ensureQuarantineContainerReady(),qName=pdfSecurity.quarantineBlobName(sessionInfo.environment,customerUploadScope(sessionInfo),uploadId),qBlob=container.getBlockBlobClient(qName);
  let tagsResponse;try{tagsResponse=await qBlob.getTags()}catch(e){if(Number(e&&e.statusCode||e&&e.status)===404)throw error('UPLOAD_NOT_FOUND','Die PDF-Datei befindet sich nicht mehr in der Prüfwarteschlange.',404);throw e}
  const scan=pdfSecurity.scanResultFromTags(tagsResponse&&tagsResponse.tags||tagsResponse||{});
  if(scan.status==='clean')return promoteCleanCustomerPdf(teamBlob,sessionInfo,session,qBlob,uploadId,scan);
@@ -250,7 +251,7 @@ module.exports=async function(context,req){
    const postAction=lower(payload.action||'appointment');
    if(postAction==='upload-document'){
     if(dateTimeOf(sh))throw error('AVIS_CLOSED','Der Lieferavis ist nach der Abholung geschlossen. Dokumente können nicht mehr hochgeladen werden.',410);
-    const existingId=text(payload.file&&payload.file.sha256),validated=pdfSecurity.validatePdfUpload(payload.file),already=customerUploadFile(sh,validated.sha256),queued=customerUploadQueueEntry(sh,validated.sha256);
+    const validated=pdfSecurity.validatePdfUpload(payload.file),already=customerUploadFile(sh,validated.sha256),queued=customerUploadQueueEntry(sh,validated.sha256);
     if(already){context.res=json(200,{ok:true,status:'saved',upload:{id:validated.sha256,name:fileName(already,validated.name),size:Number(already.size||validated.size),status:'saved'},shipment:publicShipment(sh,session)});return}
     if(queued&&text(queued.status)==='scanning'){context.res=json(202,{ok:true,status:'scanning',upload:queued,shipment:publicShipment(sh,session)});return}
     assertCustomerUploadQuota(sh);
