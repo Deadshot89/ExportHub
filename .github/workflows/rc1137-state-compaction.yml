@@ -53,7 +53,9 @@ jobs:
           changed="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).changed?'1':'0'))")"
           before="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(String(JSON.parse(s).beforeBytes||0)))")"
 
+          verify_before="0"
           if [ "$changed" = "1" ]; then
+            verify_before="$before"
             applied="$(call_maintenance apply)"
             printf '%s\n' "$applied" | node -e "
               let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
@@ -67,7 +69,7 @@ jobs:
           fi
 
           health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
-          printf '%s\n' "$health" | RC1137_BEFORE="$before" node -e "
+          printf '%s\n' "$health" | RC1137_BEFORE="$verify_before" node -e "
             let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
               const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0);
               if(!v.ok||!v.teamStateReadable||bytes<=0)process.exit(6);
@@ -113,7 +115,9 @@ jobs:
           changed="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).changed?'1':'0'))")"
           before="$(printf '%s' "$preview" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(String(JSON.parse(s).beforeBytes||0)))")"
 
+          verify_before="0"
           if [ "$changed" = "1" ]; then
+            verify_before="$before"
             applied="$(call_maintenance apply)"
             printf '%s\n' "$applied" | node -e "
               let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
@@ -127,7 +131,7 @@ jobs:
           fi
 
           health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
-          printf '%s\n' "$health" | RC1137_BEFORE="$before" node -e "
+          printf '%s\n' "$health" | RC1137_BEFORE="$verify_before" node -e "
             let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
               const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0);
               if(!v.ok||!v.teamStateReadable||bytes<=0)process.exit(6);
