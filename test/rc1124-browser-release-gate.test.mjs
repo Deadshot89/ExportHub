@@ -45,6 +45,11 @@ test('RC1124: Browser-Helfer schützen Navigation, Quellcode-Leaks, Overflow und
   assert.match(helper,/boundingBox/);
   assert.match(helper,/viewportSize/);
   assert.match(helper,/intersects/);
+  assert.match(helper,/scrollIntoViewIfNeeded/);
+  assert.match(helper,/menuOpened/);
+  assert.match(helper,/viewport&&viewport\.width>=768/);
+  assert.match(helper,/EXPORTHUB_E2E_STATIC==='1'/);
+  assert.match(helper,/RC1033 Lieferavis Fast-Path exporthub:\(\?:viewchange\|rendered\) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert/);
 });
 
 test('RC1124: TESTSERVICE Browser-Gate liegt zwingend vor Produktion',()=>{
