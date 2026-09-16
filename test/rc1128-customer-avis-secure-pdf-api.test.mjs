@@ -140,6 +140,15 @@ test('RC1128 API: PDF bleibt bis Defender-Clean ausschließlich in Quarantäne u
     assert.equal(sh.attachments[0].sha256,hash);
     assert.equal(sh.attachments[0].malwareScan.result,'No threats found');
     assert.equal(sh.customerAvisDocumentUploads.at(-1).status,'saved');
+    assert.ok(Array.isArray(fx.team().state.notifications),'AVIS-Upload muss eine interne Benachrichtigung erzeugen');
+    const notice=fx.team().state.notifications.find(x=>x&&x.type==='customer-avis-document'&&x.documentSha256===hash);
+    assert.ok(notice,'Benachrichtigung für das gespeicherte Kundendokument fehlt');
+    assert.equal(notice.title,'Neues AVIS-Dokument');
+    assert.equal(notice.shipmentRef,'ABC123');
+    assert.equal(notice.customerName,'Testkunde');
+    assert.equal(notice.documentName,'Kundenfreigabe.pdf');
+    assert.equal(notice.documentBlobName,sh.attachments[0].blobName);
+    assert.equal(notice.read,false);
   }finally{fx.restore()}
 });
 
@@ -163,6 +172,7 @@ test('RC1128 API: Defender Malicious löscht Quarantäne und speichert niemals e
     assert.equal(sh.attachments.length,0);
     assert.equal(sh.customerAvisDocumentUploads.at(-1).status,'blocked');
     assert.match(sh.customerAvisDocumentUploads.at(-1).message,/schädlich erkannt/i);
+    assert.equal((fx.team().state.notifications||[]).filter(x=>x&&x.type==='customer-avis-document').length,0,'blockierte PDFs dürfen keine Druck-Benachrichtigung erzeugen');
   }finally{fx.restore()}
 });
 
