@@ -22,7 +22,7 @@ function validPdf(label='SAFE'){
 }
 function responseBody(res){return typeof res.body==='string'?JSON.parse(res.body):res.body}
 
-function fixture(){
+function fixture(contentResult={ok:true,code:'PDF_CONTENT_VALID',message:'PDF-Inhalt passt zur Sendung.',documentType:'other',documentTypeLabel:'Sonstiges',matched:['Sendungsreferenz']}){
   const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
   process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
   let etagNo=1,team={
@@ -85,11 +85,16 @@ function fixture(){
     }
   };
   const auth={};
+  const contentCheck={
+    documentType(value){return String(value||'').trim()||'other'},
+    async validateShipmentDocument(){return Object.assign({},contentResult)}
+  };
   const handler=loadCommonJs('api/customer-avis/index.js',{
     '@azure/storage-blob':azure,
     '../shared/public-access-store':access,
     '../shared/fast-auth-store':auth,
-    '../shared/document-blob-store':{DOCUMENT_CONTAINER:'exporthub-documents'}
+    '../shared/document-blob-store':{DOCUMENT_CONTAINER:'exporthub-documents'},
+    '../shared/customer-avis-document-content':contentCheck
   });
   async function call(body){
     const context={log:{error(){}},res:null};
@@ -109,7 +114,7 @@ test('RC1128 API: PDF bleibt bis Defender-Clean ausschließlich in Quarantäne u
   const fx=fixture();
   try{
     const bytes=validPdf(),hash=crypto.createHash('sha256').update(bytes).digest('hex');
-    let res=await fx.call({action:'upload-document',file:{name:'Kundenfreigabe.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
+    let res=await fx.call({action:'upload-document',documentType:'other',file:{name:'Kundenfreigabe.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
     assert.equal(res.status,202);
     assert.equal(res.body.status,'scanning');
     assert.equal(res.body.upload.id,hash);
@@ -142,7 +147,7 @@ test('RC1128 API: Defender Malicious löscht Quarantäne und speichert niemals e
   const fx=fixture();
   try{
     const bytes=validPdf('MALWARE-SIMULATION'),hash=crypto.createHash('sha256').update(bytes).digest('hex');
-    let res=await fx.call({action:'upload-document',file:{name:'verdacht.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
+    let res=await fx.call({action:'upload-document',documentType:'other',file:{name:'verdacht.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
     assert.equal(res.status,202);
     const [,qRec]=fx.quarantineRecords()[0];
     qRec.tags['Malware scanning scan result']='Malicious';
@@ -158,5 +163,29 @@ test('RC1128 API: Defender Malicious löscht Quarantäne und speichert niemals e
     assert.equal(sh.attachments.length,0);
     assert.equal(sh.customerAvisDocumentUploads.at(-1).status,'blocked');
     assert.match(sh.customerAvisDocumentUploads.at(-1).message,/schädlich erkannt/i);
+  }finally{fx.restore()}
+});
+
+
+test('RC1129 API: virenfreies aber fachlich falsches PDF wird nicht als Sendungsdokument gespeichert',async()=>{
+  const fx=fixture({ok:false,code:'PDF_SHIPMENT_MISMATCH',message:'Das PDF konnte der Sendung nicht eindeutig zugeordnet werden. Es wird nicht gespeichert.',documentType:'other',matched:[],missing:['Sendungsreferenz ABC123']});
+  try{
+    const bytes=validPdf('FREMDE-SENDUNG'),hash=crypto.createHash('sha256').update(bytes).digest('hex');
+    let res=await fx.call({action:'upload-document',documentType:'other',file:{name:'fremd.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
+    assert.equal(res.status,202);
+    const [,qRec]=fx.quarantineRecords()[0];
+    qRec.tags['Malware scanning scan result']='No threats found';
+    qRec.tags['Malware scanning scan time']='2026-09-16T12:02:00Z';
+
+    res=await fx.call({action:'document-upload-status',uploadId:hash});
+    assert.equal(res.status,200);
+    assert.equal(res.body.status,'blocked');
+    assert.equal(res.body.code,'PDF_SHIPMENT_MISMATCH');
+    assert.equal(qRec.deleted,true);
+    assert.equal(fx.documentRecords().length,0,'fachlich falsches PDF darf keinen finalen Dokumentblob erzeugen');
+    const sh=fx.team().state.shipments[0];
+    assert.equal(sh.attachments.length,0);
+    assert.equal(sh.customerAvisDocumentUploads.at(-1).status,'blocked');
+    assert.equal(sh.customerAvisDocumentUploads.at(-1).contentCode,'PDF_SHIPMENT_MISMATCH');
   }finally{fx.restore()}
 });
