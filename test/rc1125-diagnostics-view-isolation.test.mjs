@@ -22,8 +22,13 @@ function fakeWindow(view,host){
 }
 
 test('RC1125: Fehlerdiagnose ist strikt auf die View diagnostics begrenzt',()=>{
-  assert.match(runtime,/var view=currentView\(win\);\s*if\(view\)return view==='diagnostics'/);
-  assert.doesNotMatch(runtime,/querySelectorAll\('h1,h2,h3'\)[\s\S]{0,180}fehlerdiagnose/i);
+  const start=runtime.indexOf('function diagnosticsVisible(win)');
+  const end=runtime.indexOf('function style(win)',start);
+  assert.ok(start>=0&&end>start,'diagnosticsVisible-Funktion fehlt');
+  const visibleBlock=runtime.slice(start,end);
+  assert.match(visibleBlock,/var view=currentView\(win\);\s*if\(view\)return view==='diagnostics'/);
+  assert.doesNotMatch(visibleBlock,/querySelectorAll/);
+  assert.doesNotMatch(visibleBlock,/fehlerdiagnose/i);
   assert.match(runtime,/function removeDiagnosticsHost\(win\)/);
 });
 
