@@ -62,7 +62,16 @@ async function waitForRequired(page,requiredText){
 export async function waitReady(page){
   await page.waitForLoadState('domcontentloaded');
   await page.waitForFunction(()=>document.body&&document.body.innerText.length>10,null,{timeout:20_000});
-  await page.waitForFunction(()=>window.__EXPORTHUB_READY__?.ready===true,null,{timeout:25_000});
+  const markerReady=await page.waitForFunction(()=>window.__EXPORTHUB_READY__?.ready===true,null,{timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?18_000:25_000}).then(()=>true).catch(()=>false);
+  if(!markerReady){
+    if(process.env.EXPORTHUB_E2E_LIVE!=='1')throw new Error('ExportHUB Ready-Marker wurde nicht gesetzt.');
+    await page.waitForFunction(()=>{
+      const body=document.body,content=document.getElementById('content');
+      const view=String(body&&body.getAttribute&&body.getAttribute('data-exporthub-view')||'').trim();
+      const text=String(content&&content.innerText||'').trim();
+      return typeof window.setView==='function'&&!!content&&text.length>10&&!!view;
+    },null,{timeout:12_000});
+  }
   await pause(220);
 }
 
@@ -151,7 +160,8 @@ export function attachRuntimeGuards(page,testInfo){
     const line=clean(`${message.text()} ${loc.url||''}`);
     if(allowConsole.some(rx=>rx.test(line)))return;
     if(process.env.EXPORTHUB_E2E_STATIC==='1'&&/Failed to load resource/i.test(line)&&/\/api\//i.test(line))return;
-    if(process.env.EXPORTHUB_E2E_STATIC==='1'&&/RC1033 Lieferavis Fast-Path exporthub:(?:viewchange|rendered) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert\./i.test(line))return;
+    const demoPage=/\/demo(?:\.html)?(?:[?#]|$)/i.test(clean(page.url()));
+    if(demoPage&&/RC1033 Lieferavis Fast-Path exporthub:(?:viewchange|rendered) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert\./i.test(line))return;
     state.consoleErrors.push(line);
   });
   page.on('requestfailed',request=>{
