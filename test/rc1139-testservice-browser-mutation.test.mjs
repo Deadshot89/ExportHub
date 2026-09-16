@@ -18,14 +18,16 @@ test('RC1139: sicherer E2E-Fixture-Endpunkt ist vorhanden und nur GitHub OIDC da
   assert.match(source,/E2E_FIXTURE_FORBIDDEN/,'fail-closed Autorisierung fehlt');
 });
 
-test('RC1139: Fixture ist hart auf TESTSERVICE und E2E-Präfix begrenzt',()=>{
+test('RC1139: Fixture ist hart auf TESTSERVICE-Daten und E2E-Präfix begrenzt',()=>{
   const source=fs.readFileSync(API,'utf8');
-  assert.match(source,/TESTSERVICE_ONLY/,'Produktionssperre fehlt');
-  assert.match(source,/ashy-grass-065b7b803-testservice\.westeurope\.6\.azurestaticapps\.net/,'exakter TESTSERVICE-Host fehlt');
+  assert.match(source,/TESTSERVICE_ONLY/,'Testservice-Sperre fehlt');
+  assert.match(source,/headerEnvironment\s*!==\s*['"]testservice['"]/,'TESTSERVICE-Headerbindung fehlt');
+  assert.match(source,/payloadEnvironment\s*!==\s*['"]testservice['"]/,'TESTSERVICE-Payloadbindung fehlt');
+  assert.match(source,/getBlockBlobClient\(TEST_TEAM_BLOB\)/,'TESTSERVICE-Blobbindung fehlt');
+  assert.doesNotMatch(source,/getBlockBlobClient\(TEAM_BLOB\)/,'Produktionsblob darf nicht geöffnet werden');
   assert.match(source,/E2E-/,'E2E-Präfix fehlt');
   assert.match(source,/action\s*===?\s*['"]prepare['"]/,'Prepare fehlt');
   assert.match(source,/action\s*===?\s*['"]cleanup['"]/,'Cleanup fehlt');
-  assert.doesNotMatch(source,/wonderful-forest-0f315e310\.7\.azurestaticapps\.net/,'Produktionshost darf nicht freigeschaltet werden');
 });
 
 test('RC1139: Prepare erstellt nicht-admin Testbenutzer mit Bearbeitungsrechten und signierter Kurzzeitsitzung',()=>{
