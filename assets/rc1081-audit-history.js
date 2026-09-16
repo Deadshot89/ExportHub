@@ -48,7 +48,8 @@ var AUDIT_LABELS={
  LOADER_PIN_CREATED:'Verlader-PIN angelegt',
  LOADER_PIN_UPDATED:'Verlader-PIN geändert',
  LOADER_PIN_STATUS_CHANGED:'Verlader-PIN Status geändert',
- LOADER_PIN_DELETED:'Verlader-PIN gelöscht'
+ LOADER_PIN_DELETED:'Verlader-PIN gelöscht',
+ CUSTOMER_DELETED:'Kunde gelöscht'
 };
 var SHIPMENT_LABELS={
  created:'Sendung erstellt',
@@ -106,6 +107,7 @@ function actionKey(e){return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+low(actionTitl
 function auditEvent(e){
  var details=e&&e.details||{},subtype=q(e&&e.type),entity='System',entityId=q(details.userId||details.username);
  if(/^LOADER_PIN_/.test(subtype)){entity='Verlader-PIN';entityId=q(details.loaderName||details.loaderId)||'PIN-Verwaltung'}
+ else if(subtype==='CUSTOMER_DELETED'){entity='Kunde';entityId=q(details.account||details.customerId||details.customer)||'Kunde'}
  else if(entityId)entity='Benutzer';
  return{id:q(e&&e.id),at:q(e&&e.at),type:'audit',subtype:subtype,label:AUDIT_LABELS[subtype]||'Systemaktion',actor:{name:actorName(e)},entity:entity,entityId:entityId,details:details,source:'audit'}
 }
