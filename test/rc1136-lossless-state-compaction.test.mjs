@@ -47,3 +47,11 @@ test('RC1136: fachliche Dokumente, Historien und Signaturen bleiben unangetastet
   const out=compactStateForStorage({shipments:[item]});
   for(const key of ['generatedDocuments','deliveryFiles','podFiles','abdFiles','shipmentHistory','statusHistory','driverSignature','signatureDataUrl'])assert.deepEqual(out.shipments[0][key],item[key],key+' wurde verändert');
 });
+
+
+test('RC1136: State-Save kompaktisiert erst nach Merge und vor Upload',()=>{
+  const fs=require('node:fs');
+  const source=fs.readFileSync('api/exporthub-state/index.js','utf8');
+  assert.match(source,/require\('\.\.\/shared\/state-compaction'\)/);
+  assert.match(source,/compactStateForStorage\(pruneTombstones\(mergeState\(current\.state\|\|\{\},incoming\.state\|\|\{\}\)\)\)/);
+});
