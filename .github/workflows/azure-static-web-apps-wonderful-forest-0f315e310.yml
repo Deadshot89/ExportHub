@@ -186,6 +186,7 @@ jobs:
           test -s dist-rc1112/assets/rc1081-audit-history.js
           grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' dist-rc1112/assets/rc1081-audit-history.js
           grep -q 'Mit ChatGPT beheben' dist-rc1112/assets/rc1013-diagnostics.js
+          grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/TESTVERSION.html
@@ -242,7 +243,7 @@ jobs:
           test -s dist-rc1112/assets/sop/screenshots/rc1016-tasks.png
           test -s dist-rc1112/assets/sop/screenshots/rc1016-shipmentoverview.png
           test -s dist-rc1112/assets/sop/screenshots/rc1016-pickupcalendar.png
-          grep -q 'assets/rc1013-diagnostics.js?v=1085' dist-rc1112/index.html
+          grep -q 'assets/rc1013-diagnostics.js?v=1125' dist-rc1112/index.html
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1013-gate41-ui.js?v=1041' "dist-rc1112/$file"
           done
@@ -957,8 +958,9 @@ jobs:
               apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083=$GITHUB_SHA-$attempt" || true)
 
               pageMarker=1; chatgptMarker=1; endpointMarker=1; titleMarker=1; authMarker=1
-              grep -q 'assets/rc1013-diagnostics.js?v=1085' "$page" || pageMarker=0
+              grep -q 'assets/rc1013-diagnostics.js?v=1125' "$page" || pageMarker=0
               grep -q 'Mit ChatGPT beheben' "$asset" || chatgptMarker=0
+              grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" || titleMarker=0
               grep -q '/api/diagnostic-autofix' "$asset" || endpointMarker=0
               grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || titleMarker=0
               grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" || authMarker=0
