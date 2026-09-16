@@ -32,7 +32,8 @@ test('RC1139: Prepare erstellt nicht-admin Testbenutzer mit Bearbeitungsrechten 
   const source=fs.readFileSync(API,'utf8');
   assert.match(source,/globalAdmin\s*:\s*false/,'E2E-Benutzer darf kein Global Admin sein');
   assert.match(source,/functionAdmin\s*:\s*false/,'E2E-Benutzer darf kein Funktionsadmin sein');
-  assert.match(source,/edit\s*:\s*true/,'Bearbeitungsrecht fehlt');
+  assert.match(source,/const edit=allowed\.has\(id\)/,'Bearbeitungsrecht wird nicht aus der erlaubten Modulliste abgeleitet');
+  assert.match(source,/rights\[id\]=\{[^}]*edit[^}]*admin:false[^}]*functionAdmin:false/,'Bearbeitungsrechte dürfen keine Adminrechte verleihen');
   assert.match(source,/createSignedSessionToken/,'signierte Sitzung muss vorhandenen Auth-Mechanismus verwenden');
   assert.match(source,/60\s*\*\s*60\s*\*\s*1000|3600000/,'Sitzung muss kurzlebig sein');
   assert.match(source,/ifMatch|etag/,'ETag-Schutz fehlt');
@@ -42,9 +43,10 @@ test('RC1139: Cleanup entfernt ausschließlich markierte Datensätze des eigenen
   const source=fs.readFileSync(API,'utf8');
   assert.match(source,/_e2eRunId/,'Run-Markierung fehlt');
   assert.match(source,/runId/,'Run-ID fehlt');
-  assert.match(source,/shipments/);
-  assert.match(source,/savedShipments/);
-  assert.match(source,/users/);
+  assert.match(source,/Object\.entries\(out\)/,'Cleanup muss State-Sammlungen generisch prüfen');
+  assert.match(source,/Array\.isArray\(value\)/,'Cleanup darf nur Array-Sammlungen filtern');
+  assert.match(source,/text\(item\._e2eRunId\)===runId/,'Cleanup darf nur exakt zum Run gehörende Einträge entfernen');
+  assert.match(source,/team\.users=team\.users\.filter/,'E2E-Benutzer wird nicht gezielt entfernt');
   assert.match(source,/CONCURRENT_UPDATE/,'Cleanup muss bei Konflikt fail-closed sein');
 });
 
