@@ -174,7 +174,7 @@ async function updateCustomerUploadOutcome(teamBlob,sessionInfo,session,entry,fi
 async function promoteCleanCustomerPdf(teamBlob,sessionInfo,session,quarantineBlob,uploadId,scan,shipmentForCheck,queueEntry){
  const props=typeof quarantineBlob.getProperties==='function'?await quarantineBlob.getProperties():{},metadata=props&&props.metadata||{},name=pdfSecurity.decodeNameMetadata(metadata.name64),bytes=await readBlobBytes(quarantineBlob),validated=pdfSecurity.validatePdfUpload({name,type:'application/pdf',base64:bytes.toString('base64')});
  if(validated.sha256!==uploadId)throw error('PDF_HASH_MISMATCH','Die PDF-Datei hat die Integritätsprüfung nicht bestanden.',409);
- const docType=contentCheck.documentType(queueEntry&&queueEntry.documentType),content=await contentCheck.validateShipmentDocument(bytes,shipmentForCheck,docType);
+ const docType=contentCheck.documentType(queueEntry&&queueEntry.documentType||'other'),content=await contentCheck.validateShipmentDocument(bytes,shipmentForCheck,docType);
  if(!content.ok){
   try{if(typeof quarantineBlob.deleteIfExists==='function')await quarantineBlob.deleteIfExists()}catch(_){}
   const blocked=await updateCustomerUploadOutcome(teamBlob,sessionInfo,session,{id:uploadId,name,size:bytes.length,status:'blocked',documentType:docType,uploadedAt:text(queueEntry&&queueEntry.uploadedAt)||text(metadata.uploadedat),completedAt:now(),message:content.message,scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched},null);
