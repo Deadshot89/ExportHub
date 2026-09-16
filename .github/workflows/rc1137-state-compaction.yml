@@ -68,14 +68,31 @@ jobs:
             echo "TESTSERVICE: keine weitere RC1137-Kompaktierung erforderlich."
           fi
 
-          health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
-          printf '%s\n' "$health" | RC1137_BEFORE="$verify_before" node -e "
+          migration_health_before="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
+          blob_before="$(printf '%s' "$migration_health_before" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(String(Number(JSON.parse(s).stateDiagnostics?.blobDocumentEntries||0))))")"
+
+          migration="$(call_maintenance migrate-testservice-documents)"
+          printf '%s\n' "$migration" | node -e "
             let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
-              const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0);
+              const v=JSON.parse(s);
+              if(!v.ok||Number(v.remaining||0)!==0)process.exit(8);
+              if(Number(v.found||0)>0&&(!v.migrated||v.backupVerified!==true||!v.backupBlob))process.exit(9);
+              console.log('TESTSERVICE document migration',JSON.stringify({found:v.found,migrated:v.migratedCount,remaining:v.remaining,bytesMoved:v.bytesMoved,batches:v.batches,beforeBytes:v.beforeBytes,afterBytes:v.afterBytes,backupBlob:v.backupBlob||null,backupVerified:v.backupVerified}));
+            })"
+
+          health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
+          printf '%s\n' "$health" | RC1137_BEFORE="$verify_before" RC1138_BLOB_BEFORE="$blob_before" node -e "
+            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s),bytes=Number(v.teamStateBytes||0),diag=v.stateDiagnostics||{};
               if(!v.ok||!v.teamStateReadable||bytes<=0)process.exit(6);
               console.log('TESTSERVICE teamStateBytes='+bytes);
+              console.log('TESTSERVICE documents',JSON.stringify({inlinePayloadCount:diag.inlinePayloadCount,documentPayloadBytes:diag.documentPayloadBytes,blobDocumentEntries:diag.blobDocumentEntries}));
               const before=Number(process.env.RC1137_BEFORE||0);
               if(before>0&&bytes>=before)process.exit(7);
+              if(Number(diag.inlinePayloadCount||0)!==0)process.exit(10);
+              if(Number(diag.documentPayloadBytes||0)!==0)process.exit(11);
+              const blobBefore=Number(process.env.RC1138_BLOB_BEFORE||0);
+              if(Number(diag.blobDocumentEntries||0)<blobBefore)process.exit(12);
             })"
 
   production:
