@@ -75,6 +75,12 @@ test('RC1129: API deklariert pdf-parse als Textanalyse-Runtime',()=>{
   assert.match(api,/customer-avis-document-content/);
   assert.match(api,/validateShipmentDocument/);
   assert.match(api,/businessValidation/);
+  const promoteStart=api.indexOf('async function promoteCleanCustomerPdf');
+  const promoteEnd=api.indexOf('async function blockCustomerPdf',promoteStart);
+  const promote=api.slice(promoteStart,promoteEnd);
+  assert.ok(promoteStart>=0&&promoteEnd>promoteStart,'Promotion-Funktion fehlt');
+  assert.ok(promote.indexOf('validateShipmentDocument')>=0,'Fachprüfung fehlt in der Promotion');
+  assert.ok(promote.indexOf('validateShipmentDocument')<promote.indexOf('finalBlobName'),'Finaler Dokumentpfad darf erst nach der Fachprüfung entstehen');
   const content=fs.readFileSync('api/shared/customer-avis-document-content.js','utf8');
   assert.match(content,/PDF_CONTENT_VALID/);
 });
