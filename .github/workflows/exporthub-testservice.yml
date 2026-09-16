@@ -61,7 +61,7 @@ jobs:
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1112/production-version.js
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1112/TESTVERSION.html
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1112/demo.html
-          grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/customer-avis.html
+          grep -q 'assets/rc1018-public-language.js?v=1128' dist-rc1112/customer-avis.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/pickup.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/location.html
           grep -q 'assets/rc1017-multi-truck.js?v=1017' dist-rc1112/TESTVERSION.html
