@@ -96,7 +96,13 @@ test('RC1125 P0: Benutzerverwaltung zeigt keine Fehlerdiagnose',async({page},tes
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
 
-  await openExportHubView(page,'diagnostics',['Fehlerdiagnose','Diagnose'],/Diagnose|Fehler/i,{allowProgrammaticFallback:true});
+  await page.evaluate(()=>{
+    const root=document.getElementById('content')||document.body;
+    const stale=document.createElement('section');
+    stale.id='rc1013-diagnostics-enhanced';
+    stale.innerHTML='<h3>Fehlerdiagnose & automatische Behebung</h3>';
+    root.appendChild(stale);
+  });
   await openExportHubView(page,'rights',['Benutzer & Rechte','Benutzer','Rechte','Berechtigungen'],/Benutzer|Rechte|Rollen/i,{allowProgrammaticFallback:true});
 
   await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
