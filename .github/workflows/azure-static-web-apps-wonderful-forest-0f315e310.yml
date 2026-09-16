@@ -255,10 +255,16 @@ jobs:
           grep -q 'PDF_SHIPMENT_MISMATCH' api/shared/customer-avis-document-content.js
           grep -q 'PDF_DOCUMENT_TYPE_MISMATCH' api/shared/customer-avis-document-content.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -Fq 'linear-gradient(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%)' "dist-rc1112/$file"
-            grep -Fq 'border:8mm solid #08245d!important' "dist-rc1112/$file"
-            grep -Fq 'box-shadow:inset 0 0 0 2mm #1d4ed8' "dist-rc1112/$file"
+            grep -Fq 'linear-gradient(180deg,#1d4ed8 0,#60a5fa 66mm,#dbeafe 66mm,#eff6ff 100%)' "dist-rc1112/$file"
+            grep -Fq 'border:10mm solid #08245d!important;border-top-width:18mm!important' "dist-rc1112/$file"
+            grep -Fq 'outline:2mm solid #2563eb!important' "dist-rc1112/$file"
+            grep -Fq 'background:#facc15' "dist-rc1112/$file"
+            grep -q 'assets/rc1133-avis-upload-notifications.js?v=1133' "dist-rc1112/$file"
           done
+          test -s dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          grep -q 'Neues AVIS-Dokument' dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          grep -q 'PDF öffnen / drucken' dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          grep -q "type:'customer-avis-document'" api/customer-avis/index.js
           test -s api/shared/customer-avis-pdf-security.js
           grep -q 'AVIS_QUARANTINE_CONTAINER' api/customer-avis/index.js
           grep -q 'qBlob.getTags()' api/customer-avis/index.js
@@ -661,7 +667,7 @@ jobs:
           echo 'RC1106 Sendungshistorie wurde live nicht vollständig bestätigt.' >&2
           exit 1
 
-      - name: Live RC1048 Mail und Sprache prüfen
+      - name: Live RC1134 Mail und Sprache prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -692,13 +698,13 @@ jobs:
             for base in "$prod" "$testservice"; do
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1112=$GITHUB_SHA-$attempt" || true)
-              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1018' "$body" || ok=0
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1129' "$body" || ok=0
               rm -f "$body"
             done
-            if [[ "$ok" == '1' ]]; then echo 'RC1048 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
+            if [[ "$ok" == '1' ]]; then echo 'RC1134 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
             sleep 10
           done
-          echo 'RC1048 Mail- und Sprachruntime live nicht bestätigt.'
+          echo 'RC1134 Mail- und Sprachruntime live nicht bestätigt.'
           exit 1
 
       - name: Live RC1074 Login ohne technische Prüfhinweise prüfen
