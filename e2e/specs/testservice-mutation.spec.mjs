@@ -1,0 +1,145 @@
+import {test,expect} from '@playwright/test';
+import {
+  appEntry,
+  waitReady,
+  openExportHubView,
+  attachRuntimeGuards,
+  assertRuntimeClean,
+  assertNoSourceLeak,
+  assertNoHorizontalOverflow,
+  installE2ESession
+} from '../helpers/exporthub-browser.mjs';
+
+function headers(token){
+  return {
+    'Content-Type':'application/json',
+    'Accept':'application/json',
+    'Cache-Control':'no-cache',
+    'X-ExportHUB-Token':token,
+    'X-ExportHUB-Session':token,
+    'Authorization':'Bearer '+token,
+    'X-ExportHUB-Environment':'testservice'
+  };
+}
+
+test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zurück und Übersicht zeigt die Sendung',async({page},testInfo)=>{
+  test.skip(process.env.EXPORTHUB_E2E_MUTATION!=='1','Mutierender RC1139-Test läuft nur im TESTSERVICE-Gate.');
+  test.skip(testInfo.project.name!=='laptop','Mutierender RC1139-Test läuft genau einmal auf dem Laptop-Profil.');
+
+  const runtime=attachRuntimeGuards(page,testInfo);
+  const session=await installE2ESession(page);
+  const ref=String(process.env.EXPORTHUB_E2E_REFERENCE||'').trim().toUpperCase();
+  expect(ref).toMatch(/^E2E[A-Z0-9]{3}$/);
+
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const authenticated=await page.evaluate(async({token})=>{
+    const response=await fetch('/api/exporthub-auth',{
+      method:'POST',
+      credentials:'same-origin',
+      cache:'no-store',
+      headers:{'Content-Type':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token},
+      body:JSON.stringify({action:'session',sessionToken:token})
+    });
+    const data=await response.json().catch(()=>({}));
+    return{status:response.status,data};
+  },{token:session.token});
+  expect(authenticated.status).toBe(200);
+  expect(authenticated.data?.ok).toBe(true);
+  expect(String(authenticated.data?.user?.id||'')).toMatch(/^E2E-USER-/);
+
+  const read=await page.evaluate(async({token})=>{
+    const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+      method:'GET',credentials:'same-origin',cache:'no-store',
+      headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
+    });
+    return{status:response.status,data:await response.json().catch(()=>({}))};
+  },{token:session.token});
+  expect(read.status).toBe(200);
+  expect(read.data?.ok).toBe(true);
+
+  const stamp=new Date().toISOString();
+  const shipment={
+    id:'E2E-SHIP-'+session.runId,
+    shipmentId:'E2E-SHIP-'+session.runId,
+    ref,
+    reference:ref,
+    referenceNumber:ref,
+    customerId:'E2E-CUSTOMER',
+    customerName:'E2E TEST CUSTOMER',
+    customer:{id:'E2E-CUSTOMER',name:'E2E TEST CUSTOMER',customerName:'E2E TEST CUSTOMER'},
+    recipientName:'E2E TEST RECEIVER',
+    recipientAddress:'E2E Teststraße 1, 00000 Test',
+    destinationCountry:'DE',
+    status:'Erstellt',
+    processStatus:'Erstellt',
+    createdAt:stamp,
+    updatedAt:stamp,
+    totalColli:1,
+    totalWeight:100,
+    totalLdm:0.2,
+    rows:[{type:'Europalette',packaging:'Europalette',count:1,weight:100,ldm:0.2,l:120,w:80,h:100}],
+    _e2eRunId:session.runId
+  };
+
+  const state=read.data?.state&&typeof read.data.state==='object'?read.data.state:{};
+  const shipments=Array.isArray(state.shipments)?state.shipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
+  const savedShipments=Array.isArray(state.savedShipments)?state.savedShipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
+  shipments.push(shipment);
+  savedShipments.push({...shipment});
+
+  const saved=await page.evaluate(async({token,runId,ref,revision,shipments,savedShipments})=>{
+    const response=await fetch('/api/exporthub-state?mode=save&ack=1',{
+      method:'POST',
+      credentials:'same-origin',
+      cache:'no-store',
+      headers:{
+        'Content-Type':'application/json','Accept':'application/json',
+        'X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,
+        'X-ExportHUB-Environment':'testservice'
+      },
+      body:JSON.stringify({
+        environment:'testservice',
+        clientVersion:'RC1139-E2E',
+        baseRevision:Number(revision||0),
+        deviceId:'e2e-playwright',
+        operationId:'RC1139-'+runId+'-'+ref,
+        reason:'RC1139 browser mutation gate',
+        state:{shipments,savedShipments}
+      })
+    });
+    return{status:response.status,data:await response.json().catch(()=>({}))};
+  },{token:session.token,runId:session.runId,ref,revision:read.data?.revision||0,shipments,savedShipments});
+
+  expect(saved.status).toBe(200);
+  expect(saved.data?.ok).toBe(true);
+  expect(saved.data?.ackOnly).toBe(true);
+
+  await page.reload({waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const persisted=await page.evaluate(async({token,runId,ref})=>{
+    const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+      method:'GET',credentials:'same-origin',cache:'no-store',
+      headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
+    });
+    const data=await response.json().catch(()=>({}));
+    const shipments=Array.isArray(data&&data.state&&data.state.shipments)?data.state.shipments:[];
+    const found=shipments.find(x=>x&&x._e2eRunId===runId&&String(x.ref||x.reference||'').toUpperCase()===ref);
+    return{status:response.status,ok:data&&data.ok===true,found:found?{ref:found.ref||found.reference,customerName:found.customerName||found.customer?.name,status:found.status||found.processStatus}:null};
+  },{token:session.token,runId:session.runId,ref});
+
+  expect(persisted.status).toBe(200);
+  expect(persisted.ok).toBe(true);
+  expect(persisted.found?.ref).toBe(ref);
+  expect(persisted.found?.customerName).toMatch(/E2E TEST CUSTOMER/i);
+
+  await openExportHubView(page,'shipmentoverview',['Sendungsübersicht','Sendungen'],/Sendungsübersicht|Sendungen/i,{allowProgrammaticFallback:true});
+  await expect(page.locator('#content')).toContainText(ref,{timeout:15_000});
+  await expect(page.locator('#content')).toContainText(/E2E TEST CUSTOMER/i,{timeout:15_000});
+
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(runtime,testInfo);
+});

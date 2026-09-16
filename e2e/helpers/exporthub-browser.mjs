@@ -208,6 +208,31 @@ export async function assertRuntimeClean(state,testInfo){
   expect(payload.httpErrors,'HTTP-5xx bei Kern-Requests').toEqual([]);
 }
 
+
+export async function installE2ESession(page){
+  const token=String(process.env.EXPORTHUB_E2E_SESSION_TOKEN||'').trim();
+  const userB64=String(process.env.EXPORTHUB_E2E_USER_B64||'').trim();
+  const runId=String(process.env.EXPORTHUB_E2E_RUN_ID||'').trim();
+  if(!token||!userB64||!runId)throw new Error('RC1139 E2E-Session-Umgebung fehlt.');
+  let user;
+  try{user=JSON.parse(Buffer.from(userB64,'base64').toString('utf8'))}
+  catch(_){throw new Error('RC1139 E2E-Benutzer konnte nicht dekodiert werden.')}
+  await page.addInitScript(({token,user,runId})=>{
+    try{
+      sessionStorage.setItem('exporthub_rc301_tab_session',JSON.stringify({
+        token,
+        user,
+        deviceId:'e2e-playwright',
+        view:'dashboard',
+        savedAt:Date.now(),
+        version:'RC1139',
+        _e2eRunId:runId
+      }));
+    }catch(_){}
+  },{token,user,runId});
+  return{token,user,runId};
+}
+
 export function appEntry(){
   return process.env.EXPORTHUB_E2E_ENTRY||'/demo.html';
 }
