@@ -55,9 +55,10 @@ function validatePdfUpload(file){
   if(!/\.pdf$/i.test(name))throw err('PDF_EXTENSION_REQUIRED','Es sind ausschließlich PDF-Dateien zulässig.',400);
   const claimedMime=lower(file.type||file.mimeType||file.contentType);
   if(claimedMime&&claimedMime!=='application/pdf'&&claimedMime!=='application/x-pdf')throw err('PDF_MIME_INVALID','Es sind ausschließlich PDF-Dateien zulässig.',400);
-  const buffer=strictBase64(file.base64);
+  const limit=maxPdfBytes(),rawBase64=String(file.base64||'').replace(/\s+/g,''),maxBase64Chars=Math.ceil(limit/3)*4;
+  if(rawBase64.length>maxBase64Chars+4)throw err('PDF_TOO_LARGE','Die PDF-Datei ist zu groß. Maximal '+Math.floor(limit/1048576)+' MB sind zulässig.',413);
+  const buffer=strictBase64(rawBase64);
   if(!buffer)throw err('PDF_BASE64_INVALID','Die PDF-Datei konnte nicht gelesen werden.',400);
-  const limit=maxPdfBytes();
   if(buffer.length>limit)throw err('PDF_TOO_LARGE','Die PDF-Datei ist zu groß. Maximal '+Math.floor(limit/1048576)+' MB sind zulässig.',413);
   assertPdfStructure(buffer);
   const hash=crypto.createHash('sha256').update(buffer).digest('hex');
@@ -65,7 +66,7 @@ function validatePdfUpload(file){
 }
 function scopeHash(scope){return crypto.createHash('sha256').update(text(scope)).digest('hex').slice(0,24)}
 function quarantinePrefix(environment,scope){return 'rc1128/'+normalizeEnvironment(environment)+'/'+scopeHash(scope)+'/' }
-function quarantineBlobName(environment,session,sha256){if(!/^[a-f0-9]{64}$/.test(text(sha256)))throw err('UPLOAD_ID_INVALID','Upload-ID ist ungültig.',400);return quarantinePrefix(environment,session)+sha256+'.pdf'}
+function quarantineBlobName(environment,scope,sha256){if(!/^[a-f0-9]{64}$/.test(text(sha256)))throw err('UPLOAD_ID_INVALID','Upload-ID ist ungültig.',400);return quarantinePrefix(environment,scope)+sha256+'.pdf'}
 function finalBlobName(environment,sha256){if(!/^[a-f0-9]{64}$/.test(text(sha256)))throw err('UPLOAD_ID_INVALID','Upload-ID ist ungültig.',400);const env=normalizeEnvironment(environment);return 'rc1059/'+env+'/'+sha256.slice(0,2)+'/'+sha256}
 function encodeNameMetadata(name){return Buffer.from(safeFileName(name),'utf8').toString('base64url').slice(0,512)}
 function decodeNameMetadata(value){try{return safeFileName(Buffer.from(text(value),'base64url').toString('utf8'))}catch(_){return'Kunden-Dokument.pdf'}}
