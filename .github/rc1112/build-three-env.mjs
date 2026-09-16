@@ -54,11 +54,41 @@ function patchNotificationTasks(html,file){
   return html.slice(0,a)+block+html.slice(b);
 }
 
+function patchDeckblattHighVisibility(html,file){
+  let covers=0,refs=0;
+  html=html.replace(/\.rc352-cover\{([^}]*)\}/g,function(full,body){
+    if(body.indexOf('border:8mm solid #08245d!important;')<0)return full;
+    covers++;
+    var next=body
+      .replace('border:8mm solid #08245d!important;','border:10mm solid #08245d!important;border-top-width:18mm!important;outline:2mm solid #2563eb!important;outline-offset:-3mm!important;')
+      .replace('background:linear-gradient(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%)','background:linear-gradient(180deg,#1d4ed8 0,#60a5fa 66mm,#dbeafe 66mm,#eff6ff 100%)')
+      .replace('box-shadow:inset 0 0 0 2mm #1d4ed8','box-shadow:inset 0 0 0 3mm #60a5fa')
+      .replace('padding:8mm','padding:6mm');
+    return '.rc352-cover{'+next
+  });
+  html=html.replace(/\.rc352-cover-ref\{([^}]*)\}/g,function(full,body){
+    if(body.indexOf('background:#08245d')<0)return full;
+    refs++;
+    var next=body
+      .replace('background:#08245d','background:#facc15')
+      .replace('border:3px solid #60a5fa','border:4px solid #111827')
+      .replace('color:#fff!important','color:#111827!important');
+    return '.rc352-cover-ref{'+next
+  });
+  html=html.replace(/(\.rc352-cover-ref span\{[^}]*?)color:#fff/g,'$1color:#111827');
+  html=html.replace(/(\.rc352-cover-ref strong\{)color:#fff!important/g,'$1color:#111827!important');
+  html=html.replace(/}\\n\.rc352-qr-slot\.empty/g,'}\n.rc352-qr-slot.empty');
+  if(!covers)throw new Error(file+': RC1133 Deckblatt-Grundfläche nicht gefunden');
+  if(!refs)throw new Error(file+': RC1133 Deckblatt-Referenzfeld nicht gefunden');
+  return html
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchDemoTestPortalIsolation(html,file);
   html=patchNotificationTasks(html,file);
+  html=patchDeckblattHighVisibility(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1048',cache:'1048',loginReturn:'([^']*)'\}\);/,
@@ -74,6 +104,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1126"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1133-avis-upload-notifications" defer src="/assets/rc1133-avis-upload-notifications.js?v=1133"></script>','exporthub-rc1133-avis-upload-notifications');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
@@ -82,6 +113,9 @@ function patchHtml(file){
   if(!html.includes('assets/rc1126-customer-delete.js?v=1126'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
+  if(!html.includes('assets/rc1133-avis-upload-notifications.js?v=1133'))throw new Error(file+': RC1133 AVIS-Upload-Benachrichtigungen fehlen');
+  if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
+  if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
   if(file==='demo.html'){
     if(!html.includes("namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;"))throw new Error(file+': RC1131 Demo/Testservice-Origin nicht getrennt');
     if(!html.includes('if(window.__EXPORTHUB_DEMO_MODE__===true)return;'))throw new Error(file+': RC1131 Testportal-Runtime ist in Demo noch aktiv');
@@ -101,7 +135,8 @@ for(const rel of [
   'assets/rc1027-lieferavis-immediate.js',
   'assets/rc1037-lieferavis-timing-diagnostics.js',
   'assets/rc1049-abd-avis-policy.js',
-  'assets/rc1126-customer-delete.js'
+  'assets/rc1126-customer-delete.js',
+  'assets/rc1133-avis-upload-notifications.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
@@ -145,7 +180,9 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     loginAbdAssetCache:'1112',
     stowPlanInstructionsAndPersistence:'RC1113',
     shippingProviderNeutralUi:'RC1114',
-    podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry'
+    podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
+    avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
+    deckblattHighVisibility:'RC1133 print-safe 10mm frame + 18mm top band + yellow reference'
   },
   compatibility:{
     qr:'stable-existing-links',
