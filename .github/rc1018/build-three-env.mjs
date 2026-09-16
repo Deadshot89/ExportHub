@@ -117,8 +117,8 @@ function patchCustomerAvisForm(html){
     "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(data){avisFormDirty=false;render(data)})",
     'Submit-Erfolg');
   out=replaceOne(out,
-    "function refresh(){if(!session)return;api('?_='+Date.now()).then(render).catch(function(err){",
-    "function refresh(){if(!session||avisFormDirty||avisFormFocused())return;api('?_='+Date.now()).then(render).catch(function(err){",
+    "function refresh(){if(!session||customerUploadInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){",
+    "function refresh(){if(!session||avisFormDirty||avisFormFocused()||customerUploadInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){",
     'Auto-Refresh');
   return out
 }
