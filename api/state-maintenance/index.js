@@ -83,12 +83,12 @@ async function githubOidcAuthorized(req){
 }
 async function createVerifiedBackup(container,env,current){
  const stamp=now().replace(/[:.]/g,'-'),name=recoveryPrefix(env)+'team-state-before-RC1137-compaction-'+stamp+'.json';
- const raw=JSON.stringify(current),hash=crypto.createHash('sha256').update(raw).digest('hex');
+ const raw=JSON.stringify(current),bytes=Buffer.byteLength(raw),hash=crypto.createHash('sha256').update(raw).digest('hex');
  const blob=container.getBlockBlobClient(name);
- await blob.upload(raw,Buffer.byteLength(raw),{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifNoneMatch:'*'},metadata:{purpose:'rc1137-state-compaction-backup',sha256:hash}});
- const verify=await readBuffer(blob),verifyHash=crypto.createHash('sha256').update(verify.buffer).digest('hex');
- if(verifyHash!==hash||verify.buffer.length!==Buffer.byteLength(raw))throw error('BACKUP_VERIFY_FAILED','Das RC1137-Sicherungsbackup konnte nicht verifiziert werden.',500);
- return{name,bytes:verify.buffer.length,sha256:hash};
+ const uploaded=await blob.upload(raw,bytes,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifNoneMatch:'*'},metadata:{purpose:'rc1137-state-compaction-backup',sha256:hash}});
+ const properties=await blob.getProperties(),storedHash=text(properties&&properties.metadata&&properties.metadata.sha256);
+ if(!uploaded||!uploaded.etag||!properties||!properties.etag||storedHash!==hash)throw error('BACKUP_VERIFY_FAILED','Das RC1137-Sicherungsbackup konnte nicht verifiziert werden.',500);
+ return{name,bytes,sha256:hash};
 }
 
 module.exports=async function(context,req){
