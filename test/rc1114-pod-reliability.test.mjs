@@ -9,6 +9,8 @@ const backup=read('api/pod-backup/index.js');
 const archive=read('api/shared/pod-archive.js');
 const graph=read('api/shared/graph-drive.js');
 const store=read('api/shared/pickup-store.js');
+const maintenance=read('api/state-maintenance/index.js');
+const maintenanceWorkflow=read('.github/workflows/rc1137-state-compaction.yml');
 const pickup=read('pickup.html');
 const apiPackage=JSON.parse(read('api/package.json'));
 const build=read('.github/rc1112/build-three-env.mjs');
@@ -59,6 +61,27 @@ test('RC1114: POD-Sicherungsstatus wird in Team-State und öffentliche Statusant
   assert.match(store,/podBackupStatus:/);
   assert.match(store,/podAzureSaved:/);
   assert.match(store,/podDriveSaved:/);
+});
+
+test('RC1144: fehlgeschlagene POD-Backups werden dauerhaft serverseitig nachgeholt',()=>{
+  assert.match(archive,/async function reconcilePendingBackups\(/);
+  assert.match(archive,/listBlobsFlat\(\{\s*prefix\s*\}\)/);
+  assert.match(archive,/await retryDriveBackup\(/);
+  assert.match(archive,/await store\.updateTeam\(/);
+  assert.match(archive,/reconcilePendingBackups/);
+});
+
+test('RC1144: geschützte Wartung kann offene POD-Backups gezielt erneut anstoßen',()=>{
+  assert.match(maintenance,/reconcile-pod-backups/);
+  assert.match(maintenance,/podArchive\.reconcilePendingBackups\(/);
+  assert.match(maintenance,/workflow_run['"\],\s*'schedule['"\],\s*'workflow_dispatch/);
+});
+
+test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
+  assert.match(maintenanceWorkflow,/schedule:\s*\n\s*- cron:\s*['"]7,22,37,52 \* \* \* \*['"]/);
+  assert.match(maintenanceWorkflow,/POD-Backup-Nachholung TESTSERVICE/);
+  assert.match(maintenanceWorkflow,/POD-Backup-Nachholung PRODUCTION/);
+  assert.match(maintenanceWorkflow,/reconcile-pod-backups/);
 });
 
 test('RC1114: öffentliche Abholseite wartet auf serverseitige Sicherung und zeigt Archivstatus',()=>{
