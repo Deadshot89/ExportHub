@@ -9,6 +9,10 @@ const backup=read('api/pod-backup/index.js');
 const archive=read('api/shared/pod-archive.js');
 const graph=read('api/shared/graph-drive.js');
 const store=read('api/shared/pickup-store.js');
+const reconcileApiPath='api/pod-backup-reconcile/index.js';
+const reconcileApi=fs.existsSync(reconcileApiPath)?read(reconcileApiPath):'';
+const reconcileWorkflowPath='.github/workflows/rc1144-pod-backup-reconcile.yml';
+const reconcileWorkflow=fs.existsSync(reconcileWorkflowPath)?read(reconcileWorkflowPath):'';
 const pickup=read('pickup.html');
 const apiPackage=JSON.parse(read('api/package.json'));
 const build=read('.github/rc1112/build-three-env.mjs');
@@ -37,7 +41,7 @@ test('RC1114: Azure ist primäre POD-Sicherung vor Microsoft 365',()=>{
 });
 
 test('RC1143: POD vorhanden wird erst bei echter herunterladbarer POD-Datei gesetzt',()=>{
-  assert.match(store,/const hasPodFile=realPodFiles\(record\)\.length>0/);
+  assert.match(store,/hasPodFile=realPodFiles\(record\)\.length>0/);
   assert.match(store,/sh\.status=hasPodFile\?'POD vorhanden':'Abgeholt'/);
   assert.match(store,/sh\.podAvailable=hasPodFile/);
   assert.match(store,/sh\.podConfirmed=hasPodFile/);
@@ -59,6 +63,36 @@ test('RC1114: POD-Sicherungsstatus wird in Team-State und öffentliche Statusant
   assert.match(store,/podBackupStatus:/);
   assert.match(store,/podAzureSaved:/);
   assert.match(store,/podDriveSaved:/);
+});
+
+test('RC1144: fehlgeschlagene POD-Backups werden dauerhaft serverseitig nachgeholt',()=>{
+  assert.match(archive,/async function reconcilePendingBackups\(/);
+  assert.match(archive,/listBlobsFlat\(\{\s*prefix\s*\}\)/);
+  assert.match(archive,/await retryDriveBackup\(/);
+  assert.match(archive,/await store\.updateTeam\(/);
+  assert.match(archive,/reconcilePendingBackups/);
+});
+
+test('RC1144: offene POD-Backups werden fair nach ältestem Versuch ausgewählt',()=>{
+  assert.match(archive,/candidates\.sort\(/);
+  assert.match(archive,/candidates\.slice\(0, limit\)/);
+  assert.doesNotMatch(archive,/if \(candidates\.length >= limit\) break/);
+});
+
+test('RC1144: eigener OIDC-geschützter Wartungsendpunkt stößt offene POD-Backups erneut an',()=>{
+  assert.ok(reconcileApi,'POD-Reconcile-API fehlt');
+  assert.match(reconcileApi,/OIDC_AUDIENCE=['"]exporthub-pod-backup-reconcile['"]/);
+  assert.match(reconcileApi,/WORKFLOW\s*=\s*['"]rc1144-pod-backup-reconcile\.yml['"]/);
+  assert.match(reconcileApi,/podArchive\.reconcilePendingBackups\(/);
+  assert.ok(reconcileApi.includes("['workflow_run','schedule','workflow_dispatch']"),'erlaubte Workflow-Ereignisse fehlen');
+});
+
+test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
+  assert.ok(reconcileWorkflow,'POD-Reconcile-Workflow fehlt');
+  assert.match(reconcileWorkflow,/schedule:\s*\n\s*- cron:\s*['"]7,22,37,52 \* \* \* \*['"]/);
+  assert.match(reconcileWorkflow,/POD-Backup-Nachholung TESTSERVICE/);
+  assert.match(reconcileWorkflow,/POD-Backup-Nachholung PRODUCTION/);
+  assert.match(reconcileWorkflow,/pod-backup-reconcile/);
 });
 
 test('RC1114: öffentliche Abholseite wartet auf serverseitige Sicherung und zeigt Archivstatus',()=>{
