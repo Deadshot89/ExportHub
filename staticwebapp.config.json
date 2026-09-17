@@ -4,234 +4,124 @@
     {
       "route": "/",
       "rewrite": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/index.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1071-shipment-history.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1069-performance.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1014-task-runtime.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1065-registration-cc.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1074-login-clean.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1018-mail-language-standard.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
+      "route": "/assets/rc1017-multi-truck.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1113-stowplan-persist.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/assets/rc1114-shipping-neutral.js",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
       "route": "/pickup",
       "rewrite": "/pickup.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/pickup.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/customer-avis",
       "rewrite": "/customer-avis.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/customer-avis.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/location",
       "rewrite": "/location.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/location.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/pod-notfall",
       "rewrite": "/pod-notfall.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/pod-notfall.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store",
-        "Referrer-Policy": "no-referrer",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/migration-recovery",
       "rewrite": "/migration-recovery.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/migration-recovery.html",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "X-Content-Type-Options": "nosniff"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/api/*",
-      "allowedRoles": [
-        "anonymous"
-      ],
-      "headers": {
-        "Cache-Control": "no-store"
-      }
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store"}
     }
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [
-      "/assets/*",
-      "/api/*",
-      "/tools/*",
-      "/pickup",
-      "/pickup.html",
-      "/customer-avis",
-      "/customer-avis.html",
-      "/location",
-      "/location.html",
-      "/pod-notfall",
-      "/pod-notfall.html",
-      "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
-      "/migration-recovery",
-      "/migration-recovery.html"
+      "/assets/*","/api/*","/tools/*","/pickup","/pickup.html","/customer-avis","/customer-avis.html","/location","/location.html","/pod-notfall","/pod-notfall.html","/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}","/migration-recovery","/migration-recovery.html"
     ]
   },
   "globalHeaders": {
@@ -239,8 +129,6 @@
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
   },
-  "platform": {
-    "apiRuntime": "node:20"
-  },
+  "platform": {"apiRuntime": "node:20"},
   "trailingSlash": "never"
 }
