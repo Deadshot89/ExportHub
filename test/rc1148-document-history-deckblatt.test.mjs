@@ -8,8 +8,8 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
 test('RC1148: Dokument-History trennt Öffnen und Drucken und speichert den konkreten Dateinamen',()=>{
   assert.match(history,/type:'document-open'/,'eigener History-Typ für Dokument öffnen fehlt');
-  assert.match(history,/label:doc+' – geöffnet'/,'eindeutiger Öffnen-Eintrag fehlt');
-  assert.match(history,/label:doc+' – gedruckt'/,'eindeutiger Druck-Eintrag fehlt');
+  assert.match(history,/label:doc\+' – geöffnet'/,'eindeutiger Öffnen-Eintrag fehlt');
+  assert.match(history,/label:doc\+' – gedruckt'/,'eindeutiger Druck-Eintrag fehlt');
   assert.match(history,/fileName:file/,'konkreter Dateiname wird nicht gespeichert');
   assert.match(history,/actor:actorFrom\(currentUser\(\)\)/,'aktueller Benutzer muss protokolliert werden');
   assert.match(history,/function documentActionFileName/,'Dateiname muss aus Button, Link oder Sendungsdokument ermittelt werden');
