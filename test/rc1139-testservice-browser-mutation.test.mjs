@@ -30,12 +30,12 @@ test('RC1139: Fixture ist hart auf TESTSERVICE-Daten und E2E-Präfix begrenzt',(
   assert.match(source,/action\s*===?\s*['"]cleanup['"]/,'Cleanup fehlt');
 });
 
-test('RC1139: Prepare erstellt nicht-admin Testbenutzer mit Bearbeitungsrechten und signierter Kurzzeitsitzung',()=>{
+test('RC1145: Prepare erstellt kurzlebigen isolierten TESTSERVICE-Global-Admin für die echte App',()=>{
   const source=fs.readFileSync(API,'utf8');
-  assert.match(source,/globalAdmin\s*:\s*false/,'E2E-Benutzer darf kein Global Admin sein');
-  assert.match(source,/functionAdmin\s*:\s*false/,'E2E-Benutzer darf kein Funktionsadmin sein');
-  assert.match(source,/const edit=allowed\.has\(id\)/,'Bearbeitungsrecht wird nicht aus der erlaubten Modulliste abgeleitet');
-  assert.match(source,/rights\[id\]=\{[^}]*edit[^}]*admin:false[^}]*functionAdmin:false/,'Bearbeitungsrechte dürfen keine Adminrechte verleihen');
+  assert.match(source,/globalAdmin\s*:\s*true/,'TESTSERVICE-App verlangt Global-Admin');
+  assert.match(source,/isGlobalAdmin\s*:\s*true/,'Global-Admin-Markierung fehlt');
+  assert.match(source,/permissions\s*:\s*\[['"]\*['"]\]/,'Global-Admin-Rechte fehlen');
+  assert.match(source,/_e2eRunId\s*:\s*runId/,'E2E-Admin muss run-spezifisch markiert sein');
   assert.match(source,/createSignedSessionToken/,'signierte Sitzung muss vorhandenen Auth-Mechanismus verwenden');
   assert.match(source,/60\s*\*\s*60\s*\*\s*1000|3600000/,'Sitzung muss kurzlebig sein');
   assert.match(source,/ifMatch|etag/,'ETag-Schutz fehlt');
@@ -61,12 +61,14 @@ test('RC1139: Browser-Helfer kann eine echte E2E-Sitzung vor App-Start installie
   assert.match(source,/addInitScript/,'Sitzung muss vor dem App-Code installiert werden');
 });
 
-test('RC1139: mutierender Browser-Test schreibt echten TESTSERVICE-State, lädt neu und prüft Persistenz',()=>{
+test('RC1145: mutierender Browser-Test validiert Sitzung im isolierten TESTSERVICE-State und prüft Persistenz',()=>{
   assert.ok(fs.existsSync(SPEC),SPEC+' fehlt');
   const source=fs.readFileSync(SPEC,'utf8');
   assert.match(source,/EXPORTHUB_E2E_MUTATION/,'Mutation-Gate fehlt');
   assert.match(source,/installE2ESession/,'echte Sitzung wird nicht installiert');
-  assert.match(source,/\/api\/exporthub-auth/,'Session wird nicht gegen Auth-API verifiziert');
+  assert.doesNotMatch(source,/\/api\/exporthub-auth/,'TESTSERVICE-E2E darf nicht gegen produktionsgebundene Auth-Benutzer validiert werden');
+  assert.match(source,/\/api\/exporthub-state\?mode=read&full=1/,'TESTSERVICE-Session-Validierung fehlt');
+  assert.match(source,/X-ExportHUB-Environment['"]?\s*:\s*['"]testservice['"]/,'TESTSERVICE-Umgebungsbindung fehlt');
   assert.match(source,/\/api\/exporthub-state\?mode=save&ack=1/,'echter State-Save fehlt');
   assert.match(source,/_e2eRunId/,'Testsendung ist nicht run-spezifisch markiert');
   assert.match(source,/page\.reload/,'F5/Reload-Nachweis fehlt');
