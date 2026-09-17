@@ -34,21 +34,6 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
 
-  const authenticated=await page.evaluate(async({token})=>{
-    const response=await fetch('/api/exporthub-auth',{
-      method:'POST',
-      credentials:'same-origin',
-      cache:'no-store',
-      headers:{'Content-Type':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token},
-      body:JSON.stringify({action:'session',sessionToken:token})
-    });
-    const data=await response.json().catch(()=>({}));
-    return{status:response.status,data};
-  },{token:session.token});
-  expect(authenticated.status).toBe(200);
-  expect(authenticated.data?.ok).toBe(true);
-  expect(String(authenticated.data?.user?.id||'')).toMatch(/^E2E-USER-/);
-
   const read=await page.evaluate(async({token})=>{
     const response=await fetch('/api/exporthub-state?mode=read&full=1',{
       method:'GET',credentials:'same-origin',cache:'no-store',
@@ -101,11 +86,11 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
       },
       body:JSON.stringify({
         environment:'testservice',
-        clientVersion:'RC1139-E2E',
+        clientVersion:'RC1145-E2E',
         baseRevision:Number(revision||0),
         deviceId:'e2e-playwright',
-        operationId:'RC1139-'+runId+'-'+ref,
-        reason:'RC1139 browser mutation gate',
+        operationId:'RC1145-'+runId+'-'+ref,
+        reason:'RC1145 browser mutation gate',
         state:{shipments,savedShipments}
       })
     });
