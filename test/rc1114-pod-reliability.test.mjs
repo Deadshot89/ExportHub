@@ -36,6 +36,15 @@ test('RC1114: Azure ist primäre POD-Sicherung vor Microsoft 365',()=>{
   }
 });
 
+test('RC1143: POD vorhanden wird erst bei echter herunterladbarer POD-Datei gesetzt',()=>{
+  assert.match(store,/const hasPodFile=realPodFiles\(record\)\.length>0/);
+  assert.match(store,/sh\.status=hasPodFile\?'POD vorhanden':'Abgeholt'/);
+  assert.match(store,/sh\.podAvailable=hasPodFile/);
+  assert.match(store,/sh\.podConfirmed=hasPodFile/);
+  assert.match(store,/sh\.podStatus=hasPodFile\?'POD vorhanden':'POD-Datei wird erstellt'/);
+  assert.match(store,/function rc1017SubHasPod\(sub\)\{return!!\(sub&&Array\.isArray\(sub\.podFiles\)&&sub\.podFiles\.length>0\)\}/);
+});
+
 test('RC1114: Graph-Upload wiederholt temporäre Fehler',()=>{
   assert.match(graph,/for \(let attempt = 1; attempt <= 3; attempt\+\+\)/);
   assert.match(graph,/status === 429/);
