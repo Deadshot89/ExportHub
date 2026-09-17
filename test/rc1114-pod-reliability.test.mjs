@@ -11,7 +11,8 @@ const graph=read('api/shared/graph-drive.js');
 const store=read('api/shared/pickup-store.js');
 const reconcileApiPath='api/pod-backup-reconcile/index.js';
 const reconcileApi=fs.existsSync(reconcileApiPath)?read(reconcileApiPath):'';
-const maintenanceWorkflow=read('.github/workflows/rc1137-state-compaction.yml');
+const reconcileWorkflowPath='.github/workflows/rc1144-pod-backup-reconcile.yml';
+const reconcileWorkflow=fs.existsSync(reconcileWorkflowPath)?read(reconcileWorkflowPath):'';
 const pickup=read('pickup.html');
 const apiPackage=JSON.parse(read('api/package.json'));
 const build=read('.github/rc1112/build-three-env.mjs');
@@ -75,15 +76,17 @@ test('RC1144: fehlgeschlagene POD-Backups werden dauerhaft serverseitig nachgeho
 test('RC1144: eigener OIDC-geschützter Wartungsendpunkt stößt offene POD-Backups erneut an',()=>{
   assert.ok(reconcileApi,'POD-Reconcile-API fehlt');
   assert.match(reconcileApi,/OIDC_AUDIENCE=['"]exporthub-pod-backup-reconcile['"]/);
+  assert.match(reconcileApi,/WORKFLOW\s*=\s*['"]rc1144-pod-backup-reconcile\.yml['"]/);
   assert.match(reconcileApi,/podArchive\.reconcilePendingBackups\(/);
   assert.match(reconcileApi,/workflow_run['"\],\s*'schedule['"\],\s*'workflow_dispatch/);
 });
 
 test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
-  assert.match(maintenanceWorkflow,/schedule:\s*\n\s*- cron:\s*['"]7,22,37,52 \* \* \* \*['"]/);
-  assert.match(maintenanceWorkflow,/POD-Backup-Nachholung TESTSERVICE/);
-  assert.match(maintenanceWorkflow,/POD-Backup-Nachholung PRODUCTION/);
-  assert.match(maintenanceWorkflow,/pod-backup-reconcile/);
+  assert.ok(reconcileWorkflow,'POD-Reconcile-Workflow fehlt');
+  assert.match(reconcileWorkflow,/schedule:\s*\n\s*- cron:\s*['"]7,22,37,52 \* \* \* \*['"]/);
+  assert.match(reconcileWorkflow,/POD-Backup-Nachholung TESTSERVICE/);
+  assert.match(reconcileWorkflow,/POD-Backup-Nachholung PRODUCTION/);
+  assert.match(reconcileWorkflow,/pod-backup-reconcile/);
 });
 
 test('RC1114: öffentliche Abholseite wartet auf serverseitige Sicherung und zeigt Archivstatus',()=>{
