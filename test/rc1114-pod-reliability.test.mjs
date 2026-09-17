@@ -78,7 +78,7 @@ test('RC1144: eigener OIDC-geschützter Wartungsendpunkt stößt offene POD-Back
   assert.match(reconcileApi,/OIDC_AUDIENCE=['"]exporthub-pod-backup-reconcile['"]/);
   assert.match(reconcileApi,/WORKFLOW\s*=\s*['"]rc1144-pod-backup-reconcile\.yml['"]/);
   assert.match(reconcileApi,/podArchive\.reconcilePendingBackups\(/);
-  assert.match(reconcileApi,/workflow_run['"\],\s*'schedule['"\],\s*'workflow_dispatch/);
+  assert.ok(reconcileApi.includes("['workflow_run','schedule','workflow_dispatch']"),'erlaubte Workflow-Ereignisse fehlen');
 });
 
 test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
