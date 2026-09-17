@@ -290,11 +290,85 @@ async function retryDriveBackup(accessKey, environment) {
   const result = await copyToDrive(accessKey, environment, record, existing.buffer, existing.file);
   return { ok: true, record: result.record || record, file: existing.file, backup: (result.record || record).podBackup || {}, driveSaved: result.ok === true, driveError: result.ok ? null : result.error };
 }
+async function reconcilePendingBackups(environment, options) {
+  options = Object.assign({ limit: 10, minAgeMs: 5 * 60 * 1000 }, options || {});
+  environment = store.normalizeEnvironment(environment);
+  const limit = Math.min(25, Math.max(1, Math.round(Number(options.limit) || 10)));
+  const minAgeMs = Math.max(0, Number(options.minAgeMs) || 0);
+  const reference = text(options.reference).toUpperCase();
+  const clients = await store.clients(environment);
+  const prefix = 'rc995/' + environment + '/records/';
+  const candidates = [];
+  let scanned = 0;
+  let skippedRecent = 0;
+
+  for await (const item of clients.records.listBlobsFlat({ prefix })) {
+    scanned += 1;
+    const name = text(item && item.name);
+    const match = name.match(/\/([a-f0-9]{64})\.json$/i);
+    if (!match) continue;
+    let record;
+    try {
+      const read = await store.readJson(clients.records.getBlobClient(name), null);
+      record = read && read.value;
+    } catch (_) {
+      continue;
+    }
+    if (!record) continue;
+    const recordReference = text(record.reference).toUpperCase();
+    if (reference && recordReference !== reference) continue;
+    const complete = (typeof store.pickupComplete === 'function' && store.pickupComplete(record)) || record.status === 'confirmed' || !!record.confirmedAt;
+    if (!complete || !record.confirmedAt || !record.signatureBlobName) continue;
+    const backup = record.podBackup && typeof record.podBackup === 'object' ? record.podBackup : {};
+    if (backup.driveSaved === true) continue;
+    const lastAttemptMs = Date.parse(backup.lastAttemptAt || '');
+    if (!reference && minAgeMs > 0 && Number.isFinite(lastAttemptMs) && Date.now() - lastAttemptMs < minAgeMs) {
+      skippedRecent += 1;
+      continue;
+    }
+    candidates.push({ accessKey: match[1].toLowerCase(), reference: recordReference || text(record.reference) });
+    if (candidates.length >= limit) break;
+  }
+
+  const saved = [];
+  const pending = [];
+  const errors = [];
+  for (const candidate of candidates) {
+    try {
+      const result = await retryDriveBackup(candidate.accessKey, environment);
+      const record = result && result.record || {};
+      try { await store.updateTeam(record, [], ''); } catch (_) {}
+      const backup = record.podBackup || result && result.backup || {};
+      if (backup.driveSaved === true) {
+        saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
+      } else {
+        pending.push({ reference: candidate.reference, error: text(backup.lastError || result && result.driveError && result.driveError.message).slice(0, 300) });
+      }
+    } catch (error) {
+      errors.push({ reference: candidate.reference, code: text(error && error.code), error: text(error && error.message).slice(0, 300) });
+    }
+  }
+
+  return {
+    ok: errors.length === 0,
+    environment,
+    scanned,
+    selected: candidates.length,
+    skippedRecent,
+    savedCount: saved.length,
+    pendingCount: pending.length,
+    errorCount: errors.length,
+    saved,
+    pending,
+    errors
+  };
+}
 
 module.exports = {
   automaticPod,
   fileNameFor,
   createPodPdf,
   ensureAutomaticPod,
-  retryDriveBackup
+  retryDriveBackup,
+  reconcilePendingBackups
 };
