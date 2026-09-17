@@ -6,7 +6,8 @@ import {
   assertNoSourceLeak,
   assertNoHorizontalOverflow,
   attachRuntimeGuards,
-  assertRuntimeClean
+  assertRuntimeClean,
+  installE2ESession
 } from '../helpers/exporthub-browser.mjs';
 
 const coreViews=[
@@ -30,6 +31,10 @@ const wideViews=[
   ['customs',['Zollwissen','Zoll'],/Zoll|ABD|Ausfuhr/i],
   ['exams',['Prüfungen'],/Prüfung|Fragen/i]
 ];
+
+test.beforeEach(async({page})=>{
+  if(process.env.EXPORTHUB_E2E_LIVE==='1')await installE2ESession(page);
+});
 
 async function assertView(page){
   await assertNoSourceLeak(page);
