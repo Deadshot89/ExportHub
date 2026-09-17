@@ -2,10 +2,33 @@
   'use strict';
 
   function clone(value){ return value == null ? value : JSON.parse(JSON.stringify(value)); }
-  function number(value){ const n=Number(value); return Number.isFinite(n)?n:0; }
+  function number(value){ const n=Number(String(value==null?'':value).replace(',','.')); return Number.isFinite(n)?n:0; }
   function positiveInt(value){ const n=Math.round(number(value)); return n>0?n:0; }
   function text(value){ return String(value==null?'':value).trim(); }
+  function low(value){ return text(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
   function round6(value){ return Math.round((number(value)+Number.EPSILON)*1000000)/1000000; }
+  function rowType(row){ return text(row&&(row.type||row.packaging||row.verpackung||row.name)); }
+  function stackFactor(row){ const name=low(rowType(row)); return /gestapelt|stacked/.test(name)&&/palette|paletten|pallet/.test(name)?2:1; }
+  function dimensions(row){
+    let l=number(row&&(row.l||row.length||row.lengthCm)),w=number(row&&(row.w||row.width||row.widthCm));
+    if(l>0&&w>0) return {l,w};
+    const name=low(rowType(row)),match=name.match(/^e([0-6])$/);
+    let dims=null;
+    if(match){ const e={0:[30,20],1:[39,20],2:[46,33],3:[43,31],4:[66,45],5:[66,45],6:[25,15]}; dims=e[match[1]]; }
+    else if(/umschlag|envelope/.test(name)) dims=[15,5];
+    else if(/dusseldorfer.*palette|dusseldorf.*pallet/.test(name)) dims=[80,60];
+    else if(/plastic.*palette|plastic.*pallet|kunststoff.*palette/.test(name)) dims=[122,116];
+    else if(/industrie.*palette|industrial.*pallet/.test(name)) dims=[120,100];
+    else if(/paletten\s*gestell|palettengestell|pallet\s*rack/.test(name)) dims=[120,90];
+    else if(/euro.*palette|euro.*pallet|einweg.*palette|one.?way.*pallet/.test(name)) dims=[120,80];
+    return dims?{l:dims[0],w:dims[1]}:null;
+  }
+  function actualEffectiveLdm(row,countOverride){
+    const count=positiveInt(countOverride==null?row&&row.count:countOverride),dim=dimensions(row);
+    if(!count||!dim) return null;
+    const floorUnits=Math.ceil(count/stackFactor(row));
+    return round6((floorUnits*dim.l*dim.w/24000)/count);
+  }
 
   function error(code,message){
     const e=new Error(code+(message?': '+message:''));
@@ -17,12 +40,15 @@
     return (Array.isArray(rows)?rows:[]).map(function(row,index){
       const src=row&&typeof row==='object'?row:{};
       const count=positiveInt(src.count||src.qty||src.quantity||src.anzahl||src.menge||src.colliCount);
-      return Object.assign({},clone(src),{
+      const next=Object.assign({},clone(src),{
         id:text(src.id||src.rowId||src._syncId)||('row-'+(index+1)),
         count:count,
         weight:round6(src.weight||src.gewicht||0),
         ldm:round6(src.ldm||src.loadingMeters||0)
       });
+      const actual=actualEffectiveLdm(next,count);
+      if(actual!==null) next.ldm=actual;
+      return next;
     }).filter(function(row){ return row.count>0; });
   }
 
@@ -68,7 +94,11 @@
       row.weight=round6(row.weight+number(unit.weight));
       row.unitIds.push(unit.unitId);
     });
-    return order.map(function(key){ return grouped.get(key); });
+    return order.map(function(key){
+      const row=grouped.get(key),actual=actualEffectiveLdm(row,row.count);
+      if(actual!==null) row.ldm=actual;
+      return row;
+    });
   }
 
   function fits(fitRows,units){
@@ -200,6 +230,7 @@
     planSubShipments:planSubShipments,
     normalizeRows:normalizeRows,
     validatePartition:validatePartition,
-    aggregateSubShipmentStatus:aggregateSubShipmentStatus
+    aggregateSubShipmentStatus:aggregateSubShipmentStatus,
+    actualEffectiveLdm:actualEffectiveLdm
   };
 })(typeof globalThis!=='undefined'?globalThis:this);
