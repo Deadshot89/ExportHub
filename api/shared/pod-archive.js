@@ -326,14 +326,20 @@ async function reconcilePendingBackups(environment, options) {
       skippedRecent += 1;
       continue;
     }
-    candidates.push({ accessKey: match[1].toLowerCase(), reference: recordReference || text(record.reference) });
-    if (candidates.length >= limit) break;
+    candidates.push({
+      accessKey: match[1].toLowerCase(),
+      reference: recordReference || text(record.reference),
+      lastAttemptMs: Number.isFinite(lastAttemptMs) ? lastAttemptMs : 0,
+      confirmedAtMs: Date.parse(record.confirmedAt || '') || 0
+    });
   }
 
+  candidates.sort((a, b) => a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
+  const selectedCandidates = candidates.slice(0, limit);
   const saved = [];
   const pending = [];
   const errors = [];
-  for (const candidate of candidates) {
+  for (const candidate of selectedCandidates) {
     try {
       const result = await retryDriveBackup(candidate.accessKey, environment);
       const record = result && result.record || {};
@@ -353,7 +359,8 @@ async function reconcilePendingBackups(environment, options) {
     ok: errors.length === 0,
     environment,
     scanned,
-    selected: candidates.length,
+    eligible: candidates.length,
+    selected: selectedCandidates.length,
     skippedRecent,
     savedCount: saved.length,
     pendingCount: pending.length,
