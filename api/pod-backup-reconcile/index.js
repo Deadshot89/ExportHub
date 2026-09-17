@@ -6,7 +6,7 @@ const podArchive = require('../shared/pod-archive');
 const store = require('../shared/pickup-store');
 
 const REPO = 'Deadshot89/ExportHub';
-const WORKFLOW = 'rc1137-state-compaction.yml';
+const WORKFLOW = 'rc1144-pod-backup-reconcile.yml';
 const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE='exporthub-pod-backup-reconcile';
