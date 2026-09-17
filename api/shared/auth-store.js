@@ -6,6 +6,7 @@ const { applyUserPolicy, isAdmin, normalizeRights, publicUser } = require('./use
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
+const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/' + String(TEAM_BLOB).replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 const MAX_RETRIES = 6;
 const PBKDF2_ITERATIONS = Math.max(120000, Number(process.env.EXPORTHUB_PBKDF2_ITERATIONS || 210000));
@@ -52,6 +53,16 @@ async function clients() {
   const container = service.getContainerClient(TEAM_CONTAINER);
   return {
     team: container.getBlockBlobClient(TEAM_BLOB),
+    auth: container.getBlockBlobClient(AUTH_BLOB)
+  };
+}
+async function testserviceClients() {
+  const cs = connectionString();
+  if (!cs) throw error('STORAGE_NOT_CONFIGURED', 'Azure-Speicher ist nicht konfiguriert.', 503);
+  const service = BlobServiceClient.fromConnectionString(cs);
+  const container = service.getContainerClient(TEAM_CONTAINER);
+  return {
+    team: container.getBlockBlobClient(TEST_TEAM_BLOB),
     auth: container.getBlockBlobClient(AUTH_BLOB)
   };
 }
@@ -252,6 +263,7 @@ function createSignedSessionToken(session) {
     sid: text(session && session.id),
     uid: text(session && session.userId),
     username: text(session && session.username),
+    environment: lower(session && session.environment) === 'testservice' ? 'testservice' : '',
     authVersion: Number(session && session.authVersion || 0),
     mustChange: Boolean(session && session.mustChange),
     deviceId: text(session && session.deviceId).slice(0, 120),
@@ -294,7 +306,8 @@ function resolveSession(token, authDocument) {
       expiresAt: new Date(Number(signed.exp)).toISOString(),
       authVersion: Number(signed.authVersion || 0),
       mustChange: signed.mustChange === true,
-      signedFallback: true
+      signedFallback: true,
+      environment: lower(signed.environment) === 'testservice' ? 'testservice' : ''
     }
   };
 }
@@ -350,7 +363,14 @@ async function createSession(user, deviceId, mustChange) {
 async function validateSession(req, options = {}) {
   const token = bearer(req);
   if (!token) throw error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
-  const c = await clients();
+  const signed = verifySignedSessionToken(token);
+  const testserviceE2E = Boolean(
+    signed &&
+    lower(signed.environment) === 'testservice' &&
+    /^E2E-USER-/.test(text(signed.uid)) &&
+    /^e2e\./.test(lower(signed.username))
+  );
+  const c = testserviceE2E ? await testserviceClients() : await clients();
   const authDoc = await readJson(c.auth, emptyAuth());
   const resolved = resolveSession(token, authDoc.value || emptyAuth());
   const session = resolved.session;
@@ -393,8 +413,8 @@ async function revokeUserSessions(userId, reason, exceptSessionId) {
 }
 
 module.exports = {
-  TEAM_CONTAINER, TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
-  clone, text, lower, now, json, error, body, clients, parseStoredJson, readJson, writeJson,
+  TEAM_CONTAINER, TEAM_BLOB, TEST_TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
+  clone, text, lower, now, json, error, body, clients, testserviceClients, parseStoredJson, readJson, writeJson,
   emptyTeam, emptyAuth, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
   sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,

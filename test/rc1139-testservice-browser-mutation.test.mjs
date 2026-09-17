@@ -7,6 +7,7 @@ const FN='api/e2e-test-fixture/function.json';
 const SPEC='e2e/specs/testservice-mutation.spec.mjs';
 const HELPER='e2e/helpers/exporthub-browser.mjs';
 const WF='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const AUTH='api/shared/auth-store.js';
 
 test('RC1139: sicherer E2E-Fixture-Endpunkt ist vorhanden und nur GitHub OIDC darf ihn aufrufen',()=>{
   for(const file of [API,FN])assert.ok(fs.existsSync(file),file+' fehlt');
@@ -39,6 +40,15 @@ test('RC1145: Prepare erstellt kurzlebigen isolierten TESTSERVICE-Global-Admin f
   assert.match(source,/createSignedSessionToken/,'signierte Sitzung muss vorhandenen Auth-Mechanismus verwenden');
   assert.match(source,/60\s*\*\s*60\s*\*\s*1000|3600000/,'Sitzung muss kurzlebig sein');
   assert.match(source,/ifMatch|etag/,'ETag-Schutz fehlt');
+});
+
+test('RC1145: signierte E2E-Sitzung trägt TESTSERVICE-Umgebung und Auth liest dafür ausschließlich den TESTSERVICE-Benutzerbestand',()=>{
+  const fixture=fs.readFileSync(API,'utf8');
+  const auth=fs.readFileSync(AUTH,'utf8');
+  assert.match(fixture,/environment\s*:\s*['"]testservice['"]/,'E2E-Sitzung muss als TESTSERVICE signiert werden');
+  assert.match(auth,/TEST_TEAM_BLOB/,'Auth-Store kennt keinen isolierten TESTSERVICE-Benutzerbestand');
+  assert.match(auth,/signedFallback[\s\S]{0,260}testservice/i,'TESTSERVICE-Umschaltung darf nur für signierte Fallback-Sitzungen gelten');
+  assert.match(auth,/getBlockBlobClient\([^)]*TEST_TEAM_BLOB/,'signierte TESTSERVICE-Sitzung muss den TESTSERVICE-Team-Blob lesen');
 });
 
 test('RC1139: Cleanup entfernt ausschließlich markierte Datensätze des eigenen E2E-Runs aus State-Arrays',()=>{
