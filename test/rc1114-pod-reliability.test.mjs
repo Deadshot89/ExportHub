@@ -9,7 +9,8 @@ const backup=read('api/pod-backup/index.js');
 const archive=read('api/shared/pod-archive.js');
 const graph=read('api/shared/graph-drive.js');
 const store=read('api/shared/pickup-store.js');
-const maintenance=read('api/state-maintenance/index.js');
+const reconcileApiPath='api/pod-backup-reconcile/index.js';
+const reconcileApi=fs.existsSync(reconcileApiPath)?read(reconcileApiPath):'';
 const maintenanceWorkflow=read('.github/workflows/rc1137-state-compaction.yml');
 const pickup=read('pickup.html');
 const apiPackage=JSON.parse(read('api/package.json'));
@@ -71,17 +72,18 @@ test('RC1144: fehlgeschlagene POD-Backups werden dauerhaft serverseitig nachgeho
   assert.match(archive,/reconcilePendingBackups/);
 });
 
-test('RC1144: geschützte Wartung kann offene POD-Backups gezielt erneut anstoßen',()=>{
-  assert.match(maintenance,/reconcile-pod-backups/);
-  assert.match(maintenance,/podArchive\.reconcilePendingBackups\(/);
-  assert.match(maintenance,/workflow_run['"\],\s*'schedule['"\],\s*'workflow_dispatch/);
+test('RC1144: eigener OIDC-geschützter Wartungsendpunkt stößt offene POD-Backups erneut an',()=>{
+  assert.ok(reconcileApi,'POD-Reconcile-API fehlt');
+  assert.match(reconcileApi,/OIDC_AUDIENCE=['"]exporthub-pod-backup-reconcile['"]/);
+  assert.match(reconcileApi,/podArchive\.reconcilePendingBackups\(/);
+  assert.match(reconcileApi,/workflow_run['"\],\s*'schedule['"\],\s*'workflow_dispatch/);
 });
 
 test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
   assert.match(maintenanceWorkflow,/schedule:\s*\n\s*- cron:\s*['"]7,22,37,52 \* \* \* \*['"]/);
   assert.match(maintenanceWorkflow,/POD-Backup-Nachholung TESTSERVICE/);
   assert.match(maintenanceWorkflow,/POD-Backup-Nachholung PRODUCTION/);
-  assert.match(maintenanceWorkflow,/reconcile-pod-backups/);
+  assert.match(maintenanceWorkflow,/pod-backup-reconcile/);
 });
 
 test('RC1114: öffentliche Abholseite wartet auf serverseitige Sicherung und zeigt Archivstatus',()=>{
