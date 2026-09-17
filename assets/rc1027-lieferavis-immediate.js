@@ -199,6 +199,18 @@ function localizedUrl(url,lang){
  url=q(url);if(!url)return'';
  try{var u=new URL(url,typeof location!=='undefined'?location.href:'https://exporthub.invalid/');u.searchParams.set('lang',lang==='en'?'en':'de');return u.toString()}catch(_){return url+(url.indexOf('?')>=0?'&':'?')+'lang='+(lang==='en'?'en':'de')}
 }
+function stripOwnAvisLink(text){
+ text=String(text==null?'':text).replace(/\r\n/g,'\n');
+ text=text.replace(/(?:^|\n)(?:Lieferavis|Collection notice):[ \t]*(?:\n[ \t]*)?https?:\/\/[^\s]+(?=\n|$)/gi,'');
+ return text.replace(/\n{3,}/g,'\n\n').trim()
+}
+function ownAvisMail(body,url,lang){
+ var source=stripOwnAvisLink(body),u=localizedUrl(url,lang),label=lang==='en'?'Collection notice':'Lieferavis',line=label+': '+u;
+ if(!u)return source;
+ var closingRx=lang==='en'?/(?:Kind regards|Best regards|Yours sincerely|Yours faithfully)[\s\S]*$/i:/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße)[\s\S]*$/i,match=source.match(closingRx);
+ if(match&&typeof match.index==='number'){var before=source.slice(0,match.index).trim(),closing=source.slice(match.index).trim();return[before,line,closing].filter(Boolean).join('\n\n')}
+ return[source,line].filter(Boolean).join('\n\n')
+}
 function avisBlock(url,reference,lang,target){
  var en=lang==='en',carrier=target==='carrier',u=localizedUrl(url,lang),ref=q(reference);
  if(en&&carrier)return 'COLLECTION NOTICE – PICKUP\n\nA digital collection notice is available for the planned pickup of this shipment.\n\nPlease use the link below to submit the pickup details. The released shipment documents are also available there.\n\nCollection notice:\n'+u+'\nReference: '+ref+'\n\nRequired information:\n• Pickup date\n• Time window\n• Vehicle licence plate, if known\n\nNo additional confirmation of the pickup details by email is required.';
@@ -213,18 +225,19 @@ function standaloneAvis(sh,target,lang,url){
 }
 function injectMailBody(sh,target,body,langOverride){
  var type=q(target).toLowerCase()||'customer',source=String(body==null?'':body),lang=q(langOverride).toLowerCase()==='en'?'en':'de';
- if(type==='own'||(type!=='customer'&&type!=='carrier'))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
+ if(type!=='customer'&&type!=='carrier'&&type!=='own')return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  if(exception(sh)||manualDisabled(sh))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  var url=avisUrl(sh);if(!url)return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
+ if(type==='own')return ownAvisMail(source,url,lang);
  return standaloneAvis(sh,type,lang,url)
 }
 function syncVisibleMail(){
  if(visibleSyncing||typeof document==='undefined')return false;
  var area=document.getElementById('rc543MailArea');if(!area||!area.querySelector)return false;
  var body=area.querySelector('textarea'),active=area.querySelector('[data-rc543-target].active'),type=q(active&&active.getAttribute('data-rc543-target'))||'customer';
- if(!body||type==='own'||(type!=='customer'&&type!=='carrier'))return false;
+ if(!body||(type!=='customer'&&type!=='carrier'&&type!=='own'))return false;
  var sh=shipment(),url=avisUrl(sh);if(!sh||exception(sh)||manualDisabled(sh)||closed(sh)||!customerName(sh)||!url)return false;
- var lang=q((document.getElementById('rc543MailLang')||{}).value).toLowerCase()==='en'?'en':'de',next=standaloneAvis(sh,type,lang,url);
+ var lang=q((document.getElementById('rc543MailLang')||{}).value).toLowerCase()==='en'?'en':'de',next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,url);
  if(String(body.value==null?'':body.value)===next)return false;
  visibleSyncing=true;try{body.value=next;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}
  return true
@@ -255,12 +268,13 @@ function isShipmentDraftField(el){
 if(typeof document!=='undefined'){
  if(document.readyState!=='complete')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
  document.addEventListener('input',function(e){if(isShipmentDraftField(e&&e.target))scheduleDraftRefresh('draft-input',260)},true);
- document.addEventListener('change',function(e){if(isCustomerField(e&&e.target)||isLocationField(e&&e.target)||isShipmentDraftField(e&&e.target))scheduleDraftRefresh('draft-change',120)},true)
+ document.addEventListener('change',function(e){if(isCustomerField(e&&e.target)||isLocationField(e&&e.target)||isShipmentDraftField(e&&e.target))scheduleDraftRefresh('draft-change',120)},true);
+ document.addEventListener('click',function(e){var el=e&&e.target,mailTarget=el&&el.closest&&el.closest('[data-rc543-target]');if(mailTarget)setTimeout(syncVisibleMail,0)},true)
 }
 if(window&&typeof window.addEventListener==='function'){
  ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-customer-changed','exporthub:customer-changed'].forEach(function(name){window.addEventListener(name,function(){install();return scheduleDraftRefresh(name,100)})});
  window.addEventListener('exporthub:customer-avis-updated',function(){install();if(typeof requestAnimationFrame==='function')requestAnimationFrame(syncVisibleMail);else setTimeout(syncVisibleMail,0)})
 }
-var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},syncVisibleMail:syncVisibleMail});
+var api=Object.freeze({version:'RC1069',ensureCustomerAvis:ensureCustomerAvis,issueDraftAvis:issueDraftAvis,syncDraftAvis:syncDraftAvis,scheduleDraftRefresh:scheduleDraftRefresh,disableDraftAvis:disableDraftAvis,toggle:coordinatedToggle,composeAvis:function(opt){opt=opt||{};return standaloneAvis(opt.shipment||shipment()||{reference:q(opt.reference)},q(opt.target).toLowerCase()||'customer',q(opt.lang).toLowerCase()==='en'?'en':'de',q(opt.url))},composeOwnAvis:function(opt){opt=opt||{};return ownAvisMail(String(opt.body==null?'':opt.body),q(opt.url),q(opt.lang).toLowerCase()==='en'?'en':'de')},syncVisibleMail:syncVisibleMail});
 window.ExportHUBRC1027Lieferavis=api;
 })();
