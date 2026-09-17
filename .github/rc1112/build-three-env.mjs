@@ -64,7 +64,7 @@ function patchDeckblattHighVisibility(html,file){
       .replace('background:linear-gradient(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%)','background:linear-gradient(180deg,#1d4ed8 0,#60a5fa 66mm,#dbeafe 66mm,#eff6ff 100%)')
       .replace('box-shadow:inset 0 0 0 2mm #1d4ed8','box-shadow:inset 0 0 0 3mm #60a5fa')
       .replace('padding:8mm','padding:6mm');
-    return '.rc352-cover{'+next
+    return '.rc352-cover{'+next+'}'
   });
   html=html.replace(/\.rc352-cover-ref\{([^}]*)\}/g,function(full,body){
     if(body.indexOf('background:#08245d')<0)return full;
@@ -73,7 +73,7 @@ function patchDeckblattHighVisibility(html,file){
       .replace('background:#08245d','background:#facc15')
       .replace('border:3px solid #60a5fa','border:4px solid #111827')
       .replace('color:#fff!important','color:#111827!important');
-    return '.rc352-cover-ref{'+next
+    return '.rc352-cover-ref{'+next+'}'
   });
   html=html.replace(/(\.rc352-cover-ref span\{[^}]*?)color:#fff/g,'$1color:#111827');
   html=html.replace(/(\.rc352-cover-ref strong\{)color:#fff!important/g,'$1color:#111827!important');
@@ -101,6 +101,8 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=1074/g,'assets/rc1074-login-clean.js?v=1112');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=1087/g,'assets/rc1081-audit-history.js?v=1126');
+  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=1095/g,'assets/rc1071-shipment-history.js?v=1148');
+  html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1126"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
@@ -110,11 +112,14 @@ function patchHtml(file){
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1126'))throw new Error(file+': RC1126 Historie Cache-Key fehlt');
+  if(!html.includes('assets/rc1071-shipment-history.js?v=1148'))throw new Error(file+': RC1148 History Cache-Key fehlt');
+  if(!html.includes('assets/rc1071-shipment-history.js?v=1095'))throw new Error(file+': RC1148 History-Kompatibilitätsmarker fehlt');
   if(!html.includes('assets/rc1126-customer-delete.js?v=1126'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
   if(!html.includes('assets/rc1133-avis-upload-notifications.js?v=1133'))throw new Error(file+': RC1133 AVIS-Upload-Benachrichtigungen fehlen');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
+  if(!/\.rc352-cover-ref\{[^}]*background:#facc15[^}]*\}/.test(html))throw new Error(file+': RC1148 Deckblatt-Referenzfeld ist keine gültige CSS-Regel');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
   if(file==='demo.html'){
     if(!html.includes("namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;"))throw new Error(file+': RC1131 Demo/Testservice-Origin nicht getrennt');
@@ -182,7 +187,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     shippingProviderNeutralUi:'RC1114',
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
-    deckblattHighVisibility:'RC1133 print-safe 10mm frame + 18mm top band + yellow reference'
+    documentActionHistory:'RC1148 open/print + user + filename',
+    deckblattHighVisibility:'RC1148 valid print-safe 10mm frame + 18mm top band + yellow reference'
   },
   compatibility:{
     qr:'stable-existing-links',
