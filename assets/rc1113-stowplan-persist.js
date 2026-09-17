@@ -3,7 +3,7 @@
 if(window.__EXPORTHUB_RC1113_STOWPLAN_PERSIST__)return;
 window.__EXPORTHUB_RC1113_STOWPLAN_PERSIST__=true;
 
-var VERSION='RC1149',saveTimer=0,lastRenderedSignature='';
+var VERSION='RC1113',saveTimer=0,lastRenderedSignature='';
 
 function q(v){return String(v==null?'':v).trim()}
 function num(v){var n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
@@ -155,7 +155,7 @@ function persist(plan){
  if(saved&&saved!==sh&&!locked(saved))saved.stowPlanSnapshot=next;
  clearTimeout(saveTimer);
  saveTimer=setTimeout(function(){
-  try{if(typeof window.scheduleEditSave==='function')window.scheduleEditSave('Stauplan / tatsächliche LDM automatisch aktualisiert',0)}catch(_){}
+  try{if(typeof window.scheduleEditSave==='function')window.scheduleEditSave('Stauplan automatisch erstellt und gespeichert',0)}catch(_){}
  },180);
  try{window.dispatchEvent(new CustomEvent('exporthub:stowplan-snapshot-updated',{detail:{signature:next.signature,version:VERSION,actualLdm:sh.actualLdm}}))}catch(_){}
  return true
