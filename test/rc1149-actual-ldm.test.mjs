@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
 
 function loadRuntime(){
   const code=fs.readFileSync('assets/rc1113-stowplan-persist.js','utf8');
@@ -68,4 +69,22 @@ test('RC1149: Synchronisierung schreibt tatsächliche LDM in Sendung und Zeilen'
   assert.equal(rounded(shipment.totalLdm),0.80);
   assert.equal(rounded(shipment.rows[0].ldm),0.27);
   assert.equal(shipment.actualLdmComplete,true);
+});
+
+test('RC1149: Produktion liefert die geänderten LDM-Runtimes cachefrei aus',()=>{
+  const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+  for(const routeName of ['/assets/rc1017-multi-truck.js','/assets/rc1113-stowplan-persist.js']){
+    const route=(config.routes||[]).find(x=>x.route===routeName);
+    assert.ok(route,routeName+' No-Cache-Route fehlt');
+    assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/);
+  }
+});
+
+test('RC1149: finaler Drei-Umgebungen-Build enthält die tatsächliche LDM-Logik',()=>{
+  execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'ignore'});
+  const multi=fs.readFileSync('dist-rc1112/assets/rc1017-multi-truck.js','utf8');
+  const stow=fs.readFileSync('dist-rc1112/assets/rc1113-stowplan-persist.js','utf8');
+  assert.match(multi,/actualEffectiveLdm/);
+  assert.match(stow,/actualLdmSummary/);
+  assert.match(stow,/Tatsächliche LDM/);
 });
