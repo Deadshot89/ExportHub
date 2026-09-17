@@ -73,6 +73,12 @@ test('RC1144: fehlgeschlagene POD-Backups werden dauerhaft serverseitig nachgeho
   assert.match(archive,/reconcilePendingBackups/);
 });
 
+test('RC1144: offene POD-Backups werden fair nach ältestem Versuch ausgewählt',()=>{
+  assert.match(archive,/candidates\.sort\(/);
+  assert.match(archive,/candidates\.slice\(0, limit\)/);
+  assert.doesNotMatch(archive,/if \(candidates\.length >= limit\) break/);
+});
+
 test('RC1144: eigener OIDC-geschützter Wartungsendpunkt stößt offene POD-Backups erneut an',()=>{
   assert.ok(reconcileApi,'POD-Reconcile-API fehlt');
   assert.match(reconcileApi,/OIDC_AUDIENCE=['"]exporthub-pod-backup-reconcile['"]/);
