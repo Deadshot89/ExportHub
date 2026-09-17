@@ -208,7 +208,6 @@ export async function assertRuntimeClean(state,testInfo){
   expect(payload.httpErrors,'HTTP-5xx bei Kern-Requests').toEqual([]);
 }
 
-
 export async function installE2ESession(page){
   const token=String(process.env.EXPORTHUB_E2E_SESSION_TOKEN||'').trim();
   const userB64=String(process.env.EXPORTHUB_E2E_USER_B64||'').trim();
@@ -217,6 +216,21 @@ export async function installE2ESession(page){
   let user;
   try{user=JSON.parse(Buffer.from(userB64,'base64').toString('utf8'))}
   catch(_){throw new Error('RC1139 E2E-Benutzer konnte nicht dekodiert werden.')}
+  if(process.env.EXPORTHUB_E2E_LIVE==='1'){
+    const base=String(process.env.EXPORTHUB_E2E_BASE_URL||'').trim();
+    let target;
+    try{target=new URL(base)}catch(_){throw new Error('RC1146 Live-E2E-Basis-URL ist ungültig.')}
+    if(target.protocol!=='https:')throw new Error('RC1146 Live-E2E-Cookie darf nur über HTTPS gesetzt werden.');
+    await page.context().addCookies([{
+      name:'eh_session',
+      value:token,
+      domain:target.hostname,
+      path:'/api',
+      httpOnly:true,
+      secure:true,
+      sameSite:'Strict'
+    }]);
+  }
   await page.addInitScript(({token,user,runId})=>{
     try{
       sessionStorage.setItem('exporthub_rc301_tab_session',JSON.stringify({

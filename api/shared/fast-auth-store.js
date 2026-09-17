@@ -38,11 +38,22 @@ function supportsFastPath(){
     typeof auth.isActive === 'function';
 }
 function isSource(candidate){ return candidate === auth; }
+function isSignedTestserviceE2E(token){
+  if (typeof auth.verifySignedSessionToken !== 'function') return false;
+  const signed = auth.verifySignedSessionToken(token);
+  return Boolean(
+    signed &&
+    auth.lower(signed.environment) === 'testservice' &&
+    /^E2E-USER-/.test(auth.text(signed.uid)) &&
+    /^e2e\./.test(auth.lower(signed.username))
+  );
+}
 
 async function validateSession(req, options = {}){
   if (!supportsFastPath()) return auth.validateSession(req, options);
   const token = auth.bearer(req);
   if (!token) throw auth.error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
+  if (isSignedTestserviceE2E(token)) return auth.validateSession(req, options);
   const c = await clients();
   const { authDoc, teamDoc } = await readSessionDocuments(c);
   const resolved = auth.resolveSession(token, authDoc.value || auth.emptyAuth());
