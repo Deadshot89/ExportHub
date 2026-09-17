@@ -81,19 +81,23 @@ test('RC1105: kompletter Sendungsablauf erscheint mit Benutzer, Zeit und konkret
     'ABD-E-Mail-Versand bestätigt',
     'Versandanmeldung per E-Mail gestartet',
     'Versandanmeldung versendet',
-    'Gesamtdruck – Druck/PDF gestartet',
+    'Gesamtdruck – gedruckt',
     'Lieferavis erstellt/aktiviert',
     'POD zum Upload ausgewählt',
     'Abholung bestätigt',
     'Sendung abgeschlossen'
   ]) assert.ok(labels.includes(expected),expected+' fehlt');
 
-  const userEvents=events.filter(e=>['ABD-E-Mail-Versand bestätigt','Versandanmeldung versendet','Gesamtdruck – Druck/PDF gestartet'].includes(e.label));
+  const userEvents=events.filter(e=>['ABD-E-Mail-Versand bestätigt','Versandanmeldung versendet','Gesamtdruck – gedruckt'].includes(e.label));
   assert.ok(userEvents.length>=3);
   for(const event of userEvents){
     assert.equal(event.actor.name,'Tobias');
     assert.ok(event.at);
   }
+
+  const print=events.find(e=>e.label==='Gesamtdruck – gedruckt');
+  assert.equal(print.details.document,'Gesamtdruck');
+  assert.equal(print.details.fileName,'Gesamtdruck_RC1105.pdf');
 
   const pickup=events.find(e=>e.label==='Abholung bestätigt');
   assert.equal(pickup.actor.name,'Max Verlader');
