@@ -118,10 +118,15 @@ test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält kein
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
 });
 
-test('RC1027: eigene Mail bleibt vollständig unverändert',()=>{
+test('RC1147: eigene Mail behält ihren Freitext und erhält genau einen kompakten Lieferavis-Link',()=>{
   const shipment={reference:'7RZ5W9',customerName:'Heizmann AG Hydraulik',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
   const {api}=load(shipment,{reference:'7RZ5W9'});
-  assert.equal(api.injectMailBody(shipment,'own',expandedDetails,'de'),expandedDetails);
+  const out=api.injectMailBody(shipment,'own',expandedDetails,'de');
+  assert.match(out,/für den unten genannten Vorgang steht die Ware/i);
+  assert.match(out,/Details zur Sendung:/i);
+  assert.match(out,/Lieferavis: https:\/\/example\.test\/customer-avis\.html\?token=abc&lang=de/i);
+  assert.equal((out.match(/Lieferavis:/gi)||[]).length,1,'Eigene Mail darf den Avis-Link nicht doppelt enthalten.');
+  assert.ok(out.indexOf('Lieferavis:')<out.indexOf('Mit freundlichen Grüßen'),'Avis-Link muss vor der Grußformel stehen.');
 });
 
 test('RC1069: der Sendungsentwurf erhält Referenz und Avis-Link sofort ohne normalen Speicherschritt',async()=>{
