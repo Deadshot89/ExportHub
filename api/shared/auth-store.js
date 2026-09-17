@@ -46,13 +46,23 @@ function body(req) {
 function connectionString() {
   return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || '';
 }
-async function clients(options = {}) {
+async function clients() {
   const cs = connectionString();
   if (!cs) throw error('STORAGE_NOT_CONFIGURED', 'Azure-Speicher ist nicht konfiguriert.', 503);
   const service = BlobServiceClient.fromConnectionString(cs);
   const container = service.getContainerClient(TEAM_CONTAINER);
   return {
-    team: container.getBlockBlobClient(options.testserviceE2E === true ? TEST_TEAM_BLOB : TEAM_BLOB),
+    team: container.getBlockBlobClient(TEAM_BLOB),
+    auth: container.getBlockBlobClient(AUTH_BLOB)
+  };
+}
+async function testserviceClients() {
+  const cs = connectionString();
+  if (!cs) throw error('STORAGE_NOT_CONFIGURED', 'Azure-Speicher ist nicht konfiguriert.', 503);
+  const service = BlobServiceClient.fromConnectionString(cs);
+  const container = service.getContainerClient(TEAM_CONTAINER);
+  return {
+    team: container.getBlockBlobClient(TEST_TEAM_BLOB),
     auth: container.getBlockBlobClient(AUTH_BLOB)
   };
 }
@@ -360,7 +370,7 @@ async function validateSession(req, options = {}) {
     /^E2E-USER-/.test(text(signed.uid)) &&
     /^e2e\./.test(lower(signed.username))
   );
-  const c = await clients({ testserviceE2E });
+  const c = testserviceE2E ? await testserviceClients() : await clients();
   const authDoc = await readJson(c.auth, emptyAuth());
   const resolved = resolveSession(token, authDoc.value || emptyAuth());
   const session = resolved.session;
@@ -404,7 +414,7 @@ async function revokeUserSessions(userId, reason, exceptSessionId) {
 
 module.exports = {
   TEAM_CONTAINER, TEAM_BLOB, TEST_TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
-  clone, text, lower, now, json, error, body, clients, parseStoredJson, readJson, writeJson,
+  clone, text, lower, now, json, error, body, clients, testserviceClients, parseStoredJson, readJson, writeJson,
   emptyTeam, emptyAuth, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
   sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
