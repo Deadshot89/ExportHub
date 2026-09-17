@@ -7,10 +7,6 @@ const notifications=fs.readFileSync('e2e/specs/notifications.spec.mjs','utf8');
 const helper=fs.readFileSync('e2e/helpers/exporthub-browser.mjs','utf8');
 const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
-function assertLiveSessionBeforeNavigation(source,label){
-  assert.match(source,/installE2ESession/label.replace?.('','')||undefined);
-}
-
 test('RC1145: interne Browser-Specs installieren Live-E2E-Session vor dem ersten Seitenaufruf',()=>{
   for(const [label,source] of [['Navigation',navigation],['Benachrichtigungen',notifications]]){
     assert.match(source,/installE2ESession/,`${label}: Session-Helper fehlt`);
