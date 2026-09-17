@@ -1,18 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
 
 const history=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
-test('RC1148: Dokument-History trennt Öffnen und Drucken und speichert den konkreten Dateinamen',()=>{
+function historyRuntime(shipment){
+  const state={view:'shipment',currentShipment:shipment,shipments:[shipment],savedShipments:[shipment],currentUser:{id:'U1',name:'Tobias',role:'Globaler Administrator'}};
+  const document={body:null,readyState:'loading',addEventListener(){},getElementById(){return null},querySelector(){return null}};
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>state,
+    __EXPORTHUB_GET_CURRENT_USER__:()=>state.currentUser,
+    ExportHUBClean:{state,queueSave(){return true},flushSave(){return Promise.resolve(true)}},
+    addEventListener(){},document,console
+  };
+  const context={window,document,console,Date,Intl,Math,Map,Set,Array,Object,String,Number,Promise,decodeURIComponent,
+    setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},MutationObserver:undefined};
+  vm.runInNewContext(history,context,{filename:'rc1071-shipment-history.js'});
+  return window.ExportHUBShipmentHistory1071;
+}
+
+test('RC1148: Dokument-History trennt Öffnen und Drucken und speichert Benutzer sowie Dateiname',()=>{
   assert.match(history,/type:'document-open'/,'eigener History-Typ für Dokument öffnen fehlt');
   assert.match(history,/label:doc\+' – geöffnet'/,'eindeutiger Öffnen-Eintrag fehlt');
   assert.match(history,/label:doc\+' – gedruckt'/,'eindeutiger Druck-Eintrag fehlt');
-  assert.match(history,/fileName:file/,'konkreter Dateiname wird nicht gespeichert');
-  assert.match(history,/actor:actorFrom\(currentUser\(\)\)/,'aktueller Benutzer muss protokolliert werden');
   assert.match(history,/function documentActionFileName/,'Dateiname muss aus Button, Link oder Sendungsdokument ermittelt werden');
+
+  const sh={id:'S1',ref:'ABC123',abdFiles:[{name:'ABD_ABC123_original.pdf'}]};
+  const api=historyRuntime(sh);
+  const file=api.documentActionFileName(null,'ABD öffnen','ABD');
+  assert.equal(file,'ABD_ABC123_original.pdf');
+  api.recordDocumentAction(sh,'open','ABD',file);
+  api.recordDocumentAction(sh,'print','CMR','CMR_ABC123.pdf');
+  const open=sh.shipmentHistory.find(x=>x.type==='document-open');
+  const print=sh.shipmentHistory.find(x=>x.type==='print');
+  assert.equal(open.label,'ABD – geöffnet');
+  assert.equal(open.actor.name,'Tobias');
+  assert.equal(open.details.fileName,'ABD_ABC123_original.pdf');
+  assert.equal(print.label,'CMR – gedruckt');
+  assert.equal(print.actor.name,'Tobias');
+  assert.equal(print.details.fileName,'CMR_ABC123.pdf');
 });
 
 test('RC1148: Deckblatt-Hochsichtbarkeitsregel wird als gültige geschlossene CSS-Regel gebaut',()=>{
