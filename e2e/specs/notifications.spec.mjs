@@ -6,8 +6,13 @@ import {
   assertNoSourceLeak,
   assertNoHorizontalOverflow,
   attachRuntimeGuards,
-  assertRuntimeClean
+  assertRuntimeClean,
+  installE2ESession
 } from '../helpers/exporthub-browser.mjs';
+
+test.beforeEach(async({page})=>{
+  if(process.env.EXPORTHUB_E2E_LIVE==='1')await installE2ESession(page);
+});
 
 function numberFrom(text){
   const m=String(text||'').match(/(?:ALLE\s+)?OFFENEN\s+AUFGABEN\s*[:·-]?\s*(\d+)/i);
