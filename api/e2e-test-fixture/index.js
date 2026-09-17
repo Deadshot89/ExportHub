@@ -158,6 +158,7 @@ async function prepare(runId){
   id:'E2E-SESSION-'+crypto.createHash('sha256').update(runId).digest('hex').slice(0,24),
   userId:user.id,
   username:user.user,
+  environment:'testservice',
   deviceId:'e2e-playwright',
   createdAt,
   expiresAt:new Date(Date.now()+60*60*1000).toISOString(),
