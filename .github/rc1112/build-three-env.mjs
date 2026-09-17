@@ -101,6 +101,8 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=1074/g,'assets/rc1074-login-clean.js?v=1112');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=1087/g,'assets/rc1081-audit-history.js?v=1126');
+  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=1095/g,'assets/rc1071-shipment-history.js?v=1148');
+  html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1126"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
@@ -110,6 +112,8 @@ function patchHtml(file){
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1126'))throw new Error(file+': RC1126 Historie Cache-Key fehlt');
+  if(!html.includes('assets/rc1071-shipment-history.js?v=1148'))throw new Error(file+': RC1148 History Cache-Key fehlt');
+  if(!html.includes('assets/rc1071-shipment-history.js?v=1095'))throw new Error(file+': RC1148 History-Kompatibilitätsmarker fehlt');
   if(!html.includes('assets/rc1126-customer-delete.js?v=1126'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
@@ -183,6 +187,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     shippingProviderNeutralUi:'RC1114',
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
+    documentActionHistory:'RC1148 open/print + user + filename',
     deckblattHighVisibility:'RC1148 valid print-safe 10mm frame + 18mm top band + yellow reference'
   },
   compatibility:{
