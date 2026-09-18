@@ -99,6 +99,29 @@
     return SYSTEM_GROUPS.has(q(task.group))&&type!=='manual';
   }
 
+  function sourceRefs(task){
+    return [q(task&&task.linkedShipmentId),q(task&&task.shipmentId),q(task&&task.sourceId),q(task&&task.linkedShipmentRef),q(task&&task.shipmentRef),q(task&&task.sourceRef),q(task&&task.reference),q(task&&task.ref)].filter(Boolean);
+  }
+
+  function sourceMatches(item,refs){
+    if(!item||!refs.length)return false;
+    const values=[q(item.id),q(item.shipmentId),q(item.pickId),q(item.sourceId),q(item.ref),q(item.reference),q(item.shipmentRef),q(item.sourceRef)].filter(Boolean);
+    return values.some(value=>refs.includes(value));
+  }
+
+  function systemTaskIsCurrent(task,state={}){
+    const group=q(task&&task.group),type=q(task&&task.sourceType).toLowerCase();
+    if(!SYSTEM_GROUPS.has(group)||type==='manual')return true;
+    const refs=sourceRefs(task);
+    if(!refs.length)return false;
+    if(group==='Picks'){
+      const picks=arr(state.picks).concat(arr(state.openPicks),arr(state.pickTasks));
+      return picks.some(item=>sourceMatches(item,refs));
+    }
+    const shipments=arr(state.shipments).concat(arr(state.savedShipments));
+    return shipments.some(item=>sourceMatches(item,refs));
+  }
+
   function addTaskTombstones(state,removed){
     if(!state||!removed.length)return;
     if(!state._teamSyncMeta||typeof state._teamSyncMeta!=='object'||Array.isArray(state._teamSyncMeta))state._teamSyncMeta={fields:{},tombstones:[]};
@@ -118,13 +141,19 @@
   function prepareManagedRoster(raw,ctx={}){
     const state=ctx.state||{};
     let tasks=arr(raw).slice(),changed=false;
-    if(!state.rc1152TaskRosterAt){
-      const kept=[],removed=[];
-      tasks.forEach(task=>{
-        if(q(task&&task.managedBy)==='RC1152'||hasShipmentLink(task))kept.push(task);
-        else removed.push(task);
-      });
-      if(removed.length){tasks=kept;changed=true;addTaskTombstones(state,removed);}
+    const kept=[],removed=[];
+    tasks.forEach(task=>{
+      const managed=q(task&&task.managedBy)==='RC1152';
+      const currentSystem=hasShipmentLink(task)&&systemTaskIsCurrent(task,state);
+      if(managed||currentSystem)kept.push(task);
+      else removed.push(task);
+    });
+    if(removed.length){
+      tasks=kept;
+      changed=true;
+      addTaskTombstones(state,removed);
+      state.rc1152TaskRosterAt=new Date().toISOString();
+    }else if(!state.rc1152TaskRosterAt){
       state.rc1152TaskRosterAt=new Date().toISOString();
       changed=true;
     }
@@ -196,6 +225,15 @@
     try{return new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:raw.includes('T')?'short':undefined}).format(d);}catch(_){return raw;}
   }
 
+  function taskStatusLabel(task,isReference){
+    if(isReference)return 'Bereich';
+    const status=q(task&&task.status).toLowerCase();
+    if(status==='done')return 'Erledigt';
+    if(status==='in_progress')return 'In Bearbeitung';
+    if(status==='cancelled')return 'Storniert';
+    return 'Offen';
+  }
+
   function closeTaskDetail(fromPopState){
     const doc=root.document,view=doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail');
     if(view&&view.parentNode)view.parentNode.removeChild(view);
@@ -204,25 +242,38 @@
     return true;
   }
 
-  async function completeTask(task,ctx={}){
+  async function setTaskStatus(task,status,ctx={}){
     const state=ctx.state||sharedState();
     if(!state)return false;
     const id=q(task&&task.id),items=arr(state.tasks);
     const target=items.find(item=>q(item&&item.id)===id);
     if(!target)return false;
-    const now=new Date().toISOString(),user=currentUserId(ctx)||'Benutzer';
-    target.status='done';target.done=true;target.completedAt=now;target.doneAt=now;target.completedBy=user;target.doneBy=user;target.updatedAt=now;
+    const next=q(status).toLowerCase(),now=new Date().toISOString(),user=currentUserId(ctx)||'Benutzer';
+    if(next==='done'){
+      target.status='done';target.done=true;target.completedAt=now;target.doneAt=now;target.completedBy=user;target.doneBy=user;
+    }else if(next==='in_progress'){
+      target.status='in_progress';target.done=false;target.startedAt=q(target.startedAt)||now;target.startedBy=q(target.startedBy)||user;
+      target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
+    }else{
+      target.status='open';target.done=false;target.startedAt='';target.startedBy='';
+      target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
+    }
+    target.updatedAt=now;
     if(typeof ctx.persist==='function')ctx.persist(items);
     else{
       const clean=root.ExportHUBClean;
       if(clean&&typeof clean.queueSave==='function'){
-        await Promise.resolve(clean.queueSave('RC1152 Aufgabe erledigt'));
-        if(typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('RC1152 Aufgabe erledigt'));
+        await Promise.resolve(clean.queueSave('RC1153 Aufgabenstatus geändert'));
+        if(typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('RC1153 Aufgabenstatus geändert'));
       }
     }
-    try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1152 completed',taskId:id}}));}catch(_){}
+    try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1153 status',taskId:id,status:target.status}}));}catch(_){}
     closeTaskDetail(false);
     return true;
+  }
+
+  async function completeTask(task,ctx={}){
+    return setTaskStatus(task,'done',ctx);
   }
 
   function openLinkedShipment(task,ctx={}){
@@ -251,7 +302,7 @@
       <header class="rc1152-task-header">
         <button type="button" class="btn rc1152-task-back" data-task-action="back">← Zurück zu Aufgaben</button>
         <div><span class="rc1152-task-eyebrow">${esc(t.group||'Aufgabe')}</span><h1>${esc(t.title||'Aufgabe')}</h1></div>
-        <span class="rc1152-task-status">${esc(isReference?'Bereich':(t.status==='done'?'Erledigt':'Offen'))}</span>
+        <span class="rc1152-task-status" data-status="${esc(isReference?'reference':t.status||'open')}">${esc(taskStatusLabel(t,isReference))}</span>
       </header>
       <div class="rc1152-task-grid">
         <article class="rc1152-task-card"><h2>Aufgabe</h2><p>${esc(description)}</p></article>
@@ -262,7 +313,9 @@
       </div>
       <footer class="rc1152-task-actions">
         <button type="button" class="btn" data-task-action="back">Zurück</button>
-        ${!isReference&&t.status!=='done'?`<button type="button" class="btn primary" data-task-action="done">Als erledigt markieren</button>`:''}
+        ${!isReference?`<button type="button" class="btn" data-task-action="open" ${t.status==='open'?'disabled':''}>Offen</button>
+        <button type="button" class="btn" data-task-action="in_progress" ${t.status==='in_progress'?'disabled':''}>In Bearbeitung</button>
+        <button type="button" class="btn primary" data-task-action="done" ${t.status==='done'?'disabled':''}>Erledigt</button>`:''}
       </footer>
     </div>`;
     panel.addEventListener('click',event=>{
@@ -271,7 +324,7 @@
       const action=btn.getAttribute('data-task-action');
       if(action==='back')closeTaskDetail(false);
       else if(action==='shipment')openLinkedShipment({...task,...t},ctx);
-      else if(action==='done')completeTask({...task,...t},ctx).catch(()=>{});
+      else if(action==='open'||action==='in_progress'||action==='done')setTaskStatus({...task,...t},action,ctx).catch(()=>{});
     });
     doc.body.appendChild(panel);doc.body.setAttribute('data-exporthub-task-detail','open');
     try{if(root.history&&typeof root.history.pushState==='function')root.history.pushState({exporthubTaskDetail:true,taskId:t.id},'',root.location&&root.location.href?root.location.href:'#');}catch(_){}
@@ -471,5 +524,5 @@
 
   if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,closeTaskDetail,completeTask,prepareManagedRoster,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
 })(globalThis);
