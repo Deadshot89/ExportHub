@@ -8,7 +8,9 @@ test('RC1150: Lieferavis zeigt bei Empfänger / Lieferadresse ausschließlich di
   const marker='<span>Empfänger / Lieferadresse</span>';
   const start=html.indexOf(marker);
   assert.notEqual(start,-1,'Lieferadressfeld fehlt auf customer-avis.html');
-  const end=html.indexOf('</div>',start);\n  assert.notEqual(end,-1,'Lieferadressfeld ist nicht vollständig gerendert');\n  const block=html.slice(start,end+6);
+  const end=html.indexOf('</div>',start);
+  assert.notEqual(end,-1,'Lieferadressfeld ist nicht vollständig gerendert');
+  const block=html.slice(start,end+6);
 
   assert.match(
     block,
