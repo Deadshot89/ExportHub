@@ -299,8 +299,11 @@ async function reconcilePendingBackups(environment, options) {
   const clients = await store.clients(environment);
   const prefix = 'rc995/' + environment + '/records/';
   const candidates = [];
+  const alreadySaved = [];
   let scanned = 0;
   let skippedRecent = 0;
+  let referenceMatched = 0;
+  let referencePodReady = 0;
 
   for await (const item of clients.records.listBlobsFlat({ prefix })) {
     scanned += 1;
@@ -317,10 +320,15 @@ async function reconcilePendingBackups(environment, options) {
     if (!record) continue;
     const recordReference = text(record.reference).toUpperCase();
     if (reference && recordReference !== reference) continue;
+    if (reference) referenceMatched += 1;
     const complete = (typeof store.pickupComplete === 'function' && store.pickupComplete(record)) || record.status === 'confirmed' || !!record.confirmedAt;
     if (!complete || !record.confirmedAt || !record.signatureBlobName) continue;
+    if (reference) referencePodReady += 1;
     const backup = record.podBackup && typeof record.podBackup === 'object' ? record.podBackup : {};
-    if (backup.driveSaved === true) continue;
+    if (backup.driveSaved === true) {
+      if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
+      continue;
+    }
     const lastAttemptMs = Date.parse(backup.lastAttemptAt || '');
     if (!reference && minAgeMs > 0 && Number.isFinite(lastAttemptMs) && Date.now() - lastAttemptMs < minAgeMs) {
       skippedRecent += 1;
@@ -355,6 +363,20 @@ async function reconcilePendingBackups(environment, options) {
     }
   }
 
+  const target = reference ? {
+    reference,
+    matchedCount: referenceMatched,
+    podReadyCount: referencePodReady,
+    alreadySavedCount: alreadySaved.length,
+    savedNowCount: saved.length,
+    pendingCount: pending.length,
+    errorCount: errors.length,
+    status: referenceMatched === 0 ? 'not-found' :
+      referencePodReady === 0 ? 'pod-not-ready' :
+      errors.length > 0 ? 'error' :
+      pending.length > 0 ? 'pending' :
+      (alreadySaved.length + saved.length >= referencePodReady ? (saved.length > 0 ? 'saved-now' : 'already-saved') : 'incomplete')
+  } : null;
   return {
     ok: errors.length === 0,
     environment,
@@ -363,9 +385,12 @@ async function reconcilePendingBackups(environment, options) {
     selected: selectedCandidates.length,
     skippedRecent,
     savedCount: saved.length,
+    alreadySavedCount: alreadySaved.length,
     pendingCount: pending.length,
     errorCount: errors.length,
+    target,
     saved,
+    alreadySaved,
     pending,
     errors
   };
