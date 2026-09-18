@@ -6,19 +6,32 @@ function text(value) {
   return String(value == null ? '' : value).trim();
 }
 
-function config() {
+function readiness() {
   const tenantId = text(process.env.EXPORTHUB_GRAPH_TENANT_ID);
   const clientId = text(process.env.EXPORTHUB_GRAPH_CLIENT_ID);
   const clientSecret = text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
   const user = text(process.env.EXPORTHUB_POD_DRIVE_USER) || 'tobiaslimberg@essentra.com';
   const folder = text(process.env.EXPORTHUB_POD_FOLDER) || '003 Export/ExportHub/Abliefernachweise';
-  if (!tenantId || !clientId || !clientSecret) {
+  const missing = [];
+  if (!tenantId) missing.push('EXPORTHUB_GRAPH_TENANT_ID');
+  if (!clientId) missing.push('EXPORTHUB_GRAPH_CLIENT_ID');
+  if (!clientSecret) missing.push('EXPORTHUB_GRAPH_CLIENT_SECRET');
+  return { configured: missing.length === 0, missing, user, folder };
+}
+
+function config() {
+  const status = readiness();
+  const tenantId = text(process.env.EXPORTHUB_GRAPH_TENANT_ID);
+  const clientId = text(process.env.EXPORTHUB_GRAPH_CLIENT_ID);
+  const clientSecret = text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
+  if (!status.configured) {
     const error = new Error('Microsoft Graph ist für die POD-Sicherung noch nicht konfiguriert.');
     error.code = 'GRAPH_NOT_CONFIGURED';
     error.statusCode = 503;
+    error.missing = status.missing.slice();
     throw error;
   }
-  return { tenantId, clientId, clientSecret, user, folder };
+  return { tenantId, clientId, clientSecret, user: status.user, folder: status.folder };
 }
 
 function request(method, url, headers, body, timeoutMs) {
@@ -152,4 +165,4 @@ async function uploadPdf(buffer, fileName) {
   throw lastError || Object.assign(new Error('Microsoft-365-POD-Sicherung ist fehlgeschlagen.'), { code: 'GRAPH_UPLOAD_FAILED', statusCode: 502 });
 }
 
-module.exports = { config, uploadPdf, safeFileName };
+module.exports = { readiness, config, uploadPdf, safeFileName };
