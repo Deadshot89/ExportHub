@@ -27,8 +27,9 @@ test('RC1163: Erstmeldung und Änderung werden revisionssicher mit alt und neu p
   assert.match(api,/oldPlate:before\.plate,newPlate:after\.plate/);
 });
 
-test('RC1163: unverändertes erneutes Absenden erzeugt keinen künstlichen Historieneintrag',()=>{
-  assert.match(api,/changed=!sameAppointment\(before,after\)/);
+test('RC1163: Erstmeldung wird immer erfasst, unveränderte Wiederholung erzeugt keinen künstlichen Historieneintrag',()=>{
+  assert.match(api,/first=!text\(target&&\(target\.customerAvisResponseAt\|\|target\.avisResponseAt\)\)/);
+  assert.match(api,/changed=first\|\|!sameAppointment\(before,after\)/);
   assert.match(api,/event=changed\?/);
   assert.match(api,/if\(event\)appendAppointmentHistory\(sh,event\)/);
 });
