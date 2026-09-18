@@ -60,7 +60,7 @@ function ensureStyle(){
 }
 function status(node,msg,kind){if(!node)return;node.textContent=msg||'';node.setAttribute('data-kind',kind||'info')}
 function readinessBadge(ready,adminView){if(ready&&ready.configured===true)return'<span class="rc1160-badge ok">Verschlüsselung aktiv</span>';return'<span class="rc1160-badge off">'+(adminView?'Server-Schlüssel fehlt':'Verschlüsselung nicht bereit')+'</span>'}
-function readinessHint(ready,adminView){if(ready&&ready.configured===true)return'';return'<div class="rc1160-muted" data-rc1162-key-warning>'+(adminView?'Azure App Setting EXPORTHUB_CUSTOMER_PORTAL_KEY fehlt. Zugangsdaten können nicht gespeichert oder angezeigt werden.':'Zugangsdaten können derzeit nicht gespeichert oder angezeigt werden. Bitte Administrator informieren.')+'</div>'}
+function readinessHint(ready,adminView){if(ready&&ready.configured===true)return'';return'<div class="rc1160-muted" data-rc1162-key-warning>'+(adminView?'Azure App Setting für die Kundenportal-Verschlüsselung fehlt. Zugangsdaten können nicht gespeichert oder angezeigt werden.':'Zugangsdaten können derzeit nicht gespeichert oder angezeigt werden. Bitte Administrator informieren.')+'</div>'}
 function portalRows(customer,portals,canManage,configured){
  if(!portals.length)return'<div class="rc1160-muted">Für diesen Kunden ist kein Kundenportal hinterlegt.</div>';
  return'<div class="rc1160-list">'+portals.map(function(p){
