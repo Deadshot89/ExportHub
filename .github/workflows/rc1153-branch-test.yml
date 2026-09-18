@@ -1,0 +1,22 @@
+name: RC1153 Branch Test
+
+on:
+  push:
+    branches:
+      - fix/rc1153-testservice-release-gate
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rc1153:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: RC1153 TESTSERVICE Release-Blocker Regression
+        run: node --test test/rc1153-testservice-release-gate.test.mjs
