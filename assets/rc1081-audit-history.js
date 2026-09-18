@@ -49,7 +49,12 @@ var AUDIT_LABELS={
  LOADER_PIN_UPDATED:'Verlader-PIN geändert',
  LOADER_PIN_STATUS_CHANGED:'Verlader-PIN Status geändert',
  LOADER_PIN_DELETED:'Verlader-PIN gelöscht',
- CUSTOMER_DELETED:'Kunde gelöscht'
+ CUSTOMER_DELETED:'Kunde gelöscht',
+ CUSTOMER_PORTAL_CREATED:'Kundenportal angelegt',
+ CUSTOMER_PORTAL_UPDATED:'Kundenportal geändert',
+ CUSTOMER_PORTAL_DELETED:'Kundenportal gelöscht',
+ CUSTOMER_PORTAL_REVEALED:'Kundenportal-Zugang angezeigt',
+ CUSTOMER_PORTAL_REVEAL_DENIED:'Kundenportal-Zugang abgelehnt'
 };
 var SHIPMENT_LABELS={
  created:'Sendung erstellt',
@@ -118,6 +123,7 @@ function auditEvent(e){
  var details=e&&e.details||{},subtype=q(e&&e.type),entity='System',entityId=q(details.userId||details.username);
  if(/^LOADER_PIN_/.test(subtype)){entity='Verlader-PIN';entityId=q(details.loaderName||details.loaderId)||'PIN-Verwaltung'}
  else if(subtype==='CUSTOMER_DELETED'){entity='Kunde';entityId=q(details.account||details.customerId||details.customer)||'Kunde'}
+ else if(/^CUSTOMER_PORTAL_/.test(subtype)){entity='Kundenportal';entityId=q(details.portalName||details.portalId||details.customerId)||'Kundenportal'}
  else if(entityId)entity='Benutzer';
  return{id:q(e&&e.id),at:q(e&&e.at),type:'audit',subtype:subtype,label:AUDIT_LABELS[subtype]||'Systemaktion',actor:{name:actorName(e)},entity:entity,entityId:entityId,details:details,source:'audit'}
 }
