@@ -1,0 +1,71 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+const SOURCE=fs.readFileSync('assets/abholkalender.js','utf8');
+
+function deferred(){
+  let resolve;
+  const promise=new Promise(r=>{resolve=r});
+  return{promise,resolve};
+}
+
+test('RC1151: verspätete FIX-Antwort überschreibt nach View-Wechsel nicht mehr #content',async()=>{
+  let currentView='pickupcalendar';
+  const pending=deferred();
+  let html='';
+  const rootElement={
+    addEventListener(){},
+    get innerHTML(){return html},
+    set innerHTML(value){html=String(value)},
+    querySelector(selector){
+      if(selector==='.pickup-calendar'&&html.includes('pickup-calendar'))return{};
+      return null;
+    }
+  };
+  const document={
+    body:{
+      getAttribute(name){return name==='data-exporthub-view'?currentView:''}
+    }
+  };
+  const context=vm.createContext({
+    console,
+    document,
+    Date,
+    Intl,
+    Math,
+    Number,
+    String,
+    Array,
+    Object,
+    JSON,
+    Promise,
+    FormData:class FormData{},
+    fetch(){return pending.promise}
+  });
+  vm.runInContext(SOURCE,context,{filename:'assets/abholkalender.js'});
+  const calendar=context.ExportHubPickupCalendar;
+  assert.ok(calendar&&typeof calendar.mount==='function');
+
+  calendar.mount(rootElement,{environment:'testservice',shipments:[]});
+  assert.match(html,/Abholkalender/);
+
+  currentView='shipment';
+  html='<section id="shipment-view">Kunde · Empfänger</section>';
+
+  pending.resolve({
+    ok:true,
+    status:200,
+    async json(){return{ok:true,items:[{id:'FIX-1',siteLabel:'Späte Antwort',weekday:5,active:true}],canEdit:true}}
+  });
+
+  await new Promise(resolve=>setImmediate(resolve));
+  await Promise.resolve();
+
+  assert.equal(
+    html,
+    '<section id="shipment-view">Kunde · Empfänger</section>',
+    'Eine verspätete Abholkalender-Antwort darf eine inzwischen geöffnete Ansicht nicht überschreiben.'
+  );
+});
