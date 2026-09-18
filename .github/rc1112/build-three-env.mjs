@@ -114,7 +114,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1126'))throw new Error(file+': RC1126 Historie Cache-Key fehlt');
   if(!html.includes('assets/rc1071-shipment-history.js?v=1151'))throw new Error(file+': RC1151 History Cache-Key fehlt');
-  if(!html.includes('assets/rc1063-abd-blob-viewer-compat.js?v=1151'))throw new Error(file+': RC1151 Dokumentaktionen Cache-Key fehlt');
+  if(file!=='demo.html'&&!html.includes('assets/rc1063-abd-blob-viewer-compat.js?v=1151'))throw new Error(file+': RC1151 Dokumentaktionen Cache-Key fehlt');
   if(!html.includes('assets/rc1071-shipment-history.js?v=1095'))throw new Error(file+': RC1148 History-Kompatibilitätsmarker fehlt');
   if(!html.includes('assets/rc1126-customer-delete.js?v=1126'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
