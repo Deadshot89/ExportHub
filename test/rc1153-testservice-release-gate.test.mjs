@@ -35,3 +35,23 @@ test('RC1153: Abholdatum-E2E prüft exakt die manipulierte Sendung statt die ers
   assert.match(spec,/filter\(\{hasText:seeded\.key\}\)/,'RC1127 bindet die Prüfung nicht an die manipulierte Sendung');
   assert.doesNotMatch(spec,/page\.locator\('\[data-rc1127-customer-pickup\]'\)\.first\(\)/,'RC1127 darf nicht die erste beliebige Abholkachel prüfen');
 });
+
+test('RC1155: Browser-Gate wartet auf echte Azure-Saves und startet keinen No-op pagehide Vollsave',()=>{
+  const helper=read('e2e/helpers/exporthub-browser.mjs');
+  const nav=read('e2e/specs/navigation.spec.mjs');
+  const mutation=read('e2e/specs/testservice-mutation.spec.mjs');
+  const build=read('.github/rc1112/build-three-env.mjs');
+  assert.match(helper,/export async function settleStateSave\(/);
+  assert.match(helper,/flushSave\(/);
+  assert.match(nav,/settleStateSave\(page/);
+  assert.match(mutation,/settleStateSave\(page/);
+  assert.match(build,/patchShipmentSuspendSave/);
+  assert.match(build,/!editSaveReason&&!editSaveTimer/);
+});
+
+test('RC1155: Live-E2E speichert keine Playwright-Netzwerktraces mit Sessiondaten',()=>{
+  const config=read('playwright.config.mjs');
+  const fixture=read('api/e2e-test-fixture/index.js');
+  assert.match(config,/trace:LIVE\?'off':'retain-on-failure'/);
+  assert.match(fixture,/Date\.now\(\)\+15\*60\*1000/);
+});
