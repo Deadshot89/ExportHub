@@ -177,8 +177,8 @@ jobs:
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1079-profile-settings.js?v=1079' "dist-rc1112/$file"
             grep -q 'assets/rc1080-customer-history.js?v=1080' "dist-rc1112/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1159' "dist-rc1112/$file"
-            grep -q 'assets/rc1081-audit-history.js?v=1159' "dist-rc1112/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1160' "dist-rc1112/$file"
+            grep -q 'assets/rc1081-audit-history.js?v=1160' "dist-rc1112/$file"
           done
           test -s dist-rc1112/assets/rc1079-profile-settings.js
           test -s dist-rc1112/assets/rc1080-customer-history.js
@@ -960,7 +960,7 @@ jobs:
               pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1087=$GITHUB_SHA-$attempt" || true)
               ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1087=$GITHUB_SHA-$attempt" || true)
               [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
-              grep -q 'assets/rc1081-audit-history.js?v=1159' "$page" || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1160' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
               grep -q '__EXPORTHUB_RC1086_HISTORY_COMPLETE__' "$asset" || ok=0
               grep -q '__EXPORTHUB_RC1087_ADMIN_AUDIT__' "$asset" || ok=0
