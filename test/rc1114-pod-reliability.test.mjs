@@ -49,6 +49,27 @@ test('RC1143: POD vorhanden wird erst bei echter herunterladbarer POD-Datei gese
   assert.match(store,/function rc1017SubHasPod\(sub\)\{return!!\(sub&&Array\.isArray\(sub\.podFiles\)&&sub\.podFiles\.length>0\)\}/);
 });
 
+
+test('RC1163: Graph-Bereitschaft wird ohne Secret-Inhalte geprüft',()=>{
+  assert.match(graph,/function readiness\(\)/);
+  assert.match(graph,/configured:\s*missing\.length === 0/);
+  assert.match(graph,/missing\.push\('EXPORTHUB_GRAPH_TENANT_ID'\)/);
+  assert.match(graph,/missing\.push\('EXPORTHUB_GRAPH_CLIENT_ID'\)/);
+  assert.match(graph,/missing\.push\('EXPORTHUB_GRAPH_CLIENT_SECRET'\)/);
+  assert.match(graph,/module\.exports\s*=\s*\{\s*readiness,/);
+});
+
+test('RC1163: Reconcile meldet fehlende Graph-Konfiguration vor dem Scan eindeutig',()=>{
+  assert.match(reconcileApi,/graphDrive\.readiness\(\)/);
+  assert.match(reconcileApi,/code:\s*'GRAPH_NOT_CONFIGURED'/);
+  assert.match(reconcileApi,/graphConfigured:\s*false/);
+  assert.match(reconcileApi,/missing:\s*graph\.missing/);
+  assert.match(reconcileApi,/targetFolder:\s*graph\.folder/);
+  const readinessIndex=reconcileApi.indexOf('graphDrive.readiness()');
+  const reconcileIndex=reconcileApi.indexOf('podArchive.reconcilePendingBackups');
+  assert.ok(readinessIndex>=0&&reconcileIndex>readinessIndex,'Graph-Readiness muss vor der POD-Nachholung geprüft werden');
+});
+
 test('RC1114: Graph-Upload wiederholt temporäre Fehler',()=>{
   assert.match(graph,/for \(let attempt = 1; attempt <= 3; attempt\+\+\)/);
   assert.match(graph,/status === 429/);
