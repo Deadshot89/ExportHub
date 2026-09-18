@@ -50,7 +50,7 @@ test('RC1143: POD vorhanden wird erst bei echter herunterladbarer POD-Datei gese
 });
 
 
-test('RC1163: Graph-Bereitschaft wird ohne Secret-Inhalte geprüft',()=>{
+test('RC1164: Graph-Bereitschaft wird ohne Secret-Inhalte geprüft',()=>{
   assert.match(graph,/function readiness\(\)/);
   assert.match(graph,/configured:\s*missing\.length === 0/);
   assert.match(graph,/missing\.push\('EXPORTHUB_GRAPH_TENANT_ID'\)/);
@@ -59,7 +59,7 @@ test('RC1163: Graph-Bereitschaft wird ohne Secret-Inhalte geprüft',()=>{
   assert.match(graph,/module\.exports\s*=\s*\{\s*readiness,/);
 });
 
-test('RC1163: Reconcile meldet fehlende Graph-Konfiguration vor dem Scan eindeutig',()=>{
+test('RC1164: Reconcile meldet fehlende Graph-Konfiguration vor dem Scan eindeutig',()=>{
   assert.match(reconcileApi,/graphDrive\.readiness\(\)/);
   assert.match(reconcileApi,/code:\s*'GRAPH_NOT_CONFIGURED'/);
   assert.match(reconcileApi,/graphConfigured:\s*false/);
