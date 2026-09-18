@@ -78,3 +78,4 @@ module.exports=async function(context,req){
   context.res=response(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'Kundenportal-Zugangsdaten konnten nicht verarbeitet werden.'});
  }
 };
+module.exports._test=Object.freeze({rights,customerExists,customerIdOf});
