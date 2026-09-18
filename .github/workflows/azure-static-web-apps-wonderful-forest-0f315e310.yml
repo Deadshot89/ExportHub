@@ -492,10 +492,15 @@ jobs:
           prepared="$(fixture prepare)"
           session_token="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.ok||!v.token)process.exit(3);process.stdout.write(v.token)})")"
           user_b64="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.user)process.exit(4);process.stdout.write(Buffer.from(JSON.stringify(v.user),'utf8').toString('base64'))})")"
+          nonadmin_session_token="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.nonAdminToken)process.exit(5);process.stdout.write(v.nonAdminToken)})")"
+          nonadmin_user_b64="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.nonAdminUser)process.exit(6);process.stdout.write(Buffer.from(JSON.stringify(v.nonAdminUser),'utf8').toString('base64'))})")"
           echo "::add-mask::$session_token"
+          echo "::add-mask::$nonadmin_session_token"
 
           export EXPORTHUB_E2E_SESSION_TOKEN="$session_token"
           export EXPORTHUB_E2E_USER_B64="$user_b64"
+          export EXPORTHUB_E2E_NONADMIN_SESSION_TOKEN="$nonadmin_session_token"
+          export EXPORTHUB_E2E_NONADMIN_USER_B64="$nonadmin_user_b64"
           export EXPORTHUB_E2E_RUN_ID="$run_id"
           export EXPORTHUB_E2E_REFERENCE="E2E$(printf '%s' "$GITHUB_SHA" | cut -c1-3 | tr '[:lower:]' '[:upper:]')"
           export EXPORTHUB_E2E_MUTATION='1'

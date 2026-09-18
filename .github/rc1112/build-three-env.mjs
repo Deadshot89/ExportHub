@@ -242,7 +242,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border',
     customerPortalCredentials:'RC1160 AES-256-GCM + re-auth + use/manage rights',
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
-    avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup'
+    avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',
+    diagnosticsNonAdminProof:'RC1169 live non-admin rights view + diagnostics-read 403'
   },
   compatibility:{
     qr:'stable-existing-links',

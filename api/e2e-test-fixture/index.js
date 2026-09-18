@@ -91,6 +91,37 @@ function e2eRights(){
  }
  return rights;
 }
+function e2eNonAdminRights(){
+ const allowed=new Set(['start','dashboard','rights','pickupcalendar']);
+ const rights={};
+ for(const id of MODULES){
+  const view=allowed.has(id);
+  rights[id]={level:view?'view':'none',visible:view,read:view,edit:false,admin:false,functionAdmin:false};
+ }
+ return rights;
+}
+function e2eNonAdminUser(runId){
+ const suffix=runId.replace(/[^A-Za-z0-9_-]/g,'-').slice(-70);
+ return normalizeUser({
+  id:'E2E-USER-NONADMIN-'+suffix,
+  user:'e2e.nonadmin.'+suffix.toLowerCase(),
+  login:'e2e.nonadmin.'+suffix.toLowerCase(),
+  username:'e2e.nonadmin.'+suffix.toLowerCase(),
+  name:'E2E TEST Nicht-Admin '+suffix,
+  role:'Benutzer',
+  globalAdmin:false,
+  isGlobalAdmin:false,
+  permissions:[],
+  rights:e2eNonAdminRights(),
+  active:true,
+  disabled:false,
+  mustChange:false,
+  authVersion:0,
+  _e2eRunId:runId,
+  createdAt:now(),
+  updatedAt:now()
+ },1);
+}
 function e2eUser(runId){
  const suffix=runId.replace(/[^A-Za-z0-9_-]/g,'-').slice(-80);
  return normalizeUser({
@@ -144,18 +175,9 @@ async function mutateTestTeam(mutator){
  }
  throw error('CONCURRENT_UPDATE','TESTSERVICE konnte nach mehreren Konfliktversuchen nicht aktualisiert werden.',409);
 }
-async function prepare(runId){
- const mutation=await mutateTestTeam(async team=>{
-  team.state=team.state&&typeof team.state==='object'?team.state:{};
-  team.users=Array.isArray(team.users)?team.users:[];
-  const user=e2eUser(runId);
-  const cleaned=team.users.filter(u=>text(u&&u._e2eRunId)!==runId&&text(u&&u.id)!==user.id);
-  cleaned.push(user);team.users=cleaned;
-  team.state.users=cleaned.map(u=>publicUser(u,false));
-  return{team,value:{user},changed:true};
- });
- const user=mutation.result.user,createdAt=now(),session={
-  id:'E2E-SESSION-'+crypto.createHash('sha256').update(runId).digest('hex').slice(0,24),
+function signedSessionFor(user,runId,label){
+ const createdAt=now(),session={
+  id:'E2E-SESSION-'+label+'-'+crypto.createHash('sha256').update(runId+'|'+label).digest('hex').slice(0,20),
   userId:user.id,
   username:user.user,
   environment:'testservice',
@@ -165,8 +187,22 @@ async function prepare(runId){
   authVersion:Number(user.authVersion||0),
   mustChange:false
  };
- const token=auth.createSignedSessionToken(session);
- return{ok:true,action:'prepare',environment:'testservice',runId,token,user:publicUser(user,false),expiresAt:session.expiresAt,teamBytes:mutation.bytes};
+ return{token:auth.createSignedSessionToken(session),expiresAt:session.expiresAt};
+}
+async function prepare(runId){
+ const mutation=await mutateTestTeam(async team=>{
+  team.state=team.state&&typeof team.state==='object'?team.state:{};
+  team.users=Array.isArray(team.users)?team.users:[];
+  const user=e2eUser(runId),nonAdminUser=e2eNonAdminUser(runId);
+  const ids=new Set([user.id,nonAdminUser.id]);
+  const cleaned=team.users.filter(u=>text(u&&u._e2eRunId)!==runId&&!ids.has(text(u&&u.id)));
+  cleaned.push(user,nonAdminUser);team.users=cleaned;
+  team.state.users=cleaned.map(u=>publicUser(u,false));
+  return{team,value:{user,nonAdminUser},changed:true};
+ });
+ const user=mutation.result.user,nonAdminUser=mutation.result.nonAdminUser;
+ const adminSession=signedSessionFor(user,runId,'ADMIN'),nonAdminSession=signedSessionFor(nonAdminUser,runId,'NONADMIN');
+ return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:publicUser(user,false),expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,teamBytes:mutation.bytes};
 }
 async function cleanup(runId){
  const mutation=await mutateTestTeam(async team=>{
