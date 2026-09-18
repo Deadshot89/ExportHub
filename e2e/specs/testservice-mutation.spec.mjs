@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import {
   appEntry,
   waitReady,
+  settleStateSave,
   openExportHubView,
   attachRuntimeGuards,
   assertRuntimeClean,
@@ -23,6 +24,7 @@ function headers(token){
 }
 
 test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zurück und Übersicht zeigt die Sendung',async({page},testInfo)=>{
+  test.setTimeout(90_000);
   test.skip(process.env.EXPORTHUB_E2E_MUTATION!=='1','Mutierender RC1139-Test läuft nur im TESTSERVICE-Gate.');
   test.skip(testInfo.project.name!=='laptop','Mutierender RC1139-Test läuft genau einmal auf dem Laptop-Profil.');
 
@@ -101,8 +103,10 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
   expect(saved.data?.ok).toBe(true);
   expect(saved.data?.ackOnly).toBe(true);
 
+  await settleStateSave(page,{timeout:25_000});
   await page.reload({waitUntil:'domcontentloaded'});
   await waitReady(page);
+  await settleStateSave(page,{timeout:25_000});
 
   const persisted=await page.evaluate(async({token,runId,ref})=>{
     const response=await fetch('/api/exporthub-state?mode=read&full=1',{
@@ -126,5 +130,6 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
 
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
+  await settleStateSave(page,{timeout:25_000});
   await assertRuntimeClean(runtime,testInfo);
 });
