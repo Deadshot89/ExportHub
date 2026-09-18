@@ -6,6 +6,7 @@ const helper=fs.readFileSync('e2e/helpers/exporthub-browser.mjs','utf8');
 const nav=fs.readFileSync('e2e/specs/navigation.spec.mjs','utf8');
 const mutation=fs.readFileSync('e2e/specs/testservice-mutation.spec.mjs','utf8');
 const deployContract=fs.readFileSync('test/rc1016-production-deploy.test.mjs','utf8');
+const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
 test('RC1154: responsive Hauptnavigation öffnet das echte Seitenmenü vor der Modulsuche',()=>{
   assert.match(helper,/function\s+responsiveViewport\s*\(/,'Responsive-Erkennung fehlt');
@@ -31,4 +32,11 @@ test('RC1154: Abholdatum-Test prüft genau die von ihm gesetzte Sendung',()=>{
 
 test('RC1154: historischer RC1016-Vertrag akzeptiert den aktuellen Aufgaben-Runtime-Cache-Key',()=>{
   assert.match(deployContract,/rc1014-task-runtime\\\.js\\\?v=1152/,'alter ?v=1016-Vertrag blockiert den aktuellen RC1152 Aufgabenstand');
+});
+
+
+test('RC1154: pagehide startet ohne echte Sendungsänderung keinen neuen Azure-Save',()=>{
+  assert.match(build,/patchShipmentSuspendSave/,'finaler Build patcht den veralteten Shipment-Suspend-Pfad nicht');
+  assert.match(build,/!editSaveReason&&!editSaveTimer/,'No-op-Guard für flushEditSave fehlt');
+  assert.match(build,/Sendungseingabe vor Verlassen gespeichert/,'bestehender Suspend-Pfad muss gezielt adressiert werden');
 });
