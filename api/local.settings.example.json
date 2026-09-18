@@ -18,6 +18,8 @@
     "EXPORTHUB_GRAPH_CLIENT_ID": "<App-Registrierung-Client-ID>",
     "EXPORTHUB_GRAPH_CLIENT_SECRET": "<nur-in-Azure-App-Settings-speichern>",
     "EXPORTHUB_POD_DRIVE_USER": "<Zielkonto-fuer-POD-Archiv>",
-    "EXPORTHUB_POD_FOLDER": "003 Export/ExportHub/Abliefernachweise"
+    "EXPORTHUB_POD_FOLDER": "003 Export/ExportHub/Abliefernachweise",
+    "EXPORTHUB_CUSTOMER_PORTAL_KEY": "<nur-in-Azure-App-Settings-speichern; mindestens 32 zufällige Zeichen>",
+    "EXPORTHUB_CUSTOMER_PORTAL_BLOB": "customer-portal-credentials.json"
   }
 }
