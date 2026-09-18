@@ -115,7 +115,7 @@ module.exports = async function(context, req) {
         ok: false,
         code: 'GRAPH_NOT_CONFIGURED',
         message: 'Microsoft Graph ist für die automatische POD-Zweitsicherung nicht vollständig konfiguriert.',
-        version: 'RC1163',
+        version: 'RC1164',
         environment,
         graphConfigured: false,
         missing: graph.missing,
@@ -131,7 +131,7 @@ module.exports = async function(context, req) {
       limit,
       minAgeMs: reference ? 0 : 5 * 60 * 1000
     });
-    context.res = json(200, Object.assign({ version: 'RC1163', reference: reference || null }, result));
+    context.res = json(200, Object.assign({ version: 'RC1164', reference: reference || null }, result));
   } catch (e) {
     try { context.log && context.log.error && context.log.error('RC1144 POD reconcile failed', e && e.code, e && e.message); } catch (_) {}
     context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Nachholung ist fehlgeschlagen.', version: 'RC1144' });
