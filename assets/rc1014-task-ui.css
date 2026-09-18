@@ -202,3 +202,26 @@ body[data-exporthub-task-detail="open"]{
   .rc1152-task-actions{position:sticky;bottom:0;display:grid;grid-template-columns:1fr;background:var(--rc990-page-bg,#f3f6fa);padding:12px 0}
   .rc1152-task-actions .btn{width:100%}
 }
+
+
+/* RC1153 Aufgabenstatus */
+.rc1152-task-status[data-status="in_progress"]{
+  background:#fef3c7;
+  border-color:#f59e0b;
+  color:#92400e;
+}
+.rc1152-task-status[data-status="done"]{
+  background:#dcfce7;
+  border-color:#86efac;
+  color:#166534;
+}
+.rc1152-task-status[data-status="cancelled"]{
+  background:#fee2e2;
+  border-color:#fca5a5;
+  color:#991b1b;
+}
+.rc1152-task-actions .btn:disabled{
+  opacity:.58;
+  cursor:default;
+  box-shadow:none;
+}
