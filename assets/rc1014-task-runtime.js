@@ -12,19 +12,12 @@
   let taskResetInFlight=false;
 
   const MANAGED_TASKS=Object.freeze([
-    {key:'spanien',title:'Spanien anmelden',group:'Anmeldung',weekdays:[1,4],priority:'P3',description:'Spanien gemäß festem Wochenplan anmelden.'},
-    {key:'gaggenau',title:'Gaggenau anmelden',group:'Anmeldung',weekdays:[1],dueTime:'13:00',priority:'P2',description:'Gaggenau montags bis 13:00 Uhr anmelden.'},
-    {key:'faurecia',title:'FAURECIA anmelden',group:'Anmeldung',weekdays:[1],priority:'P3',description:'FAURECIA gemäß festem Wochenplan anmelden.'},
+    {key:'spanien',title:'Spanien anmelden',group:'Anmeldung',weekdays:[1],priority:'P3',description:'Spanien montags anmelden.'},
     {key:'wuerth-industrie',title:'Würth Industrie anmelden',group:'Anmeldung',weekdays:[2,4],priority:'P3',description:'Würth Industrie dienstags und donnerstags anmelden.'},
     {key:'bmp',title:'BMP anmelden',group:'Anmeldung',weekdays:[2],priority:'P3',description:'BMP dienstags anmelden.'},
     {key:'ohare',title:'O’Hare anmelden',group:'Anmeldung',weekdays:[3],dueTime:'12:00',priority:'P2',description:'O’Hare mittwochs bis 12:00 Uhr anmelden.'},
     {key:'essentra-schweden',title:'Essentra Schweden anmelden',group:'Anmeldung',weekdays:[3],priority:'P3',description:'Essentra Schweden mittwochs anmelden.'},
     {key:'contitech-abd',title:'Contitech – ABD erstellen',group:'Export / ABD',weekdays:[3],priority:'P2',description:'Für Contitech mittwochs das erforderliche ABD erstellen.'},
-    {key:'italien',title:'Italien anmelden',group:'Anmeldung',weekdays:[3,5],priority:'P3',description:'Italien mittwochs und freitags anmelden.'},
-    {key:'bsh',title:'BSH anmelden',group:'Anmeldung',weekdays:[3],dueTime:'13:00',priority:'P2',description:'BSH mittwochs bis 13:00 Uhr anmelden.'},
-    {key:'polen',title:'Polen anmelden',group:'Anmeldung',weekdays:[4],priority:'P3',description:'Polen donnerstags anmelden.'},
-    {key:'frankreich',title:'Frankreich anmelden',group:'Anmeldung',weekdays:[5],priority:'P3',description:'Frankreich freitags anmelden.'},
-    {key:'neff',title:'Neff anmelden',group:'Anmeldung',weekdays:[5],dueTime:'13:00',priority:'P2',description:'Neff freitags bis 13:00 Uhr anmelden.'},
     {key:'swiss-area',title:'Schweizer Kunden prüfen',group:'Schweizer Kunden prüfen',referenceArea:true,priority:'P3',description:'Prüfen, ob für die Schweizer Sendungen ein ABD erstellt werden muss.',checklist:['Omni Ray','Bossard','Heizmann']}
   ]);
   const SYSTEM_GROUPS=new Set(['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs']);
@@ -143,17 +136,19 @@
     let tasks=arr(raw).slice(),changed=false;
     const kept=[],removed=[];
     const initialCleanup=!state.rc1152TaskRosterAt;
+    const activeManagedKeys=new Set(MANAGED_TASKS.map(spec=>q(spec&&spec.key)).filter(Boolean));
     const tombstoned=new Set(arr(state._teamSyncMeta&&state._teamSyncMeta.tombstones)
       .filter(item=>q(item&&item.collection).toLowerCase()==='tasks')
       .map(item=>q(item&&item.id).toLowerCase())
       .filter(Boolean));
     tasks.forEach(task=>{
       const managed=q(task&&task.managedBy)==='RC1152';
+      const managedCurrent=managed&&activeManagedKeys.has(q(task&&task.managedKey));
       const type=q(task&&task.sourceType).toLowerCase();
       const isSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual';
       const currentSystem=isSystem&&systemTaskIsCurrent(task,state);
       const wasRemoved=tombstoned.has(q(task&&task.id).toLowerCase());
-      if(managed||currentSystem||(!isSystem&&!initialCleanup&&!wasRemoved))kept.push(task);
+      if(managedCurrent||currentSystem||(!managed&&!isSystem&&!initialCleanup&&!wasRemoved))kept.push(task);
       else removed.push(task);
     });
     if(removed.length){
