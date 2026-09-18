@@ -324,21 +324,41 @@
     if (!response.ok || data.ok === false) throw new Error(data.message || `HTTP ${response.status}`);
     return data;
   }
+  function mountedCalendarIsCurrent(rootElement,state,options){
+    if (!rootElement || rootElement !== mountedRoot || state !== mountedState || options !== mountedOptions) return false;
+    try {
+      const body = root && root.document && root.document.body;
+      const view = String(body && body.getAttribute && body.getAttribute('data-exporthub-view') || '').trim().toLowerCase();
+      if (view && view !== 'pickupcalendar') return false;
+    } catch (_) {}
+    try {
+      return typeof rootElement.querySelector !== 'function' || !!rootElement.querySelector('.pickup-calendar');
+    } catch (_) {
+      return false;
+    }
+  }
   async function loadFixedPickups(){
     if (!mountedState || !mountedOptions || !mountedRoot) return;
-    mountedState.fixedLoading = true;
-    mountedState.fixedError = null;
-    render(mountedRoot,mountedState,mountedOptions.today);
+    const requestRoot = mountedRoot;
+    const requestState = mountedState;
+    const requestOptions = mountedOptions;
+    if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+    requestState.fixedLoading = true;
+    requestState.fixedError = null;
+    render(requestRoot,requestState,requestOptions.today);
     try {
-      const response = await fetch('/api/fixed-pickups?includeInactive=1',{method:'GET',credentials:'same-origin',headers:requestHeaders(mountedOptions)});
+      const response = await fetch('/api/fixed-pickups?includeInactive=1',{method:'GET',credentials:'same-origin',headers:requestHeaders(requestOptions)});
       const data = await readResponse(response);
-      mountedState.fixedPickups = Array.isArray(data.items) ? data.items : [];
-      mountedState.canEdit = data.canEdit === true;
+      if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+      requestState.fixedPickups = Array.isArray(data.items) ? data.items : [];
+      requestState.canEdit = data.canEdit === true;
     } catch (e) {
-      mountedState.fixedError = e && e.message || 'Fixe Abholungen konnten nicht geladen werden.';
+      if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+      requestState.fixedError = e && e.message || 'Fixe Abholungen konnten nicht geladen werden.';
     } finally {
-      mountedState.fixedLoading = false;
-      render(mountedRoot,mountedState,mountedOptions.today);
+      if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
+      requestState.fixedLoading = false;
+      render(requestRoot,requestState,requestOptions.today);
     }
   }
   async function saveFixed(method, payload){
@@ -421,14 +441,14 @@
     return { state: mountedState, refresh: loadFixedPickups, setShipments, setWeekOffset, printWeek: printCurrentWeek };
   }
   function setShipments(shipments, errorMessage){
-    if (!mountedState || !mountedRoot) return;
+    if (!mountedState || !mountedRoot || !mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) return;
     mountedState.shipments = Array.isArray(shipments) ? shipments : [];
     mountedState.shipmentError = errorMessage ? String(errorMessage) : null;
     mountedState.shipmentLoading = false;
     render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
   }
   function setShipmentLoading(loading){
-    if (!mountedState || !mountedRoot) return;
+    if (!mountedState || !mountedRoot || !mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) return;
     mountedState.shipmentLoading = loading === true;
     render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
   }
