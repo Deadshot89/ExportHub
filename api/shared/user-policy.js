@@ -22,6 +22,12 @@ function isAdmin(user) {
   ));
 }
 
+function normalizeCustomerPortalRights(value, admin) {
+  const source = value && typeof value === 'object' ? value : {};
+  const manage = admin || source.manage === true;
+  return { use: admin || source.use === true || manage, manage };
+}
+
 function defaultRights(admin) {
   const result = {};
   for (const id of MODULES) {
@@ -39,6 +45,7 @@ function defaultRights(admin) {
     level: admin ? 'admin' : 'none', visible: !!admin, read: !!admin,
     edit: !!admin, admin: !!admin, functionAdmin: !!admin
   };
+  result.customerPortal = normalizeCustomerPortalRights({}, admin);
   return result;
 }
 
@@ -67,6 +74,7 @@ function normalizeRights(value, admin) {
       functionAdmin: level === 'admin'
     };
   }
+  result.customerPortal = normalizeCustomerPortalRights(source.customerPortal, admin);
   return result;
 }
 
@@ -168,6 +176,7 @@ module.exports = {
   applyUserPolicy,
   normalizeUser,
   normalizeRights,
+  normalizeCustomerPortalRights,
   dedupeUsers,
   isAdmin,
   countAdmins,
