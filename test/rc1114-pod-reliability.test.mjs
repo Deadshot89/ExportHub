@@ -135,4 +135,5 @@ test('RC1114: Drei-Umgebungen-Build übernimmt aktuelle POD-API',()=>{
   assert.match(build,/fs\.cpSync\(currentApi,builtApi,\{recursive:true,force:true\}\)/);
   assert.match(build,/shared\/pod-archive\.js/);
   assert.match(build,/podReliability:'RC1114 server-side Azure primary \+ Microsoft 365 retry'/);
+  assert.match(build,/podGraphReadiness:'RC1164 fail-closed Graph configuration gate before reconcile'/);
 });
