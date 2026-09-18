@@ -9,6 +9,11 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 test('RC1160: Kundenportal-Runtime und API sind syntaktisch gültig',()=>{
   for(const file of ['assets/rc1160-customer-portal-credentials.js','api/customer-portal-credentials/index.js','api/shared/customer-portal-store.js','api/shared/auth-store.js','api/shared/user-policy.js'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 });
+test('RC1160: Kundenportal-Runtime enthält keine RC1159-Versionsreste',()=>{
+  assert.doesNotMatch(ui,/RC1159|rc1159|CustomerPortal1159/);
+  assert.match(ui,/__EXPORTHUB_RC1160_CUSTOMER_PORTAL__/);
+  assert.match(ui,/ExportHUBCustomerPortal1160/);
+});
 test('RC1160: UI zeigt sensible Funktionen nur über customerPortal Rechte',()=>{
   assert.match(ui,/rights&&u\.rights\.customerPortal|u\.rights&&u\.rights\.customerPortal/);
   assert.match(ui,/r\.use===true\|\|r\.manage===true/);
