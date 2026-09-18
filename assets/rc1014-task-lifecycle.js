@@ -56,6 +56,7 @@
     const status=low(raw);
     if(!status||status==='open'||status==='offen')return 'open';
     if(status==='done'||status==='erledigt')return 'done';
+    if(status==='in_progress'||status==='in progress'||status==='in bearbeitung'||status==='bearbeitung')return 'in_progress';
     if(status==='cancelled'||status==='canceled'||status==='storniert')return 'cancelled';
     return raw;
   }
@@ -188,7 +189,7 @@
 
   function reminderCandidates(tasks,ctx={}){
     return visibleTasks(tasks,ctx)
-      .filter(t=>t.status==='open')
+      .filter(t=>t.status==='open'||t.status==='in_progress')
       .sort((a,b)=>compareTasks(a,b,ctx.now));
   }
 
@@ -265,7 +266,7 @@
       let task=normalizeTask(original,ctx);
       const before=lifecycleFingerprint(task);
       task=resolveAssignee(task,ctx);
-      if(task.status==='open'){
+      if(task.status==='open'||task.status==='in_progress'){
         if(task.group==='Fehlende POD'){
           const shipment=findShipment(task,domain);
           if(shipment&&fullyCollected(shipment)&&hasPod(shipment))task=markDone(task,'system:pod',ctx);
