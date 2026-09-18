@@ -128,7 +128,7 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1014-task-runtime\.js\?v=1016/g,'assets/rc1014-task-runtime.js?v=1156');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=1016/g,'assets/rc1014-task-ui.css?v=1152');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
-  html=html.replace(/assets\/rc1081-audit-history\.js\?v=(?:1087|1126)/g,'assets/rc1081-audit-history.js?v=1159');
+  html=html.replace(/assets\/rc1081-audit-history\.js\?v=(?:1087|1126)/g,'assets/rc1081-audit-history.js?v=1160');
   html=html.replace(/assets\/rc1071-shipment-history\.js\?v=1095/g,'assets/rc1071-shipment-history.js?v=1151');
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1063/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1151');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
@@ -136,7 +136,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1133-avis-upload-notifications" defer src="/assets/rc1133-avis-upload-notifications.js?v=1133"></script>','exporthub-rc1133-avis-upload-notifications');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1159-customer-portal" defer src="/assets/rc1159-customer-portal-credentials.js?v=1159"></script>','exporthub-rc1159-customer-portal');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1160-customer-portal" defer src="/assets/rc1160-customer-portal-credentials.js?v=1160"></script>','exporthub-rc1159-customer-portal');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
@@ -153,7 +153,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
   if(!html.includes('assets/rc1133-avis-upload-notifications.js?v=1133'))throw new Error(file+': RC1133 AVIS-Upload-Benachrichtigungen fehlen');
-  if(!html.includes('assets/rc1159-customer-portal-credentials.js?v=1159'))throw new Error(file+': RC1160 Kundenportal-Runtime fehlt');
+  if(!html.includes('assets/rc1160-customer-portal-credentials.js?v=1160'))throw new Error(file+': RC1160 Kundenportal-Runtime fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
   if(!/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/.test(html))throw new Error(file+': RC1159 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
@@ -181,7 +181,7 @@ for(const rel of [
   'assets/rc1126-customer-delete.js',
   'assets/rc1133-avis-upload-notifications.js',
   'assets/rc1081-audit-history.js',
-  'assets/rc1159-customer-portal-credentials.js'
+  'assets/rc1160-customer-portal-credentials.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
