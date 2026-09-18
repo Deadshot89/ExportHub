@@ -83,7 +83,7 @@ function patchDeckblattHighVisibility(html,file){
     refs++;
     var next=body
       .replace('background:#08245d','background:#facc15')
-      .replace('border:3px solid #60a5fa','border:4px solid #111827')
+      .replace('border:3px solid #60a5fa','border:3mm solid #111827')
       .replace('color:#fff!important','color:#111827!important');
     return '.rc352-cover-ref{'+next+'}'
   });
@@ -153,7 +153,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
   if(!html.includes('assets/rc1133-avis-upload-notifications.js?v=1133'))throw new Error(file+': RC1133 AVIS-Upload-Benachrichtigungen fehlen');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
-  if(!/\.rc352-cover-ref\{[^}]*background:#facc15[^}]*\}/.test(html))throw new Error(file+': RC1148 Deckblatt-Referenzfeld ist keine gültige CSS-Regel');
+  if(!/\.rc352-cover-ref\{[^}]*background:#facc15[^}]*border:3mm solid #111827[^}]*\}/.test(html))throw new Error(file+': RC1159 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
   if(file==='demo.html'){
     if(!html.includes("namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;"))throw new Error(file+': RC1131 Demo/Testservice-Origin nicht getrennt');
@@ -225,7 +225,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1148 open/print + user + filename',
-    deckblattHighVisibility:'RC1148 valid print-safe 10mm frame + 18mm top band + yellow reference'
+    deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border'
   },
   compatibility:{
     qr:'stable-existing-links',
