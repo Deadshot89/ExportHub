@@ -95,6 +95,17 @@ function patchDeckblattHighVisibility(html,file){
   return html
 }
 
+function patchShipmentSuspendSave(html,file){
+  const anchor="function flushEditSave(reason,keepalive){";
+  const replacement="function flushEditSave(reason,keepalive){if(!editSaveReason&&!editSaveTimer&&/vor (?:App-Wechsel|Verlassen)/.test(q(reason)))return true;";
+  const count=html.split(anchor).length-1;
+  if(count!==1)throw new Error(file+': RC1155 flushEditSave-Anker '+count+'x gefunden');
+  html=html.replace(anchor,replacement);
+  if(!html.includes("Sendungseingabe vor Verlassen gespeichert"))throw new Error(file+': RC1155 Shipment-pagehide-Anker fehlt');
+  if(!html.includes("!editSaveReason&&!editSaveTimer"))throw new Error(file+': RC1155 No-op Suspend-Save Guard fehlt');
+  return html
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -102,6 +113,7 @@ function patchHtml(file){
   html=patchNotificationTasks(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchDeckblattHighVisibility(html,file);
+  html=patchShipmentSuspendSave(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1048',cache:'1048',loginReturn:'([^']*)'\}\);/,
