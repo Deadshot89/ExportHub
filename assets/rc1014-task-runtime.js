@@ -179,7 +179,7 @@
   function linkedShipmentTarget(task,ctx={}){
     const state=ctx.state||sharedState()||{};
     const refs=[q(task&&task.linkedShipmentId),q(task&&task.sourceId),q(task&&task.linkedShipmentRef),q(task&&task.sourceRef)].filter(Boolean);
-    const hit=arr(state.shipments||state.savedShipments).find(sh=>refs.includes(q(sh&&sh.id))||refs.includes(q(sh&&sh.shipmentId))||refs.includes(q(sh&&sh.ref))||refs.includes(q(sh&&sh.reference)));
+    const hit=arr(state.shipments).concat(arr(state.savedShipments)).find(sh=>refs.includes(q(sh&&sh.id))||refs.includes(q(sh&&sh.shipmentId))||refs.includes(q(sh&&sh.ref))||refs.includes(q(sh&&sh.reference)));
     return hit?q(hit.ref||hit.reference||hit.id||hit.shipmentId):'';
   }
 
@@ -466,7 +466,8 @@
     root.addEventListener('DOMContentLoaded',installLazyCardObserver,{once:true});
   }
   installLazyCardObserver();
-  scheduleProductionTaskReset();
+  // RC1152: Der frühere pauschale Produktions-Reset wird nicht mehr automatisch gestartet.
+  // Altaufgaben werden ausschließlich gezielt in prepareManagedRoster() bereinigt.
 
   if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
 
