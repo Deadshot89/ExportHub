@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import {
   appEntry,
   waitReady,
+  settleStateSave,
   openExportHubView,
   assertNoSourceLeak,
   assertNoHorizontalOverflow,
@@ -80,6 +81,7 @@ test('RC1124 P0: Browser Zurück/Vor und F5 behalten die fachliche View',async({
   await openExportHubView(page,'dashboard',['Dashboard'],/Dashboard/i);
   await openExportHubView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Colli|Lademeter/i);
   await openExportHubView(page,'tasks',['Aufgaben'],/Aufgaben|POD/i);
+  await settleStateSave(page,{timeout:25_000});
 
   await page.goBack({timeout:10_000}).catch(()=>null);
   await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Colli|Lademeter/i);
@@ -87,8 +89,10 @@ test('RC1124 P0: Browser Zurück/Vor und F5 behalten die fachliche View',async({
 
   await page.goForward({timeout:10_000}).catch(()=>null);
   await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Aufgaben|POD/i);
+  await settleStateSave(page,{timeout:25_000});
   await page.reload({waitUntil:'domcontentloaded'});
   await waitReady(page);
+  await settleStateSave(page,{timeout:25_000});
   await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Aufgaben|POD/i);
   await assertView(page);
   await assertRuntimeClean(runtime,testInfo);
@@ -166,12 +170,18 @@ test('RC1127 P0: Sendungsübersicht zeigt vom Kunden erfasstes Abholdatum in der
     sh.avisPickupTimeTo='12:00';
     sh.customerConfirmed=true;
     sh.customerConfirmedVia='customer-avis';
-    return true;
+    return {
+      id:String(sh.id||sh.shipmentId||'').trim(),
+      ref:String(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||'').trim()
+    };
   });
-  expect(seeded).toBe(true);
+  expect(seeded).toBeTruthy();
+  expect(seeded.ref||seeded.id).toBeTruthy();
 
   await openExportHubView(page,'shipmentoverview',['Sendungsübersicht','Sendungen'],/Sendungsübersicht|Sendungen/i,{allowProgrammaticFallback:true});
-  const pickup=page.locator('[data-rc1127-customer-pickup]').first();
+  const shipmentCard=page.locator('#content article,#content .card').filter({hasText:seeded.ref||seeded.id}).first();
+  await expect(shipmentCard).toBeVisible({timeout:10_000});
+  const pickup=shipmentCard.locator('[data-rc1127-customer-pickup]').first();
   await expect(pickup).toBeVisible({timeout:10_000});
   await expect(pickup).toHaveText('Kunden-Abholung: 18.09.2026 · 10:00–12:00');
   await assertNoSourceLeak(page);
