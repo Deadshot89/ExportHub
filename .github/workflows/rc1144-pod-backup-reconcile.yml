@@ -43,27 +43,29 @@ jobs:
               | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
           )"
 
-          result="$(
-            curl -fsSL \
+          response_file="$(mktemp)"
+          http_code="$(
+            curl -sS -L -o "$response_file" -w '%{http_code}' \
               -H "Content-Type: application/json" \
               -H "x-exporthub-github-oidc: $oidc_token" \
               -H "x-exporthub-environment: $TARGET_ENV" \
               -d '{"environment":"testservice","limit":25}' \
-              "$BASE_URL/api/pod-backup-reconcile"
+              "$BASE_URL/api/pod-backup-reconcile" || true
           )"
+          result="$(cat "$response_file")"
+          rm -f "$response_file"
 
           printf '%s\n' "$result" | node -e "
-            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
-              const v=JSON.parse(s);
-              console.log('TESTSERVICE POD reconcile',JSON.stringify({scanned:v.scanned,selected:v.selected,savedCount:v.savedCount,pendingCount:v.pendingCount,errorCount:v.errorCount,saved:v.saved,pending:v.pending,errors:v.errors}));
-              if(!v.ok||Number(v.errorCount||0)>0)process.exit(3);
-            })"
+            let s='';const status=Number(process.argv[1]||0);process.stdin.on('data',c=>s+=c).on('end',()=>{
+              let v={};try{v=JSON.parse(s||'{}')}catch(_){}
+              const safe={httpStatus:status,code:v.code,message:v.message,environment:v.environment,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,selected:v.selected,savedCount:v.savedCount,pendingCount:v.pendingCount,errorCount:v.errorCount};
+              console.log('TESTSERVICE POD reconcile',JSON.stringify(safe));
+              if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0)process.exit(3);
+            })" "$http_code"
 
   production:
     name: POD-Backup-Nachholung PRODUCTION
-    needs:
-      - testservice
-    if: ${{ needs.testservice.result == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -83,18 +85,22 @@ jobs:
               | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
           )"
 
-          result="$(
-            curl -fsSL \
+          response_file="$(mktemp)"
+          http_code="$(
+            curl -sS -L -o "$response_file" -w '%{http_code}' \
               -H "Content-Type: application/json" \
               -H "x-exporthub-github-oidc: $oidc_token" \
               -H "x-exporthub-environment: $TARGET_ENV" \
               -d '{"environment":"production","limit":25}' \
-              "$BASE_URL/api/pod-backup-reconcile"
+              "$BASE_URL/api/pod-backup-reconcile" || true
           )"
+          result="$(cat "$response_file")"
+          rm -f "$response_file"
 
           printf '%s\n' "$result" | node -e "
-            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
-              const v=JSON.parse(s);
-              console.log('PRODUCTION POD reconcile',JSON.stringify({scanned:v.scanned,selected:v.selected,savedCount:v.savedCount,pendingCount:v.pendingCount,errorCount:v.errorCount,saved:v.saved,pending:v.pending,errors:v.errors}));
-              if(!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(4);
-            })"
+            let s='';const status=Number(process.argv[1]||0);process.stdin.on('data',c=>s+=c).on('end',()=>{
+              let v={};try{v=JSON.parse(s||'{}')}catch(_){}
+              const safe={httpStatus:status,code:v.code,message:v.message,environment:v.environment,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,selected:v.selected,savedCount:v.savedCount,pendingCount:v.pendingCount,errorCount:v.errorCount};
+              console.log('PRODUCTION POD reconcile',JSON.stringify(safe));
+              if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(4);
+            })" "$http_code"
