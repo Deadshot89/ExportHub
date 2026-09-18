@@ -1,0 +1,119 @@
+name: RC1153 TESTSERVICE Release-Center Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1153-testservice-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: exporthub-rc1153-testservice-sync
+  cancel-in-progress: false
+
+jobs:
+  sync_testservice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1112 TESTSERVICE Paket bauen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+          grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
+          grep -q "version:'RC1112'" dist-rc1112/TESTVERSION.html
+
+          rm -rf .rc1153_testservice_app
+          mkdir -p .rc1153_testservice_app
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html .rc1153_testservice_app/
+          cp dist-rc1112/production-version.js .rc1153_testservice_app/production-version.js
+          cp -R assets .rc1153_testservice_app/assets
+          cp -R dist-rc1112/assets/. .rc1153_testservice_app/assets/
+          cp staticwebapp.testservice.config.json .rc1153_testservice_app/staticwebapp.config.json
+          cp dist-rc1112/TESTVERSION.html .rc1153_testservice_app/index.html
+          cp dist-rc1112/TESTVERSION.html .rc1153_testservice_app/TESTVERSION.html
+          cp dist-rc1112/demo.html .rc1153_testservice_app/demo.html
+          test -s .rc1153_testservice_app/TESTVERSION.html
+          test -s .rc1153_testservice_app/assets/rc1027-lieferavis-immediate.js
+          test -s .rc1153_testservice_app/assets/abholkalender.js
+
+      - name: Deploy nur TESTSERVICE
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1153_testservice_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice
+
+      - name: Release-Center auf RC1112 synchronisieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          page="$(mktemp)"
+          response="$(mktemp)"
+          trap 'rm -f "$page" "$response"' EXIT
+
+          ready=0
+          for attempt in {1..30}; do
+            code="$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/TESTVERSION.html?rc1153-sync=${GITHUB_SHA}-${attempt}" || true)"
+            if [ "$code" = "200" ] && grep -q "version:'RC1112'" "$page"; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          [ "$ready" = "1" ] || { echo 'RC1153: TESTSERVICE meldet RC1112 nicht.' >&2; exit 1; }
+
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-release-activate-test" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+
+          payload='{"version":"RC1112","sha":"'"$GITHUB_SHA"'","title":"RC1112 TESTSERVICE Deploy"}'
+          status="$(
+            curl -sS \
+              -o "$response" \
+              -w '%{http_code}' \
+              -X POST \
+              -H 'Content-Type: application/json' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -d "$payload" \
+              "$base/api/exporthub-release?action=activate-deployed-test"
+          )"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            cat "$response" >&2
+            echo "RC1153: Aktivierung HTTP $status" >&2
+            exit 1
+          fi
+          node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(v.ok!==true||v.test!=='RC1112')throw new Error('Aktivierung fehlgeschlagen')" "$response"
+
+          active="$(curl -fsS "$base/api/exporthub-release?action=active&channel=test&_=${GITHUB_SHA}")"
+          ACTIVE="$active" node -e "const v=JSON.parse(process.env.ACTIVE);if(v.ok!==true||v.version!=='RC1112')throw new Error('Aktive Testversion ist '+String(v.version||'leer')+' statt RC1112')"
+          echo 'RC1153 OK: Aktive Testversion RC1112'
+
+      - name: Produktionsschutz bestätigen
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'Dieser Workflow deployt ausschließlich TESTSERVICE und führt keinen Produktionsdeploy aus.'
