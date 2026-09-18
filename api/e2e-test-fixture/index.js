@@ -83,7 +83,7 @@ async function githubOidcAuthorized(req){
  }catch(_){return false}
 }
 function e2eRights(){
- const allowed=new Set(['start','dashboard','shipment','shipmentoverview','shipmentview','documents','tasks','notifications','pickupcalendar','customerfolder','warehouse','pallet','shippingcosts','customs','sop','academy','exams']);
+ const allowed=new Set(['start','dashboard','shipment','shipmentoverview','shipmentview','documents','tasks','notifications','pickupcalendar','customerfolder','warehouse','pallet','shippingcosts','customs','sop','academy','exams','history']);
  const rights={};
  for(const id of MODULES){
   const edit=allowed.has(id);
