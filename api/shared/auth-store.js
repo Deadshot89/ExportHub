@@ -66,6 +66,17 @@ async function testserviceClients() {
     auth: container.getBlockBlobClient(AUTH_BLOB)
   };
 }
+function environmentFromRequest(req) {
+  const headers = req && req.headers || {};
+  const host = lower(headers['x-forwarded-host'] || headers['x-original-host'] || headers.host || headers.Host || '');
+  if (/-testservice\./.test(host)) return 'testservice';
+  if (/\.azurestaticapps\.net(?:[:/]|$)/.test(host)) return 'production';
+  const requested = lower(headers['x-exporthub-environment'] || headers['X-ExportHUB-Environment'] || '');
+  return requested === 'testservice' ? 'testservice' : 'production';
+}
+async function clientsForEnvironment(environment) {
+  return lower(environment) === 'testservice' ? testserviceClients() : clients();
+}
 function parseStoredJson(raw, blobName) {
   const cleaned = String(raw == null ? '' : raw).replace(/^\uFEFF/, '').replace(/\u0000+$/g, '').trim();
   if (!cleaned) return null;
@@ -204,8 +215,8 @@ function addAudit(team, type, actor, details = {}) {
   }).slice(-4999);
   team.state.auditLog.push({ id: randomId('AUD'), type, actor: text(actor) || 'System', at: now(), details: clean });
 }
-async function mutateTeam(mutator) {
-  const c = await clients();
+async function mutateTeamForEnvironment(environment, mutator) {
+  const c = await clientsForEnvironment(environment);
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
     const d = await readJson(c.team, emptyTeam());
     const team = applyUserPolicy(d.value || emptyTeam());
@@ -221,6 +232,12 @@ async function mutateTeam(mutator) {
     }
   }
   throw error('CONCURRENT_UPDATE', 'Die Benutzeränderung konnte wegen paralleler Änderungen nicht gespeichert werden.', 409);
+}
+async function mutateTeamForRequest(req, mutator) {
+  return mutateTeamForEnvironment(environmentFromRequest(req), mutator);
+}
+async function mutateTeam(mutator) {
+  return mutateTeamForEnvironment('production', mutator);
 }
 async function mutateAuth(mutator) {
   const c = await clients();
@@ -414,11 +431,11 @@ async function revokeUserSessions(userId, reason, exceptSessionId) {
 
 module.exports = {
   TEAM_CONTAINER, TEAM_BLOB, TEST_TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
-  clone, text, lower, now, json, error, body, clients, testserviceClients, parseStoredJson, readJson, writeJson,
+  clone, text, lower, now, json, error, body, clients, testserviceClients, clientsForEnvironment, environmentFromRequest, parseStoredJson, readJson, writeJson,
   emptyTeam, emptyAuth, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
   sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
   passwordPolicy, passwordWasUsed, setPassword, generatedPassword, addAudit,
-  mutateTeam, mutateAuth, bearer, cookieToken, sessionCookie, createSession, validateSession, hasAnyEditRight,
+  mutateTeam, mutateTeamForEnvironment, mutateTeamForRequest, mutateAuth, bearer, cookieToken, sessionCookie, createSession, validateSession, hasAnyEditRight,
   adminCount, findUser, sanitizeDocumentForClient, revokeUserSessions, safeEqualText
 };
