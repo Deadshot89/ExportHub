@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import {
   appEntry,
   waitReady,
+  settleStateSave,
   openExportHubView,
   assertNoSourceLeak,
   assertNoHorizontalOverflow,
@@ -80,6 +81,7 @@ test('RC1124 P0: Browser Zurück/Vor und F5 behalten die fachliche View',async({
   await openExportHubView(page,'dashboard',['Dashboard'],/Dashboard/i);
   await openExportHubView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Colli|Lademeter/i);
   await openExportHubView(page,'tasks',['Aufgaben'],/Aufgaben|POD/i);
+  await settleStateSave(page,{timeout:25_000});
 
   await page.goBack({timeout:10_000}).catch(()=>null);
   await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Colli|Lademeter/i);
@@ -87,8 +89,10 @@ test('RC1124 P0: Browser Zurück/Vor und F5 behalten die fachliche View',async({
 
   await page.goForward({timeout:10_000}).catch(()=>null);
   await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Aufgaben|POD/i);
+  await settleStateSave(page,{timeout:25_000});
   await page.reload({waitUntil:'domcontentloaded'});
   await waitReady(page);
+  await settleStateSave(page,{timeout:25_000});
   await expect.poll(()=>page.locator('#content').innerText(),{timeout:10_000}).toMatch(/Aufgaben|POD/i);
   await assertView(page);
   await assertRuntimeClean(runtime,testInfo);
