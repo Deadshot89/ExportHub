@@ -1,0 +1,25 @@
+name: RC1154 Browser Gate Fix Verify
+on:
+  push:
+    branches:
+      - fix/rc1154-testservice-browser-gate
+  pull_request:
+    branches: [main]
+    paths:
+      - 'e2e/helpers/exporthub-browser.mjs'
+      - 'e2e/specs/navigation.spec.mjs'
+      - 'e2e/specs/testservice-mutation.spec.mjs'
+      - 'test/rc1016-production-deploy.test.mjs'
+      - 'test/rc1154-testservice-browser-gate.test.mjs'
+      - '.github/workflows/rc1154-browser-gate-fix.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: node --test test/rc1154-testservice-browser-gate.test.mjs test/rc1016-production-deploy.test.mjs
