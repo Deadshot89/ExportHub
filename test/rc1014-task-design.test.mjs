@@ -79,3 +79,36 @@ test('RC1014 Direktöffnung blockiert fremde Firma und Umgebung',()=>{
   assert.equal(api.openTask({sourceType:'shipment',sourceId:'S2',sourceRef:'DEF456',companyId:'essentra',environment:'testservice'},ctx),false);
   assert.deepEqual(opened,[]);
 });
+
+
+test('RC1153 Aufgabenansicht bietet Offen In Bearbeitung und Erledigt',()=>{
+  const runtime=read('assets/rc1014-task-runtime.js');
+  assert.match(runtime,/data-task-action="open"/);
+  assert.match(runtime,/data-task-action="in_progress"/);
+  assert.match(runtime,/data-task-action="done"/);
+  assert.match(runtime,/In Bearbeitung/);
+  assert.match(runtime,/function\s+setTaskStatus\s*\(/);
+});
+
+test('RC1153 entfernt Altaufgaben wiederholt und behält nur aktuelle Systemquellen',()=>{
+  const {api}=loadRuntime();
+  const state={
+    tasks:[],
+    shipments:[{id:'S1',ref:'ABC123',status:'Erstellt'}],
+    _teamSyncMeta:{fields:{},tombstones:[]},
+    rc1152TaskRosterAt:'2026-09-17T08:00:00.000Z'
+  };
+  const raw=[
+    {id:'legacy-manual',title:'Alte Aufgabe',group:'Sonstiges',sourceType:'manual',companyId:'essentra',environment:'production'},
+    {id:'stale-pod',title:'POD hochladen',group:'Fehlende POD',sourceType:'pod',sourceId:'S2',sourceRef:'ZZZZZZ',companyId:'essentra',environment:'production'},
+    {id:'current-pod',title:'POD hochladen',group:'Fehlende POD',sourceType:'pod',sourceId:'S1',sourceRef:'ABC123',companyId:'essentra',environment:'production'},
+    {id:'managed-old',managedBy:'RC1152',managedKey:'wuerth-industrie',title:'Würth Industrie anmelden',group:'Anmeldung',sourceType:'manual',companyId:'essentra',environment:'production'}
+  ];
+  const result=api.prepareManagedRoster(raw,{state,companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-18T08:00:00+02:00'});
+  assert.equal(result.tasks.some(t=>t.id==='legacy-manual'),false);
+  assert.equal(result.tasks.some(t=>t.id==='stale-pod'),false);
+  assert.equal(result.tasks.some(t=>t.id==='current-pod'),true);
+  assert.equal(result.tasks.some(t=>t.id==='managed-old'),true);
+  assert.equal(state._teamSyncMeta.tombstones.some(t=>t.id==='legacy-manual'),true);
+  assert.equal(state._teamSyncMeta.tombstones.some(t=>t.id==='stale-pod'),true);
+});
