@@ -71,7 +71,7 @@ test('RC1152: Runtime enthält echte Aufgabenansicht statt Direktöffnung der Se
   assert.match(runtimeSource,/Zurück zu Aufgaben/);
   assert.match(runtimeSource,/Als erledigt markieren/);
   assert.match(runtimeSource,/Zugehörige Sendung/);
-  assert.match(runtimeSource,/data\.rc1152TaskOpen/);
+  assert.match(runtimeSource,/card\.dataset\.rc1152TaskOpen/);
 });
 
 test('RC1152: aktiver RC1112 Build cache-bustet und kopiert Aufgaben-Runtime sowie CSS',()=>{
