@@ -14,6 +14,19 @@ function clean(value){
     .replace(/(authorization\s*[:=]\s*bearer\s+)[^\s]+/gi,'$1[REDACTED]');
 }
 
+async function scrollMenuItemIntoView(page,item){
+  await item.evaluate(el=>{
+    const nav=el.closest&&el.closest('#nav');
+    if(nav){
+      const target=Math.max(0,el.offsetTop-(nav.clientHeight-el.offsetHeight)/2);
+      if(typeof nav.scrollTo==='function')nav.scrollTo({top:target,behavior:'auto'});
+      else nav.scrollTop=target;
+    }
+  }).catch(()=>{});
+  await item.scrollIntoViewIfNeeded().catch(()=>{});
+  await pause(100);
+}
+
 async function visible(page,locator,options={}){
   const count=await locator.count().catch(()=>0);
   const viewport=page.viewportSize();
@@ -21,13 +34,13 @@ async function visible(page,locator,options={}){
   for(let i=count-1;i>=0;i--){
     const item=locator.nth(i);
     if(!(await item.isVisible().catch(()=>false)))continue;
+    if(allowScroll)await scrollMenuItemIntoView(page,item);
     let box=await item.boundingBox().catch(()=>null);
     if(!box||!viewport)return item;
     let intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
     if(intersects)return item;
     if(!allowScroll)continue;
-    await item.scrollIntoViewIfNeeded().catch(()=>{});
-    await pause(60);
+    await scrollMenuItemIntoView(page,item);
     box=await item.boundingBox().catch(()=>null);
     if(!box)return null;
     intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
@@ -36,13 +49,19 @@ async function visible(page,locator,options={}){
   return null;
 }
 
+async function waitForMenuOpen(page,timeout=3000){
+  return page.waitForFunction(()=>document.body?.classList.contains('eh-sidebar-open')||
+    (window.ExportHUBMobileMenu&&typeof window.ExportHUBMobileMenu.isOpen==='function'&&window.ExportHUBMobileMenu.isOpen()),
+    null,{timeout}).then(()=>true).catch(()=>false);
+}
+
 async function openMenu(page){
+  if(await waitForMenuOpen(page,150))return true;
   for(const selector of ['#rc1016MobileMenuBtn','#ehMenuBtn']){
     const button=await visible(page,page.locator(selector));
     if(!button)continue;
     await button.click({timeout:5000}).catch(()=>{});
-    await pause(150);
-    return true;
+    if(await waitForMenuOpen(page))return true;
   }
   return false;
 }
