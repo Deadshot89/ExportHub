@@ -195,7 +195,7 @@ for(const rel of [
   fs.copyFileSync(src,dst);
   if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
 }
-for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','pickup-confirm-v2/index.js','pod-backup/index.js','package.json']){
+for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','pickup-confirm-v2/index.js','pod-backup/index.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }
 const rc1114PickupSource=path.join(ROOT,'pickup.html');
@@ -243,7 +243,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     customerPortalCredentials:'RC1160 AES-256-GCM + re-auth + use/manage rights',
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
     avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',
-    diagnosticsNonAdminProof:'RC1169 live non-admin rights view + diagnostics-read 403'
+    diagnosticsNonAdminProof:'RC1169 live non-admin rights view + diagnostics-read 403',
+    customerPortalReleaseReadiness:'RC1170 OIDC live configured=true gate in TESTSERVICE and PRODUCTION'
   },
   compatibility:{
     qr:'stable-existing-links',
