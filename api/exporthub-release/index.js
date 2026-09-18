@@ -13,6 +13,12 @@ const GH_PATH = process.env.EXPORTHUB_GITHUB_PATH || 'index.html';
 const GH_TOKEN = process.env.EXPORTHUB_GITHUB_TOKEN || '';
 const GH_DISCOVER_LIMIT = Math.max(5, Math.min(30, Number(process.env.EXPORTHUB_GITHUB_RELEASE_LIMIT || 14)));
 const GH_SYNC_TTL_MS = 30000;
+const RELEASE_WORKFLOW = 'azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
+const OIDC_JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/jwks';
+const OIDC_AUDIENCE = 'exporthub-release-activate-test';
+const TESTSERVICE_ORIGIN = process.env.EXPORTHUB_TESTSERVICE_ORIGIN || 'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+let oidcCache={expiresAt:0,keys:[]};
 
 function text(v){return String(v==null?'':v).trim();}
 function lower(v){return text(v).toLowerCase();}
@@ -21,6 +27,31 @@ function safeVersion(v){const m=text(v).toUpperCase().match(/^RC(\d{1,7})$/);ret
 function versionNum(v){const m=safeVersion(v).match(/\d+/);return m?Number(m[0]):0;}
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},body:JSON.stringify(body)};}
 function parseBody(req){if(req&&req.body&&typeof req.body==='object'&&!Buffer.isBuffer(req.body))return req.body;const raw=Buffer.isBuffer(req&&req.body)?req.body.toString('utf8'):text(req&&(req.rawBody!=null?req.rawBody:req.body));if(!raw)return{};try{return JSON.parse(raw)}catch(_){return{}}}
+function header(req,name){const h=req&&req.headers||{};return h[String(name||'').toLowerCase()]||h[name]||'';}
+async function githubOidcAuthorized(req){
+  const token=text(header(req,'x-exporthub-github-oidc'));if(!token)return false;
+  try{
+    const parts=token.split('.');if(parts.length!==3)return false;
+    const jose=JSON.parse(Buffer.from(parts[0],'base64url').toString('utf8'));
+    const claims=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));
+    if(jose.alg!=='RS256'||!text(jose.kid))return false;
+    const at=Math.floor(Date.now()/1000),aud=Array.isArray(claims.aud)?claims.aud:[claims.aud];
+    if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
+    if(claims.repository!==GH_OWNER+'/'+GH_REPO||claims.ref!=='refs/heads/main')return false;
+    if(!['push','workflow_dispatch'].includes(text(claims.event_name)))return false;
+    if(claims.workflow_ref!==GH_OWNER+'/'+GH_REPO+'/.github/workflows/'+RELEASE_WORKFLOW+'@refs/heads/main')return false;
+    if(!Number(claims.exp)||Number(claims.exp)<=at-30)return false;
+    if(Number(claims.nbf||0)>at+60||Number(claims.iat||0)>at+60||Number(claims.iat||0)<at-1800)return false;
+    if(!oidcCache.keys.length||oidcCache.expiresAt<Date.now()){
+      const response=await fetch(OIDC_JWKS_URL,{headers:{Accept:'application/json','User-Agent':'ExportHUB-Release-Center'},cache:'no-store'});
+      if(!response.ok)return false;
+      const jwks=await response.json();oidcCache={expiresAt:Date.now()+10*60*1000,keys:Array.isArray(jwks.keys)?jwks.keys:[]};
+    }
+    const jwk=oidcCache.keys.find(k=>k&&k.kid===jose.kid&&k.kty==='RSA');if(!jwk)return false;
+    const key=crypto.createPublicKey({key:jwk,format:'jwk'});
+    return crypto.verify('RSA-SHA256',Buffer.from(parts[0]+'.'+parts[1]),key,Buffer.from(parts[2],'base64url'));
+  }catch(_){return false}
+}
 function detectVersion(html){const s=String(html||'');let m=s.match(/version\s*:\s*['\"](RC\d+)['\"]/i);if(!m)m=s.match(/data-exporthub-version\s*=\s*['\"](RC\d+)['\"]/i);if(!m)m=s.match(/Aktuelle Version\s+(RC\d+)/i);return safeVersion(m&&m[1]);}
 function decodeJsString(s){return String(s||'').replace(/\\'/g,"'").replace(/\\\"/g,'\"').replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ').replace(/\\\\/g,'\\').trim();}
 function extractArrayStrings(source,key){const re=new RegExp(key+'\\s*:\\s*(?:Object\\.freeze\\()?\\s*\\[([\\s\\S]*?)\\]\\s*\\)?','i'),m=String(source||'').match(re);if(!m)return[];const out=[],r=/(['\"])((?:\\.|(?!\1)[\s\S])*?)\1/g;let x;while((x=r.exec(m[1]))&&out.length<12){const v=decodeJsString(x[2]);if(v)out.push(v)}return out;}
@@ -51,12 +82,29 @@ async function cacheGithubHtml(sha,buf){const blob='github-cache/'+sha+'.html';c
 async function syncGithub(m,force){const last=Date.parse(m.lastGithubSync||'')||0;if(!force&&Date.now()-last<GH_SYNC_TTL_MS)return{changed:false,skipped:true};let changed=false;try{const url='https://api.github.com/repos/'+encodeURIComponent(GH_OWNER)+'/'+encodeURIComponent(GH_REPO)+'/commits?sha='+encodeURIComponent(GH_BRANCH)+'&path='+encodeURIComponent(GH_PATH)+'&per_page=100';const commits=await ghJson(url);if(!Array.isArray(commits))throw new Error('GitHub Commit-Liste fehlt.');let candidates=commits.slice(0,GH_DISCOVER_LIMIT).map(c=>{const msg=text(c&&c.commit&&c.commit.message),mv=msg.match(/\bRC\s*(\d{1,7})\b/i);return{c,msg,hint:mv?'RC'+mv[1]:''}});const seen=new Set();for(const x of candidates){const sha=text(x.c.sha);if(!sha)continue;let buf,html,detected='';try{buf=await ghHtml(sha);if(!buf||buf.length<1000)continue;html=buf.toString('utf8');detected=detectVersion(html)||safeVersion(x.hint)}catch(_){continue}if(!detected||seen.has(detected))continue;seen.add(detected);let r=releaseByVersion(m,detected);if(r&&r.githubSha===sha&&Number(r.size||0)>0)continue;validateInlineScripts(html);const meta=releaseMeta(html,x.msg),blob=await cacheGithubHtml(sha,buf),commit=x.c.commit||{},author=commit.author||{},committer=commit.committer||{};if(!r){r={version:detected,testedAt:null,testedBy:null,promotedAt:null,promotedBy:null};m.releases.push(r)}Object.assign(r,{source:'github',githubSha:sha,githubShortSha:sha.slice(0,7),githubBlob:blob,githubUrl:'https://github.com/'+GH_OWNER+'/'+GH_REPO+'/commit/'+sha,commitMessage:x.msg.split(/\r?\n/)[0],committedAt:text(committer.date||author.date),githubAuthor:text(author.name),size:buf.length,sha256:crypto.createHash('sha256').update(buf).digest('hex'),title:meta.title||detected,changes:meta.changes,tests:meta.tests,discoveredAt:r.discoveredAt||nowIso()});changed=true}m.lastGithubSync=nowIso();m.githubError=null;if(changed||force)await saveManifest(m);else await saveManifest(m);return{changed,skipped:false,count:candidates.length}}catch(e){m.lastGithubSync=nowIso();m.githubError=text(e.message);await saveManifest(m);if(force)throw e;return{changed:false,error:e}}}
 async function releaseHtml(r){if(!r)throw Object.assign(new Error('Release nicht gefunden.'),{code:'RELEASE_NOT_FOUND',status:404});if(r.githubSha){const blob=r.githubBlob||('github-cache/'+r.githubSha+'.html');let b=await readBlob(blob,true);if(!b){b=await ghHtml(r.githubSha);await cacheGithubHtml(r.githubSha,b)}return b}if(r.blob){return await readBlob(r.blob,false)}throw Object.assign(new Error(r.version+' besitzt keine ladbare GitHub-Version.'),{code:'RELEASE_NO_SOURCE',status:404});}
 function exposedReleases(m){const keep=new Set([safeVersion(m.production),safeVersion(m.test),safeVersion(m.previousProduction)].filter(Boolean));return(m.releases||[]).filter(r=>r.githubSha||keep.has(safeVersion(r.version))).sort((a,b)=>versionNum(b.version)-versionNum(a.version));}
-function publicManifest(m){return{ok:true,schema:2,production:safeVersion(m.production)||null,test:safeVersion(m.test)||null,previousProduction:safeVersion(m.previousProduction)||null,updatedAt:m.updatedAt||null,github:Object.assign(githubInfo(),{lastSync:m.lastGithubSync||null,error:m.githubError||null}),releases:exposedReleases(m).map(r=>({version:safeVersion(r.version),source:r.githubSha?'github':'legacy',githubSha:r.githubSha||'',githubShortSha:r.githubShortSha||'',githubUrl:r.githubUrl||'',commitMessage:r.commitMessage||'',committedAt:r.committedAt||r.uploadedAt||'',githubAuthor:r.githubAuthor||r.uploadedBy||'',uploadedAt:r.committedAt||r.uploadedAt||'',uploadedBy:r.githubAuthor||r.uploadedBy||'GitHub',size:Number(r.size||0),sha256:r.sha256||'',title:r.title||r.commitMessage||safeVersion(r.version),changes:Array.isArray(r.changes)?r.changes:[],tests:Array.isArray(r.tests)?r.tests:[],testedAt:r.testedAt||null,testedBy:r.testedBy||null,promotedAt:r.promotedAt||null,promotedBy:r.promotedBy||null}))};}
+function publicManifest(m){return{ok:true,schema:2,production:safeVersion(m.production)||null,test:safeVersion(m.test)||null,previousProduction:safeVersion(m.previousProduction)||null,updatedAt:m.updatedAt||null,github:Object.assign(githubInfo(),{lastSync:m.lastGithubSync||null,error:m.githubError||null}),releases:exposedReleases(m).map(r=>({version:safeVersion(r.version),source:r.source||(r.githubSha?'github':'legacy'),githubSha:r.githubSha||'',githubShortSha:r.githubShortSha||'',githubUrl:r.githubUrl||'',commitMessage:r.commitMessage||'',committedAt:r.committedAt||r.uploadedAt||'',githubAuthor:r.githubAuthor||r.uploadedBy||'',uploadedAt:r.committedAt||r.uploadedAt||'',uploadedBy:r.githubAuthor||r.uploadedBy||'GitHub',size:Number(r.size||0),sha256:r.sha256||'',title:r.title||r.commitMessage||safeVersion(r.version),changes:Array.isArray(r.changes)?r.changes:[],tests:Array.isArray(r.tests)?r.tests:[],testedAt:r.testedAt||null,testedBy:r.testedBy||null,promotedAt:r.promotedAt||null,promotedBy:r.promotedBy||null}))};}
 function err(e){return json(Number(e&&e.status||500),{ok:false,code:text(e&&e.code)||'RELEASE_ERROR',message:text(e&&e.message)||'Release-Fehler'});}
 
 module.exports=async function(context,req){try{const action=lower(req.query&&req.query.action||'active'),channel=lower(req.query&&req.query.channel||'production'),body=parseBody(req);
-  if(action==='active'){let m=await loadManifest();let v=safeVersion(channel==='test'?m.test:m.production),r=releaseByVersion(m,v);if(v&&!r){await syncGithub(m,true).catch(()=>{});m=await loadManifest();r=releaseByVersion(m,v)}return context.res=json(200,{ok:true,channel,version:v||null,size:r&&Number(r.size||0)||0,source:r&&r.githubSha?'github':'legacy',sha:r&&r.githubShortSha||'',title:r&&r.title||'',changes:r&&r.changes||[]})}
-  if(action==='html'){let m=await loadManifest(),v=safeVersion(channel==='test'?m.test:m.production),r=releaseByVersion(m,v);if(!v)return context.res=json(404,{ok:false,code:'NO_ACTIVE_RELEASE',message:'Für '+channel+' ist noch keine RC aktiviert.'});if(!r){await syncGithub(m,true).catch(()=>{});m=await loadManifest();r=releaseByVersion(m,v)}const b=await releaseHtml(r);return context.res={status:200,isRaw:true,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','X-ExportHUB-Release':v,'X-ExportHUB-Channel':channel,'X-ExportHUB-Source':r&&r.githubSha?'github':'legacy'},body:b}}
+  if(action==='active'){let m=await loadManifest();let v=safeVersion(channel==='test'?m.test:m.production),r=releaseByVersion(m,v);if(v&&!r){await syncGithub(m,true).catch(()=>{});m=await loadManifest();r=releaseByVersion(m,v)}return context.res=json(200,{ok:true,channel,version:v||null,size:r&&Number(r.size||0)||0,source:r&&(r.source||(r.githubSha?'github':'legacy'))||'legacy',sha:r&&r.githubShortSha||'',title:r&&r.title||'',changes:r&&r.changes||[]})}
+  if(action==='html'){let m=await loadManifest(),v=safeVersion(channel==='test'?m.test:m.production),r=releaseByVersion(m,v);if(!v)return context.res=json(404,{ok:false,code:'NO_ACTIVE_RELEASE',message:'Für '+channel+' ist noch keine RC aktiviert.'});if(!r){await syncGithub(m,true).catch(()=>{});m=await loadManifest();r=releaseByVersion(m,v)}const b=await releaseHtml(r);return context.res={status:200,isRaw:true,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','X-ExportHUB-Release':v,'X-ExportHUB-Channel':channel,'X-ExportHUB-Source':r&&(r.source||(r.githubSha?'github':'legacy'))||'legacy'},body:b}}
+  if(action==='activate-deployed-test'){
+    if(!await githubOidcAuthorized(req))return context.res=json(403,{ok:false,code:'RELEASE_ACTIVATE_FORBIDDEN',message:'Nur der signierte GitHub-Releaseworkflow darf die deployte Testversion aktivieren.'});
+    const v=safeVersion(body.version);if(!v)return context.res=json(400,{ok:false,code:'VERSION_INVALID',message:'Gültige RC-Version fehlt.'});
+    const deployed=await fetch(TESTSERVICE_ORIGIN+'/TESTVERSION.html?release-activate='+Date.now(),{headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'ExportHUB-Release-Activator'},cache:'no-store'});
+    if(!deployed.ok)return context.res=json(502,{ok:false,code:'TESTSERVICE_HTML_FAILED',message:'Deploytes TESTVERSION.html konnte nicht gelesen werden (HTTP '+deployed.status+').'});
+    const buf=Buffer.from(await deployed.arrayBuffer()),html=buf.toString('utf8'),detected=detectVersion(html);
+    if(detected!==v)return context.res=json(409,{ok:false,code:'TESTSERVICE_VERSION_MISMATCH',message:'Deployter TESTSERVICE meldet '+(detected||'keine RC')+' statt '+v+'.'});
+    validateInlineScripts(html);
+    const digest=crypto.createHash('sha256').update(buf).digest('hex'),blob='deployed-cache/'+v+'-'+digest.slice(0,16)+'.html';
+    await writeBlob(blob,buf,'text/html; charset=utf-8');
+    const deploySha=/^[0-9a-f]{40}$/i.test(text(body.sha))?text(body.sha):'';
+    let m=await loadManifest(),r=releaseByVersion(m,v);
+    if(!r){r={version:v,testedAt:null,testedBy:null,promotedAt:null,promotedBy:null};m.releases.push(r)}
+    Object.assign(r,{source:'deployment',blob,githubSha:'',githubBlob:'',githubShortSha:deploySha?deploySha.slice(0,7):'',githubUrl:deploySha?'https://github.com/'+GH_OWNER+'/'+GH_REPO+'/commit/'+deploySha:'',commitMessage:text(body.title)||('Automatischer TESTSERVICE-Deploy '+v),committedAt:nowIso(),githubAuthor:'GitHub Actions',size:buf.length,sha256:digest,title:text(body.title)||('TESTSERVICE '+v),changes:Array.isArray(body.changes)?body.changes.map(text).filter(Boolean).slice(0,12):[],tests:Array.isArray(body.tests)?body.tests.map(text).filter(Boolean).slice(0,12):[],discoveredAt:r.discoveredAt||nowIso(),activatedAt:nowIso(),activatedBy:'GitHub Actions'});
+    m.test=v;await saveManifest(m);
+    return context.res=json(200,{ok:true,test:v,source:'deployment',sha:r.githubShortSha||'',size:r.size,sha256:r.sha256});
+  }
   const admin=await requireAdmin(req),who=userLabel(admin);
   if(action==='list'){let m=await loadManifest();await syncGithub(m,false);m=await loadManifest();return context.res=json(200,publicManifest(m))}
   if(action==='sync-github'){let m=await loadManifest();await syncGithub(m,true);m=await loadManifest();return context.res=json(200,publicManifest(m))}
