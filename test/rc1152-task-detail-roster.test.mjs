@@ -37,24 +37,55 @@ test('RC1152: Mittwoch erzeugt nur den besprochenen Wochenplan plus Schweizer Be
     persist(next){state.tasks=next}
   });
   const titles=out.map(t=>t.title);
-  for(const title of ['O’Hare anmelden','Essentra Schweden anmelden','Contitech – ABD erstellen','Italien anmelden','BSH anmelden','Schweizer Kunden prüfen','POD ABC123 prüfen']){
+  for(const title of ['O’Hare anmelden','Essentra Schweden anmelden','Contitech – ABD erstellen','Schweizer Kunden prüfen','POD ABC123 prüfen']){
     assert.ok(titles.includes(title),title+' fehlt');
   }
+  for(const title of ['Italien anmelden','BSH anmelden','Gaggenau anmelden','FAURECIA anmelden','Polen anmelden','Frankreich anmelden','Neff anmelden'])assert.ok(!titles.includes(title),title+' darf nicht mehr automatisch erzeugt werden');
   assert.ok(!titles.includes('Alte Aufgabe die nicht besprochen wurde'));
   assert.ok(state.rc1152TaskRosterAt);
   assert.ok(state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='ALT-1'));
   const ohare=out.find(t=>t.title==='O’Hare anmelden');
-  const bsh=out.find(t=>t.title==='BSH anmelden');
   assert.match(ohare.dueAt,/T12:00:00$/);
-  assert.match(bsh.dueAt,/T13:00:00$/);
 });
 
-test('RC1152: Donnerstag erzeugt Würth Industrie, Spanien und Polen',()=>{
+test('RC1156: Donnerstag erzeugt nur Würth Industrie plus Schweizer Bereich',()=>{
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-17T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Würth Industrie anmelden','Spanien anmelden','Polen anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title));
-  assert.ok(!titles.has('BMP anmelden'));
+  for(const title of ['Würth Industrie anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title));
+  for(const title of ['Spanien anmelden','Polen anmelden','BMP anmelden'])assert.ok(!titles.has(title));
+});
+
+test('RC1156: Montag erzeugt Spanien nur montags und keine alten Automatik-Aufgaben',()=>{
+  const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-14T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  const titles=new Set(out.map(t=>t.title));
+  assert.ok(titles.has('Spanien anmelden'));
+  assert.ok(titles.has('Schweizer Kunden prüfen'));
+  for(const title of ['Gaggenau anmelden','FAURECIA anmelden','Italien anmelden','BSH anmelden','Polen anmelden','Frankreich anmelden','Neff anmelden'])assert.ok(!titles.has(title));
+});
+
+test('RC1156: Dienstag erzeugt Würth Industrie und BMP',()=>{
+  const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-15T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  const titles=new Set(out.map(t=>t.title));
+  for(const title of ['Würth Industrie anmelden','BMP anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title));
+  assert.ok(!titles.has('Spanien anmelden'));
+});
+
+test('RC1156: nicht mehr freigegebene frühere Managed-Aufgaben werden auch nach der Erstbereinigung entfernt',()=>{
+  const api=load(),state={
+    rc1152TaskRosterAt:'2026-09-17T08:00:00.000Z',
+    tasks:[
+      {id:'managed:bsh:2026-09-16',managedBy:'RC1152',managedKey:'bsh',title:'BSH anmelden',sourceType:'manual',status:'open'},
+      {id:'NEW-MANUAL',title:'Neue manuelle Aufgabe',sourceType:'manual',status:'open'}
+    ],
+    _teamSyncMeta:{fields:{},tombstones:[]}
+  };
+  const out=api.prepareTasks(state.tasks,{environment:'production',currentUserId:'tobias',now:'2026-09-18T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  assert.ok(!out.some(t=>t.id==='managed:bsh:2026-09-16'));
+  assert.ok(out.some(t=>t.id==='NEW-MANUAL'));
+  assert.ok(state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='managed:bsh:2026-09-16'));
 });
 
 test('RC1152: gezielte Altbereinigung läuft nur einmal und löscht spätere neue manuelle Aufgaben nicht',()=>{
@@ -74,7 +105,7 @@ test('RC1152: Runtime enthält echte Aufgabenansicht statt Direktöffnung der Se
   assert.match(runtimeSource,/data\.rc1152TaskOpen/);
 });
 
-test('RC1152: aktiver RC1112 Build cache-bustet und kopiert Aufgaben-Runtime sowie CSS',()=>{
+test('RC1156: aktiver RC1112 Build cache-bustet die aktualisierte Aufgaben-Runtime',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/rc1014-task-runtime\.js\?v=1152/);
   assert.match(build,/rc1014-task-ui\.css\?v=1152/);
