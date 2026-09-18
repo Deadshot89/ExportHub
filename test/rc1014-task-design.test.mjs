@@ -95,7 +95,7 @@ test('RC1153 entfernt Altaufgaben wiederholt und behält nur aktuelle Systemquel
   const state={
     tasks:[],
     shipments:[{id:'S1',ref:'ABC123',status:'Erstellt'}],
-    _teamSyncMeta:{fields:{},tombstones:[]},
+    _teamSyncMeta:{fields:{},tombstones:[{collection:'tasks',id:'legacy-manual',deletedAt:'2026-09-17T08:00:00.000Z'}]},
     rc1152TaskRosterAt:'2026-09-17T08:00:00.000Z'
   };
   const raw=[
