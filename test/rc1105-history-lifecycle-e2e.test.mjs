@@ -77,8 +77,7 @@ test('RC1105: kompletter Sendungsablauf erscheint mit Benutzer, Zeit und konkret
   for(const expected of [
     'Sendung erstellt',
     'Arbeit an Sendung gestartet',
-    'ABD-Anfrage per E-Mail gestartet',
-    'ABD-E-Mail-Versand bestätigt',
+    'ABD-Anfrage per E-Mail geöffnet',
     'Versandanmeldung per E-Mail gestartet',
     'Versandanmeldung versendet',
     'Gesamtdruck – gedruckt',
@@ -88,7 +87,7 @@ test('RC1105: kompletter Sendungsablauf erscheint mit Benutzer, Zeit und konkret
     'Sendung abgeschlossen'
   ]) assert.ok(labels.includes(expected),expected+' fehlt');
 
-  const userEvents=events.filter(e=>['ABD-E-Mail-Versand bestätigt','Versandanmeldung versendet','Gesamtdruck – gedruckt'].includes(e.label));
+  const userEvents=events.filter(e=>['ABD-Anfrage per E-Mail geöffnet','Versandanmeldung versendet','Gesamtdruck – gedruckt'].includes(e.label));
   assert.ok(userEvents.length>=3);
   for(const event of userEvents){
     assert.equal(event.actor.name,'Tobias');
