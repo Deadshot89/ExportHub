@@ -128,6 +128,62 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
   await expect(page.locator('#content')).toContainText(ref,{timeout:15_000});
   await expect(page.locator('#content')).toContainText(/E2E TEST CUSTOMER/i,{timeout:15_000});
 
+  const historyWritten=await page.evaluate(({runId,ref})=>{
+    const s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
+    const sh=s&&Array.isArray(s.shipments)&&s.shipments.find(x=>x&&x._e2eRunId===runId&&String(x.ref||x.reference||'').toUpperCase()===ref);
+    const api=window.ExportHUBShipmentHistory1071;
+    if(!s||!sh||!api)return{ok:false,reason:'shipment-history-runtime-fehlt'};
+    s.currentShipment=sh;
+    s.currentShipmentId=sh.id||sh.shipmentId;
+    s.selectedShipmentId=sh.id||sh.shipmentId;
+    s.view='shipmentview';
+    api.recordDocumentAction(sh,'open','ABD','ABD_'+ref+'.pdf');
+    api.recordDocumentAction(sh,'print','CMR','CMR_'+ref+'.pdf');
+    const currentUser=typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():s.currentUser;
+    api.append(sh,{
+      type:'mail-sent',
+      label:'Versandanmeldung versendet',
+      actor:api.actor(currentUser),
+      details:{reference:ref,to:'e2e@example.invalid',subject:'Versandanmeldung '+ref,mailType:'registration'}
+    });
+    return{
+      ok:true,
+      labels:(sh.shipmentHistory||[]).map(x=>x&&x.label).filter(Boolean),
+      actors:(sh.shipmentHistory||[]).map(x=>x&&x.actor&&x.actor.name).filter(Boolean)
+    };
+  },{runId:session.runId,ref});
+
+  expect(historyWritten.ok).toBe(true);
+  expect(historyWritten.labels).toEqual(expect.arrayContaining(['ABD – geöffnet','CMR – gedruckt','Versandanmeldung versendet']));
+  expect(historyWritten.actors.some(Boolean)).toBe(true);
+  await settleStateSave(page,{timeout:25_000});
+
+  const historyPersisted=await page.evaluate(async({token,runId,ref})=>{
+    const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+      method:'GET',credentials:'same-origin',cache:'no-store',
+      headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
+    });
+    const data=await response.json().catch(()=>({}));
+    const shipments=Array.isArray(data&&data.state&&data.state.shipments)?data.state.shipments:[];
+    const found=shipments.find(x=>x&&x._e2eRunId===runId&&String(x.ref||x.reference||'').toUpperCase()===ref);
+    return{
+      status:response.status,
+      labels:Array.isArray(found&&found.shipmentHistory)?found.shipmentHistory.map(x=>x&&x.label).filter(Boolean):[],
+      actors:Array.isArray(found&&found.shipmentHistory)?found.shipmentHistory.map(x=>x&&x.actor&&x.actor.name).filter(Boolean):[]
+    };
+  },{token:session.token,runId:session.runId,ref});
+
+  expect(historyPersisted.status).toBe(200);
+  expect(historyPersisted.labels).toEqual(expect.arrayContaining(['ABD – geöffnet','CMR – gedruckt','Versandanmeldung versendet']));
+  expect(historyPersisted.actors.some(name=>/E2E TEST Browser/i.test(String(name||'')))).toBe(true);
+
+  await openExportHubView(page,'history',['Historie'],/Historie|Aktivitätsverlauf/i,{allowProgrammaticFallback:true});
+  await expect(page.locator('#content')).toContainText(ref,{timeout:15_000});
+  await expect(page.locator('#content')).toContainText('ABD – geöffnet',{timeout:15_000});
+  await expect(page.locator('#content')).toContainText('CMR – gedruckt',{timeout:15_000});
+  await expect(page.locator('#content')).toContainText('Versandanmeldung versendet',{timeout:15_000});
+  await expect(page.locator('#content')).toContainText(/E2E TEST Browser/i,{timeout:15_000});
+
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
   await settleStateSave(page,{timeout:25_000});
