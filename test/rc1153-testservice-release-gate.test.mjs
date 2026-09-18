@@ -33,5 +33,5 @@ test('RC1153: Abholdatum-E2E prüft exakt die manipulierte Sendung statt die ers
   const spec=read('e2e/specs/navigation.spec.mjs');
   assert.match(spec,/return\{key:/,'RC1127 Seed gibt keine eindeutige Sendungskennung zurück');
   assert.match(spec,/filter\(\{hasText:seeded\.key\}\)/,'RC1127 bindet die Prüfung nicht an die manipulierte Sendung');
-  assert.doesNotMatch(spec,/locator\('\[data-rc1127-customer-pickup\]'\)\.first\(\)/,'RC1127 darf nicht die erste beliebige Abholkachel prüfen');
+  assert.doesNotMatch(spec,/page\.locator\('\[data-rc1127-customer-pickup\]'\)\.first\(\)/,'RC1127 darf nicht die erste beliebige Abholkachel prüfen');
 });
