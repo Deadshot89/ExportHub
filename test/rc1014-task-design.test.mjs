@@ -55,14 +55,20 @@ test('RC1014 Build bindet Aufgaben-CSS in alle drei Umgebungen ein und erhält d
   }
 });
 
-test('RC1014 Direktöffnung verwendet für Pick POD und ABD die Sendungsreferenz',()=>{
+test('RC1152 Aufgabenöffnung führt zuerst in die Aufgabenansicht und erhält die Sendungsverknüpfung',()=>{
+  const runtime=read('assets/rc1014-task-runtime.js');
+  assert.match(runtime,/function\s+openTaskDetail\s*\(/);
+  assert.match(runtime,/return\s+openTaskDetail\(\{\.\.\.task,\.\.\.t\},ctx\)/);
+  assert.match(runtime,/function\s+openLinkedShipment\s*\(/);
+  assert.match(runtime,/linkedShipmentRef/);
+  assert.match(runtime,/ExportHUBShipmentView\.open\(target,'tasks'\)/);
+  assert.match(runtime,/data-task-action="shipment"/);
+
   const opened=[];
   const {api}=loadRuntime({openShipment:value=>opened.push(value)});
   const ctx={companyId:'essentra',environment:'production'};
-  assert.equal(api.openTask({sourceType:'pick',sourceId:'PICK-1',sourceRef:'ABC123',companyId:'essentra',environment:'production'},ctx),true);
-  assert.equal(api.openTask({sourceType:'pod',sourceId:'S1',sourceRef:'DEF456',companyId:'essentra',environment:'production'},ctx),true);
-  assert.equal(api.openTask({sourceType:'abd',sourceId:'S2',sourceRef:'GHI789',companyId:'essentra',environment:'production'},ctx),true);
-  assert.deepEqual(opened,['ABC123','DEF456','GHI789']);
+  assert.equal(api.openTask({sourceType:'pick',sourceId:'PICK-1',sourceRef:'ABC123',companyId:'essentra',environment:'production'},ctx),false);
+  assert.deepEqual(opened,[],'Aufgabe darf die Sendung nicht mehr direkt überspringen');
 });
 
 test('RC1014 Direktöffnung blockiert fremde Firma und Umgebung',()=>{
