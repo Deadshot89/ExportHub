@@ -185,6 +185,73 @@ test('RC1125 P0: Benutzerverwaltung zeigt keine Fehlerdiagnose',async({page},tes
 });
 
 
+test('RC1169 P0: Nicht-Admin sieht in Benutzer keine Diagnose und erhält serverseitig 403',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop'||process.env.EXPORTHUB_E2E_LIVE!=='1','Echter Nicht-Admin-Nachweis läuft einmal live im TESTSERVICE.');
+  const token=String(process.env.EXPORTHUB_E2E_NONADMIN_SESSION_TOKEN||'').trim();
+  const userB64=String(process.env.EXPORTHUB_E2E_NONADMIN_USER_B64||'').trim();
+  const runId=String(process.env.EXPORTHUB_E2E_RUN_ID||'').trim();
+  expect(token,'Nicht-Admin-Sessiontoken fehlt').toBeTruthy();
+  expect(userB64,'Nicht-Admin-Benutzer fehlt').toBeTruthy();
+  const user=JSON.parse(Buffer.from(userB64,'base64').toString('utf8'));
+  expect(user.globalAdmin).toBe(false);
+  expect(user.isGlobalAdmin).not.toBe(true);
+  expect(user.permissions||[]).not.toContain('*');
+
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const base=new URL(String(process.env.EXPORTHUB_E2E_BASE_URL||''));
+  await page.context().addCookies([{
+    name:'eh_session',value:token,domain:base.hostname,path:'/api',
+    httpOnly:true,secure:true,sameSite:'Strict'
+  }]);
+  await page.evaluate(({token,user,runId})=>{
+    sessionStorage.setItem('exporthub_rc301_tab_session',JSON.stringify({
+      token,user,deviceId:'e2e-playwright-nonadmin',view:'dashboard',savedAt:Date.now(),version:'RC1169',_e2eRunId:runId
+    }));
+  },{token,user,runId});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const current=await page.evaluate(()=>typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null);
+  expect(current&&current.globalAdmin).not.toBe(true);
+  expect(current&&current.isGlobalAdmin).not.toBe(true);
+
+  await page.evaluate(()=>{
+    const root=document.getElementById('content')||document.body;
+    const stale=document.createElement('section');
+    stale.id='rc1013-diagnostics-enhanced';
+    stale.innerHTML='<h3>Fehlerdiagnose & automatische Behebung</h3>';
+    root.appendChild(stale);
+  });
+  await openExportHubView(page,'rights',['Benutzer & Rechte','Benutzer','Rechte','Berechtigungen'],/Benutzer|Rechte|Rollen/i,{allowProgrammaticFallback:true});
+  await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
+  await expect(page.locator('#content')).not.toContainText(/Fehlerdiagnose\s*&\s*automatische Behebung/i);
+  await expect(page.locator('[data-view="diagnostics"]:visible')).toHaveCount(0);
+
+  const denied=await page.evaluate(async tokenValue=>{
+    const response=await fetch('/api/exporthub-state?mode=diagnostics-read',{
+      method:'GET',credentials:'same-origin',cache:'no-store',
+      headers:{
+        'Accept':'application/json',
+        'X-ExportHUB-Token':tokenValue,
+        'X-ExportHUB-Session':tokenValue,
+        'Authorization':'Bearer '+tokenValue,
+        'X-ExportHUB-Environment':'testservice'
+      }
+    });
+    return{status:response.status,data:await response.json().catch(()=>({}))};
+  },token);
+  expect(denied.status).toBe(403);
+  expect(denied.data&&denied.data.code).toBe('ADMIN_REQUIRED');
+
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
+
 test('RC1126 P0: Kundenordner bietet sichere Kundenlöschung für Admins',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Kundenlöschung wird einmal auf dem Laptop-Profil geprüft.');
   const runtime=attachRuntimeGuards(page,testInfo);
