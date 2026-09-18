@@ -64,14 +64,21 @@ async function mobileToggleExpanded(page){
   }).catch(()=>null);
 }
 
-async function menuIsOpen(page){
-  const expanded=await mobileToggleExpanded(page);
-  if(expanded!==null)return expanded;
+async function mobileNavOnScreen(page){
   return page.evaluate(()=>{
-    if(document.body?.classList.contains('eh-sidebar-open'))return true;
-    const api=window.ExportHUBMobileMenu;
-    try{return !!(api&&typeof api.isOpen==='function'&&api.isOpen())}catch(_){return false}
+    const nav=document.getElementById('nav');
+    if(!nav)return false;
+    const style=getComputedStyle(nav),rect=nav.getBoundingClientRect();
+    return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity||1)>0&&
+      rect.width>0&&rect.height>0&&rect.right>0&&rect.bottom>0&&rect.left<innerWidth&&rect.top<innerHeight;
   }).catch(()=>false);
+}
+
+async function menuIsOpen(page){
+  if(await mobileNavOnScreen(page))return true;
+  const expanded=await mobileToggleExpanded(page);
+  if(expanded===false)return false;
+  return false;
 }
 
 async function waitForMenuOpen(page,timeout=3000){
@@ -203,9 +210,19 @@ export async function settleStateSave(page,options={}){
 }
 
 async function activateNavigationTarget(page,item,module,requiredText){
+  const before=await page.evaluate(()=>String(document.getElementById('content')?.innerText||''));
   await item.click({timeout:7000});
-  const changed=await page.waitForFunction(mod=>String(document.body?.getAttribute('data-exporthub-view')||'')===mod,module,{timeout:5000})
-    .then(()=>true).catch(()=>false);
+  const changed=await page.waitForFunction(({mod,beforeText})=>{
+    const content=document.getElementById('content');
+    const text=String(content&&content.innerText||'');
+    const contentView=String(content&&content.getAttribute&&content.getAttribute('data-view')||'');
+    const bodyView=String(document.body&&document.body.getAttribute&&document.body.getAttribute('data-exporthub-view')||'');
+    const active=[...document.querySelectorAll('[data-view]')].some(el=>
+      String(el.getAttribute('data-view')||'')===mod&&
+      (el.getAttribute('aria-current')==='true'||el.classList.contains('active'))
+    );
+    return active||contentView===mod||bodyView===mod||text!==beforeText;
+  },{mod:module,beforeText:before},{timeout:5000}).then(()=>true).catch(()=>false);
   if(!changed)return false;
   await pause(220);
   await waitForRequired(page,requiredText);
