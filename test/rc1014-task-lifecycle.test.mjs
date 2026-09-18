@@ -159,3 +159,20 @@ test('RC1014 Reconcile schließt Sendungen, storniert Storno und erzeugt Wiederh
   const second=api.reconcile(first.tasks,domain,ctx);
   assert.equal(second.tasks.filter(t=>t.id.startsWith('weekly:next:')).length,1);
 });
+
+
+test('RC1153 unterstützt In Bearbeitung und automatische Erledigung weiterhin',()=>{
+  const api=loadApi();
+  const ctx={companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-18T10:00:00+02:00'};
+  const task=api.normalizeTask({
+    id:'abd-progress',group:'Offene ABDs',sourceType:'abd',sourceId:'S1',sourceRef:'ABC123',
+    status:'In Bearbeitung',owner:'tobias',companyId:'essentra',environment:'production'
+  },ctx);
+  assert.equal(task.status,'in_progress');
+  assert.deepEqual(api.reminderCandidates([task],ctx).map(t=>t.id),['abd-progress']);
+  const result=api.reconcile([task],{
+    shipments:[{id:'S1',ref:'ABC123',abdRequired:true,abdFiles:[{name:'abd.pdf'}]}]
+  },ctx);
+  assert.equal(result.tasks[0].status,'done');
+  assert.equal(result.tasks[0].completedBy,'system:abd');
+});
