@@ -227,6 +227,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     stowPlanInstructionsAndPersistence:'RC1113',
     shippingProviderNeutralUi:'RC1114',
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
+    podGraphReadiness:'RC1164 fail-closed Graph configuration gate before reconcile',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1148 open/print + user + filename',
     deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border',
