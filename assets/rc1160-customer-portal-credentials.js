@@ -59,12 +59,14 @@ function ensureStyle(){
  d.head.appendChild(s)
 }
 function status(node,msg,kind){if(!node)return;node.textContent=msg||'';node.setAttribute('data-kind',kind||'info')}
-function portalRows(customer,portals,canManage){
+function readinessBadge(ready,adminView){if(ready&&ready.configured===true)return'<span class="rc1160-badge ok">Verschlüsselung aktiv</span>';return'<span class="rc1160-badge off">'+(adminView?'Server-Schlüssel fehlt':'Verschlüsselung nicht bereit')+'</span>'}
+function readinessHint(ready,adminView){if(ready&&ready.configured===true)return'';return'<div class="rc1160-muted" data-rc1162-key-warning>'+(adminView?'Azure App Setting für die Kundenportal-Verschlüsselung fehlt. Zugangsdaten können nicht gespeichert oder angezeigt werden.':'Zugangsdaten können derzeit nicht gespeichert oder angezeigt werden. Bitte Administrator informieren.')+'</div>'}
+function portalRows(customer,portals,canManage,configured){
  if(!portals.length)return'<div class="rc1160-muted">Für diesen Kunden ist kein Kundenportal hinterlegt.</div>';
  return'<div class="rc1160-list">'+portals.map(function(p){
   return'<div class="rc1160-row" data-portal-id="'+esc(p.id)+'"><div class="rc1160-row-top"><div><b>'+esc(p.name)+'</b><div class="rc1160-muted">'+esc(p.url)+'</div></div><span class="rc1160-badge '+(p.active!==false?'ok':'off')+'">'+(p.active!==false?'Aktiv':'Inaktiv')+'</span></div>'+
    '<div><span class="rc1160-badge">'+(p.hasUsername?'Benutzername hinterlegt':'Kein Benutzername')+'</span> <span class="rc1160-badge">'+(p.hasPassword?'Passwort hinterlegt':'Kein Passwort')+'</span></div>'+
-   '<div class="rc1160-actions"><button type="button" class="btn" data-rc1160-open="'+esc(p.id)+'">Portal öffnen</button><button type="button" class="btn primary" data-rc1160-reveal="'+esc(p.id)+'">Zugangsdaten anzeigen</button>'+
+   '<div class="rc1160-actions"><button type="button" class="btn" data-rc1160-open="'+esc(p.id)+'">Portal öffnen</button><button type="button" class="btn primary" data-rc1160-reveal="'+esc(p.id)+'" '+(configured?'':'disabled title="Verschlüsselung nicht bereit"')+'>Zugangsdaten anzeigen</button>'+
    (canManage?'<button type="button" class="btn" data-rc1160-edit="'+esc(p.id)+'">Bearbeiten</button><button type="button" class="btn" data-rc1160-delete="'+esc(p.id)+'">Löschen</button>':'')+'</div></div>'
  }).join('')+'</div>'
 }
@@ -111,26 +113,26 @@ function wirePortalBox(box,customer,portals,canManage,reload){
 async function renderCustomerFolder(customer,r){
  var root=d.getElementById('content');if(!root)return;
  var old=d.getElementById('rc1160CustomerFolderPortal');if(old)old.remove();
- var box=d.createElement('section');box.id='rc1160CustomerFolderPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>Kundenportal</h3><div class="rc1160-muted">Zugangsdaten werden verschlüsselt außerhalb des Sendungs- und Team-State gespeichert.</div></div>'+(r.manage?'<button class="btn primary" data-add>Portal hinzufügen</button>':'')+'</div><div data-body class="rc1160-muted">Laden …</div>';root.appendChild(box);
+ var box=d.createElement('section');box.id='rc1160CustomerFolderPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>Kundenportal</h3><div class="rc1160-muted">Zugangsdaten werden verschlüsselt außerhalb des Sendungs- und Team-State gespeichert.</div></div><span data-rc1162-readiness><span class="rc1160-badge">Prüfung …</span></span>'+(r.manage?'<button class="btn primary" data-add>Portal hinzufügen</button>':'')+'</div><div data-ready-hint></div><div data-body class="rc1160-muted">Laden …</div>';root.appendChild(box);
  var seq=++loadSeq;
- try{var data=await portalApi('list',{customerId:customerId(customer)});if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals),body=box.querySelector('[data-body]');body.className='';body.innerHTML=portalRows(customer,portals,r.manage);wirePortalBox(box,customer,portals,r.manage,function(){schedule(true)});var add=box.querySelector('[data-add]');if(add)add.addEventListener('click',function(){portalForm(customer,null,function(){schedule(true)})})}
+ try{var results=await Promise.all([portalApi('list',{customerId:customerId(customer)}),portalApi('status',{})]),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,r.manage);if(hint)hint.innerHTML=readinessHint(ready,r.manage);body.className='';body.innerHTML=portalRows(customer,portals,r.manage,ready.configured===true);wirePortalBox(box,customer,portals,r.manage,function(){schedule(true)});var add=box.querySelector('[data-add]');if(add){add.disabled=ready.configured!==true;if(add.disabled)add.title='Verschlüsselung nicht bereit';add.addEventListener('click',function(){portalForm(customer,null,function(){schedule(true)})})}}
  catch(e){var body=box.querySelector('[data-body]');if(body)body.textContent=e.message||'Kundenportal konnte nicht geladen werden.'}
 }
 async function renderShipment(customer,r){
  var host=d.getElementById('rc363BlockCustomer')||d.getElementById('content');if(!host)return;
  var old=d.getElementById('rc1160ShipmentPortal');if(old)old.remove();
- var box=d.createElement('section');box.id='rc1160ShipmentPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>Kundenportal</h3><div class="rc1160-muted">Portalzugang für den aktuell ausgewählten Kunden.</div></div></div><div data-body class="rc1160-muted">Laden …</div>';host.appendChild(box);
+ var box=d.createElement('section');box.id='rc1160ShipmentPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>Kundenportal</h3><div class="rc1160-muted">Portalzugang für den aktuell ausgewählten Kunden.</div></div><span data-rc1162-readiness><span class="rc1160-badge">Prüfung …</span></span></div><div data-ready-hint></div><div data-body class="rc1160-muted">Laden …</div>';host.appendChild(box);
  var seq=++loadSeq;
- try{var data=await portalApi('list',{customerId:customerId(customer)});if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals).filter(function(p){return p.active!==false}),body=box.querySelector('[data-body]');body.className='';body.innerHTML=portalRows(customer,portals,false);wirePortalBox(box,customer,portals,false,function(){schedule(true)})}
+ try{var results=await Promise.all([portalApi('list',{customerId:customerId(customer)}),portalApi('status',{})]),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals).filter(function(p){return p.active!==false}),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,false);if(hint)hint.innerHTML=readinessHint(ready,false);body.className='';body.innerHTML=portalRows(customer,portals,false,ready.configured===true);wirePortalBox(box,customer,portals,false,function(){schedule(true)})}
  catch(e){var body=box.querySelector('[data-body]');if(body)body.textContent=e.message||'Kundenportal konnte nicht geladen werden.'}
 }
 async function renderRights(){
  var root=d.getElementById('content');if(!root||!globalAdmin(user()))return;
  var old=d.getElementById('rc1160PortalRights');if(old)old.remove();
- var box=d.createElement('section');box.id='rc1160PortalRights';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>Kundenportal-Rechte</h3><div class="rc1160-muted">Separates Funktionsrecht für sensible externe Zugangsdaten.</div></div></div><div data-body class="rc1160-muted">Benutzer laden …</div>';root.appendChild(box);
+ var box=d.createElement('section');box.id='rc1160PortalRights';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>Kundenportal-Rechte</h3><div class="rc1160-muted">Separates Funktionsrecht für sensible externe Zugangsdaten.</div></div><span data-rc1162-readiness><span class="rc1160-badge">Prüfung …</span></span></div><div data-ready-hint></div><div data-body class="rc1160-muted">Benutzer laden …</div>';root.appendChild(box);
  var seq=++rightsSeq;
  try{
-  var data=await authApi('admin-list',{});if(seq!==rightsSeq)return;var users=arr(data.users),body=box.querySelector('[data-body]');
+  var results=await Promise.all([authApi('admin-list',{}),portalApi('status',{})]),data=results[0],ready=results[1];if(seq!==rightsSeq)return;var users=arr(data.users),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,true);if(hint)hint.innerHTML=readinessHint(ready,true);
   body.innerHTML='<div class="rc1160-rights-grid"><select data-user>'+users.map(function(u){return'<option value="'+esc(u.id)+'">'+esc(u.name||u.user)+'</option>'}).join('')+'</select><label><input type="checkbox" data-use> verwenden</label><label><input type="checkbox" data-manage> verwalten</label><button class="btn primary" data-save>Speichern</button></div><div class="rc1160-status" data-rc1160-status></div>';
   var select=body.querySelector('[data-user]'),use=body.querySelector('[data-use]'),manage=body.querySelector('[data-manage]'),save=body.querySelector('[data-save]'),out=body.querySelector('[data-rc1160-status]');
   function chosen(){return users.find(function(u){return u.id===select.value})}
@@ -154,5 +156,5 @@ w.addEventListener('pagehide',clearRevealedSecrets);w.addEventListener('beforeun
 d.addEventListener('click',function(e){var t=e.target&&e.target.closest&&e.target.closest('button,a');if(t&&/abmelden|logout|konto wechseln/i.test(q(t.textContent)))clearRevealedSecrets()},true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule(true)},{once:true});else schedule(true);
 w.setInterval(function(){schedule(false)},700);
-w.ExportHUBCustomerPortal1160=Object.freeze({version:'RC1160',rights:rights,selectedCustomer:selectedCustomer,clearRevealedSecrets:clearRevealedSecrets,portalApi:portalApi,schedule:schedule});
+w.ExportHUBCustomerPortal1160=Object.freeze({version:'RC1160',readinessVersion:'RC1162',rights:rights,selectedCustomer:selectedCustomer,clearRevealedSecrets:clearRevealedSecrets,portalApi:portalApi,schedule:schedule});
 })(window,document);

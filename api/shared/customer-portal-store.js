@@ -12,9 +12,10 @@ function error(code,message,status=400){const e=new Error(message||code);e.code=
 function environment(v){return lower(v)==='testservice'?'testservice':'production'}
 function blobName(env){return environment(env)==='testservice'?'testservice/'+BASE_BLOB.replace(/^\/+/, ''):BASE_BLOB.replace(/^\/+/, '')}
 function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
+function keyConfigured(){return !!text(process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY)}
 function key(){
  const configured=text(process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY);
- if(!configured)throw error('CUSTOMER_PORTAL_KEY_NOT_CONFIGURED','Kundenportal-Verschlüsselung ist serverseitig nicht konfiguriert.',503);
+ if(!keyConfigured())throw error('CUSTOMER_PORTAL_KEY_NOT_CONFIGURED','Kundenportal-Verschlüsselung ist serverseitig nicht konfiguriert.',503);
  return crypto.createHash('sha256').update('ExportHUB/customer-portal/v1|'+configured).digest();
 }
 function encryptSecret(value,secretKey){
@@ -115,4 +116,4 @@ async function reveal(env,customerId,id){
  const row=list.find(x=>text(x&&x.id)===pid);if(!row)throw error('PORTAL_NOT_FOUND','Kundenportal wurde nicht gefunden.',404);
  return{portal:metadata(row),username:decryptSecret(row.usernameEncrypted),password:decryptSecret(row.passwordEncrypted)};
 }
-module.exports={error,environment,blobName,encryptSecret,decryptSecret,metadata,cleanUrl,cleanPortalInput,listMetadata,create,update,remove,reveal};
+module.exports={error,environment,blobName,keyConfigured,encryptSecret,decryptSecret,metadata,cleanUrl,cleanPortalInput,listMetadata,create,update,remove,reveal};
