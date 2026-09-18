@@ -27,8 +27,34 @@ function ensureCustomer(current,customerId){
  if(!customerExists(current.team,id))throw auth.error('CUSTOMER_NOT_FOUND','Kunde wurde nicht gefunden.',404);
  return id;
 }
+function userKey(user){return text(user&&(user.id||user.user||user.username||user.login))}
+function reauthLock(user){
+ const sec=user&&user.customerPortalReauth&&typeof user.customerPortalReauth==='object'?user.customerPortalReauth:{};
+ const until=Date.parse(sec.lockedUntil||'');
+ return Number.isFinite(until)&&until>Date.now()?new Date(until).toISOString():null;
+}
 async function revealDenied(req,current,customerId,portalId){
- try{await audit(req,'CUSTOMER_PORTAL_REVEAL_DENIED',current.user,{customerId,portalId})}catch(_){}
+ const result=await auth.mutateTeamForRequest(req,team=>{
+  const key=userKey(current.user),target=(team.users||[]).find(u=>userKey(u)===key);
+  if(!target)throw auth.error('USER_NOT_FOUND','Benutzer wurde nicht gefunden.',404);
+  const sec=target.customerPortalReauth&&typeof target.customerPortalReauth==='object'?target.customerPortalReauth:{failedAttempts:0,lockedUntil:null};
+  const existing=Date.parse(sec.lockedUntil||'');
+  if(Number.isFinite(existing)&&existing<=Date.now()){sec.failedAttempts=0;sec.lockedUntil=null}
+  sec.failedAttempts=Number(sec.failedAttempts||0)+1;
+  if(sec.failedAttempts>=5)sec.lockedUntil=new Date(Date.now()+15*60*1000).toISOString();
+  sec.lastFailureAt=auth.now();target.customerPortalReauth=sec;
+  auth.addAudit(team,'CUSTOMER_PORTAL_REVEAL_DENIED',actorName(current.user),{customerId,portalId,failedAttempts:sec.failedAttempts,lockedUntil:sec.lockedUntil||null});
+  return{failedAttempts:sec.failedAttempts,lockedUntil:sec.lockedUntil||null};
+ });
+ return result.result||{};
+}
+async function clearReauthFailures(req,current){
+ await auth.mutateTeamForRequest(req,team=>{
+  const key=userKey(current.user),target=(team.users||[]).find(u=>userKey(u)===key);
+  if(!target)return false;
+  target.customerPortalReauth={failedAttempts:0,lockedUntil:null,lastSuccessAt:auth.now()};
+  return true;
+ });
 }
 
 module.exports=async function(context,req){
@@ -62,14 +88,18 @@ module.exports=async function(context,req){
    context.res=response(200,{ok:true,customerId,deleted:true,portalId:portal.id,version:'RC1159'});return;
   }
   if(action==='reveal'){
+   const lockedUntil=reauthLock(current.user);
+   if(lockedUntil)throw auth.error('REAUTH_LOCKED','Zu viele Fehlversuche. Zugangsdaten können vorübergehend nicht angezeigt werden.',429,{lockedUntil});
    const password=String(payload.password||'');
    const credential=auth.credentialOf(current.user);
    if(!password||!credential||!auth.verifyCredential(password,credential)){
-    await revealDenied(req,current,customerId,text(payload.portalId));
+    const denied=await revealDenied(req,current,customerId,text(payload.portalId));
+    if(denied.lockedUntil)throw auth.error('REAUTH_LOCKED','Zu viele Fehlversuche. Zugangsdaten können 15 Minuten nicht angezeigt werden.',429,{lockedUntil:denied.lockedUntil});
     throw auth.error('REAUTH_FAILED','Das ExportHUB-Passwort ist nicht korrekt.',401);
    }
    const revealed=await store.reveal(environment,customerId,payload.portalId);
    await audit(req,'CUSTOMER_PORTAL_REVEALED',current.user,{customerId,portalId:revealed.portal.id,portalName:revealed.portal.name});
+   await clearReauthFailures(req,current);
    context.res=response(200,{ok:true,customerId,portal:revealed.portal,username:revealed.username,password:revealed.password,expiresInSeconds:60,version:'RC1159'});return;
   }
   throw auth.error('ACTION_INVALID','Unbekannte Kundenportal-Aktion.',400);
@@ -78,4 +108,4 @@ module.exports=async function(context,req){
   context.res=response(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'Kundenportal-Zugangsdaten konnten nicht verarbeitet werden.'});
  }
 };
-module.exports._test=Object.freeze({rights,customerExists,customerIdOf});
+module.exports._test=Object.freeze({rights,customerExists,customerIdOf,reauthLock});
