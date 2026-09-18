@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const compat=fs.readFileSync('assets/rc1063-abd-blob-viewer-compat.js','utf8');
 const history=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const audit=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
 
 test('RC1151: Sendungsansicht behandelt Rechnung Lieferschein ABD POD und weitere Dateien einheitlich',()=>{
   for(const marker of ['invoiceFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','abdFiles','podFiles','generatedDocuments','attachments']){
@@ -38,4 +39,12 @@ test('RC1151: ABD-Anfrage wird nicht durch Nachbartexte als Druckvorgang protoko
 test('RC1151: aktualisierte History und Dokumentansicht werden cache-sicher ausgeliefert',()=>{
   assert.match(build,/rc1071-shipment-history\.js\?v=1151/);
   assert.match(build,/rc1063-abd-blob-viewer-compat\.js\?v=1151/);
+});
+
+
+test('RC1151: globale History verwendet dieselben klaren Dokument- und ABD-Bezeichnungen',()=>{
+  assert.match(audit,/function shipmentActionTitle/);
+  assert.match(audit,/ABD-Anfrage erstellt/);
+  assert.match(audit,/ABD-Anfrage per E-Mail geöffnet/);
+  assert.match(audit,/'document-download':'Dokument heruntergeladen'/);
 });
