@@ -1,8 +1,6 @@
 'use strict';
 
 const crypto=require('crypto');
-const {BlobServiceClient}=require('@azure/storage-blob');
-
 const CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const BASE_BLOB=process.env.EXPORTHUB_CUSTOMER_PORTAL_BLOB||'customer-portal-credentials.json';
 const MAX_RETRIES=6;
@@ -54,6 +52,7 @@ function metadata(row){
 }
 function empty(){return{schemaVersion:1,updatedAt:null,customers:{}}}
 async function client(env){
+ const {BlobServiceClient}=require('@azure/storage-blob');
  const cs=connectionString();if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503);
  const service=BlobServiceClient.fromConnectionString(cs),container=service.getContainerClient(CONTAINER);
  return container.getBlockBlobClient(blobName(env));
