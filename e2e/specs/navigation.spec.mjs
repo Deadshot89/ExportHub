@@ -64,10 +64,72 @@ test('RC1124 P0: Sendung erstellen bleibt Erfassungsmaske und wird nicht zur His
   await waitReady(page);
   await openExportHubView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Kunde|Empfänger/i);
 
-  await expect(page.locator('#rc363BlockDocuments')).toBeVisible();
+  for(const selector of [
+    '#rc363BlockCustomer',
+    '#rc363BlockShipment',
+    '#rc363BlockColli',
+    '#rc363BlockDocuments',
+    '#rc363BlockStow',
+    '#rc363BlockMail',
+    '#rc363BlockActions'
+  ])await expect(page.locator(selector),selector+' fehlt in Sendung erstellen').toBeVisible();
   await expect(page.locator('#rc543MailArea')).toBeVisible();
+  await expect(page.locator('#content')).toContainText(/Kunde|Empfänger/i);
+  await expect(page.locator('#content')).toContainText(/Sendungsdaten/i);
   await expect(page.locator('#content')).toContainText(/Colli|Lademeter/i);
+  await expect(page.locator('#content')).toContainText(/Dokument|ABD/i);
+  await expect(page.locator('#content')).toContainText(/Stauplan/i);
+  await expect(page.locator('#content')).toContainText(/Mail|E-Mail/i);
+  await expect(page.locator('#content')).toContainText(/Speichern|Ausgabe/i);
   await expect(page.locator('#content')).not.toContainText(/^\s*Historie\s*$/i);
+  await assertView(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
+test('RC1158 P1: Deckblatt-Hervorhebung wird im echten Browser auch im Druckmedium gerendert',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Deckblatt-Rendering wird einmal auf dem Laptop-Profil geprüft.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await page.emulateMedia({media:'print'});
+
+  const style=await page.evaluate(()=>{
+    const cover=document.createElement('section');
+    cover.className='rc352-cover';
+    cover.style.position='fixed';
+    cover.style.left='-2000px';
+    cover.style.top='0';
+    cover.style.width='210mm';
+    cover.style.height='297mm';
+    const ref=document.createElement('div');
+    ref.className='rc352-cover-ref';
+    ref.innerHTML='<span>Referenz</span><strong>E2E123</strong>';
+    cover.appendChild(ref);
+    document.body.appendChild(cover);
+    const c=getComputedStyle(cover),r=getComputedStyle(ref);
+    const out={
+      backgroundImage:c.backgroundImage,
+      borderTopWidth:c.borderTopWidth,
+      borderLeftWidth:c.borderLeftWidth,
+      outlineWidth:c.outlineWidth,
+      printColorAdjust:c.printColorAdjust||c.webkitPrintColorAdjust||'',
+      refBackground:r.backgroundColor,
+      refColor:r.color,
+      refBorderWidth:r.borderTopWidth
+    };
+    cover.remove();
+    return out;
+  });
+
+  expect(style.backgroundImage).toContain('rgb(29, 78, 216)');
+  expect(style.backgroundImage).toContain('rgb(96, 165, 250)');
+  expect(Number.parseFloat(style.borderTopWidth)).toBeGreaterThan(50);
+  expect(Number.parseFloat(style.borderLeftWidth)).toBeGreaterThan(30);
+  expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThan(5);
+  expect(style.printColorAdjust).toBe('exact');
+  expect(style.refBackground).toBe('rgb(250, 204, 21)');
+  expect(style.refColor).toBe('rgb(17, 24, 39)');
+  expect(Number.parseFloat(style.refBorderWidth)).toBeGreaterThan(10);
   await assertView(page);
   await assertRuntimeClean(runtime,testInfo);
 });
