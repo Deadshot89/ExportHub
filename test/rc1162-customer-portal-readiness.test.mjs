@@ -43,7 +43,8 @@ test('RC1162: UI zeigt Betriebsbereitschaft und blockiert Secret-Aktionen ohne S
 test('RC1162: normale Nutzer sehen keine interne Azure-Setting-Bezeichnung',()=>{
   const fn=ui.slice(ui.indexOf('function readinessHint'),ui.indexOf('function portalRows'));
   assert.match(fn,/adminView\?/);
-  assert.match(fn,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);
+  assert.doesNotMatch(fn,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);
+  assert.match(fn,/Azure App Setting für die Kundenportal-Verschlüsselung fehlt/);
   assert.match(fn,/Bitte Administrator informieren/);
 });
 
