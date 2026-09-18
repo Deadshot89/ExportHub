@@ -125,7 +125,7 @@ function patchHtml(file){
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=1074/g,'assets/rc1074-login-clean.js?v=1112');
-  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=1016/g,'assets/rc1014-task-runtime.js?v=1152');
+  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=1016/g,'assets/rc1014-task-runtime.js?v=1156');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=1016/g,'assets/rc1014-task-ui.css?v=1152');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=1087/g,'assets/rc1081-audit-history.js?v=1126');
@@ -141,7 +141,7 @@ function patchHtml(file){
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
-  if(!html.includes('assets/rc1014-task-runtime.js?v=1152'))throw new Error(file+': RC1152 Aufgaben-Runtime Cache-Key fehlt');
+  if(!html.includes('assets/rc1014-task-runtime.js?v=1156'))throw new Error(file+': RC1156 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1152'))throw new Error(file+': RC1152 Aufgaben-CSS Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1126'))throw new Error(file+': RC1126 Historie Cache-Key fehlt');
