@@ -53,6 +53,7 @@ async function githubOidcAuthorized(req){
   }catch(_){return false}
 }
 function detectVersion(html){const s=String(html||'');let m=s.match(/version\s*:\s*['\"](RC\d+)['\"]/i);if(!m)m=s.match(/data-exporthub-version\s*=\s*['\"](RC\d+)['\"]/i);if(!m)m=s.match(/Aktuelle Version\s+(RC\d+)/i);return safeVersion(m&&m[1]);}
+function detectDeployedVersion(html){const s=String(html||'');let m=s.match(/ExportHUB\s+(RC\d+)\s+environment=(?:testservice|production-candidate|demo)/i);if(!m)m=s.match(/var\s+BUILD\s*=\s*Object\.freeze\(\{version:['\"](RC\d+)['\"]/i);return safeVersion(m&&m[1])||detectVersion(s);}
 function decodeJsString(s){return String(s||'').replace(/\\'/g,"'").replace(/\\\"/g,'\"').replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\t/g,' ').replace(/\\\\/g,'\\').trim();}
 function extractArrayStrings(source,key){const re=new RegExp(key+'\\s*:\\s*(?:Object\\.freeze\\()?\\s*\\[([\\s\\S]*?)\\]\\s*\\)?','i'),m=String(source||'').match(re);if(!m)return[];const out=[],r=/(['\"])((?:\\.|(?!\1)[\s\S])*?)\1/g;let x;while((x=r.exec(m[1]))&&out.length<12){const v=decodeJsString(x[2]);if(v)out.push(v)}return out;}
 function releaseMeta(html,commitMessage){const s=String(html||''),meta=s.match(/<script\b[^>]*\bid=['"]rc514-github-release-metadata['"][^>]*>([\s\S]*?)<\/script>/i);if(meta){try{const d=JSON.parse(meta[1]);return{title:text(d&&d.title)||text(commitMessage).split(/\r?\n/)[0],changes:Array.isArray(d&&d.changes)?d.changes.map(text).filter(Boolean).slice(0,12):[],tests:Array.isArray(d&&d.tests)?d.tests.map(text).filter(Boolean).slice(0,12):[]}}catch(_){}}const titleMatch=s.match(/title\s*:\s*(['"])((?:\.|(?!\1)[\s\S])*?)\1/i);return{title:titleMatch?decodeJsString(titleMatch[2]):text(commitMessage).split(/\r?\n/)[0],changes:extractArrayStrings(s,'changes'),tests:extractArrayStrings(s,'tests')};}
@@ -93,7 +94,7 @@ module.exports=async function(context,req){try{const action=lower(req.query&&req
     const v=safeVersion(body.version);if(!v)return context.res=json(400,{ok:false,code:'VERSION_INVALID',message:'Gültige RC-Version fehlt.'});
     const deployed=await fetch(TESTSERVICE_ORIGIN+'/TESTVERSION.html?release-activate='+Date.now(),{headers:{Accept:'text/html','Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'ExportHUB-Release-Activator'},cache:'no-store'});
     if(!deployed.ok)return context.res=json(502,{ok:false,code:'TESTSERVICE_HTML_FAILED',message:'Deploytes TESTVERSION.html konnte nicht gelesen werden (HTTP '+deployed.status+').'});
-    const buf=Buffer.from(await deployed.arrayBuffer()),html=buf.toString('utf8'),detected=detectVersion(html);
+    const buf=Buffer.from(await deployed.arrayBuffer()),html=buf.toString('utf8'),detected=detectDeployedVersion(html);
     if(detected!==v)return context.res=json(409,{ok:false,code:'TESTSERVICE_VERSION_MISMATCH',message:'Deployter TESTSERVICE meldet '+(detected||'keine RC')+' statt '+v+'.'});
     validateInlineScripts(html);
     const digest=crypto.createHash('sha256').update(buf).digest('hex'),blob='deployed-cache/'+v+'-'+digest.slice(0,16)+'.html';
