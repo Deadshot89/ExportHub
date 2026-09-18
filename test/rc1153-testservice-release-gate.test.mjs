@@ -8,7 +8,7 @@ const read=p=>fs.readFileSync(p,'utf8');
 test('RC1153: Task-Master-Save ist auf Aufgabenfelder begrenzt und zieht keine Sendungsarchive mit',()=>{
   const build=read('.github/rc1112/build-three-env.mjs');
   assert.match(build,/function patchTaskMasterSaveScope\(/,'RC1153 Save-Scope-Patch fehlt im finalen Builder');
-  assert.match(build,/Aufgaben-Master RC874/,'Task-Master-Savegrund wird nicht erkannt');
+  assert.match(build,/aufgaben-master rc874/,'Task-Master-Savegrund wird nicht erkannt');
   assert.match(build,/\['tasks','taskWeek','taskMasterRC848','taskMasterSourceVersion','taskMasterUpdatedAt'\]/,'Task-Scope ist nicht fachlich begrenzt');
 
   execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
