@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/rc1153-testservice-sync.yml'
+      - 'api/exporthub-release/index.js'
   workflow_dispatch:
 
 permissions:
