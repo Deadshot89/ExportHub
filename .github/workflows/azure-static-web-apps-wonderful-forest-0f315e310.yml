@@ -387,6 +387,56 @@ jobs:
           output_location: ''
           skip_app_build: true
           deployment_environment: testservice
+
+      - name: Release-Center aktive Testversion auf deployten Stand setzen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          ready=0
+          page="$(mktemp)"
+          response="$(mktemp)"
+          trap 'rm -f "$page" "$response"' EXIT
+          for attempt in {1..24}; do
+            code="$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/TESTVERSION.html?rc1153=${GITHUB_SHA}-${attempt}" || true)"
+            if [ "$code" = "200" ] && grep -q "version:'RC1112'" "$page"; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          [ "$ready" = "1" ] || { echo 'RC1153: deploytes TESTVERSION.html meldet RC1112 nicht.' >&2; exit 1; }
+
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-release-activate-test" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+
+          payload='{"version":"RC1112","sha":"'"$GITHUB_SHA"'","title":"RC1112 TESTSERVICE Deploy"}'
+          status="$(
+            curl -sS \
+              -o "$response" \
+              -w '%{http_code}' \
+              -X POST \
+              -H 'Content-Type: application/json' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -d "$payload" \
+              "$base/api/exporthub-release?action=activate-deployed-test"
+          )"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            cat "$response" >&2
+            echo "RC1153: Release-Center-Aktivierung HTTP $status" >&2
+            exit 1
+          fi
+          node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(v.ok!==true||v.test!=='RC1112')process.exit(2)" "$response"
+
+          active="$(curl -fsS "$base/api/exporthub-release?action=active&channel=test&_=${GITHUB_SHA}")"
+          ACTIVE="$active" node -e "const v=JSON.parse(process.env.ACTIVE);if(v.ok!==true||v.version!=='RC1112')throw new Error('Aktive Testversion ist '+String(v.version||'leer')+' statt RC1112')"
+          echo 'RC1153: Release-Center aktive Testversion = RC1112'
+
       - name: RC1124 TESTSERVICE Browser Gate
         id: rc1124_testservice_browser_gate
         shell: bash
