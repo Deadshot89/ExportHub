@@ -14,6 +14,19 @@ function clean(value){
     .replace(/(authorization\s*[:=]\s*bearer\s+)[^\s]+/gi,'$1[REDACTED]');
 }
 
+async function scrollMenuItemIntoView(page,item){
+  await item.evaluate(el=>{
+    const nav=el.closest&&el.closest('#nav');
+    if(nav){
+      const target=Math.max(0,el.offsetTop-(nav.clientHeight-el.offsetHeight)/2);
+      if(typeof nav.scrollTo==='function')nav.scrollTo({top:target,behavior:'auto'});
+      else nav.scrollTop=target;
+    }
+  }).catch(()=>{});
+  await item.scrollIntoViewIfNeeded().catch(()=>{});
+  await pause(100);
+}
+
 async function visible(page,locator,options={}){
   const count=await locator.count().catch(()=>0);
   const viewport=page.viewportSize();
@@ -21,13 +34,13 @@ async function visible(page,locator,options={}){
   for(let i=count-1;i>=0;i--){
     const item=locator.nth(i);
     if(!(await item.isVisible().catch(()=>false)))continue;
+    if(allowScroll)await scrollMenuItemIntoView(page,item);
     let box=await item.boundingBox().catch(()=>null);
     if(!box||!viewport)return item;
     let intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
     if(intersects)return item;
     if(!allowScroll)continue;
-    await item.scrollIntoViewIfNeeded().catch(()=>{});
-    await pause(60);
+    await scrollMenuItemIntoView(page,item);
     box=await item.boundingBox().catch(()=>null);
     if(!box)return null;
     intersects=box.x+box.width>0&&box.y+box.height>0&&box.x<viewport.width&&box.y<viewport.height;
@@ -36,13 +49,19 @@ async function visible(page,locator,options={}){
   return null;
 }
 
+async function waitForMenuOpen(page,timeout=3000){
+  return page.waitForFunction(()=>document.body?.classList.contains('eh-sidebar-open')||
+    (window.ExportHUBMobileMenu&&typeof window.ExportHUBMobileMenu.isOpen==='function'&&window.ExportHUBMobileMenu.isOpen()),
+    null,{timeout}).then(()=>true).catch(()=>false);
+}
+
 async function openMenu(page){
+  if(await waitForMenuOpen(page,150))return true;
   for(const selector of ['#rc1016MobileMenuBtn','#ehMenuBtn']){
     const button=await visible(page,page.locator(selector));
     if(!button)continue;
     await button.click({timeout:5000}).catch(()=>{});
-    await pause(150);
-    return true;
+    if(await waitForMenuOpen(page))return true;
   }
   return false;
 }
@@ -76,6 +95,93 @@ export async function waitReady(page){
   await pause(220);
 }
 
+function responsiveViewport(page){
+  const viewport=page.viewportSize();
+  return !!(viewport&&viewport.width<=900);
+}
+
+async function menuIsOpen(page){
+  return page.evaluate(()=>{
+    if(document.body?.classList.contains('eh-sidebar-open'))return true;
+    const api=window.ExportHUBMobileMenu;
+    try{return !!(api&&typeof api.isOpen==='function'&&api.isOpen())}catch(_){return false}
+  }).catch(()=>false);
+}
+
+export async function settleStateSave(page,options={}){
+  if(process.env.EXPORTHUB_E2E_LIVE!=='1')return {skipped:true};
+  const timeout=Math.max(3000,Number(options.timeout||25_000));
+  const stableMs=Math.max(200,Number(options.stableMs||600));
+  const deadline=Date.now()+timeout;
+  let stableSince=0;
+  let forced=false;
+
+  while(Date.now()<deadline){
+    const snapshot=await page.evaluate(()=>{
+      const clean=window.ExportHUBClean;
+      const runtime=clean&&clean.runtime;
+      if(!clean||!runtime)return {available:false,idle:true};
+      return {
+        available:true,
+        saving:runtime.saving===true,
+        pending:runtime.pendingSave===true,
+        dirty:runtime.dirty===true,
+        hasTimer:!!runtime.saveTimer,
+        lastErrorCode:String(runtime.lastSaveErrorCode||''),
+        lastErrorMessage:String(runtime.lastSaveErrorMessage||'')
+      };
+    });
+
+    if(!snapshot.available)return snapshot;
+    const busy=snapshot.saving||snapshot.pending||snapshot.dirty||snapshot.hasTimer;
+    if(!busy){
+      if(!stableSince)stableSince=Date.now();
+      if(Date.now()-stableSince>=stableMs)return snapshot;
+      await pause(120);
+      continue;
+    }
+    stableSince=0;
+
+    if(!snapshot.saving&&(snapshot.pending||snapshot.dirty)&&!forced){
+      forced=true;
+      const remaining=Math.max(1000,Math.min(18_000,deadline-Date.now()));
+      const result=await page.evaluate(async timeoutMs=>{
+        const clean=window.ExportHUBClean;
+        if(!clean||typeof clean.flushSave!=='function')return {ok:false,error:'ExportHUB flushSave fehlt'};
+        let timer=0;
+        try{
+          return await Promise.race([
+            Promise.resolve(clean.flushSave('RC1155 Browser-Gate wartet auf Azure-Speicherung',{force:true,userInitiated:true}))
+              .then(ok=>({ok:ok===true})),
+            new Promise(resolve=>{timer=setTimeout(()=>resolve({ok:false,timeout:true,error:'Azure-Save Drain Timeout'}),timeoutMs)})
+          ]);
+        }catch(error){
+          return {ok:false,error:String(error&&error.message||error)};
+        }finally{
+          if(timer)clearTimeout(timer);
+        }
+      },remaining);
+      if(result&&result.timeout)throw new Error(result.error);
+      if(result&&result.ok!==true){
+        const details=await page.evaluate(()=>{
+          const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
+          return String(r.lastSaveErrorCode||'')+' '+String(r.lastSaveErrorMessage||'');
+        }).catch(()=>'');
+        throw new Error('Azure-Speicherung konnte vor Browser-Navigation nicht bestätigt werden.'+(details?' '+details:''));
+      }
+      continue;
+    }
+
+    await pause(150);
+  }
+
+  const finalState=await page.evaluate(()=>{
+    const r=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
+    return {saving:!!r.saving,pending:!!r.pendingSave,dirty:!!r.dirty,hasTimer:!!r.saveTimer,lastErrorCode:String(r.lastSaveErrorCode||''),lastErrorMessage:String(r.lastSaveErrorMessage||'')};
+  }).catch(()=>({}));
+  throw new Error('Azure-Speicherung blieb vor Browser-Navigation aktiv: '+JSON.stringify(finalState));
+}
+
 export async function openExportHubView(page,module,labels=[],requiredText,options={}){
   const selectors=[
     `button[data-view="${module}"]`,`a[data-view="${module}"]`,`[role="button"][data-view="${module}"]`,
@@ -84,6 +190,7 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
   ];
 
   let menuOpened=false;
+  if(responsiveViewport(page))menuOpened=(await menuIsOpen(page))||(await openMenu(page));
   for(let pass=0;pass<3;pass++){
     const viewport=page.viewportSize();
     const allowScroll=Boolean(menuOpened||(viewport&&viewport.width>=768));

@@ -161,7 +161,7 @@ async function prepare(runId){
   environment:'testservice',
   deviceId:'e2e-playwright',
   createdAt,
-  expiresAt:new Date(Date.now()+60*60*1000).toISOString(),
+  expiresAt:new Date(Date.now()+15*60*1000).toISOString(),
   authVersion:Number(user.authVersion||0),
   mustChange:false
  };
