@@ -221,6 +221,8 @@ function detailText(e){
  if(x.status)parts.push('Status: '+q(x.status));
  if(x.reference)parts.push('Referenz: '+q(x.reference));
  if(x.date)parts.push('Datum: '+q(x.date)+(x.time?' · '+q(x.time):''));
+ if(x.oldDate||x.newDate){var oldTime=[q(x.oldTimeFrom),q(x.oldTimeTo)].filter(Boolean).join('–'),newTime=[q(x.newTimeFrom),q(x.newTimeTo)].filter(Boolean).join('–');parts.push('Abholtermin: '+(q(x.oldDate)||'—')+(oldTime?' '+oldTime:'')+' → '+(q(x.newDate)||'—')+(newTime?' '+newTime:''))}
+ if(x.oldPlate||x.newPlate)parts.push('Kennzeichen: '+(q(x.oldPlate)||'—')+' → '+(q(x.newPlate)||'—'));
  if(x.driver)parts.push('Fahrer: '+q(x.driver));
  if(x.licensePlate)parts.push('Kennzeichen: '+q(x.licensePlate));
  if(Number.isFinite(Number(x.colli)))parts.push('Colli: '+Number(x.colli));
