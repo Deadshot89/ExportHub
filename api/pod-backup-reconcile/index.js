@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const https = require('https');
 const podArchive = require('../shared/pod-archive');
 const store = require('../shared/pickup-store');
+const graphDrive = require('../shared/graph-drive');
 
 const REPO = 'Deadshot89/ExportHub';
 const WORKFLOW = 'rc1144-pod-backup-reconcile.yml';
@@ -108,6 +109,20 @@ module.exports = async function(context, req) {
     if (!await githubOidcAuthorized(req)) throw error('WORKFLOW_REQUIRED', 'Die POD-Nachholung darf nur durch den signierten ExportHUB-Wartungsworkflow ausgeführt werden.', 403);
     const payload = body(req);
     const environment = environmentOf(req, payload);
+    const graph = graphDrive.readiness();
+    if (!graph.configured) {
+      context.res = json(503, {
+        ok: false,
+        code: 'GRAPH_NOT_CONFIGURED',
+        message: 'Microsoft Graph ist für die automatische POD-Zweitsicherung nicht vollständig konfiguriert.',
+        version: 'RC1164',
+        environment,
+        graphConfigured: false,
+        missing: graph.missing,
+        targetFolder: graph.folder
+      });
+      return;
+    }
     const reference = text(payload.reference).toUpperCase();
     const limit = Math.min(25, Math.max(1, Math.round(Number(payload.limit) || 10)));
     const result = await podArchive.reconcilePendingBackups(environment, {
@@ -115,9 +130,9 @@ module.exports = async function(context, req) {
       limit,
       minAgeMs: reference ? 0 : 5 * 60 * 1000
     });
-    context.res = json(200, Object.assign({ version: 'RC1144', reference: reference || null }, result));
+    context.res = json(200, Object.assign({ version: 'RC1164', graphConfigured: true, reference: reference || null }, result));
   } catch (e) {
     try { context.log && context.log.error && context.log.error('RC1144 POD reconcile failed', e && e.code, e && e.message); } catch (_) {}
-    context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Nachholung ist fehlgeschlagen.', version: 'RC1144' });
+    context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Nachholung ist fehlgeschlagen.', version: 'RC1164' });
   }
 };
