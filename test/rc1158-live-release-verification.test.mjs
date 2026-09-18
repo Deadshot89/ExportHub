@@ -60,3 +60,11 @@ test('RC1158: Releaseworkflow führt die verschärften TESTSERVICE-Browserprüfu
   assert.match(gate,/e2e\/specs\/navigation\.spec\.mjs/);
   assert.match(gate,/e2e\/specs\/testservice-mutation\.spec\.mjs/);
 });
+
+test('RC1159: Deckblatt-Referenzrahmen ist im finalen Print-Artefakt mindestens 3mm stark',()=>{
+  execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=read('dist-rc1112/'+file);
+    assert.match(html,/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/,file+' hat keinen 3mm Referenzrahmen');
+  }
+});
