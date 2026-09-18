@@ -136,6 +136,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1133-avis-upload-notifications" defer src="/assets/rc1133-avis-upload-notifications.js?v=1133"></script>','exporthub-rc1133-avis-upload-notifications');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1159-customer-portal" defer src="/assets/rc1159-customer-portal-credentials.js?v=1159"></script>','exporthub-rc1159-customer-portal');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
@@ -152,6 +153,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1113-stowplan-persist.js?v=1113'))throw new Error(file+': RC1113 Stauplan-Erweiterung fehlt');
   if(!html.includes('assets/rc1114-shipping-neutral.js?v=1114'))throw new Error(file+': RC1114 neutrale Versandkostenoberfläche fehlt');
   if(!html.includes('assets/rc1133-avis-upload-notifications.js?v=1133'))throw new Error(file+': RC1133 AVIS-Upload-Benachrichtigungen fehlen');
+  if(!html.includes('assets/rc1159-customer-portal-credentials.js?v=1159'))throw new Error(file+': RC1159 Kundenportal-Runtime fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
   if(!/\.rc352-cover-ref\{[^}]*background:#facc15[^}]*\}/.test(html))throw new Error(file+': RC1148 Deckblatt-Referenzfeld ist keine gültige CSS-Regel');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
@@ -177,7 +179,8 @@ for(const rel of [
   'assets/rc1014-task-runtime.js',
   'assets/rc1014-task-ui.css',
   'assets/rc1126-customer-delete.js',
-  'assets/rc1133-avis-upload-notifications.js'
+  'assets/rc1133-avis-upload-notifications.js',
+  'assets/rc1159-customer-portal-credentials.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
@@ -185,7 +188,7 @@ for(const rel of [
   fs.copyFileSync(src,dst);
   if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
 }
-for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','pickup-confirm-v2/index.js','pod-backup/index.js','package.json']){
+for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','pickup-confirm-v2/index.js','pod-backup/index.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }
 const rc1114PickupSource=path.join(ROOT,'pickup.html');
@@ -225,7 +228,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1148 open/print + user + filename',
-    deckblattHighVisibility:'RC1148 valid print-safe 10mm frame + 18mm top band + yellow reference'
+    deckblattHighVisibility:'RC1148 valid print-safe 10mm frame + 18mm top band + yellow reference',
+    customerPortalCredentials:'RC1159 AES-256-GCM + re-auth + use/manage rights'
   },
   compatibility:{
     qr:'stable-existing-links',
