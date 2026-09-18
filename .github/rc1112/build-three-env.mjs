@@ -56,6 +56,16 @@ function patchNotificationTasks(html,file){
   return html.slice(0,a)+block+html.slice(b);
 }
 
+function patchTaskMasterSaveScope(html,file){
+  const before="function saveScopeForReason(reason){var r=lower(reason);if(/kundenstamm|kundenordner|kunden-mail|kundenmail|neuen kunden|kundendaten/.test(r))return new Set(['customers','customerNotes']);return null}";
+  const after="function saveScopeForReason(reason){var r=lower(reason);if(/kundenstamm|kundenordner|kunden-mail|kundenmail|neuen kunden|kundendaten/.test(r))return new Set(['customers','customerNotes']);if(/aufgaben-master rc874/.test(r))return new Set(['tasks','taskWeek','taskMasterRC848','taskMasterSourceVersion','taskMasterUpdatedAt']);return null}";
+  const count=html.split(before).length-1;
+  if(count!==1)throw new Error(file+': RC1153 saveScopeForReason '+count+'x gefunden');
+  html=html.replace(before,after);
+  if(!html.includes("if(/aufgaben-master rc874/.test(r))return new Set(['tasks','taskWeek','taskMasterRC848','taskMasterSourceVersion','taskMasterUpdatedAt'])"))throw new Error(file+': RC1153 Task-Master-Save-Scope fehlt');
+  return html
+}
+
 function patchDeckblattHighVisibility(html,file){
   let covers=0,refs=0;
   html=html.replace(/\.rc352-cover\{([^}]*)\}/g,function(full,body){
@@ -90,6 +100,7 @@ function patchHtml(file){
   let html=fs.readFileSync(target,'utf8');
   html=patchDemoTestPortalIsolation(html,file);
   html=patchNotificationTasks(html,file);
+  html=patchTaskMasterSaveScope(html,file);
   html=patchDeckblattHighVisibility(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
