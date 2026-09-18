@@ -144,8 +144,9 @@
     const kept=[],removed=[];
     tasks.forEach(task=>{
       const managed=q(task&&task.managedBy)==='RC1152';
-      const currentSystem=hasShipmentLink(task)&&systemTaskIsCurrent(task,state);
-      if(managed||currentSystem)kept.push(task);
+      const type=q(task&&task.sourceType).toLowerCase();
+      const genuineSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual'&&systemTaskIsCurrent(task,state);
+      if(managed||genuineSystem)kept.push(task);
       else removed.push(task);
     });
     if(removed.length){
