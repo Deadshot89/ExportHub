@@ -142,11 +142,18 @@
     const state=ctx.state||{};
     let tasks=arr(raw).slice(),changed=false;
     const kept=[],removed=[];
+    const initialCleanup=!state.rc1152TaskRosterAt;
+    const tombstoned=new Set(arr(state._teamSyncMeta&&state._teamSyncMeta.tombstones)
+      .filter(item=>q(item&&item.collection).toLowerCase()==='tasks')
+      .map(item=>q(item&&item.id).toLowerCase())
+      .filter(Boolean));
     tasks.forEach(task=>{
       const managed=q(task&&task.managedBy)==='RC1152';
       const type=q(task&&task.sourceType).toLowerCase();
-      const genuineSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual'&&systemTaskIsCurrent(task,state);
-      if(managed||genuineSystem)kept.push(task);
+      const isSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual';
+      const currentSystem=isSystem&&systemTaskIsCurrent(task,state);
+      const wasRemoved=tombstoned.has(q(task&&task.id).toLowerCase());
+      if(managed||currentSystem||(!isSystem&&!initialCleanup&&!wasRemoved))kept.push(task);
       else removed.push(task);
     });
     if(removed.length){
@@ -154,7 +161,7 @@
       changed=true;
       addTaskTombstones(state,removed);
       state.rc1152TaskRosterAt=new Date().toISOString();
-    }else if(!state.rc1152TaskRosterAt){
+    }else if(initialCleanup){
       state.rc1152TaskRosterAt=new Date().toISOString();
       changed=true;
     }
@@ -316,7 +323,7 @@
         <button type="button" class="btn" data-task-action="back">Zurück</button>
         ${!isReference?`<button type="button" class="btn" data-task-action="open" ${t.status==='open'?'disabled':''}>Offen</button>
         <button type="button" class="btn" data-task-action="in_progress" ${t.status==='in_progress'?'disabled':''}>In Bearbeitung</button>
-        <button type="button" class="btn primary" data-task-action="done" ${t.status==='done'?'disabled':''}>Erledigt</button>`:''}
+        <button type="button" class="btn primary" data-task-action="done" aria-label="Als erledigt markieren" ${t.status==='done'?'disabled':''}>Erledigt</button>`:''}
       </footer>
     </div>`;
     panel.addEventListener('click',event=>{
