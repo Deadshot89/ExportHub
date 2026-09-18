@@ -138,7 +138,7 @@ test('RC1095: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Liefe
   assert.equal(api.mailTypeFrom('Lieferavis Abholung'),'Lieferavis');
   assert.equal(api.mailTypeFrom('E-Mail öffnen'),'E-Mail');
   assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
-  assert.match(source,/ABD-Anfrage per E-Mail gestartet/);
+  assert.match(source,/ABD-Anfrage per E-Mail geöffnet/);
   assert.match(source,/mailType:mailKind/);
   assert.doesNotMatch(source,/function ensureMailConfirm/);
   assert.match(source,/recordMailSent\(sh,contextText\)/);

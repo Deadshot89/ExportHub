@@ -58,6 +58,8 @@ var SHIPMENT_LABELS={
  mail:'E-Mail vorbereitet oder geöffnet',
  'mail-sent':'E-Mail-Versand bestätigt',
  print:'Druck oder PDF-Ausgabe',
+ 'document-open':'Dokument geöffnet',
+ 'document-download':'Dokument heruntergeladen',
  avis:'Lieferavis',
  abd:'ABD',
  pickup:'Abholung',
@@ -95,9 +97,17 @@ function actionLabel(e){
  if(e&&e.type==='shipment')return SHIPMENT_LABELS[subtype]||'Sendungsaktion';
  return'Aktion'
 }
+function shipmentActionTitle(raw){
+ var label=q(raw),l=low(label);
+ if(/abd.*druck.*pdf.*gestartet/.test(l)||label==='ABD angefordert')return'ABD-Anfrage erstellt';
+ if(label==='ABD-Anfrage per E-Mail gestartet')return'ABD-Anfrage per E-Mail geöffnet';
+ if(label==='ABD-Dokument hinzugefügt')return'ABD-Dokument hochgeladen';
+ return label
+}
 function actionTitle(e){
  var raw=q(e&&e.label),mapped=actionLabel(e);
  if(e&&e.type==='audit')return mapped;
+ if(e&&e.type==='shipment'&&raw)return shipmentActionTitle(raw);
  if(raw&&raw!==subtypeTechnical(e))return raw;
  return mapped
 }

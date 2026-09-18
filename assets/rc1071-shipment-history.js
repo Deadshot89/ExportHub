@@ -34,7 +34,7 @@ function safeDetails(input){
  return out
 }
 function eventId(type,at,actor,label){return'H-'+String(at||'').replace(/[^0-9]/g,'').slice(0,17)+'-'+low(type).replace(/[^a-z0-9]+/g,'-').slice(0,24)+'-'+low(actor||label).replace(/[^a-z0-9]+/g,'-').slice(0,24)+'-'+Math.random().toString(36).slice(2,7)}
-function normalizeEvent(e){e=obj(e)?e:{};var at=q(e.at||e.createdAt||e.timestamp)||now(),actor=obj(e.actor)?e.actor:actorFrom({name:e.actorName||e.user||e.by});return{id:q(e.id)||eventId(e.type,at,actor.name,e.label),at:at,type:q(e.type)||'event',label:q(e.label||e.action)||'Ereignis',actor:{name:q(actor.name)||'Unbekannt',id:q(actor.id),role:q(actor.role)},source:q(e.source)||'exporthub',details:safeDetails(e.details),version:'RC1148'}}
+function normalizeEvent(e){e=obj(e)?e:{};var at=q(e.at||e.createdAt||e.timestamp)||now(),actor=obj(e.actor)?e.actor:actorFrom({name:e.actorName||e.user||e.by});return{id:q(e.id)||eventId(e.type,at,actor.name,e.label),at:at,type:q(e.type)||'event',label:q(e.label||e.action)||'Ereignis',actor:{name:q(actor.name)||'Unbekannt',id:q(actor.id),role:q(actor.role)},source:q(e.source)||'exporthub',details:safeDetails(e.details),version:'RC1151'}}
 function history(sh){return arr(sh&&sh.shipmentHistory).map(normalizeEvent)}
 function mergedHistory(sh){
  var map=new Map();
@@ -125,10 +125,11 @@ function allEvents(sh){
  return Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)})
 }
 function formatDate(v){var d=new Date(v);if(!Number.isFinite(d.getTime()))return q(v)||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(d)}
-function icon(type){return({created:'＋',saved:'✓',status:'↔',mail:'✉','mail-sent':'✓',print:'⎙','document-open':'↗',avis:'A',abd:'D',pickup:'⇢',pod:'P',document:'D',registration:'R','work-start':'▶'})[type]||'•'}
+function icon(type){return({created:'＋',saved:'✓',status:'↔',mail:'✉','mail-sent':'✓',print:'⎙','document-open':'↗','document-download':'↓',avis:'A',abd:'D',pickup:'⇢',pod:'P',document:'D',registration:'R','work-start':'▶'})[type]||'•'}
 function detailsText(e){var d=e.details||{},parts=[];if(d.document)parts.push('Dokument: '+d.document);if(d.fileName)parts.push('Datei: '+d.fileName);if(d.oldFile||d.newFile)parts.push('Datei: '+q(d.oldFile||'—')+' → '+q(d.newFile||'—'));if(d.files)parts.push('Dateien: '+d.files);if(d.mailType)parts.push('Mail: '+d.mailType);if(d.to)parts.push('An: '+d.to);if(d.from&&d.to)parts.push(d.from+' → '+d.to);if(d.driver)parts.push('Fahrer: '+d.driver);if(d.licensePlate)parts.push('Kennzeichen: '+d.licensePlate);if(Number.isFinite(Number(d.colli)))parts.push('Colli: '+d.colli);return parts.join(' · ')}
 function viewName(){var s=state();return low(s.view||s.currentView||s.activeView||'')}
 function shipmentView(){var v=viewName();if(v)return v==='shipment'||v==='sendung'||/shipment|sendung/.test(v);try{return !!(document.querySelector('#rc380StowPlan,#rc543MailArea'))}catch(_){return false}}
+function displayAction(e){var label=q(e&&e.label),l=low(label);if(/abd.*druck.*pdf.*gestartet/.test(l))return'ABD-Anfrage erstellt';if(label==='ABD angefordert')return'ABD-Anfrage erstellt';if(label==='ABD-Anfrage per E-Mail gestartet')return'ABD-Anfrage per E-Mail geöffnet';if(label==='ABD-Dokument hinzugefügt')return'ABD-Dokument hochgeladen';return label||'Ereignis'}
 function creatorMetaText(value){return String(value==null?'':value).replace(/([^\s·])Erstellt von:/g,'$1 · Erstellt von:')}
 function repairCreatorMetaSpacing(){
  if(!w.document||!shipmentView()||!document.body||typeof document.querySelectorAll!=='function')return 0;
@@ -146,12 +147,12 @@ function render(){
  if(!sh||!shipmentView()){if(old)old.remove();return false}
  var host=document.getElementById('content')||document.querySelector('main')||document.body;if(!host)return false;
  if(!old){old=document.createElement('section');old.id='rc1071ShipmentHistory';old.className='card rc1071-history';host.appendChild(old)}
- var events=allEvents(sh),rows=events.length?events.map(function(e){var det=detailsText(e);return'<div class="rc1071-history-row"><div class="rc1071-history-icon">'+esc(icon(e.type))+'</div><div class="rc1071-history-main"><div class="rc1071-history-label">'+esc(e.label)+'</div><div class="rc1071-history-meta">'+esc(formatDate(e.at))+' · '+esc(e.actor&&e.actor.name||'Unbekannt')+(e.actor&&e.actor.role?' · '+esc(e.actor.role):'')+'</div>'+(det?'<div class="rc1071-history-details">'+esc(det)+'</div>':'')+'</div></div>'}).join(''):'<div class="muted">Noch keine History-Einträge vorhanden.</div>';
- old.innerHTML='<div class="rc1071-history-head"><div><span class="pill blue">HISTORIE</span><h3>Sendungshistorie</h3><div class="muted">Nachvollziehbarer Ablauf für '+esc(ref(sh)||identity(sh))+'</div></div><span class="pill gray">'+events.length+' Ereignisse</span></div><div class="rc1071-history-list">'+rows+'</div>';
+ var events=allEvents(sh),rows=events.length?events.map(function(e){return'<tr class="rc1071-history-row"><td data-label="Arbeitsschritt" class="rc1071-history-action">'+esc(displayAction(e))+'</td><td data-label="Benutzer" class="rc1071-history-user">'+esc(e.actor&&e.actor.name||'Unbekannt')+(e.actor&&e.actor.role?'<small>'+esc(e.actor.role)+'</small>':'')+'</td><td data-label="Datum und Zeit" class="rc1071-history-time">'+esc(formatDate(e.at))+'</td></tr>'}).join(''):'<tr><td colspan="3" class="rc1071-history-empty">Noch keine History-Einträge vorhanden.</td></tr>';
+ old.innerHTML='<div class="rc1071-history-head"><div><span class="pill blue">HISTORIE</span><h3>Sendungshistorie</h3><div class="muted">Nachvollziehbarer Ablauf für '+esc(ref(sh)||identity(sh))+'</div></div><span class="pill gray">'+events.length+' Ereignisse</span></div><div class="rc1071-history-list"><table class="rc1071-history-table"><thead><tr><th>Arbeitsschritt</th><th>Benutzer</th><th>Datum und Zeit</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  ensureStyle();return true
 }
-function ensureStyle(){if(document.getElementById('rc1071ShipmentHistoryStyle'))return;var s=document.createElement('style');s.id='rc1071ShipmentHistoryStyle';s.textContent='.rc1071-history{margin-top:16px}.rc1071-history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.rc1071-history-head h3{margin:6px 0 2px}.rc1071-history-list{margin-top:12px;display:grid;gap:8px;max-height:520px;overflow:auto;padding-right:4px}.rc1071-history-row{display:grid;grid-template-columns:34px 1fr;gap:10px;padding:10px;border:1px solid #dbe4ec;border-radius:10px;background:#fff}.rc1071-history-icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef6ff;font-weight:800}.rc1071-history-label{font-weight:750}.rc1071-history-meta,.rc1071-history-details{font-size:12px;color:#64748b;margin-top:2px}@media(max-width:720px){.rc1071-history-list{max-height:none}.rc1071-history-row{grid-template-columns:30px 1fr}}';(document.head||document.documentElement).appendChild(s)}
-function documentLabel(text){text=low(text);if(/\babd\b|ausfuhrbegleit/.test(text))return'ABD';if(/\bpod\b|proof of delivery|abliefer/.test(text))return'POD';if(/cmr/.test(text))return'CMR';if(/lieferschein|liefer.?schein|delivery note/.test(text))return'Lieferschein';if(/deckblatt/.test(text))return'Deckblatt';if(/stauplan/.test(text))return'Stauplan';if(/ladeliste/.test(text))return'Ladeliste';if(/gesamt/.test(text)&&/druck|ausgabe|pdf/.test(text))return'Gesamtdruck';if(/l1/.test(text)&&/qr/.test(text))return'L1 QR';if(/\bl2\b/.test(text))return'L2';if(/pdf/.test(text))return'PDF';return'Dokument'}
+function ensureStyle(){if(document.getElementById('rc1071ShipmentHistoryStyle'))return;var s=document.createElement('style');s.id='rc1071ShipmentHistoryStyle';s.textContent='.rc1071-history{margin-top:16px}.rc1071-history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.rc1071-history-head h3{margin:6px 0 2px}.rc1071-history-list{margin-top:12px;max-height:520px;overflow:auto;border:1px solid #dbe4ec;border-radius:12px;background:#fff}.rc1071-history-table{width:100%;border-collapse:collapse;min-width:680px}.rc1071-history-table th{padding:10px 12px;text-align:left;background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid #dbe4ec}.rc1071-history-table td{padding:11px 12px;border-bottom:1px solid #e7edf3;vertical-align:top;font-size:12px}.rc1071-history-table tbody tr:last-child td{border-bottom:0}.rc1071-history-action{font-weight:800;color:#0f172a}.rc1071-history-user{font-weight:700}.rc1071-history-user small{display:block;margin-top:2px;color:#64748b;font-weight:500}.rc1071-history-time{white-space:nowrap;color:#475569}.rc1071-history-empty{text-align:center;color:#64748b;padding:20px!important}@media(max-width:720px){.rc1071-history-list{max-height:none}.rc1071-history-table{min-width:0}.rc1071-history-table thead{display:none}.rc1071-history-table,.rc1071-history-table tbody,.rc1071-history-table tr,.rc1071-history-table td{display:block;width:100%}.rc1071-history-table tr{padding:8px 10px;border-bottom:1px solid #dbe4ec}.rc1071-history-table td{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:5px 0;border:0}.rc1071-history-table td:before{content:attr(data-label);font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b}}';(document.head||document.documentElement).appendChild(s)}
+function documentLabel(text){text=low(text);if(/\babd\b|ausfuhrbegleit/.test(text))return'ABD';if(/\bpod\b|proof of delivery|abliefer/.test(text))return'POD';if(/cmr/.test(text))return'CMR';if(/rechnung|invoice/.test(text))return'Rechnung';if(/lieferschein|liefer.?schein|delivery note/.test(text))return'Lieferschein';if(/deckblatt/.test(text))return'Deckblatt';if(/stauplan/.test(text))return'Stauplan';if(/ladeliste/.test(text))return'Ladeliste';if(/gesamt/.test(text)&&/druck|ausgabe|pdf/.test(text))return'Gesamtdruck';if(/l1/.test(text)&&/qr/.test(text))return'L1 QR';if(/\bl2\b/.test(text))return'L2';if(/pdf/.test(text))return'PDF';return'Dokument'}
 function cleanDocumentFileName(value){
  value=q(value);if(!value||/^data:/i.test(value))return'';
  try{value=decodeURIComponent(value)}catch(_){}
@@ -160,7 +161,7 @@ function cleanDocumentFileName(value){
  var parts=value.split('/'),last=q(parts[parts.length-1]);return /\.pdf$/i.test(last)?last:''
 }
 function documentFilesFor(sh,doc){
- var keys=doc==='ABD'?['abdFiles']:doc==='POD'?['podFiles']:doc==='Lieferschein'?['deliveryFiles','deliveryNotesFiles']:[];
+ var keys=doc==='ABD'?['abdFiles']:doc==='POD'?['podFiles']:doc==='Rechnung'?['invoiceFiles']:doc==='Lieferschein'?['deliveryFiles','deliveryNotesFiles','lieferscheine']:[];
  var out=[];keys.forEach(function(key){arr(sh&&sh[key]).forEach(function(file,index){var name=fileName(file,index);if(name)out.push(name)})});return out
 }
 function documentActionFileName(el,contextText,doc){
@@ -176,6 +177,7 @@ function documentActionFileName(el,contextText,doc){
 function recordDocumentAction(sh,action,doc,file){
  var details={document:doc,fileName:file,reference:ref(sh)};
  if(action==='open')return append(sh,{type:'document-open',label:doc+' – geöffnet',actor:actorFrom(currentUser()),details:details});
+ if(action==='download')return append(sh,{type:'document-download',label:doc+' – heruntergeladen',actor:actorFrom(currentUser()),details:details});
  return append(sh,{type:'print',label:doc+' – gedruckt',actor:actorFrom(currentUser()),details:details})
 }
 function mailRecipient(href){try{return decodeURIComponent(String(href||'').replace(/^mailto:/i,'').split('?')[0])}catch(_){return q(href).replace(/^mailto:/i,'').split('?')[0]}}
@@ -185,26 +187,29 @@ function elementContext(el,text){var out=q(text);try{var box=el&&el.closest&&el.
 function recordMailSent(sh,contextText){var mailMeta=LAST_MAIL_META[identity(sh)]||{},mailKind=q(mailMeta.mailType)||mailTypeFrom(contextText)||'E-Mail',sentLabel=mailSentLabel(mailKind);return append(sh,{type:'mail-sent',label:sentLabel,actor:actorFrom(currentUser()),details:{reference:ref(sh),to:q(mailMeta.to),subject:q(mailMeta.subject),mailType:mailKind}})}
 function click(ev){
  var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;var sh=currentShipment();if(!sh)return;
- var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),contextText=elementContext(el,text),l=low(contextText);
+ var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text),l=low(contextText);
  var href=q(el.getAttribute&&el.getAttribute('href'));
  if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(l)){
    var to=/^mailto:/i.test(href)?mailRecipient(href):'',subject=/^mailto:/i.test(href)?mailSubject(href):'',mailKind=mailTypeFrom(contextText+' '+subject);
    LAST_MAIL_META[identity(sh)]={to:to,subject:subject,mailType:mailKind,at:now()};
-   if(mailKind==='ABD-Anfrage'&&actionOnce('abd-mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'abd',label:'ABD-Anfrage per E-Mail gestartet',actor:actorFrom(currentUser()),details:{to:to,subject:subject,mailType:mailKind,reference:ref(sh)}});
+   if(mailKind==='ABD-Anfrage'){if(actionOnce('abd-mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'abd',label:'ABD-Anfrage per E-Mail geöffnet',actor:actorFrom(currentUser()),details:{to:to,subject:subject,mailType:mailKind,reference:ref(sh)}});return}
    if(/anmeld|registrier|versandbestät/i.test(l)&&actionOnce('registration-mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'registration',label:'Versandanmeldung per E-Mail gestartet',actor:actorFrom(currentUser()),details:{to:to,subject:subject,mailType:mailKind,reference:ref(sh)}});
    if(actionOnce('mail-sent-open|'+identity(sh)+'|'+mailKind+'|'+to,2500))recordMailSent(sh,contextText);return
  }
- if(/\babd\b/.test(l)&&/anfordern|anfrage|request/.test(l)){
-   if(actionOnce('abd-request|'+identity(sh),2500))append(sh,{type:'abd',label:'ABD angefordert',actor:actorFrom(currentUser()),details:{reference:ref(sh)}});return
+ if(/\babd\b/.test(l)&&/anfordern|anfrage|request/.test(actionText)){
+   if(actionOnce('abd-request|'+identity(sh),2500))append(sh,{type:'abd',label:'ABD-Anfrage erstellt',actor:actorFrom(currentUser()),details:{reference:ref(sh)}});return
  }
  if(/anmeld|registrier|versandbestät/.test(l)&&!/login|anmeldung erforderlich/.test(l)){
    if(actionOnce('registration|'+identity(sh),2500))append(sh,{type:'registration',label:'Versandanmeldung gestartet',actor:actorFrom(currentUser()),details:{reference:ref(sh),action:q(el.textContent)}});return
  }
  var doc=documentLabel(contextText),knownDoc=doc!=='Dokument',file=documentActionFileName(el,contextText,doc);
- if(knownDoc&&/druck|print|gesamtausgabe/.test(l)){
+ if(knownDoc&&/druck|print|gesamtausgabe/.test(actionText)){
    if(actionOnce('print|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'print',doc,file);return
  }
- if(knownDoc&&(/öffnen|open|anzeigen|view|download|herunterladen|pdf/.test(l)||(/\.pdf(?:[?#]|$)/i.test(href)))){
+ if(knownDoc&&/download|herunterladen/.test(actionText)){
+   if(actionOnce('document-download|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'download',doc,file);return
+ }
+ if(knownDoc&&(/öffnen|open|anzeigen|view|pdf/.test(actionText)||(/\.pdf(?:[?#]|$)/i.test(href)))){
    if(actionOnce('document-open|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'open',doc,file);return
  }
  if(knownDoc&&/cmr|ladeliste|stauplan|deckblatt|lieferschein|\babd\b|\bpod\b|l1|\bl2\b/.test(l)){
@@ -216,6 +221,7 @@ function click(ev){
 }
 function fileChange(ev){var input=ev.target;if(!input||String(input.type||'').toLowerCase()!=='file'||!input.files||!input.files.length)return;var sh=currentShipment();if(!sh)return;var ctx=low((input.id||'')+' '+(input.name||'')+' '+(input.closest&&input.closest('label,.field,.card')&&input.closest('label,.field,.card').textContent||'')),kind=/pod/.test(ctx)?'POD':/abd/.test(ctx)?'ABD':/liefer|delivery/.test(ctx)?'Lieferschein':'Dokument';append(sh,{type:kind==='POD'?'pod':kind==='ABD'?'abd':'document',label:kind+' zum Upload ausgewählt',actor:actorFrom(currentUser()),details:{files:Array.from(input.files).map(function(f){return q(f.name)}).join(', ')}})}
 function avisUpdated(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},enabled=d.enabled!==false;append(sh,{type:'avis',label:enabled?'Lieferavis erstellt/aktiviert':'Lieferavis deaktiviert',actor:actorFrom(currentUser()),details:{reference:q(d.reference)||ref(sh)}})}
+function documentActionEvent(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},action=q(d.action),doc=q(d.document)||'Dokument',file=q(d.fileName);if(action!=='open'&&action!=='download')return;var key='document-event|'+action+'|'+identity(sh)+'|'+doc+'|'+file;if(actionOnce(key,1200))recordDocumentAction(sh,action,doc,file)}
 function markWorkStarted(){
  var sh=currentShipment();if(!sh||!shipmentView())return false;
  var actor=actorFrom(currentUser()),events=mergedHistory(sh),cutoff=Date.now()-4*60*60*1000;
@@ -232,6 +238,7 @@ if(w.document){
 }
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
+try{w.addEventListener('exporthub:document-action',documentActionEvent)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1148',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1151',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
 })(window);

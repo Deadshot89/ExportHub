@@ -1,0 +1,24 @@
+name: RC1151 Branch Test
+on:
+  push:
+    branches:
+      - fix/rc1151-document-download-history
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1063-abd-blob-viewer-compat.js'
+      - 'assets/rc1071-shipment-history.js'
+      - '.github/rc1112/build-three-env.mjs'
+      - 'test/rc1151-document-download-history.test.mjs'
+      - '.github/workflows/rc1151-branch-test.yml'
+permissions:
+  contents: read
+jobs:
+  rc1151:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: node --test test/rc1151-document-download-history.test.mjs

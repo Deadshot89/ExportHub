@@ -47,7 +47,7 @@ test('RC1100: zentrale Aktionsabdeckung enthält Dokumentänderung ABD Anmeldung
     "base+' ersetzt'",
     "base+' entfernt'",
     "base+' hinzugefügt'",
-    "label:'ABD angefordert'",
+    "label:'ABD-Anfrage erstellt'",
     "label:'Versandanmeldung gestartet'",
     "type:'print'",
     "type:'mail-sent'",
