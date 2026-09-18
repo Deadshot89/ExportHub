@@ -49,14 +49,42 @@ async function visible(page,locator,options={}){
   return null;
 }
 
+async function mobileToggleExpanded(page){
+  return page.evaluate(()=>{
+    for(const selector of ['#rc1016MobileMenuBtn','#ehMenuBtn']){
+      const button=document.querySelector(selector);
+      if(!button)continue;
+      const style=getComputedStyle(button),rect=button.getBoundingClientRect();
+      const visible=style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity||1)>0&&rect.width>0&&rect.height>0&&rect.right>0&&rect.bottom>0&&rect.left<innerWidth&&rect.top<innerHeight;
+      if(!visible)continue;
+      const expanded=button.getAttribute('aria-expanded');
+      if(expanded!==null)return expanded==='true';
+    }
+    return null;
+  }).catch(()=>null);
+}
+
+async function menuIsOpen(page){
+  const expanded=await mobileToggleExpanded(page);
+  if(expanded!==null)return expanded;
+  return page.evaluate(()=>{
+    if(document.body?.classList.contains('eh-sidebar-open'))return true;
+    const api=window.ExportHUBMobileMenu;
+    try{return !!(api&&typeof api.isOpen==='function'&&api.isOpen())}catch(_){return false}
+  }).catch(()=>false);
+}
+
 async function waitForMenuOpen(page,timeout=3000){
-  return page.waitForFunction(()=>document.body?.classList.contains('eh-sidebar-open')||
-    (window.ExportHUBMobileMenu&&typeof window.ExportHUBMobileMenu.isOpen==='function'&&window.ExportHUBMobileMenu.isOpen()),
-    null,{timeout}).then(()=>true).catch(()=>false);
+  const deadline=Date.now()+timeout;
+  while(Date.now()<deadline){
+    if(await menuIsOpen(page))return true;
+    await pause(80);
+  }
+  return false;
 }
 
 async function openMenu(page){
-  if(await waitForMenuOpen(page,150))return true;
+  if(await menuIsOpen(page))return true;
   for(const selector of ['#rc1016MobileMenuBtn','#ehMenuBtn']){
     const button=await visible(page,page.locator(selector));
     if(!button)continue;
@@ -98,14 +126,6 @@ export async function waitReady(page){
 function responsiveViewport(page){
   const viewport=page.viewportSize();
   return !!(viewport&&viewport.width<=900);
-}
-
-async function menuIsOpen(page){
-  return page.evaluate(()=>{
-    if(document.body?.classList.contains('eh-sidebar-open'))return true;
-    const api=window.ExportHUBMobileMenu;
-    try{return !!(api&&typeof api.isOpen==='function'&&api.isOpen())}catch(_){return false}
-  }).catch(()=>false);
 }
 
 export async function settleStateSave(page,options={}){
@@ -182,6 +202,16 @@ export async function settleStateSave(page,options={}){
   throw new Error('Azure-Speicherung blieb vor Browser-Navigation aktiv: '+JSON.stringify(finalState));
 }
 
+async function activateNavigationTarget(page,item,module,requiredText){
+  await item.click({timeout:7000});
+  const changed=await page.waitForFunction(mod=>String(document.body?.getAttribute('data-exporthub-view')||'')===mod,module,{timeout:5000})
+    .then(()=>true).catch(()=>false);
+  if(!changed)return false;
+  await pause(220);
+  await waitForRequired(page,requiredText);
+  return true;
+}
+
 export async function openExportHubView(page,module,labels=[],requiredText,options={}){
   const selectors=[
     `button[data-view="${module}"]`,`a[data-view="${module}"]`,`[role="button"][data-view="${module}"]`,
@@ -189,18 +219,18 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
     `button[data-nav="${module}"]`,`a[data-nav="${module}"]`,`[role="button"][data-nav="${module}"]`
   ];
 
-  let menuOpened=false;
-  if(responsiveViewport(page))menuOpened=(await menuIsOpen(page))||(await openMenu(page));
+  attempts:
   for(let pass=0;pass<3;pass++){
     const viewport=page.viewportSize();
+    let menuOpened=false;
+    if(responsiveViewport(page))menuOpened=(await menuIsOpen(page))||(await openMenu(page));
     const allowScroll=Boolean(menuOpened||(viewport&&viewport.width>=768));
+
     for(const selector of selectors){
       const item=await visible(page,page.locator(selector),{scrollIntoView:allowScroll});
       if(!item)continue;
-      await item.click({timeout:7000});
-      await pause(300);
-      await waitForRequired(page,requiredText);
-      return module;
+      if(await activateNavigationTarget(page,item,module,requiredText))return module;
+      continue attempts;
     }
 
     for(const label of labels){
@@ -212,13 +242,11 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
       for(const locator of candidates){
         const item=await visible(page,locator,{scrollIntoView:allowScroll});
         if(!item)continue;
-        await item.click({timeout:7000});
-        await pause(300);
-        await waitForRequired(page,requiredText);
-        return module;
+        if(await activateNavigationTarget(page,item,module,requiredText))return module;
+        continue attempts;
       }
     }
-    menuOpened=(await openMenu(page))||menuOpened;
+    if(responsiveViewport(page))await openMenu(page);
   }
 
   if(options.allowProgrammaticFallback===true){
