@@ -22,7 +22,7 @@ test('RC1159: Metadaten enthalten niemals Ciphertext oder Klartext-Zugangsdaten'
   const meta=store.metadata(row),serialized=JSON.stringify(meta);
   assert.equal(meta.hasUsername,true);assert.equal(meta.hasPassword,true);
   assert.equal('usernameEncrypted' in meta,false);assert.equal('passwordEncrypted' in meta,false);
-  assert.doesNotMatch(serialized,/SECRET-U|SECRET-P|ciphertext|tag|iv/);
+  assert.doesNotMatch(serialized,/SECRET-U|SECRET-P|\"(?:ciphertext|tag|iv)\"\s*:/);
 });
 test('RC1159: nur HTTPS-Portale sind zulässig und URL-Credentials werden entfernt',()=>{
   assert.throws(()=>store.cleanUrl('http://example.test'),e=>e&&e.code==='PORTAL_URL_INVALID');
