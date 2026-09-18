@@ -21,7 +21,7 @@ jobs:
       - name: RC1153 fokussierte Regression
         run: node --test test/rc1153-testservice-release-gate.test.mjs
       - name: Vollständige Node-Regression
-        run: node --test test/*.test.mjs
+        run: node --test --test-concurrency=1 test/*.test.mjs
       - name: Playwright installieren
         run: |
           npm install --no-save @playwright/test@1.55.0
