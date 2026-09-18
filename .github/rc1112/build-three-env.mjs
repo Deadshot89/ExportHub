@@ -138,6 +138,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1133-avis-upload-notifications" defer src="/assets/rc1133-avis-upload-notifications.js?v=1133"></script>','exporthub-rc1133-avis-upload-notifications');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1160-customer-portal" defer src="/assets/rc1160-customer-portal-credentials.js?v=1162"></script>','exporthub-rc1160-customer-portal');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1166"></script>','exporthub-rc1166-avis-reminder');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
@@ -156,6 +157,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1133-avis-upload-notifications.js?v=1133'))throw new Error(file+': RC1133 AVIS-Upload-Benachrichtigungen fehlen');
   if(!html.includes('assets/rc1160-customer-portal-credentials.js?v=1162'))throw new Error(file+': RC1160 Kundenportal-Runtime fehlt');
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
+  if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1166'))throw new Error(file+': RC1166 Avis-Erinnerung-Runtime fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
   if(!/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/.test(html))throw new Error(file+': RC1159 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
@@ -184,7 +186,8 @@ for(const rel of [
   'assets/rc1133-avis-upload-notifications.js',
   'assets/rc1081-audit-history.js',
   'assets/rc1160-customer-portal-credentials.js',
-  'assets/rc1165-pod-backup-status.js'
+  'assets/rc1165-pod-backup-status.js',
+  'assets/rc1166-avis-reminder-overview.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
@@ -232,6 +235,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
     podGraphReadiness:'RC1164 fail-closed Graph configuration gate before reconcile',
     podBackupStatusUi:'RC1165 shipment overview Azure/M365 backup status',
+    avisReminderOverview:'RC1166 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1148 open/print + user + filename',
     deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border',
