@@ -11,6 +11,24 @@
   let taskResetTimer=0;
   let taskResetInFlight=false;
 
+  const MANAGED_TASKS=Object.freeze([
+    {key:'spanien',title:'Spanien anmelden',group:'Anmeldung',weekdays:[1,4],priority:'P3',description:'Spanien gemäß festem Wochenplan anmelden.'},
+    {key:'gaggenau',title:'Gaggenau anmelden',group:'Anmeldung',weekdays:[1],dueTime:'13:00',priority:'P2',description:'Gaggenau montags bis 13:00 Uhr anmelden.'},
+    {key:'faurecia',title:'FAURECIA anmelden',group:'Anmeldung',weekdays:[1],priority:'P3',description:'FAURECIA gemäß festem Wochenplan anmelden.'},
+    {key:'wuerth-industrie',title:'Würth Industrie anmelden',group:'Anmeldung',weekdays:[2,4],priority:'P3',description:'Würth Industrie dienstags und donnerstags anmelden.'},
+    {key:'bmp',title:'BMP anmelden',group:'Anmeldung',weekdays:[2],priority:'P3',description:'BMP dienstags anmelden.'},
+    {key:'ohare',title:'O’Hare anmelden',group:'Anmeldung',weekdays:[3],dueTime:'12:00',priority:'P2',description:'O’Hare mittwochs bis 12:00 Uhr anmelden.'},
+    {key:'essentra-schweden',title:'Essentra Schweden anmelden',group:'Anmeldung',weekdays:[3],priority:'P3',description:'Essentra Schweden mittwochs anmelden.'},
+    {key:'contitech-abd',title:'Contitech – ABD erstellen',group:'Export / ABD',weekdays:[3],priority:'P2',description:'Für Contitech mittwochs das erforderliche ABD erstellen.'},
+    {key:'italien',title:'Italien anmelden',group:'Anmeldung',weekdays:[3,5],priority:'P3',description:'Italien mittwochs und freitags anmelden.'},
+    {key:'bsh',title:'BSH anmelden',group:'Anmeldung',weekdays:[3],dueTime:'13:00',priority:'P2',description:'BSH mittwochs bis 13:00 Uhr anmelden.'},
+    {key:'polen',title:'Polen anmelden',group:'Anmeldung',weekdays:[4],priority:'P3',description:'Polen donnerstags anmelden.'},
+    {key:'frankreich',title:'Frankreich anmelden',group:'Anmeldung',weekdays:[5],priority:'P3',description:'Frankreich freitags anmelden.'},
+    {key:'neff',title:'Neff anmelden',group:'Anmeldung',weekdays:[5],dueTime:'13:00',priority:'P2',description:'Neff freitags bis 13:00 Uhr anmelden.'},
+    {key:'swiss-area',title:'Schweizer Kunden prüfen',group:'Schweizer Kunden prüfen',referenceArea:true,priority:'P3',description:'Prüfen, ob für die Schweizer Sendungen ein ABD erstellt werden muss.',checklist:['Omni Ray','Bossard','Heizmann']}
+  ]);
+  const SYSTEM_GROUPS=new Set(['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs']);
+
   function api(){
     const value=root.ExportHUBRC1014Tasks;
     if(!value||typeof value.normalizeTask!=='function')throw new Error('RC1014 Aufgaben-Lifecycle ist nicht geladen.');
@@ -26,6 +44,102 @@
     return {companyId:q(ctx.companyId),environment:q(ctx.environment),currentUserId:currentUserId(ctx),now:ctx.now,absences:arr(ctx.absences||(ctx.state&&ctx.state.absences))};
   }
 
+  function localDay(value){
+    const d=value instanceof Date?value:new Date(value||Date.now());
+    if(Number.isNaN(d.getTime()))return null;
+    return {date:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,weekday:d.getDay()};
+  }
+
+  function managedTaskForSpec(spec,date,ctx={}){
+    const user=currentUserId(ctx);
+    const dueAt=spec.referenceArea?'':(date+(spec.dueTime?`T${spec.dueTime}:00`:''));
+    return {
+      id:spec.referenceArea?`managed:${spec.key}`:`managed:${spec.key}:${date}`,
+      managedBy:'RC1152',
+      managedKey:spec.key,
+      managedKind:spec.referenceArea?'reference-area':'recurring',
+      title:spec.title,
+      group:spec.group,
+      area:spec.group,
+      sourceType:'manual',
+      sourceId:`managed:${spec.key}`,
+      sourceRef:'',
+      manual:true,
+      priority:spec.priority||'P3',
+      dueAt,
+      dueDate:dueAt,
+      occurrenceKey:spec.referenceArea?'reference':date,
+      status:'open',
+      assignedTo:user,
+      owner:user,
+      originalAssignee:user,
+      effectiveAssignee:user,
+      companyId:q(ctx.companyId),
+      environment:q(ctx.environment),
+      description:spec.description||'',
+      checklist:arr(spec.checklist),
+      recurrenceLabel:spec.referenceArea?'Bereich':weekdayLabel(spec.weekdays,spec.dueTime),
+      createdAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString()
+    };
+  }
+
+  function weekdayLabel(days,time){
+    const names={1:'Montag',2:'Dienstag',3:'Mittwoch',4:'Donnerstag',5:'Freitag'};
+    const label=arr(days).map(d=>names[d]||'').filter(Boolean).join(' + ');
+    return label+(time?` · bis ${time} Uhr`:'');
+  }
+
+  function hasShipmentLink(task){
+    if(!task)return false;
+    const ref=q(task.linkedShipmentRef||task.shipmentRef||task.reference||task.ref||task.sourceRef);
+    const id=q(task.linkedShipmentId||task.shipmentId);
+    if(id||/^[A-Z0-9]{6}$/.test(ref.toUpperCase()))return true;
+    const type=q(task.sourceType).toLowerCase();
+    return SYSTEM_GROUPS.has(q(task.group))&&type!=='manual';
+  }
+
+  function addTaskTombstones(state,removed){
+    if(!state||!removed.length)return;
+    if(!state._teamSyncMeta||typeof state._teamSyncMeta!=='object'||Array.isArray(state._teamSyncMeta))state._teamSyncMeta={fields:{},tombstones:[]};
+    if(!Array.isArray(state._teamSyncMeta.tombstones))state._teamSyncMeta.tombstones=[];
+    const existing=new Set(state._teamSyncMeta.tombstones.map(t=>`${q(t&&t.collection).toLowerCase()}:${q(t&&t.id).toLowerCase()}`));
+    const at=new Date().toISOString();
+    removed.forEach((task,index)=>{
+      const id=q(task&&task.id);
+      if(!id)return;
+      const key=`tasks:${id.toLowerCase()}`;
+      if(existing.has(key))return;
+      state._teamSyncMeta.tombstones.push({collection:'tasks',id,deletedAt:at,deletedBy:'system:RC1152',explicitUserAction:true});
+      existing.add(key);
+    });
+  }
+
+  function prepareManagedRoster(raw,ctx={}){
+    const state=ctx.state||{};
+    let tasks=arr(raw).slice(),changed=false;
+    if(!state.rc1152TaskRosterAt){
+      const kept=[],removed=[];
+      tasks.forEach(task=>{
+        if(q(task&&task.managedBy)==='RC1152'||hasShipmentLink(task))kept.push(task);
+        else removed.push(task);
+      });
+      if(removed.length){tasks=kept;changed=true;addTaskTombstones(state,removed);}
+      state.rc1152TaskRosterAt=new Date().toISOString();
+      changed=true;
+    }
+    const day=localDay(ctx.now||new Date());
+    if(day){
+      const specs=MANAGED_TASKS.filter(spec=>spec.referenceArea||arr(spec.weekdays).includes(day.weekday));
+      specs.forEach(spec=>{
+        const candidate=managedTaskForSpec(spec,day.date,ctx);
+        if(tasks.some(t=>q(t&&t.id)===candidate.id))return;
+        tasks.push(candidate);changed=true;
+      });
+    }
+    return {tasks,changed};
+  }
+
   function currentTasks(raw,ctx={}){
     const lifecycle=api();
     const normalizedContext=taskContext(ctx);
@@ -36,11 +150,12 @@
   function prepareTasks(raw,ctx={}){
     const lifecycle=api();
     const normalizedContext=taskContext(ctx);
-    const normalized=arr(raw).map(task=>lifecycle.normalizeTask(task,normalizedContext));
+    const roster=prepareManagedRoster(raw,{...ctx,...normalizedContext});
+    const normalized=arr(roster.tasks).map(task=>lifecycle.normalizeTask(task,normalizedContext));
     const result=lifecycle.reconcile(normalized,ctx.state||{},normalizedContext);
-    if(result.changed&&typeof ctx.persist==='function')ctx.persist(result.tasks);
+    if((roster.changed||result.changed)&&typeof ctx.persist==='function')ctx.persist(result.tasks);
     lastTasks=result.tasks;
-    lastContext={...normalizedContext,state:ctx.state||{}};
+    lastContext={...normalizedContext,state:ctx.state||{},persist:ctx.persist};
     scheduleEnhance();
     syncAndroidSnapshot(result.tasks,lastContext);
     return result.tasks;
@@ -59,14 +174,115 @@
     try{if(root.console&&typeof root.console.warn==='function')root.console.warn('RC1014 Aufgabenöffnung blockiert',task&&task.id);}catch(_){ }
   }
 
+  function esc(value){return q(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  function linkedShipmentTarget(task,ctx={}){
+    const state=ctx.state||sharedState()||{};
+    const refs=[q(task&&task.linkedShipmentId),q(task&&task.sourceId),q(task&&task.linkedShipmentRef),q(task&&task.sourceRef)].filter(Boolean);
+    const hit=arr(state.shipments||state.savedShipments).find(sh=>refs.includes(q(sh&&sh.id))||refs.includes(q(sh&&sh.shipmentId))||refs.includes(q(sh&&sh.ref))||refs.includes(q(sh&&sh.reference)));
+    return hit?q(hit.ref||hit.reference||hit.id||hit.shipmentId):'';
+  }
+
+  function detailSpec(task){
+    const key=q(task&&task.managedKey);
+    return MANAGED_TASKS.find(spec=>spec.key===key)||null;
+  }
+
+  function detailDue(task){
+    const raw=q(task&&task.dueAt);
+    if(!raw)return 'Keine feste Frist';
+    const d=new Date(raw);
+    if(Number.isNaN(d.getTime()))return raw;
+    try{return new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:raw.includes('T')?'short':undefined}).format(d);}catch(_){return raw;}
+  }
+
+  function closeTaskDetail(fromPopState){
+    const doc=root.document,view=doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail');
+    if(view&&view.parentNode)view.parentNode.removeChild(view);
+    try{if(doc&&doc.body)doc.body.removeAttribute('data-exporthub-task-detail');}catch(_){}
+    if(!fromPopState&&root.history&&root.history.state&&root.history.state.exporthubTaskDetail)root.history.back();
+    return true;
+  }
+
+  async function completeTask(task,ctx={}){
+    const state=ctx.state||sharedState();
+    if(!state)return false;
+    const id=q(task&&task.id),items=arr(state.tasks);
+    const target=items.find(item=>q(item&&item.id)===id);
+    if(!target)return false;
+    const now=new Date().toISOString(),user=currentUserId(ctx)||'Benutzer';
+    target.status='done';target.done=true;target.completedAt=now;target.doneAt=now;target.completedBy=user;target.doneBy=user;target.updatedAt=now;
+    if(typeof ctx.persist==='function')ctx.persist(items);
+    else{
+      const clean=root.ExportHUBClean;
+      if(clean&&typeof clean.queueSave==='function'){
+        await Promise.resolve(clean.queueSave('RC1152 Aufgabe erledigt'));
+        if(typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('RC1152 Aufgabe erledigt'));
+      }
+    }
+    try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1152 completed',taskId:id}}));}catch(_){}
+    closeTaskDetail(false);
+    return true;
+  }
+
+  function openLinkedShipment(task,ctx={}){
+    const target=linkedShipmentTarget(task,ctx);
+    if(!target)return false;
+    if(root.ExportHUBShipmentView&&typeof root.ExportHUBShipmentView.open==='function'){root.ExportHUBShipmentView.open(target,'tasks');return true;}
+    if(typeof root.openShipment==='function'){root.openShipment(target);return true;}
+    if(typeof root.__EXPORTHUB_OPEN_SHIPMENT__==='function'){root.__EXPORTHUB_OPEN_SHIPMENT__(target);return true;}
+    return false;
+  }
+
+  function openTaskDetail(task,ctx={}){
+    const doc=root.document;
+    if(!doc||!doc.body||typeof doc.createElement!=='function')return false;
+    const t=api().normalizeTask(task||{},ctx),spec=detailSpec(t)||detailSpec(task);
+    if(!sameScope(t,ctx)){reportOpenBlocked(t);return false;}
+    closeTaskDetail(true);
+    const shipmentTarget=linkedShipmentTarget({...task,...t},ctx);
+    const checklist=arr((task&&task.checklist)||(spec&&spec.checklist));
+    const description=q((task&&task.description)||(spec&&spec.description))||'Für diese Aufgabe ist keine zusätzliche Beschreibung hinterlegt.';
+    const recurrence=q((task&&task.recurrenceLabel)||(spec&&weekdayLabel(spec.weekdays,spec.dueTime)))||'Einmalig / ohne festen Rhythmus';
+    const isReference=!!((task&&task.managedKind==='reference-area')||(spec&&spec.referenceArea));
+    const panel=doc.createElement('section');
+    panel.id='rc1152TaskDetail';panel.className='rc1152-task-detail';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
+    panel.innerHTML=`<div class="rc1152-task-shell">
+      <header class="rc1152-task-header">
+        <button type="button" class="btn rc1152-task-back" data-task-action="back">← Zurück zu Aufgaben</button>
+        <div><span class="rc1152-task-eyebrow">${esc(t.group||'Aufgabe')}</span><h1>${esc(t.title||'Aufgabe')}</h1></div>
+        <span class="rc1152-task-status">${esc(isReference?'Bereich':(t.status==='done'?'Erledigt':'Offen'))}</span>
+      </header>
+      <div class="rc1152-task-grid">
+        <article class="rc1152-task-card"><h2>Aufgabe</h2><p>${esc(description)}</p></article>
+        <article class="rc1152-task-card"><h2>Fälligkeit</h2><strong>${esc(detailDue(t))}</strong><p>${esc(recurrence)}</p></article>
+        <article class="rc1152-task-card"><h2>Verantwortlich</h2><strong>${esc(t.effectiveAssignee||t.originalAssignee||'Nicht zugewiesen')}</strong><p>Priorität ${esc(t.priority||'P4')}</p></article>
+        ${checklist.length?`<article class="rc1152-task-card rc1152-task-checklist"><h2>Kunden / Prüfpunkte</h2><ul>${checklist.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></article>`:''}
+        ${shipmentTarget?`<article class="rc1152-task-card"><h2>Zugehörige Sendung</h2><strong>${esc(shipmentTarget)}</strong><button type="button" class="btn primary" data-task-action="shipment">Sendung öffnen</button></article>`:''}
+      </div>
+      <footer class="rc1152-task-actions">
+        <button type="button" class="btn" data-task-action="back">Zurück</button>
+        ${!isReference&&t.status!=='done'?`<button type="button" class="btn primary" data-task-action="done">Als erledigt markieren</button>`:''}
+      </footer>
+    </div>`;
+    panel.addEventListener('click',event=>{
+      const btn=event.target&&event.target.closest&&event.target.closest('[data-task-action]');
+      if(!btn)return;
+      const action=btn.getAttribute('data-task-action');
+      if(action==='back')closeTaskDetail(false);
+      else if(action==='shipment')openLinkedShipment({...task,...t},ctx);
+      else if(action==='done')completeTask({...task,...t},ctx).catch(()=>{});
+    });
+    doc.body.appendChild(panel);doc.body.setAttribute('data-exporthub-task-detail','open');
+    try{if(root.history&&typeof root.history.pushState==='function')root.history.pushState({exporthubTaskDetail:true,taskId:t.id},'',root.location&&root.location.href?root.location.href:'#');}catch(_){}
+    const first=panel.querySelector&&panel.querySelector('[data-task-action="back"]');if(first&&typeof first.focus==='function')first.focus();
+    return true;
+  }
+
   function openTask(task,ctx={}){
     const t=api().normalizeTask(task||{},ctx);
     if(!sameScope(t,ctx)){reportOpenBlocked(t);return false;}
-    const type=q(t.sourceType).toLowerCase();
-    const target=type==='shipment'?q(t.sourceId||t.sourceRef):q(t.sourceRef||t.sourceId);
-    if(!target)return false;
-    if(typeof root.openShipment==='function'){root.openShipment(target);return true;}
-    return false;
+    return openTaskDetail({...task,...t},ctx);
   }
 
   function dueLabel(bucket,dueAt){
@@ -116,9 +332,14 @@
       row.appendChild(createSpan(doc,'rc1014-assignee','data-rc1014-assignee',meta.assignee,`Verantwortlich: ${meta.assignee}`));
       let button=card.querySelector&&card.querySelector('[data-rc1014-open-task]');
       if(!button){
-        button=doc.createElement('button');button.type='button';button.className='btn primary rc1014-open-task';button.setAttribute('data-rc1014-open-task','1');button.textContent='Öffnen';
-        button.addEventListener('click',event=>{if(event&&typeof event.preventDefault==='function')event.preventDefault();openTask(task,ctx);});
+        button=doc.createElement('button');button.type='button';button.className='btn primary rc1014-open-task';button.setAttribute('data-rc1014-open-task','1');button.textContent='Aufgabe öffnen';
+        button.addEventListener('click',event=>{if(event&&typeof event.preventDefault==='function')event.preventDefault();if(event&&typeof event.stopPropagation==='function')event.stopPropagation();openTask(task,ctx);});
         if(typeof card.appendChild==='function')card.appendChild(button);
+      }
+      if(card.dataset&&!card.dataset.rc1152TaskOpen){
+        card.dataset.rc1152TaskOpen='1';card.setAttribute&&card.setAttribute('tabindex','0');card.setAttribute&&card.setAttribute('role','button');
+        card.addEventListener('click',event=>{if(event&&event.target&&event.target.closest&&event.target.closest('button,a,input,select,textarea,label'))return;openTask(task,ctx);});
+        card.addEventListener('keydown',event=>{if(!event||!(event.key==='Enter'||event.key===' '))return;if(event.target&&event.target.closest&&event.target.closest('button,a,input,select,textarea'))return;event.preventDefault();openTask(task,ctx);});
       }
       card.setAttribute&&card.setAttribute('data-rc1014-enhanced','1');
       enhanced++;
@@ -234,7 +455,7 @@
         if(!done&&state&&!state.rc1107TaskResetAt)scheduleProductionTaskReset();
       }catch(error){
         try{if(root.console&&typeof root.console.error==='function')root.console.error('RC1107 Aufgabenreset fehlgeschlagen',error);}catch(_){ }
-        scheduleProductionTaskReset();
+        // RC1152: kein pauschaler Produktions-Reset mehr; Altaufgaben werden gezielt im Roster bereinigt.
       }
     },1000);
     return true;
@@ -247,5 +468,7 @@
   installLazyCardObserver();
   scheduleProductionTaskReset();
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce});
+  if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
+
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,closeTaskDetail,completeTask,prepareManagedRoster,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
 })(globalThis);
