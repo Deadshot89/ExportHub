@@ -63,29 +63,33 @@ module.exports=async function(context,req){
  try{
   const payload=body(req),current=await auth.validateSession(req),r=rights(current.user),action=text(payload.action||'list').toLowerCase();
   ensureUse(r);
-  const customerId=ensureCustomer(current,payload.customerId),environment=auth.environmentFromRequest(req);
+  const environment=auth.environmentFromRequest(req);
+  if(action==='status'){
+   context.res=response(200,{ok:true,configured:store.keyConfigured(),environment,canManage:r.manage,version:'RC1162'});return;
+  }
+  const customerId=ensureCustomer(current,payload.customerId);
   if(action==='list'){
    let portals=await store.listMetadata(environment,customerId);
    if(!r.manage)portals=portals.filter(p=>p.active!==false);
-   context.res=response(200,{ok:true,customerId,portals,canManage:r.manage,version:'RC1160'});return;
+   context.res=response(200,{ok:true,customerId,portals,canManage:r.manage,version:'RC1162'});return;
   }
   if(action==='create'){
    ensureManage(r);
    const portal=await store.create(environment,customerId,payload.portal,actorName(current.user));
    await audit(req,'CUSTOMER_PORTAL_CREATED',current.user,{customerId,portalId:portal.id,portalName:portal.name});
-   context.res=response(201,{ok:true,customerId,portal,version:'RC1160'});return;
+   context.res=response(201,{ok:true,customerId,portal,version:'RC1162'});return;
   }
   if(action==='update'){
    ensureManage(r);
    const portal=await store.update(environment,customerId,payload.portalId,payload.portal,actorName(current.user));
    await audit(req,'CUSTOMER_PORTAL_UPDATED',current.user,{customerId,portalId:portal.id,portalName:portal.name});
-   context.res=response(200,{ok:true,customerId,portal,version:'RC1160'});return;
+   context.res=response(200,{ok:true,customerId,portal,version:'RC1162'});return;
   }
   if(action==='delete'){
    ensureManage(r);
    const portal=await store.remove(environment,customerId,payload.portalId);
    await audit(req,'CUSTOMER_PORTAL_DELETED',current.user,{customerId,portalId:portal.id,portalName:portal.name});
-   context.res=response(200,{ok:true,customerId,deleted:true,portalId:portal.id,version:'RC1160'});return;
+   context.res=response(200,{ok:true,customerId,deleted:true,portalId:portal.id,version:'RC1162'});return;
   }
   if(action==='reveal'){
    const lockedUntil=reauthLock(current.user);
@@ -100,7 +104,7 @@ module.exports=async function(context,req){
    const revealed=await store.reveal(environment,customerId,payload.portalId);
    await audit(req,'CUSTOMER_PORTAL_REVEALED',current.user,{customerId,portalId:revealed.portal.id,portalName:revealed.portal.name});
    await clearReauthFailures(req,current);
-   context.res=response(200,{ok:true,customerId,portal:revealed.portal,username:revealed.username,password:revealed.password,expiresInSeconds:60,version:'RC1160'});return;
+   context.res=response(200,{ok:true,customerId,portal:revealed.portal,username:revealed.username,password:revealed.password,expiresInSeconds:60,version:'RC1162'});return;
   }
   throw auth.error('ACTION_INVALID','Unbekannte Kundenportal-Aktion.',400);
  }catch(e){
