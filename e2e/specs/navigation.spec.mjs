@@ -157,7 +157,9 @@ test('RC1127 P0: Sendungsübersicht zeigt vom Kunden erfasstes Abholdatum in der
   const seeded=await page.evaluate(()=>{
     const s=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
     const sh=s&&Array.isArray(s.shipments)&&s.shipments[0];
-    if(!sh)return false;
+    if(!sh)return null;
+    const key=String(sh.ref||sh.reference||sh.referenceNumber||sh.id||'').trim();
+    if(!key)return null;
     sh.customerAvisPickupDate='2026-09-18';
     sh.avisPickupDate='2026-09-18';
     sh.customerAvisPickupTimeFrom='10:00';
@@ -166,12 +168,14 @@ test('RC1127 P0: Sendungsübersicht zeigt vom Kunden erfasstes Abholdatum in der
     sh.avisPickupTimeTo='12:00';
     sh.customerConfirmed=true;
     sh.customerConfirmedVia='customer-avis';
-    return true;
+    return{key:key};
   });
-  expect(seeded).toBe(true);
+  expect(seeded&&seeded.key).toBeTruthy();
 
   await openExportHubView(page,'shipmentoverview',['Sendungsübersicht','Sendungen'],/Sendungsübersicht|Sendungen/i,{allowProgrammaticFallback:true});
-  const pickup=page.locator('[data-rc1127-customer-pickup]').first();
+  const card=page.locator('article').filter({hasText:seeded.key}).first();
+  await expect(card).toBeVisible({timeout:10_000});
+  const pickup=card.locator('[data-rc1127-customer-pickup]').first();
   await expect(pickup).toBeVisible({timeout:10_000});
   await expect(pickup).toHaveText('Kunden-Abholung: 18.09.2026 · 10:00–12:00');
   await assertNoSourceLeak(page);
