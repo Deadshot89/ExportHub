@@ -397,8 +397,9 @@
         button.addEventListener('click',event=>{if(event&&typeof event.preventDefault==='function')event.preventDefault();if(event&&typeof event.stopPropagation==='function')event.stopPropagation();openTask(task,ctx);});
         if(typeof card.appendChild==='function')card.appendChild(button);
       }
-      if(card.dataset&&!card.dataset.rc1152TaskOpen){
-        card.dataset.rc1152TaskOpen='1';card.setAttribute&&card.setAttribute('tabindex','0');card.setAttribute&&card.setAttribute('role','button');
+      const data=card.dataset||null;
+      if(data&&!data.rc1152TaskOpen){
+        data.rc1152TaskOpen='1';card.setAttribute&&card.setAttribute('tabindex','0');card.setAttribute&&card.setAttribute('role','button');
         card.addEventListener('click',event=>{if(event&&event.target&&event.target.closest&&event.target.closest('button,a,input,select,textarea,label'))return;openTask(task,ctx);});
         card.addEventListener('keydown',event=>{if(!event||!(event.key==='Enter'||event.key===' '))return;if(event.target&&event.target.closest&&event.target.closest('button,a,input,select,textarea'))return;event.preventDefault();openTask(task,ctx);});
       }
