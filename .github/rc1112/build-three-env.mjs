@@ -101,7 +101,8 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=1074/g,'assets/rc1074-login-clean.js?v=1112');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=1087/g,'assets/rc1081-audit-history.js?v=1126');
-  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=1095/g,'assets/rc1071-shipment-history.js?v=1148');
+  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=1095/g,'assets/rc1071-shipment-history.js?v=1151');
+  html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1063/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1151');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1126"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
