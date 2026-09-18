@@ -154,5 +154,5 @@ w.addEventListener('pagehide',clearRevealedSecrets);w.addEventListener('beforeun
 d.addEventListener('click',function(e){var t=e.target&&e.target.closest&&e.target.closest('button,a');if(t&&/abmelden|logout|konto wechseln/i.test(q(t.textContent)))clearRevealedSecrets()},true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule(true)},{once:true});else schedule(true);
 w.setInterval(function(){schedule(false)},700);
-w.ExportHUBCustomerPortal1159=Object.freeze({version:'RC1160',rights:rights,selectedCustomer:selectedCustomer,clearRevealedSecrets:clearRevealedSecrets,portalApi:portalApi,schedule:schedule});
+w.ExportHUBCustomerPortal1160=Object.freeze({version:'RC1160',rights:rights,selectedCustomer:selectedCustomer,clearRevealedSecrets:clearRevealedSecrets,portalApi:portalApi,schedule:schedule});
 })(window,document);
