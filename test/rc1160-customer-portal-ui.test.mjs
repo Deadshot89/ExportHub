@@ -45,7 +45,7 @@ test('RC1160: Portalöffnung ist HTTPS und opener-isoliert',()=>{
 });
 test('RC1160: Runtime wird in alle drei Builds übernommen',()=>{
   assert.match(build,/exporthub-rc1160-customer-portal/);
-  assert.match(build,/assets\/rc1160-customer-portal-credentials\.js\?v=1160/);
+  assert.match(build,/assets\/rc1160-customer-portal-credentials\.js\?v=1162/);
   assert.match(build,/'assets\/rc1160-customer-portal-credentials\.js'/);
   assert.match(build,/shared\/customer-portal-store\.js/);
   assert.match(build,/customer-portal-credentials\/index\.js/);
