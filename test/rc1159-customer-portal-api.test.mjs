@@ -19,6 +19,14 @@ test('RC1159: Portal-API verlangt gültige Sitzung und persönliche Re-Authentif
   assert.match(source,/REAUTH_FAILED/);
   assert.match(source,/Das ExportHUB-Passwort ist nicht korrekt\./);
 });
+test('RC1159: Portal-API begrenzt wiederholte Re-Auth-Fehlversuche',()=>{
+  assert.match(source,/customerPortalReauth/);
+  assert.match(source,/failedAttempts>=5/);
+  assert.match(source,/15\*60\*1000/);
+  assert.match(source,/REAUTH_LOCKED/);
+  assert.match(source,/Zu viele Fehlversuche/);
+  assert.match(source,/clearReauthFailures/);
+});
 test('RC1159: Reveal-Audit enthält keine Credentials',()=>{
   assert.match(source,/CUSTOMER_PORTAL_REVEALED/);
   assert.match(source,/CUSTOMER_PORTAL_REVEAL_DENIED/);
