@@ -13,7 +13,7 @@ const GH_PATH = process.env.EXPORTHUB_GITHUB_PATH || 'index.html';
 const GH_TOKEN = process.env.EXPORTHUB_GITHUB_TOKEN || '';
 const GH_DISCOVER_LIMIT = Math.max(5, Math.min(30, Number(process.env.EXPORTHUB_GITHUB_RELEASE_LIMIT || 14)));
 const GH_SYNC_TTL_MS = 30000;
-const RELEASE_WORKFLOW = 'azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const RELEASE_WORKFLOWS = new Set(['azure-static-web-apps-wonderful-forest-0f315e310.yml','rc1153-testservice-sync.yml']);
 const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE = 'exporthub-release-activate-test';
@@ -39,7 +39,7 @@ async function githubOidcAuthorized(req){
     if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
     if(claims.repository!==GH_OWNER+'/'+GH_REPO||claims.ref!=='refs/heads/main')return false;
     if(!['push','workflow_dispatch'].includes(text(claims.event_name)))return false;
-    if(claims.workflow_ref!==GH_OWNER+'/'+GH_REPO+'/.github/workflows/'+RELEASE_WORKFLOW+'@refs/heads/main')return false;
+    if(!Array.from(RELEASE_WORKFLOWS).some(name=>claims.workflow_ref===GH_OWNER+'/'+GH_REPO+'/.github/workflows/'+name+'@refs/heads/main'))return false;
     if(!Number(claims.exp)||Number(claims.exp)<=at-30)return false;
     if(Number(claims.nbf||0)>at+60||Number(claims.iat||0)>at+60||Number(claims.iat||0)<at-1800)return false;
     if(!oidcCache.keys.length||oidcCache.expiresAt<Date.now()){
