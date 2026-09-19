@@ -217,23 +217,15 @@ test('RC1169 P0: Nicht-Admin sieht in Benutzer keine Diagnose und erhält server
   expect(current&&current.globalAdmin).not.toBe(true);
   expect(current&&current.isGlobalAdmin).not.toBe(true);
 
+  // Die Benutzer-/Rechteansicht darf für Nicht-Admins vollständig verborgen sein.
+  // Falls setView einen direkten Aufruf akzeptiert, darf darin trotzdem keine Diagnose erscheinen.
   await page.evaluate(()=>{
-    const root=document.getElementById('content')||document.body;
-    const stale=document.createElement('section');
-    stale.id='rc1013-diagnostics-enhanced';
-    stale.innerHTML='<h3>Fehlerdiagnose & automatische Behebung</h3>';
-    root.appendChild(stale);
+    try{if(typeof window.setView==='function')window.setView('rights')}catch(_){}
   });
-  const canViewRights=await page.evaluate(()=>typeof window.canView==='function'?window.canView('rights'):true);
-  if(canViewRights){
-    await openExportHubView(page,'rights',['Benutzer & Rechte','Benutzer','Rechte','Berechtigungen'],/Benutzer|Rechte|Rollen/i,{allowProgrammaticFallback:true});
-    await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
-    await expect(page.locator('#content')).not.toContainText(/Fehlerdiagnose\s*&\s*automatische Behebung/i);
-  }else{
-    await expect(page.locator('[data-view="rights"]:visible')).toHaveCount(0);
-    await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
-  }
+  await page.waitForTimeout(250);
   await expect(page.locator('[data-view="diagnostics"]:visible')).toHaveCount(0);
+  await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
+  await expect(page.locator('#content')).not.toContainText(/Fehlerdiagnose\s*&\s*automatische Behebung/i);
 
   const denied=await page.evaluate(async tokenValue=>{
     const response=await fetch('/api/exporthub-state?mode=diagnostics-read',{

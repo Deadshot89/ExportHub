@@ -34,12 +34,12 @@ test('RC1171: Live-Test bedient Kunde Standort Referenz Colli Gewicht und echten
   assert.match(spec,/packaging-option.*Europalette/s);
 });
 
-test('RC1171: ungültige Referenz wird vor dem gültigen Speichern geprüft',()=>{
-  const bad=spec.indexOf("refInput.fill('BAD')");
-  const valid=spec.indexOf('refInput.fill(ref)');
-  const save=spec.indexOf('await saveButton.click()',bad);
-  assert.ok(bad>=0&&save>bad&&valid>save);
-  assert.match(spec,/SAVED_EVENTS__\.length:0|SAVED_EVENTS__\)\?window\.__RC1171_SAVED_EVENTS__\.length:0/);
+test('RC1175: automatisch erzeugte Referenz bleibt readonly und erfüllt den 6-Zeichen-Vertrag',()=>{
+  assert.match(spec,/toHaveAttribute\('readonly',''\)/);
+  assert.match(spec,/toHaveAttribute\('aria-readonly','true'\)/);
+  assert.match(spec,/Automatisch erzeugte Sendungsreferenz/);
+  assert.match(spec,/\^\[A-Z0-9\]\{6\}\$/);
+  assert.doesNotMatch(spec,/refInput\.fill\(/);
 });
 
 test('RC1171: Erfolg wird erst nach echtem shipment-saved und Server-Reload akzeptiert',()=>{
