@@ -10,7 +10,6 @@
   let lazyCardObserver=null;
   let taskResetTimer=0;
   let taskResetInFlight=false;
-  const TASK_DETAIL_STORAGE='exporthub_rc1179_task_detail';
   let lastOpenTaskId='';
 
   const MANAGED_TASKS=Object.freeze([
@@ -241,13 +240,18 @@
 
   function storedTaskId(){
     if(lastOpenTaskId)return lastOpenTaskId;
-    try{var raw=root.sessionStorage&&root.sessionStorage.getItem(TASK_DETAIL_STORAGE),data=raw?JSON.parse(raw):null;lastOpenTaskId=q(data&&data.taskId);}catch(_){}
+    try{lastOpenTaskId=q(root.history&&root.history.state&&root.history.state.exporthubTaskId);}catch(_){}
     return lastOpenTaskId;
   }
 
   function rememberTaskDetail(task){
     lastOpenTaskId=q(task&&task.id);
-    try{if(root.sessionStorage&&lastOpenTaskId)root.sessionStorage.setItem(TASK_DETAIL_STORAGE,JSON.stringify({taskId:lastOpenTaskId,savedAt:Date.now()}));}catch(_){}
+    try{
+      if(root.history&&typeof root.history.replaceState==='function'&&lastOpenTaskId){
+        const current=root.history.state&&typeof root.history.state==='object'?root.history.state:{};
+        root.history.replaceState({...current,exporthubTaskDetail:true,exporthubTaskId:lastOpenTaskId},'',root.location&&root.location.href?root.location.href:undefined);
+      }
+    }catch(_){}
     return lastOpenTaskId;
   }
 
