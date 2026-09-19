@@ -91,6 +91,35 @@ function e2eRights(){
  }
  return rights;
 }
+function e2eCustomer(runId){
+ const suffix=crypto.createHash('sha256').update(runId).digest('hex').slice(0,8).toUpperCase();
+ const id='E2E-CUSTOMER-'+suffix,locationId='E2E-LOC-'+suffix;
+ return{
+  id,
+  account:'E2E'+suffix.slice(0,5),
+  customerNumber:'E2E'+suffix.slice(0,5),
+  customerNo:'E2E'+suffix.slice(0,5),
+  name:'E2E TEST CUSTOMER '+suffix,
+  customerName:'E2E TEST CUSTOMER '+suffix,
+  country:'DE',
+  active:true,
+  locations:[{
+   id:locationId,
+   locationId,
+   name:'E2E Test Standort '+suffix,
+   street:'E2E Teststraße 1',
+   zip:'00000',
+   postalCode:'00000',
+   city:'Teststadt',
+   country:'DE',
+   address:'E2E Teststraße 1\n00000 Teststadt\nDeutschland',
+   _e2eRunId:runId
+  }],
+  _e2eRunId:runId,
+  createdAt:now(),
+  updatedAt:now()
+ };
+}
 function e2eNonAdminRights(){
  const allowed=new Set(['start','dashboard','rights','pickupcalendar']);
  const rights={};
@@ -193,16 +222,18 @@ async function prepare(runId){
  const mutation=await mutateTestTeam(async team=>{
   team.state=team.state&&typeof team.state==='object'?team.state:{};
   team.users=Array.isArray(team.users)?team.users:[];
-  const user=e2eUser(runId),nonAdminUser=e2eNonAdminUser(runId);
+  const user=e2eUser(runId),nonAdminUser=e2eNonAdminUser(runId),customer=e2eCustomer(runId);
   const ids=new Set([user.id,nonAdminUser.id]);
   const cleaned=team.users.filter(u=>text(u&&u._e2eRunId)!==runId&&!ids.has(text(u&&u.id)));
   cleaned.push(user,nonAdminUser);team.users=cleaned;
   team.state.users=cleaned.map(u=>publicUser(u,false));
-  return{team,value:{user,nonAdminUser},changed:true};
+  team.state.customers=Array.isArray(team.state.customers)?team.state.customers.filter(x=>text(x&&x._e2eRunId)!==runId&&text(x&&x.id)!==customer.id):[];
+  team.state.customers.push(customer);
+  return{team,value:{user,nonAdminUser,customer},changed:true};
  });
- const user=mutation.result.user,nonAdminUser=mutation.result.nonAdminUser;
+ const user=mutation.result.user,nonAdminUser=mutation.result.nonAdminUser,customer=mutation.result.customer;
  const adminSession=signedSessionFor(user,runId,'ADMIN'),nonAdminSession=signedSessionFor(nonAdminUser,runId,'NONADMIN');
- return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:publicUser(user,false),expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,teamBytes:mutation.bytes};
+ return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:publicUser(user,false),expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,customer:{id:customer.id,account:customer.account,name:customer.name,locationId:customer.locations[0].id,locationName:customer.locations[0].name},teamBytes:mutation.bytes};
 }
 async function cleanup(runId){
  const mutation=await mutateTestTeam(async team=>{
