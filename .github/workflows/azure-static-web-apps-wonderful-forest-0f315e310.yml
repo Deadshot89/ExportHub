@@ -530,7 +530,7 @@ jobs:
           export EXPORTHUB_E2E_REFERENCE="E2E$(printf '%s' "$GITHUB_SHA" | cut -c1-3 | tr '[:lower:]' '[:upper:]')"
           export EXPORTHUB_E2E_MUTATION='1'
 
-          npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/testservice-mutation.spec.mjs
+          npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/shipment-create.spec.mjs             e2e/specs/testservice-mutation.spec.mjs
 
           cleanup
           trap - EXIT
