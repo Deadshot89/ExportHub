@@ -42,9 +42,6 @@ test('RC1171 P0: Sendung erstellen l채uft vollst채ndig 체ber die Benutzeroberfl�
 
   const runtime=attachRuntimeGuards(page,testInfo);
   const session=await installE2ESession(page);
-  const ref=String(process.env.EXPORTHUB_E2E_REFERENCE||'').trim().toUpperCase();
-  expect(ref).toMatch(/^E2E[A-Z0-9]{3}$/);
-
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
   await openExportHubView(page,'shipment',['Sendung erstellen'],/Sendung erstellen|Versandauftrag/i,{allowProgrammaticFallback:true});
@@ -71,26 +68,16 @@ test('RC1171 P0: Sendung erstellen l채uft vollst채ndig 체ber die Benutzeroberfl�
   await expect.poll(()=>page.evaluate(()=>String((window.__EXPORTHUB_GET_STATE__?.().shipment||{}).locationId||'')),{timeout:10_000}).toBe(customer.locationId);
 
   await settleStateSave(page,{timeout:25_000});
-  let refInput=await referenceInput(page);
+  const refInput=await referenceInput(page);
   await expect(refInput).toBeVisible();
-  await expect(refInput).toBeEditable({timeout:15_000});
+  await expect(refInput).toHaveAttribute('readonly','');
+  await expect(refInput).toHaveAttribute('aria-readonly','true');
+  const ref=String(await refInput.inputValue()).trim().toUpperCase();
+  expect(ref,'Automatisch erzeugte Sendungsreferenz').toMatch(/^[A-Z0-9]{6}$/);
 
-  // Pflichtfeld-/Referenzschutz: eine ung체ltige dreistellige Referenz darf nicht gespeichert werden.
-  await refInput.fill('BAD');
-  await refInput.blur();
   await page.evaluate(()=>{window.__RC1171_SAVED_EVENTS__=[];window.addEventListener('exporthub:shipment-saved',e=>window.__RC1171_SAVED_EVENTS__.push(e&&e.detail||{}));});
   const saveButton=page.locator('#rc363SaveShipment');
   await expect(saveButton).toBeVisible();
-  const maybeDialog=page.waitForEvent('dialog',{timeout:2500}).then(async d=>{const msg=d.message();await d.dismiss();return msg}).catch(()=>null);
-  await saveButton.click();
-  const invalidMessage=await maybeDialog;
-  if(invalidMessage)expect(invalidMessage).toMatch(/Referenz|6 Zeichen|Kunde|Standort|vollst채ndig/i);
-  await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:2500}).toBe(0);
-
-  refInput=await referenceInput(page);
-  await expect(refInput).toBeEditable({timeout:15_000});
-  await refInput.fill(ref);
-  await refInput.blur();
 
   // Colli 체ber die sichtbaren Bedienelemente erfassen.
   const firstRow=page.locator('#rc573ColliCard .rc363-owned-row').first();
