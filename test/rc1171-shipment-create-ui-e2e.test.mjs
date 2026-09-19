@@ -31,7 +31,7 @@ test('RC1171: Live-Test bedient Kunde Standort Referenz Colli Gewicht und echten
     "Gewicht gleich aufteilen",
     "exporthub:shipment-saved"
   ])assert.ok(spec.includes(marker),marker+' fehlt im UI-Live-Test');
-  assert.match(spec,/packaging-option.*Europalette/s);
+  assert.match(spec,/packaging-option.*Euro\\s\*Palette/s);
 });
 
 test('RC1175: automatisch erzeugte Referenz bleibt readonly und erfüllt den 6-Zeichen-Vertrag',()=>{
@@ -72,4 +72,11 @@ test('RC1171: geänderte E2E-Dateien sind syntaktisch gültig und manifestiert',
   execFileSync(process.execPath,['--check','api/e2e-test-fixture/index.js'],{stdio:'pipe'});
   execFileSync(process.execPath,['--check','e2e/specs/shipment-create.spec.mjs'],{stdio:'pipe'});
   assert.match(build,/shipmentCreateUiE2E:'RC1171 UI customer \+ location \+ reference \+ colli \+ save \+ reload \+ overview'/);
+});
+
+
+test('RC1180: E2E verwendet den kanonischen sichtbaren Verpackungsnamen Euro Palette',()=>{
+  const spec=fs.readFileSync('e2e/specs/shipment-create.spec.mjs','utf8');
+  assert.match(spec,/hasText:\/Euro\\s\*Palette\/i/);
+  assert.doesNotMatch(spec,/hasText:\/Europalette\/i/);
 });
