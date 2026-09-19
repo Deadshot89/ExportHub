@@ -44,6 +44,6 @@ test('RC1126: gelöschter Kunde kommt durch einen veralteten Browser nicht wiede
 
 test('RC1126: finaler Build liefert Lösch-Runtime und neue Historie ohne Cache-Altstand aus',()=>{
   assert.match(build,/assets\/rc1126-customer-delete\.js\?v=1126/);
-  assert.match(build,/assets\/rc1081-audit-history\.js\?v=1163/);
+  assert.match(build,/assets\/rc1081-audit-history\.js\?v=1177/);
   assert.match(build,/'assets\/rc1126-customer-delete\.js'/);
 });
