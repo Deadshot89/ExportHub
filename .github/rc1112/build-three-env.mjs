@@ -130,7 +130,7 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/exporthub-environment-hub\.js\?v=\d+/g,'assets/exporthub-environment-hub.js?v=1174');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=(?:1087|1126|1160|1163)/g,'assets/rc1081-audit-history.js?v=1177');
-  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=1095/g,'assets/rc1071-shipment-history.js?v=1151');
+  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151)/g,'assets/rc1071-shipment-history.js?v=1178');
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1063/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1151');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1126"></script>','exporthub-rc1126-customer-delete');
@@ -152,7 +152,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/exporthub-environment-hub.js?v=1174'))throw new Error(file+': RC1174 Android-Diagnose-Hub Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1177'))throw new Error(file+': RC1177 Historie Cache-Key fehlt');
-  if(!html.includes('assets/rc1071-shipment-history.js?v=1151'))throw new Error(file+': RC1151 History Cache-Key fehlt');
+  if(!html.includes('assets/rc1071-shipment-history.js?v=1178'))throw new Error(file+': RC1178 Druck-History Cache-Key fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1063-abd-blob-viewer-compat.js?v=1151'))throw new Error(file+': RC1151 Dokumentaktionen Cache-Key fehlt');
   if(!html.includes('assets/rc1071-shipment-history.js?v=1095'))throw new Error(file+': RC1148 History-Kompatibilitätsmarker fehlt');
   if(!html.includes('assets/rc1126-customer-delete.js?v=1126'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
@@ -246,7 +246,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podTargetedProof:'RC1168 targeted reference proof: found/already-saved/saved-now/not-found/pending',
     avisReminderOverview:'RC1166 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
-    documentActionHistory:'RC1148 open/print + user + filename',
+    documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
     deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border',
     customerPortalCredentials:'RC1160 AES-256-GCM + re-auth + use/manage rights',
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
