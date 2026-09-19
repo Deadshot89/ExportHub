@@ -33,6 +33,16 @@ function locations(c){
  }
  return out
 }
+function findLocation(s,active,value){
+ var preferred=customerFor(s,active)||customerFor(s,s&&s.shipment),list=locations(preferred),i,loc;
+ for(i=0;i<list.length;i++)if(locationId(list[i])===value)return list[i];
+ var customers=arr(s&&s.customers);
+ for(var c=0;c<customers.length;c++){
+  list=locations(customers[c]);
+  for(i=0;i<list.length;i++){loc=list[i];if(locationId(loc)===value)return loc}
+ }
+ return null
+}
 function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId)).toUpperCase()}
 function targets(s,active){
  var raw=[active,s&&s.shipment,w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.shipment,s&&s.currentShipment,s&&s.selectedShipment],out=[],ref=shipmentRef(active);
@@ -52,22 +62,31 @@ function writeLocation(sh,value,loc){
 function applyLocation(value){
  value=q(value);if(!value)return false;
  var s=state(),active=activeShipment(s);if(!obj(active))return false;
- var c=customerFor(s,active)||customerFor(s,s&&s.shipment),loc=locations(c).find(function(x){return locationId(x)===value});
- if(!loc)return false;
+ var loc=findLocation(s,active,value);if(!loc)return false;
  targets(s,active).forEach(function(sh){writeLocation(sh,value,loc)});
  return true
 }
+var pending=null,pendingSeq=0;
+function repairPending(seq){
+ if(!pending||seq!==pendingSeq||Date.now()>pending.expiresAt)return false;
+ var value=pending.value,ok=applyLocation(value),current=d.getElementById('index289LocationSelect');
+ if(current&&q(current.value)!==value)try{current.value=value}catch(_){}
+ return ok
+}
+function scheduleRepairs(seq){
+ [0,60,180,450,900,1600].forEach(function(delay){(w.setTimeout||setTimeout)(function(){repairPending(seq)},delay)})
+}
 function onLocationChange(ev){
  var el=ev&&ev.target;if(!el||el.id!=='index289LocationSelect')return;
- var value=q(el.value);if(!value)return;
+ var value=q(el.value);
+ pendingSeq++;
+ if(!value){pending=null;return}
+ pending={value:value,expiresAt:Date.now()+2600};
  applyLocation(value);
- var later=function(){
-  if(!applyLocation(value))return;
-  var current=d.getElementById('index289LocationSelect');
-  if(current&&q(current.value)!==value)try{current.value=value}catch(_){}
- };
- (w.setTimeout||setTimeout)(later,0)
+ scheduleRepairs(pendingSeq)
 }
+function onRendered(){if(pending)repairPending(pendingSeq)}
 d.addEventListener('change',onLocationChange,true);
-w.ExportHUBShipmentLocation1176=Object.freeze({applyLocation:applyLocation});
+['exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){try{w.addEventListener(name,onRendered)}catch(_){}});
+w.ExportHUBShipmentLocation1176=Object.freeze({applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)}});
 })(window,document);
