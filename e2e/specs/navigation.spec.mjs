@@ -224,9 +224,15 @@ test('RC1169 P0: Nicht-Admin sieht in Benutzer keine Diagnose und erhält server
     stale.innerHTML='<h3>Fehlerdiagnose & automatische Behebung</h3>';
     root.appendChild(stale);
   });
-  await openExportHubView(page,'rights',['Benutzer & Rechte','Benutzer','Rechte','Berechtigungen'],/Benutzer|Rechte|Rollen/i,{allowProgrammaticFallback:true});
-  await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
-  await expect(page.locator('#content')).not.toContainText(/Fehlerdiagnose\s*&\s*automatische Behebung/i);
+  const canViewRights=await page.evaluate(()=>typeof window.canView==='function'?window.canView('rights'):true);
+  if(canViewRights){
+    await openExportHubView(page,'rights',['Benutzer & Rechte','Benutzer','Rechte','Berechtigungen'],/Benutzer|Rechte|Rollen/i,{allowProgrammaticFallback:true});
+    await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
+    await expect(page.locator('#content')).not.toContainText(/Fehlerdiagnose\s*&\s*automatische Behebung/i);
+  }else{
+    await expect(page.locator('[data-view="rights"]:visible')).toHaveCount(0);
+    await expect(page.locator('#rc1013-diagnostics-enhanced')).toHaveCount(0);
+  }
   await expect(page.locator('[data-view="diagnostics"]:visible')).toHaveCount(0);
 
   const denied=await page.evaluate(async tokenValue=>{

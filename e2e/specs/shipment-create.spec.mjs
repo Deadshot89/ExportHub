@@ -70,8 +70,10 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   if(await location.locator('option').count()>1)await location.selectOption(customer.locationId);
   await expect.poll(()=>page.evaluate(()=>String((window.__EXPORTHUB_GET_STATE__?.().shipment||{}).locationId||'')),{timeout:10_000}).toBe(customer.locationId);
 
-  const refInput=await referenceInput(page);
+  await settleStateSave(page,{timeout:25_000});
+  let refInput=await referenceInput(page);
   await expect(refInput).toBeVisible();
+  await expect(refInput).toBeEditable({timeout:15_000});
 
   // Pflichtfeld-/Referenzschutz: eine ungültige dreistellige Referenz darf nicht gespeichert werden.
   await refInput.fill('BAD');
@@ -85,6 +87,8 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   if(invalidMessage)expect(invalidMessage).toMatch(/Referenz|6 Zeichen|Kunde|Standort|vollständig/i);
   await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:2500}).toBe(0);
 
+  refInput=await referenceInput(page);
+  await expect(refInput).toBeEditable({timeout:15_000});
   await refInput.fill(ref);
   await refInput.blur();
 

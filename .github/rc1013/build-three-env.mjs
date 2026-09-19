@@ -60,7 +60,9 @@ function enhanceEnvironmentHub(src){
   const message=String(rec.message||'Technischer ExportHUB-Hinweis').replace(/\\s+/g,' ').trim().slice(0,260);
   const id=String(rec.id||\`diag:\${Number(rec.seq||0)}:\${String(rec.category||'diagnostics')}:\${area}\`);
   const prefix=count>1?count+' neue Diagnoseereignisse.\\n':'';
-  const body=d?prefix+'Fehlercode: '+d.code+'\\nBenutzer: '+d.user+(d.userId&&d.userId!=='—'?' · '+d.userId:'')+'\\nFirma: '+d.company+'\\nBedeutung: '+d.meaning+'\\nWahrscheinliche Ursache: '+d.cause+'\\nNächster Schritt: '+d.nextStep+'\\nTechnische Meldung: '+d.technicalMessage:prefix+area+': '+message;
+  const time=d&&d.time&&d.time!=='—'?'\\nZeitpunkt: '+d.time:'';
+  const fallbackTime=String(rec.lastAt||rec.at||'').trim();
+  const body=d?prefix+'Fehlercode: '+d.code+'\\nBenutzer: '+d.user+(d.userId&&d.userId!=='—'?' · '+d.userId:'')+'\\nFirma: '+d.company+'\\nBedeutung: '+d.meaning+'\\nWahrscheinliche Ursache: '+d.cause+'\\nNächster Schritt: '+d.nextStep+'\\nTechnische Meldung: '+d.technicalMessage+time:prefix+area+': '+message+(fallbackTime?'\\nZeitpunkt: '+fallbackTime:'');
   return {channel:'diagnostic',key:id,title:'ExportHUB Fehlerdiagnose',body,route:'diagnostics'};
 }
 `;

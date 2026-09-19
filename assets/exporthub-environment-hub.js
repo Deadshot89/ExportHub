@@ -46,7 +46,9 @@ function diagnosticPayload(record,count=1){
   const area=String(rec.area||'System').replace(/\s+/g,' ').trim().slice(0,80);
   const message=String(rec.message||'Technischer ExportHUB-Hinweis').replace(/\s+/g,' ').trim().slice(0,260);
   const id=String(rec.id||`diag:${Number(rec.seq||0)}:${String(rec.category||'diagnostics')}:${area}`);
-  const body=count>1?`${count} neue Diagnoseereignisse. Zuletzt ${area}: ${message}`:`${area}: ${message}`;
+  const at=String(rec.lastAt||rec.at||'').trim();
+  const base=count>1?`${count} neue Diagnoseereignisse. Zuletzt ${area}: ${message}`:`${area}: ${message}`;
+  const body=at?`${base}\nZeitpunkt: ${at}`:base;
   return {channel:'diagnostic',key:id,title:'ExportHUB Fehlerdiagnose',body,route:'diagnostics'};
 }
 function notifyDiagnostic(event){
@@ -77,8 +79,10 @@ async function pollCentralDiagnostics(force){
   if(!marker){fresh=critical.slice(-1)}else{
     const markerId=String(marker.id||'');
     const idx=markerId?critical.findIndex(r=>String(r&&r.id||'')===markerId):-1;
-    if(idx>=0)fresh=critical.slice(idx+1);
-    else fresh=critical.filter(r=>(Date.parse(String(r&&r.lastAt||r&&r.at||''))||0)>Number(marker.at||0));
+    if(idx>=0){
+      const matched=critical[idx],matchedAt=Date.parse(String(matched&&matched.lastAt||matched&&matched.at||''))||0;
+      fresh=matchedAt>Number(marker.at||0)?critical.slice(idx):critical.slice(idx+1);
+    }else fresh=critical.filter(r=>(Date.parse(String(r&&r.lastAt||r&&r.at||''))||0)>Number(marker.at||0));
   }
   if(!fresh.length)return false;
   const latest=fresh[fresh.length-1];
