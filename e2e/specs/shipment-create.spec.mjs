@@ -5,6 +5,7 @@ import {
   settleStateSave,
   openExportHubView,
   attachRuntimeGuards,
+  acknowledgeConfirmedStateSaveNavigationAbort,
   assertRuntimeClean,
   assertNoSourceLeak,
   assertNoHorizontalOverflow,
@@ -177,5 +178,10 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
 
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
+
+  // Ein page.reload kann einen bereits serverseitig bestätigten keepalive-ACK im Browser
+  // als net::ERR_ABORTED melden. Erst nach dem direkten Server-Read oben darf genau
+  // dieser eine State-Save-Abbruch aus dem Runtime-Gate quittiert werden.
+  acknowledgeConfirmedStateSaveNavigationAbort(runtime);
   await assertRuntimeClean(runtime,testInfo);
 });
