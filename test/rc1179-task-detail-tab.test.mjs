@@ -20,8 +20,10 @@ test('RC1179: Direktroute rendert die Aufgabenansicht in #content',()=>{
   assert.match(runtime,/host\.appendChild\(panel\)/);
 });
 
-test('RC1179: Öffnen merkt Task-ID und wechselt in taskdetail; Zurück geht zu tasks',()=>{
-  assert.match(runtime,/sessionStorage\.setItem\(TASK_DETAIL_STORAGE/);
+test('RC1179: Öffnen merkt nur Routing-Kontext in browser history und wechselt in taskdetail',()=>{
+  assert.doesNotMatch(runtime,/sessionStorage\.setItem\([^)]*task/i);
+  assert.match(runtime,/history\.replaceState/);
+  assert.match(runtime,/exporthubTaskId/);
   assert.match(runtime,/root\.setView\('taskdetail'\)/);
   assert.match(runtime,/root\.setView\('tasks'\)/);
 });
