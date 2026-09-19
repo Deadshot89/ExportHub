@@ -388,31 +388,6 @@ jobs:
           skip_app_build: true
           deployment_environment: testservice
 
-      - name: RC1170 TESTSERVICE Kundenportal-Verschlüsselung prüfen
-        shell: bash
-        run: |
-          set -euo pipefail
-          set +x
-          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
-          oidc_token="$(
-            curl -fsSL \
-              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-customer-portal-readiness" \
-            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
-          )"
-          echo "::add-mask::$oidc_token"
-          body="$(mktemp)"
-          trap 'rm -f "$body"' EXIT
-          code="$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 -X POST \
-            -H "x-exporthub-github-oidc: $oidc_token" \
-            -H 'x-exporthub-environment: testservice' \
-            "$base/api/customer-portal-readiness" || true)"
-          STATUS="$code" BODY="$body" node -e "
-            const fs=require('fs'),status=Number(process.env.STATUS||0);
-            let v={};try{v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}')}catch(_){}
-            console.log('RC1170 TESTSERVICE customer portal readiness',JSON.stringify({httpStatus:status,ok:v.ok===true,configured:v.configured===true,environment:v.environment,code:v.code,version:v.version}));
-            if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='testservice')process.exit(3);
-          "
       - name: Release-Center aktive Testversion auf deployten Stand setzen
         shell: bash
         run: |
@@ -546,6 +521,31 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: RC1170 TESTSERVICE Kundenportal-Verschlüsselung prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-customer-portal-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+          code="$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 -X POST \
+            -H "x-exporthub-github-oidc: $oidc_token" \
+            -H 'x-exporthub-environment: testservice' \
+            "$base/api/customer-portal-readiness" || true)"
+          STATUS="$code" BODY="$body" node -e "
+            const fs=require('fs'),status=Number(process.env.STATUS||0);
+            let v={};try{v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}')}catch(_){}
+            console.log('RC1170 TESTSERVICE customer portal readiness',JSON.stringify({httpStatus:status,ok:v.ok===true,configured:v.configured===true,environment:v.environment,code:v.code,version:v.version}));
+            if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='testservice')process.exit(3);
+          "
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
