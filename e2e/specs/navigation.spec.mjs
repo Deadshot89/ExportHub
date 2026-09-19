@@ -33,8 +33,9 @@ const wideViews=[
   ['exams',['Prüfungen'],/Prüfung|Fragen/i]
 ];
 
-test.beforeEach(async({page})=>{
-  if(process.env.EXPORTHUB_E2E_LIVE==='1')await installE2ESession(page);
+test.beforeEach(async({page},testInfo)=>{
+  const dedicatedNonAdmin=/RC1169 P0: Nicht-Admin/.test(testInfo.title);
+  if(process.env.EXPORTHUB_E2E_LIVE==='1'&&!dedicatedNonAdmin)await installE2ESession(page);
 });
 
 async function assertView(page){
@@ -197,21 +198,19 @@ test('RC1169 P0: Nicht-Admin sieht in Benutzer keine Diagnose und erhält server
   expect(user.isGlobalAdmin).not.toBe(true);
   expect(user.permissions||[]).not.toContain('*');
 
-  const runtime=attachRuntimeGuards(page,testInfo);
-  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
-  await waitReady(page);
-
   const base=new URL(String(process.env.EXPORTHUB_E2E_BASE_URL||''));
   await page.context().addCookies([{
     name:'eh_session',value:token,domain:base.hostname,path:'/api',
     httpOnly:true,secure:true,sameSite:'Strict'
   }]);
-  await page.evaluate(({token,user,runId})=>{
+  await page.addInitScript(({token,user,runId})=>{
     sessionStorage.setItem('exporthub_rc301_tab_session',JSON.stringify({
-      token,user,deviceId:'e2e-playwright-nonadmin',view:'dashboard',savedAt:Date.now(),version:'RC1169',_e2eRunId:runId
+      token,user,deviceId:'e2e-playwright-nonadmin',view:'dashboard',savedAt:Date.now(),version:'RC1173',_e2eRunId:runId
     }));
   },{token,user,runId});
-  await page.reload({waitUntil:'domcontentloaded'});
+
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
 
   const current=await page.evaluate(()=>typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'?window.__EXPORTHUB_GET_CURRENT_USER__():null);
