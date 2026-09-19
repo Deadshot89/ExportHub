@@ -126,7 +126,9 @@ test('RC1152: responsive Aufgabenansicht ist im CSS definiert',()=>{
 
 
 test('RC1179: Aufgabenöffnung wechselt in den eigenen Aufgabenansicht-Reiter und merkt die Aufgabe für Reload',()=>{
-  assert.match(runtimeSource,/TASK_DETAIL_STORAGE='exporthub_rc1179_task_detail'/);
+  assert.doesNotMatch(runtimeSource,/sessionStorage\.setItem\([^)]*task/i);
+  assert.match(runtimeSource,/history\.replaceState/);
+  assert.match(runtimeSource,/exporthubTaskId/);
   assert.match(runtimeSource,/rememberTaskDetail\(t\)/);
   assert.match(runtimeSource,/root\.setView\('taskdetail'\)/);
   assert.match(runtimeSource,/function\s+renderTaskDetailView\s*\(/);
