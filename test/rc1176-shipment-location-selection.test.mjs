@@ -39,8 +39,14 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
   assert.equal(runtimeShipment.locationId,'L1');
   assert.equal(runtimeShipment.recipientAddress,'Teststraße 1, 00000 Teststadt');
   assert.equal(typeof later,'function');
+  shipment.locationId='';shipment.selectedLocationId='';shipment.recipientAddress='';
+  runtimeShipment.locationId='';runtimeShipment.selectedLocationId='';runtimeShipment.recipientAddress='';
+  select.value='';
   later();
   assert.equal(select.value,'L1');
+  assert.equal(shipment.locationId,'L1');
+  assert.equal(runtimeShipment.locationId,'L1');
+  assert.equal(shipment.recipientAddress,'Teststraße 1, 00000 Teststadt');
 });
 
 

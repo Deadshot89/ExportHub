@@ -107,6 +107,8 @@ function shipmentActionTitle(raw){
  if(/abd.*druck.*pdf.*gestartet/.test(l)||label==='ABD angefordert')return'ABD-Anfrage erstellt';
  if(label==='ABD-Anfrage per E-Mail gestartet')return'ABD-Anfrage per E-Mail geöffnet';
  if(label==='ABD-Dokument hinzugefügt')return'ABD-Dokument hochgeladen';
+ if(/^sendung\s+(?:erfasst|angelegt)$/i.test(label))return'Sendung erstellt';
+ if(/^lieferavis\s+(?:aktiviert|erstellt|erstellt\s*\/\s*aktiviert)$/i.test(label))return'Lieferavis erstellt/aktiviert';
  return label
 }
 function actionTitle(e){
@@ -118,6 +120,43 @@ function actionTitle(e){
 }
 function subtypeTechnical(e){return q(e&&e.subtype).replace(/[-_]+/g,' ')}
 function actionKey(e){return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+low(actionTitle(e))}
+function duplicateWindowMs(e){
+ if(!e||e.type!=='shipment')return 0;
+ var title=actionTitle(e);
+ if(title==='Sendung erstellt')return 8000;
+ if(title==='Lieferavis erstellt/aktiviert')return 8000;
+ return 0
+}
+function actorQuality(e){
+ var name=low(actorName(e));if(!name)return 0;
+ return /^(?:system|exporthub|nicht protokolliert)(?:\b|\s|·)/.test(name)?0:20
+}
+function eventQuality(e){
+ var score=actorQuality(e),details=e&&e.details||{},raw=q(e&&e.label);
+ if(e&&e.actor&&q(e.actor.role))score+=2;
+ if(q(details.reference))score+=4;
+ if(q(details.action))score+=2;
+ if(q(details.to)||q(details.subject))score+=1;
+ if(raw===actionTitle(e))score+=3;
+ if(e&&e.subtype==='created')score+=3;
+ return score
+}
+function consolidateEvents(events){
+ var out=[];
+ arr(events).forEach(function(e){
+  var win=duplicateWindowMs(e);
+  if(!win){out.push(e);return}
+  var ts=Date.parse(e.at||0)||0,title=actionTitle(e),entity=q(e.entityId);
+  var idx=-1;
+  for(var i=0;i<out.length;i++){
+   var x=out[i],xt=Date.parse(x.at||0)||0;
+   if(x.type===e.type&&q(x.entityId)===entity&&actionTitle(x)===title&&Math.abs(xt-ts)<=win){idx=i;break}
+  }
+  if(idx<0){out.push(e);return}
+  if(eventQuality(e)>eventQuality(out[idx]))out[idx]=e
+ });
+ return out.sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)})
+}
 
 function auditEvent(e){
  var details=e&&e.details||{},subtype=q(e&&e.type),entity='System',entityId=q(details.userId||details.username);
@@ -194,7 +233,7 @@ function allEvents(){
  arr(s.customers).forEach(function(c){arr(c&&c.customerHistory).forEach(function(e){pushUnique(map,customerEvent(c,e))})});
  arr(s.tasks).forEach(function(t){taskEvents(t).forEach(function(e){pushUnique(map,e)})});
  arr(s.palletAccount).forEach(function(p,i){palletEvents(p,i).forEach(function(e){pushUnique(map,e)})});
- return Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)})
+ return consolidateEvents(Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)}))
 }
 function detailText(e){
  var x=e&&e.details||{},parts=[];
@@ -312,5 +351,5 @@ function render(){
 function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1087 Historie',e)}catch(_){}}},0)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1087',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory,historyView:historyView,actionLabel:actionLabel});
+w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1177',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory,historyView:historyView,actionLabel:actionLabel,actionTitle:actionTitle,consolidateEvents:consolidateEvents});
 })(window,document);
