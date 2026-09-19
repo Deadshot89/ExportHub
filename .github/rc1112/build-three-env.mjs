@@ -244,7 +244,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
     avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',
     diagnosticsNonAdminProof:'RC1169 live non-admin rights view + diagnostics-read 403',
-    customerPortalReleaseReadiness:'RC1170 OIDC live configured=true gate in TESTSERVICE and PRODUCTION'
+    customerPortalReleaseReadiness:'RC1170 OIDC live configured=true gate in TESTSERVICE and PRODUCTION',
+    shipmentCreateUiE2E:'RC1171 UI customer + location + reference + colli + save + reload + overview'
   },
   compatibility:{
     qr:'stable-existing-links',
