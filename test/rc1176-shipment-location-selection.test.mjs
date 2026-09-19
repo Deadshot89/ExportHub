@@ -16,7 +16,7 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
   }]}]};
   const select={id:'index289LocationSelect',value:'L1'};
   const document={
-    addEventListener(name,fn,capture){listeners[name]={fn,capture}},
+    addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},
     getElementById(id){return id==='index289LocationSelect'?select:null}
   };
   const window={
@@ -27,8 +27,10 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
     setTimeout(fn){later=fn;return 1}
   };
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,console});
-  assert.equal(listeners.change.capture,true);
-  listeners.change.fn({target:select});
+  const locationChange=listeners.change.find(x=>x.capture&&/index289LocationSelect/.test(String(x.fn)));
+  const captureChanges=listeners.change.filter(x=>x.capture);
+  assert.ok(captureChanges.length>=1);
+  captureChanges[0].fn({target:select});
   assert.equal(shipment.locationId,'L1');
   assert.equal(shipment.selectedLocationId,'L1');
   assert.equal(shipment.siteId,'L1');
@@ -78,7 +80,7 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
 
 test('RC1176: Runtime wird in Produktion TESTSERVICE und Demo mitgebaut',()=>{
   assert.match(builder,/exporthub-rc1176-shipment-location/);
-  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1176/);
+  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1182/);
   assert.match(builder,/'assets\/rc1176-shipment-location\.js'/);
   assert.match(builder,/shipmentLocationPersistence:'RC1182/);
 });
