@@ -182,6 +182,7 @@ test('RC1171 P0: Sendung erstellen l채uft vollst채ndig 체ber die Benutzeroberfl�
   // Ein page.reload kann einen bereits serverseitig best채tigten keepalive-ACK im Browser
   // als net::ERR_ABORTED melden. Erst nach dem direkten Server-Read oben darf genau
   // dieser eine State-Save-Abbruch aus dem Runtime-Gate quittiert werden.
-  acknowledgeConfirmedStateSaveNavigationAbort(runtime);
+  const confirmedNavigationSaveAborts=acknowledgeConfirmedStateSaveNavigationAbort(runtime);
+  expect(confirmedNavigationSaveAborts,'Mehr als ein abgebrochener State-Save trotz best채tigter Serverpersistenz').toBeLessThanOrEqual(1);
   await assertRuntimeClean(runtime,testInfo);
 });
