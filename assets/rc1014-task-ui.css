@@ -79,20 +79,21 @@
 }
 
 body[data-exporthub-task-detail="open"]{
-  overflow:hidden;
+  overflow:auto;
 }
 .rc1152-task-detail{
-  position:fixed;
-  inset:0;
-  z-index:2147482000;
-  overflow:auto;
-  background:var(--rc990-page-bg,#f3f6fa);
+  position:relative;
+  width:100%;
+  min-width:0;
+  overflow:visible;
+  background:transparent;
   color:var(--rc990-text,#172033);
 }
 .rc1152-task-shell{
-  width:min(1180px,calc(100% - 32px));
+  width:100%;
+  max-width:1180px;
   margin:0 auto;
-  padding:28px 0 44px;
+  padding:8px 0 44px;
 }
 .rc1152-task-header{
   display:grid;
@@ -192,7 +193,7 @@ body[data-exporthub-task-detail="open"]{
   .rc1152-task-header .rc1152-task-back{grid-column:1/-1;justify-self:start}
 }
 @media (max-width:640px){
-  .rc1152-task-shell{width:min(100% - 20px,1180px);padding:14px 0 28px}
+  .rc1152-task-shell{width:100%;padding:4px 0 28px}
   .rc1152-task-header{grid-template-columns:1fr;gap:10px}
   .rc1152-task-header .rc1152-task-back{grid-column:auto;width:100%}
   .rc1152-task-status{justify-self:start}
@@ -224,4 +225,13 @@ body[data-exporthub-task-detail="open"]{
   opacity:.58;
   cursor:default;
   box-shadow:none;
+}
+
+
+/* RC1179 Aufgabenansicht als eigener Reiter */
+.rc1152-task-detail[data-rc1179-task-view="1"]{
+  min-height:calc(100vh - 190px);
+}
+.rc1152-task-detail[data-rc1179-task-view="1"] .rc1152-task-header{
+  padding-top:4px;
 }

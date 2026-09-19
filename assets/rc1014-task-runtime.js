@@ -10,6 +10,7 @@
   let lazyCardObserver=null;
   let taskResetTimer=0;
   let taskResetInFlight=false;
+  let lastOpenTaskId='';
 
   const MANAGED_TASKS=Object.freeze([
     {key:'spanien',title:'Spanien anmelden',group:'Anmeldung',weekdays:[1],priority:'P3',description:'Spanien montags anmelden.'},
@@ -237,11 +238,35 @@
     return 'Offen';
   }
 
+  function storedTaskId(){
+    if(lastOpenTaskId)return lastOpenTaskId;
+    try{lastOpenTaskId=q(root.history&&root.history.state&&root.history.state.exporthubTaskId);}catch(_){}
+    return lastOpenTaskId;
+  }
+
+  function rememberTaskDetail(task){
+    lastOpenTaskId=q(task&&task.id);
+    try{
+      if(root.history&&typeof root.history.replaceState==='function'&&lastOpenTaskId){
+        const current=root.history.state&&typeof root.history.state==='object'?root.history.state:{};
+        root.history.replaceState({...current,exporthubTaskDetail:true,exporthubTaskId:lastOpenTaskId},'',root.location&&root.location.href?root.location.href:undefined);
+      }
+    }catch(_){}
+    return lastOpenTaskId;
+  }
+
+  function rememberedTask(ctx={}){
+    const id=storedTaskId();
+    if(!id)return null;
+    const state=ctx.state||sharedState()||{};
+    return arr(lastTasks).concat(arr(state.tasks)).find(item=>q(item&&item.id)===id)||null;
+  }
+
   function closeTaskDetail(fromPopState){
     const doc=root.document,view=doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail');
     if(view&&view.parentNode)view.parentNode.removeChild(view);
     try{if(doc&&doc.body)doc.body.removeAttribute('data-exporthub-task-detail');}catch(_){}
-    if(!fromPopState&&root.history&&root.history.state&&root.history.state.exporthubTaskDetail)root.history.back();
+    if(!fromPopState&&typeof root.setView==='function')root.setView('tasks');
     return true;
   }
 
@@ -288,20 +313,14 @@
     return false;
   }
 
-  function openTaskDetail(task,ctx={}){
-    const doc=root.document;
-    if(!doc||!doc.body||typeof doc.createElement!=='function')return false;
+  function taskDetailHtml(task,ctx={}){
     const t=api().normalizeTask(task||{},ctx),spec=detailSpec(t)||detailSpec(task);
-    if(!sameScope(t,ctx)){reportOpenBlocked(t);return false;}
-    closeTaskDetail(true);
     const shipmentTarget=linkedShipmentTarget({...task,...t},ctx);
     const checklist=arr((task&&task.checklist)||(spec&&spec.checklist));
     const description=q((task&&task.description)||(spec&&spec.description))||'Für diese Aufgabe ist keine zusätzliche Beschreibung hinterlegt.';
     const recurrence=q((task&&task.recurrenceLabel)||(spec&&weekdayLabel(spec.weekdays,spec.dueTime)))||'Einmalig / ohne festen Rhythmus';
     const isReference=!!((task&&task.managedKind==='reference-area')||(spec&&spec.referenceArea));
-    const panel=doc.createElement('section');
-    panel.id='rc1152TaskDetail';panel.className='rc1152-task-detail';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
-    panel.innerHTML=`<div class="rc1152-task-shell">
+    return `<div class="rc1152-task-shell" data-rc1179-task-tab="1">
       <header class="rc1152-task-header">
         <button type="button" class="btn rc1152-task-back" data-task-action="back">← Zurück zu Aufgaben</button>
         <div><span class="rc1152-task-eyebrow">${esc(t.group||'Aufgabe')}</span><h1>${esc(t.title||'Aufgabe')}</h1></div>
@@ -321,18 +340,48 @@
         <button type="button" class="btn primary" data-task-action="done" aria-label="Als erledigt markieren" ${t.status==='done'?'disabled':''}>Erledigt</button>`:''}
       </footer>
     </div>`;
+  }
+
+  function renderTaskDetailView(task,ctx={}){
+    const doc=root.document;
+    if(!doc||typeof doc.createElement!=='function')return false;
+    const mergedCtx={...lastContext,...ctx,state:(ctx&&ctx.state)||lastContext.state||sharedState()||{}};
+    const raw=task||rememberedTask(mergedCtx);
+    const host=doc.getElementById&&doc.getElementById('content');
+    if(!host)return false;
+    host.innerHTML='';
+    const panel=doc.createElement('section');
+    panel.id='rc1152TaskDetail';panel.className='rc1152-task-detail';panel.setAttribute('data-rc1179-task-view','1');
+    if(!raw){
+      panel.innerHTML='<div class="rc1152-task-shell"><header class="rc1152-task-header"><div><span class="rc1152-task-eyebrow">Aufgaben</span><h1>Aufgabenansicht</h1></div></header><article class="rc1152-task-card"><h2>Keine Aufgabe geöffnet</h2><p>Öffne zuerst im Reiter „Aufgaben“ eine Aufgabe. Sie wird anschließend hier angezeigt.</p><button type="button" class="btn primary" data-task-action="back">Zu den Aufgaben</button></article></div>';
+      panel.addEventListener('click',event=>{const btn=event.target&&event.target.closest&&event.target.closest('[data-task-action="back"]');if(btn)closeTaskDetail(false);});
+      host.appendChild(panel);return true;
+    }
+    const t=api().normalizeTask(raw||{},mergedCtx);
+    if(!sameScope(t,mergedCtx)){reportOpenBlocked(t);return false;}
+    rememberTaskDetail(t);
+    panel.innerHTML=taskDetailHtml({...raw,...t},mergedCtx);
     panel.addEventListener('click',event=>{
       const btn=event.target&&event.target.closest&&event.target.closest('[data-task-action]');
       if(!btn)return;
       const action=btn.getAttribute('data-task-action');
       if(action==='back')closeTaskDetail(false);
-      else if(action==='shipment')openLinkedShipment({...task,...t},ctx);
-      else if(action==='open'||action==='in_progress'||action==='done')setTaskStatus({...task,...t},action,ctx).catch(()=>{});
+      else if(action==='shipment')openLinkedShipment({...raw,...t},mergedCtx);
+      else if(action==='open'||action==='in_progress'||action==='done')setTaskStatus({...raw,...t},action,mergedCtx).catch(()=>{});
     });
-    doc.body.appendChild(panel);doc.body.setAttribute('data-exporthub-task-detail','open');
-    try{if(root.history&&typeof root.history.pushState==='function')root.history.pushState({exporthubTaskDetail:true,taskId:t.id},'',root.location&&root.location.href?root.location.href:'#');}catch(_){}
+    host.appendChild(panel);
+    try{if(doc.body)doc.body.setAttribute('data-exporthub-task-detail','open');}catch(_){}
     const first=panel.querySelector&&panel.querySelector('[data-task-action="back"]');if(first&&typeof first.focus==='function')first.focus();
     return true;
+  }
+
+  function openTaskDetail(task,ctx={}){
+    const t=api().normalizeTask(task||{},ctx);
+    if(!sameScope(t,ctx)){reportOpenBlocked(t);return false;}
+    rememberTaskDetail(t);
+    lastContext={...lastContext,...ctx,state:ctx.state||lastContext.state||sharedState()||{}};
+    if(typeof root.setView==='function'){root.setView('taskdetail');return true;}
+    return renderTaskDetailView({...task,...t},ctx);
   }
 
   function openTask(task,ctx={}){
@@ -528,5 +577,5 @@
 
   if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
 })(globalThis);
