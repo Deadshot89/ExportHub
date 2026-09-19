@@ -11,6 +11,7 @@ function activeShipment(s){
  return null
 }
 function customerAliases(c){return [c&&c.id,c&&c.customerId,c&&c.account,c&&c.customerNumber,c&&c.kundennummer,c&&c.name,c&&c.customerName].map(function(v){return q(v).toLowerCase()}).filter(Boolean)}
+function shipmentCustomerKey(sh){return q(sh&&(sh.customerId||sh.customerAccount||sh.customerNumber||sh.customerNo||sh.customerName||sh.customer&&sh.customer.name)).toLowerCase()}
 function customerFor(s,sh){
  var wanted=[sh&&sh.customerId,sh&&sh.customerAccount,sh&&sh.customerNumber,sh&&sh.customerNo,sh&&sh.customerName,sh&&sh.customer&&sh.customer.name].map(function(v){return q(v).toLowerCase()}).filter(Boolean);
  var list=arr(s&&s.customers);
@@ -23,13 +24,13 @@ function addressOf(loc){
  var street=q(loc.street||loc.strasse||loc.streetName||loc.addressLine1),zip=q(loc.zip||loc.postalCode||loc.postcode||loc.plz),city=q(loc.city||loc.ort||loc.town||loc.place),country=q(loc.country||loc.land||loc.countryName);
  return [street,[zip,city].filter(Boolean).join(' '),country].filter(Boolean).join(', ')
 }
-function locationId(loc){return q(loc&&(loc.id||loc.locationId||loc.selectedLocationId||loc.siteId||loc.destinationId||loc.code||loc.number))}
+function locationId(loc){return q(loc&&(loc.id||loc.locationId||loc.selectedLocationId||loc.siteId||loc.destinationId||loc.deliveryLocationId||loc.shipToLocationId||loc.recipientLocationId||loc.code||loc.number))}
 function locations(c){
  var out=[];
  [c&&c.locations,c&&c.sites,c&&c.standorte,c&&c.deliveryLocations,c&&c.shippingLocations,c&&c.addresses,c&&c.deliveryAddresses,c&&c.shipToLocations,c&&c.shipToAddresses,c&&c.recipientAddresses,c&&c.customerLocations].forEach(function(list){arr(list).forEach(function(x){if(obj(x))out.push(x)})});
  if(obj(c)&&addressOf(c)){
   var key=q(c.id||c.customerId||c.account||c.customerNumber||'CUSTOMER');
-  out.unshift({id:'MAIN-'+key,locationId:'MAIN-'+key,selectedLocationId:'MAIN-'+key,siteId:'MAIN-'+key,destinationId:'MAIN-'+key,name:q(c.locationName||c.siteName)||'Hauptadresse',address:addressOf(c),country:q(c.country||c.land||c.countryName),_derivedMain:true})
+  out.unshift({id:'MAIN-'+key,locationId:'MAIN-'+key,selectedLocationId:'MAIN-'+key,siteId:'MAIN-'+key,destinationId:'MAIN-'+key,deliveryLocationId:'MAIN-'+key,shipToLocationId:'MAIN-'+key,recipientLocationId:'MAIN-'+key,name:q(c.locationName||c.siteName)||'Hauptadresse',address:addressOf(c),country:q(c.country||c.land||c.countryName),_derivedMain:true})
  }
  return out
 }
@@ -54,39 +55,64 @@ function targets(s,active){
 }
 function writeLocation(sh,value,loc){
  var name=q(loc.name||loc.locationName||loc.siteName||loc.standort||loc.city||loc.ort),address=addressOf(loc),country=q(loc.country||loc.land||loc.countryName);
- sh.locationId=value;sh.selectedLocationId=value;sh.siteId=value;sh.destinationId=value;
- if(name){sh.locationName=name;sh.siteName=name}
+ sh.locationId=value;sh.selectedLocationId=value;sh.siteId=value;sh.destinationId=value;sh.deliveryLocationId=value;sh.shipToLocationId=value;sh.recipientLocationId=value;
+ if(name){sh.locationName=name;sh.siteName=name;sh.destinationName=name}
  if(address){sh.recipientAddress=address;sh.deliveryAddress=address;sh.destinationAddress=address}
  if(country){sh.recipientCountry=country;sh.destinationCountry=country}
 }
-function applyLocation(value){
+function applyLocation(value,expectedCustomerKey){
  value=q(value);if(!value)return false;
  var s=state(),active=activeShipment(s);if(!obj(active))return false;
+ var actualCustomerKey=shipmentCustomerKey(active)||shipmentCustomerKey(s&&s.shipment);
+ if(expectedCustomerKey&&actualCustomerKey&&expectedCustomerKey!==actualCustomerKey)return false;
  var loc=findLocation(s,active,value);if(!loc)return false;
  targets(s,active).forEach(function(sh){writeLocation(sh,value,loc)});
  return true
 }
-var pending=null,pendingSeq=0;
+var pending=null,pendingSeq=0,observer=null;
+function clearPending(){pending=null;pendingSeq++}
+function currentSelect(){return d.getElementById&&d.getElementById('index289LocationSelect')}
+function selectedOptionExists(select,value){
+ if(!select||!select.options)return true;
+ for(var i=0;i<select.options.length;i++)if(q(select.options[i]&&select.options[i].value)===value)return true;
+ return false
+}
 function repairPending(seq){
- if(!pending||seq!==pendingSeq||Date.now()>pending.expiresAt)return false;
- var value=pending.value,ok=applyLocation(value),current=d.getElementById('index289LocationSelect');
+ if(!pending||seq!==pendingSeq||Date.now()>pending.expiresAt){if(pending&&Date.now()>pending.expiresAt)pending=null;return false}
+ var s=state(),active=activeShipment(s),actualCustomerKey=shipmentCustomerKey(active)||shipmentCustomerKey(s&&s.shipment);
+ if(pending.customerKey&&actualCustomerKey&&pending.customerKey!==actualCustomerKey){clearPending();return false}
+ var value=pending.value,current=currentSelect();
+ if(current&&!selectedOptionExists(current,value))return false;
+ var ok=applyLocation(value,pending.customerKey);
  if(current&&q(current.value)!==value)try{current.value=value}catch(_){}
  return ok
 }
 function scheduleRepairs(seq){
- [0,60,180,450,900,1600].forEach(function(delay){(w.setTimeout||setTimeout)(function(){repairPending(seq)},delay)})
+ [0,40,100,220,450,900,1600,2600,4200,6500,9000,12000,15000].forEach(function(delay){(w.setTimeout||setTimeout)(function(){repairPending(seq)},delay)})
 }
 function onLocationChange(ev){
  var el=ev&&ev.target;if(!el||el.id!=='index289LocationSelect')return;
- var value=q(el.value);
+ var value=q(el.value),s=state(),active=activeShipment(s);
  pendingSeq++;
  if(!value){pending=null;return}
- pending={value:value,expiresAt:Date.now()+2600};
- applyLocation(value);
+ pending={value:value,customerKey:shipmentCustomerKey(active)||shipmentCustomerKey(s&&s.shipment),expiresAt:Date.now()+18000};
+ applyLocation(value,pending.customerKey);
  scheduleRepairs(pendingSeq)
+}
+function onCustomerInput(ev){
+ var el=ev&&ev.target,id=q(el&&el.id);
+ if(id==='shipmentCustomerSearch'||id==='index289CustomerSearch'||id==='shipmentCustomer')clearPending()
 }
 function onRendered(){if(pending)repairPending(pendingSeq)}
 d.addEventListener('change',onLocationChange,true);
-['exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){try{w.addEventListener(name,onRendered)}catch(_){}});
-w.ExportHUBShipmentLocation1176=Object.freeze({applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)}});
+d.addEventListener('input',onCustomerInput,true);
+d.addEventListener('change',onCustomerInput,true);
+['exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-saved'].forEach(function(name){try{w.addEventListener(name,onRendered)}catch(_){}});
+if(typeof MutationObserver!=='undefined'){
+ try{
+  observer=new MutationObserver(function(){if(pending)repairPending(pendingSeq)});
+  observer.observe(d.documentElement||d.body,{childList:true,subtree:true})
+ }catch(_){}
+}
+w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1182',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
 })(window,document);

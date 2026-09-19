@@ -16,7 +16,7 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
   }]}]};
   const select={id:'index289LocationSelect',value:'L1'};
   const document={
-    addEventListener(name,fn,capture){listeners[name]={fn,capture}},
+    addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},
     getElementById(id){return id==='index289LocationSelect'?select:null}
   };
   const window={
@@ -27,12 +27,17 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
     setTimeout(fn){later=fn;return 1}
   };
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,console});
-  assert.equal(listeners.change.capture,true);
-  listeners.change.fn({target:select});
+  const locationChange=listeners.change.find(x=>x.capture&&/index289LocationSelect/.test(String(x.fn)));
+  const captureChanges=listeners.change.filter(x=>x.capture);
+  assert.ok(captureChanges.length>=1);
+  captureChanges[0].fn({target:select});
   assert.equal(shipment.locationId,'L1');
   assert.equal(shipment.selectedLocationId,'L1');
   assert.equal(shipment.siteId,'L1');
   assert.equal(shipment.destinationId,'L1');
+  assert.equal(shipment.deliveryLocationId,'L1');
+  assert.equal(shipment.shipToLocationId,'L1');
+  assert.equal(shipment.recipientLocationId,'L1');
   assert.equal(shipment.recipientAddress,'Teststraße 1, 00000 Teststadt');
   assert.equal(shipment.deliveryAddress,'Teststraße 1, 00000 Teststadt');
   assert.equal(shipment.locationName,'Werk 1');
@@ -75,9 +80,9 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
 
 test('RC1176: Runtime wird in Produktion TESTSERVICE und Demo mitgebaut',()=>{
   assert.match(builder,/exporthub-rc1176-shipment-location/);
-  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1176/);
+  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1182/);
   assert.match(builder,/'assets\/rc1176-shipment-location\.js'/);
-  assert.match(builder,/shipmentLocationPersistence:'RC1176/);
+  assert.match(builder,/shipmentLocationPersistence:'RC1182/);
 });
 
 test('RC1176: Live-E2E verlangt stabile Dropdown-Auswahl, aktiven State und entfernte Standortwarnung',()=>{
@@ -91,4 +96,46 @@ test('RC1176: Runtime, Build und E2E bleiben syntaktisch gültig',()=>{
   for(const file of ['assets/rc1176-shipment-location.js','.github/rc1112/build-three-env.mjs','e2e/specs/shipment-create.spec.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
+});
+
+
+test('RC1182: späte Re-Render bis 15 Sekunden werden für denselben Kunden repariert',()=>{
+  const shipment={customerId:'C1'},state={shipment,customers:[{id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]}]};
+  const timers=[],select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'}]};
+  const listeners={};
+  const document={documentElement:{},addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},getElementById(id){return id==='index289LocationSelect'?select:null}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(){},setTimeout(fn,delay){timers.push({fn,delay});return timers.length}};
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  const change=listeners.change.find(x=>x.capture).fn;
+  change({target:select});
+  shipment.locationId='';shipment.selectedLocationId='';shipment.deliveryLocationId='';select.value='';
+  const late=timers.find(x=>x.delay===12000);
+  assert.ok(late,'12s Reparatur fehlt');
+  late.fn();
+  assert.equal(select.value,'L1');
+  assert.equal(shipment.locationId,'L1');
+  assert.equal(shipment.deliveryLocationId,'L1');
+});
+
+test('RC1182: Kundenwechsel beendet den Standort-Reparaturschutz',()=>{
+  const shipment={customerId:'C1'},state={shipment,customers:[{id:'C1',locations:[{id:'L1',address:'A'}]},{id:'C2',locations:[{id:'L2',address:'B'}]}]};
+  const timers=[],select={id:'index289LocationSelect',value:'L1',options:[{value:'L1'},{value:'L2'}]},listeners={};
+  const document={documentElement:{},addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},getElementById(){return select}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(){},setTimeout(fn,delay){timers.push({fn,delay});return timers.length}};
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  listeners.change.find(x=>x.capture).fn({target:select});
+  shipment.customerId='C2';shipment.locationId='L2';shipment.selectedLocationId='L2';select.value='L2';
+  const late=timers.find(x=>x.delay===9000);assert.ok(late);late.fn();
+  assert.equal(select.value,'L2');
+  assert.equal(shipment.locationId,'L2');
+});
+
+test('RC1182: Runtime setzt zusätzliche Standort-Aliase und beobachtet verzögerte DOM-Re-Render',()=>{
+  assert.match(source,/deliveryLocationId=value/);
+  assert.match(source,/shipToLocationId=value/);
+  assert.match(source,/recipientLocationId=value/);
+  assert.match(source,/expiresAt:Date\.now\(\)\+18000/);
+  assert.match(source,/12000,15000/);
+  assert.match(source,/MutationObserver/);
+  assert.match(source,/shipmentCustomerSearch/);
 });
