@@ -65,7 +65,15 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   const location=page.locator('#index289LocationSelect');
   await expect(location).toBeVisible();
   if(await location.locator('option').count()>1)await location.selectOption(customer.locationId);
-  await expect.poll(()=>page.evaluate(()=>String((window.__EXPORTHUB_GET_STATE__?.().shipment||{}).locationId||'')),{timeout:10_000}).toBe(customer.locationId);
+  await expect(location).toHaveValue(customer.locationId,{timeout:10_000});
+  await expect.poll(()=>page.evaluate(()=>{
+    const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+    let sh=null;
+    try{sh=typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function'?window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__():null}catch(_){}
+    sh=sh||s.shipment||s.currentShipment||s.selectedShipment||{};
+    return String(sh.locationId||sh.selectedLocationId||sh.siteId||sh.destinationId||'');
+  }),{timeout:10_000}).toBe(customer.locationId);
+  await expect(page.locator('#rc363BlockCustomer')).not.toContainText(/Standort fehlt|Adresse fehlt\. Sendungserstellung blockiert/i,{timeout:10_000});
 
   await settleStateSave(page,{timeout:25_000});
   const refInput=await referenceInput(page);
