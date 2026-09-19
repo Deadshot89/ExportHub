@@ -207,7 +207,7 @@ jobs:
           test -s dist-rc1112/assets/rc1049-abd-avis-policy.js
           test -s dist-rc1112/migration-recovery.html
           grep -q 'Dokumentspeicher wird optimiert' dist-rc1112/migration-recovery.html
-          grep -q 'assets/rc1014-task-runtime.js?v=1156' dist-rc1112/index.html
+          grep -q 'assets/rc1014-task-runtime.js?v=1179' dist-rc1112/index.html
           grep -q 'assets/rc1014-shipment-overview.js?v=1127' dist-rc1112/index.html
           grep -q 'assets/rc1014-shipment-overview.css?v=1127' dist-rc1112/index.html
           test -s dist-rc1112/assets/rc1014-shipment-overview.js
@@ -718,7 +718,7 @@ jobs:
               && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$p" \
               && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$t" \
               && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$d" \
-              && grep -q 'assets/rc1014-task-runtime.js?v=1156' "$p" \
+              && grep -q 'assets/rc1014-task-runtime.js?v=1179' "$p" \
               && grep -q 'assets/rc1014-shipment-overview.js?v=1127' "$p" \
               && grep -q 'assets/rc1014-shipment-overview.css?v=1127' "$p" \
               && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' "$p" \
