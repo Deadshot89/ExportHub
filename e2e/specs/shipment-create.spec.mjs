@@ -92,7 +92,7 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   await expect(firstRow).toBeVisible();
   const packagingToggle=firstRow.locator('[data-rc682-packaging-toggle]').first();
   await packagingToggle.click();
-  const palletOption=page.locator('.rc682-packaging-option').filter({hasText:/Europalette/i}).first();
+  const palletOption=page.locator('.rc682-packaging-option').filter({hasText:/Euro\s*Palette/i}).first();
   await expect(palletOption).toBeVisible();
   await palletOption.click();
 
