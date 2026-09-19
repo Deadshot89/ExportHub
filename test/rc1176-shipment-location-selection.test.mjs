@@ -10,8 +10,8 @@ const e2e=fs.readFileSync('e2e/specs/shipment-create.spec.mjs','utf8');
 
 test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in den aktiven Entwurf geschrieben',()=>{
   const listeners={};let later=null;
-  const shipment={customerId:'C1'};
-  const state={shipment,customers:[{id:'C1',name:'Testkunde',locations:[{
+  const shipment={customerId:'C1'},runtimeShipment={customerId:'C1'};
+  const state={shipment,customers:[{id:'C1',name:'Testkunde',address:'Hauptweg 1, 00000 Teststadt',country:'DE',locations:[{
     id:'L1',name:'Werk 1',address:'Teststraße 1, 00000 Teststadt',country:'DE'
   }]}]};
   const select={id:'index289LocationSelect',value:'L1'};
@@ -22,7 +22,8 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
   const window={
     document,
     __EXPORTHUB_GET_STATE__:()=>state,
-    __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,
+    __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>runtimeShipment,
+    ExportHUBClean:{runtime:{shipment:runtimeShipment}},
     setTimeout(fn){later=fn;return 1}
   };
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,console});
@@ -35,9 +36,24 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
   assert.equal(shipment.recipientAddress,'Teststraße 1, 00000 Teststadt');
   assert.equal(shipment.deliveryAddress,'Teststraße 1, 00000 Teststadt');
   assert.equal(shipment.locationName,'Werk 1');
+  assert.equal(runtimeShipment.locationId,'L1');
+  assert.equal(runtimeShipment.recipientAddress,'Teststraße 1, 00000 Teststadt');
   assert.equal(typeof later,'function');
   later();
   assert.equal(select.value,'L1');
+});
+
+
+test('RC1176: abgeleitete Hauptadresse wird genauso wie ein Zusatzstandort übernommen',()=>{
+  const shipment={customerId:'C1'};
+  const state={shipment,customers:[{id:'C1',name:'Testkunde',address:'Hauptweg 1, 00000 Teststadt',country:'DE'}]};
+  const document={addEventListener(){},getElementById(){return null}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,setTimeout(){return 1}};
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,console});
+  assert.equal(window.ExportHUBShipmentLocation1176.applyLocation('MAIN-C1'),true);
+  assert.equal(shipment.locationId,'MAIN-C1');
+  assert.equal(shipment.locationName,'Hauptadresse');
+  assert.equal(shipment.recipientAddress,'Hauptweg 1, 00000 Teststadt');
 });
 
 test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den Entwurf geschrieben',()=>{
