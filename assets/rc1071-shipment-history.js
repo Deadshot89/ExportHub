@@ -185,6 +185,19 @@ function mailSubject(href){try{var raw=String(href||''),query=raw.indexOf('?')>=
 function mailTypeFrom(text){var l=low(text);if(/\babd\b|ausfuhrbegleit/.test(l))return'ABD-Anfrage';if(/anmeld|registrier|versandbestät/.test(l))return'Versandanmeldung';if(/lieferavis|abholung|collection notice/.test(l))return'Lieferavis';return'E-Mail'}
 function elementContext(el,text){var out=q(text);try{var box=el&&el.closest&&el.closest('[data-document],[data-doc-type],section,fieldset,.card,.panel,.field');if(box&&box!==el)out+=' '+q(box.getAttribute&&box.getAttribute('data-document'))+' '+q(box.getAttribute&&box.getAttribute('data-doc-type'))+' '+q(box.getAttribute&&box.getAttribute('aria-label'))+' '+q(box.textContent)}catch(_){}return out}
 function recordMailSent(sh,contextText){var mailMeta=LAST_MAIL_META[identity(sh)]||{},mailKind=q(mailMeta.mailType)||mailTypeFrom(contextText)||'E-Mail',sentLabel=mailSentLabel(mailKind);return append(sh,{type:'mail-sent',label:sentLabel,actor:actorFrom(currentUser()),details:{reference:ref(sh),to:q(mailMeta.to),subject:q(mailMeta.subject),mailType:mailKind}})}
+function printFromElement(el){
+ var sh=currentShipment();if(!el||!sh)return false;
+ var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text);
+ var doc=documentLabel(contextText),knownDoc=doc!=='Dokument',file=documentActionFileName(el,contextText,doc);
+ if(!knownDoc||!/druck|print|gesamtausgabe/.test(actionText))return false;
+ var key='print|'+identity(sh)+'|'+doc+'|'+file;
+ if(!actionOnce(key,1800))return true;
+ recordDocumentAction(sh,'print',doc,file);return true
+}
+function printBubble(ev){
+ var el=ev&&ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');
+ return printFromElement(el)
+}
 function click(ev){
  var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;var sh=currentShipment();if(!sh)return;
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text),l=low(contextText);
@@ -204,7 +217,7 @@ function click(ev){
  }
  var doc=documentLabel(contextText),knownDoc=doc!=='Dokument',file=documentActionFileName(el,contextText,doc);
  if(knownDoc&&/druck|print|gesamtausgabe/.test(actionText)){
-   if(actionOnce('print|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'print',doc,file);return
+   printFromElement(el);return
  }
  if(knownDoc&&/download|herunterladen/.test(actionText)){
    if(actionOnce('document-download|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'download',doc,file);return
@@ -221,7 +234,7 @@ function click(ev){
 }
 function fileChange(ev){var input=ev.target;if(!input||String(input.type||'').toLowerCase()!=='file'||!input.files||!input.files.length)return;var sh=currentShipment();if(!sh)return;var ctx=low((input.id||'')+' '+(input.name||'')+' '+(input.closest&&input.closest('label,.field,.card')&&input.closest('label,.field,.card').textContent||'')),kind=/pod/.test(ctx)?'POD':/abd/.test(ctx)?'ABD':/liefer|delivery/.test(ctx)?'Lieferschein':'Dokument';append(sh,{type:kind==='POD'?'pod':kind==='ABD'?'abd':'document',label:kind+' zum Upload ausgewählt',actor:actorFrom(currentUser()),details:{files:Array.from(input.files).map(function(f){return q(f.name)}).join(', ')}})}
 function avisUpdated(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},enabled=d.enabled!==false;append(sh,{type:'avis',label:enabled?'Lieferavis erstellt/aktiviert':'Lieferavis deaktiviert',actor:actorFrom(currentUser()),details:{reference:q(d.reference)||ref(sh)}})}
-function documentActionEvent(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},action=q(d.action),doc=q(d.document)||'Dokument',file=q(d.fileName);if(action!=='open'&&action!=='download')return;var key='document-event|'+action+'|'+identity(sh)+'|'+doc+'|'+file;if(actionOnce(key,1200))recordDocumentAction(sh,action,doc,file)}
+function documentActionEvent(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},action=q(d.action),doc=q(d.document)||'Dokument',file=q(d.fileName);if(action!=='open'&&action!=='download'&&action!=='print')return;var key=(action==='print'?'print':'document-event|'+action)+'|'+identity(sh)+'|'+doc+'|'+file;if(actionOnce(key,action==='print'?1800:1200))recordDocumentAction(sh,action,doc,file)}
 function markWorkStarted(){
  var sh=currentShipment();if(!sh||!shipmentView())return false;
  var actor=actorFrom(currentUser()),events=mergedHistory(sh),cutoff=Date.now()-4*60*60*1000;
@@ -237,8 +250,9 @@ if(w.document){
  if(typeof MutationObserver!=='undefined'){var mo=new MutationObserver(function(){schedule()});try{mo.observe(document.documentElement,{childList:true,subtree:true})}catch(_){} }
 }
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+try{w.addEventListener('click',printBubble,false)}catch(_){}
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
 try{w.addEventListener('exporthub:document-action',documentActionEvent)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1151',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1178',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,printFromElement:printFromElement,printBubble:printBubble,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
 })(window);
