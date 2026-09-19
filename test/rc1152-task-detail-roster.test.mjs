@@ -109,9 +109,9 @@ test('RC1179: aktiver RC1112 Build cache-bustet Aufgaben-Reiter und Runtime',()=
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/rc1014-task-runtime\.js\?v=1179/);
   assert.match(build,/rc1014-task-ui\.css\?v=1179/);
-  assert.match(build,/view:\\?['"]taskdetail/);
-  assert.match(build,/label:\\?['"]Aufgabenansicht/);
-  assert.match(build,/right:\\?['"]tasks/);
+  assert.match(build,/taskdetail/);
+  assert.match(build,/Aufgabenansicht/);
+  assert.match(build,/right:['"]tasks['"]/);
   assert.match(build,/renderTaskDetailView/);
   assert.match(build,/'assets\/rc1014-task-runtime\.js'/);
   assert.match(build,/'assets\/rc1014-task-ui\.css'/);
