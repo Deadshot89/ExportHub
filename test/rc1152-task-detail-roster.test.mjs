@@ -105,10 +105,14 @@ test('RC1152: Runtime enthält echte Aufgabenansicht statt Direktöffnung der Se
   assert.match(runtimeSource,/data\.rc1152TaskOpen/);
 });
 
-test('RC1156: aktiver RC1112 Build cache-bustet die aktualisierte Aufgaben-Runtime',()=>{
+test('RC1179: aktiver RC1112 Build cache-bustet Aufgaben-Reiter und Runtime',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-  assert.match(build,/rc1014-task-runtime\.js\?v=1156/);
-  assert.match(build,/rc1014-task-ui\.css\?v=1152/);
+  assert.match(build,/rc1014-task-runtime\.js\?v=1179/);
+  assert.match(build,/rc1014-task-ui\.css\?v=1179/);
+  assert.match(build,/view:\\?['"]taskdetail/);
+  assert.match(build,/label:\\?['"]Aufgabenansicht/);
+  assert.match(build,/right:\\?['"]tasks/);
+  assert.match(build,/renderTaskDetailView/);
   assert.match(build,/'assets\/rc1014-task-runtime\.js'/);
   assert.match(build,/'assets\/rc1014-task-ui\.css'/);
 });
@@ -118,4 +122,21 @@ test('RC1152: responsive Aufgabenansicht ist im CSS definiert',()=>{
   assert.match(css,/\.rc1152-task-detail/);
   assert.match(css,/\.rc1152-task-grid/);
   assert.match(css,/@media \(max-width:640px\)/);
+});
+
+
+test('RC1179: Aufgabenöffnung wechselt in den eigenen Aufgabenansicht-Reiter und merkt die Aufgabe für Reload',()=>{
+  assert.match(runtimeSource,/TASK_DETAIL_STORAGE='exporthub_rc1179_task_detail'/);
+  assert.match(runtimeSource,/rememberTaskDetail\(t\)/);
+  assert.match(runtimeSource,/root\.setView\('taskdetail'\)/);
+  assert.match(runtimeSource,/function\s+renderTaskDetailView\s*\(/);
+  assert.match(runtimeSource,/rememberedTask\(mergedCtx\)/);
+  assert.match(runtimeSource,/data-rc1179-task-view/);
+});
+
+test('RC1179: Aufgabenansicht ist kein Vollbild-Overlay mehr',()=>{
+  const css=fs.readFileSync('assets/rc1014-task-ui.css','utf8');
+  assert.match(css,/RC1179 Aufgabenansicht als eigener Reiter/);
+  assert.match(css,/\.rc1152-task-detail\{[\s\S]*position:relative/);
+  assert.doesNotMatch(css,/\.rc1152-task-detail\{[\s\S]{0,160}position:fixed/);
 });
