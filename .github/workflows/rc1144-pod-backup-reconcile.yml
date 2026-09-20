@@ -37,7 +37,7 @@ concurrency:
 jobs:
   testservice:
     name: POD-Backup-Nachholung TESTSERVICE
-    if: ${{ (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')) && (github.event_name != 'workflow_dispatch' || inputs.environment == 'testservice' || inputs.environment == 'both') }}
+    if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main') && (github.event_name != 'workflow_dispatch' || inputs.environment == 'testservice' || inputs.environment == 'both') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -81,7 +81,7 @@ jobs:
 
   production:
     name: POD-Backup-Nachholung PRODUCTION
-    if: ${{ (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')) && (github.event_name != 'workflow_dispatch' || inputs.environment == 'production' || inputs.environment == 'both') }}
+    if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main') && (github.event_name != 'workflow_dispatch' || inputs.environment == 'production' || inputs.environment == 'both') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
