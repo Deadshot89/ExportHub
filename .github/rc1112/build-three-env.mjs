@@ -290,6 +290,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',
     diagnosticsNonAdminProof:'RC1169 live non-admin rights view + diagnostics-read 403',
     customerPortalReleaseReadiness:'RC1170 OIDC live configured=true gate in TESTSERVICE and PRODUCTION',
+    customerPortalKeyStrength:'RC1187 minimum 32 characters, fail-closed before portal use and production release',
     shipmentCreateUiE2E:'RC1171 UI customer + location + reference + colli + save + reload + overview',
     testserviceGateOrder:'RC1172 browser/mutation gate before external readiness blocker, production still protected',
     shipmentLocationPersistence:'RC1183 window-capture before Index289 + delayed rerender persistence',
