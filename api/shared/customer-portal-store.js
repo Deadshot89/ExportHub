@@ -12,7 +12,7 @@ function error(code,message,status=400){const e=new Error(message||code);e.code=
 function environment(v){return lower(v)==='testservice'?'testservice':'production'}
 function blobName(env){return environment(env)==='testservice'?'testservice/'+BASE_BLOB.replace(/^\/+/, ''):BASE_BLOB.replace(/^\/+/, '')}
 function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
-function keyConfigured(){return !!text(process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY)}
+function keyConfigured(){return text(process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY).length>=32}
 function key(){
  const configured=text(process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY);
  if(!keyConfigured())throw error('CUSTOMER_PORTAL_KEY_NOT_CONFIGURED','Kundenportal-Verschlüsselung ist serverseitig nicht konfiguriert.',503);
