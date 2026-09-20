@@ -363,7 +363,8 @@ jobs:
         run: |
           set -euo pipefail
           node --test test/rc1124-browser-release-gate.test.mjs test/rc1190-print-browser-gate.test.mjs
-          npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs\n          npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
+          npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+          npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
 
       - name: RC1124 Lokale Browser-Artefakte
         if: ${{ failure() && steps.rc1124_local_browser_gate.outcome == 'failure' }}
