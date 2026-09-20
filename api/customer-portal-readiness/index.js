@@ -71,6 +71,6 @@ module.exports=async function(context,req){
   if(!keyStatus.configured){context.res=json(503,{ok:false,configured:false,environment,code:keyStatus.code||'CUSTOMER_PORTAL_NOT_CONFIGURED',version:'RC1194'});return}
   context.res=json(200,{ok:true,configured:true,environment,version:'RC1194'});
  }catch(e){
-  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'Readiness-Prüfung fehlgeschlagen.',version:'RC1170'});
+  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'Readiness-Prüfung fehlgeschlagen.',version:'RC1194'});
  }
 };
