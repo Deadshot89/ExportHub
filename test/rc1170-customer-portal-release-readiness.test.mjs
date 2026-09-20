@@ -19,7 +19,8 @@ test('RC1170: Readiness-Probe ist ausschließlich GitHub-OIDC Main-Releaseworkfl
 });
 
 test('RC1170: Probe liefert nur Readiness-Bool und niemals Schlüsselmaterial',()=>{
-  assert.match(api,/configured=store\.keyConfigured\(\)/);
+  assert.match(api,/keyStatus=typeof store\.keyStatus/);
+  assert.match(api,/code:keyStatus\.code/);
   assert.match(api,/configured:false/);
   assert.match(api,/configured:true/);
   assert.doesNotMatch(api,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);

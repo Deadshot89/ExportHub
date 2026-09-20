@@ -67,10 +67,10 @@ module.exports=async function(context,req){
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
  try{
   if(!await githubOidcAuthorized(req))throw error('WORKFLOW_REQUIRED','Readiness darf nur durch den signierten ExportHUB-Releaseworkflow geprüft werden.',403);
-  const environment=environmentOf(req),configured=store.keyConfigured();
-  if(!configured){context.res=json(503,{ok:false,configured:false,environment,code:'CUSTOMER_PORTAL_NOT_CONFIGURED',version:'RC1170'});return}
-  context.res=json(200,{ok:true,configured:true,environment,version:'RC1170'});
+  const environment=environmentOf(req),keyStatus=typeof store.keyStatus==='function'?store.keyStatus():{configured:store.keyConfigured(),code:'CUSTOMER_PORTAL_NOT_CONFIGURED'};
+  if(!keyStatus.configured){context.res=json(503,{ok:false,configured:false,environment,code:keyStatus.code||'CUSTOMER_PORTAL_NOT_CONFIGURED',version:'RC1194'});return}
+  context.res=json(200,{ok:true,configured:true,environment,version:'RC1194'});
  }catch(e){
-  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'Readiness-Prüfung fehlgeschlagen.',version:'RC1170'});
+  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'Readiness-Prüfung fehlgeschlagen.',version:'RC1194'});
  }
 };
