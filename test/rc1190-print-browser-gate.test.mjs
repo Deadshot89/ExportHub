@@ -35,6 +35,7 @@ test('RC1190: lokaler Main-Release-Gate enthält Gesamtdrucktest, Live-TESTSERVI
   const localBlock=mainWorkflow.slice(localStart,liveStart);
   const liveBlock=mainWorkflow.slice(liveStart);
   assert.match(localBlock,/e2e\/specs\/print-documents\.spec\.mjs/);
+  assert.equal(localBlock.includes('\\n          npx playwright test'),false,'lokaler Browser-Gate enthält literales \\n statt Zeilenumbruch');
   assert.doesNotMatch(liveBlock,/e2e\/specs\/print-documents\.spec\.mjs/);
 });
 
