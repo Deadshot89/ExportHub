@@ -14,10 +14,9 @@ test('RC1193: Login zeigt den aktuellen sichtbaren Release statt RC1112',async({
   const body=page.locator('body');
   await expect(body).toContainText(/Aktuelle Version\s+RC1193/i,{timeout:15_000});
   await expect(body).not.toContainText(/Aktuelle Version\s+RC1112/i);
-  const entry=String(process.env.EXPORTHUB_E2E_ENTRY||'');
   const base=String(process.env.EXPORTHUB_E2E_BASE_URL||'');
-  const isTestservice=/TESTVERSION/i.test(entry)||/-testservice\./i.test(base);
-  if(isTestservice){
+  const isLiveTestservice=process.env.EXPORTHUB_E2E_LIVE==='1'&&/-testservice\./i.test(base);
+  if(isLiveTestservice){
     await expect(body).toContainText(/TESTSERVICE\s*·\s*RC1193\s*·\s*NICHT PRODUKTION/i,{timeout:15_000});
     await expect(body).not.toContainText(/TESTSERVICE\s*·\s*RC1112\s*·\s*NICHT PRODUKTION/i);
   }
