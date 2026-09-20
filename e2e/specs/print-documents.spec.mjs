@@ -75,7 +75,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture).toBeTruthy();
   expect(capture.html.length).toBeGreaterThan(1000);
   expect(capture.text).toContain('DEMO02');
-  expect(capture.html).toMatch(/rc352-cover/i);
+  expect(capture.html).toMatch(/\brc390-cover\b/i);
   expect(capture.text).toMatch(/Ladeliste/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
