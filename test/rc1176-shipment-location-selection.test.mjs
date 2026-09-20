@@ -80,9 +80,9 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
 
 test('RC1176: Runtime wird in Produktion TESTSERVICE und Demo mitgebaut',()=>{
   assert.match(builder,/exporthub-rc1176-shipment-location/);
-  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1182/);
+  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1183/);
   assert.match(builder,/'assets\/rc1176-shipment-location\.js'/);
-  assert.match(builder,/shipmentLocationPersistence:'RC1182/);
+  assert.match(builder,/shipmentLocationPersistence:'RC1183/);
 });
 
 test('RC1176: Live-E2E verlangt stabile Dropdown-Auswahl, aktiven State und entfernte Standortwarnung',()=>{
@@ -138,4 +138,37 @@ test('RC1182: Runtime setzt zusätzliche Standort-Aliase und beobachtet verzöge
   assert.match(source,/12000,15000/);
   assert.match(source,/MutationObserver/);
   assert.match(source,/shipmentCustomerSearch/);
+});
+
+
+test('RC1183: Standort-Hook sitzt auf window capture und läuft vor Index289 document capture',()=>{
+  const windowListeners={},documentListeners={};
+  const shipment={customerId:'C1'};
+  const state={shipment,customers:[{id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]}]};
+  const select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'}]};
+  const document={
+    documentElement:{},
+    addEventListener(name,fn,capture){documentListeners[name]=documentListeners[name]||[];documentListeners[name].push({fn,capture})},
+    getElementById(id){return id==='index289LocationSelect'?select:null}
+  };
+  const window={
+    document,
+    __EXPORTHUB_GET_STATE__:()=>state,
+    __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,
+    addEventListener(name,fn,capture){windowListeners[name]=windowListeners[name]||[];windowListeners[name].push({fn,capture})},
+    setTimeout(){return 1}
+  };
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  const winChange=(windowListeners.change||[]).find(x=>x.capture);
+  assert.ok(winChange,'RC1183 Standortwechsel muss auf window capture registriert sein');
+  assert.equal((documentListeners.change||[]).some(x=>x.capture&&/onLocationChange/.test(String(x.fn))),false,'Standortwechsel darf nicht mehr hinter Index289 auf document capture hängen');
+  winChange.fn({target:select});
+  assert.equal(shipment.locationId,'L1');
+  assert.equal(shipment.selectedLocationId,'L1');
+});
+
+test('RC1183: Runtime kennzeichnet neuen Capture-Stand',()=>{
+  assert.match(source,/w\.addEventListener\('change',onLocationChange,true\)/);
+  assert.match(source,/w\.addEventListener\('input',onCustomerInput,true\)/);
+  assert.match(source,/version:'RC1183'/);
 });
