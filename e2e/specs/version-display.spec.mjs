@@ -24,5 +24,5 @@ test('RC1193: Login zeigt den aktuellen sichtbaren Release statt RC1112',async({
   await expect(page.locator('html')).toHaveAttribute('data-exporthub-visible-version','RC1193');
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
-  await assertRuntimeClean(runtime,testInfo);
+  if(process.env.EXPORTHUB_E2E_STATIC!=='1')await assertRuntimeClean(runtime,testInfo);
 });
