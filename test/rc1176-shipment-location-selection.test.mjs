@@ -80,9 +80,9 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
 
 test('RC1176: Runtime wird in Produktion TESTSERVICE und Demo mitgebaut',()=>{
   assert.match(builder,/exporthub-rc1176-shipment-location/);
-  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1183/);
+  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1191/);
   assert.match(builder,/'assets\/rc1176-shipment-location\.js'/);
-  assert.match(builder,/shipmentLocationPersistence:'RC1183/);
+  assert.match(builder,/shipmentLocationPersistence:'RC1191/);
 });
 
 test('RC1176: Live-E2E verlangt stabile Dropdown-Auswahl, aktiven State und entfernte Standortwarnung',()=>{
@@ -170,5 +170,82 @@ test('RC1183: Standort-Hook sitzt auf window capture und läuft vor Index289 doc
 test('RC1183: Runtime kennzeichnet neuen Capture-Stand',()=>{
   assert.match(source,/w\.addEventListener\('change',onLocationChange,true\)/);
   assert.match(source,/w\.addEventListener\('input',onCustomerInput,true\)/);
-  assert.match(source,/version:'RC1183'/);
+  assert.match(source,/version:'RC1191'/);
+});
+
+
+test('RC1191: Same-Customer-change nach Standortwahl löscht den Reparaturschutz nicht',()=>{
+  const shipment={customerId:'C1'};
+  const state={shipment,customers:[{id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]}]};
+  const timers=[],listeners={};
+  const select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'}]};
+  const customerSearch={id:'shipmentCustomerSearch',value:'Testkunde'};
+  const document={documentElement:{},getElementById(id){return id==='index289LocationSelect'?select:null}};
+  const window={
+    document,
+    __EXPORTHUB_GET_STATE__:()=>state,
+    __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,
+    addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},
+    setTimeout(fn,delay){timers.push({fn,delay});return timers.length}
+  };
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  const changes=listeners.change.filter(x=>x.capture);
+  const locationChange=changes.find(x=>/onLocationChange/.test(String(x.fn))).fn;
+  const customerChange=changes.find(x=>/onCustomerInput/.test(String(x.fn))).fn;
+
+  locationChange({type:'change',target:select});
+  select.value='';
+  shipment.locationId='';shipment.selectedLocationId='';
+
+  customerChange({type:'change',target:customerSearch});
+  const deferred=timers.filter(x=>x.delay===0).at(-1);
+  assert.ok(deferred,'Same-Customer-Prüfung muss verzögert erfolgen');
+  deferred.fn();
+
+  assert.equal(select.value,'L1');
+  assert.equal(shipment.locationId,'L1');
+  assert.equal(shipment.selectedLocationId,'L1');
+});
+
+test('RC1191: echter Kundenwechsel beendet den alten Standort-Reparaturschutz',()=>{
+  const shipment={customerId:'C1'};
+  const state={shipment,customers:[
+    {id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]},
+    {id:'C2',locations:[{id:'L2',name:'Werk 2',address:'B'}]}
+  ]};
+  const timers=[],listeners={};
+  const select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'},{value:'L2'}]};
+  const customerSearch={id:'shipmentCustomerSearch',value:'Anderer Kunde'};
+  const document={documentElement:{},getElementById(id){return id==='index289LocationSelect'?select:null}};
+  const window={
+    document,
+    __EXPORTHUB_GET_STATE__:()=>state,
+    __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,
+    addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},
+    setTimeout(fn,delay){timers.push({fn,delay});return timers.length}
+  };
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  const changes=listeners.change.filter(x=>x.capture);
+  changes.find(x=>/onLocationChange/.test(String(x.fn))).fn({type:'change',target:select});
+
+  shipment.customerId='C2';
+  shipment.locationId='L2';shipment.selectedLocationId='L2';
+  select.value='L2';
+  changes.find(x=>/onCustomerInput/.test(String(x.fn))).fn({type:'change',target:customerSearch});
+  const deferred=timers.filter(x=>x.delay===0).at(-1);
+  assert.ok(deferred,'Kundenwechsel-Prüfung muss verzögert erfolgen');
+  deferred.fn();
+
+  shipment.locationId='L2';shipment.selectedLocationId='L2';select.value='L2';
+  assert.equal(window.ExportHUBShipmentLocation1176.repairPending(),false);
+  assert.equal(select.value,'L2');
+  assert.equal(shipment.locationId,'L2');
+});
+
+test('RC1191: Kundenfeld-change wird erst nach dem bestehenden Kundenhandler bewertet',()=>{
+  assert.match(source,/expectedCustomerKey=pending\.customerKey/);
+  assert.match(source,/setTimeout\)\(function\(\)\{/);
+  assert.match(source,/expectedCustomerKey&&actualCustomerKey&&expectedCustomerKey!==actualCustomerKey/);
+  assert.match(source,/repairPending\(seq\)/);
+  assert.match(source,/version:'RC1191'/);
 });
