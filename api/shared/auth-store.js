@@ -260,12 +260,35 @@ async function mutateAuth(mutator) {
   throw error('CONCURRENT_UPDATE', 'Die Sitzung konnte wegen paralleler Änderungen nicht gespeichert werden.', 409);
 }
 function tokenHash(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
+function deriveSessionSigningSecret(source) {
+  const value = text(source);
+  if (!value) return null;
+  return crypto.createHash('sha256').update('ExportHUB/session/v1|' + value).digest();
+}
+function configuredSessionSigningSource() {
+  return text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET || process.env.EXPORTHUB_SESSION_SECRET);
+}
 function sessionSigningSecret() {
-  const configured = text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET || process.env.EXPORTHUB_SESSION_SECRET);
-  const fallback = connectionString();
-  const source = configured || fallback;
-  if (!source) throw error('AUTH_SIGNING_NOT_CONFIGURED', 'Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.', 503);
-  return crypto.createHash('sha256').update('ExportHUB/session/v1|' + source).digest();
+  const source = configuredSessionSigningSource() || connectionString();
+  const secret = deriveSessionSigningSecret(source);
+  if (!secret) throw error('AUTH_SIGNING_NOT_CONFIGURED', 'Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.', 503);
+  return secret;
+}
+function sessionSigningVerificationSecrets() {
+  const configured = configuredSessionSigningSource();
+  const fallback = text(connectionString());
+  const sources = configured ? [configured, fallback] : [fallback];
+  const seen = new Set();
+  const secrets = [];
+  for (const source of sources) {
+    const value = text(source);
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    const secret = deriveSessionSigningSecret(value);
+    if (secret) secrets.push(secret);
+  }
+  if (!secrets.length) throw error('AUTH_SIGNING_NOT_CONFIGURED', 'Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.', 503);
+  return secrets;
 }
 function encodeSessionPart(value) {
   return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value), 'utf8').toString('base64url');
@@ -295,8 +318,11 @@ function verifySignedSessionToken(token) {
   const raw = text(token);
   const parts = raw.split('.');
   if (parts.length !== 3 || parts[0] !== 'ehs1' || !parts[1] || !parts[2]) return null;
-  const expected = signSessionPart(parts[1]);
-  if (!safeEqualText(expected, parts[2])) return null;
+  const validSignature = sessionSigningVerificationSecrets().some((secret) => {
+    const expected = crypto.createHmac('sha256', secret).update(parts[1]).digest('base64url');
+    return safeEqualText(expected, parts[2]);
+  });
+  if (!validSignature) return null;
   let payload;
   try { payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')); }
   catch (_) { return null; }
