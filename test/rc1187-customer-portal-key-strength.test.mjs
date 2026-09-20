@@ -12,12 +12,16 @@ function restore(name,value){
   else process.env[name]=value;
 }
 
-test('RC1187: Kundenportal-Key ist erst ab exakt 32 Zeichen konfiguriert',()=>{
+test('RC1194: Kundenportal-Key unterscheidet sicher zwischen fehlend, zu kurz und bereit',()=>{
   const before=process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY;
   try{
+    delete process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY;
+    assert.deepEqual(store.keyStatus(),{configured:false,code:'CUSTOMER_PORTAL_KEY_MISSING'});
     process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY='x'.repeat(31);
+    assert.deepEqual(store.keyStatus(),{configured:false,code:'CUSTOMER_PORTAL_KEY_TOO_SHORT'});
     assert.equal(store.keyConfigured(),false);
     process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY='x'.repeat(32);
+    assert.deepEqual(store.keyStatus(),{configured:true,code:null});
     assert.equal(store.keyConfigured(),true);
     process.env.EXPORTHUB_CUSTOMER_PORTAL_KEY='x'.repeat(64);
     assert.equal(store.keyConfigured(),true);
@@ -36,4 +40,15 @@ test('RC1187: Secret-Wert wird weiterhin weder in Readiness noch Manifest ausgeg
   assert.doesNotMatch(readinessApi,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);
   assert.doesNotMatch(readinessApi,/process\.env/);
   assert.match(build,/customerPortalKeyStrength:'RC1187 minimum 32 characters, fail-closed before portal use and production release'/);
+});
+
+
+test('RC1194: Readiness meldet nur sicheren Fehlergrund und nie Secret oder exakte Länge',()=>{
+  assert.match(readinessApi,/keyStatus=typeof store\.keyStatus/);
+  assert.match(readinessApi,/CUSTOMER_PORTAL_KEY_MISSING/);
+  assert.match(readinessApi,/CUSTOMER_PORTAL_KEY_TOO_SHORT/);
+  assert.doesNotMatch(readinessApi,/process\.env/);
+  assert.doesNotMatch(readinessApi,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);
+  assert.doesNotMatch(readinessApi,/\.length/);
+  assert.match(readinessApi,/version:'RC1194'/);
 });
