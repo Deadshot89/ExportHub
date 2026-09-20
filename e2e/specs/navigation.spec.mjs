@@ -50,8 +50,7 @@ test('RC1124 P0: Hauptnavigation öffnet auf jedem Viewport die richtige Ansicht
   await waitReady(page);
   await assertView(page);
 
-  const views=[...coreViews];
-  if(['laptop','desktop'].includes(testInfo.project.name))views.push(...wideViews);
+  const views=[...coreViews,...wideViews];
 
   for(const [module,labels,required] of views){
     await openExportHubView(page,module,labels,required);
