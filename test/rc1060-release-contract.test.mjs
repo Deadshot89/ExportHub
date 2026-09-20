@@ -22,3 +22,13 @@ test('RC1060: Live-Probe verlangt RC1060 und prüft Migrationsroute ohne Session
   assert.match(probe,/exporthub-document-migrate/);
   assert.match(probe,/Migrationsroute ohne Session[\s\S]*'401'/);
 });
+
+
+test('RC1185: Storage-Probe läuft auch nach fehlgeschlagenem Main-Release und zeigt Auth-Konfiguration nur als Boolean',()=>{
+  assert.match(probe,/github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.doesNotMatch(probe,/workflow_run\.conclusion == 'success'/);
+  assert.match(probe,/exporthub-auth-probe/);
+  const authProbe=fs.readFileSync(new URL('../api/exporthub-auth-probe/index.js',import.meta.url),'utf8');
+  assert.match(authProbe,/signingSecretConfigured:\s*Boolean\(/);
+  assert.doesNotMatch(authProbe,/signingSecretValue|authSigningSecretValue/);
+});
