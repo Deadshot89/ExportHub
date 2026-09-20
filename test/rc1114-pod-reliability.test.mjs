@@ -55,6 +55,10 @@ test('RC1164: Graph-Bereitschaft erkennt fehlende Konfiguration ohne Secret-Wert
   assert.match(graph,/missing\.push\('EXPORTHUB_GRAPH_TENANT_ID'\)/);
   assert.match(graph,/missing\.push\('EXPORTHUB_GRAPH_CLIENT_ID'\)/);
   assert.match(graph,/missing\.push\('EXPORTHUB_GRAPH_CLIENT_SECRET'\)/);
+  assert.match(graph,/missing\.push\('EXPORTHUB_POD_DRIVE_USER'\)/);
+  assert.match(graph,/missing\.push\('EXPORTHUB_POD_FOLDER'\)/);
+  assert.doesNotMatch(graph,/tobiaslimberg@essentra\.com/);
+  assert.doesNotMatch(graph,/\|\|\s*['\"]003 Export\/ExportHub\/Abliefernachweise['\"]/);
   assert.match(graph,/module\.exports\s*=\s*\{\s*readiness,/);
 });
 
@@ -142,4 +146,12 @@ test('RC1114: Drei-Umgebungen-Build übernimmt aktuelle POD-API',()=>{
   assert.match(build,/shared\/pod-archive\.js/);
   assert.match(build,/podReliability:'RC1114 server-side Azure primary \+ Microsoft 365 retry'/);
   assert.match(build,/podGraphReadiness:'RC1164 fail-closed Graph configuration gate before reconcile'/);
+});
+
+test('RC1195: POD-Ziel muss explizit konfiguriert sein und darf nicht auf ein persönliches Laufwerk zurückfallen',()=>{
+  assert.match(graph,/const user = text\(process\.env\.EXPORTHUB_POD_DRIVE_USER\);/);
+  assert.match(graph,/const folder = text\(process\.env\.EXPORTHUB_POD_FOLDER\);/);
+  assert.match(graph,/missing\.push\('EXPORTHUB_POD_DRIVE_USER'\)/);
+  assert.match(graph,/missing\.push\('EXPORTHUB_POD_FOLDER'\)/);
+  assert.doesNotMatch(graph,/@essentra\.com/);
 });
