@@ -260,38 +260,26 @@ async function mutateAuth(mutator) {
   throw error('CONCURRENT_UPDATE', 'Die Sitzung konnte wegen paralleler Änderungen nicht gespeichert werden.', 409);
 }
 function tokenHash(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
-function deriveSessionSigningSecret(source) {
-  const value = text(source);
-  if (!value) return null;
-  return crypto.createHash('sha256').update('ExportHUB/session/v1|' + value).digest();
-}
-function configuredSessionSigningSource() {
-  return text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET || process.env.EXPORTHUB_SESSION_SECRET);
-}
 function sessionSigningSecret() {
-  const source = configuredSessionSigningSource() || connectionString();
-  const secret = deriveSessionSigningSecret(source);
-  if (!secret) throw error('AUTH_SIGNING_NOT_CONFIGURED', 'Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.', 503);
-  return secret;
-}
-function sessionSigningVerificationSecrets() {
-  const configured = configuredSessionSigningSource();
-  const fallback = text(connectionString());
-  const sources = configured ? [configured, fallback] : [fallback];
-  const seen = new Set();
-  const secrets = [];
-  for (const source of sources) {
-    const value = text(source);
-    if (!value || seen.has(value)) continue;
-    seen.add(value);
-    const secret = deriveSessionSigningSecret(value);
-    if (secret) secrets.push(secret);
-  }
-  if (!secrets.length) throw error('AUTH_SIGNING_NOT_CONFIGURED', 'Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.', 503);
-  return secrets;
+  const configured = text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET || process.env.EXPORTHUB_SESSION_SECRET);
+  const fallback = connectionString();
+  const source = configured || fallback;
+  if (!source) throw error('AUTH_SIGNING_NOT_CONFIGURED', 'Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.', 503);
+  return crypto.createHash('sha256').update('ExportHUB/session/v1|' + source).digest();
 }
 function encodeSessionPart(value) {
   return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value), 'utf8').toString('base64url');
+}
+function decodeSessionPayload(token) {
+  const raw = text(token);
+  const parts = raw.split('.');
+  if (parts.length !== 3 || parts[0] !== 'ehs1' || !parts[1] || !parts[2]) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')); }
+  catch (_) { return null; }
+  if (!payload || payload.purpose !== 'exporthub-session' || Number(payload.v || 0) !== 1) return null;
+  if (!payload.uid || !payload.sid || Number(payload.exp || 0) <= Date.now()) return null;
+  return payload;
 }
 function signSessionPart(encodedPayload) {
   return crypto.createHmac('sha256', sessionSigningSecret()).update(encodedPayload).digest('base64url');
@@ -318,17 +306,9 @@ function verifySignedSessionToken(token) {
   const raw = text(token);
   const parts = raw.split('.');
   if (parts.length !== 3 || parts[0] !== 'ehs1' || !parts[1] || !parts[2]) return null;
-  const validSignature = sessionSigningVerificationSecrets().some((secret) => {
-    const expected = crypto.createHmac('sha256', secret).update(parts[1]).digest('base64url');
-    return safeEqualText(expected, parts[2]);
-  });
-  if (!validSignature) return null;
-  let payload;
-  try { payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')); }
-  catch (_) { return null; }
-  if (!payload || payload.purpose !== 'exporthub-session' || Number(payload.v || 0) !== 1) return null;
-  if (!payload.uid || !payload.sid || Number(payload.exp || 0) <= Date.now()) return null;
-  return payload;
+  const expected = signSessionPart(parts[1]);
+  if (!safeEqualText(expected, parts[2])) return null;
+  return decodeSessionPayload(raw);
 }
 function resolveSession(token, authDocument) {
   const hash = tokenHash(token);
@@ -406,12 +386,12 @@ async function createSession(user, deviceId, mustChange) {
 async function validateSession(req, options = {}) {
   const token = bearer(req);
   if (!token) throw error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
-  const signed = verifySignedSessionToken(token);
+  const routingPayload = decodeSessionPayload(token);
   const testserviceE2E = Boolean(
-    signed &&
-    lower(signed.environment) === 'testservice' &&
-    /^E2E-USER-/.test(text(signed.uid)) &&
-    /^e2e\./.test(lower(signed.username))
+    routingPayload &&
+    lower(routingPayload.environment) === 'testservice' &&
+    /^E2E-USER-/.test(text(routingPayload.uid)) &&
+    /^e2e\./.test(lower(routingPayload.username))
   );
   const c = testserviceE2E ? await testserviceClients() : await clients();
   const authDoc = await readJson(c.auth, emptyAuth());
