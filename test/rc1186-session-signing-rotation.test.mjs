@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -23,20 +24,49 @@ function restoreEnv(snapshot) {
   }
 }
 
-function sampleSession() {
+function sampleSession(overrides = {}) {
   return {
     id: 'SES-RC1186',
     userId: 'USR-RC1186',
     username: 'rc1186.user',
+    displayName: 'RC1186 User',
     deviceId: 'rc1186-device',
     createdAt: new Date(Date.now() - 1000).toISOString(),
     expiresAt: new Date(Date.now() + 60_000).toISOString(),
     authVersion: 1,
-    mustChange: false
+    mustChange: false,
+    ...overrides
   };
 }
 
-test('RC1186: bestehende Storage-Fallback-Session bleibt nach Aktivierung des dedizierten Signing-Secrets gültig', () => {
+test('RC1186: gespeicherte Legacy-Session bleibt nach Aktivierung des dedizierten Signing-Secrets gültig', () => {
+  const env = snapshotEnv();
+  try {
+    delete process.env.EXPORTHUB_AUTH_SIGNING_SECRET;
+    delete process.env.EXPORTHUB_SESSION_SECRET;
+    delete process.env.AzureWebJobsStorage;
+    process.env.EXPORTHUB_STORAGE_CONNECTION_STRING = 'rc1186-legacy-storage-secret';
+
+    const session = sampleSession();
+    const legacyToken = authStore.createSignedSessionToken(session);
+    const tokenHash = crypto.createHash('sha256').update(legacyToken).digest('hex');
+
+    process.env.EXPORTHUB_AUTH_SIGNING_SECRET = 'rc1186-dedicated-signing-secret';
+
+    assert.equal(authStore.verifySignedSessionToken(legacyToken), null);
+    const resolved = authStore.resolveSession(legacyToken, {
+      sessions: [{ ...session, tokenHash }]
+    });
+
+    assert.equal(resolved.source, 'blob');
+    assert.equal(resolved.session.id, 'SES-RC1186');
+    assert.equal(resolved.session.userId, 'USR-RC1186');
+  } finally {
+    restoreEnv(env);
+  }
+});
+
+test('RC1186: alter Storage-Schlüssel legitimiert nach Aktivierung des dedizierten Secrets keinen Signed-Fallback mehr', () => {
   const env = snapshotEnv();
   try {
     delete process.env.EXPORTHUB_AUTH_SIGNING_SECRET;
@@ -45,13 +75,14 @@ test('RC1186: bestehende Storage-Fallback-Session bleibt nach Aktivierung des de
     process.env.EXPORTHUB_STORAGE_CONNECTION_STRING = 'rc1186-legacy-storage-secret';
 
     const legacyToken = authStore.createSignedSessionToken(sampleSession());
-    assert.ok(authStore.verifySignedSessionToken(legacyToken));
 
     process.env.EXPORTHUB_AUTH_SIGNING_SECRET = 'rc1186-dedicated-signing-secret';
-    const verified = authStore.verifySignedSessionToken(legacyToken);
 
-    assert.equal(verified?.sid, 'SES-RC1186');
-    assert.equal(verified?.uid, 'USR-RC1186');
+    assert.equal(authStore.verifySignedSessionToken(legacyToken), null);
+    assert.deepEqual(authStore.resolveSession(legacyToken, { sessions: [] }), {
+      session: null,
+      source: 'none'
+    });
   } finally {
     restoreEnv(env);
   }
