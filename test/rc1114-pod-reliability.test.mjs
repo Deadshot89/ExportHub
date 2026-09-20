@@ -116,6 +116,12 @@ test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Min
   assert.match(reconcileWorkflow,/pod-backup-reconcile/);
 });
 
+test('RC1184: POD-Nachholung bleibt von fehlgeschlagenem Release entkoppelt',()=>{
+  assert.match(reconcileWorkflow,/github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.doesNotMatch(reconcileWorkflow,/workflow_run\.conclusion == 'success'/);
+  assert.match(reconcileWorkflow,/types:\s*\n\s*- completed/);
+});
+
 test('RC1114: öffentliche Abholseite wartet auf serverseitige Sicherung und zeigt Archivstatus',()=>{
   assert.match(pickup,/pickup-confirm-v2[^\n]{0,180}timeout:90000/);
   assert.match(pickup,/data&&data\.podAzureSaved/);
