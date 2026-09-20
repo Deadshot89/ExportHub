@@ -365,6 +365,8 @@ jobs:
           node --test test/rc1124-browser-release-gate.test.mjs test/rc1190-print-browser-gate.test.mjs
           npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
           npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
+          EXPORTHUB_E2E_ENTRY=/index.html npx playwright test e2e/specs/version-display.spec.mjs --project=laptop
+          EXPORTHUB_E2E_ENTRY=/TESTVERSION.html npx playwright test e2e/specs/version-display.spec.mjs --project=laptop
 
       - name: RC1124 Lokale Browser-Artefakte
         if: ${{ failure() && steps.rc1124_local_browser_gate.outcome == 'failure' }}
@@ -506,7 +508,7 @@ jobs:
           export EXPORTHUB_E2E_REFERENCE="E2E$(printf '%s' "$GITHUB_SHA" | cut -c1-3 | tr '[:lower:]' '[:upper:]')"
           export EXPORTHUB_E2E_MUTATION='1'
 
-          npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/shipment-create.spec.mjs             e2e/specs/testservice-mutation.spec.mjs
+          npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/shipment-create.spec.mjs             e2e/specs/testservice-mutation.spec.mjs             e2e/specs/version-display.spec.mjs
 
           cleanup
           trap - EXIT
@@ -613,7 +615,7 @@ jobs:
           EXPORTHUB_E2E_PUBLIC_ENV: production
         run: |
           set -euo pipefail
-          npx playwright test e2e/specs/public-smoke.spec.mjs --project=laptop
+          npx playwright test e2e/specs/public-smoke.spec.mjs e2e/specs/version-display.spec.mjs --project=laptop
 
       - name: RC1124 Produktion Browser-Artefakte
         if: ${{ failure() && steps.rc1124_production_browser_smoke.outcome == 'failure' }}
