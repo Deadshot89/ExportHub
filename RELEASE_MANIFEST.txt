@@ -1,10 +1,17 @@
-ExportHUB RC990
+HINWEIS: HISTORISCHER SNAPSHOT – NICHT ALS AKTUELLEN RELEASESTAND VERWENDEN
+Diese Datei dokumentiert ausschließlich den unten aufgeführten RC990-Snapshot vom 03.09.2026.
+Der aktuelle Releasevertrag wird durch .github/rc1112/build-three-env.mjs und den
+Drei-Umgebungen-Workflow .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml definiert.
+Der tatsächlich freigegebene Live-Stand muss über die GitHub-Actions-Releasegates und die
+vom aktuellen Build erzeugten RC1112-Manifeste/Buildmarker verifiziert werden.
+
+Historischer ExportHUB Snapshot RC990
 Erstellt: 3.9.2026, 21:49:47
 Quelle: geprüfter TESTSERVICE Produktions-Snapshot
 Git SHA: cd5e1ceada201966dad68dbfb3492a434c351e8b
 Snapshot erstellt: 2026-09-03T19:33:22.113Z
 
-Dateien:
+Dateien dieses historischen Snapshots:
 - .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
 - RELEASE_MANIFEST.txt
 - api/customer-avis/function.json
