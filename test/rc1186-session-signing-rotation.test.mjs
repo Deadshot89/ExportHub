@@ -4,7 +4,22 @@ import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
+const Module = require('node:module');
+const originalLoad = Module._load;
+Module._load = function rc1186Load(request, parent, isMain) {
+  if (request === '@azure/storage-blob') {
+    return {
+      BlobServiceClient: {
+        fromConnectionString() {
+          throw new Error('RC1186 test must not access Azure Storage');
+        }
+      }
+    };
+  }
+  return originalLoad.call(this, request, parent, isMain);
+};
 const authStore = require('../api/shared/auth-store.js');
+Module._load = originalLoad;
 
 const ENV_KEYS = [
   'EXPORTHUB_AUTH_SIGNING_SECRET',
