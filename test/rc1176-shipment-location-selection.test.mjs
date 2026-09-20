@@ -9,7 +9,7 @@ const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const e2e=fs.readFileSync('e2e/specs/shipment-create.spec.mjs','utf8');
 
 test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in den aktiven Entwurf geschrieben',()=>{
-  const listeners={};let later=null;
+  const listeners={},windowListeners={};let later=null;
   const shipment={customerId:'C1'},runtimeShipment={customerId:'C1'};
   const state={shipment,customers:[{id:'C1',name:'Testkunde',address:'Hauptweg 1, 00000 Teststadt',country:'DE',locations:[{
     id:'L1',name:'Werk 1',address:'Teststraße 1, 00000 Teststadt',country:'DE'
@@ -24,13 +24,13 @@ test('RC1176: Standortwechsel wird im Capture-Pfad vor dem bestehenden Render in
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>runtimeShipment,
     ExportHUBClean:{runtime:{shipment:runtimeShipment}},
+    addEventListener(name,fn,capture){windowListeners[name]=windowListeners[name]||[];windowListeners[name].push({fn,capture})},
     setTimeout(fn){later=fn;return 1}
   };
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,console});
-  const locationChange=listeners.change.find(x=>x.capture&&/index289LocationSelect/.test(String(x.fn)));
-  const captureChanges=listeners.change.filter(x=>x.capture);
-  assert.ok(captureChanges.length>=1);
-  captureChanges[0].fn({target:select});
+  const locationChange=(windowListeners.change||[]).find(x=>x.capture&&/index289LocationSelect/.test(String(x.fn)));
+  assert.ok(locationChange);
+  locationChange.fn({target:select});
   assert.equal(shipment.locationId,'L1');
   assert.equal(shipment.selectedLocationId,'L1');
   assert.equal(shipment.siteId,'L1');
@@ -59,7 +59,7 @@ test('RC1176: abgeleitete Hauptadresse wird genauso wie ein Zusatzstandort über
   const shipment={customerId:'C1'};
   const state={shipment,customers:[{id:'C1',name:'Testkunde',address:'Hauptweg 1, 00000 Teststadt',country:'DE'}]};
   const document={addEventListener(){},getElementById(){return null}};
-  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,setTimeout(){return 1}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(){},setTimeout(){return 1}};
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,console});
   assert.equal(window.ExportHUBShipmentLocation1176.applyLocation('MAIN-C1'),true);
   assert.equal(shipment.locationId,'MAIN-C1');
@@ -102,11 +102,11 @@ test('RC1176: Runtime, Build und E2E bleiben syntaktisch gültig',()=>{
 test('RC1182: späte Re-Render bis 15 Sekunden werden für denselben Kunden repariert',()=>{
   const shipment={customerId:'C1'},state={shipment,customers:[{id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]}]};
   const timers=[],select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'}]};
-  const listeners={};
+  const listeners={},windowListeners={};
   const document={documentElement:{},addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},getElementById(id){return id==='index289LocationSelect'?select:null}};
-  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(){},setTimeout(fn,delay){timers.push({fn,delay});return timers.length}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(name,fn,capture){windowListeners[name]=windowListeners[name]||[];windowListeners[name].push({fn,capture})},setTimeout(fn,delay){timers.push({fn,delay});return timers.length}};
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
-  const change=listeners.change.find(x=>x.capture).fn;
+  const change=windowListeners.change.find(x=>x.capture).fn;
   change({target:select});
   shipment.locationId='';shipment.selectedLocationId='';shipment.deliveryLocationId='';select.value='';
   const late=timers.find(x=>x.delay===12000);
@@ -119,11 +119,11 @@ test('RC1182: späte Re-Render bis 15 Sekunden werden für denselben Kunden repa
 
 test('RC1182: Kundenwechsel beendet den Standort-Reparaturschutz',()=>{
   const shipment={customerId:'C1'},state={shipment,customers:[{id:'C1',locations:[{id:'L1',address:'A'}]},{id:'C2',locations:[{id:'L2',address:'B'}]}]};
-  const timers=[],select={id:'index289LocationSelect',value:'L1',options:[{value:'L1'},{value:'L2'}]},listeners={};
+  const timers=[],select={id:'index289LocationSelect',value:'L1',options:[{value:'L1'},{value:'L2'}]},listeners={},windowListeners={};
   const document={documentElement:{},addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},getElementById(){return select}};
-  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(){},setTimeout(fn,delay){timers.push({fn,delay});return timers.length}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(name,fn,capture){windowListeners[name]=windowListeners[name]||[];windowListeners[name].push({fn,capture})},setTimeout(fn,delay){timers.push({fn,delay});return timers.length}};
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
-  listeners.change.find(x=>x.capture).fn({target:select});
+  windowListeners.change.find(x=>x.capture).fn({target:select});
   shipment.customerId='C2';shipment.locationId='L2';shipment.selectedLocationId='L2';select.value='L2';
   const late=timers.find(x=>x.delay===9000);assert.ok(late);late.fn();
   assert.equal(select.value,'L2');
