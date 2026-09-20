@@ -16,7 +16,8 @@ test('RC1167: POD-Reconcile protokolliert HTTP-Fehlerdiagnose ohne Secret-Werte'
 
 test('RC1167: TESTSERVICE und Produktion prüfen POD-Backup unabhängig',()=>{
   const production=workflow.slice(workflow.indexOf('  production:'));
-  assert.match(production,/github\.event_name != 'workflow_run'.*github\.event\.workflow_run\.conclusion == 'success'.*github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.match(production,/github\.event_name != 'workflow_run'.*github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.doesNotMatch(production,/workflow_run\.conclusion == 'success'/);
   assert.doesNotMatch(production,/needs:\s*\n\s*- testservice/);
   assert.match(workflow,/TESTSERVICE POD reconcile/);
   assert.match(workflow,/PRODUCTION POD reconcile/);
