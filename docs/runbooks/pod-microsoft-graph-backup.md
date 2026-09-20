@@ -16,10 +16,12 @@ Folgende Backend-App-Settings fehlen aktuell sowohl im TESTSERVICE als auch in P
 - EXPORTHUB_GRAPH_CLIENT_ID
 - EXPORTHUB_GRAPH_CLIENT_SECRET
 
-Zusätzlich sollten Zielkonto und Zielordner explizit gepflegt werden:
+Zusätzlich sind Zielkonto und Zielordner ab RC1195 zwingende Pflichtwerte:
 
 - EXPORTHUB_POD_DRIVE_USER
-- EXPORTHUB_POD_FOLDER = 003 Export/ExportHub/Abliefernachweise
+- EXPORTHUB_POD_FOLDER
+
+Es gibt bewusst keinen persönlichen Standardbenutzer und keinen fest eingebauten Standardordner mehr. Beide Werte müssen vor Aktivierung mit dem tatsächlich vorgesehenen gemeinsamen Microsoft-365-Archiv abgestimmt werden.
 
 Secret-Werte dürfen niemals im Repository, im Browser-State, in Logs oder in Frontend-Dateien abgelegt werden.
 
@@ -115,7 +117,7 @@ Mit einer echten Testsendung:
 
 ### GRAPH_NOT_CONFIGURED
 
-Mindestens einer der drei Pflichtwerte Tenant ID, Client ID oder Client Secret fehlt in der Backend-Umgebung.
+Mindestens einer der fünf Pflichtwerte fehlt in der Backend-Umgebung: Tenant ID, Client ID, Client Secret, explizites POD-Zielkonto oder expliziter POD-Zielordner.
 
 ### 401 / invalid_client
 
@@ -137,8 +139,8 @@ RC1144 erneut ausführen. Die Nachholung wählt offene Backups fair nach dem äl
 
 Der P0 ist erst geschlossen, wenn gleichzeitig gilt:
 
-- TESTSERVICE Graph konfiguriert
-- PRODUCTION Graph konfiguriert
+- TESTSERVICE Graph inklusive explizitem Zielkonto und Zielordner konfiguriert
+- PRODUCTION Graph inklusive explizitem Zielkonto und Zielordner konfiguriert
 - RC1144 in beiden Umgebungen grün
 - PRODUCTION pendingCount=0
 - bestehende offene PODs nachgezogen
