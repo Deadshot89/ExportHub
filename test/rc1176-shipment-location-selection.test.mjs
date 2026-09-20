@@ -71,7 +71,7 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
   const shipment={customerId:'C1'};
   const state={shipment,customers:[{id:'C1',locations:[{id:'L1',address:'A'}]}]};
   const document={addEventListener(){},getElementById(){return null}};
-  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,setTimeout(){return 1}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(){},setTimeout(){return 1}};
   vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,console});
   assert.equal(window.ExportHUBShipmentLocation1176.applyLocation(''),false);
   assert.equal(window.ExportHUBShipmentLocation1176.applyLocation('UNKNOWN'),false);
