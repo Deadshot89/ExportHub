@@ -45,8 +45,7 @@ test('RC1187: Secret-Wert wird weiterhin weder in Readiness noch Manifest ausgeg
 
 test('RC1194: Readiness meldet nur sicheren Fehlergrund und nie Secret oder exakte Länge',()=>{
   assert.match(readinessApi,/keyStatus=typeof store\.keyStatus/);
-  assert.match(readinessApi,/CUSTOMER_PORTAL_KEY_MISSING/);
-  assert.match(readinessApi,/CUSTOMER_PORTAL_KEY_TOO_SHORT/);
+  assert.match(readinessApi,/code:keyStatus\.code/);
   assert.doesNotMatch(readinessApi,/process\.env/);
   assert.doesNotMatch(readinessApi,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);
   assert.doesNotMatch(readinessApi,/\.length/);
