@@ -270,6 +270,17 @@ function sessionSigningSecret() {
 function encodeSessionPart(value) {
   return Buffer.from(typeof value === 'string' ? value : JSON.stringify(value), 'utf8').toString('base64url');
 }
+function decodeSessionPayload(token) {
+  const raw = text(token);
+  const parts = raw.split('.');
+  if (parts.length !== 3 || parts[0] !== 'ehs1' || !parts[1] || !parts[2]) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')); }
+  catch (_) { return null; }
+  if (!payload || payload.purpose !== 'exporthub-session' || Number(payload.v || 0) !== 1) return null;
+  if (!payload.uid || !payload.sid || Number(payload.exp || 0) <= Date.now()) return null;
+  return payload;
+}
 function signSessionPart(encodedPayload) {
   return crypto.createHmac('sha256', sessionSigningSecret()).update(encodedPayload).digest('base64url');
 }
@@ -297,12 +308,7 @@ function verifySignedSessionToken(token) {
   if (parts.length !== 3 || parts[0] !== 'ehs1' || !parts[1] || !parts[2]) return null;
   const expected = signSessionPart(parts[1]);
   if (!safeEqualText(expected, parts[2])) return null;
-  let payload;
-  try { payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')); }
-  catch (_) { return null; }
-  if (!payload || payload.purpose !== 'exporthub-session' || Number(payload.v || 0) !== 1) return null;
-  if (!payload.uid || !payload.sid || Number(payload.exp || 0) <= Date.now()) return null;
-  return payload;
+  return decodeSessionPayload(raw);
 }
 function resolveSession(token, authDocument) {
   const hash = tokenHash(token);
@@ -380,12 +386,12 @@ async function createSession(user, deviceId, mustChange) {
 async function validateSession(req, options = {}) {
   const token = bearer(req);
   if (!token) throw error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
-  const signed = verifySignedSessionToken(token);
+  const routingPayload = decodeSessionPayload(token);
   const testserviceE2E = Boolean(
-    signed &&
-    lower(signed.environment) === 'testservice' &&
-    /^E2E-USER-/.test(text(signed.uid)) &&
-    /^e2e\./.test(lower(signed.username))
+    routingPayload &&
+    lower(routingPayload.environment) === 'testservice' &&
+    /^E2E-USER-/.test(text(routingPayload.uid)) &&
+    /^e2e\./.test(lower(routingPayload.username))
   );
   const c = testserviceE2E ? await testserviceClients() : await clients();
   const authDoc = await readJson(c.auth, emptyAuth());
