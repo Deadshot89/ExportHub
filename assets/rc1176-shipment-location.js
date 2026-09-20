@@ -101,7 +101,15 @@ function onLocationChange(ev){
 }
 function onCustomerInput(ev){
  var el=ev&&ev.target,id=q(el&&el.id);
- if(id==='shipmentCustomerSearch'||id==='index289CustomerSearch'||id==='shipmentCustomer')clearPending()
+ if(id!=='shipmentCustomerSearch'&&id!=='index289CustomerSearch'&&id!=='shipmentCustomer')return;
+ if(!pending)return;
+ var seq=pendingSeq,expectedCustomerKey=pending.customerKey;
+ (w.setTimeout||setTimeout)(function(){
+  if(!pending||seq!==pendingSeq)return;
+  var s=state(),active=activeShipment(s),actualCustomerKey=shipmentCustomerKey(active)||shipmentCustomerKey(s&&s.shipment);
+  if(expectedCustomerKey&&actualCustomerKey&&expectedCustomerKey!==actualCustomerKey){clearPending();return}
+  repairPending(seq)
+ },0)
 }
 function onRendered(){if(pending)repairPending(pendingSeq)}
 w.addEventListener('change',onLocationChange,true);
@@ -114,5 +122,5 @@ if(typeof MutationObserver!=='undefined'){
   observer.observe(d.documentElement||d.body,{childList:true,subtree:true})
  }catch(_){}
 }
-w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1183',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
+w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1191',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
 })(window,document);
