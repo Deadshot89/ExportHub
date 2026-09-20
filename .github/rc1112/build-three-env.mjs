@@ -294,6 +294,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     diagnosticsNonAdminProof:'RC1169 live non-admin rights view + diagnostics-read 403',
     customerPortalReleaseReadiness:'RC1170 OIDC live configured=true gate in TESTSERVICE and PRODUCTION',
     customerPortalKeyStrength:'RC1187 minimum 32 characters, fail-closed before portal use and production release',
+    customerPortalKeyDiagnostics:'RC1194 safe missing-vs-too-short readiness without secret or exact length disclosure',
     shipmentCreateUiE2E:'RC1171 UI customer + location + reference + colli + save + reload + overview',
     testserviceGateOrder:'RC1172 browser/mutation gate before external readiness blocker, production still protected',
     shipmentLocationPersistence:'RC1191 same-customer rerender persistence + real customer-change guard',
@@ -307,4 +308,4 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
-console.log('RC1112 build pipeline ready: sichtbare Produktversion RC1193 auf geprüfter RC1048-Basis, historische Buildkette bleibt unverändert.');
+console.log('RC1112 build pipeline ready: sichtbare Produktversion RC1193 auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
