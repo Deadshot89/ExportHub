@@ -282,6 +282,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     shippingProviderNeutralUi:'RC1114',
     podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry',
     podGraphReadiness:'RC1164 fail-closed Graph configuration gate before reconcile',
+    podTargetFailClosed:'RC1195 explicit drive user + folder required, no personal OneDrive fallback',
     podBackupStatusUi:'RC1165 shipment overview Azure/M365 backup status',
     podTargetedProof:'RC1168 targeted reference proof: found/already-saved/saved-now/not-found/pending',
     avisReminderOverview:'RC1166 DE/EN customer/carrier reminder via stored contacts + secure avis link',
