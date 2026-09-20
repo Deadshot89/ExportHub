@@ -1,0 +1,60 @@
+name: RC1190 Gesamtdruck PR Browser Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'e2e/specs/print-documents.spec.mjs'
+      - 'e2e/helpers/**'
+      - 'test/rc1190-*'
+      - 'playwright.config.mjs'
+      - '.github/rc1112/**'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/rc1190-print-browser-pr.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1190-total-print-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: RC1190 Vertrag prüfen
+        run: node --test test/rc1190-print-browser-gate.test.mjs
+
+      - name: Aktuelles Drei-Umgebungen-Paket bauen
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Playwright installieren
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Gesamtdruck lokal im echten Browser prüfen
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
+
+      - name: Browser-Fehlerartefakte hochladen
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1190-total-print-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
