@@ -13,7 +13,7 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/printButton\.click/);
   assert.match(spec,/__RC1190_PRINT_CAPTURE__/);
   assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
-  assert.match(spec,/rc352-cover/);
+  assert.match(spec,/\\brc390-cover\\b/);
   for(const marker of ['Ladeliste','CMR','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
 });
 
