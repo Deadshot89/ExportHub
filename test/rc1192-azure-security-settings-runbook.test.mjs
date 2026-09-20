@@ -32,7 +32,7 @@ test('RC1192: Runbook schützt vor Secret-Wiederverwendung und Repository-Leak',
   assert.match(source,/niemals denselben Kundenportal-Key/i);
   assert.match(source,/Kundenportal-Key und Auth-Signing-Secret niemals wiederverwenden/i);
   assert.match(source,/Kein echter Secret-Wert darf in GitHub/i);
-  assert.match(source,/nicht in Logs ausgeben/i);
+  assert.match(source,/nicht den Secret-Wert in Logs ausgeben|nie der Wert selbst/i);
   assert.doesNotMatch(source,/EXPORTHUB_CUSTOMER_PORTAL_KEY\s*=\s*[A-Za-z0-9+/_-]{32,}/);
   assert.doesNotMatch(source,/EXPORTHUB_AUTH_SIGNING_SECRET\s*=\s*[A-Za-z0-9+/_-]{32,}/);
 });
