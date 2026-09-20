@@ -12,16 +12,20 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/Gesamtausgabe\\s\*drucken\|Gesamtdruck/);
   assert.match(spec,/printButton\.click/);
   assert.match(spec,/__RC1190_PRINT_CAPTURE__/);
+  assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
   assert.match(spec,/rc352-cover/);
-  for(const marker of ['Ladeliste','CMR','RC1190 Browserware'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
+  for(const marker of ['Ladeliste','CMR','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
 });
 
-test('RC1190: Browserabnahme prüft Referenz, Laufzeitfehler und bleibt rein lokal',()=>{
-  assert.match(spec,/capture\.text\)\.toContain\(seeded\.ref\)/);
+test('RC1190: Browserabnahme verwendet die lokale Fake-Benelux-Sendung ohne Servermutation',()=>{
+  assert.match(spec,/DEMO02\|Benelux/);
+  assert.match(spec,/selectOption/);
+  assert.match(spec,/capture\.text\)\.toContain\('DEMO02'\)/);
   assert.match(spec,/attachRuntimeGuards/);
   assert.match(spec,/assertRuntimeClean/);
   assert.doesNotMatch(spec,/EXPORTHUB_E2E_LIVE/);
   assert.doesNotMatch(spec,/settleStateSave/);
+  assert.doesNotMatch(spec,/__EXPORTHUB_GET_STATE__/);
 });
 
 test('RC1190: lokaler Main-Release-Gate enthält Gesamtdrucktest, Live-TESTSERVICE-Gate nicht',()=>{
