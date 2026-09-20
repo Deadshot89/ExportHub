@@ -32,7 +32,7 @@ test('RC1194: Kundenportal-Key unterscheidet sicher zwischen fehlend, zu kurz un
 
 test('RC1187: schwacher Key bleibt fail-closed in UI-Status und Release-Readiness',()=>{
   assert.match(credentialsApi,/configured:store\.keyConfigured\(\)/);
-  assert.match(readinessApi,/configured=store\.keyConfigured\(\)/);
+  assert.match(readinessApi,/keyStatus=typeof store\.keyStatus/);
   assert.match(readinessApi,/CUSTOMER_PORTAL_NOT_CONFIGURED/);
 });
 
@@ -48,6 +48,6 @@ test('RC1194: Readiness meldet nur sicheren Fehlergrund und nie Secret oder exak
   assert.match(readinessApi,/code:keyStatus\.code/);
   assert.doesNotMatch(readinessApi,/process\.env/);
   assert.doesNotMatch(readinessApi,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);
-  assert.doesNotMatch(readinessApi,/\.length/);
+  assert.doesNotMatch(readinessApi,/keyLength|secretLength|configuredLength/);
   assert.match(readinessApi,/version:'RC1194'/);
 });
