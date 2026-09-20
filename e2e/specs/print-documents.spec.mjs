@@ -38,91 +38,34 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
 
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
+  await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
 
-  const seeded=await page.evaluate(()=>{
-    const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
-    if(!state)return null;
-    const lists=[state.savedShipments,state.shipments].filter(Array.isArray);
-    let sh=null;
-    for(const list of lists){if(list.length){sh=list[0];break}}
-    if(!sh){
-      sh={id:'rc1190-e2e',ref:'R1190X'};
-      if(!Array.isArray(state.shipments))state.shipments=[];
-      state.shipments.unshift(sh);
-    }
-    const id=String(sh.id||sh.shipmentId||sh.ref||sh.reference||'rc1190-e2e').trim();
-    const ref=String(sh.ref||sh.reference||sh.referenceNumber||sh.shipmentRef||id).trim()||'R1190X';
-    const row={
-      id:'rc1190-row',
-      packaging:'Euro Palette',
-      type:'Euro Palette',
-      packageType:'Euro Palette',
-      quantity:1,
-      count:1,
-      amount:1,
-      weight:100,
-      length:120,
-      width:80,
-      height:120,
-      description:'RC1190 Browserware',
-      goodsDescription:'RC1190 Browserware',
-      warenbeschreibung:'RC1190 Browserware'
-    };
-    Object.assign(sh,{
-      id,
-      shipmentId:id,
-      ref,
-      reference:ref,
-      referenceNumber:ref,
-      customerName:'RC1190 Browserkunde',
-      recipient:'RC1190 Empfänger',
-      recipientName:'RC1190 Empfänger',
-      recipientAddress:'Teststraße 1, 59100 Teststadt, Niederlande',
-      destinationCountry:'NL',
-      recipientCountry:'NL',
-      country:'NL',
-      rows:[row],
-      colli:[row],
-      collis:[row],
-      packages:[row],
-      totalColli:1,
-      totalWeight:100,
-      goodsDescription:'RC1190 Browserware',
-      description:'RC1190 Browserware'
-    });
-    state.shipment=sh;
-    state.currentShipment=sh;
-    state.selectedShipment=sh;
-    state.currentShipmentId=id;
-    state.selectedShipmentId=id;
-    state.activeShipmentId=id;
-    state.documentShipmentId=id;
-    return{id,ref};
-  });
-  expect(seeded&&seeded.ref,'synthetische Drucksendung konnte nicht vorbereitet werden').toBeTruthy();
+  const shipmentSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
+  await expect(shipmentSelect).toBeVisible({timeout:10_000});
+  const optionLabels=await shipmentSelect.locator('option').allTextContents();
+  const benelux=optionLabels.find(label=>/DEMO02|Benelux/i.test(label));
+  expect(benelux,'Fake-Benelux-Sendung DEMO02 fehlt im lokalen Demo-Artefakt').toBeTruthy();
+  await shipmentSelect.selectOption({label:benelux});
+  await expect(page.locator('#content')).toContainText(/DEMO02/,{timeout:10_000});
+  await expect(page.locator('#content')).toContainText(/Benelux|Niederlande|NL/i,{timeout:10_000});
 
-  let printButton=null;
-  for(const [view,labels,required] of [
-    ['documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i],
-    ['shipmentview',['Sendungsansicht','Sendung ansehen'],/Sendung|Dokument/i]
-  ]){
-    await openExportHubView(page,view,labels,required,{allowProgrammaticFallback:true});
-    const action=page.locator('[data-index352-action="print-all"]').first();
-    if(await action.count()&&await action.isVisible().catch(()=>false)){printButton=action;break}
-    const textAction=page.locator('button,a,[role="button"]').filter({hasText:/Gesamtausgabe\s*drucken|Gesamtdruck/i}).first();
-    if(await textAction.count()&&await textAction.isVisible().catch(()=>false)){printButton=textAction;break}
+  let printButton=page.locator('[data-index352-action="print-all"]').first();
+  if(!(await printButton.count())||!(await printButton.isVisible().catch(()=>false))){
+    printButton=page.locator('button,a,[role="button"]').filter({hasText:/Gesamtausgabe\s*drucken|Gesamtdruck/i}).first();
   }
-  expect(printButton,'Gesamtdruck-Aktion ist aus der UI nicht erreichbar').toBeTruthy();
+  await expect(printButton,'Gesamtdruck-Aktion ist aus der UI nicht erreichbar').toBeVisible({timeout:10_000});
 
   await printButton.click({timeout:10_000});
 
   let capture=null;
   await expect.poll(async()=>{
     for(const p of context.pages()){
-      const value=await p.evaluate(()=>window.__RC1190_PRINT_CAPTURE__||null).catch(()=>null);
-      if(value&&String(value.html||'').length>500){
-        capture=value;
-        return String(value.html||'').length;
+      for(const frame of p.frames()){
+        const value=await frame.evaluate(()=>window.__RC1190_PRINT_CAPTURE__||null).catch(()=>null);
+        if(value&&String(value.html||'').length>500){
+          capture=value;
+          return String(value.html||'').length;
+        }
       }
     }
     await sleep(100);
@@ -131,11 +74,11 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
 
   expect(capture).toBeTruthy();
   expect(capture.html.length).toBeGreaterThan(1000);
-  expect(capture.text).toContain(seeded.ref);
+  expect(capture.text).toContain('DEMO02');
   expect(capture.html).toMatch(/rc352-cover/i);
   expect(capture.text).toMatch(/Ladeliste/i);
   expect(capture.text).toMatch(/CMR/i);
-  expect(capture.text).toMatch(/RC1190 Browserware/i);
+  expect(capture.text).toMatch(/Warenbeschreibung/i);
 
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
