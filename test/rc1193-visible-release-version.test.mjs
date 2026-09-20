@@ -46,6 +46,13 @@ test('RC1193: statischer UI-Nachweis ignoriert erwartete fehlende API, Live-Gate
   assert.match(spec,/if\(process\.env\.EXPORTHUB_E2E_STATIC!==['"]1['"]\)await assertRuntimeClean/);
 });
 
+test('RC1193: TESTSERVICE-Warnbanner wird nur auf echtem Live-Testservice verlangt',()=>{
+  const spec=fs.readFileSync('e2e/specs/version-display.spec.mjs','utf8');
+  assert.match(spec,/EXPORTHUB_E2E_LIVE===['"]1['"]/);
+  assert.match(spec,/-testservice\\\./);
+  assert.doesNotMatch(spec,/TESTVERSION\/i\.test\(entry\)/);
+});
+
 test('RC1193: Runtime und Browser-Spec bleiben syntaktisch gültig',()=>{
   for(const file of ['assets/rc1193-visible-release.js','e2e/specs/version-display.spec.mjs','test/rc1193-visible-release-version.test.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
