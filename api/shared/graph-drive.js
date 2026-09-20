@@ -10,12 +10,14 @@ function readiness() {
   const tenantId = text(process.env.EXPORTHUB_GRAPH_TENANT_ID);
   const clientId = text(process.env.EXPORTHUB_GRAPH_CLIENT_ID);
   const clientSecret = text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
-  const user = text(process.env.EXPORTHUB_POD_DRIVE_USER) || 'tobiaslimberg@essentra.com';
-  const folder = text(process.env.EXPORTHUB_POD_FOLDER) || '003 Export/ExportHub/Abliefernachweise';
+  const user = text(process.env.EXPORTHUB_POD_DRIVE_USER);
+  const folder = text(process.env.EXPORTHUB_POD_FOLDER);
   const missing = [];
   if (!tenantId) missing.push('EXPORTHUB_GRAPH_TENANT_ID');
   if (!clientId) missing.push('EXPORTHUB_GRAPH_CLIENT_ID');
   if (!clientSecret) missing.push('EXPORTHUB_GRAPH_CLIENT_SECRET');
+  if (!user) missing.push('EXPORTHUB_POD_DRIVE_USER');
+  if (!folder) missing.push('EXPORTHUB_POD_FOLDER');
   return { configured: missing.length === 0, missing, user, folder };
 }
 
