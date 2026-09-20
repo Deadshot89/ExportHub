@@ -75,7 +75,8 @@ test('RC1177: Update-Ansicht enthält aktuelle Änderungshinweise statt RC1002-A
 test('RC1177: Historie und Release Notes werden in alle drei Umgebungen gebaut und cache-frisch geladen',()=>{
   assert.match(builder,/rc1081-audit-history\.js\?v=1177/);
   assert.match(builder,/exporthub-rc1177-release-notes/);
-  assert.match(builder,/assets\/rc1177-release-notes\.js\?v=1177/);
+  assert.match(builder,/assets\/rc1177-release-notes\.js\?v=1193/);
+  assert.doesNotMatch(builder,/assets\/rc1177-release-notes\.js\?v=1177/);
   assert.match(builder,/'assets\/rc1177-release-notes\.js'/);
   assert.match(deploy,/rc1081-audit-history\.js\?v=1177/);
   assert.doesNotMatch(deploy,/rc1081-audit-history\.js\?v=1163/);
