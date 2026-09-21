@@ -82,6 +82,9 @@ test('RC1124 P0: Sendung erstellen bleibt Erfassungsmaske und wird nicht zur His
   await expect(page.locator('#content')).toContainText(/Stauplan/i);
   await expect(page.locator('#content')).toContainText(/Mail|E-Mail/i);
   await expect(page.locator('#content')).toContainText(/Speichern|Ausgabe/i);
+  await expect(page.locator('#rc363BlockActions [data-rc1203-print-cover-only]')).toBeVisible();
+  await expect(page.locator('[data-rc1203-print-cover-only]')).toHaveCount(1);
+  await expect(page.locator('[data-rc1203-print-cmr-only]')).toHaveCount(0);
   await expect(page.locator('#content')).not.toContainText(/^\s*Historie\s*$/i);
   await assertView(page);
   await assertRuntimeClean(runtime,testInfo);
