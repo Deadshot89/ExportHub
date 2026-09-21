@@ -159,7 +159,8 @@ test('RC1195: POD-Ziel muss explizit konfiguriert sein und darf nicht auf ein pe
 
 test('RC1200: POD-Upload löst app-only Drive und Zielordner vor dem Schreiben eindeutig auf',()=>{
   assert.ok(graph.includes('/users/${encodeURIComponent(user)}/drives?$select=id,driveType,name'));
-  assert.match(graph,/GRAPH_DRIVE_NOT_FOUND/);\n  assert.match(graph,/Request_ResourceNotFound/);
+  assert.match(graph,/GRAPH_DRIVE_NOT_FOUND/);
+  assert.match(graph,/Request_ResourceNotFound/);
   assert.match(graph,/GRAPH_FOLDER_NOT_FOUND/);
   assert.match(graph,/GRAPH_TARGET_AMBIGUOUS/);
   assert.ok(graph.includes('candidateFolders(cfg.folder)'));
