@@ -368,4 +368,9 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');
 
+
+const rc1206Source=path.join(ROOT,'assets/rc1206-shipping-rules.js'),rc1206Target=path.join(OUT,'assets/rc1206-shipping-rules.js');
+if(!fs.existsSync(rc1206Source))throw new Error('RC1206 Versandkosten-Runtime fehlt');
+fs.mkdirSync(path.dirname(rc1206Target),{recursive:true});fs.copyFileSync(rc1206Source,rc1206Target);
+
 console.log('RC1112 build pipeline ready: sichtbare Produktversion RC1193 auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
