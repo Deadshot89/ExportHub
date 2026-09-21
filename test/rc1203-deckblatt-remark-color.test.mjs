@@ -36,12 +36,12 @@ test('RC1203: Empfängeradresse und Referenz bleiben für Paletten deutlich herv
   assert.match(runtime,/border='1.2mm solid #d4a514'/);
 });
 
-test('RC1203: Deckblatt- und CMR-Einzeldruck bleiben verfügbar',()=>{
+test('RC1205: genau eine zusätzliche Deckblatt-Aktion bleibt übrig',()=>{
   assert.match(runtime,/Nur Deckblatt drucken/);
-  assert.match(runtime,/Nur CMR drucken/);
-  assert.match(runtime,/pendingMode==='cover'/);
-  assert.match(runtime,/pendingMode==='cmr'/);
-  assert.match(runtime,/function documentsViewVisible\(\)/);
+  assert.doesNotMatch(runtime,/Nur CMR drucken/);
+  assert.match(runtime,/return d\.querySelector\('#rc363BlockActions'\)/);
+  assert.match(runtime,/removeLegacyExtraButtons/);
+  assert.doesNotMatch(runtime,/function documentsViewVisible\(\)/);
 });
 
 test('RC1203: echter coverHtml-Renderer trägt Farbe und Bemerkung direkt in den Druckframe',()=>{
@@ -56,10 +56,12 @@ test('RC1203: echter coverHtml-Renderer trägt Farbe und Bemerkung direkt in den
 });
 
 test('RC1203: Runtime wird in Produktion TESTSERVICE und Demo gebaut',()=>{
-  assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1203/);
+  assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1205/);
   assert.match(build,/'assets\/rc1203-deckblatt-print\.js'/);
   assert.match(build,/deckblattHighVisibility:'RC1204 calm light rc390 cover/);
   assert.match(build,/coverRemark:'RC1204 compact remark block above QR without overlap'/);
+  assert.match(build,/coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe'/);
+  assert.doesNotMatch(build,/cmrOnlyPrint:/);
 });
 
 test('RC1203: Browser-Gate prüft echte Druckausgabe statt nur Quelltext',()=>{
