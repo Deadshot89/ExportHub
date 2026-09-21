@@ -156,7 +156,15 @@ async function graphGet(token, path) {
 }
 
 async function listUserDrives(token, user) {
-  const result = await graphGet(token, `/users/${encodeURIComponent(user)}/drives?$select=id,driveType,name`);
+  let result;
+  try {
+    result = await graphGet(token, `/users/${encodeURIComponent(user)}/drives?$select=id,driveType,name`);
+  } catch (error) {
+    if (error && error.statusCode === 404 && /^(?:ResourceNotFound|Request_ResourceNotFound|itemNotFound)$/i.test(text(error.code))) {
+      throw graphTargetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto oder sein Laufwerk wurde nicht gefunden.', 404);
+    }
+    throw error;
+  }
   const drives = Array.isArray(result.body && result.body.value) ? result.body.value.filter(item => text(item && item.id)) : [];
   if (!drives.length) {
     throw graphTargetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto hat kein für ExportHUB erreichbares Laufwerk.', 404);
