@@ -105,5 +105,5 @@ test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende S
   assert.match(build,/podBackupStatusUi:'RC1165/);
   assert.match(build,/podGraphReadiness:'RC1164/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
-  assert.match(build,/border:3mm solid #111827/);
+  assert.match(build,/border:4mm solid #facc15/);\n  assert.match(build,/deckblattHighVisibility:'RC1198/);
 });
