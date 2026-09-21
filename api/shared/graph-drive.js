@@ -130,7 +130,7 @@ function graphTargetError(code, message, statusCode) {
 }
 
 function candidateFolders(folder) {
-  const normalized = text(folder).replace(/^\\/+|\\/+$/g, '');
+  const normalized = text(folder).replace(/^\/+|\/+$/g, '');
   const out = [];
   if (normalized) out.push(normalized);
   if (normalized && !/^documents(?:\\/|$)/i.test(normalized)) out.push('Documents/' + normalized);
