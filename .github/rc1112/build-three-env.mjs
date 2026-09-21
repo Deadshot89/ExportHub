@@ -95,6 +95,52 @@ function patchDeckblattHighVisibility(html,file){
   return html
 }
 
+function patchRc1203ActualDeckblatt(html,file){
+  if(html.includes('data-rc1203-cover-enhanced="1"')&&html.includes('id="exporthub-rc1203-deckblatt-style"'))return html;
+  const start=html.indexOf('function coverHtml(sh){');
+  const end=start<0?-1:html.indexOf('function rc1095LoadPalletCount',start);
+  if(start<0||end<0)throw new Error(file+': RC1203 echter rc390-coverHtml-Renderer fehlt');
+  let block=html.slice(start,end);
+
+  const coverOld=`<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover" data-shipment-ref="'+ref+'">`;
+  const coverNew=`<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover rc1203-cover" data-rc1203-cover-enhanced="1" data-shipment-ref="'+ref+'" style="box-sizing:border-box!important;border:12mm solid #0b1f44!important;border-top-width:20mm!important;outline:3mm solid #facc15!important;outline-offset:-4mm!important;background:#dbeafe!important;background-image:linear-gradient(180deg,#93c5fd 0,#dbeafe 42%,#eff6ff 100%)!important;color:#0b1f44!important;box-shadow:inset 0 0 0 4mm #2563eb!important;padding:6mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important">`;
+  if(block.split(coverOld).length-1!==1)throw new Error(file+': RC1203 rc390-Cover-Anker nicht eindeutig');
+  block=block.replace(coverOld,coverNew);
+
+  const recipientOld='<div class="rc390-card"><div class="rc390-label">Empfänger</div><strong>';
+  const recipientNew='<div class="rc390-card rc1203-cover-recipient" data-rc1203-recipient-highlight="1" style="font-size:18pt!important;line-height:1.24!important;font-weight:800!important;padding:5mm!important;border:2.5mm solid #0b1f44!important;background:#fff!important;color:#0b1f44!important"><div class="rc390-label">Empfänger</div><strong style="font-size:22pt!important;line-height:1.18!important;font-weight:900!important">';
+  if(block.split(recipientOld).length-1<1)throw new Error(file+': RC1203 Empfänger-Anker fehlt');
+  block=block.replace(recipientOld,recipientNew);
+
+  const refOld='<div class="rc390-cover-ref"><span>Sendungsreferenz</span><b>';
+  const refNew='<div class="rc390-cover-ref rc1203-cover-reference" data-rc1203-reference-highlight="1" style="background:#facc15!important;border:3mm solid #111827!important;color:#111827!important;padding:6mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><span style="color:#111827!important">Sendungsreferenz</span><b style="color:#111827!important">';
+  if(block.split(refOld).length-1!==1)throw new Error(file+': RC1203 Referenz-Anker nicht eindeutig');
+  block=block.replace(refOld,refNew);
+
+  const dncOld=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div></div><div class="rc390-cover-qr`;
+  const dncNew=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1;border:2.5mm solid #0b1f44!important;border-left:7mm solid #facc15!important;background:#fff7cc!important;color:#0b1f44!important;padding:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><div class="rc390-label" style="font-size:13pt!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.3mm!important;color:#0b1f44!important">Bemerkung</div><div class="rc390-txt" style="font-size:16pt!important;line-height:1.3!important;font-weight:800!important;white-space:pre-wrap!important;color:#0b1f44!important">'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||'–')+'</div></div></div><div class="rc390-cover-qr`;
+  if(block.split(dncOld).length-1!==1)throw new Error(file+': RC1203 Bemerkungs-Anker nicht eindeutig');
+  block=block.replace(dncOld,dncNew);
+
+  html=html.slice(0,start)+block+html.slice(end);
+
+  const css='<style id="exporthub-rc1203-deckblatt-style">'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover,.rc390-cover.rc1203-cover{box-sizing:border-box!important;border:12mm solid #0b1f44!important;border-top-width:20mm!important;outline:3mm solid #facc15!important;outline-offset:-4mm!important;background:#dbeafe!important;background-image:linear-gradient(180deg,#93c5fd 0,#dbeafe 42%,#eff6ff 100%)!important;color:#0b1f44!important;box-shadow:inset 0 0 0 4mm #2563eb!important;padding:6mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc390-cover-ref,.rc390-cover.rc1203-cover .rc390-cover-ref{background:#facc15!important;border:3mm solid #111827!important;color:#111827!important;padding:6mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '.rc390-cover.rc1203-cover .rc390-cover-ref span,.rc390-cover.rc1203-cover .rc390-cover-ref b{color:#111827!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-recipient,.rc390-cover.rc1203-cover .rc1203-cover-recipient{font-size:18pt!important;line-height:1.24!important;font-weight:800!important;padding:5mm!important;border:2.5mm solid #0b1f44!important;background:#fff!important;color:#0b1f44!important}'+
+  '.rc390-cover.rc1203-cover .rc1203-cover-recipient strong{font-size:22pt!important;line-height:1.18!important;font-weight:900!important}.rc390-cover.rc1203-cover .rc1203-cover-recipient .rc390-txt{font-size:18pt!important;line-height:1.25!important;font-weight:800!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-remark,.rc390-cover.rc1203-cover .rc1203-cover-remark{border:2.5mm solid #0b1f44!important;border-left:7mm solid #facc15!important;background:#fff7cc!important;color:#0b1f44!important;padding:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-label{font-size:13pt!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.3mm!important;color:#0b1f44!important}.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-txt{font-size:16pt!important;line-height:1.3!important;font-weight:800!important;white-space:pre-wrap!important;color:#0b1f44!important}'+
+  '</style>';
+  html=injectDeferredRuntimeInHead(html,css,'exporthub-rc1203-deckblatt-style');
+
+  if(!html.includes('data-rc1203-cover-enhanced="1"'))throw new Error(file+': RC1203 rc390-Cover-Marker fehlt');
+  if(!html.includes('data-rc1203-cover-remark="1"'))throw new Error(file+': RC1203 Bemerkungsblock fehlt');
+  if(!html.includes('border:12mm solid #0b1f44!important'))throw new Error(file+': RC1203 rc390-Farbrahmen fehlt');
+  return html
+}
+
 function patchShipmentSuspendSave(html,file){
   const anchor="function flushEditSave(reason,keepalive){";
   const replacement="function flushEditSave(reason,keepalive){if(!editSaveReason&&!editSaveTimer&&/vor (?:App-Wechsel|Verlassen)/.test(q(reason)))return true;";
@@ -150,6 +196,7 @@ function patchHtml(file){
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchDeckblattHighVisibility(html,file);
+  html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
@@ -178,6 +225,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1166"></script>','exporthub-rc1166-avis-reminder');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1203"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1193"></script>','exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1193"></script>','exporthub-rc1177-release-notes');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
@@ -201,6 +249,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1166'))throw new Error(file+': RC1166 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
+  if(!html.includes('assets/rc1203-deckblatt-print.js?v=1203'))throw new Error(file+': RC1203 echtes rc390-Deckblatt fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v=1193'))throw new Error(file+': RC1193 sichtbare Release-Version fehlt');
   if(!html.includes('assets/rc1177-release-notes.js?v=1193'))throw new Error(file+': RC1193 Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
@@ -234,6 +283,7 @@ for(const rel of [
   'assets/rc1165-pod-backup-status.js',
   'assets/rc1166-avis-reminder-overview.js',
   'assets/rc1176-shipment-location.js',
+  'assets/rc1203-deckblatt-print.js',
   'assets/rc1177-release-notes.js',
   'assets/rc1193-visible-release.js'
 ]){
@@ -288,7 +338,10 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     avisReminderOverview:'RC1166 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
-    deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border',
+    deckblattHighVisibility:'RC1203 actual rc390 print cover: 12mm navy frame + 20mm top band + blue field + yellow accent + remark',
+    coverOnlyPrint:'RC1203 dedicated Nur Deckblatt drucken action in shipment creation',
+    cmrOnlyPrint:'RC1203 dedicated Nur CMR drucken action in documents view',
+    coverRemark:'RC1203 shipment remark/comments rendered on actual rc390 cover',
     customerPortalCredentials:'RC1160 AES-256-GCM + re-auth + use/manage rights',
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
     avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',

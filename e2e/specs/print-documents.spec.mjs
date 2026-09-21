@@ -49,6 +49,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   await expect(page.locator('#content')).toContainText(/DEMO02/,{timeout:10_000});
   await expect(page.locator('#content')).toContainText(/Benelux|Niederlande|NL/i,{timeout:10_000});
 
+
   let printButton=page.locator('[data-index352-action="print-all"]').first();
   if(!(await printButton.count())||!(await printButton.isVisible().catch(()=>false))){
     printButton=page.locator('button,a,[role="button"]').filter({hasText:/Gesamtausgabe\s*drucken|Gesamtdruck/i}).first();
@@ -76,6 +77,15 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.html.length).toBeGreaterThan(1000);
   expect(capture.text).toContain('DEMO02');
   expect(capture.html).toMatch(/\brc390-cover\b/i);
+  expect(capture.html).toMatch(/data-rc1203-cover-enhanced="1"/i);
+  expect(capture.html).toMatch(/border-width:\s*20mm\s+12mm\s+12mm/i);
+  expect(capture.html).toMatch(/border-style:\s*solid/i);
+  expect(capture.html).toMatch(/border-color:\s*rgb\(11,\s*31,\s*68\)/i);
+  expect(capture.html).toMatch(/outline:\s*rgb\(250,\s*204,\s*21\)\s+solid\s+3mm/i);
+  expect(capture.html).toMatch(/background:\s*linear-gradient\(rgb\(147,\s*197,\s*253\)/i);
+  expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
+  expect(capture.text).toContain('Bemerkung');
+  expect(capture.text).toContain('RC1203 Demo-Bemerkung');
   expect(capture.text).toMatch(/Ladeliste/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
