@@ -323,7 +323,7 @@ form.addEventListener('submit',function(e){
     var podText=data&&data.podAzureSaved?(data.podDriveSaved?'POD wurde sicher in ExportHUB und in der Archivablage gespeichert.':'POD wurde sicher in ExportHUB gespeichert. Die zusätzliche Archivkopie ist noch offen.'):'Abholung und Fahrerunterschrift wurden gespeichert. Der Archivstatus konnte nicht bestätigt werden.';card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>'+esc(podText)+'</p><div class="status ok">Die vollständige Abholung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';
   }).catch(function(err){
     submitting=false;document.getElementById('confirmPartial').disabled=false;document.getElementById('confirm').disabled=false;
-    if(err.code==='COLLI_MISMATCH'||err.code==='COLLI_REQUIRED'||err.code==='COLLI_EXPECTED_MISSING'||err.code==='COLLI_EXCEEDS_REMAINING'){colliOk=false;status('Die Colli-Anzahl wurde vom Server nicht akzeptiert. Bitte offene Restmenge prüfen.','bad');return}
+    if(err.code==='COLLI_MISMATCH'||err.code==='COLLI_REQUIRED'||err.code==='COLLI_EXPECTED_MISSING'||err.code==='COLLI_EXCEEDS_REMAINING'){colliOk=false;setDriverStepUnlocked(false);status('Die Colli-Anzahl wurde vom Server nicht akzeptiert. Bitte offene Restmenge prüfen und erneut bestätigen.','bad');return}
     status((err.status===401||err.status===403?'Verlader-PIN wurde vom Server nicht akzeptiert: ':'Abholung konnte nicht bestätigt werden: ')+q(err.message||err),'bad');
   });
 });
