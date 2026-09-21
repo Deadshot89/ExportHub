@@ -3,9 +3,10 @@
 if(!w||!d||w.__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__)return;
 w.__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__=true;
 
-var VERSION='RC1114',scheduled=0,observer=null;
+var VERSION='RC1114.1',scheduled=0,observer=null;
 
 function q(v){return String(v==null?'':v)}
+function normalized(v){return q(v).replace(/\s+/g,' ').trim()}
 function replaceText(value){
  var s=q(value);
  var pairs=[
@@ -30,6 +31,30 @@ function replaceText(value){
  ];
  for(var i=0;i<pairs.length;i++)s=s.replace(pairs[i][0],pairs[i][1]);
  return s
+}
+function shouldSuppressNotice(value){
+ var s=normalized(value);
+ if(!s)return false;
+ if(/^Aus geöffneter Sendung:\s+.+/i.test(s)&&s.length<=320)return true;
+ if(/^(?:Gate41|Paletten\s*\/\s*Maut):\s*Start- und Zielort müssen vollständig angegeben sein, bevor ein belastbarer Preis angezeigt werden kann\.?$/i.test(s))return true;
+ return false
+}
+function suppressNotices(root){
+ if(!root||!root.querySelectorAll)return 0;
+ var count=0,nodes=Array.prototype.slice.call(root.querySelectorAll('div,p,section,aside,small,span,li'));
+ nodes.forEach(function(el){
+  var hidden=el.getAttribute&&el.getAttribute('data-rc1114-hidden-notice')==='1';
+  var suppress=shouldSuppressNotice(el.textContent);
+  if(suppress){
+   if(el.style)el.style.display='none';
+   if(el.setAttribute)el.setAttribute('data-rc1114-hidden-notice','1');
+   count++;
+  }else if(hidden){
+   if(el.style)el.style.display='';
+   if(el.removeAttribute)el.removeAttribute('data-rc1114-hidden-notice');
+  }
+ });
+ return count
 }
 function neutralizeText(root){
  if(!root)return 0;
@@ -60,7 +85,7 @@ function normalizeHistory(root){
 function run(){
  scheduled=0;
  var root=d.getElementById('rc626Shipping');if(!root)return false;
- neutralizeText(root);neutralizeAttrs(root);normalizeHistory(root);
+ neutralizeText(root);neutralizeAttrs(root);normalizeHistory(root);suppressNotices(root);
  root.setAttribute('data-rc1114-shipping-neutral','1');
  return true
 }
@@ -88,5 +113,5 @@ function installObserver(){
 d.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('[data-view="shippingcosts"],[data-action*="shipping"],#rc626Shipping'))setTimeout(schedule,20)},true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){installObserver();schedule()},{once:true});else{installObserver();schedule()}
 
-w.ExportHUBRC1114ShippingNeutral=Object.freeze({version:VERSION,replaceText:replaceText,run:run});
+w.ExportHUBRC1114ShippingNeutral=Object.freeze({version:VERSION,replaceText:replaceText,shouldSuppressNotice:shouldSuppressNotice,run:run});
 })(window,document);
