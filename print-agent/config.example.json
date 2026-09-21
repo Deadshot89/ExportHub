@@ -1,0 +1,6 @@
+{
+  "exportHubBaseUrl": "https://wonderful-forest-0f315e310.7.azurestaticapps.net",
+  "printerName": "HIER_WINDOWS_DRUCKERNAME_EINTRAGEN",
+  "pollIntervalSeconds": 3,
+  "jobTimeoutSeconds": 60
+}
