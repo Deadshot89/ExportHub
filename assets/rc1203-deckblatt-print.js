@@ -199,7 +199,6 @@ function wrapChildPrint(child){
       decorateCover(child.document);
       if(pendingMode==='cover')isolateCover(child);
       if(pendingMode==='cmr')isolateCmr(child);
-      if(pendingMode==='cover')decorateCover(child.document);
       pendingMode='';
       return nativePrint()
     }
