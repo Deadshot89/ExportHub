@@ -5,3 +5,5 @@ test('UPS Standard weight tiers from toolbox',()=>{const x=load();assert.equal(x
 test('carrier packaging rules remain separated',()=>{const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');assert.match(s,/restrictPackaging\('ups',\/karton/);assert.match(s,/restrictPackaging\('gate',\/palette/)});
 
 test('UPS postcode validation prevents silent wrong zones',()=>{const x=load();assert.equal(x.validUpsPostal('NL','5657 EA'),true);assert.equal(x.validUpsPostal('NL','5657'),false);assert.equal(x.validUpsPostal('BE','1000'),true);assert.equal(x.validUpsPostal('FR','75001'),true);assert.equal(x.validUpsPostal('FR','ABCDE'),false);assert.equal(x.validUpsPostal('GB','SW1A 1AA'),true)});
+
+test('UPS individual carton weights are rated separately',()=>{const x=load();const expected=x.upsRate('3',10)+x.upsRate('3',23)+x.upsRate('3',35);assert.equal(x.upsIndividualBase('3',[10,23,35]),Math.round(expected*100)/100);assert.notEqual(x.upsIndividualBase('3',[10,23,35]),x.upsRate('3',68/3)*3)});
