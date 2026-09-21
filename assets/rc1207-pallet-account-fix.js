@@ -28,7 +28,7 @@ function actor(){
   return q(u.name||u.displayName||u.user||u.username||u.login||'Admin');
 }
 function canAdmin(){try{return typeof root.canAdmin==='function'&&root.canAdmin('pallet')===true}catch(_){return false}}
-function bookingId(b,index){return q(b&&b.id)||('index:'+index)}
+function bookingId(b,index){return q(b&&(b.id||b._syncId))||('index:'+index)}
 function bookingDay(b){
   var raw=q(b&&(b.date||b.bookingDate||b.createdAt||b.bookedAt||b.timestamp));
   var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(raw);if(m)return m[1]+'-'+m[2]+'-'+m[3];
