@@ -105,9 +105,15 @@ test('RC1158 P1: Deckblatt-Hervorhebung wird im echten Browser auch im Druckmedi
     const ref=document.createElement('div');
     ref.className='rc352-cover-ref';
     ref.innerHTML='<span>Referenz</span><strong>E2E123</strong>';
-    cover.appendChild(ref);
+    const box=document.createElement('div');
+    box.className='rc352-cover-box';
+    box.textContent='Kunde / Empfänger';
+    const check=document.createElement('div');
+    check.className='rc352-cover-check';
+    check.textContent='Kontrolle';
+    cover.append(ref,box,check);
     document.body.appendChild(cover);
-    const c=getComputedStyle(cover),r=getComputedStyle(ref);
+    const c=getComputedStyle(cover),r=getComputedStyle(ref),b=getComputedStyle(box),k=getComputedStyle(check);
     const out={
       backgroundImage:c.backgroundImage,
       borderTopWidth:c.borderTopWidth,
@@ -116,21 +122,31 @@ test('RC1158 P1: Deckblatt-Hervorhebung wird im echten Browser auch im Druckmedi
       printColorAdjust:c.printColorAdjust||c.webkitPrintColorAdjust||'',
       refBackground:r.backgroundColor,
       refColor:r.color,
-      refBorderWidth:r.borderTopWidth
+      refBorderWidth:r.borderTopWidth,
+      refFontSize:getComputedStyle(ref.querySelector('strong')).fontSize,
+      boxBackground:b.backgroundColor,
+      boxBorderWidth:b.borderTopWidth,
+      checkBackground:k.backgroundColor,
+      checkBorderWidth:k.borderTopWidth
     };
     cover.remove();
     return out;
   });
 
-  expect(style.backgroundImage).toContain('rgb(29, 78, 216)');
-  expect(style.backgroundImage).toContain('rgb(96, 165, 250)');
-  expect(Number.parseFloat(style.borderTopWidth)).toBeGreaterThan(50);
+  expect(style.backgroundImage).toContain('rgb(250, 204, 21)');
+  expect(style.backgroundImage).toContain('rgb(254, 240, 138)');
+  expect(Number.parseFloat(style.borderTopWidth)).toBeGreaterThan(60);
   expect(Number.parseFloat(style.borderLeftWidth)).toBeGreaterThan(30);
-  expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThan(5);
+  expect(Number.parseFloat(style.outlineWidth)).toBeGreaterThan(7);
   expect(style.printColorAdjust).toBe('exact');
-  expect(style.refBackground).toBe('rgb(250, 204, 21)');
-  expect(style.refColor).toBe('rgb(17, 24, 39)');
-  expect(Number.parseFloat(style.refBorderWidth)).toBeGreaterThan(10);
+  expect(style.refBackground).toBe('rgb(8, 36, 93)');
+  expect(style.refColor).toBe('rgb(255, 255, 255)');
+  expect(Number.parseFloat(style.refBorderWidth)).toBeGreaterThan(14);
+  expect(Number.parseFloat(style.refFontSize)).toBeGreaterThan(36);
+  expect(style.boxBackground).toBe('rgb(219, 234, 254)');
+  expect(Number.parseFloat(style.boxBorderWidth)).toBeGreaterThan(6);
+  expect(style.checkBackground).toBe('rgb(254, 243, 199)');
+  expect(Number.parseFloat(style.checkBorderWidth)).toBeGreaterThan(6);
   await assertView(page);
   await assertRuntimeClean(runtime,testInfo);
 });
