@@ -72,10 +72,10 @@ function patchDeckblattHighVisibility(html,file){
     if(body.indexOf('border:8mm solid #08245d!important;')<0)return full;
     covers++;
     var next=body
-      .replace('border:8mm solid #08245d!important;','border:10mm solid #08245d!important;border-top-width:18mm!important;outline:2mm solid #2563eb!important;outline-offset:-3mm!important;')
-      .replace('background:linear-gradient(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%)','background:linear-gradient(180deg,#1d4ed8 0,#60a5fa 66mm,#dbeafe 66mm,#eff6ff 100%)')
-      .replace('box-shadow:inset 0 0 0 2mm #1d4ed8','box-shadow:inset 0 0 0 3mm #60a5fa')
-      .replace('padding:8mm','padding:6mm');
+      .replace('border:8mm solid #08245d!important;','border:14mm solid #061a3a!important;border-top-width:24mm!important;outline:3mm solid #facc15!important;outline-offset:-4mm!important;')
+      .replace('background:linear-gradient(180deg,#60a5fa 0,#93c5fd 58mm,#bfdbfe 58mm,#dbeafe 100%)','background:linear-gradient(180deg,#08245d 0,#1d4ed8 58mm,#2563eb 118mm,#60a5fa 188mm,#bfdbfe 100%)')
+      .replace('box-shadow:inset 0 0 0 2mm #1d4ed8','box-shadow:inset 0 0 0 4mm #93c5fd')
+      .replace('padding:8mm','padding:5mm');
     return '.rc352-cover{'+next+'}'
   });
   html=html.replace(/\.rc352-cover-ref\{([^}]*)\}/g,function(full,body){
@@ -178,6 +178,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1166"></script>','exporthub-rc1166-avis-reminder');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1196"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1198-cover-only-print" defer src="/assets/rc1198-cover-only-print.js?v=1198"></script>','exporthub-rc1198-cover-only-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1193"></script>','exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1193"></script>','exporthub-rc1177-release-notes');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
@@ -201,9 +202,10 @@ function patchHtml(file){
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1166'))throw new Error(file+': RC1166 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1196'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
+  if(!html.includes('assets/rc1198-cover-only-print.js?v=1198'))throw new Error(file+': RC1198 Nur-Deckblatt-Druck fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v=1193'))throw new Error(file+': RC1193 sichtbare Release-Version fehlt');
   if(!html.includes('assets/rc1177-release-notes.js?v=1193'))throw new Error(file+': RC1193 Änderungshinweise Cache-Key fehlt');
-  if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
+  if(!/\.rc352-cover\{[^}]*border:14mm solid #061a3a!important;[^}]*border-top-width:24mm!important;/.test(html))throw new Error(file+': RC1198 Deckblatt-Hochsichtbarkeitsrahmen fehlt');
   if(!/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/.test(html))throw new Error(file+': RC1159 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
   if(file==='demo.html'){
@@ -235,6 +237,7 @@ for(const rel of [
   'assets/rc1166-avis-reminder-overview.js',
   'assets/rc1176-shipment-location.js',
   'assets/rc1177-release-notes.js',
+  'assets/rc1198-cover-only-print.js',
   'assets/rc1193-visible-release.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
@@ -288,7 +291,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     avisReminderOverview:'RC1166 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
-    deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border',
+    deckblattHighVisibility:'RC1198 print-safe 14mm navy frame + 24mm top band + blue full-page field + yellow reference',
+    coverOnlyPrint:'RC1198 dedicated Nur Deckblatt drucken action in shipment creation',
     customerPortalCredentials:'RC1160 AES-256-GCM + re-auth + use/manage rights',
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
     avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',
