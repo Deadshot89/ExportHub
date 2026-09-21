@@ -225,6 +225,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1166"></script>','exporthub-rc1166-avis-reminder');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-cover-print" defer src="/assets/rc1203-cover-print.js?v=1203"></script>','exporthub-rc1203-cover-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1203"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1193"></script>','exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1193"></script>','exporthub-rc1177-release-notes');
@@ -284,6 +285,7 @@ for(const rel of [
   'assets/rc1166-avis-reminder-overview.js',
   'assets/rc1176-shipment-location.js',
   'assets/rc1203-deckblatt-print.js',
+  'assets/rc1203-cover-print.js',
   'assets/rc1177-release-notes.js',
   'assets/rc1193-visible-release.js'
 ]){
@@ -352,6 +354,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     shipmentCreateUiE2E:'RC1171 UI customer + location + reference + colli + save + reload + overview',
     testserviceGateOrder:'RC1172 browser/mutation gate before external readiness blocker, production still protected',
     shipmentLocationPersistence:'RC1202 current draft priority + synthetic empty rerender guard',
+    coverPrint:'RC1203 actual rc390/rc352 high-visibility cover + remark + cover/CMR single print',
     historyConsolidationAndReleaseNotes:'RC1177 duplicate shipment history cleanup + current Update changelog',
     visibleProductVersion:'RC1193 separate visible release label while RC1112 remains the stable build/deploy pipeline'
   },
