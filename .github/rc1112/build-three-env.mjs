@@ -102,8 +102,8 @@ function patchRc1203ActualDeckblatt(html,file){
   if(start<0||end<0)throw new Error(file+': RC1203 echter rc390-coverHtml-Renderer fehlt');
   let block=html.slice(start,end);
 
-  const coverOld='<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover" data-shipment-ref="'+\'\'+ref+\'\'+'">';
-  const coverNew='<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover rc1203-cover" data-rc1203-cover-enhanced="1" data-shipment-ref="'+\'\'+ref+\'\'+'">';
+  const coverOld=`<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover" data-shipment-ref="'+ref+'">`;
+  const coverNew=`<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover rc1203-cover" data-rc1203-cover-enhanced="1" data-shipment-ref="'+ref+'">`;
   if(block.split(coverOld).length-1!==1)throw new Error(file+': RC1203 rc390-Cover-Anker nicht eindeutig');
   block=block.replace(coverOld,coverNew);
 
@@ -112,8 +112,8 @@ function patchRc1203ActualDeckblatt(html,file){
   if(block.split(recipientOld).length-1<1)throw new Error(file+': RC1203 Empfänger-Anker fehlt');
   block=block.replace(recipientOld,recipientNew);
 
-  const dncOld='<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+\'\'+esc(d.join(\'\\n\')||\'–\')+\'\'+'</div></div></div><div class="rc390-cover-qr';
-  const dncNew='<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+\'\'+esc(d.join(\'\\n\')||\'–\')+\'\'+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1"><div class="rc390-label">Bemerkung</div><div class="rc390-txt">'+\'\'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||\'–\')+\'\'+'</div></div></div><div class="rc390-cover-qr';
+  const dncOld=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div></div><div class="rc390-cover-qr`;
+  const dncNew=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1"><div class="rc390-label">Bemerkung</div><div class="rc390-txt">'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||'–')+'</div></div></div><div class="rc390-cover-qr`;
   if(block.split(dncOld).length-1!==1)throw new Error(file+': RC1203 Bemerkungs-Anker nicht eindeutig');
   block=block.replace(dncOld,dncNew);
 
