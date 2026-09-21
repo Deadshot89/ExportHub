@@ -87,15 +87,15 @@ function markRecipient(cover){
   }).sort(function(a,b){return q(a.textContent).length-q(b.textContent).length})[0];
   if(!target)return false;
   target.setAttribute('data-rc1203-recipient-highlight','1');
-  target.style.fontSize='18pt';
+  target.style.fontSize='16pt';
   target.style.lineHeight='1.24';
   target.style.fontWeight='800';
-  target.style.padding='5mm';
-  target.style.border='2.5mm solid #0b1f44';
+  target.style.padding='4mm';
+  target.style.border='1mm solid #94a3b8';
   target.style.background='#ffffff';
-  target.style.color='#0b1f44';
+  target.style.color='#1f2937';
   var strong=target.querySelectorAll('strong,b');
-  for(var i=0;i<strong.length;i++){strong[i].style.fontSize='22pt';strong[i].style.fontWeight='900'}
+  for(var i=0;i<strong.length;i++){strong[i].style.fontSize='19pt';strong[i].style.fontWeight='800'}
   return true
 }
 function ensureRemark(cover,remark){
@@ -112,14 +112,14 @@ function ensureRemark(cover,remark){
   old.innerHTML='';
   var title=cover.ownerDocument.createElement('div');
   title.textContent='Bemerkung';
-  title.style.fontSize='13pt';title.style.fontWeight='900';title.style.textTransform='uppercase';title.style.letterSpacing='.4mm';
+  title.style.fontSize='11pt';title.style.fontWeight='800';title.style.textTransform='uppercase';title.style.letterSpacing='.25mm';
   var body=cover.ownerDocument.createElement('div');
   body.textContent=value;
-  body.style.fontSize='16pt';body.style.fontWeight='800';body.style.lineHeight='1.3';body.style.marginTop='2mm';body.style.whiteSpace='pre-wrap';
+  body.style.fontSize='12pt';body.style.fontWeight='700';body.style.lineHeight='1.25';body.style.marginTop='1.5mm';body.style.whiteSpace='pre-wrap';
   old.appendChild(title);old.appendChild(body);
-  old.style.display='block';old.style.marginTop='5mm';old.style.padding='5mm';
-  old.style.border='2.5mm solid #0b1f44';old.style.borderLeft='7mm solid #facc15';
-  old.style.background='#fff7cc';old.style.color='#0b1f44';
+  old.style.display='block';old.style.marginTop='4mm';old.style.padding='3.5mm 4mm';old.style.minHeight='18mm';old.style.maxHeight='28mm';old.style.overflow='hidden';
+  old.style.border='1mm solid #cbd5e1';old.style.borderLeft='3mm solid #e5b51d';
+  old.style.background='#fffdf5';old.style.color='#1f2937';
   old.style.breakInside='avoid';old.style.pageBreakInside='avoid';
   return true
 }
@@ -132,8 +132,8 @@ function emphasizeReference(cover){
   }).sort(function(a,b){return q(a.textContent).length-q(b.textContent).length})[0];
   if(!target)return false;
   target.setAttribute('data-rc1203-reference-highlight','1');
-  target.style.background='#facc15';target.style.color='#111827';
-  target.style.border='3mm solid #111827';target.style.padding='5mm';
+  target.style.background='#fff6cc';target.style.color='#1f2937';
+  target.style.border='1.2mm solid #d4a514';target.style.padding='4mm';
   target.style.fontWeight='900';
   return true
 }
@@ -146,17 +146,17 @@ function decorateCover(doc){
     covers.forEach(function(cover){
       cover.setAttribute('data-rc1203-cover-enhanced','1');
       cover.style.boxSizing='border-box';
-      cover.style.border='12mm solid #0b1f44';
-      cover.style.borderTopWidth='20mm';
-      cover.style.outline='3mm solid #facc15';
-      cover.style.outlineOffset='-4mm';
-      cover.style.background='#dbeafe';
-      cover.style.backgroundImage='linear-gradient(180deg,#93c5fd 0,#dbeafe 42%,#eff6ff 100%)';
-      cover.style.color='#0b1f44';
-      cover.style.boxShadow='inset 0 0 0 4mm #2563eb';
+      cover.style.border='3mm solid #334155';
+      cover.style.borderTopWidth='5mm';
+      cover.style.outline='0';
+      cover.style.outlineOffset='0';
+      cover.style.background='#f8fafc';
+      cover.style.backgroundImage='none';
+      cover.style.color='#1f2937';
+      cover.style.boxShadow='inset 0 0 0 1mm #dbe4ee';
       cover.style.webkitPrintColorAdjust='exact';
       cover.style.printColorAdjust='exact';
-      cover.style.padding='6mm';
+      cover.style.padding='8mm';
       markRecipient(cover);
       emphasizeReference(cover);
       ensureRemark(cover,remark)
@@ -164,7 +164,7 @@ function decorateCover(doc){
     var style=doc.getElementById&&doc.getElementById('rc1203DeckblattPrintStyle');
     if(!style&&doc.head){
       style=doc.createElement('style');style.id='rc1203DeckblattPrintStyle';
-      style.textContent='@media print{.rc390-cover,.rc352-cover{border:12mm solid #0b1f44!important;border-top-width:20mm!important;outline:3mm solid #facc15!important;outline-offset:-4mm!important;background:#dbeafe!important;background-image:linear-gradient(180deg,#93c5fd 0,#dbeafe 42%,#eff6ff 100%)!important;box-shadow:inset 0 0 0 4mm #2563eb!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}[data-rc1203-cover-remark]{display:block!important;border:2.5mm solid #0b1f44!important;border-left:7mm solid #facc15!important;background:#fff7cc!important;color:#0b1f44!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}';
+      style.textContent='@media print{.rc390-cover,.rc352-cover{border:3mm solid #334155!important;border-top-width:5mm!important;outline:0!important;background:#f8fafc!important;background-image:none!important;box-shadow:inset 0 0 0 1mm #dbe4ee!important;padding:8mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.rc390-cover-ref,[data-rc1203-reference-highlight]{background:#fff6cc!important;border:1.2mm solid #d4a514!important;color:#1f2937!important}[data-rc1203-cover-remark]{display:block!important;border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.rc390-cover-qr{margin-top:5mm!important;position:relative!important;clear:both!important}}';
       doc.head.appendChild(style)
     }
     return true

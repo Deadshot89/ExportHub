@@ -19,10 +19,22 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
     window.__RC1190_PRINT_CAPTURE__=null;
     const capture=()=>{
       try{
+        const cover=document.querySelector('.rc390-cover,.rc352-cover');
+        const cs=cover?getComputedStyle(cover):null;
         window.__RC1190_PRINT_CAPTURE__={
           title:String(document.title||''),
           text:String(document.body&&document.body.innerText||''),
-          html:String(document.documentElement&&document.documentElement.outerHTML||'')
+          html:String(document.documentElement&&document.documentElement.outerHTML||''),
+          coverStyle:cs?{
+            backgroundColor:cs.backgroundColor,
+            backgroundImage:cs.backgroundImage,
+            borderTopWidth:cs.borderTopWidth,
+            borderRightWidth:cs.borderRightWidth,
+            borderBottomWidth:cs.borderBottomWidth,
+            borderLeftWidth:cs.borderLeftWidth,
+            borderColor:cs.borderTopColor,
+            outlineStyle:cs.outlineStyle
+          }:null
         };
       }catch(_){}
     };
@@ -78,11 +90,17 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toContain('DEMO02');
   expect(capture.html).toMatch(/\brc390-cover\b/i);
   expect(capture.html).toMatch(/data-rc1203-cover-enhanced="1"/i);
-  expect(capture.html).toMatch(/border-width:\s*20mm\s+12mm\s+12mm/i);
-  expect(capture.html).toMatch(/border-style:\s*solid/i);
-  expect(capture.html).toMatch(/border-color:\s*rgb\(11,\s*31,\s*68\)/i);
-  expect(capture.html).toMatch(/outline:\s*rgb\(250,\s*204,\s*21\)\s+solid\s+3mm/i);
-  expect(capture.html).toMatch(/background:\s*linear-gradient\(rgb\(147,\s*197,\s*253\)/i);
+  expect(capture.coverStyle).toBeTruthy();
+  expect(capture.coverStyle.backgroundColor).toBe('rgb(248, 250, 252)');
+  expect(capture.coverStyle.backgroundImage).toBe('none');
+  expect(parseFloat(capture.coverStyle.borderTopWidth)).toBeGreaterThanOrEqual(18);
+  expect(parseFloat(capture.coverStyle.borderTopWidth)).toBeLessThanOrEqual(20);
+  for(const side of ['borderRightWidth','borderBottomWidth','borderLeftWidth']){
+    expect(parseFloat(capture.coverStyle[side])).toBeGreaterThanOrEqual(10);
+    expect(parseFloat(capture.coverStyle[side])).toBeLessThanOrEqual(12);
+  }
+  expect(capture.coverStyle.borderColor).toBe('rgb(51, 65, 85)');
+  expect(capture.coverStyle.outlineStyle).toBe('none');
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
