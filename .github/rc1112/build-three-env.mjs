@@ -9,6 +9,8 @@ const VERSION='RC1112';
 const NUMBER='1112';
 const LEGACY_TESTSERVICE_HOST='wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
 const CURRENT_TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
+const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1206"></script>';
 
 function injectDeferredRuntimeInHead(html,tag,id){
   if(id&&(html.includes('id="'+id+'"')||html.includes("id='"+id+"'")))return html;
@@ -18,6 +20,10 @@ function injectDeferredRuntimeInHead(html,tag,id){
   const lower=html.toLowerCase(),idx=lower.indexOf('</head>',start);
   if(idx<0)throw new Error((id||'Script')+': äußerer </head>-Anker fehlt');
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
+}
+
+function patchRc1206ShippingRules(html,file){
+  return injectDeferredRuntimeInHead(html,RC1206_SHIPPING_TAG,RC1206_SHIPPING_ID);
 }
 
 function patchDemoTestPortalIsolation(html,file){
@@ -192,6 +198,7 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchDemoTestPortalIsolation(html,file);
+  html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
