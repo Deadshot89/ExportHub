@@ -1,0 +1,20 @@
+(()=>{
+'use strict';
+if(window.__EXPORTHUB_RC1206_SHIPPING_RULES__)return;window.__EXPORTHUB_RC1206_SHIPPING_RULES__=true;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function num(v){var n=Number(String(v==null?'':v).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0}
+function section(kind){return document.querySelector('#rc626Shipping [data-section="'+kind+'"]')||document.querySelector('#rc626Shipping .rc501-'+kind)||null}
+function packagingSelect(kind){var root=section(kind);if(!root)return null;return root.querySelector('[data-rc501-field="packaging"]')||Array.from(root.querySelectorAll('select')).find(function(s){var p=q((s.closest('label')||s.parentElement||{}).textContent);return /verpackung|packaging/i.test(p)})||null}
+function restrictPackaging(kind,rx,label){var s=packagingSelect(kind);if(!s)return false;var opts=Array.from(s.options||[]),allowed=opts.filter(function(o){return rx.test(q(o.textContent)+' '+q(o.value))});opts.forEach(function(o){var ok=allowed.indexOf(o)>=0;o.disabled=!ok;o.hidden=!ok});if(allowed.length&&allowed.indexOf(s.options[s.selectedIndex])<0){s.value=allowed[0].value;s.dispatchEvent(new Event('change',{bubbles:true}))}s.setAttribute('data-rc1206-packaging',label);return allowed.length>0}
+function inputByLabel(root,rx){if(!root)return null;var nodes=Array.from(root.querySelectorAll('input,select'));return nodes.find(function(el){var host=el.closest('label,.rc501-field,.field,.form-group')||el.parentElement;return rx.test(q(host&&host.textContent))})||null}
+function packageCount(){var root=section('ups');var el=root&&(root.querySelector('[data-rc501-field="packages"],[data-rc501-field="packageCount"],[data-rc501-field="count"],[data-rc501-field="colli"]')||inputByLabel(root,/pakete|kartons|anzahl|colli/i));return Math.max(1,Math.round(num(el&&el.value)||1))}
+function moneyFromLine(root,rx){var lines=Array.from(root.querySelectorAll('.rc501-result-line,div,tr'));for(var i=0;i<lines.length;i++){var t=q(lines[i].textContent);if(rx.test(t)){var b=lines[i].querySelector('b,strong,[id]');var n=num(b?q(b.textContent):t);if(n>=0)return n}}return 0}
+function euro(v){return Number(v||0).toFixed(2).replace('.',',')+' €'}
+function updateUpsTotal(){var root=section('ups');if(!root)return;var card=root.querySelector('.rc501-result-card,.rc626-result')||root;var count=packageCount();var base=moneyFromLine(card,/grundpreis/i),fuel=moneyFromLine(card,/fuel|diesel/i),extra=moneyFromLine(card,/zusatzkosten/i);if(!(base>0||fuel>0||extra>0))return;var total=(base+fuel+extra)*count;var row=document.getElementById('rc1206UpsShipmentTotal');if(!row){row=document.createElement('div');row.id='rc1206UpsShipmentTotal';row.className='rc501-result-line rc1206-ups-total';row.style.cssText='margin-top:10px;padding-top:10px;border-top:2px solid currentColor;font-size:1.08em';row.innerHTML='<span>Gesamtkosten Sendung</span><b></b>';var lines=card.querySelector('.rc501-result-lines');(lines||card).appendChild(row)}row.querySelector('b').textContent=euro(total);row.setAttribute('data-packages',String(count));row.title=count+' Karton'+(count===1?'':'s')+' · Gesamtpreis der kompletten UPS-Sendung'}
+function apply(){restrictPackaging('ups',/karton|carton|package|paket/i,'Karton');restrictPackaging('gate',/palette|pallet/i,'Palette');updateUpsTotal()}
+var timer=0;function schedule(){clearTimeout(timer);timer=setTimeout(apply,60)}
+window.addEventListener('input',schedule,true);window.addEventListener('change',schedule,true);window.addEventListener('click',schedule,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(n){window.addEventListener(n,schedule)});
+if(window.MutationObserver)new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+window.ExportHUBRC1206ShippingRules=Object.freeze({apply:apply,packageCount:packageCount});
+})();
