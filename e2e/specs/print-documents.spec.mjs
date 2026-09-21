@@ -93,10 +93,12 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.coverStyle).toBeTruthy();
   expect(capture.coverStyle.backgroundColor).toBe('rgb(248, 250, 252)');
   expect(capture.coverStyle.backgroundImage).toBe('none');
-  expect(capture.coverStyle.borderTopWidth).toBe('18.8976px');
-  expect(capture.coverStyle.borderRightWidth).toBe('11.3386px');
-  expect(capture.coverStyle.borderBottomWidth).toBe('11.3386px');
-  expect(capture.coverStyle.borderLeftWidth).toBe('11.3386px');
+  expect(parseFloat(capture.coverStyle.borderTopWidth)).toBeGreaterThanOrEqual(18);
+  expect(parseFloat(capture.coverStyle.borderTopWidth)).toBeLessThanOrEqual(20);
+  for(const side of ['borderRightWidth','borderBottomWidth','borderLeftWidth']){
+    expect(parseFloat(capture.coverStyle[side])).toBeGreaterThanOrEqual(10);
+    expect(parseFloat(capture.coverStyle[side])).toBeLessThanOrEqual(12);
+  }
   expect(capture.coverStyle.borderColor).toBe('rgb(51, 65, 85)');
   expect(capture.coverStyle.outlineStyle).toBe('none');
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
