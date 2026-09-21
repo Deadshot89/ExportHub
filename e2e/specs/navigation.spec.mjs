@@ -151,6 +151,96 @@ test('RC1158 P1: Deckblatt-Hervorhebung wird im echten Browser auch im Druckmedi
   await assertRuntimeClean(runtime,testInfo);
 });
 
+
+test('RC1198 P1: Tatsächliches rc390-Deckblatt ist aus Palettenentfernung kontrastreich',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Paletten-Deckblatt wird einmal auf dem Laptop-Profil geprüft.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await page.emulateMedia({media:'print'});
+
+  const style=await page.evaluate(()=>{
+    const cover=document.createElement('section');
+    cover.className='rc390-page rc390-cover rc576-cover rc601-cover';
+    const head=document.createElement('div');
+    head.className='rc390-cover-top';
+    const small=document.createElement('div');
+    small.className='rc390-ref';
+    small.innerHTML='<span>Sendungsreferenz</span><div class="num">E2E123</div>';
+    head.appendChild(small);
+    const hero=document.createElement('div');
+    hero.className='rc390-cover-ref';
+    hero.innerHTML='<span>Sendungsreferenz</span><b>E2E123</b>';
+    const grid=document.createElement('div');
+    grid.className='rc390-cover-grid';
+    const card=document.createElement('div');
+    card.className='rc390-card';
+    card.innerHTML='<div class="rc390-label">Empfänger</div><strong>Testkunde</strong><div class="rc390-txt">Teststraße</div>';
+    grid.appendChild(card);
+    const qr=document.createElement('div');
+    qr.className='rc390-cover-qr rc504-location-qr';
+    qr.innerHTML='<div class="rc390-qrslot"></div>';
+    cover.append(head,hero,grid,qr);
+    cover.style.position='fixed';cover.style.left='-2200px';cover.style.top='0';
+    document.body.appendChild(cover);
+
+    const cv=getComputedStyle(cover),rf=getComputedStyle(hero),strong=getComputedStyle(hero.querySelector('b')),
+      cd=getComputedStyle(card),qrBox=getComputedStyle(qr),qrSlot=getComputedStyle(qr.querySelector('.rc390-qrslot')),
+      smallRef=getComputedStyle(small),smallNum=getComputedStyle(small.querySelector('.num'));
+    const out={
+      background:cv.backgroundImage,
+      borderTop:cv.borderTopWidth,
+      borderLeft:cv.borderLeftWidth,
+      outline:cv.outlineWidth,
+      printColor:cv.printColorAdjust||cv.webkitPrintColorAdjust||'',
+      heroBg:rf.backgroundColor,
+      heroBorder:rf.borderTopWidth,
+      heroText:strong.color,
+      heroSize:strong.fontSize,
+      cardBg:cd.backgroundColor,
+      cardBorder:cd.borderTopWidth,
+      qrBg:qrBox.backgroundColor,
+      qrSlotBg:qrSlot.backgroundColor,
+      smallBg:smallRef.backgroundColor,
+      smallText:smallNum.color
+    };
+    cover.remove();
+    return out;
+  });
+
+  expect(style.background).toContain('rgb(250, 204, 21)');
+  expect(style.background).toContain('rgb(254, 240, 138)');
+  expect(Number.parseFloat(style.borderTop)).toBeGreaterThan(60);
+  expect(Number.parseFloat(style.borderLeft)).toBeGreaterThan(30);
+  expect(Number.parseFloat(style.outline)).toBeGreaterThan(7);
+  expect(style.printColor).toBe('exact');
+  expect(style.heroBg).toBe('rgb(8, 36, 93)');
+  expect(Number.parseFloat(style.heroBorder)).toBeGreaterThan(14);
+  expect(style.heroText).toBe('rgb(255, 255, 255)');
+  expect(Number.parseFloat(style.heroSize)).toBeGreaterThanOrEqual(48);
+  expect(style.cardBg).toBe('rgb(219, 234, 254)');
+  expect(Number.parseFloat(style.cardBorder)).toBeGreaterThan(6);
+  expect(style.qrBg).toBe('rgb(255, 255, 255)');
+  expect(style.qrSlotBg).toBe('rgb(255, 255, 255)');
+  expect(style.smallBg).toBe('rgb(8, 36, 93)');
+  expect(style.smallText).toBe('rgb(255, 255, 255)');
+  await assertView(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
+test('RC1198 P1: Sendung erstellen zeigt eigene Nur-Deckblatt-Druckaktion',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Deckblatt-Aktion wird einmal auf dem Laptop-Profil geprüft.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Kunde|Empfänger/i,{allowProgrammaticFallback:true});
+  const button=page.locator('#rc363BlockActions [data-rc1198-print-cover="1"]');
+  await expect(button).toBeVisible({timeout:10_000});
+  await expect(button).toContainText(/Nur Deckblatt drucken/i);
+  await assertView(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
 test('RC1124 P0: Browser Zurück/Vor und F5 behalten die fachliche View',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','History-Smoke läuft einmal auf dem Laptop-Profil.');
   const runtime=attachRuntimeGuards(page,testInfo);
