@@ -23,7 +23,7 @@ function prewarmPrintOutput(sh){
  pending.finally(function(){if(printPrewarmByKey[key]===pending)delete printPrewarmByKey[key]});
  return pending
 }
-function isPrintButton(button){if(!button)return false;if(button.matches&&button.matches('[data-index352-action="print-all"],[data-index352-action="download-all"],[data-index352-action="download-load1"]'))return true;return /Gesamtausgabe\s*drucken|Gesamtdruck|Gesamtausgabe.*PDF|Ladeliste\s*1.*PDF/i.test(clean(button.textContent))}
+function isPrintButton(button){if(!button)return false;if(button.matches&&button.matches('[data-index352-action="print-all"],[data-index352-action="download-all"],[data-index352-action="download-load1"],[data-rc1198-print-cover="1"]'))return true;return /Gesamtausgabe\s*drucken|Gesamtdruck|Gesamtausgabe.*PDF|Ladeliste\s*1.*PDF|Deckblatt\s*drucken/i.test(clean(button.textContent))}
 function waitForPrintPrewarm(e){
  var button=e&&e.target&&e.target.closest&&e.target.closest('button,a');if(!isPrintButton(button))return false;
  if(button.__rc1104PrintResume){button.__rc1104PrintResume=false;return false}
