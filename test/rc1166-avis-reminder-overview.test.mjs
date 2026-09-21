@@ -33,12 +33,16 @@ function load(state={}){
   return sandbox.ExportHUBRC1166AvisReminder;
 }
 
-test('RC1166: Runtime ist syntaktisch gültig und nutzt keinen versteckten Direktversand',()=>{
+test('RC1207: Runtime ist syntaktisch gültig und nutzt direkten authentifizierten Versand',()=>{
   execFileSync(process.execPath,['--check','assets/rc1166-avis-reminder-overview.js'],{stdio:'pipe'});
-  assert.doesNotMatch(runtime,/\bfetch\s*\(/);
-  assert.doesNotMatch(runtime,/\/api\/.*mail/i);
-  assert.match(runtime,/mailto:/);
-  assert.match(runtime,/Der Versand erfolgt erst dort durch den Benutzer/);
+  assert.match(runtime,/fetch\('\/api\/avis-reminder-mail'/);
+  assert.match(runtime,/X-ExportHUB-Token/);
+  assert.match(runtime,/X-ExportHUB-Session/);
+  assert.match(runtime,/Authorization:'Bearer '\+t/);
+  assert.doesNotMatch(runtime,/mailto:/);
+  assert.match(runtime,/Erinnerungsmail senden/);
+  assert.match(runtime,/Erinnerungsmail erfolgreich an/);
+  assert.match(runtime,/Sendungshistorie protokolliert/);
 });
 
 test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahmekunden angeboten',()=>{
@@ -99,9 +103,11 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1166/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1207/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
-  assert.match(build,/avisReminderOverview:'RC1166/);
+  assert.match(build,/avisReminderOverview:'RC1207/);
+  assert.match(build,/avis-reminder-mail\/index\.js/);
+  assert.match(build,/shared\/graph-mail\.js/);
   assert.match(build,/podBackupStatusUi:'RC1165/);
   assert.match(build,/podGraphReadiness:'RC1164/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
