@@ -178,6 +178,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1166"></script>','exporthub-rc1166-avis-reminder');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1203"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1193"></script>','exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1193"></script>','exporthub-rc1177-release-notes');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
@@ -201,6 +202,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1166'))throw new Error(file+': RC1166 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
+  if(!html.includes('assets/rc1203-deckblatt-print.js?v=1203'))throw new Error(file+': RC1203 echtes rc390-Deckblatt fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v=1193'))throw new Error(file+': RC1193 sichtbare Release-Version fehlt');
   if(!html.includes('assets/rc1177-release-notes.js?v=1193'))throw new Error(file+': RC1193 Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
@@ -234,6 +236,7 @@ for(const rel of [
   'assets/rc1165-pod-backup-status.js',
   'assets/rc1166-avis-reminder-overview.js',
   'assets/rc1176-shipment-location.js',
+  'assets/rc1203-deckblatt-print.js',
   'assets/rc1177-release-notes.js',
   'assets/rc1193-visible-release.js'
 ]){
@@ -288,7 +291,10 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     avisReminderOverview:'RC1166 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
-    deckblattHighVisibility:'RC1159 print-safe 10mm frame + 18mm top band + yellow reference with 3mm black border',
+    deckblattHighVisibility:'RC1203 actual rc390 print cover: 12mm navy frame + 20mm top band + blue field + yellow accent + remark',
+    coverOnlyPrint:'RC1203 dedicated Nur Deckblatt drucken action in shipment creation',
+    cmrOnlyPrint:'RC1203 dedicated Nur CMR drucken action in documents view',
+    coverRemark:'RC1203 shipment remark/comments rendered on actual rc390 cover',
     customerPortalCredentials:'RC1160 AES-256-GCM + re-auth + use/manage rights',
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
     avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',
