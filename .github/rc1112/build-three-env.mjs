@@ -177,7 +177,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1160-customer-portal" defer src="/assets/rc1160-customer-portal-credentials.js?v=1162"></script>','exporthub-rc1160-customer-portal');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1166"></script>','exporthub-rc1166-avis-reminder');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1191"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1196"></script>','exporthub-rc1176-shipment-location');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1193"></script>','exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1193"></script>','exporthub-rc1177-release-notes');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
@@ -200,7 +200,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1160-customer-portal-credentials.js?v=1162'))throw new Error(file+': RC1160 Kundenportal-Runtime fehlt');
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1166'))throw new Error(file+': RC1166 Avis-Erinnerung-Runtime fehlt');
-  if(!html.includes('assets/rc1176-shipment-location.js?v=1191'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
+  if(!html.includes('assets/rc1176-shipment-location.js?v=1196'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v=1193'))throw new Error(file+': RC1193 sichtbare Release-Version fehlt');
   if(!html.includes('assets/rc1177-release-notes.js?v=1193'))throw new Error(file+': RC1193 Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
@@ -298,7 +298,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     customerPortalKeyDiagnostics:'RC1194 safe missing-vs-too-short readiness without secret or exact length disclosure',
     shipmentCreateUiE2E:'RC1171 UI customer + location + reference + colli + save + reload + overview',
     testserviceGateOrder:'RC1172 browser/mutation gate before external readiness blocker, production still protected',
-    shipmentLocationPersistence:'RC1191 same-customer rerender persistence + real customer-change guard',
+    shipmentLocationPersistence:'RC1196 synthetic empty rerender guard + same-customer persistence',
     historyConsolidationAndReleaseNotes:'RC1177 duplicate shipment history cleanup + current Update changelog',
     visibleProductVersion:'RC1193 separate visible release label while RC1112 remains the stable build/deploy pipeline'
   },
