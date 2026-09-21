@@ -95,6 +95,47 @@ function patchDeckblattHighVisibility(html,file){
   return html
 }
 
+function patchRc1203ActualDeckblatt(html,file){
+  if(html.includes('data-rc1203-cover-enhanced="1"')&&html.includes('id="exporthub-rc1203-deckblatt-style"'))return html;
+  const start=html.indexOf('function coverHtml(sh){');
+  const end=start<0?-1:html.indexOf('function rc1095LoadPalletCount',start);
+  if(start<0||end<0)throw new Error(file+': RC1203 echter rc390-coverHtml-Renderer fehlt');
+  let block=html.slice(start,end);
+
+  const coverOld='<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover" data-shipment-ref="'+\'\'+ref+\'\'+'">';
+  const coverNew='<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover rc1203-cover" data-rc1203-cover-enhanced="1" data-shipment-ref="'+\'\'+ref+\'\'+'">';
+  if(block.split(coverOld).length-1!==1)throw new Error(file+': RC1203 rc390-Cover-Anker nicht eindeutig');
+  block=block.replace(coverOld,coverNew);
+
+  const recipientOld='<div class="rc390-card"><div class="rc390-label">Empfänger</div><strong>';
+  const recipientNew='<div class="rc390-card rc1203-cover-recipient" data-rc1203-recipient-highlight="1"><div class="rc390-label">Empfänger</div><strong>';
+  if(block.split(recipientOld).length-1<1)throw new Error(file+': RC1203 Empfänger-Anker fehlt');
+  block=block.replace(recipientOld,recipientNew);
+
+  const dncOld='<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+\'\'+esc(d.join(\'\\n\')||\'–\')+\'\'+'</div></div></div><div class="rc390-cover-qr';
+  const dncNew='<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+\'\'+esc(d.join(\'\\n\')||\'–\')+\'\'+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1"><div class="rc390-label">Bemerkung</div><div class="rc390-txt">'+\'\'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||\'–\')+\'\'+'</div></div></div><div class="rc390-cover-qr';
+  if(block.split(dncOld).length-1!==1)throw new Error(file+': RC1203 Bemerkungs-Anker nicht eindeutig');
+  block=block.replace(dncOld,dncNew);
+
+  html=html.slice(0,start)+block+html.slice(end);
+
+  const css='<style id="exporthub-rc1203-deckblatt-style">'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover,.rc390-cover.rc1203-cover{box-sizing:border-box!important;border:12mm solid #0b1f44!important;border-top-width:20mm!important;outline:3mm solid #facc15!important;outline-offset:-4mm!important;background:#dbeafe!important;background-image:linear-gradient(180deg,#93c5fd 0,#dbeafe 42%,#eff6ff 100%)!important;color:#0b1f44!important;box-shadow:inset 0 0 0 4mm #2563eb!important;padding:6mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc390-cover-ref,.rc390-cover.rc1203-cover .rc390-cover-ref{background:#facc15!important;border:3mm solid #111827!important;color:#111827!important;padding:6mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '.rc390-cover.rc1203-cover .rc390-cover-ref span,.rc390-cover.rc1203-cover .rc390-cover-ref b{color:#111827!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-recipient,.rc390-cover.rc1203-cover .rc1203-cover-recipient{font-size:18pt!important;line-height:1.24!important;font-weight:800!important;padding:5mm!important;border:2.5mm solid #0b1f44!important;background:#fff!important;color:#0b1f44!important}'+
+  '.rc390-cover.rc1203-cover .rc1203-cover-recipient strong{font-size:22pt!important;line-height:1.18!important;font-weight:900!important}.rc390-cover.rc1203-cover .rc1203-cover-recipient .rc390-txt{font-size:18pt!important;line-height:1.25!important;font-weight:800!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-remark,.rc390-cover.rc1203-cover .rc1203-cover-remark{border:2.5mm solid #0b1f44!important;border-left:7mm solid #facc15!important;background:#fff7cc!important;color:#0b1f44!important;padding:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-label{font-size:13pt!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.3mm!important;color:#0b1f44!important}.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-txt{font-size:16pt!important;line-height:1.3!important;font-weight:800!important;white-space:pre-wrap!important;color:#0b1f44!important}'+
+  '</style>';
+  html=injectDeferredRuntimeInHead(html,css,'exporthub-rc1203-deckblatt-style');
+
+  if(!html.includes('data-rc1203-cover-enhanced="1"'))throw new Error(file+': RC1203 rc390-Cover-Marker fehlt');
+  if(!html.includes('data-rc1203-cover-remark="1"'))throw new Error(file+': RC1203 Bemerkungsblock fehlt');
+  if(!html.includes('border:12mm solid #0b1f44!important'))throw new Error(file+': RC1203 rc390-Farbrahmen fehlt');
+  return html
+}
+
 function patchShipmentSuspendSave(html,file){
   const anchor="function flushEditSave(reason,keepalive){";
   const replacement="function flushEditSave(reason,keepalive){if(!editSaveReason&&!editSaveTimer&&/vor (?:App-Wechsel|Verlassen)/.test(q(reason)))return true;";
@@ -150,6 +191,7 @@ function patchHtml(file){
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchDeckblattHighVisibility(html,file);
+  html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
