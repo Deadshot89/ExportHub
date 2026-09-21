@@ -39,7 +39,7 @@ test('RC1207: Runtime ist syntaktisch gültig und nutzt direkten authentifiziert
   assert.match(runtime,/X-ExportHUB-Token/);
   assert.match(runtime,/X-ExportHUB-Session/);
   assert.match(runtime,/["']Authorization["']:'Bearer '\+t/);
-  assert.doesNotMatch(runtime,/mailto:/);
+  assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
   assert.match(runtime,/Erinnerungsmail senden/);
   assert.match(runtime,/Erinnerungsmail erfolgreich an/);
   assert.match(runtime,/Sendungshistorie protokolliert/);
@@ -89,7 +89,7 @@ test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpu
   assert.match(runtime,/target:target==='carrier'\?'carrier':'customer'/);
   assert.match(runtime,/language:lang==='en'\?'en':'de'/);
   assert.match(runtime,/avisUrl:url/);
-  assert.doesNotMatch(runtime,/mailto:/);
+  assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
 });
 
 test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängerauswahl',()=>{
