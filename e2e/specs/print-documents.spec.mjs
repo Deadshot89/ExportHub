@@ -97,6 +97,7 @@ test('RC1198 P1: Nur Deckblatt drucken erzeugt genau eine echte rc390-Deckblatts
       try{
         window.__RC1198_COVER_PRINT_CAPTURE__={
           text:String(document.body&&document.body.innerText||''),
+          bodyHtml:String(document.body&&document.body.innerHTML||''),
           html:String(document.documentElement&&document.documentElement.outerHTML||'')
         };
       }catch(_){}
