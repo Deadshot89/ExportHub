@@ -51,5 +51,5 @@ test('RC1162: normale Nutzer sehen keine interne Azure-Setting-Bezeichnung',()=>
 test('RC1162: finaler Build erzwingt neuen Kundenportal-Cache ohne Deckblatt-Regression',()=>{
   assert.match(build,/assets\/rc1160-customer-portal-credentials\.js\?v=1162/);
   assert.match(build,/customerPortalReadiness:'RC1162 safe key-status \+ UI readiness guard'/);
-  assert.match(build,/border:3mm solid #111827/);
+  assert.match(build,/border:4mm solid #facc15/);\n  assert.match(build,/deckblattHighVisibility:'RC1198/);
 });
