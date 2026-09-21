@@ -10,9 +10,9 @@ function build(){
 test('RC1133: Deckblatt wird im finalen RC1112-Artefakt drucksicher deutlich hervorgehoben',()=>{
   build();
   const html=fs.readFileSync('dist-rc1112/index.html','utf8');
-  assert.match(html,/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/);
-  assert.match(html,/\.rc352-cover\{[^}]*outline:2mm solid #2563eb!important;/);
-  assert.match(html,/\.rc352-cover-ref\{[^}]*background:#facc15[^}]*color:#111827!important/);
+  assert.match(html,/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:20mm!important;/);
+  assert.match(html,/\.rc352-cover\{[^}]*outline:2.5mm solid #2563eb!important;/);
+  assert.match(html,/\.rc352-cover-ref\{(?=[^}]*background:#08245d)(?=[^}]*border:4mm solid #facc15)[^}]*color:#fff!important/);
   assert.doesNotMatch(html,/\\\\n\.rc352-qr-slot\.empty/,'Deckblatt-CSS darf keinen literalen \\n-Text zwischen Regeln enthalten');
 });
 
