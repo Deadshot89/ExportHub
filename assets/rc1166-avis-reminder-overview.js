@@ -100,20 +100,35 @@ function body(sh,target,lang,url){
  if(target==='carrier')return 'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Abholung der Sendung '+ref+'.\n\nBitte prüfen bzw. aktualisieren Sie über den folgenden Link Abholdatum, Zeitfenster und – sofern bekannt – das Kennzeichen des Abholfahrzeugs:\n'+u+'\n\nEine zusätzliche Bestätigung per E-Mail ist nicht erforderlich.\n\nMit freundlichen Grüßen';
  return 'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Sendung '+ref+'.\n\nBitte nutzen Sie den folgenden Link, um die freigegebenen Sendungsunterlagen einzusehen und die geplanten Abholdaten zu prüfen bzw. zu aktualisieren:\n'+u+'\n\nVielen Dank.\n\nMit freundlichen Grüßen'
 }
-function mailto(email,sub,text){return'mailto:'+encodeURIComponent(q(email))+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(text)}
+function authToken(){
+ try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},t=q(rt.authToken||rt.sessionToken);if(t)return t}catch(_){}
+ try{for(var i=0;w.sessionStorage&&i<w.sessionStorage.length;i++){var raw=w.sessionStorage.getItem(w.sessionStorage.key(i));if(!raw||raw.charAt(0)!=='{')continue;var x=JSON.parse(raw);if(x&&x.token)return q(x.token)}}catch(_){}
+ return''
+}
+function environmentName(){try{return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
+function apiHeaders(){
+ var t=authToken();if(!t)throw new Error('ExportHUB-Sitzung ist nicht mehr gültig.');
+ return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'Authorization':'Bearer '+t,'X-ExportHUB-Environment':environmentName()}
+}
+async function sendReminder(sh,email,target,lang,url){
+ var response=await w.fetch('/api/avis-reminder-mail',{method:'POST',credentials:'same-origin',cache:'no-store',headers:apiHeaders(),body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target==='carrier'?'carrier':'customer',language:lang==='en'?'en':'de',avisUrl:url})});
+ var raw=await response.text(),data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={message:raw}}
+ if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
+ return data
+}
 function inOverview(){var b=d.body;return !!(b&&low(b.getAttribute('data-exporthub-view'))==='shipmentoverview')}
 function ensureStyle(){
  if(d.getElementById('rc1166AvisReminderStyle'))return;
- var s=d.createElement('style');s.id='rc1166AvisReminderStyle';s.textContent='.rc1166-reminder-btn{background:#2563eb!important;color:#fff!important;border-color:#1d4ed8!important}.rc1166-reminder-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.rc1166-dialog{position:fixed;inset:0;z-index:130000;background:rgba(15,23,42,.65);display:grid;place-items:center;padding:16px}.rc1166-card{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;color:#0f172a;border-radius:16px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.3)}.rc1166-card h3{margin:0 0 6px}.rc1166-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.rc1166-card label{display:grid;gap:6px;font-weight:700}.rc1166-card select,.rc1166-card textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #94a3b8;border-radius:9px;background:#fff;color:#0f172a}.rc1166-card textarea{min-height:190px;resize:vertical}.rc1166-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.rc1166-note{font-size:12px;color:#64748b}.rc1166-warning{padding:9px 11px;border-radius:9px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;margin:10px 0}@media(max-width:640px){.rc1166-grid{grid-template-columns:1fr}.rc1166-reminder-row{grid-template-columns:1fr}.rc1166-actions button{width:100%}}';
+ var s=d.createElement('style');s.id='rc1166AvisReminderStyle';s.textContent='.rc1166-reminder-btn{background:#2563eb!important;color:#fff!important;border-color:#1d4ed8!important}.rc1166-reminder-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.rc1166-dialog{position:fixed;inset:0;z-index:130000;background:rgba(15,23,42,.65);display:grid;place-items:center;padding:16px}.rc1166-card{width:min(680px,100%);max-height:92vh;overflow:auto;background:#fff;color:#0f172a;border-radius:16px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.3)}.rc1166-card h3{margin:0 0 6px}.rc1166-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}.rc1166-card label{display:grid;gap:6px;font-weight:700}.rc1166-card select,.rc1166-card textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #94a3b8;border-radius:9px;background:#fff;color:#0f172a}.rc1166-card textarea{min-height:190px;resize:vertical}.rc1166-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.rc1166-note{font-size:12px;color:#64748b}.rc1166-warning{padding:9px 11px;border-radius:9px;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;margin:10px 0}.rc1207-send-status{margin:10px 0 0;padding:9px 11px;border-radius:9px;font-size:13px;font-weight:700}.rc1207-send-status[data-kind="ok"]{background:#ecfdf5;color:#166534;border:1px solid #86efac}.rc1207-send-status[data-kind="bad"]{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}@media(max-width:640px){.rc1166-grid{grid-template-columns:1fr}.rc1166-reminder-row{grid-template-columns:1fr}.rc1166-actions button{width:100%}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function closeDialog(){if(dialog&&dialog.parentNode)dialog.parentNode.removeChild(dialog);dialog=null}
 function options(list){return list.map(function(x){return'<option value="'+esc(x.email)+'">'+esc((x.name?x.name+' · ':'')+x.email+(x.source?' · '+x.source:''))+'</option>'}).join('')}
 function openDialog(sh){
  closeDialog();var url=avisLink(sh);if(!url)return false;ensureStyle();
- dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">Avis-Erinnerung</h3><div class="rc1166-note">Referenz '+esc(refOf(sh))+' · der sichere Lieferavis-Link wird automatisch eingefügt.</div><div class="rc1166-grid"><label>Empfängergruppe<select data-target><option value="customer">Kunde</option><option value="carrier">Spedition</option></select></label><label>Sprache<select data-lang><option value="de">Deutsch</option><option value="en">English</option></select></label></div><label>Empfänger<select data-recipient></select></label><div data-warning></div><label>Mailtext<textarea data-body></textarea></label><div class="rc1166-actions"><button type="button" class="ghost" data-close>Abbrechen</button><button type="button" class="btn rc1166-reminder-btn" data-open>E-Mail zum Senden öffnen</button></div><p class="rc1166-note">Die E-Mail wird im Standard-Mailprogramm geöffnet. Der Versand erfolgt erst dort durch den Benutzer.</p></section>';
+ dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">Avis-Erinnerung</h3><div class="rc1166-note">Referenz '+esc(refOf(sh))+' · der sichere Lieferavis-Link wird automatisch eingefügt.</div><div class="rc1166-grid"><label>Empfängergruppe<select data-target><option value="customer">Kunde</option><option value="carrier">Spedition</option></select></label><label>Sprache<select data-lang><option value="de">Deutsch</option><option value="en">English</option></select></label></div><label>Empfänger<select data-recipient></select></label><div data-warning></div><label>Mailtext<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>Abbrechen</button><button type="button" class="btn rc1166-reminder-btn" data-open>Erinnerungsmail senden</button></div><p class="rc1166-note">Die Erinnerung wird direkt über ExportHUB versendet und anschließend in der Sendungshistorie protokolliert.</p></section>';
  d.body.appendChild(dialog);
- var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]');
+ var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]');
  function refresh(){
   var t=target.value==='carrier'?'carrier':'customer',l=lang.value==='en'?'en':'de',list=shipmentContacts(sh,t),previous=recipient.value;
   recipient.innerHTML=options(list);if(previous&&list.some(function(x){return x.email===previous}))recipient.value=previous;
@@ -122,8 +137,18 @@ function openDialog(sh){
  target.addEventListener('change',refresh);lang.addEventListener('change',refresh);
  dialog.querySelector('[data-close]').addEventListener('click',closeDialog);
  dialog.addEventListener('click',function(e){if(e.target===dialog)closeDialog()});
- open.addEventListener('click',function(){
-  var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=lang.value==='en'?'en':'de',a=d.createElement('a');a.href=mailto(email,subject(sh,t,l),text.value);a.textContent='Lieferavis Erinnerung E-Mail öffnen';a.style.display='none';d.body.appendChild(a);a.click();w.setTimeout(function(){try{a.remove()}catch(_){}},0)
+ open.addEventListener('click',async function(){
+  var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=lang.value==='en'?'en':'de',oldLabel=q(open.textContent);
+  open.disabled=true;open.textContent='Wird gesendet …';sendStatus.hidden=true;sendStatus.textContent='';sendStatus.removeAttribute('data-kind');
+  try{
+   var result=await sendReminder(sh,email,t,l,url),event={id:q(result.historyId),at:q(result.sentAt)||new Date().toISOString(),type:'mail-sent',label:'Avis-Erinnerung versendet',details:{reference:refOf(sh),to:email,subject:q(result.subject),mailType:'avis-reminder',target:t,language:l}};
+   sh.shipmentHistory=Array.isArray(sh.shipmentHistory)?sh.shipmentHistory:[];if(event.id&&!sh.shipmentHistory.some(function(x){return x&&x.id===event.id}))sh.shipmentHistory.push(event);
+   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','ok');sendStatus.textContent='Erinnerungsmail erfolgreich an '+email+' gesendet.';
+   open.textContent='Gesendet ✓';
+   try{w.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{shipment:sh,source:'rc1207-avis-reminder'}}));w.dispatchEvent(new CustomEvent('exporthub:history-updated',{detail:{shipment:sh}}))}catch(_){}
+  }catch(err){
+   open.disabled=false;open.textContent=oldLabel||'Erinnerungsmail senden';sendStatus.hidden=false;sendStatus.setAttribute('data-kind','bad');sendStatus.textContent=q(err&&err.message)||'Erinnerungsmail konnte nicht gesendet werden.'
+  }
  });
  refresh();return true
 }
@@ -144,5 +169,5 @@ function render(){
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1166 Avis-Erinnerung',e)}catch(_){}}},0)}
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:customer-avis-updated','exporthub:customer-mail-contacts-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1166',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,mailto:mailto,render:render});
+w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1207',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,sendReminder:sendReminder,render:render});
 })(window,document);
