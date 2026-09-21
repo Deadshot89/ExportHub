@@ -147,6 +147,15 @@ jobs:
             echo "PRODUCTION: keine weitere RC1137-Kompaktierung erforderlich."
           fi
 
+          pallet_cleanup="$(call_maintenance cleanup-pallet-20260921)"
+          printf '%s\n' "$pallet_cleanup" | node -e "
+            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s);
+              if(!v.ok||v.environment!=='production'||v.verified!==true||Number(v.remaining||0)!==0)process.exit(13);
+              if(v.applied===true&&v.backupVerified!==true)process.exit(14);
+              console.log('PRODUCTION RC1208 Palettenkonto',JSON.stringify({date:v.date,deletedCount:v.deletedCount,totalDeleted:v.totalDeleted,remaining:v.remaining,verified:v.verified,backupBlob:v.backupBlob||null,revision:v.revision}));
+            })"
+
           health="$(curl -fsSL "$BASE_URL/api/exporthub-state?mode=health")"
           printf '%s\n' "$health" | RC1137_BEFORE="$verify_before" node -e "
             let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
