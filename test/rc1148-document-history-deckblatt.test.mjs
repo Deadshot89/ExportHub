@@ -47,8 +47,8 @@ test('RC1148: Dokument-History trennt Öffnen und Drucken und speichert Benutzer
 test('RC1148: Deckblatt-Hochsichtbarkeitsregel wird als gültige geschlossene CSS-Regel gebaut',()=>{
   assert.match(build,/return '\.rc352-cover\{'\+next\+'\}'/,'schließende CSS-Klammer der Deckblatt-Regel fehlt');
   assert.match(build,/return '\.rc352-cover-ref\{'\+next\+'\}'/,'schließende CSS-Klammer des Referenzfelds fehlt');
-  assert.match(build,/background:linear-gradient\(180deg,#1d4ed8 0,#60a5fa 66mm,#dbeafe 66mm,#eff6ff 100%\)/,'farbige Deckblattfläche fehlt');
-  assert.match(build,/background:#facc15/,'gelbes Referenzfeld fehlt');
+  assert.match(build,/background:linear-gradient\(180deg,#facc15 0,#fde047 72mm,#fef08a 72mm,#facc15 100%\)/,'farbige Deckblattfläche fehlt');
+  assert.match(build,/border:4mm solid #facc15/,'gelber Hochkontrast-Rahmen am Referenzfeld fehlt');
 
   execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'ignore'});
   const html=fs.readFileSync('dist-rc1112/index.html','utf8');
@@ -56,7 +56,7 @@ test('RC1148: Deckblatt-Hochsichtbarkeitsregel wird als gültige geschlossene CS
   const reference=/\.rc352-cover-ref\{([^}]*)\}/.exec(html);
   assert.ok(cover,'Deckblatt-CSS-Regel fehlt im finalen Artefakt');
   assert.ok(reference,'Referenz-CSS-Regel fehlt im finalen Artefakt');
-  assert.match(cover[1],/background:linear-gradient\(180deg,#1d4ed8 0,#60a5fa 66mm,#dbeafe 66mm,#eff6ff 100%\)/);
-  assert.match(cover[1],/border-top-width:18mm!important/);
-  assert.match(reference[1],/background:#facc15/);
+  assert.match(cover[1],/background:linear-gradient\(180deg,#facc15 0,#fde047 72mm,#fef08a 72mm,#facc15 100%\)/);
+  assert.match(cover[1],/border-top-width:20mm!important/);
+  assert.match(reference[1],/background:#08245d/);\n  assert.match(reference[1],/border:4mm solid #facc15/);
 });
