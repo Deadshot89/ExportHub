@@ -133,7 +133,8 @@ function candidateFolders(folder) {
   const normalized = text(folder).replace(/^\/+|\/+$/g, '');
   const out = [];
   if (normalized) out.push(normalized);
-  if (normalized && !/^documents(?:\\/|$)/i.test(normalized)) out.push('Documents/' + normalized);
+  const lower = normalized.toLowerCase();
+  if (normalized && lower !== 'documents' && !lower.startsWith('documents/')) out.push('Documents/' + normalized);
   return Array.from(new Set(out));
 }
 
