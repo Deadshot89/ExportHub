@@ -118,21 +118,106 @@ function safeFileName(value) {
   return name || 'POD.pdf';
 }
 
-function encodedPath(folder, fileName) {
-  return `${folder}/${fileName}`.split('/').map(part => encodeURIComponent(text(part))).filter(Boolean).join('/');
+function encodedPath(value) {
+  return text(value).split('/').map(part => encodeURIComponent(text(part))).filter(Boolean).join('/');
+}
+
+function graphTargetError(code, message, statusCode) {
+  const error = new Error(message);
+  error.code = code;
+  error.statusCode = statusCode || 502;
+  return error;
+}
+
+function candidateFolders(folder) {
+  const normalized = text(folder).replace(/^\\/+|\\/+$/g, '');
+  const out = [];
+  if (normalized) out.push(normalized);
+  if (normalized && !/^documents(?:\\/|$)/i.test(normalized)) out.push('Documents/' + normalized);
+  return Array.from(new Set(out));
+}
+
+const targetCache = new Map();
+
+function targetCacheKey(cfg) {
+  return cfg.user.toLowerCase() + '\\n' + cfg.folder;
+}
+
+function targetCacheDelete(cfg) {
+  targetCache.delete(targetCacheKey(cfg));
+}
+
+async function graphGet(token, path) {
+  return request('GET', `https://graph.microsoft.com/v1.0${path}`, {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/json'
+  }, null, 8000);
+}
+
+async function listUserDrives(token, user) {
+  const result = await graphGet(token, `/users/${encodeURIComponent(user)}/drives?$select=id,driveType,name`);
+  const drives = Array.isArray(result.body && result.body.value) ? result.body.value.filter(item => text(item && item.id)) : [];
+  if (!drives.length) {
+    throw graphTargetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto hat kein für ExportHUB erreichbares Laufwerk.', 404);
+  }
+  return drives;
+}
+
+async function findFolder(token, driveId, folder) {
+  const path = encodedPath(folder);
+  if (!path) return null;
+  try {
+    const result = await graphGet(token, `/drives/${encodeURIComponent(driveId)}/root:/${path}?$select=id,name,folder`);
+    const item = result.body || {};
+    if (!text(item.id) || !item.folder) return null;
+    return { id: text(item.id) };
+  } catch (error) {
+    if (error && error.statusCode === 404 && /^(?:ResourceNotFound|itemNotFound)$/i.test(text(error.code))) return null;
+    throw error;
+  }
+}
+
+async function resolveUploadTarget(token, cfg) {
+  const key = targetCacheKey(cfg);
+  const cached = targetCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.target;
+
+  const drives = await listUserDrives(token, cfg.user);
+  const folders = candidateFolders(cfg.folder);
+  const matches = [];
+
+  for (const drive of drives) {
+    const driveId = text(drive && drive.id);
+    if (!driveId) continue;
+    for (const folder of folders) {
+      const item = await findFolder(token, driveId, folder);
+      if (item) matches.push({ driveId, folderItemId: item.id });
+    }
+  }
+
+  const unique = Array.from(new Map(matches.map(item => [item.driveId + ':' + item.folderItemId, item])).values());
+  if (!unique.length) {
+    throw graphTargetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-POD-Zielordner wurde nicht gefunden.', 404);
+  }
+  if (unique.length > 1) {
+    throw graphTargetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-POD-Zielordner ist nicht eindeutig.', 409);
+  }
+
+  targetCache.set(key, { expiresAt: Date.now() + 10 * 60 * 1000, target: unique[0] });
+  return unique[0];
 }
 
 async function uploadPdf(buffer, fileName) {
   const cfg = config();
   const name = safeFileName(fileName);
-  const path = encodedPath(cfg.folder, name);
   let forceToken = false;
   let lastError = null;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const token = await accessToken(forceToken);
-      const result = await request('PUT', `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(cfg.user)}/drive/root:/${path}:/content`, {
+      const target = await resolveUploadTarget(token, cfg);
+      const result = await request('PUT', `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(target.driveId)}/items/${encodeURIComponent(target.folderItemId)}:/${encodeURIComponent(name)}:/content`, {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/pdf',
         'Content-Length': buffer.length,
@@ -153,7 +238,13 @@ async function uploadPdf(buffer, fileName) {
       lastError = error;
       if (error && error.statusCode === 401 && !forceToken) {
         tokenCache = null;
+        targetCacheDelete(cfg);
         forceToken = true;
+        continue;
+      }
+      if (error && error.statusCode === 404 && /^(?:ResourceNotFound|itemNotFound)$/i.test(text(error.code)) && attempt < 3) {
+        targetCacheDelete(cfg);
+        forceToken = false;
         continue;
       }
       if (attempt < 3 && transient(error)) {
