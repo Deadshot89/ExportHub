@@ -5,8 +5,10 @@ function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function activeShipment(s){
+ var draft=s&&s.shipment;
+ if(obj(draft))return draft;
  try{if(typeof w.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function'){var x=w.__EXPORTHUB_GET_ACTIVE_SHIPMENT__();if(obj(x))return x}}catch(_){}
- var list=[s&&s.shipment,s&&s.currentShipment,s&&s.selectedShipment,w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.shipment];
+ var list=[s&&s.currentShipment,s&&s.selectedShipment,w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.shipment];
  for(var i=0;i<list.length;i++)if(obj(list[i]))return list[i];
  return null
 }
@@ -46,10 +48,11 @@ function findLocation(s,active,value){
 }
 function shipmentRef(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId)).toUpperCase()}
 function targets(s,active){
- var raw=[active,s&&s.shipment,w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.shipment,s&&s.currentShipment,s&&s.selectedShipment],out=[],ref=shipmentRef(active);
+ var raw=[active,s&&s.shipment,w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.shipment,s&&s.currentShipment,s&&s.selectedShipment],out=[],ref=shipmentRef(active),customerKey=shipmentCustomerKey(active);
  raw.forEach(function(x){
   if(!obj(x)||out.indexOf(x)>=0)return;
-  if(x===active||x===(s&&s.shipment)||!ref||shipmentRef(x)===ref)out.push(x)
+  var sameRef=ref&&shipmentRef(x)===ref,sameCustomer=!ref&&customerKey&&shipmentCustomerKey(x)===customerKey;
+  if(x===active||x===(s&&s.shipment)||sameRef||sameCustomer)out.push(x)
  });
  return out
 }
@@ -127,5 +130,5 @@ if(typeof MutationObserver!=='undefined'){
   observer.observe(d.documentElement||d.body,{childList:true,subtree:true})
  }catch(_){}
 }
-w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1196',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
+w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1202',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
 })(window,document);

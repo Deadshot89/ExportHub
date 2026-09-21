@@ -80,9 +80,9 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
 
 test('RC1176: Runtime wird in Produktion TESTSERVICE und Demo mitgebaut',()=>{
   assert.match(builder,/exporthub-rc1176-shipment-location/);
-  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1196/);
+  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1202/);
   assert.match(builder,/'assets\/rc1176-shipment-location\.js'/);
-  assert.match(builder,/shipmentLocationPersistence:'RC1196/);
+  assert.match(builder,/shipmentLocationPersistence:'RC1202/);
 });
 
 test('RC1176: Live-E2E verlangt stabile Dropdown-Auswahl, aktiven State und entfernte Standortwarnung',()=>{
@@ -170,7 +170,7 @@ test('RC1183: Standort-Hook sitzt auf window capture und läuft vor Index289 doc
 test('RC1183: Runtime kennzeichnet neuen Capture-Stand',()=>{
   assert.match(source,/w\.addEventListener\('change',onLocationChange,true\)/);
   assert.match(source,/w\.addEventListener\('input',onCustomerInput,true\)/);
-  assert.match(source,/version:'RC1196'/);
+  assert.match(source,/version:'RC1202'/);
 });
 
 
@@ -247,7 +247,7 @@ test('RC1191: Kundenfeld-change wird erst nach dem bestehenden Kundenhandler bew
   assert.match(source,/setTimeout\)\(function\(\)\{/);
   assert.match(source,/expectedCustomerKey&&actualCustomerKey&&expectedCustomerKey!==actualCustomerKey/);
   assert.match(source,/repairPending\(seq\)/);
-  assert.match(source,/version:'RC1196'/);
+  assert.match(source,/version:'RC1202'/);
 });
 
 
@@ -293,4 +293,47 @@ test('RC1196: bewusstes leeres Benutzer-Change beendet weiterhin den Reparatursc
   select.value='';
   locationChange({target:select,isTrusted:true});
   assert.equal(window.ExportHUBShipmentLocation1176.repairPending(),false);
+});
+
+
+test('RC1202: frischer Sendungsentwurf hat Vorrang vor stale globalem Active-Shipment',()=>{
+  const draft={customerId:'C1'};
+  const stale={customerId:'OLD',ref:'2RKTUZ'};
+  const state={shipment:draft,customers:[
+    {id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]},
+    {id:'OLD',locations:[{id:'OLD-L1',name:'Alt',address:'Alt'}]}
+  ]};
+  const timers=[],listeners={};
+  const select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'}]};
+  const document={documentElement:{},getElementById(id){return id==='index289LocationSelect'?select:null}};
+  const window={
+    document,
+    __EXPORTHUB_GET_STATE__:()=>state,
+    __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>stale,
+    ExportHUBClean:{runtime:{shipment:stale}},
+    addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},
+    setTimeout(fn,delay){timers.push({fn,delay});return timers.length}
+  };
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  const locationChange=listeners.change.find(x=>x.capture&&/onLocationChange/.test(String(x.fn))).fn;
+  locationChange({type:'change',target:select,isTrusted:true});
+
+  assert.equal(draft.locationId,'L1');
+  assert.equal(draft.selectedLocationId,'L1');
+  assert.equal(stale.locationId,undefined,'stale gespeicherte Sendung darf nicht durch den neuen Entwurf verändert werden');
+
+  draft.locationId='';draft.selectedLocationId='';select.value='';
+  const immediate=timers.find(x=>x.delay===0);
+  assert.ok(immediate,'sofortige Re-Render-Reparatur fehlt');
+  immediate.fn();
+
+  assert.equal(select.value,'L1');
+  assert.equal(draft.locationId,'L1');
+  assert.equal(stale.locationId,undefined);
+});
+
+test('RC1202: No-Ref-Synchronisation bleibt auf denselben Kunden begrenzt',()=>{
+  assert.match(source,/var draft=s&&s\.shipment;\s*if\(obj\(draft\)\)return draft/);
+  assert.match(source,/sameCustomer=!ref&&customerKey&&shipmentCustomerKey\(x\)===customerKey/);
+  assert.match(source,/version:'RC1202'/);
 });
