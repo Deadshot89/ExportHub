@@ -5,6 +5,7 @@ const https=require('https');
 const {createBlobServiceClient}=require('../shared/blob-rest');
 const {DOCUMENT_CONTAINER,migrateLegacyDocuments,legacyDocumentInventory}=require('../shared/document-blob-store');
 const {previewCompaction,buildAppliedDocument}=require('../shared/state-maintenance');
+const {CLEANUP_DATE,countPalletDay,cleanupPalletDay}=require('../shared/pallet-account-cleanup');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -132,18 +133,40 @@ async function migrateTestserviceDocuments(container,blob,currentRead){
  return{ok:true,migrated:true,environment:'testservice',found:initial.found,migratedCount:totalMigrated,remaining:0,bytesMoved:totalBytesMoved,batches,beforeBytes:currentRead.bytes,afterBytes:uploaded.bytes,backupBlob:backup.name,backupBytes:backup.bytes,backupVerified:true};
 }
 
+async function cleanupProductionPalletDay(container,blob,currentRead){
+ const current=currentRead.value;
+ const prepared=cleanupPalletDay(current,{date:CLEANUP_DATE,actor:'RC1208 GitHub Workflow',at:now()});
+ if(!prepared.changed){
+  const remaining=countPalletDay(current,CLEANUP_DATE);
+  return{ok:true,applied:false,noChange:true,verified:remaining===0,environment:'production',date:CLEANUP_DATE,deletedCount:0,totalDeleted:Number(prepared.totalDeleted||0),remaining,revision:Number(current&&current.revision||0),marker:prepared.marker||null,backupVerified:false};
+ }
+ const backup=await createVerifiedBackup(container,'production',current,{marker:'RC1208-pallet-cleanup',purpose:'rc1208-pallet-account-cleanup-backup'});
+ let uploaded;
+ try{uploaded=await uploadTeam(blob,prepared.team,currentRead.etag)}
+ catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Produktions-State wurde während der Palettenkonto-Bereinigung geändert. RC1208 hat den Write sicher abgebrochen.',409);throw e}
+ const verifiedRead=await readJson(blob),remaining=countPalletDay(verifiedRead.value,CLEANUP_DATE);
+ const marker=verifiedRead.value&&verifiedRead.value.state&&verifiedRead.value.state.rc1207PalletCleanup20260921At||null;
+ if(remaining!==0||!marker||text(marker.date)!==CLEANUP_DATE)throw error('PALLET_CLEANUP_VERIFY_FAILED','RC1208 konnte die dauerhafte Palettenkonto-Bereinigung nicht bestätigen.',500);
+ return{ok:true,applied:true,verified:true,environment:'production',date:CLEANUP_DATE,deletedCount:Number(prepared.deletedCount||0),totalDeleted:Number(marker.deletedCount||prepared.totalDeleted||0),remaining,revision:Number(verifiedRead.value&&verifiedRead.value.revision||0),marker,afterBytes:verifiedRead.bytes,backupBlob:backup.name,backupBytes:backup.bytes,backupVerified:true,uploadedBytes:uploaded.bytes};
+}
+
 module.exports=async function(context,req){
  try{
   if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return}
   if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
   if(!await githubOidcAuthorized(req))throw error('GLOBAL_ADMIN_OR_WORKFLOW_REQUIRED','RC1137 darf nur durch den signierten GitHub-Wartungsworkflow ausgeführt werden.',403);
   const payload=body(req),action=lower(payload.action),environment=environmentOf(req,payload);
-  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents')throw error('ACTION_INVALID','Erlaubt sind preview, apply und migrate-testservice-documents.',400);
+  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents und cleanup-pallet-20260921.',400);
   if(action==='migrate-testservice-documents'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Die RC1138-Dokumentmigration ist ausschließlich im TESTSERVICE freigegeben.',403);
+  if(action==='cleanup-pallet-20260921'&&environment!=='production')throw error('PRODUCTION_ONLY','Die RC1208-Palettenkonto-Bereinigung ist ausschließlich in Produktion freigegeben.',403);
   const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(teamBlobName(environment));
   const currentRead=await readJson(blob),current=currentRead.value;
   if(action==='migrate-testservice-documents'){
    context.res=json(200,await migrateTestserviceDocuments(container,blob,currentRead));
+   return;
+  }
+  if(action==='cleanup-pallet-20260921'){
+   context.res=json(200,await cleanupProductionPalletDay(container,blob,currentRead));
    return;
   }
   const preview=previewCompaction(current);
