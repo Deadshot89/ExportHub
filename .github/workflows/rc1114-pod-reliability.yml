@@ -9,6 +9,7 @@ on:
       - 'pickup.html'
       - 'RELEASE_MANIFEST.txt'
       - 'test/rc1114-pod-reliability.test.mjs'
+      - 'test/rc1209-graph-drive-target-resolver.test.mjs'
       - '.github/rc1114/**'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1114-pod-reliability.yml'
@@ -28,8 +29,8 @@ jobs:
           node-version: '20'
           package-manager-cache: false
 
-      - name: RC1114 Vertrags-Regression
-        run: node --test test/rc1114-pod-reliability.test.mjs
+      - name: RC1114/RC1209 Vertrags-Regression
+        run: node --test test/rc1114-pod-reliability.test.mjs test/rc1209-graph-drive-target-resolver.test.mjs
 
       - name: API-Abhängigkeiten installieren
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund
