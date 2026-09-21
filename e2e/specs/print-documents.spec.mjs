@@ -22,6 +22,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
         window.__RC1190_PRINT_CAPTURE__={
           title:String(document.title||''),
           text:String(document.body&&document.body.innerText||''),
+          bodyHtml:String(document.body&&document.body.innerHTML||''),
           html:String(document.documentElement&&document.documentElement.outerHTML||'')
         };
       }catch(_){}
@@ -141,9 +142,9 @@ test('RC1198 P1: Nur Deckblatt drucken erzeugt genau eine echte rc390-Deckblatts
 
   expect(capture).toBeTruthy();
   expect(capture.text).toContain('DEMO02');
-  expect(capture.html).toMatch(/\brc390-cover\b/i);
-  expect(capture.html).not.toMatch(/\brc390-load\b/i);
-  expect(capture.html).not.toMatch(/\brc390-cmr-wrap\b/i);
+  expect(capture.bodyHtml).toMatch(/class="[^"]*\brc390-cover\b/i);
+  expect(capture.bodyHtml).not.toMatch(/class="[^"]*\brc390-load\b/i);
+  expect(capture.bodyHtml).not.toMatch(/class="[^"]*\brc390-cmr-wrap\b/i);
 
   const result=await page.evaluate(()=>{
     const pages=[];
