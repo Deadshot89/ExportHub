@@ -7,3 +7,5 @@ test('carrier packaging rules remain separated',()=>{const s=fs.readFileSync(new
 test('UPS postcode validation prevents silent wrong zones',()=>{const x=load();assert.equal(x.validUpsPostal('NL','5657 EA'),true);assert.equal(x.validUpsPostal('NL','5657'),false);assert.equal(x.validUpsPostal('BE','1000'),true);assert.equal(x.validUpsPostal('FR','75001'),true);assert.equal(x.validUpsPostal('FR','ABCDE'),false);assert.equal(x.validUpsPostal('GB','SW1A 1AA'),true)});
 
 test('UPS individual carton weights are rated separately',()=>{const x=load();const expected=x.upsRate('3',10)+x.upsRate('3',23)+x.upsRate('3',35);assert.equal(x.upsIndividualBase('3',[10,23,35]),Math.round(expected*100)/100);assert.notEqual(x.upsIndividualBase('3',[10,23,35]),x.upsRate('3',68/3)*3)});
+
+test('UPS Standard export fuel is fixed to toolbox contract value',()=>{const x=load();assert.equal(x.fuelPct(),36);const base=27.71*3;assert.equal(Math.round(base*x.fuelPct())/100,29.93)});
