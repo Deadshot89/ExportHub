@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 const runtime=fs.readFileSync('assets/rc1203-deckblatt-print.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const browser=fs.readFileSync('e2e/specs/print-documents.spec.mjs','utf8');
+const demo=fs.readFileSync('assets/exporthub-demo-bootstrap.js','utf8');
 
 test('RC1203: tatsächlicher rc390-Deckblattdruck wird farbig und drucksicher dekoriert',()=>{
   assert.match(runtime,/\.rc390-cover,\.rc352-cover/);
@@ -53,7 +54,8 @@ test('RC1203: Runtime wird in Produktion TESTSERVICE und Demo gebaut',()=>{
 test('RC1203: Browser-Gate prüft echte Druckausgabe statt nur Quelltext',()=>{
   assert.match(browser,/data-rc1203-cover-enhanced/);
   assert.match(browser,/data-rc1203-cover-remark/);
-  assert.match(browser,/RC1203 TEST BEMERKUNG/);
+  assert.match(browser,/RC1203 Demo-Bemerkung/);
+  assert.match(demo,/comments:'RC1203 Demo-Bemerkung:/);
   assert.match(browser,/border:\\s\*12mm/);
 });
 
