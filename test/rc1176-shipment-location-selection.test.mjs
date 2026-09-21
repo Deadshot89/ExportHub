@@ -80,9 +80,9 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
 
 test('RC1176: Runtime wird in Produktion TESTSERVICE und Demo mitgebaut',()=>{
   assert.match(builder,/exporthub-rc1176-shipment-location/);
-  assert.match(builder,/assets\\/rc1176-shipment-location\\.js\\?v=1196/);
+  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1196/);
   assert.match(builder,/'assets\/rc1176-shipment-location\.js'/);
-  assert.match(builder,/shipmentLocationPersistence:'RC1191/);
+  assert.match(builder,/shipmentLocationPersistence:'RC1196/);
 });
 
 test('RC1176: Live-E2E verlangt stabile Dropdown-Auswahl, aktiven State und entfernte Standortwarnung',()=>{
