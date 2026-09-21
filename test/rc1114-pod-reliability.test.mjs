@@ -158,12 +158,12 @@ test('RC1195: POD-Ziel muss explizit konfiguriert sein und darf nicht auf ein pe
 
 
 test('RC1200: POD-Upload löst app-only Drive und Zielordner vor dem Schreiben eindeutig auf',()=>{
-  assert.match(graph,/\/users\/\\$\\{encodeURIComponent\\(user\\)\\}\/drives\\?\\$select=id,driveType,name/);
+  assert.ok(graph.includes('/users/${encodeURIComponent(user)}/drives?$select=id,driveType,name'));
   assert.match(graph,/GRAPH_DRIVE_NOT_FOUND/);
   assert.match(graph,/GRAPH_FOLDER_NOT_FOUND/);
   assert.match(graph,/GRAPH_TARGET_AMBIGUOUS/);
-  assert.match(graph,/candidateFolders\\(cfg\\.folder\\)/);
-  assert.match(graph,/Documents\/['"]? \\+ normalized|Documents\/['"]?\\s*\\+ normalized/);
-  assert.match(graph,/\/drives\/\\$\\{encodeURIComponent\\(target\\.driveId\\)\\}\/items\/\\$\\{encodeURIComponent\\(target\\.folderItemId\\)\\}:/);
-  assert.doesNotMatch(graph,/\/users\/\\$\\{encodeURIComponent\\(cfg\\.user\\)\\}\/drive\/root:/);
+  assert.ok(graph.includes('candidateFolders(cfg.folder)'));
+  assert.ok(graph.includes("out.push('Documents/' + normalized)"));
+  assert.ok(graph.includes('/drives/${encodeURIComponent(target.driveId)}/items/${encodeURIComponent(target.folderItemId)}:/${encodeURIComponent(name)}:/content'));
+  assert.ok(!graph.includes('/users/${encodeURIComponent(cfg.user)}/drive/root:'));
 });
