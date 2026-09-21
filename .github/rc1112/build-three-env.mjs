@@ -114,6 +114,99 @@ function patchDeckblattHighVisibility(html,file){
   });
   html=html.replace('.rc352-cover{padding:12mm!important}', '.rc352-cover{padding:7mm!important}');
   html=html.replace(/}\\n\.rc352-qr-slot\.empty/g,'}\n.rc352-qr-slot.empty');
+
+  const rc1198PrintCss=`
+/* RC1198: tatsächliches rc390-Deckblatt für Paletten-Sichtbarkeit */
+.rc390-cover.rc576-cover,.rc390-cover.rc601-cover{
+  background:linear-gradient(180deg,#facc15 0,#fde047 62mm,#fef08a 62mm,#facc15 100%)!important;
+  border:10mm solid #08245d!important;
+  border-top-width:20mm!important;
+  outline:2.5mm solid #2563eb!important;
+  outline-offset:-3.5mm!important;
+  padding:7mm!important;
+  box-shadow:inset 0 0 0 3.5mm #2563eb!important;
+  -webkit-print-color-adjust:exact!important;
+  print-color-adjust:exact!important
+}
+.rc390-cover .rc390-cover-top{
+  background:#dbeafe!important;
+  border:2mm solid #08245d!important;
+  border-bottom-width:2mm!important;
+  border-radius:8px!important;
+  padding:4mm!important
+}
+.rc390-cover .rc390-ref{
+  background:#08245d!important;
+  border:3mm solid #facc15!important;
+  border-radius:8px!important
+}
+.rc390-cover .rc390-ref>span,.rc390-cover .rc390-ref .num,.rc390-cover .rc390-ref .meta{
+  color:#fff!important
+}
+.rc390-cover .rc390-cover-ref{
+  margin-top:7mm!important;
+  padding:7mm!important;
+  background:#08245d!important;
+  border:4mm solid #facc15!important;
+  border-radius:8px!important;
+  color:#fff!important
+}
+.rc390-cover .rc390-cover-ref span{
+  color:#fff!important;
+  font-size:13px!important;
+  letter-spacing:.08em!important
+}
+.rc390-cover .rc390-cover-ref b{
+  color:#fff!important;
+  font-size:48px!important;
+  line-height:1!important;
+  letter-spacing:.12em!important
+}
+.rc390-cover .rc390-cover-grid{
+  margin-top:7mm!important;
+  gap:5mm!important
+}
+.rc390-cover .rc390-card{
+  background:#dbeafe!important;
+  border:2mm solid #08245d!important;
+  border-radius:8px!important;
+  padding:5mm!important;
+  -webkit-print-color-adjust:exact!important;
+  print-color-adjust:exact!important
+}
+.rc390-cover .rc390-label{
+  color:#08245d!important;
+  font-size:11px!important
+}
+.rc390-cover .rc390-card strong{
+  color:#0f172a!important;
+  font-size:17px!important
+}
+.rc390-cover .rc390-txt{
+  color:#0f172a!important;
+  font-size:14px!important;
+  line-height:1.45!important
+}
+.rc390-cover .rc390-cover-qr{
+  background:#fff!important;
+  border:1.5mm solid #08245d!important;
+  border-radius:8px!important;
+  padding:2mm!important;
+  -webkit-print-color-adjust:exact!important;
+  print-color-adjust:exact!important
+}
+.rc390-cover .rc390-cover-qr .rc390-qrslot,
+.rc390-cover .rc390-cover-qr.rc504-location-qr .rc390-qrslot,
+.rc390-cover .rc390-cover-qr.rc504-pickup-qr .rc390-qrslot{
+  background:#fff!important
+}
+`;
+  const styleOpen='<style id="exporthub-rc352-document-style">';
+  const styleStart=html.indexOf(styleOpen),styleEnd=styleStart<0?-1:html.indexOf('</style>',styleStart+styleOpen.length);
+  if(styleStart<0||styleEnd<0)throw new Error(file+': RC1198 echter Dokumentstil fehlt');
+  if(!html.includes('RC1198: tatsächliches rc390-Deckblatt')){
+    html=html.slice(0,styleEnd)+rc1198PrintCss+'\n'+html.slice(styleEnd)
+  }
   if(!covers)throw new Error(file+': RC1198 Deckblatt-Grundfläche nicht gefunden');
   if(!refs)throw new Error(file+': RC1198 Deckblatt-Referenzfeld nicht gefunden');
   if(!boxes)throw new Error(file+': RC1198 Deckblatt-Infoboxen nicht gefunden');
@@ -255,6 +348,10 @@ function patchHtml(file){
   if(!/\.rc352-cover-ref\{(?=[^}]*background:#08245d)(?=[^}]*border:4mm solid #facc15)[^}]*\}/.test(html))throw new Error(file+': RC1198 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
   if(!/\.rc352-cover-box\{(?=[^}]*background:#dbeafe)(?=[^}]*border:2mm solid #08245d)[^}]*\}/.test(html))throw new Error(file+': RC1198 farbige Deckblatt-Infoboxen fehlen');
   if(!/\.rc352-cover-check\{(?=[^}]*background:#fef3c7)(?=[^}]*border:2mm solid #08245d)[^}]*\}/.test(html))throw new Error(file+': RC1198 farbige Deckblatt-Prüffelder fehlen');
+  if(!html.includes('RC1198: tatsächliches rc390-Deckblatt für Paletten-Sichtbarkeit'))throw new Error(file+': RC1198 rc390 Paletten-Deckblatt fehlt');
+  if(!/\.rc390-cover\.rc576-cover,[^\{]*\.rc390-cover\.rc601-cover\{[^}]*#facc15[^}]*border:10mm solid #08245d!important[^}]*border-top-width:20mm!important/.test(html))throw new Error(file+': RC1198 echter rc390 Paletten-Hintergrund fehlt');
+  if(!/\.rc390-cover \.rc390-cover-ref\{[^}]*background:#08245d!important[^}]*border:4mm solid #facc15!important/.test(html))throw new Error(file+': RC1198 echter rc390 Referenz-Blickfang fehlt');
+  if(!/\.rc390-cover \.rc390-card\{[^}]*background:#dbeafe!important[^}]*border:2mm solid #08245d!important/.test(html))throw new Error(file+': RC1198 echte rc390 Infokarten fehlen');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
   if(file==='demo.html'){
     if(!html.includes("namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;"))throw new Error(file+': RC1131 Demo/Testservice-Origin nicht getrennt');
