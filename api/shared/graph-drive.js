@@ -93,6 +93,7 @@ function retryDelay(error, attempt) {
 }
 
 let tokenCache = null;
+let targetCache = null;
 async function accessToken(force) {
   const cfg = config();
   if (!force && tokenCache && tokenCache.expiresAt > Date.now() + 60000) return tokenCache.token;
@@ -118,21 +119,92 @@ function safeFileName(value) {
   return name || 'POD.pdf';
 }
 
-function encodedPath(folder, fileName) {
-  return `${folder}/${fileName}`.split('/').map(part => encodeURIComponent(text(part))).filter(Boolean).join('/');
+function normalizeFolder(value) {
+  const parts = text(value).replace(/\\/g, '/').split('/').map(part => part.trim()).filter(Boolean);
+  if (parts.length && parts[0].toLowerCase() === 'documents') parts.shift();
+  return parts.join('/');
+}
+
+function encodedPath(value) {
+  return normalizeFolder(value).split('/').map(part => encodeURIComponent(part)).filter(Boolean).join('/');
+}
+
+function isNotFound(error) {
+  return Number(error && error.statusCode || 0) === 404 || /^(ResourceNotFound|itemNotFound)$/i.test(text(error && error.code));
+}
+
+function targetError(code, message, cause) {
+  const error = new Error(message);
+  error.code = code;
+  error.statusCode = Number(cause && cause.statusCode || 502);
+  if (error.statusCode < 400) error.statusCode = 502;
+  return error;
+}
+
+function targetKey(cfg) {
+  return text(cfg.user).toLowerCase() + '\n' + normalizeFolder(cfg.folder).toLowerCase();
+}
+
+async function resolveTarget(token, cfg, force) {
+  const key = targetKey(cfg);
+  if (!force && targetCache && targetCache.key === key && targetCache.expiresAt > Date.now()) return targetCache.value;
+
+  let drive;
+  try {
+    drive = await request(
+      'GET',
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(cfg.user)}/drive?$select=id`,
+      { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      null,
+      8000
+    );
+  } catch (error) {
+    if (isNotFound(error)) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Ziellaufwerk wurde nicht gefunden.', error);
+    throw error;
+  }
+
+  const driveId = text(drive.body && drive.body.id);
+  if (!driveId) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Microsoft Graph hat keine Drive-ID für das konfigurierte Ziellaufwerk geliefert.');
+
+  const folder = normalizeFolder(cfg.folder);
+  if (!folder) throw targetError('GRAPH_FOLDER_INVALID', 'Der konfigurierte Microsoft-365-Zielordner ist ungültig.', { statusCode: 500 });
+
+  let item;
+  try {
+    item = await request(
+      'GET',
+      `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(driveId)}/root:/${encodedPath(folder)}?$select=id,name,folder,parentReference`,
+      { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      null,
+      8000
+    );
+  } catch (error) {
+    if (isNotFound(error)) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde nicht gefunden.', error);
+    throw error;
+  }
+
+  const folderId = text(item.body && item.body.id);
+  if (!folderId || !(item.body && item.body.folder)) {
+    throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Das konfigurierte Microsoft-365-Ziel ist kein erreichbarer Ordner.', { statusCode: 404 });
+  }
+
+  const value = { driveId, folderId, folder };
+  targetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
+  return value;
 }
 
 async function uploadPdf(buffer, fileName) {
   const cfg = config();
   const name = safeFileName(fileName);
-  const path = encodedPath(cfg.folder, name);
   let forceToken = false;
+  let forceTarget = false;
   let lastError = null;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const token = await accessToken(forceToken);
-      const result = await request('PUT', `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(cfg.user)}/drive/root:/${path}:/content`, {
+      const target = await resolveTarget(token, cfg, forceTarget);
+      const result = await request('PUT', `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(target.driveId)}/items/${encodeURIComponent(target.folderId)}:/${encodeURIComponent(name)}:/content`, {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/pdf',
         'Content-Length': buffer.length,
@@ -146,19 +218,28 @@ async function uploadPdf(buffer, fileName) {
         webUrl: text(item.webUrl),
         eTag: text(item.eTag),
         user: cfg.user,
-        folder: cfg.folder,
+        folder: target.folder,
         attempts: attempt
       };
     } catch (error) {
       lastError = error;
       if (error && error.statusCode === 401 && !forceToken) {
         tokenCache = null;
+        targetCache = null;
         forceToken = true;
+        forceTarget = true;
+        continue;
+      }
+      if (isNotFound(error) && attempt < 3 && !/^GRAPH_(DRIVE|FOLDER)_NOT_FOUND$/.test(text(error.code))) {
+        targetCache = null;
+        forceTarget = true;
+        forceToken = false;
         continue;
       }
       if (attempt < 3 && transient(error)) {
         await sleep(retryDelay(error, attempt));
         forceToken = false;
+        forceTarget = false;
         continue;
       }
       throw error;
@@ -167,4 +248,4 @@ async function uploadPdf(buffer, fileName) {
   throw lastError || Object.assign(new Error('Microsoft-365-POD-Sicherung ist fehlgeschlagen.'), { code: 'GRAPH_UPLOAD_FAILED', statusCode: 502 });
 }
 
-module.exports = { readiness, config, uploadPdf, safeFileName };
+module.exports = { readiness, config, uploadPdf, safeFileName, normalizeFolder };
