@@ -65,6 +65,6 @@ test('RC1159: Deckblatt-Referenzrahmen ist im finalen Print-Artefakt mindestens 
   execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=read('dist-rc1112/'+file);
-    assert.match(html,/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/,file+' hat keinen 3mm Referenzrahmen');
+    assert.match(html,/\.rc352-cover-ref\{(?=[^}]*background:#08245d)(?=[^}]*border:4mm solid #facc15)[^}]*\}/,file+' hat keinen mindestens 4mm starken Hochkontrast-Referenzrahmen');
   }
 });
