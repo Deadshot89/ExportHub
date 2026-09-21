@@ -33,12 +33,16 @@ function load(state={}){
   return sandbox.ExportHUBRC1166AvisReminder;
 }
 
-test('RC1166: Runtime ist syntaktisch gültig und nutzt keinen versteckten Direktversand',()=>{
+test('RC1207: Runtime ist syntaktisch gültig und nutzt direkten authentifizierten Versand',()=>{
   execFileSync(process.execPath,['--check','assets/rc1166-avis-reminder-overview.js'],{stdio:'pipe'});
-  assert.doesNotMatch(runtime,/\bfetch\s*\(/);
-  assert.doesNotMatch(runtime,/\/api\/.*mail/i);
-  assert.match(runtime,/mailto:/);
-  assert.match(runtime,/Der Versand erfolgt erst dort durch den Benutzer/);
+  assert.match(runtime,/fetch\('\/api\/avis-reminder-mail'/);
+  assert.match(runtime,/X-ExportHUB-Token/);
+  assert.match(runtime,/X-ExportHUB-Session/);
+  assert.match(runtime,/["']Authorization["']:'Bearer '\+t/);
+  assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
+  assert.match(runtime,/Erinnerungsmail senden/);
+  assert.match(runtime,/Erinnerungsmail erfolgreich an/);
+  assert.match(runtime,/Sendungshistorie protokolliert/);
 });
 
 test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahmekunden angeboten',()=>{
@@ -78,11 +82,14 @@ test('RC1166: Deutsch und Englisch sowie Kunde und Spedition haben eigene Erinne
   assert.match(api.body(sh,'customer','en',url),/lang=en/);
 });
 
-test('RC1166: Mailto enthält Empfänger, Betreff und sicheren Avis-Link URL-kodiert',()=>{
-  const api=load(),href=api.mailto('kunde@example.com','Erinnerung – Lieferavis ABC123','Link https://example.test/customer-avis.html?token=abc');
-  assert.match(href,/^mailto:kunde%40example\.com\?/);
-  assert.match(decodeURIComponent(href),/Erinnerung – Lieferavis ABC123/);
-  assert.match(decodeURIComponent(href),/customer-avis\.html\?token=abc/);
+test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpunkt',()=>{
+  assert.match(runtime,/shipmentId:idOf\(sh\)/);
+  assert.match(runtime,/reference:refOf\(sh\)/);
+  assert.match(runtime,/recipient:q\(email\)/);
+  assert.match(runtime,/target:target==='carrier'\?'carrier':'customer'/);
+  assert.match(runtime,/language:lang==='en'\?'en':'de'/);
+  assert.match(runtime,/avisUrl:url/);
+  assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
 });
 
 test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängerauswahl',()=>{
@@ -99,9 +106,11 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1166/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1207/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
-  assert.match(build,/avisReminderOverview:'RC1166/);
+  assert.match(build,/avisReminderOverview:'RC1207/);
+  assert.match(build,/avis-reminder-mail\/index\.js/);
+  assert.match(build,/shared\/graph-mail\.js/);
   assert.match(build,/podBackupStatusUi:'RC1165/);
   assert.match(build,/podGraphReadiness:'RC1164/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
