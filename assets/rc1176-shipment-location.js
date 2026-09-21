@@ -92,10 +92,15 @@ function scheduleRepairs(seq){
 }
 function onLocationChange(ev){
  var el=ev&&ev.target;if(!el||el.id!=='index289LocationSelect')return;
- var value=q(el.value),s=state(),active=activeShipment(s);
+ var value=q(el.value),s=state(),active=activeShipment(s),actualCustomerKey=shipmentCustomerKey(active)||shipmentCustomerKey(s&&s.shipment);
+ if(!value){
+  if(pending&&ev&&ev.isTrusted===false&&(!pending.customerKey||!actualCustomerKey||pending.customerKey===actualCustomerKey)){
+   scheduleRepairs(pendingSeq);repairPending(pendingSeq);return
+  }
+  pendingSeq++;pending=null;return
+ }
  pendingSeq++;
- if(!value){pending=null;return}
- pending={value:value,customerKey:shipmentCustomerKey(active)||shipmentCustomerKey(s&&s.shipment),expiresAt:Date.now()+18000};
+ pending={value:value,customerKey:actualCustomerKey,expiresAt:Date.now()+18000};
  applyLocation(value,pending.customerKey);
  scheduleRepairs(pendingSeq)
 }
@@ -122,5 +127,5 @@ if(typeof MutationObserver!=='undefined'){
   observer.observe(d.documentElement||d.body,{childList:true,subtree:true})
  }catch(_){}
 }
-w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1191',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
+w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1196',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
 })(window,document);
