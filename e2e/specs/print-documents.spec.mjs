@@ -78,11 +78,11 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toContain('DEMO02');
   expect(capture.html).toMatch(/\brc390-cover\b/i);
   expect(capture.html).toMatch(/data-rc1203-cover-enhanced="1"/i);
-  expect(capture.html).toMatch(/border-width:\s*20mm\s+12mm\s+12mm/i);
+  expect(capture.html).toMatch(/border-width:\s*5mm\s+3mm\s+3mm/i);
   expect(capture.html).toMatch(/border-style:\s*solid/i);
-  expect(capture.html).toMatch(/border-color:\s*rgb\(11,\s*31,\s*68\)/i);
-  expect(capture.html).toMatch(/outline:\s*rgb\(250,\s*204,\s*21\)\s+solid\s+3mm/i);
-  expect(capture.html).toMatch(/background:\s*linear-gradient\(rgb\(147,\s*197,\s*253\)/i);
+  expect(capture.html).toMatch(/border-color:\s*rgb\(51,\s*65,\s*85\)/i);
+  expect(capture.html).not.toMatch(/outline:\s*rgb\(250,\s*204,\s*21\)\s+solid\s+3mm/i);
+  expect(capture.html).toMatch(/background(?:-color)?:\s*rgb\(248,\s*250,\s*252\)/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
