@@ -44,6 +44,17 @@ test('RC1203: Deckblatt- und CMR-Einzeldruck bleiben verfügbar',()=>{
   assert.match(runtime,/function documentsViewVisible\(\)/);
 });
 
+test('RC1203: echter coverHtml-Renderer trägt Farbe und Bemerkung direkt in den Druckframe',()=>{
+  assert.match(build,/function patchRc1203ActualDeckblatt\(html,file\)/);
+  assert.match(build,/data-rc1203-cover-enhanced="1"/);
+  assert.match(build,/data-rc1203-cover-remark="1"/);
+  assert.match(build,/data-rc1203-reference-highlight="1"/);
+  assert.match(build,/border:12mm solid #0b1f44!important/);
+  assert.match(build,/border-top-width:20mm!important/);
+  assert.match(build,/background:#dbeafe!important/);
+  assert.match(build,/sh\.remark\|\|sh\.remarks\|\|sh\.bemerkung\|\|sh\.comments/);
+});
+
 test('RC1203: Runtime wird in Produktion TESTSERVICE und Demo gebaut',()=>{
   assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1203/);
   assert.match(build,/'assets\/rc1203-deckblatt-print\.js'/);
