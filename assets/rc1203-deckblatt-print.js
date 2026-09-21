@@ -46,10 +46,9 @@ function shipmentCreateVisible(){
   return !!d.querySelector('#rc573ShipmentShell,#rc363FixedShipmentLayout,[data-exporthub-rendered-view="shipment"]')
 }
 function documentsViewVisible(){
+  if(d.querySelector('#loadListDoc,[data-exporthub-rendered-view="documents"],[data-index352-action="print-all"]'))return true;
   var s=state(),view=q(s&&(s.view||s.currentView)).toLowerCase();
-  if(view==='documents'||view==='cmr')return true;
-  if(view&&view!=='documents'&&view!=='cmr')return false;
-  return !!d.querySelector('#loadListDoc,[data-exporthub-rendered-view="documents"],[data-index352-action="print-all"]')
+  return /^(?:documents?|cmr|loadlist|loadinglist)$/.test(view)
 }
 function actionHost(){
   return d.querySelector('#rc363FixedShipmentLayout .actions,#rc573ShipmentShell .actions,#rc363BlockCustomer')||d.querySelector('#content')
@@ -101,18 +100,21 @@ function markRecipient(cover){
 }
 function ensureRemark(cover,remark){
   if(!cover||!cover.ownerDocument)return false;
+  var value=q(remark)||'—';
   var old=cover.querySelector('[data-rc1203-cover-remark]');
+  if(old&&q(old.getAttribute('data-rc1203-remark-value'))===value)return true;
   if(!old){
     old=cover.ownerDocument.createElement('section');
     old.setAttribute('data-rc1203-cover-remark','1');
     cover.appendChild(old)
   }
+  old.setAttribute('data-rc1203-remark-value',value);
   old.innerHTML='';
   var title=cover.ownerDocument.createElement('div');
   title.textContent='Bemerkung';
   title.style.fontSize='13pt';title.style.fontWeight='900';title.style.textTransform='uppercase';title.style.letterSpacing='.4mm';
   var body=cover.ownerDocument.createElement('div');
-  body.textContent=q(remark)||'—';
+  body.textContent=value;
   body.style.fontSize='16pt';body.style.fontWeight='800';body.style.lineHeight='1.3';body.style.marginTop='2mm';body.style.whiteSpace='pre-wrap';
   old.appendChild(title);old.appendChild(body);
   old.style.display='block';old.style.marginTop='5mm';old.style.padding='5mm';
