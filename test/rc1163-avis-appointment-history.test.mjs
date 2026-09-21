@@ -43,6 +43,6 @@ test('RC1163: Historie zeigt alten und neuen Termin lesbar an',()=>{
 test('RC1163: Build liefert neue Historie mit neuem Cache-Key aus',()=>{
   assert.match(build,/assets\/rc1081-audit-history\.js\?v=1177/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
-  assert.match(build,/border:3mm solid #111827/);
+  assert.match(build,/border:4mm solid #facc15/);\n  assert.match(build,/deckblattHighVisibility:'RC1198/);
   assert.match(build,/assets\/rc1160-customer-portal-credentials\.js\?v=1162/);
 });
