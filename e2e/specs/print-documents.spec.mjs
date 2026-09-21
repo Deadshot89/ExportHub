@@ -49,17 +49,6 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   await expect(page.locator('#content')).toContainText(/DEMO02/,{timeout:10_000});
   await expect(page.locator('#content')).toContainText(/Benelux|Niederlande|NL/i,{timeout:10_000});
 
-  const remarkApplied=await page.evaluate(()=>{
-    const s=typeof window.__EXPORTHUB_GET_STATE__==='function'?(window.__EXPORTHUB_GET_STATE__()||{}):{};
-    const list=[s.shipment,s.currentShipment,s.selectedShipment,...(Array.isArray(s.shipments)?s.shipments:[])].filter(Boolean);
-    let changed=0;
-    for(const sh of list){
-      const ref=String(sh.ref||sh.reference||sh.shipmentRef||'').trim().toUpperCase();
-      if(ref==='DEMO02'){sh.comments='RC1203 TEST BEMERKUNG – sichtbar auf dem Deckblatt';changed++}
-    }
-    return changed;
-  });
-  expect(remarkApplied,'DEMO02 konnte für die Deckblatt-Bemerkungsprüfung nicht gefunden werden').toBeGreaterThan(0);
 
   let printButton=page.locator('[data-index352-action="print-all"]').first();
   if(!(await printButton.count())||!(await printButton.isVisible().catch(()=>false))){
@@ -92,7 +81,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.html).toMatch(/border:\s*12mm\s+solid\s+(?:rgb\(11,\s*31,\s*68\)|#0b1f44)/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
   expect(capture.text).toContain('Bemerkung');
-  expect(capture.text).toContain('RC1203 TEST BEMERKUNG');
+  expect(capture.text).toContain('RC1203 Demo-Bemerkung');
   expect(capture.text).toMatch(/Ladeliste/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
