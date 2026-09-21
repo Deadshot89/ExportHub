@@ -80,7 +80,7 @@ test('RC1176: unbekannte oder leere Standortwerte werden nicht künstlich in den
 
 test('RC1176: Runtime wird in Produktion TESTSERVICE und Demo mitgebaut',()=>{
   assert.match(builder,/exporthub-rc1176-shipment-location/);
-  assert.match(builder,/assets\/rc1176-shipment-location\.js\?v=1191/);
+  assert.match(builder,/assets\\/rc1176-shipment-location\\.js\\?v=1196/);
   assert.match(builder,/'assets\/rc1176-shipment-location\.js'/);
   assert.match(builder,/shipmentLocationPersistence:'RC1191/);
 });
@@ -170,7 +170,7 @@ test('RC1183: Standort-Hook sitzt auf window capture und läuft vor Index289 doc
 test('RC1183: Runtime kennzeichnet neuen Capture-Stand',()=>{
   assert.match(source,/w\.addEventListener\('change',onLocationChange,true\)/);
   assert.match(source,/w\.addEventListener\('input',onCustomerInput,true\)/);
-  assert.match(source,/version:'RC1191'/);
+  assert.match(source,/version:'RC1196'/);
 });
 
 
@@ -247,5 +247,50 @@ test('RC1191: Kundenfeld-change wird erst nach dem bestehenden Kundenhandler bew
   assert.match(source,/setTimeout\)\(function\(\)\{/);
   assert.match(source,/expectedCustomerKey&&actualCustomerKey&&expectedCustomerKey!==actualCustomerKey/);
   assert.match(source,/repairPending\(seq\)/);
-  assert.match(source,/version:'RC1191'/);
+  assert.match(source,/version:'RC1196'/);
+});
+
+
+test('RC1196: synthetisches leeres Re-Render-Change verwirft gültige Standortwahl nicht',()=>{
+  const shipment={customerId:'C1'};
+  const state={shipment,customers:[{id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]}]};
+  const timers=[],listeners={};
+  const select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'}]};
+  const document={documentElement:{},getElementById(id){return id==='index289LocationSelect'?select:null}};
+  const window={
+    document,
+    __EXPORTHUB_GET_STATE__:()=>state,
+    __EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,
+    addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},
+    setTimeout(fn,delay){timers.push({fn,delay});return timers.length}
+  };
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  const locationChange=listeners.change.find(x=>x.capture&&/onLocationChange/.test(String(x.fn))).fn;
+
+  locationChange({target:select,isTrusted:true});
+  assert.equal(shipment.locationId,'L1');
+
+  select.value='';
+  shipment.locationId='';shipment.selectedLocationId='';
+  locationChange({target:select,isTrusted:false});
+
+  assert.equal(select.value,'L1');
+  assert.equal(shipment.locationId,'L1');
+  assert.equal(shipment.selectedLocationId,'L1');
+  assert.equal(window.ExportHUBShipmentLocation1176.repairPending(),true);
+});
+
+test('RC1196: bewusstes leeres Benutzer-Change beendet weiterhin den Reparaturschutz',()=>{
+  const shipment={customerId:'C1'};
+  const state={shipment,customers:[{id:'C1',locations:[{id:'L1',name:'Werk 1',address:'A'}]}]};
+  const listeners={};
+  const select={id:'index289LocationSelect',value:'L1',options:[{value:''},{value:'L1'}]};
+  const document={documentElement:{},getElementById(){return select}};
+  const window={document,__EXPORTHUB_GET_STATE__:()=>state,__EXPORTHUB_GET_ACTIVE_SHIPMENT__:()=>shipment,addEventListener(name,fn,capture){listeners[name]=listeners[name]||[];listeners[name].push({fn,capture})},setTimeout(){return 1}};
+  vm.runInNewContext(source,{window,document,setTimeout:window.setTimeout,String,Array,Object,JSON,Date,console,MutationObserver:undefined});
+  const locationChange=listeners.change.find(x=>x.capture&&/onLocationChange/.test(String(x.fn))).fn;
+  locationChange({target:select,isTrusted:true});
+  select.value='';
+  locationChange({target:select,isTrusted:true});
+  assert.equal(window.ExportHUBShipmentLocation1176.repairPending(),false);
 });
