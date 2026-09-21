@@ -14,6 +14,9 @@ test('RC1198: Sendung erstellen erhält einen eigenen Nur-Deckblatt-Druckbutton'
   assert.match(runtime,/Nur Deckblatt drucken/);
   assert.match(runtime,/rc363BlockActions/);
   assert.match(runtime,/rc363SaveShipment/);
+  assert.match(runtime,/function hasOpenSave\(\)/);
+  assert.match(runtime,/rt\.dirty\|\|rt\.pendingSave\|\|rt\.saving/);
+  assert.match(runtime,/!a\|\|!saved\|\|hasOpenSave\(\)/);
   assert.match(runtime,/a\.print\('cover'\)/);
   assert.match(runtime,/Date\.now\(\)-startedAt>30000/);
 });
