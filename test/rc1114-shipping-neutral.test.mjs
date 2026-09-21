@@ -16,7 +16,7 @@ function api(){
 
 test('RC1114: Gate41 verschwindet aus sichtbaren Versandkostentexten',()=>{
   const a=api();
-  assert.equal(a.version,'RC1114');
+  assert.equal(a.version,'RC1114.1');
   const samples=[
     ['Paletten – Gate41','Paletten / Maut'],
     ['Gate41-Ergebnis','Paletten-/Maut-Ergebnis'],
@@ -29,6 +29,15 @@ test('RC1114: Gate41 verschwindet aus sichtbaren Versandkostentexten',()=>{
     assert.equal(out.includes('Gate41'),false,input+' darf Gate41 nicht mehr sichtbar enthalten');
     assert.match(out,new RegExp(expected.replace(/[.*+?^$\{\}()|[\]\\]/g,'\\$&')));
   }
+});
+
+test('RC1114.1: redundante Hinweise in Versandkosten werden ausgeblendet',()=>{
+  const a=api();
+  assert.equal(a.shouldSuppressNotice('Aus geöffneter Sendung: J6U8AT · 9000003001 · Essentra Components S.L.U.'),true);
+  assert.equal(a.shouldSuppressNotice('Paletten / Maut: Start- und Zielort müssen vollständig angegeben sein, bevor ein belastbarer Preis angezeigt werden kann.'),true);
+  assert.equal(a.shouldSuppressNotice('Gate41: Start- und Zielort müssen vollständig angegeben sein, bevor ein belastbarer Preis angezeigt werden kann.'),true);
+  assert.equal(a.shouldSuppressNotice('UPS-Ergebnis'),false);
+  assert.equal(a.shouldSuppressNotice('Paletten-/Maut-Ergebnis'),false);
 });
 
 test('RC1114: UPS-Begriffe bleiben unverändert',()=>{
