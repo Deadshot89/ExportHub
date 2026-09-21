@@ -67,7 +67,9 @@ test('RC1203: Browser-Gate prüft echte Druckausgabe statt nur Quelltext',()=>{
   assert.match(browser,/data-rc1203-cover-remark/);
   assert.match(browser,/RC1203 Demo-Bemerkung/);
   assert.match(demo,/comments:'RC1203 Demo-Bemerkung:/);
-  assert.match(browser,/border-width:\\s\*20mm/);\n  assert.match(browser,/border-color:\\s\*rgb/);\n  assert.match(browser,/outline:\\s\*rgb/);
+  assert.match(browser,/border-width:\\s\*20mm/);
+  assert.match(browser,/border-color:\\s\*rgb/);
+  assert.match(browser,/outline:\\s\*rgb/);
 });
 
 test('RC1203: geänderte Runtime und Browserprüfung sind syntaktisch gültig',()=>{
