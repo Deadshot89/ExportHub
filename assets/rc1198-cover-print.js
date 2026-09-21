@@ -8,6 +8,8 @@ function shipment(){var s=state();return s&&s.shipment&&typeof s.shipment==='obj
 function key(sh){return q(sh&&(sh.id||sh.shipmentId||sh._syncId||sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber))}
 function ref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber)).toUpperCase()}
 function api(){var a=w.ExportHUBIndex240;return a&&typeof a.find==='function'&&typeof a.print==='function'?a:null}
+function runtime(){return w.ExportHUBClean&&w.ExportHUBClean.runtime||{}}
+function hasOpenSave(){var rt=runtime();return !!(rt.dirty||rt.pendingSave||rt.saving)}
 function savedFor(sh){
  var a=api(),id=key(sh),r=ref(sh),saved=null;
  if(!a||!sh)return null;
@@ -25,7 +27,7 @@ function selectSaved(saved){
 }
 function printSaved(button){
  var sh=shipment(),a=api(),saved=savedFor(sh);
- if(!a||!saved)return false;
+ if(!a||!saved||hasOpenSave())return false;
  selectSaved(saved);
  if(button){button.disabled=false;button.textContent='🖨 Nur Deckblatt drucken'}
  a.print('cover');
@@ -45,6 +47,7 @@ function waitForSaved(button,startedAt){
 function printCover(button){
  if(printSaved(button))return false;
  var save=d.getElementById('rc363SaveShipment');
+ if(runtime().saving){if(button){button.disabled=true;button.textContent='Speicherung wird bestätigt …'}waitForSaved(button,Date.now());return false}
  if(!save)return fail(button,'Bitte die Sendung zuerst speichern. Der Speichern-Button wurde nicht gefunden.');
  if(save.disabled)return fail(button,'Die Sendung kann aktuell noch nicht gespeichert werden. Bitte Pflichtfelder prüfen.');
  if(button){button.disabled=true;button.textContent='Sendung wird gespeichert …'}
@@ -77,5 +80,5 @@ d.addEventListener('click',onClick,false);
 function schedule(){install();(w.setTimeout||setTimeout)(install,120);(w.setTimeout||setTimeout)(install,500)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved','exporthub:ready'].forEach(function(name){try{w.addEventListener(name,schedule)}catch(_){}});
-w.ExportHUBRC1198CoverPrint=Object.freeze({version:'RC1198',install:install,printCover:printCover,printSaved:printSaved,savedFor:savedFor});
+w.ExportHUBRC1198CoverPrint=Object.freeze({version:'RC1198',install:install,printCover:printCover,printSaved:printSaved,savedFor:savedFor,hasOpenSave:hasOpenSave});
 })(window,document);
