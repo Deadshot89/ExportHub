@@ -125,12 +125,26 @@ function normalizeFolder(value) {
   return parts.join('/');
 }
 
+function rawFolder(value) {
+  return text(value).replace(/\\\\/g, '/').split('/').map(part => part.trim()).filter(Boolean).join('/');
+}
+
+function candidateFolders(value) {
+  const raw = rawFolder(value);
+  const normalized = normalizeFolder(value);
+  const candidates = [];
+  if (normalized) candidates.push(normalized);
+  if (raw && raw.toLowerCase() !== normalized.toLowerCase()) candidates.push(raw);
+  if (raw && !raw.toLowerCase().startsWith('documents/')) candidates.push('Documents/' + raw);
+  return Array.from(new Set(candidates.filter(Boolean)));
+}
+
 function encodedPath(value) {
-  return normalizeFolder(value).split('/').map(part => encodeURIComponent(part)).filter(Boolean).join('/');
+  return rawFolder(value).split('/').map(part => encodeURIComponent(part)).filter(Boolean).join('/');
 }
 
 function isNotFound(error) {
-  return Number(error && error.statusCode || 0) === 404 || /^(ResourceNotFound|itemNotFound)$/i.test(text(error && error.code));
+  return Number(error && error.statusCode || 0) === 404 || /^(ResourceNotFound|Request_ResourceNotFound|itemNotFound)$/i.test(text(error && error.code));
 }
 
 function targetError(code, message, cause) {
@@ -142,55 +156,76 @@ function targetError(code, message, cause) {
 }
 
 function targetKey(cfg) {
-  return text(cfg.user).toLowerCase() + '\n' + normalizeFolder(cfg.folder).toLowerCase();
+  return text(cfg.user).toLowerCase() + '\\n' + rawFolder(cfg.folder).toLowerCase();
+}
+
+async function graphGet(token, path) {
+  return request(
+    'GET',
+    `https://graph.microsoft.com/v1.0${path}`,
+    { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+    null,
+    8000
+  );
+}
+
+async function listUserDrives(token, user) {
+  let result;
+  try {
+    result = await graphGet(token, `/users/${encodeURIComponent(user)}/drives?$select=id,driveType,name`);
+  } catch (error) {
+    if (isNotFound(error)) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto oder sein Laufwerk wurde nicht gefunden.', error);
+    throw error;
+  }
+  const drives = Array.isArray(result.body && result.body.value)
+    ? result.body.value.filter(item => text(item && item.id))
+    : [];
+  if (!drives.length) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto hat kein für ExportHUB erreichbares Laufwerk.', { statusCode: 404 });
+  return drives;
+}
+
+async function findFolder(token, driveId, folder) {
+  const path = encodedPath(folder);
+  if (!path) return null;
+  try {
+    const result = await graphGet(token, `/drives/${encodeURIComponent(driveId)}/root:/${path}?$select=id,name,folder,parentReference`);
+    const item = result.body || {};
+    const folderId = text(item.id);
+    if (!folderId || !item.folder) return null;
+    return { folderId, folder };
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
+  }
 }
 
 async function resolveTarget(token, cfg, force) {
   const key = targetKey(cfg);
   if (!force && targetCache && targetCache.key === key && targetCache.expiresAt > Date.now()) return targetCache.value;
 
-  let drive;
-  try {
-    drive = await request(
-      'GET',
-      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(cfg.user)}/drive?$select=id`,
-      { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-      null,
-      8000
-    );
-  } catch (error) {
-    if (isNotFound(error)) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Ziellaufwerk wurde nicht gefunden.', error);
-    throw error;
+  const folders = candidateFolders(cfg.folder);
+  if (!folders.length) throw targetError('GRAPH_FOLDER_INVALID', 'Der konfigurierte Microsoft-365-Zielordner ist ungültig.', { statusCode: 500 });
+
+  const drives = await listUserDrives(token, cfg.user);
+  const matches = [];
+
+  for (const drive of drives) {
+    const driveId = text(drive && drive.id);
+    if (!driveId) continue;
+    for (const folder of folders) {
+      const found = await findFolder(token, driveId, folder);
+      if (!found) continue;
+      matches.push({ driveId, folderId: found.folderId, folder: found.folder });
+      break;
+    }
   }
 
-  const driveId = text(drive.body && drive.body.id);
-  if (!driveId) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Microsoft Graph hat keine Drive-ID für das konfigurierte Ziellaufwerk geliefert.');
+  const unique = Array.from(new Map(matches.map(item => [item.driveId + ':' + item.folderId, item])).values());
+  if (!unique.length) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde in keinem erreichbaren Laufwerk gefunden.', { statusCode: 404 });
+  if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-Zielordner ist nicht eindeutig.', { statusCode: 409 });
 
-  const folder = normalizeFolder(cfg.folder);
-  if (!folder) throw targetError('GRAPH_FOLDER_INVALID', 'Der konfigurierte Microsoft-365-Zielordner ist ungültig.', { statusCode: 500 });
-
-  let item;
-  try {
-    item = await request(
-      'GET',
-      `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(driveId)}/root:/${encodedPath(folder)}?$select=id,name,folder,parentReference`,
-      { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-      null,
-      8000
-    );
-  } catch (error) {
-    if (isNotFound(error)) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde nicht gefunden.', error);
-    throw error;
-  }
-
-  const folderId = text(item.body && item.body.id);
-  if (!folderId || !(item.body && item.body.folder)) {
-    throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Das konfigurierte Microsoft-365-Ziel ist kein erreichbarer Ordner.', { statusCode: 404 });
-  }
-
-  const value = { driveId, folderId, folder };
-  targetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
-  return value;
+  targetCache = { key, value: unique[0], expiresAt: Date.now() + 10 * 60 * 1000 };
+  return unique[0];
 }
 
 async function uploadPdf(buffer, fileName) {
