@@ -66,7 +66,7 @@ test('RC1209: Documents-Präfix aus SharePoint-/OneDrive-Pfad wird auf Drive-Roo
   assert.equal(graph.normalizeFolder('003 Export/ExportHub/Abliefernachweise'),'003 Export/ExportHub/Abliefernachweise');
 });
 
-test('RC1209: POD-Upload löst Drive und Zielordner zuerst auf und schreibt über stabile IDs',async()=>{
+test('RC1213: POD-Upload umgeht fehlendes Default-OneDrive und sucht den Zielordner in erreichbaren Drives',async()=>{
   setEnv();
   const graph=fresh();
   await withFakeHttps((call,index)=>{
@@ -77,18 +77,25 @@ test('RC1209: POD-Upload löst Drive und Zielordner zuerst auf und schreibt übe
     }
     if(index===2){
       assert.equal(call.method,'GET');
-      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\?\$select=id$/);
-      return{status:200,body:{id:'drive-123'}};
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drives\?\$select=id,driveType,name$/);
+      assert.doesNotMatch(call.path,/\/drive\?/);
+      return{status:200,body:{value:[{id:'drive-personal',name:'OneDrive'},{id:'drive-shared',name:'Documents'}]}};
     }
     if(index===3){
-      assert.equal(call.method,'GET');
-      assert.match(call.path,/\/v1\.0\/drives\/drive-123\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
-      assert.doesNotMatch(call.path,/Documents/);
-      return{status:200,body:{id:'folder-456',name:'Abliefernachweise',folder:{},parentReference:{driveId:'drive-123'}}};
+      assert.match(call.path,/\/v1\.0\/drives\/drive-personal\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
+      return{status:404,body:{error:{code:'itemNotFound',message:'Folder not found'}}};
     }
     if(index===4){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-personal\/root:\/Documents\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
+      return{status:404,body:{error:{code:'itemNotFound',message:'Folder not found'}}};
+    }
+    if(index===5){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-shared\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
+      return{status:200,body:{id:'folder-456',name:'Abliefernachweise',folder:{},parentReference:{driveId:'drive-shared'}}};
+    }
+    if(index===6){
       assert.equal(call.method,'PUT');
-      assert.equal(call.path,'/v1.0/drives/drive-123/items/folder-456:/POD_TV9NKH.pdf:/content');
+      assert.equal(call.path,'/v1.0/drives/drive-shared/items/folder-456:/POD_TV9NKH.pdf:/content');
       assert.equal(call.body.toString('utf8'),'%PDF-test');
       return{status:201,body:{id:'file-789',name:'POD_TV9NKH.pdf',size:9,webUrl:'https://example.invalid/file'}};
     }
@@ -98,16 +105,40 @@ test('RC1209: POD-Upload löst Drive und Zielordner zuerst auf und schreibt übe
     assert.equal(result.id,'file-789');
     assert.equal(result.folder,'003 Export/ExportHub/Abliefernachweise');
     assert.equal(result.attempts,1);
-    assert.equal(calls.length,4);
+    assert.equal(calls.length,6);
+    assert.equal(calls.some(call=>/\/users\/[^/]+\/drive\?/.test(call.path)),false);
   });
 });
 
-test('RC1209: nicht auflösbares Ziellaufwerk wird eindeutig als GRAPH_DRIVE_NOT_FOUND klassifiziert',async()=>{
+test('RC1213: Documents-Präfix wird als zweiter kompatibler Ordnerpfad geprüft',async()=>{
   setEnv();
   const graph=fresh();
   await withFakeHttps((call,index)=>{
     if(index===1)return tokenResponse();
-    if(index===2)return{status:404,body:{error:{code:'ResourceNotFound',message:'Drive not found'}}};
+    if(index===2)return{status:200,body:{value:[{id:'drive-123',name:'Shared documents'}]}};
+    if(index===3){
+      assert.match(call.path,/root:\/003%20Export\/ExportHub\/Abliefernachweise/);
+      return{status:404,body:{error:{code:'ResourceNotFound',message:'Folder not found'}}};
+    }
+    if(index===4){
+      assert.match(call.path,/root:\/Documents\/003%20Export\/ExportHub\/Abliefernachweise/);
+      return{status:200,body:{id:'folder-456',folder:{}}};
+    }
+    if(index===5)return{status:201,body:{id:'file-789',name:'POD_TEST.pdf',size:9}};
+    throw new Error('Unerwarteter Aufruf');
+  },async()=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf');
+    assert.equal(result.id,'file-789');
+    assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
+  });
+});
+
+test('RC1213: nicht auflösbare Drive-Liste wird eindeutig als GRAPH_DRIVE_NOT_FOUND klassifiziert',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
     throw new Error('Unerwarteter Aufruf');
   },async()=>{
     await assert.rejects(
@@ -117,13 +148,30 @@ test('RC1209: nicht auflösbares Ziellaufwerk wird eindeutig als GRAPH_DRIVE_NOT
   });
 });
 
-test('RC1209: nicht auflösbarer Zielordner wird eindeutig als GRAPH_FOLDER_NOT_FOUND klassifiziert',async()=>{
+test('RC1213: Zielordner muss genau in einem erreichbaren Drive gefunden werden',async()=>{
   setEnv();
   const graph=fresh();
   await withFakeHttps((call,index)=>{
     if(index===1)return tokenResponse();
-    if(index===2)return{status:200,body:{id:'drive-123'}};
-    if(index===3)return{status:404,body:{error:{code:'ResourceNotFound',message:'Folder not found'}}};
+    if(index===2)return{status:200,body:{value:[{id:'drive-a'},{id:'drive-b'}]}};
+    if(index===3)return{status:200,body:{id:'folder-a',folder:{}}};
+    if(index===4)return{status:200,body:{id:'folder-b',folder:{}}};
+    throw new Error('Unerwarteter Aufruf');
+  },async()=>{
+    await assert.rejects(
+      graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf'),
+      error=>error&&error.code==='GRAPH_TARGET_AMBIGUOUS'&&error.statusCode===409
+    );
+  });
+});
+
+test('RC1213: nicht auffindbarer Zielordner wird als GRAPH_FOLDER_NOT_FOUND klassifiziert',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:200,body:{value:[{id:'drive-123'}]}};
+    if(index===3||index===4)return{status:404,body:{error:{code:'ResourceNotFound',message:'Folder not found'}}};
     throw new Error('Unerwarteter Aufruf');
   },async()=>{
     await assert.rejects(
