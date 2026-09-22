@@ -9,7 +9,7 @@ export default defineConfig({
   workers:1,
   retries:0,
   timeout:45_000,
-  expect:{timeout:10_000},
+  expect:{timeout:LIVE?20_000:10_000},
   reporter:[
     ['list'],
     ['html',{outputFolder:'playwright-report',open:'never'}]
@@ -21,7 +21,7 @@ export default defineConfig({
     trace:LIVE?'off':'retain-on-failure',
     screenshot:'only-on-failure',
     video:'off',
-    actionTimeout:10_000,
+    actionTimeout:LIVE?20_000:10_000,
     navigationTimeout:30_000
   },
   webServer:LIVE?undefined:{
