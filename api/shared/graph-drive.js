@@ -145,26 +145,69 @@ function targetKey(cfg) {
   return text(cfg.user).toLowerCase() + '\n' + normalizeFolder(cfg.folder).toLowerCase();
 }
 
+function personalSiteDescriptor(user) {
+  const value = text(user).toLowerCase();
+  const match = /^([^@]+)@([^@]+)$/.exec(value);
+  if (!match) return null;
+  const local = match[1];
+  const domain = match[2];
+  const tenantLabel = domain.split('.')[0].replace(/[^a-z0-9-]/g, '');
+  if (!tenantLabel) return null;
+  const slug = (local + '_' + domain)
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  if (!slug) return null;
+  return { host: tenantLabel + '-my.sharepoint.com', path: 'personal/' + slug };
+}
+
+async function resolvePersonalSiteDrive(token, user) {
+  const target = personalSiteDescriptor(user);
+  if (!target) return '';
+  try {
+    const site = await request(
+      'GET',
+      `https://graph.microsoft.com/v1.0/sites/${encodeURIComponent(target.host)}:/${target.path.split('/').map(part => encodeURIComponent(part)).join('/')}?$select=id`,
+      { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      null,
+      8000
+    );
+    const siteId = text(site.body && site.body.id);
+    if (!siteId) return '';
+    const drive = await request(
+      'GET',
+      `https://graph.microsoft.com/v1.0/sites/${encodeURIComponent(siteId)}/drive?$select=id`,
+      { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      null,
+      8000
+    );
+    return text(drive.body && drive.body.id);
+  } catch (error) {
+    if (isNotFound(error)) return '';
+    throw error;
+  }
+}
+
 async function resolveTarget(token, cfg, force) {
   const key = targetKey(cfg);
   if (!force && targetCache && targetCache.key === key && targetCache.expiresAt > Date.now()) return targetCache.value;
 
-  let drive;
+  let driveId = '';
   try {
-    drive = await request(
+    const drive = await request(
       'GET',
       `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(cfg.user)}/drive?$select=id`,
       { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
       null,
       8000
     );
+    driveId = text(drive.body && drive.body.id);
   } catch (error) {
-    if (isNotFound(error)) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Ziellaufwerk wurde nicht gefunden.', error);
-    throw error;
+    if (!isNotFound(error)) throw error;
   }
 
-  const driveId = text(drive.body && drive.body.id);
-  if (!driveId) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Microsoft Graph hat keine Drive-ID für das konfigurierte Ziellaufwerk geliefert.');
+  if (!driveId) driveId = await resolvePersonalSiteDrive(token, cfg.user);
+  if (!driveId) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Ziellaufwerk wurde weder als Benutzer-Drive noch als persönliches SharePoint-Drive gefunden.', { statusCode: 404 });
 
   const folder = normalizeFolder(cfg.folder);
   if (!folder) throw targetError('GRAPH_FOLDER_INVALID', 'Der konfigurierte Microsoft-365-Zielordner ist ungültig.', { statusCode: 500 });
