@@ -102,13 +102,54 @@ test('RC1209: POD-Upload löst Drive und Zielordner zuerst auf und schreibt übe
   });
 });
 
-test('RC1209: nicht auflösbares Ziellaufwerk wird eindeutig als GRAPH_DRIVE_NOT_FOUND klassifiziert',async()=>{
+test('RC1213: fehlendes Benutzer-Drive wird über die persönliche SharePoint-Site aufgelöst',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2){
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\?\$select=id$/);
+      return{status:404,body:{error:{code:'ResourceNotFound',message:'Drive not found'}}};
+    }
+    if(index===3){
+      assert.equal(call.method,'GET');
+      assert.equal(call.path,'/v1.0/sites/essentra-my.sharepoint.com:/personal/tobiaslimberg_essentra_com?$select=id');
+      return{status:200,body:{id:'essentra-my.sharepoint.com,site-guid,web-guid'}};
+    }
+    if(index===4){
+      assert.equal(call.method,'GET');
+      assert.match(call.path,/\/v1\.0\/sites\/essentra-my\.sharepoint\.com%2Csite-guid%2Cweb-guid\/drive\?\$select=id$/);
+      return{status:200,body:{id:'drive-personal'}};
+    }
+    if(index===5){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-personal\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
+      return{status:200,body:{id:'folder-456',name:'Abliefernachweise',folder:{}}};
+    }
+    if(index===6){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/drives/drive-personal/items/folder-456:/POD_TV9NKH.pdf:/content');
+      return{status:201,body:{id:'file-789',name:'POD_TV9NKH.pdf',size:9}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-789');
+    assert.equal(result.folder,'003 Export/ExportHub/Abliefernachweise');
+    assert.equal(calls.length,6);
+  });
+});
+
+test('RC1213: wenn Benutzer-Drive und persönliche SharePoint-Site fehlen bleibt GRAPH_DRIVE_NOT_FOUND fail-closed',async()=>{
   setEnv();
   const graph=fresh();
   await withFakeHttps((call,index)=>{
     if(index===1)return tokenResponse();
     if(index===2)return{status:404,body:{error:{code:'ResourceNotFound',message:'Drive not found'}}};
-    throw new Error('Unerwarteter Aufruf');
+    if(index===3){
+      assert.equal(call.path,'/v1.0/sites/essentra-my.sharepoint.com:/personal/tobiaslimberg_essentra_com?$select=id');
+      return{status:404,body:{error:{code:'ResourceNotFound',message:'Site not found'}}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index);
   },async()=>{
     await assert.rejects(
       graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf'),
