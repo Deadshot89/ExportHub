@@ -65,7 +65,7 @@ test('RC1165: Drei-Umgebungen-Build liefert die Runtime und behält kritische Fi
   assert.match(build,/assets\/rc1165-pod-backup-status\.js\?v=1165/);
   assert.match(build,/'assets\/rc1165-pod-backup-status\.js'/);
   assert.match(build,/podBackupStatusUi:'RC1220 shipment overview Azure\/archive backup status'/);
-  assert.match(build,/podGraphReadiness:'RC1164/);
+  assert.match(build,/podGraphReadiness:'RC1220/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
   assert.match(build,/border:3mm solid #111827/);
 });
