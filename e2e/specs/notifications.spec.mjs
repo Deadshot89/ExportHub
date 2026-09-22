@@ -20,6 +20,7 @@ function numberFrom(text){
 }
 
 test('RC1124 P0: Benachrichtigungen enthalten keine leeren Ghost-Aufgaben und Zähler stimmt',async({page},testInfo)=>{
+  if(process.env.EXPORTHUB_E2E_LIVE==='1')test.setTimeout(120_000);
   const runtime=attachRuntimeGuards(page,testInfo);
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
