@@ -223,7 +223,11 @@ test('RC1213: nicht auffindbarer Zielordner wird als GRAPH_FOLDER_NOT_FOUND klas
     if(index===1)return tokenResponse();
     if(index===2)return{status:200,body:{value:[{id:'drive-123'}]}};
     if(index===3||index===4)return{status:404,body:{error:{code:'ResourceNotFound',message:'Folder not found'}}};
-    throw new Error('Unerwarteter Aufruf');
+    if(index===5){
+      assert.match(call.path,/^\/v1\.0\/shares\/u!/);
+      return{status:404,body:{error:{code:'itemNotFound',message:'Explicit OneDrive target not found'}}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
   },async()=>{
     await assert.rejects(
       graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf'),
