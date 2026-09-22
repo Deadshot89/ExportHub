@@ -350,20 +350,6 @@ export function acknowledgePickupStatusNavigationAbort(state){
   return before-state.requestFailures.length;
 }
 
-export function acknowledgeReadStateNavigationAbort(state){
-  if(!state||!Array.isArray(state.requestFailures))return 0;
-  const before=state.requestFailures.length;
-  state.requestFailures=state.requestFailures.filter(line=>{
-    const value=clean(line);
-    if(!/^POST\s+/i.test(value)||!/net::ERR_ABORTED$/i.test(value))return true;
-    if(!/\/api\/exporthub-state\?/i.test(value))return true;
-    const query=value.split('?')[1]?.split(' · ')[0]||'';
-    const params=new URLSearchParams(query);
-    return params.get('mode')!=='read';
-  });
-  return before-state.requestFailures.length;
-}
-
 export function acknowledgeConfirmedStateSaveNavigationAbort(state){
   if(!state||!Array.isArray(state.requestFailures))return 0;
   const before=state.requestFailures.length;
@@ -374,6 +360,20 @@ export function acknowledgeConfirmedStateSaveNavigationAbort(state){
     const query=value.split('?')[1]?.split(' · ')[0]||'';
     const params=new URLSearchParams(query);
     return !(params.get('mode')==='save'&&params.get('ack')==='1');
+  });
+  return before-state.requestFailures.length;
+}
+
+export function acknowledgeReadStateNavigationAbort(state){
+  if(!state||!Array.isArray(state.requestFailures))return 0;
+  const before=state.requestFailures.length;
+  state.requestFailures=state.requestFailures.filter(line=>{
+    const value=clean(line);
+    if(!/^POST\s+/i.test(value)||!/net::ERR_ABORTED$/i.test(value))return true;
+    if(!/\/api\/exporthub-state\?/i.test(value))return true;
+    const query=value.split('?')[1]?.split(' · ')[0]||'';
+    const params=new URLSearchParams(query);
+    return params.get('mode')!=='read';
   });
   return before-state.requestFailures.length;
 }
