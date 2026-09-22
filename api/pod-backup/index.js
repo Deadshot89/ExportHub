@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const accessStore = require('../shared/public-access-store');
 const store = require('../shared/pickup-store');
 const podArchive = require('../shared/pod-archive');
-const graphDrive = require('../shared/graph-drive');
 
 function text(v) {
   return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').trim();
@@ -52,30 +51,13 @@ module.exports = async function(context, req) {
     const suppliedPdf = decodePdf(body.pdfBase64);
     let result;
     if (suppliedPdf) {
-      const fileName = graphDrive.safeFileName(body.fileName || podArchive.fileNameFor(record));
-      const drive = await graphDrive.uploadPdf(suppliedPdf, fileName);
-      const hash = crypto.createHash('sha256').update(suppliedPdf).digest('hex');
-      record = await store.mutateRecord(accessKey, resolved.environment, function(next) {
-        next.podBackup = Object.assign({}, next.podBackup || {}, {
-          status: 'saved',
-          driveSaved: true,
-          driveSavedAt: store.now(),
-          lastAttemptAt: store.now(),
-          attempts: Math.max(0, Number(next.podBackup && next.podBackup.attempts) || 0) + 1,
-          driveItemId: drive.id || '',
-          webUrl: drive.webUrl || '',
-          fileName: drive.name || fileName,
-          hash,
-          lastError: ''
-        });
-        next.updatedAt = store.now();
-        return next;
-      });
-      result = { backup: record.podBackup || {}, driveSaved: true, file: { name: drive.name || fileName, hash } };
+      const fileName = text(body.fileName) || podArchive.fileNameFor(record);
+      result = await podArchive.saveSuppliedPod(accessKey, resolved.environment, record, suppliedPdf, fileName);
+      record = result.record || record;
     } else {
       const existing = podArchive.automaticPod(record);
       result = existing
-        ? await podArchive.retryDriveBackup(accessKey, resolved.environment)
+        ? await podArchive.retryArchiveBackup(accessKey, resolved.environment)
         : await podArchive.ensureAutomaticPod(accessKey, resolved.environment, { copyToDrive: true });
       record = result.record || record;
     }
@@ -89,16 +71,17 @@ module.exports = async function(context, req) {
       ok: true,
       saved: backup.status === 'saved',
       azureSaved: backup.azureSaved === true,
+      archiveSaved: backup.archiveSaved === true,
       driveSaved: backup.driveSaved === true,
       status: backup.status || 'unknown',
-      savedAt: backup.driveSavedAt || backup.azureSavedAt || store.now(),
+      savedAt: backup.archiveSavedAt || backup.driveSavedAt || backup.azureSavedAt || store.now(),
       fileName: backup.fileName || result.file && result.file.name || podArchive.fileNameFor(record),
       webUrl: backup.webUrl || '',
       driveItemId: backup.driveItemId || '',
       hash: backup.hash || result.file && result.file.hash || '',
       attempts: Math.max(0, Number(backup.attempts) || 0),
       lastError: backup.lastError || '',
-      version: 'RC1114'
+      version: 'RC1220'
     });
   } catch (error) {
     context.log && context.log.error && context.log.error('pod-backup RC1114', error && error.code, error && error.message);

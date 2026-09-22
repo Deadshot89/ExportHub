@@ -52,11 +52,11 @@ function backupMeta(sh){
  const b=backupOf(sh);
  if(!b)return{key:'unknown',label:'POD-Sicherung: nicht bestätigt',title:'Für diese abgeholte Sendung liegt noch kein bestätigter Zweitsicherungsstatus vor.'};
  const status=q(b.status).toLowerCase();
- if(b.driveSaved===true){
-  return{key:'saved',label:b.azureSaved===true?'POD-Sicherung: Azure + M365 ✓':'POD-Sicherung: M365 ✓',title:'Die automatische POD-Zweitsicherung in Microsoft 365 ist bestätigt.'};
+ if(b.archiveSaved===true){
+  return{key:'saved',label:b.azureSaved===true?'POD-Sicherung: Azure + Archiv ✓':'POD-Sicherung: Archiv ✓',title:'Der POD ist primär gespeichert und die zusätzliche Azure-Archivkopie ist bestätigt.'};
  }
  if(b.azureSaved===true){
-  return{key:'pending',label:'POD-Sicherung: Azure ✓ · M365 offen',title:'Der POD ist primär gesichert. Die Microsoft-365-Zweitsicherung ist noch nicht bestätigt.'};
+  return{key:'pending',label:'POD-Sicherung: Azure ✓ · Archiv offen',title:'Der POD ist primär gesichert. Die zusätzliche Azure-Archivkopie ist noch nicht bestätigt.'};
  }
  if(/fail|error|fehler/.test(status)){
   return{key:'error',label:'POD-Sicherung: Nachholung nötig',title:'Die automatische POD-Zweitsicherung ist noch nicht erfolgreich abgeschlossen.'};

@@ -111,8 +111,8 @@ test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende S
   assert.match(build,/avisReminderOverview:'RC1207/);
   assert.match(build,/avis-reminder-mail\/index\.js/);
   assert.match(build,/shared\/graph-mail\.js/);
-  assert.match(build,/podBackupStatusUi:'RC1165/);
-  assert.match(build,/podGraphReadiness:'RC1164/);
+  assert.match(build,/podBackupStatusUi:'RC1220/);
+  assert.match(build,/podGraphReadiness:'RC1220/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
   assert.match(build,/border:3mm solid #111827/);
 });

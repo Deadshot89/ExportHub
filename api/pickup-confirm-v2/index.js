@@ -28,7 +28,7 @@ module.exports=async function(context,req){
    const sequence=historyOf(r).length+1,signatureMeta=await store.saveDriverSignature(clients,r,signature,String(sequence)),iso=store.now(),collectedAfter=collectedOf(r)+entered,remainingAfter=Math.max(0,expected-collectedAfter),complete=remainingAfter===0;
    const item={id:'pickup-'+sequence,sequence,type:complete?'complete':'partial',confirmedAt:iso,colliCount:entered,collectedAfter,remainingAfter,complete,driverName:store.sanitizeText(store.first(b,['driverName','pickupDriverName','confirmedBy']),180),licensePlate:plate,loaderName:loader.name,loaderId:loader.id,carrierName:spedition,returnedEuroPallets:Math.max(0,Math.round(Number(b.returnedEuroPallets||b.returnPallets||0)||0)),signatureBlobName:signatureMeta.signatureBlobName,signatureType:signatureMeta.signatureType,signatureSize:signatureMeta.signatureSize,signatureStoredAt:signatureMeta.signatureStoredAt,signatureStored:true};
    r.pickupHistory=historyOf(r).concat(item);r.collectedPickupCollis=collectedAfter;r.pickupCollectedColliCount=collectedAfter;r.remainingPickupCollis=remainingAfter;r.pickupRemainingColliCount=remainingAfter;r.partialPickup=!complete;r.status=complete?'confirmed':'partial';r.complete=complete;r.confirmedAt=complete?iso:null;r.lastPartialPickupAt=iso;r.updatedAt=iso;r.failedAttempts=0;r.lockedUntil=null;r.driverName=item.driverName;r.licensePlate=plate;r.loaderName=loader.name;r.loadedBy=loader.name;r.loader=loader.name;r.verlader=loader.name;r.loaderId=loader.id;r.carrierName=spedition;r.speditionName=spedition;r.carrier=spedition;r.spedition=spedition;r.enteredColliCount=entered;r.confirmedColliCount=entered;r.colliCountConfirmed=true;r.colliConfirmed=true;r.pickupColliCountConfirmed=true;r.signatureBlobName=signatureMeta.signatureBlobName;r.signatureType=signatureMeta.signatureType;r.signatureSize=signatureMeta.signatureSize;r.signatureStoredAt=signatureMeta.signatureStoredAt;r.podType='signed-loadlist';r.podFiles=store.realPodFiles(r);r.confirmationVersion='RC1114';
-   if(complete){uploadKey=crypto.randomBytes(32).toString('hex');r.uploadKeyHash=store.hash(uploadKey);r.uploadKeyExpiresAt=new Date(Date.now()+2*3600000).toISOString();r.podBackup=Object.assign({},r.podBackup||{},{status:'pending',driveSaved:false,lastError:'',lastAttemptAt:null})}
+   if(complete){uploadKey=crypto.randomBytes(32).toString('hex');r.uploadKeyHash=store.hash(uploadKey);r.uploadKeyExpiresAt=new Date(Date.now()+2*3600000).toISOString();r.podBackup=Object.assign({},r.podBackup||{},{status:'pending',archiveSaved:false,driveSaved:false,lastError:'',lastAttemptAt:null})}
    return r
   });
   const complete=completeOf(rec),history=historyOf(rec),last=history[history.length-1]||{};
@@ -47,7 +47,7 @@ module.exports=async function(context,req){
     context.log&&context.log.error&&context.log.error('RC1114 automatic POD archive failed',e&&e.code,e&&e.message);
     try{
      rec=await store.mutateRecord(accessKey,resolved.environment,function(r){
-      r.podBackup=Object.assign({},r.podBackup||{},{status:'error',driveSaved:false,lastAttemptAt:store.now(),attempts:Math.max(0,Number(r.podBackup&&r.podBackup.attempts)||0)+1,lastError:archiveFailure});
+      r.podBackup=Object.assign({},r.podBackup||{},{status:'error',archiveSaved:false,driveSaved:false,lastAttemptAt:store.now(),attempts:Math.max(0,Number(r.podBackup&&r.podBackup.attempts)||0)+1,lastError:archiveFailure});
       r.updatedAt=store.now();
       return r
      })
@@ -77,11 +77,12 @@ module.exports=async function(context,req){
    personalPinValidated:true,
    oneTimeConsumed:complete,
    podAzureSaved:complete?backup.azureSaved===true:false,
+   podArchiveSaved:complete?backup.archiveSaved===true:false,
    podDriveSaved:complete?backup.driveSaved===true:false,
    podBackupStatus:complete?(backup.status||archiveFailure&&'error'||'pending'):'not-applicable',
    podBackupError:complete?(backup.lastError||archiveFailure||''):'',
    podFileName:autoPod&&autoPod.name||backup.fileName||'',
-   version:'RC1114'
+   version:'RC1220'
   }));
  }catch(e){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 RC1114',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Abholung konnte nicht bestätigt werden.'})}
 };

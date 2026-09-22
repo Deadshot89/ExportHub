@@ -171,9 +171,9 @@ async function persistBackupState(accessKey, environment, patch, podFile) {
     return record;
   });
 }
-async function saveAzurePod(accessKey, environment, record, pdf) {
+async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {
   const got = await store.getRecord(accessKey, environment);
-  const name = fileNameFor(record);
+  const name = safeFilePart(requestedName || fileNameFor(record));
   const hash = crypto.createHash('sha256').update(pdf).digest('hex');
   const blobName = store.podPrefix(environment, accessKey) + '/automatic/' + safeFilePart(name);
   const blob = got.clients.pods.getBlockBlobClient(blobName);
@@ -211,6 +211,51 @@ async function saveAzurePod(accessKey, environment, record, pdf) {
   }, file);
   return { record: next, file, hash, pdf };
 }
+async function saveAzureArchive(accessKey, environment, record, pdf, file) {
+  const got = await store.getRecord(accessKey, environment);
+  const name = file && file.name || fileNameFor(record);
+  const hash = file && file.hash || crypto.createHash('sha256').update(pdf).digest('hex');
+  const blobName = 'rc1220/' + store.normalizeEnvironment(environment) + '/' + accessKey + '/' + hash + '-' + safeFilePart(name);
+  const blob = got.clients.podArchive.getBlockBlobClient(blobName);
+  try {
+    await blob.uploadData(pdf, {
+      blobHTTPHeaders: { blobContentType: 'application/pdf', blobCacheControl: 'no-store' },
+      metadata: {
+        accesshash: String(accessKey),
+        reference: String(record.reference || ''),
+        kind: 'automatic-pod-archive',
+        sha256: hash
+      },
+      conditions: { ifNoneMatch: '*' }
+    });
+  } catch (error) {
+    if (!(error && (error.statusCode === 409 || error.statusCode === 412))) throw error;
+    const props = await blob.getProperties();
+    const storedHash = text(props && props.metadata && props.metadata.sha256).toLowerCase();
+    const storedSize = Number(props && props.contentLength || 0);
+    if (storedHash !== hash.toLowerCase() || storedSize !== pdf.length) {
+      throw store.err('POD_ARCHIVE_CONFLICT', 'Die vorhandene POD-Archivkopie stimmt nicht mit dem Original überein.', 409);
+    }
+  }
+  const archiveSavedAt = store.now();
+  const next = await persistBackupState(accessKey, environment, {
+    status: 'saved',
+    azureSaved: true,
+    archiveSaved: true,
+    archiveSavedAt,
+    archiveType: 'azure-container',
+    archiveBlobName: blobName,
+    archiveContainer: store.POD_BACKUP_CONTAINER,
+    lastAttemptAt: archiveSavedAt,
+    fileName: name,
+    hash,
+    lastError: ''
+  });
+  return { record: next, blobName, container: store.POD_BACKUP_CONTAINER, hash };
+}
+function m365Enabled() {
+  return /^(1|true|yes|on)$/i.test(text(process.env.EXPORTHUB_POD_M365_ENABLED));
+}
 async function copyToDrive(accessKey, environment, record, pdf, file) {
   const attemptAt = store.now();
   try {
@@ -218,6 +263,7 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
     const next = await persistBackupState(accessKey, environment, {
       status: 'saved',
       azureSaved: true,
+      archiveSaved: record && record.podBackup && record.podBackup.archiveSaved === true,
       driveSaved: true,
       driveSavedAt: store.now(),
       lastAttemptAt: attemptAt,
@@ -230,12 +276,14 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
     return { ok: true, record: next, drive: result };
   } catch (error) {
     const next = await persistBackupState(accessKey, environment, {
-      status: 'pending',
+      status: record && record.podBackup && record.podBackup.archiveSaved === true ? 'saved' : 'pending',
       azureSaved: true,
+      archiveSaved: record && record.podBackup && record.podBackup.archiveSaved === true,
       driveSaved: false,
       lastAttemptAt: attemptAt,
       attempts: Math.max(0, Number(record && record.podBackup && record.podBackup.attempts) || 0) + 1,
-      lastError: text(error && (error.code ? error.code + ': ' : '') + (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')).slice(0, 500)
+      driveLastError: text(error && (error.code ? error.code + ': ' : '') + (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')).slice(0, 500),
+      lastError: record && record.podBackup && record.podBackup.archiveSaved === true ? '' : text(error && (error.code ? error.code + ': ' : '') + (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')).slice(0, 500)
     });
     return { ok: false, record: next, error };
   }
@@ -269,7 +317,11 @@ async function ensureAutomaticPod(accessKey, environment, options) {
     file = saved.file;
   }
   if (!file) file = automaticPod(record);
-  if (!options.copyToDrive) return { ok: true, record, file, pdf, backup: record.podBackup || {} };
+  const archive = await saveAzureArchive(accessKey, environment, record, pdf, file);
+  record = archive.record || record;
+  if (!options.copyToDrive || !m365Enabled() || !graphDrive.readiness().configured) {
+    return { ok: true, record, file, pdf, backup: record.podBackup || {}, archiveSaved: true, driveSaved: record.podBackup && record.podBackup.driveSaved === true };
+  }
 
   const drive = await copyToDrive(accessKey, environment, record, pdf, file);
   return {
@@ -278,17 +330,31 @@ async function ensureAutomaticPod(accessKey, environment, options) {
     file,
     pdf,
     backup: (drive.record || record).podBackup || {},
+    archiveSaved: true,
     driveSaved: drive.ok === true,
     driveError: drive.ok ? null : drive.error
   };
 }
-async function retryDriveBackup(accessKey, environment) {
+async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName) {
+  const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName);
+  const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
+  return { ok: true, record: archive.record || primary.record, file: primary.file, pdf, backup: (archive.record || primary.record).podBackup || {}, archiveSaved: true };
+}
+async function retryArchiveBackup(accessKey, environment) {
   const got = await store.getRecord(accessKey, environment);
-  const record = got.record || {};
+  let record = got.record || {};
   const existing = await readAutomaticPodBuffer(accessKey, environment, record);
   if (!existing) return ensureAutomaticPod(accessKey, environment, { copyToDrive: true });
-  const result = await copyToDrive(accessKey, environment, record, existing.buffer, existing.file);
-  return { ok: true, record: result.record || record, file: existing.file, backup: (result.record || record).podBackup || {}, driveSaved: result.ok === true, driveError: result.ok ? null : result.error };
+  const archive = await saveAzureArchive(accessKey, environment, record, existing.buffer, existing.file);
+  record = archive.record || record;
+  if (!m365Enabled() || !graphDrive.readiness().configured) {
+    return { ok: true, record, file: existing.file, backup: record.podBackup || {}, archiveSaved: true, driveSaved: record.podBackup && record.podBackup.driveSaved === true };
+  }
+  const drive = await copyToDrive(accessKey, environment, record, existing.buffer, existing.file);
+  return { ok: true, record: drive.record || record, file: existing.file, backup: (drive.record || record).podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
+}
+async function retryDriveBackup(accessKey, environment) {
+  return retryArchiveBackup(accessKey, environment);
 }
 async function reconcilePendingBackups(environment, options) {
   options = Object.assign({ limit: 10, minAgeMs: 5 * 60 * 1000 }, options || {});
@@ -325,7 +391,7 @@ async function reconcilePendingBackups(environment, options) {
     if (!complete || !record.confirmedAt || !record.signatureBlobName) continue;
     if (reference) referencePodReady += 1;
     const backup = record.podBackup && typeof record.podBackup === 'object' ? record.podBackup : {};
-    if (backup.driveSaved === true) {
+    if (backup.archiveSaved === true) {
       if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
       continue;
     }
@@ -349,11 +415,11 @@ async function reconcilePendingBackups(environment, options) {
   const errors = [];
   for (const candidate of selectedCandidates) {
     try {
-      const result = await retryDriveBackup(candidate.accessKey, environment);
+      const result = await retryArchiveBackup(candidate.accessKey, environment);
       const record = result && result.record || {};
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};
-      if (backup.driveSaved === true) {
+      if (backup.archiveSaved === true) {
         saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
       } else {
         pending.push({ reference: candidate.reference, error: text(backup.lastError || result && result.driveError && result.driveError.message).slice(0, 300) });
@@ -401,6 +467,9 @@ module.exports = {
   fileNameFor,
   createPodPdf,
   ensureAutomaticPod,
+  retryArchiveBackup,
   retryDriveBackup,
+  saveAzureArchive,
+  saveSuppliedPod,
   reconcilePendingBackups
 };

@@ -54,5 +54,5 @@ jobs:
           test -f dist-rc1112/api/pickup-confirm-v2/index.js
           grep -q '"pdf-lib": "1.17.1"' dist-rc1112/api/package.json
           grep -q 'timeout:90000' dist-rc1112/pickup.html
-          grep -q "podReliability:'RC1114 server-side Azure primary + Microsoft 365 retry'" .github/rc1112/build-three-env.mjs
+          grep -q "podReliability:'RC1220 Azure primary + immutable Azure archive; M365 optional'" .github/rc1112/build-three-env.mjs
           git diff --check
