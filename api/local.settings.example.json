@@ -13,12 +13,15 @@
     "EXPORTHUB_SESSION_DAYS": "365",
     "EXPORTHUB_AUTH_SIGNING_SECRET": "<optional-separates-zufaelliges-servergeheimnis; ohne-eintrag-wird-die-storage-verbindung-abgeleitet>",
     "EXPORTHUB_POD_CONTAINER": "exporthub-pod",
+    "EXPORTHUB_POD_BACKUP_CONTAINER": "exporthub-pod-backup",
+    "EXPORTHUB_POD_BACKUP_CONNECTION_STRING": "<optional; leer = gleiche Azure-Storage-Verbindung>",
     "EXPORTHUB_PICKUP_CONTAINER": "exporthub-pickup",
     "EXPORTHUB_GRAPH_TENANT_ID": "<Microsoft-Entra-Tenant-ID>",
     "EXPORTHUB_GRAPH_CLIENT_ID": "<App-Registrierung-Client-ID>",
     "EXPORTHUB_GRAPH_CLIENT_SECRET": "<nur-in-Azure-App-Settings-speichern>",
     "EXPORTHUB_POD_DRIVE_USER": "<explizites-gemeinsames-POD-Zielkonto>",
     "EXPORTHUB_POD_FOLDER": "<expliziter-gemeinsamer-POD-Zielordner>",
+    "EXPORTHUB_POD_M365_ENABLED": "false",
     "EXPORTHUB_CUSTOMER_PORTAL_KEY": "<nur-in-Azure-App-Settings-speichern; mindestens 32 zufällige Zeichen>",
     "EXPORTHUB_CUSTOMER_PORTAL_BLOB": "customer-portal-credentials.json"
   }
