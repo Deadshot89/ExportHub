@@ -8,7 +8,7 @@ const navigation=fs.readFileSync('e2e/specs/navigation.spec.mjs','utf8');
 const mutation=fs.readFileSync('e2e/specs/testservice-mutation.spec.mjs','utf8');
 
 test('RC1214: fehlgeschlagener sichtbarer Navigationsklick lässt den vorhandenen sicheren Fallback zu',()=>{
-  assert.match(helper,/const clicked=await item\.click\(\{timeout:7000\}\)\.then\(\(\)=>true\)\.catch\(\(\)=>false\);/);
+  assert.match(helper,/const clicked=await item\.click\(\{timeout:process\.env\.EXPORTHUB_E2E_LIVE==='1'\?12_000:7000\}\)\.then\(\(\)=>true\)\.catch\(\(\)=>false\);/);
   assert.match(helper,/if\(!clicked\)return false;/);
   assert.match(mutation,/openExportHubView\(page,'history',[\s\S]*allowProgrammaticFallback:true/);
 });
