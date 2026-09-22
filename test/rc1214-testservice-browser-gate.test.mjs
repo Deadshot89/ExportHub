@@ -39,15 +39,25 @@ test('RC1214: Navigation akzeptiert höchstens einen gezielten Pickup-Abbruch',(
   assert.match(navigation,/pickupNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
 });
 
-test('RC1218: View-Inhalt wird atomar aus dem DOM gelesen und wartet nicht auf einen abgelösten Locator',()=>{
-  const start=helper.indexOf('async function contentText(page)');
-  const end=helper.indexOf('async function waitForRequired',start);
+test('RC1218: nur ein abgebrochener POST-State-Read darf nach bestätigter Persistenz quittiert werden',()=>{
+  const start=helper.indexOf('export function acknowledgeReadStateNavigationAbort');
+  const end=helper.indexOf('export function acknowledgeConfirmedStateSaveNavigationAbort',start);
   assert.ok(start>=0&&end>start);
   const block=helper.slice(start,end);
-  assert.match(block,/page\.evaluate/);
-  assert.match(block,/document\.getElementById\('content'\)/);
-  assert.doesNotMatch(block,/locator\('#content'\)/);
-  assert.doesNotMatch(block,/\.innerText\(\)/);
+  assert.match(block,/\^POST\\s\+/);
+  assert.match(block,/\\\/api\\\/exporthub-state\\\?/);
+  assert.match(block,/params\.get\('mode'\)!=='read'/);
+  assert.match(block,/net::ERR_ABORTED\$/);
+  assert.doesNotMatch(block,/mode'\)==='save'/);
+});
+
+test('RC1218: Mutation-Gate quittiert State-Read erst nach direktem History-Persistenznachweis und höchstens einmal',()=>{
+  const persisted=mutation.indexOf("expect(historyPersisted.status).toBe(200)");
+  const settle=mutation.lastIndexOf('await settleStateSave(page,{timeout:25_000});');
+  const acknowledge=mutation.indexOf('acknowledgeReadStateNavigationAbort(runtime)');
+  const clean=mutation.indexOf('assertRuntimeClean(runtime,testInfo)');
+  assert.ok(persisted>=0&&settle>persisted&&acknowledge>settle&&clean>acknowledge);
+  assert.match(mutation,/readNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
 });
 
 test('RC1214: geänderte E2E-Dateien sind syntaktisch gültig',()=>{
