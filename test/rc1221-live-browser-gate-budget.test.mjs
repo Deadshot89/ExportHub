@@ -38,6 +38,8 @@ test('RC1221: längere Helper-Wartezeiten gelten ausschließlich live',()=>{
 
 test('RC1221: Gate bleibt streng ohne Retries und mit allen fünf Viewports',()=>{
   assert.match(config,/retries\s*:\s*0/);
+  assert.match(config,/expect:\{timeout:LIVE\?20_000:10_000\}/);
+  assert.match(config,/actionTimeout:LIVE\?20_000:10_000/);
   for(const [w,h] of [[360,800],[390,844],[768,1024],[1366,768],[1920,1080]]){
     assert.match(config,new RegExp('width\\s*:\\s*'+w+'[\\s\\S]{0,100}height\\s*:\\s*'+h));
   }
