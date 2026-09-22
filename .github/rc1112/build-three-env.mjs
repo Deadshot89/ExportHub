@@ -360,6 +360,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     customerPortalKeyDiagnostics:'RC1194 safe missing-vs-too-short readiness without secret or exact length disclosure',
     shipmentCreateUiE2E:'RC1171 UI customer + location + reference + colli + save + reload + overview',
     testserviceGateOrder:'RC1172 browser/mutation gate before external readiness blocker, production still protected',
+    testserviceE2EStability:'RC1222 45m signed fixture session + stale E2E purge',
     shipmentLocationPersistence:'RC1202 current draft priority + synthetic empty rerender guard',
     historyConsolidationAndReleaseNotes:'RC1177 duplicate shipment history cleanup + current Update changelog',
     visibleProductVersion:'RC1193 separate visible release label while RC1112 remains the stable build/deploy pipeline'
