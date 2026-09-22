@@ -23,7 +23,7 @@ test('RC1124 P0: Benachrichtigungen enthalten keine leeren Ghost-Aufgaben und ZÃ
   const runtime=attachRuntimeGuards(page,testInfo);
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
-  await openExportHubView(page,'notifications',['Benachrichtigungen','Benachrichtigungscenter'],/Benachrichtig|Aufgaben/i);
+  await openExportHubView(page,'notifications',['Benachrichtigungen','Benachrichtigungscenter'],/Benachrichtig|Aufgaben/i,{allowProgrammaticFallback:true});
 
   const center=page.locator('#index236NotificationCenter');
   await expect(center).toBeVisible();
