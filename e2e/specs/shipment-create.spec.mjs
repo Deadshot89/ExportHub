@@ -170,8 +170,9 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   const card=refNode.locator('xpath=ancestor::*[self::article or contains(@class,"card")][1]');
   const openButton=card.getByRole('button',{name:/Sendung öffnen|Öffnen|Bearbeiten|Übernehmen/i}).first();
   if(await openButton.count()){
-    await openButton.click();
-    await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:12_000});
+    await openButton.scrollIntoViewIfNeeded().catch(()=>{});
+    await openButton.click({timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?25_000:10_000});
+    await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?25_000:12_000});
     const reopenedRef=await referenceInput(page);
     await expect(reopenedRef).toHaveValue(ref);
   }
