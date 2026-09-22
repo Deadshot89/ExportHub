@@ -110,7 +110,7 @@ async function contentText(page){
 async function waitForRequired(page,requiredText){
   if(!requiredText)return;
   const rx=requiredText instanceof RegExp?requiredText:new RegExp(String(requiredText),'i');
-  await expect.poll(()=>contentText(page),{timeout:10_000,message:'Erwarteter View-Inhalt fehlt'}).toMatch(rx);
+  await expect.poll(()=>contentText(page),{timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?20_000:10_000,message:'Erwarteter View-Inhalt fehlt'}).toMatch(rx);
 }
 
 export async function waitReady(page){
@@ -211,7 +211,7 @@ export async function settleStateSave(page,options={}){
 
 async function activateNavigationTarget(page,item,module,requiredText){
   const before=await page.evaluate(()=>String(document.getElementById('content')?.innerText||''));
-  const clicked=await item.click({timeout:7000}).then(()=>true).catch(()=>false);
+  const clicked=await item.click({timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?12_000:7000}).then(()=>true).catch(()=>false);
   if(!clicked)return false;
   const changed=await page.waitForFunction(({mod,beforeText})=>{
     const content=document.getElementById('content');
@@ -223,7 +223,7 @@ async function activateNavigationTarget(page,item,module,requiredText){
       (el.getAttribute('aria-current')==='true'||el.classList.contains('active'))
     );
     return active||contentView===mod||bodyView===mod||text!==beforeText;
-  },{mod:module,beforeText:before},{timeout:5000}).then(()=>true).catch(()=>false);
+  },{mod:module,beforeText:before},{timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?10_000:5000}).then(()=>true).catch(()=>false);
   if(!changed)return false;
   await pause(220);
   await waitForRequired(page,requiredText);
