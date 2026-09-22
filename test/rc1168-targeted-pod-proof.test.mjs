@@ -21,9 +21,9 @@ test('RC1168: gezielter POD-Nachweis unterscheidet gefunden, bereit und bereits 
 });
 
 test('RC1168: bereits gesicherter Ziel-POD wird nicht erneut hochgeladen',()=>{
-  const already=archive.indexOf('if (backup.driveSaved === true)');
+  const already=archive.indexOf('if (backup.archiveSaved === true)');
   const candidate=archive.indexOf('candidates.push({',already);
-  assert.ok(already>0&&candidate>already,'driveSaved muss vor Kandidatenaufnahme geprüft werden');
+  assert.ok(already>0&&candidate>already,'archiveSaved muss vor Kandidatenaufnahme geprüft werden');
   assert.match(archive,/alreadySaved\.push/);
 });
 
@@ -35,7 +35,7 @@ test('RC1168: Workflow-Dispatch akzeptiert Referenz und Zielumgebung',()=>{
   assert.match(workflow,/reference:String\(process\.env\.TARGET_REFERENCE\|\|''\)\.trim\(\)\.toUpperCase\(\)/);
 });
 
-test('RC1168: gezielter Workflow akzeptiert nur bestätigten M365-Sicherungsstatus als Erfolg',()=>{
+test('RC1220: gezielter Workflow akzeptiert nur bestätigte Archiv-Zweitsicherung als Erfolg',()=>{
   assert.match(workflow,/\['already-saved','saved-now'\]\.includes\(v\.target\.status\)/);
   assert.match(workflow,/process\.exit\(5\)/);
   assert.match(workflow,/process\.exit\(6\)/);
@@ -54,7 +54,7 @@ test('RC1168: Diagnose bleibt frei von Graph-Secrets und Zielbenutzer',()=>{
 test('RC1168: API und Build enthalten den gezielten Nachweis',()=>{
   execFileSync(process.execPath,['--check','api/pod-backup-reconcile/index.js'],{stdio:'pipe'});
   execFileSync(process.execPath,['--check','api/shared/pod-archive.js'],{stdio:'pipe'});
-  assert.match(api,/version:\s*'RC1168'/);
+  assert.match(api,/version:\s*'RC1220'/);
   assert.match(api,/reference:\s*reference\s*\|\|\s*null/);
-  assert.match(build,/podTargetedProof:'RC1168 targeted reference proof/);
+  assert.match(build,/podTargetedProof:'RC1220 targeted archive proof/);
 });
