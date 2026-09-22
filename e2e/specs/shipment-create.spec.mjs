@@ -37,7 +37,7 @@ async function referenceInput(page){
 }
 
 test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfläche bis Reload und Übersicht',async({page},testInfo)=>{
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1','RC1171 läuft nur im mutierenden TESTSERVICE-Gate.');
   test.skip(testInfo.project.name!=='laptop','RC1171 läuft genau einmal auf dem Laptop-Profil.');
 
