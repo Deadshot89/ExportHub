@@ -102,11 +102,9 @@ async function openMenu(page){
 }
 
 async function contentText(page){
-  return page.evaluate(()=>{
-    const content=document.getElementById('content');
-    if(content)return String(content.innerText||'');
-    return String(document.body&&document.body.innerText||'');
-  }).catch(()=>'');
+  const content=page.locator('#content').first();
+  if(await content.count()&&await content.isVisible().catch(()=>false))return content.innerText();
+  return page.locator('body').innerText();
 }
 
 async function waitForRequired(page,requiredText){
@@ -348,6 +346,20 @@ export function acknowledgePickupStatusNavigationAbort(state){
   state.requestFailures=state.requestFailures.filter(line=>{
     const value=clean(line);
     return !(/^GET\s+/i.test(value)&&/\/api\/pickup-status\?/i.test(value)&&/net::ERR_ABORTED$/i.test(value));
+  });
+  return before-state.requestFailures.length;
+}
+
+export function acknowledgeReadStateNavigationAbort(state){
+  if(!state||!Array.isArray(state.requestFailures))return 0;
+  const before=state.requestFailures.length;
+  state.requestFailures=state.requestFailures.filter(line=>{
+    const value=clean(line);
+    if(!/^POST\s+/i.test(value)||!/net::ERR_ABORTED$/i.test(value))return true;
+    if(!/\/api\/exporthub-state\?/i.test(value))return true;
+    const query=value.split('?')[1]?.split(' · ')[0]||'';
+    const params=new URLSearchParams(query);
+    return params.get('mode')!=='read';
   });
   return before-state.requestFailures.length;
 }
