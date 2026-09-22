@@ -58,27 +58,41 @@ jobs:
               | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
           )"
 
-          payload="$(node -e "process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,reference:String(process.env.TARGET_REFERENCE||'').trim().toUpperCase()}))")"
-          response_file="$(mktemp)"
-          http_code="$(
-            curl -sS -L -o "$response_file" -w '%{http_code}' \
-              -H "Content-Type: application/json" \
-              -H "x-exporthub-github-oidc: $oidc_token" \
-              -H "x-exporthub-environment: $TARGET_ENV" \
-              -d "$payload" \
-              "$BASE_URL/api/pod-backup-reconcile" || true
-          )"
-          result="$(cat "$response_file")"
-          rm -f "$response_file"
+          for batch in $(seq 1 10); do
+            payload="$(node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,reference,drainAll:!reference}))")"
+            response_file="$(mktemp)"
+            http_code="$(
+              curl -sS -L -o "$response_file" -w '%{http_code}' \
+                -H "Content-Type: application/json" \
+                -H "x-exporthub-github-oidc: $oidc_token" \
+                -H "x-exporthub-environment: $TARGET_ENV" \
+                -d "$payload" \
+                "$BASE_URL/api/pod-backup-reconcile" || true
+            )"
+            result="$(cat "$response_file")"
+            rm -f "$response_file"
 
-          printf '%s\n' "$result" | node -e "
-            let s='';const status=Number(process.argv[1]||0);process.stdin.on('data',c=>s+=c).on('end',()=>{
-              let v={};try{v=JSON.parse(s||'{}')}catch(_){}
-              const pendingCodes=Array.from(new Set((Array.isArray(v.pending)?v.pending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim()).filter(Boolean))).slice(0,10);
-              const safe={httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,selected:v.selected,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,errorCount:v.errorCount,pendingCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
-              console.log('TESTSERVICE POD reconcile',JSON.stringify(safe));
-              if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0)process.exit(3);if(v.reference&&(!v.target||!['already-saved','saved-now'].includes(v.target.status)))process.exit(5);
-            })" "$http_code"
+            verdict="$(printf '%s\n' "$result" | node -e "
+              let s='';const status=Number(process.argv[1]||0);process.stdin.on('data',c=>s+=c).on('end',()=>{
+                let v={};try{v=JSON.parse(s||'{}')}catch(_){}
+                const pendingCodes=Array.from(new Set((Array.isArray(v.pending)?v.pending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim()).filter(Boolean))).slice(0,10);
+                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,scanned:v.scanned,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,errorCount:v.errorCount,pendingCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
+                console.error('TESTSERVICE POD reconcile',JSON.stringify(safe));
+                if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(3);
+                if(v.reference){if(!v.target||!['already-saved','saved-now'].includes(v.target.status))process.exit(5);process.stdout.write('done');return}
+                const eligible=Math.max(0,Number(v.eligible||0)),selected=Math.max(0,Number(v.selected||0)),skipped=Math.max(0,Number(v.skippedRecent||0));
+                if(eligible===0&&selected===0&&skipped===0){process.stdout.write('done');return}
+                if(selected<=0)process.exit(7);
+                process.stdout.write('again');
+              })" "$http_code" "$batch")"
+
+            if [ "$verdict" = "done" ]; then
+              exit 0
+            fi
+          done
+
+          echo 'TESTSERVICE POD reconcile: Backlog nach 10 Batches noch nicht vollständig geleert.' >&2
+          exit 8
 
   production:
     name: POD-Backup-Nachholung PRODUCTION
@@ -103,24 +117,38 @@ jobs:
               | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
           )"
 
-          payload="$(node -e "process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,reference:String(process.env.TARGET_REFERENCE||'').trim().toUpperCase()}))")"
-          response_file="$(mktemp)"
-          http_code="$(
-            curl -sS -L -o "$response_file" -w '%{http_code}' \
-              -H "Content-Type: application/json" \
-              -H "x-exporthub-github-oidc: $oidc_token" \
-              -H "x-exporthub-environment: $TARGET_ENV" \
-              -d "$payload" \
-              "$BASE_URL/api/pod-backup-reconcile" || true
-          )"
-          result="$(cat "$response_file")"
-          rm -f "$response_file"
+          for batch in $(seq 1 10); do
+            payload="$(node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,reference,drainAll:!reference}))")"
+            response_file="$(mktemp)"
+            http_code="$(
+              curl -sS -L -o "$response_file" -w '%{http_code}' \
+                -H "Content-Type: application/json" \
+                -H "x-exporthub-github-oidc: $oidc_token" \
+                -H "x-exporthub-environment: $TARGET_ENV" \
+                -d "$payload" \
+                "$BASE_URL/api/pod-backup-reconcile" || true
+            )"
+            result="$(cat "$response_file")"
+            rm -f "$response_file"
 
-          printf '%s\n' "$result" | node -e "
-            let s='';const status=Number(process.argv[1]||0);process.stdin.on('data',c=>s+=c).on('end',()=>{
-              let v={};try{v=JSON.parse(s||'{}')}catch(_){}
-              const pendingCodes=Array.from(new Set((Array.isArray(v.pending)?v.pending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim()).filter(Boolean))).slice(0,10);
-              const safe={httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,selected:v.selected,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,errorCount:v.errorCount,pendingCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
-              console.log('PRODUCTION POD reconcile',JSON.stringify(safe));
-              if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(4);if(v.reference&&(!v.target||!['already-saved','saved-now'].includes(v.target.status)))process.exit(6);
-            })" "$http_code"
+            verdict="$(printf '%s\n' "$result" | node -e "
+              let s='';const status=Number(process.argv[1]||0);process.stdin.on('data',c=>s+=c).on('end',()=>{
+                let v={};try{v=JSON.parse(s||'{}')}catch(_){}
+                const pendingCodes=Array.from(new Set((Array.isArray(v.pending)?v.pending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim()).filter(Boolean))).slice(0,10);
+                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,scanned:v.scanned,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,errorCount:v.errorCount,pendingCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
+                console.error('PRODUCTION POD reconcile',JSON.stringify(safe));
+                if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(4);
+                if(v.reference){if(!v.target||!['already-saved','saved-now'].includes(v.target.status))process.exit(6);process.stdout.write('done');return}
+                const eligible=Math.max(0,Number(v.eligible||0)),selected=Math.max(0,Number(v.selected||0)),skipped=Math.max(0,Number(v.skippedRecent||0));
+                if(eligible===0&&selected===0&&skipped===0){process.stdout.write('done');return}
+                if(selected<=0)process.exit(7);
+                process.stdout.write('again');
+              })" "$http_code" "$batch")"
+
+            if [ "$verdict" = "done" ]; then
+              exit 0
+            fi
+          done
+
+          echo 'PRODUCTION POD reconcile: Backlog nach 10 Batches noch nicht vollständig geleert.' >&2
+          exit 8
