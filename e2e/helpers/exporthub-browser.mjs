@@ -110,7 +110,8 @@ async function contentText(page){
 async function waitForRequired(page,requiredText){
   if(!requiredText)return;
   const rx=requiredText instanceof RegExp?requiredText:new RegExp(String(requiredText),'i');
-  await expect.poll(()=>contentText(page),{timeout:10_000,message:'Erwarteter View-Inhalt fehlt'}).toMatch(rx);
+  const timeout=process.env.EXPORTHUB_E2E_LIVE==='1'?25_000:10_000;
+  await expect.poll(()=>contentText(page),{timeout,message:'Erwarteter View-Inhalt fehlt'}).toMatch(rx);
 }
 
 export async function waitReady(page){
@@ -211,7 +212,8 @@ export async function settleStateSave(page,options={}){
 
 async function activateNavigationTarget(page,item,module,requiredText){
   const before=await page.evaluate(()=>String(document.getElementById('content')?.innerText||''));
-  const clicked=await item.click({timeout:7000}).then(()=>true).catch(()=>false);
+  const actionTimeout=process.env.EXPORTHUB_E2E_LIVE==='1'?20_000:7000;
+  const clicked=await item.click({timeout:actionTimeout}).then(()=>true).catch(()=>false);
   if(!clicked)return false;
   const changed=await page.waitForFunction(({mod,beforeText})=>{
     const content=document.getElementById('content');
@@ -223,7 +225,7 @@ async function activateNavigationTarget(page,item,module,requiredText){
       (el.getAttribute('aria-current')==='true'||el.classList.contains('active'))
     );
     return active||contentView===mod||bodyView===mod||text!==beforeText;
-  },{mod:module,beforeText:before},{timeout:5000}).then(()=>true).catch(()=>false);
+  },{mod:module,beforeText:before},{timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?15_000:5000}).then(()=>true).catch(()=>false);
   if(!changed)return false;
   await pause(220);
   await waitForRequired(page,requiredText);
@@ -237,8 +239,9 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
     `button[data-nav="${module}"]`,`a[data-nav="${module}"]`,`[role="button"][data-nav="${module}"]`
   ];
 
+  const maxPasses=process.env.EXPORTHUB_E2E_LIVE==='1'?5:3;
   attempts:
-  for(let pass=0;pass<3;pass++){
+  for(let pass=0;pass<maxPasses;pass++){
     const viewport=page.viewportSize();
     let menuOpened=false;
     if(responsiveViewport(page))menuOpened=(await menuIsOpen(page))||(await openMenu(page));
@@ -265,6 +268,7 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
       }
     }
     if(responsiveViewport(page))await openMenu(page);
+    if(process.env.EXPORTHUB_E2E_LIVE==='1')await pause(1200);
   }
 
   if(options.allowProgrammaticFallback===true){
