@@ -54,7 +54,7 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
 
   const newShipment=page.locator('#rc380NewShipment').or(page.getByRole('button',{name:/^\+?\s*Neue Sendung$/i})).first();
   await expect(newShipment).toBeVisible();
-  await newShipment.click();
+  await newShipment.click({timeout:process.env.EXPORTHUB_E2E_LIVE==='1'?25_000:10_000});
   await expect(page.locator('#rc363BlockCustomer')).toBeVisible();
 
   const customerSearch=page.locator('#shipmentCustomerSearch');
