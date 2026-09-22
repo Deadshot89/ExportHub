@@ -8,6 +8,7 @@ import {
   assertRuntimeClean,
   assertNoSourceLeak,
   assertNoHorizontalOverflow,
+  acknowledgeReadStateNavigationAbort,
   installE2ESession
 } from '../helpers/exporthub-browser.mjs';
 
@@ -187,5 +188,7 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
   await settleStateSave(page,{timeout:25_000});
+  const readNavigationAborts=acknowledgeReadStateNavigationAbort(runtime);
+  expect(readNavigationAborts,'Unerwartet viele beim View-Wechsel abgebrochene State-Reads').toBeLessThanOrEqual(1);
   await assertRuntimeClean(runtime,testInfo);
 });
