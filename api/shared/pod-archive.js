@@ -400,6 +400,7 @@ async function reconcilePendingBackups(environment, options) {
   const prefix = 'rc995/' + environment + '/records/';
   const candidates = [];
   const alreadySaved = [];
+  const integrityErrors = [];
   let scanned = 0;
   let skippedRecent = 0;
   let referenceMatched = 0;
@@ -442,7 +443,7 @@ async function reconcilePendingBackups(environment, options) {
         continue;
       }
       if (!integrity.repairable) {
-        errors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
+        integrityErrors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
         continue;
       }
       record = await persistBackupState(match[1].toLowerCase(), environment, {
@@ -471,7 +472,7 @@ async function reconcilePendingBackups(environment, options) {
   const selectedCandidates = candidates.slice(0, limit);
   const saved = [];
   const pending = [];
-  const errors = [];
+  const errors = integrityErrors.slice();
   for (const candidate of selectedCandidates) {
     try {
       const result = await retryArchiveBackup(candidate.accessKey, environment);
