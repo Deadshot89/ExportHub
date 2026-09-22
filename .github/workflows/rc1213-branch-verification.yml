@@ -1,0 +1,29 @@
+name: RC1213 Branch Verification
+on:
+  push:
+    branches:
+      - fix/rc1213-pod-graph-drive-discovery
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Graph resolver syntax
+        run: node --check api/shared/graph-drive.js
+      - name: Targeted POD resolver regressions
+        run: node --test --test-concurrency=1 test/rc1209-graph-drive-target-resolver.test.mjs test/rc1114-pod-reliability.test.mjs test/rc1167-pod-reconcile-diagnostics.test.mjs
+      - name: Full Node regression
+        run: npm test
+      - name: Three environment build
+        run: |
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+          test -s dist-rc1112/api/shared/graph-drive.js
+          grep -q '/users/.*\/drives' dist-rc1112/api/shared/graph-drive.js
