@@ -15,6 +15,7 @@ const OIDC_ISSUER='https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL='https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE='exporthub-e2e-fixture';
 const MAX_RETRIES=5;
+const E2E_SESSION_TTL_MS=45*60*1000;
 let oidcCache={expiresAt:0,keys:[]};
 
 function text(v){return String(v==null?'':v).trim()}
@@ -173,6 +174,23 @@ function e2eUser(runId){
   updatedAt:now()
  },0);
 }
+function e2eMarked(item){
+ return !!(item&&typeof item==='object'&&/^E2E-[A-Za-z0-9._-]{3,100}$/.test(text(item._e2eRunId)));
+}
+function removeStaleE2ERecords(state){
+ const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
+ let removed=0;
+ for(const [key,value] of Object.entries(out)){
+  if(!Array.isArray(value))continue;
+  const next=value.filter(item=>{
+   const match=e2eMarked(item);
+   if(match)removed++;
+   return !match;
+  });
+  out[key]=next;
+ }
+ return{state:out,removed};
+}
 function removeRunRecords(state,runId){
  const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
  let removed=0;
@@ -212,7 +230,7 @@ function signedSessionFor(user,runId,label){
   environment:'testservice',
   deviceId:'e2e-playwright',
   createdAt,
-  expiresAt:new Date(Date.now()+15*60*1000).toISOString(),
+  expiresAt:new Date(Date.now()+E2E_SESSION_TTL_MS).toISOString(),
   authVersion:Number(user.authVersion||0),
   mustChange:false
  };
@@ -222,18 +240,23 @@ async function prepare(runId){
  const mutation=await mutateTestTeam(async team=>{
   team.state=team.state&&typeof team.state==='object'?team.state:{};
   team.users=Array.isArray(team.users)?team.users:[];
+  const staleState=removeStaleE2ERecords(team.state);
+  team.state=staleState.state;
+  const beforeUsers=team.users.length;
+  team.users=team.users.filter(u=>!e2eMarked(u));
+  const purgedStaleUsers=beforeUsers-team.users.length;
   const user=e2eUser(runId),nonAdminUser=e2eNonAdminUser(runId),customer=e2eCustomer(runId);
   const ids=new Set([user.id,nonAdminUser.id]);
-  const cleaned=team.users.filter(u=>text(u&&u._e2eRunId)!==runId&&!ids.has(text(u&&u.id)));
+  const cleaned=team.users.filter(u=>!ids.has(text(u&&u.id)));
   cleaned.push(user,nonAdminUser);team.users=cleaned;
   team.state.users=cleaned.map(u=>publicUser(u,false));
-  team.state.customers=Array.isArray(team.state.customers)?team.state.customers.filter(x=>text(x&&x._e2eRunId)!==runId&&text(x&&x.id)!==customer.id):[];
+  team.state.customers=Array.isArray(team.state.customers)?team.state.customers.filter(x=>text(x&&x.id)!==customer.id):[];
   team.state.customers.push(customer);
-  return{team,value:{user,nonAdminUser,customer},changed:true};
+  return{team,value:{user,nonAdminUser,customer,purgedStaleRecords:staleState.removed,purgedStaleUsers},changed:true};
  });
  const user=mutation.result.user,nonAdminUser=mutation.result.nonAdminUser,customer=mutation.result.customer;
  const adminSession=signedSessionFor(user,runId,'ADMIN'),nonAdminSession=signedSessionFor(nonAdminUser,runId,'NONADMIN');
- return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:publicUser(user,false),expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,customer:{id:customer.id,account:customer.account,name:customer.name,locationId:customer.locations[0].id,locationName:customer.locations[0].name},teamBytes:mutation.bytes};
+ return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:publicUser(user,false),expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,customer:{id:customer.id,account:customer.account,name:customer.name,locationId:customer.locations[0].id,locationName:customer.locations[0].name},purgedStaleRecords:mutation.result.purgedStaleRecords,purgedStaleUsers:mutation.result.purgedStaleUsers,teamBytes:mutation.bytes};
 }
 async function cleanup(runId){
  const mutation=await mutateTestTeam(async team=>{
