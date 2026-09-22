@@ -38,7 +38,7 @@ test('RC1220: Azure-Primärspeicher wird vor unveränderlicher Azure-Archivkopie
   assert.ok(azure>=0,'Azure-Speicherung fehlt');
   assert.ok(second>azure,'Azure-Archivkopie muss nach dem Primärspeicher erfolgen');
   assert.ok(drive>second,'Optionales Microsoft 365 darf erst nach bestätigtem Azure-Archiv erfolgen');
-  for(const marker of ["status: 'azure-saved'","status: 'pending'","status: 'saved'","kind: 'automatic-pod'"]){
+  for(const marker of ["status: 'azure-saved'","status: 'saved'","archiveSaved: true","kind: 'automatic-pod'","kind: 'automatic-pod-archive'"]){
     assert.ok(archive.includes(marker),marker+' fehlt');
   }
 });
