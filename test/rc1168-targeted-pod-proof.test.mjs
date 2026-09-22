@@ -32,7 +32,7 @@ test('RC1168: Workflow-Dispatch akzeptiert Referenz und Zielumgebung',()=>{
   assert.match(workflow,/reference:\s*\n\s*description:/);
   assert.match(workflow,/environment:\s*\n[\s\S]*default:\s*production/);
   assert.match(workflow,/TARGET_REFERENCE:/);
-  assert.match(workflow,/reference:String\(process\.env\.TARGET_REFERENCE\|\|''\)\.trim\(\)\.toUpperCase\(\)/);
+  assert.match(workflow,/const reference=String\(process\.env\.TARGET_REFERENCE\|\|''\)\.trim\(\)\.toUpperCase\(\)/);
 });
 
 test('RC1221: gezielter Workflow akzeptiert nur bestätigte Archiv-Zweitsicherung als Erfolg',()=>{
