@@ -44,3 +44,9 @@ test('RC1214: geänderte E2E-Dateien sind syntaktisch gültig',()=>{
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
 });
+
+
+test('RC1215: mutierender TESTSERVICE-Live-Test hat ausreichend Zeit für mehrere bestätigte Azure-Saves',()=>{
+  assert.match(mutation,/test\.setTimeout\(180_000\);/);
+  assert.doesNotMatch(mutation,/test\.setTimeout\(90_000\);/);
+});
