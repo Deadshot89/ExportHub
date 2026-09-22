@@ -133,13 +133,46 @@ test('RC1213: Documents-Präfix wird als zweiter kompatibler Ordnerpfad geprüft
   });
 });
 
-test('RC1213: nicht auflösbare Drive-Liste wird eindeutig als GRAPH_DRIVE_NOT_FOUND klassifiziert',async()=>{
+test('RC1216: nicht auflösbarer Benutzer wird über die persönliche SharePoint-Site aufgelöst',async()=>{
   setEnv();
   const graph=fresh();
   await withFakeHttps((call,index)=>{
     if(index===1)return tokenResponse();
     if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
-    throw new Error('Unerwarteter Aufruf');
+    if(index===3){
+      assert.equal(call.method,'GET');
+      assert.equal(call.path,'/v1.0/sites/essentra-my.sharepoint.com:/personal/tobiaslimberg_essentra_com?$select=id');
+      return{status:200,body:{id:'essentra-my.sharepoint.com,site-guid,web-guid'}};
+    }
+    if(index===4){
+      assert.match(call.path,/\/v1\.0\/sites\/essentra-my\.sharepoint\.com%2Csite-guid%2Cweb-guid\/drive\?\$select=id,driveType,name$/);
+      return{status:200,body:{id:'drive-personal',name:'Documents'}};
+    }
+    if(index===5){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-personal\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
+      return{status:200,body:{id:'folder-456',folder:{}}};
+    }
+    if(index===6)return{status:201,body:{id:'file-789',name:'POD_TV9NKH.pdf',size:9}};
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-789');
+    assert.equal(result.folder,'003 Export/ExportHub/Abliefernachweise');
+    assert.equal(calls.length,6);
+  });
+});
+
+test('RC1216: fehlender Benutzer und fehlende persönliche SharePoint-Site bleiben fail-closed',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
+    if(index===3){
+      assert.equal(call.path,'/v1.0/sites/essentra-my.sharepoint.com:/personal/tobiaslimberg_essentra_com?$select=id');
+      return{status:404,body:{error:{code:'ResourceNotFound',message:'Site not found'}}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index);
   },async()=>{
     await assert.rejects(
       graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf'),

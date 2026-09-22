@@ -169,19 +169,51 @@ async function graphGet(token, path) {
   );
 }
 
+function personalSiteDescriptor(user) {
+  const value = text(user).toLowerCase();
+  const match = /^([^@]+)@([^@]+)$/.exec(value);
+  if (!match) return null;
+  const tenant = match[2].split('.')[0].replace(/[^a-z0-9-]/g, '');
+  const account = (match[1] + '_' + match[2])
+    .replace(/[^a-z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  if (!tenant || !account) return null;
+  return { host: tenant + '-my.sharepoint.com', sitePath: 'personal/' + account };
+}
+
+async function personalSiteDrive(token, user) {
+  const descriptor = personalSiteDescriptor(user);
+  if (!descriptor) return null;
+  const encodedSitePath = descriptor.sitePath.split('/').map(part => encodeURIComponent(part)).join('/');
+  try {
+    const site = await graphGet(token, `/sites/${encodeURIComponent(descriptor.host)}:/${encodedSitePath}?$select=id`);
+    const siteId = text(site.body && site.body.id);
+    if (!siteId) return null;
+    const drive = await graphGet(token, `/sites/${encodeURIComponent(siteId)}/drive?$select=id,driveType,name`);
+    return drive.body && text(drive.body.id) ? drive.body : null;
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
+  }
+}
+
 async function listUserDrives(token, user) {
-  let result;
+  let result = null;
   try {
     result = await graphGet(token, `/users/${encodeURIComponent(user)}/drives?$select=id,driveType,name`);
   } catch (error) {
-    if (isNotFound(error)) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto oder sein Laufwerk wurde nicht gefunden.', error);
-    throw error;
+    if (!isNotFound(error)) throw error;
   }
-  const drives = Array.isArray(result.body && result.body.value)
+  const drives = Array.isArray(result && result.body && result.body.value)
     ? result.body.value.filter(item => text(item && item.id))
     : [];
-  if (!drives.length) throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto hat kein für ExportHUB erreichbares Laufwerk.', { statusCode: 404 });
-  return drives;
+  if (drives.length) return drives;
+
+  const personalDrive = await personalSiteDrive(token, user);
+  if (personalDrive) return [personalDrive];
+
+  throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto und seine persönliche SharePoint-Site wurden nicht gefunden.', { statusCode: 404 });
 }
 
 async function findFolder(token, driveId, folder) {
