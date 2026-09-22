@@ -182,19 +182,49 @@ function personalSiteDescriptor(user) {
   return { host: tenant + '-my.sharepoint.com', sitePath: 'personal/' + account };
 }
 
-async function personalSiteDrive(token, user) {
+function personalFolderWebUrl(user, folder) {
   const descriptor = personalSiteDescriptor(user);
-  if (!descriptor) return null;
-  const encodedSitePath = descriptor.sitePath.split('/').map(part => encodeURIComponent(part)).join('/');
+  if (!descriptor) return '';
+  const raw = rawFolder(folder);
+  if (!raw) return '';
+  const drivePath = /^documents\//i.test(raw) ? raw : 'Documents/' + raw;
+  const encoded = drivePath.split('/').map(part => encodeURIComponent(part)).join('/');
+  return 'https://' + descriptor.host + '/' + descriptor.sitePath + '/' + encoded;
+}
+
+function sharingToken(url) {
+  const value = text(url);
+  if (!value) return '';
+  return 'u!' + Buffer.from(value, 'utf8').toString('base64')
+    .replace(/=+$/g, '')
+    .replace(/\//g, '_')
+    .replace(/\+/g, '-');
+}
+
+async function resolvePersonalFolderTarget(token, user, folder) {
+  const webUrl = personalFolderWebUrl(user, folder);
+  const shareId = sharingToken(webUrl);
+  if (!shareId) return null;
   try {
-    const site = await graphGet(token, `/sites/${encodeURIComponent(descriptor.host)}:/${encodedSitePath}?$select=id`);
-    const siteId = text(site.body && site.body.id);
-    if (!siteId) return null;
-    const drive = await graphGet(token, `/sites/${encodeURIComponent(siteId)}/drive?$select=id,driveType,name`);
-    return drive.body && text(drive.body.id) ? drive.body : null;
+    const result = await graphGet(token, `/shares/${shareId}/driveItem?$select=id,name,folder,parentReference`);
+    const item = result.body || {};
+    const folderId = text(item.id);
+    const driveId = text(item.parentReference && item.parentReference.driveId);
+    if (!folderId || !driveId || !item.folder) return null;
+    return {
+      driveId,
+      folderId,
+      folder: /^documents\//i.test(rawFolder(folder)) ? rawFolder(folder) : 'Documents/' + rawFolder(folder)
+    };
   } catch (error) {
     if (isNotFound(error)) return null;
-    throw error;
+    const wrapped = targetError(
+      'GRAPH_SHARE_TARGET_FAILED',
+      'Das explizite Microsoft-365-POD-Ziel konnte nicht über seine OneDrive-URL aufgelöst werden.',
+      error
+    );
+    wrapped.graphCode = text(error && error.code);
+    throw wrapped;
   }
 }
 
@@ -205,15 +235,9 @@ async function listUserDrives(token, user) {
   } catch (error) {
     if (!isNotFound(error)) throw error;
   }
-  const drives = Array.isArray(result && result.body && result.body.value)
+  return Array.isArray(result && result.body && result.body.value)
     ? result.body.value.filter(item => text(item && item.id))
     : [];
-  if (drives.length) return drives;
-
-  const personalDrive = await personalSiteDrive(token, user);
-  if (personalDrive) return [personalDrive];
-
-  throw targetError('GRAPH_DRIVE_NOT_FOUND', 'Das konfigurierte Microsoft-365-Zielkonto und seine persönliche SharePoint-Site wurden nicht gefunden.', { statusCode: 404 });
 }
 
 async function findFolder(token, driveId, folder) {
@@ -253,11 +277,14 @@ async function resolveTarget(token, cfg, force) {
   }
 
   const unique = Array.from(new Map(matches.map(item => [item.driveId + ':' + item.folderId, item])).values());
-  if (!unique.length) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde in keinem erreichbaren Laufwerk gefunden.', { statusCode: 404 });
   if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-Zielordner ist nicht eindeutig.', { statusCode: 409 });
 
-  targetCache = { key, value: unique[0], expiresAt: Date.now() + 10 * 60 * 1000 };
-  return unique[0];
+  let value = unique[0] || null;
+  if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
+  if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
+
+  targetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
+  return value;
 }
 
 async function uploadPdf(buffer, fileName) {
