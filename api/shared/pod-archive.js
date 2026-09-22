@@ -211,6 +211,44 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName) 
   }, file);
   return { record: next, file, hash, pdf };
 }
+async function verifyAzureArchiveBlob(blob, expectedHash, expectedSize, fullRead) {
+  const props = await blob.getProperties();
+  const storedHash = text(props && props.metadata && props.metadata.sha256).toLowerCase();
+  const storedSize = Number(props && props.contentLength || 0);
+  const wantedHash = text(expectedHash).toLowerCase();
+  const wantedSize = Number(expectedSize || 0);
+  if (!wantedHash || !wantedSize || storedHash !== wantedHash || storedSize !== wantedSize) {
+    throw store.err('POD_ARCHIVE_INTEGRITY_FAILED', 'Die POD-Archivkopie stimmt nicht mit dem gesicherten Original überein.', 409);
+  }
+  if (fullRead) {
+    const read = await store.readBuffer(blob);
+    const actualHash = crypto.createHash('sha256').update(read.buffer).digest('hex');
+    if (read.buffer.length !== wantedSize || actualHash !== wantedHash) {
+      throw store.err('POD_ARCHIVE_INTEGRITY_FAILED', 'Die POD-Archivkopie hat die Integritätsprüfung nicht bestanden.', 409);
+    }
+  }
+  return { ok: true, verifiedAt: store.now(), hash: wantedHash, size: wantedSize };
+}
+async function checkAzureArchive(clients, record, accessKey, fullRead) {
+  const backup = record && record.podBackup && typeof record.podBackup === 'object' ? record.podBackup : {};
+  const file = automaticPod(record);
+  const blobName = text(backup.archiveBlobName);
+  const expectedHash = text(backup.hash || file && file.hash).toLowerCase();
+  const expectedSize = Math.max(0, Number(file && file.size || 0));
+  if (!blobName || !expectedHash || !expectedSize) {
+    return { ok: false, repairable: true, code: 'POD_ARCHIVE_STATE_INCOMPLETE', message: 'Archivstatus ist unvollständig und wird neu aufgebaut.' };
+  }
+  const blob = clients.podArchive.getBlobClient(blobName);
+  try {
+    const verified = await verifyAzureArchiveBlob(blob, expectedHash, expectedSize, fullRead === true);
+    return Object.assign({ blobName }, verified);
+  } catch (error) {
+    if (error && error.statusCode === 404) {
+      return { ok: false, repairable: true, code: 'POD_ARCHIVE_NOT_FOUND', message: 'Die bestätigte POD-Archivkopie fehlt und wird neu erstellt.' };
+    }
+    return { ok: false, repairable: false, code: text(error && error.code) || 'POD_ARCHIVE_VERIFY_FAILED', message: text(error && error.message) || 'POD-Archivkopie konnte nicht verifiziert werden.' };
+  }
+}
 async function saveAzureArchive(accessKey, environment, record, pdf, file) {
   const got = await store.getRecord(accessKey, environment);
   const name = file && file.name || fileNameFor(record);
@@ -230,19 +268,15 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
     });
   } catch (error) {
     if (!(error && (error.statusCode === 409 || error.statusCode === 412))) throw error;
-    const props = await blob.getProperties();
-    const storedHash = text(props && props.metadata && props.metadata.sha256).toLowerCase();
-    const storedSize = Number(props && props.contentLength || 0);
-    if (storedHash !== hash.toLowerCase() || storedSize !== pdf.length) {
-      throw store.err('POD_ARCHIVE_CONFLICT', 'Die vorhandene POD-Archivkopie stimmt nicht mit dem Original überein.', 409);
-    }
   }
+  const verified = await verifyAzureArchiveBlob(blob, hash, pdf.length, true);
   const archiveSavedAt = store.now();
   const next = await persistBackupState(accessKey, environment, {
     status: 'saved',
     azureSaved: true,
     archiveSaved: true,
     archiveSavedAt,
+    archiveVerifiedAt: verified.verifiedAt,
     archiveType: 'azure-container',
     archiveBlobName: blobName,
     archiveContainer: store.POD_BACKUP_CONTAINER,
@@ -370,6 +404,8 @@ async function reconcilePendingBackups(environment, options) {
   let skippedRecent = 0;
   let referenceMatched = 0;
   let referencePodReady = 0;
+  let verifiedCount = 0;
+  let repairedStateCount = 0;
 
   for await (const item of clients.records.listBlobsFlat({ prefix })) {
     scanned += 1;
@@ -390,13 +426,36 @@ async function reconcilePendingBackups(environment, options) {
     const complete = (typeof store.pickupComplete === 'function' && store.pickupComplete(record)) || record.status === 'confirmed' || !!record.confirmedAt;
     if (!complete || !record.confirmedAt || !record.signatureBlobName) continue;
     if (reference) referencePodReady += 1;
-    const backup = record.podBackup && typeof record.podBackup === 'object' ? record.podBackup : {};
+    let backup = record.podBackup && typeof record.podBackup === 'object' ? record.podBackup : {};
+    let forceRepair = false;
     if (backup.archiveSaved === true) {
-      if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
-      continue;
+      const lastVerifiedMs = Date.parse(backup.archiveVerifiedAt || '');
+      const fullRead = !!reference || !Number.isFinite(lastVerifiedMs) || Date.now() - lastVerifiedMs >= 24 * 60 * 60 * 1000;
+      const integrity = await checkAzureArchive(clients, record, match[1].toLowerCase(), fullRead);
+      if (integrity.ok) {
+        verifiedCount += 1;
+        if (fullRead) {
+          record = await persistBackupState(match[1].toLowerCase(), environment, { archiveVerifiedAt: integrity.verifiedAt, lastError: '' });
+          backup = record.podBackup || backup;
+        }
+        if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
+        continue;
+      }
+      if (!integrity.repairable) {
+        errors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
+        continue;
+      }
+      record = await persistBackupState(match[1].toLowerCase(), environment, {
+        status: 'pending',
+        archiveSaved: false,
+        lastError: integrity.code + ': ' + integrity.message
+      });
+      backup = record.podBackup || backup;
+      forceRepair = true;
+      repairedStateCount += 1;
     }
     const lastAttemptMs = Date.parse(backup.lastAttemptAt || '');
-    if (!reference && minAgeMs > 0 && Number.isFinite(lastAttemptMs) && Date.now() - lastAttemptMs < minAgeMs) {
+    if (!forceRepair && !reference && minAgeMs > 0 && Number.isFinite(lastAttemptMs) && Date.now() - lastAttemptMs < minAgeMs) {
       skippedRecent += 1;
       continue;
     }
@@ -454,6 +513,8 @@ async function reconcilePendingBackups(environment, options) {
     alreadySavedCount: alreadySaved.length,
     pendingCount: pending.length,
     errorCount: errors.length,
+    verifiedCount,
+    repairedStateCount,
     target,
     saved,
     alreadySaved,
@@ -470,6 +531,8 @@ module.exports = {
   retryArchiveBackup,
   retryDriveBackup,
   saveAzureArchive,
+  verifyAzureArchiveBlob,
+  checkAzureArchive,
   saveSuppliedPod,
   reconcilePendingBackups
 };
