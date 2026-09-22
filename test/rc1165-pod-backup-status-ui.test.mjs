@@ -31,25 +31,25 @@ test('RC1165: Vor Abholung wird kein POD-Backupstatus eingeblendet',()=>{
   assert.equal(x.backupMeta({status:'Erstellt',podBackup:{azureSaved:true,driveSaved:false}}),null);
 });
 
-test('RC1165: bestätigte M365-Zweitsicherung wird grün dargestellt',()=>{
+test('RC1220: bestätigte Azure-Archivkopie wird grün dargestellt',()=>{
   const x=api();
-  const meta=x.backupMeta({status:'POD vorhanden',podBackup:{status:'saved',azureSaved:true,driveSaved:true}});
+  const meta=x.backupMeta({status:'POD vorhanden',podBackup:{status:'saved',azureSaved:true,archiveSaved:true,driveSaved:false}});
   assert.equal(meta.key,'saved');
-  assert.match(meta.label,/Azure \+ M365/);
+  assert.match(meta.label,/Azure \+ Archiv/);
 });
 
-test('RC1165: Azure-only zeigt M365 offen statt falschem Erfolg',()=>{
+test('RC1220: Azure-Primärspeicher ohne Archivkopie bleibt offen',()=>{
   const x=api();
-  const meta=x.backupMeta({actualPickupAt:'2026-09-18T10:00:00Z',podBackup:{status:'pending',azureSaved:true,driveSaved:false,lastError:'SECRET-INTERNAL-ERROR'}});
+  const meta=x.backupMeta({actualPickupAt:'2026-09-18T10:00:00Z',podBackup:{status:'pending',azureSaved:true,archiveSaved:false,driveSaved:false,lastError:'SECRET-INTERNAL-ERROR'}});
   assert.equal(meta.key,'pending');
-  assert.match(meta.label,/Azure ✓ · M365 offen/);
+  assert.match(meta.label,/Azure ✓ · Archiv offen/);
   assert.doesNotMatch(meta.label+meta.title,/SECRET-INTERNAL-ERROR/);
 });
 
 test('RC1165: fehlender oder fehlerhafter Zweitsicherungsstatus bleibt sichtbar',()=>{
   const x=api();
   assert.equal(x.backupMeta({status:'Abgeholt'}).key,'unknown');
-  assert.equal(x.backupMeta({status:'Abgeholt',podBackup:{status:'failed',azureSaved:false,driveSaved:false}}).key,'error');
+  assert.equal(x.backupMeta({status:'Abgeholt',podBackup:{status:'failed',azureSaved:false,archiveSaved:false,driveSaved:false}}).key,'error');
 });
 
 test('RC1165: Runtime ist idempotent auf den vorhandenen Sendungskarten verankert',()=>{
@@ -64,7 +64,7 @@ test('RC1165: Drei-Umgebungen-Build liefert die Runtime und behält kritische Fi
   assert.match(build,/exporthub-rc1165-pod-backup-status/);
   assert.match(build,/assets\/rc1165-pod-backup-status\.js\?v=1165/);
   assert.match(build,/'assets\/rc1165-pod-backup-status\.js'/);
-  assert.match(build,/podBackupStatusUi:'RC1165 shipment overview Azure\/M365 backup status'/);
+  assert.match(build,/podBackupStatusUi:'RC1220 shipment overview Azure\/archive backup status'/);
   assert.match(build,/podGraphReadiness:'RC1164/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
   assert.match(build,/border:3mm solid #111827/);
