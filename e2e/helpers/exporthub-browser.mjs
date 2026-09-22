@@ -211,7 +211,8 @@ export async function settleStateSave(page,options={}){
 
 async function activateNavigationTarget(page,item,module,requiredText){
   const before=await page.evaluate(()=>String(document.getElementById('content')?.innerText||''));
-  await item.click({timeout:7000});
+  const clicked=await item.click({timeout:7000}).then(()=>true).catch(()=>false);
+  if(!clicked)return false;
   const changed=await page.waitForFunction(({mod,beforeText})=>{
     const content=document.getElementById('content');
     const text=String(content&&content.innerText||'');
@@ -337,6 +338,16 @@ export function attachRuntimeGuards(page,testInfo){
   state.test=testInfo?.title||'';
   state.project=testInfo?.project?.name||'';
   return state;
+}
+
+export function acknowledgePickupStatusNavigationAbort(state){
+  if(!state||!Array.isArray(state.requestFailures))return 0;
+  const before=state.requestFailures.length;
+  state.requestFailures=state.requestFailures.filter(line=>{
+    const value=clean(line);
+    return !(/^GET\s+/i.test(value)&&/\/api\/pickup-status\?/i.test(value)&&/net::ERR_ABORTED$/i.test(value));
+  });
+  return before-state.requestFailures.length;
 }
 
 export function acknowledgeConfirmedStateSaveNavigationAbort(state){

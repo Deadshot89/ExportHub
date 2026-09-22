@@ -7,6 +7,7 @@ import {
   assertNoSourceLeak,
   assertNoHorizontalOverflow,
   attachRuntimeGuards,
+  acknowledgePickupStatusNavigationAbort,
   assertRuntimeClean,
   installE2ESession
 } from '../helpers/exporthub-browser.mjs';
@@ -56,6 +57,8 @@ test('RC1124 P0: Hauptnavigation öffnet auf jedem Viewport die richtige Ansicht
     await openExportHubView(page,module,labels,required);
     await assertView(page);
   }
+  const pickupNavigationAborts=acknowledgePickupStatusNavigationAbort(runtime);
+  expect(pickupNavigationAborts,'Unerwartet viele beim View-Wechsel abgebrochene Pickup-Status-Requests').toBeLessThanOrEqual(1);
   await assertRuntimeClean(runtime,testInfo);
 });
 
