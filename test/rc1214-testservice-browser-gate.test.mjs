@@ -15,7 +15,7 @@ test('RC1214: fehlgeschlagener sichtbarer Navigationsklick lässt den vorhandene
 
 test('RC1214: nur GET pickup-status ERR_ABORTED wird für den Navigationstest quittierbar',()=>{
   const start=helper.indexOf('export function acknowledgePickupStatusNavigationAbort');
-  const end=helper.indexOf('export async function assertRuntimeClean',start);
+  const end=helper.indexOf('export function acknowledgeConfirmedStateSaveNavigationAbort',start);
   assert.ok(start>=0&&end>start);
   const block=helper.slice(start,end);
   assert.match(block,/\^GET\\s\+/);
@@ -41,7 +41,7 @@ test('RC1214: Navigation akzeptiert höchstens einen gezielten Pickup-Abbruch',(
 
 test('RC1218: nur ein abgebrochener POST-State-Read darf nach bestätigter Persistenz quittiert werden',()=>{
   const start=helper.indexOf('export function acknowledgeReadStateNavigationAbort');
-  const end=helper.indexOf('export function acknowledgeConfirmedStateSaveNavigationAbort',start);
+  const end=helper.indexOf('export async function assertRuntimeClean',start);
   assert.ok(start>=0&&end>start);
   const block=helper.slice(start,end);
   assert.match(block,/\^POST\\s\+/);
