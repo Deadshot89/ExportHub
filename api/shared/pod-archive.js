@@ -171,9 +171,9 @@ async function persistBackupState(accessKey, environment, patch, podFile) {
     return record;
   });
 }
-async function saveAzurePod(accessKey, environment, record, pdf) {
+async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {
   const got = await store.getRecord(accessKey, environment);
-  const name = fileNameFor(record);
+  const name = safeFilePart(requestedName || fileNameFor(record));
   const hash = crypto.createHash('sha256').update(pdf).digest('hex');
   const blobName = store.podPrefix(environment, accessKey) + '/automatic/' + safeFilePart(name);
   const blob = got.clients.pods.getBlockBlobClient(blobName);
@@ -335,6 +335,11 @@ async function ensureAutomaticPod(accessKey, environment, options) {
     driveError: drive.ok ? null : drive.error
   };
 }
+async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName) {
+  const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName);
+  const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
+  return { ok: true, record: archive.record || primary.record, file: primary.file, pdf, backup: (archive.record || primary.record).podBackup || {}, archiveSaved: true };
+}
 async function retryArchiveBackup(accessKey, environment) {
   const got = await store.getRecord(accessKey, environment);
   let record = got.record || {};
@@ -465,5 +470,6 @@ module.exports = {
   retryArchiveBackup,
   retryDriveBackup,
   saveAzureArchive,
+  saveSuppliedPod,
   reconcilePendingBackups
 };
