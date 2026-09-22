@@ -12,13 +12,15 @@ function readiness() {
   const clientSecret = text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
   const user = text(process.env.EXPORTHUB_POD_DRIVE_USER);
   const folder = text(process.env.EXPORTHUB_POD_FOLDER);
+  const driveId = text(process.env.EXPORTHUB_POD_DRIVE_ID);
+  const folderId = text(process.env.EXPORTHUB_POD_FOLDER_ID);
   const missing = [];
   if (!tenantId) missing.push('EXPORTHUB_GRAPH_TENANT_ID');
   if (!clientId) missing.push('EXPORTHUB_GRAPH_CLIENT_ID');
   if (!clientSecret) missing.push('EXPORTHUB_GRAPH_CLIENT_SECRET');
   if (!user) missing.push('EXPORTHUB_POD_DRIVE_USER');
   if (!folder) missing.push('EXPORTHUB_POD_FOLDER');
-  return { configured: missing.length === 0, missing, user, folder };
+  return { configured: missing.length === 0, missing, user, folder, driveId, folderId };
 }
 
 function config() {
@@ -33,7 +35,7 @@ function config() {
     error.missing = status.missing.slice();
     throw error;
   }
-  return { tenantId, clientId, clientSecret, user: status.user, folder: status.folder };
+  return { tenantId, clientId, clientSecret, user: status.user, folder: status.folder, driveId: status.driveId, folderId: status.folderId };
 }
 
 function request(method, url, headers, body, timeoutMs) {
@@ -156,7 +158,12 @@ function targetError(code, message, cause) {
 }
 
 function targetKey(cfg) {
-  return text(cfg.user).toLowerCase() + '\\n' + rawFolder(cfg.folder).toLowerCase();
+  return [
+    text(cfg.user).toLowerCase(),
+    rawFolder(cfg.folder).toLowerCase(),
+    text(cfg.driveId).toLowerCase(),
+    text(cfg.folderId).toLowerCase()
+  ].join('\\n');
 }
 
 async function graphGet(token, path) {
@@ -258,6 +265,17 @@ async function findFolder(token, driveId, folder) {
 async function resolveTarget(token, cfg, force) {
   const key = targetKey(cfg);
   if (!force && targetCache && targetCache.key === key && targetCache.expiresAt > Date.now()) return targetCache.value;
+
+  const exactDriveId = text(cfg.driveId);
+  const exactFolderId = text(cfg.folderId);
+  if (exactDriveId || exactFolderId) {
+    if (!exactDriveId || !exactFolderId) {
+      throw targetError('GRAPH_EXACT_TARGET_INCOMPLETE', 'Das explizite Microsoft-365-POD-Ziel ist unvollständig konfiguriert.', { statusCode: 503 });
+    }
+    const value = { driveId: exactDriveId, folderId: exactFolderId, folder: rawFolder(cfg.folder) };
+    targetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return value;
+  }
 
   const folders = candidateFolders(cfg.folder);
   if (!folders.length) throw targetError('GRAPH_FOLDER_INVALID', 'Der konfigurierte Microsoft-365-Zielordner ist ungültig.', { statusCode: 500 });

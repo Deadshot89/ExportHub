@@ -13,6 +13,8 @@ function setEnv(folder='Documents/003 Export/ExportHub/Abliefernachweise'){
   process.env.EXPORTHUB_GRAPH_CLIENT_SECRET='secret-test';
   process.env.EXPORTHUB_POD_DRIVE_USER='tobiaslimberg@essentra.com';
   process.env.EXPORTHUB_POD_FOLDER=folder;
+  delete process.env.EXPORTHUB_POD_DRIVE_ID;
+  delete process.env.EXPORTHUB_POD_FOLDER_ID;
 }
 
 function fresh(){
@@ -64,6 +66,46 @@ test('RC1209: Documents-Präfix aus SharePoint-/OneDrive-Pfad wird auf Drive-Roo
   assert.equal(graph.normalizeFolder('Documents/003 Export/ExportHub/Abliefernachweise'),'003 Export/ExportHub/Abliefernachweise');
   assert.equal(graph.normalizeFolder('/Documents/003 Export/ExportHub/Abliefernachweise/'),'003 Export/ExportHub/Abliefernachweise');
   assert.equal(graph.normalizeFolder('003 Export/ExportHub/Abliefernachweise'),'003 Export/ExportHub/Abliefernachweise');
+});
+
+
+test('RC1219: explizite Drive- und Folder-ID umgehen Benutzer-, Site- und Shares-Auflösung vollständig',async()=>{
+  setEnv();
+  process.env.EXPORTHUB_POD_DRIVE_ID='drive-exact';
+  process.env.EXPORTHUB_POD_FOLDER_ID='folder-exact';
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/drives/drive-exact/items/folder-exact:/POD_TV9NKH.pdf:/content');
+      return{status:201,body:{id:'file-exact',name:'POD_TV9NKH.pdf',size:9}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-exact');
+    assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
+    assert.equal(calls.length,2);
+    assert.equal(calls.some(call=>/\/users\//.test(call.path)),false);
+    assert.equal(calls.some(call=>/\/sites\//.test(call.path)),false);
+    assert.equal(calls.some(call=>/\/shares\//.test(call.path)),false);
+  });
+});
+
+test('RC1219: unvollständiges explizites Graph-Ziel bleibt fail-closed',async()=>{
+  setEnv();
+  process.env.EXPORTHUB_POD_DRIVE_ID='drive-only';
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    throw new Error('Nach Token darf kein Graph-Zielresolver mehr laufen');
+  },async()=>{
+    await assert.rejects(
+      graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf'),
+      error=>error&&error.code==='GRAPH_EXACT_TARGET_INCOMPLETE'&&error.statusCode===503
+    );
+  });
 });
 
 test('RC1213: POD-Upload umgeht fehlendes Default-OneDrive und sucht den Zielordner in erreichbaren Drives',async()=>{
