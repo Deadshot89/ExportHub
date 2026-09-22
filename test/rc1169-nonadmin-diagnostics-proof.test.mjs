@@ -23,7 +23,7 @@ test('RC1169: Fixture erzeugt separaten echten Nicht-Admin mit Benutzeransicht',
 test('RC1169: Nicht-Admin-Session bleibt TESTSERVICE-isoliert und kurzlebig',()=>{
   assert.match(fixture,/signedSessionFor\(nonAdminUser,runId,'NONADMIN'\)/);
   assert.match(fixture,/environment:'testservice'/);
-  assert.match(fixture,/15\*60\*1000/);
+  assert.match(fixture,/E2E_SESSION_TTL_MS=45\*60\*1000/);
   assert.match(fixture,/_e2eRunId:runId/);
 });
 
