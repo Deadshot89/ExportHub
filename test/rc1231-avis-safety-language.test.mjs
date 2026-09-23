@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const page=fs.readFileSync('customer-avis.html','utf8');
 const runtime=fs.readFileSync('assets/rc1018-public-language.js','utf8');
 const mailFlow=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
+const immediateFlow=fs.readFileSync('assets/rc1027-lieferavis-immediate.js','utf8');
 
 test('RC1231: AVIS Sicherheitsblock ist vollständig DE/EN übersetzt',()=>{
   assert.match(runtime,/⚠ Sicherheitsvorschriften für die Abholung':'⚠ Safety requirements for pickup/);
