@@ -26,8 +26,9 @@ test('RC1220: Archivkopie ist unveränderlich und wird per SHA-256 plus Größe 
   assert.match(archive,/sha256:\s*hash/);
   assert.match(archive,/conditions:\s*\{\s*ifNoneMatch:\s*'\*'\s*\}/);
   assert.match(archive,/blob\.getProperties\(\)/);
-  assert.match(archive,/storedHash !== hash\.toLowerCase\(\) \|\| storedSize !== pdf\.length/);
-  assert.match(archive,/POD_ARCHIVE_CONFLICT/);
+  assert.match(archive,/storedHash !== wantedHash \|\| storedSize !== wantedSize/);
+  assert.match(archive,/await verifyAzureArchiveBlob\(blob, hash, pdf\.length, true\)/);
+  assert.match(archive,/POD_ARCHIVE_INTEGRITY_FAILED/);
 });
 
 test('RC1220: Primärspeicher kommt vor Archiv; M365 ist danach nur optional',()=>{
