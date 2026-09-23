@@ -2,7 +2,7 @@
 const auth=require('../shared/fast-auth-store');
 const {createBlobServiceClient}=require('../shared/blob-rest');
 const {DOCUMENT_CONTAINER}=require('../shared/document-blob-store');
-const pickupStore=require('../shared/pickup-store');
+const POD_CONTAINER=process.env.EXPORTHUB_POD_CONTAINER||'exporthub-pod';
 
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
@@ -32,7 +32,7 @@ module.exports=async function(context,req){
   if(!validBlobName(blobName))throw error('DOCUMENT_BLOB_INVALID','Dokumentreferenz ist ungültig.',400);
   if(blobEnvironment(blobName)!==environment)throw error('ENVIRONMENT_MISMATCH','Das Dokument gehört zu einer anderen ExportHUB-Datenumgebung.',409);
   const cs=connectionString();if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503);
-  const service=createBlobServiceClient(cs),containerName=validPickupPodBlobName(blobName)?pickupStore.POD_CONTAINER:DOCUMENT_CONTAINER,container=service.getContainerClient(containerName),blob=container.getBlockBlobClient(blobName),downloaded=await readBuffer(blob);
+  const service=createBlobServiceClient(cs),containerName=validPickupPodBlobName(blobName)?POD_CONTAINER:DOCUMENT_CONTAINER,container=service.getContainerClient(containerName),blob=container.getBlockBlobClient(blobName),downloaded=await readBuffer(blob);
   context.res={status:200,headers:{'Content-Type':downloaded.contentType,'Content-Length':String(downloaded.buffer.length),'Cache-Control':'private, no-store','Content-Disposition':'inline; filename="document"','X-Content-Type-Options':'nosniff'},body:downloaded.buffer};
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('ExportHUB document API error',e&&e.code,e&&e.message)}catch(_){}
