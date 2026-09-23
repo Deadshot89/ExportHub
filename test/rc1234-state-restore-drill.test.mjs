@@ -7,6 +7,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const {verifyStateRestore,shipmentReferences}=require('../api/shared/state-restore-drill.js');
 const API='api/state-maintenance/index.js';
+const WF='.github/workflows/rc1137-state-compaction.yml';
 
 test('RC1234: bytegenauer Restore bestätigt Hash, Revision und Sendungszuordnung',()=>{
  const doc={schemaVersion:3,revision:17,users:[{id:'U1'}],state:{shipments:[
@@ -45,6 +46,17 @@ test('RC1234: Restore-Drill ist strikt auf TESTSERVICE begrenzt und nutzt isolie
  assert.match(source,/verifyStateRestore\(source\.buffer,restored\.buffer\)/);
  assert.match(source,/shipmentReferencesVerified/);
  assert.doesNotMatch(source,/production\/recovery-drills/);
+});
+
+test('RC1234: Deploy-Nachlauf verlangt erfolgreichen TESTSERVICE-Restore vor PRODUCTION-Wartung',()=>{
+ const source=fs.readFileSync(WF,'utf8');
+ const testservice=source.slice(source.indexOf('jobs:'),source.indexOf('  production:'));
+ const production=source.slice(source.indexOf('  production:'));
+ assert.match(testservice,/call_maintenance restore-drill/);
+ assert.match(testservice,/backupReadBackVerified/);
+ assert.match(testservice,/shipmentReferencesVerified/);
+ assert.doesNotMatch(production,/call_maintenance restore-drill/);
+ assert.match(production,/needs:\s*\n\s*- testservice/);
 });
 
 test('RC1234: geänderte Runtime-Dateien bleiben syntaktisch gültig',()=>{
