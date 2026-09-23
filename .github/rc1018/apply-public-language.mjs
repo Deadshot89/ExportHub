@@ -5,7 +5,7 @@ const ROOT=process.cwd();
 const pages=['customer-avis.html','pickup.html','location.html'];
 
 for(const rel of pages){
-  const file=path.join(ROOT,rel),version=rel==='customer-avis.html'?'1129':'1018';
+  const file=path.join(ROOT,rel),version=rel==='customer-avis.html'?'1231':'1018';
   const tag='<script id="exporthub-rc1018-public-language" defer src="/assets/rc1018-public-language.js?v='+version+'"></script>';
   let html=fs.readFileSync(file,'utf8');
   const rx=/<script\b[^>]*id=["']exporthub-rc1018-public-language["'][^>]*><\/script>/i;
