@@ -96,7 +96,7 @@ test('RC1018: Website und öffentliche Seiten besitzen denselben DE/EN-Sprachsta
   assert.match(runtime,/Deutsch/);
   assert.match(runtime,/English/);
   for(const page of ['customer-avis.html','pickup.html','location.html']){
-    const html=fs.readFileSync(path.join(ROOT,page),'utf8'),expected=page==='customer-avis.html'?'1129':'1018';
+    const html=fs.readFileSync(path.join(ROOT,page),'utf8'),expected=page==='customer-avis.html'?'1231':'1018';
     assert.match(html,new RegExp('rc1018-public-language\\.js\\?v='+expected),`${page} lädt die gemeinsame Sprachruntime nicht mit dem richtigen Cache-Key.`);
   }
 });
