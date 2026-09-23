@@ -196,8 +196,10 @@ Bei einem unerwarteten Auth-Problem nach Aktivierung:
 - TESTSERVICE unverändert grün,
 - kein Secret-Wert in Logs oder Repository.
 
-## Nicht Teil dieses Runbooks
+## POD-Zweitsicherung
 
-Issue #210, die Microsoft-365-POD-Zweitsicherung, bleibt separat im bestehenden Runbook:
+Issue #210 ist abgeschlossen. Die verpflichtende POD-Zweitsicherung verwendet seit RC1220 Azure Primärspeicher plus separates Azure-Archiv. Microsoft 365 ist nur noch optional.
+
+Aktueller Betriebsweg:
 
 `docs/runbooks/pod-microsoft-graph-backup.md`
