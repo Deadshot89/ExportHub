@@ -584,6 +584,36 @@ jobs:
             console.log('RC1170 PRODUCTION customer portal readiness',JSON.stringify({httpStatus:status,ok:v.ok===true,configured:v.configured===true,environment:v.environment,code:v.code,version:v.version}));
             if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='production')process.exit(4);
           "
+      - name: RC1228 Lieferavis-Slotlogik live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for base in "$prod" "$testservice"; do
+            body="$(mktemp)"
+            trap 'rm -f "$body"' EXIT
+            code='000'
+            for attempt in {1..12}; do
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?rc1228=$GITHUB_SHA-$attempt" || true)
+              if [ "$code" = "200" ] \
+                && grep -Fq 'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.' "$body" \
+                && grep -Fq "Noch '+esc(x.remaining)+' von 3 gleichzeitig frei" "$body" \
+                && grep -Fq "action:'availability'" "$body" \
+                && grep -Fq "err.code==='PICKUP_SLOT_FULL'" "$body"; then
+                break
+              fi
+              if [ "$attempt" = "12" ]; then
+                echo "RC1228 Lieferavis-Slotlogik fehlt live: base=$base http=$code" >&2
+                exit 1
+              fi
+              sleep 5
+            done
+            rm -f "$body"
+            trap - EXIT
+          done
+          echo 'RC1228 Lieferavis-Slotlogik live in Produktion und TESTSERVICE bestätigt.'
+
       - name: Live RC1122 HTML-Integrität prüfen
         shell: bash
         run: |
