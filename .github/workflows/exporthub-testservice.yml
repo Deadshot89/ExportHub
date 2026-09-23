@@ -61,7 +61,7 @@ jobs:
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1112/production-version.js
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1112/TESTVERSION.html
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1112/demo.html
-          grep -q 'assets/rc1018-public-language.js?v=1129' dist-rc1112/customer-avis.html
+          grep -q 'assets/rc1018-public-language.js?v=1231' dist-rc1112/customer-avis.html
           grep -q 'id="customerPdfDocumentType"' dist-rc1112/customer-avis.html
           grep -q 'Sendungszuordnung fachlich geprüft' api/customer-avis/index.js
           test -s api/shared/customer-avis-document-content.js

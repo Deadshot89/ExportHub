@@ -89,7 +89,7 @@ test('RC1128: Lieferavis zeigt PDF-Upload, Sicherheitsregeln und Status an',()=>
   assert.match(page,/upload-document/);
   assert.match(page,/max\. 10 MB/);
   assert.match(page,/Schadsoftware geprüft/);
-  assert.match(page,/public-language\.js\?v=1129/);
+  assert.match(page,/public-language\.js\?v=1231/);
 });
 
 test('RC1128: finaler RC1018-Build behält Uploadfunktion und Formularschutz ohne Syntaxfehler',()=>{

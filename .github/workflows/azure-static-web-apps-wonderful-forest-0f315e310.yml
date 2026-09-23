@@ -245,7 +245,7 @@ jobs:
           test -s dist-rc1112/assets/rc1114-shipping-neutral.js
           grep -q '__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__' dist-rc1112/assets/rc1114-shipping-neutral.js
           grep -q 'Paletten / Maut' dist-rc1112/assets/rc1114-shipping-neutral.js
-          grep -q 'assets/rc1018-public-language.js?v=1129' dist-rc1112/customer-avis.html
+          grep -q 'assets/rc1018-public-language.js?v=1231' dist-rc1112/customer-avis.html
           grep -q 'customerPdfUpload' dist-rc1112/customer-avis.html
           grep -q 'document-upload-status' dist-rc1112/customer-avis.html
           grep -q 'Microsoft Defender for Storage' dist-rc1112/customer-avis.html
@@ -884,7 +884,7 @@ jobs:
             for base in "$prod" "$testservice"; do
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1112=$GITHUB_SHA-$attempt" || true)
-              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1129' "$body" || ok=0
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1231' "$body" || ok=0
               rm -f "$body"
             done
             if [[ "$ok" == '1' ]]; then echo 'RC1134 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
