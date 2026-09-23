@@ -584,6 +584,39 @@ jobs:
             console.log('RC1170 PRODUCTION customer portal readiness',JSON.stringify({httpStatus:status,ok:v.ok===true,configured:v.configured===true,environment:v.environment,code:v.code,version:v.version}));
             if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='production')process.exit(4);
           "
+      - name: RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for env in production testservice; do
+            if [ "$env" = "production" ]; then base="$prod"; else base="$testservice"; fi
+            pickup="$(mktemp)"; viewer="$(mktemp)"; health="$(mktemp)"; protected="$(mktemp)"
+            trap 'rm -f "$pickup" "$viewer" "$health" "$protected"' EXIT
+            ready=0
+            for attempt in {1..18}; do
+              pc=$(curl -sS -L -o "$pickup" -w '%{http_code}' --max-time 20 "$base/pickup.html?rc1233=$GITHUB_SHA-$attempt" || true)
+              vc=$(curl -sS -L -o "$viewer" -w '%{http_code}' --max-time 20 "$base/assets/rc1059-document-blob.js?rc1233=$GITHUB_SHA-$attempt" || true)
+              hc=$(curl -sS -L -o "$health" -w '%{http_code}' --max-time 20 "$base/api/pickup-health?rc1233=$GITHUB_SHA-$attempt" || true)
+              key='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+              blob="rc995/$env/$key/automatic/POD_RC1233.pdf"
+              dc=$(curl -sS -L -o "$protected" -w '%{http_code}' --max-time 20 "$base/api/exporthub-document?blob=$(node -p "encodeURIComponent(process.argv[1])" "$blob")&environment=$env&rc1233=$GITHUB_SHA-$attempt" || true)
+              if [ "$pc" = "200" ]                 && [ "$vc" = "200" ]                 && [ "$hc" = "200" ]                 && [ "$dc" = "401" ]                 && grep -Fq '/api/pickup-status' "$pickup"                 && grep -Fq '/api/pickup-confirm-v2' "$pickup"                 && grep -Fq '/api/pickup-pod' "$pickup"                 && grep -Fq "storage==='azure'||storage==='pod'" "$viewer"                 && grep -Fq '/automatic/' "$viewer"                 && grep -Fq '/api/exporthub-document?blob=' "$viewer"                 && grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' "$health"                 && grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$protected"; then
+                ready=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ready" != "1" ]; then
+              echo "RC1233 Pickup/POD-Live-Gate fehlgeschlagen: env=$env pickup=$pc viewer=$vc health=$hc protected=$dc" >&2
+              exit 1
+            fi
+            rm -f "$pickup" "$viewer" "$health" "$protected"
+            trap - EXIT
+          done
+          echo 'RC1233 QR-Abholung und geschützter POD-Ladelisten-Viewer live in Produktion und TESTSERVICE bestätigt.'
+
       - name: RC1228 Lieferavis-Slotlogik live prüfen
         shell: bash
         run: |
