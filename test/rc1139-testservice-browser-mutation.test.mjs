@@ -38,7 +38,7 @@ test('RC1145: Prepare erstellt kurzlebigen isolierten TESTSERVICE-Global-Admin f
   assert.match(source,/permissions\s*:\s*\[['"]\*['"]\]/,'Global-Admin-Rechte fehlen');
   assert.match(source,/_e2eRunId\s*:\s*runId/,'E2E-Admin muss run-spezifisch markiert sein');
   assert.match(source,/createSignedSessionToken/,'signierte Sitzung muss vorhandenen Auth-Mechanismus verwenden');
-  assert.match(source,/15\s*\*\s*60\s*\*\s*1000|900000/,'Sitzung muss auf maximal 15 Minuten begrenzt sein');
+  assert.match(source,/E2E_SESSION_TTL_MS=45\*60\*1000/,'E2E-Sitzung muss 45 Minuten für den vollständigen TESTSERVICE-Gate gelten');
   assert.match(source,/ifMatch|etag/,'ETag-Schutz fehlt');
 });
 
