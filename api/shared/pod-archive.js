@@ -238,7 +238,8 @@ async function checkAzureArchive(clients, record, accessKey, fullRead) {
   if (!blobName || !expectedHash || !expectedSize) {
     return { ok: false, repairable: true, code: 'POD_ARCHIVE_STATE_INCOMPLETE', message: 'Archivstatus ist unvollständig und wird neu aufgebaut.' };
   }
-  const blob = clients.podArchive.getBlobClient(blobName);
+  const archiveClients = await store.podArchiveClient(clients && clients.environment || record && record.environment || 'production');
+  const blob = archiveClients.podArchive.getBlobClient(blobName);
   try {
     const verified = await verifyAzureArchiveBlob(blob, expectedHash, expectedSize, fullRead === true);
     return Object.assign({ blobName }, verified);
@@ -250,11 +251,11 @@ async function checkAzureArchive(clients, record, accessKey, fullRead) {
   }
 }
 async function saveAzureArchive(accessKey, environment, record, pdf, file) {
-  const got = await store.getRecord(accessKey, environment);
+  const archiveClients = await store.podArchiveClient(environment);
   const name = file && file.name || fileNameFor(record);
   const hash = file && file.hash || crypto.createHash('sha256').update(pdf).digest('hex');
   const blobName = 'rc1220/' + store.normalizeEnvironment(environment) + '/' + accessKey + '/' + hash + '-' + safeFilePart(name);
-  const blob = got.clients.podArchive.getBlockBlobClient(blobName);
+  const blob = archiveClients.podArchive.getBlockBlobClient(blobName);
   try {
     await blob.uploadData(pdf, {
       blobHTTPHeaders: { blobContentType: 'application/pdf', blobCacheControl: 'no-store' },
