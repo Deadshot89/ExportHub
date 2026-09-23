@@ -6,6 +6,7 @@ const {createBlobServiceClient}=require('../shared/blob-rest');
 const {DOCUMENT_CONTAINER,migrateLegacyDocuments,legacyDocumentInventory}=require('../shared/document-blob-store');
 const {previewCompaction,buildAppliedDocument}=require('../shared/state-maintenance');
 const {CLEANUP_DATE,countPalletDay,cleanupPalletDay}=require('../shared/pallet-account-cleanup');
+const {verifyStateRestore}=require('../shared/state-restore-drill');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -92,9 +93,21 @@ async function createVerifiedBackup(container,env,current,options={}){
  const blob=container.getBlockBlobClient(name);
  const uploaded=await blob.upload(raw,bytes,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifNoneMatch:'*'},metadata:{purpose,sha256:hash}});
  const properties=await blob.getProperties(),storedHash=text(properties&&properties.metadata&&properties.metadata.sha256);
- if(!uploaded||!uploaded.etag||!properties||!properties.etag||storedHash!==hash)throw error('BACKUP_VERIFY_FAILED','Das Sicherungsbackup konnte nicht verifiziert werden.',500);
- return{name,bytes,sha256:hash};
+ const readBack=await readBuffer(blob),readBackHash=crypto.createHash('sha256').update(readBack.buffer).digest('hex');
+ if(!uploaded||!uploaded.etag||!properties||!properties.etag||storedHash!==hash||readBack.buffer.length!==bytes||readBackHash!==hash)throw error('BACKUP_VERIFY_FAILED','Das Sicherungsbackup konnte nicht vollständig zurückgelesen und verifiziert werden.',500);
+ return{name,bytes,sha256:hash,readBackVerified:true};
 }
+async function runRestoreDrill(container,env,current){
+ if(env!=='testservice')throw error('TESTSERVICE_ONLY','Der Restore-Drill ist ausschließlich im TESTSERVICE freigegeben.',403);
+ const backup=await createVerifiedBackup(container,env,current,{marker:'RC1234-restore-drill',purpose:'rc1234-state-restore-drill-source'});
+ const sourceBlob=container.getBlockBlobClient(backup.name),source=await readBuffer(sourceBlob);
+ const restoreName='testservice/recovery-drills/team-state-restore-drill-latest.json',restoreBlob=container.getBlockBlobClient(restoreName);
+ await restoreBlob.upload(source.buffer,source.buffer.length,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},metadata:{purpose:'rc1234-state-restore-drill',sha256:backup.sha256}});
+ const restored=await readBuffer(restoreBlob),verified=verifyStateRestore(source.buffer,restored.buffer);
+ if(!verified||verified.verified!==true)throw error('RESTORE_DRILL_VERIFY_FAILED','Der TESTSERVICE-Restore-Drill konnte die Wiederherstellung nicht bestätigen.',500);
+ return{ok:true,restoreDrill:true,verified:true,environment:env,backupBlob:backup.name,backupReadBackVerified:backup.readBackVerified===true,restoreBlob:restoreName,bytes:verified.bytes,sha256:verified.sha256,revision:verified.revision,shipmentReferenceCount:verified.shipmentReferenceCount,shipmentReferencesVerified:verified.shipmentReferencesVerified===true};
+}
+
 async function migrateTestserviceDocuments(container,blob,currentRead){
  const current=currentRead.value;
  const initial=legacyDocumentInventory(current);
@@ -156,11 +169,16 @@ module.exports=async function(context,req){
   if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
   if(!await githubOidcAuthorized(req))throw error('GLOBAL_ADMIN_OR_WORKFLOW_REQUIRED','RC1137 darf nur durch den signierten GitHub-Wartungsworkflow ausgeführt werden.',403);
   const payload=body(req),action=lower(payload.action),environment=environmentOf(req,payload);
-  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents und cleanup-pallet-20260921.',400);
+  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921'&&action!=='restore-drill')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents, cleanup-pallet-20260921 und restore-drill.',400);
   if(action==='migrate-testservice-documents'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Die RC1138-Dokumentmigration ist ausschließlich im TESTSERVICE freigegeben.',403);
+  if(action==='restore-drill'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Der RC1234-Restore-Drill ist ausschließlich im TESTSERVICE freigegeben.',403);
   if(action==='cleanup-pallet-20260921'&&environment!=='production')throw error('PRODUCTION_ONLY','Die RC1208-Palettenkonto-Bereinigung ist ausschließlich in Produktion freigegeben.',403);
   const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(teamBlobName(environment));
   const currentRead=await readJson(blob),current=currentRead.value;
+  if(action==='restore-drill'){
+   context.res=json(200,await runRestoreDrill(container,environment,current));
+   return;
+  }
   if(action==='migrate-testservice-documents'){
    context.res=json(200,await migrateTestserviceDocuments(container,blob,currentRead));
    return;
