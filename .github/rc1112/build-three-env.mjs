@@ -234,8 +234,8 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1205"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1207"></script>','exporthub-rc1207-pallet-account-fix');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1193"></script>','exporthub-rc1193-visible-release');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1193"></script>','exporthub-rc1177-release-notes');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1231"></script>','exporthub-rc1193-visible-release');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1231"></script>','exporthub-rc1177-release-notes');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
@@ -259,8 +259,8 @@ function patchHtml(file){
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1205'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1207'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
-  if(!html.includes('assets/rc1193-visible-release.js?v=1193'))throw new Error(file+': RC1193 sichtbare Release-Version fehlt');
-  if(!html.includes('assets/rc1177-release-notes.js?v=1193'))throw new Error(file+': RC1193 Änderungshinweise Cache-Key fehlt');
+  if(!html.includes('assets/rc1193-visible-release.js?v=1231'))throw new Error(file+': RC1231 sichtbare Release-Version fehlt');
+  if(!html.includes('assets/rc1177-release-notes.js?v=1231'))throw new Error(file+': RC1231 Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
   if(!/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/.test(html))throw new Error(file+': RC1159 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
@@ -332,7 +332,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
   sourceRelease:'RC1048',
   sourceManifest:previousManifest,
   releaseFixes:{
-    visibleVersion:'RC1112',
+    visibleVersion:'RC1231',
     taskDetailAndManagedRoster:'RC1179 dedicated Aufgabenansicht tab + RC1152 recurring roster + targeted legacy cleanup',
     abdDashboardCustomer:true,
     androidBuildSetup:'runner-sdkmanager',
@@ -363,7 +363,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     testserviceGateOrder:'RC1172 browser/mutation gate before external readiness blocker, production still protected',
     shipmentLocationPersistence:'RC1202 current draft priority + synthetic empty rerender guard',
     historyConsolidationAndReleaseNotes:'RC1177 duplicate shipment history cleanup + current Update changelog',
-    visibleProductVersion:'RC1193 separate visible release label while RC1112 remains the stable build/deploy pipeline'
+    visibleProductVersion:'RC1231 current visible release label while RC1112 remains the stable build/deploy pipeline'
   },
   compatibility:{
     qr:'stable-existing-links',
@@ -381,4 +381,4 @@ const rc1207Source=path.join(ROOT,'assets/rc1207-pallet-account-fix.js'),rc1207T
 if(!fs.existsSync(rc1207Source))throw new Error('RC1207 Palettenkonto-Runtime fehlt');
 fs.copyFileSync(rc1207Source,rc1207Target);
 
-console.log('RC1112 build pipeline ready: sichtbare Produktversion RC1193 auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
+console.log('RC1112 build pipeline ready: sichtbare Produktversion RC1231 auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
