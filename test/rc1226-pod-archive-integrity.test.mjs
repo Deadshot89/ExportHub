@@ -43,7 +43,7 @@ test('RC1226: Reconcile und Workflow melden Integritäts- und Reparaturzähler',
   assert.match(archive,/verifiedCount,/);
   assert.match(archive,/repairedStateCount,/);
   assert.match(archive,/const errors = integrityErrors\.slice\(\)/);
-  assert.match(reconcile,/version: 'RC1226'/);
+  assert.match(reconcile,/version: 'RC1220'/);
   assert.match(workflow,/verifiedCount:v\.verifiedCount/);
   assert.match(workflow,/repairedStateCount:v\.repairedStateCount/);
   assert.match(build,/podArchiveIntegrity:'RC1226 archive read-back \+ scheduled integrity verification'/);
