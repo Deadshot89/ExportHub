@@ -28,6 +28,14 @@ assert(first, '08:30-10:30 muss vorhanden sein.');
 assert.strictEqual(first.available, false, 'Vierter Auftrag darf nicht in einen voll belegten Zeitraum.');
 assert.strictEqual(first.remaining, 0);
 
+const mirroredWithDifferentIds = [
+  {id:'COPY-1',reference:'MIRROR1',customerAvisPickupDate:'2026-09-25',customerAvisPickupTimeFrom:'08:30',customerAvisPickupTimeTo:'10:30'},
+  {id:'COPY-2',reference:'MIRROR1',avisPickupDate:'2026-09-25',avisPickupTimeFrom:'08:30',avisPickupTimeTo:'10:30'}
+];
+const mirroredSlot = slots.slotState(mirroredWithDifferentIds,'2026-09-25','08:30','10:30');
+assert.strictEqual(mirroredSlot.bookedPeak, 1, 'Gespiegelte Kopien derselben Referenz dürfen nicht doppelt gegen die Kapazität zählen.');
+assert.strictEqual(mirroredSlot.remaining, 2);
+
 let overlapping = availability.slots.find(s => s.from === '09:00' && s.to === '11:00');
 assert.strictEqual(overlapping.available, false, 'Überlappende Slots müssen die Gleichzeitigkeit berücksichtigen.');
 
