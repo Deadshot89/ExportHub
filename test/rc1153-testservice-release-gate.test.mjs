@@ -49,9 +49,10 @@ test('RC1155: Browser-Gate wartet auf echte Azure-Saves und startet keinen No-op
   assert.match(build,/!editSaveReason&&!editSaveTimer/);
 });
 
-test('RC1155: Live-E2E speichert keine Playwright-Netzwerktraces mit Sessiondaten',()=>{
+test('RC1240: Live-E2E speichert keine Playwright-Netzwerktraces mit Sessiondaten und nutzt stabile Sessionlaufzeit',()=>{
   const config=read('playwright.config.mjs');
   const fixture=read('api/e2e-test-fixture/index.js');
   assert.match(config,/trace:LIVE\?'off':'retain-on-failure'/);
-  assert.match(fixture,/Date\.now\(\)\+15\*60\*1000/);
+  assert.match(fixture,/E2E_SESSION_TTL_MS=45\*60\*1000/);
+  assert.match(fixture,/Date\.now\(\)\+E2E_SESSION_TTL_MS/);
 });
