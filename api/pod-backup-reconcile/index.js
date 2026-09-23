@@ -111,15 +111,16 @@ module.exports = async function(context, req) {
     const environment = environmentOf(req, payload);
     const graph = graphDrive.readiness();
     const reference = text(payload.reference).toUpperCase();
+    const drainAll = !reference && payload.drainAll === true;
     const limit = Math.min(25, Math.max(1, Math.round(Number(payload.limit) || 10)));
     const result = await podArchive.reconcilePendingBackups(environment, {
       reference,
       limit,
-      minAgeMs: reference ? 0 : 5 * 60 * 1000
+      minAgeMs: reference || drainAll ? 0 : 5 * 60 * 1000
     });
-    context.res = json(200, Object.assign({ version: 'RC1220', backupMode: 'azure-archive', graphConfigured: graph.configured, reference: reference || null }, result));
+    context.res = json(200, Object.assign({ version: 'RC1241', backupMode: 'azure-archive', graphConfigured: graph.configured, reference: reference || null, drainAll }, result));
   } catch (e) {
     try { context.log && context.log.error && context.log.error('RC1144 POD reconcile failed', e && e.code, e && e.message); } catch (_) {}
-    context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Nachholung ist fehlgeschlagen.', version: 'RC1220' });
+    context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Nachholung ist fehlgeschlagen.', version: 'RC1241' });
   }
 };
