@@ -631,7 +631,7 @@ jobs:
           node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.environment!=='production'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
 
       - name: RC1251 PRODUCTION AVIS-Mail Liveversand einmalig prüfen
-        if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, 'RC1251: AVIS-Mail Liveversand verifizieren') }}
+        if: "${{ github.event_name == 'push' && contains(github.event.head_commit.message, 'RC1251') && contains(github.event.head_commit.message, 'AVIS-Mail Liveversand verifizieren') }}"
         shell: bash
         run: |
           set -euo pipefail
