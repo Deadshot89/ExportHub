@@ -12,3 +12,13 @@ test('RC1021: jeder erfolgreiche Lieferavis-Statuswechsel meldet die Mailruntime
   const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));
   assert.match(automatic,/await base\.toggle\(true\)[\s\S]*rc1021NotifyAvisUpdated\(true/,'Automatische Aktivierung aktualisiert die Mailruntime nicht.');
 });
+
+
+test('RC1236: normale Navigation startet außerhalb der Sendungsansicht keinen Avis-Autosave',()=>{
+  assert.match(source,/function rc1021ShipmentViewActive\(\)/,'Ansichts-Guard für die Avis-Automatik fehlt.');
+  const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));
+  assert.match(automatic,/reason==='exporthub:viewchange'\|\|reason==='exporthub:rendered'\|\|reason==='exporthub:sync'/,'Navigation/Render/Sync müssen vom Ansichts-Guard erfasst werden.');
+  assert.match(automatic,/!rc1021ShipmentViewActive\(\)\)return false;/,'Außerhalb der Sendungsansicht muss die automatische Persistierung vor currentShipmentForAvis beendet werden.');
+  assert.ok(automatic.indexOf('!rc1021ShipmentViewActive()')<automatic.indexOf('currentShipmentForAvis()'),'Ansichts-Guard muss vor Sendungssuche und Persistierung greifen.');
+  assert.match(source,/\{'exporthub:ready':1,'exporthub:rendered':1,'exporthub:viewchange':1,'exporthub:sync':1,'exporthub:shipment-saved':1\}/,'Bestehende fachliche Auto-Events bleiben registriert; nur teure Arbeit wird außerhalb der Sendungsansicht übersprungen.');
+});
