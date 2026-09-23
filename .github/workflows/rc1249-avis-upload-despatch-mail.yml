@@ -2,20 +2,28 @@ name: RC1249 AVIS Upload Despatch Mail
 on:
   push:
     branches:
-      - fix/rc1249-avis-upload-mail-e2e
+      - 'fix/rc1249-*'
     paths:
       - 'api/customer-avis/**'
+      - 'api/avis-upload-mail-readiness/**'
       - 'api/shared/graph-mail.js'
       - 'test/rc1128-customer-avis-secure-pdf-api.test.mjs'
       - 'test/rc1229-avis-upload-despatch-mail.test.mjs'
+      - 'test/rc1249-avis-upload-mail-readiness.test.mjs'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/rc1249-avis-upload-despatch-mail.yml'
   pull_request:
     branches: [main]
     paths:
       - 'api/customer-avis/**'
+      - 'api/avis-upload-mail-readiness/**'
       - 'api/shared/graph-mail.js'
       - 'test/rc1128-customer-avis-secure-pdf-api.test.mjs'
       - 'test/rc1229-avis-upload-despatch-mail.test.mjs'
+      - 'test/rc1249-avis-upload-mail-readiness.test.mjs'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/rc1249-avis-upload-despatch-mail.yml'
 jobs:
   verify:
@@ -31,10 +39,12 @@ jobs:
         run: |
           set -euo pipefail
           node --check api/customer-avis/index.js
-          node --test test/rc1229-avis-upload-despatch-mail.test.mjs test/rc1128-customer-avis-secure-pdf-api.test.mjs
+          node --test test/rc1229-avis-upload-despatch-mail.test.mjs test/rc1128-customer-avis-secure-pdf-api.test.mjs test/rc1249-avis-upload-mail-readiness.test.mjs
       - name: RC1249 current three-environment build
         run: |
           set -euo pipefail
           node .github/rc1112/build-three-env.mjs
           grep -q 'DespatchNettetal@essentra.onmicrosoft.com' api/customer-avis/index.js
+          test -s dist-rc1112/api/avis-upload-mail-readiness/index.js
+          test -s dist-rc1112/api/avis-upload-mail-readiness/function.json
           grep -q 'assets/rc1133-avis-upload-notifications.js?v=1133' dist-rc1112/index.html
