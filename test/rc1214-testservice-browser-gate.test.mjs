@@ -40,6 +40,21 @@ test('RC1214: Navigation akzeptiert höchstens einen gezielten Pickup-Abbruch',(
   assert.match(navigation,/pickupNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
 });
 
+test('RC1247: genau ein abgebrochener Auth-Request wird nur nach serverseitig bestätigter Sitzung quittiert',()=>{
+  const start=helper.indexOf('export async function acknowledgeConfirmedAuthNavigationAbort');
+  const end=helper.indexOf('export async function assertRuntimeClean',start);
+  assert.ok(start>=0&&end>start);
+  const block=helper.slice(start,end);
+  assert.match(block,/matches\.length!==1/);
+  assert.match(block,/\/api\/exporthub-auth/);
+  assert.match(block,/net::ERR_ABORTED\$/);
+  assert.match(block,/body:JSON\.stringify\(\{action:'session'\}\)/);
+  assert.match(block,/response\.ok&&data&&data\.ok===true/);
+  assert.ok(block.indexOf('if(!verified)return 0')<block.indexOf('state.requestFailures=state.requestFailures.filter'),'Quittierung darf erst nach bestätigter Sitzung erfolgen');
+  assert.match(navigation,/await acknowledgeConfirmedAuthNavigationAbort\(runtime,page\)/);
+  assert.match(navigation,/authNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
+});
+
 test('RC1218: nur ein abgebrochener POST-State-Read darf nach bestätigter Persistenz quittiert werden',()=>{
   const start=helper.indexOf('export function acknowledgeReadStateNavigationAbort');
   const end=helper.indexOf('export async function assertRuntimeClean',start);
