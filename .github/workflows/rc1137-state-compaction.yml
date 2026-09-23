@@ -94,6 +94,16 @@ jobs:
               const blobBefore=Number(process.env.RC1138_BLOB_BEFORE||0);
               if(Number(diag.blobDocumentEntries||0)<blobBefore)process.exit(12);
             })"
+          restore_drill="$(call_maintenance restore-drill)"
+          printf '%s\n' "$restore_drill" | node -e "
+            let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s);
+              if(!v.ok||v.restoreDrill!==true||v.verified!==true||v.backupReadBackVerified!==true)process.exit(15);
+              if(!v.backupBlob||!v.restoreBlob||!v.sha256||Number(v.bytes||0)<=0)process.exit(16);
+              if(v.shipmentReferencesVerified!==true)process.exit(17);
+              console.log('TESTSERVICE restore drill',JSON.stringify({verified:v.verified,bytes:v.bytes,revision:v.revision,shipmentReferenceCount:v.shipmentReferenceCount,backupReadBackVerified:v.backupReadBackVerified}));
+            })"
+
 
   production:
     name: PRODUCTION State kompaktieren
