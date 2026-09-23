@@ -41,7 +41,7 @@ button:disabled{opacity:.55;cursor:wait}
 canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;background:#fff}
 .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
 .actions .secondary{background:#fff;color:#334155;border:1px solid #cbd5e1}
-.pickup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pickup-actions .partial{background:#fff;color:#1d4ed8;border:2px solid #60a5fa}.pickup-actions button{min-height:52px}
+.pickup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pickup-actions .partial{background:#fff;color:#1d4ed8;border:2px solid #60a5fa}.pickup-actions button{min-height:52px}.pickup-stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 8px}.pickup-step{padding:10px 8px;border-radius:12px;background:#e2e8f0;color:#475569;text-align:center;font-size:12px;font-weight:800}.pickup-step.active{background:#dbeafe;color:#1d4ed8;box-shadow:inset 0 0 0 2px #60a5fa}.pickup-step.done{background:#dcfce7;color:#166534}
 .success{text-align:center;padding:26px 10px}.success .icon{width:74px;height:74px;border-radius:50%;margin:0 auto 16px;background:#dcfce7;color:#166534;display:grid;place-items:center;font-size:38px;font-weight:1000}.success h2{font-size:28px;margin:0 0 10px;color:#166534}
 button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offset:3px}
 @media(max-width:620px){main{padding:10px}.card{padding:18px;border-radius:20px}.info-grid,.grid{grid-template-columns:1fr}}
@@ -56,6 +56,25 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <div id="details"></div>
 
 <form id="form" hidden>
+<div class="pickup-stepbar" aria-label="Abholablauf">
+  <span class="pickup-step done">1 · Sendung</span>
+  <span id="stepColli" class="pickup-step active">2 · Collis</span>
+  <span id="stepDriver" class="pickup-step">3 · Fahrer</span>
+</div>
+
+<section id="colliSection" class="section">
+<h2>Collis bestätigen <span class="help">(Pflicht vor den Fahrerdaten)</span></h2>
+<div class="info-grid">
+<div class="box"><span>Gesamtanzahl</span><b id="expectedColli">—</b></div>
+<div class="box"><span>Bereits abgeholt</span><b id="collectedColli">0</b></div>
+<div class="box" style="grid-column:1/-1"><span>Noch offen</span><b id="remainingColli">—</b></div>
+</div>
+<label>Auf diesem LKW verladenen Colli<input id="colli" type="number" min="1" step="1" inputmode="numeric"></label>
+<button id="checkColli" type="button">Collis bestätigen und weiter</button>
+<div id="colliResult" class="help">Bitte zuerst die verladenen Collis bestätigen. Danach werden die Fahrerdaten freigeschaltet.</div>
+</section>
+
+<div id="driverStep" hidden>
 <section class="section">
 <h2>Fahrer und Fahrzeug</h2>
 <div class="grid">
@@ -64,18 +83,6 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 </div>
 <label>Speditionsname <span class="help">(Pflicht)</span><input id="carrier" autocomplete="organization" required></label>
 <label id="returnLabel" hidden>Zurückgegebene Europaletten<input id="returned" type="number" min="0" step="1" value="0"></label>
-</section>
-
-<section id="colliSection" class="section" hidden>
-<h2>Colli-Prüfung <span class="help">(Pflicht)</span></h2>
-<div class="info-grid">
-<div class="box"><span>Gesamtanzahl</span><b id="expectedColli">—</b></div>
-<div class="box"><span>Bereits abgeholt</span><b id="collectedColli">0</b></div>
-<div class="box" style="grid-column:1/-1"><span>Noch offen</span><b id="remainingColli">—</b></div>
-</div>
-<label>Auf diesem LKW verladenen Colli<input id="colli" type="number" min="1" step="1" inputmode="numeric"></label>
-<button id="checkColli" type="button">Eingabe prüfen</button>
-<div id="colliResult" class="help">Noch keine Colli-Anzahl geprüft.</div>
 </section>
 
 <section class="section">
@@ -92,6 +99,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 </section>
 
 <div class="pickup-actions"><button id="confirmPartial" class="partial" type="submit" data-mode="partial">Teilabholung bestätigen</button><button id="confirm" type="submit" data-mode="complete">Vollständige Abholung bestätigen</button></div>
+</div>
 </form>
 </section>
 </main>
@@ -204,6 +212,19 @@ function expectedCollis(data){
   return colliNumber(deep(data,['pickupColliCount','enteredColliCount','colliCount']));
 }
 
+function setDriverStepUnlocked(on){
+  var step=document.getElementById('driverStep'),colliStep=document.getElementById('stepColli'),driverStep=document.getElementById('stepDriver');
+  if(step)step.hidden=!on;
+  if(colliStep)colliStep.className='pickup-step '+(on?'done':'active');
+  if(driverStep)driverStep.className='pickup-step '+(on?'active':'');
+}
+function blockMissingColli(){
+  var input=document.getElementById('colli'),button=document.getElementById('checkColli'),out=document.getElementById('colliResult');
+  if(input){input.disabled=true;input.value=''}
+  if(button)button.disabled=true;
+  if(out){out.textContent='Die erwartete Colli-Anzahl fehlt in der Sendung. Die Abholung ist gesperrt, bis die Sendungsdaten korrigiert wurden.';out.style.color='#991b1b'}
+  setDriverStepUnlocked(false);
+}
 function show(data){
   if(confirmed(data)){status('Diese Abholung wurde bereits bestätigt.','ok');form.hidden=true;return}
   var ref=q(data.reference||data.ref||data.shipmentRef)||'—';
@@ -216,15 +237,19 @@ function show(data){
   remainingBefore=colliNumber(explicitRemaining)||Math.max(0,expected-collectedBefore);
   details.innerHTML='<div class="info-grid"><div class="box"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="box"><span>Kunde</span><b>'+esc(customer)+'</b></div>'+(address?'<div class="box" style="grid-column:1/-1"><span>Lieferadresse</span><b>'+esc(address)+'</b></div>':'')+'</div>';
   if(carrier)document.getElementById('carrier').value=carrier;
-  if(expected>0){
-    document.getElementById('colliSection').hidden=false;
-    document.getElementById('expectedColli').textContent=String(expected);
-    document.getElementById('collectedColli').textContent=String(collectedBefore);
-    document.getElementById('remainingColli').textContent=String(remainingBefore);
-    document.getElementById('colli').max=String(remainingBefore);
-  }else document.getElementById('colliSection').hidden=true;
+  document.getElementById('colliSection').hidden=false;
+  document.getElementById('expectedColli').textContent=expected>0?String(expected):'Fehlt';
+  document.getElementById('collectedColli').textContent=String(collectedBefore);
+  document.getElementById('remainingColli').textContent=expected>0?String(remainingBefore):'—';
+  document.getElementById('colli').max=expected>0?String(remainingBefore):'';
+  setDriverStepUnlocked(false);
   form.hidden=false;
-  status('Sendungsdaten geladen. Noch offen: '+remainingBefore+' von '+expected+' Colli.','info');
+  if(expected>0){
+    status('Sendungsdaten geladen. Bitte jetzt zuerst die '+remainingBefore+' offenen Collis bestätigen.','info');
+  }else{
+    blockMissingColli();
+    status('Sendungsdaten geladen, aber die erwartete Colli-Anzahl fehlt. Abholung ist gesperrt.','bad');
+  }
 }
 
 function load(){
@@ -241,17 +266,17 @@ function load(){
 }
 
 function checkColli(mode){
-  if(!(expected>0)){colliOk=true;return true}
+  if(!(expected>0)){colliOk=false;setDriverStepUnlocked(false);return false}
   var input=document.getElementById('colli'),n=colliNumber(input.value),out=document.getElementById('colliResult'),open=remainingBefore||expected;
   if(mode==='partial'){
-    if(n>0&&n<open){colliOk=true;out.textContent='✓ Teilabholung: '+n+' Colli. Danach bleiben '+(open-n)+' Colli offen.';out.style.color='#166534';input.readOnly=true;return true}
-    colliOk=false;out.textContent=n===open?'Die komplette Restmenge bitte mit „Vollständige Abholung bestätigen“ abschließen.':'Für eine Teilabholung bitte 1 bis '+Math.max(1,open-1)+' Colli eingeben.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
+    if(n>0&&n<open){colliOk=true;out.textContent='✓ Teilabholung: '+n+' Colli bestätigt. Danach bleiben '+(open-n)+' Colli offen.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status('Collis bestätigt. Bitte jetzt die Fahrerdaten erfassen.','ok');return true}
+    colliOk=false;setDriverStepUnlocked(false);out.textContent=n===open?'Die komplette Restmenge bitte mit „Vollständige Abholung bestätigen“ abschließen.':'Für eine Teilabholung bitte 1 bis '+Math.max(1,open-1)+' Colli eingeben.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
   }
-  if(n===open){colliOk=true;out.textContent='✓ Vollständige Abholung: alle '+open+' offenen Colli werden abgeschlossen.';out.style.color='#166534';input.readOnly=true;return true}
-  colliOk=false;out.textContent='Für die vollständige Abholung müssen alle '+open+' noch offenen Colli bestätigt werden.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
+  if(n===open){colliOk=true;out.textContent='✓ Vollständige Abholung: alle '+open+' offenen Collis bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status('Collis bestätigt. Bitte jetzt die Fahrerdaten erfassen.','ok');return true}
+  colliOk=false;setDriverStepUnlocked(false);out.textContent='Für die vollständige Abholung müssen alle '+open+' noch offenen Colli bestätigt werden.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
 }
 document.getElementById('checkColli').addEventListener('click',function(){var n=colliNumber(document.getElementById('colli').value),open=remainingBefore||expected;checkColli(n>0&&n<open?'partial':'complete')});
-document.getElementById('colli').addEventListener('input',function(){colliOk=false;this.readOnly=false;document.getElementById('colliResult').textContent='Noch keine Colli-Anzahl geprüft.'});
+document.getElementById('colli').addEventListener('input',function(){colliOk=false;setDriverStepUnlocked(false);this.readOnly=false;document.getElementById('colliResult').textContent='Colli-Anzahl geändert. Bitte erneut bestätigen, bevor Fahrerdaten erfasst werden.'});
 
 ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#0f172a';
 function clearSig(){ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);drawn=false}
@@ -282,6 +307,7 @@ form.addEventListener('submit',function(e){
   e.preventDefault();
   var mode=e.submitter&&e.submitter.dataset&&e.submitter.dataset.mode==='partial'?'partial':'complete';
   var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=mode==='partial'?document.getElementById('confirmPartial'):document.getElementById('confirm');
+  if(!(expected>0)||!colliOk){setDriverStepUnlocked(false);status('Bitte zuerst die Collis prüfen und bestätigen. Fahrerdaten werden erst danach freigeschaltet.','bad');document.getElementById('colli').focus();return}
   if(!plate){status('Bitte das Kennzeichen eingeben.','bad');return}
   if(!carrier){status('Bitte den Speditionsnamen eingeben.','bad');return}
   if(expected>0&&!checkColli(mode)){status(mode==='partial'?'Die Teilabholung konnte mit dieser Colli-Anzahl nicht bestätigt werden.':'Die eingegebene Rest-Colli-Anzahl stimmt nicht.','bad');return}
@@ -297,7 +323,7 @@ form.addEventListener('submit',function(e){
     var podText=data&&data.podAzureSaved?(data.podArchiveSaved?'POD wurde sicher in ExportHUB und zusätzlich im geschützten Archiv gespeichert.':'POD wurde sicher in ExportHUB gespeichert. Die zusätzliche Archivkopie ist noch offen.'):'Abholung und Fahrerunterschrift wurden gespeichert. Der Archivstatus konnte nicht bestätigt werden.';card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>'+esc(podText)+'</p><div class="status ok">Die vollständige Abholung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';
   }).catch(function(err){
     submitting=false;document.getElementById('confirmPartial').disabled=false;document.getElementById('confirm').disabled=false;
-    if(err.code==='COLLI_MISMATCH'||err.code==='COLLI_REQUIRED'||err.code==='COLLI_EXPECTED_MISSING'||err.code==='COLLI_EXCEEDS_REMAINING'){colliOk=false;status('Die Colli-Anzahl wurde vom Server nicht akzeptiert. Bitte offene Restmenge prüfen.','bad');return}
+    if(err.code==='COLLI_MISMATCH'||err.code==='COLLI_REQUIRED'||err.code==='COLLI_EXPECTED_MISSING'||err.code==='COLLI_EXCEEDS_REMAINING'){colliOk=false;setDriverStepUnlocked(false);status('Die Colli-Anzahl wurde vom Server nicht akzeptiert. Bitte offene Restmenge prüfen und erneut bestätigen.','bad');return}
     status((err.status===401||err.status===403?'Verlader-PIN wurde vom Server nicht akzeptiert: ':'Abholung konnte nicht bestätigt werden: ')+q(err.message||err),'bad');
   });
 });
