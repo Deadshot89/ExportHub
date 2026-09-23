@@ -1,19 +1,30 @@
 # ExportHUB – aktueller Main-Stand
 
-Dieser Stand ist auf RC1002 vereinheitlicht. Produktion, TESTSERVICE und Android-App verwenden denselben Release-Kandidaten.
+ExportHUB verwendet aktuell die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die zuletzt produktiv ausgerollten Korrekturen reichen bis **RC1222**; der gemeinsame Produktionsmarker bleibt bewusst RC1112, damit alle drei Umgebungen über denselben geprüften Releasevertrag gebaut und ausgeliefert werden.
 
-## Website
+## Website und Umgebungen
 
-- `index.html` ist der aktuelle Produktionsstand RC1002.
-- `TESTVERSION.html` ist der aktuelle TESTSERVICE-Stand RC1002.
-- Produktion und TESTSERVICE werden aus demselben RC1002-Funktionsstand geprüft und ausgeliefert.
-- Topbar, Navigation, globale Suche, Warncenter, persönliche Benachrichtigungen und Fehlerdiagnose sind enthalten.
-- Die Fehlerdiagnose bleibt ausschließlich für globale Administratoren freigegeben.
-- Warncenter und persönliche Aufgaben-Benachrichtigungen bleiben getrennte Bereiche.
+- Produktion, TESTSERVICE und Demo werden gemeinsam über den RC1112-Drei-Umgebungen-Deploy gebaut.
+- TESTSERVICE wird vor Produktion durch ein echtes Playwright-Browser-Gate geprüft.
+- Produktion wird erst nach grünem TESTSERVICE-Gate freigegeben.
+- Nach dem Produktionsdeploy laufen zusätzliche Read-only Browser-Smokes und Live-Prüfungen.
+- `index.html`, `TESTVERSION.html` und `demo.html` verwenden denselben RC1112-Funktionsstand.
+- Topbar, Navigation, globale Suche, Warncenter, persönliche Benachrichtigungen, Fehlerdiagnose, Historie, Abholkalender und Sendungsübersicht sind Bestandteil des aktuellen Stands.
+
+## POD-Sicherung
+
+PODs werden serverseitig zweifach gesichert:
+
+1. Primärspeicher im bestehenden Azure-POD-Container `exporthub-pod`.
+2. Zusätzliche unveränderliche Archivkopie im separaten Container `exporthub-pod-backup`.
+
+Die Archivkopie wird content-addressed und SHA-256-geprüft gespeichert. Bestehende Archivdateien werden nicht überschrieben; bei einem Konflikt werden Hash und Dateigröße geprüft. Microsoft 365 / Microsoft Graph ist für die verpflichtende Zweitsicherung nicht mehr erforderlich und kann nur noch optional verwendet werden.
+
+Der Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft und vervollständigt offene POD-Sicherungen nach Deploys sowie regelmäßig per Zeitplan.
 
 ## Aufgaben
 
-Die aktuelle Aufgabenansicht verwendet die fachlichen Gruppen:
+Die aktuelle Aufgabenansicht verwendet unter anderem die fachlichen Gruppen:
 
 - Offene Sendungen
 - Fehlende POD
@@ -25,15 +36,31 @@ Die aktuelle Aufgabenansicht verwendet die fachlichen Gruppen:
 
 ## Android-App
 
-Das vollständige Android-Projekt befindet sich unter `android-app/`. Aktueller Stand: `1.0-rc1002`, `versionCode 1002`.
+Das Android-Projekt befindet sich unter `android-app/`.
+
+Aktueller Releasevertrag:
+
+- `versionCode = 1112`
+- `versionName = "1.0-rc1112"`
+- `compileSdk = 36`
+- `targetSdk = 36`
+
+Der Build-Workflow erzeugt ein geprüftes Debug-APK-Artefakt für RC1112.
 
 ## Aktive Release- und Deploy-Pfade
 
-Es gibt nur noch diese dauerhaft aktiven GitHub-Workflows:
+Die zentralen dauerhaft aktiven Pfade sind:
 
-- Hauptprüfung RC1002: `.github/workflows/rc1002-main-contract.yml`
-- Produktion: `.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml`
-- TESTSERVICE: `.github/workflows/exporthub-testservice.yml`
+- Hauptprüfung: `.github/workflows/rc1002-main-contract.yml`  
+  Workflow-Name: **RC1112 Main Contract**
+- Gemeinsamer Produktion / TESTSERVICE / Demo Deploy: `.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml`  
+  Workflow-Name: **ExportHUB RC1112 Drei-Umgebungen Deploy**
+- TESTSERVICE Einzel-Deploy nur als ausdrücklich bestätigte Ausnahme: `.github/workflows/exporthub-testservice.yml`
 - Android: `.github/workflows/exporthub-android-test-app.yml`
+- POD-Backup-Nachholung: `.github/workflows/rc1144-pod-backup-reconcile.yml`
 
-Einmalige Entwicklungs-, Materialisierungs- und Alt-Release-Workflows für RC997, RC1000, RC1001 und die RC1002-Migration sind aus `main` entfernt. Die dazugehörigen Regressionstests bleiben erhalten, soweit sie vom aktuellen RC1002-Hauptvertrag noch benötigt werden.
+Historische RC-Regressionstests bleiben bewusst erhalten und werden vom aktuellen Releasevertrag weiter ausgeführt, damit frühere Funktionen nicht unbemerkt regressieren.
+
+## Release-Sicherheit
+
+Ein Produktionsstand gilt erst als freigegeben, wenn die vorgesehenen Vertrags-, Node-, Build- und Browser-Gates erfolgreich sind. Für die POD-Sicherung gilt zusätzlich: offene Sicherungen dürfen im Production-Reconcile weder `pendingCount > 0` noch `errorCount > 0` hinterlassen.
