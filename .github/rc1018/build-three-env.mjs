@@ -112,14 +112,28 @@ function patchCustomerAvisForm(html){
     "var f=document.getElementById('avisForm');if(f)f.addEventListener('submit',submit)}",
     "var f=document.getElementById('avisForm');if(f){f.addEventListener('submit',submit);f.addEventListener('focusin',markAvisFormDirty,true);f.addEventListener('input',markAvisFormDirty,true);f.addEventListener('change',markAvisFormDirty,true)}}",
     'Dirty-Listener');
-  out=replaceOne(out,
-    "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(render)",
-    "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(data){avisFormDirty=false;render(data)})",
-    'Submit-Erfolg');
-  out=replaceOne(out,
-    "function refresh(){if(!session||customerUploadInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){",
-    "function refresh(){if(!session||avisFormDirty||avisFormFocused()||customerUploadInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){",
-    'Auto-Refresh');
+  const legacySubmit="b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(render)";
+  const rc1224Submit="b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(data){appointmentInteraction=false;render(data);";
+  if(out.includes(legacySubmit)){
+    out=replaceOne(out,legacySubmit,
+      "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(data){avisFormDirty=false;render(data)})",
+      'Submit-Erfolg');
+  }else{
+    out=replaceOne(out,rc1224Submit,
+      "b.disabled=true;b.textContent='Wird gespeichert …';api('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(data){avisFormDirty=false;appointmentInteraction=false;render(data);",
+      'Submit-Erfolg RC1224');
+  }
+  const legacyRefresh="function refresh(){if(!session||customerUploadInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){";
+  const rc1224Refresh="function refresh(){if(!session||customerUploadInteraction||appointmentInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){";
+  if(out.includes(legacyRefresh)){
+    out=replaceOne(out,legacyRefresh,
+      "function refresh(){if(!session||avisFormDirty||avisFormFocused()||customerUploadInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){",
+      'Auto-Refresh');
+  }else{
+    out=replaceOne(out,rc1224Refresh,
+      "function refresh(){if(!session||avisFormDirty||avisFormFocused()||customerUploadInteraction||appointmentInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){",
+      'Auto-Refresh RC1224');
+  }
   return out
 }
 function bridgeMultiTruckSaveRuntime(html){
