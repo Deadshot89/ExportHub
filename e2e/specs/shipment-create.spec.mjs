@@ -65,7 +65,11 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
 
   const location=page.locator('#index289LocationSelect');
   await expect(location).toBeVisible();
-  if(await location.locator('option').count()>1)await location.selectOption(customer.locationId);
+  await expect.poll(
+    ()=>location.locator('option').evaluateAll((options,id)=>options.some(option=>option.value===id),customer.locationId),
+    {timeout:15_000,message:'E2E-Standort muss vor der Auswahl vollständig gerendert sein'}
+  ).toBe(true);
+  await location.selectOption({value:customer.locationId});
   await expect(location).toHaveValue(customer.locationId,{timeout:10_000});
   await expect.poll(()=>page.evaluate(()=>{
     const s=window.__EXPORTHUB_GET_STATE__?.()||{};
