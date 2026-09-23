@@ -61,6 +61,17 @@ test('RC1218: Mutation-Gate quittiert State-Read erst nach direktem History-Pers
   assert.match(mutation,/readNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
 });
 
+test('RC1239: View-Inhalt wird atomar aus dem DOM gelesen und wartet nicht auf abgelöste Locator-Knoten',()=>{
+  const start=helper.indexOf('async function contentText(page)');
+  const end=helper.indexOf('async function waitForRequired',start);
+  assert.ok(start>=0&&end>start);
+  const block=helper.slice(start,end);
+  assert.match(block,/page\.evaluate/);
+  assert.match(block,/document\.getElementById\('content'\)/);
+  assert.doesNotMatch(block,/locator\('#content'\)/);
+  assert.doesNotMatch(block,/\.innerText\(\)/);
+});
+
 test('RC1214: geänderte E2E-Dateien sind syntaktisch gültig',()=>{
   for(const file of ['e2e/helpers/exporthub-browser.mjs','e2e/specs/navigation.spec.mjs','e2e/specs/testservice-mutation.spec.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
