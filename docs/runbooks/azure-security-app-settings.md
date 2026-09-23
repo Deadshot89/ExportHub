@@ -4,7 +4,7 @@ Stand: RC1192 / Issues #215 und #231
 
 ## Ziel
 
-Dieses Runbook beschreibt die sichere Konfiguration der zwei noch fehlenden serverseitigen ExportHUB-Sicherheitswerte:
+Dieses Runbook dokumentiert die sichere Konfiguration und den aktuell bestätigten Live-Status der serverseitigen ExportHUB-Sicherheitswerte:
 
 - `EXPORTHUB_CUSTOMER_PORTAL_KEY` für TESTSERVICE und PRODUCTION, mit getrennten Werten je Umgebung.
 - `EXPORTHUB_AUTH_SIGNING_SECRET` für PRODUCTION.
@@ -21,18 +21,20 @@ https://learn.microsoft.com/en-us/azure/static-web-apps/application-settings
 Host:
 `ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net`
 
-- Kundenportal-Readiness: `CUSTOMER_PORTAL_NOT_CONFIGURED`
-- `EXPORTHUB_CUSTOMER_PORTAL_KEY`: fehlt
-- Auth-Signing: bereits dediziert konfiguriert; nicht im Rahmen dieses Runbooks ändern.
+- Kundenportal-Readiness: HTTP 200, `ok=true`, `configured=true`
+- Kundenportal-Verschlüsselung ist aktiv.
+- Auth-Probe: `signingSecretConfigured=true`
+- Storage und Runtime sind erreichbar.
 
 ### PRODUCTION
 
 Host:
 `wonderful-forest-0f315e310.7.azurestaticapps.net`
 
-- `EXPORTHUB_CUSTOMER_PORTAL_KEY`: vor Produktionsfreigabe separat konfigurieren.
-- `EXPORTHUB_AUTH_SIGNING_SECRET`: fehlt laut RC1050 Storage Probe.
-- Storage und Runtime sind erreichbar; der Signing-Fallback nutzt aktuell noch das Storage-Secret.
+- Kundenportal-Readiness: HTTP 200, `ok=true`, `configured=true`
+- Kundenportal-Verschlüsselung ist aktiv.
+- Auth-Probe: `signingSecretConfigured=true`
+- Storage und Runtime sind erreichbar.
 
 ## Sicherheitsregeln
 
@@ -61,13 +63,13 @@ $rng.Dispose()
 
 Diesen Vorgang für jeden benötigten Wert separat wiederholen.
 
-Benötigt werden drei unterschiedliche Werte:
+Die drei Werte sind inzwischen live konfiguriert und dürfen nur kontrolliert rotiert werden:
 
 - TESTSERVICE → `EXPORTHUB_CUSTOMER_PORTAL_KEY`
 - PRODUCTION → `EXPORTHUB_CUSTOMER_PORTAL_KEY`
 - PRODUCTION → `EXPORTHUB_AUTH_SIGNING_SECRET`
 
-Den bereits vorhandenen TESTSERVICE-Wert für `EXPORTHUB_AUTH_SIGNING_SECRET` nicht verändern.
+Den vorhandenen TESTSERVICE-Wert für `EXPORTHUB_AUTH_SIGNING_SECRET` ebenfalls nicht verändern, sofern keine geplante Rotation erfolgt.
 
 ## 2. TESTSERVICE Kundenportal-Key setzen
 
