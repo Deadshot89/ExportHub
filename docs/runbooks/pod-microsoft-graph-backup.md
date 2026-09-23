@@ -1,147 +1,79 @@
-# ExportHUB POD-Zweitsicherung – Microsoft Graph Runbook
+# ExportHUB POD-Zweitsicherung – Azure-Archiv und optionales Microsoft 365
 
-Stand: RC1166 / P0 Issue #210
+Stand: RC1224
 
 ## Ziel
 
-Nach einer bestätigten Abholung wird der POD zuerst im ExportHUB-Azure-Speicher gesichert und anschließend automatisch nach Microsoft 365 in den vorgesehenen POD-Archivordner kopiert.
+Die verpflichtende POD-Sicherung verwendet seit RC1220 zwei serverseitige Azure-Speicherziele:
 
-Die Azure-Primärsicherung funktioniert bereits. Die Microsoft-365-Zweitsicherung bleibt fail-closed, solange Microsoft Graph nicht vollständig konfiguriert ist.
+1. Primärspeicher: `exporthub-pod`
+2. Zweitsicherung: `exporthub-pod-backup`
 
-## Aktueller Blocker
+Die Zweitsicherung wird content-addressed gespeichert und beim Wiederfinden über SHA-256-Metadaten und Dateigröße verifiziert. Ein bereits vorhandenes Archivobjekt wird nicht überschrieben.
 
-Folgende Backend-App-Settings fehlen aktuell sowohl im TESTSERVICE als auch in PRODUCTION:
+Microsoft 365 / Microsoft Graph ist **nicht mehr Voraussetzung** für eine vollständige POD-Sicherung. Graph kann optional als zusätzliche dritte Kopie aktiviert werden.
 
-- EXPORTHUB_GRAPH_TENANT_ID
-- EXPORTHUB_GRAPH_CLIENT_ID
-- EXPORTHUB_GRAPH_CLIENT_SECRET
+## Verbindliche Betriebslogik
 
-Zusätzlich sind Zielkonto und Zielordner ab RC1195 zwingende Pflichtwerte:
+- Ein POD gilt erst dann als vollständig gesichert, wenn Primärspeicher und Azure-Archiv erfolgreich bestätigt sind.
+- Der Zustand wird über `archiveSaved=true` gespiegelt.
+- Der Reconcile-Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` holt fehlende Archivkopien nach.
+- In PRODUCTION muss der Reconcile mit `pendingCount=0` und `errorCount=0` enden.
+- Microsoft-365-Fehler dürfen eine bereits erfolgreiche Azure-Primär- und Archivkopie nicht wieder als ungesichert markieren.
 
-- EXPORTHUB_POD_DRIVE_USER
-- EXPORTHUB_POD_FOLDER
+## Azure-Konfiguration
 
-Es gibt bewusst keinen persönlichen Standardbenutzer und keinen fest eingebauten Standardordner mehr. Beide Werte müssen vor Aktivierung mit dem tatsächlich vorgesehenen gemeinsamen Microsoft-365-Archiv abgestimmt werden.
+Standardmäßig verwendet das Archiv denselben Azure Storage Account wie der Primärspeicher, aber einen separaten Container.
 
-Secret-Werte dürfen niemals im Repository, im Browser-State, in Logs oder in Frontend-Dateien abgelegt werden.
+Optional kann mit
 
-## 1. Microsoft Entra App Registration
+- `EXPORTHUB_POD_BACKUP_CONNECTION_STRING`
 
-Eine App Registration für die serverseitige ExportHUB-POD-Sicherung verwenden oder neu anlegen.
+ein separater Azure Storage Account für die Archivkopie hinterlegt werden. Das erhöht die Ausfallsicherheit gegenüber Problemen auf Storage-Account-Ebene.
 
-Benötigt:
+Der Containername ist standardmäßig:
 
-- Directory (Tenant) ID → EXPORTHUB_GRAPH_TENANT_ID
-- Application (Client) ID → EXPORTHUB_GRAPH_CLIENT_ID
-- Client Secret → EXPORTHUB_GRAPH_CLIENT_SECRET
+- `exporthub-pod-backup`
 
-Der bestehende Code verwendet den OAuth-2.0-Client-Credentials-Flow mit:
+## Microsoft 365 optional aktivieren
 
-- grant_type=client_credentials
-- scope=https://graph.microsoft.com/.default
+Microsoft 365 wird nur verwendet, wenn
 
-## 2. Microsoft Graph Berechtigung
+- `EXPORTHUB_POD_M365_ENABLED=true`
 
-Für den aktuell verwendeten Upload-Endpunkt auf ein Benutzerlaufwerk benötigt die App als Application Permission:
+gesetzt ist und die erforderliche Graph-Konfiguration vollständig vorhanden ist.
 
-- Microsoft Graph → Files.ReadWrite.All
+Mögliche Graph-Werte sind unter anderem:
 
-Danach Administratorzustimmung (Admin consent) erteilen.
+- `EXPORTHUB_GRAPH_TENANT_ID`
+- `EXPORTHUB_GRAPH_CLIENT_ID`
+- `EXPORTHUB_GRAPH_CLIENT_SECRET`
+- `EXPORTHUB_POD_DRIVE_ID`
+- `EXPORTHUB_POD_FOLDER_ID`
 
-Hinweis: Das ist für diesen Graph-Endpunkt die niedrigste dokumentierte Application Permission. Falls später auf einen dedizierten SharePoint-Site-/Drive-Ansatz umgestellt wird, sollte ein enger begrenztes Berechtigungsmodell geprüft werden.
+Graph-Zugangsdaten und Secrets dürfen niemals in Frontend-Dateien, Browser-State, Logs, Issues oder Repository-Dateien geschrieben werden.
 
-## 3. Azure Static Web Apps App Settings
+## Reconcile-Abnahme
 
-Die Werte müssen als serverseitige App Settings / Umgebungsvariablen hinterlegt werden. Sie sind dann nur für die Backend-API über process.env verfügbar.
+Für PRODUCTION gilt als erfolgreicher Nachweis:
 
-Für jede tatsächlich verwendete Umgebung separat prüfen:
+- HTTP 2xx
+- `ok=true`
+- `pendingCount=0`
+- `errorCount=0`
 
-### TESTSERVICE
+Gezielte Nachweise für eine Referenz müssen den Status `saved-now` oder `already-saved` liefern.
 
-- EXPORTHUB_GRAPH_TENANT_ID
-- EXPORTHUB_GRAPH_CLIENT_ID
-- EXPORTHUB_GRAPH_CLIENT_SECRET
-- EXPORTHUB_POD_DRIVE_USER
-- EXPORTHUB_POD_FOLDER
+## Live-Nachweis RC1220–RC1222
 
-### PRODUCTION
+Nach dem erfolgreichen Produktionsdeploy wurden die zuvor offenen PODs mit dem neuen Azure-Archiv nachgesichert:
 
-- EXPORTHUB_GRAPH_TENANT_ID
-- EXPORTHUB_GRAPH_CLIENT_ID
-- EXPORTHUB_GRAPH_CLIENT_SECRET
-- EXPORTHUB_POD_DRIVE_USER
-- EXPORTHUB_POD_FOLDER
+- erster erfolgreicher Production-Reconcile: 25 ausgewählt, 25 gespeichert, 0 offen, 0 Fehler
+- spätere Reconcile-Läufe: weiterhin 0 Fehler
+- aktuellster geprüfter Lauf: 0 offene POD-Sicherungen
 
-Azure Portal:
+Damit ist Microsoft Graph kein P0-Blocker mehr.
 
-1. Azure Static Web App öffnen.
-2. Einstellungen / Environment variables bzw. Umgebungsvariablen öffnen.
-3. Zielumgebung auswählen.
-4. Werte hinzufügen.
-5. Anwenden und speichern.
-6. Keine Secrets in GitHub-Dateien kopieren.
+## Optionales Microsoft-365-Fehlerbild
 
-## 4. Zielkonto prüfen
-
-Das unter EXPORTHUB_POD_DRIVE_USER konfigurierte Microsoft-365-Konto muss ein erreichbares OneDrive-/Microsoft-365-Laufwerk besitzen.
-
-Der aktuelle ExportHUB-Endpunkt schreibt über Microsoft Graph nach:
-
-/users/{EXPORTHUB_POD_DRIVE_USER}/drive/root:/{EXPORTHUB_POD_FOLDER}/{POD-Datei}:/content
-
-## 5. Technische Prüfung
-
-Nach dem Speichern der Azure App Settings:
-
-1. RC1144 POD Backup Reconcile manuell ausführen.
-2. TESTSERVICE muss HTTP 2xx liefern.
-3. PRODUCTION muss HTTP 2xx liefern.
-4. graphConfigured darf nicht mehr false sein.
-5. errorCount muss 0 sein.
-6. pendingCount muss in PRODUCTION nach erfolgreicher Nachholung 0 erreichen.
-7. Bereits offene PODs müssen in Microsoft 365 nachgezogen werden.
-
-## 6. Funktionale Abnahme
-
-Mit einer echten Testsendung:
-
-1. QR-Abholung vollständig bestätigen.
-2. Prüfen, dass ein echter POD erzeugt wird.
-3. Sendungsübersicht muss Azure-Sicherung anzeigen.
-4. Microsoft-365-Zweitsicherung muss anschließend als erfolgreich angezeigt werden.
-5. Datei im Zielordner öffnen und PDF-Inhalt prüfen.
-6. Dateiname und Referenz mit der Sendung vergleichen.
-7. Keine Secrets oder technischen Rohfehler dürfen für normale Benutzer sichtbar sein.
-
-## 7. Fehlerbilder
-
-### GRAPH_NOT_CONFIGURED
-
-Mindestens einer der fünf Pflichtwerte fehlt in der Backend-Umgebung: Tenant ID, Client ID, Client Secret, explizites POD-Zielkonto oder expliziter POD-Zielordner.
-
-### 401 / invalid_client
-
-Client-ID, Tenant-ID oder Client-Secret prüfen. Ablaufdatum des Client-Secrets prüfen.
-
-### 403 / Authorization_RequestDenied
-
-Graph Application Permission und Admin Consent prüfen.
-
-### Drive-/User-Fehler
-
-EXPORTHUB_POD_DRIVE_USER prüfen und sicherstellen, dass das Zielkonto ein nutzbares Microsoft-365-Laufwerk besitzt.
-
-### Pending PODs
-
-RC1144 erneut ausführen. Die Nachholung wählt offene Backups fair nach dem ältesten Versuch aus.
-
-## Abnahmekriterium P0
-
-Der P0 ist erst geschlossen, wenn gleichzeitig gilt:
-
-- TESTSERVICE Graph inklusive explizitem Zielkonto und Zielordner konfiguriert
-- PRODUCTION Graph inklusive explizitem Zielkonto und Zielordner konfiguriert
-- RC1144 in beiden Umgebungen grün
-- PRODUCTION pendingCount=0
-- bestehende offene PODs nachgezogen
-- mindestens ein neuer echter POD automatisch in Azure und Microsoft 365 gespeichert
+Falls Microsoft 365 zusätzlich aktiviert ist, können weiterhin Graph-spezifische Fehler auftreten. Diese betreffen nur die optionale Zusatzkopie. Die verpflichtende POD-Sicherung bleibt über Azure Primärspeicher + Azure Archiv definiert.
