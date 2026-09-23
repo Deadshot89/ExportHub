@@ -32,10 +32,10 @@ test('RC1168: Workflow-Dispatch akzeptiert Referenz und Zielumgebung',()=>{
   assert.match(workflow,/reference:\s*\n\s*description:/);
   assert.match(workflow,/environment:\s*\n[\s\S]*default:\s*production/);
   assert.match(workflow,/TARGET_REFERENCE:/);
-  assert.match(workflow,/reference:String\(process\.env\.TARGET_REFERENCE\|\|''\)\.trim\(\)\.toUpperCase\(\)/);
+  assert.match(workflow,/const reference=String\(process\.env\.TARGET_REFERENCE\|\|''\)\.trim\(\)\.toUpperCase\(\)/);
 });
 
-test('RC1220: gezielter Workflow akzeptiert nur bestätigte Archiv-Zweitsicherung als Erfolg',()=>{
+test('RC1241: gezielter Workflow akzeptiert nur bestätigte Archiv-Zweitsicherung als Erfolg',()=>{
   assert.match(workflow,/\['already-saved','saved-now'\]\.includes\(v\.target\.status\)/);
   assert.match(workflow,/process\.exit\(5\)/);
   assert.match(workflow,/process\.exit\(6\)/);
@@ -54,7 +54,7 @@ test('RC1168: Diagnose bleibt frei von Graph-Secrets und Zielbenutzer',()=>{
 test('RC1168: API und Build enthalten den gezielten Nachweis',()=>{
   execFileSync(process.execPath,['--check','api/pod-backup-reconcile/index.js'],{stdio:'pipe'});
   execFileSync(process.execPath,['--check','api/shared/pod-archive.js'],{stdio:'pipe'});
-  assert.match(api,/version:\s*'RC1220'/);
+  assert.match(api,/version:\s*'RC1241'/);
   assert.match(api,/reference:\s*reference\s*\|\|\s*null/);
   assert.match(build,/podTargetedProof:'RC1220 targeted archive proof/);
 });
