@@ -8,7 +8,7 @@ var NOTES=[
  'RC1174 stellt die Fehlerdiagnose-Benachrichtigungen für die Android-/Handy-Nutzung wieder sicher und hält den Diagnosekanal im Releasevertrag abgesichert.',
  'RC1169 schützt die Fehlerdiagnose vollständig vor Nicht-Administratoren: keine sichtbare Diagnose-Navigation und serverseitig weiterhin 403 ohne Global-Admin-Recht.',
  'RC1166 ergänzt in der Sendungsübersicht die Avis-Erinnerung auf Deutsch oder Englisch an Kunde oder Spedition mit hinterlegten Kontakten und sicherem Lieferavis-Link.',
- 'RC1165 zeigt den POD-Sicherungsstatus in der Sendungsübersicht für Azure und Microsoft 365 nachvollziehbar an.',
+ 'RC1220 stellt die verpflichtende POD-Zweitsicherung auf Azure-Primärspeicher plus separates Azure-Archiv um; Microsoft 365 ist nur noch optional. Die Sendungsübersicht zeigt den aktuellen Sicherungsstatus nachvollziehbar an.',
  'RC1163 protokolliert Änderungen eines bereits gemeldeten Abholtermins im Lieferavis revisionssicher mit altem und neuem Termin.',
  'RC1160 sichert Kundenportal-Zugangsdaten verschlüsselt und trennt Rechte für Verwenden, Anzeigen und Verwalten.',
  'RC1159 hebt das Deckblatt für Paletten deutlich stärker und drucksicher hervor, inklusive markanter Referenzfläche.',
