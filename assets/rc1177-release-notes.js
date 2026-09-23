@@ -22,13 +22,13 @@ function version(){
  var v=q(w.__EXPORTHUB_VISIBLE_RELEASE_VERSION__);if(/^RC\d+$/i.test(v))return v.toUpperCase();
  var el=d.querySelector('[data-exporthub-version-label]');
  v=q(el&&el.textContent);if(/^RC\d+$/i.test(v))return v.toUpperCase();
- return'RC1193'
+ return'RC1231'
 }
 function patch(){
  var title=d.getElementById('rc524ReleaseTitle');if(!title)return false;
  var card=title.closest&&title.closest('.rc524-release-card');if(!card)return false;
  title.textContent=version()+' · Aktueller ExportHUB-Stand';
- var date=card.querySelector('.rc524-release-date');if(date)date.textContent='19.09.2026';
+ var date=card.querySelector('.rc524-release-date');if(date)date.textContent='23.09.2026';
  var list=card.querySelector('.rc524-release-list');
  if(!list){
   list=d.createElement('ul');list.className='rc524-release-list';
