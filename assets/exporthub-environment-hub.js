@@ -20,6 +20,7 @@ function sendAndroid(payload){
   try{window.ExportHUBAndroid.notify(payload.channel,payload.key,payload.title,payload.body,payload.route);sessionStorage.setItem(storageKey,sig);return true}catch(_){return false}
 }
 function notifyAndroid(){
+  if(!androidBridgeReady())return false;
   const notificationCount=countOf(['[data-index236-notification-count]','#index236NotificationCount','#index236NotificationCenter [data-count]','.index236-notification-count']);
   const warningCount=countOf(['[data-rc885-warning-count]','#rc885WarningCount','#rc885WarningDrawer [data-count]','.rc885-warning-count']);
   if(notificationCount>0)sendAndroid({channel:'notification',key:`tasks:${notificationCount}`,title:'ExportHUB Aufgaben',body:`${notificationCount} persönliche Aufgabe${notificationCount===1?'':'n'} offen.`,route:'notifications'});
@@ -103,15 +104,16 @@ function openRequestedRoute(){
   setTimeout(retry,50);
   return true;
 }
+function androidBridgeReady(){return !!(window.ExportHUBAndroid&&typeof window.ExportHUBAndroid.notify==='function')}
 function installNotificationBridge(){
   let timer=0,diagnosticTimer=0;
-  const schedule=()=>{clearTimeout(timer);timer=setTimeout(notifyAndroid,180)};
-  const scheduleDiagnostics=(delay=4000,force=false)=>{clearTimeout(diagnosticTimer);diagnosticTimer=setTimeout(async()=>{await pollCentralDiagnostics(force);scheduleDiagnostics(60000,false)},delay)};
+  const schedule=()=>{if(!androidBridgeReady())return false;clearTimeout(timer);timer=setTimeout(notifyAndroid,180);return true};
+  const scheduleDiagnostics=(delay=4000,force=false)=>{if(!androidBridgeReady())return false;clearTimeout(diagnosticTimer);diagnosticTimer=setTimeout(async()=>{await pollCentralDiagnostics(force);scheduleDiagnostics(60000,false)},delay);return true};
   ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:notifications-updated','exporthub:warnings-updated'].forEach(n=>window.addEventListener(n,schedule));
   window.addEventListener('exporthub:diagnostic',notifyDiagnostic);
   window.addEventListener('focus',()=>scheduleDiagnostics(1200,true));
   window.addEventListener('online',()=>scheduleDiagnostics(1200,true));
-  if(document.documentElement&&window.MutationObserver){const mo=new MutationObserver(schedule);mo.observe(document.documentElement,{subtree:true,childList:true,characterData:true});}
+  if(androidBridgeReady()&&document.documentElement&&window.MutationObserver){const mo=new MutationObserver(schedule);mo.observe(document.documentElement,{subtree:true,childList:true,characterData:true});}
   schedule();
   scheduleDiagnostics(4000,true);
 }
