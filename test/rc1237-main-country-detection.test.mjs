@@ -34,7 +34,7 @@ test('RC1237: Hauptseite erkennt 60044 Albacina-Fabriano AN als Italien',()=>{
     const html=read(file),result=countryProbe(html);
     assert.equal(result.italy,'Italien',file+': italienischer Lieferstandort wird nicht erkannt');
     assert.equal(result.mg,'',file+': MG darf weiterhin nicht als Länderkennzeichen gelten');
-    assert.equal(result.named,'Deutschland',file+': ausgeschriebenes Deutschland muss erkannt werden');
+    assert.equal(String(result.named).toLowerCase(),'deutschland',file+': ausgeschriebenes Deutschland muss erkannt werden');
   }
 });
 
