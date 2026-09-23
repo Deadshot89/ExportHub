@@ -12,3 +12,10 @@ test('UPS postcode normalization handles spaces and hyphens before zone lookup',
 test('UPS individual carton weights are rated separately',()=>{const x=load();const expected=x.upsRate('3',10)+x.upsRate('3',23)+x.upsRate('3',35);assert.equal(x.upsIndividualBase('3',[10,23,35]),Math.round(expected*100)/100);assert.notEqual(x.upsIndividualBase('3',[10,23,35]),x.upsRate('3',68/3)*3)});
 
 test('UPS Standard export fuel is fixed to toolbox contract value',()=>{const x=load();assert.equal(x.fuelPct(),36);const base=27.71*3;assert.equal(Math.round(base*x.fuelPct())/100,29.93)});
+
+
+test('RC1227: Italienische Zieladresse 60044 Albacina-Fabriano AN wird als Italien erkannt',()=>{const x=load();assert.equal(x.inferCountryFromAddress('60044 Albacina-Fabriano AN'),'IT');assert.equal(x.countryCode('Italia'),'IT');assert.equal(x.resolveUpsZone('IT','60044'),'5')});
+
+test('RC1227: Ortskürzel MG bleibt weiterhin kein Länderkennzeichen',()=>{const x=load();assert.equal(x.inferCountryFromAddress('41189 Mönchengladbach MG'),'')});
+
+test('RC1227: sichtbare UPS-Ausgabe kennzeichnet komplette Lieferung',()=>{const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');assert.match(s,/Gesamtkosten komplette Lieferung/);assert.match(s,/Grundpreis komplette Lieferung/);assert.match(s,/Fuel '+pct\.toFixed\(2\)\+' % · komplette Lieferung/)});
