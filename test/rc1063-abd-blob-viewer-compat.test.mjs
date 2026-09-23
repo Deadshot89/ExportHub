@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 const compat=fs.readFileSync(new URL('../assets/rc1063-abd-blob-viewer-compat.js',import.meta.url),'utf8');
 const prep=fs.readFileSync(new URL('../.github/rc1049/fix-mail-abd-gate.mjs',import.meta.url),'utf8');
 const build=fs.readFileSync(new URL('../.github/rc1048/build-three-env.mjs',import.meta.url),'utf8');
+const wrapper=fs.readFileSync(new URL('../.github/rc1112/build-three-env.mjs',import.meta.url),'utf8');
 
 test('RC1063: blobbasierte ABD-Dateien erhalten Öffnen- und Download-Aktionen',()=>{
   assert.match(compat,/ExportHUBDocumentBlob1059/);
@@ -39,5 +40,8 @@ test('RC1248: Start-Probe ist kurz und ersetzt das frühere 60-Sekunden-Polling'
 test('RC1248: Viewer-Runtime wird mit frischem Cache-Key ausgeliefert und bleibt syntaktisch gültig',()=>{
   assert.match(build,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1248/);
   assert.match(prep,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1248/);
+  assert.match(wrapper,/assets\\\/rc1063-abd-blob-viewer-compat\\\.js\\\?v=\(\?:1063\|1151\|1248\)/);
+  assert.match(wrapper,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1248/);
+  assert.doesNotMatch(wrapper,/Dokumentaktionen Cache-Key fehlt'\);[^\n]*v=1151/);
   execFileSync(process.execPath,['--check','assets/rc1063-abd-blob-viewer-compat.js'],{stdio:'pipe'});
 });
