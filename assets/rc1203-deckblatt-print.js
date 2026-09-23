@@ -217,12 +217,16 @@ function onClick(e){
   var cover=e&&e.target&&e.target.closest&&e.target.closest('[data-rc1203-print-cover-only]');
   if(cover){e.preventDefault();triggerMode('cover');return}
 }
-function schedule(){(w.setTimeout||setTimeout)(function(){removeLegacyExtraButtons();renderCoverButton();decorateCover(d)},0)}
+function deckblattObserverRelevant(){
+  if(pendingMode||shipmentCreateVisible())return true;
+  return !!d.querySelector('.rc390-cover,.rc352-cover,[data-rc1203-print-cover-only],[data-rc1203-print-cmr-only]')
+}
+function schedule(){(w.setTimeout||setTimeout)(function(){if(!deckblattObserverRelevant())return;removeLegacyExtraButtons();renderCoverButton();decorateCover(d)},0)}
 installOpenGuard();
 d.addEventListener('click',onClick,true);
 try{w.addEventListener('beforeprint',function(){decorateCover(d)})}catch(_){}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved'].forEach(function(name){try{w.addEventListener(name,schedule)}catch(_){}});
-if(typeof MutationObserver!=='undefined'){try{new MutationObserver(function(){removeLegacyExtraButtons();renderCoverButton();decorateCover(d)}).observe(d.documentElement||d.body,{childList:true,subtree:true})}catch(_){}}
+if(typeof MutationObserver!=='undefined'){try{new MutationObserver(function(){if(!deckblattObserverRelevant())return;removeLegacyExtraButtons();renderCoverButton();decorateCover(d)}).observe(d.documentElement||d.body,{childList:true,subtree:true})}catch(_){}}
 w.ExportHUBRC1203Deckblatt=Object.freeze({version:'RC1205',decorateCover:decorateCover,remarkValue:remarkValue,renderCoverButton:renderCoverButton,triggerCoverOnly:function(){return triggerMode('cover')}});
 })(window,document);
