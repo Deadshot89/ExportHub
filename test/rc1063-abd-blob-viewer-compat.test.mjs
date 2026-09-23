@@ -17,7 +17,7 @@ test('RC1063: blobbasierte ABD-Dateien erhalten Öffnen- und Download-Aktionen',
 
 test('RC1063: Kompatibilitätslayer wird nur in Produktion und TESTSERVICE am finalen Build eingebunden',()=>{
   assert.match(prep,/exporthub-rc1063-abd-blob-viewer-compat/);
-  assert.match(prep,/assets\/rc1063-abd-blob-viewer-compat\\.js\\?v=1248/);
+  assert.match(prep,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1248/);
   assert.match(prep,/for\(const file of \['index\.html','TESTVERSION\.html'\]\)/);
 });
 
