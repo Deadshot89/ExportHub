@@ -64,12 +64,13 @@ test('RC1177: unabhängige fachliche Ereignisse bleiben erhalten',()=>{
 });
 
 test('RC1177: Update-Ansicht enthält aktuelle Änderungshinweise statt RC1002-Altstand',()=>{
-  for(const marker of ['RC1177 bereinigt die zentrale Historie','RC1176 stabilisiert die Standortauswahl','RC1174 stellt die Fehlerdiagnose-Benachrichtigungen','RC1166 ergänzt in der Sendungsübersicht die Avis-Erinnerung']){
+  for(const marker of ['RC1177 bereinigt die zentrale Historie','RC1176 stabilisiert die Standortauswahl','RC1174 stellt die Fehlerdiagnose-Benachrichtigungen','RC1166 ergänzt in der Sendungsübersicht die Avis-Erinnerung','RC1220 stellt die verpflichtende POD-Zweitsicherung auf Azure-Primärspeicher plus separates Azure-Archiv um']){
     assert.ok(notesSource.includes(marker),marker+' fehlt');
   }
   assert.match(notesSource,/rc524ReleaseTitle/);
   assert.match(notesSource,/Aktueller ExportHUB-Stand/);
   assert.match(notesSource,/data-rc1177-release-notes/);
+  assert.doesNotMatch(notesSource,/POD-Sicherungsstatus in der Sendungsübersicht für Azure und Microsoft 365/);
 });
 
 test('RC1177: Historie und Release Notes werden in alle drei Umgebungen gebaut und cache-frisch geladen',()=>{
