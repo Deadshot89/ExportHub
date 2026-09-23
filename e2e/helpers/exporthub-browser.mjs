@@ -384,6 +384,50 @@ export function acknowledgeReadStateNavigationAbort(state){
   return before-state.requestFailures.length;
 }
 
+export async function acknowledgeConfirmedAuthNavigationAbort(state,page){
+  if(!state||!Array.isArray(state.requestFailures)||!page)return 0;
+  const matches=state.requestFailures.filter(line=>{
+    const value=clean(line);
+    return /^POST\s+https?:\/\/[^\s]+\/api\/exporthub-auth(?:\?|\s+·)/i.test(value)&&/net::ERR_ABORTED$/i.test(value);
+  });
+  if(matches.length!==1)return 0;
+  const verified=await page.evaluate(async()=>{
+    let token='';
+    try{
+      const runtime=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};
+      token=String(runtime.authToken||runtime.token||runtime.sessionToken||'').trim();
+    }catch(_){}
+    if(!token){
+      try{
+        const raw=sessionStorage.getItem('exporthub_rc301_tab_session');
+        const saved=raw?JSON.parse(raw):null;
+        token=String(saved&&saved.token||'').trim();
+      }catch(_){}
+    }
+    if(!token)return false;
+    try{
+      const response=await fetch('/api/exporthub-auth',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{
+          'Content-Type':'application/json','Accept':'application/json',
+          'X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token
+        },
+        body:JSON.stringify({action:'session'})
+      });
+      const data=await response.json().catch(()=>({}));
+      return response.ok&&data&&data.ok===true;
+    }catch(_){return false}
+  }).catch(()=>false);
+  if(!verified)return 0;
+  const target=matches[0];
+  let removed=false;
+  state.requestFailures=state.requestFailures.filter(line=>{
+    if(removed||line!==target)return true;
+    removed=true;return false;
+  });
+  return removed?1:0;
+}
+
 export async function assertRuntimeClean(state,testInfo){
   const payload={
     test:state.test,
