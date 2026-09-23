@@ -18,4 +18,4 @@ test('RC1227: Italienische Zieladresse 60044 Albacina-Fabriano AN wird als Itali
 
 test('RC1227: Ortskürzel MG bleibt weiterhin kein Länderkennzeichen',()=>{const x=load();assert.equal(x.inferCountryFromAddress('41189 Mönchengladbach MG'),'')});
 
-test('RC1227: sichtbare UPS-Ausgabe kennzeichnet komplette Lieferung',()=>{const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');assert.match(s,/Gesamtkosten komplette Lieferung/);assert.match(s,/Grundpreis komplette Lieferung/);assert.match(s,/Fuel '+pct\.toFixed\(2\)\+' % · komplette Lieferung/)});
+test('RC1227: sichtbare UPS-Ausgabe kennzeichnet komplette Lieferung',()=>{const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');assert.match(s,/Gesamtkosten komplette Lieferung/);assert.match(s,/Grundpreis komplette Lieferung/);assert.ok(s.includes("'Fuel '+pct.toFixed(2)+' % · komplette Lieferung'"))});
