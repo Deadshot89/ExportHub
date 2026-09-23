@@ -2,6 +2,7 @@
 const auth=require('../shared/fast-auth-store');
 const {createBlobServiceClient}=require('../shared/blob-rest');
 const {DOCUMENT_CONTAINER}=require('../shared/document-blob-store');
+const POD_CONTAINER=process.env.EXPORTHUB_POD_CONTAINER||'exporthub-pod';
 
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
@@ -16,8 +17,10 @@ function requestEnvironment(req){
  if(hostProd){if(query&&query!=='production')throw error('ENVIRONMENT_MISMATCH','Die Produktionsseite darf keine Testservice-Daten anfordern.',409);return'production'}
  return query||'production';
 }
-function validBlobName(value){return /^rc1059\/(production|testservice)\/[a-f0-9]{2}\/[a-f0-9]{64}$/.test(text(value))}
-function blobEnvironment(name){const m=text(name).match(/^rc1059\/(production|testservice)\//);return m?m[1]:''}
+function validDocumentBlobName(value){return /^rc1059\/(production|testservice)\/[a-f0-9]{2}\/[a-f0-9]{64}$/.test(text(value))}
+function validPickupPodBlobName(value){return /^rc995\/(production|testservice)\/[a-f0-9]{64}\/automatic\/[^/]+\.pdf$/i.test(text(value))}
+function validBlobName(value){return validDocumentBlobName(value)||validPickupPodBlobName(value)}
+function blobEnvironment(name){const m=text(name).match(/^rc(?:1059|995)\/(production|testservice)\//);return m?m[1]:''}
 async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));return{buffer:Buffer.concat(chunks),contentType:text(r.contentType)||'application/octet-stream'} }
 
 module.exports=async function(context,req){
@@ -29,7 +32,7 @@ module.exports=async function(context,req){
   if(!validBlobName(blobName))throw error('DOCUMENT_BLOB_INVALID','Dokumentreferenz ist ungültig.',400);
   if(blobEnvironment(blobName)!==environment)throw error('ENVIRONMENT_MISMATCH','Das Dokument gehört zu einer anderen ExportHUB-Datenumgebung.',409);
   const cs=connectionString();if(!cs)throw error('STORAGE_NOT_CONFIGURED','Azure-Speicher ist nicht konfiguriert.',503);
-  const service=createBlobServiceClient(cs),container=service.getContainerClient(DOCUMENT_CONTAINER),blob=container.getBlockBlobClient(blobName),downloaded=await readBuffer(blob);
+  const service=createBlobServiceClient(cs),containerName=validPickupPodBlobName(blobName)?POD_CONTAINER:DOCUMENT_CONTAINER,container=service.getContainerClient(containerName),blob=container.getBlockBlobClient(blobName),downloaded=await readBuffer(blob);
   context.res={status:200,headers:{'Content-Type':downloaded.contentType,'Content-Length':String(downloaded.buffer.length),'Cache-Control':'private, no-store','Content-Disposition':'inline; filename="document"','X-Content-Type-Options':'nosniff'},body:downloaded.buffer};
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('ExportHUB document API error',e&&e.code,e&&e.message)}catch(_){}
