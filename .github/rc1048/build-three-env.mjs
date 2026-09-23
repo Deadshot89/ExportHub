@@ -12,7 +12,7 @@ const RC1065_CC_TAG='<script id="'+RC1065_CC_ID+'" defer src="/assets/rc1065-reg
 const RC1061_MIGRATION_ID='exporthub-rc1061-document-migration-admin';
 const RC1061_MIGRATION_TAG='<script id="'+RC1061_MIGRATION_ID+'" defer src="/assets/rc1061-document-migration-admin.js?v=1073"></script>';
 const RC1063_ABD_BLOB_ID='exporthub-rc1063-abd-blob-viewer-compat';
-const RC1063_ABD_BLOB_TAG='<script id="'+RC1063_ABD_BLOB_ID+'" defer src="/assets/rc1063-abd-blob-viewer-compat.js?v=1063"></script>';
+const RC1063_ABD_BLOB_TAG='<script id="'+RC1063_ABD_BLOB_ID+'" defer src="/assets/rc1063-abd-blob-viewer-compat.js?v=1248"></script>';
 const RC1067_STARTUP_ID='exporthub-rc1067-startup-recovery';
 const RC1067_STARTUP_TAG='<script id="'+RC1067_STARTUP_ID+'" defer src="/assets/rc1067-startup-recovery.js?v=1067"></script>';
 const RC1069_PERF_ID='exporthub-rc1069-performance';
@@ -572,7 +572,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
   retainedPatches:{
     registrationMandatoryCc:{runtime:'assets/rc1065-registration-cc.js',version:'RC1093',required:['Sevastian Marcu','Daniel Ollmann']},
     documentMigration:{runtime:'assets/rc1061-document-migration-admin.js',version:'RC1066',batchSize:5,mode:'automatic-sequential-batches'},
-    abdBlobViewerCompat:{runtime:'assets/rc1063-abd-blob-viewer-compat.js',version:'RC1063'},
+    abdBlobViewerCompat:{runtime:'assets/rc1063-abd-blob-viewer-compat.js',version:'RC1248',observer:'panel-scoped',startupProbeMax:8},
     startupRecovery:{runtime:'assets/rc1067-startup-recovery.js',page:'migration-recovery.html',version:'RC1067',trigger:'stalled admin startup with inline legacy documents'},
     finalRenderIntegrity:{version:'RC1068',shipmentController:'canonical production sync',inlineScriptSyntaxChecked:true,visibleCodeLeakChecked:true},
     performance:{version:'RC1069',debouncedGlobalSearchMs:140,fastViewCacheMax:5,fastViews:['shipment','shipmentoverview','cmr','customers','customerfolder']},
