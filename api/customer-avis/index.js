@@ -7,6 +7,7 @@ const {DOCUMENT_CONTAINER}=require('../shared/document-blob-store');
 const pdfSecurity=require('../shared/customer-avis-pdf-security');
 const contentCheck=require('../shared/customer-avis-document-content');
 const avisSlots=require('../shared/customer-avis-slots');
+const graphMail=require('../shared/graph-mail');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB_BASE=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -16,6 +17,7 @@ const AVIS_QUARANTINE_CONTAINER=process.env.EXPORTHUB_AVIS_QUARANTINE_CONTAINER|
 const MAX_CUSTOMER_PDF_FILES=10;
 const MAX_PENDING_PDF_FILES=3;
 const MAX_UPLOADS_PER_HOUR=8;
+const AVIS_UPLOAD_NOTIFICATION_TO=process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO||'DespatchNettetal@essentra.onmicrosoft.com';
 let teamContainer=null;
 let teamContainerReadyPromise=null;
 let documentContainer=null;
@@ -141,6 +143,36 @@ function addCustomerUploadNotification(state,sh,file,entry){
  const notice={id,type:'customer-avis-document',source:'customer-avis-upload',title:'Neues AVIS-Dokument',message:customer+' hat '+documentName+' für Sendung '+reference+' hochgeladen.',createdAt,read:false,route:'notifications',shipmentId:sid(sh),shipmentRef:reference,customerName:customer,documentId:text(file.id),documentName,documentSha256:text(file.sha256),documentBlobName:text(file.blobName),documentMimeType:text(file.mimeType||file.type)||'application/pdf'};
  list.push(notice);state.notifications=list.slice(-200);return notice
 }
+function avisUploadMailSubject(sh,file){
+ const reference=sref(sh)||'ohne Referenz',customer=text(sh&&sh.customerName||(sh&&sh.customer&&sh.customer.name))||'Kunde';
+ return 'Neues AVIS-Dokument · '+reference+' · '+customer
+}
+function avisUploadMailBody(sh,file,entry){
+ const reference=sref(sh)||'–',customer=text(sh&&sh.customerName||(sh&&sh.customer&&sh.customer.name))||'Kunde',name=fileName(file,'Kunden-Dokument.pdf'),documentType=text(file&&file.category||entry&&entry.documentType)||'Dokument',completed=text(entry&&entry.completedAt)||text(file&&file.uploadedAt)||now();
+ return [
+  'Ein Kunde hat über den ExportHUB-AVIS-Link ein neues Dokument hochgeladen.',
+  '',
+  'Sendungsreferenz: '+reference,
+  'Kunde: '+customer,
+  'Dokument: '+name,
+  'Dokumentart: '+documentType,
+  'Geprüft und gespeichert: '+completed,
+  '',
+  'Die Datei hat die Virenprüfung und die fachliche Sendungszuordnung bestanden.',
+  'Bitte ExportHUB → Benachrichtigungen öffnen und „PDF öffnen / drucken“ auswählen.'
+ ].join('\n')
+}
+async function notifyDespatchCustomerUpload(environment,sh,file,entry){
+ if(environment!=='production')return{ok:true,skipped:true,reason:'non-production'};
+ const recipient=text(AVIS_UPLOAD_NOTIFICATION_TO);
+ if(!recipient)return{ok:true,skipped:true,reason:'recipient-disabled'};
+ try{
+  const sent=await graphMail.sendTextMail({to:recipient,subject:avisUploadMailSubject(sh,file),body:avisUploadMailBody(sh,file,entry)});
+  return{ok:true,to:recipient,attempts:Number(sent&&sent.attempts||1)}
+ }catch(e){
+  return{ok:false,to:recipient,code:text(e&&e.code)||'AVIS_UPLOAD_MAIL_FAILED'}
+ }
+}
 async function readBlobBytes(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
 function blobExistsConflict(e){const status=Number(e&&e.statusCode||e&&e.status||0);return status===409||status===412||/BlobAlreadyExists|ConditionNotMet/i.test(String(e&&e.code||''))}
 async function uploadQuarantinePdf(sessionInfo,session,validated){
@@ -197,9 +229,11 @@ async function promoteCleanCustomerPdf(teamBlob,sessionInfo,session,quarantineBl
   if(typeof targetBlob.uploadData==='function')await targetBlob.uploadData(bytes,options);else await targetBlob.upload(bytes,bytes.length,options)
  }catch(e){if(!blobExistsConflict(e))throw e}
  const file={id:'customer-avis-'+uploadId.slice(0,20),name,category:content.documentTypeLabel||'Anhang',documentType:docType,mimeType:'application/pdf',type:'application/pdf',size:bytes.length,storage:'blob',blobName,sha256:uploadId,customerAvisVisible:true,source:'customer-avis-upload',uploadedAt,uploadedBy:'Kunde via Lieferavis',malwareScan:{provider:'Microsoft Defender for Storage',result:'No threats found',scanTime:text(scan.scanTime)},businessValidation:{result:'matched',code:content.code,matched:content.matched}};
- const shipment=await updateCustomerUploadOutcome(teamBlob,sessionInfo,session,{id:uploadId,name,size:bytes.length,status:'saved',documentType:docType,uploadedAt:text(queueEntry&&queueEntry.uploadedAt)||text(metadata.uploadedat),completedAt:uploadedAt,message:'Virenprüfung und fachliche Sendungszuordnung erfolgreich. PDF gespeichert.',scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched},file);
+ const completedEntry={id:uploadId,name,size:bytes.length,status:'saved',documentType:docType,uploadedAt:text(queueEntry&&queueEntry.uploadedAt)||text(metadata.uploadedat),completedAt:uploadedAt,message:'Virenprüfung und fachliche Sendungszuordnung erfolgreich. PDF gespeichert.',scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched};
+ const shipment=await updateCustomerUploadOutcome(teamBlob,sessionInfo,session,completedEntry,file);
+ const mailNotification=await notifyDespatchCustomerUpload(sessionInfo.environment,shipmentForCheck,file,completedEntry);
  try{if(typeof quarantineBlob.deleteIfExists==='function')await quarantineBlob.deleteIfExists()}catch(_){}
- return{ok:true,status:'saved',upload:{id:uploadId,name,size:bytes.length,status:'saved',documentType:docType,scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched},shipment}
+ return{ok:true,status:'saved',upload:{id:uploadId,name,size:bytes.length,status:'saved',documentType:docType,scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched},shipment,mailNotification}
 }
 async function blockCustomerPdf(teamBlob,sessionInfo,session,quarantineBlob,uploadId,scan,queueEntry){
  const code=scan.status==='malicious'?'PDF_MALWARE_DETECTED':scan.status==='not-scanned'?'PDF_NOT_SCANNED':'PDF_SCAN_FAILED';
