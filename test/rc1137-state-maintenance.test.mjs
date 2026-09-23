@@ -74,13 +74,13 @@ test('RC1137: Workflow läuft erst nach erfolgreichem Deploy, TESTSERVICE vollst
 });
 
 
-test('RC1137: Backup-Verifikation lädt den großen State nicht erneut herunter',()=>{
+test('RC1234: Backup-Verifikation liest das Backup nach Upload vollständig zurück',()=>{
   const source=fs.readFileSync(API,'utf8');
   const start=source.indexOf('async function createVerifiedBackup');
   const end=source.indexOf('module.exports=',start);
   assert.ok(start>=0&&end>start,'Backup-Funktion fehlt');
   const block=source.slice(start,end);
   assert.match(block,/getProperties\(/,'Backup muss per Blob-Eigenschaften verifiziert werden');
-  assert.doesNotMatch(block,/readBuffer\(blob\)/,'Backup darf nach Upload nicht erneut vollständig heruntergeladen werden');
+  assert.match(block,/readBuffer\(blob\)/,'RC1234 verlangt einen vollständigen Backup-Readback vor erfolgreicher Verifikation');
   assert.match(block,/metadata.*sha256|sha256.*metadata/s,'SHA256-Metadatenprüfung fehlt');
 });
