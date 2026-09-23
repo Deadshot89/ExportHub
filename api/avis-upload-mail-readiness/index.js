@@ -69,12 +69,28 @@ module.exports=async function(context,req){
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
  try{
   if(!await githubOidcAuthorized(req))throw error('WORKFLOW_REQUIRED','Readiness darf nur durch den signierten ExportHUB-Releaseworkflow geprüft werden.',403);
-  const environment=environmentOf(req),cfg=graphMail.readiness(),recipient=text(process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO)||DEFAULT_RECIPIENT;
+  const environment=environmentOf(req),cfg=graphMail.readiness(),recipient=text(process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO)||DEFAULT_RECIPIENT,action=lower(req&&req.body&&req.body.action);
   if(!cfg.configured||!validEmail(recipient)){
-   context.res=json(503,{ok:false,configured:false,environment,recipientConfigured:validEmail(recipient),missing:Array.isArray(cfg.missing)?cfg.missing:[],code:!cfg.configured?'GRAPH_MAIL_NOT_CONFIGURED':'MAIL_RECIPIENT_INVALID',version:'RC1249'});return
+   context.res=json(503,{ok:false,configured:false,environment,recipientConfigured:validEmail(recipient),missing:Array.isArray(cfg.missing)?cfg.missing:[],code:!cfg.configured?'GRAPH_MAIL_NOT_CONFIGURED':'MAIL_RECIPIENT_INVALID',version:'RC1251'});return
   }
-  context.res=json(200,{ok:true,configured:true,environment,recipient,version:'RC1249'})
+  if(action==='send-test'){
+   if(environment!=='production')throw error('PRODUCTION_ONLY','Der AVIS-Mail-Livetest ist ausschließlich in Produktion erlaubt.',409);
+   const mailProbe=await graphMail.sendTextMail({
+    to:recipient,
+    subject:'[TEST] ExportHUB AVIS-Upload Benachrichtigung – RC1251',
+    body:[
+     'Automatischer einmaliger ExportHUB Release-Test.',
+     'Kein Kundenupload und kein echtes Kundendokument.',
+     '',
+     'Dieser Test bestätigt den produktiven Mailkanal für geprüfte AVIS-Kundenuploads.',
+     'Ziel: '+recipient,
+     'Aktion im Echtbetrieb: Nach Defender-Clean, fachlicher Dokumentprüfung und erfolgreicher Speicherung wird Despatch benachrichtigt.'
+    ].join('\\n')
+   });
+   context.res=json(200,{ok:true,configured:true,environment,recipient,mailProbe:{ok:mailProbe&&mailProbe.ok===true,to:text(mailProbe&&mailProbe.to),sender:text(mailProbe&&mailProbe.sender),attempts:Number(mailProbe&&mailProbe.attempts||0)},version:'RC1251'});return
+  }
+  context.res=json(200,{ok:true,configured:true,environment,recipient,version:'RC1251'})
  }catch(e){
-  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'AVIS-Mail-Readiness fehlgeschlagen.',version:'RC1249'})
+  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'AVIS-Mail-Readiness fehlgeschlagen.',version:'RC1251'})
  }
 };
