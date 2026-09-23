@@ -84,7 +84,7 @@ test('RC1207: Testservice/Demo führen den Produktions-Cleanup nicht aus',async(
 });
 
 test('RC1207: Build liefert Runtime in Produktion, TESTSERVICE und Demo aus',()=>{
-  assert.match(build,/assets\/rc1207-pallet-account-fix\.js\?v=1207/);
+  assert.match(build,/assets\/rc1207-pallet-account-fix\.js\?v=1246/);
   assert.match(build,/RC1207 Palettenkonto-Runtime fehlt/);
   assert.match(build,/palletAccountDirectionAndAdminDelete:'RC1207/);
 });
