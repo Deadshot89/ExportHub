@@ -34,6 +34,12 @@ function currentState(){
  try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
  return window.ExportHUBClean&&window.ExportHUBClean.state||window.appState||{}
 }
+function rc1021ShipmentViewActive(){
+ var state=currentState(),view=q(state.view||state.currentView||state.activeView||state.page).toLowerCase();
+ if(view)return view==='shipment'||view==='shipmentview';
+ try{var bodyView=q(document&&document.body&&document.body.getAttribute&&document.body.getAttribute('data-exporthub-view')).toLowerCase();if(bodyView)return bodyView==='shipment'||bodyView==='shipmentview'}catch(_){}
+ try{return !!(document&&document.querySelector&&document.querySelector('#rc573ShipmentShell,#rc363FixedShipmentLayout,[data-exporthub-rendered-view="shipment"]'))}catch(_){return false}
+}
 function currentShipmentForAvis(){
  var state=currentState(),ref=rc1015DraftReference(),lists=[state.shipments,state.savedShipments,state.salesSharedShipments,state.sharedShipments],candidates=[];
  function add(item){if(item&&typeof item==='object'&&candidates.indexOf(item)<0)candidates.push(item)}
@@ -166,6 +172,7 @@ async function rc1015Toggle(on){
  }
 }
 async function rc1021AutoEnable(reason){
+ if((reason==='exporthub:viewchange'||reason==='exporthub:rendered'||reason==='exporthub:sync')&&!rc1021ShipmentViewActive())return false;
  var sh=currentShipmentForAvis();
  if(!rc1021ShouldAutoEnable(sh))return false;
  var ref=rc1015DraftReference();
