@@ -45,6 +45,17 @@ function patchMainCountryDetection(html,file){
 }
 
 
+
+function patchAuthSessionTimeout(html,file){
+  const before="const d=await authCall('session',{});";
+  const after="const d=await authCall('session',{},runtime.authToken,{timeoutMs:120000,maxAttempts:1});";
+  const count=html.split(before).length-1;
+  if(count!==1)throw new Error(file+': RC1247 Session-Keepalive-Anker '+count+'x gefunden');
+  html=html.replace(before,after);
+  if(!html.includes(after))throw new Error(file+': RC1247 Session-Keepalive verwendet nicht 120s Einzelrequest');
+  return html;
+}
+
 function patchDemoTestPortalIsolation(html,file){
   if(file!=='demo.html')return html;
   const originAnchor="namedTest=/-testservice\\./i.test(h);";
@@ -217,6 +228,7 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchDemoTestPortalIsolation(html,file);
+  html=patchAuthSessionTimeout(html,file);
   html=patchMainCountryDetection(html,file);
   html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
