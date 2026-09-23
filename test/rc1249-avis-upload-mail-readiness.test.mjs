@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const source=fs.readFileSync('api/avis-upload-mail-readiness/index.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 test('RC1249: AVIS-Mail-Readiness ist ausschließlich für signierten Release-Workflow vorgesehen',()=>{
   assert.match(source,/OIDC_AUDIENCE='exporthub-avis-upload-mail-readiness'/);
@@ -38,4 +39,16 @@ test('RC1249: anonymer Readiness-Aufruf wird abgewiesen',async()=>{
   const body=JSON.parse(context.res.body);
   assert.equal(body.ok,false);
   assert.equal(body.code,'WORKFLOW_REQUIRED');
+});
+
+
+test('RC1249: Release prüft TESTSERVICE und PRODUCTION Mail-Readiness in sicherer Reihenfolge',()=>{
+  const testReady=workflow.indexOf('RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen');
+  const prodDeploy=workflow.indexOf('Deploy ExportHUB production');
+  const prodReady=workflow.indexOf('RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen');
+  const liveQr=workflow.indexOf('RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen');
+  assert.ok(testReady>=0&&prodDeploy>testReady,'TESTSERVICE Mail-Readiness muss Produktion blockieren können');
+  assert.ok(prodReady>prodDeploy&&liveQr>prodReady,'PRODUCTION Mail-Readiness muss direkt nach Deployment verifiziert werden');
+  assert.match(workflow,/audience=exporthub-avis-upload-mail-readiness/);
+  assert.match(workflow,/DespatchNettetal@essentra\.onmicrosoft\.com/);
 });
