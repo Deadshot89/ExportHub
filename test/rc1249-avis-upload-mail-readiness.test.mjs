@@ -52,3 +52,24 @@ test('RC1249: Release prüft TESTSERVICE und PRODUCTION Mail-Readiness in sicher
   assert.match(workflow,/audience=exporthub-avis-upload-mail-readiness/);
   assert.match(workflow,/DespatchNettetal@essentra\.onmicrosoft\.com/);
 });
+
+
+test('RC1251: echter Mailprobe-Aufruf ist OIDC-geschützt, production-only und fest auf Despatch begrenzt',()=>{
+  assert.match(source,/action==='send-test'/);
+  assert.match(source,/environment!=='production'/);
+  assert.match(source,/graphMail\.sendTextMail\(/);
+  assert.match(source,/\[TEST\] ExportHUB AVIS-Upload Benachrichtigung/);
+  assert.match(source,/Kein Kundenupload und kein echtes Kundendokument/);
+  assert.match(source,/to:recipient/);
+});
+
+test('RC1251: Live-Mailprobe läuft nur einmalig auf dem benannten RC1251 Push und vor den übrigen Production-Livechecks',()=>{
+  const readiness=workflow.indexOf('RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen');
+  const probe=workflow.indexOf('RC1251 PRODUCTION AVIS-Mail Liveversand einmalig prüfen');
+  const qr=workflow.indexOf('RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen');
+  assert.ok(readiness>=0&&probe>readiness&&qr>probe);
+  assert.match(workflow,/contains\(github\.event\.head_commit\.message, 'RC1251: AVIS-Mail Liveversand verifizieren'\)/);
+  assert.match(workflow,/-d '\{"action":"send-test"\}'/);
+  assert.match(workflow,/mailProbe\.ok!==true/);
+  assert.match(workflow,/DespatchNettetal@essentra\.onmicrosoft\.com/);
+});
