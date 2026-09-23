@@ -17,13 +17,16 @@ test('RC1249: AVIS-Mail-Readiness ist ausschließlich für signierten Release-Wo
   assert.doesNotMatch(source,/clientSecret/,'Readiness-Endpunkt darf Graph-Secrets nicht selbst ausgeben oder verarbeiten');
 });
 
-test('RC1249: AVIS-Mail-Readiness prüft Graph-Konfiguration und Despatch-Empfänger ohne Testmail',()=>{
+test('RC1249: normale AVIS-Mail-Readiness prüft nur Konfiguration; Versand benötigt die explizite RC1251 send-test Aktion',()=>{
   assert.match(source,/graphMail\.readiness\(\)/);
   assert.match(source,/EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO/);
   assert.match(source,/DespatchNettetal@essentra\.onmicrosoft\.com/);
   assert.match(source,/GRAPH_MAIL_NOT_CONFIGURED/);
   assert.match(source,/MAIL_RECIPIENT_INVALID/);
-  assert.doesNotMatch(source,/sendTextMail/,'Readiness darf keine Testmail senden');
+  const action=source.indexOf("if(action==='send-test')");
+  const send=source.indexOf('graphMail.sendTextMail(',action);
+  const normal=source.indexOf("context.res=json(200,{ok:true,configured:true,environment,recipient,version:'RC1251'})",action);
+  assert.ok(action>=0&&send>action&&normal>send,'Mailversand darf nur im expliziten send-test Zweig liegen; normale Readiness bleibt versandfrei');
 });
 
 test('RC1249: finaler Build verlangt den Readiness-Endpunkt',()=>{
