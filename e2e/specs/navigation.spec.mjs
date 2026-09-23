@@ -8,6 +8,7 @@ import {
   assertNoHorizontalOverflow,
   attachRuntimeGuards,
   acknowledgePickupStatusNavigationAbort,
+  acknowledgeConfirmedAuthNavigationAbort,
   assertRuntimeClean,
   installE2ESession
 } from '../helpers/exporthub-browser.mjs';
@@ -59,6 +60,8 @@ test('RC1124 P0: Hauptnavigation öffnet auf jedem Viewport die richtige Ansicht
   }
   const pickupNavigationAborts=acknowledgePickupStatusNavigationAbort(runtime);
   expect(pickupNavigationAborts,'Unerwartet viele beim View-Wechsel abgebrochene Pickup-Status-Requests').toBeLessThanOrEqual(1);
+  const authNavigationAborts=await acknowledgeConfirmedAuthNavigationAbort(runtime,page);
+  expect(authNavigationAborts,'Unerwartet viele abgebrochene Auth-Requests trotz bestätigter Sitzung').toBeLessThanOrEqual(1);
   await assertRuntimeClean(runtime,testInfo);
 });
 
