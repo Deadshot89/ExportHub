@@ -28,6 +28,13 @@ function actor(){
   return q(u.name||u.displayName||u.user||u.username||u.login||'Admin');
 }
 function canAdmin(){try{return typeof root.canAdmin==='function'&&root.canAdmin('pallet')===true}catch(_){return false}}
+function palletViewActive(){
+  var s=state(),view=low(s&&(s.view||s.currentView));
+  if(view==='pallet')return true;
+  if(view)return false;
+  var d=root.document;
+  return !!(d&&d.querySelector&&d.querySelector('.rc542-table,#rc542PalIn,#rc542PalOut,[data-exporthub-rendered-view="pallet"]'))
+}
 function bookingId(b,index){return q(b&&(b.id||b._syncId))||('index:'+index)}
 function bookingDay(b){
   var raw=q(b&&(b.date||b.bookingDate||b.createdAt||b.bookedAt||b.timestamp));
@@ -146,8 +153,11 @@ function enhanceAdminDeleteButtons(){
   return true;
 }
 function scheduleEnhance(){
+  installBookingGuard();
+  if(!palletViewActive())return false;
   var schedule=root.setTimeout||setTimeout;if(enhanceTimer&&root.clearTimeout)root.clearTimeout(enhanceTimer);
   enhanceTimer=schedule(function(){enhanceTimer=0;enhanceAdminDeleteButtons()},0);
+  return true;
 }
 async function cleanupProductionDayOnce(){
   if(environment()!=='production'||cleanupInFlight)return false;
@@ -189,12 +199,12 @@ if(root.addEventListener){
 if(root.document&&root.document.readyState!=='loading'){scheduleEnhance()}
 else if(root.document&&root.document.addEventListener)root.document.addEventListener('DOMContentLoaded',scheduleEnhance,{once:true});
 if(typeof root.MutationObserver==='function'&&root.document){
-  try{var target=root.document.body||root.document.documentElement;if(target)new root.MutationObserver(scheduleEnhance).observe(target,{childList:true,subtree:true})}catch(_){}
+  try{var target=root.document.body||root.document.documentElement;if(target)new root.MutationObserver(function(){if(palletViewActive())scheduleEnhance()}).observe(target,{childList:true,subtree:true})}catch(_){}
 }
 (root.setTimeout||setTimeout)(function(){scheduleEnhance();if(environment()==='production')scheduleCleanup()},4500);
 
 root.ExportHUBRC1207PalletFix=Object.freeze({
-  version:'RC1207',cleanupDate:CLEANUP_DATE,bookingDay:bookingDay,chosenDirection:chosenDirection,syncDirectionUi:syncDirectionUi,
+  version:'RC1246',cleanupDate:CLEANUP_DATE,bookingDay:bookingDay,chosenDirection:chosenDirection,syncDirectionUi:syncDirectionUi,palletViewActive:palletViewActive,
   installBookingGuard:installBookingGuard,enhanceAdminDeleteButtons:enhanceAdminDeleteButtons,deletePalletBooking:deletePalletBooking,
   cleanupProductionDayOnce:cleanupProductionDayOnce
 });
