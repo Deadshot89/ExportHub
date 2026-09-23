@@ -36,9 +36,10 @@ function isValidSlot(from, to){
 
 function identityOf(sh){
   if(!sh || typeof sh !== 'object') return '';
-  const id = text(sh.id || sh.shipmentId || sh.uuid || sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber);
   const ref = text(sh.reference || sh.ref || sh.shipmentRef || sh.referenceNumber || sh.shipmentNumber || sh.customerAvisShipmentNumber || sh.avisShipmentNumber).toUpperCase();
-  return id + '|' + ref;
+  if(ref) return 'REF|'+ref;
+  const id = text(sh.id || sh.shipmentId || sh.uuid);
+  return id ? 'ID|'+id : '';
 }
 
 function appointmentOf(sh){
