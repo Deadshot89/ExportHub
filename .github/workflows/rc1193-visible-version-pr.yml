@@ -1,4 +1,4 @@
-name: RC1193 Visible Version PR Browser Gate
+name: RC1231 Visible Version PR Browser Gate
 
 on:
   pull_request:
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
-      - name: RC1193 Vertrag prüfen
+      - name: RC1231 Vertrag prüfen
         run: node --test test/rc1193-visible-release-version.test.mjs
       - name: Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
