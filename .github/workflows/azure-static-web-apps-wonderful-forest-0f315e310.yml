@@ -630,6 +630,32 @@ jobs:
           if [ "$status" != "200" ]; then cat "$response"; exit 1; fi
           node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.environment!=='production'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
 
+      - name: RC1251 PRODUCTION AVIS-Mail Liveversand einmalig prüfen
+        if: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, 'RC1251: AVIS-Mail Liveversand verifizieren') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-avis-upload-mail-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          status="$(
+            curl -sS -o "$response" -w '%{http_code}' --max-time 45 -X POST \
+              -H 'Content-Type: application/json' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: production' \
+              -d '{"action":"send-test"}' \
+              "$base/api/avis-upload-mail-readiness"
+          )"
+          if [ "$status" != "200" ]; then cat "$response"; exit 1; fi
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||!v.mailProbe||v.mailProbe.ok!==true||v.mailProbe.to!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1);console.log('RC1251 production mail probe accepted',JSON.stringify({ok:v.mailProbe.ok,to:v.mailProbe.to,attempts:v.mailProbe.attempts,version:v.version}))" "$response"
+
       - name: RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen
         shell: bash
         run: |
