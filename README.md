@@ -1,6 +1,6 @@
 # ExportHUB – aktueller Main-Stand
 
-ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1237**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
+ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1242**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
 
 ## Aktueller Release-Stand
 
@@ -18,6 +18,10 @@ Seit RC1223 wurden unter anderem folgende releasekritische Punkte ergänzt oder 
 - **RC1235** – fehlerhaften Pickup/POD-Live-Gate-Marker korrigiert; keine Fachlogik geändert.
 - **RC1236** – unnötige Avis-Autosaves bei Navigation außerhalb der Sendungsansicht entfernt.
 - **RC1237** – Ziellanderkennung auf der Hauptseite korrigiert: Standortland → Lieferadresse → Kunden-Stammland; italienische CAP-/Provinzkürzel wie `60044 Albacina-Fabriano AN` werden korrekt erkannt.
+- **RC1239** – TESTSERVICE-Browser-Gate gegen View-Re-Render-Races stabilisiert; View-Inhalt wird atomar aus dem DOM gelesen.
+- **RC1240** – signierte TESTSERVICE-E2E-Sitzung auf 45 Minuten erweitert; ausschließlich gültig `E2E-*`-markierte Alt-Testdaten werden vor einem neuen Lauf bereinigt.
+- **RC1241** – POD-Reconcile leert den sicherungsfähigen Backlog in mehreren Batches und gilt erst bei vollständig leerem Backlog als erfolgreich.
+- **RC1242** – QR-Abholung erzwingt die Reihenfolge Sendung → Collis bestätigen → Fahrer/Fahrzeug/Unterschrift/PIN; fehlende erwartete Colli-Anzahl sperrt die Abholung fail-closed.
 
 Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Buildkette getrennt. Dadurch können fachliche Korrekturen unabhängig vom technischen Buildmarker ausgeliefert werden.
 
@@ -27,6 +31,7 @@ Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Bui
 - TESTSERVICE wird vor Produktion durch ein echtes Playwright-Browser-Gate geprüft.
 - Produktion wird erst nach grünem TESTSERVICE-Gate freigegeben.
 - Nach dem Produktionsdeploy laufen zusätzliche Read-only Browser-Smokes und Live-Prüfungen.
+- Der TESTSERVICE-E2E-Fixture verwendet ausschließlich signierte, TESTSERVICE-isolierte 45-Minuten-Sitzungen; vor jedem Lauf werden nur eindeutig `E2E-*`-markierte Alt-Testdaten bereinigt.
 - `index.html`, `TESTVERSION.html` und `demo.html` verwenden denselben RC1112-Funktionsstand.
 - Topbar, Navigation, globale Suche, Warncenter, persönliche Benachrichtigungen, Fehlerdiagnose, Historie, Abholkalender und Sendungsübersicht sind Bestandteil des aktuellen Stands.
 
@@ -41,7 +46,7 @@ Die Archivkopie wird content-addressed und SHA-256-geprüft gespeichert. Neue Ar
 
 Microsoft 365 / Microsoft Graph ist für die verpflichtende Zweitsicherung nicht erforderlich und kann nur optional verwendet werden.
 
-Der Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft und vervollständigt offene POD-Sicherungen nach Deploys sowie regelmäßig per Zeitplan.
+Der Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft und vervollständigt offene POD-Sicherungen nach Deploys sowie regelmäßig per Zeitplan. Im vollständigen Drain-Modus verarbeitet er bis zu zehn Batches à 25 Einträge und gilt erst dann als erfolgreich, wenn kein sicherungsfähiger Backlog mehr übrig ist; Pending- oder Fehlerzustände bleiben harte Fehler.
 
 Zusätzlich enthält der aktuelle Stand einen **RC1234 TESTSERVICE-Restore-Drill**. Der Drill ist ausdrücklich auf TESTSERVICE begrenzt und stellt einen verifizierten Backup-Stand in einen isolierten Recovery-Zielblob wieder her. Dabei werden unter anderem SHA-256, Revision und Sendungsreferenz geprüft. Produktivdaten werden durch diesen Drill nicht überschrieben.
 
@@ -54,6 +59,14 @@ Die QR-Abholung und die automatisch erzeugte signierte POD-Ladeliste sind durch 
 - POD-Dokument-Viewer ausgeliefert,
 - geschützter Dokument-Endpunkt ohne gültige Sitzung nicht frei zugänglich,
 - tatsächlich verwendete Pickup-/POD-Runtime-Marker vorhanden.
+
+Der operative Abholablauf ist auf der öffentlichen QR-Seite verbindlich gestuft:
+
+1. Sendungsinformationen prüfen,
+2. Collis bestätigen,
+3. Fahrer-/Fahrzeugdaten, Unterschrift und persönlichen Verlader-PIN erfassen.
+
+Ändert sich die Colli-Anzahl, wird der Fahrer-Schritt wieder gesperrt. Fehlt die erwartete Colli-Anzahl in den Sendungsdaten, bleibt die Abholung fail-closed gesperrt.
 
 ## Versandkosten und Zielland
 
