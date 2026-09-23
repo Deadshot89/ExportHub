@@ -10,7 +10,7 @@ const NUMBER='1112';
 const LEGACY_TESTSERVICE_HOST='wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
 const CURRENT_TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
-const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1206"></script>';
+const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1227"></script>';
 
 function injectDeferredRuntimeInHead(html,tag,id){
   if(id&&(html.includes('id="'+id+'"')||html.includes("id='"+id+"'")))return html;
