@@ -102,9 +102,11 @@ async function openMenu(page){
 }
 
 async function contentText(page){
-  const content=page.locator('#content').first();
-  if(await content.count()&&await content.isVisible().catch(()=>false))return content.innerText();
-  return page.locator('body').innerText();
+  return page.evaluate(()=>{
+    const content=document.getElementById('content');
+    if(content)return String(content.innerText||'');
+    return String(document.body&&document.body.innerText||'');
+  }).catch(()=>'');
 }
 
 async function waitForRequired(page,requiredText){
