@@ -344,6 +344,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podTargetFailClosed:'RC1195 explicit drive user + folder required, no personal OneDrive fallback',
     podBackupStatusUi:'RC1220 shipment overview Azure/archive backup status',
     podTargetedProof:'RC1220 targeted archive proof: found/already-saved/saved-now/not-found/pending',
+    podArchiveIntegrity:'RC1226 archive read-back + scheduled integrity verification',
     avisReminderOverview:'RC1207 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
