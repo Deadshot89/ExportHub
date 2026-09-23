@@ -6,21 +6,21 @@ import {execFileSync} from 'node:child_process';
 const FILE='docs/runbooks/azure-security-app-settings.md';
 const source=fs.readFileSync(FILE,'utf8');
 
-test('RC1192: Runbook deckt beide verbleibenden Azure-Sicherheitssettings ab',()=>{
+test('RC1225: Runbook deckt beide Azure-Sicherheitssettings und den bestätigten Live-Status ab',()=>{
   for(const marker of [
     'EXPORTHUB_CUSTOMER_PORTAL_KEY',
     'EXPORTHUB_AUTH_SIGNING_SECRET',
     'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',
     'wonderful-forest-0f315e310.7.azurestaticapps.net',
-    'CUSTOMER_PORTAL_NOT_CONFIGURED',
+    'configured=true',
     'signingSecretConfigured=true',
     'RC1170 TESTSERVICE Kundenportal-Verschlüsselung prüfen',
     'RC1170 PRODUCTION Kundenportal-Verschlüsselung prüfen',
     'RC1050 Storage Probe'
-  ]) assert.ok(source.includes(marker),marker+' fehlt im RC1192-Runbook');
+  ]) assert.ok(source.includes(marker),marker+' fehlt im aktuellen Security-Runbook');
 });
 
-test('RC1192: Portalweg und getrennte Umgebungen sind eindeutig dokumentiert',()=>{
+test('RC1225: Portalweg und getrennte Umgebungen sind eindeutig dokumentiert',()=>{
   assert.match(source,/Settings.*Environment variables/s);
   assert.match(source,/TESTSERVICE[\s\S]*EXPORTHUB_CUSTOMER_PORTAL_KEY/);
   assert.match(source,/PRODUCTION[\s\S]*EXPORTHUB_CUSTOMER_PORTAL_KEY/);
