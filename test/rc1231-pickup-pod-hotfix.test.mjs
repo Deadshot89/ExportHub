@@ -34,8 +34,9 @@ test('RC1231: interner Dokument-Endpunkt erlaubt nur automatische POD-PDFs aus d
   assert.match(documentApi,/await auth\.validateSession\(req\)/);
   assert.match(documentApi,/function validPickupPodBlobName/);
   assert.match(documentApi,/\/automatic\\\/\[\^\/\]\+\\\.pdf/);
-  assert.match(documentApi,/pickupStore\.POD_CONTAINER/);
-  assert.match(documentApi,/validPickupPodBlobName\(blobName\)\?pickupStore\.POD_CONTAINER:DOCUMENT_CONTAINER/);
+  assert.match(documentApi,/const POD_CONTAINER=process\.env\.EXPORTHUB_POD_CONTAINER\|\|'exporthub-pod'/);
+  assert.match(documentApi,/validPickupPodBlobName\(blobName\)\?POD_CONTAINER:DOCUMENT_CONTAINER/);
+  assert.doesNotMatch(documentApi,/require\('\.\.\/shared\/pickup-store'\)/);
 });
 
 test('RC1231: Browser-Viewer erkennt signierte automatische POD-Ladelisten, aber keine Fahrer-Signaturdateien',()=>{
