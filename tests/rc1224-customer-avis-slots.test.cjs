@@ -45,4 +45,24 @@ const staggeredSlot = slots.slotState(staggered,'2026-09-24','09:00','11:00');
 assert.strictEqual(staggeredSlot.bookedPeak, 1, 'Kapazität muss nach tatsächlicher Gleichzeitigkeit berechnet werden.');
 assert.strictEqual(staggeredSlot.remaining, 2);
 
+const fs = require('fs');
+const apiSource = fs.readFileSync('api/customer-avis/index.js','utf8');
+const pageSource = fs.readFileSync('customer-avis.html','utf8');
+
+for(const required of [
+  "require('../shared/customer-avis-slots')",
+  "postAction==='availability'",
+  "PICKUP_SLOT_FULL",
+  "addAppointmentNotification",
+  "team.clientVersion='RC1224'"
+]) assert(apiSource.includes(required), 'API-Integration fehlt: '+required);
+
+for(const required of [
+  'id="slotPicker"',
+  "action:'availability'",
+  'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.',
+  "err.code==='PICKUP_SLOT_FULL'",
+  'appointmentInteraction'
+]) assert(pageSource.includes(required), 'Avis-UI-Integration fehlt: '+required);
+
 console.log('RC1224 customer avis slots regression: OK');
