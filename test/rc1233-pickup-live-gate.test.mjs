@@ -15,11 +15,11 @@ test('RC1233: Produktionsrelease prueft QR-Abholung und POD-Viewer explizit live
 });
 
 test('RC1233: Live-Gate prueft die konkreten reparierten Marker',()=>{
-  assert.match(workflow,/grep -Fq '\/api\/pickup-status' "\$pickup"/);
-  assert.match(workflow,/grep -Fq '\/api\/pickup-confirm-v2' "\$pickup"/);
-  assert.match(workflow,/grep -Fq '\/api\/pickup-pod' "\$pickup"/);
+  assert.match(workflow,/grep -Fq "fetch\('\/api\/'" "\$pickup"/);
+  assert.match(workflow,/grep -Fq "request\('pickup-status\?token='" "\$pickup"/);
+  assert.match(workflow,/grep -Fq "request\('pickup-confirm-v2'" "\$pickup"/);
   assert.match(workflow,/storage==='azure'\|\|storage==='pod'/);
-  assert.match(workflow,/grep -Fq '\/automatic\/' "\$viewer"/);
+  assert.match(workflow,/grep -Fq 'automatic' "\$viewer"/);
   assert.match(workflow,/grep -Fq '\/api\/exporthub-document\?blob=' "\$viewer"/);
 });
 
@@ -35,4 +35,11 @@ test('RC1233: Produktion und TESTSERVICE werden getrennt verifiziert',()=>{
   assert.match(workflow,/if \[ "\$env" = "production" \]; then base="\$prod"; else base="\$testservice"; fi/);
   assert.match(workflow,/blob="rc995\/\$env\/\$key\/automatic\/POD_RC1233\.pdf"/);
   assert.match(workflow,/environment=\$env/);
+});
+
+
+test('RC1235: Live-Gate prüft keine Endpunkte, die pickup.html nicht direkt verwendet',()=>{
+  assert.doesNotMatch(workflow,/grep -Fq '\/api\/pickup-pod' "\$pickup"/);
+  assert.match(workflow,/request\('pickup-status\?token='/);
+  assert.match(workflow,/request\('pickup-confirm-v2'/);
 });
