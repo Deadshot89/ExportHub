@@ -26,6 +26,25 @@ function patchRc1206ShippingRules(html,file){
   return injectDeferredRuntimeInHead(html,RC1206_SHIPPING_TAG,RC1206_SHIPPING_ID);
 }
 
+function patchMainCountryDetection(html,file){
+  const linesAnchor=" var lines=raw.split(/[\\n,;|]+/).map(q).filter(Boolean);";
+  const italyRule=" var italian=raw.match(/\\b([0-9]{5})\\b[\\s\\S]*\\b([A-Za-z]{2})\\s*$/),itProvinces='|AG|AL|AN|AO|AP|AQ|AR|AT|AV|BA|BG|BI|BL|BN|BO|BR|BS|BT|BZ|CA|CB|CE|CH|CI|CL|CN|CO|CR|CS|CT|CZ|EN|FC|FE|FG|FI|FM|FR|GE|GO|GR|IM|IS|KR|LC|LE|LI|LO|LT|LU|MB|MC|ME|MI|MN|MO|MS|MT|NA|NO|NU|OR|PA|PC|PD|PE|PG|PI|PN|PO|PR|PT|PU|PV|PZ|RA|RC|RE|RG|RI|RM|RN|RO|SA|SI|SO|SP|SR|SS|SU|SV|TA|TE|TN|TO|TP|TR|TS|TV|UD|VA|VB|VC|VE|VI|VR|VS|VT|VV|';if(italian&&itProvinces.indexOf('|'+String(italian[2]).toUpperCase()+'|')>=0)return countryName('IT');\n";
+  const count=html.split(linesAnchor).length-1;
+  if(count!==1)throw new Error(file+': RC1237 countryFromAddress-Anker '+count+'x gefunden');
+  html=html.replace(linesAnchor,italyRule+linesAnchor);
+
+  const customerFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
+  const addressFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
+  const orderCount=html.split(customerFirst).length-1;
+  if(orderCount!==1)throw new Error(file+': RC1237 Zielland-Priorität '+orderCount+'x gefunden');
+  html=html.replace(customerFirst,addressFirst);
+
+  if(!html.includes("itProvinces='|AG|AL|AN|"))throw new Error(file+': RC1237 Italien-Provinzerkennung fehlt');
+  if(!html.includes(addressFirst))throw new Error(file+': RC1237 Lieferadresse hat nicht Vorrang vor Kundenland');
+  return html;
+}
+
+
 function patchDemoTestPortalIsolation(html,file){
   if(file!=='demo.html')return html;
   const originAnchor="namedTest=/-testservice\\./i.test(h);";
@@ -198,6 +217,7 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchDemoTestPortalIsolation(html,file);
+  html=patchMainCountryDetection(html,file);
   html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
   html=patchTaskMasterSaveScope(html,file);
