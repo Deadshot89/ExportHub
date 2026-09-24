@@ -211,5 +211,10 @@
   "reports.print": "Imprimir informe",
   "admin.users": "Usuarios",
   "admin.rolesRights": "Roles y permisos",
-  "admin.sessions": "Sesiones"
+  "admin.sessions": "Sesiones",
+  "profile.badge": "PERFIL",
+  "profile.note": "El perfil utiliza alemán de forma predeterminada. El idioma del correo de un envío se gestiona de forma independiente. Las entradas existentes del historial conservan el nombre visible utilizado en ese momento.",
+  "profile.saving": "Guardando perfil …",
+  "profile.saveFailed": "Error al guardar",
+  "profile.displayNameRequired": "El nombre visible no puede estar vacío."
 }
