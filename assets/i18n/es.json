@@ -475,7 +475,7 @@
   "history.shipment.pickup-plan": "Recogida planificada o reservada",
   "history.shipment.pod": "POD",
   "history.shipment.document": "Documento",
-  "history.shipment.registration": "Registro de envío",
+  "history.shipment.registration": "Registro de envío iniciado",
   "history.shipment.work-start": "Trabajo en el envío iniciado",
   "history.shipment.event": "Acción de envío",
   "history.customer.customer-created": "Cliente creado",
