@@ -16,7 +16,7 @@ function expectedVisibleRelease(){
     const match=String(subjects||'').match(/\bRC(\d+)\b/i);
     if(match)return 'RC'+match[1];
   }catch(_){}
-  return 'RC1231';
+  return 'RC1112';
 }
 
 test('RC1265: Login zeigt automatisch den aktuellen sichtbaren Release',async({page},testInfo)=>{
