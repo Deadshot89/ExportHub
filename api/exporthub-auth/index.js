@@ -2,19 +2,20 @@
 
 const crypto = require('crypto');
 const auth = require('../shared/auth-store');
+const apiI18n = require('../shared/i18n');
 const { MODULES, normalizeUser, defaultRights } = require('../shared/user-policy');
 
-function responseError(context, e) {
+function responseError(context, req, e) {
   const status = e && e.status ? e.status : 500;
   context.res = auth.json(status, {
     ok: false,
     code: e && e.code ? e.code : 'SERVER_ERROR',
-    message: e && e.message ? e.message : 'Unbekannter Anmeldefehler.',
+    message: e && e.message ? e.message : apiI18n.t(req,'api.auth.unknownLogin'),
     retryAfterSeconds: e && e.retryAfterSeconds ? e.retryAfterSeconds : undefined
   });
 }
-function requireGlobalAdmin(session) {
-  if (!auth.isAdmin(session.user)) throw auth.error('ADMIN_REQUIRED', 'Nur globale Administratoren dürfen diese Aktion ausführen.', 403);
+function requireGlobalAdmin(session, req) {
+  if (!auth.isAdmin(session.user)) throw auth.error('ADMIN_REQUIRED', apiI18n.t(req,'api.auth.adminRequired'), 403);
 }
 function findByIdOrName(users, value) {
   const key = auth.lower(value);
@@ -111,7 +112,7 @@ async function validatePasswordChangeTicket(ticket, payload) {
 }
 
 
-async function login(payload) {
+async function login(payload, req) {
   const username = auth.text(payload.username || payload.user || payload.login);
   const password = String(payload.password || '');
   const recoveryRequested = payload.recoveryRequested === true || payload.mode === 'recovery';
@@ -158,8 +159,8 @@ async function login(payload) {
       }
     }
 
-    if (!user) return { ok: false, code: 'INVALID_CREDENTIALS', message: 'Benutzername oder Passwort ist falsch.', status: 401 };
-    if (!auth.isActive(user)) return { ok: false, code: 'ACCOUNT_DISABLED', message: 'Das Benutzerkonto ist deaktiviert.', status: 403 };
+    if (!user) return { ok: false, code: 'INVALID_CREDENTIALS', message: apiI18n.t(req,'api.auth.invalidCredentials'), status: 401 };
+    if (!auth.isActive(user)) return { ok: false, code: 'ACCOUNT_DISABLED', message: apiI18n.t(req,'api.common.accountDisabled'), status: 403 };
 
     const secureCredential = auth.credentialOf(user);
     const personalPasswordMatches = Boolean(secureCredential && auth.verifyCredential(password, secureCredential));
@@ -194,13 +195,13 @@ async function login(payload) {
     const lockUntil = Date.parse(security.lockedUntil || '');
     if (!initialPasswordMatches && !recoveryUnlockWithPersonalPassword) {
       if (security.permanentLocked === true) {
-        return { ok: false, code: 'ACCOUNT_LOCKED_ADMIN', message: 'Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden.', status: 423 };
+        return { ok: false, code: 'ACCOUNT_LOCKED_ADMIN', message: apiI18n.t(req,'api.auth.adminLocked'), status: 423 };
       }
       if (Number.isFinite(lockUntil) && lockUntil > Date.now()) {
         return {
           ok: false,
           code: 'ACCOUNT_LOCKED_TEMPORARY',
-          message: 'Das Konto ist vorübergehend gesperrt.',
+          message: apiI18n.t(req,'api.auth.lockedTemporary'),
           status: 423,
           retryAfterSeconds: Math.max(1, Math.ceil((lockUntil - Date.now()) / 1000))
         };
@@ -244,7 +245,7 @@ async function login(payload) {
         return {
           ok: false,
           code: 'INITIAL_ADMIN_NOT_CONFIGURED',
-          message: 'Für die Erstanmeldung muss EXPORTHUB_INITIAL_ADMIN_PASSWORD in Azure konfiguriert werden.',
+          message: apiI18n.t(req,'api.auth.bootstrapPasswordMissing'),
           status: 503
         };
       }
@@ -279,16 +280,16 @@ async function login(payload) {
       security.failedAttempts = Number(security.failedAttempts || 0) + 1;
       security.lastFailureAt = auth.now();
       const limit = security.stage === 'second' ? 2 : 5;
-      let result = { ok: false, code: 'INVALID_CREDENTIALS', message: 'Benutzername oder Passwort ist falsch.', status: 401 };
+      let result = { ok: false, code: 'INVALID_CREDENTIALS', message: apiI18n.t(req,'api.auth.invalidCredentials'), status: 401 };
       if (security.failedAttempts >= limit) {
         if (security.stage === 'second') {
           security.permanentLocked = true;
           security.lockedUntil = null;
-          result = { ok: false, code: 'ACCOUNT_LOCKED_ADMIN', message: 'Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden.', status: 423 };
+          result = { ok: false, code: 'ACCOUNT_LOCKED_ADMIN', message: apiI18n.t(req,'api.auth.adminLocked'), status: 423 };
         } else {
           security.stage = 'cooldown';
           security.lockedUntil = new Date(Date.now() + 30 * 60000).toISOString();
-          result = { ok: false, code: 'ACCOUNT_LOCKED_TEMPORARY', message: 'Das Konto wurde nach fünf Fehlversuchen für 30 Minuten gesperrt.', status: 423, retryAfterSeconds: 1800 };
+          result = { ok: false, code: 'ACCOUNT_LOCKED_TEMPORARY', message: apiI18n.t(req,'api.auth.lockedAfterFailures'), status: 423, retryAfterSeconds: 1800 };
         }
       }
       user.updatedAt = auth.now();
@@ -495,7 +496,7 @@ async function updateProfile(req, payload) {
 
 async function adminList(req) {
   const current = await auth.validateSession(req);
-  requireGlobalAdmin(current);
+  requireGlobalAdmin(current, req);
   const c = await auth.clients();
   const teamDoc = await auth.readJson(c.team, auth.emptyTeam());
   const team = auth.applyUserPolicy(teamDoc.value || auth.emptyTeam());
@@ -507,7 +508,7 @@ async function adminList(req) {
 
 async function adminCreate(req, payload) {
   const current = await auth.validateSession(req);
-  requireGlobalAdmin(current);
+  requireGlobalAdmin(current, req);
   const username = auth.text(payload.username || payload.user);
   const name = auth.text(payload.name) || username;
   if (!/^[A-Za-z0-9._-]{3,40}$/.test(username)) throw auth.error('INVALID_USERNAME', 'Der Benutzername muss 3 bis 40 Zeichen lang sein und darf nur Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich enthalten.', 400);
@@ -537,7 +538,7 @@ async function adminCreate(req, payload) {
 
 async function adminUpdate(req, payload) {
   const current = await auth.validateSession(req);
-  requireGlobalAdmin(current);
+  requireGlobalAdmin(current, req);
   const result = await auth.mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
@@ -571,7 +572,7 @@ async function adminUpdate(req, payload) {
 
 async function adminSetActive(req, payload) {
   const current = await auth.validateSession(req);
-  requireGlobalAdmin(current);
+  requireGlobalAdmin(current, req);
   const active = payload.active === true;
   const result = await auth.mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
@@ -590,7 +591,7 @@ async function adminSetActive(req, payload) {
 
 async function adminResetPassword(req, payload) {
   const current = await auth.validateSession(req);
-  requireGlobalAdmin(current);
+  requireGlobalAdmin(current, req);
   const startPassword = auth.generatedPassword();
   const result = await auth.mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
@@ -606,7 +607,7 @@ async function adminResetPassword(req, payload) {
 
 async function adminUnlock(req, payload) {
   const current = await auth.validateSession(req);
-  requireGlobalAdmin(current);
+  requireGlobalAdmin(current, req);
   const result = await auth.mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
@@ -620,7 +621,7 @@ async function adminUnlock(req, payload) {
 
 async function adminTerminateSessions(req, payload) {
   const current = await auth.validateSession(req);
-  requireGlobalAdmin(current);
+  requireGlobalAdmin(current, req);
   const userId = auth.text(payload.userId);
   const sessionId = auth.text(payload.sessionId);
   const result = await auth.mutateAuth((document) => {
@@ -661,7 +662,7 @@ module.exports = async function (context, req) {
     const action = auth.lower(payload.action);
     let result;
     if (action === 'bootstrap-status') result = await bootstrapStatus(payload);
-    else if (action === 'login') result = await login(payload);
+    else if (action === 'login') result = await login(payload, req);
     else if (action === 'change-password') result = await changePassword(req, payload);
     else if (action === 'logout') result = await logout(req);
     else if (action === 'session') {
@@ -676,14 +677,14 @@ module.exports = async function (context, req) {
     else if (action === 'admin-reset-password') result = await adminResetPassword(req, payload);
     else if (action === 'admin-unlock') result = await adminUnlock(req, payload);
     else if (action === 'admin-terminate-sessions') result = await adminTerminateSessions(req, payload);
-    else throw auth.error('UNKNOWN_ACTION', 'Unbekannte Anmeldeaktion.', 400);
+    else throw auth.error('UNKNOWN_ACTION', apiI18n.t(req,'api.release.invalidAction'), 400);
     const responseHeaders = {};
     if (result && result.token) responseHeaders['Set-Cookie'] = auth.sessionCookie(result.token, false);
     if (action === 'logout') responseHeaders['Set-Cookie'] = auth.sessionCookie('', true);
     context.res = auth.json(200, result, responseHeaders);
   } catch (e) {
     context.log.error('ExportHUB auth API error', e && e.code, e && e.message);
-    responseError(context, e);
+    responseError(context, req, e);
   }
 };
 
