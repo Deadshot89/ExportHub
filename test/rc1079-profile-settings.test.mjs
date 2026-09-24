@@ -41,6 +41,7 @@ test('RC1079: Sprache wird im Benutzerprofil gespeichert und Deutsch ist der sic
   assert.match(block,/user\.language = nextLanguage/);
   assert.match(block,/requestedLanguage === 'en' \? 'en' : 'de'/);
   assert.match(runtime,/applyProfileLanguage/);
+  assert.match(runtime,/ExportHUBI18n/);
   assert.match(runtime,/rc455SetLanguage/);
 });
 
