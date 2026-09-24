@@ -167,5 +167,17 @@
   "api.avis.mailStored": "Sprawdzono i zapisano: {{time}}",
   "api.avis.mailPassed": "Plik przeszedł kontrolę malware i sprawdzenie przypisania do przesyłki.",
   "api.avis.mailAction": "Otwórz ExportHUB → Powiadomienia i wybierz „Otwórz / drukuj PDF”.",
-  "api.auth.unknownAction": "Nieznana akcja uwierzytelniania."
+  "api.auth.unknownAction": "Nieznana akcja uwierzytelniania.",
+  "api.avis.documentTypeInvalid": "Wybierz prawidłowy typ dokumentu.",
+  "api.avis.textUnreadable": "Treść PDF nie jest wystarczająco czytelna maszynowo. Prześlij przeszukiwalny plik PDF.",
+  "api.avis.shipmentMismatch": "Nie udało się jednoznacznie przypisać pliku PDF do przesyłki. Plik nie zostanie zapisany.",
+  "api.avis.documentTypeMismatch": "Treść PDF nie odpowiada jednoznacznie wybranemu typowi dokumentu {{type}}. Plik nie zostanie zapisany.",
+  "api.avis.contentValid": "Treść PDF pasuje do przesyłki.",
+  "api.avis.textExtractionFailed": "Nie udało się bezpiecznie odczytać treści PDF ani przypisać jej do przesyłki. Plik nie zostanie zapisany.",
+  "api.avis.docType.cmr": "CMR / list przewozowy",
+  "api.avis.docType.delivery_note": "Dokument dostawy",
+  "api.avis.docType.invoice": "Faktura / Commercial Invoice",
+  "api.avis.docType.packing_list": "Lista pakowa",
+  "api.avis.docType.other": "Inne",
+  "api.avis.attachment": "Załącznik"
 }
