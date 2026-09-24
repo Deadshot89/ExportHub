@@ -91,5 +91,18 @@
   "api.pod.loadFailed": "Le POD n’a pas pu être chargé.",
   "api.common.postOnly": "Seule la méthode POST est autorisée.",
   "api.auth.adminRequired": "Seuls les administrateurs globaux peuvent effectuer cette action.",
-  "api.auth.adminLocked": "Le compte est verrouillé et seul un administrateur global peut le déverrouiller."
+  "api.auth.adminLocked": "Le compte est verrouillé et seul un administrateur global peut le déverrouiller.",
+  "api.common.environmentInvalid": "Environnement ExportHUB inconnu.",
+  "api.autofix.environmentMismatch": "L’environnement de diagnostic demandé ne correspond pas au site web.",
+  "api.autofix.sessionInvalid": "La session ExportHUB n’est plus valide.",
+  "api.autofix.sessionRevoked": "La session ExportHUB a été terminée.",
+  "api.autofix.adminRequired": "La correction automatique est réservée aux administrateurs globaux.",
+  "api.autofix.diagnosticNotFound": "L’entrée de diagnostic n’a pas été trouvée.",
+  "api.autofix.diagnosticConcurrent": "L’entrée de diagnostic a été modifiée simultanément.",
+  "api.autofix.jobNotFound": "La tâche autofix n’a pas été trouvée.",
+  "api.autofix.githubDispatchFailed": "GitHub autofix n’a pas pu être démarré (HTTP {{status}}).",
+  "api.autofix.githubTokenMissing": "Le jeton GitHub autofix n’est pas encore configuré sur le serveur.",
+  "api.autofix.disabledReason": "La correction automatique est actuellement volontairement désactivée. Aucune tâche IA externe n’est lancée.",
+  "api.autofix.diagnosticIdRequired": "L’identifiant de diagnostic manque.",
+  "api.autofix.alreadyRunning": "Une correction automatique est déjà en cours pour cette erreur."
 }
