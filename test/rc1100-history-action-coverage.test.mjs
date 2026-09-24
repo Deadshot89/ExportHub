@@ -54,11 +54,11 @@ test('RC1100: Statushistorie benennt Storno Nachbearbeitung Abschluss und Archiv
 
 test('RC1100: zentrale Aktionsabdeckung enthält Dokumentänderung ABD Anmeldung Druck Mail Avis Abholung POD',()=>{
   for(const marker of [
-    "base+' ersetzt'",
-    "base+' entfernt'",
-    "base+' hinzugefügt'",
-    "label:'ABD-Anfrage erstellt'",
-    "label:'Versandanmeldung gestartet'",
+    "change:'replaced'",
+    "change:'removed'",
+    "change:'added'",
+    "shipmentHistory.action.abdRequestCreated",
+    "shipmentHistory.action.registrationStarted",
     "type:'print'",
     "type:'mail-sent'",
     "type:'avis'",
