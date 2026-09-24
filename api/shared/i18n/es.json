@@ -91,5 +91,18 @@
   "api.pod.loadFailed": "No se pudo cargar el POD.",
   "api.common.postOnly": "Solo se permite POST.",
   "api.auth.adminRequired": "Solo los administradores globales pueden realizar esta acción.",
-  "api.auth.adminLocked": "La cuenta está bloqueada y solo puede desbloquearla un administrador global."
+  "api.auth.adminLocked": "La cuenta está bloqueada y solo puede desbloquearla un administrador global.",
+  "api.common.environmentInvalid": "Entorno de ExportHUB desconocido.",
+  "api.autofix.environmentMismatch": "El entorno de diagnóstico solicitado no coincide con el sitio web.",
+  "api.autofix.sessionInvalid": "La sesión de ExportHUB ya no es válida.",
+  "api.autofix.sessionRevoked": "La sesión de ExportHUB se ha cerrado.",
+  "api.autofix.adminRequired": "La corrección automática solo está disponible para administradores globales.",
+  "api.autofix.diagnosticNotFound": "No se encontró la entrada de diagnóstico.",
+  "api.autofix.diagnosticConcurrent": "La entrada de diagnóstico se modificó simultáneamente.",
+  "api.autofix.jobNotFound": "No se encontró el trabajo de autofix.",
+  "api.autofix.githubDispatchFailed": "No se pudo iniciar GitHub autofix (HTTP {{status}}).",
+  "api.autofix.githubTokenMissing": "El token de GitHub autofix aún no está configurado en el servidor.",
+  "api.autofix.disabledReason": "La corrección automática está desactivada intencionadamente en este momento. No se inicia ningún trabajo de IA externo.",
+  "api.autofix.diagnosticIdRequired": "Falta el ID de diagnóstico.",
+  "api.autofix.alreadyRunning": "Ya hay una corrección automática en curso para este error."
 }
