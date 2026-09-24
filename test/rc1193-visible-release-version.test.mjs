@@ -60,6 +60,11 @@ test('RC1265: lokale, TESTSERVICE- und Produktions-Browsergates prüfen die sich
   assert.match(prod,/version-display\.spec\.mjs/);
 });
 
+test('RC1265: laufender Produktionsrelease wird durch neue main-Pushes nicht mehr abgebrochen',()=>{
+  assert.match(workflow,/group:\s*exporthub-rc1112-three-env-\$\{\{ github\.ref \}\}/);
+  assert.match(workflow,/cancel-in-progress:\s*false/);
+});
+
 test('RC1265: statischer UI-Nachweis ignoriert erwartete fehlende API, Live-Gate bleibt streng',()=>{
   assert.match(spec,/EXPORTHUB_E2E_STATIC/);
   assert.match(spec,/assertRuntimeClean/);
